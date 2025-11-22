@@ -1,5 +1,5 @@
 {
-	"name": "group-wish-3",
+	"name": "group-wish-lists-open",
 	"private": true,
 	"type": "module",
 	"scripts": {
@@ -9,7 +9,7 @@
 		"test": "vitest run",
 		"lint": "eslint",
 		"format": "prettier",
-		"check": "prettier --write . && eslint --fix",
+		"check": "prettier --config prettier.config.cjs --write . && eslint --fix",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:push": "drizzle-kit push",
@@ -82,6 +82,7 @@
 		"@vitejs/plugin-react": "^5.0.4",
 		"babel-plugin-react-compiler": "^1.0.0",
 		"dotenv": "^16.0.0",
+		"eslint-config-prettier": "^10.1.8",
 		"jsdom": "^27.0.0",
 		"prettier": "^3.5.3",
 		"react-email": "^5.0.5",
