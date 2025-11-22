@@ -1,29 +1,29 @@
 {
-  "projectName": "group-wish-3",
-  "mode": "file-router",
-  "typescript": true,
-  "tailwind": true,
-  "packageManager": "pnpm",
-  "addOnOptions": {
-    "drizzle": {
-      "database": "postgresql"
-    }
-  },
-  "git": true,
-  "version": 1,
-  "framework": "react-cra",
-  "chosenAddOns": [
-    "eslint",
-    "nitro",
-    "start",
-    "compiler",
-    "db",
-    "drizzle",
-    "form",
-    "mcp",
-    "shadcn",
-    "t3env",
-    "storybook",
-    "tanstack-query"
-  ]
+	"projectName": "group-wish-lists-tanstack",
+	"mode": "file-router",
+	"typescript": true,
+	"tailwind": true,
+	"packageManager": "pnpm",
+	"addOnOptions": {
+		"drizzle": {
+			"database": "postgresql"
+		}
+	},
+	"git": true,
+	"version": 1,
+	"framework": "react-cra",
+	"chosenAddOns": [
+		"eslint",
+		"nitro",
+		"start",
+		"compiler",
+		"db",
+		"drizzle",
+		"form",
+		"mcp",
+		"shadcn",
+		"t3env",
+		"storybook",
+		"tanstack-query"
+	]
 }
