@@ -44,6 +44,7 @@
     "@tanstack/react-router-ssr-query": "^1.131.7",
     "@tanstack/react-start": "^1.132.0",
     "@tanstack/router-plugin": "^1.132.0",
+    "better-auth": "^1.4.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
@@ -73,6 +74,7 @@
     "@react-email/preview-server": "^5.0.5",
     "@tanstack/devtools-vite": "^0.3.11",
     "@tanstack/eslint-config": "^0.3.0",
+    "@tanstack/react-form-devtools": "^0.2.1",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.2.0",
     "@types/node": "^22.10.2",
@@ -83,6 +85,7 @@
     "babel-plugin-react-compiler": "^1.0.0",
     "dotenv": "^16.0.0",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-storybook": "10.0.8",
     "jsdom": "^27.0.0",
     "prettier": "^3.5.3",
     "react-email": "^5.0.5",
@@ -90,7 +93,6 @@
     "typescript": "^5.7.2",
     "vite": "^7.1.7",
     "vitest": "^3.0.5",
-    "web-vitals": "^5.1.0",
-    "eslint-plugin-storybook": "10.0.8"
+    "web-vitals": "^5.1.0"
   }
 }

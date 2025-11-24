@@ -1,10 +1,17 @@
+import { config } from 'dotenv'
 import { createEnv } from '@t3-oss/env-core'
 import { z } from 'zod'
 
+// Load .env files (same approach as db/index.ts)
+// This loads .env, .env.local, etc. in order of precedence
+config()
+
 export const env = createEnv({
 	server: {
-		SERVER_URL: z.string().url().optional(),
+		SERVER_URL: z.url().optional(),
 		DATABASE_URL: z.url(),
+		BETTER_AUTH_SECRET: z.string().min(1),
+		BETTER_AUTH_URL: z.url().optional(),
 	},
 
 	/**
@@ -15,13 +22,19 @@ export const env = createEnv({
 
 	client: {
 		VITE_APP_TITLE: z.string().min(1).optional(),
+		VITE_BETTER_AUTH_URL: z.url().optional(),
+		VITE_SERVER_URL: z.url().optional(),
 	},
 
 	/**
-	 * What object holds the environment variables at runtime. This is usually
-	 * `process.env` or `import.meta.env`.
+	 * What object holds the environment variables at runtime.
+	 * For server-side vars, use process.env (loaded by dotenv from .env.local)
+	 * For client-side vars, use import.meta.env (loaded by Vite)
 	 */
-	runtimeEnv: import.meta.env,
+	runtimeEnv: {
+		...process.env,
+		...import.meta.env,
+	},
 
 	/**
 	 * By default, this library will feed the environment variables directly to
