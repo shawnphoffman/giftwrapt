@@ -7,6 +7,17 @@
 		"vite.config.js",
 		".storybook/**/*"
 	],
+	"exclude": [
+		"node_modules",
+		".tanstack",
+		"dist",
+		"build",
+		".next",
+		"coverage",
+		"*.config.js",
+		"*.config.cjs",
+		"routeTree.gen.ts"
+	],
 	"compilerOptions": {
 		"target": "ES2022",
 		"jsx": "react-jsx",
