@@ -9,6 +9,9 @@ const getTodos = createServerFn({
 }).handler(async () => {
 	return await db.query.todos.findMany({
 		orderBy: [desc(todos.createdAt)],
+		with: {
+			creator: true,
+		},
 	})
 })
 
@@ -97,6 +100,7 @@ function DemoDrizzle() {
 							<div className="flex items-center justify-between">
 								<span className="text-lg font-medium text-white group-hover:text-indigo-200 transition-colors">{todo.title}</span>
 								<span className="text-xs text-indigo-300/70">#{todo.id}</span>
+								<span>{todo.creator?.displayName}</span>
 							</div>
 						</li>
 					))}
@@ -112,7 +116,7 @@ function DemoDrizzle() {
 						style={{
 							background: 'rgba(93, 103, 227, 0.1)',
 							borderColor: 'rgba(93, 103, 227, 0.3)',
-							focusRing: 'rgba(93, 103, 227, 0.5)',
+							// focusRing: 'rgba(93, 103, 227, 0.5)',
 						}}
 					/>
 					<button

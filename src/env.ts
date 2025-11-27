@@ -4,7 +4,10 @@ import { z } from 'zod'
 
 // Load .env files (same approach as db/index.ts)
 // This loads .env, .env.local, etc. in order of precedence
-config()
+// Only load dotenv on the server side (where process.cwd exists)
+if (typeof process !== 'undefined' && typeof process.cwd === 'function') {
+	config()
+}
 
 export const env = createEnv({
 	server: {
