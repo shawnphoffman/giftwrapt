@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DemoIndexRouteImport } from './routes/demo/index'
 import { Route as DemoTanstackQueryRouteImport } from './routes/demo/tanstack-query'
 import { Route as DemoStorybookRouteImport } from './routes/demo/storybook'
+import { Route as DemoDrizzleApiRouteImport } from './routes/demo/drizzle-api'
 import { Route as DemoDrizzleRouteImport } from './routes/demo/drizzle'
 import { Route as DemoDbChatApiRouteImport } from './routes/demo/db-chat-api'
 import { Route as DemoDbChatRouteImport } from './routes/demo/db-chat'
@@ -64,6 +65,11 @@ const DemoTanstackQueryRoute = DemoTanstackQueryRouteImport.update({
 const DemoStorybookRoute = DemoStorybookRouteImport.update({
   id: '/demo/storybook',
   path: '/demo/storybook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemoDrizzleApiRoute = DemoDrizzleApiRouteImport.update({
+  id: '/demo/drizzle-api',
+  path: '/demo/drizzle-api',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DemoDrizzleRoute = DemoDrizzleRouteImport.update({
@@ -145,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/demo/db-chat': typeof DemoDbChatRoute
   '/demo/db-chat-api': typeof DemoDbChatApiRoute
   '/demo/drizzle': typeof DemoDrizzleRoute
+  '/demo/drizzle-api': typeof DemoDrizzleApiRoute
   '/demo/storybook': typeof DemoStorybookRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
   '/demo': typeof DemoIndexRoute
@@ -168,6 +175,7 @@ export interface FileRoutesByTo {
   '/demo/db-chat': typeof DemoDbChatRoute
   '/demo/db-chat-api': typeof DemoDbChatApiRoute
   '/demo/drizzle': typeof DemoDrizzleRoute
+  '/demo/drizzle-api': typeof DemoDrizzleApiRoute
   '/demo/storybook': typeof DemoStorybookRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
   '/demo': typeof DemoIndexRoute
@@ -192,6 +200,7 @@ export interface FileRoutesById {
   '/demo/db-chat': typeof DemoDbChatRoute
   '/demo/db-chat-api': typeof DemoDbChatApiRoute
   '/demo/drizzle': typeof DemoDrizzleRoute
+  '/demo/drizzle-api': typeof DemoDrizzleApiRoute
   '/demo/storybook': typeof DemoStorybookRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
   '/demo/': typeof DemoIndexRoute
@@ -217,6 +226,7 @@ export interface FileRouteTypes {
     | '/demo/db-chat'
     | '/demo/db-chat-api'
     | '/demo/drizzle'
+    | '/demo/drizzle-api'
     | '/demo/storybook'
     | '/demo/tanstack-query'
     | '/demo'
@@ -240,6 +250,7 @@ export interface FileRouteTypes {
     | '/demo/db-chat'
     | '/demo/db-chat-api'
     | '/demo/drizzle'
+    | '/demo/drizzle-api'
     | '/demo/storybook'
     | '/demo/tanstack-query'
     | '/demo'
@@ -263,6 +274,7 @@ export interface FileRouteTypes {
     | '/demo/db-chat'
     | '/demo/db-chat-api'
     | '/demo/drizzle'
+    | '/demo/drizzle-api'
     | '/demo/storybook'
     | '/demo/tanstack-query'
     | '/demo/'
@@ -287,6 +299,7 @@ export interface RootRouteChildren {
   DemoDbChatRoute: typeof DemoDbChatRoute
   DemoDbChatApiRoute: typeof DemoDbChatApiRoute
   DemoDrizzleRoute: typeof DemoDrizzleRoute
+  DemoDrizzleApiRoute: typeof DemoDrizzleApiRoute
   DemoStorybookRoute: typeof DemoStorybookRoute
   DemoTanstackQueryRoute: typeof DemoTanstackQueryRoute
   DemoIndexRoute: typeof DemoIndexRoute
@@ -352,6 +365,13 @@ declare module '@tanstack/react-router' {
       path: '/demo/storybook'
       fullPath: '/demo/storybook'
       preLoaderRoute: typeof DemoStorybookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demo/drizzle-api': {
+      id: '/demo/drizzle-api'
+      path: '/demo/drizzle-api'
+      fullPath: '/demo/drizzle-api'
+      preLoaderRoute: typeof DemoDrizzleApiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/demo/drizzle': {
@@ -463,6 +483,7 @@ const rootRouteChildren: RootRouteChildren = {
   DemoDbChatRoute: DemoDbChatRoute,
   DemoDbChatApiRoute: DemoDbChatApiRoute,
   DemoDrizzleRoute: DemoDrizzleRoute,
+  DemoDrizzleApiRoute: DemoDrizzleApiRoute,
   DemoStorybookRoute: DemoStorybookRoute,
   DemoTanstackQueryRoute: DemoTanstackQueryRoute,
   DemoIndexRoute: DemoIndexRoute,

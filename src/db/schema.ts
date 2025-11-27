@@ -20,7 +20,7 @@ export const todos = pgTable('todos', {
 	status: statusEnum('status').default('incomplete').notNull(),
 	isArchived: boolean('is_archived').default(false).notNull(),
 	creatorId: text('creator_id')
-		// .notNull()
+		.notNull()
 		.references(() => user.id, { onDelete: 'cascade' }),
 	//
 	createdAt: sharedCreatedAt,

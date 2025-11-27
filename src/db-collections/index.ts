@@ -15,3 +15,6 @@ export const messagesCollection = createCollection(
 		schema: MessageSchema,
 	})
 )
+
+// Re-export todos collection
+export * from './todos'
