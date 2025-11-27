@@ -1,5 +1,7 @@
-import { createCollection, localOnlyCollectionOptions } from '@tanstack/react-db'
+import { createCollection } from '@tanstack/db'
+import { queryCollectionOptions } from '@tanstack/query-db-collection'
 import { z } from 'zod'
+import { getContext } from '@/integrations/tanstack-query/root-provider'
 
 // Schema matching the Drizzle todos table with creator relation
 const TodoSchema = z.object({
@@ -23,10 +25,79 @@ const TodoSchema = z.object({
 
 export type Todo = z.infer<typeof TodoSchema>
 
-// Client-side collection that will sync with server via API
+// Query Collection with automatic sync via TanStack Query
+// Provides local-first behavior: data is cached locally and syncs with server
+// Version mismatch between @tanstack/db versions (0.4.19 vs 0.4.20) - using type assertion
 export const todosCollection = createCollection(
-	localOnlyCollectionOptions({
-		getKey: todo => todo.id,
+	// @ts-ignore - Version mismatch between @tanstack/db versions
+	queryCollectionOptions({
+		queryKey: ['todos'],
+		queryFn: async () => {
+			const response = await fetch('/demo/drizzle-api')
+			if (!response.ok) {
+				throw new Error('Failed to fetch todos')
+			}
+			return response.json()
+		},
+		queryClient: getContext().queryClient,
+		getKey: (todo: Todo) => todo.id,
 		schema: TodoSchema,
-	})
+		// Mutation handlers - using type assertions due to version compatibility
+		onInsert: async (params: any) => {
+			const mutation = params.transaction?.mutations?.[0]
+			if (!mutation) {
+				throw new Error('Invalid insert mutation')
+			}
+
+			// Access the value - structure may vary by version
+			const value = (mutation as any).value || mutation
+			const title = value.title || (typeof value === 'string' ? value : value.title)
+
+			const response = await fetch('/demo/drizzle-api', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ title }),
+			})
+			if (!response.ok) {
+				throw new Error('Failed to create todo')
+			}
+			return response.json()
+		},
+		onUpdate: async (params: any) => {
+			const mutation = params.transaction?.mutations?.[0]
+			if (!mutation) {
+				throw new Error('Invalid update mutation')
+			}
+
+			const key = (mutation as any).key || mutation.id
+			const value = (mutation as any).value || mutation
+
+			const response = await fetch('/demo/drizzle-api', {
+				method: 'PUT',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ id: key, ...value }),
+			})
+			if (!response.ok) {
+				throw new Error('Failed to update todo')
+			}
+			return response.json()
+		},
+		onDelete: async (params: any) => {
+			const mutation = params.transaction?.mutations?.[0]
+			if (!mutation) {
+				throw new Error('Invalid delete mutation')
+			}
+
+			const key = (mutation as any).key || mutation.id
+
+			const response = await fetch('/demo/drizzle-api', {
+				method: 'DELETE',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ id: key }),
+			})
+			if (!response.ok) {
+				throw new Error('Failed to delete todo')
+			}
+		},
+	} as any)
 )

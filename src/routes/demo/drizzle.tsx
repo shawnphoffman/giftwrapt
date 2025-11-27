@@ -1,66 +1,24 @@
-import { useEffect, useRef } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useLiveQuery } from '@tanstack/react-db'
 import { todosCollection } from '@/db-collections/todos'
 import type { Todo } from '@/db-collections/todos'
-
-// Sync client collection with server via API
-function useSyncTodos() {
-	const syncedRef = useRef(false)
-
-	useEffect(() => {
-		if (syncedRef.current) return
-		syncedRef.current = true
-
-		const syncTodos = async () => {
-			try {
-				const response = await fetch('/demo/drizzle-api')
-				if (!response.ok) {
-					throw new Error('Failed to fetch todos')
-				}
-				const todosData = await response.json()
-
-				// Remove all existing todos and insert new ones
-				// We need to get all existing keys first
-				const existingKeys = new Set<number>()
-				for (const [_key, _value] of todosCollection.state) {
-					existingKeys.add(_key)
-				}
-
-				// Delete existing todos
-				for (const key of existingKeys) {
-					todosCollection.delete(key)
-				}
-
-				// Insert new todos
-				for (const todo of todosData) {
-					todosCollection.insert(todo)
-				}
-			} catch (error) {
-				console.error('Failed to sync todos:', error)
-			}
-		}
-
-		syncTodos()
-	}, [])
-}
 
 export const Route = createFileRoute('/demo/drizzle')({
 	component: DemoDrizzle,
 })
 
 function DemoDrizzle() {
-	// Sync collection with server on mount
-	useSyncTodos()
-
-	// Use useLiveQuery to reactively query the collection
-	const { data: todos = [] } = useLiveQuery(q =>
+	// Query Collection automatically syncs with server via TanStack Query
+	// useLiveQuery reactively queries the local collection (local-first)
+	// Data syncs automatically - no manual sync needed!
+	// @ts-ignore - Type compatibility issue with Query Collection and useLiveQuery
+	const { data: todos = [] } = useLiveQuery((q: any) =>
 		q
-			.from({ todo: todosCollection })
-			.select(({ todo }) => ({
+			.from({ todo: todosCollection as any })
+			.select(({ todo }: any) => ({
 				...todo,
 			}))
-			.orderBy(({ todo }) => [todo.createdAt, 'desc'])
+			.orderBy(({ todo }: any) => [todo.createdAt, 'desc'])
 	)
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -71,19 +29,16 @@ function DemoDrizzle() {
 		if (!title) return
 
 		try {
-			const response = await fetch('/demo/drizzle-api', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ title }),
+			// Insert optimistically - Query Collection handles sync automatically
+			// The onInsert handler will persist to server and sync back
+			await todosCollection.insert({
+				id: Date.now(), // Temporary ID, server will replace it
+				title,
+				status: 'incomplete',
+				isArchived: false,
+				createdAt: new Date().toISOString(),
+				updatedAt: new Date().toISOString(),
 			})
-
-			if (!response.ok) {
-				throw new Error('Failed to create todo')
-			}
-
-			const newTodo = await response.json()
-			// Insert into collection - useLiveQuery will automatically update
-			todosCollection.insert(newTodo)
 			;(e.target as HTMLFormElement).reset()
 		} catch (error) {
 			console.error('Failed to create todo:', error)
@@ -129,7 +84,7 @@ function DemoDrizzle() {
 				<h2 className="text-2xl font-bold mb-4 text-indigo-200">Todos</h2>
 
 				<ul className="space-y-3 mb-6">
-					{todos.map((todo: Todo) => (
+					{(todos as Todo[]).map((todo: Todo) => (
 						<li
 							key={todo.id}
 							className="rounded-lg p-4 shadow-md border transition-all hover:scale-[1.02] cursor-pointer group"

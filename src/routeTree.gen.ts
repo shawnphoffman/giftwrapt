@@ -9,9 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TestRouteImport } from './routes/test'
-import { Route as SignUpRouteImport } from './routes/sign-up'
-import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DemoIndexRouteImport } from './routes/demo/index'
 import { Route as DemoTanstackQueryRouteImport } from './routes/demo/tanstack-query'
@@ -20,6 +17,13 @@ import { Route as DemoDrizzleApiRouteImport } from './routes/demo/drizzle-api'
 import { Route as DemoDrizzleRouteImport } from './routes/demo/drizzle'
 import { Route as DemoDbChatApiRouteImport } from './routes/demo/db-chat-api'
 import { Route as DemoDbChatRouteImport } from './routes/demo/db-chat'
+import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
+import { Route as authSignInRouteImport } from './routes/(auth)/sign-in'
+import { Route as coreSettingsIndexRouteImport } from './routes/(core)/settings/index'
+import { Route as corePurchasesIndexRouteImport } from './routes/(core)/purchases/index'
+import { Route as coreMeIndexRouteImport } from './routes/(core)/me/index'
+import { Route as coreListsIndexRouteImport } from './routes/(core)/lists/index'
+import { Route as coreAdminIndexRouteImport } from './routes/(core)/admin/index'
 import { Route as DemoStartServerFuncsRouteImport } from './routes/demo/start.server-funcs'
 import { Route as DemoStartApiRequestRouteImport } from './routes/demo/start.api-request'
 import { Route as DemoFormSimpleRouteImport } from './routes/demo/form.simple'
@@ -27,26 +31,23 @@ import { Route as DemoFormAddressRouteImport } from './routes/demo/form.address'
 import { Route as DemoApiTqTodosRouteImport } from './routes/demo/api.tq-todos'
 import { Route as DemoApiNamesRouteImport } from './routes/demo/api.names'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as coreSettingsSecurityRouteImport } from './routes/(core)/settings/security'
+import { Route as coreSettingsReceivedRouteImport } from './routes/(core)/settings/received'
+import { Route as coreSettingsPurchasesRouteImport } from './routes/(core)/settings/purchases'
+import { Route as coreSettingsPermissionsRouteImport } from './routes/(core)/settings/permissions'
+import { Route as coreSettingsConnectionsRouteImport } from './routes/(core)/settings/connections'
+import { Route as coreRecentItemsRouteImport } from './routes/(core)/recent/items'
+import { Route as coreRecentCommentsRouteImport } from './routes/(core)/recent/comments'
+import { Route as coreListsListIdRouteImport } from './routes/(core)/lists/$listId'
+import { Route as coreItemCloneRouteImport } from './routes/(core)/item/clone'
 import { Route as DemoStartSsrIndexRouteImport } from './routes/demo/start.ssr.index'
 import { Route as DemoStartSsrSpaModeRouteImport } from './routes/demo/start.ssr.spa-mode'
 import { Route as DemoStartSsrFullSsrRouteImport } from './routes/demo/start.ssr.full-ssr'
 import { Route as DemoStartSsrDataOnlyRouteImport } from './routes/demo/start.ssr.data-only'
+import { Route as coreListsListIdEditRouteImport } from './routes/(core)/lists_/$listId.edit'
+import { Route as coreListsListIdBulkRouteImport } from './routes/(core)/lists_/$listId.bulk'
+import { Route as coreItemImportChar123UrlChar125RouteImport } from './routes/(core)/item/import.{-$url}'
 
-const TestRoute = TestRouteImport.update({
-  id: '/test',
-  path: '/test',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignUpRoute = SignUpRouteImport.update({
-  id: '/sign-up',
-  path: '/sign-up',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignInRoute = SignInRouteImport.update({
-  id: '/sign-in',
-  path: '/sign-in',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -87,6 +88,41 @@ const DemoDbChatRoute = DemoDbChatRouteImport.update({
   path: '/demo/db-chat',
   getParentRoute: () => rootRouteImport,
 } as any)
+const authSignUpRoute = authSignUpRouteImport.update({
+  id: '/(auth)/sign-up',
+  path: '/sign-up',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const authSignInRoute = authSignInRouteImport.update({
+  id: '/(auth)/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const coreSettingsIndexRoute = coreSettingsIndexRouteImport.update({
+  id: '/(core)/settings/',
+  path: '/settings/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const corePurchasesIndexRoute = corePurchasesIndexRouteImport.update({
+  id: '/(core)/purchases/',
+  path: '/purchases/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const coreMeIndexRoute = coreMeIndexRouteImport.update({
+  id: '/(core)/me/',
+  path: '/me/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const coreListsIndexRoute = coreListsIndexRouteImport.update({
+  id: '/(core)/lists/',
+  path: '/lists/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const coreAdminIndexRoute = coreAdminIndexRouteImport.update({
+  id: '/(core)/admin/',
+  path: '/admin/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DemoStartServerFuncsRoute = DemoStartServerFuncsRouteImport.update({
   id: '/demo/start/server-funcs',
   path: '/demo/start/server-funcs',
@@ -122,6 +158,51 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const coreSettingsSecurityRoute = coreSettingsSecurityRouteImport.update({
+  id: '/(core)/settings/security',
+  path: '/settings/security',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const coreSettingsReceivedRoute = coreSettingsReceivedRouteImport.update({
+  id: '/(core)/settings/received',
+  path: '/settings/received',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const coreSettingsPurchasesRoute = coreSettingsPurchasesRouteImport.update({
+  id: '/(core)/settings/purchases',
+  path: '/settings/purchases',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const coreSettingsPermissionsRoute = coreSettingsPermissionsRouteImport.update({
+  id: '/(core)/settings/permissions',
+  path: '/settings/permissions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const coreSettingsConnectionsRoute = coreSettingsConnectionsRouteImport.update({
+  id: '/(core)/settings/connections',
+  path: '/settings/connections',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const coreRecentItemsRoute = coreRecentItemsRouteImport.update({
+  id: '/(core)/recent/items',
+  path: '/recent/items',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const coreRecentCommentsRoute = coreRecentCommentsRouteImport.update({
+  id: '/(core)/recent/comments',
+  path: '/recent/comments',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const coreListsListIdRoute = coreListsListIdRouteImport.update({
+  id: '/(core)/lists/$listId',
+  path: '/lists/$listId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const coreItemCloneRoute = coreItemCloneRouteImport.update({
+  id: '/(core)/item/clone',
+  path: '/item/clone',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DemoStartSsrIndexRoute = DemoStartSsrIndexRouteImport.update({
   id: '/demo/start/ssr/',
   path: '/demo/start/ssr/',
@@ -142,12 +223,27 @@ const DemoStartSsrDataOnlyRoute = DemoStartSsrDataOnlyRouteImport.update({
   path: '/demo/start/ssr/data-only',
   getParentRoute: () => rootRouteImport,
 } as any)
+const coreListsListIdEditRoute = coreListsListIdEditRouteImport.update({
+  id: '/(core)/lists_/$listId/edit',
+  path: '/lists/$listId/edit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const coreListsListIdBulkRoute = coreListsListIdBulkRouteImport.update({
+  id: '/(core)/lists_/$listId/bulk',
+  path: '/lists/$listId/bulk',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const coreItemImportChar123UrlChar125Route =
+  coreItemImportChar123UrlChar125RouteImport.update({
+    id: '/(core)/item/import/{-$url}',
+    path: '/item/import/{-$url}',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/sign-in': typeof SignInRoute
-  '/sign-up': typeof SignUpRoute
-  '/test': typeof TestRoute
+  '/sign-in': typeof authSignInRoute
+  '/sign-up': typeof authSignUpRoute
   '/demo/db-chat': typeof DemoDbChatRoute
   '/demo/db-chat-api': typeof DemoDbChatApiRoute
   '/demo/drizzle': typeof DemoDrizzleRoute
@@ -155,6 +251,15 @@ export interface FileRoutesByFullPath {
   '/demo/storybook': typeof DemoStorybookRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
   '/demo': typeof DemoIndexRoute
+  '/item/clone': typeof coreItemCloneRoute
+  '/lists/$listId': typeof coreListsListIdRoute
+  '/recent/comments': typeof coreRecentCommentsRoute
+  '/recent/items': typeof coreRecentItemsRoute
+  '/settings/connections': typeof coreSettingsConnectionsRoute
+  '/settings/permissions': typeof coreSettingsPermissionsRoute
+  '/settings/purchases': typeof coreSettingsPurchasesRoute
+  '/settings/received': typeof coreSettingsReceivedRoute
+  '/settings/security': typeof coreSettingsSecurityRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
@@ -162,6 +267,14 @@ export interface FileRoutesByFullPath {
   '/demo/form/simple': typeof DemoFormSimpleRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
+  '/admin': typeof coreAdminIndexRoute
+  '/lists': typeof coreListsIndexRoute
+  '/me': typeof coreMeIndexRoute
+  '/purchases': typeof corePurchasesIndexRoute
+  '/settings': typeof coreSettingsIndexRoute
+  '/item/import/{-$url}': typeof coreItemImportChar123UrlChar125Route
+  '/lists/$listId/bulk': typeof coreListsListIdBulkRoute
+  '/lists/$listId/edit': typeof coreListsListIdEditRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
   '/demo/start/ssr/spa-mode': typeof DemoStartSsrSpaModeRoute
@@ -169,9 +282,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/sign-in': typeof SignInRoute
-  '/sign-up': typeof SignUpRoute
-  '/test': typeof TestRoute
+  '/sign-in': typeof authSignInRoute
+  '/sign-up': typeof authSignUpRoute
   '/demo/db-chat': typeof DemoDbChatRoute
   '/demo/db-chat-api': typeof DemoDbChatApiRoute
   '/demo/drizzle': typeof DemoDrizzleRoute
@@ -179,6 +291,15 @@ export interface FileRoutesByTo {
   '/demo/storybook': typeof DemoStorybookRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
   '/demo': typeof DemoIndexRoute
+  '/item/clone': typeof coreItemCloneRoute
+  '/lists/$listId': typeof coreListsListIdRoute
+  '/recent/comments': typeof coreRecentCommentsRoute
+  '/recent/items': typeof coreRecentItemsRoute
+  '/settings/connections': typeof coreSettingsConnectionsRoute
+  '/settings/permissions': typeof coreSettingsPermissionsRoute
+  '/settings/purchases': typeof coreSettingsPurchasesRoute
+  '/settings/received': typeof coreSettingsReceivedRoute
+  '/settings/security': typeof coreSettingsSecurityRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
@@ -186,6 +307,14 @@ export interface FileRoutesByTo {
   '/demo/form/simple': typeof DemoFormSimpleRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
+  '/admin': typeof coreAdminIndexRoute
+  '/lists': typeof coreListsIndexRoute
+  '/me': typeof coreMeIndexRoute
+  '/purchases': typeof corePurchasesIndexRoute
+  '/settings': typeof coreSettingsIndexRoute
+  '/item/import/{-$url}': typeof coreItemImportChar123UrlChar125Route
+  '/lists/$listId/bulk': typeof coreListsListIdBulkRoute
+  '/lists/$listId/edit': typeof coreListsListIdEditRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
   '/demo/start/ssr/spa-mode': typeof DemoStartSsrSpaModeRoute
@@ -194,9 +323,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/sign-in': typeof SignInRoute
-  '/sign-up': typeof SignUpRoute
-  '/test': typeof TestRoute
+  '/(auth)/sign-in': typeof authSignInRoute
+  '/(auth)/sign-up': typeof authSignUpRoute
   '/demo/db-chat': typeof DemoDbChatRoute
   '/demo/db-chat-api': typeof DemoDbChatApiRoute
   '/demo/drizzle': typeof DemoDrizzleRoute
@@ -204,6 +332,15 @@ export interface FileRoutesById {
   '/demo/storybook': typeof DemoStorybookRoute
   '/demo/tanstack-query': typeof DemoTanstackQueryRoute
   '/demo/': typeof DemoIndexRoute
+  '/(core)/item/clone': typeof coreItemCloneRoute
+  '/(core)/lists/$listId': typeof coreListsListIdRoute
+  '/(core)/recent/comments': typeof coreRecentCommentsRoute
+  '/(core)/recent/items': typeof coreRecentItemsRoute
+  '/(core)/settings/connections': typeof coreSettingsConnectionsRoute
+  '/(core)/settings/permissions': typeof coreSettingsPermissionsRoute
+  '/(core)/settings/purchases': typeof coreSettingsPurchasesRoute
+  '/(core)/settings/received': typeof coreSettingsReceivedRoute
+  '/(core)/settings/security': typeof coreSettingsSecurityRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
@@ -211,6 +348,14 @@ export interface FileRoutesById {
   '/demo/form/simple': typeof DemoFormSimpleRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/server-funcs': typeof DemoStartServerFuncsRoute
+  '/(core)/admin/': typeof coreAdminIndexRoute
+  '/(core)/lists/': typeof coreListsIndexRoute
+  '/(core)/me/': typeof coreMeIndexRoute
+  '/(core)/purchases/': typeof corePurchasesIndexRoute
+  '/(core)/settings/': typeof coreSettingsIndexRoute
+  '/(core)/item/import/{-$url}': typeof coreItemImportChar123UrlChar125Route
+  '/(core)/lists_/$listId/bulk': typeof coreListsListIdBulkRoute
+  '/(core)/lists_/$listId/edit': typeof coreListsListIdEditRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
   '/demo/start/ssr/spa-mode': typeof DemoStartSsrSpaModeRoute
@@ -222,7 +367,6 @@ export interface FileRouteTypes {
     | '/'
     | '/sign-in'
     | '/sign-up'
-    | '/test'
     | '/demo/db-chat'
     | '/demo/db-chat-api'
     | '/demo/drizzle'
@@ -230,6 +374,15 @@ export interface FileRouteTypes {
     | '/demo/storybook'
     | '/demo/tanstack-query'
     | '/demo'
+    | '/item/clone'
+    | '/lists/$listId'
+    | '/recent/comments'
+    | '/recent/items'
+    | '/settings/connections'
+    | '/settings/permissions'
+    | '/settings/purchases'
+    | '/settings/received'
+    | '/settings/security'
     | '/api/auth/$'
     | '/demo/api/names'
     | '/demo/api/tq-todos'
@@ -237,6 +390,14 @@ export interface FileRouteTypes {
     | '/demo/form/simple'
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
+    | '/admin'
+    | '/lists'
+    | '/me'
+    | '/purchases'
+    | '/settings'
+    | '/item/import/{-$url}'
+    | '/lists/$listId/bulk'
+    | '/lists/$listId/edit'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
     | '/demo/start/ssr/spa-mode'
@@ -246,7 +407,6 @@ export interface FileRouteTypes {
     | '/'
     | '/sign-in'
     | '/sign-up'
-    | '/test'
     | '/demo/db-chat'
     | '/demo/db-chat-api'
     | '/demo/drizzle'
@@ -254,6 +414,15 @@ export interface FileRouteTypes {
     | '/demo/storybook'
     | '/demo/tanstack-query'
     | '/demo'
+    | '/item/clone'
+    | '/lists/$listId'
+    | '/recent/comments'
+    | '/recent/items'
+    | '/settings/connections'
+    | '/settings/permissions'
+    | '/settings/purchases'
+    | '/settings/received'
+    | '/settings/security'
     | '/api/auth/$'
     | '/demo/api/names'
     | '/demo/api/tq-todos'
@@ -261,6 +430,14 @@ export interface FileRouteTypes {
     | '/demo/form/simple'
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
+    | '/admin'
+    | '/lists'
+    | '/me'
+    | '/purchases'
+    | '/settings'
+    | '/item/import/{-$url}'
+    | '/lists/$listId/bulk'
+    | '/lists/$listId/edit'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
     | '/demo/start/ssr/spa-mode'
@@ -268,9 +445,8 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/sign-in'
-    | '/sign-up'
-    | '/test'
+    | '/(auth)/sign-in'
+    | '/(auth)/sign-up'
     | '/demo/db-chat'
     | '/demo/db-chat-api'
     | '/demo/drizzle'
@@ -278,6 +454,15 @@ export interface FileRouteTypes {
     | '/demo/storybook'
     | '/demo/tanstack-query'
     | '/demo/'
+    | '/(core)/item/clone'
+    | '/(core)/lists/$listId'
+    | '/(core)/recent/comments'
+    | '/(core)/recent/items'
+    | '/(core)/settings/connections'
+    | '/(core)/settings/permissions'
+    | '/(core)/settings/purchases'
+    | '/(core)/settings/received'
+    | '/(core)/settings/security'
     | '/api/auth/$'
     | '/demo/api/names'
     | '/demo/api/tq-todos'
@@ -285,6 +470,14 @@ export interface FileRouteTypes {
     | '/demo/form/simple'
     | '/demo/start/api-request'
     | '/demo/start/server-funcs'
+    | '/(core)/admin/'
+    | '/(core)/lists/'
+    | '/(core)/me/'
+    | '/(core)/purchases/'
+    | '/(core)/settings/'
+    | '/(core)/item/import/{-$url}'
+    | '/(core)/lists_/$listId/bulk'
+    | '/(core)/lists_/$listId/edit'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
     | '/demo/start/ssr/spa-mode'
@@ -293,9 +486,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  SignInRoute: typeof SignInRoute
-  SignUpRoute: typeof SignUpRoute
-  TestRoute: typeof TestRoute
+  authSignInRoute: typeof authSignInRoute
+  authSignUpRoute: typeof authSignUpRoute
   DemoDbChatRoute: typeof DemoDbChatRoute
   DemoDbChatApiRoute: typeof DemoDbChatApiRoute
   DemoDrizzleRoute: typeof DemoDrizzleRoute
@@ -303,6 +495,15 @@ export interface RootRouteChildren {
   DemoStorybookRoute: typeof DemoStorybookRoute
   DemoTanstackQueryRoute: typeof DemoTanstackQueryRoute
   DemoIndexRoute: typeof DemoIndexRoute
+  coreItemCloneRoute: typeof coreItemCloneRoute
+  coreListsListIdRoute: typeof coreListsListIdRoute
+  coreRecentCommentsRoute: typeof coreRecentCommentsRoute
+  coreRecentItemsRoute: typeof coreRecentItemsRoute
+  coreSettingsConnectionsRoute: typeof coreSettingsConnectionsRoute
+  coreSettingsPermissionsRoute: typeof coreSettingsPermissionsRoute
+  coreSettingsPurchasesRoute: typeof coreSettingsPurchasesRoute
+  coreSettingsReceivedRoute: typeof coreSettingsReceivedRoute
+  coreSettingsSecurityRoute: typeof coreSettingsSecurityRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   DemoApiNamesRoute: typeof DemoApiNamesRoute
   DemoApiTqTodosRoute: typeof DemoApiTqTodosRoute
@@ -310,6 +511,14 @@ export interface RootRouteChildren {
   DemoFormSimpleRoute: typeof DemoFormSimpleRoute
   DemoStartApiRequestRoute: typeof DemoStartApiRequestRoute
   DemoStartServerFuncsRoute: typeof DemoStartServerFuncsRoute
+  coreAdminIndexRoute: typeof coreAdminIndexRoute
+  coreListsIndexRoute: typeof coreListsIndexRoute
+  coreMeIndexRoute: typeof coreMeIndexRoute
+  corePurchasesIndexRoute: typeof corePurchasesIndexRoute
+  coreSettingsIndexRoute: typeof coreSettingsIndexRoute
+  coreItemImportChar123UrlChar125Route: typeof coreItemImportChar123UrlChar125Route
+  coreListsListIdBulkRoute: typeof coreListsListIdBulkRoute
+  coreListsListIdEditRoute: typeof coreListsListIdEditRoute
   DemoStartSsrDataOnlyRoute: typeof DemoStartSsrDataOnlyRoute
   DemoStartSsrFullSsrRoute: typeof DemoStartSsrFullSsrRoute
   DemoStartSsrSpaModeRoute: typeof DemoStartSsrSpaModeRoute
@@ -318,27 +527,6 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/test': {
-      id: '/test'
-      path: '/test'
-      fullPath: '/test'
-      preLoaderRoute: typeof TestRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sign-up': {
-      id: '/sign-up'
-      path: '/sign-up'
-      fullPath: '/sign-up'
-      preLoaderRoute: typeof SignUpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sign-in': {
-      id: '/sign-in'
-      path: '/sign-in'
-      fullPath: '/sign-in'
-      preLoaderRoute: typeof SignInRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -395,6 +583,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DemoDbChatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/(auth)/sign-up': {
+      id: '/(auth)/sign-up'
+      path: '/sign-up'
+      fullPath: '/sign-up'
+      preLoaderRoute: typeof authSignUpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(auth)/sign-in': {
+      id: '/(auth)/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof authSignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(core)/settings/': {
+      id: '/(core)/settings/'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof coreSettingsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(core)/purchases/': {
+      id: '/(core)/purchases/'
+      path: '/purchases'
+      fullPath: '/purchases'
+      preLoaderRoute: typeof corePurchasesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(core)/me/': {
+      id: '/(core)/me/'
+      path: '/me'
+      fullPath: '/me'
+      preLoaderRoute: typeof coreMeIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(core)/lists/': {
+      id: '/(core)/lists/'
+      path: '/lists'
+      fullPath: '/lists'
+      preLoaderRoute: typeof coreListsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(core)/admin/': {
+      id: '/(core)/admin/'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof coreAdminIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/demo/start/server-funcs': {
       id: '/demo/start/server-funcs'
       path: '/demo/start/server-funcs'
@@ -444,6 +681,69 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/(core)/settings/security': {
+      id: '/(core)/settings/security'
+      path: '/settings/security'
+      fullPath: '/settings/security'
+      preLoaderRoute: typeof coreSettingsSecurityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(core)/settings/received': {
+      id: '/(core)/settings/received'
+      path: '/settings/received'
+      fullPath: '/settings/received'
+      preLoaderRoute: typeof coreSettingsReceivedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(core)/settings/purchases': {
+      id: '/(core)/settings/purchases'
+      path: '/settings/purchases'
+      fullPath: '/settings/purchases'
+      preLoaderRoute: typeof coreSettingsPurchasesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(core)/settings/permissions': {
+      id: '/(core)/settings/permissions'
+      path: '/settings/permissions'
+      fullPath: '/settings/permissions'
+      preLoaderRoute: typeof coreSettingsPermissionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(core)/settings/connections': {
+      id: '/(core)/settings/connections'
+      path: '/settings/connections'
+      fullPath: '/settings/connections'
+      preLoaderRoute: typeof coreSettingsConnectionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(core)/recent/items': {
+      id: '/(core)/recent/items'
+      path: '/recent/items'
+      fullPath: '/recent/items'
+      preLoaderRoute: typeof coreRecentItemsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(core)/recent/comments': {
+      id: '/(core)/recent/comments'
+      path: '/recent/comments'
+      fullPath: '/recent/comments'
+      preLoaderRoute: typeof coreRecentCommentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(core)/lists/$listId': {
+      id: '/(core)/lists/$listId'
+      path: '/lists/$listId'
+      fullPath: '/lists/$listId'
+      preLoaderRoute: typeof coreListsListIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(core)/item/clone': {
+      id: '/(core)/item/clone'
+      path: '/item/clone'
+      fullPath: '/item/clone'
+      preLoaderRoute: typeof coreItemCloneRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/demo/start/ssr/': {
       id: '/demo/start/ssr/'
       path: '/demo/start/ssr'
@@ -472,14 +772,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DemoStartSsrDataOnlyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/(core)/lists_/$listId/edit': {
+      id: '/(core)/lists_/$listId/edit'
+      path: '/lists/$listId/edit'
+      fullPath: '/lists/$listId/edit'
+      preLoaderRoute: typeof coreListsListIdEditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(core)/lists_/$listId/bulk': {
+      id: '/(core)/lists_/$listId/bulk'
+      path: '/lists/$listId/bulk'
+      fullPath: '/lists/$listId/bulk'
+      preLoaderRoute: typeof coreListsListIdBulkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(core)/item/import/{-$url}': {
+      id: '/(core)/item/import/{-$url}'
+      path: '/item/import/{-$url}'
+      fullPath: '/item/import/{-$url}'
+      preLoaderRoute: typeof coreItemImportChar123UrlChar125RouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  SignInRoute: SignInRoute,
-  SignUpRoute: SignUpRoute,
-  TestRoute: TestRoute,
+  authSignInRoute: authSignInRoute,
+  authSignUpRoute: authSignUpRoute,
   DemoDbChatRoute: DemoDbChatRoute,
   DemoDbChatApiRoute: DemoDbChatApiRoute,
   DemoDrizzleRoute: DemoDrizzleRoute,
@@ -487,6 +807,15 @@ const rootRouteChildren: RootRouteChildren = {
   DemoStorybookRoute: DemoStorybookRoute,
   DemoTanstackQueryRoute: DemoTanstackQueryRoute,
   DemoIndexRoute: DemoIndexRoute,
+  coreItemCloneRoute: coreItemCloneRoute,
+  coreListsListIdRoute: coreListsListIdRoute,
+  coreRecentCommentsRoute: coreRecentCommentsRoute,
+  coreRecentItemsRoute: coreRecentItemsRoute,
+  coreSettingsConnectionsRoute: coreSettingsConnectionsRoute,
+  coreSettingsPermissionsRoute: coreSettingsPermissionsRoute,
+  coreSettingsPurchasesRoute: coreSettingsPurchasesRoute,
+  coreSettingsReceivedRoute: coreSettingsReceivedRoute,
+  coreSettingsSecurityRoute: coreSettingsSecurityRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   DemoApiNamesRoute: DemoApiNamesRoute,
   DemoApiTqTodosRoute: DemoApiTqTodosRoute,
@@ -494,6 +823,14 @@ const rootRouteChildren: RootRouteChildren = {
   DemoFormSimpleRoute: DemoFormSimpleRoute,
   DemoStartApiRequestRoute: DemoStartApiRequestRoute,
   DemoStartServerFuncsRoute: DemoStartServerFuncsRoute,
+  coreAdminIndexRoute: coreAdminIndexRoute,
+  coreListsIndexRoute: coreListsIndexRoute,
+  coreMeIndexRoute: coreMeIndexRoute,
+  corePurchasesIndexRoute: corePurchasesIndexRoute,
+  coreSettingsIndexRoute: coreSettingsIndexRoute,
+  coreItemImportChar123UrlChar125Route: coreItemImportChar123UrlChar125Route,
+  coreListsListIdBulkRoute: coreListsListIdBulkRoute,
+  coreListsListIdEditRoute: coreListsListIdEditRoute,
   DemoStartSsrDataOnlyRoute: DemoStartSsrDataOnlyRoute,
   DemoStartSsrFullSsrRoute: DemoStartSsrFullSsrRoute,
   DemoStartSsrSpaModeRoute: DemoStartSsrSpaModeRoute,
