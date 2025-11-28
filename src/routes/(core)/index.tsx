@@ -3,9 +3,9 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { signOut, useSession } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 
-export const Route = createFileRoute('/')({ component: App })
+export const Route = createFileRoute('/(core)/')({ component: App })
 
-function App() {
+async function App() {
 	const navigate = useNavigate()
 	const { data: session, isPending } = useSession()
 
@@ -16,14 +16,16 @@ function App() {
 		}
 	}, [session, isPending, navigate])
 
+	await new Promise(resolve => setTimeout(resolve, 10000))
+
 	// Show loading state while checking session
-	if (isPending) {
-		return (
-			<div className="flex items-center justify-center min-h-screen">
-				<p>Loading...</p>
-			</div>
-		)
-	}
+	// if (isPending) {
+	// 	return (
+	// 		<div className="flex items-center justify-center min-h-screen">
+	// 			<p>Loading...</p>
+	// 		</div>
+	// 	)
+	// }
 
 	// Don't render content if not authenticated (redirect will happen)
 	if (!session?.user) {

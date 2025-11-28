@@ -26,7 +26,15 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				content: 'width=device-width, initial-scale=1',
 			},
 			{
-				title: 'TanStack Start Starter',
+				title: `Wish Lists 2.0 ${process.env.NODE_ENV === 'production' ? '' : '| Dev'}`,
+				description: 'Sharing wish lists made easy.',
+				openGraph: {
+					title: 'Wish Lists 2.0',
+					description: 'Sharing wish lists made easy.',
+					type: 'website',
+					url: '/',
+					locale: 'en_US',
+				},
 			},
 		],
 		links: [
@@ -61,7 +69,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<HeadContent />
 			</head>
 			<body>
-				<Header />
+				{/* <Header /> */}
 				{children}
 				<TanStackDevtools
 					config={{
