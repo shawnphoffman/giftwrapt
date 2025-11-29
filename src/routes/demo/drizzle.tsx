@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useLiveQuery } from '@tanstack/react-db'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { todosCollection } from '@/db-collections/todos'
 import type { Todo } from '@/db-collections/todos'
 
@@ -8,18 +8,26 @@ export const Route = createFileRoute('/demo/drizzle')({
 })
 
 function DemoDrizzle() {
+	const queryClient = useQueryClient()
+
 	// Query Collection automatically syncs with server via TanStack Query
-	// useLiveQuery reactively queries the local collection (local-first)
-	// Data syncs automatically - no manual sync needed!
-	// @ts-ignore - Type compatibility issue with Query Collection and useLiveQuery
-	const { data: todos = [] } = useLiveQuery((q: any) =>
-		q
-			.from({ todo: todosCollection as any })
-			.select(({ todo }: any) => ({
-				...todo,
-			}))
-			.orderBy(({ todo }: any) => [todo.createdAt, 'desc'])
-	)
+	const { data: todosData = [] } = useQuery({
+		queryKey: ['todos'],
+		queryFn: async () => {
+			const response = await fetch('/demo/drizzle-api')
+			if (!response.ok) {
+				throw new Error('Failed to fetch todos')
+			}
+			return response.json()
+		},
+	})
+
+	// Sort todos by createdAt descending
+	const todos = [...(todosData as Todo[])].sort((a, b) => {
+		const aDate = new Date(a.createdAt).getTime()
+		const bDate = new Date(b.createdAt).getTime()
+		return bDate - aDate
+	})
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault()
@@ -28,19 +36,29 @@ function DemoDrizzle() {
 
 		if (!title) return
 
+		const tempId = Date.now()
+		const optimisticTodo: Todo = {
+			id: tempId,
+			title,
+			status: 'incomplete',
+			isArchived: false,
+			createdAt: new Date().toISOString(),
+			updatedAt: new Date().toISOString(),
+			creatorId: null,
+			creator: null,
+		}
+
 		try {
-			// Insert optimistically - Query Collection handles sync automatically
+			// Optimistically update the UI immediately
+			queryClient.setQueryData<Todo[]>(['todos'], (old = []) => [optimisticTodo, ...old])
+
+			// Insert into collection - this will sync with server in background
 			// The onInsert handler will persist to server and sync back
-			await todosCollection.insert({
-				id: Date.now(), // Temporary ID, server will replace it
-				title,
-				status: 'incomplete',
-				isArchived: false,
-				createdAt: new Date().toISOString(),
-				updatedAt: new Date().toISOString(),
-			})
+			await todosCollection.insert(optimisticTodo)
 			;(e.target as HTMLFormElement).reset()
 		} catch (error) {
+			// Rollback optimistic update on error
+			queryClient.setQueryData<Todo[]>(['todos'], (old = []) => old.filter(todo => todo.id !== tempId))
 			console.error('Failed to create todo:', error)
 		}
 	}

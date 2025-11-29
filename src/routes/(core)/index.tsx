@@ -2,12 +2,17 @@ import { useEffect } from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { signOut, useSession } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
+import Loading from '@/components/loading'
 
-export const Route = createFileRoute('/(core)/')({ component: App })
+export const Route = createFileRoute('/(core)/')({
+	component: App,
+})
 
-async function App() {
+function App() {
 	const navigate = useNavigate()
 	const { data: session, isPending } = useSession()
+
+	// console.log('session', session)
 
 	// Redirect to sign-in if not authenticated
 	useEffect(() => {
@@ -16,27 +21,23 @@ async function App() {
 		}
 	}, [session, isPending, navigate])
 
-	await new Promise(resolve => setTimeout(resolve, 10000))
-
 	// Show loading state while checking session
-	// if (isPending) {
-	// 	return (
-	// 		<div className="flex items-center justify-center min-h-screen">
-	// 			<p>Loading...</p>
-	// 		</div>
-	// 	)
-	// }
+	if (isPending) {
+		return <Loading />
+	}
 
 	// Don't render content if not authenticated (redirect will happen)
 	if (!session?.user) {
 		return null
 	}
 
+	console.log('session', session.user)
+
 	return (
 		<div className="">
 			<header className="top-0 z-10 flex items-center h-12 gap-2 shrink-0">
 				<div className="flex items-center gap-2 px-4">
-					<h1 className="text-3xl font-bold">Welcome, TanStack Start Starter</h1>
+					<h1 className="text-3xl font-bold">Welcome, {session.user.name}</h1>
 				</div>
 			</header>
 			<div className="flex flex-col items-center flex-1 gap-4 p-4 pt-2">

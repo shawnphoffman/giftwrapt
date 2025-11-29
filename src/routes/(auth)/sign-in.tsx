@@ -4,6 +4,7 @@ import { authClient, useSession } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import Loading from '@/components/loading'
 
 export const Route = createFileRoute('/(auth)/sign-in')({
 	component: SignIn,
@@ -57,11 +58,7 @@ function SignIn() {
 
 	// Show loading state while checking session
 	if (isPending) {
-		return (
-			<div className="flex items-center justify-center min-h-[calc(100vh-3rem)]">
-				<p>Loading...</p>
-			</div>
-		)
+		return <Loading className="text-primary" />
 	}
 
 	// Don't render form if already authenticated (redirect will happen)
@@ -83,22 +80,22 @@ function SignIn() {
 					<div className="space-y-2">
 						<Label htmlFor="email">Email</Label>
 						<Input
-							id='email'
-							type='email'
+							id="email"
+							type="email"
 							placeholder="you@example.com"
 							value={email}
 							onChange={e => setEmail(e.target.value)}
 							required
 							disabled={isLoading}
-							autoComplete='email'
+							autoComplete="email"
 						/>
 					</div>
 
 					<div className="space-y-2">
 						<Label htmlFor="password">Password</Label>
 						<Input
-							id='password'
-							type='password'
+							id="password"
+							type="password"
 							placeholder="••••••••"
 							value={password}
 							onChange={e => setPassword(e.target.value)}

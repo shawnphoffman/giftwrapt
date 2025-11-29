@@ -4,6 +4,7 @@ import * as TanstackQuery from './integrations/tanstack-query/root-provider'
 
 // Import the generated route tree
 import { routeTree } from './routeTree.gen'
+import Loading from './components/loading'
 
 // Create a new router instance
 export const getRouter = () => {
@@ -13,6 +14,7 @@ export const getRouter = () => {
 		routeTree,
 		context: { ...rqContext },
 		defaultPreload: 'intent',
+		defaultPendingComponent: () => <Loading />,
 		Wrap: (props: { children: React.ReactNode }) => {
 			return <TanstackQuery.Provider {...rqContext}>{props.children}</TanstackQuery.Provider>
 		},

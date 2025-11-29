@@ -15,4 +15,10 @@ export const auth = betterAuth({
 		enabled: true,
 	},
 	plugins: [tanstackStartCookies(), admin()],
+	user: {
+		modelName: 'user',
+		fields: {
+			// name: 'displayName',
+		},
+	},
 })

@@ -10,13 +10,13 @@ import { birthMonthEnum } from './enums'
 export const user = pgTable('user', {
 	id: text('id').primaryKey(), // should this be serial?
 	email: text('email').notNull().unique(),
+	name: text('name'),
 	//
 	role: text('role').default('user').notNull(),
 	banned: boolean('banned').default(false).notNull(),
 	banReason: text('ban_reason'),
 	banExpires: timestamp('ban_expires'),
 	//
-	displayName: text('display_name'),
 	birthMonth: birthMonthEnum('birth_month'),
 	birthDay: smallint('birth_day'),
 	isAdmin: boolean('is_admin').default(false).notNull(),

@@ -49,9 +49,21 @@ export const todosCollection = createCollection(
 				throw new Error('Invalid insert mutation')
 			}
 
-			// Access the value - structure may vary by version
-			const value = (mutation as any).value || mutation
-			const title = value.title || (typeof value === 'string' ? value : value.title)
+			// Access the value - mutation structure can vary
+			// Try different possible structures: mutation.value, mutation.modified, or mutation itself
+			const value = (mutation as any).value || (mutation as any).modified || mutation
+
+			// Extract title from the inserted value
+			if (!value || typeof value !== 'object') {
+				console.error('Invalid mutation value:', { mutation, value })
+				throw new Error('Invalid insert mutation: value must be an object')
+			}
+
+			const title = value.title
+			if (!title || typeof title !== 'string') {
+				console.error('Invalid mutation - missing title:', { mutation, value })
+				throw new Error('Invalid insert mutation: title is required and must be a string')
+			}
 
 			const response = await fetch('/demo/drizzle-api', {
 				method: 'POST',
@@ -59,6 +71,8 @@ export const todosCollection = createCollection(
 				body: JSON.stringify({ title }),
 			})
 			if (!response.ok) {
+				const errorText = await response.text()
+				console.error('Failed to create todo:', errorText)
 				throw new Error('Failed to create todo')
 			}
 			return response.json()
