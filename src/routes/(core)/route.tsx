@@ -13,13 +13,59 @@ import {
 } from '@/components/ui/sidebar'
 import { Suspense } from 'react'
 import { NavigationEvents } from '@/components/utilities/navigation-events'
-import { Gift } from 'lucide-react'
+import { Gift, ShoppingBag, ListChecks, ListOrdered, ListPlus, Inbox, MessagesSquare, Plus } from 'lucide-react'
 import NavBreadcrumbs from '@/components/sidebar/nav-breadcrumbs'
 import Loading from '@/components/loading'
+import NavSection, { type NavItem } from '@/components/sidebar/nav-section'
+import NavBottom from '@/components/sidebar/nav-bottom'
+import { NavUser } from '@/components/sidebar/nav-user'
 
 export const Route = createFileRoute('/(core)')({
 	component: CoreRouteComponent,
 })
+const main: NavItem[] = [
+	{
+		name: 'All Lists',
+		url: '/',
+		icon: ListChecks,
+	},
+	{
+		name: 'My Lists',
+		url: '/me',
+		icon: ListOrdered,
+	},
+	{
+		name: 'My Purchases',
+		url: '/purchases',
+		icon: ShoppingBag,
+	},
+]
+
+const actions: NavItem[] = [
+	{
+		name: 'Quick Add Item',
+		url: '/item/import',
+		icon: Plus,
+	},
+	{
+		name: 'Create New List',
+		url: '/me?new=true',
+		icon: ListPlus,
+	},
+]
+
+const feeds: NavItem[] = [
+	{
+		name: 'Recent Comments',
+		url: '/recent/comments',
+		icon: MessagesSquare,
+	},
+	{
+		name: 'Recent Items',
+		url: '/recent/items',
+		icon: Inbox,
+	},
+]
 
 function CoreRouteComponent() {
 	return (
@@ -42,13 +88,15 @@ function CoreRouteComponent() {
 						</SidebarMenu>
 					</SidebarHeader>
 					<SidebarContent>
-						{/* <NavSection title="Lists" items={main} />
-				<NavSection title="Actions" items={actions} />
-				<NavSection title="Feeds" items={feeds} />
-				<NavBottom /> */}
+						<NavSection title="Lists" items={main} />
+						<NavSection title="Actions" items={actions} />
+						<NavSection title="Feeds" items={feeds} />
+						<NavBottom />
 					</SidebarContent>
 					<SidebarFooter>
-						<Suspense fallback={null}>{/* <NavUser /> */}</Suspense>
+						<Suspense fallback={null}>
+							<NavUser />
+						</Suspense>
 					</SidebarFooter>
 				</Sidebar>
 				<SidebarInset>

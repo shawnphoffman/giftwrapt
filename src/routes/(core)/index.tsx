@@ -31,8 +31,6 @@ function App() {
 		return null
 	}
 
-	console.log('session', session.user)
-
 	return (
 		<div className="">
 			<header className="top-0 z-10 flex items-center h-12 gap-2 shrink-0">

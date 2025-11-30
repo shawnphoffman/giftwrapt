@@ -1,6 +1,6 @@
 import { relations } from 'drizzle-orm'
-import { pgTable, text, timestamp } from 'drizzle-orm/pg-core'
-import { sharedCreatedAt, sharedUpdatedAt } from './shared'
+import { index, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { timestamps } from './shared'
 import { user } from './users'
 
 // ===============================
@@ -19,10 +19,9 @@ export const session = pgTable(
 			.references(() => user.id, { onDelete: 'cascade' }),
 		impersonatedBy: text('impersonated_by').references(() => user.id, { onDelete: 'cascade' }),
 		//
-		createdAt: sharedCreatedAt,
-		updatedAt: sharedUpdatedAt,
-	}
-	// table => [index('session_userId_idx').on(table.userId)]
+		...timestamps,
+	},
+	table => [index('session_userId_idx').on(table.userId)]
 )
 
 export const account = pgTable(
@@ -41,10 +40,9 @@ export const account = pgTable(
 		refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
 		scope: text('scope'),
 		password: text('password'),
-		createdAt: sharedCreatedAt,
-		updatedAt: sharedUpdatedAt,
-	}
-	// table => [index('account_userId_idx').on(table.userId)]
+		...timestamps,
+	},
+	table => [index('account_userId_idx').on(table.userId)]
 )
 
 export const verification = pgTable(
@@ -54,10 +52,9 @@ export const verification = pgTable(
 		identifier: text('identifier').notNull(),
 		value: text('value').notNull(),
 		expiresAt: timestamp('expires_at').notNull(),
-		createdAt: sharedCreatedAt,
-		updatedAt: sharedUpdatedAt,
-	}
-	// table => [index('verification_identifier_idx').on(table.identifier)]
+		...timestamps,
+	},
+	table => [index('verification_identifier_idx').on(table.identifier)]
 )
 
 export const sessionRelations = relations(session, ({ one }) => ({

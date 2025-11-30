@@ -1,6 +1,6 @@
 import { boolean, pgTable, serial, text } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
-import { sharedCreatedAt, sharedUpdatedAt } from './shared'
+import { timestamps } from './shared'
 import { user } from './users'
 import { statusEnum } from './enums'
 
@@ -23,8 +23,7 @@ export const todos = pgTable('todos', {
 		.notNull()
 		.references(() => user.id, { onDelete: 'cascade' }),
 	//
-	createdAt: sharedCreatedAt,
-	updatedAt: sharedUpdatedAt,
+	...timestamps,
 })
 
 // ------------------------------

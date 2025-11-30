@@ -1,5 +1,5 @@
 import { boolean, pgTable, smallint, text, timestamp } from 'drizzle-orm/pg-core'
-import { sharedCreatedAt, sharedUpdatedAt } from './shared'
+import { timestamps } from './shared'
 import { relations } from 'drizzle-orm'
 import { session, account } from './auth'
 import { birthMonthEnum } from './enums'
@@ -21,12 +21,18 @@ export const user = pgTable('user', {
 	birthDay: smallint('birth_day'),
 	isAdmin: boolean('is_admin').default(false).notNull(),
 	image: text('image'),
-	//
-	createdAt: sharedCreatedAt,
-	updatedAt: sharedUpdatedAt,
+	partnerId: text('partner_id'),
+	...timestamps,
 	// TO_REVIEW
 	emailVerified: boolean('email_verified').default(false).notNull(),
 })
+
+export const partnerRelations = relations(user, ({ one }) => ({
+	partnerUser: one(user, {
+		fields: [user.partnerId],
+		references: [user.id],
+	}),
+}))
 
 // ------------------------------
 // RELATIONS

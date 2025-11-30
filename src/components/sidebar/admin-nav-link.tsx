@@ -1,0 +1,19 @@
+import { Lock } from 'lucide-react'
+
+import { NavItem } from './nav-section'
+import { useSession } from '@/lib/auth-client'
+
+export default function AdminNavLink() {
+	const { data: session } = useSession()
+	if (session?.user?.role !== 'admin') {
+		return null
+	}
+
+	const item: NavItem = {
+		name: 'Admin',
+		url: '/admin',
+		icon: Lock,
+	}
+
+	return <NavItem item={item} className="text-red-500 transition-colors hover:text-red-400" />
+}
