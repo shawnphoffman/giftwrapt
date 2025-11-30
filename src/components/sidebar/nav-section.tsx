@@ -7,6 +7,7 @@ import {
 	SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
+import { Link } from '@tanstack/react-router'
 
 type Props = {
 	title: string
@@ -18,6 +19,7 @@ export type NavItem = {
 	name: string
 	url: string
 	icon?: React.ElementType
+	hoverColor?: string
 }
 
 export const NavItem = ({ item, className }: { item: NavItem; className?: string }) => {
@@ -25,10 +27,10 @@ export const NavItem = ({ item, className }: { item: NavItem; className?: string
 	return (
 		<SidebarMenuItem key={item.name}>
 			<SidebarMenuButton asChild className={cn(className, 'text-base font-medium')}>
-				<a href={item.url}>
-					{Icon && <Icon className="" />}
+				<Link to={item.url} className="group/link">
+					{Icon && <Icon className={cn(item.hoverColor, 'transition-colors duration-50 ease-linear')} />}
 					<span>{item.name}</span>
-				</a>
+				</Link>
 			</SidebarMenuButton>
 		</SidebarMenuItem>
 	)

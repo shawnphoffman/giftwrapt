@@ -134,7 +134,90 @@ code {
 	* {
 		@apply border-border outline-ring/50;
 	}
+	html {
+		@apply scroll-smooth;
+	}
 	body {
-		@apply bg-background text-foreground;
+		@apply bg-background text-foreground overflow-x-hidden;
+	}
+	h1 {
+		@apply text-4xl font-extrabold tracking-tight whitespace-normal scroll-m-20 lg:text-5xl;
+	}
+	h2 {
+		@apply text-3xl font-semibold tracking-tight scroll-m-20 lg:text-4xl;
+	}
+	h3 {
+		@apply text-2xl font-semibold tracking-tight scroll-m-20 lg:text-3xl;
+	}
+	h4 {
+		@apply text-xl font-semibold tracking-tight scroll-m-20 lg:text-2xl;
+	}
+	/* p {
+		@apply leading-7 not-first:mt-6;
+	} */
+
+	.markdown {
+		/* @apply ps-2; */
+		> * {
+			@apply border-none;
+		}
+		> :not(:first-child) {
+			@apply mt-2;
+		}
+		a {
+			@apply transition-colors text-primary hover:underline underline-offset-4;
+		}
+		p {
+			@apply text-sm;
+		}
+		h1,
+		h2,
+		h3 {
+			@apply p-0;
+		}
+		ul {
+			@apply list-disc;
+		}
+		ol {
+			@apply list-decimal;
+		}
+		ul,
+		ol {
+			@apply pl-4 m-0 **:m-0 [&_ul]:pl-2 [&_ol]:pl-2 list-outside;
+		}
+	}
+}
+@layer utilities {
+	.animate-page-in {
+		animation: animatePageIn 0.3s ease 0.15s both;
+	}
+	.animate-page-in-delayed {
+		animation: animatePageIn 0.3s ease 1.15s both;
+	}
+
+	@keyframes animatePageIn {
+		from {
+			opacity: 0;
+			transform: translateY(10px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	.animate-page-down {
+		animation: animatePageDown 0.3s ease 0.15s both;
+	}
+
+	@keyframes animatePageDown {
+		from {
+			opacity: 0;
+			transform: translateY(-10px);
+		}
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
 	}
 }

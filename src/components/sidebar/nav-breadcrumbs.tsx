@@ -1,6 +1,6 @@
 'use client'
 
-import { useLocation } from '@tanstack/react-router'
+import { Link, useLocation } from '@tanstack/react-router'
 
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
 
@@ -30,7 +30,7 @@ export default function NavBreadcrumbs() {
 				<BreadcrumbSeparator />
 				<BreadcrumbItem>
 					<BreadcrumbLink asChild>
-						<a href={parentCrumb.href}>{parentCrumb.label}</a>
+						<Link to={parentCrumb.href}>{parentCrumb.label}</Link>
 					</BreadcrumbLink>
 				</BreadcrumbItem>
 				{isBeyondEditing && (
@@ -38,7 +38,7 @@ export default function NavBreadcrumbs() {
 						<BreadcrumbSeparator />
 						<BreadcrumbItem>
 							<BreadcrumbLink asChild>
-								<a href={location.pathname.replace('/select', '/edit')}>Current List</a>
+								<Link to={location.pathname.replace('/select', '/edit')}>Current List</Link>
 							</BreadcrumbLink>
 						</BreadcrumbItem>
 					</>

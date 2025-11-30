@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet } from '@tanstack/react-router'
+import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
 import {
 	Sidebar,
 	SidebarContent,
@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/sidebar'
 import { Suspense } from 'react'
 import { NavigationEvents } from '@/components/utilities/navigation-events'
-import { Gift, ShoppingBag, ListChecks, ListOrdered, ListPlus, Inbox, MessagesSquare, Plus } from 'lucide-react'
+import { Gift, ListChecks, ListOrdered, ListPlus, Inbox, MessagesSquare, Plus, FlaskConical, Receipt } from 'lucide-react'
 import NavBreadcrumbs from '@/components/sidebar/nav-breadcrumbs'
 import Loading from '@/components/loading'
 import NavSection, { type NavItem } from '@/components/sidebar/nav-section'
@@ -21,23 +21,26 @@ import NavBottom from '@/components/sidebar/nav-bottom'
 import { NavUser } from '@/components/sidebar/nav-user'
 
 export const Route = createFileRoute('/(core)')({
-	component: CoreRouteComponent,
+	component: WishListIndexPage,
 })
 const main: NavItem[] = [
 	{
 		name: 'All Lists',
-		url: '/',
+		url: '/lists',
 		icon: ListChecks,
+		hoverColor: 'group-hover/link:text-green-500',
 	},
 	{
 		name: 'My Lists',
 		url: '/me',
 		icon: ListOrdered,
+		hoverColor: 'group-hover/link:text-red-500',
 	},
 	{
 		name: 'My Purchases',
 		url: '/purchases',
-		icon: ShoppingBag,
+		hoverColor: 'group-hover/link:text-pink-500',
+		icon: Receipt,
 	},
 ]
 
@@ -46,11 +49,13 @@ const actions: NavItem[] = [
 		name: 'Quick Add Item',
 		url: '/item/import',
 		icon: Plus,
+		hoverColor: 'group-hover/link:text-blue-500',
 	},
 	{
 		name: 'Create New List',
-		url: '/me?new=true',
+		url: '/me/new',
 		icon: ListPlus,
+		hoverColor: 'group-hover/link:text-yellow-500',
 	},
 ]
 
@@ -59,82 +64,74 @@ const feeds: NavItem[] = [
 		name: 'Recent Comments',
 		url: '/recent/comments',
 		icon: MessagesSquare,
+		hoverColor: 'group-hover/link:text-teal-500',
 	},
 	{
 		name: 'Recent Items',
 		url: '/recent/items',
 		icon: Inbox,
+		hoverColor: 'group-hover/link:text-purple-500',
+	},
+]
+const demo: NavItem[] = [
+	{
+		name: 'Demo Home',
+		url: '/demo',
+		icon: FlaskConical,
+		hoverColor: 'group-hover/link:text-orange-500',
 	},
 ]
 
-function CoreRouteComponent() {
+function WishListIndexPage() {
 	return (
-		<>
-			<SidebarProvider>
-				{/* <AppSidebar /> */}
-				<Sidebar variant="inset">
-					<SidebarHeader>
-						<SidebarMenu>
-							<SidebarMenuItem>
-								<SidebarMenuButton size="lg" asChild>
-									<a href="/" className="">
-										<div className="flex items-center justify-center rounded-lg aspect-square size-8 bg-destructive text-destructive-foreground hover:animate-spin">
-											<Gift className="transition-colors" />
-										</div>
-										<span className="text-lg font-bold truncate">Wish Lists 2.0</span>
-									</a>
-								</SidebarMenuButton>
-							</SidebarMenuItem>
-						</SidebarMenu>
-					</SidebarHeader>
-					<SidebarContent>
-						<NavSection title="Lists" items={main} />
-						<NavSection title="Actions" items={actions} />
-						<NavSection title="Feeds" items={feeds} />
-						<NavBottom />
-					</SidebarContent>
-					<SidebarFooter>
+		<SidebarProvider>
+			<Sidebar variant="inset">
+				<SidebarHeader>
+					<SidebarMenu>
+						<SidebarMenuItem>
+							<SidebarMenuButton size="lg" asChild>
+								<Link to="/" className="">
+									<div className="flex items-center justify-center rounded-lg aspect-square size-8 bg-destructive text-destructive-foreground hover:animate-spin">
+										<Gift className="transition-colors" />
+									</div>
+									<span className="text-lg font-bold truncate">Wish Lists 2.0</span>
+								</Link>
+							</SidebarMenuButton>
+						</SidebarMenuItem>
+					</SidebarMenu>
+				</SidebarHeader>
+				<SidebarContent>
+					<NavSection title="Lists" items={main} />
+					<NavSection title="Actions" items={actions} />
+					<NavSection title="Feeds" items={feeds} />
+					<NavSection title="Demo" items={demo} />
+					<NavBottom />
+				</SidebarContent>
+				<SidebarFooter>
+					<Suspense fallback={null}>
+						<NavUser />
+					</Suspense>
+				</SidebarFooter>
+			</Sidebar>
+			<SidebarInset>
+				<header className="top-0 z-10 flex items-center h-12 gap-2 shrink-0">
+					<div className="flex items-center gap-2 px-4">
+						<SidebarTrigger className="-ml-1" />
 						<Suspense fallback={null}>
-							<NavUser />
-						</Suspense>
-					</SidebarFooter>
-				</Sidebar>
-				<SidebarInset>
-					<header className="top-0 z-10 flex items-center h-12 gap-2 shrink-0">
-						<div className="flex items-center gap-2 px-4">
-							<SidebarTrigger className="-ml-1" />
-							<Suspense fallback={null}>
-								<NavBreadcrumbs />
-							</Suspense>
-						</div>
-					</header>
-					<div className="flex flex-col items-center flex-1 gap-4 p-4 pt-2">
-						<Suspense fallback={<Loading />}>
-							<Outlet />
+							<NavBreadcrumbs />
 						</Suspense>
 					</div>
-				</SidebarInset>
-				{/* Handle navigation changes */}
-				<Suspense fallback={null}>
-					<NavigationEvents />
-				</Suspense>
-			</SidebarProvider>
-			{/*  */}
-
-			{/* <ToastContainer
-			position="bottom-center"
-			autoClose={2500}
-			limit={2}
-			hideProgressBar={false}
-			newestOnTop
-			closeOnClick
-			pauseOnFocusLoss={false}
-			draggable={false}
-			pauseOnHover
-			theme="dark"
-			transition={Flip}
-		/> */}
-		</>
+				</header>
+				<div className="flex flex-col items-center flex-1 gap-4 px-0 py-2 sm:px-2">
+					<Suspense fallback={<Loading />}>
+						<Outlet />
+					</Suspense>
+				</div>
+			</SidebarInset>
+			{/* Handle navigation changes */}
+			<Suspense fallback={null}>
+				<NavigationEvents />
+			</Suspense>
+		</SidebarProvider>
 	)
-	// <div>Hello "/(core)/"!</div>
 }

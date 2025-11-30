@@ -3,12 +3,13 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { signOut, useSession } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import Loading from '@/components/loading'
+import { SonnerTypes } from '@/components/utilities/sonner-types'
 
 export const Route = createFileRoute('/(core)/')({
-	component: App,
+	component: IndexPage,
 })
 
-function App() {
+function IndexPage() {
 	const navigate = useNavigate()
 	const { data: session, isPending } = useSession()
 
@@ -33,13 +34,10 @@ function App() {
 
 	return (
 		<div className="">
-			<header className="top-0 z-10 flex items-center h-12 gap-2 shrink-0">
-				<div className="flex items-center gap-2 px-4">
-					<h1 className="text-3xl font-bold">Welcome, {session.user.name}</h1>
-				</div>
-			</header>
+			<h1 className="text-3xl font-bold">Welcome, {session.user.name}</h1>
+
 			<div className="flex flex-col items-center flex-1 gap-4 p-4 pt-2">
-				<div className="flex flex-col items-center gap-4 p-6 border rounded-lg w-full max-w-md">
+				<div className="flex flex-col items-center gap-4 p-6 border rounded-lg max-w-md">
 					<div className="text-center">
 						<p className="text-lg font-semibold">Signed in as</p>
 						<p className="text-primary">{session.user.email}</p>
@@ -56,6 +54,7 @@ function App() {
 				</div>
 				{/* <pre>{JSON.stringify(env, null, 2)}</pre> */}
 			</div>
+			<SonnerTypes />
 		</div>
 	)
 }

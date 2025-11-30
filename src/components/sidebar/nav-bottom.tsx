@@ -6,13 +6,14 @@ import { SidebarGroup, SidebarGroupContent, SidebarMenu } from '@/components/ui/
 import { NavItem } from './nav-section'
 import { Settings } from 'lucide-react'
 // import StopImpersonatingButton from './StopImpersonatingButton'
-import AdminNavLink from './admin-nav-link'
+import AdminNavLink from './nav-admin-link'
 
 const items: NavItem[] = [
 	{
 		name: 'Settings',
 		url: '/settings',
 		icon: Settings,
+		hoverColor: 'group-hover/link:text-lime-500',
 	},
 ]
 
