@@ -12,6 +12,7 @@ if (typeof process !== 'undefined' && typeof process.cwd === 'function') {
 export const env = createEnv({
 	server: {
 		SERVER_URL: z.url().optional(),
+		// PORT: z.number().optional(),
 		DATABASE_URL: z.url(),
 		BETTER_AUTH_SECRET: z.string().min(1),
 		BETTER_AUTH_URL: z.url().optional(),
