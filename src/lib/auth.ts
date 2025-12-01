@@ -20,6 +20,18 @@ export const auth = betterAuth({
 		fields: {
 			// name: 'displayName',
 		},
+		additionalFields: {
+			birthMonth: {
+				type: 'string',
+				required: false,
+				input: true,
+			},
+			birthDay: {
+				type: 'number',
+				required: false,
+				input: true,
+			},
+		},
 	},
 	session: {
 		cookieCache: {

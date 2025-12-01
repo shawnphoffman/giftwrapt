@@ -69,9 +69,11 @@ code {
 	--muted-foreground: oklch(0.705 0.015 286.067);
 	--accent: oklch(0.274 0.006 286.033);
 	--accent-foreground: oklch(0.985 0 0);
+	/* OG? */
 	/* --destructive: oklch(0.396 0.141 25.723); */
-	--destructive: oklch(0.538 0.201 29.234);
 	/* --destructive-foreground: oklch(0.637 0.237 25.331); */
+	/* NEW */
+	--destructive: oklch(0.538 0.201 29.234);
 	--destructive-foreground: oklch(0.985 0 0);
 	--border: oklch(0.274 0.006 286.033);
 	--input: oklch(0.274 0.006 286.033);
