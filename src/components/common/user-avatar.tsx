@@ -1,4 +1,4 @@
-// import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 
 type UserAvatarProps = {
@@ -10,8 +10,7 @@ type UserAvatarProps = {
 export default function UserAvatar({ name, image, className }: UserAvatarProps) {
 	const initials = name?.charAt(0).toUpperCase() || '?'
 	return (
-		// <Avatar className={cn('w-8 h-8 border border-foreground', className)}>
-		<Avatar className={'w-8 h-8 border border-foreground'}>
+		<Avatar className={cn('w-8 h-8', className)}>
 			<AvatarImage
 				src={image || undefined}
 				alt={name || 'User avatar'}
