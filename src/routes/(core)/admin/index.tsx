@@ -1,4 +1,4 @@
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
 import { env } from '@/env'
 import { createFileRoute } from '@tanstack/react-router'
 import { Lock } from 'lucide-react'
@@ -7,6 +7,7 @@ import { CreateUserForm } from '@/components/admin/create-user-form'
 import { ClientOnly } from '@/components/utilities/client-only'
 import { Skeleton } from '@/components/ui/skeleton'
 import { UsersList } from '@/components/admin/users-list'
+import { UserImpersonation } from '@/components/admin/user-impersonation'
 
 export const Route = createFileRoute('/(core)/admin/')({
 	component: AdminPage,
@@ -22,11 +23,13 @@ function AdminPage() {
 				<Card>
 					<CardHeader>
 						<CardTitle>Impersonation</CardTitle>
+						<CardDescription>Impersonate a user to see the app as they do.</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<Suspense fallback={<Skeleton className="h-10 w-full" />}>
-							<Skeleton className="h-10 w-full" />
-							{/* <UserImpersonation /> */}
+							<ClientOnly>
+								<UserImpersonation />
+							</ClientOnly>
 						</Suspense>
 					</CardContent>
 				</Card>

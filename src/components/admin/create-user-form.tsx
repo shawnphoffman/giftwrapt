@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useQueryClient } from '@tanstack/react-query'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -28,6 +29,7 @@ export function CreateUserForm() {
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [success, setSuccess] = useState(false)
+	const queryClient = useQueryClient()
 
 	const form = useForm<CreateUserFormValues>({
 		resolver: zodResolver(createUserSchema),
@@ -65,7 +67,14 @@ export function CreateUserForm() {
 				setError(result.error.message || 'Failed to create user')
 			} else {
 				setSuccess(true)
-				form.reset()
+				form.reset({
+					email: '',
+					name: '',
+					birthMonth: undefined,
+					birthDay: undefined,
+				})
+				// Invalidate and refetch the users query to update the impersonation dropdown
+				queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
 				// Clear success message after 5 seconds
 				setTimeout(() => setSuccess(false), 5000)
 			}
@@ -114,7 +123,7 @@ export function CreateUserForm() {
 						render={({ field }) => (
 							<FormItem className="w-full">
 								<FormLabel>Birth Month</FormLabel>
-								<Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
+								<Select onValueChange={value => field.onChange(value || undefined)} value={field.value || ''} disabled={isLoading}>
 									<FormControl>
 										<SelectTrigger className="w-full">
 											<SelectValue placeholder="Select month" />

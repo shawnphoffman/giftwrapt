@@ -1,12 +1,9 @@
-// import { Suspense } from 'react'
-
-// import { isImpersonating } from '@/app/actions/admin'
 import { SidebarGroup, SidebarGroupContent, SidebarMenu } from '@/components/ui/sidebar'
 
 import { NavItem } from './nav-section'
 import { Settings } from 'lucide-react'
-// import StopImpersonatingButton from './StopImpersonatingButton'
 import AdminNavLink from './nav-admin-link'
+import StopImpersonationLink from './stop-impersonation-link'
 
 const items: NavItem[] = [
 	{
@@ -18,21 +15,12 @@ const items: NavItem[] = [
 ]
 
 export default function NavBottom() {
-	// let impersonating = await isImpersonating()
-	// console.log('impersonating user:', impersonating)
 	return (
 		<SidebarGroup className="mt-auto">
 			<SidebarGroupContent>
 				<SidebarMenu>
-					{/*  */}
-					{/* <Suspense fallback={null}>
-						<StopImpersonatingButton impersonating={impersonating} />
-					</Suspense> */}
-					{/*  */}
-					{/* <Suspense fallback={null}> */}
+					<StopImpersonationLink />
 					<AdminNavLink />
-					{/* </Suspense> */}
-					{/*  */}
 					{items.map(item => (
 						<NavItem key={item.name} item={item} />
 					))}

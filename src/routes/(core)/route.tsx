@@ -19,6 +19,7 @@ import Loading from '@/components/loading'
 import NavSection, { type NavItem } from '@/components/sidebar/nav-section'
 import NavBottom from '@/components/sidebar/nav-bottom'
 import { NavUser } from '@/components/sidebar/nav-user'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export const Route = createFileRoute('/(core)')({
 	component: WishListIndexPage,
@@ -108,7 +109,7 @@ function WishListIndexPage() {
 					<NavBottom />
 				</SidebarContent>
 				<SidebarFooter>
-					<Suspense fallback={null}>
+					<Suspense fallback={<Skeleton className="h-8 w-full" />}>
 						<NavUser />
 					</Suspense>
 				</SidebarFooter>
@@ -116,10 +117,8 @@ function WishListIndexPage() {
 			<SidebarInset>
 				<header className="top-0 z-10 flex items-center h-12 gap-2 shrink-0">
 					<div className="flex items-center gap-2 px-4">
-						<SidebarTrigger className="-ml-1" />
-						<Suspense fallback={null}>
-							<NavBreadcrumbs />
-						</Suspense>
+						<SidebarTrigger className="-ml-1 [&_svg]:size-6!" />
+						<NavBreadcrumbs />
 					</div>
 				</header>
 				<div className="flex flex-col items-center flex-1 gap-4 px-0 py-2 sm:px-2">
