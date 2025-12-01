@@ -4,63 +4,64 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Lock } from 'lucide-react'
 import { Suspense } from 'react'
 import { CreateUserForm } from '@/components/admin/create-user-form'
+import { ClientOnly } from '@/components/utilities/client-only'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export const Route = createFileRoute('/(core)/admin/')({
-	component: RouteComponent,
+	component: AdminPage,
 })
 
-function RouteComponent() {
+function AdminPage() {
 	return (
 		<div className="flex flex-col flex-1 w-full max-w-5xl px-2 animate-page-in">
 			<div className="relative flex flex-col flex-1 gap-4">
-				{/* HEADING */}
 				<h1 className="flex flex-row items-center gap-2 text-red-500">Admin</h1>
 				<Lock className="size-18 text-red-500 opacity-30 absolute left-4 -top-4 -z-10" />
-				{/* DESCRIPTION */}
 				{/*  */}
-				{/* CONTENT */}
-				<div className="flex flex-col gap-2">
-					<Suspense>
-						<Card>
-							<CardHeader>
-								<CardTitle>Impersonation</CardTitle>
-							</CardHeader>
-							<CardContent className="flex flex-col gap-4 p-6 pt-0">
-								{/* <AdminArchivePurchasedButton /> */}
-								{/* <AdminSendTestEmailButton /> */}
-							</CardContent>
-						</Card>
-						{/* <UserImpersonation /> */}
-					</Suspense>
-				</div>
-
-				<Suspense>
-					<Card>
-						<CardHeader>
-							<CardTitle>Quick Actions</CardTitle>
-						</CardHeader>
-						<CardContent className="flex flex-col gap-4 p-6 pt-0">
+				<Card>
+					<CardHeader>
+						<CardTitle>Impersonation</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<Suspense fallback={<Skeleton className="h-10 w-full" />}>
+							<Skeleton className="h-10 w-full" />
+							{/* <UserImpersonation /> */}
+						</Suspense>
+					</CardContent>
+				</Card>
+				{/*  */}
+				<Card>
+					<CardHeader>
+						<CardTitle>Quick Actions</CardTitle>
+					</CardHeader>
+					<CardContent>
+						<Suspense fallback={<Skeleton className="h-10 w-full" />}>
+							<Skeleton className="h-10 w-full" />
 							{/* <AdminArchivePurchasedButton /> */}
 							{/* <AdminSendTestEmailButton /> */}
-						</CardContent>
-					</Card>
-				</Suspense>
-
+						</Suspense>
+					</CardContent>
+				</Card>
+				{/*  */}
 				<Card>
 					<CardHeader>
 						<CardTitle>Add New User</CardTitle>
 					</CardHeader>
-					<CardContent className="space-y-4">
-						<CreateUserForm />
+					<CardContent>
+						<Suspense fallback={<Skeleton className="h-10 w-full" />}>
+							<ClientOnly>
+								<CreateUserForm />
+							</ClientOnly>
+						</Suspense>
 					</CardContent>
 				</Card>
-
-				<Suspense>
-					<Card>
-						<CardHeader>
-							<CardTitle>Env</CardTitle>
-						</CardHeader>
-						<CardContent className="flex flex-col divide-y">
+				{/*  */}
+				<Card>
+					<CardHeader>
+						<CardTitle>Environment Variables</CardTitle>
+					</CardHeader>
+					<CardContent className="divide-y">
+						<ClientOnly>
 							{Object.entries(env)
 								// .filter(entry => !entry[0].startsWith('npm_'))
 								.sort((a, b) => a[0].localeCompare(b[0]))
@@ -70,9 +71,9 @@ function RouteComponent() {
 										<span className="font-mono text-xs break-all">{String(value)}</span>
 									</div>
 								))}
-						</CardContent>
-					</Card>
-				</Suspense>
+						</ClientOnly>
+					</CardContent>
+				</Card>
 			</div>
 		</div>
 	)
