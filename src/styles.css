@@ -67,8 +67,11 @@ code {
 	--secondary-foreground: oklch(0.985 0 0);
 	--muted: oklch(0.274 0.006 286.033);
 	--muted-foreground: oklch(0.705 0.015 286.067);
-	--accent: oklch(0.274 0.006 286.033);
+	/* OG */
+	/* --accent: oklch(0.274 0.006 286.033); */
 	--accent-foreground: oklch(0.985 0 0);
+	/* NEW */
+	--accent: oklch(0.19 0 90);
 	/* OG? */
 	/* --destructive: oklch(0.396 0.141 25.723); */
 	/* --destructive-foreground: oklch(0.637 0.237 25.331); */

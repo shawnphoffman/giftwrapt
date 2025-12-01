@@ -1,26 +1,32 @@
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+// import { Button } from '@react-email/components'
 import { createFileRoute } from '@tanstack/react-router'
-import { Settings } from 'lucide-react'
 
 export const Route = createFileRoute('/(core)/settings/')({
-	component: RouteComponent,
+	component: SettingsPage,
 })
 
-function RouteComponent() {
+function SettingsPage() {
 	return (
-		<div className="flex flex-col flex-1 w-full max-w-5xl px-2 animate-page-in">
-			<div className="relative flex flex-col flex-1 gap-6">
-				{/* HEADING */}
-				<h1 className="flex flex-row items-center gap-2">Settings</h1>
-				<Settings className="size-18 text-lime-500 opacity-30 absolute left-4 -top-4 -z-10" />
-				{/* DESCRIPTION */}
-				{/*  */}
-				{/* CONTENT */}
-				<Skeleton className="h-10 w-full" />
-				{/* <Suspense fallback={<FallbackRowsMultiple />}> */}
-				{/* <ListsByUser /> */}
-				{/* </Suspense> */}
-			</div>
+		<div className="grid gap-6 animate-page-in">
+			<Card className="bg-accent">
+				<CardHeader>
+					<CardTitle>Profile</CardTitle>
+				</CardHeader>
+				<CardContent>
+					<Skeleton className="h-10 w-full" />
+					{/* <div className="flex flex-col items-center w-full gap-4 xs:flex-row">
+						<ProfileAvatarUpload image={user?.image} displayName={user?.display_name} />
+						<ProfileForm name={user.display_name} id={user.user_id} birthMonth={user.birth_month} birthDay={user.birth_day} />
+					</div> */}
+				</CardContent>
+				{/* <CardFooter className="px-6 py-4 border-t">
+					<Button type="submit" form="update-profile-form">
+						Save
+					</Button>
+				</CardFooter> */}
+			</Card>
 		</div>
 	)
 }
