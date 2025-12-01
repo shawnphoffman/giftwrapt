@@ -29,7 +29,6 @@ export type Todo = z.infer<typeof TodoSchema>
 // Provides local-first behavior: data is cached locally and syncs with server
 // Version mismatch between @tanstack/db versions (0.4.19 vs 0.4.20) - using type assertion
 export const todosCollection = createCollection(
-	// @ts-ignore - Version mismatch between @tanstack/db versions
 	queryCollectionOptions({
 		queryKey: ['todos'],
 		queryFn: async () => {
@@ -113,5 +112,5 @@ export const todosCollection = createCollection(
 				throw new Error('Failed to delete todo')
 			}
 		},
-	} as any)
+	})
 )

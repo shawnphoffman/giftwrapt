@@ -16,5 +16,8 @@ export const messagesCollection = createCollection(
 	})
 )
 
-// Re-export todos collection
+// ===============================
+// COLLECTIONS
+// ===============================
 export * from './todos'
+export * from './users'

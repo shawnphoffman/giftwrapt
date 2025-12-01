@@ -33,6 +33,7 @@ import { Route as DemoFormAddressRouteImport } from './routes/demo/form.address'
 import { Route as DemoApiTqTodosRouteImport } from './routes/demo/api.tq-todos'
 import { Route as DemoApiNamesRouteImport } from './routes/demo/api.names'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiAdminUsersRouteImport } from './routes/api/admin/users'
 import { Route as coreSettingsSecurityRouteImport } from './routes/(core)/settings/security'
 import { Route as coreSettingsReceivedRouteImport } from './routes/(core)/settings/received'
 import { Route as coreSettingsPurchasesRouteImport } from './routes/(core)/settings/purchases'
@@ -170,6 +171,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAdminUsersRoute = ApiAdminUsersRouteImport.update({
+  id: '/api/admin/users',
+  path: '/api/admin/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const coreSettingsSecurityRoute = coreSettingsSecurityRouteImport.update({
   id: '/settings/security',
   path: '/settings/security',
@@ -280,6 +286,7 @@ export interface FileRoutesByFullPath {
   '/settings/purchases': typeof coreSettingsPurchasesRoute
   '/settings/received': typeof coreSettingsReceivedRoute
   '/settings/security': typeof coreSettingsSecurityRoute
+  '/api/admin/users': typeof ApiAdminUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
@@ -321,6 +328,7 @@ export interface FileRoutesByTo {
   '/settings/purchases': typeof coreSettingsPurchasesRoute
   '/settings/received': typeof coreSettingsReceivedRoute
   '/settings/security': typeof coreSettingsSecurityRoute
+  '/api/admin/users': typeof ApiAdminUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
@@ -365,6 +373,7 @@ export interface FileRoutesById {
   '/(core)/settings/purchases': typeof coreSettingsPurchasesRoute
   '/(core)/settings/received': typeof coreSettingsReceivedRoute
   '/(core)/settings/security': typeof coreSettingsSecurityRoute
+  '/api/admin/users': typeof ApiAdminUsersRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
@@ -409,6 +418,7 @@ export interface FileRouteTypes {
     | '/settings/purchases'
     | '/settings/received'
     | '/settings/security'
+    | '/api/admin/users'
     | '/api/auth/$'
     | '/demo/api/names'
     | '/demo/api/tq-todos'
@@ -450,6 +460,7 @@ export interface FileRouteTypes {
     | '/settings/purchases'
     | '/settings/received'
     | '/settings/security'
+    | '/api/admin/users'
     | '/api/auth/$'
     | '/demo/api/names'
     | '/demo/api/tq-todos'
@@ -493,6 +504,7 @@ export interface FileRouteTypes {
     | '/(core)/settings/purchases'
     | '/(core)/settings/received'
     | '/(core)/settings/security'
+    | '/api/admin/users'
     | '/api/auth/$'
     | '/demo/api/names'
     | '/demo/api/tq-todos'
@@ -518,6 +530,7 @@ export interface RootRouteChildren {
   DemoRouteRoute: typeof DemoRouteRouteWithChildren
   authSignInRoute: typeof authSignInRoute
   authSignUpRoute: typeof authSignUpRoute
+  ApiAdminUsersRoute: typeof ApiAdminUsersRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -689,6 +702,13 @@ declare module '@tanstack/react-router' {
       path: '/api/auth/$'
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/users': {
+      id: '/api/admin/users'
+      path: '/api/admin/users'
+      fullPath: '/api/admin/users'
+      preLoaderRoute: typeof ApiAdminUsersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(core)/settings/security': {
@@ -910,6 +930,7 @@ const rootRouteChildren: RootRouteChildren = {
   DemoRouteRoute: DemoRouteRouteWithChildren,
   authSignInRoute: authSignInRoute,
   authSignUpRoute: authSignUpRoute,
+  ApiAdminUsersRoute: ApiAdminUsersRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
