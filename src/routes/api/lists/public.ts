@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 import { desc } from 'drizzle-orm'
 import { db } from '@/db'
-import { users, lists } from '@/db/schema'
+import { lists } from '@/db/schema'
 
 export const Route = createFileRoute('/api/lists/public')({
 	server: {
@@ -13,8 +13,7 @@ export const Route = createFileRoute('/api/lists/public')({
 				const allUsers = await db.query.users.findMany({
 					with: {
 						lists: {
-							where: (lists, { and, eq }) =>
-								and(eq(lists.isPrivate, false), eq(lists.isActive, true)),
+							where: (lists, { and, eq }) => and(eq(lists.isPrivate, false), eq(lists.isActive, true)),
 							orderBy: [desc(lists.createdAt)],
 						},
 					},
@@ -44,4 +43,3 @@ export const Route = createFileRoute('/api/lists/public')({
 		},
 	},
 })
-

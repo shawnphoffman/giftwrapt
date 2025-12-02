@@ -1,28 +1,11 @@
-import { useQuery } from '@tanstack/react-query'
+import { useLiveQuery } from '@tanstack/react-db'
 import { Link } from '@tanstack/react-router'
 import UserAvatar from '@/components/common/user-avatar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { BirthMonth } from '@/db/enums'
-
-type UserWithLists = {
-	id: string
-	email: string
-	name: string | null
-	image: string | null
-	birthMonth: BirthMonth | null
-	birthDay: number | null
-	lists: Array<{
-		id: number
-		name: string
-		type: string
-		isActive: boolean
-		description: string | null
-		createdAt: string
-		updatedAt: string
-	}>
-}
+import { usersWithListsCollection, type UserWithLists } from '@/db-collections/lists'
 
 // Format birthday as "Month Day"
 const birthday = (month: string, day: number) => {
@@ -89,22 +72,22 @@ const sortUserGroupsByBirthDate = (a: UserWithLists, b: UserWithLists) => {
 }
 
 export function ListsByUser() {
-	const {
-		data: usersData = [],
-		isLoading,
-		error,
-	} = useQuery<UserWithLists[]>({
-		queryKey: ['lists', 'public'],
-		queryFn: async () => {
-			const response = await fetch('/api/lists/public')
-			if (!response.ok) {
-				throw new Error('Failed to fetch public lists')
-			}
-			return response.json()
-		},
-	})
+	// Use useLiveQuery to query the collection directly
+	// The collection's queryFn automatically fetches from the API route
+	// This provides live updates, automatic caching, and local-first behavior
+	// The API route is still needed (server-side database access), but this
+	// gives us a cleaner client-side API with live updates
+	const queryResult = useLiveQuery(q =>
+		q.from({ user: usersWithListsCollection }).select(({ user }) => ({
+			...user,
+		}))
+	)
 
-	if (isLoading) {
+	// Convert Map to array for easier use
+	const usersData = Array.from(queryResult.data?.values() || []) as UserWithLists[]
+	const isLoading = queryResult.isLoading
+
+	if (isLoading && usersData.length === 0) {
 		return (
 			<div className="space-y-6">
 				{[...Array(3)].map((_, i) => (
@@ -123,14 +106,6 @@ export function ListsByUser() {
 						</CardContent>
 					</Card>
 				))}
-			</div>
-		)
-	}
-
-	if (error) {
-		return (
-			<div className="text-sm text-destructive">
-				Error loading lists: {error instanceof Error ? error.message : 'Unknown error'}
 			</div>
 		)
 	}
@@ -159,37 +134,32 @@ export function ListsByUser() {
 								)}
 							</div>
 						</CardHeader>
-					<CardContent>
-						{user.lists.length === 0 ? (
-							<div className="text-sm text-muted-foreground">No lists</div>
-						) : (
-							<div className="space-y-2">
-								{user.lists.map(list => (
-									<Link
-										key={list.id}
-										to="/lists/$listId"
-										params={{ listId: String(list.id) }}
-										className="block p-3 rounded-lg border hover:bg-muted/50 transition-colors"
-									>
-										<div className="font-medium">{list.name}</div>
-										{list.description && (
-											<div className="text-sm text-muted-foreground mt-1">{list.description}</div>
-										)}
-										<div className="flex items-center gap-2 mt-2">
-											<span className="text-xs text-muted-foreground capitalize">{list.type}</span>
-											{!list.isActive && (
-												<span className="text-xs text-muted-foreground">(Inactive)</span>
-											)}
-										</div>
-									</Link>
-								))}
-							</div>
-						)}
-					</CardContent>
-				</Card>
+						<CardContent>
+							{user.lists.length === 0 ? (
+								<div className="text-sm text-muted-foreground">No lists</div>
+							) : (
+								<div className="space-y-2">
+									{user.lists.map(list => (
+										<Link
+											key={list.id}
+											to="/lists/$listId"
+											params={{ listId: String(list.id) }}
+											className="block p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+										>
+											<div className="font-medium">{list.name}</div>
+											{list.description && <div className="text-sm text-muted-foreground mt-1">{list.description}</div>}
+											<div className="flex items-center gap-2 mt-2">
+												<span className="text-xs text-muted-foreground capitalize">{list.type}</span>
+												{!list.isActive && <span className="text-xs text-muted-foreground">(Inactive)</span>}
+											</div>
+										</Link>
+									))}
+								</div>
+							)}
+						</CardContent>
+					</Card>
 				)
 			})}
 		</div>
 	)
 }
-
