@@ -45,7 +45,6 @@ import { Route as coreRecentCommentsRouteImport } from './routes/(core)/recent.c
 import { Route as coreMeNewRouteImport } from './routes/(core)/me.new'
 import { Route as coreListsListIdRouteImport } from './routes/(core)/lists/$listId'
 import { Route as coreItemCloneRouteImport } from './routes/(core)/item.clone'
-import { Route as DemoStartSsrIndexRouteImport } from './routes/demo/start.ssr.index'
 import { Route as DemoStartSsrSpaModeRouteImport } from './routes/demo/start.ssr.spa-mode'
 import { Route as DemoStartSsrFullSsrRouteImport } from './routes/demo/start.ssr.full-ssr'
 import { Route as DemoStartSsrDataOnlyRouteImport } from './routes/demo/start.ssr.data-only'
@@ -232,11 +231,6 @@ const coreItemCloneRoute = coreItemCloneRouteImport.update({
   path: '/item/clone',
   getParentRoute: () => coreRouteRoute,
 } as any)
-const DemoStartSsrIndexRoute = DemoStartSsrIndexRouteImport.update({
-  id: '/start/ssr/',
-  path: '/start/ssr/',
-  getParentRoute: () => DemoRouteRoute,
-} as any)
 const DemoStartSsrSpaModeRoute = DemoStartSsrSpaModeRouteImport.update({
   id: '/start/ssr/spa-mode',
   path: '/start/ssr/spa-mode',
@@ -311,7 +305,6 @@ export interface FileRoutesByFullPath {
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
   '/demo/start/ssr/spa-mode': typeof DemoStartSsrSpaModeRoute
-  '/demo/start/ssr': typeof DemoStartSsrIndexRoute
 }
 export interface FileRoutesByTo {
   '/sign-in': typeof authSignInRoute
@@ -353,7 +346,6 @@ export interface FileRoutesByTo {
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
   '/demo/start/ssr/spa-mode': typeof DemoStartSsrSpaModeRoute
-  '/demo/start/ssr': typeof DemoStartSsrIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -399,7 +391,6 @@ export interface FileRoutesById {
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
   '/demo/start/ssr/spa-mode': typeof DemoStartSsrSpaModeRoute
-  '/demo/start/ssr/': typeof DemoStartSsrIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -445,7 +436,6 @@ export interface FileRouteTypes {
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
     | '/demo/start/ssr/spa-mode'
-    | '/demo/start/ssr'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/sign-in'
@@ -487,7 +477,6 @@ export interface FileRouteTypes {
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
     | '/demo/start/ssr/spa-mode'
-    | '/demo/start/ssr'
   id:
     | '__root__'
     | '/(core)'
@@ -532,7 +521,6 @@ export interface FileRouteTypes {
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
     | '/demo/start/ssr/spa-mode'
-    | '/demo/start/ssr/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -798,13 +786,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreItemCloneRouteImport
       parentRoute: typeof coreRouteRoute
     }
-    '/demo/start/ssr/': {
-      id: '/demo/start/ssr/'
-      path: '/start/ssr'
-      fullPath: '/demo/start/ssr'
-      preLoaderRoute: typeof DemoStartSsrIndexRouteImport
-      parentRoute: typeof DemoRouteRoute
-    }
     '/demo/start/ssr/spa-mode': {
       id: '/demo/start/ssr/spa-mode'
       path: '/start/ssr/spa-mode'
@@ -926,7 +907,6 @@ interface DemoRouteRouteChildren {
   DemoStartSsrDataOnlyRoute: typeof DemoStartSsrDataOnlyRoute
   DemoStartSsrFullSsrRoute: typeof DemoStartSsrFullSsrRoute
   DemoStartSsrSpaModeRoute: typeof DemoStartSsrSpaModeRoute
-  DemoStartSsrIndexRoute: typeof DemoStartSsrIndexRoute
 }
 
 const DemoRouteRouteChildren: DemoRouteRouteChildren = {
@@ -946,7 +926,6 @@ const DemoRouteRouteChildren: DemoRouteRouteChildren = {
   DemoStartSsrDataOnlyRoute: DemoStartSsrDataOnlyRoute,
   DemoStartSsrFullSsrRoute: DemoStartSsrFullSsrRoute,
   DemoStartSsrSpaModeRoute: DemoStartSsrSpaModeRoute,
-  DemoStartSsrIndexRoute: DemoStartSsrIndexRoute,
 }
 
 const DemoRouteRouteWithChildren = DemoRouteRoute._addFileChildren(

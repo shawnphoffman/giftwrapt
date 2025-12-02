@@ -3,18 +3,6 @@ import { useCallback, useState } from 'react'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 
-/*
-const loggingMiddleware = createMiddleware().server(
-  async ({ next, request }) => {
-    console.log("Request:", request.url);
-    return next();
-  }
-);
-const loggedServerFunction = createServerFn({ method: "GET" }).middleware([
-  loggingMiddleware,
-]);
-*/
-
 const TODOS_FILE = 'todos.json'
 
 async function readTodos() {
@@ -64,7 +52,7 @@ function Home() {
 
 	return (
 		<div
-			className="flex items-center justify-center min-h-screen bg-gradient-to-br from-zinc-800 to-black p-4 text-white"
+			className="flex items-center justify-center min-h-screen bg-linear-to-br from-zinc-800 to-black p-4 text-white"
 			style={{
 				backgroundImage: 'radial-gradient(50% 50% at 20% 60%, #23272a 0%, #18181b 50%, #000000 100%)',
 			}}
@@ -72,7 +60,7 @@ function Home() {
 			<div className="w-full max-w-2xl p-8 rounded-xl backdrop-blur-md bg-black/50 shadow-xl border-8 border-black/10">
 				<h1 className="text-2xl mb-4">Start Server Functions - Todo Example</h1>
 				<ul className="mb-4 space-y-2">
-					{todos?.map(t => (
+					{todos?.map((t: { id: number; name: string }) => (
 						<li key={t.id} className="bg-white/10 border border-white/20 rounded-lg p-3 backdrop-blur-sm shadow-md">
 							<span className="text-lg text-white">{t.name}</span>
 						</li>
