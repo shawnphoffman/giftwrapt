@@ -31,3 +31,7 @@ export const birthMonthEnumValues = [
 ] as const
 export const birthMonthEnum = pgEnum('birth_month', birthMonthEnumValues)
 export type BirthMonth = (typeof birthMonthEnumValues)[number]
+
+export const listTypeEnumValues = ['wishlist', 'christmas', 'birthday', 'giftideas', 'todos', 'test'] as const
+export const listTypeEnum = pgEnum('list_type', listTypeEnumValues)
+export type ListType = (typeof listTypeEnumValues)[number]

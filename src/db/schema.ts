@@ -1,7 +1,7 @@
 import { boolean, pgTable, serial, text } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { timestamps } from './shared'
-import { user } from './users'
+import { users } from './users'
 import { statusEnum } from './enums'
 
 // ===============================
@@ -10,6 +10,8 @@ import { statusEnum } from './enums'
 export * from './enums'
 export * from './users'
 export * from './auth'
+export * from './lists'
+export * from './items'
 
 // ===============================
 // TEMP Todos
@@ -21,7 +23,7 @@ export const todos = pgTable('todos', {
 	isArchived: boolean('is_archived').default(false).notNull(),
 	creatorId: text('creator_id')
 		.notNull()
-		.references(() => user.id, { onDelete: 'cascade' }),
+		.references(() => users.id, { onDelete: 'cascade' }),
 	//
 	...timestamps,
 })
@@ -30,8 +32,11 @@ export const todos = pgTable('todos', {
 // RELATIONS
 // ------------------------------
 export const todosRelations = relations(todos, ({ one }) => ({
-	creator: one(user, {
+	creator: one(users, {
 		fields: [todos.creatorId],
-		references: [user.id],
+		references: [users.id],
 	}),
 }))
+
+export type Todo = typeof todos.$inferSelect
+export type NewTodo = typeof todos.$inferInsert

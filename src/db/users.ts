@@ -3,11 +3,12 @@ import { timestamps } from './shared'
 import { relations } from 'drizzle-orm'
 import { session, account } from './auth'
 import { birthMonthEnum } from './enums'
+import { lists } from './lists'
 
 // ===============================
 // USERS
 // ===============================
-export const user = pgTable('user', {
+export const users = pgTable('users', {
 	id: text('id').primaryKey(), // should this be serial?
 	email: text('email').notNull().unique(),
 	name: text('name'),
@@ -27,17 +28,20 @@ export const user = pgTable('user', {
 	emailVerified: boolean('email_verified').default(false).notNull(),
 })
 
-export const partnerRelations = relations(user, ({ one }) => ({
-	partnerUser: one(user, {
-		fields: [user.partnerId],
-		references: [user.id],
-	}),
-}))
-
 // ------------------------------
 // RELATIONS
 // ------------------------------
-export const userRelations = relations(user, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({
 	sessions: many(session),
 	accounts: many(account),
+	//
+	partner: one(users, {
+		fields: [users.partnerId],
+		references: [users.id],
+	}),
+	//
+	lists: many(lists),
 }))
+
+export type User = typeof users.$inferSelect
+export type NewUser = typeof users.$inferInsert

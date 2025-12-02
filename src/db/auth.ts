@@ -1,7 +1,7 @@
 import { relations } from 'drizzle-orm'
 import { index, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 import { timestamps } from './shared'
-import { user } from './users'
+import { users } from './users'
 
 // ===============================
 // AUTH
@@ -16,8 +16,8 @@ export const session = pgTable(
 		userAgent: text('user_agent'),
 		userId: text('user_id')
 			.notNull()
-			.references(() => user.id, { onDelete: 'cascade' }),
-		impersonatedBy: text('impersonated_by').references(() => user.id, { onDelete: 'cascade' }),
+			.references(() => users.id, { onDelete: 'cascade' }),
+		impersonatedBy: text('impersonated_by').references(() => users.id, { onDelete: 'cascade' }),
 		//
 		...timestamps,
 	},
@@ -32,7 +32,7 @@ export const account = pgTable(
 		providerId: text('provider_id').notNull(),
 		userId: text('user_id')
 			.notNull()
-			.references(() => user.id, { onDelete: 'cascade' }),
+			.references(() => users.id, { onDelete: 'cascade' }),
 		accessToken: text('access_token'),
 		refreshToken: text('refresh_token'),
 		idToken: text('id_token'),
@@ -58,15 +58,15 @@ export const verification = pgTable(
 )
 
 export const sessionRelations = relations(session, ({ one }) => ({
-	user: one(user, {
+	user: one(users, {
 		fields: [session.userId],
-		references: [user.id],
+		references: [users.id],
 	}),
 }))
 
 export const accountRelations = relations(account, ({ one }) => ({
-	user: one(user, {
+	user: one(users, {
 		fields: [account.userId],
-		references: [user.id],
+		references: [users.id],
 	}),
 }))
