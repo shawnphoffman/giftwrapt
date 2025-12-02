@@ -13,6 +13,9 @@ export * from './auth'
 export * from './lists'
 export * from './items'
 
+// Alias for query API compatibility
+export { users as user } from './users'
+
 // ===============================
 // TEMP Todos
 // ===============================

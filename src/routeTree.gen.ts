@@ -34,6 +34,7 @@ import { Route as DemoFormSimpleRouteImport } from './routes/demo/form.simple'
 import { Route as DemoFormAddressRouteImport } from './routes/demo/form.address'
 import { Route as DemoApiTqTodosRouteImport } from './routes/demo/api.tq-todos'
 import { Route as DemoApiNamesRouteImport } from './routes/demo/api.names'
+import { Route as ApiListsPublicRouteImport } from './routes/api/lists/public'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as coreSettingsSecurityRouteImport } from './routes/(core)/settings/security'
 import { Route as coreSettingsReceivedRouteImport } from './routes/(core)/settings/received'
@@ -176,6 +177,11 @@ const DemoApiNamesRoute = DemoApiNamesRouteImport.update({
   path: '/api/names',
   getParentRoute: () => DemoRouteRoute,
 } as any)
+const ApiListsPublicRoute = ApiListsPublicRouteImport.update({
+  id: '/api/lists/public',
+  path: '/api/lists/public',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -289,6 +295,7 @@ export interface FileRoutesByFullPath {
   '/settings/received': typeof coreSettingsReceivedRoute
   '/settings/security': typeof coreSettingsSecurityRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/lists/public': typeof ApiListsPublicRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
   '/demo/form/address': typeof DemoFormAddressRoute
@@ -330,6 +337,7 @@ export interface FileRoutesByTo {
   '/settings/received': typeof coreSettingsReceivedRoute
   '/settings/security': typeof coreSettingsSecurityRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/lists/public': typeof ApiListsPublicRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
   '/demo/form/address': typeof DemoFormAddressRoute
@@ -375,6 +383,7 @@ export interface FileRoutesById {
   '/(core)/settings/received': typeof coreSettingsReceivedRoute
   '/(core)/settings/security': typeof coreSettingsSecurityRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/lists/public': typeof ApiListsPublicRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/api/tq-todos': typeof DemoApiTqTodosRoute
   '/demo/form/address': typeof DemoFormAddressRoute
@@ -420,6 +429,7 @@ export interface FileRouteTypes {
     | '/settings/received'
     | '/settings/security'
     | '/api/auth/$'
+    | '/api/lists/public'
     | '/demo/api/names'
     | '/demo/api/tq-todos'
     | '/demo/form/address'
@@ -461,6 +471,7 @@ export interface FileRouteTypes {
     | '/settings/received'
     | '/settings/security'
     | '/api/auth/$'
+    | '/api/lists/public'
     | '/demo/api/names'
     | '/demo/api/tq-todos'
     | '/demo/form/address'
@@ -505,6 +516,7 @@ export interface FileRouteTypes {
     | '/(core)/settings/received'
     | '/(core)/settings/security'
     | '/api/auth/$'
+    | '/api/lists/public'
     | '/demo/api/names'
     | '/demo/api/tq-todos'
     | '/demo/form/address'
@@ -530,6 +542,7 @@ export interface RootRouteChildren {
   authSignOutRoute: typeof authSignOutRoute
   authSignUpRoute: typeof authSignUpRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiListsPublicRoute: typeof ApiListsPublicRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -708,6 +721,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/demo/api/names'
       preLoaderRoute: typeof DemoApiNamesRouteImport
       parentRoute: typeof DemoRouteRoute
+    }
+    '/api/lists/public': {
+      id: '/api/lists/public'
+      path: '/api/lists/public'
+      fullPath: '/api/lists/public'
+      preLoaderRoute: typeof ApiListsPublicRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -939,6 +959,7 @@ const rootRouteChildren: RootRouteChildren = {
   authSignOutRoute: authSignOutRoute,
   authSignUpRoute: authSignUpRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiListsPublicRoute: ApiListsPublicRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -21,3 +21,4 @@ export const messagesCollection = createCollection(
 // ===============================
 export * from './todos'
 export * from './users'
+export * from './lists'

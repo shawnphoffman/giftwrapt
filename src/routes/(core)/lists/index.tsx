@@ -1,13 +1,12 @@
-import { Skeleton } from '@/components/ui/skeleton'
 import { createFileRoute } from '@tanstack/react-router'
 import { ListChecks } from 'lucide-react'
+import { ListsByUser } from '@/components/lists/lists-by-user'
 
 export const Route = createFileRoute('/(core)/lists/')({
 	component: ListsPage,
 })
 
 export default function ListsPage() {
-	// await new Promise(resolve => setTimeout(resolve, 5000))
 	return (
 		<div className="flex flex-col flex-1 w-full max-w-5xl px-2 animate-page-in">
 			<div className="relative flex flex-col flex-1 gap-6">
@@ -17,10 +16,7 @@ export default function ListsPage() {
 				{/* DESCRIPTION */}
 				{/*  */}
 				{/* CONTENT */}
-				<Skeleton className="h-10 w-full" />
-				{/* <Suspense fallback={<FallbackRowsMultiple />}> */}
-				{/* <ListsByUser /> */}
-				{/* </Suspense> */}
+				<ListsByUser />
 			</div>
 		</div>
 	)
