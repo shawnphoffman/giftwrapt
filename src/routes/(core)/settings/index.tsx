@@ -1,5 +1,5 @@
 import { CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
+import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 // import { Button } from '@react-email/components'
 import { createFileRoute } from '@tanstack/react-router'
 
@@ -14,7 +14,7 @@ function SettingsPage() {
 				<CardTitle className="text-2xl">Profile</CardTitle>
 			</CardHeader>
 			<CardContent>
-				<Skeleton className="h-10 w-full" />
+				<LoadingSkeleton />
 				{/* <div className="flex flex-col items-center w-full gap-4 xs:flex-row">
 						<ProfileAvatarUpload image={user?.image} displayName={user?.display_name} />
 						<ProfileForm name={user.display_name} id={user.user_id} birthMonth={user.birth_month} birthDay={user.birth_day} />

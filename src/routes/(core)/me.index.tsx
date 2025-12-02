@@ -1,4 +1,4 @@
-import { Skeleton } from '@/components/ui/skeleton'
+import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { createFileRoute } from '@tanstack/react-router'
 import { ListOrdered } from 'lucide-react'
 
@@ -28,7 +28,7 @@ function MyListsPage() {
 							These are the lists that everybody can see and use for gift-giving. If a list is not in this section then it is either not
 							public or you are not marked as the recipient. You can change your primary list by clicking on the list&apos;s star icon.
 						</div>
-						<Skeleton className="h-10 w-full" />
+						<LoadingSkeleton />
 						{/* <Suspense fallback={<FallbackRowThick />}>
 							<MyLists type={ListType.PUBLIC} />
 						</Suspense> */}
@@ -41,7 +41,7 @@ function MyListsPage() {
 							Nobody else can see these lists unless you explicitly make them an editor. These are nice for personal shopping lists or
 							sitting on things you may want to add to a public list later.
 						</div>
-						<Skeleton className="h-10 w-full" />
+						<LoadingSkeleton />
 						{/* <Suspense fallback={<FallbackRowThick />}>
 							<MyLists type={ListType.PRIVATE} />
 						</Suspense> */}
@@ -54,7 +54,7 @@ function MyListsPage() {
 							These are idea lists for other people. These are helpful for adding things throughout the year that you think someone might
 							like.
 						</div>
-						<Skeleton className="h-10 w-full" />
+						<LoadingSkeleton />
 						{/* <Suspense fallback={<FallbackRowThick />}>
 							<MyLists type={ListType.GIFT_IDEAS} />
 						</Suspense> */}
@@ -69,7 +69,7 @@ function MyListsPage() {
 							These are lists that others created and then added you as an editor. You can edit these lists from here or, if they are
 							public, view them as a gift-giver from the main lists page.
 						</div>
-						<Skeleton className="h-10 w-full" />
+						<LoadingSkeleton />
 						{/* <Suspense fallback={<FallbackRowThick />}>
 							<MyLists type={ListType.SHARED_WITH_ME} />
 						</Suspense> */}
@@ -82,7 +82,7 @@ function MyListsPage() {
 							These are lists that you have added editors to. Editors are able to modify the items on your list just as you do but they can
 							also view your list as gift giver.
 						</div>
-						<Skeleton className="h-10 w-full" />
+						<LoadingSkeleton />
 						{/* <Suspense fallback={<FallbackRowThick />}>
 							<MyLists type={ListType.SHARED_WITH_OTHERS} />
 						</Suspense> */}

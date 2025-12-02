@@ -1,5 +1,5 @@
 import { CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
+import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { createFileRoute } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/(core)/settings/purchases')({
@@ -13,7 +13,7 @@ function PurchasesPage() {
 				<CardTitle className="text-2xl">Purchases</CardTitle>
 			</CardHeader>
 			<CardContent>
-				<Skeleton className="h-10 w-full" />
+				<LoadingSkeleton />
 			</CardContent>
 		</div>
 	)

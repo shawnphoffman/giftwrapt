@@ -1,4 +1,4 @@
-import { Skeleton } from '@/components/ui/skeleton'
+import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { createFileRoute } from '@tanstack/react-router'
 import { Inbox } from 'lucide-react'
 
@@ -21,7 +21,7 @@ function RecentItemsPage() {
 							This page is a special request because Madison treats this like a social media site...
 						</div> */}
 						{/* CONTENT */}
-						<Skeleton className="h-10 w-full" />
+						<LoadingSkeleton />
 						{/* <Suspense fallback={<FallbackRowsMultiple />}>
 							<MyPurchases />
 						</Suspense> */}

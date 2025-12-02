@@ -4,7 +4,7 @@ import { Slider } from './slider'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
 const meta = {
-	title: 'Form/Slider',
+	title: 'Demo/Slider',
 	component: Slider,
 	parameters: {
 		layout: 'centered',

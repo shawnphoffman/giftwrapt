@@ -3,7 +3,7 @@ import { Button } from './button'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
 const meta = {
-	title: 'Form/Dialog',
+	title: 'Demo/Dialog',
 	component: Dialog,
 	parameters: {
 		layout: 'centered',

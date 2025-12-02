@@ -3,10 +3,10 @@ import { useQuery } from '@tanstack/react-query'
 import { authClient, useSession } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Skeleton } from '@/components/ui/skeleton'
 import type { User } from '@/db-collections/users'
 import { toast } from 'sonner'
 import { getAdminUsers } from '@/lib/admin-server-functions'
+import LoadingSkeleton from '../skeletons/loading-skeleton'
 
 export function UserImpersonation() {
 	const [selectedUserId, setSelectedUserId] = useState<string>('')
@@ -58,7 +58,7 @@ export function UserImpersonation() {
 	}
 
 	if (isLoading) {
-		return <Skeleton className="h-10 w-full" />
+		return <LoadingSkeleton />
 	}
 
 	if (error) {

@@ -4,7 +4,7 @@ import { Input } from './input'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
 const meta = {
-	title: 'Form/Input',
+	title: 'Demo/Input',
 	component: Input,
 	parameters: {
 		layout: 'centered',

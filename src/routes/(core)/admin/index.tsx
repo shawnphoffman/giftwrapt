@@ -5,11 +5,11 @@ import { Lock } from 'lucide-react'
 import { Suspense } from 'react'
 import { CreateUserForm } from '@/components/admin/create-user-form'
 import { ClientOnly } from '@/components/utilities/client-only'
-import { Skeleton } from '@/components/ui/skeleton'
 import { UsersList } from '@/components/admin/users-list'
 import { UserImpersonation } from '@/components/admin/user-impersonation'
 import SendTestEmailButton from '@/components/admin/send-test-email'
 import { createServerFn } from '@tanstack/react-start'
+import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 
 const isEmailConfigured = createServerFn({ method: 'GET' }).handler(() => {
 	return Boolean(env.RESEND_API_KEY && env.RESEND_FROM_EMAIL)
@@ -39,7 +39,7 @@ function AdminPage() {
 						<CardDescription>Impersonate a user to see the app as they do.</CardDescription>
 					</CardHeader>
 					<CardContent>
-						<Suspense fallback={<Skeleton className="h-10 w-full" />}>
+						<Suspense fallback={<LoadingSkeleton />}>
 							<ClientOnly>
 								<UserImpersonation />
 							</ClientOnly>
@@ -52,11 +52,7 @@ function AdminPage() {
 						<CardTitle>Quick Actions</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<Suspense fallback={<Skeleton className="h-10 w-full" />}>
-							<Skeleton className="h-10 w-full" />
-							{/* <AdminArchivePurchasedButton /> */}
-							{/* <AdminSendTestEmailButton /> */}
-						</Suspense>
+						<LoadingSkeleton />
 					</CardContent>
 				</Card>
 				{/*  */}
@@ -65,7 +61,7 @@ function AdminPage() {
 						<CardTitle>Add New User</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<Suspense fallback={<Skeleton className="h-10 w-full" />}>
+						<Suspense fallback={<LoadingSkeleton />}>
 							<ClientOnly>
 								<CreateUserForm />
 							</ClientOnly>
@@ -78,7 +74,7 @@ function AdminPage() {
 						<CardTitle>Users</CardTitle>
 					</CardHeader>
 					<CardContent>
-						<Suspense fallback={<Skeleton className="h-10 w-full" />}>
+						<Suspense fallback={<LoadingSkeleton />}>
 							<UsersList />
 						</Suspense>
 					</CardContent>
