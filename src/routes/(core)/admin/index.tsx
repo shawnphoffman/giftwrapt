@@ -8,12 +8,25 @@ import { ClientOnly } from '@/components/utilities/client-only'
 import { Skeleton } from '@/components/ui/skeleton'
 import { UsersList } from '@/components/admin/users-list'
 import { UserImpersonation } from '@/components/admin/user-impersonation'
+import SendTestEmailButton from '@/components/admin/send-test-email'
+import { createServerFn } from '@tanstack/react-start'
+
+const isEmailConfigured = createServerFn({ method: 'GET' }).handler(() => {
+	return Boolean(env.RESEND_API_KEY && env.RESEND_FROM_EMAIL)
+})
 
 export const Route = createFileRoute('/(core)/admin/')({
 	component: AdminPage,
+	loader: async () => {
+		return {
+			isEmailConfigured: await isEmailConfigured(),
+		}
+	},
 })
 
 function AdminPage() {
+	const { isEmailConfigured } = Route.useLoaderData()
+
 	return (
 		<div className="flex flex-col flex-1 w-full max-w-2xl px-2 animate-page-in">
 			<div className="relative flex flex-col flex-1 gap-4">
@@ -70,6 +83,19 @@ function AdminPage() {
 						</Suspense>
 					</CardContent>
 				</Card>
+				{/*  */}
+				{isEmailConfigured && (
+					<Card>
+						<CardHeader>
+							<CardTitle>Emails</CardTitle>
+						</CardHeader>
+						<CardContent>
+							<div className="flex flex-col gap-3 max-w-md mx-auto">
+								<SendTestEmailButton />
+							</div>
+						</CardContent>
+					</Card>
+				)}
 				{/*  */}
 				<Card>
 					<CardHeader>

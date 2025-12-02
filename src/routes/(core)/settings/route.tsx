@@ -1,4 +1,5 @@
 import SettingsLinks from '@/components/settings/links'
+import { Card } from '@/components/ui/card'
 import { createFileRoute, Outlet } from '@tanstack/react-router'
 import { Settings } from 'lucide-react'
 
@@ -18,7 +19,11 @@ function SettingsRoute() {
 						<SettingsLinks />
 					</nav>
 					{/* <Suspense fallback={<FallbackRowThick />}>{children}</Suspense> */}
-					<Outlet />
+					<div className="grid gap-6 animate-page-in">
+						<Card className="bg-accent">
+							<Outlet />
+						</Card>
+					</div>
 				</div>
 			</div>
 		</div>

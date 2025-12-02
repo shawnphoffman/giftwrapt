@@ -16,6 +16,11 @@ export const env = createEnv({
 		DATABASE_URL: z.url(),
 		BETTER_AUTH_SECRET: z.string().min(1),
 		BETTER_AUTH_URL: z.url().optional(),
+		//
+		RESEND_API_KEY: z.string().min(1).optional(),
+		RESEND_FROM_EMAIL: z.email().optional(),
+		RESEND_FROM_NAME: z.string().optional(),
+		RESEND_BCC_ADDRESS: z.email().optional(),
 	},
 
 	/**
@@ -26,7 +31,7 @@ export const env = createEnv({
 
 	client: {
 		VITE_APP_TITLE: z.string().min(1).optional(),
-		VITE_BETTER_AUTH_URL: z.url().optional(),
+		// VITE_BETTER_AUTH_URL: z.url().optional(),
 		VITE_SERVER_URL: z.url().optional(),
 	},
 
