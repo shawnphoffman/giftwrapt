@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Skeleton } from '@/components/ui/skeleton'
 import type { User } from '@/db-collections/users'
 import { toast } from 'sonner'
+import { getAdminUsers } from '@/lib/admin-server-functions'
 
 export function UserImpersonation() {
 	const [selectedUserId, setSelectedUserId] = useState<string>('')
@@ -20,12 +21,7 @@ export function UserImpersonation() {
 	} = useQuery<User[]>({
 		queryKey: ['admin', 'users'],
 		queryFn: async () => {
-			const response = await fetch('/api/admin/users')
-			if (!response.ok) {
-				throw new Error('Failed to fetch users')
-			}
-
-			return response.json()
+			return await getAdminUsers()
 		},
 	})
 

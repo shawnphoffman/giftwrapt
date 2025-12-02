@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button'
 import { useCallback, useState } from 'react'
 import { CheckIcon, XIcon, Mail } from 'lucide-react'
 import { toast } from 'sonner'
+import { sendAdminTestEmail } from '@/lib/admin-server-functions'
 
 export default function SendTestEmailButton() {
 	const [sending, setSending] = useState(false)
@@ -14,28 +15,12 @@ export default function SendTestEmailButton() {
 		setResult(undefined)
 
 		try {
-			const response = await fetch('/api/admin/send-test-email', {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
+			await sendAdminTestEmail()
+			setResult({
+				status: 'success',
+				error: undefined,
 			})
-
-			const data = await response.json()
-
-			if (!response.ok) {
-				setResult({
-					status: 'error',
-					error: data.error || 'Failed to send test email',
-				})
-				toast.error(data.error || 'Failed to send test email')
-			} else {
-				setResult({
-					status: 'success',
-					error: undefined,
-				})
-				toast.success('Test email sent successfully')
-			}
+			toast.success('Test email sent successfully')
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Failed to send test email'
 			setResult({

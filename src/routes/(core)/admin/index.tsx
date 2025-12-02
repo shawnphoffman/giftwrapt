@@ -84,18 +84,20 @@ function AdminPage() {
 					</CardContent>
 				</Card>
 				{/*  */}
-				{isEmailConfigured && (
-					<Card>
-						<CardHeader>
-							<CardTitle>Emails</CardTitle>
-						</CardHeader>
-						<CardContent>
+				<Card>
+					<CardHeader>
+						<CardTitle>Emails</CardTitle>
+					</CardHeader>
+					<CardContent>
+						{isEmailConfigured ? (
 							<div className="flex flex-col gap-3 max-w-md mx-auto">
 								<SendTestEmailButton />
 							</div>
-						</CardContent>
-					</Card>
-				)}
+						) : (
+							<p className="text-sm text-gray-500">Email is not currently configured</p>
+						)}
+					</CardContent>
+				</Card>
 				{/*  */}
 				<Card>
 					<CardHeader>

@@ -3,6 +3,7 @@ import UserAvatar from '@/components/common/user-avatar'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { User } from '@/db-collections/users'
 import UserBadge from '../common/user-badge'
+import { getAdminUsers } from '@/lib/admin-server-functions'
 
 export function UsersList() {
 	const {
@@ -12,11 +13,7 @@ export function UsersList() {
 	} = useQuery<User[]>({
 		queryKey: ['admin', 'users'],
 		queryFn: async () => {
-			const response = await fetch('/api/admin/users')
-			if (!response.ok) {
-				throw new Error('Failed to fetch users')
-			}
-			return response.json()
+			return await getAdminUsers()
 		},
 	})
 

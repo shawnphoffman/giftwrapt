@@ -1,7 +1,68 @@
-# shadcn instructions
+# Project Patterns & Preferences
 
-Use the latest version of Shadcn to install new components, like this command to add a button component:
+## Tech Stack
+- TanStack Start (React Router, Query, Form)
+- Better Auth for authentication
+- Drizzle ORM with PostgreSQL
+- Resend for emails
+- Shadcn UI components
+- Tailwind CSS with OKLCH color format
+- TypeScript
 
-```bash
-pnpx shadcn@latest add button
-```
+## Authentication & Authorization
+- Use Better Auth for all auth operations
+- Admin checks: Always verify `isAdmin` flag server-side before allowing admin actions
+- Use `auth.api.getSession({ headers: request.headers })` in API routes/server functions
+- Never expose server-only environment variables to the client
+
+## TanStack Start Patterns
+- Use `createServerFn` for server-side functions that need to be called from client (preferred over API routes)
+- Use `createMiddleware` for reusable auth/validation logic:
+  ```ts
+  import { createServerFn, createMiddleware } from '@tanstack/react-start'
+  import { adminAuthMiddleware } from '@/lib/admin-server-functions'
+
+  export const myServerFunction = createServerFn({ method: 'POST' })
+    .middleware([adminAuthMiddleware])
+    .handler(async ({ ctx }) => {
+      // ctx.currentUser is guaranteed to be an admin
+      // Do work
+      return { data: ... }
+    })
+  ```
+- Call server functions directly from components (no fetch needed):
+  ```ts
+  const result = await myServerFunction()
+  ```
+- Use API routes (`/api/*`) only if you need external access or REST compatibility
+- Use route loaders for server-side data fetching
+- Wrap client-only components in `<ClientOnly>` when needed
+- Use `<Suspense>` for async components
+
+## Component Patterns
+- Use Shadcn components (install with `pnpx shadcn@latest add component-name`)
+- Use `toast` from 'sonner' for notifications
+- Use TanStack Query for data fetching with proper query keys
+- Invalidate queries after mutations: `queryClient.invalidateQueries({ queryKey: [...] })`
+
+## Styling
+- Use OKLCH color format in CSS (not HSL)
+- Follow existing Tailwind patterns
+
+## Code Style
+- Prefer explicit over implicit
+- Use TypeScript types properly
+- Keep components focused and simple
+- Use proper error handling with try/catch
+- Show loading states during async operations
+
+## Security
+- Never expose server-only env vars to client
+- Always validate admin access server-side
+- Use server functions/API routes for sensitive operations
+- Filter out current user from lists when appropriate (e.g., can't impersonate yourself)
+
+## Email
+- Use Resend client from `@/lib/resend`
+- Use `sendTestEmail()` for test emails
+- Handle optional BCC address gracefully

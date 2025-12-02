@@ -1,7 +1,5 @@
-import { createCollection } from '@tanstack/db'
-import { queryCollectionOptions } from '@tanstack/query-db-collection'
 import { z } from 'zod'
-import { getContext } from '@/integrations/tanstack-query/root-provider'
+import { getAdminUsers } from '@/lib/admin-server-functions'
 
 // Schema matching the user table
 const UserSchema = z.object({
@@ -17,20 +15,7 @@ const UserSchema = z.object({
 
 export type User = z.infer<typeof UserSchema>
 
-// Query Collection with automatic sync via TanStack Query
-// Provides local-first behavior: data is cached locally and syncs with server
-export const usersCollection = createCollection(
-	queryCollectionOptions({
-		queryKey: ['admin', 'users'],
-		queryFn: async () => {
-			const response = await fetch('/api/admin/users')
-			if (!response.ok) {
-				throw new Error('Failed to fetch users')
-			}
-			return response.json()
-		},
-		queryClient: getContext().queryClient,
-		getKey: (user: User) => user.id,
-		schema: UserSchema,
-	})
-)
+// Note: usersCollection was removed as it's not currently used.
+// Components use getAdminUsers server function directly via useQuery.
+// If you need a collection in the future, you can recreate it using:
+// queryFn: getAdminUsers
