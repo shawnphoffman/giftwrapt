@@ -3,6 +3,7 @@ import { relations } from 'drizzle-orm'
 import { timestamps } from './shared'
 import { users } from './users'
 import { listTypeEnum } from './enums'
+import { itemGroups, items } from './items'
 
 // ===============================
 // LISTS
@@ -22,12 +23,13 @@ export const lists = pgTable('lists', {
 	...timestamps,
 })
 
-export const listsRelations = relations(lists, ({ one }) => ({
+export const listsRelations = relations(lists, ({ one, many }) => ({
 	owner: one(users, {
 		fields: [lists.ownerId],
 		references: [users.id],
 	}),
-	// Items
+	itemGroups: many(itemGroups),
+	items: many(items),
 	// Editors
 	// Viewers+
 	// Viewers-Only

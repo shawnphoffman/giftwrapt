@@ -7,10 +7,10 @@ export type Priority = (typeof priorityEnumValues)[number]
 export const statusEnumValues = [
 	'incomplete',
 	'complete',
-	'partial-quantity',
-	'group-complete',
-	'group-incomplete',
-	'group-invalid',
+	// 'partial-quantity',
+	// 'group-complete',
+	// 'group-incomplete',
+	// 'group-invalid',
 ] as const
 export const statusEnum = pgEnum('status', statusEnumValues)
 export type Status = (typeof statusEnumValues)[number]
