@@ -1,5 +1,5 @@
 import { useLiveQuery } from '@tanstack/react-db'
-import type { BirthMonth } from '@/db/enums'
+import type { BirthMonth } from '@/db/schema/enums'
 import { usersWithListsCollection, type UserWithLists } from '@/db-collections/lists'
 import ListsByUserSkeleton from '../skeletons/lists-by-user-skeleton'
 import { ClientOnly } from '@/components/utilities/client-only'

@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button'
 import { useCallback, useState } from 'react'
 import { CheckIcon, XIcon, Mail } from 'lucide-react'
 import { toast } from 'sonner'
-import { sendAdminTestEmail } from '@/lib/admin-server-functions'
+import { sendTestEmailAsAdmin } from '@/api/admin'
 
 export default function SendTestEmailButton() {
 	const [sending, setSending] = useState(false)
@@ -15,7 +15,7 @@ export default function SendTestEmailButton() {
 		setResult(undefined)
 
 		try {
-			await sendAdminTestEmail()
+			await sendTestEmailAsAdmin()
 			setResult({
 				status: 'success',
 				error: undefined,

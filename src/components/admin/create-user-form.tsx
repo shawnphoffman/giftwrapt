@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { authClient } from '@/lib/auth-client'
-import { birthMonthEnumValues } from '@/db/enums'
+import { birthMonthEnumValues } from '@/db/schema/enums'
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
 
 const createUserSchema = z.object({

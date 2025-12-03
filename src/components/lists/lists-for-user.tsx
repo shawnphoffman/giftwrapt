@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { type UserWithLists } from '@/db-collections/lists'
 import ListTypeIcon from '../common/list-type-icon'
 import BirthdayBadge from '../common/birthday-badge'
-import { BirthMonth } from '@/db/enums'
+import { BirthMonth } from '@/db/schema/enums'
 import CountBadge from '../common/count-badge'
 
 export default function ListsForUser({ user }: { user: UserWithLists }) {

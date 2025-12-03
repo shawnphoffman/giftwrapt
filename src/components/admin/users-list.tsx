@@ -3,7 +3,7 @@ import UserAvatar from '@/components/common/user-avatar'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { User } from '@/db-collections/users'
 import UserBadge from '../common/user-badge'
-import { getAdminUsers } from '@/lib/admin-server-functions'
+import { getUsersAsAdmin } from '@/api/admin'
 import { Link } from '@tanstack/react-router'
 
 export function AdminUsersList() {
@@ -14,7 +14,7 @@ export function AdminUsersList() {
 	} = useQuery<User[]>({
 		queryKey: ['admin', 'users'],
 		queryFn: async () => {
-			return await getAdminUsers()
+			return await getUsersAsAdmin()
 		},
 	})
 

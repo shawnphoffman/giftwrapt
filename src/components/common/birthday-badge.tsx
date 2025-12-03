@@ -1,5 +1,5 @@
 import { Badge } from '@/components/ui/badge'
-import { BirthMonth } from '@/db/enums'
+import { BirthMonth } from '@/db/schema/enums'
 
 type BirthdayBadgeProps = {
 	birthMonth: BirthMonth

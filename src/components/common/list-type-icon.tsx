@@ -1,5 +1,5 @@
 import { Cake, CheckCheck, FlaskConical, Gift, Lightbulb, TreePine } from 'lucide-react'
-import type { ListType } from '@/db/enums'
+import type { ListType } from '@/db/schema/enums'
 import { cn } from '@/lib/utils'
 
 type ListTypeIconProps = {

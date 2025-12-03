@@ -8,13 +8,9 @@ import { ClientOnly } from '@/components/utilities/client-only'
 import { AdminUsersList } from '@/components/admin/users-list'
 import { UserImpersonation } from '@/components/admin/user-impersonation'
 import SendTestEmailButton from '@/components/admin/send-test-email'
-import { createServerFn } from '@tanstack/react-start'
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { useSession } from '@/lib/auth-client'
-
-const isEmailConfigured = createServerFn({ method: 'GET' }).handler(() => {
-	return Boolean(env.RESEND_API_KEY && env.RESEND_FROM_EMAIL)
-})
+import { isEmailConfigured } from '@/api/common'
 
 export const Route = createFileRoute('/(core)/admin/')({
 	component: AdminPage,

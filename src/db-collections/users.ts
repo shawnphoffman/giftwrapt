@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { getAdminUsers } from '@/lib/admin-server-functions'
 
 // Schema matching the user table
 const UserSchema = z.object({

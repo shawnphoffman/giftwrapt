@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { User } from '@/db-collections/users'
 import { toast } from 'sonner'
-import { getAdminUsers } from '@/lib/admin-server-functions'
+import { getUsersAsAdmin } from '@/api/admin'
 import LoadingSkeleton from '../skeletons/loading-skeleton'
 
 export function UserImpersonation() {
@@ -21,7 +21,7 @@ export function UserImpersonation() {
 	} = useQuery<User[]>({
 		queryKey: ['admin', 'users'],
 		queryFn: async () => {
-			return await getAdminUsers()
+			return await getUsersAsAdmin()
 		},
 	})
 
