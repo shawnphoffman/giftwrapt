@@ -7,8 +7,7 @@ type CountBadgeProps = {
 }
 
 export default function CountBadge({ count, remaining }: CountBadgeProps) {
-	console.log('count', { count, remaining })
-	// if (count === 0) return null
+	if (count === 0) return null
 	return (
 		<Badge
 			variant="secondary"
