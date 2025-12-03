@@ -9,154 +9,95 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as PurchasesRouteImport } from './routes/purchases'
-import { Route as SettingsRouteRouteImport } from './routes/settings/route'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as SettingsIndexRouteImport } from './routes/settings/index'
-import { Route as MeIndexRouteImport } from './routes/me.index'
-import { Route as ListsIndexRouteImport } from './routes/lists/index'
-import { Route as AdminIndexRouteImport } from './routes/admin/index'
-import { Route as TestStylesRouteImport } from './routes/test.styles'
-import { Route as SettingsSecurityRouteImport } from './routes/settings/security'
-import { Route as SettingsReceivedRouteImport } from './routes/settings/received'
-import { Route as SettingsPurchasesRouteImport } from './routes/settings/purchases'
-import { Route as SettingsPermissionsRouteImport } from './routes/settings/permissions'
-import { Route as SettingsConnectionsRouteImport } from './routes/settings/connections'
-import { Route as RecentItemsRouteImport } from './routes/recent.items'
-import { Route as RecentCommentsRouteImport } from './routes/recent.comments'
-import { Route as MeNewRouteImport } from './routes/me.new'
-import { Route as ListsListIdRouteImport } from './routes/lists/$listId'
-import { Route as ItemCloneRouteImport } from './routes/item.clone'
-import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
-import { Route as authSignOutRouteImport } from './routes/(auth)/sign-out'
-import { Route as authSignInRouteImport } from './routes/(auth)/sign-in'
-import { Route as ListsListIdEditRouteImport } from './routes/lists_/$listId.edit'
-import { Route as ListsListIdBulkRouteImport } from './routes/lists_/$listId.bulk'
-import { Route as ItemImportChar123UrlChar125RouteImport } from './routes/item.import.{-$url}'
+import { Route as SignUpRouteImport } from './routes/sign-up'
+import { Route as SignOutRouteImport } from './routes/sign-out'
+import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as coreRouteRouteImport } from './routes/(core)/route'
+import { Route as coreIndexRouteImport } from './routes/(core)/index'
+import { Route as corePurchasesRouteImport } from './routes/(core)/purchases'
+import { Route as coreSettingsRouteRouteImport } from './routes/(core)/settings/route'
+import { Route as coreAdminRouteRouteImport } from './routes/(core)/admin/route'
+import { Route as coreSettingsIndexRouteImport } from './routes/(core)/settings/index'
+import { Route as coreMeIndexRouteImport } from './routes/(core)/me.index'
+import { Route as coreListsIndexRouteImport } from './routes/(core)/lists/index'
+import { Route as coreAdminIndexRouteImport } from './routes/(core)/admin/index'
 import { Route as ApiListsPublicRouteImport } from './routes/api/lists/public'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as coreTestStylesRouteImport } from './routes/(core)/test.styles'
+import { Route as coreSettingsSecurityRouteImport } from './routes/(core)/settings/security'
+import { Route as coreSettingsReceivedRouteImport } from './routes/(core)/settings/received'
+import { Route as coreSettingsPurchasesRouteImport } from './routes/(core)/settings/purchases'
+import { Route as coreSettingsPermissionsRouteImport } from './routes/(core)/settings/permissions'
+import { Route as coreSettingsConnectionsRouteImport } from './routes/(core)/settings/connections'
+import { Route as coreRecentItemsRouteImport } from './routes/(core)/recent.items'
+import { Route as coreRecentCommentsRouteImport } from './routes/(core)/recent.comments'
+import { Route as coreMeNewRouteImport } from './routes/(core)/me.new'
+import { Route as coreListsListIdRouteImport } from './routes/(core)/lists/$listId'
+import { Route as coreItemCloneRouteImport } from './routes/(core)/item.clone'
+import { Route as coreListsListIdEditRouteImport } from './routes/(core)/lists_/$listId.edit'
+import { Route as coreListsListIdBulkRouteImport } from './routes/(core)/lists_/$listId.bulk'
+import { Route as coreItemImportChar123UrlChar125RouteImport } from './routes/(core)/item.import.{-$url}'
+import { Route as coreAdminUserIdRouteImport } from './routes/(core)/admin/user.$id'
 
-const PurchasesRoute = PurchasesRouteImport.update({
-  id: '/purchases',
-  path: '/purchases',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRouteRoute = SettingsRouteRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsIndexRoute = SettingsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => SettingsRouteRoute,
-} as any)
-const MeIndexRoute = MeIndexRouteImport.update({
-  id: '/me/',
-  path: '/me/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ListsIndexRoute = ListsIndexRouteImport.update({
-  id: '/lists/',
-  path: '/lists/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminIndexRoute = AdminIndexRouteImport.update({
-  id: '/admin/',
-  path: '/admin/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TestStylesRoute = TestStylesRouteImport.update({
-  id: '/test/styles',
-  path: '/test/styles',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsSecurityRoute = SettingsSecurityRouteImport.update({
-  id: '/security',
-  path: '/security',
-  getParentRoute: () => SettingsRouteRoute,
-} as any)
-const SettingsReceivedRoute = SettingsReceivedRouteImport.update({
-  id: '/received',
-  path: '/received',
-  getParentRoute: () => SettingsRouteRoute,
-} as any)
-const SettingsPurchasesRoute = SettingsPurchasesRouteImport.update({
-  id: '/purchases',
-  path: '/purchases',
-  getParentRoute: () => SettingsRouteRoute,
-} as any)
-const SettingsPermissionsRoute = SettingsPermissionsRouteImport.update({
-  id: '/permissions',
-  path: '/permissions',
-  getParentRoute: () => SettingsRouteRoute,
-} as any)
-const SettingsConnectionsRoute = SettingsConnectionsRouteImport.update({
-  id: '/connections',
-  path: '/connections',
-  getParentRoute: () => SettingsRouteRoute,
-} as any)
-const RecentItemsRoute = RecentItemsRouteImport.update({
-  id: '/recent/items',
-  path: '/recent/items',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RecentCommentsRoute = RecentCommentsRouteImport.update({
-  id: '/recent/comments',
-  path: '/recent/comments',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MeNewRoute = MeNewRouteImport.update({
-  id: '/me/new',
-  path: '/me/new',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ListsListIdRoute = ListsListIdRouteImport.update({
-  id: '/lists/$listId',
-  path: '/lists/$listId',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ItemCloneRoute = ItemCloneRouteImport.update({
-  id: '/item/clone',
-  path: '/item/clone',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const authSignUpRoute = authSignUpRouteImport.update({
-  id: '/(auth)/sign-up',
+const SignUpRoute = SignUpRouteImport.update({
+  id: '/sign-up',
   path: '/sign-up',
   getParentRoute: () => rootRouteImport,
 } as any)
-const authSignOutRoute = authSignOutRouteImport.update({
-  id: '/(auth)/sign-out',
+const SignOutRoute = SignOutRouteImport.update({
+  id: '/sign-out',
   path: '/sign-out',
   getParentRoute: () => rootRouteImport,
 } as any)
-const authSignInRoute = authSignInRouteImport.update({
-  id: '/(auth)/sign-in',
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
   path: '/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ListsListIdEditRoute = ListsListIdEditRouteImport.update({
-  id: '/lists_/$listId/edit',
-  path: '/lists/$listId/edit',
+const coreRouteRoute = coreRouteRouteImport.update({
+  id: '/(core)',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ListsListIdBulkRoute = ListsListIdBulkRouteImport.update({
-  id: '/lists_/$listId/bulk',
-  path: '/lists/$listId/bulk',
-  getParentRoute: () => rootRouteImport,
+const coreIndexRoute = coreIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => coreRouteRoute,
 } as any)
-const ItemImportChar123UrlChar125Route =
-  ItemImportChar123UrlChar125RouteImport.update({
-    id: '/item/import/{-$url}',
-    path: '/item/import/{-$url}',
-    getParentRoute: () => rootRouteImport,
-  } as any)
+const corePurchasesRoute = corePurchasesRouteImport.update({
+  id: '/purchases',
+  path: '/purchases',
+  getParentRoute: () => coreRouteRoute,
+} as any)
+const coreSettingsRouteRoute = coreSettingsRouteRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => coreRouteRoute,
+} as any)
+const coreAdminRouteRoute = coreAdminRouteRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => coreRouteRoute,
+} as any)
+const coreSettingsIndexRoute = coreSettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => coreSettingsRouteRoute,
+} as any)
+const coreMeIndexRoute = coreMeIndexRouteImport.update({
+  id: '/me/',
+  path: '/me/',
+  getParentRoute: () => coreRouteRoute,
+} as any)
+const coreListsIndexRoute = coreListsIndexRouteImport.update({
+  id: '/lists/',
+  path: '/lists/',
+  getParentRoute: () => coreRouteRoute,
+} as any)
+const coreAdminIndexRoute = coreAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => coreAdminRouteRoute,
+} as any)
 const ApiListsPublicRoute = ApiListsPublicRouteImport.update({
   id: '/api/lists/public',
   path: '/api/lists/public',
@@ -167,100 +108,183 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const coreTestStylesRoute = coreTestStylesRouteImport.update({
+  id: '/test/styles',
+  path: '/test/styles',
+  getParentRoute: () => coreRouteRoute,
+} as any)
+const coreSettingsSecurityRoute = coreSettingsSecurityRouteImport.update({
+  id: '/security',
+  path: '/security',
+  getParentRoute: () => coreSettingsRouteRoute,
+} as any)
+const coreSettingsReceivedRoute = coreSettingsReceivedRouteImport.update({
+  id: '/received',
+  path: '/received',
+  getParentRoute: () => coreSettingsRouteRoute,
+} as any)
+const coreSettingsPurchasesRoute = coreSettingsPurchasesRouteImport.update({
+  id: '/purchases',
+  path: '/purchases',
+  getParentRoute: () => coreSettingsRouteRoute,
+} as any)
+const coreSettingsPermissionsRoute = coreSettingsPermissionsRouteImport.update({
+  id: '/permissions',
+  path: '/permissions',
+  getParentRoute: () => coreSettingsRouteRoute,
+} as any)
+const coreSettingsConnectionsRoute = coreSettingsConnectionsRouteImport.update({
+  id: '/connections',
+  path: '/connections',
+  getParentRoute: () => coreSettingsRouteRoute,
+} as any)
+const coreRecentItemsRoute = coreRecentItemsRouteImport.update({
+  id: '/recent/items',
+  path: '/recent/items',
+  getParentRoute: () => coreRouteRoute,
+} as any)
+const coreRecentCommentsRoute = coreRecentCommentsRouteImport.update({
+  id: '/recent/comments',
+  path: '/recent/comments',
+  getParentRoute: () => coreRouteRoute,
+} as any)
+const coreMeNewRoute = coreMeNewRouteImport.update({
+  id: '/me/new',
+  path: '/me/new',
+  getParentRoute: () => coreRouteRoute,
+} as any)
+const coreListsListIdRoute = coreListsListIdRouteImport.update({
+  id: '/lists/$listId',
+  path: '/lists/$listId',
+  getParentRoute: () => coreRouteRoute,
+} as any)
+const coreItemCloneRoute = coreItemCloneRouteImport.update({
+  id: '/item/clone',
+  path: '/item/clone',
+  getParentRoute: () => coreRouteRoute,
+} as any)
+const coreListsListIdEditRoute = coreListsListIdEditRouteImport.update({
+  id: '/lists_/$listId/edit',
+  path: '/lists/$listId/edit',
+  getParentRoute: () => coreRouteRoute,
+} as any)
+const coreListsListIdBulkRoute = coreListsListIdBulkRouteImport.update({
+  id: '/lists_/$listId/bulk',
+  path: '/lists/$listId/bulk',
+  getParentRoute: () => coreRouteRoute,
+} as any)
+const coreItemImportChar123UrlChar125Route =
+  coreItemImportChar123UrlChar125RouteImport.update({
+    id: '/item/import/{-$url}',
+    path: '/item/import/{-$url}',
+    getParentRoute: () => coreRouteRoute,
+  } as any)
+const coreAdminUserIdRoute = coreAdminUserIdRouteImport.update({
+  id: '/user/$id',
+  path: '/user/$id',
+  getParentRoute: () => coreAdminRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/settings': typeof SettingsRouteRouteWithChildren
-  '/purchases': typeof PurchasesRoute
-  '/sign-in': typeof authSignInRoute
-  '/sign-out': typeof authSignOutRoute
-  '/sign-up': typeof authSignUpRoute
-  '/item/clone': typeof ItemCloneRoute
-  '/lists/$listId': typeof ListsListIdRoute
-  '/me/new': typeof MeNewRoute
-  '/recent/comments': typeof RecentCommentsRoute
-  '/recent/items': typeof RecentItemsRoute
-  '/settings/connections': typeof SettingsConnectionsRoute
-  '/settings/permissions': typeof SettingsPermissionsRoute
-  '/settings/purchases': typeof SettingsPurchasesRoute
-  '/settings/received': typeof SettingsReceivedRoute
-  '/settings/security': typeof SettingsSecurityRoute
-  '/test/styles': typeof TestStylesRoute
-  '/admin': typeof AdminIndexRoute
-  '/lists': typeof ListsIndexRoute
-  '/me': typeof MeIndexRoute
-  '/settings/': typeof SettingsIndexRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-out': typeof SignOutRoute
+  '/sign-up': typeof SignUpRoute
+  '/admin': typeof coreAdminRouteRouteWithChildren
+  '/settings': typeof coreSettingsRouteRouteWithChildren
+  '/purchases': typeof corePurchasesRoute
+  '/': typeof coreIndexRoute
+  '/item/clone': typeof coreItemCloneRoute
+  '/lists/$listId': typeof coreListsListIdRoute
+  '/me/new': typeof coreMeNewRoute
+  '/recent/comments': typeof coreRecentCommentsRoute
+  '/recent/items': typeof coreRecentItemsRoute
+  '/settings/connections': typeof coreSettingsConnectionsRoute
+  '/settings/permissions': typeof coreSettingsPermissionsRoute
+  '/settings/purchases': typeof coreSettingsPurchasesRoute
+  '/settings/received': typeof coreSettingsReceivedRoute
+  '/settings/security': typeof coreSettingsSecurityRoute
+  '/test/styles': typeof coreTestStylesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/lists/public': typeof ApiListsPublicRoute
-  '/item/import/{-$url}': typeof ItemImportChar123UrlChar125Route
-  '/lists/$listId/bulk': typeof ListsListIdBulkRoute
-  '/lists/$listId/edit': typeof ListsListIdEditRoute
+  '/admin/': typeof coreAdminIndexRoute
+  '/lists': typeof coreListsIndexRoute
+  '/me': typeof coreMeIndexRoute
+  '/settings/': typeof coreSettingsIndexRoute
+  '/admin/user/$id': typeof coreAdminUserIdRoute
+  '/item/import/{-$url}': typeof coreItemImportChar123UrlChar125Route
+  '/lists/$listId/bulk': typeof coreListsListIdBulkRoute
+  '/lists/$listId/edit': typeof coreListsListIdEditRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/purchases': typeof PurchasesRoute
-  '/sign-in': typeof authSignInRoute
-  '/sign-out': typeof authSignOutRoute
-  '/sign-up': typeof authSignUpRoute
-  '/item/clone': typeof ItemCloneRoute
-  '/lists/$listId': typeof ListsListIdRoute
-  '/me/new': typeof MeNewRoute
-  '/recent/comments': typeof RecentCommentsRoute
-  '/recent/items': typeof RecentItemsRoute
-  '/settings/connections': typeof SettingsConnectionsRoute
-  '/settings/permissions': typeof SettingsPermissionsRoute
-  '/settings/purchases': typeof SettingsPurchasesRoute
-  '/settings/received': typeof SettingsReceivedRoute
-  '/settings/security': typeof SettingsSecurityRoute
-  '/test/styles': typeof TestStylesRoute
-  '/admin': typeof AdminIndexRoute
-  '/lists': typeof ListsIndexRoute
-  '/me': typeof MeIndexRoute
-  '/settings': typeof SettingsIndexRoute
+  '/sign-in': typeof SignInRoute
+  '/sign-out': typeof SignOutRoute
+  '/sign-up': typeof SignUpRoute
+  '/purchases': typeof corePurchasesRoute
+  '/': typeof coreIndexRoute
+  '/item/clone': typeof coreItemCloneRoute
+  '/lists/$listId': typeof coreListsListIdRoute
+  '/me/new': typeof coreMeNewRoute
+  '/recent/comments': typeof coreRecentCommentsRoute
+  '/recent/items': typeof coreRecentItemsRoute
+  '/settings/connections': typeof coreSettingsConnectionsRoute
+  '/settings/permissions': typeof coreSettingsPermissionsRoute
+  '/settings/purchases': typeof coreSettingsPurchasesRoute
+  '/settings/received': typeof coreSettingsReceivedRoute
+  '/settings/security': typeof coreSettingsSecurityRoute
+  '/test/styles': typeof coreTestStylesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/lists/public': typeof ApiListsPublicRoute
-  '/item/import/{-$url}': typeof ItemImportChar123UrlChar125Route
-  '/lists/$listId/bulk': typeof ListsListIdBulkRoute
-  '/lists/$listId/edit': typeof ListsListIdEditRoute
+  '/admin': typeof coreAdminIndexRoute
+  '/lists': typeof coreListsIndexRoute
+  '/me': typeof coreMeIndexRoute
+  '/settings': typeof coreSettingsIndexRoute
+  '/admin/user/$id': typeof coreAdminUserIdRoute
+  '/item/import/{-$url}': typeof coreItemImportChar123UrlChar125Route
+  '/lists/$listId/bulk': typeof coreListsListIdBulkRoute
+  '/lists/$listId/edit': typeof coreListsListIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/settings': typeof SettingsRouteRouteWithChildren
-  '/purchases': typeof PurchasesRoute
-  '/(auth)/sign-in': typeof authSignInRoute
-  '/(auth)/sign-out': typeof authSignOutRoute
-  '/(auth)/sign-up': typeof authSignUpRoute
-  '/item/clone': typeof ItemCloneRoute
-  '/lists/$listId': typeof ListsListIdRoute
-  '/me/new': typeof MeNewRoute
-  '/recent/comments': typeof RecentCommentsRoute
-  '/recent/items': typeof RecentItemsRoute
-  '/settings/connections': typeof SettingsConnectionsRoute
-  '/settings/permissions': typeof SettingsPermissionsRoute
-  '/settings/purchases': typeof SettingsPurchasesRoute
-  '/settings/received': typeof SettingsReceivedRoute
-  '/settings/security': typeof SettingsSecurityRoute
-  '/test/styles': typeof TestStylesRoute
-  '/admin/': typeof AdminIndexRoute
-  '/lists/': typeof ListsIndexRoute
-  '/me/': typeof MeIndexRoute
-  '/settings/': typeof SettingsIndexRoute
+  '/(core)': typeof coreRouteRouteWithChildren
+  '/sign-in': typeof SignInRoute
+  '/sign-out': typeof SignOutRoute
+  '/sign-up': typeof SignUpRoute
+  '/(core)/admin': typeof coreAdminRouteRouteWithChildren
+  '/(core)/settings': typeof coreSettingsRouteRouteWithChildren
+  '/(core)/purchases': typeof corePurchasesRoute
+  '/(core)/': typeof coreIndexRoute
+  '/(core)/item/clone': typeof coreItemCloneRoute
+  '/(core)/lists/$listId': typeof coreListsListIdRoute
+  '/(core)/me/new': typeof coreMeNewRoute
+  '/(core)/recent/comments': typeof coreRecentCommentsRoute
+  '/(core)/recent/items': typeof coreRecentItemsRoute
+  '/(core)/settings/connections': typeof coreSettingsConnectionsRoute
+  '/(core)/settings/permissions': typeof coreSettingsPermissionsRoute
+  '/(core)/settings/purchases': typeof coreSettingsPurchasesRoute
+  '/(core)/settings/received': typeof coreSettingsReceivedRoute
+  '/(core)/settings/security': typeof coreSettingsSecurityRoute
+  '/(core)/test/styles': typeof coreTestStylesRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/lists/public': typeof ApiListsPublicRoute
-  '/item/import/{-$url}': typeof ItemImportChar123UrlChar125Route
-  '/lists_/$listId/bulk': typeof ListsListIdBulkRoute
-  '/lists_/$listId/edit': typeof ListsListIdEditRoute
+  '/(core)/admin/': typeof coreAdminIndexRoute
+  '/(core)/lists/': typeof coreListsIndexRoute
+  '/(core)/me/': typeof coreMeIndexRoute
+  '/(core)/settings/': typeof coreSettingsIndexRoute
+  '/(core)/admin/user/$id': typeof coreAdminUserIdRoute
+  '/(core)/item/import/{-$url}': typeof coreItemImportChar123UrlChar125Route
+  '/(core)/lists_/$listId/bulk': typeof coreListsListIdBulkRoute
+  '/(core)/lists_/$listId/edit': typeof coreListsListIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
-    | '/settings'
-    | '/purchases'
     | '/sign-in'
     | '/sign-out'
     | '/sign-up'
+    | '/admin'
+    | '/settings'
+    | '/purchases'
+    | '/'
     | '/item/clone'
     | '/lists/$listId'
     | '/me/new'
@@ -272,22 +296,23 @@ export interface FileRouteTypes {
     | '/settings/received'
     | '/settings/security'
     | '/test/styles'
-    | '/admin'
+    | '/api/auth/$'
+    | '/api/lists/public'
+    | '/admin/'
     | '/lists'
     | '/me'
     | '/settings/'
-    | '/api/auth/$'
-    | '/api/lists/public'
+    | '/admin/user/$id'
     | '/item/import/{-$url}'
     | '/lists/$listId/bulk'
     | '/lists/$listId/edit'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
-    | '/purchases'
     | '/sign-in'
     | '/sign-out'
     | '/sign-up'
+    | '/purchases'
+    | '/'
     | '/item/clone'
     | '/lists/$listId'
     | '/me/new'
@@ -299,237 +324,143 @@ export interface FileRouteTypes {
     | '/settings/received'
     | '/settings/security'
     | '/test/styles'
+    | '/api/auth/$'
+    | '/api/lists/public'
     | '/admin'
     | '/lists'
     | '/me'
     | '/settings'
-    | '/api/auth/$'
-    | '/api/lists/public'
+    | '/admin/user/$id'
     | '/item/import/{-$url}'
     | '/lists/$listId/bulk'
     | '/lists/$listId/edit'
   id:
     | '__root__'
-    | '/'
-    | '/settings'
-    | '/purchases'
-    | '/(auth)/sign-in'
-    | '/(auth)/sign-out'
-    | '/(auth)/sign-up'
-    | '/item/clone'
-    | '/lists/$listId'
-    | '/me/new'
-    | '/recent/comments'
-    | '/recent/items'
-    | '/settings/connections'
-    | '/settings/permissions'
-    | '/settings/purchases'
-    | '/settings/received'
-    | '/settings/security'
-    | '/test/styles'
-    | '/admin/'
-    | '/lists/'
-    | '/me/'
-    | '/settings/'
+    | '/(core)'
+    | '/sign-in'
+    | '/sign-out'
+    | '/sign-up'
+    | '/(core)/admin'
+    | '/(core)/settings'
+    | '/(core)/purchases'
+    | '/(core)/'
+    | '/(core)/item/clone'
+    | '/(core)/lists/$listId'
+    | '/(core)/me/new'
+    | '/(core)/recent/comments'
+    | '/(core)/recent/items'
+    | '/(core)/settings/connections'
+    | '/(core)/settings/permissions'
+    | '/(core)/settings/purchases'
+    | '/(core)/settings/received'
+    | '/(core)/settings/security'
+    | '/(core)/test/styles'
     | '/api/auth/$'
     | '/api/lists/public'
-    | '/item/import/{-$url}'
-    | '/lists_/$listId/bulk'
-    | '/lists_/$listId/edit'
+    | '/(core)/admin/'
+    | '/(core)/lists/'
+    | '/(core)/me/'
+    | '/(core)/settings/'
+    | '/(core)/admin/user/$id'
+    | '/(core)/item/import/{-$url}'
+    | '/(core)/lists_/$listId/bulk'
+    | '/(core)/lists_/$listId/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  SettingsRouteRoute: typeof SettingsRouteRouteWithChildren
-  PurchasesRoute: typeof PurchasesRoute
-  authSignInRoute: typeof authSignInRoute
-  authSignOutRoute: typeof authSignOutRoute
-  authSignUpRoute: typeof authSignUpRoute
-  ItemCloneRoute: typeof ItemCloneRoute
-  ListsListIdRoute: typeof ListsListIdRoute
-  MeNewRoute: typeof MeNewRoute
-  RecentCommentsRoute: typeof RecentCommentsRoute
-  RecentItemsRoute: typeof RecentItemsRoute
-  TestStylesRoute: typeof TestStylesRoute
-  AdminIndexRoute: typeof AdminIndexRoute
-  ListsIndexRoute: typeof ListsIndexRoute
-  MeIndexRoute: typeof MeIndexRoute
+  coreRouteRoute: typeof coreRouteRouteWithChildren
+  SignInRoute: typeof SignInRoute
+  SignOutRoute: typeof SignOutRoute
+  SignUpRoute: typeof SignUpRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiListsPublicRoute: typeof ApiListsPublicRoute
-  ItemImportChar123UrlChar125Route: typeof ItemImportChar123UrlChar125Route
-  ListsListIdBulkRoute: typeof ListsListIdBulkRoute
-  ListsListIdEditRoute: typeof ListsListIdEditRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/purchases': {
-      id: '/purchases'
-      path: '/purchases'
-      fullPath: '/purchases'
-      preLoaderRoute: typeof PurchasesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings/': {
-      id: '/settings/'
-      path: '/'
-      fullPath: '/settings/'
-      preLoaderRoute: typeof SettingsIndexRouteImport
-      parentRoute: typeof SettingsRouteRoute
-    }
-    '/me/': {
-      id: '/me/'
-      path: '/me'
-      fullPath: '/me'
-      preLoaderRoute: typeof MeIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lists/': {
-      id: '/lists/'
-      path: '/lists'
-      fullPath: '/lists'
-      preLoaderRoute: typeof ListsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin/': {
-      id: '/admin/'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/test/styles': {
-      id: '/test/styles'
-      path: '/test/styles'
-      fullPath: '/test/styles'
-      preLoaderRoute: typeof TestStylesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings/security': {
-      id: '/settings/security'
-      path: '/security'
-      fullPath: '/settings/security'
-      preLoaderRoute: typeof SettingsSecurityRouteImport
-      parentRoute: typeof SettingsRouteRoute
-    }
-    '/settings/received': {
-      id: '/settings/received'
-      path: '/received'
-      fullPath: '/settings/received'
-      preLoaderRoute: typeof SettingsReceivedRouteImport
-      parentRoute: typeof SettingsRouteRoute
-    }
-    '/settings/purchases': {
-      id: '/settings/purchases'
-      path: '/purchases'
-      fullPath: '/settings/purchases'
-      preLoaderRoute: typeof SettingsPurchasesRouteImport
-      parentRoute: typeof SettingsRouteRoute
-    }
-    '/settings/permissions': {
-      id: '/settings/permissions'
-      path: '/permissions'
-      fullPath: '/settings/permissions'
-      preLoaderRoute: typeof SettingsPermissionsRouteImport
-      parentRoute: typeof SettingsRouteRoute
-    }
-    '/settings/connections': {
-      id: '/settings/connections'
-      path: '/connections'
-      fullPath: '/settings/connections'
-      preLoaderRoute: typeof SettingsConnectionsRouteImport
-      parentRoute: typeof SettingsRouteRoute
-    }
-    '/recent/items': {
-      id: '/recent/items'
-      path: '/recent/items'
-      fullPath: '/recent/items'
-      preLoaderRoute: typeof RecentItemsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/recent/comments': {
-      id: '/recent/comments'
-      path: '/recent/comments'
-      fullPath: '/recent/comments'
-      preLoaderRoute: typeof RecentCommentsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/me/new': {
-      id: '/me/new'
-      path: '/me/new'
-      fullPath: '/me/new'
-      preLoaderRoute: typeof MeNewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lists/$listId': {
-      id: '/lists/$listId'
-      path: '/lists/$listId'
-      fullPath: '/lists/$listId'
-      preLoaderRoute: typeof ListsListIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/item/clone': {
-      id: '/item/clone'
-      path: '/item/clone'
-      fullPath: '/item/clone'
-      preLoaderRoute: typeof ItemCloneRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/(auth)/sign-up': {
-      id: '/(auth)/sign-up'
+    '/sign-up': {
+      id: '/sign-up'
       path: '/sign-up'
       fullPath: '/sign-up'
-      preLoaderRoute: typeof authSignUpRouteImport
+      preLoaderRoute: typeof SignUpRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/(auth)/sign-out': {
-      id: '/(auth)/sign-out'
+    '/sign-out': {
+      id: '/sign-out'
       path: '/sign-out'
       fullPath: '/sign-out'
-      preLoaderRoute: typeof authSignOutRouteImport
+      preLoaderRoute: typeof SignOutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/(auth)/sign-in': {
-      id: '/(auth)/sign-in'
+    '/sign-in': {
+      id: '/sign-in'
       path: '/sign-in'
       fullPath: '/sign-in'
-      preLoaderRoute: typeof authSignInRouteImport
+      preLoaderRoute: typeof SignInRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/lists_/$listId/edit': {
-      id: '/lists_/$listId/edit'
-      path: '/lists/$listId/edit'
-      fullPath: '/lists/$listId/edit'
-      preLoaderRoute: typeof ListsListIdEditRouteImport
+    '/(core)': {
+      id: '/(core)'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof coreRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/lists_/$listId/bulk': {
-      id: '/lists_/$listId/bulk'
-      path: '/lists/$listId/bulk'
-      fullPath: '/lists/$listId/bulk'
-      preLoaderRoute: typeof ListsListIdBulkRouteImport
-      parentRoute: typeof rootRouteImport
+    '/(core)/': {
+      id: '/(core)/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof coreIndexRouteImport
+      parentRoute: typeof coreRouteRoute
     }
-    '/item/import/{-$url}': {
-      id: '/item/import/{-$url}'
-      path: '/item/import/{-$url}'
-      fullPath: '/item/import/{-$url}'
-      preLoaderRoute: typeof ItemImportChar123UrlChar125RouteImport
-      parentRoute: typeof rootRouteImport
+    '/(core)/purchases': {
+      id: '/(core)/purchases'
+      path: '/purchases'
+      fullPath: '/purchases'
+      preLoaderRoute: typeof corePurchasesRouteImport
+      parentRoute: typeof coreRouteRoute
+    }
+    '/(core)/settings': {
+      id: '/(core)/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof coreSettingsRouteRouteImport
+      parentRoute: typeof coreRouteRoute
+    }
+    '/(core)/admin': {
+      id: '/(core)/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof coreAdminRouteRouteImport
+      parentRoute: typeof coreRouteRoute
+    }
+    '/(core)/settings/': {
+      id: '/(core)/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof coreSettingsIndexRouteImport
+      parentRoute: typeof coreSettingsRouteRoute
+    }
+    '/(core)/me/': {
+      id: '/(core)/me/'
+      path: '/me'
+      fullPath: '/me'
+      preLoaderRoute: typeof coreMeIndexRouteImport
+      parentRoute: typeof coreRouteRoute
+    }
+    '/(core)/lists/': {
+      id: '/(core)/lists/'
+      path: '/lists'
+      fullPath: '/lists'
+      preLoaderRoute: typeof coreListsIndexRouteImport
+      parentRoute: typeof coreRouteRoute
+    }
+    '/(core)/admin/': {
+      id: '/(core)/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof coreAdminIndexRouteImport
+      parentRoute: typeof coreAdminRouteRoute
     }
     '/api/lists/public': {
       id: '/api/lists/public'
@@ -545,52 +476,196 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/(core)/test/styles': {
+      id: '/(core)/test/styles'
+      path: '/test/styles'
+      fullPath: '/test/styles'
+      preLoaderRoute: typeof coreTestStylesRouteImport
+      parentRoute: typeof coreRouteRoute
+    }
+    '/(core)/settings/security': {
+      id: '/(core)/settings/security'
+      path: '/security'
+      fullPath: '/settings/security'
+      preLoaderRoute: typeof coreSettingsSecurityRouteImport
+      parentRoute: typeof coreSettingsRouteRoute
+    }
+    '/(core)/settings/received': {
+      id: '/(core)/settings/received'
+      path: '/received'
+      fullPath: '/settings/received'
+      preLoaderRoute: typeof coreSettingsReceivedRouteImport
+      parentRoute: typeof coreSettingsRouteRoute
+    }
+    '/(core)/settings/purchases': {
+      id: '/(core)/settings/purchases'
+      path: '/purchases'
+      fullPath: '/settings/purchases'
+      preLoaderRoute: typeof coreSettingsPurchasesRouteImport
+      parentRoute: typeof coreSettingsRouteRoute
+    }
+    '/(core)/settings/permissions': {
+      id: '/(core)/settings/permissions'
+      path: '/permissions'
+      fullPath: '/settings/permissions'
+      preLoaderRoute: typeof coreSettingsPermissionsRouteImport
+      parentRoute: typeof coreSettingsRouteRoute
+    }
+    '/(core)/settings/connections': {
+      id: '/(core)/settings/connections'
+      path: '/connections'
+      fullPath: '/settings/connections'
+      preLoaderRoute: typeof coreSettingsConnectionsRouteImport
+      parentRoute: typeof coreSettingsRouteRoute
+    }
+    '/(core)/recent/items': {
+      id: '/(core)/recent/items'
+      path: '/recent/items'
+      fullPath: '/recent/items'
+      preLoaderRoute: typeof coreRecentItemsRouteImport
+      parentRoute: typeof coreRouteRoute
+    }
+    '/(core)/recent/comments': {
+      id: '/(core)/recent/comments'
+      path: '/recent/comments'
+      fullPath: '/recent/comments'
+      preLoaderRoute: typeof coreRecentCommentsRouteImport
+      parentRoute: typeof coreRouteRoute
+    }
+    '/(core)/me/new': {
+      id: '/(core)/me/new'
+      path: '/me/new'
+      fullPath: '/me/new'
+      preLoaderRoute: typeof coreMeNewRouteImport
+      parentRoute: typeof coreRouteRoute
+    }
+    '/(core)/lists/$listId': {
+      id: '/(core)/lists/$listId'
+      path: '/lists/$listId'
+      fullPath: '/lists/$listId'
+      preLoaderRoute: typeof coreListsListIdRouteImport
+      parentRoute: typeof coreRouteRoute
+    }
+    '/(core)/item/clone': {
+      id: '/(core)/item/clone'
+      path: '/item/clone'
+      fullPath: '/item/clone'
+      preLoaderRoute: typeof coreItemCloneRouteImport
+      parentRoute: typeof coreRouteRoute
+    }
+    '/(core)/lists_/$listId/edit': {
+      id: '/(core)/lists_/$listId/edit'
+      path: '/lists/$listId/edit'
+      fullPath: '/lists/$listId/edit'
+      preLoaderRoute: typeof coreListsListIdEditRouteImport
+      parentRoute: typeof coreRouteRoute
+    }
+    '/(core)/lists_/$listId/bulk': {
+      id: '/(core)/lists_/$listId/bulk'
+      path: '/lists/$listId/bulk'
+      fullPath: '/lists/$listId/bulk'
+      preLoaderRoute: typeof coreListsListIdBulkRouteImport
+      parentRoute: typeof coreRouteRoute
+    }
+    '/(core)/item/import/{-$url}': {
+      id: '/(core)/item/import/{-$url}'
+      path: '/item/import/{-$url}'
+      fullPath: '/item/import/{-$url}'
+      preLoaderRoute: typeof coreItemImportChar123UrlChar125RouteImport
+      parentRoute: typeof coreRouteRoute
+    }
+    '/(core)/admin/user/$id': {
+      id: '/(core)/admin/user/$id'
+      path: '/user/$id'
+      fullPath: '/admin/user/$id'
+      preLoaderRoute: typeof coreAdminUserIdRouteImport
+      parentRoute: typeof coreAdminRouteRoute
+    }
   }
 }
 
-interface SettingsRouteRouteChildren {
-  SettingsConnectionsRoute: typeof SettingsConnectionsRoute
-  SettingsPermissionsRoute: typeof SettingsPermissionsRoute
-  SettingsPurchasesRoute: typeof SettingsPurchasesRoute
-  SettingsReceivedRoute: typeof SettingsReceivedRoute
-  SettingsSecurityRoute: typeof SettingsSecurityRoute
-  SettingsIndexRoute: typeof SettingsIndexRoute
+interface coreAdminRouteRouteChildren {
+  coreAdminIndexRoute: typeof coreAdminIndexRoute
+  coreAdminUserIdRoute: typeof coreAdminUserIdRoute
 }
 
-const SettingsRouteRouteChildren: SettingsRouteRouteChildren = {
-  SettingsConnectionsRoute: SettingsConnectionsRoute,
-  SettingsPermissionsRoute: SettingsPermissionsRoute,
-  SettingsPurchasesRoute: SettingsPurchasesRoute,
-  SettingsReceivedRoute: SettingsReceivedRoute,
-  SettingsSecurityRoute: SettingsSecurityRoute,
-  SettingsIndexRoute: SettingsIndexRoute,
+const coreAdminRouteRouteChildren: coreAdminRouteRouteChildren = {
+  coreAdminIndexRoute: coreAdminIndexRoute,
+  coreAdminUserIdRoute: coreAdminUserIdRoute,
 }
 
-const SettingsRouteRouteWithChildren = SettingsRouteRoute._addFileChildren(
-  SettingsRouteRouteChildren,
+const coreAdminRouteRouteWithChildren = coreAdminRouteRoute._addFileChildren(
+  coreAdminRouteRouteChildren,
+)
+
+interface coreSettingsRouteRouteChildren {
+  coreSettingsConnectionsRoute: typeof coreSettingsConnectionsRoute
+  coreSettingsPermissionsRoute: typeof coreSettingsPermissionsRoute
+  coreSettingsPurchasesRoute: typeof coreSettingsPurchasesRoute
+  coreSettingsReceivedRoute: typeof coreSettingsReceivedRoute
+  coreSettingsSecurityRoute: typeof coreSettingsSecurityRoute
+  coreSettingsIndexRoute: typeof coreSettingsIndexRoute
+}
+
+const coreSettingsRouteRouteChildren: coreSettingsRouteRouteChildren = {
+  coreSettingsConnectionsRoute: coreSettingsConnectionsRoute,
+  coreSettingsPermissionsRoute: coreSettingsPermissionsRoute,
+  coreSettingsPurchasesRoute: coreSettingsPurchasesRoute,
+  coreSettingsReceivedRoute: coreSettingsReceivedRoute,
+  coreSettingsSecurityRoute: coreSettingsSecurityRoute,
+  coreSettingsIndexRoute: coreSettingsIndexRoute,
+}
+
+const coreSettingsRouteRouteWithChildren =
+  coreSettingsRouteRoute._addFileChildren(coreSettingsRouteRouteChildren)
+
+interface coreRouteRouteChildren {
+  coreAdminRouteRoute: typeof coreAdminRouteRouteWithChildren
+  coreSettingsRouteRoute: typeof coreSettingsRouteRouteWithChildren
+  corePurchasesRoute: typeof corePurchasesRoute
+  coreIndexRoute: typeof coreIndexRoute
+  coreItemCloneRoute: typeof coreItemCloneRoute
+  coreListsListIdRoute: typeof coreListsListIdRoute
+  coreMeNewRoute: typeof coreMeNewRoute
+  coreRecentCommentsRoute: typeof coreRecentCommentsRoute
+  coreRecentItemsRoute: typeof coreRecentItemsRoute
+  coreTestStylesRoute: typeof coreTestStylesRoute
+  coreListsIndexRoute: typeof coreListsIndexRoute
+  coreMeIndexRoute: typeof coreMeIndexRoute
+  coreItemImportChar123UrlChar125Route: typeof coreItemImportChar123UrlChar125Route
+  coreListsListIdBulkRoute: typeof coreListsListIdBulkRoute
+  coreListsListIdEditRoute: typeof coreListsListIdEditRoute
+}
+
+const coreRouteRouteChildren: coreRouteRouteChildren = {
+  coreAdminRouteRoute: coreAdminRouteRouteWithChildren,
+  coreSettingsRouteRoute: coreSettingsRouteRouteWithChildren,
+  corePurchasesRoute: corePurchasesRoute,
+  coreIndexRoute: coreIndexRoute,
+  coreItemCloneRoute: coreItemCloneRoute,
+  coreListsListIdRoute: coreListsListIdRoute,
+  coreMeNewRoute: coreMeNewRoute,
+  coreRecentCommentsRoute: coreRecentCommentsRoute,
+  coreRecentItemsRoute: coreRecentItemsRoute,
+  coreTestStylesRoute: coreTestStylesRoute,
+  coreListsIndexRoute: coreListsIndexRoute,
+  coreMeIndexRoute: coreMeIndexRoute,
+  coreItemImportChar123UrlChar125Route: coreItemImportChar123UrlChar125Route,
+  coreListsListIdBulkRoute: coreListsListIdBulkRoute,
+  coreListsListIdEditRoute: coreListsListIdEditRoute,
+}
+
+const coreRouteRouteWithChildren = coreRouteRoute._addFileChildren(
+  coreRouteRouteChildren,
 )
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  SettingsRouteRoute: SettingsRouteRouteWithChildren,
-  PurchasesRoute: PurchasesRoute,
-  authSignInRoute: authSignInRoute,
-  authSignOutRoute: authSignOutRoute,
-  authSignUpRoute: authSignUpRoute,
-  ItemCloneRoute: ItemCloneRoute,
-  ListsListIdRoute: ListsListIdRoute,
-  MeNewRoute: MeNewRoute,
-  RecentCommentsRoute: RecentCommentsRoute,
-  RecentItemsRoute: RecentItemsRoute,
-  TestStylesRoute: TestStylesRoute,
-  AdminIndexRoute: AdminIndexRoute,
-  ListsIndexRoute: ListsIndexRoute,
-  MeIndexRoute: MeIndexRoute,
+  coreRouteRoute: coreRouteRouteWithChildren,
+  SignInRoute: SignInRoute,
+  SignOutRoute: SignOutRoute,
+  SignUpRoute: SignUpRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiListsPublicRoute: ApiListsPublicRoute,
-  ItemImportChar123UrlChar125Route: ItemImportChar123UrlChar125Route,
-  ListsListIdBulkRoute: ListsListIdBulkRoute,
-  ListsListIdEditRoute: ListsListIdEditRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -1,32 +1,39 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
-import { authClient } from '@/lib/auth-client'
+import { useEffect, useState } from 'react'
+import { authClient, useSession } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import Loading from '@/components/loading'
 
-export const Route = createFileRoute('/(auth)/sign-up')({
-	component: SignUp,
+export const Route = createFileRoute('/sign-in')({
+	component: SignIn,
 })
 
-function SignUp() {
+function SignIn() {
 	const navigate = useNavigate()
+	const { data: session, isPending } = useSession()
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
-	const [name, setName] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+
+	// Redirect to home if already authenticated
+	useEffect(() => {
+		if (!isPending && session?.user) {
+			navigate({ to: '/' })
+		}
+	}, [session, isPending, navigate])
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault()
 		setIsLoading(true)
 		setError(null)
 
-		const { data, error: signUpError } = await authClient.signUp.email(
+		const { error: signInError } = await authClient.signIn.email(
 			{
 				email,
 				password,
-				name,
 			},
 			{
 				onRequest: () => {
@@ -38,40 +45,37 @@ function SignUp() {
 				},
 				onError: ctx => {
 					setIsLoading(false)
-					setError(ctx.error.message || 'Failed to sign up')
+					setError(ctx.error.message || 'Failed to sign in')
 				},
 			}
 		)
 
-		if (signUpError) {
-			setError(signUpError.message || 'Failed to sign up')
+		if (signInError) {
+			setError(signInError.message || 'Failed to sign in')
 			setIsLoading(false)
 		}
+	}
+
+	// Show loading state while checking session
+	if (isPending) {
+		return <Loading className="text-primary" />
+	}
+
+	// Don't render form if already authenticated (redirect will happen)
+	if (session?.user) {
+		return null
 	}
 
 	return (
 		<div className="flex items-center justify-center min-h-[calc(100vh-3rem)] p-4">
 			<div className="w-full max-w-md space-y-8">
 				<div className="text-center">
-					<h1 className="text-3xl font-bold">Create an account</h1>
-					<p className="mt-2 text-muted-foreground">Enter your information to get started</p>
+					<h1 className="text-3xl font-bold">Sign in</h1>
+					<p className="mt-2 text-muted-foreground">Enter your credentials to access your account</p>
 				</div>
 
 				<form onSubmit={handleSubmit} className="space-y-4">
 					{error && <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">{error}</div>}
-
-					<div className="space-y-2">
-						<Label htmlFor="name">Name</Label>
-						<Input
-							id='name'
-							type='text'
-							placeholder="John Doe"
-							value={name}
-							onChange={e => setName(e.target.value)}
-							required
-							disabled={isLoading}
-						/>
-					</div>
 
 					<div className="space-y-2">
 						<Label htmlFor="email">Email</Label>
@@ -83,6 +87,7 @@ function SignUp() {
 							onChange={e => setEmail(e.target.value)}
 							required
 							disabled={isLoading}
+							autoComplete='email'
 						/>
 					</div>
 
@@ -95,21 +100,20 @@ function SignUp() {
 							value={password}
 							onChange={e => setPassword(e.target.value)}
 							required
-							minLength={8}
 							disabled={isLoading}
+							autoComplete="current-password"
 						/>
-						<p className="text-xs text-muted-foreground">Must be at least 8 characters</p>
 					</div>
 
 					<Button type="submit" className="w-full" disabled={isLoading}>
-						{isLoading ? 'Creating account...' : 'Sign up'}
+						{isLoading ? 'Signing in...' : 'Sign in'}
 					</Button>
 				</form>
 
 				<div className="text-center text-sm">
-					<span className="text-muted-foreground">Already have an account? </span>
-					<button type="button" onClick={() => navigate({ to: '/sign-in' as any })} className="text-primary hover:underline font-medium">
-						Sign in
+					<span className="text-muted-foreground">Don't have an account? </span>
+					<button type="button" onClick={() => navigate({ to: '/sign-up' as any })} className="text-primary hover:underline font-medium">
+						Sign up
 					</button>
 				</div>
 			</div>

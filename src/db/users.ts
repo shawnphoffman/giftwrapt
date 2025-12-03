@@ -22,6 +22,7 @@ export const users = pgTable(
 		//
 		birthMonth: birthMonthEnum('birth_month'),
 		birthDay: smallint('birth_day'),
+		// TODO Remove this
 		isAdmin: boolean('is_admin').default(false).notNull(),
 		image: text('image'),
 		partnerId: text('partner_id'),

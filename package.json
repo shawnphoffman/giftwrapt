@@ -9,7 +9,7 @@
 		"test": "vitest run",
 		"lint": "eslint",
 		"format": "prettier",
-		"check": "prettier --config prettier.config.cjs --write . && eslint --fix",
+		"check": "prettier --config prettier.config.js --write . && eslint --fix",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:push": "drizzle-kit push",

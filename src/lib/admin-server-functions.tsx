@@ -5,6 +5,8 @@ import { asc } from 'drizzle-orm'
 import { user } from '@/db/schema'
 import { sendTestEmail } from '@/lib/resend'
 
+// TODO Refactor all of this
+
 /**
  * Gets the current admin user from the request context.
  * Throws appropriate errors if not authenticated or not admin.

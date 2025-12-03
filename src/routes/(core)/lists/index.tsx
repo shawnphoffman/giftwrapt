@@ -2,7 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { ListChecks } from 'lucide-react'
 import { ListsByUser } from '@/components/lists/lists-by-user'
 
-export const Route = createFileRoute('/lists/')({
+export const Route = createFileRoute('/(core)/lists/')({
 	component: ListsPage,
 })
 

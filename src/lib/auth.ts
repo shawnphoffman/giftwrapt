@@ -21,6 +21,11 @@ export const auth = betterAuth({
 			// name: 'displayName',
 		},
 		additionalFields: {
+			role: {
+				type: 'string',
+				required: true,
+				input: true,
+			},
 			birthMonth: {
 				type: 'string',
 				required: false,
@@ -28,6 +33,16 @@ export const auth = betterAuth({
 			},
 			birthDay: {
 				type: 'number',
+				required: false,
+				input: true,
+			},
+			image: {
+				type: 'string',
+				required: false,
+				input: true,
+			},
+			partnerId: {
+				type: 'string',
 				required: false,
 				input: true,
 			},

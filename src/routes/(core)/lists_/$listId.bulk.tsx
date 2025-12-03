@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-export const Route = createFileRoute('/lists_/$listId/bulk')({
+export const Route = createFileRoute('/(core)/lists_/$listId/bulk')({
 	component: RouteComponent,
 })
 

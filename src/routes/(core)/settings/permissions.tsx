@@ -2,15 +2,15 @@ import { CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { createFileRoute } from '@tanstack/react-router'
 
-export const Route = createFileRoute('/settings/received')({
-	component: ReceivedPage,
+export const Route = createFileRoute('/(core)/settings/permissions')({
+	component: PermissionsPage,
 })
 
-function ReceivedPage() {
+function PermissionsPage() {
 	return (
 		<div className="animate-page-in">
 			<CardHeader>
-				<CardTitle className="text-2xl">Received Gifts</CardTitle>
+				<CardTitle className="text-2xl">Permissions</CardTitle>
 			</CardHeader>
 			<CardContent>
 				<LoadingSkeleton />

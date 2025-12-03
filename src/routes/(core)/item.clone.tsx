@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-export const Route = createFileRoute('/item/clone')({
+export const Route = createFileRoute('/(core)/item/clone')({
   component: RouteComponent,
 })
 

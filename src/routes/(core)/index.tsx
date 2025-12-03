@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import Loading from '@/components/loading'
 import { SonnerTypes } from '@/components/utilities/sonner-types'
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute('/(core)/')({
 	component: IndexPage,
 })
 

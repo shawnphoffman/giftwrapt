@@ -5,7 +5,7 @@ import { Lock } from 'lucide-react'
 import { Suspense } from 'react'
 import { CreateUserForm } from '@/components/admin/create-user-form'
 import { ClientOnly } from '@/components/utilities/client-only'
-import { UsersList } from '@/components/admin/users-list'
+import { AdminUsersList } from '@/components/admin/users-list'
 import { UserImpersonation } from '@/components/admin/user-impersonation'
 import SendTestEmailButton from '@/components/admin/send-test-email'
 import { createServerFn } from '@tanstack/react-start'
@@ -15,7 +15,7 @@ const isEmailConfigured = createServerFn({ method: 'GET' }).handler(() => {
 	return Boolean(env.RESEND_API_KEY && env.RESEND_FROM_EMAIL)
 })
 
-export const Route = createFileRoute('/admin/')({
+export const Route = createFileRoute('/(core)/admin/')({
 	component: AdminPage,
 	loader: async () => {
 		return {
@@ -78,7 +78,7 @@ function AdminPage() {
 					</CardHeader>
 					<CardContent>
 						<Suspense fallback={<LoadingSkeleton />}>
-							<UsersList />
+							<AdminUsersList />
 						</Suspense>
 					</CardContent>
 				</Card>

@@ -10,7 +10,7 @@
 	},
 	"editor.defaultFormatter": "esbenp.prettier-vscode",
 	"editor.formatOnSave": true,
-	"prettier.configPath": "prettier.config.cjs",
+	"prettier.configPath": "prettier.config.js",
 	"prettier.requireConfig": true,
 	"prettier.useEditorConfig": false,
 	"prettier.resolveGlobalModules": false,

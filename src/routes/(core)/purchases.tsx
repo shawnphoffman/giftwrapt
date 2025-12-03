@@ -1,21 +1,20 @@
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { createFileRoute } from '@tanstack/react-router'
-import { MessagesSquare } from 'lucide-react'
+import { Receipt } from 'lucide-react'
 
-export const Route = createFileRoute('/recent/comments')({
-	component: RecentCommentsPage,
+export const Route = createFileRoute('/(core)/purchases')({
+	component: PurchasesPage,
 })
 
-function RecentCommentsPage() {
+function PurchasesPage() {
 	return (
 		<div className="flex flex-col flex-1 w-full max-w-5xl px-2 animate-page-in">
 			<div className="flex flex-col flex-1 gap-6">
 				{/* HEADING */}
 				<div className="relative">
-					<h1 className="flex flex-row items-center gap-2">Recent Comments</h1>
-					<MessagesSquare className="size-18 text-teal-500 opacity-30 absolute left-4 -top-4 -z-10" />
+					<h1 className="flex flex-row items-center gap-2">My Purchases</h1>
+					<Receipt className="size-18 text-pink-500 opacity-30 absolute left-4 -top-4 -z-10" />
 				</div>
-
 				{/* CONTENT */}
 				<LoadingSkeleton />
 			</div>

@@ -2,7 +2,7 @@ import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { createFileRoute } from '@tanstack/react-router'
 import { ListOrdered } from 'lucide-react'
 
-export const Route = createFileRoute('/me/')({
+export const Route = createFileRoute('/(core)/me/')({
 	component: MyListsPage,
 })
 

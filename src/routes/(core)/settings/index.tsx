@@ -3,7 +3,7 @@ import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 // import { Button } from '@react-email/components'
 import { createFileRoute } from '@tanstack/react-router'
 
-export const Route = createFileRoute('/settings/')({
+export const Route = createFileRoute('/(core)/settings/')({
 	component: SettingsPage,
 })
 

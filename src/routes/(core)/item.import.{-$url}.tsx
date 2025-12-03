@@ -2,7 +2,7 @@ import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { createFileRoute } from '@tanstack/react-router'
 import { Plus } from 'lucide-react'
 
-export const Route = createFileRoute('/item/import/{-$url}')({
+export const Route = createFileRoute('/(core)/item/import/{-$url}')({
 	component: ItemImportPage,
 })
 

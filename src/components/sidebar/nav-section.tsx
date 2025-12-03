@@ -20,6 +20,7 @@ export type NavItem = {
 	url: string
 	icon?: React.ElementType
 	hoverColor?: string
+	mask?: string
 }
 
 export const NavItem = ({ item, className }: { item: NavItem; className?: string }) => {
@@ -27,7 +28,7 @@ export const NavItem = ({ item, className }: { item: NavItem; className?: string
 	return (
 		<SidebarMenuItem key={item.name}>
 			<SidebarMenuButton asChild className={cn(className, 'text-base font-medium')}>
-				<Link to={item.url} className="group/link">
+				<Link to={item.url} className="group/link" mask={item.mask ? { to: item.mask } : undefined}>
 					{Icon && <Icon className={cn(item.hoverColor, 'transition-colors duration-50 ease-linear')} />}
 					<span>{item.name}</span>
 				</Link>

@@ -4,8 +4,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import type { User } from '@/db-collections/users'
 import UserBadge from '../common/user-badge'
 import { getAdminUsers } from '@/lib/admin-server-functions'
+import { Link } from '@tanstack/react-router'
 
-export function UsersList() {
+export function AdminUsersList() {
 	const {
 		data: users = [],
 		isLoading,
@@ -45,7 +46,7 @@ export function UsersList() {
 	return (
 		<div className="space-y- divide-y">
 			{users.map(user => (
-				<div key={user.id} className="py-1">
+				<Link to={`/admin/user/$id`} params={{ id: user.id }} key={user.id} className="py-1">
 					<div key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
 						<UserAvatar name={user.name || user.email} image={user.image} />
 						<div className="flex-1 min-w-0">
@@ -59,7 +60,7 @@ export function UsersList() {
 							{/* {user.role} */}
 						</div>
 					</div>
-				</div>
+				</Link>
 			))}
 		</div>
 	)
