@@ -22,7 +22,7 @@ export const getAllUsersQuery = async () => {
 }
 
 export const getUserDetailsQuery = async (userId: string) => {
-	await new Promise(resolve => setTimeout(resolve, 10000))
+	// await new Promise(resolve => setTimeout(resolve, 10000))
 	const userData = await db.query.users.findFirst({
 		where: (users, { eq }) => eq(users.id, userId),
 	})

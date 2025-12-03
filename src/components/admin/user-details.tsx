@@ -2,6 +2,8 @@ import { getUserDetailsAsAdmin } from '@/api/admin'
 
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
+import UserAvatar from '../common/user-avatar'
+import { Separator } from '@radix-ui/react-separator'
 
 const userDetailsQueryOptions = (userId: string) => ({
 	queryKey: ['admin', 'user', userId],
@@ -27,25 +29,21 @@ export default function UserDetails({ id }: { id: string }) {
 	}
 
 	return (
-		<div className="space-y-4">
-			<div>
-				<div className="text-sm font-medium text-muted-foreground">ID</div>
-				<div className="text-sm">{user.id}</div>
+		<div className="flex flex-col divide-y gap-2">
+			{user.image && <UserAvatar name={user.name || user.email} image={user.image} className="w-16 h-16 rounded-full" />}
+			<div className="space-y-2 pb-2">
+				{Object.entries(user).map(([key, value]) => {
+					if (key === 'image' || value === null) return null
+					return (
+						<div key={key}>
+							<div className="text-sm font-bold text-muted-foreground">{key}</div>
+							<div className="text-sm">{typeof value === 'string' ? value : JSON.stringify(value)}</div>
+						</div>
+					)
+				})}
 			</div>
 			<div>
-				<div className="text-sm font-medium text-muted-foreground">Email</div>
-				<div className="text-sm">{user.email}</div>
-			</div>
-			<div>
-				<div className="text-sm font-medium text-muted-foreground">Name</div>
-				<div className="text-sm">{user.name || 'No name'}</div>
-			</div>
-			<div>
-				<div className="text-sm font-medium text-muted-foreground">Role</div>
-				<div className="text-sm capitalize">{user.role}</div>
-			</div>
-			<div>
-				<div className="text-sm font-medium text-muted-foreground">Admin</div>
+				<div className="text-sm font-bold text-muted-foreground">Admin</div>
 				<div className="text-sm">{user.isAdmin ? 'Yes' : 'No'}</div>
 			</div>
 		</div>
