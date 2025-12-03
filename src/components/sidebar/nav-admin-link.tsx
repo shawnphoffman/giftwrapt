@@ -5,7 +5,7 @@ import { useSession } from '@/lib/auth-client'
 
 export default function AdminNavLink() {
 	const { data: session } = useSession()
-	if (session?.user?.role !== 'admin') {
+	if (!session?.user?.isAdmin) {
 		return null
 	}
 

@@ -10,6 +10,7 @@ import { UserImpersonation } from '@/components/admin/user-impersonation'
 import SendTestEmailButton from '@/components/admin/send-test-email'
 import { createServerFn } from '@tanstack/react-start'
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
+import { useSession } from '@/lib/auth-client'
 
 const isEmailConfigured = createServerFn({ method: 'GET' }).handler(() => {
 	return Boolean(env.RESEND_API_KEY && env.RESEND_FROM_EMAIL)
@@ -26,6 +27,7 @@ export const Route = createFileRoute('/(core)/admin/')({
 
 function AdminPage() {
 	const { isEmailConfigured } = Route.useLoaderData()
+	const { data: session } = useSession()
 
 	return (
 		<div className="flex flex-col flex-1 w-full max-w-2xl px-2 animate-page-in">
@@ -95,6 +97,19 @@ function AdminPage() {
 						) : (
 							<p className="text-sm text-gray-500">Email is not currently configured</p>
 						)}
+					</CardContent>
+				</Card>
+				{/*  */}
+				<Card>
+					<CardHeader>
+						<CardTitle>Current Session</CardTitle>
+					</CardHeader>
+					<CardContent className="divide-y overflow-scroll text-xs">
+						<ClientOnly>
+							<pre>
+								<code>{JSON.stringify(session, null, 2)}</code>
+							</pre>
+						</ClientOnly>
 					</CardContent>
 				</Card>
 				{/*  */}
