@@ -2,7 +2,6 @@ import { createCollection } from '@tanstack/db'
 import { queryCollectionOptions } from '@tanstack/query-db-collection'
 import { z } from 'zod'
 import { getContext } from '@/integrations/tanstack-query/root-provider'
-import type { BirthMonth } from '@/db/enums'
 
 // Schema matching the API response: users with their public lists
 const ListItemSchema = z.object({
@@ -20,20 +19,9 @@ const UserWithListsSchema = z.object({
 	email: z.string(),
 	name: z.string().nullable(),
 	image: z.string().nullable(),
-	birthMonth: z.enum([
-		'january',
-		'february',
-		'march',
-		'april',
-		'may',
-		'june',
-		'july',
-		'august',
-		'september',
-		'october',
-		'november',
-		'december',
-	]).nullable(),
+	birthMonth: z
+		.enum(['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'])
+		.nullable(),
 	birthDay: z.number().nullable(),
 	lists: z.array(ListItemSchema),
 })
@@ -41,13 +29,26 @@ const UserWithListsSchema = z.object({
 export type UserWithLists = z.infer<typeof UserWithListsSchema>
 export type ListItem = z.infer<typeof ListItemSchema>
 
+// Helper to get the API URL (absolute URL for server-side, relative for client-side)
+const getApiUrl = (path: string): string => {
+	// On the client, relative URLs work fine
+	if (typeof window !== 'undefined') {
+		return path
+	}
+	// On the server, we need an absolute URL
+	// Use environment variable or default to localhost for development
+	const baseUrl = process.env.SERVER_URL || process.env.BETTER_AUTH_URL || 'http://localhost:3000'
+	return `${baseUrl}${path}`
+}
+
 // Query Collection with automatic sync via TanStack Query
 // Provides local-first behavior: data is cached locally and syncs with server
 export const usersWithListsCollection = createCollection(
 	queryCollectionOptions({
 		queryKey: ['lists', 'public'],
 		queryFn: async () => {
-			const response = await fetch('/api/lists/public')
+			const url = getApiUrl('/api/lists/public')
+			const response = await fetch(url)
 			if (!response.ok) {
 				throw new Error('Failed to fetch public lists')
 			}
@@ -58,4 +59,3 @@ export const usersWithListsCollection = createCollection(
 		schema: UserWithListsSchema,
 	})
 )
-

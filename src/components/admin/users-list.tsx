@@ -47,7 +47,7 @@ export function UsersList() {
 			{users.map(user => (
 				<div key={user.id} className="py-1">
 					<div key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-						<UserAvatar name={user.name || user.email} image={user.image} className="w-10 h-10" />
+						<UserAvatar name={user.name || user.email} image={user.image} />
 						<div className="flex-1 min-w-0">
 							<div className="flex items-center gap-2">
 								<span className="font-medium text-sm truncate">{user.name || 'No name'}</span>

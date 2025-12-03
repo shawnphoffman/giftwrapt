@@ -1,17 +1,9 @@
 import { useLiveQuery } from '@tanstack/react-db'
-import { Link } from '@tanstack/react-router'
-import UserAvatar from '@/components/common/user-avatar'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import type { BirthMonth } from '@/db/enums'
 import { usersWithListsCollection, type UserWithLists } from '@/db-collections/lists'
 import ListsByUserSkeleton from '../skeletons/lists-by-user-skeleton'
-
-// Format birthday as "Month Day"
-const birthday = (month: string, day: number) => {
-	if (!month || !day) return null
-	return `${month.charAt(0).toUpperCase() + month.slice(1)} ${day}`
-}
+import { ClientOnly } from '@/components/utilities/client-only'
+import ListsForUser from './lists-for-user'
 
 // Map month names to numbers (1-12)
 const monthToNumber: Record<BirthMonth, number> = {
@@ -71,7 +63,7 @@ const sortUserGroupsByBirthDate = (a: UserWithLists, b: UserWithLists) => {
 	return aMonth - bMonth
 }
 
-export function ListsByUser() {
+function ListsByUserContent() {
 	// Use useLiveQuery to query the collection directly
 	// The collection's queryFn automatically fetches from the API route
 	// This provides live updates, automatic caching, and local-first behavior
@@ -105,48 +97,21 @@ export function ListsByUser() {
 	}
 
 	return (
-		<div className="space-y-6">
-			{sortedUsers.map(user => {
-				const birthdayText = birthday(user.birthMonth || '', user.birthDay || 0)
-				return (
-					<Card key={user.id}>
-						<CardHeader>
-							<div className="flex items-center gap-3">
-								<UserAvatar name={user.name || user.email} image={user.image} className="w-10 h-10" />
-								<CardTitle className="text-lg">{user.name || user.email}</CardTitle>
-								{birthdayText && (
-									<Badge variant="secondary" className="ml-auto">
-										{birthdayText}
-									</Badge>
-								)}
-							</div>
-						</CardHeader>
-						<CardContent>
-							{user.lists.length === 0 ? (
-								<div className="text-sm text-muted-foreground">No lists</div>
-							) : (
-								<div className="space-y-2">
-									{user.lists.map(list => (
-										<Link
-											key={list.id}
-											to="/lists/$listId"
-											params={{ listId: String(list.id) }}
-											className="block p-3 rounded-lg border hover:bg-muted/50 transition-colors"
-										>
-											<div className="font-medium">{list.name}</div>
-											{list.description && <div className="text-sm text-muted-foreground mt-1">{list.description}</div>}
-											<div className="flex items-center gap-2 mt-2">
-												<span className="text-xs text-muted-foreground capitalize">{list.type}</span>
-												{!list.isActive && <span className="text-xs text-muted-foreground">(Inactive)</span>}
-											</div>
-										</Link>
-									))}
-								</div>
-							)}
-						</CardContent>
-					</Card>
-				)
-			})}
+		<div className="gap-2 flex flex-col">
+			{sortedUsers.map(user => (
+				<ListsForUser key={user.id} user={user} />
+			))}
 		</div>
+	)
+}
+
+export function ListsByUser() {
+	// Wrap in ClientOnly to prevent SSR issues with useLiveQuery
+	// useLiveQuery uses useSyncExternalStore which requires getServerSnapshot for SSR
+	// Since this is a client-side live query feature, it should only render on the client
+	return (
+		<ClientOnly>
+			<ListsByUserContent />
+		</ClientOnly>
 	)
 }
