@@ -4,14 +4,16 @@ import { z } from 'zod'
 import { getContext } from '@/integrations/tanstack-query/root-provider'
 
 // Schema matching the API response: users with their public lists
-const ListItemSchema = z.object({
-	id: z.number(),
+const ListSchema = z.object({
+	id: z.string(),
 	name: z.string(),
 	type: z.enum(['wishlist', 'christmas', 'birthday', 'giftideas', 'todos', 'test']),
 	isActive: z.boolean(),
 	description: z.string().nullable(),
 	createdAt: z.string(),
 	updatedAt: z.string(),
+	itemsTotal: z.number(),
+	itemsRemaining: z.number(),
 })
 
 const UserWithListsSchema = z.object({
@@ -23,11 +25,11 @@ const UserWithListsSchema = z.object({
 		.enum(['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'])
 		.nullable(),
 	birthDay: z.number().nullable(),
-	lists: z.array(ListItemSchema),
+	lists: z.array(ListSchema),
 })
 
 export type UserWithLists = z.infer<typeof UserWithListsSchema>
-export type ListItem = z.infer<typeof ListItemSchema>
+export type List = z.infer<typeof ListSchema>
 
 // Helper to get the API URL (absolute URL for server-side, relative for client-side)
 const getApiUrl = (path: string): string => {
@@ -45,7 +47,7 @@ const getApiUrl = (path: string): string => {
 // Provides local-first behavior: data is cached locally and syncs with server
 export const usersWithListsCollection = createCollection(
 	queryCollectionOptions({
-		queryKey: ['lists', 'public'],
+		queryKey: ['lists', 'public', 'grouped'],
 		queryFn: async () => {
 			const url = getApiUrl('/api/lists/public')
 			const response = await fetch(url)

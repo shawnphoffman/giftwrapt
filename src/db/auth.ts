@@ -21,7 +21,11 @@ export const session = pgTable(
 		//
 		...timestamps,
 	},
-	table => [index('session_userId_idx').on(table.userId)]
+	table => [
+		index('session_userId_idx').on(table.userId),
+		index('session_expiresAt_idx').on(table.expiresAt), // For cleanup queries
+		index('session_impersonatedBy_idx').on(table.impersonatedBy), // For impersonation queries
+	]
 )
 
 export const account = pgTable(
@@ -42,7 +46,10 @@ export const account = pgTable(
 		password: text('password'),
 		...timestamps,
 	},
-	table => [index('account_userId_idx').on(table.userId)]
+	table => [
+		index('account_userId_idx').on(table.userId),
+		index('account_provider_account_idx').on(table.providerId, table.accountId), // For OAuth lookups
+	]
 )
 
 export const verification = pgTable(
@@ -54,7 +61,10 @@ export const verification = pgTable(
 		expiresAt: timestamp('expires_at').notNull(),
 		...timestamps,
 	},
-	table => [index('verification_identifier_idx').on(table.identifier)]
+	table => [
+		index('verification_identifier_idx').on(table.identifier),
+		index('verification_expiresAt_idx').on(table.expiresAt), // For cleanup queries
+	]
 )
 
 export const sessionRelations = relations(session, ({ one }) => ({

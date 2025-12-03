@@ -1,4 +1,4 @@
-import { boolean, integer, json, pgTable, serial, smallint, text } from 'drizzle-orm/pg-core'
+import { boolean, index, integer, json, pgTable, serial, smallint, text } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { timestamps } from './shared'
 // import { users } from './users'
@@ -9,24 +9,33 @@ import { users } from './users'
 // ===============================
 // ITEMS
 // ===============================
-export const items = pgTable('items', {
-	id: serial('id').primaryKey(),
-	listId: integer('list_id')
-		.notNull()
-		.references(() => lists.id, { onDelete: 'cascade' }),
-	groupId: integer('group_id').references(() => itemGroups.id, { onDelete: 'set null' }),
-	title: text('title').notNull(),
-	status: statusEnum('status').default('incomplete').notNull(),
-	url: text('url'),
-	imageUrl: text('image_url'),
-	price: text('price'),
-	currency: text('currency'),
-	notes: text('notes'),
-	priority: priorityEnum('priority').default('normal').notNull(),
-	isArchived: boolean('is_archived').default(false).notNull(),
-	quantity: smallint('quantity').default(1).notNull(),
-	...timestamps,
-})
+export const items = pgTable(
+	'items',
+	{
+		id: serial('id').primaryKey(),
+		listId: integer('list_id')
+			.notNull()
+			.references(() => lists.id, { onDelete: 'cascade' }),
+		groupId: integer('group_id').references(() => itemGroups.id, { onDelete: 'set null' }),
+		title: text('title').notNull(),
+		status: statusEnum('status').default('incomplete').notNull(),
+		url: text('url'),
+		imageUrl: text('image_url'),
+		price: text('price'),
+		currency: text('currency'),
+		notes: text('notes'),
+		priority: priorityEnum('priority').default('normal').notNull(),
+		isArchived: boolean('is_archived').default(false).notNull(),
+		quantity: smallint('quantity').default(1).notNull(),
+		...timestamps,
+	},
+	table => [
+		index('items_listId_idx').on(table.listId),
+		index('items_listId_isArchived_idx').on(table.listId, table.isArchived),
+		index('items_groupId_idx').on(table.groupId),
+		// index('items_status_idx').on(table.status),
+	]
+)
 
 export type Item = typeof items.$inferSelect
 export type NewItem = typeof items.$inferInsert
@@ -34,16 +43,22 @@ export type NewItem = typeof items.$inferInsert
 // ===============================
 // ITEM GROUPS
 // ===============================
-export const itemGroups = pgTable('item_groups', {
-	id: serial('id').primaryKey(),
-	listId: integer('list_id')
-		.notNull()
-		.references(() => lists.id, { onDelete: 'cascade' }),
-	priority: priorityEnum('priority').default('normal').notNull(),
-	// status?
-	// type (and/or)
-	...timestamps,
-})
+export const itemGroups = pgTable(
+	'item_groups',
+	{
+		id: serial('id').primaryKey(),
+		listId: integer('list_id')
+			.notNull()
+			.references(() => lists.id, { onDelete: 'cascade' }),
+		priority: priorityEnum('priority').default('normal').notNull(),
+		// status?
+		// type (and/or)
+		...timestamps,
+	},
+	table => [
+		index('item_groups_listId_idx').on(table.listId), // Foreign key
+	]
+)
 
 export type ItemGroup = typeof itemGroups.$inferSelect
 export type NewItemGroup = typeof itemGroups.$inferInsert
@@ -51,18 +66,26 @@ export type NewItemGroup = typeof itemGroups.$inferInsert
 // ===============================
 // ITEM COMMENTS
 // ===============================
-export const itemComments = pgTable('item_comments', {
-	id: serial('id').primaryKey(),
-	itemId: integer('item_id')
-		.notNull()
-		.references(() => items.id, { onDelete: 'cascade' }),
-	userId: integer('user_id')
-		.notNull()
-		.references(() => users.id, { onDelete: 'cascade' }),
-	comment: text('comment').notNull(),
-	is_archived: boolean('is_archived').default(false).notNull(),
-	...timestamps,
-})
+export const itemComments = pgTable(
+	'item_comments',
+	{
+		id: serial('id').primaryKey(),
+		itemId: integer('item_id')
+			.notNull()
+			.references(() => items.id, { onDelete: 'cascade' }),
+		userId: text('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		comment: text('comment').notNull(),
+		is_archived: boolean('is_archived').default(false).notNull(),
+		...timestamps,
+	},
+	table => [
+		index('item_comments_itemId_idx').on(table.itemId),
+		// index('item_comments_userId_idx').on(table.userId),
+		index('item_comments_is_archived_idx').on(table.is_archived),
+	]
+)
 
 export type ItemComment = typeof itemComments.$inferSelect
 export type NewItemComment = typeof itemComments.$inferInsert
@@ -70,22 +93,26 @@ export type NewItemComment = typeof itemComments.$inferInsert
 // ===============================
 // ITEM SCRAPES
 // ===============================
-export const itemScrapes = pgTable('item_scrapes', {
-	id: serial('id').primaryKey(),
-	itemId: integer('item_id')
-		.notNull()
-		.references(() => items.id, { onDelete: 'cascade' }),
-	url: text('url').notNull(),
-	scraperId: text('scraper_id').notNull(),
-	response: json('response'),
-	title: text('title'),
-	cleanTitle: text('clean_title'),
-	description: text('description'),
-	price: text('price'),
-	currency: text('currency'),
-	imageUrls: text('image_urls').array(),
-	...timestamps,
-})
+export const itemScrapes = pgTable(
+	'item_scrapes',
+	{
+		id: serial('id').primaryKey(),
+		itemId: integer('item_id')
+			.notNull()
+			.references(() => items.id, { onDelete: 'cascade' }),
+		url: text('url').notNull(),
+		scraperId: text('scraper_id').notNull(),
+		response: json('response'),
+		title: text('title'),
+		cleanTitle: text('clean_title'),
+		description: text('description'),
+		price: text('price'),
+		currency: text('currency'),
+		imageUrls: text('image_urls').array(),
+		...timestamps,
+	},
+	table => [index('item_scrapes_itemId_idx').on(table.itemId)]
+)
 
 export type ItemScrape = typeof itemScrapes.$inferSelect
 export type NewItemScrape = typeof itemScrapes.$inferInsert
