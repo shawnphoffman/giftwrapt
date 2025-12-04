@@ -264,6 +264,9 @@ importers:
       eslint-config-prettier:
         specifier: ^10.1.8
         version: 10.1.8(eslint@9.39.1(jiti@2.6.1))
+      eslint-plugin-simple-import-sort:
+        specifier: ^12.1.1
+        version: 12.1.1(eslint@9.39.1(jiti@2.6.1))
       eslint-plugin-storybook:
         specifier: 10.1.3
         version: 10.1.3(eslint@9.39.1(jiti@2.6.1))(storybook@10.1.3(@testing-library/dom@10.4.1)(prettier@3.7.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(typescript@5.9.3)
@@ -3892,6 +3895,11 @@ packages:
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       eslint: '>=8.23.0'
+
+  eslint-plugin-simple-import-sort@12.1.1:
+    resolution: {integrity: sha512-6nuzu4xwQtE3332Uz0to+TxDQYRLTKRESSc2hefVT48Zc8JthmN23Gx9lnYhu0FtkRSL1oxny3kJ2aveVhmOVA==}
+    peerDependencies:
+      eslint: '>=5.0.0'
 
   eslint-plugin-storybook@10.1.3:
     resolution: {integrity: sha512-TcLZtQZ66ao0r4l7e8xsiu8YTdoV0fcltuLo9aZCEzqfMm28zN/ljpwSpSNFLUau6WBo/XNANaXz4ETdGR33SA==}
@@ -9196,6 +9204,10 @@ snapshots:
       ts-declaration-location: 1.0.7(typescript@5.9.3)
     transitivePeerDependencies:
       - typescript
+
+  eslint-plugin-simple-import-sort@12.1.1(eslint@9.39.1(jiti@2.6.1)):
+    dependencies:
+      eslint: 9.39.1(jiti@2.6.1)
 
   eslint-plugin-storybook@10.1.3(eslint@9.39.1(jiti@2.6.1))(storybook@10.1.3(@testing-library/dom@10.4.1)(prettier@3.7.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(typescript@5.9.3):
     dependencies:
