@@ -1,30 +1,39 @@
-import { CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
-// import { Button } from '@react-email/components'
+import { CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { createFileRoute } from '@tanstack/react-router'
+import { Button } from '@/components/ui/button'
+import AvatarUpload from '@/components/settings/avatar-upload'
+import ProfileForm from '@/components/settings/profile-form'
+import { useSession } from '@/lib/auth-client'
 
 export const Route = createFileRoute('/(core)/settings/')({
 	component: SettingsPage,
 })
 
 function SettingsPage() {
+	const { data: session } = useSession()
+
+	if (!session?.user) {
+		return null
+	}
+
 	return (
-		<div className="animate-page-in">
-			<CardHeader>
+		<div className="animate-page-in gap-6 flex flex-col">
+			<CardHeader className="flex">
 				<CardTitle className="text-2xl">Profile</CardTitle>
 			</CardHeader>
 			<CardContent>
-				<LoadingSkeleton />
-				{/* <div className="flex flex-col items-center w-full gap-4 xs:flex-row">
-						<ProfileAvatarUpload image={user?.image} displayName={user?.display_name} />
-						<ProfileForm name={user.display_name} id={user.user_id} birthMonth={user.birth_month} birthDay={user.birth_day} />
-					</div> */}
+				<div className="flex flex-col items-start w-full gap-4 sm:flex-row">
+					<AvatarUpload image={session.user.image} displayName={session.user.name} />
+					{/* <div className="flex-1 w-full"> */}
+					<ProfileForm name={session.user.name || ''} birthMonth={session.user.birthMonth} birthDay={session.user.birthDay} />
+					{/* </div> */}
+				</div>
 			</CardContent>
-			{/* <CardFooter className="px-6 py-4 border-t">
-					<Button type="submit" form="update-profile-form">
-						Save
-					</Button>
-				</CardFooter> */}
+			<CardFooter>
+				<Button type="submit" form="update-profile-form">
+					Save
+				</Button>
+			</CardFooter>
 		</div>
 	)
 }

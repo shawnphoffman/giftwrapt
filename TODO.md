@@ -8,3 +8,5 @@
 ## Thoughts
 
 - Granular permissions for viewers. Unpurchased-only vs both
+
+[ ] - Add somewhere to store images...

@@ -1,7 +1,7 @@
 # Project Patterns & Preferences
 
 ## Tech Stack
-- TanStack Start (React Router, Query, Form)
+- TanStack Start (React Router, Query, Form, DB)
 - Better Auth for authentication
 - Drizzle ORM with PostgreSQL
 - Resend for emails

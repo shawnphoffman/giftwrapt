@@ -4,12 +4,19 @@ import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { db } from '@/db'
 import { env } from '@/env'
 import { admin, customSession } from 'better-auth/plugins'
+import { users, session, account, verification } from '@/db/schema'
 
 const options = {
 	baseURL: env.BETTER_AUTH_URL || env.SERVER_URL || 'http://localhost:3000',
 	secret: env.BETTER_AUTH_SECRET || '',
 	database: drizzleAdapter(db, {
 		provider: 'pg',
+		schema: {
+			user: users,
+			session: session,
+			account: account,
+			verificationToken: verification,
+		},
 	}),
 	emailAndPassword: {
 		enabled: true,
@@ -107,6 +114,7 @@ export const auth = betterAuth({
 		},
 	},
 	session: {
+		freshAge: 0,
 		cookieCache: {
 			enabled: true,
 			maxAge: 60 * 60 * 24 * 7, // 7 days
