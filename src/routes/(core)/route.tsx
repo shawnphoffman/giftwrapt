@@ -4,6 +4,15 @@ import {
 	Outlet,
 	// , redirect
 } from '@tanstack/react-router'
+import { FlaskConical, Gift, Inbox, ListChecks, ListOrdered, ListPlus, MessagesSquare, Plus, Receipt } from 'lucide-react'
+import { Suspense } from 'react'
+
+import Loading from '@/components/loading'
+import NavBottom from '@/components/sidebar/nav-bottom'
+import NavBreadcrumbs from '@/components/sidebar/nav-breadcrumbs'
+import type { NavItem } from '@/components/sidebar/nav-section'
+import NavSection from '@/components/sidebar/nav-section'
+import { NavUser } from '@/components/sidebar/nav-user'
 import {
 	Sidebar,
 	SidebarContent,
@@ -16,16 +25,9 @@ import {
 	SidebarProvider,
 	SidebarTrigger,
 } from '@/components/ui/sidebar'
-import { Suspense } from 'react'
-import { NavigationEvents } from '@/components/utilities/navigation-events'
-import { Gift, ListChecks, ListOrdered, ListPlus, Inbox, MessagesSquare, Plus, FlaskConical, Receipt } from 'lucide-react'
-import NavBreadcrumbs from '@/components/sidebar/nav-breadcrumbs'
-import Loading from '@/components/loading'
-import NavSection, { type NavItem } from '@/components/sidebar/nav-section'
-import NavBottom from '@/components/sidebar/nav-bottom'
-import { NavUser } from '@/components/sidebar/nav-user'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ErrorBoundary } from '@/components/utilities/error-boundary'
+import { NavigationEvents } from '@/components/utilities/navigation-events'
 // import { useSession } from '@/lib/auth-client'
 import { authMiddleware } from '@/middleware/auth'
 
@@ -35,7 +37,7 @@ export const Route = createFileRoute('/(core)')({
 		middleware: [authMiddleware],
 	},
 })
-const main: NavItem[] = [
+const main: Array<NavItem> = [
 	{
 		name: 'All Lists',
 		url: '/lists',
@@ -56,7 +58,7 @@ const main: NavItem[] = [
 	},
 ]
 
-const actions: NavItem[] = [
+const actions: Array<NavItem> = [
 	{
 		name: 'Quick Add Item',
 		url: '/item/import',
@@ -72,7 +74,7 @@ const actions: NavItem[] = [
 	},
 ]
 
-const feeds: NavItem[] = [
+const feeds: Array<NavItem> = [
 	{
 		name: 'Recent Comments',
 		url: '/recent/comments',

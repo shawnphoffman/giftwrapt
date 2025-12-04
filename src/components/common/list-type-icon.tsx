@@ -1,4 +1,5 @@
 import { Cake, CheckCheck, FlaskConical, Gift, Lightbulb, TreePine } from 'lucide-react'
+
 import type { ListType } from '@/db/schema/enums'
 import { cn } from '@/lib/utils'
 
@@ -22,8 +23,5 @@ export default function ListTypeIcon({ type, className }: ListTypeIconProps) {
 	if (type === 'todos') {
 		return <CheckCheck className={cn('text-orange-500', className)} />
 	}
-	if (type === 'test') {
-		return <FlaskConical className={cn('text-blue-500', className)} />
-	}
-	return null
+	return <FlaskConical className={cn('text-blue-500', className)} />
 }

@@ -1,16 +1,15 @@
-import { HeadContent, Link, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
-import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { FormDevtoolsPanel } from '@tanstack/react-form-devtools'
+import type { QueryClient } from '@tanstack/react-query'
+import { createRootRouteWithContext, HeadContent, Link, Scripts } from '@tanstack/react-router'
+import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
+
 import { Toaster } from '@/components/ui/sonner'
 import { ErrorBoundary } from '@/components/utilities/error-boundary'
 
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
-
 // import '@fontsource-variable/open-sans/'
 import appCss from '../styles.css?url'
-
-import type { QueryClient } from '@tanstack/react-query'
 
 interface RouterContext {
 	queryClient: QueryClient
@@ -74,9 +73,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 						<div className="flex flex-col items-center justify-center min-h-screen p-4">
 							<div className="max-w-md space-y-4 text-center">
 								<h1 className="text-2xl font-bold text-destructive">Application Error</h1>
-								<p className="text-muted-foreground">
-									{error.message || 'An unexpected error occurred. Please refresh the page.'}
-								</p>
+								<p className="text-muted-foreground">{error.message || 'An unexpected error occurred. Please refresh the page.'}</p>
 								<div className="flex gap-2 justify-center">
 									<button
 										onClick={reset}

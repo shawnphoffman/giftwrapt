@@ -1,3 +1,5 @@
+import { Link } from '@tanstack/react-router'
+
 import {
 	SidebarGroup,
 	SidebarGroupContent,
@@ -7,11 +9,10 @@ import {
 	SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
-import { Link } from '@tanstack/react-router'
 
 type Props = {
 	title: string
-	items: NavItem[]
+	items: Array<NavItem>
 	className?: string
 }
 

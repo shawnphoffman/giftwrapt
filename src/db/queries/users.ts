@@ -1,5 +1,6 @@
-import { db } from '@/db'
 import { asc } from 'drizzle-orm'
+
+import { db } from '@/db'
 import { users } from '@/db/schema'
 
 export const getAllUsersQuery = async () => {
@@ -24,7 +25,7 @@ export const getAllUsersQuery = async () => {
 export const getUserDetailsQuery = async (userId: string) => {
 	// await new Promise(resolve => setTimeout(resolve, 10000))
 	const userData = await db.query.users.findFirst({
-		where: (users, { eq }) => eq(users.id, userId),
+		where: (u, { eq }) => eq(u.id, userId),
 	})
 
 	return userData

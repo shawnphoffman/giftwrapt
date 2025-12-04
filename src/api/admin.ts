@@ -1,7 +1,8 @@
 import { createServerFn } from '@tanstack/react-start'
+
+import { getAllUsersQuery, getUserDetailsQuery } from '@/db/queries/users'
 import { sendTestEmail } from '@/lib/resend'
 import { adminAuthMiddleware } from '@/middleware/auth'
-import { getAllUsersQuery, getUserDetailsQuery } from '@/db/queries/users'
 
 //
 export const getUsersAsAdmin = createServerFn({

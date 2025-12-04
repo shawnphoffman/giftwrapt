@@ -1,6 +1,7 @@
-import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { createFileRoute } from '@tanstack/react-router'
 import { Inbox } from 'lucide-react'
+
+import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 
 export const Route = createFileRoute('/(core)/recent/items')({
 	component: RecentItemsPage,

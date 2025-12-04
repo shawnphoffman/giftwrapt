@@ -1,9 +1,9 @@
-import { getUserDetailsAsAdmin } from '@/api/admin'
+import { useQuery } from '@tanstack/react-query'
 
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import { getUserDetailsAsAdmin } from '@/api/admin'
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
+
 import UserAvatar from '../common/user-avatar'
-import { Separator } from '@radix-ui/react-separator'
 
 const userDetailsQueryOptions = (userId: string) => ({
 	queryKey: ['admin', 'user', userId],

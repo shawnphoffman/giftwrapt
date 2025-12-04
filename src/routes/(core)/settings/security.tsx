@@ -1,6 +1,7 @@
+import { createFileRoute } from '@tanstack/react-router'
+
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { createFileRoute } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/(core)/settings/security')({
 	component: SecurityPage,

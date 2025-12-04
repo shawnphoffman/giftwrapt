@@ -1,4 +1,4 @@
-import { Body, Button, Container, Head, Heading, Html, Img, Section, Tailwind, Text, Preview } from '@react-email/components'
+import { Body, Button, Container, Head, Heading, Html, Img, Preview, Section, Tailwind, Text } from '@react-email/components'
 
 const baseUrl = process.env.SERVER_URL || 'http://localhost:3000'
 

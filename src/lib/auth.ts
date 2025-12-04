@@ -1,10 +1,12 @@
-import { betterAuth, type BetterAuthOptions } from 'better-auth'
+import type { BetterAuthOptions } from 'better-auth'
+import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { tanstackStartCookies } from 'better-auth/tanstack-start'
-import { db } from '@/db'
-import { env } from '@/env'
 import { admin, customSession } from 'better-auth/plugins'
-import { users, session, account, verification } from '@/db/schema'
+import { tanstackStartCookies } from 'better-auth/tanstack-start'
+
+import { db } from '@/db'
+import { account, session, users, verification } from '@/db/schema'
+import { env } from '@/env'
 
 const options = {
 	baseURL: env.BETTER_AUTH_URL || env.SERVER_URL || 'http://localhost:3000',
@@ -69,14 +71,15 @@ const options = {
 export const auth = betterAuth({
 	...options,
 	plugins: [
-		...(options.plugins ?? []),
-		customSession(async ({ user, session }) => {
+		...options.plugins,
+		// eslint-disable-next-line @typescript-eslint/require-await
+		customSession(async ({ user, session: localSession }) => {
 			return {
 				user: {
 					...user,
 					isAdmin: user.role === 'admin',
 				},
-				session,
+				session: localSession,
 			}
 		}, options),
 	],

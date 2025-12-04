@@ -1,6 +1,7 @@
-import { Separator } from '@/components/ui/separator'
 import { Link, useLocation } from '@tanstack/react-router'
 import { Gift, LogOut, Receipt } from 'lucide-react'
+
+import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 
 export default function SettingsLinks() {

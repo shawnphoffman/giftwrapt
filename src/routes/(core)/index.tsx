@@ -1,8 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { signOut, useSession } from '@/lib/auth-client'
-import { Button } from '@/components/ui/button'
+
 import Loading from '@/components/loading'
+import { Button } from '@/components/ui/button'
 import { SonnerTypes } from '@/components/utilities/sonner-types'
+import { signOut, useSession } from '@/lib/auth-client'
 
 export const Route = createFileRoute('/(core)/')({
 	component: IndexPage,

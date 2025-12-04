@@ -1,7 +1,8 @@
-import SettingsLinks from '@/components/settings/links'
-import { Card } from '@/components/ui/card'
 import { createFileRoute, Outlet } from '@tanstack/react-router'
 import { Settings } from 'lucide-react'
+
+import SettingsLinks from '@/components/settings/links'
+import { Card } from '@/components/ui/card'
 
 export const Route = createFileRoute('/(core)/settings')({
 	component: SettingsRoute,

@@ -1,16 +1,17 @@
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card'
-import { env } from '@/env'
 import { createFileRoute } from '@tanstack/react-router'
 import { Lock } from 'lucide-react'
 import { Suspense } from 'react'
-import { CreateUserForm } from '@/components/admin/create-user-form'
-import { ClientOnly } from '@/components/utilities/client-only'
-import { AdminUsersList } from '@/components/admin/users-list'
-import { UserImpersonation } from '@/components/admin/user-impersonation'
-import SendTestEmailButton from '@/components/admin/send-test-email'
-import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
-import { useSession } from '@/lib/auth-client'
+
 import { isEmailConfigured } from '@/api/common'
+import { CreateUserForm } from '@/components/admin/create-user-form'
+import SendTestEmailButton from '@/components/admin/send-test-email'
+import { UserImpersonation } from '@/components/admin/user-impersonation'
+import { AdminUsersList } from '@/components/admin/users-list'
+import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ClientOnly } from '@/components/utilities/client-only'
+import { env } from '@/env'
+import { useSession } from '@/lib/auth-client'
 
 export const Route = createFileRoute('/(core)/admin/')({
 	component: AdminPage,
@@ -22,7 +23,7 @@ export const Route = createFileRoute('/(core)/admin/')({
 })
 
 function AdminPage() {
-	const { isEmailConfigured } = Route.useLoaderData()
+	const { isEmailConfigured: isEmailEnabled } = Route.useLoaderData()
 	const { data: session } = useSession()
 
 	return (
@@ -86,7 +87,7 @@ function AdminPage() {
 						<CardTitle>Emails</CardTitle>
 					</CardHeader>
 					<CardContent>
-						{isEmailConfigured ? (
+						{isEmailEnabled ? (
 							<div className="flex flex-col gap-3 max-w-md mx-auto">
 								<SendTestEmailButton />
 							</div>

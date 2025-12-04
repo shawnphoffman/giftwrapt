@@ -1,8 +1,9 @@
-import { CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { createFileRoute } from '@tanstack/react-router'
-import { Button } from '@/components/ui/button'
+
 import AvatarUpload from '@/components/settings/avatar-upload'
 import ProfileForm from '@/components/settings/profile-form'
+import { Button } from '@/components/ui/button'
+import { CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { useSession } from '@/lib/auth-client'
 
 export const Route = createFileRoute('/(core)/settings/')({

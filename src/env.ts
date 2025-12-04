@@ -1,5 +1,5 @@
-import { config } from 'dotenv'
 import { createEnv } from '@t3-oss/env-core'
+import { config } from 'dotenv'
 import { z } from 'zod'
 
 // Load .env files (same approach as db/index.ts)

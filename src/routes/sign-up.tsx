@@ -1,9 +1,10 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import { authClient } from '@/lib/auth-client'
+
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { authClient } from '@/lib/auth-client'
 
 export const Route = createFileRoute('/sign-up')({
 	component: SignUp,
@@ -22,7 +23,7 @@ function SignUp() {
 		setIsLoading(true)
 		setError(null)
 
-		const { data, error: signUpError } = await authClient.signUp.email(
+		const { error: signUpError } = await authClient.signUp.email(
 			{
 				email,
 				password,
@@ -63,8 +64,8 @@ function SignUp() {
 					<div className="space-y-2">
 						<Label htmlFor="name">Name</Label>
 						<Input
-							id='name'
-							type='text'
+							id="name"
+							type="text"
 							placeholder="John Doe"
 							value={name}
 							onChange={e => setName(e.target.value)}
@@ -76,8 +77,8 @@ function SignUp() {
 					<div className="space-y-2">
 						<Label htmlFor="email">Email</Label>
 						<Input
-							id='email'
-							type='email'
+							id="email"
+							type="email"
 							placeholder="you@example.com"
 							value={email}
 							onChange={e => setEmail(e.target.value)}
@@ -89,8 +90,8 @@ function SignUp() {
 					<div className="space-y-2">
 						<Label htmlFor="password">Password</Label>
 						<Input
-							id='password'
-							type='password'
+							id="password"
+							type="password"
 							placeholder="••••••••"
 							value={password}
 							onChange={e => setPassword(e.target.value)}

@@ -1,10 +1,12 @@
 import { createServerFn } from '@tanstack/react-start'
+import { getRequestHeaders } from '@tanstack/react-start/server'
 import { eq } from 'drizzle-orm'
+
 import { db } from '@/db'
-import { BirthMonth, users } from '@/db/schema'
+import type { BirthMonth } from '@/db/schema'
+import { users } from '@/db/schema'
 import { auth } from '@/lib/auth'
 import { authMiddleware } from '@/middleware/auth'
-import { getRequestHeaders } from '@tanstack/react-start/server'
 
 // Update user profile
 export const updateUserProfile = createServerFn({
@@ -15,7 +17,7 @@ export const updateUserProfile = createServerFn({
 	.handler(async ({ data }) => {
 		const session = await auth.api.getSession({ headers: getRequestHeaders() })
 
-		if (!session?.user?.id) {
+		if (!session?.user.id) {
 			throw new Error('Unauthorized')
 		}
 
@@ -31,9 +33,7 @@ export const updateUserProfile = createServerFn({
 		// console.log('data', data)
 		// console.log('userId', userId)
 
-		if (data.name !== undefined) {
-			updateData.name = data.name
-		}
+		updateData.name = data.name
 		if (data.birthMonth !== undefined) {
 			updateData.birthMonth = data.birthMonth as BirthMonth | null
 		}
@@ -43,9 +43,9 @@ export const updateUserProfile = createServerFn({
 
 		// Update user in database
 		const result = await db.update(users).set(updateData).where(eq(users.id, userId))
-		console.log('result', result?.rowCount)
+		console.log('result', result.rowCount)
 
-		if (result?.rowCount === 0) {
+		if (result.rowCount === 0) {
 			throw new Error('Failed to update user')
 		}
 
@@ -59,5 +59,5 @@ export const updateUserProfile = createServerFn({
 		})
 		console.log('result2', result2)
 
-		return { success: true, rowsUpdated: result?.rowCount }
+		return { success: true, rowsUpdated: result.rowCount }
 	})

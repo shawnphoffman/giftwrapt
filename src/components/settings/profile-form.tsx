@@ -1,15 +1,16 @@
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { toast } from 'sonner'
 import { z } from 'zod'
-import { useQueryClient } from '@tanstack/react-query'
+
+import { updateUserProfile } from '@/api/user'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { birthMonthEnumValues } from '@/db/schema/enums'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { toast } from 'sonner'
-import { updateUserProfile } from '@/api/user'
 
 const updateProfileSchema = z.object({
 	name: z.string().min(1, 'Name is required'),
@@ -40,7 +41,7 @@ export default function ProfileForm({ name, birthMonth, birthDay }: ProfileFormP
 		resolver: zodResolver(updateProfileSchema),
 		defaultValues: {
 			name: name || '',
-			birthMonth: (birthMonth as (typeof birthMonthEnumValues)[number]) || undefined,
+			birthMonth: birthMonth as (typeof birthMonthEnumValues)[number],
 			birthDay: birthDay || undefined,
 		},
 	})

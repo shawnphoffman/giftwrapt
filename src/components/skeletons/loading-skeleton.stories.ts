@@ -1,5 +1,6 @@
-import LoadingSkeleton from './loading-skeleton'
 import type { Meta, StoryObj } from '@storybook/react-vite'
+
+import LoadingSkeleton from './loading-skeleton'
 
 const meta = {
 	title: 'Skeletons/LoadingSkeleton',

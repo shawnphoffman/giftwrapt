@@ -1,7 +1,8 @@
 // import { fn } from 'storybook/test'
 
-import ListsByUserSkeleton from './lists-by-user-skeleton'
 import type { Meta, StoryObj } from '@storybook/react-vite'
+
+import ListsByUserSkeleton from './lists-by-user-skeleton'
 
 const meta = {
 	title: 'Skeletons/ListsByUserSkeleton',

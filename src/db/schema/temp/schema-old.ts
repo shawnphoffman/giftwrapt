@@ -1,5 +1,5 @@
 import { relations, sql } from 'drizzle-orm'
-import { pgTable, bigint, uuid, text, boolean, smallint, timestamp, jsonb, bigserial, pgEnum, varchar, pgSchema } from 'drizzle-orm/pg-core'
+import { bigint, bigserial, boolean, jsonb, pgEnum, pgSchema, pgTable, smallint, text, timestamp, uuid, varchar } from 'drizzle-orm/pg-core'
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 
 /* ────────────────────────────────────────────────────────────────

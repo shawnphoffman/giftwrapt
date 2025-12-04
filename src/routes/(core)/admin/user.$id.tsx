@@ -1,8 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { User } from 'lucide-react'
+
 import UserDetails from '@/components/admin/user-details'
-import { Suspense } from 'react'
-import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 
 export const Route = createFileRoute('/(core)/admin/user/$id')({
 	component: UserDetailsPage,

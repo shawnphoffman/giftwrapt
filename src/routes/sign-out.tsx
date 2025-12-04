@@ -1,7 +1,8 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { signOut } from '@/lib/auth-client'
+
 import Loading from '@/components/loading'
+import { signOut } from '@/lib/auth-client'
 
 export const Route = createFileRoute('/sign-out')({
 	component: SignOut,

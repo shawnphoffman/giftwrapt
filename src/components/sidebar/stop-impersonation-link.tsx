@@ -1,9 +1,9 @@
-import { useState } from 'react'
 import { HatGlasses } from 'lucide-react'
-import { SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar'
-import { useSession } from '@/lib/auth-client'
-import { authClient } from '@/lib/auth-client'
+import { useState } from 'react'
 import { toast } from 'sonner'
+
+import { SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar'
+import { authClient, useSession } from '@/lib/auth-client'
 import { cn } from '@/lib/utils'
 
 export default function StopImpersonationLink() {
@@ -11,7 +11,7 @@ export default function StopImpersonationLink() {
 	const [isStopping, setIsStopping] = useState(false)
 
 	// Check if currently impersonating - session should have impersonatedBy field
-	const isImpersonating = Boolean(session?.session?.impersonatedBy)
+	const isImpersonating = Boolean(session?.session.impersonatedBy)
 
 	if (!isImpersonating) {
 		return null

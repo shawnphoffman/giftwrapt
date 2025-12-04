@@ -3,7 +3,7 @@ import { Body, Column, Container, Head, Heading, Hr, Html, Img, Link, Row, Secti
 const baseUrl = process.env.SERVER_URL || 'http://localhost:3000'
 
 interface PostBirthdayEmailProps {
-	items: { title: string; image_url: string; gifters: string[] }[]
+	items: Array<{ title: string; image_url: string; gifters: Array<string> }>
 }
 
 export default function PostBirthdayEmail({ items }: PostBirthdayEmailProps) {

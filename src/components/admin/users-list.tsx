@@ -1,17 +1,19 @@
 import { useQuery } from '@tanstack/react-query'
+import { Link } from '@tanstack/react-router'
+
+import { getUsersAsAdmin } from '@/api/admin'
 import UserAvatar from '@/components/common/user-avatar'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { User } from '@/db-collections/users'
+
 import UserBadge from '../common/user-badge'
-import { getUsersAsAdmin } from '@/api/admin'
-import { Link } from '@tanstack/react-router'
 
 export function AdminUsersList() {
 	const {
 		data: users = [],
 		isLoading,
 		error,
-	} = useQuery<User[]>({
+	} = useQuery<Array<User>>({
 		queryKey: ['admin', 'users'],
 		queryFn: async () => {
 			return await getUsersAsAdmin()
@@ -39,7 +41,7 @@ export function AdminUsersList() {
 		return <div className="text-sm text-destructive">Error loading users: {error instanceof Error ? error.message : 'Unknown error'}</div>
 	}
 
-	if (!users || users.length === 0) {
+	if (users.length === 0) {
 		return <div className="text-sm text-muted-foreground">No users found</div>
 	}
 

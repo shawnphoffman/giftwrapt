@@ -12,7 +12,7 @@ export const getFromEmail = (): string => {
 	return name ? `${name} <${email}>` : email
 }
 
-export const getBccAddress = (): string[] | undefined => {
+export const getBccAddress = (): Array<string> | undefined => {
 	const bcc = env.RESEND_BCC_ADDRESS
 	return bcc ? [bcc] : undefined
 }

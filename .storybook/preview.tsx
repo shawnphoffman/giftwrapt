@@ -1,9 +1,9 @@
-import type { Preview } from '@storybook/react-vite'
-import { withThemeByClassName } from '@storybook/addon-themes'
 // import { Title, Subtitle, Description, Primary, Controls, Stories } from '@storybook/addon-docs/blocks'
-
 import '../src/styles.css'
 import './storybook.css'
+
+import { withThemeByClassName } from '@storybook/addon-themes'
+import type { Preview } from '@storybook/react-vite'
 
 const preview: Preview = {
 	parameters: {

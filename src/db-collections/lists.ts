@@ -1,6 +1,7 @@
 import { createCollection } from '@tanstack/db'
 import { queryCollectionOptions } from '@tanstack/query-db-collection'
 import { z } from 'zod'
+
 import { getContext } from '@/integrations/tanstack-query/root-provider'
 
 // Schema matching the API response: users with their public lists

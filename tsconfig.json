@@ -1,35 +1,12 @@
 {
-	"include": [
-		"**/*.ts",
-		"**/*.tsx",
-		"eslint.config.js",
-		"prettier.config.js",
-		"vite.config.js",
-		".storybook/**/*"
-	],
-	"exclude": [
-		"node_modules",
-		".tanstack",
-		"dist",
-		"build",
-		".next",
-		"coverage",
-		"*.config.js",
-		"*.config.js",
-		"routeTree.gen.ts"
-	],
+	"include": ["**/*.ts", "**/*.tsx", "eslint.config.js", "prettier.config.js", "vite.config.js", ".storybook/**/*"],
+	"exclude": ["node_modules", ".tanstack", "dist", "build", ".next", "coverage", "*.config.js", "*.config.js", "routeTree.gen.ts"],
 	"compilerOptions": {
 		"target": "ES2022",
 		"jsx": "react-jsx",
 		"module": "ESNext",
-		"lib": [
-			"ES2022",
-			"DOM",
-			"DOM.Iterable"
-		],
-		"types": [
-			"vite/client"
-		],
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"types": ["vite/client"],
 		/* Bundler mode */
 		"moduleResolution": "bundler",
 		"allowImportingTsExtensions": true,
@@ -44,9 +21,7 @@
 		"noUncheckedSideEffectImports": true,
 		"baseUrl": ".",
 		"paths": {
-			"@/*": [
-				"./src/*"
-			]
+			"@/*": ["./src/*"]
 		}
 	}
 }

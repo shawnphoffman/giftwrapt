@@ -1,8 +1,9 @@
 'use client'
 
-import { useRef, useState } from 'react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Loader2, Upload } from 'lucide-react'
+import { useRef, useState } from 'react'
+
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 interface ProfileAvatarProps {
 	image?: string | null
@@ -15,6 +16,7 @@ export default function AvatarUpload({ image, displayName }: ProfileAvatarProps)
 	const fileInputRef = useRef<HTMLInputElement>(null)
 	// const router = useRouter()
 
+	// eslint-disable-next-line @typescript-eslint/require-await
 	const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0]
 		try {

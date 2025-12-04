@@ -1,11 +1,12 @@
 import { Lock } from 'lucide-react'
 
-import { NavItem } from './nav-section'
 import { useSession } from '@/lib/auth-client'
+
+import { NavItem } from './nav-section'
 
 export default function AdminNavLink() {
 	const { data: session } = useSession()
-	if (!session?.user?.isAdmin) {
+	if (!session?.user.isAdmin) {
 		return null
 	}
 

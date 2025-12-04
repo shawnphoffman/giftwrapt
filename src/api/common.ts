@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
+
 import { env } from '@/env'
 
 export const isEmailConfigured = createServerFn({ method: 'GET' }).handler(() => {

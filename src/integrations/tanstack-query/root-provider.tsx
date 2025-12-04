@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider, useQueryErrorResetBoundary } from '@tanstack/react-query'
+
 import { ErrorBoundary } from '@/components/utilities/error-boundary'
 
 export function getContext() {
@@ -22,7 +23,7 @@ function QueryErrorResetBoundary({ children }: { children: React.ReactNode }) {
 
 	return (
 		<ErrorBoundary
-			onError={(error) => {
+			onError={() => {
 				// Reset React Query errors when error boundary catches an error
 				// This allows queries to retry after the error boundary resets
 				reset()
@@ -39,9 +40,7 @@ function QueryErrorResetBoundary({ children }: { children: React.ReactNode }) {
 						<div className="max-w-md space-y-4">
 							<div className="text-center">
 								<h2 className="text-lg font-semibold text-destructive mb-2">Query Error</h2>
-								<p className="text-sm text-muted-foreground mb-4">
-									{error.message || 'Failed to load data. Please try again.'}
-								</p>
+								<p className="text-sm text-muted-foreground mb-4">{error.message || 'Failed to load data. Please try again.'}</p>
 								<button
 									onClick={handleReset}
 									className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 transition-colors"

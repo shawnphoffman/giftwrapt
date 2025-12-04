@@ -1,7 +1,8 @@
 // views.ts
-import { sql, desc } from 'drizzle-orm'
+import { desc, sql } from 'drizzle-orm'
 import { pgView } from 'drizzle-orm/pg-core'
-import { lists, listItems, users, listEditors, giftedItems, authUsers, userViewers } from './schema-old'
+
+import { authUsers, giftedItems, listEditors, listItems, lists, users, userViewers } from './schema-old'
 
 // SAMPLE FROM DOCS
 /**

@@ -1,9 +1,10 @@
-import { boolean, index, pgTable, serial, text } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
-import { timestamps } from './shared'
-import { users } from './users'
+import { boolean, index, pgTable, serial, text } from 'drizzle-orm/pg-core'
+
 import { listTypeEnum } from './enums'
 import { itemGroups, items } from './items'
+import { timestamps } from './shared'
+import { users } from './users'
 
 // ===============================
 // LISTS

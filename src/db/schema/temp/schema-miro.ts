@@ -1,5 +1,5 @@
 // db/schema.ts
-import { pgTable, serial, integer, varchar, text, boolean, timestamp, numeric, jsonb, pgEnum } from 'drizzle-orm/pg-core'
+import { boolean, integer, jsonb, numeric, pgEnum, pgTable, serial, text, timestamp, varchar } from 'drizzle-orm/pg-core'
 
 // ---------- Enums ----------
 

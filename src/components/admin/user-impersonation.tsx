@@ -1,24 +1,26 @@
-import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { authClient, useSession } from '@/lib/auth-client'
+import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
+
+import { getUsersAsAdmin } from '@/api/admin'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { User } from '@/db-collections/users'
-import { toast } from 'sonner'
-import { getUsersAsAdmin } from '@/api/admin'
+import { authClient, useSession } from '@/lib/auth-client'
+
 import LoadingSkeleton from '../skeletons/loading-skeleton'
 
 export function UserImpersonation() {
 	const [selectedUserId, setSelectedUserId] = useState<string>('')
 	const [isImpersonating, setIsImpersonating] = useState(false)
 	const { data: session } = useSession()
-	const currentUserId = session?.user?.id
+	const currentUserId = session?.user.id
 
 	const {
 		data: allUsers = [],
 		isLoading,
 		error,
-	} = useQuery<User[]>({
+	} = useQuery<Array<User>>({
 		queryKey: ['admin', 'users'],
 		queryFn: async () => {
 			return await getUsersAsAdmin()
@@ -50,8 +52,8 @@ export function UserImpersonation() {
 				// Reload the page to reflect the new session
 				window.location.href = '/'
 			}
-		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to impersonate user')
+		} catch (err) {
+			toast.error(err instanceof Error ? error?.message : 'Failed to impersonate user')
 		} finally {
 			setIsImpersonating(false)
 		}
@@ -65,7 +67,7 @@ export function UserImpersonation() {
 		return <div className="text-sm text-destructive">Error loading users: {error instanceof Error ? error.message : 'Unknown error'}</div>
 	}
 
-	if (!users || users.length === 0) {
+	if (users.length === 0) {
 		return <div className="text-sm text-muted-foreground">No users found</div>
 	}
 

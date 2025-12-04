@@ -1,17 +1,18 @@
-import { boolean, index, pgTable, serial, text } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
+import { boolean, index, pgTable, serial, text } from 'drizzle-orm/pg-core'
+
+import { statusEnum } from './enums'
 import { timestamps } from './shared'
 import { users } from './users'
-import { statusEnum } from './enums'
 
 // ===============================
 // RE-EXPORTS
 // ===============================
-export * from './enums'
-export * from './users'
 export * from './auth'
-export * from './lists'
+export * from './enums'
 export * from './items'
+export * from './lists'
+export * from './users'
 
 // ===============================
 // TEMP Todos

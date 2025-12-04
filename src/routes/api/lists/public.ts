@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 import { desc } from 'drizzle-orm'
+
 import { db } from '@/db'
 import { lists } from '@/db/schema'
 import { auth } from '@/lib/auth'
@@ -15,7 +16,7 @@ export const Route = createFileRoute('/api/lists/public')({
 				})
 
 				// Require authentication
-				if (!session?.user?.id) {
+				if (!session?.user.id) {
 					throw new Error('Unauthorized')
 				}
 
@@ -26,7 +27,7 @@ export const Route = createFileRoute('/api/lists/public')({
 				const allUsers = await db.query.users.findMany({
 					with: {
 						lists: {
-							where: (lists, { and, eq }) => and(eq(lists.isPrivate, false), eq(lists.isActive, true)),
+							where: (l, { and, eq }) => and(eq(l.isPrivate, false), eq(l.isActive, true)),
 							orderBy: [desc(lists.createdAt)],
 							with: {
 								items: true,
@@ -48,15 +49,15 @@ export const Route = createFileRoute('/api/lists/public')({
 						// image: user.image,
 						// birthMonth: user.birthMonth,
 						// birthDay: user.birthDay,
-						lists: (user.lists || []).map(list => ({
+						lists: user.lists.map(list => ({
 							...list,
 							// id: list.id,
 							// name: list.name,
 							// type: list.type,
 							// isActive: list.isActive,
 							// description: list.description,
-							itemsTotal: list.items?.length || 0,
-							itemsRemaining: list.items?.filter(item => item.status === 'incomplete').length || 0,
+							itemsTotal: list.items.length,
+							itemsRemaining: list.items.filter(item => item.status === 'incomplete').length,
 							createdAt: list.createdAt instanceof Date ? list.createdAt.toISOString() : list.createdAt,
 							updatedAt: list.updatedAt instanceof Date ? list.updatedAt.toISOString() : list.updatedAt,
 						})),

@@ -1,11 +1,12 @@
+import { Settings } from 'lucide-react'
+
 import { SidebarGroup, SidebarGroupContent, SidebarMenu } from '@/components/ui/sidebar'
 
-import { NavItem } from './nav-section'
-import { Settings } from 'lucide-react'
 import AdminNavLink from './nav-admin-link'
+import { NavItem } from './nav-section'
 import StopImpersonationLink from './stop-impersonation-link'
 
-const items: NavItem[] = [
+const items: Array<NavItem> = [
 	{
 		name: 'Settings',
 		url: '/settings',

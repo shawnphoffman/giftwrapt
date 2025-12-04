@@ -1,14 +1,15 @@
-import { Button } from '@/components/ui/button'
+import { CheckIcon, Mail, XIcon } from 'lucide-react'
 import { useCallback, useState } from 'react'
-import { CheckIcon, XIcon, Mail } from 'lucide-react'
 import { toast } from 'sonner'
+
 import { sendTestEmailAsAdmin } from '@/api/admin'
+import { Button } from '@/components/ui/button'
 
 export default function SendTestEmailButton() {
 	const [sending, setSending] = useState(false)
 	const [result, setResult] = useState<{ status?: string; error?: string }>()
 
-	const Icon = !result || sending ? <Mail /> : result?.status === 'success' ? <CheckIcon /> : <XIcon />
+	const Icon = !result || sending ? <Mail /> : result.status === 'success' ? <CheckIcon /> : <XIcon />
 
 	const handleClick = useCallback(async () => {
 		setSending(true)

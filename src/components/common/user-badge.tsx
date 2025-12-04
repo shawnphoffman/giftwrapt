@@ -1,4 +1,5 @@
-import { User } from '@/db-collections/users'
+import type { User } from '@/db-collections/users'
+
 import { Badge } from '../ui/badge'
 
 export default function UserBadge({ user }: { user: User }) {

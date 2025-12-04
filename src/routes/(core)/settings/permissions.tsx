@@ -1,6 +1,7 @@
-import { CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { createFileRoute } from '@tanstack/react-router'
+
+import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
+import { CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export const Route = createFileRoute('/(core)/settings/permissions')({
 	component: PermissionsPage,

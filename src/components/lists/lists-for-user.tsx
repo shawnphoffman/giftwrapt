@@ -1,12 +1,13 @@
 import { Link } from '@tanstack/react-router'
+
 import UserAvatar from '@/components/common/user-avatar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import type { BirthMonth } from '@/db/schema/enums'
+import type { UserWithLists } from '@/db-collections/lists'
 
-import { type UserWithLists } from '@/db-collections/lists'
-import ListTypeIcon from '../common/list-type-icon'
 import BirthdayBadge from '../common/birthday-badge'
-import { BirthMonth } from '@/db/schema/enums'
 import CountBadge from '../common/count-badge'
+import ListTypeIcon from '../common/list-type-icon'
 
 export default function ListsForUser({ user }: { user: UserWithLists }) {
 	return (

@@ -1,8 +1,11 @@
 import { useLiveQuery } from '@tanstack/react-db'
-import type { BirthMonth } from '@/db/schema/enums'
-import { usersWithListsCollection, type UserWithLists } from '@/db-collections/lists'
-import ListsByUserSkeleton from '../skeletons/lists-by-user-skeleton'
+
 import { ClientOnly } from '@/components/utilities/client-only'
+import type { BirthMonth } from '@/db/schema/enums'
+import type { UserWithLists } from '@/db-collections/lists'
+import { usersWithListsCollection } from '@/db-collections/lists'
+
+import ListsByUserSkeleton from '../skeletons/lists-by-user-skeleton'
 import ListsForUser from './lists-for-user'
 
 // Map month names to numbers (1-12)
@@ -58,7 +61,7 @@ const sortUserGroupsByBirthDate = (a: UserWithLists, b: UserWithLists) => {
 
 	// Sort by month, then by day
 	if (aMonth === bMonth) {
-		return a.birthDay! - b.birthDay!
+		return a.birthDay - b.birthDay
 	}
 	return aMonth - bMonth
 }
@@ -76,7 +79,7 @@ function ListsByUserContent() {
 	)
 
 	// Convert Map to array for easier use
-	const usersData = Array.from(queryResult.data?.values() || []) as UserWithLists[]
+	const usersData = Array.from(queryResult.data.values()) as Array<UserWithLists>
 	const isLoading = queryResult.isLoading
 
 	if (isLoading && usersData.length === 0) {

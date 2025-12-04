@@ -1,5 +1,5 @@
 import { Badge } from '@/components/ui/badge'
-import { BirthMonth } from '@/db/schema/enums'
+import type { BirthMonth } from '@/db/schema/enums'
 
 type BirthdayBadgeProps = {
 	birthMonth: BirthMonth
@@ -8,7 +8,7 @@ type BirthdayBadgeProps = {
 
 // Format birthday as "Month Day"
 const birthday = (month: BirthMonth, day?: number) => {
-	if (!month || !day) return null
+	if (!day) return null
 	return `${month.charAt(0).toUpperCase() + month.slice(1)} ${day}`
 }
 
@@ -32,11 +32,11 @@ const daysUntilBirthday = (month: BirthMonth, day: number) => {
 	const currentYear = today.getFullYear()
 
 	// Get the birth month and day
-	const birthMonth = months[month?.toLowerCase()]
+	const birthMonth = months[month.toLowerCase()]
 	const birthDay = day
 
 	// Create a date object for this year's birthday
-	let nextBirthday = new Date(currentYear, birthMonth, birthDay)
+	const nextBirthday = new Date(currentYear, birthMonth, birthDay)
 
 	// If this year's birthday has already passed, set to next year
 	if (nextBirthday < today) {

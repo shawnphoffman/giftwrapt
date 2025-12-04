@@ -1,9 +1,10 @@
-import { boolean, index, pgTable, smallint, text, timestamp } from 'drizzle-orm/pg-core'
-import { timestamps } from './shared'
 import { relations } from 'drizzle-orm'
-import { session, account } from './auth'
+import { boolean, index, pgTable, smallint, text, timestamp } from 'drizzle-orm/pg-core'
+
+import { account, session } from './auth'
 import { birthMonthEnum } from './enums'
 import { lists } from './lists'
+import { timestamps } from './shared'
 
 // ===============================
 // USERS

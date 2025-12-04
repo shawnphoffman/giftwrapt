@@ -1,5 +1,6 @@
-import { adminAuthMiddleware } from '@/middleware/auth'
 import { createFileRoute, Outlet } from '@tanstack/react-router'
+
+import { adminAuthMiddleware } from '@/middleware/auth'
 
 export const Route = createFileRoute('/(core)/admin')({
 	component: AdminRoutes,

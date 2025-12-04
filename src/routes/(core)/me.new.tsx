@@ -1,6 +1,7 @@
-import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { createFileRoute } from '@tanstack/react-router'
 import { ListPlus } from 'lucide-react'
+
+import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 
 export const Route = createFileRoute('/(core)/me/new')({
 	component: NewListPage,

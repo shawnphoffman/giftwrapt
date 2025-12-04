@@ -1,10 +1,11 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { authClient, useSession } from '@/lib/auth-client'
+
+import Loading from '@/components/loading'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import Loading from '@/components/loading'
+import { authClient, useSession } from '@/lib/auth-client'
 
 export const Route = createFileRoute('/sign-in')({
 	component: SignIn,
@@ -80,22 +81,22 @@ function SignIn() {
 					<div className="space-y-2">
 						<Label htmlFor="email">Email</Label>
 						<Input
-							id='email'
-							type='email'
+							id="email"
+							type="email"
 							placeholder="you@example.com"
 							value={email}
 							onChange={e => setEmail(e.target.value)}
 							required
 							disabled={isLoading}
-							autoComplete='email'
+							autoComplete="email"
 						/>
 					</div>
 
 					<div className="space-y-2">
 						<Label htmlFor="password">Password</Label>
 						<Input
-							id='password'
-							type='password'
+							id="password"
+							type="password"
 							placeholder="••••••••"
 							value={password}
 							onChange={e => setPassword(e.target.value)}
