@@ -1,8 +1,9 @@
 import { relations } from 'drizzle-orm'
 import { boolean, index, pgTable, smallint, text, timestamp } from 'drizzle-orm/pg-core'
+import z from 'zod'
 
 import { account, session } from './auth'
-import { birthMonthEnum } from './enums'
+import { birthMonthEnum, birthMonthEnumValues } from './enums'
 import { lists } from './lists'
 import { timestamps } from './shared'
 
@@ -36,6 +37,18 @@ export const users = pgTable(
 		index('users_isAdmin_idx').on(table.isAdmin), // For admin queries
 	]
 )
+
+export const UserSchema = z.object({
+	email: z.email('Invalid email address'),
+	name: z.string().min(1, 'Name is required'),
+	birthMonth: z.enum(birthMonthEnumValues).optional(),
+	birthDay: z
+		.number()
+		.int('Birth day must be a whole number')
+		.min(1, 'Birth day must be between 1 and 31')
+		.max(31, 'Birth day must be between 1 and 31')
+		.optional(),
+})
 
 // ------------------------------
 // RELATIONS

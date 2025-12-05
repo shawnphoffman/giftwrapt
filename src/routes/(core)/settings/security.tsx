@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
-import { CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import PasswordForm from '@/components/settings/password-form'
+import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export const Route = createFileRoute('/(core)/settings/security')({
 	component: SecurityPage,
@@ -9,12 +9,13 @@ export const Route = createFileRoute('/(core)/settings/security')({
 
 function SecurityPage() {
 	return (
-		<div className="animate-page-in">
-			<CardHeader>
+		<div className="animate-page-in gap-6 flex flex-col">
+			<CardHeader className="">
 				<CardTitle className="text-2xl">Security</CardTitle>
+				<CardDescription>Change your password and security settings.</CardDescription>
 			</CardHeader>
 			<CardContent>
-				<LoadingSkeleton />
+				<PasswordForm />
 			</CardContent>
 		</div>
 	)

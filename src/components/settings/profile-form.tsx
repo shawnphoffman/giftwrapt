@@ -3,27 +3,18 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
-import { z } from 'zod'
+import type { z } from 'zod'
 
 import { updateUserProfile } from '@/api/user'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { birthMonthEnumValues } from '@/db/schema/enums'
+import { UserSchema } from '@/db/schema/users'
 
-const updateProfileSchema = z.object({
-	name: z.string().min(1, 'Name is required'),
-	birthMonth: z.enum(birthMonthEnumValues).optional(),
-	birthDay: z
-		.number()
-		.int('Birth day must be a whole number')
-		.min(1, 'Birth day must be between 1 and 31')
-		.max(31, 'Birth day must be between 1 and 31')
-		.optional(),
-})
-
-type UpdateProfileFormValues = z.infer<typeof updateProfileSchema>
+type UpdateProfileFormValues = z.infer<typeof UserSchema>
 
 type ProfileFormProps = {
 	name: string
@@ -38,7 +29,7 @@ export default function ProfileForm({ name, birthMonth, birthDay }: ProfileFormP
 	const queryClient = useQueryClient()
 
 	const form = useForm<UpdateProfileFormValues>({
-		resolver: zodResolver(updateProfileSchema),
+		resolver: zodResolver(UserSchema),
 		defaultValues: {
 			name: name || '',
 			birthMonth: birthMonth as (typeof birthMonthEnumValues)[number],
@@ -126,10 +117,8 @@ export default function ProfileForm({ name, birthMonth, birthDay }: ProfileFormP
 								<FormLabel>Birth Day</FormLabel>
 								<FormControl>
 									<Input
-										type="number"
+										type="text"
 										placeholder="Day (1-31)"
-										min={1}
-										max={31}
 										className="w-full"
 										onChange={e => {
 											const value = e.target.value
@@ -138,7 +127,9 @@ export default function ProfileForm({ name, birthMonth, birthDay }: ProfileFormP
 											} else {
 												const num = parseInt(value, 10)
 												if (!isNaN(num)) {
-													field.onChange(num)
+													// Clamp value between 1 and 31
+													const clamped = Math.min(Math.max(num, 1), 31)
+													field.onChange(clamped)
 												}
 											}
 										}}
@@ -166,6 +157,9 @@ export default function ProfileForm({ name, birthMonth, birthDay }: ProfileFormP
 						<AlertDescription>Profile updated successfully!</AlertDescription>
 					</Alert>
 				)}
+				<Button type="submit" disabled={isLoading}>
+					Update Profile
+				</Button>
 			</form>
 		</Form>
 	)

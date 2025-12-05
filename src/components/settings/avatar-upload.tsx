@@ -5,6 +5,8 @@ import { useRef, useState } from 'react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
+// TODO - Update this when we have a storage solution
+
 interface ProfileAvatarProps {
 	image?: string | null
 	displayName?: string | null

@@ -2,6 +2,7 @@ import { createCollection } from '@tanstack/db'
 import { queryCollectionOptions } from '@tanstack/query-db-collection'
 import { z } from 'zod'
 
+import { UserSchema } from '@/db/schema/users'
 import { getContext } from '@/integrations/tanstack-query/root-provider'
 
 // Schema matching the API response: users with their public lists
@@ -20,13 +21,9 @@ const ListSchema = z.object({
 const UserWithListsSchema = z.object({
 	id: z.string(),
 	email: z.string(),
-	name: z.string().nullable(),
 	image: z.string().nullable(),
-	birthMonth: z
-		.enum(['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'])
-		.nullable(),
-	birthDay: z.number().nullable(),
 	lists: z.array(ListSchema),
+	...UserSchema,
 })
 
 export type UserWithLists = z.infer<typeof UserWithListsSchema>

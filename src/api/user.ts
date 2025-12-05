@@ -61,3 +61,32 @@ export const updateUserProfile = createServerFn({
 
 		return { success: true, rowsUpdated: result.rowCount }
 	})
+
+// Update user password
+export const updateUserPassword = createServerFn({
+	method: 'POST',
+})
+	.middleware([authMiddleware])
+	.inputValidator((data: { currentPassword: string; newPassword: string }) => data)
+	.handler(async ({ data }) => {
+		const session = await auth.api.getSession({ headers: getRequestHeaders() })
+
+		if (!session?.user.id) {
+			throw new Error('Unauthorized')
+		}
+
+		// Use Better Auth's changePassword API
+		const result = await auth.api.changePassword({
+			body: {
+				currentPassword: data.currentPassword,
+				newPassword: data.newPassword,
+			},
+			headers: getRequestHeaders(),
+		})
+
+		if (result.error) {
+			throw new Error(result.error.message || 'Failed to change password')
+		}
+
+		return { success: true }
+	})

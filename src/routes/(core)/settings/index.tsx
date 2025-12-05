@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import AvatarUpload from '@/components/settings/avatar-upload'
+import UserAvatar from '@/components/common/user-avatar'
+// import AvatarUpload from '@/components/settings/avatar-upload'
 import ProfileForm from '@/components/settings/profile-form'
-import { Button } from '@/components/ui/button'
-import { CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useSession } from '@/lib/auth-client'
 
 export const Route = createFileRoute('/(core)/settings/')({
@@ -19,22 +19,18 @@ function SettingsPage() {
 
 	return (
 		<div className="animate-page-in gap-6 flex flex-col">
-			<CardHeader className="flex">
+			{/* <CardHeader className="flex"> Do this when there is no description*/}
+			<CardHeader>
 				<CardTitle className="text-2xl">Profile</CardTitle>
+				<CardDescription>Update your profile information.</CardDescription>
 			</CardHeader>
 			<CardContent>
 				<div className="flex flex-col items-start w-full gap-4 sm:flex-row">
-					<AvatarUpload image={session.user.image} displayName={session.user.name} />
-					{/* <div className="flex-1 w-full"> */}
+					<UserAvatar className="w-28 h-28" name={session.user.name} image={session.user.image} />
+					{/* <AvatarUpload image={session.user.image} displayName={session.user.name} /> */}
 					<ProfileForm name={session.user.name || ''} birthMonth={session.user.birthMonth} birthDay={session.user.birthDay} />
-					{/* </div> */}
 				</div>
 			</CardContent>
-			<CardFooter>
-				<Button type="submit" form="update-profile-form">
-					Save
-				</Button>
-			</CardFooter>
 		</div>
 	)
 }

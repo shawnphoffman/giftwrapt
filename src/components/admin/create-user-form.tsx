@@ -2,30 +2,19 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { z } from 'zod'
+import type { z } from 'zod'
 
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { birthMonthEnumValues } from '@/db/schema/enums'
+import { UserSchema } from '@/db/schema/users'
 import { authClient } from '@/lib/auth-client'
 
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
 
-const createUserSchema = z.object({
-	email: z.email('Invalid email address'),
-	name: z.string().min(1, 'Name is required'),
-	birthMonth: z.enum(birthMonthEnumValues).optional(),
-	birthDay: z
-		.number()
-		.int('Birth day must be a whole number')
-		.min(1, 'Birth day must be between 1 and 31')
-		.max(31, 'Birth day must be between 1 and 31')
-		.optional(),
-})
-
-type CreateUserFormValues = z.infer<typeof createUserSchema>
+type CreateUserFormValues = z.infer<typeof UserSchema>
 
 export function CreateUserForm() {
 	const [isLoading, setIsLoading] = useState(false)
@@ -34,7 +23,7 @@ export function CreateUserForm() {
 	const queryClient = useQueryClient()
 
 	const form = useForm<CreateUserFormValues>({
-		resolver: zodResolver(createUserSchema),
+		resolver: zodResolver(UserSchema),
 		defaultValues: {
 			email: '',
 			name: '',
