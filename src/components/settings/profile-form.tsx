@@ -158,7 +158,7 @@ export default function ProfileForm({ name, birthMonth, birthDay }: ProfileFormP
 					</Alert>
 				)}
 				<Button type="submit" disabled={isLoading}>
-					Update Profile
+					{isLoading ? 'Saving...' : 'Save'}
 				</Button>
 			</form>
 		</Form>

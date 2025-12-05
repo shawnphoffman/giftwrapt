@@ -123,7 +123,7 @@ export default function PasswordForm() {
 					</Alert>
 				)}
 				<Button type="submit" disabled={isLoading}>
-					Update Password
+					{isLoading ? 'Updating...' : 'Update'}
 				</Button>
 			</form>
 		</Form>
