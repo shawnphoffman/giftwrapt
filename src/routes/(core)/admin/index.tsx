@@ -32,7 +32,7 @@ function AdminPage() {
 				{/* HEADING */}
 				<div className="relative">
 					<h1 className="flex flex-row items-center gap-2 text-red-500">Admin</h1>
-					<Lock className="size-18 text-red-500/30 absolute left-4 -top-4 -z-10" />
+					<Lock className="size-22 -left-4 -top-6 text-red-500/30 absolute -z-10" />
 				</div>
 				{/*  */}
 				<Card>

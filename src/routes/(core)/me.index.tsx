@@ -15,7 +15,7 @@ function MyListsPage() {
 				{/* NOTE This doesn't follow the normal page pattern */}
 				<div className="relative flex flex-row flex-wrap justify-between gap-2">
 					<h1>My Lists</h1>
-					<ListOrdered className="size-18 text-red-500 opacity-30 absolute left-4 -top-4 -z-10" />
+					<ListOrdered className="size-22 -left-4 -top-6 text-red-500 opacity-30 absolute -z-10" />
 					{/* <div className="flex flex-row flex-wrap justify-end flex-1 gap-0.5 items-center md:justify-end shrink-0">
 							{/* <NewListButton /> */}
 					{/* </div> */}

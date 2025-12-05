@@ -14,7 +14,7 @@ function PurchasesPage() {
 				{/* HEADING */}
 				<div className="relative">
 					<h1 className="flex flex-row items-center gap-2">My Purchases</h1>
-					<Receipt className="size-18 text-pink-500 opacity-30 absolute left-4 -top-4 -z-10" />
+					<Receipt className="size-22 -left-4 -top-6 text-pink-500 opacity-30 absolute -z-10" />
 				</div>
 				{/* CONTENT */}
 				<LoadingSkeleton />

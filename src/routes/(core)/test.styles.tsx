@@ -16,7 +16,7 @@ function RouteComponent() {
 				{/* HEADING */}
 				<div className="relative">
 					<h1 className="flex flex-row items-center gap-2">Test Styles</h1>
-					<FlaskConical className="size-18 text-blue-500 opacity-30 absolute left-4 -top-4 -z-10" />
+					<FlaskConical className="size-22 -left-4 -top-6 text-blue-500 opacity-30 absolute -z-10" />
 				</div>
 				{/* CONTENT */}
 				<LoadingSkeleton />

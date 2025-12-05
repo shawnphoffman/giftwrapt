@@ -14,7 +14,7 @@ function NewListPage() {
 				{/* HEADING */}
 				<div className="relative">
 					<h1 className="flex flex-row items-center gap-2">Create New List</h1>
-					<ListPlus className="size-18 text-yellow-500 opacity-30 absolute left-4 -top-4 -z-10" />
+					<ListPlus className="size-22 -left-4 -top-6 text-yellow-500 opacity-30 absolute -z-10" />
 				</div>
 				{/* CONTENT */}
 				<LoadingSkeleton />
