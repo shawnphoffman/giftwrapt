@@ -19,11 +19,11 @@ const ListSchema = z.object({
 })
 
 const UserWithListsSchema = z.object({
+	...UserSchema.shape,
 	id: z.string(),
 	email: z.string(),
 	image: z.string().nullable(),
 	lists: z.array(ListSchema),
-	...UserSchema,
 })
 
 export type UserWithLists = z.infer<typeof UserWithListsSchema>
