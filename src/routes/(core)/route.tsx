@@ -26,6 +26,7 @@ import {
 	SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ThemeSwitcher } from '@/components/ui/theme-switcher'
 import { ErrorBoundary } from '@/components/utilities/error-boundary'
 import { NavigationEvents } from '@/components/utilities/navigation-events'
 // import { useSession } from '@/lib/auth-client'
@@ -126,10 +127,13 @@ function AuthenticatedRoutes() {
 				</SidebarFooter>
 			</Sidebar>
 			<SidebarInset>
-				<header className="top-0 z-10 flex items-center h-12 gap-2 shrink-0">
-					<div className="flex items-center gap-2 px-4">
+				<header className="top-0 z-10 flex items-center h-12 gap-2 shrink-0 w-full">
+					<div className="flex flex-1 items-center gap-2 px-4">
 						<SidebarTrigger className="-ml-1 [&_svg]:size-6!" />
 						<NavBreadcrumbs />
+					</div>
+					<div className="flex items-center gap-2 px-2">
+						<ThemeSwitcher />
 					</div>
 				</header>
 				<div className="flex flex-col items-center flex-1 gap-4 px-0 py-2 sm:px-2">
