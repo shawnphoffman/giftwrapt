@@ -2,8 +2,8 @@ import { Badge } from '@/components/ui/badge'
 import type { BirthMonth } from '@/db/schema/enums'
 
 type BirthdayBadgeProps = {
-	birthMonth: BirthMonth | null
-	birthDay: number | null
+	birthMonth?: BirthMonth | null
+	birthDay?: number | null
 }
 
 // Format birthday as "Month Day"
@@ -53,11 +53,15 @@ const daysUntilBirthday = (month: BirthMonth | null, day: number | null) => {
 }
 
 export default function BirthdayBadge({ birthMonth, birthDay }: BirthdayBadgeProps) {
+	// Don't render anything if we don't have the required data
+	if (!birthMonth || !birthDay) {
+		return null
+	}
+
 	const birthdayText = birthday(birthMonth, birthDay)
 	const countdown = daysUntilBirthday(birthMonth, birthDay)
 
-	// Don't render anything if we don't have the required data
-	if (!birthMonth || !birthDay || !birthdayText || countdown === null) {
+	if (!birthdayText || countdown === null) {
 		return null
 	}
 
