@@ -1,13 +1,12 @@
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm } from '@tanstack/react-form'
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { updateUserPassword } from '@/api/user'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Label } from '@/components/ui/label'
 
 import { PasswordInput } from '../ui/password-input'
 
@@ -24,17 +23,36 @@ const PasswordSchema = z
 
 type PasswordFormValues = z.infer<typeof PasswordSchema>
 
+// Helper to extract error messages from TanStack Form errors (which can be objects or strings)
+function getErrorMessage(errors: Array<unknown>): string {
+	return errors
+		.map(err => {
+			if (typeof err === 'string') return err
+			if (err && typeof err === 'object' && 'message' in err) return (err as { message: string }).message
+			return String(err)
+		})
+		.join(', ')
+}
+
 export default function PasswordForm() {
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [success, setSuccess] = useState(false)
 
-	const form = useForm<PasswordFormValues>({
-		resolver: zodResolver(PasswordSchema),
+	const form = useForm({
 		defaultValues: {
 			currentPassword: '',
 			newPassword: '',
 			confirmPassword: '',
+		},
+		onSubmit: async ({ value }) => {
+			// Validate with Zod before submitting
+			const result = PasswordSchema.safeParse(value)
+			if (!result.success) {
+				setError(result.error.issues.map((e: { message: string }) => e.message).join(', '))
+				return
+			}
+			await onSubmit(value as PasswordFormValues)
 		},
 	})
 
@@ -66,66 +84,90 @@ export default function PasswordForm() {
 	}
 
 	return (
-		<Form {...form}>
-			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" id="update-password-form">
-				<FormField
-					control={form.control}
-					name="currentPassword"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Current Password</FormLabel>
-							<FormControl>
-								<PasswordInput placeholder="••••••••" {...field} disabled={isLoading} autoComplete="current-password" />
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-
-				<FormField
-					control={form.control}
-					name="newPassword"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>New Password</FormLabel>
-							<FormControl>
-								<PasswordInput placeholder="••••••••" {...field} disabled={isLoading} autoComplete="new-password" />
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-
-				<FormField
-					control={form.control}
-					name="confirmPassword"
-					render={({ field }) => (
-						<FormItem>
-							<FormLabel>Confirm New Password</FormLabel>
-							<FormControl>
-								<PasswordInput placeholder="••••••••" {...field} disabled={isLoading} autoComplete="new-password" />
-							</FormControl>
-							<FormMessage />
-						</FormItem>
-					)}
-				/>
-
-				{error && (
-					<Alert variant="destructive">
-						<AlertTitle>Error</AlertTitle>
-						<AlertDescription>{error}</AlertDescription>
-					</Alert>
+		<form
+			onSubmit={e => {
+				e.preventDefault()
+				e.stopPropagation()
+				form.handleSubmit()
+			}}
+			className="space-y-4"
+			id="update-password-form"
+		>
+			<form.Field name="currentPassword">
+				{field => (
+					<div className="grid gap-2">
+						<Label htmlFor={field.name}>Current Password</Label>
+						<PasswordInput
+							id={field.name}
+							placeholder="••••••••"
+							value={field.state.value}
+							onChange={e => field.handleChange(e.target.value)}
+							onBlur={field.handleBlur}
+							disabled={isLoading}
+							autoComplete="current-password"
+						/>
+						{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+							<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
+						)}
+					</div>
 				)}
-				{success && (
-					<Alert variant="default">
-						<AlertTitle>Success</AlertTitle>
-						<AlertDescription>Password updated successfully!</AlertDescription>
-					</Alert>
+			</form.Field>
+
+			<form.Field name="newPassword">
+				{field => (
+					<div className="grid gap-2">
+						<Label htmlFor={field.name}>New Password</Label>
+						<PasswordInput
+							id={field.name}
+							placeholder="••••••••"
+							value={field.state.value}
+							onChange={e => field.handleChange(e.target.value)}
+							onBlur={field.handleBlur}
+							disabled={isLoading}
+							autoComplete="new-password"
+						/>
+						{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+							<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
+						)}
+					</div>
 				)}
-				<Button type="submit" disabled={isLoading}>
-					{isLoading ? 'Updating...' : 'Update'}
-				</Button>
-			</form>
-		</Form>
+			</form.Field>
+
+			<form.Field name="confirmPassword">
+				{field => (
+					<div className="grid gap-2">
+						<Label htmlFor={field.name}>Confirm New Password</Label>
+						<PasswordInput
+							id={field.name}
+							placeholder="••••••••"
+							value={field.state.value}
+							onChange={e => field.handleChange(e.target.value)}
+							onBlur={field.handleBlur}
+							disabled={isLoading}
+							autoComplete="new-password"
+						/>
+						{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+							<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
+						)}
+					</div>
+				)}
+			</form.Field>
+
+			{error && (
+				<Alert variant="destructive">
+					<AlertTitle>Error</AlertTitle>
+					<AlertDescription>{error}</AlertDescription>
+				</Alert>
+			)}
+			{success && (
+				<Alert variant="default">
+					<AlertTitle>Success</AlertTitle>
+					<AlertDescription>Password updated successfully!</AlertDescription>
+				</Alert>
+			)}
+			<Button type="submit" disabled={isLoading}>
+				{isLoading ? 'Updating...' : 'Update'}
+			</Button>
+		</form>
 	)
 }
