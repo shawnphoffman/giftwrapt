@@ -48,6 +48,7 @@ export const UserSchema = z.object({
 		.optional(),
 	guardianIds: z.array(z.string()).optional(),
 	partnerId: z.string().optional(),
+	image: z.string().optional(),
 })
 
 // ------------------------------

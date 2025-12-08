@@ -1,17 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { User } from 'lucide-react'
 
-import UserDetails from '@/components/admin/user-details'
+import { EditUserForm } from '@/components/admin/edit-user-form'
 
 export const Route = createFileRoute('/(core)/admin/user/$id')({
 	component: UserDetailsPage,
-	// loader: async ({ params, context }) => {
-	// 	const { queryClient } = context
-	// 	const userId = params.id
-
-	// 	// Prefetch the user details query
-	// 	await queryClient.ensureQueryData(userDetailsQueryOptions(userId))
-	// },
 })
 
 function UserDetailsPage() {
@@ -22,12 +15,10 @@ function UserDetailsPage() {
 			<div className="flex flex-col flex-1 gap-6">
 				{/* HEADING */}
 				<div className="relative">
-					<h1 className="flex flex-row items-center gap-2 text-red-500">User Details</h1>
+					<h1 className="flex flex-row items-center gap-2 text-red-500">Edit User</h1>
 					<User className="size-22 -left-4 -top-6 text-red-500/30 absolute -z-10" />
 				</div>
-				{/* <Suspense fallback={<LoadingSkeleton />}> */}
-				<UserDetails id={id} />
-				{/* </Suspense> */}
+				<EditUserForm userId={id} />
 			</div>
 		</div>
 	)
