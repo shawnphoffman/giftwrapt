@@ -39,12 +39,16 @@ export const UserSchema = z.object({
 	email: z.email('Invalid email address'),
 	name: z.string().min(1, 'Name is required'),
 	role: z.enum(roleEnumValues),
-	birthMonth: z.enum(birthMonthEnumValues).optional(),
+	birthMonth: z.enum(birthMonthEnumValues).nullish(),
 	birthDay: z
-		.number()
-		.int('Birth day must be a whole number')
-		.min(1, 'Birth day must be between 1 and 31')
-		.max(31, 'Birth day must be between 1 and 31')
+		.union([
+			z
+				.number()
+				.int('Birth day must be a whole number')
+				.min(1, 'Birth day must be between 1 and 31')
+				.max(31, 'Birth day must be between 1 and 31'),
+			z.null(),
+		])
 		.optional(),
 	guardianIds: z.array(z.string()).optional(),
 	partnerId: z.string().optional(),

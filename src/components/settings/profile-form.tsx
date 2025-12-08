@@ -41,8 +41,8 @@ export default function ProfileForm({ name, birthMonth, birthDay }: ProfileFormP
 	const form = useForm({
 		defaultValues: {
 			name: name || '',
-			birthMonth: (birthMonth ?? undefined) as (typeof birthMonthEnumValues)[number] | undefined,
-			birthDay: (birthDay ?? undefined) as number | undefined,
+			birthMonth: birthMonth ?? undefined,
+			birthDay: birthDay ?? undefined,
 		},
 		onSubmit: async ({ value }) => {
 			// Validate with Zod before submitting (only the fields we're using)
@@ -61,12 +61,21 @@ export default function ProfileForm({ name, birthMonth, birthDay }: ProfileFormP
 		setSuccess(false)
 
 		try {
+			const updateData: {
+				name: string
+				birthMonth?: string | null
+				birthDay?: number | null
+			} = {
+				name: data.name,
+			}
+			if (data.birthMonth !== undefined) {
+				updateData.birthMonth = data.birthMonth
+			}
+			if (data.birthDay !== undefined) {
+				updateData.birthDay = data.birthDay
+			}
 			await updateUserProfile({
-				data: {
-					name: data.name,
-					birthMonth: data.birthMonth,
-					birthDay: data.birthDay,
-				},
+				data: updateData,
 			})
 
 			setSuccess(true)

@@ -13,7 +13,7 @@ export const updateUserProfile = createServerFn({
 	method: 'POST',
 })
 	.middleware([authMiddleware])
-	.inputValidator((data: { name: string; birthMonth?: string; birthDay?: number }) => data)
+	.inputValidator((data: { name: string; birthMonth?: string | null; birthDay?: number | null }) => data)
 	.handler(async ({ data }) => {
 		const session = await auth.api.getSession({ headers: getRequestHeaders() })
 
@@ -35,10 +35,10 @@ export const updateUserProfile = createServerFn({
 
 		updateData.name = data.name
 		if (data.birthMonth !== undefined) {
-			updateData.birthMonth = data.birthMonth as BirthMonth | null
+			updateData.birthMonth = (data.birthMonth || null) as BirthMonth | null
 		}
 		if (data.birthDay !== undefined) {
-			updateData.birthDay = data.birthDay || null
+			updateData.birthDay = data.birthDay ?? null
 		}
 
 		// Update user in database
@@ -52,8 +52,8 @@ export const updateUserProfile = createServerFn({
 		const result2 = await auth.api.updateUser({
 			body: {
 				name: data.name,
-				birthDay: data.birthDay,
-				birthMonth: data.birthMonth,
+				...(data.birthDay !== undefined && { birthDay: data.birthDay ?? null }),
+				...(data.birthMonth !== undefined && { birthMonth: data.birthMonth || null }),
 			},
 			headers: getRequestHeaders(),
 		})

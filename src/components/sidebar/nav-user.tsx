@@ -1,5 +1,5 @@
-import { Skeleton } from '@/components/ui/skeleton'
 import { SidebarMenu, SidebarMenuItem } from '@/components/ui/sidebar'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useSession } from '@/lib/auth-client'
 
 import UserAvatar from '../common/user-avatar'
