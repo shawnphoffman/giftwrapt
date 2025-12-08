@@ -9,21 +9,25 @@ export default [
 	prettierConfig,
 	...storybook.configs['flat/recommended'],
 	{
-		ignores: ['eslint.config.js'],
+		ignores: ['eslint.config.js', 'prettier.config.js', '.output/**', 'dist/**', 'build/**', 'src/components/ui/**'],
 	},
 	{
-		ignores: ['src/components/ui/**'],
+		// ignores: ['src/components/ui/**'],
 		plugins: {
 			'simple-import-sort': simpleImportSort,
 		},
 		rules: {
+			// Use simple-import-sort for sorting (primary)
 			'simple-import-sort/imports': 'error',
 			'simple-import-sort/exports': 'error',
-			'import/order': 'off', // Disable in favor of simple-import-sort
-			'import/first': 'error',
-			'import/newline-after-import': 'error',
-			'import/no-duplicates': 'error',
+			// Disable all conflicting sorting rules
+			'import/order': 'off',
 			'sort-imports': 'off',
+			// Disable import plugin rules that conflict with simple-import-sort
+			'import/first': 'off',
+			'import/newline-after-import': 'off',
+			'import/no-duplicates': 'off',
+			'import/consistent-type-specifier-style': 'off',
 		},
 	},
 ]

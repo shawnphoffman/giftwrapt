@@ -3,8 +3,8 @@ import { and, eq } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { getAllUsersQuery, getUserDetailsQuery } from '@/db/queries/users'
-import { guardianships, users } from '@/db/schema'
 import type { BirthMonth } from '@/db/schema'
+import { guardianships, users } from '@/db/schema'
 import { sendTestEmail } from '@/lib/resend'
 import { adminAuthMiddleware } from '@/middleware/auth'
 
@@ -42,7 +42,7 @@ export const createGuardianships = createServerFn({
 	method: 'POST',
 })
 	.middleware([adminAuthMiddleware])
-	.inputValidator((data: { childUserId: string; parentUserIds: string[] }) => data)
+	.inputValidator((data: { childUserId: string; parentUserIds: Array<string> }) => data)
 	.handler(async ({ data }) => {
 		const { childUserId, parentUserIds } = data
 
@@ -92,7 +92,7 @@ export const updateGuardianships = createServerFn({
 	method: 'POST',
 })
 	.middleware([adminAuthMiddleware])
-	.inputValidator((data: { childUserId: string; parentUserIds: string[] }) => data)
+	.inputValidator((data: { childUserId: string; parentUserIds: Array<string> }) => data)
 	.handler(async ({ data }) => {
 		const { childUserId, parentUserIds } = data
 
