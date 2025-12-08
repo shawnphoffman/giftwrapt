@@ -13,7 +13,7 @@ export default function UserAvatar({ name, image, className }: UserAvatarProps) 
 	return (
 		<Avatar className={cn('border border-foreground/50 w-10 h-10', className)}>
 			<AvatarImage src={image || undefined} alt={''} />
-			<AvatarFallback className="font-bold bg-background text-foreground leading-none">{initials}</AvatarFallback>
+			<AvatarFallback className="font-bold bg-background text-foreground leading-none text-2xl">{initials}</AvatarFallback>
 		</Avatar>
 	)
 }
