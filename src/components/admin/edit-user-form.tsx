@@ -291,7 +291,7 @@ export function EditUserForm({ userId }: { userId: string }) {
 					)}
 				/>
 
-				<div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+				<div className="grid grid-cols-2 gap-4">
 					<FormField
 						control={form.control}
 						name="birthMonth"
@@ -357,6 +357,7 @@ export function EditUserForm({ userId }: { userId: string }) {
 							</FormItem>
 						)}
 					/>
+				</div>
 
 					<FormField
 						control={form.control}
@@ -388,7 +389,6 @@ export function EditUserForm({ userId }: { userId: string }) {
 							</FormItem>
 						)}
 					/>
-				</div>
 
 				{watchedRole === 'child' && (
 					<FormField

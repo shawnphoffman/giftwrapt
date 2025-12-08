@@ -1,5 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { User } from 'lucide-react'
 import { Suspense } from 'react'
 
 import { EditUserForm } from '@/components/admin/edit-user-form'
