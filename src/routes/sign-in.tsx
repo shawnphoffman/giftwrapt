@@ -1,10 +1,13 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { Image } from '@unpic/react'
 import { useEffect, useState } from 'react'
 
 import Loading from '@/components/loading'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PasswordInput } from '@/components/ui/password-input'
+import logo from '@/images/logo.png'
 import { authClient, useSession } from '@/lib/auth-client'
 
 export const Route = createFileRoute('/sign-in')({
@@ -57,9 +60,12 @@ function SignIn() {
 		}
 	}
 
-	// Show loading state while checking session
 	if (isPending) {
-		return <Loading className="text-primary" />
+		return (
+			<div className="flex items-center justify-center w-full h-screen">
+				<Loading />
+			</div>
+		)
 	}
 
 	// Don't render form if already authenticated (redirect will happen)
@@ -68,14 +74,16 @@ function SignIn() {
 	}
 
 	return (
-		<div className="flex items-center justify-center min-h-[calc(100vh-3rem)] p-4">
-			<div className="w-full max-w-md space-y-8">
+		<div className="flex items-center flex-col min-h-[calc(100vh-3rem)] p-[10%] gap-4">
+			<Image src={logo} alt="Wish Lists" width={160} height={160} className="w-24 sm:w-40" />
+
+			<div className="w-full max-w-md space-y-4">
 				<div className="text-center">
 					<h1 className="text-3xl font-bold">Sign in</h1>
 					<p className="mt-2 text-muted-foreground">Enter your credentials to access your account</p>
 				</div>
 
-				<form onSubmit={handleSubmit} className="space-y-4">
+				<form onSubmit={handleSubmit} className="space-y-2">
 					{error && <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">{error}</div>}
 
 					<div className="space-y-2">
@@ -94,9 +102,8 @@ function SignIn() {
 
 					<div className="space-y-2">
 						<Label htmlFor="password">Password</Label>
-						<Input
+						<PasswordInput
 							id="password"
-							type="password"
 							placeholder="••••••••"
 							value={password}
 							onChange={e => setPassword(e.target.value)}
@@ -111,12 +118,12 @@ function SignIn() {
 					</Button>
 				</form>
 
-				<div className="text-center text-sm">
+				{/* <div className="text-center text-sm">
 					<span className="text-muted-foreground">Don't have an account? </span>
 					<button type="button" onClick={() => navigate({ to: '/sign-up' as any })} className="text-primary hover:underline font-medium">
 						Sign up
 					</button>
-				</div>
+				</div> */}
 			</div>
 		</div>
 	)
