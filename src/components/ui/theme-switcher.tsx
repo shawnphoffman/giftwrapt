@@ -17,8 +17,8 @@ export function ThemeSwitcher() {
 
 	if (!mounted) {
 		return (
-			<Button variant="ghost" size="icon" className="size-9" disabled>
-				<Sun className="size-4" />
+			<Button variant="ghost" size="icon" className="size-9" disabled={true} suppressHydrationWarning>
+				<Moon className="size-4" />
 			</Button>
 		)
 	}
