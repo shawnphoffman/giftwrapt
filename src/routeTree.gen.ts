@@ -14,12 +14,12 @@ import { Route as SignOutRouteImport } from './routes/sign-out'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as coreRouteRouteImport } from './routes/(core)/route'
 import { Route as coreIndexRouteImport } from './routes/(core)/index'
+import { Route as coreTempRouteImport } from './routes/(core)/temp'
 import { Route as corePurchasesRouteImport } from './routes/(core)/purchases'
 import { Route as coreSettingsRouteRouteImport } from './routes/(core)/settings/route'
 import { Route as coreAdminRouteRouteImport } from './routes/(core)/admin/route'
 import { Route as coreSettingsIndexRouteImport } from './routes/(core)/settings/index'
 import { Route as coreMeIndexRouteImport } from './routes/(core)/me.index'
-import { Route as coreListsIndexRouteImport } from './routes/(core)/lists/index'
 import { Route as coreAdminIndexRouteImport } from './routes/(core)/admin/index'
 import { Route as ApiListsPublicRouteImport } from './routes/api/lists/public'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -63,6 +63,11 @@ const coreIndexRoute = coreIndexRouteImport.update({
   path: '/',
   getParentRoute: () => coreRouteRoute,
 } as any)
+const coreTempRoute = coreTempRouteImport.update({
+  id: '/temp',
+  path: '/temp',
+  getParentRoute: () => coreRouteRoute,
+} as any)
 const corePurchasesRoute = corePurchasesRouteImport.update({
   id: '/purchases',
   path: '/purchases',
@@ -86,11 +91,6 @@ const coreSettingsIndexRoute = coreSettingsIndexRouteImport.update({
 const coreMeIndexRoute = coreMeIndexRouteImport.update({
   id: '/me/',
   path: '/me/',
-  getParentRoute: () => coreRouteRoute,
-} as any)
-const coreListsIndexRoute = coreListsIndexRouteImport.update({
-  id: '/lists/',
-  path: '/lists/',
   getParentRoute: () => coreRouteRoute,
 } as any)
 const coreAdminIndexRoute = coreAdminIndexRouteImport.update({
@@ -192,6 +192,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof coreAdminRouteRouteWithChildren
   '/settings': typeof coreSettingsRouteRouteWithChildren
   '/purchases': typeof corePurchasesRoute
+  '/temp': typeof coreTempRoute
   '/': typeof coreIndexRoute
   '/item/clone': typeof coreItemCloneRoute
   '/lists/$listId': typeof coreListsListIdRoute
@@ -207,7 +208,6 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/lists/public': typeof ApiListsPublicRoute
   '/admin/': typeof coreAdminIndexRoute
-  '/lists': typeof coreListsIndexRoute
   '/me': typeof coreMeIndexRoute
   '/settings/': typeof coreSettingsIndexRoute
   '/admin/user/$id': typeof coreAdminUserIdRoute
@@ -220,6 +220,7 @@ export interface FileRoutesByTo {
   '/sign-out': typeof SignOutRoute
   '/sign-up': typeof SignUpRoute
   '/purchases': typeof corePurchasesRoute
+  '/temp': typeof coreTempRoute
   '/': typeof coreIndexRoute
   '/item/clone': typeof coreItemCloneRoute
   '/lists/$listId': typeof coreListsListIdRoute
@@ -235,7 +236,6 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/lists/public': typeof ApiListsPublicRoute
   '/admin': typeof coreAdminIndexRoute
-  '/lists': typeof coreListsIndexRoute
   '/me': typeof coreMeIndexRoute
   '/settings': typeof coreSettingsIndexRoute
   '/admin/user/$id': typeof coreAdminUserIdRoute
@@ -252,6 +252,7 @@ export interface FileRoutesById {
   '/(core)/admin': typeof coreAdminRouteRouteWithChildren
   '/(core)/settings': typeof coreSettingsRouteRouteWithChildren
   '/(core)/purchases': typeof corePurchasesRoute
+  '/(core)/temp': typeof coreTempRoute
   '/(core)/': typeof coreIndexRoute
   '/(core)/item/clone': typeof coreItemCloneRoute
   '/(core)/lists/$listId': typeof coreListsListIdRoute
@@ -267,7 +268,6 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/lists/public': typeof ApiListsPublicRoute
   '/(core)/admin/': typeof coreAdminIndexRoute
-  '/(core)/lists/': typeof coreListsIndexRoute
   '/(core)/me/': typeof coreMeIndexRoute
   '/(core)/settings/': typeof coreSettingsIndexRoute
   '/(core)/admin/user/$id': typeof coreAdminUserIdRoute
@@ -284,6 +284,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/settings'
     | '/purchases'
+    | '/temp'
     | '/'
     | '/item/clone'
     | '/lists/$listId'
@@ -299,7 +300,6 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/lists/public'
     | '/admin/'
-    | '/lists'
     | '/me'
     | '/settings/'
     | '/admin/user/$id'
@@ -312,6 +312,7 @@ export interface FileRouteTypes {
     | '/sign-out'
     | '/sign-up'
     | '/purchases'
+    | '/temp'
     | '/'
     | '/item/clone'
     | '/lists/$listId'
@@ -327,7 +328,6 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/lists/public'
     | '/admin'
-    | '/lists'
     | '/me'
     | '/settings'
     | '/admin/user/$id'
@@ -343,6 +343,7 @@ export interface FileRouteTypes {
     | '/(core)/admin'
     | '/(core)/settings'
     | '/(core)/purchases'
+    | '/(core)/temp'
     | '/(core)/'
     | '/(core)/item/clone'
     | '/(core)/lists/$listId'
@@ -358,7 +359,6 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/lists/public'
     | '/(core)/admin/'
-    | '/(core)/lists/'
     | '/(core)/me/'
     | '/(core)/settings/'
     | '/(core)/admin/user/$id'
@@ -413,6 +413,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreIndexRouteImport
       parentRoute: typeof coreRouteRoute
     }
+    '/(core)/temp': {
+      id: '/(core)/temp'
+      path: '/temp'
+      fullPath: '/temp'
+      preLoaderRoute: typeof coreTempRouteImport
+      parentRoute: typeof coreRouteRoute
+    }
     '/(core)/purchases': {
       id: '/(core)/purchases'
       path: '/purchases'
@@ -446,13 +453,6 @@ declare module '@tanstack/react-router' {
       path: '/me'
       fullPath: '/me'
       preLoaderRoute: typeof coreMeIndexRouteImport
-      parentRoute: typeof coreRouteRoute
-    }
-    '/(core)/lists/': {
-      id: '/(core)/lists/'
-      path: '/lists'
-      fullPath: '/lists'
-      preLoaderRoute: typeof coreListsIndexRouteImport
       parentRoute: typeof coreRouteRoute
     }
     '/(core)/admin/': {
@@ -623,6 +623,7 @@ interface coreRouteRouteChildren {
   coreAdminRouteRoute: typeof coreAdminRouteRouteWithChildren
   coreSettingsRouteRoute: typeof coreSettingsRouteRouteWithChildren
   corePurchasesRoute: typeof corePurchasesRoute
+  coreTempRoute: typeof coreTempRoute
   coreIndexRoute: typeof coreIndexRoute
   coreItemCloneRoute: typeof coreItemCloneRoute
   coreListsListIdRoute: typeof coreListsListIdRoute
@@ -630,7 +631,6 @@ interface coreRouteRouteChildren {
   coreRecentCommentsRoute: typeof coreRecentCommentsRoute
   coreRecentItemsRoute: typeof coreRecentItemsRoute
   coreTestStylesRoute: typeof coreTestStylesRoute
-  coreListsIndexRoute: typeof coreListsIndexRoute
   coreMeIndexRoute: typeof coreMeIndexRoute
   coreItemImportChar123UrlChar125Route: typeof coreItemImportChar123UrlChar125Route
   coreListsListIdBulkRoute: typeof coreListsListIdBulkRoute
@@ -641,6 +641,7 @@ const coreRouteRouteChildren: coreRouteRouteChildren = {
   coreAdminRouteRoute: coreAdminRouteRouteWithChildren,
   coreSettingsRouteRoute: coreSettingsRouteRouteWithChildren,
   corePurchasesRoute: corePurchasesRoute,
+  coreTempRoute: coreTempRoute,
   coreIndexRoute: coreIndexRoute,
   coreItemCloneRoute: coreItemCloneRoute,
   coreListsListIdRoute: coreListsListIdRoute,
@@ -648,7 +649,6 @@ const coreRouteRouteChildren: coreRouteRouteChildren = {
   coreRecentCommentsRoute: coreRecentCommentsRoute,
   coreRecentItemsRoute: coreRecentItemsRoute,
   coreTestStylesRoute: coreTestStylesRoute,
-  coreListsIndexRoute: coreListsIndexRoute,
   coreMeIndexRoute: coreMeIndexRoute,
   coreItemImportChar123UrlChar125Route: coreItemImportChar123UrlChar125Route,
   coreListsListIdBulkRoute: coreListsListIdBulkRoute,

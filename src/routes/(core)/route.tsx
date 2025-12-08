@@ -41,7 +41,7 @@ export const Route = createFileRoute('/(core)')({
 const main: Array<NavItem> = [
 	{
 		name: 'All Lists',
-		url: '/lists',
+		url: '/',
 		icon: ListChecks,
 		hoverColor: 'group-hover/link:text-green-500',
 	},

@@ -1,41 +1,24 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { ListChecks } from 'lucide-react'
 
-import Loading from '@/components/loading'
-import { Button } from '@/components/ui/button'
-import { SonnerTypes } from '@/components/utilities/sonner-types'
-import { signOut, useSession } from '@/lib/auth-client'
+import { ListsByUser } from '@/components/lists/lists-by-user'
 
 export const Route = createFileRoute('/(core)/')({
-	component: IndexPage,
+	component: ListsPage,
 })
 
-function IndexPage() {
-	const { data: session, isPending } = useSession()
-
-	// Show loading state while checking session
-	if (isPending) {
-		return <Loading />
-	}
-
-	const user = session!.user
-
+export default function ListsPage() {
 	return (
-		<div className="">
-			<h1 className="text-3xl font-bold">Welcome, {user.name}</h1>
-
-			<div className="flex flex-col items-center flex-1 gap-4 p-4 pt-2">
-				<div className="flex flex-col items-center gap-4 p-6 border rounded-lg max-w-md">
-					<div className="text-center">
-						<p className="text-lg font-semibold">Signed in as</p>
-						<p className="text-primary">{user.email}</p>
-						{user.name && <p className="text-muted-foreground">{user.name}</p>}
-					</div>
-					<Button onClick={async () => await signOut()} variant="outline">
-						Sign out
-					</Button>
+		<div className="flex flex-col flex-1 w-full max-w-5xl px-2 animate-page-in">
+			<div className="flex flex-col flex-1 gap-6">
+				{/* HEADING */}
+				<div className="relative">
+					<h1 className="flex flex-row items-center gap-2">Wish Lists</h1>
+					<ListChecks className="size-22 -left-4 -top-6 text-green-500 opacity-30 absolute -z-10" />
 				</div>
+				{/* CONTENT */}
+				<ListsByUser />
 			</div>
-			<SonnerTypes />
 		</div>
 	)
 }

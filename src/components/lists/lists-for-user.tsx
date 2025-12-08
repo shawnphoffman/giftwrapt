@@ -1,6 +1,5 @@
 import UserAvatar from '@/components/common/user-avatar'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import type { BirthMonth } from '@/db/schema/enums'
 import type { UserWithLists } from '@/db-collections/lists'
 
 import BirthdayBadge from '../common/birthday-badge'
@@ -12,7 +11,7 @@ export default function ListsForUser({ user }: { user: UserWithLists }) {
 			<CardHeader className="px-4 flex items-center gap-3">
 				<UserAvatar name={user.name || user.email} image={user.image} />
 				<CardTitle className="text-2xl font-semibold leading-none tracking-tight">{user.name || user.email}</CardTitle>
-				<BirthdayBadge birthMonth={user.birthMonth as BirthMonth} birthDay={user.birthDay ?? 0} />
+				<BirthdayBadge birthMonth={user.birthMonth} birthDay={user.birthDay} />
 			</CardHeader>
 			<CardContent className="px-4">
 				{user.lists.length === 0 ? (

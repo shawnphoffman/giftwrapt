@@ -2,17 +2,19 @@ import { Badge } from '@/components/ui/badge'
 import type { BirthMonth } from '@/db/schema/enums'
 
 type BirthdayBadgeProps = {
-	birthMonth: BirthMonth
-	birthDay: number
+	birthMonth: BirthMonth | null
+	birthDay: number | null
 }
 
 // Format birthday as "Month Day"
-const birthday = (month: BirthMonth, day?: number) => {
-	if (!day) return null
+const birthday = (month: BirthMonth | null, day?: number | null) => {
+	if (!month || !day) return null
 	return `${month.charAt(0).toUpperCase() + month.slice(1)} ${day}`
 }
 
-const daysUntilBirthday = (month: BirthMonth, day: number) => {
+const daysUntilBirthday = (month: BirthMonth | null, day: number | null) => {
+	if (!month || !day) return null
+
 	const months: { [key: string]: number } = {
 		january: 0,
 		february: 1,
@@ -53,6 +55,12 @@ const daysUntilBirthday = (month: BirthMonth, day: number) => {
 export default function BirthdayBadge({ birthMonth, birthDay }: BirthdayBadgeProps) {
 	const birthdayText = birthday(birthMonth, birthDay)
 	const countdown = daysUntilBirthday(birthMonth, birthDay)
+
+	// Don't render anything if we don't have the required data
+	if (!birthMonth || !birthDay || !birthdayText || countdown === null) {
+		return null
+	}
+
 	const plural = new Intl.PluralRules().select(countdown)
 
 	return (
