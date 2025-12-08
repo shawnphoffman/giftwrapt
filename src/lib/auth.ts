@@ -78,6 +78,7 @@ export const auth = betterAuth({
 				user: {
 					...user,
 					isAdmin: user.role === 'admin',
+					isChild: user.role === 'child',
 				},
 				session: localSession,
 			}

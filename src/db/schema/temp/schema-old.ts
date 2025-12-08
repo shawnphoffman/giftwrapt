@@ -97,7 +97,6 @@ export const users = pgTable('users', {
 	displayName: text('display_name'),
 	birthMonth: birthMonthEnum('birth_month'),
 	birthDay: smallint('birth_day'),
-	isAdmin: boolean('is_admin').default(false).notNull(),
 	partnerUserId: uuid('partner_user_id').references(() => authUsers.id),
 	image: text('image'),
 })

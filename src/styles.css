@@ -164,6 +164,9 @@ code {
 	button[data-slot='button'] {
 		@apply font-semibold!;
 	}
+	/* ul {
+		@apply list-disc list-inside;
+	} */
 
 	.markdown {
 		/* @apply ps-2; */

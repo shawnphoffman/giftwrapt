@@ -7,7 +7,6 @@ const UserSchema = z.object({
 	name: z.string().nullable(),
 	role: z.string(),
 	image: z.string().nullable(),
-	isAdmin: z.boolean(),
 	createdAt: z.string(),
 	updatedAt: z.string(),
 })

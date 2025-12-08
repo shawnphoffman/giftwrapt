@@ -44,7 +44,7 @@ export default function UserDetails({ id }: { id: string }) {
 			</div>
 			<div>
 				<div className="text-sm font-bold text-muted-foreground">Admin</div>
-				<div className="text-sm">{user.isAdmin ? 'Yes' : 'No'}</div>
+				<div className="text-sm">{user.role === 'admin' ? 'Yes' : 'No'}</div>
 			</div>
 		</div>
 	)

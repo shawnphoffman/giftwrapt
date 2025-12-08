@@ -16,7 +16,7 @@ export const getAllUsersQuery = async () => {
 		name: u.name,
 		role: u.role,
 		image: u.image,
-		isAdmin: u.isAdmin,
+
 		createdAt: u.createdAt instanceof Date ? u.createdAt.toISOString() : u.createdAt,
 		updatedAt: u.updatedAt instanceof Date ? u.updatedAt.toISOString() : u.updatedAt,
 	}))

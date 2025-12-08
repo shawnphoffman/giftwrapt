@@ -3,7 +3,7 @@ import { boolean, index, pgTable, smallint, text, timestamp } from 'drizzle-orm/
 import z from 'zod'
 
 import { account, session } from './auth'
-import { birthMonthEnum, birthMonthEnumValues, roleEnum } from './enums'
+import { birthMonthEnum, birthMonthEnumValues, roleEnum, roleEnumValues } from './enums'
 import { lists } from './lists'
 import { timestamps } from './shared'
 
@@ -24,8 +24,6 @@ export const users = pgTable(
 		//
 		birthMonth: birthMonthEnum('birth_month'),
 		birthDay: smallint('birth_day'),
-		// TODO Remove this
-		isAdmin: boolean('is_admin').default(false).notNull(),
 		image: text('image'),
 		partnerId: text('partner_id'),
 		...timestamps,
@@ -34,13 +32,13 @@ export const users = pgTable(
 	},
 	table => [
 		index('users_partnerId_idx').on(table.partnerId), // For partner relationship queries
-		index('users_isAdmin_idx').on(table.isAdmin), // For admin queries
 	]
 )
 
 export const UserSchema = z.object({
 	email: z.email('Invalid email address'),
 	name: z.string().min(1, 'Name is required'),
+	role: z.enum(roleEnumValues),
 	birthMonth: z.enum(birthMonthEnumValues).optional(),
 	birthDay: z
 		.number()
@@ -48,6 +46,8 @@ export const UserSchema = z.object({
 		.min(1, 'Birth day must be between 1 and 31')
 		.max(31, 'Birth day must be between 1 and 31')
 		.optional(),
+	guardianIds: z.array(z.string()).optional(),
+	partnerId: z.string().optional(),
 })
 
 // ------------------------------
