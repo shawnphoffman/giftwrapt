@@ -231,7 +231,7 @@ export function EditUserForm({ userId }: { userId: string }) {
 			<form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
 				{/* Avatar Preview */}
 				<div className="flex items-center gap-4 pb-4 border-b">
-					<UserAvatar name={watchedName || user.name || user.email || ''} image={previewImage} className="size-16 rounded-full" />
+					<UserAvatar name={watchedName || user.name || user.email || ''} image={previewImage} size="large" />
 					<div className="flex-1">
 						<p className="text-sm font-medium">Avatar Preview</p>
 						<p className="text-xs text-muted-foreground">Preview updates as you type</p>
@@ -306,7 +306,7 @@ export function EditUserForm({ userId }: { userId: string }) {
 									disabled={isLoading}
 								>
 									<FormControl>
-										<SelectTrigger className="w-full text-base">
+										<SelectTrigger className="w-full">
 											<SelectValue placeholder="Select month" />
 										</SelectTrigger>
 									</FormControl>
@@ -372,7 +372,7 @@ export function EditUserForm({ userId }: { userId: string }) {
 								</FormLabel>
 								<Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
 									<FormControl>
-										<SelectTrigger className="w-full text-base">
+										<SelectTrigger className="w-full">
 											<SelectValue placeholder="Select role" />
 										</SelectTrigger>
 									</FormControl>
@@ -416,7 +416,7 @@ export function EditUserForm({ userId }: { userId: string }) {
 													name="guardianIds"
 													render={({ field }) => {
 														return (
-															<FormItem key={guardianUser.id} className="flex flex-row items-center space-x-3 space-y-0">
+															<FormItem key={guardianUser.id} className="flex flex-row items-center space-y-0">
 																<FormControl>
 																	<Checkbox
 																		checked={field.value?.includes(guardianUser.id)}
@@ -429,16 +429,10 @@ export function EditUserForm({ userId }: { userId: string }) {
 																		disabled={isLoading}
 																	/>
 																</FormControl>
-																<FormLabel className="font-normal cursor-pointer flex items-center gap-2">
-																	<UserAvatar
-																		name={guardianUser.name || guardianUser.email}
-																		image={guardianUser.image}
-																		className="size-5"
-																	/>
-																	<span>
-																		{guardianUser.name || guardianUser.email}
-																		{guardianUser.role === 'admin' && <span className="text-xs text-muted-foreground"> (Admin)</span>}
-																	</span>
+																<FormLabel className="font-normal cursor-pointer">
+																	<UserAvatar name={guardianUser.name || guardianUser.email} image={guardianUser.image} size="small" />
+																	{guardianUser.name || guardianUser.email}
+																	{guardianUser.role === 'admin' && <span className="text-xs text-muted-foreground"> (Admin)</span>}
 																</FormLabel>
 															</FormItem>
 														)
@@ -469,7 +463,7 @@ export function EditUserForm({ userId }: { userId: string }) {
 									disabled={isLoading}
 								>
 									<FormControl>
-										<SelectTrigger className="w-full text-base">
+										<SelectTrigger className="w-full">
 											<SelectValue placeholder="Select partner (optional)" />
 										</SelectTrigger>
 									</FormControl>

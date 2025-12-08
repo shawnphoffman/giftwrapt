@@ -38,7 +38,7 @@ export default function SendTestEmailButton() {
 	}, [])
 
 	return (
-		<Button onClick={handleClick} variant="outline" className="gap-2 group" disabled={sending}>
+		<Button onClick={handleClick} variant="secondary" className="gap-2 group" disabled={sending}>
 			{Icon}
 			{sending ? 'Sending...' : 'Send Test Email'}
 		</Button>

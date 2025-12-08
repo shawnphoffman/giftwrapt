@@ -1,9 +1,9 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, eq } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { getAllUsersQuery, getUserDetailsQuery } from '@/db/queries/users'
-import type { BirthMonth } from '@/db/schema'
+import type { BirthMonth, Role } from '@/db/schema'
 import { guardianships, users } from '@/db/schema'
 import { sendTestEmail } from '@/lib/resend'
 import { adminAuthMiddleware } from '@/middleware/auth'
@@ -134,7 +134,7 @@ export const updateUserAsAdmin = createServerFn({
 		const updateFields: {
 			email?: string
 			name?: string
-			role?: string
+			role?: Role
 			birthMonth?: BirthMonth | null
 			birthDay?: number | null
 			image?: string | null
@@ -143,7 +143,11 @@ export const updateUserAsAdmin = createServerFn({
 
 		if (updateData.email !== undefined) updateFields.email = updateData.email
 		if (updateData.name !== undefined) updateFields.name = updateData.name
-		if (updateData.role !== undefined) updateFields.role = updateData.role
+		if (updateData.role !== undefined) {
+			updateFields.role = updateData.role as Role
+		} else {
+			updateFields.role = 'user'
+		}
 		if (updateData.birthMonth !== undefined) updateFields.birthMonth = updateData.birthMonth
 		if (updateData.birthDay !== undefined) updateFields.birthDay = updateData.birthDay
 		if (updateData.image !== undefined) updateFields.image = updateData.image

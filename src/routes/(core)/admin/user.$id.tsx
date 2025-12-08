@@ -1,7 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { User } from 'lucide-react'
+import { Suspense } from 'react'
 
 import { EditUserForm } from '@/components/admin/edit-user-form'
+import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export const Route = createFileRoute('/(core)/admin/user/$id')({
 	component: UserDetailsPage,
@@ -11,15 +14,15 @@ function UserDetailsPage() {
 	const { id } = Route.useParams()
 
 	return (
-		<div className="flex flex-col flex-1 w-full max-w-2xl px-2 animate-page-in">
-			<div className="flex flex-col flex-1 gap-6">
-				{/* HEADING */}
-				<div className="relative">
-					<h1 className="flex flex-row items-center gap-2 text-red-500">Edit User</h1>
-					<User className="size-22 -left-4 -top-6 text-red-500/30 absolute -z-10" />
-				</div>
-				<EditUserForm userId={id} />
-			</div>
-		</div>
+		<Card className="bg-accent animate-page-in">
+			<CardHeader>
+				<CardTitle className="text-2xl">Edit User</CardTitle>
+			</CardHeader>
+			<CardContent>
+				<Suspense fallback={<LoadingSkeleton />}>
+					<EditUserForm userId={id} />
+				</Suspense>
+			</CardContent>
+		</Card>
 	)
 }

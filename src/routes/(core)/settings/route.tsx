@@ -10,7 +10,7 @@ export const Route = createFileRoute('/(core)/settings')({
 
 function SettingsRoute() {
 	return (
-		<div className="flex flex-col flex-1 w-full max-w-5xl px-2 animate-page-in">
+		<div className="flex flex-col flex-1 w-full max-w-5xl px-2 animate-page-in pb-2">
 			<div className="flex flex-col flex-1 gap-6">
 				{/* HEADING */}
 				<div className="relative">
@@ -18,8 +18,8 @@ function SettingsRoute() {
 					<Settings className="size-22 -left-4 -top-6 text-lime-500 opacity-30 absolute -z-10" />
 				</div>
 				{/* CONTENT */}
-				<div className="mx-auto grid w-full max-w-6xl items-start gap-6 md:grid-cols-[180px_1fr] lg:grid-cols-[250px_1fr]">
-					<nav className="grid gap-4 text-sm text-muted-foreground">
+				<div className="mx-auto grid w-full max-w-6xl items-start gap-6 md:grid-cols-[150px_1fr] lg:grid-cols-[200px_1fr]">
+					<nav className="grid gap-4 text-sm text-muted-foreground mt-6">
 						<SettingsLinks />
 					</nav>
 					<div className="grid gap-6 animate-page-in">

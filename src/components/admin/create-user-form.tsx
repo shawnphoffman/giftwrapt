@@ -179,7 +179,7 @@ export function CreateUserForm() {
 								<FormLabel>Birth Month</FormLabel>
 								<Select onValueChange={value => field.onChange(value || undefined)} value={field.value || ''} disabled={isLoading}>
 									<FormControl>
-										<SelectTrigger className="w-full text-base">
+										<SelectTrigger className="w-full">
 											<SelectValue placeholder="Select month" />
 										</SelectTrigger>
 									</FormControl>
@@ -245,7 +245,7 @@ export function CreateUserForm() {
 								</FormLabel>
 								<Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
 									<FormControl>
-										<SelectTrigger className="w-full text-base">
+										<SelectTrigger className="w-full">
 											<SelectValue placeholder="Select role" />
 										</SelectTrigger>
 									</FormControl>
@@ -303,7 +303,7 @@ export function CreateUserForm() {
 																	/>
 																</FormControl>
 																<FormLabel className="font-normal cursor-pointer">
-																	<UserAvatar name={user.name || user.email} image={user.image} className="size-5" />
+																	<UserAvatar name={user.name || user.email} image={user.image} size="small" />
 																	{user.name || user.email}
 																	{user.role === 'admin' && <span className="text-xs text-muted-foreground">(Admin)</span>}
 																</FormLabel>
@@ -336,7 +336,7 @@ export function CreateUserForm() {
 									disabled={isLoading}
 								>
 									<FormControl>
-										<SelectTrigger className="w-full text-base">
+										<SelectTrigger className="w-full">
 											<SelectValue placeholder="Select partner (optional)" />
 										</SelectTrigger>
 									</FormControl>

@@ -34,6 +34,8 @@ import { Route as coreRecentCommentsRouteImport } from './routes/(core)/recent.c
 import { Route as coreMeNewRouteImport } from './routes/(core)/me.new'
 import { Route as coreListsListIdRouteImport } from './routes/(core)/lists/$listId'
 import { Route as coreItemCloneRouteImport } from './routes/(core)/item.clone'
+import { Route as coreAdminUsersRouteImport } from './routes/(core)/admin/users'
+import { Route as coreAdminDebugRouteImport } from './routes/(core)/admin/debug'
 import { Route as coreListsListIdEditRouteImport } from './routes/(core)/lists_/$listId.edit'
 import { Route as coreListsListIdBulkRouteImport } from './routes/(core)/lists_/$listId.bulk'
 import { Route as coreItemImportChar123UrlChar125RouteImport } from './routes/(core)/item.import.{-$url}'
@@ -163,6 +165,16 @@ const coreItemCloneRoute = coreItemCloneRouteImport.update({
   path: '/item/clone',
   getParentRoute: () => coreRouteRoute,
 } as any)
+const coreAdminUsersRoute = coreAdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => coreAdminRouteRoute,
+} as any)
+const coreAdminDebugRoute = coreAdminDebugRouteImport.update({
+  id: '/debug',
+  path: '/debug',
+  getParentRoute: () => coreAdminRouteRoute,
+} as any)
 const coreListsListIdEditRoute = coreListsListIdEditRouteImport.update({
   id: '/lists_/$listId/edit',
   path: '/lists/$listId/edit',
@@ -194,6 +206,8 @@ export interface FileRoutesByFullPath {
   '/purchases': typeof corePurchasesRoute
   '/temp': typeof coreTempRoute
   '/': typeof coreIndexRoute
+  '/admin/debug': typeof coreAdminDebugRoute
+  '/admin/users': typeof coreAdminUsersRoute
   '/item/clone': typeof coreItemCloneRoute
   '/lists/$listId': typeof coreListsListIdRoute
   '/me/new': typeof coreMeNewRoute
@@ -222,6 +236,8 @@ export interface FileRoutesByTo {
   '/purchases': typeof corePurchasesRoute
   '/temp': typeof coreTempRoute
   '/': typeof coreIndexRoute
+  '/admin/debug': typeof coreAdminDebugRoute
+  '/admin/users': typeof coreAdminUsersRoute
   '/item/clone': typeof coreItemCloneRoute
   '/lists/$listId': typeof coreListsListIdRoute
   '/me/new': typeof coreMeNewRoute
@@ -254,6 +270,8 @@ export interface FileRoutesById {
   '/(core)/purchases': typeof corePurchasesRoute
   '/(core)/temp': typeof coreTempRoute
   '/(core)/': typeof coreIndexRoute
+  '/(core)/admin/debug': typeof coreAdminDebugRoute
+  '/(core)/admin/users': typeof coreAdminUsersRoute
   '/(core)/item/clone': typeof coreItemCloneRoute
   '/(core)/lists/$listId': typeof coreListsListIdRoute
   '/(core)/me/new': typeof coreMeNewRoute
@@ -286,6 +304,8 @@ export interface FileRouteTypes {
     | '/purchases'
     | '/temp'
     | '/'
+    | '/admin/debug'
+    | '/admin/users'
     | '/item/clone'
     | '/lists/$listId'
     | '/me/new'
@@ -314,6 +334,8 @@ export interface FileRouteTypes {
     | '/purchases'
     | '/temp'
     | '/'
+    | '/admin/debug'
+    | '/admin/users'
     | '/item/clone'
     | '/lists/$listId'
     | '/me/new'
@@ -345,6 +367,8 @@ export interface FileRouteTypes {
     | '/(core)/purchases'
     | '/(core)/temp'
     | '/(core)/'
+    | '/(core)/admin/debug'
+    | '/(core)/admin/users'
     | '/(core)/item/clone'
     | '/(core)/lists/$listId'
     | '/(core)/me/new'
@@ -553,6 +577,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreItemCloneRouteImport
       parentRoute: typeof coreRouteRoute
     }
+    '/(core)/admin/users': {
+      id: '/(core)/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof coreAdminUsersRouteImport
+      parentRoute: typeof coreAdminRouteRoute
+    }
+    '/(core)/admin/debug': {
+      id: '/(core)/admin/debug'
+      path: '/debug'
+      fullPath: '/admin/debug'
+      preLoaderRoute: typeof coreAdminDebugRouteImport
+      parentRoute: typeof coreAdminRouteRoute
+    }
     '/(core)/lists_/$listId/edit': {
       id: '/(core)/lists_/$listId/edit'
       path: '/lists/$listId/edit'
@@ -585,11 +623,15 @@ declare module '@tanstack/react-router' {
 }
 
 interface coreAdminRouteRouteChildren {
+  coreAdminDebugRoute: typeof coreAdminDebugRoute
+  coreAdminUsersRoute: typeof coreAdminUsersRoute
   coreAdminIndexRoute: typeof coreAdminIndexRoute
   coreAdminUserIdRoute: typeof coreAdminUserIdRoute
 }
 
 const coreAdminRouteRouteChildren: coreAdminRouteRouteChildren = {
+  coreAdminDebugRoute: coreAdminDebugRoute,
+  coreAdminUsersRoute: coreAdminUsersRoute,
   coreAdminIndexRoute: coreAdminIndexRoute,
   coreAdminUserIdRoute: coreAdminUserIdRoute,
 }
