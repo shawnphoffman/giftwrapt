@@ -210,14 +210,14 @@ function PermissionsPage() {
 													disabled={isLoading}
 												/>
 											</TableCell>
-											<TableCell className="text-center pr-2!">
+											{/* <TableCell className="text-center pr-2!">
 												<Checkbox
 													className="size-7 [&_svg]:size-5"
 													checked={userFormData.isRestricted}
 													onCheckedChange={checked => handleCheckboxChange(user.id, 'isRestricted', checked === true)}
 													disabled={isLoading || !userFormData.canView}
 												/>
-											</TableCell>
+											</TableCell> */}
 										</TableRow>
 									)
 								})}

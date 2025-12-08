@@ -3,7 +3,7 @@ import { boolean, index, pgTable, smallint, text, timestamp } from 'drizzle-orm/
 import z from 'zod'
 
 import { account, session } from './auth'
-import { birthMonthEnum, birthMonthEnumValues } from './enums'
+import { birthMonthEnum, birthMonthEnumValues, roleEnum } from './enums'
 import { lists } from './lists'
 import { timestamps } from './shared'
 
@@ -17,7 +17,7 @@ export const users = pgTable(
 		email: text('email').notNull().unique(),
 		name: text('name'),
 		//
-		role: text('role').default('user').notNull(),
+		role: roleEnum('role').default('user').notNull(),
 		banned: boolean('banned').default(false).notNull(),
 		banReason: text('ban_reason'),
 		banExpires: timestamp('ban_expires'),

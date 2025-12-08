@@ -20,3 +20,17 @@ export const userRelationships = pgTable(
 	},
 	table => [primaryKey({ columns: [table.ownerUserId, table.viewerUserId] })]
 )
+
+export const guardianships = pgTable(
+	'guardianships',
+	{
+		parentUserId: text('parent_user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		childUserId: text('child_user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		...timestamps,
+	},
+	table => [primaryKey({ columns: [table.parentUserId, table.childUserId] })]
+)
