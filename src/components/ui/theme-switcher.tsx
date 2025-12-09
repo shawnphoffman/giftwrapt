@@ -5,8 +5,9 @@ import { useTheme } from 'next-themes'
 import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
-export function ThemeSwitcher() {
+export function ThemeSwitcher({ className }: { className?: string }) {
 	const { theme, setTheme } = useTheme()
 	const [mounted, setMounted] = useState(false)
 
@@ -29,7 +30,7 @@ export function ThemeSwitcher() {
 		<Button
 			variant="ghost"
 			size="icon"
-			className="size-9"
+			className={cn('size-9', className)}
 			onClick={() => setTheme(isDark ? 'light' : 'dark')}
 			aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
 		>

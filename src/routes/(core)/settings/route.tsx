@@ -10,7 +10,7 @@ export const Route = createFileRoute('/(core)/settings')({
 
 function SettingsRoute() {
 	return (
-		<div className="flex flex-col flex-1 w-full max-w-5xl px-2 animate-page-in pb-2">
+		<div className="flex flex-col flex-1 w-full max-w-3xl px-2 animate-page-in pb-2">
 			<div className="flex flex-col flex-1 gap-6">
 				{/* HEADING */}
 				<div className="relative">
