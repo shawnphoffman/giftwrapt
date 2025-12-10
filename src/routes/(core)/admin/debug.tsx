@@ -15,18 +15,6 @@ function AdminDebugPage() {
 
 	return (
 		<>
-			<Card className="bg-accent animate-page-in">
-				<CardHeader>
-					<CardTitle className="text-2xl">Current Session</CardTitle>
-				</CardHeader>
-				<CardContent className="divide-y overflow-scroll text-xs w-full">
-					<ClientOnly>
-						<pre>
-							<code>{JSON.stringify(session, null, 2)}</code>
-						</pre>
-					</ClientOnly>
-				</CardContent>
-			</Card>
 			{/*  */}
 			<Card className="bg-accent animate-page-in">
 				<CardHeader>
@@ -71,6 +59,19 @@ function AdminDebugPage() {
 									<span className="font-mono text-xs break-all">{String(value)}</span>
 								</div>
 							))}
+					</ClientOnly>
+				</CardContent>
+			</Card>
+			{/*  */}
+			<Card className="bg-accent animate-page-in">
+				<CardHeader>
+					<CardTitle className="text-2xl">Current Session</CardTitle>
+				</CardHeader>
+				<CardContent className="divide-y overflow-scroll text-xs w-full">
+					<ClientOnly>
+						<pre className="break-all whitespace-break-spaces">
+							<code>{JSON.stringify(session, null, 2)}</code>
+						</pre>
 					</ClientOnly>
 				</CardContent>
 			</Card>
