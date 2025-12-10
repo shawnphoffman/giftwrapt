@@ -13,7 +13,7 @@ function RecentItemsPage() {
 			<div className="flex flex-col flex-1 gap-6">
 				{/* HEADING */}
 				<div className="relative">
-					<h1 className="flex flex-row items-center gap-2">Create New List</h1>
+					<h1 className="flex flex-row items-center gap-2">Recent Items</h1>
 					<Inbox className="size-22 -left-4 -top-6 text-purple-500 opacity-30 absolute -z-10" />
 				</div>
 
