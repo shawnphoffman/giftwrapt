@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { Suspense } from 'react'
 
 import { isEmailConfigured } from '@/api/common'
+import { AppSettingsEditor } from '@/components/admin/app-settings-editor'
 import SendTestEmailButton from '@/components/admin/send-test-email'
 import { UserImpersonation } from '@/components/admin/user-impersonation'
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
@@ -22,6 +23,18 @@ function AdminPage() {
 
 	return (
 		<>
+			<Card className="bg-accent animate-page-in">
+				<CardHeader>
+					<CardTitle className="text-2xl">App Settings</CardTitle>
+					<CardDescription>Configure global application settings.</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<ClientOnly>
+						<AppSettingsEditor />
+					</ClientOnly>
+				</CardContent>
+			</Card>
+			{/*  */}
 			<Card className="bg-accent animate-page-in">
 				<CardHeader>
 					<CardTitle className="text-2xl">Impersonation</CardTitle>
