@@ -8,6 +8,7 @@ import { ThemeProvider } from 'next-themes'
 import { Toaster } from '@/components/ui/sonner'
 import { ErrorBoundary } from '@/components/utilities/error-boundary'
 import type { Database } from '@/db'
+import { appSettingsQueryOptions } from '@/hooks/use-app-settings'
 
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 import ErrorBoundaryFallback from './-error-boundary'
@@ -23,6 +24,10 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 	head: Head,
 	notFoundComponent: NotFound,
 	shellComponent: RootDocument,
+	beforeLoad: async ({ context }) => {
+		// Prefetch app settings on server - will be hydrated to client
+		await context.queryClient.ensureQueryData(appSettingsQueryOptions)
+	},
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {

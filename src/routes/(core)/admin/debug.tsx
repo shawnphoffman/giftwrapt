@@ -2,6 +2,7 @@ import { ClientOnly, createFileRoute } from '@tanstack/react-router'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { env } from '@/env'
+import { useAppSettings } from '@/hooks/use-app-settings'
 import { useSession } from '@/lib/auth-client'
 
 export const Route = createFileRoute('/(core)/admin/debug')({
@@ -10,6 +11,8 @@ export const Route = createFileRoute('/(core)/admin/debug')({
 
 function AdminDebugPage() {
 	const { data: session } = useSession()
+	const { data: appSettings, isLoading: isLoadingSettings } = useAppSettings()
+
 	return (
 		<>
 			<Card className="bg-accent animate-page-in">
@@ -22,6 +25,34 @@ function AdminDebugPage() {
 							<code>{JSON.stringify(session, null, 2)}</code>
 						</pre>
 					</ClientOnly>
+				</CardContent>
+			</Card>
+			{/*  */}
+			<Card className="bg-accent animate-page-in">
+				<CardHeader>
+					<CardTitle className="text-2xl">App Settings</CardTitle>
+				</CardHeader>
+				<CardContent className="divide-y">
+					{isLoadingSettings ? (
+						<div className="text-sm text-muted-foreground">Loading settings...</div>
+					) : appSettings ? (
+						Object.entries(appSettings)
+							.sort((a, b) => a[0].localeCompare(b[0]))
+							.map(([key, value]) => (
+								<div key={key} className="flex flex-col w-full not-first:pt-1 not-last:pb-1 overflow-hidden">
+									<span className="font-mono text-xs font-bold text-gray-500">{key}</span>
+									<span className="font-mono text-xs break-all">
+										{typeof value === 'boolean' ? (
+											<span className={value ? 'text-green-500' : 'text-red-500'}>{String(value)}</span>
+										) : (
+											String(value)
+										)}
+									</span>
+								</div>
+							))
+					) : (
+						<div className="text-sm text-muted-foreground">No settings found</div>
+					)}
 				</CardContent>
 			</Card>
 			{/*  */}
