@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Loading from '@/components/loading'
 import { signOut } from '@/lib/auth-client'
 
-export const Route = createFileRoute('/sign-out')({
+export const Route = createFileRoute('/(auth)/sign-out')({
 	component: SignOut,
 })
 

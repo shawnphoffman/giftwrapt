@@ -1,93 +1,27 @@
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { FormDevtoolsPanel } from '@tanstack/react-form-devtools'
 import type { QueryClient } from '@tanstack/react-query'
-import { createRootRouteWithContext, HeadContent, Link, Scripts } from '@tanstack/react-router'
+import { createRootRouteWithContext, HeadContent, Scripts } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { ThemeProvider } from 'next-themes'
 
 import { Toaster } from '@/components/ui/sonner'
 import { ErrorBoundary } from '@/components/utilities/error-boundary'
+import type { Database } from '@/db'
 
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
-// import '@fontsource-variable/open-sans/'
-import appCss from '../styles.css?url'
+import ErrorBoundaryFallback from './-error-boundary'
+import Head from './-head'
+import NotFound from './-not-found'
 
 interface RouterContext {
 	queryClient: QueryClient
+	db: Database
 }
 
 export const Route = createRootRouteWithContext<RouterContext>()({
-	head: () => {
-		const isDeployed = process.env.NODE_ENV === 'production'
-
-		return {
-			meta: [
-				{
-					charSet: 'utf-8',
-				},
-				{
-					name: 'viewport',
-					content: 'width=device-width, initial-scale=1, minimum-scale=1',
-				},
-				{
-					name: 'theme-color',
-					content: '#0a0a0a',
-				},
-				{
-					name: 'color-scheme',
-					content: 'dark',
-				},
-				{
-					title: `Wish Lists 2.0 ${isDeployed ? '' : '| Dev'}`,
-					description: 'Sharing wish lists made easy.',
-					openGraph: {
-						title: 'Wish Lists 2.0',
-						description: 'Sharing wish lists made easy.',
-						type: 'website',
-						url: '/',
-						locale: 'en_US',
-					},
-				},
-				// Apple Web App meta tags
-				{
-					name: 'apple-mobile-web-app-capable',
-					content: 'yes',
-				},
-				{
-					name: 'apple-mobile-web-app-status-bar-style',
-					content: 'black',
-				},
-				{
-					name: 'apple-mobile-web-app-title',
-					content: 'Wish Lists',
-				},
-			],
-			links: [
-				{
-					rel: 'stylesheet',
-					href: appCss,
-				},
-				{
-					rel: 'icon',
-					href: '/favicon.ico',
-				},
-				{
-					rel: 'apple-touch-icon',
-					href: '/apple-touch-icon.png',
-				},
-			],
-		}
-	},
-
-	notFoundComponent: () => (
-		<div className="flex flex-col items-center justify-center min-h-screen">
-			<h1 className="text-4xl font-bold mb-4">404 - Not Found</h1>
-			<p className="text-muted-foreground mb-8">The page you're looking for doesn't exist.</p>
-			<Link to="/" className="text-primary hover:underline">
-				Go back home
-			</Link>
-		</div>
-	),
+	head: Head,
+	notFoundComponent: NotFound,
 	shellComponent: RootDocument,
 })
 
@@ -99,32 +33,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			</head>
 			<body>
 				<ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-					<ErrorBoundary
-						fallback={(error, reset) => (
-							<div className="flex flex-col items-center justify-center min-h-screen p-4">
-								<div className="max-w-md space-y-4 text-center">
-									<h1 className="text-2xl font-bold text-destructive">Application Error</h1>
-									<p className="text-muted-foreground">{error.message || 'An unexpected error occurred. Please refresh the page.'}</p>
-									<div className="flex gap-2 justify-center">
-										<button
-											onClick={reset}
-											className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 transition-colors"
-										>
-											Try again
-										</button>
-										<Link
-											to="/"
-											className="px-4 py-2 text-sm font-medium border border-input bg-background rounded-md hover:bg-accent transition-colors"
-										>
-											Go home
-										</Link>
-									</div>
-								</div>
-							</div>
-						)}
-					>
-						{children}
-					</ErrorBoundary>
+					<ErrorBoundary fallback={(error, reset) => <ErrorBoundaryFallback error={error} reset={reset} />}>{children}</ErrorBoundary>
 					<TanStackDevtools
 						config={{
 							position: 'bottom-right',

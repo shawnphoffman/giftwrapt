@@ -9,13 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SignUpRouteImport } from './routes/sign-up'
-import { Route as SignOutRouteImport } from './routes/sign-out'
-import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as coreRouteRouteImport } from './routes/(core)/route'
 import { Route as coreIndexRouteImport } from './routes/(core)/index'
 import { Route as coreTempRouteImport } from './routes/(core)/temp'
 import { Route as corePurchasesRouteImport } from './routes/(core)/purchases'
+import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
+import { Route as authSignOutRouteImport } from './routes/(auth)/sign-out'
+import { Route as authSignInRouteImport } from './routes/(auth)/sign-in'
 import { Route as coreSettingsRouteRouteImport } from './routes/(core)/settings/route'
 import { Route as coreAdminRouteRouteImport } from './routes/(core)/admin/route'
 import { Route as coreSettingsIndexRouteImport } from './routes/(core)/settings/index'
@@ -41,21 +41,6 @@ import { Route as coreListsListIdBulkRouteImport } from './routes/(core)/lists_/
 import { Route as coreItemImportChar123UrlChar125RouteImport } from './routes/(core)/item.import.{-$url}'
 import { Route as coreAdminUserIdRouteImport } from './routes/(core)/admin/user.$id'
 
-const SignUpRoute = SignUpRouteImport.update({
-  id: '/sign-up',
-  path: '/sign-up',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignOutRoute = SignOutRouteImport.update({
-  id: '/sign-out',
-  path: '/sign-out',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignInRoute = SignInRouteImport.update({
-  id: '/sign-in',
-  path: '/sign-in',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const coreRouteRoute = coreRouteRouteImport.update({
   id: '/(core)',
   getParentRoute: () => rootRouteImport,
@@ -74,6 +59,21 @@ const corePurchasesRoute = corePurchasesRouteImport.update({
   id: '/purchases',
   path: '/purchases',
   getParentRoute: () => coreRouteRoute,
+} as any)
+const authSignUpRoute = authSignUpRouteImport.update({
+  id: '/(auth)/sign-up',
+  path: '/sign-up',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const authSignOutRoute = authSignOutRouteImport.update({
+  id: '/(auth)/sign-out',
+  path: '/sign-out',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const authSignInRoute = authSignInRouteImport.update({
+  id: '/(auth)/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const coreSettingsRouteRoute = coreSettingsRouteRouteImport.update({
   id: '/settings',
@@ -198,11 +198,11 @@ const coreAdminUserIdRoute = coreAdminUserIdRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/sign-in': typeof SignInRoute
-  '/sign-out': typeof SignOutRoute
-  '/sign-up': typeof SignUpRoute
   '/admin': typeof coreAdminRouteRouteWithChildren
   '/settings': typeof coreSettingsRouteRouteWithChildren
+  '/sign-in': typeof authSignInRoute
+  '/sign-out': typeof authSignOutRoute
+  '/sign-up': typeof authSignUpRoute
   '/purchases': typeof corePurchasesRoute
   '/temp': typeof coreTempRoute
   '/': typeof coreIndexRoute
@@ -230,9 +230,9 @@ export interface FileRoutesByFullPath {
   '/lists/$listId/edit': typeof coreListsListIdEditRoute
 }
 export interface FileRoutesByTo {
-  '/sign-in': typeof SignInRoute
-  '/sign-out': typeof SignOutRoute
-  '/sign-up': typeof SignUpRoute
+  '/sign-in': typeof authSignInRoute
+  '/sign-out': typeof authSignOutRoute
+  '/sign-up': typeof authSignUpRoute
   '/purchases': typeof corePurchasesRoute
   '/temp': typeof coreTempRoute
   '/': typeof coreIndexRoute
@@ -262,11 +262,11 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/(core)': typeof coreRouteRouteWithChildren
-  '/sign-in': typeof SignInRoute
-  '/sign-out': typeof SignOutRoute
-  '/sign-up': typeof SignUpRoute
   '/(core)/admin': typeof coreAdminRouteRouteWithChildren
   '/(core)/settings': typeof coreSettingsRouteRouteWithChildren
+  '/(auth)/sign-in': typeof authSignInRoute
+  '/(auth)/sign-out': typeof authSignOutRoute
+  '/(auth)/sign-up': typeof authSignUpRoute
   '/(core)/purchases': typeof corePurchasesRoute
   '/(core)/temp': typeof coreTempRoute
   '/(core)/': typeof coreIndexRoute
@@ -296,11 +296,11 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/admin'
+    | '/settings'
     | '/sign-in'
     | '/sign-out'
     | '/sign-up'
-    | '/admin'
-    | '/settings'
     | '/purchases'
     | '/temp'
     | '/'
@@ -359,11 +359,11 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/(core)'
-    | '/sign-in'
-    | '/sign-out'
-    | '/sign-up'
     | '/(core)/admin'
     | '/(core)/settings'
+    | '/(auth)/sign-in'
+    | '/(auth)/sign-out'
+    | '/(auth)/sign-up'
     | '/(core)/purchases'
     | '/(core)/temp'
     | '/(core)/'
@@ -393,36 +393,15 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   coreRouteRoute: typeof coreRouteRouteWithChildren
-  SignInRoute: typeof SignInRoute
-  SignOutRoute: typeof SignOutRoute
-  SignUpRoute: typeof SignUpRoute
+  authSignInRoute: typeof authSignInRoute
+  authSignOutRoute: typeof authSignOutRoute
+  authSignUpRoute: typeof authSignUpRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiListsPublicRoute: typeof ApiListsPublicRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/sign-up': {
-      id: '/sign-up'
-      path: '/sign-up'
-      fullPath: '/sign-up'
-      preLoaderRoute: typeof SignUpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sign-out': {
-      id: '/sign-out'
-      path: '/sign-out'
-      fullPath: '/sign-out'
-      preLoaderRoute: typeof SignOutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sign-in': {
-      id: '/sign-in'
-      path: '/sign-in'
-      fullPath: '/sign-in'
-      preLoaderRoute: typeof SignInRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/(core)': {
       id: '/(core)'
       path: ''
@@ -450,6 +429,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/purchases'
       preLoaderRoute: typeof corePurchasesRouteImport
       parentRoute: typeof coreRouteRoute
+    }
+    '/(auth)/sign-up': {
+      id: '/(auth)/sign-up'
+      path: '/sign-up'
+      fullPath: '/sign-up'
+      preLoaderRoute: typeof authSignUpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(auth)/sign-out': {
+      id: '/(auth)/sign-out'
+      path: '/sign-out'
+      fullPath: '/sign-out'
+      preLoaderRoute: typeof authSignOutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(auth)/sign-in': {
+      id: '/(auth)/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof authSignInRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/(core)/settings': {
       id: '/(core)/settings'
@@ -703,9 +703,9 @@ const coreRouteRouteWithChildren = coreRouteRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   coreRouteRoute: coreRouteRouteWithChildren,
-  SignInRoute: SignInRoute,
-  SignOutRoute: SignOutRoute,
-  SignUpRoute: SignUpRoute,
+  authSignInRoute: authSignInRoute,
+  authSignOutRoute: authSignOutRoute,
+  authSignUpRoute: authSignUpRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiListsPublicRoute: ApiListsPublicRoute,
 }
