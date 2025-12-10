@@ -7,7 +7,6 @@ import {
 import { FlaskConical, Gift, Inbox, ListChecks, ListOrdered, ListPlus, MessagesSquare, Plus, Receipt } from 'lucide-react'
 import { Suspense } from 'react'
 
-import { env } from '@/env'
 import Loading from '@/components/loading'
 import NavBottom from '@/components/sidebar/nav-bottom'
 import NavBreadcrumbs from '@/components/sidebar/nav-breadcrumbs'
@@ -30,6 +29,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ThemeSwitcher } from '@/components/ui/theme-switcher'
 import { ErrorBoundary } from '@/components/utilities/error-boundary'
 import { NavigationEvents } from '@/components/utilities/navigation-events'
+import { env } from '@/env'
 // import { useSession } from '@/lib/auth-client'
 import { authMiddleware } from '@/middleware/auth'
 
@@ -62,13 +62,13 @@ const main: Array<NavItem> = [
 
 const actions: Array<NavItem> = [
 	{
-		name: 'Quick Add Item',
+		name: 'Add Item',
 		url: '/item/import',
 		icon: Plus,
 		hoverColor: 'group-hover/link:text-blue-500',
 	},
 	{
-		name: 'Create New List',
+		name: 'Create List',
 		url: '/me/new',
 		mask: '/me',
 		icon: ListPlus,
