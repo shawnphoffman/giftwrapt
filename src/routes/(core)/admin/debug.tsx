@@ -1,5 +1,6 @@
 import { ClientOnly, createFileRoute } from '@tanstack/react-router'
 
+import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { env } from '@/env'
 import { useAppSettings } from '@/hooks/use-app-settings'
@@ -22,9 +23,9 @@ function AdminDebugPage() {
 				</CardHeader>
 				<CardContent className="divide-y">
 					{isLoadingSettings ? (
-						<div className="text-sm text-muted-foreground">Loading settings...</div>
-					) : appSettings ? (
-						Object.entries(appSettings)
+						<LoadingSkeleton />
+					) : (
+						Object.entries(appSettings!)
 							.sort((a, b) => a[0].localeCompare(b[0]))
 							.map(([key, value]) => (
 								<div key={key} className="flex flex-col w-full not-first:pt-1 not-last:pb-1 overflow-hidden">
@@ -38,8 +39,6 @@ function AdminDebugPage() {
 									</span>
 								</div>
 							))
-					) : (
-						<div className="text-sm text-muted-foreground">No settings found</div>
 					)}
 				</CardContent>
 			</Card>

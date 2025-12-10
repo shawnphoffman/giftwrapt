@@ -49,15 +49,14 @@ function AdminPage() {
 				</CardContent>
 			</Card>
 			{/*  */}
-			<Card className="bg-accent animate-page-in">
+			{/* <Card className="bg-accent animate-page-in">
 				<CardHeader>
 					<CardTitle className="text-2xl">Quick Actions</CardTitle>
 				</CardHeader>
 				<CardContent>
 					<LoadingSkeleton />
 				</CardContent>
-			</Card>
-			{/*  */}
+			</Card> */}
 			{/*  */}
 			<Card className="bg-accent animate-page-in">
 				<CardHeader>
