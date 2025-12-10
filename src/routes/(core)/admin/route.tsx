@@ -25,7 +25,7 @@ function AdminRoutes() {
 					<nav className="grid gap-4 text-sm text-muted-foreground mt-6">
 						<AdminLinks />
 					</nav>
-					<div className="gap-6 flex flex-col overflow-hidden">
+					<div className="gap-6 flex flex-col overflow-hidden @container/admin-content">
 						<Outlet />
 					</div>
 				</div>

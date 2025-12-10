@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { User } from '@/db-collections/users'
 import { authClient, useSession } from '@/lib/auth-client'
 
+import UserAvatar from '../common/user-avatar'
 import LoadingSkeleton from '../skeletons/loading-skeleton'
 
 export function UserImpersonation() {
@@ -72,20 +73,21 @@ export function UserImpersonation() {
 	}
 
 	return (
-		<div className="flex flex-col gap-3 max-w-md mx-auto">
+		<div className="flex flex-col @sm/admin-content:flex-row gap-3 mx-auto">
 			<Select value={selectedUserId} onValueChange={setSelectedUserId}>
 				<SelectTrigger className="w-full">
-					<SelectValue placeholder="Select a user to impersonate" />
+					<SelectValue placeholder="Select a user" />
 				</SelectTrigger>
 				<SelectContent>
 					{users.map(user => (
 						<SelectItem key={user.id} value={user.id}>
-							{user.name || user.email}
+							<UserAvatar name={user.name || user.email} image={user.image} size="small" />
+							<span className="text-base font-medium truncate">{user.name || user.email}</span>
 						</SelectItem>
 					))}
 				</SelectContent>
 			</Select>
-			<Button onClick={handleImpersonate} disabled={!selectedUserId || isImpersonating} variant="default" className="w-full">
+			<Button onClick={handleImpersonate} disabled={!selectedUserId || isImpersonating} variant="default" className="">
 				{isImpersonating ? 'Impersonating...' : 'Impersonate User'}
 			</Button>
 		</div>
