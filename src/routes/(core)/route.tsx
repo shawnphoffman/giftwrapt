@@ -7,6 +7,7 @@ import {
 import { FlaskConical, Gift, Inbox, ListChecks, ListOrdered, ListPlus, MessagesSquare, Plus, Receipt } from 'lucide-react'
 import { Suspense } from 'react'
 
+import { env } from '@/env'
 import Loading from '@/components/loading'
 import NavBottom from '@/components/sidebar/nav-bottom'
 import NavBreadcrumbs from '@/components/sidebar/nav-breadcrumbs'
@@ -108,7 +109,7 @@ function AuthenticatedRoutes() {
 									<div className="flex items-center justify-center rounded-lg aspect-square size-8 bg-destructive text-destructive-foreground hover:animate-spin">
 										<Gift className="transition-colors" />
 									</div>
-									<span className="text-lg font-bold truncate">Wish Lists 2.0</span>
+									<span className="text-lg font-bold truncate">{env.VITE_APP_TITLE}</span>
 								</Link>
 							</SidebarMenuButton>
 						</SidebarMenuItem>

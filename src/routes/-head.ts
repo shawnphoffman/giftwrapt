@@ -1,7 +1,9 @@
+import { env } from '@/env'
 import appCss from '../styles.css?url'
 
 export default function Head() {
 	const isDeployed = process.env.NODE_ENV === 'production'
+	const appTitle = env.VITE_APP_TITLE
 
 	return {
 		meta: [
@@ -21,10 +23,10 @@ export default function Head() {
 				content: 'dark',
 			},
 			{
-				title: `Wish Lists 2.0 ${isDeployed ? '' : '| Dev'}`,
+				title: `${appTitle} ${isDeployed ? '' : '| Dev'}`,
 				description: 'Sharing wish lists made easy.',
 				openGraph: {
-					title: 'Wish Lists 2.0',
+					title: appTitle,
 					description: 'Sharing wish lists made easy.',
 					type: 'website',
 					url: '/',
@@ -42,7 +44,7 @@ export default function Head() {
 			},
 			{
 				name: 'apple-mobile-web-app-title',
-				content: 'Wish Lists',
+				content: appTitle,
 			},
 		],
 		links: [

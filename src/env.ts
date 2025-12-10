@@ -30,7 +30,7 @@ export const env = createEnv({
 	clientPrefix: 'VITE_',
 
 	client: {
-		VITE_APP_TITLE: z.string().min(1).optional(),
+		VITE_APP_TITLE: z.string().min(1).default('Wish Lists'),
 		// VITE_BETTER_AUTH_URL: z.url().optional(),
 		VITE_SERVER_URL: z.url().optional(),
 	},
