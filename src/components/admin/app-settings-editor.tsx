@@ -5,6 +5,7 @@ import { updateAppSettings } from '@/api/settings'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { ListTypes } from '@/db/schema'
 import { appSettingsQueryKey, useAppSettings } from '@/hooks/use-app-settings'
 import type { AppSettings } from '@/lib/settings'
 
@@ -76,9 +77,9 @@ export function AppSettingsEditor() {
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="enableHolidayLists" className="text-base">
-						Enable Holiday Lists
+						Enable Christmas Lists
 					</Label>
-					<p className="text-sm text-muted-foreground">Allow users to create holiday-themed lists</p>
+					<p className="text-sm text-muted-foreground">Allow users to create Christmas-themed lists</p>
 				</div>
 				<Switch
 					id="enableHolidayLists"
@@ -118,9 +119,15 @@ export function AppSettingsEditor() {
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value="wishlist">Wish List</SelectItem>
-						<SelectItem value="todo">Todo</SelectItem>
-						<SelectItem value="holiday">Holiday</SelectItem>
+						{(Object.entries(ListTypes) as Array<[keyof typeof ListTypes, string]>).map(([type, label]) => {
+							if (type === 'christmas' && !settings.enableHolidayLists) return null
+							if (type === 'todos' && !settings.enableTodoLists) return null
+							return (
+								<SelectItem key={type} value={type}>
+									{label}
+								</SelectItem>
+							)
+						})}
 					</SelectContent>
 				</Select>
 			</div>
