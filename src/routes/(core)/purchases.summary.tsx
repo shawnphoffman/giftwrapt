@@ -1,20 +1,20 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Receipt } from 'lucide-react'
+import { ReceiptText } from 'lucide-react'
 
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 
-export const Route = createFileRoute('/(core)/purchases')({
-	component: PurchasesPage,
+export const Route = createFileRoute('/(core)/purchases/summary')({
+	component: PurchasesSummaryPage,
 })
 
-function PurchasesPage() {
+function PurchasesSummaryPage() {
 	return (
 		<div className="flex flex-col flex-1 w-full max-w-3xl px-2 animate-page-in">
 			<div className="flex flex-col flex-1 gap-6">
 				{/* HEADING */}
 				<div className="relative">
-					<h1 className="flex flex-row items-center gap-2">My Purchases</h1>
-					<Receipt className="size-22 -left-4 -top-6 text-pink-500 opacity-30 absolute -z-10" />
+					<h1 className="flex flex-row items-center gap-2">Purchases Summary</h1>
+					<ReceiptText className="size-22 -left-4 -top-6 text-orange-500 opacity-30 absolute -z-10" />
 				</div>
 				{/* CONTENT */}
 				<LoadingSkeleton />

@@ -1,5 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router'
-import { Bug, Users } from 'lucide-react'
+import { Bug, FlaskConical, Users } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -23,6 +23,10 @@ export default function AdminLinks() {
 			<Link to="/admin/debug" className={cn(pathname === '/admin/debug' ? activeClasses : '', passiveClasses, iconClasses)}>
 				<Bug size={16} />
 				Debug
+			</Link>
+			<Link to="/admin/test" className={cn(pathname === '/admin/test' ? activeClasses : '', passiveClasses, iconClasses)}>
+				<FlaskConical size={16} />
+				Test
 			</Link>
 		</>
 	)

@@ -1,10 +1,5 @@
-import {
-	createFileRoute,
-	Link,
-	Outlet,
-	// , redirect
-} from '@tanstack/react-router'
-import { FlaskConical, Gift, Inbox, ListChecks, ListOrdered, ListPlus, MessagesSquare, Plus, Receipt } from 'lucide-react'
+import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
+import { Gift, Inbox, ListChecks, ListOrdered, ListPlus, MessagesSquare, Plus, Receipt, ReceiptText } from 'lucide-react'
 import { Suspense } from 'react'
 
 import Loading from '@/components/loading'
@@ -30,7 +25,6 @@ import { ThemeSwitcher } from '@/components/ui/theme-switcher'
 import { ErrorBoundary } from '@/components/utilities/error-boundary'
 import { NavigationEvents } from '@/components/utilities/navigation-events'
 import { env } from '@/env'
-// import { useSession } from '@/lib/auth-client'
 import { authMiddleware } from '@/middleware/auth'
 
 export const Route = createFileRoute('/(core)')({
@@ -57,6 +51,12 @@ const main: Array<NavItem> = [
 		url: '/purchases',
 		hoverColor: 'group-hover/link:text-pink-500',
 		icon: Receipt,
+	},
+	{
+		name: 'Purchases Summary',
+		url: '/purchases/summary',
+		hoverColor: 'group-hover/link:text-orange-500',
+		icon: ReceiptText,
 	},
 ]
 
@@ -88,12 +88,6 @@ const feeds: Array<NavItem> = [
 		url: '/recent/items',
 		icon: Inbox,
 		hoverColor: 'group-hover/link:text-purple-500',
-	},
-	{
-		name: 'Test Styles',
-		url: '/test/styles',
-		icon: FlaskConical,
-		hoverColor: 'group-hover/link:text-blue-500',
 	},
 ]
 
