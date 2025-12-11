@@ -8,13 +8,13 @@ import { getPotentialPartners, updateUserProfile } from '@/api/user'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { birthMonthEnumValues } from '@/db/schema/enums'
 import { UserSchema } from '@/db/schema/users'
 import { useSession } from '@/lib/auth-client'
 
 import UserAvatar from '../common/user-avatar'
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldSet } from '../ui/field'
 
 type UpdateProfileFormValues = z.infer<typeof UserSchema>
 
@@ -122,10 +122,12 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 			className="flex-1 space-y-4"
 			id="update-profile-form"
 		>
+			{/* <FieldSet> */}
+			{/* <FieldGroup> */}
 			<form.Field name="name">
 				{field => (
-					<div className="grid gap-2">
-						<Label htmlFor={field.name}>Name</Label>
+					<Field className="gap-1">
+						<FieldLabel htmlFor={field.name}>Name</FieldLabel>
 						<Input
 							id={field.name}
 							type="text"
@@ -136,17 +138,17 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 							disabled={isLoading}
 						/>
 						{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
-							<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
+							<FieldError className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</FieldError>
 						)}
-					</div>
+					</Field>
 				)}
 			</form.Field>
 
 			<div className="grid grid-cols-2 gap-4">
 				<form.Field name="birthMonth">
 					{field => (
-						<div className="grid gap-2 w-full">
-							<Label htmlFor={field.name}>Birth Month</Label>
+						<Field className="gap-1">
+							<FieldLabel htmlFor={field.name}>Birth Month</FieldLabel>
 							<Select
 								onValueChange={value => {
 									field.handleChange(value === '' ? undefined : (value as (typeof birthMonthEnumValues)[number]))
@@ -166,16 +168,16 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 								</SelectContent>
 							</Select>
 							{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
-								<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
+								<FieldError className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</FieldError>
 							)}
-						</div>
+						</Field>
 					)}
 				</form.Field>
 
 				<form.Field name="birthDay">
 					{field => (
-						<div className="grid gap-2 w-full">
-							<Label htmlFor={field.name}>Birth Day</Label>
+						<Field className="gap-1">
+							<FieldLabel htmlFor={field.name}>Birth Day</FieldLabel>
 							<Input
 								id={field.name}
 								type="text"
@@ -199,17 +201,20 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 								disabled={isLoading}
 							/>
 							{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
-								<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
+								<FieldError className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</FieldError>
 							)}
-						</div>
+						</Field>
 					)}
 				</form.Field>
 			</div>
 
 			<form.Field name="partnerId">
 				{field => (
-					<div className="grid gap-2">
-						<Label htmlFor={field.name}>Partner</Label>
+					<Field className="gap-1">
+						<FieldLabel htmlFor={field.name}>Partner</FieldLabel>
+						<FieldDescription className="text-xs leading-tight">
+							Select a partner to administrate your lists on your behalf.
+						</FieldDescription>
 						<Select
 							onValueChange={value => {
 								field.handleChange(value === '__none__' ? undefined : value)
@@ -234,11 +239,13 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 							</SelectContent>
 						</Select>
 						{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
-							<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
+							<FieldError className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</FieldError>
 						)}
-					</div>
+					</Field>
 				)}
 			</form.Field>
+			{/* </FieldGroup> */}
+			{/* // </FieldSet> */}
 
 			{error && (
 				<Alert variant="destructive">

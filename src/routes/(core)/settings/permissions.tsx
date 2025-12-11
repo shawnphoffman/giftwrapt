@@ -2,7 +2,11 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { Eye, OctagonMinus, SquarePen } from 'lucide-react'
+import {
+	Eye,
+	// OctagonMinus,
+	SquarePen,
+} from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -143,7 +147,9 @@ function PermissionsPage() {
 		<div className="animate-page-in">
 			<CardHeader>
 				<CardTitle className="text-2xl">Permissions</CardTitle>
-				<CardDescription>Manage permissions for other users.</CardDescription>
+				<CardDescription>
+					Manage permissions for other users. Specifically, who can see your lists and also administrate your lists on your behalf.
+				</CardDescription>
 			</CardHeader>
 			<CardContent>
 				{isLoadingUsers && <LoadingSkeleton />}
@@ -173,14 +179,14 @@ function PermissionsPage() {
 											<TooltipContent>Can this user create/edit public lists on your behalf?</TooltipContent>
 										</Tooltip>
 									</TableHead>
-									<TableHead className="text-center">
+									{/* <TableHead className="text-center">
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<OctagonMinus className="size-5 mx-auto text-muted-foreground" />
 											</TooltipTrigger>
 											<TooltipContent>Can this user only view unpurchased items on your lists?</TooltipContent>
 										</Tooltip>
-									</TableHead>
+									</TableHead> */}
 								</TableRow>
 							</TableHeader>
 							<TableBody>
@@ -188,23 +194,23 @@ function PermissionsPage() {
 									const userFormData = formData[user.id]
 									return (
 										<TableRow key={user.id}>
-											<TableCell>
-												<div className="flex items-center gap-3">
-													<UserAvatar name={user.name || user.email} image={user.image} />
+											<TableCell className="py-1">
+												<div className="flex items-center gap-2">
+													<UserAvatar name={user.name || user.email} image={user.image} size="small" />
 													<div className="font-medium">{user.name || 'Unnamed'}</div>
 												</div>
 											</TableCell>
-											<TableCell className="text-center pr-2!">
+											<TableCell className="text-center pr-2! py-1">
 												<Checkbox
-													className="size-7 [&_svg]:size-5"
+													className="size-5"
 													checked={userFormData.canView}
 													onCheckedChange={checked => handleCheckboxChange(user.id, 'canView', checked === true)}
 													disabled={isLoading}
 												/>
 											</TableCell>
-											<TableCell className="text-center pr-2!">
+											<TableCell className="text-center pr-2! py-1">
 												<Checkbox
-													className="size-7 [&_svg]:size-5"
+													className="size-5"
 													checked={userFormData.canEdit}
 													onCheckedChange={checked => handleCheckboxChange(user.id, 'canEdit', checked === true)}
 													disabled={isLoading}
