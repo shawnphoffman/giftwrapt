@@ -38,24 +38,27 @@ const main: Array<NavItem> = [
 		name: 'All Lists',
 		url: '/',
 		icon: ListChecks,
-		hoverColor: 'group-hover/link:text-green-500',
+		hoverColor: 'group-hover/link:text-green-500 group-data-[status=active]/link:text-green-500',
 	},
 	{
 		name: 'My Lists',
 		url: '/me',
 		icon: ListOrdered,
-		hoverColor: 'group-hover/link:text-red-500',
+		hoverColor: 'group-hover/link:text-red-500 group-data-[status=active]/link:text-red-500',
 	},
 	{
 		name: 'My Purchases',
 		url: '/purchases',
-		hoverColor: 'group-hover/link:text-pink-500',
+		hoverColor: 'group-hover/link:text-pink-500 group-data-[status=active]/link:text-pink-500',
 		icon: Receipt,
+		activeOptions: {
+			exact: true,
+		},
 	},
 	{
 		name: 'Purchases Summary',
 		url: '/purchases/summary',
-		hoverColor: 'group-hover/link:text-orange-500',
+		hoverColor: 'group-hover/link:text-orange-500 group-data-[status=active]/link:text-orange-500',
 		icon: ReceiptText,
 	},
 ]
@@ -65,14 +68,17 @@ const actions: Array<NavItem> = [
 		name: 'Add Item',
 		url: '/item/import',
 		icon: Plus,
-		hoverColor: 'group-hover/link:text-blue-500',
+		hoverColor: 'group-hover/link:text-blue-500 group-data-[status=active]/link:text-blue-500',
 	},
 	{
 		name: 'Create List',
 		url: '/me/new',
 		mask: '/me',
 		icon: ListPlus,
-		hoverColor: 'group-hover/link:text-yellow-500',
+		hoverColor: 'group-hover/link:text-yellow-500 group-data-[status=active]/link:text-yellow-500',
+		activeOptions: {
+			exact: true,
+		},
 	},
 ]
 
@@ -81,13 +87,13 @@ const feeds: Array<NavItem> = [
 		name: 'Recent Comments',
 		url: '/recent/comments',
 		icon: MessagesSquare,
-		hoverColor: 'group-hover/link:text-teal-500',
+		hoverColor: 'group-hover/link:text-teal-500 group-data-[status=active]/link:text-teal-500',
 	},
 	{
 		name: 'Recent Items',
 		url: '/recent/items',
 		icon: Inbox,
-		hoverColor: 'group-hover/link:text-purple-500',
+		hoverColor: 'group-hover/link:text-purple-500 group-data-[status=active]/link:text-purple-500',
 	},
 ]
 
