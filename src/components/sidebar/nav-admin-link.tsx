@@ -14,7 +14,7 @@ export default function AdminNavLink() {
 		name: 'Admin',
 		url: '/admin',
 		icon: Lock,
-		hoverColor: 'group-hover/link:text-red-400',
+		hoverColor: 'group-hover/link:text-red-400 group-data-[status=active]/link:animate-pulse',
 	}
 
 	return <NavItem item={item} className="text-red-500 hover:text-red-500" />

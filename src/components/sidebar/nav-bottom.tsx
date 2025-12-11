@@ -7,15 +7,6 @@ import AdminNavLink from './nav-admin-link'
 import { NavItem } from './nav-section'
 import StopImpersonationLink from './stop-impersonation-link'
 
-// const items: Array<NavItem> = [
-// 	{
-// 		name: 'Settings',
-// 		url: '/settings',
-// 		icon: Settings,
-// 		hoverColor: 'group-hover/link:text-lime-500',
-// 	},
-// ]
-
 export default function NavBottom() {
 	return (
 		<SidebarGroup className="mt-auto pe-0">
@@ -32,7 +23,7 @@ export default function NavBottom() {
 								name: 'Settings',
 								url: '/settings',
 								icon: Settings,
-								hoverColor: 'group-hover/link:text-lime-500',
+								hoverColor: 'group-hover/link:text-lime-500 group-data-[status=active]/link:text-lime-500',
 							}}
 							className="w-full flex-1"
 						/>
