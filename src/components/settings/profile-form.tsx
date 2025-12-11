@@ -1,10 +1,10 @@
 import { useForm } from '@tanstack/react-form'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import type { z } from 'zod'
 
-import { updateUserProfile } from '@/api/user'
+import { getPotentialPartners, updateUserProfile } from '@/api/user'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,6 +12,8 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { birthMonthEnumValues } from '@/db/schema/enums'
 import { UserSchema } from '@/db/schema/users'
+
+import UserAvatar from '../common/user-avatar'
 
 type UpdateProfileFormValues = z.infer<typeof UserSchema>
 
@@ -30,23 +32,33 @@ type ProfileFormProps = {
 	name: string
 	birthMonth?: string | null
 	birthDay?: number | null
+	partnerId?: string | null
 }
 
-export default function ProfileForm({ name, birthMonth, birthDay }: ProfileFormProps) {
+export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: ProfileFormProps) {
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [success, setSuccess] = useState(false)
 	const queryClient = useQueryClient()
+
+	// Fetch potential partners
+	const { data: potentialPartners = [], isLoading: isLoadingPartners } = useQuery({
+		queryKey: ['potentialPartners'],
+		queryFn: async () => {
+			return await getPotentialPartners()
+		},
+	})
 
 	const form = useForm({
 		defaultValues: {
 			name: name || '',
 			birthMonth: birthMonth ?? undefined,
 			birthDay: birthDay ?? undefined,
+			partnerId: partnerId ?? undefined,
 		},
 		onSubmit: async ({ value }) => {
 			// Validate with Zod before submitting (only the fields we're using)
-			const result = UserSchema.pick({ name: true, birthMonth: true, birthDay: true }).safeParse(value)
+			const result = UserSchema.pick({ name: true, birthMonth: true, birthDay: true, partnerId: true }).safeParse(value)
 			if (!result.success) {
 				setError(result.error.issues.map((e: { message: string }) => e.message).join(', '))
 				return
@@ -65,8 +77,11 @@ export default function ProfileForm({ name, birthMonth, birthDay }: ProfileFormP
 				name: string
 				birthMonth?: string | null
 				birthDay?: number | null
+				partnerId?: string | null
 			} = {
 				name: data.name,
+				// Always send partnerId since it's part of the form (undefined/null means clear partner)
+				partnerId: data.partnerId || null,
 			}
 			if (data.birthMonth !== undefined) {
 				updateData.birthMonth = data.birthMonth
@@ -82,6 +97,8 @@ export default function ProfileForm({ name, birthMonth, birthDay }: ProfileFormP
 			toast.success('Profile updated successfully')
 			// Invalidate session query to refresh user data
 			queryClient.invalidateQueries({ queryKey: ['session'] })
+			// Invalidate potential partners in case partner relationships changed
+			queryClient.invalidateQueries({ queryKey: ['potentialPartners'] })
 			// Clear success message after 5 seconds
 			setTimeout(() => setSuccess(false), 5000)
 		} catch (err) {
@@ -186,6 +203,40 @@ export default function ProfileForm({ name, birthMonth, birthDay }: ProfileFormP
 					)}
 				</form.Field>
 			</div>
+
+			<form.Field name="partnerId">
+				{field => (
+					<div className="grid gap-2">
+						<Label htmlFor={field.name}>Partner</Label>
+						<Select
+							onValueChange={value => {
+								field.handleChange(value === '__none__' ? undefined : value)
+							}}
+							value={field.state.value || '__none__'}
+							disabled={isLoading || isLoadingPartners}
+						>
+							<SelectTrigger id={field.name} className="w-full">
+								<SelectValue placeholder="Select partner (optional)" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="__none__">None</SelectItem>
+								{potentialPartners.map(partnerUser => (
+									<SelectItem key={partnerUser.id} value={partnerUser.id}>
+										<span className="flex items-center gap-2">
+											<UserAvatar name={partnerUser.name || partnerUser.email} image={partnerUser.image} size="small" />
+											{partnerUser.name || partnerUser.email}
+											{partnerUser.role === 'admin' && <span className="text-xs text-muted-foreground">(Admin)</span>}
+										</span>
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+							<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
+						)}
+					</div>
+				)}
+			</form.Field>
 
 			{error && (
 				<Alert variant="destructive">

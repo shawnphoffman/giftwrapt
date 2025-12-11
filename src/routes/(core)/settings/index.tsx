@@ -28,7 +28,12 @@ function SettingsPage() {
 				<div className="flex flex-col items-start w-full gap-4 sm:flex-row">
 					<UserAvatar size="huge" name={session.user.name} image={session.user.image} />
 					{/* <AvatarUpload image={session.user.image} displayName={session.user.name} /> */}
-					<ProfileForm name={session.user.name || ''} birthMonth={session.user.birthMonth} birthDay={session.user.birthDay} />
+					<ProfileForm
+						name={session.user.name || ''}
+						birthMonth={session.user.birthMonth}
+						birthDay={session.user.birthDay}
+						partnerId={session.user.partnerId}
+					/>
 				</div>
 			</CardContent>
 		</div>
