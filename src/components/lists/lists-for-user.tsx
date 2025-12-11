@@ -15,7 +15,7 @@ export default function ListsForUser({ user }: { user: UserWithLists }) {
 			</CardHeader>
 			<CardContent className="px-4">
 				{user.lists.length === 0 ? (
-					<div className="text-sm text-muted-foreground">No lists</div>
+					<div className="text-sm text-muted-foreground bg-background/25 border border-dashed rounded px-2 py-1 italic">No lists</div>
 				) : (
 					<div className="flex flex-col gap-0 xs:divide-y-0">
 						{user.lists.map(list => (

@@ -1,5 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Plus } from 'lucide-react'
+import { PlusCircle } from 'lucide-react'
 
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 
@@ -14,7 +14,7 @@ function ItemImportPage() {
 				{/* HEADING */}
 				<div className="relative">
 					<h1 className="flex flex-row items-center gap-2">Import Item</h1>
-					<Plus className="text-blue-500 wish-page-icon" />
+					<PlusCircle className="text-blue-500 wish-page-icon" />
 				</div>
 				{/* CONTENT */}
 				<LoadingSkeleton />

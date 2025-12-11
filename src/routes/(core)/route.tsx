@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
-import { Gift, Inbox, ListChecks, ListOrdered, ListPlus, MessagesSquare, Plus, Receipt, ReceiptText } from 'lucide-react'
+import { Gift, Inbox, ListChecks, ListOrdered, ListPlus, MessagesSquare, PlusCircle, Receipt, ReceiptText } from 'lucide-react'
 import { Suspense } from 'react'
 
 import Loading from '@/components/loading'
@@ -66,7 +66,7 @@ const actions: Array<NavItem> = [
 	{
 		name: 'Add Item',
 		url: '/item/import',
-		icon: Plus,
+		icon: PlusCircle,
 		hoverColor: 'group-hover/link:text-blue-500 group-data-[status=active]/link:text-blue-500',
 	},
 	{
