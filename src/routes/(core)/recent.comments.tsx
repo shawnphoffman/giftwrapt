@@ -14,7 +14,7 @@ function RecentCommentsPage() {
 				{/* HEADING */}
 				<div className="relative">
 					<h1 className="flex flex-row items-center gap-2">Recent Comments</h1>
-					<MessagesSquare className="size-22 -left-4 -top-6 text-teal-500 opacity-30 absolute -z-10" />
+					<MessagesSquare className="text-teal-500 wish-page-icon" />
 				</div>
 
 				{/* CONTENT */}

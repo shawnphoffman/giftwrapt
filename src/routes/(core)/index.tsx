@@ -14,7 +14,7 @@ export default function ListsPage() {
 				{/* HEADING */}
 				<div className="relative">
 					<h1 className="flex flex-row items-center gap-2">Wish Lists</h1>
-					<ListChecks className="size-22 -left-4 -top-6 text-green-500 opacity-30 absolute -z-10" />
+					<ListChecks className="text-green-500 wish-page-icon" />
 				</div>
 				{/* CONTENT */}
 				<ListsByUser />

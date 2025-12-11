@@ -15,7 +15,7 @@ function SettingsRoute() {
 				{/* HEADING */}
 				<div className="relative">
 					<h1 className="flex flex-row items-center gap-2">Settings</h1>
-					<Settings className="size-22 -left-4 -top-6 text-lime-500 opacity-30 absolute -z-10" />
+					<Settings className="text-lime-500 wish-page-icon" />
 				</div>
 				{/* CONTENT */}
 				<div className="mx-auto grid w-full max-w-6xl items-start gap-6 md:grid-cols-[150px_1fr] lg:grid-cols-[200px_1fr]">

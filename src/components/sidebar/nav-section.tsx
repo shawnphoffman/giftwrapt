@@ -28,7 +28,7 @@ export type NavItem = {
 export const NavItem = ({ item, className }: { item: NavItem; className?: string }) => {
 	const Icon = item.icon
 	return (
-		<SidebarMenuItem key={item.name}>
+		<SidebarMenuItem key={item.name} className="w-full">
 			<SidebarMenuButton asChild className={cn(className, 'text-base font-medium')}>
 				<Link
 					to={item.url}

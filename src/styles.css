@@ -202,6 +202,10 @@ code {
 	}
 }
 @layer utilities {
+	.wish-page-icon {
+		@apply size-22 right-0 sm:-left-4 -top-6 opacity-30 absolute -z-10;
+	}
+
 	.animate-page-in {
 		animation: animatePageIn 0.3s ease 0.15s both;
 	}

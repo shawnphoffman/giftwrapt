@@ -21,7 +21,6 @@ import {
 	SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ThemeSwitcher } from '@/components/ui/theme-switcher'
 import { ErrorBoundary } from '@/components/utilities/error-boundary'
 import { NavigationEvents } from '@/components/utilities/navigation-events'
 import { env } from '@/env'
@@ -135,7 +134,6 @@ function AuthenticatedRoutes() {
 							<NavBreadcrumbs />
 						</div>
 					</div>
-					<ThemeSwitcher className="bg-background/75 mr-1.5" />
 				</header>
 				<div className="flex flex-col items-center flex-1 gap-4 px-0 py-2 sm:px-2">
 					<ErrorBoundary

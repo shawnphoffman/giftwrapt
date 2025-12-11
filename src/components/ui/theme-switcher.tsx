@@ -30,7 +30,7 @@ export function ThemeSwitcher({ className }: { className?: string }) {
 		<Button
 			variant="ghost"
 			size="icon"
-			className={cn('size-9', className)}
+			className={cn('size-8', className)}
 			onClick={() => setTheme(isDark ? 'light' : 'dark')}
 			aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
 		>
