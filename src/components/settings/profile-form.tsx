@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { birthMonthEnumValues } from '@/db/schema/enums'
 import { UserSchema } from '@/db/schema/users'
+import { useSession } from '@/lib/auth-client'
 
 import UserAvatar from '../common/user-avatar'
 
@@ -40,6 +41,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 	const [error, setError] = useState<string | null>(null)
 	const [success, setSuccess] = useState(false)
 	const queryClient = useQueryClient()
+	const { refetch: refetchSession } = useSession()
 
 	// Fetch potential partners
 	const { data: potentialPartners = [], isLoading: isLoadingPartners } = useQuery({
@@ -95,8 +97,8 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 
 			setSuccess(true)
 			toast.success('Profile updated successfully')
-			// Invalidate session query to refresh user data
-			queryClient.invalidateQueries({ queryKey: ['session'] })
+			// Refetch session to update user data across all components using useSession
+			await refetchSession()
 			// Invalidate potential partners in case partner relationships changed
 			queryClient.invalidateQueries({ queryKey: ['potentialPartners'] })
 			// Clear success message after 5 seconds
