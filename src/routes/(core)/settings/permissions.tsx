@@ -102,6 +102,7 @@ function PermissionsPage() {
 				[userId]: {
 					...prev[userId],
 					canView: false,
+					canEdit: false,
 					isRestricted: false,
 				},
 			}))
