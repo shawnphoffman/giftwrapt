@@ -11,7 +11,11 @@ export const authMiddleware = createMiddleware().server(async ({ next, request }
 		throw redirect({ to: '/sign-in' })
 	}
 
-	return await next()
+	return await next({
+		context: {
+			session,
+		},
+	})
 })
 
 export const adminAuthMiddleware = createMiddleware().server(async ({ next, request }) => {
@@ -21,5 +25,9 @@ export const adminAuthMiddleware = createMiddleware().server(async ({ next, requ
 		throw redirect({ to: '/' })
 	}
 
-	return await next()
+	return await next({
+		context: {
+			session,
+		},
+	})
 })

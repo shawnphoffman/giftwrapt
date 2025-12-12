@@ -13,14 +13,8 @@ export const getPotentialPartners = createServerFn({
 	method: 'GET',
 })
 	.middleware([authMiddleware])
-	.handler(async () => {
-		const session = await auth.api.getSession({ headers: getRequestHeaders() })
-
-		if (!session?.user.id) {
-			throw new Error('Unauthorized')
-		}
-
-		const currentUserId = session.user.id
+	.handler(async ({ context }) => {
+		const currentUserId = context.session.user.id
 
 		// Fetch all non-child users except current user
 		const potentialPartners = await db.query.users.findMany({
@@ -44,15 +38,9 @@ export const updateUserProfile = createServerFn({
 })
 	.middleware([authMiddleware])
 	.inputValidator((data: { name: string; birthMonth?: string | null; birthDay?: number | null; partnerId?: string | null }) => data)
-	.handler(async ({ data }) => {
-		const session = await auth.api.getSession({ headers: getRequestHeaders() })
-
-		if (!session?.user.id) {
-			throw new Error('Unauthorized')
-		}
-
-		const userId = session.user.id
-		const currentPartnerId = session.user.partnerId || null
+	.handler(async ({ context, data }) => {
+		const userId = context.session.user.id
+		const currentPartnerId = context.session.user.partnerId || null
 
 		// Build update object with only provided fields
 		const updateData: {
@@ -124,12 +112,6 @@ export const updateUserPassword = createServerFn({
 	.middleware([authMiddleware])
 	.inputValidator((data: { currentPassword: string; newPassword: string }) => data)
 	.handler(async ({ data }) => {
-		const session = await auth.api.getSession({ headers: getRequestHeaders() })
-
-		if (!session?.user.id) {
-			throw new Error('Unauthorized')
-		}
-
 		// Use Better Auth's changePassword API
 		const result = await auth.api.changePassword({
 			body: {
