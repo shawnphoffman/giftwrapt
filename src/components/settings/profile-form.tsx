@@ -14,7 +14,7 @@ import { UserSchema } from '@/db/schema/users'
 import { useSession } from '@/lib/auth-client'
 
 import UserAvatar from '../common/user-avatar'
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel, FieldSet } from '../ui/field'
+import { Field, FieldDescription, FieldError, FieldLabel } from '../ui/field'
 
 type UpdateProfileFormValues = z.infer<typeof UserSchema>
 

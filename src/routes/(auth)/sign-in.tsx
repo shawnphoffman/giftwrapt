@@ -89,21 +89,21 @@ function SignIn() {
 					<div className="space-y-2">
 						<Label htmlFor="email">Email</Label>
 						<Input
-							id='email'
-							type='email'
+							id="email"
+							type="email"
 							placeholder="you@example.com"
 							value={email}
 							onChange={e => setEmail(e.target.value)}
 							required
 							disabled={isLoading}
-							autoComplete='email'
+							autoComplete="email"
 						/>
 					</div>
 
 					<div className="space-y-2">
 						<Label htmlFor="password">Password</Label>
 						<PasswordInput
-							id='password'
+							id="password"
 							placeholder="••••••••"
 							value={password}
 							onChange={e => setPassword(e.target.value)}

@@ -10,6 +10,8 @@ export function getContext() {
 				retry: 1,
 				// Don't refetch on window focus in production
 				refetchOnWindowFocus: process.env.NODE_ENV === 'development',
+				// Data is considered fresh for 1 minute - prevents Suspense flash on tab focus
+				staleTime: 1000 * 60,
 			},
 		},
 	})
