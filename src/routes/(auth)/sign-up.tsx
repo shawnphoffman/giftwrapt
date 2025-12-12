@@ -64,8 +64,8 @@ function SignUp() {
 					<div className="space-y-2">
 						<Label htmlFor="name">Name</Label>
 						<Input
-							id='name'
-							type='text'
+							id="name"
+							type="text"
 							placeholder="John Doe"
 							value={name}
 							onChange={e => setName(e.target.value)}
@@ -77,8 +77,8 @@ function SignUp() {
 					<div className="space-y-2">
 						<Label htmlFor="email">Email</Label>
 						<Input
-							id='email'
-							type='email'
+							id="email"
+							type="email"
 							placeholder="you@example.com"
 							value={email}
 							onChange={e => setEmail(e.target.value)}
@@ -90,8 +90,8 @@ function SignUp() {
 					<div className="space-y-2">
 						<Label htmlFor="password">Password</Label>
 						<Input
-							id='password'
-							type='password'
+							id="password"
+							type="password"
 							placeholder="••••••••"
 							value={password}
 							onChange={e => setPassword(e.target.value)}
