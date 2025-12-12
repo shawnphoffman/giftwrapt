@@ -71,7 +71,7 @@ const actions: Array<NavItem> = [
 	},
 	{
 		name: 'Create List',
-		url: '/me/new',
+		url: '/me#new',
 		mask: '/me',
 		icon: ListPlus,
 		hoverColor: 'group-hover/link:text-yellow-500 group-data-[status=active]/link:text-yellow-500',
