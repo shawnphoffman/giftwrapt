@@ -32,9 +32,9 @@ function ListDetailPage() {
 	const listTypeLabel = ListTypes[list.type]
 
 	return (
-		<div className="flex flex-col flex-1 w-full max-w-3xl px-2 animate-page-in">
+		<div className="wish-page">
 			<div className="flex items-center gap-3">
-				<UserAvatar name={recipientName} image={list.owner.image} size="large" />
+				{/* HEADING */}
 				<div className="flex flex-col gap-0.5 min-w-0">
 					<div className="flex items-center gap-2 min-w-0">
 						<h1 className="truncate">{list.name}</h1>

@@ -9,7 +9,7 @@ export const Route = createFileRoute('/(core)/recent/comments')({
 
 function RecentCommentsPage() {
 	return (
-		<div className="flex flex-col flex-1 w-full max-w-3xl px-2 animate-page-in">
+		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
 				{/* HEADING */}
 				<div className="relative">

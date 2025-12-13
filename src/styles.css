@@ -201,41 +201,45 @@ code {
 		}
 	}
 }
-@layer utilities {
+@utility animate-page-in {
+	animation: animatePageIn 0.3s ease 0.15s both;
+}
+
+@utility animate-page-in-delayed {
+	animation: animatePageIn 0.3s ease 1.15s both;
+}
+
+@utility animate-page-down {
+	animation: animatePageDown 0.3s ease 0.15s both;
+}
+
+@keyframes animatePageIn {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes animatePageDown {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@layer components {
+	.wish-page {
+		@apply flex flex-col flex-1 w-full max-w-3xl px-2 animate-page-in pb-2 @container/page;
+	}
 	.wish-page-icon {
-		@apply size-22 right-0 sm:-left-4 -top-6 opacity-30 absolute -z-10;
-	}
-
-	.animate-page-in {
-		animation: animatePageIn 0.3s ease 0.15s both;
-	}
-	.animate-page-in-delayed {
-		animation: animatePageIn 0.3s ease 1.15s both;
-	}
-
-	@keyframes animatePageIn {
-		from {
-			opacity: 0;
-			transform: translateY(10px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
-	}
-
-	.animate-page-down {
-		animation: animatePageDown 0.3s ease 0.15s both;
-	}
-
-	@keyframes animatePageDown {
-		from {
-			opacity: 0;
-			transform: translateY(-10px);
-		}
-		to {
-			opacity: 1;
-			transform: translateY(0);
-		}
+		@apply size-22 right-0 @2xl/page:-left-4 -top-6 opacity-30 absolute -z-10;
 	}
 }
