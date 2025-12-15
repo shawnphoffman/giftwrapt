@@ -213,7 +213,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 					<Field className="gap-1">
 						<FieldLabel htmlFor={field.name}>Partner</FieldLabel>
 						<FieldDescription className="text-xs leading-tight">
-							Select a partner to administrate your lists on your behalf.
+							When a partner is selected, gifts are typically shown as given by both of you.
 						</FieldDescription>
 						<Select
 							onValueChange={value => {
