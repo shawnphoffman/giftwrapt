@@ -41,14 +41,13 @@ function ListDetailPage() {
 				<div className="flex items-center gap-3 relative">
 					<div className="flex flex-col gap-0.5 min-w-0">
 						<div className="flex items-center gap-2 min-w-0">
+							<UserAvatar name={recipientName} image={list.owner.image} />
 							<h1 className="truncate">{list.name}</h1>
 							{/* <Badge variant="outline" className="whitespace-nowrap">
 								{listTypeLabel}
 							</Badge> */}
+							{/* <UserAvatarBadge name={recipientName} image={list.owner.image} /> */}
 						</div>
-						<UserAvatarBadge name={recipientName} image={list.owner.image} />
-						<UserAvatar name={recipientName} image={list.owner.image} size="small" />
-						<div className="text-sm text-muted-foreground truncate">{recipientName}</div>
 					</div>
 					<ListTypeIcon type={list.type} className="wish-page-icon" />
 				</div>
