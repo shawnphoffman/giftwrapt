@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm'
-import { boolean, index, integer, json, pgTable, serial, smallint, text } from 'drizzle-orm/pg-core'
+import { boolean, index, integer, json, pgTable, serial, smallint, text, timestamp } from 'drizzle-orm/pg-core'
 
 import { priorityEnum, statusEnum } from './enums'
 import { lists } from './lists'
@@ -28,6 +28,8 @@ export const items = pgTable(
 		isArchived: boolean('is_archived').default(false).notNull(),
 		quantity: smallint('quantity').default(1).notNull(),
 		...timestamps,
+		// TODO - Add a trigger to update modifiedAt when title, url, or notes change
+		modifiedAt: timestamp('modified_at', { withTimezone: true }),
 	},
 	table => [
 		index('items_listId_idx').on(table.listId),
