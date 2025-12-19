@@ -1,7 +1,7 @@
 import { queryOptions, useQuery, useSuspenseQuery } from '@tanstack/react-query'
 
 import { fetchAppSettings } from '@/api/settings'
-import { DEFAULT_APP_SETTINGS, type AppSettings } from '@/lib/settings'
+import { type AppSettings, DEFAULT_APP_SETTINGS } from '@/lib/settings'
 
 /**
  * Query key for app settings
@@ -56,7 +56,7 @@ export function useAppSettingsSuspense() {
  * Get a specific setting value with a fallback
  * Useful for quick access to a single setting
  */
-export function useAppSetting<K extends keyof AppSettings>(key: K): AppSettings[K] {
+export function useAppSetting<T extends keyof AppSettings>(key: T): AppSettings[T] {
 	const { data } = useAppSettings()
 	return data?.[key] ?? DEFAULT_APP_SETTINGS[key]
 }
