@@ -15,7 +15,6 @@ export const userRelationships = pgTable(
 			.references(() => users.id, { onDelete: 'cascade' }),
 		canView: boolean('can_view').default(true).notNull(),
 		canEdit: boolean('can_edit').default(false).notNull(),
-		isRestricted: boolean('is_restricted').default(false).notNull(),
 		...timestamps,
 	},
 	table => [primaryKey({ columns: [table.ownerUserId, table.viewerUserId] })]

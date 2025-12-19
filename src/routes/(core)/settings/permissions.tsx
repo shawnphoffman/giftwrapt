@@ -35,7 +35,6 @@ type UserWithRelationships = {
 	image: string | null
 	canView: boolean
 	canEdit: boolean
-	isRestricted: boolean
 }
 
 type OwnerWithViewRelationship = {
@@ -95,7 +94,7 @@ function PermissionsPage() {
 		}
 	}, [owners])
 
-	const handleCheckboxChange = (userId: string, field: 'canView' | 'isRestricted' | 'canEdit', checked: boolean) => {
+	const handleCheckboxChange = (userId: string, field: 'canView' | 'canEdit', checked: boolean) => {
 		if (field === 'canView' && checked === false) {
 			setFormData(prev => ({
 				...prev,
@@ -103,7 +102,6 @@ function PermissionsPage() {
 					...prev[userId],
 					canView: false,
 					canEdit: false,
-					isRestricted: false,
 				},
 			}))
 		} else {
@@ -136,7 +134,6 @@ function PermissionsPage() {
 				viewerUserId: user.id,
 				canView: user.canView,
 				canEdit: user.canEdit,
-				isRestricted: user.isRestricted,
 			}))
 
 			await upsertUserRelationships({
@@ -290,14 +287,6 @@ function PermissionsPage() {
 															disabled={isSavingOutgoing || !userFormData.canView}
 														/>
 													</TableCell>
-													{/* <TableCell className="text-center pr-2!">
-														<Checkbox
-															className="size-7 [&_svg]:size-5"
-															checked={userFormData.isRestricted}
-															onCheckedChange={checked => handleCheckboxChange(user.id, 'isRestricted', checked === true)}
-															disabled={isLoading || !userFormData.canView}
-														/>
-													</TableCell> */}
 												</TableRow>
 											)
 										})}

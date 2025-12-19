@@ -37,7 +37,6 @@ export const getUsersWithRelationships = createServerFn({
 				image: user.image,
 				canView: relationship?.canView ?? true,
 				canEdit: relationship?.canEdit ?? false,
-				isRestricted: relationship?.isRestricted ?? false,
 			}
 		})
 	})
@@ -88,7 +87,6 @@ export const upsertUserRelationships = createServerFn({
 				viewerUserId: string
 				canView: boolean
 				canEdit: boolean
-				isRestricted: boolean
 			}>
 		}) => data
 	)
@@ -104,14 +102,12 @@ export const upsertUserRelationships = createServerFn({
 					viewerUserId: rel.viewerUserId,
 					canView: rel.canView,
 					canEdit: rel.canEdit,
-					isRestricted: rel.isRestricted,
 				})
 				.onConflictDoUpdate({
 					target: [userRelationships.ownerUserId, userRelationships.viewerUserId],
 					set: {
 						canView: rel.canView,
 						canEdit: rel.canEdit,
-						isRestricted: rel.isRestricted,
 					},
 				})
 		}
