@@ -1,8 +1,9 @@
 import { createServerFn } from '@tanstack/react-start'
-import { eq } from 'drizzle-orm'
+import { and, asc, desc, eq, sql } from 'drizzle-orm'
 
 import { db } from '@/db'
-import { lists } from '@/db/schema'
+import { items, lists } from '@/db/schema'
+import type { Item } from '@/db/schema/items'
 import type { ListType } from '@/db/schema/enums'
 import { authMiddleware } from '@/middleware/auth'
 
@@ -16,6 +17,7 @@ export type ListForViewing = {
 		email: string
 		image: string | null
 	}
+	items: Item[]
 }
 
 export type GetListForViewingResult =
@@ -29,9 +31,14 @@ export type GetListForViewingResult =
 	  }
 	| null
 
+export type SortOption = 'priority-asc' | 'priority-desc' | 'date-asc' | 'date-desc'
+
 export const getListForViewing = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware])
-	.inputValidator((data: { listId: string }) => data)
+	.inputValidator((data: { listId: string; sort?: SortOption }) => ({
+		listId: data.listId,
+		sort: data.sort || ('priority-desc' as SortOption),
+	}))
 	.handler(async ({ context, data }): Promise<GetListForViewingResult> => {
 		const listId = Number(data.listId)
 		if (!Number.isFinite(listId)) return null
@@ -76,6 +83,34 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 		})
 		if (denied) return null
 
+		// Determine sort order based on sort parameter
+		const sort = data.sort || 'priority-desc'
+		const [sortBy, sortOrder] = sort.split('-') as [string, 'asc' | 'desc']
+
+		let orderBy
+		if (sortBy === 'priority') {
+			// Priority sorting: very-high: 4, high: 3, normal: 2, low: 1
+			const priorityOrder = sql<number>`
+				CASE ${items.priority}
+					WHEN 'very-high' THEN 4
+					WHEN 'high' THEN 3
+					WHEN 'normal' THEN 2
+					WHEN 'low' THEN 1
+					ELSE 0
+				END
+			`
+			orderBy = sortOrder === 'asc' ? [asc(priorityOrder)] : [desc(priorityOrder)]
+		} else {
+			// Date sorting
+			orderBy = sortOrder === 'asc' ? [asc(items.createdAt)] : [desc(items.createdAt)]
+		}
+
+		// Fetch items for the list
+		const listItems = await db.query.items.findMany({
+			where: and(eq(items.listId, list.id), eq(items.isArchived, false)),
+			orderBy,
+		})
+
 		return {
 			kind: 'ok',
 			list: {
@@ -88,6 +123,7 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 					email: list.owner.email,
 					image: list.owner.image,
 				},
+				items: listItems,
 			},
 		}
 	})

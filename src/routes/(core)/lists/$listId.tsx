@@ -3,8 +3,8 @@ import { createFileRoute, notFound, redirect } from '@tanstack/react-router'
 import { getListForViewing } from '@/api/lists'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import UserAvatar from '@/components/common/user-avatar'
+import ItemList from '@/components/items/item-list'
 // import UserAvatarBadge from '@/components/common/user-avatar-badge'
-import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 // import { Badge } from '@/components/ui/badge'
 // import { ListTypes } from '@/db/schema/enums'
 
@@ -38,9 +38,9 @@ function ListDetailPage() {
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
 				{/* HEADING */}
-				<div className="flex items-center gap-3 relative">
+				<div className="relative flex items-center gap-3">
 					<div className="flex flex-col gap-0.5 min-w-0">
-						<div className="flex items-center gap-2 min-w-0">
+						<div className="flex items-center min-w-0 gap-2">
 							<UserAvatar name={recipientName} image={list.owner.image} />
 							<h1 className="truncate">{list.name}</h1>
 							{/* <Badge variant="outline" className="whitespace-nowrap">
@@ -51,8 +51,8 @@ function ListDetailPage() {
 					</div>
 					<ListTypeIcon type={list.type} className="wish-page-icon" />
 				</div>
-				{/* CONTENT */}
-				<LoadingSkeleton />
+				{/* ITEMS */}
+				<ItemList items={list.items} />
 			</div>
 		</div>
 	)

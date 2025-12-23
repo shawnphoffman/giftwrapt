@@ -18,6 +18,9 @@ function PurchasesSummaryPage() {
 				</div>
 				{/* CONTENT */}
 				<LoadingSkeleton />
+				<div className="flex flex-col gap-4">
+					Don't forget advanced mode that monitors tracking, deliveries, and whether you've wrapped the gift.
+				</div>
 			</div>
 		</div>
 	)
