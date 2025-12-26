@@ -1,5 +1,10 @@
+import { ExternalLink } from 'lucide-react'
+
 import PriorityIcon from '@/components/common/priority-icon'
 import type { Item } from '@/db/schema/items'
+import { getDomainFromUrl } from '@/lib/urls'
+
+import { Badge } from '../ui/badge'
 
 type Props = {
 	item: Item
@@ -14,14 +19,20 @@ export default function ItemRow({ item }: Props) {
 						<div className="flex flex-row items-start flex-1 gap-1 overflow-hidden font-medium">
 							<PriorityIcon priority={item.priority} />
 							{item.url ? (
-								<a
-									href={item.url}
-									target="_blank"
-									rel="noopener noreferrer"
-									className="flex flex-col gap-0.5 overflow-hidden hover:underline"
-								>
-									{item.title}
-								</a>
+								<>
+									<a
+										href={item.url}
+										target="_blank"
+										rel="noopener noreferrer"
+										className="flex flex-col gap-0.5 overflow-hidden hover:underline"
+									>
+										{item.title}
+									</a>
+									<ExternalLink />
+									<Badge variant="outline" className="flex text-xs text-muted-foreground">
+										{getDomainFromUrl(item.url)}
+									</Badge>
+								</>
 							) : (
 								<div>{item.title}</div>
 							)}
