@@ -34,3 +34,55 @@ services:
 
 volumes:
   postgres_data:
+
+    #   # Database backup service
+    # backup:
+    #   image: prodrigestivill/postgres-backup-local
+    #   container_name: nametag-backup
+    #   restart: always
+    #   environment:
+    #     - POSTGRES_HOST=db
+    #     - POSTGRES_DB=${DB_NAME}
+    #     - POSTGRES_USER=${DB_USER}
+    #     - POSTGRES_PASSWORD=${DB_PASSWORD}
+    #     - SCHEDULE=@daily
+    #     - BACKUP_KEEP_DAYS=7
+    #     - BACKUP_KEEP_WEEKS=4
+    #     - BACKUP_KEEP_MONTHS=6
+    #     - HEALTHCHECK_PORT=8080
+    #   volumes:
+    #     - ./backups:/backups
+    #   depends_on:
+    #     - db
+    #   logging:
+    #     driver: json-file
+    #     options:
+    #       max-size: 10m
+    #       max-file: 3
+    #       compress: "true"
+    #   networks:
+    #     - nametag-network
+
+    # # Cron service for scheduled jobs
+    #   cron:
+    #     image: alpine:3.19
+    #     container_name: nametag-cron-prod
+    #     restart: always
+    #     environment:
+    #       - CRON_SECRET=${CRON_SECRET}
+    #     depends_on:
+    #       - app
+    #     command: >
+    #       sh -c "
+    #         echo '0 8 * * * wget -q -O - --header=\"Authorization: Bearer '\"$$CRON_SECRET\"'\" http://app:3000/api/cron/send-reminders > /proc/1/fd/1 2>&1' > /etc/crontabs/root &&
+    #         echo '0 3 * * * wget -q -O - --header=\"Authorization: Bearer '\"$$CRON_SECRET\"'\" http://app:3000/api/cron/purge-deleted > /proc/1/fd/1 2>&1' >> /etc/crontabs/root &&
+    #         crond -f -l 2
+    #       "
+    #     logging:
+    #       driver: json-file
+    #       options:
+    #         max-size: 10m
+    #         max-file: 3
+    #         compress: "true"
+    #     networks:
+    #       - nametag-network
