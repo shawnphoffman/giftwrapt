@@ -1,0 +1,93 @@
+# Repo label definitions — synced by .github/workflows/labels.yml
+# Colors follow a consistent scheme:
+#   Green  = new functionality
+#   Red    = bugs
+#   Blue   = maintenance/infra
+#   Purple = meta/process
+#   Orange = breaking/major
+
+# --- Version bump labels ---
+- name: major
+  color: 'D93F0B'
+  description: 'Triggers a major version bump'
+- name: breaking
+  color: 'D93F0B'
+  description: 'Breaking change'
+- name: minor
+  color: '0E8A16'
+  description: 'Triggers a minor version bump'
+- name: patch
+  color: 'FBCA04'
+  description: 'Triggers a patch version bump'
+
+# --- Conventional commit types ---
+- name: feat
+  color: '0E8A16'
+  description: 'New feature'
+- name: feature
+  color: '0E8A16'
+  description: 'New feature'
+- name: enhancement
+  color: '1D76DB'
+  description: 'Enhancement to existing feature'
+- name: fix
+  color: 'D73A4A'
+  description: 'Bug fix'
+- name: bug
+  color: 'D73A4A'
+  description: 'Bug report or fix'
+- name: bugfix
+  color: 'D73A4A'
+  description: 'Bug fix'
+- name: chore
+  color: 'C5DEF5'
+  description: 'Maintenance task'
+- name: refactor
+  color: 'C5DEF5'
+  description: 'Code refactoring'
+- name: cleanup
+  color: 'C5DEF5'
+  description: 'Code cleanup'
+- name: docs
+  color: '0075CA'
+  description: 'Documentation'
+- name: documentation
+  color: '0075CA'
+  description: 'Documentation'
+- name: ci
+  color: 'BFD4F2'
+  description: 'CI/CD changes'
+- name: cd
+  color: 'BFD4F2'
+  description: 'CI/CD changes'
+- name: workflow
+  color: 'BFD4F2'
+  description: 'GitHub Actions workflow changes'
+- name: test
+  color: 'F9D0C4'
+  description: 'Tests'
+- name: tests
+  color: 'F9D0C4'
+  description: 'Tests'
+- name: dependencies
+  color: '0366D6'
+  description: 'Dependency updates'
+
+# --- File-path labels (from labeler.yml) ---
+- name: database
+  color: '5319E7'
+  description: 'Database schema or migrations'
+- name: docker
+  color: '2496ED'
+  description: 'Docker configuration'
+- name: ui
+  color: '7057FF'
+  description: 'UI components and routes'
+- name: api
+  color: 'E99695'
+  description: 'API routes and middleware'
+
+# --- Process labels ---
+- name: skip-changelog
+  color: 'EEEEEE'
+  description: 'Exclude from release notes'

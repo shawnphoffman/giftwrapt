@@ -1,0 +1,57 @@
+# Auto-label PRs based on changed file paths
+# Used by .github/workflows/labeler.yml
+
+database:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/db/**'
+          - 'src/db-collections/**'
+          - 'drizzle.config.ts'
+
+docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/**'
+          - '*.md'
+          - 'LICENSE'
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**'
+
+test:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/tests/**'
+          - '**/*.test.*'
+          - '**/*.spec.*'
+          - 'vitest.config.*'
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'package.json'
+          - 'package-lock.json'
+          - 'pnpm-lock.yaml'
+
+docker:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'Dockerfile'
+          - 'docker/**'
+          - '.dockerignore'
+
+ui:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/components/**'
+          - 'src/routes/**'
+          - 'src/hooks/**'
+
+api:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/api/**'
+          - 'src/routes/api/**'
+          - 'src/middleware/**'
