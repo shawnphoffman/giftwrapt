@@ -323,3 +323,43 @@ docker build -t tanstack-react-app . && docker run -p 3000:3000 tanstack-react-a
 ```
 
 The app will be available at `http://[::]:3000/`.
+
+## Self-host with Docker Compose
+
+This repository ships a ready-to-run compose file for self hosting.
+
+### Prerequisites
+
+Before building the Docker image, generate database migrations:
+
+```bash
+pnpm db:generate
+```
+
+This creates the `drizzle/` directory with migration files that will be included in the image.
+
+### Setup
+
+1) Copy the env template and update values:
+
+```bash
+cp env.example .env
+```
+
+2) Start the stack:
+
+```bash
+docker compose -f docker-compose.selfhost.yml --env-file .env up -d
+```
+
+3) Visit the app:
+
+```
+http://localhost:3000
+```
+
+### Notes
+
+- Database migrations run automatically on first startup via a one-shot `db-migrate` service.
+- The image is expected to be built and published by GitHub Actions on version tags (e.g., `v1.0.0`).
+- Migrations must be generated and committed before building images for self-hosting.

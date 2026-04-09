@@ -25,6 +25,8 @@ FROM node:20-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV PNPM_HOME=/usr/local/share/pnpm
+ENV PATH=$PNPM_HOME:$PATH
 
 # Create a non-root user
 RUN addgroup --system --gid 1001 nodejs && \
@@ -36,6 +38,16 @@ RUN mkdir -p /app/data && \
 
 # Copy only necessary files
 COPY --from=builder /app/.output ./.output
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json pnpm-lock.yaml ./
+COPY drizzle.config.ts ./
+COPY src/db/schema ./src/db/schema
+COPY docker/entrypoint.sh /app/docker/entrypoint.sh
+
+# Install pnpm for migrations
+RUN npm install -g pnpm && \
+	chmod +x /app/docker/entrypoint.sh && \
+	chmod +x /app/docker/migrate.sh
 
 # Expose the port the app will run on
 EXPOSE 3000
@@ -43,4 +55,4 @@ EXPOSE 3000
 USER nodejs
 
 # Start the Node.js server
-CMD ["node", ".output/server/index.mjs"]
+ENTRYPOINT ["/app/docker/entrypoint.sh"]

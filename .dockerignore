@@ -1,0 +1,63 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+README.md
+CODE_REVIEW.md
+DEVELOPMENT.md
+TESTING.md
+SECURITY_FIXES.md
+
+# Development files
+.env
+.env.local
+.env.*.local
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+**/__tests__/**
+**/*.test.ts
+**/*.test.tsx
+**/vitest.config.*
+**/coverage
+
+# Build artifacts (will be built in container)
+**/dist
+**/build
+**/node_modules
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# CI/CD
+.github
+
+# Data directories
+data/
+*.db
+*.db-shm
+*.db-wal
+
+# Temporary files
+tmp/
+temp/
+*.tmp
