@@ -1,7 +1,7 @@
 import { relations } from 'drizzle-orm'
 import { boolean, index, integer, json, pgTable, serial, smallint, text, timestamp } from 'drizzle-orm/pg-core'
 
-import { priorityEnum, statusEnum } from './enums'
+import { availabilityEnum, priorityEnum, statusEnum } from './enums'
 import { lists } from './lists'
 import { timestamps } from './shared'
 import { users } from './users'
@@ -19,6 +19,8 @@ export const items = pgTable(
 		groupId: integer('group_id').references(() => itemGroups.id, { onDelete: 'set null' }),
 		title: text('title').notNull(),
 		status: statusEnum('status').default('incomplete').notNull(),
+		// Product-state, orthogonal to status. Marks items that are sold out/discontinued.
+		availability: availabilityEnum('availability').default('available').notNull(),
 		url: text('url'),
 		imageUrl: text('image_url'),
 		price: text('price'),
@@ -28,7 +30,8 @@ export const items = pgTable(
 		isArchived: boolean('is_archived').default(false).notNull(),
 		quantity: smallint('quantity').default(1).notNull(),
 		...timestamps,
-		// TODO - Add a trigger to update modifiedAt when title, url, or notes change
+		// modifiedAt is bumped in server actions when title/url/notes change.
+		// Deliberately NOT a DB trigger (decided 2026-04-14) — keeps portability simple.
 		modifiedAt: timestamp('modified_at', { withTimezone: true }),
 	},
 	table => [
@@ -68,6 +71,7 @@ export type NewItemGroup = typeof itemGroups.$inferInsert
 // ===============================
 // ITEM COMMENTS
 // ===============================
+// Comments are hard-deleted, not archived (decision per spec §5.4).
 export const itemComments = pgTable(
 	'item_comments',
 	{
@@ -79,13 +83,11 @@ export const itemComments = pgTable(
 			.notNull()
 			.references(() => users.id, { onDelete: 'cascade' }),
 		comment: text('comment').notNull(),
-		is_archived: boolean('is_archived').default(false).notNull(),
 		...timestamps,
 	},
 	table => [
 		index('item_comments_itemId_idx').on(table.itemId),
 		// index('item_comments_userId_idx').on(table.userId),
-		index('item_comments_is_archived_idx').on(table.is_archived),
 	]
 )
 
@@ -95,6 +97,8 @@ export type NewItemComment = typeof itemComments.$inferInsert
 // ===============================
 // ITEM SCRAPES
 // ===============================
+// Historical — each scrape is a new row. scraperId lets us combine/merge
+// results from multiple scrapers. Never upsert; always insert.
 export const itemScrapes = pgTable(
 	'item_scrapes',
 	{
@@ -113,7 +117,11 @@ export const itemScrapes = pgTable(
 		imageUrls: text('image_urls').array(),
 		...timestamps,
 	},
-	table => [index('item_scrapes_itemId_idx').on(table.itemId)]
+	table => [
+		index('item_scrapes_itemId_idx').on(table.itemId),
+		// Supports "latest scrape for an item" queries.
+		index('item_scrapes_itemId_createdAt_idx').on(table.itemId, table.createdAt.desc()),
+	]
 )
 
 export type ItemScrape = typeof itemScrapes.$inferSelect

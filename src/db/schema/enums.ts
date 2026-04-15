@@ -15,6 +15,10 @@ export const statusEnumValues = [
 export const statusEnum = pgEnum('status', statusEnumValues)
 export type Status = (typeof statusEnumValues)[number]
 
+export const availabilityEnumValues = ['available', 'unavailable'] as const
+export const availabilityEnum = pgEnum('availability', availabilityEnumValues)
+export type Availability = (typeof availabilityEnumValues)[number]
+
 export const birthMonthEnumValues = [
 	'january',
 	'february',
@@ -32,7 +36,7 @@ export const birthMonthEnumValues = [
 export const birthMonthEnum = pgEnum('birth_month', birthMonthEnumValues)
 export type BirthMonth = (typeof birthMonthEnumValues)[number]
 
-const listTypeEnumValues = ['wishlist', 'christmas', 'birthday', 'giftideas', 'todos', 'test'] as const
+export const listTypeEnumValues = ['wishlist', 'christmas', 'birthday', 'giftideas', 'todos', 'test'] as const
 export const ListTypes: Record<(typeof listTypeEnumValues)[number], string> = {
 	wishlist: 'Wish List',
 	christmas: 'Christmas',

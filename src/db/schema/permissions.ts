@@ -1,6 +1,7 @@
 // import { relations } from 'drizzle-orm'
-import { boolean, pgTable, primaryKey, text } from 'drizzle-orm/pg-core'
+import { boolean, index, integer, pgTable, primaryKey, serial, text, unique } from 'drizzle-orm/pg-core'
 
+import { lists } from './lists'
 import { timestamps } from './shared'
 import { users } from './users'
 
@@ -33,3 +34,34 @@ export const guardianships = pgTable(
 	},
 	table => [primaryKey({ columns: [table.parentUserId, table.childUserId] })]
 )
+
+// ===============================
+// LIST EDITORS (list-level permission grant)
+// ===============================
+// Grants another user edit rights on a specific list. Layered above user-level
+// canEdit in userRelationships; see spec §2.6 for resolution order.
+// ownerId is redundant (derivable via list.ownerId) but stored for query ergonomics.
+export const listEditors = pgTable(
+	'list_editors',
+	{
+		id: serial('id').primaryKey(),
+		listId: integer('list_id')
+			.notNull()
+			.references(() => lists.id, { onDelete: 'cascade' }),
+		userId: text('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		ownerId: text('owner_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		...timestamps,
+	},
+	table => [
+		unique('list_editors_listId_userId_unique').on(table.listId, table.userId),
+		index('list_editors_userId_idx').on(table.userId),
+		index('list_editors_ownerId_idx').on(table.ownerId),
+	]
+)
+
+export type ListEditor = typeof listEditors.$inferSelect
+export type NewListEditor = typeof listEditors.$inferInsert
