@@ -98,6 +98,8 @@ export type NewItemComment = typeof itemComments.$inferInsert
 // ===============================
 // ITEM SCRAPES
 // ===============================
+// Historical — each scrape is a new row. scraperId lets us combine/merge
+// results from multiple scrapers. Never upsert; always insert.
 export const itemScrapes = pgTable(
 	'item_scrapes',
 	{
@@ -116,7 +118,11 @@ export const itemScrapes = pgTable(
 		imageUrls: text('image_urls').array(),
 		...timestamps,
 	},
-	table => [index('item_scrapes_itemId_idx').on(table.itemId)]
+	table => [
+		index('item_scrapes_itemId_idx').on(table.itemId),
+		// Supports "latest scrape for an item" queries.
+		index('item_scrapes_itemId_createdAt_idx').on(table.itemId, table.createdAt.desc()),
+	]
 )
 
 export type ItemScrape = typeof itemScrapes.$inferSelect
