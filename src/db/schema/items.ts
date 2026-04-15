@@ -1,7 +1,7 @@
 import { relations } from 'drizzle-orm'
 import { boolean, index, integer, json, pgTable, serial, smallint, text, timestamp } from 'drizzle-orm/pg-core'
 
-import { priorityEnum, statusEnum } from './enums'
+import { availabilityEnum, priorityEnum, statusEnum } from './enums'
 import { lists } from './lists'
 import { timestamps } from './shared'
 import { users } from './users'
@@ -19,6 +19,8 @@ export const items = pgTable(
 		groupId: integer('group_id').references(() => itemGroups.id, { onDelete: 'set null' }),
 		title: text('title').notNull(),
 		status: statusEnum('status').default('incomplete').notNull(),
+		// Product-state, orthogonal to status. Marks items that are sold out/discontinued.
+		availability: availabilityEnum('availability').default('available').notNull(),
 		url: text('url'),
 		imageUrl: text('image_url'),
 		price: text('price'),
@@ -28,7 +30,8 @@ export const items = pgTable(
 		isArchived: boolean('is_archived').default(false).notNull(),
 		quantity: smallint('quantity').default(1).notNull(),
 		...timestamps,
-		// TODO - Add a trigger to update modifiedAt when title, url, or notes change
+		// modifiedAt is bumped in server actions when title/url/notes change.
+		// Deliberately NOT a DB trigger (decided 2026-04-14) — keeps portability simple.
 		modifiedAt: timestamp('modified_at', { withTimezone: true }),
 	},
 	table => [

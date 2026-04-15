@@ -15,6 +15,10 @@ export const statusEnumValues = [
 export const statusEnum = pgEnum('status', statusEnumValues)
 export type Status = (typeof statusEnumValues)[number]
 
+export const availabilityEnumValues = ['available', 'unavailable'] as const
+export const availabilityEnum = pgEnum('availability', availabilityEnumValues)
+export type Availability = (typeof availabilityEnumValues)[number]
+
 export const birthMonthEnumValues = [
 	'january',
 	'february',
