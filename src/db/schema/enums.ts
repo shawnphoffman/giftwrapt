@@ -36,7 +36,7 @@ export const birthMonthEnumValues = [
 export const birthMonthEnum = pgEnum('birth_month', birthMonthEnumValues)
 export type BirthMonth = (typeof birthMonthEnumValues)[number]
 
-const listTypeEnumValues = ['wishlist', 'todo', 'giftideas'] as const
+export const listTypeEnumValues = ['wishlist', 'todo', 'giftideas'] as const
 export const ListTypes: Record<(typeof listTypeEnumValues)[number], string> = {
 	wishlist: 'Wish List',
 	todo: 'ToDo',
