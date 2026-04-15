@@ -1,6 +1,6 @@
 CREATE TYPE "public"."availability" AS ENUM('available', 'unavailable');--> statement-breakpoint
 CREATE TYPE "public"."birth_month" AS ENUM('january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december');--> statement-breakpoint
-CREATE TYPE "public"."list_type" AS ENUM('wishlist', 'todo', 'giftideas');--> statement-breakpoint
+CREATE TYPE "public"."list_type" AS ENUM('wishlist', 'christmas', 'birthday', 'giftideas', 'todos', 'test');--> statement-breakpoint
 CREATE TYPE "public"."priority" AS ENUM('low', 'normal', 'high', 'very-high');--> statement-breakpoint
 CREATE TYPE "public"."role" AS ENUM('user', 'admin', 'child');--> statement-breakpoint
 CREATE TYPE "public"."status" AS ENUM('incomplete', 'complete');--> statement-breakpoint

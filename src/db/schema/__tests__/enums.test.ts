@@ -13,8 +13,8 @@ import {
 // that likely needs a coordinated migration + app-level update.
 // Treat a failure here as "go read the diff and think," not "just update the test."
 describe('schema enums', () => {
-	it('list_type has exactly the v2 values', () => {
-		expect([...listTypeEnumValues]).toEqual(['wishlist', 'todo', 'giftideas'])
+	it('list_type has all the supported values', () => {
+		expect([...listTypeEnumValues]).toEqual(['wishlist', 'christmas', 'birthday', 'giftideas', 'todos', 'test'])
 	})
 
 	it('availability has exactly available/unavailable', () => {

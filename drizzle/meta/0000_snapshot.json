@@ -1,5 +1,5 @@
 {
-  "id": "255a29fa-1ceb-4014-b34b-b5039b9b5752",
+  "id": "1f4cb4db-b00b-48ba-b67d-3d9e9c8e9341",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1846,8 +1846,11 @@
       "schema": "public",
       "values": [
         "wishlist",
-        "todo",
-        "giftideas"
+        "christmas",
+        "birthday",
+        "giftideas",
+        "todos",
+        "test"
       ]
     },
     "public.priority": {

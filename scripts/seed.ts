@@ -201,7 +201,7 @@ async function main() {
 
 	const [aliceTodo] = await db
 		.insert(lists)
-		.values({ name: 'House ToDos', type: 'todo', ownerId: aliceId, isPrimary: false })
+		.values({ name: 'House ToDos', type: 'todos', ownerId: aliceId, isPrimary: false })
 		.returning({ id: lists.id })
 
 	const [bobWishlist] = await db
