@@ -40,8 +40,14 @@ RUN mkdir -p /app/data && \
 COPY --from=builder /app/.output ./.output
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json pnpm-lock.yaml ./
+COPY tsconfig.json ./
 COPY drizzle.config.ts ./
-COPY src/db/schema ./src/db/schema
+# Full src + scripts are needed at runtime by the operator-facing CLIs
+# (db:seed, admin:create, admin:reset-password) which are run via tsx via
+# `docker exec`. They need @/lib/auth, @/db, @/env at minimum; easier to
+# just ship the whole src tree than enumerate every transitive import.
+COPY src ./src
+COPY scripts ./scripts
 COPY docker/entrypoint.sh /app/docker/entrypoint.sh
 
 # Install pnpm for migrations
