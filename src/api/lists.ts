@@ -3,9 +3,24 @@ import { and, asc, desc, eq, sql } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { items, lists } from '@/db/schema'
-import type { Item } from '@/db/schema/items'
 import type { ListType } from '@/db/schema/enums'
+import type { GiftedItem } from '@/db/schema/gifts'
+import type { Item } from '@/db/schema/items'
+import { canViewList } from '@/lib/permissions'
 import { authMiddleware } from '@/middleware/auth'
+
+export type GiftOnItem = Pick<GiftedItem, 'id' | 'itemId' | 'gifterId' | 'quantity' | 'notes' | 'totalCost' | 'createdAt'> & {
+	gifter: {
+		id: string
+		name: string | null
+		email: string
+		image: string | null
+	}
+}
+
+export type ItemWithGifts = Item & {
+	gifts: Array<GiftOnItem>
+}
 
 export type ListForViewing = {
 	id: number
@@ -17,7 +32,7 @@ export type ListForViewing = {
 		email: string
 		image: string | null
 	}
-	items: Item[]
+	items: Array<ItemWithGifts>
 }
 
 export type GetListForViewingResult =
@@ -65,27 +80,21 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 			},
 		})
 
-		if (!list?.owner || !list.isActive) return null
+		if (!list?.owner) return null
 
 		const currentUserId = context.session.user.id
 		if (list.ownerId === currentUserId) {
 			return { kind: 'redirect', listId: String(list.id) }
 		}
 
-		// Private lists are never viewable by other users (gift-giver view)
-		if (list.isPrivate) return null
+		// Owner-agnostic visibility: inactive / private / explicitly-denied all
+		// collapse to null so nothing leaks about list existence.
+		const view = await canViewList(currentUserId, list)
+		if (!view.ok) return null
 
-		// If the list owner explicitly denied the current viewer, treat as not found
-		const denied = await db.query.userRelationships.findFirst({
-			where: (rel, { and, eq: relEq }) =>
-				and(relEq(rel.ownerUserId, list.ownerId), relEq(rel.viewerUserId, currentUserId), relEq(rel.canView, false)),
-			columns: { ownerUserId: true },
-		})
-		if (denied) return null
-
-		// Determine sort order based on sort parameter
-		const sort = data.sort || 'priority-desc'
-		const [sortBy, sortOrder] = sort.split('-') as [string, 'asc' | 'desc']
+		// Determine sort order based on sort parameter. inputValidator defaults
+		// data.sort to 'priority-desc' already, so no fallback needed here.
+		const [sortBy, sortOrder] = data.sort.split('-') as [string, 'asc' | 'desc']
 
 		let orderBy
 		if (sortBy === 'priority') {
@@ -105,10 +114,31 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 			orderBy = sortOrder === 'asc' ? [asc(items.createdAt)] : [desc(items.createdAt)]
 		}
 
-		// Fetch items for the list
+		// Fetch items + their (non-archived) gifts in one round-trip. Visibility
+		// is already established above, so every claim on these items is OK to
+		// show to this viewer.
 		const listItems = await db.query.items.findMany({
 			where: and(eq(items.listId, list.id), eq(items.isArchived, false)),
 			orderBy,
+			with: {
+				gifts: {
+					where: (g, { eq: gEq }) => gEq(g.isArchived, false),
+					columns: {
+						id: true,
+						itemId: true,
+						gifterId: true,
+						quantity: true,
+						notes: true,
+						totalCost: true,
+						createdAt: true,
+					},
+					with: {
+						gifter: {
+							columns: { id: true, name: true, email: true, image: true },
+						},
+					},
+				},
+			},
 		})
 
 		return {

@@ -1,10 +1,10 @@
+import type { ItemWithGifts } from '@/api/lists'
 import EmptyMessage from '@/components/common/empty-message'
-import type { Item } from '@/db/schema/items'
 
 import ItemRow from './item-row'
 
 type Props = {
-	items: Array<Item>
+	items: Array<ItemWithGifts>
 }
 
 export default function ItemList({ items }: Props) {
