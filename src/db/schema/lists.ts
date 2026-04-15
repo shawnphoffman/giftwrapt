@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm'
-import { boolean, index, pgTable, serial, text } from 'drizzle-orm/pg-core'
+import { boolean, index, integer, numeric, pgTable, serial, text } from 'drizzle-orm/pg-core'
 
 import { listTypeEnum } from './enums'
 import { itemGroups, items } from './items'
@@ -47,11 +47,53 @@ export const listsRelations = relations(lists, ({ one, many }) => ({
 	}),
 	itemGroups: many(itemGroups),
 	items: many(items),
+	addons: many(listAddons),
 	// Editors
 	// Viewers+
 	// Viewers-Only
-	// Addons
 }))
 
 export type List = typeof lists.$inferSelect
 export type NewList = typeof lists.$inferInsert
+
+// ===============================
+// LIST ADDONS (off-list gifts)
+// ===============================
+// Gifts that don't correspond to an existing list item — the gifter
+// volunteers they're bringing something extra. Visible only to gifters
+// (spoiler protection same as claims).
+export const listAddons = pgTable(
+	'list_addons',
+	{
+		id: serial('id').primaryKey(),
+		listId: integer('list_id')
+			.notNull()
+			.references(() => lists.id, { onDelete: 'cascade' }),
+		userId: text('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		description: text('description').notNull(),
+		totalCost: numeric('total_cost'),
+		notes: text('notes'),
+		isArchived: boolean('is_archived').default(false).notNull(),
+		...timestamps,
+	},
+	table => [
+		index('list_addons_listId_idx').on(table.listId),
+		index('list_addons_userId_idx').on(table.userId),
+	]
+)
+
+export const listAddonsRelations = relations(listAddons, ({ one }) => ({
+	list: one(lists, {
+		fields: [listAddons.listId],
+		references: [lists.id],
+	}),
+	user: one(users, {
+		fields: [listAddons.userId],
+		references: [users.id],
+	}),
+}))
+
+export type ListAddon = typeof listAddons.$inferSelect
+export type NewListAddon = typeof listAddons.$inferInsert
