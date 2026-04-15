@@ -2,6 +2,7 @@ import { relations } from 'drizzle-orm'
 import { boolean, index, integer, json, pgTable, serial, smallint, text, timestamp } from 'drizzle-orm/pg-core'
 
 import { availabilityEnum, priorityEnum, statusEnum } from './enums'
+import { giftedItems } from './gifts'
 import { lists } from './lists'
 import { timestamps } from './shared'
 import { users } from './users'
@@ -141,6 +142,7 @@ export const itemRelations = relations(items, ({ one, many }) => ({
 	}),
 	comments: many(itemComments),
 	scrapes: many(itemScrapes),
+	gifts: many(giftedItems),
 }))
 
 export const itemGroupRelations = relations(itemGroups, ({ one, many }) => ({
