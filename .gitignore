@@ -16,4 +16,5 @@ wish-lists-workspace.code-workspace
 
 .cursor/plans/
 
-.claude/
+.claude/*
+!.claude/launch.json
