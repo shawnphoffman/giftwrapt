@@ -71,6 +71,7 @@ export type NewItemGroup = typeof itemGroups.$inferInsert
 // ===============================
 // ITEM COMMENTS
 // ===============================
+// Comments are hard-deleted, not archived (decision per spec §5.4).
 export const itemComments = pgTable(
 	'item_comments',
 	{
@@ -82,13 +83,11 @@ export const itemComments = pgTable(
 			.notNull()
 			.references(() => users.id, { onDelete: 'cascade' }),
 		comment: text('comment').notNull(),
-		is_archived: boolean('is_archived').default(false).notNull(),
 		...timestamps,
 	},
 	table => [
 		index('item_comments_itemId_idx').on(table.itemId),
 		// index('item_comments_userId_idx').on(table.userId),
-		index('item_comments_is_archived_idx').on(table.is_archived),
 	]
 )
 
