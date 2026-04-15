@@ -114,15 +114,15 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 			orderBy = sortOrder === 'asc' ? [asc(items.createdAt)] : [desc(items.createdAt)]
 		}
 
-		// Fetch items + their (non-archived) gifts in one round-trip. Visibility
-		// is already established above, so every claim on these items is OK to
-		// show to this viewer.
+		// Fetch items + their gifts in one round-trip. Visibility is already
+		// established above, so every claim on these items is OK to show to
+		// this viewer. Gifts have no archive concept (claims are hard-deleted
+		// on retraction), so no filter is needed on the gifts side.
 		const listItems = await db.query.items.findMany({
 			where: and(eq(items.listId, list.id), eq(items.isArchived, false)),
 			orderBy,
 			with: {
 				gifts: {
-					where: (g, { eq: gEq }) => gEq(g.isArchived, false),
 					columns: {
 						id: true,
 						itemId: true,

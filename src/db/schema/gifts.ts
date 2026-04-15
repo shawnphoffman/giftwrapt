@@ -1,5 +1,5 @@
 import { relations, sql } from 'drizzle-orm'
-import { boolean, check, index, integer, numeric, pgTable, serial, smallint, text } from 'drizzle-orm/pg-core'
+import { check, index, integer, numeric, pgTable, serial, smallint, text } from 'drizzle-orm/pg-core'
 
 import { items } from './items'
 import { timestamps } from './shared'
@@ -12,6 +12,9 @@ import { users } from './users'
 // The quantity invariant (SUM(quantity) for items.id <= items.quantity) is
 // enforced at the application layer via a transaction with SELECT FOR UPDATE
 // in the claim server action (decided 2026-04-14).
+//
+// Retractions are hard-DELETE, not soft-archive — there's no audit trail
+// need for claims, and the UX is "I misclicked, make it go away."
 export const giftedItems = pgTable(
 	'gifted_items',
 	{
@@ -27,9 +30,6 @@ export const giftedItems = pgTable(
 		quantity: smallint('quantity').default(1).notNull(),
 		totalCost: numeric('total_cost'),
 		notes: text('notes'),
-		// Mirrors items.isArchived but per-claim: supports unarchiving a single claim
-		// without unarchiving the whole item.
-		isArchived: boolean('is_archived').default(false).notNull(),
 		...timestamps,
 	},
 	table => [

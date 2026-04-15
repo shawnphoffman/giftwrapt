@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import { claimItemGift } from '@/api/gifts'
+import { claimItemGift, updateItemGift } from '@/api/gifts'
+import type { GiftOnItem } from '@/api/lists'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -12,13 +13,21 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 
-type Props = {
+type BaseProps = {
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	itemId: number
 	itemTitle: string
+	// For create mode: remaining = item.quantity - sum(all claims).
+	// For edit mode:   remaining = item.quantity - sum(OTHER claims) — so the
+	// current claim's own quantity is part of the budget the user can spend.
 	remainingQuantity: number
 }
+
+type CreateProps = BaseProps & { mode?: 'create'; gift?: never }
+type EditProps = BaseProps & { mode: 'edit'; gift: GiftOnItem }
+
+type Props = CreateProps | EditProps
 
 function getErrorMessage(errors: Array<unknown>): string {
 	return errors
@@ -48,7 +57,9 @@ function buildSchema(remaining: number) {
 	})
 }
 
-export function ClaimGiftDialog({ open, onOpenChange, itemId, itemTitle, remainingQuantity }: Props) {
+export function ClaimGiftDialog(props: Props) {
+	const { open, onOpenChange, itemId, itemTitle, remainingQuantity } = props
+	const isEdit = props.mode === 'edit'
 	const router = useRouter()
 	const [submitting, setSubmitting] = useState(false)
 	const [error, setError] = useState<string | null>(null)
@@ -57,9 +68,9 @@ export function ClaimGiftDialog({ open, onOpenChange, itemId, itemTitle, remaini
 
 	const form = useForm({
 		defaultValues: {
-			quantity: '1',
-			notes: '',
-			totalCost: '',
+			quantity: isEdit ? String(props.gift.quantity) : '1',
+			notes: isEdit ? (props.gift.notes ?? '') : '',
+			totalCost: isEdit ? (props.gift.totalCost ?? '') : '',
 		},
 		onSubmit: async ({ value }) => {
 			const parsed = schema.safeParse(value)
@@ -71,40 +82,73 @@ export function ClaimGiftDialog({ open, onOpenChange, itemId, itemTitle, remaini
 			setSubmitting(true)
 			setError(null)
 			try {
-				const result = await claimItemGift({
-					data: {
-						itemId,
-						quantity: parsed.data.quantity,
-						notes: parsed.data.notes?.trim() ? parsed.data.notes.trim() : undefined,
-						totalCost: parsed.data.totalCost?.trim() ? parsed.data.totalCost.trim() : undefined,
-					},
-				})
+				if (isEdit) {
+					// Edit: send `null` (not undefined) when the user has cleared a field,
+					// so the server knows to clear it rather than leave it untouched.
+					const trimmedNotes = parsed.data.notes?.trim() ?? ''
+					const trimmedCost = parsed.data.totalCost?.trim() ?? ''
+					const result = await updateItemGift({
+						data: {
+							giftId: props.gift.id,
+							quantity: parsed.data.quantity,
+							notes: trimmedNotes ? trimmedNotes : null,
+							totalCost: trimmedCost ? trimmedCost : null,
+						},
+					})
 
-				if (result.kind === 'error') {
-					// Surface the server-side message. 'over-claim' includes updated remaining,
-					// which is the one case where the client should show the fresh number
-					// rather than the stale one we rendered the dialog with.
-					switch (result.reason) {
-						case 'over-claim':
-							setError(`Too many — only ${result.remaining} left. Someone else may have just claimed.`)
-							break
-						case 'not-visible':
-							setError('You no longer have access to this list.')
-							break
-						case 'cannot-claim-own-list':
-							setError("You can't claim from your own list.")
-							break
-						case 'item-not-found':
-							setError('This item is no longer available.')
-							break
+					if (result.kind === 'error') {
+						switch (result.reason) {
+							case 'over-claim':
+								setError(`Too many — only ${result.remaining} left (someone else may have just claimed).`)
+								break
+							case 'not-yours':
+								setError("You can't edit someone else's claim.")
+								break
+							case 'not-found':
+								setError('This claim no longer exists.')
+								break
+						}
+						return
 					}
-					return
+
+					toast.success('Claim updated')
+				} else {
+					const result = await claimItemGift({
+						data: {
+							itemId,
+							quantity: parsed.data.quantity,
+							notes: parsed.data.notes?.trim() ? parsed.data.notes.trim() : undefined,
+							totalCost: parsed.data.totalCost?.trim() ? parsed.data.totalCost.trim() : undefined,
+						},
+					})
+
+					if (result.kind === 'error') {
+						// Surface the server-side message. 'over-claim' includes updated remaining,
+						// which is the one case where the client should show the fresh number
+						// rather than the stale one we rendered the dialog with.
+						switch (result.reason) {
+							case 'over-claim':
+								setError(`Too many — only ${result.remaining} left. Someone else may have just claimed.`)
+								break
+							case 'not-visible':
+								setError('You no longer have access to this list.')
+								break
+							case 'cannot-claim-own-list':
+								setError("You can't claim from your own list.")
+								break
+							case 'item-not-found':
+								setError('This item is no longer available.')
+								break
+						}
+						return
+					}
+
+					toast.success('Claim saved')
 				}
 
-				toast.success('Claim saved')
 				onOpenChange(false)
 				form.reset()
-				// Re-run the list-detail loader so the claim shows up.
+				// Re-run the list-detail loader so the change shows up.
 				await router.invalidate()
 			} catch (err) {
 				setError(err instanceof Error ? err.message : 'Failed to save claim')
@@ -118,9 +162,13 @@ export function ClaimGiftDialog({ open, onOpenChange, itemId, itemTitle, remaini
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Claim “{itemTitle}”</DialogTitle>
+					<DialogTitle>
+						{isEdit ? 'Edit your claim on' : 'Claim'} “{itemTitle}”
+					</DialogTitle>
 					<DialogDescription>
-						Mark this as something you're gifting. The list owner won't see the claim — only other viewers will.
+						{isEdit
+							? 'Update the quantity, cost, or notes on your claim. The list owner still won\u2019t see any of this.'
+							: "Mark this as something you're gifting. The list owner won't see the claim — only other viewers will."}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -146,7 +194,7 @@ export function ClaimGiftDialog({ open, onOpenChange, itemId, itemTitle, remaini
 									onBlur={field.handleBlur}
 									disabled={submitting}
 								/>
-								<p className="text-xs text-muted-foreground">{remainingQuantity} left to claim</p>
+								<p className="text-xs text-muted-foreground">{remainingQuantity} available to claim</p>
 								{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 									<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
 								)}
@@ -197,7 +245,7 @@ export function ClaimGiftDialog({ open, onOpenChange, itemId, itemTitle, remaini
 
 					{error && (
 						<Alert variant="destructive">
-							<AlertTitle>Couldn't save claim</AlertTitle>
+							<AlertTitle>{isEdit ? "Couldn't update claim" : "Couldn't save claim"}</AlertTitle>
 							<AlertDescription>{error}</AlertDescription>
 						</Alert>
 					)}
@@ -207,7 +255,7 @@ export function ClaimGiftDialog({ open, onOpenChange, itemId, itemTitle, remaini
 							Cancel
 						</Button>
 						<Button type="submit" disabled={submitting || remainingQuantity === 0}>
-							{submitting ? 'Saving…' : 'Claim'}
+							{submitting ? 'Saving…' : isEdit ? 'Save' : 'Claim'}
 						</Button>
 					</DialogFooter>
 				</form>

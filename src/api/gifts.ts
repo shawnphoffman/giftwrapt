@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, ne, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
@@ -15,11 +15,11 @@ import { authMiddleware } from '@/middleware/auth'
 // Batch-by-itemIds rather than one-item-at-a-time so the list-detail view
 // can fetch every item's claims in a single round-trip.
 //
-// NOTE: this returns ALL non-archived claims on the items, regardless of who
-// the viewer is. The visibility barrier is "can the viewer see the parent
-// list" — enforced by getListForViewing at the list level, not re-enforced
-// here per-item. Callers that don't already have list-level visibility MUST
-// check it before surfacing the result.
+// NOTE: returns ALL claims on the items, regardless of who the viewer is.
+// The visibility barrier is "can the viewer see the parent list" — enforced
+// by getListForViewing at the list level, not re-enforced here per-item.
+// Callers that don't already have list-level visibility MUST check it before
+// surfacing the result.
 
 export type GiftWithGifter = GiftedItem & {
 	gifter: {
@@ -37,7 +37,7 @@ export const getGiftsForItems = createServerFn({ method: 'GET' })
 		if (data.itemIds.length === 0) return []
 
 		const rows = await db.query.giftedItems.findMany({
-			where: (g, { inArray, and: andFn, eq: eqFn }) => andFn(inArray(g.itemId, data.itemIds), eqFn(g.isArchived, false)),
+			where: (g, { inArray }) => inArray(g.itemId, data.itemIds),
 			with: {
 				gifter: {
 					columns: { id: true, name: true, email: true, image: true },
@@ -105,10 +105,7 @@ export const claimItemGift = createServerFn({ method: 'POST' })
 			if (!view.ok) return { kind: 'error', reason: 'not-visible' }
 
 			// Compute remaining under the lock.
-			const existing = await tx
-				.select({ quantity: giftedItems.quantity, isArchived: giftedItems.isArchived })
-				.from(giftedItems)
-				.where(and(eq(giftedItems.itemId, data.itemId), eq(giftedItems.isArchived, false)))
+			const existing = await tx.select({ quantity: giftedItems.quantity }).from(giftedItems).where(eq(giftedItems.itemId, data.itemId))
 
 			const remaining = computeRemainingClaimableQuantity(lockedItem.quantity, existing)
 			if (data.quantity > remaining) {
@@ -131,4 +128,117 @@ export const claimItemGift = createServerFn({ method: 'POST' })
 
 			return { kind: 'ok', gift: inserted }
 		})
+	})
+
+// ===============================
+// WRITE — update a claim
+// ===============================
+// Edits the gifter's own claim. The over-claim invariant has to be re-checked
+// under a lock, because the edit is equivalent to "free the old quantity, take
+// the new quantity" — and another tab may have grabbed slots in between.
+//
+// Ownership is enforced by gifterId match, not by any new permission helper:
+// only the original gifter can touch their claim. No owner/editor override.
+
+const UpdateGiftInputSchema = z.object({
+	giftId: z.number().int().positive(),
+	quantity: z.number().int().positive().max(999),
+	notes: z.string().max(2000).nullable().optional(),
+	totalCost: z
+		.union([z.string().regex(/^\d+(\.\d{1,2})?$/), z.number().nonnegative()])
+		.nullable()
+		.optional()
+		.transform(v => (v === undefined || v === null ? v : typeof v === 'number' ? v.toFixed(2) : v)),
+})
+
+export type UpdateGiftResult =
+	| { kind: 'ok'; gift: GiftedItem }
+	| { kind: 'error'; reason: 'not-found' | 'not-yours' }
+	| { kind: 'error'; reason: 'over-claim'; remaining: number }
+
+export const updateItemGift = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware])
+	.inputValidator((data: z.input<typeof UpdateGiftInputSchema>) => UpdateGiftInputSchema.parse(data))
+	.handler(async ({ context, data }): Promise<UpdateGiftResult> => {
+		const gifterId = context.session.user.id
+
+		return await db.transaction(async tx => {
+			// Resolve the claim → item first so we can lock the correct item row.
+			// We re-check gifterId after the lock to avoid TOCTOU on ownership.
+			const gift = await tx.query.giftedItems.findFirst({
+				where: eq(giftedItems.id, data.giftId),
+				columns: { id: true, itemId: true, gifterId: true },
+			})
+			if (!gift) return { kind: 'error', reason: 'not-found' }
+			if (gift.gifterId !== gifterId) return { kind: 'error', reason: 'not-yours' }
+
+			// Lock the parent item. This serializes any concurrent claim/update on
+			// the same item, so the "compute remaining → update" window is atomic.
+			const lockedRows = await tx.execute(sql`SELECT id, quantity, is_archived FROM items WHERE id = ${gift.itemId} FOR UPDATE`)
+			const lockedItem = lockedRows.rows[0] as { id: number; quantity: number; is_archived: boolean } | undefined
+			if (!lockedItem || lockedItem.is_archived) return { kind: 'error', reason: 'not-found' }
+
+			// Compute remaining EXCLUDING this claim (its old quantity goes back into
+			// the pool, then the new quantity is taken). Drizzle's `ne` on the
+			// primary key handles the exclusion cleanly.
+			const otherClaims = await tx
+				.select({ quantity: giftedItems.quantity })
+				.from(giftedItems)
+				.where(and(eq(giftedItems.itemId, gift.itemId), ne(giftedItems.id, gift.id)))
+
+			const remaining = computeRemainingClaimableQuantity(lockedItem.quantity, otherClaims)
+			if (data.quantity > remaining) {
+				return { kind: 'error', reason: 'over-claim', remaining }
+			}
+
+			const [updated] = await tx
+				.update(giftedItems)
+				.set({
+					quantity: data.quantity,
+					// `undefined` = don't touch; `null` = clear the field. The zod schema
+					// above distinguishes these on the wire.
+					...(data.notes !== undefined ? { notes: data.notes } : {}),
+					...(data.totalCost !== undefined ? { totalCost: data.totalCost } : {}),
+				})
+				.where(eq(giftedItems.id, gift.id))
+				.returning()
+
+			return { kind: 'ok', gift: updated }
+		})
+	})
+
+// ===============================
+// WRITE — unclaim (hard delete)
+// ===============================
+// Retracting a claim is a hard DELETE: there's no audit trail need for claims,
+// and the UX is "I misclicked, make it go away." No lock needed — a single
+// DELETE scoped by gifterId is atomic, and nothing else cares about the row
+// after it's gone.
+
+const UnclaimGiftInputSchema = z.object({
+	giftId: z.number().int().positive(),
+})
+
+export type UnclaimGiftResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-yours' }
+
+export const unclaimItemGift = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware])
+	.inputValidator((data: z.input<typeof UnclaimGiftInputSchema>) => UnclaimGiftInputSchema.parse(data))
+	.handler(async ({ context, data }): Promise<UnclaimGiftResult> => {
+		const gifterId = context.session.user.id
+
+		// Pre-check so we can distinguish "doesn't exist" from "not yours" in the
+		// response. The DELETE itself is still scoped by gifterId as a guardrail —
+		// if the row gets reassigned between the read and the delete, the delete
+		// no-ops safely.
+		const existing = await db.query.giftedItems.findFirst({
+			where: eq(giftedItems.id, data.giftId),
+			columns: { id: true, gifterId: true },
+		})
+		if (!existing) return { kind: 'error', reason: 'not-found' }
+		if (existing.gifterId !== gifterId) return { kind: 'error', reason: 'not-yours' }
+
+		await db.delete(giftedItems).where(and(eq(giftedItems.id, data.giftId), eq(giftedItems.gifterId, gifterId)))
+
+		return { kind: 'ok' }
 	})
