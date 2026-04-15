@@ -1,0 +1,1 @@
+ALTER TABLE "gifted_items" DROP COLUMN "is_archived";

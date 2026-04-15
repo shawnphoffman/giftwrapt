@@ -9,17 +9,36 @@
 
 export type ClaimForRemainingCalc = {
 	quantity: number
-	isArchived: boolean
 }
 
 /**
  * Remaining claimable quantity for an item, given its current claims.
  *
- * Archived claims don't count — the item is back up for grabs. Clamped to ≥0
- * so a somehow-over-claimed item (data drift, manual edit) reports 0 rather
- * than negative. Callers should treat a return value of 0 as "fully claimed".
+ * Clamped to ≥0 so a somehow-over-claimed item (data drift, manual edit)
+ * reports 0 rather than negative. Callers should treat a return value of 0
+ * as "fully claimed".
  */
 export function computeRemainingClaimableQuantity(itemQuantity: number, claims: ReadonlyArray<ClaimForRemainingCalc>): number {
-	const claimed = claims.reduce((sum, c) => (c.isArchived ? sum : sum + c.quantity), 0)
+	const claimed = claims.reduce((sum, c) => sum + c.quantity, 0)
 	return Math.max(0, itemQuantity - claimed)
+}
+
+/**
+ * Remaining claimable quantity as seen by a user who is EDITING one of their
+ * own claims — the claim they're editing is excluded from the "already taken"
+ * pool, since editing it replaces (rather than adds to) its quantity.
+ *
+ * Used to populate the max-quantity UX in the edit dialog. The server-side
+ * guard performs the equivalent exclusion under a row lock, so this is purely
+ * a presentation helper.
+ */
+export function computeRemainingClaimableQuantityExcluding(
+	itemQuantity: number,
+	claims: ReadonlyArray<ClaimForRemainingCalc & { id: number }>,
+	excludeGiftId: number
+): number {
+	return computeRemainingClaimableQuantity(
+		itemQuantity,
+		claims.filter(c => c.id !== excludeGiftId)
+	)
 }

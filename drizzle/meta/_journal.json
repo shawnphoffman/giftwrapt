@@ -8,6 +8,13 @@
       "when": 1776274841534,
       "tag": "0000_ancient_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1776296171909,
+      "tag": "0001_light_carmella_unuscione",
+      "breakpoints": true
     }
   ]
 }

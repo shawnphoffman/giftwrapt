@@ -1,12 +1,25 @@
-import { ExternalLink, Gift } from 'lucide-react'
+import { useRouter } from '@tanstack/react-router'
+import { ExternalLink, Gift, Pencil, X } from 'lucide-react'
 import { useState } from 'react'
+import { toast } from 'sonner'
 
+import { unclaimItemGift } from '@/api/gifts'
 import type { ItemWithGifts } from '@/api/lists'
 import PriorityIcon from '@/components/common/priority-icon'
 import UserAvatar from '@/components/common/user-avatar'
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { useSession } from '@/lib/auth-client'
-import { computeRemainingClaimableQuantity } from '@/lib/gifts'
+import { computeRemainingClaimableQuantity, computeRemainingClaimableQuantityExcluding } from '@/lib/gifts'
 import { getDomainFromUrl } from '@/lib/urls'
 
 import { Badge } from '../ui/badge'
@@ -17,20 +30,58 @@ type Props = {
 }
 
 export default function ItemRow({ item }: Props) {
+	const router = useRouter()
 	const { data: session } = useSession()
 	const currentUserId = session?.user.id
-	const [dialogOpen, setDialogOpen] = useState(false)
+	const [claimDialogOpen, setClaimDialogOpen] = useState(false)
+	const [editDialogOpen, setEditDialogOpen] = useState(false)
+	const [unclaimDialogOpen, setUnclaimDialogOpen] = useState(false)
+	const [unclaiming, setUnclaiming] = useState(false)
 
 	const remaining = computeRemainingClaimableQuantity(
 		item.quantity,
-		// The server already filters archived gifts out of `item.gifts`, so
-		// every claim here counts — pass a constant isArchived:false so the
-		// helper treats them uniformly.
-		item.gifts.map(g => ({ quantity: g.quantity, isArchived: false }))
+		item.gifts.map(g => ({ quantity: g.quantity }))
 	)
 	const totalClaimed = item.quantity - remaining
 	const fullyClaimed = remaining === 0
 	const myClaim = currentUserId ? item.gifts.find(g => g.gifterId === currentUserId) : undefined
+
+	// For edit-mode, the user's own claim's quantity counts as "available to
+	// them" — they're not taking an additional slot, just reshaping what
+	// they've already taken.
+	const remainingForEdit = myClaim
+		? computeRemainingClaimableQuantityExcluding(
+				item.quantity,
+				item.gifts.map(g => ({ id: g.id, quantity: g.quantity })),
+				myClaim.id
+			)
+		: remaining
+
+	async function handleUnclaim() {
+		if (!myClaim) return
+		setUnclaiming(true)
+		try {
+			const result = await unclaimItemGift({ data: { giftId: myClaim.id } })
+			if (result.kind === 'error') {
+				switch (result.reason) {
+					case 'not-yours':
+						toast.error("You can't unclaim someone else's claim.")
+						break
+					case 'not-found':
+						toast.error('This claim no longer exists.')
+						break
+				}
+				return
+			}
+			toast.success('Claim removed')
+			setUnclaimDialogOpen(false)
+			await router.invalidate()
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : 'Failed to remove claim')
+		} finally {
+			setUnclaiming(false)
+		}
+	}
 
 	return (
 		<div className="flex flex-col w-full gap-2 p-3 hover:bg-muted" id={`item-${item.id}`}>
@@ -102,7 +153,25 @@ export default function ItemRow({ item }: Props) {
 					</div>
 				)}
 
-				<div className="ml-auto">
+				<div className="flex flex-row items-center gap-2 ml-auto">
+					{myClaim && (
+						<>
+							<Button size="sm" variant="ghost" onClick={() => setEditDialogOpen(true)} title="Edit your claim">
+								<Pencil className="size-4" />
+								Edit
+							</Button>
+							<Button
+								size="sm"
+								variant="ghost"
+								onClick={() => setUnclaimDialogOpen(true)}
+								title="Remove your claim"
+								className="text-destructive hover:text-destructive"
+							>
+								<X className="size-4" />
+								Unclaim
+							</Button>
+						</>
+					)}
 					{fullyClaimed ? (
 						myClaim ? (
 							<Badge variant="outline" className="text-xs">
@@ -114,7 +183,7 @@ export default function ItemRow({ item }: Props) {
 							</Badge>
 						)
 					) : (
-						<Button size="sm" variant="outline" onClick={() => setDialogOpen(true)}>
+						<Button size="sm" variant="outline" onClick={() => setClaimDialogOpen(true)}>
 							<Gift className="size-4" />
 							{myClaim ? 'Claim more' : 'Claim'}
 						</Button>
@@ -123,12 +192,44 @@ export default function ItemRow({ item }: Props) {
 			</div>
 
 			<ClaimGiftDialog
-				open={dialogOpen}
-				onOpenChange={setDialogOpen}
+				open={claimDialogOpen}
+				onOpenChange={setClaimDialogOpen}
 				itemId={item.id}
 				itemTitle={item.title}
 				remainingQuantity={remaining}
 			/>
+
+			{myClaim && editDialogOpen && (
+				// Only mount when open so each open re-reads the current claim values
+				// into form defaults. useForm captures defaultValues once per mount,
+				// so without this the form would go stale after a successful edit.
+				<ClaimGiftDialog
+					mode="edit"
+					gift={myClaim}
+					open={editDialogOpen}
+					onOpenChange={setEditDialogOpen}
+					itemId={item.id}
+					itemTitle={item.title}
+					remainingQuantity={remainingForEdit}
+				/>
+			)}
+
+			<AlertDialog open={unclaimDialogOpen} onOpenChange={setUnclaimDialogOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Remove your claim on “{item.title}”?</AlertDialogTitle>
+						<AlertDialogDescription>
+							Your claim will be deleted and the slot will open back up. You can always claim again later if you change your mind.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel disabled={unclaiming}>Cancel</AlertDialogCancel>
+						<AlertDialogAction onClick={handleUnclaim} disabled={unclaiming}>
+							{unclaiming ? 'Removing…' : 'Yes, unclaim'}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	)
 }
