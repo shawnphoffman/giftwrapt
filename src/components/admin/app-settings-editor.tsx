@@ -120,8 +120,7 @@ export function AppSettingsEditor() {
 					</SelectTrigger>
 					<SelectContent>
 						{(Object.entries(ListTypes) as Array<[keyof typeof ListTypes, string]>).map(([type, label]) => {
-							if (type === 'christmas' && !settings.enableHolidayLists) return null
-							if (type === 'todos' && !settings.enableTodoLists) return null
+							if (type === 'todo' && !settings.enableTodoLists) return null
 							return (
 								<SelectItem key={type} value={type}>
 									{label}

@@ -8,7 +8,7 @@ import { appSettings } from '@/db/schema'
 export const appSettingsSchema = z.object({
 	enableHolidayLists: z.boolean().default(true),
 	enableTodoLists: z.boolean().default(true),
-	defaultListType: z.enum(['wishlist', 'todo', 'holiday']).default('wishlist'),
+	defaultListType: z.enum(['wishlist', 'todo', 'giftideas']).default('wishlist'),
 	enableGiftsForNonUsers: z.boolean().default(false),
 	// maxItemsPerList: z.number().int().positive().default(100),
 })
