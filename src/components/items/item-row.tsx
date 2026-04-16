@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 
 import { unclaimItemGift } from '@/api/gifts'
 import type { ItemWithGifts } from '@/api/lists'
+import { ItemComments } from '@/components/items/item-comments'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import PriorityIcon from '@/components/common/priority-icon'
 import UserAvatar from '@/components/common/user-avatar'
@@ -191,6 +192,9 @@ export default function ItemRow({ item }: Props) {
 					)}
 				</div>
 			</div>
+
+			{/* COMMENTS */}
+			<ItemComments itemId={item.id} />
 
 			<ClaimGiftDialog
 				open={claimDialogOpen}
