@@ -1,47 +1,43 @@
-version: "3.9"
+# =============================================================================
+# Self-Hosted Production Stack
+# =============================================================================
+# Two services: app + database. Migrations run automatically on app startup.
+#
+# Quick start:
+#   1. cp .env.example .env
+#   2. Edit .env — set POSTGRES_PASSWORD and BETTER_AUTH_SECRET at minimum.
+#   3. docker compose -f docker-compose.selfhost.yml up -d
+#   4. Open http://localhost:3000 and sign up.
+#
+# Admin CLI (if locked out):
+#   docker compose -f docker-compose.selfhost.yml exec app \
+#     pnpm admin:create --email=admin@example.com --password=SecurePass123 --name=Admin
 
 services:
-  db-migrate:
-    image: ${APP_IMAGE:-ghcr.io/your-org/wish-lists:latest}
-    env_file:
-      - .env
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      NODE_ENV: production
-    command: /app/docker/migrate.sh
-    depends_on:
-      postgres:
-        condition: service_healthy
-    restart: "no"
-
   app:
-    image: ${APP_IMAGE:-ghcr.io/your-org/wish-lists:latest}
-    env_file:
-      - .env
+    image: ${APP_IMAGE:-ghcr.io/shawnphoffman/wish-lists:latest}
+    env_file: .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-wishlist}
       NODE_ENV: production
     ports:
-      - "3000:3000"
+      - "${APP_PORT:-3000}:3000"
     depends_on:
-      db-migrate:
-        condition: service_completed_successfully
       postgres:
         condition: service_healthy
+    # Health check is built into the image via HEALTHCHECK instruction.
     restart: unless-stopped
 
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: ${POSTGRES_DB:-wishlist}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-wishlist}"]
       interval: 5s
       timeout: 5s
       retries: 10

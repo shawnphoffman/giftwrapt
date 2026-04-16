@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as coreRouteRouteImport } from './routes/(core)/route'
 import { Route as coreIndexRouteImport } from './routes/(core)/index'
+import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as coreTempRouteImport } from './routes/(core)/temp'
 import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
 import { Route as authSignOutRouteImport } from './routes/(auth)/sign-out'
@@ -51,6 +52,11 @@ const coreIndexRoute = coreIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => coreRouteRoute,
+} as any)
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const coreTempRoute = coreTempRouteImport.update({
   id: '/temp',
@@ -216,6 +222,7 @@ export interface FileRoutesByFullPath {
   '/sign-out': typeof authSignOutRoute
   '/sign-up': typeof authSignUpRoute
   '/temp': typeof coreTempRoute
+  '/api/health': typeof ApiHealthRoute
   '/': typeof coreIndexRoute
   '/admin/debug': typeof coreAdminDebugRoute
   '/admin/test': typeof coreAdminTestRoute
@@ -248,6 +255,7 @@ export interface FileRoutesByTo {
   '/sign-out': typeof authSignOutRoute
   '/sign-up': typeof authSignUpRoute
   '/temp': typeof coreTempRoute
+  '/api/health': typeof ApiHealthRoute
   '/': typeof coreIndexRoute
   '/admin/debug': typeof coreAdminDebugRoute
   '/admin/test': typeof coreAdminTestRoute
@@ -284,6 +292,7 @@ export interface FileRoutesById {
   '/(auth)/sign-out': typeof authSignOutRoute
   '/(auth)/sign-up': typeof authSignUpRoute
   '/(core)/temp': typeof coreTempRoute
+  '/api/health': typeof ApiHealthRoute
   '/(core)/': typeof coreIndexRoute
   '/(core)/admin/debug': typeof coreAdminDebugRoute
   '/(core)/admin/test': typeof coreAdminTestRoute
@@ -320,6 +329,7 @@ export interface FileRouteTypes {
     | '/sign-out'
     | '/sign-up'
     | '/temp'
+    | '/api/health'
     | '/'
     | '/admin/debug'
     | '/admin/test'
@@ -352,6 +362,7 @@ export interface FileRouteTypes {
     | '/sign-out'
     | '/sign-up'
     | '/temp'
+    | '/api/health'
     | '/'
     | '/admin/debug'
     | '/admin/test'
@@ -387,6 +398,7 @@ export interface FileRouteTypes {
     | '/(auth)/sign-out'
     | '/(auth)/sign-up'
     | '/(core)/temp'
+    | '/api/health'
     | '/(core)/'
     | '/(core)/admin/debug'
     | '/(core)/admin/test'
@@ -420,6 +432,7 @@ export interface RootRouteChildren {
   authSignInRoute: typeof authSignInRoute
   authSignOutRoute: typeof authSignOutRoute
   authSignUpRoute: typeof authSignUpRoute
+  ApiHealthRoute: typeof ApiHealthRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCronBirthdayEmailsRoute: typeof ApiCronBirthdayEmailsRoute
   ApiListsPublicRoute: typeof ApiListsPublicRoute
@@ -441,6 +454,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof coreIndexRouteImport
       parentRoute: typeof coreRouteRoute
+    }
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/(core)/temp': {
       id: '/(core)/temp'
@@ -746,6 +766,7 @@ const rootRouteChildren: RootRouteChildren = {
   authSignInRoute: authSignInRoute,
   authSignOutRoute: authSignOutRoute,
   authSignUpRoute: authSignUpRoute,
+  ApiHealthRoute: ApiHealthRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCronBirthdayEmailsRoute: ApiCronBirthdayEmailsRoute,
   ApiListsPublicRoute: ApiListsPublicRoute,
