@@ -1,16 +1,21 @@
 import { useForm } from '@tanstack/react-form'
+import { useQuery } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
+import { UserPlus, X } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import { claimItemGift, updateItemGift } from '@/api/gifts'
+import { claimItemGift, updateCoGifters, updateItemGift } from '@/api/gifts'
 import type { GiftOnItem } from '@/api/lists'
+import { getPotentialPartners } from '@/api/user'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 
 type BaseProps = {
@@ -63,6 +68,16 @@ export function ClaimGiftDialog(props: Props) {
 	const router = useRouter()
 	const [submitting, setSubmitting] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+	const [coGifterIds, setCoGifterIds] = useState<string[]>(
+		isEdit ? (props.gift.additionalGifterIds ?? []) : []
+	)
+	const [coGifterSaving, setCoGifterSaving] = useState(false)
+
+	const { data: allUsers } = useQuery({
+		queryKey: ['potential-partners'],
+		queryFn: () => getPotentialPartners(),
+		enabled: open && isEdit,
+	})
 
 	const schema = buildSchema(remainingQuantity)
 
@@ -243,6 +258,19 @@ export function ClaimGiftDialog(props: Props) {
 						)}
 					</form.Field>
 
+					{/* CO-GIFTERS — edit mode only */}
+					{isEdit && (
+						<CoGiftersSection
+							giftId={props.gift.id}
+							coGifterIds={coGifterIds}
+							setCoGifterIds={setCoGifterIds}
+							allUsers={allUsers ?? []}
+							saving={coGifterSaving}
+							setSaving={setCoGifterSaving}
+							onSaved={() => router.invalidate()}
+						/>
+					)}
+
 					{error && (
 						<Alert variant="destructive">
 							<AlertTitle>{isEdit ? "Couldn't update claim" : "Couldn't save claim"}</AlertTitle>
@@ -261,5 +289,102 @@ export function ClaimGiftDialog(props: Props) {
 				</form>
 			</DialogContent>
 		</Dialog>
+	)
+}
+
+// ===============================
+// Co-gifters sub-section
+// ===============================
+
+type CoGiftersSectionProps = {
+	giftId: number
+	coGifterIds: string[]
+	setCoGifterIds: (ids: string[]) => void
+	allUsers: Array<{ id: string; name: string | null; email: string }>
+	saving: boolean
+	setSaving: (v: boolean) => void
+	onSaved: () => void
+}
+
+function CoGiftersSection({ giftId, coGifterIds, setCoGifterIds, allUsers, saving, setSaving, onSaved }: CoGiftersSectionProps) {
+	const [selectedUser, setSelectedUser] = useState('')
+
+	const availableUsers = allUsers.filter(u => !coGifterIds.includes(u.id))
+	const coGifterUsers = allUsers.filter(u => coGifterIds.includes(u.id))
+
+	const handleAdd = async () => {
+		if (!selectedUser) return
+		const newIds = [...coGifterIds, selectedUser]
+		setCoGifterIds(newIds)
+		setSelectedUser('')
+		await saveCoGifters(newIds)
+	}
+
+	const handleRemove = async (userId: string) => {
+		const newIds = coGifterIds.filter(id => id !== userId)
+		setCoGifterIds(newIds)
+		await saveCoGifters(newIds)
+	}
+
+	const saveCoGifters = async (ids: string[]) => {
+		setSaving(true)
+		try {
+			const result = await updateCoGifters({ data: { giftId, additionalGifterIds: ids } })
+			if (result.kind === 'ok') {
+				toast.success('Co-gifters updated')
+				onSaved()
+			}
+		} catch {
+			toast.error('Failed to update co-gifters')
+		} finally {
+			setSaving(false)
+		}
+	}
+
+	return (
+		<div className="grid gap-2 border-t pt-4">
+			<Label className="flex items-center gap-1.5">
+				<UserPlus className="size-4" /> Co-gifters (optional)
+			</Label>
+			<p className="text-xs text-muted-foreground">Add people who are splitting this gift with you.</p>
+
+			{coGifterUsers.length > 0 && (
+				<div className="flex flex-wrap gap-1.5">
+					{coGifterUsers.map(u => (
+						<Badge key={u.id} variant="secondary" className="gap-1 pr-1">
+							{u.name || u.email}
+							<button
+								type="button"
+								onClick={() => handleRemove(u.id)}
+								disabled={saving}
+								className="hover:text-destructive"
+							>
+								<X className="size-3" />
+							</button>
+						</Badge>
+					))}
+				</div>
+			)}
+
+			{availableUsers.length > 0 && (
+				<div className="flex gap-2">
+					<Select value={selectedUser} onValueChange={setSelectedUser} disabled={saving}>
+						<SelectTrigger className="flex-1">
+							<SelectValue placeholder="Add a co-gifter" />
+						</SelectTrigger>
+						<SelectContent>
+							{availableUsers.map(u => (
+								<SelectItem key={u.id} value={u.id}>
+									{u.name || u.email}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+					<Button type="button" size="sm" variant="outline" onClick={handleAdd} disabled={saving || !selectedUser}>
+						Add
+					</Button>
+				</div>
+			)}
+		</div>
 	)
 }
