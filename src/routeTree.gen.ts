@@ -36,6 +36,7 @@ import { Route as coreItemCloneRouteImport } from './routes/(core)/item.clone'
 import { Route as coreAdminUsersRouteImport } from './routes/(core)/admin/users'
 import { Route as coreAdminTestRouteImport } from './routes/(core)/admin/test'
 import { Route as coreAdminDebugRouteImport } from './routes/(core)/admin/debug'
+import { Route as ApiSseListListIdRouteImport } from './routes/api/sse/list.$listId'
 import { Route as coreListsListIdEditRouteImport } from './routes/(core)/lists_/$listId.edit'
 import { Route as coreListsListIdBulkRouteImport } from './routes/(core)/lists_/$listId.bulk'
 import { Route as coreItemImportChar123UrlChar125RouteImport } from './routes/(core)/item.import.{-$url}'
@@ -175,6 +176,11 @@ const coreAdminDebugRoute = coreAdminDebugRouteImport.update({
   path: '/debug',
   getParentRoute: () => coreAdminRouteRoute,
 } as any)
+const ApiSseListListIdRoute = ApiSseListListIdRouteImport.update({
+  id: '/api/sse/list/$listId',
+  path: '/api/sse/list/$listId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const coreListsListIdEditRoute = coreListsListIdEditRouteImport.update({
   id: '/lists_/$listId/edit',
   path: '/lists/$listId/edit',
@@ -228,6 +234,7 @@ export interface FileRoutesByFullPath {
   '/item/import/{-$url}': typeof coreItemImportChar123UrlChar125Route
   '/lists/$listId/bulk': typeof coreListsListIdBulkRoute
   '/lists/$listId/edit': typeof coreListsListIdEditRoute
+  '/api/sse/list/$listId': typeof ApiSseListListIdRoute
 }
 export interface FileRoutesByTo {
   '/sign-in': typeof authSignInRoute
@@ -258,6 +265,7 @@ export interface FileRoutesByTo {
   '/item/import/{-$url}': typeof coreItemImportChar123UrlChar125Route
   '/lists/$listId/bulk': typeof coreListsListIdBulkRoute
   '/lists/$listId/edit': typeof coreListsListIdEditRoute
+  '/api/sse/list/$listId': typeof ApiSseListListIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -292,6 +300,7 @@ export interface FileRoutesById {
   '/(core)/item/import/{-$url}': typeof coreItemImportChar123UrlChar125Route
   '/(core)/lists_/$listId/bulk': typeof coreListsListIdBulkRoute
   '/(core)/lists_/$listId/edit': typeof coreListsListIdEditRoute
+  '/api/sse/list/$listId': typeof ApiSseListListIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -326,6 +335,7 @@ export interface FileRouteTypes {
     | '/item/import/{-$url}'
     | '/lists/$listId/bulk'
     | '/lists/$listId/edit'
+    | '/api/sse/list/$listId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/sign-in'
@@ -356,6 +366,7 @@ export interface FileRouteTypes {
     | '/item/import/{-$url}'
     | '/lists/$listId/bulk'
     | '/lists/$listId/edit'
+    | '/api/sse/list/$listId'
   id:
     | '__root__'
     | '/(core)'
@@ -389,6 +400,7 @@ export interface FileRouteTypes {
     | '/(core)/item/import/{-$url}'
     | '/(core)/lists_/$listId/bulk'
     | '/(core)/lists_/$listId/edit'
+    | '/api/sse/list/$listId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -398,6 +410,7 @@ export interface RootRouteChildren {
   authSignUpRoute: typeof authSignUpRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiListsPublicRoute: typeof ApiListsPublicRoute
+  ApiSseListListIdRoute: typeof ApiSseListListIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -591,6 +604,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreAdminDebugRouteImport
       parentRoute: typeof coreAdminRouteRoute
     }
+    '/api/sse/list/$listId': {
+      id: '/api/sse/list/$listId'
+      path: '/api/sse/list/$listId'
+      fullPath: '/api/sse/list/$listId'
+      preLoaderRoute: typeof ApiSseListListIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/(core)/lists_/$listId/edit': {
       id: '/(core)/lists_/$listId/edit'
       path: '/lists/$listId/edit'
@@ -708,6 +728,7 @@ const rootRouteChildren: RootRouteChildren = {
   authSignUpRoute: authSignUpRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiListsPublicRoute: ApiListsPublicRoute,
+  ApiSseListListIdRoute: ApiSseListListIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

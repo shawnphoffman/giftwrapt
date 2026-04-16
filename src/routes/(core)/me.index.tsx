@@ -1,10 +1,13 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { ListOrdered, Plus } from 'lucide-react'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { Baby, ListOrdered, Plus } from 'lucide-react'
 import { useState } from 'react'
 
-import { getMyLists } from '@/api/lists'
+import { getMyLists, type ChildListGroup } from '@/api/lists'
+import ListTypeIcon from '@/components/common/list-type-icon'
+import UserAvatar from '@/components/common/user-avatar'
 import { CreateListDialog } from '@/components/lists/create-list-dialog'
 import { MyListRow } from '@/components/lists/my-list-row'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
 export const Route = createFileRoute('/(core)/me/')({
@@ -54,6 +57,23 @@ function MyListsPage() {
 						lists={data.giftIdeas}
 					/>
 
+					{/* CHILDREN'S LISTS */}
+					{data.children.length > 0 && (
+						<div className="flex flex-col gap-2">
+							<h3 className="flex items-center gap-2">
+								<Baby className="size-5" /> Children's Lists
+							</h3>
+							<div className="text-sm italic leading-tight text-muted-foreground">
+								Lists belonging to your child accounts. You have full edit access as their guardian.
+							</div>
+							<div className="flex flex-col gap-3">
+								{data.children.map(child => (
+									<ChildListSection key={child.childId} child={child} />
+								))}
+							</div>
+						</div>
+					)}
+
 					{/* EDITABLE LISTS */}
 					{data.editable.length > 0 && (
 						<div className="flex flex-col gap-2">
@@ -97,6 +117,38 @@ function ListSection({
 				<div className="flex flex-col overflow-hidden border divide-y rounded-lg bg-accent">
 					{lists.map(list => (
 						<MyListRow key={list.id} list={list} />
+					))}
+				</div>
+			)}
+		</div>
+	)
+}
+
+function ChildListSection({ child }: { child: ChildListGroup }) {
+	const name = child.childName || child.childEmail
+	return (
+		<div className="border rounded-lg bg-accent overflow-hidden">
+			<div className="flex items-center gap-2 p-2 border-b bg-muted/30">
+				<UserAvatar name={name} image={child.childImage} size="small" />
+				<span className="font-medium text-sm">{name}</span>
+			</div>
+			{child.lists.length === 0 ? (
+				<div className="text-sm text-muted-foreground p-2">No lists yet.</div>
+			) : (
+				<div className="divide-y">
+					{child.lists.map(list => (
+						<Link
+							key={list.id}
+							to="/lists/$listId/edit"
+							params={{ listId: String(list.id) }}
+							className="flex items-center gap-2 p-2 hover:bg-muted/50"
+						>
+							<ListTypeIcon type={list.type} className="size-5 shrink-0" />
+							<span className="flex-1 font-medium leading-tight truncate">{list.name}</span>
+							<Badge variant="secondary" className="text-xs tabular-nums shrink-0">
+								{list.itemCount}
+							</Badge>
+						</Link>
 					))}
 				</div>
 			)}

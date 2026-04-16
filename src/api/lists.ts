@@ -3,7 +3,7 @@ import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
-import { giftedItems, items, listAddons, listEditors, lists } from '@/db/schema'
+import { giftedItems, guardianships, items, listAddons, listEditors, lists, users } from '@/db/schema'
 import { type ListType, listTypeEnumValues } from '@/db/schema/enums'
 import type { GiftedItem } from '@/db/schema/gifts'
 import type { Item } from '@/db/schema/items'
@@ -212,11 +212,20 @@ export type MyListRow = {
 	itemCount: number
 }
 
+export type ChildListGroup = {
+	childId: string
+	childName: string | null
+	childEmail: string
+	childImage: string | null
+	lists: Array<MyListRow>
+}
+
 export type MyListsResult = {
 	public: Array<MyListRow>
 	private: Array<MyListRow>
 	giftIdeas: Array<MyListRow>
 	editable: Array<MyListRow & { ownerName: string | null; ownerEmail: string }>
+	children: Array<ChildListGroup>
 }
 
 export const getMyLists = createServerFn({ method: 'GET' })
@@ -266,6 +275,48 @@ export const getMyLists = createServerFn({ method: 'GET' })
 			.groupBy(lists.id, sql`owner.name`, sql`owner.email`)
 			.orderBy(asc(lists.name))
 
+		// Fetch children's lists (guardianship).
+		const childRows = await db
+			.select({
+				childId: users.id,
+				childName: users.name,
+				childEmail: users.email,
+				childImage: users.image,
+			})
+			.from(guardianships)
+			.innerJoin(users, eq(users.id, guardianships.childUserId))
+			.where(eq(guardianships.parentUserId, userId))
+			.orderBy(asc(users.name))
+
+		const childListGroups: Array<ChildListGroup> = []
+		for (const child of childRows) {
+			const childLists = await db
+				.select({
+					id: lists.id,
+					name: lists.name,
+					type: lists.type,
+					isActive: lists.isActive,
+					isPrivate: lists.isPrivate,
+					isPrimary: lists.isPrimary,
+					description: lists.description,
+					giftIdeasTargetUserId: lists.giftIdeasTargetUserId,
+					itemCount: count(items.id),
+				})
+				.from(lists)
+				.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false)))
+				.where(and(eq(lists.ownerId, child.childId), eq(lists.isActive, true)))
+				.groupBy(lists.id)
+				.orderBy(asc(lists.name))
+
+			childListGroups.push({
+				childId: child.childId,
+				childName: child.childName,
+				childEmail: child.childEmail,
+				childImage: child.childImage,
+				lists: childLists,
+			})
+		}
+
 		return {
 			public: ownedLists.filter(l => !l.isPrivate && l.type !== 'giftideas'),
 			private: ownedLists.filter(l => l.isPrivate && l.type !== 'giftideas'),
@@ -283,6 +334,7 @@ export const getMyLists = createServerFn({ method: 'GET' })
 				ownerName: r.ownerName,
 				ownerEmail: r.ownerEmail,
 			})),
+			children: childListGroups,
 		}
 	})
 

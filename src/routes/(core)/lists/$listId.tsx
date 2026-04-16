@@ -5,6 +5,7 @@ import ListTypeIcon from '@/components/common/list-type-icon'
 import UserAvatar from '@/components/common/user-avatar'
 import ItemList from '@/components/items/item-list'
 import { ListAddonsSection } from '@/components/list-addons/list-addons-section'
+import { useListSSE } from '@/lib/use-list-sse'
 // import UserAvatarBadge from '@/components/common/user-avatar-badge'
 // import { Badge } from '@/components/ui/badge'
 // import { ListTypes } from '@/db/schema/enums'
@@ -31,6 +32,7 @@ export const Route = createFileRoute('/(core)/lists/$listId')({
 
 function ListDetailPage() {
 	const list = Route.useLoaderData()
+	useListSSE(list.id)
 
 	const recipientName = list.owner.name || list.owner.email
 	// const listTypeLabel = ListTypes[list.type]
