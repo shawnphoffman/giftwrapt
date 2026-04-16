@@ -1,5 +1,5 @@
 /**
- * List-visibility predicate shared by the list-detail view and the claim flow.
+ * List-level permission predicates shared by routes and server fns.
  *
  * Intentionally NOT owner-aware: what an owner can do with their own list is
  * a different question (the viewer route redirects them to the edit view; the
@@ -10,7 +10,7 @@
 import { and, eq } from 'drizzle-orm'
 
 import { db } from '@/db'
-import { userRelationships } from '@/db/schema'
+import { listEditors, userRelationships } from '@/db/schema'
 
 export type CanViewListResult = { ok: true } | { ok: false; reason: 'inactive' | 'private' | 'denied' }
 
@@ -38,4 +38,39 @@ export async function canViewList(viewerId: string, list: ListForVisibilityCheck
 	if (denied) return { ok: false, reason: 'denied' }
 
 	return { ok: true }
+}
+
+// ===============================
+// canEditList
+// ===============================
+// Edit access is granted in TWO layered ways (spec §2.6):
+//   1. User-level: userRelationships.canEdit = true (blanket edit on all
+//      of that owner's lists).
+//   2. List-level: a row in listEditors for (listId, userId).
+// Either one is sufficient. The owner always has implicit edit access,
+// but callers should check ownership separately (this helper is for
+// non-owners).
+
+export type CanEditListResult = { ok: true } | { ok: false; reason: 'not-editor' }
+
+export async function canEditList(userId: string, list: ListForVisibilityCheck): Promise<CanEditListResult> {
+	// User-level blanket edit grant.
+	const userGrant = await db.query.userRelationships.findFirst({
+		where: and(
+			eq(userRelationships.ownerUserId, list.ownerId),
+			eq(userRelationships.viewerUserId, userId),
+			eq(userRelationships.canEdit, true)
+		),
+		columns: { ownerUserId: true },
+	})
+	if (userGrant) return { ok: true }
+
+	// List-level editor grant.
+	const listGrant = await db.query.listEditors.findFirst({
+		where: and(eq(listEditors.listId, list.id), eq(listEditors.userId, userId)),
+		columns: { id: true },
+	})
+	if (listGrant) return { ok: true }
+
+	return { ok: false, reason: 'not-editor' }
 }

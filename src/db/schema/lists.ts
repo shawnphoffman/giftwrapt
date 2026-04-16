@@ -3,6 +3,7 @@ import { boolean, index, integer, numeric, pgTable, serial, text } from 'drizzle
 
 import { listTypeEnum } from './enums'
 import { itemGroups, items } from './items'
+import { listEditors } from './permissions'
 import { timestamps } from './shared'
 import { users } from './users'
 
@@ -48,9 +49,7 @@ export const listsRelations = relations(lists, ({ one, many }) => ({
 	itemGroups: many(itemGroups),
 	items: many(items),
 	addons: many(listAddons),
-	// Editors
-	// Viewers+
-	// Viewers-Only
+	editors: many(listEditors),
 }))
 
 export type List = typeof lists.$inferSelect

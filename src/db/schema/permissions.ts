@@ -1,4 +1,4 @@
-// import { relations } from 'drizzle-orm'
+import { relations } from 'drizzle-orm'
 import { boolean, index, integer, pgTable, primaryKey, serial, text, unique } from 'drizzle-orm/pg-core'
 
 import { lists } from './lists'
@@ -62,6 +62,23 @@ export const listEditors = pgTable(
 		index('list_editors_ownerId_idx').on(table.ownerId),
 	]
 )
+
+export const listEditorsRelations = relations(listEditors, ({ one }) => ({
+	list: one(lists, {
+		fields: [listEditors.listId],
+		references: [lists.id],
+	}),
+	user: one(users, {
+		fields: [listEditors.userId],
+		references: [users.id],
+		relationName: 'listEditorUser',
+	}),
+	owner: one(users, {
+		fields: [listEditors.ownerId],
+		references: [users.id],
+		relationName: 'listEditorOwner',
+	}),
+}))
 
 export type ListEditor = typeof listEditors.$inferSelect
 export type NewListEditor = typeof listEditors.$inferInsert
