@@ -21,6 +21,8 @@ export const env = createEnv({
 		RESEND_FROM_EMAIL: z.email().optional(),
 		RESEND_FROM_NAME: z.string().optional(),
 		RESEND_BCC_ADDRESS: z.email().optional(),
+		// Cron job authentication
+		CRON_SECRET: z.string().min(1).optional(),
 	},
 
 	/**

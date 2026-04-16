@@ -22,6 +22,7 @@ import { Route as corePurchasesIndexRouteImport } from './routes/(core)/purchase
 import { Route as coreMeIndexRouteImport } from './routes/(core)/me.index'
 import { Route as coreAdminIndexRouteImport } from './routes/(core)/admin/index'
 import { Route as ApiListsPublicRouteImport } from './routes/api/lists/public'
+import { Route as ApiCronBirthdayEmailsRouteImport } from './routes/api/cron/birthday-emails'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as coreSettingsSecurityRouteImport } from './routes/(core)/settings/security'
 import { Route as coreSettingsReceivedRouteImport } from './routes/(core)/settings/received'
@@ -104,6 +105,11 @@ const coreAdminIndexRoute = coreAdminIndexRouteImport.update({
 const ApiListsPublicRoute = ApiListsPublicRouteImport.update({
   id: '/api/lists/public',
   path: '/api/lists/public',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCronBirthdayEmailsRoute = ApiCronBirthdayEmailsRouteImport.update({
+  id: '/api/cron/birthday-emails',
+  path: '/api/cron/birthday-emails',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -225,6 +231,7 @@ export interface FileRoutesByFullPath {
   '/settings/received': typeof coreSettingsReceivedRoute
   '/settings/security': typeof coreSettingsSecurityRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
   '/api/lists/public': typeof ApiListsPublicRoute
   '/admin/': typeof coreAdminIndexRoute
   '/me': typeof coreMeIndexRoute
@@ -256,6 +263,7 @@ export interface FileRoutesByTo {
   '/settings/received': typeof coreSettingsReceivedRoute
   '/settings/security': typeof coreSettingsSecurityRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
   '/api/lists/public': typeof ApiListsPublicRoute
   '/admin': typeof coreAdminIndexRoute
   '/me': typeof coreMeIndexRoute
@@ -291,6 +299,7 @@ export interface FileRoutesById {
   '/(core)/settings/received': typeof coreSettingsReceivedRoute
   '/(core)/settings/security': typeof coreSettingsSecurityRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
   '/api/lists/public': typeof ApiListsPublicRoute
   '/(core)/admin/': typeof coreAdminIndexRoute
   '/(core)/me/': typeof coreMeIndexRoute
@@ -326,6 +335,7 @@ export interface FileRouteTypes {
     | '/settings/received'
     | '/settings/security'
     | '/api/auth/$'
+    | '/api/cron/birthday-emails'
     | '/api/lists/public'
     | '/admin/'
     | '/me'
@@ -357,6 +367,7 @@ export interface FileRouteTypes {
     | '/settings/received'
     | '/settings/security'
     | '/api/auth/$'
+    | '/api/cron/birthday-emails'
     | '/api/lists/public'
     | '/admin'
     | '/me'
@@ -391,6 +402,7 @@ export interface FileRouteTypes {
     | '/(core)/settings/received'
     | '/(core)/settings/security'
     | '/api/auth/$'
+    | '/api/cron/birthday-emails'
     | '/api/lists/public'
     | '/(core)/admin/'
     | '/(core)/me/'
@@ -409,6 +421,7 @@ export interface RootRouteChildren {
   authSignOutRoute: typeof authSignOutRoute
   authSignUpRoute: typeof authSignUpRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiCronBirthdayEmailsRoute: typeof ApiCronBirthdayEmailsRoute
   ApiListsPublicRoute: typeof ApiListsPublicRoute
   ApiSseListListIdRoute: typeof ApiSseListListIdRoute
 }
@@ -504,6 +517,13 @@ declare module '@tanstack/react-router' {
       path: '/api/lists/public'
       fullPath: '/api/lists/public'
       preLoaderRoute: typeof ApiListsPublicRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cron/birthday-emails': {
+      id: '/api/cron/birthday-emails'
+      path: '/api/cron/birthday-emails'
+      fullPath: '/api/cron/birthday-emails'
+      preLoaderRoute: typeof ApiCronBirthdayEmailsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -727,6 +747,7 @@ const rootRouteChildren: RootRouteChildren = {
   authSignOutRoute: authSignOutRoute,
   authSignUpRoute: authSignUpRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiCronBirthdayEmailsRoute: ApiCronBirthdayEmailsRoute,
   ApiListsPublicRoute: ApiListsPublicRoute,
   ApiSseListListIdRoute: ApiSseListListIdRoute,
 }

@@ -1,6 +1,8 @@
 import { Resend } from 'resend'
 
+import BirthdayEmail from '@/emails/happy-birthday-email'
 import NewCommentEmail from '@/emails/new-comment-email'
+import PostBirthdayEmail from '@/emails/post-birthday-email'
 import TestEmail from '@/emails/test-email'
 import { env } from '@/env'
 
@@ -42,6 +44,29 @@ export const sendNewCommentEmail = async (
 		react: (
 			<NewCommentEmail username={username} commenter={commenter} comment={comment} itemTitle={itemTitle} listId={listId} itemId={itemId} />
 		),
+	})
+	return emailResp
+}
+
+export const sendBirthdayEmail = async (name: string, recipient: string) => {
+	const emailResp = await resendClient.emails.send({
+		...commonEmailProps(),
+		to: recipient,
+		subject: `🎉 Happy Birthday, ${name}!`,
+		react: <BirthdayEmail name={name} />,
+	})
+	return emailResp
+}
+
+export const sendPostBirthdayEmail = async (
+	recipient: string,
+	items: Array<{ title: string; image_url: string; gifters: Array<string> }>
+) => {
+	const emailResp = await resendClient.emails.send({
+		...commonEmailProps(),
+		to: recipient,
+		subject: 'A look back at your gifts',
+		react: <PostBirthdayEmail items={items} />,
 	})
 	return emailResp
 }
