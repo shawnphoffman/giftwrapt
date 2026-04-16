@@ -90,6 +90,7 @@
 		"react-dom": "^19.2.0",
 		"react-hook-form": "^7.67.0",
 		"react-markdown": "^10.1.0",
+		"rehype-sanitize": "^6.0.0",
 		"resend": "^6.5.2",
 		"sonner": "^2.0.7",
 		"storybook": "^10.1.3",
