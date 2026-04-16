@@ -154,6 +154,20 @@ export function ClaimGiftDialog(props: Props) {
 							case 'item-not-found':
 								setError('This item is no longer available.')
 								break
+							case 'group-already-claimed':
+								setError(
+									result.blockingItemTitle
+										? `This is part of a "pick one" group and "${result.blockingItemTitle}" was already claimed.`
+										: 'This is part of a "pick one" group that has already been claimed.'
+								)
+								break
+							case 'group-out-of-order':
+								setError(
+									result.blockingItemTitle
+										? `Claim "${result.blockingItemTitle}" first — this group has a required order.`
+										: 'This group has a required order; claim earlier items first.'
+								)
+								break
 						}
 						return
 					}

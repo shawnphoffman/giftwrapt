@@ -55,7 +55,7 @@ function ListDetailPage() {
 					<ListTypeIcon type={list.type} className="wish-page-icon" />
 				</div>
 				{/* ITEMS */}
-				<ItemList items={list.items} />
+				<ItemList items={list.items} groups={list.groups} />
 				{/* OFF-LIST GIFTS */}
 				<ListAddonsSection listId={list.id} addons={list.addons} />
 			</div>

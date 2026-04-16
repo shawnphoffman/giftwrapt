@@ -3,8 +3,8 @@ import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
-import { giftedItems, guardianships, items, listAddons, listEditors, lists, users } from '@/db/schema'
-import { type ListType, listTypeEnumValues } from '@/db/schema/enums'
+import { giftedItems, guardianships, itemGroups, items, listAddons, listEditors, lists, users } from '@/db/schema'
+import { type GroupType, type ListType, listTypeEnumValues } from '@/db/schema/enums'
 import type { GiftedItem } from '@/db/schema/gifts'
 import type { Item } from '@/db/schema/items'
 import type { ListAddon } from '@/db/schema/lists'
@@ -44,6 +44,7 @@ export type ListForViewing = {
 		image: string | null
 	}
 	items: Array<ItemWithGifts>
+	groups: Array<{ id: number; type: GroupType }>
 	addons: Array<AddonOnList>
 }
 
@@ -178,6 +179,11 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 			orderBy: [desc(listAddons.createdAt)],
 		})
 
+		const viewGroups = await db.query.itemGroups.findMany({
+			where: eq(itemGroups.listId, list.id),
+			columns: { id: true, type: true },
+		})
+
 		return {
 			kind: 'ok',
 			list: {
@@ -191,6 +197,7 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 					image: list.owner.image,
 				},
 				items: listItems,
+				groups: viewGroups,
 				addons,
 			},
 		}
@@ -522,6 +529,11 @@ export const setPrimaryList = createServerFn({ method: 'POST' })
 // READ — list for editing (owner/editor view)
 // ===============================
 
+export type GroupSummary = {
+	id: number
+	type: GroupType
+}
+
 export type ListForEditing = {
 	id: number
 	name: string
@@ -532,6 +544,7 @@ export type ListForEditing = {
 	description: string | null
 	ownerId: string
 	items: Array<Item>
+	groups: Array<GroupSummary>
 	isOwner: boolean
 }
 
@@ -577,6 +590,11 @@ export const getListForEditing = createServerFn({ method: 'GET' })
 			orderBy: [desc(items.createdAt)],
 		})
 
+		const groups = await db.query.itemGroups.findMany({
+			where: eq(itemGroups.listId, list.id),
+			columns: { id: true, type: true },
+		})
+
 		return {
 			kind: 'ok',
 			list: {
@@ -589,6 +607,7 @@ export const getListForEditing = createServerFn({ method: 'GET' })
 				description: list.description,
 				ownerId: list.ownerId,
 				items: listItems,
+				groups,
 				isOwner,
 			},
 		}

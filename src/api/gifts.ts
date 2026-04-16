@@ -3,7 +3,7 @@ import { and, eq, ne, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
-import { giftedItems, lists } from '@/db/schema'
+import { giftedItems, itemGroups, items, lists } from '@/db/schema'
 import type { GiftedItem } from '@/db/schema/gifts'
 import { computeRemainingClaimableQuantity } from '@/lib/gifts'
 import { canViewList } from '@/lib/permissions'
@@ -72,7 +72,7 @@ const ClaimGiftInputSchema = z.object({
 
 export type ClaimGiftResult =
 	| { kind: 'ok'; gift: GiftedItem }
-	| { kind: 'error'; reason: 'item-not-found' | 'not-visible' | 'cannot-claim-own-list' }
+	| { kind: 'error'; reason: 'item-not-found' | 'not-visible' | 'cannot-claim-own-list' | 'group-already-claimed' | 'group-out-of-order'; blockingItemTitle?: string }
 	| { kind: 'error'; reason: 'over-claim'; remaining: number }
 
 export const claimItemGift = createServerFn({ method: 'POST' })
@@ -85,8 +85,12 @@ export const claimItemGift = createServerFn({ method: 'POST' })
 			// Lock the item row. Any concurrent claim tx on this item waits here.
 			// Doing this FIRST (before any reads) is deliberate — the point of the
 			// lock is to serialize the "compute remaining → insert" window.
-			const lockedRows = await tx.execute(sql`SELECT id, list_id, quantity, is_archived FROM items WHERE id = ${data.itemId} FOR UPDATE`)
-			const lockedItem = lockedRows.rows[0] as { id: number; list_id: number; quantity: number; is_archived: boolean } | undefined
+			const lockedRows = await tx.execute(
+				sql`SELECT id, list_id, quantity, is_archived, group_id, group_sort_order FROM items WHERE id = ${data.itemId} FOR UPDATE`
+			)
+			const lockedItem = lockedRows.rows[0] as
+				| { id: number; list_id: number; quantity: number; is_archived: boolean; group_id: number | null; group_sort_order: number | null }
+				| undefined
 
 			if (!lockedItem || lockedItem.is_archived) {
 				return { kind: 'error', reason: 'item-not-found' }
@@ -103,6 +107,70 @@ export const claimItemGift = createServerFn({ method: 'POST' })
 
 			const view = await canViewList(gifterId, list)
 			if (!view.ok) return { kind: 'error', reason: 'not-visible' }
+
+			// Group enforcement.
+			//
+			// 'or' groups: if any sibling item in the group has any claim, the
+			// group is satisfied — block this claim.
+			//
+			// 'order' groups: only the next-in-sequence not-fully-claimed item
+			// is claimable. If an earlier item in groupSortOrder still has
+			// remaining quantity, block this claim.
+			//
+			// In both cases, the OWN item already being partially claimed is
+			// fine (multiple gifters can stack on the active item).
+			if (lockedItem.group_id !== null) {
+				const group = await tx.query.itemGroups.findFirst({
+					where: eq(itemGroups.id, lockedItem.group_id),
+					columns: { id: true, type: true },
+				})
+
+				if (group) {
+					if (group.type === 'or') {
+						// Any sibling claim blocks. Allow stacking on this item.
+						const siblings = await tx
+							.select({ itemId: giftedItems.itemId, title: items.title })
+							.from(giftedItems)
+							.innerJoin(items, eq(items.id, giftedItems.itemId))
+							.where(and(eq(items.groupId, group.id), ne(items.id, data.itemId)))
+							.limit(1)
+
+						if (siblings.length > 0) {
+							return { kind: 'error', reason: 'group-already-claimed', blockingItemTitle: siblings[0].title }
+						}
+					} else if (group.type === 'order' && lockedItem.group_sort_order !== null) {
+						// Find any earlier item in the group with remaining quantity.
+						const earlierItems = await tx
+							.select({
+								itemId: items.id,
+								title: items.title,
+								quantity: items.quantity,
+								sortOrder: items.groupSortOrder,
+							})
+							.from(items)
+							.where(
+								and(
+									eq(items.groupId, group.id),
+									eq(items.isArchived, false),
+									ne(items.id, data.itemId),
+									sql`${items.groupSortOrder} IS NOT NULL`,
+									sql`${items.groupSortOrder} < ${lockedItem.group_sort_order}`
+								)
+							)
+
+						for (const earlier of earlierItems) {
+							const earlierClaimed = await tx
+								.select({ quantity: giftedItems.quantity })
+								.from(giftedItems)
+								.where(eq(giftedItems.itemId, earlier.itemId))
+							const earlierRemaining = computeRemainingClaimableQuantity(earlier.quantity, earlierClaimed)
+							if (earlierRemaining > 0) {
+								return { kind: 'error', reason: 'group-out-of-order', blockingItemTitle: earlier.title }
+							}
+						}
+					}
+				}
+			}
 
 			// Compute remaining under the lock.
 			const existing = await tx.select({ quantity: giftedItems.quantity }).from(giftedItems).where(eq(giftedItems.itemId, data.itemId))
