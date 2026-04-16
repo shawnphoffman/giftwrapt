@@ -11,7 +11,7 @@ import type { ListAddon } from '@/db/schema/lists'
 import { canEditList, canViewList } from '@/lib/permissions'
 import { authMiddleware } from '@/middleware/auth'
 
-export type GiftOnItem = Pick<GiftedItem, 'id' | 'itemId' | 'gifterId' | 'quantity' | 'notes' | 'totalCost' | 'createdAt'> & {
+export type GiftOnItem = Pick<GiftedItem, 'id' | 'itemId' | 'gifterId' | 'quantity' | 'notes' | 'totalCost' | 'additionalGifterIds' | 'createdAt'> & {
 	gifter: {
 		id: string
 		name: string | null
@@ -142,6 +142,7 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 						quantity: true,
 						notes: true,
 						totalCost: true,
+						additionalGifterIds: true,
 						createdAt: true,
 					},
 					with: {

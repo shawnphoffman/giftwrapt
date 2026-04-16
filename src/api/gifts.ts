@@ -242,3 +242,42 @@ export const unclaimItemGift = createServerFn({ method: 'POST' })
 
 		return { kind: 'ok' }
 	})
+
+// ===============================
+// WRITE — update co-gifters
+// ===============================
+// Only the original gifter can add or remove co-gifters on their claim.
+// Co-gifters are stored as an array of user IDs.
+
+const UpdateCoGiftersInputSchema = z.object({
+	giftId: z.number().int().positive(),
+	additionalGifterIds: z.array(z.string()).max(10),
+})
+
+export type UpdateCoGiftersResult =
+	| { kind: 'ok'; additionalGifterIds: string[] | null }
+	| { kind: 'error'; reason: 'not-found' | 'not-yours' }
+
+export const updateCoGifters = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware])
+	.inputValidator((data: z.input<typeof UpdateCoGiftersInputSchema>) => UpdateCoGiftersInputSchema.parse(data))
+	.handler(async ({ context, data }): Promise<UpdateCoGiftersResult> => {
+		const gifterId = context.session.user.id
+
+		const gift = await db.query.giftedItems.findFirst({
+			where: eq(giftedItems.id, data.giftId),
+			columns: { id: true, gifterId: true },
+		})
+		if (!gift) return { kind: 'error', reason: 'not-found' }
+		if (gift.gifterId !== gifterId) return { kind: 'error', reason: 'not-yours' }
+
+		const ids = data.additionalGifterIds.length > 0 ? data.additionalGifterIds : null
+
+		const [updated] = await db
+			.update(giftedItems)
+			.set({ additionalGifterIds: ids })
+			.where(eq(giftedItems.id, data.giftId))
+			.returning({ additionalGifterIds: giftedItems.additionalGifterIds })
+
+		return { kind: 'ok', additionalGifterIds: updated.additionalGifterIds }
+	})
