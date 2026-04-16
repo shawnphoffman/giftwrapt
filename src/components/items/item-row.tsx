@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 
 import { unclaimItemGift } from '@/api/gifts'
 import type { ItemWithGifts } from '@/api/lists'
+import { MarkdownNotes } from '@/components/common/markdown-notes'
 import PriorityIcon from '@/components/common/priority-icon'
 import UserAvatar from '@/components/common/user-avatar'
 import {
@@ -113,7 +114,7 @@ export default function ItemRow({ item }: Props) {
 								<span className="px-2 text-xs border rounded whitespace-nowrap bg-card w-fit">Qty: {item.quantity}</span>
 							)}
 						</div>
-						{item.notes && <div className="text-sm text-foreground/75">{item.notes}</div>}
+						{item.notes && <MarkdownNotes content={item.notes} className="text-sm text-foreground/75" />}
 					</div>
 					{item.imageUrl && (
 						<div className="flex items-center justify-center">
