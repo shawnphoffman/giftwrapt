@@ -4,6 +4,7 @@ import { getListForViewing } from '@/api/lists'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import UserAvatar from '@/components/common/user-avatar'
 import ItemList from '@/components/items/item-list'
+import { ListAddonsSection } from '@/components/list-addons/list-addons-section'
 // import UserAvatarBadge from '@/components/common/user-avatar-badge'
 // import { Badge } from '@/components/ui/badge'
 // import { ListTypes } from '@/db/schema/enums'
@@ -53,6 +54,8 @@ function ListDetailPage() {
 				</div>
 				{/* ITEMS */}
 				<ItemList items={list.items} />
+				{/* OFF-LIST GIFTS */}
+				<ListAddonsSection listId={list.id} addons={list.addons} />
 			</div>
 		</div>
 	)

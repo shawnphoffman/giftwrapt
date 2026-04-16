@@ -2,10 +2,11 @@ import { createServerFn } from '@tanstack/react-start'
 import { and, asc, desc, eq, sql } from 'drizzle-orm'
 
 import { db } from '@/db'
-import { items, lists } from '@/db/schema'
+import { items, listAddons, lists } from '@/db/schema'
 import type { ListType } from '@/db/schema/enums'
 import type { GiftedItem } from '@/db/schema/gifts'
 import type { Item } from '@/db/schema/items'
+import type { ListAddon } from '@/db/schema/lists'
 import { canViewList } from '@/lib/permissions'
 import { authMiddleware } from '@/middleware/auth'
 
@@ -22,6 +23,15 @@ export type ItemWithGifts = Item & {
 	gifts: Array<GiftOnItem>
 }
 
+export type AddonOnList = Pick<ListAddon, 'id' | 'listId' | 'userId' | 'description' | 'totalCost' | 'notes' | 'isArchived' | 'createdAt'> & {
+	user: {
+		id: string
+		name: string | null
+		email: string
+		image: string | null
+	}
+}
+
 export type ListForViewing = {
 	id: number
 	name: string
@@ -33,6 +43,7 @@ export type ListForViewing = {
 		image: string | null
 	}
 	items: Array<ItemWithGifts>
+	addons: Array<AddonOnList>
 }
 
 export type GetListForViewingResult =
@@ -141,6 +152,30 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 			},
 		})
 
+		// Fetch addons (off-list gifts) for this list. Non-archived addons are
+		// active; archived ones mean "gift was given" and surface on the
+		// recipient's received-gifts page. We fetch both here so the UI can
+		// differentiate, but the list-detail section only shows non-archived.
+		const addons = await db.query.listAddons.findMany({
+			where: eq(listAddons.listId, list.id),
+			columns: {
+				id: true,
+				listId: true,
+				userId: true,
+				description: true,
+				totalCost: true,
+				notes: true,
+				isArchived: true,
+				createdAt: true,
+			},
+			with: {
+				user: {
+					columns: { id: true, name: true, email: true, image: true },
+				},
+			},
+			orderBy: [desc(listAddons.createdAt)],
+		})
+
 		return {
 			kind: 'ok',
 			list: {
@@ -154,6 +189,7 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 					image: list.owner.image,
 				},
 				items: listItems,
+				addons,
 			},
 		}
 	})

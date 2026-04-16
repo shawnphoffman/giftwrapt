@@ -1,0 +1,59 @@
+import { PackagePlus } from 'lucide-react'
+import { useState } from 'react'
+
+import type { AddonOnList } from '@/api/lists'
+import { Button } from '@/components/ui/button'
+
+import { ListAddonDialog } from './list-addon-dialog'
+import { ListAddonRow } from './list-addon-row'
+
+type Props = {
+	listId: number
+	addons: Array<AddonOnList>
+}
+
+export function ListAddonsSection({ listId, addons }: Props) {
+	const [createDialogOpen, setCreateDialogOpen] = useState(false)
+
+	const activeAddons = addons.filter(a => !a.isArchived)
+	const archivedAddons = addons.filter(a => a.isArchived)
+
+	return (
+		<div className="flex flex-col gap-3">
+			<div className="flex flex-row items-center justify-between">
+				<h2 className="text-lg font-semibold">Off-list gifts</h2>
+				<Button size="sm" variant="outline" onClick={() => setCreateDialogOpen(true)}>
+					<PackagePlus className="size-4" />
+					Add off-list gift
+				</Button>
+			</div>
+
+			{activeAddons.length === 0 && archivedAddons.length === 0 && (
+				<p className="text-sm text-muted-foreground">
+					No off-list gifts yet. If you're getting something that isn't on the list, add it here so other gifters can see.
+				</p>
+			)}
+
+			{activeAddons.length > 0 && (
+				<div className="flex flex-col overflow-hidden border divide-y rounded-lg shadow-sm text-card-foreground bg-accent">
+					{activeAddons.map(addon => (
+						<ListAddonRow key={addon.id} addon={addon} listId={listId} />
+					))}
+				</div>
+			)}
+
+			{archivedAddons.length > 0 && (
+				<div className="flex flex-col gap-2">
+					<h3 className="text-sm font-medium text-muted-foreground">Already given</h3>
+					<div className="flex flex-col overflow-hidden border divide-y rounded-lg shadow-sm opacity-60 text-card-foreground bg-accent">
+						{archivedAddons.map(addon => (
+							<ListAddonRow key={addon.id} addon={addon} listId={listId} />
+						))}
+					</div>
+				</div>
+			)}
+
+			<ListAddonDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} listId={listId} />
+		</div>
+	)
+}
