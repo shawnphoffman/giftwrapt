@@ -1,9 +1,11 @@
 import { useRouter } from '@tanstack/react-router'
-import { Archive, ExternalLink, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
+import { Archive, ExternalLink, Group, MoreHorizontal, Pencil, Trash2, Ungroup } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
+import { assignItemsToGroup } from '@/api/groups'
 import { archiveItem, deleteItem } from '@/api/items'
+import type { GroupSummary } from '@/api/lists'
 import type { Item } from '@/db/schema/items'
 import PriorityIcon from '@/components/common/priority-icon'
 import {
@@ -23,14 +25,19 @@ import {
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuSeparator,
+	DropdownMenuSub,
+	DropdownMenuSubContent,
+	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
+import { GroupBadge } from './group-badge'
 import { ItemFormDialog } from './item-form-dialog'
 
 type Props = {
 	item: Item
 	onMoveClick?: (item: Item) => void
+	groups?: Array<GroupSummary>
 }
 
 function getDomain(url: string): string | null {
@@ -41,10 +48,23 @@ function getDomain(url: string): string | null {
 	}
 }
 
-export function ItemEditRow({ item, onMoveClick }: Props) {
+export function ItemEditRow({ item, onMoveClick, groups = [] }: Props) {
 	const router = useRouter()
 	const [editOpen, setEditOpen] = useState(false)
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+
+	const currentGroup = groups.find(g => g.id === item.groupId)
+	const otherGroups = groups.filter(g => g.id !== item.groupId)
+
+	const handleAssignGroup = async (groupId: number | null) => {
+		const result = await assignItemsToGroup({ data: { groupId, itemIds: [item.id] } })
+		if (result.kind === 'ok') {
+			toast.success(groupId === null ? 'Removed from group' : 'Added to group')
+			await router.invalidate()
+		} else {
+			toast.error('Failed to update group')
+		}
+	}
 
 	const handleDelete = async () => {
 		const result = await deleteItem({ data: { itemId: item.id } })
@@ -84,6 +104,7 @@ export function ItemEditRow({ item, onMoveClick }: Props) {
 						</a>
 					)}
 				</div>
+				{currentGroup && <GroupBadge type={currentGroup.type} className="text-xs shrink-0" />}
 				{item.price && (
 					<Badge variant="outline" className="text-xs shrink-0">
 						${item.price}
@@ -108,6 +129,26 @@ export function ItemEditRow({ item, onMoveClick }: Props) {
 							<DropdownMenuItem onClick={() => onMoveClick(item)}>
 								<Archive className="mr-2 size-4" /> Move to...
 							</DropdownMenuItem>
+						)}
+						{groups.length > 0 && (
+							<DropdownMenuSub>
+								<DropdownMenuSubTrigger>
+									<Group className="mr-2 size-4" /> Group
+								</DropdownMenuSubTrigger>
+								<DropdownMenuSubContent>
+									{otherGroups.map(g => (
+										<DropdownMenuItem key={g.id} onClick={() => handleAssignGroup(g.id)}>
+											{g.type === 'or' ? 'Pick one' : 'In order'} group #{g.id}
+										</DropdownMenuItem>
+									))}
+									{currentGroup && otherGroups.length > 0 && <DropdownMenuSeparator />}
+									{currentGroup && (
+										<DropdownMenuItem onClick={() => handleAssignGroup(null)}>
+											<Ungroup className="mr-2 size-4" /> Remove from group
+										</DropdownMenuItem>
+									)}
+								</DropdownMenuSubContent>
+							</DropdownMenuSub>
 						)}
 						<DropdownMenuItem onClick={handleArchive}>
 							<Archive className="mr-2 size-4" /> Archive
