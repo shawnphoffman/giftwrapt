@@ -49,16 +49,20 @@ COPY drizzle.config.ts ./
 COPY src ./src
 COPY scripts ./scripts
 COPY docker/entrypoint.sh /app/docker/entrypoint.sh
+COPY docker/migrate.sh /app/docker/migrate.sh
+COPY docker/healthcheck.sh /app/docker/healthcheck.sh
 
-# Install pnpm for migrations
+# Install pnpm for migrations and tsx for admin scripts
 RUN npm install -g pnpm && \
 	chmod +x /app/docker/entrypoint.sh && \
-	chmod +x /app/docker/migrate.sh
+	chmod +x /app/docker/migrate.sh && \
+	chmod +x /app/docker/healthcheck.sh
 
-# Expose the port the app will run on
 EXPOSE 3000
 
 USER nodejs
 
-# Start the Node.js server
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+	CMD /app/docker/healthcheck.sh
+
 ENTRYPOINT ["/app/docker/entrypoint.sh"]
