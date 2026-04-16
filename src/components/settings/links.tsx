@@ -23,9 +23,9 @@ export default function SettingsLinks() {
 			<Link to="/settings/permissions" className={pathname === '/settings/permissions' ? activeClasses : ''}>
 				Permissions
 			</Link>
-			{/* <Link to="/settings/connections" className={pathname === '/settings/connections' ? activeClasses : ''}>
+			<Link to="/settings/connections" className={pathname === '/settings/connections' ? activeClasses : ''}>
 				Connections
-			</Link> */}
+			</Link>
 			<Separator />
 			<Link to="/settings/purchases" className={cn(pathname === '/settings/purchases' ? activeClasses : '', passiveClasses, iconClasses)}>
 				<Receipt size={16} />
