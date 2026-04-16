@@ -24,6 +24,7 @@ import { Route as coreMeIndexRouteImport } from './routes/(core)/me.index'
 import { Route as coreAdminIndexRouteImport } from './routes/(core)/admin/index'
 import { Route as ApiListsPublicRouteImport } from './routes/api/lists/public'
 import { Route as ApiCronBirthdayEmailsRouteImport } from './routes/api/cron/birthday-emails'
+import { Route as ApiCronAutoArchiveRouteImport } from './routes/api/cron/auto-archive'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as coreSettingsSecurityRouteImport } from './routes/(core)/settings/security'
 import { Route as coreSettingsReceivedRouteImport } from './routes/(core)/settings/received'
@@ -116,6 +117,11 @@ const ApiListsPublicRoute = ApiListsPublicRouteImport.update({
 const ApiCronBirthdayEmailsRoute = ApiCronBirthdayEmailsRouteImport.update({
   id: '/api/cron/birthday-emails',
   path: '/api/cron/birthday-emails',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCronAutoArchiveRoute = ApiCronAutoArchiveRouteImport.update({
+  id: '/api/cron/auto-archive',
+  path: '/api/cron/auto-archive',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -238,6 +244,7 @@ export interface FileRoutesByFullPath {
   '/settings/received': typeof coreSettingsReceivedRoute
   '/settings/security': typeof coreSettingsSecurityRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
   '/api/lists/public': typeof ApiListsPublicRoute
   '/admin/': typeof coreAdminIndexRoute
@@ -271,6 +278,7 @@ export interface FileRoutesByTo {
   '/settings/received': typeof coreSettingsReceivedRoute
   '/settings/security': typeof coreSettingsSecurityRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
   '/api/lists/public': typeof ApiListsPublicRoute
   '/admin': typeof coreAdminIndexRoute
@@ -308,6 +316,7 @@ export interface FileRoutesById {
   '/(core)/settings/received': typeof coreSettingsReceivedRoute
   '/(core)/settings/security': typeof coreSettingsSecurityRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
   '/api/lists/public': typeof ApiListsPublicRoute
   '/(core)/admin/': typeof coreAdminIndexRoute
@@ -345,6 +354,7 @@ export interface FileRouteTypes {
     | '/settings/received'
     | '/settings/security'
     | '/api/auth/$'
+    | '/api/cron/auto-archive'
     | '/api/cron/birthday-emails'
     | '/api/lists/public'
     | '/admin/'
@@ -378,6 +388,7 @@ export interface FileRouteTypes {
     | '/settings/received'
     | '/settings/security'
     | '/api/auth/$'
+    | '/api/cron/auto-archive'
     | '/api/cron/birthday-emails'
     | '/api/lists/public'
     | '/admin'
@@ -414,6 +425,7 @@ export interface FileRouteTypes {
     | '/(core)/settings/received'
     | '/(core)/settings/security'
     | '/api/auth/$'
+    | '/api/cron/auto-archive'
     | '/api/cron/birthday-emails'
     | '/api/lists/public'
     | '/(core)/admin/'
@@ -434,6 +446,7 @@ export interface RootRouteChildren {
   authSignUpRoute: typeof authSignUpRoute
   ApiHealthRoute: typeof ApiHealthRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiCronAutoArchiveRoute: typeof ApiCronAutoArchiveRoute
   ApiCronBirthdayEmailsRoute: typeof ApiCronBirthdayEmailsRoute
   ApiListsPublicRoute: typeof ApiListsPublicRoute
   ApiSseListListIdRoute: typeof ApiSseListListIdRoute
@@ -544,6 +557,13 @@ declare module '@tanstack/react-router' {
       path: '/api/cron/birthday-emails'
       fullPath: '/api/cron/birthday-emails'
       preLoaderRoute: typeof ApiCronBirthdayEmailsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cron/auto-archive': {
+      id: '/api/cron/auto-archive'
+      path: '/api/cron/auto-archive'
+      fullPath: '/api/cron/auto-archive'
+      preLoaderRoute: typeof ApiCronAutoArchiveRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -768,6 +788,7 @@ const rootRouteChildren: RootRouteChildren = {
   authSignUpRoute: authSignUpRoute,
   ApiHealthRoute: ApiHealthRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiCronAutoArchiveRoute: ApiCronAutoArchiveRoute,
   ApiCronBirthdayEmailsRoute: ApiCronBirthdayEmailsRoute,
   ApiListsPublicRoute: ApiListsPublicRoute,
   ApiSseListListIdRoute: ApiSseListListIdRoute,

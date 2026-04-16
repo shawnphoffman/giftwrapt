@@ -1,10 +1,10 @@
 import { createServerFn } from '@tanstack/react-start'
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { getAllUsersQuery, getUserDetailsQuery } from '@/db/queries/users'
 import type { BirthMonth, Role } from '@/db/schema'
-import { guardianships, users } from '@/db/schema'
+import { giftedItems, guardianships, items, users } from '@/db/schema'
 import { sendTestEmail } from '@/lib/resend'
 import { adminAuthMiddleware } from '@/middleware/auth'
 
@@ -163,4 +163,31 @@ export const updateUserAsAdmin = createServerFn({
 		}
 
 		return { success: true }
+	})
+
+// ===============================
+// Admin bulk archive — archive all claimed, non-archived items
+// ===============================
+// Spec §2.3 trigger 1: "admins can archive all currently-claimed-but-
+// not-archived items (cleanup)."
+
+export type BulkArchiveResult = { kind: 'ok'; archivedCount: number }
+
+export const bulkArchiveClaimedItems = createServerFn({ method: 'POST' })
+	.middleware([adminAuthMiddleware])
+	.handler(async (): Promise<BulkArchiveResult> => {
+		// Find all non-archived items that have at least one claim.
+		const claimedItemIds = await db
+			.selectDistinct({ itemId: giftedItems.itemId })
+			.from(giftedItems)
+			.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false)))
+
+		if (claimedItemIds.length === 0) {
+			return { kind: 'ok', archivedCount: 0 }
+		}
+
+		const ids = claimedItemIds.map(r => r.itemId)
+		await db.update(items).set({ isArchived: true }).where(inArray(items.id, ids))
+
+		return { kind: 'ok', archivedCount: ids.length }
 	})

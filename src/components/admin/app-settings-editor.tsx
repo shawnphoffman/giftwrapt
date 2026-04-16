@@ -1,7 +1,9 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { updateAppSettings } from '@/api/settings'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
@@ -130,6 +132,80 @@ export function AppSettingsEditor() {
 						})}
 					</SelectContent>
 				</Select>
+			</div>
+
+			{/* Auto-archive: days after birthday */}
+			<DaysSetting
+				id="archiveDaysAfterBirthday"
+				label="Archive after birthday"
+				description="Days after a birthday to automatically archive claimed items on birthday/wishlist lists"
+				value={settings.archiveDaysAfterBirthday}
+				onCommit={value => handleSettingChange('archiveDaysAfterBirthday', value)}
+			/>
+
+			{/* Auto-archive: days after Christmas */}
+			<DaysSetting
+				id="archiveDaysAfterChristmas"
+				label="Archive after Christmas"
+				description="Days after Dec 25 to automatically archive claimed items on Christmas lists"
+				value={settings.archiveDaysAfterChristmas}
+				onCommit={value => handleSettingChange('archiveDaysAfterChristmas', value)}
+			/>
+		</div>
+	)
+}
+
+type DaysSettingProps = {
+	id: string
+	label: string
+	description: string
+	value: number
+	onCommit: (value: number) => void
+}
+
+function DaysSetting({ id, label, description, value, onCommit }: DaysSettingProps) {
+	const [draft, setDraft] = useState(String(value))
+
+	// Keep local draft in sync if the server value changes (after a successful save).
+	useEffect(() => {
+		setDraft(String(value))
+	}, [value])
+
+	const handleCommit = () => {
+		const parsed = parseInt(draft, 10)
+		if (!Number.isFinite(parsed) || parsed < 1) {
+			setDraft(String(value)) // Reject invalid input, snap back to current value.
+			return
+		}
+		if (parsed === value) return
+		onCommit(parsed)
+	}
+
+	return (
+		<div className="flex items-center justify-between gap-4">
+			<div className="space-y-0.5">
+				<Label htmlFor={id} className="text-base">
+					{label}
+				</Label>
+				<p className="text-sm text-muted-foreground">{description}</p>
+			</div>
+			<div className="flex items-center gap-2">
+				<Input
+					id={id}
+					type="number"
+					min={1}
+					max={365}
+					value={draft}
+					onChange={e => setDraft(e.target.value)}
+					onBlur={handleCommit}
+					onKeyDown={e => {
+						if (e.key === 'Enter') {
+							e.currentTarget.blur()
+						}
+					}}
+					className="w-20 text-right"
+				/>
+				<span className="text-sm text-muted-foreground">days</span>
 			</div>
 		</div>
 	)
