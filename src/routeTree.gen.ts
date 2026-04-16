@@ -31,7 +31,6 @@ import { Route as coreSettingsConnectionsRouteImport } from './routes/(core)/set
 import { Route as coreRecentItemsRouteImport } from './routes/(core)/recent.items'
 import { Route as coreRecentCommentsRouteImport } from './routes/(core)/recent.comments'
 import { Route as corePurchasesSummaryRouteImport } from './routes/(core)/purchases.summary'
-import { Route as coreMeNewRouteImport } from './routes/(core)/me.new'
 import { Route as coreListsListIdRouteImport } from './routes/(core)/lists/$listId'
 import { Route as coreItemCloneRouteImport } from './routes/(core)/item.clone'
 import { Route as coreAdminUsersRouteImport } from './routes/(core)/admin/users'
@@ -151,11 +150,6 @@ const corePurchasesSummaryRoute = corePurchasesSummaryRouteImport.update({
   path: '/purchases/summary',
   getParentRoute: () => coreRouteRoute,
 } as any)
-const coreMeNewRoute = coreMeNewRouteImport.update({
-  id: '/me/new',
-  path: '/me/new',
-  getParentRoute: () => coreRouteRoute,
-} as any)
 const coreListsListIdRoute = coreListsListIdRouteImport.update({
   id: '/lists/$listId',
   path: '/lists/$listId',
@@ -216,7 +210,6 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof coreAdminUsersRoute
   '/item/clone': typeof coreItemCloneRoute
   '/lists/$listId': typeof coreListsListIdRoute
-  '/me/new': typeof coreMeNewRoute
   '/purchases/summary': typeof corePurchasesSummaryRoute
   '/recent/comments': typeof coreRecentCommentsRoute
   '/recent/items': typeof coreRecentItemsRoute
@@ -247,7 +240,6 @@ export interface FileRoutesByTo {
   '/admin/users': typeof coreAdminUsersRoute
   '/item/clone': typeof coreItemCloneRoute
   '/lists/$listId': typeof coreListsListIdRoute
-  '/me/new': typeof coreMeNewRoute
   '/purchases/summary': typeof corePurchasesSummaryRoute
   '/recent/comments': typeof coreRecentCommentsRoute
   '/recent/items': typeof coreRecentItemsRoute
@@ -282,7 +274,6 @@ export interface FileRoutesById {
   '/(core)/admin/users': typeof coreAdminUsersRoute
   '/(core)/item/clone': typeof coreItemCloneRoute
   '/(core)/lists/$listId': typeof coreListsListIdRoute
-  '/(core)/me/new': typeof coreMeNewRoute
   '/(core)/purchases/summary': typeof corePurchasesSummaryRoute
   '/(core)/recent/comments': typeof coreRecentCommentsRoute
   '/(core)/recent/items': typeof coreRecentItemsRoute
@@ -317,7 +308,6 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/item/clone'
     | '/lists/$listId'
-    | '/me/new'
     | '/purchases/summary'
     | '/recent/comments'
     | '/recent/items'
@@ -348,7 +338,6 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/item/clone'
     | '/lists/$listId'
-    | '/me/new'
     | '/purchases/summary'
     | '/recent/comments'
     | '/recent/items'
@@ -382,7 +371,6 @@ export interface FileRouteTypes {
     | '/(core)/admin/users'
     | '/(core)/item/clone'
     | '/(core)/lists/$listId'
-    | '/(core)/me/new'
     | '/(core)/purchases/summary'
     | '/(core)/recent/comments'
     | '/(core)/recent/items'
@@ -568,13 +556,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof corePurchasesSummaryRouteImport
       parentRoute: typeof coreRouteRoute
     }
-    '/(core)/me/new': {
-      id: '/(core)/me/new'
-      path: '/me/new'
-      fullPath: '/me/new'
-      preLoaderRoute: typeof coreMeNewRouteImport
-      parentRoute: typeof coreRouteRoute
-    }
     '/(core)/lists/$listId': {
       id: '/(core)/lists/$listId'
       path: '/lists/$listId'
@@ -689,7 +670,6 @@ interface coreRouteRouteChildren {
   coreIndexRoute: typeof coreIndexRoute
   coreItemCloneRoute: typeof coreItemCloneRoute
   coreListsListIdRoute: typeof coreListsListIdRoute
-  coreMeNewRoute: typeof coreMeNewRoute
   corePurchasesSummaryRoute: typeof corePurchasesSummaryRoute
   coreRecentCommentsRoute: typeof coreRecentCommentsRoute
   coreRecentItemsRoute: typeof coreRecentItemsRoute
@@ -707,7 +687,6 @@ const coreRouteRouteChildren: coreRouteRouteChildren = {
   coreIndexRoute: coreIndexRoute,
   coreItemCloneRoute: coreItemCloneRoute,
   coreListsListIdRoute: coreListsListIdRoute,
-  coreMeNewRoute: coreMeNewRoute,
   corePurchasesSummaryRoute: corePurchasesSummaryRoute,
   coreRecentCommentsRoute: coreRecentCommentsRoute,
   coreRecentItemsRoute: coreRecentItemsRoute,
