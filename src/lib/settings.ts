@@ -10,7 +10,10 @@ export const appSettingsSchema = z.object({
 	enableTodoLists: z.boolean().default(true),
 	defaultListType: z.enum(['wishlist', 'christmas', 'birthday', 'giftideas', 'todos', 'test']).default('wishlist'),
 	enableGiftsForNonUsers: z.boolean().default(false),
-	// maxItemsPerList: z.number().int().positive().default(100),
+	// Days after a birthday before claimed items are auto-archived.
+	archiveDaysAfterBirthday: z.number().int().positive().default(14),
+	// Days after Dec 25 before claimed Christmas items are auto-archived.
+	archiveDaysAfterChristmas: z.number().int().positive().default(14),
 })
 
 // 2) Default values in code (for when DB is empty or missing keys)
@@ -19,7 +22,8 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	enableTodoLists: true,
 	defaultListType: 'wishlist',
 	enableGiftsForNonUsers: false,
-	// maxItemsPerList: 100,
+	archiveDaysAfterBirthday: 14,
+	archiveDaysAfterChristmas: 14,
 }
 
 export type AppSettings = z.infer<typeof appSettingsSchema>
