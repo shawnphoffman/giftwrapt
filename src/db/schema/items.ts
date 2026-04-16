@@ -1,7 +1,7 @@
 import { relations } from 'drizzle-orm'
 import { boolean, index, integer, json, pgTable, serial, smallint, text, timestamp } from 'drizzle-orm/pg-core'
 
-import { availabilityEnum, priorityEnum, statusEnum } from './enums'
+import { availabilityEnum, groupTypeEnum, priorityEnum, statusEnum } from './enums'
 import { giftedItems } from './gifts'
 import { lists } from './lists'
 import { timestamps } from './shared'
@@ -30,6 +30,9 @@ export const items = pgTable(
 		priority: priorityEnum('priority').default('normal').notNull(),
 		isArchived: boolean('is_archived').default(false).notNull(),
 		quantity: smallint('quantity').default(1).notNull(),
+		// Position within an item group. Only meaningful when groupId is set.
+		// Used by 'order' groups to enforce claim sequence.
+		groupSortOrder: smallint('group_sort_order'),
 		...timestamps,
 		// modifiedAt is bumped in server actions when title/url/notes change.
 		// Deliberately NOT a DB trigger (decided 2026-04-14) — keeps portability simple.
@@ -56,13 +59,14 @@ export const itemGroups = pgTable(
 		listId: integer('list_id')
 			.notNull()
 			.references(() => lists.id, { onDelete: 'cascade' }),
+		// 'or' = pick one of these (claim of any satisfies the group)
+		// 'order' = sequence (items must be claimed in groupSortOrder)
+		type: groupTypeEnum('type').default('or').notNull(),
 		priority: priorityEnum('priority').default('normal').notNull(),
-		// status?
-		// type (and/or)
 		...timestamps,
 	},
 	table => [
-		index('item_groups_listId_idx').on(table.listId), // Foreign key
+		index('item_groups_listId_idx').on(table.listId),
 	]
 )
 
