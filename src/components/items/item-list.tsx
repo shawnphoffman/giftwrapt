@@ -83,11 +83,6 @@ export default function ItemList({ items, groups = [] }: Props) {
 							<PriorityIcon priority={group.priority} className="size-4 shrink-0" />
 							<GroupBadge type={group.type} showHelp />
 							{group.name && <span className="font-medium text-sm truncate">{group.name}</span>}
-							<span className="text-xs text-muted-foreground ml-auto">
-								{group.type === 'or'
-									? 'Recipient wants ONE of these'
-									: 'Claim in order — top first'}
-							</span>
 						</div>
 						<div className="divide-y">
 							{groupItems.map(item => (
