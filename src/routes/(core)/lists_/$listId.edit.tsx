@@ -3,20 +3,20 @@ import { Group as GroupIcon, ListOrdered, Pencil, Plus, Shuffle, Trash2 } from '
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { createItemGroup, deleteItemGroup } from '@/api/groups'
+import { createItemGroup, deleteItemGroup, reorderGroupItems } from '@/api/groups'
 import { getAddableEditors, getListEditors } from '@/api/list-editors'
 import { getListForEditing } from '@/api/lists'
-import type { GroupType } from '@/db/schema/enums'
-import type { Item } from '@/db/schema/items'
 import PriorityIcon from '@/components/common/priority-icon'
 import { GroupBadge } from '@/components/items/group-badge'
 import { GroupEditPopover } from '@/components/items/group-edit-popover'
 import { ItemEditRow } from '@/components/items/item-edit-row'
 import { ItemFormDialog } from '@/components/items/item-form-dialog'
-import { ListSettingsSheet } from '@/components/lists/list-settings-sheet'
 import { MoveItemDialog } from '@/components/items/move-item-dialog'
+import { ListSettingsSheet } from '@/components/lists/list-settings-sheet'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import type { GroupType } from '@/db/schema/enums'
+import type { Item } from '@/db/schema/items'
 
 export const Route = createFileRoute('/(core)/lists_/$listId/edit')({
 	loader: async ({ params }) => {
@@ -57,6 +57,19 @@ function ListEditPage() {
 		if (result.kind === 'ok') {
 			toast.success('Group removed (items kept)')
 			await router.invalidate()
+		}
+	}
+
+	const handleReorder = async (groupId: number, orderedItems: Array<Item>, fromIndex: number, direction: -1 | 1) => {
+		const toIndex = fromIndex + direction
+		if (toIndex < 0 || toIndex >= orderedItems.length) return
+		const next = orderedItems.slice()
+		;[next[fromIndex], next[toIndex]] = [next[toIndex], next[fromIndex]]
+		const result = await reorderGroupItems({ data: { groupId, itemIds: next.map(i => i.id) } })
+		if (result.kind === 'ok') {
+			await router.invalidate()
+		} else {
+			toast.error('Failed to reorder')
 		}
 	}
 
@@ -178,15 +191,24 @@ function ListEditPage() {
 											</div>
 										) : (
 											<div className="divide-y">
-												{groupItems.map(item => (
-													<ItemEditRow
-														key={item.id}
-														item={item}
-														onMoveClick={list.isOwner ? setMoveItem : undefined}
-														groups={list.groups}
-														hidePriority
-													/>
-												))}
+												{groupItems.map((item, index) => {
+													const showReorder = list.isOwner && group.type === 'order' && groupItems.length > 1
+													return (
+														<ItemEditRow
+															key={item.id}
+															item={item}
+															onMoveClick={list.isOwner ? setMoveItem : undefined}
+															groups={list.groups}
+															hidePriority
+															onMoveUp={showReorder && index > 0 ? () => handleReorder(group.id, groupItems, index, -1) : undefined}
+															onMoveDown={
+																showReorder && index < groupItems.length - 1
+																	? () => handleReorder(group.id, groupItems, index, 1)
+																	: undefined
+															}
+														/>
+													)
+												})}
 											</div>
 										)}
 									</div>
