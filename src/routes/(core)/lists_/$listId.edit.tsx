@@ -8,7 +8,9 @@ import { getListEditors } from '@/api/list-editors'
 import { getListForEditing } from '@/api/lists'
 import type { GroupType } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
+import PriorityIcon from '@/components/common/priority-icon'
 import { GroupBadge } from '@/components/items/group-badge'
+import { GroupEditPopover } from '@/components/items/group-edit-popover'
 import { ItemEditRow } from '@/components/items/item-edit-row'
 import { ItemFormDialog } from '@/components/items/item-form-dialog'
 import { ListEditorsSection } from '@/components/list-editors/list-editors-section'
@@ -150,11 +152,14 @@ function ListEditPage() {
 								const groupItems = itemsByGroup.get(group.id) ?? []
 								return (
 									<div key={group.id} className="border rounded-lg bg-accent overflow-hidden">
-										<div className="flex items-center justify-between gap-2 p-2 bg-muted/30 border-b">
+										<div className="flex items-center gap-2 p-2 bg-muted/30 border-b">
+											<PriorityIcon priority={group.priority} className="size-4 shrink-0" />
 											<GroupBadge type={group.type} />
-											<span className="text-xs text-muted-foreground flex-1">
+											{group.name && <span className="font-medium text-sm truncate">{group.name}</span>}
+											<span className="text-xs text-muted-foreground ml-auto">
 												{groupItems.length} item{groupItems.length !== 1 ? 's' : ''}
 											</span>
+											{list.isOwner && <GroupEditPopover group={group} />}
 											{list.isOwner && (
 												<Button
 													variant="ghost"
@@ -179,6 +184,7 @@ function ListEditPage() {
 														item={item}
 														onMoveClick={list.isOwner ? setMoveItem : undefined}
 														groups={list.groups}
+														hidePriority
 													/>
 												))}
 											</div>

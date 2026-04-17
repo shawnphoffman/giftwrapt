@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 import { db } from '@/db'
 import { giftedItems, guardianships, itemGroups, items, listAddons, listEditors, lists, users } from '@/db/schema'
-import { type GroupType, type ListType, listTypeEnumValues } from '@/db/schema/enums'
+import { type GroupType, type ListType, listTypeEnumValues, type Priority } from '@/db/schema/enums'
 import type { GiftedItem } from '@/db/schema/gifts'
 import type { Item } from '@/db/schema/items'
 import type { ListAddon } from '@/db/schema/lists'
@@ -44,7 +44,7 @@ export type ListForViewing = {
 		image: string | null
 	}
 	items: Array<ItemWithGifts>
-	groups: Array<{ id: number; type: GroupType }>
+	groups: Array<GroupSummary>
 	addons: Array<AddonOnList>
 }
 
@@ -109,23 +109,14 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 		// data.sort to 'priority-desc' already, so no fallback needed here.
 		const [sortBy, sortOrder] = data.sort.split('-') as [string, 'asc' | 'desc']
 
-		let orderBy
-		if (sortBy === 'priority') {
-			// Priority sorting: very-high: 4, high: 3, normal: 2, low: 1
-			const priorityOrder = sql<number>`
-				CASE ${items.priority}
-					WHEN 'very-high' THEN 4
-					WHEN 'high' THEN 3
-					WHEN 'normal' THEN 2
-					WHEN 'low' THEN 1
-					ELSE 0
-				END
-			`
-			orderBy = sortOrder === 'asc' ? [asc(priorityOrder)] : [desc(priorityOrder)]
-		} else {
-			// Date sorting
-			orderBy = sortOrder === 'asc' ? [asc(items.createdAt)] : [desc(items.createdAt)]
-		}
+		// Priority sorting happens after the fetch because an item's effective
+		// priority may come from its group. Date sorting stays at the DB level.
+		const orderBy =
+			sortBy === 'priority'
+				? [asc(items.id)]
+				: sortOrder === 'asc'
+					? [asc(items.createdAt)]
+					: [desc(items.createdAt)]
 
 		// Fetch items + their gifts in one round-trip. Visibility is already
 		// established above, so every claim on these items is OK to show to
@@ -181,8 +172,24 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 
 		const viewGroups = await db.query.itemGroups.findMany({
 			where: eq(itemGroups.listId, list.id),
-			columns: { id: true, type: true },
+			columns: { id: true, type: true, name: true, priority: true },
 		})
+
+		// Priority-sort after fetch so items in a group inherit the group's
+		// priority (single source of truth; item.priority is ignored while
+		// the item belongs to a group).
+		let sortedItems = listItems
+		if (sortBy === 'priority') {
+			const rank: Record<Priority, number> = { 'very-high': 4, high: 3, normal: 2, low: 1 }
+			const groupPriorityById = new Map(viewGroups.map(g => [g.id, g.priority]))
+			const effective = (i: (typeof listItems)[number]) =>
+				(i.groupId !== null ? groupPriorityById.get(i.groupId) : undefined) ?? i.priority
+			sortedItems = [...listItems].sort((a, b) => {
+				const diff = rank[effective(a)] - rank[effective(b)]
+				if (diff !== 0) return sortOrder === 'asc' ? diff : -diff
+				return a.id - b.id
+			})
+		}
 
 		return {
 			kind: 'ok',
@@ -196,7 +203,7 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 					email: list.owner.email,
 					image: list.owner.image,
 				},
-				items: listItems,
+				items: sortedItems,
 				groups: viewGroups,
 				addons,
 			},
@@ -532,6 +539,8 @@ export const setPrimaryList = createServerFn({ method: 'POST' })
 export type GroupSummary = {
 	id: number
 	type: GroupType
+	name: string | null
+	priority: Priority
 }
 
 export type ListForEditing = {
@@ -592,7 +601,7 @@ export const getListForEditing = createServerFn({ method: 'GET' })
 
 		const groups = await db.query.itemGroups.findMany({
 			where: eq(itemGroups.listId, list.id),
-			columns: { id: true, type: true },
+			columns: { id: true, type: true, name: true, priority: true },
 		})
 
 		return {

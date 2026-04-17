@@ -22,6 +22,13 @@
       "when": 1776365553040,
       "tag": "0002_silent_zarda",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1776459802878,
+      "tag": "0003_panoramic_rogue",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "item_groups" ADD COLUMN "name" text;
