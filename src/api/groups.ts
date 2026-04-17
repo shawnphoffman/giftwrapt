@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 import { db } from '@/db'
 import { itemGroups, items, lists } from '@/db/schema'
-import { groupTypeEnumValues, type GroupType } from '@/db/schema/enums'
+import { groupTypeEnumValues, type GroupType, priorityEnumValues, type Priority } from '@/db/schema/enums'
 import type { ItemGroup } from '@/db/schema/items'
 import { canEditList } from '@/lib/permissions'
 import { authMiddleware } from '@/middleware/auth'
@@ -59,13 +59,19 @@ export const createItemGroup = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// UPDATE — change group type
+// UPDATE — change group type, name, or priority
 // ===============================
 
-const UpdateGroupInputSchema = z.object({
-	groupId: z.number().int().positive(),
-	type: z.enum(groupTypeEnumValues),
-})
+const UpdateGroupInputSchema = z
+	.object({
+		groupId: z.number().int().positive(),
+		type: z.enum(groupTypeEnumValues).optional(),
+		name: z.string().trim().max(100).nullable().optional(),
+		priority: z.enum(priorityEnumValues).optional(),
+	})
+	.refine(d => d.type !== undefined || d.name !== undefined || d.priority !== undefined, {
+		message: 'At least one of type, name, or priority must be provided',
+	})
 
 export type UpdateGroupResult =
 	| { kind: 'ok' }
@@ -86,7 +92,12 @@ export const updateItemGroup = createServerFn({ method: 'POST' })
 		const perm = await loadListForEdit(userId, group.listId)
 		if (!perm.ok) return { kind: 'error', reason: perm.reason }
 
-		await db.update(itemGroups).set({ type: data.type }).where(eq(itemGroups.id, data.groupId))
+		const updates: { type?: GroupType; name?: string | null; priority?: Priority } = {}
+		if (data.type !== undefined) updates.type = data.type
+		if (data.name !== undefined) updates.name = data.name === '' ? null : data.name
+		if (data.priority !== undefined) updates.priority = data.priority
+
+		await db.update(itemGroups).set(updates).where(eq(itemGroups.id, data.groupId))
 		return { kind: 'ok' }
 	})
 
@@ -226,6 +237,8 @@ export const reorderGroupItems = createServerFn({ method: 'POST' })
 export type GroupWithItems = {
 	id: number
 	type: GroupType
+	name: string | null
+	priority: Priority
 	itemIds: number[]
 }
 
@@ -246,6 +259,8 @@ export const getGroupsForList = createServerFn({ method: 'GET' })
 		return groups.map(g => ({
 			id: g.id,
 			type: g.type,
+			name: g.name,
+			priority: g.priority,
 			itemIds: allItems.filter(i => i.groupId === g.id).map(i => i.id),
 		}))
 	})

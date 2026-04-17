@@ -30,9 +30,10 @@ import { ClaimGiftDialog } from './claim-gift-dialog'
 
 type Props = {
 	item: ItemWithGifts
+	hidePriority?: boolean
 }
 
-export default function ItemRow({ item }: Props) {
+export default function ItemRow({ item, hidePriority = false }: Props) {
 	const router = useRouter()
 	const queryClient = useQueryClient()
 	const { data: session } = useSession()
@@ -94,7 +95,7 @@ export default function ItemRow({ item }: Props) {
 				<div className="flex flex-row items-stretch gap-x-3.5">
 					<div className="flex flex-col justify-center flex-1 gap-0.5 overflow-hidden">
 						<div className="flex flex-row items-start flex-1 gap-1 overflow-hidden font-medium">
-							<PriorityIcon priority={item.priority} />
+							{!hidePriority && <PriorityIcon priority={item.priority} />}
 							{item.url ? (
 								<>
 									<a

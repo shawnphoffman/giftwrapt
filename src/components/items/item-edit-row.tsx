@@ -38,6 +38,7 @@ type Props = {
 	item: Item
 	onMoveClick?: (item: Item) => void
 	groups?: Array<GroupSummary>
+	hidePriority?: boolean
 }
 
 function getDomain(url: string): string | null {
@@ -48,7 +49,7 @@ function getDomain(url: string): string | null {
 	}
 }
 
-export function ItemEditRow({ item, onMoveClick, groups = [] }: Props) {
+export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = false }: Props) {
 	const router = useRouter()
 	const [editOpen, setEditOpen] = useState(false)
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -90,7 +91,7 @@ export function ItemEditRow({ item, onMoveClick, groups = [] }: Props) {
 	return (
 		<>
 			<div className="flex items-center gap-2 p-2 hover:bg-muted/50">
-				<PriorityIcon priority={item.priority} className="size-4 shrink-0" />
+				{!hidePriority && <PriorityIcon priority={item.priority} className="size-4 shrink-0" />}
 				<div className="flex-1 min-w-0">
 					<div className="font-medium leading-tight truncate">{item.title}</div>
 					{domain && (

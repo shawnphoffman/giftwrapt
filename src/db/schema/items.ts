@@ -63,6 +63,7 @@ export const itemGroups = pgTable(
 		// 'order' = sequence (items must be claimed in groupSortOrder)
 		type: groupTypeEnum('type').default('or').notNull(),
 		priority: priorityEnum('priority').default('normal').notNull(),
+		name: text('name'),
 		...timestamps,
 	},
 	table => [

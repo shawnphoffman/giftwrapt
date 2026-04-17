@@ -39,8 +39,8 @@ function makeItem(overrides: Partial<Item> = {}): Item {
 }
 
 const groups: Array<GroupSummary> = [
-	{ id: 10, type: 'or' },
-	{ id: 11, type: 'order' },
+	{ id: 10, type: 'or', name: null, priority: 'normal' },
+	{ id: 11, type: 'order', name: null, priority: 'normal' },
 ]
 
 const meta = {

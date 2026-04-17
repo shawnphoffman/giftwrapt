@@ -1,15 +1,13 @@
-import type { ItemWithGifts } from '@/api/lists'
+import type { GroupSummary, ItemWithGifts } from '@/api/lists'
 import EmptyMessage from '@/components/common/empty-message'
-import type { GroupType } from '@/db/schema/enums'
+import PriorityIcon from '@/components/common/priority-icon'
 
 import { GroupBadge } from './group-badge'
 import ItemRow from './item-row'
 
-type Group = { id: number; type: GroupType }
-
 type Props = {
 	items: Array<ItemWithGifts>
-	groups?: Array<Group>
+	groups?: Array<GroupSummary>
 }
 
 export default function ItemList({ items, groups = [] }: Props) {
@@ -62,8 +60,10 @@ export default function ItemList({ items, groups = [] }: Props) {
 				return (
 					<div key={group.id} className="border rounded-lg shadow-sm bg-accent overflow-hidden">
 						<div className="flex items-center gap-2 p-2 bg-muted/30 border-b">
+							<PriorityIcon priority={group.priority} className="size-4 shrink-0" />
 							<GroupBadge type={group.type} />
-							<span className="text-xs text-muted-foreground">
+							{group.name && <span className="font-medium text-sm truncate">{group.name}</span>}
+							<span className="text-xs text-muted-foreground ml-auto">
 								{group.type === 'or'
 									? 'Recipient wants ONE of these'
 									: 'Claim in order — top first'}
@@ -71,7 +71,7 @@ export default function ItemList({ items, groups = [] }: Props) {
 						</div>
 						<div className="divide-y">
 							{groupItems.map(item => (
-								<ItemRow key={item.id} item={item} />
+								<ItemRow key={item.id} item={item} hidePriority />
 							))}
 						</div>
 					</div>
