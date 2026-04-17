@@ -1,12 +1,11 @@
 import { useRouter } from '@tanstack/react-router'
-import { Archive, ExternalLink, Group, MoreHorizontal, Pencil, Trash2, Ungroup } from 'lucide-react'
+import { Archive, ArrowDown, ArrowUp, ExternalLink, Group, MoreHorizontal, Pencil, Trash2, Ungroup } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { assignItemsToGroup } from '@/api/groups'
 import { archiveItem, deleteItem } from '@/api/items'
 import type { GroupSummary } from '@/api/lists'
-import type { Item } from '@/db/schema/items'
 import PriorityIcon from '@/components/common/priority-icon'
 import {
 	AlertDialog,
@@ -30,6 +29,7 @@ import {
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import type { Item } from '@/db/schema/items'
 
 import { GroupBadge } from './group-badge'
 import { ItemFormDialog } from './item-form-dialog'
@@ -39,6 +39,13 @@ type Props = {
 	onMoveClick?: (item: Item) => void
 	groups?: Array<GroupSummary>
 	hidePriority?: boolean
+	/**
+	 * When provided, renders up/down arrow buttons for reordering this item
+	 * within its ordered group. Each callback is undefined when the item is
+	 * already at the corresponding edge of the group.
+	 */
+	onMoveUp?: () => void
+	onMoveDown?: () => void
 }
 
 function getDomain(url: string): string | null {
@@ -49,7 +56,7 @@ function getDomain(url: string): string | null {
 	}
 }
 
-export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = false }: Props) {
+export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = false, onMoveUp, onMoveDown }: Props) {
 	const router = useRouter()
 	const [editOpen, setEditOpen] = useState(false)
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -115,6 +122,32 @@ export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = fal
 					<Badge variant="secondary" className="text-xs tabular-nums shrink-0">
 						x{item.quantity}
 					</Badge>
+				)}
+				{(onMoveUp || onMoveDown) && (
+					<div className="flex items-center shrink-0">
+						<Button
+							variant="ghost"
+							size="icon"
+							className="size-7"
+							onClick={onMoveUp}
+							disabled={!onMoveUp}
+							title="Move up"
+							aria-label="Move up"
+						>
+							<ArrowUp className="size-4" />
+						</Button>
+						<Button
+							variant="ghost"
+							size="icon"
+							className="size-7"
+							onClick={onMoveDown}
+							disabled={!onMoveDown}
+							title="Move down"
+							aria-label="Move down"
+						>
+							<ArrowDown className="size-4" />
+						</Button>
+					</div>
 				)}
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
