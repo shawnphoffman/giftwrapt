@@ -7,7 +7,7 @@ import { getContext } from '@/integrations/tanstack-query/root-provider'
 
 // Schema matching the API response: users with their public lists
 const ListSchema = z.object({
-	id: z.string(),
+	id: z.number(),
 	name: z.string(),
 	type: z.enum(['wishlist', 'christmas', 'birthday', 'giftideas', 'todos', 'test']),
 	isActive: z.boolean(),
@@ -23,6 +23,9 @@ const UserWithListsSchema = z.object({
 	id: z.string(),
 	email: z.string(),
 	image: z.string().nullable(),
+	// DB returns null for users without a partner; UserSchema.partnerId is
+	// z.string().optional() (fine for form input, rejects null from the wire).
+	partnerId: z.string().nullish(),
 	lists: z.array(ListSchema),
 })
 
