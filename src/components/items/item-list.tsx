@@ -1,6 +1,7 @@
 import type { GroupSummary, ItemWithGifts } from '@/api/lists'
 import EmptyMessage from '@/components/common/empty-message'
 import PriorityIcon from '@/components/common/priority-icon'
+import { computeRemainingClaimableQuantity } from '@/lib/gifts'
 
 import { GroupBadge } from './group-badge'
 import ItemRow from './item-row'
@@ -57,6 +58,25 @@ export default function ItemList({ items, groups = [] }: Props) {
 			{groups.map(group => {
 				const groupItems = itemsByGroup.get(group.id) ?? []
 				if (groupItems.length === 0) return null
+
+				// For 'order' groups: only the first not-fully-claimed item is
+				// claimable. Everything after it is locked until the active one
+				// is fully taken. Matches the server-side guard in api/gifts.ts.
+				let sawUnfilled = false
+				const lockedByItemId = new Map<number, boolean>()
+				if (group.type === 'order') {
+					for (const item of groupItems) {
+						lockedByItemId.set(item.id, sawUnfilled)
+						if (!sawUnfilled) {
+							const remaining = computeRemainingClaimableQuantity(
+								item.quantity,
+								item.gifts.map(g => ({ quantity: g.quantity }))
+							)
+							if (remaining > 0) sawUnfilled = true
+						}
+					}
+				}
+
 				return (
 					<div key={group.id} className="border rounded-lg shadow-sm bg-accent overflow-hidden">
 						<div className="flex items-center gap-2 p-2 bg-muted/30 border-b">
@@ -71,7 +91,7 @@ export default function ItemList({ items, groups = [] }: Props) {
 						</div>
 						<div className="divide-y">
 							{groupItems.map(item => (
-								<ItemRow key={item.id} item={item} hidePriority />
+								<ItemRow key={item.id} item={item} hidePriority locked={lockedByItemId.get(item.id) ?? false} />
 							))}
 						</div>
 					</div>

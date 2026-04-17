@@ -1,15 +1,15 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
-import { ExternalLink, Gift, Pencil, X } from 'lucide-react'
+import { ExternalLink, Gift, Lock, Pencil, X } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { unclaimItemGift } from '@/api/gifts'
 import type { ItemWithGifts } from '@/api/lists'
-import { ItemComments } from '@/components/items/item-comments'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import PriorityIcon from '@/components/common/priority-icon'
 import UserAvatar from '@/components/common/user-avatar'
+import { ItemComments } from '@/components/items/item-comments'
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -31,9 +31,16 @@ import { ClaimGiftDialog } from './claim-gift-dialog'
 type Props = {
 	item: ItemWithGifts
 	hidePriority?: boolean
+	/**
+	 * When true, this item is blocked by an earlier item in its ordered group.
+	 * The Claim button is suppressed in favor of a "Locked" indicator. Any
+	 * existing claim the viewer already has is still editable/removable —
+	 * locking is forward-only, matching the server-side guard.
+	 */
+	locked?: boolean
 }
 
-export default function ItemRow({ item, hidePriority = false }: Props) {
+export default function ItemRow({ item, hidePriority = false, locked = false }: Props) {
 	const router = useRouter()
 	const queryClient = useQueryClient()
 	const { data: session } = useSession()
@@ -188,6 +195,11 @@ export default function ItemRow({ item, hidePriority = false }: Props) {
 								Fully claimed
 							</Badge>
 						)
+					) : locked && !myClaim ? (
+						<Badge variant="outline" className="text-xs text-muted-foreground" title="Claim the item above first">
+							<Lock className="size-3 mr-1" />
+							Locked
+						</Badge>
 					) : (
 						<Button size="sm" variant="outline" onClick={() => setClaimDialogOpen(true)}>
 							<Gift className="size-4" />
