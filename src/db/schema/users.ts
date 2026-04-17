@@ -67,7 +67,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
 		references: [users.id],
 	}),
 	//
-	lists: many(lists),
+	lists: many(lists, { relationName: 'owner' }),
 }))
 
 export type User = typeof users.$inferSelect

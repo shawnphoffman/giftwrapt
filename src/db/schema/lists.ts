@@ -40,6 +40,7 @@ export const listsRelations = relations(lists, ({ one, many }) => ({
 	owner: one(users, {
 		fields: [lists.ownerId],
 		references: [users.id],
+		relationName: 'owner',
 	}),
 	giftIdeasTarget: one(users, {
 		fields: [lists.giftIdeasTargetUserId],
