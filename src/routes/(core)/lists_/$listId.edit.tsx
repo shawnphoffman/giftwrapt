@@ -11,8 +11,7 @@ import type { Item } from '@/db/schema/items'
 import { GroupBadge } from '@/components/items/group-badge'
 import { ItemEditRow } from '@/components/items/item-edit-row'
 import { ItemFormDialog } from '@/components/items/item-form-dialog'
-import { ListEditorsSection } from '@/components/list-editors/list-editors-section'
-import { ListSettingsCard } from '@/components/lists/list-settings-card'
+import { ListSettingsSheet } from '@/components/lists/list-settings-sheet'
 import { MoveItemDialog } from '@/components/items/move-item-dialog'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -82,20 +81,19 @@ function ListEditPage() {
 			<div className="flex flex-col flex-1 gap-6">
 				{/* HEADING */}
 				<div className="relative flex items-center gap-3">
-					<h1 className="truncate">{list.name}</h1>
+					<h1 className="truncate flex-1">{list.name}</h1>
+					{list.isOwner && (
+						<ListSettingsSheet
+							listId={list.id}
+							name={list.name}
+							type={list.type}
+							isPrivate={list.isPrivate}
+							description={list.description}
+							editors={editors}
+						/>
+					)}
 					<Pencil className="text-blue-500 wish-page-icon" />
 				</div>
-
-				{/* LIST SETTINGS — owner only */}
-				{list.isOwner && (
-					<ListSettingsCard
-						listId={list.id}
-						name={list.name}
-						type={list.type}
-						isPrivate={list.isPrivate}
-						description={list.description}
-					/>
-				)}
 
 				{/* ITEMS */}
 				<div className="flex flex-col gap-2">
@@ -189,9 +187,6 @@ function ListEditPage() {
 						</div>
 					)}
 				</div>
-
-				{/* EDITORS — owner only */}
-				{list.isOwner && <ListEditorsSection listId={list.id} editors={editors} />}
 			</div>
 
 			<ItemFormDialog open={addItemOpen} onOpenChange={setAddItemOpen} mode="create" listId={list.id} />
