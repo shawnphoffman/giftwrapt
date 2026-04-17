@@ -3,7 +3,7 @@ import { UserPlus, X } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import type { EditorOnList } from '@/api/list-editors'
+import type { AddableEditorUser, EditorOnList } from '@/api/list-editors'
 import { addListEditor, removeListEditor } from '@/api/list-editors'
 import UserAvatar from '@/components/common/user-avatar'
 import {
@@ -17,56 +17,45 @@ import {
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 type Props = {
 	listId: number
 	editors: Array<EditorOnList>
+	addableUsers: Array<AddableEditorUser>
 }
 
-export function ListEditorsSection({ listId, editors }: Props) {
+export function ListEditorsSection({ listId, editors, addableUsers }: Props) {
 	const router = useRouter()
-	const [addDialogOpen, setAddDialogOpen] = useState(false)
-	const [removeTarget, setRemoveTarget] = useState<EditorOnList | null>(null)
-	const [email, setEmail] = useState('')
+	const [selectedUserId, setSelectedUserId] = useState<string>('')
 	const [submitting, setSubmitting] = useState(false)
-	const [error, setError] = useState<string | null>(null)
+	const [removeTarget, setRemoveTarget] = useState<EditorOnList | null>(null)
 	const [removing, setRemoving] = useState(false)
 
 	async function handleAdd() {
-		if (!email.trim()) return
+		const picked = addableUsers.find(u => u.id === selectedUserId)
+		if (!picked || picked.role === 'child') return
 		setSubmitting(true)
-		setError(null)
 		try {
-			const result = await addListEditor({ data: { listId, email: email.trim() } })
+			const result = await addListEditor({ data: { listId, userId: picked.id } })
 			if (result.kind === 'error') {
-				switch (result.reason) {
-					case 'user-not-found':
-						setError('No user found with that email.')
-						break
-					case 'already-editor':
-						setError('This user is already an editor.')
-						break
-					case 'cannot-add-self':
-						setError("You can't add yourself as an editor.")
-						break
-					case 'not-owner':
-						setError("You don't own this list.")
-						break
-					case 'list-not-found':
-						setError('This list no longer exists.')
-						break
+				const msg: Record<typeof result.reason, string> = {
+					'user-not-found': 'That user no longer exists.',
+					'already-editor': 'This user is already an editor.',
+					'cannot-add-self': "You can't add yourself as an editor.",
+					'user-is-child': "Child accounts can't be editors.",
+					'not-owner': "You don't own this list.",
+					'list-not-found': 'This list no longer exists.',
 				}
+				toast.error(msg[result.reason])
 				return
 			}
-			toast.success(`${result.editor.user.name || result.editor.user.email} added as editor`)
-			setAddDialogOpen(false)
-			setEmail('')
+			toast.success(`${picked.name || picked.email} added as editor`)
+			setSelectedUserId('')
 			await router.invalidate()
 		} catch (err) {
-			setError(err instanceof Error ? err.message : 'Failed to add editor')
+			toast.error(err instanceof Error ? err.message : 'Failed to add editor')
 		} finally {
 			setSubmitting(false)
 		}
@@ -91,14 +80,60 @@ export function ListEditorsSection({ listId, editors }: Props) {
 		}
 	}
 
+	const pickedIsChild =
+		selectedUserId.length > 0 &&
+		addableUsers.find(u => u.id === selectedUserId)?.role === 'child'
+
 	return (
 		<div className="flex flex-col gap-3">
-			<div className="flex flex-row items-center justify-between">
-				<h2 className="text-lg font-semibold">Editors</h2>
-				<Button size="sm" variant="outline" onClick={() => setAddDialogOpen(true)}>
-					<UserPlus className="size-4" />
-					Add editor
-				</Button>
+			<h2 className="text-lg font-semibold">Editors</h2>
+
+			{/* Inline add row */}
+			<div className="flex flex-col gap-2">
+				<Label htmlFor="add-editor-select" className="text-sm font-medium">
+					Add an editor
+				</Label>
+				{addableUsers.length === 0 ? (
+					<p className="text-sm text-muted-foreground">No other users are available to add.</p>
+				) : (
+					<div className="flex items-center gap-2">
+						<Select
+							value={selectedUserId}
+							onValueChange={setSelectedUserId}
+							disabled={submitting}
+						>
+							<SelectTrigger id="add-editor-select" className="w-full flex-1">
+								<SelectValue placeholder="Choose a user…" />
+							</SelectTrigger>
+							<SelectContent>
+								{addableUsers.map(u => {
+									const display = u.name || u.email
+									const isChild = u.role === 'child'
+									const suffix = isChild
+										? ' (child)'
+										: u.name
+											? ` — ${u.email}`
+											: ''
+									return (
+										<SelectItem key={u.id} value={u.id} disabled={isChild}>
+											{display}
+											{suffix}
+										</SelectItem>
+									)
+								})}
+							</SelectContent>
+						</Select>
+						<Button
+							type="button"
+							size="sm"
+							onClick={handleAdd}
+							disabled={submitting || !selectedUserId || pickedIsChild}
+						>
+							<UserPlus className="size-4" />
+							{submitting ? 'Adding…' : 'Add'}
+						</Button>
+					</div>
+				)}
 			</div>
 
 			{editors.length === 0 ? (
@@ -133,44 +168,6 @@ export function ListEditorsSection({ listId, editors }: Props) {
 				</div>
 			)}
 
-			{/* Add editor dialog */}
-			<Dialog open={addDialogOpen} onOpenChange={o => { setAddDialogOpen(o); if (!o) { setEmail(''); setError(null) } }}>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>Add an editor</DialogTitle>
-						<DialogDescription>Enter the email of the person you want to grant edit access to this list.</DialogDescription>
-					</DialogHeader>
-					<form
-						onSubmit={e => {
-							e.preventDefault()
-							handleAdd()
-						}}
-						className="space-y-4"
-					>
-						<div className="grid gap-2">
-							<Label htmlFor="editor-email">Email</Label>
-							<Input
-								id="editor-email"
-								type="email"
-								placeholder="name@example.com"
-								value={email}
-								onChange={e => setEmail(e.target.value)}
-								disabled={submitting}
-							/>
-							{error && <p className="text-destructive text-sm">{error}</p>}
-						</div>
-						<DialogFooter>
-							<Button type="button" variant="outline" onClick={() => setAddDialogOpen(false)} disabled={submitting}>
-								Cancel
-							</Button>
-							<Button type="submit" disabled={submitting || !email.trim()}>
-								{submitting ? 'Adding\u2026' : 'Add'}
-							</Button>
-						</DialogFooter>
-					</form>
-				</DialogContent>
-			</Dialog>
-
 			{/* Remove editor confirm */}
 			<AlertDialog open={!!removeTarget} onOpenChange={o => { if (!o) setRemoveTarget(null) }}>
 				<AlertDialogContent>
@@ -183,7 +180,7 @@ export function ListEditorsSection({ listId, editors }: Props) {
 					<AlertDialogFooter>
 						<AlertDialogCancel disabled={removing}>Cancel</AlertDialogCancel>
 						<AlertDialogAction onClick={handleRemove} disabled={removing}>
-							{removing ? 'Removing\u2026' : 'Yes, remove'}
+							{removing ? 'Removing…' : 'Yes, remove'}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

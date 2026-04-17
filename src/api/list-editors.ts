@@ -1,9 +1,10 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, eq } from 'drizzle-orm'
+import { and, asc, eq, ne, notInArray } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
 import { listEditors, lists, users } from '@/db/schema'
+import type { Role } from '@/db/schema/enums'
 import { authMiddleware } from '@/middleware/auth'
 
 // ===============================
@@ -56,12 +57,21 @@ export const getListEditors = createServerFn({ method: 'GET' })
 
 const AddEditorInputSchema = z.object({
 	listId: z.number().int().positive(),
-	email: z.string().email('Must be a valid email'),
+	userId: z.string().min(1),
 })
 
 export type AddEditorResult =
 	| { kind: 'ok'; editor: EditorOnList }
-	| { kind: 'error'; reason: 'list-not-found' | 'not-owner' | 'user-not-found' | 'already-editor' | 'cannot-add-self' }
+	| {
+			kind: 'error'
+			reason:
+				| 'list-not-found'
+				| 'not-owner'
+				| 'user-not-found'
+				| 'already-editor'
+				| 'cannot-add-self'
+				| 'user-is-child'
+	  }
 
 export const addListEditor = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware])
@@ -76,13 +86,15 @@ export const addListEditor = createServerFn({ method: 'POST' })
 		if (!list) return { kind: 'error', reason: 'list-not-found' }
 		if (list.ownerId !== ownerId) return { kind: 'error', reason: 'not-owner' }
 
-		// Look up the target user by email.
+		if (data.userId === ownerId) return { kind: 'error', reason: 'cannot-add-self' }
+
+		// Look up the target user.
 		const targetUser = await db.query.users.findFirst({
-			where: eq(users.email, data.email.toLowerCase().trim()),
-			columns: { id: true, name: true, email: true, image: true },
+			where: eq(users.id, data.userId),
+			columns: { id: true, name: true, email: true, image: true, role: true },
 		})
 		if (!targetUser) return { kind: 'error', reason: 'user-not-found' }
-		if (targetUser.id === ownerId) return { kind: 'error', reason: 'cannot-add-self' }
+		if (targetUser.role === 'child') return { kind: 'error', reason: 'user-is-child' }
 
 		// Check for existing grant.
 		const existing = await db.query.listEditors.findFirst({
@@ -105,9 +117,59 @@ export const addListEditor = createServerFn({ method: 'POST' })
 			editor: {
 				id: inserted.id,
 				userId: inserted.userId,
-				user: targetUser,
+				user: {
+					id: targetUser.id,
+					name: targetUser.name,
+					email: targetUser.email,
+					image: targetUser.image,
+				},
 			},
 		}
+	})
+
+// ===============================
+// READ — users eligible to be added as editors
+// ===============================
+// Returns every user who is not the list owner and not already an editor.
+// Includes role so the UI can disable child accounts. Only the list owner
+// gets a populated list; others receive [].
+
+export type AddableEditorUser = {
+	id: string
+	name: string | null
+	email: string
+	image: string | null
+	role: Role
+}
+
+export const getAddableEditors = createServerFn({ method: 'GET' })
+	.middleware([authMiddleware])
+	.inputValidator((data: { listId: number }) => ({ listId: data.listId }))
+	.handler(async ({ context, data }): Promise<Array<AddableEditorUser>> => {
+		const ownerId = context.session.user.id
+
+		const list = await db.query.lists.findFirst({
+			where: eq(lists.id, data.listId),
+			columns: { id: true, ownerId: true },
+		})
+		if (!list || list.ownerId !== ownerId) return []
+
+		const existing = await db.query.listEditors.findMany({
+			where: eq(listEditors.listId, data.listId),
+			columns: { userId: true },
+		})
+		const takenIds = existing.map(e => e.userId)
+
+		const rows = await db.query.users.findMany({
+			where:
+				takenIds.length > 0
+					? and(ne(users.id, ownerId), notInArray(users.id, takenIds))
+					: ne(users.id, ownerId),
+			columns: { id: true, name: true, email: true, image: true, role: true },
+			orderBy: [asc(users.name), asc(users.email)],
+		})
+
+		return rows
 	})
 
 // ===============================

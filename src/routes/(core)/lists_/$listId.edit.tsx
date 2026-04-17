@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { createItemGroup, deleteItemGroup } from '@/api/groups'
-import { getListEditors } from '@/api/list-editors'
+import { getAddableEditors, getListEditors } from '@/api/list-editors'
 import { getListForEditing } from '@/api/lists'
 import type { GroupType } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
@@ -23,20 +23,21 @@ export const Route = createFileRoute('/(core)/lists_/$listId/edit')({
 		const listId = Number(params.listId)
 		if (!Number.isFinite(listId)) throw notFound()
 
-		const [listResult, editors] = await Promise.all([
+		const [listResult, editors, addableUsers] = await Promise.all([
 			getListForEditing({ data: { listId: params.listId } }),
 			getListEditors({ data: { listId } }),
+			getAddableEditors({ data: { listId } }),
 		])
 
 		if (listResult.kind === 'error') throw notFound()
 
-		return { list: listResult.list, editors }
+		return { list: listResult.list, editors, addableUsers }
 	},
 	component: ListEditPage,
 })
 
 function ListEditPage() {
-	const { list, editors } = Route.useLoaderData()
+	const { list, editors, addableUsers } = Route.useLoaderData()
 	const router = useRouter()
 	const [addItemOpen, setAddItemOpen] = useState(false)
 	const [moveItem, setMoveItem] = useState<Item | null>(null)
@@ -44,7 +45,7 @@ function ListEditPage() {
 	const handleCreateGroup = async (type: GroupType) => {
 		const result = await createItemGroup({ data: { listId: list.id, type } })
 		if (result.kind === 'ok') {
-			toast.success(`${type === 'or' ? '"Pick one"' : '"In order"'} group created`)
+			toast.success(`${type === 'or' ? '"Pick one"' : '"Ordered"'} group created`)
 			await router.invalidate()
 		} else {
 			toast.error('Failed to create group')
@@ -92,6 +93,7 @@ function ListEditPage() {
 							isPrivate={list.isPrivate}
 							description={list.description}
 							editors={editors}
+							addableUsers={addableUsers}
 						/>
 					)}
 					<Pencil className="text-blue-500 wish-page-icon" />

@@ -1,7 +1,7 @@
 import { Settings } from 'lucide-react'
 import { useState } from 'react'
 
-import type { EditorOnList } from '@/api/list-editors'
+import type { AddableEditorUser, EditorOnList } from '@/api/list-editors'
 import type { ListType } from '@/db/schema/enums'
 import { ListEditorsSection } from '@/components/list-editors/list-editors-section'
 import { ListSettingsForm } from '@/components/lists/list-settings-form'
@@ -23,9 +23,10 @@ type Props = {
 	isPrivate: boolean
 	description: string | null
 	editors: Array<EditorOnList>
+	addableUsers: Array<AddableEditorUser>
 }
 
-export function ListSettingsSheet({ listId, name, type, isPrivate, description, editors }: Props) {
+export function ListSettingsSheet({ listId, name, type, isPrivate, description, editors, addableUsers }: Props) {
 	const [open, setOpen] = useState(false)
 
 	return (
@@ -54,7 +55,7 @@ export function ListSettingsSheet({ listId, name, type, isPrivate, description, 
 						description={description}
 					/>
 					<Separator />
-					<ListEditorsSection listId={listId} editors={editors} />
+					<ListEditorsSection listId={listId} editors={editors} addableUsers={addableUsers} />
 				</div>
 			</SheetContent>
 		</Sheet>
