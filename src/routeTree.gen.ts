@@ -22,6 +22,7 @@ import { Route as coreSettingsIndexRouteImport } from './routes/(core)/settings/
 import { Route as corePurchasesIndexRouteImport } from './routes/(core)/purchases.index'
 import { Route as coreMeIndexRouteImport } from './routes/(core)/me.index'
 import { Route as coreAdminIndexRouteImport } from './routes/(core)/admin/index'
+import { Route as ApiSseListsRouteImport } from './routes/api/sse/lists'
 import { Route as ApiListsPublicRouteImport } from './routes/api/lists/public'
 import { Route as ApiCronBirthdayEmailsRouteImport } from './routes/api/cron/birthday-emails'
 import { Route as ApiCronAutoArchiveRouteImport } from './routes/api/cron/auto-archive'
@@ -108,6 +109,11 @@ const coreAdminIndexRoute = coreAdminIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => coreAdminRouteRoute,
+} as any)
+const ApiSseListsRoute = ApiSseListsRouteImport.update({
+  id: '/api/sse/lists',
+  path: '/api/sse/lists',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiListsPublicRoute = ApiListsPublicRouteImport.update({
   id: '/api/lists/public',
@@ -247,6 +253,7 @@ export interface FileRoutesByFullPath {
   '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
   '/api/lists/public': typeof ApiListsPublicRoute
+  '/api/sse/lists': typeof ApiSseListsRoute
   '/admin/': typeof coreAdminIndexRoute
   '/me': typeof coreMeIndexRoute
   '/purchases': typeof corePurchasesIndexRoute
@@ -281,6 +288,7 @@ export interface FileRoutesByTo {
   '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
   '/api/lists/public': typeof ApiListsPublicRoute
+  '/api/sse/lists': typeof ApiSseListsRoute
   '/admin': typeof coreAdminIndexRoute
   '/me': typeof coreMeIndexRoute
   '/purchases': typeof corePurchasesIndexRoute
@@ -319,6 +327,7 @@ export interface FileRoutesById {
   '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
   '/api/lists/public': typeof ApiListsPublicRoute
+  '/api/sse/lists': typeof ApiSseListsRoute
   '/(core)/admin/': typeof coreAdminIndexRoute
   '/(core)/me/': typeof coreMeIndexRoute
   '/(core)/purchases/': typeof corePurchasesIndexRoute
@@ -357,6 +366,7 @@ export interface FileRouteTypes {
     | '/api/cron/auto-archive'
     | '/api/cron/birthday-emails'
     | '/api/lists/public'
+    | '/api/sse/lists'
     | '/admin/'
     | '/me'
     | '/purchases'
@@ -391,6 +401,7 @@ export interface FileRouteTypes {
     | '/api/cron/auto-archive'
     | '/api/cron/birthday-emails'
     | '/api/lists/public'
+    | '/api/sse/lists'
     | '/admin'
     | '/me'
     | '/purchases'
@@ -428,6 +439,7 @@ export interface FileRouteTypes {
     | '/api/cron/auto-archive'
     | '/api/cron/birthday-emails'
     | '/api/lists/public'
+    | '/api/sse/lists'
     | '/(core)/admin/'
     | '/(core)/me/'
     | '/(core)/purchases/'
@@ -449,6 +461,7 @@ export interface RootRouteChildren {
   ApiCronAutoArchiveRoute: typeof ApiCronAutoArchiveRoute
   ApiCronBirthdayEmailsRoute: typeof ApiCronBirthdayEmailsRoute
   ApiListsPublicRoute: typeof ApiListsPublicRoute
+  ApiSseListsRoute: typeof ApiSseListsRoute
   ApiSseListListIdRoute: typeof ApiSseListListIdRoute
 }
 
@@ -544,6 +557,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof coreAdminIndexRouteImport
       parentRoute: typeof coreAdminRouteRoute
+    }
+    '/api/sse/lists': {
+      id: '/api/sse/lists'
+      path: '/api/sse/lists'
+      fullPath: '/api/sse/lists'
+      preLoaderRoute: typeof ApiSseListsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/lists/public': {
       id: '/api/lists/public'
@@ -791,6 +811,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCronAutoArchiveRoute: ApiCronAutoArchiveRoute,
   ApiCronBirthdayEmailsRoute: ApiCronBirthdayEmailsRoute,
   ApiListsPublicRoute: ApiListsPublicRoute,
+  ApiSseListsRoute: ApiSseListsRoute,
   ApiSseListListIdRoute: ApiSseListListIdRoute,
 }
 export const routeTree = rootRouteImport

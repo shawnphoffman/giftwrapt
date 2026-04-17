@@ -15,24 +15,41 @@ import { auth } from '@/lib/auth'
 
 type Writer = WritableStreamDefaultWriter<Uint8Array>
 
-// Global registry of active SSE connections per list.
+// Per-list subscribers — used by viewers of a specific list-detail page.
 const listWriters = new Map<number, Set<Writer>>()
+// Any-list subscribers — used by the home page, where a change to ANY list
+// affects the "unclaimed / total" badges and needs to invalidate the grouped
+// public-lists query. One stream is cheaper than N per-list streams when a
+// page renders many users' lists.
+const anyListWriters = new Set<Writer>()
 
-export function notifyListChange(listId: number) {
-	const writers = listWriters.get(listId)
-	if (!writers || writers.size === 0) return
-
-	const encoder = new TextEncoder()
-	const message = encoder.encode(`data: ${JSON.stringify({ type: 'invalidate', listId, ts: Date.now() })}\n\n`)
-
+function writeAll(writers: Iterable<Writer>, message: Uint8Array, onFailed: (w: Writer) => void) {
 	for (const writer of writers) {
 		try {
 			writer.write(message)
 		} catch {
-			// Writer closed — will be cleaned up on close.
-			writers.delete(writer)
+			onFailed(writer)
 		}
 	}
+}
+
+export function notifyListChange(listId: number) {
+	const perList = listWriters.get(listId)
+	if ((!perList || perList.size === 0) && anyListWriters.size === 0) return
+
+	const encoder = new TextEncoder()
+	const message = encoder.encode(`data: ${JSON.stringify({ type: 'invalidate', listId, ts: Date.now() })}\n\n`)
+
+	if (perList) writeAll(perList, message, w => perList.delete(w))
+	writeAll(anyListWriters, message, w => anyListWriters.delete(w))
+}
+
+export function registerAnyListWriter(writer: Writer) {
+	anyListWriters.add(writer)
+}
+
+export function unregisterAnyListWriter(writer: Writer) {
+	anyListWriters.delete(writer)
 }
 
 export const Route = createFileRoute('/api/sse/list/$listId')({

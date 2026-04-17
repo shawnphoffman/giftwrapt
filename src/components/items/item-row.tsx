@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { ExternalLink, Gift, Pencil, X } from 'lucide-react'
 import { useState } from 'react'
@@ -33,6 +34,7 @@ type Props = {
 
 export default function ItemRow({ item }: Props) {
 	const router = useRouter()
+	const queryClient = useQueryClient()
 	const { data: session } = useSession()
 	const currentUserId = session?.user.id
 	const [claimDialogOpen, setClaimDialogOpen] = useState(false)
@@ -77,6 +79,7 @@ export default function ItemRow({ item }: Props) {
 			}
 			toast.success('Claim removed')
 			setUnclaimDialogOpen(false)
+			queryClient.invalidateQueries({ queryKey: ['lists', 'public', 'grouped'] })
 			await router.invalidate()
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Failed to remove claim')

@@ -42,3 +42,28 @@ export function computeRemainingClaimableQuantityExcluding(
 		claims.filter(c => c.id !== excludeGiftId)
 	)
 }
+
+export type ItemForListCounts = {
+	isArchived: boolean
+	quantity: number
+	gifts: ReadonlyArray<ClaimForRemainingCalc>
+}
+
+/**
+ * Badge counts for a list as seen by someone other than the owner: total
+ * visible items and how many of those still have claim capacity left.
+ *
+ * Archived items are excluded from both counts — they're hidden from the list
+ * view, so including them would make the badge disagree with what the viewer
+ * can see when they open the list.
+ */
+export function computeListItemCounts(items: ReadonlyArray<ItemForListCounts>): { total: number; unclaimed: number } {
+	let total = 0
+	let unclaimed = 0
+	for (const item of items) {
+		if (item.isArchived) continue
+		total++
+		if (computeRemainingClaimableQuantity(item.quantity, item.gifts) > 0) unclaimed++
+	}
+	return { total, unclaimed }
+}

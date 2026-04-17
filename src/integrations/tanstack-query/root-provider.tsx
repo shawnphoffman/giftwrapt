@@ -2,8 +2,8 @@ import { QueryClient, QueryClientProvider, useQueryErrorResetBoundary } from '@t
 
 import { ErrorBoundary } from '@/components/utilities/error-boundary'
 
-export function getContext() {
-	const queryClient = new QueryClient({
+function makeQueryClient() {
+	return new QueryClient({
 		defaultOptions: {
 			queries: {
 				// Retry failed queries once
@@ -15,9 +15,24 @@ export function getContext() {
 			},
 		},
 	})
-	return {
-		queryClient,
+}
+
+// Module-level consumers (e.g. TanStack DB collections in `db-collections/`)
+// resolve their QueryClient at import time, while the Provider resolves it
+// per router boot. If those were different instances, calling
+// `queryClient.invalidateQueries(...)` from a component wouldn't touch a
+// collection's cache — the component's client is the Provider's, and the
+// collection was wired to a separate one. Reuse a single client on the
+// browser so they share cache. Server-side, keep per-request clients so SSR
+// requests don't leak state.
+let browserQueryClient: QueryClient | null = null
+
+export function getContext() {
+	if (typeof window === 'undefined') {
+		return { queryClient: makeQueryClient() }
 	}
+	if (!browserQueryClient) browserQueryClient = makeQueryClient()
+	return { queryClient: browserQueryClient }
 }
 
 function QueryErrorResetBoundary({ children }: { children: React.ReactNode }) {

@@ -5,6 +5,7 @@ import { desc } from 'drizzle-orm'
 import { db } from '@/db'
 import { lists, userRelationships } from '@/db/schema'
 import { auth } from '@/lib/auth'
+import { computeListItemCounts } from '@/lib/gifts'
 
 export const Route = createFileRoute('/api/lists/public')({
 	server: {
@@ -41,7 +42,11 @@ export const Route = createFileRoute('/api/lists/public')({
 							where: (l, { and, eq }) => and(eq(l.isPrivate, false), eq(l.isActive, true)),
 							orderBy: [desc(lists.createdAt)],
 							with: {
-								items: true,
+								items: {
+									with: {
+										gifts: { columns: { quantity: true } },
+									},
+								},
 							},
 						},
 					},
@@ -57,18 +62,17 @@ export const Route = createFileRoute('/api/lists/public')({
 						// image: user.image,
 						// birthMonth: user.birthMonth,
 						// birthDay: user.birthDay,
-						lists: user.lists.map(list => ({
-							...list,
-							// id: list.id,
-							// name: list.name,
-							// type: list.type,
-							// isActive: list.isActive,
-							// description: list.description,
-							itemsTotal: list.items.length,
-							itemsRemaining: list.items.filter(item => item.status === 'incomplete').length,
-							createdAt: list.createdAt instanceof Date ? list.createdAt.toISOString() : list.createdAt,
-							updatedAt: list.updatedAt instanceof Date ? list.updatedAt.toISOString() : list.updatedAt,
-						})),
+						lists: user.lists.map(list => {
+							const { items, ...rest } = list
+							const { total, unclaimed } = computeListItemCounts(items)
+							return {
+								...rest,
+								itemsTotal: total,
+								itemsRemaining: unclaimed,
+								createdAt: list.createdAt instanceof Date ? list.createdAt.toISOString() : list.createdAt,
+								updatedAt: list.updatedAt instanceof Date ? list.updatedAt.toISOString() : list.updatedAt,
+							}
+						}),
 					}))
 				)
 			},
