@@ -4,6 +4,7 @@ import { ClientOnly } from '@/components/utilities/client-only'
 import type { BirthMonth } from '@/db/schema/enums'
 import type { UserWithLists } from '@/db-collections/lists'
 import { usersWithListsCollection } from '@/db-collections/lists'
+import { useListsSSE } from '@/lib/use-lists-sse'
 
 import ListsByUserSkeleton from '../skeletons/lists-by-user-skeleton'
 import ListsForUser from './lists-for-user'
@@ -67,6 +68,10 @@ const sortUserGroupsByBirthDate = (a: UserWithLists, b: UserWithLists) => {
 }
 
 function ListsByUserContent() {
+	// Keep the grouped public-lists query live: any claim/unclaim anywhere
+	// should refresh the unclaimed/total badge counts.
+	useListsSSE()
+
 	// Use useLiveQuery to query the collection directly
 	// The collection's queryFn automatically fetches from the API route
 	// This provides live updates, automatic caching, and local-first behavior

@@ -1,5 +1,5 @@
 import { useForm } from '@tanstack/react-form'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { UserPlus, X } from 'lucide-react'
 import { useState } from 'react'
@@ -66,6 +66,7 @@ export function ClaimGiftDialog(props: Props) {
 	const { open, onOpenChange, itemId, itemTitle, remainingQuantity } = props
 	const isEdit = props.mode === 'edit'
 	const router = useRouter()
+	const queryClient = useQueryClient()
 	const [submitting, setSubmitting] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [coGifterIds, setCoGifterIds] = useState<string[]>(
@@ -177,7 +178,11 @@ export function ClaimGiftDialog(props: Props) {
 
 				onOpenChange(false)
 				form.reset()
-				// Re-run the list-detail loader so the change shows up.
+				// Re-run the list-detail loader so the change shows up. Also
+				// invalidate the grouped public-lists query so the home-page
+				// "unclaimed / total" badge reflects this claim immediately,
+				// without waiting for the SSE round-trip.
+				queryClient.invalidateQueries({ queryKey: ['lists', 'public', 'grouped'] })
 				await router.invalidate()
 			} catch (err) {
 				setError(err instanceof Error ? err.message : 'Failed to save claim')

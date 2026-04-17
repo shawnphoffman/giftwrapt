@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { computeRemainingClaimableQuantity, computeRemainingClaimableQuantityExcluding } from '../gifts'
+import { computeListItemCounts, computeRemainingClaimableQuantity, computeRemainingClaimableQuantityExcluding } from '../gifts'
 
 describe('computeRemainingClaimableQuantity', () => {
 	it('returns the full quantity when there are no claims', () => {
@@ -52,5 +52,43 @@ describe('computeRemainingClaimableQuantityExcluding', () => {
 				999
 			)
 		).toBe(1)
+	})
+})
+
+describe('computeListItemCounts', () => {
+	it('returns zeros for an empty list', () => {
+		expect(computeListItemCounts([])).toEqual({ total: 0, unclaimed: 0 })
+	})
+
+	it('counts every non-archived item without any claims as unclaimed', () => {
+		const items = [
+			{ isArchived: false, quantity: 1, gifts: [] },
+			{ isArchived: false, quantity: 3, gifts: [] },
+		]
+		expect(computeListItemCounts(items)).toEqual({ total: 2, unclaimed: 2 })
+	})
+
+	it('treats fully claimed items as claimed (not in unclaimed count)', () => {
+		const items = [
+			{ isArchived: false, quantity: 1, gifts: [{ quantity: 1 }] },
+			{ isArchived: false, quantity: 2, gifts: [{ quantity: 1 }, { quantity: 1 }] },
+			{ isArchived: false, quantity: 1, gifts: [] },
+		]
+		expect(computeListItemCounts(items)).toEqual({ total: 3, unclaimed: 1 })
+	})
+
+	it('treats partially claimed items as unclaimed', () => {
+		// Still has remaining capacity, so it shows up in the "unclaimed" badge.
+		const items = [{ isArchived: false, quantity: 3, gifts: [{ quantity: 1 }] }]
+		expect(computeListItemCounts(items)).toEqual({ total: 1, unclaimed: 1 })
+	})
+
+	it('excludes archived items from both counts', () => {
+		const items = [
+			{ isArchived: true, quantity: 1, gifts: [] },
+			{ isArchived: true, quantity: 1, gifts: [{ quantity: 1 }] },
+			{ isArchived: false, quantity: 1, gifts: [] },
+		]
+		expect(computeListItemCounts(items)).toEqual({ total: 1, unclaimed: 1 })
 	})
 })

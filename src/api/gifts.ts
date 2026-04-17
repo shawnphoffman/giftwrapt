@@ -8,6 +8,7 @@ import type { GiftedItem } from '@/db/schema/gifts'
 import { computeRemainingClaimableQuantity } from '@/lib/gifts'
 import { canViewList } from '@/lib/permissions'
 import { authMiddleware } from '@/middleware/auth'
+import { notifyListChange } from '@/routes/api/sse/list.$listId'
 
 // ===============================
 // READ — gifts for a batch of items
@@ -80,8 +81,10 @@ export const claimItemGift = createServerFn({ method: 'POST' })
 	.inputValidator((data: z.input<typeof ClaimGiftInputSchema>) => ClaimGiftInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<ClaimGiftResult> => {
 		const gifterId = context.session.user.id
+		// Populated on success so we can notify subscribers after the tx commits.
+		let committedListId: number | null = null
 
-		return await db.transaction(async tx => {
+		const result: ClaimGiftResult = await db.transaction(async (tx): Promise<ClaimGiftResult> => {
 			// Lock the item row. Any concurrent claim tx on this item waits here.
 			// Doing this FIRST (before any reads) is deliberate — the point of the
 			// lock is to serialize the "compute remaining → insert" window.
@@ -194,8 +197,12 @@ export const claimItemGift = createServerFn({ method: 'POST' })
 				})
 				.returning()
 
+			committedListId = lockedItem.list_id
 			return { kind: 'ok', gift: inserted }
 		})
+
+		if (committedListId !== null) notifyListChange(committedListId)
+		return result
 	})
 
 // ===============================
@@ -229,8 +236,9 @@ export const updateItemGift = createServerFn({ method: 'POST' })
 	.inputValidator((data: z.input<typeof UpdateGiftInputSchema>) => UpdateGiftInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<UpdateGiftResult> => {
 		const gifterId = context.session.user.id
+		let committedListId: number | null = null
 
-		return await db.transaction(async tx => {
+		const result: UpdateGiftResult = await db.transaction(async (tx): Promise<UpdateGiftResult> => {
 			// Resolve the claim → item first so we can lock the correct item row.
 			// We re-check gifterId after the lock to avoid TOCTOU on ownership.
 			const gift = await tx.query.giftedItems.findFirst({
@@ -242,8 +250,8 @@ export const updateItemGift = createServerFn({ method: 'POST' })
 
 			// Lock the parent item. This serializes any concurrent claim/update on
 			// the same item, so the "compute remaining → update" window is atomic.
-			const lockedRows = await tx.execute(sql`SELECT id, quantity, is_archived FROM items WHERE id = ${gift.itemId} FOR UPDATE`)
-			const lockedItem = lockedRows.rows[0] as { id: number; quantity: number; is_archived: boolean } | undefined
+			const lockedRows = await tx.execute(sql`SELECT id, list_id, quantity, is_archived FROM items WHERE id = ${gift.itemId} FOR UPDATE`)
+			const lockedItem = lockedRows.rows[0] as { id: number; list_id: number; quantity: number; is_archived: boolean } | undefined
 			if (!lockedItem || lockedItem.is_archived) return { kind: 'error', reason: 'not-found' }
 
 			// Compute remaining EXCLUDING this claim (its old quantity goes back into
@@ -271,8 +279,12 @@ export const updateItemGift = createServerFn({ method: 'POST' })
 				.where(eq(giftedItems.id, gift.id))
 				.returning()
 
+			committedListId = lockedItem.list_id
 			return { kind: 'ok', gift: updated }
 		})
+
+		if (committedListId !== null) notifyListChange(committedListId)
+		return result
 	})
 
 // ===============================
@@ -298,16 +310,19 @@ export const unclaimItemGift = createServerFn({ method: 'POST' })
 		// Pre-check so we can distinguish "doesn't exist" from "not yours" in the
 		// response. The DELETE itself is still scoped by gifterId as a guardrail —
 		// if the row gets reassigned between the read and the delete, the delete
-		// no-ops safely.
-		const existing = await db.query.giftedItems.findFirst({
-			where: eq(giftedItems.id, data.giftId),
-			columns: { id: true, gifterId: true },
-		})
+		// no-ops safely. Also resolve listId here for the SSE notify below.
+		const existing = await db
+			.select({ id: giftedItems.id, gifterId: giftedItems.gifterId, listId: items.listId })
+			.from(giftedItems)
+			.innerJoin(items, eq(items.id, giftedItems.itemId))
+			.where(eq(giftedItems.id, data.giftId))
+			.then(rows => rows[0])
 		if (!existing) return { kind: 'error', reason: 'not-found' }
 		if (existing.gifterId !== gifterId) return { kind: 'error', reason: 'not-yours' }
 
 		await db.delete(giftedItems).where(and(eq(giftedItems.id, data.giftId), eq(giftedItems.gifterId, gifterId)))
 
+		notifyListChange(existing.listId)
 		return { kind: 'ok' }
 	})
 
