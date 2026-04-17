@@ -2,8 +2,29 @@
 import '../src/styles.css'
 import './storybook.css'
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { withThemeByClassName } from '@storybook/addon-themes'
-import type { Preview } from '@storybook/react-vite'
+import type { Decorator, Preview } from '@storybook/react-vite'
+
+import { __setStorybookSession } from './mocks/auth-client'
+import { MockRouterProvider } from './mocks/router'
+
+const queryClient = new QueryClient({
+	defaultOptions: {
+		queries: { retry: false, staleTime: Infinity },
+	},
+})
+
+const withProviders: Decorator = (Story, ctx) => {
+	__setStorybookSession(ctx.parameters.session ?? null)
+	return (
+		<QueryClientProvider client={queryClient}>
+			<MockRouterProvider>
+				<Story />
+			</MockRouterProvider>
+		</QueryClientProvider>
+	)
+}
 
 const preview: Preview = {
 	parameters: {
@@ -43,6 +64,7 @@ const preview: Preview = {
 		},
 	},
 	decorators: [
+		withProviders,
 		withThemeByClassName({
 			themes: {
 				// nameOfTheme: 'classNameForTheme',
