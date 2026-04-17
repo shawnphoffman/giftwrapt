@@ -1,0 +1,59 @@
+/**
+ * Aliased in place of `@/api/*` for Storybook.
+ *
+ * The real API modules use `createServerFn` from @tanstack/react-start and
+ * import server-only code (`@/db`, auth middleware, etc.). Pulling those into
+ * the browser bundle means Storybook would try to load Drizzle + Postgres at
+ * render time. Instead, we replace every API module with this stub so the
+ * components can import names without dragging in the server.
+ *
+ * Only names that are actually imported at module-evaluation time need to
+ * exist here. The stubs no-op; stories should not trigger server actions.
+ */
+
+type OkResult = { kind: 'ok' }
+const ok = async (): Promise<OkResult> => ({ kind: 'ok' })
+const emptyArray = async (): Promise<Array<unknown>> => []
+
+// @/api/items
+export const createItem = ok
+export const updateItem = ok
+export const deleteItem = ok
+export const archiveItem = ok
+export const moveItemToList = ok
+
+// @/api/groups
+export const createItemGroup = ok
+export const updateItemGroup = ok
+export const deleteItemGroup = ok
+export const assignItemsToGroup = ok
+export const reorderGroupItems = ok
+export const getGroupsForList = emptyArray
+
+// @/api/gifts
+export const getGiftsForItems = emptyArray
+export const claimItemGift = ok
+export const updateItemGift = ok
+export const unclaimItemGift = ok
+export const updateCoGifters = ok
+
+// @/api/comments
+export const getCommentsForItem = emptyArray
+export const createItemComment = ok
+export const updateItemComment = ok
+export const deleteItemComment = ok
+export const getRecentComments = emptyArray
+
+// @/api/user
+export const getPotentialPartners = emptyArray
+export const updateUserProfile = ok
+export const updateUserPassword = ok
+
+// @/api/lists
+export const getListForViewing = async () => ({ kind: 'ok', list: null })
+export const getMyLists = async () => ({ lists: [], childGroups: [] })
+export const createList = ok
+export const updateList = ok
+export const deleteList = ok
+export const setPrimaryList = ok
+export const getListForEditing = async () => ({ kind: 'ok', list: null })

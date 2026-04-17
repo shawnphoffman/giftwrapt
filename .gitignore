@@ -10,6 +10,7 @@ count.txt
 .wrangler
 .output
 .vinxi
+storybook-static
 
 .notes
 wish-lists-workspace.code-workspace
