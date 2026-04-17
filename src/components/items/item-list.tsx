@@ -61,7 +61,7 @@ export default function ItemList({ items, groups = [] }: Props) {
 					<div key={group.id} className="border rounded-lg shadow-sm bg-accent overflow-hidden">
 						<div className="flex items-center gap-2 p-2 bg-muted/30 border-b">
 							<PriorityIcon priority={group.priority} className="size-4 shrink-0" />
-							<GroupBadge type={group.type} />
+							<GroupBadge type={group.type} showHelp />
 							{group.name && <span className="font-medium text-sm truncate">{group.name}</span>}
 							<span className="text-xs text-muted-foreground ml-auto">
 								{group.type === 'or'
