@@ -47,7 +47,7 @@ const main: Array<NavItem> = [
 		hoverColor: 'group-hover/link:text-red-500 group-data-[status=active]/link:text-red-500',
 	},
 	{
-		name: 'My Purchases',
+		name: 'Purchases',
 		url: '/purchases',
 		hoverColor: 'group-hover/link:text-pink-500 group-data-[status=active]/link:text-pink-500',
 		icon: Receipt,
@@ -56,7 +56,7 @@ const main: Array<NavItem> = [
 		},
 	},
 	{
-		name: 'Purchases Summary',
+		name: 'Summary',
 		url: '/purchases/summary',
 		hoverColor: 'group-hover/link:text-orange-500 group-data-[status=active]/link:text-orange-500',
 		icon: ReceiptText,

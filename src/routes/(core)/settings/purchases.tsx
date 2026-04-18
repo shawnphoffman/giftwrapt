@@ -23,7 +23,7 @@ function PurchasesSettingsPage() {
 						className="flex items-center gap-2 p-3 border rounded-lg hover:bg-muted/50"
 					>
 						<div className="flex-1">
-							<div className="font-medium">My Purchases</div>
+							<div className="font-medium">Purchases</div>
 							<div className="text-xs text-muted-foreground">See all items you've claimed and off-list gifts</div>
 						</div>
 						<ExternalLink className="size-4 text-muted-foreground" />

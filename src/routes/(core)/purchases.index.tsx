@@ -109,7 +109,7 @@ function PurchasesPage() {
 			<div className="flex flex-col flex-1 gap-6">
 				{/* HEADING */}
 				<div className="relative">
-					<h1 className="flex flex-row items-center gap-2">My Purchases</h1>
+					<h1 className="flex flex-row items-center gap-2">Purchases</h1>
 					<Receipt className="text-pink-500 wish-page-icon" />
 				</div>
 
