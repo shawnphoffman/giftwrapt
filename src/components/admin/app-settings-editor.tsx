@@ -11,6 +11,8 @@ import { ListTypes } from '@/db/schema'
 import { appSettingsQueryKey, useAppSettings } from '@/hooks/use-app-settings'
 import type { AppSettings } from '@/lib/settings'
 
+const IS_DEV = import.meta.env.DEV
+
 function useSettingsMutation() {
 	const queryClient = useQueryClient()
 
@@ -67,7 +69,38 @@ export function AppSettingsEditor() {
 
 	return (
 		<div className="space-y-6">
-			{/* Enable Holiday Lists */}
+			{/* Default List Type */}
+			<div className="flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<Label htmlFor="defaultListType" className="text-base">
+						Default List Type
+					</Label>
+					<p className="text-sm text-muted-foreground">The default type when creating new lists</p>
+				</div>
+				<Select
+					value={settings.defaultListType}
+					onValueChange={value => handleSettingChange('defaultListType', value as AppSettings['defaultListType'])}
+				>
+					<SelectTrigger id="defaultListType" className="w-[140px]">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						{(Object.entries(ListTypes) as Array<[keyof typeof ListTypes, string]>).map(([type, label]) => {
+							if (type === 'christmas' && !settings.enableHolidayLists) return null
+							if (type === 'birthday' && !settings.enableBirthdayLists) return null
+							if (type === 'todos' && !settings.enableTodoLists) return null
+							if (type === 'test' && !IS_DEV) return null
+							return (
+								<SelectItem key={type} value={type}>
+									{label}
+								</SelectItem>
+							)
+						})}
+					</SelectContent>
+				</Select>
+			</div>
+
+			{/* Enable Christmas Lists */}
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="enableHolidayLists" className="text-base">
@@ -79,6 +112,87 @@ export function AppSettingsEditor() {
 					id="enableHolidayLists"
 					checked={settings.enableHolidayLists}
 					onCheckedChange={checked => handleSettingChange('enableHolidayLists', checked)}
+				/>
+			</div>
+
+			{/* Archive after Christmas (dependent on Enable Christmas Lists) */}
+			<div
+				className={`flex items-center justify-between gap-4 pl-6 ${settings.enableHolidayLists ? '' : 'opacity-50'}`}
+			>
+				<DaysSetting
+					id="archiveDaysAfterChristmas"
+					label="Archive after Christmas"
+					description="Days after Dec 25 to automatically archive claimed items on Christmas lists"
+					value={settings.archiveDaysAfterChristmas}
+					disabled={!settings.enableHolidayLists}
+					onCommit={value => handleSettingChange('archiveDaysAfterChristmas', value)}
+				/>
+			</div>
+
+			{/* Enable Christmas emails (dependent on Enable Christmas Lists) */}
+			<div
+				className={`flex items-center justify-between gap-4 pl-6 ${settings.enableHolidayLists ? '' : 'opacity-50'}`}
+			>
+				<div className="space-y-0.5">
+					<Label htmlFor="enableChristmasEmails" className="text-base">
+						Enable Christmas emails
+					</Label>
+					<p className="text-sm text-muted-foreground">Send Christmas-related emails to users</p>
+				</div>
+				<Switch
+					id="enableChristmasEmails"
+					checked={settings.enableChristmasEmails}
+					disabled={!settings.enableHolidayLists}
+					onCheckedChange={checked => handleSettingChange('enableChristmasEmails', checked)}
+				/>
+			</div>
+
+			{/* Enable Birthday Lists */}
+			<div className="flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<Label htmlFor="enableBirthdayLists" className="text-base">
+						Enable Birthday Lists
+					</Label>
+					<p className="text-sm text-muted-foreground">Allow users to create birthday lists</p>
+				</div>
+				<Switch
+					id="enableBirthdayLists"
+					checked={settings.enableBirthdayLists}
+					onCheckedChange={checked => handleSettingChange('enableBirthdayLists', checked)}
+				/>
+			</div>
+
+			{/* Archive after birthday (dependent on Enable Birthday Lists) */}
+			<div
+				className={`flex items-center justify-between gap-4 pl-6 ${settings.enableBirthdayLists ? '' : 'opacity-50'}`}
+			>
+				<DaysSetting
+					id="archiveDaysAfterBirthday"
+					label="Archive after birthday"
+					description="Days after a birthday to automatically archive claimed items on birthday/wishlist lists"
+					value={settings.archiveDaysAfterBirthday}
+					disabled={!settings.enableBirthdayLists}
+					onCommit={value => handleSettingChange('archiveDaysAfterBirthday', value)}
+				/>
+			</div>
+
+			{/* Enable birthday emails (dependent on Enable Birthday Lists) */}
+			<div
+				className={`flex items-center justify-between gap-4 pl-6 ${settings.enableBirthdayLists ? '' : 'opacity-50'}`}
+			>
+				<div className="space-y-0.5">
+					<Label htmlFor="enableBirthdayEmails" className="text-base">
+						Enable birthday emails
+					</Label>
+					<p className="text-sm text-muted-foreground">
+						Send day-of birthday greetings and the post-birthday gift summary
+					</p>
+				</div>
+				<Switch
+					id="enableBirthdayEmails"
+					checked={settings.enableBirthdayEmails}
+					disabled={!settings.enableBirthdayLists}
+					onCheckedChange={checked => handleSettingChange('enableBirthdayEmails', checked)}
 				/>
 			</div>
 
@@ -131,96 +245,6 @@ export function AppSettingsEditor() {
 					onCheckedChange={checked => handleSettingChange('enableCommentEmails', checked)}
 				/>
 			</div>
-
-			{/* Default List Type */}
-			<div className="flex items-center justify-between gap-4">
-				<div className="space-y-0.5">
-					<Label htmlFor="defaultListType" className="text-base">
-						Default List Type
-					</Label>
-					<p className="text-sm text-muted-foreground">The default type when creating new lists</p>
-				</div>
-				<Select
-					value={settings.defaultListType}
-					onValueChange={value => handleSettingChange('defaultListType', value as AppSettings['defaultListType'])}
-				>
-					<SelectTrigger id="defaultListType" className="w-[140px]">
-						<SelectValue />
-					</SelectTrigger>
-					<SelectContent>
-						{(Object.entries(ListTypes) as Array<[keyof typeof ListTypes, string]>).map(([type, label]) => {
-							if (type === 'christmas' && !settings.enableHolidayLists) return null
-							if (type === 'todos' && !settings.enableTodoLists) return null
-							return (
-								<SelectItem key={type} value={type}>
-									{label}
-								</SelectItem>
-							)
-						})}
-					</SelectContent>
-				</Select>
-			</div>
-		</div>
-	)
-}
-
-export function SchedulingSettingsEditor() {
-	const { settings, isLoading, handleSettingChange } = useSettingsEditor()
-
-	if (isLoading) return <div className="text-sm text-muted-foreground">Loading settings...</div>
-	if (!settings) return <div className="text-sm text-muted-foreground">No settings found</div>
-
-	return (
-		<div className="space-y-6">
-			{/* Auto-archive: days after birthday */}
-			<DaysSetting
-				id="archiveDaysAfterBirthday"
-				label="Archive after birthday"
-				description="Days after a birthday to automatically archive claimed items on birthday/wishlist lists"
-				value={settings.archiveDaysAfterBirthday}
-				onCommit={value => handleSettingChange('archiveDaysAfterBirthday', value)}
-			/>
-
-			{/* Auto-archive: days after Christmas */}
-			<DaysSetting
-				id="archiveDaysAfterChristmas"
-				label="Archive after Christmas"
-				description="Days after Dec 25 to automatically archive claimed items on Christmas lists"
-				value={settings.archiveDaysAfterChristmas}
-				onCommit={value => handleSettingChange('archiveDaysAfterChristmas', value)}
-			/>
-
-			{/* Enable birthday emails */}
-			<div className="flex items-center justify-between gap-4">
-				<div className="space-y-0.5">
-					<Label htmlFor="enableBirthdayEmails" className="text-base">
-						Enable birthday emails
-					</Label>
-					<p className="text-sm text-muted-foreground">
-						Send day-of birthday greetings and the post-birthday gift summary
-					</p>
-				</div>
-				<Switch
-					id="enableBirthdayEmails"
-					checked={settings.enableBirthdayEmails}
-					onCheckedChange={checked => handleSettingChange('enableBirthdayEmails', checked)}
-				/>
-			</div>
-
-			{/* Enable Christmas emails */}
-			<div className="flex items-center justify-between gap-4">
-				<div className="space-y-0.5">
-					<Label htmlFor="enableChristmasEmails" className="text-base">
-						Enable Christmas emails
-					</Label>
-					<p className="text-sm text-muted-foreground">Send Christmas-related emails to users</p>
-				</div>
-				<Switch
-					id="enableChristmasEmails"
-					checked={settings.enableChristmasEmails}
-					onCheckedChange={checked => handleSettingChange('enableChristmasEmails', checked)}
-				/>
-			</div>
 		</div>
 	)
 }
@@ -230,10 +254,11 @@ type DaysSettingProps = {
 	label: string
 	description: string
 	value: number
+	disabled?: boolean
 	onCommit: (value: number) => void
 }
 
-function DaysSetting({ id, label, description, value, onCommit }: DaysSettingProps) {
+function DaysSetting({ id, label, description, value, disabled, onCommit }: DaysSettingProps) {
 	const [draft, setDraft] = useState(String(value))
 
 	// Keep local draft in sync if the server value changes (after a successful save).
@@ -252,7 +277,7 @@ function DaysSetting({ id, label, description, value, onCommit }: DaysSettingPro
 	}
 
 	return (
-		<div className="flex items-center justify-between gap-4">
+		<>
 			<div className="space-y-0.5">
 				<Label htmlFor={id} className="text-base">
 					{label}
@@ -266,6 +291,7 @@ function DaysSetting({ id, label, description, value, onCommit }: DaysSettingPro
 					min={1}
 					max={365}
 					value={draft}
+					disabled={disabled}
 					onChange={e => setDraft(e.target.value)}
 					onBlur={handleCommit}
 					onKeyDown={e => {
@@ -277,6 +303,6 @@ function DaysSetting({ id, label, description, value, onCommit }: DaysSettingPro
 				/>
 				<span className="text-sm text-muted-foreground">days</span>
 			</div>
-		</div>
+		</>
 	)
 }

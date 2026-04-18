@@ -7,6 +7,7 @@ import { appSettings } from '@/db/schema'
 // 1) Shape of settings used across the app
 export const appSettingsSchema = z.object({
 	enableHolidayLists: z.boolean().default(true),
+	enableBirthdayLists: z.boolean().default(true),
 	enableTodoLists: z.boolean().default(true),
 	defaultListType: z.enum(['wishlist', 'christmas', 'birthday', 'giftideas', 'todos', 'test']).default('wishlist'),
 	enableGiftsForNonUsers: z.boolean().default(false),
@@ -27,6 +28,7 @@ export const appSettingsSchema = z.object({
 // 2) Default values in code (for when DB is empty or missing keys)
 export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	enableHolidayLists: true,
+	enableBirthdayLists: true,
 	enableTodoLists: true,
 	defaultListType: 'wishlist',
 	enableGiftsForNonUsers: false,

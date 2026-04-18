@@ -1,21 +1,47 @@
 import { ClientOnly, createFileRoute } from '@tanstack/react-router'
 
+import { isEmailConfigured } from '@/api/common'
+import SendTestEmailButton from '@/components/admin/send-test-email'
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { env } from '@/env'
 import { useAppSettings } from '@/hooks/use-app-settings'
 import { useSession } from '@/lib/auth-client'
 
 export const Route = createFileRoute('/(core)/admin/debug')({
 	component: AdminDebugPage,
+	loader: async () => {
+		return {
+			isEmailConfigured: await isEmailConfigured(),
+		}
+	},
 })
 
 function AdminDebugPage() {
 	const { data: session } = useSession()
 	const { data: appSettings, isLoading: isLoadingSettings } = useAppSettings()
+	const { isEmailConfigured: isEmailEnabled } = Route.useLoaderData()
 
 	return (
 		<>
+			{/*  */}
+			<Card className="bg-accent animate-page-in">
+				<CardHeader>
+					<CardTitle className="text-2xl">Emails</CardTitle>
+					<CardDescription>
+						Test emails will be sent to the configured BCC address or the FROM address if no BCC address is configured.
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					{isEmailEnabled ? (
+						<div className="flex flex-col gap-3 max-w-md mx-auto">
+							<SendTestEmailButton />
+						</div>
+					) : (
+						<p className="text-sm text-gray-500">Email is not currently configured</p>
+					)}
+				</CardContent>
+			</Card>
 			{/*  */}
 			<Card className="bg-accent animate-page-in">
 				<CardHeader>
