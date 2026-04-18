@@ -38,6 +38,7 @@ const main: Array<NavItem> = [
 		url: '/',
 		icon: ListChecks,
 		hoverColor: 'group-hover/link:text-green-500 group-data-[status=active]/link:text-green-500',
+		activePaths: ['/lists'],
 	},
 	{
 		name: 'My Lists',

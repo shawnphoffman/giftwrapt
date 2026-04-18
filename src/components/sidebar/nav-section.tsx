@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router'
+import { Link, useRouterState } from '@tanstack/react-router'
 
 import {
 	SidebarGroup,
@@ -23,10 +23,18 @@ export type NavItem = {
 	hoverColor?: string
 	mask?: string
 	activeOptions?: React.ComponentProps<typeof Link>['activeOptions']
+	activePaths?: Array<string>
 }
 
 export const NavItem = ({ item, className }: { item: NavItem; className?: string }) => {
 	const Icon = item.icon
+	const forceActive = useRouterState({
+		select: s => {
+			if (!item.activePaths?.length) return false
+			const path = s.location.pathname
+			return item.activePaths.some(p => path === p || path.startsWith(p.endsWith('/') ? p : `${p}/`))
+		},
+	})
 	return (
 		<SidebarMenuItem key={item.name} className="w-full">
 			<SidebarMenuButton asChild className={cn(className, 'text-base font-medium')}>
@@ -35,6 +43,7 @@ export const NavItem = ({ item, className }: { item: NavItem; className?: string
 					className="group/link"
 					mask={item.mask ? { to: item.mask } : undefined}
 					activeOptions={item.activeOptions ? item.activeOptions : undefined}
+					{...(forceActive && { 'data-status': 'active', 'aria-current': 'page' })}
 				>
 					{Icon && <Icon className={cn(item.hoverColor, 'transition-colors duration-50 ease-linear')} />}
 					<span>{item.name}</span>
