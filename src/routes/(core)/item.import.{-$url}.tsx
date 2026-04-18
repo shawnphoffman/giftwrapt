@@ -1,12 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Loader2, PlusCircle } from 'lucide-react'
+import { PlusCircle } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { createItem } from '@/api/items'
 import { getMyLists } from '@/api/lists'
-import { scrapeUrl } from '@/api/scraper'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -30,26 +29,6 @@ function ItemImportPage() {
 	const [selectedListId, setSelectedListId] = useState('')
 	const [saving, setSaving] = useState(false)
 	const [error, setError] = useState<string | null>(null)
-	const [scraped, setScraped] = useState(false)
-
-	// Scrape the URL on load.
-	const { isLoading: scraping } = useQuery({
-		queryKey: ['scrape-url', importUrl],
-		queryFn: async () => {
-			if (!importUrl) return null
-			const result = await scrapeUrl({ data: { url: importUrl } })
-			if (result.kind === 'ok') {
-				setTitle(result.data.title || '')
-				setPrice(result.data.price || '')
-				if (result.data.imageUrls.length > 0) {
-					setImageUrl(result.data.imageUrls[0])
-				}
-				setScraped(true)
-			}
-			return result
-		},
-		enabled: !!importUrl && !scraped,
-	})
 
 	const { data: myLists } = useQuery({
 		queryKey: ['my-lists-for-import'],
@@ -98,12 +77,6 @@ function ItemImportPage() {
 					<h1 className="flex flex-row items-center gap-2">Import Item</h1>
 					<PlusCircle className="text-blue-500 wish-page-icon" />
 				</div>
-
-				{scraping && (
-					<div className="flex items-center gap-2 text-sm text-muted-foreground">
-						<Loader2 className="size-4 animate-spin" /> Fetching details from URL...
-					</div>
-				)}
 
 				<div className="space-y-4 max-w-lg">
 					{importUrl && (
