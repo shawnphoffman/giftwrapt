@@ -1,6 +1,6 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { Baby, ListOrdered, Plus } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { getMyLists, type ChildListGroup } from '@/api/lists'
 import ListTypeIcon from '@/components/common/list-type-icon'
@@ -18,6 +18,15 @@ export const Route = createFileRoute('/(core)/me/')({
 function MyListsPage() {
 	const data = Route.useLoaderData()
 	const [createOpen, setCreateOpen] = useState(false)
+	const hash = useLocation({ select: l => l.hash })
+	const navigate = useNavigate()
+
+	useEffect(() => {
+		if (hash === 'new') {
+			setCreateOpen(true)
+			navigate({ to: '/me', hash: '', replace: true })
+		}
+	}, [hash, navigate])
 
 	return (
 		<>
