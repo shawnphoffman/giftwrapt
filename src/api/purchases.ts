@@ -28,6 +28,7 @@ export type PurchaseRow = {
 	listOwnerId: string
 	listOwnerName: string | null
 	listOwnerEmail: string
+	listOwnerImage: string | null
 }
 
 export type AddonPurchaseRow = {
@@ -43,6 +44,7 @@ export type AddonPurchaseRow = {
 	listOwnerId: string
 	listOwnerName: string | null
 	listOwnerEmail: string
+	listOwnerImage: string | null
 }
 
 export type MyPurchasesResult = {
@@ -72,6 +74,7 @@ export const getMyPurchases = createServerFn({ method: 'GET' })
 				listOwnerId: lists.ownerId,
 				listOwnerName: sql<string | null>`owner.name`,
 				listOwnerEmail: sql<string>`owner.email`,
+				listOwnerImage: sql<string | null>`owner.image`,
 			})
 			.from(giftedItems)
 			.innerJoin(items, eq(items.id, giftedItems.itemId))
@@ -96,6 +99,7 @@ export const getMyPurchases = createServerFn({ method: 'GET' })
 			listOwnerId: r.listOwnerId,
 			listOwnerName: r.listOwnerName,
 			listOwnerEmail: r.listOwnerEmail,
+			listOwnerImage: r.listOwnerImage,
 		}))
 
 		// Fetch all off-list gifts (addons) by this user.
@@ -112,6 +116,7 @@ export const getMyPurchases = createServerFn({ method: 'GET' })
 				listOwnerId: lists.ownerId,
 				listOwnerName: sql<string | null>`owner.name`,
 				listOwnerEmail: sql<string>`owner.email`,
+				listOwnerImage: sql<string | null>`owner.image`,
 			})
 			.from(listAddons)
 			.innerJoin(lists, eq(lists.id, listAddons.listId))
@@ -132,6 +137,7 @@ export const getMyPurchases = createServerFn({ method: 'GET' })
 			listOwnerId: r.listOwnerId,
 			listOwnerName: r.listOwnerName,
 			listOwnerEmail: r.listOwnerEmail,
+			listOwnerImage: r.listOwnerImage,
 		}))
 
 		return { claims, addons }
