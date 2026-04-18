@@ -14,6 +14,14 @@ export const appSettingsSchema = z.object({
 	archiveDaysAfterBirthday: z.number().int().positive().default(14),
 	// Days after Dec 25 before claimed Christmas items are auto-archived.
 	archiveDaysAfterChristmas: z.number().int().positive().default(14),
+	// Whether birthday emails (day-of + follow-up) are sent.
+	enableBirthdayEmails: z.boolean().default(true),
+	// Whether Christmas emails are sent.
+	enableChristmasEmails: z.boolean().default(true),
+	// Whether users can post comments on items.
+	enableComments: z.boolean().default(true),
+	// Whether a notification email is sent to the list owner on new comments.
+	enableCommentEmails: z.boolean().default(true),
 })
 
 // 2) Default values in code (for when DB is empty or missing keys)
@@ -24,6 +32,10 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	enableGiftsForNonUsers: false,
 	archiveDaysAfterBirthday: 14,
 	archiveDaysAfterChristmas: 14,
+	enableBirthdayEmails: true,
+	enableChristmasEmails: true,
+	enableComments: true,
+	enableCommentEmails: true,
 }
 
 export type AppSettings = z.infer<typeof appSettingsSchema>

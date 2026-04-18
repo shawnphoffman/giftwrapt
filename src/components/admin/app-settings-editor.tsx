@@ -11,33 +11,24 @@ import { ListTypes } from '@/db/schema'
 import { appSettingsQueryKey, useAppSettings } from '@/hooks/use-app-settings'
 import type { AppSettings } from '@/lib/settings'
 
-export function AppSettingsEditor() {
-	const { data: settings, isLoading } = useAppSettings()
+function useSettingsMutation() {
 	const queryClient = useQueryClient()
 
-	const mutation = useMutation({
+	return useMutation({
 		mutationFn: async (newSettings: Partial<AppSettings>) => {
 			return await updateAppSettings({ data: newSettings } as Parameters<typeof updateAppSettings>[0])
 		},
 		onMutate: async newSettings => {
-			// Cancel any outgoing refetches so they don't overwrite our optimistic update
 			await queryClient.cancelQueries({ queryKey: appSettingsQueryKey })
-
-			// Snapshot the previous value
 			const previousSettings = queryClient.getQueryData<AppSettings>(appSettingsQueryKey)
-
-			// Optimistically update to the new value
 			queryClient.setQueryData<AppSettings>(appSettingsQueryKey, old => ({
 				...old!,
 				...newSettings,
 			}))
-
-			// Return a context with the previous settings and the keys we changed
 			const changedKeys = Object.keys(newSettings) as Array<keyof AppSettings>
 			return { previousSettings, changedKeys }
 		},
 		onError: (error, _newSettings, context) => {
-			// Roll back to the previous value on error
 			if (context?.previousSettings) {
 				queryClient.setQueryData(appSettingsQueryKey, context.previousSettings)
 			}
@@ -45,33 +36,34 @@ export function AppSettingsEditor() {
 			toast.error(message)
 		},
 		onSuccess: (data, _variables, context) => {
-			// Only update the specific keys this mutation changed
-			// This prevents overwriting other pending optimistic updates
 			queryClient.setQueryData<AppSettings>(appSettingsQueryKey, old => {
 				const updated = { ...old! }
 				for (const key of context.changedKeys) {
-					// Use type assertion since we know the keys are valid
 					;(updated as Record<string, unknown>)[key] = data[key]
 				}
 				return updated
 			})
 			toast.success('Setting updated')
 		},
-		// Note: We intentionally don't invalidate here to avoid race conditions
-		// with concurrent mutations. The onSuccess handler updates the cache directly.
 	})
+}
+
+function useSettingsEditor() {
+	const { data: settings, isLoading } = useAppSettings()
+	const mutation = useSettingsMutation()
 
 	const handleSettingChange = <T extends keyof AppSettings>(key: T, value: AppSettings[T]) => {
 		mutation.mutate({ [key]: value })
 	}
 
-	if (isLoading) {
-		return <div className="text-sm text-muted-foreground">Loading settings...</div>
-	}
+	return { settings, isLoading, handleSettingChange }
+}
 
-	if (!settings) {
-		return <div className="text-sm text-muted-foreground">No settings found</div>
-	}
+export function AppSettingsEditor() {
+	const { settings, isLoading, handleSettingChange } = useSettingsEditor()
+
+	if (isLoading) return <div className="text-sm text-muted-foreground">Loading settings...</div>
+	if (!settings) return <div className="text-sm text-muted-foreground">No settings found</div>
 
 	return (
 		<div className="space-y-6">
@@ -105,6 +97,41 @@ export function AppSettingsEditor() {
 				/>
 			</div>
 
+			{/* Enable Comments */}
+			<div className="flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<Label htmlFor="enableComments" className="text-base">
+						Enable Comments
+					</Label>
+					<p className="text-sm text-muted-foreground">Allow users to post comments on items</p>
+				</div>
+				<Switch
+					id="enableComments"
+					checked={settings.enableComments}
+					onCheckedChange={checked => handleSettingChange('enableComments', checked)}
+				/>
+			</div>
+
+			{/* Enable Comment Emails (dependent on Enable Comments) */}
+			<div
+				className={`flex items-center justify-between gap-4 pl-6 ${settings.enableComments ? '' : 'opacity-50'}`}
+			>
+				<div className="space-y-0.5">
+					<Label htmlFor="enableCommentEmails" className="text-base">
+						Enable Comment Emails
+					</Label>
+					<p className="text-sm text-muted-foreground">
+						Email the list owner when someone comments on one of their items
+					</p>
+				</div>
+				<Switch
+					id="enableCommentEmails"
+					checked={settings.enableCommentEmails}
+					disabled={!settings.enableComments}
+					onCheckedChange={checked => handleSettingChange('enableCommentEmails', checked)}
+				/>
+			</div>
+
 			{/* Default List Type */}
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
@@ -133,7 +160,18 @@ export function AppSettingsEditor() {
 					</SelectContent>
 				</Select>
 			</div>
+		</div>
+	)
+}
 
+export function SchedulingSettingsEditor() {
+	const { settings, isLoading, handleSettingChange } = useSettingsEditor()
+
+	if (isLoading) return <div className="text-sm text-muted-foreground">Loading settings...</div>
+	if (!settings) return <div className="text-sm text-muted-foreground">No settings found</div>
+
+	return (
+		<div className="space-y-6">
 			{/* Auto-archive: days after birthday */}
 			<DaysSetting
 				id="archiveDaysAfterBirthday"
@@ -151,6 +189,38 @@ export function AppSettingsEditor() {
 				value={settings.archiveDaysAfterChristmas}
 				onCommit={value => handleSettingChange('archiveDaysAfterChristmas', value)}
 			/>
+
+			{/* Enable birthday emails */}
+			<div className="flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<Label htmlFor="enableBirthdayEmails" className="text-base">
+						Enable birthday emails
+					</Label>
+					<p className="text-sm text-muted-foreground">
+						Send day-of birthday greetings and the post-birthday gift summary
+					</p>
+				</div>
+				<Switch
+					id="enableBirthdayEmails"
+					checked={settings.enableBirthdayEmails}
+					onCheckedChange={checked => handleSettingChange('enableBirthdayEmails', checked)}
+				/>
+			</div>
+
+			{/* Enable Christmas emails */}
+			<div className="flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<Label htmlFor="enableChristmasEmails" className="text-base">
+						Enable Christmas emails
+					</Label>
+					<p className="text-sm text-muted-foreground">Send Christmas-related emails to users</p>
+				</div>
+				<Switch
+					id="enableChristmasEmails"
+					checked={settings.enableChristmasEmails}
+					onCheckedChange={checked => handleSettingChange('enableChristmasEmails', checked)}
+				/>
+			</div>
 		</div>
 	)
 }

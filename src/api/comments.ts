@@ -6,6 +6,7 @@ import { db } from '@/db'
 import { itemComments, items, lists, users } from '@/db/schema'
 import { canViewList } from '@/lib/permissions'
 import { sendNewCommentEmail } from '@/lib/resend'
+import { getAppSettings } from '@/lib/settings'
 import { authMiddleware } from '@/middleware/auth'
 
 // ===============================
@@ -86,13 +87,16 @@ const CreateCommentInputSchema = z.object({
 
 export type CreateCommentResult =
 	| { kind: 'ok'; comment: CommentWithUser }
-	| { kind: 'error'; reason: 'item-not-found' | 'not-visible' }
+	| { kind: 'error'; reason: 'item-not-found' | 'not-visible' | 'comments-disabled' }
 
 export const createItemComment = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware])
 	.inputValidator((data: z.input<typeof CreateCommentInputSchema>) => CreateCommentInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<CreateCommentResult> => {
 		const userId = context.session.user.id
+
+		const settings = await getAppSettings(db)
+		if (!settings.enableComments) return { kind: 'error', reason: 'comments-disabled' }
 
 		const item = await db.query.items.findFirst({
 			where: eq(items.id, data.itemId),
@@ -137,7 +141,7 @@ export const createItemComment = createServerFn({ method: 'POST' })
 		}
 
 		// Send email to list owner (if commenter is not the owner).
-		if (list.ownerId !== userId) {
+		if (list.ownerId !== userId && settings.enableCommentEmails) {
 			try {
 				const owner = await db.query.users.findFirst({
 					where: eq(users.id, list.ownerId),

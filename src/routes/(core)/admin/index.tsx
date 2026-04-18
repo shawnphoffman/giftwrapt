@@ -1,11 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Suspense } from 'react'
 
 import { isEmailConfigured } from '@/api/common'
-import { AppSettingsEditor } from '@/components/admin/app-settings-editor'
+import { AppSettingsEditor, SchedulingSettingsEditor } from '@/components/admin/app-settings-editor'
 import SendTestEmailButton from '@/components/admin/send-test-email'
-import { UserImpersonation } from '@/components/admin/user-impersonation'
-import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ClientOnly } from '@/components/utilities/client-only'
 
@@ -37,26 +34,15 @@ function AdminPage() {
 			{/*  */}
 			<Card className="bg-accent animate-page-in">
 				<CardHeader>
-					<CardTitle className="text-2xl">Impersonation</CardTitle>
-					<CardDescription>Impersonate a user to see the app as they do.</CardDescription>
+					<CardTitle className="text-2xl">Scheduling</CardTitle>
+					<CardDescription>Auto-archive windows and scheduled email toggles.</CardDescription>
 				</CardHeader>
 				<CardContent>
-					<Suspense fallback={<LoadingSkeleton />}>
-						<ClientOnly>
-							<UserImpersonation />
-						</ClientOnly>
-					</Suspense>
+					<ClientOnly>
+						<SchedulingSettingsEditor />
+					</ClientOnly>
 				</CardContent>
 			</Card>
-			{/*  */}
-			{/* <Card className="bg-accent animate-page-in">
-				<CardHeader>
-					<CardTitle className="text-2xl">Quick Actions</CardTitle>
-				</CardHeader>
-				<CardContent>
-					<LoadingSkeleton />
-				</CardContent>
-			</Card> */}
 			{/*  */}
 			<Card className="bg-accent animate-page-in">
 				<CardHeader>

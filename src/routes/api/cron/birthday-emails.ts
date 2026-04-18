@@ -7,6 +7,7 @@ import { giftedItems, items, lists, users } from '@/db/schema'
 import type { BirthMonth } from '@/db/schema/enums'
 import { env } from '@/env'
 import { sendBirthdayEmail, sendPostBirthdayEmail } from '@/lib/resend'
+import { getAppSettings } from '@/lib/settings'
 
 // ===============================
 // Birthday email cron job
@@ -37,6 +38,11 @@ export const Route = createFileRoute('/api/cron/birthday-emails')({
 					if (authHeader !== `Bearer ${cronSecret}`) {
 						return json({ error: 'Unauthorized' }, { status: 401 })
 					}
+				}
+
+				const settings = await getAppSettings(db)
+				if (!settings.enableBirthdayEmails) {
+					return json({ ok: true, skipped: 'birthday emails disabled', date: new Date().toISOString() })
 				}
 
 				const now = new Date()
