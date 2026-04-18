@@ -28,19 +28,22 @@ import { getDomainFromUrl } from '@/lib/urls'
 import { Badge } from '../ui/badge'
 import { ClaimGiftDialog } from './claim-gift-dialog'
 
+export type LockReason = 'order' | 'or'
+
 type Props = {
 	item: ItemWithGifts
 	hidePriority?: boolean
 	/**
-	 * When true, this item is blocked by an earlier item in its ordered group.
-	 * The Claim button is suppressed in favor of a "Locked" indicator. Any
-	 * existing claim the viewer already has is still editable/removable —
-	 * locking is forward-only, matching the server-side guard.
+	 * When set, this item is blocked by group rules and the Claim button is
+	 * suppressed in favor of a "Locked" indicator. 'order' means an earlier
+	 * item in the ordered group still has slots open; 'or' means a sibling
+	 * in the pick-one group is already claimed. Existing claims remain
+	 * editable — locking is forward-only, matching the server-side guards.
 	 */
-	locked?: boolean
+	lockReason?: LockReason
 }
 
-export default function ItemRow({ item, hidePriority = false, locked = false }: Props) {
+export default function ItemRow({ item, hidePriority = false, lockReason }: Props) {
 	const router = useRouter()
 	const queryClient = useQueryClient()
 	const { data: session } = useSession()
@@ -195,8 +198,16 @@ export default function ItemRow({ item, hidePriority = false, locked = false }: 
 								Fully claimed
 							</Badge>
 						)
-					) : locked && !myClaim ? (
-						<Badge variant="outline" className="text-xs text-muted-foreground" title="Claim the item above first">
+					) : lockReason && !myClaim ? (
+						<Badge
+							variant="outline"
+							className="text-xs text-muted-foreground"
+							title={
+								lockReason === 'order'
+									? 'Claim the item above first'
+									: 'Someone already claimed an item in this pick-one group'
+							}
+						>
 							<Lock className="size-3 mr-1" />
 							Locked
 						</Badge>

@@ -4,7 +4,7 @@ import PriorityIcon from '@/components/common/priority-icon'
 import { computeRemainingClaimableQuantity } from '@/lib/gifts'
 
 import { GroupBadge } from './group-badge'
-import ItemRow from './item-row'
+import ItemRow, { type LockReason } from './item-row'
 
 type Props = {
 	items: Array<ItemWithGifts>
@@ -59,20 +59,29 @@ export default function ItemList({ items, groups = [] }: Props) {
 				const groupItems = itemsByGroup.get(group.id) ?? []
 				if (groupItems.length === 0) return null
 
-				// For 'order' groups: only the first not-fully-claimed item is
-				// claimable. Everything after it is locked until the active one
-				// is fully taken. Matches the server-side guard in api/gifts.ts.
-				let sawUnfilled = false
-				const lockedByItemId = new Map<number, boolean>()
+				// Group locking rules, mirroring the server guards in api/gifts.ts:
+				// - 'order': only the first not-fully-claimed item is claimable;
+				//   everything after it is locked until that one is fully taken.
+				// - 'or': any existing claim in the group satisfies it; every
+				//   sibling without a claim becomes locked.
+				const lockByItemId = new Map<number, LockReason>()
 				if (group.type === 'order') {
+					let sawUnfilled = false
 					for (const item of groupItems) {
-						lockedByItemId.set(item.id, sawUnfilled)
+						if (sawUnfilled) lockByItemId.set(item.id, 'order')
 						if (!sawUnfilled) {
 							const remaining = computeRemainingClaimableQuantity(
 								item.quantity,
 								item.gifts.map(g => ({ quantity: g.quantity }))
 							)
 							if (remaining > 0) sawUnfilled = true
+						}
+					}
+				} else if (group.type === 'or') {
+					const anyClaimed = groupItems.some(i => i.gifts.length > 0)
+					if (anyClaimed) {
+						for (const item of groupItems) {
+							if (item.gifts.length === 0) lockByItemId.set(item.id, 'or')
 						}
 					}
 				}
@@ -86,7 +95,7 @@ export default function ItemList({ items, groups = [] }: Props) {
 						</div>
 						<div className="divide-y">
 							{groupItems.map(item => (
-								<ItemRow key={item.id} item={item} hidePriority locked={lockedByItemId.get(item.id) ?? false} />
+								<ItemRow key={item.id} item={item} hidePriority lockReason={lockByItemId.get(item.id)} />
 							))}
 						</div>
 					</div>
