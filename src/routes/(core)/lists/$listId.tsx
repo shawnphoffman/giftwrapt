@@ -54,6 +54,7 @@ function ListDetailPage() {
 					</div>
 					<ListTypeIcon type={list.type} className="wish-page-icon" />
 				</div>
+				{list.description && <p className="text-muted-foreground whitespace-pre-wrap">{list.description}</p>}
 				{/* ITEMS */}
 				<ItemList items={list.items} groups={list.groups} />
 				{/* OFF-LIST GIFTS */}

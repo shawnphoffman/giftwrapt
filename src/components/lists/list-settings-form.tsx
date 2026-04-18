@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { updateList } from '@/api/lists'
 import type { ListType } from '@/db/schema/enums'
 import { ListTypes, listTypeEnumValues } from '@/db/schema/enums'
+import ListTypeIcon from '@/components/common/list-type-icon'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -102,6 +103,7 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description }:
 							<SelectContent>
 								{listTypeEnumValues.map(t => (
 									<SelectItem key={t} value={t}>
+										<ListTypeIcon type={t} className="size-4" />
 										{ListTypes[t]}
 									</SelectItem>
 								))}

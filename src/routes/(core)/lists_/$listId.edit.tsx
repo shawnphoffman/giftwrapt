@@ -111,6 +111,7 @@ function ListEditPage() {
 					)}
 					<Pencil className="text-blue-500 wish-page-icon" />
 				</div>
+				{list.description && <p className="text-muted-foreground whitespace-pre-wrap">{list.description}</p>}
 
 				{/* ITEMS */}
 				<div className="flex flex-col gap-2">

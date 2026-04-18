@@ -37,6 +37,7 @@ export type ListForViewing = {
 	id: number
 	name: string
 	type: ListType
+	description: string | null
 	owner: {
 		id: string
 		name: string | null
@@ -77,6 +78,7 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 				id: true,
 				name: true,
 				type: true,
+				description: true,
 				isActive: true,
 				isPrivate: true,
 				ownerId: true,
@@ -197,6 +199,7 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 				id: list.id,
 				name: list.name,
 				type: list.type,
+				description: list.description,
 				owner: {
 					id: list.owner.id,
 					name: list.owner.name,

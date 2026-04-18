@@ -29,7 +29,7 @@ export function ListAddonsSection({ listId, addons }: Props) {
 			</div>
 
 			{activeAddons.length === 0 && archivedAddons.length === 0 && (
-				<p className="text-sm text-muted-foreground">
+				<p className="text-sm text-muted-foreground py-3 px-3 border rounded-lg bg-accent">
 					No off-list gifts yet. If you're getting something that isn't on the list, add it here so other gifters can see.
 				</p>
 			)}

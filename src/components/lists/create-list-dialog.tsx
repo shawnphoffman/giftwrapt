@@ -7,6 +7,7 @@ import { z } from 'zod'
 
 import { createList } from '@/api/lists'
 import { getPotentialPartners } from '@/api/user'
+import ListTypeIcon from '@/components/common/list-type-icon'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -156,6 +157,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 									<SelectContent>
 										{listTypeEnumValues.map(t => (
 											<SelectItem key={t} value={t}>
+												<ListTypeIcon type={t} className="size-4" />
 												{ListTypes[t]}
 											</SelectItem>
 										))}

@@ -121,7 +121,7 @@ function ListSection({
 			<h3>{title}</h3>
 			<div className="text-sm italic leading-tight text-muted-foreground">{description}</div>
 			{lists.length === 0 ? (
-				<div className="text-sm text-muted-foreground py-3 px-2">No lists yet.</div>
+				<div className="text-sm text-muted-foreground py-3 px-3 border rounded-lg bg-accent">No lists yet.</div>
 			) : (
 				<div className="flex flex-col overflow-hidden border divide-y rounded-lg bg-accent">
 					{lists.map(list => (
