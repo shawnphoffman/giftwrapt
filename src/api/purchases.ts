@@ -152,8 +152,13 @@ export const getMyPurchases = createServerFn({ method: 'GET' })
 
 export type SummaryItem = {
 	type: 'claim' | 'addon'
+	giftId: number | null
+	addonId: number | null
+	isOwn: boolean
 	title: string
 	cost: number | null
+	totalCostRaw: string | null
+	notes: string | null
 	quantity: number
 	listName: string
 	createdAt: Date
@@ -187,9 +192,12 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 
 		const claimRows = await db
 			.select({
+				giftId: giftedItems.id,
+				gifterId: giftedItems.gifterId,
 				itemTitle: items.title,
 				quantity: giftedItems.quantity,
 				totalCost: giftedItems.totalCost,
+				notes: giftedItems.notes,
 				createdAt: giftedItems.createdAt,
 				listName: lists.name,
 				listOwnerId: lists.ownerId,
@@ -206,8 +214,11 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 
 		const addonRows = await db
 			.select({
+				addonId: listAddons.id,
+				gifterId: listAddons.userId,
 				description: listAddons.description,
 				totalCost: listAddons.totalCost,
+				notes: listAddons.notes,
 				createdAt: listAddons.createdAt,
 				listName: lists.name,
 				listOwnerId: lists.ownerId,
@@ -223,8 +234,13 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 
 		const claims: Array<SummaryItem> = claimRows.map(r => ({
 			type: 'claim',
+			giftId: r.giftId,
+			addonId: null,
+			isOwn: r.gifterId === userId,
 			title: r.itemTitle,
 			cost: r.totalCost ? parseFloat(r.totalCost) : null,
+			totalCostRaw: r.totalCost,
+			notes: r.notes,
 			quantity: r.quantity,
 			listName: r.listName,
 			createdAt: r.createdAt,
@@ -237,8 +253,13 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 
 		const addons: Array<SummaryItem> = addonRows.map(r => ({
 			type: 'addon',
+			giftId: null,
+			addonId: r.addonId,
+			isOwn: r.gifterId === userId,
 			title: r.description,
 			cost: r.totalCost ? parseFloat(r.totalCost) : null,
+			totalCostRaw: r.totalCost,
+			notes: r.notes,
 			quantity: 1,
 			listName: r.listName,
 			createdAt: r.createdAt,

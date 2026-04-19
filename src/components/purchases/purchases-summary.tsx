@@ -1,13 +1,36 @@
 import { Link } from '@tanstack/react-router'
-import { ChevronDown, Gift, Info, Package, ReceiptText } from 'lucide-react'
+import { ChevronDown, Gift, Info, Package, Pencil, ReceiptText } from 'lucide-react'
 import { Fragment, useMemo, useState } from 'react'
 
 import type { SummaryItem } from '@/api/purchases'
 import UserAvatar from '@/components/common/user-avatar'
+import { type EditablePurchase, PurchaseEditDialog } from '@/components/purchases/purchase-edit-dialog'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+
+function toEditable(item: SummaryItem): EditablePurchase | null {
+	if (item.type === 'claim' && item.giftId != null) {
+		return {
+			type: 'claim',
+			giftId: item.giftId,
+			quantity: item.quantity,
+			totalCost: item.totalCostRaw,
+			notes: item.notes,
+		}
+	}
+	if (item.type === 'addon' && item.addonId != null) {
+		return {
+			type: 'addon',
+			addonId: item.addonId,
+			totalCost: item.totalCostRaw,
+			notes: item.notes,
+		}
+	}
+	return null
+}
 
 type Props = {
 	items: Array<SummaryItem>
@@ -114,6 +137,20 @@ function fmt(n: number): string {
 export function PurchasesSummaryContent({ items }: Props) {
 	const [timeframe, setTimeframe] = useState<Timeframe>('6m')
 	const [openKeys, setOpenKeys] = useState<Set<string>>(new Set())
+	const [editing, setEditing] = useState<EditablePurchase | null>(null)
+	const [dialogOpen, setDialogOpen] = useState(false)
+
+	function openEdit(item: SummaryItem) {
+		const editable = toEditable(item)
+		if (!editable) return
+		setEditing(editable)
+		setDialogOpen(true)
+	}
+
+	function handleDialogChange(open: boolean) {
+		setDialogOpen(open)
+		if (!open) setEditing(null)
+	}
 
 	function toggleOpen(key: string) {
 		setOpenKeys(prev => {
@@ -324,6 +361,20 @@ export function PurchasesSummaryContent({ items }: Props) {
 																		{item.cost != null && (
 																			<span className="tabular-nums text-xs shrink-0">${fmt(item.cost)}</span>
 																		)}
+																		{item.isOwn && (
+																			<Button
+																				variant="ghost"
+																				size="icon"
+																				className="size-6 shrink-0 text-yellow-600 hover:text-yellow-500"
+																				onClick={e => {
+																					e.stopPropagation()
+																					openEdit(item)
+																				}}
+																				aria-label="Edit purchase details"
+																			>
+																				<Pencil className="size-3.5" />
+																			</Button>
+																		)}
 																	</div>
 																))}
 															</div>
@@ -360,6 +411,8 @@ export function PurchasesSummaryContent({ items }: Props) {
 					</Link>
 				</div>
 			</div>
+
+			<PurchaseEditDialog open={dialogOpen} onOpenChange={handleDialogChange} purchase={editing} />
 		</div>
 	)
 }

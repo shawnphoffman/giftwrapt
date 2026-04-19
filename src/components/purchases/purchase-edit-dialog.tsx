@@ -6,7 +6,6 @@ import { z } from 'zod'
 
 import { updateItemGift } from '@/api/gifts'
 import { updateListAddon } from '@/api/list-addons'
-import type { AddonPurchaseRow, PurchaseRow } from '@/api/purchases'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -14,10 +13,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 
+export type EditablePurchase =
+	| { type: 'claim'; giftId: number; quantity: number; totalCost: string | null; notes: string | null }
+	| { type: 'addon'; addonId: number; totalCost: string | null; notes: string | null }
+
 type Props = {
 	open: boolean
 	onOpenChange: (open: boolean) => void
-	purchase: PurchaseRow | AddonPurchaseRow | null
+	purchase: EditablePurchase | null
 }
 
 const schema = z.object({
@@ -53,7 +56,7 @@ export function PurchaseEditDialog({ open, onOpenChange, purchase }: Props) {
 	)
 }
 
-function purchaseFormKey(p: PurchaseRow | AddonPurchaseRow): string {
+function purchaseFormKey(p: EditablePurchase): string {
 	return p.type === 'claim' ? `claim-${p.giftId}` : `addon-${p.addonId}`
 }
 
@@ -61,7 +64,7 @@ function PurchaseEditForm({
 	purchase,
 	onOpenChange,
 }: {
-	purchase: PurchaseRow | AddonPurchaseRow
+	purchase: EditablePurchase
 	onOpenChange: (open: boolean) => void
 }) {
 	const router = useRouter()
