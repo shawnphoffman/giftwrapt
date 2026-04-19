@@ -1,11 +1,12 @@
 import { useRouter } from '@tanstack/react-router'
-import { Archive, ArrowDown, ArrowUp, ExternalLink, Group, MoreHorizontal, Pencil, Trash2, Ungroup } from 'lucide-react'
+import { Archive, ArrowDown, ArrowUp, ExternalLink, Group, ListOrdered, MoreHorizontal, Pencil, Shuffle, Trash2, Ungroup } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { assignItemsToGroup } from '@/api/groups'
 import { archiveItem, deleteItem } from '@/api/items'
 import type { GroupSummary } from '@/api/lists'
+import { MarkdownNotes } from '@/components/common/markdown-notes'
 import PriorityIcon from '@/components/common/priority-icon'
 import {
 	AlertDialog,
@@ -17,7 +18,6 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
 	DropdownMenu,
@@ -31,14 +31,15 @@ import {
 } from '@/components/ui/dropdown-menu'
 import type { Item } from '@/db/schema/items'
 
-import { GroupBadge } from './group-badge'
 import { ItemFormDialog } from './item-form-dialog'
+import { PriceQuantityBadge } from './price-quantity-badge'
 
 type Props = {
 	item: Item
 	onMoveClick?: (item: Item) => void
 	groups?: Array<GroupSummary>
 	hidePriority?: boolean
+	flush?: boolean
 	/**
 	 * When provided, renders up/down arrow buttons for reordering this item
 	 * within its ordered group. Each callback is undefined when the item is
@@ -56,13 +57,13 @@ function getDomain(url: string): string | null {
 	}
 }
 
-export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = false, onMoveUp, onMoveDown }: Props) {
+export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = false, flush = false, onMoveUp, onMoveDown }: Props) {
 	const router = useRouter()
 	const [editOpen, setEditOpen] = useState(false)
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
-	const currentGroup = groups.find(g => g.id === item.groupId)
 	const otherGroups = groups.filter(g => g.id !== item.groupId)
+	const hasCurrentGroup = item.groupId != null && groups.some(g => g.id === item.groupId)
 
 	const handleAssignGroup = async (groupId: number | null) => {
 		const result = await assignItemsToGroup({ data: { groupId, itemIds: [item.id] } })
@@ -97,7 +98,13 @@ export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = fal
 
 	return (
 		<>
-			<div className="flex items-center gap-2 p-2 hover:bg-muted/50">
+			<div
+				className={
+					flush
+						? 'flex items-center gap-2 p-2 bg-muted/40 border-b last:border-b-0 hover:bg-muted/60'
+						: 'flex items-center gap-2 p-2 border rounded-md bg-muted/40 hover:bg-muted/60'
+				}
+			>
 				{!hidePriority && <PriorityIcon priority={item.priority} className="size-4 shrink-0" />}
 				<div className="flex-1 min-w-0">
 					<div className="font-medium leading-tight truncate">{item.title}</div>
@@ -111,18 +118,9 @@ export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = fal
 							{domain} <ExternalLink className="size-3" />
 						</a>
 					)}
+					{item.notes && <MarkdownNotes content={item.notes} className="text-xs text-foreground/75 mt-1" />}
 				</div>
-				{currentGroup && <GroupBadge type={currentGroup.type} className="text-xs shrink-0" />}
-				{item.price && (
-					<Badge variant="outline" className="text-xs shrink-0">
-						${item.price}
-					</Badge>
-				)}
-				{item.quantity > 1 && (
-					<Badge variant="secondary" className="text-xs tabular-nums shrink-0">
-						x{item.quantity}
-					</Badge>
-				)}
+				<PriceQuantityBadge price={item.price} quantity={item.quantity} />
 				{(onMoveUp || onMoveDown) && (
 					<div className="flex items-center shrink-0">
 						<Button
@@ -170,13 +168,17 @@ export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = fal
 									<Group className="mr-2 size-4" /> Group
 								</DropdownMenuSubTrigger>
 								<DropdownMenuSubContent>
-									{otherGroups.map(g => (
-										<DropdownMenuItem key={g.id} onClick={() => handleAssignGroup(g.id)}>
-											{g.type === 'or' ? 'Pick one' : 'In order'} group #{g.id}
-										</DropdownMenuItem>
-									))}
-									{currentGroup && otherGroups.length > 0 && <DropdownMenuSeparator />}
-									{currentGroup && (
+									{otherGroups.map(g => {
+										const GroupTypeIcon = g.type === 'or' ? Shuffle : ListOrdered
+										const label = g.name || `${g.type === 'or' ? 'Pick one' : 'In order'} group #${g.id}`
+										return (
+											<DropdownMenuItem key={g.id} onClick={() => handleAssignGroup(g.id)}>
+												<GroupTypeIcon className="mr-2 size-4" /> {label}
+											</DropdownMenuItem>
+										)
+									})}
+									{hasCurrentGroup && otherGroups.length > 0 && <DropdownMenuSeparator />}
+									{hasCurrentGroup && (
 										<DropdownMenuItem onClick={() => handleAssignGroup(null)}>
 											<Ungroup className="mr-2 size-4" /> Remove from group
 										</DropdownMenuItem>

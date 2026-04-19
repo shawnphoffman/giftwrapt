@@ -37,6 +37,7 @@ const CreateItemInputSchema = z.object({
 	priority: z.enum(priorityEnumValues).optional(),
 	quantity: z.number().int().positive().max(999).optional(),
 	imageUrl: z.string().max(2000).optional(),
+	groupId: z.number().int().positive().optional(),
 })
 
 export type CreateItemResult =
@@ -70,6 +71,7 @@ export const createItem = createServerFn({ method: 'POST' })
 				priority: data.priority ?? 'normal',
 				quantity: data.quantity ?? 1,
 				imageUrl: data.imageUrl ?? null,
+				groupId: data.groupId ?? null,
 			})
 			.returning()
 

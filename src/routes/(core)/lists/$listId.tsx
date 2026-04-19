@@ -2,6 +2,7 @@ import { createFileRoute, notFound, redirect } from '@tanstack/react-router'
 
 import { getListForViewing } from '@/api/lists'
 import ListTypeIcon from '@/components/common/list-type-icon'
+import { MarkdownNotes } from '@/components/common/markdown-notes'
 import UserAvatar from '@/components/common/user-avatar'
 import ItemList from '@/components/items/item-list'
 import { ListAddonsSection } from '@/components/list-addons/list-addons-section'
@@ -54,7 +55,7 @@ function ListDetailPage() {
 					</div>
 					<ListTypeIcon type={list.type} className="wish-page-icon" />
 				</div>
-				{list.description && <p className="text-muted-foreground whitespace-pre-wrap">{list.description}</p>}
+				{list.description && <MarkdownNotes content={list.description} className="text-muted-foreground" />}
 				{/* ITEMS */}
 				<ItemList items={list.items} groups={list.groups} />
 				{/* OFF-LIST GIFTS */}

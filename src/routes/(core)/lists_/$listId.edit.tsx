@@ -1,13 +1,16 @@
 import { createFileRoute, notFound, useRouter } from '@tanstack/react-router'
-import { Group as GroupIcon, ListOrdered, Pencil, Plus, Shuffle, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { Group as GroupIcon, ListOrdered, Plus, Shuffle, Trash2 } from 'lucide-react'
+import { Fragment, useState } from 'react'
 import { toast } from 'sonner'
 
 import { createItemGroup, deleteItemGroup, reorderGroupItems } from '@/api/groups'
 import { getAddableEditors, getListEditors } from '@/api/list-editors'
 import { getListForEditing } from '@/api/lists'
+import ListTypeIcon from '@/components/common/list-type-icon'
+import { MarkdownNotes } from '@/components/common/markdown-notes'
 import PriorityIcon from '@/components/common/priority-icon'
 import { GroupBadge } from '@/components/items/group-badge'
+import { GroupConnector } from '@/components/items/group-connector'
 import { GroupEditPopover } from '@/components/items/group-edit-popover'
 import { ItemEditRow } from '@/components/items/item-edit-row'
 import { ItemFormDialog } from '@/components/items/item-form-dialog'
@@ -15,7 +18,7 @@ import { MoveItemDialog } from '@/components/items/move-item-dialog'
 import { ListSettingsSheet } from '@/components/lists/list-settings-sheet'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import type { GroupType } from '@/db/schema/enums'
+import type { GroupType, Priority } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 
 export const Route = createFileRoute('/(core)/lists_/$listId/edit')({
@@ -40,6 +43,7 @@ function ListEditPage() {
 	const { list, editors, addableUsers } = Route.useLoaderData()
 	const router = useRouter()
 	const [addItemOpen, setAddItemOpen] = useState(false)
+	const [addItemGroupId, setAddItemGroupId] = useState<number | null>(null)
 	const [moveItem, setMoveItem] = useState<Item | null>(null)
 
 	const handleCreateGroup = async (type: GroupType) => {
@@ -73,7 +77,9 @@ function ListEditPage() {
 		}
 	}
 
-	// Partition items: ungrouped first, then one section per group.
+	// Merge ungrouped items and groups into a single, priority-sorted list so
+	// priority is a universal axis across both kinds of entries.
+	const priorityRank: Record<Priority, number> = { 'very-high': 4, high: 3, normal: 2, low: 1 }
 	const ungroupedItems = list.items.filter(i => i.groupId === null)
 	const itemsByGroup = new Map<number, Array<Item>>()
 	for (const item of list.items) {
@@ -82,7 +88,6 @@ function ListEditPage() {
 			itemsByGroup.get(item.groupId)!.push(item)
 		}
 	}
-	// Sort by groupSortOrder for order groups, by id for or groups.
 	for (const arr of itemsByGroup.values()) {
 		arr.sort((a, b) => {
 			const aOrder = a.groupSortOrder ?? Number.MAX_SAFE_INTEGER
@@ -91,6 +96,25 @@ function ListEditPage() {
 			return a.id - b.id
 		})
 	}
+
+	type Entry =
+		| { kind: 'item'; priority: Priority; id: number; item: Item }
+		| { kind: 'group'; priority: Priority; id: number; group: (typeof list.groups)[number]; items: Array<Item> }
+	const entries: Array<Entry> = [
+		...ungroupedItems.map((item): Entry => ({ kind: 'item', priority: item.priority, id: item.id, item })),
+		...list.groups.map((group): Entry => ({
+			kind: 'group',
+			priority: group.priority,
+			id: group.id,
+			group,
+			items: itemsByGroup.get(group.id) ?? [],
+		})),
+	]
+	entries.sort((a, b) => {
+		const rDiff = priorityRank[b.priority] - priorityRank[a.priority]
+		if (rDiff !== 0) return rDiff
+		return a.id - b.id
+	})
 
 	return (
 		<div className="wish-page">
@@ -109,14 +133,13 @@ function ListEditPage() {
 							addableUsers={addableUsers}
 						/>
 					)}
-					<Pencil className="text-blue-500 wish-page-icon" />
+					<ListTypeIcon type={list.type} className="wish-page-icon" />
 				</div>
-				{list.description && <p className="text-muted-foreground whitespace-pre-wrap">{list.description}</p>}
+				{list.description && <MarkdownNotes content={list.description} className="text-muted-foreground" />}
 
 				{/* ITEMS */}
 				<div className="flex flex-col gap-2">
-					<div className="flex items-center justify-between">
-						<h3>Items</h3>
+					<div className="flex items-center justify-end">
 						<div className="flex gap-2">
 							{list.isOwner && (
 								<DropdownMenu>
@@ -135,44 +158,59 @@ function ListEditPage() {
 									</DropdownMenuContent>
 								</DropdownMenu>
 							)}
-							<Button size="sm" onClick={() => setAddItemOpen(true)}>
+							<Button
+								size="sm"
+								onClick={() => {
+									setAddItemGroupId(null)
+									setAddItemOpen(true)
+								}}
+							>
 								<Plus className="mr-1 size-4" /> Add item
 							</Button>
 						</div>
 					</div>
 
-					{list.items.length === 0 ? (
-						<div className="text-sm text-muted-foreground py-6 text-center border rounded-lg bg-accent">
+					{list.items.length === 0 && list.groups.length === 0 ? (
+						<div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg bg-accent/30">
 							No items yet. Click "Add item" to get started.
 						</div>
 					) : (
-						<div className="flex flex-col gap-3">
-							{/* Ungrouped items */}
-							{ungroupedItems.length > 0 && (
-								<div className="flex flex-col overflow-hidden border divide-y rounded-lg bg-accent">
-									{ungroupedItems.map(item => (
+						<div className="flex flex-col gap-2">
+							{entries.map(entry => {
+								if (entry.kind === 'item') {
+									return (
 										<ItemEditRow
-											key={item.id}
-											item={item}
+											key={`item-${entry.item.id}`}
+											item={entry.item}
 											onMoveClick={list.isOwner ? setMoveItem : undefined}
 											groups={list.groups}
 										/>
-									))}
-								</div>
-							)}
-
-							{/* Grouped sections */}
-							{list.groups.map(group => {
-								const groupItems = itemsByGroup.get(group.id) ?? []
+									)
+								}
+								const { group, items: groupItems } = entry
+								const useConnector = group.type === 'or' || group.type === 'order'
 								return (
-									<div key={group.id} className="border rounded-lg bg-accent overflow-hidden">
-										<div className="flex items-center gap-2 p-2 bg-muted/30 border-b">
+									<div key={`group-${group.id}`} className="flex flex-col rounded-md overflow-hidden bg-background border">
+										<div className="flex items-center gap-2 p-2 border-b bg-muted/70">
 											<PriorityIcon priority={group.priority} className="size-4 shrink-0" />
-											<GroupBadge type={group.type} showHelp />
 											{group.name && <span className="font-medium text-sm truncate">{group.name}</span>}
-											<span className="text-xs text-muted-foreground ml-auto">
-												{groupItems.length} item{groupItems.length !== 1 ? 's' : ''}
-											</span>
+											<GroupBadge type={group.type} showHelp />
+											<div className="ml-auto" />
+											{list.isOwner && (
+												<Button
+													variant="ghost"
+													size="icon"
+													className="size-7"
+													onClick={() => {
+														setAddItemGroupId(group.id)
+														setAddItemOpen(true)
+													}}
+													title="Add item to this group"
+													aria-label="Add item to this group"
+												>
+													<Plus className="size-4" />
+												</Button>
+											)}
 											{list.isOwner && <GroupEditPopover group={group} />}
 											{list.isOwner && (
 												<Button
@@ -187,27 +225,30 @@ function ListEditPage() {
 											)}
 										</div>
 										{groupItems.length === 0 ? (
-											<div className="text-xs text-muted-foreground p-3 text-center">
-												Empty group. Use the "Group" item action to add items here.
+											<div className="text-xs text-muted-foreground p-3 m-1 text-center border border-dashed rounded-lg bg-accent/30">
+												Empty group. Use the + button above or the "Group" item action to add items here.
 											</div>
 										) : (
-											<div className="divide-y">
+											<div className="overflow-hidden">
 												{groupItems.map((item, index) => {
 													const showReorder = list.isOwner && group.type === 'order' && groupItems.length > 1
 													return (
-														<ItemEditRow
-															key={item.id}
-															item={item}
-															onMoveClick={list.isOwner ? setMoveItem : undefined}
-															groups={list.groups}
-															hidePriority
-															onMoveUp={showReorder && index > 0 ? () => handleReorder(group.id, groupItems, index, -1) : undefined}
-															onMoveDown={
-																showReorder && index < groupItems.length - 1
-																	? () => handleReorder(group.id, groupItems, index, 1)
-																	: undefined
-															}
-														/>
+														<Fragment key={item.id}>
+															{useConnector && index > 0 && <GroupConnector type={group.type} />}
+															<ItemEditRow
+																item={item}
+																onMoveClick={list.isOwner ? setMoveItem : undefined}
+																groups={list.groups}
+																hidePriority
+																flush
+																onMoveUp={showReorder && index > 0 ? () => handleReorder(group.id, groupItems, index, -1) : undefined}
+																onMoveDown={
+																	showReorder && index < groupItems.length - 1
+																		? () => handleReorder(group.id, groupItems, index, 1)
+																		: undefined
+																}
+															/>
+														</Fragment>
 													)
 												})}
 											</div>
@@ -220,7 +261,16 @@ function ListEditPage() {
 				</div>
 			</div>
 
-			<ItemFormDialog open={addItemOpen} onOpenChange={setAddItemOpen} mode="create" listId={list.id} />
+			<ItemFormDialog
+				open={addItemOpen}
+				onOpenChange={open => {
+					setAddItemOpen(open)
+					if (!open) setAddItemGroupId(null)
+				}}
+				mode="create"
+				listId={list.id}
+				groupId={addItemGroupId}
+			/>
 
 			{moveItem && (
 				<MoveItemDialog

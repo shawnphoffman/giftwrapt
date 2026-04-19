@@ -7,21 +7,22 @@ import { z } from 'zod'
 import { createItem, updateItem } from '@/api/items'
 import type { Item } from '@/db/schema/items'
 import { priorityEnumValues } from '@/db/schema/enums'
+import { MarkdownTextarea } from '@/components/common/markdown-textarea'
+import PriorityIcon from '@/components/common/priority-icon'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
 
 type BaseProps = {
 	open: boolean
 	onOpenChange: (open: boolean) => void
 }
 
-type CreateProps = BaseProps & { mode: 'create'; listId: number; item?: never }
-type EditProps = BaseProps & { mode: 'edit'; listId?: never; item: Item }
+type CreateProps = BaseProps & { mode: 'create'; listId: number; item?: never; groupId?: number | null }
+type EditProps = BaseProps & { mode: 'edit'; listId?: never; item: Item; groupId?: never }
 
 type Props = CreateProps | EditProps
 
@@ -105,6 +106,7 @@ export function ItemFormDialog(props: Props) {
 							priority: parsed.data.priority,
 							quantity: parsed.data.quantity,
 							imageUrl: parsed.data.imageUrl?.trim() || undefined,
+							groupId: props.groupId ?? undefined,
 						},
 					})
 
@@ -234,7 +236,12 @@ export function ItemFormDialog(props: Props) {
 									<SelectContent>
 										{priorityEnumValues.map(p => (
 											<SelectItem key={p} value={p}>
-												{PriorityLabels[p] ?? p}
+												<span className="inline-flex items-center gap-2">
+													<span className="inline-flex size-4 items-center justify-center">
+														<PriorityIcon priority={p} />
+													</span>
+													{PriorityLabels[p] ?? p}
+												</span>
 											</SelectItem>
 										))}
 									</SelectContent>
@@ -247,16 +254,15 @@ export function ItemFormDialog(props: Props) {
 						{field => (
 							<div className="grid gap-2">
 								<Label htmlFor={field.name}>Notes (optional)</Label>
-								<Textarea
+								<MarkdownTextarea
 									id={field.name}
 									placeholder="Color preferences, size, model, etc."
 									rows={3}
 									value={field.state.value}
-									onChange={e => field.handleChange(e.target.value)}
+									onChange={v => field.handleChange(v)}
 									onBlur={field.handleBlur}
 									disabled={submitting}
 								/>
-								<p className="text-xs text-muted-foreground">Supports basic markdown (bold, italic, links, lists).</p>
 							</div>
 						)}
 					</form.Field>
