@@ -8,6 +8,8 @@ import { archiveItem, deleteItem } from '@/api/items'
 import type { GroupSummary } from '@/api/lists'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import PriorityIcon from '@/components/common/priority-icon'
+import { cn } from '@/lib/utils'
+import { priorityBorderClass } from '@/lib/priority-classes'
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -99,11 +101,12 @@ export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = fal
 	return (
 		<>
 			<div
-				className={
+				className={cn(
 					flush
 						? 'flex items-center gap-2 p-2 bg-muted/40 border-b last:border-b-0 hover:bg-muted/60'
-						: 'flex items-center gap-2 p-2 border rounded-md bg-muted/40 hover:bg-muted/60'
-				}
+						: 'flex items-center gap-2 p-2 border rounded-md bg-muted/40 hover:bg-muted/60',
+					!flush && priorityBorderClass[item.priority]
+				)}
 			>
 				{!hidePriority && <PriorityIcon priority={item.priority} className="size-4 shrink-0" />}
 				<div className="flex-1 min-w-0">
