@@ -1,5 +1,5 @@
-import { createFileRoute, notFound, useRouter } from '@tanstack/react-router'
-import { Group as GroupIcon, ListOrdered, Plus, Shuffle } from 'lucide-react'
+import { createFileRoute, Link, notFound, useRouter } from '@tanstack/react-router'
+import { Group as GroupIcon, ListOrdered, Plus, Settings2, Shuffle } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -108,6 +108,13 @@ function ListEditPage() {
 				<div className="flex flex-col gap-2">
 					<div className="flex items-center justify-end">
 						<div className="flex gap-2">
+							{list.isOwner && list.items.length > 0 && (
+								<Button size="sm" variant="outline" asChild>
+									<Link to="/lists/$listId/organize" params={{ listId: String(list.id) }}>
+										<Settings2 className="mr-1 size-4" /> Organize
+									</Link>
+								</Button>
+							)}
 							{list.isOwner && (
 								<DropdownMenu>
 									<DropdownMenuTrigger asChild>

@@ -567,7 +567,10 @@ export type GetListForEditingResult =
 
 export const getListForEditing = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware])
-	.inputValidator((data: { listId: string }) => ({ listId: data.listId }))
+	.inputValidator((data: { listId: string; includeArchived?: boolean }) => ({
+		listId: data.listId,
+		includeArchived: data.includeArchived ?? false,
+	}))
 	.handler(async ({ context, data }): Promise<GetListForEditingResult> => {
 		const listId = Number(data.listId)
 		if (!Number.isFinite(listId)) return { kind: 'error', reason: 'not-found' }
@@ -597,9 +600,12 @@ export const getListForEditing = createServerFn({ method: 'GET' })
 			if (!edit.ok) return { kind: 'error', reason: 'not-authorized' }
 		}
 
-		// Fetch non-archived items only. Archived items are hidden from the edit view.
+		// Archived items are hidden from the edit view by default; the organize
+		// view opts in to seeing them so users can bulk-unarchive.
 		const listItems = await db.query.items.findMany({
-			where: and(eq(items.listId, list.id), eq(items.isArchived, false)),
+			where: data.includeArchived
+				? eq(items.listId, list.id)
+				: and(eq(items.listId, list.id), eq(items.isArchived, false)),
 			orderBy: [desc(items.createdAt)],
 		})
 

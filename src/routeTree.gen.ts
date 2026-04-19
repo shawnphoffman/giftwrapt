@@ -41,6 +41,7 @@ import { Route as coreAdminUsersRouteImport } from './routes/(core)/admin/users'
 import { Route as coreAdminTestRouteImport } from './routes/(core)/admin/test'
 import { Route as coreAdminDebugRouteImport } from './routes/(core)/admin/debug'
 import { Route as ApiSseListListIdRouteImport } from './routes/api/sse/list.$listId'
+import { Route as coreListsListIdOrganizeRouteImport } from './routes/(core)/lists_/$listId.organize'
 import { Route as coreListsListIdEditRouteImport } from './routes/(core)/lists_/$listId.edit'
 import { Route as coreListsListIdBulkRouteImport } from './routes/(core)/lists_/$listId.bulk'
 import { Route as coreItemImportChar123UrlChar125RouteImport } from './routes/(core)/item.import.{-$url}'
@@ -205,6 +206,11 @@ const ApiSseListListIdRoute = ApiSseListListIdRouteImport.update({
   path: '/api/sse/list/$listId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const coreListsListIdOrganizeRoute = coreListsListIdOrganizeRouteImport.update({
+  id: '/lists_/$listId/organize',
+  path: '/lists/$listId/organize',
+  getParentRoute: () => coreRouteRoute,
+} as any)
 const coreListsListIdEditRoute = coreListsListIdEditRouteImport.update({
   id: '/lists_/$listId/edit',
   path: '/lists/$listId/edit',
@@ -262,6 +268,7 @@ export interface FileRoutesByFullPath {
   '/item/import/{-$url}': typeof coreItemImportChar123UrlChar125Route
   '/lists/$listId/bulk': typeof coreListsListIdBulkRoute
   '/lists/$listId/edit': typeof coreListsListIdEditRoute
+  '/lists/$listId/organize': typeof coreListsListIdOrganizeRoute
   '/api/sse/list/$listId': typeof ApiSseListListIdRoute
 }
 export interface FileRoutesByTo {
@@ -297,6 +304,7 @@ export interface FileRoutesByTo {
   '/item/import/{-$url}': typeof coreItemImportChar123UrlChar125Route
   '/lists/$listId/bulk': typeof coreListsListIdBulkRoute
   '/lists/$listId/edit': typeof coreListsListIdEditRoute
+  '/lists/$listId/organize': typeof coreListsListIdOrganizeRoute
   '/api/sse/list/$listId': typeof ApiSseListListIdRoute
 }
 export interface FileRoutesById {
@@ -336,6 +344,7 @@ export interface FileRoutesById {
   '/(core)/item/import/{-$url}': typeof coreItemImportChar123UrlChar125Route
   '/(core)/lists_/$listId/bulk': typeof coreListsListIdBulkRoute
   '/(core)/lists_/$listId/edit': typeof coreListsListIdEditRoute
+  '/(core)/lists_/$listId/organize': typeof coreListsListIdOrganizeRoute
   '/api/sse/list/$listId': typeof ApiSseListListIdRoute
 }
 export interface FileRouteTypes {
@@ -375,6 +384,7 @@ export interface FileRouteTypes {
     | '/item/import/{-$url}'
     | '/lists/$listId/bulk'
     | '/lists/$listId/edit'
+    | '/lists/$listId/organize'
     | '/api/sse/list/$listId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -410,6 +420,7 @@ export interface FileRouteTypes {
     | '/item/import/{-$url}'
     | '/lists/$listId/bulk'
     | '/lists/$listId/edit'
+    | '/lists/$listId/organize'
     | '/api/sse/list/$listId'
   id:
     | '__root__'
@@ -448,6 +459,7 @@ export interface FileRouteTypes {
     | '/(core)/item/import/{-$url}'
     | '/(core)/lists_/$listId/bulk'
     | '/(core)/lists_/$listId/edit'
+    | '/(core)/lists_/$listId/organize'
     | '/api/sse/list/$listId'
   fileRoutesById: FileRoutesById
 }
@@ -691,6 +703,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSseListListIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/(core)/lists_/$listId/organize': {
+      id: '/(core)/lists_/$listId/organize'
+      path: '/lists/$listId/organize'
+      fullPath: '/lists/$listId/organize'
+      preLoaderRoute: typeof coreListsListIdOrganizeRouteImport
+      parentRoute: typeof coreRouteRoute
+    }
     '/(core)/lists_/$listId/edit': {
       id: '/(core)/lists_/$listId/edit'
       path: '/lists/$listId/edit'
@@ -778,6 +797,7 @@ interface coreRouteRouteChildren {
   coreItemImportChar123UrlChar125Route: typeof coreItemImportChar123UrlChar125Route
   coreListsListIdBulkRoute: typeof coreListsListIdBulkRoute
   coreListsListIdEditRoute: typeof coreListsListIdEditRoute
+  coreListsListIdOrganizeRoute: typeof coreListsListIdOrganizeRoute
 }
 
 const coreRouteRouteChildren: coreRouteRouteChildren = {
@@ -795,6 +815,7 @@ const coreRouteRouteChildren: coreRouteRouteChildren = {
   coreItemImportChar123UrlChar125Route: coreItemImportChar123UrlChar125Route,
   coreListsListIdBulkRoute: coreListsListIdBulkRoute,
   coreListsListIdEditRoute: coreListsListIdEditRoute,
+  coreListsListIdOrganizeRoute: coreListsListIdOrganizeRoute,
 }
 
 const coreRouteRouteWithChildren = coreRouteRoute._addFileChildren(
