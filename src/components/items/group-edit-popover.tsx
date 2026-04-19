@@ -91,7 +91,9 @@ export function GroupEditPopover({ group }: Props) {
 							{priorityEnumValues.map(p => (
 								<SelectItem key={p} value={p}>
 									<span className="flex items-center gap-2">
-										<PriorityIcon priority={p} className="size-3.5" />
+										<span className="inline-flex size-3.5 items-center justify-center">
+											<PriorityIcon priority={p} className="size-3.5" />
+										</span>
 										{PriorityLabels[p]}
 									</span>
 								</SelectItem>

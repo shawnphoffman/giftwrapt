@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { createItem } from '@/api/items'
 import { getMyLists, type MyListRow } from '@/api/lists'
 import ListTypeIcon from '@/components/common/list-type-icon'
+import PriorityIcon from '@/components/common/priority-icon'
 import { priorityEnumValues, type Priority } from '@/db/schema/enums'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -236,7 +237,12 @@ function ItemImportPage() {
 								<SelectContent>
 									{priorityEnumValues.map(p => (
 										<SelectItem key={p} value={p}>
-											{PriorityLabels[p]}
+											<span className="inline-flex items-center gap-2">
+												<span className="inline-flex size-4 items-center justify-center">
+													<PriorityIcon priority={p} />
+												</span>
+												{PriorityLabels[p]}
+											</span>
 										</SelectItem>
 									))}
 								</SelectContent>

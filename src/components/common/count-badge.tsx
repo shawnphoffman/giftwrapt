@@ -10,9 +10,9 @@ export default function CountBadge({ count, remaining }: CountBadgeProps) {
 	if (count === 0) return null
 	return (
 		<Badge
-			variant="secondary"
+			variant="outline"
 			className={cn(
-				'gap-0.5 leading-snug items-end py-1 px-1 rounded-sm text-xs whitespace-nowrap inline-flex',
+				'gap-0.5 leading-snug items-end py-1 px-1 rounded-sm text-xs whitespace-nowrap inline-flex bg-muted text-foreground border-border',
 				count > 0 ? '' : 'text-muted-foreground'
 			)}
 		>

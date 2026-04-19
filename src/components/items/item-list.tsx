@@ -1,4 +1,3 @@
-import { ArrowDown } from 'lucide-react'
 import { Fragment } from 'react'
 
 import type { GroupSummary, ItemWithGifts } from '@/api/lists'
@@ -7,18 +6,8 @@ import PriorityIcon from '@/components/common/priority-icon'
 import { computeRemainingClaimableQuantity } from '@/lib/gifts'
 
 import { GroupBadge } from './group-badge'
+import { GroupConnector } from './group-connector'
 import ItemRow, { type LockReason } from './item-row'
-
-function GroupConnector({ type }: { type: 'or' | 'order' }) {
-	return (
-		<div className="relative flex items-center justify-center py-1.5" aria-hidden>
-			<div className="absolute inset-x-4 h-px bg-border" />
-			<span className="relative z-10 flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold tracking-wider rounded-full border bg-accent text-muted-foreground">
-				{type === 'or' ? 'OR' : <ArrowDown className="size-3" />}
-			</span>
-		</div>
-	)
-}
 
 type Props = {
 	items: Array<ItemWithGifts>

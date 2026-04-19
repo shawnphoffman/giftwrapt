@@ -27,6 +27,7 @@ import { getDomainFromUrl } from '@/lib/urls'
 
 import { Badge } from '../ui/badge'
 import { ClaimGiftDialog } from './claim-gift-dialog'
+import { PriceQuantityBadge } from './price-quantity-badge'
 
 export type LockReason = 'order' | 'or'
 
@@ -124,10 +125,7 @@ export default function ItemRow({ item, hidePriority = false, lockReason }: Prop
 							) : (
 								<div>{item.title}</div>
 							)}
-							{item.price && <span className="px-2 text-xs border rounded whitespace-nowrap bg-card w-fit">{item.price}</span>}
-							{item.quantity && item.quantity > 1 && (
-								<span className="px-2 text-xs border rounded whitespace-nowrap bg-card w-fit">Qty: {item.quantity}</span>
-							)}
+							<PriceQuantityBadge price={item.price} quantity={item.quantity} />
 						</div>
 						{item.notes && <MarkdownNotes content={item.notes} className="text-sm text-foreground/75" />}
 					</div>

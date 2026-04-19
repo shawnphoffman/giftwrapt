@@ -18,6 +18,6 @@ export default function PriorityIcon({ priority, className }: PriorityIconProps)
 			return <ArrowBigDown className={cn('size-4 text-blue-400', className)} />
 		case 'normal':
 		default:
-			return null
+			return <span aria-hidden className={cn('inline-block size-4 shrink-0', className)} />
 	}
 }
