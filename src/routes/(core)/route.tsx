@@ -129,7 +129,8 @@ function AuthenticatedRoutes() {
 				</SidebarFooter>
 			</Sidebar>
 			<SidebarInset>
-				<header className="sticky top-0 z-10 flex items-center justify-between h-12 gap-2 shrink-0 w-full">
+				{/* <header className="sticky top-0 z-10 flex items-center justify-between h-12 gap-2 shrink-0 w-full"> */}
+				<header className=" top-0 z-10 flex items-center justify-between h-12 gap-2 shrink-0 w-full">
 					<div className="flex items-center gap-2 w-fit rounded-lg px-4">
 						<SidebarTrigger className=" -ml-1 [&_svg]:size-6! bg-background/75" />
 						<div className="bg-background/75 rounded-lg px-2">
