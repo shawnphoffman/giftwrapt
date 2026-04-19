@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { desc, eq, sql } from 'drizzle-orm'
+import { and, desc, eq, ne, sql } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { giftedItems, items, listAddons, lists, users } from '@/db/schema'
@@ -202,7 +202,7 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 			.innerJoin(items, eq(items.id, giftedItems.itemId))
 			.innerJoin(lists, eq(lists.id, items.listId))
 			.innerJoin(sql`users as owner`, sql`owner.id = ${lists.ownerId}`)
-			.where(inGifters)
+			.where(and(inGifters, ne(lists.ownerId, userId)))
 
 		const addonRows = await db
 			.select({
@@ -219,7 +219,7 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 			.from(listAddons)
 			.innerJoin(lists, eq(lists.id, listAddons.listId))
 			.innerJoin(sql`users as owner`, sql`owner.id = ${lists.ownerId}`)
-			.where(inAddonGifters)
+			.where(and(inAddonGifters, ne(lists.ownerId, userId)))
 
 		const claims: Array<SummaryItem> = claimRows.map(r => ({
 			type: 'claim',
