@@ -3,7 +3,10 @@ import { Body, Column, Container, Head, Heading, Hr, Html, Img, Link, Row, Secti
 const baseUrl = process.env.SERVER_URL || 'http://localhost:3000'
 
 interface PostBirthdayEmailProps {
-	items: Array<{ title: string; image_url: string; gifters: Array<string> }>
+	// `gifters` is pre-formatted (e.g. "Alice & Bob" or "Alice, Bob & Carol")
+	// so partner and co-gifter attribution stays consistent with the received
+	// gifts page. See src/lib/gifters.ts#formatGifterNames.
+	items: Array<{ title: string; image_url: string; gifters: string }>
 }
 
 export default function PostBirthdayEmail({ items }: PostBirthdayEmailProps) {
@@ -27,7 +30,7 @@ export default function PostBirthdayEmail({ items }: PostBirthdayEmailProps) {
 									</Column>
 									<Column className="gap-2">
 										<Text className="my-0 text-base font-bold leading-tight">{item.title}</Text>
-										<Text className="my-0 text-sm">From: {item.gifters.join(', ')}</Text>
+										<Text className="my-0 text-sm">From: {item.gifters}</Text>
 									</Column>
 								</Row>
 								<Hr />
@@ -50,17 +53,17 @@ PostBirthdayEmail.PreviewProps = {
 		{
 			title: 'Item 1 is really long and should definitely behave properly in the email',
 			image_url: 'https://placehold.co/600x400',
-			gifters: ['John', 'Jane'],
+			gifters: 'John & Jane',
 		},
 		{
 			title: 'Item 2',
 			image_url: 'https://placehold.co/100x200',
-			gifters: ['John'],
+			gifters: 'John',
 		},
 		{
 			title: 'Item 3',
 			image_url: 'https://placehold.co/400x200',
-			gifters: ['Jane'],
+			gifters: 'Jane, Alex & Priya',
 		},
 	],
 } as PostBirthdayEmailProps

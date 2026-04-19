@@ -60,7 +60,7 @@ export const sendBirthdayEmail = async (name: string, recipient: string) => {
 
 export const sendPostBirthdayEmail = async (
 	recipient: string,
-	items: Array<{ title: string; image_url: string; gifters: Array<string> }>
+	items: Array<{ title: string; image_url: string; gifters: string }>
 ) => {
 	const emailResp = await resendClient.emails.send({
 		...commonEmailProps(),

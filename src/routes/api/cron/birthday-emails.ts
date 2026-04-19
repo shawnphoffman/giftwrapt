@@ -1,11 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { giftedItems, items, lists, users } from '@/db/schema'
 import type { BirthMonth } from '@/db/schema/enums'
 import { env } from '@/env'
+import { formatGifterNames, namesForGifter, type PartneredUser } from '@/lib/gifters'
 import { sendBirthdayEmail, sendPostBirthdayEmail } from '@/lib/resend'
 import { getAppSettings } from '@/lib/settings'
 
@@ -87,36 +88,73 @@ export const Route = createFileRoute('/api/cron/birthday-emails')({
 				const followUpSent: string[] = []
 				for (const user of followUpUsers) {
 					try {
-						// Fetch archived gifted items on this user's lists.
+						// Fetch archived gifted items on this user's lists along with
+						// co-gifter IDs so we can credit everyone who chipped in.
 						const archivedGifts = await db
 							.select({
 								itemTitle: items.title,
 								itemImageUrl: items.imageUrl,
-								gifterName: users.name,
-								gifterEmail: users.email,
+								gifterId: giftedItems.gifterId,
+								additionalGifterIds: giftedItems.additionalGifterIds,
 							})
 							.from(giftedItems)
 							.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, true)))
 							.innerJoin(lists, and(eq(lists.id, items.listId), eq(lists.ownerId, user.id)))
-							.innerJoin(users, eq(users.id, giftedItems.gifterId))
 
 						if (archivedGifts.length === 0) continue
 
-						// Group by item.
-						const itemMap = new Map<string, { title: string; image_url: string; gifters: string[] }>()
+						// Resolve names for every gifter + co-gifter, then expand to
+						// include each gifter's partner so "Alice" becomes "Alice & Bob".
+						const gifterIds = new Set<string>()
+						for (const gift of archivedGifts) {
+							gifterIds.add(gift.gifterId)
+							for (const id of gift.additionalGifterIds ?? []) gifterIds.add(id)
+						}
+						const lookup = new Map<string, PartneredUser>()
+						if (gifterIds.size > 0) {
+							const rows = await db
+								.select({ id: users.id, name: users.name, email: users.email, partnerId: users.partnerId })
+								.from(users)
+								.where(inArray(users.id, Array.from(gifterIds)))
+							for (const r of rows) lookup.set(r.id, r)
+						}
+						const partnerIds = new Set<string>()
+						for (const u of lookup.values()) {
+							if (u.partnerId && !lookup.has(u.partnerId)) partnerIds.add(u.partnerId)
+						}
+						if (partnerIds.size > 0) {
+							const rows = await db
+								.select({ id: users.id, name: users.name, email: users.email, partnerId: users.partnerId })
+								.from(users)
+								.where(inArray(users.id, Array.from(partnerIds)))
+							for (const r of rows) lookup.set(r.id, r)
+						}
+
+						// Group by item; accumulate every crediting name across claims.
+						const itemMap = new Map<string, { title: string; image_url: string; names: Array<string> }>()
 						for (const gift of archivedGifts) {
 							const key = gift.itemTitle
 							if (!itemMap.has(key)) {
 								itemMap.set(key, {
 									title: gift.itemTitle,
 									image_url: gift.itemImageUrl || 'https://placehold.co/80x80?text=Gift',
-									gifters: [],
+									names: [],
 								})
 							}
-							itemMap.get(key)!.gifters.push(gift.gifterName || gift.gifterEmail)
+							const bucket = itemMap.get(key)!
+							for (const name of namesForGifter(gift.gifterId, lookup)) bucket.names.push(name)
+							for (const id of gift.additionalGifterIds ?? []) {
+								for (const name of namesForGifter(id, lookup)) bucket.names.push(name)
+							}
 						}
 
-						await sendPostBirthdayEmail(user.email, Array.from(itemMap.values()))
+						const emailItems = Array.from(itemMap.values()).map(i => ({
+							title: i.title,
+							image_url: i.image_url,
+							gifters: formatGifterNames(i.names),
+						}))
+
+						await sendPostBirthdayEmail(user.email, emailItems)
 						followUpSent.push(user.email)
 					} catch (err) {
 						console.error(`Failed to send post-birthday email to ${user.email}:`, err)
