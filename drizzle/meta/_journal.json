@@ -29,6 +29,13 @@
       "when": 1776459802878,
       "tag": "0003_panoramic_rogue",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1776639626230,
+      "tag": "0004_sad_moonstone",
+      "breakpoints": true
     }
   ]
 }

@@ -50,6 +50,7 @@ function makeItem(overrides: Partial<ItemWithGifts> = {}): ItemWithGifts {
 		isArchived: false,
 		quantity: 1,
 		groupSortOrder: null,
+		sortOrder: null,
 		createdAt: now,
 		updatedAt: now,
 		modifiedAt: null,

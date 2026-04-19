@@ -33,6 +33,8 @@ export const items = pgTable(
 		// Position within an item group. Only meaningful when groupId is set.
 		// Used by 'order' groups to enforce claim sequence.
 		groupSortOrder: smallint('group_sort_order'),
+		// Manual position within the list (outside of any group). Lower first; nulls last.
+		sortOrder: integer('sort_order'),
 		...timestamps,
 		// modifiedAt is bumped in server actions when title/url/notes change.
 		// Deliberately NOT a DB trigger (decided 2026-04-14) — keeps portability simple.
