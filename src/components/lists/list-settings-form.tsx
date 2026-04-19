@@ -13,7 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
+import { MarkdownTextarea } from '@/components/common/markdown-textarea'
 
 type Props = {
 	listId: number
@@ -133,11 +133,11 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description }:
 				{field => (
 					<div className="grid gap-2">
 						<Label htmlFor={field.name}>Description (optional)</Label>
-						<Textarea
+						<MarkdownTextarea
 							id={field.name}
 							rows={2}
 							value={field.state.value}
-							onChange={e => field.handleChange(e.target.value)}
+							onChange={v => field.handleChange(v)}
 							disabled={submitting}
 						/>
 					</div>
