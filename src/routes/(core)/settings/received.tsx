@@ -5,6 +5,7 @@ import { Gift, Package } from 'lucide-react'
 import { getReceivedGifts } from '@/api/received'
 import { Badge } from '@/components/ui/badge'
 import { CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { formatGifterNames } from '@/lib/gifters'
 
 export const Route = createFileRoute('/(core)/settings/received')({
 	component: ReceivedPage,
@@ -51,7 +52,7 @@ function ReceivedPage() {
 											<div className="flex-1 min-w-0">
 												<div className="font-medium leading-tight truncate">{gift.itemTitle}</div>
 												<div className="text-xs text-muted-foreground">
-													From {gift.gifterName || gift.gifterEmail} &middot; {gift.listName}
+													From {formatGifterNames(gift.gifterNames)} &middot; {gift.listName}
 												</div>
 											</div>
 											{gift.quantity > 1 && (
@@ -77,7 +78,7 @@ function ReceivedPage() {
 											<div className="flex-1 min-w-0">
 												<div className="font-medium leading-tight truncate">{addon.description}</div>
 												<div className="text-xs text-muted-foreground">
-													From {addon.gifterName || addon.gifterEmail} &middot; {addon.listName}
+													From {formatGifterNames(addon.gifterNames)} &middot; {addon.listName}
 												</div>
 											</div>
 										</div>
