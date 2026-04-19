@@ -1,12 +1,15 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { PlusCircle } from 'lucide-react'
-import { useState } from 'react'
+import { Lock, PlusCircle, Star } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { createItem } from '@/api/items'
-import { getMyLists } from '@/api/lists'
+import { getMyLists, type MyListRow } from '@/api/lists'
+import ListTypeIcon from '@/components/common/list-type-icon'
+import { priorityEnumValues, type Priority } from '@/db/schema/enums'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -17,15 +20,42 @@ export const Route = createFileRoute('/(core)/item/import/{-$url}')({
 	component: ItemImportPage,
 })
 
+const PriorityLabels: Record<Priority, string> = {
+	low: 'Low',
+	normal: 'Normal',
+	high: 'High',
+	'very-high': 'Very High',
+}
+
+type ListOption = Pick<MyListRow, 'id' | 'name' | 'type' | 'isPrivate' | 'isPrimary'>
+
+function ListSelectItem({ list, owner }: { list: ListOption; owner?: { name: string | null; email: string } }) {
+	return (
+		<SelectItem value={String(list.id)}>
+			<ListTypeIcon type={list.type} className="size-4 shrink-0" />
+			<span className="truncate">{list.name}</span>
+			{list.isPrimary && <Star className="size-3.5 text-yellow-500 fill-yellow-500 shrink-0" />}
+			{list.isPrivate && <Lock className="size-3.5 text-muted-foreground shrink-0" />}
+			{owner && (
+				<Badge variant="secondary" className="ml-auto text-xs shrink-0">
+					{owner.name || owner.email}
+				</Badge>
+			)}
+		</SelectItem>
+	)
+}
+
 function ItemImportPage() {
 	const params = Route.useParams()
 	const navigate = useNavigate()
-	const importUrl = decodeURIComponent((params as Record<string, string>).url || '')
+	const initialUrl = decodeURIComponent((params as Record<string, string>).url || '')
 
+	const [url, setUrl] = useState(initialUrl)
 	const [title, setTitle] = useState('')
-	const [price, setPrice] = useState('')
 	const [notes, setNotes] = useState('')
-	const [imageUrl, setImageUrl] = useState('')
+	const [price, setPrice] = useState('')
+	const [quantity, setQuantity] = useState('1')
+	const [priority, setPriority] = useState<Priority>('normal')
 	const [selectedListId, setSelectedListId] = useState('')
 	const [saving, setSaving] = useState(false)
 	const [error, setError] = useState<string | null>(null)
@@ -37,10 +67,30 @@ function ItemImportPage() {
 
 	const publicLists = myLists?.public ?? []
 	const privateLists = myLists?.private ?? []
+	const giftIdeasLists = myLists?.giftIdeas ?? []
+	const editableLists = myLists?.editable ?? []
+	const children = myLists?.children ?? []
+
+	// Default to the user's primary list once data loads, falling back to the
+	// first list we find across any group.
+	useEffect(() => {
+		if (selectedListId || !myLists) return
+		const allOwned = [...publicLists, ...privateLists, ...giftIdeasLists]
+		const primary = allOwned.find(l => l.isPrimary)
+		const firstChildList = children.flatMap(c => c.lists)[0]
+		const pick = primary ?? allOwned[0] ?? editableLists[0] ?? firstChildList
+		if (pick) setSelectedListId(String(pick.id))
+	}, [myLists, selectedListId, publicLists, privateLists, giftIdeasLists, editableLists, children])
 
 	const handleSave = async () => {
 		const listId = Number(selectedListId)
 		if (!listId || !title.trim()) return
+
+		const qty = Number(quantity)
+		if (!Number.isFinite(qty) || qty < 1) {
+			setError('Quantity must be at least 1')
+			return
+		}
 
 		setSaving(true)
 		setError(null)
@@ -49,10 +99,11 @@ function ItemImportPage() {
 				data: {
 					listId,
 					title: title.trim(),
-					url: importUrl || undefined,
+					url: url.trim() || undefined,
 					price: price.trim() || undefined,
+					priority,
+					quantity: qty,
 					notes: notes.trim() || undefined,
-					imageUrl: imageUrl.trim() || undefined,
 				},
 			})
 
@@ -79,79 +130,141 @@ function ItemImportPage() {
 				</div>
 
 				<div className="space-y-4 max-w-lg">
-					{importUrl && (
-						<div className="grid gap-2">
-							<Label>URL</Label>
-							<div className="text-sm text-muted-foreground break-all">{importUrl}</div>
-						</div>
-					)}
-
-					{imageUrl && (
-						<div className="flex justify-center">
-							<img src={imageUrl} alt="" className="max-h-32 object-contain rounded" />
-						</div>
-					)}
+					<p className="text-sm text-muted-foreground">
+						Pick a list and fill in the details below. Fields are pre-filled from the URL when possible.
+					</p>
 
 					<div className="grid gap-2">
-						<Label htmlFor="import-title">Title</Label>
-						<Input
-							id="import-title"
-							value={title}
-							onChange={e => setTitle(e.target.value)}
-							placeholder="Item name"
-							disabled={saving}
-						/>
-					</div>
-
-					<div className="grid gap-2">
-						<Label htmlFor="import-price">Price (optional)</Label>
-						<Input
-							id="import-price"
-							value={price}
-							onChange={e => setPrice(e.target.value)}
-							placeholder="29.99"
-							inputMode="decimal"
-							disabled={saving}
-						/>
-					</div>
-
-					<div className="grid gap-2">
-						<Label htmlFor="import-notes">Notes (optional)</Label>
-						<Textarea
-							id="import-notes"
-							value={notes}
-							onChange={e => setNotes(e.target.value)}
-							rows={2}
-							placeholder="Color, size, model..."
-							disabled={saving}
-						/>
-					</div>
-
-					<div className="grid gap-2">
-						<Label htmlFor="import-list">Add to list</Label>
+						<Label htmlFor="import-list">List</Label>
 						<Select value={selectedListId} onValueChange={setSelectedListId} disabled={saving}>
-							<SelectTrigger id="import-list">
+							<SelectTrigger id="import-list" className="w-full">
 								<SelectValue placeholder="Select a list" />
 							</SelectTrigger>
 							<SelectContent>
 								{publicLists.length > 0 && (
 									<SelectGroup>
-										<SelectLabel>Public</SelectLabel>
+										<SelectLabel>My Public Lists</SelectLabel>
 										{publicLists.map(l => (
-											<SelectItem key={l.id} value={String(l.id)}>{l.name}</SelectItem>
+											<ListSelectItem key={l.id} list={l} />
 										))}
 									</SelectGroup>
 								)}
 								{privateLists.length > 0 && (
 									<SelectGroup>
-										<SelectLabel>Private</SelectLabel>
+										<SelectLabel>My Private Lists</SelectLabel>
 										{privateLists.map(l => (
-											<SelectItem key={l.id} value={String(l.id)}>{l.name}</SelectItem>
+											<ListSelectItem key={l.id} list={l} />
+										))}
+									</SelectGroup>
+								)}
+								{giftIdeasLists.length > 0 && (
+									<SelectGroup>
+										<SelectLabel>Gift Ideas</SelectLabel>
+										{giftIdeasLists.map(l => (
+											<ListSelectItem key={l.id} list={l} />
+										))}
+									</SelectGroup>
+								)}
+								{children.map(
+									child =>
+										child.lists.length > 0 && (
+											<SelectGroup key={child.childId}>
+												<SelectLabel>{child.childName || child.childEmail}</SelectLabel>
+												{child.lists.map(l => (
+													<ListSelectItem key={l.id} list={l} />
+												))}
+											</SelectGroup>
+										)
+								)}
+								{editableLists.length > 0 && (
+									<SelectGroup>
+										<SelectLabel>Lists I Can Edit</SelectLabel>
+										{editableLists.map(l => (
+											<ListSelectItem key={l.id} list={l} owner={{ name: l.ownerName, email: l.ownerEmail }} />
 										))}
 									</SelectGroup>
 								)}
 							</SelectContent>
 						</Select>
+					</div>
+
+					<div className="grid gap-2">
+						<Label htmlFor="import-url">URL</Label>
+						<Input
+							id="import-url"
+							type="url"
+							value={url}
+							onChange={e => setUrl(e.target.value)}
+							placeholder="https://..."
+							disabled={saving}
+						/>
+					</div>
+
+					<div className="grid gap-2">
+						<Label htmlFor="import-title">
+							Title <span className="text-destructive">*</span>
+						</Label>
+						<Input
+							id="import-title"
+							value={title}
+							onChange={e => setTitle(e.target.value)}
+							placeholder="Something cool…"
+							disabled={saving}
+							autoFocus
+						/>
+					</div>
+
+					<div className="grid gap-2">
+						<Label htmlFor="import-notes">Notes</Label>
+						<Textarea
+							id="import-notes"
+							value={notes}
+							onChange={e => setNotes(e.target.value)}
+							rows={2}
+							placeholder="Color, size, model…"
+							disabled={saving}
+						/>
+					</div>
+
+					<div className="grid gap-4 sm:grid-cols-3">
+						<div className="grid gap-2">
+							<Label htmlFor="import-priority">Priority</Label>
+							<Select value={priority} onValueChange={v => setPriority(v as Priority)} disabled={saving}>
+								<SelectTrigger id="import-priority" className="w-full">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									{priorityEnumValues.map(p => (
+										<SelectItem key={p} value={p}>
+											{PriorityLabels[p]}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+						<div className="grid gap-2">
+							<Label htmlFor="import-price">Price Range</Label>
+							<Input
+								id="import-price"
+								value={price}
+								onChange={e => setPrice(e.target.value)}
+								placeholder="$ 0.00"
+								inputMode="decimal"
+								disabled={saving}
+							/>
+						</div>
+						<div className="grid gap-2">
+							<Label htmlFor="import-quantity">Quantity</Label>
+							<Input
+								id="import-quantity"
+								type="number"
+								min={1}
+								max={999}
+								value={quantity}
+								onChange={e => setQuantity(e.target.value)}
+								disabled={saving}
+							/>
+						</div>
 					</div>
 
 					{error && (
@@ -162,8 +275,8 @@ function ItemImportPage() {
 					)}
 
 					<div className="flex gap-2">
-						<Button onClick={handleSave} disabled={saving || !title.trim() || !selectedListId}>
-							{saving ? 'Saving...' : 'Add to list'}
+						<Button onClick={handleSave} disabled={saving || !title.trim() || !selectedListId} className="flex-1">
+							{saving ? 'Saving…' : 'Add Item'}
 						</Button>
 						<Button variant="outline" onClick={() => navigate({ to: '/me' })} disabled={saving}>
 							Cancel
