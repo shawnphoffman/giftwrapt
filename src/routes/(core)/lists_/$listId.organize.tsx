@@ -5,10 +5,11 @@ import { toast } from 'sonner'
 
 import { assignItemsToGroup } from '@/api/groups'
 import { archiveItems, deleteItems, setItemsPriority } from '@/api/items'
-import { getListForEditing } from '@/api/lists'
+import { getListForEditing, type ListForEditing } from '@/api/lists'
 import PriorityIcon from '@/components/common/priority-icon'
 import { BulkMoveItemsDialog } from '@/components/items/bulk-move-dialog'
 import { GroupBadge } from '@/components/items/group-badge'
+import { ReorderPanel } from '@/components/items/reorder-panel'
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -34,6 +35,7 @@ import { priorityEnumValues, type Priority } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 
 type FilterMode = 'active' | 'archived' | 'all'
+type TabMode = 'bulk' | 'reorder'
 
 const PRIORITY_LABEL: Record<Priority, string> = {
 	'very-high': 'Very high',
@@ -55,6 +57,54 @@ export const Route = createFileRoute('/(core)/lists_/$listId/organize')({
 
 function OrganizePage() {
 	const { list } = Route.useLoaderData()
+	const [tab, setTab] = useState<TabMode>('bulk')
+
+	return (
+		<div className="wish-page">
+			<div className="flex flex-col flex-1 gap-4">
+				<div className="flex items-center gap-2">
+					<Button variant="ghost" size="icon" asChild>
+						<Link to="/lists/$listId/edit" params={{ listId: String(list.id) }} aria-label="Back to edit">
+							<ArrowLeft className="size-4" />
+						</Link>
+					</Button>
+					<h1 className="truncate flex-1">Organize: {list.name}</h1>
+				</div>
+
+				<div className="flex border-b">
+					<TabButton active={tab === 'bulk'} onClick={() => setTab('bulk')}>
+						Bulk actions
+					</TabButton>
+					<TabButton active={tab === 'reorder'} onClick={() => setTab('reorder')}>
+						Reorder
+					</TabButton>
+				</div>
+
+				{tab === 'bulk' ? (
+					<BulkActionsTab list={list} />
+				) : (
+					<ReorderPanel listId={list.id} items={list.items} groups={list.groups} />
+				)}
+			</div>
+		</div>
+	)
+}
+
+function TabButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+	return (
+		<button
+			type="button"
+			onClick={onClick}
+			className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px ${
+				active ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'
+			}`}
+		>
+			{children}
+		</button>
+	)
+}
+
+function BulkActionsTab({ list }: { list: ListForEditing }) {
 	const router = useRouter()
 	const [selected, setSelected] = useState<Set<number>>(new Set())
 	const [filter, setFilter] = useState<FilterMode>('active')
@@ -70,6 +120,8 @@ function OrganizePage() {
 
 	const visibleIds = useMemo(() => visibleItems.map(i => i.id), [visibleItems])
 	const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => selected.has(id))
+	const selectedIds = useMemo(() => [...selected], [selected])
+	const selectedList = useMemo(() => list.items.filter(i => selected.has(i.id)), [list.items, selected])
 
 	const toggle = (id: number) =>
 		setSelected(prev => {
@@ -78,12 +130,6 @@ function OrganizePage() {
 			else next.add(id)
 			return next
 		})
-
-	const selectAll = () => setSelected(new Set(visibleIds))
-	const deselectAll = () => setSelected(new Set())
-
-	const selectedIds = useMemo(() => [...selected], [selected])
-	const selectedList = useMemo(() => list.items.filter(i => selected.has(i.id)), [list.items, selected])
 
 	const refresh = async () => {
 		setSelected(new Set())
@@ -143,139 +189,99 @@ function OrganizePage() {
 	}
 
 	return (
-		<div className="wish-page">
-			<div className="flex flex-col flex-1 gap-4">
-				{/* HEADING */}
-				<div className="flex items-center gap-2">
-					<Button variant="ghost" size="icon" asChild>
-						<Link to="/lists/$listId/edit" params={{ listId: String(list.id) }} aria-label="Back to edit">
-							<ArrowLeft className="size-4" />
-						</Link>
+		<>
+			<div className="flex items-center gap-1 text-sm">
+				{(['active', 'archived', 'all'] as const).map(mode => (
+					<Button key={mode} size="sm" variant={filter === mode ? 'default' : 'outline'} onClick={() => setFilter(mode)}>
+						{mode === 'active' && 'Active'}
+						{mode === 'archived' && 'Archived'}
+						{mode === 'all' && 'All'}
+						<Badge variant="secondary" className="ml-2 tabular-nums">
+							{mode === 'active'
+								? list.items.filter(i => !i.isArchived).length
+								: mode === 'archived'
+									? list.items.filter(i => i.isArchived).length
+									: list.items.length}
+						</Badge>
 					</Button>
-					<h1 className="truncate flex-1">Organize: {list.name}</h1>
-				</div>
+				))}
+			</div>
 
-				{/* FILTER CHIPS */}
-				<div className="flex items-center gap-1 text-sm">
-					{(['active', 'archived', 'all'] as const).map(mode => (
-						<Button
-							key={mode}
-							size="sm"
-							variant={filter === mode ? 'default' : 'outline'}
-							onClick={() => setFilter(mode)}
-						>
-							{mode === 'active' && 'Active'}
-							{mode === 'archived' && 'Archived'}
-							{mode === 'all' && 'All'}
-							<Badge variant="secondary" className="ml-2 tabular-nums">
-								{mode === 'active'
-									? list.items.filter(i => !i.isArchived).length
-									: mode === 'archived'
-										? list.items.filter(i => i.isArchived).length
-										: list.items.length}
-							</Badge>
-						</Button>
-					))}
-				</div>
+			<div className="flex flex-wrap items-center gap-2 p-2 border rounded-md sticky top-2 z-10 bg-background/95 backdrop-blur">
+				<Button
+					size="sm"
+					variant="outline"
+					onClick={allVisibleSelected ? () => setSelected(new Set()) : () => setSelected(new Set(visibleIds))}
+					disabled={visibleIds.length === 0}
+				>
+					{allVisibleSelected ? <CheckSquare className="size-4" /> : <Square className="size-4" />}
+					{allVisibleSelected ? 'Deselect all' : 'Select all'}
+				</Button>
+				<span className="text-sm text-muted-foreground">{selected.size} selected</span>
+				<div className="flex-1" />
 
-				{/* BULK TOOLBAR */}
-				<div className="flex flex-wrap items-center gap-2 p-2 border rounded-md sticky top-2 z-10 bg-background/95 backdrop-blur">
-					<Button
-						size="sm"
-						variant="outline"
-						onClick={allVisibleSelected ? deselectAll : selectAll}
-						disabled={visibleIds.length === 0}
-					>
-						{allVisibleSelected ? <CheckSquare className="size-4" /> : <Square className="size-4" />}
-						{allVisibleSelected ? 'Deselect all' : 'Select all'}
-					</Button>
-					<span className="text-sm text-muted-foreground">
-						{selected.size} selected
-					</span>
+				<Button size="sm" variant="outline" disabled={selected.size === 0 || busy} onClick={() => setMoveOpen(true)}>
+					<MoveRight className="size-4" /> Move
+				</Button>
 
-					<div className="flex-1" />
-
-					<Button
-						size="sm"
-						variant="outline"
-						disabled={selected.size === 0 || busy}
-						onClick={() => setMoveOpen(true)}
-					>
-						<MoveRight className="size-4" /> Move
-					</Button>
-
-					{list.groups.length > 0 && (
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button size="sm" variant="outline" disabled={selected.size === 0 || busy}>
-									Group
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent align="end">
-								<DropdownMenuLabel>Assign to group</DropdownMenuLabel>
-								{list.groups.map(g => (
-									<DropdownMenuItem key={g.id} onClick={() => runAssignGroup(g.id)}>
-										<GroupBadge type={g.type} className="text-xs" />
-										{g.name ?? `Group #${g.id}`}
-									</DropdownMenuItem>
-								))}
-								<DropdownMenuSeparator />
-								<DropdownMenuItem onClick={() => runAssignGroup(null)}>Remove from group</DropdownMenuItem>
-							</DropdownMenuContent>
-						</DropdownMenu>
-					)}
-
+				{list.groups.length > 0 && (
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button size="sm" variant="outline" disabled={selected.size === 0 || busy}>
-								Priority
+								Group
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
-							<DropdownMenuLabel>Set priority</DropdownMenuLabel>
-							{priorityEnumValues.map(p => (
-								<DropdownMenuItem key={p} onClick={() => runPriority(p)}>
-									<PriorityIcon priority={p} className="size-4" />
-									{PRIORITY_LABEL[p]}
+							<DropdownMenuLabel>Assign to group</DropdownMenuLabel>
+							{list.groups.map(g => (
+								<DropdownMenuItem key={g.id} onClick={() => runAssignGroup(g.id)}>
+									<GroupBadge type={g.type} className="text-xs" />
+									{g.name ?? `Group #${g.id}`}
 								</DropdownMenuItem>
 							))}
+							<DropdownMenuSeparator />
+							<DropdownMenuItem onClick={() => runAssignGroup(null)}>Remove from group</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
-
-					{filter === 'archived' ? (
-						<Button size="sm" variant="outline" disabled={selected.size === 0 || busy} onClick={() => runArchive(false)}>
-							<ArchiveRestore className="size-4" /> Restore
-						</Button>
-					) : (
-						<Button size="sm" variant="outline" disabled={selected.size === 0 || busy} onClick={() => runArchive(true)}>
-							<Archive className="size-4" /> Archive
-						</Button>
-					)}
-
-					<Button
-						size="sm"
-						variant="destructive"
-						disabled={selected.size === 0 || busy}
-						onClick={() => setDeleteOpen(true)}
-					>
-						<Trash2 className="size-4" /> Delete
-					</Button>
-				</div>
-
-				{/* LIST BY GROUP */}
-				{visibleItems.length === 0 ? (
-					<div className="text-sm text-muted-foreground py-6 text-center border rounded-lg bg-accent">
-						No items to show.
-					</div>
-				) : (
-					<OrganizeList
-						items={visibleItems}
-						groups={list.groups}
-						selected={selected}
-						onToggle={toggle}
-					/>
 				)}
+
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button size="sm" variant="outline" disabled={selected.size === 0 || busy}>
+							Priority
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="end">
+						<DropdownMenuLabel>Set priority</DropdownMenuLabel>
+						{priorityEnumValues.map(p => (
+							<DropdownMenuItem key={p} onClick={() => runPriority(p)}>
+								<PriorityIcon priority={p} className="size-4" />
+								{PRIORITY_LABEL[p]}
+							</DropdownMenuItem>
+						))}
+					</DropdownMenuContent>
+				</DropdownMenu>
+
+				{filter === 'archived' ? (
+					<Button size="sm" variant="outline" disabled={selected.size === 0 || busy} onClick={() => runArchive(false)}>
+						<ArchiveRestore className="size-4" /> Restore
+					</Button>
+				) : (
+					<Button size="sm" variant="outline" disabled={selected.size === 0 || busy} onClick={() => runArchive(true)}>
+						<Archive className="size-4" /> Archive
+					</Button>
+				)}
+
+				<Button size="sm" variant="destructive" disabled={selected.size === 0 || busy} onClick={() => setDeleteOpen(true)}>
+					<Trash2 className="size-4" /> Delete
+				</Button>
 			</div>
+
+			{visibleItems.length === 0 ? (
+				<div className="text-sm text-muted-foreground py-6 text-center border rounded-lg bg-accent">No items to show.</div>
+			) : (
+				<OrganizeList items={visibleItems} groups={list.groups} selected={selected} onToggle={toggle} />
+			)}
 
 			{moveOpen && (
 				<BulkMoveItemsDialog
@@ -303,7 +309,7 @@ function OrganizePage() {
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
-		</div>
+		</>
 	)
 }
 
@@ -318,7 +324,6 @@ function OrganizeList({
 	selected: Set<number>
 	onToggle: (id: number) => void
 }) {
-	// Ungrouped first, then each group.
 	const ungrouped = items.filter(i => i.groupId === null)
 	const byGroup = new Map<number, Array<Item>>()
 	for (const i of items) {
