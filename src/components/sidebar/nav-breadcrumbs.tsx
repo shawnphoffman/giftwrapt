@@ -8,6 +8,7 @@ export default function NavBreadcrumbs() {
 	const location = useLocation()
 
 	const isDeepAdmin = location.pathname.includes('/admin/')
+	const isAdminUserEdit = location.pathname.startsWith('/admin/user/')
 
 	const isBeyondEditing = location.pathname.includes('/select')
 	const isEditingList = location.pathname.includes('/edit') || isBeyondEditing
@@ -37,6 +38,16 @@ export default function NavBreadcrumbs() {
 						<Link to={parentCrumb.href}>{parentCrumb.label}</Link>
 					</BreadcrumbLink>
 				</BreadcrumbItem>
+				{isAdminUserEdit && (
+					<>
+						<BreadcrumbSeparator />
+						<BreadcrumbItem>
+							<BreadcrumbLink asChild>
+								<Link to="/admin/users">Users</Link>
+							</BreadcrumbLink>
+						</BreadcrumbItem>
+					</>
+				)}
 				{isBeyondEditing && (
 					<>
 						<BreadcrumbSeparator />

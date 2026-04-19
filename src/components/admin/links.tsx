@@ -16,7 +16,10 @@ export default function AdminLinks() {
 			<Link to="/admin" className={pathname === '/admin' ? activeClasses : ''}>
 				General
 			</Link>
-			<Link to="/admin/users" className={cn(pathname === '/admin/users' ? activeClasses : '', passiveClasses, iconClasses)}>
+			<Link
+				to="/admin/users"
+				className={cn(pathname === '/admin/users' || pathname.startsWith('/admin/user/') ? activeClasses : '', passiveClasses, iconClasses)}
+			>
 				<Users size={16} />
 				Users
 			</Link>

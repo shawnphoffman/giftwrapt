@@ -24,14 +24,16 @@ export type NavItem = {
 	mask?: string
 	activeOptions?: React.ComponentProps<typeof Link>['activeOptions']
 	activePaths?: Array<string>
+	activeMatch?: (pathname: string) => boolean
 }
 
 export const NavItem = ({ item, className }: { item: NavItem; className?: string }) => {
 	const Icon = item.icon
 	const forceActive = useRouterState({
 		select: s => {
-			if (!item.activePaths?.length) return false
 			const path = s.location.pathname
+			if (item.activeMatch?.(path)) return true
+			if (!item.activePaths?.length) return false
 			return item.activePaths.some(p => path === p || path.startsWith(p.endsWith('/') ? p : `${p}/`))
 		},
 	})
