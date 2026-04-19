@@ -22,7 +22,7 @@ function RecentCommentsPage() {
 				</div>
 
 				{comments.length === 0 ? (
-					<div className="text-sm text-muted-foreground py-6 text-center border rounded-lg bg-accent">
+					<div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg bg-accent/30">
 						No recent comments.
 					</div>
 				) : (

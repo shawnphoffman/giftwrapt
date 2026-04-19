@@ -36,7 +36,7 @@ function ConnectionsPage() {
 				{isLoading ? (
 					<div className="text-sm text-muted-foreground">Loading...</div>
 				) : !children || children.length === 0 ? (
-					<div className="text-sm text-muted-foreground py-4 text-center border rounded-lg bg-accent">
+					<div className="text-sm text-muted-foreground py-4 text-center border border-dashed rounded-lg bg-accent/30">
 						No child accounts linked. An admin can set up guardianship connections.
 					</div>
 				) : (
@@ -67,7 +67,7 @@ function ChildSection({ child }: { child: ChildUser }) {
 			</div>
 			<div className="divide-y">
 				{!lists || lists.length === 0 ? (
-					<div className="text-sm text-muted-foreground p-3">No lists yet.</div>
+					<div className="text-sm text-muted-foreground p-3 m-2 border border-dashed rounded-lg bg-accent/30">No lists yet.</div>
 				) : (
 					lists.map(list => (
 						<Link

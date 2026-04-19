@@ -25,7 +25,7 @@ function RecentItemsPage() {
 				</div>
 
 				{items.length === 0 ? (
-					<div className="text-sm text-muted-foreground py-6 text-center border rounded-lg bg-accent">
+					<div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg bg-accent/30">
 						No recent items in the last 30 days.
 					</div>
 				) : (

@@ -32,7 +32,7 @@ function ReceivedPage() {
 				{isLoading ? (
 					<div className="text-sm text-muted-foreground">Loading...</div>
 				) : totalGifts === 0 ? (
-					<div className="text-sm text-muted-foreground py-6 text-center border rounded-lg bg-accent">
+					<div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg bg-accent/30">
 						No received gifts yet. Items will appear here after they are archived.
 					</div>
 				) : (
