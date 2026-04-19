@@ -1,12 +1,12 @@
 import { Link } from '@tanstack/react-router'
 import { ChevronDown, Gift, Info, Package, ReceiptText } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 
 import type { SummaryItem } from '@/api/purchases'
 import UserAvatar from '@/components/common/user-avatar'
 import { Badge } from '@/components/ui/badge'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 type Props = {
@@ -113,6 +113,16 @@ function fmt(n: number): string {
 
 export function PurchasesSummaryContent({ items }: Props) {
 	const [timeframe, setTimeframe] = useState<Timeframe>('6m')
+	const [openKeys, setOpenKeys] = useState<Set<string>>(new Set())
+
+	function toggleOpen(key: string) {
+		setOpenKeys(prev => {
+			const next = new Set(prev)
+			if (next.has(key)) next.delete(key)
+			else next.add(key)
+			return next
+		})
+	}
 
 	const filtered = useMemo(() => {
 		const cutoff = timeframeCutoff(timeframe)
@@ -240,19 +250,106 @@ export function PurchasesSummaryContent({ items }: Props) {
 						</div>
 
 						{/* PER-PERSON BREAKDOWN */}
-						<div className="flex flex-col overflow-hidden border rounded-lg bg-accent divide-y">
-							{groups.map(g => (
-								<PersonCard key={g.key} group={g} />
-							))}
-							<div className="flex items-center justify-between gap-2 px-3 py-3 bg-muted/30">
-								<span className="font-semibold">Total</span>
-								<div className="flex items-center gap-2">
-									<MoneyChip amount={metrics.giftsTotalSpend} variant="green" />
-									<MoneyChip amount={metrics.addonsTotalSpend} variant="orange" />
-									<span className="text-muted-foreground">|</span>
-									<MoneyChip amount={metrics.totalSpend} variant="green" />
-								</div>
-							</div>
+						<div className="overflow-hidden border rounded-lg bg-accent">
+							<Table>
+								<TableHeader>
+									<TableRow className="hover:bg-transparent">
+										<TableHead className="pl-3">Person</TableHead>
+										<TableHead className="text-right">Gifts</TableHead>
+										<TableHead className="text-right">Addons</TableHead>
+										<TableHead className="text-right">Total</TableHead>
+										<TableHead className="w-8 pr-3"></TableHead>
+									</TableRow>
+								</TableHeader>
+								<TableBody>
+									{groups.map(g => {
+										const isOpen = openKeys.has(g.key)
+										const purchaseCount = g.claimCount + g.addonCount
+										return (
+											<Fragment key={g.key}>
+												<TableRow
+													className="cursor-pointer"
+													data-state={isOpen ? 'open' : 'closed'}
+													onClick={() => toggleOpen(g.key)}
+												>
+													<TableCell className="pl-3 py-2">
+														<div className="flex items-center gap-3 min-w-0">
+															<UserAvatar name={g.name} image={g.image} size="medium" />
+															<div className="flex flex-col min-w-0">
+																<div className="flex items-center gap-2 min-w-0">
+																	<span className="font-medium truncate">{g.name}</span>
+																	{g.partnerName && (
+																		<span className="text-xs text-muted-foreground truncate">& {g.partnerName}</span>
+																	)}
+																</div>
+																<span className="text-xs text-muted-foreground">
+																	{purchaseCount} {purchaseCount === 1 ? 'purchase' : 'purchases'}
+																</span>
+															</div>
+														</div>
+													</TableCell>
+													<TableCell className="text-right">
+														<MoneyChip amount={g.giftsTotal} variant="green" />
+													</TableCell>
+													<TableCell className="text-right">
+														<MoneyChip amount={g.addonsTotal} variant="orange" />
+													</TableCell>
+													<TableCell className="text-right">
+														<MoneyChip amount={g.totalSpent} variant="green" />
+													</TableCell>
+													<TableCell className="pr-3 text-muted-foreground">
+														<ChevronDown
+															className={`size-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+														/>
+													</TableCell>
+												</TableRow>
+												{isOpen && (
+													<TableRow className="hover:bg-transparent">
+														<TableCell colSpan={5} className="p-0">
+															<div className="divide-y bg-background/40">
+																{g.items.map((item, i) => (
+																	<div key={i} className="flex items-center gap-2 px-3 py-2 text-sm">
+																		{item.type === 'claim' ? (
+																			<Gift className="size-3.5 text-muted-foreground shrink-0" />
+																		) : (
+																			<Package className="size-3.5 text-muted-foreground shrink-0" />
+																		)}
+																		<span className="flex-1 truncate">{item.title}</span>
+																		<span className="text-xs text-muted-foreground shrink-0">{item.listName}</span>
+																		{item.quantity > 1 && (
+																			<Badge variant="secondary" className="text-xs tabular-nums shrink-0">
+																				x{item.quantity}
+																			</Badge>
+																		)}
+																		{item.cost != null && (
+																			<span className="tabular-nums text-xs shrink-0">${fmt(item.cost)}</span>
+																		)}
+																	</div>
+																))}
+															</div>
+														</TableCell>
+													</TableRow>
+												)}
+											</Fragment>
+										)
+									})}
+								</TableBody>
+								<TableFooter>
+									<TableRow className="hover:bg-transparent">
+										<TableCell className="pl-3 font-semibold">Total</TableCell>
+										<TableCell className="text-right">
+											<MoneyChip amount={metrics.giftsTotalSpend} variant="green" />
+										</TableCell>
+										<TableCell className="text-right">
+											<MoneyChip amount={metrics.addonsTotalSpend} variant="orange" />
+										</TableCell>
+										<TableCell className="text-right">
+											<MoneyChip amount={metrics.totalSpend} variant="green" />
+										</TableCell>
+										<TableCell className="pr-3"></TableCell>
+									</TableRow>
+								</TableFooter>
+							</Table>
 						</div>
 					</>
 				)}
@@ -302,60 +399,3 @@ function MoneyChip({ amount, variant }: { amount: number; variant: 'green' | 'or
 	)
 }
 
-function PersonCard({ group }: { group: PersonGroup }) {
-	const displayName = group.name
-	const purchaseCount = group.claimCount + group.addonCount
-
-	return (
-		<Collapsible>
-			<div className="overflow-hidden">
-				<CollapsibleTrigger className="flex items-center justify-between w-full p-3 hover:bg-muted/50 text-left gap-3">
-					<div className="flex items-center gap-3 min-w-0">
-						<UserAvatar name={displayName} image={group.image} size="medium" />
-						<div className="flex flex-col min-w-0">
-							<div className="flex items-center gap-2 min-w-0">
-								<span className="font-medium truncate">{displayName}</span>
-								{group.partnerName && (
-									<span className="text-xs text-muted-foreground truncate">& {group.partnerName}</span>
-								)}
-							</div>
-							<span className="text-xs text-muted-foreground">
-								{purchaseCount} {purchaseCount === 1 ? 'purchase' : 'purchases'}
-							</span>
-						</div>
-					</div>
-					<div className="flex items-center gap-2 shrink-0">
-						<MoneyChip amount={group.giftsTotal} variant="green" />
-						<MoneyChip amount={group.addonsTotal} variant="orange" />
-						<span className="text-muted-foreground">|</span>
-						<MoneyChip amount={group.totalSpent} variant="green" />
-						<ChevronDown className="size-4 text-muted-foreground transition-transform [[data-state=open]_&]:rotate-180" />
-					</div>
-				</CollapsibleTrigger>
-				<CollapsibleContent>
-					<div className="divide-y border-t">
-						{group.items.map((item, i) => (
-							<div key={i} className="flex items-center gap-2 px-3 py-2 text-sm">
-								{item.type === 'claim' ? (
-									<Gift className="size-3.5 text-muted-foreground shrink-0" />
-								) : (
-									<Package className="size-3.5 text-muted-foreground shrink-0" />
-								)}
-								<span className="flex-1 truncate">{item.title}</span>
-								<span className="text-xs text-muted-foreground shrink-0">{item.listName}</span>
-								{item.quantity > 1 && (
-									<Badge variant="secondary" className="text-xs tabular-nums shrink-0">
-										x{item.quantity}
-									</Badge>
-								)}
-								{item.cost != null && (
-									<span className="tabular-nums text-xs shrink-0">${fmt(item.cost)}</span>
-								)}
-							</div>
-						))}
-					</div>
-				</CollapsibleContent>
-			</div>
-		</Collapsible>
-	)
-}
