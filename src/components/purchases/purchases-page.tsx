@@ -1,4 +1,3 @@
-import { Link } from '@tanstack/react-router'
 import { format } from 'date-fns'
 import { ExternalLink, Pencil, Receipt, Zap } from 'lucide-react'
 import { useMemo, useState } from 'react'
@@ -114,7 +113,7 @@ export function PurchasesPageContent({ claims, addons }: MyPurchasesResult) {
 				</p>
 
 				{!hasAny ? (
-					<div className="text-sm text-muted-foreground py-6 text-center border rounded-lg bg-accent">
+					<div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg bg-accent/30">
 						No purchases yet. Claim items from other people's lists to see them here.
 					</div>
 				) : (
@@ -142,7 +141,7 @@ export function PurchasesPageContent({ claims, addons }: MyPurchasesResult) {
 						</div>
 
 						{filtered.length === 0 ? (
-							<div className="text-sm text-muted-foreground py-6 text-center border rounded-lg bg-accent">
+							<div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg bg-accent/30">
 								No purchases in this timeframe.
 							</div>
 						) : grouped ? (
@@ -175,12 +174,6 @@ export function PurchasesPageContent({ claims, addons }: MyPurchasesResult) {
 						)}
 					</>
 				)}
-
-				<div className="text-sm text-muted-foreground">
-					<Link to="/purchases/summary" className="hover:underline">
-						View spending summary by person &rarr;
-					</Link>
-				</div>
 			</div>
 
 			<PurchaseEditDialog open={dialogOpen} onOpenChange={handleDialogChange} purchase={editing} />

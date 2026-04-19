@@ -176,7 +176,7 @@ export function PurchasesSummaryContent({ items }: Props) {
 				</div>
 
 				{filtered.length === 0 ? (
-					<div className="text-sm text-muted-foreground py-6 text-center border rounded-lg bg-accent">
+					<div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg bg-accent/30">
 						No purchases in this timeframe.
 					</div>
 				) : (
@@ -354,12 +354,6 @@ export function PurchasesSummaryContent({ items }: Props) {
 						</div>
 					</>
 				)}
-
-				<div className="text-sm text-muted-foreground">
-					<Link to="/purchases" className="hover:underline">
-						&larr; View all purchases
-					</Link>
-				</div>
 			</div>
 
 			<PurchaseEditDialog open={dialogOpen} onOpenChange={handleDialogChange} purchase={editing} />
