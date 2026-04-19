@@ -119,3 +119,56 @@ export const LongTitle: Story = {
 		}),
 	},
 }
+
+/**
+ * With markdown notes rendered beneath the title. Notes render as formatted
+ * markdown so owners get link/emphasis previews in their own list.
+ */
+export const WithNotes: Story = {
+	args: {
+		item: makeItem({
+			title: 'Cast-iron dutch oven',
+			notes: 'Prefer **enameled**: sage or cream. Avoid red.\n\nSize 5-7qt works.',
+			priority: 'high',
+			price: '250',
+		}),
+	},
+}
+
+/**
+ * Flush variant used when the row sits inside a group container. Removes the
+ * outer border/radius and uses a continuous row divider instead.
+ */
+export const Flush: Story = {
+	args: {
+		item: makeItem({
+			title: 'Item inside a group',
+			price: '49',
+		}),
+		flush: true,
+		hidePriority: true,
+	},
+	parameters: {
+		docs: {
+			description: {
+				story: 'Rendered by GroupBlock for each item inside a group.',
+			},
+		},
+	},
+}
+
+/**
+ * Reorder controls appear only inside an ordered group with multiple items.
+ */
+export const WithReorderControls: Story = {
+	args: {
+		item: makeItem({
+			title: 'Second item in an ordered group',
+			price: '49',
+		}),
+		flush: true,
+		hidePriority: true,
+		onMoveUp: () => {},
+		onMoveDown: () => {},
+	},
+}
