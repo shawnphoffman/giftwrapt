@@ -44,11 +44,14 @@ function MyListsPage() {
 							</Button>
 						</div>
 					</div>
+					<div className="text-sm text-muted-foreground">
+						Mark any list as <strong>primary</strong> from its action menu. Quick-imported gift ideas land there by default.
+					</div>
 
 					{/* PUBLIC LISTS */}
 					<ListSection
 						title="My Public Lists"
-						description="These are the lists that everybody can see and use for gift-giving. You can change your primary list from the action menu."
+						description="These are the lists that everybody can see and use for gift-giving."
 						lists={data.public}
 					/>
 

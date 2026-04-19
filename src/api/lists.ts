@@ -505,7 +505,7 @@ const SetPrimaryListInputSchema = z.object({
 
 export type SetPrimaryListResult =
 	| { kind: 'ok' }
-	| { kind: 'error'; reason: 'not-found' | 'not-owner' }
+	| { kind: 'error'; reason: 'not-found' | 'not-owner' | 'invalid-type' }
 
 export const setPrimaryList = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware])
@@ -515,10 +515,11 @@ export const setPrimaryList = createServerFn({ method: 'POST' })
 
 		const list = await db.query.lists.findFirst({
 			where: eq(lists.id, data.listId),
-			columns: { id: true, ownerId: true },
+			columns: { id: true, ownerId: true, type: true },
 		})
 		if (!list) return { kind: 'error', reason: 'not-found' }
 		if (list.ownerId !== userId) return { kind: 'error', reason: 'not-owner' }
+		if (list.type === 'giftideas') return { kind: 'error', reason: 'invalid-type' }
 
 		await db.transaction(async tx => {
 			// Unset any existing primary for this user.

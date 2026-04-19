@@ -101,7 +101,7 @@ export function MyListRow({ list, showOwner }: Props) {
 								<Pencil className="mr-2 size-4" /> Edit
 							</Link>
 						</DropdownMenuItem>
-						{!list.isPrivate && list.type !== 'giftideas' && (
+						{list.type !== 'giftideas' && (
 							<DropdownMenuItem onClick={handleTogglePrimary}>
 								{list.isPrimary ? (
 									<>
