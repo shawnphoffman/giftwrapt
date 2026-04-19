@@ -30,6 +30,7 @@ function makeItem(overrides: Partial<Item> = {}): Item {
 		isArchived: false,
 		quantity: 1,
 		groupSortOrder: null,
+		sortOrder: null,
 		createdAt: now,
 		updatedAt: now,
 		modifiedAt: null,
