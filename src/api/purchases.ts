@@ -146,152 +146,108 @@ export const getMyPurchases = createServerFn({ method: 'GET' })
 // ===============================
 // READ — purchase summary (spending per person)
 // ===============================
-// Groups spending by list owner (the person being gifted to).
-// Partners are grouped together when both users have partnerId set to each other.
+// Returns a flat list of items (claims + addons) by the current user and
+// their partner (if any), with owner metadata. Grouping, timeframe
+// filtering, and metrics are computed client-side for responsiveness.
 
-export type PersonSummary = {
-	userId: string
-	name: string | null
-	email: string
-	/** Combined with partner if applicable */
-	partnerUserId: string | null
-	partnerName: string | null
-	claimCount: number
-	addonCount: number
-	totalSpent: number
-	items: Array<{
-		type: 'claim' | 'addon'
-		title: string
-		cost: number | null
-		quantity: number
-		listName: string
-	}>
+export type SummaryItem = {
+	type: 'claim' | 'addon'
+	title: string
+	cost: number | null
+	quantity: number
+	listName: string
+	createdAt: Date
+	ownerId: string
+	ownerName: string | null
+	ownerEmail: string
+	ownerImage: string | null
+	ownerPartnerId: string | null
 }
 
 export const getPurchaseSummary = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware])
-	.handler(async ({ context }): Promise<Array<PersonSummary>> => {
+	.handler(async ({ context }): Promise<Array<SummaryItem>> => {
 		const userId = context.session.user.id
 
-		// Fetch current user's partner.
 		const currentUser = await db.query.users.findFirst({
 			where: eq(users.id, userId),
 			columns: { partnerId: true },
 		})
 		const myPartnerId = currentUser?.partnerId ?? null
 
-		// Fetch partner's claims too if partner exists, so we can combine.
 		const gifterIds = [userId]
 		if (myPartnerId) gifterIds.push(myPartnerId)
 
-		// Fetch all claims by user (and partner if applicable).
+		const inGifters = gifterIds.length === 1
+			? eq(giftedItems.gifterId, userId)
+			: sql`${giftedItems.gifterId} IN (${sql.join(gifterIds.map(id => sql`${id}`), sql`, `)})`
+		const inAddonGifters = gifterIds.length === 1
+			? eq(listAddons.userId, userId)
+			: sql`${listAddons.userId} IN (${sql.join(gifterIds.map(id => sql`${id}`), sql`, `)})`
+
 		const claimRows = await db
 			.select({
-				gifterId: giftedItems.gifterId,
 				itemTitle: items.title,
 				quantity: giftedItems.quantity,
 				totalCost: giftedItems.totalCost,
+				createdAt: giftedItems.createdAt,
 				listName: lists.name,
 				listOwnerId: lists.ownerId,
 				listOwnerName: sql<string | null>`owner.name`,
 				listOwnerEmail: sql<string>`owner.email`,
+				listOwnerImage: sql<string | null>`owner.image`,
 				listOwnerPartnerId: sql<string | null>`owner.partner_id`,
 			})
 			.from(giftedItems)
 			.innerJoin(items, eq(items.id, giftedItems.itemId))
 			.innerJoin(lists, eq(lists.id, items.listId))
 			.innerJoin(sql`users as owner`, sql`owner.id = ${lists.ownerId}`)
-			.where(
-				gifterIds.length === 1
-					? eq(giftedItems.gifterId, userId)
-					: sql`${giftedItems.gifterId} IN (${sql.join(gifterIds.map(id => sql`${id}`), sql`, `)})`
-			)
+			.where(inGifters)
 
-		// Fetch all addons by user (and partner).
 		const addonRows = await db
 			.select({
-				gifterId: listAddons.userId,
 				description: listAddons.description,
 				totalCost: listAddons.totalCost,
+				createdAt: listAddons.createdAt,
 				listName: lists.name,
 				listOwnerId: lists.ownerId,
 				listOwnerName: sql<string | null>`owner.name`,
 				listOwnerEmail: sql<string>`owner.email`,
+				listOwnerImage: sql<string | null>`owner.image`,
 				listOwnerPartnerId: sql<string | null>`owner.partner_id`,
 			})
 			.from(listAddons)
 			.innerJoin(lists, eq(lists.id, listAddons.listId))
 			.innerJoin(sql`users as owner`, sql`owner.id = ${lists.ownerId}`)
-			.where(
-				gifterIds.length === 1
-					? eq(listAddons.userId, userId)
-					: sql`${listAddons.userId} IN (${sql.join(gifterIds.map(id => sql`${id}`), sql`, `)})`
-			)
+			.where(inAddonGifters)
 
-		// Group by recipient. Partners (mutual partnerId) are merged into one group.
-		const groupMap = new Map<string, PersonSummary>()
+		const claims: Array<SummaryItem> = claimRows.map(r => ({
+			type: 'claim',
+			title: r.itemTitle,
+			cost: r.totalCost ? parseFloat(r.totalCost) : null,
+			quantity: r.quantity,
+			listName: r.listName,
+			createdAt: r.createdAt,
+			ownerId: r.listOwnerId,
+			ownerName: r.listOwnerName,
+			ownerEmail: r.listOwnerEmail,
+			ownerImage: r.listOwnerImage,
+			ownerPartnerId: r.listOwnerPartnerId,
+		}))
 
-		function getGroupKey(ownerId: string, ownerPartnerId: string | null): string {
-			// If the owner and their partner are both recipients, merge them.
-			if (ownerPartnerId && groupMap.has(ownerPartnerId)) {
-				return ownerPartnerId
-			}
-			return ownerId
-		}
+		const addons: Array<SummaryItem> = addonRows.map(r => ({
+			type: 'addon',
+			title: r.description,
+			cost: r.totalCost ? parseFloat(r.totalCost) : null,
+			quantity: 1,
+			listName: r.listName,
+			createdAt: r.createdAt,
+			ownerId: r.listOwnerId,
+			ownerName: r.listOwnerName,
+			ownerEmail: r.listOwnerEmail,
+			ownerImage: r.listOwnerImage,
+			ownerPartnerId: r.listOwnerPartnerId,
+		}))
 
-		function ensureGroup(ownerId: string, ownerName: string | null, ownerEmail: string, ownerPartnerId: string | null): PersonSummary {
-			const key = getGroupKey(ownerId, ownerPartnerId)
-			let group = groupMap.get(key)
-			if (!group) {
-				group = {
-					userId: ownerId,
-					name: ownerName,
-					email: ownerEmail,
-					partnerUserId: null,
-					partnerName: null,
-					claimCount: 0,
-					addonCount: 0,
-					totalSpent: 0,
-					items: [],
-				}
-				groupMap.set(ownerId, group)
-			}
-			// If this is the partner entry, store partner info.
-			if (key !== ownerId && ownerPartnerId) {
-				group.partnerUserId = ownerId
-				group.partnerName = ownerName
-			}
-			return group
-		}
-
-		for (const row of claimRows) {
-			const group = ensureGroup(row.listOwnerId, row.listOwnerName, row.listOwnerEmail, row.listOwnerPartnerId)
-			const cost = row.totalCost ? parseFloat(row.totalCost) : null
-			group.claimCount++
-			if (cost) group.totalSpent += cost
-			group.items.push({
-				type: 'claim',
-				title: row.itemTitle,
-				cost,
-				quantity: row.quantity,
-				listName: row.listName,
-			})
-		}
-
-		for (const row of addonRows) {
-			const group = ensureGroup(row.listOwnerId, row.listOwnerName, row.listOwnerEmail, row.listOwnerPartnerId)
-			const cost = row.totalCost ? parseFloat(row.totalCost) : null
-			group.addonCount++
-			if (cost) group.totalSpent += cost
-			group.items.push({
-				type: 'addon',
-				title: row.description,
-				cost,
-				quantity: 1,
-				listName: row.listName,
-			})
-		}
-
-		// Sort by total spent descending.
-		return Array.from(groupMap.values()).sort((a, b) => b.totalSpent - a.totalSpent)
+		return [...claims, ...addons]
 	})
