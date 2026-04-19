@@ -16,6 +16,7 @@ function item(overrides: Partial<SummaryItem>): SummaryItem {
 		giftId: 1,
 		addonId: null,
 		isOwn: true,
+		isCoGifter: false,
 		title: 'Untitled',
 		cost: null,
 		totalCostRaw: null,
@@ -53,7 +54,14 @@ const rileyItems: Array<SummaryItem> = [
 	item({ giftId: 61, title: 'Smart garden starter kit', cost: 120, totalCostRaw: '120.00', listName: 'Wishlist', ownerId: 'user-riley', ownerName: 'Riley Rivera', ownerEmail: 'riley@example.com' }),
 ]
 
-const allItems = [...jamieItems, ...samItems, ...morganItems, ...rileyItems]
+const coGifterItems: Array<SummaryItem> = [
+	// Primary-gifter claim for the current user: editable, full price.
+	item({ giftId: 71, title: 'Kitchen mixer', cost: 320, totalCostRaw: '320.00', listName: 'Wedding', ownerId: 'user-avery', ownerName: 'Avery Cousin', ownerEmail: 'avery@example.com' }),
+	// Co-gifter on someone else's claim: $0 and not editable.
+	item({ giftId: 72, title: 'Espresso machine', isOwn: false, isCoGifter: true, cost: 0, totalCostRaw: null, listName: 'Wedding', ownerId: 'user-avery', ownerName: 'Avery Cousin', ownerEmail: 'avery@example.com' }),
+]
+
+const allItems = [...jamieItems, ...samItems, ...morganItems, ...rileyItems, ...coGifterItems]
 
 const meta = {
 	title: 'Pages/PurchasesSummary',
@@ -76,6 +84,10 @@ export const SinglePerson: Story = {
 
 export const WithPartner: Story = {
 	args: { items: samItems },
+}
+
+export const WithCoGifter: Story = {
+	args: { items: coGifterItems },
 }
 
 export const Empty: Story = {

@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { ChevronDown, Gift, Info, Package, Pencil, ReceiptText } from 'lucide-react'
+import { ChevronDown, Gift, Info, Package, Pencil, ReceiptText, Users } from 'lucide-react'
 import { Fragment, useMemo, useState } from 'react'
 
 import type { SummaryItem } from '@/api/purchases'
@@ -10,8 +10,11 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { groupByPerson } from '@/lib/purchases-grouping'
 
 function toEditable(item: SummaryItem): EditablePurchase | null {
+	// Co-gifter claims aren't editable until we have UI for per-gifter spend.
+	if (item.isCoGifter) return null
 	if (item.type === 'claim' && item.giftId != null) {
 		return {
 			type: 'claim',
@@ -65,69 +68,6 @@ function timeframeCutoff(tf: Timeframe): Date | null {
 			return d
 		}
 	}
-}
-
-type PersonGroup = {
-	key: string
-	name: string
-	email: string
-	image: string | null
-	partnerName: string | null
-	items: Array<SummaryItem>
-	claimCount: number
-	addonCount: number
-	giftsTotal: number
-	addonsTotal: number
-	totalSpent: number
-}
-
-function groupByPerson(items: Array<SummaryItem>): Array<PersonGroup> {
-	const map = new Map<string, PersonGroup>()
-
-	function getKey(ownerId: string, ownerPartnerId: string | null): string {
-		if (ownerPartnerId && map.has(ownerPartnerId)) return ownerPartnerId
-		return ownerId
-	}
-
-	function ensure(item: SummaryItem): PersonGroup {
-		const key = getKey(item.ownerId, item.ownerPartnerId)
-		let group = map.get(key)
-		if (!group) {
-			group = {
-				key: item.ownerId,
-				name: item.ownerName || item.ownerEmail,
-				email: item.ownerEmail,
-				image: item.ownerImage,
-				partnerName: null,
-				items: [],
-				claimCount: 0,
-				addonCount: 0,
-				giftsTotal: 0,
-				addonsTotal: 0,
-				totalSpent: 0,
-			}
-			map.set(item.ownerId, group)
-		} else if (key !== item.ownerId && !group.partnerName) {
-			group.partnerName = item.ownerName || item.ownerEmail
-		}
-		return group
-	}
-
-	for (const item of items) {
-		const group = ensure(item)
-		group.items.push(item)
-		const cost = item.cost ?? 0
-		if (item.type === 'claim') {
-			group.claimCount++
-			group.giftsTotal += cost
-		} else {
-			group.addonCount++
-			group.addonsTotal += cost
-		}
-		group.totalSpent += cost
-	}
-
-	return Array.from(map.values()).sort((a, b) => b.totalSpent - a.totalSpent)
 }
 
 function fmt(n: number): string {
@@ -352,6 +292,16 @@ export function PurchasesSummaryContent({ items }: Props) {
 																			<Package className="size-3.5 text-muted-foreground shrink-0" />
 																		)}
 																		<span className="flex-1 truncate">{item.title}</span>
+																		{item.isCoGifter && (
+																			<Tooltip>
+																				<TooltipTrigger asChild>
+																					<Badge variant="secondary" className="text-xs shrink-0 gap-1">
+																						<Users className="size-3" /> Co-gifter
+																					</Badge>
+																				</TooltipTrigger>
+																				<TooltipContent>Shown at $0 until per-gifter spend is captured.</TooltipContent>
+																			</Tooltip>
+																		)}
 																		<span className="text-xs text-muted-foreground shrink-0">{item.listName}</span>
 																		{item.quantity > 1 && (
 																			<Badge variant="secondary" className="text-xs tabular-nums shrink-0">
@@ -361,7 +311,7 @@ export function PurchasesSummaryContent({ items }: Props) {
 																		{item.cost != null && (
 																			<span className="tabular-nums text-xs shrink-0">${fmt(item.cost)}</span>
 																		)}
-																		{item.isOwn && (
+																		{item.isOwn && !item.isCoGifter && (
 																			<Button
 																				variant="ghost"
 																				size="icon"

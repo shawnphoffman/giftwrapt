@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, desc, eq, ne, sql } from 'drizzle-orm'
+import { and, arrayOverlaps, desc, eq, ne, or, sql } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { giftedItems, items, listAddons, lists, users } from '@/db/schema'
@@ -155,6 +155,10 @@ export type SummaryItem = {
 	giftId: number | null
 	addonId: number | null
 	isOwn: boolean
+	// True when the current user (or their partner) is only a co-gifter on this
+	// claim, never the primary. Co-gifter claims are shown with $0 until we
+	// build UI to capture per-gifter spend.
+	isCoGifter: boolean
 	title: string
 	cost: number | null
 	totalCostRaw: string | null
@@ -189,11 +193,15 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 		const inAddonGifters = gifterIds.length === 1
 			? eq(listAddons.userId, userId)
 			: sql`${listAddons.userId} IN (${sql.join(gifterIds.map(id => sql`${id}`), sql`, `)})`
+		// Either the current user (or their partner) is the primary gifter, or
+		// they appear in additionalGifterIds (co-gifter).
+		const claimGifterFilter = or(inGifters, arrayOverlaps(giftedItems.additionalGifterIds, gifterIds))
 
 		const claimRows = await db
 			.select({
 				giftId: giftedItems.id,
 				gifterId: giftedItems.gifterId,
+				additionalGifterIds: giftedItems.additionalGifterIds,
 				itemTitle: items.title,
 				quantity: giftedItems.quantity,
 				totalCost: giftedItems.totalCost,
@@ -210,7 +218,7 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 			.innerJoin(items, eq(items.id, giftedItems.itemId))
 			.innerJoin(lists, eq(lists.id, items.listId))
 			.innerJoin(sql`users as owner`, sql`owner.id = ${lists.ownerId}`)
-			.where(and(inGifters, ne(lists.ownerId, userId)))
+			.where(and(claimGifterFilter, ne(lists.ownerId, userId)))
 
 		const addonRows = await db
 			.select({
@@ -232,30 +240,39 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 			.innerJoin(sql`users as owner`, sql`owner.id = ${lists.ownerId}`)
 			.where(and(inAddonGifters, ne(lists.ownerId, userId)))
 
-		const claims: Array<SummaryItem> = claimRows.map(r => ({
-			type: 'claim',
-			giftId: r.giftId,
-			addonId: null,
-			isOwn: r.gifterId === userId,
-			title: r.itemTitle,
-			cost: r.totalCost ? parseFloat(r.totalCost) : null,
-			totalCostRaw: r.totalCost,
-			notes: r.notes,
-			quantity: r.quantity,
-			listName: r.listName,
-			createdAt: r.createdAt,
-			ownerId: r.listOwnerId,
-			ownerName: r.listOwnerName,
-			ownerEmail: r.listOwnerEmail,
-			ownerImage: r.listOwnerImage,
-			ownerPartnerId: r.listOwnerPartnerId,
-		}))
+		const claims: Array<SummaryItem> = claimRows.map(r => {
+			const isPrimary = gifterIds.includes(r.gifterId)
+			const isCoGifter = !isPrimary
+			// Co-gifter spend is unknown per gifter today; zero it out so totals
+			// and averages don't double-count the primary's total.
+			const cost = isCoGifter ? 0 : r.totalCost ? parseFloat(r.totalCost) : null
+			return {
+				type: 'claim',
+				giftId: r.giftId,
+				addonId: null,
+				isOwn: r.gifterId === userId,
+				isCoGifter,
+				title: r.itemTitle,
+				cost,
+				totalCostRaw: isCoGifter ? null : r.totalCost,
+				notes: r.notes,
+				quantity: r.quantity,
+				listName: r.listName,
+				createdAt: r.createdAt,
+				ownerId: r.listOwnerId,
+				ownerName: r.listOwnerName,
+				ownerEmail: r.listOwnerEmail,
+				ownerImage: r.listOwnerImage,
+				ownerPartnerId: r.listOwnerPartnerId,
+			}
+		})
 
 		const addons: Array<SummaryItem> = addonRows.map(r => ({
 			type: 'addon',
 			giftId: null,
 			addonId: r.addonId,
 			isOwn: r.gifterId === userId,
+			isCoGifter: false,
 			title: r.description,
 			cost: r.totalCost ? parseFloat(r.totalCost) : null,
 			totalCostRaw: r.totalCost,
