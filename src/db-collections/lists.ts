@@ -18,6 +18,13 @@ const ListSchema = z.object({
 	itemsRemaining: z.number(),
 })
 
+const PartnerSchema = z.object({
+	id: z.string(),
+	name: z.string().nullable(),
+	email: z.string(),
+	image: z.string().nullable(),
+})
+
 const UserWithListsSchema = z.object({
 	...UserSchema.shape,
 	id: z.string(),
@@ -26,6 +33,7 @@ const UserWithListsSchema = z.object({
 	// DB returns null for users without a partner; UserSchema.partnerId is
 	// z.string().optional() (fine for form input, rejects null from the wire).
 	partnerId: z.string().nullish(),
+	partner: PartnerSchema.nullish(),
 	lists: z.array(ListSchema),
 })
 

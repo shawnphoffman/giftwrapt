@@ -38,6 +38,9 @@ export const Route = createFileRoute('/api/lists/public')({
 					where: (us, { and, ne, notInArray }) =>
 						deniedOwnerIds.length > 0 ? and(ne(us.id, currentUserId), notInArray(us.id, deniedOwnerIds)) : ne(us.id, currentUserId),
 					with: {
+						// Surface each user's partner so the UI can label list groups
+						// as "Alice & Bob" without a second round-trip.
+						partner: { columns: { id: true, name: true, email: true, image: true } },
 						lists: {
 							where: (l, { and, eq }) => and(eq(l.isPrivate, false), eq(l.isActive, true)),
 							orderBy: [desc(lists.createdAt)],

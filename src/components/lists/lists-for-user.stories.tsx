@@ -84,6 +84,16 @@ export const WithAvatar: Story = {
 	},
 }
 
+export const WithPartner: Story = {
+	args: {
+		user: {
+			...baseUser,
+			partnerId: 'user-2',
+			partner: { id: 'user-2', name: 'Morgan Partner', email: 'morgan@example.com', image: null },
+		},
+	},
+}
+
 export const SingleList: Story = {
 	args: {
 		user: { ...baseUser, lists: [baseUser.lists[0]!] },

@@ -6,11 +6,15 @@ import BirthdayBadge from '../common/birthday-badge'
 import ListsForUserRow from './lists-for-user-row'
 
 export default function ListsForUser({ user }: { user: UserWithLists }) {
+	const partnerName = user.partner ? user.partner.name || user.partner.email : null
 	return (
 		<Card key={user.id} className="py-4 gap-2 bg-accent ">
 			<CardHeader className="px-4 flex items-center gap-3">
 				<UserAvatar name={user.name || user.email} image={user.image} />
-				<CardTitle className="text-2xl font-semibold leading-none tracking-tight">{user.name || user.email}</CardTitle>
+				<CardTitle className="text-2xl font-semibold leading-none tracking-tight">
+					{user.name || user.email}
+					{partnerName && <span className="ml-2 text-sm font-normal text-muted-foreground">& {partnerName}</span>}
+				</CardTitle>
 				<BirthdayBadge birthMonth={user.birthMonth} birthDay={user.birthDay} />
 			</CardHeader>
 			<CardContent className="px-4">
