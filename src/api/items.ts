@@ -1,9 +1,9 @@
 import { createServerFn } from '@tanstack/react-start'
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
-import { giftedItems, items, lists } from '@/db/schema'
+import { giftedItems, itemComments, items, lists } from '@/db/schema'
 import { type ListType, priorityEnumValues, statusEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { canEditList } from '@/lib/permissions'
@@ -306,4 +306,239 @@ export const moveItemToList = createServerFn({ method: 'POST' })
 
 			return { kind: 'ok', claimsCleared }
 		})
+	})
+
+// ===============================
+// BULK — shared helpers
+// ===============================
+
+const BulkIdsSchema = z.array(z.number().int().positive()).min(1).max(500)
+
+type ItemRow = { id: number; listId: number }
+
+/** Load items by id and assert the user can edit every source list. */
+async function loadAndAuthorizeItems(
+	userId: string,
+	itemIds: readonly number[],
+): Promise<
+	| { ok: true; rows: ItemRow[]; lists: Map<number, ListForPermCheck & { type: ListType }> }
+	| { ok: false; reason: 'not-found' | 'not-authorized' }
+> {
+	const rows = await db.query.items.findMany({
+		where: inArray(items.id, [...itemIds]),
+		columns: { id: true, listId: true },
+	})
+	if (rows.length !== itemIds.length) return { ok: false, reason: 'not-found' }
+
+	const listIds = [...new Set(rows.map(r => r.listId))]
+	const listRows = await db.query.lists.findMany({
+		where: inArray(lists.id, listIds),
+		columns: { id: true, ownerId: true, isPrivate: true, isActive: true, type: true },
+	})
+	if (listRows.length !== listIds.length) return { ok: false, reason: 'not-found' }
+
+	const map = new Map<number, ListForPermCheck & { type: ListType }>()
+	for (const l of listRows) {
+		const perm = await assertCanEditItems(userId, l)
+		if (!perm.ok) return { ok: false, reason: 'not-authorized' }
+		map.set(l.id, l)
+	}
+	return { ok: true, rows, lists: map }
+}
+
+// ===============================
+// BULK — move items to another list
+// ===============================
+
+const MoveItemsInputSchema = z.object({
+	itemIds: BulkIdsSchema,
+	targetListId: z.number().int().positive(),
+	purgeComments: z.boolean().default(false),
+})
+
+export type MoveItemsResult =
+	| { kind: 'ok'; moved: number; claimsCleared: number; commentsDeleted: number }
+	| { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+
+export const moveItemsToList = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware])
+	.inputValidator((data: z.input<typeof MoveItemsInputSchema>) => MoveItemsInputSchema.parse(data))
+	.handler(async ({ context, data }): Promise<MoveItemsResult> => {
+		const userId = context.session.user.id
+
+		const loaded = await loadAndAuthorizeItems(userId, data.itemIds)
+		if (!loaded.ok) return { kind: 'error', reason: loaded.reason }
+
+		const targetList = await db.query.lists.findFirst({
+			where: eq(lists.id, data.targetListId),
+			columns: { id: true, ownerId: true, isPrivate: true, isActive: true, type: true },
+		})
+		if (!targetList) return { kind: 'error', reason: 'not-found' }
+		const targetPerm = await assertCanEditItems(userId, targetList)
+		if (!targetPerm.ok) return { kind: 'error', reason: 'not-authorized' }
+
+		const destructiveItemIds = loaded.rows
+			.filter(r => r.listId !== data.targetListId)
+			.filter(r => {
+				const src = loaded.lists.get(r.listId)!
+				return isCrossTypeMoveDestructive(src.type, targetList.type)
+			})
+			.map(r => r.id)
+
+		return await db.transaction(async tx => {
+			await tx
+				.update(items)
+				.set({ listId: data.targetListId, groupId: null, groupSortOrder: null })
+				.where(inArray(items.id, [...data.itemIds]))
+
+			let claimsCleared = 0
+			if (destructiveItemIds.length > 0) {
+				const deleted = await tx
+					.delete(giftedItems)
+					.where(inArray(giftedItems.itemId, destructiveItemIds))
+					.returning({ id: giftedItems.id })
+				claimsCleared = deleted.length
+			}
+
+			let commentsDeleted = 0
+			if (data.purgeComments) {
+				const deleted = await tx
+					.delete(itemComments)
+					.where(inArray(itemComments.itemId, [...data.itemIds]))
+					.returning({ id: itemComments.id })
+				commentsDeleted = deleted.length
+			}
+
+			return { kind: 'ok', moved: data.itemIds.length, claimsCleared, commentsDeleted }
+		})
+	})
+
+// ===============================
+// BULK — archive / unarchive
+// ===============================
+
+const ArchiveItemsInputSchema = z.object({
+	itemIds: BulkIdsSchema,
+	archived: z.boolean(),
+})
+
+export type ArchiveItemsResult =
+	| { kind: 'ok'; updated: number }
+	| { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+
+export const archiveItems = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware])
+	.inputValidator((data: z.input<typeof ArchiveItemsInputSchema>) => ArchiveItemsInputSchema.parse(data))
+	.handler(async ({ context, data }): Promise<ArchiveItemsResult> => {
+		const userId = context.session.user.id
+		const loaded = await loadAndAuthorizeItems(userId, data.itemIds)
+		if (!loaded.ok) return { kind: 'error', reason: loaded.reason }
+
+		await db.update(items).set({ isArchived: data.archived }).where(inArray(items.id, [...data.itemIds]))
+		return { kind: 'ok', updated: data.itemIds.length }
+	})
+
+// ===============================
+// BULK — delete
+// ===============================
+
+const DeleteItemsInputSchema = z.object({
+	itemIds: BulkIdsSchema,
+})
+
+export type DeleteItemsResult =
+	| { kind: 'ok'; deleted: number }
+	| { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+
+export const deleteItems = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware])
+	.inputValidator((data: z.input<typeof DeleteItemsInputSchema>) => DeleteItemsInputSchema.parse(data))
+	.handler(async ({ context, data }): Promise<DeleteItemsResult> => {
+		const userId = context.session.user.id
+		const loaded = await loadAndAuthorizeItems(userId, data.itemIds)
+		if (!loaded.ok) return { kind: 'error', reason: loaded.reason }
+
+		await db.delete(items).where(inArray(items.id, [...data.itemIds]))
+		return { kind: 'ok', deleted: data.itemIds.length }
+	})
+
+// ===============================
+// BULK — set priority
+// ===============================
+
+const SetItemsPriorityInputSchema = z.object({
+	itemIds: BulkIdsSchema,
+	priority: z.enum(priorityEnumValues),
+})
+
+export type SetItemsPriorityResult =
+	| { kind: 'ok'; updated: number }
+	| { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+
+export const setItemsPriority = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware])
+	.inputValidator((data: z.input<typeof SetItemsPriorityInputSchema>) => SetItemsPriorityInputSchema.parse(data))
+	.handler(async ({ context, data }): Promise<SetItemsPriorityResult> => {
+		const userId = context.session.user.id
+		const loaded = await loadAndAuthorizeItems(userId, data.itemIds)
+		if (!loaded.ok) return { kind: 'error', reason: loaded.reason }
+
+		await db.update(items).set({ priority: data.priority }).where(inArray(items.id, [...data.itemIds]))
+		return { kind: 'ok', updated: data.itemIds.length }
+	})
+
+// ===============================
+// BULK — reorder items across priority buckets on one list
+// ===============================
+// Accepts per-item priority + sortOrder. All items must belong to `listId`.
+
+const ReorderItemsInputSchema = z.object({
+	listId: z.number().int().positive(),
+	updates: z
+		.array(
+			z.object({
+				itemId: z.number().int().positive(),
+				priority: z.enum(priorityEnumValues),
+				sortOrder: z.number().int().min(0),
+			}),
+		)
+		.min(1)
+		.max(500),
+})
+
+export type ReorderItemsResult =
+	| { kind: 'ok'; updated: number }
+	| { kind: 'error'; reason: 'not-found' | 'not-authorized' | 'mixed-lists' }
+
+export const reorderItems = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware])
+	.inputValidator((data: z.input<typeof ReorderItemsInputSchema>) => ReorderItemsInputSchema.parse(data))
+	.handler(async ({ context, data }): Promise<ReorderItemsResult> => {
+		const userId = context.session.user.id
+
+		const list = await db.query.lists.findFirst({
+			where: eq(lists.id, data.listId),
+			columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		})
+		if (!list) return { kind: 'error', reason: 'not-found' }
+		const perm = await assertCanEditItems(userId, list)
+		if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
+
+		const ids = data.updates.map(u => u.itemId)
+		const rows = await db.query.items.findMany({
+			where: inArray(items.id, ids),
+			columns: { id: true, listId: true },
+		})
+		if (rows.length !== ids.length) return { kind: 'error', reason: 'not-found' }
+		if (rows.some(r => r.listId !== data.listId)) return { kind: 'error', reason: 'mixed-lists' }
+
+		await db.transaction(async tx => {
+			for (const u of data.updates) {
+				await tx
+					.update(items)
+					.set({ priority: u.priority, sortOrder: u.sortOrder })
+					.where(and(eq(items.id, u.itemId), eq(items.listId, data.listId)))
+			}
+		})
+		return { kind: 'ok', updated: data.updates.length }
 	})
