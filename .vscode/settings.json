@@ -1,7 +1,6 @@
 {
 	"eslint.useFlatConfig": true,
 	"eslint.enable": true,
-	"eslint.packageManager": "pnpm",
 	"eslint.validate": [
 		"javascript",
 		"javascriptreact",
