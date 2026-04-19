@@ -60,33 +60,34 @@ export const updateUserProfile = createServerFn({
 
 		// Handle partner changes
 		const newPartnerId = data.partnerId !== undefined ? data.partnerId || null : undefined
-		if (newPartnerId !== undefined) {
-			updateData.partnerId = newPartnerId
 
-			// Handle bidirectional partner relationship
-			// If we had a previous partner, clear their partnerId reference to us
-			if (currentPartnerId && currentPartnerId !== newPartnerId) {
-				await db.update(users).set({ partnerId: null }).where(eq(users.id, currentPartnerId))
-			}
+		// Wrap the entire bidirectional partner swap in a transaction. Without
+		// it, a crash mid-way could leave orphaned references (A points to B
+		// but B points somewhere else) and the UI would show a mismatched pair.
+		const result = await db.transaction(async tx => {
+			if (newPartnerId !== undefined) {
+				updateData.partnerId = newPartnerId
 
-			// If we have a new partner, update their partnerId to reference us
-			if (newPartnerId) {
-				// First, clear the new partner's old partner reference if they had one
-				const newPartner = await db.query.users.findFirst({
-					where: eq(users.id, newPartnerId),
-					columns: { partnerId: true },
-				})
-				if (newPartner?.partnerId && newPartner.partnerId !== userId) {
-					// Clear the old partner's reference
-					await db.update(users).set({ partnerId: null }).where(eq(users.id, newPartner.partnerId))
+				// Clear our previous partner's reference back to us (if changing).
+				if (currentPartnerId && currentPartnerId !== newPartnerId) {
+					await tx.update(users).set({ partnerId: null }).where(eq(users.id, currentPartnerId))
 				}
-				// Set the new partner's partnerId to us
-				await db.update(users).set({ partnerId: userId }).where(eq(users.id, newPartnerId))
-			}
-		}
 
-		// Update user in database
-		const result = await db.update(users).set(updateData).where(eq(users.id, userId))
+				if (newPartnerId) {
+					// If the incoming partner was linked to someone else, unlink that third party first.
+					const newPartner = await tx.query.users.findFirst({
+						where: eq(users.id, newPartnerId),
+						columns: { partnerId: true },
+					})
+					if (newPartner?.partnerId && newPartner.partnerId !== userId) {
+						await tx.update(users).set({ partnerId: null }).where(eq(users.id, newPartner.partnerId))
+					}
+					await tx.update(users).set({ partnerId: userId }).where(eq(users.id, newPartnerId))
+				}
+			}
+
+			return await tx.update(users).set(updateData).where(eq(users.id, userId))
+		})
 
 		if (result.rowCount === 0) {
 			throw new Error('Failed to update user')

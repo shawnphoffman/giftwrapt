@@ -6,6 +6,7 @@ import type { z } from 'zod'
 
 import { getPotentialPartners, updateUserProfile } from '@/api/user'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -40,6 +41,9 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [success, setSuccess] = useState(false)
+	// Holds the pending form values when the user is about to change or clear
+	// their partner. Presence of a value opens the confirmation dialog.
+	const [pendingPartnerChange, setPendingPartnerChange] = useState<UpdateProfileFormValues | null>(null)
 	const queryClient = useQueryClient()
 	const { refetch: refetchSession } = useSession()
 
@@ -65,9 +69,21 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 				setError(result.error.issues.map((e: { message: string }) => e.message).join(', '))
 				return
 			}
-			await onSubmit(value as UpdateProfileFormValues)
+			const parsed = result.data as UpdateProfileFormValues
+			// Confirm any change away from an existing partner. This is the only
+			// destructive piece of the form: swapping or clearing a partnership
+			// also breaks the other side, so we want a deliberate confirm.
+			const currentPartner = partnerId ?? null
+			const nextPartner = parsed.partnerId || null
+			if (currentPartner && currentPartner !== nextPartner) {
+				setPendingPartnerChange(parsed)
+				return
+			}
+			await onSubmit(parsed)
 		},
 	})
+
+	const currentPartnerName = potentialPartners.find(p => p.id === partnerId)?.name ?? null
 
 	const onSubmit = async (data: UpdateProfileFormValues) => {
 		setIsLoading(true)
@@ -262,6 +278,33 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 			<Button type="submit" disabled={isLoading}>
 				{isLoading ? 'Saving...' : 'Save'}
 			</Button>
+
+			<AlertDialog open={pendingPartnerChange != null} onOpenChange={open => { if (!open) setPendingPartnerChange(null) }}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>
+							{pendingPartnerChange?.partnerId ? 'Change partner?' : 'Remove partner?'}
+						</AlertDialogTitle>
+						<AlertDialogDescription>
+							{currentPartnerName
+								? `You are currently partnered with ${currentPartnerName}. Saving will unlink them and stop showing gifts as given by both of you.`
+								: 'Saving will unlink your current partner and stop showing gifts as given by both of you.'}
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={async () => {
+								const pending = pendingPartnerChange
+								setPendingPartnerChange(null)
+								if (pending) await onSubmit(pending)
+							}}
+						>
+							{pendingPartnerChange?.partnerId ? 'Change partner' : 'Remove partner'}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</form>
 	)
 }
