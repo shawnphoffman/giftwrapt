@@ -6,22 +6,24 @@ import { nitro } from 'nitro/vite'
 import { defineConfig } from 'vite'
 import viteTsConfigPaths from 'vite-tsconfig-paths'
 
+const isStorybook = process.env.STORYBOOK === 'true'
+
 const config = defineConfig({
 	plugins: [
-		devtools(),
-		nitro(),
+		!isStorybook && devtools(),
+		!isStorybook && nitro(),
 		// this is the plugin that enables path aliases
 		viteTsConfigPaths({
 			projects: ['./tsconfig.json'],
 		}),
 		tailwindcss(),
-		tanstackStart(),
+		!isStorybook && tanstackStart(),
 		viteReact({
 			babel: {
 				plugins: ['babel-plugin-react-compiler'],
 			},
 		}),
-	],
+	].filter(Boolean),
 })
 
 export default config

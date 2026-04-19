@@ -6,7 +6,7 @@ const meta = {
 	title: 'Skeletons/LoadingSkeleton',
 	component: LoadingSkeleton,
 	parameters: {
-		layout: 'centered',
+		layout: 'padded',
 	},
 	tags: [],
 } satisfies Meta<typeof LoadingSkeleton>

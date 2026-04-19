@@ -8,7 +8,7 @@ const meta = {
 	title: 'Skeletons/ListsByUserSkeleton',
 	component: ListsByUserSkeleton,
 	parameters: {
-		layout: 'centered',
+		layout: 'padded',
 	},
 	tags: [],
 } satisfies Meta<typeof ListsByUserSkeleton>
