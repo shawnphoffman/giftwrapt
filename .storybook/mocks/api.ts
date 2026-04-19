@@ -57,3 +57,13 @@ export const updateList = ok
 export const deleteList = ok
 export const setPrimaryList = ok
 export const getListForEditing = async () => ({ kind: 'ok', list: null })
+
+// @/api/purchases
+export const getMyPurchases = async () => ({ claims: [], addons: [] })
+export const getPurchaseSummary = async (): Promise<Array<unknown>> => []
+
+// @/api/list-addons
+export const createListAddon = ok
+export const updateListAddon = ok
+export const archiveListAddon = ok
+export const deleteListAddon = ok
