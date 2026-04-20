@@ -415,7 +415,14 @@ function OrganizeList({
 						</label>
 						<ul className="divide-y">
 							{groupItems.map(item => (
-								<li key={item.id} className="flex items-center gap-3 p-2">
+								<li
+									key={item.id}
+									className={cn(
+										'flex items-center gap-3 p-2',
+										item.priority !== 'normal' && 'ring-1 ring-inset rounded-md',
+										priorityRingClass[item.priority]
+									)}
+								>
 									<PriorityIcon priority={item.priority} className="size-4 shrink-0" />
 									<div className="flex-1 min-w-0 flex items-center gap-2">
 										<span className="font-medium leading-tight truncate">{item.title}</span>

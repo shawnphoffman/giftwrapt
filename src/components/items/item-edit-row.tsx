@@ -119,9 +119,13 @@ export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = fal
 			<div
 				className={cn(
 					flush
-						? 'flex items-center gap-2 p-2 bg-muted/40 border-b last:border-b-0 hover:bg-muted/60'
-						: 'flex items-center gap-2 p-2 ring-1 ring-inset ring-border rounded-lg bg-muted/40 hover:bg-muted/60 shadow-sm',
-					!flush && priorityRingClass[item.priority]
+						? 'flex items-center gap-2 p-2 bg-card'
+						: 'flex items-center gap-2 p-2 ring-1 ring-inset ring-border rounded-lg bg-card shadow-sm',
+					// priority ring: on flush (grouped) rows only when non-normal, since a flat
+					// normal row in a group needs no outline. Standalone rows already carry the
+					// base ring; priorityRingClass just overrides the color.
+					flush && item.priority !== 'normal' && 'ring-1 ring-inset rounded-md',
+					priorityRingClass[item.priority]
 				)}
 			>
 				{!hidePriority && <PriorityIcon priority={item.priority} className="size-4 shrink-0" />}
