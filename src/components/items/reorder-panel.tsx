@@ -254,7 +254,7 @@ function BucketRow({ priority, ids, entries }: { priority: Priority; ids: Array<
 	const baseBorder = priorityBorderClass[priority] || 'border-border'
 	return (
 		<div ref={setNodeRef} className={`border rounded-md ${baseBorder} ${isOver ? 'ring-1 ring-primary/60' : ''}`}>
-			<div className={`flex items-center gap-2 px-3 py-1.5 border-b bg-muted/30 ${baseBorder}`}>
+			<div className={`flex items-center gap-2 px-3 py-1.5 border-b bg-accent ${baseBorder}`}>
 				<PriorityIcon priority={priority} className="size-4 shrink-0" />
 				<span className="text-sm font-medium flex-1">{PRIORITY_LABEL[priority]}</span>
 			</div>
@@ -295,7 +295,7 @@ function EntryRow({ entry, dragging = false }: { entry: Entry; dragging?: boolea
 		const Icon = group.type === 'or' ? Shuffle : ListOrdered
 		return (
 			<div
-				className={`flex flex-col gap-1 px-2 py-2.5 bg-muted/40 hover:bg-muted/60 rounded border border-dashed cursor-grab active:cursor-grabbing touch-none ${
+				className={`flex flex-col gap-1 px-2 py-2.5 bg-card shadow-sm hover:bg-accent/40 rounded border border-dashed cursor-grab active:cursor-grabbing touch-none ${
 					dragging ? 'shadow-lg' : ''
 				}`}
 			>
@@ -327,7 +327,7 @@ function EntryRow({ entry, dragging = false }: { entry: Entry; dragging?: boolea
 	const { item } = entry
 	return (
 		<div
-			className={`flex items-center gap-2 px-2 py-2.5 bg-muted/40 hover:bg-muted/60 rounded border cursor-grab active:cursor-grabbing touch-none ${
+			className={`flex items-center gap-2 px-2 py-2.5 bg-card shadow-sm hover:bg-accent/40 rounded border cursor-grab active:cursor-grabbing touch-none ${
 				dragging ? 'shadow-lg' : ''
 			}`}
 		>
