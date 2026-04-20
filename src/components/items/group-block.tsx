@@ -28,8 +28,8 @@ export function GroupBlock({ group, items, groups, isOwner, onAddItem, onDelete,
 	const showReorder = isOwner && group.type === 'order' && items.length > 1
 
 	return (
-		<div className={cn('flex flex-col rounded-md overflow-hidden bg-background border', priorityBorderClass[group.priority])}>
-			<div className="flex items-center gap-2 p-2 border-b bg-muted/20">
+		<div className={cn('flex flex-col rounded-md overflow-hidden border shadow-sm', priorityBorderClass[group.priority])}>
+			<div className="flex items-center gap-2 p-2 border-b bg-accent">
 				<PriorityIcon priority={group.priority} className="size-4 shrink-0" />
 				{group.name && <span className="font-medium text-sm truncate">{group.name}</span>}
 				<GroupBadge type={group.type} showHelp />

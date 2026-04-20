@@ -253,7 +253,7 @@ function BucketRow({ priority, ids, entries }: { priority: Priority; ids: Array<
 	const { setNodeRef, isOver } = useDroppable({ id: priority })
 	const baseBorder = priorityBorderClass[priority] || 'border-border'
 	return (
-		<div ref={setNodeRef} className={`border rounded-md overflow-hidden ${baseBorder} ${isOver ? 'ring-1 ring-primary/60' : ''}`}>
+		<div ref={setNodeRef} className={`border rounded-md overflow-hidden shadow-sm ${baseBorder} ${isOver ? 'ring-1 ring-primary/60' : ''}`}>
 			<div className={`flex items-center gap-2 px-3 py-1.5 border-b bg-accent ${baseBorder}`}>
 				<PriorityIcon priority={priority} className="size-4 shrink-0" />
 				<span className="text-sm font-medium flex-1">{PRIORITY_LABEL[priority]}</span>
