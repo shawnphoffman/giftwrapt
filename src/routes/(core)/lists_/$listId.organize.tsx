@@ -4,8 +4,8 @@ import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import { assignItemsToGroup } from '@/api/groups'
-import { archiveItems, deleteItems, setItemsPriority } from '@/api/items'
-import { getListForEditing, type ListForEditing } from '@/api/lists'
+import { archiveItems, deleteGroups, deleteItems, setGroupsPriority, setItemsPriority } from '@/api/items'
+import { getListForEditing, type GroupSummary, type ListForEditing } from '@/api/lists'
 import PriorityIcon from '@/components/common/priority-icon'
 import { BulkMoveItemsDialog } from '@/components/items/bulk-move-dialog'
 import { GroupBadge } from '@/components/items/group-badge'
@@ -68,7 +68,7 @@ function OrganizePage() {
 							<ArrowLeft className="size-4" />
 						</Link>
 					</Button>
-					<h1 className="truncate flex-1">Organize: {list.name}</h1>
+					<h1 className="flex-1 min-w-0 leading-[1.1] pb-1 break-words">{list.name}</h1>
 				</div>
 
 				<div className="flex border-b">
@@ -107,6 +107,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 function BulkActionsTab({ list }: { list: ListForEditing }) {
 	const router = useRouter()
 	const [selected, setSelected] = useState<Set<number>>(new Set())
+	const [selectedGroups, setSelectedGroups] = useState<Set<number>>(new Set())
 	const [filter, setFilter] = useState<FilterMode>('active')
 	const [busy, setBusy] = useState(false)
 	const [moveOpen, setMoveOpen] = useState(false)
@@ -121,7 +122,18 @@ function BulkActionsTab({ list }: { list: ListForEditing }) {
 	const visibleIds = useMemo(() => visibleItems.map(i => i.id), [visibleItems])
 	const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => selected.has(id))
 	const selectedIds = useMemo(() => [...selected], [selected])
+	const selectedGroupIds = useMemo(() => [...selectedGroups], [selectedGroups])
 	const selectedList = useMemo(() => list.items.filter(i => selected.has(i.id)), [list.items, selected])
+
+	const itemsByGroup = useMemo(() => {
+		const m = new Map<number, Array<number>>()
+		for (const i of list.items) {
+			if (i.groupId == null) continue
+			if (!m.has(i.groupId)) m.set(i.groupId, [])
+			m.get(i.groupId)!.push(i.id)
+		}
+		return m
+	}, [list.items])
 
 	const toggle = (id: number) =>
 		setSelected(prev => {
@@ -131,8 +143,29 @@ function BulkActionsTab({ list }: { list: ListForEditing }) {
 			return next
 		})
 
+	const toggleGroup = (groupId: number) => {
+		const childIds = itemsByGroup.get(groupId) ?? []
+		setSelectedGroups(prev => {
+			const next = new Set(prev)
+			if (next.has(groupId)) next.delete(groupId)
+			else next.add(groupId)
+			return next
+		})
+		setSelected(prev => {
+			const next = new Set(prev)
+			const groupIsSelected = selectedGroups.has(groupId)
+			if (groupIsSelected) {
+				for (const id of childIds) next.delete(id)
+			} else {
+				for (const id of childIds) next.add(id)
+			}
+			return next
+		})
+	}
+
 	const refresh = async () => {
 		setSelected(new Set())
+		setSelectedGroups(new Set())
 		await router.invalidate()
 	}
 
@@ -151,28 +184,68 @@ function BulkActionsTab({ list }: { list: ListForEditing }) {
 
 	const runDelete = async () => {
 		setBusy(true)
-		const r = await deleteItems({ data: { itemIds: selectedIds } })
+		const groupChildIds = new Set<number>()
+		for (const gid of selectedGroupIds) for (const id of itemsByGroup.get(gid) ?? []) groupChildIds.add(id)
+		const itemOnlyIds = selectedIds.filter(id => !groupChildIds.has(id))
+
+		let deletedItems = 0
+		let deletedGroups = 0
+		if (selectedGroupIds.length > 0) {
+			const rg = await deleteGroups({ data: { groupIds: selectedGroupIds } })
+			if (rg.kind === 'ok') {
+				deletedGroups = rg.deletedGroups
+				deletedItems += rg.deletedItems
+			} else {
+				setBusy(false)
+				setDeleteOpen(false)
+				toast.error('Could not delete groups')
+				return
+			}
+		}
+		if (itemOnlyIds.length > 0) {
+			const ri = await deleteItems({ data: { itemIds: itemOnlyIds } })
+			if (ri.kind === 'ok') deletedItems += ri.deleted
+			else {
+				setBusy(false)
+				setDeleteOpen(false)
+				toast.error('Could not delete items')
+				return
+			}
+		}
 		setBusy(false)
 		setDeleteOpen(false)
-		if (r.kind === 'ok') {
-			toast.success(`${r.deleted} item${r.deleted === 1 ? '' : 's'} deleted`)
-			await refresh()
-		} else {
-			toast.error('Could not delete items')
-		}
+		const parts: Array<string> = []
+		if (deletedGroups) parts.push(`${deletedGroups} group${deletedGroups === 1 ? '' : 's'}`)
+		if (deletedItems) parts.push(`${deletedItems} item${deletedItems === 1 ? '' : 's'}`)
+		toast.success(`Deleted ${parts.join(' and ')}`)
+		await refresh()
 	}
 
 	const runPriority = async (priority: Priority) => {
-		if (selectedIds.length === 0) return
+		if (selectedIds.length === 0 && selectedGroupIds.length === 0) return
 		setBusy(true)
-		const r = await setItemsPriority({ data: { itemIds: selectedIds, priority } })
-		setBusy(false)
-		if (r.kind === 'ok') {
-			toast.success(`Priority set to ${PRIORITY_LABEL[priority]} on ${r.updated} item${r.updated === 1 ? '' : 's'}`)
-			await refresh()
-		} else {
-			toast.error('Could not update priority')
+		let updated = 0
+		if (selectedIds.length > 0) {
+			const r = await setItemsPriority({ data: { itemIds: selectedIds, priority } })
+			if (r.kind === 'ok') updated += r.updated
+			else {
+				setBusy(false)
+				toast.error('Could not update priority')
+				return
+			}
 		}
+		if (selectedGroupIds.length > 0) {
+			const r = await setGroupsPriority({ data: { groupIds: selectedGroupIds, priority } })
+			if (r.kind === 'ok') updated += r.updated
+			else {
+				setBusy(false)
+				toast.error('Could not update group priority')
+				return
+			}
+		}
+		setBusy(false)
+		toast.success(`Priority set to ${PRIORITY_LABEL[priority]} on ${updated} row${updated === 1 ? '' : 's'}`)
+		await refresh()
 	}
 
 	const runAssignGroup = async (groupId: number | null) => {
@@ -217,7 +290,10 @@ function BulkActionsTab({ list }: { list: ListForEditing }) {
 					{allVisibleSelected ? <CheckSquare className="size-4" /> : <Square className="size-4" />}
 					{allVisibleSelected ? 'Deselect all' : 'Select all'}
 				</Button>
-				<span className="text-sm text-muted-foreground">{selected.size} selected</span>
+				<span className="text-sm text-muted-foreground">
+					{selected.size} item{selected.size === 1 ? '' : 's'}
+					{selectedGroups.size > 0 && `, ${selectedGroups.size} group${selectedGroups.size === 1 ? '' : 's'}`}
+				</span>
 				<div className="flex-1" />
 
 				<Button size="sm" variant="outline" disabled={selected.size === 0 || busy} onClick={() => setMoveOpen(true)}>
@@ -247,7 +323,7 @@ function BulkActionsTab({ list }: { list: ListForEditing }) {
 
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-						<Button size="sm" variant="outline" disabled={selected.size === 0 || busy}>
+						<Button size="sm" variant="outline" disabled={(selected.size === 0 && selectedGroups.size === 0) || busy}>
 							Priority
 						</Button>
 					</DropdownMenuTrigger>
@@ -272,7 +348,12 @@ function BulkActionsTab({ list }: { list: ListForEditing }) {
 					</Button>
 				)}
 
-				<Button size="sm" variant="destructive" disabled={selected.size === 0 || busy} onClick={() => setDeleteOpen(true)}>
+				<Button
+					size="sm"
+					variant="destructive"
+					disabled={(selected.size === 0 && selectedGroups.size === 0) || busy}
+					onClick={() => setDeleteOpen(true)}
+				>
 					<Trash2 className="size-4" /> Delete
 				</Button>
 			</div>
@@ -280,7 +361,14 @@ function BulkActionsTab({ list }: { list: ListForEditing }) {
 			{visibleItems.length === 0 ? (
 				<div className="text-sm text-muted-foreground py-6 text-center border rounded-lg bg-accent">No items to show.</div>
 			) : (
-				<OrganizeList items={visibleItems} groups={list.groups} selected={selected} onToggle={toggle} />
+				<OrganizeList
+					items={visibleItems}
+					groups={list.groups}
+					selected={selected}
+					selectedGroups={selectedGroups}
+					onToggle={toggle}
+					onToggleGroup={toggleGroup}
+				/>
 			)}
 
 			{moveOpen && (
@@ -296,9 +384,13 @@ function BulkActionsTab({ list }: { list: ListForEditing }) {
 			<AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Delete {selectedList.length} item{selectedList.length === 1 ? '' : 's'}?</AlertDialogTitle>
+						<AlertDialogTitle>
+							Delete {selectedList.length} item{selectedList.length === 1 ? '' : 's'}
+							{selectedGroups.size > 0 && ` and ${selectedGroups.size} group${selectedGroups.size === 1 ? '' : 's'}`}?
+						</AlertDialogTitle>
 						<AlertDialogDescription>
-							This permanently removes the selected items and any associated claims or comments.
+							This permanently removes the selected rows and any associated claims or comments.
+							{selectedGroups.size > 0 && ' Items inside deleted groups are also removed.'}
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
@@ -317,12 +409,16 @@ function OrganizeList({
 	items,
 	groups,
 	selected,
+	selectedGroups,
 	onToggle,
+	onToggleGroup,
 }: {
 	items: Array<Item>
-	groups: Array<{ id: number; type: 'or' | 'order'; name: string | null }>
+	groups: Array<GroupSummary>
 	selected: Set<number>
+	selectedGroups: Set<number>
 	onToggle: (id: number) => void
+	onToggleGroup: (groupId: number) => void
 }) {
 	const ungrouped = items.filter(i => i.groupId === null)
 	const byGroup = new Map<number, Array<Item>>()
@@ -345,15 +441,18 @@ function OrganizeList({
 			{groups.map(g => {
 				const groupItems = byGroup.get(g.id)
 				if (!groupItems || groupItems.length === 0) return null
+				const groupSelected = selectedGroups.has(g.id)
 				return (
 					<div key={g.id} className="border rounded-lg bg-accent overflow-hidden">
-						<div className="flex items-center gap-2 p-2 bg-muted/30 border-b">
+						<label className="flex items-center gap-3 p-2 bg-muted/30 border-b cursor-pointer hover:bg-muted/50">
+							<Checkbox checked={groupSelected} onCheckedChange={() => onToggleGroup(g.id)} />
 							<GroupBadge type={g.type} />
 							{g.name && <span className="font-medium text-sm truncate">{g.name}</span>}
-							<span className="text-xs text-muted-foreground ml-auto">
+							<PriorityIcon priority={g.priority} className="size-4 shrink-0 ml-auto" />
+							<span className="text-xs text-muted-foreground tabular-nums">
 								{groupItems.length} item{groupItems.length !== 1 ? 's' : ''}
 							</span>
-						</div>
+						</label>
 						<div className="divide-y">
 							{groupItems.map(item => (
 								<OrganizeRow key={item.id} item={item} selected={selected.has(item.id)} onToggle={onToggle} />
