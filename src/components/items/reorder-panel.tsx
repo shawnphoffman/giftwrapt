@@ -25,6 +25,7 @@ import type { GroupSummary } from '@/api/lists'
 import PriorityIcon from '@/components/common/priority-icon'
 import type { Priority } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
+import { priorityBorderClass } from '@/lib/priority-classes'
 
 type Props = {
 	listId: number
@@ -250,9 +251,10 @@ function refId(e: Entry): number {
 
 function BucketRow({ priority, ids, entries }: { priority: Priority; ids: Array<EntryId>; entries: Map<EntryId, Entry> }) {
 	const { setNodeRef, isOver } = useDroppable({ id: priority })
+	const baseBorder = priorityBorderClass[priority] || 'border-border'
 	return (
-		<div ref={setNodeRef} className={`border rounded-md ${isOver ? 'ring-1 ring-primary/60 border-primary/40' : 'border-border'}`}>
-			<div className="flex items-center gap-2 px-3 py-1.5 border-b border-border/60 bg-muted/30">
+		<div ref={setNodeRef} className={`border rounded-md ${baseBorder} ${isOver ? 'ring-1 ring-primary/60' : ''}`}>
+			<div className={`flex items-center gap-2 px-3 py-1.5 border-b bg-muted/30 ${baseBorder}`}>
 				<PriorityIcon priority={priority} className="size-4 shrink-0" />
 				<span className="text-sm font-medium flex-1">{PRIORITY_LABEL[priority]}</span>
 			</div>

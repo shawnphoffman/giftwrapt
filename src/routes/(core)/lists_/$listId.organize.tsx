@@ -1,10 +1,10 @@
 import { createFileRoute, Link, notFound, useRouter } from '@tanstack/react-router'
-import { Archive, ArchiveRestore, ArrowLeft, CheckSquare, MoveRight, Square, Trash2 } from 'lucide-react'
+import { ArrowLeft, Move, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import { assignItemsToGroup } from '@/api/groups'
-import { archiveItems, deleteGroups, deleteItems, setGroupsPriority, setItemsPriority } from '@/api/items'
+import { deleteGroups, deleteItems, setGroupsPriority, setItemsPriority } from '@/api/items'
 import { getListForEditing, type GroupSummary, type ListForEditing } from '@/api/lists'
 import PriorityIcon from '@/components/common/priority-icon'
 import { BulkMoveItemsDialog } from '@/components/items/bulk-move-dialog'
@@ -33,8 +33,9 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { priorityEnumValues, type Priority } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
+import { priorityBorderClass } from '@/lib/priority-classes'
+import { cn } from '@/lib/utils'
 
-type FilterMode = 'active' | 'archived' | 'all'
 type TabMode = 'bulk' | 'reorder'
 
 const PRIORITY_LABEL: Record<Priority, string> = {
@@ -48,7 +49,7 @@ export const Route = createFileRoute('/(core)/lists_/$listId/organize')({
 	loader: async ({ params }) => {
 		const listId = Number(params.listId)
 		if (!Number.isFinite(listId)) throw notFound()
-		const result = await getListForEditing({ data: { listId: params.listId, includeArchived: true } })
+		const result = await getListForEditing({ data: { listId: params.listId } })
 		if (result.kind === 'error') throw notFound()
 		return { list: result.list }
 	},
@@ -73,7 +74,7 @@ function OrganizePage() {
 
 				<div className="flex border-b">
 					<TabButton active={tab === 'bulk'} onClick={() => setTab('bulk')}>
-						Bulk actions
+						Bulk Actions
 					</TabButton>
 					<TabButton active={tab === 'reorder'} onClick={() => setTab('reorder')}>
 						Reorder
@@ -108,19 +109,17 @@ function BulkActionsTab({ list }: { list: ListForEditing }) {
 	const router = useRouter()
 	const [selected, setSelected] = useState<Set<number>>(new Set())
 	const [selectedGroups, setSelectedGroups] = useState<Set<number>>(new Set())
-	const [filter, setFilter] = useState<FilterMode>('active')
 	const [busy, setBusy] = useState(false)
 	const [moveOpen, setMoveOpen] = useState(false)
 	const [deleteOpen, setDeleteOpen] = useState(false)
 
-	const visibleItems = useMemo(() => {
-		if (filter === 'active') return list.items.filter(i => !i.isArchived)
-		if (filter === 'archived') return list.items.filter(i => i.isArchived)
-		return list.items
-	}, [list.items, filter])
-
+	const visibleItems = list.items
 	const visibleIds = useMemo(() => visibleItems.map(i => i.id), [visibleItems])
-	const allVisibleSelected = visibleIds.length > 0 && visibleIds.every(id => selected.has(id))
+	const ungroupedIds = useMemo(() => visibleItems.filter(i => i.groupId === null).map(i => i.id), [visibleItems])
+	const totalSelectable = ungroupedIds.length + list.groups.length
+	const totalSelected = ungroupedIds.filter(id => selected.has(id)).length + list.groups.filter(g => selectedGroups.has(g.id)).length
+	const selectAllState: boolean | 'indeterminate' =
+		totalSelectable === 0 ? false : totalSelected === 0 ? false : totalSelected === totalSelectable ? true : 'indeterminate'
 	const selectedIds = useMemo(() => [...selected], [selected])
 	const selectedGroupIds = useMemo(() => [...selectedGroups], [selectedGroups])
 	const selectedList = useMemo(() => list.items.filter(i => selected.has(i.id)), [list.items, selected])
@@ -167,19 +166,6 @@ function BulkActionsTab({ list }: { list: ListForEditing }) {
 		setSelected(new Set())
 		setSelectedGroups(new Set())
 		await router.invalidate()
-	}
-
-	const runArchive = async (archived: boolean) => {
-		if (selectedIds.length === 0) return
-		setBusy(true)
-		const r = await archiveItems({ data: { itemIds: selectedIds, archived } })
-		setBusy(false)
-		if (r.kind === 'ok') {
-			toast.success(`${r.updated} item${r.updated === 1 ? '' : 's'} ${archived ? 'archived' : 'restored'}`)
-			await refresh()
-		} else {
-			toast.error('Could not update items')
-		}
 	}
 
 	const runDelete = async () => {
@@ -263,99 +249,87 @@ function BulkActionsTab({ list }: { list: ListForEditing }) {
 
 	return (
 		<>
-			<div className="flex items-center gap-1 text-sm">
-				{(['active', 'archived', 'all'] as const).map(mode => (
-					<Button key={mode} size="sm" variant={filter === mode ? 'default' : 'outline'} onClick={() => setFilter(mode)}>
-						{mode === 'active' && 'Active'}
-						{mode === 'archived' && 'Archived'}
-						{mode === 'all' && 'All'}
-						<Badge variant="secondary" className="ml-2 tabular-nums">
-							{mode === 'active'
-								? list.items.filter(i => !i.isArchived).length
-								: mode === 'archived'
-									? list.items.filter(i => i.isArchived).length
-									: list.items.length}
-						</Badge>
+			<div className="flex flex-col gap-2 p-2 border rounded-md sticky top-2 z-10 bg-background/95 backdrop-blur sm:flex-row sm:items-center sm:flex-wrap">
+				<label className="flex items-center gap-2 min-w-0 cursor-pointer select-none">
+					<Checkbox
+						checked={selectAllState}
+						onCheckedChange={() => {
+							if (selectAllState === true) {
+								setSelected(new Set())
+								setSelectedGroups(new Set())
+							} else {
+								setSelected(new Set(visibleIds))
+								setSelectedGroups(new Set(list.groups.map(g => g.id)))
+							}
+						}}
+						disabled={visibleIds.length === 0}
+						aria-label="Select all"
+					/>
+					<span className="text-sm text-muted-foreground tabular-nums truncate">
+						{selected.size} item{selected.size === 1 ? '' : 's'}
+						{selectedGroups.size > 0 && `, ${selectedGroups.size} group${selectedGroups.size === 1 ? '' : 's'}`}
+					</span>
+				</label>
+
+				<div className="sm:flex-1" />
+
+				<div className="flex items-center gap-1 flex-wrap">
+					<Button size="sm" variant="outline" disabled={selected.size === 0 || busy} onClick={() => setMoveOpen(true)} title="Move">
+						<Move className="size-4" />
+						<span className="hidden md:inline">Move</span>
 					</Button>
-				))}
-			</div>
 
-			<div className="flex flex-wrap items-center gap-2 p-2 border rounded-md sticky top-2 z-10 bg-background/95 backdrop-blur">
-				<Button
-					size="sm"
-					variant="outline"
-					onClick={allVisibleSelected ? () => setSelected(new Set()) : () => setSelected(new Set(visibleIds))}
-					disabled={visibleIds.length === 0}
-				>
-					{allVisibleSelected ? <CheckSquare className="size-4" /> : <Square className="size-4" />}
-					{allVisibleSelected ? 'Deselect all' : 'Select all'}
-				</Button>
-				<span className="text-sm text-muted-foreground">
-					{selected.size} item{selected.size === 1 ? '' : 's'}
-					{selectedGroups.size > 0 && `, ${selectedGroups.size} group${selectedGroups.size === 1 ? '' : 's'}`}
-				</span>
-				<div className="flex-1" />
+					{list.groups.length > 0 && (
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button size="sm" variant="outline" disabled={selected.size === 0 || busy}>
+									Group
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end">
+								<DropdownMenuLabel>Assign to group</DropdownMenuLabel>
+								{list.groups.map(g => (
+									<DropdownMenuItem key={g.id} onClick={() => runAssignGroup(g.id)}>
+										<GroupBadge type={g.type} className="text-xs" />
+										{g.name ?? `Group #${g.id}`}
+									</DropdownMenuItem>
+								))}
+								<DropdownMenuSeparator />
+								<DropdownMenuItem onClick={() => runAssignGroup(null)}>Remove from group</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
+					)}
 
-				<Button size="sm" variant="outline" disabled={selected.size === 0 || busy} onClick={() => setMoveOpen(true)}>
-					<MoveRight className="size-4" /> Move
-				</Button>
-
-				{list.groups.length > 0 && (
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
-							<Button size="sm" variant="outline" disabled={selected.size === 0 || busy}>
-								Group
+							<Button size="sm" variant="outline" disabled={(selected.size === 0 && selectedGroups.size === 0) || busy}>
+								Priority
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
-							<DropdownMenuLabel>Assign to group</DropdownMenuLabel>
-							{list.groups.map(g => (
-								<DropdownMenuItem key={g.id} onClick={() => runAssignGroup(g.id)}>
-									<GroupBadge type={g.type} className="text-xs" />
-									{g.name ?? `Group #${g.id}`}
+							<DropdownMenuLabel>Set priority</DropdownMenuLabel>
+							{priorityEnumValues.map(p => (
+								<DropdownMenuItem key={p} onClick={() => runPriority(p)}>
+									<PriorityIcon priority={p} className="size-4" />
+									{PRIORITY_LABEL[p]}
 								</DropdownMenuItem>
 							))}
-							<DropdownMenuSeparator />
-							<DropdownMenuItem onClick={() => runAssignGroup(null)}>Remove from group</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
-				)}
 
-				<DropdownMenu>
-					<DropdownMenuTrigger asChild>
-						<Button size="sm" variant="outline" disabled={(selected.size === 0 && selectedGroups.size === 0) || busy}>
-							Priority
-						</Button>
-					</DropdownMenuTrigger>
-					<DropdownMenuContent align="end">
-						<DropdownMenuLabel>Set priority</DropdownMenuLabel>
-						{priorityEnumValues.map(p => (
-							<DropdownMenuItem key={p} onClick={() => runPriority(p)}>
-								<PriorityIcon priority={p} className="size-4" />
-								{PRIORITY_LABEL[p]}
-							</DropdownMenuItem>
-						))}
-					</DropdownMenuContent>
-				</DropdownMenu>
+					<div className="w-px h-5 bg-border mx-1" aria-hidden />
 
-				{filter === 'archived' ? (
-					<Button size="sm" variant="outline" disabled={selected.size === 0 || busy} onClick={() => runArchive(false)}>
-						<ArchiveRestore className="size-4" /> Restore
+					<Button
+						size="sm"
+						variant="destructive"
+						disabled={(selected.size === 0 && selectedGroups.size === 0) || busy}
+						onClick={() => setDeleteOpen(true)}
+						title="Delete"
+					>
+						<Trash2 className="size-4" />
+						<span className="hidden md:inline">Delete</span>
 					</Button>
-				) : (
-					<Button size="sm" variant="outline" disabled={selected.size === 0 || busy} onClick={() => runArchive(true)}>
-						<Archive className="size-4" /> Archive
-					</Button>
-				)}
-
-				<Button
-					size="sm"
-					variant="destructive"
-					disabled={(selected.size === 0 && selectedGroups.size === 0) || busy}
-					onClick={() => setDeleteOpen(true)}
-				>
-					<Trash2 className="size-4" /> Delete
-				</Button>
+				</div>
 			</div>
 
 			{visibleItems.length === 0 ? (
@@ -430,34 +404,48 @@ function OrganizeList({
 	}
 
 	return (
-		<div className="flex flex-col gap-3">
-			{ungrouped.length > 0 && (
-				<div className="flex flex-col overflow-hidden border divide-y rounded-lg bg-accent">
-					{ungrouped.map(item => (
-						<OrganizeRow key={item.id} item={item} selected={selected.has(item.id)} onToggle={onToggle} />
-					))}
-				</div>
-			)}
+		<div className="flex flex-col gap-2">
+			{ungrouped.map(item => (
+				<OrganizeRow key={item.id} item={item} selected={selected.has(item.id)} onToggle={onToggle} />
+			))}
 			{groups.map(g => {
 				const groupItems = byGroup.get(g.id)
 				if (!groupItems || groupItems.length === 0) return null
 				const groupSelected = selectedGroups.has(g.id)
 				return (
-					<div key={g.id} className="border rounded-lg bg-accent overflow-hidden">
-						<label className="flex items-center gap-3 p-2 bg-muted/30 border-b cursor-pointer hover:bg-muted/50">
+					<div
+						key={g.id}
+						className={cn(
+							'flex flex-col rounded-md overflow-hidden border bg-background',
+							priorityBorderClass[g.priority]
+						)}
+					>
+						<label className="flex items-center gap-3 p-2 bg-muted/20 border-b cursor-pointer hover:bg-muted/30">
 							<Checkbox checked={groupSelected} onCheckedChange={() => onToggleGroup(g.id)} />
+							<PriorityIcon priority={g.priority} className="size-4 shrink-0" />
 							<GroupBadge type={g.type} />
-							{g.name && <span className="font-medium text-sm truncate">{g.name}</span>}
-							<PriorityIcon priority={g.priority} className="size-4 shrink-0 ml-auto" />
-							<span className="text-xs text-muted-foreground tabular-nums">
-								{groupItems.length} item{groupItems.length !== 1 ? 's' : ''}
-							</span>
+							{g.name && <span className="font-medium text-sm truncate flex-1">{g.name}</span>}
 						</label>
-						<div className="divide-y">
+						<ul className="divide-y bg-muted/40">
 							{groupItems.map(item => (
-								<OrganizeRow key={item.id} item={item} selected={selected.has(item.id)} onToggle={onToggle} />
+								<li key={item.id} className="flex items-center gap-3 p-2">
+									<PriorityIcon priority={item.priority} className="size-4 shrink-0" />
+									<div className="flex-1 min-w-0 flex items-center gap-2">
+										<span className="font-medium leading-tight truncate">{item.title}</span>
+										{item.isArchived && (
+											<Badge variant="secondary" className="text-xs shrink-0">
+												Archived
+											</Badge>
+										)}
+									</div>
+									{item.imageUrl && (
+										<div className="size-10 shrink-0 rounded bg-background/60 overflow-hidden flex items-center justify-center">
+											<img src={item.imageUrl} alt="" className="object-contain size-full" />
+										</div>
+									)}
+								</li>
 							))}
-						</div>
+						</ul>
 					</div>
 				)
 			})}
@@ -469,21 +457,24 @@ function OrganizeRow({
 	item,
 	selected,
 	onToggle,
+	flush = false,
 }: {
 	item: Item
 	selected: boolean
 	onToggle: (id: number) => void
+	flush?: boolean
 }) {
 	return (
-		<label className="flex items-center gap-3 p-2 hover:bg-muted/50 cursor-pointer">
+		<label
+			className={cn(
+				flush
+					? 'flex items-center gap-3 p-2 bg-muted/40 hover:bg-muted/60 cursor-pointer'
+					: 'flex items-center gap-3 p-2 border rounded-md bg-muted/40 hover:bg-muted/60 cursor-pointer',
+				!flush && priorityBorderClass[item.priority]
+			)}
+		>
 			<Checkbox checked={selected} onCheckedChange={() => onToggle(item.id)} />
-			<div className="size-10 shrink-0 rounded bg-muted/40 overflow-hidden flex items-center justify-center">
-				{item.imageUrl ? (
-					<img src={item.imageUrl} alt="" className="object-contain size-full" />
-				) : (
-					<span className="text-xs text-muted-foreground">—</span>
-				)}
-			</div>
+			<PriorityIcon priority={item.priority} className="size-4 shrink-0" />
 			<div className="flex-1 min-w-0 flex items-center gap-2">
 				<span className="font-medium leading-tight truncate">{item.title}</span>
 				{item.isArchived && (
@@ -492,11 +483,10 @@ function OrganizeRow({
 					</Badge>
 				)}
 			</div>
-			<PriorityIcon priority={item.priority} className="size-4 shrink-0" />
-			{item.quantity > 1 && (
-				<Badge variant="secondary" className="text-xs tabular-nums shrink-0">
-					x{item.quantity}
-				</Badge>
+			{item.imageUrl && (
+				<div className="size-10 shrink-0 rounded bg-background/60 overflow-hidden flex items-center justify-center">
+					<img src={item.imageUrl} alt="" className="object-contain size-full" />
+				</div>
 			)}
 		</label>
 	)
