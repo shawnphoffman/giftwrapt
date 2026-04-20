@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { ListTypes } from '@/db/schema'
 import { appSettingsQueryKey, useAppSettings } from '@/hooks/use-app-settings'
+import { useIsEmailConfigured } from '@/hooks/use-is-email-configured'
 import type { AppSettings } from '@/lib/settings'
 
 const IS_DEV = import.meta.env.DEV
@@ -63,6 +64,7 @@ function useSettingsEditor() {
 
 export function AppSettingsEditor() {
 	const { settings, isLoading, handleSettingChange } = useSettingsEditor()
+	const { data: emailConfigured } = useIsEmailConfigured()
 
 	if (isLoading) return <div className="text-sm text-muted-foreground">Loading settings...</div>
 	if (!settings) return <div className="text-sm text-muted-foreground">No settings found</div>
@@ -128,20 +130,22 @@ export function AppSettingsEditor() {
 			</div>
 
 			{/* Enable Christmas emails (dependent on Enable Christmas Lists) */}
-			<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableHolidayLists ? '' : 'opacity-50'}`}>
-				<div className="space-y-0.5">
-					<Label htmlFor="enableChristmasEmails" className="text-base">
-						Enable Christmas emails
-					</Label>
-					<p className="text-sm text-muted-foreground">Send Christmas-related emails to users</p>
+			{emailConfigured && (
+				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableHolidayLists ? '' : 'opacity-50'}`}>
+					<div className="space-y-0.5">
+						<Label htmlFor="enableChristmasEmails" className="text-base">
+							Enable Christmas emails
+						</Label>
+						<p className="text-sm text-muted-foreground">Send Christmas-related emails to users</p>
+					</div>
+					<Switch
+						id="enableChristmasEmails"
+						checked={settings.enableChristmasEmails}
+						disabled={!settings.enableHolidayLists}
+						onCheckedChange={checked => handleSettingChange('enableChristmasEmails', checked)}
+					/>
 				</div>
-				<Switch
-					id="enableChristmasEmails"
-					checked={settings.enableChristmasEmails}
-					disabled={!settings.enableHolidayLists}
-					onCheckedChange={checked => handleSettingChange('enableChristmasEmails', checked)}
-				/>
-			</div>
+			)}
 
 			{/* Enable Birthday Lists */}
 			<div className="flex items-center justify-between gap-4">
@@ -171,20 +175,22 @@ export function AppSettingsEditor() {
 			</div>
 
 			{/* Enable birthday emails (dependent on Enable Birthday Lists) */}
-			<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableBirthdayLists ? '' : 'opacity-50'}`}>
-				<div className="space-y-0.5">
-					<Label htmlFor="enableBirthdayEmails" className="text-base">
-						Enable birthday emails
-					</Label>
-					<p className="text-sm text-muted-foreground">Send day-of birthday greetings and the post-birthday gift summary</p>
+			{emailConfigured && (
+				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableBirthdayLists ? '' : 'opacity-50'}`}>
+					<div className="space-y-0.5">
+						<Label htmlFor="enableBirthdayEmails" className="text-base">
+							Enable birthday emails
+						</Label>
+						<p className="text-sm text-muted-foreground">Send day-of birthday greetings and the post-birthday gift summary</p>
+					</div>
+					<Switch
+						id="enableBirthdayEmails"
+						checked={settings.enableBirthdayEmails}
+						disabled={!settings.enableBirthdayLists}
+						onCheckedChange={checked => handleSettingChange('enableBirthdayEmails', checked)}
+					/>
 				</div>
-				<Switch
-					id="enableBirthdayEmails"
-					checked={settings.enableBirthdayEmails}
-					disabled={!settings.enableBirthdayLists}
-					onCheckedChange={checked => handleSettingChange('enableBirthdayEmails', checked)}
-				/>
-			</div>
+			)}
 
 			{/* Enable Todo Lists */}
 			<div className="flex items-center justify-between gap-4">
@@ -217,20 +223,22 @@ export function AppSettingsEditor() {
 			</div>
 
 			{/* Enable Comment Emails (dependent on Enable Comments) */}
-			<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableComments ? '' : 'opacity-50'}`}>
-				<div className="space-y-0.5">
-					<Label htmlFor="enableCommentEmails" className="text-base">
-						Enable Comment Emails
-					</Label>
-					<p className="text-sm text-muted-foreground">Email the list owner when someone comments on one of their items</p>
+			{emailConfigured && (
+				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableComments ? '' : 'opacity-50'}`}>
+					<div className="space-y-0.5">
+						<Label htmlFor="enableCommentEmails" className="text-base">
+							Enable Comment Emails
+						</Label>
+						<p className="text-sm text-muted-foreground">Email the list owner when someone comments on one of their items</p>
+					</div>
+					<Switch
+						id="enableCommentEmails"
+						checked={settings.enableCommentEmails}
+						disabled={!settings.enableComments}
+						onCheckedChange={checked => handleSettingChange('enableCommentEmails', checked)}
+					/>
 				</div>
-				<Switch
-					id="enableCommentEmails"
-					checked={settings.enableCommentEmails}
-					disabled={!settings.enableComments}
-					onCheckedChange={checked => handleSettingChange('enableCommentEmails', checked)}
-				/>
-			</div>
+			)}
 		</div>
 	)
 }

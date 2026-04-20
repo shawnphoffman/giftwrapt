@@ -6,7 +6,24 @@ import PostBirthdayEmail from '@/emails/post-birthday-email'
 import TestEmail from '@/emails/test-email'
 import { env } from '@/env'
 
-export const resendClient = new Resend(env.RESEND_API_KEY)
+// Email is optional: RESEND_API_KEY may be unset (self-hosted installs that
+// don't want transactional email). Instantiate lazily so module import never
+// crashes, and so each send can cleanly no-op when the key is missing.
+let cachedClient: Resend | null | undefined
+
+export const isEmailConfigured = (): boolean => {
+	return Boolean(env.RESEND_API_KEY && env.RESEND_FROM_EMAIL)
+}
+
+const getResendClient = (): Resend | null => {
+	if (cachedClient !== undefined) return cachedClient
+	if (!env.RESEND_API_KEY) {
+		cachedClient = null
+		return null
+	}
+	cachedClient = new Resend(env.RESEND_API_KEY)
+	return cachedClient
+}
 
 export const getFromEmail = (): string => {
 	const email = env.RESEND_FROM_EMAIL!
@@ -28,6 +45,10 @@ export const commonEmailProps = () => {
 	}
 }
 
+const warnNotConfigured = (action: string) => {
+	console.warn(`[resend] ${action} skipped — RESEND_API_KEY / RESEND_FROM_EMAIL not configured`)
+}
+
 export const sendNewCommentEmail = async (
 	username: string,
 	recipient: string,
@@ -37,7 +58,12 @@ export const sendNewCommentEmail = async (
 	listId: number,
 	itemId: number
 ) => {
-	const emailResp = await resendClient.emails.send({
+	const client = getResendClient()
+	if (!client || !env.RESEND_FROM_EMAIL) {
+		warnNotConfigured('sendNewCommentEmail')
+		return null
+	}
+	return await client.emails.send({
 		...commonEmailProps(),
 		to: recipient,
 		subject: 'New Comment on Wish Lists',
@@ -45,40 +71,51 @@ export const sendNewCommentEmail = async (
 			<NewCommentEmail username={username} commenter={commenter} comment={comment} itemTitle={itemTitle} listId={listId} itemId={itemId} />
 		),
 	})
-	return emailResp
 }
 
 export const sendBirthdayEmail = async (name: string, recipient: string) => {
-	const emailResp = await resendClient.emails.send({
+	const client = getResendClient()
+	if (!client || !env.RESEND_FROM_EMAIL) {
+		warnNotConfigured('sendBirthdayEmail')
+		return null
+	}
+	return await client.emails.send({
 		...commonEmailProps(),
 		to: recipient,
 		subject: `🎉 Happy Birthday, ${name}!`,
 		react: <BirthdayEmail name={name} />,
 	})
-	return emailResp
 }
 
 export const sendPostBirthdayEmail = async (recipient: string, items: Array<{ title: string; image_url: string; gifters: string }>) => {
-	const emailResp = await resendClient.emails.send({
+	const client = getResendClient()
+	if (!client || !env.RESEND_FROM_EMAIL) {
+		warnNotConfigured('sendPostBirthdayEmail')
+		return null
+	}
+	return await client.emails.send({
 		...commonEmailProps(),
 		to: recipient,
 		subject: 'A look back at your gifts',
 		react: <PostBirthdayEmail items={items} />,
 	})
-	return emailResp
 }
 
 export const sendTestEmail = async () => {
+	const client = getResendClient()
+	if (!client || !env.RESEND_FROM_EMAIL) {
+		throw new Error('Email is not configured. Set RESEND_API_KEY and RESEND_FROM_EMAIL.')
+	}
+
 	const to = env.RESEND_BCC_ADDRESS || env.RESEND_FROM_EMAIL
 	if (!to) {
 		throw new Error('No email address configured for test email')
 	}
 
-	const emailResp = await resendClient.emails.send({
+	return await client.emails.send({
 		from: getFromEmail(),
 		to,
 		subject: 'Test Email',
 		react: <TestEmail />,
 	})
-	return emailResp
 }

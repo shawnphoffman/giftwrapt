@@ -7,7 +7,7 @@ import { giftedItems, items, lists, users } from '@/db/schema'
 import type { BirthMonth } from '@/db/schema/enums'
 import { env } from '@/env'
 import { formatGifterNames, namesForGifter, type PartneredUser } from '@/lib/gifters'
-import { sendBirthdayEmail, sendPostBirthdayEmail } from '@/lib/resend'
+import { isEmailConfigured, sendBirthdayEmail, sendPostBirthdayEmail } from '@/lib/resend'
 import { getAppSettings } from '@/lib/settings'
 
 // ===============================
@@ -49,6 +49,10 @@ export const Route = createFileRoute('/api/cron/birthday-emails')({
 					if (authHeader !== `Bearer ${cronSecret}`) {
 						return json({ error: 'Unauthorized' }, { status: 401 })
 					}
+				}
+
+				if (!isEmailConfigured()) {
+					return json({ ok: true, skipped: 'email not configured', date: new Date().toISOString() })
 				}
 
 				const settings = await getAppSettings(db)
