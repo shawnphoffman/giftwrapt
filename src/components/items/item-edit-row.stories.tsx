@@ -147,7 +147,6 @@ export const Flush: Story = {
 			price: '49',
 		}),
 		flush: true,
-		hidePriority: true,
 	},
 	parameters: {
 		docs: {
@@ -168,7 +167,6 @@ export const WithReorderControls: Story = {
 			price: '49',
 		}),
 		flush: true,
-		hidePriority: true,
 		onMoveUp: () => {},
 		onMoveDown: () => {},
 	},

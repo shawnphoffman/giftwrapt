@@ -54,7 +54,6 @@ export function GroupBlock({ group, items, groups, isOwner, onAddItem, onDelete,
 					)}
 				/>
 				<div className="flex items-center gap-2 px-2 py-1 border-b bg-accent ps-4 justify-center">
-					{/* {!hasPriorityTab && <PriorityIcon priority={group.priority} className="size-4 shrink-0" />} */}
 					<span className={'opacity-75 flex items-center gap-2 justify-between'}>
 						{group.name && <span className="font-medium text-sm truncate leading-none">{group.name}</span>}
 						<GroupBadge type={group.type} />
@@ -92,7 +91,6 @@ export function GroupBlock({ group, items, groups, isOwner, onAddItem, onDelete,
 									item={item}
 									onMoveClick={onMoveItem}
 									groups={groups}
-									hidePriority
 									flush
 									onMoveUp={showReorder && index > 0 ? () => onReorder(group.id, items, index, -1) : undefined}
 									onMoveDown={showReorder && index < items.length - 1 ? () => onReorder(group.id, items, index, 1) : undefined}

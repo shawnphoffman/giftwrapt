@@ -33,7 +33,6 @@ export type LockReason = 'order' | 'or'
 
 type Props = {
 	item: ItemWithGifts
-	hidePriority?: boolean
 	/**
 	 * When set, this item is blocked by group rules and the Claim button is
 	 * suppressed in favor of a "Locked" indicator. 'order' means an earlier
@@ -44,7 +43,7 @@ type Props = {
 	lockReason?: LockReason
 }
 
-export default function ItemRow({ item, hidePriority = false, lockReason }: Props) {
+export default function ItemRow({ item, lockReason }: Props) {
 	const router = useRouter()
 	const queryClient = useQueryClient()
 	const { data: session } = useSession()
@@ -106,7 +105,6 @@ export default function ItemRow({ item, hidePriority = false, lockReason }: Prop
 				<div className="flex flex-row items-stretch gap-x-3.5">
 					<div className="flex flex-col justify-center flex-1 gap-0.5 overflow-hidden">
 						<div className="flex flex-row items-start flex-1 gap-1 overflow-hidden font-medium">
-							{!hidePriority && <PriorityIcon priority={item.priority} />}
 							{item.url ? (
 								<>
 									<a

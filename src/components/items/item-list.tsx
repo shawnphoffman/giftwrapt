@@ -100,7 +100,7 @@ export default function ItemList({ items, groups = [] }: Props) {
 							{groupItems.map((item, idx) => (
 								<Fragment key={item.id}>
 									{idx > 0 && <GroupConnector type={group.type} />}
-									<ItemRow item={item} hidePriority lockReason={lockByItemId.get(item.id)} />
+									<ItemRow item={item} lockReason={lockByItemId.get(item.id)} />
 								</Fragment>
 							))}
 						</div>

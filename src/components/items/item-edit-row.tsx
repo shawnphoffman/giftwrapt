@@ -54,7 +54,6 @@ type Props = {
 	item: Item
 	onMoveClick?: (item: Item) => void
 	groups?: Array<GroupSummary>
-	hidePriority?: boolean
 	flush?: boolean
 	/**
 	 * When provided, renders up/down arrow buttons for reordering this item
@@ -73,7 +72,7 @@ function getDomain(url: string): string | null {
 	}
 }
 
-export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = false, flush = false, onMoveUp, onMoveDown }: Props) {
+export function ItemEditRow({ item, onMoveClick, groups = [], flush = false, onMoveUp, onMoveDown }: Props) {
 	const router = useRouter()
 	const { data: session } = useSession()
 	const isAdmin = session?.user.isAdmin
@@ -115,11 +114,10 @@ export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = fal
 	const domain = item.url ? getDomain(item.url) : null
 	// Standalone rows get a peeking priority tab on the left; flush rows stay
 	// simple since their parent group owns the priority indicator.
-	const hasPriorityTab = !flush && !hidePriority && item.priority !== 'normal'
+	const hasPriorityTab = !flush && item.priority !== 'normal'
 
 	const rowInner = (
 		<>
-			{!hidePriority && !hasPriorityTab && <PriorityIcon priority={item.priority} className="size-4 shrink-0" />}
 			<div className="flex-1 min-w-0">
 				<div className="font-medium leading-tight truncate">{item.title}</div>
 				{domain && (
@@ -221,15 +219,7 @@ export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = fal
 	return (
 		<>
 			{flush ? (
-				<div
-					className={cn(
-						'flex items-center gap-2 p-2 border-b last:border-b-0',
-						item.priority !== 'normal' && 'ring-1 ring-inset rounded-md',
-						priorityRingClass[item.priority]
-					)}
-				>
-					{rowInner}
-				</div>
+				<div className="flex items-center gap-2 p-2 border-b last:border-b-0 ps-4">{rowInner}</div>
 			) : (
 				<div className="relative">
 					{hasPriorityTab && (
