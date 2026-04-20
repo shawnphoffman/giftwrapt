@@ -13,7 +13,7 @@ export const Route = createFileRoute('/(core)/admin')({
 
 function AdminRoutes() {
 	return (
-		<div className="wish-page">
+		<div className="wish-page max-w-4xl">
 			<div className="flex flex-col flex-1 gap-6">
 				{/* HEADING */}
 				<div className="relative">
@@ -21,7 +21,7 @@ function AdminRoutes() {
 					<Lock className="text-red-500 wish-page-icon" />
 				</div>
 				{/* CONTENT */}
-				<div className="mx-auto grid w-full max-w-6xl items-start gap-6 md:grid-cols-[150px_1fr] lg:grid-cols-[200px_1fr]">
+				<div className="mx-auto grid w-full max-w-8xl items-start gap-6 md:grid-cols-[150px_1fr] lg:grid-cols-[200px_1fr]">
 					<nav className="grid gap-4 text-sm text-muted-foreground mt-6">
 						<AdminLinks />
 					</nav>
