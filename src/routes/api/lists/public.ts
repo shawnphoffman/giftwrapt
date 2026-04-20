@@ -3,7 +3,7 @@ import { json } from '@tanstack/react-start'
 import { desc } from 'drizzle-orm'
 
 import { db } from '@/db'
-import { lists, userRelationships } from '@/db/schema'
+import { lists } from '@/db/schema'
 import { auth } from '@/lib/auth'
 import { computeListItemCounts } from '@/lib/gifts'
 

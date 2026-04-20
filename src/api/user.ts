@@ -113,18 +113,14 @@ export const updateUserPassword = createServerFn({
 	.middleware([authMiddleware])
 	.inputValidator((data: { currentPassword: string; newPassword: string }) => data)
 	.handler(async ({ data }) => {
-		// Use Better Auth's changePassword API
-		const result = await auth.api.changePassword({
+		// Better Auth's changePassword throws on failure
+		await auth.api.changePassword({
 			body: {
 				currentPassword: data.currentPassword,
 				newPassword: data.newPassword,
 			},
 			headers: getRequestHeaders(),
 		})
-
-		if (result.error) {
-			throw new Error(result.error.message || 'Failed to change password')
-		}
 
 		return { success: true }
 	})

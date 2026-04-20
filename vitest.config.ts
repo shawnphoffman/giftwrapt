@@ -1,5 +1,5 @@
-import { defineConfig } from 'vitest/config'
 import viteTsConfigPaths from 'vite-tsconfig-paths'
+import { defineConfig } from 'vitest/config'
 
 // Dedicated vitest config, independent of vite.config.ts.
 // We skip the tanstackStart / nitro / react plugins here because unit tests

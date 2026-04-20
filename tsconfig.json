@@ -1,6 +1,18 @@
 {
 	"include": ["**/*.ts", "**/*.tsx", "eslint.config.js", "prettier.config.js", "vite.config.js", ".storybook/**/*"],
-	"exclude": ["node_modules", ".tanstack", "dist", "build", ".next", "coverage", "*.config.js", "*.config.js", "routeTree.gen.ts"],
+	"exclude": [
+		"node_modules",
+		".tanstack",
+		"dist",
+		"build",
+		".next",
+		"coverage",
+		"*.config.js",
+		"*.config.js",
+		"routeTree.gen.ts",
+		"src/db/schema/temp/**",
+		"storybook-static/**"
+	],
 	"compilerOptions": {
 		"target": "ES2022",
 		"jsx": "react-jsx",

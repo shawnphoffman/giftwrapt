@@ -7,7 +7,6 @@ import { ThemeProvider } from 'next-themes'
 
 import { Toaster } from '@/components/ui/sonner'
 import { ErrorBoundary } from '@/components/utilities/error-boundary'
-import type { Database } from '@/db'
 import { appSettingsQueryOptions } from '@/hooks/use-app-settings'
 
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
@@ -17,7 +16,6 @@ import NotFound from './-not-found'
 
 interface RouterContext {
 	queryClient: QueryClient
-	db: Database
 }
 
 export const Route = createRootRouteWithContext<RouterContext>()({

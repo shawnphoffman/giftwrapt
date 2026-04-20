@@ -9,7 +9,17 @@ export default [
 	prettierConfig,
 	...storybook.configs['flat/recommended'],
 	{
-		ignores: ['eslint.config.js', 'prettier.config.js', '.output/**', 'dist/**', 'build/**', 'src/components/ui/**'],
+		ignores: [
+			'eslint.config.js',
+			'prettier.config.js',
+			'commitlint.config.js',
+			'.output/**',
+			'dist/**',
+			'build/**',
+			'storybook-static/**',
+			'src/components/ui/**',
+			'src/db/schema/temp/**',
+		],
 	},
 	{
 		// ignores: ['src/components/ui/**'],
