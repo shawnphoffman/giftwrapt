@@ -405,7 +405,7 @@ function OrganizeList({
 				return (
 					<div
 						key={g.id}
-						className={cn('flex flex-col rounded-lg overflow-hidden border bg-accent shadow-sm', priorityRingClass[g.priority])}
+						className={cn('flex flex-col rounded-lg overflow-hidden ring-1 ring-inset ring-border bg-accent shadow-sm', priorityRingClass[g.priority])}
 					>
 						<label className="flex items-center gap-3 p-2 bg-muted/30 border-b cursor-pointer hover:bg-muted/50">
 							<Checkbox checked={groupSelected} onCheckedChange={() => onToggleGroup(g.id)} />
@@ -456,7 +456,7 @@ function OrganizeRow({
 			className={cn(
 				flush
 					? 'flex items-center gap-3 p-2 hover:bg-muted/60 cursor-pointer'
-					: 'flex items-center gap-3 p-2 border rounded-lg bg-muted/40 shadow-sm hover:bg-muted/60 cursor-pointer',
+					: 'flex items-center gap-3 p-2 ring-1 ring-inset ring-border rounded-lg bg-muted/40 shadow-sm hover:bg-muted/60 cursor-pointer',
 				!flush && priorityRingClass[item.priority]
 			)}
 		>

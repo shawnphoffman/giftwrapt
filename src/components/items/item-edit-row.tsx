@@ -120,7 +120,7 @@ export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = fal
 				className={cn(
 					flush
 						? 'flex items-center gap-2 p-2 bg-muted/40 border-b last:border-b-0 hover:bg-muted/60'
-						: 'flex items-center gap-2 p-2 border rounded-lg bg-muted/40 hover:bg-muted/60 shadow-sm',
+						: 'flex items-center gap-2 p-2 ring-1 ring-inset ring-border rounded-lg bg-muted/40 hover:bg-muted/60 shadow-sm',
 					!flush && priorityRingClass[item.priority]
 				)}
 			>

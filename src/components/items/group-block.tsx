@@ -28,7 +28,7 @@ export function GroupBlock({ group, items, groups, isOwner, onAddItem, onDelete,
 	const showReorder = isOwner && group.type === 'order' && items.length > 1
 
 	return (
-		<div className={cn('flex flex-col rounded-lg overflow-hidden border shadow-sm bg-accent', priorityRingClass[group.priority])}>
+		<div className={cn('flex flex-col rounded-lg overflow-hidden ring-1 ring-inset ring-border shadow-sm bg-accent', priorityRingClass[group.priority])}>
 			<div className="flex items-center gap-2 p-2 border-b bg-muted/30">
 				<PriorityIcon priority={group.priority} className="size-4 shrink-0" />
 				{group.name && <span className="font-medium text-sm truncate">{group.name}</span>}
