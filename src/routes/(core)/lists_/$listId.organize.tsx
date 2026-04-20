@@ -423,8 +423,8 @@ function OrganizeList({
 						<label className="flex items-center gap-3 p-2 bg-muted/20 border-b cursor-pointer hover:bg-muted/30">
 							<Checkbox checked={groupSelected} onCheckedChange={() => onToggleGroup(g.id)} />
 							<PriorityIcon priority={g.priority} className="size-4 shrink-0" />
+							{g.name && <span className="font-medium text-sm truncate min-w-0">{g.name}</span>}
 							<GroupBadge type={g.type} />
-							{g.name && <span className="font-medium text-sm truncate flex-1">{g.name}</span>}
 						</label>
 						<ul className="divide-y bg-muted/40">
 							{groupItems.map(item => (
