@@ -38,6 +38,12 @@ Thumbs.db
 **/vitest.config.*
 **/coverage
 
+# Storybook
+.storybook
+**/*.stories.ts
+**/*.stories.tsx
+**/*.mdx
+
 # Build artifacts (will be built in container)
 **/dist
 **/build
