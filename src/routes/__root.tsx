@@ -6,6 +6,7 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { ThemeProvider } from 'next-themes'
 
 import { Toaster } from '@/components/ui/sonner'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import { ErrorBoundary } from '@/components/utilities/error-boundary'
 import { appSettingsQueryOptions } from '@/hooks/use-app-settings'
 
@@ -36,7 +37,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			</head>
 			<body>
 				<ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-					<ErrorBoundary fallback={(error, reset) => <ErrorBoundaryFallback error={error} reset={reset} />}>{children}</ErrorBoundary>
+					<TooltipProvider>
+						<ErrorBoundary fallback={(error, reset) => <ErrorBoundaryFallback error={error} reset={reset} />}>{children}</ErrorBoundary>
+					</TooltipProvider>
 					<TanStackDevtools
 						config={{
 							position: 'bottom-right',
