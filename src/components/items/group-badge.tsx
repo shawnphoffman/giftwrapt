@@ -1,4 +1,4 @@
-import { CircleDot, HelpCircle, ListOrdered } from 'lucide-react'
+import { CircleDot, ListOrdered } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -7,7 +7,6 @@ import type { GroupType } from '@/db/schema/enums'
 type Props = {
 	type: GroupType
 	className?: string
-	showHelp?: boolean
 }
 
 const GROUP_COPY: Record<GroupType, { label: string; help: string }> = {
@@ -21,41 +20,21 @@ const GROUP_COPY: Record<GroupType, { label: string; help: string }> = {
 	},
 }
 
-/**
- * Visual indicator for an item group on both the edit and view pages.
- * When `showHelp` is set, renders a sibling help icon with a hover tooltip.
- */
-export function GroupBadge({ type, className, showHelp }: Props) {
+export function GroupBadge({ type, className }: Props) {
 	const Icon = type === 'or' ? CircleDot : ListOrdered
 	const { label, help } = GROUP_COPY[type]
 
-	const badge = (
-		<Badge variant="outline" className={className}>
-			<Icon className="size-3" />
-			{label}
-		</Badge>
-	)
-
-	if (!showHelp) return badge
-
 	return (
-		<>
-			{badge}
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<button
-						type="button"
-						aria-label={`About "${label}" groups`}
-						className="inline-flex items-center text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-full"
-						onClick={e => e.stopPropagation()}
-					>
-						<HelpCircle className="size-5" />
-					</button>
-				</TooltipTrigger>
-				<TooltipContent className="max-w-64 text-xs leading-relaxed" side="top" align="start">
-					{help}
-				</TooltipContent>
-			</Tooltip>
-		</>
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<Badge variant="outline" className={className}>
+					<Icon className="size-3" />
+					{label}
+				</Badge>
+			</TooltipTrigger>
+			<TooltipContent className="max-w-64 text-xs leading-relaxed" side="top" align="start">
+				{help}
+			</TooltipContent>
+		</Tooltip>
 	)
 }
