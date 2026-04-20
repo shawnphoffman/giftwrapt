@@ -50,14 +50,14 @@ const main: Array<NavItem> = [
 		url: '/',
 		icon: ListChecks,
 		hoverColor: 'group-hover/link:text-green-500 group-data-[status=active]/link:text-green-500',
-		activeMatch: p => p.startsWith('/lists/') && !p.endsWith('/edit') && !p.endsWith('/bulk'),
+		activeMatch: p => p.startsWith('/lists/') && !p.endsWith('/edit') && !p.endsWith('/bulk') && !p.endsWith('/organize'),
 	},
 	{
 		name: 'My Lists',
 		url: '/me',
 		icon: ListOrdered,
 		hoverColor: 'group-hover/link:text-red-500 group-data-[status=active]/link:text-red-500',
-		activeMatch: p => p.startsWith('/lists/') && (p.endsWith('/edit') || p.endsWith('/bulk')),
+		activeMatch: p => p.startsWith('/lists/') && (p.endsWith('/edit') || p.endsWith('/bulk') || p.endsWith('/organize')),
 	},
 	{
 		name: 'Purchases',
