@@ -189,6 +189,10 @@ async function main() {
 		// Alice ↔ Carol — mutual view, no edit.
 		{ ownerUserId: aliceId, viewerUserId: carolId, canView: true, canEdit: false },
 		{ ownerUserId: carolId, viewerUserId: aliceId, canView: true, canEdit: false },
+		// Admin ↔ Bob / Carol — one-way view grants so they can see and claim
+		// on the admin showcase list without cluttering their own relationships.
+		{ ownerUserId: adminId, viewerUserId: bobId, canView: true, canEdit: false },
+		{ ownerUserId: adminId, viewerUserId: carolId, canView: true, canEdit: false },
 	])
 
 	console.log('📝 Creating lists...')
@@ -371,61 +375,72 @@ async function main() {
 		})
 		.returning({ id: lists.id })
 
-	// Standalone items — one of each priority, mix of quantities + prices.
-	await db.insert(items).values([
-		{
-			listId: adminWishlist.id,
-			title: 'Espresso machine',
-			priority: 'very-high',
-			url: 'https://example.com/espresso',
-			notes: 'Dual boiler, PID controlled.',
-			quantity: 1,
-			price: '1299.00',
-			currency: 'USD',
-		},
-		{
-			listId: adminWishlist.id,
-			title: 'Mechanical keyboard',
-			priority: 'high',
-			quantity: 1,
-			price: '189.99',
-			currency: 'USD',
-		},
-		{
-			listId: adminWishlist.id,
-			title: 'Specialty coffee beans',
-			priority: 'normal',
-			quantity: 6,
-			price: '22.50',
-			currency: 'USD',
-			notes: 'Light roast, single origin.',
-		},
-		{
-			listId: adminWishlist.id,
-			title: 'Wool socks',
-			priority: 'low',
-			quantity: 12,
-			price: '14.00',
-			currency: 'USD',
-		},
-		{
-			listId: adminWishlist.id,
-			title: 'Limited edition vinyl',
-			priority: 'normal',
-			availability: 'unavailable',
-			quantity: 1,
-			price: '45.00',
-			currency: 'USD',
-		},
-		{
-			listId: adminWishlist.id,
-			title: 'Nice pen',
-			priority: 'low',
-			quantity: 2,
-			price: '8.99',
-			currency: 'USD',
-		},
-	])
+	// Standalone items — one of each priority, mix of quantities + prices,
+	// plus an archived row to demonstrate the hidden-from-edit state.
+	const adminItemRows = await db
+		.insert(items)
+		.values([
+			{
+				listId: adminWishlist.id,
+				title: 'Espresso machine',
+				priority: 'very-high',
+				url: 'https://example.com/espresso',
+				notes: 'Dual boiler, PID controlled.',
+				quantity: 1,
+				price: '1299.00',
+				currency: 'USD',
+			},
+			{
+				listId: adminWishlist.id,
+				title: 'Mechanical keyboard',
+				priority: 'high',
+				quantity: 1,
+				price: '189.99',
+				currency: 'USD',
+			},
+			{
+				listId: adminWishlist.id,
+				title: 'Specialty coffee beans',
+				priority: 'normal',
+				quantity: 6,
+				price: '22.50',
+				currency: 'USD',
+				notes: 'Light roast, single origin.',
+			},
+			{
+				listId: adminWishlist.id,
+				title: 'Wool socks',
+				priority: 'low',
+				quantity: 12,
+				price: '14.00',
+				currency: 'USD',
+			},
+			{
+				listId: adminWishlist.id,
+				title: 'Limited edition vinyl',
+				priority: 'normal',
+				availability: 'unavailable',
+				quantity: 1,
+				price: '45.00',
+				currency: 'USD',
+			},
+			{
+				listId: adminWishlist.id,
+				title: 'Nice pen',
+				priority: 'low',
+				quantity: 2,
+				price: '8.99',
+				currency: 'USD',
+			},
+			{
+				listId: adminWishlist.id,
+				title: 'An old, forgotten admin idea',
+				priority: 'low',
+				isArchived: true,
+				quantity: 1,
+			},
+		])
+		.returning({ id: items.id, title: items.title })
 
 	// Four groups, one per priority, plus type variety and an empty group.
 
@@ -552,6 +567,51 @@ async function main() {
 	await db
 		.insert(itemGroups)
 		.values({ listId: adminWishlist.id, name: 'Future ideas (empty)', type: 'or', priority: 'normal' })
+
+	console.log('🎉 Claiming gifts on the admin list...')
+	const adminEspresso = adminItemRows.find(i => i.title === 'Espresso machine')
+	const adminBeans = adminItemRows.find(i => i.title === 'Specialty coffee beans')
+	if (!adminEspresso || !adminBeans) throw new Error('Admin seed item lookup failed.')
+
+	await db.insert(giftedItems).values([
+		// Bob fully claims the espresso machine.
+		{
+			itemId: adminEspresso.id,
+			gifterId: bobId,
+			quantity: 1,
+			totalCost: '1299.00',
+			notes: 'Already ordered.',
+		},
+		// Carol partially claims the coffee beans (2 of 6).
+		{
+			itemId: adminBeans.id,
+			gifterId: carolId,
+			quantity: 2,
+			totalCost: '45.00',
+		},
+	])
+
+	console.log('➕ Adding an off-list addon to the admin list...')
+	await db.insert(listAddons).values({
+		listId: adminWishlist.id,
+		userId: bobId,
+		description: 'Descaling kit for the espresso machine',
+		totalCost: '24.00',
+	})
+
+	console.log('💬 Dropping a comment on an admin item...')
+	await db.insert(itemComments).values({
+		itemId: adminEspresso.id,
+		userId: carolId,
+		comment: 'Great pick, this one pulls beautiful shots.',
+	})
+
+	console.log('✏️  Granting Bob editor rights on the admin list...')
+	await db.insert(listEditors).values({
+		listId: adminWishlist.id,
+		userId: bobId,
+		ownerId: adminId,
+	})
 
 	console.log('')
 	console.log('✅ Seed complete.')
