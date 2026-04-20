@@ -35,6 +35,7 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuSub,
 	DropdownMenuSubContent,
@@ -42,6 +43,7 @@ import {
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { Item } from '@/db/schema/items'
+import { useSession } from '@/lib/auth-client'
 import { priorityBorderClass } from '@/lib/priority-classes'
 import { cn } from '@/lib/utils'
 
@@ -73,6 +75,8 @@ function getDomain(url: string): string | null {
 
 export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = false, flush = false, onMoveUp, onMoveDown }: Props) {
 	const router = useRouter()
+	const { data: session } = useSession()
+	const isAdmin = session?.user.isAdmin
 	const [editOpen, setEditOpen] = useState(false)
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
@@ -116,7 +120,7 @@ export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = fal
 				className={cn(
 					flush
 						? 'flex items-center gap-2 p-2 bg-muted/40 border-b last:border-b-0 hover:bg-muted/60'
-						: 'flex items-center gap-2 p-2 border rounded-md bg-muted/40 hover:bg-muted/60',
+						: 'flex items-center gap-2 p-2 border rounded-md bg-muted/40 hover:bg-muted/60 shadow-sm',
 					!flush && priorityBorderClass[item.priority]
 				)}
 			>
@@ -170,17 +174,17 @@ export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = fal
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
 						<DropdownMenuItem onClick={() => setEditOpen(true)}>
-							<Pencil className="mr-2 size-4" /> Edit
+							<Pencil className="size-4" /> Edit
 						</DropdownMenuItem>
 						{onMoveClick && (
 							<DropdownMenuItem onClick={() => onMoveClick(item)}>
-								<Archive className="mr-2 size-4" /> Move to...
+								<Archive className="size-4" /> Move to...
 							</DropdownMenuItem>
 						)}
 						{groups.length > 0 && (
 							<DropdownMenuSub>
 								<DropdownMenuSubTrigger>
-									<Group className="mr-2 size-4" /> Group
+									<Group className="size-4" /> Group
 								</DropdownMenuSubTrigger>
 								<DropdownMenuSubContent>
 									{otherGroups.map(g => {
@@ -188,26 +192,32 @@ export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = fal
 										const label = g.name || `${g.type === 'or' ? 'Pick one' : 'In order'} group #${g.id}`
 										return (
 											<DropdownMenuItem key={g.id} onClick={() => handleAssignGroup(g.id)}>
-												<GroupTypeIcon className="mr-2 size-4" /> {label}
+												<GroupTypeIcon className="size-4" /> {label}
 											</DropdownMenuItem>
 										)
 									})}
 									{hasCurrentGroup && otherGroups.length > 0 && <DropdownMenuSeparator />}
 									{hasCurrentGroup && (
 										<DropdownMenuItem onClick={() => handleAssignGroup(null)}>
-											<Ungroup className="mr-2 size-4" /> Remove from group
+											<Ungroup className="size-4" /> Remove from group
 										</DropdownMenuItem>
 									)}
 								</DropdownMenuSubContent>
 							</DropdownMenuSub>
 						)}
 						<DropdownMenuItem onClick={handleArchive}>
-							<Archive className="mr-2 size-4" /> Archive
+							<Archive className="size-4" /> Archive
 						</DropdownMenuItem>
 						<DropdownMenuSeparator />
 						<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteDialogOpen(true)}>
-							<Trash2 className="mr-2 size-4" /> Delete
+							<Trash2 className="size-4" /> Delete
 						</DropdownMenuItem>
+						{isAdmin && (
+							<>
+								<DropdownMenuSeparator />
+								<DropdownMenuLabel className="text-muted-foreground font-mono text-xs">item #{item.id}</DropdownMenuLabel>
+							</>
+						)}
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</div>

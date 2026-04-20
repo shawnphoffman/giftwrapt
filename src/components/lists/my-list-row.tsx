@@ -3,7 +3,7 @@ import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Star, StarOff, Trash2 
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { deleteList, type MyListRow as MyListRowType,setPrimaryList, updateList } from '@/api/lists'
+import { deleteList, type MyListRow as MyListRowType, setPrimaryList, updateList } from '@/api/lists'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import {
 	AlertDialog,
@@ -21,9 +21,11 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useSession } from '@/lib/auth-client'
 
 type Props = {
 	list: MyListRowType
@@ -32,6 +34,8 @@ type Props = {
 
 export function MyListRow({ list, showOwner }: Props) {
 	const router = useRouter()
+	const { data: session } = useSession()
+	const isAdmin = session?.user.isAdmin
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
 	const handleArchive = async () => {
@@ -73,7 +77,7 @@ export function MyListRow({ list, showOwner }: Props) {
 
 	return (
 		<>
-			<div className="flex items-center gap-2 rounded p-2 hover:bg-muted">
+			<div className="flex items-center gap-2 rounded p-2 bg-muted/40 hover:bg-muted/60">
 				<ListTypeIcon type={list.type} className="size-5 shrink-0" />
 				<Link
 					to="/lists/$listId/edit"
@@ -96,18 +100,18 @@ export function MyListRow({ list, showOwner }: Props) {
 					<DropdownMenuContent align="end">
 						<DropdownMenuItem asChild>
 							<Link to="/lists/$listId/edit" params={{ listId: String(list.id) }}>
-								<Pencil className="mr-2 size-4" /> Edit
+								<Pencil className="size-4" /> Edit
 							</Link>
 						</DropdownMenuItem>
 						{list.type !== 'giftideas' && (
 							<DropdownMenuItem onClick={handleTogglePrimary}>
 								{list.isPrimary ? (
 									<>
-										<StarOff className="mr-2 size-4" /> Unset primary
+										<StarOff className="size-4" /> Unset primary
 									</>
 								) : (
 									<>
-										<Star className="mr-2 size-4" /> Set as primary
+										<Star className="size-4" /> Set as primary
 									</>
 								)}
 							</DropdownMenuItem>
@@ -115,16 +119,22 @@ export function MyListRow({ list, showOwner }: Props) {
 						<DropdownMenuSeparator />
 						{list.isActive ? (
 							<DropdownMenuItem onClick={handleArchive}>
-								<Archive className="mr-2 size-4" /> Archive
+								<Archive className="size-4" /> Archive
 							</DropdownMenuItem>
 						) : (
 							<DropdownMenuItem onClick={handleRestore}>
-								<ArchiveRestore className="mr-2 size-4" /> Restore
+								<ArchiveRestore className="size-4" /> Restore
 							</DropdownMenuItem>
 						)}
 						<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteDialogOpen(true)}>
-							<Trash2 className="mr-2 size-4" /> Delete
+							<Trash2 className="size-4" /> Delete
 						</DropdownMenuItem>
+						{isAdmin && (
+							<>
+								<DropdownMenuSeparator />
+								<DropdownMenuLabel className="text-muted-foreground font-mono text-xs">list #{list.id}</DropdownMenuLabel>
+							</>
+						)}
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</div>
