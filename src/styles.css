@@ -243,6 +243,6 @@ code {
 		@apply flex flex-col flex-1 w-full max-w-3xl px-2 animate-page-in pb-2 @container/page;
 	}
 	.wish-page-icon {
-		@apply size-22 right-0 @2xl/page:-left-4 -top-6 opacity-30 absolute -z-10;
+		@apply size-22 sm:-left-4 -top-6 opacity-30 absolute -z-10;
 	}
 }

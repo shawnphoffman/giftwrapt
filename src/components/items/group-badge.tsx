@@ -28,8 +28,8 @@ export function GroupBadge({ type, className }: Props) {
 		<Tooltip>
 			<TooltipTrigger asChild>
 				<Badge variant="outline" className={className}>
-					<Icon className="size-3" />
-					{label}
+					<Icon />
+					<span className="hidden sm:inline">{label}</span>
 				</Badge>
 			</TooltipTrigger>
 			<TooltipContent className="max-w-64 text-xs leading-relaxed" side="top" align="start">

@@ -7,7 +7,6 @@ import { toast } from 'sonner'
 import { unclaimItemGift } from '@/api/gifts'
 import type { ItemWithGifts } from '@/api/lists'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
-import PriorityIcon from '@/components/common/priority-icon'
 import UserAvatar from '@/components/common/user-avatar'
 import { ItemComments } from '@/components/items/item-comments'
 import {

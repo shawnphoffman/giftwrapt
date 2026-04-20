@@ -53,9 +53,9 @@ export function GroupBlock({ group, items, groups, isOwner, onAddItem, onDelete,
 						priorityRingClass[group.priority]
 					)}
 				/>
-				<div className="flex items-center gap-2 px-2 py-1 border-b bg-accent ps-4 justify-center">
-					<span className={'opacity-75 flex items-center gap-2 justify-between'}>
-						{group.name && <span className="font-medium text-sm truncate leading-none">{group.name}</span>}
+				<div className="flex items-center gap-1 px-2 py-1 border-b bg-accent ps-4 justify-center">
+					<span className={'opacity-75 flex items-center gap-2 justify-between overflow-hidden'}>
+						{group.name && <span className="font-medium truncate leading-none">{group.name}</span>}
 						<GroupBadge type={group.type} />
 					</span>
 					<div className="ml-auto" />
