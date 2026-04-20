@@ -3,7 +3,7 @@ import { and, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
-import { giftedItems, itemComments, items, lists } from '@/db/schema'
+import { giftedItems, itemComments, itemGroups, items, lists } from '@/db/schema'
 import { type ListType, priorityEnumValues, statusEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { canEditList } from '@/lib/permissions'
@@ -482,4 +482,174 @@ export const reorderItems = createServerFn({ method: 'POST' })
 			}
 		})
 		return { kind: 'ok', updated: data.updates.length }
+	})
+
+// ===============================
+// BULK — reorder mixed items + groups across priority buckets
+// ===============================
+// Used by the Organize/Reorder UI which interleaves items and group rows
+// inside the same priority buckets.
+
+const ReorderEntriesInputSchema = z.object({
+	listId: z.number().int().positive(),
+	items: z
+		.array(
+			z.object({
+				itemId: z.number().int().positive(),
+				priority: z.enum(priorityEnumValues),
+				sortOrder: z.number().int().min(0),
+			}),
+		)
+		.max(500),
+	groups: z
+		.array(
+			z.object({
+				groupId: z.number().int().positive(),
+				priority: z.enum(priorityEnumValues),
+				sortOrder: z.number().int().min(0),
+			}),
+		)
+		.max(500),
+})
+
+export type ReorderEntriesResult =
+	| { kind: 'ok'; updatedItems: number; updatedGroups: number }
+	| { kind: 'error'; reason: 'not-found' | 'not-authorized' | 'mixed-lists' }
+
+export const reorderListEntries = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware])
+	.inputValidator((data: z.input<typeof ReorderEntriesInputSchema>) => ReorderEntriesInputSchema.parse(data))
+	.handler(async ({ context, data }): Promise<ReorderEntriesResult> => {
+		const userId = context.session.user.id
+
+		const list = await db.query.lists.findFirst({
+			where: eq(lists.id, data.listId),
+			columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		})
+		if (!list) return { kind: 'error', reason: 'not-found' }
+		const perm = await assertCanEditItems(userId, list)
+		if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
+
+		if (data.items.length > 0) {
+			const itemIds = data.items.map(u => u.itemId)
+			const itemRows = await db.query.items.findMany({
+				where: inArray(items.id, itemIds),
+				columns: { id: true, listId: true },
+			})
+			if (itemRows.length !== itemIds.length) return { kind: 'error', reason: 'not-found' }
+			if (itemRows.some(r => r.listId !== data.listId)) return { kind: 'error', reason: 'mixed-lists' }
+		}
+
+		if (data.groups.length > 0) {
+			const groupIds = data.groups.map(u => u.groupId)
+			const groupRows = await db.query.itemGroups.findMany({
+				where: inArray(itemGroups.id, groupIds),
+				columns: { id: true, listId: true },
+			})
+			if (groupRows.length !== groupIds.length) return { kind: 'error', reason: 'not-found' }
+			if (groupRows.some(r => r.listId !== data.listId)) return { kind: 'error', reason: 'mixed-lists' }
+		}
+
+		await db.transaction(async tx => {
+			for (const u of data.items) {
+				await tx
+					.update(items)
+					.set({ priority: u.priority, sortOrder: u.sortOrder })
+					.where(and(eq(items.id, u.itemId), eq(items.listId, data.listId)))
+			}
+			for (const u of data.groups) {
+				await tx
+					.update(itemGroups)
+					.set({ priority: u.priority, sortOrder: u.sortOrder })
+					.where(and(eq(itemGroups.id, u.groupId), eq(itemGroups.listId, data.listId)))
+			}
+		})
+		return { kind: 'ok', updatedItems: data.items.length, updatedGroups: data.groups.length }
+	})
+
+// ===============================
+// BULK — set priority on multiple groups
+// ===============================
+
+const SetGroupsPriorityInputSchema = z.object({
+	groupIds: z.array(z.number().int().positive()).min(1).max(100),
+	priority: z.enum(priorityEnumValues),
+})
+
+export type SetGroupsPriorityResult =
+	| { kind: 'ok'; updated: number }
+	| { kind: 'error'; reason: 'not-found' | 'not-authorized' | 'mixed-lists' }
+
+export const setGroupsPriority = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware])
+	.inputValidator((data: z.input<typeof SetGroupsPriorityInputSchema>) => SetGroupsPriorityInputSchema.parse(data))
+	.handler(async ({ context, data }): Promise<SetGroupsPriorityResult> => {
+		const userId = context.session.user.id
+
+		const groupRows = await db.query.itemGroups.findMany({
+			where: inArray(itemGroups.id, data.groupIds),
+			columns: { id: true, listId: true },
+		})
+		if (groupRows.length !== data.groupIds.length) return { kind: 'error', reason: 'not-found' }
+		const listIds = new Set(groupRows.map(r => r.listId))
+		if (listIds.size > 1) return { kind: 'error', reason: 'mixed-lists' }
+
+		const list = await db.query.lists.findFirst({
+			where: eq(lists.id, groupRows[0].listId),
+			columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		})
+		if (!list) return { kind: 'error', reason: 'not-found' }
+		const perm = await assertCanEditItems(userId, list)
+		if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
+
+		await db.update(itemGroups).set({ priority: data.priority }).where(inArray(itemGroups.id, data.groupIds))
+		return { kind: 'ok', updated: data.groupIds.length }
+	})
+
+// ===============================
+// BULK — delete multiple groups (and all their items)
+// ===============================
+
+const DeleteGroupsInputSchema = z.object({
+	groupIds: z.array(z.number().int().positive()).min(1).max(100),
+})
+
+export type DeleteGroupsResult =
+	| { kind: 'ok'; deletedGroups: number; deletedItems: number }
+	| { kind: 'error'; reason: 'not-found' | 'not-authorized' | 'mixed-lists' }
+
+export const deleteGroups = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware])
+	.inputValidator((data: z.input<typeof DeleteGroupsInputSchema>) => DeleteGroupsInputSchema.parse(data))
+	.handler(async ({ context, data }): Promise<DeleteGroupsResult> => {
+		const userId = context.session.user.id
+
+		const groupRows = await db.query.itemGroups.findMany({
+			where: inArray(itemGroups.id, data.groupIds),
+			columns: { id: true, listId: true },
+		})
+		if (groupRows.length !== data.groupIds.length) return { kind: 'error', reason: 'not-found' }
+		const listIds = new Set(groupRows.map(r => r.listId))
+		if (listIds.size > 1) return { kind: 'error', reason: 'mixed-lists' }
+
+		const list = await db.query.lists.findFirst({
+			where: eq(lists.id, groupRows[0].listId),
+			columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		})
+		if (!list) return { kind: 'error', reason: 'not-found' }
+		const perm = await assertCanEditItems(userId, list)
+		if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
+
+		const itemRows = await db.query.items.findMany({
+			where: inArray(items.groupId, data.groupIds),
+			columns: { id: true },
+		})
+		const itemIds = itemRows.map(r => r.id)
+
+		await db.transaction(async tx => {
+			if (itemIds.length > 0) await tx.delete(items).where(inArray(items.id, itemIds))
+			await tx.delete(itemGroups).where(inArray(itemGroups.id, data.groupIds))
+		})
+
+		return { kind: 'ok', deletedGroups: data.groupIds.length, deletedItems: itemIds.length }
 	})

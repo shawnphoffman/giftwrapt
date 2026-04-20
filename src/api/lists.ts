@@ -174,7 +174,7 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 
 		const viewGroups = await db.query.itemGroups.findMany({
 			where: eq(itemGroups.listId, list.id),
-			columns: { id: true, type: true, name: true, priority: true },
+			columns: { id: true, type: true, name: true, priority: true, sortOrder: true },
 		})
 
 		// Priority-sort after fetch so items in a group inherit the group's
@@ -545,6 +545,7 @@ export type GroupSummary = {
 	type: GroupType
 	name: string | null
 	priority: Priority
+	sortOrder: number | null
 }
 
 export type ListForEditing = {
@@ -611,7 +612,7 @@ export const getListForEditing = createServerFn({ method: 'GET' })
 
 		const groups = await db.query.itemGroups.findMany({
 			where: eq(itemGroups.listId, list.id),
-			columns: { id: true, type: true, name: true, priority: true },
+			columns: { id: true, type: true, name: true, priority: true, sortOrder: true },
 		})
 
 		return {

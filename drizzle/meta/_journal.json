@@ -36,6 +36,13 @@
       "when": 1776639626230,
       "tag": "0004_sad_moonstone",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1776643891017,
+      "tag": "0005_fast_blob",
+      "breakpoints": true
     }
   ]
 }

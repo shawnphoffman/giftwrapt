@@ -66,6 +66,8 @@ export const itemGroups = pgTable(
 		type: groupTypeEnum('type').default('or').notNull(),
 		priority: priorityEnum('priority').default('normal').notNull(),
 		name: text('name'),
+		// Manual position within its priority bucket on the list. Lower first; nulls last.
+		sortOrder: integer('sort_order'),
 		...timestamps,
 	},
 	table => [

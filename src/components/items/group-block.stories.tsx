@@ -38,8 +38,8 @@ function makeItem(overrides: Partial<Item> = {}): Item {
 	}
 }
 
-const pickOneGroup: GroupSummary = { id: 10, type: 'or', name: 'Headphones', priority: 'high' }
-const orderGroup: GroupSummary = { id: 11, type: 'order', name: 'Coffee setup', priority: 'very-high' }
+const pickOneGroup: GroupSummary = { id: 10, type: 'or', name: 'Headphones', priority: 'high', sortOrder: null }
+const orderGroup: GroupSummary = { id: 11, type: 'order', name: 'Coffee setup', priority: 'very-high', sortOrder: null }
 
 const meta = {
 	title: 'Items/GroupBlock',
