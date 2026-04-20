@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.7.0](https://github.com/shawnphoffman/wish-lists/compare/v0.6.1...v0.7.0) (2026-04-20)
+
+
+### Features
+
+* **auth:** redirect sign-in to sign-up when no admin exists ([5297218](https://github.com/shawnphoffman/wish-lists/commit/5297218f54f2c3d2fe159567317071d68f11605a))
+* **lists:** style empty users state and link admins to invite page ([318e8da](https://github.com/shawnphoffman/wish-lists/commit/318e8da36ef27256d8c810894a825b98569a344c))
+
+
+### Bug Fixes
+
+* **auth:** clear cookies when session points at a deleted user ([afa1ead](https://github.com/shawnphoffman/wish-lists/commit/afa1ead2924ae7e24f0f40cb514d5888c218f0a1))
+* **email:** make Resend optional so the server boots without RESEND_API_KEY ([00ed6c0](https://github.com/shawnphoffman/wish-lists/commit/00ed6c0c887ed2431122da2278817f09ea255a2b))
+
 ## [0.6.1](https://github.com/shawnphoffman/wish-lists/compare/v0.6.0...v0.6.1) (2026-04-20)
 
 
