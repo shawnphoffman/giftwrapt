@@ -1,5 +1,7 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import { createServerFn } from '@tanstack/react-start'
 import { Image } from '@unpic/react'
+import { sql } from 'drizzle-orm'
 import { useEffect, useState } from 'react'
 
 import Loading from '@/components/loading'
@@ -7,11 +9,22 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PasswordInput } from '@/components/ui/password-input'
+import { db } from '@/db'
+import { users } from '@/db/schema'
 import logo from '@/images/logo.png'
 import { authClient, useSession } from '@/lib/auth-client'
 
+const checkNeedsBootstrap = createServerFn({ method: 'GET' }).handler(async () => {
+	const rows = await db.select({ c: sql<number>`count(*)::int` }).from(users).where(sql`role = 'admin'`)
+	return { needsBootstrap: (rows[0]?.c ?? 0) === 0 }
+})
+
 export const Route = createFileRoute('/(auth)/sign-in')({
 	component: SignIn,
+	beforeLoad: async () => {
+		const { needsBootstrap } = await checkNeedsBootstrap()
+		if (needsBootstrap) throw redirect({ to: '/sign-up' })
+	},
 })
 
 function SignIn() {
