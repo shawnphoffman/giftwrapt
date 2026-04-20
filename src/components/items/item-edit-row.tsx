@@ -44,7 +44,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import type { Item } from '@/db/schema/items'
 import { useSession } from '@/lib/auth-client'
-import { priorityRingClass } from '@/lib/priority-classes'
+import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
 import { cn } from '@/lib/utils'
 
 import { ItemFormDialog } from './item-form-dialog'
@@ -113,22 +113,37 @@ export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = fal
 	}
 
 	const domain = item.url ? getDomain(item.url) : null
+	// Standalone rows get a peeking priority tab on the left; flush rows stay
+	// simple since their parent group owns the priority indicator.
+	const hasPriorityTab = !flush && !hidePriority && item.priority !== 'normal'
 
 	return (
 		<>
-			<div
-				className={cn(
-					flush
-						? 'flex items-center gap-2 p-2 border-b last:border-b-0'
-						: 'flex items-center gap-2 p-2 ring-1 ring-inset ring-border rounded-lg bg-card shadow-sm',
-					// priority ring: on flush (grouped) rows only when non-normal, since a flat
-					// normal row in a group needs no outline. Standalone rows already carry the
-					// base ring; priorityRingClass just overrides the color.
-					flush && item.priority !== 'normal' && 'ring-1 ring-inset rounded-md',
-					priorityRingClass[item.priority]
+			<div className={cn(!flush && 'relative')}>
+				{hasPriorityTab && (
+					<div
+						className={cn(
+							'absolute left-0 top-0 bottom-0 -translate-x-1/2 w-8 rounded-md shadow-sm flex items-center pl-1 z-0',
+							priorityTabBgClass[item.priority]
+						)}
+						aria-hidden
+					>
+						<PriorityIcon priority={item.priority} className="size-4" />
+					</div>
 				)}
-			>
-				{!hidePriority && <PriorityIcon priority={item.priority} className="size-4 shrink-0" />}
+				<div
+					className={cn(
+						flush
+							? 'flex items-center gap-2 p-2 border-b last:border-b-0'
+							: 'relative z-10 flex items-center gap-2 p-2 ring-1 ring-inset ring-border rounded-lg bg-card shadow-sm',
+						// priority ring: on flush (grouped) rows only when non-normal, since a flat
+						// normal row in a group needs no outline. Standalone rows already carry the
+						// base ring; priorityRingClass just overrides the color.
+						flush && item.priority !== 'normal' && 'ring-1 ring-inset rounded-md',
+						priorityRingClass[item.priority]
+					)}
+				>
+					{!hidePriority && !hasPriorityTab && <PriorityIcon priority={item.priority} className="size-4 shrink-0" />}
 				<div className="flex-1 min-w-0">
 					<div className="font-medium leading-tight truncate">{item.title}</div>
 					{domain && (
@@ -224,6 +239,7 @@ export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = fal
 						)}
 					</DropdownMenuContent>
 				</DropdownMenu>
+				</div>
 			</div>
 
 			<ItemFormDialog open={editOpen} onOpenChange={setEditOpen} mode="edit" item={item} />

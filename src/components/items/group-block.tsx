@@ -5,7 +5,7 @@ import type { GroupSummary } from '@/api/lists'
 import PriorityIcon from '@/components/common/priority-icon'
 import { Button } from '@/components/ui/button'
 import type { Item } from '@/db/schema/items'
-import { priorityRingClass } from '@/lib/priority-classes'
+import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
 import { cn } from '@/lib/utils'
 
 import { GroupBadge } from './group-badge'
@@ -27,11 +27,30 @@ type Props = {
 export function GroupBlock({ group, items, groups, isOwner, onAddItem, onDelete, onMoveItem, onReorder }: Props) {
 	const showReorder = isOwner && group.type === 'order' && items.length > 1
 
+	const hasPriorityTab = group.priority !== 'normal'
+
 	return (
-		<div className={cn('flex flex-col rounded-lg overflow-hidden ring-1 ring-border shadow-sm bg-card', priorityRingClass[group.priority])}>
-			<div className="flex items-center gap-2 p-2 border-b bg-accent">
-				<PriorityIcon priority={group.priority} className="size-4 shrink-0" />
-				{group.name && <span className="font-medium text-sm truncate">{group.name}</span>}
+		<div className="relative">
+			{hasPriorityTab && (
+				<div
+					className={cn(
+						'absolute left-0 top-0 bottom-0 -translate-x-1/2 w-8 rounded-md shadow-sm flex items-center pl-1 z-0',
+						priorityTabBgClass[group.priority]
+					)}
+					aria-hidden
+				>
+					<PriorityIcon priority={group.priority} className="size-4" />
+				</div>
+			)}
+			<div
+				className={cn(
+					'relative z-10 flex flex-col rounded-lg overflow-hidden ring-1 ring-border shadow-sm bg-card',
+					priorityRingClass[group.priority]
+				)}
+			>
+				<div className="flex items-center gap-2 p-2 border-b bg-accent">
+					{!hasPriorityTab && <PriorityIcon priority={group.priority} className="size-4 shrink-0" />}
+					{group.name && <span className="font-medium text-sm truncate">{group.name}</span>}
 				<GroupBadge type={group.type} showHelp />
 				<div className="ml-auto" />
 				{isOwner && (
@@ -59,28 +78,29 @@ export function GroupBlock({ group, items, groups, isOwner, onAddItem, onDelete,
 					</Button>
 				)}
 			</div>
-			{items.length === 0 ? (
-				<div className="text-xs text-muted-foreground p-3 m-1 text-center border border-dashed rounded-lg">
-					Empty group. Use the + button above or the "Group" item action to add items here.
-				</div>
-			) : (
-				<div className="overflow-hidden">
-					{items.map((item, index) => (
-						<Fragment key={item.id}>
-							{index > 0 && <GroupConnector type={group.type} />}
-							<ItemEditRow
-								item={item}
-								onMoveClick={onMoveItem}
-								groups={groups}
-								hidePriority
-								flush
-								onMoveUp={showReorder && index > 0 ? () => onReorder(group.id, items, index, -1) : undefined}
-								onMoveDown={showReorder && index < items.length - 1 ? () => onReorder(group.id, items, index, 1) : undefined}
-							/>
-						</Fragment>
-					))}
-				</div>
-			)}
+				{items.length === 0 ? (
+					<div className="text-xs text-muted-foreground p-3 m-1 text-center border border-dashed rounded-lg">
+						Empty group. Use the + button above or the "Group" item action to add items here.
+					</div>
+				) : (
+					<div className="overflow-hidden">
+						{items.map((item, index) => (
+							<Fragment key={item.id}>
+								{index > 0 && <GroupConnector type={group.type} />}
+								<ItemEditRow
+									item={item}
+									onMoveClick={onMoveItem}
+									groups={groups}
+									hidePriority
+									flush
+									onMoveUp={showReorder && index > 0 ? () => onReorder(group.id, items, index, -1) : undefined}
+									onMoveDown={showReorder && index < items.length - 1 ? () => onReorder(group.id, items, index, 1) : undefined}
+								/>
+							</Fragment>
+						))}
+					</div>
+				)}
+			</div>
 		</div>
 	)
 }

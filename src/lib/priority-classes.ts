@@ -10,3 +10,12 @@ export const priorityRingClass: Record<Priority, string> = {
 	low: 'ring-blue-400/40',
 	normal: '',
 }
+
+// Priority-tab backgrounds for the full-height "peek" tab on the left side of
+// a group or standalone item on the edit page. Normal priority has no tab.
+export const priorityTabBgClass: Record<Priority, string> = {
+	'very-high': 'bg-yellow-400/80 text-yellow-950',
+	high: 'bg-orange-500/80 text-orange-50',
+	low: 'bg-blue-400/80 text-blue-950',
+	normal: '',
+}

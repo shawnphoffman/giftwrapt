@@ -143,7 +143,7 @@ function ListEditPage() {
 							No items yet. Click "Add item" to get started.
 						</div>
 					) : (
-						<div className="flex flex-col gap-2">
+						<div className="flex flex-col gap-2 pl-5">
 							{entries.map(entry =>
 								entry.kind === 'item' ? (
 									<ItemEditRow key={`item-${entry.item.id}`} item={entry.item} onMoveClick={onMoveItem} groups={list.groups} />
