@@ -74,7 +74,7 @@ function SignIn() {
 	}
 
 	return (
-		<div className="flex items-center flex-col min-h-[calc(100vh-3rem)] p-[10%] gap-4">
+		<div className="flex items-center flex-col min-h-screen p-[10%] gap-4 bg-background">
 			<Image src={logo} alt="Wish Lists" width={160} height={160} className="w-24 sm:w-40" />
 
 			<div className="w-full max-w-md space-y-4">

@@ -1,6 +1,10 @@
-import { createFileRoute, Link, Outlet } from '@tanstack/react-router'
+import { createFileRoute, Link, Outlet, redirect } from '@tanstack/react-router'
+import { createServerFn } from '@tanstack/react-start'
+import { getRequestHeaders } from '@tanstack/react-start/server'
 import { Gift, Inbox, ListChecks, ListOrdered, ListPlus, MessagesSquare, PlusCircle, Receipt, ReceiptText } from 'lucide-react'
 import { Suspense } from 'react'
+
+import { auth } from '@/lib/auth'
 
 import Loading from '@/components/loading'
 import NavBottom from '@/components/sidebar/nav-bottom'
@@ -26,8 +30,17 @@ import { NavigationEvents } from '@/components/utilities/navigation-events'
 import { env } from '@/env'
 import { authMiddleware } from '@/middleware/auth'
 
+const checkSession = createServerFn({ method: 'GET' }).handler(async () => {
+	const session = await auth.api.getSession({ headers: getRequestHeaders() })
+	return session ? { authed: true as const } : { authed: false as const }
+})
+
 export const Route = createFileRoute('/(core)')({
 	component: AuthenticatedRoutes,
+	beforeLoad: async () => {
+		const r = await checkSession()
+		if (!r.authed) throw redirect({ to: '/sign-in' })
+	},
 	server: {
 		middleware: [authMiddleware],
 	},
