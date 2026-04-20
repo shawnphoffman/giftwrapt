@@ -6,12 +6,12 @@ import { z } from 'zod'
 
 import { createListAddon, updateListAddon } from '@/api/list-addons'
 import type { AddonOnList } from '@/api/lists'
+import { MarkdownTextarea } from '@/components/common/markdown-textarea'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 
 type BaseProps = {
 	open: boolean
@@ -198,12 +198,12 @@ export function ListAddonDialog(props: Props) {
 						{field => (
 							<div className="grid gap-2">
 								<Label htmlFor={field.name}>Notes (optional)</Label>
-								<Textarea
+								<MarkdownTextarea
 									id={field.name}
 									placeholder="e.g. already ordered, arrives Friday"
 									rows={3}
 									value={field.state.value}
-									onChange={e => field.handleChange(e.target.value)}
+									onChange={v => field.handleChange(v)}
 									onBlur={field.handleBlur}
 									disabled={submitting}
 								/>

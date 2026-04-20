@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 
 import { archiveListAddon, deleteListAddon } from '@/api/list-addons'
 import type { AddonOnList } from '@/api/lists'
+import { MarkdownNotes } from '@/components/common/markdown-notes'
 import UserAvatar from '@/components/common/user-avatar'
 import {
 	AlertDialog,
@@ -105,7 +106,7 @@ export function ListAddonRow({ addon, listId }: Props) {
 							</Badge>
 						)}
 					</div>
-					{addon.notes && <div className="text-sm text-foreground/75">{addon.notes}</div>}
+					{addon.notes && <MarkdownNotes content={addon.notes} className="text-sm text-foreground/75" />}
 				</div>
 			</div>
 
