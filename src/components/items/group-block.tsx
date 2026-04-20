@@ -42,12 +42,17 @@ export function GroupBlock({ group, items, groups, isOwner, onAddItem, onDelete,
 					<PriorityIcon priority={group.priority} className="size-4" />
 				</div>
 			)}
-			<div
-				className={cn(
-					'relative z-10 flex flex-col rounded-lg overflow-hidden ring-1 ring-border shadow-sm bg-card',
-					priorityRingClass[group.priority]
-				)}
-			>
+			<div className="relative z-10 flex flex-col rounded-lg overflow-hidden shadow-sm bg-card">
+				{/* Ring overlay: sits on top of all children so their backgrounds
+				    can't hide the inset ring. pointer-events-none lets clicks
+				    through to the content below. */}
+				<div
+					aria-hidden
+					className={cn(
+						'pointer-events-none absolute inset-0 z-20 rounded-lg ring-1 ring-inset ring-border',
+						priorityRingClass[group.priority]
+					)}
+				/>
 				<div className="flex items-center gap-2 p-2 border-b bg-accent">
 					{!hasPriorityTab && <PriorityIcon priority={group.priority} className="size-4 shrink-0" />}
 					{group.name && <span className="font-medium text-sm truncate">{group.name}</span>}
