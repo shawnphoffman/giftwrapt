@@ -101,7 +101,7 @@ export default function ItemRow({ item, hidePriority = false, lockReason }: Prop
 	}
 
 	return (
-		<div className="flex flex-col w-full gap-2 p-3 hover:bg-muted" id={`item-${item.id}`}>
+		<div className="flex flex-col w-full gap-2 p-3 shadow-sm bg-muted/40 hover:bg-muted/60" id={`item-${item.id}`}>
 			<div className="flex flex-col w-full gap-2">
 				<div className="flex flex-row items-stretch gap-x-3.5">
 					<div className="flex flex-col justify-center flex-1 gap-0.5 overflow-hidden">
@@ -202,7 +202,7 @@ export default function ItemRow({ item, hidePriority = false, lockReason }: Prop
 							className="text-xs text-muted-foreground"
 							title={lockReason === 'order' ? 'Claim the item above first' : 'Someone already claimed an item in this pick-one group'}
 						>
-							<Lock className="size-3 mr-1" />
+							<Lock className="size-3" />
 							Locked
 						</Badge>
 					) : (

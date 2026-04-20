@@ -2,7 +2,7 @@ import { createFileRoute, Link, useLocation, useNavigate } from '@tanstack/react
 import { Baby, ListOrdered, Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
-import { type ChildListGroup,getMyLists } from '@/api/lists'
+import { type ChildListGroup, getMyLists } from '@/api/lists'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import UserAvatar from '@/components/common/user-avatar'
 import { CreateListDialog } from '@/components/lists/create-list-dialog'
@@ -40,7 +40,7 @@ function MyListsPage() {
 						<ListOrdered className="text-red-500 wish-page-icon" />
 						<div className="flex flex-row flex-wrap justify-end flex-1 gap-0.5 items-center md:justify-end shrink-0">
 							<Button size="sm" onClick={() => setCreateOpen(true)}>
-								<Plus className="mr-1 size-4" /> New list
+								<Plus className="size-4" /> New list
 							</Button>
 						</div>
 					</div>
@@ -93,7 +93,7 @@ function MyListsPage() {
 							<div className="text-sm italic leading-tight text-muted-foreground">
 								Lists that others created and added you as an editor.
 							</div>
-							<div className="flex flex-col overflow-hidden border divide-y rounded-lg bg-accent">
+							<div className="flex flex-col overflow-hidden border divide-y rounded-md shadow-sm">
 								{data.editable.map(list => (
 									<MyListRow key={list.id} list={list} showOwner={{ name: list.ownerName, email: list.ownerEmail }} />
 								))}
@@ -122,7 +122,7 @@ function ListSection({
 			{lists.length === 0 ? (
 				<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30">No lists yet.</div>
 			) : (
-				<div className="flex flex-col overflow-hidden border divide-y rounded-lg bg-accent">
+				<div className="flex flex-col overflow-hidden border divide-y rounded-md shadow-sm">
 					{lists.map(list => (
 						<MyListRow key={list.id} list={list} />
 					))}
@@ -135,7 +135,7 @@ function ListSection({
 function ChildListSection({ child }: { child: ChildListGroup }) {
 	const name = child.childName || child.childEmail
 	return (
-		<div className="border rounded-lg bg-accent overflow-hidden">
+		<div className="border rounded-md shadow-sm overflow-hidden">
 			<div className="flex items-center gap-2 p-2 border-b bg-muted/30">
 				<UserAvatar name={name} image={child.childImage} size="small" />
 				<span className="font-medium text-sm">{name}</span>

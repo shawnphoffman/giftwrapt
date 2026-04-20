@@ -31,7 +31,7 @@ export function GroupBadge({ type, className, showHelp }: Props) {
 
 	const badge = (
 		<Badge variant="outline" className={className}>
-			<Icon className="size-3 mr-1" />
+			<Icon className="size-3" />
 			{label}
 		</Badge>
 	)

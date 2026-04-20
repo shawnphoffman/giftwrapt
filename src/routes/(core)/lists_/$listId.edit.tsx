@@ -111,7 +111,7 @@ function ListEditPage() {
 							{list.isOwner && list.items.length > 0 && (
 								<Button size="sm" variant="outline" asChild>
 									<Link to="/lists/$listId/organize" params={{ listId: String(list.id) }}>
-										<Settings2 className="mr-1 size-4" /> Organize
+										<Settings2 className="size-4" /> Organize
 									</Link>
 								</Button>
 							)}
@@ -119,21 +119,21 @@ function ListEditPage() {
 								<DropdownMenu>
 									<DropdownMenuTrigger asChild>
 										<Button size="sm" variant="outline">
-											<GroupIcon className="mr-1 size-4" /> New group
+											<GroupIcon className="size-4" /> New group
 										</Button>
 									</DropdownMenuTrigger>
 									<DropdownMenuContent align="end">
 										<DropdownMenuItem onClick={() => handleCreateGroup('or')}>
-											<Shuffle className="mr-2 size-4" /> Pick one
+											<Shuffle className="size-4" /> Pick one
 										</DropdownMenuItem>
 										<DropdownMenuItem onClick={() => handleCreateGroup('order')}>
-											<ListOrdered className="mr-2 size-4" /> In order
+											<ListOrdered className="size-4" /> In order
 										</DropdownMenuItem>
 									</DropdownMenuContent>
 								</DropdownMenu>
 							)}
 							<Button size="sm" onClick={() => openAddItemDialog(null)}>
-								<Plus className="mr-1 size-4" /> Add item
+								<Plus className="size-4" /> Add item
 							</Button>
 						</div>
 					</div>
