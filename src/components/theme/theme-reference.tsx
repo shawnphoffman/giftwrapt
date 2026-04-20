@@ -16,14 +16,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Avatar, AvatarFallback, AvatarGroup, AvatarGroupCount, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-	BreadcrumbList,
-	BreadcrumbPage,
-	BreadcrumbSeparator,
-} from '@/components/ui/breadcrumb'
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -140,7 +133,10 @@ export default function ThemeReference() {
 			</Section>
 
 			{/* SIDEBAR */}
-			<Section title="Sidebar colors" description="Used by the app shell; lives on its own scale so sidebars can differ from the main canvas.">
+			<Section
+				title="Sidebar colors"
+				description="Used by the app shell; lives on its own scale so sidebars can differ from the main canvas."
+			>
 				<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
 					{SIDEBAR_SWATCHES.map(s => (
 						<SwatchCard key={s.name} swatch={s} />
@@ -200,8 +196,7 @@ export default function ThemeReference() {
 					<p className="text-xs text-muted-foreground">Extra small muted text, used for timestamps and microcopy.</p>
 					<p className="text-sm">
 						Inline <a className="text-primary hover:underline underline-offset-4">link color</a>, a{' '}
-						<code className="bg-muted px-1 py-0.5 rounded text-[0.85em] font-mono">code span</code>, and{' '}
-						<strong>bold emphasis</strong>.
+						<code className="bg-muted px-1 py-0.5 rounded text-[0.85em] font-mono">code span</code>, and <strong>bold emphasis</strong>.
 					</p>
 				</div>
 			</Section>
@@ -358,7 +353,10 @@ export default function ThemeReference() {
 			<Separator />
 
 			{/* FIELD COMPOSITION */}
-			<Section title="Field composition" description="Canonical shadcn form layout: FieldGroup + Field + FieldLabel + FieldDescription + FieldError.">
+			<Section
+				title="Field composition"
+				description="Canonical shadcn form layout: FieldGroup + Field + FieldLabel + FieldDescription + FieldError."
+			>
 				<FieldGroup>
 					<Field>
 						<FieldLabel htmlFor={id('field-email')}>Email</FieldLabel>
@@ -525,7 +523,8 @@ export default function ThemeReference() {
 							<CardDescription>Header, title, description, content, and footer.</CardDescription>
 						</CardHeader>
 						<CardContent className="text-sm text-muted-foreground">
-							Body copy lives here. Uses <code className="font-mono">bg-card</code> + <code className="font-mono">text-card-foreground</code>.
+							Body copy lives here. Uses <code className="font-mono">bg-card</code> +{' '}
+							<code className="font-mono">text-card-foreground</code>.
 						</CardContent>
 						<CardFooter className="justify-end gap-2">
 							<Button size="sm" variant="outline">
@@ -599,7 +598,11 @@ export default function ThemeReference() {
 					</Card>
 
 					<Card>
-						<img src="https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=640&auto=format&fit=crop&q=80" alt="" className="h-32 w-full object-cover" />
+						<img
+							src="https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=640&auto=format&fit=crop&q=80"
+							alt=""
+							className="h-32 w-full object-cover"
+						/>
 						<CardHeader>
 							<CardTitle>Media card</CardTitle>
 							<CardDescription>Image as the first child auto-removes the top padding.</CardDescription>

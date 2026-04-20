@@ -24,7 +24,7 @@ export default function UserAvatar({ name, image, className, size = 'medium' }: 
 		small: 'text-sm',
 	}
 	return (
-		<Avatar className={cn('border border-foreground/50', parentVariants[size], className)}>
+		<Avatar className={cn('', parentVariants[size], className)}>
 			<AvatarImage src={image || undefined} alt={''} />
 			<AvatarFallback className={cn('font-bold bg-background text-foreground leading-none', fallbackVariants[size])}>
 				{initials}

@@ -119,8 +119,8 @@ function AuthenticatedRoutes() {
 						<SidebarMenuItem>
 							<SidebarMenuButton size="lg" asChild>
 								<Link to="/" className="">
-									<div className="flex items-center justify-center rounded-lg aspect-square size-8 bg-destructive text-destructive-foreground hover:animate-spin">
-										<Gift className="transition-colors" />
+									<div className="flex items-center justify-center rounded-lg aspect-square size-8 bg-red-700 text-white hover:animate-spin">
+										<Gift className="transition-colors size-6!" />
 									</div>
 									<span className="text-lg font-bold truncate">{env.VITE_APP_TITLE}</span>
 								</Link>

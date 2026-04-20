@@ -7,7 +7,7 @@ import ListsForUserRow from './lists-for-user-row'
 
 export default function ListsForUser({ user }: { user: UserWithLists }) {
 	return (
-		<Card key={user.id} className="py-4 gap-2 flex flex-col rounded-md border bg-muted/40 ">
+		<Card key={user.id} className="py-4 gap-2 flex flex-col">
 			<CardHeader className="px-4 flex items-center gap-3">
 				<UserAvatar name={user.name || user.email} image={user.image} />
 				<CardTitle className="text-2xl font-semibold leading-none tracking-tight">{user.name || user.email}</CardTitle>

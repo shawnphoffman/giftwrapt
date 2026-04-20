@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 
 import { TooltipProvider } from '@/components/ui/tooltip'
 
+import ListReference from './list-reference'
 import ThemeReference from './theme-reference'
 
 const meta = {
@@ -59,6 +60,28 @@ export const SplitView: Story = {
 					<p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Dark</p>
 				</div>
 				<ThemeReference />
+			</div>
+		</div>
+	),
+}
+
+export const ListSplitView: Story = {
+	parameters: {
+		themes: { disable: true },
+	},
+	render: () => (
+		<div className="grid grid-cols-2 min-h-screen">
+			<div className="light bg-background text-foreground p-6 border-r border-border">
+				<div className="sticky top-0 z-10 -mx-6 -mt-6 mb-6 bg-background/90 backdrop-blur px-6 py-3 border-b border-border">
+					<p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Light</p>
+				</div>
+				<ListReference />
+			</div>
+			<div className="dark bg-background text-foreground p-6">
+				<div className="sticky top-0 z-10 -mx-6 -mt-6 mb-6 bg-background/90 backdrop-blur px-6 py-3 border-b border-border">
+					<p className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Dark</p>
+				</div>
+				<ListReference />
 			</div>
 		</div>
 	),
