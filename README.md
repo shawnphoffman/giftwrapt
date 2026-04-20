@@ -363,3 +363,15 @@ http://localhost:3000
 - Database migrations run automatically on first startup via a one-shot `db-migrate` service.
 - The image is expected to be built and published by GitHub Actions on version tags (e.g., `v1.0.0`).
 - Migrations must be generated and committed before building images for self-hosting.
+
+### Optional: transactional email
+
+Email (powered by [Resend](https://resend.com)) is optional. The app boots and
+runs without it. To enable email, set both `RESEND_API_KEY` and
+`RESEND_FROM_EMAIL`; `RESEND_FROM_NAME` and `RESEND_BCC_ADDRESS` are further
+optional. When email is unconfigured:
+
+- Comment notifications to list owners are skipped.
+- Day-of birthday greetings and the post-birthday gift summary cron is skipped.
+- The admin "send test email" button and the email-related app-settings
+  toggles (birthday emails, Christmas emails, comment emails) are hidden.
