@@ -23,9 +23,6 @@ importers:
       '@dnd-kit/utilities':
         specifier: ^3.2.2
         version: 3.2.2(react@19.2.0)
-      '@fontsource-variable/inter':
-        specifier: ^5.2.8
-        version: 5.2.8
       '@fontsource-variable/public-sans':
         specifier: ^5.2.7
         version: 5.2.7
@@ -1217,9 +1214,6 @@ packages:
 
   '@floating-ui/utils@0.2.10':
     resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
-
-  '@fontsource-variable/inter@5.2.8':
-    resolution: {integrity: sha512-kOfP2D+ykbcX/P3IFnokOhVRNoTozo5/JxhAIVYLpea/UBmCQ/YWPBfWIDuBImXX/15KH+eKh4xpEUyS2sQQGQ==}
 
   '@fontsource-variable/public-sans@5.2.7':
     resolution: {integrity: sha512-4mvade2J3slKkvwRkS+p8T3szet/0vhWoSnuUJTVU81Uo2pRpSZY/Y8bSLRqpSwzIPxjVmRJ53oq6JKP/l/PSg==}
@@ -7841,8 +7835,6 @@ snapshots:
       react-dom: 19.2.0(react@19.2.0)
 
   '@floating-ui/utils@0.2.10': {}
-
-  '@fontsource-variable/inter@5.2.8': {}
 
   '@fontsource-variable/public-sans@5.2.7': {}
 
