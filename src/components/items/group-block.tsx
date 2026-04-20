@@ -57,7 +57,7 @@ export function GroupBlock({ group, items, groups, isOwner, onAddItem, onDelete,
 					{/* {!hasPriorityTab && <PriorityIcon priority={group.priority} className="size-4 shrink-0" />} */}
 					<span className={'opacity-75 flex items-center gap-2 justify-between'}>
 						{group.name && <span className="font-medium text-sm truncate leading-none">{group.name}</span>}
-						<GroupBadge type={group.type} showHelp />
+						<GroupBadge type={group.type} />
 					</span>
 					<div className="ml-auto" />
 					{isOwner && (
