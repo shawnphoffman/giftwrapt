@@ -1,36 +1,28 @@
-FROM node:20-slim as base
+FROM node:20-slim AS base
+ENV COREPACK_HOME=/usr/local/share/corepack
+RUN corepack enable && corepack prepare pnpm@10.28.0 --activate
+WORKDIR /app
 
 # Install dependencies only when needed
 FROM base AS deps
-WORKDIR /app
-
-# Install dependencies based on the preferred package manager
-COPY package.json pnpm-lock.yaml* ./
-RUN npm install -g pnpm && pnpm install --frozen-lockfile
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 # Rebuild the source code only when needed
 FROM base AS builder
-WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-
-# Install pnpm in the builder stage
-RUN npm install -g pnpm
-
-# Build the application
 RUN pnpm build
 
 # Production image, copy all the files and run the server
-FROM node:20-slim AS runner
+FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV PNPM_HOME=/usr/local/share/pnpm
-ENV PATH=$PNPM_HOME:$PATH
 
 # Create a non-root user
 RUN addgroup --system --gid 1001 nodejs && \
-	adduser --system --uid 1001 nodejs
+	adduser --system --uid 1001 --ingroup nodejs nodejs
 
 # Create directory for writable files with proper permissions
 RUN mkdir -p /app/data && \
@@ -52,11 +44,9 @@ COPY docker/entrypoint.sh /app/docker/entrypoint.sh
 COPY docker/migrate.sh /app/docker/migrate.sh
 COPY docker/healthcheck.sh /app/docker/healthcheck.sh
 
-# Install pnpm for migrations and tsx for admin scripts
-RUN npm install -g pnpm && \
-	chmod +x /app/docker/entrypoint.sh && \
-	chmod +x /app/docker/migrate.sh && \
-	chmod +x /app/docker/healthcheck.sh
+RUN chmod +x /app/docker/entrypoint.sh \
+	/app/docker/migrate.sh \
+	/app/docker/healthcheck.sh
 
 EXPOSE 3000
 
