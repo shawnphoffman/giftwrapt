@@ -11,7 +11,8 @@ RUN pnpm install --frozen-lockfile
 # Production-only dependency install for the runner image
 FROM base AS prod-deps
 COPY package.json pnpm-lock.yaml ./
-RUN pnpm install --prod --frozen-lockfile
+# --ignore-scripts: `prepare` runs husky (a devDependency) which is absent here
+RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 
 # Rebuild the source code only when needed
 FROM base AS builder
