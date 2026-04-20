@@ -85,7 +85,7 @@ const options = {
 			enabled: true,
 			maxAge: 60 * 60 * 24 * 7, // 7 days
 			refreshCache: {
-				updateAge: 60 * 60 * 24, // Refresh when 1 day remains (refresh at 6 days)
+				updateAge: 60 * 10, // Refresh against DB every 10 minutes
 			},
 		},
 	},
@@ -146,7 +146,7 @@ export const auth = betterAuth({
 			enabled: true,
 			maxAge: 60 * 60 * 24 * 7, // 7 days
 			refreshCache: {
-				updateAge: 60 * 60 * 24, // Refresh when 1 day remains (refresh at 6 days)
+				updateAge: 60 * 10, // Refresh against DB every 10 minutes
 			},
 		},
 	},
