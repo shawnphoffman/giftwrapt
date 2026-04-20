@@ -25,7 +25,7 @@ import {
 	BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import {
@@ -517,25 +517,107 @@ export default function ThemeReference() {
 			</Section>
 
 			{/* CARDS */}
-			<Section title="Cards" description="Card surface on page background.">
+			<Section title="Cards" description="Card compositions: full shell, title-only, with action, borders, images, and sizes.">
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<Card>
 						<CardHeader>
-							<CardTitle>Card title</CardTitle>
+							<CardTitle>Full composition</CardTitle>
+							<CardDescription>Header, title, description, content, and footer.</CardDescription>
 						</CardHeader>
 						<CardContent className="text-sm text-muted-foreground">
-							Card content. Uses <code className="font-mono">bg-card</code> + <code className="font-mono">text-card-foreground</code>.
+							Body copy lives here. Uses <code className="font-mono">bg-card</code> + <code className="font-mono">text-card-foreground</code>.
 						</CardContent>
-						<CardFooter className="justify-end">
-							<Button size="sm">Action</Button>
+						<CardFooter className="justify-end gap-2">
+							<Button size="sm" variant="outline">
+								Cancel
+							</Button>
+							<Button size="sm">Save</Button>
 						</CardFooter>
 					</Card>
-					<Card className="bg-muted/40">
+
+					<Card>
 						<CardHeader>
-							<CardTitle>Muted card</CardTitle>
+							<CardTitle>Header with action</CardTitle>
+							<CardDescription>CardAction slots to the right of the title.</CardDescription>
+							<CardAction>
+								<DropdownMenu>
+									<DropdownMenuTrigger asChild>
+										<Button size="sm" variant="ghost">
+											<MoreHorizontal />
+										</Button>
+									</DropdownMenuTrigger>
+									<DropdownMenuContent align="end">
+										<DropdownMenuItem>Edit</DropdownMenuItem>
+										<DropdownMenuItem>Duplicate</DropdownMenuItem>
+										<DropdownMenuItem variant="destructive">Delete</DropdownMenuItem>
+									</DropdownMenuContent>
+								</DropdownMenu>
+							</CardAction>
+						</CardHeader>
+						<CardContent className="text-sm text-muted-foreground">Use this when the card needs a menu or overflow control.</CardContent>
+					</Card>
+
+					<Card>
+						<CardHeader className="border-b">
+							<CardTitle>Bordered header</CardTitle>
+							<CardDescription>Add `border-b` to CardHeader for a divider.</CardDescription>
 						</CardHeader>
 						<CardContent className="text-sm text-muted-foreground">
-							Same card component with a muted background to compare layering.
+							Content sits flush under the divider. Common for settings groups or list-style cards.
+						</CardContent>
+						<CardFooter className="border-t justify-between">
+							<span className="text-xs text-muted-foreground">Updated 2m ago</span>
+							<Button size="sm" variant="ghost">
+								View
+							</Button>
+						</CardFooter>
+					</Card>
+
+					<Card size="sm">
+						<CardHeader>
+							<CardTitle>Compact (size="sm")</CardTitle>
+							<CardDescription>Reduced padding and tighter type.</CardDescription>
+						</CardHeader>
+						<CardContent className="text-sm text-muted-foreground">Good for sidebars or dense dashboards.</CardContent>
+					</Card>
+
+					<Card>
+						<CardContent className="text-sm">
+							<p className="font-medium">Content-only card</p>
+							<p className="text-muted-foreground">No header or footer. Just the surface.</p>
+						</CardContent>
+					</Card>
+
+					<Card className="bg-muted/40">
+						<CardHeader>
+							<CardTitle>Muted background</CardTitle>
+							<CardDescription>Overriding `bg-card` to compare layering against neighbors.</CardDescription>
+						</CardHeader>
+						<CardContent className="text-sm text-muted-foreground">
+							Useful when cards sit on a card-colored surface and need visual separation.
+						</CardContent>
+					</Card>
+
+					<Card>
+						<img src="https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=640&auto=format&fit=crop&q=80" alt="" className="h-32 w-full object-cover" />
+						<CardHeader>
+							<CardTitle>Media card</CardTitle>
+							<CardDescription>Image as the first child auto-removes the top padding.</CardDescription>
+						</CardHeader>
+						<CardContent className="text-sm text-muted-foreground">Pair with CardFooter for a media + meta layout.</CardContent>
+					</Card>
+
+					<Card>
+						<CardHeader>
+							<CardTitle>Stat card</CardTitle>
+							<CardDescription>Emphasis on a single value.</CardDescription>
+						</CardHeader>
+						<CardContent>
+							<div className="flex items-baseline gap-2">
+								<span className="text-3xl font-bold tabular-nums">$12,430</span>
+								<Badge variant="secondary">+4.2%</Badge>
+							</div>
+							<p className="text-xs text-muted-foreground mt-1">Revenue this month</p>
 						</CardContent>
 					</Card>
 				</div>
