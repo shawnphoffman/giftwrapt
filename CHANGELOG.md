@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/shawnphoffman/wish-lists/compare/v0.6.0...v0.6.1) (2026-04-20)
+
+
+### Bug Fixes
+
+* **docker:** skip husky prepare in prod-deps stage ([a658d2e](https://github.com/shawnphoffman/wish-lists/commit/a658d2e8c187d898906b0fa0752da5ba69b374e2))
+
 ## [0.6.0](https://github.com/shawnphoffman/wish-lists/compare/v0.5.0...v0.6.0) (2026-04-20)
 
 
