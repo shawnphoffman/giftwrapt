@@ -416,17 +416,17 @@ function OrganizeList({
 					<div
 						key={g.id}
 						className={cn(
-							'flex flex-col rounded-md overflow-hidden border bg-background',
+							'flex flex-col rounded-md overflow-hidden border bg-card shadow-sm',
 							priorityBorderClass[g.priority]
 						)}
 					>
-						<label className="flex items-center gap-3 p-2 bg-muted/20 border-b cursor-pointer hover:bg-muted/30">
+						<label className="flex items-center gap-3 p-2 bg-accent border-b cursor-pointer hover:bg-accent/80">
 							<Checkbox checked={groupSelected} onCheckedChange={() => onToggleGroup(g.id)} />
 							<PriorityIcon priority={g.priority} className="size-4 shrink-0" />
 							{g.name && <span className="font-medium text-sm truncate min-w-0">{g.name}</span>}
 							<GroupBadge type={g.type} />
 						</label>
-						<ul className="divide-y bg-muted/40">
+						<ul className="divide-y">
 							{groupItems.map(item => (
 								<li key={item.id} className="flex items-center gap-3 p-2">
 									<PriorityIcon priority={item.priority} className="size-4 shrink-0" />
@@ -468,8 +468,8 @@ function OrganizeRow({
 		<label
 			className={cn(
 				flush
-					? 'flex items-center gap-3 p-2 bg-muted/40 hover:bg-muted/60 cursor-pointer'
-					: 'flex items-center gap-3 p-2 border rounded-md bg-muted/40 hover:bg-muted/60 cursor-pointer',
+					? 'flex items-center gap-3 p-2 hover:bg-accent cursor-pointer'
+					: 'flex items-center gap-3 p-2 border rounded-md bg-card shadow-sm hover:bg-accent/40 cursor-pointer',
 				!flush && priorityBorderClass[item.priority]
 			)}
 		>
