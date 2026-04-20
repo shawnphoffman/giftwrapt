@@ -77,7 +77,7 @@ export function MyListRow({ list, showOwner }: Props) {
 
 	return (
 		<>
-			<div className="flex items-center gap-2 rounded p-2 bg-muted/40 hover:bg-muted/60">
+			<div className="flex items-center gap-2 rounded p-2 bg-card">
 				<ListTypeIcon type={list.type} className="size-5 shrink-0" />
 				<Link
 					to="/lists/$listId/edit"
