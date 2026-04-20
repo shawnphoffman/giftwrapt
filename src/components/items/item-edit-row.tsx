@@ -44,7 +44,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import type { Item } from '@/db/schema/items'
 import { useSession } from '@/lib/auth-client'
-import { priorityBorderClass } from '@/lib/priority-classes'
+import { priorityRingClass } from '@/lib/priority-classes'
 import { cn } from '@/lib/utils'
 
 import { ItemFormDialog } from './item-form-dialog'
@@ -120,8 +120,8 @@ export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = fal
 				className={cn(
 					flush
 						? 'flex items-center gap-2 p-2 bg-muted/40 border-b last:border-b-0 hover:bg-muted/60'
-						: 'flex items-center gap-2 p-2 border rounded-md bg-muted/40 hover:bg-muted/60 shadow-sm',
-					!flush && priorityBorderClass[item.priority]
+						: 'flex items-center gap-2 p-2 border rounded-lg bg-muted/40 hover:bg-muted/60 shadow-sm',
+					!flush && priorityRingClass[item.priority]
 				)}
 			>
 				{!hidePriority && <PriorityIcon priority={item.priority} className="size-4 shrink-0" />}

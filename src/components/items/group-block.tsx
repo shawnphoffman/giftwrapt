@@ -5,7 +5,7 @@ import type { GroupSummary } from '@/api/lists'
 import PriorityIcon from '@/components/common/priority-icon'
 import { Button } from '@/components/ui/button'
 import type { Item } from '@/db/schema/items'
-import { priorityBorderClass } from '@/lib/priority-classes'
+import { priorityRingClass } from '@/lib/priority-classes'
 import { cn } from '@/lib/utils'
 
 import { GroupBadge } from './group-badge'
@@ -28,8 +28,8 @@ export function GroupBlock({ group, items, groups, isOwner, onAddItem, onDelete,
 	const showReorder = isOwner && group.type === 'order' && items.length > 1
 
 	return (
-		<div className={cn('flex flex-col rounded-md overflow-hidden border shadow-sm', priorityBorderClass[group.priority])}>
-			<div className="flex items-center gap-2 p-2 border-b bg-accent">
+		<div className={cn('flex flex-col rounded-lg overflow-hidden border shadow-sm bg-accent', priorityRingClass[group.priority])}>
+			<div className="flex items-center gap-2 p-2 border-b bg-muted/30">
 				<PriorityIcon priority={group.priority} className="size-4 shrink-0" />
 				{group.name && <span className="font-medium text-sm truncate">{group.name}</span>}
 				<GroupBadge type={group.type} showHelp />

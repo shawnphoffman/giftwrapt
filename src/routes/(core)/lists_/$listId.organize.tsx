@@ -33,7 +33,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { type Priority,priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
-import { priorityBorderClass } from '@/lib/priority-classes'
+import { priorityRingClass } from '@/lib/priority-classes'
 import { cn } from '@/lib/utils'
 
 type TabMode = 'bulk' | 'reorder'
@@ -405,9 +405,9 @@ function OrganizeList({
 				return (
 					<div
 						key={g.id}
-						className={cn('flex flex-col rounded-md overflow-hidden border bg-card shadow-sm', priorityBorderClass[g.priority])}
+						className={cn('flex flex-col rounded-lg overflow-hidden border bg-accent shadow-sm', priorityRingClass[g.priority])}
 					>
-						<label className="flex items-center gap-3 p-2 bg-accent border-b cursor-pointer hover:bg-accent/80">
+						<label className="flex items-center gap-3 p-2 bg-muted/30 border-b cursor-pointer hover:bg-muted/50">
 							<Checkbox checked={groupSelected} onCheckedChange={() => onToggleGroup(g.id)} />
 							<PriorityIcon priority={g.priority} className="size-4 shrink-0" />
 							{g.name && <span className="font-medium text-sm truncate min-w-0">{g.name}</span>}
@@ -455,9 +455,9 @@ function OrganizeRow({
 		<label
 			className={cn(
 				flush
-					? 'flex items-center gap-3 p-2 hover:bg-accent cursor-pointer'
-					: 'flex items-center gap-3 p-2 border rounded-md bg-card shadow-sm hover:bg-accent/40 cursor-pointer',
-				!flush && priorityBorderClass[item.priority]
+					? 'flex items-center gap-3 p-2 hover:bg-muted/60 cursor-pointer'
+					: 'flex items-center gap-3 p-2 border rounded-lg bg-muted/40 shadow-sm hover:bg-muted/60 cursor-pointer',
+				!flush && priorityRingClass[item.priority]
 			)}
 		>
 			<Checkbox checked={selected} onCheckedChange={() => onToggle(item.id)} />
