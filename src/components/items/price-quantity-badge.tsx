@@ -20,7 +20,7 @@ export function PriceQuantityBadge({ price, quantity, className }: Props) {
 		>
 			{showPrice && <span className="px-2 py-0.5 text-foreground">${price}</span>}
 			{showPrice && showQty && <span className="w-px bg-border" aria-hidden />}
-			{showQty && <span className="px-2 py-0.5 bg-muted text-foreground">x{quantity}</span>}
+			{showQty && <span className="px-2 py-0.5 text-foreground">x{quantity}</span>}
 		</span>
 	)
 }
