@@ -6,7 +6,16 @@ import type { z } from 'zod'
 
 import { getPotentialPartners, updateUserProfile } from '@/api/user'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -279,12 +288,15 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 				{isLoading ? 'Saving...' : 'Save'}
 			</Button>
 
-			<AlertDialog open={pendingPartnerChange != null} onOpenChange={open => { if (!open) setPendingPartnerChange(null) }}>
+			<AlertDialog
+				open={pendingPartnerChange != null}
+				onOpenChange={open => {
+					if (!open) setPendingPartnerChange(null)
+				}}
+			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>
-							{pendingPartnerChange?.partnerId ? 'Change partner?' : 'Remove partner?'}
-						</AlertDialogTitle>
+						<AlertDialogTitle>{pendingPartnerChange?.partnerId ? 'Change partner?' : 'Remove partner?'}</AlertDialogTitle>
 						<AlertDialogDescription>
 							{currentPartnerName
 								? `You are currently partnered with ${currentPartnerName}. Saving will unlink them and stop showing gifts as given by both of you.`

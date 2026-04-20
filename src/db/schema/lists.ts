@@ -78,10 +78,7 @@ export const listAddons = pgTable(
 		isArchived: boolean('is_archived').default(false).notNull(),
 		...timestamps,
 	},
-	table => [
-		index('list_addons_listId_idx').on(table.listId),
-		index('list_addons_userId_idx').on(table.userId),
-	]
+	table => [index('list_addons_listId_idx').on(table.listId), index('list_addons_userId_idx').on(table.userId)]
 )
 
 export const listAddonsRelations = relations(listAddons, ({ one }) => ({

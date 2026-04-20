@@ -21,8 +21,9 @@
  * to reset through the provider, not here).
  */
 
-import { and, eq } from 'drizzle-orm'
 import { parseArgs } from 'node:util'
+
+import { and, eq } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { account } from '@/db/schema'

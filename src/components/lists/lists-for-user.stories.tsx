@@ -96,7 +96,7 @@ export const WithPartner: Story = {
 
 export const SingleList: Story = {
 	args: {
-		user: { ...baseUser, lists: [baseUser.lists[0]!] },
+		user: { ...baseUser, lists: [baseUser.lists[0]] },
 	},
 }
 

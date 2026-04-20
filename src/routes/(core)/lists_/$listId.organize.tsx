@@ -31,7 +31,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { priorityEnumValues, type Priority } from '@/db/schema/enums'
+import { type Priority,priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { priorityBorderClass } from '@/lib/priority-classes'
 import { cn } from '@/lib/utils'
@@ -81,11 +81,7 @@ function OrganizePage() {
 					</TabButton>
 				</div>
 
-				{tab === 'bulk' ? (
-					<BulkActionsTab list={list} />
-				) : (
-					<ReorderPanel listId={list.id} items={list.items} groups={list.groups} />
-				)}
+				{tab === 'bulk' ? <BulkActionsTab list={list} /> : <ReorderPanel listId={list.id} items={list.items} groups={list.groups} />}
 			</div>
 		</div>
 	)
@@ -346,13 +342,7 @@ function BulkActionsTab({ list }: { list: ListForEditing }) {
 			)}
 
 			{moveOpen && (
-				<BulkMoveItemsDialog
-					open={moveOpen}
-					onOpenChange={setMoveOpen}
-					itemIds={selectedIds}
-					sourceListId={list.id}
-					onMoved={refresh}
-				/>
+				<BulkMoveItemsDialog open={moveOpen} onOpenChange={setMoveOpen} itemIds={selectedIds} sourceListId={list.id} onMoved={refresh} />
 			)}
 
 			<AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
@@ -415,10 +405,7 @@ function OrganizeList({
 				return (
 					<div
 						key={g.id}
-						className={cn(
-							'flex flex-col rounded-md overflow-hidden border bg-card shadow-sm',
-							priorityBorderClass[g.priority]
-						)}
+						className={cn('flex flex-col rounded-md overflow-hidden border bg-card shadow-sm', priorityBorderClass[g.priority])}
 					>
 						<label className="flex items-center gap-3 p-2 bg-accent border-b cursor-pointer hover:bg-accent/80">
 							<Checkbox checked={groupSelected} onCheckedChange={() => onToggleGroup(g.id)} />

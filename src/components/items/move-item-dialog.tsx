@@ -5,13 +5,13 @@ import { toast } from 'sonner'
 
 import { moveItemsToList } from '@/api/items'
 import { getMyLists } from '@/api/lists'
-import type { Item } from '@/db/schema/items'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
+import type { Item } from '@/db/schema/items'
 
 type Props = {
 	open: boolean
@@ -50,7 +50,7 @@ export function MoveItemDialog({ open, onOpenChange, item }: Props) {
 				return
 			}
 
-			const parts: string[] = [`"${item.title}" moved`]
+			const parts: Array<string> = [`"${item.title}" moved`]
 			if (result.claimsCleared > 0) parts.push('claims cleared')
 			if (result.commentsDeleted > 0) parts.push(`${result.commentsDeleted} comment${result.commentsDeleted === 1 ? '' : 's'} deleted`)
 			toast.success(parts.join(' · '))
@@ -136,9 +136,7 @@ export function MoveItemDialog({ open, onOpenChange, item }: Props) {
 							<Label htmlFor="purge-comments-single" className="font-normal">
 								Delete comments on this item
 							</Label>
-							<p className="text-xs text-muted-foreground">
-								Recommended. Comments usually belong to the original list's context.
-							</p>
+							<p className="text-xs text-muted-foreground">Recommended. Comments usually belong to the original list's context.</p>
 						</div>
 					</div>
 

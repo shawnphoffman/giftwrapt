@@ -2,9 +2,9 @@
 import '../src/styles.css'
 import './storybook.css'
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { withThemeByClassName } from '@storybook/addon-themes'
 import type { Decorator, Preview } from '@storybook/react-vite'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import { __setStorybookSession } from './mocks/auth-client'
 import { MockRouterProvider } from './mocks/router'

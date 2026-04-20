@@ -80,7 +80,7 @@ export default function ItemList({ items, groups = [] }: Props) {
 							if (remaining > 0) sawUnfilled = true
 						}
 					}
-				} else if (group.type === 'or') {
+				} else {
 					const anyClaimed = groupItems.some(i => i.gifts.length > 0)
 					if (anyClaimed) {
 						for (const item of groupItems) {
@@ -89,8 +89,6 @@ export default function ItemList({ items, groups = [] }: Props) {
 					}
 				}
 
-				const useConnector = group.type === 'or' || group.type === 'order'
-
 				return (
 					<div key={group.id} className="border rounded-lg shadow-sm bg-accent overflow-hidden">
 						<div className="flex items-center gap-2 p-2 bg-muted/30 border-b">
@@ -98,10 +96,10 @@ export default function ItemList({ items, groups = [] }: Props) {
 							<GroupBadge type={group.type} showHelp />
 							{group.name && <span className="font-medium text-sm truncate">{group.name}</span>}
 						</div>
-						<div className={useConnector ? '' : 'divide-y'}>
+						<div>
 							{groupItems.map((item, idx) => (
 								<Fragment key={item.id}>
-									{useConnector && idx > 0 && <GroupConnector type={group.type as 'or' | 'order'} />}
+									{idx > 0 && <GroupConnector type={group.type} />}
 									<ItemRow item={item} hidePriority lockReason={lockByItemId.get(item.id)} />
 								</Fragment>
 							))}

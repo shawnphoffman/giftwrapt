@@ -40,9 +40,7 @@ const CreateItemInputSchema = z.object({
 	groupId: z.number().int().positive().optional(),
 })
 
-export type CreateItemResult =
-	| { kind: 'ok'; item: Item }
-	| { kind: 'error'; reason: 'list-not-found' | 'not-authorized' }
+export type CreateItemResult = { kind: 'ok'; item: Item } | { kind: 'error'; reason: 'list-not-found' | 'not-authorized' }
 
 export const createItem = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware])
@@ -97,9 +95,7 @@ const UpdateItemInputSchema = z.object({
 	status: z.enum(statusEnumValues).optional(),
 })
 
-export type UpdateItemResult =
-	| { kind: 'ok'; item: Item }
-	| { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+export type UpdateItemResult = { kind: 'ok'; item: Item } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const updateItem = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware])
@@ -166,9 +162,7 @@ const DeleteItemInputSchema = z.object({
 	itemId: z.number().int().positive(),
 })
 
-export type DeleteItemResult =
-	| { kind: 'ok' }
-	| { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+export type DeleteItemResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const deleteItem = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware])
@@ -204,9 +198,7 @@ const ArchiveItemInputSchema = z.object({
 	archived: z.boolean(),
 })
 
-export type ArchiveItemResult =
-	| { kind: 'ok' }
-	| { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+export type ArchiveItemResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const archiveItem = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware])
@@ -260,9 +252,9 @@ type ItemRow = { id: number; listId: number }
 /** Load items by id and assert the user can edit every source list. */
 async function loadAndAuthorizeItems(
 	userId: string,
-	itemIds: readonly number[],
+	itemIds: ReadonlyArray<number>
 ): Promise<
-	| { ok: true; rows: ItemRow[]; lists: Map<number, ListForPermCheck & { type: ListType }> }
+	| { ok: true; rows: Array<ItemRow>; lists: Map<number, ListForPermCheck & { type: ListType }> }
 	| { ok: false; reason: 'not-found' | 'not-authorized' }
 > {
 	const rows = await db.query.items.findMany({
@@ -363,9 +355,7 @@ const ArchiveItemsInputSchema = z.object({
 	archived: z.boolean(),
 })
 
-export type ArchiveItemsResult =
-	| { kind: 'ok'; updated: number }
-	| { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+export type ArchiveItemsResult = { kind: 'ok'; updated: number } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const archiveItems = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware])
@@ -375,7 +365,10 @@ export const archiveItems = createServerFn({ method: 'POST' })
 		const loaded = await loadAndAuthorizeItems(userId, data.itemIds)
 		if (!loaded.ok) return { kind: 'error', reason: loaded.reason }
 
-		await db.update(items).set({ isArchived: data.archived }).where(inArray(items.id, [...data.itemIds]))
+		await db
+			.update(items)
+			.set({ isArchived: data.archived })
+			.where(inArray(items.id, [...data.itemIds]))
 		return { kind: 'ok', updated: data.itemIds.length }
 	})
 
@@ -387,9 +380,7 @@ const DeleteItemsInputSchema = z.object({
 	itemIds: BulkIdsSchema,
 })
 
-export type DeleteItemsResult =
-	| { kind: 'ok'; deleted: number }
-	| { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+export type DeleteItemsResult = { kind: 'ok'; deleted: number } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const deleteItems = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware])
@@ -412,9 +403,7 @@ const SetItemsPriorityInputSchema = z.object({
 	priority: z.enum(priorityEnumValues),
 })
 
-export type SetItemsPriorityResult =
-	| { kind: 'ok'; updated: number }
-	| { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+export type SetItemsPriorityResult = { kind: 'ok'; updated: number } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const setItemsPriority = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware])
@@ -424,7 +413,10 @@ export const setItemsPriority = createServerFn({ method: 'POST' })
 		const loaded = await loadAndAuthorizeItems(userId, data.itemIds)
 		if (!loaded.ok) return { kind: 'error', reason: loaded.reason }
 
-		await db.update(items).set({ priority: data.priority }).where(inArray(items.id, [...data.itemIds]))
+		await db
+			.update(items)
+			.set({ priority: data.priority })
+			.where(inArray(items.id, [...data.itemIds]))
 		return { kind: 'ok', updated: data.itemIds.length }
 	})
 
@@ -441,15 +433,13 @@ const ReorderItemsInputSchema = z.object({
 				itemId: z.number().int().positive(),
 				priority: z.enum(priorityEnumValues),
 				sortOrder: z.number().int().min(0),
-			}),
+			})
 		)
 		.min(1)
 		.max(500),
 })
 
-export type ReorderItemsResult =
-	| { kind: 'ok'; updated: number }
-	| { kind: 'error'; reason: 'not-found' | 'not-authorized' | 'mixed-lists' }
+export type ReorderItemsResult = { kind: 'ok'; updated: number } | { kind: 'error'; reason: 'not-found' | 'not-authorized' | 'mixed-lists' }
 
 export const reorderItems = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware])
@@ -498,7 +488,7 @@ const ReorderEntriesInputSchema = z.object({
 				itemId: z.number().int().positive(),
 				priority: z.enum(priorityEnumValues),
 				sortOrder: z.number().int().min(0),
-			}),
+			})
 		)
 		.max(500),
 	groups: z
@@ -507,7 +497,7 @@ const ReorderEntriesInputSchema = z.object({
 				groupId: z.number().int().positive(),
 				priority: z.enum(priorityEnumValues),
 				sortOrder: z.number().int().min(0),
-			}),
+			})
 		)
 		.max(500),
 })

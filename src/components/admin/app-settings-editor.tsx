@@ -116,9 +116,7 @@ export function AppSettingsEditor() {
 			</div>
 
 			{/* Archive after Christmas (dependent on Enable Christmas Lists) */}
-			<div
-				className={`flex items-center justify-between gap-4 pl-6 ${settings.enableHolidayLists ? '' : 'opacity-50'}`}
-			>
+			<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableHolidayLists ? '' : 'opacity-50'}`}>
 				<DaysSetting
 					id="archiveDaysAfterChristmas"
 					label="Archive after Christmas"
@@ -130,9 +128,7 @@ export function AppSettingsEditor() {
 			</div>
 
 			{/* Enable Christmas emails (dependent on Enable Christmas Lists) */}
-			<div
-				className={`flex items-center justify-between gap-4 pl-6 ${settings.enableHolidayLists ? '' : 'opacity-50'}`}
-			>
+			<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableHolidayLists ? '' : 'opacity-50'}`}>
 				<div className="space-y-0.5">
 					<Label htmlFor="enableChristmasEmails" className="text-base">
 						Enable Christmas emails
@@ -163,9 +159,7 @@ export function AppSettingsEditor() {
 			</div>
 
 			{/* Archive after birthday (dependent on Enable Birthday Lists) */}
-			<div
-				className={`flex items-center justify-between gap-4 pl-6 ${settings.enableBirthdayLists ? '' : 'opacity-50'}`}
-			>
+			<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableBirthdayLists ? '' : 'opacity-50'}`}>
 				<DaysSetting
 					id="archiveDaysAfterBirthday"
 					label="Archive after birthday"
@@ -177,16 +171,12 @@ export function AppSettingsEditor() {
 			</div>
 
 			{/* Enable birthday emails (dependent on Enable Birthday Lists) */}
-			<div
-				className={`flex items-center justify-between gap-4 pl-6 ${settings.enableBirthdayLists ? '' : 'opacity-50'}`}
-			>
+			<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableBirthdayLists ? '' : 'opacity-50'}`}>
 				<div className="space-y-0.5">
 					<Label htmlFor="enableBirthdayEmails" className="text-base">
 						Enable birthday emails
 					</Label>
-					<p className="text-sm text-muted-foreground">
-						Send day-of birthday greetings and the post-birthday gift summary
-					</p>
+					<p className="text-sm text-muted-foreground">Send day-of birthday greetings and the post-birthday gift summary</p>
 				</div>
 				<Switch
 					id="enableBirthdayEmails"
@@ -227,16 +217,12 @@ export function AppSettingsEditor() {
 			</div>
 
 			{/* Enable Comment Emails (dependent on Enable Comments) */}
-			<div
-				className={`flex items-center justify-between gap-4 pl-6 ${settings.enableComments ? '' : 'opacity-50'}`}
-			>
+			<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableComments ? '' : 'opacity-50'}`}>
 				<div className="space-y-0.5">
 					<Label htmlFor="enableCommentEmails" className="text-base">
 						Enable Comment Emails
 					</Label>
-					<p className="text-sm text-muted-foreground">
-						Email the list owner when someone comments on one of their items
-					</p>
+					<p className="text-sm text-muted-foreground">Email the list owner when someone comments on one of their items</p>
 				</div>
 				<Switch
 					id="enableCommentEmails"

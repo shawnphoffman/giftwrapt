@@ -187,12 +187,20 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 		const gifterIds = [userId]
 		if (myPartnerId) gifterIds.push(myPartnerId)
 
-		const inGifters = gifterIds.length === 1
-			? eq(giftedItems.gifterId, userId)
-			: sql`${giftedItems.gifterId} IN (${sql.join(gifterIds.map(id => sql`${id}`), sql`, `)})`
-		const inAddonGifters = gifterIds.length === 1
-			? eq(listAddons.userId, userId)
-			: sql`${listAddons.userId} IN (${sql.join(gifterIds.map(id => sql`${id}`), sql`, `)})`
+		const inGifters =
+			gifterIds.length === 1
+				? eq(giftedItems.gifterId, userId)
+				: sql`${giftedItems.gifterId} IN (${sql.join(
+						gifterIds.map(id => sql`${id}`),
+						sql`, `
+					)})`
+		const inAddonGifters =
+			gifterIds.length === 1
+				? eq(listAddons.userId, userId)
+				: sql`${listAddons.userId} IN (${sql.join(
+						gifterIds.map(id => sql`${id}`),
+						sql`, `
+					)})`
 		// Either the current user (or their partner) is the primary gifter, or
 		// they appear in additionalGifterIds (co-gifter).
 		const claimGifterFilter = or(inGifters, arrayOverlaps(giftedItems.additionalGifterIds, gifterIds))

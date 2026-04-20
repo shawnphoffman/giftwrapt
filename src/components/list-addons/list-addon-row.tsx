@@ -98,9 +98,7 @@ export function ListAddonRow({ addon, listId }: Props) {
 				<div className="flex flex-col flex-1 gap-0.5 overflow-hidden">
 					<div className="flex flex-row items-center gap-2 font-medium">
 						<span>{addon.description}</span>
-						{addon.totalCost && (
-							<span className="px-2 text-xs border rounded whitespace-nowrap bg-card w-fit">${addon.totalCost}</span>
-						)}
+						{addon.totalCost && <span className="px-2 text-xs border rounded whitespace-nowrap bg-card w-fit">${addon.totalCost}</span>}
 						{addon.isArchived && (
 							<Badge variant="secondary" className="text-xs">
 								Given

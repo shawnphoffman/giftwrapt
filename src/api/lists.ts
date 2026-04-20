@@ -11,7 +11,10 @@ import type { ListAddon } from '@/db/schema/lists'
 import { canEditList, canViewList } from '@/lib/permissions'
 import { authMiddleware } from '@/middleware/auth'
 
-export type GiftOnItem = Pick<GiftedItem, 'id' | 'itemId' | 'gifterId' | 'quantity' | 'notes' | 'totalCost' | 'additionalGifterIds' | 'createdAt'> & {
+export type GiftOnItem = Pick<
+	GiftedItem,
+	'id' | 'itemId' | 'gifterId' | 'quantity' | 'notes' | 'totalCost' | 'additionalGifterIds' | 'createdAt'
+> & {
 	gifter: {
 		id: string
 		name: string | null
@@ -24,7 +27,10 @@ export type ItemWithGifts = Item & {
 	gifts: Array<GiftOnItem>
 }
 
-export type AddonOnList = Pick<ListAddon, 'id' | 'listId' | 'userId' | 'description' | 'totalCost' | 'notes' | 'isArchived' | 'createdAt'> & {
+export type AddonOnList = Pick<
+	ListAddon,
+	'id' | 'listId' | 'userId' | 'description' | 'totalCost' | 'notes' | 'isArchived' | 'createdAt'
+> & {
 	user: {
 		id: string
 		name: string | null
@@ -113,12 +119,7 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 
 		// Priority sorting happens after the fetch because an item's effective
 		// priority may come from its group. Date sorting stays at the DB level.
-		const orderBy =
-			sortBy === 'priority'
-				? [asc(items.id)]
-				: sortOrder === 'asc'
-					? [asc(items.createdAt)]
-					: [desc(items.createdAt)]
+		const orderBy = sortBy === 'priority' ? [asc(items.id)] : sortOrder === 'asc' ? [asc(items.createdAt)] : [desc(items.createdAt)]
 
 		// Fetch items + their gifts in one round-trip. Visibility is already
 		// established above, so every claim on these items is OK to show to
@@ -184,8 +185,7 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 		if (sortBy === 'priority') {
 			const rank: Record<Priority, number> = { 'very-high': 4, high: 3, normal: 2, low: 1 }
 			const groupPriorityById = new Map(viewGroups.map(g => [g.id, g.priority]))
-			const effective = (i: (typeof listItems)[number]) =>
-				(i.groupId !== null ? groupPriorityById.get(i.groupId) : undefined) ?? i.priority
+			const effective = (i: (typeof listItems)[number]) => (i.groupId !== null ? groupPriorityById.get(i.groupId) : undefined) ?? i.priority
 			sortedItems = [...listItems].sort((a, b) => {
 				const diff = rank[effective(a)] - rank[effective(b)]
 				if (diff !== 0) return sortOrder === 'asc' ? diff : -diff
@@ -410,9 +410,7 @@ const UpdateListInputSchema = z.object({
 	isActive: z.boolean().optional(),
 })
 
-export type UpdateListResult =
-	| { kind: 'ok' }
-	| { kind: 'error'; reason: 'not-found' | 'not-owner' }
+export type UpdateListResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-owner' }
 
 export const updateList = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware])
@@ -451,9 +449,7 @@ const DeleteListInputSchema = z.object({
 	listId: z.number().int().positive(),
 })
 
-export type DeleteListResult =
-	| { kind: 'ok'; action: 'deleted' | 'archived' }
-	| { kind: 'error'; reason: 'not-found' | 'not-owner' }
+export type DeleteListResult = { kind: 'ok'; action: 'deleted' | 'archived' } | { kind: 'error'; reason: 'not-found' | 'not-owner' }
 
 export const deleteList = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware])
@@ -469,17 +465,19 @@ export const deleteList = createServerFn({ method: 'POST' })
 		if (list.ownerId !== userId) return { kind: 'error', reason: 'not-owner' }
 
 		// Check for active claims on any items in this list.
-		const listItemIds = await db
-			.select({ id: items.id })
-			.from(items)
-			.where(eq(items.listId, data.listId))
+		const listItemIds = await db.select({ id: items.id }).from(items).where(eq(items.listId, data.listId))
 
 		let hasClaims = false
 		if (listItemIds.length > 0) {
 			const claimCount = await db
 				.select({ cnt: count() })
 				.from(giftedItems)
-				.where(inArray(giftedItems.itemId, listItemIds.map(i => i.id)))
+				.where(
+					inArray(
+						giftedItems.itemId,
+						listItemIds.map(i => i.id)
+					)
+				)
 			hasClaims = (claimCount[0]?.cnt ?? 0) > 0
 		}
 
@@ -503,9 +501,7 @@ const SetPrimaryListInputSchema = z.object({
 	isPrimary: z.boolean(),
 })
 
-export type SetPrimaryListResult =
-	| { kind: 'ok' }
-	| { kind: 'error'; reason: 'not-found' | 'not-owner' | 'invalid-type' }
+export type SetPrimaryListResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-owner' | 'invalid-type' }
 
 export const setPrimaryList = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware])
@@ -562,9 +558,7 @@ export type ListForEditing = {
 	isOwner: boolean
 }
 
-export type GetListForEditingResult =
-	| { kind: 'ok'; list: ListForEditing }
-	| { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+export type GetListForEditingResult = { kind: 'ok'; list: ListForEditing } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const getListForEditing = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware])
@@ -604,9 +598,7 @@ export const getListForEditing = createServerFn({ method: 'GET' })
 		// Archived items are hidden from the edit view by default; the organize
 		// view opts in to seeing them so users can bulk-unarchive.
 		const listItems = await db.query.items.findMany({
-			where: data.includeArchived
-				? eq(items.listId, list.id)
-				: and(eq(items.listId, list.id), eq(items.isArchived, false)),
+			where: data.includeArchived ? eq(items.listId, list.id) : and(eq(items.listId, list.id), eq(items.isArchived, false)),
 			orderBy: [desc(items.createdAt)],
 		})
 

@@ -4,8 +4,6 @@ import { getRequestHeaders } from '@tanstack/react-start/server'
 import { Gift, Inbox, ListChecks, ListOrdered, ListPlus, MessagesSquare, PlusCircle, Receipt, ReceiptText } from 'lucide-react'
 import { Suspense } from 'react'
 
-import { auth } from '@/lib/auth'
-
 import Loading from '@/components/loading'
 import NavBottom from '@/components/sidebar/nav-bottom'
 import NavBreadcrumbs from '@/components/sidebar/nav-breadcrumbs'
@@ -28,6 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ErrorBoundary } from '@/components/utilities/error-boundary'
 import { NavigationEvents } from '@/components/utilities/navigation-events'
 import { env } from '@/env'
+import { auth } from '@/lib/auth'
 import { authMiddleware } from '@/middleware/auth'
 
 const checkSession = createServerFn({ method: 'GET' }).handler(async () => {

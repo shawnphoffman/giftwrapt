@@ -37,18 +37,12 @@ function RecentCommentsPage() {
 											<span className="font-medium text-sm">{name}</span>
 											<span className="text-xs text-muted-foreground">
 												on{' '}
-												<Link
-													to="/lists/$listId"
-													params={{ listId: String(c.listId) }}
-													className="hover:underline"
-												>
+												<Link to="/lists/$listId" params={{ listId: String(c.listId) }} className="hover:underline">
 													{c.itemTitle}
-												</Link>
-												{' '}&middot; {c.listOwnerName ? `${c.listOwnerName}'s` : ''} {c.listName}
+												</Link>{' '}
+												&middot; {c.listOwnerName ? `${c.listOwnerName}'s` : ''} {c.listName}
 											</span>
-											<span className="text-xs text-muted-foreground">
-												{new Date(c.createdAt).toLocaleDateString()}
-											</span>
+											<span className="text-xs text-muted-foreground">{new Date(c.createdAt).toLocaleDateString()}</span>
 										</div>
 										<p className="text-sm text-foreground/80 whitespace-pre-wrap line-clamp-3">{c.comment}</p>
 									</div>

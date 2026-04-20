@@ -4,16 +4,16 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { updateList } from '@/api/lists'
-import type { ListType } from '@/db/schema/enums'
-import { ListTypes, listTypeEnumValues } from '@/db/schema/enums'
 import ListTypeIcon from '@/components/common/list-type-icon'
+import { MarkdownTextarea } from '@/components/common/markdown-textarea'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { MarkdownTextarea } from '@/components/common/markdown-textarea'
+import type { ListType } from '@/db/schema/enums'
+import { listTypeEnumValues,ListTypes } from '@/db/schema/enums'
 
 type Props = {
 	listId: number
@@ -82,12 +82,7 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description }:
 				{field => (
 					<div className="grid gap-2">
 						<Label htmlFor={field.name}>Name</Label>
-						<Input
-							id={field.name}
-							value={field.state.value}
-							onChange={e => field.handleChange(e.target.value)}
-							disabled={submitting}
-						/>
+						<Input id={field.name} value={field.state.value} onChange={e => field.handleChange(e.target.value)} disabled={submitting} />
 					</div>
 				)}
 			</form.Field>

@@ -3,7 +3,7 @@ import { MessageSquare, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { createItemComment, deleteItemComment, getCommentsForItem, updateItemComment, type CommentWithUser } from '@/api/comments'
+import { type CommentWithUser,createItemComment, deleteItemComment, getCommentsForItem, updateItemComment } from '@/api/comments'
 import UserAvatar from '@/components/common/user-avatar'
 import {
 	AlertDialog,
@@ -27,7 +27,7 @@ type Props = {
 export function ItemComments({ itemId, commentCount = 0 }: Props) {
 	const [expanded, setExpanded] = useState(false)
 	const session = useSession()
-	const currentUserId = session.data?.user?.id
+	const currentUserId = session.data?.user.id
 
 	const { data: comments, refetch } = useQuery({
 		queryKey: ['item-comments', itemId],
@@ -143,19 +143,11 @@ function CommentRow({
 				<div className="flex-1 min-w-0">
 					<div className="flex items-baseline gap-1.5">
 						<span className="font-medium text-xs">{name}</span>
-						<span className="text-xs text-muted-foreground">
-							{new Date(comment.createdAt).toLocaleDateString()}
-						</span>
+						<span className="text-xs text-muted-foreground">{new Date(comment.createdAt).toLocaleDateString()}</span>
 					</div>
 					{editing ? (
 						<div className="flex gap-1 mt-1">
-							<Textarea
-								value={editText}
-								onChange={e => setEditText(e.target.value)}
-								rows={2}
-								disabled={saving}
-								className="text-sm"
-							/>
+							<Textarea value={editText} onChange={e => setEditText(e.target.value)} rows={2} disabled={saving} className="text-sm" />
 							<div className="flex flex-col gap-1">
 								<Button size="sm" variant="ghost" onClick={handleSave} disabled={saving}>
 									Save

@@ -5,8 +5,6 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { createItem, updateItem } from '@/api/items'
-import type { Item } from '@/db/schema/items'
-import { priorityEnumValues } from '@/db/schema/enums'
 import { MarkdownTextarea } from '@/components/common/markdown-textarea'
 import PriorityIcon from '@/components/common/priority-icon'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -15,6 +13,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { priorityEnumValues } from '@/db/schema/enums'
+import type { Item } from '@/db/schema/items'
 
 type BaseProps = {
 	open: boolean
@@ -111,9 +111,7 @@ export function ItemFormDialog(props: Props) {
 					})
 
 					if (result.kind === 'error') {
-						setError(
-							result.reason === 'not-authorized' ? 'You no longer have permission to add items to this list.' : 'List not found.'
-						)
+						setError(result.reason === 'not-authorized' ? 'You no longer have permission to add items to this list.' : 'List not found.')
 						return
 					}
 
@@ -136,9 +134,7 @@ export function ItemFormDialog(props: Props) {
 			<DialogContent className="max-h-[85vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>{isEdit ? 'Edit item' : 'Add item'}</DialogTitle>
-					<DialogDescription>
-						{isEdit ? 'Update the details for this item.' : 'Add a new item to your list.'}
-					</DialogDescription>
+					<DialogDescription>{isEdit ? 'Update the details for this item.' : 'Add a new item to your list.'}</DialogDescription>
 				</DialogHeader>
 
 				<form
@@ -229,7 +225,11 @@ export function ItemFormDialog(props: Props) {
 						{field => (
 							<div className="grid gap-2">
 								<Label htmlFor={field.name}>Priority</Label>
-								<Select value={field.state.value} onValueChange={v => field.handleChange(v as typeof field.state.value)} disabled={submitting}>
+								<Select
+									value={field.state.value}
+									onValueChange={v => field.handleChange(v as typeof field.state.value)}
+									disabled={submitting}
+								>
 									<SelectTrigger id={field.name}>
 										<SelectValue />
 									</SelectTrigger>

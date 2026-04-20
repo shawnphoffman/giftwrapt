@@ -80,9 +80,7 @@ export function ListEditorsSection({ listId, editors, addableUsers }: Props) {
 		}
 	}
 
-	const pickedIsChild =
-		selectedUserId.length > 0 &&
-		addableUsers.find(u => u.id === selectedUserId)?.role === 'child'
+	const pickedIsChild = selectedUserId.length > 0 && addableUsers.find(u => u.id === selectedUserId)?.role === 'child'
 
 	return (
 		<div className="flex flex-col gap-3">
@@ -97,11 +95,7 @@ export function ListEditorsSection({ listId, editors, addableUsers }: Props) {
 					<p className="text-sm text-muted-foreground">No other users are available to add.</p>
 				) : (
 					<div className="flex items-center gap-2">
-						<Select
-							value={selectedUserId}
-							onValueChange={setSelectedUserId}
-							disabled={submitting}
-						>
+						<Select value={selectedUserId} onValueChange={setSelectedUserId} disabled={submitting}>
 							<SelectTrigger id="add-editor-select" className="w-full flex-1">
 								<SelectValue placeholder="Choose a user…" />
 							</SelectTrigger>
@@ -109,11 +103,7 @@ export function ListEditorsSection({ listId, editors, addableUsers }: Props) {
 								{addableUsers.map(u => {
 									const display = u.name || u.email
 									const isChild = u.role === 'child'
-									const suffix = isChild
-										? ' (child)'
-										: u.name
-											? ` — ${u.email}`
-											: ''
+									const suffix = isChild ? ' (child)' : u.name ? ` — ${u.email}` : ''
 									return (
 										<SelectItem key={u.id} value={u.id} disabled={isChild}>
 											{display}
@@ -123,12 +113,7 @@ export function ListEditorsSection({ listId, editors, addableUsers }: Props) {
 								})}
 							</SelectContent>
 						</Select>
-						<Button
-							type="button"
-							size="sm"
-							onClick={handleAdd}
-							disabled={submitting || !selectedUserId || pickedIsChild}
-						>
+						<Button type="button" size="sm" onClick={handleAdd} disabled={submitting || !selectedUserId || pickedIsChild}>
 							<UserPlus className="size-4" />
 							{submitting ? 'Adding…' : 'Add'}
 						</Button>
@@ -137,9 +122,7 @@ export function ListEditorsSection({ listId, editors, addableUsers }: Props) {
 			</div>
 
 			{editors.length === 0 ? (
-				<p className="text-sm text-muted-foreground">
-					No editors yet. Add someone to let them manage items on this list.
-				</p>
+				<p className="text-sm text-muted-foreground">No editors yet. Add someone to let them manage items on this list.</p>
 			) : (
 				<div className="flex flex-col overflow-hidden border divide-y rounded-lg shadow-sm text-card-foreground bg-accent">
 					{editors.map(editor => {
@@ -149,9 +132,7 @@ export function ListEditorsSection({ listId, editors, addableUsers }: Props) {
 								<UserAvatar name={name} image={editor.user.image} size="small" />
 								<div className="flex flex-col flex-1 min-w-0">
 									<span className="text-sm font-medium truncate">{name}</span>
-									{editor.user.name && (
-										<span className="text-xs truncate text-muted-foreground">{editor.user.email}</span>
-									)}
+									{editor.user.name && <span className="text-xs truncate text-muted-foreground">{editor.user.email}</span>}
 								</div>
 								<Button
 									size="sm"
@@ -169,7 +150,12 @@ export function ListEditorsSection({ listId, editors, addableUsers }: Props) {
 			)}
 
 			{/* Remove editor confirm */}
-			<AlertDialog open={!!removeTarget} onOpenChange={o => { if (!o) setRemoveTarget(null) }}>
+			<AlertDialog
+				open={!!removeTarget}
+				onOpenChange={o => {
+					if (!o) setRemoveTarget(null)
+				}}
+			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>Remove editor?</AlertDialogTitle>

@@ -2,7 +2,7 @@ import { createFileRoute, Link, useLocation, useNavigate } from '@tanstack/react
 import { Baby, ListOrdered, Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
-import { getMyLists, type ChildListGroup } from '@/api/lists'
+import { type ChildListGroup,getMyLists } from '@/api/lists'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import UserAvatar from '@/components/common/user-avatar'
 import { CreateListDialog } from '@/components/lists/create-list-dialog'
@@ -95,11 +95,7 @@ function MyListsPage() {
 							</div>
 							<div className="flex flex-col overflow-hidden border divide-y rounded-lg bg-accent">
 								{data.editable.map(list => (
-									<MyListRow
-										key={list.id}
-										list={list}
-										showOwner={{ name: list.ownerName, email: list.ownerEmail }}
-									/>
+									<MyListRow key={list.id} list={list} showOwner={{ name: list.ownerName, email: list.ownerEmail }} />
 								))}
 							</div>
 						</div>

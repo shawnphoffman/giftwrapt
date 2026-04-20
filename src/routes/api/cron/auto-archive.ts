@@ -25,8 +25,18 @@ import { getAppSettings } from '@/lib/settings'
 // Protected by CRON_SECRET header check.
 
 const MONTHS: ReadonlyArray<BirthMonth> = [
-	'january', 'february', 'march', 'april', 'may', 'june',
-	'july', 'august', 'september', 'october', 'november', 'december',
+	'january',
+	'february',
+	'march',
+	'april',
+	'may',
+	'june',
+	'july',
+	'august',
+	'september',
+	'october',
+	'november',
+	'december',
 ]
 
 export const Route = createFileRoute('/api/cron/auto-archive')({
@@ -63,11 +73,7 @@ export const Route = createFileRoute('/api/cron/auto-archive')({
 				for (const user of birthdayUsers) {
 					// Find birthday-type lists owned by this user.
 					const userLists = await db.query.lists.findMany({
-						where: and(
-							eq(lists.ownerId, user.id),
-							eq(lists.isActive, true),
-							inArray(lists.type, ['birthday', 'wishlist'])
-						),
+						where: and(eq(lists.ownerId, user.id), eq(lists.isActive, true), inArray(lists.type, ['birthday', 'wishlist'])),
 						columns: { id: true },
 					})
 
@@ -79,11 +85,7 @@ export const Route = createFileRoute('/api/cron/auto-archive')({
 					const claimedItemIds = await db
 						.selectDistinct({ itemId: giftedItems.itemId })
 						.from(giftedItems)
-						.innerJoin(items, and(
-							eq(items.id, giftedItems.itemId),
-							eq(items.isArchived, false),
-							inArray(items.listId, listIds)
-						))
+						.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), inArray(items.listId, listIds)))
 
 					if (claimedItemIds.length === 0) continue
 
@@ -114,11 +116,7 @@ export const Route = createFileRoute('/api/cron/auto-archive')({
 						const claimedItemIds = await db
 							.selectDistinct({ itemId: giftedItems.itemId })
 							.from(giftedItems)
-							.innerJoin(items, and(
-								eq(items.id, giftedItems.itemId),
-								eq(items.isArchived, false),
-								inArray(items.listId, listIds)
-							))
+							.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), inArray(items.listId, listIds)))
 
 						if (claimedItemIds.length > 0) {
 							const ids = claimedItemIds.map(r => r.itemId)

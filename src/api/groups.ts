@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 import { db } from '@/db'
 import { itemGroups, items, lists } from '@/db/schema'
-import { groupTypeEnumValues, type GroupType, priorityEnumValues, type Priority } from '@/db/schema/enums'
+import { type GroupType, groupTypeEnumValues, type Priority,priorityEnumValues } from '@/db/schema/enums'
 import type { ItemGroup } from '@/db/schema/items'
 import { canEditList } from '@/lib/permissions'
 import { authMiddleware } from '@/middleware/auth'
@@ -15,7 +15,10 @@ import { authMiddleware } from '@/middleware/auth'
 
 type ListForPerm = { id: number; ownerId: string; isPrivate: boolean; isActive: boolean }
 
-async function loadListForEdit(userId: string, listId: number): Promise<{ ok: true; list: ListForPerm } | { ok: false; reason: 'not-found' | 'not-authorized' }> {
+async function loadListForEdit(
+	userId: string,
+	listId: number
+): Promise<{ ok: true; list: ListForPerm } | { ok: false; reason: 'not-found' | 'not-authorized' }> {
 	const list = await db.query.lists.findFirst({
 		where: eq(lists.id, listId),
 		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
@@ -37,9 +40,7 @@ const CreateGroupInputSchema = z.object({
 	type: z.enum(groupTypeEnumValues),
 })
 
-export type CreateGroupResult =
-	| { kind: 'ok'; group: ItemGroup }
-	| { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+export type CreateGroupResult = { kind: 'ok'; group: ItemGroup } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const createItemGroup = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware])
@@ -50,10 +51,7 @@ export const createItemGroup = createServerFn({ method: 'POST' })
 		const perm = await loadListForEdit(userId, data.listId)
 		if (!perm.ok) return { kind: 'error', reason: perm.reason }
 
-		const [inserted] = await db
-			.insert(itemGroups)
-			.values({ listId: data.listId, type: data.type })
-			.returning()
+		const [inserted] = await db.insert(itemGroups).values({ listId: data.listId, type: data.type }).returning()
 
 		return { kind: 'ok', group: inserted }
 	})
@@ -73,9 +71,7 @@ const UpdateGroupInputSchema = z
 		message: 'At least one of type, name, or priority must be provided',
 	})
 
-export type UpdateGroupResult =
-	| { kind: 'ok' }
-	| { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+export type UpdateGroupResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const updateItemGroup = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware])
@@ -109,9 +105,7 @@ const DeleteGroupInputSchema = z.object({
 	groupId: z.number().int().positive(),
 })
 
-export type DeleteGroupResult =
-	| { kind: 'ok' }
-	| { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+export type DeleteGroupResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const deleteItemGroup = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware])
@@ -130,10 +124,7 @@ export const deleteItemGroup = createServerFn({ method: 'POST' })
 
 		// FK has onDelete: 'set null' so items.group_id auto-clears.
 		// Also clear groupSortOrder for affected items.
-		await db
-			.update(items)
-			.set({ groupSortOrder: null })
-			.where(eq(items.groupId, data.groupId))
+		await db.update(items).set({ groupSortOrder: null }).where(eq(items.groupId, data.groupId))
 
 		await db.delete(itemGroups).where(eq(itemGroups.id, data.groupId))
 		return { kind: 'ok' }
@@ -148,9 +139,7 @@ const AssignItemsInputSchema = z.object({
 	itemIds: z.array(z.number().int().positive()).min(1).max(100),
 })
 
-export type AssignItemsResult =
-	| { kind: 'ok' }
-	| { kind: 'error'; reason: 'not-found' | 'not-authorized' | 'mixed-lists' }
+export type AssignItemsResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' | 'mixed-lists' }
 
 export const assignItemsToGroup = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware])
@@ -198,9 +187,7 @@ const ReorderInputSchema = z.object({
 	itemIds: z.array(z.number().int().positive()).min(1).max(100),
 })
 
-export type ReorderResult =
-	| { kind: 'ok' }
-	| { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+export type ReorderResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const reorderGroupItems = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware])
@@ -239,7 +226,7 @@ export type GroupWithItems = {
 	type: GroupType
 	name: string | null
 	priority: Priority
-	itemIds: number[]
+	itemIds: Array<number>
 }
 
 export const getGroupsForList = createServerFn({ method: 'GET' })

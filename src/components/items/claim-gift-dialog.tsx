@@ -69,9 +69,7 @@ export function ClaimGiftDialog(props: Props) {
 	const queryClient = useQueryClient()
 	const [submitting, setSubmitting] = useState(false)
 	const [error, setError] = useState<string | null>(null)
-	const [coGifterIds, setCoGifterIds] = useState<string[]>(
-		isEdit ? (props.gift.additionalGifterIds ?? []) : []
-	)
+	const [coGifterIds, setCoGifterIds] = useState<Array<string>>(isEdit ? (props.gift.additionalGifterIds ?? []) : [])
 	const [coGifterSaving, setCoGifterSaving] = useState(false)
 
 	const { data: allUsers } = useQuery({
@@ -317,8 +315,8 @@ export function ClaimGiftDialog(props: Props) {
 
 type CoGiftersSectionProps = {
 	giftId: number
-	coGifterIds: string[]
-	setCoGifterIds: (ids: string[]) => void
+	coGifterIds: Array<string>
+	setCoGifterIds: (ids: Array<string>) => void
 	allUsers: Array<{ id: string; name: string | null; email: string }>
 	saving: boolean
 	setSaving: (v: boolean) => void
@@ -345,7 +343,7 @@ function CoGiftersSection({ giftId, coGifterIds, setCoGifterIds, allUsers, savin
 		await saveCoGifters(newIds)
 	}
 
-	const saveCoGifters = async (ids: string[]) => {
+	const saveCoGifters = async (ids: Array<string>) => {
 		setSaving(true)
 		try {
 			const result = await updateCoGifters({ data: { giftId, additionalGifterIds: ids } })
@@ -372,12 +370,7 @@ function CoGiftersSection({ giftId, coGifterIds, setCoGifterIds, allUsers, savin
 					{coGifterUsers.map(u => (
 						<Badge key={u.id} variant="secondary" className="gap-1 pr-1">
 							{u.name || u.email}
-							<button
-								type="button"
-								onClick={() => handleRemove(u.id)}
-								disabled={saving}
-								className="hover:text-destructive"
-							>
+							<button type="button" onClick={() => handleRemove(u.id)} disabled={saving} className="hover:text-destructive">
 								<X className="size-3" />
 							</button>
 						</Badge>

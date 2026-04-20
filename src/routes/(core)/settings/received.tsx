@@ -41,14 +41,14 @@ function ReceivedPage() {
 							<div className="flex flex-col gap-2">
 								<h3 className="flex items-center gap-2">
 									<Gift className="size-4" /> Items
-									<Badge variant="secondary" className="text-xs">{data!.gifts.length}</Badge>
+									<Badge variant="secondary" className="text-xs">
+										{data!.gifts.length}
+									</Badge>
 								</h3>
 								<div className="flex flex-col overflow-hidden border divide-y rounded-lg bg-accent">
 									{data!.gifts.map((gift, i) => (
 										<div key={`${gift.itemId}-${i}`} className="flex items-center gap-3 p-3">
-											{gift.itemImageUrl && (
-												<img src={gift.itemImageUrl} alt="" className="size-10 object-contain rounded shrink-0" />
-											)}
+											{gift.itemImageUrl && <img src={gift.itemImageUrl} alt="" className="size-10 object-contain rounded shrink-0" />}
 											<div className="flex-1 min-w-0">
 												<div className="font-medium leading-tight truncate">{gift.itemTitle}</div>
 												<div className="text-xs text-muted-foreground">
@@ -70,7 +70,9 @@ function ReceivedPage() {
 							<div className="flex flex-col gap-2">
 								<h3 className="flex items-center gap-2">
 									<Package className="size-4" /> Off-List Gifts
-									<Badge variant="secondary" className="text-xs">{data!.addons.length}</Badge>
+									<Badge variant="secondary" className="text-xs">
+										{data!.addons.length}
+									</Badge>
 								</h3>
 								<div className="flex flex-col overflow-hidden border divide-y rounded-lg bg-accent">
 									{data!.addons.map(addon => (

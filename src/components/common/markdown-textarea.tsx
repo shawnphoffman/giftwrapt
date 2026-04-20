@@ -50,7 +50,7 @@ export function MarkdownTextarea({ value, onChange, className, toolbarClassName,
 			newValue = head + prefixed + tail
 			newStart = start + action.prefix.length
 			newEnd = end + (prefixed.length - body.length)
-		} else if (action.kind === 'link') {
+		} else {
 			const text = selected || 'text'
 			const insert = `[${text}](https://)`
 			newValue = value.slice(0, start) + insert + value.slice(end)
@@ -69,7 +69,12 @@ export function MarkdownTextarea({ value, onChange, className, toolbarClassName,
 
 	return (
 		<div className="flex flex-col rounded-md border border-input dark:bg-input/30 shadow-xs transition-[color,box-shadow] focus-within:border-ring focus-within:ring-ring/50 focus-within:ring-[3px]">
-			<div className={cn('flex items-center gap-1 flex-wrap px-1 py-1 border-b border-input bg-muted/30 rounded-t-[calc(var(--radius)-2px)]', toolbarClassName)}>
+			<div
+				className={cn(
+					'flex items-center gap-1 flex-wrap px-1 py-1 border-b border-input bg-muted/30 rounded-t-[calc(var(--radius)-2px)]',
+					toolbarClassName
+				)}
+			>
 				<ToolbarButton
 					label="Bold"
 					onClick={() => applyAction({ kind: 'wrap', before: '**', after: '**', placeholder: 'bold' })}
@@ -85,11 +90,7 @@ export function MarkdownTextarea({ value, onChange, className, toolbarClassName,
 					onClick={() => applyAction({ kind: 'linePrefix', prefix: '- ' })}
 					icon={<List className="size-3.5" />}
 				/>
-				<ToolbarButton
-					label="Link"
-					onClick={() => applyAction({ kind: 'link' })}
-					icon={<LinkIcon className="size-3.5" />}
-				/>
+				<ToolbarButton label="Link" onClick={() => applyAction({ kind: 'link' })} icon={<LinkIcon className="size-3.5" />} />
 			</div>
 			<Textarea
 				{...rest}

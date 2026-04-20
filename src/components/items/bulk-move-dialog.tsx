@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { ListTypes, listTypeEnumValues, type ListType } from '@/db/schema/enums'
+import { type ListType,listTypeEnumValues, ListTypes } from '@/db/schema/enums'
 
 type Props = {
 	open: boolean
@@ -119,9 +119,7 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 					<DialogTitle>
 						Move {itemIds.length} item{itemIds.length === 1 ? '' : 's'}
 					</DialogTitle>
-					<DialogDescription>
-						Choose a destination list. Claims may be cleared if list types differ.
-					</DialogDescription>
+					<DialogDescription>Choose a destination list. Claims may be cleared if list types differ.</DialogDescription>
 				</DialogHeader>
 
 				<div className="space-y-4">
@@ -203,11 +201,7 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 								</Select>
 							</div>
 							<label className="flex items-center gap-2 text-sm">
-								<Checkbox
-									checked={newListPrivate}
-									onCheckedChange={v => setNewListPrivate(v === true)}
-									disabled={submitting}
-								/>
+								<Checkbox checked={newListPrivate} onCheckedChange={v => setNewListPrivate(v === true)} disabled={submitting} />
 								Private list
 							</label>
 						</div>
@@ -225,9 +219,7 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 							<Label htmlFor="purge-comments" className="font-normal">
 								Delete comments on moved items
 							</Label>
-							<p className="text-xs text-muted-foreground">
-								Recommended. Comments typically belong to the original list's context.
-							</p>
+							<p className="text-xs text-muted-foreground">Recommended. Comments typically belong to the original list's context.</p>
 						</div>
 					</div>
 

@@ -1,5 +1,17 @@
 import { useRouter } from '@tanstack/react-router'
-import { Archive, ArrowDown, ArrowUp, ExternalLink, Group, ListOrdered, MoreHorizontal, Pencil, Shuffle, Trash2, Ungroup } from 'lucide-react'
+import {
+	Archive,
+	ArrowDown,
+	ArrowUp,
+	ExternalLink,
+	Group,
+	ListOrdered,
+	MoreHorizontal,
+	Pencil,
+	Shuffle,
+	Trash2,
+	Ungroup,
+} from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -8,8 +20,6 @@ import { archiveItem, deleteItem } from '@/api/items'
 import type { GroupSummary } from '@/api/lists'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import PriorityIcon from '@/components/common/priority-icon'
-import { cn } from '@/lib/utils'
-import { priorityBorderClass } from '@/lib/priority-classes'
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -32,6 +42,8 @@ import {
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { Item } from '@/db/schema/items'
+import { priorityBorderClass } from '@/lib/priority-classes'
+import { cn } from '@/lib/utils'
 
 import { ItemFormDialog } from './item-form-dialog'
 import { PriceQuantityBadge } from './price-quantity-badge'
@@ -193,10 +205,7 @@ export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = fal
 							<Archive className="mr-2 size-4" /> Archive
 						</DropdownMenuItem>
 						<DropdownMenuSeparator />
-						<DropdownMenuItem
-							className="text-destructive focus:text-destructive"
-							onClick={() => setDeleteDialogOpen(true)}
-						>
+						<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteDialogOpen(true)}>
 							<Trash2 className="mr-2 size-4" /> Delete
 						</DropdownMenuItem>
 					</DropdownMenuContent>
@@ -209,9 +218,7 @@ export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = fal
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>Delete "{item.title}"?</AlertDialogTitle>
-						<AlertDialogDescription>
-							This will permanently remove this item and any associated claims or comments.
-						</AlertDialogDescription>
+						<AlertDialogDescription>This will permanently remove this item and any associated claims or comments.</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel>Cancel</AlertDialogCancel>

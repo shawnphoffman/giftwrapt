@@ -15,7 +15,7 @@ export type ScrapeResult = {
 	description?: string
 	price?: string
 	currency?: string
-	imageUrls: string[]
+	imageUrls: Array<string>
 	siteName?: string
 	rawResponse?: Record<string, string | number | boolean | null>
 }
@@ -25,9 +25,7 @@ const ScrapeUrlInputSchema = z.object({
 	itemId: z.number().int().positive().optional(),
 })
 
-export type ScrapeUrlResult =
-	| { kind: 'ok'; data: ScrapeResult; scrapeId: number | null }
-	| { kind: 'error'; reason: 'scrape-failed' }
+export type ScrapeUrlResult = { kind: 'ok'; data: ScrapeResult; scrapeId: number | null } | { kind: 'error'; reason: 'scrape-failed' }
 
 export const scrapeUrl = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware])

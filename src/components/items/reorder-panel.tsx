@@ -110,12 +110,12 @@ export function ReorderPanel({ listId, items, groups }: Props) {
 
 	const sensors = useSensors(
 		useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-		useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+		useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
 	)
 
 	const findContainer = useCallback((b: Bucket, id: EntryId | string): Priority | null => {
 		if (PRIORITY_ORDER.includes(id as Priority)) return id as Priority
-		for (const p of PRIORITY_ORDER) if (b[p].includes(id as EntryId)) return p
+		for (const p of PRIORITY_ORDER) if (b[p].includes(id)) return p
 		return null
 	}, [])
 
@@ -199,7 +199,7 @@ export function ReorderPanel({ listId, items, groups }: Props) {
 		}
 	}
 
-	const activeEntry = activeId ? entries.get(activeId) ?? null : null
+	const activeEntry = activeId ? (entries.get(activeId) ?? null) : null
 
 	return (
 		<div className="flex flex-col gap-3">
@@ -229,7 +229,7 @@ export function ReorderPanel({ listId, items, groups }: Props) {
 						>
 							{activeEntry ? <EntryRow entry={activeEntry} dragging /> : null}
 						</DragOverlay>,
-						document.body,
+						document.body
 					)}
 			</DndContext>
 		</div>
@@ -309,13 +309,17 @@ function EntryRow({ entry, dragging = false }: { entry: Entry; dragging?: boolea
 				<ul className="pl-8 text-xs text-muted-foreground space-y-0.5">
 					{children.length === 0 ? (
 						<li className="flex gap-1.5 italic">
-							<span aria-hidden="true" className="select-none">•</span>
+							<span aria-hidden="true" className="select-none">
+								•
+							</span>
 							<span>No items</span>
 						</li>
 					) : (
 						children.map(c => (
 							<li key={c.id} className="flex gap-1.5 truncate">
-								<span aria-hidden="true" className="select-none">•</span>
+								<span aria-hidden="true" className="select-none">
+									•
+								</span>
 								<span className="truncate">{c.title}</span>
 							</li>
 						))

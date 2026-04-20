@@ -25,7 +25,6 @@ type Props = {
 }
 
 export function GroupBlock({ group, items, groups, isOwner, onAddItem, onDelete, onMoveItem, onReorder }: Props) {
-	const useConnector = group.type === 'or' || group.type === 'order'
 	const showReorder = isOwner && group.type === 'order' && items.length > 1
 
 	return (
@@ -68,7 +67,7 @@ export function GroupBlock({ group, items, groups, isOwner, onAddItem, onDelete,
 				<div className="overflow-hidden">
 					{items.map((item, index) => (
 						<Fragment key={item.id}>
-							{useConnector && index > 0 && <GroupConnector type={group.type} />}
+							{index > 0 && <GroupConnector type={group.type} />}
 							<ItemEditRow
 								item={item}
 								onMoveClick={onMoveItem}

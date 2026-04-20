@@ -93,10 +93,10 @@ async function signUp(input: {
 			email: input.email,
 			password: PASSWORD,
 			name: input.name,
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 		} as any,
 	})
-	if (!result?.user?.id) {
+	if (!result.user.id) {
 		throw new Error(`signUp failed for ${input.email}`)
 	}
 
@@ -171,8 +171,14 @@ async function main() {
 
 	console.log('💞 Wiring up partnerships + guardianships...')
 	// Alice ↔ Bob — partnered.
-	await db.update(users).set({ partnerId: bobId }).where(sql`id = ${aliceId}`)
-	await db.update(users).set({ partnerId: aliceId }).where(sql`id = ${bobId}`)
+	await db
+		.update(users)
+		.set({ partnerId: bobId })
+		.where(sql`id = ${aliceId}`)
+	await db
+		.update(users)
+		.set({ partnerId: aliceId })
+		.where(sql`id = ${bobId}`)
 
 	// Alice is kid's guardian.
 	await db.insert(guardianships).values({ parentUserId: aliceId, childUserId: kidId })
@@ -230,10 +236,6 @@ async function main() {
 		.insert(lists)
 		.values({ name: "Kid's Wishlist", type: 'wishlist', ownerId: kidId, isPrimary: true })
 		.returning({ id: lists.id })
-
-	if (!aliceWishlist || !aliceTodo || !bobWishlist || !carolWishlist || !carolGiftIdeasForAlice || !kidWishlist) {
-		throw new Error('List insert did not return expected rows.')
-	}
 
 	console.log('🎁 Creating items...')
 	const aliceItemRows = await db
@@ -349,7 +351,6 @@ async function main() {
 		.insert(itemGroups)
 		.values({ listId: aliceWishlist.id, priority: 'normal' })
 		.returning({ id: itemGroups.id })
-	if (!diningGroup) throw new Error('itemGroup insert did not return a row.')
 
 	await db.insert(items).values([
 		{ listId: aliceWishlist.id, groupId: diningGroup.id, title: 'Nice dinner plates', priority: 'normal', quantity: 4 },

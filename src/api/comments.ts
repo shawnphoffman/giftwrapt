@@ -176,9 +176,7 @@ const UpdateCommentInputSchema = z.object({
 	comment: z.string().min(1).max(5000),
 })
 
-export type UpdateCommentResult =
-	| { kind: 'ok' }
-	| { kind: 'error'; reason: 'not-found' | 'not-yours' }
+export type UpdateCommentResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-yours' }
 
 export const updateItemComment = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware])
@@ -193,10 +191,7 @@ export const updateItemComment = createServerFn({ method: 'POST' })
 		if (!existing) return { kind: 'error', reason: 'not-found' }
 		if (existing.userId !== userId) return { kind: 'error', reason: 'not-yours' }
 
-		await db
-			.update(itemComments)
-			.set({ comment: data.comment })
-			.where(eq(itemComments.id, data.commentId))
+		await db.update(itemComments).set({ comment: data.comment }).where(eq(itemComments.id, data.commentId))
 
 		return { kind: 'ok' }
 	})
@@ -209,9 +204,7 @@ const DeleteCommentInputSchema = z.object({
 	commentId: z.number().int().positive(),
 })
 
-export type DeleteCommentResult =
-	| { kind: 'ok' }
-	| { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+export type DeleteCommentResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const deleteItemComment = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware])
@@ -296,12 +289,13 @@ export const getRecentComments = createServerFn({ method: 'GET' })
 
 		// Fetch commenter info.
 		const commenterIds = [...new Set(rows.map(r => r.userId))]
-		const commenters = commenterIds.length > 0
-			? await db.query.users.findMany({
-					where: (u, { inArray }) => inArray(u.id, commenterIds),
-					columns: { id: true, name: true, email: true, image: true },
-				})
-			: []
+		const commenters =
+			commenterIds.length > 0
+				? await db.query.users.findMany({
+						where: (u, { inArray }) => inArray(u.id, commenterIds),
+						columns: { id: true, name: true, email: true, image: true },
+					})
+				: []
 		const commenterMap = new Map(commenters.map(c => [c.id, c]))
 
 		return rows.map(r => ({

@@ -64,13 +64,7 @@ export type AddEditorResult =
 	| { kind: 'ok'; editor: EditorOnList }
 	| {
 			kind: 'error'
-			reason:
-				| 'list-not-found'
-				| 'not-owner'
-				| 'user-not-found'
-				| 'already-editor'
-				| 'cannot-add-self'
-				| 'user-is-child'
+			reason: 'list-not-found' | 'not-owner' | 'user-not-found' | 'already-editor' | 'cannot-add-self' | 'user-is-child'
 	  }
 
 export const addListEditor = createServerFn({ method: 'POST' })
@@ -161,10 +155,7 @@ export const getAddableEditors = createServerFn({ method: 'GET' })
 		const takenIds = existing.map(e => e.userId)
 
 		const rows = await db.query.users.findMany({
-			where:
-				takenIds.length > 0
-					? and(ne(users.id, ownerId), notInArray(users.id, takenIds))
-					: ne(users.id, ownerId),
+			where: takenIds.length > 0 ? and(ne(users.id, ownerId), notInArray(users.id, takenIds)) : ne(users.id, ownerId),
 			columns: { id: true, name: true, email: true, image: true, role: true },
 			orderBy: [asc(users.name), asc(users.email)],
 		})

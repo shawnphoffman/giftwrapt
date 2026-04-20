@@ -3,7 +3,7 @@ import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Star, StarOff, Trash2 
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { deleteList, setPrimaryList, updateList, type MyListRow as MyListRowType } from '@/api/lists'
+import { deleteList, type MyListRow as MyListRowType,setPrimaryList, updateList } from '@/api/lists'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import {
 	AlertDialog,
@@ -82,9 +82,7 @@ export function MyListRow({ list, showOwner }: Props) {
 				>
 					{list.name}
 				</Link>
-				{showOwner && (
-					<span className="text-xs text-muted-foreground truncate max-w-32">{showOwner.name || showOwner.email}</span>
-				)}
+				{showOwner && <span className="text-xs text-muted-foreground truncate max-w-32">{showOwner.name || showOwner.email}</span>}
 				{list.isPrimary && <Star className="size-4 text-yellow-500 fill-yellow-500 shrink-0" />}
 				<Badge variant="secondary" className="text-xs tabular-nums shrink-0">
 					{list.itemCount}
@@ -124,10 +122,7 @@ export function MyListRow({ list, showOwner }: Props) {
 								<ArchiveRestore className="mr-2 size-4" /> Restore
 							</DropdownMenuItem>
 						)}
-						<DropdownMenuItem
-							className="text-destructive focus:text-destructive"
-							onClick={() => setDeleteDialogOpen(true)}
-						>
+						<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteDialogOpen(true)}>
 							<Trash2 className="mr-2 size-4" /> Delete
 						</DropdownMenuItem>
 					</DropdownMenuContent>

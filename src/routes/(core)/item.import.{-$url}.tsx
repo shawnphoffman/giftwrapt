@@ -8,7 +8,6 @@ import { createItem } from '@/api/items'
 import { getMyLists, type MyListRow } from '@/api/lists'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import PriorityIcon from '@/components/common/priority-icon'
-import { priorityEnumValues, type Priority } from '@/db/schema/enums'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -16,6 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { type Priority,priorityEnumValues } from '@/db/schema/enums'
 
 export const Route = createFileRoute('/(core)/item/import/{-$url}')({
 	component: ItemImportPage,
@@ -78,8 +78,8 @@ function ItemImportPage() {
 		if (selectedListId || !myLists) return
 		const allOwned = [...publicLists, ...privateLists, ...giftIdeasLists]
 		const primary = allOwned.find(l => l.isPrimary)
-		const firstChildList = children.flatMap(c => c.lists)[0]
-		const pick = primary ?? allOwned[0] ?? editableLists[0] ?? firstChildList
+		const firstChildList = children.flatMap(c => c.lists).at(0)
+		const pick = primary ?? allOwned.at(0) ?? editableLists.at(0) ?? firstChildList
 		if (pick) setSelectedListId(String(pick.id))
 	}, [myLists, selectedListId, publicLists, privateLists, giftIdeasLists, editableLists, children])
 

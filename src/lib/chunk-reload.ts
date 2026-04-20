@@ -33,16 +33,16 @@ function isChunkLoadError(value: unknown): boolean {
 
 	if (value instanceof Error) {
 		if (value.name === 'ChunkLoadError') return true
-		return DYNAMIC_IMPORT_ERROR_PATTERNS.some((pattern) => value.message.includes(pattern))
+		return DYNAMIC_IMPORT_ERROR_PATTERNS.some(pattern => value.message.includes(pattern))
 	}
 
 	if (typeof value === 'string') {
-		return DYNAMIC_IMPORT_ERROR_PATTERNS.some((pattern) => value.includes(pattern))
+		return DYNAMIC_IMPORT_ERROR_PATTERNS.some(pattern => value.includes(pattern))
 	}
 
 	if (typeof value === 'object' && 'message' in value && typeof (value as { message: unknown }).message === 'string') {
 		const message = (value as { message: string }).message
-		return DYNAMIC_IMPORT_ERROR_PATTERNS.some((pattern) => message.includes(pattern))
+		return DYNAMIC_IMPORT_ERROR_PATTERNS.some(pattern => message.includes(pattern))
 	}
 
 	return false
@@ -84,11 +84,11 @@ export function setupChunkReloadHandler(): void {
 		window.location.reload()
 	}
 
-	window.addEventListener('error', (event) => {
+	window.addEventListener('error', event => {
 		recover(event.error ?? event.message)
 	})
 
-	window.addEventListener('unhandledrejection', (event) => {
+	window.addEventListener('unhandledrejection', event => {
 		recover(event.reason)
 	})
 }

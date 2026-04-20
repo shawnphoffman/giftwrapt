@@ -73,7 +73,11 @@ const ClaimGiftInputSchema = z.object({
 
 export type ClaimGiftResult =
 	| { kind: 'ok'; gift: GiftedItem }
-	| { kind: 'error'; reason: 'item-not-found' | 'not-visible' | 'cannot-claim-own-list' | 'group-already-claimed' | 'group-out-of-order'; blockingItemTitle?: string }
+	| {
+			kind: 'error'
+			reason: 'item-not-found' | 'not-visible' | 'cannot-claim-own-list' | 'group-already-claimed' | 'group-out-of-order'
+			blockingItemTitle?: string
+	  }
 	| { kind: 'error'; reason: 'over-claim'; remaining: number }
 
 export const claimItemGift = createServerFn({ method: 'POST' })
@@ -81,8 +85,9 @@ export const claimItemGift = createServerFn({ method: 'POST' })
 	.inputValidator((data: z.input<typeof ClaimGiftInputSchema>) => ClaimGiftInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<ClaimGiftResult> => {
 		const gifterId = context.session.user.id
-		// Populated on success so we can notify subscribers after the tx commits.
-		let committedListId: number | null = null
+		// Object holder so TS tracks mutation through the tx closure; a plain `let`
+		// gets re-narrowed to its initializer type once control leaves the closure.
+		const notifyCtx = { listId: null as number | null }
 
 		const result: ClaimGiftResult = await db.transaction(async (tx): Promise<ClaimGiftResult> => {
 			// Lock the item row. Any concurrent claim tx on this item waits here.
@@ -141,7 +146,7 @@ export const claimItemGift = createServerFn({ method: 'POST' })
 						if (siblings.length > 0) {
 							return { kind: 'error', reason: 'group-already-claimed', blockingItemTitle: siblings[0].title }
 						}
-					} else if (group.type === 'order' && lockedItem.group_sort_order !== null) {
+					} else if (lockedItem.group_sort_order !== null) {
 						// Find any earlier item in the group with remaining quantity.
 						const earlierItems = await tx
 							.select({
@@ -197,11 +202,11 @@ export const claimItemGift = createServerFn({ method: 'POST' })
 				})
 				.returning()
 
-			committedListId = lockedItem.list_id
+			notifyCtx.listId = lockedItem.list_id
 			return { kind: 'ok', gift: inserted }
 		})
 
-		if (committedListId !== null) notifyListChange(committedListId)
+		if (notifyCtx.listId !== null) notifyListChange(notifyCtx.listId)
 		return result
 	})
 
@@ -236,7 +241,7 @@ export const updateItemGift = createServerFn({ method: 'POST' })
 	.inputValidator((data: z.input<typeof UpdateGiftInputSchema>) => UpdateGiftInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<UpdateGiftResult> => {
 		const gifterId = context.session.user.id
-		let committedListId: number | null = null
+		const notifyCtx = { listId: null as number | null }
 
 		const result: UpdateGiftResult = await db.transaction(async (tx): Promise<UpdateGiftResult> => {
 			// Resolve the claim → item first so we can lock the correct item row.
@@ -279,11 +284,11 @@ export const updateItemGift = createServerFn({ method: 'POST' })
 				.where(eq(giftedItems.id, gift.id))
 				.returning()
 
-			committedListId = lockedItem.list_id
+			notifyCtx.listId = lockedItem.list_id
 			return { kind: 'ok', gift: updated }
 		})
 
-		if (committedListId !== null) notifyListChange(committedListId)
+		if (notifyCtx.listId !== null) notifyListChange(notifyCtx.listId)
 		return result
 	})
 
@@ -316,7 +321,7 @@ export const unclaimItemGift = createServerFn({ method: 'POST' })
 			.from(giftedItems)
 			.innerJoin(items, eq(items.id, giftedItems.itemId))
 			.where(eq(giftedItems.id, data.giftId))
-			.then(rows => rows[0])
+			.then(rows => rows.at(0))
 		if (!existing) return { kind: 'error', reason: 'not-found' }
 		if (existing.gifterId !== gifterId) return { kind: 'error', reason: 'not-yours' }
 
@@ -338,7 +343,7 @@ const UpdateCoGiftersInputSchema = z.object({
 })
 
 export type UpdateCoGiftersResult =
-	| { kind: 'ok'; additionalGifterIds: string[] | null }
+	| { kind: 'ok'; additionalGifterIds: Array<string> | null }
 	| { kind: 'error'; reason: 'not-found' | 'not-yours' }
 
 export const updateCoGifters = createServerFn({ method: 'POST' })

@@ -20,8 +20,9 @@
  * just need to regain access to an existing account.
  */
 
-import { eq } from 'drizzle-orm'
 import { parseArgs } from 'node:util'
+
+import { eq } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { users } from '@/db/schema'
@@ -71,10 +72,10 @@ async function main() {
 			email,
 			password,
 			name,
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			 
 		} as any,
 	})
-	if (!result?.user?.id) {
+	if (!result.user.id) {
 		die('signUpEmail did not return a user id')
 	}
 

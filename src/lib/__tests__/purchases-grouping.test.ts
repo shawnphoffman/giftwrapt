@@ -78,9 +78,7 @@ describe('groupByPerson', () => {
 	it('keeps partnered recipients separate if only one appears', () => {
 		// Alice has a partner but Bob isn't in the list. We shouldn't invent
 		// a partnerName from a partnerId that doesn't have any items.
-		const groups = groupByPerson([
-			item({ ownerId: 'alice', ownerName: 'Alice', ownerEmail: 'alice@x', ownerPartnerId: 'bob', cost: 40 }),
-		])
+		const groups = groupByPerson([item({ ownerId: 'alice', ownerName: 'Alice', ownerEmail: 'alice@x', ownerPartnerId: 'bob', cost: 40 })])
 		expect(groups).toHaveLength(1)
 		expect(groups[0].partnerName).toBeNull()
 	})
@@ -101,9 +99,7 @@ describe('groupByPerson', () => {
 	})
 
 	it('uses email as display name when name is null', () => {
-		const groups = groupByPerson([
-			item({ ownerId: 'alice', ownerName: null, ownerEmail: 'alice@example.com', cost: 10 }),
-		])
+		const groups = groupByPerson([item({ ownerId: 'alice', ownerName: null, ownerEmail: 'alice@example.com', cost: 10 })])
 		expect(groups[0].name).toBe('alice@example.com')
 	})
 })

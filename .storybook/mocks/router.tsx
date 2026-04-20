@@ -1,6 +1,5 @@
-import type { PropsWithChildren } from 'react'
-
 import { getRouterContext } from '@tanstack/react-router'
+import type { PropsWithChildren } from 'react'
 
 /**
  * Minimal mock of the TanStack Router context so components that call

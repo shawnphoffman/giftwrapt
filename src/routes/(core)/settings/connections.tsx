@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Baby } from 'lucide-react'
 
-import { getChildLists, getMyChildren, type ChildUser } from '@/api/children'
+import { type ChildUser,getChildLists, getMyChildren } from '@/api/children'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import UserAvatar from '@/components/common/user-avatar'
 import { Badge } from '@/components/ui/badge'

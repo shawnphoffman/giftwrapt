@@ -48,9 +48,7 @@ export function PurchaseEditDialog({ open, onOpenChange, purchase }: Props) {
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent>
-				{purchase && (
-					<PurchaseEditForm key={purchaseFormKey(purchase)} purchase={purchase} onOpenChange={onOpenChange} />
-				)}
+				{purchase && <PurchaseEditForm key={purchaseFormKey(purchase)} purchase={purchase} onOpenChange={onOpenChange} />}
 			</DialogContent>
 		</Dialog>
 	)
@@ -60,13 +58,7 @@ function purchaseFormKey(p: EditablePurchase): string {
 	return p.type === 'claim' ? `claim-${p.giftId}` : `addon-${p.addonId}`
 }
 
-function PurchaseEditForm({
-	purchase,
-	onOpenChange,
-}: {
-	purchase: EditablePurchase
-	onOpenChange: (open: boolean) => void
-}) {
+function PurchaseEditForm({ purchase, onOpenChange }: { purchase: EditablePurchase; onOpenChange: (open: boolean) => void }) {
 	const router = useRouter()
 	const [submitting, setSubmitting] = useState(false)
 	const [error, setError] = useState<string | null>(null)

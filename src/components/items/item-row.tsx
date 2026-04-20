@@ -200,11 +200,7 @@ export default function ItemRow({ item, hidePriority = false, lockReason }: Prop
 						<Badge
 							variant="outline"
 							className="text-xs text-muted-foreground"
-							title={
-								lockReason === 'order'
-									? 'Claim the item above first'
-									: 'Someone already claimed an item in this pick-one group'
-							}
+							title={lockReason === 'order' ? 'Claim the item above first' : 'Someone already claimed an item in this pick-one group'}
 						>
 							<Lock className="size-3 mr-1" />
 							Locked

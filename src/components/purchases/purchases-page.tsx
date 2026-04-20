@@ -107,9 +107,9 @@ export function PurchasesPageContent({ claims, addons }: MyPurchasesResult) {
 				</div>
 
 				<p className="text-sm text-muted-foreground">
-					This page displays all of your purchases and addons. If you have a partner in the system, their purchases will be
-					displayed here as well, excluding gifts for you. You can edit purchases to add private information like pricing and
-					notes. This information will not be visible to the recipient.
+					This page displays all of your purchases and addons. If you have a partner in the system, their purchases will be displayed here
+					as well, excluding gifts for you. You can edit purchases to add private information like pricing and notes. This information will
+					not be visible to the recipient.
 				</p>
 
 				{!hasAny ? (
@@ -197,7 +197,7 @@ function PurchaseRowView({ purchase, showOwnerAvatar, onEdit }: RowProps) {
 	const url = purchase.type === 'claim' ? purchase.itemUrl : null
 	const hasNotes = !!purchase.notes
 	const isAddon = purchase.type === 'addon'
-	const isArchivedAddon = isAddon && (purchase as AddonPurchaseRow).isArchived
+	const isArchivedAddon = isAddon && (purchase).isArchived
 
 	return (
 		<div className="flex items-center gap-3 p-3">
@@ -211,12 +211,7 @@ function PurchaseRowView({ purchase, showOwnerAvatar, onEdit }: RowProps) {
 				<div className="font-medium leading-tight truncate flex items-center gap-2">
 					<span className="truncate">{title}</span>
 					{url && (
-						<a
-							href={url}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="text-muted-foreground hover:text-foreground shrink-0"
-						>
+						<a href={url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground shrink-0">
 							<ExternalLink className="size-4" />
 						</a>
 					)}

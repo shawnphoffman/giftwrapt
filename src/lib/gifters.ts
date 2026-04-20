@@ -36,10 +36,7 @@ export function formatGifterNames(names: ReadonlyArray<string>): string {
 // Expand a single gifter id into their display name plus their partner's
 // display name (when the partner is resolvable). Unknown ids return [] so
 // the caller can concat safely.
-export function namesForGifter(
-	id: string,
-	lookup: ReadonlyMap<string, PartneredUser>
-): Array<string> {
+export function namesForGifter(id: string, lookup: ReadonlyMap<string, PartneredUser>): Array<string> {
 	const user = lookup.get(id)
 	if (!user) return []
 	const out = [displayName(user)]

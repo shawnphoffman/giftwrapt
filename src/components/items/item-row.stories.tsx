@@ -142,10 +142,7 @@ export const PartiallyClaimedMultipleGifters: Story = {
 			title: 'Wine glasses',
 			quantity: 6,
 			price: '$12 each',
-			gifts: [
-				makeGift({ id: 1, quantity: 2 }),
-				makeGift({ id: 2, quantity: 2, gifterId: thirdGifter.id, gifter: thirdGifter }),
-			],
+			gifts: [makeGift({ id: 1, quantity: 2 }), makeGift({ id: 2, quantity: 2, gifterId: thirdGifter.id, gifter: thirdGifter })],
 		}),
 	},
 }

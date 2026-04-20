@@ -114,8 +114,8 @@ export function PurchasesSummaryContent({ items }: Props) {
 		const totalAddons = filtered.filter(i => i.type === 'addon').length
 		const totalItems = totalGifts + totalAddons
 
-		const giftsTotalSpend = filtered.reduce((s, i) => s + (i.type === 'claim' ? i.cost ?? 0 : 0), 0)
-		const addonsTotalSpend = filtered.reduce((s, i) => s + (i.type === 'addon' ? i.cost ?? 0 : 0), 0)
+		const giftsTotalSpend = filtered.reduce((s, i) => s + (i.type === 'claim' ? (i.cost ?? 0) : 0), 0)
+		const addonsTotalSpend = filtered.reduce((s, i) => s + (i.type === 'addon' ? (i.cost ?? 0) : 0), 0)
 		const totalSpend = giftsTotalSpend + addonsTotalSpend
 
 		const itemsWithCost = filtered.filter(i => (i.cost ?? 0) > 0)
@@ -185,25 +185,26 @@ export function PurchasesSummaryContent({ items }: Props) {
 						<div className="border rounded-lg bg-accent p-4 flex flex-col gap-4">
 							<div className="text-base font-semibold">Summary Metrics</div>
 							<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4">
-								<Metric
-									label="Average Spend/Gift (excl. $0)"
-									value={<MoneyChip amount={metrics.avgSpendPerGift} variant="green" />}
-								/>
-								<Metric
-									label="Average Spend/Person"
-									value={<MoneyChip amount={metrics.avgSpendPerPerson} variant="green" />}
-								/>
+								<Metric label="Average Spend/Gift (excl. $0)" value={<MoneyChip amount={metrics.avgSpendPerGift} variant="green" />} />
+								<Metric label="Average Spend/Person" value={<MoneyChip amount={metrics.avgSpendPerPerson} variant="green" />} />
 								<Metric
 									label="Total People"
 									tooltip="Total unique recipients / recipients with at least one priced item"
-									value={<span className="text-lg font-semibold tabular-nums">{metrics.totalPeople} / {metrics.peopleWithSpend}</span>}
+									value={
+										<span className="text-lg font-semibold tabular-nums">
+											{metrics.totalPeople} / {metrics.peopleWithSpend}
+										</span>
+									}
 								/>
 								<Metric
 									label="Total Gifts"
 									tooltip="Total items (on-list gifts / off-list addons)"
 									value={
 										<span className="text-lg font-semibold tabular-nums">
-											{metrics.totalItems} <span className="text-sm text-muted-foreground">({metrics.totalGifts} / {metrics.totalAddons})</span>
+											{metrics.totalItems}{' '}
+											<span className="text-sm text-muted-foreground">
+												({metrics.totalGifts} / {metrics.totalAddons})
+											</span>
 										</span>
 									}
 								/>
@@ -211,18 +212,9 @@ export function PurchasesSummaryContent({ items }: Props) {
 									label="Avg Gifts/Person"
 									value={<span className="text-lg font-semibold tabular-nums">{metrics.avgGiftsPerPerson.toFixed(1)}</span>}
 								/>
-								<Metric
-									label="Total Spend"
-									value={<MoneyChip amount={metrics.totalSpend} variant="green" />}
-								/>
-								<Metric
-									label="Gifts Total Spend"
-									value={<MoneyChip amount={metrics.giftsTotalSpend} variant="green" />}
-								/>
-								<Metric
-									label="Addons Total Spend"
-									value={<MoneyChip amount={metrics.addonsTotalSpend} variant="orange" />}
-								/>
+								<Metric label="Total Spend" value={<MoneyChip amount={metrics.totalSpend} variant="green" />} />
+								<Metric label="Gifts Total Spend" value={<MoneyChip amount={metrics.giftsTotalSpend} variant="green" />} />
+								<Metric label="Addons Total Spend" value={<MoneyChip amount={metrics.addonsTotalSpend} variant="orange" />} />
 							</div>
 						</div>
 
@@ -244,20 +236,14 @@ export function PurchasesSummaryContent({ items }: Props) {
 										const purchaseCount = g.claimCount + g.addonCount
 										return (
 											<Fragment key={g.key}>
-												<TableRow
-													className="cursor-pointer"
-													data-state={isOpen ? 'open' : 'closed'}
-													onClick={() => toggleOpen(g.key)}
-												>
+												<TableRow className="cursor-pointer" data-state={isOpen ? 'open' : 'closed'} onClick={() => toggleOpen(g.key)}>
 													<TableCell className="pl-3 py-2">
 														<div className="flex items-center gap-3 min-w-0">
 															<UserAvatar name={g.name} image={g.image} size="medium" />
 															<div className="flex flex-col min-w-0">
 																<div className="flex items-center gap-2 min-w-0">
 																	<span className="font-medium truncate">{g.name}</span>
-																	{g.partnerName && (
-																		<span className="text-xs text-muted-foreground truncate">& {g.partnerName}</span>
-																	)}
+																	{g.partnerName && <span className="text-xs text-muted-foreground truncate">& {g.partnerName}</span>}
 																</div>
 																<span className="text-xs text-muted-foreground">
 																	{purchaseCount} {purchaseCount === 1 ? 'purchase' : 'purchases'}
@@ -275,9 +261,7 @@ export function PurchasesSummaryContent({ items }: Props) {
 														<MoneyChip amount={g.totalSpent} variant="green" />
 													</TableCell>
 													<TableCell className="pr-3 text-muted-foreground">
-														<ChevronDown
-															className={`size-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-														/>
+														<ChevronDown className={`size-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
 													</TableCell>
 												</TableRow>
 												{isOpen && (
@@ -308,9 +292,7 @@ export function PurchasesSummaryContent({ items }: Props) {
 																				x{item.quantity}
 																			</Badge>
 																		)}
-																		{item.cost != null && (
-																			<span className="tabular-nums text-xs shrink-0">${fmt(item.cost)}</span>
-																		)}
+																		{item.cost != null && <span className="tabular-nums text-xs shrink-0">${fmt(item.cost)}</span>}
 																		{item.isOwn && !item.isCoGifter && (
 																			<Button
 																				variant="ghost"
@@ -395,4 +377,3 @@ function MoneyChip({ amount, variant }: { amount: number; variant: 'green' | 'or
 		</span>
 	)
 }
-

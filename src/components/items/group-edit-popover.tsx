@@ -5,13 +5,13 @@ import { toast } from 'sonner'
 
 import { updateItemGroup } from '@/api/groups'
 import type { GroupSummary } from '@/api/lists'
-import { priorityEnumValues, type Priority } from '@/db/schema/enums'
 import PriorityIcon from '@/components/common/priority-icon'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { type Priority,priorityEnumValues } from '@/db/schema/enums'
 
 const PriorityLabels: Record<Priority, string> = {
 	low: 'Low',

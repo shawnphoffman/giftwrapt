@@ -70,9 +70,7 @@ export const itemGroups = pgTable(
 		sortOrder: integer('sort_order'),
 		...timestamps,
 	},
-	table => [
-		index('item_groups_listId_idx').on(table.listId),
-	]
+	table => [index('item_groups_listId_idx').on(table.listId)]
 )
 
 export type ItemGroup = typeof itemGroups.$inferSelect

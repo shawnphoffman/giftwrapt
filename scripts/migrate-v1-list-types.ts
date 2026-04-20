@@ -94,11 +94,11 @@ async function main() {
 
 	// Normalize values.
 	const distinctValues = await pool.query('SELECT DISTINCT type FROM lists')
-	const unknowns: string[] = []
+	const unknowns: Array<string> = []
 
 	for (const row of distinctValues.rows) {
 		const raw = (row.type ?? '').toString().toLowerCase().trim()
-		const mapped = VALUE_MAP[raw] ?? null
+		const mapped = VALUE_MAP[raw]
 		if (!mapped && raw) {
 			unknowns.push(raw)
 		}
@@ -114,7 +114,10 @@ async function main() {
 		await pool.query('UPDATE lists SET type = $1 WHERE LOWER(TRIM(type)) = $2', [v2, v1])
 	}
 	// Catch-all for NULLs, empties, and unrecognized values.
-	await pool.query(`UPDATE lists SET type = $1 WHERE type IS NULL OR TRIM(type) = '' OR type NOT IN ('wishlist', 'christmas', 'birthday', 'giftideas', 'todos', 'test')`, [DEFAULT_VALUE])
+	await pool.query(
+		`UPDATE lists SET type = $1 WHERE type IS NULL OR TRIM(type) = '' OR type NOT IN ('wishlist', 'christmas', 'birthday', 'giftideas', 'todos', 'test')`,
+		[DEFAULT_VALUE]
+	)
 
 	// Convert the column to use the enum.
 	await pool.query('ALTER TABLE lists ALTER COLUMN type TYPE list_type USING type::list_type')

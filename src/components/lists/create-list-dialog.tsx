@@ -8,6 +8,7 @@ import { z } from 'zod'
 import { createList } from '@/api/lists'
 import { getPotentialPartners } from '@/api/user'
 import ListTypeIcon from '@/components/common/list-type-icon'
+import { MarkdownTextarea } from '@/components/common/markdown-textarea'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -15,8 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { MarkdownTextarea } from '@/components/common/markdown-textarea'
-import { ListTypes, listTypeEnumValues } from '@/db/schema/enums'
+import { listTypeEnumValues,ListTypes } from '@/db/schema/enums'
 
 type Props = {
 	open: boolean
@@ -72,11 +72,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 				})
 
 				if (result.kind === 'error') {
-					switch (result.reason) {
-						case 'target-required':
-							setError('Gift Ideas lists require a target person.')
-							break
-					}
+					setError('Gift Ideas lists require a target person.')
 					return
 				}
 

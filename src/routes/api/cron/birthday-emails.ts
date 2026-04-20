@@ -22,8 +22,18 @@ import { getAppSettings } from '@/lib/settings'
 // Protected by CRON_SECRET header check to prevent public access.
 
 const MONTHS: ReadonlyArray<BirthMonth> = [
-	'january', 'february', 'march', 'april', 'may', 'june',
-	'july', 'august', 'september', 'october', 'november', 'december',
+	'january',
+	'february',
+	'march',
+	'april',
+	'may',
+	'june',
+	'july',
+	'august',
+	'september',
+	'october',
+	'november',
+	'december',
 ]
 
 const FOLLOW_UP_DAYS = 14
@@ -52,15 +62,11 @@ export const Route = createFileRoute('/api/cron/birthday-emails')({
 
 				// === Day-of birthday emails ===
 				const birthdayUsers = await db.query.users.findMany({
-					where: and(
-						eq(users.birthMonth, todayMonth),
-						eq(users.birthDay, todayDay),
-						eq(users.banned, false)
-					),
+					where: and(eq(users.birthMonth, todayMonth), eq(users.birthDay, todayDay), eq(users.banned, false)),
 					columns: { id: true, name: true, email: true },
 				})
 
-				const sent: string[] = []
+				const sent: Array<string> = []
 				for (const user of birthdayUsers) {
 					try {
 						await sendBirthdayEmail(user.name || 'there', user.email)
@@ -77,15 +83,11 @@ export const Route = createFileRoute('/api/cron/birthday-emails')({
 				const followUpDay = followUpDate.getDate()
 
 				const followUpUsers = await db.query.users.findMany({
-					where: and(
-						eq(users.birthMonth, followUpMonth),
-						eq(users.birthDay, followUpDay),
-						eq(users.banned, false)
-					),
+					where: and(eq(users.birthMonth, followUpMonth), eq(users.birthDay, followUpDay), eq(users.banned, false)),
 					columns: { id: true, name: true, email: true },
 				})
 
-				const followUpSent: string[] = []
+				const followUpSent: Array<string> = []
 				for (const user of followUpUsers) {
 					try {
 						// Fetch archived gifted items on this user's lists along with

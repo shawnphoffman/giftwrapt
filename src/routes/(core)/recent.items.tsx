@@ -49,8 +49,8 @@ function RecentItemsPage() {
 											{item.listOwnerName || item.listOwnerEmail} &middot;{' '}
 											<Link to="/lists/$listId" params={{ listId: String(item.listId) }} className="hover:underline">
 												{item.listName}
-											</Link>
-											{' '}&middot; {new Date(item.createdAt).toLocaleDateString()}
+											</Link>{' '}
+											&middot; {new Date(item.createdAt).toLocaleDateString()}
 										</div>
 									</div>
 									{domain && (
@@ -59,10 +59,14 @@ function RecentItemsPage() {
 										</Badge>
 									)}
 									{item.price && (
-										<Badge variant="outline" className="text-xs shrink-0">${item.price}</Badge>
+										<Badge variant="outline" className="text-xs shrink-0">
+											${item.price}
+										</Badge>
 									)}
 									{item.quantity > 1 && (
-										<Badge variant="secondary" className="text-xs tabular-nums shrink-0">x{item.quantity}</Badge>
+										<Badge variant="secondary" className="text-xs tabular-nums shrink-0">
+											x{item.quantity}
+										</Badge>
 									)}
 								</div>
 							)
