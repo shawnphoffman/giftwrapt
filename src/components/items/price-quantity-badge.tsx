@@ -18,9 +18,13 @@ export function PriceQuantityBadge({ price, quantity, className }: Props) {
 				className
 			)}
 		>
-			{showPrice && <span className="px-2 py-0.5 text-foreground">${price}</span>}
+			{showPrice && (
+				<span className={cn('py-0.5 pl-2 text-foreground', showQty ? 'pr-1' : 'pr-2')}>${price}</span>
+			)}
 			{showPrice && showQty && <span className="w-px bg-border" aria-hidden />}
-			{showQty && <span className="px-2 py-0.5 text-foreground">x{quantity}</span>}
+			{showQty && (
+				<span className={cn('py-0.5 pr-2 text-foreground', showPrice ? 'pl-1' : 'pl-2')}>x{quantity}</span>
+			)}
 		</span>
 	)
 }
