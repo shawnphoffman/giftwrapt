@@ -21,6 +21,27 @@ export const updateItem = ok
 export const deleteItem = ok
 export const archiveItem = ok
 export const moveItemToList = ok
+export const archiveItems = async (): Promise<{ kind: 'ok'; updated: number }> => ({ kind: 'ok', updated: 0 })
+export const deleteItems = async (): Promise<{ kind: 'ok'; deleted: number }> => ({ kind: 'ok', deleted: 0 })
+export const setItemsPriority = async (): Promise<{ kind: 'ok'; updated: number }> => ({ kind: 'ok', updated: 0 })
+export const reorderItems = async (): Promise<{ kind: 'ok'; updated: number }> => ({ kind: 'ok', updated: 0 })
+export const reorderListEntries = async (): Promise<{ kind: 'ok'; updatedItems: number; updatedGroups: number }> => ({
+	kind: 'ok',
+	updatedItems: 0,
+	updatedGroups: 0,
+})
+export const setGroupsPriority = async (): Promise<{ kind: 'ok'; updated: number }> => ({ kind: 'ok', updated: 0 })
+export const deleteGroups = async (): Promise<{ kind: 'ok'; deletedGroups: number; deletedItems: number }> => ({
+	kind: 'ok',
+	deletedGroups: 0,
+	deletedItems: 0,
+})
+export const moveItemsToList = async (): Promise<{ kind: 'ok'; moved: number; claimsCleared: number; commentsDeleted: number }> => ({
+	kind: 'ok',
+	moved: 0,
+	claimsCleared: 0,
+	commentsDeleted: 0,
+})
 
 // @/api/groups
 export const createItemGroup = ok
