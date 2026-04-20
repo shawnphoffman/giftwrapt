@@ -149,9 +149,7 @@ async function main() {
 	await reset()
 
 	console.log('👤 Creating users...')
-	// admin is created so the admin plugin has someone to authenticate as later;
-	// we don't need its ID for any other seeded rows.
-	await signUp({ email: 'admin@example.test', name: 'Admin', role: 'admin' })
+	const adminId = await signUp({ email: 'admin@example.test', name: 'Admin', role: 'admin' })
 	const aliceId = await signUp({
 		email: 'alice@example.test',
 		name: 'Alice',
@@ -356,6 +354,204 @@ async function main() {
 		{ listId: aliceWishlist.id, groupId: diningGroup.id, title: 'Nice dinner plates', priority: 'normal', quantity: 4 },
 		{ listId: aliceWishlist.id, groupId: diningGroup.id, title: 'Matching bowls', priority: 'normal', quantity: 4 },
 	])
+
+	// ------------------------------------------------------------------
+	// Admin's own wishlist — a kitchen-sink showcase so local dev can see
+	// every priority, group type, and item variation in one place.
+	// ------------------------------------------------------------------
+	console.log('🧪 Seeding admin showcase list...')
+	const [adminWishlist] = await db
+		.insert(lists)
+		.values({
+			name: "Admin's Showcase Wishlist",
+			type: 'wishlist',
+			ownerId: adminId,
+			isPrimary: true,
+			description: 'A kitchen-sink list demonstrating priorities, groups, quantities, and prices.',
+		})
+		.returning({ id: lists.id })
+
+	// Standalone items — one of each priority, mix of quantities + prices.
+	await db.insert(items).values([
+		{
+			listId: adminWishlist.id,
+			title: 'Espresso machine',
+			priority: 'very-high',
+			url: 'https://example.com/espresso',
+			notes: 'Dual boiler, PID controlled.',
+			quantity: 1,
+			price: '1299.00',
+			currency: 'USD',
+		},
+		{
+			listId: adminWishlist.id,
+			title: 'Mechanical keyboard',
+			priority: 'high',
+			quantity: 1,
+			price: '189.99',
+			currency: 'USD',
+		},
+		{
+			listId: adminWishlist.id,
+			title: 'Specialty coffee beans',
+			priority: 'normal',
+			quantity: 6,
+			price: '22.50',
+			currency: 'USD',
+			notes: 'Light roast, single origin.',
+		},
+		{
+			listId: adminWishlist.id,
+			title: 'Wool socks',
+			priority: 'low',
+			quantity: 12,
+			price: '14.00',
+			currency: 'USD',
+		},
+		{
+			listId: adminWishlist.id,
+			title: 'Limited edition vinyl',
+			priority: 'normal',
+			availability: 'unavailable',
+			quantity: 1,
+			price: '45.00',
+			currency: 'USD',
+		},
+		{
+			listId: adminWishlist.id,
+			title: 'Nice pen',
+			priority: 'low',
+			quantity: 2,
+			price: '8.99',
+			currency: 'USD',
+		},
+	])
+
+	// Four groups, one per priority, plus type variety and an empty group.
+
+	// very-high priority: "order" group — gaming console before accessories.
+	const [consoleSetup] = await db
+		.insert(itemGroups)
+		.values({ listId: adminWishlist.id, name: 'Console setup', type: 'order', priority: 'very-high' })
+		.returning({ id: itemGroups.id })
+
+	await db.insert(items).values([
+		{
+			listId: adminWishlist.id,
+			groupId: consoleSetup.id,
+			title: 'Gaming console',
+			priority: 'very-high',
+			quantity: 1,
+			price: '499.99',
+			currency: 'USD',
+			groupSortOrder: 1,
+		},
+		{
+			listId: adminWishlist.id,
+			groupId: consoleSetup.id,
+			title: 'Extra controller',
+			priority: 'very-high',
+			quantity: 2,
+			price: '69.99',
+			currency: 'USD',
+			groupSortOrder: 2,
+		},
+		{
+			listId: adminWishlist.id,
+			groupId: consoleSetup.id,
+			title: 'Launch title game',
+			priority: 'high',
+			quantity: 1,
+			price: '59.99',
+			currency: 'USD',
+			groupSortOrder: 3,
+		},
+	])
+
+	// high priority: "or" group — pick one camera.
+	const [cameraPick] = await db
+		.insert(itemGroups)
+		.values({ listId: adminWishlist.id, name: 'Pick one camera', type: 'or', priority: 'high' })
+		.returning({ id: itemGroups.id })
+
+	await db.insert(items).values([
+		{
+			listId: adminWishlist.id,
+			groupId: cameraPick.id,
+			title: 'Mirrorless camera body A',
+			priority: 'high',
+			quantity: 1,
+			price: '1499.00',
+			currency: 'USD',
+		},
+		{
+			listId: adminWishlist.id,
+			groupId: cameraPick.id,
+			title: 'Mirrorless camera body B',
+			priority: 'high',
+			quantity: 1,
+			price: '1699.00',
+			currency: 'USD',
+		},
+		{
+			listId: adminWishlist.id,
+			groupId: cameraPick.id,
+			title: 'Mirrorless camera body C (refurb)',
+			priority: 'normal',
+			quantity: 1,
+			price: '899.00',
+			currency: 'USD',
+		},
+	])
+
+	// normal priority: "or" group — large multi-item group showcasing a
+	// multitude of alternatives.
+	const [bookPick] = await db
+		.insert(itemGroups)
+		.values({ listId: adminWishlist.id, name: 'Any of these books', type: 'or', priority: 'normal' })
+		.returning({ id: itemGroups.id })
+
+	await db.insert(items).values([
+		{ listId: adminWishlist.id, groupId: bookPick.id, title: 'The Pragmatic Programmer', priority: 'normal', quantity: 1, price: '34.99', currency: 'USD' },
+		{ listId: adminWishlist.id, groupId: bookPick.id, title: 'Designing Data-Intensive Applications', priority: 'normal', quantity: 1, price: '59.99', currency: 'USD' },
+		{ listId: adminWishlist.id, groupId: bookPick.id, title: 'Crafting Interpreters', priority: 'normal', quantity: 1, price: '39.99', currency: 'USD' },
+		{ listId: adminWishlist.id, groupId: bookPick.id, title: 'The Mythical Man-Month', priority: 'low', quantity: 1, price: '24.99', currency: 'USD' },
+		{ listId: adminWishlist.id, groupId: bookPick.id, title: 'Code Complete', priority: 'low', quantity: 1, price: '44.99', currency: 'USD' },
+	])
+
+	// low priority: "order" group — home gym bundle.
+	const [homeGym] = await db
+		.insert(itemGroups)
+		.values({ listId: adminWishlist.id, name: 'Home gym starter', type: 'order', priority: 'low' })
+		.returning({ id: itemGroups.id })
+
+	await db.insert(items).values([
+		{
+			listId: adminWishlist.id,
+			groupId: homeGym.id,
+			title: 'Yoga mat',
+			priority: 'low',
+			quantity: 1,
+			price: '39.00',
+			currency: 'USD',
+			groupSortOrder: 1,
+		},
+		{
+			listId: adminWishlist.id,
+			groupId: homeGym.id,
+			title: 'Adjustable dumbbells',
+			priority: 'normal',
+			quantity: 2,
+			price: '299.00',
+			currency: 'USD',
+			groupSortOrder: 2,
+		},
+	])
+
+	// Empty group — exists to demonstrate zero-child rendering.
+	await db
+		.insert(itemGroups)
+		.values({ listId: adminWishlist.id, name: 'Future ideas (empty)', type: 'or', priority: 'normal' })
 
 	console.log('')
 	console.log('✅ Seed complete.')
