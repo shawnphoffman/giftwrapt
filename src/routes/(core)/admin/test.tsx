@@ -1,22 +1,60 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { AlertTriangle, Info, Star } from 'lucide-react'
+import { AlertTriangle, AtSign, Bold, ChevronRight, Copy, Info, Italic, MoreHorizontal, Search, Star, Underline } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { Avatar, AvatarFallback, AvatarGroup, AvatarGroupCount, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
+import {
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+	BreadcrumbList,
+	BreadcrumbPage,
+	BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuGroup,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuShortcut,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from '@/components/ui/input-group'
 import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 export const Route = createFileRoute('/(core)/admin/test')({
 	component: RouteComponent,
@@ -331,6 +369,149 @@ function RouteComponent() {
 
 				<Separator />
 
+				{/* FIELD COMPOSITION */}
+				<Section title="Field composition" description="Canonical shadcn form layout: FieldGroup + Field + FieldLabel + FieldDescription + FieldError.">
+					<FieldGroup>
+						<Field>
+							<FieldLabel htmlFor="theme-field-email">Email</FieldLabel>
+							<Input id="theme-field-email" placeholder="hello@example.com" />
+							<FieldDescription>We'll never share this. Helper copy lives here.</FieldDescription>
+						</Field>
+						<Field data-invalid>
+							<FieldLabel htmlFor="theme-field-invalid">Invalid field</FieldLabel>
+							<Input id="theme-field-invalid" aria-invalid defaultValue="not-an-email" />
+							<FieldError>Must be a valid email address.</FieldError>
+						</Field>
+						<Field data-disabled>
+							<FieldLabel htmlFor="theme-field-disabled">Disabled field</FieldLabel>
+							<Input id="theme-field-disabled" disabled defaultValue="Locked" />
+							<FieldDescription>This field can't be edited.</FieldDescription>
+						</Field>
+					</FieldGroup>
+				</Section>
+
+				{/* INPUT GROUP */}
+				<Section title="Input group" description="Input with a leading/trailing icon, text, or button addon.">
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<InputGroup>
+							<InputGroupAddon align="inline-start">
+								<Search data-icon="inline-start" />
+							</InputGroupAddon>
+							<InputGroupInput placeholder="Search..." />
+						</InputGroup>
+						<InputGroup>
+							<InputGroupAddon align="inline-start">
+								<AtSign data-icon="inline-start" />
+							</InputGroupAddon>
+							<InputGroupInput placeholder="username" />
+						</InputGroup>
+						<InputGroup>
+							<InputGroupInput defaultValue="https://example.com/share/abc123" readOnly />
+							<InputGroupAddon align="inline-end">
+								<Button size="sm" variant="ghost" onClick={() => toast.success('Copied')}>
+									<Copy data-icon="inline-start" />
+									Copy
+								</Button>
+							</InputGroupAddon>
+						</InputGroup>
+						<InputGroup>
+							<InputGroupAddon align="inline-start">
+								<InputGroupText>$</InputGroupText>
+							</InputGroupAddon>
+							<InputGroupInput placeholder="0.00" />
+							<InputGroupAddon align="inline-end">
+								<InputGroupText>USD</InputGroupText>
+							</InputGroupAddon>
+						</InputGroup>
+					</div>
+				</Section>
+
+				<Separator />
+
+				{/* OVERLAYS */}
+				<Section title="Overlays" description="Tooltip, Popover, DropdownMenu, Dialog, AlertDialog.">
+					<div className="flex flex-row flex-wrap items-center gap-3">
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button variant="outline">Hover for tooltip</Button>
+							</TooltipTrigger>
+							<TooltipContent>Tooltip content, anchored above.</TooltipContent>
+						</Tooltip>
+
+						<Popover>
+							<PopoverTrigger asChild>
+								<Button variant="outline">Open popover</Button>
+							</PopoverTrigger>
+							<PopoverContent className="w-64 flex flex-col gap-2">
+								<p className="text-sm font-medium">Popover title</p>
+								<p className="text-xs text-muted-foreground">Free-form content inside a popover surface.</p>
+								<Button size="sm">Do thing</Button>
+							</PopoverContent>
+						</Popover>
+
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button variant="outline">
+									Dropdown <MoreHorizontal data-icon="inline-end" />
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent>
+								<DropdownMenuLabel>Actions</DropdownMenuLabel>
+								<DropdownMenuSeparator />
+								<DropdownMenuGroup>
+									<DropdownMenuItem>
+										Edit <DropdownMenuShortcut>⌘E</DropdownMenuShortcut>
+									</DropdownMenuItem>
+									<DropdownMenuItem>
+										Duplicate <DropdownMenuShortcut>⌘D</DropdownMenuShortcut>
+									</DropdownMenuItem>
+									<DropdownMenuItem variant="destructive">
+										Delete <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
+									</DropdownMenuItem>
+								</DropdownMenuGroup>
+							</DropdownMenuContent>
+						</DropdownMenu>
+
+						<Dialog>
+							<DialogTrigger asChild>
+								<Button variant="outline">Open dialog</Button>
+							</DialogTrigger>
+							<DialogContent>
+								<DialogHeader>
+									<DialogTitle>Dialog title</DialogTitle>
+									<DialogDescription>Dialog copy. Used for modal interactions that interrupt the current flow.</DialogDescription>
+								</DialogHeader>
+								<FieldGroup>
+									<Field>
+										<FieldLabel htmlFor="theme-dialog-name">Name</FieldLabel>
+										<Input id="theme-dialog-name" placeholder="Your name" />
+									</Field>
+								</FieldGroup>
+								<DialogFooter>
+									<Button variant="outline">Cancel</Button>
+									<Button>Save</Button>
+								</DialogFooter>
+							</DialogContent>
+						</Dialog>
+
+						<AlertDialog>
+							<AlertDialogTrigger asChild>
+								<Button variant="destructive">Open alert</Button>
+							</AlertDialogTrigger>
+							<AlertDialogContent>
+								<AlertDialogHeader>
+									<AlertDialogTitle>Are you sure?</AlertDialogTitle>
+									<AlertDialogDescription>This action can't be undone.</AlertDialogDescription>
+								</AlertDialogHeader>
+								<AlertDialogFooter>
+									<AlertDialogCancel>Cancel</AlertDialogCancel>
+									<AlertDialogAction>Delete</AlertDialogAction>
+								</AlertDialogFooter>
+							</AlertDialogContent>
+						</AlertDialog>
+					</div>
+				</Section>
+
 				{/* ALERTS */}
 				<Section title="Alerts">
 					<div className="flex flex-col gap-3">
@@ -372,10 +553,142 @@ function RouteComponent() {
 					</div>
 				</Section>
 
+				{/* AVATAR */}
+				<Section title="Avatars" description="Image + fallback, grouped, and with a badge.">
+					<div className="flex flex-row flex-wrap items-center gap-4">
+						<Avatar>
+							<AvatarImage src="https://github.com/shadcn.png" alt="shadcn" />
+							<AvatarFallback>SH</AvatarFallback>
+						</Avatar>
+						<Avatar>
+							<AvatarFallback>AB</AvatarFallback>
+						</Avatar>
+						<Avatar className="size-12">
+							<AvatarFallback>LG</AvatarFallback>
+						</Avatar>
+						<AvatarGroup>
+							<Avatar>
+								<AvatarFallback>A</AvatarFallback>
+							</Avatar>
+							<Avatar>
+								<AvatarFallback>B</AvatarFallback>
+							</Avatar>
+							<Avatar>
+								<AvatarFallback>C</AvatarFallback>
+							</Avatar>
+							<AvatarGroupCount>+4</AvatarGroupCount>
+						</AvatarGroup>
+					</div>
+				</Section>
+
+				{/* TABLE */}
+				<Section title="Table" description="Structured data display.">
+					<Table>
+						<TableCaption>A list of recent invoices.</TableCaption>
+						<TableHeader>
+							<TableRow>
+								<TableHead>Invoice</TableHead>
+								<TableHead>Status</TableHead>
+								<TableHead>Method</TableHead>
+								<TableHead className="text-right">Amount</TableHead>
+							</TableRow>
+						</TableHeader>
+						<TableBody>
+							<TableRow>
+								<TableCell className="font-medium">INV001</TableCell>
+								<TableCell>
+									<Badge>Paid</Badge>
+								</TableCell>
+								<TableCell>Card</TableCell>
+								<TableCell className="text-right">$250.00</TableCell>
+							</TableRow>
+							<TableRow>
+								<TableCell className="font-medium">INV002</TableCell>
+								<TableCell>
+									<Badge variant="secondary">Pending</Badge>
+								</TableCell>
+								<TableCell>PayPal</TableCell>
+								<TableCell className="text-right">$150.00</TableCell>
+							</TableRow>
+							<TableRow>
+								<TableCell className="font-medium">INV003</TableCell>
+								<TableCell>
+									<Badge variant="destructive">Failed</Badge>
+								</TableCell>
+								<TableCell>Card</TableCell>
+								<TableCell className="text-right">$350.00</TableCell>
+							</TableRow>
+						</TableBody>
+					</Table>
+				</Section>
+
+				{/* BREADCRUMB */}
+				<Section title="Breadcrumb">
+					<Breadcrumb>
+						<BreadcrumbList>
+							<BreadcrumbItem>
+								<BreadcrumbLink href="#">Home</BreadcrumbLink>
+							</BreadcrumbItem>
+							<BreadcrumbSeparator>
+								<ChevronRight />
+							</BreadcrumbSeparator>
+							<BreadcrumbItem>
+								<BreadcrumbLink href="#">Lists</BreadcrumbLink>
+							</BreadcrumbItem>
+							<BreadcrumbSeparator>
+								<ChevronRight />
+							</BreadcrumbSeparator>
+							<BreadcrumbItem>
+								<BreadcrumbPage>Current list</BreadcrumbPage>
+							</BreadcrumbItem>
+						</BreadcrumbList>
+					</Breadcrumb>
+				</Section>
+
+				{/* TOGGLE GROUP */}
+				<Section title="Toggle group" description="Single and multiple selection, with and without outline.">
+					<div className="flex flex-col gap-3">
+						<ToggleGroup type="multiple" defaultValue={['bold']}>
+							<ToggleGroupItem value="bold" aria-label="Bold">
+								<Bold />
+							</ToggleGroupItem>
+							<ToggleGroupItem value="italic" aria-label="Italic">
+								<Italic />
+							</ToggleGroupItem>
+							<ToggleGroupItem value="underline" aria-label="Underline">
+								<Underline />
+							</ToggleGroupItem>
+						</ToggleGroup>
+						<ToggleGroup type="single" defaultValue="left" variant="outline">
+							<ToggleGroupItem value="left">Left</ToggleGroupItem>
+							<ToggleGroupItem value="center">Center</ToggleGroupItem>
+							<ToggleGroupItem value="right">Right</ToggleGroupItem>
+						</ToggleGroup>
+					</div>
+				</Section>
+
 				<Separator />
 
-				{/* TOASTS + SKELETON */}
-				<Section title="Toasts & skeleton" description="Keep the original smoke tests handy.">
+				{/* SKELETON */}
+				<Section title="Skeleton" description="Loading placeholders.">
+					<div className="flex flex-col gap-2 max-w-md">
+						<Skeleton className="h-6 w-3/4" />
+						<Skeleton className="h-4 w-full" />
+						<Skeleton className="h-4 w-5/6" />
+						<div className="flex items-center gap-3 mt-2">
+							<Skeleton className="size-10 rounded-full" />
+							<div className="flex flex-col gap-2 flex-1">
+								<Skeleton className="h-4 w-1/3" />
+								<Skeleton className="h-3 w-1/2" />
+							</div>
+						</div>
+					</div>
+				</Section>
+
+				<Separator />
+
+				{/* TOASTS */}
+				<Section title="Toasts" description="Sonner-based toasts, triggered from buttons.">
 					<div className="flex flex-row flex-wrap gap-2">
 						<Button onClick={() => toast('Neutral toast')}>Neutral</Button>
 						<Button variant="secondary" onClick={() => toast.info('Info toast')}>
@@ -386,6 +699,12 @@ function RouteComponent() {
 							Error
 						</Button>
 					</div>
+				</Section>
+
+				<Separator />
+
+				{/* APP LOADING SKELETON */}
+				<Section title="App loading skeleton" description="The full-page loading placeholder used during route transitions.">
 					<LoadingSkeleton />
 				</Section>
 			</CardContent>
