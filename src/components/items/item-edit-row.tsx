@@ -123,7 +123,7 @@ export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = fal
 				{hasPriorityTab && (
 					<div
 						className={cn(
-							'absolute left-0 top-0 bottom-0 -translate-x-1/2 w-8 rounded-md shadow-sm flex items-center pl-1 z-0',
+							'absolute left-0 top-0 h-[calc(100%-4px)] -translate-x-1/2 translate-y-[2px] w-12 rounded-md shadow-sm flex items-center p-1 z-0',
 							priorityTabBgClass[item.priority]
 						)}
 						aria-hidden
