@@ -11,7 +11,11 @@
 #
 # Admin CLI (if locked out):
 #   docker compose -f docker-compose.selfhost.yml exec app \
-#     pnpm admin:create --email=admin@example.com --password=SecurePass123 --name=Admin
+#     node .output/scripts/admin-create.mjs \
+#     --email=admin@example.com --password=SecurePass123 --name=Admin
+#
+# Other bundled CLIs under .output/scripts/:
+#   admin-reset-password.mjs, seed.mjs, migrate.mjs
 
 services:
   app:

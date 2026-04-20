@@ -8,44 +8,31 @@ FROM base AS deps
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
-# Production-only dependency install for the runner image
-FROM base AS prod-deps
-COPY package.json pnpm-lock.yaml ./
-# --ignore-scripts: `prepare` runs husky (a devDependency) which is absent here
-RUN pnpm install --prod --frozen-lockfile --ignore-scripts
-
-# Rebuild the source code only when needed
+# Build both the Nitro server bundle and the standalone CLI bundles
+# (.output/scripts/*.mjs) — `pnpm build` runs vite build + build:cli.
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm build
 
-# Production image, copy all the files and run the server
-FROM base AS runner
+# Runtime image: plain node, no pnpm, no node_modules. The Nitro bundle under
+# .output/server is self-contained (only tslib in .output/server/node_modules),
+# and the CLI bundles under .output/scripts are self-contained too.
+FROM node:20-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Create a non-root user
 RUN addgroup --system --gid 1001 nodejs && \
 	adduser --system --uid 1001 --ingroup nodejs nodejs
 
-# Create directory for writable files with proper permissions
 RUN mkdir -p /app/data && \
 	chown -R nodejs:nodejs /app/data
 
-# Copy only necessary files
+# The built output: server bundle (.output/server) + CLI bundles (.output/scripts)
 COPY --from=builder /app/.output ./.output
-COPY --from=prod-deps /app/node_modules ./node_modules
-COPY package.json pnpm-lock.yaml ./
-COPY tsconfig.json ./
-COPY drizzle.config.ts ./
-# Full src + scripts are needed at runtime by the operator-facing CLIs
-# (db:seed, admin:create, admin:reset-password) which are run via tsx via
-# `docker exec`. They need @/lib/auth, @/db, @/env at minimum; easier to
-# just ship the whole src tree than enumerate every transitive import.
-COPY src ./src
-COPY scripts ./scripts
+# Migration SQL + _journal.json consumed by the migrate CLI on boot.
+COPY drizzle ./drizzle
 COPY docker/entrypoint.sh /app/docker/entrypoint.sh
 COPY docker/migrate.sh /app/docker/migrate.sh
 COPY docker/healthcheck.sh /app/docker/healthcheck.sh

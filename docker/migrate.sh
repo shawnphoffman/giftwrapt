@@ -3,7 +3,7 @@ set -e
 
 echo "Waiting for database to be ready..."
 for i in 1 2 3 4 5 6 7 8 9 10; do
-	if pnpm db:migrate; then
+	if node .output/scripts/migrate.mjs; then
 		echo "Migrations completed successfully"
 		exit 0
 	fi
