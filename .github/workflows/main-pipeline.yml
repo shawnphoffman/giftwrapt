@@ -5,6 +5,11 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      publish_tag:
+        description: "Publish the current ref to GHCR with this semver tag (e.g. v0.6.0). Leave empty to skip docker-publish."
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -50,11 +55,13 @@ jobs:
 
   docker-publish:
     needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
+    if: needs.release-please.outputs.release_created == 'true' || inputs.publish_tag != ''
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    env:
+      PUBLISH_TAG: ${{ inputs.publish_tag || needs.release-please.outputs.tag_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -78,9 +85,9 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=semver,pattern={{version}},value=${{ needs.release-please.outputs.tag_name }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ needs.release-please.outputs.tag_name }}
-            type=semver,pattern={{major}},value=${{ needs.release-please.outputs.tag_name }}
+            type=semver,pattern={{version}},value=${{ env.PUBLISH_TAG }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ env.PUBLISH_TAG }}
+            type=semver,pattern={{major}},value=${{ env.PUBLISH_TAG }}
             type=raw,value=latest
 
       - name: Build and push
