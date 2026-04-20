@@ -1,9 +1,11 @@
 import { useLiveQuery } from '@tanstack/react-db'
+import { Link } from '@tanstack/react-router'
 
 import { ClientOnly } from '@/components/utilities/client-only'
 import type { BirthMonth } from '@/db/schema/enums'
 import type { UserWithLists } from '@/db-collections/lists'
 import { usersWithListsCollection } from '@/db-collections/lists'
+import { useSession } from '@/lib/auth-client'
 import { useListsSSE } from '@/lib/use-lists-sse'
 
 import ListsByUserSkeleton from '../skeletons/lists-by-user-skeleton'
@@ -68,6 +70,9 @@ const sortUserGroupsByBirthDate = (a: UserWithLists, b: UserWithLists) => {
 }
 
 function ListsByUserContent() {
+	const { data: session } = useSession()
+	const isAdmin = session?.user.isAdmin ?? false
+
 	// Keep the grouped public-lists query live: any claim/unclaim anywhere
 	// should refresh the unclaimed/total badge counts.
 	useListsSSE()
@@ -101,7 +106,20 @@ function ListsByUserContent() {
 	const sortedUsers = [...usersData].sort(sortUserGroupsByBirthDate)
 
 	if (sortedUsers.length === 0) {
-		return <div className="text-sm text-muted-foreground">No users</div>
+		return (
+			<div className="px-2 py-1 text-sm italic border border-dashed rounded text-muted-foreground bg-background/25">
+				No users.
+				{isAdmin ? (
+					<>
+						{' '}
+						<Link to="/admin/users" className="underline not-italic">
+							Invite users
+						</Link>
+						.
+					</>
+				) : null}
+			</div>
+		)
 	}
 
 	return (
