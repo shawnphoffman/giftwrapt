@@ -42,7 +42,7 @@ export function GroupBlock({ group, items, groups, isOwner, onAddItem, onDelete,
 					<PriorityIcon priority={group.priority} className="size-4" />
 				</div>
 			)}
-			<div className="relative z-10 flex flex-col rounded-lg overflow-hidden shadow-sm bg-card">
+			<div className="relative z-10 flex flex-col rounded-lg overflow-hidden shadow-sm bg-card px-px">
 				{/* Ring overlay: sits on top of all children so their backgrounds
 				    can't hide the inset ring. pointer-events-none lets clicks
 				    through to the content below. */}
@@ -53,36 +53,32 @@ export function GroupBlock({ group, items, groups, isOwner, onAddItem, onDelete,
 						priorityRingClass[group.priority]
 					)}
 				/>
-				<div className="flex items-center gap-2 p-2 border-b bg-accent">
-					{!hasPriorityTab && <PriorityIcon priority={group.priority} className="size-4 shrink-0" />}
-					{group.name && <span className="font-medium text-sm truncate">{group.name}</span>}
-				<GroupBadge type={group.type} showHelp />
-				<div className="ml-auto" />
-				{isOwner && (
-					<Button
-						variant="ghost"
-						size="icon"
-						className="size-7"
-						onClick={() => onAddItem(group.id)}
-						title="Add item to this group"
-						aria-label="Add item to this group"
-					>
-						<Plus className="size-4" />
-					</Button>
-				)}
-				{isOwner && <GroupEditPopover group={group} />}
-				{isOwner && (
-					<Button
-						variant="ghost"
-						size="icon"
-						className="size-7 text-destructive"
-						onClick={() => onDelete(group.id)}
-						title="Delete group (items remain)"
-					>
-						<Trash2 className="size-4" />
-					</Button>
-				)}
-			</div>
+				<div className="flex items-center gap-2 px-2 py-1 border-b bg-accent ps-4 justify-center">
+					{/* {!hasPriorityTab && <PriorityIcon priority={group.priority} className="size-4 shrink-0" />} */}
+					<span className={'opacity-75 flex items-center gap-2 justify-between'}>
+						{group.name && <span className="font-medium text-sm truncate leading-none">{group.name}</span>}
+						<GroupBadge type={group.type} showHelp />
+					</span>
+					<div className="ml-auto" />
+					{isOwner && (
+						<Button
+							variant="ghost"
+							size="icon"
+							className="size-7"
+							onClick={() => onAddItem(group.id)}
+							title="Add item to this group"
+							aria-label="Add item to this group"
+						>
+							<Plus />
+						</Button>
+					)}
+					{isOwner && <GroupEditPopover group={group} />}
+					{isOwner && (
+						<Button variant="ghost" size="icon" className="size-7" onClick={() => onDelete(group.id)} title="Delete group (items remain)">
+							<Trash2 className="text-destructive" />
+						</Button>
+					)}
+				</div>
 				{items.length === 0 ? (
 					<div className="text-xs text-muted-foreground p-3 m-1 text-center border border-dashed rounded-lg">
 						Empty group. Use the + button above or the "Group" item action to add items here.

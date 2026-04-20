@@ -245,7 +245,7 @@ export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = fal
 					)}
 					<div
 						className={cn(
-							'relative z-10 flex items-center gap-2 p-2 ring-1 ring-inset ring-border rounded-lg bg-card shadow-sm',
+							'relative z-10 flex items-center gap-2 p-2 ps-4 ring-1 ring-inset ring-border rounded-lg bg-card shadow-sm',
 							priorityRingClass[item.priority]
 						)}
 					>
