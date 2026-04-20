@@ -119,7 +119,7 @@ export function ItemEditRow({ item, onMoveClick, groups = [], hidePriority = fal
 			<div
 				className={cn(
 					flush
-						? 'flex items-center gap-2 p-2 bg-card border-b last:border-b-0'
+						? 'flex items-center gap-2 p-2 border-b last:border-b-0'
 						: 'flex items-center gap-2 p-2 ring-1 ring-inset ring-border rounded-lg bg-card shadow-sm',
 					// priority ring: on flush (grouped) rows only when non-normal, since a flat
 					// normal row in a group needs no outline. Standalone rows already carry the

@@ -28,8 +28,8 @@ export function GroupBlock({ group, items, groups, isOwner, onAddItem, onDelete,
 	const showReorder = isOwner && group.type === 'order' && items.length > 1
 
 	return (
-		<div className={cn('flex flex-col rounded-lg overflow-hidden ring-1 ring-inset ring-border shadow-sm bg-accent', priorityRingClass[group.priority])}>
-			<div className="flex items-center gap-2 p-2 border-b bg-muted/30">
+		<div className={cn('flex flex-col rounded-lg overflow-hidden ring-1 ring-border shadow-sm bg-card', priorityRingClass[group.priority])}>
+			<div className="flex items-center gap-2 p-2 border-b bg-accent">
 				<PriorityIcon priority={group.priority} className="size-4 shrink-0" />
 				{group.name && <span className="font-medium text-sm truncate">{group.name}</span>}
 				<GroupBadge type={group.type} showHelp />
@@ -60,7 +60,7 @@ export function GroupBlock({ group, items, groups, isOwner, onAddItem, onDelete,
 				)}
 			</div>
 			{items.length === 0 ? (
-				<div className="text-xs text-muted-foreground p-3 m-1 text-center border border-dashed rounded-lg bg-accent/30">
+				<div className="text-xs text-muted-foreground p-3 m-1 text-center border border-dashed rounded-lg">
 					Empty group. Use the + button above or the "Group" item action to add items here.
 				</div>
 			) : (

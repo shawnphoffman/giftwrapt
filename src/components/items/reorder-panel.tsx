@@ -256,9 +256,9 @@ function BucketRow({ priority, ids, entries }: { priority: Priority; ids: Array<
 	return (
 		<div
 			ref={setNodeRef}
-			className={cn('rounded-lg overflow-hidden shadow-sm ring-1 ring-inset ring-border', ringClass, isOver && 'ring-primary/60')}
+			className={cn('rounded-lg overflow-hidden shadow-sm ring-1 ring-border bg-card', ringClass, isOver && 'ring-primary/60')}
 		>
-			<div className="flex items-center gap-2 px-3 py-1.5 border-b bg-muted/30">
+			<div className="flex items-center gap-2 px-3 py-1.5 border-b bg-accent">
 				<PriorityIcon priority={priority} className="size-4 shrink-0" />
 				<span className="text-sm font-medium flex-1">{PRIORITY_LABEL[priority]}</span>
 			</div>

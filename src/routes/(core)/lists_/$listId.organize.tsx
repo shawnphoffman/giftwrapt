@@ -405,9 +405,9 @@ function OrganizeList({
 				return (
 					<div
 						key={g.id}
-						className={cn('flex flex-col rounded-lg overflow-hidden ring-1 ring-inset ring-border bg-accent shadow-sm', priorityRingClass[g.priority])}
+						className={cn('flex flex-col rounded-lg overflow-hidden ring-1 ring-border bg-card shadow-sm', priorityRingClass[g.priority])}
 					>
-						<label className="flex items-center gap-3 p-2 bg-muted/30 border-b cursor-pointer hover:bg-muted/50">
+						<label className="flex items-center gap-3 p-2 bg-accent border-b cursor-pointer hover:bg-accent/80">
 							<Checkbox checked={groupSelected} onCheckedChange={() => onToggleGroup(g.id)} />
 							<PriorityIcon priority={g.priority} className="size-4 shrink-0" />
 							{g.name && <span className="font-medium text-sm truncate min-w-0">{g.name}</span>}
