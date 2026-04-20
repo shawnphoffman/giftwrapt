@@ -3,10 +3,15 @@ ENV COREPACK_HOME=/usr/local/share/corepack
 RUN corepack enable && corepack prepare pnpm@10.28.0 --activate
 WORKDIR /app
 
-# Install dependencies only when needed
+# Full dependency install (incl. devDependencies) for the build
 FROM base AS deps
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
+
+# Production-only dependency install for the runner image
+FROM base AS prod-deps
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --prod --frozen-lockfile
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -30,7 +35,7 @@ RUN mkdir -p /app/data && \
 
 # Copy only necessary files
 COPY --from=builder /app/.output ./.output
-COPY --from=deps /app/node_modules ./node_modules
+COPY --from=prod-deps /app/node_modules ./node_modules
 COPY package.json pnpm-lock.yaml ./
 COPY tsconfig.json ./
 COPY drizzle.config.ts ./
