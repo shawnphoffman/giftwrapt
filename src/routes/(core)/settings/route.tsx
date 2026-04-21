@@ -23,7 +23,7 @@ function SettingsRoute() {
 						<SettingsLinks />
 					</nav>
 					<div className="grid gap-6 animate-page-in">
-						<Card>
+						<Card className="@container/subpage">
 							<Outlet />
 						</Card>
 					</div>

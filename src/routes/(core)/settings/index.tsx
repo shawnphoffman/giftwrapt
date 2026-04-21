@@ -25,7 +25,7 @@ function SettingsPage() {
 				<CardDescription>Update your profile information.</CardDescription>
 			</CardHeader>
 			<CardContent>
-				<div className="flex flex-col items-start w-full gap-4 sm:flex-row">
+				<div className="flex flex-col items-center w-full gap-4 @xl/subpage:flex-row @xl/subpage:items-start">
 					<UserAvatar size="huge" name={session.user.name} image={session.user.image} />
 					{/* <AvatarUpload image={session.user.image} displayName={session.user.name} /> */}
 					<ProfileForm
