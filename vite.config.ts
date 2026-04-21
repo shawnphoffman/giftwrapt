@@ -9,9 +9,13 @@ import viteTsConfigPaths from 'vite-tsconfig-paths'
 const isStorybook = process.env.STORYBOOK === 'true'
 
 const securityHeaders = {
-	// HSTS is a no-op over HTTP (browsers ignore it). Useful once the deployment
-	// is fronted by HTTPS: tells browsers to refuse plaintext for the next year.
+	// HSTS is a no-op over HTTP (browsers ignore it per RFC 6797). Useful once
+	// the deployment is fronted by HTTPS: tells browsers to refuse plaintext.
 	'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+	// No upgrade-insecure-requests: it rewrites every http:// subresource to
+	// https:// even when the page itself is served over http, which breaks
+	// IP:port/LAN self-hosts. If you front the app with HTTPS, add it via the
+	// reverse proxy (or add it back here) and everything still works.
 	'Content-Security-Policy': [
 		"default-src 'self'",
 		"script-src 'self' 'unsafe-inline'",
@@ -23,7 +27,6 @@ const securityHeaders = {
 		"base-uri 'self'",
 		"form-action 'self'",
 		"frame-ancestors 'none'",
-		'upgrade-insecure-requests',
 	].join('; '),
 }
 
