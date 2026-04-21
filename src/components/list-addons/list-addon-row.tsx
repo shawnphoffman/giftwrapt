@@ -1,9 +1,9 @@
 import { useRouter } from '@tanstack/react-router'
-import { Archive, Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { archiveListAddon, deleteListAddon } from '@/api/list-addons'
+import { deleteListAddon } from '@/api/list-addons'
 import type { AddonOnList } from '@/api/lists'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import UserAvatar from '@/components/common/user-avatar'
@@ -17,7 +17,6 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useSession } from '@/lib/auth-client'
 
@@ -36,37 +35,9 @@ export function ListAddonRow({ addon, listId }: Props) {
 
 	const [editDialogOpen, setEditDialogOpen] = useState(false)
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-	const [archiving, setArchiving] = useState(false)
 	const [deleting, setDeleting] = useState(false)
 
 	const name = addon.user.name || addon.user.email
-
-	async function handleArchive() {
-		setArchiving(true)
-		try {
-			const result = await archiveListAddon({ data: { addonId: addon.id } })
-			if (result.kind === 'error') {
-				switch (result.reason) {
-					case 'not-yours':
-						toast.error("You can't archive someone else's addon.")
-						break
-					case 'not-found':
-						toast.error('This addon no longer exists.')
-						break
-					case 'already-archived':
-						toast.error('Already marked as given.')
-						break
-				}
-				return
-			}
-			toast.success('Marked as given')
-			await router.invalidate()
-		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Failed to archive')
-		} finally {
-			setArchiving(false)
-		}
-	}
 
 	async function handleDelete() {
 		setDeleting(true)
@@ -94,44 +65,37 @@ export function ListAddonRow({ addon, listId }: Props) {
 	}
 
 	return (
-		<div className="flex flex-col gap-2 p-3 hover:bg-muted">
+		<div className="flex flex-col gap-2 p-3 ps-4 ring-1 ring-inset ring-border rounded-lg bg-card shadow-sm">
 			<div className="flex flex-row items-start gap-3">
 				<div className="flex flex-col flex-1 gap-0.5 overflow-hidden">
-					<div className="flex flex-row items-center gap-2 font-medium">
-						<span>{addon.description}</span>
-						{addon.totalCost && <span className="px-2 text-xs border rounded whitespace-nowrap bg-card w-fit">${addon.totalCost}</span>}
-						{addon.isArchived && (
-							<Badge variant="secondary" className="text-xs">
-								Given
-							</Badge>
-						)}
-					</div>
-					{addon.notes && <MarkdownNotes content={addon.notes} className="text-sm text-foreground/75" />}
+					<div className="font-medium leading-tight truncate">{addon.description}</div>
+					{addon.totalCost && (
+						<div className="flex flex-row flex-wrap items-center gap-1.5">
+							<span className="px-2 text-xs border rounded whitespace-nowrap bg-card w-fit">${addon.totalCost}</span>
+						</div>
+					)}
+					{addon.notes && <MarkdownNotes content={addon.notes} className="text-xs text-foreground/75 mt-1" />}
 				</div>
 			</div>
 
-			<div className="flex flex-row items-center gap-2 pt-1">
+			<div className="flex flex-row items-center flex-wrap gap-2">
 				<div className="flex flex-row items-center gap-1.5 text-xs text-muted-foreground">
 					<UserAvatar name={name} image={addon.user.image} size="small" />
 					<span>{isMine ? 'You' : name}</span>
 				</div>
 
-				{isMine && !addon.isArchived && (
-					<div className="flex flex-row items-center gap-2 ml-auto">
-						<Button size="sm" variant="ghost" onClick={() => setEditDialogOpen(true)} title="Edit">
+				{isMine && (
+					<div className="flex flex-row items-center gap-1 ml-auto">
+						<Button size="sm" variant="ghost" className="h-7" onClick={() => setEditDialogOpen(true)} title="Edit">
 							<Pencil className="size-4" />
 							Edit
-						</Button>
-						<Button size="sm" variant="ghost" onClick={handleArchive} disabled={archiving} title="Mark as given">
-							<Archive className="size-4" />
-							{archiving ? 'Archiving\u2026' : 'Mark as given'}
 						</Button>
 						<Button
 							size="sm"
 							variant="ghost"
 							onClick={() => setDeleteDialogOpen(true)}
 							title="Delete"
-							className="text-destructive hover:text-destructive"
+							className="h-7 text-destructive hover:text-destructive"
 						>
 							<Trash2 className="size-4" />
 							Delete
@@ -148,9 +112,7 @@ export function ListAddonRow({ addon, listId }: Props) {
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>Delete this off-list gift?</AlertDialogTitle>
-						<AlertDialogDescription>
-							This will permanently remove the entry. If you meant to mark it as given instead, use "Mark as given".
-						</AlertDialogDescription>
+						<AlertDialogDescription>This will permanently remove the entry.</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
