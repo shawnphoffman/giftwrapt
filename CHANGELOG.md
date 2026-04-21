@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.10.0](https://github.com/shawnphoffman/wish-lists/compare/v0.9.1...v0.10.0) (2026-04-21)
+
+
+### Features
+
+* **admin:** add data export and import for backup/restore ([678207e](https://github.com/shawnphoffman/wish-lists/commit/678207e6f37de13f2cb57dda4988c4da5a30f7c7))
+* **devtools:** gate TanStack devtools on env + worktree ([da46d5d](https://github.com/shawnphoffman/wish-lists/commit/da46d5d37e336949c32e9a5a37ac8fcd20dc90d0))
+* **list-addons:** restyle as cards, drop gifter-facing mark-as-given ([b076380](https://github.com/shawnphoffman/wish-lists/commit/b076380f6263f7b0d7399cb6a57622a482a7ac8b))
+* **list-view:** restyle items to match edit page, add filter/sort ([a8212d7](https://github.com/shawnphoffman/wish-lists/commit/a8212d709e12ff8d5e9c4f5c676a174ca790b457))
+* **logging:** pino-based structured logging with runtime LOG_LEVEL ([8220c8f](https://github.com/shawnphoffman/wish-lists/commit/8220c8ffaa8b9ce3532562ef062d924b972c4244))
+* **nav:** split Purchases sidebar section with Received ([39b8431](https://github.com/shawnphoffman/wish-lists/commit/39b8431e3b20ee8333a0ff3da20f2f996fe4685d))
+* **settings:** remove connections page ([27a8b1c](https://github.com/shawnphoffman/wish-lists/commit/27a8b1c608273d2be33c4e44037a86096922f90a))
+* **sidebar:** enable icon-only collapsed mode ([b3c5045](https://github.com/shawnphoffman/wish-lists/commit/b3c504531a3ec0e93cdee04ee50eb9e75ef19a32))
+
+
+### Bug Fixes
+
+* **docker:** follow PORT env in healthcheck, hit 127.0.0.1 not localhost ([807c4ba](https://github.com/shawnphoffman/wish-lists/commit/807c4bafda26bf4ad411c0dd5be01143c1286306))
+* **permissions:** center checkboxes under their column icons ([1eacf5b](https://github.com/shawnphoffman/wish-lists/commit/1eacf5b5a095bea6e77bda1bc70bc9765fff0ed1))
+* stop leaking server env access into the client bundle ([ee079dc](https://github.com/shawnphoffman/wish-lists/commit/ee079dc11d4b400c7f76978d85e456f324c70bc2))
+
 ## [0.9.1](https://github.com/shawnphoffman/wish-lists/compare/v0.9.0...v0.9.1) (2026-04-21)
 
 
