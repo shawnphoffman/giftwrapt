@@ -6,7 +6,10 @@ import { db } from '@/db'
 import { giftedItems, items, lists, users } from '@/db/schema'
 import type { BirthMonth } from '@/db/schema/enums'
 import { env } from '@/env'
+import { createLogger } from '@/lib/logger'
 import { getAppSettings } from '@/lib/settings'
+
+const cronLog = createLogger('cron:auto-archive')
 
 // ===============================
 // Auto-archive cron job
@@ -43,10 +46,14 @@ export const Route = createFileRoute('/api/cron/auto-archive')({
 	server: {
 		handlers: {
 			GET: async ({ request }) => {
+				const started = Date.now()
+				cronLog.info('cron run starting')
+
 				const cronSecret = env.CRON_SECRET
 				if (cronSecret) {
 					const authHeader = request.headers.get('authorization')
 					if (authHeader !== `Bearer ${cronSecret}`) {
+						cronLog.warn('unauthorized cron invocation')
 						return json({ error: 'Unauthorized' }, { status: 401 })
 					}
 				}
@@ -125,6 +132,15 @@ export const Route = createFileRoute('/api/cron/auto-archive')({
 						}
 					}
 				}
+
+				cronLog.info(
+					{
+						birthdayArchived,
+						christmasArchived,
+						durationMs: Date.now() - started,
+					},
+					'cron run complete'
+				)
 
 				return json({
 					ok: true,

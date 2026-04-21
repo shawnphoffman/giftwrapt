@@ -4,10 +4,13 @@ import { z } from 'zod'
 
 import { db } from '@/db'
 import { itemComments, items, lists, users } from '@/db/schema'
+import { createLogger, loggingMiddleware } from '@/lib/logger'
 import { canViewList } from '@/lib/permissions'
 import { sendNewCommentEmail } from '@/lib/resend'
 import { getAppSettings } from '@/lib/settings'
 import { authMiddleware } from '@/middleware/auth'
+
+const commentsLog = createLogger('api:comments')
 
 // ===============================
 // Types
@@ -32,7 +35,7 @@ export type CommentWithUser = {
 // ===============================
 
 export const getCommentsForItem = createServerFn({ method: 'GET' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: { itemId: number }) => ({ itemId: data.itemId }))
 	.handler(async ({ context, data }): Promise<Array<CommentWithUser>> => {
 		const userId = context.session.user.id
@@ -90,7 +93,7 @@ export type CreateCommentResult =
 	| { kind: 'error'; reason: 'item-not-found' | 'not-visible' | 'comments-disabled' }
 
 export const createItemComment = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof CreateCommentInputSchema>) => CreateCommentInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<CreateCommentResult> => {
 		const userId = context.session.user.id
@@ -160,7 +163,7 @@ export const createItemComment = createServerFn({ method: 'POST' })
 				}
 			} catch (err) {
 				// Email failure shouldn't block the comment creation.
-				console.error('Failed to send comment notification email:', err)
+				commentsLog.error({ err, listId: list.id, itemId: item.id }, 'failed to send comment notification email')
 			}
 		}
 
@@ -179,7 +182,7 @@ const UpdateCommentInputSchema = z.object({
 export type UpdateCommentResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-yours' }
 
 export const updateItemComment = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof UpdateCommentInputSchema>) => UpdateCommentInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<UpdateCommentResult> => {
 		const userId = context.session.user.id
@@ -207,7 +210,7 @@ const DeleteCommentInputSchema = z.object({
 export type DeleteCommentResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const deleteItemComment = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof DeleteCommentInputSchema>) => DeleteCommentInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<DeleteCommentResult> => {
 		const userId = context.session.user.id
@@ -261,7 +264,7 @@ export type RecentCommentRow = {
 }
 
 export const getRecentComments = createServerFn({ method: 'GET' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.handler(async (): Promise<Array<RecentCommentRow>> => {
 		// Fetch the 50 most recent comments across all non-archived items
 		// on active, non-private lists. Privacy/visibility filtering is done

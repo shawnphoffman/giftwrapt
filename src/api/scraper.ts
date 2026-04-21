@@ -1,6 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 
+import { loggingMiddleware } from '@/lib/logger'
 import { authMiddleware } from '@/middleware/auth'
 
 // Scraping temporarily disabled. The `open-graph-scraper` / `cheerio` imports
@@ -28,7 +29,7 @@ const ScrapeUrlInputSchema = z.object({
 export type ScrapeUrlResult = { kind: 'ok'; data: ScrapeResult; scrapeId: number | null } | { kind: 'error'; reason: 'scrape-failed' }
 
 export const scrapeUrl = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof ScrapeUrlInputSchema>) => ScrapeUrlInputSchema.parse(data))
 	.handler(async (): Promise<ScrapeUrlResult> => {
 		return { kind: 'error', reason: 'scrape-failed' }

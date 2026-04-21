@@ -6,6 +6,7 @@ import { db } from '@/db'
 import { giftedItems, itemGroups, items, lists } from '@/db/schema'
 import type { GiftedItem } from '@/db/schema/gifts'
 import { computeRemainingClaimableQuantity } from '@/lib/gifts'
+import { loggingMiddleware } from '@/lib/logger'
 import { canViewList } from '@/lib/permissions'
 import { authMiddleware } from '@/middleware/auth'
 import { notifyListChange } from '@/routes/api/sse/list.$listId'
@@ -32,7 +33,7 @@ export type GiftWithGifter = GiftedItem & {
 }
 
 export const getGiftsForItems = createServerFn({ method: 'GET' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: { itemIds: Array<number> }) => ({ itemIds: data.itemIds }))
 	.handler(async ({ data }): Promise<Array<GiftWithGifter>> => {
 		if (data.itemIds.length === 0) return []
@@ -81,7 +82,7 @@ export type ClaimGiftResult =
 	| { kind: 'error'; reason: 'over-claim'; remaining: number }
 
 export const claimItemGift = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof ClaimGiftInputSchema>) => ClaimGiftInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<ClaimGiftResult> => {
 		const gifterId = context.session.user.id
@@ -237,7 +238,7 @@ export type UpdateGiftResult =
 	| { kind: 'error'; reason: 'over-claim'; remaining: number }
 
 export const updateItemGift = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof UpdateGiftInputSchema>) => UpdateGiftInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<UpdateGiftResult> => {
 		const gifterId = context.session.user.id
@@ -307,7 +308,7 @@ const UnclaimGiftInputSchema = z.object({
 export type UnclaimGiftResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-yours' }
 
 export const unclaimItemGift = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof UnclaimGiftInputSchema>) => UnclaimGiftInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<UnclaimGiftResult> => {
 		const gifterId = context.session.user.id
@@ -347,7 +348,7 @@ export type UpdateCoGiftersResult =
 	| { kind: 'error'; reason: 'not-found' | 'not-yours' }
 
 export const updateCoGifters = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof UpdateCoGiftersInputSchema>) => UpdateCoGiftersInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<UpdateCoGiftersResult> => {
 		const gifterId = context.session.user.id

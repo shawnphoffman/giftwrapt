@@ -1,6 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { auth } from '@/lib/auth'
+import { createLogger } from '@/lib/logger'
+
+const sseLog = createLogger('sse:list')
 
 // ===============================
 // SSE endpoint for list-view real-time updates
@@ -40,6 +43,11 @@ export function notifyListChange(listId: number) {
 	const encoder = new TextEncoder()
 	const message = encoder.encode(`data: ${JSON.stringify({ type: 'invalidate', listId, ts: Date.now() })}\n\n`)
 
+	sseLog.debug(
+		{ listId, perListSubs: perList?.size ?? 0, anyListSubs: anyListWriters.size },
+		'broadcasting list change'
+	)
+
 	if (perList) writeAll(perList, message, w => perList.delete(w))
 	writeAll(anyListWriters, message, w => anyListWriters.delete(w))
 }
@@ -75,6 +83,8 @@ export const Route = createFileRoute('/api/sse/list/$listId')({
 				}
 				listWriters.get(listId)!.add(writer)
 
+				sseLog.debug({ listId, userId: session.user.id }, 'sse client connected')
+
 				// Send initial keepalive.
 				const encoder = new TextEncoder()
 				writer.write(encoder.encode(`: connected\n\n`))
@@ -83,13 +93,15 @@ export const Route = createFileRoute('/api/sse/list/$listId')({
 				const keepalive = setInterval(() => {
 					try {
 						writer.write(encoder.encode(`: ping\n\n`))
-					} catch {
+					} catch (err) {
+						sseLog.debug({ err, listId }, 'keepalive write failed, clearing interval')
 						clearInterval(keepalive)
 					}
 				}, 30_000)
 
 				// Cleanup on close.
 				request.signal.addEventListener('abort', () => {
+					sseLog.debug({ listId, userId: session.user.id }, 'sse client disconnected')
 					clearInterval(keepalive)
 					listWriters.get(listId)?.delete(writer)
 					writer.close().catch(() => {})

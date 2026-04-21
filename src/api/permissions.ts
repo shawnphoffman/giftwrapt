@@ -3,13 +3,14 @@ import { asc } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { userRelationships, users } from '@/db/schema'
+import { loggingMiddleware } from '@/lib/logger'
 import { authMiddleware } from '@/middleware/auth'
 
 // Get all users (excluding current user) with their relationships
 export const getUsersWithRelationships = createServerFn({
 	method: 'GET',
 })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.handler(async ({ context }) => {
 		const currentUserId = context.session.user.id
 
@@ -45,7 +46,7 @@ export const getUsersWithRelationships = createServerFn({
 export const getOwnersWithRelationshipsForMe = createServerFn({
 	method: 'GET',
 })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.handler(async ({ context }) => {
 		const currentUserId = context.session.user.id
 
@@ -80,7 +81,7 @@ export const getOwnersWithRelationshipsForMe = createServerFn({
 export const upsertUserRelationships = createServerFn({
 	method: 'POST',
 })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator(
 		(data: {
 			relationships: Array<{
@@ -119,7 +120,7 @@ export const upsertUserRelationships = createServerFn({
 export const upsertViewerRelationships = createServerFn({
 	method: 'POST',
 })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator(
 		(data: {
 			relationships: Array<{

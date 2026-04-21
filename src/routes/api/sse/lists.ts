@@ -1,8 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { auth } from '@/lib/auth'
+import { createLogger } from '@/lib/logger'
 
 import { registerAnyListWriter, unregisterAnyListWriter } from './list.$listId'
+
+const sseLog = createLogger('sse:any-list')
 
 // ===============================
 // SSE endpoint — any list changed
@@ -25,18 +28,22 @@ export const Route = createFileRoute('/api/sse/lists')({
 				const writer = writable.getWriter()
 				registerAnyListWriter(writer)
 
+				sseLog.debug({ userId: session.user.id }, 'sse any-list client connected')
+
 				const encoder = new TextEncoder()
 				writer.write(encoder.encode(`: connected\n\n`))
 
 				const keepalive = setInterval(() => {
 					try {
 						writer.write(encoder.encode(`: ping\n\n`))
-					} catch {
+					} catch (err) {
+						sseLog.debug({ err }, 'keepalive write failed, clearing interval')
 						clearInterval(keepalive)
 					}
 				}, 30_000)
 
 				request.signal.addEventListener('abort', () => {
+					sseLog.debug({ userId: session.user.id }, 'sse any-list client disconnected')
 					clearInterval(keepalive)
 					unregisterAnyListWriter(writer)
 					writer.close().catch(() => {})

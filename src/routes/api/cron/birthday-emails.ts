@@ -7,8 +7,11 @@ import { giftedItems, items, lists, users } from '@/db/schema'
 import type { BirthMonth } from '@/db/schema/enums'
 import { env } from '@/env'
 import { formatGifterNames, namesForGifter, type PartneredUser } from '@/lib/gifters'
+import { createLogger } from '@/lib/logger'
 import { isEmailConfigured, sendBirthdayEmail, sendPostBirthdayEmail } from '@/lib/resend'
 import { getAppSettings } from '@/lib/settings'
+
+const cronLog = createLogger('cron:birthday-emails')
 
 // ===============================
 // Birthday email cron job
@@ -42,21 +45,27 @@ export const Route = createFileRoute('/api/cron/birthday-emails')({
 	server: {
 		handlers: {
 			GET: async ({ request }) => {
+				const started = Date.now()
+				cronLog.info('cron run starting')
+
 				// Verify cron secret.
 				const cronSecret = env.CRON_SECRET
 				if (cronSecret) {
 					const authHeader = request.headers.get('authorization')
 					if (authHeader !== `Bearer ${cronSecret}`) {
+						cronLog.warn('unauthorized cron invocation')
 						return json({ error: 'Unauthorized' }, { status: 401 })
 					}
 				}
 
 				if (!isEmailConfigured()) {
+					cronLog.info('skipped: email not configured')
 					return json({ ok: true, skipped: 'email not configured', date: new Date().toISOString() })
 				}
 
 				const settings = await getAppSettings(db)
 				if (!settings.enableBirthdayEmails) {
+					cronLog.info('skipped: birthday emails disabled in settings')
 					return json({ ok: true, skipped: 'birthday emails disabled', date: new Date().toISOString() })
 				}
 
@@ -70,13 +79,15 @@ export const Route = createFileRoute('/api/cron/birthday-emails')({
 					columns: { id: true, name: true, email: true },
 				})
 
+				cronLog.debug({ count: birthdayUsers.length }, 'birthday recipients found')
+
 				const sent: Array<string> = []
 				for (const user of birthdayUsers) {
 					try {
 						await sendBirthdayEmail(user.name || 'there', user.email)
 						sent.push(user.email)
 					} catch (err) {
-						console.error(`Failed to send birthday email to ${user.email}:`, err)
+						cronLog.error({ err, recipient: user.email }, 'failed to send birthday email')
 					}
 				}
 
@@ -163,9 +174,18 @@ export const Route = createFileRoute('/api/cron/birthday-emails')({
 						await sendPostBirthdayEmail(user.email, emailItems)
 						followUpSent.push(user.email)
 					} catch (err) {
-						console.error(`Failed to send post-birthday email to ${user.email}:`, err)
+						cronLog.error({ err, recipient: user.email }, 'failed to send post-birthday email')
 					}
 				}
+
+				cronLog.info(
+					{
+						birthdayEmails: sent.length,
+						followUpEmails: followUpSent.length,
+						durationMs: Date.now() - started,
+					},
+					'cron run complete'
+				)
 
 				return json({
 					ok: true,

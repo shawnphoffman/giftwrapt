@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { db } from '@/db'
 import { listAddons, lists } from '@/db/schema'
 import type { ListAddon } from '@/db/schema/lists'
+import { loggingMiddleware } from '@/lib/logger'
 import { canViewList } from '@/lib/permissions'
 import { authMiddleware } from '@/middleware/auth'
 
@@ -29,7 +30,7 @@ export type CreateAddonResult =
 	| { kind: 'error'; reason: 'list-not-found' | 'not-visible' | 'cannot-add-to-own-list' }
 
 export const createListAddon = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof CreateAddonInputSchema>) => CreateAddonInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<CreateAddonResult> => {
 		const userId = context.session.user.id
@@ -78,7 +79,7 @@ const UpdateAddonInputSchema = z.object({
 export type UpdateAddonResult = { kind: 'ok'; addon: ListAddon } | { kind: 'error'; reason: 'not-found' | 'not-yours' }
 
 export const updateListAddon = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof UpdateAddonInputSchema>) => UpdateAddonInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<UpdateAddonResult> => {
 		const userId = context.session.user.id
@@ -117,7 +118,7 @@ const ArchiveAddonInputSchema = z.object({
 export type ArchiveAddonResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-yours' | 'already-archived' }
 
 export const archiveListAddon = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof ArchiveAddonInputSchema>) => ArchiveAddonInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<ArchiveAddonResult> => {
 		const userId = context.session.user.id
@@ -148,7 +149,7 @@ const DeleteAddonInputSchema = z.object({
 export type DeleteAddonResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-yours' }
 
 export const deleteListAddon = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof DeleteAddonInputSchema>) => DeleteAddonInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<DeleteAddonResult> => {
 		const userId = context.session.user.id

@@ -34,6 +34,11 @@ export const env = createEnv({
 		RESEND_BCC_ADDRESS: z.email().optional(),
 		// Cron job authentication
 		CRON_SECRET: z.string().min(1).optional(),
+		// Logging. LOG_LEVEL can be changed at runtime (e.g. in docker-compose)
+		// without a rebuild. LOG_PRETTY forces human-readable output even in
+		// prod; otherwise it defaults to NODE_ENV !== 'production'.
+		LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+		LOG_PRETTY: z.stringbool().optional(),
 	},
 
 	/**

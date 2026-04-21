@@ -6,6 +6,7 @@ import { db } from '@/db'
 import { itemGroups, items, lists } from '@/db/schema'
 import { type GroupType, groupTypeEnumValues, type Priority,priorityEnumValues } from '@/db/schema/enums'
 import type { ItemGroup } from '@/db/schema/items'
+import { loggingMiddleware } from '@/lib/logger'
 import { canEditList } from '@/lib/permissions'
 import { authMiddleware } from '@/middleware/auth'
 
@@ -43,7 +44,7 @@ const CreateGroupInputSchema = z.object({
 export type CreateGroupResult = { kind: 'ok'; group: ItemGroup } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const createItemGroup = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof CreateGroupInputSchema>) => CreateGroupInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<CreateGroupResult> => {
 		const userId = context.session.user.id
@@ -74,7 +75,7 @@ const UpdateGroupInputSchema = z
 export type UpdateGroupResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const updateItemGroup = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof UpdateGroupInputSchema>) => UpdateGroupInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<UpdateGroupResult> => {
 		const userId = context.session.user.id
@@ -108,7 +109,7 @@ const DeleteGroupInputSchema = z.object({
 export type DeleteGroupResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const deleteItemGroup = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof DeleteGroupInputSchema>) => DeleteGroupInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<DeleteGroupResult> => {
 		const userId = context.session.user.id
@@ -142,7 +143,7 @@ const AssignItemsInputSchema = z.object({
 export type AssignItemsResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' | 'mixed-lists' }
 
 export const assignItemsToGroup = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof AssignItemsInputSchema>) => AssignItemsInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<AssignItemsResult> => {
 		const userId = context.session.user.id
@@ -190,7 +191,7 @@ const ReorderInputSchema = z.object({
 export type ReorderResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const reorderGroupItems = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof ReorderInputSchema>) => ReorderInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<ReorderResult> => {
 		const userId = context.session.user.id
@@ -230,7 +231,7 @@ export type GroupWithItems = {
 }
 
 export const getGroupsForList = createServerFn({ method: 'GET' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: { listId: number }) => ({ listId: data.listId }))
 	.handler(async ({ data }): Promise<Array<GroupWithItems>> => {
 		const groups = await db.query.itemGroups.findMany({

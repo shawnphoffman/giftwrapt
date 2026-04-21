@@ -45,7 +45,7 @@ EXPOSE 3000
 
 USER nodejs
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
 	CMD /app/docker/healthcheck.sh
 
 ENTRYPOINT ["/app/docker/entrypoint.sh"]
