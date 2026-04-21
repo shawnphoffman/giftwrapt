@@ -12,7 +12,7 @@ export const Route = createFileRoute('/(core)/admin/data')({
 function AdminDataPage() {
 	return (
 		<>
-			<Card className="bg-accent animate-page-in">
+			<Card className="animate-page-in">
 				<CardHeader>
 					<CardTitle className="text-2xl">Export backup</CardTitle>
 					<CardDescription>Download a JSON snapshot of all app data.</CardDescription>
@@ -23,7 +23,7 @@ function AdminDataPage() {
 					</ClientOnly>
 				</CardContent>
 			</Card>
-			<Card className="bg-accent animate-page-in">
+			<Card className="animate-page-in">
 				<CardHeader>
 					<CardTitle className="text-2xl">Import backup</CardTitle>
 					<CardDescription>Restore app data from a previously exported JSON snapshot.</CardDescription>
