@@ -2,15 +2,15 @@ import type { GroupSummary } from '@/api/lists'
 import type { Priority } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 
-export type ListEntry =
-	| { kind: 'item'; priority: Priority; id: number; item: Item }
-	| { kind: 'group'; priority: Priority; id: number; group: GroupSummary; items: Array<Item> }
+export type ListEntry<T extends Item = Item> =
+	| { kind: 'item'; priority: Priority; id: number; item: T }
+	| { kind: 'group'; priority: Priority; id: number; group: GroupSummary; items: Array<T> }
 
 const priorityRank: Record<Priority, number> = { 'very-high': 4, high: 3, normal: 2, low: 1 }
 
-export function buildListEntries(list: { items: Array<Item>; groups: Array<GroupSummary> }): Array<ListEntry> {
+export function buildListEntries<T extends Item>(list: { items: Array<T>; groups: Array<GroupSummary> }): Array<ListEntry<T>> {
 	const ungroupedItems = list.items.filter(i => i.groupId === null)
-	const itemsByGroup = new Map<number, Array<Item>>()
+	const itemsByGroup = new Map<number, Array<T>>()
 	for (const item of list.items) {
 		if (item.groupId !== null) {
 			if (!itemsByGroup.has(item.groupId)) itemsByGroup.set(item.groupId, [])
@@ -25,10 +25,10 @@ export function buildListEntries(list: { items: Array<Item>; groups: Array<Group
 			return a.id - b.id
 		})
 	}
-	const entries: Array<ListEntry> = [
-		...ungroupedItems.map((item): ListEntry => ({ kind: 'item', priority: item.priority, id: item.id, item })),
+	const entries: Array<ListEntry<T>> = [
+		...ungroupedItems.map((item): ListEntry<T> => ({ kind: 'item', priority: item.priority, id: item.id, item })),
 		...list.groups.map(
-			(group): ListEntry => ({
+			(group): ListEntry<T> => ({
 				kind: 'group',
 				priority: group.priority,
 				id: group.id,
