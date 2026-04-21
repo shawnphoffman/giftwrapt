@@ -31,7 +31,6 @@ import { Route as coreSettingsSecurityRouteImport } from './routes/(core)/settin
 import { Route as coreSettingsReceivedRouteImport } from './routes/(core)/settings/received'
 import { Route as coreSettingsPurchasesRouteImport } from './routes/(core)/settings/purchases'
 import { Route as coreSettingsPermissionsRouteImport } from './routes/(core)/settings/permissions'
-import { Route as coreSettingsConnectionsRouteImport } from './routes/(core)/settings/connections'
 import { Route as coreRecentItemsRouteImport } from './routes/(core)/recent.items'
 import { Route as coreRecentCommentsRouteImport } from './routes/(core)/recent.comments'
 import { Route as corePurchasesSummaryRouteImport } from './routes/(core)/purchases.summary'
@@ -156,11 +155,6 @@ const coreSettingsPermissionsRoute = coreSettingsPermissionsRouteImport.update({
   path: '/permissions',
   getParentRoute: () => coreSettingsRouteRoute,
 } as any)
-const coreSettingsConnectionsRoute = coreSettingsConnectionsRouteImport.update({
-  id: '/connections',
-  path: '/connections',
-  getParentRoute: () => coreSettingsRouteRoute,
-} as any)
 const coreRecentItemsRoute = coreRecentItemsRouteImport.update({
   id: '/recent/items',
   path: '/recent/items',
@@ -250,7 +244,6 @@ export interface FileRoutesByFullPath {
   '/purchases/summary': typeof corePurchasesSummaryRoute
   '/recent/comments': typeof coreRecentCommentsRoute
   '/recent/items': typeof coreRecentItemsRoute
-  '/settings/connections': typeof coreSettingsConnectionsRoute
   '/settings/permissions': typeof coreSettingsPermissionsRoute
   '/settings/purchases': typeof coreSettingsPurchasesRoute
   '/settings/received': typeof coreSettingsReceivedRoute
@@ -286,7 +279,6 @@ export interface FileRoutesByTo {
   '/purchases/summary': typeof corePurchasesSummaryRoute
   '/recent/comments': typeof coreRecentCommentsRoute
   '/recent/items': typeof coreRecentItemsRoute
-  '/settings/connections': typeof coreSettingsConnectionsRoute
   '/settings/permissions': typeof coreSettingsPermissionsRoute
   '/settings/purchases': typeof coreSettingsPurchasesRoute
   '/settings/received': typeof coreSettingsReceivedRoute
@@ -326,7 +318,6 @@ export interface FileRoutesById {
   '/(core)/purchases/summary': typeof corePurchasesSummaryRoute
   '/(core)/recent/comments': typeof coreRecentCommentsRoute
   '/(core)/recent/items': typeof coreRecentItemsRoute
-  '/(core)/settings/connections': typeof coreSettingsConnectionsRoute
   '/(core)/settings/permissions': typeof coreSettingsPermissionsRoute
   '/(core)/settings/purchases': typeof coreSettingsPurchasesRoute
   '/(core)/settings/received': typeof coreSettingsReceivedRoute
@@ -366,7 +357,6 @@ export interface FileRouteTypes {
     | '/purchases/summary'
     | '/recent/comments'
     | '/recent/items'
-    | '/settings/connections'
     | '/settings/permissions'
     | '/settings/purchases'
     | '/settings/received'
@@ -402,7 +392,6 @@ export interface FileRouteTypes {
     | '/purchases/summary'
     | '/recent/comments'
     | '/recent/items'
-    | '/settings/connections'
     | '/settings/permissions'
     | '/settings/purchases'
     | '/settings/received'
@@ -441,7 +430,6 @@ export interface FileRouteTypes {
     | '/(core)/purchases/summary'
     | '/(core)/recent/comments'
     | '/(core)/recent/items'
-    | '/(core)/settings/connections'
     | '/(core)/settings/permissions'
     | '/(core)/settings/purchases'
     | '/(core)/settings/received'
@@ -633,13 +621,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreSettingsPermissionsRouteImport
       parentRoute: typeof coreSettingsRouteRoute
     }
-    '/(core)/settings/connections': {
-      id: '/(core)/settings/connections'
-      path: '/connections'
-      fullPath: '/settings/connections'
-      preLoaderRoute: typeof coreSettingsConnectionsRouteImport
-      parentRoute: typeof coreSettingsRouteRoute
-    }
     '/(core)/recent/items': {
       id: '/(core)/recent/items'
       path: '/recent/items'
@@ -762,7 +743,6 @@ const coreAdminRouteRouteWithChildren = coreAdminRouteRoute._addFileChildren(
 )
 
 interface coreSettingsRouteRouteChildren {
-  coreSettingsConnectionsRoute: typeof coreSettingsConnectionsRoute
   coreSettingsPermissionsRoute: typeof coreSettingsPermissionsRoute
   coreSettingsPurchasesRoute: typeof coreSettingsPurchasesRoute
   coreSettingsReceivedRoute: typeof coreSettingsReceivedRoute
@@ -771,7 +751,6 @@ interface coreSettingsRouteRouteChildren {
 }
 
 const coreSettingsRouteRouteChildren: coreSettingsRouteRouteChildren = {
-  coreSettingsConnectionsRoute: coreSettingsConnectionsRoute,
   coreSettingsPermissionsRoute: coreSettingsPermissionsRoute,
   coreSettingsPurchasesRoute: coreSettingsPurchasesRoute,
   coreSettingsReceivedRoute: coreSettingsReceivedRoute,

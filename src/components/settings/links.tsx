@@ -27,9 +27,6 @@ export default function SettingsLinks() {
 			<Link to="/settings/permissions" className={navLinkClass(pathname === '/settings/permissions')}>
 				Permissions
 			</Link>
-			<Link to="/settings/connections" className={navLinkClass(pathname === '/settings/connections')}>
-				Connections
-			</Link>
 			<Separator className="my-1" />
 			<Link to="/settings/purchases" className={navLinkClass(pathname === '/settings/purchases')}>
 				<Receipt />
