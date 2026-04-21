@@ -38,6 +38,7 @@ import { Route as coreItemCloneRouteImport } from './routes/(core)/item.clone'
 import { Route as coreAdminUsersRouteImport } from './routes/(core)/admin/users'
 import { Route as coreAdminTestRouteImport } from './routes/(core)/admin/test'
 import { Route as coreAdminDebugRouteImport } from './routes/(core)/admin/debug'
+import { Route as coreAdminDataRouteImport } from './routes/(core)/admin/data'
 import { Route as ApiSseListListIdRouteImport } from './routes/api/sse/list.$listId'
 import { Route as coreListsListIdOrganizeRouteImport } from './routes/(core)/lists_/$listId.organize'
 import { Route as coreListsListIdEditRouteImport } from './routes/(core)/lists_/$listId.edit'
@@ -189,6 +190,11 @@ const coreAdminDebugRoute = coreAdminDebugRouteImport.update({
   path: '/debug',
   getParentRoute: () => coreAdminRouteRoute,
 } as any)
+const coreAdminDataRoute = coreAdminDataRouteImport.update({
+  id: '/data',
+  path: '/data',
+  getParentRoute: () => coreAdminRouteRoute,
+} as any)
 const ApiSseListListIdRoute = ApiSseListListIdRouteImport.update({
   id: '/api/sse/list/$listId',
   path: '/api/sse/list/$listId',
@@ -230,6 +236,7 @@ export interface FileRoutesByFullPath {
   '/temp': typeof coreTempRoute
   '/api/health': typeof ApiHealthRoute
   '/': typeof coreIndexRoute
+  '/admin/data': typeof coreAdminDataRoute
   '/admin/debug': typeof coreAdminDebugRoute
   '/admin/test': typeof coreAdminTestRoute
   '/admin/users': typeof coreAdminUsersRoute
@@ -264,6 +271,7 @@ export interface FileRoutesByTo {
   '/temp': typeof coreTempRoute
   '/api/health': typeof ApiHealthRoute
   '/': typeof coreIndexRoute
+  '/admin/data': typeof coreAdminDataRoute
   '/admin/debug': typeof coreAdminDebugRoute
   '/admin/test': typeof coreAdminTestRoute
   '/admin/users': typeof coreAdminUsersRoute
@@ -302,6 +310,7 @@ export interface FileRoutesById {
   '/(core)/temp': typeof coreTempRoute
   '/api/health': typeof ApiHealthRoute
   '/(core)/': typeof coreIndexRoute
+  '/(core)/admin/data': typeof coreAdminDataRoute
   '/(core)/admin/debug': typeof coreAdminDebugRoute
   '/(core)/admin/test': typeof coreAdminTestRoute
   '/(core)/admin/users': typeof coreAdminUsersRoute
@@ -340,6 +349,7 @@ export interface FileRouteTypes {
     | '/temp'
     | '/api/health'
     | '/'
+    | '/admin/data'
     | '/admin/debug'
     | '/admin/test'
     | '/admin/users'
@@ -374,6 +384,7 @@ export interface FileRouteTypes {
     | '/temp'
     | '/api/health'
     | '/'
+    | '/admin/data'
     | '/admin/debug'
     | '/admin/test'
     | '/admin/users'
@@ -411,6 +422,7 @@ export interface FileRouteTypes {
     | '/(core)/temp'
     | '/api/health'
     | '/(core)/'
+    | '/(core)/admin/data'
     | '/(core)/admin/debug'
     | '/(core)/admin/test'
     | '/(core)/admin/users'
@@ -658,6 +670,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreAdminDebugRouteImport
       parentRoute: typeof coreAdminRouteRoute
     }
+    '/(core)/admin/data': {
+      id: '/(core)/admin/data'
+      path: '/data'
+      fullPath: '/admin/data'
+      preLoaderRoute: typeof coreAdminDataRouteImport
+      parentRoute: typeof coreAdminRouteRoute
+    }
     '/api/sse/list/$listId': {
       id: '/api/sse/list/$listId'
       path: '/api/sse/list/$listId'
@@ -704,6 +723,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface coreAdminRouteRouteChildren {
+  coreAdminDataRoute: typeof coreAdminDataRoute
   coreAdminDebugRoute: typeof coreAdminDebugRoute
   coreAdminTestRoute: typeof coreAdminTestRoute
   coreAdminUsersRoute: typeof coreAdminUsersRoute
@@ -712,6 +732,7 @@ interface coreAdminRouteRouteChildren {
 }
 
 const coreAdminRouteRouteChildren: coreAdminRouteRouteChildren = {
+  coreAdminDataRoute: coreAdminDataRoute,
   coreAdminDebugRoute: coreAdminDebugRoute,
   coreAdminTestRoute: coreAdminTestRoute,
   coreAdminUsersRoute: coreAdminUsersRoute,
