@@ -3,6 +3,7 @@ import { and, desc, eq, gte } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { items, lists, users } from '@/db/schema'
+import { loggingMiddleware } from '@/lib/logger'
 import { authMiddleware } from '@/middleware/auth'
 
 // ===============================
@@ -25,7 +26,7 @@ export type RecentItemRow = {
 }
 
 export const getRecentItems = createServerFn({ method: 'GET' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.handler(async (): Promise<Array<RecentItemRow>> => {
 		// Recent items from public, active lists in the last 30 days.
 		const thirtyDaysAgo = new Date()

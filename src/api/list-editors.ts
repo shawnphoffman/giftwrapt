@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { db } from '@/db'
 import { listEditors, lists, users } from '@/db/schema'
 import type { Role } from '@/db/schema/enums'
+import { loggingMiddleware } from '@/lib/logger'
 import { authMiddleware } from '@/middleware/auth'
 
 // ===============================
@@ -25,7 +26,7 @@ export type EditorOnList = {
 }
 
 export const getListEditors = createServerFn({ method: 'GET' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: { listId: number }) => ({ listId: data.listId }))
 	.handler(async ({ context, data }): Promise<Array<EditorOnList>> => {
 		const userId = context.session.user.id
@@ -68,7 +69,7 @@ export type AddEditorResult =
 	  }
 
 export const addListEditor = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof AddEditorInputSchema>) => AddEditorInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<AddEditorResult> => {
 		const ownerId = context.session.user.id
@@ -137,7 +138,7 @@ export type AddableEditorUser = {
 }
 
 export const getAddableEditors = createServerFn({ method: 'GET' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: { listId: number }) => ({ listId: data.listId }))
 	.handler(async ({ context, data }): Promise<Array<AddableEditorUser>> => {
 		const ownerId = context.session.user.id
@@ -175,7 +176,7 @@ const RemoveEditorInputSchema = z.object({
 export type RemoveEditorResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-owner' }
 
 export const removeListEditor = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof RemoveEditorInputSchema>) => RemoveEditorInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<RemoveEditorResult> => {
 		const ownerId = context.session.user.id

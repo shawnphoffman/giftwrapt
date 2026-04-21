@@ -8,6 +8,9 @@ vi.mock('@/env', () => ({
 		RESEND_FROM_EMAIL: undefined,
 		RESEND_FROM_NAME: undefined,
 		RESEND_BCC_ADDRESS: undefined,
+		// Logging config — required by the pino logger loaded indirectly.
+		LOG_LEVEL: 'silent',
+		LOG_PRETTY: false,
 	},
 }))
 
@@ -27,22 +30,18 @@ describe('resend module with RESEND_API_KEY unset', () => {
 
 	it('no-ops sendNewCommentEmail and returns null', async () => {
 		const { sendNewCommentEmail } = await import('@/lib/resend')
-		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 		const result = await sendNewCommentEmail('owner', 'owner@example.com', 'commenter', 'hi', 'Item', 1, 1)
 		expect(result).toBeNull()
-		expect(warn).toHaveBeenCalled()
 	})
 
 	it('no-ops sendBirthdayEmail and returns null', async () => {
 		const { sendBirthdayEmail } = await import('@/lib/resend')
-		vi.spyOn(console, 'warn').mockImplementation(() => {})
 		const result = await sendBirthdayEmail('Alice', 'alice@example.com')
 		expect(result).toBeNull()
 	})
 
 	it('no-ops sendPostBirthdayEmail and returns null', async () => {
 		const { sendPostBirthdayEmail } = await import('@/lib/resend')
-		vi.spyOn(console, 'warn').mockImplementation(() => {})
 		const result = await sendPostBirthdayEmail('alice@example.com', [])
 		expect(result).toBeNull()
 	})

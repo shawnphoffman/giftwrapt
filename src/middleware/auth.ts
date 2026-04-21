@@ -5,8 +5,12 @@ import { eq } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { users } from '@/db/schema'
+import { createLogger } from '@/lib/logger'
+import { runWithRequest, setRequestUser } from '@/lib/request-context'
 
 import { auth } from '../lib/auth'
+
+const mwLog = createLogger('middleware:auth')
 
 // Better-auth's default cookie names. The __Secure- prefixed pair is what's
 // actually set in production (over HTTPS). Clear both sets so we don't leave
@@ -35,39 +39,48 @@ async function requireLiveUser(userId: string): Promise<void> {
 		columns: { id: true },
 	})
 	if (!row) {
+		mwLog.warn({ userId }, 'session user no longer exists, clearing cookies')
 		clearAuthCookies()
 		throw redirect({ to: '/sign-in' })
 	}
 }
 
 export const authMiddleware = createMiddleware().server(async ({ next, request }) => {
-	const session = await auth.api.getSession({ headers: request.headers })
+	return runWithRequest(request, async () => {
+		const session = await auth.api.getSession({ headers: request.headers })
 
-	if (!session) {
-		throw redirect({ to: '/sign-in' })
-	}
+		if (!session) {
+			mwLog.debug('unauthenticated, redirecting to /sign-in')
+			throw redirect({ to: '/sign-in' })
+		}
 
-	await requireLiveUser(session.user.id)
+		setRequestUser(session.user.id)
+		await requireLiveUser(session.user.id)
 
-	return await next({
-		context: {
-			session,
-		},
+		return await next({
+			context: {
+				session,
+			},
+		})
 	})
 })
 
 export const adminAuthMiddleware = createMiddleware().server(async ({ next, request }) => {
-	const session = await auth.api.getSession({ headers: request.headers })
+	return runWithRequest(request, async () => {
+		const session = await auth.api.getSession({ headers: request.headers })
 
-	if (!session?.user.isAdmin) {
-		throw redirect({ to: '/' })
-	}
+		if (!session?.user.isAdmin) {
+			mwLog.warn({ hasSession: Boolean(session) }, 'admin check failed, redirecting')
+			throw redirect({ to: '/' })
+		}
 
-	await requireLiveUser(session.user.id)
+		setRequestUser(session.user.id)
+		await requireLiveUser(session.user.id)
 
-	return await next({
-		context: {
-			session,
-		},
+		return await next({
+			context: {
+				session,
+			},
+		})
 	})
 })

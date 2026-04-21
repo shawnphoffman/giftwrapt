@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 
 import { db } from '@/db'
 import { appSettings } from '@/db/schema'
+import { loggingMiddleware } from '@/lib/logger'
 import { type AppSettings, appSettingsSchema, getAppSettings } from '@/lib/settings'
 import { adminAuthMiddleware } from '@/middleware/auth'
 
@@ -11,9 +12,11 @@ import { adminAuthMiddleware } from '@/middleware/auth'
  */
 export const fetchAppSettings = createServerFn({
 	method: 'GET',
-}).handler(async () => {
-	return await getAppSettings(db)
 })
+	.middleware([loggingMiddleware])
+	.handler(async () => {
+		return await getAppSettings(db)
+	})
 
 /**
  * Server function to update app settings (admin only)
@@ -22,7 +25,7 @@ export const fetchAppSettings = createServerFn({
 export const updateAppSettings = createServerFn({
 	method: 'POST',
 })
-	.middleware([adminAuthMiddleware])
+	.middleware([adminAuthMiddleware, loggingMiddleware])
 	.inputValidator((data: Partial<AppSettings>) => {
 		// Validate only the provided keys
 		const partialSchema = appSettingsSchema.partial()

@@ -26,6 +26,11 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-wishlist}
       NODE_ENV: production
+      # Structured logging. LOG_LEVEL can be flipped without a rebuild; valid
+      # values: fatal|error|warn|info|debug|trace|silent. LOG_PRETTY forces
+      # human-readable output even in prod (otherwise NDJSON is emitted).
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_PRETTY: ${LOG_PRETTY:-false}
     ports:
       - "${APP_PORT:-3000}:3000"
     depends_on:

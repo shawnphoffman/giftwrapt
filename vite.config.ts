@@ -38,6 +38,10 @@ const config = defineConfig({
 		!isStorybook && devtools(),
 		!isStorybook &&
 			nitro({
+				// Registered explicitly rather than relying on server/plugins/
+				// auto-discovery, which depends on Nitro's srcDir and isn't
+				// guaranteed when Nitro is used as a Vite plugin.
+				plugins: ['./server/plugins/logging.ts'],
 				routeRules: {
 					'/**': { headers: securityHeaders },
 				},

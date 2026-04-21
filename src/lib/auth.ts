@@ -8,14 +8,37 @@ import { sql } from 'drizzle-orm'
 import { db } from '@/db'
 import { account, session, users, verification } from '@/db/schema'
 import { env } from '@/env'
+import { createLogger } from '@/lib/logger'
 
 const trustedOrigins = env.TRUSTED_ORIGINS?.split(',')
 	.map(o => o.trim())
 	.filter(Boolean)
 
+const authLog = createLogger('auth')
+
+// Map LOG_LEVEL to the narrower set better-auth accepts. 'fatal' collapses to
+// 'error', 'trace' to 'debug', 'silent' disables entirely.
+const betterAuthLevel: 'info' | 'warn' | 'error' | 'debug' | undefined =
+	env.LOG_LEVEL === 'silent'
+		? undefined
+		: env.LOG_LEVEL === 'fatal'
+			? 'error'
+			: env.LOG_LEVEL === 'trace'
+				? 'debug'
+				: env.LOG_LEVEL
+
 const options = {
 	baseURL: env.BETTER_AUTH_URL || env.SERVER_URL || 'http://localhost:3000',
 	secret: env.BETTER_AUTH_SECRET || '',
+	// Pipe better-auth's internal logs into pino so auth warnings/errors show
+	// up alongside the rest of the app output and honor LOG_LEVEL.
+	logger: {
+		disabled: env.LOG_LEVEL === 'silent',
+		level: betterAuthLevel,
+		log: (level: 'info' | 'warn' | 'error' | 'debug', message: string, ...args: Array<unknown>) => {
+			authLog[level]({ args: args.length ? args : undefined }, message)
+		},
+	},
 	...(trustedOrigins?.length ? { trustedOrigins } : {}),
 	...(env.INSECURE_COOKIES ? { advanced: { useSecureCookies: false } } : {}),
 	database: drizzleAdapter(db, {

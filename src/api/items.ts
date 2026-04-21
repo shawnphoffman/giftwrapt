@@ -6,6 +6,7 @@ import { db } from '@/db'
 import { giftedItems, itemComments, itemGroups, items, lists } from '@/db/schema'
 import { type ListType, priorityEnumValues, statusEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
+import { loggingMiddleware } from '@/lib/logger'
 import { canEditList } from '@/lib/permissions'
 import { authMiddleware } from '@/middleware/auth'
 
@@ -43,7 +44,7 @@ const CreateItemInputSchema = z.object({
 export type CreateItemResult = { kind: 'ok'; item: Item } | { kind: 'error'; reason: 'list-not-found' | 'not-authorized' }
 
 export const createItem = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof CreateItemInputSchema>) => CreateItemInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<CreateItemResult> => {
 		const userId = context.session.user.id
@@ -98,7 +99,7 @@ const UpdateItemInputSchema = z.object({
 export type UpdateItemResult = { kind: 'ok'; item: Item } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const updateItem = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof UpdateItemInputSchema>) => UpdateItemInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<UpdateItemResult> => {
 		const userId = context.session.user.id
@@ -165,7 +166,7 @@ const DeleteItemInputSchema = z.object({
 export type DeleteItemResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const deleteItem = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof DeleteItemInputSchema>) => DeleteItemInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<DeleteItemResult> => {
 		const userId = context.session.user.id
@@ -201,7 +202,7 @@ const ArchiveItemInputSchema = z.object({
 export type ArchiveItemResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const archiveItem = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof ArchiveItemInputSchema>) => ArchiveItemInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<ArchiveItemResult> => {
 		const userId = context.session.user.id
@@ -294,7 +295,7 @@ export type MoveItemsResult =
 	| { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const moveItemsToList = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof MoveItemsInputSchema>) => MoveItemsInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<MoveItemsResult> => {
 		const userId = context.session.user.id
@@ -358,7 +359,7 @@ const ArchiveItemsInputSchema = z.object({
 export type ArchiveItemsResult = { kind: 'ok'; updated: number } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const archiveItems = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof ArchiveItemsInputSchema>) => ArchiveItemsInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<ArchiveItemsResult> => {
 		const userId = context.session.user.id
@@ -383,7 +384,7 @@ const DeleteItemsInputSchema = z.object({
 export type DeleteItemsResult = { kind: 'ok'; deleted: number } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const deleteItems = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof DeleteItemsInputSchema>) => DeleteItemsInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<DeleteItemsResult> => {
 		const userId = context.session.user.id
@@ -406,7 +407,7 @@ const SetItemsPriorityInputSchema = z.object({
 export type SetItemsPriorityResult = { kind: 'ok'; updated: number } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const setItemsPriority = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof SetItemsPriorityInputSchema>) => SetItemsPriorityInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<SetItemsPriorityResult> => {
 		const userId = context.session.user.id
@@ -442,7 +443,7 @@ const ReorderItemsInputSchema = z.object({
 export type ReorderItemsResult = { kind: 'ok'; updated: number } | { kind: 'error'; reason: 'not-found' | 'not-authorized' | 'mixed-lists' }
 
 export const reorderItems = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof ReorderItemsInputSchema>) => ReorderItemsInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<ReorderItemsResult> => {
 		const userId = context.session.user.id
@@ -507,7 +508,7 @@ export type ReorderEntriesResult =
 	| { kind: 'error'; reason: 'not-found' | 'not-authorized' | 'mixed-lists' }
 
 export const reorderListEntries = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof ReorderEntriesInputSchema>) => ReorderEntriesInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<ReorderEntriesResult> => {
 		const userId = context.session.user.id
@@ -571,7 +572,7 @@ export type SetGroupsPriorityResult =
 	| { kind: 'error'; reason: 'not-found' | 'not-authorized' | 'mixed-lists' }
 
 export const setGroupsPriority = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof SetGroupsPriorityInputSchema>) => SetGroupsPriorityInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<SetGroupsPriorityResult> => {
 		const userId = context.session.user.id
@@ -609,7 +610,7 @@ export type DeleteGroupsResult =
 	| { kind: 'error'; reason: 'not-found' | 'not-authorized' | 'mixed-lists' }
 
 export const deleteGroups = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof DeleteGroupsInputSchema>) => DeleteGroupsInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<DeleteGroupsResult> => {
 		const userId = context.session.user.id

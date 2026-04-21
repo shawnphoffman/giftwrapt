@@ -5,6 +5,9 @@ import NewCommentEmail from '@/emails/new-comment-email'
 import PostBirthdayEmail from '@/emails/post-birthday-email'
 import TestEmail from '@/emails/test-email'
 import { env } from '@/env'
+import { createLogger } from '@/lib/logger'
+
+const emailLog = createLogger('email')
 
 // Email is optional: RESEND_API_KEY may be unset (self-hosted installs that
 // don't want transactional email). Instantiate lazily so module import never
@@ -46,7 +49,17 @@ export const commonEmailProps = () => {
 }
 
 const warnNotConfigured = (action: string) => {
-	console.warn(`[resend] ${action} skipped — RESEND_API_KEY / RESEND_FROM_EMAIL not configured`)
+	emailLog.warn({ action }, 'email send skipped: RESEND_API_KEY / RESEND_FROM_EMAIL not configured')
+}
+
+type SendResult = { data?: { id?: string } | null; error?: unknown } | null
+
+const logSendResult = (kind: string, recipient: string, res: SendResult) => {
+	if (res?.error) {
+		emailLog.error({ kind, recipient, err: res.error }, 'email send failed')
+	} else {
+		emailLog.debug({ kind, recipient, id: res?.data?.id }, 'email sent')
+	}
 }
 
 export const sendNewCommentEmail = async (
@@ -63,7 +76,8 @@ export const sendNewCommentEmail = async (
 		warnNotConfigured('sendNewCommentEmail')
 		return null
 	}
-	return await client.emails.send({
+	emailLog.info({ kind: 'new-comment', recipient, listId, itemId }, 'sending email')
+	const res = await client.emails.send({
 		...commonEmailProps(),
 		to: recipient,
 		subject: 'New Comment on Wish Lists',
@@ -71,6 +85,8 @@ export const sendNewCommentEmail = async (
 			<NewCommentEmail username={username} commenter={commenter} comment={comment} itemTitle={itemTitle} listId={listId} itemId={itemId} />
 		),
 	})
+	logSendResult('new-comment', recipient, res as SendResult)
+	return res
 }
 
 export const sendBirthdayEmail = async (name: string, recipient: string) => {
@@ -79,12 +95,15 @@ export const sendBirthdayEmail = async (name: string, recipient: string) => {
 		warnNotConfigured('sendBirthdayEmail')
 		return null
 	}
-	return await client.emails.send({
+	emailLog.info({ kind: 'birthday', recipient }, 'sending email')
+	const res = await client.emails.send({
 		...commonEmailProps(),
 		to: recipient,
 		subject: `🎉 Happy Birthday, ${name}!`,
 		react: <BirthdayEmail name={name} />,
 	})
+	logSendResult('birthday', recipient, res as SendResult)
+	return res
 }
 
 export const sendPostBirthdayEmail = async (recipient: string, items: Array<{ title: string; image_url: string; gifters: string }>) => {
@@ -93,12 +112,15 @@ export const sendPostBirthdayEmail = async (recipient: string, items: Array<{ ti
 		warnNotConfigured('sendPostBirthdayEmail')
 		return null
 	}
-	return await client.emails.send({
+	emailLog.info({ kind: 'post-birthday', recipient, itemCount: items.length }, 'sending email')
+	const res = await client.emails.send({
 		...commonEmailProps(),
 		to: recipient,
 		subject: 'A look back at your gifts',
 		react: <PostBirthdayEmail items={items} />,
 	})
+	logSendResult('post-birthday', recipient, res as SendResult)
+	return res
 }
 
 export const sendTestEmail = async () => {
@@ -112,10 +134,13 @@ export const sendTestEmail = async () => {
 		throw new Error('No email address configured for test email')
 	}
 
-	return await client.emails.send({
+	emailLog.info({ kind: 'test', recipient: to }, 'sending email')
+	const res = await client.emails.send({
 		from: getFromEmail(),
 		to,
 		subject: 'Test Email',
 		react: <TestEmail />,
 	})
+	logSendResult('test', to, res as SendResult)
+	return res
 }

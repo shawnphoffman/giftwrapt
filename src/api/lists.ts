@@ -8,6 +8,7 @@ import { type GroupType, type ListType, listTypeEnumValues, type Priority } from
 import type { GiftedItem } from '@/db/schema/gifts'
 import type { Item } from '@/db/schema/items'
 import type { ListAddon } from '@/db/schema/lists'
+import { loggingMiddleware } from '@/lib/logger'
 import { canEditList, canViewList } from '@/lib/permissions'
 import { authMiddleware } from '@/middleware/auth'
 
@@ -69,7 +70,7 @@ export type GetListForViewingResult =
 export type SortOption = 'priority-asc' | 'priority-desc' | 'date-asc' | 'date-desc'
 
 export const getListForViewing = createServerFn({ method: 'GET' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: { listId: string; sort?: SortOption }) => ({
 		listId: data.listId,
 		sort: data.sort || ('priority-desc' as SortOption),
@@ -246,7 +247,7 @@ export type MyListsResult = {
 }
 
 export const getMyLists = createServerFn({ method: 'GET' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.handler(async ({ context }): Promise<MyListsResult> => {
 		const userId = context.session.user.id
 
@@ -372,7 +373,7 @@ export type CreateListResult =
 	| { kind: 'error'; reason: 'target-required' }
 
 export const createList = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof CreateListInputSchema>) => CreateListInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<CreateListResult> => {
 		const userId = context.session.user.id
@@ -413,7 +414,7 @@ const UpdateListInputSchema = z.object({
 export type UpdateListResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-owner' }
 
 export const updateList = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof UpdateListInputSchema>) => UpdateListInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<UpdateListResult> => {
 		const userId = context.session.user.id
@@ -452,7 +453,7 @@ const DeleteListInputSchema = z.object({
 export type DeleteListResult = { kind: 'ok'; action: 'deleted' | 'archived' } | { kind: 'error'; reason: 'not-found' | 'not-owner' }
 
 export const deleteList = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof DeleteListInputSchema>) => DeleteListInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<DeleteListResult> => {
 		const userId = context.session.user.id
@@ -504,7 +505,7 @@ const SetPrimaryListInputSchema = z.object({
 export type SetPrimaryListResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-owner' | 'invalid-type' }
 
 export const setPrimaryList = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof SetPrimaryListInputSchema>) => SetPrimaryListInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<SetPrimaryListResult> => {
 		const userId = context.session.user.id
@@ -561,7 +562,7 @@ export type ListForEditing = {
 export type GetListForEditingResult = { kind: 'ok'; list: ListForEditing } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const getListForEditing = createServerFn({ method: 'GET' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: { listId: string; includeArchived?: boolean }) => ({
 		listId: data.listId,
 		includeArchived: data.includeArchived ?? false,

@@ -5,6 +5,7 @@ import { db } from '@/db'
 import { getAllUsersQuery, getUserDetailsQuery } from '@/db/queries/users'
 import type { BirthMonth, Role } from '@/db/schema'
 import { giftedItems, guardianships, items, users } from '@/db/schema'
+import { loggingMiddleware } from '@/lib/logger'
 import { sendTestEmail } from '@/lib/resend'
 import { adminAuthMiddleware } from '@/middleware/auth'
 
@@ -12,7 +13,7 @@ import { adminAuthMiddleware } from '@/middleware/auth'
 export const getUsersAsAdmin = createServerFn({
 	method: 'GET',
 })
-	.middleware([adminAuthMiddleware])
+	.middleware([adminAuthMiddleware, loggingMiddleware])
 	.handler(async () => {
 		return await getAllUsersQuery()
 	})
@@ -21,7 +22,7 @@ export const getUsersAsAdmin = createServerFn({
 export const getUserDetailsAsAdmin = createServerFn({
 	method: 'GET',
 })
-	.middleware([adminAuthMiddleware])
+	.middleware([adminAuthMiddleware, loggingMiddleware])
 	.inputValidator((data: { userId: string }) => data)
 	.handler(async ({ data: { userId } }) => {
 		return await getUserDetailsQuery(userId)
@@ -31,7 +32,7 @@ export const getUserDetailsAsAdmin = createServerFn({
 export const sendTestEmailAsAdmin = createServerFn({
 	method: 'POST',
 })
-	.middleware([adminAuthMiddleware])
+	.middleware([adminAuthMiddleware, loggingMiddleware])
 	.handler(async () => {
 		const result = await sendTestEmail()
 		return { status: 'success', data: result }
@@ -41,7 +42,7 @@ export const sendTestEmailAsAdmin = createServerFn({
 export const createGuardianships = createServerFn({
 	method: 'POST',
 })
-	.middleware([adminAuthMiddleware])
+	.middleware([adminAuthMiddleware, loggingMiddleware])
 	.inputValidator((data: { childUserId: string; parentUserIds: Array<string> }) => data)
 	.handler(async ({ data }) => {
 		const { childUserId, parentUserIds } = data
@@ -64,7 +65,7 @@ export const createGuardianships = createServerFn({
 export const updateUserPartner = createServerFn({
 	method: 'POST',
 })
-	.middleware([adminAuthMiddleware])
+	.middleware([adminAuthMiddleware, loggingMiddleware])
 	.inputValidator((data: { userId: string; partnerId: string | null }) => data)
 	.handler(async ({ data }) => {
 		const { userId, partnerId } = data
@@ -79,7 +80,7 @@ export const updateUserPartner = createServerFn({
 export const getGuardianshipsForChild = createServerFn({
 	method: 'GET',
 })
-	.middleware([adminAuthMiddleware])
+	.middleware([adminAuthMiddleware, loggingMiddleware])
 	.inputValidator((data: { childUserId: string }) => data)
 	.handler(async ({ data: { childUserId } }) => {
 		const guardianshipRecords = await db.select().from(guardianships).where(eq(guardianships.childUserId, childUserId))
@@ -91,7 +92,7 @@ export const getGuardianshipsForChild = createServerFn({
 export const updateGuardianships = createServerFn({
 	method: 'POST',
 })
-	.middleware([adminAuthMiddleware])
+	.middleware([adminAuthMiddleware, loggingMiddleware])
 	.inputValidator((data: { childUserId: string; parentUserIds: Array<string> }) => data)
 	.handler(async ({ data }) => {
 		const { childUserId, parentUserIds } = data
@@ -114,7 +115,7 @@ export const updateGuardianships = createServerFn({
 export const updateUserAsAdmin = createServerFn({
 	method: 'POST',
 })
-	.middleware([adminAuthMiddleware])
+	.middleware([adminAuthMiddleware, loggingMiddleware])
 	.inputValidator(
 		(data: {
 			userId: string
@@ -174,7 +175,7 @@ export const updateUserAsAdmin = createServerFn({
 export type BulkArchiveResult = { kind: 'ok'; archivedCount: number }
 
 export const bulkArchiveClaimedItems = createServerFn({ method: 'POST' })
-	.middleware([adminAuthMiddleware])
+	.middleware([adminAuthMiddleware, loggingMiddleware])
 	.handler(async (): Promise<BulkArchiveResult> => {
 		// Find all non-archived items that have at least one claim.
 		const claimedItemIds = await db

@@ -4,6 +4,7 @@ import { and, desc, eq, inArray } from 'drizzle-orm'
 import { db } from '@/db'
 import { giftedItems, items, listAddons, lists, users } from '@/db/schema'
 import { namesForGifter, type PartneredUser } from '@/lib/gifters'
+import { loggingMiddleware } from '@/lib/logger'
 import { authMiddleware } from '@/middleware/auth'
 
 // ===============================
@@ -46,7 +47,7 @@ export type ReceivedGiftsResult = {
 }
 
 export const getReceivedGifts = createServerFn({ method: 'GET' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.handler(async ({ context }): Promise<ReceivedGiftsResult> => {
 		const userId = context.session.user.id
 

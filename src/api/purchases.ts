@@ -3,6 +3,7 @@ import { and, arrayOverlaps, desc, eq, ne, or, sql } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { giftedItems, items, listAddons, lists, users } from '@/db/schema'
+import { loggingMiddleware } from '@/lib/logger'
 import { authMiddleware } from '@/middleware/auth'
 
 // ===============================
@@ -53,7 +54,7 @@ export type MyPurchasesResult = {
 }
 
 export const getMyPurchases = createServerFn({ method: 'GET' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.handler(async ({ context }): Promise<MyPurchasesResult> => {
 		const userId = context.session.user.id
 
@@ -174,7 +175,7 @@ export type SummaryItem = {
 }
 
 export const getPurchaseSummary = createServerFn({ method: 'GET' })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.handler(async ({ context }): Promise<Array<SummaryItem>> => {
 		const userId = context.session.user.id
 

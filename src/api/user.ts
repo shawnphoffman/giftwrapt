@@ -6,13 +6,14 @@ import { db } from '@/db'
 import type { BirthMonth } from '@/db/schema'
 import { users } from '@/db/schema'
 import { auth } from '@/lib/auth'
+import { loggingMiddleware } from '@/lib/logger'
 import { authMiddleware } from '@/middleware/auth'
 
 // Get potential partners for the current user (non-child users excluding current user)
 export const getPotentialPartners = createServerFn({
 	method: 'GET',
 })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.handler(async ({ context }) => {
 		const currentUserId = context.session.user.id
 
@@ -36,7 +37,7 @@ export const getPotentialPartners = createServerFn({
 export const updateUserProfile = createServerFn({
 	method: 'POST',
 })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: { name: string; birthMonth?: string | null; birthDay?: number | null; partnerId?: string | null }) => data)
 	.handler(async ({ context, data }) => {
 		const userId = context.session.user.id
@@ -110,7 +111,7 @@ export const updateUserProfile = createServerFn({
 export const updateUserPassword = createServerFn({
 	method: 'POST',
 })
-	.middleware([authMiddleware])
+	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: { currentPassword: string; newPassword: string }) => data)
 	.handler(async ({ data }) => {
 		// Better Auth's changePassword throws on failure
