@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.8.0](https://github.com/shawnphoffman/wish-lists/compare/v0.7.2...v0.8.0) (2026-04-21)
+
+
+### Features
+
+* **security:** add CSP and HSTS response headers ([2186396](https://github.com/shawnphoffman/wish-lists/commit/218639662be18d8f017a9861e7fe68380123d7aa))
+
+
+### Bug Fixes
+
+* **auth:** use window.location.origin as client baseURL fallback ([e938f9f](https://github.com/shawnphoffman/wish-lists/commit/e938f9f1d5ddab5936230a093167c91e44b939bb))
+
 ## [0.7.2](https://github.com/shawnphoffman/wish-lists/compare/v0.7.1...v0.7.2) (2026-04-21)
 
 
