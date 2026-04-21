@@ -18,7 +18,10 @@ const securityHeaders = {
 	// reverse proxy (or add it back here) and everything still works.
 	'Content-Security-Policy': [
 		"default-src 'self'",
-		"script-src 'self' 'unsafe-inline'",
+		// 'unsafe-eval' is needed by something in the production bundle (a wasm
+		// shim or one of the @tanstack libs); blocking it surfaces as an
+		// uncaught CSP error and a stuck loading spinner.
+		"script-src 'self' 'unsafe-inline' 'unsafe-eval'",
 		"style-src 'self' 'unsafe-inline'",
 		"img-src 'self' data: https:",
 		"font-src 'self' data:",

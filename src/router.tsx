@@ -1,3 +1,7 @@
+// Must come before any import that may call crypto.randomUUID at module load
+// (e.g. @tanstack/db collections constructed in src/db-collections/*).
+import './lib/random-uuid-polyfill'
+
 import { createRouter } from '@tanstack/react-router'
 import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query'
 
