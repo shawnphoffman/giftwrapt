@@ -4,10 +4,10 @@ import { Gift, Package } from 'lucide-react'
 
 import { getReceivedGifts } from '@/api/received'
 import { Badge } from '@/components/ui/badge'
-import { CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatGifterNames } from '@/lib/gifters'
 
-export const Route = createFileRoute('/(core)/settings/received')({
+export const Route = createFileRoute('/(core)/purchases/received')({
 	component: ReceivedPage,
 })
 
@@ -20,7 +20,7 @@ function ReceivedPage() {
 	const totalGifts = (data?.gifts.length ?? 0) + (data?.addons.length ?? 0)
 
 	return (
-		<div className="animate-page-in">
+		<Card className="animate-page-in">
 			<CardHeader>
 				<CardTitle className="text-2xl">Received Gifts</CardTitle>
 			</CardHeader>
@@ -91,6 +91,6 @@ function ReceivedPage() {
 					</>
 				)}
 			</CardContent>
-		</div>
+		</Card>
 	)
 }

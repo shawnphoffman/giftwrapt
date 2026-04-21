@@ -1,5 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router'
-import { Gift, LogOut, Receipt } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 
 import { buttonVariants } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -26,15 +26,6 @@ export default function SettingsLinks() {
 			</Link>
 			<Link to="/settings/permissions" className={navLinkClass(pathname === '/settings/permissions')}>
 				Permissions
-			</Link>
-			<Separator className="my-1" />
-			<Link to="/settings/purchases" className={navLinkClass(pathname === '/settings/purchases')}>
-				<Receipt />
-				Purchases
-			</Link>
-			<Link to="/settings/received" className={navLinkClass(pathname === '/settings/received')}>
-				<Gift />
-				Received Gifts
 			</Link>
 			<Separator className="my-1" />
 			<Link to="/sign-out" className={navLinkClass(false)}>

@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
-import { Gift, Inbox, ListChecks, ListOrdered, ListPlus, MessagesSquare, PlusCircle, Receipt, ReceiptText } from 'lucide-react'
+import { Gift, Inbox, ListChecks, ListOrdered, ListPlus, MessagesSquare, PackageOpen, PlusCircle, Receipt, ReceiptText } from 'lucide-react'
 import { Suspense } from 'react'
 
 import Loading from '@/components/loading'
@@ -59,6 +59,9 @@ const main: Array<NavItem> = [
 		hoverColor: 'group-hover/link:text-red-500 group-data-[status=active]/link:text-red-500',
 		activeMatch: p => p.startsWith('/lists/') && (p.endsWith('/edit') || p.endsWith('/bulk') || p.endsWith('/organize')),
 	},
+]
+
+const purchases: Array<NavItem> = [
 	{
 		name: 'Purchases',
 		url: '/purchases',
@@ -73,6 +76,12 @@ const main: Array<NavItem> = [
 		url: '/purchases/summary',
 		hoverColor: 'group-hover/link:text-orange-500 group-data-[status=active]/link:text-orange-500',
 		icon: ReceiptText,
+	},
+	{
+		name: 'Received',
+		url: '/purchases/received',
+		hoverColor: 'group-hover/link:text-cyan-500 group-data-[status=active]/link:text-cyan-500',
+		icon: PackageOpen,
 	},
 ]
 
@@ -130,6 +139,7 @@ function AuthenticatedRoutes() {
 				</SidebarHeader>
 				<SidebarContent>
 					<NavSection title="Lists" items={main} />
+					<NavSection title="Purchases" items={purchases} />
 					<NavSection title="Actions" items={actions} />
 					<NavSection title="Feeds" items={feeds} />
 					<NavBottom />

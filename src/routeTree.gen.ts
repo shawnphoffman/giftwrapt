@@ -28,12 +28,11 @@ import { Route as ApiCronBirthdayEmailsRouteImport } from './routes/api/cron/bir
 import { Route as ApiCronAutoArchiveRouteImport } from './routes/api/cron/auto-archive'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as coreSettingsSecurityRouteImport } from './routes/(core)/settings/security'
-import { Route as coreSettingsReceivedRouteImport } from './routes/(core)/settings/received'
-import { Route as coreSettingsPurchasesRouteImport } from './routes/(core)/settings/purchases'
 import { Route as coreSettingsPermissionsRouteImport } from './routes/(core)/settings/permissions'
 import { Route as coreRecentItemsRouteImport } from './routes/(core)/recent.items'
 import { Route as coreRecentCommentsRouteImport } from './routes/(core)/recent.comments'
 import { Route as corePurchasesSummaryRouteImport } from './routes/(core)/purchases.summary'
+import { Route as corePurchasesReceivedRouteImport } from './routes/(core)/purchases.received'
 import { Route as coreListsListIdRouteImport } from './routes/(core)/lists/$listId'
 import { Route as coreItemCloneRouteImport } from './routes/(core)/item.clone'
 import { Route as coreAdminUsersRouteImport } from './routes/(core)/admin/users'
@@ -140,16 +139,6 @@ const coreSettingsSecurityRoute = coreSettingsSecurityRouteImport.update({
   path: '/security',
   getParentRoute: () => coreSettingsRouteRoute,
 } as any)
-const coreSettingsReceivedRoute = coreSettingsReceivedRouteImport.update({
-  id: '/received',
-  path: '/received',
-  getParentRoute: () => coreSettingsRouteRoute,
-} as any)
-const coreSettingsPurchasesRoute = coreSettingsPurchasesRouteImport.update({
-  id: '/purchases',
-  path: '/purchases',
-  getParentRoute: () => coreSettingsRouteRoute,
-} as any)
 const coreSettingsPermissionsRoute = coreSettingsPermissionsRouteImport.update({
   id: '/permissions',
   path: '/permissions',
@@ -168,6 +157,11 @@ const coreRecentCommentsRoute = coreRecentCommentsRouteImport.update({
 const corePurchasesSummaryRoute = corePurchasesSummaryRouteImport.update({
   id: '/purchases/summary',
   path: '/purchases/summary',
+  getParentRoute: () => coreRouteRoute,
+} as any)
+const corePurchasesReceivedRoute = corePurchasesReceivedRouteImport.update({
+  id: '/purchases/received',
+  path: '/purchases/received',
   getParentRoute: () => coreRouteRoute,
 } as any)
 const coreListsListIdRoute = coreListsListIdRouteImport.update({
@@ -241,12 +235,11 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof coreAdminUsersRoute
   '/item/clone': typeof coreItemCloneRoute
   '/lists/$listId': typeof coreListsListIdRoute
+  '/purchases/received': typeof corePurchasesReceivedRoute
   '/purchases/summary': typeof corePurchasesSummaryRoute
   '/recent/comments': typeof coreRecentCommentsRoute
   '/recent/items': typeof coreRecentItemsRoute
   '/settings/permissions': typeof coreSettingsPermissionsRoute
-  '/settings/purchases': typeof coreSettingsPurchasesRoute
-  '/settings/received': typeof coreSettingsReceivedRoute
   '/settings/security': typeof coreSettingsSecurityRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
@@ -276,12 +269,11 @@ export interface FileRoutesByTo {
   '/admin/users': typeof coreAdminUsersRoute
   '/item/clone': typeof coreItemCloneRoute
   '/lists/$listId': typeof coreListsListIdRoute
+  '/purchases/received': typeof corePurchasesReceivedRoute
   '/purchases/summary': typeof corePurchasesSummaryRoute
   '/recent/comments': typeof coreRecentCommentsRoute
   '/recent/items': typeof coreRecentItemsRoute
   '/settings/permissions': typeof coreSettingsPermissionsRoute
-  '/settings/purchases': typeof coreSettingsPurchasesRoute
-  '/settings/received': typeof coreSettingsReceivedRoute
   '/settings/security': typeof coreSettingsSecurityRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
@@ -315,12 +307,11 @@ export interface FileRoutesById {
   '/(core)/admin/users': typeof coreAdminUsersRoute
   '/(core)/item/clone': typeof coreItemCloneRoute
   '/(core)/lists/$listId': typeof coreListsListIdRoute
+  '/(core)/purchases/received': typeof corePurchasesReceivedRoute
   '/(core)/purchases/summary': typeof corePurchasesSummaryRoute
   '/(core)/recent/comments': typeof coreRecentCommentsRoute
   '/(core)/recent/items': typeof coreRecentItemsRoute
   '/(core)/settings/permissions': typeof coreSettingsPermissionsRoute
-  '/(core)/settings/purchases': typeof coreSettingsPurchasesRoute
-  '/(core)/settings/received': typeof coreSettingsReceivedRoute
   '/(core)/settings/security': typeof coreSettingsSecurityRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
@@ -354,12 +345,11 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/item/clone'
     | '/lists/$listId'
+    | '/purchases/received'
     | '/purchases/summary'
     | '/recent/comments'
     | '/recent/items'
     | '/settings/permissions'
-    | '/settings/purchases'
-    | '/settings/received'
     | '/settings/security'
     | '/api/auth/$'
     | '/api/cron/auto-archive'
@@ -389,12 +379,11 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/item/clone'
     | '/lists/$listId'
+    | '/purchases/received'
     | '/purchases/summary'
     | '/recent/comments'
     | '/recent/items'
     | '/settings/permissions'
-    | '/settings/purchases'
-    | '/settings/received'
     | '/settings/security'
     | '/api/auth/$'
     | '/api/cron/auto-archive'
@@ -427,12 +416,11 @@ export interface FileRouteTypes {
     | '/(core)/admin/users'
     | '/(core)/item/clone'
     | '/(core)/lists/$listId'
+    | '/(core)/purchases/received'
     | '/(core)/purchases/summary'
     | '/(core)/recent/comments'
     | '/(core)/recent/items'
     | '/(core)/settings/permissions'
-    | '/(core)/settings/purchases'
-    | '/(core)/settings/received'
     | '/(core)/settings/security'
     | '/api/auth/$'
     | '/api/cron/auto-archive'
@@ -600,20 +588,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreSettingsSecurityRouteImport
       parentRoute: typeof coreSettingsRouteRoute
     }
-    '/(core)/settings/received': {
-      id: '/(core)/settings/received'
-      path: '/received'
-      fullPath: '/settings/received'
-      preLoaderRoute: typeof coreSettingsReceivedRouteImport
-      parentRoute: typeof coreSettingsRouteRoute
-    }
-    '/(core)/settings/purchases': {
-      id: '/(core)/settings/purchases'
-      path: '/purchases'
-      fullPath: '/settings/purchases'
-      preLoaderRoute: typeof coreSettingsPurchasesRouteImport
-      parentRoute: typeof coreSettingsRouteRoute
-    }
     '/(core)/settings/permissions': {
       id: '/(core)/settings/permissions'
       path: '/permissions'
@@ -640,6 +614,13 @@ declare module '@tanstack/react-router' {
       path: '/purchases/summary'
       fullPath: '/purchases/summary'
       preLoaderRoute: typeof corePurchasesSummaryRouteImport
+      parentRoute: typeof coreRouteRoute
+    }
+    '/(core)/purchases/received': {
+      id: '/(core)/purchases/received'
+      path: '/purchases/received'
+      fullPath: '/purchases/received'
+      preLoaderRoute: typeof corePurchasesReceivedRouteImport
       parentRoute: typeof coreRouteRoute
     }
     '/(core)/lists/$listId': {
@@ -744,16 +725,12 @@ const coreAdminRouteRouteWithChildren = coreAdminRouteRoute._addFileChildren(
 
 interface coreSettingsRouteRouteChildren {
   coreSettingsPermissionsRoute: typeof coreSettingsPermissionsRoute
-  coreSettingsPurchasesRoute: typeof coreSettingsPurchasesRoute
-  coreSettingsReceivedRoute: typeof coreSettingsReceivedRoute
   coreSettingsSecurityRoute: typeof coreSettingsSecurityRoute
   coreSettingsIndexRoute: typeof coreSettingsIndexRoute
 }
 
 const coreSettingsRouteRouteChildren: coreSettingsRouteRouteChildren = {
   coreSettingsPermissionsRoute: coreSettingsPermissionsRoute,
-  coreSettingsPurchasesRoute: coreSettingsPurchasesRoute,
-  coreSettingsReceivedRoute: coreSettingsReceivedRoute,
   coreSettingsSecurityRoute: coreSettingsSecurityRoute,
   coreSettingsIndexRoute: coreSettingsIndexRoute,
 }
@@ -768,6 +745,7 @@ interface coreRouteRouteChildren {
   coreIndexRoute: typeof coreIndexRoute
   coreItemCloneRoute: typeof coreItemCloneRoute
   coreListsListIdRoute: typeof coreListsListIdRoute
+  corePurchasesReceivedRoute: typeof corePurchasesReceivedRoute
   corePurchasesSummaryRoute: typeof corePurchasesSummaryRoute
   coreRecentCommentsRoute: typeof coreRecentCommentsRoute
   coreRecentItemsRoute: typeof coreRecentItemsRoute
@@ -786,6 +764,7 @@ const coreRouteRouteChildren: coreRouteRouteChildren = {
   coreIndexRoute: coreIndexRoute,
   coreItemCloneRoute: coreItemCloneRoute,
   coreListsListIdRoute: coreListsListIdRoute,
+  corePurchasesReceivedRoute: corePurchasesReceivedRoute,
   corePurchasesSummaryRoute: corePurchasesSummaryRoute,
   coreRecentCommentsRoute: coreRecentCommentsRoute,
   coreRecentItemsRoute: coreRecentItemsRoute,
