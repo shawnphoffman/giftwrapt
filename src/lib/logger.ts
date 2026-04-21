@@ -8,13 +8,17 @@ import { getRequestLogger } from './request-context'
 // Root logger. Structured NDJSON in prod; pretty-printed in dev (or when
 // LOG_PRETTY=true is set explicitly). Level is driven by LOG_LEVEL so it can
 // be flipped at runtime via env without a rebuild.
+//
+// This module is reachable from the client bundle (server-fn files reference
+// loggingMiddleware by name). Accessing server-only env keys at module top
+// would trip the t3 env proxy on the client and crash the whole bundle, so
+// gate every env read on `typeof window === 'undefined'`.
+const isServer = typeof window === 'undefined'
 const isProd = process.env.NODE_ENV === 'production'
-const prettyEnabled = env.LOG_PRETTY ?? !isProd
+const prettyEnabled = isServer ? (env.LOG_PRETTY ?? !isProd) : false
 
 const baseOptions: LoggerOptions = {
-	// Resilient default: if the env schema hasn't resolved yet (tests that mock
-	// a partial env), fall back to 'info' so pino doesn't crash on undefined.
-	level: env.LOG_LEVEL ?? 'info',
+	level: isServer ? (env.LOG_LEVEL ?? 'info') : 'silent',
 	base: {
 		service: 'wish-lists',
 		env: process.env.NODE_ENV ?? 'development',

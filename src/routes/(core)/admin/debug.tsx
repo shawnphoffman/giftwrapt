@@ -4,7 +4,6 @@ import { isEmailConfigured } from '@/api/common'
 import SendTestEmailButton from '@/components/admin/send-test-email'
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { env } from '@/env'
 import { useAppSettings } from '@/hooks/use-app-settings'
 import { useSession } from '@/lib/auth-client'
 
@@ -75,8 +74,7 @@ function AdminDebugPage() {
 				</CardHeader>
 				<CardContent className="divide-y">
 					<ClientOnly>
-						{Object.entries(env)
-							// .filter(entry => !entry[0].startsWith('npm_'))
+						{Object.entries(import.meta.env)
 							.sort((a, b) => a[0].localeCompare(b[0]))
 							.map(([key, value]) => (
 								<div key={key} className="flex flex-col w-full not-first:pt-1 not-last:pb-1 overflow-hidden">
