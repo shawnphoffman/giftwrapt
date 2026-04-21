@@ -375,3 +375,45 @@ optional. When email is unconfigured:
 - Day-of birthday greetings and the post-birthday gift summary cron is skipped.
 - The admin "send test email" button and the email-related app-settings
   toggles (birthday emails, Christmas emails, comment emails) are hidden.
+
+### Optional: multi-origin / LAN access
+
+By default the app trusts exactly one origin: whatever you set
+`BETTER_AUTH_URL` to. Requests from any other origin are rejected with
+"Invalid origin". Two env vars cover the common self-hosting cases.
+
+**`TRUSTED_ORIGINS`** (comma-separated): adds extra origins to the auth
+allow-list. Use this when you reach the same instance via more than one
+hostname, e.g. an HTTPS domain through a reverse proxy plus a LAN IP.
+
+```
+BETTER_AUTH_URL=https://wish.example.com
+TRUSTED_ORIGINS=http://192.168.1.137:3888,http://wish.local:3888
+```
+
+**`INSECURE_COOKIES=true`**: drops the `Secure` flag on auth cookies.
+Required if any trusted origin is plain HTTP, because browsers refuse to
+store `Secure` cookies set from an HTTP page. The login request would
+otherwise succeed but no session cookie would be stored, leaving the user
+stuck on a login loop.
+
+```
+INSECURE_COOKIES=true
+```
+
+This weakens session security on the HTTPS path too (cookies become
+sniffable on the LAN), so leave it unset unless HTTP origin login is
+something you actually need. If every origin is HTTPS, leave it unset and
+keep the default secure-cookie behavior.
+
+### Reverse proxy (Traefik, Caddy, nginx)
+
+If a reverse proxy terminates TLS in front of the container:
+
+- Point `BETTER_AUTH_URL` and `SERVER_URL` at the public HTTPS URL (e.g.
+  `https://wish.example.com`). Better-auth uses these to validate origins,
+  derive the cookie `Secure` flag, and build links in outbound emails.
+- `VITE_SERVER_URL` is baked at image build time. Leave it unset when using
+  a pre-built image; the client falls back to `window.location.origin`.
+- The proxy must forward the `Host` header and `X-Forwarded-Proto: https`
+  (Traefik and Caddy do this by default).

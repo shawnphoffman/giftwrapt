@@ -9,9 +9,15 @@ import { db } from '@/db'
 import { account, session, users, verification } from '@/db/schema'
 import { env } from '@/env'
 
+const trustedOrigins = env.TRUSTED_ORIGINS?.split(',')
+	.map(o => o.trim())
+	.filter(Boolean)
+
 const options = {
 	baseURL: env.BETTER_AUTH_URL || env.SERVER_URL || 'http://localhost:3000',
 	secret: env.BETTER_AUTH_SECRET || '',
+	...(trustedOrigins?.length ? { trustedOrigins } : {}),
+	...(env.INSECURE_COOKIES ? { advanced: { useSecureCookies: false } } : {}),
 	database: drizzleAdapter(db, {
 		provider: 'pg',
 		schema: {

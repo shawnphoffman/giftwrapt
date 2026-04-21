@@ -16,6 +16,17 @@ export const env = createEnv({
 		DATABASE_URL: z.url(),
 		BETTER_AUTH_SECRET: z.string().min(1),
 		BETTER_AUTH_URL: z.url().optional(),
+		// Comma-separated list of additional origins that auth requests are
+		// allowed from (e.g. "http://192.168.1.137:3888,http://other.lan:3888").
+		// BETTER_AUTH_URL is always trusted; this is for self-hosters who reach
+		// the same instance via multiple hostnames.
+		TRUSTED_ORIGINS: z.string().min(1).optional(),
+		// Force-disable the Secure flag on auth cookies. Only set this if you
+		// need plain-HTTP origins (LAN IPs, .local hostnames) to log in.
+		// Browsers refuse to store Secure cookies set from an HTTP page, so
+		// without this the HTTP origin can pass the CSRF check but never
+		// receives a session cookie.
+		INSECURE_COOKIES: z.stringbool().optional(),
 		//
 		RESEND_API_KEY: z.string().min(1).optional(),
 		RESEND_FROM_EMAIL: z.email().optional(),
