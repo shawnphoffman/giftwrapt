@@ -18,12 +18,12 @@ function SettingsRoute() {
 					<Settings className="text-lime-500 wish-page-icon" />
 				</div>
 				{/* CONTENT */}
-				<div className="mx-auto grid w-full max-w-6xl items-start gap-6 md:grid-cols-[150px_1fr] lg:grid-cols-[200px_1fr]">
-					<nav className="grid gap-4 text-sm text-muted-foreground mt-6">
+				<div className="mx-auto grid w-full max-w-6xl items-start gap-6 md:grid-cols-[180px_1fr] lg:grid-cols-[220px_1fr]">
+					<nav className="grid gap-1">
 						<SettingsLinks />
 					</nav>
 					<div className="grid gap-6 animate-page-in">
-						<Card className="bg-accent">
+						<Card>
 							<Outlet />
 						</Card>
 					</div>

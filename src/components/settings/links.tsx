@@ -1,43 +1,47 @@
 import { Link, useLocation } from '@tanstack/react-router'
 import { Gift, LogOut, Receipt } from 'lucide-react'
 
+import { buttonVariants } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 
-export default function SettingsLinks() {
-	const location = useLocation()
-	const pathname = location.pathname
+function navLinkClass(active: boolean) {
+	return cn(
+		buttonVariants({ variant: 'ghost' }),
+		'justify-start w-full',
+		active && 'bg-muted text-foreground hover:bg-muted',
+	)
+}
 
-	const passiveClasses = ''
-	const activeClasses = 'font-semibold text-primary'
-	const iconClasses = 'flex flex-row items-center gap-1'
+export default function SettingsLinks() {
+	const { pathname } = useLocation()
 
 	return (
 		<>
-			<Link to="/settings" className={pathname === '/settings' ? activeClasses : ''}>
+			<Link to="/settings" className={navLinkClass(pathname === '/settings')}>
 				Profile
 			</Link>
-			<Link to="/settings/security" className={pathname === '/settings/security' ? activeClasses : ''}>
+			<Link to="/settings/security" className={navLinkClass(pathname === '/settings/security')}>
 				Security
 			</Link>
-			<Link to="/settings/permissions" className={pathname === '/settings/permissions' ? activeClasses : ''}>
+			<Link to="/settings/permissions" className={navLinkClass(pathname === '/settings/permissions')}>
 				Permissions
 			</Link>
-			<Link to="/settings/connections" className={pathname === '/settings/connections' ? activeClasses : ''}>
+			<Link to="/settings/connections" className={navLinkClass(pathname === '/settings/connections')}>
 				Connections
 			</Link>
-			<Separator />
-			<Link to="/settings/purchases" className={cn(pathname === '/settings/purchases' ? activeClasses : '', passiveClasses, iconClasses)}>
-				<Receipt size={16} />
+			<Separator className="my-1" />
+			<Link to="/settings/purchases" className={navLinkClass(pathname === '/settings/purchases')}>
+				<Receipt />
 				Purchases
 			</Link>
-			<Link to="/settings/received" className={cn(pathname === '/settings/received' ? activeClasses : '', passiveClasses, iconClasses)}>
-				<Gift size={16} />
+			<Link to="/settings/received" className={navLinkClass(pathname === '/settings/received')}>
+				<Gift />
 				Received Gifts
 			</Link>
-			<Separator />
-			<Link to="/sign-out" className={iconClasses}>
-				<LogOut size={16} />
+			<Separator className="my-1" />
+			<Link to="/sign-out" className={navLinkClass(false)}>
+				<LogOut />
 				Logout
 			</Link>
 		</>
