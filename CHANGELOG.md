@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/shawnphoffman/wish-lists/compare/v0.8.1...v0.9.0) (2026-04-21)
+
+
+### Features
+
+* **auth:** support multi-origin self-host configs ([357a85e](https://github.com/shawnphoffman/wish-lists/commit/357a85eba50586137a9b0f53660bf1833ae20deb))
+
 ## [0.8.1](https://github.com/shawnphoffman/wish-lists/compare/v0.8.0...v0.8.1) (2026-04-21)
 
 
