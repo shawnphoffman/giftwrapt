@@ -11,6 +11,7 @@ import { ErrorBoundary } from '@/components/utilities/error-boundary'
 import { appSettingsQueryOptions } from '@/hooks/use-app-settings'
 
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
+import '../styles.css'
 import ErrorBoundaryFallback from './-error-boundary'
 import Head from './-head'
 import NotFound from './-not-found'

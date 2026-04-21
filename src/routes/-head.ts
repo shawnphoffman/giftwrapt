@@ -1,7 +1,5 @@
 import { env } from '@/env'
 
-import appCss from '../styles.css?url'
-
 export default function Head() {
 	const isDeployed = process.env.NODE_ENV === 'production'
 	const appTitle = env.VITE_APP_TITLE
@@ -62,10 +60,6 @@ export default function Head() {
 			},
 		],
 		links: [
-			{
-				rel: 'stylesheet',
-				href: appCss,
-			},
 			{
 				rel: 'manifest',
 				href: '/manifest.json',
