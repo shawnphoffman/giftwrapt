@@ -16,7 +16,6 @@ export function ListAddonsSection({ listId, addons }: Props) {
 	const [createDialogOpen, setCreateDialogOpen] = useState(false)
 
 	const activeAddons = addons.filter(a => !a.isArchived)
-	const archivedAddons = addons.filter(a => a.isArchived)
 
 	return (
 		<div className="flex flex-col gap-3">
@@ -28,28 +27,15 @@ export function ListAddonsSection({ listId, addons }: Props) {
 				</Button>
 			</div>
 
-			{activeAddons.length === 0 && archivedAddons.length === 0 && (
+			{activeAddons.length === 0 ? (
 				<p className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30">
 					No off-list gifts yet. If you're getting something that isn't on the list, add it here so other gifters can see.
 				</p>
-			)}
-
-			{activeAddons.length > 0 && (
-				<div className="flex flex-col overflow-hidden border divide-y rounded-lg shadow-sm text-card-foreground bg-accent">
+			) : (
+				<div className="flex flex-col gap-2 pl-6">
 					{activeAddons.map(addon => (
 						<ListAddonRow key={addon.id} addon={addon} listId={listId} />
 					))}
-				</div>
-			)}
-
-			{archivedAddons.length > 0 && (
-				<div className="flex flex-col gap-2">
-					<h3 className="text-sm font-medium text-muted-foreground">Already given</h3>
-					<div className="flex flex-col overflow-hidden border divide-y rounded-lg shadow-sm opacity-60 text-card-foreground bg-accent">
-						{archivedAddons.map(addon => (
-							<ListAddonRow key={addon.id} addon={addon} listId={listId} />
-						))}
-					</div>
 				</div>
 			)}
 
