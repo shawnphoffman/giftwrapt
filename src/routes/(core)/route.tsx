@@ -139,8 +139,8 @@ function AuthenticatedRoutes() {
 				</SidebarHeader>
 				<SidebarContent>
 					<NavSection title="Lists" items={main} />
-					<NavSection title="Purchases" items={purchases} />
 					<NavSection title="Actions" items={actions} />
+					<NavSection title="Purchases" items={purchases} />
 					<NavSection title="Feeds" items={feeds} />
 					<NavBottom />
 				</SidebarContent>
