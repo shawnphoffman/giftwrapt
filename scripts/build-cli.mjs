@@ -34,45 +34,47 @@ const stubVirtuals = {
 }
 
 const entries = [
-	{ in: 'scripts/migrate.ts', out: '.output/scripts/migrate.mjs' },
-	{ in: 'scripts/admin-create.ts', out: '.output/scripts/admin-create.mjs' },
-	{ in: 'scripts/admin-reset-password.ts', out: '.output/scripts/admin-reset-password.mjs' },
-	{ in: 'scripts/seed.ts', out: '.output/scripts/seed.mjs' },
+	{ in: resolve(root, 'scripts/migrate.ts'), out: 'migrate' },
+	{ in: resolve(root, 'scripts/admin-create.ts'), out: 'admin-create' },
+	{ in: resolve(root, 'scripts/admin-reset-password.ts'), out: 'admin-reset-password' },
+	{ in: resolve(root, 'scripts/seed.ts'), out: 'seed' },
 ]
 
+// Single build with splitting:true so shared deps (drizzle-orm, pg, better-auth,
+// dotenv, ...) land in chunk files imported by the four entrypoints instead of
+// being duplicated four times. Keeps the public contract: every CLI is still
+// invoked as `node .output/scripts/<name>.mjs`.
 const start = Date.now()
-const results = await Promise.all(
-	entries.map(e =>
-		esbuild.build({
-			entryPoints: [resolve(root, e.in)],
-			outfile: resolve(root, e.out),
-			bundle: true,
-			platform: 'node',
-			format: 'esm',
-			target: 'node20',
-			external,
-			plugins: [stubVirtuals],
-			tsconfig: resolve(root, 'tsconfig.json'),
-			logLevel: 'warning',
-			banner: {
-				// Node ESM doesn't polyfill __dirname / require. A few transitive deps
-				// still use them, so provide shims.
-				js: [
-					"import { createRequire as __cr } from 'node:module';",
-					"import { dirname as __dn } from 'node:path';",
-					"import { fileURLToPath as __ftp } from 'node:url';",
-					'const require = __cr(import.meta.url);',
-					'const __filename = __ftp(import.meta.url);',
-					'const __dirname = __dn(__filename);',
-				].join('\n'),
-			},
-		})
-	)
-)
+const result = await esbuild.build({
+	entryPoints: entries,
+	outdir: resolve(root, '.output/scripts'),
+	outExtension: { '.js': '.mjs' },
+	chunkNames: '_chunks/[name]-[hash]',
+	bundle: true,
+	splitting: true,
+	platform: 'node',
+	format: 'esm',
+	target: 'node20',
+	external,
+	plugins: [stubVirtuals],
+	tsconfig: resolve(root, 'tsconfig.json'),
+	logLevel: 'warning',
+	banner: {
+		// Node ESM doesn't polyfill __dirname / require. A few transitive deps
+		// still use them, so provide shims.
+		js: [
+			"import { createRequire as __cr } from 'node:module';",
+			"import { dirname as __dn } from 'node:path';",
+			"import { fileURLToPath as __ftp } from 'node:url';",
+			'const require = __cr(import.meta.url);',
+			'const __filename = __ftp(import.meta.url);',
+			'const __dirname = __dn(__filename);',
+		].join('\n'),
+	},
+})
 
-const warnings = results.flatMap(r => r.warnings)
-if (warnings.length) {
-	for (const w of warnings) console.warn(w.text)
+if (result.warnings.length) {
+	for (const w of result.warnings) console.warn(w.text)
 }
 
 console.log(`Built ${entries.length} CLI scripts in ${Date.now() - start}ms`)
