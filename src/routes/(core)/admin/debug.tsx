@@ -25,7 +25,7 @@ function AdminDebugPage() {
 	return (
 		<>
 			{/*  */}
-			<Card className="bg-accent animate-page-in">
+			<Card className="animate-page-in">
 				<CardHeader>
 					<CardTitle className="text-2xl">Emails</CardTitle>
 					<CardDescription>
@@ -43,7 +43,7 @@ function AdminDebugPage() {
 				</CardContent>
 			</Card>
 			{/*  */}
-			<Card className="bg-accent animate-page-in">
+			<Card className="animate-page-in">
 				<CardHeader>
 					<CardTitle className="text-2xl">App Settings</CardTitle>
 				</CardHeader>
@@ -69,7 +69,7 @@ function AdminDebugPage() {
 				</CardContent>
 			</Card>
 			{/*  */}
-			<Card className="bg-accent animate-page-in">
+			<Card className="animate-page-in">
 				<CardHeader>
 					<CardTitle className="text-2xl">Environment Variables</CardTitle>
 				</CardHeader>
@@ -88,7 +88,7 @@ function AdminDebugPage() {
 				</CardContent>
 			</Card>
 			{/*  */}
-			<Card className="bg-accent animate-page-in">
+			<Card className="animate-page-in">
 				<CardHeader>
 					<CardTitle className="text-2xl">Current Session</CardTitle>
 				</CardHeader>

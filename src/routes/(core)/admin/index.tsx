@@ -10,7 +10,7 @@ export const Route = createFileRoute('/(core)/admin/')({
 
 function AdminPage() {
 	return (
-		<Card className="bg-card animate-page-in">
+		<Card className="animate-page-in">
 			<CardHeader>
 				<CardTitle className="text-2xl">App Settings</CardTitle>
 				<CardDescription>Configure global application settings.</CardDescription>
