@@ -1,5 +1,5 @@
-import { createFileRoute, Link, notFound, useRouter } from '@tanstack/react-router'
-import { ArrowLeft, Move, Trash2 } from 'lucide-react'
+import { createFileRoute, notFound, useRouter } from '@tanstack/react-router'
+import { Move, Trash2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -33,7 +33,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { type Priority,priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
-import { priorityRingClass } from '@/lib/priority-classes'
+import { buildListEntries } from '@/lib/list-entries'
+import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
 import { cn } from '@/lib/utils'
 
 type TabMode = 'bulk' | 'reorder'
@@ -63,14 +64,7 @@ function OrganizePage() {
 	return (
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-4">
-				<div className="flex items-center gap-2">
-					<Button variant="ghost" size="icon" asChild>
-						<Link to="/lists/$listId/edit" params={{ listId: String(list.id) }} aria-label="Back to edit">
-							<ArrowLeft className="size-4" />
-						</Link>
-					</Button>
-					<h1 className="flex-1 min-w-0 leading-[1.1] pb-1 break-words">{list.name}</h1>
-				</div>
+				<h1 className="leading-[1.1] pb-1 break-words">{list.name}</h1>
 
 				<div className="flex border-b">
 					<TabButton active={tab === 'bulk'} onClick={() => setTab('bulk')}>
@@ -332,8 +326,7 @@ function BulkActionsTab({ list }: { list: ListForEditing }) {
 				<div className="text-sm text-muted-foreground py-6 text-center border rounded-lg bg-accent">No items to show.</div>
 			) : (
 				<OrganizeList
-					items={visibleItems}
-					groups={list.groups}
+					list={list}
 					selected={selected}
 					selectedGroups={selectedGroups}
 					onToggle={toggle}
@@ -370,118 +363,130 @@ function BulkActionsTab({ list }: { list: ListForEditing }) {
 }
 
 function OrganizeList({
-	items,
-	groups,
+	list,
 	selected,
 	selectedGroups,
 	onToggle,
 	onToggleGroup,
 }: {
-	items: Array<Item>
-	groups: Array<GroupSummary>
+	list: ListForEditing
 	selected: Set<number>
 	selectedGroups: Set<number>
 	onToggle: (id: number) => void
 	onToggleGroup: (groupId: number) => void
 }) {
-	const ungrouped = items.filter(i => i.groupId === null)
-	const byGroup = new Map<number, Array<Item>>()
-	for (const i of items) {
-		if (i.groupId != null) {
-			if (!byGroup.has(i.groupId)) byGroup.set(i.groupId, [])
-			byGroup.get(i.groupId)!.push(i)
-		}
-	}
+	const entries = useMemo(() => buildListEntries(list), [list])
 
 	return (
-		<div className="flex flex-col gap-2">
-			{ungrouped.map(item => (
-				<OrganizeRow key={item.id} item={item} selected={selected.has(item.id)} onToggle={onToggle} />
-			))}
-			{groups.map(g => {
-				const groupItems = byGroup.get(g.id)
-				if (!groupItems || groupItems.length === 0) return null
-				const groupSelected = selectedGroups.has(g.id)
-				return (
-					<div
-						key={g.id}
-						className={cn('flex flex-col rounded-lg overflow-hidden ring-1 ring-border bg-card shadow-sm', priorityRingClass[g.priority])}
-					>
-						<label className="flex items-center gap-3 p-2 bg-accent border-b cursor-pointer hover:bg-accent/80">
-							<Checkbox checked={groupSelected} onCheckedChange={() => onToggleGroup(g.id)} />
-							<PriorityIcon priority={g.priority} className="size-4 shrink-0" />
-							{g.name && <span className="font-medium text-sm truncate min-w-0">{g.name}</span>}
-							<GroupBadge type={g.type} />
-						</label>
-						<ul className="divide-y">
-							{groupItems.map(item => (
-								<li
-									key={item.id}
-									className={cn(
-										'flex items-center gap-3 p-2',
-										item.priority !== 'normal' && 'ring-1 ring-inset rounded-md',
-										priorityRingClass[item.priority]
-									)}
-								>
-									<PriorityIcon priority={item.priority} className="size-4 shrink-0" />
-									<div className="flex-1 min-w-0 flex items-center gap-2">
-										<span className="font-medium leading-tight truncate">{item.title}</span>
-										{item.isArchived && (
-											<Badge variant="secondary" className="text-xs shrink-0">
-												Archived
-											</Badge>
-										)}
-									</div>
-									{item.imageUrl && (
-										<div className="size-10 shrink-0 rounded bg-background/60 overflow-hidden flex items-center justify-center">
-											<img src={item.imageUrl} alt="" className="object-contain size-full" />
-										</div>
-									)}
-								</li>
-							))}
-						</ul>
-					</div>
+		<div className="flex flex-col gap-2 pl-6">
+			{entries.map(entry =>
+				entry.kind === 'item' ? (
+					<OrganizeItemRow key={`item-${entry.item.id}`} item={entry.item} selected={selected.has(entry.item.id)} onToggle={onToggle} />
+				) : entry.items.length === 0 ? null : (
+					<OrganizeGroupBlock
+						key={`group-${entry.group.id}`}
+						group={entry.group}
+						items={entry.items}
+						selected={selectedGroups.has(entry.group.id)}
+						onToggle={onToggleGroup}
+					/>
 				)
-			})}
+			)}
 		</div>
 	)
 }
 
-function OrganizeRow({
-	item,
+function PriorityTab({ priority }: { priority: Priority }) {
+	if (priority === 'normal') return null
+	return (
+		<div
+			className={cn(
+				'absolute left-0 top-0 h-[calc(100%-4px)] -translate-x-1/2 translate-y-[2px] w-12 rounded-md shadow-sm flex items-center p-1 z-0',
+				priorityTabBgClass[priority]
+			)}
+			aria-hidden
+		>
+			<PriorityIcon priority={priority} className="size-4" />
+		</div>
+	)
+}
+
+function OrganizeItemRow({ item, selected, onToggle }: { item: Item; selected: boolean; onToggle: (id: number) => void }) {
+	return (
+		<div className="relative">
+			<PriorityTab priority={item.priority} />
+			<label
+				className={cn(
+					'relative z-10 flex items-center gap-3 p-2 ps-4 ring-1 ring-inset ring-border rounded-lg bg-muted/40 shadow-sm hover:bg-muted/60 cursor-pointer',
+					priorityRingClass[item.priority]
+				)}
+			>
+				<Checkbox checked={selected} onCheckedChange={() => onToggle(item.id)} />
+				<div className="flex-1 min-w-0 flex items-center gap-2">
+					<span className="font-medium leading-tight truncate">{item.title}</span>
+					{item.isArchived && (
+						<Badge variant="secondary" className="text-xs shrink-0">
+							Archived
+						</Badge>
+					)}
+				</div>
+				{item.imageUrl && (
+					<div className="size-10 shrink-0 rounded bg-background/60 overflow-hidden flex items-center justify-center">
+						<img src={item.imageUrl} alt="" className="object-contain size-full" />
+					</div>
+				)}
+			</label>
+		</div>
+	)
+}
+
+function OrganizeGroupBlock({
+	group,
+	items,
 	selected,
 	onToggle,
-	flush = false,
 }: {
-	item: Item
+	group: GroupSummary
+	items: Array<Item>
 	selected: boolean
-	onToggle: (id: number) => void
-	flush?: boolean
+	onToggle: (groupId: number) => void
 }) {
 	return (
-		<label
-			className={cn(
-				flush
-					? 'flex items-center gap-3 p-2 hover:bg-muted/60 cursor-pointer'
-					: 'flex items-center gap-3 p-2 ring-1 ring-inset ring-border rounded-lg bg-muted/40 shadow-sm hover:bg-muted/60 cursor-pointer',
-				!flush && priorityRingClass[item.priority]
-			)}
-		>
-			<Checkbox checked={selected} onCheckedChange={() => onToggle(item.id)} />
-			<PriorityIcon priority={item.priority} className="size-4 shrink-0" />
-			<div className="flex-1 min-w-0 flex items-center gap-2">
-				<span className="font-medium leading-tight truncate">{item.title}</span>
-				{item.isArchived && (
-					<Badge variant="secondary" className="text-xs shrink-0">
-						Archived
-					</Badge>
-				)}
+		<div className="relative">
+			<PriorityTab priority={group.priority} />
+			<div className="relative z-10 flex flex-col rounded-lg overflow-hidden bg-card shadow-sm px-px">
+				<div
+					aria-hidden
+					className={cn(
+						'pointer-events-none absolute inset-0 z-20 rounded-lg ring-1 ring-inset ring-border',
+						priorityRingClass[group.priority]
+					)}
+				/>
+				<label className="flex items-center gap-3 p-2 ps-4 bg-accent border-b cursor-pointer hover:bg-accent/80">
+					<Checkbox checked={selected} onCheckedChange={() => onToggle(group.id)} />
+					{group.name && <span className="font-medium text-sm truncate min-w-0">{group.name}</span>}
+					<GroupBadge type={group.type} />
+				</label>
+				<ul className="divide-y">
+					{items.map(item => (
+						<li key={item.id} className="flex items-center gap-3 p-2 ps-4">
+							<div className="flex-1 min-w-0 flex items-center gap-2">
+								<span className="font-medium leading-tight truncate">{item.title}</span>
+								{item.isArchived && (
+									<Badge variant="secondary" className="text-xs shrink-0">
+										Archived
+									</Badge>
+								)}
+							</div>
+							{item.imageUrl && (
+								<div className="size-10 shrink-0 rounded bg-background/60 overflow-hidden flex items-center justify-center">
+									<img src={item.imageUrl} alt="" className="object-contain size-full" />
+								</div>
+							)}
+						</li>
+					))}
+				</ul>
 			</div>
-			{item.imageUrl && (
-				<div className="size-10 shrink-0 rounded bg-background/60 overflow-hidden flex items-center justify-center">
-					<img src={item.imageUrl} alt="" className="object-contain size-full" />
-				</div>
-			)}
-		</label>
+		</div>
 	)
 }
