@@ -107,12 +107,12 @@ function ListsByUserContent() {
 
 	if (sortedUsers.length === 0) {
 		return (
-			<div className="px-2 py-1 text-sm italic border border-dashed rounded text-muted-foreground bg-background/25">
+			<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30">
 				No users.
 				{isAdmin ? (
 					<>
 						{' '}
-						<Link to="/admin/users" className="underline not-italic">
+						<Link to="/admin/users" className="underline">
 							Invite users
 						</Link>
 						.
