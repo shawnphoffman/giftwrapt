@@ -1,10 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { Gift, Package } from 'lucide-react'
+import { Gift, Package, PackageOpen } from 'lucide-react'
 
 import { getReceivedGifts } from '@/api/received'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatGifterNames } from '@/lib/gifters'
 
 export const Route = createFileRoute('/(core)/purchases/received')({
@@ -20,11 +19,14 @@ function ReceivedPage() {
 	const totalGifts = (data?.gifts.length ?? 0) + (data?.addons.length ?? 0)
 
 	return (
-		<Card className="animate-page-in">
-			<CardHeader>
-				<CardTitle className="text-2xl">Received Gifts</CardTitle>
-			</CardHeader>
-			<CardContent className="flex flex-col gap-6">
+		<div className="wish-page">
+			<div className="flex flex-col flex-1 gap-6">
+				{/* HEADING */}
+				<div className="relative">
+					<h1 className="flex flex-row items-center gap-2">Received</h1>
+					<PackageOpen className="text-cyan-500 wish-page-icon" />
+				</div>
+
 				<p className="text-sm text-muted-foreground">
 					Items that have been archived on your lists. Once archived, you can see who gifted each item.
 				</p>
@@ -90,7 +92,7 @@ function ReceivedPage() {
 						)}
 					</>
 				)}
-			</CardContent>
-		</Card>
+			</div>
+		</div>
 	)
 }
