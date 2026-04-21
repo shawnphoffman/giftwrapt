@@ -41,23 +41,25 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 					<TooltipProvider>
 						<ErrorBoundary fallback={(error, reset) => <ErrorBoundaryFallback error={error} reset={reset} />}>{children}</ErrorBoundary>
 					</TooltipProvider>
-					<TanStackDevtools
-						config={{
-							position: 'bottom-right',
-						}}
-						plugins={[
-							{
-								name: 'Tanstack Router',
-								render: <TanStackRouterDevtoolsPanel />,
-							},
-							TanStackQueryDevtools,
-							{
-								name: 'TanStack Form',
-								render: <FormDevtoolsPanel />,
-								defaultOpen: true,
-							},
-						]}
-					/>
+					{import.meta.env.VITE_TANSTACK_DEVTOOLS === 'true' && (
+						<TanStackDevtools
+							config={{
+								position: 'bottom-right',
+							}}
+							plugins={[
+								{
+									name: 'Tanstack Router',
+									render: <TanStackRouterDevtoolsPanel />,
+								},
+								TanStackQueryDevtools,
+								{
+									name: 'TanStack Form',
+									render: <FormDevtoolsPanel />,
+									defaultOpen: true,
+								},
+							]}
+						/>
+					)}
 					<Scripts />
 					<Toaster />
 				</ThemeProvider>
