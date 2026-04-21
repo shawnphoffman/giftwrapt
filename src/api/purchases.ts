@@ -1,148 +1,10 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, arrayOverlaps, desc, eq, ne, or, sql } from 'drizzle-orm'
+import { and, arrayOverlaps, eq, ne, or, sql } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { giftedItems, items, listAddons, lists, users } from '@/db/schema'
 import { loggingMiddleware } from '@/lib/logger'
 import { authMiddleware } from '@/middleware/auth'
-
-// ===============================
-// READ — my purchases (all claims by current user)
-// ===============================
-// Returns every claim the current user has made, with the associated item,
-// list, and list owner info. Also includes off-list gifts (addons) the user
-// created. Sorted by most recent first.
-
-export type PurchaseRow = {
-	type: 'claim'
-	giftId: number
-	itemId: number
-	itemTitle: string
-	itemUrl: string | null
-	itemPrice: string | null
-	quantity: number
-	totalCost: string | null
-	notes: string | null
-	createdAt: Date
-	listId: number
-	listName: string
-	listOwnerId: string
-	listOwnerName: string | null
-	listOwnerEmail: string
-	listOwnerImage: string | null
-}
-
-export type AddonPurchaseRow = {
-	type: 'addon'
-	addonId: number
-	description: string
-	totalCost: string | null
-	notes: string | null
-	isArchived: boolean
-	createdAt: Date
-	listId: number
-	listName: string
-	listOwnerId: string
-	listOwnerName: string | null
-	listOwnerEmail: string
-	listOwnerImage: string | null
-}
-
-export type MyPurchasesResult = {
-	claims: Array<PurchaseRow>
-	addons: Array<AddonPurchaseRow>
-}
-
-export const getMyPurchases = createServerFn({ method: 'GET' })
-	.middleware([authMiddleware, loggingMiddleware])
-	.handler(async ({ context }): Promise<MyPurchasesResult> => {
-		const userId = context.session.user.id
-
-		// Fetch all claims by this user with item + list + owner info.
-		const claimRows = await db
-			.select({
-				giftId: giftedItems.id,
-				itemId: items.id,
-				itemTitle: items.title,
-				itemUrl: items.url,
-				itemPrice: items.price,
-				quantity: giftedItems.quantity,
-				totalCost: giftedItems.totalCost,
-				notes: giftedItems.notes,
-				createdAt: giftedItems.createdAt,
-				listId: lists.id,
-				listName: lists.name,
-				listOwnerId: lists.ownerId,
-				listOwnerName: sql<string | null>`owner.name`,
-				listOwnerEmail: sql<string>`owner.email`,
-				listOwnerImage: sql<string | null>`owner.image`,
-			})
-			.from(giftedItems)
-			.innerJoin(items, eq(items.id, giftedItems.itemId))
-			.innerJoin(lists, eq(lists.id, items.listId))
-			.innerJoin(sql`users as owner`, sql`owner.id = ${lists.ownerId}`)
-			.where(eq(giftedItems.gifterId, userId))
-			.orderBy(desc(giftedItems.createdAt))
-
-		const claims: Array<PurchaseRow> = claimRows.map(r => ({
-			type: 'claim',
-			giftId: r.giftId,
-			itemId: r.itemId,
-			itemTitle: r.itemTitle,
-			itemUrl: r.itemUrl,
-			itemPrice: r.itemPrice,
-			quantity: r.quantity,
-			totalCost: r.totalCost,
-			notes: r.notes,
-			createdAt: r.createdAt,
-			listId: r.listId,
-			listName: r.listName,
-			listOwnerId: r.listOwnerId,
-			listOwnerName: r.listOwnerName,
-			listOwnerEmail: r.listOwnerEmail,
-			listOwnerImage: r.listOwnerImage,
-		}))
-
-		// Fetch all off-list gifts (addons) by this user.
-		const addonRows = await db
-			.select({
-				addonId: listAddons.id,
-				description: listAddons.description,
-				totalCost: listAddons.totalCost,
-				notes: listAddons.notes,
-				isArchived: listAddons.isArchived,
-				createdAt: listAddons.createdAt,
-				listId: lists.id,
-				listName: lists.name,
-				listOwnerId: lists.ownerId,
-				listOwnerName: sql<string | null>`owner.name`,
-				listOwnerEmail: sql<string>`owner.email`,
-				listOwnerImage: sql<string | null>`owner.image`,
-			})
-			.from(listAddons)
-			.innerJoin(lists, eq(lists.id, listAddons.listId))
-			.innerJoin(sql`users as owner`, sql`owner.id = ${lists.ownerId}`)
-			.where(eq(listAddons.userId, userId))
-			.orderBy(desc(listAddons.createdAt))
-
-		const addons: Array<AddonPurchaseRow> = addonRows.map(r => ({
-			type: 'addon',
-			addonId: r.addonId,
-			description: r.description,
-			totalCost: r.totalCost,
-			notes: r.notes,
-			isArchived: r.isArchived,
-			createdAt: r.createdAt,
-			listId: r.listId,
-			listName: r.listName,
-			listOwnerId: r.listOwnerId,
-			listOwnerName: r.listOwnerName,
-			listOwnerEmail: r.listOwnerEmail,
-			listOwnerImage: r.listOwnerImage,
-		}))
-
-		return { claims, addons }
-	})
 
 // ===============================
 // READ — purchase summary (spending per person)
@@ -161,6 +23,7 @@ export type SummaryItem = {
 	// build UI to capture per-gifter spend.
 	isCoGifter: boolean
 	title: string
+	itemUrl: string | null
 	cost: number | null
 	totalCostRaw: string | null
 	notes: string | null
@@ -212,6 +75,7 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 				gifterId: giftedItems.gifterId,
 				additionalGifterIds: giftedItems.additionalGifterIds,
 				itemTitle: items.title,
+				itemUrl: items.url,
 				quantity: giftedItems.quantity,
 				totalCost: giftedItems.totalCost,
 				notes: giftedItems.notes,
@@ -262,6 +126,7 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 				isOwn: r.gifterId === userId,
 				isCoGifter,
 				title: r.itemTitle,
+				itemUrl: r.itemUrl,
 				cost,
 				totalCostRaw: isCoGifter ? null : r.totalCost,
 				notes: r.notes,
@@ -283,6 +148,7 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 			isOwn: r.gifterId === userId,
 			isCoGifter: false,
 			title: r.description,
+			itemUrl: null,
 			cost: r.totalCost ? parseFloat(r.totalCost) : null,
 			totalCostRaw: r.totalCost,
 			notes: r.notes,

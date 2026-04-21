@@ -80,7 +80,6 @@ export const setPrimaryList = ok
 export const getListForEditing = async () => ({ kind: 'ok', list: null })
 
 // @/api/purchases
-export const getMyPurchases = async () => ({ claims: [], addons: [] })
 export const getPurchaseSummary = async (): Promise<Array<unknown>> => []
 
 // @/api/list-addons

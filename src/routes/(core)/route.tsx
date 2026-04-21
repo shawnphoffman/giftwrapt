@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
-import { Gift, Inbox, ListChecks, ListOrdered, ListPlus, MessagesSquare, PackageOpen, PlusCircle, Receipt, ReceiptText } from 'lucide-react'
+import { Gift, Inbox, ListChecks, ListOrdered, ListPlus, MessagesSquare, PackageOpen, PlusCircle, Receipt } from 'lucide-react'
 import { Suspense } from 'react'
 
 import Loading from '@/components/loading'
@@ -70,12 +70,6 @@ const purchases: Array<NavItem> = [
 		activeOptions: {
 			exact: true,
 		},
-	},
-	{
-		name: 'Summary',
-		url: '/purchases/summary',
-		hoverColor: 'group-hover/link:text-orange-500 group-data-[status=active]/link:text-orange-500',
-		icon: ReceiptText,
 	},
 	{
 		name: 'Received',

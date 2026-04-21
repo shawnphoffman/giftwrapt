@@ -12,6 +12,7 @@ function item(overrides: Partial<SummaryItem> = {}): SummaryItem {
 		isOwn: true,
 		isCoGifter: false,
 		title: 'A thing',
+		itemUrl: null,
 		cost: null,
 		totalCostRaw: null,
 		notes: null,

@@ -31,7 +31,6 @@ import { Route as coreSettingsSecurityRouteImport } from './routes/(core)/settin
 import { Route as coreSettingsPermissionsRouteImport } from './routes/(core)/settings/permissions'
 import { Route as coreRecentItemsRouteImport } from './routes/(core)/recent.items'
 import { Route as coreRecentCommentsRouteImport } from './routes/(core)/recent.comments'
-import { Route as corePurchasesSummaryRouteImport } from './routes/(core)/purchases.summary'
 import { Route as corePurchasesReceivedRouteImport } from './routes/(core)/purchases.received'
 import { Route as coreListsListIdRouteImport } from './routes/(core)/lists/$listId'
 import { Route as coreItemCloneRouteImport } from './routes/(core)/item.clone'
@@ -155,11 +154,6 @@ const coreRecentCommentsRoute = coreRecentCommentsRouteImport.update({
   path: '/recent/comments',
   getParentRoute: () => coreRouteRoute,
 } as any)
-const corePurchasesSummaryRoute = corePurchasesSummaryRouteImport.update({
-  id: '/purchases/summary',
-  path: '/purchases/summary',
-  getParentRoute: () => coreRouteRoute,
-} as any)
 const corePurchasesReceivedRoute = corePurchasesReceivedRouteImport.update({
   id: '/purchases/received',
   path: '/purchases/received',
@@ -243,7 +237,6 @@ export interface FileRoutesByFullPath {
   '/item/clone': typeof coreItemCloneRoute
   '/lists/$listId': typeof coreListsListIdRoute
   '/purchases/received': typeof corePurchasesReceivedRoute
-  '/purchases/summary': typeof corePurchasesSummaryRoute
   '/recent/comments': typeof coreRecentCommentsRoute
   '/recent/items': typeof coreRecentItemsRoute
   '/settings/permissions': typeof coreSettingsPermissionsRoute
@@ -278,7 +271,6 @@ export interface FileRoutesByTo {
   '/item/clone': typeof coreItemCloneRoute
   '/lists/$listId': typeof coreListsListIdRoute
   '/purchases/received': typeof corePurchasesReceivedRoute
-  '/purchases/summary': typeof corePurchasesSummaryRoute
   '/recent/comments': typeof coreRecentCommentsRoute
   '/recent/items': typeof coreRecentItemsRoute
   '/settings/permissions': typeof coreSettingsPermissionsRoute
@@ -317,7 +309,6 @@ export interface FileRoutesById {
   '/(core)/item/clone': typeof coreItemCloneRoute
   '/(core)/lists/$listId': typeof coreListsListIdRoute
   '/(core)/purchases/received': typeof corePurchasesReceivedRoute
-  '/(core)/purchases/summary': typeof corePurchasesSummaryRoute
   '/(core)/recent/comments': typeof coreRecentCommentsRoute
   '/(core)/recent/items': typeof coreRecentItemsRoute
   '/(core)/settings/permissions': typeof coreSettingsPermissionsRoute
@@ -356,7 +347,6 @@ export interface FileRouteTypes {
     | '/item/clone'
     | '/lists/$listId'
     | '/purchases/received'
-    | '/purchases/summary'
     | '/recent/comments'
     | '/recent/items'
     | '/settings/permissions'
@@ -391,7 +381,6 @@ export interface FileRouteTypes {
     | '/item/clone'
     | '/lists/$listId'
     | '/purchases/received'
-    | '/purchases/summary'
     | '/recent/comments'
     | '/recent/items'
     | '/settings/permissions'
@@ -429,7 +418,6 @@ export interface FileRouteTypes {
     | '/(core)/item/clone'
     | '/(core)/lists/$listId'
     | '/(core)/purchases/received'
-    | '/(core)/purchases/summary'
     | '/(core)/recent/comments'
     | '/(core)/recent/items'
     | '/(core)/settings/permissions'
@@ -621,13 +609,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreRecentCommentsRouteImport
       parentRoute: typeof coreRouteRoute
     }
-    '/(core)/purchases/summary': {
-      id: '/(core)/purchases/summary'
-      path: '/purchases/summary'
-      fullPath: '/purchases/summary'
-      preLoaderRoute: typeof corePurchasesSummaryRouteImport
-      parentRoute: typeof coreRouteRoute
-    }
     '/(core)/purchases/received': {
       id: '/(core)/purchases/received'
       path: '/purchases/received'
@@ -767,7 +748,6 @@ interface coreRouteRouteChildren {
   coreItemCloneRoute: typeof coreItemCloneRoute
   coreListsListIdRoute: typeof coreListsListIdRoute
   corePurchasesReceivedRoute: typeof corePurchasesReceivedRoute
-  corePurchasesSummaryRoute: typeof corePurchasesSummaryRoute
   coreRecentCommentsRoute: typeof coreRecentCommentsRoute
   coreRecentItemsRoute: typeof coreRecentItemsRoute
   coreMeIndexRoute: typeof coreMeIndexRoute
@@ -786,7 +766,6 @@ const coreRouteRouteChildren: coreRouteRouteChildren = {
   coreItemCloneRoute: coreItemCloneRoute,
   coreListsListIdRoute: coreListsListIdRoute,
   corePurchasesReceivedRoute: corePurchasesReceivedRoute,
-  corePurchasesSummaryRoute: corePurchasesSummaryRoute,
   coreRecentCommentsRoute: coreRecentCommentsRoute,
   coreRecentItemsRoute: coreRecentItemsRoute,
   coreMeIndexRoute: coreMeIndexRoute,
