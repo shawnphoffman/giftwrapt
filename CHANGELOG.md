@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/shawnphoffman/wish-lists/compare/v0.7.0...v0.7.1) (2026-04-21)
+
+
+### Bug Fixes
+
+* **auth:** match sign-up layout to sign-in ([a35864c](https://github.com/shawnphoffman/wish-lists/commit/a35864c0e8318049dff8d14a60394b3c91b43138))
+
 ## [0.7.0](https://github.com/shawnphoffman/wish-lists/compare/v0.6.1...v0.7.0) (2026-04-20)
 
 
