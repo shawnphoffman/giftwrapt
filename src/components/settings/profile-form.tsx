@@ -169,7 +169,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 				)}
 			</form.Field>
 
-			<div className="grid grid-cols-1 gap-4 @xl/subpage:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 @md/subpage:grid-cols-2">
 				<form.Field name="birthMonth">
 					{field => (
 						<Field className="gap-1">
