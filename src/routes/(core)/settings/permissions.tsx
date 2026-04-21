@@ -273,7 +273,7 @@ function PermissionsPage() {
 													</TableCell>
 													<TableCell className="text-center pr-2! py-1">
 														<Checkbox
-															className="size-5"
+															className="size-5 mx-auto"
 															checked={userFormData.canView}
 															onCheckedChange={checked => handleCheckboxChange(user.id, 'canView', checked === true)}
 															disabled={isSavingOutgoing}
@@ -281,7 +281,7 @@ function PermissionsPage() {
 													</TableCell>
 													<TableCell className="text-center pr-2! py-1">
 														<Checkbox
-															className="size-5"
+															className="size-5 mx-auto"
 															checked={userFormData.canEdit}
 															onCheckedChange={checked => handleCheckboxChange(user.id, 'canEdit', checked === true)}
 															disabled={isSavingOutgoing || !userFormData.canView}
@@ -331,7 +331,7 @@ function PermissionsPage() {
 													</TableCell>
 													<TableCell className="text-center pr-2! py-1">
 														<Checkbox
-															className="size-5"
+															className="size-5 mx-auto"
 															checked={ownerFormData.canView}
 															onCheckedChange={checked => handleIncomingCheckboxChange(owner.id, checked === true)}
 															disabled={isSavingIncoming}
