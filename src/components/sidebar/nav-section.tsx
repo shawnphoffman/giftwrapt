@@ -39,7 +39,7 @@ export const NavItem = ({ item, className }: { item: NavItem; className?: string
 	})
 	return (
 		<SidebarMenuItem key={item.name} className="w-full">
-			<SidebarMenuButton asChild className={cn(className, 'text-base font-medium')}>
+			<SidebarMenuButton asChild tooltip={item.name} className={cn(className, 'text-base font-medium')}>
 				<Link
 					to={item.url}
 					className="group/link"
@@ -57,7 +57,7 @@ export const NavItem = ({ item, className }: { item: NavItem; className?: string
 
 export default function NavSection({ title, items, className }: Props) {
 	return (
-		<SidebarGroup className={cn('group-data-[collapsible=icon]:hidden', className)}>
+		<SidebarGroup className={className}>
 			<SidebarGroupLabel className="text-sm font-semibold underline underline-offset-4 decoration-dashed">{title}</SidebarGroupLabel>
 			<SidebarGroupContent>
 				<SidebarMenu>

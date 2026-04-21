@@ -122,11 +122,11 @@ const feeds: Array<NavItem> = [
 function AuthenticatedRoutes() {
 	return (
 		<SidebarProvider>
-			<Sidebar variant="inset">
+			<Sidebar variant="inset" collapsible="icon">
 				<SidebarHeader>
 					<SidebarMenu>
 						<SidebarMenuItem>
-							<SidebarMenuButton size="lg" asChild>
+							<SidebarMenuButton size="lg" asChild tooltip={env.VITE_APP_TITLE}>
 								<Link to="/" className="">
 									<div className="flex items-center justify-center rounded-lg aspect-square size-8 bg-red-700 text-white hover:animate-spin">
 										<Gift className="transition-colors size-6!" />

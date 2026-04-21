@@ -17,7 +17,7 @@ export default function NavBottom() {
 					{/* {items.map(item => (
 						<NavItem key={item.name} item={item} />
 					))} */}
-					<div className="flex flex-row gap-2 w-full justify-between pe-2">
+					<div className="flex flex-row gap-2 w-full justify-between pe-2 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:pe-0">
 						<NavItem
 							item={{
 								name: 'Settings',
