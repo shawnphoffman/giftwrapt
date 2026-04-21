@@ -17,7 +17,7 @@ export default function PostBirthdayEmail({ items }: PostBirthdayEmailProps) {
 				<Body className="px-2 mx-auto my-auto font-sans bg-black dark`">
 					<Container className="mx-auto my-[40px] max-w-[650px] rounded border bg-white border-[#eaeaea] border-solid p-[20px]">
 						<Section className="mt-[32px]">
-							<Img src={`${baseUrl}/images/email/base-icon.png`} width="80" height="80" alt="Wish Lists" className="mx-auto my-0" />
+							<Img src={`${baseUrl}/images/email/base-icon.webp`} width="80" height="80" alt="Wish Lists" className="mx-auto my-0" />
 						</Section>
 						<Heading className="mx-0 my-[20px] p-0 font-bold text-[24px] text-black text-center">A look back...</Heading>
 						<Text className="text-base text-center">Here&apos;s a quick reference of some of the items that you were gifted.</Text>

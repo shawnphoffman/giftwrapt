@@ -11,11 +11,14 @@ import { Label } from '@/components/ui/label'
 import { PasswordInput } from '@/components/ui/password-input'
 import { db } from '@/db'
 import { users } from '@/db/schema'
-import logo from '@/images/logo.png'
+import logo from '@/images/logo.webp'
 import { authClient, useSession } from '@/lib/auth-client'
 
 const checkNeedsBootstrap = createServerFn({ method: 'GET' }).handler(async () => {
-	const rows = await db.select({ c: sql<number>`count(*)::int` }).from(users).where(sql`role = 'admin'`)
+	const rows = await db
+		.select({ c: sql<number>`count(*)::int` })
+		.from(users)
+		.where(sql`role = 'admin'`)
 	return { needsBootstrap: (rows[0]?.c ?? 0) === 0 }
 })
 
