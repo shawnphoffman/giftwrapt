@@ -1,9 +1,12 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { Image } from '@unpic/react'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { PasswordInput } from '@/components/ui/password-input'
+import logo from '@/images/logo.png'
 import { authClient } from '@/lib/auth-client'
 
 export const Route = createFileRoute('/(auth)/sign-up')({
@@ -51,14 +54,16 @@ function SignUp() {
 	}
 
 	return (
-		<div className="flex items-center justify-center min-h-[calc(100vh-3rem)] p-4">
-			<div className="w-full max-w-md space-y-8">
+		<div className="flex items-center flex-col min-h-screen p-[10%] gap-4 bg-background">
+			<Image src={logo} alt="Wish Lists" width={160} height={160} className="w-24 sm:w-40" />
+
+			<div className="w-full max-w-md space-y-4">
 				<div className="text-center">
 					<h1 className="text-3xl font-bold">Create an account</h1>
 					<p className="mt-2 text-muted-foreground">Enter your information to get started</p>
 				</div>
 
-				<form onSubmit={handleSubmit} className="space-y-4">
+				<form onSubmit={handleSubmit} className="space-y-2">
 					{error && <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">{error}</div>}
 
 					<div className="space-y-2">
@@ -71,6 +76,7 @@ function SignUp() {
 							onChange={e => setName(e.target.value)}
 							required
 							disabled={isLoading}
+							autoComplete="name"
 						/>
 					</div>
 
@@ -84,20 +90,21 @@ function SignUp() {
 							onChange={e => setEmail(e.target.value)}
 							required
 							disabled={isLoading}
+							autoComplete="email"
 						/>
 					</div>
 
 					<div className="space-y-2">
 						<Label htmlFor="password">Password</Label>
-						<Input
+						<PasswordInput
 							id="password"
-							type="password"
 							placeholder="••••••••"
 							value={password}
 							onChange={e => setPassword(e.target.value)}
 							required
 							minLength={8}
 							disabled={isLoading}
+							autoComplete="new-password"
 						/>
 						<p className="text-xs text-muted-foreground">Must be at least 8 characters</p>
 					</div>
