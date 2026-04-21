@@ -1,5 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router'
-import { Bug, Database, FlaskConical, Users } from 'lucide-react'
+import { Bug, Database, FlaskConical, Lock, Users } from 'lucide-react'
 
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -18,6 +18,7 @@ export default function AdminLinks() {
 	return (
 		<>
 			<Link to="/admin" className={navLinkClass(pathname === '/admin')}>
+				<Lock />
 				General
 			</Link>
 			<Link
