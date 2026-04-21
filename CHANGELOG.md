@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.1](https://github.com/shawnphoffman/wish-lists/compare/v0.8.0...v0.8.1) (2026-04-21)
+
+
+### Bug Fixes
+
+* **security:** drop upgrade-insecure-requests from CSP ([a00175d](https://github.com/shawnphoffman/wish-lists/commit/a00175d2850252bca76791c7d0afded45f3ea29e))
+
 ## [0.8.0](https://github.com/shawnphoffman/wish-lists/compare/v0.7.2...v0.8.0) (2026-04-21)
 
 
