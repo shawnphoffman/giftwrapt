@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { unclaimItemGift } from '@/api/gifts'
 import type { ItemWithGifts } from '@/api/lists'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
+import PriorityIcon from '@/components/common/priority-icon'
 import UserAvatar from '@/components/common/user-avatar'
 import { ItemComments } from '@/components/items/item-comments'
 import {
@@ -22,7 +23,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { useSession } from '@/lib/auth-client'
 import { computeRemainingClaimableQuantity, computeRemainingClaimableQuantityExcluding } from '@/lib/gifts'
+import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
 import { getDomainFromUrl } from '@/lib/urls'
+import { cn } from '@/lib/utils'
 
 import { Badge } from '../ui/badge'
 import { ClaimGiftDialog } from './claim-gift-dialog'
@@ -37,12 +40,18 @@ type Props = {
 	 * suppressed in favor of a "Locked" indicator. 'order' means an earlier
 	 * item in the ordered group still has slots open; 'or' means a sibling
 	 * in the pick-one group is already claimed. Existing claims remain
-	 * editable — locking is forward-only, matching the server-side guards.
+	 * editable, locking is forward-only, matching the server-side guards.
 	 */
 	lockReason?: LockReason
+	/**
+	 * When true, render without the outer rounded card, priority tab, or
+	 * priority ring. Used inside a GroupBlock which owns the priority
+	 * indicator for the whole group.
+	 */
+	flush?: boolean
 }
 
-export default function ItemRow({ item, lockReason }: Props) {
+export default function ItemRow({ item, lockReason, flush = false }: Props) {
 	const router = useRouter()
 	const queryClient = useQueryClient()
 	const { data: session } = useSession()
@@ -60,9 +69,6 @@ export default function ItemRow({ item, lockReason }: Props) {
 	const fullyClaimed = remaining === 0
 	const myClaim = currentUserId ? item.gifts.find(g => g.gifterId === currentUserId) : undefined
 
-	// For edit-mode, the user's own claim's quantity counts as "available to
-	// them" — they're not taking an additional slot, just reshaping what
-	// they've already taken.
 	const remainingForEdit = myClaim
 		? computeRemainingClaimableQuantityExcluding(
 				item.quantity,
@@ -98,51 +104,54 @@ export default function ItemRow({ item, lockReason }: Props) {
 		}
 	}
 
-	return (
-		<div className="flex flex-col w-full gap-2 p-3 shadow-sm" id={`item-${item.id}`}>
-			<div className="flex flex-col w-full gap-2">
-				<div className="flex flex-row items-stretch gap-x-3.5">
-					<div className="flex flex-col justify-center flex-1 gap-0.5 overflow-hidden">
-						<div className="flex flex-row items-start flex-1 gap-1 overflow-hidden font-medium">
-							{item.url ? (
-								<>
-									<a
-										href={item.url}
-										target="_blank"
-										rel="noopener noreferrer"
-										className="flex flex-col gap-0.5 overflow-hidden hover:underline"
-									>
-										{item.title}
-									</a>
-									<ExternalLink />
-									<Badge variant="outline" className="flex text-xs text-muted-foreground">
-										{getDomainFromUrl(item.url)}
-									</Badge>
-								</>
-							) : (
-								<div>{item.title}</div>
-							)}
-							<PriceQuantityBadge price={item.price} quantity={item.quantity} />
-						</div>
-						{item.notes && <MarkdownNotes content={item.notes} className="text-sm text-foreground/75" />}
+	const domain = item.url ? getDomainFromUrl(item.url) : null
+	const hasPriorityTab = !flush && item.priority !== 'normal'
+
+	const rowInner = (
+		<div className="flex flex-col w-full gap-2" id={`item-${item.id}`}>
+			{/* DETAILS ROW */}
+			<div className="flex flex-row items-stretch gap-3">
+				<div className="flex-1 min-w-0 flex flex-col gap-0.5">
+					<div className="font-medium leading-tight truncate">
+						{item.url ? (
+							<a href={item.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+								{item.title}
+							</a>
+						) : (
+							item.title
+						)}
 					</div>
-					{item.imageUrl && (
-						<div className="flex items-center justify-center">
-							<img src={item.imageUrl} alt={item.title} className="object-contain w-16 max-h-16 xs:w-24 xs:max-h-24" />
-						</div>
-					)}
+					<div className="flex flex-row flex-wrap items-center gap-1.5">
+						{domain && (
+							<a
+								href={item.url!}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-0.5"
+							>
+								{domain} <ExternalLink className="size-3" />
+							</a>
+						)}
+						<PriceQuantityBadge price={item.price} quantity={item.quantity} />
+					</div>
+					{item.notes && <MarkdownNotes content={item.notes} className="text-xs text-foreground/75 mt-1" />}
 				</div>
+				{item.imageUrl && (
+					<div className="flex items-center justify-center shrink-0">
+						<img src={item.imageUrl} alt={item.title} className="object-contain w-16 max-h-16 xs:w-24 xs:max-h-24" />
+					</div>
+				)}
 			</div>
 
-			{/* CLAIMS */}
-			<div className="flex flex-row items-center flex-wrap gap-2 pt-1">
+			{/* CLAIMS ROW */}
+			<div className="flex flex-row items-center flex-wrap gap-2">
 				{item.gifts.length > 0 && (
-					<div className="flex flex-row items-center gap-2 text-xs text-muted-foreground">
+					<div className="flex flex-row items-center flex-wrap gap-2 text-xs text-muted-foreground">
 						<Gift className="size-3.5" />
 						<span>
 							{totalClaimed} of {item.quantity} claimed
 						</span>
-						<div className="flex flex-row items-center gap-1">
+						<div className="flex flex-row flex-wrap items-center gap-1">
 							{item.gifts.map(gift => {
 								const name = gift.gifter.name || gift.gifter.email
 								const isMe = gift.gifter.id === currentUserId
@@ -164,19 +173,19 @@ export default function ItemRow({ item, lockReason }: Props) {
 					</div>
 				)}
 
-				<div className="flex flex-row items-center gap-2 ml-auto">
+				<div className="flex flex-row items-center gap-1 ml-auto">
 					{myClaim && (
 						<>
-							<Button size="sm" variant="ghost" onClick={() => setEditDialogOpen(true)} title="Edit your claim">
+							<Button size="sm" variant="ghost" className="h-7" onClick={() => setEditDialogOpen(true)} title="Edit your claim">
 								<Pencil className="size-4" />
 								Edit
 							</Button>
 							<Button
 								size="sm"
 								variant="ghost"
+								className="h-7 text-destructive hover:text-destructive"
 								onClick={() => setUnclaimDialogOpen(true)}
 								title="Remove your claim"
-								className="text-destructive hover:text-destructive"
 							>
 								<X className="size-4" />
 								Unclaim
@@ -203,7 +212,7 @@ export default function ItemRow({ item, lockReason }: Props) {
 							Locked
 						</Badge>
 					) : (
-						<Button size="sm" variant="outline" onClick={() => setClaimDialogOpen(true)}>
+						<Button size="sm" variant="outline" className="h-7" onClick={() => setClaimDialogOpen(true)}>
 							<Gift className="size-4" />
 							{myClaim ? 'Claim more' : 'Claim'}
 						</Button>
@@ -213,6 +222,36 @@ export default function ItemRow({ item, lockReason }: Props) {
 
 			{/* COMMENTS */}
 			<ItemComments itemId={item.id} />
+		</div>
+	)
+
+	return (
+		<>
+			{flush ? (
+				<div className="flex items-start gap-2 p-2 ps-4 border-b last:border-b-0">{rowInner}</div>
+			) : (
+				<div className="relative">
+					{hasPriorityTab && (
+						<div
+							className={cn(
+								'absolute left-0 top-0 h-[calc(100%-4px)] -translate-x-1/2 translate-y-[2px] w-12 rounded-md shadow-sm flex items-center p-1 z-0',
+								priorityTabBgClass[item.priority]
+							)}
+							aria-hidden
+						>
+							<PriorityIcon priority={item.priority} className="size-4" />
+						</div>
+					)}
+					<div
+						className={cn(
+							'relative z-10 flex items-start gap-2 p-3 ps-4 ring-1 ring-inset ring-border rounded-lg bg-card shadow-sm',
+							priorityRingClass[item.priority]
+						)}
+					>
+						{rowInner}
+					</div>
+				</div>
+			)}
 
 			<ClaimGiftDialog
 				open={claimDialogOpen}
@@ -223,9 +262,6 @@ export default function ItemRow({ item, lockReason }: Props) {
 			/>
 
 			{myClaim && editDialogOpen && (
-				// Only mount when open so each open re-reads the current claim values
-				// into form defaults. useForm captures defaultValues once per mount,
-				// so without this the form would go stale after a successful edit.
 				<ClaimGiftDialog
 					mode="edit"
 					gift={myClaim}
@@ -253,6 +289,6 @@ export default function ItemRow({ item, lockReason }: Props) {
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
-		</div>
+		</>
 	)
 }
