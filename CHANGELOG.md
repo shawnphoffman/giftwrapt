@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.7.2](https://github.com/shawnphoffman/wish-lists/compare/v0.7.1...v0.7.2) (2026-04-21)
+
+
+### Bug Fixes
+
+* **ssr:** let start manifest auto-inject stylesheet link ([9bc6134](https://github.com/shawnphoffman/wish-lists/commit/9bc6134df6888968829a3fc71273d8dd32c8ede6))
+
+
+### Performance Improvements
+
+* **images:** convert logo and email icons to webp ([058483d](https://github.com/shawnphoffman/wish-lists/commit/058483da7c779a95820a996af499495294d722f8))
+
 ## [0.7.1](https://github.com/shawnphoffman/wish-lists/compare/v0.7.0...v0.7.1) (2026-04-21)
 
 
