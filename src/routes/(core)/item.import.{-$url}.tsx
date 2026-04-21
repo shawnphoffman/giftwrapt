@@ -235,7 +235,7 @@ function ItemImportPage() {
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									{priorityEnumValues.map(p => (
+									{[...priorityEnumValues].reverse().map(p => (
 										<SelectItem key={p} value={p}>
 											<span className="inline-flex items-center gap-2">
 												<span className="inline-flex size-4 items-center justify-center">

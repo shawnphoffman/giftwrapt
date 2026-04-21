@@ -304,7 +304,7 @@ function BulkActionsTab({ list }: { list: ListForEditing }) {
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
 							<DropdownMenuLabel>Set priority</DropdownMenuLabel>
-							{priorityEnumValues.map(p => (
+							{[...priorityEnumValues].reverse().map(p => (
 								<DropdownMenuItem key={p} onClick={() => runPriority(p)}>
 									<PriorityIcon priority={p} className="size-4" />
 									{PRIORITY_LABEL[p]}
