@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/shawnphoffman/wish-lists/compare/v0.10.0...v0.11.0) (2026-04-21)
+
+
+### Features
+
+* **purchases:** consolidate My Purchases and Summary into one page ([f234770](https://github.com/shawnphoffman/wish-lists/commit/f2347707ecac8154ffe4847fc72b0d4aff8e393f))
+
 ## [0.10.0](https://github.com/shawnphoffman/wish-lists/compare/v0.9.1...v0.10.0) (2026-04-21)
 
 
