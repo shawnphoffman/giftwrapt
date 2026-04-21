@@ -1,3 +1,6 @@
+import { statSync } from 'node:fs'
+import { join } from 'node:path'
+
 import tailwindcss from '@tailwindcss/vite'
 import { devtools } from '@tanstack/devtools-vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
@@ -7,6 +10,27 @@ import { defineConfig } from 'vite'
 import viteTsConfigPaths from 'vite-tsconfig-paths'
 
 const isStorybook = process.env.STORYBOOK === 'true'
+
+// Default on in the main checkout, off in git worktrees (they multiply dev
+// servers and each devtools instance binds its own WS port). TANSTACK_DEVTOOLS
+// overrides either way.
+function shouldEnableDevtools(): boolean {
+	const flag = process.env.TANSTACK_DEVTOOLS?.toLowerCase()
+	if (flag === '1' || flag === 'true' || flag === 'on') return true
+	if (flag === '0' || flag === 'false' || flag === 'off') return false
+	try {
+		// In a main checkout .git is a directory; in a worktree it's a file
+		// pointing at <common-dir>/worktrees/<name>.
+		return statSync(join(process.cwd(), '.git')).isDirectory()
+	} catch {
+		return true
+	}
+}
+
+const devtoolsEnabled = shouldEnableDevtools()
+// Expose to the client bundle via Vite's env-var pipeline so __root.tsx can
+// conditionally render <TanStackDevtools>.
+process.env.VITE_TANSTACK_DEVTOOLS = String(devtoolsEnabled)
 
 const securityHeaders = {
 	// HSTS is a no-op over HTTP (browsers ignore it per RFC 6797). Useful once
@@ -35,7 +59,7 @@ const securityHeaders = {
 
 const config = defineConfig({
 	plugins: [
-		!isStorybook && devtools(),
+		!isStorybook && devtoolsEnabled && devtools(),
 		!isStorybook &&
 			nitro({
 				routeRules: {
