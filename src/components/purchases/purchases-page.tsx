@@ -9,6 +9,7 @@ import UserAvatar from '@/components/common/user-avatar'
 import { type EditablePurchase, PurchaseEditDialog } from '@/components/purchases/purchase-edit-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -246,84 +247,6 @@ export function PurchasesPageContent({ items }: Props) {
 					</div>
 				) : (
 					<>
-						{/* METRICS + CHART */}
-						<div className="grid grid-cols-1 @4xl/page:grid-cols-[1fr_1.1fr] gap-4">
-							<div className="flex flex-col gap-4">
-								<MetricsGroup title="Totals">
-									<Metric label="Total Spend" value={<MoneyChip amount={metrics.totalSpend} variant="green" />} />
-									<Metric label="Gifts Spend" value={<MoneyChip amount={metrics.giftsTotalSpend} variant="green" />} />
-									<Metric label="Addons Spend" value={<MoneyChip amount={metrics.addonsTotalSpend} variant="orange" />} />
-									<Metric
-										label="Total Items"
-										tooltip="On-list gifts / off-list addons"
-										value={
-											<span className="text-base font-semibold tabular-nums">
-												{metrics.totalItems}{' '}
-												<span className="text-xs text-muted-foreground font-normal">
-													({metrics.totalGifts} / {metrics.totalAddons})
-												</span>
-											</span>
-										}
-									/>
-								</MetricsGroup>
-
-								<MetricsGroup title="Averages">
-									<Metric label="Per Gift (excl. $0)" value={<MoneyChip amount={metrics.avgSpendPerGift} variant="green" />} />
-									<Metric label="Per Person" value={<MoneyChip amount={metrics.avgSpendPerPerson} variant="green" />} />
-									<Metric
-										label="Gifts/Person"
-										value={<span className="text-base font-semibold tabular-nums">{metrics.avgGiftsPerPerson.toFixed(1)}</span>}
-									/>
-									<Metric label="Max Single Gift" value={<MoneyChip amount={metrics.maxSpend} variant="green" />} />
-								</MetricsGroup>
-
-								<MetricsGroup title="People">
-									<Metric
-										label="Recipients"
-										tooltip="Total / recipients with at least one priced item"
-										value={
-											<span className="text-base font-semibold tabular-nums">
-												{metrics.totalPeople} / {metrics.peopleWithSpend}
-											</span>
-										}
-									/>
-									<Metric
-										label="Top Recipient"
-										value={
-											metrics.topGroup ? (
-												<div className="flex items-center gap-2 min-w-0">
-													<UserAvatar name={metrics.topGroup.name} image={metrics.topGroup.image} size="small" />
-													<span className="truncate text-sm font-medium">{metrics.topGroup.name}</span>
-													<MoneyChip amount={metrics.topGroup.totalSpent} variant="green" />
-												</div>
-											) : (
-												<span className="text-sm text-muted-foreground">—</span>
-											)
-										}
-									/>
-								</MetricsGroup>
-							</div>
-
-							<div className="flex flex-col gap-2 p-4 border rounded-lg bg-accent min-w-0">
-								<div className="text-base font-semibold">Spend Over Time</div>
-								<div className="text-xs text-muted-foreground">Per month, stacked by gift vs. addon.</div>
-								{monthly.length > 0 ? (
-									<ChartContainer config={chartConfig} className="aspect-auto h-52 w-full">
-										<BarChart accessibilityLayer data={monthly} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-											<CartesianGrid vertical={false} />
-											<XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
-											<YAxis tickLine={false} axisLine={false} tickMargin={8} width={40} tickFormatter={v => `$${v}`} />
-											<ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
-											<Bar dataKey="gifts" stackId="a" fill="var(--color-gifts)" radius={[0, 0, 0, 0]} />
-											<Bar dataKey="addons" stackId="a" fill="var(--color-addons)" radius={[4, 4, 0, 0]} />
-										</BarChart>
-									</ChartContainer>
-								) : (
-									<div className="text-sm text-muted-foreground py-6 text-center">No data.</div>
-								)}
-							</div>
-						</div>
-
 						{/* PER-PERSON BREAKDOWN */}
 						<div className="overflow-hidden border rounded-lg bg-accent">
 							<Table>
@@ -401,6 +324,88 @@ export function PurchasesPageContent({ items }: Props) {
 									</TableRow>
 								</TableFooter>
 							</Table>
+						</div>
+
+						{/* METRICS + CHART (below the list) */}
+						<div className="grid grid-cols-1 @4xl/page:grid-cols-[1fr_1.1fr] gap-4">
+							<div className="grid grid-cols-1 @lg/page:grid-cols-2 gap-4 @4xl/page:grid-cols-1">
+								<MetricsGroup title="Totals">
+									<Metric label="Total Spend" value={<MoneyChip amount={metrics.totalSpend} variant="green" />} />
+									<Metric label="Gifts Spend" value={<MoneyChip amount={metrics.giftsTotalSpend} variant="green" />} />
+									<Metric label="Addons Spend" value={<MoneyChip amount={metrics.addonsTotalSpend} variant="orange" />} />
+									<Metric
+										label="Total Items"
+										tooltip="On-list gifts / off-list addons"
+										value={
+											<span className="text-base font-semibold tabular-nums">
+												{metrics.totalItems}{' '}
+												<span className="text-xs text-muted-foreground font-normal">
+													({metrics.totalGifts} / {metrics.totalAddons})
+												</span>
+											</span>
+										}
+									/>
+								</MetricsGroup>
+
+								<MetricsGroup title="Averages">
+									<Metric label="Per Gift (excl. $0)" value={<MoneyChip amount={metrics.avgSpendPerGift} variant="green" />} />
+									<Metric label="Per Person" value={<MoneyChip amount={metrics.avgSpendPerPerson} variant="green" />} />
+									<Metric
+										label="Gifts/Person"
+										value={<span className="text-base font-semibold tabular-nums">{metrics.avgGiftsPerPerson.toFixed(1)}</span>}
+									/>
+									<Metric label="Max Single Gift" value={<MoneyChip amount={metrics.maxSpend} variant="green" />} />
+								</MetricsGroup>
+
+								<MetricsGroup title="People" className="@lg/page:col-span-2 @4xl/page:col-span-1">
+									<Metric
+										label="Recipients"
+										tooltip="Total / recipients with at least one priced item"
+										value={
+											<span className="text-base font-semibold tabular-nums">
+												{metrics.totalPeople} / {metrics.peopleWithSpend}
+											</span>
+										}
+									/>
+									<Metric
+										label="Top Recipient"
+										value={
+											metrics.topGroup ? (
+												<div className="flex items-center gap-2 min-w-0">
+													<UserAvatar name={metrics.topGroup.name} image={metrics.topGroup.image} size="small" />
+													<span className="truncate text-sm font-medium">{metrics.topGroup.name}</span>
+													<MoneyChip amount={metrics.topGroup.totalSpent} variant="green" />
+												</div>
+											) : (
+												<span className="text-sm text-muted-foreground">—</span>
+											)
+										}
+									/>
+								</MetricsGroup>
+							</div>
+
+							<Card size="sm" className="min-w-0">
+								<CardHeader>
+									<CardTitle>Spend Over Time</CardTitle>
+									<CardDescription>Per month, stacked by gift vs. addon.</CardDescription>
+								</CardHeader>
+								<CardContent>
+									{monthly.length > 0 ? (
+										<ChartContainer config={chartConfig} className="aspect-auto h-52 w-full">
+											<BarChart accessibilityLayer data={monthly} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+												<CartesianGrid vertical={false} />
+												<XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
+												<YAxis tickLine={false} axisLine={false} tickMargin={8} width={40} tickFormatter={v => `$${v}`} />
+												<ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
+												<Bar dataKey="gifts" stackId="a" fill="var(--color-gifts)" isAnimationActive={false} radius={[0, 0, 0, 0]} />
+												<Bar dataKey="addons" stackId="a" fill="var(--color-addons)" isAnimationActive={false} radius={[4, 4, 0, 0]} />
+											</BarChart>
+										</ChartContainer>
+									) : (
+										<div className="text-sm text-muted-foreground py-6 text-center">No data.</div>
+									)}
+								</CardContent>
+							</Card>
 						</div>
 					</>
 				)}
@@ -489,12 +494,14 @@ function PurchaseDetailRow({ item, onEdit }: { item: SummaryItem; onEdit: () => 
 	)
 }
 
-function MetricsGroup({ title, children }: { title: string; children: React.ReactNode }) {
+function MetricsGroup({ title, className, children }: { title: string; className?: string; children: React.ReactNode }) {
 	return (
-		<div className="flex flex-col gap-3 p-4 border rounded-lg bg-accent">
-			<div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</div>
-			<div className="grid grid-cols-2 gap-x-4 gap-y-3">{children}</div>
-		</div>
+		<Card size="sm" className={className}>
+			<CardHeader>
+				<CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</CardTitle>
+			</CardHeader>
+			<CardContent className="grid grid-cols-2 gap-x-4 gap-y-3">{children}</CardContent>
+		</Card>
 	)
 }
 
