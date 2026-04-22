@@ -324,17 +324,23 @@ export function PurchasesPageContent({ items }: Props) {
 														<ChevronDown className={`size-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
 													</TableCell>
 												</TableRow>
-												{isOpen && (
-													<TableRow className="hover:bg-transparent">
-														<TableCell colSpan={5} className="p-0">
-															<div className="divide-y bg-muted/50">
-																{g.items.map((item, i) => (
-																	<PurchaseDetailRow key={`${g.key}-${i}`} item={item} onEdit={() => openEdit(item)} />
-																))}
+												<TableRow className="hover:bg-transparent border-0">
+													<TableCell colSpan={5} className="p-0">
+														<div
+															className="grid transition-[grid-template-rows] duration-200 ease-out"
+															style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
+															aria-hidden={!isOpen}
+														>
+															<div className="overflow-hidden">
+																<div className="divide-y bg-muted/50">
+																	{g.items.map((item, i) => (
+																		<PurchaseDetailRow key={`${g.key}-${i}`} item={item} onEdit={() => openEdit(item)} />
+																	))}
+																</div>
 															</div>
-														</TableCell>
-													</TableRow>
-												)}
+														</div>
+													</TableCell>
+												</TableRow>
 											</Fragment>
 										)
 									})}
