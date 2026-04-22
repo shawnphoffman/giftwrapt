@@ -5,10 +5,12 @@ import { createRootRouteWithContext, HeadContent, Scripts } from '@tanstack/reac
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { ThemeProvider } from 'next-themes'
 
+import { StorageDisabledBanner } from '@/components/common/storage-disabled-banner'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ErrorBoundary } from '@/components/utilities/error-boundary'
 import { appSettingsQueryOptions } from '@/hooks/use-app-settings'
+import { storageStatusQueryOptions } from '@/hooks/use-storage-status'
 
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 import '../styles.css'
@@ -25,8 +27,12 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 	notFoundComponent: NotFound,
 	shellComponent: RootDocument,
 	beforeLoad: async ({ context }) => {
-		// Prefetch app settings on server - will be hydrated to client
-		await context.queryClient.ensureQueryData(appSettingsQueryOptions)
+		// Prefetch app settings + storage status on server; both hydrate to
+		// client. Run in parallel since neither depends on the other.
+		await Promise.all([
+			context.queryClient.ensureQueryData(appSettingsQueryOptions),
+			context.queryClient.ensureQueryData(storageStatusQueryOptions),
+		])
 	},
 })
 
@@ -39,6 +45,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			<body>
 				<ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
 					<TooltipProvider>
+						<StorageDisabledBanner />
 						<ErrorBoundary fallback={(error, reset) => <ErrorBoundaryFallback error={error} reset={reset} />}>{children}</ErrorBoundary>
 					</TooltipProvider>
 					{import.meta.env.VITE_TANSTACK_DEVTOOLS === 'true' && (

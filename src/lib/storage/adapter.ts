@@ -25,14 +25,28 @@ export interface StorageAdapter {
 
 let _storage: StorageAdapter | undefined
 
-export function getStorage(): StorageAdapter {
+// Storage is considered "configured" only when all five required env vars are
+// set. When any is missing, getStorage() returns null, upload endpoints 503,
+// and the UI shows a banner + hides upload controls.
+export function isStorageConfigured(): boolean {
+	return Boolean(
+		env.STORAGE_ENDPOINT &&
+			env.STORAGE_REGION &&
+			env.STORAGE_BUCKET &&
+			env.STORAGE_ACCESS_KEY_ID &&
+			env.STORAGE_SECRET_ACCESS_KEY
+	)
+}
+
+export function getStorage(): StorageAdapter | null {
 	if (_storage) return _storage
+	if (!isStorageConfigured()) return null
 	_storage = new S3StorageAdapter({
-		endpoint: env.STORAGE_ENDPOINT,
-		region: env.STORAGE_REGION,
-		bucket: env.STORAGE_BUCKET,
-		accessKeyId: env.STORAGE_ACCESS_KEY_ID,
-		secretAccessKey: env.STORAGE_SECRET_ACCESS_KEY,
+		endpoint: env.STORAGE_ENDPOINT!,
+		region: env.STORAGE_REGION!,
+		bucket: env.STORAGE_BUCKET!,
+		accessKeyId: env.STORAGE_ACCESS_KEY_ID!,
+		secretAccessKey: env.STORAGE_SECRET_ACCESS_KEY!,
 		forcePathStyle: env.STORAGE_FORCE_PATH_STYLE,
 		publicUrlBase: env.STORAGE_PUBLIC_URL,
 	})

@@ -39,15 +39,17 @@ export const env = createEnv({
 		// prod; otherwise it defaults to NODE_ENV !== 'production'.
 		LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 		LOG_PRETTY: z.stringbool().optional(),
-		// Object storage (S3-compatible). Required; server refuses to boot if
-		// any piece is missing. Works with Garage (local + self-host), AWS S3,
-		// Cloudflare R2, Supabase Storage's S3 API, any other S3-compat vendor.
-		// See docs/storage.md for deployment recipes.
-		STORAGE_ENDPOINT: z.url(),
-		STORAGE_REGION: z.string().min(1),
-		STORAGE_BUCKET: z.string().min(1),
-		STORAGE_ACCESS_KEY_ID: z.string().min(1),
-		STORAGE_SECRET_ACCESS_KEY: z.string().min(1),
+		// Object storage (S3-compatible). All five are optional; when any is
+		// missing the app boots without image uploads (banner in-app, 503 on
+		// upload endpoints, no-op cleanups). Set all five to enable. Works with
+		// Garage (local + self-host), AWS S3, Cloudflare R2, Supabase Storage's
+		// S3 API, any other S3-compat vendor. See docs/storage.md for
+		// deployment recipes.
+		STORAGE_ENDPOINT: z.url().optional(),
+		STORAGE_REGION: z.string().min(1).optional(),
+		STORAGE_BUCKET: z.string().min(1).optional(),
+		STORAGE_ACCESS_KEY_ID: z.string().min(1).optional(),
+		STORAGE_SECRET_ACCESS_KEY: z.string().min(1).optional(),
 		// Garage requires path-style (bucket is in the URL path, not the
 		// subdomain); AWS/R2 want virtual-host style. Set `true` for Garage
 		// and most self-host setups, `false` for AWS/R2.

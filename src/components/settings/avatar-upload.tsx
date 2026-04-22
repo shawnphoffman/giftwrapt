@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { removeAvatar, uploadAvatar } from '@/api/uploads'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import { useStorageStatus } from '@/hooks/use-storage-status'
 import { useSession } from '@/lib/auth-client'
 
 // Avatar upload + remove. Clicking the avatar opens the file picker; a
@@ -22,8 +23,12 @@ export default function AvatarUpload({ image, displayName }: ProfileAvatarProps)
 	const [isRemoving, setIsRemoving] = useState(false)
 	const fileInputRef = useRef<HTMLInputElement>(null)
 	const { refetch: refetchSession } = useSession()
+	const { configured: storageConfigured } = useStorageStatus()
 
 	const busy = isUploading || isRemoving
+	// When storage is off, the avatar is a read-only display. Image URL (if
+	// any) still renders; clicking does nothing; remove button is hidden.
+	const uploadsDisabled = !storageConfigured
 
 	const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0]
@@ -67,6 +72,17 @@ export default function AvatarUpload({ image, displayName }: ProfileAvatarProps)
 		} finally {
 			setIsRemoving(false)
 		}
+	}
+
+	if (uploadsDisabled) {
+		return (
+			<div className="flex flex-col items-center gap-2">
+				<Avatar className="border-foreground relative flex h-28 w-28 flex-col items-center justify-center border-2">
+					<AvatarImage src={image ?? undefined} />
+					<AvatarFallback className="text-5xl font-bold">{displayName?.charAt(0) ?? '?'}</AvatarFallback>
+				</Avatar>
+			</div>
+		)
 	}
 
 	return (

@@ -14,6 +14,10 @@ const log = createLogger('storage.cleanup')
 // shouldn't roll back real DB state.
 export async function cleanupImageUrls(urls: ReadonlyArray<string | null | undefined>): Promise<void> {
 	const storage = getStorage()
+	// Storage disabled: nothing to clean up. DB rows were already updated by
+	// the caller, so the URLs are orphaned references; fine if the operator
+	// later re-enables storage with a fresh bucket.
+	if (!storage) return
 	for (const url of urls) {
 		if (!url) continue
 		const key = parseKeyFromUrl(url, env.STORAGE_PUBLIC_URL)

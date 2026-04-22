@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
+import { useStorageStatus } from '@/hooks/use-storage-status'
 
 type BaseProps = {
 	open: boolean
@@ -53,6 +54,10 @@ export function ItemFormDialog(props: Props) {
 	const [error, setError] = useState<string | null>(null)
 	const [uploadingImage, setUploadingImage] = useState(false)
 	const fileInputRef = useRef<HTMLInputElement>(null)
+	const { configured: storageConfigured } = useStorageStatus()
+	// Upload UI is only offered when the item already exists (itemId required
+	// for the upload endpoint) AND storage is configured on the server.
+	const showUploadButton = isEdit && storageConfigured
 
 	const form = useForm({
 		defaultValues: {
@@ -300,7 +305,7 @@ export function ItemFormDialog(props: Props) {
 							}
 
 							const handleRemove = async () => {
-								if (!isEdit) {
+								if (!isEdit || !storageConfigured) {
 									field.handleChange('')
 									return
 								}
@@ -335,7 +340,7 @@ export function ItemFormDialog(props: Props) {
 											onBlur={field.handleBlur}
 											disabled={submitting || uploadingImage}
 										/>
-										{isEdit && (
+										{showUploadButton && (
 											<>
 												<input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handleFileChange} />
 												<Button
@@ -351,7 +356,7 @@ export function ItemFormDialog(props: Props) {
 											</>
 										)}
 									</div>
-									{!isEdit && <p className="text-muted-foreground text-xs">You can upload a file after the item is created.</p>}
+									{!isEdit && storageConfigured && <p className="text-muted-foreground text-xs">You can upload a file after the item is created.</p>}
 								</div>
 							)
 						}}

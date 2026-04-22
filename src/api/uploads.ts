@@ -27,16 +27,22 @@ async function readFileAsBuffer(file: File): Promise<Buffer> {
 }
 
 // Storage delete wrapped so the caller can log-and-continue without an extra
-// try/catch. Returns whether the delete succeeded.
+// try/catch. Returns whether the delete succeeded. No-ops when storage is
+// disabled (callers already guard their happy path; this just keeps the
+// best-effort cleanup paths from throwing).
 async function deleteKey(key: string): Promise<boolean> {
+	const storage = getStorage()
+	if (!storage) return false
 	try {
-		await getStorage().delete(key)
+		await storage.delete(key)
 		return true
 	} catch (error) {
 		log.warn({ err: error, key }, 'storage.delete.failed')
 		return false
 	}
 }
+
+const STORAGE_DISABLED_MESSAGE = 'image uploads are not configured on this server'
 
 // ===============================
 // Avatar upload
@@ -55,6 +61,9 @@ export const uploadAvatar = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator(formDataValidator)
 	.handler(async ({ context, data }): Promise<UploadResult<{ url: string }>> => {
+		const storage = getStorage()
+		if (!storage) return err('upstream', STORAGE_DISABLED_MESSAGE)
+
 		const userId = context.session.user.id
 		const file = data.get('file')
 		if (!(file instanceof File)) return err('bad-mime', 'missing "file" field')
@@ -83,7 +92,6 @@ export const uploadAvatar = createServerFn({ method: 'POST' })
 		}
 
 		const key = avatarKey(userId)
-		const storage = getStorage()
 		try {
 			await storage.upload(key, buffer, 'image/webp')
 		} catch (error) {
@@ -144,6 +152,9 @@ export const uploadItemImage = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator(formDataValidator)
 	.handler(async ({ context, data }): Promise<UploadResult<{ url: string }>> => {
+		const storage = getStorage()
+		if (!storage) return err('upstream', STORAGE_DISABLED_MESSAGE)
+
 		const userId = context.session.user.id
 
 		const file = data.get('file')
@@ -187,7 +198,6 @@ export const uploadItemImage = createServerFn({ method: 'POST' })
 		}
 
 		const key = itemImageKey(item.id)
-		const storage = getStorage()
 		try {
 			await storage.upload(key, buffer, 'image/webp')
 		} catch (error) {

@@ -38,6 +38,9 @@ export const Route = createFileRoute('/api/files/$')({
 				}
 
 				const storage = getStorage()
+				if (!storage) {
+					return new Response('image storage is not configured on this server', { status: 503 })
+				}
 				let obj
 				try {
 					obj = await storage.stream(key)

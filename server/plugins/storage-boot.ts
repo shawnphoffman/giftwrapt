@@ -2,16 +2,26 @@ import { definePlugin as defineNitroPlugin } from 'nitro'
 
 import { env } from '@/env'
 import { createLogger } from '@/lib/logger'
-import { getStorage } from '@/lib/storage/adapter'
+import { getStorage, isStorageConfigured } from '@/lib/storage/adapter'
 
-// Loud-fail boot check. Fires HeadBucket once at server start; any failure
-// (bad creds, wrong endpoint, missing bucket, network) aborts the process so
-// Docker healthcheck catches it before real traffic arrives. Same pattern as
-// server/plugins/logging.ts.
+// Boot check for object storage. When all five STORAGE_* env vars are set,
+// we fire HeadBucket once so Docker healthcheck catches bad creds / wrong
+// endpoint / missing bucket before real traffic arrives. When storage isn't
+// configured at all, we log a warning and let the app boot without uploads,
+// the upload endpoints 503 and the UI shows a banner.
 const log = createLogger('storage.boot')
 
 export default defineNitroPlugin(async () => {
+	if (!isStorageConfigured()) {
+		log.warn(
+			{},
+			'storage.disabled: STORAGE_* env vars not set; image uploads are disabled. Set STORAGE_ENDPOINT/REGION/BUCKET/ACCESS_KEY_ID/SECRET_ACCESS_KEY to enable.'
+		)
+		return
+	}
+
 	const storage = getStorage()
+	if (!storage) return
 	try {
 		await storage.ready()
 		log.info(
