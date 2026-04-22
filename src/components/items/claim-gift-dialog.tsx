@@ -213,25 +213,32 @@ export function ClaimGiftDialog(props: Props) {
 					className="space-y-4"
 				>
 					<form.Field name="quantity">
-						{field => (
-							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Quantity</Label>
-								<Input
-									id={field.name}
-									type="number"
-									min={1}
-									max={remainingQuantity}
-									value={field.state.value}
-									onChange={e => field.handleChange(e.target.value)}
-									onBlur={field.handleBlur}
-									disabled={submitting}
-								/>
-								<p className="text-xs text-muted-foreground">{remainingQuantity} available to claim</p>
-								{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
-									<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
-								)}
-							</div>
-						)}
+						{field => {
+							// Hide the input when there's nothing meaningful to choose — item
+							// total is 1 or only 1 slot is left to claim. The field stays
+							// mounted so the default quantity (1, or the edited gift's value)
+							// still submits.
+							if (remainingQuantity <= 1) return null
+							return (
+								<div className="grid gap-2">
+									<Label htmlFor={field.name}>Quantity</Label>
+									<Input
+										id={field.name}
+										type="number"
+										min={1}
+										max={remainingQuantity}
+										value={field.state.value}
+										onChange={e => field.handleChange(e.target.value)}
+										onBlur={field.handleBlur}
+										disabled={submitting}
+									/>
+									<p className="text-xs text-muted-foreground">{remainingQuantity} available to claim</p>
+									{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+										<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
+									)}
+								</div>
+							)
+						}}
 					</form.Field>
 
 					<form.Field name="totalCost">

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { Gift, Package, PackageOpen } from 'lucide-react'
+import { Gift, PackageOpen, PackagePlus } from 'lucide-react'
 
 import { getReceivedGifts } from '@/api/received'
 import { Badge } from '@/components/ui/badge'
@@ -71,7 +71,7 @@ function ReceivedPage() {
 						{data!.addons.length > 0 && (
 							<div className="flex flex-col gap-2">
 								<h3 className="flex items-center gap-2">
-									<Package className="size-4" /> Off-List Gifts
+									<PackagePlus className="size-4" /> Off-List Gifts
 									<Badge variant="secondary" className="text-xs">
 										{data!.addons.length}
 									</Badge>

@@ -1,5 +1,17 @@
 import { format, startOfMonth } from 'date-fns'
-import { ChevronDown, ChevronsDownUp, ChevronsUpDown, ExternalLink, Gift, Info, Package, Pencil, Receipt, Users, Zap } from 'lucide-react'
+import {
+	ChevronDown,
+	ChevronsDownUp,
+	ChevronsUpDown,
+	ExternalLink,
+	Gift,
+	Info,
+	PackagePlus,
+	Pencil,
+	Receipt,
+	Users,
+	Zap,
+} from 'lucide-react'
 import { Fragment, useMemo, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 
@@ -81,8 +93,8 @@ function fmt(n: number): string {
 }
 
 const chartConfig = {
-	gifts: { label: 'Gifts', color: 'var(--color-green-600)' },
-	addons: { label: 'Addons', color: 'var(--color-orange-500)' },
+	gifts: { label: 'Gifts', color: 'var(--color-blue-700)' },
+	addons: { label: 'Addons', color: 'var(--color-orange-700)' },
 } satisfies ChartConfig
 
 type MonthBucket = { month: string; gifts: number; addons: number }
@@ -300,7 +312,7 @@ export function PurchasesPageContent({ items }: Props) {
 														</div>
 													</TableCell>
 													<TableCell className="text-right">
-														<MoneyChip amount={g.giftsTotal} variant="green" />
+														<MoneyChip amount={g.giftsTotal} variant="blue" />
 													</TableCell>
 													<TableCell className="text-right">
 														<MoneyChip amount={g.addonsTotal} variant="orange" />
@@ -315,7 +327,7 @@ export function PurchasesPageContent({ items }: Props) {
 												{isOpen && (
 													<TableRow className="hover:bg-transparent">
 														<TableCell colSpan={5} className="p-0">
-															<div className="divide-y bg-muted/30">
+															<div className="divide-y bg-muted/50">
 																{g.items.map((item, i) => (
 																	<PurchaseDetailRow key={`${g.key}-${i}`} item={item} onEdit={() => openEdit(item)} />
 																))}
@@ -331,7 +343,7 @@ export function PurchasesPageContent({ items }: Props) {
 									<TableRow>
 										<TableCell className="pl-3 font-semibold">Total</TableCell>
 										<TableCell className="text-right">
-											<MoneyChip amount={metrics.giftsTotalSpend} variant="green" />
+											<MoneyChip amount={metrics.giftsTotalSpend} variant="blue" />
 										</TableCell>
 										<TableCell className="text-right">
 											<MoneyChip amount={metrics.addonsTotalSpend} variant="orange" />
@@ -352,20 +364,11 @@ export function PurchasesPageContent({ items }: Props) {
 							<div className="grid grid-cols-1 @md/page:grid-cols-2 @4xl/page:grid-cols-3 gap-4">
 								<MetricsGroup title="Totals" cols={3}>
 									<Metric label="Total Spend" value={<MoneyChip amount={metrics.totalSpend} variant="green" />} />
-									<Metric label="Gifts" value={<MoneyChip amount={metrics.giftsTotalSpend} variant="green" />} />
+									<Metric label="Gifts" value={<MoneyChip amount={metrics.giftsTotalSpend} variant="blue" />} />
 									<Metric label="Addons" value={<MoneyChip amount={metrics.addonsTotalSpend} variant="orange" />} />
-									<Metric
-										label="Total Items"
-										value={<span className="text-base font-semibold tabular-nums">{metrics.totalItems}</span>}
-									/>
-									<Metric
-										label="Gifts"
-										value={<span className="text-base font-semibold tabular-nums">{metrics.totalGifts}</span>}
-									/>
-									<Metric
-										label="Addons"
-										value={<span className="text-base font-semibold tabular-nums">{metrics.totalAddons}</span>}
-									/>
+									<Metric label="Total Items" value={<span className="text-base font-semibold tabular-nums">{metrics.totalItems}</span>} />
+									<Metric label="Gifts" value={<span className="text-base font-semibold tabular-nums">{metrics.totalGifts}</span>} />
+									<Metric label="Addons" value={<span className="text-base font-semibold tabular-nums">{metrics.totalAddons}</span>} />
 								</MetricsGroup>
 
 								<MetricsGroup title="Averages">
@@ -382,10 +385,7 @@ export function PurchasesPageContent({ items }: Props) {
 								</MetricsGroup>
 
 								<MetricsGroup title="Highlights" className="@md/page:col-span-2 @4xl/page:col-span-1">
-									<Metric
-										label="Recipients"
-										value={<span className="text-base font-semibold tabular-nums">{metrics.totalPeople}</span>}
-									/>
+									<Metric label="Recipients" value={<span className="text-base font-semibold tabular-nums">{metrics.totalPeople}</span>} />
 									<Metric label="Max Recipient" value={<PersonCell group={metrics.topGroup} />} />
 									<Metric label="Max Single Item" value={<MoneyChip amount={metrics.maxSpend} variant="green" />} />
 									<Metric label="Min Recipient" value={<PersonCell group={metrics.bottomGroup} />} />
@@ -414,7 +414,9 @@ export function PurchasesPageContent({ items }: Props) {
 														tickFormatter={v => (v.length > 12 ? `${v.slice(0, 11)}\u2026` : v)}
 													/>
 													<YAxis tickLine={false} axisLine={false} tickMargin={8} width={40} tickFormatter={v => `$${v}`} />
-													<ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
+													<ChartTooltip
+														content={<ChartTooltipContent indicator="dot" valueFormatter={v => `$${Number(v).toFixed(2)}`} />}
+													/>
 													<Bar dataKey="gifts" stackId="a" fill="var(--color-gifts)" isAnimationActive={false} radius={[0, 0, 0, 0]} />
 													<Bar dataKey="addons" stackId="a" fill="var(--color-addons)" isAnimationActive={false} radius={[4, 4, 0, 0]} />
 												</BarChart>
@@ -427,9 +429,7 @@ export function PurchasesPageContent({ items }: Props) {
 
 								<Card size="sm" className="min-w-0">
 									<CardHeader>
-										<CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-											Spend Over Time
-										</CardTitle>
+										<CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Spend Over Time</CardTitle>
 										<CardDescription>Per month, stacked by gift vs. addon.</CardDescription>
 									</CardHeader>
 									<CardContent>
@@ -439,7 +439,9 @@ export function PurchasesPageContent({ items }: Props) {
 													<CartesianGrid vertical={false} />
 													<XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
 													<YAxis tickLine={false} axisLine={false} tickMargin={8} width={40} tickFormatter={v => `$${v}`} />
-													<ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
+													<ChartTooltip
+														content={<ChartTooltipContent indicator="dot" valueFormatter={v => `$${Number(v).toFixed(2)}`} />}
+													/>
 													<Bar dataKey="gifts" stackId="a" fill="var(--color-gifts)" isAnimationActive={false} radius={[0, 0, 0, 0]} />
 													<Bar dataKey="addons" stackId="a" fill="var(--color-addons)" isAnimationActive={false} radius={[4, 4, 0, 0]} />
 												</BarChart>
@@ -469,7 +471,7 @@ function PurchaseDetailRow({ item, onEdit }: { item: SummaryItem; onEdit: () => 
 			{item.type === 'claim' ? (
 				<Gift className="size-4 text-muted-foreground shrink-0 mt-0.5" />
 			) : (
-				<Package className="size-4 text-muted-foreground shrink-0 mt-0.5" />
+				<PackagePlus className="size-4 text-muted-foreground shrink-0 mt-0.5" />
 			)}
 			{hasNotes && <Zap className="size-4 text-yellow-500 shrink-0 fill-yellow-500 mt-0.5" />}
 			<div className="flex-1 min-w-0">
@@ -515,14 +517,14 @@ function PurchaseDetailRow({ item, onEdit }: { item: SummaryItem; onEdit: () => 
 					${fmt(item.cost)}
 				</Badge>
 			)}
-			<Badge variant="default" className="text-xs tabular-nums shrink-0">
+			<Badge variant="outline" className="text-xs tabular-nums shrink-0">
 				{format(new Date(item.createdAt), 'MMM d')}
 			</Badge>
 			{editable ? (
 				<Button
 					variant="ghost"
 					size="icon"
-					className="size-7 shrink-0 text-yellow-600 hover:text-yellow-500"
+					className="size-7 shrink-0 text-muted-foreground hover:text-foreground"
 					onClick={e => {
 						e.stopPropagation()
 						onEdit()
@@ -592,15 +594,17 @@ function Metric({ label, value, tooltip }: { label: string; value: React.ReactNo
 	)
 }
 
-function MoneyChip({ amount, variant }: { amount: number; variant: 'green' | 'orange' | 'muted' }) {
+function MoneyChip({ amount, variant }: { amount: number; variant: 'green' | 'orange' | 'blue' | 'muted' }) {
 	const zero = amount === 0
 	const classes = zero
-		? 'bg-muted/50 text-muted-foreground'
+		? 'bg-muted text-muted-foreground'
 		: variant === 'green'
-			? 'bg-green-600 text-white'
+			? 'bg-green-700 text-white'
 			: variant === 'orange'
-				? 'bg-orange-500 text-white'
-				: 'bg-muted text-foreground'
+				? 'bg-orange-700 text-white'
+				: variant === 'blue'
+					? 'bg-blue-700 text-white'
+					: 'bg-muted text-foreground'
 	return (
 		<span className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-medium tabular-nums ${classes}`}>
 			${fmt(amount)}
