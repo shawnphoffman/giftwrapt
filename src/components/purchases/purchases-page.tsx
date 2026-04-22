@@ -16,6 +16,8 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { groupByPerson, type PersonGroup } from '@/lib/purchases-grouping'
 
+import { Separator } from '../ui/separator'
+
 function toEditable(item: SummaryItem): EditablePurchase | null {
 	// Co-gifter claims aren't editable until we have UI for per-gifter spend.
 	if (item.isCoGifter) return null
@@ -250,8 +252,8 @@ export function PurchasesPageContent({ items }: Props) {
 						{/* PER-PERSON BREAKDOWN */}
 						<div className="overflow-hidden rounded-xl bg-card shadow-sm ring-1 ring-foreground/10">
 							<Table>
-								<TableHeader>
-									<TableRow className="hover:bg-transparent">
+								<TableHeader className="bg-muted">
+									<TableRow>
 										<TableHead className="pl-3">Person</TableHead>
 										<TableHead className="text-right">Gifts</TableHead>
 										<TableHead className="text-right">Addons</TableHead>
@@ -308,8 +310,8 @@ export function PurchasesPageContent({ items }: Props) {
 										)
 									})}
 								</TableBody>
-								<TableFooter>
-									<TableRow className="hover:bg-transparent">
+								<TableFooter className="bg-muted">
+									<TableRow>
 										<TableCell className="pl-3 font-semibold">Total</TableCell>
 										<TableCell className="text-right">
 											<MoneyChip amount={metrics.giftsTotalSpend} variant="green" />
@@ -326,9 +328,11 @@ export function PurchasesPageContent({ items }: Props) {
 							</Table>
 						</div>
 
+						<Separator />
+
 						{/* METRICS + CHART (below the list) */}
-						<div className="grid grid-cols-1 @4xl/page:grid-cols-[1fr_1.1fr] gap-4">
-							<div className="grid grid-cols-1 @lg/page:grid-cols-2 gap-4 @4xl/page:grid-cols-1 *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:from-secondary/50 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs dark:*:data-[slot=card]:bg-card">
+						<div className="flex flex-col gap-4 **:data-[slot=card]:bg-linear-to-t **:data-[slot=card]:from-accent/50 **:data-[slot=card]:to-card **:data-[slot=card]:shadow-xs dark:**:data-[slot=card]:bg-card">
+							<div className="grid grid-cols-1 @md/page:grid-cols-2 @4xl/page:grid-cols-3 gap-4">
 								<MetricsGroup title="Totals">
 									<Metric label="Total Spend" value={<MoneyChip amount={metrics.totalSpend} variant="green" />} />
 									<Metric label="Gifts Spend" value={<MoneyChip amount={metrics.giftsTotalSpend} variant="green" />} />
@@ -357,7 +361,7 @@ export function PurchasesPageContent({ items }: Props) {
 									<Metric label="Max Single Gift" value={<MoneyChip amount={metrics.maxSpend} variant="green" />} />
 								</MetricsGroup>
 
-								<MetricsGroup title="People" className="@lg/page:col-span-2 @4xl/page:col-span-1">
+								<MetricsGroup title="People" className="@md/page:col-span-2 @4xl/page:col-span-1">
 									<Metric
 										label="Recipients"
 										tooltip="Total / recipients with at least one priced item"
@@ -386,12 +390,12 @@ export function PurchasesPageContent({ items }: Props) {
 
 							<Card size="sm" className="min-w-0">
 								<CardHeader>
-									<CardTitle>Spend Over Time</CardTitle>
+									<CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Spend Over Time</CardTitle>
 									<CardDescription>Per month, stacked by gift vs. addon.</CardDescription>
 								</CardHeader>
 								<CardContent>
 									{monthly.length > 0 ? (
-										<ChartContainer config={chartConfig} className="aspect-auto h-52 w-full">
+										<ChartContainer config={chartConfig} className="aspect-auto h-60 w-full">
 											<BarChart accessibilityLayer data={monthly} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
 												<CartesianGrid vertical={false} />
 												<XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
