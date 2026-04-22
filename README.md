@@ -361,6 +361,7 @@ http://localhost:3000
 ### Notes
 
 - Database migrations run automatically on first startup via a one-shot `db-migrate` service.
+- The compose stack includes Garage (S3-compatible object storage) for avatars and item photos. See [docs/storage.md](docs/storage.md) for setup across Vercel, self-host, and local dev, plus recipes for swapping Garage out for AWS S3, Cloudflare R2, or Supabase Storage.
 - The image is expected to be built and published by GitHub Actions on version tags (e.g., `v1.0.0`).
 - Migrations must be generated and committed before building images for self-hosting.
 
