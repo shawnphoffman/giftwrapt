@@ -87,3 +87,9 @@ export const createListAddon = ok
 export const updateListAddon = ok
 export const archiveListAddon = ok
 export const deleteListAddon = ok
+
+// @/api/uploads
+export const uploadItemImage = async (): Promise<{ kind: 'ok'; value: { url: string } }> => ({ kind: 'ok', value: { url: '' } })
+export const removeItemImage = ok
+export const uploadAvatar = async (): Promise<{ kind: 'ok'; value: { url: string } }> => ({ kind: 'ok', value: { url: '' } })
+export const removeAvatar = ok
