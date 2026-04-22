@@ -24,6 +24,7 @@ import { Route as coreMeIndexRouteImport } from './routes/(core)/me.index'
 import { Route as coreAdminIndexRouteImport } from './routes/(core)/admin/index'
 import { Route as ApiSseListsRouteImport } from './routes/api/sse/lists'
 import { Route as ApiListsPublicRouteImport } from './routes/api/lists/public'
+import { Route as ApiFilesSplatRouteImport } from './routes/api/files/$'
 import { Route as ApiCronBirthdayEmailsRouteImport } from './routes/api/cron/birthday-emails'
 import { Route as ApiCronAutoArchiveRouteImport } from './routes/api/cron/auto-archive'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -117,6 +118,11 @@ const ApiSseListsRoute = ApiSseListsRouteImport.update({
 const ApiListsPublicRoute = ApiListsPublicRouteImport.update({
   id: '/api/lists/public',
   path: '/api/lists/public',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFilesSplatRoute = ApiFilesSplatRouteImport.update({
+  id: '/api/files/$',
+  path: '/api/files/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiCronBirthdayEmailsRoute = ApiCronBirthdayEmailsRouteImport.update({
@@ -244,6 +250,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
+  '/api/files/$': typeof ApiFilesSplatRoute
   '/api/lists/public': typeof ApiListsPublicRoute
   '/api/sse/lists': typeof ApiSseListsRoute
   '/admin/': typeof coreAdminIndexRoute
@@ -278,6 +285,7 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
+  '/api/files/$': typeof ApiFilesSplatRoute
   '/api/lists/public': typeof ApiListsPublicRoute
   '/api/sse/lists': typeof ApiSseListsRoute
   '/admin': typeof coreAdminIndexRoute
@@ -316,6 +324,7 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
+  '/api/files/$': typeof ApiFilesSplatRoute
   '/api/lists/public': typeof ApiListsPublicRoute
   '/api/sse/lists': typeof ApiSseListsRoute
   '/(core)/admin/': typeof coreAdminIndexRoute
@@ -354,6 +363,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/cron/auto-archive'
     | '/api/cron/birthday-emails'
+    | '/api/files/$'
     | '/api/lists/public'
     | '/api/sse/lists'
     | '/admin/'
@@ -388,6 +398,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/cron/auto-archive'
     | '/api/cron/birthday-emails'
+    | '/api/files/$'
     | '/api/lists/public'
     | '/api/sse/lists'
     | '/admin'
@@ -425,6 +436,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/cron/auto-archive'
     | '/api/cron/birthday-emails'
+    | '/api/files/$'
     | '/api/lists/public'
     | '/api/sse/lists'
     | '/(core)/admin/'
@@ -448,6 +460,7 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCronAutoArchiveRoute: typeof ApiCronAutoArchiveRoute
   ApiCronBirthdayEmailsRoute: typeof ApiCronBirthdayEmailsRoute
+  ApiFilesSplatRoute: typeof ApiFilesSplatRoute
   ApiListsPublicRoute: typeof ApiListsPublicRoute
   ApiSseListsRoute: typeof ApiSseListsRoute
   ApiSseListListIdRoute: typeof ApiSseListListIdRoute
@@ -558,6 +571,13 @@ declare module '@tanstack/react-router' {
       path: '/api/lists/public'
       fullPath: '/api/lists/public'
       preLoaderRoute: typeof ApiListsPublicRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/files/$': {
+      id: '/api/files/$'
+      path: '/api/files/$'
+      fullPath: '/api/files/$'
+      preLoaderRoute: typeof ApiFilesSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/cron/birthday-emails': {
@@ -789,6 +809,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCronAutoArchiveRoute: ApiCronAutoArchiveRoute,
   ApiCronBirthdayEmailsRoute: ApiCronBirthdayEmailsRoute,
+  ApiFilesSplatRoute: ApiFilesSplatRoute,
   ApiListsPublicRoute: ApiListsPublicRoute,
   ApiSseListsRoute: ApiSseListsRoute,
   ApiSseListListIdRoute: ApiSseListListIdRoute,
