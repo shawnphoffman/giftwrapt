@@ -39,6 +39,28 @@ export const env = createEnv({
 		// prod; otherwise it defaults to NODE_ENV !== 'production'.
 		LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 		LOG_PRETTY: z.stringbool().optional(),
+		// Object storage (S3-compatible). Required; server refuses to boot if
+		// any piece is missing. Works with Garage (local + self-host), AWS S3,
+		// Cloudflare R2, Supabase Storage's S3 API, any other S3-compat vendor.
+		// See docs/storage.md for deployment recipes.
+		STORAGE_ENDPOINT: z.url(),
+		STORAGE_REGION: z.string().min(1),
+		STORAGE_BUCKET: z.string().min(1),
+		STORAGE_ACCESS_KEY_ID: z.string().min(1),
+		STORAGE_SECRET_ACCESS_KEY: z.string().min(1),
+		// Garage requires path-style (bucket is in the URL path, not the
+		// subdomain); AWS/R2 want virtual-host style. Set `true` for Garage
+		// and most self-host setups, `false` for AWS/R2.
+		STORAGE_FORCE_PATH_STYLE: z.stringbool().default(false),
+		// Base URL clients should fetch from (e.g. https://cdn.example.com).
+		// When unset, the app serves through /api/files/<key>; Vercel operators
+		// should set this to avoid per-image function invocations, self-host
+		// operators can leave it unset unless they've exposed their bucket on
+		// the public internet.
+		STORAGE_PUBLIC_URL: z.url().optional(),
+		// Max upload size in MB, enforced before Sharp runs. Generous default
+		// for phone photos; operators can tighten if function memory is tight.
+		STORAGE_MAX_UPLOAD_MB: z.coerce.number().int().positive().default(8),
 	},
 
 	/**

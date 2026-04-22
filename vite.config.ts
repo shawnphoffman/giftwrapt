@@ -65,7 +65,13 @@ const config = defineConfig({
 				// Registered explicitly rather than relying on server/plugins/
 				// auto-discovery, which depends on Nitro's srcDir and isn't
 				// guaranteed when Nitro is used as a Vite plugin.
-				plugins: ['./server/plugins/logging.ts'],
+				plugins: ['./server/plugins/logging.ts', './server/plugins/storage-boot.ts'],
+				// Sharp is a native CJS addon. Nitro's default node_modules
+				// tracing copies it into .output/server/node_modules/sharp at
+				// build time, which is what the runtime image relies on (see
+				// Dockerfile note about the self-contained .output bundle).
+				// traceDeps forces the include even if static analysis misses it.
+				traceDeps: ['sharp'],
 				routeRules: {
 					'/**': { headers: securityHeaders },
 				},
