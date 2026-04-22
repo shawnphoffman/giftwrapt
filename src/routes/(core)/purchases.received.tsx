@@ -47,7 +47,7 @@ function ReceivedPage() {
 										{data!.gifts.length}
 									</Badge>
 								</h3>
-								<div className="flex flex-col overflow-hidden border divide-y rounded-lg bg-accent">
+								<div className="flex flex-col overflow-hidden divide-y rounded-xl bg-card shadow-sm ring-1 ring-foreground/10">
 									{data!.gifts.map((gift, i) => (
 										<div key={`${gift.itemId}-${i}`} className="flex items-center gap-3 p-3">
 											{gift.itemImageUrl && <img src={gift.itemImageUrl} alt="" className="size-10 object-contain rounded shrink-0" />}
@@ -76,7 +76,7 @@ function ReceivedPage() {
 										{data!.addons.length}
 									</Badge>
 								</h3>
-								<div className="flex flex-col overflow-hidden border divide-y rounded-lg bg-accent">
+								<div className="flex flex-col overflow-hidden divide-y rounded-xl bg-card shadow-sm ring-1 ring-foreground/10">
 									{data!.addons.map(addon => (
 										<div key={addon.addonId} className="flex items-center gap-3 p-3">
 											<div className="flex-1 min-w-0">

@@ -124,7 +124,7 @@ export function ListEditorsSection({ listId, editors, addableUsers }: Props) {
 			{editors.length === 0 ? (
 				<p className="text-sm text-muted-foreground">No editors yet. Add someone to let them manage items on this list.</p>
 			) : (
-				<div className="flex flex-col overflow-hidden border divide-y rounded-lg shadow-sm text-card-foreground bg-accent">
+				<div className="flex flex-col overflow-hidden divide-y rounded-xl bg-card shadow-sm ring-1 ring-foreground/10 text-card-foreground">
 					{editors.map(editor => {
 						const name = editor.user.name || editor.user.email
 						return (

@@ -29,7 +29,7 @@ function RecentItemsPage() {
 						No recent items in the last 30 days.
 					</div>
 				) : (
-					<div className="flex flex-col overflow-hidden border divide-y rounded-lg bg-accent">
+					<div className="flex flex-col overflow-hidden divide-y rounded-xl bg-card shadow-sm ring-1 ring-foreground/10">
 						{items.map(item => {
 							const domain = item.url ? getDomainFromUrl(item.url) : null
 							return (

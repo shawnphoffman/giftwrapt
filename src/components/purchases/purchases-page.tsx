@@ -14,7 +14,7 @@ import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { type PersonGroup, groupByPerson } from '@/lib/purchases-grouping'
+import { groupByPerson, type PersonGroup } from '@/lib/purchases-grouping'
 
 function toEditable(item: SummaryItem): EditablePurchase | null {
 	// Co-gifter claims aren't editable until we have UI for per-gifter spend.
@@ -176,7 +176,7 @@ export function PurchasesPageContent({ items }: Props) {
 		const avgSpendPerPerson = peopleWithSpend > 0 ? totalSpend / peopleWithSpend : 0
 		const avgGiftsPerPerson = totalPeople > 0 ? totalItems / totalPeople : 0
 
-		const topGroup: PersonGroup | null = groups.length > 0 && groups[0]!.totalSpent > 0 ? groups[0]! : null
+		const topGroup: PersonGroup | null = groups.length > 0 && groups[0].totalSpent > 0 ? groups[0] : null
 
 		return {
 			totalGifts,
@@ -248,7 +248,7 @@ export function PurchasesPageContent({ items }: Props) {
 				) : (
 					<>
 						{/* PER-PERSON BREAKDOWN */}
-						<div className="overflow-hidden border rounded-lg bg-accent">
+						<div className="overflow-hidden rounded-xl bg-card shadow-sm ring-1 ring-foreground/10">
 							<Table>
 								<TableHeader>
 									<TableRow className="hover:bg-transparent">
@@ -296,7 +296,7 @@ export function PurchasesPageContent({ items }: Props) {
 												{isOpen && (
 													<TableRow className="hover:bg-transparent">
 														<TableCell colSpan={5} className="p-0">
-															<div className="divide-y bg-background/40">
+															<div className="divide-y bg-muted/30">
 																{g.items.map((item, i) => (
 																	<PurchaseDetailRow key={`${g.key}-${i}`} item={item} onEdit={() => openEdit(item)} />
 																))}
@@ -328,7 +328,7 @@ export function PurchasesPageContent({ items }: Props) {
 
 						{/* METRICS + CHART (below the list) */}
 						<div className="grid grid-cols-1 @4xl/page:grid-cols-[1fr_1.1fr] gap-4">
-							<div className="grid grid-cols-1 @lg/page:grid-cols-2 gap-4 @4xl/page:grid-cols-1">
+							<div className="grid grid-cols-1 @lg/page:grid-cols-2 gap-4 @4xl/page:grid-cols-1 *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:from-secondary/50 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs dark:*:data-[slot=card]:bg-card">
 								<MetricsGroup title="Totals">
 									<Metric label="Total Spend" value={<MoneyChip amount={metrics.totalSpend} variant="green" />} />
 									<Metric label="Gifts Spend" value={<MoneyChip amount={metrics.giftsTotalSpend} variant="green" />} />

@@ -26,7 +26,7 @@ function RecentCommentsPage() {
 						No recent comments.
 					</div>
 				) : (
-					<div className="flex flex-col overflow-hidden border divide-y rounded-lg bg-accent">
+					<div className="flex flex-col overflow-hidden divide-y rounded-xl bg-card shadow-sm ring-1 ring-foreground/10">
 						{comments.map(c => {
 							const name = c.user.name || c.user.email
 							return (
