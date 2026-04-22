@@ -170,15 +170,20 @@ export function PurchasesPageContent({ items }: Props) {
 		const totalSpend = giftsTotalSpend + addonsTotalSpend
 
 		const itemsWithCost = filtered.filter(i => (i.cost ?? 0) > 0)
-		const avgSpendPerGift = itemsWithCost.length > 0 ? itemsWithCost.reduce((s, i) => s + (i.cost ?? 0), 0) / itemsWithCost.length : 0
+		const perItem = totalItems > 0 ? totalSpend / totalItems : 0
+		const perItemExclZero = itemsWithCost.length > 0 ? itemsWithCost.reduce((s, i) => s + (i.cost ?? 0), 0) / itemsWithCost.length : 0
 		const maxSpend = itemsWithCost.reduce((m, i) => Math.max(m, i.cost ?? 0), 0)
 
 		const totalPeople = groups.length
 		const peopleWithSpend = groups.filter(g => g.totalSpent > 0).length
-		const avgSpendPerPerson = peopleWithSpend > 0 ? totalSpend / peopleWithSpend : 0
-		const avgGiftsPerPerson = totalPeople > 0 ? totalItems / totalPeople : 0
+		const itemsPerPerson = totalPeople > 0 ? totalItems / totalPeople : 0
+		const itemsPerPersonExclZero = peopleWithSpend > 0 ? itemsWithCost.length / peopleWithSpend : 0
 
-		const topGroup: PersonGroup | null = groups.length > 0 && groups[0].totalSpent > 0 ? groups[0] : null
+		// Groups are pre-sorted by totalSpent desc. Top is the first with spend;
+		// bottom is the last with spend (so we don't surface zero-spend rows).
+		const spendingGroups = groups.filter(g => g.totalSpent > 0)
+		const topGroup: PersonGroup | null = spendingGroups[0] ?? null
+		const bottomGroup: PersonGroup | null = spendingGroups.length > 0 ? spendingGroups[spendingGroups.length - 1] : null
 
 		return {
 			totalGifts,
@@ -187,15 +192,27 @@ export function PurchasesPageContent({ items }: Props) {
 			giftsTotalSpend,
 			addonsTotalSpend,
 			totalSpend,
-			avgSpendPerGift,
+			perItem,
+			perItemExclZero,
 			maxSpend,
 			totalPeople,
 			peopleWithSpend,
-			avgSpendPerPerson,
-			avgGiftsPerPerson,
+			itemsPerPerson,
+			itemsPerPersonExclZero,
 			topGroup,
+			bottomGroup,
 		}
 	}, [filtered, groups])
+
+	const recipientChartData = useMemo(
+		() =>
+			groups.map(g => ({
+				name: g.partnerName ? `${g.name} & ${g.partnerName}` : g.name,
+				gifts: g.giftsTotal,
+				addons: g.addonsTotal,
+			})),
+		[groups]
+	)
 
 	return (
 		<div className="wish-page max-w-6xl">
@@ -331,85 +348,108 @@ export function PurchasesPageContent({ items }: Props) {
 						<Separator />
 
 						{/* METRICS + CHART (below the list) */}
-						<div className="flex flex-col gap-4 **:data-[slot=card]:bg-linear-to-t **:data-[slot=card]:from-accent/50 **:data-[slot=card]:to-card **:data-[slot=card]:shadow-xs dark:**:data-[slot=card]:bg-card">
+						<div className="flex flex-col gap-4 **:data-[slot=card]:bg-linear-to-t **:data-[slot=card]:from-accent/50 **:data-[slot=card]:to-card dark:**:data-[slot=card]:bg-card">
 							<div className="grid grid-cols-1 @md/page:grid-cols-2 @4xl/page:grid-cols-3 gap-4">
-								<MetricsGroup title="Totals">
+								<MetricsGroup title="Totals" cols={3}>
 									<Metric label="Total Spend" value={<MoneyChip amount={metrics.totalSpend} variant="green" />} />
-									<Metric label="Gifts Spend" value={<MoneyChip amount={metrics.giftsTotalSpend} variant="green" />} />
-									<Metric label="Addons Spend" value={<MoneyChip amount={metrics.addonsTotalSpend} variant="orange" />} />
+									<Metric label="Gifts" value={<MoneyChip amount={metrics.giftsTotalSpend} variant="green" />} />
+									<Metric label="Addons" value={<MoneyChip amount={metrics.addonsTotalSpend} variant="orange" />} />
 									<Metric
 										label="Total Items"
-										tooltip="On-list gifts / off-list addons"
-										value={
-											<span className="text-base font-semibold tabular-nums">
-												{metrics.totalItems}{' '}
-												<span className="text-xs text-muted-foreground font-normal">
-													({metrics.totalGifts} / {metrics.totalAddons})
-												</span>
-											</span>
-										}
+										value={<span className="text-base font-semibold tabular-nums">{metrics.totalItems}</span>}
+									/>
+									<Metric
+										label="Gifts"
+										value={<span className="text-base font-semibold tabular-nums">{metrics.totalGifts}</span>}
+									/>
+									<Metric
+										label="Addons"
+										value={<span className="text-base font-semibold tabular-nums">{metrics.totalAddons}</span>}
 									/>
 								</MetricsGroup>
 
 								<MetricsGroup title="Averages">
-									<Metric label="Per Gift (excl. $0)" value={<MoneyChip amount={metrics.avgSpendPerGift} variant="green" />} />
-									<Metric label="Per Person" value={<MoneyChip amount={metrics.avgSpendPerPerson} variant="green" />} />
+									<Metric label="Per Item" value={<MoneyChip amount={metrics.perItem} variant="green" />} />
+									<Metric label="Per Item (excl. $0)" value={<MoneyChip amount={metrics.perItemExclZero} variant="green" />} />
 									<Metric
-										label="Gifts/Person"
-										value={<span className="text-base font-semibold tabular-nums">{metrics.avgGiftsPerPerson.toFixed(1)}</span>}
+										label="Items/Person"
+										value={<span className="text-base font-semibold tabular-nums">{metrics.itemsPerPerson.toFixed(1)}</span>}
 									/>
-									<Metric label="Max Single Gift" value={<MoneyChip amount={metrics.maxSpend} variant="green" />} />
+									<Metric
+										label="Items/Person (excl. $0)"
+										value={<span className="text-base font-semibold tabular-nums">{metrics.itemsPerPersonExclZero.toFixed(1)}</span>}
+									/>
 								</MetricsGroup>
 
-								<MetricsGroup title="People" className="@md/page:col-span-2 @4xl/page:col-span-1">
+								<MetricsGroup title="Highlights" className="@md/page:col-span-2 @4xl/page:col-span-1">
 									<Metric
 										label="Recipients"
-										tooltip="Total / recipients with at least one priced item"
-										value={
-											<span className="text-base font-semibold tabular-nums">
-												{metrics.totalPeople} / {metrics.peopleWithSpend}
-											</span>
-										}
+										value={<span className="text-base font-semibold tabular-nums">{metrics.totalPeople}</span>}
 									/>
-									<Metric
-										label="Top Recipient"
-										value={
-											metrics.topGroup ? (
-												<div className="flex items-center gap-2 min-w-0">
-													<UserAvatar name={metrics.topGroup.name} image={metrics.topGroup.image} size="small" />
-													<span className="truncate text-sm font-medium">{metrics.topGroup.name}</span>
-													<MoneyChip amount={metrics.topGroup.totalSpent} variant="green" />
-												</div>
-											) : (
-												<span className="text-sm text-muted-foreground">—</span>
-											)
-										}
-									/>
+									<Metric label="Max Recipient" value={<PersonCell group={metrics.topGroup} />} />
+									<Metric label="Max Single Item" value={<MoneyChip amount={metrics.maxSpend} variant="green" />} />
+									<Metric label="Min Recipient" value={<PersonCell group={metrics.bottomGroup} />} />
 								</MetricsGroup>
 							</div>
 
-							<Card size="sm" className="min-w-0">
-								<CardHeader>
-									<CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Spend Over Time</CardTitle>
-									<CardDescription>Per month, stacked by gift vs. addon.</CardDescription>
-								</CardHeader>
-								<CardContent>
-									{monthly.length > 0 ? (
-										<ChartContainer config={chartConfig} className="aspect-auto h-60 w-full">
-											<BarChart accessibilityLayer data={monthly} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-												<CartesianGrid vertical={false} />
-												<XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
-												<YAxis tickLine={false} axisLine={false} tickMargin={8} width={40} tickFormatter={v => `$${v}`} />
-												<ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
-												<Bar dataKey="gifts" stackId="a" fill="var(--color-gifts)" isAnimationActive={false} radius={[0, 0, 0, 0]} />
-												<Bar dataKey="addons" stackId="a" fill="var(--color-addons)" isAnimationActive={false} radius={[4, 4, 0, 0]} />
-											</BarChart>
-										</ChartContainer>
-									) : (
-										<div className="text-sm text-muted-foreground py-6 text-center">No data.</div>
-									)}
-								</CardContent>
-							</Card>
+							<div className="grid grid-cols-1 @4xl/page:grid-cols-2 gap-4">
+								<Card size="sm" className="min-w-0">
+									<CardHeader>
+										<CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+											Spend by Recipient
+										</CardTitle>
+										<CardDescription>Per recipient, stacked by gift vs. addon.</CardDescription>
+									</CardHeader>
+									<CardContent>
+										{recipientChartData.length > 0 ? (
+											<ChartContainer config={chartConfig} className="aspect-auto h-60 w-full">
+												<BarChart accessibilityLayer data={recipientChartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+													<CartesianGrid vertical={false} />
+													<XAxis
+														dataKey="name"
+														tickLine={false}
+														axisLine={false}
+														tickMargin={8}
+														interval={0}
+														tickFormatter={v => (v.length > 12 ? `${v.slice(0, 11)}\u2026` : v)}
+													/>
+													<YAxis tickLine={false} axisLine={false} tickMargin={8} width={40} tickFormatter={v => `$${v}`} />
+													<ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
+													<Bar dataKey="gifts" stackId="a" fill="var(--color-gifts)" isAnimationActive={false} radius={[0, 0, 0, 0]} />
+													<Bar dataKey="addons" stackId="a" fill="var(--color-addons)" isAnimationActive={false} radius={[4, 4, 0, 0]} />
+												</BarChart>
+											</ChartContainer>
+										) : (
+											<div className="text-sm text-muted-foreground py-6 text-center">No data.</div>
+										)}
+									</CardContent>
+								</Card>
+
+								<Card size="sm" className="min-w-0">
+									<CardHeader>
+										<CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+											Spend Over Time
+										</CardTitle>
+										<CardDescription>Per month, stacked by gift vs. addon.</CardDescription>
+									</CardHeader>
+									<CardContent>
+										{monthly.length > 0 ? (
+											<ChartContainer config={chartConfig} className="aspect-auto h-60 w-full">
+												<BarChart accessibilityLayer data={monthly} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+													<CartesianGrid vertical={false} />
+													<XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
+													<YAxis tickLine={false} axisLine={false} tickMargin={8} width={40} tickFormatter={v => `$${v}`} />
+													<ChartTooltip content={<ChartTooltipContent indicator="dot" />} />
+													<Bar dataKey="gifts" stackId="a" fill="var(--color-gifts)" isAnimationActive={false} radius={[0, 0, 0, 0]} />
+													<Bar dataKey="addons" stackId="a" fill="var(--color-addons)" isAnimationActive={false} radius={[4, 4, 0, 0]} />
+												</BarChart>
+											</ChartContainer>
+										) : (
+											<div className="text-sm text-muted-foreground py-6 text-center">No data.</div>
+										)}
+									</CardContent>
+								</Card>
+							</div>
 						</div>
 					</>
 				)}
@@ -498,14 +538,38 @@ function PurchaseDetailRow({ item, onEdit }: { item: SummaryItem; onEdit: () => 
 	)
 }
 
-function MetricsGroup({ title, className, children }: { title: string; className?: string; children: React.ReactNode }) {
+function MetricsGroup({
+	title,
+	cols = 2,
+	className,
+	children,
+}: {
+	title?: string
+	cols?: 2 | 3
+	className?: string
+	children: React.ReactNode
+}) {
+	const gridCols = cols === 3 ? 'grid-cols-3' : 'grid-cols-2'
 	return (
 		<Card size="sm" className={className}>
-			<CardHeader>
-				<CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</CardTitle>
-			</CardHeader>
-			<CardContent className="grid grid-cols-2 gap-x-4 gap-y-3">{children}</CardContent>
+			{title && (
+				<CardHeader>
+					<CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{title}</CardTitle>
+				</CardHeader>
+			)}
+			<CardContent className={`grid ${gridCols} gap-x-4 gap-y-3`}>{children}</CardContent>
 		</Card>
+	)
+}
+
+function PersonCell({ group }: { group: PersonGroup | null }) {
+	if (!group) return <span className="text-sm text-muted-foreground">—</span>
+	return (
+		<div className="flex items-center gap-2 min-w-0">
+			<UserAvatar name={group.name} image={group.image} size="small" />
+			<span className="truncate text-sm font-medium">{group.name}</span>
+			<MoneyChip amount={group.totalSpent} variant="green" />
+		</div>
 	)
 }
 
