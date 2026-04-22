@@ -6,6 +6,14 @@ import { type ChildListGroup, getMyLists } from '@/api/lists'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import UserAvatar from '@/components/common/user-avatar'
 import { CreateListDialog } from '@/components/lists/create-list-dialog'
+import {
+	ListsCard,
+	ListsCardDescription,
+	ListsCardHeader,
+	ListsCardList,
+	ListsCardLists,
+	ListsCardTitle,
+} from '@/components/lists/lists-card'
 import { MyListRow } from '@/components/lists/my-list-row'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -88,17 +96,19 @@ function MyListsPage() {
 
 					{/* EDITABLE LISTS */}
 					{data.editable.length > 0 && (
-						<div className="flex flex-col gap-2">
-							<h3>Lists I Can Edit</h3>
-							<div className="text-sm italic leading-tight text-muted-foreground">
-								Lists that others created and added you as an editor.
-							</div>
-							<div className="flex flex-col overflow-hidden border divide-y rounded-md shadow-sm">
+						<ListsCard>
+							<ListsCardHeader className="flex-col items-start gap-1">
+								<ListsCardTitle>Lists I Can Edit</ListsCardTitle>
+								<ListsCardDescription className="italic">
+									Lists that others created and added you as an editor.
+								</ListsCardDescription>
+							</ListsCardHeader>
+							<ListsCardLists className="divide-y px-0">
 								{data.editable.map(list => (
 									<MyListRow key={list.id} list={list} showOwner={{ name: list.ownerName, email: list.ownerEmail }} />
 								))}
-							</div>
-						</div>
+							</ListsCardLists>
+						</ListsCard>
 					)}
 				</div>
 			</div>
@@ -116,50 +126,51 @@ function ListSection({
 	lists: Array<Parameters<typeof MyListRow>[0]['list']>
 }) {
 	return (
-		<div className="flex flex-col gap-2">
-			<h3>{title}</h3>
-			<div className="text-sm italic leading-tight text-muted-foreground">{description}</div>
-			{lists.length === 0 ? (
-				<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30">No lists yet.</div>
-			) : (
-				<div className="flex flex-col overflow-hidden border divide-y rounded-md shadow-sm">
-					{lists.map(list => (
-						<MyListRow key={list.id} list={list} />
-					))}
-				</div>
-			)}
-		</div>
+		<ListsCard>
+			<ListsCardHeader className="flex-col items-start gap-1">
+				<ListsCardTitle>{title}</ListsCardTitle>
+				<ListsCardDescription className="italic">{description}</ListsCardDescription>
+			</ListsCardHeader>
+			<ListsCardLists className={lists.length === 0 ? undefined : 'divide-y px-0'}>
+				{lists.length === 0 ? (
+					<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30 italic">
+						No lists yet.
+					</div>
+				) : (
+					lists.map(list => <MyListRow key={list.id} list={list} />)
+				)}
+			</ListsCardLists>
+		</ListsCard>
 	)
 }
 
 function ChildListSection({ child }: { child: ChildListGroup }) {
 	const name = child.childName || child.childEmail
 	return (
-		<div className="border rounded-md shadow-sm overflow-hidden">
-			<div className="flex items-center gap-2 p-2 border-b bg-muted/30">
+		<ListsCard>
+			<ListsCardHeader>
 				<UserAvatar name={name} image={child.childImage} size="small" />
-				<span className="font-medium text-sm">{name}</span>
-			</div>
-			{child.lists.length === 0 ? (
-				<div className="text-sm text-muted-foreground p-2 border border-dashed rounded-lg bg-accent/30 m-2">No lists yet.</div>
-			) : (
-				<div className="divide-y">
-					{child.lists.map(list => (
-						<Link
-							key={list.id}
-							to="/lists/$listId/edit"
-							params={{ listId: String(list.id) }}
-							className="flex items-center gap-2 p-2 hover:bg-muted/50"
-						>
-							<ListTypeIcon type={list.type} className="size-5 shrink-0" />
-							<span className="flex-1 font-medium leading-tight truncate">{list.name}</span>
-							<Badge variant="secondary" className="text-xs tabular-nums shrink-0">
-								{list.itemCount}
-							</Badge>
-						</Link>
-					))}
-				</div>
-			)}
-		</div>
+				<ListsCardTitle className="text-base font-medium">{name}</ListsCardTitle>
+			</ListsCardHeader>
+			<ListsCardLists>
+				{child.lists.length === 0 ? (
+					<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30 italic">
+						No lists yet.
+					</div>
+				) : (
+					child.lists.map(list => (
+						<ListsCardList key={list.id} asChild className="text-base">
+							<Link to="/lists/$listId/edit" params={{ listId: String(list.id) }}>
+								<ListTypeIcon type={list.type} className="size-5 shrink-0" />
+								<span className="flex-1 font-medium leading-tight truncate">{list.name}</span>
+								<Badge variant="secondary" className="text-xs tabular-nums shrink-0">
+									{list.itemCount}
+								</Badge>
+							</Link>
+						</ListsCardList>
+					))
+				)}
+			</ListsCardLists>
+		</ListsCard>
 	)
 }
