@@ -38,6 +38,7 @@ const entries = [
 	{ in: resolve(root, 'scripts/admin-create.ts'), out: 'admin-create' },
 	{ in: resolve(root, 'scripts/admin-reset-password.ts'), out: 'admin-reset-password' },
 	{ in: resolve(root, 'scripts/seed.ts'), out: 'seed' },
+	{ in: resolve(root, 'scripts/init-garage.ts'), out: 'init-garage' },
 ]
 
 // Single build with splitting:true so shared deps (drizzle-orm, pg, better-auth,

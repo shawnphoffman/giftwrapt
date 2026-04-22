@@ -18,6 +18,17 @@ else
   echo "[entrypoint]   DATABASE_URL=(unset)"
 fi
 
+# Optional: bootstrap a bundled Garage instance before booting the app.
+# The app doesn't care what S3-compatible bucket is behind STORAGE_*; this
+# step only applies when you're running the Garage sidecar from the compose
+# stack. Leave INIT_GARAGE unset (or set to anything other than "true") for
+# managed S3 backends like R2, AWS, or Supabase.
+if [ "${INIT_GARAGE:-false}" = "true" ]; then
+  echo "[entrypoint] INIT_GARAGE=true, bootstrapping Garage..."
+  node .output/scripts/init-garage.mjs
+  echo "[entrypoint] Garage bootstrap complete"
+fi
+
 echo "[entrypoint] running database migrations..."
 node .output/scripts/migrate.mjs
 echo "[entrypoint] migrations complete"

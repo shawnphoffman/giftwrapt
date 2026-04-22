@@ -24,6 +24,7 @@
 		"db:reset": "drizzle-kit push --force && pnpm db:seed",
 		"admin:create": "tsx scripts/admin-create.ts",
 		"admin:reset-password": "tsx scripts/admin-reset-password.ts",
+		"storage:init": "tsx scripts/init-garage.ts",
 		"storybook": "STORYBOOK=true storybook dev -p 6006",
 		"build-storybook": "STORYBOOK=true storybook build",
 		"build-email": "email build --dir src/emails --packageManager pnpm",

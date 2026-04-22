@@ -31,13 +31,19 @@ services:
       # human-readable output even in prod (otherwise NDJSON is emitted).
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOG_PRETTY: ${LOG_PRETTY:-false}
+      # When the bundled Garage sidecar is part of the stack, the app
+      # entrypoint bootstraps it via Garage's admin HTTP API (layout assign,
+      # bucket create, key import, permission grant) before running DB
+      # migrations. Idempotent on re-run. Set to "false" (or omit) if you're
+      # pointing STORAGE_* at an external S3-compatible bucket.
+      INIT_GARAGE: ${INIT_GARAGE:-true}
     ports:
       - "${APP_PORT:-3000}:3000"
     depends_on:
       postgres:
         condition: service_healthy
-      garage-init:
-        condition: service_completed_successfully
+      garage:
+        condition: service_healthy
     # Health check is built into the image via HEALTHCHECK instruction.
     restart: unless-stopped
 
@@ -76,28 +82,6 @@ services:
       timeout: 5s
       retries: 20
     restart: unless-stopped
-
-  garage-init:
-    build:
-      context: ./docker
-      dockerfile: Dockerfile.garage-init
-    image: wishlist-garage-init:v1.0.1
-    depends_on:
-      garage:
-        condition: service_healthy
-    environment:
-      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET}
-      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN}
-      STORAGE_BUCKET: ${STORAGE_BUCKET:-wishlists}
-      STORAGE_ACCESS_KEY_ID: ${STORAGE_ACCESS_KEY_ID}
-      STORAGE_SECRET_ACCESS_KEY: ${STORAGE_SECRET_ACCESS_KEY}
-    volumes:
-      - ./docker/garage.toml:/etc/garage.toml:ro
-      # Share the daemon's meta dir (read-only) so the CLI can use the node
-      # key to talk RPC back to the daemon. Meta/data volumes themselves
-      # remain owned by the daemon container; we only need the key files.
-      - garage_meta:/var/lib/garage/meta:ro
-    restart: "no"
 
 volumes:
   postgres_data:
