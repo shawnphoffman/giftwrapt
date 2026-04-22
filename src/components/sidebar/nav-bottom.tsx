@@ -9,7 +9,7 @@ import StopImpersonationLink from './stop-impersonation-link'
 
 export default function NavBottom() {
 	return (
-		<SidebarGroup className="mt-auto pe-0">
+		<SidebarGroup className="mt-auto">
 			<SidebarGroupContent>
 				<SidebarMenu>
 					<StopImpersonationLink />
@@ -17,7 +17,7 @@ export default function NavBottom() {
 					{/* {items.map(item => (
 						<NavItem key={item.name} item={item} />
 					))} */}
-					<div className="flex flex-row gap-2 w-full justify-between pe-2 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:pe-0">
+					<div className="flex flex-row gap-2 w-full justify-between group-data-[collapsible=icon]:flex-col">
 						<NavItem
 							item={{
 								name: 'Settings',
