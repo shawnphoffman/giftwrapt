@@ -1,10 +1,12 @@
 import { useForm } from '@tanstack/react-form'
 import { useRouter } from '@tanstack/react-router'
-import { useState } from 'react'
+import { Loader2, Trash2, Upload } from 'lucide-react'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { createItem, updateItem } from '@/api/items'
+import { removeItemImage, uploadItemImage } from '@/api/uploads'
 import { MarkdownTextarea } from '@/components/common/markdown-textarea'
 import PriorityIcon from '@/components/common/priority-icon'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -49,6 +51,8 @@ export function ItemFormDialog(props: Props) {
 	const router = useRouter()
 	const [submitting, setSubmitting] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+	const [uploadingImage, setUploadingImage] = useState(false)
+	const fileInputRef = useRef<HTMLInputElement>(null)
 
 	const form = useForm({
 		defaultValues: {
@@ -268,19 +272,89 @@ export function ItemFormDialog(props: Props) {
 					</form.Field>
 
 					<form.Field name="imageUrl">
-						{field => (
-							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Image URL (optional)</Label>
-								<Input
-									id={field.name}
-									placeholder="https://..."
-									value={field.state.value}
-									onChange={e => field.handleChange(e.target.value)}
-									onBlur={field.handleBlur}
-									disabled={submitting}
-								/>
-							</div>
-						)}
+						{field => {
+							const currentUrl = field.state.value.trim() || null
+
+							const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+								const file = e.target.files?.[0]
+								e.target.value = ''
+								if (!file || !isEdit) return
+								setUploadingImage(true)
+								try {
+									const formData = new FormData()
+									formData.append('file', file)
+									formData.append('itemId', String(props.item.id))
+									const result = await uploadItemImage({ data: formData })
+									if (result.kind === 'error') {
+										toast.error(`Image upload failed: ${result.message}`)
+										return
+									}
+									field.handleChange(result.value.url)
+									toast.success('Image uploaded')
+								} catch (err) {
+									const msg = err instanceof Error ? err.message : 'unknown error'
+									toast.error(`Image upload failed: ${msg}`)
+								} finally {
+									setUploadingImage(false)
+								}
+							}
+
+							const handleRemove = async () => {
+								if (!isEdit) {
+									field.handleChange('')
+									return
+								}
+								const result = await removeItemImage({ data: { itemId: props.item.id } })
+								if (result.kind === 'error') {
+									toast.error(`Remove failed: ${result.message}`)
+									return
+								}
+								field.handleChange('')
+								toast.success('Image removed')
+							}
+
+							return (
+								<div className="grid gap-2">
+									<Label htmlFor={field.name}>Image (optional)</Label>
+									{/* Preview current image if any */}
+									{currentUrl && (
+										<div className="flex items-center gap-3">
+											<img src={currentUrl} alt="" className="size-16 rounded border object-cover" />
+											<Button type="button" variant="ghost" size="sm" onClick={handleRemove} disabled={submitting || uploadingImage} className="gap-1.5">
+												<Trash2 className="size-3" />
+												Remove
+											</Button>
+										</div>
+									)}
+									<div className="flex gap-2">
+										<Input
+											id={field.name}
+											placeholder="https://... or upload below"
+											value={field.state.value}
+											onChange={e => field.handleChange(e.target.value)}
+											onBlur={field.handleBlur}
+											disabled={submitting || uploadingImage}
+										/>
+										{isEdit && (
+											<>
+												<input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handleFileChange} />
+												<Button
+													type="button"
+													variant="outline"
+													onClick={() => fileInputRef.current?.click()}
+													disabled={submitting || uploadingImage}
+													className="shrink-0 gap-1.5"
+												>
+													{uploadingImage ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+													Upload
+												</Button>
+											</>
+										)}
+									</div>
+									{!isEdit && <p className="text-muted-foreground text-xs">You can upload a file after the item is created.</p>}
+								</div>
+							)
+						}}
 					</form.Field>
 
 					{error && (

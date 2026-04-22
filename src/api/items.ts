@@ -8,6 +8,7 @@ import { type ListType, priorityEnumValues, statusEnumValues } from '@/db/schema
 import type { Item } from '@/db/schema/items'
 import { loggingMiddleware } from '@/lib/logger'
 import { canEditList } from '@/lib/permissions'
+import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { authMiddleware } from '@/middleware/auth'
 
 // ===============================
@@ -173,7 +174,7 @@ export const deleteItem = createServerFn({ method: 'POST' })
 
 		const item = await db.query.items.findFirst({
 			where: eq(items.id, data.itemId),
-			columns: { id: true, listId: true },
+			columns: { id: true, listId: true, imageUrl: true },
 		})
 		if (!item) return { kind: 'error', reason: 'not-found' }
 
@@ -187,6 +188,9 @@ export const deleteItem = createServerFn({ method: 'POST' })
 		if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 		await db.delete(items).where(eq(items.id, data.itemId))
+		// Post-commit storage cleanup. Best-effort; orphans are collected
+		// by the future storage-gc sweeper (TODO(storage-gc)).
+		await cleanupImageUrls([item.imageUrl])
 		return { kind: 'ok' }
 	})
 
@@ -391,7 +395,14 @@ export const deleteItems = createServerFn({ method: 'POST' })
 		const loaded = await loadAndAuthorizeItems(userId, data.itemIds)
 		if (!loaded.ok) return { kind: 'error', reason: loaded.reason }
 
+		// Capture imageUrls before delete for post-commit storage cleanup.
+		const rows = await db.query.items.findMany({
+			where: inArray(items.id, [...data.itemIds]),
+			columns: { imageUrl: true },
+		})
+
 		await db.delete(items).where(inArray(items.id, [...data.itemIds]))
+		await cleanupImageUrls(rows.map(r => r.imageUrl))
 		return { kind: 'ok', deleted: data.itemIds.length }
 	})
 
@@ -633,7 +644,7 @@ export const deleteGroups = createServerFn({ method: 'POST' })
 
 		const itemRows = await db.query.items.findMany({
 			where: inArray(items.groupId, data.groupIds),
-			columns: { id: true },
+			columns: { id: true, imageUrl: true },
 		})
 		const itemIds = itemRows.map(r => r.id)
 
@@ -642,5 +653,6 @@ export const deleteGroups = createServerFn({ method: 'POST' })
 			await tx.delete(itemGroups).where(inArray(itemGroups.id, data.groupIds))
 		})
 
+		await cleanupImageUrls(itemRows.map(r => r.imageUrl))
 		return { kind: 'ok', deletedGroups: data.groupIds.length, deletedItems: itemIds.length }
 	})
