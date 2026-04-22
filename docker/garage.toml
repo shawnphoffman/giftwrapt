@@ -1,0 +1,38 @@
+# Garage config for the single-node Docker stack. Used by both the local-dev
+# and self-host compose files at /etc/garage.toml.
+#
+# Secrets (rpc_secret, admin_token) are NOT stored here; they come from the
+# GARAGE_RPC_SECRET and GARAGE_ADMIN_TOKEN env vars set in .env. This keeps
+# secrets out of the image/volume and lets operators rotate them without
+# editing the TOML.
+
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+
+# lmdb is the single-node default; it's embedded, fast, and crash-safe. The
+# other option (sqlite) is fine too but slower. No sharding concerns on one
+# node so we don't need a network DB.
+db_engine = "lmdb"
+
+# One node, one copy. Raising this without also adding nodes would block all
+# writes (quorum unreachable).
+replication_factor = 1
+
+# RPC is how Garage nodes talk to each other AND how the CLI talks to the
+# daemon. Binding to :: listens on all interfaces inside the container.
+# rpc_public_addr is the hostname the CLI in a sibling container will use to
+# reach this daemon; "garage:3901" is the compose service name.
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "garage:3901"
+
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "[::]:3900"
+# Virtual-host-style S3 addressing needs a DNS-parent domain; Garage will
+# recognize sub.bucket.s3.garage.local style requests. We use path-style from
+# the app (STORAGE_FORCE_PATH_STYLE=true), so this value mostly doesn't matter
+# but Garage requires it to be set.
+root_domain = ".s3.garage.local"
+
+[admin]
+api_bind_addr = "[::]:3903"

@@ -1,14 +1,24 @@
 name: 'wishlist-dev'
 
-# Local dev-only postgres. The deployed app (Vercel) talks to its own DB via
+# Local dev stack: Postgres + Garage (S3-compatible object storage). The
+# deployed app (Vercel) talks to its own DB and an external S3 bucket via
 # Vercel env vars — this compose file never affects prod. Use with:
 #
 #   docker compose up -d       # start
 #   docker compose down         # stop (keeps data)
-#   docker compose down -v      # stop and nuke data
+#   docker compose down -v      # stop and nuke both DB and storage
 #
 # Point your local .env.local at:
 #   DATABASE_URL=postgresql://postgres:password@localhost:54321/wishlist_dev
+#   STORAGE_ENDPOINT=http://localhost:3900
+#   STORAGE_REGION=garage
+#   STORAGE_BUCKET=wishlists
+#   STORAGE_ACCESS_KEY_ID=<any 20+ char string you pick>
+#   STORAGE_SECRET_ACCESS_KEY=<any 40+ char string you pick>
+#   STORAGE_FORCE_PATH_STYLE=true
+#   GARAGE_RPC_SECRET=<openssl rand -hex 32>
+#   GARAGE_ADMIN_TOKEN=<openssl rand -hex 32>
+# See docs/storage.md for the full walkthrough.
 
 services:
   postgres:
@@ -31,5 +41,51 @@ services:
       timeout: 5s
       retries: 5
 
+  garage:
+    image: dxflrs/garage:v1.0.1
+    container_name: wishlist-dev-garage
+    restart: unless-stopped
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN}
+    volumes:
+      - garage_meta:/var/lib/garage/meta
+      - garage_data:/var/lib/garage/data
+      - ./docker/garage.toml:/etc/garage.toml:ro
+    ports:
+      # 3900 = S3 API. Exposed on the host so `pnpm dev` (running outside
+      # compose) can upload/stream objects via STORAGE_ENDPOINT=http://localhost:3900.
+      - 3900:3900
+    healthcheck:
+      test: ['CMD', '/garage', 'status']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  garage-init:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile.garage-init
+    image: wishlist-garage-init:v1.0.1
+    container_name: wishlist-dev-garage-init
+    depends_on:
+      garage:
+        condition: service_healthy
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-wishlists}
+      STORAGE_ACCESS_KEY_ID: ${STORAGE_ACCESS_KEY_ID}
+      STORAGE_SECRET_ACCESS_KEY: ${STORAGE_SECRET_ACCESS_KEY}
+    volumes:
+      - ./docker/garage.toml:/etc/garage.toml:ro
+      # Share the daemon's meta dir (read-only) so the CLI can use the node
+      # key to talk RPC back to the daemon. Meta/data volumes themselves
+      # remain owned by the daemon container; we only need the key files.
+      - garage_meta:/var/lib/garage/meta:ro
+    restart: 'no'
+
 volumes:
   postgres_data:
+  garage_meta:
+  garage_data:

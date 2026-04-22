@@ -36,6 +36,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      garage-init:
+        condition: service_completed_successfully
     # Health check is built into the image via HEALTHCHECK instruction.
     restart: unless-stopped
 
@@ -54,5 +56,50 @@ services:
       retries: 10
     restart: unless-stopped
 
+  garage:
+    image: dxflrs/garage:v1.0.1
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN}
+    volumes:
+      - garage_meta:/var/lib/garage/meta
+      - garage_data:/var/lib/garage/data
+      - ./docker/garage.toml:/etc/garage.toml:ro
+    # Intentionally no host port: Garage is only reachable on the compose
+    # network. The app serves images via /api/files/* so clients never need
+    # direct bucket access. If you want direct S3 URLs (faster, offloads
+    # bandwidth), add a reverse-proxy rule for 3900 and set STORAGE_PUBLIC_URL
+    # in .env — see docs/storage.md.
+    healthcheck:
+      test: ["CMD", "/garage", "status"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  garage-init:
+    build:
+      context: ./docker
+      dockerfile: Dockerfile.garage-init
+    image: wishlist-garage-init:v1.0.1
+    depends_on:
+      garage:
+        condition: service_healthy
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET}
+      GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN}
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-wishlists}
+      STORAGE_ACCESS_KEY_ID: ${STORAGE_ACCESS_KEY_ID}
+      STORAGE_SECRET_ACCESS_KEY: ${STORAGE_SECRET_ACCESS_KEY}
+    volumes:
+      - ./docker/garage.toml:/etc/garage.toml:ro
+      # Share the daemon's meta dir (read-only) so the CLI can use the node
+      # key to talk RPC back to the daemon. Meta/data volumes themselves
+      # remain owned by the daemon container; we only need the key files.
+      - garage_meta:/var/lib/garage/meta:ro
+    restart: "no"
+
 volumes:
   postgres_data:
+  garage_meta:
+  garage_data:
