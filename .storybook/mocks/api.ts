@@ -93,3 +93,6 @@ export const uploadItemImage = async (): Promise<{ kind: 'ok'; value: { url: str
 export const removeItemImage = ok
 export const uploadAvatar = async (): Promise<{ kind: 'ok'; value: { url: string } }> => ({ kind: 'ok', value: { url: '' } })
 export const removeAvatar = ok
+
+// @/api/storage-status
+export const fetchStorageStatus = async (): Promise<{ configured: boolean }> => ({ configured: true })
