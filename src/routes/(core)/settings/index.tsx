@@ -1,7 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import UserAvatar from '@/components/common/user-avatar'
-// import AvatarUpload from '@/components/settings/avatar-upload'
+import AvatarUpload from '@/components/settings/avatar-upload'
 import ProfileForm from '@/components/settings/profile-form'
 import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useSession } from '@/lib/auth-client'
@@ -26,8 +25,7 @@ function SettingsPage() {
 			</CardHeader>
 			<CardContent>
 				<div className="flex flex-col items-center w-full gap-4 @md/subpage:flex-row @md/subpage:items-start">
-					<UserAvatar size="huge" name={session.user.name} image={session.user.image} />
-					{/* <AvatarUpload image={session.user.image} displayName={session.user.name} /> */}
+					<AvatarUpload image={session.user.image} displayName={session.user.name} />
 					<ProfileForm
 						name={session.user.name || ''}
 						birthMonth={session.user.birthMonth}
