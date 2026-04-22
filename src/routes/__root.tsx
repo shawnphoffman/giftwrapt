@@ -5,7 +5,6 @@ import { createRootRouteWithContext, HeadContent, Scripts } from '@tanstack/reac
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { ThemeProvider } from 'next-themes'
 
-import { StorageDisabledBanner } from '@/components/common/storage-disabled-banner'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ErrorBoundary } from '@/components/utilities/error-boundary'
@@ -45,7 +44,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			<body>
 				<ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
 					<TooltipProvider>
-						<StorageDisabledBanner />
 						<ErrorBoundary fallback={(error, reset) => <ErrorBoundaryFallback error={error} reset={reset} />}>{children}</ErrorBoundary>
 					</TooltipProvider>
 					{import.meta.env.VITE_TANSTACK_DEVTOOLS === 'true' && (

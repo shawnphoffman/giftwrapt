@@ -4,6 +4,7 @@ import { getRequestHeaders } from '@tanstack/react-start/server'
 import { Gift, Inbox, ListChecks, ListOrdered, ListPlus, MessagesSquare, PackageOpen, PlusCircle, Receipt } from 'lucide-react'
 import { Suspense } from 'react'
 
+import { StorageDisabledBanner } from '@/components/common/storage-disabled-banner'
 import Loading from '@/components/loading'
 import NavBottom from '@/components/sidebar/nav-bottom'
 import NavBreadcrumbs from '@/components/sidebar/nav-breadcrumbs'
@@ -155,6 +156,7 @@ function AuthenticatedRoutes() {
 					</div>
 				</header>
 				<div className="flex flex-col items-center flex-1 gap-4 px-0 py-2 sm:px-2">
+					<StorageDisabledBanner />
 					<ErrorBoundary
 						fallback={(error, reset) => (
 							<div className="flex flex-col items-center justify-center min-h-[400px] p-4 w-full">
