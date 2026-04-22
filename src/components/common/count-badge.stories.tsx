@@ -16,7 +16,7 @@ type Story = StoryObj<typeof meta>
 export const AllClaimed: Story = {
 	args: { count: 8, remaining: 0 },
 	parameters: {
-		docs: { description: { story: 'All items claimed: only the total count renders.' } },
+		docs: { description: { story: 'All items claimed: shows 0/total with a muted/greyed out treatment.' } },
 	},
 }
 
