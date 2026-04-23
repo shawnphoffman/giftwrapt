@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 
 import Loading from '@/components/loading'
 import { Button } from '@/components/ui/button'
+import { GradientBackground } from '@/components/ui/gradient-background'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PasswordInput } from '@/components/ui/password-input'
@@ -90,10 +91,13 @@ function SignIn() {
 	}
 
 	return (
-		<div className="flex items-center flex-col min-h-screen p-[10%] gap-4 bg-background">
+		<div className="relative flex items-center flex-col min-h-screen p-[10%] gap-4">
+			<div className="absolute inset-0 -z-10 overflow-hidden">
+				<GradientBackground />
+			</div>
 			<Image src={logo} alt="Wish Lists" width={160} height={160} className="w-24 sm:w-40" />
 
-			<div className="w-full max-w-md space-y-4">
+			<div className="w-full max-w-md space-y-4 rounded-lg border bg-background/80 p-6 shadow-lg backdrop-blur">
 				<div className="text-center">
 					<h1 className="text-3xl font-bold">Sign in</h1>
 					<p className="mt-2 text-muted-foreground">Enter your credentials to access your account</p>
