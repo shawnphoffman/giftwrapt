@@ -10,7 +10,7 @@ const mocksDir = path.resolve(here, 'mocks')
 
 const config: StorybookConfig = {
 	stories: ['../src/**/*.stories.@(js|jsx|mjs|ts|tsx)'],
-	addons: ['@storybook/addon-a11y', '@storybook/addon-themes'],
+	addons: ['@storybook/addon-a11y', '@storybook/addon-themes', '@storybook/addon-vitest'],
 	// '@storybook/addon-docs',
 	framework: {
 		name: '@storybook/react-vite',

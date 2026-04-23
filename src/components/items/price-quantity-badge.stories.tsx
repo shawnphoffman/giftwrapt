@@ -8,7 +8,7 @@ import { PriceQuantityBadge } from './price-quantity-badge'
  */
 
 const meta = {
-	title: 'Items/PriceQuantityBadge',
+	title: 'Items/Components/PriceQuantityBadge',
 	component: PriceQuantityBadge,
 	parameters: { layout: 'padded' },
 } satisfies Meta<typeof PriceQuantityBadge>

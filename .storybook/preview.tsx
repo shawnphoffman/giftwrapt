@@ -39,6 +39,18 @@ const preview: Preview = {
 				date: /Date$/i,
 			},
 		},
+		options: {
+			storySort: {
+				order: [
+					'Items',
+					['Gallery', 'Playground', 'ItemRow (buyer view)', 'ItemEditRow (recipient view)', 'GroupBlock', 'Components'],
+					'Lists',
+					'Purchases',
+					'Common',
+					'Theme',
+				],
+			},
+		},
 		//
 		// docs: {
 		// 	page: () => (

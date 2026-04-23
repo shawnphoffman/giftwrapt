@@ -9,7 +9,7 @@ import { GroupConnector } from './group-connector'
  */
 
 const meta = {
-	title: 'Items/GroupConnector',
+	title: 'Items/Components/GroupConnector',
 	component: GroupConnector,
 	parameters: { layout: 'padded' },
 	decorators: [

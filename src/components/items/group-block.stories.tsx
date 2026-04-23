@@ -1,42 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
-import type { GroupSummary, ItemForEditing } from '@/api/lists'
+import type { GroupSummary } from '@/api/lists'
 
+import { withGalleryFrame } from './_stories/decorators'
+import { makeItemForEditing, placeholderImages } from './_stories/fixtures'
 import { GroupBlock } from './group-block'
 
 /**
  * Renders a single group on the list edit page. Header shows priority, name,
- * type, and owner actions; the body holds flush ItemEditRows with an OR or
+ * type, and owner actions; the body holds grouped ItemEditRows with an OR or
  * arrow connector between them (pick-one vs ordered).
  */
-
-const now = new Date('2026-04-01T00:00:00Z')
-
-function makeItem(overrides: Partial<ItemForEditing> = {}): ItemForEditing {
-	return {
-		id: 1,
-		listId: 1,
-		groupId: 10,
-		title: 'Item',
-		status: 'incomplete',
-		availability: 'available',
-		url: null,
-		imageUrl: null,
-		price: null,
-		currency: 'USD',
-		notes: null,
-		priority: 'normal',
-		isArchived: false,
-		quantity: 1,
-		groupSortOrder: null,
-		sortOrder: null,
-		createdAt: now,
-		updatedAt: now,
-		modifiedAt: null,
-		commentCount: 0,
-		...overrides,
-	}
-}
 
 const pickOneGroup: GroupSummary = { id: 10, type: 'or', name: 'Headphones', priority: 'high', sortOrder: null }
 const orderGroup: GroupSummary = { id: 11, type: 'order', name: 'Coffee setup', priority: 'very-high', sortOrder: null }
@@ -44,7 +18,7 @@ const orderGroup: GroupSummary = { id: 11, type: 'order', name: 'Coffee setup', 
 const meta = {
 	title: 'Items/GroupBlock',
 	component: GroupBlock,
-	parameters: { layout: 'padded' },
+	parameters: { layout: 'fullscreen' },
 	args: {
 		groups: [pickOneGroup, orderGroup],
 		isOwner: true,
@@ -53,13 +27,7 @@ const meta = {
 		onMoveItem: () => {},
 		onReorder: () => {},
 	},
-	decorators: [
-		Story => (
-			<div className="max-w-2xl">
-				<Story />
-			</div>
-		),
-	],
+	decorators: [withGalleryFrame],
 } satisfies Meta<typeof GroupBlock>
 
 export default meta
@@ -76,9 +44,9 @@ export const PickOneWithItems: Story = {
 	args: {
 		group: pickOneGroup,
 		items: [
-			makeItem({ id: 1, title: 'Sony WH-1000XM5', price: '399' }),
-			makeItem({ id: 2, title: 'Bose QuietComfort Ultra', price: '429' }),
-			makeItem({ id: 3, title: 'AirPods Max', price: '549' }),
+			makeItemForEditing({ groupId: 10, title: 'Sony WH-1000XM5', price: '399', imageUrl: placeholderImages.squareSmall }),
+			makeItemForEditing({ groupId: 10, title: 'Bose QuietComfort Ultra', price: '429' }),
+			makeItemForEditing({ groupId: 10, title: 'AirPods Max', price: '549', imageUrl: placeholderImages.square }),
 		],
 	},
 }
@@ -87,9 +55,9 @@ export const OrderedWithReorder: Story = {
 	args: {
 		group: orderGroup,
 		items: [
-			makeItem({ id: 1, groupId: 11, title: 'Espresso machine', price: '699', groupSortOrder: 0 }),
-			makeItem({ id: 2, groupId: 11, title: 'Grinder', price: '249', groupSortOrder: 1 }),
-			makeItem({ id: 3, groupId: 11, title: 'Scale', price: '65', groupSortOrder: 2 }),
+			makeItemForEditing({ groupId: 11, title: 'Espresso machine', price: '699', groupSortOrder: 0, imageUrl: placeholderImages.square }),
+			makeItemForEditing({ groupId: 11, title: 'Grinder', price: '249', groupSortOrder: 1 }),
+			makeItemForEditing({ groupId: 11, title: 'Scale', price: '65', groupSortOrder: 2, imageUrl: placeholderImages.squareSmall }),
 		],
 	},
 }
@@ -104,7 +72,10 @@ export const OrderedEmpty: Story = {
 export const UnnamedGroup: Story = {
 	args: {
 		group: { ...pickOneGroup, name: null },
-		items: [makeItem({ id: 1, title: 'Option A', price: '50' }), makeItem({ id: 2, title: 'Option B', price: '55' })],
+		items: [
+			makeItemForEditing({ groupId: 10, title: 'Option A', price: '50' }),
+			makeItemForEditing({ groupId: 10, title: 'Option B', price: '55' }),
+		],
 	},
 	parameters: {
 		docs: { description: { story: 'Group with no explicit name: falls back to just the type badge.' } },
@@ -114,7 +85,7 @@ export const UnnamedGroup: Story = {
 export const GifterView: Story = {
 	args: {
 		group: pickOneGroup,
-		items: [makeItem({ id: 1, title: 'Option A', price: '50' })],
+		items: [makeItemForEditing({ groupId: 10, title: 'Option A', price: '50' })],
 		isOwner: false,
 		onMoveItem: undefined,
 	},

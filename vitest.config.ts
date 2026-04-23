@@ -1,11 +1,15 @@
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+import { storybookTest } from '@storybook/addon-vitest/vitest-plugin'
 import viteTsConfigPaths from 'vite-tsconfig-paths'
 import { defineConfig } from 'vitest/config'
 
-// Dedicated vitest config, independent of vite.config.ts.
-// We skip the tanstackStart / nitro / react plugins here because unit tests
-// shouldn't go through the SSR/route transform pipeline — they're faster and
-// more predictable without it. When we later want component tests, we can add
-// viteReact and switch environment to jsdom per-project or per-file.
+// Unit tests run in node; storybook interaction tests run against the stories
+// in a real browser via playwright. They live in the same config via vitest
+// projects so `pnpm test` runs both.
+const here = path.dirname(fileURLToPath(import.meta.url))
+
 export default defineConfig({
 	plugins: [
 		viteTsConfigPaths({
@@ -13,8 +17,34 @@ export default defineConfig({
 		}),
 	],
 	test: {
-		environment: 'node',
-		include: ['src/**/*.{test,spec}.{ts,tsx}'],
-		exclude: ['**/node_modules/**', '**/dist/**', '.claude/**'],
+		projects: [
+			{
+				extends: true,
+				test: {
+					name: 'unit',
+					environment: 'node',
+					include: ['src/**/*.{test,spec}.{ts,tsx}'],
+					exclude: ['**/node_modules/**', '**/dist/**', '.claude/**'],
+				},
+			},
+			{
+				extends: true,
+				plugins: [
+					storybookTest({
+						configDir: path.join(here, '.storybook'),
+					}),
+				],
+				test: {
+					name: 'storybook',
+					browser: {
+						enabled: true,
+						provider: 'playwright',
+						headless: true,
+						instances: [{ browser: 'chromium' }],
+					},
+					setupFiles: ['.storybook/vitest.setup.ts'],
+				},
+			},
+		],
 	},
 })

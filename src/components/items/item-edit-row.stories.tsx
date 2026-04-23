@@ -1,43 +1,18 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
+import { expect, userEvent, within } from 'storybook/test'
 
 import type { GroupSummary } from '@/api/lists'
-import type { Item } from '@/db/schema/items'
 
+import { withItemFrame } from './_stories/decorators'
+import { makeItem, placeholderImages } from './_stories/fixtures'
 import { ItemEditRow } from './item-edit-row'
 
 /**
- * Recipient's view of a list item — what the owner of a wish list sees when
+ * Recipient's view of a list item, what the owner of a wish list sees when
  * they're managing their own list. The menu exposes edit / archive / delete /
  * group assignment. No claim state is visible because the owner doesn't see
  * who claimed what on their own list.
  */
-
-const now = new Date('2026-04-01T00:00:00Z')
-
-function makeItem(overrides: Partial<Item> = {}): Item {
-	return {
-		id: 1,
-		listId: 1,
-		groupId: null,
-		title: 'Bluetooth headphones',
-		status: 'incomplete',
-		availability: 'available',
-		url: 'https://www.amazon.com/dp/B0863TXGM3',
-		imageUrl: null,
-		price: '349.99',
-		currency: 'USD',
-		notes: null,
-		priority: 'normal',
-		isArchived: false,
-		quantity: 1,
-		groupSortOrder: null,
-		sortOrder: null,
-		createdAt: now,
-		updatedAt: now,
-		modifiedAt: null,
-		...overrides,
-	}
-}
 
 const groups: Array<GroupSummary> = [
 	{ id: 10, type: 'or', name: null, priority: 'normal', sortOrder: null },
@@ -47,16 +22,8 @@ const groups: Array<GroupSummary> = [
 const meta = {
 	title: 'Items/ItemEditRow (recipient view)',
 	component: ItemEditRow,
-	parameters: {
-		layout: 'padded',
-	},
-	decorators: [
-		Story => (
-			<div className="max-w-2xl border rounded-md bg-background">
-				<Story />
-			</div>
-		),
-	],
+	parameters: { layout: 'fullscreen' },
+	decorators: [withItemFrame],
 } satisfies Meta<typeof ItemEditRow>
 
 export default meta
@@ -65,6 +32,36 @@ type Story = StoryObj<typeof meta>
 export const Basic: Story = {
 	args: {
 		item: makeItem(),
+	},
+	play: async ({ canvasElement, args }) => {
+		const canvas = within(canvasElement)
+		await expect(canvas.getByText(args.item.title)).toBeInTheDocument()
+	},
+}
+
+export const MenuOpens: Story = {
+	args: {
+		item: makeItem({ title: 'Open the action menu' }),
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement)
+		// Dropdown trigger is the button with aria-haspopup="menu".
+		const menuTrigger = canvas.getAllByRole('button').find(b => b.getAttribute('aria-haspopup') === 'menu')
+		await expect(menuTrigger).toBeDefined()
+		await userEvent.click(menuTrigger!)
+		await expect(await within(document.body).findByRole('menuitem', { name: /edit/i })).toBeInTheDocument()
+	},
+	tags: ['!autodocs'],
+}
+
+export const WithImage: Story = {
+	args: {
+		item: makeItem({
+			title: 'Hand-thrown ceramic mug',
+			imageUrl: placeholderImages.square,
+			price: '42',
+			priority: 'high',
+		}),
 	},
 }
 
@@ -137,16 +134,16 @@ export const WithNotes: Story = {
 }
 
 /**
- * Flush variant used when the row sits inside a group container. Removes the
+ * Grouped variant used when the row sits inside a group container. Removes the
  * outer border/radius and uses a continuous row divider instead.
  */
-export const Flush: Story = {
+export const Grouped: Story = {
 	args: {
 		item: makeItem({
 			title: 'Item inside a group',
 			price: '49',
 		}),
-		flush: true,
+		grouped: true,
 	},
 	parameters: {
 		docs: {
@@ -166,7 +163,7 @@ export const WithReorderControls: Story = {
 			title: 'Second item in an ordered group',
 			price: '49',
 		}),
-		flush: true,
+		grouped: true,
 		onMoveUp: () => {},
 		onMoveDown: () => {},
 	},

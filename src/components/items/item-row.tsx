@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils'
 
 import { Badge } from '../ui/badge'
 import { ClaimGiftDialog } from './claim-gift-dialog'
+import { ItemImage } from './item-image'
 import { PriceQuantityBadge } from './price-quantity-badge'
 
 export type LockReason = 'order' | 'or'
@@ -48,10 +49,10 @@ type Props = {
 	 * priority ring. Used inside a GroupBlock which owns the priority
 	 * indicator for the whole group.
 	 */
-	flush?: boolean
+	grouped?: boolean
 }
 
-export default function ItemRow({ item, lockReason, flush = false }: Props) {
+export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 	const router = useRouter()
 	const queryClient = useQueryClient()
 	const { data: session } = useSession()
@@ -105,7 +106,7 @@ export default function ItemRow({ item, lockReason, flush = false }: Props) {
 	}
 
 	const domain = item.url ? getDomainFromUrl(item.url) : null
-	const hasPriorityTab = !flush && item.priority !== 'normal'
+	const hasPriorityTab = !grouped && item.priority !== 'normal'
 
 	const rowInner = (
 		<div className="flex flex-col w-full gap-2" id={`item-${item.id}`}>
@@ -136,11 +137,7 @@ export default function ItemRow({ item, lockReason, flush = false }: Props) {
 					</div>
 					{item.notes && <MarkdownNotes content={item.notes} className="text-xs text-foreground/75 mt-1" />}
 				</div>
-				{item.imageUrl && (
-					<div className="flex items-center justify-center shrink-0">
-						<img src={item.imageUrl} alt={item.title} className="object-contain w-16 max-h-16 xs:w-24 xs:max-h-24" />
-					</div>
-				)}
+				{item.imageUrl && <ItemImage src={item.imageUrl} alt={item.title} />}
 			</div>
 
 			{/* CLAIMS ROW */}
@@ -227,7 +224,7 @@ export default function ItemRow({ item, lockReason, flush = false }: Props) {
 
 	return (
 		<>
-			{flush ? (
+			{grouped ? (
 				<div className="flex items-start gap-2 p-2 ps-4 border-b last:border-b-0">{rowInner}</div>
 			) : (
 				<div className="relative">

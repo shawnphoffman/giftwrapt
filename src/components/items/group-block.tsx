@@ -55,7 +55,11 @@ export function GroupBlock({ group, items, groups, isOwner, onAddItem, onDelete,
 				/>
 				<div className="flex items-center gap-1 px-2 py-1 border-b bg-accent ps-4 justify-center">
 					<span className={'opacity-75 flex items-center gap-2 justify-between overflow-hidden'}>
-						{group.name && <span className="font-medium truncate leading-none">{group.name}</span>}
+						{group.name && (
+							<span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground truncate translate-y-px">
+								{group.name}
+							</span>
+						)}
 						<GroupBadge type={group.type} />
 					</span>
 					<div className="ml-auto" />
@@ -92,7 +96,7 @@ export function GroupBlock({ group, items, groups, isOwner, onAddItem, onDelete,
 									commentCount={item.commentCount}
 									onMoveClick={onMoveItem}
 									groups={groups}
-									flush
+									grouped
 									onMoveUp={showReorder && index > 0 ? () => onReorder(group.id, items, index, -1) : undefined}
 									onMoveDown={showReorder && index < items.length - 1 ? () => onReorder(group.id, items, index, 1) : undefined}
 								/>

@@ -66,7 +66,11 @@ export function GroupViewBlock({ group, items }: Props) {
 				/>
 				<div className="flex items-center gap-2 px-2 py-1 border-b bg-accent ps-4">
 					<span className="opacity-75 flex items-center gap-2 overflow-hidden">
-						{group.name && <span className="font-medium truncate leading-none">{group.name}</span>}
+						{group.name && (
+							<span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground truncate translate-y-px">
+								{group.name}
+							</span>
+						)}
 						<GroupBadge type={group.type} />
 					</span>
 				</div>
@@ -74,7 +78,7 @@ export function GroupViewBlock({ group, items }: Props) {
 					{items.map((item, index) => (
 						<Fragment key={item.id}>
 							{index > 0 && <GroupConnector type={group.type} />}
-							<ItemRow item={item} lockReason={lockByItemId.get(item.id)} flush />
+							<ItemRow item={item} lockReason={lockByItemId.get(item.id)} grouped />
 						</Fragment>
 					))}
 				</div>

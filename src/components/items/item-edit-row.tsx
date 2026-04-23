@@ -49,6 +49,7 @@ import { cn } from '@/lib/utils'
 
 import { ItemComments } from './item-comments'
 import { ItemFormDialog } from './item-form-dialog'
+import { ItemImage } from './item-image'
 import { PriceQuantityBadge } from './price-quantity-badge'
 
 type Props = {
@@ -56,7 +57,7 @@ type Props = {
 	commentCount?: number
 	onMoveClick?: (item: Item) => void
 	groups?: Array<GroupSummary>
-	flush?: boolean
+	grouped?: boolean
 	/**
 	 * When provided, renders up/down arrow buttons for reordering this item
 	 * within its ordered group. Each callback is undefined when the item is
@@ -74,7 +75,7 @@ function getDomain(url: string): string | null {
 	}
 }
 
-export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], flush = false, onMoveUp, onMoveDown }: Props) {
+export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], grouped = false, onMoveUp, onMoveDown }: Props) {
 	const router = useRouter()
 	const { data: session } = useSession()
 	const isAdmin = session?.user.isAdmin
@@ -114,28 +115,31 @@ export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], 
 	}
 
 	const domain = item.url ? getDomain(item.url) : null
-	// Standalone rows get a peeking priority tab on the left; flush rows stay
+	// Standalone rows get a peeking priority tab on the left; grouped rows stay
 	// simple since their parent group owns the priority indicator.
-	const hasPriorityTab = !flush && item.priority !== 'normal'
+	const hasPriorityTab = !grouped && item.priority !== 'normal'
 
 	const rowInner = (
 		<div className="flex flex-col w-full gap-2">
-			<div className="flex items-center gap-2">
-				<div className="flex-1 min-w-0">
+			<div className="flex items-start gap-2">
+				<div className="flex-1 min-w-0 flex flex-col gap-0.5">
 					<div className="font-medium leading-tight truncate">{item.title}</div>
-					{domain && (
-						<a
-							href={item.url!}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-0.5"
-						>
-							{domain} <ExternalLink className="size-3" />
-						</a>
-					)}
+					<div className="flex flex-row flex-wrap items-center gap-1.5">
+						{domain && (
+							<a
+								href={item.url!}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-0.5"
+							>
+								{domain} <ExternalLink className="size-3" />
+							</a>
+						)}
+						<PriceQuantityBadge price={item.price} quantity={item.quantity} />
+					</div>
 					{item.notes && <MarkdownNotes content={item.notes} className="text-xs text-foreground/75 mt-1" />}
 				</div>
-				<PriceQuantityBadge price={item.price} quantity={item.quantity} />
+				{item.imageUrl && <ItemImage src={item.imageUrl} alt={item.title} />}
 				{(onMoveUp || onMoveDown) && (
 					<div className="flex items-center shrink-0">
 						<Button
@@ -223,7 +227,7 @@ export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], 
 
 	return (
 		<>
-			{flush ? (
+			{grouped ? (
 				<div className="flex items-start gap-2 p-2 border-b last:border-b-0 ps-4">{rowInner}</div>
 			) : (
 				<div className="relative">
