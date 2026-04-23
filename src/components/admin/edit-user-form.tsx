@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { birthMonthEnumValues, roleEnumValues } from '@/db/schema/enums'
 import { type User as DbUser, UserSchema } from '@/db/schema/users'
 import type { User } from '@/db-collections/users'
+import { useStorageStatus } from '@/hooks/use-storage-status'
 
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
 
@@ -124,6 +125,7 @@ function EditUserFormInner({
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [success, setSuccess] = useState(false)
+	const { configured: storageConfigured } = useStorageStatus()
 
 	const form = useForm({
 		defaultValues: {
@@ -286,7 +288,9 @@ function EditUserFormInner({
 							/>
 							<div className="flex-1">
 								<p className="text-sm font-medium">Avatar</p>
-								<p className="text-xs text-muted-foreground">Click to upload, or paste a URL below</p>
+								<p className="text-xs text-muted-foreground">
+									{storageConfigured ? 'Click to upload, or paste a URL below' : 'Paste a URL below'}
+								</p>
 							</div>
 						</div>
 					)

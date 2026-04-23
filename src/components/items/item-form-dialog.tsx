@@ -341,7 +341,7 @@ export function ItemFormDialog(props: Props) {
 									<div className="flex gap-2">
 										<Input
 											id={field.name}
-											placeholder="https://... or upload below"
+											placeholder={showUploadButton ? 'https://... or upload below' : 'https://...'}
 											value={field.state.value}
 											onChange={e => field.handleChange(e.target.value)}
 											onBlur={field.handleBlur}
