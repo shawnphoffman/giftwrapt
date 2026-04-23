@@ -19,7 +19,11 @@ export const getRouter = () => {
 		routeTree,
 		context: { ...rqContext },
 		defaultPreload: 'intent',
-		defaultPendingComponent: () => <Loading />,
+		defaultPendingComponent: () => (
+			<div className="flex items-center justify-center w-full min-h-screen">
+				<Loading />
+			</div>
+		),
 		Wrap: (props: { children: React.ReactNode }) => {
 			return <TanstackQuery.Provider {...rqContext}>{props.children}</TanstackQuery.Provider>
 		},

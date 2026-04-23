@@ -179,7 +179,13 @@ function AuthenticatedRoutes() {
 							</div>
 						)}
 					>
-						<Suspense fallback={<Loading />}>
+						<Suspense
+							fallback={
+								<div className="flex items-center justify-center flex-1 w-full">
+									<Loading />
+								</div>
+							}
+						>
 							<Outlet />
 						</Suspense>
 					</ErrorBoundary>
