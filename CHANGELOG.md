@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.12.1](https://github.com/shawnphoffman/wish-lists/compare/v0.12.0...v0.12.1) (2026-04-23)
+
+
+### Bug Fixes
+
+* **compose:** don't gate app on garage healthcheck during cold boot ([2e4a995](https://github.com/shawnphoffman/wish-lists/commit/2e4a99505cbe994ecc03809ea564498c7f5d66c9))
+* **docker:** bump base to node:22-slim, strip vendored npm ([05e11ef](https://github.com/shawnphoffman/wish-lists/commit/05e11ef42a27353b6b535059dbd37cbca44f597b))
+* **uploads:** invalidate auth cookie cache on avatar update ([1bbd3a4](https://github.com/shawnphoffman/wish-lists/commit/1bbd3a467e2315f5e21bfaeb6cf2b3b94518974b))
+
 ## [0.12.0](https://github.com/shawnphoffman/wish-lists/compare/v0.11.0...v0.12.0) (2026-04-23)
 
 
