@@ -42,8 +42,15 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      # service_started, not service_healthy: the container's healthcheck
+      # (`garage status`) returns non-zero on a fresh node with no layout
+      # assigned, which is the exact state on cold boot before INIT_GARAGE
+      # has had a chance to run. INIT_GARAGE itself runs from this app's
+      # entrypoint and polls Garage's admin /health endpoint with a 60s
+      # deadline (see scripts/init-garage.ts), so daemon-readiness is
+      # already gated app-side; the docker dep just needs the process up.
       garage:
-        condition: service_healthy
+        condition: service_started
     # Health check is built into the image via HEALTHCHECK instruction.
     restart: unless-stopped
 
