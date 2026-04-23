@@ -55,6 +55,7 @@ function makeItem(overrides: Partial<ItemWithGifts> = {}): ItemWithGifts {
 		updatedAt: now,
 		modifiedAt: null,
 		gifts: [],
+		commentCount: 0,
 		...overrides,
 	}
 }

@@ -221,7 +221,7 @@ export default function ItemRow({ item, lockReason, flush = false }: Props) {
 			</div>
 
 			{/* COMMENTS */}
-			<ItemComments itemId={item.id} />
+			<ItemComments itemId={item.id} commentCount={item.commentCount} />
 		</div>
 	)
 

@@ -53,6 +53,7 @@ import { PriceQuantityBadge } from './price-quantity-badge'
 
 type Props = {
 	item: Item
+	commentCount?: number
 	onMoveClick?: (item: Item) => void
 	groups?: Array<GroupSummary>
 	flush?: boolean
@@ -73,7 +74,7 @@ function getDomain(url: string): string | null {
 	}
 }
 
-export function ItemEditRow({ item, onMoveClick, groups = [], flush = false, onMoveUp, onMoveDown }: Props) {
+export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], flush = false, onMoveUp, onMoveDown }: Props) {
 	const router = useRouter()
 	const { data: session } = useSession()
 	const isAdmin = session?.user.isAdmin
@@ -216,7 +217,7 @@ export function ItemEditRow({ item, onMoveClick, groups = [], flush = false, onM
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</div>
-			<ItemComments itemId={item.id} />
+			<ItemComments itemId={item.id} commentCount={commentCount} />
 		</div>
 	)
 

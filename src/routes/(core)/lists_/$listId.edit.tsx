@@ -146,7 +146,13 @@ function ListEditPage() {
 						<div className="flex flex-col gap-2 pl-6">
 							{entries.map(entry =>
 								entry.kind === 'item' ? (
-									<ItemEditRow key={`item-${entry.item.id}`} item={entry.item} onMoveClick={onMoveItem} groups={list.groups} />
+									<ItemEditRow
+										key={`item-${entry.item.id}`}
+										item={entry.item}
+										commentCount={entry.item.commentCount}
+										onMoveClick={onMoveItem}
+										groups={list.groups}
+									/>
 								) : (
 									<GroupBlock
 										key={`group-${entry.group.id}`}

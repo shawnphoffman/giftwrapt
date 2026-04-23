@@ -3,7 +3,7 @@ import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
-import { giftedItems, guardianships, itemGroups, items, listAddons, listEditors, lists, users } from '@/db/schema'
+import { giftedItems, guardianships, itemComments, itemGroups, items, listAddons, listEditors, lists, users } from '@/db/schema'
 import { type GroupType, type ListType, listTypeEnumValues, type Priority } from '@/db/schema/enums'
 import type { GiftedItem } from '@/db/schema/gifts'
 import type { Item } from '@/db/schema/items'
@@ -26,6 +26,7 @@ export type GiftOnItem = Pick<
 
 export type ItemWithGifts = Item & {
 	gifts: Array<GiftOnItem>
+	commentCount: number
 }
 
 export type AddonOnList = Pick<
@@ -150,6 +151,20 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 			},
 		})
 
+		const commentCountRows = listItems.length
+			? await db
+					.select({ itemId: itemComments.itemId, count: count(itemComments.id) })
+					.from(itemComments)
+					.where(
+						inArray(
+							itemComments.itemId,
+							listItems.map(i => i.id)
+						)
+					)
+					.groupBy(itemComments.itemId)
+			: []
+		const commentCountByItem = new Map(commentCountRows.map(r => [r.itemId, Number(r.count)]))
+
 		// Fetch addons (off-list gifts) for this list. Non-archived addons are
 		// active; archived ones mean "gift was given" and surface on the
 		// recipient's received-gifts page. We fetch both here so the UI can
@@ -207,7 +222,7 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 					email: list.owner.email,
 					image: list.owner.image,
 				},
-				items: sortedItems,
+				items: sortedItems.map(i => ({ ...i, commentCount: commentCountByItem.get(i.id) ?? 0 })),
 				groups: viewGroups,
 				addons,
 			},
@@ -545,6 +560,8 @@ export type GroupSummary = {
 	sortOrder: number | null
 }
 
+export type ItemForEditing = Item & { commentCount: number }
+
 export type ListForEditing = {
 	id: number
 	name: string
@@ -554,7 +571,7 @@ export type ListForEditing = {
 	isPrimary: boolean
 	description: string | null
 	ownerId: string
-	items: Array<Item>
+	items: Array<ItemForEditing>
 	groups: Array<GroupSummary>
 	isOwner: boolean
 }
@@ -603,6 +620,20 @@ export const getListForEditing = createServerFn({ method: 'GET' })
 			orderBy: [desc(items.createdAt)],
 		})
 
+		const commentCountRows = listItems.length
+			? await db
+					.select({ itemId: itemComments.itemId, count: count(itemComments.id) })
+					.from(itemComments)
+					.where(
+						inArray(
+							itemComments.itemId,
+							listItems.map(i => i.id)
+						)
+					)
+					.groupBy(itemComments.itemId)
+			: []
+		const commentCountByItem = new Map(commentCountRows.map(r => [r.itemId, Number(r.count)]))
+
 		const groups = await db.query.itemGroups.findMany({
 			where: eq(itemGroups.listId, list.id),
 			columns: { id: true, type: true, name: true, priority: true, sortOrder: true },
@@ -619,7 +650,7 @@ export const getListForEditing = createServerFn({ method: 'GET' })
 				isPrimary: list.isPrimary,
 				description: list.description,
 				ownerId: list.ownerId,
-				items: listItems,
+				items: listItems.map(i => ({ ...i, commentCount: commentCountByItem.get(i.id) ?? 0 })),
 				groups,
 				isOwner,
 			},

@@ -1,7 +1,7 @@
 import { Plus, Trash2 } from 'lucide-react'
 import { Fragment } from 'react'
 
-import type { GroupSummary } from '@/api/lists'
+import type { GroupSummary, ItemForEditing } from '@/api/lists'
 import PriorityIcon from '@/components/common/priority-icon'
 import { Button } from '@/components/ui/button'
 import type { Item } from '@/db/schema/items'
@@ -15,7 +15,7 @@ import { ItemEditRow } from './item-edit-row'
 
 type Props = {
 	group: GroupSummary
-	items: Array<Item>
+	items: Array<ItemForEditing>
 	groups: Array<GroupSummary>
 	isOwner: boolean
 	onAddItem: (groupId: number) => void
@@ -89,6 +89,7 @@ export function GroupBlock({ group, items, groups, isOwner, onAddItem, onDelete,
 								{index > 0 && <GroupConnector type={group.type} />}
 								<ItemEditRow
 									item={item}
+									commentCount={item.commentCount}
 									onMoveClick={onMoveItem}
 									groups={groups}
 									flush

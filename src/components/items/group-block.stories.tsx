@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
-import type { GroupSummary } from '@/api/lists'
-import type { Item } from '@/db/schema/items'
+import type { GroupSummary, ItemForEditing } from '@/api/lists'
 
 import { GroupBlock } from './group-block'
 
@@ -13,7 +12,7 @@ import { GroupBlock } from './group-block'
 
 const now = new Date('2026-04-01T00:00:00Z')
 
-function makeItem(overrides: Partial<Item> = {}): Item {
+function makeItem(overrides: Partial<ItemForEditing> = {}): ItemForEditing {
 	return {
 		id: 1,
 		listId: 1,
@@ -34,6 +33,7 @@ function makeItem(overrides: Partial<Item> = {}): Item {
 		createdAt: now,
 		updatedAt: now,
 		modifiedAt: null,
+		commentCount: 0,
 		...overrides,
 	}
 }
