@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { z } from 'zod'
 
 import { createGuardianships, getUsersAsAdmin, updateUserPartner } from '@/api/admin'
+import { BirthDaySelect } from '@/components/common/birth-day-select'
 import InputTooltip from '@/components/common/input-tooltip'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -196,7 +197,7 @@ export function CreateUserForm() {
 				)}
 			</form.Field>
 
-			<div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+			<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 				<form.Field name="birthMonth">
 					{field => (
 						<div className="grid gap-2 w-full">
@@ -230,28 +231,17 @@ export function CreateUserForm() {
 					{field => (
 						<div className="grid gap-2 w-full">
 							<Label htmlFor={field.name}>Birth Day</Label>
-							<Input
-								id={field.name}
-								type="number"
-								placeholder="Day (1-31)"
-								min={1}
-								max={31}
-								className="w-full"
-								onChange={e => {
-									const value = e.target.value
-									if (value === '') {
-										field.handleChange(undefined)
-									} else {
-										const num = parseInt(value, 10)
-										if (!isNaN(num)) {
-											field.handleChange(num)
-										}
-									}
-								}}
-								onBlur={field.handleBlur}
-								value={field.state.value ?? ''}
-								disabled={isLoading}
-							/>
+							<form.Subscribe selector={state => state.values.birthMonth}>
+								{month => (
+									<BirthDaySelect
+										id={field.name}
+										month={month}
+										value={field.state.value}
+										onValueChange={day => field.handleChange(day)}
+										disabled={isLoading}
+									/>
+								)}
+							</form.Subscribe>
 							{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 								<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
 							)}

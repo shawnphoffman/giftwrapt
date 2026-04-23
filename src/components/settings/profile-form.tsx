@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import type { z } from 'zod'
 
 import { getPotentialPartners, updateUserProfile } from '@/api/user'
+import { BirthDaySelect } from '@/components/common/birth-day-select'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
 	AlertDialog,
@@ -203,28 +204,17 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 					{field => (
 						<Field className="gap-1">
 							<FieldLabel htmlFor={field.name}>Birth Day</FieldLabel>
-							<Input
-								id={field.name}
-								type="text"
-								placeholder="Day (1-31)"
-								className="w-full"
-								onChange={e => {
-									const value = e.target.value
-									if (value === '') {
-										field.handleChange(undefined)
-									} else {
-										const num = parseInt(value, 10)
-										if (!isNaN(num)) {
-											// Clamp value between 1 and 31
-											const clamped = Math.min(Math.max(num, 1), 31)
-											field.handleChange(clamped)
-										}
-									}
-								}}
-								onBlur={field.handleBlur}
-								value={field.state.value ?? ''}
-								disabled={isLoading}
-							/>
+							<form.Subscribe selector={state => state.values.birthMonth}>
+								{month => (
+									<BirthDaySelect
+										id={field.name}
+										month={month}
+										value={field.state.value}
+										onValueChange={day => field.handleChange(day)}
+										disabled={isLoading}
+									/>
+								)}
+							</form.Subscribe>
 							{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 								<FieldError className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</FieldError>
 							)}

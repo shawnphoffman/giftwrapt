@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { z } from 'zod'
 
 import { getGuardianshipsForChild, getUsersAsAdmin, updateGuardianships, updateUserAsAdmin, updateUserPartner } from '@/api/admin'
+import { BirthDaySelect } from '@/components/common/birth-day-select'
 import InputTooltip from '@/components/common/input-tooltip'
 import UserAvatar from '@/components/common/user-avatar'
 import { Button } from '@/components/ui/button'
@@ -321,7 +322,7 @@ function EditUserFormInner({
 						<Label htmlFor={field.name}>Image URL</Label>
 						<Input
 							id={field.name}
-							type="url"
+							type="text"
 							placeholder="https://example.com/avatar.jpg"
 							value={field.state.value ?? ''}
 							onChange={e => {
@@ -373,28 +374,17 @@ function EditUserFormInner({
 					{field => (
 						<div className="grid gap-2 w-full">
 							<Label htmlFor={field.name}>Birth Day</Label>
-							<Input
-								id={field.name}
-								type="number"
-								placeholder="Day (1-31)"
-								min={1}
-								max={31}
-								className="w-full"
-								onChange={e => {
-									const value = e.target.value
-									if (value === '') {
-										field.handleChange(undefined)
-									} else {
-										const num = parseInt(value, 10)
-										if (!isNaN(num)) {
-											field.handleChange(num)
-										}
-									}
-								}}
-								onBlur={field.handleBlur}
-								value={field.state.value ?? ''}
-								disabled={isLoading}
-							/>
+							<form.Subscribe selector={state => state.values.birthMonth}>
+								{month => (
+									<BirthDaySelect
+										id={field.name}
+										month={month}
+										value={field.state.value}
+										onValueChange={day => field.handleChange(day)}
+										disabled={isLoading}
+									/>
+								)}
+							</form.Subscribe>
 							{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 								<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
 							)}
