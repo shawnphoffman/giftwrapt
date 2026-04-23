@@ -31,8 +31,8 @@ export default defineNitroPlugin(nitroApp => {
 		if (!start) return
 
 		const req = event.req
-		const url = req.url ?? '/'
-		const method = req.method ?? 'GET'
+		const url = req.url
+		const method = req.method
 		const status = res.status
 		const durationMs = Date.now() - start
 
@@ -52,7 +52,8 @@ export default defineNitroPlugin(nitroApp => {
 	})
 
 	nitroApp.hooks.hook('error', (err, ctx) => {
-		const path = ctx?.event?.req?.url ?? 'unknown'
+		// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Nitro types mark ctx.event optional; lint's flow analysis disagrees with tsc.
+		const path = ctx?.event?.req.url ?? 'unknown'
 		logger.error({ err, path }, 'unhandled request error')
 	})
 })

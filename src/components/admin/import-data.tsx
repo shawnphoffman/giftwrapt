@@ -59,8 +59,8 @@ export default function ImportData() {
 			const result = BackupFileSchema.safeParse(json)
 			if (!result.success) {
 				const firstIssue = result.error.issues[0]
-				const path = firstIssue?.path.join('.') ?? '<root>'
-				setParseError(`Invalid backup file: ${firstIssue?.message ?? 'validation failed'} (at ${path})`)
+				const path = firstIssue.path.join('.')
+				setParseError(`Invalid backup file: ${firstIssue.message} (at ${path})`)
 				return
 			}
 			setParsed(result.data)

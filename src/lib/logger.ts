@@ -18,7 +18,7 @@ const isProd = process.env.NODE_ENV === 'production'
 const prettyEnabled = isServer ? (env.LOG_PRETTY ?? !isProd) : false
 
 const baseOptions: LoggerOptions = {
-	level: isServer ? (env.LOG_LEVEL ?? 'info') : 'silent',
+	level: isServer ? env.LOG_LEVEL : 'silent',
 	base: {
 		service: 'wish-lists',
 		env: process.env.NODE_ENV ?? 'development',

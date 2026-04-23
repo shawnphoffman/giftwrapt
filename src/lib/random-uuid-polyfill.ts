@@ -10,7 +10,6 @@
 // might touch crypto.randomUUID.
 if (
 	typeof globalThis !== 'undefined' &&
-	globalThis.crypto &&
 	typeof globalThis.crypto.randomUUID !== 'function' &&
 	typeof globalThis.crypto.getRandomValues === 'function'
 ) {

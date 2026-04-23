@@ -48,7 +48,6 @@ function entryDateMs(entry: ListEntry<ItemWithGifts>): number {
 			? entry.item.createdAt
 			: entry.items.reduce<Date | null>((acc, i) => {
 					const d = i.createdAt
-					if (!d) return acc
 					if (!acc) return d
 					return d < acc ? d : acc
 				}, null)
