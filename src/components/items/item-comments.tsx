@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { MessageSquare, Pencil, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { type KeyboardEvent, useState } from 'react'
 import { toast } from 'sonner'
 
 import { type CommentWithUser, createItemComment, deleteItemComment, getCommentsForItem, updateItemComment } from '@/api/comments'
@@ -24,10 +25,16 @@ type Props = {
 	commentCount?: number
 }
 
+function isSubmitShortcut(e: KeyboardEvent) {
+	return (e.metaKey || e.ctrlKey) && e.key === 'Enter'
+}
+
 export function ItemComments({ itemId, commentCount = 0 }: Props) {
 	const [expanded, setExpanded] = useState(false)
 	const session = useSession()
 	const currentUserId = session.data?.user.id
+	const prefersReducedMotion = useReducedMotion()
+	const duration = prefersReducedMotion ? 0 : 0.18
 
 	const { data: comments, refetch } = useQuery({
 		queryKey: ['item-comments', itemId],
@@ -68,27 +75,57 @@ export function ItemComments({ itemId, commentCount = 0 }: Props) {
 				{displayCount > 0 ? `${displayCount} comment${displayCount !== 1 ? 's' : ''}` : 'Add comment'}
 			</button>
 
-			{expanded && (
-				<div className="flex flex-col gap-2 pl-2 border-l-2 border-muted">
-					{comments?.map(c => (
-						<CommentRow key={c.id} comment={c} currentUserId={currentUserId} onDeleted={refetch} />
-					))}
+			<AnimatePresence initial={false}>
+				{expanded && (
+					<motion.div
+						initial={{ height: 0, opacity: 0 }}
+						animate={{ height: 'auto', opacity: 1 }}
+						exit={{ height: 0, opacity: 0 }}
+						transition={{ duration, ease: 'easeOut' }}
+						className="overflow-hidden"
+					>
+						<div className="flex flex-col gap-2 pl-2 border-l-2 border-muted">
+							<AnimatePresence initial={false}>
+								{comments?.map(c => (
+									<motion.div
+										key={c.id}
+										layout
+										initial={{ opacity: 0, y: -4 }}
+										animate={{ opacity: 1, y: 0 }}
+										exit={{ opacity: 0, y: -4 }}
+										transition={{ duration, ease: 'easeOut' }}
+									>
+										<CommentRow comment={c} currentUserId={currentUserId} onDeleted={refetch} />
+									</motion.div>
+								))}
+							</AnimatePresence>
 
-					<div className="flex gap-2">
-						<Textarea
-							placeholder="Write a comment..."
-							rows={2}
-							value={newComment}
-							onChange={e => setNewComment(e.target.value)}
-							disabled={submitting}
-							className="text-sm"
-						/>
-						<Button size="sm" onClick={handleSubmit} disabled={submitting || !newComment.trim()}>
-							{submitting ? '...' : 'Post'}
-						</Button>
-					</div>
-				</div>
-			)}
+							<div className="flex gap-2">
+								<Textarea
+									placeholder="Write a comment..."
+									rows={2}
+									value={newComment}
+									onChange={e => setNewComment(e.target.value)}
+									onKeyDown={e => {
+										if (isSubmitShortcut(e)) {
+											e.preventDefault()
+											void handleSubmit()
+										}
+									}}
+									disabled={submitting}
+									className="text-sm"
+								/>
+								<div className="flex flex-col items-end gap-1">
+									<Button size="sm" onClick={handleSubmit} disabled={submitting || !newComment.trim()}>
+										{submitting ? '...' : 'Post'}
+									</Button>
+									<kbd className="hidden sm:inline-flex text-[10px] text-muted-foreground font-mono">⌘↵</kbd>
+								</div>
+							</div>
+						</div>
+					</motion.div>
+				)}
+			</AnimatePresence>
 		</div>
 	)
 }
@@ -106,6 +143,8 @@ function CommentRow({
 	const [editText, setEditText] = useState(comment.comment)
 	const [saving, setSaving] = useState(false)
 	const [deleteOpen, setDeleteOpen] = useState(false)
+	const prefersReducedMotion = useReducedMotion()
+	const duration = prefersReducedMotion ? 0 : 0.15
 
 	const isOwn = comment.user.id === currentUserId
 	const name = comment.user.name || comment.user.email
@@ -145,21 +184,51 @@ function CommentRow({
 						<span className="font-medium text-xs">{name}</span>
 						<span className="text-xs text-muted-foreground">{new Date(comment.createdAt).toLocaleDateString()}</span>
 					</div>
-					{editing ? (
-						<div className="flex gap-1 mt-1">
-							<Textarea value={editText} onChange={e => setEditText(e.target.value)} rows={2} disabled={saving} className="text-sm" />
-							<div className="flex flex-col gap-1">
-								<Button size="sm" variant="ghost" onClick={handleSave} disabled={saving}>
-									Save
-								</Button>
-								<Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
-									Cancel
-								</Button>
-							</div>
-						</div>
-					) : (
-						<p className="text-foreground/80 whitespace-pre-wrap">{comment.comment}</p>
-					)}
+					<AnimatePresence mode="wait" initial={false}>
+						{editing ? (
+							<motion.div
+								key="editor"
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								exit={{ opacity: 0 }}
+								transition={{ duration }}
+								className="flex gap-1 mt-1"
+							>
+								<Textarea
+									value={editText}
+									onChange={e => setEditText(e.target.value)}
+									onKeyDown={e => {
+										if (isSubmitShortcut(e)) {
+											e.preventDefault()
+											void handleSave()
+										}
+									}}
+									rows={2}
+									disabled={saving}
+									className="text-sm"
+								/>
+								<div className="flex flex-col gap-1">
+									<Button size="sm" variant="ghost" onClick={handleSave} disabled={saving}>
+										Save
+									</Button>
+									<Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+										Cancel
+									</Button>
+								</div>
+							</motion.div>
+						) : (
+							<motion.p
+								key="display"
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								exit={{ opacity: 0 }}
+								transition={{ duration }}
+								className="text-foreground/80 whitespace-pre-wrap"
+							>
+								{comment.comment}
+							</motion.p>
+						)}
+					</AnimatePresence>
 				</div>
 				{isOwn && !editing && (
 					<div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">

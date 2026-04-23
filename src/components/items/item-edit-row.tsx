@@ -47,6 +47,7 @@ import { useSession } from '@/lib/auth-client'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
 import { cn } from '@/lib/utils'
 
+import { ItemComments } from './item-comments'
 import { ItemFormDialog } from './item-form-dialog'
 import { PriceQuantityBadge } from './price-quantity-badge'
 
@@ -117,109 +118,112 @@ export function ItemEditRow({ item, onMoveClick, groups = [], flush = false, onM
 	const hasPriorityTab = !flush && item.priority !== 'normal'
 
 	const rowInner = (
-		<>
-			<div className="flex-1 min-w-0">
-				<div className="font-medium leading-tight truncate">{item.title}</div>
-				{domain && (
-					<a
-						href={item.url!}
-						target="_blank"
-						rel="noopener noreferrer"
-						className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-0.5"
-					>
-						{domain} <ExternalLink className="size-3" />
-					</a>
-				)}
-				{item.notes && <MarkdownNotes content={item.notes} className="text-xs text-foreground/75 mt-1" />}
-			</div>
-			<PriceQuantityBadge price={item.price} quantity={item.quantity} />
-			{(onMoveUp || onMoveDown) && (
-				<div className="flex items-center shrink-0">
-					<Button
-						variant="ghost"
-						size="icon"
-						className="size-7"
-						onClick={onMoveUp}
-						disabled={!onMoveUp}
-						title="Move up"
-						aria-label="Move up"
-					>
-						<ArrowUp className="size-4" />
-					</Button>
-					<Button
-						variant="ghost"
-						size="icon"
-						className="size-7"
-						onClick={onMoveDown}
-						disabled={!onMoveDown}
-						title="Move down"
-						aria-label="Move down"
-					>
-						<ArrowDown className="size-4" />
-					</Button>
+		<div className="flex flex-col w-full gap-2">
+			<div className="flex items-center gap-2">
+				<div className="flex-1 min-w-0">
+					<div className="font-medium leading-tight truncate">{item.title}</div>
+					{domain && (
+						<a
+							href={item.url!}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-0.5"
+						>
+							{domain} <ExternalLink className="size-3" />
+						</a>
+					)}
+					{item.notes && <MarkdownNotes content={item.notes} className="text-xs text-foreground/75 mt-1" />}
 				</div>
-			)}
-			<DropdownMenu>
-				<DropdownMenuTrigger asChild>
-					<Button variant="ghost" size="icon" className="size-7 shrink-0">
-						<MoreHorizontal className="size-4" />
-					</Button>
-				</DropdownMenuTrigger>
-				<DropdownMenuContent align="end">
-					<DropdownMenuItem onClick={() => setEditOpen(true)}>
-						<Pencil className="size-4" /> Edit
-					</DropdownMenuItem>
-					{onMoveClick && (
-						<DropdownMenuItem onClick={() => onMoveClick(item)}>
-							<Archive className="size-4" /> Move to...
+				<PriceQuantityBadge price={item.price} quantity={item.quantity} />
+				{(onMoveUp || onMoveDown) && (
+					<div className="flex items-center shrink-0">
+						<Button
+							variant="ghost"
+							size="icon"
+							className="size-7"
+							onClick={onMoveUp}
+							disabled={!onMoveUp}
+							title="Move up"
+							aria-label="Move up"
+						>
+							<ArrowUp className="size-4" />
+						</Button>
+						<Button
+							variant="ghost"
+							size="icon"
+							className="size-7"
+							onClick={onMoveDown}
+							disabled={!onMoveDown}
+							title="Move down"
+							aria-label="Move down"
+						>
+							<ArrowDown className="size-4" />
+						</Button>
+					</div>
+				)}
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button variant="ghost" size="icon" className="size-7 shrink-0">
+							<MoreHorizontal className="size-4" />
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="end">
+						<DropdownMenuItem onClick={() => setEditOpen(true)}>
+							<Pencil className="size-4" /> Edit
 						</DropdownMenuItem>
-					)}
-					{groups.length > 0 && (
-						<DropdownMenuSub>
-							<DropdownMenuSubTrigger>
-								<Group className="size-4" /> Group
-							</DropdownMenuSubTrigger>
-							<DropdownMenuSubContent>
-								{otherGroups.map(g => {
-									const GroupTypeIcon = g.type === 'or' ? Shuffle : ListOrdered
-									const label = g.name || `${g.type === 'or' ? 'Pick one' : 'In order'} group #${g.id}`
-									return (
-										<DropdownMenuItem key={g.id} onClick={() => handleAssignGroup(g.id)}>
-											<GroupTypeIcon className="size-4" /> {label}
+						{onMoveClick && (
+							<DropdownMenuItem onClick={() => onMoveClick(item)}>
+								<Archive className="size-4" /> Move to...
+							</DropdownMenuItem>
+						)}
+						{groups.length > 0 && (
+							<DropdownMenuSub>
+								<DropdownMenuSubTrigger>
+									<Group className="size-4" /> Group
+								</DropdownMenuSubTrigger>
+								<DropdownMenuSubContent>
+									{otherGroups.map(g => {
+										const GroupTypeIcon = g.type === 'or' ? Shuffle : ListOrdered
+										const label = g.name || `${g.type === 'or' ? 'Pick one' : 'In order'} group #${g.id}`
+										return (
+											<DropdownMenuItem key={g.id} onClick={() => handleAssignGroup(g.id)}>
+												<GroupTypeIcon className="size-4" /> {label}
+											</DropdownMenuItem>
+										)
+									})}
+									{hasCurrentGroup && otherGroups.length > 0 && <DropdownMenuSeparator />}
+									{hasCurrentGroup && (
+										<DropdownMenuItem onClick={() => handleAssignGroup(null)}>
+											<Ungroup className="size-4" /> Remove from group
 										</DropdownMenuItem>
-									)
-								})}
-								{hasCurrentGroup && otherGroups.length > 0 && <DropdownMenuSeparator />}
-								{hasCurrentGroup && (
-									<DropdownMenuItem onClick={() => handleAssignGroup(null)}>
-										<Ungroup className="size-4" /> Remove from group
-									</DropdownMenuItem>
-								)}
-							</DropdownMenuSubContent>
-						</DropdownMenuSub>
-					)}
-					<DropdownMenuItem onClick={handleArchive}>
-						<Archive className="size-4" /> Archive
-					</DropdownMenuItem>
-					<DropdownMenuSeparator />
-					<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteDialogOpen(true)}>
-						<Trash2 className="size-4" /> Delete
-					</DropdownMenuItem>
-					{isAdmin && (
-						<>
-							<DropdownMenuSeparator />
-							<DropdownMenuLabel className="text-muted-foreground font-mono text-xs">item #{item.id}</DropdownMenuLabel>
-						</>
-					)}
-				</DropdownMenuContent>
-			</DropdownMenu>
-		</>
+									)}
+								</DropdownMenuSubContent>
+							</DropdownMenuSub>
+						)}
+						<DropdownMenuItem onClick={handleArchive}>
+							<Archive className="size-4" /> Archive
+						</DropdownMenuItem>
+						<DropdownMenuSeparator />
+						<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteDialogOpen(true)}>
+							<Trash2 className="size-4" /> Delete
+						</DropdownMenuItem>
+						{isAdmin && (
+							<>
+								<DropdownMenuSeparator />
+								<DropdownMenuLabel className="text-muted-foreground font-mono text-xs">item #{item.id}</DropdownMenuLabel>
+							</>
+						)}
+					</DropdownMenuContent>
+				</DropdownMenu>
+			</div>
+			<ItemComments itemId={item.id} />
+		</div>
 	)
 
 	return (
 		<>
 			{flush ? (
-				<div className="flex items-center gap-2 p-2 border-b last:border-b-0 ps-4">{rowInner}</div>
+				<div className="flex items-start gap-2 p-2 border-b last:border-b-0 ps-4">{rowInner}</div>
 			) : (
 				<div className="relative">
 					{hasPriorityTab && (
@@ -235,7 +239,7 @@ export function ItemEditRow({ item, onMoveClick, groups = [], flush = false, onM
 					)}
 					<div
 						className={cn(
-							'relative z-10 flex items-center gap-2 p-2 ps-4 ring-1 ring-inset ring-border rounded-lg bg-card shadow-sm',
+							'relative z-10 flex items-start gap-2 p-2 ps-4 ring-1 ring-inset ring-border rounded-lg bg-card shadow-sm',
 							priorityRingClass[item.priority]
 						)}
 					>
