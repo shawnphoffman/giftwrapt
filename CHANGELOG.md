@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.13.0](https://github.com/shawnphoffman/wish-lists/compare/v0.12.1...v0.13.0) (2026-04-23)
+
+
+### Features
+
+* **admin:** email settings tab with db-backed resend config ([0840e44](https://github.com/shawnphoffman/wish-lists/commit/0840e4419971c4197ce0c33fa0a8df1ee69684ab))
+* **admin:** upload avatars for other users ([1793380](https://github.com/shawnphoffman/wish-lists/commit/1793380032de14b517fc44f1bb6ab56fef9fb0ca))
+* **auth:** animated gradient background on sign-in and sign-up ([e519cbd](https://github.com/shawnphoffman/wish-lists/commit/e519cbd92df136d94f7489ea6a545671b48d6a34))
+* **comments:** edit-page, motion, Cmd+Enter ([47b78e2](https://github.com/shawnphoffman/wish-lists/commit/47b78e2ed025fa175cbbc76fde3f852cf332cf75))
+
+
+### Bug Fixes
+
+* **admin:** replace number birth day input with month-aware select ([55b5d3d](https://github.com/shawnphoffman/wish-lists/commit/55b5d3daa3ab7238595a44573d1a27ae91f4d9af))
+* **uploads:** hide upload hints when storage is disabled ([a293019](https://github.com/shawnphoffman/wish-lists/commit/a2930193dc3b8522f3b0d3b6aa08199caf5eabb3))
+
 ## [0.12.1](https://github.com/shawnphoffman/wish-lists/compare/v0.12.0...v0.12.1) (2026-04-23)
 
 
