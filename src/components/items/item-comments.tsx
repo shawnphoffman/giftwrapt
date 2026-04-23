@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { formatDistanceToNow } from 'date-fns'
 import { MessageSquare, Pencil, Trash2 } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { type KeyboardEvent, useState } from 'react'
@@ -19,6 +20,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useSession } from '@/lib/auth-client'
+import { cn } from '@/lib/utils'
 
 type Props = {
 	itemId: number
@@ -30,7 +32,7 @@ function isSubmitShortcut(e: KeyboardEvent) {
 }
 
 export function ItemComments({ itemId, commentCount = 0 }: Props) {
-	const [expanded, setExpanded] = useState(false)
+	const [expanded, setExpanded] = useState(commentCount > 0)
 	const session = useSession()
 	const currentUserId = session.data?.user.id
 	const prefersReducedMotion = useReducedMotion()
@@ -69,7 +71,12 @@ export function ItemComments({ itemId, commentCount = 0 }: Props) {
 			<button
 				type="button"
 				onClick={() => setExpanded(!expanded)}
-				className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground w-fit"
+				className={cn(
+					'flex items-center gap-1.5 text-xs w-fit',
+					displayCount > 0
+						? 'font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300'
+						: 'text-muted-foreground hover:text-foreground'
+				)}
 			>
 				<MessageSquare className="size-3.5" />
 				{displayCount > 0 ? `${displayCount} comment${displayCount !== 1 ? 's' : ''}` : 'Add comment'}
@@ -84,7 +91,12 @@ export function ItemComments({ itemId, commentCount = 0 }: Props) {
 						transition={{ duration, ease: 'easeOut' }}
 						className="overflow-hidden"
 					>
-						<div className="flex flex-col gap-2 pl-2 border-l-2 border-muted">
+						<div
+							className={cn(
+								'flex flex-col gap-2 pl-2 border-l',
+								displayCount > 0 ? 'border-blue-600 dark:border-blue-400' : 'border-muted'
+							)}
+						>
 							<AnimatePresence initial={false}>
 								{comments?.map(c => (
 									<motion.div
@@ -115,12 +127,9 @@ export function ItemComments({ itemId, commentCount = 0 }: Props) {
 									disabled={submitting}
 									className="text-sm"
 								/>
-								<div className="flex flex-col items-end gap-1">
-									<Button size="sm" onClick={handleSubmit} disabled={submitting || !newComment.trim()}>
-										{submitting ? '...' : 'Post'}
-									</Button>
-									<kbd className="hidden sm:inline-flex text-[10px] text-muted-foreground font-mono">⌘↵</kbd>
-								</div>
+								<Button size="sm" onClick={handleSubmit} disabled={submitting || !newComment.trim()}>
+									{submitting ? '...' : 'Post'}
+								</Button>
 							</div>
 						</div>
 					</motion.div>
@@ -182,7 +191,9 @@ function CommentRow({
 				<div className="flex-1 min-w-0">
 					<div className="flex items-baseline gap-1.5">
 						<span className="font-medium text-xs">{name}</span>
-						<span className="text-xs text-muted-foreground">{new Date(comment.createdAt).toLocaleDateString()}</span>
+						<span className="text-xs text-muted-foreground" title={new Date(comment.createdAt).toLocaleString()}>
+							{formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+						</span>
 					</div>
 					<AnimatePresence mode="wait" initial={false}>
 						{editing ? (

@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, desc, eq } from 'drizzle-orm'
+import { and, asc, desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
@@ -61,7 +61,7 @@ export const getCommentsForItem = createServerFn({ method: 'GET' })
 
 		const rows = await db.query.itemComments.findMany({
 			where: eq(itemComments.itemId, data.itemId),
-			orderBy: [desc(itemComments.createdAt)],
+			orderBy: [asc(itemComments.createdAt)],
 			with: {
 				user: {
 					columns: { id: true, name: true, email: true, image: true },
