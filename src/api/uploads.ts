@@ -1,10 +1,12 @@
 import { createServerFn } from '@tanstack/react-start'
+import { getRequestHeaders } from '@tanstack/react-start/server'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
 import { items, lists, users } from '@/db/schema'
 import { env } from '@/env'
+import { auth } from '@/lib/auth'
 import { createLogger, loggingMiddleware } from '@/lib/logger'
 import { canEditList } from '@/lib/permissions'
 import { getStorage } from '@/lib/storage/adapter'
@@ -100,7 +102,10 @@ export const uploadAvatar = createServerFn({ method: 'POST' })
 		}
 
 		const url = storage.getPublicUrl(key)
-		await db.update(users).set({ image: url }).where(eq(users.id, userId))
+		// Route through better-auth so its cookieCache (see src/lib/auth.ts)
+		// invalidates; a raw db.update would leave the client reading the stale
+		// cached user for up to 10 minutes after upload.
+		await auth.api.updateUser({ body: { image: url }, headers: getRequestHeaders() })
 
 		if (oldUrl) {
 			const oldKey = parseKeyFromUrl(oldUrl, env.STORAGE_PUBLIC_URL)
@@ -120,7 +125,7 @@ export const removeAvatar = createServerFn({ method: 'POST' })
 		})
 		const oldUrl = user?.image ?? null
 
-		await db.update(users).set({ image: null }).where(eq(users.id, userId))
+		await auth.api.updateUser({ body: { image: null }, headers: getRequestHeaders() })
 
 		if (oldUrl) {
 			const oldKey = parseKeyFromUrl(oldUrl, env.STORAGE_PUBLIC_URL)
