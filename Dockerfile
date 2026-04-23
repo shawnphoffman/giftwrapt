@@ -11,6 +11,7 @@ RUN pnpm install --frozen-lockfile
 # Build both the Nitro server bundle and the standalone CLI bundles
 # (.output/scripts/*.mjs) — `pnpm build` runs vite build + build:cli.
 FROM base AS builder
+ENV NODE_OPTIONS=--max-old-space-size=4096
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm build
