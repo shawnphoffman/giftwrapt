@@ -103,7 +103,7 @@ function MyListsPage() {
 									Lists that others created and added you as an editor.
 								</ListsCardDescription>
 							</ListsCardHeader>
-							<ListsCardLists className="px-0">
+							<ListsCardLists>
 								{data.editable.map(list => (
 									<MyListRow key={list.id} list={list} showOwner={{ name: list.ownerName, email: list.ownerEmail }} />
 								))}
@@ -131,7 +131,7 @@ function ListSection({
 				<ListsCardTitle>{title}</ListsCardTitle>
 				<ListsCardDescription className="italic">{description}</ListsCardDescription>
 			</ListsCardHeader>
-			<ListsCardLists className={lists.length === 0 ? undefined : 'px-0'}>
+			<ListsCardLists>
 				{lists.length === 0 ? (
 					<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30 italic">
 						No lists yet.
