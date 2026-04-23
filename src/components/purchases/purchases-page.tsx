@@ -227,7 +227,7 @@ export function PurchasesPageContent({ items }: Props) {
 	)
 
 	return (
-		<div className="wish-page max-w-6xl">
+		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
 				{/* HEADING */}
 				<div className="relative">
