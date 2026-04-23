@@ -2,11 +2,11 @@
 
 The seeded local-dev admin account:
 
-| Field    | Value                 |
-| -------- | --------------------- |
-| Email    | `admin@example.test`  |
-| Password | `SeedPass123!`        |
-| Role     | `admin`               |
+| Field    | Value                |
+| -------- | -------------------- |
+| Email    | `admin@example.test` |
+| Password | `SeedPass123!`       |
+| Role     | `admin`              |
 
 This user only exists after you've run the seed against your local DB. The seed
 script (`scripts/seed.ts`) is the source of truth — if the credentials here
@@ -30,13 +30,13 @@ SEED_SAFE=1 pnpm db:seed
 
 All share the password `SeedPass123!`:
 
-| Email                 | Role  | Notes                                             |
-| --------------------- | ----- | ------------------------------------------------- |
-| `admin@example.test`  | admin | —                                                 |
-| `alice@example.test`  | user  | Partnered with Bob; guardian of Kid; b. Mar 14    |
-| `bob@example.test`    | user  | Partnered with Alice; editor on Alice's todo list |
-| `carol@example.test`  | user  | Solo; mutual view-only relationship with Alice    |
-| `kid@example.test`    | child | Guarded by Alice                                  |
+| Email                | Role  | Notes                                             |
+| -------------------- | ----- | ------------------------------------------------- |
+| `admin@example.test` | admin | —                                                 |
+| `alice@example.test` | user  | Partnered with Bob; guardian of Kid; b. Mar 14    |
+| `bob@example.test`   | user  | Partnered with Alice; editor on Alice's todo list |
+| `carol@example.test` | user  | Solo; mutual view-only relationship with Alice    |
+| `kid@example.test`   | child | Guarded by Alice                                  |
 
 ## Regaining access without reseeding
 

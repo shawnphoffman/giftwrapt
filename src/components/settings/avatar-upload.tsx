@@ -135,7 +135,13 @@ export default function AvatarUpload({ image, displayName, onUpload, onRemove, o
 				)}
 			</Avatar>
 			{image && (
-				<Button variant="ghost" size="sm" disabled={busy} onClick={handleRemove} className="text-muted-foreground hover:text-destructive gap-1.5">
+				<Button
+					variant="ghost"
+					size="sm"
+					disabled={busy}
+					onClick={handleRemove}
+					className="text-muted-foreground hover:text-destructive gap-1.5"
+				>
 					{isRemoving ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
 					Remove
 				</Button>

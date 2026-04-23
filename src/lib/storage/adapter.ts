@@ -30,11 +30,7 @@ let _storage: StorageAdapter | undefined
 // and the UI shows a banner + hides upload controls.
 export function isStorageConfigured(): boolean {
 	return Boolean(
-		env.STORAGE_ENDPOINT &&
-			env.STORAGE_REGION &&
-			env.STORAGE_BUCKET &&
-			env.STORAGE_ACCESS_KEY_ID &&
-			env.STORAGE_SECRET_ACCESS_KEY
+		env.STORAGE_ENDPOINT && env.STORAGE_REGION && env.STORAGE_BUCKET && env.STORAGE_ACCESS_KEY_ID && env.STORAGE_SECRET_ACCESS_KEY
 	)
 }
 

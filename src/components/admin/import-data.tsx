@@ -69,8 +69,7 @@ export default function ImportData() {
 		}
 	}, [])
 
-	const canSubmit =
-		parsed != null && !submitting && (mode === 'merge' || confirmText === WIPE_CONFIRM_PHRASE)
+	const canSubmit = parsed != null && !submitting && (mode === 'merge' || confirmText === WIPE_CONFIRM_PHRASE)
 
 	const handleSubmit = useCallback(async () => {
 		if (!parsed) return
@@ -101,20 +100,8 @@ export default function ImportData() {
 	return (
 		<div className="space-y-4">
 			<div>
-				<input
-					ref={fileInputRef}
-					type="file"
-					accept="application/json"
-					className="hidden"
-					onChange={handleFileChange}
-				/>
-				<Button
-					type="button"
-					variant="secondary"
-					onClick={() => fileInputRef.current?.click()}
-					disabled={submitting}
-					className="gap-2"
-				>
+				<input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={handleFileChange} />
+				<Button type="button" variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={submitting} className="gap-2">
 					<Upload />
 					{fileName ? 'Choose a different file' : 'Choose backup file'}
 				</Button>
@@ -161,7 +148,8 @@ export default function ImportData() {
 								<div className="space-y-0.5">
 									<div className="text-sm font-medium">Wipe and restore</div>
 									<div className="text-xs text-muted-foreground">
-										Delete all existing app data (including every user and all sessions), then insert rows from the backup. You will be signed out and will need to re-authenticate.
+										Delete all existing app data (including every user and all sessions), then insert rows from the backup. You will be
+										signed out and will need to re-authenticate.
 									</div>
 								</div>
 							</label>
@@ -183,12 +171,7 @@ export default function ImportData() {
 						</div>
 					)}
 
-					<Button
-						type="button"
-						onClick={handleSubmit}
-						disabled={!canSubmit}
-						variant={mode === 'wipe' ? 'destructive' : 'default'}
-					>
+					<Button type="button" onClick={handleSubmit} disabled={!canSubmit} variant={mode === 'wipe' ? 'destructive' : 'default'}>
 						{submitting ? 'Importing...' : mode === 'wipe' ? 'Wipe and restore' : 'Merge import'}
 					</Button>
 				</>

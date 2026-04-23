@@ -43,10 +43,7 @@ export function notifyListChange(listId: number) {
 	const encoder = new TextEncoder()
 	const message = encoder.encode(`data: ${JSON.stringify({ type: 'invalidate', listId, ts: Date.now() })}\n\n`)
 
-	sseLog.debug(
-		{ listId, perListSubs: perList?.size ?? 0, anyListSubs: anyListWriters.size },
-		'broadcasting list change'
-	)
+	sseLog.debug({ listId, perListSubs: perList?.size ?? 0, anyListSubs: anyListWriters.size }, 'broadcasting list change')
 
 	if (perList) writeAll(perList, message, w => perList.delete(w))
 	writeAll(anyListWriters, message, w => anyListWriters.delete(w))

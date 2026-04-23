@@ -34,7 +34,10 @@ export async function processImage(input: Buffer, preset: ImagePreset): Promise<
 	try {
 		const pipeline = sharp(input, { failOn: 'error' }).rotate().withMetadata({})
 
-		const shaped = preset === 'avatar' ? pipeline.resize(256, 256, { fit: 'cover', position: 'centre' }) : pipeline.resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+		const shaped =
+			preset === 'avatar'
+				? pipeline.resize(256, 256, { fit: 'cover', position: 'centre' })
+				: pipeline.resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
 
 		const { data, info } = await shaped.webp({ quality: preset === 'avatar' ? 82 : 80 }).toBuffer({ resolveWithObject: true })
 

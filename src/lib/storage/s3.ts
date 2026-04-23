@@ -1,12 +1,6 @@
 import type { Readable } from 'node:stream'
 
-import {
-	DeleteObjectCommand,
-	GetObjectCommand,
-	HeadBucketCommand,
-	PutObjectCommand,
-	S3Client,
-} from '@aws-sdk/client-s3'
+import { DeleteObjectCommand, GetObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 
 import { createLogger } from '@/lib/logger'
 

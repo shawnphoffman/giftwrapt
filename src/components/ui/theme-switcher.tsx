@@ -18,7 +18,7 @@ export function ThemeSwitcher({ className }: { className?: string }) {
 
 	const buttonClasses = cn(
 		'size-8 mx-auto group-data-[collapsible=icon]:size-10 transition-[width,height] duration-200 ease-linear',
-		className,
+		className
 	)
 	const iconClasses = 'size-4 group-data-[collapsible=icon]:size-6 transition-[width,height] duration-200 ease-linear'
 

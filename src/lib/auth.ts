@@ -19,13 +19,7 @@ const authLog = createLogger('auth')
 // Map LOG_LEVEL to the narrower set better-auth accepts. 'fatal' collapses to
 // 'error', 'trace' to 'debug', 'silent' disables entirely.
 const betterAuthLevel: 'info' | 'warn' | 'error' | 'debug' | undefined =
-	env.LOG_LEVEL === 'silent'
-		? undefined
-		: env.LOG_LEVEL === 'fatal'
-			? 'error'
-			: env.LOG_LEVEL === 'trace'
-				? 'debug'
-				: env.LOG_LEVEL
+	env.LOG_LEVEL === 'silent' ? undefined : env.LOG_LEVEL === 'fatal' ? 'error' : env.LOG_LEVEL === 'trace' ? 'debug' : env.LOG_LEVEL
 
 const options = {
 	baseURL: env.BETTER_AUTH_URL || env.SERVER_URL || 'http://localhost:3000',

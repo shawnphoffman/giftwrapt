@@ -5,11 +5,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 function navLinkClass(active: boolean) {
-	return cn(
-		buttonVariants({ variant: 'ghost' }),
-		'justify-start w-full',
-		active && 'bg-muted text-foreground hover:bg-muted',
-	)
+	return cn(buttonVariants({ variant: 'ghost' }), 'justify-start w-full', active && 'bg-muted text-foreground hover:bg-muted')
 }
 
 export default function AdminLinks() {
@@ -21,10 +17,7 @@ export default function AdminLinks() {
 				<Lock />
 				General
 			</Link>
-			<Link
-				to="/admin/users"
-				className={navLinkClass(pathname === '/admin/users' || pathname.startsWith('/admin/user/'))}
-			>
+			<Link to="/admin/users" className={navLinkClass(pathname === '/admin/users' || pathname.startsWith('/admin/user/'))}>
 				<Users />
 				Users
 			</Link>

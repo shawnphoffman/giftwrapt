@@ -14,11 +14,7 @@ function ListsCardHeader({ className, ...props }: React.ComponentProps<'div'>) {
 
 function ListsCardTitle({ className, ...props }: React.ComponentProps<'div'>) {
 	return (
-		<CardTitle
-			data-slot="lists-card-title"
-			className={cn('text-2xl font-semibold leading-none tracking-tight', className)}
-			{...props}
-		/>
+		<CardTitle data-slot="lists-card-title" className={cn('text-2xl font-semibold leading-none tracking-tight', className)} {...props} />
 	)
 }
 

@@ -127,19 +127,19 @@ Functionally identical to R2 but with AWS's IAM model. You'll want a narrow-scop
 
 ```json
 {
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
-      "Resource": "arn:aws:s3:::your-bucket-name/*"
-    },
-    {
-      "Effect": "Allow",
-      "Action": "s3:ListBucket",
-      "Resource": "arn:aws:s3:::your-bucket-name"
-    }
-  ]
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Effect": "Allow",
+			"Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
+			"Resource": "arn:aws:s3:::your-bucket-name/*"
+		},
+		{
+			"Effect": "Allow",
+			"Action": "s3:ListBucket",
+			"Resource": "arn:aws:s3:::your-bucket-name"
+		}
+	]
 }
 ```
 
@@ -159,20 +159,20 @@ Put CloudFront in front of the bucket and set `STORAGE_PUBLIC_URL` to the distri
 
 All server-side; no `VITE_*` equivalents. Validated at boot; missing any required value aborts the server with a helpful message.
 
-| Var | Required | Purpose |
-|---|---|---|
-| `STORAGE_ENDPOINT` | yes | S3 API URL. Garage: `http://garage:3900` (compose) or `http://localhost:3900` (host). R2: `https://<account>.r2.cloudflarestorage.com`. AWS: `https://s3.<region>.amazonaws.com`. |
-| `STORAGE_REGION` | yes | Any non-empty string for Garage (`garage`). `auto` for R2. AWS region name (`us-east-1`). |
-| `STORAGE_BUCKET` | yes | Bucket name. |
-| `STORAGE_ACCESS_KEY_ID` | yes | S3 access key. Garage requires `GK` + 24 hex chars. |
-| `STORAGE_SECRET_ACCESS_KEY` | yes | S3 secret key. Garage requires 64 hex chars. |
-| `STORAGE_FORCE_PATH_STYLE` | yes | `true` for Garage/MinIO. `false` for AWS/R2. |
-| `STORAGE_PUBLIC_URL` | no | CDN base URL handed to clients. Unset = the app serves via `/api/files/*`. |
-| `STORAGE_MAX_UPLOAD_MB` | no | Max upload size before Sharp runs (default 8). |
-| `INIT_GARAGE` | no | `"true"` triggers the built-in Garage bootstrap during the app's entrypoint. Default is off; the self-host compose file sets it to true. Ignored for external S3 deploys. |
-| `GARAGE_ADMIN_URL` | if `INIT_GARAGE=true` or using `pnpm storage:init` | Where the bootstrap reaches Garage's admin API. Defaults to `http://wish-lists-storage:3903` (self-host service name). For local dev, `http://localhost:3903`. |
-| `GARAGE_ADMIN_TOKEN` | if bootstrap is used | Bearer token for Garage's admin API. 64 hex chars (`openssl rand -hex 32`). |
-| `GARAGE_RPC_SECRET` | if running the bundled Garage daemon | Garage internal RPC auth. 64 hex chars. Unused by the app itself; only read by the Garage container. |
+| Var                         | Required                                           | Purpose                                                                                                                                                                           |
+| --------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `STORAGE_ENDPOINT`          | yes                                                | S3 API URL. Garage: `http://garage:3900` (compose) or `http://localhost:3900` (host). R2: `https://<account>.r2.cloudflarestorage.com`. AWS: `https://s3.<region>.amazonaws.com`. |
+| `STORAGE_REGION`            | yes                                                | Any non-empty string for Garage (`garage`). `auto` for R2. AWS region name (`us-east-1`).                                                                                         |
+| `STORAGE_BUCKET`            | yes                                                | Bucket name.                                                                                                                                                                      |
+| `STORAGE_ACCESS_KEY_ID`     | yes                                                | S3 access key. Garage requires `GK` + 24 hex chars.                                                                                                                               |
+| `STORAGE_SECRET_ACCESS_KEY` | yes                                                | S3 secret key. Garage requires 64 hex chars.                                                                                                                                      |
+| `STORAGE_FORCE_PATH_STYLE`  | yes                                                | `true` for Garage/MinIO. `false` for AWS/R2.                                                                                                                                      |
+| `STORAGE_PUBLIC_URL`        | no                                                 | CDN base URL handed to clients. Unset = the app serves via `/api/files/*`.                                                                                                        |
+| `STORAGE_MAX_UPLOAD_MB`     | no                                                 | Max upload size before Sharp runs (default 8).                                                                                                                                    |
+| `INIT_GARAGE`               | no                                                 | `"true"` triggers the built-in Garage bootstrap during the app's entrypoint. Default is off; the self-host compose file sets it to true. Ignored for external S3 deploys.         |
+| `GARAGE_ADMIN_URL`          | if `INIT_GARAGE=true` or using `pnpm storage:init` | Where the bootstrap reaches Garage's admin API. Defaults to `http://wish-lists-storage:3903` (self-host service name). For local dev, `http://localhost:3903`.                    |
+| `GARAGE_ADMIN_TOKEN`        | if bootstrap is used                               | Bearer token for Garage's admin API. 64 hex chars (`openssl rand -hex 32`).                                                                                                       |
+| `GARAGE_RPC_SECRET`         | if running the bundled Garage daemon               | Garage internal RPC auth. 64 hex chars. Unused by the app itself; only read by the Garage container.                                                                              |
 
 ## Troubleshooting
 

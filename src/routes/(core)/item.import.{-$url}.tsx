@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { type Priority,priorityEnumValues } from '@/db/schema/enums'
+import { type Priority, priorityEnumValues } from '@/db/schema/enums'
 
 export const Route = createFileRoute('/(core)/item/import/{-$url}')({
 	component: ItemImportPage,

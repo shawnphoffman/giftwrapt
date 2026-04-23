@@ -6,11 +6,7 @@ import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 
 function navLinkClass(active: boolean) {
-	return cn(
-		buttonVariants({ variant: 'ghost' }),
-		'justify-start w-full',
-		active && 'bg-muted text-foreground hover:bg-muted',
-	)
+	return cn(buttonVariants({ variant: 'ghost' }), 'justify-start w-full', active && 'bg-muted text-foreground hover:bg-muted')
 }
 
 export default function SettingsLinks() {

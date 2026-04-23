@@ -72,7 +72,6 @@ async function main() {
 			email,
 			password,
 			name,
-			 
 		} as any,
 	})
 	if (!result.user.id) {

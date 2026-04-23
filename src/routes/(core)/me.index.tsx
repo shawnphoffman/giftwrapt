@@ -99,9 +99,7 @@ function MyListsPage() {
 						<ListsCard>
 							<ListsCardHeader className="flex-col items-start gap-1">
 								<ListsCardTitle>Lists I Can Edit</ListsCardTitle>
-								<ListsCardDescription className="italic">
-									Lists that others created and added you as an editor.
-								</ListsCardDescription>
+								<ListsCardDescription className="italic">Lists that others created and added you as an editor.</ListsCardDescription>
 							</ListsCardHeader>
 							<ListsCardLists>
 								{data.editable.map(list => (
@@ -133,9 +131,7 @@ function ListSection({
 			</ListsCardHeader>
 			<ListsCardLists>
 				{lists.length === 0 ? (
-					<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30 italic">
-						No lists yet.
-					</div>
+					<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30 italic">No lists yet.</div>
 				) : (
 					lists.map(list => <MyListRow key={list.id} list={list} />)
 				)}
@@ -154,9 +150,7 @@ function ChildListSection({ child }: { child: ChildListGroup }) {
 			</ListsCardHeader>
 			<ListsCardLists>
 				{child.lists.length === 0 ? (
-					<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30 italic">
-						No lists yet.
-					</div>
+					<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30 italic">No lists yet.</div>
 				) : (
 					child.lists.map(list => (
 						<ListsCardList key={list.id} asChild className="text-base">

@@ -413,10 +413,8 @@ export const importAppDataAsAdmin = createServerFn({ method: 'POST' })
 					if (!entry.idSequence) continue
 					await tx.execute(
 						sql.raw(
-							`SELECT setval('${entry.idSequence}', GREATEST((SELECT COALESCE(MAX(id), 0) FROM ${quoteIdent(
-								dbTableName(entry.name),
-							)}), 1))`,
-						),
+							`SELECT setval('${entry.idSequence}', GREATEST((SELECT COALESCE(MAX(id), 0) FROM ${quoteIdent(dbTableName(entry.name))}), 1))`
+						)
 					)
 				}
 

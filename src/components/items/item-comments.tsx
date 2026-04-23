@@ -3,7 +3,7 @@ import { MessageSquare, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { type CommentWithUser,createItemComment, deleteItemComment, getCommentsForItem, updateItemComment } from '@/api/comments'
+import { type CommentWithUser, createItemComment, deleteItemComment, getCommentsForItem, updateItemComment } from '@/api/comments'
 import UserAvatar from '@/components/common/user-avatar'
 import {
 	AlertDialog,

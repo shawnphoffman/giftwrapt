@@ -8,7 +8,12 @@
 //
 // This file is import-for-side-effects; pull it in once before anything that
 // might touch crypto.randomUUID.
-if (typeof globalThis !== 'undefined' && globalThis.crypto && typeof globalThis.crypto.randomUUID !== 'function' && typeof globalThis.crypto.getRandomValues === 'function') {
+if (
+	typeof globalThis !== 'undefined' &&
+	globalThis.crypto &&
+	typeof globalThis.crypto.randomUUID !== 'function' &&
+	typeof globalThis.crypto.getRandomValues === 'function'
+) {
 	globalThis.crypto.randomUUID = function randomUUID() {
 		const bytes = new Uint8Array(16)
 		globalThis.crypto.getRandomValues(bytes)

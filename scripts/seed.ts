@@ -93,7 +93,6 @@ async function signUp(input: {
 			email: input.email,
 			password: PASSWORD,
 			name: input.name,
-			 
 		} as any,
 	})
 	if (!result.user.id) {
@@ -527,11 +526,51 @@ async function main() {
 		.returning({ id: itemGroups.id })
 
 	await db.insert(items).values([
-		{ listId: adminWishlist.id, groupId: bookPick.id, title: 'The Pragmatic Programmer', priority: 'normal', quantity: 1, price: '34.99', currency: 'USD' },
-		{ listId: adminWishlist.id, groupId: bookPick.id, title: 'Designing Data-Intensive Applications', priority: 'normal', quantity: 1, price: '59.99', currency: 'USD' },
-		{ listId: adminWishlist.id, groupId: bookPick.id, title: 'Crafting Interpreters', priority: 'normal', quantity: 1, price: '39.99', currency: 'USD' },
-		{ listId: adminWishlist.id, groupId: bookPick.id, title: 'The Mythical Man-Month', priority: 'low', quantity: 1, price: '24.99', currency: 'USD' },
-		{ listId: adminWishlist.id, groupId: bookPick.id, title: 'Code Complete', priority: 'low', quantity: 1, price: '44.99', currency: 'USD' },
+		{
+			listId: adminWishlist.id,
+			groupId: bookPick.id,
+			title: 'The Pragmatic Programmer',
+			priority: 'normal',
+			quantity: 1,
+			price: '34.99',
+			currency: 'USD',
+		},
+		{
+			listId: adminWishlist.id,
+			groupId: bookPick.id,
+			title: 'Designing Data-Intensive Applications',
+			priority: 'normal',
+			quantity: 1,
+			price: '59.99',
+			currency: 'USD',
+		},
+		{
+			listId: adminWishlist.id,
+			groupId: bookPick.id,
+			title: 'Crafting Interpreters',
+			priority: 'normal',
+			quantity: 1,
+			price: '39.99',
+			currency: 'USD',
+		},
+		{
+			listId: adminWishlist.id,
+			groupId: bookPick.id,
+			title: 'The Mythical Man-Month',
+			priority: 'low',
+			quantity: 1,
+			price: '24.99',
+			currency: 'USD',
+		},
+		{
+			listId: adminWishlist.id,
+			groupId: bookPick.id,
+			title: 'Code Complete',
+			priority: 'low',
+			quantity: 1,
+			price: '44.99',
+			currency: 'USD',
+		},
 	])
 
 	// low priority: "order" group — home gym bundle.
@@ -564,9 +603,7 @@ async function main() {
 	])
 
 	// Empty group — exists to demonstrate zero-child rendering.
-	await db
-		.insert(itemGroups)
-		.values({ listId: adminWishlist.id, name: 'Future ideas (empty)', type: 'or', priority: 'normal' })
+	await db.insert(itemGroups).values({ listId: adminWishlist.id, name: 'Future ideas (empty)', type: 'or', priority: 'normal' })
 
 	console.log('🎉 Claiming gifts on the admin list...')
 	const adminEspresso = adminItemRows.find(i => i.title === 'Espresso machine')

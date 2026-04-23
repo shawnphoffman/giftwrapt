@@ -325,7 +325,14 @@ export function ItemFormDialog(props: Props) {
 									{currentUrl && (
 										<div className="flex items-center gap-3">
 											<img src={currentUrl} alt="" className="size-16 rounded border object-cover" />
-											<Button type="button" variant="ghost" size="sm" onClick={handleRemove} disabled={submitting || uploadingImage} className="gap-1.5">
+											<Button
+												type="button"
+												variant="ghost"
+												size="sm"
+												onClick={handleRemove}
+												disabled={submitting || uploadingImage}
+												className="gap-1.5"
+											>
 												<Trash2 className="size-3" />
 												Remove
 											</Button>
@@ -356,7 +363,9 @@ export function ItemFormDialog(props: Props) {
 											</>
 										)}
 									</div>
-									{!isEdit && storageConfigured && <p className="text-muted-foreground text-xs">You can upload a file after the item is created.</p>}
+									{!isEdit && storageConfigured && (
+										<p className="text-muted-foreground text-xs">You can upload a file after the item is created.</p>
+									)}
 								</div>
 							)
 						}}

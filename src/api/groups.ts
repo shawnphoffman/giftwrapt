@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 import { db } from '@/db'
 import { itemGroups, items, lists } from '@/db/schema'
-import { type GroupType, groupTypeEnumValues, type Priority,priorityEnumValues } from '@/db/schema/enums'
+import { type GroupType, groupTypeEnumValues, type Priority, priorityEnumValues } from '@/db/schema/enums'
 import type { ItemGroup } from '@/db/schema/items'
 import { loggingMiddleware } from '@/lib/logger'
 import { canEditList } from '@/lib/permissions'

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       publish_tag:
-        description: "Publish the current ref to GHCR with this semver tag (e.g. v0.6.0). Leave empty to skip docker-publish."
+        description: 'Publish the current ref to GHCR with this semver tag (e.g. v0.6.0). Leave empty to skip docker-publish.'
         required: false
         type: string
 

@@ -340,19 +340,19 @@ This creates the `drizzle/` directory with migration files that will be included
 
 ### Setup
 
-1) Copy the env template and update values:
+1. Copy the env template and update values:
 
 ```bash
 cp env.example .env
 ```
 
-2) Start the stack:
+2. Start the stack:
 
 ```bash
 docker compose -f docker-compose.selfhost.yml --env-file .env up -d
 ```
 
-3) Visit the app:
+3. Visit the app:
 
 ```
 http://localhost:3000

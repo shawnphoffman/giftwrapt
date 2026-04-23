@@ -60,8 +60,7 @@ export const logger: Logger = prettyEnabled
 		})
 	: pino(baseOptions)
 
-export const createLogger = (scope: string, bindings: Record<string, unknown> = {}): Logger =>
-	logger.child({ scope, ...bindings })
+export const createLogger = (scope: string, bindings: Record<string, unknown> = {}): Logger => logger.child({ scope, ...bindings })
 
 // TanStack middleware that wraps every server function invocation with a
 // scoped child logger, entry/exit debug lines, and error capture. Errors are

@@ -4,19 +4,14 @@
 		{
 			"name": "HoffStuff v2 (dev)",
 			"runtimeExecutable": "pnpm",
-			"runtimeArgs": [
-				"dev"
-			],
+			"runtimeArgs": ["dev"],
 			"port": 3001,
 			"autoPort": true
 		},
 		{
 			"name": "Storybook",
 			"runtimeExecutable": "sh",
-			"runtimeArgs": [
-				"-c",
-				"STORYBOOK=true pnpm exec storybook dev --no-open --ci -p 6020"
-			],
+			"runtimeArgs": ["-c", "STORYBOOK=true pnpm exec storybook dev --no-open --ci -p 6020"],
 			"port": 6020
 		}
 	]

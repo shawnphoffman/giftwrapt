@@ -16,8 +16,8 @@ export function StorageDisabledBanner() {
 			<AlertTriangle />
 			<AlertTitle>Image uploads are disabled</AlertTitle>
 			<AlertDescription>
-				Object storage is not configured on this server, so avatar and item image uploads are unavailable. Existing image URLs (pasted from external
-				sites) still work.
+				Object storage is not configured on this server, so avatar and item image uploads are unavailable. Existing image URLs (pasted from
+				external sites) still work.
 			</AlertDescription>
 		</Alert>
 	)

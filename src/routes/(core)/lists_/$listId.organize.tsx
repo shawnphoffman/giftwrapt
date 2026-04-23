@@ -31,7 +31,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { type Priority,priorityEnumValues } from '@/db/schema/enums'
+import { type Priority, priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { buildListEntries } from '@/lib/list-entries'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
@@ -325,13 +325,7 @@ function BulkActionsTab({ list }: { list: ListForEditing }) {
 			{visibleItems.length === 0 ? (
 				<div className="text-sm text-muted-foreground py-6 text-center border rounded-lg bg-accent">No items to show.</div>
 			) : (
-				<OrganizeList
-					list={list}
-					selected={selected}
-					selectedGroups={selectedGroups}
-					onToggle={toggle}
-					onToggleGroup={toggleGroup}
-				/>
+				<OrganizeList list={list} selected={selected} selectedGroups={selectedGroups} onToggle={toggle} onToggleGroup={toggleGroup} />
 			)}
 
 			{moveOpen && (

@@ -38,7 +38,7 @@ services:
       # pointing STORAGE_* at an external S3-compatible bucket.
       INIT_GARAGE: ${INIT_GARAGE:-true}
     ports:
-      - "${APP_PORT:-3000}:3000"
+      - '${APP_PORT:-3000}:3000'
     depends_on:
       postgres:
         condition: service_healthy
@@ -63,7 +63,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-wishlist}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-wishlist}']
       interval: 5s
       timeout: 5s
       retries: 10
@@ -84,7 +84,7 @@ services:
     # bandwidth), add a reverse-proxy rule for 3900 and set STORAGE_PUBLIC_URL
     # in .env — see docs/storage.md.
     healthcheck:
-      test: ["CMD", "/garage", "status"]
+      test: ['CMD', '/garage', 'status']
       interval: 5s
       timeout: 5s
       retries: 20

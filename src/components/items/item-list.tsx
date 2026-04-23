@@ -101,11 +101,7 @@ export default function ItemList({ items, groups = [] }: Props) {
 			<div className="flex flex-row items-center justify-end gap-1">
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-						<Button
-							variant="ghost"
-							size="sm"
-							className={cn('h-7 text-xs text-muted-foreground', filter !== 'all' && 'text-foreground')}
-						>
+						<Button variant="ghost" size="sm" className={cn('h-7 text-xs text-muted-foreground', filter !== 'all' && 'text-foreground')}>
 							<Filter className="size-3.5" />
 							{filterLabels[filter]}
 						</Button>
