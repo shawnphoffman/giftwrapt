@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.12.0](https://github.com/shawnphoffman/wish-lists/compare/v0.11.0...v0.12.0) (2026-04-23)
+
+
+### Features
+
+* **items:** file uploads for item images, cleanup orphaned objects on delete ([80662da](https://github.com/shawnphoffman/wish-lists/commit/80662da1ee143adac75aaa21c44be11bdd44f86a))
+* **lists:** add ListsCard composable component ([4a0ee8d](https://github.com/shawnphoffman/wish-lists/commit/4a0ee8d80b4a83ad5d1d0997bdd82a72dffd645a))
+* **purchases:** polish row UI, chart tooltip, color scheme, icons ([b5480a4](https://github.com/shawnphoffman/wish-lists/commit/b5480a430d18a6c06387b41000aa4d8df99d8660))
+* **purchases:** restructure metrics, add Spend by Recipient chart ([7d573f2](https://github.com/shawnphoffman/wish-lists/commit/7d573f21ff1b04f5e640ac9bb9e2e803ee352b63))
+* **settings:** wire avatar upload and remove ([1a3a9b8](https://github.com/shawnphoffman/wish-lists/commit/1a3a9b8f6323cf6748600f26aac244661f795855))
+* **storage:** add S3-compatible adapter + boot validation ([67835f1](https://github.com/shawnphoffman/wish-lists/commit/67835f12d3e13e07ae35a61d5e101a2d308c5542))
+* **storage:** boot Garage in docker compose with one-shot init ([6baffab](https://github.com/shawnphoffman/wish-lists/commit/6baffaba6d124da901c63aa0cdd055ef0f84915d))
+* **storage:** fold Garage bootstrap into the app entrypoint ([3a0ae8c](https://github.com/shawnphoffman/wish-lists/commit/3a0ae8c0551f3eab4b4778b2d18e6c0bda00909f))
+* **storage:** upload API and /api/files proxy route ([6c56d53](https://github.com/shawnphoffman/wish-lists/commit/6c56d53d36cbf3998ebc1ac51279147ef2140885))
+
+
+### Bug Fixes
+
+* **loading:** center app-load spinner in viewport ([f4ab3e3](https://github.com/shawnphoffman/wish-lists/commit/f4ab3e383d57222e92047a9451ce3ea606910278))
+* **seed:** load .env.local when running db:seed via tsx ([0eb1e83](https://github.com/shawnphoffman/wish-lists/commit/0eb1e83b1e252825815248763c483c8bd97981d3))
+* **storage:** gracefully degrade when STORAGE_* env vars are missing ([5df0c0d](https://github.com/shawnphoffman/wish-lists/commit/5df0c0d0cda4268bde96379428ca45eaf5a71d14))
+* **storage:** scope disabled banner to admin page only ([890e508](https://github.com/shawnphoffman/wish-lists/commit/890e508869d2f82f1b3200ea69c1b12a874f4d40))
+* **storage:** scope disabled banner to authenticated app shell ([fd613da](https://github.com/shawnphoffman/wish-lists/commit/fd613da6c9e188a05715b03d1772dead83fbab37))
+* **storybook:** alias @/api/storage-status to mocks ([0c8a1d2](https://github.com/shawnphoffman/wish-lists/commit/0c8a1d24d2d8975973f36aacc92a638c2e9cdc75))
+* **storybook:** alias @/api/uploads to mocks ([e7b4670](https://github.com/shawnphoffman/wish-lists/commit/e7b4670fad4ba1e1660da900a4f3aeadfe494757))
+* **storybook:** wrap stories in TooltipProvider ([e979afa](https://github.com/shawnphoffman/wish-lists/commit/e979afae8c3c6a8130eb996c160d1632dc7a9047))
+
 ## [0.11.0](https://github.com/shawnphoffman/wish-lists/compare/v0.10.0...v0.11.0) (2026-04-21)
 
 
