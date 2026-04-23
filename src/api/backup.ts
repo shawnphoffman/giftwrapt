@@ -58,7 +58,11 @@ export const exportAppDataAsAdmin = createServerFn({ method: 'GET' })
 			exportedAt: new Date().toISOString(),
 			tables: {
 				users: usersRows,
-				appSettings: appSettingsRows,
+				// Drizzle selects jsonb().notNull() as `unknown` in practice even
+				// though TS 5's NonNullable<unknown> resolves to `{}`. Cast rather
+				// than forcing `$type<{}>()` on the column, which would propagate
+				// into every consumer of the settings reader.
+				appSettings: appSettingsRows as BackupFile['tables']['appSettings'],
 				userRelationships: userRelationshipsRows,
 				guardianships: guardianshipsRows,
 				lists: listsRows,

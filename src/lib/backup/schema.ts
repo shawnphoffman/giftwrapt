@@ -32,7 +32,9 @@ const userRowSchema = z.object({
 
 const appSettingRowSchema = z.object({
 	key: z.string(),
-	value: z.unknown(),
+	// Matches drizzle's jsonb().notNull() select type, which the tanstack
+	// serverFn serializer narrows via NonNullable<unknown> = {}.
+	value: z.any() as unknown as z.ZodType<NonNullable<unknown>>,
 	updatedAt: dateField,
 	createdAt: dateField,
 })
