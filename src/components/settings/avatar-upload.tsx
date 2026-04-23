@@ -7,23 +7,33 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useStorageStatus } from '@/hooks/use-storage-status'
 import { useSession } from '@/lib/auth-client'
+import type { UploadResult } from '@/lib/storage/errors'
 
 // Avatar upload + remove. Clicking the avatar opens the file picker; a
 // subtle Remove button below shows up when there's an image to remove.
 // The server fn does all the work (Sharp, S3, DB update); we just show
 // progress state and refetch the session so the new URL flows through.
+//
+// By default targets the signed-in user. Admin callers can pass their own
+// onUpload/onRemove (e.g. to target another userId) and an onSuccess to
+// sync their own state (query invalidation, form field update).
 
 interface ProfileAvatarProps {
 	image?: string | null
 	displayName?: string | null
+	onUpload?: (file: File) => Promise<UploadResult<{ url: string }>>
+	onRemove?: () => Promise<UploadResult<{ ok: true }>>
+	onSuccess?: (image: string | null) => void | Promise<void>
 }
 
-export default function AvatarUpload({ image, displayName }: ProfileAvatarProps) {
+export default function AvatarUpload({ image, displayName, onUpload, onRemove, onSuccess }: ProfileAvatarProps) {
 	const [isUploading, setIsUploading] = useState(false)
 	const [isRemoving, setIsRemoving] = useState(false)
 	const fileInputRef = useRef<HTMLInputElement>(null)
 	const { refetch: refetchSession } = useSession()
 	const { configured: storageConfigured } = useStorageStatus()
+
+	const isCustomHandler = Boolean(onUpload || onRemove)
 
 	const busy = isUploading || isRemoving
 	// When storage is off, the avatar is a read-only display. Image URL (if
@@ -38,15 +48,24 @@ export default function AvatarUpload({ image, displayName }: ProfileAvatarProps)
 
 		setIsUploading(true)
 		try {
-			const form = new FormData()
-			form.append('file', file)
-			const result = await uploadAvatar({ data: form })
+			let result: UploadResult<{ url: string }>
+			if (onUpload) {
+				result = await onUpload(file)
+			} else {
+				const form = new FormData()
+				form.append('file', file)
+				result = await uploadAvatar({ data: form })
+			}
 			if (result.kind === 'error') {
 				toast.error(`Avatar upload failed: ${result.message}`)
 				return
 			}
 			toast.success('Avatar updated')
-			await refetchSession()
+			if (isCustomHandler) {
+				await onSuccess?.(result.value.url)
+			} else {
+				await refetchSession()
+			}
 		} catch (error) {
 			const msg = error instanceof Error ? error.message : 'unknown error'
 			toast.error(`Avatar upload failed: ${msg}`)
@@ -59,13 +78,17 @@ export default function AvatarUpload({ image, displayName }: ProfileAvatarProps)
 		if (!image) return
 		setIsRemoving(true)
 		try {
-			const result = await removeAvatar()
+			const result = await (onRemove ? onRemove() : removeAvatar())
 			if (result.kind === 'error') {
 				toast.error(`Remove failed: ${result.message}`)
 				return
 			}
 			toast.success('Avatar removed')
-			await refetchSession()
+			if (isCustomHandler) {
+				await onSuccess?.(null)
+			} else {
+				await refetchSession()
+			}
 		} catch (error) {
 			const msg = error instanceof Error ? error.message : 'unknown error'
 			toast.error(`Remove failed: ${msg}`)

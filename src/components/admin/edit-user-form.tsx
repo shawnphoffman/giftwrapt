@@ -4,9 +4,11 @@ import { useEffect, useRef, useState } from 'react'
 import type { z } from 'zod'
 
 import { getGuardianshipsForChild, getUsersAsAdmin, updateGuardianships, updateUserAsAdmin, updateUserPartner } from '@/api/admin'
+import { removeAvatarAsAdmin, uploadAvatarAsAdmin } from '@/api/uploads'
 import { BirthDaySelect } from '@/components/common/birth-day-select'
 import InputTooltip from '@/components/common/input-tooltip'
 import UserAvatar from '@/components/common/user-avatar'
+import AvatarUpload from '@/components/settings/avatar-upload'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -260,16 +262,31 @@ function EditUserFormInner({
 			}}
 			className="space-y-4"
 		>
-			{/* Avatar Preview */}
+			{/* Avatar */}
 			<form.Subscribe selector={state => ({ name: state.values.name, image: state.values.image })}>
 				{({ name, image }) => {
 					const previewImage = image?.trim() ? image : null
 					return (
 						<div className="flex items-center gap-4 pb-4 border-b">
-							<UserAvatar name={name || user.name || user.email || ''} image={previewImage} size="large" />
+							<AvatarUpload
+								image={previewImage}
+								displayName={name || user.name || user.email || ''}
+								onUpload={async file => {
+									const formData = new FormData()
+									formData.append('file', file)
+									formData.append('userId', userId)
+									return await uploadAvatarAsAdmin({ data: formData })
+								}}
+								onRemove={() => removeAvatarAsAdmin({ data: { userId } })}
+								onSuccess={async nextImage => {
+									form.setFieldValue('image', nextImage ?? undefined)
+									await queryClient.invalidateQueries({ queryKey: ['admin', 'user', userId] })
+									await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+								}}
+							/>
 							<div className="flex-1">
-								<p className="text-sm font-medium">Avatar Preview</p>
-								<p className="text-xs text-muted-foreground">Preview updates as you type</p>
+								<p className="text-sm font-medium">Avatar</p>
+								<p className="text-xs text-muted-foreground">Click to upload, or paste a URL below</p>
 							</div>
 						</div>
 					)

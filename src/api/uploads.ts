@@ -13,7 +13,7 @@ import { getStorage } from '@/lib/storage/adapter'
 import { err, ok, UploadError, type UploadResult } from '@/lib/storage/errors'
 import { processImage } from '@/lib/storage/image-pipeline'
 import { avatarKey, itemImageKey, parseKeyFromUrl } from '@/lib/storage/keys'
-import { authMiddleware } from '@/middleware/auth'
+import { adminAuthMiddleware, authMiddleware } from '@/middleware/auth'
 
 const log = createLogger('api:uploads')
 
@@ -126,6 +126,94 @@ export const removeAvatar = createServerFn({ method: 'POST' })
 		const oldUrl = user?.image ?? null
 
 		await auth.api.updateUser({ body: { image: null }, headers: getRequestHeaders() })
+
+		if (oldUrl) {
+			const oldKey = parseKeyFromUrl(oldUrl, env.STORAGE_PUBLIC_URL)
+			if (oldKey) void deleteKey(oldKey)
+		}
+
+		return ok({ ok: true })
+	})
+
+// ===============================
+// Admin avatar upload
+// ===============================
+
+// Admin-initiated avatar updates for another user. We skip auth.api.updateUser
+// (it would target the admin's own session, not the edited user) and write
+// directly. The target user's cookieCache will refresh on its 10-minute
+// schedule, same caveat as updateUserAsAdmin for other fields.
+
+export const uploadAvatarAsAdmin = createServerFn({ method: 'POST' })
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.inputValidator(formDataValidator)
+	.handler(async ({ data }): Promise<UploadResult<{ url: string }>> => {
+		const storage = getStorage()
+		if (!storage) return err('upstream', STORAGE_DISABLED_MESSAGE)
+
+		const file = data.get('file')
+		if (!(file instanceof File)) return err('bad-mime', 'missing "file" field')
+
+		const userIdRaw = data.get('userId')
+		if (typeof userIdRaw !== 'string' || !userIdRaw) return err('not-found', 'missing userId')
+		const userId = userIdRaw
+
+		if (file.size > MAX_BYTES) return err('too-large', `file exceeds ${env.STORAGE_MAX_UPLOAD_MB} MB limit`)
+		if (file.size === 0) return err('bad-mime', 'file is empty')
+
+		const user = await db.query.users.findFirst({
+			where: eq(users.id, userId),
+			columns: { image: true },
+		})
+		if (!user) return err('not-found', 'user not found')
+		const oldUrl = user.image ?? null
+
+		let buffer: Buffer
+		try {
+			const raw = await readFileAsBuffer(file)
+			const processed = await processImage(raw, 'avatar')
+			buffer = processed.buffer
+		} catch (error) {
+			if (error instanceof UploadError) return err(error.reason, error.message)
+			log.error({ err: error, userId }, 'admin.avatar.pipeline.unexpected')
+			return err('pipeline-failed', 'image processing failed')
+		}
+
+		const key = avatarKey(userId)
+		try {
+			await storage.upload(key, buffer, 'image/webp')
+		} catch (error) {
+			if (error instanceof UploadError) return err(error.reason, error.message)
+			return err('upstream', 'storage upload failed')
+		}
+
+		const url = storage.getPublicUrl(key)
+		await db.update(users).set({ image: url }).where(eq(users.id, userId))
+
+		if (oldUrl) {
+			const oldKey = parseKeyFromUrl(oldUrl, env.STORAGE_PUBLIC_URL)
+			if (oldKey) void deleteKey(oldKey)
+		}
+
+		return ok({ url })
+	})
+
+const RemoveAvatarAsAdminSchema = z.object({
+	userId: z.string().min(1),
+})
+
+export const removeAvatarAsAdmin = createServerFn({ method: 'POST' })
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.inputValidator((data: z.input<typeof RemoveAvatarAsAdminSchema>) => RemoveAvatarAsAdminSchema.parse(data))
+	.handler(async ({ data }): Promise<UploadResult<{ ok: true }>> => {
+		const user = await db.query.users.findFirst({
+			where: eq(users.id, data.userId),
+			columns: { image: true },
+		})
+		if (!user) return err('not-found', 'user not found')
+		const oldUrl = user.image ?? null
+
+		await db.update(users).set({ image: null }).where(eq(users.id, data.userId))
 
 		if (oldUrl) {
 			const oldKey = parseKeyFromUrl(oldUrl, env.STORAGE_PUBLIC_URL)
