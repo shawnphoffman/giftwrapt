@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.1](https://github.com/shawnphoffman/wish-lists/compare/v0.13.0...v0.13.1) (2026-04-23)
+
+
+### Bug Fixes
+
+* **docker:** bump node heap to 4GB during build ([b9a947a](https://github.com/shawnphoffman/wish-lists/commit/b9a947ac0c5f96fbd50b123d21a415ae748ed96d))
+
 ## [0.13.0](https://github.com/shawnphoffman/wish-lists/compare/v0.12.1...v0.13.0) (2026-04-23)
 
 
