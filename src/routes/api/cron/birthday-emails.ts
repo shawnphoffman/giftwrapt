@@ -58,7 +58,7 @@ export const Route = createFileRoute('/api/cron/birthday-emails')({
 					}
 				}
 
-				if (!isEmailConfigured()) {
+				if (!(await isEmailConfigured())) {
 					cronLog.info('skipped: email not configured')
 					return json({ ok: true, skipped: 'email not configured', date: new Date().toISOString() })
 				}

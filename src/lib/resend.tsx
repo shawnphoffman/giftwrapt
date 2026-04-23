@@ -1,47 +1,43 @@
 import { Resend } from 'resend'
 
+import { db } from '@/db'
 import BirthdayEmail from '@/emails/happy-birthday-email'
 import NewCommentEmail from '@/emails/new-comment-email'
 import PostBirthdayEmail from '@/emails/post-birthday-email'
 import TestEmail from '@/emails/test-email'
-import { env } from '@/env'
+import { type ResolvedEmailConfig, resolveEmailConfig } from '@/lib/email-config'
 import { createLogger } from '@/lib/logger'
 
 const emailLog = createLogger('email')
 
-// Email is optional: RESEND_API_KEY may be unset (self-hosted installs that
-// don't want transactional email). Instantiate lazily so module import never
-// crashes, and so each send can cleanly no-op when the key is missing.
-let cachedClient: Resend | null | undefined
+// Email is optional: neither env nor DB may supply a key (self-hosted installs
+// that don't want transactional email). Build the Resend client per send so a
+// runtime config change takes effect without a restart.
 
-export const isEmailConfigured = (): boolean => {
-	return Boolean(env.RESEND_API_KEY && env.RESEND_FROM_EMAIL)
+export const isEmailConfigured = async (): Promise<boolean> => {
+	const cfg = await resolveEmailConfig(db)
+	return cfg.isValid
 }
 
-const getResendClient = (): Resend | null => {
-	if (cachedClient !== undefined) return cachedClient
-	if (!env.RESEND_API_KEY) {
-		cachedClient = null
-		return null
-	}
-	cachedClient = new Resend(env.RESEND_API_KEY)
-	return cachedClient
+const buildClient = (cfg: ResolvedEmailConfig): Resend | null => {
+	if (!cfg.apiKey.value) return null
+	return new Resend(cfg.apiKey.value)
 }
 
-export const getFromEmail = (): string => {
-	const email = env.RESEND_FROM_EMAIL!
-	const name = env.RESEND_FROM_NAME
+export const getFromEmail = (cfg: ResolvedEmailConfig): string => {
+	const email = cfg.fromEmail.value!
+	const name = cfg.fromName.value
 	return name ? `${name} <${email}>` : email
 }
 
-export const getBccAddress = (): Array<string> | undefined => {
-	const bcc = env.RESEND_BCC_ADDRESS
+export const getBccAddress = (cfg: ResolvedEmailConfig): Array<string> | undefined => {
+	const bcc = cfg.bccAddress.value
 	return bcc ? [bcc] : undefined
 }
 
-export const commonEmailProps = () => {
-	const from = getFromEmail()
-	const bcc = getBccAddress()
+export const commonEmailProps = (cfg: ResolvedEmailConfig) => {
+	const from = getFromEmail(cfg)
+	const bcc = getBccAddress(cfg)
 	return {
 		from,
 		...(bcc ? { bcc } : {}),
@@ -49,7 +45,7 @@ export const commonEmailProps = () => {
 }
 
 const warnNotConfigured = (action: string) => {
-	emailLog.warn({ action }, 'email send skipped: RESEND_API_KEY / RESEND_FROM_EMAIL not configured')
+	emailLog.warn({ action }, 'email send skipped: resend api key / from email not configured')
 }
 
 type SendResult = { data?: { id?: string } | null; error?: unknown } | null
@@ -71,14 +67,15 @@ export const sendNewCommentEmail = async (
 	listId: number,
 	itemId: number
 ) => {
-	const client = getResendClient()
-	if (!client || !env.RESEND_FROM_EMAIL) {
+	const cfg = await resolveEmailConfig(db)
+	const client = buildClient(cfg)
+	if (!client || !cfg.isValid) {
 		warnNotConfigured('sendNewCommentEmail')
 		return null
 	}
 	emailLog.info({ kind: 'new-comment', recipient, listId, itemId }, 'sending email')
 	const res = await client.emails.send({
-		...commonEmailProps(),
+		...commonEmailProps(cfg),
 		to: recipient,
 		subject: 'New Comment on Wish Lists',
 		react: (
@@ -90,14 +87,15 @@ export const sendNewCommentEmail = async (
 }
 
 export const sendBirthdayEmail = async (name: string, recipient: string) => {
-	const client = getResendClient()
-	if (!client || !env.RESEND_FROM_EMAIL) {
+	const cfg = await resolveEmailConfig(db)
+	const client = buildClient(cfg)
+	if (!client || !cfg.isValid) {
 		warnNotConfigured('sendBirthdayEmail')
 		return null
 	}
 	emailLog.info({ kind: 'birthday', recipient }, 'sending email')
 	const res = await client.emails.send({
-		...commonEmailProps(),
+		...commonEmailProps(cfg),
 		to: recipient,
 		subject: `🎉 Happy Birthday, ${name}!`,
 		react: <BirthdayEmail name={name} />,
@@ -107,14 +105,15 @@ export const sendBirthdayEmail = async (name: string, recipient: string) => {
 }
 
 export const sendPostBirthdayEmail = async (recipient: string, items: Array<{ title: string; image_url: string; gifters: string }>) => {
-	const client = getResendClient()
-	if (!client || !env.RESEND_FROM_EMAIL) {
+	const cfg = await resolveEmailConfig(db)
+	const client = buildClient(cfg)
+	if (!client || !cfg.isValid) {
 		warnNotConfigured('sendPostBirthdayEmail')
 		return null
 	}
 	emailLog.info({ kind: 'post-birthday', recipient, itemCount: items.length }, 'sending email')
 	const res = await client.emails.send({
-		...commonEmailProps(),
+		...commonEmailProps(cfg),
 		to: recipient,
 		subject: 'A look back at your gifts',
 		react: <PostBirthdayEmail items={items} />,
@@ -124,19 +123,16 @@ export const sendPostBirthdayEmail = async (recipient: string, items: Array<{ ti
 }
 
 export const sendTestEmail = async () => {
-	const client = getResendClient()
-	if (!client || !env.RESEND_FROM_EMAIL) {
-		throw new Error('Email is not configured. Set RESEND_API_KEY and RESEND_FROM_EMAIL.')
+	const cfg = await resolveEmailConfig(db)
+	const client = buildClient(cfg)
+	if (!client || !cfg.isValid) {
+		throw new Error('Email is not configured. Set a Resend API key and from address.')
 	}
 
-	const to = env.RESEND_BCC_ADDRESS || env.RESEND_FROM_EMAIL
-	if (!to) {
-		throw new Error('No email address configured for test email')
-	}
-
+	const to = cfg.bccAddress.value || cfg.fromEmail.value!
 	emailLog.info({ kind: 'test', recipient: to }, 'sending email')
 	const res = await client.emails.send({
-		from: getFromEmail(),
+		from: getFromEmail(cfg),
 		to,
 		subject: 'Test Email',
 		react: <TestEmail />,

@@ -11,10 +11,21 @@ vi.mock('@/env', () => ({
 		// Logging config — required by the pino logger loaded indirectly.
 		LOG_LEVEL: 'silent',
 		LOG_PRETTY: false,
+		// Required by the crypto helper even though we never encrypt here.
+		BETTER_AUTH_SECRET: 'test-secret',
 	},
 }))
 
-describe('resend module with RESEND_API_KEY unset', () => {
+// Stub the db singleton so email-config's select() resolves to an empty
+// result set (no DB-stored values either).
+vi.mock('@/db', () => {
+	const emptyQuery = {
+		select: () => ({ from: () => ({ where: () => Promise.resolve([]) }) }),
+	}
+	return { db: emptyQuery }
+})
+
+describe('resend module with email fully unconfigured', () => {
 	beforeEach(() => {
 		vi.resetModules()
 	})
@@ -25,7 +36,7 @@ describe('resend module with RESEND_API_KEY unset', () => {
 
 	it('reports email as not configured', async () => {
 		const { isEmailConfigured } = await import('@/lib/resend')
-		expect(isEmailConfigured()).toBe(false)
+		expect(await isEmailConfigured()).toBe(false)
 	})
 
 	it('no-ops sendNewCommentEmail and returns null', async () => {

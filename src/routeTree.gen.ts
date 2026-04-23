@@ -37,6 +37,7 @@ import { Route as coreListsListIdRouteImport } from './routes/(core)/lists/$list
 import { Route as coreItemCloneRouteImport } from './routes/(core)/item.clone'
 import { Route as coreAdminUsersRouteImport } from './routes/(core)/admin/users'
 import { Route as coreAdminTestRouteImport } from './routes/(core)/admin/test'
+import { Route as coreAdminEmailRouteImport } from './routes/(core)/admin/email'
 import { Route as coreAdminDebugRouteImport } from './routes/(core)/admin/debug'
 import { Route as coreAdminDataRouteImport } from './routes/(core)/admin/data'
 import { Route as ApiSseListListIdRouteImport } from './routes/api/sse/list.$listId'
@@ -185,6 +186,11 @@ const coreAdminTestRoute = coreAdminTestRouteImport.update({
   path: '/test',
   getParentRoute: () => coreAdminRouteRoute,
 } as any)
+const coreAdminEmailRoute = coreAdminEmailRouteImport.update({
+  id: '/email',
+  path: '/email',
+  getParentRoute: () => coreAdminRouteRoute,
+} as any)
 const coreAdminDebugRoute = coreAdminDebugRouteImport.update({
   id: '/debug',
   path: '/debug',
@@ -238,6 +244,7 @@ export interface FileRoutesByFullPath {
   '/': typeof coreIndexRoute
   '/admin/data': typeof coreAdminDataRoute
   '/admin/debug': typeof coreAdminDebugRoute
+  '/admin/email': typeof coreAdminEmailRoute
   '/admin/test': typeof coreAdminTestRoute
   '/admin/users': typeof coreAdminUsersRoute
   '/item/clone': typeof coreItemCloneRoute
@@ -273,6 +280,7 @@ export interface FileRoutesByTo {
   '/': typeof coreIndexRoute
   '/admin/data': typeof coreAdminDataRoute
   '/admin/debug': typeof coreAdminDebugRoute
+  '/admin/email': typeof coreAdminEmailRoute
   '/admin/test': typeof coreAdminTestRoute
   '/admin/users': typeof coreAdminUsersRoute
   '/item/clone': typeof coreItemCloneRoute
@@ -312,6 +320,7 @@ export interface FileRoutesById {
   '/(core)/': typeof coreIndexRoute
   '/(core)/admin/data': typeof coreAdminDataRoute
   '/(core)/admin/debug': typeof coreAdminDebugRoute
+  '/(core)/admin/email': typeof coreAdminEmailRoute
   '/(core)/admin/test': typeof coreAdminTestRoute
   '/(core)/admin/users': typeof coreAdminUsersRoute
   '/(core)/item/clone': typeof coreItemCloneRoute
@@ -351,6 +360,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/data'
     | '/admin/debug'
+    | '/admin/email'
     | '/admin/test'
     | '/admin/users'
     | '/item/clone'
@@ -386,6 +396,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/data'
     | '/admin/debug'
+    | '/admin/email'
     | '/admin/test'
     | '/admin/users'
     | '/item/clone'
@@ -424,6 +435,7 @@ export interface FileRouteTypes {
     | '/(core)/'
     | '/(core)/admin/data'
     | '/(core)/admin/debug'
+    | '/(core)/admin/email'
     | '/(core)/admin/test'
     | '/(core)/admin/users'
     | '/(core)/item/clone'
@@ -664,6 +676,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreAdminTestRouteImport
       parentRoute: typeof coreAdminRouteRoute
     }
+    '/(core)/admin/email': {
+      id: '/(core)/admin/email'
+      path: '/email'
+      fullPath: '/admin/email'
+      preLoaderRoute: typeof coreAdminEmailRouteImport
+      parentRoute: typeof coreAdminRouteRoute
+    }
     '/(core)/admin/debug': {
       id: '/(core)/admin/debug'
       path: '/debug'
@@ -726,6 +745,7 @@ declare module '@tanstack/react-router' {
 interface coreAdminRouteRouteChildren {
   coreAdminDataRoute: typeof coreAdminDataRoute
   coreAdminDebugRoute: typeof coreAdminDebugRoute
+  coreAdminEmailRoute: typeof coreAdminEmailRoute
   coreAdminTestRoute: typeof coreAdminTestRoute
   coreAdminUsersRoute: typeof coreAdminUsersRoute
   coreAdminIndexRoute: typeof coreAdminIndexRoute
@@ -735,6 +755,7 @@ interface coreAdminRouteRouteChildren {
 const coreAdminRouteRouteChildren: coreAdminRouteRouteChildren = {
   coreAdminDataRoute: coreAdminDataRoute,
   coreAdminDebugRoute: coreAdminDebugRoute,
+  coreAdminEmailRoute: coreAdminEmailRoute,
   coreAdminTestRoute: coreAdminTestRoute,
   coreAdminUsersRoute: coreAdminUsersRoute,
   coreAdminIndexRoute: coreAdminIndexRoute,

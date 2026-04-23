@@ -5,6 +5,6 @@ import { isEmailConfigured as checkEmailConfigured } from '@/lib/resend'
 
 export const isEmailConfigured = createServerFn({ method: 'GET' })
 	.middleware([loggingMiddleware])
-	.handler(() => {
-		return checkEmailConfigured()
+	.handler(async () => {
+		return await checkEmailConfigured()
 	})
