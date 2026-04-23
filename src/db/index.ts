@@ -1,6 +1,6 @@
 import { config } from 'dotenv'
-import { drizzle } from 'drizzle-orm/node-postgres'
 import type { Logger as DrizzleLogger } from 'drizzle-orm/logger'
+import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 
 import { env } from '@/env'

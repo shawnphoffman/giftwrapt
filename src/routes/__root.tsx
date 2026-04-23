@@ -1,3 +1,5 @@
+import '../styles.css'
+
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { FormDevtoolsPanel } from '@tanstack/react-form-devtools'
 import type { QueryClient } from '@tanstack/react-query'
@@ -12,7 +14,6 @@ import { appSettingsQueryOptions } from '@/hooks/use-app-settings'
 import { storageStatusQueryOptions } from '@/hooks/use-storage-status'
 
 import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
-import '../styles.css'
 import ErrorBoundaryFallback from './-error-boundary'
 import Head from './-head'
 import NotFound from './-not-found'
