@@ -1,4 +1,4 @@
-FROM node:20-slim AS base
+FROM node:22-slim AS base
 ENV COREPACK_HOME=/usr/local/share/corepack
 RUN corepack enable && corepack prepare pnpm@10.28.0 --activate
 WORKDIR /app
@@ -18,7 +18,7 @@ RUN pnpm build
 # Runtime image: plain node, no pnpm, no node_modules. The Nitro bundle under
 # .output/server is self-contained (only tslib in .output/server/node_modules),
 # and the CLI bundles under .output/scripts are self-contained too.
-FROM node:20-slim AS runner
+FROM node:22-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -40,6 +40,17 @@ COPY docker/healthcheck.sh /app/docker/healthcheck.sh
 RUN chmod +x /app/docker/entrypoint.sh \
 	/app/docker/migrate.sh \
 	/app/docker/healthcheck.sh
+
+# Strip vendored npm/corepack — entrypoint/migrate/healthcheck invoke `node`
+# directly and .output/server is self-contained, so npm's bundled tar/cross-spawn/
+# glob/minimatch are dead weight dragging CVEs into the image.
+RUN rm -rf /usr/local/lib/node_modules \
+	/usr/local/bin/npm \
+	/usr/local/bin/npx \
+	/usr/local/bin/corepack \
+	/opt/yarn* \
+	/usr/local/bin/yarn* \
+	2>/dev/null || true
 
 EXPOSE 3000
 
