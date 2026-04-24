@@ -21,7 +21,7 @@ function makeQueryClient() {
 // resolve their QueryClient at import time, while the Provider resolves it
 // per router boot. If those were different instances, calling
 // `queryClient.invalidateQueries(...)` from a component wouldn't touch a
-// collection's cache — the component's client is the Provider's, and the
+// collection's cache - the component's client is the Provider's, and the
 // collection was wired to a separate one. Reuse a single client on the
 // browser so they share cache. Server-side, keep per-request clients so SSR
 // requests don't leak state.

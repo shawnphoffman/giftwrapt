@@ -103,7 +103,7 @@ export function ListEditorsSection({ listId, editors, addableUsers }: Props) {
 								{addableUsers.map(u => {
 									const display = u.name || u.email
 									const isChild = u.role === 'child'
-									const suffix = isChild ? ' (child)' : u.name ? ` — ${u.email}` : ''
+									const suffix = isChild ? ' (child)' : u.name ? ` (${u.email})` : ''
 									return (
 										<SelectItem key={u.id} value={u.id} disabled={isChild}>
 											{display}

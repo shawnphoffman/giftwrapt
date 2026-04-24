@@ -33,7 +33,7 @@ async function loadListForEdit(
 }
 
 // ===============================
-// CREATE — group on a list
+// CREATE - group on a list
 // ===============================
 
 const CreateGroupInputSchema = z.object({
@@ -58,7 +58,7 @@ export const createItemGroup = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// UPDATE — change group type, name, or priority
+// UPDATE - change group type, name, or priority
 // ===============================
 
 const UpdateGroupInputSchema = z
@@ -99,7 +99,7 @@ export const updateItemGroup = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// DELETE — group (items keep existing, just lose grouping)
+// DELETE - group (items keep existing, just lose grouping)
 // ===============================
 
 const DeleteGroupInputSchema = z.object({
@@ -132,7 +132,7 @@ export const deleteItemGroup = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// ASSIGN — set/clear group on items
+// ASSIGN - set/clear group on items
 // ===============================
 
 const AssignItemsInputSchema = z.object({
@@ -180,7 +180,7 @@ export const assignItemsToGroup = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// REORDER — set sort order for items in an order group
+// REORDER - set sort order for items in an order group
 // ===============================
 
 const ReorderInputSchema = z.object({
@@ -219,7 +219,7 @@ export const reorderGroupItems = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// READ — groups with items for a list (used by edit page)
+// READ - groups with items for a list (used by edit page)
 // ===============================
 
 export type GroupWithItems = {

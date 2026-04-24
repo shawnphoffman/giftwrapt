@@ -59,7 +59,7 @@ export type NewList = typeof lists.$inferInsert
 // ===============================
 // LIST ADDONS (off-list gifts)
 // ===============================
-// Gifts that don't correspond to an existing list item — the gifter
+// Gifts that don't correspond to an existing list item - the gifter
 // volunteers they're bringing something extra. Visible only to gifters
 // (spoiler protection same as claims).
 export const listAddons = pgTable(

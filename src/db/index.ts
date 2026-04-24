@@ -12,7 +12,7 @@ config()
 
 const dbLog = createLogger('db')
 
-// Custom Drizzle logger — routes SQL queries through pino at debug level so
+// Custom Drizzle logger - routes SQL queries through pino at debug level so
 // LOG_LEVEL=debug (or trace) lights up the wire. At any other level Drizzle
 // stays silent without us paying the formatting cost.
 const drizzleLogger: DrizzleLogger = {

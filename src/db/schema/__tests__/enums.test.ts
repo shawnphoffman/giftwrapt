@@ -9,7 +9,7 @@ import {
 	statusEnumValues,
 } from '../enums'
 
-// Tripwire tests — if any of these drift, something in the schema changed
+// Tripwire tests - if any of these drift, something in the schema changed
 // that likely needs a coordinated migration + app-level update.
 // Treat a failure here as "go read the diff and think," not "just update the test."
 describe('schema enums', () => {

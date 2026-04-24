@@ -9,7 +9,7 @@ The seeded local-dev admin account:
 | Role     | `admin`              |
 
 This user only exists after you've run the seed against your local DB. The seed
-script (`scripts/seed.ts`) is the source of truth — if the credentials here
+script (`scripts/seed.ts`) is the source of truth - if the credentials here
 drift from the script, the script wins.
 
 ## Creating (or recreating) it
@@ -19,7 +19,7 @@ SEED_SAFE=1 pnpm db:seed
 ```
 
 > [!WARNING]
-> `db:seed` **truncates everything first** — users, lists, items, sessions,
+> `db:seed` **truncates everything first** - users, lists, items, sessions,
 > accounts, verifications, the lot. The script refuses to run unless
 > `DATABASE_URL` points at a known-local host (`localhost`, `127.0.0.1`, `::1`,
 > `host.docker.internal`, `postgres`, `db`) AND `SEED_SAFE=1` is set, so it
@@ -32,7 +32,7 @@ All share the password `SeedPass123!`:
 
 | Email                | Role  | Notes                                             |
 | -------------------- | ----- | ------------------------------------------------- |
-| `admin@example.test` | admin | —                                                 |
+| `admin@example.test` | admin | -                                                 |
 | `alice@example.test` | user  | Partnered with Bob; guardian of Kid; b. Mar 14    |
 | `bob@example.test`   | user  | Partnered with Alice; editor on Alice's todo list |
 | `carol@example.test` | user  | Solo; mutual view-only relationship with Alice    |
@@ -57,7 +57,7 @@ pnpm admin:reset-password \
   --password='SeedPass123!'
 ```
 
-These CLIs have **no** env guard — their authentication barrier is "you have
+These CLIs have **no** env guard - their authentication barrier is "you have
 shell access to the process." They're safe to run against any DB; point
 `DATABASE_URL` at whichever one you mean to touch. See the doc comments at the
 top of `scripts/admin-create.ts` and `scripts/admin-reset-password.ts` for

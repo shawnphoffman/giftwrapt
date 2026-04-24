@@ -13,7 +13,7 @@ import { users } from './users'
 // enforced at the application layer via a transaction with SELECT FOR UPDATE
 // in the claim server action (decided 2026-04-14).
 //
-// Retractions are hard-DELETE, not soft-archive — there's no audit trail
+// Retractions are hard-DELETE, not soft-archive - there's no audit trail
 // need for claims, and the UX is "I misclicked, make it go away."
 export const giftedItems = pgTable(
 	'gifted_items',

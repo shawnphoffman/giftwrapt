@@ -30,17 +30,17 @@ type Story = StoryObj<typeof meta>
 
 export const SingleUnclaimed: Story = {
 	args: { quantity: 1, remaining: 1 },
-	parameters: { docs: { description: { story: 'qty=1, unclaimed — renders nothing.' } } },
+	parameters: { docs: { description: { story: 'qty=1 and unclaimed. Renders nothing.' } } },
 }
 
 export const SingleClaimed: Story = {
 	args: { quantity: 1, remaining: 0 },
-	parameters: { docs: { description: { story: 'qty=1, claimed — renders nothing.' } } },
+	parameters: { docs: { description: { story: 'qty=1 and claimed. Renders nothing.' } } },
 }
 
 export const MultiUnclaimed: Story = {
 	args: { quantity: 4, remaining: 4 },
-	parameters: { docs: { description: { story: 'qty=4, no claims yet — shows just the desired count.' } } },
+	parameters: { docs: { description: { story: 'qty=4 with no claims yet. Shows just the desired count.' } } },
 }
 
 export const MultiPartialOneLeft: Story = {

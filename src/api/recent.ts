@@ -7,7 +7,7 @@ import { loggingMiddleware } from '@/lib/logger'
 import { authMiddleware } from '@/middleware/auth'
 
 // ===============================
-// READ — recent items (across visible lists)
+// READ - recent items (across visible lists)
 // ===============================
 
 export type RecentItemRow = {

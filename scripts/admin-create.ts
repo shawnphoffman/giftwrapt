@@ -12,7 +12,7 @@
  *     --password='correct horse battery staple' \
  *     --name='Your Name'
  *
- * Deliberately has NO env guard (unlike db:seed) — the authentication barrier
+ * Deliberately has NO env guard (unlike db:seed) - the authentication barrier
  * is "you have shell access to the container." Using it from outside a
  * container is also fine; point DATABASE_URL at the target.
  *

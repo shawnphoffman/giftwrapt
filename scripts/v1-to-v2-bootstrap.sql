@@ -6,13 +6,13 @@
 -- `drizzle-kit migrate` run (wired into vercel-build) sees them as applied
 -- and starts cleanly from 0003+.
 --
--- Idempotent — safe to run more than once. Wraps in a transaction so any
+-- Idempotent - safe to run more than once. Wraps in a transaction so any
 -- failure rolls the whole thing back.
 --
 -- Apply via Supabase apply_migration or:
 --   psql "$DATABASE_URL" -f scripts/v1-to-v2-bootstrap.sql
 --
--- NOTE: no explicit BEGIN/COMMIT — apply_migration and psql -f handle
+-- NOTE: no explicit BEGIN/COMMIT - apply_migration and psql -f handle
 -- transactions for us. Adding our own would nest and break.
 
 -- ============================================================

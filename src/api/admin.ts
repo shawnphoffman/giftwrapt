@@ -167,7 +167,7 @@ export const updateUserAsAdmin = createServerFn({
 	})
 
 // ===============================
-// Admin bulk archive — archive all claimed, non-archived items
+// Admin bulk archive - archive all claimed, non-archived items
 // ===============================
 // Spec §2.3 trigger 1: "admins can archive all currently-claimed-but-
 // not-archived items (cleanup)."

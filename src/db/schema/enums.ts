@@ -53,9 +53,9 @@ export const roleEnum = pgEnum('role', roleEnumValues)
 export type Role = (typeof roleEnumValues)[number]
 
 // Item group types:
-// - 'or':    "pick one of these" — claiming any item satisfies the group;
+// - 'or':    "pick one of these" - claiming any item satisfies the group;
 //            sibling items are no longer claimable.
-// - 'order': "in this order" — items must be claimed in groupSortOrder
+// - 'order': "in this order" - items must be claimed in groupSortOrder
 //            sequence (e.g. console before controllers).
 export const groupTypeEnumValues = ['or', 'order'] as const
 export const groupTypeEnum = pgEnum('group_type', groupTypeEnumValues)

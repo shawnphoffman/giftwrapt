@@ -138,7 +138,7 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 	const rowInner = (
 		<div className="flex flex-col w-full gap-2" id={`item-${item.id}`}>
 			{/* DETAILS ROW */}
-			<div className="flex flex-row items-stretch gap-3">
+			<div className="flex flex-row items-start gap-3">
 				<div className="flex-1 min-w-0 flex flex-col gap-0.5">
 					<div className="font-medium leading-tight truncate">
 						{item.url ? (
@@ -256,6 +256,8 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 				onOpenChange={setClaimDialogOpen}
 				itemId={item.id}
 				itemTitle={item.title}
+				itemImageUrl={item.imageUrl}
+				itemQuantity={item.quantity}
 				remainingQuantity={remaining}
 			/>
 
@@ -267,6 +269,8 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 					onOpenChange={setEditDialogOpen}
 					itemId={item.id}
 					itemTitle={item.title}
+					itemImageUrl={item.imageUrl}
+					itemQuantity={item.quantity}
 					remainingQuantity={remainingForEdit}
 				/>
 			)}

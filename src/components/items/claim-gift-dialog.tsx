@@ -18,13 +18,17 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 
+import { QuantityRemainingBadge } from './quantity-remaining-badge'
+
 type BaseProps = {
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	itemId: number
 	itemTitle: string
+	itemImageUrl?: string | null
+	itemQuantity: number
 	// For create mode: remaining = item.quantity - sum(all claims).
-	// For edit mode:   remaining = item.quantity - sum(OTHER claims) — so the
+	// For edit mode:   remaining = item.quantity - sum(OTHER claims), so the
 	// current claim's own quantity is part of the budget the user can spend.
 	remainingQuantity: number
 }
@@ -44,7 +48,7 @@ function getErrorMessage(errors: Array<unknown>): string {
 		.join(', ')
 }
 
-// Matches the server-side schema shape. Duplicated deliberately — zod types
+// Matches the server-side schema shape. Duplicated deliberately - zod types
 // don't cross the server/client boundary cleanly, and the UX constraints
 // (max capped to remainingQuantity) differ from the server-side guard
 // (which enforces the invariant under a row lock).
@@ -63,7 +67,7 @@ function buildSchema(remaining: number) {
 }
 
 export function ClaimGiftDialog(props: Props) {
-	const { open, onOpenChange, itemId, itemTitle, remainingQuantity } = props
+	const { open, onOpenChange, itemId, itemTitle, itemImageUrl, itemQuantity, remainingQuantity } = props
 	const isEdit = props.mode === 'edit'
 	const router = useRouter()
 	const queryClient = useQueryClient()
@@ -113,7 +117,7 @@ export function ClaimGiftDialog(props: Props) {
 					if (result.kind === 'error') {
 						switch (result.reason) {
 							case 'over-claim':
-								setError(`Too many — only ${result.remaining} left (someone else may have just claimed).`)
+								setError(`Only ${result.remaining} left. Someone else may have just claimed.`)
 								break
 							case 'not-yours':
 								setError("You can't edit someone else's claim.")
@@ -142,7 +146,7 @@ export function ClaimGiftDialog(props: Props) {
 						// rather than the stale one we rendered the dialog with.
 						switch (result.reason) {
 							case 'over-claim':
-								setError(`Too many — only ${result.remaining} left. Someone else may have just claimed.`)
+								setError(`Only ${result.remaining} left. Someone else may have just claimed.`)
 								break
 							case 'not-visible':
 								setError('You no longer have access to this list.')
@@ -163,7 +167,7 @@ export function ClaimGiftDialog(props: Props) {
 							case 'group-out-of-order':
 								setError(
 									result.blockingItemTitle
-										? `Claim "${result.blockingItemTitle}" first — this group has a required order.`
+										? `Claim "${result.blockingItemTitle}" first. This group has a required order.`
 										: 'This group has a required order; claim earlier items first.'
 								)
 								break
@@ -194,14 +198,25 @@ export function ClaimGiftDialog(props: Props) {
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>
-						{isEdit ? 'Edit your claim on' : 'Claim'} “{itemTitle}”
-					</DialogTitle>
-					<DialogDescription>
-						{isEdit
-							? 'Update the quantity, cost, or notes on your claim. The list owner still won\u2019t see any of this.'
-							: "Mark this as something you're gifting. The list owner won't see the claim — only other viewers will."}
-					</DialogDescription>
+					<div className="flex items-start gap-3">
+						<div className="flex-1 min-w-0 flex flex-col gap-2">
+							<DialogTitle className="text-base line-clamp-3 leading-snug">
+								{isEdit ? 'Edit your claim on' : 'Claim'} “{itemTitle}”
+							</DialogTitle>
+							<DialogDescription>
+								{isEdit
+									? 'Update the quantity, cost, or notes on your claim. The list owner still won\u2019t see any of this.'
+									: "Mark this as something you're gifting. The list owner won't see the claim, just other viewers."}
+							</DialogDescription>
+						</div>
+						{itemImageUrl && (
+							<img
+								src={itemImageUrl}
+								alt=""
+								className="size-14 shrink-0 rounded-md object-contain ring-1 ring-inset ring-border bg-muted/40"
+							/>
+						)}
+					</div>
 				</DialogHeader>
 
 				<form
@@ -214,25 +229,30 @@ export function ClaimGiftDialog(props: Props) {
 				>
 					<form.Field name="quantity">
 						{field => {
-							// Hide the input when there's nothing meaningful to choose — item
+							// Hide the input when there's nothing meaningful to choose: item
 							// total is 1 or only 1 slot is left to claim. The field stays
 							// mounted so the default quantity (1, or the edited gift's value)
 							// still submits.
 							if (remainingQuantity <= 1) return null
 							return (
 								<div className="grid gap-2">
-									<Label htmlFor={field.name}>Quantity</Label>
-									<Input
-										id={field.name}
-										type="number"
-										min={1}
-										max={remainingQuantity}
-										value={field.state.value}
-										onChange={e => field.handleChange(e.target.value)}
-										onBlur={field.handleBlur}
-										disabled={submitting}
-									/>
-									<p className="text-xs text-muted-foreground">{remainingQuantity} available to claim</p>
+									<div className="flex items-center gap-3">
+										<Label htmlFor={field.name} className="shrink-0">
+											Quantity
+										</Label>
+										<Input
+											id={field.name}
+											type="number"
+											min={1}
+											max={remainingQuantity}
+											value={field.state.value}
+											onChange={e => field.handleChange(e.target.value)}
+											onBlur={field.handleBlur}
+											disabled={submitting}
+											className="flex-1 min-w-0"
+										/>
+										<QuantityRemainingBadge variant="inline-pill" quantity={itemQuantity} remaining={remainingQuantity} />
+									</div>
 									{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 										<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
 									)}
@@ -282,7 +302,7 @@ export function ClaimGiftDialog(props: Props) {
 						)}
 					</form.Field>
 
-					{/* CO-GIFTERS — edit mode only */}
+					{/* CO-GIFTERS - edit mode only */}
 					{isEdit && (
 						<CoGiftersSection
 							giftId={props.gift.id}

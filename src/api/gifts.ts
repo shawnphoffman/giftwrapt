@@ -12,13 +12,13 @@ import { authMiddleware } from '@/middleware/auth'
 import { notifyListChange } from '@/routes/api/sse/list.$listId'
 
 // ===============================
-// READ — gifts for a batch of items
+// READ - gifts for a batch of items
 // ===============================
 // Batch-by-itemIds rather than one-item-at-a-time so the list-detail view
 // can fetch every item's claims in a single round-trip.
 //
 // NOTE: returns ALL claims on the items, regardless of who the viewer is.
-// The visibility barrier is "can the viewer see the parent list" — enforced
+// The visibility barrier is "can the viewer see the parent list" - enforced
 // by getListForViewing at the list level, not re-enforced here per-item.
 // Callers that don't already have list-level visibility MUST check it before
 // surfacing the result.
@@ -51,11 +51,11 @@ export const getGiftsForItems = createServerFn({ method: 'GET' })
 	})
 
 // ===============================
-// WRITE — claim quantity on an item
+// WRITE - claim quantity on an item
 // ===============================
 // Invariant: SUM(quantity) over non-archived claims ≤ items.quantity.
 // Enforced via a SELECT FOR UPDATE transaction, NOT a DB trigger (decided in
-// the Phase 1 design Q&A — keeps the invariant portable and visible in code).
+// the Phase 1 design Q&A - keeps the invariant portable and visible in code).
 //
 // The lock on the item row serializes all concurrent claim attempts for the
 // same item. Two tabs trying to claim the last unit race; one wins, the
@@ -92,7 +92,7 @@ export const claimItemGift = createServerFn({ method: 'POST' })
 
 		const result: ClaimGiftResult = await db.transaction(async (tx): Promise<ClaimGiftResult> => {
 			// Lock the item row. Any concurrent claim tx on this item waits here.
-			// Doing this FIRST (before any reads) is deliberate — the point of the
+			// Doing this FIRST (before any reads) is deliberate - the point of the
 			// lock is to serialize the "compute remaining → insert" window.
 			const lockedRows = await tx.execute(
 				sql`SELECT id, list_id, quantity, is_archived, group_id, group_sort_order FROM items WHERE id = ${data.itemId} FOR UPDATE`
@@ -120,7 +120,7 @@ export const claimItemGift = createServerFn({ method: 'POST' })
 			// Group enforcement.
 			//
 			// 'or' groups: if any sibling item in the group has any claim, the
-			// group is satisfied — block this claim.
+			// group is satisfied - block this claim.
 			//
 			// 'order' groups: only the next-in-sequence not-fully-claimed item
 			// is claimable. If an earlier item in groupSortOrder still has
@@ -212,11 +212,11 @@ export const claimItemGift = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// WRITE — update a claim
+// WRITE - update a claim
 // ===============================
 // Edits the gifter's own claim. The over-claim invariant has to be re-checked
 // under a lock, because the edit is equivalent to "free the old quantity, take
-// the new quantity" — and another tab may have grabbed slots in between.
+// the new quantity" - and another tab may have grabbed slots in between.
 //
 // Ownership is enforced by gifterId match, not by any new permission helper:
 // only the original gifter can touch their claim. No owner/editor override.
@@ -294,10 +294,10 @@ export const updateItemGift = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// WRITE — unclaim (hard delete)
+// WRITE - unclaim (hard delete)
 // ===============================
 // Retracting a claim is a hard DELETE: there's no audit trail need for claims,
-// and the UX is "I misclicked, make it go away." No lock needed — a single
+// and the UX is "I misclicked, make it go away." No lock needed - a single
 // DELETE scoped by gifterId is atomic, and nothing else cares about the row
 // after it's gone.
 
@@ -314,7 +314,7 @@ export const unclaimItemGift = createServerFn({ method: 'POST' })
 		const gifterId = context.session.user.id
 
 		// Pre-check so we can distinguish "doesn't exist" from "not yours" in the
-		// response. The DELETE itself is still scoped by gifterId as a guardrail —
+		// response. The DELETE itself is still scoped by gifterId as a guardrail -
 		// if the row gets reassigned between the read and the delete, the delete
 		// no-ops safely. Also resolve listId here for the SSE notify below.
 		const existing = await db
@@ -333,7 +333,7 @@ export const unclaimItemGift = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// WRITE — update co-gifters
+// WRITE - update co-gifters
 // ===============================
 // Only the original gifter can add or remove co-gifters on their claim.
 // Co-gifters are stored as an array of user IDs.

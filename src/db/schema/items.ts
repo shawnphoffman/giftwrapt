@@ -37,7 +37,7 @@ export const items = pgTable(
 		sortOrder: integer('sort_order'),
 		...timestamps,
 		// modifiedAt is bumped in server actions when title/url/notes change.
-		// Deliberately NOT a DB trigger (decided 2026-04-14) — keeps portability simple.
+		// Deliberately NOT a DB trigger (decided 2026-04-14) - keeps portability simple.
 		modifiedAt: timestamp('modified_at', { withTimezone: true }),
 	},
 	table => [
@@ -105,7 +105,7 @@ export type NewItemComment = typeof itemComments.$inferInsert
 // ===============================
 // ITEM SCRAPES
 // ===============================
-// Historical — each scrape is a new row. scraperId lets us combine/merge
+// Historical - each scrape is a new row. scraperId lets us combine/merge
 // results from multiple scrapers. Never upsert; always insert.
 export const itemScrapes = pgTable(
 	'item_scrapes',

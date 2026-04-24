@@ -3,7 +3,7 @@
 // standalone via `pnpm storage:init` for local dev.
 //
 // Uses Garage's admin HTTP API (default port 3903) with a Bearer token.
-// No CLI, no shared volume, no separate container — just fetch() calls
+// No CLI, no shared volume, no separate container - just fetch() calls
 // from the same Node process that's about to boot the app. Keeps the
 // wish-lists image free of any Garage binary dependency, and lets
 // non-Garage deploys (R2, AWS, Supabase) skip this path entirely.

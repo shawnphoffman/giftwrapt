@@ -141,7 +141,7 @@ export function ListAddonDialog(props: Props) {
 					<DialogDescription>
 						{isEdit
 							? 'Update the details of your off-list gift. The list owner won\u2019t see this.'
-							: "Record something you're gifting that isn't on the list. The list owner won't see this — only other viewers will."}
+							: "Record something you're gifting that isn't on the list. The list owner won't see this, just other viewers."}
 					</DialogDescription>
 				</DialogHeader>
 

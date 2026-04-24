@@ -31,7 +31,7 @@ export type CommentWithUser = {
 }
 
 // ===============================
-// READ — comments for an item
+// READ - comments for an item
 // ===============================
 
 export const getCommentsForItem = createServerFn({ method: 'GET' })
@@ -80,7 +80,7 @@ export const getCommentsForItem = createServerFn({ method: 'GET' })
 	})
 
 // ===============================
-// WRITE — create a comment
+// WRITE - create a comment
 // ===============================
 
 const CreateCommentInputSchema = z.object({
@@ -171,7 +171,7 @@ export const createItemComment = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// WRITE — update a comment
+// WRITE - update a comment
 // ===============================
 
 const UpdateCommentInputSchema = z.object({
@@ -200,7 +200,7 @@ export const updateItemComment = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// WRITE — delete a comment (hard delete)
+// WRITE - delete a comment (hard delete)
 // ===============================
 
 const DeleteCommentInputSchema = z.object({
@@ -243,7 +243,7 @@ export const deleteItemComment = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// READ — recent comments (across all visible lists)
+// READ - recent comments (across all visible lists)
 // ===============================
 
 export type RecentCommentRow = {

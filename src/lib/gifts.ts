@@ -25,7 +25,7 @@ export function computeRemainingClaimableQuantity(itemQuantity: number, claims: 
 
 /**
  * Remaining claimable quantity as seen by a user who is EDITING one of their
- * own claims — the claim they're editing is excluded from the "already taken"
+ * own claims - the claim they're editing is excluded from the "already taken"
  * pool, since editing it replaces (rather than adds to) its quantity.
  *
  * Used to populate the max-quantity UX in the edit dialog. The server-side
@@ -53,7 +53,7 @@ export type ItemForListCounts = {
  * Badge counts for a list as seen by someone other than the owner: total
  * visible items and how many of those still have claim capacity left.
  *
- * Archived items are excluded from both counts — they're hidden from the list
+ * Archived items are excluded from both counts - they're hidden from the list
  * view, so including them would make the badge disagree with what the viewer
  * can see when they open the list.
  */

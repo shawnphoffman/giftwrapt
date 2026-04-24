@@ -7,7 +7,7 @@ import { loggingMiddleware } from '@/lib/logger'
 import { authMiddleware } from '@/middleware/auth'
 
 // ===============================
-// READ — purchase summary (spending per person)
+// READ - purchase summary (spending per person)
 // ===============================
 // Returns a flat list of items (claims + addons) by the current user and
 // their partner (if any), with owner metadata. Grouping, timeframe

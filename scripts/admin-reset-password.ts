@@ -10,14 +10,14 @@
  *     --password='new password here'
  *
  * Uses Better-Auth's internal password hasher via auth.$context so the format
- * matches exactly what signIn expects — don't try to replicate the hashing
+ * matches exactly what signIn expects - don't try to replicate the hashing
  * manually, it'll drift.
  *
  * No env guard: the authentication barrier is shell access. See comment in
  * admin-create.ts for rationale.
  *
  * Fails if the user doesn't exist, or exists but has no credential account
- * (e.g. they only signed in via a social provider — in that case they need
+ * (e.g. they only signed in via a social provider - in that case they need
  * to reset through the provider, not here).
  */
 
@@ -81,7 +81,7 @@ async function main() {
 
 	// Nuke existing sessions so the old password is immediately dead everywhere.
 	// If they're still logged in on another device with a valid session cookie,
-	// that's a problem — kill those too.
+	// that's a problem - kill those too.
 	const { session } = await import('@/db/schema')
 	const killed = await db.delete(session).where(eq(session.userId, user.id)).returning({ id: session.id })
 

@@ -65,14 +65,14 @@ async function main() {
 	`)
 
 	if (colInfo.rows.length === 0) {
-		console.log('No lists.type column found — nothing to migrate.')
+		console.log('No lists.type column found - nothing to migrate.')
 		return
 	}
 
 	const { data_type, udt_name } = colInfo.rows[0]
 
 	if (udt_name === 'list_type') {
-		console.log('Column already uses list_type enum — nothing to do.')
+		console.log('Column already uses list_type enum - nothing to do.')
 		return
 	}
 

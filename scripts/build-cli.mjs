@@ -6,7 +6,7 @@ import * as esbuild from 'esbuild'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const root = resolve(__dirname, '..')
 
-// Anything pulled in at runtime via dynamic require/native binding — mark
+// Anything pulled in at runtime via dynamic require/native binding - mark
 // external so esbuild doesn't try to bundle it and fail.
 const external = [
 	// pg's optional native binding. If absent, pg falls back to pure JS.

@@ -23,7 +23,7 @@ const log = createLogger('api:files')
 // get `Cache-Control: public, max-age=31536000, immutable` plus the S3 ETag
 // so even the first re-fetch is a conditional request.
 //
-// No range support in v1 — these are small webp images, not media. Revisit
+// No range support in v1 - these are small webp images, not media. Revisit
 // if/when non-image content lands.
 
 export const Route = createFileRoute('/api/files/$')({

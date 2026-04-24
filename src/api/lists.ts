@@ -230,7 +230,7 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 	})
 
 // ===============================
-// READ — my lists (owner dashboard)
+// READ - my lists (owner dashboard)
 // ===============================
 
 export type MyListRow = {
@@ -372,7 +372,7 @@ export const getMyLists = createServerFn({ method: 'GET' })
 	})
 
 // ===============================
-// WRITE — create a list
+// WRITE - create a list
 // ===============================
 
 const CreateListInputSchema = z.object({
@@ -414,7 +414,7 @@ export const createList = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// WRITE — update a list
+// WRITE - update a list
 // ===============================
 
 const UpdateListInputSchema = z.object({
@@ -456,7 +456,7 @@ export const updateList = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// WRITE — delete a list
+// WRITE - delete a list
 // ===============================
 // If the list has active claims (gifted items), we force-archive instead of
 // hard deleting. This preserves gift history for purchase summaries.
@@ -498,18 +498,18 @@ export const deleteList = createServerFn({ method: 'POST' })
 		}
 
 		if (hasClaims) {
-			// Force archive instead of delete — preserve gift history.
+			// Force archive instead of delete - preserve gift history.
 			await db.update(lists).set({ isActive: false }).where(eq(lists.id, data.listId))
 			return { kind: 'ok', action: 'archived' }
 		}
 
-		// No claims — safe to hard delete. FK cascades handle items.
+		// No claims - safe to hard delete. FK cascades handle items.
 		await db.delete(lists).where(eq(lists.id, data.listId))
 		return { kind: 'ok', action: 'deleted' }
 	})
 
 // ===============================
-// WRITE — set/unset primary list
+// WRITE - set/unset primary list
 // ===============================
 
 const SetPrimaryListInputSchema = z.object({
@@ -549,7 +549,7 @@ export const setPrimaryList = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// READ — list for editing (owner/editor view)
+// READ - list for editing (owner/editor view)
 // ===============================
 
 export type GroupSummary = {

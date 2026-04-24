@@ -8,7 +8,7 @@ import { registerAnyListWriter, unregisterAnyListWriter } from './list.$listId'
 const sseLog = createLogger('sse:any-list')
 
 // ===============================
-// SSE endpoint — any list changed
+// SSE endpoint - any list changed
 // ===============================
 // Fires whenever notifyListChange is called for any listId. The home page
 // ("lists for everyone else") subscribes here so the unclaimed/total badges

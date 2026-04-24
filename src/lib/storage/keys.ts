@@ -15,7 +15,7 @@ export const itemImageKey = (itemId: number | string): string => `items/${itemId
 // Reverse mapping: given a URL the app previously handed out (either
 // `${STORAGE_PUBLIC_URL}/<key>` or `/api/files/<key>`), recover the raw key
 // so we can call storage.delete(). Returns null for URLs we didn't mint
-// (e.g. legacy V1 hotlinks) — callers should skip deletion in that case.
+// (e.g. legacy V1 hotlinks) - callers should skip deletion in that case.
 export function parseKeyFromUrl(url: string, publicUrlBase: string | undefined): string | null {
 	if (!url) return null
 	try {

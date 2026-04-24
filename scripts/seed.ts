@@ -7,7 +7,7 @@
  *
  * Safety:
  *  - Refuses to run unless SEED_SAFE=1 is set in the environment.
- *  - Refuses to run if DATABASE_URL points at anything that looks remote —
+ *  - Refuses to run if DATABASE_URL points at anything that looks remote -
  *    only localhost / 127.0.0.1 / docker hostnames are allowed.
  *  - Hard-deletes all rows in the seeded tables before inserting. Do NOT
  *    run this against a DB whose contents you care about.
@@ -16,11 +16,11 @@
  *   SEED_SAFE=1 pnpm db:seed
  *
  * The cast:
- *   admin@example.test      — admin
- *   alice@example.test      — partnered with bob, guardian of kid
- *   bob@example.test        — partnered with alice
- *   carol@example.test      — solo
- *   kid@example.test        — child, guarded by alice
+ *   admin@example.test      - admin
+ *   alice@example.test      - partnered with bob, guardian of kid
+ *   bob@example.test        - partnered with alice
+ *   carol@example.test      - solo
+ *   kid@example.test        - child, guarded by alice
  *
  * All passwords: SeedPass123! (change via admin panel if you care).
  */
@@ -86,7 +86,7 @@ async function signUp(input: {
 	// roles), so we always sign up as the default role and patch role + birthday
 	// fields in with a direct drizzle update afterward.
 	// The types say `role` is required on the body (it's in additionalFields
-	// with required:true) — but the admin plugin rejects it at runtime, so we
+	// with required:true) - but the admin plugin rejects it at runtime, so we
 	// deliberately omit it. Cast the whole body to escape that mismatch.
 	const result = await auth.api.signUpEmail({
 		body: {
@@ -113,10 +113,10 @@ async function signUp(input: {
 }
 
 // ------------------------------------------------------------------
-// Reset — hard-delete anything we're about to seed (plus auth rows).
+// Reset - hard-delete anything we're about to seed (plus auth rows).
 // ------------------------------------------------------------------
 async function reset() {
-	// Order matters only loosely — CASCADE on FK handles most of it, but
+	// Order matters only loosely - CASCADE on FK handles most of it, but
 	// explicit truncates keep the output clear.
 	await db.execute(
 		sql`TRUNCATE TABLE
@@ -167,7 +167,7 @@ async function main() {
 	const kidId = await signUp({ email: 'kid@example.test', name: 'Kid', role: 'child' })
 
 	console.log('💞 Wiring up partnerships + guardianships...')
-	// Alice ↔ Bob — partnered.
+	// Alice ↔ Bob - partnered.
 	await db
 		.update(users)
 		.set({ partnerId: bobId })
@@ -182,13 +182,13 @@ async function main() {
 
 	console.log('👥 Wiring up user relationships (view/edit grants)...')
 	await db.insert(userRelationships).values([
-		// Alice ↔ Bob — full mutual access.
+		// Alice ↔ Bob - full mutual access.
 		{ ownerUserId: aliceId, viewerUserId: bobId, canView: true, canEdit: true },
 		{ ownerUserId: bobId, viewerUserId: aliceId, canView: true, canEdit: true },
-		// Alice ↔ Carol — mutual view, no edit.
+		// Alice ↔ Carol - mutual view, no edit.
 		{ ownerUserId: aliceId, viewerUserId: carolId, canView: true, canEdit: false },
 		{ ownerUserId: carolId, viewerUserId: aliceId, canView: true, canEdit: false },
-		// Admin ↔ Bob / Carol — one-way view grants so they can see and claim
+		// Admin ↔ Bob / Carol - one-way view grants so they can see and claim
 		// on the admin showcase list without cluttering their own relationships.
 		{ ownerUserId: adminId, viewerUserId: bobId, canView: true, canEdit: false },
 		{ ownerUserId: adminId, viewerUserId: carolId, canView: true, canEdit: false },
@@ -344,7 +344,7 @@ async function main() {
 	await db.insert(itemComments).values({
 		itemId: headphones.id,
 		userId: carolId,
-		comment: 'Ooh, these are nice — good call Alice.',
+		comment: 'Ooh, these are nice - good call Alice.',
 	})
 
 	console.log('🗂️  Creating an item group with children...')
@@ -359,7 +359,7 @@ async function main() {
 	])
 
 	// ------------------------------------------------------------------
-	// Admin's own wishlist — a kitchen-sink showcase so local dev can see
+	// Admin's own wishlist - a kitchen-sink showcase so local dev can see
 	// every priority, group type, and item variation in one place.
 	// ------------------------------------------------------------------
 	console.log('🧪 Seeding admin showcase list...')
@@ -374,7 +374,7 @@ async function main() {
 		})
 		.returning({ id: lists.id })
 
-	// Standalone items — one of each priority, mix of quantities + prices,
+	// Standalone items - one of each priority, mix of quantities + prices,
 	// plus an archived row to demonstrate the hidden-from-edit state.
 	const adminItemRows = await db
 		.insert(items)
@@ -443,7 +443,7 @@ async function main() {
 
 	// Four groups, one per priority, plus type variety and an empty group.
 
-	// very-high priority: "order" group — gaming console before accessories.
+	// very-high priority: "order" group - gaming console before accessories.
 	const [consoleSetup] = await db
 		.insert(itemGroups)
 		.values({ listId: adminWishlist.id, name: 'Console setup', type: 'order', priority: 'very-high' })
@@ -482,7 +482,7 @@ async function main() {
 		},
 	])
 
-	// high priority: "or" group — pick one camera.
+	// high priority: "or" group - pick one camera.
 	const [cameraPick] = await db
 		.insert(itemGroups)
 		.values({ listId: adminWishlist.id, name: 'Pick one camera', type: 'or', priority: 'high' })
@@ -518,7 +518,7 @@ async function main() {
 		},
 	])
 
-	// normal priority: "or" group — large multi-item group showcasing a
+	// normal priority: "or" group - large multi-item group showcasing a
 	// multitude of alternatives.
 	const [bookPick] = await db
 		.insert(itemGroups)
@@ -573,7 +573,7 @@ async function main() {
 		},
 	])
 
-	// low priority: "order" group — home gym bundle.
+	// low priority: "order" group - home gym bundle.
 	const [homeGym] = await db
 		.insert(itemGroups)
 		.values({ listId: adminWishlist.id, name: 'Home gym starter', type: 'order', priority: 'low' })
@@ -602,7 +602,7 @@ async function main() {
 		},
 	])
 
-	// Empty group — exists to demonstrate zero-child rendering.
+	// Empty group - exists to demonstrate zero-child rendering.
 	await db.insert(itemGroups).values({ listId: adminWishlist.id, name: 'Future ideas (empty)', type: 'or', priority: 'normal' })
 
 	console.log('🎉 Claiming gifts on the admin list...')
@@ -654,11 +654,11 @@ async function main() {
 	console.log('✅ Seed complete.')
 	console.log('')
 	console.log('   Users (all password: SeedPass123!):')
-	console.log('     admin@example.test  — admin')
-	console.log('     alice@example.test  — partnered w/ bob, guardian of kid')
-	console.log('     bob@example.test    — partnered w/ alice, editor on alice todo list')
-	console.log('     carol@example.test  — solo')
-	console.log('     kid@example.test    — child')
+	console.log('     admin@example.test  - admin')
+	console.log('     alice@example.test  - partnered w/ bob, guardian of kid')
+	console.log('     bob@example.test    - partnered w/ alice, editor on alice todo list')
+	console.log('     carol@example.test  - solo')
+	console.log('     kid@example.test    - child')
 	console.log('')
 }
 

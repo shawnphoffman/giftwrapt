@@ -176,7 +176,7 @@ All server-side; no `VITE_*` equivalents. Validated at boot; missing any require
 
 ## Troubleshooting
 
-**`storage.init.failed` on boot, HeadBucket 403/404.** Credentials or endpoint wrong, or the bucket doesn't exist yet. On compose self-host, the app's own entrypoint logs the Garage bootstrap steps before the storage boot plugin runs — check `docker compose logs app` for `[init-garage]` lines to see which step failed. On Vercel, verify the env vars match your R2/S3 dashboard; mismatched region or wrong `STORAGE_FORCE_PATH_STYLE` for the provider both surface as 403s.
+**`storage.init.failed` on boot, HeadBucket 403/404.** Credentials or endpoint wrong, or the bucket doesn't exist yet. On compose self-host, the app's own entrypoint logs the Garage bootstrap steps before the storage boot plugin runs - check `docker compose logs app` for `[init-garage]` lines to see which step failed. On Vercel, verify the env vars match your R2/S3 dashboard; mismatched region or wrong `STORAGE_FORCE_PATH_STYLE` for the provider both surface as 403s.
 
 **Uploads succeed but images 404 on render.** `STORAGE_PUBLIC_URL` is set to something the browser can't reach. Either unset it (falls back to the `/api/files/*` proxy), point it at a reachable CDN domain, or expose Garage through a reverse proxy and use that URL.
 

@@ -9,7 +9,7 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 # Build both the Nitro server bundle and the standalone CLI bundles
-# (.output/scripts/*.mjs) — `pnpm build` runs vite build + build:cli.
+# (.output/scripts/*.mjs) - `pnpm build` runs vite build + build:cli.
 FROM base AS builder
 ENV NODE_OPTIONS=--max-old-space-size=4096
 COPY --from=deps /app/node_modules ./node_modules
@@ -42,7 +42,7 @@ RUN chmod +x /app/docker/entrypoint.sh \
 	/app/docker/migrate.sh \
 	/app/docker/healthcheck.sh
 
-# Strip vendored npm/corepack — entrypoint/migrate/healthcheck invoke `node`
+# Strip vendored npm/corepack - entrypoint/migrate/healthcheck invoke `node`
 # directly and .output/server is self-contained, so npm's bundled tar/cross-spawn/
 # glob/minimatch are dead weight dragging CVEs into the image.
 RUN rm -rf /usr/local/lib/node_modules \

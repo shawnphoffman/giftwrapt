@@ -18,9 +18,9 @@ const sseLog = createLogger('sse:list')
 
 type Writer = WritableStreamDefaultWriter<Uint8Array>
 
-// Per-list subscribers — used by viewers of a specific list-detail page.
+// Per-list subscribers - used by viewers of a specific list-detail page.
 const listWriters = new Map<number, Set<Writer>>()
-// Any-list subscribers — used by the home page, where a change to ANY list
+// Any-list subscribers - used by the home page, where a change to ANY list
 // affects the "unclaimed / total" badges and needs to invalidate the grouped
 // public-lists query. One stream is cheaper than N per-list streams when a
 // page renders many users' lists.

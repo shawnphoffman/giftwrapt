@@ -4,7 +4,7 @@ import type { PropsWithChildren } from 'react'
 /**
  * Minimal mock of the TanStack Router context so components that call
  * `useRouter()` can render in Storybook. Only the methods components use in
- * rendering are implemented — click-through actions would trigger mutations
+ * rendering are implemented - click-through actions would trigger mutations
  * against stubbed APIs and then invalidate, which is harmless.
  */
 const mockState = {

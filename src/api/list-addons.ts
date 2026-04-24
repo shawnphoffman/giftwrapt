@@ -10,7 +10,7 @@ import { canViewList } from '@/lib/permissions'
 import { authMiddleware } from '@/middleware/auth'
 
 // ===============================
-// WRITE — create an off-list gift (addon)
+// WRITE - create an off-list gift (addon)
 // ===============================
 // Addons are visible only to gifters (spoiler protection same as claims).
 // The list owner can't see them. Any viewer who is NOT the owner can add one.
@@ -60,9 +60,9 @@ export const createListAddon = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// WRITE — update an addon
+// WRITE - update an addon
 // ===============================
-// Only the user who created the addon can edit it. No lock needed — addons
+// Only the user who created the addon can edit it. No lock needed - addons
 // have no quantity invariant.
 
 const UpdateAddonInputSchema = z.object({
@@ -105,7 +105,7 @@ export const updateListAddon = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// WRITE — archive an addon ("mark as given")
+// WRITE - archive an addon ("mark as given")
 // ===============================
 // Archives the addon so it surfaces on the recipient's "received gifts"
 // page. This is a one-way state change in the current design. Only the
@@ -137,7 +137,7 @@ export const archiveListAddon = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// WRITE — delete an addon (hard delete)
+// WRITE - delete an addon (hard delete)
 // ===============================
 // Full retraction: "I misclicked, make it go away." Only the addon creator
 // can delete it.

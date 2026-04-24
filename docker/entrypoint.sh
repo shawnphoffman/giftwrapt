@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-# Startup banner — without this, a container that fails to boot is completely
+# Startup banner - without this, a container that fails to boot is completely
 # opaque. Mask the DB password before logging so we don't leak credentials.
 mask_url() {
   # strip everything between the first ':' after scheme and the '@' separator

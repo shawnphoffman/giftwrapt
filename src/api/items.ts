@@ -26,7 +26,7 @@ async function assertCanEditItems(userId: string, list: ListForPermCheck): Promi
 }
 
 // ===============================
-// WRITE — create an item
+// WRITE - create an item
 // ===============================
 
 const CreateItemInputSchema = z.object({
@@ -79,7 +79,7 @@ export const createItem = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// WRITE — update an item
+// WRITE - update an item
 // ===============================
 // Partial update: undefined = don't touch, null = clear the field.
 // Bumps modifiedAt when title, url, or notes change (per spec).
@@ -156,7 +156,7 @@ export const updateItem = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// WRITE — delete an item
+// WRITE - delete an item
 // ===============================
 // Hard delete. FK cascades handle claims and comments.
 
@@ -195,7 +195,7 @@ export const deleteItem = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// WRITE — archive/unarchive an item
+// WRITE - archive/unarchive an item
 // ===============================
 
 const ArchiveItemInputSchema = z.object({
@@ -247,7 +247,7 @@ function isCrossTypeMoveDestructive(sourceType: ListType, targetType: ListType):
 }
 
 // ===============================
-// BULK — shared helpers
+// BULK - shared helpers
 // ===============================
 
 const BulkIdsSchema = z.array(z.number().int().positive()).min(1).max(500)
@@ -285,7 +285,7 @@ async function loadAndAuthorizeItems(
 }
 
 // ===============================
-// BULK — move items to another list
+// BULK - move items to another list
 // ===============================
 
 const MoveItemsInputSchema = z.object({
@@ -352,7 +352,7 @@ export const moveItemsToList = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// BULK — archive / unarchive
+// BULK - archive / unarchive
 // ===============================
 
 const ArchiveItemsInputSchema = z.object({
@@ -378,7 +378,7 @@ export const archiveItems = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// BULK — delete
+// BULK - delete
 // ===============================
 
 const DeleteItemsInputSchema = z.object({
@@ -407,7 +407,7 @@ export const deleteItems = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// BULK — set priority
+// BULK - set priority
 // ===============================
 
 const SetItemsPriorityInputSchema = z.object({
@@ -433,7 +433,7 @@ export const setItemsPriority = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// BULK — reorder items across priority buckets on one list
+// BULK - reorder items across priority buckets on one list
 // ===============================
 // Accepts per-item priority + sortOrder. All items must belong to `listId`.
 
@@ -487,7 +487,7 @@ export const reorderItems = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// BULK — reorder mixed items + groups across priority buckets
+// BULK - reorder mixed items + groups across priority buckets
 // ===============================
 // Used by the Organize/Reorder UI which interleaves items and group rows
 // inside the same priority buckets.
@@ -570,7 +570,7 @@ export const reorderListEntries = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// BULK — set priority on multiple groups
+// BULK - set priority on multiple groups
 // ===============================
 
 const SetGroupsPriorityInputSchema = z.object({
@@ -609,7 +609,7 @@ export const setGroupsPriority = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// BULK — delete multiple groups (and all their items)
+// BULK - delete multiple groups (and all their items)
 // ===============================
 
 const DeleteGroupsInputSchema = z.object({

@@ -9,7 +9,7 @@ import { loggingMiddleware } from '@/lib/logger'
 import { authMiddleware } from '@/middleware/auth'
 
 // ===============================
-// READ — editors for a list
+// READ - editors for a list
 // ===============================
 // Returns every user who has list-level editor access. Only the list
 // owner should see this; the loader in $listId.edit.tsx gates access.
@@ -52,7 +52,7 @@ export const getListEditors = createServerFn({ method: 'GET' })
 	})
 
 // ===============================
-// WRITE — grant editor access
+// WRITE - grant editor access
 // ===============================
 // Only the list owner can grant. The target user must exist.
 
@@ -123,7 +123,7 @@ export const addListEditor = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
-// READ — users eligible to be added as editors
+// READ - users eligible to be added as editors
 // ===============================
 // Returns every user who is not the list owner and not already an editor.
 // Includes role so the UI can disable child accounts. Only the list owner
@@ -165,7 +165,7 @@ export const getAddableEditors = createServerFn({ method: 'GET' })
 	})
 
 // ===============================
-// WRITE — revoke editor access
+// WRITE - revoke editor access
 // ===============================
 // Only the list owner can revoke.
 

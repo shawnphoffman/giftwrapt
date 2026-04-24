@@ -2,7 +2,7 @@ name: 'wishlist-dev'
 
 # Local dev stack: Postgres + Garage (S3-compatible object storage). The
 # deployed app (Vercel) talks to its own DB and an external S3 bucket via
-# Vercel env vars — this compose file never affects prod. Use with:
+# Vercel env vars - this compose file never affects prod. Use with:
 #
 #   docker compose up -d       # start
 #   pnpm storage:init          # one-shot Garage bootstrap (idempotent)

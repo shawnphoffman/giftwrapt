@@ -5,7 +5,7 @@ import { useEffect } from 'react'
  * Hook that connects to the SSE endpoint for a given list and
  * invalidates the TanStack Router cache when changes arrive.
  *
- * Falls back gracefully if SSE is unavailable — TanStack Query's
+ * Falls back gracefully if SSE is unavailable - TanStack Query's
  * refetch-on-focus will still keep data reasonably fresh.
  */
 export function useListSSE(listId: number) {
@@ -26,7 +26,7 @@ export function useListSSE(listId: number) {
 			}
 
 			es.onerror = () => {
-				// Connection lost — EventSource auto-reconnects by default.
+				// Connection lost - EventSource auto-reconnects by default.
 				// Nothing to do here; the refetch-on-focus fallback covers gaps.
 			}
 		} catch {

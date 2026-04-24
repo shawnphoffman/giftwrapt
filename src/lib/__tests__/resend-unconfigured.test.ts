@@ -8,7 +8,7 @@ vi.mock('@/env', () => ({
 		RESEND_FROM_EMAIL: undefined,
 		RESEND_FROM_NAME: undefined,
 		RESEND_BCC_ADDRESS: undefined,
-		// Logging config — required by the pino logger loaded indirectly.
+		// Logging config - required by the pino logger loaded indirectly.
 		LOG_LEVEL: 'silent',
 		LOG_PRETTY: false,
 		// Required by the crypto helper even though we never encrypt here.

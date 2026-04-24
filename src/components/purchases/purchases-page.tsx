@@ -571,7 +571,7 @@ function MetricsGroup({
 }
 
 function PersonCell({ group }: { group: PersonGroup | null }) {
-	if (!group) return <span className="text-sm text-muted-foreground">—</span>
+	if (!group) return <span className="text-sm text-muted-foreground">-</span>
 	return (
 		<div className="flex items-center gap-2 min-w-0">
 			<UserAvatar name={group.name} image={group.image} size="small" />

@@ -8,7 +8,7 @@ import { loggingMiddleware } from '@/lib/logger'
 import { authMiddleware } from '@/middleware/auth'
 
 // ===============================
-// READ — received gifts (archived items on user's lists)
+// READ - received gifts (archived items on user's lists)
 // ===============================
 // After items are archived, the recipient can see who gifted them.
 // This surfaces gifter info that was hidden during spoiler protection.
