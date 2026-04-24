@@ -1,25 +1,11 @@
-import { useQueryClient } from '@tanstack/react-query'
-import { useRouter } from '@tanstack/react-router'
-import { ExternalLink, Gift, Lock, Pencil, X } from 'lucide-react'
+import { ExternalLink, Gift, Lock, Pencil } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
-import { toast } from 'sonner'
 
-import { unclaimItemGift } from '@/api/gifts'
 import type { ItemWithGifts } from '@/api/lists'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import PriorityIcon from '@/components/common/priority-icon'
 import UserAvatar from '@/components/common/user-avatar'
 import { ItemComments } from '@/components/items/item-comments'
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { useSession } from '@/lib/auth-client'
 import { computeRemainingClaimableQuantity, computeRemainingClaimableQuantityExcluding } from '@/lib/gifts'
@@ -54,14 +40,10 @@ type Props = {
 }
 
 export default function ItemRow({ item, lockReason, grouped = false }: Props) {
-	const router = useRouter()
-	const queryClient = useQueryClient()
 	const { data: session } = useSession()
 	const currentUserId = session?.user.id
 	const [claimDialogOpen, setClaimDialogOpen] = useState(false)
 	const [editDialogOpen, setEditDialogOpen] = useState(false)
-	const [unclaimDialogOpen, setUnclaimDialogOpen] = useState(false)
-	const [unclaiming, setUnclaiming] = useState(false)
 
 	const remaining = computeRemainingClaimableQuantity(
 		item.quantity,
@@ -77,33 +59,6 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 				myClaim.id
 			)
 		: remaining
-
-	async function handleUnclaim() {
-		if (!myClaim) return
-		setUnclaiming(true)
-		try {
-			const result = await unclaimItemGift({ data: { giftId: myClaim.id } })
-			if (result.kind === 'error') {
-				switch (result.reason) {
-					case 'not-yours':
-						toast.error("You can't unclaim someone else's claim.")
-						break
-					case 'not-found':
-						toast.error('This claim no longer exists.')
-						break
-				}
-				return
-			}
-			toast.success('Claim removed')
-			setUnclaimDialogOpen(false)
-			queryClient.invalidateQueries({ queryKey: ['lists', 'public', 'grouped'] })
-			await router.invalidate()
-		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Failed to remove claim')
-		} finally {
-			setUnclaiming(false)
-		}
-	}
 
 	const domain = item.url ? getDomainFromUrl(item.url) : null
 	const hasPriorityTab = !grouped && item.priority !== 'normal'
@@ -191,22 +146,10 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 
 					<div className="flex flex-row items-center gap-1 ml-auto">
 						{myClaim && (
-							<>
-								<Button size="sm" variant="ghost" className="h-7" onClick={() => setEditDialogOpen(true)} title="Edit your claim">
-									<Pencil className="size-4" />
-									Edit
-								</Button>
-								<Button
-									size="sm"
-									variant="ghost"
-									className="h-7 text-destructive hover:text-destructive"
-									onClick={() => setUnclaimDialogOpen(true)}
-									title="Remove your claim"
-								>
-									<X className="size-4" />
-									Unclaim
-								</Button>
-							</>
+							<Button size="sm" variant="ghost" className="h-7" onClick={() => setEditDialogOpen(true)} title="Edit your claim">
+								<Pencil className="size-4" />
+								Edit claim
+							</Button>
 						)}
 						{!fullyClaimed && (!lockReason || myClaim) && (
 							<Button size="sm" variant="outline" className="h-7" onClick={() => setClaimDialogOpen(true)}>
@@ -274,23 +217,6 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 					remainingQuantity={remainingForEdit}
 				/>
 			)}
-
-			<AlertDialog open={unclaimDialogOpen} onOpenChange={setUnclaimDialogOpen}>
-				<AlertDialogContent>
-					<AlertDialogHeader>
-						<AlertDialogTitle>Remove your claim on “{item.title}”?</AlertDialogTitle>
-						<AlertDialogDescription>
-							Your claim will be deleted and the slot will open back up. You can always claim again later if you change your mind.
-						</AlertDialogDescription>
-					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel disabled={unclaiming}>Cancel</AlertDialogCancel>
-						<AlertDialogAction onClick={handleUnclaim} disabled={unclaiming}>
-							{unclaiming ? 'Removing…' : 'Yes, unclaim'}
-						</AlertDialogAction>
-					</AlertDialogFooter>
-				</AlertDialogContent>
-			</AlertDialog>
 		</>
 	)
 }

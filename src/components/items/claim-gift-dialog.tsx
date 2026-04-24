@@ -6,9 +6,10 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import { claimItemGift, updateCoGifters, updateItemGift } from '@/api/gifts'
+import { claimItemGift, unclaimItemGift, updateCoGifters, updateItemGift } from '@/api/gifts'
 import type { GiftOnItem } from '@/api/lists'
 import { getPotentialPartners } from '@/api/user'
+import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -75,12 +76,33 @@ export function ClaimGiftDialog(props: Props) {
 	const [error, setError] = useState<string | null>(null)
 	const [coGifterIds, setCoGifterIds] = useState<Array<string>>(isEdit ? (props.gift.additionalGifterIds ?? []) : [])
 	const [coGifterSaving, setCoGifterSaving] = useState(false)
+	const [unclaimConfirmOpen, setUnclaimConfirmOpen] = useState(false)
 
 	const { data: allUsers } = useQuery({
 		queryKey: ['potential-partners'],
 		queryFn: () => getPotentialPartners(),
 		enabled: open && isEdit,
 	})
+
+	async function handleUnclaim() {
+		if (!isEdit) return
+		const result = await unclaimItemGift({ data: { giftId: props.gift.id } })
+		if (result.kind === 'error') {
+			switch (result.reason) {
+				case 'not-yours':
+					toast.error("You can't unclaim someone else's claim.")
+					break
+				case 'not-found':
+					toast.error('This claim no longer exists.')
+					break
+			}
+			throw new Error(result.reason)
+		}
+		toast.success('Claim removed')
+		onOpenChange(false)
+		queryClient.invalidateQueries({ queryKey: ['lists', 'public', 'grouped'] })
+		await router.invalidate()
+	}
 
 	const schema = buildSchema(remainingQuantity)
 
@@ -329,6 +351,11 @@ export function ClaimGiftDialog(props: Props) {
 					)}
 
 					<DialogFooter>
+						{isEdit && (
+							<Button type="button" variant="destructive" onClick={() => setUnclaimConfirmOpen(true)} disabled={submitting}>
+								Unclaim
+							</Button>
+						)}
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
 							Cancel
 						</Button>
@@ -338,6 +365,19 @@ export function ClaimGiftDialog(props: Props) {
 					</DialogFooter>
 				</form>
 			</DialogContent>
+
+			{isEdit && (
+				<ConfirmDialog
+					open={unclaimConfirmOpen}
+					onOpenChange={setUnclaimConfirmOpen}
+					title={<>Remove your claim on “{itemTitle}”?</>}
+					description="Your claim will be deleted and the slot will open back up. You can always claim again later if you change your mind."
+					confirmLabel="Yes, unclaim"
+					confirmBusyLabel="Removing…"
+					destructive
+					onConfirm={handleUnclaim}
+				/>
+			)}
 		</Dialog>
 	)
 }
