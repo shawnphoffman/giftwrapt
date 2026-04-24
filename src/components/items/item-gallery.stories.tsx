@@ -1,6 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { Fragment } from 'react'
 
+// The `__setStorybookComments` helper only exists on the Storybook alias of
+// `@/api/comments` (see .storybook/mocks/api.ts). TypeScript resolves the path
+// to the real API module, so we opt out of the missing-export check.
+// @ts-expect-error - storybook-only mock export
+import { __setStorybookComments } from '@/api/comments'
 import type { GroupSummary, ItemForEditing, ItemWithGifts } from '@/api/lists'
 
 import { withGalleryFrame } from './_stories/decorators'
@@ -35,6 +40,80 @@ type Variation = {
 	edit: ItemForEditing
 	viewable: ItemWithGifts
 }
+
+// Known item IDs for rows that need seeded comments. The mock
+// `getCommentsForItem` reads from a registry keyed by itemId (see
+// .storybook/mocks/api.ts), so every commented row pins its id.
+const COMMENTED_ITEM_IDS = {
+	single: 9001,
+	multiGifter: 9002,
+	grouped: 9003,
+} as const
+
+const COMMENT_NOW = new Date('2026-04-20T14:32:00Z')
+const HOUR = 60 * 60 * 1000
+const DAY = 24 * HOUR
+
+function makeComment(
+	id: number,
+	itemId: number,
+	user: { id: string; name: string | null; email: string; image: string | null },
+	comment: string,
+	createdAt: Date
+) {
+	return { id, itemId, comment, createdAt, updatedAt: createdAt, user }
+}
+
+__setStorybookComments(COMMENTED_ITEM_IDS.single, [
+	makeComment(
+		1,
+		COMMENTED_ITEM_IDS.single,
+		otherGifter,
+		'Any preference on color? I see this comes in cream and slate.',
+		new Date(COMMENT_NOW.getTime() - 2 * DAY)
+	),
+	makeComment(
+		2,
+		COMMENTED_ITEM_IDS.single,
+		viewerUser,
+		"I was thinking cream, but honestly either works. Whatever's in stock.",
+		new Date(COMMENT_NOW.getTime() - 2 * DAY + 90 * 60 * 1000)
+	),
+])
+
+__setStorybookComments(COMMENTED_ITEM_IDS.multiGifter, [
+	makeComment(
+		3,
+		COMMENTED_ITEM_IDS.multiGifter,
+		thirdGifter,
+		'Happy to split the 6-pack with anyone. I can grab 2 if someone else takes 2.',
+		new Date(COMMENT_NOW.getTime() - 3 * DAY)
+	),
+	makeComment(
+		4,
+		COMMENTED_ITEM_IDS.multiGifter,
+		fourthGifter,
+		"I'll take 2 then. Let's coordinate before the party.",
+		new Date(COMMENT_NOW.getTime() - 3 * DAY + 4 * HOUR)
+	),
+	makeComment(
+		5,
+		COMMENTED_ITEM_IDS.multiGifter,
+		otherGifter,
+		"Great, I'll cover the last 2. Done!",
+		new Date(COMMENT_NOW.getTime() - 1 * DAY)
+	),
+])
+
+__setStorybookComments(COMMENTED_ITEM_IDS.grouped, [
+	makeComment(
+		6,
+		COMMENTED_ITEM_IDS.grouped,
+		otherGifter,
+		'Is the v1 version okay or do you need the newer revision?',
+		new Date(COMMENT_NOW.getTime() - 6 * HOUR)
+	),
+])
 
 const pickOneGroup: GroupSummary = { id: 900, type: 'or', name: 'Headphones (pick one)', priority: 'high', sortOrder: null }
 const orderedGroup: GroupSummary = { id: 901, type: 'order', name: 'Coffee setup (in order)', priority: 'very-high', sortOrder: null }
@@ -161,6 +240,16 @@ const standaloneVariations: Array<Variation> = [
 			price: '399.99',
 		}),
 	},
+	{
+		key: 'with-comments',
+		label: 'With comments (2 users)',
+		...pair({
+			id: COMMENTED_ITEM_IDS.single,
+			title: 'Hand-thrown ceramic mug',
+			price: '42',
+			commentCount: 2,
+		}),
+	},
 ]
 
 // Variations that only make sense for the buyer view, they need pre-populated
@@ -247,6 +336,28 @@ const buyerOnlyVariations: Array<Variation> = [
 			}
 		),
 	},
+	{
+		key: 'comments-coordination',
+		label: 'Comments (3 users coordinating)',
+		...pair(
+			{
+				id: COMMENTED_ITEM_IDS.multiGifter,
+				title: 'Wine glasses',
+				quantity: 6,
+				price: '12 each',
+				commentCount: 3,
+			},
+			{
+				quantity: 6,
+				commentCount: 3,
+				gifts: [
+					makeGift({ quantity: 2, gifterId: thirdGifter.id, gifter: thirdGifter }),
+					makeGift({ quantity: 2, gifterId: fourthGifter.id, gifter: fourthGifter }),
+					makeGift({ quantity: 2 }),
+				],
+			}
+		),
+	},
 ]
 
 function SectionHeader({ title, note }: { title: string; note?: string }) {
@@ -279,7 +390,14 @@ function Gallery({ view }: GalleryArgs) {
 			groupSortOrder: 0,
 			imageUrl: placeholderImages.square,
 		}),
-		makeItemForEditing({ groupId: orderedGroup.id, title: 'Grinder', price: '249', groupSortOrder: 1 }),
+		makeItemForEditing({
+			id: COMMENTED_ITEM_IDS.grouped,
+			groupId: orderedGroup.id,
+			title: 'Grinder',
+			price: '249',
+			groupSortOrder: 1,
+			commentCount: 1,
+		}),
 		makeItemForEditing({
 			groupId: orderedGroup.id,
 			title: 'Scale',
@@ -333,7 +451,14 @@ function Gallery({ view }: GalleryArgs) {
 				imageUrl: placeholderImages.square,
 				gifts: [makeGift({ gifterId: otherGifter.id, gifter: otherGifter })],
 			}),
-			makeItemWithGifts({ groupId: orderedGroup.id, title: 'Grinder', price: '249', groupSortOrder: 1 }),
+			makeItemWithGifts({
+				id: COMMENTED_ITEM_IDS.grouped,
+				groupId: orderedGroup.id,
+				title: 'Grinder',
+				price: '249',
+				groupSortOrder: 1,
+				commentCount: 1,
+			}),
 			makeItemWithGifts({
 				groupId: orderedGroup.id,
 				title: 'Scale',
@@ -350,7 +475,11 @@ function Gallery({ view }: GalleryArgs) {
 			{standaloneVariations.map(v => (
 				<Fragment key={v.key}>
 					<RowLabel label={v.label} />
-					{view === 'recipient' ? <ItemEditRow item={v.edit} groups={groups} /> : <ItemRow item={v.viewable} />}
+					{view === 'recipient' ? (
+						<ItemEditRow item={v.edit} commentCount={v.edit.commentCount} groups={groups} />
+					) : (
+						<ItemRow item={v.viewable} />
+					)}
 				</Fragment>
 			))}
 

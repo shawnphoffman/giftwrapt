@@ -59,7 +59,22 @@ export const unclaimItemGift = ok
 export const updateCoGifters = ok
 
 // @/api/comments
-export const getCommentsForItem = emptyArray
+// Stories can seed comments per itemId via __setStorybookComments(itemId, [...]).
+// getCommentsForItem reads from this registry; unknown ids return [].
+type StorybookComment = {
+	id: number
+	itemId: number
+	comment: string
+	createdAt: Date
+	updatedAt: Date
+	user: { id: string; name: string | null; email: string; image: string | null }
+}
+const storybookCommentsByItem = new Map<number, Array<StorybookComment>>()
+export function __setStorybookComments(itemId: number, comments: Array<StorybookComment>) {
+	storybookCommentsByItem.set(itemId, comments)
+}
+export const getCommentsForItem = async ({ data }: { data: { itemId: number } }): Promise<Array<StorybookComment>> =>
+	storybookCommentsByItem.get(data.itemId) ?? []
 export const createItemComment = ok
 export const updateItemComment = ok
 export const deleteItemComment = ok

@@ -3,18 +3,24 @@ import { cn } from '@/lib/utils'
 type Props = {
 	price?: string | null
 	quantity: number
+	/**
+	 * When true, suppress the quantity half even for qty > 1. Used by
+	 * views that surface quantity via a separate indicator (e.g. the
+	 * gifter view's QuantityRemainingBadge).
+	 */
+	hideQuantity?: boolean
 	className?: string
 }
 
-export function PriceQuantityBadge({ price, quantity, className }: Props) {
+export function PriceQuantityBadge({ price, quantity, hideQuantity = false, className }: Props) {
 	const showPrice = !!price
-	const showQty = quantity > 1
+	const showQty = !hideQuantity && quantity > 1
 	if (!showPrice && !showQty) return null
 
 	return (
 		<span
 			className={cn(
-				'inline-flex items-stretch shrink-0 rounded-full border overflow-hidden text-xs font-medium whitespace-nowrap tabular-nums',
+				'inline-flex items-stretch shrink-0 rounded-full border overflow-hidden text-xs font-medium whitespace-nowrap',
 				className
 			)}
 		>

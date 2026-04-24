@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { ExternalLink, Gift, Lock, Pencil, X } from 'lucide-react'
-import { useState } from 'react'
+import { type ReactNode, useState } from 'react'
 import { toast } from 'sonner'
 
 import { unclaimItemGift } from '@/api/gifts'
@@ -31,6 +31,7 @@ import { Badge } from '../ui/badge'
 import { ClaimGiftDialog } from './claim-gift-dialog'
 import { ItemImage } from './item-image'
 import { PriceQuantityBadge } from './price-quantity-badge'
+import { QuantityRemainingBadge } from './quantity-remaining-badge'
 
 export type LockReason = 'order' | 'or'
 
@@ -66,7 +67,6 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 		item.quantity,
 		item.gifts.map(g => ({ quantity: g.quantity }))
 	)
-	const totalClaimed = item.quantity - remaining
 	const fullyClaimed = remaining === 0
 	const myClaim = currentUserId ? item.gifts.find(g => g.gifterId === currentUserId) : undefined
 
@@ -108,6 +108,33 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 	const domain = item.url ? getDomainFromUrl(item.url) : null
 	const hasPriorityTab = !grouped && item.priority !== 'normal'
 
+	const trailingBits: Array<ReactNode> = []
+	if (item.price) {
+		trailingBits.push(<PriceQuantityBadge key="price" price={item.price} quantity={1} hideQuantity />)
+	}
+	if (item.quantity > 1) {
+		trailingBits.push(<QuantityRemainingBadge key="qty" variant="inline-pill" quantity={item.quantity} remaining={remaining} />)
+	} else if (fullyClaimed) {
+		trailingBits.push(
+			<Badge key="status" variant="outline" className="text-xs">
+				{myClaim ? 'You claimed this' : 'Fully claimed'}
+			</Badge>
+		)
+	} else if (lockReason && !myClaim) {
+		trailingBits.push(
+			<Badge
+				key="status"
+				variant="outline"
+				className="text-xs text-muted-foreground"
+				title={lockReason === 'order' ? 'Claim the item above first' : 'Someone already claimed an item in this pick-one group'}
+			>
+				<Lock className="size-3" />
+				Locked
+			</Badge>
+		)
+	}
+	const trailing = trailingBits.length > 0 ? <div className="flex items-center gap-2">{trailingBits}</div> : null
+
 	const rowInner = (
 		<div className="flex flex-col w-full gap-2" id={`item-${item.id}`}>
 			{/* DETAILS ROW */}
@@ -122,33 +149,26 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 							item.title
 						)}
 					</div>
-					<div className="flex flex-row flex-wrap items-center gap-1.5">
-						{domain && (
-							<a
-								href={item.url!}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-0.5"
-							>
-								{domain} <ExternalLink className="size-3" />
-							</a>
-						)}
-						<PriceQuantityBadge price={item.price} quantity={item.quantity} />
-					</div>
+					{domain && (
+						<a
+							href={item.url!}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-0.5 w-fit"
+						>
+							{domain} <ExternalLink className="size-3" />
+						</a>
+					)}
 					{item.notes && <MarkdownNotes content={item.notes} className="text-xs text-foreground/75 mt-1" />}
 				</div>
 				{item.imageUrl && <ItemImage src={item.imageUrl} alt={item.title} />}
 			</div>
 
 			{/* CLAIMS ROW */}
-			<div className="flex flex-row items-center flex-wrap gap-2">
-				{item.gifts.length > 0 && (
-					<div className="flex flex-row items-center flex-wrap gap-2 text-xs text-muted-foreground">
-						<Gift className="size-3.5" />
-						<span>
-							{totalClaimed} of {item.quantity} claimed
-						</span>
-						<div className="flex flex-row flex-wrap items-center gap-1">
+			{(item.gifts.length > 0 || !fullyClaimed) && (
+				<div className="flex flex-row items-center flex-wrap gap-2">
+					{item.gifts.length > 0 && (
+						<div className="flex flex-row flex-wrap items-center gap-1 text-xs text-muted-foreground">
 							{item.gifts.map(gift => {
 								const name = gift.gifter.name || gift.gifter.email
 								const isMe = gift.gifter.id === currentUserId
@@ -167,58 +187,39 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 								)
 							})}
 						</div>
-					</div>
-				)}
+					)}
 
-				<div className="flex flex-row items-center gap-1 ml-auto">
-					{myClaim && (
-						<>
-							<Button size="sm" variant="ghost" className="h-7" onClick={() => setEditDialogOpen(true)} title="Edit your claim">
-								<Pencil className="size-4" />
-								Edit
+					<div className="flex flex-row items-center gap-1 ml-auto">
+						{myClaim && (
+							<>
+								<Button size="sm" variant="ghost" className="h-7" onClick={() => setEditDialogOpen(true)} title="Edit your claim">
+									<Pencil className="size-4" />
+									Edit
+								</Button>
+								<Button
+									size="sm"
+									variant="ghost"
+									className="h-7 text-destructive hover:text-destructive"
+									onClick={() => setUnclaimDialogOpen(true)}
+									title="Remove your claim"
+								>
+									<X className="size-4" />
+									Unclaim
+								</Button>
+							</>
+						)}
+						{!fullyClaimed && (!lockReason || myClaim) && (
+							<Button size="sm" variant="outline" className="h-7" onClick={() => setClaimDialogOpen(true)}>
+								<Gift className="size-4" />
+								{myClaim ? 'Claim more' : 'Claim'}
 							</Button>
-							<Button
-								size="sm"
-								variant="ghost"
-								className="h-7 text-destructive hover:text-destructive"
-								onClick={() => setUnclaimDialogOpen(true)}
-								title="Remove your claim"
-							>
-								<X className="size-4" />
-								Unclaim
-							</Button>
-						</>
-					)}
-					{fullyClaimed ? (
-						myClaim ? (
-							<Badge variant="outline" className="text-xs">
-								You claimed this
-							</Badge>
-						) : (
-							<Badge variant="outline" className="text-xs">
-								Fully claimed
-							</Badge>
-						)
-					) : lockReason && !myClaim ? (
-						<Badge
-							variant="outline"
-							className="text-xs text-muted-foreground"
-							title={lockReason === 'order' ? 'Claim the item above first' : 'Someone already claimed an item in this pick-one group'}
-						>
-							<Lock className="size-3" />
-							Locked
-						</Badge>
-					) : (
-						<Button size="sm" variant="outline" className="h-7" onClick={() => setClaimDialogOpen(true)}>
-							<Gift className="size-4" />
-							{myClaim ? 'Claim more' : 'Claim'}
-						</Button>
-					)}
+						)}
+					</div>
 				</div>
-			</div>
+			)}
 
 			{/* COMMENTS */}
-			<ItemComments itemId={item.id} commentCount={item.commentCount} />
+			<ItemComments itemId={item.id} commentCount={item.commentCount} trailing={trailing} />
 		</div>
 	)
 

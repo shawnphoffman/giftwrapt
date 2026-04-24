@@ -51,6 +51,7 @@ import { ItemComments } from './item-comments'
 import { ItemFormDialog } from './item-form-dialog'
 import { ItemImage } from './item-image'
 import { PriceQuantityBadge } from './price-quantity-badge'
+import { QuantityRemainingBadge } from './quantity-remaining-badge'
 
 type Props = {
 	item: Item
@@ -124,19 +125,16 @@ export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], 
 			<div className="flex items-start gap-2">
 				<div className="flex-1 min-w-0 flex flex-col gap-0.5">
 					<div className="font-medium leading-tight truncate">{item.title}</div>
-					<div className="flex flex-row flex-wrap items-center gap-1.5">
-						{domain && (
-							<a
-								href={item.url!}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-0.5"
-							>
-								{domain} <ExternalLink className="size-3" />
-							</a>
-						)}
-						<PriceQuantityBadge price={item.price} quantity={item.quantity} />
-					</div>
+					{domain && (
+						<a
+							href={item.url!}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-0.5 w-fit"
+						>
+							{domain} <ExternalLink className="size-3" />
+						</a>
+					)}
 					{item.notes && <MarkdownNotes content={item.notes} className="text-xs text-foreground/75 mt-1" />}
 				</div>
 				{item.imageUrl && <ItemImage src={item.imageUrl} alt={item.title} />}
@@ -221,7 +219,18 @@ export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], 
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</div>
-			<ItemComments itemId={item.id} commentCount={commentCount} />
+			<ItemComments
+				itemId={item.id}
+				commentCount={commentCount}
+				trailing={
+					item.price || item.quantity > 1 ? (
+						<div className="flex items-center gap-2">
+							{item.price && <PriceQuantityBadge price={item.price} quantity={1} hideQuantity />}
+							<QuantityRemainingBadge variant="inline-pill" quantity={item.quantity} remaining={item.quantity} />
+						</div>
+					) : null
+				}
+			/>
 		</div>
 	)
 

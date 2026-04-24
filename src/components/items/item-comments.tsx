@@ -25,13 +25,19 @@ import { cn } from '@/lib/utils'
 type Props = {
 	itemId: number
 	commentCount?: number
+	/**
+	 * Optional slot rendered on the same line as the expand trigger,
+	 * right-aligned. Used to surface small contextual metadata
+	 * (e.g. a quantity/remaining badge) without stealing a row.
+	 */
+	trailing?: React.ReactNode
 }
 
 function isSubmitShortcut(e: KeyboardEvent) {
 	return (e.metaKey || e.ctrlKey) && e.key === 'Enter'
 }
 
-export function ItemComments({ itemId, commentCount = 0 }: Props) {
+export function ItemComments({ itemId, commentCount = 0, trailing }: Props) {
 	const [expanded, setExpanded] = useState(commentCount > 0)
 	const session = useSession()
 	const currentUserId = session.data?.user.id
@@ -68,19 +74,22 @@ export function ItemComments({ itemId, commentCount = 0 }: Props) {
 
 	return (
 		<div className="flex flex-col gap-2">
-			<button
-				type="button"
-				onClick={() => setExpanded(!expanded)}
-				className={cn(
-					'flex items-center gap-1.5 text-xs w-fit',
-					displayCount > 0
-						? 'font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300'
-						: 'text-muted-foreground hover:text-foreground'
-				)}
-			>
-				<MessageSquare className="size-3.5" />
-				{displayCount > 0 ? `${displayCount} comment${displayCount !== 1 ? 's' : ''}` : 'Add comment'}
-			</button>
+			<div className="flex items-center gap-2">
+				<button
+					type="button"
+					onClick={() => setExpanded(!expanded)}
+					className={cn(
+						'flex items-center gap-1.5 text-xs w-fit',
+						displayCount > 0
+							? 'font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300'
+							: 'text-muted-foreground hover:text-foreground'
+					)}
+				>
+					<MessageSquare className="size-3.5" />
+					{displayCount > 0 ? `${displayCount} comment${displayCount !== 1 ? 's' : ''}` : 'Add comment'}
+				</button>
+				{trailing && <div className="ml-auto">{trailing}</div>}
+			</div>
 
 			<AnimatePresence initial={false}>
 				{expanded && (
