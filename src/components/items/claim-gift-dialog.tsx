@@ -1,7 +1,7 @@
 import { useForm } from '@tanstack/react-form'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
-import { UserPlus, X } from 'lucide-react'
+import { DollarSign, UserPlus, X } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -265,16 +265,22 @@ export function ClaimGiftDialog(props: Props) {
 						{field => (
 							<div className="grid gap-2">
 								<Label htmlFor={field.name}>Total cost (optional)</Label>
-								<Input
-									id={field.name}
-									type="text"
-									inputMode="decimal"
-									placeholder="12.50"
-									value={field.state.value}
-									onChange={e => field.handleChange(e.target.value)}
-									onBlur={field.handleBlur}
-									disabled={submitting}
-								/>
+								<div className="relative">
+									<DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+									<Input
+										id={field.name}
+										type="number"
+										inputMode="decimal"
+										min="0"
+										step="0.01"
+										placeholder="0.00"
+										value={field.state.value}
+										onChange={e => field.handleChange(e.target.value)}
+										onBlur={field.handleBlur}
+										disabled={submitting}
+										className="pl-8"
+									/>
+								</div>
 								{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 									<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
 								)}
