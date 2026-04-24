@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.14.0](https://github.com/shawnphoffman/wish-lists/compare/v0.13.1...v0.14.0) (2026-04-24)
+
+
+### Features
+
+* **claims:** merge unclaim into edit dialog, add ConfirmDialog ([90dc427](https://github.com/shawnphoffman/wish-lists/commit/90dc4276737591426aa9843cdeeba2dbeae8e28a))
+* **comments:** expand by default, blue styling, relative time ([429bd79](https://github.com/shawnphoffman/wish-lists/commit/429bd798c040f33f518a4f685c7275a59df19ef6))
+* **comments:** show comment count on item rows without expanding ([ebe958e](https://github.com/shawnphoffman/wish-lists/commit/ebe958e272611100e7f93c0d837e0da7f5fbad49))
+* **items:** consolidate qty/price into comment-row pills ([0b94be3](https://github.com/shawnphoffman/wish-lists/commit/0b94be30015b095f4e52d26290a940ffa2eace2a))
+* **items:** money-style total cost input with $ prefix ([cf40d80](https://github.com/shawnphoffman/wish-lists/commit/cf40d80251d4d49824a5e404006422ed5a0eb7af))
+* **items:** storybook overhaul, image lightbox, grouped prop rename ([a05e694](https://github.com/shawnphoffman/wish-lists/commit/a05e694c959859363a73b5d10937e252215db151))
+
 ## [0.13.1](https://github.com/shawnphoffman/wish-lists/compare/v0.13.0...v0.13.1) (2026-04-23)
 
 
