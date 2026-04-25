@@ -82,9 +82,13 @@ const purchases: Array<NavItem> = [
 const actions: Array<NavItem> = [
 	{
 		name: 'Add Item',
-		url: '/item/import',
+		url: '/me#add-item',
+		mask: '/me',
 		icon: PlusCircle,
 		hoverColor: 'group-hover/link:text-blue-500 group-data-[status=active]/link:text-blue-500',
+		activeOptions: {
+			exact: true,
+		},
 	},
 	{
 		name: 'Create List',

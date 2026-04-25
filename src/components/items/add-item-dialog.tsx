@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { Lock, PlusCircle, Star } from 'lucide-react'
+import { useRouter } from '@tanstack/react-router'
+import { Lock, Star } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -11,15 +11,17 @@ import PriorityIcon from '@/components/common/priority-icon'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { type Priority, priorityEnumValues } from '@/db/schema/enums'
 
-export const Route = createFileRoute('/(core)/item/import/{-$url}')({
-	component: ItemImportPage,
-})
+type Props = {
+	open: boolean
+	onOpenChange: (open: boolean) => void
+}
 
 const PriorityLabels: Record<Priority, string> = {
 	low: 'Low',
@@ -46,12 +48,9 @@ function ListSelectItem({ list, owner }: { list: ListOption; owner?: { name: str
 	)
 }
 
-function ItemImportPage() {
-	const params = Route.useParams()
-	const navigate = useNavigate()
-	const initialUrl = decodeURIComponent((params as Record<string, string>).url || '')
-
-	const [url, setUrl] = useState(initialUrl)
+export function AddItemDialog({ open, onOpenChange }: Props) {
+	const router = useRouter()
+	const [url, setUrl] = useState('')
 	const [title, setTitle] = useState('')
 	const [notes, setNotes] = useState('')
 	const [price, setPrice] = useState('')
@@ -64,6 +63,7 @@ function ItemImportPage() {
 	const { data: myLists } = useQuery({
 		queryKey: ['my-lists-for-import'],
 		queryFn: () => getMyLists(),
+		enabled: open,
 	})
 
 	const publicLists = myLists?.public ?? []
@@ -72,8 +72,6 @@ function ItemImportPage() {
 	const editableLists = myLists?.editable ?? []
 	const children = myLists?.children ?? []
 
-	// Default to the user's primary list once data loads, falling back to the
-	// first list we find across any group.
 	useEffect(() => {
 		if (selectedListId || !myLists) return
 		const allOwned = [...publicLists, ...privateLists, ...giftIdeasLists]
@@ -82,6 +80,18 @@ function ItemImportPage() {
 		const pick = primary ?? allOwned.at(0) ?? editableLists.at(0) ?? firstChildList
 		if (pick) setSelectedListId(String(pick.id))
 	}, [myLists, selectedListId, publicLists, privateLists, giftIdeasLists, editableLists, children])
+
+	useEffect(() => {
+		if (!open) {
+			setUrl('')
+			setTitle('')
+			setNotes('')
+			setPrice('')
+			setQuantity('1')
+			setPriority('normal')
+			setError(null)
+		}
+	}, [open])
 
 	const handleSave = async () => {
 		const listId = Number(selectedListId)
@@ -113,8 +123,10 @@ function ItemImportPage() {
 				return
 			}
 
-			toast.success('Item imported')
-			navigate({ to: '/lists/$listId/edit', params: { listId: selectedListId } })
+			toast.success('Item added')
+			onOpenChange(false)
+			await router.invalidate()
+			router.navigate({ to: '/lists/$listId/edit', params: { listId: selectedListId } })
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Failed to save item')
 		} finally {
@@ -123,22 +135,25 @@ function ItemImportPage() {
 	}
 
 	return (
-		<div className="wish-page">
-			<div className="flex flex-col flex-1 gap-6">
-				<div className="relative">
-					<h1 className="flex flex-row items-center gap-2">Import Item</h1>
-					<PlusCircle className="text-blue-500 wish-page-icon" />
-				</div>
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent>
+				<DialogHeader>
+					<DialogTitle>Add an item</DialogTitle>
+					<DialogDescription>Pick a list and fill in the details. You'll be taken to the list after saving.</DialogDescription>
+				</DialogHeader>
 
-				<div className="space-y-4 max-w-lg">
-					<p className="text-sm text-muted-foreground">
-						Pick a list and fill in the details below. Fields are pre-filled from the URL when possible.
-					</p>
-
+				<form
+					onSubmit={e => {
+						e.preventDefault()
+						e.stopPropagation()
+						handleSave()
+					}}
+					className="space-y-4"
+				>
 					<div className="grid gap-2">
-						<Label htmlFor="import-list">List</Label>
+						<Label htmlFor="add-item-list">List</Label>
 						<Select value={selectedListId} onValueChange={setSelectedListId} disabled={saving}>
-							<SelectTrigger id="import-list" className="w-full">
+							<SelectTrigger id="add-item-list" className="w-full">
 								<SelectValue placeholder="Select a list" />
 							</SelectTrigger>
 							<SelectContent>
@@ -190,9 +205,23 @@ function ItemImportPage() {
 					</div>
 
 					<div className="grid gap-2">
-						<Label htmlFor="import-url">URL</Label>
+						<Label htmlFor="add-item-title">
+							Title <span className="text-destructive">*</span>
+						</Label>
 						<Input
-							id="import-url"
+							id="add-item-title"
+							value={title}
+							onChange={e => setTitle(e.target.value)}
+							placeholder="Something cool..."
+							disabled={saving}
+							autoFocus
+						/>
+					</div>
+
+					<div className="grid gap-2">
+						<Label htmlFor="add-item-url">URL</Label>
+						<Input
+							id="add-item-url"
 							type="url"
 							value={url}
 							onChange={e => setUrl(e.target.value)}
@@ -202,36 +231,22 @@ function ItemImportPage() {
 					</div>
 
 					<div className="grid gap-2">
-						<Label htmlFor="import-title">
-							Title <span className="text-destructive">*</span>
-						</Label>
-						<Input
-							id="import-title"
-							value={title}
-							onChange={e => setTitle(e.target.value)}
-							placeholder="Something cool…"
-							disabled={saving}
-							autoFocus
-						/>
-					</div>
-
-					<div className="grid gap-2">
-						<Label htmlFor="import-notes">Notes</Label>
+						<Label htmlFor="add-item-notes">Notes</Label>
 						<Textarea
-							id="import-notes"
+							id="add-item-notes"
 							value={notes}
 							onChange={e => setNotes(e.target.value)}
 							rows={2}
-							placeholder="Color, size, model…"
+							placeholder="Color, size, model..."
 							disabled={saving}
 						/>
 					</div>
 
 					<div className="grid gap-4 sm:grid-cols-3">
 						<div className="grid gap-2">
-							<Label htmlFor="import-priority">Priority</Label>
+							<Label htmlFor="add-item-priority">Priority</Label>
 							<Select value={priority} onValueChange={v => setPriority(v as Priority)} disabled={saving}>
-								<SelectTrigger id="import-priority" className="w-full">
+								<SelectTrigger id="add-item-priority" className="w-full">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
@@ -249,9 +264,9 @@ function ItemImportPage() {
 							</Select>
 						</div>
 						<div className="grid gap-2">
-							<Label htmlFor="import-price">Price Range</Label>
+							<Label htmlFor="add-item-price">Price Range</Label>
 							<Input
-								id="import-price"
+								id="add-item-price"
 								value={price}
 								onChange={e => setPrice(e.target.value)}
 								placeholder="$ 0.00"
@@ -260,9 +275,9 @@ function ItemImportPage() {
 							/>
 						</div>
 						<div className="grid gap-2">
-							<Label htmlFor="import-quantity">Quantity</Label>
+							<Label htmlFor="add-item-quantity">Quantity</Label>
 							<Input
-								id="import-quantity"
+								id="add-item-quantity"
 								type="number"
 								min={1}
 								max={999}
@@ -280,16 +295,16 @@ function ItemImportPage() {
 						</Alert>
 					)}
 
-					<div className="flex gap-2">
-						<Button onClick={handleSave} disabled={saving || !title.trim() || !selectedListId} className="flex-1">
-							{saving ? 'Saving…' : 'Add Item'}
-						</Button>
-						<Button variant="outline" onClick={() => navigate({ to: '/me' })} disabled={saving}>
+					<DialogFooter>
+						<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
 							Cancel
 						</Button>
-					</div>
-				</div>
-			</div>
-		</div>
+						<Button type="submit" disabled={saving || !title.trim() || !selectedListId}>
+							{saving ? 'Saving...' : 'Add Item'}
+						</Button>
+					</DialogFooter>
+				</form>
+			</DialogContent>
+		</Dialog>
 	)
 }

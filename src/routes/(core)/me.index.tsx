@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { type ChildListGroup, getMyLists, type MyListRow } from '@/api/lists'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import UserAvatar from '@/components/common/user-avatar'
+import { AddItemDialog } from '@/components/items/add-item-dialog'
 import { CreateListDialog } from '@/components/lists/create-list-dialog'
 import { ListRow } from '@/components/lists/list-row'
 import {
@@ -26,6 +27,7 @@ export const Route = createFileRoute('/(core)/me/')({
 function MyListsPage() {
 	const data = Route.useLoaderData()
 	const [createOpen, setCreateOpen] = useState(false)
+	const [addItemOpen, setAddItemOpen] = useState(false)
 	const hash = useLocation({ select: l => l.hash })
 	const navigate = useNavigate()
 
@@ -33,12 +35,16 @@ function MyListsPage() {
 		if (hash === 'new') {
 			setCreateOpen(true)
 			navigate({ to: '/me', hash: '', replace: true })
+		} else if (hash === 'add-item') {
+			setAddItemOpen(true)
+			navigate({ to: '/me', hash: '', replace: true })
 		}
 	}, [hash, navigate])
 
 	return (
 		<>
 			<CreateListDialog open={createOpen} onOpenChange={setCreateOpen} />
+			<AddItemDialog open={addItemOpen} onOpenChange={setAddItemOpen} />
 
 			<div className="wish-page">
 				<div className="flex flex-col flex-1 gap-6">
