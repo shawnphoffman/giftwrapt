@@ -124,7 +124,7 @@ export const NoLists: Story = {
 export const NonClickableRows: Story = {
 	render: () => (
 		<ListsCard>
-			<ListsCardHeader>
+			<ListsCardHeader className="flex-col items-start gap-1">
 				<ListsCardTitle>Read-only preview</ListsCardTitle>
 				<ListsCardDescription>Rows render as plain divs when no link is provided.</ListsCardDescription>
 			</ListsCardHeader>
