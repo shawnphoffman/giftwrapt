@@ -146,7 +146,7 @@ async function createList(input: {
 			type: input.type ?? 'wishlist',
 			ownerId: input.ownerId,
 			isPrimary: input.isPrimary ?? false,
-			isPrivate: input.isPrivate ?? false,
+			isPrivate: input.type === 'giftideas' ? true : (input.isPrivate ?? false),
 			description: input.description,
 			giftIdeasTargetUserId: input.giftIdeasTargetUserId,
 		})

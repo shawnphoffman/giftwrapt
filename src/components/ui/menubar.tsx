@@ -1,10 +1,10 @@
 'use client'
 
-import * as React from 'react'
+import { CheckIcon, ChevronRightIcon } from 'lucide-react'
 import { Menubar as MenubarPrimitive } from 'radix-ui'
+import * as React from 'react'
 
 import { cn } from '@/lib/utils'
-import { CheckIcon, ChevronRightIcon } from 'lucide-react'
 
 function Menubar({ className, ...props }: React.ComponentProps<typeof MenubarPrimitive.Root>) {
 	return (
@@ -224,19 +224,19 @@ function MenubarSubContent({ className, ...props }: React.ComponentProps<typeof 
 
 export {
 	Menubar,
-	MenubarPortal,
-	MenubarMenu,
-	MenubarTrigger,
+	MenubarCheckboxItem,
 	MenubarContent,
 	MenubarGroup,
-	MenubarSeparator,
-	MenubarLabel,
 	MenubarItem,
-	MenubarShortcut,
-	MenubarCheckboxItem,
+	MenubarLabel,
+	MenubarMenu,
+	MenubarPortal,
 	MenubarRadioGroup,
 	MenubarRadioItem,
+	MenubarSeparator,
+	MenubarShortcut,
 	MenubarSub,
-	MenubarSubTrigger,
 	MenubarSubContent,
+	MenubarSubTrigger,
+	MenubarTrigger,
 }
