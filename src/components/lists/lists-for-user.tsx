@@ -1,9 +1,9 @@
 import UserAvatar from '@/components/common/user-avatar'
+import { ListRow } from '@/components/lists/list-row'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { UserWithLists } from '@/db-collections/lists'
 
 import BirthdayBadge from '../common/birthday-badge'
-import ListsForUserRow from './lists-for-user-row'
 
 export default function ListsForUser({ user }: { user: UserWithLists }) {
 	return (
@@ -19,7 +19,7 @@ export default function ListsForUser({ user }: { user: UserWithLists }) {
 				) : (
 					<div className="flex flex-col gap-0 xs:divide-y-0">
 						{user.lists.map(list => (
-							<ListsForUserRow key={list.id} list={list} />
+							<ListRow key={list.id} role="gifter" list={list} />
 						))}
 					</div>
 				)}

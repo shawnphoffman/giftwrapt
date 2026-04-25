@@ -2,10 +2,11 @@ import { createFileRoute, Link, useLocation, useNavigate } from '@tanstack/react
 import { Baby, ListOrdered, Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
-import { type ChildListGroup, getMyLists } from '@/api/lists'
+import { type ChildListGroup, getMyLists, type MyListRow } from '@/api/lists'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import UserAvatar from '@/components/common/user-avatar'
 import { CreateListDialog } from '@/components/lists/create-list-dialog'
+import { ListRow } from '@/components/lists/list-row'
 import {
 	ListsCard,
 	ListsCardDescription,
@@ -14,7 +15,6 @@ import {
 	ListsCardLists,
 	ListsCardTitle,
 } from '@/components/lists/lists-card'
-import { MyListRow } from '@/components/lists/my-list-row'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 
@@ -103,7 +103,7 @@ function MyListsPage() {
 							</ListsCardHeader>
 							<ListsCardLists>
 								{data.editable.map(list => (
-									<MyListRow key={list.id} list={list} showOwner={{ name: list.ownerName, email: list.ownerEmail }} />
+									<ListRow key={list.id} role="recipient" list={list} showOwner={{ name: list.ownerName, email: list.ownerEmail }} />
 								))}
 							</ListsCardLists>
 						</ListsCard>
@@ -114,15 +114,7 @@ function MyListsPage() {
 	)
 }
 
-function ListSection({
-	title,
-	description,
-	lists,
-}: {
-	title: string
-	description: string
-	lists: Array<Parameters<typeof MyListRow>[0]['list']>
-}) {
+function ListSection({ title, description, lists }: { title: string; description: string; lists: Array<MyListRow> }) {
 	return (
 		<ListsCard>
 			<ListsCardHeader className="flex-col items-start gap-1">
@@ -133,7 +125,7 @@ function ListSection({
 				{lists.length === 0 ? (
 					<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30 italic">No lists yet.</div>
 				) : (
-					lists.map(list => <MyListRow key={list.id} list={list} />)
+					lists.map(list => <ListRow key={list.id} role="recipient" list={list} />)
 				)}
 			</ListsCardLists>
 		</ListsCard>
