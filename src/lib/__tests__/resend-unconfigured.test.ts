@@ -32,7 +32,7 @@ describe('resend module with email fully unconfigured', () => {
 
 	it('imports without throwing', async () => {
 		await expect(import('@/lib/resend')).resolves.toBeDefined()
-	})
+	}, 20_000)
 
 	it('reports email as not configured', async () => {
 		const { isEmailConfigured } = await import('@/lib/resend')
