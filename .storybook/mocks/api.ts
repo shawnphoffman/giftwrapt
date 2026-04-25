@@ -50,6 +50,7 @@ export const deleteItemGroup = ok
 export const assignItemsToGroup = ok
 export const reorderGroupItems = ok
 export const getGroupsForList = emptyArray
+export const moveGroupToList = ok
 
 // @/api/gifts
 export const getGiftsForItems = emptyArray
