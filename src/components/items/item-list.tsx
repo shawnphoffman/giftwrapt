@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, ArrowUpDown, Check, Filter } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Check, Filter, Store } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import type { GroupSummary, ItemWithGifts } from '@/api/lists'
@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import type { Priority } from '@/db/schema/enums'
 import { buildListEntries, type ListEntry } from '@/lib/list-entries'
+import { vendorIdToName } from '@/lib/urls'
 import { cn } from '@/lib/utils'
 
 import { GroupViewBlock } from './group-view-block'
@@ -26,6 +27,11 @@ type Props = {
 
 type FilterValue = 'all' | 'unpurchased' | 'purchased'
 type SortValue = 'priority-desc' | 'priority-asc' | 'date-desc' | 'date-asc'
+
+// Synthetic vendor id for items without a URL. Real vendor ids come from
+// hostnames or the rule table in src/lib/urls.ts, neither of which produces
+// a leading underscore - safe sentinel.
+const NO_LINK_VENDOR_ID = '__no_link__'
 
 const filterLabels: Record<FilterValue, string> = {
 	all: 'All items',
@@ -76,13 +82,39 @@ function sortIsDescending(sort: SortValue): boolean {
 
 export default function ItemList({ items, groups = [] }: Props) {
 	const [filter, setFilter] = useState<FilterValue>('all')
+	const [vendorFilter, setVendorFilter] = useState<ReadonlySet<string>>(() => new Set())
 	const [sort, setSort] = useState<SortValue>('priority-desc')
 
+	// Distinct vendors actually present on this list. "No link" is a
+	// synthetic option that only appears when there are URL-less items.
+	const vendorOptions = useMemo(() => {
+		const seenIds = new Set<string>()
+		const opts: Array<{ id: string; name: string }> = []
+		let hasNoLink = false
+		for (const i of items) {
+			if (i.vendorId) {
+				if (!seenIds.has(i.vendorId)) {
+					seenIds.add(i.vendorId)
+					opts.push({ id: i.vendorId, name: vendorIdToName(i.vendorId) })
+				}
+			} else {
+				hasNoLink = true
+			}
+		}
+		opts.sort((a, b) => a.name.localeCompare(b.name))
+		if (hasNoLink) opts.push({ id: NO_LINK_VENDOR_ID, name: 'No link' })
+		return opts
+	}, [items])
+
 	const filteredItems = useMemo(() => {
-		if (filter === 'all') return items
-		if (filter === 'unpurchased') return items.filter(i => i.gifts.length === 0)
-		return items.filter(i => i.gifts.length > 0)
-	}, [items, filter])
+		let out = items
+		if (filter === 'unpurchased') out = out.filter(i => i.gifts.length === 0)
+		else if (filter === 'purchased') out = out.filter(i => i.gifts.length > 0)
+		if (vendorFilter.size > 0) {
+			out = out.filter(i => vendorFilter.has(i.vendorId ?? NO_LINK_VENDOR_ID))
+		}
+		return out
+	}, [items, filter, vendorFilter])
 
 	const entries = useMemo(() => {
 		const base = buildListEntries({ items: filteredItems, groups })
@@ -91,6 +123,25 @@ export default function ItemList({ items, groups = [] }: Props) {
 
 	if (items.length === 0) {
 		return <EmptyMessage message="No items to display" />
+	}
+
+	const toggleVendor = (id: string) => {
+		setVendorFilter(prev => {
+			const next = new Set(prev)
+			if (next.has(id)) next.delete(id)
+			else next.add(id)
+			return next
+		})
+	}
+
+	let vendorLabel: string
+	if (vendorFilter.size === 0) {
+		vendorLabel = 'All vendors'
+	} else if (vendorFilter.size === 1) {
+		const [only] = vendorFilter
+		vendorLabel = only === NO_LINK_VENDOR_ID ? 'No link' : vendorIdToName(only)
+	} else {
+		vendorLabel = `${vendorFilter.size} vendors`
 	}
 
 	const SortDirectionIcon = sortIsDescending(sort) ? ArrowDown : ArrowUp
@@ -115,6 +166,35 @@ export default function ItemList({ items, groups = [] }: Props) {
 						))}
 					</DropdownMenuContent>
 				</DropdownMenu>
+
+				{vendorOptions.length > 1 && (
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button
+								variant="ghost"
+								size="sm"
+								className={cn('h-7 text-xs text-muted-foreground', vendorFilter.size > 0 && 'text-foreground')}
+							>
+								<Store className="size-3.5" />
+								{vendorLabel}
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Vendor</DropdownMenuLabel>
+							<DropdownMenuItem onClick={() => setVendorFilter(new Set())}>
+								<Check className={cn('size-4', vendorFilter.size > 0 && 'opacity-0')} />
+								All vendors
+							</DropdownMenuItem>
+							<DropdownMenuSeparator />
+							{vendorOptions.map(v => (
+								<DropdownMenuItem key={v.id} onClick={() => toggleVendor(v.id)} onSelect={e => e.preventDefault()}>
+									<Check className={cn('size-4', !vendorFilter.has(v.id) && 'opacity-0')} />
+									{v.name}
+								</DropdownMenuItem>
+							))}
+						</DropdownMenuContent>
+					</DropdownMenu>
+				)}
 
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>

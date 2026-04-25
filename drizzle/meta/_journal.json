@@ -43,6 +43,13 @@
       "when": 1776643891017,
       "tag": "0005_fast_blob",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1777094421615,
+      "tag": "0006_fearless_wolfpack",
+      "breakpoints": true
     }
   ]
 }

@@ -19,3 +19,5 @@ wish-lists-workspace.code-workspace
 
 .claude/*
 !.claude/launch.json
+
+_NOTES_/

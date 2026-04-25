@@ -9,6 +9,7 @@ import type { Item } from '@/db/schema/items'
 import { loggingMiddleware } from '@/lib/logger'
 import { canEditList } from '@/lib/permissions'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
+import { getVendorFromUrl } from '@/lib/urls'
 import { authMiddleware } from '@/middleware/auth'
 
 // ===============================
@@ -59,12 +60,17 @@ export const createItem = createServerFn({ method: 'POST' })
 		const perm = await assertCanEditItems(userId, list)
 		if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
+		const url = data.url ?? null
+		const vendor = url ? getVendorFromUrl(url) : null
+
 		const [inserted] = await db
 			.insert(items)
 			.values({
 				listId: data.listId,
 				title: data.title,
-				url: data.url ?? null,
+				url,
+				vendorId: vendor?.id ?? null,
+				vendorSource: vendor ? 'rule' : null,
 				price: data.price ?? null,
 				currency: data.currency ?? null,
 				notes: data.notes ?? null,
@@ -107,7 +113,7 @@ export const updateItem = createServerFn({ method: 'POST' })
 
 		const item = await db.query.items.findFirst({
 			where: eq(items.id, data.itemId),
-			columns: { id: true, listId: true },
+			columns: { id: true, listId: true, vendorSource: true },
 		})
 		if (!item) return { kind: 'error', reason: 'not-found' }
 
@@ -130,6 +136,18 @@ export const updateItem = createServerFn({ method: 'POST' })
 		if (data.url !== undefined) {
 			updates.url = data.url
 			bumpModifiedAt = true
+			// Vendor lifecycle:
+			//  - URL cleared -> vendor cleared (any source).
+			//  - URL set/changed, source != 'manual' -> re-derive as 'rule'.
+			//  - URL set/changed, source == 'manual' -> leave vendor alone (user pinned it).
+			if (data.url === null) {
+				updates.vendorId = null
+				updates.vendorSource = null
+			} else if (item.vendorSource !== 'manual') {
+				const vendor = getVendorFromUrl(data.url)
+				updates.vendorId = vendor?.id ?? null
+				updates.vendorSource = vendor ? 'rule' : null
+			}
 		}
 		if (data.notes !== undefined) {
 			updates.notes = data.notes

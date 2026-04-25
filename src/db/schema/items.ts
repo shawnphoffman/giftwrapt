@@ -23,6 +23,13 @@ export const items = pgTable(
 		// Product-state, orthogonal to status. Marks items that are sold out/discontinued.
 		availability: availabilityEnum('availability').default('available').notNull(),
 		url: text('url'),
+		// Stable identity of where this item is sold. Derived from `url` by
+		// rules in src/lib/urls.ts and re-derived on URL writes; null when no URL.
+		vendorId: text('vendor_id'),
+		// Provenance of vendorId: 'rule' (deterministic match), 'ai' (future
+		// LLM enrichment), 'manual' (user override). 'manual' wins until the
+		// URL is cleared.
+		vendorSource: text('vendor_source'),
 		imageUrl: text('image_url'),
 		price: text('price'),
 		currency: text('currency'),
@@ -43,6 +50,7 @@ export const items = pgTable(
 	table => [
 		index('items_listId_idx').on(table.listId),
 		index('items_listId_isArchived_idx').on(table.listId, table.isArchived),
+		index('items_listId_vendorId_idx').on(table.listId, table.vendorId),
 		index('items_groupId_idx').on(table.groupId),
 		// index('items_status_idx').on(table.status),
 	]

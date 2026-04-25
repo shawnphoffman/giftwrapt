@@ -53,6 +53,8 @@ export function makeItem(overrides: Partial<Item> = {}): Item {
 		status: 'incomplete',
 		availability: 'available',
 		url: 'https://www.amazon.com/dp/B0863TXGM3',
+		vendorId: 'amazon',
+		vendorSource: 'rule',
 		imageUrl: null,
 		price: '349.99',
 		currency: 'USD',

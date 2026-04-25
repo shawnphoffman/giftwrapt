@@ -45,6 +45,7 @@ import {
 import type { Item } from '@/db/schema/items'
 import { useSession } from '@/lib/auth-client'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
+import { getDomainFromUrl } from '@/lib/urls'
 import { cn } from '@/lib/utils'
 
 import { ItemComments } from './item-comments'
@@ -66,14 +67,6 @@ type Props = {
 	 */
 	onMoveUp?: () => void
 	onMoveDown?: () => void
-}
-
-function getDomain(url: string): string | null {
-	try {
-		return new URL(url).hostname.replace('www.', '')
-	} catch {
-		return null
-	}
 }
 
 export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], grouped = false, onMoveUp, onMoveDown }: Props) {
@@ -115,7 +108,7 @@ export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], 
 		}
 	}
 
-	const domain = item.url ? getDomain(item.url) : null
+	const domain = item.url ? getDomainFromUrl(item.url) || null : null
 	// Standalone rows get a peeking priority tab on the left; grouped rows stay
 	// simple since their parent group owns the priority indicator.
 	const hasPriorityTab = !grouped && item.priority !== 'normal'
