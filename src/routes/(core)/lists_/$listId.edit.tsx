@@ -161,6 +161,7 @@ function ListEditPage() {
 										group={entry.group}
 										items={entry.items}
 										groups={list.groups}
+										listId={list.id}
 										isOwner={list.isOwner}
 										onAddItem={openAddItemDialog}
 										onDelete={handleDeleteGroup}

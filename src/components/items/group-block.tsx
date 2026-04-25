@@ -1,22 +1,31 @@
-import { Plus, Trash2 } from 'lucide-react'
-import { Fragment } from 'react'
+import { ArrowRightLeft, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react'
+import { Fragment, useState } from 'react'
 
 import type { GroupSummary, ItemForEditing } from '@/api/lists'
 import PriorityIcon from '@/components/common/priority-icon'
 import { Button } from '@/components/ui/button'
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import type { Item } from '@/db/schema/items'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
 import { cn } from '@/lib/utils'
 
 import { GroupBadge } from './group-badge'
 import { GroupConnector } from './group-connector'
-import { GroupEditPopover } from './group-edit-popover'
+import { GroupEditDialog } from './group-edit-dialog'
 import { ItemEditRow } from './item-edit-row'
+import { MoveGroupDialog } from './move-group-dialog'
 
 type Props = {
 	group: GroupSummary
 	items: Array<ItemForEditing>
 	groups: Array<GroupSummary>
+	listId: number
 	isOwner: boolean
 	onAddItem: (groupId: number) => void
 	onDelete: (groupId: number) => void
@@ -24,7 +33,9 @@ type Props = {
 	onReorder: (groupId: number, orderedItems: Array<Item>, fromIndex: number, direction: -1 | 1) => void
 }
 
-export function GroupBlock({ group, items, groups, isOwner, onAddItem, onDelete, onMoveItem, onReorder }: Props) {
+export function GroupBlock({ group, items, groups, listId, isOwner, onAddItem, onDelete, onMoveItem, onReorder }: Props) {
+	const [editOpen, setEditOpen] = useState(false)
+	const [moveOpen, setMoveOpen] = useState(false)
 	const showReorder = isOwner && group.type === 'order' && items.length > 1
 
 	const hasPriorityTab = group.priority !== 'normal'
@@ -75,11 +86,26 @@ export function GroupBlock({ group, items, groups, isOwner, onAddItem, onDelete,
 							<Plus />
 						</Button>
 					)}
-					{isOwner && <GroupEditPopover group={group} />}
 					{isOwner && (
-						<Button variant="ghost" size="icon" className="size-7" onClick={() => onDelete(group.id)} title="Delete group (items remain)">
-							<Trash2 className="text-destructive" />
-						</Button>
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button variant="ghost" size="icon" className="size-7" title="Group actions" aria-label="Group actions">
+									<MoreHorizontal className="size-4" />
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end">
+								<DropdownMenuItem onClick={() => setEditOpen(true)}>
+									<Pencil className="size-4" /> Edit
+								</DropdownMenuItem>
+								<DropdownMenuItem onClick={() => setMoveOpen(true)}>
+									<ArrowRightLeft className="size-4" /> Move to...
+								</DropdownMenuItem>
+								<DropdownMenuSeparator />
+								<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(group.id)}>
+									<Trash2 className="size-4" /> Delete
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
 					)}
 				</div>
 				{items.length === 0 ? (
@@ -105,6 +131,10 @@ export function GroupBlock({ group, items, groups, isOwner, onAddItem, onDelete,
 					</div>
 				)}
 			</div>
+			{isOwner && <GroupEditDialog open={editOpen} onOpenChange={setEditOpen} group={group} />}
+			{isOwner && (
+				<MoveGroupDialog open={moveOpen} onOpenChange={setMoveOpen} group={group} itemCount={items.length} sourceListId={listId} />
+			)}
 		</div>
 	)
 }

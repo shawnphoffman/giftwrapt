@@ -1,7 +1,7 @@
 import { useRouter } from '@tanstack/react-router'
 import {
-	Archive,
 	ArrowDown,
+	ArrowRightLeft,
 	ArrowUp,
 	ExternalLink,
 	Group,
@@ -16,7 +16,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { assignItemsToGroup } from '@/api/groups'
-import { archiveItem, deleteItem } from '@/api/items'
+import { deleteItem } from '@/api/items'
 import type { GroupSummary } from '@/api/lists'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import PriorityIcon from '@/components/common/priority-icon'
@@ -100,14 +100,6 @@ export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], 
 		setDeleteDialogOpen(false)
 	}
 
-	const handleArchive = async () => {
-		const result = await archiveItem({ data: { itemId: item.id, archived: true } })
-		if (result.kind === 'ok') {
-			toast.success('Item archived')
-			await router.invalidate()
-		}
-	}
-
 	const domain = item.url ? getDomainFromUrl(item.url) || null : null
 	// Standalone rows get a peeking priority tab on the left; grouped rows stay
 	// simple since their parent group owns the priority indicator.
@@ -169,7 +161,7 @@ export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], 
 						</DropdownMenuItem>
 						{onMoveClick && (
 							<DropdownMenuItem onClick={() => onMoveClick(item)}>
-								<Archive className="size-4" /> Move to...
+								<ArrowRightLeft className="size-4" /> Move to...
 							</DropdownMenuItem>
 						)}
 						{groups.length > 0 && (
@@ -196,9 +188,6 @@ export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], 
 								</DropdownMenuSubContent>
 							</DropdownMenuSub>
 						)}
-						<DropdownMenuItem onClick={handleArchive}>
-							<Archive className="size-4" /> Archive
-						</DropdownMenuItem>
 						<DropdownMenuSeparator />
 						<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteDialogOpen(true)}>
 							<Trash2 className="size-4" /> Delete

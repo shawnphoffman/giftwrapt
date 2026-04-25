@@ -21,6 +21,7 @@ const meta = {
 	parameters: { layout: 'fullscreen' },
 	args: {
 		groups: [pickOneGroup, orderGroup],
+		listId: 1,
 		isOwner: true,
 		onAddItem: () => {},
 		onDelete: () => {},

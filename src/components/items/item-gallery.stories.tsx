@@ -747,6 +747,7 @@ function Gallery({ view }: GalleryArgs) {
 					group={pickOneGroup}
 					items={pickOneItems}
 					groups={groups}
+					listId={1}
 					isOwner
 					onAddItem={() => {}}
 					onDelete={() => {}}
@@ -771,6 +772,7 @@ function Gallery({ view }: GalleryArgs) {
 					group={orderedGroup}
 					items={orderedItems}
 					groups={groups}
+					listId={1}
 					isOwner
 					onAddItem={() => {}}
 					onDelete={() => {}}
@@ -795,6 +797,7 @@ function Gallery({ view }: GalleryArgs) {
 					group={unnamedPickOne}
 					items={unnamedItems}
 					groups={groups}
+					listId={1}
 					isOwner
 					onAddItem={() => {}}
 					onDelete={() => {}}
@@ -811,6 +814,7 @@ function Gallery({ view }: GalleryArgs) {
 					group={pickOneGroup}
 					items={[]}
 					groups={groups}
+					listId={1}
 					isOwner
 					onAddItem={() => {}}
 					onDelete={() => {}}

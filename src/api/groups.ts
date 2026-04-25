@@ -3,8 +3,8 @@ import { and, asc, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
-import { itemGroups, items, lists } from '@/db/schema'
-import { type GroupType, groupTypeEnumValues, type Priority, priorityEnumValues } from '@/db/schema/enums'
+import { giftedItems, itemComments, itemGroups, items, lists } from '@/db/schema'
+import { type GroupType, groupTypeEnumValues, type ListType, type Priority, priorityEnumValues } from '@/db/schema/enums'
 import type { ItemGroup } from '@/db/schema/items'
 import { loggingMiddleware } from '@/lib/logger'
 import { canEditList } from '@/lib/permissions'
@@ -129,6 +129,88 @@ export const deleteItemGroup = createServerFn({ method: 'POST' })
 
 		await db.delete(itemGroups).where(eq(itemGroups.id, data.groupId))
 		return { kind: 'ok' }
+	})
+
+// ===============================
+// MOVE - relocate a group (and all its items) to another list
+// ===============================
+
+const SPOILER_PROTECTED_TYPES: ReadonlySet<ListType> = new Set(['wishlist', 'christmas', 'birthday'])
+
+function isCrossTypeMoveDestructive(sourceType: ListType, targetType: ListType): boolean {
+	if (sourceType === targetType) return false
+	if (SPOILER_PROTECTED_TYPES.has(sourceType) && SPOILER_PROTECTED_TYPES.has(targetType)) return false
+	return true
+}
+
+const MoveGroupInputSchema = z.object({
+	groupId: z.number().int().positive(),
+	targetListId: z.number().int().positive(),
+	purgeComments: z.boolean().default(false),
+})
+
+export type MoveGroupResult =
+	| { kind: 'ok'; movedItems: number; claimsCleared: number; commentsDeleted: number }
+	| { kind: 'error'; reason: 'not-found' | 'not-authorized' | 'same-list' }
+
+export const moveGroupToList = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: z.input<typeof MoveGroupInputSchema>) => MoveGroupInputSchema.parse(data))
+	.handler(async ({ context, data }): Promise<MoveGroupResult> => {
+		const userId = context.session.user.id
+
+		const group = await db.query.itemGroups.findFirst({
+			where: eq(itemGroups.id, data.groupId),
+			columns: { id: true, listId: true },
+		})
+		if (!group) return { kind: 'error', reason: 'not-found' }
+		if (group.listId === data.targetListId) return { kind: 'error', reason: 'same-list' }
+
+		const sourceList = await db.query.lists.findFirst({
+			where: eq(lists.id, group.listId),
+			columns: { id: true, ownerId: true, isPrivate: true, isActive: true, type: true },
+		})
+		if (!sourceList) return { kind: 'error', reason: 'not-found' }
+		const sourcePerm = await loadListForEdit(userId, sourceList.id)
+		if (!sourcePerm.ok) return { kind: 'error', reason: sourcePerm.reason }
+
+		const targetList = await db.query.lists.findFirst({
+			where: eq(lists.id, data.targetListId),
+			columns: { id: true, ownerId: true, isPrivate: true, isActive: true, type: true },
+		})
+		if (!targetList) return { kind: 'error', reason: 'not-found' }
+		const targetPerm = await loadListForEdit(userId, targetList.id)
+		if (!targetPerm.ok) return { kind: 'error', reason: targetPerm.reason }
+
+		const groupItems = await db.query.items.findMany({
+			where: eq(items.groupId, data.groupId),
+			columns: { id: true },
+		})
+		const itemIds = groupItems.map(i => i.id)
+
+		const destructive = isCrossTypeMoveDestructive(sourceList.type, targetList.type)
+
+		return await db.transaction(async tx => {
+			await tx.update(itemGroups).set({ listId: data.targetListId }).where(eq(itemGroups.id, data.groupId))
+
+			if (itemIds.length > 0) {
+				await tx.update(items).set({ listId: data.targetListId }).where(inArray(items.id, itemIds))
+			}
+
+			let claimsCleared = 0
+			if (destructive && itemIds.length > 0) {
+				const deleted = await tx.delete(giftedItems).where(inArray(giftedItems.itemId, itemIds)).returning({ id: giftedItems.id })
+				claimsCleared = deleted.length
+			}
+
+			let commentsDeleted = 0
+			if (data.purgeComments && itemIds.length > 0) {
+				const deleted = await tx.delete(itemComments).where(inArray(itemComments.itemId, itemIds)).returning({ id: itemComments.id })
+				commentsDeleted = deleted.length
+			}
+
+			return { kind: 'ok', movedItems: itemIds.length, claimsCleared, commentsDeleted }
+		})
 	})
 
 // ===============================
