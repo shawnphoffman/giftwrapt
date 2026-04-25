@@ -55,6 +55,7 @@ export function ListSettingsSheet({
 						description={description}
 						giftIdeasTargetUserId={giftIdeasTargetUserId}
 						editorUserIds={editors.map(e => e.userId)}
+						isOwner={isOwner}
 					/>
 					{isOwner && (
 						<>

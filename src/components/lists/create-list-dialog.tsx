@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
+import { addListEditor } from '@/api/list-editors'
 import { createList } from '@/api/lists'
 import { getPotentialPartners } from '@/api/user'
 import ListTypeIcon from '@/components/common/list-type-icon'
@@ -17,6 +18,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { listTypeEnumValues, ListTypes } from '@/db/schema/enums'
+import { useSession } from '@/lib/auth-client'
 
 type Props = {
 	open: boolean
@@ -29,10 +31,14 @@ const schema = z.object({
 	isPrivate: z.boolean(),
 	description: z.string().max(2000).optional(),
 	giftIdeasTargetUserId: z.string().optional(),
+	addPartnerAsEditor: z.boolean(),
 })
 
 export function CreateListDialog({ open, onOpenChange }: Props) {
 	const router = useRouter()
+	const { data: session } = useSession()
+	const isChild = session?.user.isChild ?? false
+	const partnerId = session?.user.partnerId ?? null
 	const [submitting, setSubmitting] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [selectedType, setSelectedType] = useState('wishlist')
@@ -43,6 +49,11 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 		enabled: open,
 	})
 
+	const partner = partnerId ? users?.find(u => u.id === partnerId) : undefined
+	const partnerLabel = partner ? partner.name || partner.email : 'your partner'
+
+	const availableTypes = isChild ? listTypeEnumValues.filter(t => t !== 'giftideas') : listTypeEnumValues
+
 	const form = useForm({
 		defaultValues: {
 			name: '',
@@ -50,6 +61,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 			isPrivate: false,
 			description: '',
 			giftIdeasTargetUserId: '',
+			addPartnerAsEditor: true,
 		},
 		onSubmit: async ({ value }) => {
 			const parsed = schema.safeParse(value)
@@ -61,6 +73,9 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 			setSubmitting(true)
 			setError(null)
 			try {
+				const willBePublic = parsed.data.type !== 'giftideas' && !parsed.data.isPrivate
+				const shouldAddPartner = willBePublic && !!partnerId && !!partner && parsed.data.addPartnerAsEditor
+
 				const result = await createList({
 					data: {
 						name: parsed.data.name,
@@ -70,6 +85,13 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 						giftIdeasTargetUserId: parsed.data.type === 'giftideas' ? parsed.data.giftIdeasTargetUserId || undefined : undefined,
 					},
 				})
+
+				if (shouldAddPartner && partnerId) {
+					const editorResult = await addListEditor({ data: { listId: result.list.id, userId: partnerId } })
+					if (editorResult.kind === 'error') {
+						toast.warning(`List created, but couldn't add ${partnerLabel} as an editor.`)
+					}
+				}
 
 				toast.success(`List "${result.list.name}" created`)
 				onOpenChange(false)
@@ -150,7 +172,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 										<SelectValue />
 									</SelectTrigger>
 									<SelectContent>
-										{listTypeEnumValues.map(t => (
+										{availableTypes.map(t => (
 											<SelectItem key={t} value={t}>
 												<ListTypeIcon type={t} className="size-4" />
 												{ListTypes[t]}
@@ -199,6 +221,36 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 							</div>
 						)}
 					</form.Field>
+
+					<form.Subscribe selector={s => s.values.isPrivate}>
+						{isPrivate => {
+							const willBePublic = !isGiftIdeas && !isPrivate
+							if (!willBePublic || !partnerId || !partner) return null
+							return (
+								<form.Field name="addPartnerAsEditor">
+									{field => (
+										<div className="bg-muted/40 flex items-start gap-2 rounded-md border p-3">
+											<Checkbox
+												id={field.name}
+												checked={field.state.value}
+												onCheckedChange={v => field.handleChange(v === true)}
+												disabled={submitting}
+												className="mt-0.5"
+											/>
+											<div className="grid gap-1">
+												<Label htmlFor={field.name} className="font-normal">
+													Add {partnerLabel} as an editor
+												</Label>
+												<p className="text-muted-foreground text-xs">
+													They'll be able to manage items on this list. You can change this anytime in list settings.
+												</p>
+											</div>
+										</div>
+									)}
+								</form.Field>
+							)
+						}}
+					</form.Subscribe>
 
 					<form.Field name="description">
 						{field => (

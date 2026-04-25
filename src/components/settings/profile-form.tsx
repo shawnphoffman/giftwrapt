@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import type { z } from 'zod'
 
+import { type AffectedList, applyPartnerEditorChanges, getPartnerEditorAffectedLists } from '@/api/list-editors'
 import { getPotentialPartners, updateUserProfile } from '@/api/user'
 import { BirthDaySelect } from '@/components/common/birth-day-select'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -18,7 +19,10 @@ import {
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { birthMonthEnumValues } from '@/db/schema/enums'
 import { UserSchema } from '@/db/schema/users'
@@ -47,6 +51,17 @@ type ProfileFormProps = {
 	partnerId?: string | null
 }
 
+type EditorChangePrompt = {
+	prevPartnerId: string | null
+	nextPartnerId: string | null
+	prevPartnerLabel: string | null
+	nextPartnerLabel: string | null
+	toAdd: Array<AffectedList>
+	toRemove: Array<AffectedList>
+	addSelections: Record<number, boolean>
+	removeSelections: Record<number, boolean>
+}
+
 export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: ProfileFormProps) {
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
@@ -54,6 +69,10 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 	// Holds the pending form values when the user is about to change or clear
 	// their partner. Presence of a value opens the confirmation dialog.
 	const [pendingPartnerChange, setPendingPartnerChange] = useState<UpdateProfileFormValues | null>(null)
+	// Set after a successful save when the partner changed and there are
+	// editor adjustments the user can opt into.
+	const [editorChangePrompt, setEditorChangePrompt] = useState<EditorChangePrompt | null>(null)
+	const [applyingEditorChanges, setApplyingEditorChanges] = useState(false)
 	const queryClient = useQueryClient()
 	const { refetch: refetchSession } = useSession()
 
@@ -100,6 +119,10 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 		setError(null)
 		setSuccess(false)
 
+		const prevPartnerId = partnerId ?? null
+		const nextPartnerId = data.partnerId || null
+		const partnerChanged = prevPartnerId !== nextPartnerId
+
 		try {
 			const updateData: {
 				name: string
@@ -127,6 +150,28 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 			await refetchSession()
 			// Invalidate potential partners in case partner relationships changed
 			queryClient.invalidateQueries({ queryKey: ['potentialPartners'] })
+
+			if (partnerChanged) {
+				const affected = await getPartnerEditorAffectedLists({ data: { prevPartnerId, nextPartnerId } })
+				if (affected.toAdd.length > 0 || affected.toRemove.length > 0) {
+					const lookupName = (id: string | null): string | null => {
+						if (!id) return null
+						const u = potentialPartners.find(p => p.id === id)
+						return u ? u.name || u.email : null
+					}
+					setEditorChangePrompt({
+						prevPartnerId,
+						nextPartnerId,
+						prevPartnerLabel: lookupName(prevPartnerId),
+						nextPartnerLabel: lookupName(nextPartnerId),
+						toAdd: affected.toAdd,
+						toRemove: affected.toRemove,
+						addSelections: Object.fromEntries(affected.toAdd.map(l => [l.id, true])),
+						removeSelections: Object.fromEntries(affected.toRemove.map(l => [l.id, true])),
+					})
+				}
+			}
+
 			// Clear success message after 5 seconds
 			setTimeout(() => setSuccess(false), 5000)
 		} catch (err) {
@@ -135,6 +180,44 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 			toast.error(errorMessage)
 		} finally {
 			setIsLoading(false)
+		}
+	}
+
+	const applyEditorChanges = async () => {
+		if (!editorChangePrompt) return
+		setApplyingEditorChanges(true)
+		try {
+			const addListIds = editorChangePrompt.toAdd.filter(l => editorChangePrompt.addSelections[l.id]).map(l => l.id)
+			const removeListIds = editorChangePrompt.toRemove.filter(l => editorChangePrompt.removeSelections[l.id]).map(l => l.id)
+
+			if (addListIds.length === 0 && removeListIds.length === 0) {
+				setEditorChangePrompt(null)
+				return
+			}
+
+			const result = await applyPartnerEditorChanges({
+				data: {
+					addPartnerId: editorChangePrompt.nextPartnerId,
+					addListIds,
+					removePartnerId: editorChangePrompt.prevPartnerId,
+					removeListIds,
+				},
+			})
+
+			const parts: Array<string> = []
+			if (result.added > 0)
+				parts.push(`Added ${editorChangePrompt.nextPartnerLabel ?? 'partner'} to ${result.added} ${result.added === 1 ? 'list' : 'lists'}`)
+			if (result.removed > 0)
+				parts.push(
+					`Removed ${editorChangePrompt.prevPartnerLabel ?? 'former partner'} from ${result.removed} ${result.removed === 1 ? 'list' : 'lists'}`
+				)
+			if (parts.length > 0) toast.success(parts.join('; '))
+			await queryClient.invalidateQueries({ queryKey: ['my-lists'] })
+			setEditorChangePrompt(null)
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : 'Failed to update list editors')
+		} finally {
+			setApplyingEditorChanges(false)
 		}
 	}
 
@@ -307,6 +390,90 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
+
+			<Dialog
+				open={editorChangePrompt != null}
+				onOpenChange={open => {
+					if (!open && !applyingEditorChanges) setEditorChangePrompt(null)
+				}}
+			>
+				<DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-lg">
+					<DialogHeader>
+						<DialogTitle>Update list editors?</DialogTitle>
+						<DialogDescription>Your partner change affects who has editor access on some of your lists.</DialogDescription>
+					</DialogHeader>
+					{editorChangePrompt && (
+						<div className="space-y-5">
+							{editorChangePrompt.toAdd.length > 0 && (
+								<section className="space-y-2">
+									<h3 className="text-sm font-medium">Add {editorChangePrompt.nextPartnerLabel ?? 'partner'} as an editor on:</h3>
+									<ul className="space-y-1.5">
+										{editorChangePrompt.toAdd.map(list => {
+											const id = `add-${list.id}`
+											const checked = editorChangePrompt.addSelections[list.id] ?? false
+											return (
+												<li key={list.id} className="flex items-center gap-2">
+													<Checkbox
+														id={id}
+														checked={checked}
+														onCheckedChange={v =>
+															setEditorChangePrompt(prev =>
+																prev ? { ...prev, addSelections: { ...prev.addSelections, [list.id]: v === true } } : prev
+															)
+														}
+														disabled={applyingEditorChanges}
+													/>
+													<Label htmlFor={id} className="text-sm font-normal">
+														{list.name}
+													</Label>
+												</li>
+											)
+										})}
+									</ul>
+								</section>
+							)}
+							{editorChangePrompt.toRemove.length > 0 && (
+								<section className="space-y-2">
+									<h3 className="text-sm font-medium">
+										Remove {editorChangePrompt.prevPartnerLabel ?? 'former partner'} as an editor from:
+									</h3>
+									<ul className="space-y-1.5">
+										{editorChangePrompt.toRemove.map(list => {
+											const id = `remove-${list.id}`
+											const checked = editorChangePrompt.removeSelections[list.id] ?? false
+											return (
+												<li key={list.id} className="flex items-center gap-2">
+													<Checkbox
+														id={id}
+														checked={checked}
+														onCheckedChange={v =>
+															setEditorChangePrompt(prev =>
+																prev ? { ...prev, removeSelections: { ...prev.removeSelections, [list.id]: v === true } } : prev
+															)
+														}
+														disabled={applyingEditorChanges}
+													/>
+													<Label htmlFor={id} className="text-sm font-normal">
+														{list.name}
+													</Label>
+												</li>
+											)
+										})}
+									</ul>
+								</section>
+							)}
+						</div>
+					)}
+					<DialogFooter>
+						<Button type="button" variant="outline" onClick={() => setEditorChangePrompt(null)} disabled={applyingEditorChanges}>
+							Skip
+						</Button>
+						<Button type="button" onClick={applyEditorChanges} disabled={applyingEditorChanges}>
+							{applyingEditorChanges ? 'Updating…' : 'Apply changes'}
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</form>
 	)
 }

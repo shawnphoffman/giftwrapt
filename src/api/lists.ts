@@ -391,6 +391,10 @@ export const createList = createServerFn({ method: 'POST' })
 	.handler(async ({ context, data }): Promise<CreateListResult> => {
 		const userId = context.session.user.id
 
+		if (data.type === 'giftideas' && context.session.user.isChild) {
+			throw new Error('Children cannot create gift ideas lists.')
+		}
+
 		// giftideas lists are always private; recipient is optional.
 		const [inserted] = await db
 			.insert(lists)
@@ -434,9 +438,14 @@ export const updateList = createServerFn({ method: 'POST' })
 			columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
 		})
 		if (!list) return { kind: 'error', reason: 'not-found' }
-		if (list.ownerId !== userId) {
+		const isOwner = list.ownerId === userId
+		if (!isOwner) {
 			const edit = await canEditList(userId, list)
 			if (!edit.ok) return { kind: 'error', reason: 'not-authorized' }
+		}
+
+		if (data.type === 'giftideas' && context.session.user.isChild) {
+			throw new Error('Children cannot create gift ideas lists.')
 		}
 
 		const updates: Record<string, unknown> = {}
@@ -445,7 +454,9 @@ export const updateList = createServerFn({ method: 'POST' })
 		if (data.isPrivate !== undefined) updates.isPrivate = data.isPrivate
 		if (data.description !== undefined) updates.description = data.description
 		if (data.isActive !== undefined) updates.isActive = data.isActive
-		if (data.giftIdeasTargetUserId !== undefined) updates.giftIdeasTargetUserId = data.giftIdeasTargetUserId
+		// Only the list owner can change the gift-ideas recipient. Non-owner editors
+		// have full edit rights otherwise, but the recipient is the owner's call.
+		if (data.giftIdeasTargetUserId !== undefined && isOwner) updates.giftIdeasTargetUserId = data.giftIdeasTargetUserId
 
 		// Gift ideas lists are always private; clear the recipient if the type changes away.
 		const nextType = data.type ?? undefined

@@ -4,6 +4,7 @@ import { useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
+import { addListEditor } from '@/api/list-editors'
 import { updateList } from '@/api/lists'
 import { getPotentialPartners } from '@/api/user'
 import ListTypeIcon from '@/components/common/list-type-icon'
@@ -16,6 +17,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { ListType } from '@/db/schema/enums'
 import { listTypeEnumValues, ListTypes } from '@/db/schema/enums'
+import { useSession } from '@/lib/auth-client'
 
 const NO_RECIPIENT = '__none__'
 
@@ -27,21 +29,28 @@ type Props = {
 	description: string | null
 	giftIdeasTargetUserId: string | null
 	editorUserIds: Array<string>
+	isOwner: boolean
 }
 
-export function ListSettingsForm({ listId, name, type, isPrivate, description, giftIdeasTargetUserId, editorUserIds }: Props) {
+export function ListSettingsForm({ listId, name, type, isPrivate, description, giftIdeasTargetUserId, editorUserIds, isOwner }: Props) {
 	const router = useRouter()
+	const { data: session } = useSession()
+	const partnerId = isOwner ? (session?.user.partnerId ?? null) : null
 	const [submitting, setSubmitting] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [selectedType, setSelectedType] = useState<string>(type)
 
 	const isGiftIdeas = selectedType === 'giftideas'
+	const partnerAlreadyEditor = !!partnerId && editorUserIds.includes(partnerId)
 
 	const { data: users } = useQuery({
 		queryKey: ['potential-partners'],
 		queryFn: () => getPotentialPartners(),
-		enabled: isGiftIdeas,
+		enabled: isGiftIdeas || (!!partnerId && !partnerAlreadyEditor),
 	})
+
+	const partner = partnerId ? users?.find(u => u.id === partnerId) : undefined
+	const partnerLabel = partner ? partner.name || partner.email : 'your partner'
 
 	const form = useForm({
 		defaultValues: {
@@ -50,6 +59,7 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description, g
 			isPrivate,
 			description: description ?? '',
 			giftIdeasTargetUserId: giftIdeasTargetUserId ?? '',
+			addPartnerAsEditor: true,
 		},
 		onSubmit: async ({ value }) => {
 			if (!value.name.trim()) {
@@ -61,6 +71,10 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description, g
 			setError(null)
 			try {
 				const nextType = value.type as ListType
+				const willBePublic = nextType !== 'giftideas' && !value.isPrivate
+				const becomingPublic = isPrivate && willBePublic
+				const shouldAddPartner = becomingPublic && isOwner && !!partnerId && !partnerAlreadyEditor && !!partner && value.addPartnerAsEditor
+
 				const result = await updateList({
 					data: {
 						listId,
@@ -75,6 +89,13 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description, g
 				if (result.kind === 'error') {
 					setError(result.reason === 'not-authorized' ? "You don't have permission to change this list's settings." : 'List not found.')
 					return
+				}
+
+				if (shouldAddPartner && partnerId) {
+					const editorResult = await addListEditor({ data: { listId, userId: partnerId } })
+					if (editorResult.kind === 'error') {
+						toast.warning(`Settings saved, but couldn't add ${partnerLabel} as an editor.`)
+					}
 				}
 
 				toast.success('List settings saved')
@@ -136,7 +157,7 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description, g
 				)}
 			</form.Field>
 
-			{isGiftIdeas && (
+			{isGiftIdeas && isOwner && (
 				<form.Field name="giftIdeasTargetUserId">
 					{field => {
 						const recipientId = field.state.value
@@ -193,6 +214,37 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description, g
 					</div>
 				)}
 			</form.Field>
+
+			<form.Subscribe selector={s => s.values.isPrivate}>
+				{nextIsPrivate => {
+					const willBePublic = !isGiftIdeas && !nextIsPrivate
+					const becomingPublic = isPrivate && willBePublic
+					if (!becomingPublic || !isOwner || !partnerId || partnerAlreadyEditor || !partner) return null
+					return (
+						<form.Field name="addPartnerAsEditor">
+							{field => (
+								<div className="bg-muted/40 flex items-start gap-2 rounded-md border p-3">
+									<Checkbox
+										id={field.name}
+										checked={field.state.value}
+										onCheckedChange={v => field.handleChange(v === true)}
+										disabled={submitting}
+										className="mt-0.5"
+									/>
+									<div className="grid gap-1">
+										<Label htmlFor={field.name} className="font-normal">
+											Add {partnerLabel} as an editor
+										</Label>
+										<p className="text-muted-foreground text-xs">
+											You're making this list public. Add your partner so they can manage items too. You can always change this later.
+										</p>
+									</div>
+								</div>
+							)}
+						</form.Field>
+					)
+				}}
+			</form.Subscribe>
 
 			<form.Field name="description">
 				{field => (
