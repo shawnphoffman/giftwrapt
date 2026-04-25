@@ -17,9 +17,10 @@ type Props = {
 	description: string | null
 	editors: Array<EditorOnList>
 	addableUsers: Array<AddableEditorUser>
+	isOwner: boolean
 }
 
-export function ListSettingsSheet({ listId, name, type, isPrivate, description, editors, addableUsers }: Props) {
+export function ListSettingsSheet({ listId, name, type, isPrivate, description, editors, addableUsers, isOwner }: Props) {
 	const [open, setOpen] = useState(false)
 
 	return (
@@ -36,8 +37,12 @@ export function ListSettingsSheet({ listId, name, type, isPrivate, description, 
 				</SheetHeader>
 				<div className="flex flex-col gap-6 px-4 pb-6">
 					<ListSettingsForm listId={listId} name={name} type={type} isPrivate={isPrivate} description={description} />
-					<Separator />
-					<ListEditorsSection listId={listId} editors={editors} addableUsers={addableUsers} />
+					{isOwner && (
+						<>
+							<Separator />
+							<ListEditorsSection listId={listId} editors={editors} addableUsers={addableUsers} />
+						</>
+					)}
 				</div>
 			</SheetContent>
 		</Sheet>

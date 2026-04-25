@@ -383,9 +383,7 @@ const CreateListInputSchema = z.object({
 	giftIdeasTargetUserId: z.string().optional(),
 })
 
-export type CreateListResult =
-	| { kind: 'ok'; list: { id: number; name: string; type: ListType } }
-	| { kind: 'error'; reason: 'target-required' }
+export type CreateListResult = { kind: 'ok'; list: { id: number; name: string; type: ListType } }
 
 export const createList = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
@@ -393,11 +391,7 @@ export const createList = createServerFn({ method: 'POST' })
 	.handler(async ({ context, data }): Promise<CreateListResult> => {
 		const userId = context.session.user.id
 
-		// giftideas lists must have a target user and are always private.
-		if (data.type === 'giftideas' && !data.giftIdeasTargetUserId) {
-			return { kind: 'error', reason: 'target-required' }
-		}
-
+		// giftideas lists are always private; recipient is optional.
 		const [inserted] = await db
 			.insert(lists)
 			.values({
@@ -424,9 +418,10 @@ const UpdateListInputSchema = z.object({
 	isPrivate: z.boolean().optional(),
 	description: z.string().max(2000).nullable().optional(),
 	isActive: z.boolean().optional(),
+	giftIdeasTargetUserId: z.string().nullable().optional(),
 })
 
-export type UpdateListResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-owner' }
+export type UpdateListResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export const updateList = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
@@ -436,10 +431,13 @@ export const updateList = createServerFn({ method: 'POST' })
 
 		const list = await db.query.lists.findFirst({
 			where: eq(lists.id, data.listId),
-			columns: { id: true, ownerId: true },
+			columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
 		})
 		if (!list) return { kind: 'error', reason: 'not-found' }
-		if (list.ownerId !== userId) return { kind: 'error', reason: 'not-owner' }
+		if (list.ownerId !== userId) {
+			const edit = await canEditList(userId, list)
+			if (!edit.ok) return { kind: 'error', reason: 'not-authorized' }
+		}
 
 		const updates: Record<string, unknown> = {}
 		if (data.name !== undefined) updates.name = data.name
@@ -447,6 +445,15 @@ export const updateList = createServerFn({ method: 'POST' })
 		if (data.isPrivate !== undefined) updates.isPrivate = data.isPrivate
 		if (data.description !== undefined) updates.description = data.description
 		if (data.isActive !== undefined) updates.isActive = data.isActive
+		if (data.giftIdeasTargetUserId !== undefined) updates.giftIdeasTargetUserId = data.giftIdeasTargetUserId
+
+		// Gift ideas lists are always private; clear the recipient if the type changes away.
+		const nextType = data.type ?? undefined
+		if (nextType === 'giftideas') {
+			updates.isPrivate = true
+		} else if (nextType !== undefined) {
+			updates.giftIdeasTargetUserId = null
+		}
 
 		if (Object.keys(updates).length > 0) {
 			await db.update(lists).set(updates).where(eq(lists.id, data.listId))
@@ -571,6 +578,7 @@ export type ListForEditing = {
 	isPrimary: boolean
 	description: string | null
 	ownerId: string
+	giftIdeasTargetUserId: string | null
 	items: Array<ItemForEditing>
 	groups: Array<GroupSummary>
 	isOwner: boolean
@@ -601,6 +609,7 @@ export const getListForEditing = createServerFn({ method: 'GET' })
 				isPrimary: true,
 				description: true,
 				ownerId: true,
+				giftIdeasTargetUserId: true,
 			},
 		})
 		if (!list) return { kind: 'error', reason: 'not-found' }
@@ -650,6 +659,7 @@ export const getListForEditing = createServerFn({ method: 'GET' })
 				isPrimary: list.isPrimary,
 				description: list.description,
 				ownerId: list.ownerId,
+				giftIdeasTargetUserId: list.giftIdeasTargetUserId,
 				items: listItems.map(i => ({ ...i, commentCount: commentCountByItem.get(i.id) ?? 0 })),
 				groups,
 				isOwner,

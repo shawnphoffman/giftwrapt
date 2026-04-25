@@ -71,11 +71,6 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 					},
 				})
 
-				if (result.kind === 'error') {
-					setError('Gift Ideas lists require a target person.')
-					return
-				}
-
 				toast.success(`List "${result.list.name}" created`)
 				onOpenChange(false)
 				form.reset()
@@ -116,12 +111,16 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 								<Label htmlFor={field.name}>Name</Label>
 								<Input
 									id={field.name}
+									name="list-name"
 									placeholder="e.g. Christmas 2026"
 									value={field.state.value}
 									onChange={e => field.handleChange(e.target.value)}
 									onBlur={field.handleBlur}
 									disabled={submitting}
 									autoFocus
+									autoComplete="off"
+									data-1p-ignore
+									data-lpignore="true"
 								/>
 								{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 									<p className="text-destructive text-sm">
@@ -167,7 +166,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 						<form.Field name="giftIdeasTargetUserId">
 							{field => (
 								<div className="grid gap-2">
-									<Label htmlFor={field.name}>Gift ideas for</Label>
+									<Label htmlFor={field.name}>Gift ideas for (optional)</Label>
 									<Select value={field.state.value} onValueChange={field.handleChange} disabled={submitting}>
 										<SelectTrigger id={field.name}>
 											<SelectValue placeholder="Select a person" />

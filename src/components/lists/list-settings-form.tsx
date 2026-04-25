@@ -55,7 +55,7 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description }:
 				})
 
 				if (result.kind === 'error') {
-					setError(result.reason === 'not-owner' ? 'Only the list owner can change settings.' : 'List not found.')
+					setError(result.reason === 'not-authorized' ? "You don't have permission to change this list's settings." : 'List not found.')
 					return
 				}
 

@@ -91,17 +91,16 @@ function ListEditPage() {
 				{/* HEADING */}
 				<div className="relative flex items-center gap-3">
 					<h1 className="truncate flex-1">{list.name}</h1>
-					{list.isOwner && (
-						<ListSettingsSheet
-							listId={list.id}
-							name={list.name}
-							type={list.type}
-							isPrivate={list.isPrivate}
-							description={list.description}
-							editors={editors}
-							addableUsers={addableUsers}
-						/>
-					)}
+					<ListSettingsSheet
+						listId={list.id}
+						name={list.name}
+						type={list.type}
+						isPrivate={list.isPrivate}
+						description={list.description}
+						editors={editors}
+						addableUsers={addableUsers}
+						isOwner={list.isOwner}
+					/>
 					<ListTypeIcon type={list.type} className="wish-page-icon" />
 				</div>
 				{list.description && <MarkdownNotes content={list.description} className="text-muted-foreground" />}
