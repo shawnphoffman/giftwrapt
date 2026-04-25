@@ -26,9 +26,10 @@ type Props = {
 	isPrivate: boolean
 	description: string | null
 	giftIdeasTargetUserId: string | null
+	editorUserIds: Array<string>
 }
 
-export function ListSettingsForm({ listId, name, type, isPrivate, description, giftIdeasTargetUserId }: Props) {
+export function ListSettingsForm({ listId, name, type, isPrivate, description, giftIdeasTargetUserId, editorUserIds }: Props) {
 	const router = useRouter()
 	const [submitting, setSubmitting] = useState(false)
 	const [error, setError] = useState<string | null>(null)
@@ -137,28 +138,43 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description, g
 
 			{isGiftIdeas && (
 				<form.Field name="giftIdeasTargetUserId">
-					{field => (
-						<div className="grid gap-2">
-							<Label htmlFor={field.name}>Gift ideas for (optional)</Label>
-							<Select
-								value={field.state.value || NO_RECIPIENT}
-								onValueChange={v => field.handleChange(v === NO_RECIPIENT ? '' : v)}
-								disabled={submitting}
-							>
-								<SelectTrigger id={field.name}>
-									<SelectValue placeholder="Select a person" />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value={NO_RECIPIENT}>No recipient</SelectItem>
-									{users?.map(u => (
-										<SelectItem key={u.id} value={u.id}>
-											{u.name || u.email}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
-					)}
+					{field => {
+						const recipientId = field.state.value
+						const recipientIsEditor = !!recipientId && editorUserIds.includes(recipientId)
+						const recipient = recipientIsEditor ? users?.find(u => u.id === recipientId) : undefined
+						const recipientLabel = recipient ? recipient.name || recipient.email : 'this person'
+						return (
+							<div className="grid gap-2">
+								<Label htmlFor={field.name}>Gift ideas for (optional)</Label>
+								<Select
+									value={field.state.value || NO_RECIPIENT}
+									onValueChange={v => field.handleChange(v === NO_RECIPIENT ? '' : v)}
+									disabled={submitting}
+								>
+									<SelectTrigger id={field.name}>
+										<SelectValue placeholder="Select a person" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value={NO_RECIPIENT}>No recipient</SelectItem>
+										{users?.map(u => (
+											<SelectItem key={u.id} value={u.id}>
+												{u.name || u.email}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+								{recipientIsEditor && (
+									<Alert variant="warning">
+										<AlertTitle>Recipient is also an editor</AlertTitle>
+										<AlertDescription>
+											{recipientLabel} is listed as an editor and will be able to see this list. Remove them as an editor to keep gift ideas
+											a surprise.
+										</AlertDescription>
+									</Alert>
+								)}
+							</div>
+						)
+					}}
 				</form.Field>
 			)}
 
