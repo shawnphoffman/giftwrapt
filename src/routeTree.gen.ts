@@ -36,7 +36,6 @@ import { Route as corePurchasesReceivedRouteImport } from './routes/(core)/purch
 import { Route as coreListsListIdRouteImport } from './routes/(core)/lists/$listId'
 import { Route as coreItemCloneRouteImport } from './routes/(core)/item.clone'
 import { Route as coreAdminUsersRouteImport } from './routes/(core)/admin/users'
-import { Route as coreAdminTestRouteImport } from './routes/(core)/admin/test'
 import { Route as coreAdminEmailRouteImport } from './routes/(core)/admin/email'
 import { Route as coreAdminDebugRouteImport } from './routes/(core)/admin/debug'
 import { Route as coreAdminDataRouteImport } from './routes/(core)/admin/data'
@@ -182,11 +181,6 @@ const coreAdminUsersRoute = coreAdminUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => coreAdminRouteRoute,
 } as any)
-const coreAdminTestRoute = coreAdminTestRouteImport.update({
-  id: '/test',
-  path: '/test',
-  getParentRoute: () => coreAdminRouteRoute,
-} as any)
 const coreAdminEmailRoute = coreAdminEmailRouteImport.update({
   id: '/email',
   path: '/email',
@@ -252,7 +246,6 @@ export interface FileRoutesByFullPath {
   '/admin/data': typeof coreAdminDataRoute
   '/admin/debug': typeof coreAdminDebugRoute
   '/admin/email': typeof coreAdminEmailRoute
-  '/admin/test': typeof coreAdminTestRoute
   '/admin/users': typeof coreAdminUsersRoute
   '/item/clone': typeof coreItemCloneRoute
   '/lists/$listId': typeof coreListsListIdRoute
@@ -289,7 +282,6 @@ export interface FileRoutesByTo {
   '/admin/data': typeof coreAdminDataRoute
   '/admin/debug': typeof coreAdminDebugRoute
   '/admin/email': typeof coreAdminEmailRoute
-  '/admin/test': typeof coreAdminTestRoute
   '/admin/users': typeof coreAdminUsersRoute
   '/item/clone': typeof coreItemCloneRoute
   '/lists/$listId': typeof coreListsListIdRoute
@@ -330,7 +322,6 @@ export interface FileRoutesById {
   '/(core)/admin/data': typeof coreAdminDataRoute
   '/(core)/admin/debug': typeof coreAdminDebugRoute
   '/(core)/admin/email': typeof coreAdminEmailRoute
-  '/(core)/admin/test': typeof coreAdminTestRoute
   '/(core)/admin/users': typeof coreAdminUsersRoute
   '/(core)/item/clone': typeof coreItemCloneRoute
   '/(core)/lists/$listId': typeof coreListsListIdRoute
@@ -371,7 +362,6 @@ export interface FileRouteTypes {
     | '/admin/data'
     | '/admin/debug'
     | '/admin/email'
-    | '/admin/test'
     | '/admin/users'
     | '/item/clone'
     | '/lists/$listId'
@@ -408,7 +398,6 @@ export interface FileRouteTypes {
     | '/admin/data'
     | '/admin/debug'
     | '/admin/email'
-    | '/admin/test'
     | '/admin/users'
     | '/item/clone'
     | '/lists/$listId'
@@ -448,7 +437,6 @@ export interface FileRouteTypes {
     | '/(core)/admin/data'
     | '/(core)/admin/debug'
     | '/(core)/admin/email'
-    | '/(core)/admin/test'
     | '/(core)/admin/users'
     | '/(core)/item/clone'
     | '/(core)/lists/$listId'
@@ -681,13 +669,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreAdminUsersRouteImport
       parentRoute: typeof coreAdminRouteRoute
     }
-    '/(core)/admin/test': {
-      id: '/(core)/admin/test'
-      path: '/test'
-      fullPath: '/admin/test'
-      preLoaderRoute: typeof coreAdminTestRouteImport
-      parentRoute: typeof coreAdminRouteRoute
-    }
     '/(core)/admin/email': {
       id: '/(core)/admin/email'
       path: '/email'
@@ -766,7 +747,6 @@ interface coreAdminRouteRouteChildren {
   coreAdminDataRoute: typeof coreAdminDataRoute
   coreAdminDebugRoute: typeof coreAdminDebugRoute
   coreAdminEmailRoute: typeof coreAdminEmailRoute
-  coreAdminTestRoute: typeof coreAdminTestRoute
   coreAdminUsersRoute: typeof coreAdminUsersRoute
   coreAdminIndexRoute: typeof coreAdminIndexRoute
   coreAdminUserIdRoute: typeof coreAdminUserIdRoute
@@ -777,7 +757,6 @@ const coreAdminRouteRouteChildren: coreAdminRouteRouteChildren = {
   coreAdminDataRoute: coreAdminDataRoute,
   coreAdminDebugRoute: coreAdminDebugRoute,
   coreAdminEmailRoute: coreAdminEmailRoute,
-  coreAdminTestRoute: coreAdminTestRoute,
   coreAdminUsersRoute: coreAdminUsersRoute,
   coreAdminIndexRoute: coreAdminIndexRoute,
   coreAdminUserIdRoute: coreAdminUserIdRoute,

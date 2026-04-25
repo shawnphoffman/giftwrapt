@@ -1,5 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router'
-import { Bug, Database, FlaskConical, Lock, Mail, Sparkles, Users } from 'lucide-react'
+import { Bug, Database, Lock, Mail, Sparkles, Users } from 'lucide-react'
 
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -36,10 +36,6 @@ export default function AdminLinks() {
 			<Link to="/admin/debug" className={navLinkClass(pathname === '/admin/debug')}>
 				<Bug />
 				Debug
-			</Link>
-			<Link to="/admin/test" className={navLinkClass(pathname === '/admin/test')}>
-				<FlaskConical />
-				Test
 			</Link>
 		</>
 	)
