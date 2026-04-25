@@ -226,7 +226,7 @@ export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], 
 					item.price || item.quantity > 1 ? (
 						<div className="flex items-center gap-2">
 							{item.price && <PriceQuantityBadge price={item.price} quantity={1} hideQuantity />}
-							<QuantityRemainingBadge variant="inline-pill" quantity={item.quantity} remaining={item.quantity} />
+							<QuantityRemainingBadge variant="inline-pill" quantity={item.quantity} remaining={item.quantity} firstPerson />
 						</div>
 					) : null
 				}

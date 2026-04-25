@@ -11,6 +11,12 @@ type Props = {
 	 * pip row as a mini progress indicator.
 	 */
 	variant?: Variant
+	/**
+	 * When true, render in first person ("want X") instead of third
+	 * person ("wants X"). Used in the recipient's own list where the
+	 * badge speaks on their behalf.
+	 */
+	firstPerson?: boolean
 	className?: string
 }
 
@@ -21,7 +27,7 @@ type Props = {
  * multi-quantity items it always surfaces the desired count and, when
  * claims exist, how many slots remain.
  */
-export function QuantityRemainingBadge({ quantity, remaining, variant = 'split', className }: Props) {
+export function QuantityRemainingBadge({ quantity, remaining, variant = 'split', firstPerson = false, className }: Props) {
 	if (quantity <= 1) return null
 
 	const claimed = quantity - remaining
@@ -38,7 +44,9 @@ export function QuantityRemainingBadge({ quantity, remaining, variant = 'split',
 					className
 				)}
 			>
-				<span className={fullyClaimed ? undefined : 'text-foreground'}>wants {quantity}</span>
+				<span className={fullyClaimed ? undefined : 'text-foreground'}>
+					{firstPerson ? 'want' : 'wants'} {quantity}
+				</span>
 				{hasClaims && (
 					<>
 						<span aria-hidden>·</span>

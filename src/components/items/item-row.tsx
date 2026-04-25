@@ -7,6 +7,7 @@ import PriorityIcon from '@/components/common/priority-icon'
 import UserAvatar from '@/components/common/user-avatar'
 import { ItemComments } from '@/components/items/item-comments'
 import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { useSession } from '@/lib/auth-client'
 import { computeRemainingClaimableQuantity, computeRemainingClaimableQuantityExcluding } from '@/lib/gifts'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
@@ -60,6 +61,21 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 			)
 		: remaining
 
+	// "Locked for the current viewer" covers everything that hides the
+	// Claim button: a group rule blocks them, or someone else has already
+	// taken every slot. If the viewer has their own claim they can still
+	// edit it, so we don't treat that as locked.
+	const fullyClaimedByOthers = fullyClaimed && !myClaim
+	const groupLockedForViewer = !!lockReason && !myClaim
+	const isLocked = fullyClaimedByOthers || groupLockedForViewer
+
+	const lockLabel = fullyClaimedByOthers ? 'Fully claimed' : 'Locked'
+	const lockExplanation = fullyClaimedByOthers
+		? 'Someone has already claimed this item.'
+		: lockReason === 'order'
+			? 'Claim the item above this one first to unlock it.'
+			: 'Someone already claimed an item in this pick-one group.'
+
 	const domain = item.url ? getDomainFromUrl(item.url) : null
 	const hasPriorityTab = !grouped && item.priority !== 'normal'
 
@@ -69,22 +85,13 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 	}
 	if (item.quantity > 1) {
 		trailingBits.push(<QuantityRemainingBadge key="qty" variant="inline-pill" quantity={item.quantity} remaining={remaining} />)
-	} else if (fullyClaimed) {
+	}
+	if (isLocked) {
+		trailingBits.push(<LockedIndicator key="status" label={lockLabel} explanation={lockExplanation} />)
+	} else if (item.quantity <= 1 && fullyClaimed && myClaim) {
 		trailingBits.push(
 			<Badge key="status" variant="outline" className="text-xs">
-				{myClaim ? 'You claimed this' : 'Fully claimed'}
-			</Badge>
-		)
-	} else if (lockReason && !myClaim) {
-		trailingBits.push(
-			<Badge
-				key="status"
-				variant="outline"
-				className="text-xs text-muted-foreground"
-				title={lockReason === 'order' ? 'Claim the item above first' : 'Someone already claimed an item in this pick-one group'}
-			>
-				<Lock className="size-3" />
-				Locked
+				You claimed this
 			</Badge>
 		)
 	}
@@ -96,7 +103,7 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 			<div className="flex flex-row items-start gap-3">
 				<div className="flex-1 min-w-0 flex flex-col gap-0.5">
 					<div className="font-medium leading-tight truncate">
-						{item.url ? (
+						{item.url && !isLocked ? (
 							<a href={item.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
 								{item.title}
 							</a>
@@ -104,16 +111,19 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 							item.title
 						)}
 					</div>
-					{domain && (
-						<a
-							href={item.url!}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-0.5 w-fit"
-						>
-							{domain} <ExternalLink className="size-3" />
-						</a>
-					)}
+					{domain &&
+						(isLocked ? (
+							<span className="text-xs text-muted-foreground inline-flex items-center w-fit">{domain}</span>
+						) : (
+							<a
+								href={item.url!}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-0.5 w-fit"
+							>
+								{domain} <ExternalLink className="size-3" />
+							</a>
+						))}
 					{item.notes && <MarkdownNotes content={item.notes} className="text-xs text-foreground/75 mt-1" />}
 				</div>
 				{item.imageUrl && <ItemImage src={item.imageUrl} alt={item.title} />}
@@ -169,9 +179,9 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 	return (
 		<>
 			{grouped ? (
-				<div className="flex items-start gap-2 p-2 ps-4 border-b last:border-b-0">{rowInner}</div>
+				<div className={cn('flex items-start gap-2 p-2 ps-4 border-b last:border-b-0', isLocked && 'opacity-60')}>{rowInner}</div>
 			) : (
-				<div className="relative">
+				<div className={cn('relative', isLocked && 'opacity-60')}>
 					{hasPriorityTab && (
 						<div
 							className={cn(
@@ -218,5 +228,24 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 				/>
 			)}
 		</>
+	)
+}
+
+function LockedIndicator({ label, explanation }: { label: string; explanation: string }) {
+	return (
+		<Popover>
+			<PopoverTrigger asChild>
+				<button
+					type="button"
+					className="inline-flex items-center gap-1 rounded-full border bg-transparent px-2 py-0.5 text-xs text-muted-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+				>
+					<Lock className="size-3" />
+					{label}
+				</button>
+			</PopoverTrigger>
+			<PopoverContent side="top" align="end" className="w-auto max-w-xs text-xs leading-relaxed">
+				{explanation}
+			</PopoverContent>
+		</Popover>
 	)
 }
