@@ -10,7 +10,7 @@
 import { and, eq } from 'drizzle-orm'
 
 import { db } from '@/db'
-import { listEditors, userRelationships } from '@/db/schema'
+import { guardianships, listEditors, userRelationships } from '@/db/schema'
 
 export type CanViewListResult = { ok: true } | { ok: false; reason: 'inactive' | 'private' | 'denied' }
 
@@ -43,17 +43,27 @@ export async function canViewList(viewerId: string, list: ListForVisibilityCheck
 // ===============================
 // canEditList
 // ===============================
-// Edit access is granted in TWO layered ways (spec §2.6):
-//   1. User-level: userRelationships.canEdit = true (blanket edit on all
+// Edit access is granted in THREE layered ways (spec §2.6):
+//   1. Guardianship: a row in guardianships where the viewer is the parent
+//      and the list owner is the child. Guardians have full edit access on
+//      all of their child's lists.
+//   2. User-level: userRelationships.canEdit = true (blanket edit on all
 //      of that owner's lists).
-//   2. List-level: a row in listEditors for (listId, userId).
-// Either one is sufficient. The owner always has implicit edit access,
+//   3. List-level: a row in listEditors for (listId, userId).
+// Any one is sufficient. The owner always has implicit edit access,
 // but callers should check ownership separately (this helper is for
 // non-owners).
 
 export type CanEditListResult = { ok: true } | { ok: false; reason: 'not-editor' }
 
 export async function canEditList(userId: string, list: ListForVisibilityCheck): Promise<CanEditListResult> {
+	// Guardianship grant: viewer is a guardian of the list owner.
+	const guardianGrant = await db.query.guardianships.findFirst({
+		where: and(eq(guardianships.parentUserId, userId), eq(guardianships.childUserId, list.ownerId)),
+		columns: { parentUserId: true },
+	})
+	if (guardianGrant) return { ok: true }
+
 	// User-level blanket edit grant.
 	const userGrant = await db.query.userRelationships.findFirst({
 		where: and(
