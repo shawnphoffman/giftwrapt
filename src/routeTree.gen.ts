@@ -40,6 +40,7 @@ import { Route as coreAdminTestRouteImport } from './routes/(core)/admin/test'
 import { Route as coreAdminEmailRouteImport } from './routes/(core)/admin/email'
 import { Route as coreAdminDebugRouteImport } from './routes/(core)/admin/debug'
 import { Route as coreAdminDataRouteImport } from './routes/(core)/admin/data'
+import { Route as coreAdminAiRouteImport } from './routes/(core)/admin/ai'
 import { Route as ApiSseListListIdRouteImport } from './routes/api/sse/list.$listId'
 import { Route as coreListsListIdOrganizeRouteImport } from './routes/(core)/lists_/$listId.organize'
 import { Route as coreListsListIdEditRouteImport } from './routes/(core)/lists_/$listId.edit'
@@ -201,6 +202,11 @@ const coreAdminDataRoute = coreAdminDataRouteImport.update({
   path: '/data',
   getParentRoute: () => coreAdminRouteRoute,
 } as any)
+const coreAdminAiRoute = coreAdminAiRouteImport.update({
+  id: '/ai',
+  path: '/ai',
+  getParentRoute: () => coreAdminRouteRoute,
+} as any)
 const ApiSseListListIdRoute = ApiSseListListIdRouteImport.update({
   id: '/api/sse/list/$listId',
   path: '/api/sse/list/$listId',
@@ -242,6 +248,7 @@ export interface FileRoutesByFullPath {
   '/temp': typeof coreTempRoute
   '/api/health': typeof ApiHealthRoute
   '/': typeof coreIndexRoute
+  '/admin/ai': typeof coreAdminAiRoute
   '/admin/data': typeof coreAdminDataRoute
   '/admin/debug': typeof coreAdminDebugRoute
   '/admin/email': typeof coreAdminEmailRoute
@@ -278,6 +285,7 @@ export interface FileRoutesByTo {
   '/temp': typeof coreTempRoute
   '/api/health': typeof ApiHealthRoute
   '/': typeof coreIndexRoute
+  '/admin/ai': typeof coreAdminAiRoute
   '/admin/data': typeof coreAdminDataRoute
   '/admin/debug': typeof coreAdminDebugRoute
   '/admin/email': typeof coreAdminEmailRoute
@@ -318,6 +326,7 @@ export interface FileRoutesById {
   '/(core)/temp': typeof coreTempRoute
   '/api/health': typeof ApiHealthRoute
   '/(core)/': typeof coreIndexRoute
+  '/(core)/admin/ai': typeof coreAdminAiRoute
   '/(core)/admin/data': typeof coreAdminDataRoute
   '/(core)/admin/debug': typeof coreAdminDebugRoute
   '/(core)/admin/email': typeof coreAdminEmailRoute
@@ -358,6 +367,7 @@ export interface FileRouteTypes {
     | '/temp'
     | '/api/health'
     | '/'
+    | '/admin/ai'
     | '/admin/data'
     | '/admin/debug'
     | '/admin/email'
@@ -394,6 +404,7 @@ export interface FileRouteTypes {
     | '/temp'
     | '/api/health'
     | '/'
+    | '/admin/ai'
     | '/admin/data'
     | '/admin/debug'
     | '/admin/email'
@@ -433,6 +444,7 @@ export interface FileRouteTypes {
     | '/(core)/temp'
     | '/api/health'
     | '/(core)/'
+    | '/(core)/admin/ai'
     | '/(core)/admin/data'
     | '/(core)/admin/debug'
     | '/(core)/admin/email'
@@ -697,6 +709,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreAdminDataRouteImport
       parentRoute: typeof coreAdminRouteRoute
     }
+    '/(core)/admin/ai': {
+      id: '/(core)/admin/ai'
+      path: '/ai'
+      fullPath: '/admin/ai'
+      preLoaderRoute: typeof coreAdminAiRouteImport
+      parentRoute: typeof coreAdminRouteRoute
+    }
     '/api/sse/list/$listId': {
       id: '/api/sse/list/$listId'
       path: '/api/sse/list/$listId'
@@ -743,6 +762,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface coreAdminRouteRouteChildren {
+  coreAdminAiRoute: typeof coreAdminAiRoute
   coreAdminDataRoute: typeof coreAdminDataRoute
   coreAdminDebugRoute: typeof coreAdminDebugRoute
   coreAdminEmailRoute: typeof coreAdminEmailRoute
@@ -753,6 +773,7 @@ interface coreAdminRouteRouteChildren {
 }
 
 const coreAdminRouteRouteChildren: coreAdminRouteRouteChildren = {
+  coreAdminAiRoute: coreAdminAiRoute,
   coreAdminDataRoute: coreAdminDataRoute,
   coreAdminDebugRoute: coreAdminDebugRoute,
   coreAdminEmailRoute: coreAdminEmailRoute,

@@ -32,6 +32,13 @@ export const env = createEnv({
 		RESEND_FROM_EMAIL: z.email().optional(),
 		RESEND_FROM_NAME: z.string().optional(),
 		RESEND_BCC_ADDRESS: z.email().optional(),
+		// AI provider (OpenAI-compatible). Works with OpenAI, OpenRouter,
+		// Together, Groq, Ollama, LiteLLM, vLLM, etc. - any endpoint that
+		// speaks the OpenAI Chat Completions API. All three are optional;
+		// admin can configure them through the UI when env vars aren't set.
+		AI_BASE_URL: z.url().optional(),
+		AI_API_KEY: z.string().min(1).optional(),
+		AI_MODEL: z.string().min(1).optional(),
 		// Cron job authentication
 		CRON_SECRET: z.string().min(1).optional(),
 		// Logging. LOG_LEVEL can be changed at runtime (e.g. in docker-compose)
