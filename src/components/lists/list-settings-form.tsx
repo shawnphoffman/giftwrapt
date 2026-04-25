@@ -1,9 +1,11 @@
 import { useForm } from '@tanstack/react-form'
+import { useQuery } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { updateList } from '@/api/lists'
+import { getPotentialPartners } from '@/api/user'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import { MarkdownTextarea } from '@/components/common/markdown-textarea'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -15,18 +17,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { ListType } from '@/db/schema/enums'
 import { listTypeEnumValues, ListTypes } from '@/db/schema/enums'
 
+const NO_RECIPIENT = '__none__'
+
 type Props = {
 	listId: number
 	name: string
 	type: ListType
 	isPrivate: boolean
 	description: string | null
+	giftIdeasTargetUserId: string | null
 }
 
-export function ListSettingsForm({ listId, name, type, isPrivate, description }: Props) {
+export function ListSettingsForm({ listId, name, type, isPrivate, description, giftIdeasTargetUserId }: Props) {
 	const router = useRouter()
 	const [submitting, setSubmitting] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+	const [selectedType, setSelectedType] = useState<string>(type)
+
+	const isGiftIdeas = selectedType === 'giftideas'
+
+	const { data: users } = useQuery({
+		queryKey: ['potential-partners'],
+		queryFn: () => getPotentialPartners(),
+		enabled: isGiftIdeas,
+	})
 
 	const form = useForm({
 		defaultValues: {
@@ -34,6 +48,7 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description }:
 			type: type as string,
 			isPrivate,
 			description: description ?? '',
+			giftIdeasTargetUserId: giftIdeasTargetUserId ?? '',
 		},
 		onSubmit: async ({ value }) => {
 			if (!value.name.trim()) {
@@ -44,13 +59,15 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description }:
 			setSubmitting(true)
 			setError(null)
 			try {
+				const nextType = value.type as ListType
 				const result = await updateList({
 					data: {
 						listId,
 						name: value.name.trim(),
-						type: value.type as ListType,
-						isPrivate: value.type === 'giftideas' ? true : value.isPrivate,
+						type: nextType,
+						isPrivate: nextType === 'giftideas' ? true : value.isPrivate,
 						description: value.description.trim() || null,
+						giftIdeasTargetUserId: nextType === 'giftideas' ? value.giftIdeasTargetUserId || null : null,
 					},
 				})
 
@@ -91,7 +108,17 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description }:
 				{field => (
 					<div className="grid gap-2">
 						<Label htmlFor={field.name}>Type</Label>
-						<Select value={field.state.value} onValueChange={field.handleChange} disabled={submitting}>
+						<Select
+							value={field.state.value}
+							onValueChange={v => {
+								field.handleChange(v)
+								setSelectedType(v)
+								if (v === 'giftideas') {
+									form.setFieldValue('isPrivate', true)
+								}
+							}}
+							disabled={submitting}
+						>
 							<SelectTrigger id={field.name}>
 								<SelectValue />
 							</SelectTrigger>
@@ -108,17 +135,44 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description }:
 				)}
 			</form.Field>
 
+			{isGiftIdeas && (
+				<form.Field name="giftIdeasTargetUserId">
+					{field => (
+						<div className="grid gap-2">
+							<Label htmlFor={field.name}>Gift ideas for (optional)</Label>
+							<Select
+								value={field.state.value || NO_RECIPIENT}
+								onValueChange={v => field.handleChange(v === NO_RECIPIENT ? '' : v)}
+								disabled={submitting}
+							>
+								<SelectTrigger id={field.name}>
+									<SelectValue placeholder="Select a person" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value={NO_RECIPIENT}>No recipient</SelectItem>
+									{users?.map(u => (
+										<SelectItem key={u.id} value={u.id}>
+											{u.name || u.email}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					)}
+				</form.Field>
+			)}
+
 			<form.Field name="isPrivate">
 				{field => (
 					<div className="flex items-center gap-2">
 						<Checkbox
 							id={field.name}
-							checked={field.state.value}
+							checked={isGiftIdeas ? true : field.state.value}
 							onCheckedChange={v => field.handleChange(v === true)}
-							disabled={submitting}
+							disabled={submitting || isGiftIdeas}
 						/>
 						<Label htmlFor={field.name} className="font-normal">
-							Private list
+							Private list {isGiftIdeas && '(always private for Gift Ideas)'}
 						</Label>
 					</div>
 				)}

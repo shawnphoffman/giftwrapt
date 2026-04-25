@@ -15,12 +15,23 @@ type Props = {
 	type: ListType
 	isPrivate: boolean
 	description: string | null
+	giftIdeasTargetUserId: string | null
 	editors: Array<EditorOnList>
 	addableUsers: Array<AddableEditorUser>
 	isOwner: boolean
 }
 
-export function ListSettingsSheet({ listId, name, type, isPrivate, description, editors, addableUsers, isOwner }: Props) {
+export function ListSettingsSheet({
+	listId,
+	name,
+	type,
+	isPrivate,
+	description,
+	giftIdeasTargetUserId,
+	editors,
+	addableUsers,
+	isOwner,
+}: Props) {
 	const [open, setOpen] = useState(false)
 
 	return (
@@ -36,7 +47,14 @@ export function ListSettingsSheet({ listId, name, type, isPrivate, description, 
 					<SheetDescription>Manage this list's details and editors.</SheetDescription>
 				</SheetHeader>
 				<div className="flex flex-col gap-6 px-4 pb-6">
-					<ListSettingsForm listId={listId} name={name} type={type} isPrivate={isPrivate} description={description} />
+					<ListSettingsForm
+						listId={listId}
+						name={name}
+						type={type}
+						isPrivate={isPrivate}
+						description={description}
+						giftIdeasTargetUserId={giftIdeasTargetUserId}
+					/>
 					{isOwner && (
 						<>
 							<Separator />

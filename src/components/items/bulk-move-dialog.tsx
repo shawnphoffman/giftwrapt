@@ -73,11 +73,6 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 						isPrivate: newListPrivate,
 					},
 				})
-				if (created.kind === 'error') {
-					setError('Failed to create list.')
-					setSubmitting(false)
-					return
-				}
 				await qc.invalidateQueries({ queryKey: ['my-lists-for-bulk-move'] })
 				targetId = created.list.id
 			} else {
