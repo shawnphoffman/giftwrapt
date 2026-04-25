@@ -91,7 +91,7 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 	const trailing = trailingBits.length > 0 ? <div className="flex items-center gap-2">{trailingBits}</div> : null
 
 	const rowInner = (
-		<div className="flex flex-col w-full gap-2" id={`item-${item.id}`}>
+		<div className="flex flex-col w-full gap-2 scroll-mt-24" id={`item-${item.id}`}>
 			{/* DETAILS ROW */}
 			<div className="flex flex-row items-start gap-3">
 				<div className="flex-1 min-w-0 flex flex-col gap-0.5">

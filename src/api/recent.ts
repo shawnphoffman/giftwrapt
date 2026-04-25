@@ -1,8 +1,8 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, desc, eq, gte } from 'drizzle-orm'
+import { and, desc, eq, gte, notInArray } from 'drizzle-orm'
 
 import { db } from '@/db'
-import { items, lists, users } from '@/db/schema'
+import { items, lists, userRelationships, users } from '@/db/schema'
 import { loggingMiddleware } from '@/lib/logger'
 import { authMiddleware } from '@/middleware/auth'
 
@@ -27,10 +27,17 @@ export type RecentItemRow = {
 
 export const getRecentItems = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware, loggingMiddleware])
-	.handler(async (): Promise<Array<RecentItemRow>> => {
-		// Recent items from public, active lists in the last 30 days.
+	.handler(async ({ context }): Promise<Array<RecentItemRow>> => {
+		// Recent items from active, non-private lists in the last 30 days.
+		// Exclude lists owned by anyone who has explicitly denied this viewer.
+		const viewerId = context.session.user.id
 		const thirtyDaysAgo = new Date()
 		thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+		const deniedOwners = db
+			.select({ ownerUserId: userRelationships.ownerUserId })
+			.from(userRelationships)
+			.where(and(eq(userRelationships.viewerUserId, viewerId), eq(userRelationships.canView, false)))
 
 		const rows = await db
 			.select({
@@ -50,7 +57,7 @@ export const getRecentItems = createServerFn({ method: 'GET' })
 			.from(items)
 			.innerJoin(lists, and(eq(lists.id, items.listId), eq(lists.isActive, true), eq(lists.isPrivate, false)))
 			.innerJoin(users, eq(users.id, lists.ownerId))
-			.where(and(eq(items.isArchived, false), gte(items.createdAt, thirtyDaysAgo)))
+			.where(and(eq(items.isArchived, false), gte(items.createdAt, thirtyDaysAgo), notInArray(lists.ownerId, deniedOwners)))
 			.orderBy(desc(items.createdAt))
 			.limit(50)
 

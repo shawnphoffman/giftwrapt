@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { MessagesSquare } from 'lucide-react'
+import { ArrowRight, MessagesSquare } from 'lucide-react'
 
 import { getRecentComments } from '@/api/comments'
 import UserAvatar from '@/components/common/user-avatar'
+import { Button } from '@/components/ui/button'
 
 export const Route = createFileRoute('/(core)/recent/comments')({
 	loader: () => getRecentComments(),
@@ -37,7 +38,12 @@ function RecentCommentsPage() {
 											<span className="font-medium text-sm">{name}</span>
 											<span className="text-xs text-muted-foreground">
 												on{' '}
-												<Link to="/lists/$listId" params={{ listId: String(c.listId) }} className="hover:underline">
+												<Link
+													to="/lists/$listId"
+													params={{ listId: String(c.listId) }}
+													hash={`item-${c.itemId}`}
+													className="hover:underline"
+												>
 													{c.itemTitle}
 												</Link>{' '}
 												&middot; {c.listOwnerName ? `${c.listOwnerName}'s` : ''} {c.listName}
@@ -46,6 +52,11 @@ function RecentCommentsPage() {
 										</div>
 										<p className="text-sm text-foreground/80 whitespace-pre-wrap line-clamp-3">{c.comment}</p>
 									</div>
+									<Button asChild size="icon" variant="ghost" className="size-7 shrink-0 self-start" title="Open comment on list">
+										<Link to="/lists/$listId" params={{ listId: String(c.listId) }} hash={`comment-${c.id}`}>
+											<ArrowRight className="size-4" />
+										</Link>
+									</Button>
 								</div>
 							)
 						})}

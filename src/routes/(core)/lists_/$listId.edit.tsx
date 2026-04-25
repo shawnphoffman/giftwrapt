@@ -18,6 +18,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import type { GroupType } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { buildListEntries } from '@/lib/list-entries'
+import { useScrollToHash } from '@/lib/use-scroll-to-hash'
 
 export const Route = createFileRoute('/(core)/lists_/$listId/edit')({
 	loader: async ({ params }) => {
@@ -43,6 +44,7 @@ function ListEditPage() {
 	const [addItemOpen, setAddItemOpen] = useState(false)
 	const [addItemGroupId, setAddItemGroupId] = useState<number | null>(null)
 	const [moveItem, setMoveItem] = useState<Item | null>(null)
+	useScrollToHash([list.id])
 
 	const handleCreateGroup = async (type: GroupType) => {
 		const result = await createItemGroup({ data: { listId: list.id, type } })

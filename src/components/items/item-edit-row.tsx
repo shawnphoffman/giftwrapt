@@ -121,7 +121,7 @@ export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], 
 	const hasPriorityTab = !grouped && item.priority !== 'normal'
 
 	const rowInner = (
-		<div className="flex flex-col w-full gap-2">
+		<div className="flex flex-col w-full gap-2 scroll-mt-24" id={`item-${item.id}`}>
 			<div className="flex items-start gap-2">
 				<div className="flex-1 min-w-0 flex flex-col gap-0.5">
 					<div className="font-medium leading-tight truncate">{item.title}</div>

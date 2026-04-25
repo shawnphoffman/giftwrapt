@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { ExternalLink, Inbox } from 'lucide-react'
+import { ArrowRight, ExternalLink, Inbox } from 'lucide-react'
 
 import { getRecentItems } from '@/api/recent'
 import PriorityIcon from '@/components/common/priority-icon'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import type { Priority } from '@/db/schema/enums'
 import { getDomainFromUrl } from '@/lib/urls'
 
@@ -68,6 +69,11 @@ function RecentItemsPage() {
 											x{item.quantity}
 										</Badge>
 									)}
+									<Button asChild size="icon" variant="ghost" className="size-7 shrink-0" title="Open on list">
+										<Link to="/lists/$listId" params={{ listId: String(item.listId) }} hash={`item-${item.id}`}>
+											<ArrowRight className="size-4" />
+										</Link>
+									</Button>
 								</div>
 							)
 						})}

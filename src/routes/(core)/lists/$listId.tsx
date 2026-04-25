@@ -7,12 +7,13 @@ import UserAvatar from '@/components/common/user-avatar'
 import ItemList from '@/components/items/item-list'
 import { ListAddonsSection } from '@/components/list-addons/list-addons-section'
 import { useListSSE } from '@/lib/use-list-sse'
+import { useScrollToHash } from '@/lib/use-scroll-to-hash'
 // import UserAvatarBadge from '@/components/common/user-avatar-badge'
 // import { Badge } from '@/components/ui/badge'
 // import { ListTypes } from '@/db/schema/enums'
 
 export const Route = createFileRoute('/(core)/lists/$listId')({
-	loader: async ({ params }) => {
+	loader: async ({ params, location }) => {
 		const result = await getListForViewing({ data: { listId: params.listId } })
 
 		if (!result) {
@@ -23,6 +24,7 @@ export const Route = createFileRoute('/(core)/lists/$listId')({
 			throw redirect({
 				to: '/lists/$listId/edit',
 				params: { listId: result.listId },
+				hash: location.hash || undefined,
 			})
 		}
 
@@ -34,6 +36,7 @@ export const Route = createFileRoute('/(core)/lists/$listId')({
 function ListDetailPage() {
 	const list = Route.useLoaderData()
 	useListSSE(list.id)
+	useScrollToHash([list.id])
 
 	const recipientName = list.owner.name || list.owner.email
 	// const listTypeLabel = ListTypes[list.type]

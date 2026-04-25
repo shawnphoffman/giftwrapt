@@ -1,9 +1,9 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, asc, desc, eq } from 'drizzle-orm'
+import { and, asc, desc, eq, notInArray } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
-import { itemComments, items, lists, users } from '@/db/schema'
+import { itemComments, items, lists, userRelationships, users } from '@/db/schema'
 import { createLogger, loggingMiddleware } from '@/lib/logger'
 import { canViewList } from '@/lib/permissions'
 import { sendNewCommentEmail } from '@/lib/resend'
@@ -265,10 +265,17 @@ export type RecentCommentRow = {
 
 export const getRecentComments = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware, loggingMiddleware])
-	.handler(async (): Promise<Array<RecentCommentRow>> => {
+	.handler(async ({ context }): Promise<Array<RecentCommentRow>> => {
 		// Fetch the 50 most recent comments across all non-archived items
-		// on active, non-private lists. Privacy/visibility filtering is done
-		// at the SQL level (public + active only).
+		// on active, non-private lists. Excludes lists owned by anyone who
+		// has explicitly denied this viewer.
+		const viewerId = context.session.user.id
+
+		const deniedOwners = db
+			.select({ ownerUserId: userRelationships.ownerUserId })
+			.from(userRelationships)
+			.where(and(eq(userRelationships.viewerUserId, viewerId), eq(userRelationships.canView, false)))
+
 		const rows = await db
 			.select({
 				id: itemComments.id,
@@ -286,7 +293,7 @@ export const getRecentComments = createServerFn({ method: 'GET' })
 			.innerJoin(items, eq(items.id, itemComments.itemId))
 			.innerJoin(lists, and(eq(lists.id, items.listId), eq(lists.isActive, true), eq(lists.isPrivate, false)))
 			.innerJoin(users, eq(users.id, lists.ownerId))
-			.where(eq(items.isArchived, false))
+			.where(and(eq(items.isArchived, false), notInArray(lists.ownerId, deniedOwners)))
 			.orderBy(desc(itemComments.createdAt))
 			.limit(50)
 

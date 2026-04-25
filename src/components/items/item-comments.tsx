@@ -195,7 +195,7 @@ function CommentRow({
 
 	return (
 		<>
-			<div className="flex gap-2 text-sm group">
+			<div id={`comment-${comment.id}`} className="flex gap-2 text-sm group scroll-mt-24">
 				<UserAvatar name={name} image={comment.user.image} size="small" />
 				<div className="flex-1 min-w-0">
 					<div className="flex items-baseline gap-1.5">
