@@ -40,6 +40,19 @@ export const appSettingsSchema = z.object({
 	// provider being usable.
 	scrapeAiProviderEnabled: z.boolean().default(false),
 	scrapeAiCleanTitlesEnabled: z.boolean().default(false),
+	// BYO custom HTTP scraper. The orchestrator calls
+	// `${endpoint}?url=<encoded>` and reads the response per `responseKind`
+	// (html → goes through the extractor; json → expected to match the
+	// ScrapeResult shape). Optional auth header for token-style auth.
+	scrapeCustomHttpProvider: z
+		.object({
+			enabled: z.boolean(),
+			endpoint: z.url(),
+			responseKind: z.enum(['html', 'json']),
+			authHeaderName: z.string().min(1).max(200).optional(),
+			authHeaderValue: z.string().min(1).max(2000).optional(),
+		})
+		.optional(),
 })
 
 // 2) Default values in code (for when DB is empty or missing keys)
