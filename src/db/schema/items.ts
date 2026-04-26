@@ -115,15 +115,24 @@ export type NewItemComment = typeof itemComments.$inferInsert
 // ===============================
 // Historical - each scrape is a new row. scraperId lets us combine/merge
 // results from multiple scrapers. Never upsert; always insert.
+//
+// itemId is nullable so the form can scrape a URL before the item exists
+// (the prefill flow). Standalone rows are also how the orchestrator's URL-
+// based dedup cache is implemented; they get attached to an item later when
+// the user saves the form, or stay orphaned for diagnostics / cleanup.
 export const itemScrapes = pgTable(
 	'item_scrapes',
 	{
 		id: serial('id').primaryKey(),
-		itemId: integer('item_id')
-			.notNull()
-			.references(() => items.id, { onDelete: 'cascade' }),
+		itemId: integer('item_id').references(() => items.id, { onDelete: 'cascade' }),
 		url: text('url').notNull(),
 		scraperId: text('scraper_id').notNull(),
+		// Per-attempt outcome, surfaced in the streaming UX and for diagnostics.
+		// `score` and `ms` are null on failed attempts.
+		ok: boolean('ok').default(true).notNull(),
+		score: integer('score'),
+		ms: integer('ms'),
+		errorCode: text('error_code'),
 		response: json('response'),
 		title: text('title'),
 		cleanTitle: text('clean_title'),
@@ -137,6 +146,9 @@ export const itemScrapes = pgTable(
 		index('item_scrapes_itemId_idx').on(table.itemId),
 		// Supports "latest scrape for an item" queries.
 		index('item_scrapes_itemId_createdAt_idx').on(table.itemId, table.createdAt.desc()),
+		// Supports the URL-based dedup cache lookup ("most recent successful
+		// scrape of this URL").
+		index('item_scrapes_url_createdAt_idx').on(table.url, table.createdAt.desc()),
 	]
 )
 

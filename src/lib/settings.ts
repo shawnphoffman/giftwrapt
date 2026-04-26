@@ -23,6 +23,23 @@ export const appSettingsSchema = z.object({
 	enableComments: z.boolean().default(true),
 	// Whether a notification email is sent to the list owner on new comments.
 	enableCommentEmails: z.boolean().default(true),
+	// =====================================================================
+	// URL scraping
+	// =====================================================================
+	// Per-provider HTTP timeout in ms.
+	scrapeProviderTimeoutMs: z.number().int().positive().default(10_000),
+	// Overall budget for a single scrape request in ms (covers sequential
+	// chain + parallel racers).
+	scrapeOverallTimeoutMs: z.number().int().positive().default(20_000),
+	// Quality threshold the orchestrator uses to short-circuit the chain.
+	scrapeQualityThreshold: z.number().int().default(3),
+	// How long an existing scrape row counts as "fresh" for dedup. Set to
+	// zero to disable URL-based caching.
+	scrapeCacheTtlHours: z.number().int().min(0).default(24),
+	// Phase 4 toggles. Both default off and gate on the configured AI
+	// provider being usable.
+	scrapeAiProviderEnabled: z.boolean().default(false),
+	scrapeAiCleanTitlesEnabled: z.boolean().default(false),
 })
 
 // 2) Default values in code (for when DB is empty or missing keys)
@@ -38,6 +55,12 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	enableChristmasEmails: true,
 	enableComments: true,
 	enableCommentEmails: true,
+	scrapeProviderTimeoutMs: 10_000,
+	scrapeOverallTimeoutMs: 20_000,
+	scrapeQualityThreshold: 3,
+	scrapeCacheTtlHours: 24,
+	scrapeAiProviderEnabled: false,
+	scrapeAiCleanTitlesEnabled: false,
 }
 
 export type AppSettings = z.infer<typeof appSettingsSchema>

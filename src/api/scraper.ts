@@ -1,40 +1,80 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 
+import { db } from '@/db'
 import { loggingMiddleware } from '@/lib/logger'
+import { buildDbBackedDeps } from '@/lib/scrapers/cache'
+import { orchestrate } from '@/lib/scrapers/orchestrator'
+import { fetchProvider } from '@/lib/scrapers/providers/fetch'
+import type { OrchestrateResult, ScrapeAttempt, ScrapeResult } from '@/lib/scrapers/types'
+import { getAppSettings } from '@/lib/settings'
 import { authMiddleware } from '@/middleware/auth'
 
-// Scraping temporarily disabled. The `open-graph-scraper` / `cheerio` imports
-// were breaking the Vercel server build and leaking `process` references into
-// the client bundle via the /item/import route. Re-enable by restoring the
-// OpenGraphFetcher and `itemScrapes` persistence (see git history for the
-// previous implementation).
-
-export type ScrapeResult = {
-	success: boolean
-	title?: string
-	description?: string
-	price?: string
-	currency?: string
-	imageUrls: Array<string>
-	siteName?: string
-	rawResponse?: Record<string, string | number | boolean | null>
-}
+// Re-export the structured-result shape so existing callers (item form,
+// future cron-based refresh, admin tools) keep importing it from this
+// module rather than reaching into `lib/scrapers`.
+export type { ScrapeResult }
 
 const ScrapeUrlInputSchema = z.object({
 	url: z.string().url().max(2000),
 	itemId: z.number().int().positive().optional(),
+	force: z.boolean().optional(),
+	providerOverride: z.array(z.string()).max(8).optional(),
 })
 
-export type ScrapeUrlResult = { kind: 'ok'; data: ScrapeResult; scrapeId: number | null } | { kind: 'error'; reason: 'scrape-failed' }
+export type ScrapeUrlOk = {
+	kind: 'ok'
+	result: ScrapeResult
+	fromProvider: string
+	attempts: Array<ScrapeAttempt>
+	cached: boolean
+}
+
+export type ScrapeUrlErr = {
+	kind: 'error'
+	reason: 'all-providers-failed' | 'invalid-url' | 'not-authorized' | 'timeout' | 'no-providers-available' | 'scrape-failed'
+	attempts?: Array<ScrapeAttempt>
+}
+
+export type ScrapeUrlResult = ScrapeUrlOk | ScrapeUrlErr
 
 export const scrapeUrl = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof ScrapeUrlInputSchema>) => ScrapeUrlInputSchema.parse(data))
-	// Stub returns synchronously today, but the real implementation (see file
-	// header) is async. Keep the async signature so re-enabling doesn't churn
-	// the type surface for callers.
-	// eslint-disable-next-line @typescript-eslint/require-await
-	.handler(async (): Promise<ScrapeUrlResult> => {
-		return { kind: 'error', reason: 'scrape-failed' }
+	.handler(async ({ data }): Promise<ScrapeUrlResult> => {
+		const settings = await getAppSettings(db)
+
+		const orchestrateResult = await orchestrate(
+			{
+				url: data.url,
+				itemId: data.itemId,
+				force: data.force,
+				providerOverride: data.providerOverride,
+			},
+			{
+				...buildDbBackedDeps(db, {
+					ttlHours: settings.scrapeCacheTtlHours,
+					minScore: settings.scrapeQualityThreshold,
+				}),
+				providers: [fetchProvider],
+				perProviderTimeoutMs: settings.scrapeProviderTimeoutMs,
+				overallTimeoutMs: settings.scrapeOverallTimeoutMs,
+				qualityThreshold: settings.scrapeQualityThreshold,
+			}
+		)
+
+		return mapResult(orchestrateResult)
 	})
+
+function mapResult(r: OrchestrateResult): ScrapeUrlResult {
+	if (r.kind === 'ok') {
+		return {
+			kind: 'ok',
+			result: r.result,
+			fromProvider: r.fromProvider,
+			attempts: r.attempts,
+			cached: r.cached,
+		}
+	}
+	return { kind: 'error', reason: r.reason, attempts: r.attempts }
+}
