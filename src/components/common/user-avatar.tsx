@@ -1,3 +1,4 @@
+import { avatarColorClass } from '@/lib/avatar-color'
 import { cn } from '@/lib/utils'
 
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
@@ -26,7 +27,7 @@ export default function UserAvatar({ name, image, className, size = 'medium' }: 
 	return (
 		<Avatar className={cn('', parentVariants[size], className)}>
 			<AvatarImage src={image || undefined} alt={''} />
-			<AvatarFallback className={cn('font-bold bg-background text-foreground leading-none', fallbackVariants[size])}>
+			<AvatarFallback className={cn('font-bold text-white leading-none', avatarColorClass(name), fallbackVariants[size])}>
 				{initials}
 			</AvatarFallback>
 		</Avatar>
