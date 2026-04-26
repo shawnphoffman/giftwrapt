@@ -45,6 +45,7 @@ export function CreateUserForm() {
 			role: 'user' as (typeof roleEnumValues)[number],
 			birthMonth: undefined as (typeof birthMonthEnumValues)[number] | undefined,
 			birthDay: undefined as number | undefined,
+			birthYear: undefined as number | undefined,
 			guardianIds: [] as Array<string>,
 			partnerId: undefined as string | undefined,
 		},
@@ -92,6 +93,7 @@ export function CreateUserForm() {
 					role: data.role,
 					...(data.birthMonth && { birthMonth: data.birthMonth }),
 					...(data.birthDay !== undefined && { birthDay: data.birthDay }),
+					...(data.birthYear !== undefined && { birthYear: data.birthYear }),
 					...(data.partnerId && { partnerId: data.partnerId }),
 				},
 			})
@@ -250,32 +252,35 @@ export function CreateUserForm() {
 					)}
 				</form.Field>
 
-				<form.Field name="role">
+				<form.Field name="birthYear">
 					{field => (
 						<div className="grid gap-2 w-full">
-							<Label htmlFor={field.name}>
-								Role
+							<Label htmlFor={field.name} className="flex items-center gap-1.5">
+								Birth Year
 								<InputTooltip>
-									<span className="font-semibold underline">Child</span> users are allowed to make their own lists but they cannot
-									participate in purchasing or view other users' lists.
+									Optional. Used only to tailor recommendations and the user's experience &mdash; never to display their age.
 								</InputTooltip>
 							</Label>
-							<Select
-								onValueChange={value => field.handleChange(value as (typeof roleEnumValues)[number])}
-								value={field.state.value}
+							<Input
+								id={field.name}
+								type="number"
+								inputMode="numeric"
+								min={1900}
+								max={new Date().getFullYear()}
+								placeholder="YYYY"
+								value={field.state.value ?? ''}
+								onChange={e => {
+									const raw = e.target.value
+									if (raw === '') {
+										field.handleChange(undefined)
+										return
+									}
+									const parsed = Number.parseInt(raw, 10)
+									field.handleChange(Number.isNaN(parsed) ? undefined : parsed)
+								}}
+								onBlur={field.handleBlur}
 								disabled={isLoading}
-							>
-								<SelectTrigger id={field.name} className="w-full">
-									<SelectValue placeholder="Select role" />
-								</SelectTrigger>
-								<SelectContent>
-									{roleEnumValues.map(role => (
-										<SelectItem key={role} value={role}>
-											{role.charAt(0).toUpperCase() + role.slice(1)}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
+							/>
 							{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 								<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
 							)}
@@ -283,6 +288,39 @@ export function CreateUserForm() {
 					)}
 				</form.Field>
 			</div>
+
+			<form.Field name="role">
+				{field => (
+					<div className="grid gap-2 w-full">
+						<Label htmlFor={field.name}>
+							Role
+							<InputTooltip>
+								<span className="font-semibold underline">Child</span> users are allowed to make their own lists but they cannot participate
+								in purchasing or view other users' lists.
+							</InputTooltip>
+						</Label>
+						<Select
+							onValueChange={value => field.handleChange(value as (typeof roleEnumValues)[number])}
+							value={field.state.value}
+							disabled={isLoading}
+						>
+							<SelectTrigger id={field.name} className="w-full">
+								<SelectValue placeholder="Select role" />
+							</SelectTrigger>
+							<SelectContent>
+								{roleEnumValues.map(role => (
+									<SelectItem key={role} value={role}>
+										{role.charAt(0).toUpperCase() + role.slice(1)}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+							<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
+						)}
+					</div>
+				)}
+			</form.Field>
 
 			<form.Subscribe selector={state => state.values.role}>
 				{role =>

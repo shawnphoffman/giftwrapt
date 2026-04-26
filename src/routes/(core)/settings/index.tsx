@@ -30,6 +30,7 @@ function SettingsPage() {
 						name={session.user.name || ''}
 						birthMonth={session.user.birthMonth}
 						birthDay={session.user.birthDay}
+						birthYear={session.user.birthYear}
 						partnerId={session.user.partnerId}
 					/>
 				</div>

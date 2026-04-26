@@ -91,6 +91,11 @@ const options = {
 				required: false,
 				input: true,
 			},
+			birthYear: {
+				type: 'number',
+				required: false,
+				input: true,
+			},
 			image: {
 				type: 'string',
 				required: false,
@@ -147,6 +152,11 @@ export const auth = betterAuth({
 				input: true,
 			},
 			birthDay: {
+				type: 'number',
+				required: false,
+				input: true,
+			},
+			birthYear: {
 				type: 'number',
 				required: false,
 				input: true,

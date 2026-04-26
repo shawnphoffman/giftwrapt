@@ -135,6 +135,7 @@ function EditUserFormInner({
 			role: user.role,
 			birthMonth: user.birthMonth ?? undefined,
 			birthDay: user.birthDay ?? undefined,
+			birthYear: user.birthYear ?? undefined,
 			guardianIds: existingGuardianIds,
 			partnerId: user.partnerId ?? undefined,
 			image: user.image ?? undefined,
@@ -182,6 +183,7 @@ function EditUserFormInner({
 					role: data.role,
 					birthMonth: data.birthMonth ?? null,
 					birthDay: data.birthDay ?? null,
+					birthYear: data.birthYear ?? null,
 					image: data.image === '' ? null : data.image || null,
 					partnerId: normalizedPartnerId,
 				},
@@ -362,7 +364,7 @@ function EditUserFormInner({
 				)}
 			</form.Field>
 
-			<div className="grid grid-cols-2 gap-4">
+			<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 				<form.Field name="birthMonth">
 					{field => (
 						<div className="grid gap-2 w-full">
@@ -407,6 +409,42 @@ function EditUserFormInner({
 									/>
 								)}
 							</form.Subscribe>
+							{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+								<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
+							)}
+						</div>
+					)}
+				</form.Field>
+
+				<form.Field name="birthYear">
+					{field => (
+						<div className="grid gap-2 w-full">
+							<Label htmlFor={field.name} className="flex items-center gap-1.5">
+								Birth Year
+								<InputTooltip>
+									Optional. Used only to tailor recommendations and the user's experience &mdash; never to display their age.
+								</InputTooltip>
+							</Label>
+							<Input
+								id={field.name}
+								type="number"
+								inputMode="numeric"
+								min={1900}
+								max={new Date().getFullYear()}
+								placeholder="YYYY"
+								value={field.state.value ?? ''}
+								onChange={e => {
+									const raw = e.target.value
+									if (raw === '') {
+										field.handleChange(undefined)
+										return
+									}
+									const parsed = Number.parseInt(raw, 10)
+									field.handleChange(Number.isNaN(parsed) ? undefined : parsed)
+								}}
+								onBlur={field.handleBlur}
+								disabled={isLoading}
+							/>
 							{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 								<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
 							)}

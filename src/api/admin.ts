@@ -124,6 +124,7 @@ export const updateUserAsAdmin = createServerFn({
 			role?: string
 			birthMonth?: BirthMonth | null
 			birthDay?: number | null
+			birthYear?: number | null
 			image?: string | null
 			partnerId?: string | null
 		}) => data
@@ -138,6 +139,7 @@ export const updateUserAsAdmin = createServerFn({
 			role?: Role
 			birthMonth?: BirthMonth | null
 			birthDay?: number | null
+			birthYear?: number | null
 			image?: string | null
 			partnerId?: string | null
 		} = {}
@@ -151,6 +153,7 @@ export const updateUserAsAdmin = createServerFn({
 		}
 		if (updateData.birthMonth !== undefined) updateFields.birthMonth = updateData.birthMonth
 		if (updateData.birthDay !== undefined) updateFields.birthDay = updateData.birthDay
+		if (updateData.birthYear !== undefined) updateFields.birthYear = updateData.birthYear
 		if (updateData.image !== undefined) updateFields.image = updateData.image
 		if (updateData.partnerId !== undefined) updateFields.partnerId = updateData.partnerId
 

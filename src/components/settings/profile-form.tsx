@@ -7,6 +7,7 @@ import type { z } from 'zod'
 import { type AffectedList, applyPartnerEditorChanges, getPartnerEditorAffectedLists } from '@/api/list-editors'
 import { getPotentialPartners, updateUserProfile } from '@/api/user'
 import { BirthDaySelect } from '@/components/common/birth-day-select'
+import InputTooltip from '@/components/common/input-tooltip'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
 	AlertDialog,
@@ -48,6 +49,7 @@ type ProfileFormProps = {
 	name: string
 	birthMonth?: string | null
 	birthDay?: number | null
+	birthYear?: number | null
 	partnerId?: string | null
 }
 
@@ -62,7 +64,7 @@ type EditorChangePrompt = {
 	removeSelections: Record<number, boolean>
 }
 
-export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: ProfileFormProps) {
+export default function ProfileForm({ name, birthMonth, birthDay, birthYear, partnerId }: ProfileFormProps) {
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [success, setSuccess] = useState(false)
@@ -90,11 +92,12 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 			name: name || '',
 			birthMonth: birthMonth ?? undefined,
 			birthDay: birthDay ?? undefined,
+			birthYear: birthYear ?? undefined,
 			partnerId: partnerId ?? undefined,
 		},
 		onSubmit: async ({ value }) => {
 			// Validate with Zod before submitting (only the fields we're using)
-			const result = UserSchema.pick({ name: true, birthMonth: true, birthDay: true, partnerId: true }).safeParse(value)
+			const result = UserSchema.pick({ name: true, birthMonth: true, birthDay: true, birthYear: true, partnerId: true }).safeParse(value)
 			if (!result.success) {
 				setError(result.error.issues.map((e: { message: string }) => e.message).join(', '))
 				return
@@ -129,6 +132,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 				name: string
 				birthMonth?: string | null
 				birthDay?: number | null
+				birthYear?: number | null
 				partnerId?: string | null
 			} = {
 				name: data.name,
@@ -140,6 +144,9 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 			}
 			if (data.birthDay !== undefined) {
 				updateData.birthDay = data.birthDay
+			}
+			if (data.birthYear !== undefined) {
+				updateData.birthYear = data.birthYear
 			}
 			await updateUserProfile({
 				data: updateData,
@@ -254,7 +261,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 				)}
 			</form.Field>
 
-			<div className="grid grid-cols-1 gap-4 @md/subpage:grid-cols-2">
+			<div className="grid grid-cols-1 gap-4 @md/subpage:grid-cols-3">
 				<form.Field name="birthMonth">
 					{field => (
 						<Field className="gap-1">
@@ -299,6 +306,42 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 									/>
 								)}
 							</form.Subscribe>
+							{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+								<FieldError className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</FieldError>
+							)}
+						</Field>
+					)}
+				</form.Field>
+
+				<form.Field name="birthYear">
+					{field => (
+						<Field className="gap-1">
+							<FieldLabel htmlFor={field.name} className="flex items-center gap-1.5">
+								Birth Year
+								<InputTooltip>
+									Optional. Used only to tailor recommendations and your experience &mdash; never to display your age to anyone.
+								</InputTooltip>
+							</FieldLabel>
+							<Input
+								id={field.name}
+								type="number"
+								inputMode="numeric"
+								min={1900}
+								max={new Date().getFullYear()}
+								placeholder="YYYY"
+								value={field.state.value ?? ''}
+								onChange={e => {
+									const raw = e.target.value
+									if (raw === '') {
+										field.handleChange(undefined)
+										return
+									}
+									const parsed = Number.parseInt(raw, 10)
+									field.handleChange(Number.isNaN(parsed) ? undefined : parsed)
+								}}
+								onBlur={field.handleBlur}
+								disabled={isLoading}
+							/>
 							{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 								<FieldError className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</FieldError>
 							)}

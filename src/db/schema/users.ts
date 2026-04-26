@@ -24,6 +24,7 @@ export const users = pgTable(
 		//
 		birthMonth: birthMonthEnum('birth_month'),
 		birthDay: smallint('birth_day'),
+		birthYear: smallint('birth_year'),
 		image: text('image'),
 		partnerId: text('partner_id'),
 		...timestamps,
@@ -47,6 +48,16 @@ export const UserSchema = z.object({
 				.int('Birth day must be a whole number')
 				.min(1, 'Birth day must be between 1 and 31')
 				.max(31, 'Birth day must be between 1 and 31'),
+			z.null(),
+		])
+		.optional(),
+	birthYear: z
+		.union([
+			z
+				.number()
+				.int('Birth year must be a whole number')
+				.min(1900, 'Birth year must be between 1900 and the current year')
+				.max(new Date().getFullYear(), 'Birth year must be between 1900 and the current year'),
 			z.null(),
 		])
 		.optional(),

@@ -38,7 +38,15 @@ export const updateUserProfile = createServerFn({
 	method: 'POST',
 })
 	.middleware([authMiddleware, loggingMiddleware])
-	.inputValidator((data: { name: string; birthMonth?: string | null; birthDay?: number | null; partnerId?: string | null }) => data)
+	.inputValidator(
+		(data: {
+			name: string
+			birthMonth?: string | null
+			birthDay?: number | null
+			birthYear?: number | null
+			partnerId?: string | null
+		}) => data
+	)
 	.handler(async ({ context, data }) => {
 		const userId = context.session.user.id
 		const currentPartnerId = context.session.user.partnerId || null
@@ -48,6 +56,7 @@ export const updateUserProfile = createServerFn({
 			name?: string
 			birthMonth?: BirthMonth | null
 			birthDay?: number | null
+			birthYear?: number | null
 			partnerId?: string | null
 		} = {}
 
@@ -57,6 +66,9 @@ export const updateUserProfile = createServerFn({
 		}
 		if (data.birthDay !== undefined) {
 			updateData.birthDay = data.birthDay ?? null
+		}
+		if (data.birthYear !== undefined) {
+			updateData.birthYear = data.birthYear ?? null
 		}
 
 		// Handle partner changes
@@ -99,6 +111,7 @@ export const updateUserProfile = createServerFn({
 				name: data.name,
 				...(data.birthDay !== undefined && { birthDay: data.birthDay ?? null }),
 				...(data.birthMonth !== undefined && { birthMonth: data.birthMonth || null }),
+				...(data.birthYear !== undefined && { birthYear: data.birthYear ?? null }),
 				...(newPartnerId !== undefined && { partnerId: newPartnerId }),
 			},
 			headers: getRequestHeaders(),
