@@ -11,8 +11,9 @@
 		{
 			"name": "Storybook",
 			"runtimeExecutable": "sh",
-			"runtimeArgs": ["-c", "STORYBOOK=true pnpm exec storybook dev --no-open --ci -p 6020"],
-			"port": 6020
+			"runtimeArgs": ["-c", "STORYBOOK=true pnpm exec storybook dev --no-open --ci -p $PORT"],
+			"port": 6020,
+			"autoPort": true
 		}
 	]
 }

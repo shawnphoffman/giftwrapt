@@ -61,7 +61,7 @@ export function ClaimAction({
 	if (myClaim) {
 		return (
 			<>
-				<Button size="sm" variant="outline" className="h-7" onClick={() => setEditOpen(true)} title="Edit your claim">
+				<Button size="sm" variant="outline" className="h-7 text-foreground" onClick={() => setEditOpen(true)} title="Edit your claim">
 					<Pencil className="size-3.5" />
 					Edit claim
 				</Button>

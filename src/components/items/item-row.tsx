@@ -63,6 +63,9 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 	const fullyClaimedByOthers = fullyClaimed && !myClaim
 	const groupLockedForViewer = !!lockReason && !myClaim
 	const isLocked = fullyClaimedByOthers || groupLockedForViewer
+	// Visual "done" state. Includes the case where the viewer holds one of
+	// the claims, which isLocked excludes so URL links etc. stay active.
+	const dimmed = fullyClaimed || groupLockedForViewer
 
 	const domain = item.url ? getDomainFromUrl(item.url) : null
 	const hasPriorityTab = !grouped && item.priority !== 'normal'
@@ -149,9 +152,9 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 	)
 
 	return grouped ? (
-		<div className={cn('flex items-start gap-2 p-2 ps-4 border-b last:border-b-0', isLocked && 'opacity-60')}>{rowInner}</div>
+		<div className={cn('flex items-start gap-2 p-2 ps-4 border-b last:border-b-0', dimmed && 'text-muted-foreground')}>{rowInner}</div>
 	) : (
-		<div className={cn('relative', isLocked && 'opacity-60')}>
+		<div className={cn('relative', dimmed && 'text-muted-foreground')}>
 			{hasPriorityTab && (
 				<div
 					className={cn(
