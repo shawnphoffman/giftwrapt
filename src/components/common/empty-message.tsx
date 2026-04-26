@@ -3,5 +3,5 @@ type Props = {
 }
 
 export default function EmptyMessage({ message }: Props) {
-	return <div className="px-2 py-1 text-sm italic border border-dashed rounded text-muted-foreground bg-background/25">{message}</div>
+	return <div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30">{message}</div>
 }

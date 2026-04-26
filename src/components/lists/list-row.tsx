@@ -98,11 +98,7 @@ function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: { 
 		<>
 			<ListRowShell archived={!list.isActive}>
 				<ListTypeIcon type={list.type} className="size-6 shrink-0" />
-				<Link
-					to="/lists/$listId/edit"
-					params={{ listId: String(list.id) }}
-					className="flex-1 font-medium leading-tight truncate hover:underline"
-				>
+				<Link to="/lists/$listId/edit" params={{ listId: String(list.id) }} className="flex-1 font-medium leading-tight truncate">
 					{list.name}
 				</Link>
 				{showOwner && <span className="text-xs text-muted-foreground truncate max-w-32">{showOwner.name || showOwner.email}</span>}
