@@ -99,6 +99,9 @@ export const uploadItemImage = (): Promise<{ kind: 'ok'; value: { url: string } 
 export const removeItemImage = ok
 export const uploadAvatar = (): Promise<{ kind: 'ok'; value: { url: string } }> => Promise.resolve({ kind: 'ok', value: { url: '' } })
 export const removeAvatar = ok
+export const uploadAvatarAsAdmin = (): Promise<{ kind: 'ok'; value: { url: string } }> =>
+	Promise.resolve({ kind: 'ok', value: { url: '' } })
+export const removeAvatarAsAdmin = ok
 
 // @/api/storage-status
 export const fetchStorageStatus = (): Promise<{ configured: boolean }> => Promise.resolve({ configured: true })
