@@ -5,11 +5,11 @@ import { QuantityRemainingBadge } from './quantity-remaining-badge'
 /**
  * Consolidated quantity + remaining indicator for the gifter view.
  *
- * Hides itself entirely when an item has `quantity: 1` (the Claim /
- * Fully claimed controls already communicate that state). For
- * multi-quantity items it always shows the desired count, and when
- * claims exist it surfaces how many slots remain (or that the item
- * is fully covered).
+ * For multi-quantity items it always shows the desired count, and when
+ * claims exist it surfaces how many slots remain (or that the item is
+ * fully covered). For single-quantity items it renders nothing while
+ * unclaimed and a "Claimed" pill once a claim is made (green when the
+ * current viewer is the claimer).
  */
 const meta = {
 	title: 'Items/Components/QuantityRemainingBadge',
@@ -20,48 +20,21 @@ const meta = {
 			control: 'inline-radio',
 			options: ['split', 'inline', 'inline-pill', 'dots'],
 		},
+		youClaimed: { control: 'boolean' },
 	},
 } satisfies Meta<typeof QuantityRemainingBadge>
 
 export default meta
 type Story = StoryObj<typeof meta>
 
-// ---------- State matrix (default `split` variant) ----------
-
-export const SingleUnclaimed: Story = {
-	args: { quantity: 1, remaining: 1 },
-	parameters: { docs: { description: { story: 'qty=1 and unclaimed. Renders nothing.' } } },
-}
-
-export const SingleClaimed: Story = {
-	args: { quantity: 1, remaining: 0 },
-	parameters: { docs: { description: { story: 'qty=1 and claimed. Renders nothing.' } } },
-}
-
-export const MultiUnclaimed: Story = {
-	args: { quantity: 4, remaining: 4 },
-	parameters: { docs: { description: { story: 'qty=4 with no claims yet. Shows just the desired count.' } } },
-}
-
-export const MultiPartialOneLeft: Story = {
-	args: { quantity: 3, remaining: 1 },
-}
-
-export const MultiPartialSeveralLeft: Story = {
-	args: { quantity: 6, remaining: 4 },
-}
-
-export const MultiFullyClaimed: Story = {
-	args: { quantity: 3, remaining: 0 },
-}
-
-// ---------- Variant comparison ----------
+// ---------- Gallery (variant comparison) ----------
 
 const VARIANTS = ['split', 'inline', 'inline-pill', 'dots'] as const
 
-const STATES: Array<{ label: string; quantity: number; remaining: number }> = [
+const STATES: Array<{ label: string; quantity: number; remaining: number; youClaimed?: boolean }> = [
 	{ label: 'qty 1, unclaimed', quantity: 1, remaining: 1 },
 	{ label: 'qty 1, claimed', quantity: 1, remaining: 0 },
+	{ label: 'qty 1, claimed (you)', quantity: 1, remaining: 0, youClaimed: true },
 	{ label: 'qty 3, none claimed', quantity: 3, remaining: 3 },
 	{ label: 'qty 3, 1 claimed', quantity: 3, remaining: 2 },
 	{ label: 'qty 3, 2 claimed', quantity: 3, remaining: 1 },
@@ -71,9 +44,12 @@ const STATES: Array<{ label: string; quantity: number; remaining: number }> = [
 	{ label: 'qty 12, 7 claimed', quantity: 12, remaining: 5 },
 	{ label: 'qty 20, 8 claimed', quantity: 20, remaining: 12 },
 	{ label: 'qty 3, fully claimed', quantity: 3, remaining: 0 },
+	{ label: 'qty 3, 1 claimed (you)', quantity: 3, remaining: 2, youClaimed: true },
+	{ label: 'qty 3, 2 claimed (you)', quantity: 3, remaining: 1, youClaimed: true },
+	{ label: 'qty 3, fully claimed (you)', quantity: 3, remaining: 0, youClaimed: true },
 ]
 
-export const VariantComparison: Story = {
+export const Gallery: Story = {
 	args: { quantity: 4, remaining: 2 },
 	render: () => (
 		<table className="border-collapse text-sm">
@@ -93,7 +69,7 @@ export const VariantComparison: Story = {
 						<td className="font-mono text-xs text-muted-foreground px-3 py-3 border-b align-middle whitespace-nowrap">{state.label}</td>
 						{VARIANTS.map(v => (
 							<td key={v} className="px-4 py-3 border-b align-middle">
-								<QuantityRemainingBadge variant={v} quantity={state.quantity} remaining={state.remaining} />
+								<QuantityRemainingBadge variant={v} quantity={state.quantity} remaining={state.remaining} youClaimed={state.youClaimed} />
 							</td>
 						))}
 					</tr>
@@ -104,14 +80,68 @@ export const VariantComparison: Story = {
 	parameters: {
 		docs: {
 			description: {
-				story: 'All visual variants across the full state matrix. Pick the treatment that reads best and discard the others.',
+				story:
+					'All visual variants across the full state matrix, including "you claimed this" rows that render in the green/success treatment. Pick the treatment that reads best and discard the others.',
 			},
 		},
 	},
 }
 
+// ---------- State matrix (default `split` variant) ----------
+
+export const SingleUnclaimed: Story = {
+	args: { quantity: 1, remaining: 1 },
+	parameters: { docs: { description: { story: 'qty=1 and unclaimed. Renders nothing.' } } },
+}
+
+export const SingleClaimed: Story = {
+	args: { quantity: 1, remaining: 0 },
+	parameters: { docs: { description: { story: 'qty=1 and claimed by someone else. Renders a muted "Claimed" pill.' } } },
+}
+
+export const SingleClaimedByYou: Story = {
+	args: { quantity: 1, remaining: 0, youClaimed: true },
+	parameters: {
+		docs: { description: { story: 'qty=1 and claimed by the current viewer. Renders "Claimed" in the green/success treatment.' } },
+	},
+}
+
+export const MultiUnclaimed: Story = {
+	args: { quantity: 4, remaining: 4 },
+	parameters: { docs: { description: { story: 'qty=4 with no claims yet. Shows just the desired count.' } } },
+}
+
+export const MultiPartialOneLeft: Story = {
+	args: { quantity: 3, remaining: 1 },
+}
+
+export const MultiPartialSeveralLeft: Story = {
+	args: { quantity: 6, remaining: 4 },
+}
+
+export const MultiFullyClaimed: Story = {
+	args: { quantity: 3, remaining: 0 },
+}
+
+export const YouClaimedPartial: Story = {
+	args: { quantity: 3, remaining: 2, youClaimed: true },
+	parameters: {
+		docs: {
+			description: {
+				story:
+					'You claimed 1 of 3 but the item is not fully covered yet. Visually identical to the non-you partial state - claimer presence is communicated by ClaimUsers, not the badge.',
+			},
+		},
+	},
+}
+
+export const YouClaimedFully: Story = {
+	args: { quantity: 3, remaining: 0, youClaimed: true },
+	parameters: { docs: { description: { story: 'Fully claimed and you are among the claimers. Stays green instead of muting.' } } },
+}
+
 // ---------- Playground (knobs-driven) ----------
 
 export const Playground: Story = {
-	args: { quantity: 5, remaining: 3, variant: 'split' },
+	args: { quantity: 5, remaining: 3, variant: 'split', youClaimed: false },
 }
