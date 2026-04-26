@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+	<head>
+		<title>HTML Title (lowest priority) | Acme</title>
+		<meta name="description" content="HTML meta description (lowest priority)." />
+		<meta property="og:title" content="OG Title (highest priority)" />
+		<meta property="og:image" content="https://cdn.example.test/og.jpg" />
+		<script type="application/ld+json">
+			{
+				"@context": "https://schema.org",
+				"@type": "Product",
+				"name": "JSON-LD Title (second priority)",
+				"description": "JSON-LD description.",
+				"image": "https://cdn.example.test/json-ld.jpg",
+				"offers": {
+					"@type": "Offer",
+					"price": "12.34",
+					"priceCurrency": "EUR"
+				}
+			}
+		</script>
+	</head>
+	<body>
+		<div itemscope itemtype="https://schema.org/Product">
+			<span itemprop="name">Microdata Title (third priority)</span>
+			<img itemprop="image" src="https://cdn.example.test/microdata.jpg" />
+		</div>
+		<img src="https://cdn.example.test/heuristic.jpg" width="800" height="600" />
+	</body>
+</html>
