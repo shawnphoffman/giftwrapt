@@ -2,7 +2,7 @@
 
 HoffStuff stores user avatars and item photos in an S3-compatible bucket. The app never cares which backend you use: any service that speaks the S3 API works. Pick a recipe below, fill in the `STORAGE_*` env vars, and restart the app.
 
-Jump to: [Architecture](#architecture) · [Local dev](#recipe-1-local-dev) · [Self-host](#recipe-2-self-host) · [Vercel + R2](#recipe-3-vercel--cloudflare-r2) · [Vercel + AWS S3](#recipe-4-vercel--aws-s3) · [Env vars](#env-var-reference) · [Troubleshooting](#troubleshooting)
+Jump to: [Architecture](#architecture) · [Local dev](#recipe-1-local-dev) · [Self-host](#recipe-2-self-host) · [Vercel + R2](#recipe-3-vercel--cloudflare-r2) · [Vercel + AWS S3](#recipe-4-vercel--aws-s3) · [Vercel + Supabase](#recipe-5-vercel--supabase-storage) · [Env vars](#env-var-reference) · [Troubleshooting](#troubleshooting)
 
 ## Architecture
 
@@ -155,24 +155,48 @@ STORAGE_PUBLIC_URL=https://d123.cloudfront.net
 
 Put CloudFront in front of the bucket and set `STORAGE_PUBLIC_URL` to the distribution domain. Without CloudFront the bucket needs public-read ACLs or presigned URLs; neither is recommended.
 
+## Recipe 5: Vercel + Supabase Storage
+
+A natural fit if you already run Postgres on Supabase: the same project exposes an S3-compatible gateway, so storage and DB share one dashboard and one bill.
+
+1. **Supabase dashboard → Storage → New bucket.** Mark it public if you want direct-URL serving; leave it private to proxy through `/api/files/*`.
+2. **Storage → S3 Connection.** Note the endpoint URL and region shown there.
+3. **Storage → S3 Access Keys → New access key.** Copy the access key ID and secret (the secret is shown once).
+4. In Vercel project settings → Environment Variables, add:
+
+```env
+STORAGE_ENDPOINT=https://<project-ref>.supabase.co/storage/v1/s3
+STORAGE_REGION=<region from S3 Connection panel>
+STORAGE_BUCKET=your-bucket-name
+STORAGE_ACCESS_KEY_ID=<Supabase S3 access key id>
+STORAGE_SECRET_ACCESS_KEY=<Supabase S3 secret>
+STORAGE_FORCE_PATH_STYLE=true
+STORAGE_PUBLIC_URL=https://<project-ref>.supabase.co/storage/v1/object/public/<bucket>
+```
+
+- Use the **S3 access keys** from Storage settings, not the project anon or service-role JWTs. Those are different credentials and won't authenticate against the S3 endpoint.
+- Supabase requires `STORAGE_FORCE_PATH_STYLE=true`; it does not support virtual-hosted-style bucket addressing.
+- For private buckets, omit `STORAGE_PUBLIC_URL` and let the `/api/files/*` proxy serve images. Same Vercel-function cost caveat as Recipe 3: every thumbnail becomes a function invocation.
+- For a custom CDN domain, point a Supabase custom domain (or any reverse proxy) at the public-object path and set `STORAGE_PUBLIC_URL` to that hostname.
+
 ## Env var reference
 
 All server-side; no `VITE_*` equivalents. Validated at boot; missing any required value aborts the server with a helpful message.
 
-| Var                         | Required                                           | Purpose                                                                                                                                                                           |
-| --------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `STORAGE_ENDPOINT`          | yes                                                | S3 API URL. Garage: `http://garage:3900` (compose) or `http://localhost:3900` (host). R2: `https://<account>.r2.cloudflarestorage.com`. AWS: `https://s3.<region>.amazonaws.com`. |
-| `STORAGE_REGION`            | yes                                                | Any non-empty string for Garage (`garage`). `auto` for R2. AWS region name (`us-east-1`).                                                                                         |
-| `STORAGE_BUCKET`            | yes                                                | Bucket name.                                                                                                                                                                      |
-| `STORAGE_ACCESS_KEY_ID`     | yes                                                | S3 access key. Garage requires `GK` + 24 hex chars.                                                                                                                               |
-| `STORAGE_SECRET_ACCESS_KEY` | yes                                                | S3 secret key. Garage requires 64 hex chars.                                                                                                                                      |
-| `STORAGE_FORCE_PATH_STYLE`  | yes                                                | `true` for Garage/MinIO. `false` for AWS/R2.                                                                                                                                      |
-| `STORAGE_PUBLIC_URL`        | no                                                 | CDN base URL handed to clients. Unset = the app serves via `/api/files/*`.                                                                                                        |
-| `STORAGE_MAX_UPLOAD_MB`     | no                                                 | Max upload size before Sharp runs (default 8).                                                                                                                                    |
-| `INIT_GARAGE`               | no                                                 | `"true"` triggers the built-in Garage bootstrap during the app's entrypoint. Default is off; the self-host compose file sets it to true. Ignored for external S3 deploys.         |
-| `GARAGE_ADMIN_URL`          | if `INIT_GARAGE=true` or using `pnpm storage:init` | Where the bootstrap reaches Garage's admin API. Defaults to `http://wish-lists-storage:3903` (self-host service name). For local dev, `http://localhost:3903`.                    |
-| `GARAGE_ADMIN_TOKEN`        | if bootstrap is used                               | Bearer token for Garage's admin API. 64 hex chars (`openssl rand -hex 32`).                                                                                                       |
-| `GARAGE_RPC_SECRET`         | if running the bundled Garage daemon               | Garage internal RPC auth. 64 hex chars. Unused by the app itself; only read by the Garage container.                                                                              |
+| Var                         | Required                                           | Purpose                                                                                                                                                                                                                                        |
+| --------------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `STORAGE_ENDPOINT`          | yes                                                | S3 API URL. Garage: `http://garage:3900` (compose) or `http://localhost:3900` (host). R2: `https://<account>.r2.cloudflarestorage.com`. AWS: `https://s3.<region>.amazonaws.com`. Supabase: `https://<project-ref>.supabase.co/storage/v1/s3`. |
+| `STORAGE_REGION`            | yes                                                | Any non-empty string for Garage (`garage`). `auto` for R2. AWS region name (`us-east-1`). Supabase: region shown in the S3 Connection panel.                                                                                                   |
+| `STORAGE_BUCKET`            | yes                                                | Bucket name.                                                                                                                                                                                                                                   |
+| `STORAGE_ACCESS_KEY_ID`     | yes                                                | S3 access key. Garage requires `GK` + 24 hex chars.                                                                                                                                                                                            |
+| `STORAGE_SECRET_ACCESS_KEY` | yes                                                | S3 secret key. Garage requires 64 hex chars.                                                                                                                                                                                                   |
+| `STORAGE_FORCE_PATH_STYLE`  | yes                                                | `true` for Garage/MinIO/Supabase. `false` for AWS/R2.                                                                                                                                                                                          |
+| `STORAGE_PUBLIC_URL`        | no                                                 | CDN base URL handed to clients. Unset = the app serves via `/api/files/*`.                                                                                                                                                                     |
+| `STORAGE_MAX_UPLOAD_MB`     | no                                                 | Max upload size before Sharp runs (default 8).                                                                                                                                                                                                 |
+| `INIT_GARAGE`               | no                                                 | `"true"` triggers the built-in Garage bootstrap during the app's entrypoint. Default is off; the self-host compose file sets it to true. Ignored for external S3 deploys.                                                                      |
+| `GARAGE_ADMIN_URL`          | if `INIT_GARAGE=true` or using `pnpm storage:init` | Where the bootstrap reaches Garage's admin API. Defaults to `http://wish-lists-storage:3903` (self-host service name). For local dev, `http://localhost:3903`.                                                                                 |
+| `GARAGE_ADMIN_TOKEN`        | if bootstrap is used                               | Bearer token for Garage's admin API. 64 hex chars (`openssl rand -hex 32`).                                                                                                                                                                    |
+| `GARAGE_RPC_SECRET`         | if running the bundled Garage daemon               | Garage internal RPC auth. 64 hex chars. Unused by the app itself; only read by the Garage container.                                                                                                                                           |
 
 ## Troubleshooting
 
