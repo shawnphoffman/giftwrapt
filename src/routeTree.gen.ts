@@ -23,6 +23,7 @@ import { Route as corePurchasesIndexRouteImport } from './routes/(core)/purchase
 import { Route as coreMeIndexRouteImport } from './routes/(core)/me.index'
 import { Route as coreAdminIndexRouteImport } from './routes/(core)/admin/index'
 import { Route as ApiSseListsRouteImport } from './routes/api/sse/lists'
+import { Route as ApiScrapeStreamRouteImport } from './routes/api/scrape/stream'
 import { Route as ApiListsPublicRouteImport } from './routes/api/lists/public'
 import { Route as ApiFilesSplatRouteImport } from './routes/api/files/$'
 import { Route as ApiCronBirthdayEmailsRouteImport } from './routes/api/cron/birthday-emails'
@@ -113,6 +114,11 @@ const coreAdminIndexRoute = coreAdminIndexRouteImport.update({
 const ApiSseListsRoute = ApiSseListsRouteImport.update({
   id: '/api/sse/lists',
   path: '/api/sse/lists',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiScrapeStreamRoute = ApiScrapeStreamRouteImport.update({
+  id: '/api/scrape/stream',
+  path: '/api/scrape/stream',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiListsPublicRoute = ApiListsPublicRouteImport.update({
@@ -252,6 +258,7 @@ export interface FileRoutesByFullPath {
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
   '/api/files/$': typeof ApiFilesSplatRoute
   '/api/lists/public': typeof ApiListsPublicRoute
+  '/api/scrape/stream': typeof ApiScrapeStreamRoute
   '/api/sse/lists': typeof ApiSseListsRoute
   '/admin/': typeof coreAdminIndexRoute
   '/me': typeof coreMeIndexRoute
@@ -287,6 +294,7 @@ export interface FileRoutesByTo {
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
   '/api/files/$': typeof ApiFilesSplatRoute
   '/api/lists/public': typeof ApiListsPublicRoute
+  '/api/scrape/stream': typeof ApiScrapeStreamRoute
   '/api/sse/lists': typeof ApiSseListsRoute
   '/admin': typeof coreAdminIndexRoute
   '/me': typeof coreMeIndexRoute
@@ -326,6 +334,7 @@ export interface FileRoutesById {
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
   '/api/files/$': typeof ApiFilesSplatRoute
   '/api/lists/public': typeof ApiListsPublicRoute
+  '/api/scrape/stream': typeof ApiScrapeStreamRoute
   '/api/sse/lists': typeof ApiSseListsRoute
   '/(core)/admin/': typeof coreAdminIndexRoute
   '/(core)/me/': typeof coreMeIndexRoute
@@ -365,6 +374,7 @@ export interface FileRouteTypes {
     | '/api/cron/birthday-emails'
     | '/api/files/$'
     | '/api/lists/public'
+    | '/api/scrape/stream'
     | '/api/sse/lists'
     | '/admin/'
     | '/me'
@@ -400,6 +410,7 @@ export interface FileRouteTypes {
     | '/api/cron/birthday-emails'
     | '/api/files/$'
     | '/api/lists/public'
+    | '/api/scrape/stream'
     | '/api/sse/lists'
     | '/admin'
     | '/me'
@@ -438,6 +449,7 @@ export interface FileRouteTypes {
     | '/api/cron/birthday-emails'
     | '/api/files/$'
     | '/api/lists/public'
+    | '/api/scrape/stream'
     | '/api/sse/lists'
     | '/(core)/admin/'
     | '/(core)/me/'
@@ -461,6 +473,7 @@ export interface RootRouteChildren {
   ApiCronBirthdayEmailsRoute: typeof ApiCronBirthdayEmailsRoute
   ApiFilesSplatRoute: typeof ApiFilesSplatRoute
   ApiListsPublicRoute: typeof ApiListsPublicRoute
+  ApiScrapeStreamRoute: typeof ApiScrapeStreamRoute
   ApiSseListsRoute: typeof ApiSseListsRoute
   ApiSseListListIdRoute: typeof ApiSseListListIdRoute
 }
@@ -563,6 +576,13 @@ declare module '@tanstack/react-router' {
       path: '/api/sse/lists'
       fullPath: '/api/sse/lists'
       preLoaderRoute: typeof ApiSseListsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/scrape/stream': {
+      id: '/api/scrape/stream'
+      path: '/api/scrape/stream'
+      fullPath: '/api/scrape/stream'
+      preLoaderRoute: typeof ApiScrapeStreamRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/lists/public': {
@@ -810,6 +830,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCronBirthdayEmailsRoute: ApiCronBirthdayEmailsRoute,
   ApiFilesSplatRoute: ApiFilesSplatRoute,
   ApiListsPublicRoute: ApiListsPublicRoute,
+  ApiScrapeStreamRoute: ApiScrapeStreamRoute,
   ApiSseListsRoute: ApiSseListsRoute,
   ApiSseListListIdRoute: ApiSseListListIdRoute,
 }

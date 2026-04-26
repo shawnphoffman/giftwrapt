@@ -141,6 +141,10 @@ export type OrchestrateOptions = {
 	force?: boolean
 	providerOverride?: Array<string>
 	acceptLanguage?: string
+	// External abort signal (e.g. the SSE route hands over `request.signal`).
+	// When this fires the overall budget aborts immediately and the
+	// orchestrator returns with `reason: 'timeout'`.
+	signal?: AbortSignal
 }
 
 export type OrchestrateResult =

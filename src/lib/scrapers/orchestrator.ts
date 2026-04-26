@@ -69,6 +69,14 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 
 	const overallController = new AbortController()
 	const overallTimer = setTimeout(() => overallController.abort(new Error('overall timeout')), overallTimeoutMs)
+	if (options.signal) {
+		const external = options.signal
+		if (external.aborted) {
+			overallController.abort(external.reason)
+		} else {
+			external.addEventListener('abort', () => overallController.abort(external.reason), { once: true })
+		}
+	}
 
 	const attempts: Array<ScrapeAttempt> = []
 	type Winner = { result: ScrapeResult; fromProvider: string; score: number }
