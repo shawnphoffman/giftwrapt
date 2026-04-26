@@ -51,11 +51,13 @@ function PermissionsPage() {
 	const { data: users, isLoading: isLoadingUsers } = useQuery({
 		queryKey: ['permissions', 'users'],
 		queryFn: () => getUsersWithRelationships(),
+		staleTime: 10 * 60 * 1000,
 	})
 
 	const { data: owners, isLoading: isLoadingOwners } = useQuery({
 		queryKey: ['permissions', 'owners'],
 		queryFn: () => getOwnersWithRelationshipsForMe(),
+		staleTime: 10 * 60 * 1000,
 	})
 
 	const initialRows = useMemo<Array<PermissionRow> | null>(() => {

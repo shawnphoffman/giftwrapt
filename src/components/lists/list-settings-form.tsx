@@ -1,5 +1,5 @@
 import { useForm } from '@tanstack/react-form'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -34,6 +34,7 @@ type Props = {
 
 export function ListSettingsForm({ listId, name, type, isPrivate, description, giftIdeasTargetUserId, editorUserIds, isOwner }: Props) {
 	const router = useRouter()
+	const queryClient = useQueryClient()
 	const { data: session } = useSession()
 	const partnerId = isOwner ? (session?.user.partnerId ?? null) : null
 	const [submitting, setSubmitting] = useState(false)
@@ -47,6 +48,7 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description, g
 		queryKey: ['potential-partners'],
 		queryFn: () => getPotentialPartners(),
 		enabled: isGiftIdeas || (!!partnerId && !partnerAlreadyEditor),
+		staleTime: 10 * 60 * 1000,
 	})
 
 	const partner = partnerId ? users?.find(u => u.id === partnerId) : undefined
@@ -99,6 +101,7 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description, g
 				}
 
 				toast.success('List settings saved')
+				await queryClient.invalidateQueries({ queryKey: ['my-lists'] })
 				await router.invalidate()
 			} catch (err) {
 				setError(err instanceof Error ? err.message : 'Failed to save settings')

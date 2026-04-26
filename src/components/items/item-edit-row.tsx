@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import {
 	ArrowDown,
@@ -71,6 +72,7 @@ type Props = {
 
 export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], grouped = false, onMoveUp, onMoveDown }: Props) {
 	const router = useRouter()
+	const queryClient = useQueryClient()
 	const { data: session } = useSession()
 	const isAdmin = session?.user.isAdmin
 	const [editOpen, setEditOpen] = useState(false)
@@ -93,6 +95,7 @@ export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], 
 		const result = await deleteItem({ data: { itemId: item.id } })
 		if (result.kind === 'ok') {
 			toast.success('Item deleted')
+			queryClient.invalidateQueries({ queryKey: ['recent', 'items'] })
 			await router.invalidate()
 		} else {
 			toast.error('Failed to delete item')

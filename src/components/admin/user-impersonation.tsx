@@ -26,6 +26,7 @@ export function UserImpersonation() {
 		queryFn: async () => {
 			return await getUsersAsAdmin()
 		},
+		staleTime: 10 * 60 * 1000,
 	})
 
 	// Filter out the current user since you can't impersonate yourself

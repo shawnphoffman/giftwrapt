@@ -18,11 +18,42 @@ import {
 } from '@/components/lists/lists-card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export const Route = createFileRoute('/(core)/me/')({
-	loader: () => getMyLists(),
+	loader: ({ context }) =>
+		context.queryClient.ensureQueryData({
+			queryKey: ['my-lists'],
+			queryFn: () => getMyLists(),
+			staleTime: 60 * 1000,
+		}),
 	component: MyListsPage,
+	pendingComponent: MyListsPagePending,
 })
+
+function MyListsPagePending() {
+	return (
+		<div className="wish-page">
+			<div className="flex flex-col flex-1 gap-6">
+				<div className="relative flex flex-row flex-wrap justify-between gap-2">
+					<h1>My Lists</h1>
+					<ListOrdered className="text-red-500 wish-page-icon" />
+				</div>
+				{Array.from({ length: 3 }).map((_section, sectionIdx) => (
+					<div key={sectionIdx} className="flex flex-col gap-2">
+						<Skeleton className="h-5 w-48" />
+						<Skeleton className="h-4 w-2/3 max-w-md" />
+						<div className="flex flex-col gap-2 mt-1">
+							{Array.from({ length: 2 }).map((_row, rowIdx) => (
+								<Skeleton key={rowIdx} className="h-12 w-full" />
+							))}
+						</div>
+					</div>
+				))}
+			</div>
+		</div>
+	)
+}
 
 function MyListsPage() {
 	const data = Route.useLoaderData()

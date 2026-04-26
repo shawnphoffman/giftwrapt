@@ -1,4 +1,5 @@
 import { Slot } from '@radix-ui/react-slot'
+import { useQueryClient } from '@tanstack/react-query'
 import { Link, useRouter } from '@tanstack/react-router'
 import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Star, StarOff, Trash2 } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
@@ -53,15 +54,21 @@ export function ListRow(props: Props) {
 
 function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: { name: string | null; email: string } }) {
 	const router = useRouter()
+	const queryClient = useQueryClient()
 	const { data: session } = useSession()
 	const isAdmin = session?.user.isAdmin
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+
+	const refreshLists = async () => {
+		await queryClient.invalidateQueries({ queryKey: ['my-lists'] })
+		await router.invalidate()
+	}
 
 	const handleArchive = async () => {
 		const result = await updateList({ data: { listId: list.id, isActive: false } })
 		if (result.kind === 'ok') {
 			toast.success(`"${list.name}" archived`)
-			await router.invalidate()
+			await refreshLists()
 		}
 	}
 
@@ -69,7 +76,7 @@ function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: { 
 		const result = await updateList({ data: { listId: list.id, isActive: true } })
 		if (result.kind === 'ok') {
 			toast.success(`"${list.name}" restored`)
-			await router.invalidate()
+			await refreshLists()
 		}
 	}
 
@@ -81,7 +88,7 @@ function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: { 
 			} else {
 				toast.success(`"${list.name}" deleted`)
 			}
-			await router.invalidate()
+			await refreshLists()
 		}
 		setDeleteDialogOpen(false)
 	}
@@ -90,7 +97,7 @@ function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: { 
 		const result = await setPrimaryList({ data: { listId: list.id, isPrimary: !list.isPrimary } })
 		if (result.kind === 'ok') {
 			toast.success(list.isPrimary ? 'Primary list unset' : `"${list.name}" set as primary`)
-			await router.invalidate()
+			await refreshLists()
 		}
 	}
 

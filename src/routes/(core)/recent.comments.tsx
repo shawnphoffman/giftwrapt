@@ -6,7 +6,12 @@ import UserAvatar from '@/components/common/user-avatar'
 import { Button } from '@/components/ui/button'
 
 export const Route = createFileRoute('/(core)/recent/comments')({
-	loader: () => getRecentComments(),
+	loader: ({ context }) =>
+		context.queryClient.ensureQueryData({
+			queryKey: ['recent', 'comments'],
+			queryFn: () => getRecentComments(),
+			staleTime: 30 * 1000,
+		}),
 	component: RecentCommentsPage,
 })
 

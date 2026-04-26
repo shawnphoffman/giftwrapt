@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
 import { Pencil, Trash2 } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
@@ -33,6 +33,7 @@ function isSubmitShortcut(e: KeyboardEvent) {
 
 export default function ItemCommentsPanel({ itemId, onCountChange }: Props) {
 	const session = useSession()
+	const queryClient = useQueryClient()
 	const currentUserId = session.data?.user.id
 	const prefersReducedMotion = useReducedMotion()
 	const duration = prefersReducedMotion ? 0 : 0.18
@@ -57,6 +58,7 @@ export default function ItemCommentsPanel({ itemId, onCountChange }: Props) {
 			if (result.kind === 'ok') {
 				setNewComment('')
 				await refetch()
+				queryClient.invalidateQueries({ queryKey: ['recent', 'comments'] })
 				toast.success('Comment added')
 			}
 		} catch {

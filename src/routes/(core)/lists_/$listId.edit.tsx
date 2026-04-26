@@ -15,6 +15,7 @@ import { MoveItemDialog } from '@/components/items/move-item-dialog'
 import { ListSettingsSheet } from '@/components/lists/list-settings-sheet'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { GroupType } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { buildListEntries } from '@/lib/list-entries'
@@ -36,7 +37,33 @@ export const Route = createFileRoute('/(core)/lists_/$listId/edit')({
 		return { list: listResult.list, editors, addableUsers }
 	},
 	component: ListEditPage,
+	pendingComponent: ListEditPagePending,
 })
+
+function ListEditPagePending() {
+	return (
+		<div className="wish-page">
+			<div className="flex flex-col flex-1 gap-6">
+				<div className="relative flex items-center gap-3">
+					<Skeleton className="h-7 w-2/3 max-w-sm flex-1" />
+					<Skeleton className="size-8 rounded" />
+					<Skeleton className="size-8 rounded" />
+				</div>
+				<div className="flex flex-col gap-2">
+					<div className="flex items-center justify-end gap-2">
+						<Skeleton className="h-8 w-24" />
+						<Skeleton className="h-8 w-24" />
+					</div>
+					<div className="flex flex-col gap-2 pl-6">
+						{Array.from({ length: 4 }).map((_, i) => (
+							<Skeleton key={i} className="h-12 w-full" />
+						))}
+					</div>
+				</div>
+			</div>
+		</div>
+	)
+}
 
 function ListEditPage() {
 	const { list, editors, addableUsers } = Route.useLoaderData()

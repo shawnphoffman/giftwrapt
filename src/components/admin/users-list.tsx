@@ -18,6 +18,7 @@ export function AdminUsersList() {
 		queryFn: async () => {
 			return await getUsersAsAdmin()
 		},
+		staleTime: 10 * 60 * 1000,
 	})
 
 	if (isLoading) {

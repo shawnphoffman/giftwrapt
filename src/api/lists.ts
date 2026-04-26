@@ -123,33 +123,57 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 		// priority may come from its group. Date sorting stays at the DB level.
 		const orderBy = sortBy === 'priority' ? [asc(items.id)] : sortOrder === 'asc' ? [asc(items.createdAt)] : [desc(items.createdAt)]
 
-		// Fetch items + their gifts in one round-trip. Visibility is already
-		// established above, so every claim on these items is OK to show to
-		// this viewer. Gifts have no archive concept (claims are hard-deleted
-		// on retraction), so no filter is needed on the gifts side.
-		const listItems = await db.query.items.findMany({
-			where: and(eq(items.listId, list.id), eq(items.isArchived, false)),
-			orderBy,
-			with: {
-				gifts: {
-					columns: {
-						id: true,
-						itemId: true,
-						gifterId: true,
-						quantity: true,
-						notes: true,
-						totalCost: true,
-						additionalGifterIds: true,
-						createdAt: true,
-					},
-					with: {
-						gifter: {
-							columns: { id: true, name: true, email: true, image: true },
+		// Fetch items, addons, and groups in parallel. Items pull their gifts in
+		// the same round-trip. Visibility is established above, so claims/gifts
+		// on these items are OK to expose; addons follow the same rule.
+		const [listItems, addons, viewGroups] = await Promise.all([
+			db.query.items.findMany({
+				where: and(eq(items.listId, list.id), eq(items.isArchived, false)),
+				orderBy,
+				with: {
+					gifts: {
+						columns: {
+							id: true,
+							itemId: true,
+							gifterId: true,
+							quantity: true,
+							notes: true,
+							totalCost: true,
+							additionalGifterIds: true,
+							createdAt: true,
+						},
+						with: {
+							gifter: {
+								columns: { id: true, name: true, email: true, image: true },
+							},
 						},
 					},
 				},
-			},
-		})
+			}),
+			db.query.listAddons.findMany({
+				where: eq(listAddons.listId, list.id),
+				columns: {
+					id: true,
+					listId: true,
+					userId: true,
+					description: true,
+					totalCost: true,
+					notes: true,
+					isArchived: true,
+					createdAt: true,
+				},
+				with: {
+					user: {
+						columns: { id: true, name: true, email: true, image: true },
+					},
+				},
+				orderBy: [desc(listAddons.createdAt)],
+			}),
+			db.query.itemGroups.findMany({
+				where: eq(itemGroups.listId, list.id),
+				columns: { id: true, type: true, name: true, priority: true, sortOrder: true },
+			}),
+		])
 
 		const commentCountRows = listItems.length
 			? await db
@@ -164,35 +188,6 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 					.groupBy(itemComments.itemId)
 			: []
 		const commentCountByItem = new Map(commentCountRows.map(r => [r.itemId, Number(r.count)]))
-
-		// Fetch addons (off-list gifts) for this list. Non-archived addons are
-		// active; archived ones mean "gift was given" and surface on the
-		// recipient's received-gifts page. We fetch both here so the UI can
-		// differentiate, but the list-detail section only shows non-archived.
-		const addons = await db.query.listAddons.findMany({
-			where: eq(listAddons.listId, list.id),
-			columns: {
-				id: true,
-				listId: true,
-				userId: true,
-				description: true,
-				totalCost: true,
-				notes: true,
-				isArchived: true,
-				createdAt: true,
-			},
-			with: {
-				user: {
-					columns: { id: true, name: true, email: true, image: true },
-				},
-			},
-			orderBy: [desc(listAddons.createdAt)],
-		})
-
-		const viewGroups = await db.query.itemGroups.findMany({
-			where: eq(itemGroups.listId, list.id),
-			columns: { id: true, type: true, name: true, priority: true, sortOrder: true },
-		})
 
 		// Priority-sort after fetch so items in a group inherit the group's
 		// priority (single source of truth; item.priority is ignored while
@@ -266,64 +261,11 @@ export const getMyLists = createServerFn({ method: 'GET' })
 	.handler(async ({ context }): Promise<MyListsResult> => {
 		const userId = context.session.user.id
 
-		// Fetch all owned active lists with item counts in one query.
-		const ownedLists = await db
-			.select({
-				id: lists.id,
-				name: lists.name,
-				type: lists.type,
-				isActive: lists.isActive,
-				isPrivate: lists.isPrivate,
-				isPrimary: lists.isPrimary,
-				description: lists.description,
-				giftIdeasTargetUserId: lists.giftIdeasTargetUserId,
-				itemCount: count(items.id),
-			})
-			.from(lists)
-			.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false)))
-			.where(and(eq(lists.ownerId, userId), eq(lists.isActive, true)))
-			.groupBy(lists.id)
-			.orderBy(desc(lists.isPrimary), asc(lists.name))
-
-		// Fetch lists where user is an editor (via listEditors table).
-		const editableRows = await db
-			.select({
-				id: lists.id,
-				name: lists.name,
-				type: lists.type,
-				isActive: lists.isActive,
-				isPrivate: lists.isPrivate,
-				isPrimary: lists.isPrimary,
-				description: lists.description,
-				giftIdeasTargetUserId: lists.giftIdeasTargetUserId,
-				ownerName: sql<string | null>`owner.name`,
-				ownerEmail: sql<string>`owner.email`,
-				itemCount: count(items.id),
-			})
-			.from(listEditors)
-			.innerJoin(lists, and(eq(lists.id, listEditors.listId), eq(lists.isActive, true)))
-			.innerJoin(sql`users as owner`, sql`owner.id = ${lists.ownerId}`)
-			.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false)))
-			.where(eq(listEditors.userId, userId))
-			.groupBy(lists.id, sql`owner.name`, sql`owner.email`)
-			.orderBy(asc(lists.name))
-
-		// Fetch children's lists (guardianship).
-		const childRows = await db
-			.select({
-				childId: users.id,
-				childName: users.name,
-				childEmail: users.email,
-				childImage: users.image,
-			})
-			.from(guardianships)
-			.innerJoin(users, eq(users.id, guardianships.childUserId))
-			.where(eq(guardianships.parentUserId, userId))
-			.orderBy(asc(users.name))
-
-		const childListGroups: Array<ChildListGroup> = []
-		for (const child of childRows) {
-			const childLists = await db
+		// Fetch owned lists, editor-shared lists, and guardianship rows in parallel.
+		// Children's actual lists need the child IDs from the guardianship rows, so
+		// they fan out in a second stage below.
+		const [ownedLists, editableRows, childRows] = await Promise.all([
+			db
 				.select({
 					id: lists.id,
 					name: lists.name,
@@ -337,18 +279,91 @@ export const getMyLists = createServerFn({ method: 'GET' })
 				})
 				.from(lists)
 				.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false)))
-				.where(and(eq(lists.ownerId, child.childId), eq(lists.isActive, true)))
+				.where(and(eq(lists.ownerId, userId), eq(lists.isActive, true)))
 				.groupBy(lists.id)
-				.orderBy(asc(lists.name))
+				.orderBy(desc(lists.isPrimary), asc(lists.name)),
 
-			childListGroups.push({
-				childId: child.childId,
-				childName: child.childName,
-				childEmail: child.childEmail,
-				childImage: child.childImage,
-				lists: childLists,
+			db
+				.select({
+					id: lists.id,
+					name: lists.name,
+					type: lists.type,
+					isActive: lists.isActive,
+					isPrivate: lists.isPrivate,
+					isPrimary: lists.isPrimary,
+					description: lists.description,
+					giftIdeasTargetUserId: lists.giftIdeasTargetUserId,
+					ownerName: sql<string | null>`owner.name`,
+					ownerEmail: sql<string>`owner.email`,
+					itemCount: count(items.id),
+				})
+				.from(listEditors)
+				.innerJoin(lists, and(eq(lists.id, listEditors.listId), eq(lists.isActive, true)))
+				.innerJoin(sql`users as owner`, sql`owner.id = ${lists.ownerId}`)
+				.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false)))
+				.where(eq(listEditors.userId, userId))
+				.groupBy(lists.id, sql`owner.name`, sql`owner.email`)
+				.orderBy(asc(lists.name)),
+
+			db
+				.select({
+					childId: users.id,
+					childName: users.name,
+					childEmail: users.email,
+					childImage: users.image,
+				})
+				.from(guardianships)
+				.innerJoin(users, eq(users.id, guardianships.childUserId))
+				.where(eq(guardianships.parentUserId, userId))
+				.orderBy(asc(users.name)),
+		])
+
+		// Fetch every child's lists in a single query, then group by ownerId so each
+		// guardianship row gets its own bucket. Avoids one query per child.
+		const childIds = childRows.map(c => c.childId)
+		const allChildLists = childIds.length
+			? await db
+					.select({
+						ownerId: lists.ownerId,
+						id: lists.id,
+						name: lists.name,
+						type: lists.type,
+						isActive: lists.isActive,
+						isPrivate: lists.isPrivate,
+						isPrimary: lists.isPrimary,
+						description: lists.description,
+						giftIdeasTargetUserId: lists.giftIdeasTargetUserId,
+						itemCount: count(items.id),
+					})
+					.from(lists)
+					.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false)))
+					.where(and(inArray(lists.ownerId, childIds), eq(lists.isActive, true)))
+					.groupBy(lists.id)
+					.orderBy(asc(lists.name))
+			: []
+		const listsByChildId = new Map<string, Array<MyListRow>>()
+		for (const row of allChildLists) {
+			const bucket = listsByChildId.get(row.ownerId) ?? []
+			bucket.push({
+				id: row.id,
+				name: row.name,
+				type: row.type,
+				isActive: row.isActive,
+				isPrivate: row.isPrivate,
+				isPrimary: row.isPrimary,
+				description: row.description,
+				giftIdeasTargetUserId: row.giftIdeasTargetUserId,
+				itemCount: row.itemCount,
 			})
+			listsByChildId.set(row.ownerId, bucket)
 		}
+		const childListGroups: Array<ChildListGroup> = childRows.map(child => ({
+			childId: child.childId,
+			childName: child.childName,
+			childEmail: child.childEmail,
+			childImage: child.childImage,
+			lists: listsByChildId.get(child.childId) ?? [],
+		}))
 
 		return {
 			public: ownedLists.filter(l => !l.isPrivate && l.type !== 'giftideas'),

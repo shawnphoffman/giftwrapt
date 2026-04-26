@@ -9,7 +9,12 @@ import type { Priority } from '@/db/schema/enums'
 import { getDomainFromUrl } from '@/lib/urls'
 
 export const Route = createFileRoute('/(core)/recent/items')({
-	loader: () => getRecentItems(),
+	loader: ({ context }) =>
+		context.queryClient.ensureQueryData({
+			queryKey: ['recent', 'items'],
+			queryFn: () => getRecentItems(),
+			staleTime: 30 * 1000,
+		}),
 	component: RecentItemsPage,
 })
 

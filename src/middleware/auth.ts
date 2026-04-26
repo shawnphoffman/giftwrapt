@@ -33,16 +33,28 @@ function clearAuthCookies(): void {
 // /sign-in, sign-in's useSession reads the cached cookie, redirects back to /.
 // Clear the cookies on the way to /sign-in so the client-side session state
 // actually flips to signed-out.
+//
+// Cached per warm serverless instance for 10 minutes to match better-auth's
+// cookieCache.refreshCache.updateAge window. Cold starts revalidate naturally.
+const LIVE_USER_TTL_MS = 10 * 60 * 1000
+const liveUserCache = new Map<string, number>()
+
 async function requireLiveUser(userId: string): Promise<void> {
+	const now = Date.now()
+	const cached = liveUserCache.get(userId)
+	if (cached && cached > now) return
+
 	const row = await db.query.users.findFirst({
 		where: eq(users.id, userId),
 		columns: { id: true },
 	})
 	if (!row) {
+		liveUserCache.delete(userId)
 		mwLog.warn({ userId }, 'session user no longer exists, clearing cookies')
 		clearAuthCookies()
 		throw redirect({ to: '/sign-in' })
 	}
+	liveUserCache.set(userId, now + LIVE_USER_TTL_MS)
 }
 
 export const authMiddleware = createMiddleware().server(async ({ next, request }) => {

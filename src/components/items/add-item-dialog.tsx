@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { Lock, Star } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -50,6 +50,7 @@ function ListSelectItem({ list, owner }: { list: ListOption; owner?: { name: str
 
 export function AddItemDialog({ open, onOpenChange }: Props) {
 	const router = useRouter()
+	const queryClient = useQueryClient()
 	const [url, setUrl] = useState('')
 	const [title, setTitle] = useState('')
 	const [notes, setNotes] = useState('')
@@ -125,6 +126,7 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 
 			toast.success('Item added')
 			onOpenChange(false)
+			queryClient.invalidateQueries({ queryKey: ['recent', 'items'] })
 			await router.invalidate()
 			router.navigate({ to: '/lists/$listId/edit', params: { listId: selectedListId } })
 		} catch (err) {

@@ -1,4 +1,5 @@
 import { useForm } from '@tanstack/react-form'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { Loader2, Trash2, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
@@ -50,6 +51,7 @@ export function ItemFormDialog(props: Props) {
 	const { open, onOpenChange } = props
 	const isEdit = props.mode === 'edit'
 	const router = useRouter()
+	const queryClient = useQueryClient()
 	const [submitting, setSubmitting] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [uploadingImage, setUploadingImage] = useState(false)
@@ -129,6 +131,9 @@ export function ItemFormDialog(props: Props) {
 
 				onOpenChange(false)
 				form.reset()
+				if (!isEdit) {
+					queryClient.invalidateQueries({ queryKey: ['recent', 'items'] })
+				}
 				await router.invalidate()
 			} catch (err) {
 				setError(err instanceof Error ? err.message : 'Failed to save item')

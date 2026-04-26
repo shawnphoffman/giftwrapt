@@ -82,6 +82,7 @@ export function ClaimGiftDialog(props: Props) {
 		queryKey: ['potential-partners'],
 		queryFn: () => getPotentialPartners(),
 		enabled: open && isEdit,
+		staleTime: 10 * 60 * 1000,
 	})
 
 	async function handleUnclaim() {

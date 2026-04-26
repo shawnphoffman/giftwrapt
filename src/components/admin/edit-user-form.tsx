@@ -66,6 +66,7 @@ export function EditUserForm({ userId }: { userId: string }) {
 		queryFn: async () => {
 			return await getUsersAsAdmin()
 		},
+		staleTime: 10 * 60 * 1000,
 	})
 
 	// Filter out child users from guardian options (only users and admins can be guardians)

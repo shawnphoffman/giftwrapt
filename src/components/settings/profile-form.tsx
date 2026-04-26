@@ -82,6 +82,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, partnerId }: P
 		queryFn: async () => {
 			return await getPotentialPartners()
 		},
+		staleTime: 10 * 60 * 1000,
 	})
 
 	const form = useForm({

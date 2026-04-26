@@ -1,5 +1,5 @@
 import { useForm } from '@tanstack/react-form'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -36,6 +36,7 @@ const schema = z.object({
 
 export function CreateListDialog({ open, onOpenChange }: Props) {
 	const router = useRouter()
+	const queryClient = useQueryClient()
 	const { data: session } = useSession()
 	const isChild = session?.user.isChild ?? false
 	const partnerId = session?.user.partnerId ?? null
@@ -47,6 +48,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 		queryKey: ['potential-partners'],
 		queryFn: () => getPotentialPartners(),
 		enabled: open,
+		staleTime: 10 * 60 * 1000,
 	})
 
 	const partner = partnerId ? users?.find(u => u.id === partnerId) : undefined
@@ -96,6 +98,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 				toast.success(`List "${result.list.name}" created`)
 				onOpenChange(false)
 				form.reset()
+				await queryClient.invalidateQueries({ queryKey: ['my-lists'] })
 				await router.invalidate()
 				router.navigate({
 					to: '/lists/$listId/edit',

@@ -6,6 +6,7 @@ import { MarkdownNotes } from '@/components/common/markdown-notes'
 import UserAvatar from '@/components/common/user-avatar'
 import ItemList from '@/components/items/item-list'
 import { ListAddonsSection } from '@/components/list-addons/list-addons-section'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useListSSE } from '@/lib/use-list-sse'
 import { useScrollToHash } from '@/lib/use-scroll-to-hash'
 // import UserAvatarBadge from '@/components/common/user-avatar-badge'
@@ -14,6 +15,11 @@ import { useScrollToHash } from '@/lib/use-scroll-to-hash'
 
 export const Route = createFileRoute('/(core)/lists/$listId')({
 	loader: async ({ params, location }) => {
+		// Not SWR-cached: this page has heavy mutation surface (items, gifts,
+		// comments, addons) plus an SSE channel calling router.invalidate(),
+		// and ensureQueryData would short-circuit those refetches inside the
+		// staleTime window. The pending shell + parallelized fetches handle
+		// perceived speed here instead.
 		const result = await getListForViewing({ data: { listId: params.listId } })
 
 		if (!result) {
@@ -31,7 +37,31 @@ export const Route = createFileRoute('/(core)/lists/$listId')({
 		return result.list
 	},
 	component: ListDetailPage,
+	pendingComponent: ListDetailPagePending,
 })
+
+function ListDetailPagePending() {
+	return (
+		<div className="wish-page">
+			<div className="flex flex-col flex-1 gap-6">
+				<div className="relative flex items-center gap-3">
+					<div className="flex flex-col gap-0.5 min-w-0 flex-1">
+						<div className="flex items-center min-w-0 gap-2">
+							<Skeleton className="size-8 rounded-full shrink-0" />
+							<Skeleton className="h-7 w-2/3 max-w-sm" />
+						</div>
+					</div>
+					<Skeleton className="size-8 rounded" />
+				</div>
+				<div className="flex flex-col gap-2 pl-6">
+					{Array.from({ length: 4 }).map((_, i) => (
+						<Skeleton key={i} className="h-12 w-full" />
+					))}
+				</div>
+			</div>
+		</div>
+	)
+}
 
 function ListDetailPage() {
 	const list = Route.useLoaderData()
