@@ -1,10 +1,13 @@
 import { createServerFn } from '@tanstack/react-start'
+import { generateText } from 'ai'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
 import { appSettings } from '@/db/schema'
-import { AI_SETTING_KEYS, type AiSettingKey, envLockedFlags, type FieldSource, resolveAiConfig } from '@/lib/ai-config'
+import { createAiModel } from '@/lib/ai-client'
+import { AI_SETTING_KEYS, type AiSettingKey, envLockedFlags, resolveAiConfig } from '@/lib/ai-config'
+import { DEFAULT_MAX_OUTPUT_TOKENS, type FieldSource, PROVIDER_TYPES, type ProviderType } from '@/lib/ai-types'
 import { encryptAppSecret } from '@/lib/crypto/app-secret'
 import { createLogger } from '@/lib/logger'
 import { adminAuthMiddleware } from '@/middleware/auth'
@@ -12,10 +15,18 @@ import { adminAuthMiddleware } from '@/middleware/auth'
 const adminAiLog = createLogger('admin:ai')
 
 export type AiConfigResponse = {
+	providerType: { source: FieldSource; value?: ProviderType }
 	baseUrl: { source: FieldSource; value?: string }
 	apiKey: { source: FieldSource; preview?: string }
 	model: { source: FieldSource; value?: string }
-	envLocked: { baseUrl: boolean; apiKey: boolean; model: boolean }
+	maxOutputTokens: { source: FieldSource; value: number }
+	envLocked: {
+		providerType: boolean
+		baseUrl: boolean
+		apiKey: boolean
+		model: boolean
+		maxOutputTokens: boolean
+	}
 	isValid: boolean
 }
 
@@ -30,22 +41,31 @@ export const fetchAiConfigAsAdmin = createServerFn({ method: 'GET' })
 	.handler(async (): Promise<AiConfigResponse> => {
 		const cfg = await resolveAiConfig(db)
 		return {
+			providerType: { source: cfg.providerType.source, value: cfg.providerType.value },
 			baseUrl: { source: cfg.baseUrl.source, value: cfg.baseUrl.value },
 			apiKey: {
 				source: cfg.apiKey.source,
 				preview: cfg.apiKey.value ? apiKeyPreview(cfg.apiKey.value) : undefined,
 			},
 			model: { source: cfg.model.source, value: cfg.model.value },
+			maxOutputTokens: {
+				source: cfg.maxOutputTokens.source,
+				value: cfg.maxOutputTokens.value ?? DEFAULT_MAX_OUTPUT_TOKENS,
+			},
 			envLocked: envLockedFlags(),
 			isValid: cfg.isValid,
 		}
 	})
 
+const providerTypeSchema = z.enum(PROVIDER_TYPES as unknown as [ProviderType, ...Array<ProviderType>])
+
 const updateInputSchema = z
 	.object({
+		providerType: z.union([providerTypeSchema, z.null()]).optional(),
 		baseUrl: z.union([z.url(), z.null()]).optional(),
 		apiKey: z.union([z.string().min(1), z.null()]).optional(),
 		model: z.union([z.string().min(1), z.null()]).optional(),
+		maxOutputTokens: z.union([z.number().int().min(1).max(32_000), z.null()]).optional(),
 	})
 	.strict()
 
@@ -71,9 +91,11 @@ export const updateAiConfigAsAdmin = createServerFn({ method: 'POST' })
 		const locks = envLockedFlags()
 
 		const envRejections: Array<string> = []
+		if (data.providerType !== undefined && locks.providerType) envRejections.push('providerType')
 		if (data.baseUrl !== undefined && locks.baseUrl) envRejections.push('baseUrl')
 		if (data.apiKey !== undefined && locks.apiKey) envRejections.push('apiKey')
 		if (data.model !== undefined && locks.model) envRejections.push('model')
+		if (data.maxOutputTokens !== undefined && locks.maxOutputTokens) envRejections.push('maxOutputTokens')
 		if (envRejections.length > 0) {
 			return {
 				ok: false,
@@ -81,6 +103,10 @@ export const updateAiConfigAsAdmin = createServerFn({ method: 'POST' })
 			}
 		}
 
+		if (data.providerType !== undefined) {
+			if (data.providerType === null) await deleteSetting(AI_SETTING_KEYS.providerType)
+			else await upsertSetting(AI_SETTING_KEYS.providerType, data.providerType)
+		}
 		if (data.baseUrl !== undefined) {
 			if (data.baseUrl === null) await deleteSetting(AI_SETTING_KEYS.baseUrl)
 			else await upsertSetting(AI_SETTING_KEYS.baseUrl, data.baseUrl)
@@ -96,6 +122,10 @@ export const updateAiConfigAsAdmin = createServerFn({ method: 'POST' })
 			if (data.model === null) await deleteSetting(AI_SETTING_KEYS.model)
 			else await upsertSetting(AI_SETTING_KEYS.model, data.model)
 		}
+		if (data.maxOutputTokens !== undefined) {
+			if (data.maxOutputTokens === null) await deleteSetting(AI_SETTING_KEYS.maxOutputTokens)
+			else await upsertSetting(AI_SETTING_KEYS.maxOutputTokens, data.maxOutputTokens)
+		}
 
 		adminAiLog.info({ changedKeys: Object.keys(data) }, 'ai config updated')
 		return { ok: true }
@@ -105,69 +135,45 @@ const testInputSchema = z
 	.object({
 		// Optional draft overrides. Any field not provided falls back to the
 		// currently-saved value (env or db).
+		providerType: providerTypeSchema.optional(),
 		baseUrl: z.url().optional(),
 		apiKey: z.string().min(1).optional(),
 		model: z.string().min(1).optional(),
+		maxOutputTokens: z.number().int().min(1).max(32_000).optional(),
 	})
 	.strict()
 
 export type TestAiConnectionResult = { ok: true; latencyMs: number } | { ok: false; error: string }
-
-function joinUrl(base: string, path: string): string {
-	return `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`
-}
 
 export const testAiConnectionAsAdmin = createServerFn({ method: 'POST' })
 	.middleware([adminAuthMiddleware])
 	.inputValidator((data: z.infer<typeof testInputSchema>) => testInputSchema.parse(data))
 	.handler(async ({ data }): Promise<TestAiConnectionResult> => {
 		const cfg = await resolveAiConfig(db)
+		const providerType = data.providerType ?? cfg.providerType.value
 		const baseUrl = data.baseUrl ?? cfg.baseUrl.value
 		const apiKey = data.apiKey ?? cfg.apiKey.value
 		const model = data.model ?? cfg.model.value
+		const maxOutputTokens = data.maxOutputTokens ?? cfg.maxOutputTokens.value ?? DEFAULT_MAX_OUTPUT_TOKENS
 
-		if (!baseUrl) return { ok: false, error: 'Base URL is required.' }
+		if (!providerType) return { ok: false, error: 'Provider type is required.' }
 		if (!apiKey) return { ok: false, error: 'API key is required.' }
 		if (!model) return { ok: false, error: 'Model is required.' }
+		if (providerType === 'openai-compatible' && !baseUrl) {
+			return { ok: false, error: 'Base URL is required for OpenAI-compatible providers.' }
+		}
 
-		// Tiny chat-completions call: validates baseUrl, apiKey, and model in
-		// one round-trip. max_tokens=1 keeps cost negligible.
-		const url = joinUrl(baseUrl, 'chat/completions')
 		const started = Date.now()
-
 		try {
-			const res = await fetch(url, {
-				method: 'POST',
-				headers: {
-					Authorization: `Bearer ${apiKey}`,
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({
-					model,
-					messages: [{ role: 'user', content: 'ping' }],
-					max_tokens: 1,
-				}),
+			await generateText({
+				model: createAiModel({ providerType, apiKey, baseUrl, model }),
+				prompt: 'ping',
+				maxOutputTokens,
 			})
-
-			const latencyMs = Date.now() - started
-
-			if (res.ok) {
-				return { ok: true, latencyMs }
-			}
-
-			let detail = `${res.status} ${res.statusText}`.trim()
-			try {
-				const body = (await res.json()) as { error?: { message?: string } | string }
-				const msg = typeof body.error === 'string' ? body.error : body.error?.message
-				if (msg) detail = msg
-			} catch {
-				// Response wasn't JSON; fall back to status text.
-			}
-			adminAiLog.warn({ status: res.status, detail }, 'ai connection test failed')
-			return { ok: false, error: detail }
+			return { ok: true, latencyMs: Date.now() - started }
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : 'Failed to reach AI provider.'
-			adminAiLog.error({ err }, 'ai connection test threw')
+			adminAiLog.warn({ err }, 'ai connection test failed')
 			return { ok: false, error: msg }
 		}
 	})

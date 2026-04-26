@@ -9,13 +9,15 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { type AiConfigResponse, useAiConfig, useAiConfigMutation } from '@/hooks/use-ai-config'
+import { DEFAULT_MAX_OUTPUT_TOKENS, type ProviderType } from '@/lib/ai-types'
 
-// Known OpenAI-compatible providers. Adding a new one here surfaces it in
-// both the provider dropdown and (via models) the model dropdown.
+// Each entry maps a friendly name to a (providerType, baseUrl) pair plus a
+// curated model list. Adding an entry surfaces it in the provider dropdown.
 type Provider = {
 	id: string
 	name: string
-	baseUrl: string
+	providerType: ProviderType
+	baseUrl: string // empty string for openai/anthropic (SDK default)
 	models: ReadonlyArray<string>
 }
 
@@ -26,12 +28,21 @@ const PROVIDERS: ReadonlyArray<Provider> = [
 	{
 		id: 'openai',
 		name: 'OpenAI',
-		baseUrl: 'https://api.openai.com/v1',
-		models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1', 'gpt-4.1-mini', 'o3-mini'],
+		providerType: 'openai',
+		baseUrl: '',
+		models: ['gpt-5', 'gpt-5-mini', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4o', 'gpt-4o-mini', 'o4-mini', 'o3', 'o3-mini'],
+	},
+	{
+		id: 'anthropic',
+		name: 'Anthropic',
+		providerType: 'anthropic',
+		baseUrl: '',
+		models: ['claude-opus-4-7', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'],
 	},
 	{
 		id: 'openrouter',
 		name: 'OpenRouter',
+		providerType: 'openai-compatible',
 		baseUrl: 'https://openrouter.ai/api/v1',
 		models: [
 			'openai/gpt-4o-mini',
@@ -44,44 +55,53 @@ const PROVIDERS: ReadonlyArray<Provider> = [
 	{
 		id: 'groq',
 		name: 'Groq',
+		providerType: 'openai-compatible',
 		baseUrl: 'https://api.groq.com/openai/v1',
 		models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'],
 	},
 	{
 		id: 'together',
 		name: 'Together AI',
+		providerType: 'openai-compatible',
 		baseUrl: 'https://api.together.xyz/v1',
 		models: ['meta-llama/Llama-3.3-70B-Instruct-Turbo', 'Qwen/Qwen2.5-72B-Instruct-Turbo'],
 	},
 	{
 		id: 'mistral',
 		name: 'Mistral',
+		providerType: 'openai-compatible',
 		baseUrl: 'https://api.mistral.ai/v1',
 		models: ['mistral-large-latest', 'mistral-small-latest', 'codestral-latest'],
 	},
 	{
 		id: 'deepseek',
 		name: 'DeepSeek',
+		providerType: 'openai-compatible',
 		baseUrl: 'https://api.deepseek.com/v1',
 		models: ['deepseek-chat', 'deepseek-reasoner'],
 	},
 	{
 		id: 'ollama',
 		name: 'Ollama (localhost)',
+		providerType: 'openai-compatible',
 		baseUrl: 'http://localhost:11434/v1',
 		models: [],
 	},
 	{
 		id: 'lmstudio',
 		name: 'LM Studio (localhost)',
+		providerType: 'openai-compatible',
 		baseUrl: 'http://localhost:1234/v1',
 		models: [],
 	},
 ]
 
-function findProviderByBaseUrl(url: string | undefined | null): Provider | undefined {
-	if (!url) return undefined
-	return PROVIDERS.find(p => p.baseUrl === url)
+function findProviderMatch(providerType: ProviderType | undefined, baseUrl: string | undefined): Provider | undefined {
+	if (!providerType) return undefined
+	if (providerType === 'openai') return PROVIDERS.find(p => p.providerType === 'openai')
+	if (providerType === 'anthropic') return PROVIDERS.find(p => p.providerType === 'anthropic')
+	if (!baseUrl) return undefined
+	return PROVIDERS.find(p => p.providerType === 'openai-compatible' && p.baseUrl === baseUrl)
 }
 
 export function AiSettingsEditor() {
@@ -111,8 +131,8 @@ function Form({ config, saving, mutate }: FormProps) {
 	const [customModel, setCustomModel] = useState<string>(() => initialCustomModel(config))
 	const [apiKeyMode, setApiKeyMode] = useState<'display' | 'edit'>(config.apiKey.source === 'missing' ? 'edit' : 'display')
 	const [apiKeyDraft, setApiKeyDraft] = useState<string>('')
+	const [maxTokensDraft, setMaxTokensDraft] = useState<string>(() => String(config.maxOutputTokens.value))
 
-	// Reset draft on successful save (when underlying config changes).
 	useEffect(() => {
 		setProviderId(initialProviderId(config))
 		setCustomBaseUrl(initialCustomBaseUrl(config))
@@ -120,38 +140,45 @@ function Form({ config, saving, mutate }: FormProps) {
 		setCustomModel(initialCustomModel(config))
 		setApiKeyMode(config.apiKey.source === 'missing' ? 'edit' : 'display')
 		setApiKeyDraft('')
+		setMaxTokensDraft(String(config.maxOutputTokens.value))
 	}, [config])
 
 	const provider = PROVIDERS.find(p => p.id === providerId)
 	const isCustomProvider = providerId === CUSTOM_PROVIDER_ID
+	const effectiveProviderType: ProviderType = isCustomProvider ? 'openai-compatible' : (provider?.providerType ?? 'openai')
+	const showsBaseUrl = effectiveProviderType === 'openai-compatible'
 	const effectiveBaseUrl = isCustomProvider ? customBaseUrl.trim() : (provider?.baseUrl ?? '')
 
 	const modelOptions = useMemo<ReadonlyArray<string>>(() => provider?.models ?? [], [provider])
 	const isCustomModel = modelSelect === CUSTOM_MODEL_VALUE || modelOptions.length === 0
 	const effectiveModel = isCustomModel ? customModel.trim() : modelSelect
 
+	const maxTokensParsed = Number.parseInt(maxTokensDraft, 10)
+	const maxTokensValid = Number.isInteger(maxTokensParsed) && maxTokensParsed >= 1 && maxTokensParsed <= 32_000
+	const effectiveMaxTokens = maxTokensValid ? maxTokensParsed : config.maxOutputTokens.value
+
 	// Compute whether each field differs from saved.
-	const baseUrlDirty = effectiveBaseUrl !== (config.baseUrl.value ?? '')
+	const providerTypeDirty = effectiveProviderType !== (config.providerType.value ?? '')
+	const baseUrlDirty = showsBaseUrl ? effectiveBaseUrl !== (config.baseUrl.value ?? '') : config.baseUrl.value !== undefined // hop to non-baseUrl provider clears baseUrl
 	const modelDirty = effectiveModel !== (config.model.value ?? '')
 	const apiKeyDirty = apiKeyMode === 'edit' && apiKeyDraft.length > 0
-	const dirty = baseUrlDirty || modelDirty || apiKeyDirty
+	const maxTokensDirty = maxTokensValid && effectiveMaxTokens !== config.maxOutputTokens.value
+	const dirty = providerTypeDirty || baseUrlDirty || modelDirty || apiKeyDirty || maxTokensDirty
 
 	// Inputs are env-locked individually.
+	const providerTypeLocked = config.envLocked.providerType
 	const baseUrlLocked = config.envLocked.baseUrl
 	const apiKeyLocked = config.envLocked.apiKey
 	const modelLocked = config.envLocked.model
+	const maxTokensLocked = config.envLocked.maxOutputTokens
 
-	// We can test as long as all three values resolve to something non-empty,
-	// either through saved values or current drafts. The api key test value
-	// uses the draft when in edit mode; otherwise the server falls back to
-	// the saved (or env) value.
+	const baseUrlReady = showsBaseUrl ? effectiveBaseUrl.length > 0 : true
 	const apiKeyAvailable = apiKeyDraft.length > 0 || config.apiKey.source !== 'missing'
-	const canTest = effectiveBaseUrl.length > 0 && effectiveModel.length > 0 && apiKeyAvailable
+	const canTest = baseUrlReady && effectiveModel.length > 0 && apiKeyAvailable && maxTokensValid
 
 	const handleProviderChange = (id: string) => {
 		setProviderId(id)
-		// Reset model to a sensible default for the new provider.
-		const next = PROVIDERS.find(p => p.id === id)
+		const next = id === CUSTOM_PROVIDER_ID ? undefined : PROVIDERS.find(p => p.id === id)
 		const nextModels = next?.models ?? []
 		if (nextModels.length > 0) {
 			setModelSelect(nextModels[0])
@@ -162,10 +189,21 @@ function Form({ config, saving, mutate }: FormProps) {
 	}
 
 	const handleSave = async () => {
-		const patch: { baseUrl?: string; apiKey?: string; model?: string } = {}
-		if (baseUrlDirty && !baseUrlLocked) patch.baseUrl = effectiveBaseUrl
+		const patch: {
+			providerType?: ProviderType
+			baseUrl?: string | null
+			apiKey?: string
+			model?: string
+			maxOutputTokens?: number
+		} = {}
+		if (providerTypeDirty && !providerTypeLocked) patch.providerType = effectiveProviderType
+		if (baseUrlDirty && !baseUrlLocked) {
+			// Clear the saved base URL when switching to a provider that doesn't use one.
+			patch.baseUrl = showsBaseUrl ? effectiveBaseUrl : null
+		}
 		if (modelDirty && !modelLocked) patch.model = effectiveModel
 		if (apiKeyDirty && !apiKeyLocked) patch.apiKey = apiKeyDraft
+		if (maxTokensDirty && !maxTokensLocked) patch.maxOutputTokens = effectiveMaxTokens
 
 		if (Object.keys(patch).length === 0) return
 
@@ -178,10 +216,18 @@ function Form({ config, saving, mutate }: FormProps) {
 	}
 
 	const handleClearAll = async () => {
-		const patch: { baseUrl?: null; apiKey?: null; model?: null } = {}
+		const patch: {
+			providerType?: null
+			baseUrl?: null
+			apiKey?: null
+			model?: null
+			maxOutputTokens?: null
+		} = {}
+		if (config.providerType.source === 'db') patch.providerType = null
 		if (config.baseUrl.source === 'db') patch.baseUrl = null
 		if (config.apiKey.source === 'db') patch.apiKey = null
 		if (config.model.source === 'db') patch.model = null
+		if (config.maxOutputTokens.source === 'db') patch.maxOutputTokens = null
 
 		if (Object.keys(patch).length === 0) return
 
@@ -203,7 +249,12 @@ function Form({ config, saving, mutate }: FormProps) {
 		if (config.apiKey.source !== 'missing') setApiKeyMode('display')
 	}
 
-	const hasAnyDbValue = config.baseUrl.source === 'db' || config.apiKey.source === 'db' || config.model.source === 'db'
+	const hasAnyDbValue =
+		config.providerType.source === 'db' ||
+		config.baseUrl.source === 'db' ||
+		config.apiKey.source === 'db' ||
+		config.model.source === 'db' ||
+		config.maxOutputTokens.source === 'db'
 
 	return (
 		<div className="flex flex-col gap-8">
@@ -215,10 +266,10 @@ function Form({ config, saving, mutate }: FormProps) {
 							Provider
 						</Label>
 						<p className="text-sm text-muted-foreground">
-							Pick a known OpenAI-compatible provider, or choose Custom to point at any other endpoint.
+							Pick OpenAI, Anthropic, a known OpenAI-compatible provider, or Custom to point at any other endpoint.
 						</p>
 					</div>
-					<Select value={providerId} onValueChange={handleProviderChange} disabled={baseUrlLocked || saving}>
+					<Select value={providerId} onValueChange={handleProviderChange} disabled={providerTypeLocked || baseUrlLocked || saving}>
 						<SelectTrigger id="aiProvider" className="w-full">
 							<SelectValue />
 						</SelectTrigger>
@@ -231,12 +282,13 @@ function Form({ config, saving, mutate }: FormProps) {
 							<SelectItem value={CUSTOM_PROVIDER_ID}>Custom…</SelectItem>
 						</SelectContent>
 					</Select>
-					{!isCustomProvider && provider && <p className="text-xs text-muted-foreground font-mono">{provider.baseUrl}</p>}
+					{!isCustomProvider && provider?.baseUrl && <p className="text-xs text-muted-foreground font-mono">{provider.baseUrl}</p>}
+					{providerTypeLocked && <p className="text-xs text-muted-foreground">Set by AI_PROVIDER_TYPE. Unset to edit here.</p>}
 					{baseUrlLocked && <p className="text-xs text-muted-foreground">Set by AI_BASE_URL. Unset to edit here.</p>}
 				</div>
 
-				{/* Custom base URL (only when provider is custom) */}
-				{isCustomProvider && (
+				{/* Custom base URL (only when provider type is openai-compatible AND custom) */}
+				{showsBaseUrl && isCustomProvider && (
 					<div className="flex flex-col gap-2">
 						<div className="space-y-0.5">
 							<Label htmlFor="aiBaseUrl" className="text-base">
@@ -337,6 +389,35 @@ function Form({ config, saving, mutate }: FormProps) {
 					{modelLocked && <p className="text-xs text-muted-foreground">Set by AI_MODEL. Unset to edit here.</p>}
 				</div>
 
+				{/* Max output tokens */}
+				<div className="flex flex-col gap-2">
+					<div className="space-y-0.5">
+						<Label htmlFor="aiMaxOutputTokens" className="text-base">
+							Max output tokens
+						</Label>
+						<p className="text-sm text-muted-foreground">
+							Caps the response length for connection tests and any AI features. {DEFAULT_MAX_OUTPUT_TOKENS} is a sensible default;
+							reasoning models need at least a few hundred.
+						</p>
+					</div>
+					<Input
+						id="aiMaxOutputTokens"
+						type="number"
+						inputMode="numeric"
+						min={1}
+						max={32_000}
+						value={maxTokensDraft}
+						placeholder={String(DEFAULT_MAX_OUTPUT_TOKENS)}
+						disabled={maxTokensLocked || saving}
+						onChange={e => setMaxTokensDraft(e.target.value)}
+						className="w-40"
+					/>
+					{!maxTokensValid && maxTokensDraft.length > 0 && (
+						<p className="text-xs text-destructive">Enter a whole number between 1 and 32000.</p>
+					)}
+					{maxTokensLocked && <p className="text-xs text-muted-foreground">Set by AI_MAX_OUTPUT_TOKENS. Unset to edit here.</p>}
+				</div>
+
 				{/* Save button row */}
 				<div className="flex items-center gap-2">
 					<Button type="button" onClick={handleSave} disabled={!dirty || saving}>
@@ -355,9 +436,11 @@ function Form({ config, saving, mutate }: FormProps) {
 			<TestConnectionSection
 				canTest={canTest}
 				dirty={dirty}
+				draftProviderType={providerTypeDirty ? effectiveProviderType : undefined}
 				draftApiKey={apiKeyDirty ? apiKeyDraft : undefined}
-				draftBaseUrl={baseUrlDirty ? effectiveBaseUrl : undefined}
+				draftBaseUrl={baseUrlDirty && showsBaseUrl ? effectiveBaseUrl : undefined}
 				draftModel={modelDirty ? effectiveModel : undefined}
+				draftMaxOutputTokens={maxTokensDirty ? effectiveMaxTokens : undefined}
 			/>
 		</div>
 	)
@@ -366,12 +449,22 @@ function Form({ config, saving, mutate }: FormProps) {
 type TestConnectionSectionProps = {
 	canTest: boolean
 	dirty: boolean
+	draftProviderType?: ProviderType
 	draftApiKey?: string
 	draftBaseUrl?: string
 	draftModel?: string
+	draftMaxOutputTokens?: number
 }
 
-function TestConnectionSection({ canTest, dirty, draftApiKey, draftBaseUrl, draftModel }: TestConnectionSectionProps) {
+function TestConnectionSection({
+	canTest,
+	dirty,
+	draftProviderType,
+	draftApiKey,
+	draftBaseUrl,
+	draftModel,
+	draftMaxOutputTokens,
+}: TestConnectionSectionProps) {
 	const [testing, setTesting] = useState(false)
 	const [result, setResult] = useState<{ ok: true; latencyMs: number } | { ok: false; error: string } | null>(null)
 
@@ -379,10 +472,18 @@ function TestConnectionSection({ canTest, dirty, draftApiKey, draftBaseUrl, draf
 		setTesting(true)
 		setResult(null)
 		try {
-			const body: { apiKey?: string; baseUrl?: string; model?: string } = {}
+			const body: {
+				providerType?: ProviderType
+				apiKey?: string
+				baseUrl?: string
+				model?: string
+				maxOutputTokens?: number
+			} = {}
+			if (draftProviderType !== undefined) body.providerType = draftProviderType
 			if (draftApiKey !== undefined) body.apiKey = draftApiKey
 			if (draftBaseUrl !== undefined) body.baseUrl = draftBaseUrl
 			if (draftModel !== undefined) body.model = draftModel
+			if (draftMaxOutputTokens !== undefined) body.maxOutputTokens = draftMaxOutputTokens
 			const res = await testAiConnectionAsAdmin({ data: body } as Parameters<typeof testAiConnectionAsAdmin>[0])
 			setResult(res)
 			if (res.ok) toast.success(`Connection OK (${res.latencyMs} ms)`)
@@ -403,7 +504,7 @@ function TestConnectionSection({ canTest, dirty, draftApiKey, draftBaseUrl, draf
 			<div className="space-y-0.5">
 				<h3 className="text-lg font-medium">Test connection</h3>
 				<p className="text-sm text-muted-foreground">
-					Sends a one-token chat-completions request to verify the base URL, API key, and model name in one round-trip.
+					Sends a small chat request through the Vercel AI SDK to verify the provider, API key, and model in one round-trip.
 					{dirty ? ' Uses the values currently in the form (including unsaved drafts).' : ''}
 				</p>
 			</div>
@@ -423,22 +524,29 @@ function TestConnectionSection({ canTest, dirty, draftApiKey, draftBaseUrl, draf
 // Hydration helpers
 // ===============================
 
+function defaultProviderForType(providerType: ProviderType | undefined): Provider | undefined {
+	if (!providerType) return undefined
+	return PROVIDERS.find(p => p.providerType === providerType)
+}
+
 function initialProviderId(config: AiConfigResponse): string {
-	const match = findProviderByBaseUrl(config.baseUrl.value)
+	const match = findProviderMatch(config.providerType.value, config.baseUrl.value)
 	if (match) return match.id
-	if (config.baseUrl.value) return CUSTOM_PROVIDER_ID
-	return PROVIDERS[0].id
+	// openai-compatible with an unknown baseUrl, or no provider type set yet but a baseUrl is present.
+	if (config.providerType.value === 'openai-compatible') return CUSTOM_PROVIDER_ID
+	if (!config.providerType.value && config.baseUrl.value) return CUSTOM_PROVIDER_ID
+	// Fall back to a sane default when nothing is configured yet.
+	return defaultProviderForType(config.providerType.value)?.id ?? PROVIDERS[0].id
 }
 
 function initialCustomBaseUrl(config: AiConfigResponse): string {
-	const match = findProviderByBaseUrl(config.baseUrl.value)
-	if (match) return ''
+	if (initialProviderId(config) !== CUSTOM_PROVIDER_ID) return ''
 	return config.baseUrl.value ?? ''
 }
 
 function initialModelSelect(config: AiConfigResponse): string {
-	const provider = findProviderByBaseUrl(config.baseUrl.value) ?? PROVIDERS[0]
-	const models = provider.models
+	const match = findProviderMatch(config.providerType.value, config.baseUrl.value) ?? PROVIDERS[0]
+	const models = match.models
 	if (config.model.value && models.includes(config.model.value)) return config.model.value
 	if (config.model.value && !models.includes(config.model.value)) return CUSTOM_MODEL_VALUE
 	if (models.length === 0) return CUSTOM_MODEL_VALUE
@@ -446,7 +554,7 @@ function initialModelSelect(config: AiConfigResponse): string {
 }
 
 function initialCustomModel(config: AiConfigResponse): string {
-	const provider = findProviderByBaseUrl(config.baseUrl.value) ?? PROVIDERS[0]
-	if (config.model.value && !provider.models.includes(config.model.value)) return config.model.value
+	const match = findProviderMatch(config.providerType.value, config.baseUrl.value) ?? PROVIDERS[0]
+	if (config.model.value && !match.models.includes(config.model.value)) return config.model.value
 	return ''
 }

@@ -1,6 +1,7 @@
 import { queryOptions, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { type AiConfigResponse, fetchAiConfigAsAdmin, updateAiConfigAsAdmin } from '@/api/admin-ai'
+import type { ProviderType } from '@/lib/ai-types'
 
 export const aiConfigQueryKey = ['adminAiConfig'] as const
 
@@ -15,9 +16,11 @@ export function useAiConfig() {
 }
 
 type UpdatePayload = {
+	providerType?: ProviderType | null
 	baseUrl?: string | null
 	apiKey?: string | null
 	model?: string | null
+	maxOutputTokens?: number | null
 }
 
 export function useAiConfigMutation() {
