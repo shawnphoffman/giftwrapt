@@ -1,6 +1,6 @@
 import { MessageSquare } from 'lucide-react'
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { lazy, Suspense, useState } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 
 import { cn } from '@/lib/utils'
 
@@ -19,10 +19,19 @@ type Props = {
 
 export function ItemComments({ itemId, commentCount = 0, trailing }: Props) {
 	const [expanded, setExpanded] = useState(commentCount > 0)
+	const [mounted, setMounted] = useState(commentCount > 0)
 	const [liveCount, setLiveCount] = useState(commentCount)
 	const displayCount = liveCount
 	const prefersReducedMotion = useReducedMotion()
 	const duration = prefersReducedMotion ? 0 : 0.18
+
+	// Mount immediately on expand; on collapse, the motion.div animates to
+	// height: 0 and onAnimationComplete fires the unmount. Going through
+	// AnimatePresence + exit dropped the close animation when Suspense was
+	// inside the motion.div.
+	useEffect(() => {
+		if (expanded) setMounted(true)
+	}, [expanded])
 
 	return (
 		<div className="@container flex flex-col gap-2">
@@ -43,22 +52,21 @@ export function ItemComments({ itemId, commentCount = 0, trailing }: Props) {
 				{trailing && <div className="@md:ml-auto self-end">{trailing}</div>}
 			</div>
 
-			<AnimatePresence initial={false}>
-				{expanded && (
-					<motion.div
-						key="comments-panel"
-						initial={{ height: 0, opacity: 0 }}
-						animate={{ height: 'auto', opacity: 1 }}
-						exit={{ height: 0, opacity: 0 }}
-						transition={{ duration, ease: 'easeOut' }}
-						className="overflow-hidden"
-					>
-						<Suspense fallback={null}>
-							<ItemCommentsPanel itemId={itemId} onCountChange={setLiveCount} />
-						</Suspense>
-					</motion.div>
-				)}
-			</AnimatePresence>
+			{mounted && (
+				<motion.div
+					initial={{ height: 0, opacity: 0 }}
+					animate={{ height: expanded ? 'auto' : 0, opacity: expanded ? 1 : 0 }}
+					transition={{ duration, ease: 'easeOut' }}
+					onAnimationComplete={() => {
+						if (!expanded) setMounted(false)
+					}}
+					className="overflow-hidden"
+				>
+					<Suspense fallback={null}>
+						<ItemCommentsPanel itemId={itemId} onCountChange={setLiveCount} />
+					</Suspense>
+				</motion.div>
+			)}
 		</div>
 	)
 }
