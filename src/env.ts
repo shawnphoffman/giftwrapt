@@ -38,6 +38,13 @@ export const env = createEnv({
 		AI_MAX_OUTPUT_TOKENS: z.coerce.number().int().min(1).max(32_000).optional(),
 		// Cron job authentication
 		CRON_SECRET: z.string().min(1).optional(),
+		// URL scraping. Both providers are optional; the built-in fetch
+		// provider is always on. browserless renders JS-heavy pages,
+		// flaresolverr bypasses Cloudflare challenges. See
+		// _NOTES_/scraping/browserless-plan.md for a self-host stack.
+		BROWSERLESS_URL: z.url().optional(),
+		FLARESOLVERR_URL: z.url().optional(),
+		BROWSER_TOKEN: z.string().min(1).optional(),
 		// Logging. LOG_LEVEL can be changed at runtime (e.g. in docker-compose)
 		// without a rebuild. LOG_PRETTY forces human-readable output even in
 		// prod; otherwise it defaults to NODE_ENV !== 'production'.
