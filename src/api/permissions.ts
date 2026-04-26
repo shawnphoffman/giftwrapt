@@ -73,6 +73,7 @@ export const getOwnersWithRelationshipsForMe = createServerFn({
 				name: user.name,
 				image: user.image,
 				canView: relationship?.canView ?? true,
+				canEdit: relationship?.canEdit ?? false,
 			}
 		})
 	})

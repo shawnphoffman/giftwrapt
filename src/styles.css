@@ -238,6 +238,20 @@ code {
 	}
 }
 
+@utility animate-edit-pulse {
+	animation: editPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes editPulse {
+	0%,
+	100% {
+		background-color: var(--color-primary);
+	}
+	50% {
+		background-color: #38bdf8;
+	}
+}
+
 @layer components {
 	.wish-page {
 		@apply flex flex-col flex-1 w-full max-w-3xl px-2 animate-page-in pb-2 @container/page;

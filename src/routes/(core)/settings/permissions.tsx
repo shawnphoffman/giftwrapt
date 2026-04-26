@@ -2,356 +2,267 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import {
-	Eye,
-	// OctagonMinus,
-	SquarePen,
-} from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { HelpCircle } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
-import {
-	getOwnersWithRelationshipsForMe,
-	getUsersWithRelationships,
-	upsertUserRelationships,
-	upsertViewerRelationships,
-} from '@/api/permissions'
+import { getOwnersWithRelationshipsForMe, getUsersWithRelationships, upsertUserRelationships } from '@/api/permissions'
 import UserAvatar from '@/components/common/user-avatar'
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { Button } from '@/components/ui/button'
 import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/(core)/settings/permissions')({
 	component: PermissionsPage,
 })
 
-type UserWithRelationships = {
+type AccessLevel = 'none' | 'view' | 'edit'
+
+type PermissionRow = {
 	id: string
 	email: string
 	name: string | null
 	image: string | null
-	canView: boolean
-	canEdit: boolean
+	access: AccessLevel
+	sharedWithMe: AccessLevel
 }
 
-type OwnerWithViewRelationship = {
-	id: string
-	email: string
-	name: string | null
-	image: string | null
-	canView: boolean
+function toAccessLevel(canView: boolean, canEdit: boolean): AccessLevel {
+	if (canEdit) return 'edit'
+	if (canView) return 'view'
+	return 'none'
+}
+
+function fromAccessLevel(access: AccessLevel): { canView: boolean; canEdit: boolean } {
+	return {
+		canView: access !== 'none',
+		canEdit: access === 'edit',
+	}
 }
 
 function PermissionsPage() {
 	const queryClient = useQueryClient()
-	const [isSavingOutgoing, setIsSavingOutgoing] = useState(false)
-	const [isSavingIncoming, setIsSavingIncoming] = useState(false)
+	const [isSaving, setIsSaving] = useState(false)
 
-	const { data: users = [], isLoading: isLoadingUsers } = useQuery<Array<UserWithRelationships>>({
+	const { data: users, isLoading: isLoadingUsers } = useQuery({
 		queryKey: ['permissions', 'users'],
-		queryFn: async () => {
-			return await getUsersWithRelationships()
-		},
+		queryFn: () => getUsersWithRelationships(),
 	})
 
-	const { data: owners = [], isLoading: isLoadingOwners } = useQuery<Array<OwnerWithViewRelationship>>({
+	const { data: owners, isLoading: isLoadingOwners } = useQuery({
 		queryKey: ['permissions', 'owners'],
-		queryFn: async () => {
-			return await getOwnersWithRelationshipsForMe()
-		},
+		queryFn: () => getOwnersWithRelationshipsForMe(),
 	})
 
-	const [formData, setFormData] = useState<Record<string, UserWithRelationships>>({})
-	const [incomingFormData, setIncomingFormData] = useState<Record<string, OwnerWithViewRelationship>>({})
-
-	// Update form data when users data loads
-	useEffect(() => {
-		if (users.length > 0) {
-			setFormData(prev => {
-				const initial: Record<string, UserWithRelationships> = {}
-				users.forEach(user => {
-					// Preserve existing form data if it exists, otherwise use user data
-					initial[user.id] = prev[user.id] ?? { ...user }
-				})
-				return initial
-			})
-		}
-	}, [users])
-
-	// Update incoming form data when owners data loads
-	useEffect(() => {
-		if (owners.length > 0) {
-			setIncomingFormData(prev => {
-				const initial: Record<string, OwnerWithViewRelationship> = {}
-				owners.forEach(owner => {
-					initial[owner.id] = prev[owner.id] ?? { ...owner }
-				})
-				return initial
-			})
-		}
-	}, [owners])
-
-	const handleCheckboxChange = (userId: string, field: 'canView' | 'canEdit', checked: boolean) => {
-		if (field === 'canView' && checked === false) {
-			setFormData(prev => ({
-				...prev,
-				[userId]: {
-					...prev[userId],
-					canView: false,
-					canEdit: false,
-				},
-			}))
-		} else {
-			setFormData(prev => ({
-				...prev,
-				[userId]: {
-					...prev[userId],
-					[field]: checked,
-				},
-			}))
-		}
-	}
-
-	const handleIncomingCheckboxChange = (ownerUserId: string, checked: boolean) => {
-		setIncomingFormData(prev => ({
-			...prev,
-			[ownerUserId]: {
-				...prev[ownerUserId],
-				canView: checked,
-			},
+	const initialRows = useMemo<Array<PermissionRow> | null>(() => {
+		if (!users || !owners) return null
+		const sharedMap = new Map(owners.map(o => [o.id, toAccessLevel(o.canView, o.canEdit)]))
+		return users.map(user => ({
+			id: user.id,
+			email: user.email,
+			name: user.name,
+			image: user.image,
+			access: toAccessLevel(user.canView, user.canEdit),
+			sharedWithMe: sharedMap.get(user.id) ?? 'none',
 		}))
+	}, [users, owners])
+
+	const [rows, setRows] = useState<Array<PermissionRow>>([])
+	const [dirty, setDirty] = useState(false)
+
+	useEffect(() => {
+		if (initialRows) {
+			setRows(initialRows)
+			setDirty(false)
+		}
+	}, [initialRows])
+
+	const handleAccessChange = (userId: string, access: AccessLevel) => {
+		setRows(prev => prev.map(row => (row.id === userId ? { ...row, access } : row)))
+		setDirty(true)
 	}
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault()
-		setIsSavingOutgoing(true)
+		setIsSaving(true)
 
 		try {
-			const relationships = Object.values(formData).map(user => ({
-				viewerUserId: user.id,
-				canView: user.canView,
-				canEdit: user.canEdit,
+			const relationships = rows.map(row => ({
+				viewerUserId: row.id,
+				...fromAccessLevel(row.access),
 			}))
 
-			await upsertUserRelationships({
-				data: { relationships },
-			})
+			await upsertUserRelationships({ data: { relationships } })
 
-			toast.success('Permissions updated successfully')
+			toast.success('Permissions updated')
 			queryClient.invalidateQueries({ queryKey: ['permissions', 'users'] })
+			setDirty(false)
 		} catch (err) {
 			const errorMessage = err instanceof Error ? err.message : 'Failed to update permissions'
 			toast.error(errorMessage)
 		} finally {
-			setIsSavingOutgoing(false)
+			setIsSaving(false)
 		}
 	}
 
-	const handleIncomingSubmit = async (e: React.FormEvent) => {
-		e.preventDefault()
-		setIsSavingIncoming(true)
-
-		try {
-			const relationships = Object.values(incomingFormData).map(owner => ({
-				ownerUserId: owner.id,
-				canView: owner.canView,
-			}))
-
-			await upsertViewerRelationships({
-				data: { relationships },
-			})
-
-			toast.success('View permissions updated successfully')
-			queryClient.invalidateQueries({ queryKey: ['permissions', 'owners'] })
-		} catch (err) {
-			const errorMessage = err instanceof Error ? err.message : 'Failed to update view permissions'
-			toast.error(errorMessage)
-		} finally {
-			setIsSavingIncoming(false)
-		}
-	}
-
-	// TODO Refactor this to have loader without duplicating the card logic
-
-	// if (isLoadingUsers) {
-	// 	return (
-	// 		<div className="animate-page-in">
-	// 			<CardHeader>
-	// 				<CardTitle className="text-2xl">Permissions</CardTitle>
-	// 			</CardHeader>
-	// 			<CardContent>
-	// 				<div className="space-y-4">
-	// 					{[...Array(3)].map((_, i) => (
-	// 						<div key={i} className="flex items-center gap-4">
-	// 							<Skeleton className="h-10 w-10 rounded-full" />
-	// 							<Skeleton className="h-4 flex-1" />
-	// 							<Skeleton className="h-4 w-24" />
-	// 							<Skeleton className="h-4 w-24" />
-	// 							<Skeleton className="h-4 w-24" />
-	// 						</div>
-	// 					))}
-	// 				</div>
-	// 			</CardContent>
-	// 		</div>
-	// 	)
-	// }
-
-	// if (error) {
-	// 	return (
-	// 		<div className="animate-page-in">
-	// 			<CardHeader>
-	// 				<CardTitle className="text-2xl">Permissions</CardTitle>
-	// 			</CardHeader>
-	// 			<CardContent>
-	// 				<div className="text-sm text-destructive">Error loading users: {error instanceof Error ? error.message : 'Unknown error'}</div>
-	// 			</CardContent>
-	// 		</div>
-	// 	)
-	// }
+	const isLoading = isLoadingUsers || isLoadingOwners || initialRows === null
+	const hasRows = rows.length > 0
 
 	return (
-		<div className="animate-page-in">
+		<div className="animate-page-in gap-6 flex flex-col">
 			<CardHeader>
 				<CardTitle className="text-2xl">Permissions</CardTitle>
 				<CardDescription>
-					Manage permissions for other users. Specifically, who can see your lists and also administrate your lists on your behalf.
+					Choose what each person can do with your wish lists. A green dot next to their name means they've shared their lists with you too.
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
-				{(isLoadingUsers || isLoadingOwners) && <LoadingSkeleton />}
-				{users.length === 0 && owners.length === 0 ? (
+				{isLoading && !hasRows ? (
+					<LoadingSkeleton />
+				) : !hasRows ? (
 					<div className="text-sm text-muted-foreground">No other users found</div>
 				) : (
-					<div className="space-y-10">
-						{users.length === 0 || Object.keys(formData).length === 0 ? (
-							<div className="text-sm text-muted-foreground">Loading permissions...</div>
-						) : (
-							<form onSubmit={handleSubmit} className="space-y-4">
-								<Table>
-									<TableHeader>
-										<TableRow>
-											<TableHead>Who can view & edit your lists?</TableHead>
-											<TableHead className="text-center">
-												<Tooltip>
-													<TooltipTrigger asChild>
-														<Eye className="size-5 mx-auto" />
-													</TooltipTrigger>
-													<TooltipContent>Can this user view your list and make purchases?</TooltipContent>
-												</Tooltip>
-											</TableHead>
-											<TableHead className="text-center">
-												<Tooltip>
-													<TooltipTrigger asChild>
-														<SquarePen className="size-5 mx-auto text-muted-foreground" />
-													</TooltipTrigger>
-													<TooltipContent>Can this user create/edit public lists on your behalf?</TooltipContent>
-												</Tooltip>
-											</TableHead>
-											{/* <TableHead className="text-center">
-												<Tooltip>
-													<TooltipTrigger asChild>
-														<OctagonMinus className="size-5 mx-auto text-muted-foreground" />
-													</TooltipTrigger>
-													<TooltipContent>Can this user only view unpurchased items on your lists?</TooltipContent>
-												</Tooltip>
-											</TableHead> */}
-										</TableRow>
-									</TableHeader>
-									<TableBody>
-										{users.map(user => {
-											const userFormData = formData[user.id]
-											return (
-												<TableRow key={user.id}>
-													<TableCell className="py-1">
-														<div className="flex items-center gap-2">
-															<UserAvatar name={user.name || user.email} image={user.image} size="small" />
-															<div className="font-medium">{user.name || 'Unnamed'}</div>
-														</div>
-													</TableCell>
-													<TableCell className="text-center pr-2! py-1">
-														<Checkbox
-															className="size-5 mx-auto"
-															checked={userFormData.canView}
-															onCheckedChange={checked => handleCheckboxChange(user.id, 'canView', checked === true)}
-															disabled={isSavingOutgoing}
-														/>
-													</TableCell>
-													<TableCell className="text-center pr-2! py-1">
-														<Checkbox
-															className="size-5 mx-auto"
-															checked={userFormData.canEdit}
-															onCheckedChange={checked => handleCheckboxChange(user.id, 'canEdit', checked === true)}
-															disabled={isSavingOutgoing || !userFormData.canView}
-														/>
-													</TableCell>
-												</TableRow>
-											)
-										})}
-									</TableBody>
-								</Table>
-								<div className="flex">
-									<Button type="submit" disabled={isSavingOutgoing}>
-										{isSavingOutgoing ? 'Saving...' : 'Save'}
-									</Button>
+					<form onSubmit={handleSubmit} className="space-y-6">
+						<div className="rounded-lg border divide-y">
+							<div className="flex items-center justify-between gap-4 px-4 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground bg-muted/30">
+								<span>Person</span>
+								<div className="flex items-center gap-1.5">
+									<span>Access</span>
+									<AccessHelp />
 								</div>
-							</form>
-						)}
+							</div>
+							{rows.map(row => (
+								<div key={row.id} className="flex items-center justify-between gap-4 px-4 py-3">
+									<div className="flex items-center gap-3 min-w-0">
+										<UserAvatar name={row.name || row.email} image={row.image} size="medium" />
+										<div className="font-medium truncate">{row.name || row.email}</div>
+										<ShareIndicator sharedWithMe={row.sharedWithMe} />
+									</div>
+									<ToggleGroup
+										type="single"
+										variant="outline"
+										value={row.access}
+										onValueChange={value => {
+											if (value) handleAccessChange(row.id, value as AccessLevel)
+										}}
+										disabled={isSaving}
+										className="shrink-0"
+									>
+										<ToggleGroupItem
+											value="none"
+											aria-label="No access"
+											className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
+										>
+											None
+										</ToggleGroupItem>
+										<ToggleGroupItem
+											value="view"
+											aria-label="View access"
+											className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
+										>
+											View
+										</ToggleGroupItem>
+										<ToggleGroupItem
+											value="edit"
+											aria-label="Edit access"
+											className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
+										>
+											Edit
+										</ToggleGroupItem>
+									</ToggleGroup>
+								</div>
+							))}
+						</div>
 
-						{owners.length === 0 || Object.keys(incomingFormData).length === 0 ? (
-							<div className="text-sm text-muted-foreground">Loading view permissions...</div>
-						) : (
-							<form onSubmit={handleIncomingSubmit} className="space-y-4">
-								<Table>
-									<TableHeader>
-										<TableRow>
-											<TableHead>Whose lists are you allowed to view?</TableHead>
-											<TableHead className="text-center">
-												<Tooltip>
-													<TooltipTrigger asChild>
-														<Eye className="size-5 mx-auto" />
-													</TooltipTrigger>
-													<TooltipContent>Can you view this user's lists?</TooltipContent>
-												</Tooltip>
-											</TableHead>
-										</TableRow>
-									</TableHeader>
-									<TableBody>
-										{owners.map(owner => {
-											const ownerFormData = incomingFormData[owner.id]
-											return (
-												<TableRow key={owner.id}>
-													<TableCell className="py-1">
-														<div className="flex items-center gap-2">
-															<UserAvatar name={owner.name || owner.email} image={owner.image} size="small" />
-															<div className="font-medium">{owner.name || 'Unnamed'}</div>
-														</div>
-													</TableCell>
-													<TableCell className="text-center pr-2! py-1">
-														<Checkbox
-															className="size-5 mx-auto"
-															checked={ownerFormData.canView}
-															onCheckedChange={checked => handleIncomingCheckboxChange(owner.id, checked === true)}
-															disabled={isSavingIncoming}
-														/>
-													</TableCell>
-												</TableRow>
-											)
-										})}
-									</TableBody>
-								</Table>
-								<div className="flex">
-									<Button type="submit" disabled={isSavingIncoming}>
-										{isSavingIncoming ? 'Saving...' : 'Save'}
-									</Button>
-								</div>
-							</form>
-						)}
-					</div>
+						<div className="flex items-center justify-between gap-4">
+							<Legend />
+							<Button type="submit" disabled={isSaving || !dirty}>
+								{isSaving ? 'Saving...' : 'Save'}
+							</Button>
+						</div>
+					</form>
 				)}
 			</CardContent>
+		</div>
+	)
+}
+
+function ShareIndicator({ sharedWithMe }: { sharedWithMe: AccessLevel }) {
+	const label =
+		sharedWithMe === 'edit'
+			? "They've given you edit access to their lists"
+			: sharedWithMe === 'view'
+				? 'They share their lists with you'
+				: "They haven't shared their lists with you"
+	return (
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<span
+					aria-label={label}
+					className={cn(
+						'inline-block size-3 rounded-full shrink-0 transition-shadow',
+						sharedWithMe === 'none' && 'border border-muted-foreground/40 bg-transparent',
+						sharedWithMe === 'view' && 'bg-primary',
+						sharedWithMe === 'edit' && 'animate-edit-pulse'
+					)}
+				/>
+			</TooltipTrigger>
+			<TooltipContent>{label}</TooltipContent>
+		</Tooltip>
+	)
+}
+
+function AccessHelp() {
+	return (
+		<Popover>
+			<PopoverTrigger asChild>
+				<button
+					type="button"
+					aria-label="What do these access levels mean?"
+					className="inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+				>
+					<HelpCircle className="size-4" />
+				</button>
+			</PopoverTrigger>
+			<PopoverContent className="w-72 text-sm normal-case font-normal tracking-normal">
+				<div className="space-y-3">
+					<div>
+						<div className="font-semibold text-foreground">None</div>
+						<p className="text-muted-foreground">They can't see your lists or any items on them.</p>
+					</div>
+					<div>
+						<div className="font-semibold text-foreground">View</div>
+						<p className="text-muted-foreground">They can see your public lists and the items on them, and claim items as gifts.</p>
+					</div>
+					<div>
+						<div className="font-semibold text-foreground">Edit</div>
+						<p className="text-muted-foreground">Everything View allows, plus they can create and edit lists and items on your behalf.</p>
+					</div>
+				</div>
+			</PopoverContent>
+		</Popover>
+	)
+}
+
+function Legend() {
+	return (
+		<div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
+			<div className="flex items-center gap-1.5">
+				<span className="inline-block size-3 rounded-full border border-muted-foreground/40" />
+				They haven't shared
+			</div>
+			<div className="flex items-center gap-1.5">
+				<span className="inline-block size-3 rounded-full bg-primary" />
+				They share with you
+			</div>
+			<div className="flex items-center gap-1.5">
+				<span className="inline-block size-3 rounded-full animate-edit-pulse" />
+				They let you edit
+			</div>
 		</div>
 	)
 }
