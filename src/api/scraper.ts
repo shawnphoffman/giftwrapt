@@ -31,6 +31,10 @@ export type ScrapeUrlResult = { kind: 'ok'; data: ScrapeResult; scrapeId: number
 export const scrapeUrl = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof ScrapeUrlInputSchema>) => ScrapeUrlInputSchema.parse(data))
+	// Stub returns synchronously today, but the real implementation (see file
+	// header) is async. Keep the async signature so re-enabling doesn't churn
+	// the type surface for callers.
+	// eslint-disable-next-line @typescript-eslint/require-await
 	.handler(async (): Promise<ScrapeUrlResult> => {
 		return { kind: 'error', reason: 'scrape-failed' }
 	})

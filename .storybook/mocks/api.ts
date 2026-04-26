@@ -12,8 +12,8 @@
  */
 
 type OkResult = { kind: 'ok' }
-const ok = async (): Promise<OkResult> => ({ kind: 'ok' })
-const emptyArray = async (): Promise<Array<unknown>> => []
+const ok = (): Promise<OkResult> => Promise.resolve({ kind: 'ok' })
+const emptyArray = (): Promise<Array<unknown>> => Promise.resolve([])
 
 // @/api/items
 export const createItem = ok
@@ -21,27 +21,17 @@ export const updateItem = ok
 export const deleteItem = ok
 export const archiveItem = ok
 export const moveItemToList = ok
-export const archiveItems = async (): Promise<{ kind: 'ok'; updated: number }> => ({ kind: 'ok', updated: 0 })
-export const deleteItems = async (): Promise<{ kind: 'ok'; deleted: number }> => ({ kind: 'ok', deleted: 0 })
-export const setItemsPriority = async (): Promise<{ kind: 'ok'; updated: number }> => ({ kind: 'ok', updated: 0 })
-export const reorderItems = async (): Promise<{ kind: 'ok'; updated: number }> => ({ kind: 'ok', updated: 0 })
-export const reorderListEntries = async (): Promise<{ kind: 'ok'; updatedItems: number; updatedGroups: number }> => ({
-	kind: 'ok',
-	updatedItems: 0,
-	updatedGroups: 0,
-})
-export const setGroupsPriority = async (): Promise<{ kind: 'ok'; updated: number }> => ({ kind: 'ok', updated: 0 })
-export const deleteGroups = async (): Promise<{ kind: 'ok'; deletedGroups: number; deletedItems: number }> => ({
-	kind: 'ok',
-	deletedGroups: 0,
-	deletedItems: 0,
-})
-export const moveItemsToList = async (): Promise<{ kind: 'ok'; moved: number; claimsCleared: number; commentsDeleted: number }> => ({
-	kind: 'ok',
-	moved: 0,
-	claimsCleared: 0,
-	commentsDeleted: 0,
-})
+export const archiveItems = (): Promise<{ kind: 'ok'; updated: number }> => Promise.resolve({ kind: 'ok', updated: 0 })
+export const deleteItems = (): Promise<{ kind: 'ok'; deleted: number }> => Promise.resolve({ kind: 'ok', deleted: 0 })
+export const setItemsPriority = (): Promise<{ kind: 'ok'; updated: number }> => Promise.resolve({ kind: 'ok', updated: 0 })
+export const reorderItems = (): Promise<{ kind: 'ok'; updated: number }> => Promise.resolve({ kind: 'ok', updated: 0 })
+export const reorderListEntries = (): Promise<{ kind: 'ok'; updatedItems: number; updatedGroups: number }> =>
+	Promise.resolve({ kind: 'ok', updatedItems: 0, updatedGroups: 0 })
+export const setGroupsPriority = (): Promise<{ kind: 'ok'; updated: number }> => Promise.resolve({ kind: 'ok', updated: 0 })
+export const deleteGroups = (): Promise<{ kind: 'ok'; deletedGroups: number; deletedItems: number }> =>
+	Promise.resolve({ kind: 'ok', deletedGroups: 0, deletedItems: 0 })
+export const moveItemsToList = (): Promise<{ kind: 'ok'; moved: number; claimsCleared: number; commentsDeleted: number }> =>
+	Promise.resolve({ kind: 'ok', moved: 0, claimsCleared: 0, commentsDeleted: 0 })
 
 // @/api/groups
 export const createItemGroup = ok
@@ -74,8 +64,8 @@ const storybookCommentsByItem = new Map<number, Array<StorybookComment>>()
 export function __setStorybookComments(itemId: number, comments: Array<StorybookComment>) {
 	storybookCommentsByItem.set(itemId, comments)
 }
-export const getCommentsForItem = async ({ data }: { data: { itemId: number } }): Promise<Array<StorybookComment>> =>
-	storybookCommentsByItem.get(data.itemId) ?? []
+export const getCommentsForItem = ({ data }: { data: { itemId: number } }): Promise<Array<StorybookComment>> =>
+	Promise.resolve(storybookCommentsByItem.get(data.itemId) ?? [])
 export const createItemComment = ok
 export const updateItemComment = ok
 export const deleteItemComment = ok
@@ -87,16 +77,16 @@ export const updateUserProfile = ok
 export const updateUserPassword = ok
 
 // @/api/lists
-export const getListForViewing = async () => ({ kind: 'ok', list: null })
-export const getMyLists = async () => ({ lists: [], childGroups: [] })
+export const getListForViewing = () => Promise.resolve({ kind: 'ok' as const, list: null })
+export const getMyLists = () => Promise.resolve({ lists: [], childGroups: [] })
 export const createList = ok
 export const updateList = ok
 export const deleteList = ok
 export const setPrimaryList = ok
-export const getListForEditing = async () => ({ kind: 'ok', list: null })
+export const getListForEditing = () => Promise.resolve({ kind: 'ok' as const, list: null })
 
 // @/api/purchases
-export const getPurchaseSummary = async (): Promise<Array<unknown>> => []
+export const getPurchaseSummary = (): Promise<Array<unknown>> => Promise.resolve([])
 
 // @/api/list-addons
 export const createListAddon = ok
@@ -105,10 +95,10 @@ export const archiveListAddon = ok
 export const deleteListAddon = ok
 
 // @/api/uploads
-export const uploadItemImage = async (): Promise<{ kind: 'ok'; value: { url: string } }> => ({ kind: 'ok', value: { url: '' } })
+export const uploadItemImage = (): Promise<{ kind: 'ok'; value: { url: string } }> => Promise.resolve({ kind: 'ok', value: { url: '' } })
 export const removeItemImage = ok
-export const uploadAvatar = async (): Promise<{ kind: 'ok'; value: { url: string } }> => ({ kind: 'ok', value: { url: '' } })
+export const uploadAvatar = (): Promise<{ kind: 'ok'; value: { url: string } }> => Promise.resolve({ kind: 'ok', value: { url: '' } })
 export const removeAvatar = ok
 
 // @/api/storage-status
-export const fetchStorageStatus = async (): Promise<{ configured: boolean }> => ({ configured: true })
+export const fetchStorageStatus = (): Promise<{ configured: boolean }> => Promise.resolve({ configured: true })
