@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { useStorageStatus } from '@/hooks/use-storage-status'
+import { applyScrapePrefill } from '@/lib/scrapers/apply-prefill'
 import { useScrapeUrl } from '@/lib/use-scrape-url'
 
 import { ImagePicker } from './image-picker'
@@ -166,28 +167,20 @@ export function ItemFormDialog(props: Props) {
 		},
 	})
 
-	// Fill any field currently empty in the form when the scrape has a
-	// value for it. Non-empty fields are preserved as-is. Same rule for
-	// auto-scrape on URL blur and manual re-scrape via the icon button.
+	// Shared "fill if empty" rule (see applyScrapePrefill). Same call
+	// handles both the auto-scrape on URL blur and a manual re-scrape via
+	// the Sparkles button.
 	useEffect(() => {
 		if (scrapeState.phase !== 'partial' && scrapeState.phase !== 'done') return
 		const result = scrapeState.result
 		if (!result) return
 		const values = form.state.values
-		if (!values.title.trim() && result.title) {
-			form.setFieldValue('title', result.title)
-		}
-		if (!values.price.trim() && result.price) {
-			form.setFieldValue('price', result.price)
-		}
-		if (!values.notes.trim() && result.description) {
-			form.setFieldValue('notes', result.description)
-		}
-		setImageCandidates(result.imageUrls)
-		const firstCandidate = result.imageUrls[0]
-		if (!values.imageUrl.trim() && firstCandidate) {
-			form.setFieldValue('imageUrl', firstCandidate)
-		}
+		const update = applyScrapePrefill({ title: values.title, price: values.price, notes: values.notes, imageUrl: values.imageUrl }, result)
+		if (update.title !== undefined) form.setFieldValue('title', update.title)
+		if (update.price !== undefined) form.setFieldValue('price', update.price)
+		if (update.notes !== undefined) form.setFieldValue('notes', update.notes)
+		if (update.imageUrl !== undefined) form.setFieldValue('imageUrl', update.imageUrl)
+		setImageCandidates(update.imageCandidates)
 	}, [scrapeState, form])
 
 	// Tear down any in-flight scrape and reset prefill state when the dialog

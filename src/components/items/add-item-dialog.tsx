@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { type Priority, priorityEnumValues } from '@/db/schema/enums'
+import { applyScrapePrefill } from '@/lib/scrapers/apply-prefill'
 import { useScrapeUrl } from '@/lib/use-scrape-url'
 
 import { ImagePicker } from './image-picker'
@@ -124,16 +125,15 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 		if (scrapeState.phase !== 'partial' && scrapeState.phase !== 'done') return
 		const result = scrapeState.result
 		if (!result) return
-		// Fill any field currently empty in the form when the scrape has a
-		// value for it. Non-empty fields are preserved as-is. This is the
-		// shared rule for both the auto-scrape on URL blur and a manual
-		// re-scrape via the icon button.
-		if (!title.trim() && result.title) setTitle(result.title)
-		if (!price.trim() && result.price) setPrice(result.price)
-		if (!notes.trim() && result.description) setNotes(result.description)
-		setImageCandidates(result.imageUrls)
-		const firstCandidate = result.imageUrls[0]
-		if (!imageUrl && firstCandidate) setImageUrl(firstCandidate)
+		// Shared "fill if empty" rule (see applyScrapePrefill). Same call
+		// handles both the auto-scrape on URL blur and a manual re-scrape
+		// via the Sparkles button.
+		const update = applyScrapePrefill({ title, price, notes, imageUrl }, result)
+		if (update.title !== undefined) setTitle(update.title)
+		if (update.price !== undefined) setPrice(update.price)
+		if (update.notes !== undefined) setNotes(update.notes)
+		if (update.imageUrl !== undefined) setImageUrl(update.imageUrl)
+		setImageCandidates(update.imageCandidates)
 	}, [scrapeState, imageUrl, title, price, notes])
 
 	const formLocked = saving || scrapeState.phase === 'scraping'
