@@ -227,7 +227,7 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 			{hasPriorityTab && (
 				<div
 					className={cn(
-						'absolute left-0 top-0 h-[calc(100%-4px)] -translate-x-1/2 translate-y-[2px] w-12 rounded-md shadow-sm flex items-center p-1 z-0',
+						'absolute left-0 top-0 h-[calc(100%-4px)] -translate-x-1/2 translate-y-[2px] w-12 rounded-md shadow-sm drop-shadow-[1px_1px_10px_rgb(0_0_0_/_0.2)] dark:drop-shadow-[1px_1px_10px_rgb(0_0_0_/_0.5)] flex items-center p-1 z-0',
 						priorityTabBgClass[item.priority]
 					)}
 					aria-hidden
