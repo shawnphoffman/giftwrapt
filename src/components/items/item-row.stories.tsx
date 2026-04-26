@@ -92,7 +92,7 @@ export const FullyClaimedByOthers: Story = {
 	},
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement)
-		await expect(canvas.getByText(/fully claimed/i)).toBeInTheDocument()
+		await expect(canvas.getByText(/claimed/i)).toBeInTheDocument()
 		await expect(canvas.queryByRole('button', { name: /^claim$/i })).not.toBeInTheDocument()
 	},
 }

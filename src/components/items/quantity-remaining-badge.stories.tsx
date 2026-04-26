@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
-import { QuantityRemainingBadge } from './quantity-remaining-badge'
+import { type LockReason, QuantityRemainingBadge } from './quantity-remaining-badge'
 
 /**
  * Consolidated quantity + remaining indicator for the gifter view.
@@ -21,6 +21,7 @@ const meta = {
 			options: ['split', 'inline', 'inline-pill', 'dots'],
 		},
 		youClaimed: { control: 'boolean' },
+		lockReason: { control: 'inline-radio', options: [undefined, 'order', 'or'] },
 	},
 } satisfies Meta<typeof QuantityRemainingBadge>
 
@@ -31,10 +32,12 @@ type Story = StoryObj<typeof meta>
 
 const VARIANTS = ['split', 'inline', 'inline-pill', 'dots'] as const
 
-const STATES: Array<{ label: string; quantity: number; remaining: number; youClaimed?: boolean }> = [
+const STATES: Array<{ label: string; quantity: number; remaining: number; youClaimed?: boolean; lockReason?: LockReason }> = [
 	{ label: 'qty 1, unclaimed', quantity: 1, remaining: 1 },
 	{ label: 'qty 1, claimed', quantity: 1, remaining: 0 },
 	{ label: 'qty 1, claimed (you)', quantity: 1, remaining: 0, youClaimed: true },
+	{ label: 'qty 1, locked by order', quantity: 1, remaining: 1, lockReason: 'order' },
+	{ label: 'qty 1, locked by or-group', quantity: 1, remaining: 1, lockReason: 'or' },
 	{ label: 'qty 3, none claimed', quantity: 3, remaining: 3 },
 	{ label: 'qty 3, 1 claimed', quantity: 3, remaining: 2 },
 	{ label: 'qty 3, 2 claimed', quantity: 3, remaining: 1 },
@@ -47,6 +50,8 @@ const STATES: Array<{ label: string; quantity: number; remaining: number; youCla
 	{ label: 'qty 3, 1 claimed (you)', quantity: 3, remaining: 2, youClaimed: true },
 	{ label: 'qty 3, 2 claimed (you)', quantity: 3, remaining: 1, youClaimed: true },
 	{ label: 'qty 3, fully claimed (you)', quantity: 3, remaining: 0, youClaimed: true },
+	{ label: 'qty 3, locked by order', quantity: 3, remaining: 3, lockReason: 'order' },
+	{ label: 'qty 3, locked by or-group', quantity: 3, remaining: 3, lockReason: 'or' },
 ]
 
 export const Gallery: Story = {
@@ -69,7 +74,13 @@ export const Gallery: Story = {
 						<td className="font-mono text-xs text-muted-foreground px-3 py-3 border-b align-middle whitespace-nowrap">{state.label}</td>
 						{VARIANTS.map(v => (
 							<td key={v} className="px-4 py-3 border-b align-middle">
-								<QuantityRemainingBadge variant={v} quantity={state.quantity} remaining={state.remaining} youClaimed={state.youClaimed} />
+								<QuantityRemainingBadge
+									variant={v}
+									quantity={state.quantity}
+									remaining={state.remaining}
+									youClaimed={state.youClaimed}
+									lockReason={state.lockReason}
+								/>
 							</td>
 						))}
 					</tr>
@@ -140,8 +151,54 @@ export const YouClaimedFully: Story = {
 	parameters: { docs: { description: { story: 'Fully claimed and you are among the claimers. Stays green instead of muting.' } } },
 }
 
+// ---------- Locked states ----------
+
+export const LockedByOthersQty1: Story = {
+	args: { quantity: 1, remaining: 0 },
+	parameters: {
+		docs: {
+			description: {
+				story:
+					'qty=1 fully claimed by someone else. Renders the "Claimed" pill with a Lock icon and a popover that explains who blocked the slot.',
+			},
+		},
+	},
+}
+
+export const LockedByOthersMulti: Story = {
+	args: { quantity: 3, remaining: 0 },
+	parameters: {
+		docs: {
+			description: { story: 'qty>1 fully claimed by others. The split pill picks up a Lock icon plus the explanation popover.' },
+		},
+	},
+}
+
+export const LockedByOrder: Story = {
+	args: { quantity: 3, remaining: 3, lockReason: 'order' },
+	parameters: {
+		docs: {
+			description: {
+				story:
+					'Group rule blocks the viewer until an earlier item is claimed. The badge hides the quantity copy and shows just a Lock pill; the popover explains the rule.',
+			},
+		},
+	},
+}
+
+export const LockedByOrGroup: Story = {
+	args: { quantity: 1, remaining: 1, lockReason: 'or' },
+	parameters: {
+		docs: {
+			description: {
+				story: 'Pick-one group: a sibling item is already claimed. Lock pill + popover replaces the would-be empty trailing area.',
+			},
+		},
+	},
+}
+
 // ---------- Playground (knobs-driven) ----------
 
 export const Playground: Story = {
-	args: { quantity: 5, remaining: 3, variant: 'split', youClaimed: false },
+	args: { quantity: 5, remaining: 3, variant: 'split', youClaimed: false, lockReason: undefined },
 }

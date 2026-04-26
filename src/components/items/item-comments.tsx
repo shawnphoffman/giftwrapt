@@ -22,8 +22,8 @@ export function ItemComments({ itemId, commentCount = 0, trailing }: Props) {
 	const displayCount = liveCount
 
 	return (
-		<div className="flex flex-col gap-2">
-			<div className="flex items-center gap-2">
+		<div className="@container flex flex-col gap-2">
+			<div className="flex flex-col-reverse gap-2 @md:flex-row @md:items-center">
 				<button
 					type="button"
 					onClick={() => setExpanded(!expanded)}
@@ -37,7 +37,7 @@ export function ItemComments({ itemId, commentCount = 0, trailing }: Props) {
 					<MessageSquare className="size-3.5" />
 					{displayCount > 0 ? `${displayCount} comment${displayCount !== 1 ? 's' : ''}` : 'Add comment'}
 				</button>
-				{trailing && <div className="ml-auto">{trailing}</div>}
+				{trailing && <div className="@md:ml-auto self-end">{trailing}</div>}
 			</div>
 
 			{expanded && (
