@@ -4,6 +4,7 @@ import type { Database } from '@/db'
 import { itemScrapes } from '@/db/schema'
 
 import { extractFromRaw } from './extractor'
+import { maybeCleanTitle } from './post-passes/clean-title'
 import { scoreScrape } from './score'
 import type { ScrapeResult } from './types'
 
@@ -88,12 +89,20 @@ export async function persistScrapeAttempt(
 }
 
 // Convenience wrapper: build the orchestrator deps that point at this DB,
-// pre-wiring extraction + scoring + cache + persistence.
+// pre-wiring extraction + scoring + cache + persistence + the AI title
+// post-pass (which is itself toggle-gated, so it's a no-op when off).
 export function buildDbBackedDeps(db: Database, options: { ttlHours: number; minScore: number }) {
 	return {
 		extractFromRaw,
 		scoreFn: scoreScrape,
 		loadCache: (url: string) => loadCachedScrape(db, url, options),
 		persistAttempt: (record: Parameters<typeof persistScrapeAttempt>[1]) => persistScrapeAttempt(db, record),
+		postProcessResult: async (result: ScrapeResult, ctx: { url: string; fromProvider: string }) => {
+			const outcome = await maybeCleanTitle(db, result, { url: ctx.url })
+			if (outcome.cleaned && outcome.cleaned !== result.title) {
+				return { ...result, title: outcome.cleaned }
+			}
+			return result
+		},
 	}
 }

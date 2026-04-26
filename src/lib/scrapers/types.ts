@@ -191,4 +191,9 @@ export type OrchestratorDeps = {
 	perProviderTimeoutMs?: number
 	overallTimeoutMs?: number
 	qualityThreshold?: number
+	// Optional post-processing on the final winning result, run after all
+	// providers have settled and before the orchestrator emits `done`. Used
+	// for the AI title-cleanup pass; failures are swallowed so a flaky LLM
+	// can't blow up an otherwise-successful scrape.
+	postProcessResult?: (result: ScrapeResult, ctx: { url: string; fromProvider: string }) => Promise<ScrapeResult>
 }

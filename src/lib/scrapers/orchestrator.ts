@@ -177,6 +177,23 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 		clearTimeout(overallTimer)
 	}
 
+	// Run any post-pass (e.g. AI title cleanup) on the final winner. We
+	// catch and swallow errors here on purpose: a flaky LLM should not
+	// invalidate a successful scrape.
+	const postPass = deps.postProcessResult
+	const beforePost = winnerRef.current
+	if (postPass && beforePost) {
+		try {
+			const next = await postPass(beforePost.result, { url: options.url, fromProvider: beforePost.fromProvider })
+			if (next !== beforePost.result) {
+				winnerRef.current = { ...beforePost, result: next }
+				emit({ type: 'result_updated', result: next, fromProvider: beforePost.fromProvider })
+			}
+		} catch (err) {
+			log.warn({ err }, 'post-pass threw; keeping un-processed result')
+		}
+	}
+
 	const final = winnerRef.current
 	if (final) {
 		emit({ type: 'done', attempts })
