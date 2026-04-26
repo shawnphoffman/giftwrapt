@@ -209,22 +209,42 @@ export default function ThemeReference() {
 					{(['default', 'sm', 'lg', 'icon'] as const).map(size => (
 						<div key={size} className="flex flex-row flex-wrap items-center gap-2">
 							<code className="text-xs text-muted-foreground w-12 font-mono">{size}</code>
-							<Button size={size} variant="default" onClick={() => toast.success('default')}>
+							<Button
+								size={size}
+								variant="default"
+								onClick={() => toast.success('default')}
+								aria-label={size === 'icon' ? 'default' : undefined}
+							>
 								{size === 'icon' ? <Star /> : 'default'}
 							</Button>
-							<Button size={size} variant="secondary" onClick={() => toast.success('secondary')}>
+							<Button
+								size={size}
+								variant="secondary"
+								onClick={() => toast.success('secondary')}
+								aria-label={size === 'icon' ? 'secondary' : undefined}
+							>
 								{size === 'icon' ? <Star /> : 'secondary'}
 							</Button>
-							<Button size={size} variant="outline" onClick={() => toast.success('outline')}>
+							<Button
+								size={size}
+								variant="outline"
+								onClick={() => toast.success('outline')}
+								aria-label={size === 'icon' ? 'outline' : undefined}
+							>
 								{size === 'icon' ? <Star /> : 'outline'}
 							</Button>
-							<Button size={size} variant="ghost" onClick={() => toast.success('ghost')}>
+							<Button size={size} variant="ghost" onClick={() => toast.success('ghost')} aria-label={size === 'icon' ? 'ghost' : undefined}>
 								{size === 'icon' ? <Star /> : 'ghost'}
 							</Button>
-							<Button size={size} variant="destructive" onClick={() => toast.error('destructive')}>
+							<Button
+								size={size}
+								variant="destructive"
+								onClick={() => toast.error('destructive')}
+								aria-label={size === 'icon' ? 'destructive' : undefined}
+							>
 								{size === 'icon' ? <Star /> : 'destructive'}
 							</Button>
-							<Button size={size} variant="link" onClick={() => toast('link')}>
+							<Button size={size} variant="link" onClick={() => toast('link')} aria-label={size === 'icon' ? 'link' : undefined}>
 								{size === 'icon' ? <Star /> : 'link'}
 							</Button>
 						</div>
@@ -541,7 +561,7 @@ export default function ThemeReference() {
 							<CardAction>
 								<DropdownMenu>
 									<DropdownMenuTrigger asChild>
-										<Button size="sm" variant="ghost">
+										<Button size="sm" variant="ghost" aria-label="Card actions">
 											<MoreHorizontal />
 										</Button>
 									</DropdownMenuTrigger>

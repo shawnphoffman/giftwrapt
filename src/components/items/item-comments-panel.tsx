@@ -222,10 +222,10 @@ function CommentRow({
 				</div>
 				{isOwn && !editing && (
 					<div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-						<Button variant="ghost" size="icon" className="size-6" onClick={() => setEditing(true)}>
+						<Button variant="ghost" size="icon" className="size-6" onClick={() => setEditing(true)} aria-label="Edit comment">
 							<Pencil className="size-3" />
 						</Button>
-						<Button variant="ghost" size="icon" className="size-6" onClick={() => setDeleteOpen(true)}>
+						<Button variant="ghost" size="icon" className="size-6" onClick={() => setDeleteOpen(true)} aria-label="Delete comment">
 							<Trash2 className="size-3" />
 						</Button>
 					</div>

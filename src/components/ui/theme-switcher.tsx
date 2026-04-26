@@ -24,7 +24,7 @@ export function ThemeSwitcher({ className }: { className?: string }) {
 
 	if (!mounted) {
 		return (
-			<Button variant="ghost" size="icon" className={buttonClasses} disabled={true} suppressHydrationWarning>
+			<Button variant="ghost" size="icon" className={buttonClasses} disabled={true} aria-label="Toggle theme" suppressHydrationWarning>
 				<Moon className={iconClasses} />
 			</Button>
 		)

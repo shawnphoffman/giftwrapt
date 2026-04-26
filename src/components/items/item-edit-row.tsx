@@ -154,7 +154,7 @@ export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], 
 				)}
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-						<Button variant="ghost" size="icon" className="size-7 shrink-0">
+						<Button variant="ghost" size="icon" className="size-7 shrink-0" aria-label="Item actions">
 							<MoreHorizontal className="size-4" />
 						</Button>
 					</DropdownMenuTrigger>
