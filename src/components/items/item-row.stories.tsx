@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, userEvent, within } from 'storybook/test'
 
+import { priorityEnumValues } from '@/db/schema/enums'
+
 import { withItemFrame } from './_stories/decorators'
 import { makeGift, makeItemWithGifts, placeholderImages, thirdGifter, viewerUser } from './_stories/fixtures'
 import ItemRow from './item-row'
@@ -139,6 +141,35 @@ export const SignedOutVisitor: Story = {
 	},
 	parameters: {
 		session: null,
+	},
+}
+
+export const AllPriorities: Story = {
+	args: {
+		item: makeItemWithGifts(),
+	},
+	render: () => (
+		<div className="flex flex-col gap-4">
+			{priorityEnumValues.map(priority => (
+				<ItemRow
+					key={priority}
+					item={makeItemWithGifts({
+						priority,
+						title: `Priority: ${priority}`,
+						url: null,
+						price: null,
+					})}
+				/>
+			))}
+		</div>
+	),
+	parameters: {
+		docs: {
+			description: {
+				story:
+					'All four priority levels stacked so the colored priority tab on the left edge can be compared side by side. Normal renders without a tab.',
+			},
+		},
 	},
 }
 
