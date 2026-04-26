@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { type Priority, priorityEnumValues } from '@/db/schema/enums'
 import { useScrapeUrl } from '@/lib/use-scrape-url'
 
+import { ImagePicker } from './image-picker'
 import { ScrapeProgressAlert } from './scrape-progress-alert'
 
 type Props = {
@@ -63,10 +64,11 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 	const [selectedListId, setSelectedListId] = useState('')
 	const [saving, setSaving] = useState(false)
 	const [error, setError] = useState<string | null>(null)
-	// Image URL gets prefilled from a scrape and persisted on save. The form
-	// doesn't currently render a picker (Phase 5); for now we keep the first
-	// surviving image so the saved item has artwork when one is available.
+	// Image candidates from the scrape. `imageUrl` is the active selection
+	// (saved on item create); `imageCandidates` is the full filtered list
+	// that drives the picker UI when more than one survives extraction.
 	const [imageUrl, setImageUrl] = useState('')
+	const [imageCandidates, setImageCandidates] = useState<ReadonlyArray<string>>([])
 
 	// Per-field "did the user touch this?" tracking so a scrape doesn't
 	// clobber edits. Refs (not state) — we only consult them at prefill time
@@ -108,6 +110,7 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 			setQuantity('1')
 			setPriority('normal')
 			setImageUrl('')
+			setImageCandidates([])
 			setError(null)
 			titleTouchedRef.current = false
 			priceTouchedRef.current = false
@@ -128,8 +131,14 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 		if (!titleTouchedRef.current && result.title) setTitle(result.title)
 		if (!priceTouchedRef.current && result.price) setPrice(result.price)
 		if (!notesTouchedRef.current && result.description) setNotes(result.description)
-		const firstImage = result.imageUrls[0]
-		if (!imageUrl && firstImage) setImageUrl(firstImage)
+		setImageCandidates(result.imageUrls)
+		// Only auto-select on the first arrival; once the user has picked we
+		// leave their selection alone even if a parallel provider updates the
+		// candidate list.
+		const firstCandidate = result.imageUrls[0]
+		if (!imageUrl && firstCandidate) {
+			setImageUrl(firstCandidate)
+		}
 	}, [scrapeState, imageUrl])
 
 	const formLocked = saving || scrapeState.phase === 'scraping'
@@ -297,6 +306,7 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 							disabled={saving}
 						/>
 						<ScrapeProgressAlert state={scrapeState} url={url} onCancel={cancelScrape} onRetry={handleScrapeRetry} className="mt-1" />
+						<ImagePicker images={imageCandidates} value={imageUrl} onChange={setImageUrl} disabled={formLocked} className="mt-2" />
 					</div>
 
 					<div className="grid gap-2">
