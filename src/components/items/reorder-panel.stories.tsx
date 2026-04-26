@@ -41,7 +41,7 @@ function makeItem(overrides: Partial<Item> = {}): Item {
 }
 
 const meta = {
-	title: 'Items/ReorderPanel',
+	title: 'Items/Other/ReorderPanel',
 	component: ReorderPanel,
 	parameters: { layout: 'padded' },
 	args: { listId: 1 },

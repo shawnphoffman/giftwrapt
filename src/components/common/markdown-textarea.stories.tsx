@@ -18,7 +18,7 @@ function ControlledDemo({ initial, placeholder, rows }: { initial?: string; plac
 }
 
 const meta = {
-	title: 'Common/MarkdownTextarea',
+	title: 'Common/Markdown/MarkdownTextarea',
 	component: ControlledDemo,
 	parameters: { layout: 'padded' },
 } satisfies Meta<typeof ControlledDemo>

@@ -164,7 +164,7 @@ function tokensToStyle(args: Record<string, unknown>): CSSProperties {
 }
 
 const meta = {
-	title: 'Theme/Theme Reference',
+	title: 'Utilities/Theme/Theme Reference',
 	component: ThemeReference,
 	parameters: {
 		layout: 'fullscreen',

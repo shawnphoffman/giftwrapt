@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import Loading from './loading'
 
 const meta = {
-	title: 'Components/Loading',
+	title: 'Utilities/Components/Loading',
 	component: Loading,
 	parameters: {
 		layout: 'padded',

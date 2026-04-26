@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import LoadingSkeleton from './loading-skeleton'
 
 const meta = {
-	title: 'Skeletons/LoadingSkeleton',
+	title: 'Utilities/Skeletons/LoadingSkeleton',
 	component: LoadingSkeleton,
 	parameters: {
 		layout: 'padded',

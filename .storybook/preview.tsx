@@ -43,11 +43,11 @@ const preview: Preview = {
 			storySort: {
 				order: [
 					'Items',
-					['Gallery', 'Playground', 'ItemRow (buyer view)', 'ItemEditRow (recipient view)', 'GroupBlock', 'Components'],
+					['Gallery', 'Playground', 'ItemRow (buyer view)', 'ItemEditRow (recipient view)', 'GroupBlock', 'Components', 'Other'],
 					'Lists',
-					'Purchases',
+					'Pages',
 					'Common',
-					'Theme',
+					'Utilities',
 				],
 			},
 		},

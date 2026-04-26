@@ -5,7 +5,7 @@ import { priorityEnumValues } from '@/db/schema/enums'
 import PriorityIcon from './priority-icon'
 
 const meta = {
-	title: 'Common/PriorityIcon',
+	title: 'Common/Icons/PriorityIcon',
 	component: PriorityIcon,
 	parameters: {
 		layout: 'padded',

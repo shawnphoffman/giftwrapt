@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { MarkdownNotes } from './markdown-notes'
 
 const meta = {
-	title: 'Common/MarkdownNotes',
+	title: 'Common/Markdown/MarkdownNotes',
 	component: MarkdownNotes,
 	parameters: {
 		layout: 'padded',

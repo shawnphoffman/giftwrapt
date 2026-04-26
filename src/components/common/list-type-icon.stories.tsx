@@ -5,7 +5,7 @@ import { listTypeEnumValues } from '@/db/schema/enums'
 import ListTypeIcon from './list-type-icon'
 
 const meta = {
-	title: 'Common/ListTypeIcon',
+	title: 'Common/Icons/ListTypeIcon',
 	component: ListTypeIcon,
 	parameters: {
 		layout: 'padded',

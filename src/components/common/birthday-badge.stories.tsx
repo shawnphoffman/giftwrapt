@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import BirthdayBadge from './birthday-badge'
 
 const meta = {
-	title: 'Common/BirthdayBadge',
+	title: 'Common/Badges/BirthdayBadge',
 	component: BirthdayBadge,
 	parameters: {
 		layout: 'padded',
