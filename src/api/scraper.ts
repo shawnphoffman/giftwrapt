@@ -5,7 +5,10 @@ import { db } from '@/db'
 import { loggingMiddleware } from '@/lib/logger'
 import { buildDbBackedDeps } from '@/lib/scrapers/cache'
 import { orchestrate } from '@/lib/scrapers/orchestrator'
+import { browserlessProvider } from '@/lib/scrapers/providers/browserless'
+import { customHttpProvider } from '@/lib/scrapers/providers/custom-http'
 import { fetchProvider } from '@/lib/scrapers/providers/fetch'
+import { flaresolverrProvider } from '@/lib/scrapers/providers/flaresolverr'
 import type { OrchestrateResult, ScrapeAttempt, ScrapeResult } from '@/lib/scrapers/types'
 import { getAppSettings } from '@/lib/settings'
 import { authMiddleware } from '@/middleware/auth'
@@ -56,7 +59,7 @@ export const scrapeUrl = createServerFn({ method: 'POST' })
 					ttlHours: settings.scrapeCacheTtlHours,
 					minScore: settings.scrapeQualityThreshold,
 				}),
-				providers: [fetchProvider],
+				providers: [fetchProvider, browserlessProvider, flaresolverrProvider, customHttpProvider],
 				perProviderTimeoutMs: settings.scrapeProviderTimeoutMs,
 				overallTimeoutMs: settings.scrapeOverallTimeoutMs,
 				qualityThreshold: settings.scrapeQualityThreshold,

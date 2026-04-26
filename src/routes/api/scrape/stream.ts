@@ -5,7 +5,10 @@ import { auth } from '@/lib/auth'
 import { createLogger } from '@/lib/logger'
 import { buildDbBackedDeps } from '@/lib/scrapers/cache'
 import { orchestrate } from '@/lib/scrapers/orchestrator'
+import { browserlessProvider } from '@/lib/scrapers/providers/browserless'
+import { customHttpProvider } from '@/lib/scrapers/providers/custom-http'
 import { fetchProvider } from '@/lib/scrapers/providers/fetch'
+import { flaresolverrProvider } from '@/lib/scrapers/providers/flaresolverr'
 import { encodeStreamEvent } from '@/lib/scrapers/sse-format'
 import type { StreamEvent } from '@/lib/scrapers/types'
 import { getAppSettings } from '@/lib/settings'
@@ -88,7 +91,7 @@ export const Route = createFileRoute('/api/scrape/stream')({
 									ttlHours: settings.scrapeCacheTtlHours,
 									minScore: settings.scrapeQualityThreshold,
 								}),
-								providers: [fetchProvider],
+								providers: [fetchProvider, browserlessProvider, flaresolverrProvider, customHttpProvider],
 								perProviderTimeoutMs: settings.scrapeProviderTimeoutMs,
 								overallTimeoutMs: settings.scrapeOverallTimeoutMs,
 								qualityThreshold: settings.scrapeQualityThreshold,
