@@ -4,42 +4,46 @@ import { z } from 'zod'
 import type { Database } from '@/db'
 import { appSettings } from '@/db/schema'
 
-// 1) Shape of settings used across the app
+// 1) Shape of settings used across the app.
+// Defaults live in DEFAULT_APP_SETTINGS below, NOT on the schema fields:
+// `appSettingsSchema.partial()` would otherwise fill every absent field with
+// its default and the upsert loop in updateAppSettings would clobber unrelated
+// rows back to defaults on each toggle.
 export const appSettingsSchema = z.object({
-	enableHolidayLists: z.boolean().default(true),
-	enableBirthdayLists: z.boolean().default(true),
-	enableTodoLists: z.boolean().default(true),
-	defaultListType: z.enum(['wishlist', 'christmas', 'birthday', 'giftideas', 'todos', 'test']).default('wishlist'),
-	enableGiftsForNonUsers: z.boolean().default(false),
+	enableHolidayLists: z.boolean(),
+	enableBirthdayLists: z.boolean(),
+	enableTodoLists: z.boolean(),
+	defaultListType: z.enum(['wishlist', 'christmas', 'birthday', 'giftideas', 'todos', 'test']),
+	enableGiftsForNonUsers: z.boolean(),
 	// Days after a birthday before claimed items are auto-archived.
-	archiveDaysAfterBirthday: z.number().int().positive().default(14),
+	archiveDaysAfterBirthday: z.number().int().positive(),
 	// Days after Dec 25 before claimed Christmas items are auto-archived.
-	archiveDaysAfterChristmas: z.number().int().positive().default(14),
+	archiveDaysAfterChristmas: z.number().int().positive(),
 	// Whether birthday emails (day-of + follow-up) are sent.
-	enableBirthdayEmails: z.boolean().default(true),
+	enableBirthdayEmails: z.boolean(),
 	// Whether Christmas emails are sent.
-	enableChristmasEmails: z.boolean().default(true),
+	enableChristmasEmails: z.boolean(),
 	// Whether users can post comments on items.
-	enableComments: z.boolean().default(true),
+	enableComments: z.boolean(),
 	// Whether a notification email is sent to the list owner on new comments.
-	enableCommentEmails: z.boolean().default(true),
+	enableCommentEmails: z.boolean(),
 	// =====================================================================
 	// URL scraping
 	// =====================================================================
 	// Per-provider HTTP timeout in ms.
-	scrapeProviderTimeoutMs: z.number().int().positive().default(10_000),
+	scrapeProviderTimeoutMs: z.number().int().positive(),
 	// Overall budget for a single scrape request in ms (covers sequential
 	// chain + parallel racers).
-	scrapeOverallTimeoutMs: z.number().int().positive().default(20_000),
+	scrapeOverallTimeoutMs: z.number().int().positive(),
 	// Quality threshold the orchestrator uses to short-circuit the chain.
-	scrapeQualityThreshold: z.number().int().default(3),
+	scrapeQualityThreshold: z.number().int(),
 	// How long an existing scrape row counts as "fresh" for dedup. Set to
 	// zero to disable URL-based caching.
-	scrapeCacheTtlHours: z.number().int().min(0).default(24),
+	scrapeCacheTtlHours: z.number().int().min(0),
 	// Phase 4 toggles. Both default off and gate on the configured AI
 	// provider being usable.
-	scrapeAiProviderEnabled: z.boolean().default(false),
-	scrapeAiCleanTitlesEnabled: z.boolean().default(false),
+	scrapeAiProviderEnabled: z.boolean(),
+	scrapeAiCleanTitlesEnabled: z.boolean(),
 	// BYO custom HTTP scraper. The orchestrator calls
 	// `${endpoint}?url=<encoded>` and reads the response per `responseKind`
 	// (html → goes through the extractor; json → expected to match the
