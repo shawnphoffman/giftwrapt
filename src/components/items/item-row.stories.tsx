@@ -111,6 +111,26 @@ export const ClaimDialogOpens: Story = {
 	tags: ['!autodocs'],
 }
 
+export const Unavailable: Story = {
+	args: {
+		item: makeItemWithGifts({
+			title: 'Limited-edition vinyl pressing',
+			url: 'https://www.example.com/listing/12345',
+			price: '85',
+			availability: 'unavailable',
+			availabilityChangedAt: new Date('2026-04-12T15:30:00Z'),
+		}),
+	},
+	parameters: {
+		docs: {
+			description: {
+				story:
+					'Item flagged as no longer available (sold out, discontinued). Claim button is suppressed; the URL link still works. Hover the badge for the date the flag was set.',
+			},
+		},
+	},
+}
+
 export const SignedOutVisitor: Story = {
 	args: {
 		item: makeItemWithGifts({

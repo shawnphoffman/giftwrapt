@@ -194,6 +194,9 @@ export function ClaimGiftDialog(props: Props) {
 										: 'This group has a required order; claim earlier items first.'
 								)
 								break
+							case 'unavailable':
+								setError('This item is marked as unavailable and cannot be claimed.')
+								break
 						}
 						return
 					}

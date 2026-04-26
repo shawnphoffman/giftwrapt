@@ -1,10 +1,17 @@
-import { ExternalLink } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useRouter } from '@tanstack/react-router'
+import { ExternalLink, MoreHorizontal, PackageCheck, PackageX } from 'lucide-react'
+import { type ReactNode, useState } from 'react'
+import { toast } from 'sonner'
 
+import { setItemAvailability } from '@/api/items'
 import type { ItemWithGifts } from '@/api/lists'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import PriorityIcon from '@/components/common/priority-icon'
 import { ItemComments } from '@/components/items/item-comments'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useSession } from '@/lib/auth-client'
 import { computeRemainingClaimableQuantity, computeRemainingClaimableQuantityExcluding } from '@/lib/gifts'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
@@ -37,9 +44,13 @@ type Props = {
 	grouped?: boolean
 }
 
+const AVAILABILITY_DATE_FORMAT: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' }
+
 export default function ItemRow({ item, lockReason, grouped = false }: Props) {
+	const router = useRouter()
 	const { data: session } = useSession()
 	const currentUserId = session?.user.id
+	const [availabilityPending, setAvailabilityPending] = useState(false)
 
 	const remaining = computeRemainingClaimableQuantity(
 		item.quantity,
@@ -47,6 +58,22 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 	)
 	const fullyClaimed = remaining === 0
 	const myClaim = currentUserId ? item.gifts.find(g => g.gifterId === currentUserId) : undefined
+	const isUnavailable = item.availability === 'unavailable'
+	const hasNoClaims = item.gifts.length === 0
+	const canToggleAvailability = !!currentUserId && hasNoClaims
+
+	const handleToggleAvailability = async () => {
+		const next = isUnavailable ? 'available' : 'unavailable'
+		setAvailabilityPending(true)
+		const result = await setItemAvailability({ data: { itemId: item.id, availability: next } })
+		setAvailabilityPending(false)
+		if (result.kind === 'ok') {
+			toast.success(next === 'unavailable' ? 'Marked as unavailable' : 'Marked as available')
+			await router.invalidate()
+		} else {
+			toast.error('Failed to update availability')
+		}
+	}
 
 	const remainingForEdit = myClaim
 		? computeRemainingClaimableQuantityExcluding(
@@ -96,22 +123,42 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 
 	// Mirror ClaimAction's own render decision so we can drop the wrapper
 	// row entirely (instead of leaving an empty flex container that still
-	// contributes a gap) when there's nothing to render.
-	const showClaimAction = !!myClaim || (!fullyClaimed && !groupLockedForViewer)
+	// contributes a gap) when there's nothing to render. Unavailable items
+	// can still be edited by an existing claimer, but no new claims open.
+	const showClaimAction = !!myClaim || (!fullyClaimed && !groupLockedForViewer && !isUnavailable)
 
 	const rowInner = (
 		<div className="flex flex-col w-full gap-2 scroll-mt-24" id={`item-${item.id}`}>
 			{/* DETAILS ROW */}
 			<div className="flex flex-row items-start gap-3">
 				<div className="flex-1 min-w-0 flex flex-col gap-0.5">
-					<div className="font-medium leading-tight truncate">
-						{item.url && !isLocked ? (
-							<a href={item.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
-								{item.title}
-							</a>
-						) : (
-							item.title
-						)}
+					<div className="font-medium leading-tight flex items-center gap-2">
+						<span className="truncate min-w-0 flex-1">
+							{item.url && !isLocked ? (
+								<a href={item.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+									{item.title}
+								</a>
+							) : (
+								item.title
+							)}
+						</span>
+						{isUnavailable &&
+							(item.availabilityChangedAt ? (
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Badge variant="destructive" className="px-1 rounded leading-none shrink-0 cursor-default">
+											Unavailable
+										</Badge>
+									</TooltipTrigger>
+									<TooltipContent side="top">
+										Marked unavailable on {new Date(item.availabilityChangedAt).toLocaleDateString('en-US', AVAILABILITY_DATE_FORMAT)}
+									</TooltipContent>
+								</Tooltip>
+							) : (
+								<Badge variant="destructive" className="px-1 rounded leading-none shrink-0">
+									Unavailable
+								</Badge>
+							))}
 					</div>
 					{domain &&
 						(isLocked ? (
@@ -129,6 +176,28 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 					{item.notes && <MarkdownNotes content={item.notes} className="text-xs text-foreground/75 mt-1" />}
 				</div>
 				{item.imageUrl && <ItemImage src={item.imageUrl} alt={item.title} />}
+				{canToggleAvailability && (
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button variant="ghost" size="icon" className="size-7 shrink-0" aria-label="Item actions">
+								<MoreHorizontal className="size-4" />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							<DropdownMenuItem onClick={handleToggleAvailability} disabled={availabilityPending}>
+								{isUnavailable ? (
+									<>
+										<PackageCheck className="size-4" /> Mark as available
+									</>
+								) : (
+									<>
+										<PackageX className="size-4" /> Mark as unavailable
+									</>
+								)}
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				)}
 			</div>
 
 			{showClaimAction && (

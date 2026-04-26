@@ -168,3 +168,22 @@ export const WithReorderControls: Story = {
 		onMoveDown: () => {},
 	},
 }
+
+export const Unavailable: Story = {
+	args: {
+		item: makeItem({
+			title: 'Limited-edition vinyl pressing',
+			url: 'https://www.example.com/listing/12345',
+			price: '85',
+			availability: 'unavailable',
+			availabilityChangedAt: new Date('2026-04-12T15:30:00Z'),
+		}),
+	},
+	parameters: {
+		docs: {
+			description: {
+				story: 'Owner view of an item flagged as unavailable. The badge serves as a reminder that gifters cannot claim it.',
+			},
+		},
+	},
+}

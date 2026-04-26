@@ -76,7 +76,7 @@ export type ClaimGiftResult =
 	| { kind: 'ok'; gift: GiftedItem }
 	| {
 			kind: 'error'
-			reason: 'item-not-found' | 'not-visible' | 'cannot-claim-own-list' | 'group-already-claimed' | 'group-out-of-order'
+			reason: 'item-not-found' | 'not-visible' | 'cannot-claim-own-list' | 'group-already-claimed' | 'group-out-of-order' | 'unavailable'
 			blockingItemTitle?: string
 	  }
 	| { kind: 'error'; reason: 'over-claim'; remaining: number }
@@ -95,14 +95,26 @@ export const claimItemGift = createServerFn({ method: 'POST' })
 			// Doing this FIRST (before any reads) is deliberate - the point of the
 			// lock is to serialize the "compute remaining → insert" window.
 			const lockedRows = await tx.execute(
-				sql`SELECT id, list_id, quantity, is_archived, group_id, group_sort_order FROM items WHERE id = ${data.itemId} FOR UPDATE`
+				sql`SELECT id, list_id, quantity, is_archived, availability, group_id, group_sort_order FROM items WHERE id = ${data.itemId} FOR UPDATE`
 			)
 			const lockedItem = lockedRows.rows[0] as
-				| { id: number; list_id: number; quantity: number; is_archived: boolean; group_id: number | null; group_sort_order: number | null }
+				| {
+						id: number
+						list_id: number
+						quantity: number
+						is_archived: boolean
+						availability: 'available' | 'unavailable'
+						group_id: number | null
+						group_sort_order: number | null
+				  }
 				| undefined
 
 			if (!lockedItem || lockedItem.is_archived) {
 				return { kind: 'error', reason: 'item-not-found' }
+			}
+
+			if (lockedItem.availability === 'unavailable') {
+				return { kind: 'error', reason: 'unavailable' }
 			}
 
 			// Visibility gate: claim requires viewer-level access to the parent list.

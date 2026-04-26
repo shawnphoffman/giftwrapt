@@ -31,6 +31,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
 	DropdownMenu,
@@ -112,7 +113,14 @@ export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], 
 		<div className="flex flex-col w-full gap-2 scroll-mt-24" id={`item-${item.id}`}>
 			<div className="flex items-start gap-2">
 				<div className="flex-1 min-w-0 flex flex-col gap-0.5">
-					<div className="font-medium leading-tight truncate">{item.title}</div>
+					<div className="font-medium leading-tight flex items-center gap-2">
+						<span className="truncate min-w-0 flex-1">{item.title}</span>
+						{item.availability === 'unavailable' && (
+							<Badge variant="destructive" className="px-1 rounded leading-none shrink-0">
+								Unavailable
+							</Badge>
+						)}
+					</div>
 					{domain && (
 						<a
 							href={item.url!}

@@ -20,6 +20,7 @@ export const createItem = ok
 export const updateItem = ok
 export const deleteItem = ok
 export const archiveItem = ok
+export const setItemAvailability = ok
 export const moveItemToList = ok
 export const archiveItems = (): Promise<{ kind: 'ok'; updated: number }> => Promise.resolve({ kind: 'ok', updated: 0 })
 export const deleteItems = (): Promise<{ kind: 'ok'; deleted: number }> => Promise.resolve({ kind: 'ok', deleted: 0 })

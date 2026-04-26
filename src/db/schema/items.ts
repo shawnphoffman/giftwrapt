@@ -22,6 +22,9 @@ export const items = pgTable(
 		status: statusEnum('status').default('incomplete').notNull(),
 		// Product-state, orthogonal to status. Marks items that are sold out/discontinued.
 		availability: availabilityEnum('availability').default('available').notNull(),
+		// Set whenever availability is toggled; null until the first toggle.
+		// Drives the tooltip on the Unavailable badge.
+		availabilityChangedAt: timestamp('availability_changed_at', { withTimezone: true }),
 		url: text('url'),
 		// Stable identity of where this item is sold. Derived from `url` by
 		// rules in src/lib/urls.ts and re-derived on URL writes; null when no URL.

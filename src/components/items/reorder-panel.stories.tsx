@@ -21,6 +21,7 @@ function makeItem(overrides: Partial<Item> = {}): Item {
 		title: 'Item',
 		status: 'incomplete',
 		availability: 'available',
+		availabilityChangedAt: null,
 		url: null,
 		vendorId: null,
 		vendorSource: null,

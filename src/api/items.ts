@@ -4,10 +4,10 @@ import { z } from 'zod'
 
 import { db } from '@/db'
 import { giftedItems, itemComments, itemGroups, items, lists } from '@/db/schema'
-import { type ListType, priorityEnumValues, statusEnumValues } from '@/db/schema/enums'
+import { availabilityEnumValues, type ListType, priorityEnumValues, statusEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { loggingMiddleware } from '@/lib/logger'
-import { canEditList } from '@/lib/permissions'
+import { canEditList, canViewList } from '@/lib/permissions'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { getVendorFromUrl } from '@/lib/urls'
 import { authMiddleware } from '@/middleware/auth'
@@ -246,6 +246,49 @@ export const archiveItem = createServerFn({ method: 'POST' })
 
 		await db.update(items).set({ isArchived: data.archived }).where(eq(items.id, data.itemId))
 		return { kind: 'ok' }
+	})
+
+// ===============================
+// WRITE - set item availability
+// ===============================
+// Toggleable by any signed-in viewer of the list (mirrors claim authz, since
+// gifters are the ones who discover an item is sold out). Bumps
+// availabilityChangedAt so the badge tooltip can show "Marked unavailable on…".
+
+const SetItemAvailabilityInputSchema = z.object({
+	itemId: z.number().int().positive(),
+	availability: z.enum(availabilityEnumValues),
+})
+
+export type SetItemAvailabilityResult = { kind: 'ok'; item: Item } | { kind: 'error'; reason: 'not-found' | 'not-visible' }
+
+export const setItemAvailability = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: z.input<typeof SetItemAvailabilityInputSchema>) => SetItemAvailabilityInputSchema.parse(data))
+	.handler(async ({ context, data }): Promise<SetItemAvailabilityResult> => {
+		const userId = context.session.user.id
+
+		const item = await db.query.items.findFirst({
+			where: eq(items.id, data.itemId),
+			columns: { id: true, listId: true },
+		})
+		if (!item) return { kind: 'error', reason: 'not-found' }
+
+		const list = await db.query.lists.findFirst({
+			where: eq(lists.id, item.listId),
+			columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		})
+		if (!list) return { kind: 'error', reason: 'not-found' }
+
+		const view = await canViewList(userId, list)
+		if (!view.ok) return { kind: 'error', reason: 'not-visible' }
+
+		const [updated] = await db
+			.update(items)
+			.set({ availability: data.availability, availabilityChangedAt: new Date() })
+			.where(eq(items.id, data.itemId))
+			.returning()
+		return { kind: 'ok', item: updated }
 	})
 
 // ===============================

@@ -87,6 +87,7 @@ const itemRowSchema = z.object({
 	title: z.string(),
 	status: z.enum(statusEnumValues),
 	availability: z.enum(availabilityEnumValues),
+	availabilityChangedAt: dateField.nullable(),
 	url: z.string().nullable(),
 	imageUrl: z.string().nullable(),
 	price: z.string().nullable(),

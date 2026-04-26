@@ -52,6 +52,7 @@ export function makeItem(overrides: Partial<Item> = {}): Item {
 		title: 'Bluetooth headphones',
 		status: 'incomplete',
 		availability: 'available',
+		availabilityChangedAt: null,
 		url: 'https://www.amazon.com/dp/B0863TXGM3',
 		vendorId: 'amazon',
 		vendorSource: 'rule',
