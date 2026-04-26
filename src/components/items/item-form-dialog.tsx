@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { useStorageStatus } from '@/hooks/use-storage-status'
@@ -336,28 +336,30 @@ export function ItemFormDialog(props: Props) {
 					<form.Field name="priority">
 						{field => (
 							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Priority</Label>
-								<Select
+								<Label id={`${field.name}-label`}>Priority</Label>
+								<ToggleGroup
+									type="single"
+									variant="outline"
 									value={field.state.value}
-									onValueChange={v => field.handleChange(v as typeof field.state.value)}
+									onValueChange={v => {
+										if (v) field.handleChange(v as typeof field.state.value)
+									}}
 									disabled={submitting}
+									aria-labelledby={`${field.name}-label`}
+									className="grid w-full grid-cols-4 sm:flex sm:w-fit"
 								>
-									<SelectTrigger id={field.name}>
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										{[...priorityEnumValues].reverse().map(p => (
-											<SelectItem key={p} value={p}>
-												<span className="inline-flex items-center gap-2">
-													<span className="inline-flex size-4 items-center justify-center">
-														<PriorityIcon priority={p} />
-													</span>
-													{PriorityLabels[p] ?? p}
-												</span>
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
+									{[...priorityEnumValues].reverse().map(p => (
+										<ToggleGroupItem
+											key={p}
+											value={p}
+											aria-label={PriorityLabels[p] ?? p}
+											className="min-w-0 px-1.5 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
+										>
+											{p !== 'normal' && <PriorityIcon priority={p} />}
+											<span className={p === 'normal' ? undefined : 'hidden sm:inline'}>{PriorityLabels[p] ?? p}</span>
+										</ToggleGroupItem>
+									))}
+								</ToggleGroup>
 							</div>
 						)}
 					</form.Field>

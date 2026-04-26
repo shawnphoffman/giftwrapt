@@ -17,6 +17,7 @@ import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { type Priority, priorityEnumValues } from '@/db/schema/enums'
 import { applyScrapePrefill } from '@/lib/scrapers/apply-prefill'
 import { useScrapeUrl } from '@/lib/use-scrape-url'
@@ -343,27 +344,34 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 						/>
 					</div>
 
-					<div className="grid gap-4 sm:grid-cols-3">
-						<div className="grid gap-2">
-							<Label htmlFor="add-item-priority">Priority</Label>
-							<Select value={priority} onValueChange={v => setPriority(v as Priority)} disabled={formLocked}>
-								<SelectTrigger id="add-item-priority" className="w-full">
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									{[...priorityEnumValues].reverse().map(p => (
-										<SelectItem key={p} value={p}>
-											<span className="inline-flex items-center gap-2">
-												<span className="inline-flex size-4 items-center justify-center">
-													<PriorityIcon priority={p} />
-												</span>
-												{PriorityLabels[p]}
-											</span>
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
+					<div className="grid gap-2">
+						<Label id="add-item-priority-label">Priority</Label>
+						<ToggleGroup
+							type="single"
+							variant="outline"
+							value={priority}
+							onValueChange={v => {
+								if (v) setPriority(v as Priority)
+							}}
+							disabled={formLocked}
+							aria-labelledby="add-item-priority-label"
+							className="grid w-full grid-cols-4 sm:flex sm:w-fit"
+						>
+							{[...priorityEnumValues].reverse().map(p => (
+								<ToggleGroupItem
+									key={p}
+									value={p}
+									aria-label={PriorityLabels[p]}
+									className="min-w-0 px-1.5 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
+								>
+									{p !== 'normal' && <PriorityIcon priority={p} />}
+									<span className={p === 'normal' ? undefined : 'hidden sm:inline'}>{PriorityLabels[p]}</span>
+								</ToggleGroupItem>
+							))}
+						</ToggleGroup>
+					</div>
+
+					<div className="grid gap-4 sm:grid-cols-2">
 						<div className="grid gap-2">
 							<Label htmlFor="add-item-price">Price Range</Label>
 							<Input
