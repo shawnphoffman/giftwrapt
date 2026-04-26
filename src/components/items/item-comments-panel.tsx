@@ -36,7 +36,7 @@ export default function ItemCommentsPanel({ itemId, onCountChange }: Props) {
 	const queryClient = useQueryClient()
 	const currentUserId = session.data?.user.id
 	const prefersReducedMotion = useReducedMotion()
-	const duration = prefersReducedMotion ? 0 : 0.18
+	const duration = prefersReducedMotion ? 0 : 0.15
 
 	const { data: comments, refetch } = useQuery({
 		queryKey: ['item-comments', itemId],
@@ -71,50 +71,42 @@ export default function ItemCommentsPanel({ itemId, onCountChange }: Props) {
 	const displayCount = comments?.length ?? 0
 
 	return (
-		<motion.div
-			initial={{ height: 0, opacity: 0 }}
-			animate={{ height: 'auto', opacity: 1 }}
-			exit={{ height: 0, opacity: 0 }}
-			transition={{ duration, ease: 'easeOut' }}
-			className="overflow-hidden"
-		>
-			<div className={cn('flex flex-col gap-2 pl-2 border-l', displayCount > 0 ? 'border-blue-600 dark:border-blue-400' : 'border-muted')}>
-				<AnimatePresence initial={false}>
-					{comments?.map(c => (
-						<motion.div
-							key={c.id}
-							layout
-							initial={{ opacity: 0, y: -4 }}
-							animate={{ opacity: 1, y: 0 }}
-							exit={{ opacity: 0, y: -4 }}
-							transition={{ duration, ease: 'easeOut' }}
-						>
-							<CommentRow comment={c} currentUserId={currentUserId} onDeleted={refetch} />
-						</motion.div>
-					))}
-				</AnimatePresence>
+		<div className={cn('flex flex-col gap-2 pl-2 border-l', displayCount > 0 ? 'border-blue-600 dark:border-blue-400' : 'border-muted')}>
+			<AnimatePresence initial={false}>
+				{comments?.map(c => (
+					<motion.div
+						key={c.id}
+						layout
+						initial={{ opacity: 0, y: -4 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={{ opacity: 0, y: -4 }}
+						transition={{ duration, ease: 'easeOut' }}
+					>
+						<CommentRow comment={c} currentUserId={currentUserId} onDeleted={refetch} />
+					</motion.div>
+				))}
+			</AnimatePresence>
 
-				<div className="flex gap-2">
-					<Textarea
-						placeholder="Write a comment..."
-						rows={2}
-						value={newComment}
-						onChange={e => setNewComment(e.target.value)}
-						onKeyDown={e => {
-							if (isSubmitShortcut(e)) {
-								e.preventDefault()
-								void handleSubmit()
-							}
-						}}
-						disabled={submitting}
-						className="text-sm"
-					/>
-					<Button size="sm" onClick={handleSubmit} disabled={submitting || !newComment.trim()}>
-						{submitting ? '...' : 'Post'}
-					</Button>
-				</div>
+			<div className="flex gap-2">
+				<Textarea
+					placeholder="Write a comment..."
+					rows={2}
+					value={newComment}
+					onChange={e => setNewComment(e.target.value)}
+					onKeyDown={e => {
+						if (isSubmitShortcut(e)) {
+							e.preventDefault()
+							void handleSubmit()
+						}
+					}}
+					disabled={submitting}
+					className="text-sm"
+				/>
+				<Button size="sm" onClick={handleSubmit} disabled={submitting || !newComment.trim()}>
+					{submitting ? '...' : 'Post'}
+				</Button>
 			</div>
-		</motion.div>
+		</div>
 	)
 }
 

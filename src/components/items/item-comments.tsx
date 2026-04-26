@@ -1,4 +1,5 @@
 import { MessageSquare } from 'lucide-react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { lazy, Suspense, useState } from 'react'
 
 import { cn } from '@/lib/utils'
@@ -20,6 +21,8 @@ export function ItemComments({ itemId, commentCount = 0, trailing }: Props) {
 	const [expanded, setExpanded] = useState(commentCount > 0)
 	const [liveCount, setLiveCount] = useState(commentCount)
 	const displayCount = liveCount
+	const prefersReducedMotion = useReducedMotion()
+	const duration = prefersReducedMotion ? 0 : 0.18
 
 	return (
 		<div className="@container flex flex-col gap-2">
@@ -40,11 +43,22 @@ export function ItemComments({ itemId, commentCount = 0, trailing }: Props) {
 				{trailing && <div className="@md:ml-auto self-end">{trailing}</div>}
 			</div>
 
-			{expanded && (
-				<Suspense fallback={null}>
-					<ItemCommentsPanel itemId={itemId} onCountChange={setLiveCount} />
-				</Suspense>
-			)}
+			<AnimatePresence initial={false}>
+				{expanded && (
+					<motion.div
+						key="comments-panel"
+						initial={{ height: 0, opacity: 0 }}
+						animate={{ height: 'auto', opacity: 1 }}
+						exit={{ height: 0, opacity: 0 }}
+						transition={{ duration, ease: 'easeOut' }}
+						className="overflow-hidden"
+					>
+						<Suspense fallback={null}>
+							<ItemCommentsPanel itemId={itemId} onCountChange={setLiveCount} />
+						</Suspense>
+					</motion.div>
+				)}
+			</AnimatePresence>
 		</div>
 	)
 }
