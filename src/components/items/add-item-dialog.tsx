@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { Lock, Star } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { createItem } from '@/api/items'
@@ -17,6 +17,9 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { type Priority, priorityEnumValues } from '@/db/schema/enums'
+import { useScrapeUrl } from '@/lib/use-scrape-url'
+
+import { ScrapeProgressAlert } from './scrape-progress-alert'
 
 type Props = {
 	open: boolean
@@ -60,6 +63,20 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 	const [selectedListId, setSelectedListId] = useState('')
 	const [saving, setSaving] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+	// Image URL gets prefilled from a scrape and persisted on save. The form
+	// doesn't currently render a picker (Phase 5); for now we keep the first
+	// surviving image so the saved item has artwork when one is available.
+	const [imageUrl, setImageUrl] = useState('')
+
+	// Per-field "did the user touch this?" tracking so a scrape doesn't
+	// clobber edits. Refs (not state) — we only consult them at prefill time
+	// and don't want to trigger re-renders.
+	const titleTouchedRef = useRef(false)
+	const priceTouchedRef = useRef(false)
+	const notesTouchedRef = useRef(false)
+	const lastScrapedUrlRef = useRef('')
+
+	const { state: scrapeState, start: startScrape, cancel: cancelScrape } = useScrapeUrl()
 
 	const { data: myLists } = useQuery({
 		queryKey: ['my-lists-for-import'],
@@ -90,9 +107,53 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 			setPrice('')
 			setQuantity('1')
 			setPriority('normal')
+			setImageUrl('')
 			setError(null)
+			titleTouchedRef.current = false
+			priceTouchedRef.current = false
+			notesTouchedRef.current = false
+			lastScrapedUrlRef.current = ''
+			cancelScrape()
 		}
-	}, [open])
+	}, [open, cancelScrape])
+
+	// Prefill empty (or untouched) fields when a scrape result arrives. Runs
+	// for both `partial` (a winner is in but parallels still racing) and
+	// `done` (final winner). Re-runs harmlessly if `result_updated` swaps the
+	// result later — the touched-refs prevent overwriting user edits.
+	useEffect(() => {
+		if (scrapeState.phase !== 'partial' && scrapeState.phase !== 'done') return
+		const result = scrapeState.result
+		if (!result) return
+		if (!titleTouchedRef.current && result.title) setTitle(result.title)
+		if (!priceTouchedRef.current && result.price) setPrice(result.price)
+		if (!notesTouchedRef.current && result.description) setNotes(result.description)
+		const firstImage = result.imageUrls[0]
+		if (!imageUrl && firstImage) setImageUrl(firstImage)
+	}, [scrapeState, imageUrl])
+
+	const formLocked = saving || scrapeState.phase === 'scraping'
+
+	const handleUrlBlur = () => {
+		const trimmed = url.trim()
+		if (!trimmed) return
+		try {
+			const parsed = new URL(trimmed)
+			if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return
+		} catch {
+			return
+		}
+		if (trimmed === lastScrapedUrlRef.current) return
+		lastScrapedUrlRef.current = trimmed
+		startScrape(trimmed)
+	}
+
+	const handleScrapeRetry = () => {
+		const trimmed = url.trim()
+		if (!trimmed) return
+		lastScrapedUrlRef.current = trimmed
+		startScrape(trimmed, { force: true })
+	}
 
 	const handleSave = async () => {
 		const listId = Number(selectedListId)
@@ -116,6 +177,7 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 					priority,
 					quantity: qty,
 					notes: notes.trim() || undefined,
+					imageUrl: imageUrl.trim() || undefined,
 				},
 			})
 
@@ -154,7 +216,7 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 				>
 					<div className="grid gap-2">
 						<Label htmlFor="add-item-list">List</Label>
-						<Select value={selectedListId} onValueChange={setSelectedListId} disabled={saving}>
+						<Select value={selectedListId} onValueChange={setSelectedListId} disabled={formLocked}>
 							<SelectTrigger id="add-item-list" className="w-full">
 								<SelectValue placeholder="Select a list" />
 							</SelectTrigger>
@@ -213,9 +275,12 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 						<Input
 							id="add-item-title"
 							value={title}
-							onChange={e => setTitle(e.target.value)}
+							onChange={e => {
+								titleTouchedRef.current = true
+								setTitle(e.target.value)
+							}}
 							placeholder="Something cool..."
-							disabled={saving}
+							disabled={formLocked}
 							autoFocus
 						/>
 					</div>
@@ -227,9 +292,11 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 							type="url"
 							value={url}
 							onChange={e => setUrl(e.target.value)}
+							onBlur={handleUrlBlur}
 							placeholder="https://..."
 							disabled={saving}
 						/>
+						<ScrapeProgressAlert state={scrapeState} url={url} onCancel={cancelScrape} onRetry={handleScrapeRetry} className="mt-1" />
 					</div>
 
 					<div className="grid gap-2">
@@ -237,17 +304,20 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 						<Textarea
 							id="add-item-notes"
 							value={notes}
-							onChange={e => setNotes(e.target.value)}
+							onChange={e => {
+								notesTouchedRef.current = true
+								setNotes(e.target.value)
+							}}
 							rows={2}
 							placeholder="Color, size, model..."
-							disabled={saving}
+							disabled={formLocked}
 						/>
 					</div>
 
 					<div className="grid gap-4 sm:grid-cols-3">
 						<div className="grid gap-2">
 							<Label htmlFor="add-item-priority">Priority</Label>
-							<Select value={priority} onValueChange={v => setPriority(v as Priority)} disabled={saving}>
+							<Select value={priority} onValueChange={v => setPriority(v as Priority)} disabled={formLocked}>
 								<SelectTrigger id="add-item-priority" className="w-full">
 									<SelectValue />
 								</SelectTrigger>
@@ -270,10 +340,13 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 							<Input
 								id="add-item-price"
 								value={price}
-								onChange={e => setPrice(e.target.value)}
+								onChange={e => {
+									priceTouchedRef.current = true
+									setPrice(e.target.value)
+								}}
 								placeholder="$ 0.00"
 								inputMode="decimal"
-								disabled={saving}
+								disabled={formLocked}
 							/>
 						</div>
 						<div className="grid gap-2">
@@ -285,7 +358,7 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 								max={999}
 								value={quantity}
 								onChange={e => setQuantity(e.target.value)}
-								disabled={saving}
+								disabled={formLocked}
 							/>
 						</div>
 					</div>
@@ -301,7 +374,7 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
 							Cancel
 						</Button>
-						<Button type="submit" disabled={saving || !title.trim() || !selectedListId}>
+						<Button type="submit" disabled={formLocked || !title.trim() || !selectedListId}>
 							{saving ? 'Saving...' : 'Add Item'}
 						</Button>
 					</DialogFooter>
