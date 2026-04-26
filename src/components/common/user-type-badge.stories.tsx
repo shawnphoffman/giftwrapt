@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 
 import type { User } from '@/db-collections/users'
 
-import UserBadge from './user-badge'
+import UserTypeBadge from './user-type-badge'
 
 const baseUser: User = {
 	id: 'u1',
@@ -15,12 +15,12 @@ const baseUser: User = {
 }
 
 const meta = {
-	title: 'Common/UserBadge',
-	component: UserBadge,
+	title: 'Common/UserTypeBadge',
+	component: UserTypeBadge,
 	parameters: {
 		layout: 'padded',
 	},
-} satisfies Meta<typeof UserBadge>
+} satisfies Meta<typeof UserTypeBadge>
 
 export default meta
 type Story = StoryObj<typeof meta>
@@ -29,9 +29,9 @@ export const AllRoles: Story = {
 	args: { user: baseUser },
 	render: () => (
 		<div className="flex gap-3 items-center">
-			<UserBadge user={{ ...baseUser, role: 'user' }} />
-			<UserBadge user={{ ...baseUser, role: 'admin' }} />
-			<UserBadge user={{ ...baseUser, role: 'child' }} />
+			<UserTypeBadge user={{ ...baseUser, role: 'user' }} />
+			<UserTypeBadge user={{ ...baseUser, role: 'admin' }} />
+			<UserTypeBadge user={{ ...baseUser, role: 'child' }} />
 		</div>
 	),
 }

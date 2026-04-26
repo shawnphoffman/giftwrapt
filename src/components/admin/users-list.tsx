@@ -6,7 +6,7 @@ import UserAvatar from '@/components/common/user-avatar'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { User } from '@/db-collections/users'
 
-import UserBadge from '../common/user-badge'
+import UserTypeBadge from '../common/user-type-badge'
 
 export function AdminUsersList() {
 	const {
@@ -59,7 +59,7 @@ export function AdminUsersList() {
 							<div className="text-xs text-muted-foreground truncate">{user.email}</div>
 						</div>
 						<div className="text-xs text-muted-foreground capitalize">
-							<UserBadge user={user} />
+							<UserTypeBadge user={user} />
 							{/* {user.role} */}
 						</div>
 					</div>
