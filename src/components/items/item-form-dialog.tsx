@@ -1,8 +1,8 @@
 import { useForm } from '@tanstack/react-form'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
-import { Loader2, Trash2, Upload } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { Loader2, Sparkles, Trash2, Upload } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
@@ -14,11 +14,16 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { useStorageStatus } from '@/hooks/use-storage-status'
+import { useScrapeUrl } from '@/lib/use-scrape-url'
+
+import { ImagePicker } from './image-picker'
+import { ScrapeProgressAlert } from './scrape-progress-alert'
 
 type BaseProps = {
 	open: boolean
@@ -60,6 +65,27 @@ export function ItemFormDialog(props: Props) {
 	// Upload UI is only offered when the item already exists (itemId required
 	// for the upload endpoint) AND storage is configured on the server.
 	const showUploadButton = isEdit && storageConfigured
+
+	// Scrape integration. Per-field "did the user touch this?" refs gate
+	// prefill so a re-scrape never clobbers user edits. lastScrapedUrlRef
+	// stops the blur handler from firing repeatedly on the same URL.
+	const { state: scrapeState, start: startScrape, cancel: cancelScrape } = useScrapeUrl()
+	const titleTouchedRef = useRef(false)
+	const priceTouchedRef = useRef(false)
+	const notesTouchedRef = useRef(false)
+	const lastScrapedUrlRef = useRef('')
+	const [imageCandidates, setImageCandidates] = useState<ReadonlyArray<string>>([])
+
+	const isHttpUrl = (raw: string): boolean => {
+		const trimmed = raw.trim()
+		if (!trimmed) return false
+		try {
+			const parsed = new URL(trimmed)
+			return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+		} catch {
+			return false
+		}
+	}
 
 	const form = useForm({
 		defaultValues: {
@@ -143,6 +169,64 @@ export function ItemFormDialog(props: Props) {
 		},
 	})
 
+	// Prefill empty (or untouched) fields when a scrape result arrives. Runs
+	// for both `partial` (a winner is in but parallels still racing) and
+	// `done` (final winner, possibly title-cleaned by the post-pass).
+	useEffect(() => {
+		if (scrapeState.phase !== 'partial' && scrapeState.phase !== 'done') return
+		const result = scrapeState.result
+		if (!result) return
+		const values = form.state.values
+		if (!titleTouchedRef.current && !values.title.trim() && result.title) {
+			form.setFieldValue('title', result.title)
+		}
+		if (!priceTouchedRef.current && !values.price.trim() && result.price) {
+			form.setFieldValue('price', result.price)
+		}
+		if (!notesTouchedRef.current && !values.notes.trim() && result.description) {
+			form.setFieldValue('notes', result.description)
+		}
+		setImageCandidates(result.imageUrls)
+		const firstCandidate = result.imageUrls[0]
+		if (!values.imageUrl.trim() && firstCandidate) {
+			form.setFieldValue('imageUrl', firstCandidate)
+		}
+	}, [scrapeState, form])
+
+	// Tear down any in-flight scrape and reset prefill state when the dialog
+	// closes. The form itself is reset by callers post-submit; this runs
+	// regardless to clean up the side-effect of opening + closing without
+	// saving.
+	useEffect(() => {
+		if (open) return
+		cancelScrape()
+		titleTouchedRef.current = false
+		priceTouchedRef.current = false
+		notesTouchedRef.current = false
+		lastScrapedUrlRef.current = ''
+		setImageCandidates([])
+	}, [open, cancelScrape])
+
+	const formLocked = submitting || scrapeState.phase === 'scraping'
+	const scrapeInFlight = scrapeState.phase === 'scraping'
+
+	const triggerAutoScrape = (rawUrl: string) => {
+		const trimmed = rawUrl.trim()
+		if (!isHttpUrl(trimmed)) return
+		if (trimmed === lastScrapedUrlRef.current) return
+		lastScrapedUrlRef.current = trimmed
+		startScrape(trimmed)
+	}
+
+	const triggerManualScrape = (rawUrl: string) => {
+		const trimmed = rawUrl.trim()
+		if (!isHttpUrl(trimmed)) return
+		// Manual button always forces a fresh scrape so users can re-run after
+		// editing the URL or just to bypass the cache.
+		lastScrapedUrlRef.current = trimmed
+		startScrape(trimmed, { force: true, ...(isEdit ? { itemId: props.item.id } : {}) })
+	}
+
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-h-[85vh] overflow-y-auto">
@@ -159,6 +243,50 @@ export function ItemFormDialog(props: Props) {
 					}}
 					className="space-y-4"
 				>
+					<form.Field name="url">
+						{field => {
+							const urlScrapable = isHttpUrl(field.state.value)
+							return (
+								<div className="grid gap-2">
+									<Label htmlFor={field.name}>URL (optional)</Label>
+									<InputGroup>
+										<InputGroupInput
+											id={field.name}
+											type="url"
+											placeholder="https://..."
+											value={field.state.value}
+											onChange={e => field.handleChange(e.target.value)}
+											onBlur={() => {
+												field.handleBlur()
+												triggerAutoScrape(field.state.value)
+											}}
+											disabled={submitting}
+											autoFocus={!isEdit}
+										/>
+										<InputGroupAddon align="inline-end">
+											<InputGroupButton
+												type="button"
+												aria-label={scrapeInFlight ? 'Importing from URL…' : 'Import details from URL'}
+												title={scrapeInFlight ? 'Importing from URL…' : 'Import details from URL'}
+												disabled={!urlScrapable || scrapeInFlight || submitting}
+												onClick={() => triggerManualScrape(field.state.value)}
+											>
+												{scrapeInFlight ? <Loader2 className="animate-spin" /> : <Sparkles />}
+											</InputGroupButton>
+										</InputGroupAddon>
+									</InputGroup>
+									<ScrapeProgressAlert
+										state={scrapeState}
+										url={field.state.value}
+										onCancel={cancelScrape}
+										onRetry={() => triggerManualScrape(field.state.value)}
+										className="mt-1"
+									/>
+								</div>
+							)
+						}}
+					</form.Field>
+
 					<form.Field name="title">
 						{field => (
 							<div className="grid gap-2">
@@ -167,33 +295,19 @@ export function ItemFormDialog(props: Props) {
 									id={field.name}
 									placeholder="e.g. AirPods Pro"
 									value={field.state.value}
-									onChange={e => field.handleChange(e.target.value)}
+									onChange={e => {
+										titleTouchedRef.current = true
+										field.handleChange(e.target.value)
+									}}
 									onBlur={field.handleBlur}
-									disabled={submitting}
-									autoFocus
+									disabled={formLocked}
+									autoFocus={isEdit}
 								/>
 								{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 									<p className="text-destructive text-sm">
 										{field.state.meta.errors.map(e => (typeof e === 'string' ? e : String(e))).join(', ')}
 									</p>
 								)}
-							</div>
-						)}
-					</form.Field>
-
-					<form.Field name="url">
-						{field => (
-							<div className="grid gap-2">
-								<Label htmlFor={field.name}>URL (optional)</Label>
-								<Input
-									id={field.name}
-									type="url"
-									placeholder="https://..."
-									value={field.state.value}
-									onChange={e => field.handleChange(e.target.value)}
-									onBlur={field.handleBlur}
-									disabled={submitting}
-								/>
 							</div>
 						)}
 					</form.Field>
@@ -208,9 +322,12 @@ export function ItemFormDialog(props: Props) {
 										placeholder="29.99"
 										inputMode="decimal"
 										value={field.state.value}
-										onChange={e => field.handleChange(e.target.value)}
+										onChange={e => {
+											priceTouchedRef.current = true
+											field.handleChange(e.target.value)
+										}}
 										onBlur={field.handleBlur}
-										disabled={submitting}
+										disabled={formLocked}
 									/>
 								</div>
 							)}
@@ -273,9 +390,12 @@ export function ItemFormDialog(props: Props) {
 									placeholder="Color preferences, size, model, etc."
 									rows={3}
 									value={field.state.value}
-									onChange={v => field.handleChange(v)}
+									onChange={v => {
+										notesTouchedRef.current = true
+										field.handleChange(v)
+									}}
 									onBlur={field.handleBlur}
-									disabled={submitting}
+									disabled={formLocked}
 								/>
 							</div>
 						)}
@@ -343,6 +463,12 @@ export function ItemFormDialog(props: Props) {
 											</Button>
 										</div>
 									)}
+									<ImagePicker
+										images={imageCandidates}
+										value={field.state.value}
+										onChange={url => field.handleChange(url)}
+										disabled={formLocked || uploadingImage}
+									/>
 									<div className="flex gap-2">
 										<Input
 											id={field.name}

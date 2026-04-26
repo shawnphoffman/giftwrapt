@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
-import { Lock, Star } from 'lucide-react'
+import { Loader2, Lock, Sparkles, Star } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
@@ -142,19 +143,36 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 	}, [scrapeState, imageUrl])
 
 	const formLocked = saving || scrapeState.phase === 'scraping'
+	const scrapeInFlight = scrapeState.phase === 'scraping'
+
+	const isHttpUrl = (raw: string): boolean => {
+		const trimmed = raw.trim()
+		if (!trimmed) return false
+		try {
+			const parsed = new URL(trimmed)
+			return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+		} catch {
+			return false
+		}
+	}
+
+	const urlScrapable = isHttpUrl(url)
 
 	const handleUrlBlur = () => {
 		const trimmed = url.trim()
-		if (!trimmed) return
-		try {
-			const parsed = new URL(trimmed)
-			if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return
-		} catch {
-			return
-		}
+		if (!isHttpUrl(trimmed)) return
 		if (trimmed === lastScrapedUrlRef.current) return
 		lastScrapedUrlRef.current = trimmed
 		startScrape(trimmed)
+	}
+
+	const handleScrapeButton = () => {
+		const trimmed = url.trim()
+		if (!isHttpUrl(trimmed)) return
+		// Manual button always forces a fresh scrape so users can re-run after
+		// editing the URL or just to bypass the cache.
+		lastScrapedUrlRef.current = trimmed
+		startScrape(trimmed, { force: true })
 	}
 
 	const handleScrapeRetry = () => {
@@ -278,6 +296,35 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 					</div>
 
 					<div className="grid gap-2">
+						<Label htmlFor="add-item-url">URL</Label>
+						<InputGroup>
+							<InputGroupInput
+								id="add-item-url"
+								type="url"
+								value={url}
+								onChange={e => setUrl(e.target.value)}
+								onBlur={handleUrlBlur}
+								placeholder="https://..."
+								disabled={saving}
+								autoFocus
+							/>
+							<InputGroupAddon align="inline-end">
+								<InputGroupButton
+									type="button"
+									aria-label={scrapeInFlight ? 'Importing from URL…' : 'Import details from URL'}
+									title={scrapeInFlight ? 'Importing from URL…' : 'Import details from URL'}
+									disabled={!urlScrapable || scrapeInFlight || saving}
+									onClick={handleScrapeButton}
+								>
+									{scrapeInFlight ? <Loader2 className="animate-spin" /> : <Sparkles />}
+								</InputGroupButton>
+							</InputGroupAddon>
+						</InputGroup>
+						<ScrapeProgressAlert state={scrapeState} url={url} onCancel={cancelScrape} onRetry={handleScrapeRetry} className="mt-1" />
+						<ImagePicker images={imageCandidates} value={imageUrl} onChange={setImageUrl} disabled={formLocked} className="mt-2" />
+					</div>
+
+					<div className="grid gap-2">
 						<Label htmlFor="add-item-title">
 							Title <span className="text-destructive">*</span>
 						</Label>
@@ -290,23 +337,7 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 							}}
 							placeholder="Something cool..."
 							disabled={formLocked}
-							autoFocus
 						/>
-					</div>
-
-					<div className="grid gap-2">
-						<Label htmlFor="add-item-url">URL</Label>
-						<Input
-							id="add-item-url"
-							type="url"
-							value={url}
-							onChange={e => setUrl(e.target.value)}
-							onBlur={handleUrlBlur}
-							placeholder="https://..."
-							disabled={saving}
-						/>
-						<ScrapeProgressAlert state={scrapeState} url={url} onCancel={cancelScrape} onRetry={handleScrapeRetry} className="mt-1" />
-						<ImagePicker images={imageCandidates} value={imageUrl} onChange={setImageUrl} disabled={formLocked} className="mt-2" />
 					</div>
 
 					<div className="grid gap-2">
