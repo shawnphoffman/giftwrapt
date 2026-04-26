@@ -71,12 +71,9 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 	const [imageUrl, setImageUrl] = useState('')
 	const [imageCandidates, setImageCandidates] = useState<ReadonlyArray<string>>([])
 
-	// Per-field "did the user touch this?" tracking so a scrape doesn't
-	// clobber edits. Refs (not state) — we only consult them at prefill time
-	// and don't want to trigger re-renders.
-	const titleTouchedRef = useRef(false)
-	const priceTouchedRef = useRef(false)
-	const notesTouchedRef = useRef(false)
+	// Track the most recently auto-scraped URL so the blur handler doesn't
+	// re-fire on every focus change while the URL is unchanged. Manual
+	// re-scrapes via the icon button bypass this and always force.
 	const lastScrapedUrlRef = useRef('')
 
 	const { state: scrapeState, start: startScrape, cancel: cancelScrape } = useScrapeUrl()
@@ -113,9 +110,6 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 			setImageUrl('')
 			setImageCandidates([])
 			setError(null)
-			titleTouchedRef.current = false
-			priceTouchedRef.current = false
-			notesTouchedRef.current = false
 			lastScrapedUrlRef.current = ''
 			cancelScrape()
 		}
@@ -123,24 +117,24 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 
 	// Prefill empty (or untouched) fields when a scrape result arrives. Runs
 	// for both `partial` (a winner is in but parallels still racing) and
-	// `done` (final winner). Re-runs harmlessly if `result_updated` swaps the
-	// result later — the touched-refs prevent overwriting user edits.
+	// `done` (final winner). Re-runs harmlessly if `result_updated` swaps
+	// the result later — fields that already hold user input are skipped
+	// because of the empty-value check.
 	useEffect(() => {
 		if (scrapeState.phase !== 'partial' && scrapeState.phase !== 'done') return
 		const result = scrapeState.result
 		if (!result) return
-		if (!titleTouchedRef.current && result.title) setTitle(result.title)
-		if (!priceTouchedRef.current && result.price) setPrice(result.price)
-		if (!notesTouchedRef.current && result.description) setNotes(result.description)
+		// Fill any field currently empty in the form when the scrape has a
+		// value for it. Non-empty fields are preserved as-is. This is the
+		// shared rule for both the auto-scrape on URL blur and a manual
+		// re-scrape via the icon button.
+		if (!title.trim() && result.title) setTitle(result.title)
+		if (!price.trim() && result.price) setPrice(result.price)
+		if (!notes.trim() && result.description) setNotes(result.description)
 		setImageCandidates(result.imageUrls)
-		// Only auto-select on the first arrival; once the user has picked we
-		// leave their selection alone even if a parallel provider updates the
-		// candidate list.
 		const firstCandidate = result.imageUrls[0]
-		if (!imageUrl && firstCandidate) {
-			setImageUrl(firstCandidate)
-		}
-	}, [scrapeState, imageUrl])
+		if (!imageUrl && firstCandidate) setImageUrl(firstCandidate)
+	}, [scrapeState, imageUrl, title, price, notes])
 
 	const formLocked = saving || scrapeState.phase === 'scraping'
 	const scrapeInFlight = scrapeState.phase === 'scraping'
@@ -331,10 +325,7 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 						<Input
 							id="add-item-title"
 							value={title}
-							onChange={e => {
-								titleTouchedRef.current = true
-								setTitle(e.target.value)
-							}}
+							onChange={e => setTitle(e.target.value)}
 							placeholder="Something cool..."
 							disabled={formLocked}
 						/>
@@ -345,10 +336,7 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 						<Textarea
 							id="add-item-notes"
 							value={notes}
-							onChange={e => {
-								notesTouchedRef.current = true
-								setNotes(e.target.value)
-							}}
+							onChange={e => setNotes(e.target.value)}
 							rows={2}
 							placeholder="Color, size, model..."
 							disabled={formLocked}
@@ -381,10 +369,7 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 							<Input
 								id="add-item-price"
 								value={price}
-								onChange={e => {
-									priceTouchedRef.current = true
-									setPrice(e.target.value)
-								}}
+								onChange={e => setPrice(e.target.value)}
 								placeholder="$ 0.00"
 								inputMode="decimal"
 								disabled={formLocked}

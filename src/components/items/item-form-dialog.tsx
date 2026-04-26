@@ -66,13 +66,10 @@ export function ItemFormDialog(props: Props) {
 	// for the upload endpoint) AND storage is configured on the server.
 	const showUploadButton = isEdit && storageConfigured
 
-	// Scrape integration. Per-field "did the user touch this?" refs gate
-	// prefill so a re-scrape never clobbers user edits. lastScrapedUrlRef
-	// stops the blur handler from firing repeatedly on the same URL.
+	// Scrape integration. lastScrapedUrlRef stops the blur handler from
+	// re-firing on every focus change while the URL is unchanged; manual
+	// re-scrapes via the icon button bypass it and always force.
 	const { state: scrapeState, start: startScrape, cancel: cancelScrape } = useScrapeUrl()
-	const titleTouchedRef = useRef(false)
-	const priceTouchedRef = useRef(false)
-	const notesTouchedRef = useRef(false)
 	const lastScrapedUrlRef = useRef('')
 	const [imageCandidates, setImageCandidates] = useState<ReadonlyArray<string>>([])
 
@@ -169,21 +166,21 @@ export function ItemFormDialog(props: Props) {
 		},
 	})
 
-	// Prefill empty (or untouched) fields when a scrape result arrives. Runs
-	// for both `partial` (a winner is in but parallels still racing) and
-	// `done` (final winner, possibly title-cleaned by the post-pass).
+	// Fill any field currently empty in the form when the scrape has a
+	// value for it. Non-empty fields are preserved as-is. Same rule for
+	// auto-scrape on URL blur and manual re-scrape via the icon button.
 	useEffect(() => {
 		if (scrapeState.phase !== 'partial' && scrapeState.phase !== 'done') return
 		const result = scrapeState.result
 		if (!result) return
 		const values = form.state.values
-		if (!titleTouchedRef.current && !values.title.trim() && result.title) {
+		if (!values.title.trim() && result.title) {
 			form.setFieldValue('title', result.title)
 		}
-		if (!priceTouchedRef.current && !values.price.trim() && result.price) {
+		if (!values.price.trim() && result.price) {
 			form.setFieldValue('price', result.price)
 		}
-		if (!notesTouchedRef.current && !values.notes.trim() && result.description) {
+		if (!values.notes.trim() && result.description) {
 			form.setFieldValue('notes', result.description)
 		}
 		setImageCandidates(result.imageUrls)
@@ -200,9 +197,6 @@ export function ItemFormDialog(props: Props) {
 	useEffect(() => {
 		if (open) return
 		cancelScrape()
-		titleTouchedRef.current = false
-		priceTouchedRef.current = false
-		notesTouchedRef.current = false
 		lastScrapedUrlRef.current = ''
 		setImageCandidates([])
 	}, [open, cancelScrape])
@@ -295,10 +289,7 @@ export function ItemFormDialog(props: Props) {
 									id={field.name}
 									placeholder="e.g. AirPods Pro"
 									value={field.state.value}
-									onChange={e => {
-										titleTouchedRef.current = true
-										field.handleChange(e.target.value)
-									}}
+									onChange={e => field.handleChange(e.target.value)}
 									onBlur={field.handleBlur}
 									disabled={formLocked}
 									autoFocus={isEdit}
@@ -322,10 +313,7 @@ export function ItemFormDialog(props: Props) {
 										placeholder="29.99"
 										inputMode="decimal"
 										value={field.state.value}
-										onChange={e => {
-											priceTouchedRef.current = true
-											field.handleChange(e.target.value)
-										}}
+										onChange={e => field.handleChange(e.target.value)}
 										onBlur={field.handleBlur}
 										disabled={formLocked}
 									/>
@@ -390,10 +378,7 @@ export function ItemFormDialog(props: Props) {
 									placeholder="Color preferences, size, model, etc."
 									rows={3}
 									value={field.state.value}
-									onChange={v => {
-										notesTouchedRef.current = true
-										field.handleChange(v)
-									}}
+									onChange={v => field.handleChange(v)}
 									onBlur={field.handleBlur}
 									disabled={formLocked}
 								/>
