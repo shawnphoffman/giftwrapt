@@ -1,7 +1,8 @@
-import Markdown from 'react-markdown'
-import rehypeSanitize from 'rehype-sanitize'
+import { lazy, Suspense } from 'react'
 
 import { cn } from '@/lib/utils'
+
+const MarkdownRenderer = lazy(() => import('./markdown-renderer'))
 
 type Props = {
 	content: string
@@ -19,7 +20,9 @@ export function MarkdownNotes({ content, className }: Props) {
 				className
 			)}
 		>
-			<Markdown rehypePlugins={[rehypeSanitize]}>{content}</Markdown>
+			<Suspense fallback={<div className="whitespace-pre-wrap">{content}</div>}>
+				<MarkdownRenderer content={content} />
+			</Suspense>
 		</div>
 	)
 }

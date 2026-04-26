@@ -1,24 +1,22 @@
 'use client'
 
-import { type HTMLMotionProps, motion } from 'motion/react'
+import { type ComponentProps, lazy, Suspense } from 'react'
 
 import { cn } from '@/lib/utils'
 
-type GradientBackgroundProps = HTMLMotionProps<'div'>
+const GradientBackgroundMotion = lazy(() => import('./gradient-background-motion'))
 
-function GradientBackground({
-	className,
-	transition = { duration: 15, ease: 'easeInOut', repeat: Infinity },
-	...props
-}: GradientBackgroundProps) {
+type GradientBackgroundProps = ComponentProps<typeof GradientBackgroundMotion>
+
+function GradientBackground({ className, ...props }: GradientBackgroundProps) {
 	return (
-		<motion.div
-			data-slot="gradient-background"
-			className={cn('size-full bg-linear-to-br from-accent via-background to-accent bg-size-[400%_400%]', className)}
-			animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
-			transition={transition}
-			{...props}
-		/>
+		<Suspense
+			fallback={
+				<div data-slot="gradient-background" className={cn('size-full bg-linear-to-br from-accent via-background to-accent', className)} />
+			}
+		>
+			<GradientBackgroundMotion className={className} {...props} />
+		</Suspense>
 	)
 }
 
