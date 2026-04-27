@@ -1,7 +1,7 @@
 import { AlertCircle, CheckCircle2, Circle, Loader2, XCircle } from 'lucide-react'
 import * as React from 'react'
 
-import { Alert, AlertAction, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import type { ProviderProgress, ScrapeUiState } from '@/lib/use-scrape-url'
 import { cn } from '@/lib/utils'
@@ -68,7 +68,7 @@ export function ScrapeProgressAlert({ state, url, onCancel, onRetry, className }
 			<Loader2 className="animate-spin text-muted-foreground" />
 			<AlertTitle>
 				{isPartial
-					? `Imported. Still checking ${stillRunning} other source${stillRunning === 1 ? '' : 's'}…`
+					? `Got initial result. Still checking ${stillRunning} other source${stillRunning === 1 ? '' : 's'} for better data…`
 					: `Importing${hostname ? ` from ${hostname}` : ''}…`}
 			</AlertTitle>
 			<AlertDescription>
@@ -89,13 +89,6 @@ export function ScrapeProgressAlert({ state, url, onCancel, onRetry, className }
 					)}
 				</div>
 			</AlertDescription>
-			{onCancel && (
-				<AlertAction>
-					<Button type="button" size="sm" variant="ghost" onClick={onCancel}>
-						{isPartial ? 'Cancel remaining' : 'Cancel'}
-					</Button>
-				</AlertAction>
-			)}
 		</Alert>
 	)
 }
