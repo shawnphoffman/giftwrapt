@@ -25,6 +25,7 @@ import type {
 	FlaresolverrEntry,
 	ScrapeProviderEntry,
 	ScrapeProviderType,
+	ScrapflyEntry,
 	WishListScraperEntry,
 } from '@/lib/settings'
 
@@ -132,6 +133,7 @@ const TYPE_LABELS: Record<ScrapeProviderType, string> = {
 	'custom-http': 'Custom HTTP',
 	ai: 'AI extraction',
 	'wish-list-scraper': 'Wish List Scraper',
+	scrapfly: 'ScrapFly',
 }
 
 const ADD_OPTIONS: Array<{ type: ScrapeProviderType; label: string; hint: string }> = [
@@ -146,6 +148,7 @@ const ADD_OPTIONS: Array<{ type: ScrapeProviderType; label: string; hint: string
 		label: 'Wish List Scraper',
 		hint: 'Self-hosted Hono facade chaining browserless / flaresolverr / byparr / scrapfly',
 	},
+	{ type: 'scrapfly', label: 'ScrapFly', hint: 'Hosted scraping API with anti-bot bypass' },
 ]
 
 function ScrapeProvidersSection({
@@ -309,6 +312,8 @@ function makeDefaultEntry(type: ScrapeProviderType, index: number): ScrapeProvid
 			return { type, id, name: `AI extraction ${ordinal}`, enabled: false, tier: 3 }
 		case 'wish-list-scraper':
 			return { type, id, name: `Wish List Scraper ${ordinal}`, enabled: false, tier: 1, endpoint: '', token: '' }
+		case 'scrapfly':
+			return { type, id, name: `ScrapFly ${ordinal}`, enabled: false, tier: 2, apiKey: '', asp: true, renderJs: false }
 	}
 }
 
@@ -558,6 +563,8 @@ function EntryFields({
 					disabled={disabled}
 				/>
 			)
+		case 'scrapfly':
+			return <ScrapflyFields draft={draft} setDraft={setDraft as React.Dispatch<React.SetStateAction<ScrapflyEntry>>} disabled={disabled} />
 	}
 }
 
@@ -805,6 +812,55 @@ function WishListScraperFields({
 	)
 }
 
+function ScrapflyFields({
+	draft,
+	setDraft,
+	disabled,
+}: {
+	draft: ScrapflyEntry
+	setDraft: React.Dispatch<React.SetStateAction<ScrapflyEntry>>
+	disabled: boolean
+}) {
+	return (
+		<>
+			<SecretInput
+				id={`scrapfly-key-${draft.id}`}
+				label="API Key"
+				value={draft.apiKey}
+				disabled={disabled}
+				onChange={value => setDraft(prev => ({ ...prev, apiKey: value }))}
+				hint={
+					<>
+						ScrapFly API key from{' '}
+						<a href="https://scrapfly.io/dashboard" target="_blank" rel="noreferrer noopener" className="underline">
+							scrapfly.io/dashboard
+						</a>
+						. Encrypted at rest.
+					</>
+				}
+			/>
+			<div className="flex flex-col gap-3">
+				<SwitchRow
+					id={`scrapfly-asp-${draft.id}`}
+					label="Anti-scraping protection"
+					hint="Sends asp=true. Bypasses most bot walls; costs more credits per call."
+					checked={draft.asp}
+					disabled={disabled}
+					onChange={value => setDraft(prev => ({ ...prev, asp: value }))}
+				/>
+				<SwitchRow
+					id={`scrapfly-renderjs-${draft.id}`}
+					label="Render JavaScript"
+					hint="Sends render_js=true to drive a headless browser. Slower and significantly more credits per call."
+					checked={draft.renderJs}
+					disabled={disabled}
+					onChange={value => setDraft(prev => ({ ...prev, renderJs: value }))}
+				/>
+			</div>
+		</>
+	)
+}
+
 function AiFields({ draft: _draft }: { draft: AiEntry }) {
 	return (
 		<p className="text-xs text-muted-foreground">
@@ -1008,6 +1064,8 @@ function isSameEntry(a: ScrapeProviderEntry, b: ScrapeProviderEntry): boolean {
 			return b.type === 'ai'
 		case 'wish-list-scraper':
 			return b.type === 'wish-list-scraper' && a.endpoint === b.endpoint && a.token === b.token
+		case 'scrapfly':
+			return b.type === 'scrapfly' && a.apiKey === b.apiKey && a.asp === b.asp && a.renderJs === b.renderJs
 	}
 }
 

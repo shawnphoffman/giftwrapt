@@ -26,6 +26,7 @@ import { createBrowserbaseStagehandProvider } from './browserbase-stagehand'
 import { createBrowserlessProvider } from './browserless'
 import { createCustomHttpProvider } from './custom-http'
 import { createFlaresolverrProvider } from './flaresolverr'
+import { createScrapflyProvider } from './scrapfly'
 import { createWishListScraperProvider } from './wish-list-scraper'
 
 export async function loadConfiguredProviders(): Promise<Array<ScrapeProvider>> {
@@ -60,6 +61,9 @@ export async function loadConfiguredProviders(): Promise<Array<ScrapeProvider>> 
 				break
 			case 'wish-list-scraper':
 				out.push(createWishListScraperProvider(entry))
+				break
+			case 'scrapfly':
+				out.push(createScrapflyProvider(entry))
 				break
 		}
 	}

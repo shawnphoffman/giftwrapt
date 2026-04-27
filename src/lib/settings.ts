@@ -105,6 +105,21 @@ const wishListScraperEntrySchema = z.object({
 	token: z.string().max(500),
 })
 
+// ScrapFly hosted scraping API (https://scrapfly.io). Hits
+// `https://api.scrapfly.io/scrape?key=…&url=…` and returns JSON whose
+// `result.content` field is the rendered HTML; we unwrap to a RawPage so
+// the standard extractor runs. Toggles map to ScrapFly query params:
+// `asp` enables anti-scraping protection (recommended), `render_js`
+// enables a headless browser render. Note that both increase the credit
+// cost per call.
+const scrapflyEntrySchema = z.object({
+	...baseEntryFields,
+	type: z.literal('scrapfly'),
+	apiKey: z.string().max(500),
+	asp: z.boolean().default(true),
+	renderJs: z.boolean().default(false),
+})
+
 export const scrapeProviderEntrySchema = z.discriminatedUnion('type', [
 	browserlessEntrySchema,
 	flaresolverrEntrySchema,
@@ -113,6 +128,7 @@ export const scrapeProviderEntrySchema = z.discriminatedUnion('type', [
 	customHttpEntrySchema,
 	aiEntrySchema,
 	wishListScraperEntrySchema,
+	scrapflyEntrySchema,
 ])
 
 export type ScrapeProviderEntry = z.infer<typeof scrapeProviderEntrySchema>
@@ -123,6 +139,7 @@ export type BrowserbaseStagehandEntry = Extract<ScrapeProviderEntry, { type: 'br
 export type CustomHttpEntry = Extract<ScrapeProviderEntry, { type: 'custom-http' }>
 export type AiEntry = Extract<ScrapeProviderEntry, { type: 'ai' }>
 export type WishListScraperEntry = Extract<ScrapeProviderEntry, { type: 'wish-list-scraper' }>
+export type ScrapflyEntry = Extract<ScrapeProviderEntry, { type: 'scrapfly' }>
 
 export type ScrapeProviderType = ScrapeProviderEntry['type']
 
@@ -137,6 +154,7 @@ export const SCRAPE_PROVIDER_SECRET_FIELDS: Record<ScrapeProviderType, ReadonlyA
 	'custom-http': ['customHeaders'],
 	ai: [],
 	'wish-list-scraper': ['token'],
+	scrapfly: ['apiKey'],
 }
 
 export const appSettingsSchema = z.object({
