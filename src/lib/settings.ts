@@ -44,25 +44,33 @@ export const appSettingsSchema = z.object({
 	// provider being usable.
 	scrapeAiProviderEnabled: z.boolean(),
 	scrapeAiCleanTitlesEnabled: z.boolean(),
-	// BYO custom HTTP scraper. The orchestrator calls
-	// `${endpoint}?url=<encoded>` and reads the response per `responseKind`
-	// (html → goes through the extractor; json → expected to match the
-	// ScrapeResult shape). `customHeaders` is a multiline string with one
-	// `Header-Name: value` per line; blank lines and `#`-prefixed comment
-	// lines are ignored.
+	// BYO custom HTTP scrapers (0:N). Each entry registers as its own
+	// provider in the orchestrator chain; admin can add as many as the
+	// deployment needs (one for Amazon, one for Etsy, a fallback, etc.)
+	// and toggle each independently.
 	//
-	// `endpoint` accepts the empty string so the user can flip `enabled`
-	// on before they finish typing the URL without tripping schema
-	// validation. The provider's isAvailable() rechecks for a parseable
-	// URL and excludes itself from the chain when one isn't set yet.
-	scrapeCustomHttpProvider: z
-		.object({
-			enabled: z.boolean(),
-			endpoint: z.union([z.literal(''), z.url()]),
-			responseKind: z.enum(['html', 'json']),
-			customHeaders: z.string().max(4000).optional(),
-		})
-		.optional(),
+	// Each entry's `id` is auto-generated when added and never edited;
+	// `name` is the human-friendly label shown in the UI and in the
+	// streaming progress alert. `endpoint` accepts the empty string so a
+	// new entry can save on first add before the URL is typed.
+	//
+	// The orchestrator calls `${endpoint}?url=<encoded>` for each enabled
+	// entry and reads the response per `responseKind` (html → goes through
+	// the extractor; json → expected to match the ScrapeResult shape).
+	// `customHeaders` is a multiline string with one `Header-Name: value`
+	// per line; blank lines and `#`-prefixed comment lines are ignored.
+	scrapeCustomHttpProviders: z
+		.array(
+			z.object({
+				id: z.string().min(1).max(64),
+				name: z.string().min(1).max(120),
+				enabled: z.boolean(),
+				endpoint: z.union([z.literal(''), z.url()]),
+				responseKind: z.enum(['html', 'json']),
+				customHeaders: z.string().max(4000).optional(),
+			})
+		)
+		.max(16),
 })
 
 // 2) Default values in code (for when DB is empty or missing keys)
@@ -84,6 +92,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	scrapeCacheTtlHours: 24,
 	scrapeAiProviderEnabled: false,
 	scrapeAiCleanTitlesEnabled: false,
+	scrapeCustomHttpProviders: [],
 }
 
 export type AppSettings = z.infer<typeof appSettingsSchema>

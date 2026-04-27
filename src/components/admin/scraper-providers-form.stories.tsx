@@ -4,8 +4,8 @@ import { ScraperProvidersFormView } from './scraper-providers-form-view'
 
 /**
  * Admin form for tuning the scraping pipeline. Per-provider/overall
- * timeouts, cache TTL, quality threshold, and the optional custom-HTTP
- * provider config. Saves on blur / Enter.
+ * timeouts, cache TTL, quality threshold, and a 0:N list of custom-HTTP
+ * scraper entries. Saves on blur / Enter.
  */
 const meta = {
 	title: 'Admin/Scraper Providers Form',
@@ -22,20 +22,35 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-const defaultSettings = {
+type DefaultSettings = {
+	scrapeProviderTimeoutMs: number
+	scrapeOverallTimeoutMs: number
+	scrapeQualityThreshold: number
+	scrapeCacheTtlHours: number
+	scrapeCustomHttpProviders: Array<{
+		id: string
+		name: string
+		enabled: boolean
+		endpoint: string
+		responseKind: 'html' | 'json'
+		customHeaders?: string
+	}>
+}
+
+const defaultSettings: DefaultSettings = {
 	scrapeProviderTimeoutMs: 10_000,
 	scrapeOverallTimeoutMs: 20_000,
 	scrapeQualityThreshold: 3,
 	scrapeCacheTtlHours: 24,
-	scrapeCustomHttpProvider: undefined,
-} as const
+	scrapeCustomHttpProviders: [],
+}
 
 export const Defaults: Story = {
 	args: {
 		settings: { ...defaultSettings },
 	},
 	parameters: {
-		docs: { description: { story: 'Fresh deployment - all defaults, custom HTTP off.' } },
+		docs: { description: { story: 'Fresh deployment - all defaults, no custom scrapers configured yet.' } },
 	},
 }
 
@@ -46,7 +61,7 @@ export const TightBudgets: Story = {
 			scrapeOverallTimeoutMs: 12_000,
 			scrapeQualityThreshold: 5,
 			scrapeCacheTtlHours: 6,
-			scrapeCustomHttpProvider: undefined,
+			scrapeCustomHttpProviders: [],
 		},
 	},
 	parameters: {
@@ -63,43 +78,91 @@ export const CachingDisabled: Story = {
 	},
 }
 
-export const CustomHttpHtmlMode: Story = {
+export const SingleCustomHttp: Story = {
 	args: {
 		settings: {
 			...defaultSettings,
-			scrapeCustomHttpProvider: {
-				enabled: true,
-				endpoint: 'https://my-scraper.local/scrape',
-				responseKind: 'html',
-			},
-		},
-	},
-	parameters: {
-		docs: {
-			description: {
-				story: 'Custom HTTP scraper enabled, returning raw HTML. The orchestrator runs the response through the local extractor.',
-			},
-		},
-	},
-}
-
-export const CustomHttpJsonWithAuth: Story = {
-	args: {
-		settings: {
-			...defaultSettings,
-			scrapeCustomHttpProvider: {
-				enabled: true,
-				endpoint: 'https://my-scraper.local/scrape',
-				responseKind: 'json',
-				customHeaders: ['X-Scrape-Token: secret-value', 'Authorization: Bearer abc123'].join('\n'),
-			},
+			scrapeCustomHttpProviders: [
+				{
+					id: 'amzn',
+					name: 'My Amazon scraper',
+					enabled: true,
+					endpoint: 'https://my-scraper.local/scrape',
+					responseKind: 'html',
+				},
+			],
 		},
 	},
 	parameters: {
 		docs: {
 			description: {
 				story:
-					'Custom HTTP scraper returning structured JSON in the documented ScrapeResult shape, with custom headers attached to every request. The local extractor is bypassed for this provider.',
+					'Single custom HTTP scraper enabled, returning raw HTML. Card layout with name, switch, delete button, and full config below.',
+			},
+		},
+	},
+}
+
+export const MultipleCustomHttp: Story = {
+	args: {
+		settings: {
+			...defaultSettings,
+			scrapeCustomHttpProviders: [
+				{
+					id: 'amzn',
+					name: 'Amazon (JSON)',
+					enabled: true,
+					endpoint: 'https://amazon-scraper.local/scrape',
+					responseKind: 'json',
+					customHeaders: ['X-Scrape-Token: secret-value', 'Authorization: Bearer abc123'].join('\n'),
+				},
+				{
+					id: 'etsy',
+					name: 'Etsy (HTML)',
+					enabled: true,
+					endpoint: 'https://etsy-scraper.local/scrape',
+					responseKind: 'html',
+				},
+				{
+					id: 'fallback',
+					name: 'Generic fallback',
+					enabled: false,
+					endpoint: 'https://fallback.local/scrape',
+					responseKind: 'html',
+				},
+			],
+		},
+	},
+	parameters: {
+		docs: {
+			description: {
+				story:
+					'Three configured scrapers (one with auth headers + JSON mode, one disabled). The orchestrator runs them in order after the built-in providers.',
+			},
+		},
+	},
+}
+
+export const NewlyAddedEntry: Story = {
+	args: {
+		settings: {
+			...defaultSettings,
+			scrapeCustomHttpProviders: [
+				{
+					id: 'fresh',
+					name: 'Scraper 1',
+					enabled: true,
+					endpoint: '',
+					responseKind: 'html',
+				},
+			],
+		},
+	},
+	parameters: {
+		docs: {
+			description: {
+				story:
+					"A scraper entry was just added but the endpoint hasn't been typed yet. The schema accepts empty endpoint at save time so the toggle round-trips; isAvailable() excludes it from the chain until a valid URL is filled in.",
 			},
 		},
 	},

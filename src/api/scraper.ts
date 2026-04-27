@@ -7,7 +7,7 @@ import { buildDbBackedDeps } from '@/lib/scrapers/cache'
 import { orchestrate } from '@/lib/scrapers/orchestrator'
 import { aiProvider } from '@/lib/scrapers/providers/ai'
 import { browserlessProvider } from '@/lib/scrapers/providers/browserless'
-import { customHttpProvider } from '@/lib/scrapers/providers/custom-http'
+import { loadCustomHttpProviders } from '@/lib/scrapers/providers/custom-http'
 import { fetchProvider } from '@/lib/scrapers/providers/fetch'
 import { flaresolverrProvider } from '@/lib/scrapers/providers/flaresolverr'
 import type { OrchestrateResult, ScrapeAttempt, ScrapeResult } from '@/lib/scrapers/types'
@@ -46,7 +46,7 @@ export const scrapeUrl = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof ScrapeUrlInputSchema>) => ScrapeUrlInputSchema.parse(data))
 	.handler(async ({ data }): Promise<ScrapeUrlResult> => {
-		const settings = await getAppSettings(db)
+		const [settings, customHttpProviders] = await Promise.all([getAppSettings(db), loadCustomHttpProviders()])
 
 		const orchestrateResult = await orchestrate(
 			{
@@ -60,7 +60,7 @@ export const scrapeUrl = createServerFn({ method: 'POST' })
 					ttlHours: settings.scrapeCacheTtlHours,
 					minScore: settings.scrapeQualityThreshold,
 				}),
-				providers: [fetchProvider, browserlessProvider, flaresolverrProvider, customHttpProvider, aiProvider],
+				providers: [fetchProvider, browserlessProvider, flaresolverrProvider, ...customHttpProviders, aiProvider],
 				perProviderTimeoutMs: settings.scrapeProviderTimeoutMs,
 				overallTimeoutMs: settings.scrapeOverallTimeoutMs,
 				qualityThreshold: settings.scrapeQualityThreshold,

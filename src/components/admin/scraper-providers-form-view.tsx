@@ -1,5 +1,7 @@
+import { Plus, Trash2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -17,7 +19,7 @@ import type { AppSettings } from '@/lib/settings'
 export type ScraperProvidersFormViewProps = {
 	settings: Pick<
 		AppSettings,
-		'scrapeProviderTimeoutMs' | 'scrapeOverallTimeoutMs' | 'scrapeQualityThreshold' | 'scrapeCacheTtlHours' | 'scrapeCustomHttpProvider'
+		'scrapeProviderTimeoutMs' | 'scrapeOverallTimeoutMs' | 'scrapeQualityThreshold' | 'scrapeCacheTtlHours' | 'scrapeCustomHttpProviders'
 	>
 	disabled?: boolean
 	onChange: <TKey extends ScraperProvidersFormChangeKey>(key: TKey, value: AppSettings[TKey]) => void
@@ -28,7 +30,7 @@ export type ScraperProvidersFormChangeKey =
 	| 'scrapeOverallTimeoutMs'
 	| 'scrapeQualityThreshold'
 	| 'scrapeCacheTtlHours'
-	| 'scrapeCustomHttpProvider'
+	| 'scrapeCustomHttpProviders'
 
 export function ScraperProvidersFormView({ settings, disabled, onChange }: ScraperProvidersFormViewProps) {
 	const inputDisabled = disabled === true
@@ -45,7 +47,8 @@ export function ScraperProvidersFormView({ settings, disabled, onChange }: Scrap
 			<NumberRow
 				id="scrapeProviderTimeoutMs"
 				label="Per-provider timeout"
-				suffix="ms"
+				suffix="s"
+				multiplier={1000}
 				hint="Maximum time any one provider has to return before the orchestrator gives up on it and tries the next one."
 				value={settings.scrapeProviderTimeoutMs}
 				disabled={inputDisabled}
@@ -54,7 +57,8 @@ export function ScraperProvidersFormView({ settings, disabled, onChange }: Scrap
 			<NumberRow
 				id="scrapeOverallTimeoutMs"
 				label="Overall scrape budget"
-				suffix="ms"
+				suffix="s"
+				multiplier={1000}
 				hint="Hard upper bound on a single scrape including parallel providers. Anything still running at this point is cancelled."
 				value={settings.scrapeOverallTimeoutMs}
 				disabled={inputDisabled}
@@ -81,99 +85,183 @@ export function ScraperProvidersFormView({ settings, disabled, onChange }: Scrap
 
 			<Separator />
 
-			<CustomHttpSection
-				value={settings.scrapeCustomHttpProvider}
+			<CustomHttpProvidersSection
+				entries={settings.scrapeCustomHttpProviders}
 				disabled={inputDisabled}
-				onChange={value => onChange('scrapeCustomHttpProvider', value)}
+				onChange={next => onChange('scrapeCustomHttpProviders', next)}
 			/>
 		</div>
 	)
 }
 
 // ---------------------------------------------------------------------------
-// Custom HTTP provider sub-section
+// Custom HTTP providers section (0:N entries)
 // ---------------------------------------------------------------------------
 
-type CustomHttpConfig = NonNullable<AppSettings['scrapeCustomHttpProvider']>
+type CustomHttpEntry = AppSettings['scrapeCustomHttpProviders'][number]
 
-const DEFAULT_CUSTOM: CustomHttpConfig = {
-	enabled: false,
-	endpoint: '',
-	responseKind: 'html',
-}
+const MAX_ENTRIES = 16
 
-function CustomHttpSection({
-	value,
+function CustomHttpProvidersSection({
+	entries,
 	disabled,
 	onChange,
 }: {
-	value: AppSettings['scrapeCustomHttpProvider']
+	entries: ReadonlyArray<CustomHttpEntry>
 	disabled: boolean
-	onChange: (next: AppSettings['scrapeCustomHttpProvider']) => void
+	onChange: (next: Array<CustomHttpEntry>) => void
 }) {
-	const config = value ?? DEFAULT_CUSTOM
-	const enabled = config.enabled
+	const add = () => {
+		if (entries.length >= MAX_ENTRIES) return
+		const next: CustomHttpEntry = {
+			id: makeEntryId(),
+			name: `Scraper ${entries.length + 1}`,
+			enabled: true,
+			endpoint: '',
+			responseKind: 'html',
+		}
+		onChange([...entries, next])
+	}
 
-	const update = <TKey extends keyof CustomHttpConfig>(key: TKey, next: CustomHttpConfig[TKey]) => {
-		onChange({ ...config, [key]: next })
+	const update = (id: string, patch: Partial<CustomHttpEntry>) => {
+		onChange(entries.map(e => (e.id === id ? { ...e, ...patch } : e)))
+	}
+
+	const remove = (id: string) => {
+		onChange(entries.filter(e => e.id !== id))
 	}
 
 	return (
 		<div className="space-y-4">
-			<div className="flex items-center justify-between gap-4">
+			<div className="flex items-end justify-between gap-4">
 				<div className="space-y-0.5">
-					<Label htmlFor="scrapeCustomHttpEnabled" className="text-base">
-						Custom HTTP scraper
-					</Label>
+					<Label className="text-base">Custom HTTP scrapers</Label>
 					<p className="text-sm text-muted-foreground">
-						Point the orchestrator at your own scraper service. We GET <code className="font-mono">{'{endpoint}?url=<encoded>'}</code> and
-						read the response per the response kind.
+						Point the orchestrator at your own scraper services. Each one GETs{' '}
+						<code className="font-mono">{'{endpoint}?url=<encoded>'}</code> and reads the response per its response kind. Add as many as you
+						need; the orchestrator runs them in the order shown after the built-in providers.
 					</p>
 				</div>
-				<Switch
-					id="scrapeCustomHttpEnabled"
-					checked={enabled}
-					disabled={disabled}
-					onCheckedChange={(checked: boolean) => update('enabled', checked)}
-				/>
+				<Button
+					type="button"
+					variant="outline"
+					size="sm"
+					disabled={disabled || entries.length >= MAX_ENTRIES}
+					onClick={add}
+					className="gap-1.5"
+				>
+					<Plus className="size-3.5" />
+					Add scraper
+				</Button>
 			</div>
 
-			{enabled && (
-				<div className="space-y-4 pl-1">
-					<TextRow
-						id="scrapeCustomHttpEndpoint"
-						label="Endpoint"
-						placeholder="https://my-scraper.local/scrape"
-						value={config.endpoint}
-						disabled={disabled}
-						onCommit={next => update('endpoint', next)}
-					/>
-
-					<div className="space-y-1">
-						<Label htmlFor="scrapeCustomHttpResponseKind" className="text-base">
-							Response kind
-						</Label>
-						<Select
-							value={config.responseKind}
+			{entries.length === 0 ? (
+				<p className="text-sm text-muted-foreground italic">No custom scrapers configured. Click &quot;Add scraper&quot; to wire one up.</p>
+			) : (
+				<div className="space-y-3">
+					{entries.map(entry => (
+						<CustomHttpEntryCard
+							key={entry.id}
+							entry={entry}
 							disabled={disabled}
-							onValueChange={(v: string) => update('responseKind', v as 'html' | 'json')}
-						>
-							<SelectTrigger id="scrapeCustomHttpResponseKind" className="w-[200px]">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="html">HTML (extract locally)</SelectItem>
-								<SelectItem value="json">JSON (ScrapeResult shape)</SelectItem>
-							</SelectContent>
-						</Select>
-						<ResponseKindHelp kind={config.responseKind} />
-					</div>
-
-					<HeadersRow value={config.customHeaders ?? ''} disabled={disabled} onCommit={v => update('customHeaders', v || undefined)} />
+							onPatch={patch => update(entry.id, patch)}
+							onRemove={() => remove(entry.id)}
+						/>
+					))}
 				</div>
 			)}
 		</div>
 	)
+}
+
+function CustomHttpEntryCard({
+	entry,
+	disabled,
+	onPatch,
+	onRemove,
+}: {
+	entry: CustomHttpEntry
+	disabled: boolean
+	onPatch: (patch: Partial<CustomHttpEntry>) => void
+	onRemove: () => void
+}) {
+	return (
+		<div className="rounded-md border p-4 space-y-4">
+			<div className="flex items-start gap-3">
+				<div className="flex-1 min-w-0">
+					<TextRow
+						id={`scrapeCustomHttpName-${entry.id}`}
+						label="Name"
+						placeholder="My Amazon scraper"
+						value={entry.name}
+						disabled={disabled}
+						onCommit={next => onPatch({ name: next || entry.name })}
+					/>
+				</div>
+				<Switch
+					id={`scrapeCustomHttpEnabled-${entry.id}`}
+					checked={entry.enabled}
+					disabled={disabled}
+					onCheckedChange={(checked: boolean) => onPatch({ enabled: checked })}
+					className="mt-7 shrink-0"
+					aria-label={entry.enabled ? `Disable ${entry.name}` : `Enable ${entry.name}`}
+				/>
+				<Button
+					type="button"
+					variant="ghost"
+					size="icon"
+					disabled={disabled}
+					onClick={onRemove}
+					aria-label={`Remove ${entry.name}`}
+					className="mt-6 shrink-0"
+				>
+					<Trash2 className="size-4 text-muted-foreground" />
+				</Button>
+			</div>
+
+			<TextRow
+				id={`scrapeCustomHttpEndpoint-${entry.id}`}
+				label="Endpoint"
+				placeholder="https://my-scraper.local/scrape"
+				value={entry.endpoint}
+				disabled={disabled}
+				onCommit={next => onPatch({ endpoint: next })}
+			/>
+
+			<div className="space-y-1">
+				<Label htmlFor={`scrapeCustomHttpResponseKind-${entry.id}`} className="text-base">
+					Response kind
+				</Label>
+				<Select
+					value={entry.responseKind}
+					disabled={disabled}
+					onValueChange={(v: string) => onPatch({ responseKind: v as 'html' | 'json' })}
+				>
+					<SelectTrigger id={`scrapeCustomHttpResponseKind-${entry.id}`} className="w-[200px]">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="html">HTML (extract locally)</SelectItem>
+						<SelectItem value="json">JSON (ScrapeResult shape)</SelectItem>
+					</SelectContent>
+				</Select>
+				<ResponseKindHelp kind={entry.responseKind} />
+			</div>
+
+			<HeadersRow
+				htmlId={`scrapeCustomHttpHeaders-${entry.id}`}
+				value={entry.customHeaders ?? ''}
+				disabled={disabled}
+				onCommit={v => onPatch({ customHeaders: v || undefined })}
+			/>
+		</div>
+	)
+}
+
+// Stable, opaque id for a new entry. Kept short so it doesn't bloat the
+// per-row data attributes; uniqueness within ~16 entries is plenty.
+function makeEntryId(): string {
+	return Math.random().toString(36).slice(2, 10)
 }
 
 // ---------------------------------------------------------------------------
@@ -224,6 +312,7 @@ function NumberRow({
 	suffix,
 	value,
 	min,
+	multiplier = 1,
 	disabled,
 	onCommit,
 }: {
@@ -233,25 +322,34 @@ function NumberRow({
 	suffix?: string
 	value: number
 	min?: number
+	// `multiplier=1000` lets the form display seconds while the underlying
+	// setting is stored in milliseconds: the input shows value/1000 and
+	// commits parsed*1000. Defaults to 1 (no conversion).
+	multiplier?: number
 	disabled: boolean
 	onCommit: (value: number) => void
 }) {
-	const [draft, setDraft] = useState(String(value))
+	const formatForDisplay = (raw: number): string => String(multiplier === 1 ? raw : raw / multiplier)
+	const [draft, setDraft] = useState(formatForDisplay(value))
 
 	useEffect(() => {
-		setDraft(String(value))
-	}, [value])
+		// We deliberately re-render only when the upstream value or unit
+		// multiplier changes; recomputing the formatted string here is cheap
+		// and stays in sync with both knobs.
+		setDraft(String(multiplier === 1 ? value : value / multiplier))
+	}, [value, multiplier])
 
 	const commit = () => {
-		const parsed = Number.parseInt(draft, 10)
+		const parsed = Number.parseFloat(draft)
 		if (!Number.isFinite(parsed)) {
-			setDraft(String(value))
+			setDraft(formatForDisplay(value))
 			return
 		}
+		const stored = Math.round(parsed * multiplier)
 		const lower = typeof min === 'number' ? min : 1
-		const clamped = Math.max(lower, parsed)
-		if (clamped !== value) onCommit(clamped)
-		setDraft(String(clamped))
+		const clampedStored = Math.max(lower, stored)
+		if (clampedStored !== value) onCommit(clampedStored)
+		setDraft(formatForDisplay(clampedStored))
 	}
 
 	return (
@@ -268,7 +366,8 @@ function NumberRow({
 					type="number"
 					inputMode="numeric"
 					value={draft}
-					min={min}
+					min={typeof min === 'number' ? min / multiplier : undefined}
+					step={multiplier === 1 ? 1 : 'any'}
 					disabled={disabled}
 					className="w-32"
 					onChange={e => setDraft(e.target.value)}
@@ -286,7 +385,17 @@ function NumberRow({
 	)
 }
 
-function HeadersRow({ value, disabled, onCommit }: { value: string; disabled: boolean; onCommit: (value: string) => void }) {
+function HeadersRow({
+	htmlId = 'scrapeCustomHttpHeaders',
+	value,
+	disabled,
+	onCommit,
+}: {
+	htmlId?: string
+	value: string
+	disabled: boolean
+	onCommit: (value: string) => void
+}) {
 	const [draft, setDraft] = useState(value)
 
 	useEffect(() => {
@@ -299,7 +408,7 @@ function HeadersRow({ value, disabled, onCommit }: { value: string; disabled: bo
 
 	return (
 		<div className="space-y-1">
-			<Label htmlFor="scrapeCustomHttpHeaders" className="text-base">
+			<Label htmlFor={htmlId} className="text-base">
 				Custom HTTP headers
 			</Label>
 			<p className="text-xs text-muted-foreground">
@@ -307,7 +416,7 @@ function HeadersRow({ value, disabled, onCommit }: { value: string; disabled: bo
 				<code className="font-mono">#</code>-prefixed comments are ignored.
 			</p>
 			<Textarea
-				id="scrapeCustomHttpHeaders"
+				id={htmlId}
 				rows={5}
 				placeholder={'X-Scrape-Token: abc123\nAuthorization: Bearer xyz'}
 				value={draft}
