@@ -1,5 +1,72 @@
 # Changelog
 
+## [0.15.0](https://github.com/shawnphoffman/wish-lists/compare/v0.14.0...v0.15.0) (2026-04-27)
+
+
+### Features
+
+* **admin:** add AI provider configuration page ([3496598](https://github.com/shawnphoffman/wish-lists/commit/34965980bd1c0698543ac75f086581d82f2292fc))
+* **admin:** add AI scraping section to AI page ([1223bda](https://github.com/shawnphoffman/wish-lists/commit/1223bda8cc46769b170c6036fb221ff860f68954))
+* **admin:** add scraper providers form ([4a1da3e](https://github.com/shawnphoffman/wish-lists/commit/4a1da3e0083b536e1a11669f983165c8979ee4f8))
+* **ai:** adopt vercel ai sdk and support openai/anthropic/compatible ([1b6f5f7](https://github.com/shawnphoffman/wish-lists/commit/1b6f5f77ee641d1f305251c8c551c68ed2cab836))
+* **avatar:** color fallback by name hash ([b0e8055](https://github.com/shawnphoffman/wish-lists/commit/b0e8055b7fd60ea38d0e5943669eb7599d649940))
+* **items:** add ClaimUsers and rework QuantityRemainingBadge claim states ([692550b](https://github.com/shawnphoffman/wish-lists/commit/692550b5c5a119b4e71ffc67998265fcc59b85df))
+* **items:** add depth shadow to priority tab ([4b00fa3](https://github.com/shawnphoffman/wish-lists/commit/4b00fa35decf3b5a6672b2f51337f1677d0d93ba))
+* **items:** add image picker to add-item form ([c5f5e92](https://github.com/shawnphoffman/wish-lists/commit/c5f5e922316f3fdf536a13cafc852ecbe3d56b5a))
+* **items:** add overflow menu for item groups with move-to-list ([a65d6f5](https://github.com/shawnphoffman/wish-lists/commit/a65d6f5c9faa4ba0a57f77684777fd306eb7e834))
+* **items:** add scrape progress alert component ([5aeb6eb](https://github.com/shawnphoffman/wish-lists/commit/5aeb6eb273cbed6c16a9b6dec41042a268f8842d))
+* **items:** consolidate claim/lock UI in ItemRow ([5b9b81d](https://github.com/shawnphoffman/wish-lists/commit/5b9b81d04e403a6135b59fce294aadc3f4a40ab8))
+* **items:** convert add-item flow to modal over my-lists ([0c6ce2d](https://github.com/shawnphoffman/wish-lists/commit/0c6ce2d931eb540bcbeed15a94e7b8e9a3ac9549))
+* **items:** filter gifter view by vendor ([89caec1](https://github.com/shawnphoffman/wish-lists/commit/89caec11cb18db1ea4ef1d25094c801f851c5136))
+* **items:** move URL above title and add scrape button to dialogs ([324cc5a](https://github.com/shawnphoffman/wish-lists/commit/324cc5a5421907b8a6eab31c7400347f4369b74f))
+* **items:** mute fully-claimed cards, keep Edit claim vivid ([ecbacd1](https://github.com/shawnphoffman/wish-lists/commit/ecbacd15a5c725b43026e35a33b8333952f2a61b))
+* **items:** mute locked rows and explain lock reason in a popover ([3556dac](https://github.com/shawnphoffman/wish-lists/commit/3556dac64602719808464266d29057f8307f7e90))
+* **items:** re-scrape fills empty fields instead of skipping touched ([2ce393f](https://github.com/shawnphoffman/wish-lists/commit/2ce393ff4362f3f6cd0da2dbb6bdfbada4fd50e1))
+* **items:** replace priority select with 4-way toggle group ([f80f687](https://github.com/shawnphoffman/wish-lists/commit/f80f6877f2a1d8713b4f67fed0c96b8a4c61d57f))
+* **items:** restructure row layout and consolidate dimming ([97ce036](https://github.com/shawnphoffman/wish-lists/commit/97ce0369d52c19dc001be27500b0d14dc5dd7824))
+* **items:** toggle availability, block claims, show date tooltip ([c539ac5](https://github.com/shawnphoffman/wish-lists/commit/c539ac57e17bb7c18bda887a6f2c175708ce1b5b))
+* **items:** wire scraping into add-item dialog ([5610cb9](https://github.com/shawnphoffman/wish-lists/commit/5610cb91c79cab842153649dc4b8a6b944e2c528))
+* **list-settings:** allow editing gift-ideas recipient ([f3f6349](https://github.com/shawnphoffman/wish-lists/commit/f3f634910c5d285e1473a4fb2c29dba59c717214))
+* **lists:** warn when gift ideas recipient is also an editor ([27e6459](https://github.com/shawnphoffman/wish-lists/commit/27e645986db992508a1553b90eb100e13d5ed9ad))
+* **permissions:** enforce relationship rules and partner editor flows ([639692b](https://github.com/shawnphoffman/wish-lists/commit/639692b82f84c64e95d13f152db14aded8379c68))
+* **recent:** scope feeds to viewer access, add jump-to-item links ([a284cd7](https://github.com/shawnphoffman/wish-lists/commit/a284cd7dc009fb77d8fc22c808157667df3c202f))
+* **scraper:** add ai-provider as parallel racer ([091f8f8](https://github.com/shawnphoffman/wish-lists/commit/091f8f874226f040e6667846e92c5e94054c1c5c))
+* **scraper:** add browserless-provider ([dc313b8](https://github.com/shawnphoffman/wish-lists/commit/dc313b84ffb09445bfc5f760a9eca25584635d11))
+* **scraper:** add clean-title post-pass ([612ff0b](https://github.com/shawnphoffman/wish-lists/commit/612ff0ba9e2cf4915a43862d738ca3609c83eaa1))
+* **scraper:** add custom-http-provider ([8566351](https://github.com/shawnphoffman/wish-lists/commit/856635155d322df1ad97928caee74fac0ae11d81))
+* **scraper:** add fetch-provider with UA rotation ([b903ed5](https://github.com/shawnphoffman/wish-lists/commit/b903ed534ee9fdb792ef80e27b3bd2cb15419748))
+* **scraper:** add flaresolverr-provider ([eb0df9a](https://github.com/shawnphoffman/wish-lists/commit/eb0df9a7dd6049d201d8759d3c5d34d6eb1b5b45))
+* **scraper:** add HTML extractor, scoring, and image filter ([abc9fa7](https://github.com/shawnphoffman/wish-lists/commit/abc9fa79962a20aad2b651ed2d55b5c4751cdbc9))
+* **scraper:** add provider types and orchestrator skeleton ([01c6163](https://github.com/shawnphoffman/wish-lists/commit/01c616313ad13646cf643135ac5b270342150cd6))
+* **scraper:** add streaming SSE route handler ([e544956](https://github.com/shawnphoffman/wish-lists/commit/e544956e60bea89f08f770477cba6fb066ab6e73))
+* **scraper:** add useScrapeUrl hook ([01de42b](https://github.com/shawnphoffman/wish-lists/commit/01de42b850f4d6d286162de8d71d2eee4bea3996))
+* **scraper:** register all four providers in the orchestrator entry points ([32acbe6](https://github.com/shawnphoffman/wish-lists/commit/32acbe66eb416192af19335c9b97b5669fbcd921))
+* **scraper:** wire ai-provider into both orchestrator entry points ([febcca2](https://github.com/shawnphoffman/wish-lists/commit/febcca21f360ae5a9eb2db4822104a13aedcf61a))
+* **scraper:** wire scrapeUrl server fn and DB cache ([af8978a](https://github.com/shawnphoffman/wish-lists/commit/af8978a39733cb969759af18026a95f4b7d84c30))
+* **settings:** redesign permissions page with unified rows ([8ac8eb5](https://github.com/shawnphoffman/wish-lists/commit/8ac8eb54a67eef3fe36005c4f2f949d25ce8f2c0))
+* **storage:** add RustFS as a peer to Garage for self-hosting ([4d1abe6](https://github.com/shawnphoffman/wish-lists/commit/4d1abe678420282cf497981996592debeedd4b8e))
+* **storybook:** add light/dark theme playground stories ([09373b0](https://github.com/shawnphoffman/wish-lists/commit/09373b048c806a6ff415603b08be604d8c244098))
+* **users:** add optional birth year field ([af09fac](https://github.com/shawnphoffman/wish-lists/commit/af09facfd5c0b16c823f9e1b9f207efa8096d694))
+
+
+### Bug Fixes
+
+* **a11y:** add aria-label to icon-only buttons ([ab281cc](https://github.com/shawnphoffman/wish-lists/commit/ab281ccc1125c12acbc76a934fa970f08bd0fe66))
+* **admin:** stop settings upsert from resetting unrelated fields ([2d3583e](https://github.com/shawnphoffman/wish-lists/commit/2d3583ef0293304960a4feebac173ef617d581b7))
+* **items:** animate comments panel close, not just open ([1374fbe](https://github.com/shawnphoffman/wish-lists/commit/1374fbeaee9577efef6186f10de7c712b3f36764))
+* **permissions:** allow list editors to update list settings ([4a83952](https://github.com/shawnphoffman/wish-lists/commit/4a83952fa60084cd5357e78e6554275b4f8d9d8b))
+* **permissions:** grant guardian edit access to child lists ([b932247](https://github.com/shawnphoffman/wish-lists/commit/b9322472a11f1708465252d69d6d2bb1fa4e6323))
+* **seed:** force gift-ideas lists to isPrivate ([4806304](https://github.com/shawnphoffman/wish-lists/commit/4806304edcbdb1c898c9ff9115214f40113d0af5))
+* **storybook:** export moveGroupToList from api mock ([17dfa9d](https://github.com/shawnphoffman/wish-lists/commit/17dfa9db2ad8df3a9605aeefa037c6cda3060585))
+* **ui:** unify empty state and remove redundant list-row underline ([c611821](https://github.com/shawnphoffman/wish-lists/commit/c611821fd5794759f9d397cd4486284260a0d308))
+* **user-badge:** title-case all role labels ([6fac819](https://github.com/shawnphoffman/wish-lists/commit/6fac8195e579e2d6110c5134d420d6af2c1a7660))
+
+
+### Performance Improvements
+
+* **client:** drop dotenv from client bundle and lazy-load motion/markdown ([334f0e4](https://github.com/shawnphoffman/wish-lists/commit/334f0e4e93271824e09c8b53fad7a380521ca2b7))
+* **nav:** cut sidebar navigation latency on Vercel ([a51344f](https://github.com/shawnphoffman/wish-lists/commit/a51344fcde526ee8936e2cd1ba2ca81b8060b0fe))
+
 ## [0.14.0](https://github.com/shawnphoffman/wish-lists/compare/v0.13.1...v0.14.0) (2026-04-24)
 
 
