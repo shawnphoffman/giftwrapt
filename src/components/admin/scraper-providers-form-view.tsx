@@ -127,8 +127,8 @@ function CustomHttpProvidersSection({
 		onChange([...entries, next])
 	}
 
-	const update = (id: string, patch: Partial<CustomHttpEntry>) => {
-		onChange(entries.map(e => (e.id === id ? { ...e, ...patch } : e)))
+	const replace = (id: string, next: CustomHttpEntry) => {
+		onChange(entries.map(e => (e.id === id ? next : e)))
 	}
 
 	const remove = (id: string) => {
@@ -168,7 +168,7 @@ function CustomHttpProvidersSection({
 							key={entry.id}
 							entry={entry}
 							disabled={disabled}
-							onPatch={patch => update(entry.id, patch)}
+							onSave={next => replace(entry.id, next)}
 							onRemove={() => remove(entry.id)}
 						/>
 					))}
@@ -181,34 +181,55 @@ function CustomHttpProvidersSection({
 function CustomHttpEntryCard({
 	entry,
 	disabled,
-	onPatch,
+	onSave,
 	onRemove,
 }: {
 	entry: CustomHttpEntry
 	disabled: boolean
-	onPatch: (patch: Partial<CustomHttpEntry>) => void
+	onSave: (next: CustomHttpEntry) => void
 	onRemove: () => void
 }) {
+	// Each card holds its own draft. Field changes update local state only;
+	// nothing reaches `appSettings` until the admin clicks Save. The draft
+	// resets if a different entry is mounted in this slot (the parent uses
+	// `entry.id` as the React key, so new ids force a remount with a fresh
+	// draft seeded from the latest props).
+	const [draft, setDraft] = useState<CustomHttpEntry>(entry)
+	const dirty = !isSameEntry(draft, entry)
+
+	const update = <TKey extends keyof CustomHttpEntry>(key: TKey, value: CustomHttpEntry[TKey]) => {
+		setDraft(prev => ({ ...prev, [key]: value }))
+	}
+
+	const reset = () => setDraft(entry)
+	const save = () => {
+		// Empty name shouldn't save - fall back to whatever was there.
+		const trimmedName = draft.name.trim() || entry.name
+		onSave({ ...draft, name: trimmedName })
+	}
+
 	return (
 		<div className="rounded-md border p-4 space-y-4">
 			<div className="flex flex-col gap-3 @md/scraper-form:flex-row @md/scraper-form:items-end @md/scraper-form:gap-3">
-				<div className="flex-1 min-w-0">
-					<TextRow
+				<div className="flex-1 min-w-0 space-y-1">
+					<Label htmlFor={`scrapeCustomHttpName-${entry.id}`} className="text-base">
+						Name
+					</Label>
+					<Input
 						id={`scrapeCustomHttpName-${entry.id}`}
-						label="Name"
 						placeholder="My Amazon scraper"
-						value={entry.name}
+						value={draft.name}
 						disabled={disabled}
-						onCommit={next => onPatch({ name: next || entry.name })}
+						onChange={e => update('name', e.target.value)}
 					/>
 				</div>
 				<div className="flex items-center justify-between gap-2 @md/scraper-form:justify-start">
 					<Switch
 						id={`scrapeCustomHttpEnabled-${entry.id}`}
-						checked={entry.enabled}
+						checked={draft.enabled}
 						disabled={disabled}
-						onCheckedChange={(checked: boolean) => onPatch({ enabled: checked })}
-						aria-label={entry.enabled ? `Disable ${entry.name}` : `Enable ${entry.name}`}
+						onCheckedChange={(checked: boolean) => update('enabled', checked)}
+						aria-label={draft.enabled ? `Disable ${entry.name}` : `Enable ${entry.name}`}
 					/>
 					<Button type="button" variant="ghost" size="icon" disabled={disabled} onClick={onRemove} aria-label={`Remove ${entry.name}`}>
 						<Trash2 className="size-4 text-muted-foreground" />
@@ -216,24 +237,25 @@ function CustomHttpEntryCard({
 				</div>
 			</div>
 
-			<TextRow
-				id={`scrapeCustomHttpEndpoint-${entry.id}`}
-				label="Endpoint"
-				placeholder="https://my-scraper.local/scrape"
-				value={entry.endpoint}
-				disabled={disabled}
-				onCommit={next => onPatch({ endpoint: next })}
-			/>
+			<div className="space-y-1">
+				<Label htmlFor={`scrapeCustomHttpEndpoint-${entry.id}`} className="text-base">
+					Endpoint
+				</Label>
+				<Input
+					id={`scrapeCustomHttpEndpoint-${entry.id}`}
+					type="url"
+					placeholder="https://my-scraper.local/scrape"
+					value={draft.endpoint}
+					disabled={disabled}
+					onChange={e => update('endpoint', e.target.value)}
+				/>
+			</div>
 
 			<div className="space-y-1">
 				<Label htmlFor={`scrapeCustomHttpResponseKind-${entry.id}`} className="text-base">
 					Response kind
 				</Label>
-				<Select
-					value={entry.responseKind}
-					disabled={disabled}
-					onValueChange={(v: string) => onPatch({ responseKind: v as 'html' | 'json' })}
-				>
+				<Select value={draft.responseKind} disabled={disabled} onValueChange={(v: string) => update('responseKind', v as 'html' | 'json')}>
 					<SelectTrigger id={`scrapeCustomHttpResponseKind-${entry.id}`} className="w-[200px]">
 						<SelectValue />
 					</SelectTrigger>
@@ -242,16 +264,49 @@ function CustomHttpEntryCard({
 						<SelectItem value="json">JSON (ScrapeResult shape)</SelectItem>
 					</SelectContent>
 				</Select>
-				<ResponseKindHelp kind={entry.responseKind} />
+				<ResponseKindHelp kind={draft.responseKind} />
 			</div>
 
-			<HeadersRow
-				htmlId={`scrapeCustomHttpHeaders-${entry.id}`}
-				value={entry.customHeaders ?? ''}
-				disabled={disabled}
-				onCommit={v => onPatch({ customHeaders: v || undefined })}
-			/>
+			<div className="space-y-1">
+				<Label htmlFor={`scrapeCustomHttpHeaders-${entry.id}`} className="text-base">
+					Custom HTTP headers
+				</Label>
+				<p className="text-xs text-muted-foreground">
+					Sent on every request to this scraper. One <code className="font-mono">Header-Name: value</code> per line. Blank lines and{' '}
+					<code className="font-mono">#</code>-prefixed comments are ignored.
+				</p>
+				<Textarea
+					id={`scrapeCustomHttpHeaders-${entry.id}`}
+					rows={5}
+					placeholder={'X-Scrape-Token: abc123\nAuthorization: Bearer xyz'}
+					value={draft.customHeaders ?? ''}
+					disabled={disabled}
+					className="font-mono text-xs"
+					onChange={e => update('customHeaders', e.target.value || undefined)}
+				/>
+			</div>
+
+			<div className="flex items-center justify-end gap-2 pt-1 border-t -mx-4 px-4">
+				{dirty && <span className="mr-auto text-xs text-muted-foreground italic">Unsaved changes</span>}
+				<Button type="button" variant="ghost" size="sm" disabled={disabled || !dirty} onClick={reset}>
+					Reset
+				</Button>
+				<Button type="button" size="sm" disabled={disabled || !dirty} onClick={save}>
+					Save
+				</Button>
+			</div>
 		</div>
+	)
+}
+
+function isSameEntry(a: CustomHttpEntry, b: CustomHttpEntry): boolean {
+	return (
+		a.id === b.id &&
+		a.name === b.name &&
+		a.enabled === b.enabled &&
+		a.endpoint === b.endpoint &&
+		a.responseKind === b.responseKind &&
+		(a.customHeaders ?? '') === (b.customHeaders ?? '')
 	)
 }
 
@@ -378,101 +433,6 @@ function NumberRow({
 				/>
 				{suffix && <span className="text-sm text-muted-foreground">{suffix}</span>}
 			</div>
-		</div>
-	)
-}
-
-function HeadersRow({
-	htmlId = 'scrapeCustomHttpHeaders',
-	value,
-	disabled,
-	onCommit,
-}: {
-	htmlId?: string
-	value: string
-	disabled: boolean
-	onCommit: (value: string) => void
-}) {
-	const [draft, setDraft] = useState(value)
-
-	useEffect(() => {
-		setDraft(value)
-	}, [value])
-
-	const commit = () => {
-		if (draft !== value) onCommit(draft)
-	}
-
-	return (
-		<div className="space-y-1">
-			<Label htmlFor={htmlId} className="text-base">
-				Custom HTTP headers
-			</Label>
-			<p className="text-xs text-muted-foreground">
-				Sent on every request to this scraper. One <code className="font-mono">Header-Name: value</code> per line. Blank lines and{' '}
-				<code className="font-mono">#</code>-prefixed comments are ignored.
-			</p>
-			<Textarea
-				id={htmlId}
-				rows={5}
-				placeholder={'X-Scrape-Token: abc123\nAuthorization: Bearer xyz'}
-				value={draft}
-				disabled={disabled}
-				className="font-mono text-xs"
-				onChange={e => setDraft(e.target.value)}
-				onBlur={commit}
-			/>
-		</div>
-	)
-}
-
-function TextRow({
-	id,
-	label,
-	value,
-	placeholder,
-	type,
-	disabled,
-	onCommit,
-}: {
-	id: string
-	label: string
-	value: string
-	placeholder?: string
-	type?: 'text' | 'password' | 'url'
-	disabled: boolean
-	onCommit: (value: string) => void
-}) {
-	const [draft, setDraft] = useState(value)
-
-	useEffect(() => {
-		setDraft(value)
-	}, [value])
-
-	const commit = () => {
-		if (draft !== value) onCommit(draft)
-	}
-
-	return (
-		<div className="space-y-1">
-			<Label htmlFor={id} className="text-base">
-				{label}
-			</Label>
-			<Input
-				id={id}
-				type={type ?? 'text'}
-				value={draft}
-				placeholder={placeholder}
-				disabled={disabled}
-				onChange={e => setDraft(e.target.value)}
-				onBlur={commit}
-				onKeyDown={e => {
-					if (e.key === 'Enter') {
-						e.preventDefault()
-						commit()
-					}
-				}}
-			/>
 		</div>
 	)
 }
