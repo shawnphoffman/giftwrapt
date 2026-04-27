@@ -39,12 +39,13 @@ const entries = [
 	{ in: resolve(root, 'scripts/admin-reset-password.ts'), out: 'admin-reset-password' },
 	{ in: resolve(root, 'scripts/seed.ts'), out: 'seed' },
 	{ in: resolve(root, 'scripts/init-garage.ts'), out: 'init-garage' },
+	{ in: resolve(root, 'scripts/init-rustfs.ts'), out: 'init-rustfs' },
 ]
 
 // Single build with splitting:true so shared deps (drizzle-orm, pg, better-auth,
-// dotenv, ...) land in chunk files imported by the four entrypoints instead of
-// being duplicated four times. Keeps the public contract: every CLI is still
-// invoked as `node .output/scripts/<name>.mjs`.
+// dotenv, ...) land in chunk files imported by the entrypoints instead of being
+// duplicated. Keeps the public contract: every CLI is still invoked as
+// `node .output/scripts/<name>.mjs`.
 const start = Date.now()
 const result = await esbuild.build({
 	entryPoints: entries,

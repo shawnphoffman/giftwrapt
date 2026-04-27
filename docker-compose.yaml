@@ -1,16 +1,26 @@
 name: 'wishlist-dev'
 
-# Local dev stack: Postgres + Garage (S3-compatible object storage). The
-# deployed app (Vercel) talks to its own DB and an external S3 bucket via
-# Vercel env vars - this compose file never affects prod. Use with:
+# Local dev stack: Postgres + an S3-compatible object store. The deployed app
+# (Vercel) talks to its own DB and an external S3 bucket via Vercel env vars -
+# this compose file never affects prod.
 #
-#   docker compose up -d       # start
-#   pnpm storage:init          # one-shot Garage bootstrap (idempotent)
-#   pnpm dev                   # run the app against the local stack
-#   docker compose down        # stop (keeps data)
-#   docker compose down -v     # stop and nuke both DB and storage
+# Postgres always runs. Pick exactly ONE storage backend via Compose profiles:
 #
-# Point your local .env.local at:
+#   # Garage (existing default - admin API bootstrap, layout/keys via /v1/*):
+#   docker compose --profile garage up -d
+#   pnpm storage:init              # idempotent Garage bootstrap
+#
+#   # RustFS (MinIO-compatible drop-in - root creds set via env, simpler init):
+#   docker compose --profile rustfs up -d
+#   pnpm storage:init:rustfs       # idempotent bucket-create
+#
+# Then:
+#   pnpm dev                       # run the app
+#   docker compose --profile <p> down       # stop (keeps data)
+#   docker compose --profile <p> down -v    # stop and nuke DB + storage
+#
+# Point your local .env.local at the matching backend (see docs/storage.md
+# for full env recipes). Garage example:
 #   DATABASE_URL=postgresql://postgres:password@localhost:54321/wishlist_dev
 #   STORAGE_ENDPOINT=http://localhost:3900
 #   STORAGE_REGION=garage
@@ -21,7 +31,13 @@ name: 'wishlist-dev'
 #   GARAGE_ADMIN_URL=http://localhost:3903
 #   GARAGE_ADMIN_TOKEN=<openssl rand -hex 32>
 #   GARAGE_RPC_SECRET=<openssl rand -hex 32>
-# See docs/storage.md for the full walkthrough.
+# RustFS example:
+#   STORAGE_ENDPOINT=http://localhost:9000
+#   STORAGE_REGION=us-east-1
+#   STORAGE_BUCKET=wishlists
+#   STORAGE_ACCESS_KEY_ID=<any string>
+#   STORAGE_SECRET_ACCESS_KEY=<any string>
+#   STORAGE_FORCE_PATH_STYLE=true
 
 services:
   postgres:
@@ -48,6 +64,7 @@ services:
     image: dxflrs/garage:v1.0.1
     container_name: wishlist-dev-garage
     restart: unless-stopped
+    profiles: ['garage']
     environment:
       GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET}
       GARAGE_ADMIN_TOKEN: ${GARAGE_ADMIN_TOKEN}
@@ -66,7 +83,29 @@ services:
       timeout: 5s
       retries: 20
 
+  rustfs:
+    image: rustfs/rustfs:latest
+    container_name: wishlist-dev-rustfs
+    restart: unless-stopped
+    profiles: ['rustfs']
+    environment:
+      # RustFS provisions root credentials at startup from these. Use the
+      # same values as STORAGE_* in .env.local so the app and the bucket
+      # share one identity.
+      RUSTFS_ACCESS_KEY: ${STORAGE_ACCESS_KEY_ID}
+      RUSTFS_SECRET_KEY: ${STORAGE_SECRET_ACCESS_KEY}
+    volumes:
+      - rustfs_data:/data
+      - rustfs_logs:/logs
+    ports:
+      # 9000 = S3 API. 9001 = web console (handy for poking at buckets in
+      # local dev; on the public internet, change the default creds first).
+      - 9000:9000
+      - 9001:9001
+
 volumes:
   postgres_data:
   garage_meta:
   garage_data:
+  rustfs_data:
+  rustfs_logs:
