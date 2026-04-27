@@ -51,6 +51,10 @@ export function createCustomHttpProvider(entry: CustomHttpEntry): ScrapeProvider
 	const providerId = customHttpProviderId(entry.id)
 	return {
 		id: providerId,
+		// Use the admin-assigned label as the display name; the streaming UX
+		// resolves provider ids to this so users see "My Amazon scraper"
+		// instead of "custom-http:aa7rugos".
+		name: entry.name,
 		kind: 'html',
 		mode: 'sequential',
 		isAvailable: () => entry.enabled && isParseableUrl(entry.endpoint),

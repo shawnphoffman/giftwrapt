@@ -22,6 +22,9 @@ export type ScrapeUiPhase = 'idle' | 'scraping' | 'partial' | 'done' | 'failed'
 export type ScrapeUiState = {
 	phase: ScrapeUiPhase
 	providers: Array<ProviderProgress>
+	// Map of provider id → user-facing label, populated by the `plan` event.
+	// Components fall back to the provider id when an entry isn't present.
+	providerNames: Record<string, string>
 	elapsedMs: number
 	totalTimeoutMs?: number
 	result?: ScrapeResult
@@ -39,6 +42,7 @@ export type StartOptions = {
 const initialState: ScrapeUiState = {
 	phase: 'idle',
 	providers: [],
+	providerNames: {},
 	elapsedMs: 0,
 }
 
@@ -162,6 +166,7 @@ export function reduce(state: ScrapeUiState, event: StreamEvent): ScrapeUiState 
 				...state,
 				phase: state.phase === 'idle' ? 'scraping' : state.phase,
 				providers,
+				providerNames: event.providerNames,
 				totalTimeoutMs: event.totalTimeoutMs,
 			}
 		}

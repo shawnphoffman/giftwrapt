@@ -87,6 +87,13 @@ export type ScrapeContext = {
 
 export type ScrapeProvider = {
 	readonly id: string
+	// Optional human-friendly display label for the streaming UX. Built-in
+	// providers can leave this off (their id is already a clean string);
+	// configurable providers (custom-http, etc.) should set it to whatever
+	// the admin typed in. The orchestrator emits id+name pairs in the
+	// `plan` event so clients can resolve `from-provider:<id>` references
+	// to the label without a round-trip.
+	readonly name?: string
 	// `html` providers go through the extractor; `structured` providers don't.
 	readonly kind: 'html' | 'structured'
 	// `sequential` providers join the priority chain and gate on score-based
@@ -118,7 +125,17 @@ export type ScrapeAttempt = {
 // ===========================================================================
 
 export type StreamEvent =
-	| { type: 'plan'; sequential: Array<string>; parallel: Array<string>; totalTimeoutMs: number; cached: boolean }
+	| {
+			type: 'plan'
+			sequential: Array<string>
+			parallel: Array<string>
+			// Human-friendly label per provider id. Clients fall back to the id
+			// when a name isn't supplied. Custom-http entries always include
+			// their admin-assigned name; built-ins can leave their entries off.
+			providerNames: Record<string, string>
+			totalTimeoutMs: number
+			cached: boolean
+	  }
 	| { type: 'attempt_started'; providerId: string }
 	| { type: 'attempt_completed'; providerId: string; score: number; ms: number }
 	| { type: 'attempt_failed'; providerId: string; errorCode: ScrapeErrorCode; errorMessage?: string; ms: number }

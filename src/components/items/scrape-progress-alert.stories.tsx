@@ -30,6 +30,7 @@ export const ScrapingFresh: Story = {
 	args: {
 		url,
 		state: {
+			providerNames: {},
 			phase: 'scraping',
 			providers: [
 				{ providerId: 'fetch-provider', status: 'in_progress' },
@@ -46,6 +47,7 @@ export const ScrapingMixed: Story = {
 	args: {
 		url,
 		state: {
+			providerNames: {},
 			phase: 'scraping',
 			providers: [
 				{ providerId: 'fetch-provider', status: 'failed', errorCode: 'bot_block', ms: 320 },
@@ -63,6 +65,7 @@ export const ScrapingLong: Story = {
 	args: {
 		url,
 		state: {
+			providerNames: {},
 			phase: 'scraping',
 			providers: baseProviders,
 			elapsedMs: 14_500,
@@ -76,6 +79,7 @@ export const Partial: Story = {
 	args: {
 		url,
 		state: {
+			providerNames: {},
 			phase: 'partial',
 			providers: [
 				{ providerId: 'fetch-provider', status: 'done', score: 5, ms: 423 },
@@ -102,6 +106,7 @@ export const Done: Story = {
 	args: {
 		url,
 		state: {
+			providerNames: {},
 			phase: 'done',
 			providers: [{ providerId: 'fetch-provider', status: 'done', score: 6, ms: 423 }],
 			elapsedMs: 423,
@@ -121,6 +126,7 @@ export const DoneCached: Story = {
 	args: {
 		url,
 		state: {
+			providerNames: {},
 			phase: 'done',
 			providers: [],
 			elapsedMs: 12,
@@ -139,6 +145,7 @@ export const FailedAllProviders: Story = {
 	args: {
 		url,
 		state: {
+			providerNames: {},
 			phase: 'failed',
 			providers: [{ providerId: 'fetch-provider', status: 'failed', errorCode: 'bot_block', ms: 320 }],
 			elapsedMs: 320,
@@ -152,6 +159,7 @@ export const FailedTimeout: Story = {
 	args: {
 		url,
 		state: {
+			providerNames: {},
 			phase: 'failed',
 			providers: [
 				{ providerId: 'fetch-provider', status: 'failed', errorCode: 'timeout', ms: 10_000 },
@@ -167,7 +175,12 @@ export const FailedTimeout: Story = {
 
 export const Idle: Story = {
 	args: {
-		state: { phase: 'idle', providers: [], elapsedMs: 0 },
+		state: {
+			providerNames: {},
+			phase: 'idle',
+			providers: [],
+			elapsedMs: 0,
+		},
 	},
 	parameters: {
 		docs: { description: { story: 'In the `idle` phase the component returns null. Nothing should render below this story.' } },

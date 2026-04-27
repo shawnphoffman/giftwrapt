@@ -39,7 +39,7 @@ describe('parseStreamLine', () => {
 
 	it('parses each event variant we emit', () => {
 		const events: Array<StreamEvent> = [
-			{ type: 'plan', sequential: ['fetch-provider'], parallel: [], totalTimeoutMs: 20_000, cached: false },
+			{ type: 'plan', sequential: ['fetch-provider'], parallel: [], providerNames: {}, totalTimeoutMs: 20_000, cached: false },
 			{ type: 'attempt_started', providerId: 'fetch-provider' },
 			{ type: 'attempt_completed', providerId: 'fetch-provider', score: 5, ms: 423 },
 			{ type: 'attempt_failed', providerId: 'fetch-provider', errorCode: 'timeout', ms: 10_000 },

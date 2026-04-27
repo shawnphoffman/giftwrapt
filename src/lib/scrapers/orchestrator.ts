@@ -41,10 +41,16 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 	const sequential = candidates.filter(p => p.mode === 'sequential')
 	const parallel = candidates.filter(p => p.mode === 'parallel')
 
+	const providerNames: Record<string, string> = {}
+	for (const p of candidates) {
+		if (p.name && p.name !== p.id) providerNames[p.id] = p.name
+	}
+
 	emit({
 		type: 'plan',
 		sequential: sequential.map(p => p.id),
 		parallel: parallel.map(p => p.id),
+		providerNames,
 		totalTimeoutMs: overallTimeoutMs,
 		cached: cacheHit !== null,
 	})

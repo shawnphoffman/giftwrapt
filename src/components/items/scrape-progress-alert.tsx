@@ -16,6 +16,14 @@ type Props = {
 
 // Renders a per-phase alert summarising a scrape session. The component is
 // presentational - the parent owns the URL, the hook, and any retry logic.
+//
+// Provider ids are resolved to user-facing names via `state.providerNames`
+// (populated by the `plan` event); the raw id is the fallback when a name
+// isn't supplied (built-ins, mostly).
+function displayName(id: string, names: Record<string, string>): string {
+	return names[id] ?? id
+}
+
 export function ScrapeProgressAlert({ state, url, onCancel, onRetry, className }: Props): React.ReactElement | null {
 	if (state.phase === 'idle') return null
 
@@ -66,7 +74,7 @@ export function ScrapeProgressAlert({ state, url, onCancel, onRetry, className }
 			<AlertDescription>
 				<ul className="mt-1 space-y-1 text-xs">
 					{state.providers.map(p => (
-						<ProviderRow key={p.providerId} progress={p} />
+						<ProviderRow key={p.providerId} progress={p} label={displayName(p.providerId, state.providerNames)} />
 					))}
 				</ul>
 				<div className="mt-2 text-xs text-muted-foreground">
@@ -92,13 +100,13 @@ export function ScrapeProgressAlert({ state, url, onCancel, onRetry, className }
 	)
 }
 
-function ProviderRow({ progress }: { progress: ProviderProgress }) {
+function ProviderRow({ progress, label }: { progress: ProviderProgress; label: string }) {
 	const Icon = ICONS[progress.status]
 	const detail = providerDetail(progress)
 	return (
 		<li className="flex items-center gap-2">
 			<Icon className={cn('size-3.5 shrink-0', ICON_TONE[progress.status])} />
-			<span className="font-mono">{progress.providerId}</span>
+			<span className="font-mono">{label}</span>
 			{detail && <span className="text-muted-foreground">- {detail}</span>}
 		</li>
 	)
@@ -141,9 +149,10 @@ function providerDetail(p: ProviderProgress): string | null {
 
 function describeWinner(state: ScrapeUiState): string {
 	if (!state.fromProvider) return 'Imported scrape data.'
+	const label = displayName(state.fromProvider, state.providerNames)
 	const title = state.result?.title
-	if (title) return `Imported "${title}" via ${state.fromProvider} in`
-	return `Imported via ${state.fromProvider} in`
+	if (title) return `Imported "${title}" via ${label} in`
+	return `Imported via ${label} in`
 }
 
 function describeFailure(state: ScrapeUiState): string {
