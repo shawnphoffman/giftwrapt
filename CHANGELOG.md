@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.16.0](https://github.com/shawnphoffman/wish-lists/compare/v0.15.0...v0.16.0) (2026-04-27)
+
+
+### Features
+
+* **admin:** add /admin/scrapes for inspecting scrape attempts ([eba34c9](https://github.com/shawnphoffman/wish-lists/commit/eba34c9988404a1fa7df881e70a5654296f5b7f0))
+* **admin:** each scraper has its own Save button instead of autosave on blur ([8ef0ce8](https://github.com/shawnphoffman/wish-lists/commit/8ef0ce8d2e12e3c66d961d04997b8822d3af21f7))
+* **admin:** make scraper form rows responsive via container queries ([edd0228](https://github.com/shawnphoffman/wish-lists/commit/edd0228cba8008206f5a557677474c3d69630f98))
+* **admin:** pin the Inspect column to the left edge + widen the detail dialog ([f403d8a](https://github.com/shawnphoffman/wish-lists/commit/f403d8a110878029419d17191a516ad14444bbe6))
+* **scraper:** replace single auth header with multiline custom headers ([4ea3506](https://github.com/shawnphoffman/wish-lists/commit/4ea350691b900eb7ec1850958456f507c199790c))
+* **scraper:** show user-facing names in the streaming progress UX ([ef35576](https://github.com/shawnphoffman/wish-lists/commit/ef35576fe75c9abfc03cd40e5750d105b4f18651))
+* **scraper:** support 0:N custom HTTP scrapers + show timing in seconds ([3250912](https://github.com/shawnphoffman/wish-lists/commit/3250912b51d326fb488d7b5b00bfcfa35107e648))
+
+
+### Bug Fixes
+
+* **items:** tame Add Item dialog overflow and align Notes with Edit Item ([b36f857](https://github.com/shawnphoffman/wish-lists/commit/b36f8578d194eb5be33ee0e34decc00a15b0cc59))
+* **scraper:** allow toggling custom HTTP on before endpoint is typed ([49fa2c0](https://github.com/shawnphoffman/wish-lists/commit/49fa2c024834a5337a8f97484e521c3e3129b79a))
+
 ## [0.15.0](https://github.com/shawnphoffman/wish-lists/compare/v0.14.0...v0.15.0) (2026-04-27)
 
 
