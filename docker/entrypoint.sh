@@ -8,7 +8,7 @@ mask_url() {
   echo "$1" | sed -E 's#(://[^:]*:)[^@]*(@)#\1***\2#'
 }
 
-echo "[entrypoint] starting wish-lists"
+echo "[entrypoint] starting giftwrapt"
 echo "[entrypoint]   NODE_ENV=${NODE_ENV:-unset}"
 echo "[entrypoint]   LOG_LEVEL=${LOG_LEVEL:-info}"
 echo "[entrypoint]   LOG_PRETTY=${LOG_PRETTY:-false}"

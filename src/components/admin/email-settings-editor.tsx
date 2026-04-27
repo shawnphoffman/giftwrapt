@@ -159,7 +159,7 @@ function AddressesSection({ config, onSave, saving }: AddressesSectionProps) {
 				label="From name"
 				description="Optional display name shown before the address."
 				type="text"
-				placeholder="Wish Lists"
+				placeholder="GiftWrapt"
 				field={config.fromName}
 				envLocked={config.envLocked.fromName}
 				saving={saving}

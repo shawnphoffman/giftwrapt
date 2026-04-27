@@ -1,4 +1,4 @@
-name: 'wishlist-dev'
+name: 'giftwrapt-dev'
 
 # Local dev stack: Postgres + an S3-compatible object store. The deployed app
 # (Vercel) talks to its own DB and an external S3 bucket via Vercel env vars -
@@ -21,10 +21,10 @@ name: 'wishlist-dev'
 #
 # Point your local .env.local at the matching backend (see docs/storage.md
 # for full env recipes). Garage example:
-#   DATABASE_URL=postgresql://postgres:password@localhost:54321/wishlist_dev
+#   DATABASE_URL=postgresql://postgres:password@localhost:54321/giftwrapt
 #   STORAGE_ENDPOINT=http://localhost:3900
 #   STORAGE_REGION=garage
-#   STORAGE_BUCKET=wishlists
+#   STORAGE_BUCKET=giftwrapt
 #   STORAGE_ACCESS_KEY_ID=GK<24 hex>
 #   STORAGE_SECRET_ACCESS_KEY=<64 hex>
 #   STORAGE_FORCE_PATH_STYLE=true
@@ -34,7 +34,7 @@ name: 'wishlist-dev'
 # RustFS example:
 #   STORAGE_ENDPOINT=http://localhost:9000
 #   STORAGE_REGION=us-east-1
-#   STORAGE_BUCKET=wishlists
+#   STORAGE_BUCKET=giftwrapt
 #   STORAGE_ACCESS_KEY_ID=<any string>
 #   STORAGE_SECRET_ACCESS_KEY=<any string>
 #   STORAGE_FORCE_PATH_STYLE=true
@@ -42,10 +42,10 @@ name: 'wishlist-dev'
 services:
   postgres:
     image: postgres:17-alpine
-    container_name: wishlist-dev-postgres
+    container_name: giftwrapt-dev-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: wishlist_dev
+      POSTGRES_DB: giftwrapt_dev
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
     ports:
@@ -55,14 +55,14 @@ services:
     tmpfs:
       - /tmp
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres -d wishlist_dev']
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d giftwrapt_dev']
       interval: 5s
       timeout: 5s
       retries: 5
 
   garage:
     image: dxflrs/garage:v1.0.1
-    container_name: wishlist-dev-garage
+    container_name: giftwrapt-dev-garage
     restart: unless-stopped
     profiles: ['garage']
     environment:
@@ -85,7 +85,7 @@ services:
 
   rustfs:
     image: rustfs/rustfs:latest
-    container_name: wishlist-dev-rustfs
+    container_name: giftwrapt-dev-rustfs
     restart: unless-stopped
     profiles: ['rustfs']
     environment:

@@ -87,7 +87,7 @@ export const env = createEnv({
 	clientPrefix: 'VITE_',
 
 	client: {
-		VITE_APP_TITLE: z.string().min(1).default('Wish Lists'),
+		VITE_APP_TITLE: z.string().min(1).default('GiftWrapt'),
 		VITE_SERVER_URL: z.url().optional(),
 	},
 

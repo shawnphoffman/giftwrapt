@@ -91,16 +91,16 @@ const aiEntrySchema = z.object({
 
 // Custom Hono facade in front of browserless / flaresolverr / byparr /
 // scrapfly that we deploy externally; see
-// https://github.com/shawnphoffman/wish-list-scraper.
+// https://github.com/shawnphoffman/giftwrapt-scraper.
 //
 // Single endpoint: POST {endpoint}/fetch with X-Browser-Token header and
 // {url} body, returns {html, finalUrl, status, ...} on success or
 // {error: {code, message, retryable}, attempts} on failure. The facade's
 // `auto` mode chains through the upstream solvers, so we treat it as a
 // black box and only need endpoint + token here.
-const wishListScraperEntrySchema = z.object({
+const giftwraptScraperEntrySchema = z.object({
 	...baseEntryFields,
-	type: z.literal('wish-list-scraper'),
+	type: z.literal('giftwrapt-scraper'),
 	endpoint: z.union([z.literal(''), z.url()]),
 	token: z.string().max(500),
 })
@@ -127,7 +127,7 @@ export const scrapeProviderEntrySchema = z.discriminatedUnion('type', [
 	browserbaseStagehandEntrySchema,
 	customHttpEntrySchema,
 	aiEntrySchema,
-	wishListScraperEntrySchema,
+	giftwraptScraperEntrySchema,
 	scrapflyEntrySchema,
 ])
 
@@ -138,7 +138,7 @@ export type BrowserbaseFetchEntry = Extract<ScrapeProviderEntry, { type: 'browse
 export type BrowserbaseStagehandEntry = Extract<ScrapeProviderEntry, { type: 'browserbase-stagehand' }>
 export type CustomHttpEntry = Extract<ScrapeProviderEntry, { type: 'custom-http' }>
 export type AiEntry = Extract<ScrapeProviderEntry, { type: 'ai' }>
-export type WishListScraperEntry = Extract<ScrapeProviderEntry, { type: 'wish-list-scraper' }>
+export type GiftWraptScraperEntry = Extract<ScrapeProviderEntry, { type: 'giftwrapt-scraper' }>
 export type ScrapflyEntry = Extract<ScrapeProviderEntry, { type: 'scrapfly' }>
 
 export type ScrapeProviderType = ScrapeProviderEntry['type']
@@ -153,7 +153,7 @@ export const SCRAPE_PROVIDER_SECRET_FIELDS: Record<ScrapeProviderType, ReadonlyA
 	'browserbase-stagehand': ['apiKey'],
 	'custom-http': ['customHeaders'],
 	ai: [],
-	'wish-list-scraper': ['token'],
+	'giftwrapt-scraper': ['token'],
 	scrapfly: ['apiKey'],
 }
 

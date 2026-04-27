@@ -28,10 +28,10 @@ import type {
 	BrowserlessEntry,
 	CustomHttpEntry,
 	FlaresolverrEntry,
+	GiftWraptScraperEntry,
 	ScrapeProviderEntry,
 	ScrapeProviderType,
 	ScrapflyEntry,
-	WishListScraperEntry,
 } from '@/lib/settings'
 
 // Presentational form for scraper-related app settings: timeouts, cache TTL,
@@ -112,7 +112,7 @@ export function ScraperProvidersFormView({ settings, disabled, onChange }: Scrap
 }
 
 // `import.meta.env.DEV` is true in `vite dev` and false in production
-// builds. We hide the public GitHub link to the wish-list-scraper repo
+// builds. We hide the public GitHub link to the giftwrapt-scraper repo
 // behind this in admin help copy until it's ready to surface publicly.
 const IS_DEV = import.meta.env.DEV
 
@@ -129,7 +129,7 @@ const TYPE_LABELS: Record<ScrapeProviderType, string> = {
 	'browserbase-stagehand': 'Browserbase (Stagehand)',
 	'custom-http': 'Custom HTTP',
 	ai: 'AI extraction',
-	'wish-list-scraper': 'Wish List Scraper',
+	'giftwrapt-scraper': 'GiftWrapt Scraper',
 	scrapfly: 'ScrapFly',
 }
 
@@ -141,7 +141,7 @@ const ADD_OPTION_GROUPS: Array<{ label: string; options: Array<AddOption> }> = [
 		options: [
 			{ type: 'browserless', label: 'Browserless', hint: 'JS-rendering container' },
 			{ type: 'flaresolverr', label: 'Flaresolverr', hint: 'Cloudflare bypass' },
-			{ type: 'wish-list-scraper', label: 'Wish List Scraper', hint: 'Self-hosted scraping toolchain' },
+			{ type: 'giftwrapt-scraper', label: 'GiftWrapt Scraper', hint: 'Self-hosted scraping toolchain' },
 		],
 	},
 	{
@@ -313,8 +313,8 @@ function makeDefaultEntry(type: ScrapeProviderType, index: number): ScrapeProvid
 			}
 		case 'ai':
 			return { type, id, name: `AI extraction ${ordinal}`, enabled: false, tier: 3 }
-		case 'wish-list-scraper':
-			return { type, id, name: `Wish List Scraper ${ordinal}`, enabled: false, tier: 1, endpoint: '', token: '' }
+		case 'giftwrapt-scraper':
+			return { type, id, name: `GiftWrapt Scraper ${ordinal}`, enabled: false, tier: 1, endpoint: '', token: '' }
 		case 'scrapfly':
 			return { type, id, name: `ScrapFly ${ordinal}`, enabled: false, tier: 2, apiKey: '', asp: true, renderJs: false }
 	}
@@ -516,11 +516,11 @@ function EntryFields({
 			)
 		case 'ai':
 			return <AiFields draft={draft} />
-		case 'wish-list-scraper':
+		case 'giftwrapt-scraper':
 			return (
-				<WishListScraperFields
+				<GiftWraptScraperFields
 					draft={draft}
-					setDraft={setDraft as React.Dispatch<React.SetStateAction<WishListScraperEntry>>}
+					setDraft={setDraft as React.Dispatch<React.SetStateAction<GiftWraptScraperEntry>>}
 					disabled={disabled}
 				/>
 			)
@@ -718,13 +718,13 @@ function BrowserbaseStagehandFields({
 	)
 }
 
-function WishListScraperFields({
+function GiftWraptScraperFields({
 	draft,
 	setDraft,
 	disabled,
 }: {
-	draft: WishListScraperEntry
-	setDraft: React.Dispatch<React.SetStateAction<WishListScraperEntry>>
+	draft: GiftWraptScraperEntry
+	setDraft: React.Dispatch<React.SetStateAction<GiftWraptScraperEntry>>
 	disabled: boolean
 }) {
 	return (
@@ -744,13 +744,13 @@ function WishListScraperFields({
 				{IS_DEV ? (
 					<p className="text-xs text-muted-foreground mt-1">
 						Base URL of your deployed{' '}
-						<a href="https://github.com/shawnphoffman/wish-list-scraper" target="_blank" rel="noreferrer noopener" className="underline">
-							wish-list-scraper
+						<a href="https://github.com/shawnphoffman/giftwrapt-scraper" target="_blank" rel="noreferrer noopener" className="underline">
+							giftwrapt-scraper
 						</a>{' '}
 						facade.
 					</p>
 				) : (
-					<p className="text-xs text-muted-foreground mt-1">Base URL of your deployed wish-list-scraper facade.</p>
+					<p className="text-xs text-muted-foreground mt-1">Base URL of your deployed giftwrapt-scraper facade.</p>
 				)}
 			</div>
 			<SecretInput
@@ -1019,8 +1019,8 @@ function isSameEntry(a: ScrapeProviderEntry, b: ScrapeProviderEntry): boolean {
 			)
 		case 'ai':
 			return b.type === 'ai'
-		case 'wish-list-scraper':
-			return b.type === 'wish-list-scraper' && a.endpoint === b.endpoint && a.token === b.token
+		case 'giftwrapt-scraper':
+			return b.type === 'giftwrapt-scraper' && a.endpoint === b.endpoint && a.token === b.token
 		case 'scrapfly':
 			return b.type === 'scrapfly' && a.apiKey === b.apiKey && a.asp === b.asp && a.renderJs === b.renderJs
 	}

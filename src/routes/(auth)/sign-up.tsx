@@ -59,7 +59,7 @@ function SignUp() {
 			<div className="absolute inset-0 -z-10 overflow-hidden">
 				<GradientBackground />
 			</div>
-			<Image src={logo} alt="Wish Lists" width={160} height={160} className="w-24 sm:w-40" />
+			<Image src={logo} alt="GiftWrapt" width={160} height={160} className="w-24 sm:w-40" />
 
 			<div className="w-full max-w-md space-y-4 rounded-lg border bg-background/80 p-6 shadow-lg backdrop-blur">
 				<div className="text-center">

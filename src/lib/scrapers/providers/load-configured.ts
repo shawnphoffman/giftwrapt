@@ -26,8 +26,8 @@ import { createBrowserbaseStagehandProvider } from './browserbase-stagehand'
 import { createBrowserlessProvider } from './browserless'
 import { createCustomHttpProvider } from './custom-http'
 import { createFlaresolverrProvider } from './flaresolverr'
+import { createGiftWraptScraperProvider } from './giftwrapt-scraper'
 import { createScrapflyProvider } from './scrapfly'
-import { createWishListScraperProvider } from './wish-list-scraper'
 
 export async function loadConfiguredProviders(): Promise<Array<ScrapeProvider>> {
 	// Idempotent first-boot seed of browserless / flaresolverr entries from
@@ -59,8 +59,8 @@ export async function loadConfiguredProviders(): Promise<Array<ScrapeProvider>> 
 			case 'ai':
 				out.push(createAiProvider(entry))
 				break
-			case 'wish-list-scraper':
-				out.push(createWishListScraperProvider(entry))
+			case 'giftwrapt-scraper':
+				out.push(createGiftWraptScraperProvider(entry))
 				break
 			case 'scrapfly':
 				out.push(createScrapflyProvider(entry))

@@ -1,5 +1,5 @@
 // One-shot bootstrap for a bundled RustFS instance. Triggered by
-// INIT_RUSTFS=true in the wish-lists container's entrypoint, and usable
+// INIT_RUSTFS=true in the giftwrapt container's entrypoint, and usable
 // standalone via `pnpm storage:init:rustfs` for local dev.
 //
 // Unlike Garage, RustFS provisions root credentials at startup via its own

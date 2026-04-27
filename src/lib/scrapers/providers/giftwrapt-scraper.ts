@@ -1,23 +1,23 @@
 // Server-only. Do not import from client/route components.
 //
-// Thin client over the wish-list-scraper Hono facade
-// (https://github.com/shawnphoffman/wish-list-scraper). The facade itself
+// Thin client over the giftwrapt-scraper Hono facade
+// (https://github.com/shawnphoffman/giftwrapt-scraper). The facade itself
 // chains browserless → flaresolverr → byparr → scrapfly with bot-block
 // detection, so we treat it as a black box: POST {endpoint}/fetch with a
 // token header and a {url} body, get back rendered HTML.
 //
-// Each entry of type `wish-list-scraper` in `appSettings.scrapeProviders`
+// Each entry of type `giftwrapt-scraper` in `appSettings.scrapeProviders`
 // becomes its own provider in the orchestrator chain. Lets self-hosters
-// stand up one shared facade and point multiple wish-list deployments at
+// stand up one shared facade and point multiple giftwrapt deployments at
 // it (or run several facades in different regions).
 
-import type { WishListScraperEntry } from '@/lib/settings'
+import type { GiftWraptScraperEntry } from '@/lib/settings'
 
 import { looksLikeBlocked } from '../bot-detect'
 import type { ProviderResponse, ScrapeContext, ScrapeProvider } from '../types'
 import { ScrapeProviderError } from '../types'
 
-const PROVIDER_TYPE = 'wish-list-scraper'
+const PROVIDER_TYPE = 'giftwrapt-scraper'
 const MAX_BODY_BYTES = 5 * 1024 * 1024
 
 // Mapping from the facade's wire-level error codes to our internal
@@ -40,19 +40,19 @@ type FacadeError = {
 	error?: { code?: FacadeErrorCode; message?: string; retryable?: boolean }
 }
 
-export function wishListScraperProviderId(entryId: string): string {
+export function giftwraptScraperProviderId(entryId: string): string {
 	return `${PROVIDER_TYPE}:${entryId}`
 }
 
-export function createWishListScraperProvider(entry: WishListScraperEntry): ScrapeProvider {
-	const providerId = wishListScraperProviderId(entry.id)
+export function createGiftWraptScraperProvider(entry: GiftWraptScraperEntry): ScrapeProvider {
+	const providerId = giftwraptScraperProviderId(entry.id)
 	return {
 		id: providerId,
 		name: entry.name,
 		kind: 'html',
 		tier: entry.tier,
 		isAvailable: () => entry.enabled && isParseableUrl(entry.endpoint) && entry.token.trim().length > 0,
-		fetch: ctx => runWishListScraperProvider(ctx, entry, providerId),
+		fetch: ctx => runGiftWraptScraperProvider(ctx, entry, providerId),
 	}
 }
 
@@ -66,7 +66,11 @@ function isParseableUrl(raw: string): boolean {
 	}
 }
 
-async function runWishListScraperProvider(ctx: ScrapeContext, entry: WishListScraperEntry, providerId: string): Promise<ProviderResponse> {
+async function runGiftWraptScraperProvider(
+	ctx: ScrapeContext,
+	entry: GiftWraptScraperEntry,
+	providerId: string
+): Promise<ProviderResponse> {
 	if (!entry.endpoint) throw new ScrapeProviderError('config_missing', `${entry.name} endpoint is empty`)
 	if (!entry.token) throw new ScrapeProviderError('config_missing', `${entry.name} token is empty`)
 

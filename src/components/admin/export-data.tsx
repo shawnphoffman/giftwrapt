@@ -19,7 +19,7 @@ export default function ExportData() {
 			const stamp = new Date().toISOString().replace(/[:.]/g, '-')
 			const a = document.createElement('a')
 			a.href = url
-			a.download = `wish-lists-backup-${stamp}.json`
+			a.download = `giftwrapt-backup-${stamp}.json`
 			document.body.appendChild(a)
 			a.click()
 			document.body.removeChild(a)

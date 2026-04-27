@@ -77,7 +77,7 @@ export const sendNewCommentEmail = async (
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: recipient,
-		subject: 'New Comment on Wish Lists',
+		subject: 'New Comment on GiftWrapt',
 		react: (
 			<NewCommentEmail username={username} commenter={commenter} comment={comment} itemTitle={itemTitle} listId={listId} itemId={itemId} />
 		),

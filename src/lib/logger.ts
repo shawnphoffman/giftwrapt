@@ -20,7 +20,7 @@ const prettyEnabled = isServer ? (env.LOG_PRETTY ?? !isProd) : false
 const baseOptions: LoggerOptions = {
 	level: isServer ? env.LOG_LEVEL : 'silent',
 	base: {
-		service: 'wish-lists',
+		service: 'giftwrapt',
 		env: process.env.NODE_ENV ?? 'development',
 	},
 	// Redact common secret-bearing fields so we never leak tokens/cookies even

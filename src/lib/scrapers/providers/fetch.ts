@@ -2,14 +2,7 @@ import { looksLikeBlocked } from '../bot-detect'
 import type { ProviderResponse, ScrapeContext, ScrapeProvider } from '../types'
 import { ScrapeProviderError } from '../types'
 
-// User-Agent rotation lifted directly from the v1 implementation
-// (`group-wish-lists/src/app/api/scraper/route.ts`). Order is signal-first:
-//   1. facebookexternalhit  - retailers special-case the FB crawler and
-//      return OG-rich, JS-free responses to it.
-//   2. Googlebot            - catches sites that don't bother with FB but
-//      do serve clean SEO HTML to Google.
-//   3. Real browser UA      - last-resort for sites that explicitly block
-//      known bot UAs but happily serve a static page to Chrome.
+// User-Agent rotation
 const USER_AGENTS: ReadonlyArray<{ id: string; value: string }> = [
 	{ id: 'facebook', value: 'facebookexternalhit/1.1' },
 	{ id: 'googlebot', value: 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' },

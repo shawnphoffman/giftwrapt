@@ -4,7 +4,7 @@
 	"include-component-in-tag": false,
 	"packages": {
 		".": {
-			"package-name": "group-wish-lists-open",
+			"package-name": "giftwrapt",
 			"changelog-path": "CHANGELOG.md",
 			"bump-minor-pre-major": true,
 			"bump-patch-for-minor-pre-major": false,

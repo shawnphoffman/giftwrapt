@@ -8,23 +8,23 @@ vi.mock('@/env', () => ({
 	},
 }))
 
-import type { WishListScraperEntry } from '@/lib/settings'
+import type { GiftWraptScraperEntry } from '@/lib/settings'
 
 import type { ScrapeContext, ScrapeProvider } from '../../types'
-import { createWishListScraperProvider } from '../wish-list-scraper'
+import { createGiftWraptScraperProvider } from '../giftwrapt-scraper'
 
-const TEST_ENTRY: WishListScraperEntry = {
-	type: 'wish-list-scraper',
+const TEST_ENTRY: GiftWraptScraperEntry = {
+	type: 'giftwrapt-scraper',
 	id: 'test',
-	name: 'Wish List Scraper Test',
+	name: 'GiftWrapt Scraper Test',
 	enabled: true,
 	tier: 1,
 	endpoint: 'https://browser-services.test',
 	token: 'wls-token-123',
 }
 
-function makeProvider(overrides: Partial<WishListScraperEntry> = {}): ScrapeProvider {
-	return createWishListScraperProvider({ ...TEST_ENTRY, ...overrides })
+function makeProvider(overrides: Partial<GiftWraptScraperEntry> = {}): ScrapeProvider {
+	return createGiftWraptScraperProvider({ ...TEST_ENTRY, ...overrides })
 }
 
 function silentLogger(): ScrapeContext['logger'] {
@@ -73,7 +73,7 @@ afterEach(() => {
 	vi.unstubAllGlobals()
 })
 
-describe('wishListScraperProvider: availability', () => {
+describe('giftwraptScraperProvider: availability', () => {
 	it('is available when enabled with a parseable endpoint and a non-empty token', () => {
 		expect(makeProvider().isAvailable()).toBe(true)
 	})
@@ -91,7 +91,7 @@ describe('wishListScraperProvider: availability', () => {
 	})
 })
 
-describe('wishListScraperProvider: success path', () => {
+describe('giftwraptScraperProvider: success path', () => {
 	it('POSTs {endpoint}/fetch with the URL body and X-Browser-Token, returning RawPage', async () => {
 		queue.push({
 			httpStatus: 200,
@@ -106,7 +106,7 @@ describe('wishListScraperProvider: success path', () => {
 		const result = await makeProvider().fetch(makeCtx('https://example.test/x'))
 		expect(result.kind).toBe('html')
 		if (result.kind !== 'html') return
-		expect(result.providerId).toBe('wish-list-scraper:test')
+		expect(result.providerId).toBe('giftwrapt-scraper:test')
 		expect(result.html).toContain('rendered')
 		expect(result.finalUrl).toBe('https://example.test/x?utm=1')
 		expect(result.status).toBe(200)
@@ -129,7 +129,7 @@ describe('wishListScraperProvider: success path', () => {
 	})
 })
 
-describe('wishListScraperProvider: facade error envelope mapping', () => {
+describe('giftwraptScraperProvider: facade error envelope mapping', () => {
 	it('maps error.code = bot_block to bot_block', async () => {
 		queue.push({ httpStatus: 502, payload: { error: { code: 'bot_block', message: 'all upstreams blocked' } } })
 		await expect(makeProvider().fetch(makeCtx('https://example.test/x'))).rejects.toMatchObject({ code: 'bot_block' })
@@ -164,7 +164,7 @@ describe('wishListScraperProvider: facade error envelope mapping', () => {
 	})
 })
 
-describe('wishListScraperProvider: HTTP fallback when error envelope is missing', () => {
+describe('giftwraptScraperProvider: HTTP fallback when error envelope is missing', () => {
 	it('classifies bare 401 as config_missing', async () => {
 		queue.push({ httpStatus: 401, payload: {} })
 		await expect(makeProvider().fetch(makeCtx('https://example.test/x'))).rejects.toMatchObject({ code: 'config_missing' })
@@ -191,7 +191,7 @@ describe('wishListScraperProvider: HTTP fallback when error envelope is missing'
 	})
 })
 
-describe('wishListScraperProvider: body checks on success', () => {
+describe('giftwraptScraperProvider: body checks on success', () => {
 	it('throws invalid_response on empty html', async () => {
 		queue.push({ httpStatus: 200, payload: { html: '', status: 200 } })
 		await expect(makeProvider().fetch(makeCtx('https://example.test/x'))).rejects.toMatchObject({ code: 'invalid_response' })

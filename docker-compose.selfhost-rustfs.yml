@@ -12,9 +12,9 @@
 #   1. cp env.example .env
 #   2. Edit .env - at minimum set POSTGRES_PASSWORD, BETTER_AUTH_SECRET, and
 #      BETTER_AUTH_URL (the public URL you'll reach the app from, e.g.
-#      http://192.168.1.137:3888 or https://wishlists.example.com).
+#      http://192.168.1.137:3888 or https://giftwrapt.example.com).
 #   3. Set STORAGE_ENDPOINT=http://rustfs:9000, STORAGE_REGION=us-east-1,
-#      STORAGE_BUCKET=wishlists, plus any STORAGE_ACCESS_KEY_ID and
+#      STORAGE_BUCKET=giftwrapt, plus any STORAGE_ACCESS_KEY_ID and
 #      STORAGE_SECRET_ACCESS_KEY (RustFS accepts arbitrary strings - no GK
 #      prefix or hex requirement). STORAGE_FORCE_PATH_STYLE=true.
 #   4. docker compose -f docker-compose.selfhost-rustfs.yml up -d
@@ -33,10 +33,10 @@
 
 services:
   app:
-    image: ${APP_IMAGE:-ghcr.io/shawnphoffman/wish-lists:latest}
+    image: ${APP_IMAGE:-ghcr.io/shawnphoffman/giftwrapt:latest}
     env_file: .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-wishlist}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-giftwrapt}
       NODE_ENV: production
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOG_PRETTY: ${LOG_PRETTY:-false}
@@ -57,13 +57,13 @@ services:
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-wishlist}
+      POSTGRES_DB: ${POSTGRES_DB:-giftwrapt}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-wishlist}']
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-giftwrapt}']
       interval: 5s
       timeout: 5s
       retries: 10

@@ -12,7 +12,7 @@ config()
 // produces a parseable JSON line the operator can grep.
 const log = pino({
 	level: process.env.LOG_LEVEL ?? 'info',
-	base: { service: 'wish-lists', scope: 'migrate' },
+	base: { service: 'giftwrapt', scope: 'migrate' },
 	timestamp: pino.stdTimeFunctions.isoTime,
 })
 

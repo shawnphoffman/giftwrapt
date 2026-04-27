@@ -7,6 +7,6 @@
  * code reads.
  */
 export const env = {
-	VITE_APP_TITLE: 'Wish Lists',
+	VITE_APP_TITLE: 'GiftWrapt',
 	VITE_SERVER_URL: 'http://localhost:3000',
 }

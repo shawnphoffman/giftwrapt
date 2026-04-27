@@ -1,6 +1,6 @@
 # Storage
 
-HoffStuff stores user avatars and item photos in an S3-compatible bucket. The app never cares which backend you use: any service that speaks the S3 API works. Pick a recipe below, fill in the `STORAGE_*` env vars, and restart the app.
+GiftWrapt stores user avatars and item photos in an S3-compatible bucket. The app never cares which backend you use: any service that speaks the S3 API works. Pick a recipe below, fill in the `STORAGE_*` env vars, and restart the app.
 
 Jump to: [Architecture](#architecture) · [Local dev](#recipe-1-local-dev) · [Self-host (Garage)](#recipe-2-self-host-garage) · [Self-host (RustFS)](#recipe-2b-self-host-rustfs) · [Vercel + R2](#recipe-3-vercel--cloudflare-r2) · [Vercel + AWS S3](#recipe-4-vercel--aws-s3) · [Vercel + Supabase](#recipe-5-vercel--supabase-storage) · [Env vars](#env-var-reference) · [Troubleshooting](#troubleshooting)
 
@@ -36,7 +36,7 @@ A separate `pnpm storage:init` step assigns the cluster layout, creates the buck
 ```env
 STORAGE_ENDPOINT=http://localhost:3900   # .env uses http://garage:3900 instead
 STORAGE_REGION=garage
-STORAGE_BUCKET=wishlists
+STORAGE_BUCKET=giftwrapt
 STORAGE_ACCESS_KEY_ID=GK$(openssl rand -hex 12)
 STORAGE_SECRET_ACCESS_KEY=$(openssl rand -hex 32)
 STORAGE_FORCE_PATH_STYLE=true
@@ -61,7 +61,7 @@ pnpm dev                                # start the app
 
 ```bash
 # List objects:
-docker compose --profile garage exec garage /garage bucket info wishlists
+docker compose --profile garage exec garage /garage bucket info giftwrapt
 # Drop all state and start fresh:
 docker compose --profile garage down -v
 ```
@@ -75,7 +75,7 @@ RustFS provisions root credentials at startup from env vars, so the bootstrap is
 ```env
 STORAGE_ENDPOINT=http://localhost:9000   # .env uses http://rustfs:9000 instead
 STORAGE_REGION=us-east-1
-STORAGE_BUCKET=wishlists
+STORAGE_BUCKET=giftwrapt
 STORAGE_ACCESS_KEY_ID=local-dev-key
 STORAGE_SECRET_ACCESS_KEY=local-dev-secret
 STORAGE_FORCE_PATH_STYLE=true
@@ -95,7 +95,7 @@ pnpm dev                                # start the app
 
 Same stack, production-grade compose file. Garage runs inside the compose network; port 3900 is not exposed by default. The app serves images through `/api/files/*`, so clients never need direct bucket access.
 
-The wish-lists container bootstraps Garage automatically on every cold boot when `INIT_GARAGE=true` (the compose default). The init step runs once via Garage's admin HTTP API (layout assign, bucket create, key import, permission grant), then proceeds to DB migrations and server start. Idempotent: on subsequent boots each step short-circuits when it finds its target already in place.
+The giftwrapt container bootstraps Garage automatically on every cold boot when `INIT_GARAGE=true` (the compose default). The init step runs once via Garage's admin HTTP API (layout assign, bucket create, key import, permission grant), then proceeds to DB migrations and server start. Idempotent: on subsequent boots each step short-circuits when it finds its target already in place.
 
 ```bash
 cp .env.example .env
@@ -120,7 +120,7 @@ server {
 ```
 
 ```env
-STORAGE_PUBLIC_URL=https://s3.example.com/wishlists
+STORAGE_PUBLIC_URL=https://s3.example.com/giftwrapt
 ```
 
 Expose port 3900 in `docker-compose.selfhost.yml` (`ports: - "3900:3900"`) and restart.
@@ -136,7 +136,7 @@ The bootstrap is a single `HeadBucket` / `CreateBucket` call against the regular
 ```bash
 cp env.example .env
 # Edit .env: set STORAGE_ENDPOINT=http://rustfs:9000, STORAGE_REGION=us-east-1,
-# STORAGE_BUCKET=wishlists, plus any STORAGE_ACCESS_KEY_ID and
+# STORAGE_BUCKET=giftwrapt, plus any STORAGE_ACCESS_KEY_ID and
 # STORAGE_SECRET_ACCESS_KEY values, and STORAGE_FORCE_PATH_STYLE=true.
 # INIT_RUSTFS defaults to "true" in the compose file; override to "false"
 # only if you're swapping RustFS out for external S3.
@@ -245,7 +245,7 @@ All server-side; no `VITE_*` equivalents. Validated at boot; missing any require
 | `STORAGE_PUBLIC_URL`        | no                                                 | CDN base URL handed to clients. Unset = the app serves via `/api/files/*`.                                                                                                                                                                     |
 | `STORAGE_MAX_UPLOAD_MB`     | no                                                 | Max upload size before Sharp runs (default 8).                                                                                                                                                                                                 |
 | `INIT_GARAGE`               | no                                                 | `"true"` triggers the built-in Garage bootstrap during the app's entrypoint. Default is off; the Garage self-host compose file sets it to true. Ignored for external S3 deploys.                                                               |
-| `GARAGE_ADMIN_URL`          | if `INIT_GARAGE=true` or using `pnpm storage:init` | Where the bootstrap reaches Garage's admin API. Defaults to `http://wish-lists-storage:3903` (self-host service name). For local dev, `http://localhost:3903`.                                                                                 |
+| `GARAGE_ADMIN_URL`          | if `INIT_GARAGE=true` or using `pnpm storage:init` | Where the bootstrap reaches Garage's admin API. Defaults to `http://giftwrapt-storage:3903` (self-host service name). For local dev, `http://localhost:3903`.                                                                                  |
 | `GARAGE_ADMIN_TOKEN`        | if bootstrap is used                               | Bearer token for Garage's admin API. 64 hex chars (`openssl rand -hex 32`).                                                                                                                                                                    |
 | `GARAGE_RPC_SECRET`         | if running the bundled Garage daemon               | Garage internal RPC auth. 64 hex chars. Unused by the app itself; only read by the Garage container.                                                                                                                                           |
 | `INIT_RUSTFS`               | no                                                 | `"true"` triggers a HeadBucket/CreateBucket bootstrap during the app's entrypoint. Default is off; the RustFS self-host compose file sets it to true. Ignored for external S3 deploys. Don't set both `INIT_GARAGE` and `INIT_RUSTFS`.         |
@@ -274,15 +274,15 @@ What you should see on a clean `docker compose -f docker-compose.selfhost.yml up
 $ docker compose -f docker-compose.selfhost.yml up
 [garage]     INFO garage::server: Launching Admin API server...
 [garage]     INFO garage_api::generic_server: S3 API server listening on http://[::]:3900
-[app]        [entrypoint] starting wish-lists
+[app]        [entrypoint] starting giftwrapt
 [app]        [entrypoint] INIT_GARAGE=true, bootstrapping Garage...
 [app]        [init-garage] admin url: http://garage:3903
 [app]        [init-garage] daemon ready
 [app]        [init-garage] staging layout for node <hex>…
 [app]        [init-garage] applying layout at version 1
-[app]        [init-garage] creating bucket wishlists
-[app]        [init-garage] imported key wishlist-app
-[app]        [init-garage] granting read+write+owner on wishlists to GK…
+[app]        [init-garage] creating bucket giftwrapt
+[app]        [init-garage] imported key giftwrapt-app
+[app]        [init-garage] granting read+write+owner on giftwrapt to GK…
 [app]        [init-garage] done
 [app]        [entrypoint] Garage bootstrap complete
 [app]        [entrypoint] running database migrations...
@@ -294,7 +294,7 @@ $ docker compose -f docker-compose.selfhost.yml up
 After first sign-in, upload an avatar from Settings. Confirm:
 
 ```bash
-docker compose exec garage /garage bucket info wishlists
+docker compose exec garage /garage bucket info giftwrapt
 # Should show: Objects: 1
 ```
 
@@ -306,7 +306,7 @@ V1 `image_url` hotlinks are preserved as-is during migration. New uploads go thr
 
 The admin data export at `src/api/backup.ts` covers DB rows only. Bucket contents are separate and use the provider's own backup story:
 
-- **Garage:** `garage bucket snapshot` is not yet in v1.0.1; for now, back up the `garage_data` volume directly (`docker run --rm -v wishlist-dev_garage_data:/data alpine tar -czf- -C /data .`).
+- **Garage:** `garage bucket snapshot` is not yet in v1.0.1; for now, back up the `garage_data` volume directly (`docker run --rm -v giftwrapt-dev_garage_data:/data alpine tar -czf- -C /data .`).
 - **RustFS:** back up the `rustfs_data` volume directly (`docker run --rm -v <project>_rustfs_data:/data alpine tar -czf- -C /data .`). Or use the AWS CLI / `mc` against the S3 endpoint to mirror objects to a remote bucket.
 - **R2:** versioning is on by default; enable lifecycle rules in the R2 dashboard.
 - **AWS S3:** enable bucket versioning + lifecycle rules.

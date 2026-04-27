@@ -25,7 +25,7 @@ config()
 
 const log = pino({
 	level: process.env.LOG_LEVEL ?? 'info',
-	base: { service: 'wish-lists', scope: 'backfill-vendors' },
+	base: { service: 'giftwrapt', scope: 'backfill-vendors' },
 	timestamp: pino.stdTimeFunctions.isoTime,
 })
 

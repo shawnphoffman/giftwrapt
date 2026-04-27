@@ -1,11 +1,11 @@
 // One-shot bootstrap for a bundled Garage instance. Triggered by
-// INIT_GARAGE=true in the wish-lists container's entrypoint, and usable
+// INIT_GARAGE=true in the giftwrapt container's entrypoint, and usable
 // standalone via `pnpm storage:init` for local dev.
 //
 // Uses Garage's admin HTTP API (default port 3903) with a Bearer token.
 // No CLI, no shared volume, no separate container - just fetch() calls
 // from the same Node process that's about to boot the app. Keeps the
-// wish-lists image free of any Garage binary dependency, and lets
+// giftwrapt image free of any Garage binary dependency, and lets
 // non-Garage deploys (R2, AWS, Supabase) skip this path entirely.
 //
 // Idempotent: a fresh cluster goes through assign + create + import +
@@ -31,13 +31,13 @@ const requireEnv = (name: string): string => {
 	return v
 }
 
-const ADMIN_URL = (process.env.GARAGE_ADMIN_URL ?? 'http://wish-lists-storage:3903').replace(/\/$/, '')
+const ADMIN_URL = (process.env.GARAGE_ADMIN_URL ?? 'http://giftwrapt-storage:3903').replace(/\/$/, '')
 const ADMIN_TOKEN = requireEnv('GARAGE_ADMIN_TOKEN')
 const BUCKET = requireEnv('STORAGE_BUCKET')
 const ACCESS_KEY_ID = requireEnv('STORAGE_ACCESS_KEY_ID')
 const SECRET_ACCESS_KEY = requireEnv('STORAGE_SECRET_ACCESS_KEY')
 
-const KEY_NAME = 'wishlist-app'
+const KEY_NAME = 'giftwrapt-app'
 const ZONE = 'dc1'
 // Layout capacity is a bookkeeping value Garage uses to plan partition
 // assignment, not a real disk quota. 1 GiB is enough for any single-node
