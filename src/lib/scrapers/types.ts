@@ -96,10 +96,14 @@ export type ScrapeProvider = {
 	readonly name?: string
 	// `html` providers go through the extractor; `structured` providers don't.
 	readonly kind: 'html' | 'structured'
-	// `sequential` providers join the priority chain and gate on score-based
-	// fallthrough. `parallel` providers fire alongside the chain and only
-	// compete via final scoring.
-	readonly mode: 'sequential' | 'parallel'
+	// Tier determines when this provider runs in the orchestrator. Tier 0
+	// is reserved for the always-on `fetch-provider`; tiers 1-5 are
+	// admin-configurable. When `tier` is undefined, the provider runs as a
+	// "parallel racer" alongside the tier loop and always contributes its
+	// result regardless of whether the tier loop already cleared the
+	// threshold. Used by `ai-provider` in commit A; in commit B `ai-provider`
+	// becomes a regular tiered entry and parallel-racer mode goes away.
+	readonly tier?: number
 	// Cheap availability check the orchestrator runs at chain assembly time.
 	// Lets a provider exclude itself when its env / config is missing without
 	// throwing later.
@@ -127,8 +131,13 @@ export type ScrapeAttempt = {
 export type StreamEvent =
 	| {
 			type: 'plan'
-			sequential: Array<string>
-			parallel: Array<string>
+			// Provider ids grouped by tier. The orchestrator runs each tier's
+			// providers in parallel, then merges results, then advances to the
+			// next tier only if the merge fell below qualityThreshold.
+			tiers: Array<{ tier: number; providerIds: Array<string> }>
+			// Always-on parallel racers (currently just `ai-provider` in
+			// commit A; empty in commit B once it migrates).
+			parallelRacers: Array<string>
 			// Human-friendly label per provider id. Clients fall back to the id
 			// when a name isn't supplied. Custom-http entries always include
 			// their admin-assigned name; built-ins can leave their entries off.
@@ -139,6 +148,33 @@ export type StreamEvent =
 	| { type: 'attempt_started'; providerId: string }
 	| { type: 'attempt_completed'; providerId: string; score: number; ms: number }
 	| { type: 'attempt_failed'; providerId: string; errorCode: ScrapeErrorCode; errorMessage?: string; ms: number }
+	| {
+			type: 'tier_started'
+			tier: number
+			providerIds: Array<string>
+	  }
+	| {
+			type: 'tier_completed'
+			tier: number
+			// The merged result's score after fill-the-gaps merging across all
+			// tier providers that succeeded. Null when every provider in the
+			// tier failed (no merge was possible).
+			mergedScore: number | null
+			// Provider ids that contributed at least one field to the merged
+			// result. Empty when no provider in the tier succeeded.
+			contributors: Array<string>
+			// True when this tier's merged score cleared qualityThreshold and
+			// stopped the tier loop. False when we either advanced to a later
+			// tier or no later tier existed.
+			cleared: boolean
+	  }
+	| {
+			type: 'tier_skipped'
+			tier: number
+			// Always 'previous_tier_won' today; left as a discriminator for
+			// future reasons (e.g. 'no_providers_available', 'aborted').
+			reason: 'previous_tier_won'
+	  }
 	| { type: 'result_ready'; result: ScrapeResult; fromProvider: string; cached: boolean }
 	| { type: 'result_updated'; result: ScrapeResult; fromProvider: string }
 	| { type: 'done'; attempts: Array<ScrapeAttempt> }
@@ -213,4 +249,25 @@ export type OrchestratorDeps = {
 	// for the AI title-cleanup pass; failures are swallowed so a flaky LLM
 	// can't blow up an otherwise-successful scrape.
 	postProcessResult?: (result: ScrapeResult, ctx: { url: string; fromProvider: string }) => Promise<ScrapeResult>
+	// Optional merge function used to combine multiple succeeded results
+	// within a tier into a single fill-the-gaps result. Defaults to the
+	// shipped `mergeWithinTier` from `lib/scrapers/merge.ts`; tests inject
+	// their own to assert behavior in isolation.
+	mergeFn?: (contributions: Array<MergeContribution>) => MergedResult
+}
+
+// Inputs to `mergeFn`. Each contribution is one provider's successful
+// attempt within a tier; the orchestrator hands them in score-descending
+// order so the merge function can use index 0 as the base.
+export type MergeContribution = {
+	result: ScrapeResult
+	fromProvider: string
+	score: number
+}
+
+export type MergedResult = {
+	result: ScrapeResult
+	// Single provider id when only one contributed; `merged:a,b,c` when
+	// multiple providers contributed a non-empty field to the result.
+	fromProvider: string
 }

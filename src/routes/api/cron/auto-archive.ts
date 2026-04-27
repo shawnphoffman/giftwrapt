@@ -7,7 +7,7 @@ import { giftedItems, items, lists, users } from '@/db/schema'
 import type { BirthMonth } from '@/db/schema/enums'
 import { env } from '@/env'
 import { createLogger } from '@/lib/logger'
-import { getAppSettings } from '@/lib/settings'
+import { getAppSettings } from '@/lib/settings-loader'
 
 const cronLog = createLogger('cron:auto-archive')
 

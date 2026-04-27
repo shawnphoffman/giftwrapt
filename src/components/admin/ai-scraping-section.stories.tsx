@@ -3,10 +3,9 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { AiScrapingSectionView } from './ai-scraping-section-view'
 
 /**
- * Section under the admin AI page. Two toggles, both gated on whether the
- * AI provider above is configured. Both default off; flipping them on
- * activates the orchestrator's parallel AI scrape provider and the
- * clean-title post-pass respectively.
+ * Section under the admin AI page. One toggle for the AI clean-title
+ * post-pass; gated on whether the AI provider above is configured. The
+ * AI scraper itself moved to /admin/scraping as a typed entry.
  */
 const meta = {
 	title: 'Admin/AI Scraping Section',
@@ -25,7 +24,6 @@ type Story = StoryObj<typeof meta>
 
 export const NoAiProviderConfigured: Story = {
 	args: {
-		scrapeAiProviderEnabled: false,
 		scrapeAiCleanTitlesEnabled: false,
 		aiAvailable: false,
 	},
@@ -33,47 +31,28 @@ export const NoAiProviderConfigured: Story = {
 		docs: {
 			description: {
 				story:
-					'No AI provider is configured upstream. Both toggles render disabled with a hint explaining how to enable them. This is the default state for a fresh deployment.',
+					'No AI provider is configured upstream. Toggle renders disabled with a hint explaining how to enable it. This is the default state for a fresh deployment.',
 			},
 		},
 	},
 }
 
-export const AiAvailableBothOff: Story = {
+export const AiAvailableOff: Story = {
 	args: {
-		scrapeAiProviderEnabled: false,
 		scrapeAiCleanTitlesEnabled: false,
 		aiAvailable: true,
 	},
 	parameters: {
 		docs: {
 			description: {
-				story:
-					'AI is configured but neither feature has been turned on yet. Toggles are interactive; flipping them activates the corresponding orchestrator hook.',
+				story: 'AI is configured but the clean-title post-pass is off. Flip the switch to activate.',
 			},
 		},
 	},
 }
 
-export const AiScrapeOnly: Story = {
+export const CleanTitlesOn: Story = {
 	args: {
-		scrapeAiProviderEnabled: true,
-		scrapeAiCleanTitlesEnabled: false,
-		aiAvailable: true,
-	},
-}
-
-export const CleanTitlesOnly: Story = {
-	args: {
-		scrapeAiProviderEnabled: false,
-		scrapeAiCleanTitlesEnabled: true,
-		aiAvailable: true,
-	},
-}
-
-export const BothOn: Story = {
-	args: {
-		scrapeAiProviderEnabled: true,
 		scrapeAiCleanTitlesEnabled: true,
 		aiAvailable: true,
 	},
@@ -81,7 +60,6 @@ export const BothOn: Story = {
 
 export const Saving: Story = {
 	args: {
-		scrapeAiProviderEnabled: true,
 		scrapeAiCleanTitlesEnabled: false,
 		aiAvailable: true,
 		disabled: true,
@@ -89,7 +67,7 @@ export const Saving: Story = {
 	parameters: {
 		docs: {
 			description: {
-				story: 'Mutation in flight - both toggles are temporarily disabled until the server confirms.',
+				story: 'Mutation in flight - the toggle is temporarily disabled until the server confirms.',
 			},
 		},
 	},

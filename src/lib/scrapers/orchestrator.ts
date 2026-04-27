@@ -1,6 +1,8 @@
 import { createLogger } from '@/lib/logger'
 
+import { mergeWithinTier } from './merge'
 import type {
+	MergeContribution,
 	OrchestrateOptions,
 	OrchestrateResult,
 	OrchestratorDeps,
@@ -25,6 +27,7 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 	const perProviderTimeoutMs = deps.perProviderTimeoutMs ?? DEFAULT_PER_PROVIDER_TIMEOUT_MS
 	const overallTimeoutMs = deps.overallTimeoutMs ?? DEFAULT_OVERALL_TIMEOUT_MS
 	const qualityThreshold = deps.qualityThreshold ?? DEFAULT_QUALITY_THRESHOLD
+	const mergeFn = deps.mergeFn ?? mergeWithinTier
 
 	if (!isValidScrapeUrl(options.url)) {
 		emit({ type: 'error', reason: 'invalid-url' })
@@ -34,12 +37,18 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 	// Cache lookup. Skip when force is set or no cache loader is wired in.
 	const cacheHit = options.force ? null : ((await deps.loadCache?.(options.url)) ?? null)
 
-	// Filter the registered providers to those available + matching the override
-	// (if provided). Honours order in `providerOverride`; otherwise preserves
-	// registration order.
+	// Filter the registered providers to those available + matching the override.
 	const candidates = await selectProviders(deps.providers, options.providerOverride)
-	const sequential = candidates.filter(p => p.mode === 'sequential')
-	const parallel = candidates.filter(p => p.mode === 'parallel')
+
+	// Split into tiered providers (run in tier loop) and parallel racers
+	// (always run alongside the tier loop regardless of threshold). The
+	// `tier` field is undefined only for ai-provider in commit A; commit B
+	// removes the parallel-racer mode entirely.
+	const tieredProviders: Array<ScrapeProvider> = candidates.filter(p => typeof p.tier === 'number')
+	const parallelRacers: Array<ScrapeProvider> = candidates.filter(p => typeof p.tier !== 'number')
+
+	const tierGroups = groupByTier(tieredProviders)
+	const tierOrder = [...tierGroups.keys()].sort((a, b) => a - b)
 
 	const providerNames: Record<string, string> = {}
 	for (const p of candidates) {
@@ -48,8 +57,8 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 
 	emit({
 		type: 'plan',
-		sequential: sequential.map(p => p.id),
-		parallel: parallel.map(p => p.id),
+		tiers: tierOrder.map(tier => ({ tier, providerIds: tierGroups.get(tier)!.map(p => p.id) })),
+		parallelRacers: parallelRacers.map(p => p.id),
 		providerNames,
 		totalTimeoutMs: overallTimeoutMs,
 		cached: cacheHit !== null,
@@ -85,12 +94,18 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 	}
 
 	const attempts: Array<ScrapeAttempt> = []
-	type Winner = { result: ScrapeResult; fromProvider: string; score: number }
-	// Wrapped in an object so TypeScript's control-flow analysis doesn't narrow
-	// the field to its initial value across closure invocations.
+	type Winner = { result: ScrapeResult; fromProvider: string; score: number; scoreContext: { html?: string; status?: number } }
 	const winnerRef: { current: Winner | null } = { current: null }
 
-	const runProvider = async (provider: ScrapeProvider): Promise<void> => {
+	// Each provider's success captures both its result and the score
+	// context (so a tier merge can re-score with a representative html
+	// body and status). Failures push attempts but produce no
+	// MergeContribution.
+	type ProviderRunResult =
+		| { ok: true; result: ScrapeResult; score: number; scoreContext: { html?: string; status?: number }; providerId: string }
+		| { ok: false; providerId: string }
+
+	const runProvider = async (provider: ScrapeProvider): Promise<ProviderRunResult> => {
 		emit({ type: 'attempt_started', providerId: provider.id })
 		const start = Date.now()
 		const perCtrl = new AbortController()
@@ -113,7 +128,17 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 		try {
 			const response = await provider.fetch(ctx)
 			const ms = Date.now() - start
-			const { result, score } = evaluateResponse(response, deps)
+			const { result, score, scoreContext } = evaluateResponse(response, deps)
+			// Minimum-signal gate: a "successful" attempt must produce at
+			// least a non-empty title. Without that, downstream UX has
+			// nothing meaningful to show — a fetch that returns an empty
+			// envelope or lands on a page where extraction whiffed
+			// completely should be persisted as ok:false with errorCode
+			// invalid_response, not as ok:true score:0. The catch branch
+			// below handles persistence and emits attempt_failed.
+			if (!hasMinimumSignal(result)) {
+				throw new ScrapeProviderError('invalid_response', 'no usable fields extracted (title missing)')
+			}
 			const attempt: ScrapeAttempt = { providerId: provider.id, ok: true, score, ms }
 			attempts.push(attempt)
 			emit({ type: 'attempt_completed', providerId: provider.id, score, ms })
@@ -127,7 +152,7 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 				result,
 				rawResponse: response.kind === 'html' ? { kind: 'html', status: response.status, finalUrl: response.finalUrl } : response.result,
 			})
-			considerWinner({ result, fromProvider: provider.id, score })
+			return { ok: true, result, score, scoreContext, providerId: provider.id }
 		} catch (err) {
 			const ms = Date.now() - start
 			const { code, message } = classifyError(err)
@@ -144,6 +169,7 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 				errorCode: code,
 				errorMessage: message,
 			})
+			return { ok: false, providerId: provider.id }
 		} finally {
 			clearTimeout(perTimer)
 			overallController.signal.removeEventListener('abort', onAbort)
@@ -163,29 +189,85 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 		}
 	}
 
-	// Kick off parallel providers immediately; do not await yet.
-	const parallelPromises = parallel.map(runProvider)
+	// Kick off the always-on parallel racers concurrently with the tier
+	// loop. They keep firing regardless of whether tier 1 wins; their
+	// results compete with the tier-loop winner via `considerWinner`.
+	const racerPromises = parallelRacers.map(p =>
+		runProvider(p).then(res => {
+			if (res.ok) {
+				considerWinner({ result: res.result, fromProvider: res.providerId, score: res.score, scoreContext: res.scoreContext })
+			}
+		})
+	)
 
-	// Sequential chain: stop early once a result clears the quality threshold
-	// (the user is unblocked at that point; remaining providers in the chain
-	// are skipped). Parallels still get to finish.
+	// Tier loop. Each tier fires all its providers in parallel, waits for
+	// settle, merges the successes, re-scores the merge, and only advances
+	// to the next tier when the merged score is below qualityThreshold.
+	const reachedTiers = new Set<number>()
 	try {
-		for (const provider of sequential) {
+		for (const tier of tierOrder) {
 			if (overallController.signal.aborted) break
-			await runProvider(provider)
-			const current = winnerRef.current
-			if (current && current.score >= qualityThreshold) break
+
+			const tierProviders = tierGroups.get(tier)!
+			emit({ type: 'tier_started', tier, providerIds: tierProviders.map(p => p.id) })
+			reachedTiers.add(tier)
+
+			const settled = await Promise.allSettled(tierProviders.map(runProvider))
+			const successes: Array<MergeContribution & { scoreContext: { html?: string; status?: number } }> = []
+			for (const s of settled) {
+				if (s.status !== 'fulfilled') continue
+				const r = s.value
+				if (!r.ok) continue
+				successes.push({
+					result: r.result,
+					fromProvider: r.providerId,
+					score: r.score,
+					scoreContext: r.scoreContext,
+				})
+			}
+
+			if (successes.length === 0) {
+				emit({ type: 'tier_completed', tier, mergedScore: null, contributors: [], cleared: false })
+				continue
+			}
+
+			// Merge succeeded contributions, then re-score the merged
+			// result. Use the highest-scoring contributor's score context
+			// for the re-score (best signal for the bot-block penalty).
+			const merged = mergeFn(successes.map(s => ({ result: s.result, fromProvider: s.fromProvider, score: s.score })))
+			const scoreContext = pickBestScoreContext(successes)
+			const mergedScore = deps.scoreFn(merged.result, scoreContext)
+
+			const contributorIds = mergedFromProviderToContributors(merged.fromProvider)
+			const cleared = mergedScore >= qualityThreshold
+
+			considerWinner({
+				result: merged.result,
+				fromProvider: merged.fromProvider,
+				score: mergedScore,
+				scoreContext,
+			})
+
+			emit({ type: 'tier_completed', tier, mergedScore, contributors: contributorIds, cleared })
+
+			if (cleared) break
 		}
-		// Wait for parallels to wrap up so their attempts persist and a late
-		// higher-scoring parallel can still take the win.
-		await Promise.allSettled(parallelPromises)
+
+		// Emit tier_skipped for any tier we never reached.
+		for (const tier of tierOrder) {
+			if (!reachedTiers.has(tier)) {
+				emit({ type: 'tier_skipped', tier, reason: 'previous_tier_won' })
+			}
+		}
+
+		// Wait for parallel racers so their attempts persist and a late
+		// higher-scoring racer can still take the win.
+		await Promise.allSettled(racerPromises)
 	} finally {
 		clearTimeout(overallTimer)
 	}
 
-	// Run any post-pass (e.g. AI title cleanup) on the final winner. We
-	// catch and swallow errors here on purpose: a flaky LLM should not
-	// invalidate a successful scrape.
+	// Run any post-pass (e.g. AI title cleanup) on the final winner.
 	const postPass = deps.postProcessResult
 	const beforePost = winnerRef.current
 	if (postPass && beforePost) {
@@ -221,6 +303,15 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 	return { kind: 'error', reason: 'all-providers-failed', attempts }
 }
 
+// Minimum-signal gate. A scraped result is only "successful" if it carries
+// at least a non-empty title — anything less has nothing useful to show
+// the user, regardless of how the scoring function felt about other
+// fields. Cheaper than the score function and intentionally separate:
+// score is for ranking, this is for valid/invalid.
+function hasMinimumSignal(result: ScrapeResult): boolean {
+	return typeof result.title === 'string' && result.title.trim().length > 0
+}
+
 function isValidScrapeUrl(raw: string): boolean {
 	try {
 		const u = new URL(raw)
@@ -242,14 +333,45 @@ async function selectProviders(providers: Array<ScrapeProvider>, override: Array
 	return checks.filter(({ ok }) => ok).map(({ p }) => p)
 }
 
-function evaluateResponse(response: ProviderResponse, deps: OrchestratorDeps): { result: ScrapeResult; score: number } {
+function groupByTier(providers: Array<ScrapeProvider>): Map<number, Array<ScrapeProvider>> {
+	const out = new Map<number, Array<ScrapeProvider>>()
+	for (const p of providers) {
+		const tier = p.tier!
+		const list = out.get(tier) ?? []
+		list.push(p)
+		out.set(tier, list)
+	}
+	return out
+}
+
+function pickBestScoreContext(contributions: ReadonlyArray<{ score: number; scoreContext: { html?: string; status?: number } }>): {
+	html?: string
+	status?: number
+} {
+	let best = contributions[0]
+	for (const c of contributions) if (c.score > best.score) best = c
+	return best.scoreContext
+}
+
+function mergedFromProviderToContributors(fromProvider: string): Array<string> {
+	if (fromProvider.startsWith('merged:')) {
+		return fromProvider.slice('merged:'.length).split(',').filter(Boolean)
+	}
+	return [fromProvider]
+}
+
+function evaluateResponse(
+	response: ProviderResponse,
+	deps: OrchestratorDeps
+): { result: ScrapeResult; score: number; scoreContext: { html?: string; status?: number } } {
 	if (response.kind === 'html') {
 		const result = deps.extractFromRaw(response.html, response.finalUrl)
-		const score = deps.scoreFn(result, { html: response.html, status: response.status })
-		return { result, score }
+		const scoreContext = { html: response.html, status: response.status }
+		const score = deps.scoreFn(result, scoreContext)
+		return { result, score, scoreContext }
 	}
 	const score = deps.scoreFn(response.result, {})
-	return { result: response.result, score }
+	return { result: response.result, score, scoreContext: {} }
 }
 
 function classifyError(err: unknown): { code: ScrapeErrorCode; message?: string } {

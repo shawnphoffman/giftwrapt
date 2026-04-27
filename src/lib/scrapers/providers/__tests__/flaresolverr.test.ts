@@ -5,12 +5,26 @@ vi.mock('@/env', () => ({
 		LOG_LEVEL: 'silent',
 		LOG_PRETTY: false,
 		BETTER_AUTH_SECRET: 'test-secret',
-		FLARESOLVERR_URL: 'http://flaresolverr.test:8191',
 	},
 }))
 
-import type { ScrapeContext } from '../../types'
-import { flaresolverrProvider } from '../flaresolverr'
+import type { FlaresolverrEntry } from '@/lib/settings'
+
+import type { ScrapeContext, ScrapeProvider } from '../../types'
+import { createFlaresolverrProvider } from '../flaresolverr'
+
+const TEST_ENTRY: FlaresolverrEntry = {
+	type: 'flaresolverr',
+	id: 'test',
+	name: 'Flaresolverr Test',
+	enabled: true,
+	tier: 1,
+	url: 'http://flaresolverr.test:8191',
+}
+
+function makeProvider(overrides: Partial<FlaresolverrEntry> = {}): ScrapeProvider {
+	return createFlaresolverrProvider({ ...TEST_ENTRY, ...overrides })
+}
 
 function silentLogger(): ScrapeContext['logger'] {
 	const noop = () => {}
@@ -48,8 +62,12 @@ afterEach(() => {
 })
 
 describe('flaresolverrProvider: availability', () => {
-	it('is available when FLARESOLVERR_URL is set', async () => {
-		await expect(Promise.resolve(flaresolverrProvider.isAvailable())).resolves.toBe(true)
+	it('is available when the entry is enabled and url is parseable', () => {
+		expect(makeProvider().isAvailable()).toBe(true)
+	})
+
+	it('is NOT available when disabled', () => {
+		expect(makeProvider({ enabled: false }).isAvailable()).toBe(false)
 	})
 })
 
@@ -62,10 +80,10 @@ describe('flaresolverrProvider: success path', () => {
 				solution: { url: 'https://example.test/final', status: 200, response: '<html><body>hello</body></html>', userAgent: 'Mozilla/5.0' },
 			},
 		})
-		const result = await flaresolverrProvider.fetch(makeCtx('https://example.test/x'))
+		const result = await makeProvider().fetch(makeCtx('https://example.test/x'))
 		expect(result.kind).toBe('html')
 		if (result.kind !== 'html') return
-		expect(result.providerId).toBe('flaresolverr-provider')
+		expect(result.providerId).toBe('flaresolverr:test')
 		expect(result.html).toContain('hello')
 		expect(result.finalUrl).toBe('https://example.test/final')
 		expect(lastFetchInit?.method).toBe('POST')
@@ -79,12 +97,12 @@ describe('flaresolverrProvider: success path', () => {
 describe('flaresolverrProvider: failure modes', () => {
 	it('classifies a Cloudflare error message as bot_block', async () => {
 		queue.push({ httpStatus: 200, json: { status: 'error', message: 'ERROR: Cloudflare Turnstile not solvable' } })
-		await expect(flaresolverrProvider.fetch(makeCtx('https://example.test/x'))).rejects.toMatchObject({ code: 'bot_block' })
+		await expect(makeProvider().fetch(makeCtx('https://example.test/x'))).rejects.toMatchObject({ code: 'bot_block' })
 	})
 
 	it('classifies other error messages as invalid_response', async () => {
 		queue.push({ httpStatus: 200, json: { status: 'error', message: 'something else broke' } })
-		await expect(flaresolverrProvider.fetch(makeCtx('https://example.test/x'))).rejects.toMatchObject({ code: 'invalid_response' })
+		await expect(makeProvider().fetch(makeCtx('https://example.test/x'))).rejects.toMatchObject({ code: 'invalid_response' })
 	})
 
 	it('throws bot_block when the solution body looks blocked', async () => {
@@ -92,11 +110,11 @@ describe('flaresolverrProvider: failure modes', () => {
 			httpStatus: 200,
 			json: { status: 'ok', solution: { url: 'x', status: 200, response: '<html>cf-browser-verification</html>' } },
 		})
-		await expect(flaresolverrProvider.fetch(makeCtx('https://example.test/x'))).rejects.toMatchObject({ code: 'bot_block' })
+		await expect(makeProvider().fetch(makeCtx('https://example.test/x'))).rejects.toMatchObject({ code: 'bot_block' })
 	})
 
 	it('classifies HTTP 5xx', async () => {
 		queue.push({ httpStatus: 502 })
-		await expect(flaresolverrProvider.fetch(makeCtx('https://example.test/x'))).rejects.toMatchObject({ code: 'http_5xx' })
+		await expect(makeProvider().fetch(makeCtx('https://example.test/x'))).rejects.toMatchObject({ code: 'http_5xx' })
 	})
 })

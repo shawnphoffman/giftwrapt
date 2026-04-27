@@ -58,6 +58,20 @@ const securityHeaders = {
 }
 
 const config = defineConfig({
+	// Stagehand (an optional dep used only at runtime via dynamic
+	// `await import()` in the browserbase-stagehand provider) and its
+	// transitive `playwright-core` pull in optional native modules
+	// (chromium-bidi/*) that aren't installed by default. Vite's dev-mode
+	// pre-bundle pass scans those even though we never reach them
+	// statically; excluding them here keeps the dev server happy without
+	// affecting production builds (where Nitro handles externalization).
+	optimizeDeps: {
+		exclude: ['@browserbasehq/stagehand', 'playwright-core', 'chromium-bidi'],
+	},
+	ssr: {
+		noExternal: [],
+		external: ['@browserbasehq/stagehand', 'playwright-core', 'chromium-bidi'],
+	},
 	plugins: [
 		!isStorybook && devtoolsEnabled && devtools(),
 		!isStorybook &&

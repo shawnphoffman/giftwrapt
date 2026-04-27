@@ -5,14 +5,11 @@ import { auth } from '@/lib/auth'
 import { createLogger } from '@/lib/logger'
 import { buildDbBackedDeps } from '@/lib/scrapers/cache'
 import { orchestrate } from '@/lib/scrapers/orchestrator'
-import { aiProvider } from '@/lib/scrapers/providers/ai'
-import { browserlessProvider } from '@/lib/scrapers/providers/browserless'
-import { loadCustomHttpProviders } from '@/lib/scrapers/providers/custom-http'
 import { fetchProvider } from '@/lib/scrapers/providers/fetch'
-import { flaresolverrProvider } from '@/lib/scrapers/providers/flaresolverr'
+import { loadConfiguredProviders } from '@/lib/scrapers/providers/load-configured'
 import { encodeStreamEvent } from '@/lib/scrapers/sse-format'
 import type { StreamEvent } from '@/lib/scrapers/types'
-import { getAppSettings } from '@/lib/settings'
+import { getAppSettings } from '@/lib/settings-loader'
 
 const sseLog = createLogger('sse:scrape')
 
@@ -51,7 +48,7 @@ export const Route = createFileRoute('/api/scrape/stream')({
 				const providerOverride = overrideValues.length > 0 ? overrideValues : undefined
 				const acceptLanguage = request.headers.get('accept-language') ?? undefined
 
-				const [settings, customHttpProviders] = await Promise.all([getAppSettings(db), loadCustomHttpProviders()])
+				const [settings, configuredProviders] = await Promise.all([getAppSettings(db), loadConfiguredProviders()])
 
 				const { readable, writable } = new TransformStream<Uint8Array>()
 				const writer = writable.getWriter()
@@ -93,7 +90,7 @@ export const Route = createFileRoute('/api/scrape/stream')({
 									minScore: settings.scrapeQualityThreshold,
 									userId: session.user.id,
 								}),
-								providers: [fetchProvider, browserlessProvider, flaresolverrProvider, ...customHttpProviders, aiProvider],
+								providers: [fetchProvider, ...configuredProviders],
 								perProviderTimeoutMs: settings.scrapeProviderTimeoutMs,
 								overallTimeoutMs: settings.scrapeOverallTimeoutMs,
 								qualityThreshold: settings.scrapeQualityThreshold,

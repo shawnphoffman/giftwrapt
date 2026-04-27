@@ -7,7 +7,7 @@ vi.mock('@/env', () => ({
 let mockToggle = false
 let mockAiValid = false
 
-vi.mock('@/lib/settings', () => ({
+vi.mock('@/lib/settings-loader', () => ({
 	getAppSettings: () => Promise.resolve({ scrapeAiCleanTitlesEnabled: mockToggle }),
 }))
 

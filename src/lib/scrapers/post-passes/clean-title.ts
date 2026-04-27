@@ -3,7 +3,7 @@ import { generateText } from 'ai'
 import type { Database } from '@/db'
 import { createAiModel } from '@/lib/ai-client'
 import { resolveAiConfig } from '@/lib/ai-config'
-import { getAppSettings } from '@/lib/settings'
+import { getAppSettings } from '@/lib/settings-loader'
 
 import type { ScrapeResult } from '../types'
 

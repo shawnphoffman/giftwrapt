@@ -5,13 +5,27 @@ vi.mock('@/env', () => ({
 		LOG_LEVEL: 'silent',
 		LOG_PRETTY: false,
 		BETTER_AUTH_SECRET: 'test-secret',
-		BROWSERLESS_URL: 'http://browserless.test:3000',
-		BROWSER_TOKEN: 'test-token',
 	},
 }))
 
-import type { ScrapeContext } from '../../types'
-import { browserlessProvider } from '../browserless'
+import type { BrowserlessEntry } from '@/lib/settings'
+
+import type { ScrapeContext, ScrapeProvider } from '../../types'
+import { createBrowserlessProvider } from '../browserless'
+
+const TEST_ENTRY: BrowserlessEntry = {
+	type: 'browserless',
+	id: 'test',
+	name: 'Browserless Test',
+	enabled: true,
+	tier: 1,
+	url: 'http://browserless.test:3000',
+	token: 'test-token',
+}
+
+function makeProvider(overrides: Partial<BrowserlessEntry> = {}): ScrapeProvider {
+	return createBrowserlessProvider({ ...TEST_ENTRY, ...overrides })
+}
 
 function silentLogger(): ScrapeContext['logger'] {
 	const noop = () => {}
@@ -58,18 +72,26 @@ afterEach(() => {
 })
 
 describe('browserlessProvider: availability', () => {
-	it('is available when BROWSERLESS_URL is set', async () => {
-		await expect(Promise.resolve(browserlessProvider.isAvailable())).resolves.toBe(true)
+	it('is available when the entry is enabled and url is parseable', () => {
+		expect(makeProvider().isAvailable()).toBe(true)
+	})
+
+	it('is NOT available when disabled', () => {
+		expect(makeProvider({ enabled: false }).isAvailable()).toBe(false)
+	})
+
+	it('is NOT available when url is empty', () => {
+		expect(makeProvider({ url: '' }).isAvailable()).toBe(false)
 	})
 })
 
 describe('browserlessProvider: success path', () => {
 	it('POSTs /content with the URL and returns RawPage', async () => {
 		queue.push({ status: 200, body: '<html><body>rendered</body></html>' })
-		const result = await browserlessProvider.fetch(makeCtx('https://example.test/x'))
+		const result = await makeProvider().fetch(makeCtx('https://example.test/x'))
 		expect(result.kind).toBe('html')
 		if (result.kind !== 'html') return
-		expect(result.providerId).toBe('browserless-provider')
+		expect(result.providerId).toBe('browserless:test')
 		expect(result.html).toContain('rendered')
 		expect(lastFetchInit?.method).toBe('POST')
 		expect(lastFetchInit?.url).toContain('/content')
@@ -82,26 +104,26 @@ describe('browserlessProvider: success path', () => {
 describe('browserlessProvider: failure modes', () => {
 	it('classifies 401/403 as config_missing', async () => {
 		queue.push({ status: 401 })
-		await expect(browserlessProvider.fetch(makeCtx('https://example.test/x'))).rejects.toMatchObject({ code: 'config_missing' })
+		await expect(makeProvider().fetch(makeCtx('https://example.test/x'))).rejects.toMatchObject({ code: 'config_missing' })
 	})
 
 	it('classifies 408/504 as timeout', async () => {
 		queue.push({ status: 504 })
-		await expect(browserlessProvider.fetch(makeCtx('https://example.test/x'))).rejects.toMatchObject({ code: 'timeout' })
+		await expect(makeProvider().fetch(makeCtx('https://example.test/x'))).rejects.toMatchObject({ code: 'timeout' })
 	})
 
 	it('classifies other 5xx as http_5xx', async () => {
 		queue.push({ status: 502 })
-		await expect(browserlessProvider.fetch(makeCtx('https://example.test/x'))).rejects.toMatchObject({ code: 'http_5xx' })
+		await expect(makeProvider().fetch(makeCtx('https://example.test/x'))).rejects.toMatchObject({ code: 'http_5xx' })
 	})
 
 	it('throws bot_block when the rendered body looks blocked', async () => {
 		queue.push({ status: 200, body: '<html><body>cf-browser-verification</body></html>' })
-		await expect(browserlessProvider.fetch(makeCtx('https://example.test/x'))).rejects.toMatchObject({ code: 'bot_block' })
+		await expect(makeProvider().fetch(makeCtx('https://example.test/x'))).rejects.toMatchObject({ code: 'bot_block' })
 	})
 
 	it('throws invalid_response on an empty body', async () => {
 		queue.push({ status: 200, body: '' })
-		await expect(browserlessProvider.fetch(makeCtx('https://example.test/x'))).rejects.toMatchObject({ code: 'invalid_response' })
+		await expect(makeProvider().fetch(makeCtx('https://example.test/x'))).rejects.toMatchObject({ code: 'invalid_response' })
 	})
 })

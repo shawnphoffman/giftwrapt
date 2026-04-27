@@ -1,4 +1,13 @@
 // lib/settings.ts
+//
+// Client-safe schema + types + defaults. Does NOT import from
+// `@/lib/crypto/app-secret` because that module pulls in `node:crypto`,
+// which can't be bundled for the browser. Server-side reads (decrypting
+// envelope-shaped secrets in app_settings) and writes (encrypting before
+// upsert) live in `src/lib/settings-loader.ts` so this module stays
+// browser-safe for the admin form's type imports + the
+// useAppSettings hook's runtime import of DEFAULT_APP_SETTINGS.
+
 import { z } from 'zod'
 
 import type { Database } from '@/db'
@@ -9,6 +18,127 @@ import { appSettings } from '@/db/schema'
 // `appSettingsSchema.partial()` would otherwise fill every absent field with
 // its default and the upsert loop in updateAppSettings would clobber unrelated
 // rows back to defaults on each toggle.
+
+// Provider entry types (`scrapeProviders` array). Each entry registers as
+// its own `ScrapeProvider` in the orchestrator chain, identified by
+// `${type}:${id}` so the persisted `scraperId` column ties back to the
+// admin-managed entry. Order in the array is the chain order; the admin
+// reorders with drag handles.
+//
+// Secret fields (token / apiKey / customHeaders) are typed as plain
+// strings here. The settings loader decrypts envelope-shaped JSONB rows
+// to plaintext before passing data through Zod parse, and the write path
+// encrypts strings to envelopes before upsert.
+const baseEntryFields = {
+	id: z.string().min(1).max(64),
+	name: z.string().min(1).max(120),
+	enabled: z.boolean(),
+	// Tier determines when this provider runs: tier-1 entries fire in
+	// parallel first, then tier 2 only if tier 1's merged result fell
+	// below qualityThreshold, etc. The always-on `fetch-provider` is
+	// implicit tier 0; configurable entries occupy tiers 1-5. Defaults
+	// to 1 so existing rows keep behaving like "fire everything in
+	// parallel and merge" until the admin demotes specific entries.
+	tier: z.number().int().min(1).max(5).default(1),
+}
+
+const browserlessEntrySchema = z.object({
+	...baseEntryFields,
+	type: z.literal('browserless'),
+	url: z.union([z.literal(''), z.url()]),
+	token: z.string().max(500).optional(),
+})
+
+const flaresolverrEntrySchema = z.object({
+	...baseEntryFields,
+	type: z.literal('flaresolverr'),
+	url: z.union([z.literal(''), z.url()]),
+})
+
+const browserbaseFetchEntrySchema = z.object({
+	...baseEntryFields,
+	type: z.literal('browserbase-fetch'),
+	apiKey: z.string().max(500),
+	proxies: z.boolean().default(true),
+	allowRedirects: z.boolean().default(true),
+})
+
+const browserbaseStagehandEntrySchema = z.object({
+	...baseEntryFields,
+	type: z.literal('browserbase-stagehand'),
+	apiKey: z.string().max(500),
+	projectId: z.string().min(1).max(200),
+	modelName: z.string().max(120).optional(),
+	instruction: z.string().max(2000).optional(),
+})
+
+const customHttpEntrySchema = z.object({
+	...baseEntryFields,
+	type: z.literal('custom-http'),
+	endpoint: z.union([z.literal(''), z.url()]),
+	responseKind: z.enum(['html', 'json']),
+	customHeaders: z.string().max(4000).optional(),
+})
+
+// AI extractor entry. Inherits LLM credentials from the AI config under
+// /admin/ai-settings, so the entry itself only needs admin-managed
+// metadata (name, enabled, tier). Migrated out of the hardcoded
+// `ai-provider` singleton in commit B.
+const aiEntrySchema = z.object({
+	...baseEntryFields,
+	type: z.literal('ai'),
+})
+
+// Custom Hono facade in front of browserless / flaresolverr / byparr /
+// scrapfly that we deploy externally; see
+// https://github.com/shawnphoffman/wish-list-scraper.
+//
+// Single endpoint: POST {endpoint}/fetch with X-Browser-Token header and
+// {url} body, returns {html, finalUrl, status, ...} on success or
+// {error: {code, message, retryable}, attempts} on failure. The facade's
+// `auto` mode chains through the upstream solvers, so we treat it as a
+// black box and only need endpoint + token here.
+const wishListScraperEntrySchema = z.object({
+	...baseEntryFields,
+	type: z.literal('wish-list-scraper'),
+	endpoint: z.union([z.literal(''), z.url()]),
+	token: z.string().max(500),
+})
+
+export const scrapeProviderEntrySchema = z.discriminatedUnion('type', [
+	browserlessEntrySchema,
+	flaresolverrEntrySchema,
+	browserbaseFetchEntrySchema,
+	browserbaseStagehandEntrySchema,
+	customHttpEntrySchema,
+	aiEntrySchema,
+	wishListScraperEntrySchema,
+])
+
+export type ScrapeProviderEntry = z.infer<typeof scrapeProviderEntrySchema>
+export type BrowserlessEntry = Extract<ScrapeProviderEntry, { type: 'browserless' }>
+export type FlaresolverrEntry = Extract<ScrapeProviderEntry, { type: 'flaresolverr' }>
+export type BrowserbaseFetchEntry = Extract<ScrapeProviderEntry, { type: 'browserbase-fetch' }>
+export type BrowserbaseStagehandEntry = Extract<ScrapeProviderEntry, { type: 'browserbase-stagehand' }>
+export type CustomHttpEntry = Extract<ScrapeProviderEntry, { type: 'custom-http' }>
+export type AiEntry = Extract<ScrapeProviderEntry, { type: 'ai' }>
+export type WishListScraperEntry = Extract<ScrapeProviderEntry, { type: 'wish-list-scraper' }>
+
+export type ScrapeProviderType = ScrapeProviderEntry['type']
+
+// Secret fields per discriminator. Used by the loader's decrypt-on-read
+// pass and the write path's encrypt-on-write pass; declaring it once here
+// keeps the two halves in sync.
+export const SCRAPE_PROVIDER_SECRET_FIELDS: Record<ScrapeProviderType, ReadonlyArray<string>> = {
+	browserless: ['token'],
+	flaresolverr: [],
+	'browserbase-fetch': ['apiKey'],
+	'browserbase-stagehand': ['apiKey'],
+	'custom-http': ['customHeaders'],
+	ai: [],
+	'wish-list-scraper': ['token'],
+}
+
 export const appSettingsSchema = z.object({
 	enableHolidayLists: z.boolean(),
 	enableBirthdayLists: z.boolean(),
@@ -40,37 +170,22 @@ export const appSettingsSchema = z.object({
 	// How long an existing scrape row counts as "fresh" for dedup. Set to
 	// zero to disable URL-based caching.
 	scrapeCacheTtlHours: z.number().int().min(0),
-	// Phase 4 toggles. Both default off and gate on the configured AI
+	// AI-extractor toggles. Both default off and gate on the configured AI
 	// provider being usable.
 	scrapeAiProviderEnabled: z.boolean(),
 	scrapeAiCleanTitlesEnabled: z.boolean(),
-	// BYO custom HTTP scrapers (0:N). Each entry registers as its own
-	// provider in the orchestrator chain; admin can add as many as the
-	// deployment needs (one for Amazon, one for Etsy, a fallback, etc.)
-	// and toggle each independently.
+	// Configured scrape providers (0:N). Each entry registers as its own
+	// provider in the orchestrator chain, identified by `${type}:${id}`.
+	// Built-in providers (browserless, flaresolverr, browserbase-fetch,
+	// browserbase-stagehand) and custom-http entries all live here so the
+	// admin can manage them in one place; the always-on `fetch-provider`
+	// and the parallel `ai-provider` stay wired separately.
 	//
-	// Each entry's `id` is auto-generated when added and never edited;
-	// `name` is the human-friendly label shown in the UI and in the
-	// streaming progress alert. `endpoint` accepts the empty string so a
-	// new entry can save on first add before the URL is typed.
-	//
-	// The orchestrator calls `${endpoint}?url=<encoded>` for each enabled
-	// entry and reads the response per `responseKind` (html → goes through
-	// the extractor; json → expected to match the ScrapeResult shape).
-	// `customHeaders` is a multiline string with one `Header-Name: value`
-	// per line; blank lines and `#`-prefixed comment lines are ignored.
-	scrapeCustomHttpProviders: z
-		.array(
-			z.object({
-				id: z.string().min(1).max(64),
-				name: z.string().min(1).max(120),
-				enabled: z.boolean(),
-				endpoint: z.union([z.literal(''), z.url()]),
-				responseKind: z.enum(['html', 'json']),
-				customHeaders: z.string().max(4000).optional(),
-			})
-		)
-		.max(16),
+	// Order in the array is the chain order. fetch-provider runs first;
+	// these run next in array order; ai-provider races in parallel.
+	// Drag-reorder in the admin UI persists the new order via
+	// `updateAppSettings({ scrapeProviders })`.
+	scrapeProviders: z.array(scrapeProviderEntrySchema).max(16),
 })
 
 // 2) Default values in code (for when DB is empty or missing keys)
@@ -92,28 +207,24 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	scrapeCacheTtlHours: 24,
 	scrapeAiProviderEnabled: false,
 	scrapeAiCleanTitlesEnabled: false,
-	scrapeCustomHttpProviders: [],
+	scrapeProviders: [],
 }
 
 export type AppSettings = z.infer<typeof appSettingsSchema>
 
-// 3) Helper to load raw key/value rows from DB
-async function loadRawSettings(db: Database): Promise<Record<string, unknown>> {
+// 3) Helper to load raw key/value rows from DB. Server-only (Database
+// type only resolves on the server), but written here so the loader can
+// import a single source of truth.
+export async function loadRawSettings(db: Database): Promise<Record<string, unknown>> {
 	const rows = await db.select().from(appSettings)
-	// rows: { key: string; value: any }[]
 	return Object.fromEntries(rows.map(r => [r.key, r.value]))
 }
 
-// 4) Main function to get **typed, merged** settings
-export async function getAppSettings(db: Database): Promise<AppSettings> {
-	const raw = await loadRawSettings(db)
-
-	// Merge DB overrides on top of defaults
-	const merged = {
-		...DEFAULT_APP_SETTINGS,
-		...raw,
-	}
-
-	// Validate & coerce (e.g., if JSON had numbers as strings, etc.)
-	return appSettingsSchema.parse(merged)
+// 4) Lightweight envelope-shape detector. Doesn't import the crypto
+// module so it's safe to keep here; `decryptAppSecret` is called by the
+// server-only loader after this guard returns true.
+export function looksLikeEncryptedEnvelope(value: unknown): boolean {
+	if (!value || typeof value !== 'object') return false
+	const v = value as Record<string, unknown>
+	return v.v === 1 && typeof v.iv === 'string' && typeof v.tag === 'string' && typeof v.data === 'string'
 }

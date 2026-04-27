@@ -63,7 +63,6 @@ export function AiScrapingSection() {
 
 	return (
 		<AiScrapingSectionView
-			scrapeAiProviderEnabled={settings.scrapeAiProviderEnabled}
 			scrapeAiCleanTitlesEnabled={settings.scrapeAiCleanTitlesEnabled}
 			aiAvailable={isAiAvailable(aiConfig)}
 			disabled={mutation.isPending}

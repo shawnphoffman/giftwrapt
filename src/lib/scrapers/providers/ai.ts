@@ -3,27 +3,32 @@ import { generateObject } from 'ai'
 import { db } from '@/db'
 import { createAiModel } from '@/lib/ai-client'
 import { resolveAiConfig } from '@/lib/ai-config'
-import { getAppSettings } from '@/lib/settings'
+import type { AiEntry } from '@/lib/settings'
 
 import { looksLikeBlocked } from '../bot-detect'
 import { type ProviderResponse, type ScrapeContext, type ScrapeProvider, scrapeResultSchema } from '../types'
 import { ScrapeProviderError } from '../types'
 
-// Parallel-racing AI provider. Does its own lightweight fetch of the URL
+// AI extractor provider. Does its own lightweight fetch of the URL
 // (browser UA, single attempt, smaller body cap than fetch-provider to
 // keep token counts reasonable), then asks the configured LLM to extract
 // a ScrapeResult against the zod schema. Returns a StructuredResponse so
 // the orchestrator skips the local extractor.
 //
+// Each entry in `appSettings.scrapeProviders` of type `'ai'` becomes its
+// own provider. LLM credentials (provider type / key / model) are
+// inherited from the app's AI config under /admin/ai-settings; the entry
+// itself only carries admin-managed metadata (name, enabled, tier).
+//
 // Gated on:
-//   1. scrapeAiProviderEnabled (admin toggle)
+//   1. entry.enabled
 //   2. resolveAiConfig(db).isValid (a provider is actually configured)
 //
 // Off by default. Costs money per scrape. Bypasses bot-walled sites only
 // to the extent that the LLM-driven extraction can salvage anything from
 // a partial fetch; not a CAPTCHA solver.
 
-const PROVIDER_ID = 'ai-provider'
+const PROVIDER_TYPE = 'ai'
 
 // Keep token costs bounded. ~50KB of HTML is plenty for any retailer page
 // to surface OG tags / product structure to the LLM.
@@ -33,21 +38,27 @@ const AI_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537
 
 const SYSTEM_PROMPT = `You are an HTML product information extractor. Given the HTML content of a single web page, extract structured data about the primary item being sold or described. Return only fields you can confidently identify; leave fields blank when unsure. Do not invent values.`
 
-export const aiProvider: ScrapeProvider = {
-	id: PROVIDER_ID,
-	kind: 'structured',
-	mode: 'parallel',
-	isAvailable,
-	fetch: runAiProvider,
+export function aiProviderId(entryId: string): string {
+	return `${PROVIDER_TYPE}:${entryId}`
 }
 
-async function isAvailable(): Promise<boolean> {
-	const [settings, aiConfig] = await Promise.all([getAppSettings(db), resolveAiConfig(db)])
-	if (!settings.scrapeAiProviderEnabled) return false
-	return aiConfig.isValid
+export function createAiProvider(entry: AiEntry): ScrapeProvider {
+	const providerId = aiProviderId(entry.id)
+	return {
+		id: providerId,
+		name: entry.name,
+		kind: 'structured',
+		tier: entry.tier,
+		isAvailable: async () => {
+			if (!entry.enabled) return false
+			const aiConfig = await resolveAiConfig(db)
+			return aiConfig.isValid
+		},
+		fetch: ctx => runAiProvider(ctx, providerId),
+	}
 }
 
-async function runAiProvider(ctx: ScrapeContext): Promise<ProviderResponse> {
+async function runAiProvider(ctx: ScrapeContext, providerId: string): Promise<ProviderResponse> {
 	const aiConfig = await resolveAiConfig(db)
 	if (!aiConfig.isValid) {
 		throw new ScrapeProviderError('config_missing', 'AI provider not configured')
@@ -82,7 +93,7 @@ async function runAiProvider(ctx: ScrapeContext): Promise<ProviderResponse> {
 
 	return {
 		kind: 'structured',
-		providerId: PROVIDER_ID,
+		providerId,
 		result: { ...parsed.object, finalUrl: parsed.object.finalUrl ?? ctx.url },
 		fetchMs: Date.now() - start,
 	}

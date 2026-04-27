@@ -38,10 +38,14 @@ export const env = createEnv({
 		AI_MAX_OUTPUT_TOKENS: z.coerce.number().int().min(1).max(32_000).optional(),
 		// Cron job authentication
 		CRON_SECRET: z.string().min(1).optional(),
-		// URL scraping. Both providers are optional; the built-in fetch
-		// provider is always on. browserless renders JS-heavy pages,
-		// flaresolverr bypasses Cloudflare challenges. See
-		// _NOTES_/scraping/browserless-plan.md for a self-host stack.
+		// URL scraping (legacy first-boot seeds). Scrape providers are now
+		// configured under /admin/scraping and stored in app_settings; these
+		// env vars exist as a one-shot seed for self-hosters upgrading from
+		// the env-only setup. On the first boot after upgrading, if no
+		// browserless/flaresolverr entry exists yet AND the env var is set,
+		// `src/db/bootstrap.ts` inserts a corresponding entry. After that
+		// the admin owns the configuration and these env vars are unused.
+		// See _NOTES_/scraping/browserless-plan.md for the self-host stack.
 		BROWSERLESS_URL: z.url().optional(),
 		FLARESOLVERR_URL: z.url().optional(),
 		BROWSER_TOKEN: z.string().min(1).optional(),

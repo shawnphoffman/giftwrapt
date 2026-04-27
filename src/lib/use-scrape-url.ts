@@ -19,6 +19,20 @@ export type ProviderProgress = {
 
 export type ScrapeUiPhase = 'idle' | 'scraping' | 'partial' | 'done' | 'failed'
 
+export type TierStatus = 'pending' | 'in_progress' | 'done' | 'skipped'
+
+export type TierProgress = {
+	tier: number
+	providerIds: Array<string>
+	status: TierStatus
+	// Populated on tier_completed. `mergedScore` is null when every
+	// provider in the tier failed; non-null even when the tier didn't
+	// clear threshold (the merged result is still recorded for fallback).
+	mergedScore?: number | null
+	contributors?: Array<string>
+	cleared?: boolean
+}
+
 export type ScrapeUiState = {
 	phase: ScrapeUiPhase
 	providers: Array<ProviderProgress>
@@ -31,6 +45,10 @@ export type ScrapeUiState = {
 	fromProvider?: string
 	cached?: boolean
 	reason?: OrchestrateErrorReason | 'stream-closed'
+	// Per-tier progress, populated from the `plan` event and updated by
+	// tier_started/tier_completed/tier_skipped. Undefined before the
+	// first plan arrives.
+	tiers?: Array<TierProgress>
 }
 
 export type StartOptions = {
@@ -161,13 +179,46 @@ export function useScrapeUrl(): {
 export function reduce(state: ScrapeUiState, event: StreamEvent): ScrapeUiState {
 	switch (event.type) {
 		case 'plan': {
-			const providers: Array<ProviderProgress> = [...event.sequential, ...event.parallel].map(id => ({ providerId: id, status: 'pending' }))
+			const tieredIds = event.tiers.flatMap(t => t.providerIds)
+			const providers: Array<ProviderProgress> = [...tieredIds, ...event.parallelRacers].map(id => ({
+				providerId: id,
+				status: 'pending',
+			}))
 			return {
 				...state,
 				phase: state.phase === 'idle' ? 'scraping' : state.phase,
 				providers,
 				providerNames: event.providerNames,
 				totalTimeoutMs: event.totalTimeoutMs,
+				tiers: event.tiers.map(t => ({ tier: t.tier, providerIds: [...t.providerIds], status: 'pending' as const })),
+			}
+		}
+		case 'tier_started': {
+			return {
+				...state,
+				tiers: state.tiers?.map(t => (t.tier === event.tier ? { ...t, status: 'in_progress' as const } : t)),
+			}
+		}
+		case 'tier_completed': {
+			return {
+				...state,
+				tiers: state.tiers?.map(t =>
+					t.tier === event.tier
+						? {
+								...t,
+								status: 'done' as const,
+								mergedScore: event.mergedScore,
+								contributors: [...event.contributors],
+								cleared: event.cleared,
+							}
+						: t
+				),
+			}
+		}
+		case 'tier_skipped': {
+			return {
+				...state,
+				tiers: state.tiers?.map(t => (t.tier === event.tier ? { ...t, status: 'skipped' as const } : t)),
 			}
 		}
 		case 'attempt_started': {

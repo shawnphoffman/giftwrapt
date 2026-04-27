@@ -14,7 +14,7 @@ export const Route = createFileRoute('/(core)/admin/users')({
 function AdminUsersPage() {
 	return (
 		<>
-			<Card className="animate-page-in">
+			<Card className="animate-page-in max-w-xl">
 				<CardHeader>
 					<CardTitle className="text-2xl">Impersonation</CardTitle>
 					<CardDescription>Impersonate a user to see the app as they do.</CardDescription>
@@ -27,7 +27,7 @@ function AdminUsersPage() {
 					</Suspense>
 				</CardContent>
 			</Card>
-			<Card className="animate-page-in">
+			<Card className="animate-page-in max-w-xl">
 				<CardHeader>
 					<CardTitle className="text-2xl">Users</CardTitle>
 					<CardDescription>Manage users and their permissions.</CardDescription>
@@ -38,7 +38,7 @@ function AdminUsersPage() {
 					</Suspense>
 				</CardContent>
 			</Card>
-			<Card className="animate-page-in">
+			<Card className="animate-page-in max-w-xl">
 				<CardHeader>
 					<CardTitle className="text-2xl">Add User</CardTitle>
 				</CardHeader>

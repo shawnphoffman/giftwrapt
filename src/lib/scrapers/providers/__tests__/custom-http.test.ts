@@ -8,18 +8,8 @@ vi.mock('@/env', () => ({
 	},
 }))
 
-let mockSettings: Record<string, unknown> = {}
-
-vi.mock('@/db', () => {
-	return {
-		db: {
-			select: () => ({ from: () => Promise.resolve(Object.entries(mockSettings).map(([key, value]) => ({ key, value }))) }),
-		},
-	}
-})
-
 import type { ScrapeContext } from '../../types'
-import { createCustomHttpProvider, type CustomHttpEntry, customHttpProviderId, loadCustomHttpProviders } from '../custom-http'
+import { createCustomHttpProvider, type CustomHttpEntry, customHttpProviderId } from '../custom-http'
 
 function silentLogger(): ScrapeContext['logger'] {
 	const noop = () => {}
@@ -32,9 +22,11 @@ function makeCtx(url: string): ScrapeContext {
 }
 
 const sampleEntry: CustomHttpEntry = {
+	type: 'custom-http',
 	id: 'amzn',
 	name: 'My Amazon scraper',
 	enabled: true,
+	tier: 1,
 	endpoint: 'https://my-scraper.test/scrape',
 	responseKind: 'html',
 }
@@ -44,7 +36,6 @@ let lastFetchInit: { method?: string; headers: Record<string, string>; url: stri
 
 beforeEach(() => {
 	queue = []
-	mockSettings = {}
 	lastFetchInit = null
 	vi.stubGlobal('fetch', (input: RequestInfo, init?: RequestInit) => {
 		const next = queue.shift()
@@ -77,45 +68,6 @@ describe('customHttpProviderId', () => {
 	it("namespaces the entry id under custom-http: so it can't collide with built-ins", () => {
 		expect(customHttpProviderId('amzn')).toBe('custom-http:amzn')
 		expect(customHttpProviderId('etsy-fallback')).toBe('custom-http:etsy-fallback')
-	})
-})
-
-// ---------------------------------------------------------------------------
-// loadCustomHttpProviders (built from app settings)
-// ---------------------------------------------------------------------------
-
-describe('loadCustomHttpProviders', () => {
-	it('returns an empty list when no entries are configured', async () => {
-		mockSettings.scrapeCustomHttpProviders = []
-		await expect(loadCustomHttpProviders()).resolves.toEqual([])
-	})
-
-	it('returns one provider per enabled+valid entry', async () => {
-		mockSettings.scrapeCustomHttpProviders = [
-			{ id: 'a', name: 'A', enabled: true, endpoint: 'https://a.test/s', responseKind: 'html' },
-			{ id: 'b', name: 'B', enabled: true, endpoint: 'https://b.test/s', responseKind: 'json' },
-		]
-		const providers = await loadCustomHttpProviders()
-		expect(providers.map(p => p.id)).toEqual(['custom-http:a', 'custom-http:b'])
-	})
-
-	it('skips disabled entries', async () => {
-		mockSettings.scrapeCustomHttpProviders = [
-			{ id: 'on', name: 'On', enabled: true, endpoint: 'https://x.test/s', responseKind: 'html' },
-			{ id: 'off', name: 'Off', enabled: false, endpoint: 'https://x.test/s', responseKind: 'html' },
-		]
-		const providers = await loadCustomHttpProviders()
-		expect(providers.map(p => p.id)).toEqual(['custom-http:on'])
-	})
-
-	it('skips entries with empty / non-http endpoints', async () => {
-		mockSettings.scrapeCustomHttpProviders = [
-			{ id: 'empty', name: 'Empty', enabled: true, endpoint: '', responseKind: 'html' },
-			{ id: 'ftp', name: 'Ftp', enabled: true, endpoint: 'ftp://x.test/s', responseKind: 'html' },
-			{ id: 'good', name: 'Good', enabled: true, endpoint: 'https://x.test/s', responseKind: 'html' },
-		]
-		const providers = await loadCustomHttpProviders()
-		expect(providers.map(p => p.id)).toEqual(['custom-http:good'])
 	})
 })
 

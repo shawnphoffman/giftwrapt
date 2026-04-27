@@ -118,6 +118,9 @@
 		"vite-tsconfig-paths": "^5.1.4",
 		"zod": "^4.1.11"
 	},
+	"optionalDependencies": {
+		"@browserbasehq/stagehand": "^2.5.0"
+	},
 	"devDependencies": {
 		"@commitlint/cli": "20.5.0",
 		"@commitlint/config-conventional": "20.5.0",

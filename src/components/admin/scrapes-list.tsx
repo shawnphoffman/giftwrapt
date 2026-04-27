@@ -29,9 +29,27 @@ export function ScrapesList() {
 	const settingsQuery = useAppSettings()
 	const [openId, setOpenId] = useState<number | null>(null)
 
+	// Map every configured provider entry's runtime id (`${type}:${id}`) to
+	// its admin-assigned name so the table renders friendly labels instead
+	// of opaque ids. Legacy rows persisted under the old singleton ids
+	// (e.g. `browserless-provider`) won't have a match and fall back to
+	// rendering the raw id, which is fine.
+	//
+	// Multi-provider merged winners come back as `merged:a,b,c` from the
+	// orchestrator. We resolve each segment to its name and join them so
+	// the column reads "Browserless + My Amazon scraper (merged)".
 	const customNamesById = new Map<string, string>()
-	for (const entry of settingsQuery.data?.scrapeCustomHttpProviders ?? []) {
-		customNamesById.set(`custom-http:${entry.id}`, entry.name)
+	for (const entry of settingsQuery.data?.scrapeProviders ?? []) {
+		customNamesById.set(`${entry.type}:${entry.id}`, entry.name)
+	}
+
+	const labelForScraperId = (rawId: string): string => {
+		if (rawId.startsWith('merged:')) {
+			const ids = rawId.slice('merged:'.length).split(',').filter(Boolean)
+			const names = ids.map(id => customNamesById.get(id) ?? id)
+			return `${names.join(' + ')} (merged)`
+		}
+		return customNamesById.get(rawId) ?? rawId
 	}
 
 	if (scrapesQuery.isLoading) {
@@ -61,26 +79,18 @@ export function ScrapesList() {
 					</TableHeader>
 					<TableBody>
 						{rows.map(row => (
-							<ScrapeRow key={row.id} row={row} customNamesById={customNamesById} onInspect={() => setOpenId(row.id)} />
+							<ScrapeRow key={row.id} row={row} labelFor={labelForScraperId} onInspect={() => setOpenId(row.id)} />
 						))}
 					</TableBody>
 				</Table>
 			</div>
-			<ScrapeDetailDialog openId={openId} onClose={() => setOpenId(null)} customNamesById={customNamesById} />
+			<ScrapeDetailDialog openId={openId} onClose={() => setOpenId(null)} labelFor={labelForScraperId} />
 		</>
 	)
 }
 
-function ScrapeRow({
-	row,
-	customNamesById,
-	onInspect,
-}: {
-	row: ScrapeListRow
-	customNamesById: Map<string, string>
-	onInspect: () => void
-}) {
-	const providerLabel = customNamesById.get(row.scraperId) ?? row.scraperId
+function ScrapeRow({ row, labelFor, onInspect }: { row: ScrapeListRow; labelFor: (id: string) => string; onInspect: () => void }) {
+	const providerLabel = labelFor(row.scraperId)
 	const outcome = row.ok ? (
 		<span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-500">
 			<CheckCircle2 className="size-3.5" />
@@ -156,11 +166,11 @@ function ScrapeRow({
 function ScrapeDetailDialog({
 	openId,
 	onClose,
-	customNamesById,
+	labelFor,
 }: {
 	openId: number | null
 	onClose: () => void
-	customNamesById: Map<string, string>
+	labelFor: (id: string) => string
 }) {
 	const open = openId !== null
 	const detailQuery = useQuery({
@@ -170,7 +180,7 @@ function ScrapeDetailDialog({
 	})
 
 	const detail = detailQuery.data?.kind === 'ok' ? detailQuery.data.detail : null
-	const providerLabel = detail ? (customNamesById.get(detail.scraperId) ?? detail.scraperId) : ''
+	const providerLabel = detail ? labelFor(detail.scraperId) : ''
 
 	return (
 		<Dialog open={open} onOpenChange={next => !next && onClose()}>

@@ -10,7 +10,7 @@ export const Route = createFileRoute('/(core)/admin/email')({
 
 function AdminEmailPage() {
 	return (
-		<Card className="animate-page-in">
+		<Card className="animate-page-in max-w-xl">
 			<CardHeader>
 				<CardTitle className="text-2xl">Email</CardTitle>
 				<CardDescription>

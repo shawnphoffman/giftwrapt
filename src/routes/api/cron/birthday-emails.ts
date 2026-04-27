@@ -9,7 +9,7 @@ import { env } from '@/env'
 import { formatGifterNames, namesForGifter, type PartneredUser } from '@/lib/gifters'
 import { createLogger } from '@/lib/logger'
 import { isEmailConfigured, sendBirthdayEmail, sendPostBirthdayEmail } from '@/lib/resend'
-import { getAppSettings } from '@/lib/settings'
+import { getAppSettings } from '@/lib/settings-loader'
 
 const cronLog = createLogger('cron:birthday-emails')
 

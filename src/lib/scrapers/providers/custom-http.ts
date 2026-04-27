@@ -1,19 +1,12 @@
-import { db } from '@/db'
-
-import { getAppSettings } from '../../settings'
-import { looksLikeBlocked } from '../bot-detect'
-import { parseCustomHeaders } from '../parse-headers'
-import type { ProviderResponse, ScrapeContext, ScrapeProvider, ScrapeResult } from '../types'
-import { scrapeResultSchema } from '../types'
-import { ScrapeProviderError } from '../types'
-
+// Server-only. Do not import from client/route components.
+//
 // "Bring your own HTTP scraper" providers (0:N). Each entry in
-// `appSettings.scrapeCustomHttpProviders` becomes its own ScrapeProvider
-// in the orchestrator chain, with a stable id derived from the entry's
-// admin-assigned id (e.g. `custom-http:abc123`).
+// `appSettings.scrapeProviders` of type `custom-http` becomes its own
+// ScrapeProvider in the orchestrator chain, with a stable id derived from
+// the entry's admin-assigned id (e.g. `custom-http:abc123`).
 //
 // Per entry:
-//   { id, name, enabled, endpoint, responseKind: 'html'|'json', customHeaders? }
+//   { type: 'custom-http', id, name, enabled, endpoint, responseKind, customHeaders? }
 //
 // We GET `${endpoint}?url=<encoded>` with the parsed customHeaders attached
 // and read the response per responseKind:
@@ -22,31 +15,31 @@ import { ScrapeProviderError } from '../types'
 //     so misbehaving custom scrapers can't poison the form
 //
 // `customHeaders` is the multiline textarea value; one
-// `Header-Name: value` per line, blank lines and `#` comments ignored. No
-// body templating, no JSON-path mapping, no fancy auth flows. If you need
-// any of that, your scraper can normalise on its own side, or you drop a
-// TS provider module under src/lib/scrapers/providers/<id>.ts.
+// `Header-Name: value` per line, blank lines and `#` comments ignored. The
+// schema's `appSecretField()` transform decrypts the stored value before
+// it reaches this module, so we read plaintext at runtime.
 
-const PROVIDER_ID_PREFIX = 'custom-http'
+import type { CustomHttpEntry } from '@/lib/settings'
+
+import { looksLikeBlocked } from '../bot-detect'
+import { parseCustomHeaders } from '../parse-headers'
+import type { ProviderResponse, ScrapeContext, ScrapeProvider, ScrapeResult } from '../types'
+import { scrapeResultSchema } from '../types'
+import { ScrapeProviderError } from '../types'
+
+const PROVIDER_TYPE = 'custom-http'
 const MAX_BODY_BYTES = 5 * 1024 * 1024
 
-export type CustomHttpEntry = {
-	id: string
-	name: string
-	enabled: boolean
-	endpoint: string
-	responseKind: 'html' | 'json'
-	customHeaders?: string
-}
+export type { CustomHttpEntry }
 
 export function customHttpProviderId(entryId: string): string {
-	return `${PROVIDER_ID_PREFIX}:${entryId}`
+	return `${PROVIDER_TYPE}:${entryId}`
 }
 
 // Builds a ScrapeProvider for a single configured entry. Each entry
 // becomes one position in the orchestrator chain; this factory is what
-// the route handler / server fn calls to materialise them at request
-// time.
+// the dispatcher (`loadConfiguredProviders`) calls to materialise them at
+// request time.
 export function createCustomHttpProvider(entry: CustomHttpEntry): ScrapeProvider {
 	const providerId = customHttpProviderId(entry.id)
 	return {
@@ -56,24 +49,10 @@ export function createCustomHttpProvider(entry: CustomHttpEntry): ScrapeProvider
 		// instead of "custom-http:aa7rugos".
 		name: entry.name,
 		kind: 'html',
-		mode: 'sequential',
+		tier: entry.tier,
 		isAvailable: () => entry.enabled && isParseableUrl(entry.endpoint),
 		fetch: ctx => runCustomHttpProvider(ctx, entry, providerId),
 	}
-}
-
-// Loads the configured entries from appSettings and returns one provider
-// per enabled+valid entry. Disabled entries and entries with empty/bad
-// endpoints are excluded so they never reach the chain.
-export async function loadCustomHttpProviders(): Promise<Array<ScrapeProvider>> {
-	const settings = await getAppSettings(db)
-	const out: Array<ScrapeProvider> = []
-	for (const entry of settings.scrapeCustomHttpProviders) {
-		if (!entry.enabled) continue
-		if (!isParseableUrl(entry.endpoint)) continue
-		out.push(createCustomHttpProvider(entry))
-	}
-	return out
 }
 
 function isParseableUrl(raw: string): boolean {

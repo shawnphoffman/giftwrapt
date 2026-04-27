@@ -1,11 +1,15 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
+import type { ScrapeProviderEntry } from '@/lib/settings'
+
 import { ScraperProvidersFormView } from './scraper-providers-form-view'
 
 /**
  * Admin form for tuning the scraping pipeline. Per-provider/overall
- * timeouts, cache TTL, quality threshold, and a 0:N list of custom-HTTP
- * scraper entries. Saves on blur / Enter.
+ * timeouts, cache TTL, quality threshold, and a 0:N drag-reorderable list
+ * of typed scrape provider entries (browserless, flaresolverr,
+ * browserbase-fetch, browserbase-stagehand, custom-http). Each entry has
+ * its own card and saves explicitly.
  */
 const meta = {
 	title: 'Admin/Scraper Providers Form',
@@ -27,14 +31,7 @@ type DefaultSettings = {
 	scrapeOverallTimeoutMs: number
 	scrapeQualityThreshold: number
 	scrapeCacheTtlHours: number
-	scrapeCustomHttpProviders: Array<{
-		id: string
-		name: string
-		enabled: boolean
-		endpoint: string
-		responseKind: 'html' | 'json'
-		customHeaders?: string
-	}>
+	scrapeProviders: Array<ScrapeProviderEntry>
 }
 
 const defaultSettings: DefaultSettings = {
@@ -42,7 +39,7 @@ const defaultSettings: DefaultSettings = {
 	scrapeOverallTimeoutMs: 20_000,
 	scrapeQualityThreshold: 3,
 	scrapeCacheTtlHours: 24,
-	scrapeCustomHttpProviders: [],
+	scrapeProviders: [],
 }
 
 export const Defaults: Story = {
@@ -50,7 +47,7 @@ export const Defaults: Story = {
 		settings: { ...defaultSettings },
 	},
 	parameters: {
-		docs: { description: { story: 'Fresh deployment - all defaults, no custom scrapers configured yet.' } },
+		docs: { description: { story: 'Fresh deployment - all defaults, no scrapers configured yet.' } },
 	},
 }
 
@@ -61,7 +58,7 @@ export const TightBudgets: Story = {
 			scrapeOverallTimeoutMs: 12_000,
 			scrapeQualityThreshold: 5,
 			scrapeCacheTtlHours: 6,
-			scrapeCustomHttpProviders: [],
+			scrapeProviders: [],
 		},
 	},
 	parameters: {
@@ -82,11 +79,13 @@ export const SingleCustomHttp: Story = {
 	args: {
 		settings: {
 			...defaultSettings,
-			scrapeCustomHttpProviders: [
+			scrapeProviders: [
 				{
+					type: 'custom-http',
 					id: 'amzn',
 					name: 'My Amazon scraper',
 					enabled: true,
+					tier: 1,
 					endpoint: 'https://my-scraper.local/scrape',
 					responseKind: 'html',
 				},
@@ -97,38 +96,54 @@ export const SingleCustomHttp: Story = {
 		docs: {
 			description: {
 				story:
-					'Single custom HTTP scraper enabled, returning raw HTML. Card layout with name, switch, delete button, and full config below.',
+					'Single custom HTTP scraper enabled, returning raw HTML. Card layout with type chip, drag handle, name field, switch, delete button, and type-specific config below.',
 			},
 		},
 	},
 }
 
-export const MultipleCustomHttp: Story = {
+export const MixedTypes: Story = {
 	args: {
 		settings: {
 			...defaultSettings,
-			scrapeCustomHttpProviders: [
+			scrapeProviders: [
 				{
-					id: 'amzn',
-					name: 'Amazon (JSON)',
+					type: 'browserless',
+					id: 'bl-self',
+					name: 'Self-hosted Browserless',
 					enabled: true,
+					tier: 1,
+					url: 'https://browserless.local',
+					token: undefined,
+				},
+				{
+					type: 'browserbase-fetch',
+					id: 'bb-fetch',
+					name: 'Browserbase (fast)',
+					enabled: true,
+					tier: 2,
+					apiKey: '',
+					proxies: true,
+					allowRedirects: true,
+				},
+				{
+					type: 'browserbase-stagehand',
+					id: 'bb-stage',
+					name: 'Browserbase (Stagehand)',
+					enabled: false,
+					tier: 3,
+					apiKey: '',
+					projectId: '',
+				},
+				{
+					type: 'custom-http',
+					id: 'amzn',
+					name: 'Amazon JSON',
+					enabled: true,
+					tier: 1,
 					endpoint: 'https://amazon-scraper.local/scrape',
 					responseKind: 'json',
 					customHeaders: ['X-Scrape-Token: secret-value', 'Authorization: Bearer abc123'].join('\n'),
-				},
-				{
-					id: 'etsy',
-					name: 'Etsy (HTML)',
-					enabled: true,
-					endpoint: 'https://etsy-scraper.local/scrape',
-					responseKind: 'html',
-				},
-				{
-					id: 'fallback',
-					name: 'Generic fallback',
-					enabled: false,
-					endpoint: 'https://fallback.local/scrape',
-					responseKind: 'html',
 				},
 			],
 		},
@@ -137,7 +152,7 @@ export const MultipleCustomHttp: Story = {
 		docs: {
 			description: {
 				story:
-					'Three configured scrapers (one with auth headers + JSON mode, one disabled). The orchestrator runs them in order after the built-in providers.',
+					'Mixed-type chain: a sequential Browserless, a sequential Browserbase Fetch, a (disabled) parallel Stagehand, and a Custom HTTP scraper. Drag handles let the admin reorder.',
 			},
 		},
 	},
@@ -147,11 +162,13 @@ export const NewlyAddedEntry: Story = {
 	args: {
 		settings: {
 			...defaultSettings,
-			scrapeCustomHttpProviders: [
+			scrapeProviders: [
 				{
+					type: 'custom-http',
 					id: 'fresh',
 					name: 'Scraper 1',
-					enabled: true,
+					enabled: false,
+					tier: 1,
 					endpoint: '',
 					responseKind: 'html',
 				},
@@ -162,7 +179,7 @@ export const NewlyAddedEntry: Story = {
 		docs: {
 			description: {
 				story:
-					"A scraper entry was just added but the endpoint hasn't been typed yet. The schema accepts empty endpoint at save time so the toggle round-trips; isAvailable() excludes it from the chain until a valid URL is filled in.",
+					"A scraper entry was just added but the endpoint hasn't been typed yet. New entries default to enabled:false so a half-configured scraper doesn't run; isAvailable() also excludes it from the chain until a valid URL/key is filled in.",
 			},
 		},
 	},

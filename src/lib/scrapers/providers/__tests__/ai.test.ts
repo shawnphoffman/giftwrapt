@@ -8,12 +8,7 @@ vi.mock('@/env', () => ({
 	},
 }))
 
-let mockToggle = false
 let mockAiValid = false
-
-vi.mock('@/lib/settings', () => ({
-	getAppSettings: () => Promise.resolve({ scrapeAiProviderEnabled: mockToggle }),
-}))
 
 vi.mock('@/lib/ai-config', () => ({
 	resolveAiConfig: () =>
@@ -49,8 +44,22 @@ vi.mock('ai', () => ({
 
 vi.mock('@/db', () => ({ db: {} }))
 
-import type { ScrapeContext } from '../../types'
-import { aiProvider } from '../ai'
+import type { AiEntry } from '@/lib/settings'
+
+import type { ScrapeContext, ScrapeProvider } from '../../types'
+import { createAiProvider } from '../ai'
+
+const TEST_ENTRY: AiEntry = {
+	type: 'ai',
+	id: 'default',
+	name: 'AI extraction',
+	enabled: true,
+	tier: 3,
+}
+
+function makeProvider(overrides: Partial<AiEntry> = {}): ScrapeProvider {
+	return createAiProvider({ ...TEST_ENTRY, ...overrides })
+}
 
 function silentLogger(): ScrapeContext['logger'] {
 	const noop = () => {}
@@ -65,7 +74,6 @@ function makeCtx(url: string): ScrapeContext {
 let fetchQueue: Array<{ status: number; body?: string }> = []
 
 beforeEach(() => {
-	mockToggle = false
 	mockAiValid = false
 	fetchQueue = []
 	generateObjectImpl = () =>
@@ -84,37 +92,33 @@ afterEach(() => {
 })
 
 describe('aiProvider: availability', () => {
-	it('is unavailable when toggle is off', async () => {
-		mockToggle = false
+	it('is unavailable when entry is disabled', async () => {
 		mockAiValid = true
-		await expect(Promise.resolve(aiProvider.isAvailable())).resolves.toBe(false)
+		await expect(Promise.resolve(makeProvider({ enabled: false }).isAvailable())).resolves.toBe(false)
 	})
 
-	it('is unavailable when toggle is on but AI config is invalid', async () => {
-		mockToggle = true
+	it('is unavailable when AI config is invalid', async () => {
 		mockAiValid = false
-		await expect(Promise.resolve(aiProvider.isAvailable())).resolves.toBe(false)
+		await expect(Promise.resolve(makeProvider().isAvailable())).resolves.toBe(false)
 	})
 
-	it('is available when toggle is on and AI config is valid', async () => {
-		mockToggle = true
+	it('is available when entry is enabled and AI config is valid', async () => {
 		mockAiValid = true
-		await expect(Promise.resolve(aiProvider.isAvailable())).resolves.toBe(true)
+		await expect(Promise.resolve(makeProvider().isAvailable())).resolves.toBe(true)
 	})
 })
 
 describe('aiProvider: fetch', () => {
 	beforeEach(() => {
-		mockToggle = true
 		mockAiValid = true
 	})
 
 	it('fetches the URL and returns a StructuredResponse from the LLM', async () => {
 		fetchQueue.push({ status: 200, body: '<html><body>page contents</body></html>' })
-		const result = await aiProvider.fetch(makeCtx('https://target.test/x'))
+		const result = await makeProvider().fetch(makeCtx('https://target.test/x'))
 		expect(result.kind).toBe('structured')
 		if (result.kind !== 'structured') return
-		expect(result.providerId).toBe('ai-provider')
+		expect(result.providerId).toBe('ai:default')
 		expect(result.result.title).toBe('AI Result')
 		expect(result.result.imageUrls).toEqual(['https://cdn.test/widget.jpg'])
 		expect(result.result.finalUrl).toBe('https://target.test/x')
@@ -122,27 +126,27 @@ describe('aiProvider: fetch', () => {
 
 	it('throws config_missing when AI is somehow not configured at fetch time', async () => {
 		mockAiValid = false
-		await expect(aiProvider.fetch(makeCtx('https://target.test/x'))).rejects.toMatchObject({ code: 'config_missing' })
+		await expect(makeProvider().fetch(makeCtx('https://target.test/x'))).rejects.toMatchObject({ code: 'config_missing' })
 	})
 
 	it('classifies a 4xx fetch as http_4xx', async () => {
 		fetchQueue.push({ status: 404 })
-		await expect(aiProvider.fetch(makeCtx('https://target.test/x'))).rejects.toMatchObject({ code: 'http_4xx' })
+		await expect(makeProvider().fetch(makeCtx('https://target.test/x'))).rejects.toMatchObject({ code: 'http_4xx' })
 	})
 
 	it('classifies a 5xx fetch as http_5xx', async () => {
 		fetchQueue.push({ status: 502 })
-		await expect(aiProvider.fetch(makeCtx('https://target.test/x'))).rejects.toMatchObject({ code: 'http_5xx' })
+		await expect(makeProvider().fetch(makeCtx('https://target.test/x'))).rejects.toMatchObject({ code: 'http_5xx' })
 	})
 
 	it('throws bot_block when the fetched HTML is a CF wall', async () => {
 		fetchQueue.push({ status: 200, body: '<html><body>cf-browser-verification</body></html>' })
-		await expect(aiProvider.fetch(makeCtx('https://target.test/x'))).rejects.toMatchObject({ code: 'bot_block' })
+		await expect(makeProvider().fetch(makeCtx('https://target.test/x'))).rejects.toMatchObject({ code: 'bot_block' })
 	})
 
 	it('classifies generateObject failures as invalid_response', async () => {
 		fetchQueue.push({ status: 200, body: '<html><body>ok</body></html>' })
 		generateObjectImpl = () => Promise.reject(new Error('LLM provider returned 5xx'))
-		await expect(aiProvider.fetch(makeCtx('https://target.test/x'))).rejects.toMatchObject({ code: 'invalid_response' })
+		await expect(makeProvider().fetch(makeCtx('https://target.test/x'))).rejects.toMatchObject({ code: 'invalid_response' })
 	})
 })

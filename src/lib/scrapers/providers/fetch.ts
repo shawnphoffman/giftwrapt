@@ -32,7 +32,9 @@ const PROVIDER_ID = 'fetch-provider'
 export const fetchProvider: ScrapeProvider = {
 	id: PROVIDER_ID,
 	kind: 'html',
-	mode: 'sequential',
+	// Tier 0: always runs first, alone. Reserved for the always-on free
+	// fetcher; admin-configurable entries occupy tiers 1-5.
+	tier: 0,
 	isAvailable: () => true,
 	fetch: runFetchProvider,
 }

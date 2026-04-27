@@ -7,7 +7,7 @@ import { itemComments, items, lists, userRelationships, users } from '@/db/schem
 import { createLogger, loggingMiddleware } from '@/lib/logger'
 import { canViewList } from '@/lib/permissions'
 import { sendNewCommentEmail } from '@/lib/resend'
-import { getAppSettings } from '@/lib/settings'
+import { getAppSettings } from '@/lib/settings-loader'
 import { authMiddleware } from '@/middleware/auth'
 
 const commentsLog = createLogger('api:comments')

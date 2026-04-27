@@ -1,4 +1,12 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+
+vi.mock('@/env', () => ({
+	env: {
+		LOG_LEVEL: 'silent',
+		LOG_PRETTY: false,
+		BETTER_AUTH_SECRET: 'test-secret',
+	},
+}))
 
 import { appSettingsSchema, DEFAULT_APP_SETTINGS } from '@/lib/settings'
 

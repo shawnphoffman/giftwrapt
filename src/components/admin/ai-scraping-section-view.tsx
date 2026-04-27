@@ -5,22 +5,21 @@ import { Switch } from '@/components/ui/switch'
 // render in Storybook without dragging in server-fn imports. The data-aware
 // `<AiScrapingSection>` (next to this file) wires it to the live settings
 // hooks and the appSettings mutation.
+//
+// Only `scrapeAiCleanTitlesEnabled` lives here now. The legacy
+// `scrapeAiProviderEnabled` toggle was replaced by an `ai`-typed entry in
+// `scrapeProviders` (manage it under /admin/scraping). The bootstrap step
+// migrated any pre-tier toggle value into a default `ai` entry on first
+// boot; the schema field is now read-only and unused by the orchestrator.
 
 export type AiScrapingSectionViewProps = {
-	scrapeAiProviderEnabled: boolean
 	scrapeAiCleanTitlesEnabled: boolean
 	aiAvailable: boolean
 	disabled?: boolean
-	onChange: (key: 'scrapeAiProviderEnabled' | 'scrapeAiCleanTitlesEnabled', value: boolean) => void
+	onChange: (key: 'scrapeAiCleanTitlesEnabled', value: boolean) => void
 }
 
-export function AiScrapingSectionView({
-	scrapeAiProviderEnabled,
-	scrapeAiCleanTitlesEnabled,
-	aiAvailable,
-	disabled,
-	onChange,
-}: AiScrapingSectionViewProps) {
+export function AiScrapingSectionView({ scrapeAiCleanTitlesEnabled, aiAvailable, disabled, onChange }: AiScrapingSectionViewProps) {
 	const inputsDisabled = !aiAvailable || disabled === true
 
 	return (
@@ -28,25 +27,13 @@ export function AiScrapingSectionView({
 			<div className="space-y-1">
 				<h3 className="text-base font-medium">Scraping</h3>
 				<p className="text-sm text-muted-foreground">
-					Optional AI features that enrich URL imports. Both run only when an AI provider is configured above.
+					Optional AI title-cleanup post-pass. Runs after the winning provider returns; uses the AI provider configured above. The AI
+					scraper itself is now configured under{' '}
+					<a className="underline" href="/admin/scraping">
+						/admin/scraping
+					</a>{' '}
+					as a typed entry alongside the rest of the providers.
 				</p>
-			</div>
-
-			<div className="flex items-center justify-between gap-4">
-				<div className="space-y-0.5">
-					<Label htmlFor="scrapeAiProviderEnabled" className="text-base">
-						Attempt to scrape URL with AI provider
-					</Label>
-					<p className="text-sm text-muted-foreground">
-						Adds an AI scraper that races alongside the standard provider chain. Highest-scoring result wins.
-					</p>
-				</div>
-				<Switch
-					id="scrapeAiProviderEnabled"
-					checked={scrapeAiProviderEnabled}
-					disabled={inputsDisabled}
-					onCheckedChange={(checked: boolean) => onChange('scrapeAiProviderEnabled', checked)}
-				/>
 			</div>
 
 			<div className="flex items-center justify-between gap-4">
@@ -66,7 +53,7 @@ export function AiScrapingSectionView({
 				/>
 			</div>
 
-			{!aiAvailable && <p className="text-sm text-muted-foreground">Configure an AI provider above to enable these.</p>}
+			{!aiAvailable && <p className="text-sm text-muted-foreground">Configure an AI provider above to enable this.</p>}
 		</div>
 	)
 }

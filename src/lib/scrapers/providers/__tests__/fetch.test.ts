@@ -172,7 +172,7 @@ describe('fetchProvider: metadata', () => {
 	it('exposes the provider id and known UA list', () => {
 		expect(fetchProvider.id).toBe('fetch-provider')
 		expect(fetchProvider.kind).toBe('html')
-		expect(fetchProvider.mode).toBe('sequential')
+		expect(fetchProvider.tier).toBe(0)
 		expect(FETCH_PROVIDER_INFO.userAgents).toEqual(['facebook', 'googlebot', 'browser'])
 	})
 

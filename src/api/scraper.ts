@@ -5,13 +5,10 @@ import { db } from '@/db'
 import { loggingMiddleware } from '@/lib/logger'
 import { buildDbBackedDeps } from '@/lib/scrapers/cache'
 import { orchestrate } from '@/lib/scrapers/orchestrator'
-import { aiProvider } from '@/lib/scrapers/providers/ai'
-import { browserlessProvider } from '@/lib/scrapers/providers/browserless'
-import { loadCustomHttpProviders } from '@/lib/scrapers/providers/custom-http'
 import { fetchProvider } from '@/lib/scrapers/providers/fetch'
-import { flaresolverrProvider } from '@/lib/scrapers/providers/flaresolverr'
+import { loadConfiguredProviders } from '@/lib/scrapers/providers/load-configured'
 import type { OrchestrateResult, ScrapeAttempt, ScrapeResult } from '@/lib/scrapers/types'
-import { getAppSettings } from '@/lib/settings'
+import { getAppSettings } from '@/lib/settings-loader'
 import { authMiddleware } from '@/middleware/auth'
 
 // Re-export the structured-result shape so existing callers (item form,
@@ -46,7 +43,7 @@ export const scrapeUrl = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof ScrapeUrlInputSchema>) => ScrapeUrlInputSchema.parse(data))
 	.handler(async ({ data, context }): Promise<ScrapeUrlResult> => {
-		const [settings, customHttpProviders] = await Promise.all([getAppSettings(db), loadCustomHttpProviders()])
+		const [settings, configuredProviders] = await Promise.all([getAppSettings(db), loadConfiguredProviders()])
 
 		const orchestrateResult = await orchestrate(
 			{
@@ -61,7 +58,7 @@ export const scrapeUrl = createServerFn({ method: 'POST' })
 					minScore: settings.scrapeQualityThreshold,
 					userId: context.session.user.id,
 				}),
-				providers: [fetchProvider, browserlessProvider, flaresolverrProvider, ...customHttpProviders, aiProvider],
+				providers: [fetchProvider, ...configuredProviders],
 				perProviderTimeoutMs: settings.scrapeProviderTimeoutMs,
 				overallTimeoutMs: settings.scrapeOverallTimeoutMs,
 				qualityThreshold: settings.scrapeQualityThreshold,
