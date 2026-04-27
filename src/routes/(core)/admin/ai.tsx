@@ -12,7 +12,7 @@ export const Route = createFileRoute('/(core)/admin/ai')({
 
 function AdminAiPage() {
 	return (
-		<Card className="animate-page-in">
+		<Card className="animate-page-in max-w-xl">
 			<CardHeader>
 				<CardTitle className="text-2xl">AI</CardTitle>
 				<CardDescription>
