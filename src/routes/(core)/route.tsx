@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
-import { Gift, Inbox, ListChecks, ListOrdered, ListPlus, MessagesSquare, PackageOpen, PlusCircle, Receipt } from 'lucide-react'
+import { Gift, Inbox, ListChecks, ListOrdered, ListPlus, MessagesSquare, PackageOpen, Receipt, SquarePlus } from 'lucide-react'
 import { Suspense } from 'react'
 
 import Loading from '@/components/loading'
@@ -84,7 +84,7 @@ const actions: Array<NavItem> = [
 		name: 'Add Item',
 		url: '/me#add-item',
 		mask: '/me',
-		icon: PlusCircle,
+		icon: SquarePlus,
 		hoverColor: 'group-hover/link:text-blue-500 group-data-[status=active]/link:text-blue-500',
 		activeOptions: {
 			exact: true,
