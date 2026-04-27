@@ -123,11 +123,16 @@ export type NewItemComment = typeof itemComments.$inferInsert
 // (the prefill flow). Standalone rows are also how the orchestrator's URL-
 // based dedup cache is implemented; they get attached to an item later when
 // the user saves the form, or stay orphaned for diagnostics / cleanup.
+//
+// userId records the signed-in user that triggered the scrape (null for
+// future system-driven cron scrapes). The /admin/scrapes page joins this
+// to surface "who scraped this URL" alongside the response.
 export const itemScrapes = pgTable(
 	'item_scrapes',
 	{
 		id: serial('id').primaryKey(),
 		itemId: integer('item_id').references(() => items.id, { onDelete: 'cascade' }),
+		userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
 		url: text('url').notNull(),
 		scraperId: text('scraper_id').notNull(),
 		// Per-attempt outcome, surfaced in the streaming UX and for diagnostics.
@@ -152,6 +157,8 @@ export const itemScrapes = pgTable(
 		// Supports the URL-based dedup cache lookup ("most recent successful
 		// scrape of this URL").
 		index('item_scrapes_url_createdAt_idx').on(table.url, table.createdAt.desc()),
+		// Supports the admin "recent scrapes" page sorted newest-first.
+		index('item_scrapes_createdAt_idx').on(table.createdAt.desc()),
 	]
 )
 

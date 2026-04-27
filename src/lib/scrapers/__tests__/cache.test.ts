@@ -206,6 +206,7 @@ describe('persistScrapeAttempt: insert shape', () => {
 		expect(insertCalls).toHaveLength(1)
 		const row = insertCalls[0]
 		expect(row.itemId).toBe(42)
+		expect(row.userId).toBeNull() // not supplied in this fixture
 		expect(row.url).toBe('https://x.test/y')
 		expect(row.scraperId).toBe('fetch-provider')
 		expect(row.ok).toBe(true)
@@ -233,6 +234,20 @@ describe('persistScrapeAttempt: insert shape', () => {
 			result: { imageUrls: [] },
 		})
 		expect(insertCalls[0].itemId).toBeNull()
+		expect(insertCalls[0].userId).toBeNull()
+	})
+
+	it('persists userId when supplied (admin /admin/scrapes uses this for the "who" column)', async () => {
+		await persistScrapeAttempt(fakeDb, {
+			url: 'https://x.test/y',
+			providerId: 'fetch-provider',
+			ok: true,
+			score: 4,
+			ms: 200,
+			userId: 'admin-uid-123',
+			result: { imageUrls: [] },
+		})
+		expect(insertCalls[0].userId).toBe('admin-uid-123')
 	})
 
 	it('persists a failed attempt with errorCode and null score/result fields', async () => {

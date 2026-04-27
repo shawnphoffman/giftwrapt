@@ -45,7 +45,7 @@ export type ScrapeUrlResult = ScrapeUrlOk | ScrapeUrlErr
 export const scrapeUrl = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof ScrapeUrlInputSchema>) => ScrapeUrlInputSchema.parse(data))
-	.handler(async ({ data }): Promise<ScrapeUrlResult> => {
+	.handler(async ({ data, context }): Promise<ScrapeUrlResult> => {
 		const [settings, customHttpProviders] = await Promise.all([getAppSettings(db), loadCustomHttpProviders()])
 
 		const orchestrateResult = await orchestrate(
@@ -59,6 +59,7 @@ export const scrapeUrl = createServerFn({ method: 'POST' })
 				...buildDbBackedDeps(db, {
 					ttlHours: settings.scrapeCacheTtlHours,
 					minScore: settings.scrapeQualityThreshold,
+					userId: context.session.user.id,
 				}),
 				providers: [fetchProvider, browserlessProvider, flaresolverrProvider, ...customHttpProviders, aiProvider],
 				perProviderTimeoutMs: settings.scrapeProviderTimeoutMs,

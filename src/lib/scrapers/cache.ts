@@ -61,6 +61,7 @@ export async function persistScrapeAttempt(
 	db: Database,
 	record: {
 		itemId?: number
+		userId?: string
 		url: string
 		providerId: string
 		ok: boolean
@@ -73,6 +74,7 @@ export async function persistScrapeAttempt(
 ): Promise<void> {
 	await db.insert(itemScrapes).values({
 		itemId: record.itemId ?? null,
+		userId: record.userId ?? null,
 		url: record.url,
 		scraperId: record.providerId,
 		ok: record.ok,
@@ -91,12 +93,16 @@ export async function persistScrapeAttempt(
 // Convenience wrapper: build the orchestrator deps that point at this DB,
 // pre-wiring extraction + scoring + cache + persistence + the AI title
 // post-pass (which is itself toggle-gated, so it's a no-op when off).
-export function buildDbBackedDeps(db: Database, options: { ttlHours: number; minScore: number }) {
+//
+// `userId` is the signed-in user that triggered the scrape; it's stamped
+// onto every persisted attempt row so the admin /admin/scrapes page can
+// surface "who scraped this URL." Pass `undefined` for system-driven runs.
+export function buildDbBackedDeps(db: Database, options: { ttlHours: number; minScore: number; userId?: string }) {
 	return {
 		extractFromRaw,
 		scoreFn: scoreScrape,
 		loadCache: (url: string) => loadCachedScrape(db, url, options),
-		persistAttempt: (record: Parameters<typeof persistScrapeAttempt>[1]) => persistScrapeAttempt(db, record),
+		persistAttempt: (record: Parameters<typeof persistScrapeAttempt>[1]) => persistScrapeAttempt(db, { ...record, userId: options.userId }),
 		postProcessResult: async (result: ScrapeResult, ctx: { url: string; fromProvider: string }) => {
 			const outcome = await maybeCleanTitle(db, result, { url: ctx.url })
 			if (outcome.cleaned && outcome.cleaned !== result.title) {
