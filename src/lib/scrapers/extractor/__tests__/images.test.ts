@@ -14,9 +14,31 @@ describe('looksLikeTrackingPixel', () => {
 		expect(looksLikeTrackingPixel('https://cdn.example.test/img_1x1.png')).toBe(true)
 	})
 
+	it('catches sentinel pixel basenames regardless of extension', () => {
+		expect(looksLikeTrackingPixel('https://cdn.example.test/static/pixel.png')).toBe(true)
+		expect(looksLikeTrackingPixel('https://cdn.example.test/img/spacer.gif')).toBe(true)
+		expect(looksLikeTrackingPixel('https://cdn.example.test/blank.gif')).toBe(true)
+		expect(looksLikeTrackingPixel('https://cdn.example.test/transparent.png')).toBe(true)
+		expect(looksLikeTrackingPixel('https://cdn.example.test/1x1.jpg')).toBe(true)
+	})
+
+	it('catches tracker path segments', () => {
+		expect(looksLikeTrackingPixel('https://example.test/track/event.gif')).toBe(true)
+		expect(looksLikeTrackingPixel('https://example.test/beacon/?id=42')).toBe(true)
+		expect(looksLikeTrackingPixel('https://example.test/collect?u=foo')).toBe(true)
+	})
+
+	it('catches additional analytics tracker hostnames', () => {
+		expect(looksLikeTrackingPixel('https://api.segment.io/v1/p?abc=1')).toBe(true)
+		expect(looksLikeTrackingPixel('https://bat.bing.com/action/0?ti=1')).toBe(true)
+	})
+
 	it('passes real product image URLs through', () => {
 		expect(looksLikeTrackingPixel('https://cdn.example.test/products/widget.jpg')).toBe(false)
 		expect(looksLikeTrackingPixel('https://images.example.test/widget?w=600')).toBe(false)
+		// Real product paths that contain pixel-like words but aren't sentinel basenames.
+		expect(looksLikeTrackingPixel('https://cdn.example.test/products/blank-tshirt.jpg')).toBe(false)
+		expect(looksLikeTrackingPixel('https://cdn.example.test/img/spacer-fitted-cap.png')).toBe(false)
 	})
 })
 

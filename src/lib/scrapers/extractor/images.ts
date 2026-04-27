@@ -12,7 +12,24 @@ const TRACKER_HOSTS: Array<string> = [
 	'adservice.',
 	'pixel.',
 	'tracker.',
+	'segment.io',
+	'mixpanel.com',
+	'hotjar.com',
+	'fullstory.com',
+	'mc.yandex.',
+	'bat.bing.com',
 ]
+
+// Filenames that are almost always 1x1 transparent pixels regardless of
+// extension. Match the *basename* exactly (token + image extension); a path
+// like /products/blank-tshirt.jpg would not match.
+const PIXEL_BASENAMES_RX = /^(?:pixel|spacer|blank|transparent|clear|shim|dot|beacon|trk|1x1)\.(?:gif|png|jpe?g|webp|svg)$/i
+
+// Path segments that imply a tracking endpoint (often serving 1x1 images).
+const TRACKER_PATH_RX = /\/(?:track(?:ing)?|beacon|collect|telemetry|metric[s]?|stats|analytics|impression|imp)(?:[/?]|$)/i
+
+// "1x1" as a discrete token in the URL (anchored by separators or extension).
+const ONE_BY_ONE_TOKEN_RX = /(?:^|[/_-])1x1(?=[._/?-]|$)/i
 
 const NON_PRODUCT_PATH_HINTS: Array<RegExp> = [
 	/\/logo[._-]/i,
@@ -47,8 +64,12 @@ export function filterAndSortImages(urls: ReadonlyArray<string>): Array<string> 
 export function looksLikeTrackingPixel(url: string): boolean {
 	const lower = url.toLowerCase()
 	if (TRACKER_HOSTS.some(t => lower.includes(t))) return true
-	if (/_1x1\b/i.test(url)) return true
+	if (ONE_BY_ONE_TOKEN_RX.test(url)) return true
 	if (hasOneByOneDims(url)) return true
+	const path = pathOf(url)
+	if (TRACKER_PATH_RX.test('/' + path)) return true
+	const basename = path.split('/').pop() ?? ''
+	if (PIXEL_BASENAMES_RX.test(basename)) return true
 	return false
 }
 

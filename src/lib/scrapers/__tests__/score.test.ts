@@ -57,9 +57,42 @@ describe('scoreScrape: price + description rules', () => {
 	})
 })
 
+describe('scoreScrape: error-title penalty', () => {
+	it('penalises "Page Not Found" titles below threshold even with full data', () => {
+		const result: ScrapeResult = {
+			title: 'Page Not Found - New Balance',
+			description: 'Sorry, the page you are looking for could not be found.',
+			price: '48.99',
+			imageUrls: ['https://cdn.example.test/flag.jpg'],
+			finalUrl: 'https://www.newbalance.com/pd/missing.html',
+		}
+		// Without the rule: title(2) + image(2) + price(1) + desc(1) = 6.
+		// With the rule: no title bonus (-2 missed) and -3 penalty -> 1.
+		const score = scoreScrape(result)
+		expect(score).toBeLessThan(QUALITY_THRESHOLD)
+	})
+
+	it('catches numeric error-status titles like "404 - Page Not Found"', () => {
+		expect(scoreScrape({ ...empty, title: '404 - Page Not Found' })).toBeLessThan(0)
+	})
+
+	it('catches Cloudflare interstitial title "Just a moment..."', () => {
+		expect(scoreScrape({ ...empty, title: 'Just a moment...' })).toBeLessThan(0)
+	})
+
+	it('catches "Access Denied" and maintenance pages', () => {
+		expect(scoreScrape({ ...empty, title: 'Access Denied' })).toBeLessThan(0)
+		expect(scoreScrape({ ...empty, title: 'Site under maintenance' })).toBeLessThan(0)
+	})
+
+	it('does not penalise legitimate product titles', () => {
+		expect(scoreScrape({ ...empty, title: 'ACME Widget 2-pack' })).toBe(2)
+	})
+})
+
 describe('scoreScrape: bot/login wall penalty', () => {
 	it('subtracts 3 when the HTML matches a Cloudflare wall pattern', () => {
-		const result = { ...empty, title: 'Just a moment...' }
+		const result = { ...empty, title: 'A real product page' }
 		const html = '<html><head><title>Just a moment...</title></head><body>cf-browser-verification</body></html>'
 		// Title is meaningful (not the hostname) → +2; bot wall → -3 → net -1.
 		expect(scoreScrape(result, { html })).toBe(-1)

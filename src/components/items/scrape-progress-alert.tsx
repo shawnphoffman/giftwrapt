@@ -2,6 +2,7 @@ import { AlertCircle, CheckCircle2, Circle, Loader2, XCircle } from 'lucide-reac
 import * as React from 'react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { ProviderProgress, ScrapeUiState } from '@/lib/use-scrape-url'
 import { cn } from '@/lib/utils'
@@ -49,13 +50,12 @@ export function ScrapeProgressAlert({ state, url, onCancel, onRetry, className }
 	}
 
 	if (state.phase === 'done') {
+		const elapsed = formatDurationMs(state.elapsedMs)
+		const title = state.cached ? `Imported from cache in ${elapsed}` : `Imported in ${elapsed}`
 		return (
 			<Alert variant="default" className={cn('text-sm', className)}>
 				<CheckCircle2 className="text-emerald-600 dark:text-emerald-500" />
-				<AlertTitle>{state.cached ? 'Imported (from cache)' : 'Imported'}</AlertTitle>
-				<AlertDescription>
-					{describeWinner(state)} {formatDurationMs(state.elapsedMs)}.
-				</AlertDescription>
+				<AlertTitle>{title}</AlertTitle>
 			</Alert>
 		)
 	}
@@ -95,12 +95,20 @@ export function ScrapeProgressAlert({ state, url, onCancel, onRetry, className }
 
 function ProviderRow({ progress, label }: { progress: ProviderProgress; label: string }) {
 	const Icon = ICONS[progress.status]
-	const detail = providerDetail(progress)
+	const { badge, meta } = providerDetail(progress)
 	return (
 		<li className="flex items-center gap-2">
 			<Icon className={cn('size-3.5 shrink-0', ICON_TONE[progress.status])} />
 			<span className="font-mono">{label}</span>
-			{detail && <span className="text-muted-foreground">- {detail}</span>}
+			{badge && (
+				<Badge
+					variant={BADGE_VARIANT[progress.status]}
+					className={cn('h-4 px-1.5 py-0 text-[10px] font-normal', BADGE_TONE[progress.status])}
+				>
+					{badge}
+				</Badge>
+			)}
+			{meta && <span className="text-muted-foreground">{meta}</span>}
 		</li>
 	)
 }
@@ -119,33 +127,42 @@ const ICON_TONE: Record<ProviderProgress['status'], string> = {
 	failed: 'text-destructive',
 }
 
+const BADGE_VARIANT: Record<ProviderProgress['status'], 'secondary' | 'outline' | 'destructive' | 'default'> = {
+	pending: 'outline',
+	in_progress: 'secondary',
+	done: 'secondary',
+	failed: 'destructive',
+}
+
+const BADGE_TONE: Record<ProviderProgress['status'], string> = {
+	pending: 'text-muted-foreground',
+	in_progress: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',
+	done: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
+	failed: '',
+}
+
 function SpinnerIcon({ className }: { className?: string }): React.ReactElement {
 	return <Loader2 className={cn('animate-spin', className)} />
 }
 
-function providerDetail(p: ProviderProgress): string | null {
+function providerDetail(p: ProviderProgress): { badge: string | null; meta: string | null } {
 	switch (p.status) {
 		case 'pending':
-			return 'pending'
+			return { badge: 'pending', meta: null }
 		case 'in_progress':
-			return 'in progress'
-		case 'done':
-			return (
-				[typeof p.score === 'number' ? `score ${p.score}` : null, typeof p.ms === 'number' ? formatDurationMs(p.ms) : null]
-					.filter(Boolean)
-					.join(', ') || 'done'
-			)
+			return { badge: 'in progress', meta: null }
+		case 'done': {
+			const meta = [typeof p.score === 'number' ? `score ${p.score}` : null, typeof p.ms === 'number' ? formatDurationMs(p.ms) : null]
+				.filter(Boolean)
+				.join(', ')
+			return { badge: 'done', meta: meta || null }
+		}
 		case 'failed':
-			return [p.errorCode ?? 'failed', typeof p.ms === 'number' ? formatDurationMs(p.ms) : null].filter(Boolean).join(', ')
+			return {
+				badge: p.errorCode ?? 'failed',
+				meta: typeof p.ms === 'number' ? formatDurationMs(p.ms) : null,
+			}
 	}
-}
-
-function describeWinner(state: ScrapeUiState): string {
-	if (!state.fromProvider) return 'Imported scrape data.'
-	const label = displayName(state.fromProvider, state.providerNames)
-	const title = state.result?.title
-	if (title) return `Imported "${title}" via ${label} in`
-	return `Imported via ${label} in`
 }
 
 function describeFailure(state: ScrapeUiState): string {

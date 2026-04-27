@@ -15,6 +15,7 @@
 // its OG / JSON-LD / Microdata / Heuristics layers. See
 // `lib/scrapers/extractor/index.ts`.
 
+import { filterAndSortImages } from './extractor/images'
 import type { MergeContribution, MergedResult, ScrapeResult } from './types'
 
 // Scalar fields that fill-the-gaps from runners-up. `imageUrls` is
@@ -34,7 +35,9 @@ export function mergeWithinTier(contributions: ReadonlyArray<MergeContribution>)
 	const base = sorted[0]
 
 	if (sorted.length === 1) {
-		return { result: cloneResult(base.result), fromProvider: base.fromProvider }
+		const cloned = cloneResult(base.result)
+		cloned.imageUrls = filterAndSortImages(cloned.imageUrls)
+		return { result: cloned, fromProvider: base.fromProvider }
 	}
 
 	const merged = cloneResult(base.result)
@@ -70,6 +73,8 @@ export function mergeWithinTier(contributions: ReadonlyArray<MergeContribution>)
 			contributingIds.add(sorted[i].fromProvider)
 		}
 	}
+
+	merged.imageUrls = filterAndSortImages(merged.imageUrls)
 
 	const orderedContributors = sorted.map(c => c.fromProvider).filter(id => contributingIds.has(id))
 

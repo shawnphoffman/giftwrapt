@@ -1,4 +1,5 @@
 import { looksLikeBlocked } from './bot-detect'
+import { looksLikeTrackingPixel } from './extractor/images'
 import type { ScrapeResult } from './types'
 
 // Threshold the orchestrator uses to short-circuit the sequential chain.
@@ -27,6 +28,8 @@ export function scoreScrape(result: ScrapeResult, ctx: { html?: string; status?:
 
 	if (ctx.html && looksLikeBlocked(ctx.html)) score -= 3
 
+	if (result.title && looksLikeErrorTitle(result.title)) score -= 3
+
 	return score
 }
 
@@ -34,6 +37,7 @@ function hasMeaningfulTitle(result: ScrapeResult, ctx: { html?: string }): boole
 	if (!result.title) return false
 	const title = result.title.trim()
 	if (title.length === 0) return false
+	if (looksLikeErrorTitle(title)) return false
 	// Penalise "the title is just the hostname", a common signal of a CDN
 	// error page or a near-empty default response.
 	const finalUrl = result.finalUrl
@@ -53,34 +57,30 @@ function hasMeaningfulTitle(result: ScrapeResult, ctx: { html?: string }): boole
 	return true
 }
 
+const ERROR_TITLE_PATTERNS: ReadonlyArray<RegExp> = [
+	/^\s*\d{3}\b/, // "404", "404 - X", "404: ..."
+	/\bpage not found\b/i,
+	/\bnot found\b.*\b(?:error|page)?\b/i,
+	/\b(?:404|403|500|502|503)\b.*\b(?:error|not found|forbidden|unavailable|service)\b/i,
+	/\baccess denied\b/i,
+	/\b(?:under|in) maintenance\b/i,
+	/\b(?:site|server) (?:is )?(?:temporarily )?(?:unavailable|down)\b/i,
+	/\bare you (?:a )?human\b/i,
+	/\bverify (?:you are|that you'?re) (?:a )?human\b/i,
+	/\bjust a moment\b/i,
+	/\bchecking your browser\b/i,
+]
+
+function looksLikeErrorTitle(title: string): boolean {
+	const t = title.trim()
+	if (!t) return false
+	return ERROR_TITLE_PATTERNS.some(re => re.test(t))
+}
+
 function hasReasonableImage(result: ScrapeResult): boolean {
 	if (result.imageUrls.length === 0) return false
 	for (const url of result.imageUrls) {
 		if (url && !looksLikeTrackingPixel(url)) return true
 	}
 	return false
-}
-
-function looksLikeTrackingPixel(url: string): boolean {
-	if (/_1x1\b/i.test(url)) return true
-	const trackers = [
-		'doubleclick.net',
-		'googletagmanager.com',
-		'google-analytics.com',
-		'facebook.com/tr',
-		'scorecardresearch.com',
-		'adservice.',
-		'pixel.',
-		'tracker.',
-	]
-	const lower = url.toLowerCase()
-	if (trackers.some(t => lower.includes(t))) return true
-	try {
-		const params = new URL(url).searchParams
-		const w = params.get('w') ?? params.get('width')
-		const h = params.get('h') ?? params.get('height')
-		return w === '1' && h === '1'
-	} catch {
-		return false
-	}
 }
