@@ -35,8 +35,12 @@ export type ScraperProvidersFormChangeKey =
 export function ScraperProvidersFormView({ settings, disabled, onChange }: ScraperProvidersFormViewProps) {
 	const inputDisabled = disabled === true
 
+	// `@container/scraper-form` on the outermost div scopes our container
+	// queries to the form's actual rendered width (not the admin page or
+	// browser viewport). Rows stack vertically below ~28rem and reflow
+	// side-by-side once the form has room.
 	return (
-		<div className="space-y-8">
+		<div className="@container/scraper-form space-y-8">
 			<div className="space-y-1">
 				<h3 className="text-base font-medium">Scraping</h3>
 				<p className="text-sm text-muted-foreground">
@@ -133,7 +137,7 @@ function CustomHttpProvidersSection({
 
 	return (
 		<div className="space-y-4">
-			<div className="flex items-end justify-between gap-4">
+			<div className="flex flex-col gap-3 @md/scraper-form:flex-row @md/scraper-form:items-end @md/scraper-form:justify-between @md/scraper-form:gap-4">
 				<div className="space-y-0.5">
 					<Label className="text-base">Custom HTTP scrapers</Label>
 					<p className="text-sm text-muted-foreground">
@@ -148,7 +152,7 @@ function CustomHttpProvidersSection({
 					size="sm"
 					disabled={disabled || entries.length >= MAX_ENTRIES}
 					onClick={add}
-					className="gap-1.5"
+					className="gap-1.5 self-start @md/scraper-form:self-auto"
 				>
 					<Plus className="size-3.5" />
 					Add scraper
@@ -187,7 +191,7 @@ function CustomHttpEntryCard({
 }) {
 	return (
 		<div className="rounded-md border p-4 space-y-4">
-			<div className="flex items-start gap-3">
+			<div className="flex flex-col gap-3 @md/scraper-form:flex-row @md/scraper-form:items-end @md/scraper-form:gap-3">
 				<div className="flex-1 min-w-0">
 					<TextRow
 						id={`scrapeCustomHttpName-${entry.id}`}
@@ -198,25 +202,18 @@ function CustomHttpEntryCard({
 						onCommit={next => onPatch({ name: next || entry.name })}
 					/>
 				</div>
-				<Switch
-					id={`scrapeCustomHttpEnabled-${entry.id}`}
-					checked={entry.enabled}
-					disabled={disabled}
-					onCheckedChange={(checked: boolean) => onPatch({ enabled: checked })}
-					className="mt-7 shrink-0"
-					aria-label={entry.enabled ? `Disable ${entry.name}` : `Enable ${entry.name}`}
-				/>
-				<Button
-					type="button"
-					variant="ghost"
-					size="icon"
-					disabled={disabled}
-					onClick={onRemove}
-					aria-label={`Remove ${entry.name}`}
-					className="mt-6 shrink-0"
-				>
-					<Trash2 className="size-4 text-muted-foreground" />
-				</Button>
+				<div className="flex items-center justify-between gap-2 @md/scraper-form:justify-start">
+					<Switch
+						id={`scrapeCustomHttpEnabled-${entry.id}`}
+						checked={entry.enabled}
+						disabled={disabled}
+						onCheckedChange={(checked: boolean) => onPatch({ enabled: checked })}
+						aria-label={entry.enabled ? `Disable ${entry.name}` : `Enable ${entry.name}`}
+					/>
+					<Button type="button" variant="ghost" size="icon" disabled={disabled} onClick={onRemove} aria-label={`Remove ${entry.name}`}>
+						<Trash2 className="size-4 text-muted-foreground" />
+					</Button>
+				</div>
 			</div>
 
 			<TextRow
@@ -353,7 +350,7 @@ function NumberRow({
 	}
 
 	return (
-		<div className="flex items-center justify-between gap-4">
+		<div className="flex flex-col gap-2 @md/scraper-form:flex-row @md/scraper-form:items-center @md/scraper-form:justify-between @md/scraper-form:gap-4">
 			<div className="space-y-0.5">
 				<Label htmlFor={id} className="text-base">
 					{label}
