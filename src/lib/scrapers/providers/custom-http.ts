@@ -2,19 +2,22 @@ import { db } from '@/db'
 
 import { getAppSettings } from '../../settings'
 import { looksLikeBlocked } from '../bot-detect'
+import { parseCustomHeaders } from '../parse-headers'
 import type { ProviderResponse, ScrapeContext, ScrapeProvider, ScrapeResult } from '../types'
 import { scrapeResultSchema } from '../types'
 import { ScrapeProviderError } from '../types'
 
 // "Bring your own HTTP scraper" provider. Configured from appSettings:
-//   { endpoint, responseKind: 'html' | 'json', authHeaderName?, authHeaderValue? }
+//   { endpoint, responseKind: 'html' | 'json', customHeaders? }
 //
-// We GET `${endpoint}?url=<encoded>` (and optionally one auth header) and
-// read the response per responseKind:
+// We GET `${endpoint}?url=<encoded>` (with any custom headers from the
+// admin textarea attached) and read the response per responseKind:
 //   - html: returns RawPage and the extractor handles the rest
 //   - json: returns StructuredResponse, validated against ScrapeResultSchema
 //     so misbehaving custom scrapers can't poison the form
 //
+// `customHeaders` is the multiline textarea value; one
+// `Header-Name: value` per line, blank lines and `#` comments ignored.
 // No body templating, no JSON-path mapping, no fancy auth flows. If you
 // need any of that, your scraper can normalise on its own side, or you
 // drop a TS provider module under src/lib/scrapers/providers/<id>.ts.
@@ -53,8 +56,7 @@ type CustomHttpConfig = {
 	enabled: boolean
 	endpoint: string
 	responseKind: 'html' | 'json'
-	authHeaderName?: string
-	authHeaderValue?: string
+	customHeaders?: string
 }
 
 async function loadConfig(): Promise<CustomHttpConfig | undefined> {
@@ -75,8 +77,11 @@ async function runCustomHttpProvider(ctx: ScrapeContext): Promise<ProviderRespon
 	const headers: Record<string, string> = {
 		accept: config.responseKind === 'json' ? 'application/json' : 'text/html, */*;q=0.5',
 	}
-	if (config.authHeaderName && config.authHeaderValue) {
-		headers[config.authHeaderName.toLowerCase()] = config.authHeaderValue
+	// Layer the user-configured headers on top so they can override `accept`
+	// or anything else the provider sets by default. Admin is the source of
+	// truth for what their own scraper expects.
+	for (const [name, value] of Object.entries(parseCustomHeaders(config.customHeaders))) {
+		headers[name] = value
 	}
 
 	let response: Response

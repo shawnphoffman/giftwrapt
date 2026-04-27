@@ -172,20 +172,44 @@ describe('customHttpProvider: json mode', () => {
 	})
 })
 
-describe('customHttpProvider: auth header', () => {
-	beforeEach(() => {
+describe('customHttpProvider: custom headers', () => {
+	it('attaches every parsed header from the multiline customHeaders field', async () => {
 		mockSettings.scrapeCustomHttpProvider = {
 			enabled: true,
 			endpoint: 'https://my-scraper.test/scrape',
 			responseKind: 'html',
-			authHeaderName: 'X-Token',
-			authHeaderValue: 'shh',
+			customHeaders: ['X-Token: shh', 'Authorization: Bearer abc', '# this comment is ignored', 'User-Agent: my-scraper/1.0'].join('\n'),
 		}
-	})
-
-	it('sends the configured auth header verbatim', async () => {
 		queue.push({ status: 200, body: '<html>ok</html>' })
 		await customHttpProvider.fetch(makeCtx('https://target.test/x'))
 		expect(lastFetchInit?.headers['x-token']).toBe('shh')
+		expect(lastFetchInit?.headers.authorization).toBe('Bearer abc')
+		expect(lastFetchInit?.headers['user-agent']).toBe('my-scraper/1.0')
+	})
+
+	it('admin-supplied headers override the provider defaults', async () => {
+		// The provider sets `accept` based on responseKind; an admin who
+		// configures their scraper to require a specific Accept can override.
+		mockSettings.scrapeCustomHttpProvider = {
+			enabled: true,
+			endpoint: 'https://my-scraper.test/scrape',
+			responseKind: 'html',
+			customHeaders: 'Accept: application/x-custom',
+		}
+		queue.push({ status: 200, body: '<html>ok</html>' })
+		await customHttpProvider.fetch(makeCtx('https://target.test/x'))
+		expect(lastFetchInit?.headers.accept).toBe('application/x-custom')
+	})
+
+	it('sends only the default Accept when no custom headers are configured', async () => {
+		mockSettings.scrapeCustomHttpProvider = {
+			enabled: true,
+			endpoint: 'https://my-scraper.test/scrape',
+			responseKind: 'html',
+		}
+		queue.push({ status: 200, body: '<html>ok</html>' })
+		await customHttpProvider.fetch(makeCtx('https://target.test/x'))
+		expect(Object.keys(lastFetchInit?.headers ?? {})).toEqual(['accept'])
+		expect(lastFetchInit?.headers.accept).toContain('text/html')
 	})
 })

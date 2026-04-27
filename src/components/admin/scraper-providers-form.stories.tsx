@@ -91,8 +91,7 @@ export const CustomHttpJsonWithAuth: Story = {
 				enabled: true,
 				endpoint: 'https://my-scraper.local/scrape',
 				responseKind: 'json',
-				authHeaderName: 'X-Scrape-Token',
-				authHeaderValue: 'secret-value',
+				customHeaders: ['X-Scrape-Token: secret-value', 'Authorization: Bearer abc123'].join('\n'),
 			},
 		},
 	},
@@ -100,7 +99,7 @@ export const CustomHttpJsonWithAuth: Story = {
 		docs: {
 			description: {
 				story:
-					'Custom HTTP scraper returning structured JSON in the documented ScrapeResult shape, with a token-style auth header. The local extractor is bypassed for this provider.',
+					'Custom HTTP scraper returning structured JSON in the documented ScrapeResult shape, with custom headers attached to every request. The local extractor is bypassed for this provider.',
 			},
 		},
 	},

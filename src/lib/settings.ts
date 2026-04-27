@@ -47,7 +47,9 @@ export const appSettingsSchema = z.object({
 	// BYO custom HTTP scraper. The orchestrator calls
 	// `${endpoint}?url=<encoded>` and reads the response per `responseKind`
 	// (html → goes through the extractor; json → expected to match the
-	// ScrapeResult shape). Optional auth header for token-style auth.
+	// ScrapeResult shape). `customHeaders` is a multiline string with one
+	// `Header-Name: value` per line; blank lines and `#`-prefixed comment
+	// lines are ignored.
 	//
 	// `endpoint` accepts the empty string so the user can flip `enabled`
 	// on before they finish typing the URL without tripping schema
@@ -58,8 +60,7 @@ export const appSettingsSchema = z.object({
 			enabled: z.boolean(),
 			endpoint: z.union([z.literal(''), z.url()]),
 			responseKind: z.enum(['html', 'json']),
-			authHeaderName: z.string().min(1).max(200).optional(),
-			authHeaderValue: z.string().min(1).max(2000).optional(),
+			customHeaders: z.string().max(4000).optional(),
 		})
 		.optional(),
 })

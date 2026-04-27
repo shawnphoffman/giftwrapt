@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
 import type { AppSettings } from '@/lib/settings'
 
 // Presentational form for scraper-related app settings: timeouts, cache TTL,
@@ -168,24 +169,7 @@ function CustomHttpSection({
 						<ResponseKindHelp kind={config.responseKind} />
 					</div>
 
-					<TextRow
-						id="scrapeCustomHttpAuthHeaderName"
-						label="Auth header name"
-						placeholder="X-Scrape-Token"
-						value={config.authHeaderName ?? ''}
-						disabled={disabled}
-						onCommit={v => update('authHeaderName', v || undefined)}
-					/>
-
-					<TextRow
-						id="scrapeCustomHttpAuthHeaderValue"
-						label="Auth header value"
-						placeholder="(only sent over HTTPS)"
-						type="password"
-						value={config.authHeaderValue ?? ''}
-						disabled={disabled}
-						onCommit={v => update('authHeaderValue', v || undefined)}
-					/>
+					<HeadersRow value={config.customHeaders ?? ''} disabled={disabled} onCommit={v => update('customHeaders', v || undefined)} />
 				</div>
 			)}
 		</div>
@@ -298,6 +282,40 @@ function NumberRow({
 				/>
 				{suffix && <span className="text-sm text-muted-foreground">{suffix}</span>}
 			</div>
+		</div>
+	)
+}
+
+function HeadersRow({ value, disabled, onCommit }: { value: string; disabled: boolean; onCommit: (value: string) => void }) {
+	const [draft, setDraft] = useState(value)
+
+	useEffect(() => {
+		setDraft(value)
+	}, [value])
+
+	const commit = () => {
+		if (draft !== value) onCommit(draft)
+	}
+
+	return (
+		<div className="space-y-1">
+			<Label htmlFor="scrapeCustomHttpHeaders" className="text-base">
+				Custom HTTP headers
+			</Label>
+			<p className="text-xs text-muted-foreground">
+				Sent on every request to this scraper. One <code className="font-mono">Header-Name: value</code> per line. Blank lines and{' '}
+				<code className="font-mono">#</code>-prefixed comments are ignored.
+			</p>
+			<Textarea
+				id="scrapeCustomHttpHeaders"
+				rows={5}
+				placeholder={'X-Scrape-Token: abc123\nAuthorization: Bearer xyz'}
+				value={draft}
+				disabled={disabled}
+				className="font-mono text-xs"
+				onChange={e => setDraft(e.target.value)}
+				onBlur={commit}
+			/>
 		</div>
 	)
 }
