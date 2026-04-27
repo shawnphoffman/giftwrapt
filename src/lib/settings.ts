@@ -48,10 +48,15 @@ export const appSettingsSchema = z.object({
 	// `${endpoint}?url=<encoded>` and reads the response per `responseKind`
 	// (html → goes through the extractor; json → expected to match the
 	// ScrapeResult shape). Optional auth header for token-style auth.
+	//
+	// `endpoint` accepts the empty string so the user can flip `enabled`
+	// on before they finish typing the URL without tripping schema
+	// validation. The provider's isAvailable() rechecks for a parseable
+	// URL and excludes itself from the chain when one isn't set yet.
 	scrapeCustomHttpProvider: z
 		.object({
 			enabled: z.boolean(),
-			endpoint: z.url(),
+			endpoint: z.union([z.literal(''), z.url()]),
 			responseKind: z.enum(['html', 'json']),
 			authHeaderName: z.string().min(1).max(200).optional(),
 			authHeaderValue: z.string().min(1).max(2000).optional(),

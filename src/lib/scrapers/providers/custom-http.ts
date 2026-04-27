@@ -26,8 +26,27 @@ export const customHttpProvider: ScrapeProvider = {
 	id: PROVIDER_ID,
 	kind: 'html',
 	mode: 'sequential',
-	isAvailable: async () => Boolean((await loadConfig())?.enabled),
+	// Available only when admin has enabled the provider AND filled in a
+	// valid http(s) endpoint. The schema accepts empty `endpoint` so the
+	// user can flip the switch on first and then type the URL; until then
+	// we exclude the provider from the chain rather than letting it fail
+	// at fetch time.
+	isAvailable: async () => {
+		const config = await loadConfig()
+		if (!config?.enabled) return false
+		return isParseableUrl(config.endpoint)
+	},
 	fetch: runCustomHttpProvider,
+}
+
+function isParseableUrl(raw: string): boolean {
+	if (!raw.trim()) return false
+	try {
+		const u = new URL(raw)
+		return u.protocol === 'http:' || u.protocol === 'https:'
+	} catch {
+		return false
+	}
 }
 
 type CustomHttpConfig = {

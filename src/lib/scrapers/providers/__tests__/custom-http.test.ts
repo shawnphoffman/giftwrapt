@@ -75,13 +75,31 @@ describe('customHttpProvider: availability', () => {
 		await expect(Promise.resolve(customHttpProvider.isAvailable())).resolves.toBe(false)
 	})
 
-	it('is available when configured and enabled', async () => {
+	it('is available when configured and enabled with a valid endpoint', async () => {
 		mockSettings.scrapeCustomHttpProvider = {
 			enabled: true,
 			endpoint: 'https://my-scraper.test/scrape',
 			responseKind: 'html',
 		}
 		await expect(Promise.resolve(customHttpProvider.isAvailable())).resolves.toBe(true)
+	})
+
+	it('is unavailable when enabled with an empty endpoint (toggle on, URL not yet typed)', async () => {
+		mockSettings.scrapeCustomHttpProvider = {
+			enabled: true,
+			endpoint: '',
+			responseKind: 'html',
+		}
+		await expect(Promise.resolve(customHttpProvider.isAvailable())).resolves.toBe(false)
+	})
+
+	it('is unavailable when enabled with a non-http(s) endpoint', async () => {
+		mockSettings.scrapeCustomHttpProvider = {
+			enabled: true,
+			endpoint: 'ftp://my-scraper.test/scrape',
+			responseKind: 'html',
+		}
+		await expect(Promise.resolve(customHttpProvider.isAvailable())).resolves.toBe(false)
 	})
 })
 

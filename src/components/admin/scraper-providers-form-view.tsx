@@ -165,6 +165,7 @@ function CustomHttpSection({
 								<SelectItem value="json">JSON (ScrapeResult shape)</SelectItem>
 							</SelectContent>
 						</Select>
+						<ResponseKindHelp kind={config.responseKind} />
 					</div>
 
 					<TextRow
@@ -187,6 +188,42 @@ function CustomHttpSection({
 					/>
 				</div>
 			)}
+		</div>
+	)
+}
+
+// ---------------------------------------------------------------------------
+// Help copy that documents what the orchestrator expects back from the
+// custom-HTTP provider in each response mode.
+// ---------------------------------------------------------------------------
+
+function ResponseKindHelp({ kind }: { kind: 'html' | 'json' }) {
+	if (kind === 'html') {
+		return (
+			<p className="text-xs text-muted-foreground mt-1">
+				Return the raw HTML body of the page (a <code className="font-mono">text/html</code> response). The orchestrator runs the same OG /
+				JSON-LD / microdata extractor it uses for the built-in fetcher, so anything that looks like a normal product page works.
+			</p>
+		)
+	}
+	return (
+		<div className="space-y-1 mt-1">
+			<p className="text-xs text-muted-foreground">
+				Return JSON with the shape below. Unknown fields are ignored; missing fields are treated as &quot;not provided.&quot; All fields are
+				optional; a response with at least <code className="font-mono">title</code> or <code className="font-mono">imageUrls[0]</code>{' '}
+				typically scores well enough to win.
+			</p>
+			<pre className="text-xs bg-muted/50 rounded-md p-2 overflow-x-auto font-mono leading-snug">
+				{`{
+  "title":       string,           // optional
+  "description": string,           // optional
+  "price":       string,           // optional, human-readable
+  "currency":    string,           // optional, e.g. "USD"
+  "imageUrls":   string[],         // optional, absolute URLs preferred
+  "siteName":    string,           // optional
+  "finalUrl":    string            // optional, original is used otherwise
+}`}
+			</pre>
 		</div>
 	)
 }
