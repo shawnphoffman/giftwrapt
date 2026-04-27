@@ -14,7 +14,8 @@ function AdminScrapingPage() {
 			<CardHeader>
 				<CardTitle className="text-2xl">Scraping</CardTitle>
 				<CardDescription>
-					Tune the URL-import pipeline. The AI-specific toggles live under <em>AI</em>; everything else is here.
+					Tune the URL-import pipeline. The built-in fetch provider is always on; everything else is configured below. AI-specific toggles
+					live under <em>AI</em>.
 				</CardDescription>
 			</CardHeader>
 			<CardContent>

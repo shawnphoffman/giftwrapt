@@ -1,13 +1,18 @@
-import { closestCenter, DndContext, type DragEndEvent, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import { ChevronDown, ChevronRight, GripVertical, Plus, Trash2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuGroup,
+	DropdownMenuItem,
+	DropdownMenuLabel,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -56,14 +61,6 @@ export function ScraperProvidersFormView({ settings, disabled, onChange }: Scrap
 
 	return (
 		<div className="@container/scraper-form space-y-8">
-			<div className="space-y-1">
-				<h3 className="text-base font-medium">Scraping</h3>
-				<p className="text-sm text-muted-foreground">
-					Tune the scraping pipeline. The built-in fetch provider is always on; everything else is configured below and runs in the order
-					shown. Drag the handle on the left to reorder.
-				</p>
-			</div>
-
 			<NumberRow
 				id="scrapeProviderTimeoutMs"
 				label="Per-provider timeout"
@@ -136,19 +133,32 @@ const TYPE_LABELS: Record<ScrapeProviderType, string> = {
 	scrapfly: 'ScrapFly',
 }
 
-const ADD_OPTIONS: Array<{ type: ScrapeProviderType; label: string; hint: string }> = [
-	{ type: 'browserless', label: 'Browserless', hint: 'Self-hosted JS-rendering container' },
-	{ type: 'flaresolverr', label: 'Flaresolverr', hint: 'Self-hosted Cloudflare bypass' },
-	{ type: 'browserbase-fetch', label: 'Browserbase (Fetch API)', hint: 'Hosted: rendered HTML, no LLM' },
-	{ type: 'browserbase-stagehand', label: 'Browserbase (Stagehand)', hint: 'Hosted: structured extraction with LLM' },
-	{ type: 'custom-http', label: 'Custom HTTP', hint: 'Bring your own scraper service' },
-	{ type: 'ai', label: 'AI extraction', hint: 'LLM extracts from any HTML; uses /admin/ai-settings creds' },
+type AddOption = { type: ScrapeProviderType; label: string; hint: string }
+
+const ADD_OPTION_GROUPS: Array<{ label: string; options: Array<AddOption> }> = [
 	{
-		type: 'wish-list-scraper',
-		label: 'Wish List Scraper',
-		hint: 'Self-hosted Hono facade chaining browserless / flaresolverr / byparr / scrapfly',
+		label: 'Self-hosted',
+		options: [
+			{ type: 'browserless', label: 'Browserless', hint: 'JS-rendering container' },
+			{ type: 'flaresolverr', label: 'Flaresolverr', hint: 'Cloudflare bypass' },
+			{ type: 'wish-list-scraper', label: 'Wish List Scraper', hint: 'Self-hosted scraping toolchain' },
+		],
 	},
-	{ type: 'scrapfly', label: 'ScrapFly', hint: 'Hosted scraping API with anti-bot bypass' },
+	{
+		label: 'Hosted',
+		options: [
+			{ type: 'browserbase-fetch', label: 'Browserbase (Fetch API)', hint: 'Rendered HTML, no LLM' },
+			{ type: 'browserbase-stagehand', label: 'Browserbase (Stagehand)', hint: 'Structured extraction with LLM' },
+			{ type: 'scrapfly', label: 'ScrapFly', hint: 'Scraping API with anti-bot bypass' },
+		],
+	},
+	{
+		label: 'Other',
+		options: [
+			{ type: 'custom-http', label: 'Custom HTTP', hint: 'Bring your own scraper service' },
+			{ type: 'ai', label: 'AI extraction', hint: 'LLM extracts from any HTML; uses /admin/ai-settings creds' },
+		],
+	},
 ]
 
 function ScrapeProvidersSection({
@@ -160,10 +170,11 @@ function ScrapeProvidersSection({
 	disabled: boolean
 	onChange: (next: Array<ScrapeProviderEntry>) => void
 }) {
-	const sensors = useSensors(
-		useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-		useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-	)
+	// Sort by tier for display; same-tier entries fire in parallel so order
+	// among them has no runtime effect. Stable sort preserves the
+	// underlying array order for ties, which keeps newly-added entries at
+	// the bottom of their tier.
+	const sortedEntries = useMemo(() => [...entries].sort((a, b) => a.tier - b.tier), [entries])
 
 	const handleAdd = (type: ScrapeProviderType) => {
 		if (entries.length >= MAX_ENTRIES) return
@@ -178,15 +189,6 @@ function ScrapeProvidersSection({
 		onChange(entries.filter(e => e.id !== id))
 	}
 
-	const handleDragEnd = (event: DragEndEvent) => {
-		const { active, over } = event
-		if (!over || active.id === over.id) return
-		const from = entries.findIndex(e => e.id === active.id)
-		const to = entries.findIndex(e => e.id === over.id)
-		if (from < 0 || to < 0) return
-		onChange(arrayMove([...entries], from, to))
-	}
-
 	return (
 		<div className="space-y-4">
 			<div className="flex flex-col gap-3 @md/scraper-form:flex-row @md/scraper-form:items-end @md/scraper-form:justify-between @md/scraper-form:gap-4">
@@ -194,8 +196,7 @@ function ScrapeProvidersSection({
 					<Label className="text-base">Scrape providers</Label>
 					<p className="text-sm text-muted-foreground">
 						Each entry runs only when configured and enabled. Tier 1 entries fire in parallel; the chain advances to tier 2 only if tier
-						1&apos;s merged result falls below the quality threshold, and so on. Drag to reorder within a tier; pick a tier to move an entry
-						between tiers.
+						1&apos;s merged result falls below the quality threshold, and so on. Pick a tier to move an entry between tiers.
 					</p>
 				</div>
 				<DropdownMenu>
@@ -213,42 +214,44 @@ function ScrapeProvidersSection({
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
-						{ADD_OPTIONS.map(opt => (
-							<DropdownMenuItem key={opt.type} onSelect={() => handleAdd(opt.type)}>
-								<div className="flex flex-col gap-0.5">
-									<span>{opt.label}</span>
-									<span className="text-xs text-muted-foreground">{opt.hint}</span>
-								</div>
-							</DropdownMenuItem>
+						{ADD_OPTION_GROUPS.map((group, groupIndex) => (
+							<DropdownMenuGroup key={group.label}>
+								{groupIndex > 0 && <DropdownMenuSeparator />}
+								<DropdownMenuLabel className="text-xs text-muted-foreground">{group.label}</DropdownMenuLabel>
+								{group.options.map(opt => (
+									<DropdownMenuItem key={opt.type} onSelect={() => handleAdd(opt.type)}>
+										<div className="flex flex-col gap-0.5">
+											<span>{opt.label}</span>
+											<span className="text-xs text-muted-foreground">{opt.hint}</span>
+										</div>
+									</DropdownMenuItem>
+								))}
+							</DropdownMenuGroup>
 						))}
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</div>
 
-			{entries.length === 0 ? (
+			{sortedEntries.length === 0 ? (
 				<p className="text-sm text-muted-foreground italic">No scrapers configured. Click &quot;Add scraper&quot; to wire one up.</p>
 			) : (
-				<DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-					<SortableContext items={entries.map(e => e.id)} strategy={verticalListSortingStrategy}>
-						<div className="space-y-3">
-							{entries.map((entry, index) => {
-								const prevTier = index > 0 ? entries[index - 1].tier : null
-								const showDivider = prevTier !== null && prevTier !== entry.tier
-								return (
-									<div key={entry.id}>
-										{showDivider && <TierDivider tier={entry.tier} />}
-										<SortableEntryCard
-											entry={entry}
-											disabled={disabled}
-											onSave={next => handleReplace(entry.id, next)}
-											onRemove={() => handleRemove(entry.id)}
-										/>
-									</div>
-								)
-							})}
-						</div>
-					</SortableContext>
-				</DndContext>
+				<div className="space-y-3">
+					{sortedEntries.map((entry, index) => {
+						const prevTier = index > 0 ? sortedEntries[index - 1].tier : null
+						const showDivider = prevTier !== entry.tier
+						return (
+							<div key={entry.id}>
+								{showDivider && <TierDivider tier={entry.tier} />}
+								<EntryCard
+									entry={entry}
+									disabled={disabled}
+									onSave={next => handleReplace(entry.id, next)}
+									onRemove={() => handleRemove(entry.id)}
+								/>
+							</div>
+						)
+					})}
+				</div>
 			)}
 		</div>
 	)
@@ -324,53 +327,19 @@ function makeEntryId(): string {
 }
 
 // ---------------------------------------------------------------------------
-// Sortable wrapper around the per-entry card
-// ---------------------------------------------------------------------------
-
-function SortableEntryCard({
-	entry,
-	disabled,
-	onSave,
-	onRemove,
-}: {
-	entry: ScrapeProviderEntry
-	disabled: boolean
-	onSave: (next: ScrapeProviderEntry) => void
-	onRemove: () => void
-}) {
-	const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: entry.id })
-	const style = {
-		transform: CSS.Transform.toString(transform),
-		transition,
-		opacity: isDragging ? 0.5 : 1,
-	}
-	return (
-		<div ref={setNodeRef} style={style}>
-			<EntryCard entry={entry} disabled={disabled} onSave={onSave} onRemove={onRemove} dragHandleProps={{ ...attributes, ...listeners }} />
-		</div>
-	)
-}
-
-// ---------------------------------------------------------------------------
 // Per-entry card (shell + type-specific body)
 // ---------------------------------------------------------------------------
-
-// Spread of `attributes` + `listeners` from useSortable. Typed loosely
-// because dnd-kit's exported types intersect awkwardly when merged.
-type DragHandleProps = Record<string, unknown>
 
 function EntryCard({
 	entry,
 	disabled,
 	onSave,
 	onRemove,
-	dragHandleProps,
 }: {
 	entry: ScrapeProviderEntry
 	disabled: boolean
 	onSave: (next: ScrapeProviderEntry) => void
 	onRemove: () => void
-	dragHandleProps: DragHandleProps
 }) {
 	// Each card holds its own draft. Field changes update local state only;
 	// nothing reaches `appSettings` until the admin clicks Save. The draft
@@ -395,14 +364,6 @@ function EntryCard({
 	return (
 		<Collapsible open={open || dirty} onOpenChange={setOpen} className="rounded-md border">
 			<div className="flex items-center gap-2 p-3">
-				<button
-					type="button"
-					{...dragHandleProps}
-					className="cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground p-1 -ml-1"
-					aria-label={`Drag to reorder ${entry.name}`}
-				>
-					<GripVertical className="size-4" />
-				</button>
 				<Badge variant="secondary" className="font-mono text-xs shrink-0">
 					{TYPE_LABELS[entry.type]}
 				</Badge>
@@ -786,13 +747,10 @@ function WishListScraperFields({
 						<a href="https://github.com/shawnphoffman/wish-list-scraper" target="_blank" rel="noreferrer noopener" className="underline">
 							wish-list-scraper
 						</a>{' '}
-						facade. We POST <code className="font-mono">/fetch</code> against it; auto-mode chains browserless → flaresolverr → byparr →
-						scrapfly server-side.
+						facade.
 					</p>
 				) : (
-					<p className="text-xs text-muted-foreground mt-1">
-						Base URL of your deployed wish-list-scraper facade. We POST <code className="font-mono">/fetch</code> against it.
-					</p>
+					<p className="text-xs text-muted-foreground mt-1">Base URL of your deployed wish-list-scraper facade.</p>
 				)}
 			</div>
 			<SecretInput
@@ -803,8 +761,7 @@ function WishListScraperFields({
 				onChange={value => setDraft(prev => ({ ...prev, token: value }))}
 				hint={
 					<>
-						Sent as <code className="font-mono">X-Browser-Token</code> on every request. Matches the{' '}
-						<code className="font-mono">BROWSER_TOKEN</code> env on the facade. Encrypted at rest.
+						Sent as <code className="font-mono">X-Browser-Token</code> on every request. Encrypted at rest.
 					</>
 				}
 			/>
