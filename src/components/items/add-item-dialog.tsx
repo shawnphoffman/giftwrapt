@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { createItem } from '@/api/items'
 import { getMyLists, type MyListRow } from '@/api/lists'
 import ListTypeIcon from '@/components/common/list-type-icon'
+import { MarkdownTextarea } from '@/components/common/markdown-textarea'
 import PriorityIcon from '@/components/common/priority-icon'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -16,7 +17,6 @@ import { Input } from '@/components/ui/input'
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { type Priority, priorityEnumValues } from '@/db/schema/enums'
 import { applyScrapePrefill } from '@/lib/scrapers/apply-prefill'
@@ -334,10 +334,10 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 
 					<div className="grid gap-2">
 						<Label htmlFor="add-item-notes">Notes</Label>
-						<Textarea
+						<MarkdownTextarea
 							id="add-item-notes"
 							value={notes}
-							onChange={e => setNotes(e.target.value)}
+							onChange={v => setNotes(v)}
 							rows={2}
 							placeholder="Color, size, model..."
 							disabled={formLocked}

@@ -11,7 +11,7 @@ type Props = {
 	disabled?: boolean
 }
 
-// Horizontal thumbnail picker shown next to the URL field when a scrape
+// Wrapping thumbnail picker shown next to the URL field when a scrape
 // returns more than one viable product image. The first surviving image
 // is selected by default; the user can click any thumbnail to swap.
 //
@@ -25,7 +25,7 @@ export function ImagePicker({ images, value, onChange, className, disabled }: Pr
 	return (
 		<div className={cn('space-y-1', className)}>
 			<div className="text-xs text-muted-foreground">{images.length} candidate images</div>
-			<div role="radiogroup" aria-label="Product image" className="flex gap-2 overflow-x-auto pb-1">
+			<div role="radiogroup" aria-label="Product image" className="flex flex-wrap gap-2">
 				{images.map(url => (
 					<ImageThumb key={url} url={url} selected={url === value} disabled={disabled === true} onSelect={() => onChange(url)} />
 				))}
