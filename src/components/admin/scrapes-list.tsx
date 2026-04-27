@@ -15,6 +15,15 @@ import { cn } from '@/lib/utils'
 // row opens a dialog with the full detail (raw response jsonb + every
 // extracted column).
 
+// The Inspect column lives at the start of the table and stays pinned to
+// the left edge while horizontal scroll happens. The cell needs an
+// opaque background that matches the surrounding card surface; the
+// `group-hover/row:bg-muted/40` rule keeps the row's hover bg consistent
+// across the sticky and non-sticky cells. A right border separates the
+// pinned column from the scrolling content visually.
+const STICKY_INSPECT_HEAD = 'sticky left-0 z-20 w-[52px] bg-card border-r'
+const STICKY_INSPECT_CELL = 'sticky left-0 z-10 w-[52px] bg-card border-r text-right group-hover/row:bg-muted/40'
+
 export function ScrapesList() {
 	const scrapesQuery = useQuery({ queryKey: ['admin', 'scrapes'], queryFn: () => listScrapesAsAdmin() })
 	const settingsQuery = useAppSettings()
@@ -39,13 +48,15 @@ export function ScrapesList() {
 				<Table>
 					<TableHeader>
 						<TableRow>
+							<TableHead className={STICKY_INSPECT_HEAD}>
+								<span className="sr-only">Inspect</span>
+							</TableHead>
 							<TableHead className="whitespace-nowrap">When</TableHead>
 							<TableHead>URL</TableHead>
 							<TableHead>Provider</TableHead>
 							<TableHead className="whitespace-nowrap">Outcome</TableHead>
 							<TableHead>Item</TableHead>
 							<TableHead>By</TableHead>
-							<TableHead className="text-right">Inspect</TableHead>
 						</TableRow>
 					</TableHeader>
 					<TableBody>
@@ -83,7 +94,12 @@ function ScrapeRow({
 	)
 
 	return (
-		<TableRow>
+		<TableRow className="group/row">
+			<TableCell className={STICKY_INSPECT_CELL}>
+				<Button type="button" variant="ghost" size="icon" onClick={onInspect} aria-label={`Inspect scrape #${row.id}`}>
+					<Eye className="size-4" />
+				</Button>
+			</TableCell>
 			<TableCell className="whitespace-nowrap text-xs text-muted-foreground tabular-nums">
 				<span title={formatDateTime(row.createdAt)}>{formatWhen(row.createdAt)}</span>
 			</TableCell>
@@ -133,11 +149,6 @@ function ScrapeRow({
 					<span className="text-muted-foreground italic">unknown</span>
 				)}
 			</TableCell>
-			<TableCell className="text-right">
-				<Button type="button" variant="ghost" size="icon" onClick={onInspect} aria-label={`Inspect scrape #${row.id}`}>
-					<Eye className="size-4" />
-				</Button>
-			</TableCell>
 		</TableRow>
 	)
 }
@@ -163,7 +174,7 @@ function ScrapeDetailDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={next => !next && onClose()}>
-			<DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+			<DialogContent className="sm:max-w-[95vw] max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>Scrape attempt {openId !== null && <span className="font-mono text-base">#{openId}</span>}</DialogTitle>
 					<DialogDescription>Persisted row from item_scrapes. Use this to debug provider responses.</DialogDescription>
