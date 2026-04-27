@@ -108,62 +108,24 @@ export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], 
 	// Standalone rows get a peeking priority tab on the left; grouped rows stay
 	// simple since their parent group owns the priority indicator.
 	const hasPriorityTab = !grouped && item.priority !== 'normal'
+	const dimmed = item.availability === 'unavailable'
+
+	const hasContentRow = !!(domain || item.notes || item.imageUrl || onMoveUp || onMoveDown)
 
 	const rowInner = (
 		<div className="flex flex-col w-full gap-2 scroll-mt-24" id={`item-${item.id}`}>
-			<div className="flex items-start gap-2">
-				<div className="flex-1 min-w-0 flex flex-col gap-0.5">
-					<div className="font-medium leading-tight flex items-center gap-2">
-						<span className="truncate min-w-0 flex-1">{item.title}</span>
-						{item.availability === 'unavailable' && (
-							<Badge variant="destructive" className="px-1 rounded leading-none shrink-0">
-								Unavailable
-							</Badge>
-						)}
-					</div>
-					{domain && (
-						<a
-							href={item.url!}
-							target="_blank"
-							rel="noopener noreferrer"
-							className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-0.5 w-fit"
-						>
-							{domain} <ExternalLink className="size-3" />
-						</a>
-					)}
-					{item.notes && <MarkdownNotes content={item.notes} className="text-xs text-foreground/75 mt-1" />}
-				</div>
-				{item.imageUrl && <ItemImage src={item.imageUrl} alt={item.title} />}
-				{(onMoveUp || onMoveDown) && (
-					<div className="flex items-center shrink-0">
-						<Button
-							variant="ghost"
-							size="icon"
-							className="size-7"
-							onClick={onMoveUp}
-							disabled={!onMoveUp}
-							title="Move up"
-							aria-label="Move up"
-						>
-							<ArrowUp className="size-4" />
-						</Button>
-						<Button
-							variant="ghost"
-							size="icon"
-							className="size-7"
-							onClick={onMoveDown}
-							disabled={!onMoveDown}
-							title="Move down"
-							aria-label="Move down"
-						>
-							<ArrowDown className="size-4" />
-						</Button>
-					</div>
+			{/* HEADER */}
+			<div className="flex items-center gap-2 font-medium leading-tight">
+				<span className={cn('truncate min-w-0 flex-1', dimmed && 'opacity-60')}>{item.title}</span>
+				{item.availability === 'unavailable' && (
+					<Badge variant="destructive" className="px-1 rounded leading-none shrink-0">
+						Unavailable
+					</Badge>
 				)}
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
 						<Button variant="ghost" size="icon" className="size-7 shrink-0" aria-label="Item actions">
-							<MoreHorizontal className="size-4" />
+							<MoreHorizontal className="size-5" />
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
@@ -212,12 +174,60 @@ export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], 
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</div>
+
+			{/* CONTENT */}
+			{hasContentRow && (
+				<div className="flex flex-row items-start gap-3">
+					<div className={cn('flex-1 min-w-0 flex flex-col gap-0.5', domain && '-mt-2', dimmed && 'opacity-60')}>
+						{domain && (
+							<a
+								href={item.url!}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-0.5 w-fit"
+							>
+								{domain} <ExternalLink className="size-3" />
+							</a>
+						)}
+						{item.notes && <MarkdownNotes content={item.notes} className="text-xs text-foreground/75 mt-1" />}
+					</div>
+					{item.imageUrl && <ItemImage src={item.imageUrl} alt={item.title} className={cn(dimmed && 'opacity-60')} />}
+					{(onMoveUp || onMoveDown) && (
+						<div className="flex flex-col shrink-0">
+							<Button
+								variant="ghost"
+								size="icon"
+								className="size-7"
+								onClick={onMoveUp}
+								disabled={!onMoveUp}
+								title="Move up"
+								aria-label="Move up"
+							>
+								<ArrowUp className="size-4" />
+							</Button>
+							<Button
+								variant="ghost"
+								size="icon"
+								className="size-7"
+								onClick={onMoveDown}
+								disabled={!onMoveDown}
+								title="Move down"
+								aria-label="Move down"
+							>
+								<ArrowDown className="size-4" />
+							</Button>
+						</div>
+					)}
+				</div>
+			)}
+
+			{/* COMMENTS */}
 			<ItemComments
 				itemId={item.id}
 				commentCount={commentCount}
 				trailing={
 					item.price || item.quantity > 1 ? (
-						<div className="flex items-center gap-2">
+						<div className={cn('flex items-center gap-2', dimmed && 'opacity-60')}>
 							{item.price && <PriceQuantityBadge price={item.price} quantity={1} hideQuantity />}
 							<QuantityRemainingBadge variant="inline-pill" quantity={item.quantity} remaining={item.quantity} firstPerson />
 						</div>

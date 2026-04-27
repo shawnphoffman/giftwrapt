@@ -87,9 +87,7 @@ export function QuantityRemainingBadge({
 				className={cn(
 					'inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap',
 					isPill && 'rounded-full border px-2 py-0.5',
-					successTone
-						? cn('text-emerald-700 dark:text-emerald-400', isPill && 'border-emerald-500/30 bg-emerald-500/10')
-						: 'text-muted-foreground',
+					successTone && cn('text-emerald-700 dark:text-emerald-400', isPill && 'border-emerald-500/30 bg-emerald-500/10'),
 					isInline && 'px-0',
 					className
 				)}

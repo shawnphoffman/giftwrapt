@@ -1,5 +1,5 @@
 import { useRouter } from '@tanstack/react-router'
-import { ExternalLink, MoreHorizontal, PackageCheck, PackageX } from 'lucide-react'
+import { Copy, ExternalLink, MoreHorizontal, PackageCheck, PackageX } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -83,18 +83,20 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 			)
 		: remaining
 
-	// "Locked for the current viewer" covers everything that hides the
-	// Claim button: a group rule blocks them, or someone else has already
-	// taken every slot. If the viewer has their own claim they can still
-	// edit it, so we don't treat that as locked.
-	const fullyClaimedByOthers = fullyClaimed && !myClaim
+	// Group rule blocks the viewer from claiming. If they already hold a
+	// claim, the rule is forward-only so they can still edit, matching the
+	// server-side guard.
 	const groupLockedForViewer = !!lockReason && !myClaim
-	const isLocked = fullyClaimedByOthers || groupLockedForViewer
-	// Visual "done" state. Includes the case where the viewer holds one of
-	// the claims, which isLocked excludes so URL links etc. stay active.
-	const dimmed = fullyClaimed || groupLockedForViewer
+	// Visual "done" state — fully claimed (including by the viewer
+	// themselves), group-locked, or marked unavailable.
+	const dimmed = fullyClaimed || groupLockedForViewer || isUnavailable
 
-	const domain = item.url ? getDomainFromUrl(item.url) : null
+	// Hide URL/domain links once the item is "done" for the viewer (fully
+	// claimed or group-locked). The link no longer drives an action, so it
+	// just adds noise. Unavailable items keep their URL so the viewer can
+	// still verify availability on the source site.
+	const urlsHidden = fullyClaimed || groupLockedForViewer
+	const domain = item.url && !urlsHidden ? getDomainFromUrl(item.url) : null
 	const hasPriorityTab = !grouped && item.priority !== 'normal'
 
 	const claimEntries: Array<ClaimEntry> = item.gifts.map(g => ({
@@ -102,11 +104,11 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 		quantity: g.quantity,
 	}))
 
-	const trailingBits: Array<ReactNode> = []
+	const dimmedBadges: Array<ReactNode> = []
 	if (item.price) {
-		trailingBits.push(<PriceQuantityBadge key="price" price={item.price} quantity={1} hideQuantity />)
+		dimmedBadges.push(<PriceQuantityBadge key="price" price={item.price} quantity={1} hideQuantity />)
 	}
-	trailingBits.push(
+	dimmedBadges.push(
 		<QuantityRemainingBadge
 			key="qty"
 			variant="inline-pill"
@@ -116,10 +118,12 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 			lockReason={groupLockedForViewer ? lockReason : undefined}
 		/>
 	)
-	if (claimEntries.length > 0) {
-		trailingBits.push(<ClaimUsers key="claimers" claims={claimEntries} />)
-	}
-	const trailing = <div className="flex items-center gap-2 justify-end whitespace-nowrap">{trailingBits}</div>
+	const trailing = (
+		<div className="flex items-center gap-2 justify-end whitespace-nowrap">
+			<div className={cn('flex items-center gap-2', dimmed && 'opacity-60')}>{dimmedBadges}</div>
+			{claimEntries.length > 0 && <ClaimUsers claims={claimEntries} />}
+		</div>
+	)
 
 	// Mirror ClaimAction's own render decision so we can drop the wrapper
 	// row entirely (instead of leaving an empty flex container that still
@@ -127,43 +131,72 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 	// can still be edited by an existing claimer, but no new claims open.
 	const showClaimAction = !!myClaim || (!fullyClaimed && !groupLockedForViewer && !isUnavailable)
 
+	const hasContentRow = !!(domain || item.notes || item.imageUrl || showClaimAction)
+
 	const rowInner = (
 		<div className="flex flex-col w-full gap-2 scroll-mt-24" id={`item-${item.id}`}>
-			{/* DETAILS ROW */}
-			<div className="flex flex-row items-start gap-3">
-				<div className="flex-1 min-w-0 flex flex-col gap-0.5">
-					<div className="font-medium leading-tight flex items-center gap-2">
-						<span className="truncate min-w-0 flex-1">
-							{item.url && !isLocked ? (
-								<a href={item.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
-									{item.title}
-								</a>
-							) : (
-								item.title
-							)}
-						</span>
-						{isUnavailable &&
-							(item.availabilityChangedAt ? (
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<Badge variant="destructive" className="px-1 rounded leading-none shrink-0 cursor-default">
-											Unavailable
-										</Badge>
-									</TooltipTrigger>
-									<TooltipContent side="top">
-										Marked unavailable on {new Date(item.availabilityChangedAt).toLocaleDateString('en-US', AVAILABILITY_DATE_FORMAT)}
-									</TooltipContent>
-								</Tooltip>
-							) : (
-								<Badge variant="destructive" className="px-1 rounded leading-none shrink-0">
+			{/* HEADER */}
+			<div className="flex items-center gap-2 font-medium leading-tight">
+				<span className={cn('truncate min-w-0 flex-1', dimmed && 'opacity-60')}>
+					{item.url && !urlsHidden ? (
+						<a href={item.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+							{item.title}
+						</a>
+					) : (
+						item.title
+					)}
+				</span>
+				{isUnavailable &&
+					(item.availabilityChangedAt ? (
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Badge variant="destructive" className="px-1 rounded leading-none shrink-0 cursor-default">
 									Unavailable
 								</Badge>
-							))}
-					</div>
-					{domain &&
-						(isLocked ? (
-							<span className="text-xs text-muted-foreground inline-flex items-center w-fit">{domain}</span>
-						) : (
+							</TooltipTrigger>
+							<TooltipContent side="top">
+								Marked unavailable on {new Date(item.availabilityChangedAt).toLocaleDateString('en-US', AVAILABILITY_DATE_FORMAT)}
+							</TooltipContent>
+						</Tooltip>
+					) : (
+						<Badge variant="destructive" className="px-1 rounded leading-none shrink-0">
+							Unavailable
+						</Badge>
+					))}
+				{currentUserId && (
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button variant="ghost" size="icon" className="size-7 shrink-0" aria-label="Item actions">
+								<MoreHorizontal className="size-5" />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							<DropdownMenuItem onClick={() => toast.info('Coming soon')}>
+								<Copy className="size-4" /> Copy to your list
+							</DropdownMenuItem>
+							{canToggleAvailability && (
+								<DropdownMenuItem onClick={handleToggleAvailability} disabled={availabilityPending}>
+									{isUnavailable ? (
+										<>
+											<PackageCheck className="size-4" /> Mark as available
+										</>
+									) : (
+										<>
+											<PackageX className="size-4" /> Mark as unavailable
+										</>
+									)}
+								</DropdownMenuItem>
+							)}
+						</DropdownMenuContent>
+					</DropdownMenu>
+				)}
+			</div>
+
+			{/* CONTENT */}
+			{hasContentRow && (
+				<div className="flex flex-row gap-3">
+					<div className={cn('flex-1 min-w-0 flex flex-col gap-0.5', domain && '-mt-2', dimmed && 'opacity-60')}>
+						{domain && (
 							<a
 								href={item.url!}
 								target="_blank"
@@ -172,46 +205,28 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 							>
 								{domain} <ExternalLink className="size-3" />
 							</a>
-						))}
-					{item.notes && <MarkdownNotes content={item.notes} className="text-xs text-foreground/75 mt-1" />}
-				</div>
-				{item.imageUrl && <ItemImage src={item.imageUrl} alt={item.title} />}
-				{canToggleAvailability && (
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button variant="ghost" size="icon" className="size-7 shrink-0" aria-label="Item actions">
-								<MoreHorizontal className="size-4" />
-							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent align="end">
-							<DropdownMenuItem onClick={handleToggleAvailability} disabled={availabilityPending}>
-								{isUnavailable ? (
-									<>
-										<PackageCheck className="size-4" /> Mark as available
-									</>
-								) : (
-									<>
-										<PackageX className="size-4" /> Mark as unavailable
-									</>
-								)}
-							</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
-				)}
-			</div>
-
-			{showClaimAction && (
-				<div className="flex justify-end">
-					<ClaimAction
-						itemId={item.id}
-						itemTitle={item.title}
-						itemImageUrl={item.imageUrl}
-						itemQuantity={item.quantity}
-						remaining={remaining}
-						remainingForEdit={remainingForEdit}
-						myClaim={myClaim}
-						locked={groupLockedForViewer}
-					/>
+						)}
+						{item.notes && <MarkdownNotes content={item.notes} className="text-xs text-foreground/75 mt-1" />}
+					</div>
+					{(item.imageUrl || showClaimAction) && (
+						<div className="shrink-0 flex flex-col items-end gap-2 justify-between">
+							{item.imageUrl && <ItemImage src={item.imageUrl} alt={item.title} className={cn(dimmed && 'opacity-60')} />}
+							{showClaimAction && (
+								<div className="mt-auto">
+									<ClaimAction
+										itemId={item.id}
+										itemTitle={item.title}
+										itemImageUrl={item.imageUrl}
+										itemQuantity={item.quantity}
+										remaining={remaining}
+										remainingForEdit={remainingForEdit}
+										myClaim={myClaim}
+										locked={groupLockedForViewer}
+									/>
+								</div>
+							)}
+						</div>
+					)}
 				</div>
 			)}
 
@@ -221,9 +236,9 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 	)
 
 	return grouped ? (
-		<div className={cn('flex items-start gap-2 p-2 ps-4 border-b last:border-b-0', dimmed && 'text-muted-foreground')}>{rowInner}</div>
+		<div className="flex items-start gap-2 p-2 ps-4 border-b last:border-b-0">{rowInner}</div>
 	) : (
-		<div className={cn('relative', dimmed && 'text-muted-foreground')}>
+		<div className="relative">
 			{hasPriorityTab && (
 				<div
 					className={cn(
