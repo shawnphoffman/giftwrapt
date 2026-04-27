@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.17.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.16.0...v0.17.0) (2026-04-27)
+
+
+### Features
+
+* **scraping:** add ScrapFly as a hosted scrape provider ([d3372f3](https://github.com/shawnphoffman/giftwrapt/commit/d3372f343d75f62e7b378625c46ff1a621db399c))
+* **scraping:** unify providers under tiered, admin-configurable entries ([5a63337](https://github.com/shawnphoffman/giftwrapt/commit/5a63337c7607924440ee60be0f1c905c8434018f))
+
+
+### Bug Fixes
+
+* **admin:** widen admin canvas; cap narrow pages at max-w-xl ([30ab798](https://github.com/shawnphoffman/giftwrapt/commit/30ab7982fa6e740f8f9e3c1b0157aef81ed29095))
+* **scraping:** better signal/noise in scrape UI and result filtering ([84bbce7](https://github.com/shawnphoffman/giftwrapt/commit/84bbce7f997d6a1c632e998095991516745be88c))
+* **scraping:** drop duplicate cancel, clarify partial state, broaden extractors ([7b52030](https://github.com/shawnphoffman/giftwrapt/commit/7b5203011bd13be3d37ca97b5744828799a6321e))
+
 ## [0.16.0](https://github.com/shawnphoffman/wish-lists/compare/v0.15.0...v0.16.0) (2026-04-27)
 
 
