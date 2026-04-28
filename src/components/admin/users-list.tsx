@@ -6,6 +6,7 @@ import UserAvatar from '@/components/common/user-avatar'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { User } from '@/db-collections/users'
 
+import GuardianBadge from '../common/guardian-badge'
 import UserTypeBadge from '../common/user-type-badge'
 
 export function AdminUsersList() {
@@ -58,9 +59,9 @@ export function AdminUsersList() {
 							</div>
 							<div className="text-xs text-muted-foreground truncate">{user.email}</div>
 						</div>
-						<div className="text-xs text-muted-foreground capitalize">
+						<div className="flex items-center gap-1.5 text-xs text-muted-foreground capitalize">
+							{user.isGuardian && <GuardianBadge />}
 							<UserTypeBadge user={user} />
-							{/* {user.role} */}
 						</div>
 					</div>
 				</Link>

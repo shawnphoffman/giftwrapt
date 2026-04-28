@@ -2,21 +2,25 @@ import { asc } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { users } from '@/db/schema'
+import { guardianships } from '@/db/schema/permissions'
 
 export const getAllUsersQuery = async () => {
-	// Fetch all users
-	const usersData = await db.query.users.findMany({
-		orderBy: [asc(users.name), asc(users.email)],
-	})
+	const [usersData, guardianRows] = await Promise.all([
+		db.query.users.findMany({
+			orderBy: [asc(users.name), asc(users.email)],
+		}),
+		db.selectDistinct({ parentUserId: guardianships.parentUserId }).from(guardianships),
+	])
 
-	// Convert dates to ISO strings for JSON serialization
+	const guardianIds = new Set(guardianRows.map(r => r.parentUserId))
+
 	return usersData.map(u => ({
 		id: u.id,
 		email: u.email,
 		name: u.name,
 		role: u.role,
 		image: u.image,
-
+		isGuardian: guardianIds.has(u.id),
 		createdAt: u.createdAt instanceof Date ? u.createdAt.toISOString() : u.createdAt,
 		updatedAt: u.updatedAt instanceof Date ? u.updatedAt.toISOString() : u.updatedAt,
 	}))
