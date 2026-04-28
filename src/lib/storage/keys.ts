@@ -12,6 +12,24 @@ export const avatarKey = (userId: string): string => `avatars/${userId}-${avatar
 
 export const itemImageKey = (itemId: number | string): string => `items/${itemId}/${itemNonce()}.webp`
 
+// Inverse of avatarKey: extract the userId from `avatars/<userId>-<nonce>.webp`.
+// Returns null for keys that don't match (other prefixes, malformed legacy keys).
+export function parseAvatarKey(key: string): { userId: string } | null {
+	const match = /^avatars\/(.+)-[0-9A-Za-z]{1,}\.webp$/.exec(key)
+	if (!match?.[1]) return null
+	return { userId: match[1] }
+}
+
+// Inverse of itemImageKey: extract the itemId from `items/<itemId>/<nonce>.webp`.
+// Returns null for keys that don't match. itemId is left as a string; the
+// production schema uses serial ints but the helper accepts string too, so we
+// return string for callers to coerce.
+export function parseItemImageKey(key: string): { itemId: string } | null {
+	const match = /^items\/([^/]+)\/[0-9A-Za-z]{1,}\.webp$/.exec(key)
+	if (!match?.[1]) return null
+	return { itemId: match[1] }
+}
+
 // Reverse mapping: given a URL the app previously handed out (either
 // `${STORAGE_PUBLIC_URL}/<key>` or `/api/files/<key>`), recover the raw key
 // so we can call storage.delete(). Returns null for URLs we didn't mint

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { avatarKey, itemImageKey, parseKeyFromUrl } from '../keys'
+import { avatarKey, itemImageKey, parseAvatarKey, parseItemImageKey, parseKeyFromUrl } from '../keys'
 
 describe('avatarKey', () => {
 	it('prefixes with avatars/ and includes userId + .webp', () => {
@@ -60,5 +60,42 @@ describe('parseKeyFromUrl', () => {
 
 	it('returns null for empty url', () => {
 		expect(parseKeyFromUrl('', undefined)).toBeNull()
+	})
+})
+
+describe('parseAvatarKey', () => {
+	it('extracts userId from a freshly-minted key', () => {
+		const key = avatarKey('user123')
+		expect(parseAvatarKey(key)).toEqual({ userId: 'user123' })
+	})
+
+	it('handles userIds containing hyphens (better-auth ids)', () => {
+		const result = parseAvatarKey('avatars/abc-def-123-aaaaaaaa.webp')
+		expect(result).toEqual({ userId: 'abc-def-123' })
+	})
+
+	it('returns null for non-avatar prefix', () => {
+		expect(parseAvatarKey('items/42/abc.webp')).toBeNull()
+	})
+
+	it('returns null for malformed avatar keys', () => {
+		expect(parseAvatarKey('avatars/no-dot-webp')).toBeNull()
+		expect(parseAvatarKey('avatars/missing-extension.png')).toBeNull()
+	})
+})
+
+describe('parseItemImageKey', () => {
+	it('extracts itemId from a freshly-minted key', () => {
+		const key = itemImageKey(42)
+		expect(parseItemImageKey(key)).toEqual({ itemId: '42' })
+	})
+
+	it('returns null for non-item prefix', () => {
+		expect(parseItemImageKey('avatars/u-aaaaaaaa.webp')).toBeNull()
+	})
+
+	it('returns null for malformed item keys', () => {
+		expect(parseItemImageKey('items/42/notwebp.png')).toBeNull()
+		expect(parseItemImageKey('items/42')).toBeNull()
 	})
 })

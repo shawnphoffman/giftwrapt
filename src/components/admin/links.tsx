@@ -1,7 +1,8 @@
 import { Link, useLocation } from '@tanstack/react-router'
-import { Bug, Database, Globe, Lock, Mail, ScanSearch, Sparkles, Users } from 'lucide-react'
+import { Bug, Database, Globe, HardDrive, Lock, Mail, ScanSearch, Sparkles, Users } from 'lucide-react'
 
 import { buttonVariants } from '@/components/ui/button'
+import { useStorageStatus } from '@/hooks/use-storage-status'
 import { cn } from '@/lib/utils'
 
 function navLinkClass(active: boolean) {
@@ -10,6 +11,7 @@ function navLinkClass(active: boolean) {
 
 export default function AdminLinks() {
 	const { pathname } = useLocation()
+	const { configured: storageConfigured } = useStorageStatus()
 
 	return (
 		<>
@@ -41,6 +43,12 @@ export default function AdminLinks() {
 				<Database />
 				Data
 			</Link>
+			{storageConfigured && (
+				<Link to="/admin/storage" className={navLinkClass(pathname === '/admin/storage')}>
+					<HardDrive />
+					Storage
+				</Link>
+			)}
 			<Link to="/admin/debug" className={navLinkClass(pathname === '/admin/debug')}>
 				<Bug />
 				Debug

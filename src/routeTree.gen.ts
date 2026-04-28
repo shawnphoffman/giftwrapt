@@ -37,6 +37,7 @@ import { Route as corePurchasesReceivedRouteImport } from './routes/(core)/purch
 import { Route as coreListsListIdRouteImport } from './routes/(core)/lists/$listId'
 import { Route as coreItemCloneRouteImport } from './routes/(core)/item.clone'
 import { Route as coreAdminUsersRouteImport } from './routes/(core)/admin/users'
+import { Route as coreAdminStorageRouteImport } from './routes/(core)/admin/storage'
 import { Route as coreAdminScrapingRouteImport } from './routes/(core)/admin/scraping'
 import { Route as coreAdminScrapesRouteImport } from './routes/(core)/admin/scrapes'
 import { Route as coreAdminEmailRouteImport } from './routes/(core)/admin/email'
@@ -188,6 +189,11 @@ const coreAdminUsersRoute = coreAdminUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => coreAdminRouteRoute,
 } as any)
+const coreAdminStorageRoute = coreAdminStorageRouteImport.update({
+  id: '/storage',
+  path: '/storage',
+  getParentRoute: () => coreAdminRouteRoute,
+} as any)
 const coreAdminScrapingRoute = coreAdminScrapingRouteImport.update({
   id: '/scraping',
   path: '/scraping',
@@ -259,6 +265,7 @@ export interface FileRoutesByFullPath {
   '/admin/email': typeof coreAdminEmailRoute
   '/admin/scrapes': typeof coreAdminScrapesRoute
   '/admin/scraping': typeof coreAdminScrapingRoute
+  '/admin/storage': typeof coreAdminStorageRoute
   '/admin/users': typeof coreAdminUsersRoute
   '/item/clone': typeof coreItemCloneRoute
   '/lists/$listId': typeof coreListsListIdRoute
@@ -297,6 +304,7 @@ export interface FileRoutesByTo {
   '/admin/email': typeof coreAdminEmailRoute
   '/admin/scrapes': typeof coreAdminScrapesRoute
   '/admin/scraping': typeof coreAdminScrapingRoute
+  '/admin/storage': typeof coreAdminStorageRoute
   '/admin/users': typeof coreAdminUsersRoute
   '/item/clone': typeof coreItemCloneRoute
   '/lists/$listId': typeof coreListsListIdRoute
@@ -339,6 +347,7 @@ export interface FileRoutesById {
   '/(core)/admin/email': typeof coreAdminEmailRoute
   '/(core)/admin/scrapes': typeof coreAdminScrapesRoute
   '/(core)/admin/scraping': typeof coreAdminScrapingRoute
+  '/(core)/admin/storage': typeof coreAdminStorageRoute
   '/(core)/admin/users': typeof coreAdminUsersRoute
   '/(core)/item/clone': typeof coreItemCloneRoute
   '/(core)/lists/$listId': typeof coreListsListIdRoute
@@ -381,6 +390,7 @@ export interface FileRouteTypes {
     | '/admin/email'
     | '/admin/scrapes'
     | '/admin/scraping'
+    | '/admin/storage'
     | '/admin/users'
     | '/item/clone'
     | '/lists/$listId'
@@ -419,6 +429,7 @@ export interface FileRouteTypes {
     | '/admin/email'
     | '/admin/scrapes'
     | '/admin/scraping'
+    | '/admin/storage'
     | '/admin/users'
     | '/item/clone'
     | '/lists/$listId'
@@ -460,6 +471,7 @@ export interface FileRouteTypes {
     | '/(core)/admin/email'
     | '/(core)/admin/scrapes'
     | '/(core)/admin/scraping'
+    | '/(core)/admin/storage'
     | '/(core)/admin/users'
     | '/(core)/item/clone'
     | '/(core)/lists/$listId'
@@ -700,6 +712,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreAdminUsersRouteImport
       parentRoute: typeof coreAdminRouteRoute
     }
+    '/(core)/admin/storage': {
+      id: '/(core)/admin/storage'
+      path: '/storage'
+      fullPath: '/admin/storage'
+      preLoaderRoute: typeof coreAdminStorageRouteImport
+      parentRoute: typeof coreAdminRouteRoute
+    }
     '/(core)/admin/scraping': {
       id: '/(core)/admin/scraping'
       path: '/scraping'
@@ -787,6 +806,7 @@ interface coreAdminRouteRouteChildren {
   coreAdminEmailRoute: typeof coreAdminEmailRoute
   coreAdminScrapesRoute: typeof coreAdminScrapesRoute
   coreAdminScrapingRoute: typeof coreAdminScrapingRoute
+  coreAdminStorageRoute: typeof coreAdminStorageRoute
   coreAdminUsersRoute: typeof coreAdminUsersRoute
   coreAdminIndexRoute: typeof coreAdminIndexRoute
   coreAdminUserIdRoute: typeof coreAdminUserIdRoute
@@ -799,6 +819,7 @@ const coreAdminRouteRouteChildren: coreAdminRouteRouteChildren = {
   coreAdminEmailRoute: coreAdminEmailRoute,
   coreAdminScrapesRoute: coreAdminScrapesRoute,
   coreAdminScrapingRoute: coreAdminScrapingRoute,
+  coreAdminStorageRoute: coreAdminStorageRoute,
   coreAdminUsersRoute: coreAdminUsersRoute,
   coreAdminIndexRoute: coreAdminIndexRoute,
   coreAdminUserIdRoute: coreAdminUserIdRoute,

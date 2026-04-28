@@ -4,8 +4,15 @@ import { env } from '@/env'
 
 import { S3StorageAdapter } from './s3'
 
-// Minimal surface. Keep it small until a caller needs more; list/exists can
-// land alongside the orphan-sweep script when that ships.
+export interface StorageObjectSummary {
+	key: string
+	size: number
+	lastModified: Date
+	etag: string
+}
+
+// Minimal surface. list() backs the admin storage browser and the future
+// orphan-sweep script.
 export interface StorageAdapter {
 	upload: (key: string, buffer: Buffer, contentType: string) => Promise<void>
 	delete: (key: string) => Promise<void>
@@ -14,6 +21,12 @@ export interface StorageAdapter {
 		contentType: string
 		etag: string
 		contentLength: number
+	}>
+	// Paginated bucket listing. `cursor` is the opaque ContinuationToken from
+	// a previous call; `nextCursor` is null when there are no more pages.
+	list: (opts?: { prefix?: string; cursor?: string; limit?: number }) => Promise<{
+		objects: Array<StorageObjectSummary>
+		nextCursor: string | null
 	}>
 	// Pure URL resolver. Does NOT hit storage.
 	getPublicUrl: (key: string) => string

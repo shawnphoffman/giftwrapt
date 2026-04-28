@@ -1,10 +1,17 @@
 import type { Readable } from 'node:stream'
 
-import { DeleteObjectCommand, GetObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import {
+	DeleteObjectCommand,
+	GetObjectCommand,
+	HeadBucketCommand,
+	ListObjectsV2Command,
+	PutObjectCommand,
+	S3Client,
+} from '@aws-sdk/client-s3'
 
 import { createLogger } from '@/lib/logger'
 
-import type { StorageAdapter } from './adapter'
+import type { StorageAdapter, StorageObjectSummary } from './adapter'
 import { UploadError } from './errors'
 
 const log = createLogger('storage.s3')
@@ -100,6 +107,37 @@ export class S3StorageAdapter implements StorageAdapter {
 			.split('/')
 			.map(s => encodeURIComponent(s))
 			.join('/')}`
+	}
+
+	async list(opts: { prefix?: string; cursor?: string; limit?: number } = {}): Promise<{
+		objects: Array<StorageObjectSummary>
+		nextCursor: string | null
+	}> {
+		try {
+			const out = await this.client.send(
+				new ListObjectsV2Command({
+					Bucket: this.bucket,
+					Prefix: opts.prefix,
+					ContinuationToken: opts.cursor,
+					MaxKeys: opts.limit ?? 100,
+				})
+			)
+			const objects: Array<StorageObjectSummary> = (out.Contents ?? [])
+				.filter((c): c is typeof c & { Key: string } => Boolean(c.Key))
+				.map(c => ({
+					key: c.Key,
+					size: c.Size ?? 0,
+					lastModified: c.LastModified ?? new Date(0),
+					etag: c.ETag ?? '',
+				}))
+			return {
+				objects,
+				nextCursor: out.IsTruncated && out.NextContinuationToken ? out.NextContinuationToken : null,
+			}
+		} catch (error) {
+			log.error({ err: error, prefix: opts.prefix }, 'storage.list.failed')
+			throw new UploadError('upstream', 'failed to list objects', error)
+		}
 	}
 
 	async ready(): Promise<void> {
