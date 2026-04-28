@@ -332,7 +332,7 @@ export function PurchasesPageContent({ items }: Props) {
 															aria-hidden={!isOpen}
 														>
 															<div className="overflow-hidden">
-																<div className="divide-y bg-muted/50">
+																<div className="divide-y border-b bg-muted/50">
 																	{g.items.map((item, i) => (
 																		<PurchaseDetailRow key={`${g.key}-${i}`} item={item} onEdit={() => openEdit(item)} />
 																	))}
@@ -474,12 +474,14 @@ function PurchaseDetailRow({ item, onEdit }: { item: SummaryItem; onEdit: () => 
 
 	return (
 		<div className="flex items-start gap-3 px-3 py-2.5">
-			{item.type === 'claim' ? (
-				<Gift className="size-4 text-muted-foreground shrink-0 mt-0.5" />
-			) : (
-				<PackagePlus className="size-4 text-muted-foreground shrink-0 mt-0.5" />
-			)}
-			{hasNotes && <Zap className="size-4 text-yellow-500 shrink-0 fill-yellow-500 mt-0.5" />}
+			<div className="flex flex-col items-center gap-2 shrink-0 mt-0.5">
+				{item.type === 'claim' ? (
+					<Gift className="size-4 text-muted-foreground" />
+				) : (
+					<PackagePlus className="size-4 text-muted-foreground" />
+				)}
+				{hasNotes && <Zap className="size-4 text-yellow-500 fill-yellow-500" />}
+			</div>
 			<div className="flex-1 min-w-0">
 				<div className="flex items-center gap-2 min-w-0">
 					<span className="text-sm font-medium truncate">{item.title}</span>
