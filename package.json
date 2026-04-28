@@ -11,7 +11,9 @@
 		"build:cli": "node scripts/build-cli.mjs",
 		"vercel-build": "drizzle-kit migrate && vite build",
 		"serve": "vite preview",
-		"test": "vitest run",
+		"test": "vitest run --project unit --project storybook",
+		"test:integration": "vitest run --project integration",
+		"test:all": "vitest run",
 		"lint": "eslint",
 		"format": "prettier",
 		"check": "prettier --config prettier.config.js --write . && eslint --fix",
@@ -124,6 +126,7 @@
 	"devDependencies": {
 		"@commitlint/cli": "20.5.0",
 		"@commitlint/config-conventional": "20.5.0",
+		"@electric-sql/pglite": "^0.4.5",
 		"@inquirer/prompts": "^8.4.2",
 		"@react-email/preview-server": "^5.0.5",
 		"@storybook/addon-a11y": "^10.1.3",

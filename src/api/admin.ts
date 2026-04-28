@@ -1,10 +1,11 @@
 import { createServerFn } from '@tanstack/react-start'
 import { and, eq, inArray } from 'drizzle-orm'
 
+import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
 import { getAllUsersQuery, getUserDetailsQuery } from '@/db/queries/users'
 import type { BirthMonth, Role } from '@/db/schema'
-import { giftedItems, guardianships, items, users } from '@/db/schema'
+import { giftedItems, guardianships, items, itemScrapes, users } from '@/db/schema'
 import { loggingMiddleware } from '@/lib/logger'
 import { sendTestEmail } from '@/lib/resend'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
@@ -182,37 +183,55 @@ export const updateUserAsAdmin = createServerFn({
 
 export type DeleteUserResult = { kind: 'ok' } | { kind: 'error'; reason: 'self-delete' | 'not-found' }
 
+export async function deleteUserAsAdminImpl(args: {
+	db: SchemaDatabase
+	actor: { id: string }
+	input: { userId: string }
+}): Promise<DeleteUserResult> {
+	const { db: dbx, actor, input } = args
+	const { userId } = input
+
+	if (userId === actor.id) {
+		return { kind: 'error', reason: 'self-delete' }
+	}
+
+	const user = await dbx.query.users.findFirst({
+		where: eq(users.id, userId),
+		columns: { image: true },
+	})
+	if (!user) return { kind: 'error', reason: 'not-found' }
+
+	await dbx.transaction(async tx => {
+		// Clear dangling partner pointers (no FK constraint on partnerId).
+		await tx.update(users).set({ partnerId: null }).where(eq(users.partnerId, userId))
+		// Pre-null item_scrapes.userId before falling into the cascade. Without
+		// this, PG fires the SET NULL action on rows whose item_id is also
+		// being cascade-deleted in the same statement, then re-validates the
+		// stale item_id FK on the now-updated row and aborts the transaction.
+		await tx.update(itemScrapes).set({ userId: null }).where(eq(itemScrapes.userId, userId))
+		// FK cascades take care of sessions, accounts, lists (and their
+		// items/claims/comments/addons/editors), guardianships, etc.
+		await tx.delete(users).where(eq(users.id, userId))
+	})
+
+	// Best-effort avatar cleanup, after the DB commit.
+	if (user.image) {
+		void cleanupImageUrls([user.image])
+	}
+
+	return { kind: 'ok' }
+}
+
 export const deleteUserAsAdmin = createServerFn({ method: 'POST' })
 	.middleware([adminAuthMiddleware, loggingMiddleware])
 	.inputValidator((data: { userId: string }) => data)
-	.handler(async ({ context, data }): Promise<DeleteUserResult> => {
-		const { userId } = data
-
-		if (userId === context.session.user.id) {
-			return { kind: 'error', reason: 'self-delete' }
-		}
-
-		const user = await db.query.users.findFirst({
-			where: eq(users.id, userId),
-			columns: { image: true },
+	.handler(({ context, data }) =>
+		deleteUserAsAdminImpl({
+			db,
+			actor: { id: context.session.user.id },
+			input: data,
 		})
-		if (!user) return { kind: 'error', reason: 'not-found' }
-
-		await db.transaction(async tx => {
-			// Clear dangling partner pointers (no FK constraint on partnerId).
-			await tx.update(users).set({ partnerId: null }).where(eq(users.partnerId, userId))
-			// FK cascades take care of sessions, accounts, lists (and their
-			// items/claims/comments/addons/editors), guardianships, etc.
-			await tx.delete(users).where(eq(users.id, userId))
-		})
-
-		// Best-effort avatar cleanup, after the DB commit.
-		if (user.image) {
-			void cleanupImageUrls([user.image])
-		}
-
-		return { kind: 'ok' }
-	})
+	)
 
 // ===============================
 // Admin bulk archive - archive all claimed, non-archived items
@@ -222,21 +241,24 @@ export const deleteUserAsAdmin = createServerFn({ method: 'POST' })
 
 export type BulkArchiveResult = { kind: 'ok'; archivedCount: number }
 
+export async function bulkArchiveClaimedItemsImpl(args: { db: SchemaDatabase }): Promise<BulkArchiveResult> {
+	const { db: dbx } = args
+	// Find all non-archived items that have at least one claim.
+	const claimedItemIds = await dbx
+		.selectDistinct({ itemId: giftedItems.itemId })
+		.from(giftedItems)
+		.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false)))
+
+	if (claimedItemIds.length === 0) {
+		return { kind: 'ok', archivedCount: 0 }
+	}
+
+	const ids = claimedItemIds.map(r => r.itemId)
+	await dbx.update(items).set({ isArchived: true }).where(inArray(items.id, ids))
+
+	return { kind: 'ok', archivedCount: ids.length }
+}
+
 export const bulkArchiveClaimedItems = createServerFn({ method: 'POST' })
 	.middleware([adminAuthMiddleware, loggingMiddleware])
-	.handler(async (): Promise<BulkArchiveResult> => {
-		// Find all non-archived items that have at least one claim.
-		const claimedItemIds = await db
-			.selectDistinct({ itemId: giftedItems.itemId })
-			.from(giftedItems)
-			.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false)))
-
-		if (claimedItemIds.length === 0) {
-			return { kind: 'ok', archivedCount: 0 }
-		}
-
-		const ids = claimedItemIds.map(r => r.itemId)
-		await db.update(items).set({ isArchived: true }).where(inArray(items.id, ids))
-
-		return { kind: 'ok', archivedCount: ids.length }
-	})
+	.handler(() => bulkArchiveClaimedItemsImpl({ db }))

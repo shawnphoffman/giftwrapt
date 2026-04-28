@@ -24,7 +24,23 @@ export default defineConfig({
 					name: 'unit',
 					environment: 'node',
 					include: ['src/**/*.{test,spec}.{ts,tsx}'],
-					exclude: ['**/node_modules/**', '**/dist/**', '.claude/**'],
+					exclude: ['**/node_modules/**', '**/dist/**', '.claude/**', 'src/**/*.integration.test.ts'],
+				},
+			},
+			{
+				extends: true,
+				test: {
+					name: 'integration',
+					environment: 'node',
+					include: ['src/**/__tests__/**/*.integration.test.ts'],
+					setupFiles: ['./test/integration/setup.ts'],
+					// Required env vars for the @t3-oss/env-core validator at module load.
+					// Real values aren't used: @/db is mocked to pglite, no auth flows run.
+					env: {
+						DATABASE_URL: 'postgres://test/test',
+						BETTER_AUTH_SECRET: 'integration-test-secret',
+						LOG_LEVEL: 'silent',
+					},
 				},
 			},
 			{

@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
+import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
 import { giftedItems, guardianships, itemGroups, items, listAddons, listEditors, lists, users } from '@/db/schema'
 import { type GroupType, type ListType, listTypeEnumValues, type Priority } from '@/db/schema/enums'
@@ -420,46 +421,58 @@ const DeleteListInputSchema = z.object({
 
 export type DeleteListResult = { kind: 'ok'; action: 'deleted' | 'archived' } | { kind: 'error'; reason: 'not-found' | 'not-owner' }
 
+export async function deleteListImpl(args: {
+	db: SchemaDatabase
+	actor: { id: string }
+	input: { listId: number }
+}): Promise<DeleteListResult> {
+	const { db: dbx, actor, input } = args
+
+	const list = await dbx.query.lists.findFirst({
+		where: eq(lists.id, input.listId),
+		columns: { id: true, ownerId: true },
+	})
+	if (!list) return { kind: 'error', reason: 'not-found' }
+	if (list.ownerId !== actor.id) return { kind: 'error', reason: 'not-owner' }
+
+	// Check for active claims on any items in this list.
+	const listItemIds = await dbx.select({ id: items.id }).from(items).where(eq(items.listId, input.listId))
+
+	let hasClaims = false
+	if (listItemIds.length > 0) {
+		const claimCount = await dbx
+			.select({ cnt: count() })
+			.from(giftedItems)
+			.where(
+				inArray(
+					giftedItems.itemId,
+					listItemIds.map(i => i.id)
+				)
+			)
+		hasClaims = (claimCount[0]?.cnt ?? 0) > 0
+	}
+
+	if (hasClaims) {
+		// Force archive instead of delete - preserve gift history.
+		await dbx.update(lists).set({ isActive: false }).where(eq(lists.id, input.listId))
+		return { kind: 'ok', action: 'archived' }
+	}
+
+	// No claims - safe to hard delete. FK cascades handle items.
+	await dbx.delete(lists).where(eq(lists.id, input.listId))
+	return { kind: 'ok', action: 'deleted' }
+}
+
 export const deleteList = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof DeleteListInputSchema>) => DeleteListInputSchema.parse(data))
-	.handler(async ({ context, data }): Promise<DeleteListResult> => {
-		const userId = context.session.user.id
-
-		const list = await db.query.lists.findFirst({
-			where: eq(lists.id, data.listId),
-			columns: { id: true, ownerId: true },
+	.handler(({ context, data }) =>
+		deleteListImpl({
+			db,
+			actor: { id: context.session.user.id },
+			input: data,
 		})
-		if (!list) return { kind: 'error', reason: 'not-found' }
-		if (list.ownerId !== userId) return { kind: 'error', reason: 'not-owner' }
-
-		// Check for active claims on any items in this list.
-		const listItemIds = await db.select({ id: items.id }).from(items).where(eq(items.listId, data.listId))
-
-		let hasClaims = false
-		if (listItemIds.length > 0) {
-			const claimCount = await db
-				.select({ cnt: count() })
-				.from(giftedItems)
-				.where(
-					inArray(
-						giftedItems.itemId,
-						listItemIds.map(i => i.id)
-					)
-				)
-			hasClaims = (claimCount[0]?.cnt ?? 0) > 0
-		}
-
-		if (hasClaims) {
-			// Force archive instead of delete - preserve gift history.
-			await db.update(lists).set({ isActive: false }).where(eq(lists.id, data.listId))
-			return { kind: 'ok', action: 'archived' }
-		}
-
-		// No claims - safe to hard delete. FK cascades handle items.
-		await db.delete(lists).where(eq(lists.id, data.listId))
-		return { kind: 'ok', action: 'deleted' }
-	})
+	)
 
 // ===============================
 // WRITE - set/unset primary list
