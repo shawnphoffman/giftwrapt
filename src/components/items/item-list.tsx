@@ -1,7 +1,9 @@
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { ArrowDown, ArrowUp, ArrowUpDown, Check, Filter, Store } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
-import type { GroupSummary, ItemWithGifts } from '@/api/lists'
+import type { ItemWithGifts } from '@/api/items'
+import type { GroupSummary } from '@/api/lists'
 import EmptyMessage from '@/components/common/empty-message'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import type { Priority } from '@/db/schema/enums'
 import { buildListEntries, type ListEntry } from '@/lib/list-entries'
+import { listItemsViewQueryOptions } from '@/lib/queries/items'
 import { vendorIdToName } from '@/lib/urls'
 import { cn } from '@/lib/utils'
 
@@ -21,7 +24,7 @@ import { GroupViewBlock } from './group-view-block'
 import ItemRow from './item-row'
 
 type Props = {
-	items: Array<ItemWithGifts>
+	listId: number
 	groups?: Array<GroupSummary>
 }
 
@@ -80,7 +83,8 @@ function sortIsDescending(sort: SortValue): boolean {
 	return sort === 'priority-desc' || sort === 'date-desc'
 }
 
-export default function ItemList({ items, groups = [] }: Props) {
+export default function ItemList({ listId, groups = [] }: Props) {
+	const { data: items } = useSuspenseQuery(listItemsViewQueryOptions(listId))
 	const [filter, setFilter] = useState<FilterValue>('all')
 	const [vendorFilter, setVendorFilter] = useState<ReadonlySet<string>>(() => new Set())
 	const [sort, setSort] = useState<SortValue>('priority-desc')

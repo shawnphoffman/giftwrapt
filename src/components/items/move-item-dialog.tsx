@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { Item } from '@/db/schema/items'
+import { itemsKeys } from '@/lib/queries/items'
 
 type Props = {
 	open: boolean
@@ -21,6 +22,7 @@ type Props = {
 
 export function MoveItemDialog({ open, onOpenChange, item }: Props) {
 	const router = useRouter()
+	const queryClient = useQueryClient()
 	const [selectedListId, setSelectedListId] = useState<string>('')
 	const [purgeComments, setPurgeComments] = useState(true)
 	const [submitting, setSubmitting] = useState(false)
@@ -56,7 +58,11 @@ export function MoveItemDialog({ open, onOpenChange, item }: Props) {
 			toast.success(parts.join(' · '))
 
 			onOpenChange(false)
-			await router.invalidate()
+			await Promise.all([
+				router.invalidate(),
+				queryClient.invalidateQueries({ queryKey: itemsKeys.byList(item.listId) }),
+				queryClient.invalidateQueries({ queryKey: itemsKeys.byList(targetId) }),
+			])
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Failed to move item')
 		} finally {

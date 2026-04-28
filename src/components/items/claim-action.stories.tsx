@@ -26,6 +26,7 @@ const meta = {
 	],
 	args: {
 		itemId: 1,
+		listId: 1,
 		itemTitle: 'Bluetooth headphones',
 		itemImageUrl: null,
 		itemQuantity: 1,

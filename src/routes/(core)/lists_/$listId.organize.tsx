@@ -1,14 +1,16 @@
+import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, notFound, useRouter } from '@tanstack/react-router'
 import { Move, Trash2 } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { Suspense, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import { assignItemsToGroup } from '@/api/groups'
-import { deleteGroups, deleteItems, setGroupsPriority, setItemsPriority } from '@/api/items'
+import { deleteGroups, deleteItems, type ItemForEditing, setGroupsPriority, setItemsPriority } from '@/api/items'
 import { getListForEditing, type GroupSummary, type ListForEditing } from '@/api/lists'
 import PriorityIcon from '@/components/common/priority-icon'
 import { BulkMoveItemsDialog } from '@/components/items/bulk-move-dialog'
 import { GroupBadge } from '@/components/items/group-badge'
+import { ItemListSkeleton } from '@/components/items/item-list-skeleton'
 import { ReorderPanel } from '@/components/items/reorder-panel'
 import {
 	AlertDialog,
@@ -35,6 +37,7 @@ import { type Priority, priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { buildListEntries } from '@/lib/list-entries'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
+import { itemsKeys, listItemsEditQueryOptions } from '@/lib/queries/items'
 import { cn } from '@/lib/utils'
 
 type TabMode = 'bulk' | 'reorder'
@@ -47,9 +50,10 @@ const PRIORITY_LABEL: Record<Priority, string> = {
 }
 
 export const Route = createFileRoute('/(core)/lists_/$listId/organize')({
-	loader: async ({ params }) => {
+	loader: async ({ params, context }) => {
 		const listId = Number(params.listId)
 		if (!Number.isFinite(listId)) throw notFound()
+		void context.queryClient.prefetchQuery(listItemsEditQueryOptions(listId))
 		const result = await getListForEditing({ data: { listId: params.listId } })
 		if (result.kind === 'error') throw notFound()
 		return { list: result.list }
@@ -75,9 +79,20 @@ function OrganizePage() {
 					</TabButton>
 				</div>
 
-				{tab === 'bulk' ? <BulkActionsTab list={list} /> : <ReorderPanel listId={list.id} items={list.items} groups={list.groups} />}
+				<Suspense fallback={<ItemListSkeleton />}>
+					<OrganizeTabContent list={list} tab={tab} />
+				</Suspense>
 			</div>
 		</div>
+	)
+}
+
+function OrganizeTabContent({ list, tab }: { list: ListForEditing; tab: TabMode }) {
+	const { data: items } = useSuspenseQuery(listItemsEditQueryOptions(list.id))
+	return tab === 'bulk' ? (
+		<BulkActionsTab list={list} items={items} />
+	) : (
+		<ReorderPanel listId={list.id} items={items} groups={list.groups} />
 	)
 }
 
@@ -95,15 +110,16 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 	)
 }
 
-function BulkActionsTab({ list }: { list: ListForEditing }) {
+function BulkActionsTab({ list, items }: { list: ListForEditing; items: Array<ItemForEditing> }) {
 	const router = useRouter()
+	const queryClient = useQueryClient()
 	const [selected, setSelected] = useState<Set<number>>(new Set())
 	const [selectedGroups, setSelectedGroups] = useState<Set<number>>(new Set())
 	const [busy, setBusy] = useState(false)
 	const [moveOpen, setMoveOpen] = useState(false)
 	const [deleteOpen, setDeleteOpen] = useState(false)
 
-	const visibleItems = list.items
+	const visibleItems = items
 	const visibleIds = useMemo(() => visibleItems.map(i => i.id), [visibleItems])
 	const ungroupedIds = useMemo(() => visibleItems.filter(i => i.groupId === null).map(i => i.id), [visibleItems])
 	const totalSelectable = ungroupedIds.length + list.groups.length
@@ -112,17 +128,17 @@ function BulkActionsTab({ list }: { list: ListForEditing }) {
 		totalSelectable === 0 ? false : totalSelected === 0 ? false : totalSelected === totalSelectable ? true : 'indeterminate'
 	const selectedIds = useMemo(() => [...selected], [selected])
 	const selectedGroupIds = useMemo(() => [...selectedGroups], [selectedGroups])
-	const selectedList = useMemo(() => list.items.filter(i => selected.has(i.id)), [list.items, selected])
+	const selectedList = useMemo(() => items.filter(i => selected.has(i.id)), [items, selected])
 
 	const itemsByGroup = useMemo(() => {
 		const m = new Map<number, Array<number>>()
-		for (const i of list.items) {
+		for (const i of items) {
 			if (i.groupId == null) continue
 			if (!m.has(i.groupId)) m.set(i.groupId, [])
 			m.get(i.groupId)!.push(i.id)
 		}
 		return m
-	}, [list.items])
+	}, [items])
 
 	const toggle = (id: number) =>
 		setSelected(prev => {
@@ -155,7 +171,7 @@ function BulkActionsTab({ list }: { list: ListForEditing }) {
 	const refresh = async () => {
 		setSelected(new Set())
 		setSelectedGroups(new Set())
-		await router.invalidate()
+		await Promise.all([router.invalidate(), queryClient.invalidateQueries({ queryKey: itemsKeys.byList(list.id) })])
 	}
 
 	const runDelete = async () => {
@@ -325,7 +341,14 @@ function BulkActionsTab({ list }: { list: ListForEditing }) {
 			{visibleItems.length === 0 ? (
 				<div className="text-sm text-muted-foreground py-6 text-center border rounded-lg bg-accent">No items to show.</div>
 			) : (
-				<OrganizeList list={list} selected={selected} selectedGroups={selectedGroups} onToggle={toggle} onToggleGroup={toggleGroup} />
+				<OrganizeList
+					list={list}
+					items={items}
+					selected={selected}
+					selectedGroups={selectedGroups}
+					onToggle={toggle}
+					onToggleGroup={toggleGroup}
+				/>
 			)}
 
 			{moveOpen && (
@@ -358,18 +381,20 @@ function BulkActionsTab({ list }: { list: ListForEditing }) {
 
 function OrganizeList({
 	list,
+	items,
 	selected,
 	selectedGroups,
 	onToggle,
 	onToggleGroup,
 }: {
 	list: ListForEditing
+	items: Array<ItemForEditing>
 	selected: Set<number>
 	selectedGroups: Set<number>
 	onToggle: (id: number) => void
 	onToggleGroup: (groupId: number) => void
 }) {
-	const entries = useMemo(() => buildListEntries(list), [list])
+	const entries = useMemo(() => buildListEntries({ items, groups: list.groups }), [items, list.groups])
 
 	return (
 		<div className="flex flex-col gap-2 pl-6">

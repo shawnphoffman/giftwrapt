@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { itemsKeys } from '@/lib/queries/items'
 
 import { QuantityRemainingBadge } from './quantity-remaining-badge'
 
@@ -25,6 +26,7 @@ type BaseProps = {
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	itemId: number
+	listId: number
 	itemTitle: string
 	itemImageUrl?: string | null
 	itemQuantity: number
@@ -68,7 +70,7 @@ function buildSchema(remaining: number) {
 }
 
 export function ClaimGiftDialog(props: Props) {
-	const { open, onOpenChange, itemId, itemTitle, itemImageUrl, itemQuantity, remainingQuantity } = props
+	const { open, onOpenChange, itemId, listId, itemTitle, itemImageUrl, itemQuantity, remainingQuantity } = props
 	const isEdit = props.mode === 'edit'
 	const router = useRouter()
 	const queryClient = useQueryClient()
@@ -102,7 +104,7 @@ export function ClaimGiftDialog(props: Props) {
 		toast.success('Claim removed')
 		onOpenChange(false)
 		queryClient.invalidateQueries({ queryKey: ['lists', 'public', 'grouped'] })
-		await router.invalidate()
+		await Promise.all([router.invalidate(), queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })])
 	}
 
 	const schema = buildSchema(remainingQuantity)
@@ -206,12 +208,12 @@ export function ClaimGiftDialog(props: Props) {
 
 				onOpenChange(false)
 				form.reset()
-				// Re-run the list-detail loader so the change shows up. Also
-				// invalidate the grouped public-lists query so the home-page
+				// Refresh the grouped public-lists query so the home-page
 				// "unclaimed / total" badge reflects this claim immediately,
-				// without waiting for the SSE round-trip.
+				// the items query so item.gifts updates, and the route loader
+				// for any list-meta consumers.
 				queryClient.invalidateQueries({ queryKey: ['lists', 'public', 'grouped'] })
-				await router.invalidate()
+				await Promise.all([router.invalidate(), queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })])
 			} catch (err) {
 				setError(err instanceof Error ? err.message : 'Failed to save claim')
 			} finally {
@@ -343,7 +345,10 @@ export function ClaimGiftDialog(props: Props) {
 							allUsers={allUsers ?? []}
 							saving={coGifterSaving}
 							setSaving={setCoGifterSaving}
-							onSaved={() => router.invalidate()}
+							onSaved={() => {
+								router.invalidate()
+								queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })
+							}}
 						/>
 					)}
 

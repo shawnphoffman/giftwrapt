@@ -1,5 +1,4 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useRouter } from '@tanstack/react-router'
 import {
 	ArrowDown,
 	ArrowRightLeft,
@@ -47,6 +46,7 @@ import {
 import type { Item } from '@/db/schema/items'
 import { useSession } from '@/lib/auth-client'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
+import { itemsKeys } from '@/lib/queries/items'
 import { getDomainFromUrl } from '@/lib/urls'
 import { cn } from '@/lib/utils'
 
@@ -72,7 +72,6 @@ type Props = {
 }
 
 export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], grouped = false, onMoveUp, onMoveDown }: Props) {
-	const router = useRouter()
 	const queryClient = useQueryClient()
 	const { data: session } = useSession()
 	const isAdmin = session?.user.isAdmin
@@ -86,7 +85,7 @@ export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], 
 		const result = await assignItemsToGroup({ data: { groupId, itemIds: [item.id] } })
 		if (result.kind === 'ok') {
 			toast.success(groupId === null ? 'Removed from group' : 'Added to group')
-			await router.invalidate()
+			await queryClient.invalidateQueries({ queryKey: itemsKeys.byList(item.listId) })
 		} else {
 			toast.error('Failed to update group')
 		}
@@ -97,7 +96,7 @@ export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], 
 		if (result.kind === 'ok') {
 			toast.success('Item deleted')
 			queryClient.invalidateQueries({ queryKey: ['recent', 'items'] })
-			await router.invalidate()
+			await queryClient.invalidateQueries({ queryKey: itemsKeys.byList(item.listId) })
 		} else {
 			toast.error('Failed to delete item')
 		}

@@ -14,6 +14,7 @@ import {
 } from '@dnd-kit/core'
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { GripVertical, ListOrdered, Shuffle } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -26,6 +27,7 @@ import PriorityIcon from '@/components/common/priority-icon'
 import type { Priority } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { priorityRingClass } from '@/lib/priority-classes'
+import { itemsKeys } from '@/lib/queries/items'
 import { cn } from '@/lib/utils'
 
 type Props = {
@@ -55,6 +57,7 @@ const groupKey = (id: number) => `group-${id}`
 
 export function ReorderPanel({ listId, items, groups }: Props) {
 	const router = useRouter()
+	const queryClient = useQueryClient()
 
 	const entries = useMemo<Map<EntryId, Entry>>(() => {
 		const m = new Map<EntryId, Entry>()
@@ -194,7 +197,10 @@ export function ReorderPanel({ listId, items, groups }: Props) {
 		const r = await reorderListEntries({ data: { listId, items: itemUpdates, groups: groupUpdates } })
 		setSaving(false)
 		if (r.kind === 'ok') {
-			await router.invalidate()
+			// Reorder touches both items (sortOrder/priority) and groups
+			// (sortOrder/priority). Items live in React Query; groups still
+			// come from the route loader.
+			await Promise.all([router.invalidate(), queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })])
 		} else {
 			toast.error('Could not save order')
 		}

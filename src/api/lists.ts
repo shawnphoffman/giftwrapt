@@ -3,31 +3,16 @@ import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
-import { giftedItems, guardianships, itemComments, itemGroups, items, listAddons, listEditors, lists, users } from '@/db/schema'
+import { giftedItems, guardianships, itemGroups, items, listAddons, listEditors, lists, users } from '@/db/schema'
 import { type GroupType, type ListType, listTypeEnumValues, type Priority } from '@/db/schema/enums'
-import type { GiftedItem } from '@/db/schema/gifts'
-import type { Item } from '@/db/schema/items'
 import type { ListAddon } from '@/db/schema/lists'
 import { loggingMiddleware } from '@/lib/logger'
 import { canEditList, canViewList } from '@/lib/permissions'
 import { authMiddleware } from '@/middleware/auth'
 
-export type GiftOnItem = Pick<
-	GiftedItem,
-	'id' | 'itemId' | 'gifterId' | 'quantity' | 'notes' | 'totalCost' | 'additionalGifterIds' | 'createdAt'
-> & {
-	gifter: {
-		id: string
-		name: string | null
-		email: string
-		image: string | null
-	}
-}
-
-export type ItemWithGifts = Item & {
-	gifts: Array<GiftOnItem>
-	commentCount: number
-}
+// Item-shaped types live with the items API. Re-exported here so existing
+// imports (`@/api/lists`) keep working.
+export type { GiftOnItem, ItemForEditing, ItemWithGifts, SortOption } from '@/api/items'
 
 export type AddonOnList = Pick<
 	ListAddon,
@@ -52,7 +37,6 @@ export type ListForViewing = {
 		email: string
 		image: string | null
 	}
-	items: Array<ItemWithGifts>
 	groups: Array<GroupSummary>
 	addons: Array<AddonOnList>
 }
@@ -68,13 +52,10 @@ export type GetListForViewingResult =
 	  }
 	| null
 
-export type SortOption = 'priority-asc' | 'priority-desc' | 'date-asc' | 'date-desc'
-
 export const getListForViewing = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware, loggingMiddleware])
-	.inputValidator((data: { listId: string; sort?: SortOption }) => ({
+	.inputValidator((data: { listId: string }) => ({
 		listId: data.listId,
-		sort: data.sort || ('priority-desc' as SortOption),
 	}))
 	.handler(async ({ context, data }): Promise<GetListForViewingResult> => {
 		const listId = Number(data.listId)
@@ -115,41 +96,10 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 		const view = await canViewList(currentUserId, list)
 		if (!view.ok) return null
 
-		// Determine sort order based on sort parameter. inputValidator defaults
-		// data.sort to 'priority-desc' already, so no fallback needed here.
-		const [sortBy, sortOrder] = data.sort.split('-') as [string, 'asc' | 'desc']
-
-		// Priority sorting happens after the fetch because an item's effective
-		// priority may come from its group. Date sorting stays at the DB level.
-		const orderBy = sortBy === 'priority' ? [asc(items.id)] : sortOrder === 'asc' ? [asc(items.createdAt)] : [desc(items.createdAt)]
-
-		// Fetch items, addons, and groups in parallel. Items pull their gifts in
-		// the same round-trip. Visibility is established above, so claims/gifts
-		// on these items are OK to expose; addons follow the same rule.
-		const [listItems, addons, viewGroups] = await Promise.all([
-			db.query.items.findMany({
-				where: and(eq(items.listId, list.id), eq(items.isArchived, false)),
-				orderBy,
-				with: {
-					gifts: {
-						columns: {
-							id: true,
-							itemId: true,
-							gifterId: true,
-							quantity: true,
-							notes: true,
-							totalCost: true,
-							additionalGifterIds: true,
-							createdAt: true,
-						},
-						with: {
-							gifter: {
-								columns: { id: true, name: true, email: true, image: true },
-							},
-						},
-					},
-				},
-			}),
+		// Items now live in their own React Query cache via getItemsForListView;
+		// this fn returns just the metadata + addons + groups. Addons + groups
+		// fetch in parallel.
+		const [addons, viewGroups] = await Promise.all([
 			db.query.listAddons.findMany({
 				where: eq(listAddons.listId, list.id),
 				columns: {
@@ -175,35 +125,6 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 			}),
 		])
 
-		const commentCountRows = listItems.length
-			? await db
-					.select({ itemId: itemComments.itemId, count: count(itemComments.id) })
-					.from(itemComments)
-					.where(
-						inArray(
-							itemComments.itemId,
-							listItems.map(i => i.id)
-						)
-					)
-					.groupBy(itemComments.itemId)
-			: []
-		const commentCountByItem = new Map(commentCountRows.map(r => [r.itemId, Number(r.count)]))
-
-		// Priority-sort after fetch so items in a group inherit the group's
-		// priority (single source of truth; item.priority is ignored while
-		// the item belongs to a group).
-		let sortedItems = listItems
-		if (sortBy === 'priority') {
-			const rank: Record<Priority, number> = { 'very-high': 4, high: 3, normal: 2, low: 1 }
-			const groupPriorityById = new Map(viewGroups.map(g => [g.id, g.priority]))
-			const effective = (i: (typeof listItems)[number]) => (i.groupId !== null ? groupPriorityById.get(i.groupId) : undefined) ?? i.priority
-			sortedItems = [...listItems].sort((a, b) => {
-				const diff = rank[effective(a)] - rank[effective(b)]
-				if (diff !== 0) return sortOrder === 'asc' ? diff : -diff
-				return a.id - b.id
-			})
-		}
-
 		return {
 			kind: 'ok',
 			list: {
@@ -217,7 +138,6 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 					email: list.owner.email,
 					image: list.owner.image,
 				},
-				items: sortedItems.map(i => ({ ...i, commentCount: commentCountByItem.get(i.id) ?? 0 })),
 				groups: viewGroups,
 				addons,
 			},
@@ -593,8 +513,6 @@ export type GroupSummary = {
 	sortOrder: number | null
 }
 
-export type ItemForEditing = Item & { commentCount: number }
-
 export type ListForEditing = {
 	id: number
 	name: string
@@ -605,7 +523,6 @@ export type ListForEditing = {
 	description: string | null
 	ownerId: string
 	giftIdeasTargetUserId: string | null
-	items: Array<ItemForEditing>
 	groups: Array<GroupSummary>
 	isOwner: boolean
 }
@@ -614,9 +531,8 @@ export type GetListForEditingResult = { kind: 'ok'; list: ListForEditing } | { k
 
 export const getListForEditing = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware, loggingMiddleware])
-	.inputValidator((data: { listId: string; includeArchived?: boolean }) => ({
+	.inputValidator((data: { listId: string }) => ({
 		listId: data.listId,
-		includeArchived: data.includeArchived ?? false,
 	}))
 	.handler(async ({ context, data }): Promise<GetListForEditingResult> => {
 		const listId = Number(data.listId)
@@ -648,27 +564,8 @@ export const getListForEditing = createServerFn({ method: 'GET' })
 			if (!edit.ok) return { kind: 'error', reason: 'not-authorized' }
 		}
 
-		// Archived items are hidden from the edit view by default; the organize
-		// view opts in to seeing them so users can bulk-unarchive.
-		const listItems = await db.query.items.findMany({
-			where: data.includeArchived ? eq(items.listId, list.id) : and(eq(items.listId, list.id), eq(items.isArchived, false)),
-			orderBy: [desc(items.createdAt)],
-		})
-
-		const commentCountRows = listItems.length
-			? await db
-					.select({ itemId: itemComments.itemId, count: count(itemComments.id) })
-					.from(itemComments)
-					.where(
-						inArray(
-							itemComments.itemId,
-							listItems.map(i => i.id)
-						)
-					)
-					.groupBy(itemComments.itemId)
-			: []
-		const commentCountByItem = new Map(commentCountRows.map(r => [r.itemId, Number(r.count)]))
-
+		// Items live in their own React Query cache (getItemsForListEdit). This
+		// fn returns just the metadata + groups.
 		const groups = await db.query.itemGroups.findMany({
 			where: eq(itemGroups.listId, list.id),
 			columns: { id: true, type: true, name: true, priority: true, sortOrder: true },
@@ -686,7 +583,6 @@ export const getListForEditing = createServerFn({ method: 'GET' })
 				description: list.description,
 				ownerId: list.ownerId,
 				giftIdeasTargetUserId: list.giftIdeasTargetUserId,
-				items: listItems.map(i => ({ ...i, commentCount: commentCountByItem.get(i.id) ?? 0 })),
 				groups,
 				isOwner,
 			},

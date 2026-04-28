@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { type Priority, priorityEnumValues } from '@/db/schema/enums'
+import { itemsKeys } from '@/lib/queries/items'
 import { applyScrapePrefill } from '@/lib/scrapers/apply-prefill'
 import { useScrapeUrl } from '@/lib/use-scrape-url'
 
@@ -211,7 +212,7 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 			toast.success('Item added')
 			onOpenChange(false)
 			queryClient.invalidateQueries({ queryKey: ['recent', 'items'] })
-			await router.invalidate()
+			await queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })
 			router.navigate({ to: '/lists/$listId/edit', params: { listId: selectedListId } })
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Failed to save item')

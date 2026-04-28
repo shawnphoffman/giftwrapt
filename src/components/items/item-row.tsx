@@ -1,4 +1,4 @@
-import { useRouter } from '@tanstack/react-router'
+import { useQueryClient } from '@tanstack/react-query'
 import { Copy, ExternalLink, MoreHorizontal, PackageCheck, PackageX } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { toast } from 'sonner'
@@ -15,6 +15,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useSession } from '@/lib/auth-client'
 import { computeRemainingClaimableQuantity, computeRemainingClaimableQuantityExcluding } from '@/lib/gifts'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
+import { itemsKeys } from '@/lib/queries/items'
 import { getDomainFromUrl } from '@/lib/urls'
 import { cn } from '@/lib/utils'
 
@@ -47,7 +48,7 @@ type Props = {
 const AVAILABILITY_DATE_FORMAT: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' }
 
 export default function ItemRow({ item, lockReason, grouped = false }: Props) {
-	const router = useRouter()
+	const queryClient = useQueryClient()
 	const { data: session } = useSession()
 	const currentUserId = session?.user.id
 	const [availabilityPending, setAvailabilityPending] = useState(false)
@@ -69,7 +70,7 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 		setAvailabilityPending(false)
 		if (result.kind === 'ok') {
 			toast.success(next === 'unavailable' ? 'Marked as unavailable' : 'Marked as available')
-			await router.invalidate()
+			await queryClient.invalidateQueries({ queryKey: itemsKeys.byList(item.listId) })
 		} else {
 			toast.error('Failed to update availability')
 		}
@@ -215,6 +216,7 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 								<div className="mt-auto">
 									<ClaimAction
 										itemId={item.id}
+										listId={item.listId}
 										itemTitle={item.title}
 										itemImageUrl={item.imageUrl}
 										itemQuantity={item.quantity}

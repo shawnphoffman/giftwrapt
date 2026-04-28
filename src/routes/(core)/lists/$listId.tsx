@@ -1,25 +1,29 @@
 import { createFileRoute, notFound, redirect } from '@tanstack/react-router'
+import { Suspense } from 'react'
 
 import { getListForViewing } from '@/api/lists'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import UserAvatar from '@/components/common/user-avatar'
 import ItemList from '@/components/items/item-list'
+import { ItemListSkeleton } from '@/components/items/item-list-skeleton'
 import { ListAddonsSection } from '@/components/list-addons/list-addons-section'
 import { Skeleton } from '@/components/ui/skeleton'
+import { listItemsViewQueryOptions } from '@/lib/queries/items'
 import { useListSSE } from '@/lib/use-list-sse'
 import { useScrollToHash } from '@/lib/use-scroll-to-hash'
-// import UserAvatarBadge from '@/components/common/user-avatar-badge'
-// import { Badge } from '@/components/ui/badge'
-// import { ListTypes } from '@/db/schema/enums'
 
 export const Route = createFileRoute('/(core)/lists/$listId')({
-	loader: async ({ params, location }) => {
-		// Not SWR-cached: this page has heavy mutation surface (items, gifts,
-		// comments, addons) plus an SSE channel calling router.invalidate(),
-		// and ensureQueryData would short-circuit those refetches inside the
-		// staleTime window. The pending shell + parallelized fetches handle
-		// perceived speed here instead.
+	loader: async ({ params, context, location }) => {
+		const listId = Number(params.listId)
+		if (Number.isFinite(listId)) {
+			// Kick off the items query without awaiting. Items stream in via
+			// useSuspenseQuery + the <Suspense> boundary around <ItemList> so
+			// the page header (name, owner, addons) renders immediately while
+			// items load.
+			void context.queryClient.prefetchQuery(listItemsViewQueryOptions(listId))
+		}
+
 		const result = await getListForViewing({ data: { listId: params.listId } })
 
 		if (!result) {
@@ -53,11 +57,7 @@ function ListDetailPagePending() {
 					</div>
 					<Skeleton className="size-8 rounded" />
 				</div>
-				<div className="flex flex-col gap-2 pl-6">
-					{Array.from({ length: 4 }).map((_, i) => (
-						<Skeleton key={i} className="h-12 w-full" />
-					))}
-				</div>
+				<ItemListSkeleton />
 			</div>
 		</div>
 	)
@@ -69,7 +69,6 @@ function ListDetailPage() {
 	useScrollToHash([list.id])
 
 	const recipientName = list.owner.name || list.owner.email
-	// const listTypeLabel = ListTypes[list.type]
 
 	return (
 		<div className="wish-page">
@@ -80,17 +79,15 @@ function ListDetailPage() {
 						<div className="flex items-center min-w-0 gap-2">
 							<UserAvatar name={recipientName} image={list.owner.image} />
 							<h1 className="truncate">{list.name}</h1>
-							{/* <Badge variant="outline" className="whitespace-nowrap">
-								{listTypeLabel}
-							</Badge> */}
-							{/* <UserAvatarBadge name={recipientName} image={list.owner.image} /> */}
 						</div>
 					</div>
 					<ListTypeIcon type={list.type} className="wish-page-icon" />
 				</div>
 				{list.description && <MarkdownNotes content={list.description} className="text-muted-foreground" />}
 				{/* ITEMS */}
-				<ItemList items={list.items} groups={list.groups} />
+				<Suspense fallback={<ItemListSkeleton />}>
+					<ItemList listId={list.id} groups={list.groups} />
+				</Suspense>
 				{/* OFF-LIST GIFTS */}
 				<ListAddonsSection listId={list.id} addons={list.addons} />
 			</div>

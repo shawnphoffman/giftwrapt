@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { type ListType, listTypeEnumValues, ListTypes } from '@/db/schema/enums'
+import { itemsKeys } from '@/lib/queries/items'
 
 type Props = {
 	open: boolean
@@ -99,7 +100,11 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 
 			onOpenChange(false)
 			onMoved?.()
-			await router.invalidate()
+			await Promise.all([
+				router.invalidate(),
+				qc.invalidateQueries({ queryKey: itemsKeys.byList(sourceListId) }),
+				qc.invalidateQueries({ queryKey: itemsKeys.byList(targetId) }),
+			])
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Failed to move items')
 		} finally {

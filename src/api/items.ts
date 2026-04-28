@@ -1,16 +1,42 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, asc, count, desc, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
 import { giftedItems, itemComments, itemGroups, items, lists } from '@/db/schema'
-import { availabilityEnumValues, type ListType, priorityEnumValues, statusEnumValues } from '@/db/schema/enums'
+import { availabilityEnumValues, type ListType, type Priority, priorityEnumValues, statusEnumValues } from '@/db/schema/enums'
+import type { GiftedItem } from '@/db/schema/gifts'
 import type { Item } from '@/db/schema/items'
 import { loggingMiddleware } from '@/lib/logger'
 import { canEditList, canViewList } from '@/lib/permissions'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { getVendorFromUrl } from '@/lib/urls'
 import { authMiddleware } from '@/middleware/auth'
+
+// ===============================
+// Shared types for read endpoints
+// ===============================
+
+export type GiftOnItem = Pick<
+	GiftedItem,
+	'id' | 'itemId' | 'gifterId' | 'quantity' | 'notes' | 'totalCost' | 'additionalGifterIds' | 'createdAt'
+> & {
+	gifter: {
+		id: string
+		name: string | null
+		email: string
+		image: string | null
+	}
+}
+
+export type ItemWithGifts = Item & {
+	gifts: Array<GiftOnItem>
+	commentCount: number
+}
+
+export type ItemForEditing = Item & { commentCount: number }
+
+export type SortOption = 'priority-asc' | 'priority-desc' | 'date-asc' | 'date-desc'
 
 // ===============================
 // Helpers
@@ -716,4 +742,164 @@ export const deleteGroups = createServerFn({ method: 'POST' })
 
 		await cleanupImageUrls(itemRows.map(r => r.imageUrl))
 		return { kind: 'ok', deletedGroups: data.groupIds.length, deletedItems: itemIds.length }
+	})
+
+// ===============================
+// READ - items for a list (viewer perspective)
+// ===============================
+// Returns items with their gifts and a per-item comment count for non-owner
+// viewers of the list. Owners are redirected by the route loader before this
+// runs; defensively rejects them here too so a stale call can't leak gift
+// data to the recipient.
+
+export type GetItemsForListViewResult =
+	| { kind: 'ok'; items: Array<ItemWithGifts> }
+	| { kind: 'error'; reason: 'not-found' | 'not-visible' | 'is-owner' }
+
+export const getItemsForListView = createServerFn({ method: 'GET' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: { listId: string; sort?: SortOption }) => ({
+		listId: data.listId,
+		sort: data.sort || ('priority-desc' as SortOption),
+	}))
+	.handler(async ({ context, data }): Promise<GetItemsForListViewResult> => {
+		const listId = Number(data.listId)
+		if (!Number.isFinite(listId)) return { kind: 'error', reason: 'not-found' }
+
+		const list = await db.query.lists.findFirst({
+			where: eq(lists.id, listId),
+			columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		})
+		if (!list) return { kind: 'error', reason: 'not-found' }
+
+		const userId = context.session.user.id
+		if (list.ownerId === userId) return { kind: 'error', reason: 'is-owner' }
+
+		const view = await canViewList(userId, list)
+		if (!view.ok) return { kind: 'error', reason: 'not-visible' }
+
+		const [sortBy, sortOrder] = data.sort.split('-') as [string, 'asc' | 'desc']
+		const orderBy = sortBy === 'priority' ? [asc(items.id)] : sortOrder === 'asc' ? [asc(items.createdAt)] : [desc(items.createdAt)]
+
+		const [listItems, viewGroups] = await Promise.all([
+			db.query.items.findMany({
+				where: and(eq(items.listId, list.id), eq(items.isArchived, false)),
+				orderBy,
+				with: {
+					gifts: {
+						columns: {
+							id: true,
+							itemId: true,
+							gifterId: true,
+							quantity: true,
+							notes: true,
+							totalCost: true,
+							additionalGifterIds: true,
+							createdAt: true,
+						},
+						with: {
+							gifter: {
+								columns: { id: true, name: true, email: true, image: true },
+							},
+						},
+					},
+				},
+			}),
+			db.query.itemGroups.findMany({
+				where: eq(itemGroups.listId, list.id),
+				columns: { id: true, priority: true },
+			}),
+		])
+
+		const commentCountRows = listItems.length
+			? await db
+					.select({ itemId: itemComments.itemId, count: count(itemComments.id) })
+					.from(itemComments)
+					.where(
+						inArray(
+							itemComments.itemId,
+							listItems.map(i => i.id)
+						)
+					)
+					.groupBy(itemComments.itemId)
+			: []
+		const commentCountByItem = new Map(commentCountRows.map(r => [r.itemId, Number(r.count)]))
+
+		// Priority sort happens after the fetch because grouped items inherit
+		// the group's priority. Date sort already handled at the DB level.
+		let sortedItems = listItems
+		if (sortBy === 'priority') {
+			const rank: Record<Priority, number> = { 'very-high': 4, high: 3, normal: 2, low: 1 }
+			const groupPriorityById = new Map(viewGroups.map(g => [g.id, g.priority]))
+			const effective = (i: (typeof listItems)[number]) => (i.groupId !== null ? groupPriorityById.get(i.groupId) : undefined) ?? i.priority
+			sortedItems = [...listItems].sort((a, b) => {
+				const diff = rank[effective(a)] - rank[effective(b)]
+				if (diff !== 0) return sortOrder === 'asc' ? diff : -diff
+				return a.id - b.id
+			})
+		}
+
+		return {
+			kind: 'ok',
+			items: sortedItems.map(i => ({ ...i, commentCount: commentCountByItem.get(i.id) ?? 0 })),
+		}
+	})
+
+// ===============================
+// READ - items for a list (editor perspective)
+// ===============================
+// Owners and editors see items without gifts (spoiler protection) but with
+// comment counts. Mirrors the visibility rules of getListForEditing so an
+// independent caller hits the same gates.
+
+export type GetItemsForListEditResult =
+	| { kind: 'ok'; items: Array<ItemForEditing> }
+	| { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+
+export const getItemsForListEdit = createServerFn({ method: 'GET' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: { listId: string; includeArchived?: boolean }) => ({
+		listId: data.listId,
+		includeArchived: data.includeArchived ?? false,
+	}))
+	.handler(async ({ context, data }): Promise<GetItemsForListEditResult> => {
+		const listId = Number(data.listId)
+		if (!Number.isFinite(listId)) return { kind: 'error', reason: 'not-found' }
+
+		const list = await db.query.lists.findFirst({
+			where: eq(lists.id, listId),
+			columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		})
+		if (!list) return { kind: 'error', reason: 'not-found' }
+
+		const userId = context.session.user.id
+		const isOwner = list.ownerId === userId
+		if (!isOwner) {
+			const edit = await canEditList(userId, list)
+			if (!edit.ok) return { kind: 'error', reason: 'not-authorized' }
+		}
+
+		const listItems = await db.query.items.findMany({
+			where: data.includeArchived ? eq(items.listId, list.id) : and(eq(items.listId, list.id), eq(items.isArchived, false)),
+			orderBy: [desc(items.createdAt)],
+		})
+
+		const commentCountRows = listItems.length
+			? await db
+					.select({ itemId: itemComments.itemId, count: count(itemComments.id) })
+					.from(itemComments)
+					.where(
+						inArray(
+							itemComments.itemId,
+							listItems.map(i => i.id)
+						)
+					)
+					.groupBy(itemComments.itemId)
+			: []
+		const commentCountByItem = new Map(commentCountRows.map(r => [r.itemId, Number(r.count)]))
+
+		return {
+			kind: 'ok',
+			items: listItems.map(i => ({ ...i, commentCount: commentCountByItem.get(i.id) ?? 0 })),
+		}
 	})

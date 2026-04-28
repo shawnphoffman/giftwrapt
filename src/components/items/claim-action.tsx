@@ -8,6 +8,7 @@ import { ClaimGiftDialog } from './claim-gift-dialog'
 
 type Props = {
 	itemId: number
+	listId: number
 	itemTitle: string
 	itemImageUrl?: string | null
 	itemQuantity: number
@@ -46,6 +47,7 @@ type Props = {
  */
 export function ClaimAction({
 	itemId,
+	listId,
 	itemTitle,
 	itemImageUrl,
 	itemQuantity,
@@ -72,6 +74,7 @@ export function ClaimAction({
 						open={editOpen}
 						onOpenChange={setEditOpen}
 						itemId={itemId}
+						listId={listId}
 						itemTitle={itemTitle}
 						itemImageUrl={itemImageUrl}
 						itemQuantity={itemQuantity}
@@ -94,6 +97,7 @@ export function ClaimAction({
 				open={createOpen}
 				onOpenChange={setCreateOpen}
 				itemId={itemId}
+				listId={listId}
 				itemTitle={itemTitle}
 				itemImageUrl={itemImageUrl}
 				itemQuantity={itemQuantity}

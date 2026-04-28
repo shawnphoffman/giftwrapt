@@ -131,7 +131,7 @@ export function GroupBlock({ group, items, groups, listId, isOwner, onAddItem, o
 					</div>
 				)}
 			</div>
-			{isOwner && <GroupEditDialog open={editOpen} onOpenChange={setEditOpen} group={group} />}
+			{isOwner && <GroupEditDialog open={editOpen} onOpenChange={setEditOpen} group={group} listId={listId} />}
 			{isOwner && (
 				<MoveGroupDialog open={moveOpen} onOpenChange={setMoveOpen} group={group} itemCount={items.length} sourceListId={listId} />
 			)}

@@ -1,18 +1,24 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { useEffect } from 'react'
 
+import { itemsKeys } from '@/lib/queries/items'
+
 /**
- * Hook that connects to the SSE endpoint for a given list and
- * invalidates the TanStack Router cache when changes arrive.
+ * Connects to the SSE endpoint for a given list and refreshes both the
+ * route loader (list metadata, addons, groups) and the items React Query
+ * cache when changes arrive.
  *
- * Falls back gracefully if SSE is unavailable - TanStack Query's
- * refetch-on-focus will still keep data reasonably fresh.
+ * SSE messages don't carry payload kind — any event means "something on
+ * this list changed somewhere," so both refresh paths fire. If the
+ * channel ever grows enough traffic to make this wasteful, gate by event
+ * kind.
  */
 export function useListSSE(listId: number) {
 	const router = useRouter()
+	const queryClient = useQueryClient()
 
 	useEffect(() => {
-		// SSE is client-only.
 		if (typeof window === 'undefined') return
 
 		let es: EventSource | null = null
@@ -20,21 +26,19 @@ export function useListSSE(listId: number) {
 			es = new EventSource(`/api/sse/list/${listId}`)
 
 			es.onmessage = () => {
-				// Any message = something changed on this list. Invalidate
-				// the router to re-run loaders.
 				router.invalidate()
+				queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })
 			}
 
 			es.onerror = () => {
-				// Connection lost - EventSource auto-reconnects by default.
-				// Nothing to do here; the refetch-on-focus fallback covers gaps.
+				// EventSource auto-reconnects. refetch-on-focus covers gaps.
 			}
 		} catch {
-			// EventSource not available in this environment. Silent fail.
+			// EventSource not available in this environment.
 		}
 
 		return () => {
 			es?.close()
 		}
-	}, [listId, router])
+	}, [listId, router, queryClient])
 }

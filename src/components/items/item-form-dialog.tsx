@@ -1,6 +1,5 @@
 import { useForm } from '@tanstack/react-form'
 import { useQueryClient } from '@tanstack/react-query'
-import { useRouter } from '@tanstack/react-router'
 import { Loader2, Sparkles, Trash2, Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -20,6 +19,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { useStorageStatus } from '@/hooks/use-storage-status'
+import { itemsKeys } from '@/lib/queries/items'
 import { applyScrapePrefill } from '@/lib/scrapers/apply-prefill'
 import { useScrapeUrl } from '@/lib/use-scrape-url'
 
@@ -56,7 +56,6 @@ const schema = z.object({
 export function ItemFormDialog(props: Props) {
 	const { open, onOpenChange } = props
 	const isEdit = props.mode === 'edit'
-	const router = useRouter()
 	const queryClient = useQueryClient()
 	const [submitting, setSubmitting] = useState(false)
 	const [error, setError] = useState<string | null>(null)
@@ -158,7 +157,8 @@ export function ItemFormDialog(props: Props) {
 				if (!isEdit) {
 					queryClient.invalidateQueries({ queryKey: ['recent', 'items'] })
 				}
-				await router.invalidate()
+				const listId = isEdit ? props.item.listId : props.listId
+				await queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })
 			} catch (err) {
 				setError(err instanceof Error ? err.message : 'Failed to save item')
 			} finally {

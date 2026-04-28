@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -11,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { type Priority, priorityEnumValues } from '@/db/schema/enums'
+import { itemsKeys } from '@/lib/queries/items'
 
 const PriorityLabels: Record<Priority, string> = {
 	low: 'Low',
@@ -23,10 +25,12 @@ type Props = {
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	group: GroupSummary
+	listId: number
 }
 
-export function GroupEditDialog({ open, onOpenChange, group }: Props) {
+export function GroupEditDialog({ open, onOpenChange, group, listId }: Props) {
 	const router = useRouter()
+	const queryClient = useQueryClient()
 	const [name, setName] = useState(group.name ?? '')
 	const [priority, setPriority] = useState<Priority>(group.priority)
 	const [saving, setSaving] = useState(false)
@@ -52,7 +56,10 @@ export function GroupEditDialog({ open, onOpenChange, group }: Props) {
 			if (result.kind === 'ok') {
 				toast.success('Group updated')
 				onOpenChange(false)
-				await router.invalidate()
+				// Group rename touches the group (route loader). Group priority
+				// also flips items' effective sort order, so the items query
+				// must refetch too.
+				await Promise.all([router.invalidate(), queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })])
 			} else {
 				toast.error('Failed to update group')
 			}

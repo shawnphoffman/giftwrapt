@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { itemsKeys } from '@/lib/queries/items'
 
 type Props = {
 	open: boolean
@@ -23,6 +24,7 @@ type Props = {
 
 export function MoveGroupDialog({ open, onOpenChange, group, itemCount, sourceListId }: Props) {
 	const router = useRouter()
+	const queryClient = useQueryClient()
 	const [selectedListId, setSelectedListId] = useState<string>('')
 	const [purgeComments, setPurgeComments] = useState(true)
 	const [submitting, setSubmitting] = useState(false)
@@ -61,7 +63,14 @@ export function MoveGroupDialog({ open, onOpenChange, group, itemCount, sourceLi
 			toast.success(parts.join(' · '))
 
 			onOpenChange(false)
-			await router.invalidate()
+			// Group itself moves to a new list (groups live in the route loader),
+			// and the items inside it follow. Both source and target item caches
+			// must refresh.
+			await Promise.all([
+				router.invalidate(),
+				queryClient.invalidateQueries({ queryKey: itemsKeys.byList(sourceListId) }),
+				queryClient.invalidateQueries({ queryKey: itemsKeys.byList(targetId) }),
+			])
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Failed to move group')
 		} finally {
