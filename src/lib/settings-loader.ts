@@ -34,11 +34,15 @@ function decryptScrapeProviderSecrets(raw: unknown): unknown {
 		.map(entry => {
 			if (!entry || typeof entry !== 'object') return entry
 			const e = entry as Record<string, unknown>
-			const type = e.type
-			if (typeof type !== 'string') return entry
-			const secretFields = SCRAPE_PROVIDER_SECRET_FIELDS[type as keyof typeof SCRAPE_PROVIDER_SECRET_FIELDS]
-			if (secretFields.length === 0) return entry
-			const out: Record<string, unknown> = { ...e }
+			const rawType = e.type
+			if (typeof rawType !== 'string') return entry
+			// Migrate legacy discriminator from the GiftWrapt rename (commit
+			// e581a3d). Encrypted envelope shape is unchanged, so existing
+			// ciphertext stays valid.
+			const type = rawType === 'wish-list-scraper' ? 'giftwrapt-scraper' : rawType
+			const secretFields = (SCRAPE_PROVIDER_SECRET_FIELDS as Partial<Record<string, ReadonlyArray<string>>>)[type]
+			const out: Record<string, unknown> = { ...e, type }
+			if (!secretFields || secretFields.length === 0) return out
 			for (const field of secretFields) {
 				const value = e[field]
 				if (looksLikeEncryptedEnvelope(value)) {
