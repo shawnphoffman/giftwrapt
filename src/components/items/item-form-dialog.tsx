@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import { createItem, updateItem } from '@/api/items'
+import { createItem } from '@/api/items'
 import { removeItemImage, uploadItemImage } from '@/api/uploads'
 import { MarkdownTextarea } from '@/components/common/markdown-textarea'
 import PriorityIcon from '@/components/common/priority-icon'
@@ -19,6 +19,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { useStorageStatus } from '@/hooks/use-storage-status'
+import { useUpdateItem } from '@/lib/mutations/update-item'
 import { itemsKeys } from '@/lib/queries/items'
 import { applyScrapePrefill } from '@/lib/scrapers/apply-prefill'
 import { useScrapeUrl } from '@/lib/use-scrape-url'
@@ -57,6 +58,7 @@ export function ItemFormDialog(props: Props) {
 	const { open, onOpenChange } = props
 	const isEdit = props.mode === 'edit'
 	const queryClient = useQueryClient()
+	const updateMutation = useUpdateItem()
 	const [submitting, setSubmitting] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [uploadingImage, setUploadingImage] = useState(false)
@@ -101,64 +103,70 @@ export function ItemFormDialog(props: Props) {
 				return
 			}
 
-			setSubmitting(true)
-			setError(null)
-			try {
-				if (isEdit) {
-					const trimmedUrl = parsed.data.url?.trim() || null
-					const trimmedPrice = parsed.data.price?.trim() || null
-					const trimmedNotes = parsed.data.notes?.trim() || null
-					const trimmedImageUrl = parsed.data.imageUrl?.trim() || null
-
-					const result = await updateItem({
-						data: {
-							itemId: props.item.id,
-							title: parsed.data.title,
-							url: trimmedUrl,
-							price: trimmedPrice,
-							notes: trimmedNotes,
-							priority: parsed.data.priority,
-							quantity: parsed.data.quantity,
-							imageUrl: trimmedImageUrl,
-						},
-					})
-
-					if (result.kind === 'error') {
-						setError(result.reason === 'not-authorized' ? 'You no longer have permission to edit this item.' : 'Item not found.')
-						return
-					}
-
-					toast.success('Item updated')
-				} else {
-					const result = await createItem({
-						data: {
-							listId: props.listId,
-							title: parsed.data.title,
-							url: parsed.data.url?.trim() || undefined,
-							price: parsed.data.price?.trim() || undefined,
-							notes: parsed.data.notes?.trim() || undefined,
-							priority: parsed.data.priority,
-							quantity: parsed.data.quantity,
-							imageUrl: parsed.data.imageUrl?.trim() || undefined,
-							groupId: props.groupId ?? undefined,
-						},
-					})
-
-					if (result.kind === 'error') {
-						setError(result.reason === 'not-authorized' ? 'You no longer have permission to add items to this list.' : 'List not found.')
-						return
-					}
-
-					toast.success('Item added')
-				}
+			if (isEdit) {
+				// Optimistic edit: close immediately so the row shows the new
+				// content right away. The mutation patches the items cache via
+				// onMutate, then writes the server's canonical row on success or
+				// rolls back on error. A spinner on the row signals the in-flight
+				// state via useIsMutating in ItemEditRow / ItemRow.
+				const trimmedUrl = parsed.data.url?.trim() || null
+				const trimmedPrice = parsed.data.price?.trim() || null
+				const trimmedNotes = parsed.data.notes?.trim() || null
+				const trimmedImageUrl = parsed.data.imageUrl?.trim() || null
 
 				onOpenChange(false)
 				form.reset()
-				if (!isEdit) {
-					queryClient.invalidateQueries({ queryKey: ['recent', 'items'] })
+				setError(null)
+				try {
+					const result = await updateMutation.mutateAsync({
+						listId: props.item.listId,
+						itemId: props.item.id,
+						title: parsed.data.title,
+						url: trimmedUrl,
+						price: trimmedPrice,
+						notes: trimmedNotes,
+						priority: parsed.data.priority,
+						quantity: parsed.data.quantity,
+						imageUrl: trimmedImageUrl,
+					})
+					if (result.kind === 'error') {
+						toast.error(result.reason === 'not-authorized' ? 'You no longer have permission to edit this item.' : 'Item not found.')
+						return
+					}
+					toast.success('Item updated')
+				} catch (err) {
+					toast.error(err instanceof Error ? err.message : 'Failed to save item')
 				}
-				const listId = isEdit ? props.item.listId : props.listId
-				await queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })
+				return
+			}
+
+			setSubmitting(true)
+			setError(null)
+			try {
+				const result = await createItem({
+					data: {
+						listId: props.listId,
+						title: parsed.data.title,
+						url: parsed.data.url?.trim() || undefined,
+						price: parsed.data.price?.trim() || undefined,
+						notes: parsed.data.notes?.trim() || undefined,
+						priority: parsed.data.priority,
+						quantity: parsed.data.quantity,
+						imageUrl: parsed.data.imageUrl?.trim() || undefined,
+						groupId: props.groupId ?? undefined,
+					},
+				})
+
+				if (result.kind === 'error') {
+					setError(result.reason === 'not-authorized' ? 'You no longer have permission to add items to this list.' : 'List not found.')
+					return
+				}
+
+				toast.success('Item added')
+				onOpenChange(false)
+				form.reset()
+				queryClient.invalidateQueries({ queryKey: ['recent', 'items'] })
+				await queryClient.invalidateQueries({ queryKey: itemsKeys.byList(props.listId) })
 			} catch (err) {
 				setError(err instanceof Error ? err.message : 'Failed to save item')
 			} finally {

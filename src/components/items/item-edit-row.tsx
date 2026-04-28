@@ -1,4 +1,4 @@
-import { useQueryClient } from '@tanstack/react-query'
+import { useIsMutating, useQueryClient } from '@tanstack/react-query'
 import {
 	ArrowDown,
 	ArrowRightLeft,
@@ -6,13 +6,14 @@ import {
 	ExternalLink,
 	Group,
 	ListOrdered,
+	Loader2,
 	MoreHorizontal,
 	Pencil,
 	Shuffle,
 	Trash2,
 	Ungroup,
 } from 'lucide-react'
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { toast } from 'sonner'
 
 import { assignItemsToGroup } from '@/api/groups'
@@ -71,12 +72,25 @@ type Props = {
 	onMoveDown?: () => void
 }
 
-export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], grouped = false, onMoveUp, onMoveDown }: Props) {
+export const ItemEditRow = memo(function ItemEditRow({
+	item,
+	commentCount = 0,
+	onMoveClick,
+	groups = [],
+	grouped = false,
+	onMoveUp,
+	onMoveDown,
+}: Props) {
 	const queryClient = useQueryClient()
 	const { data: session } = useSession()
 	const isAdmin = session?.user.isAdmin
 	const [editOpen, setEditOpen] = useState(false)
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+	const isSaving =
+		useIsMutating({
+			mutationKey: ['updateItem'],
+			predicate: m => (m.state.variables as { itemId?: number } | undefined)?.itemId === item.id,
+		}) > 0
 
 	const otherGroups = groups.filter(g => g.id !== item.groupId)
 	const hasCurrentGroup = item.groupId != null && groups.some(g => g.id === item.groupId)
@@ -116,6 +130,7 @@ export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], 
 			{/* HEADER */}
 			<div className="flex items-center gap-2 font-medium leading-tight">
 				<span className={cn('truncate min-w-0 flex-1', dimmed && 'opacity-60')}>{item.title}</span>
+				{isSaving && <Loader2 className="size-3.5 shrink-0 text-muted-foreground animate-spin" aria-label="Saving" />}
 				{item.availability === 'unavailable' && (
 					<Badge variant="destructive" className="px-1 rounded leading-none shrink-0">
 						Unavailable
@@ -282,4 +297,4 @@ export function ItemEditRow({ item, commentCount = 0, onMoveClick, groups = [], 
 			</AlertDialog>
 		</>
 	)
-}
+})

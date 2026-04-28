@@ -1,6 +1,6 @@
-import { useQueryClient } from '@tanstack/react-query'
-import { Copy, ExternalLink, MoreHorizontal, PackageCheck, PackageX } from 'lucide-react'
-import { type ReactNode, useState } from 'react'
+import { useIsMutating, useQueryClient } from '@tanstack/react-query'
+import { Copy, ExternalLink, Loader2, MoreHorizontal, PackageCheck, PackageX } from 'lucide-react'
+import { memo, type ReactNode, useState } from 'react'
 import { toast } from 'sonner'
 
 import { setItemAvailability } from '@/api/items'
@@ -47,11 +47,16 @@ type Props = {
 
 const AVAILABILITY_DATE_FORMAT: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' }
 
-export default function ItemRow({ item, lockReason, grouped = false }: Props) {
+function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 	const queryClient = useQueryClient()
 	const { data: session } = useSession()
 	const currentUserId = session?.user.id
 	const [availabilityPending, setAvailabilityPending] = useState(false)
+	const isSaving =
+		useIsMutating({
+			mutationKey: ['updateItem'],
+			predicate: m => (m.state.variables as { itemId?: number } | undefined)?.itemId === item.id,
+		}) > 0
 
 	const remaining = computeRemainingClaimableQuantity(
 		item.quantity,
@@ -147,6 +152,7 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 						item.title
 					)}
 				</span>
+				{isSaving && <Loader2 className="size-3.5 shrink-0 text-muted-foreground animate-spin" aria-label="Saving" />}
 				{isUnavailable &&
 					(item.availabilityChangedAt ? (
 						<Tooltip>
@@ -263,3 +269,6 @@ export default function ItemRow({ item, lockReason, grouped = false }: Props) {
 		</div>
 	)
 }
+
+const ItemRow = memo(ItemRowImpl)
+export default ItemRow
