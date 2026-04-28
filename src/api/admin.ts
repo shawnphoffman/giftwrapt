@@ -7,6 +7,7 @@ import type { BirthMonth, Role } from '@/db/schema'
 import { giftedItems, guardianships, items, users } from '@/db/schema'
 import { loggingMiddleware } from '@/lib/logger'
 import { sendTestEmail } from '@/lib/resend'
+import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { adminAuthMiddleware } from '@/middleware/auth'
 
 //
@@ -167,6 +168,50 @@ export const updateUserAsAdmin = createServerFn({
 		}
 
 		return { success: true }
+	})
+
+// ===============================
+// Delete user (admin)
+// ===============================
+// Hard-deletes the user and everything tied to them. Most cleanup is handled
+// by FK onDelete:'cascade' (sessions, accounts, lists, items, claims,
+// comments, list-editors, addons, guardianships, user-relationships). Two
+// things need manual handling: users.partnerId has no FK constraint, so any
+// other user pointing here would be left dangling; and the avatar object in
+// storage is referenced by URL only.
+
+export type DeleteUserResult = { kind: 'ok' } | { kind: 'error'; reason: 'self-delete' | 'not-found' }
+
+export const deleteUserAsAdmin = createServerFn({ method: 'POST' })
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.inputValidator((data: { userId: string }) => data)
+	.handler(async ({ context, data }): Promise<DeleteUserResult> => {
+		const { userId } = data
+
+		if (userId === context.session.user.id) {
+			return { kind: 'error', reason: 'self-delete' }
+		}
+
+		const user = await db.query.users.findFirst({
+			where: eq(users.id, userId),
+			columns: { image: true },
+		})
+		if (!user) return { kind: 'error', reason: 'not-found' }
+
+		await db.transaction(async tx => {
+			// Clear dangling partner pointers (no FK constraint on partnerId).
+			await tx.update(users).set({ partnerId: null }).where(eq(users.partnerId, userId))
+			// FK cascades take care of sessions, accounts, lists (and their
+			// items/claims/comments/addons/editors), guardianships, etc.
+			await tx.delete(users).where(eq(users.id, userId))
+		})
+
+		// Best-effort avatar cleanup, after the DB commit.
+		if (user.image) {
+			void cleanupImageUrls([user.image])
+		}
+
+		return { kind: 'ok' }
 	})
 
 // ===============================

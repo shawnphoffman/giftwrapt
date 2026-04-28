@@ -20,6 +20,7 @@ export default [
 			'storybook-static/**',
 			'src/components/ui/**',
 			'src/db/schema/temp/**',
+			'_NOTES_/**',
 		],
 	},
 	{

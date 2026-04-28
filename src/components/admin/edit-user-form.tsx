@@ -1,11 +1,21 @@
 import { useForm } from '@tanstack/react-form'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import type { z } from 'zod'
 
-import { getGuardianshipsForChild, getUsersAsAdmin, updateGuardianships, updateUserAsAdmin, updateUserPartner } from '@/api/admin'
+import {
+	deleteUserAsAdmin,
+	getGuardianshipsForChild,
+	getUsersAsAdmin,
+	updateGuardianships,
+	updateUserAsAdmin,
+	updateUserPartner,
+} from '@/api/admin'
 import { removeAvatarAsAdmin, uploadAvatarAsAdmin } from '@/api/uploads'
 import { BirthDaySelect } from '@/components/common/birth-day-select'
+import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import InputTooltip from '@/components/common/input-tooltip'
 import UserAvatar from '@/components/common/user-avatar'
 import AvatarUpload from '@/components/settings/avatar-upload'
@@ -18,6 +28,7 @@ import { birthMonthEnumValues, roleEnumValues } from '@/db/schema/enums'
 import { type User as DbUser, UserSchema } from '@/db/schema/users'
 import type { User } from '@/db-collections/users'
 import { useStorageStatus } from '@/hooks/use-storage-status'
+import { useSession } from '@/lib/auth-client'
 
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
 
@@ -126,7 +137,11 @@ function EditUserFormInner({
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [success, setSuccess] = useState(false)
+	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 	const { configured: storageConfigured } = useStorageStatus()
+	const navigate = useNavigate()
+	const { data: session } = useSession()
+	const isSelf = session?.user.id === userId
 
 	const form = useForm({
 		defaultValues: {
@@ -594,6 +609,58 @@ function EditUserFormInner({
 			<Button type="submit" disabled={isLoading} className="w-full" variant="default">
 				{isLoading ? 'Updating user...' : 'Update User'}
 			</Button>
+
+			{!isSelf && (
+				<div className="border-t pt-6 mt-8 space-y-3">
+					<div>
+						<h3 className="text-sm font-semibold text-destructive">Danger Zone</h3>
+						<p className="text-xs text-muted-foreground mt-1">
+							Permanently delete this user. Their lists, items, claims, comments, and partner/guardian links will all be removed.
+						</p>
+					</div>
+					<Button type="button" variant="destructive" className="w-full" onClick={() => setDeleteDialogOpen(true)} disabled={isLoading}>
+						Delete user
+					</Button>
+					<ConfirmDialog
+						open={deleteDialogOpen}
+						onOpenChange={setDeleteDialogOpen}
+						destructive
+						title={`Delete ${user.name || user.email}?`}
+						description={
+							<>
+								This permanently deletes the account, all lists they own and every item, claim, and comment on those lists, all gift claims
+								they made on other users' lists, all guardianship and partner links, and their stored avatar.
+								<br />
+								<br />
+								<strong>This cannot be undone.</strong>
+							</>
+						}
+						confirmLabel="Delete user"
+						confirmBusyLabel="Deleting..."
+						onConfirm={async () => {
+							const result = await deleteUserAsAdmin({ data: { userId } })
+							if (result.kind === 'error') {
+								const message =
+									result.reason === 'self-delete'
+										? "You can't delete your own account from here."
+										: 'User not found. They may have already been deleted.'
+								toast.error(message)
+								setError(message)
+								throw new Error(message)
+							}
+							toast.success(`${user.name || user.email} deleted`)
+							// Navigate first so the edit form unmounts before we touch its
+							// queries; otherwise removeQueries triggers a refetch on the
+							// still-mounted observer and the deleted-user lookup returns
+							// undefined.
+							await navigate({ to: '/admin/users' })
+							queryClient.removeQueries({ queryKey: ['admin', 'user', userId] })
+							queryClient.removeQueries({ queryKey: ['admin', 'guardianships', userId] })
+							await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+						}}
+					/>
+				</div>
+			)}
 		</form>
 	)
 }

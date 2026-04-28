@@ -39,13 +39,8 @@ export const updateUserProfile = createServerFn({
 })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator(
-		(data: {
-			name: string
-			birthMonth?: string | null
-			birthDay?: number | null
-			birthYear?: number | null
-			partnerId?: string | null
-		}) => data
+		(data: { name: string; birthMonth?: string | null; birthDay?: number | null; birthYear?: number | null; partnerId?: string | null }) =>
+			data
 	)
 	.handler(async ({ context, data }) => {
 		const userId = context.session.user.id
