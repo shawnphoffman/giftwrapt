@@ -124,6 +124,10 @@ export class S3StorageAdapter implements StorageAdapter {
 			)
 			const objects: Array<StorageObjectSummary> = (out.Contents ?? [])
 				.filter((c): c is typeof c & { Key: string } => Boolean(c.Key))
+				// Skip S3 "folder placeholder" objects (zero-byte keys ending in `/`)
+				// that appear when someone creates a folder via a bucket-management UI.
+				// They're not real uploads and shouldn't surface as orphans.
+				.filter(c => !(c.Key.endsWith('/') && (c.Size ?? 0) === 0))
 				.map(c => ({
 					key: c.Key,
 					size: c.Size ?? 0,

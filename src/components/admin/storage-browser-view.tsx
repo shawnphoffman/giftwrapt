@@ -1,9 +1,11 @@
 import { Link } from '@tanstack/react-router'
 import { Trash2 } from 'lucide-react'
+import { useState } from 'react'
 
 import type { StorageObjectRow, StorageSummary } from '@/api/admin-storage'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 
@@ -76,48 +78,67 @@ export function StorageFilterPills({ active, onChange }: { active: StorageBrowse
 }
 
 export function StorageTable({ rows, onDelete }: { rows: Array<StorageObjectRow>; onDelete?: (row: StorageObjectRow) => void }) {
+	const [previewRow, setPreviewRow] = useState<StorageObjectRow | null>(null)
+
 	if (rows.length === 0) {
 		return <div className="text-sm text-muted-foreground italic">No objects to show.</div>
 	}
 	return (
-		<div className="overflow-x-auto rounded-md border">
-			<Table>
-				<TableHeader>
-					<TableRow>
-						<TableHead className="w-[68px]">Preview</TableHead>
-						<TableHead>Kind</TableHead>
-						<TableHead>Connected</TableHead>
-						<TableHead>Owner</TableHead>
-						<TableHead className="whitespace-nowrap">Uploaded</TableHead>
-						<TableHead className="whitespace-nowrap text-right">Size</TableHead>
-						<TableHead className="w-[60px] text-right">
-							<span className="sr-only">Actions</span>
-						</TableHead>
-					</TableRow>
-				</TableHeader>
-				<TableBody>
-					{rows.map(row => (
-						<StorageTableRow key={row.key} row={row} onDelete={onDelete} />
-					))}
-				</TableBody>
-			</Table>
-		</div>
+		<>
+			<div className="overflow-x-auto rounded-md border">
+				<Table>
+					<TableHeader>
+						<TableRow>
+							<TableHead className="w-[68px]">Preview</TableHead>
+							<TableHead>Kind</TableHead>
+							<TableHead>Connected</TableHead>
+							<TableHead>Owner</TableHead>
+							<TableHead className="whitespace-nowrap">Uploaded</TableHead>
+							<TableHead className="whitespace-nowrap text-right">Size</TableHead>
+							<TableHead className="w-[60px] text-right">
+								<span className="sr-only">Actions</span>
+							</TableHead>
+						</TableRow>
+					</TableHeader>
+					<TableBody>
+						{rows.map(row => (
+							<StorageTableRow key={row.key} row={row} onDelete={onDelete} onPreview={setPreviewRow} />
+						))}
+					</TableBody>
+				</Table>
+			</div>
+			<Dialog open={previewRow !== null} onOpenChange={open => !open && setPreviewRow(null)}>
+				<DialogContent className="sm:max-w-3xl">
+					<DialogTitle className="font-mono text-xs break-all">{previewRow?.key}</DialogTitle>
+					{previewRow && (
+						<img src={previewRow.url} alt={previewRow.key} className="max-h-[70vh] w-full rounded border bg-muted object-contain" />
+					)}
+				</DialogContent>
+			</Dialog>
+		</>
 	)
 }
 
-function StorageTableRow({ row, onDelete }: { row: StorageObjectRow; onDelete?: (row: StorageObjectRow) => void }) {
+function StorageTableRow({
+	row,
+	onDelete,
+	onPreview,
+}: {
+	row: StorageObjectRow
+	onDelete?: (row: StorageObjectRow) => void
+	onPreview?: (row: StorageObjectRow) => void
+}) {
 	return (
 		<TableRow>
 			<TableCell>
-				<a
-					href={row.url}
-					target="_blank"
-					rel="noreferrer noopener"
-					className="block size-12 overflow-hidden rounded border bg-muted"
+				<button
+					type="button"
+					onClick={() => onPreview?.(row)}
+					className="block size-12 overflow-hidden rounded border bg-muted transition-opacity hover:opacity-80"
 					title={row.key}
 				>
 					<img src={row.url} alt={row.key} loading="lazy" className="size-full object-cover" />
-				</a>
+				</button>
 			</TableCell>
 			<TableCell>
 				<div className="flex flex-col gap-1">
