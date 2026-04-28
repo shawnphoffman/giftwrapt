@@ -1,12 +1,8 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { ArrowRight, ExternalLink, Inbox } from 'lucide-react'
+import { createFileRoute } from '@tanstack/react-router'
+import { Inbox } from 'lucide-react'
 
 import { getRecentItems } from '@/api/recent'
-import PriorityIcon from '@/components/common/priority-icon'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import type { Priority } from '@/db/schema/enums'
-import { getDomainFromUrl } from '@/lib/urls'
+import ItemOverview from '@/components/recent/item-overview'
 
 export const Route = createFileRoute('/(core)/recent/items')({
 	loader: ({ context }) =>
@@ -24,64 +20,37 @@ function RecentItemsPage() {
 	return (
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
-				{/* HEADING */}
 				<div className="relative">
 					<h1 className="flex flex-row items-center gap-2">Recent Items</h1>
 					<Inbox className="text-purple-500 wish-page-icon" />
 				</div>
+
+				<p className="text-sm text-muted-foreground">New items added to lists you can see in the last 30 days, newest first.</p>
 
 				{items.length === 0 ? (
 					<div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg bg-accent/30">
 						No recent items in the last 30 days.
 					</div>
 				) : (
-					<div className="flex flex-col overflow-hidden divide-y rounded-xl bg-card shadow-sm ring-1 ring-foreground/10">
-						{items.map(item => {
-							const domain = item.url ? getDomainFromUrl(item.url) : null
-							return (
-								<div key={item.id} className="flex items-center gap-2 p-3">
-									<PriorityIcon priority={item.priority as Priority} className="size-4 shrink-0" />
-									<div className="flex-1 min-w-0">
-										<div className="font-medium leading-tight truncate">
-											{item.url ? (
-												<a href={item.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
-													{item.title}
-												</a>
-											) : (
-												item.title
-											)}
-										</div>
-										<div className="text-xs text-muted-foreground">
-											{item.listOwnerName || item.listOwnerEmail} &middot;{' '}
-											<Link to="/lists/$listId" params={{ listId: String(item.listId) }} className="hover:underline">
-												{item.listName}
-											</Link>{' '}
-											&middot; {new Date(item.createdAt).toLocaleDateString()}
-										</div>
-									</div>
-									{domain && (
-										<Badge variant="outline" className="text-xs shrink-0 gap-1">
-											{domain} <ExternalLink className="size-3" />
-										</Badge>
-									)}
-									{item.price && (
-										<Badge variant="outline" className="text-xs shrink-0">
-											${item.price}
-										</Badge>
-									)}
-									{item.quantity > 1 && (
-										<Badge variant="secondary" className="text-xs tabular-nums shrink-0">
-											x{item.quantity}
-										</Badge>
-									)}
-									<Button asChild size="icon" variant="ghost" className="size-7 shrink-0" title="Open on list">
-										<Link to="/lists/$listId" params={{ listId: String(item.listId) }} hash={`item-${item.id}`}>
-											<ArrowRight className="size-4" />
-										</Link>
-									</Button>
-								</div>
-							)
-						})}
+					<div className="flex flex-col gap-2 xs:pl-6">
+						{items.map(item => (
+							<ItemOverview
+								key={item.id}
+								id={item.id}
+								title={item.title}
+								url={item.url}
+								priority={item.priority}
+								imageUrl={item.imageUrl}
+								commentCount={item.commentCount}
+								createdAt={item.createdAt}
+								listId={item.listId}
+								listName={item.listName}
+								listType={item.listType}
+								listOwnerName={item.listOwnerName}
+								listOwnerEmail={item.listOwnerEmail}
+								listOwnerImage={item.listOwnerImage}
+							/>
+						))}
 					</div>
 				)}
 			</div>

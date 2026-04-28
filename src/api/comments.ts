@@ -1,9 +1,9 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, asc, desc, eq, notInArray } from 'drizzle-orm'
+import { asc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
-import { itemComments, items, lists, userRelationships, users } from '@/db/schema'
+import { itemComments, items, lists, users } from '@/db/schema'
 import { createLogger, loggingMiddleware } from '@/lib/logger'
 import { canViewList } from '@/lib/permissions'
 import { sendNewCommentEmail } from '@/lib/resend'
@@ -240,83 +240,4 @@ export const deleteItemComment = createServerFn({ method: 'POST' })
 
 		await db.delete(itemComments).where(eq(itemComments.id, data.commentId))
 		return { kind: 'ok' }
-	})
-
-// ===============================
-// READ - recent comments (across all visible lists)
-// ===============================
-
-export type RecentCommentRow = {
-	id: number
-	comment: string
-	createdAt: Date
-	itemId: number
-	itemTitle: string
-	listId: number
-	listName: string
-	listOwnerName: string | null
-	user: {
-		id: string
-		name: string | null
-		email: string
-		image: string | null
-	}
-}
-
-export const getRecentComments = createServerFn({ method: 'GET' })
-	.middleware([authMiddleware, loggingMiddleware])
-	.handler(async ({ context }): Promise<Array<RecentCommentRow>> => {
-		// Fetch the 50 most recent comments across all non-archived items
-		// on active, non-private lists. Excludes lists owned by anyone who
-		// has explicitly denied this viewer.
-		const viewerId = context.session.user.id
-
-		const deniedOwners = db
-			.select({ ownerUserId: userRelationships.ownerUserId })
-			.from(userRelationships)
-			.where(and(eq(userRelationships.viewerUserId, viewerId), eq(userRelationships.canView, false)))
-
-		const rows = await db
-			.select({
-				id: itemComments.id,
-				comment: itemComments.comment,
-				createdAt: itemComments.createdAt,
-				itemId: items.id,
-				itemTitle: items.title,
-				listId: lists.id,
-				listName: lists.name,
-				listOwnerId: lists.ownerId,
-				listOwnerName: users.name,
-				userId: itemComments.userId,
-			})
-			.from(itemComments)
-			.innerJoin(items, eq(items.id, itemComments.itemId))
-			.innerJoin(lists, and(eq(lists.id, items.listId), eq(lists.isActive, true), eq(lists.isPrivate, false)))
-			.innerJoin(users, eq(users.id, lists.ownerId))
-			.where(and(eq(items.isArchived, false), notInArray(lists.ownerId, deniedOwners)))
-			.orderBy(desc(itemComments.createdAt))
-			.limit(50)
-
-		// Fetch commenter info.
-		const commenterIds = [...new Set(rows.map(r => r.userId))]
-		const commenters =
-			commenterIds.length > 0
-				? await db.query.users.findMany({
-						where: (u, { inArray }) => inArray(u.id, commenterIds),
-						columns: { id: true, name: true, email: true, image: true },
-					})
-				: []
-		const commenterMap = new Map(commenters.map(c => [c.id, c]))
-
-		return rows.map(r => ({
-			id: r.id,
-			comment: r.comment,
-			createdAt: r.createdAt,
-			itemId: r.itemId,
-			itemTitle: r.itemTitle,
-			listId: r.listId,
-			listName: r.listName,
-			listOwnerName: r.listOwnerName,
-			user: commenterMap.get(r.userId) ?? { id: r.userId, name: null, email: '', image: null },
-		}))
 	})
