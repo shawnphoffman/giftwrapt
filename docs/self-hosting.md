@@ -139,6 +139,9 @@ Two stateful volumes:
 
 A nightly `pg_dump` plus an `aws s3 sync` against your storage bucket is enough. See [storage.md](./storage.md#backup-and-gc) for backend-specific notes.
 
+> [!IMPORTANT]
+> **Encrypt your database backups at rest.** better-auth stores session tokens in the `session` table as plaintext (its design - the token IS the cookie). Anyone who can read a `pg_dump` can hijack every active session until those sessions expire. Same goes for the `verification` table (password-reset tokens). Use full-disk encryption (LUKS, EBS encryption, etc.) on the volume that holds your dumps, or pipe the dump through `gpg`/`age` before writing it. The `app_settings.scrapeProviders` rows are already AES-256-GCM encrypted at rest using `BETTER_AUTH_SECRET` as the master key, but everything else is in the clear. See sec-review L4.
+
 ## Troubleshooting
 
 - **"Invalid origin" on login**: `BETTER_AUTH_URL` doesn't match the origin the browser is using. See [multi-origin](#multi-origin--lan-access) above.
