@@ -51,6 +51,12 @@ function SignIn() {
 		setIsLoading(true)
 		setError(null)
 
+		// Generic error to avoid user enumeration. Better-auth's per-case
+		// messages ("user not found" vs "invalid credentials") leak whether
+		// an email exists in the DB. We don't surface those to the client
+		// here; the actual error is in the server logs. See sec-review M5.
+		const GENERIC_SIGN_IN_ERROR = 'Invalid email or password.'
+
 		const { error: signInError } = await authClient.signIn.email(
 			{
 				email,
@@ -64,15 +70,15 @@ function SignIn() {
 					setIsLoading(false)
 					navigate({ to: '/' })
 				},
-				onError: ctx => {
+				onError: () => {
 					setIsLoading(false)
-					setError(ctx.error.message || 'Failed to sign in')
+					setError(GENERIC_SIGN_IN_ERROR)
 				},
 			}
 		)
 
 		if (signInError) {
-			setError(signInError.message || 'Failed to sign in')
+			setError(GENERIC_SIGN_IN_ERROR)
 			setIsLoading(false)
 		}
 	}
