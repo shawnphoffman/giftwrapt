@@ -5,7 +5,7 @@ import { z } from 'zod'
 import { db } from '@/db'
 import { itemComments, items, lists, users } from '@/db/schema'
 import { createLogger, loggingMiddleware } from '@/lib/logger'
-import { canViewList } from '@/lib/permissions'
+import { canViewListAsAnyone } from '@/lib/permissions'
 import { commentLimiter } from '@/lib/rate-limits'
 import { sendNewCommentEmail } from '@/lib/resend'
 import { getAppSettings } from '@/lib/settings-loader'
@@ -55,11 +55,8 @@ export const getCommentsForItem = createServerFn({ method: 'GET' })
 		})
 		if (!list) return []
 
-		// Owner can see comments on their own list.
-		if (list.ownerId !== userId) {
-			const view = await canViewList(userId, list)
-			if (!view.ok) return []
-		}
+		const view = await canViewListAsAnyone(userId, list)
+		if (!view.ok) return []
 
 		const rows = await db.query.itemComments.findMany({
 			where: eq(itemComments.itemId, data.itemId),
@@ -115,11 +112,8 @@ export const createItemComment = createServerFn({ method: 'POST' })
 		})
 		if (!list) return { kind: 'error', reason: 'item-not-found' }
 
-		// Anyone who can view the list can comment (including the owner).
-		if (list.ownerId !== userId) {
-			const view = await canViewList(userId, list)
-			if (!view.ok) return { kind: 'error', reason: 'not-visible' }
-		}
+		const view = await canViewListAsAnyone(userId, list)
+		if (!view.ok) return { kind: 'error', reason: 'not-visible' }
 
 		const [inserted] = await db
 			.insert(itemComments)

@@ -40,6 +40,16 @@ export async function canViewList(viewerId: string, list: ListForVisibilityCheck
 	return { ok: true }
 }
 
+// Owner-aware shortcut around canViewList. Callers that show data to
+// EITHER the list owner OR a permitted viewer should use this rather
+// than open-coding `if (ownerId === viewerId) skip; else canViewList(...)`,
+// which is easy to drift out of sync if the visibility rules ever
+// change. See sec-review M9.
+export async function canViewListAsAnyone(viewerId: string, list: ListForVisibilityCheck): Promise<CanViewListResult> {
+	if (list.ownerId === viewerId) return { ok: true }
+	return canViewList(viewerId, list)
+}
+
 // ===============================
 // canEditList
 // ===============================
