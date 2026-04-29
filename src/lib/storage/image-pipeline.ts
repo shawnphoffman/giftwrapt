@@ -21,12 +21,6 @@ export const SHARP_PIXEL_LIMIT = 50_000_000
 
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'image/avif'])
 
-export function assertAllowedMime(mime: string): void {
-	if (!ALLOWED_MIME.has(mime.toLowerCase())) {
-		throw new UploadError('bad-mime', `unsupported image type: ${mime}`)
-	}
-}
-
 // Magic-byte detection for the image formats we accept. We can't trust
 // the client-supplied `file.type` (the browser fills it from the file
 // extension and JS can override it), and we don't want to rely on
