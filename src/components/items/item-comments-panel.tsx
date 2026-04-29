@@ -58,7 +58,7 @@ export default function ItemCommentsPanel({ itemId, onCountChange }: Props) {
 			if (result.kind === 'ok') {
 				setNewComment('')
 				await refetch()
-				queryClient.invalidateQueries({ queryKey: ['recent', 'comments'] })
+				queryClient.invalidateQueries({ queryKey: ['recent', 'conversations'] })
 				toast.success('Comment added')
 			}
 		} catch {

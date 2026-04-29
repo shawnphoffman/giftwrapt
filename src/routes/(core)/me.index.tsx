@@ -1,3 +1,4 @@
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { Baby, ListOrdered, Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -20,13 +21,14 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 
+const myListsQueryOptions = {
+	queryKey: ['my-lists'] as const,
+	queryFn: () => getMyLists(),
+	staleTime: 60 * 1000,
+}
+
 export const Route = createFileRoute('/(core)/me/')({
-	loader: ({ context }) =>
-		context.queryClient.ensureQueryData({
-			queryKey: ['my-lists'],
-			queryFn: () => getMyLists(),
-			staleTime: 60 * 1000,
-		}),
+	loader: ({ context }) => context.queryClient.ensureQueryData(myListsQueryOptions),
 	component: MyListsPage,
 	pendingComponent: MyListsPagePending,
 })
@@ -56,7 +58,7 @@ function MyListsPagePending() {
 }
 
 function MyListsPage() {
-	const data = Route.useLoaderData()
+	const { data } = useSuspenseQuery(myListsQueryOptions)
 	const [createOpen, setCreateOpen] = useState(false)
 	const [addItemOpen, setAddItemOpen] = useState(false)
 	const hash = useLocation({ select: l => l.hash })
