@@ -1,4 +1,4 @@
-import { Image as ImageIcon, ImageOff } from 'lucide-react'
+import { ImageOff } from 'lucide-react'
 import * as React from 'react'
 
 import { cn } from '@/lib/utils'
@@ -17,21 +17,61 @@ type Props = {
 // image" tile to opt out entirely (useful when every candidate URL is
 // hotlink-blocked or the user just doesn't want a picture).
 //
-// Renders nothing only when there are zero candidates AND no current
-// selection — i.e. when there's nothing for the user to act on.
+// Tiles whose <img> fires `error` are dropped from the visible list (and
+// from the count) on the assumption that a URL the browser can't load is
+// also one the rest of the app can't render. If the *currently selected*
+// candidate fails to load, we clear the selection so the form doesn't end
+// up persisting a known-broken URL.
+//
+// Renders nothing only when there are zero candidates — i.e. when there's
+// nothing for the user to act on.
 export function ImagePicker({ images, value, onChange, className, disabled }: Props): React.ReactElement | null {
+	const [failed, setFailed] = React.useState<ReadonlySet<string>>(() => new Set())
+
+	// Reset failure tracking when the candidate list changes — a fresh
+	// scrape may produce different URLs and we don't want to carry over
+	// stale failures (also lets a re-scrape recover if the host was
+	// flaking).
+	React.useEffect(() => {
+		setFailed(new Set())
+	}, [images])
+
+	const visible = React.useMemo(() => images.filter(url => !failed.has(url)), [images, failed])
+
+	// If the active selection just got pruned, clear it so the form
+	// doesn't save a URL the picker can't even render.
+	React.useEffect(() => {
+		if (value && failed.has(value)) onChange('')
+	}, [failed, value, onChange])
+
+	const handleError = React.useCallback((url: string) => {
+		setFailed(prev => {
+			if (prev.has(url)) return prev
+			const next = new Set(prev)
+			next.add(url)
+			return next
+		})
+	}, [])
+
 	if (images.length === 0) return null
 
 	const noneSelected = !value
-	const label = `${images.length} candidate ${images.length === 1 ? 'image' : 'images'}`
+	const label = visible.length === 0 ? 'No usable images found' : `${visible.length} candidate ${visible.length === 1 ? 'image' : 'images'}`
 
 	return (
 		<div className={cn('space-y-1', className)}>
 			<div className="text-xs text-muted-foreground">{label}</div>
 			<div role="radiogroup" aria-label="Product image" className="flex flex-wrap gap-2">
 				<NoneThumb selected={noneSelected} disabled={disabled === true} onSelect={() => onChange('')} />
-				{images.map(url => (
-					<ImageThumb key={url} url={url} selected={url === value} disabled={disabled === true} onSelect={() => onChange(url)} />
+				{visible.map(url => (
+					<ImageThumb
+						key={url}
+						url={url}
+						selected={url === value}
+						disabled={disabled === true}
+						onSelect={() => onChange(url)}
+						onError={() => handleError(url)}
+					/>
 				))}
 			</div>
 		</div>
@@ -59,8 +99,19 @@ function NoneThumb({ selected, disabled, onSelect }: { selected: boolean; disabl
 	)
 }
 
-function ImageThumb({ url, selected, disabled, onSelect }: { url: string; selected: boolean; disabled: boolean; onSelect: () => void }) {
-	const [errored, setErrored] = React.useState(false)
+function ImageThumb({
+	url,
+	selected,
+	disabled,
+	onSelect,
+	onError,
+}: {
+	url: string
+	selected: boolean
+	disabled: boolean
+	onSelect: () => void
+	onError: () => void
+}) {
 	return (
 		<button
 			type="button"
@@ -74,13 +125,7 @@ function ImageThumb({ url, selected, disabled, onSelect }: { url: string; select
 				disabled && 'opacity-50 cursor-not-allowed'
 			)}
 		>
-			{errored ? (
-				<div className="flex h-full w-full items-center justify-center text-muted-foreground">
-					<ImageIcon className="size-5" />
-				</div>
-			) : (
-				<img src={url} alt="" loading="lazy" onError={() => setErrored(true)} className="h-full w-full object-cover" />
-			)}
+			<img src={url} alt="" loading="lazy" onError={onError} className="h-full w-full object-cover" />
 		</button>
 	)
 }
