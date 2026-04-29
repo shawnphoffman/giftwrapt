@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.21.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.20.0...v0.21.0) (2026-04-29)
+
+
+### Features
+
+* **admin:** add purge-all-lists action on /admin/data ([02dd274](https://github.com/shawnphoffman/giftwrapt/commit/02dd2746bcf784a71f0ffc8058976952b2138507))
+* **admin:** show version, commit, and build time on debug page ([9b9f8e6](https://github.com/shawnphoffman/giftwrapt/commit/9b9f8e64afa89c85169132be88e7830a17544e77))
+
 ## [0.20.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.19.0...v0.20.0) (2026-04-29)
 
 
