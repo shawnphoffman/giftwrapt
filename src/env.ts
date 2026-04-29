@@ -102,6 +102,14 @@ export const env = createEnv({
 	runtimeEnv: {
 		...process.env,
 		...import.meta.env,
+		// Fallbacks for one-click deploy targets that inject differently-named
+		// env vars. The Vercel + Supabase Marketplace integration injects
+		// POSTGRES_URL (pooled) and SUPABASE_URL but no STORAGE_ENDPOINT; this
+		// lets the app pick those up without the user renaming anything.
+		DATABASE_URL: process.env.DATABASE_URL ?? process.env.POSTGRES_URL,
+		STORAGE_ENDPOINT:
+			process.env.STORAGE_ENDPOINT ??
+			(process.env.SUPABASE_URL ? `${process.env.SUPABASE_URL.replace(/\/$/, '')}/storage/v1/s3` : undefined),
 	},
 
 	/**
