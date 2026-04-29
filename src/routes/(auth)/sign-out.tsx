@@ -14,13 +14,21 @@ function SignOut() {
 
 	useEffect(() => {
 		const handleSignOut = async () => {
+			// Race the better-auth call against a 4s ceiling so a hung
+			// network or a serverless cold-start DB stall doesn't leave the
+			// user stuck on "Signing out...". The browser cookie still goes
+			// out as soon as the response comes back; if it never does, the
+			// next route's middleware/sign-in flow will treat the cookie as
+			// stale and clear it.
+			const SIGN_OUT_TIMEOUT_MS = 4_000
 			try {
-				await signOut()
-				// Redirect to sign-in page after successful sign out
+				await Promise.race([
+					signOut(),
+					new Promise((_, reject) => setTimeout(() => reject(new Error('sign-out timed out')), SIGN_OUT_TIMEOUT_MS)),
+				])
 				navigate({ to: '/sign-in' })
 			} catch (err) {
 				setError(err instanceof Error ? err.message : 'Failed to sign out')
-				// Still redirect even if there's an error
 				setTimeout(() => {
 					navigate({ to: '/sign-in' })
 				}, 2000)

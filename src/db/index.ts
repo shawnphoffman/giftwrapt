@@ -23,8 +23,18 @@ const drizzleLogger: DrizzleLogger = {
 	},
 }
 
+// Pool tuning. `pg`'s defaults (`max: 10`, no `connectionTimeoutMillis`)
+// translate to "exhaust quickly under bursty load, then wait forever for
+// a free client" - which on serverless (Vercel) presents as a hung
+// request rather than a clear error. Cap the wait at 5s so callers
+// surface a real failure, and bump the ceiling to give multi-tab users
+// some headroom. Long-running container deploys (Railway, Render,
+// Coolify, NUC) get the same numbers without harm.
 const pool = new Pool({
 	connectionString: process.env.DATABASE_URL!,
+	max: 20,
+	idleTimeoutMillis: 30_000,
+	connectionTimeoutMillis: 5_000,
 })
 
 pool.on('error', err => {

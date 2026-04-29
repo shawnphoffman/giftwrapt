@@ -6,7 +6,7 @@ import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { sql } from 'drizzle-orm'
 
 import { db } from '@/db'
-import { account, session, users, verification } from '@/db/schema'
+import { account, rateLimit, session, users, verification } from '@/db/schema'
 import { env } from '@/env'
 import { createLogger } from '@/lib/logger'
 
@@ -63,6 +63,7 @@ const options = {
 			session: session,
 			account: account,
 			verificationToken: verification,
+			rateLimit: rateLimit,
 		},
 	}),
 	emailAndPassword: {
@@ -82,10 +83,13 @@ const options = {
 	// limiter so that's effective. See sec-review H2.
 	rateLimit: {
 		enabled: true,
-		// Storage choice: 'memory' is per-instance and resets on deploy.
-		// For multi-instance deployments switch to 'database' (uses the
-		// `ratelimit` table better-auth provisions).
-		storage: 'memory',
+		// 'database' so the counter is shared across instances on
+		// Vercel / Railway / Render. Memory storage was a footgun: the
+		// per-instance counters mean a user gets a fresh budget on every
+		// cold start, and on serverless that's effectively no limit at
+		// all. The `rateLimit` table is provisioned in
+		// `src/db/schema/auth.ts`.
+		storage: 'database',
 	},
 	// First-admin bootstrap: if no admin exists yet, the next signup becomes one.
 	// Covers the fresh-deploy case (empty DB) and also the recovery case where

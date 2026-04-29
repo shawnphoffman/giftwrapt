@@ -92,6 +92,13 @@
       "when": 1777258241675,
       "tag": "0012_backfill_titleless_scrapes",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1777493942550,
+      "tag": "0013_early_hex",
+      "breakpoints": true
     }
   ]
 }

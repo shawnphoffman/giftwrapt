@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm'
-import { index, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { bigint, index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 
 import { timestamps } from './shared'
 import { users } from './users'
@@ -66,6 +66,22 @@ export const verification = pgTable(
 		index('verification_identifier_idx').on(table.identifier),
 		index('verification_expiresAt_idx').on(table.expiresAt), // For cleanup queries
 	]
+)
+
+// Better-auth's database-backed rate limit store. Switched on in
+// `src/lib/auth.ts` so the limiter is shared across instances on
+// multi-instance deploys (Vercel, Railway >1 replica, Render >1 replica).
+// `key` is a `${ip|userId}:${endpoint}`-shaped string; `lastRequest` is a
+// unix-ms epoch (better-auth writes it as a JS number, hence bigint).
+export const rateLimit = pgTable(
+	'rateLimit',
+	{
+		id: text('id').primaryKey(),
+		key: text('key').notNull(),
+		count: integer('count').notNull(),
+		lastRequest: bigint('last_request', { mode: 'number' }),
+	},
+	table => [index('rateLimit_key_idx').on(table.key)]
 )
 
 export const sessionRelations = relations(session, ({ one }) => ({
