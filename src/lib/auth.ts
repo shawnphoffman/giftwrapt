@@ -115,7 +115,14 @@ const options = {
 	session: {
 		cookieCache: {
 			enabled: true,
-			maxAge: 60 * 60 * 24 * 7, // 7 days
+			// 24h upper bound on the encrypted session cookie. Combined
+			// with `refreshCache.updateAge: 10m` (active users get
+			// re-checked against the DB every 10 minutes anyway), this is
+			// the worst-case staleness window for an idle user's role /
+			// status. Was 7d before sec-review H8; shorter caps the
+			// blast radius of a stolen-but-idle cookie and of a recently
+			// demoted account that hasn't pinged the server yet.
+			maxAge: 60 * 60 * 24, // 24 hours
 			refreshCache: {
 				updateAge: 60 * 10, // Refresh against DB every 10 minutes
 			},
@@ -178,10 +185,19 @@ export const auth = betterAuth({
 		},
 	},
 	session: {
+		// freshAge is intentionally left at 0: better-auth's password-
+		// change flow requires the current password as a parameter, and
+		// profile edits (name / birthday / partner) go through
+		// `auth.api.updateUser` which would fail with "session expired"
+		// for any non-admin user logged in for >freshAge. See sec-review
+		// H8 for the assessment.
 		freshAge: 0,
 		cookieCache: {
 			enabled: true,
-			maxAge: 60 * 60 * 24 * 7, // 7 days
+			// Mirrors `options.session.cookieCache.maxAge` above; see
+			// the explanation there. Both copies are merged by
+			// customSession.
+			maxAge: 60 * 60 * 24, // 24 hours
 			refreshCache: {
 				updateAge: 60 * 10, // Refresh against DB every 10 minutes
 			},
