@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, Circle, Loader2, XCircle } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Circle, Layers2, Loader2, MinusCircle, XCircle } from 'lucide-react'
 import * as React from 'react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -61,20 +61,31 @@ export function ScrapeProgressAlert({ state, url, onCancel, onRetry, className }
 	}
 
 	const isPartial = state.phase === 'partial'
+	// Only count providers that may still produce a result. `pending` keeps
+	// counting (a queued tier may still run); `skipped` does not (its tier
+	// was bypassed and will never fire).
 	const stillRunning = state.providers.filter(p => p.status === 'pending' || p.status === 'in_progress').length
+	const tierByProviderId = useTierLookup(state.tiers)
 
 	return (
 		<Alert variant="default" className={cn('text-sm', className)}>
 			<Loader2 className="animate-spin text-muted-foreground" />
 			<AlertTitle>
-				{isPartial
+				{isPartial && stillRunning > 0
 					? `Got initial result. Still checking ${stillRunning} other source${stillRunning === 1 ? '' : 's'} for better data…`
-					: `Importing${hostname ? ` from ${hostname}` : ''}…`}
+					: isPartial
+						? 'Got initial result. Finalizing…'
+						: `Importing${hostname ? ` from ${hostname}` : ''}…`}
 			</AlertTitle>
 			<AlertDescription>
 				<ul className="mt-1 space-y-1 text-xs">
 					{state.providers.map(p => (
-						<ProviderRow key={p.providerId} progress={p} label={displayName(p.providerId, state.providerNames)} />
+						<ProviderRow
+							key={p.providerId}
+							progress={p}
+							label={displayName(p.providerId, state.providerNames)}
+							tier={tierByProviderId.get(p.providerId)}
+						/>
 					))}
 				</ul>
 				<div className="mt-2 text-xs text-muted-foreground">
@@ -93,13 +104,22 @@ export function ScrapeProgressAlert({ state, url, onCancel, onRetry, className }
 	)
 }
 
-function ProviderRow({ progress, label }: { progress: ProviderProgress; label: string }) {
+function ProviderRow({ progress, label, tier }: { progress: ProviderProgress; label: string; tier: number | undefined }) {
 	const Icon = ICONS[progress.status]
 	const { badge, meta } = providerDetail(progress)
+	const muted = progress.status === 'skipped'
+	const showScoreTiming = progress.status === 'done' && typeof progress.score === 'number' && typeof progress.ms === 'number'
 	return (
-		<li className="flex items-center gap-2">
+		<li className={cn('flex items-center gap-2', muted && 'opacity-60')}>
 			<Icon className={cn('size-3.5 shrink-0', ICON_TONE[progress.status])} />
-			<span className="font-mono">{label}</span>
+			{typeof tier === 'number' && (
+				<Badge variant="outline" className="h-4 gap-1 px-1.5 py-0 text-[10px] font-normal text-muted-foreground" title={`Tier ${tier}`}>
+					<Layers2 className="size-2.5" aria-hidden="true" />
+					{tier}
+					<span className="sr-only">Tier {tier}</span>
+				</Badge>
+			)}
+			<span className={cn('font-mono', muted && 'line-through')}>{label}</span>
 			{badge && (
 				<Badge
 					variant={BADGE_VARIANT[progress.status]}
@@ -108,9 +128,45 @@ function ProviderRow({ progress, label }: { progress: ProviderProgress; label: s
 					{badge}
 				</Badge>
 			)}
+			{showScoreTiming && <ScoreTimingPill score={progress.score!} ms={progress.ms!} />}
 			{meta && <span className="text-muted-foreground">{meta}</span>}
 		</li>
 	)
+}
+
+// Two-segment pill mirroring `<PriceQuantityBadge>`: score on the left,
+// elapsed time on the right, separated by a 1px divider. Sized to match
+// the surrounding status badge (h-4, text-[10px]). Tones match the existing
+// status palette so a green left half reads as "good score" and a sky right
+// half as "informational metric".
+function ScoreTimingPill({ score, ms }: { score: number; ms: number }) {
+	return (
+		<span
+			className="inline-flex h-4 items-stretch overflow-hidden rounded-full border text-[10px] font-medium whitespace-nowrap"
+			title={`Score ${score}, ${formatDurationMs(ms)}`}
+		>
+			<span className="inline-flex items-center bg-emerald-100 px-1.5 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+				{score}
+			</span>
+			<span className="w-px bg-border" aria-hidden="true" />
+			<span className="inline-flex items-center bg-sky-100 px-1.5 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">
+				{formatDurationMs(ms)}
+			</span>
+		</span>
+	)
+}
+
+// Reverse-index providerId → tier number so a provider row can render its
+// tier badge in O(1). Memoised so the map only rebuilds when the tier list
+// shape changes.
+function useTierLookup(tiers: ScrapeUiState['tiers']): Map<string, number> {
+	return React.useMemo(() => {
+		const out = new Map<string, number>()
+		for (const t of tiers ?? []) {
+			for (const id of t.providerIds) out.set(id, t.tier)
+		}
+		return out
+	}, [tiers])
 }
 
 const ICONS = {
@@ -118,6 +174,7 @@ const ICONS = {
 	in_progress: SpinnerIcon,
 	done: CheckCircle2,
 	failed: XCircle,
+	skipped: MinusCircle,
 } as const satisfies Record<ProviderProgress['status'], React.ComponentType<{ className?: string }>>
 
 const ICON_TONE: Record<ProviderProgress['status'], string> = {
@@ -125,6 +182,7 @@ const ICON_TONE: Record<ProviderProgress['status'], string> = {
 	in_progress: 'text-muted-foreground',
 	done: 'text-emerald-600 dark:text-emerald-500',
 	failed: 'text-destructive',
+	skipped: 'text-muted-foreground',
 }
 
 const BADGE_VARIANT: Record<ProviderProgress['status'], 'secondary' | 'outline' | 'destructive' | 'default'> = {
@@ -132,6 +190,7 @@ const BADGE_VARIANT: Record<ProviderProgress['status'], 'secondary' | 'outline' 
 	in_progress: 'secondary',
 	done: 'secondary',
 	failed: 'destructive',
+	skipped: 'outline',
 }
 
 const BADGE_TONE: Record<ProviderProgress['status'], string> = {
@@ -139,6 +198,7 @@ const BADGE_TONE: Record<ProviderProgress['status'], string> = {
 	in_progress: 'bg-sky-100 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300',
 	done: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
 	failed: '',
+	skipped: 'text-muted-foreground',
 }
 
 function SpinnerIcon({ className }: { className?: string }): React.ReactElement {
@@ -151,17 +211,17 @@ function providerDetail(p: ProviderProgress): { badge: string | null; meta: stri
 			return { badge: 'pending', meta: null }
 		case 'in_progress':
 			return { badge: 'in progress', meta: null }
-		case 'done': {
-			const meta = [typeof p.score === 'number' ? `score ${p.score}` : null, typeof p.ms === 'number' ? formatDurationMs(p.ms) : null]
-				.filter(Boolean)
-				.join(', ')
-			return { badge: 'done', meta: meta || null }
-		}
+		case 'done':
+			// Score + duration render as a separate two-segment pill on the
+			// row, so meta stays empty here.
+			return { badge: 'done', meta: null }
 		case 'failed':
 			return {
 				badge: p.errorCode ?? 'failed',
 				meta: typeof p.ms === 'number' ? formatDurationMs(p.ms) : null,
 			}
+		case 'skipped':
+			return { badge: 'skipped', meta: null }
 	}
 }
 

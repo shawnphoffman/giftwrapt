@@ -29,6 +29,7 @@ export function createBrowserlessProvider(entry: BrowserlessEntry): ScrapeProvid
 		name: entry.name,
 		kind: 'html',
 		tier: entry.tier,
+		timeoutMs: entry.timeoutMs,
 		isAvailable: () => entry.enabled && isParseableUrl(entry.url),
 		fetch: ctx => runBrowserlessProvider(ctx, entry, providerId),
 	}

@@ -27,6 +27,7 @@ export function createFlaresolverrProvider(entry: FlaresolverrEntry): ScrapeProv
 		name: entry.name,
 		kind: 'html',
 		tier: entry.tier,
+		timeoutMs: entry.timeoutMs,
 		isAvailable: () => entry.enabled && isParseableUrl(entry.url),
 		fetch: ctx => runFlaresolverrProvider(ctx, entry, providerId),
 	}

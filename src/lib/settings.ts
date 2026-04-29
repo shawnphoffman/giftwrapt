@@ -40,6 +40,12 @@ const baseEntryFields = {
 	// to 1 so existing rows keep behaving like "fire everything in
 	// parallel and merge" until the admin demotes specific entries.
 	tier: z.number().int().min(1).max(5).default(1),
+	// Optional per-entry override for the orchestrator's per-provider
+	// HTTP timeout (in ms). Empty/undefined means "inherit
+	// scrapeProviderTimeoutMs". Useful when one slow scraper (Stagehand,
+	// AI) needs more headroom than the global default without bumping
+	// every other provider's budget.
+	timeoutMs: z.number().int().positive().optional(),
 }
 
 const browserlessEntrySchema = z.object({

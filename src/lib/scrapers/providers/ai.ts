@@ -96,6 +96,7 @@ export function createAiProvider(entry: AiEntry): ScrapeProvider {
 		name: entry.name,
 		kind: 'structured',
 		tier: entry.tier,
+		timeoutMs: entry.timeoutMs,
 		isAvailable: async () => {
 			if (!entry.enabled) return false
 			const aiConfig = await resolveAiConfig(db)

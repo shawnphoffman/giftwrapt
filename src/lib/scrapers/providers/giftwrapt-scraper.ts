@@ -51,6 +51,7 @@ export function createGiftWraptScraperProvider(entry: GiftWraptScraperEntry): Sc
 		name: entry.name,
 		kind: 'html',
 		tier: entry.tier,
+		timeoutMs: entry.timeoutMs,
 		isAvailable: () => entry.enabled && isParseableUrl(entry.endpoint) && entry.token.trim().length > 0,
 		fetch: ctx => runGiftWraptScraperProvider(ctx, entry, providerId),
 	}

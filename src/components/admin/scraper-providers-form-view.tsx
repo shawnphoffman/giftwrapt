@@ -49,6 +49,12 @@ export type ScraperProvidersFormViewProps = {
 	onChange: <TKey extends ScraperProvidersFormChangeKey>(key: TKey, value: AppSettings[TKey]) => void
 }
 
+// Hard upper bound on a per-entry timeout override. Anything higher than
+// this almost certainly means the admin typed seconds in a milliseconds
+// field by accident; capping at 10 minutes keeps a fat-fingered entry from
+// holding the orchestrator open past the overall budget.
+const TIMEOUT_OVERRIDE_MAX_MS = 600_000
+
 export type ScraperProvidersFormChangeKey =
 	| 'scrapeProviderTimeoutMs'
 	| 'scrapeOverallTimeoutMs'
@@ -360,10 +366,11 @@ function EntryCard({
 	}
 
 	const displayName = draft.name.trim() || TYPE_LABELS[entry.type]
+	const expanded = open || dirty
 
 	return (
-		<Collapsible open={open || dirty} onOpenChange={setOpen} className="rounded-md border">
-			<div className="flex items-center gap-2 p-3">
+		<Collapsible open={expanded} onOpenChange={setOpen} className="overflow-hidden rounded-md border bg-muted/40 shadow-sm">
+			<div className={`flex items-center gap-2 p-3 ${expanded ? 'bg-muted border-b' : ''}`}>
 				<Badge variant="secondary" className="font-mono text-xs shrink-0">
 					{TYPE_LABELS[entry.type]}
 				</Badge>
@@ -401,7 +408,7 @@ function EntryCard({
 				</Button>
 			</div>
 
-			<CollapsibleContent className="space-y-4 px-4 pb-4 pt-1 border-t">
+			<CollapsibleContent className="space-y-4 px-4 pb-4 pt-3">
 				<div className="space-y-1.5 pt-3">
 					<Label htmlFor={`scraper-name-${entry.id}`} className="text-base">
 						Name
@@ -446,6 +453,8 @@ function EntryCard({
 						{draft.tier === 5 ? '' : "'s merged result"} falls below the quality threshold.
 					</p>
 				</div>
+
+				<TimeoutOverrideRow draft={draft} setDraft={setDraft} disabled={disabled} />
 
 				<EntryFields draft={draft} setDraft={setDraft} disabled={disabled} />
 
@@ -993,8 +1002,93 @@ function ResponseKindHelp({ kind }: { kind: 'html' | 'json' }) {
 	)
 }
 
+// Optional per-entry override for the orchestrator's per-provider timeout.
+// Empty input commits as `undefined`, which the server schema treats as
+// "inherit the global scrapeProviderTimeoutMs".
+function TimeoutOverrideRow({
+	draft,
+	setDraft,
+	disabled,
+}: {
+	draft: ScrapeProviderEntry
+	setDraft: React.Dispatch<React.SetStateAction<ScrapeProviderEntry>>
+	disabled: boolean
+}) {
+	const id = `scraper-timeout-${draft.id}`
+	const formatForDisplay = (ms: number | undefined): string => (ms === undefined ? '' : String(ms / 1000))
+	const [text, setText] = useState(formatForDisplay(draft.timeoutMs))
+
+	useEffect(() => {
+		setText(formatForDisplay(draft.timeoutMs))
+	}, [draft.timeoutMs])
+
+	const commit = () => {
+		const trimmed = text.trim()
+		if (trimmed === '') {
+			if (draft.timeoutMs !== undefined) {
+				setDraft(prev => ({ ...prev, timeoutMs: undefined }) as ScrapeProviderEntry)
+			}
+			setText('')
+			return
+		}
+		const parsed = Number.parseFloat(trimmed)
+		if (!Number.isFinite(parsed) || parsed <= 0) {
+			setText(formatForDisplay(draft.timeoutMs))
+			return
+		}
+		const stored = Math.min(TIMEOUT_OVERRIDE_MAX_MS, Math.max(1, Math.round(parsed * 1000)))
+		if (stored !== draft.timeoutMs) {
+			setDraft(prev => ({ ...prev, timeoutMs: stored }) as ScrapeProviderEntry)
+		}
+		setText(String(stored / 1000))
+	}
+
+	return (
+		<div className="space-y-1.5">
+			<Label htmlFor={id} className="text-base">
+				Timeout override (optional)
+			</Label>
+			<div className="relative w-full sm:max-w-xs">
+				<Input
+					id={id}
+					type="number"
+					inputMode="numeric"
+					min={1}
+					max={TIMEOUT_OVERRIDE_MAX_MS / 1000}
+					step="any"
+					value={text}
+					placeholder="Inherit global timeout"
+					disabled={disabled}
+					className="pr-10"
+					onChange={e => setText(e.target.value)}
+					onBlur={commit}
+					onKeyDown={e => {
+						if (e.key === 'Enter') {
+							e.preventDefault()
+							commit()
+						}
+					}}
+				/>
+				<span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground">s</span>
+			</div>
+			<p className="text-xs text-muted-foreground">
+				Leave blank to use the global per-provider timeout above. Set a longer value for slow scrapers (Stagehand, AI) without bumping every
+				other provider&apos;s budget.
+			</p>
+		</div>
+	)
+}
+
 function isSameEntry(a: ScrapeProviderEntry, b: ScrapeProviderEntry): boolean {
-	if (a.id !== b.id || a.type !== b.type || a.name !== b.name || a.enabled !== b.enabled || a.tier !== b.tier) return false
+	if (
+		a.id !== b.id ||
+		a.type !== b.type ||
+		a.name !== b.name ||
+		a.enabled !== b.enabled ||
+		a.tier !== b.tier ||
+		a.timeoutMs !== b.timeoutMs
+	)
+		return false
 	switch (a.type) {
 		case 'browserless':
 			return b.type === 'browserless' && a.url === b.url && (a.token ?? '') === (b.token ?? '')

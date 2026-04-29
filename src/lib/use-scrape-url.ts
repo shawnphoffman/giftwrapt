@@ -7,7 +7,11 @@ import type { OrchestrateErrorReason, ScrapeErrorCode, ScrapeResult, StreamEvent
 // State machine surfaced to consumers (the add-item form, the progress alert)
 // ===========================================================================
 
-export type ProviderStatus = 'pending' | 'in_progress' | 'done' | 'failed'
+// `skipped` means the provider's tier was bypassed because an earlier tier
+// already cleared the quality threshold. Distinct from `pending` (queued
+// and may still run) so the progress UI doesn't count never-running
+// providers as "still checking".
+export type ProviderStatus = 'pending' | 'in_progress' | 'done' | 'failed' | 'skipped'
 
 export type ProviderProgress = {
 	providerId: string
@@ -216,9 +220,16 @@ export function reduce(state: ScrapeUiState, event: StreamEvent): ScrapeUiState 
 			}
 		}
 		case 'tier_skipped': {
+			// Also mark the tier's providers as skipped so the progress UI
+			// doesn't count them in "still checking N sources" (they're
+			// queued but the orchestrator already broke out of the chain).
+			const skippedIds = new Set(state.tiers?.find(t => t.tier === event.tier)?.providerIds ?? [])
 			return {
 				...state,
 				tiers: state.tiers?.map(t => (t.tier === event.tier ? { ...t, status: 'skipped' as const } : t)),
+				providers: state.providers.map(p =>
+					skippedIds.has(p.providerId) && p.status === 'pending' ? { ...p, status: 'skipped' as const } : p
+				),
 			}
 		}
 		case 'attempt_started': {

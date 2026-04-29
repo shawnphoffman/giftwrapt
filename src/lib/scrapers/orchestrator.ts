@@ -121,13 +121,16 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 		} else {
 			overallController.signal.addEventListener('abort', onAbort, { once: true })
 		}
-		const perTimer = setTimeout(() => perCtrl.abort(new Error('per-provider timeout')), perProviderTimeoutMs)
+		// Per-entry override wins over the global setting. Empty/undefined on
+		// the entry means "inherit", which is what most rows persist.
+		const attemptTimeoutMs = provider.timeoutMs ?? perProviderTimeoutMs
+		const perTimer = setTimeout(() => perCtrl.abort(new Error('per-provider timeout')), attemptTimeoutMs)
 
 		const ctx: ScrapeContext = {
 			url: options.url,
 			signal: perCtrl.signal,
 			logger: log.child({ provider: provider.id }),
-			perAttemptTimeoutMs: perProviderTimeoutMs,
+			perAttemptTimeoutMs: attemptTimeoutMs,
 			acceptLanguage: options.acceptLanguage,
 		}
 

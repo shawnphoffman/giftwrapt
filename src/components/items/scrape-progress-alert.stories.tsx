@@ -26,6 +26,14 @@ const baseProviders = [
 	{ providerId: 'flaresolverr-provider', status: 'pending' as const },
 ]
 
+// Realistic tier assignments mirrored across stories so each provider
+// renders the same tier badge wherever it appears.
+const baseTiers: ScrapeUiState['tiers'] = [
+	{ tier: 0, providerIds: ['fetch-provider'], status: 'pending' },
+	{ tier: 1, providerIds: ['browserless-provider'], status: 'pending' },
+	{ tier: 2, providerIds: ['flaresolverr-provider'], status: 'pending' },
+]
+
 export const ScrapingFresh: Story = {
 	args: {
 		url,
@@ -35,6 +43,10 @@ export const ScrapingFresh: Story = {
 			providers: [
 				{ providerId: 'fetch-provider', status: 'in_progress' },
 				{ providerId: 'browserless-provider', status: 'pending' },
+			],
+			tiers: [
+				{ tier: 0, providerIds: ['fetch-provider'], status: 'in_progress' },
+				{ tier: 1, providerIds: ['browserless-provider'], status: 'pending' },
 			],
 			elapsedMs: 1240,
 			totalTimeoutMs: 20_000,
@@ -54,8 +66,50 @@ export const ScrapingMixed: Story = {
 				{ providerId: 'browserless-provider', status: 'in_progress' },
 				{ providerId: 'flaresolverr-provider', status: 'pending' },
 			],
+			tiers: [
+				{ tier: 0, providerIds: ['fetch-provider'], status: 'done' },
+				{ tier: 1, providerIds: ['browserless-provider'], status: 'in_progress' },
+				{ tier: 2, providerIds: ['flaresolverr-provider'], status: 'pending' },
+			],
 			elapsedMs: 4870,
 			totalTimeoutMs: 20_000,
+		},
+		onCancel: () => undefined,
+	},
+}
+
+// Tier 1 cleared the threshold so tier 2 is `skipped`, not `pending`.
+// Confirms the alert no longer counts skipped-tier providers in
+// "Still checking N sources".
+export const PartialWithSkippedTier: Story = {
+	args: {
+		url,
+		state: {
+			providerNames: {},
+			phase: 'partial',
+			providers: [
+				{ providerId: 'fetch-provider', status: 'done', score: 5, ms: 423 },
+				{ providerId: 'browserless-provider', status: 'done', score: 6, ms: 1180 },
+				{ providerId: 'flaresolverr-provider', status: 'skipped' },
+				{ providerId: 'ai-provider', status: 'in_progress' },
+			],
+			tiers: [
+				{ tier: 0, providerIds: ['fetch-provider'], status: 'done' },
+				{ tier: 1, providerIds: ['browserless-provider'], status: 'done', cleared: true },
+				{ tier: 2, providerIds: ['flaresolverr-provider'], status: 'skipped' },
+				{ tier: 3, providerIds: ['ai-provider'], status: 'in_progress' },
+			],
+			elapsedMs: 2400,
+			totalTimeoutMs: 20_000,
+			result: {
+				title: 'ACME Widget 2-pack',
+				imageUrls: ['https://cdn.example.test/widget.jpg'],
+				price: '29.99',
+				currency: 'USD',
+				finalUrl: url,
+			},
+			fromProvider: 'browserless-provider',
+			cached: false,
 		},
 		onCancel: () => undefined,
 	},
@@ -68,6 +122,7 @@ export const ScrapingLong: Story = {
 			providerNames: {},
 			phase: 'scraping',
 			providers: baseProviders,
+			tiers: baseTiers,
 			elapsedMs: 14_500,
 			totalTimeoutMs: 20_000,
 		},
@@ -84,6 +139,10 @@ export const Partial: Story = {
 			providers: [
 				{ providerId: 'fetch-provider', status: 'done', score: 5, ms: 423 },
 				{ providerId: 'ai-provider', status: 'in_progress' },
+			],
+			tiers: [
+				{ tier: 0, providerIds: ['fetch-provider'], status: 'done' },
+				{ tier: 3, providerIds: ['ai-provider'], status: 'in_progress' },
 			],
 			elapsedMs: 1900,
 			totalTimeoutMs: 20_000,
@@ -109,6 +168,7 @@ export const Done: Story = {
 			providerNames: {},
 			phase: 'done',
 			providers: [{ providerId: 'fetch-provider', status: 'done', score: 6, ms: 423 }],
+			tiers: [{ tier: 0, providerIds: ['fetch-provider'], status: 'done' }],
 			elapsedMs: 423,
 			totalTimeoutMs: 20_000,
 			result: {
@@ -148,6 +208,7 @@ export const FailedAllProviders: Story = {
 			providerNames: {},
 			phase: 'failed',
 			providers: [{ providerId: 'fetch-provider', status: 'failed', errorCode: 'bot_block', ms: 320 }],
+			tiers: [{ tier: 0, providerIds: ['fetch-provider'], status: 'done' }],
 			elapsedMs: 320,
 			reason: 'all-providers-failed',
 		},
@@ -164,6 +225,10 @@ export const FailedTimeout: Story = {
 			providers: [
 				{ providerId: 'fetch-provider', status: 'failed', errorCode: 'timeout', ms: 10_000 },
 				{ providerId: 'browserless-provider', status: 'in_progress' },
+			],
+			tiers: [
+				{ tier: 0, providerIds: ['fetch-provider'], status: 'done' },
+				{ tier: 1, providerIds: ['browserless-provider'], status: 'in_progress' },
 			],
 			elapsedMs: 20_000,
 			totalTimeoutMs: 20_000,

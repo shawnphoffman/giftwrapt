@@ -43,6 +43,7 @@ export function createBrowserbaseStagehandProvider(entry: BrowserbaseStagehandEn
 		name: entry.name,
 		kind: 'structured',
 		tier: entry.tier,
+		timeoutMs: entry.timeoutMs,
 		isAvailable: () => entry.enabled && entry.apiKey.trim().length > 0 && entry.projectId.trim().length > 0,
 		fetch: ctx => runBrowserbaseStagehandProvider(ctx, entry, providerId),
 	}

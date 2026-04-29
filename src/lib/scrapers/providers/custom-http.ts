@@ -50,6 +50,7 @@ export function createCustomHttpProvider(entry: CustomHttpEntry): ScrapeProvider
 		name: entry.name,
 		kind: 'html',
 		tier: entry.tier,
+		timeoutMs: entry.timeoutMs,
 		isAvailable: () => entry.enabled && isParseableUrl(entry.endpoint),
 		fetch: ctx => runCustomHttpProvider(ctx, entry, providerId),
 	}

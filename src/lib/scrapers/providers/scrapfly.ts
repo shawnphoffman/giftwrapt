@@ -46,6 +46,7 @@ export function createScrapflyProvider(entry: ScrapflyEntry): ScrapeProvider {
 		name: entry.name,
 		kind: 'html',
 		tier: entry.tier,
+		timeoutMs: entry.timeoutMs,
 		isAvailable: () => entry.enabled && entry.apiKey.trim().length > 0,
 		fetch: ctx => runScrapflyProvider(ctx, entry, providerId),
 	}

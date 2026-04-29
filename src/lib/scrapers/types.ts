@@ -104,6 +104,11 @@ export type ScrapeProvider = {
 	// threshold. Used by `ai-provider` in commit A; in commit B `ai-provider`
 	// becomes a regular tiered entry and parallel-racer mode goes away.
 	readonly tier?: number
+	// Optional per-provider override for the orchestrator's per-attempt
+	// timeout. Undefined means the orchestrator falls back to its
+	// `perProviderTimeoutMs` dep (which itself defaults to the global
+	// `scrapeProviderTimeoutMs` setting).
+	readonly timeoutMs?: number
 	// Cheap availability check the orchestrator runs at chain assembly time.
 	// Lets a provider exclude itself when its env / config is missing without
 	// throwing later.

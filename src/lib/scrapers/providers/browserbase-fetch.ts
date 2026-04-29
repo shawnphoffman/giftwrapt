@@ -41,6 +41,7 @@ export function createBrowserbaseFetchProvider(entry: BrowserbaseFetchEntry): Sc
 		name: entry.name,
 		kind: 'html',
 		tier: entry.tier,
+		timeoutMs: entry.timeoutMs,
 		isAvailable: () => entry.enabled && entry.apiKey.trim().length > 0,
 		fetch: ctx => runBrowserbaseFetchProvider(ctx, entry, providerId),
 	}
