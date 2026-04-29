@@ -16,7 +16,7 @@ export function RecentCommentsPageContent({ rows }: Props) {
 					<MessagesSquare className="text-teal-500 wish-page-icon" />
 				</div>
 
-				<p className="text-sm text-muted-foreground">Items with comment activity in the last 30 days, ordered by the most recent reply.</p>
+				<p className="text-sm text-muted-foreground">Items with comment activity in the last 60 days, ordered by the most recent reply.</p>
 
 				{rows.length === 0 ? (
 					<div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg bg-accent/30">

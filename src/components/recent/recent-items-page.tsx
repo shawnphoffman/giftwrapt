@@ -16,11 +16,11 @@ export function RecentItemsPageContent({ items }: Props) {
 					<Inbox className="text-purple-500 wish-page-icon" />
 				</div>
 
-				<p className="text-sm text-muted-foreground">New items added to lists you can see in the last 30 days, newest first.</p>
+				<p className="text-sm text-muted-foreground">New items added to lists you can see in the last 60 days, newest first.</p>
 
 				{items.length === 0 ? (
 					<div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg bg-accent/30">
-						No recent items in the last 30 days.
+						No recent items in the last 60 days.
 					</div>
 				) : (
 					<div className="flex flex-col gap-2 xs:pl-6">

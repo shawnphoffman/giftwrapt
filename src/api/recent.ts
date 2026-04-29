@@ -33,8 +33,8 @@ export const getRecentItems = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.handler(async ({ context }): Promise<Array<RecentItemRow>> => {
 		const viewerId = context.session.user.id
-		const thirtyDaysAgo = new Date()
-		thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+		const sixtyDaysAgo = new Date()
+		sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
 
 		const deniedOwners = db
 			.select({ ownerUserId: userRelationships.ownerUserId })
@@ -61,7 +61,7 @@ export const getRecentItems = createServerFn({ method: 'GET' })
 			.from(items)
 			.innerJoin(lists, and(eq(lists.id, items.listId), eq(lists.isActive, true), eq(lists.isPrivate, false)))
 			.innerJoin(users, eq(users.id, lists.ownerId))
-			.where(and(eq(items.isArchived, false), gte(items.createdAt, thirtyDaysAgo), notInArray(lists.ownerId, deniedOwners)))
+			.where(and(eq(items.isArchived, false), gte(items.createdAt, sixtyDaysAgo), notInArray(lists.ownerId, deniedOwners)))
 			.orderBy(desc(items.createdAt))
 			.limit(50)
 
@@ -124,8 +124,8 @@ export const getRecentConversations = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.handler(async ({ context }): Promise<Array<RecentConversationRow>> => {
 		const viewerId = context.session.user.id
-		const thirtyDaysAgo = new Date()
-		thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+		const sixtyDaysAgo = new Date()
+		sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
 
 		const deniedOwners = db
 			.select({ ownerUserId: userRelationships.ownerUserId })
@@ -141,7 +141,7 @@ export const getRecentConversations = createServerFn({ method: 'GET' })
 			.from(itemComments)
 			.innerJoin(items, eq(items.id, itemComments.itemId))
 			.innerJoin(lists, and(eq(lists.id, items.listId), eq(lists.isActive, true), eq(lists.isPrivate, false)))
-			.where(and(eq(items.isArchived, false), gte(itemComments.createdAt, thirtyDaysAgo), notInArray(lists.ownerId, deniedOwners)))
+			.where(and(eq(items.isArchived, false), gte(itemComments.createdAt, sixtyDaysAgo), notInArray(lists.ownerId, deniedOwners)))
 			.groupBy(itemComments.itemId)
 			.orderBy(desc(max(itemComments.createdAt)))
 			.limit(ITEM_LIMIT)
