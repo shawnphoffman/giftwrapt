@@ -77,7 +77,7 @@ function ListDetailPage() {
 				<div className="relative flex items-center gap-3">
 					<div className="flex flex-col gap-0.5 min-w-0">
 						<div className="flex items-center min-w-0 gap-2">
-							<UserAvatar name={recipientName} image={list.owner.image} />
+							<UserAvatar name={recipientName} image={list.owner.image} className="size-12 border-2 border-background" />
 							<h1 className="truncate">{list.name}</h1>
 						</div>
 					</div>

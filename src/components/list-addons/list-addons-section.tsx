@@ -40,13 +40,13 @@ export function ListAddonsSection({ listId, addons }: Props) {
 					</Popover>
 				</div>
 				<Button size="sm" variant="outline" onClick={() => setCreateDialogOpen(true)}>
-					<PackagePlus className="size-4" />
+					<PackagePlus className="size-4 transition-colors group-hover/button:text-orange-500" />
 					Add Off-List Gift
 				</Button>
 			</div>
 
 			{activeAddons.length === 0 ? (
-				<p className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30">
+				<p className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30 xs:ml-6">
 					No off-list gifts yet. If you're getting something that isn't on the list, add it here so other gifters can see.
 				</p>
 			) : (

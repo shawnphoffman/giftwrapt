@@ -134,7 +134,7 @@ export default function ItemList({ listId, groups = [] }: Props) {
 	}, [filteredItems, groups, sort])
 
 	if (items.length === 0) {
-		return <EmptyMessage message="No items to display" />
+		return <EmptyMessage message="No items to display" className="xs:ml-6" />
 	}
 
 	const toggleVendor = (id: string) => {
@@ -241,7 +241,7 @@ export default function ItemList({ listId, groups = [] }: Props) {
 			</div>
 
 			{entries.length === 0 ? (
-				<EmptyMessage message="No items match the current filter" />
+				<EmptyMessage message="No items match the current filter" className="xs:ml-6" />
 			) : (
 				<div className="flex flex-col gap-2 xs:pl-6">
 					{entries.map(entry =>
