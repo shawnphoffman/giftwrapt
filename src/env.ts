@@ -36,8 +36,11 @@ export const env = createEnv({
 		AI_API_KEY: z.string().min(1).optional(),
 		AI_MODEL: z.string().min(1).optional(),
 		AI_MAX_OUTPUT_TOKENS: z.coerce.number().int().min(1).max(32_000).optional(),
-		// Cron job authentication
-		CRON_SECRET: z.string().min(1).optional(),
+		// Cron job authentication. Optional (cron handlers fail-closed and
+		// return 503 when unset), but if set must be a meaningful secret.
+		// Compared against the `Authorization: Bearer ...` header in
+		// `src/routes/api/cron/_auth.ts` with a timing-safe comparison.
+		CRON_SECRET: z.string().min(32).optional(),
 		// URL scraping (legacy first-boot seeds). Scrape providers are now
 		// configured under /admin/scraping and stored in app_settings; these
 		// env vars exist as a one-shot seed for self-hosters upgrading from

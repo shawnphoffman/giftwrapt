@@ -5,11 +5,12 @@ import { and, eq, inArray } from 'drizzle-orm'
 import { db } from '@/db'
 import { giftedItems, items, lists, users } from '@/db/schema'
 import type { BirthMonth } from '@/db/schema/enums'
-import { env } from '@/env'
 import { formatGifterNames, namesForGifter, type PartneredUser } from '@/lib/gifters'
 import { createLogger } from '@/lib/logger'
 import { isEmailConfigured, sendBirthdayEmail, sendPostBirthdayEmail } from '@/lib/resend'
 import { getAppSettings } from '@/lib/settings-loader'
+
+import { checkCronAuth } from './_auth'
 
 const cronLog = createLogger('cron:birthday-emails')
 
@@ -22,7 +23,9 @@ const cronLog = createLogger('cron:birthday-emails')
 //   2. Follow-up: 14 days after birthday, send "what you got" summary
 //      with archived gifted items.
 //
-// Protected by CRON_SECRET header check to prevent public access.
+// Protected by CRON_SECRET bearer-token check (see _auth.ts). Refuses
+// to run when CRON_SECRET is unset, so an operator can't accidentally
+// expose this endpoint by forgetting to configure the secret.
 
 const MONTHS: ReadonlyArray<BirthMonth> = [
 	'january',
@@ -48,15 +51,8 @@ export const Route = createFileRoute('/api/cron/birthday-emails')({
 				const started = Date.now()
 				cronLog.info('cron run starting')
 
-				// Verify cron secret.
-				const cronSecret = env.CRON_SECRET
-				if (cronSecret) {
-					const authHeader = request.headers.get('authorization')
-					if (authHeader !== `Bearer ${cronSecret}`) {
-						cronLog.warn('unauthorized cron invocation')
-						return json({ error: 'Unauthorized' }, { status: 401 })
-					}
-				}
+				const authError = checkCronAuth(request, cronLog)
+				if (authError) return authError
 
 				if (!(await isEmailConfigured())) {
 					cronLog.info('skipped: email not configured')

@@ -5,9 +5,10 @@ import { and, eq, inArray } from 'drizzle-orm'
 import { db } from '@/db'
 import { giftedItems, items, lists, users } from '@/db/schema'
 import type { BirthMonth } from '@/db/schema/enums'
-import { env } from '@/env'
 import { createLogger } from '@/lib/logger'
 import { getAppSettings } from '@/lib/settings-loader'
+
+import { checkCronAuth } from './_auth'
 
 const cronLog = createLogger('cron:auto-archive')
 
@@ -25,7 +26,9 @@ const cronLog = createLogger('cron:auto-archive')
 // "Archive" means setting items.isArchived = true, which reveals
 // gifter info to the recipient on their Received Gifts page.
 //
-// Protected by CRON_SECRET header check.
+// Protected by CRON_SECRET bearer-token check (see _auth.ts). Refuses
+// to run when CRON_SECRET is unset, so an operator can't accidentally
+// expose this endpoint by forgetting to configure the secret.
 
 const MONTHS: ReadonlyArray<BirthMonth> = [
 	'january',
@@ -49,14 +52,8 @@ export const Route = createFileRoute('/api/cron/auto-archive')({
 				const started = Date.now()
 				cronLog.info('cron run starting')
 
-				const cronSecret = env.CRON_SECRET
-				if (cronSecret) {
-					const authHeader = request.headers.get('authorization')
-					if (authHeader !== `Bearer ${cronSecret}`) {
-						cronLog.warn('unauthorized cron invocation')
-						return json({ error: 'Unauthorized' }, { status: 401 })
-					}
-				}
+				const authError = checkCronAuth(request, cronLog)
+				if (authError) return authError
 
 				const settings = await getAppSettings(db)
 				const now = new Date()
