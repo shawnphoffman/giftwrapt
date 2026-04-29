@@ -5,7 +5,16 @@
  * editors + comments so local dev can pop into any account and verify
  * functionality quickly.
  *
- * Safety:
+ * !!!  DEV ONLY  !!!
+ *
+ * The seeded passwords (`SeedPass123!`) are committed to this repo, baked
+ * into stories, and documented in docs/local-dev-admin.md - they are
+ * effectively public. Anyone who can reach a server with this seed loaded
+ * has admin access. Never run against a database that anything outside
+ * your laptop can connect to. See sec-review L3.
+ *
+ * Safety guards (the script enforces these but they are not a substitute
+ * for never running it on a non-local DB in the first place):
  *  - Refuses to run unless SEED_SAFE=1 is set in the environment.
  *  - Refuses to run if DATABASE_URL points at anything that looks remote -
  *    only localhost / 127.0.0.1 / docker hostnames are allowed.

@@ -1,5 +1,8 @@
 # Local dev admin
 
+> [!CAUTION]
+> Every credential on this page is committed to this repo and indexed by every search engine. Anyone who can reach a server with the seed loaded has admin. **Only run `pnpm db:seed` against a database your laptop is the only thing that can talk to.** Never against staging, never against a "throwaway" cloud DB, never against anything bound to a public IP. The script's guards (`SEED_SAFE=1`, hostname allowlist) are a backstop, not a substitute for that rule.
+
 The seeded local-dev admin account:
 
 | Field    | Value                |
