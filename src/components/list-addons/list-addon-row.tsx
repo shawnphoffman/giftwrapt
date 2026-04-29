@@ -1,5 +1,5 @@
 import { useRouter } from '@tanstack/react-router'
-import { Pencil, Trash2 } from 'lucide-react'
+import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -18,6 +18,7 @@ import {
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useSession } from '@/lib/auth-client'
 
 import { ListAddonDialog } from './list-addon-dialog'
@@ -65,43 +66,46 @@ export function ListAddonRow({ addon, listId }: Props) {
 	}
 
 	return (
-		<div className="flex flex-col gap-2 p-3 ps-4 ring-1 ring-inset ring-border rounded-lg bg-card shadow-sm">
-			<div className="flex flex-row items-start gap-3">
-				<div className="flex flex-col flex-1 gap-0.5 overflow-hidden">
-					<div className="font-medium leading-tight truncate">{addon.description}</div>
-					{addon.totalCost && (
-						<div className="flex flex-row flex-wrap items-center gap-1.5">
-							<span className="px-2 text-xs border rounded whitespace-nowrap bg-card w-fit">${addon.totalCost}</span>
-						</div>
+		<div className="relative z-10 flex items-start gap-2 p-3 ps-4 ring-1 ring-inset ring-border rounded-lg bg-card shadow-sm">
+			<div className="flex flex-col w-full gap-2">
+				{/* HEADER */}
+				<div className="flex items-center gap-2 font-medium leading-tight">
+					<span className="truncate min-w-0">{addon.description}</span>
+					<span className="flex-1" />
+					{isMine && (
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button variant="ghost" size="icon" className="size-7 shrink-0" aria-label="Off-list gift actions">
+									<MoreHorizontal className="size-5" />
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end">
+								<DropdownMenuItem onClick={() => setEditDialogOpen(true)}>
+									<Pencil className="size-4" />
+									Edit
+								</DropdownMenuItem>
+								<DropdownMenuItem variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
+									<Trash2 className="size-4" />
+									Delete
+								</DropdownMenuItem>
+							</DropdownMenuContent>
+						</DropdownMenu>
 					)}
-					{addon.notes && <MarkdownNotes content={addon.notes} className="text-xs text-foreground/75 mt-1" />}
 				</div>
-			</div>
 
-			<div className="flex flex-row items-center flex-wrap gap-2">
-				<div className="flex flex-row items-center gap-1.5 text-xs text-muted-foreground">
+				{/* CONTENT */}
+				{(addon.totalCost || addon.notes) && (
+					<div className="flex flex-col gap-1">
+						{addon.totalCost && <span className="px-2 text-xs border rounded whitespace-nowrap bg-card w-fit">${addon.totalCost}</span>}
+						{addon.notes && <MarkdownNotes content={addon.notes} className="text-xs text-foreground/75" />}
+					</div>
+				)}
+
+				{/* FOOTER */}
+				<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
 					<UserAvatar name={name} image={addon.user.image} size="small" />
 					<span>{isMine ? 'You' : name}</span>
 				</div>
-
-				{isMine && (
-					<div className="flex flex-row items-center gap-1 ml-auto">
-						<Button size="sm" variant="ghost" className="h-7" onClick={() => setEditDialogOpen(true)} title="Edit">
-							<Pencil className="size-4" />
-							Edit
-						</Button>
-						<Button
-							size="sm"
-							variant="ghost"
-							onClick={() => setDeleteDialogOpen(true)}
-							title="Delete"
-							className="h-7 text-destructive hover:text-destructive"
-						>
-							<Trash2 className="size-4" />
-							Delete
-						</Button>
-					</div>
-				)}
 			</div>
 
 			{isMine && editDialogOpen && (
@@ -117,7 +121,7 @@ export function ListAddonRow({ addon, listId }: Props) {
 					<AlertDialogFooter>
 						<AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
 						<AlertDialogAction onClick={handleDelete} disabled={deleting}>
-							{deleting ? 'Deleting\u2026' : 'Yes, delete'}
+							{deleting ? 'Deleting…' : 'Yes, delete'}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
