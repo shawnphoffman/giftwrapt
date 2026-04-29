@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 import sharp from 'sharp'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { createItemImpl, updateItemImpl } from '@/api/items'
+import { createItemImpl, updateItemImpl } from '@/api/_items-impl'
 import { appSettings, items } from '@/db/schema'
 import type * as EnvModule from '@/env'
 import { _setStorageForTesting, type StorageAdapter } from '@/lib/storage/adapter'
