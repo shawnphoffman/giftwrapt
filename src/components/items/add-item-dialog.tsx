@@ -1,11 +1,12 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
-import { Loader2, Lock, Sparkles, Star } from 'lucide-react'
+import { Loader2, Lock, Sparkles, Star, Trash2, Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { createItem } from '@/api/items'
 import { getMyLists, type MyListRow } from '@/api/lists'
+import { uploadItemImage } from '@/api/uploads'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import { MarkdownTextarea } from '@/components/common/markdown-textarea'
 import PriorityIcon from '@/components/common/priority-icon'
@@ -19,8 +20,10 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { type Priority, priorityEnumValues } from '@/db/schema/enums'
+import { useStorageStatus } from '@/hooks/use-storage-status'
 import { itemsKeys } from '@/lib/queries/items'
 import { applyScrapePrefill } from '@/lib/scrapers/apply-prefill'
+import { resizeImageForUpload } from '@/lib/storage/client-resize'
 import { useScrapeUrl } from '@/lib/use-scrape-url'
 
 import { ImagePicker } from './image-picker'
@@ -73,6 +76,13 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 	// that drives the picker UI when more than one survives extraction.
 	const [imageUrl, setImageUrl] = useState('')
 	const [imageCandidates, setImageCandidates] = useState<ReadonlyArray<string>>([])
+	// Staged file for direct upload. We can't run the upload until the item
+	// row exists (the storage key embeds itemId), so we hold onto the File
+	// here and post-process after createItem succeeds.
+	const [stagedFile, setStagedFile] = useState<File | null>(null)
+	const [stagedPreview, setStagedPreview] = useState<string | null>(null)
+	const fileInputRef = useRef<HTMLInputElement>(null)
+	const { configured: storageConfigured } = useStorageStatus()
 
 	// Track the most recently auto-scraped URL so the blur handler doesn't
 	// re-fire on every focus change while the URL is unchanged. Manual
@@ -112,11 +122,25 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 			setPriority('normal')
 			setImageUrl('')
 			setImageCandidates([])
+			setStagedFile(null)
+			setStagedPreview(null)
 			setError(null)
 			lastScrapedUrlRef.current = ''
 			cancelScrape()
 		}
 	}, [open, cancelScrape])
+
+	// Object URL for the staged file's thumbnail preview. Created when a file
+	// is picked, revoked on swap or close so the blob memory doesn't linger.
+	useEffect(() => {
+		if (!stagedFile) {
+			setStagedPreview(null)
+			return
+		}
+		const previewUrl = URL.createObjectURL(stagedFile)
+		setStagedPreview(previewUrl)
+		return () => URL.revokeObjectURL(previewUrl)
+	}, [stagedFile])
 
 	// Prefill empty (or untouched) fields when a scrape result arrives. Runs
 	// for both `partial` (a winner is in but parallels still racing) and
@@ -209,6 +233,26 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 				return
 			}
 
+			// Upload the staged file (if any) now that we have an itemId. The
+			// storage key embeds itemId, so this can't run earlier. A failure
+			// here doesn't roll back the item — the user can retry the upload
+			// from the edit dialog.
+			if (stagedFile) {
+				try {
+					const upload = await resizeImageForUpload(stagedFile)
+					const formData = new FormData()
+					formData.append('file', upload)
+					formData.append('itemId', String(result.item.id))
+					const uploadResult = await uploadItemImage({ data: formData })
+					if (uploadResult.kind === 'error') {
+						toast.error(`Image upload failed: ${uploadResult.message}`)
+					}
+				} catch (uploadErr) {
+					const msg = uploadErr instanceof Error ? uploadErr.message : 'unknown error'
+					toast.error(`Image upload failed: ${msg}`)
+				}
+			}
+
 			toast.success('Item added')
 			onOpenChange(false)
 			queryClient.invalidateQueries({ queryKey: ['recent', 'items'] })
@@ -220,6 +264,19 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 			setSaving(false)
 		}
 	}
+
+	const handleFilePick = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0] ?? null
+		e.target.value = ''
+		if (!file) return
+		setStagedFile(file)
+		// A direct upload supersedes any candidate URL selection — the saved
+		// item ends up with the uploaded image, so showing both as "selected"
+		// would be misleading.
+		setImageUrl('')
+	}
+
+	const clearStagedFile = () => setStagedFile(null)
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -317,7 +374,42 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 							</InputGroupAddon>
 						</InputGroup>
 						<ScrapeProgressAlert state={scrapeState} url={url} onCancel={cancelScrape} onRetry={handleScrapeRetry} className="mt-1" />
-						<ImagePicker images={imageCandidates} value={imageUrl} onChange={setImageUrl} disabled={formLocked} className="mt-2" />
+						<ImagePicker
+							images={imageCandidates}
+							value={imageUrl}
+							onChange={u => {
+								setImageUrl(u)
+								if (u) setStagedFile(null)
+							}}
+							disabled={formLocked}
+							className="mt-2"
+						/>
+						{storageConfigured && (
+							<div className="mt-2 flex items-center gap-2">
+								<input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handleFilePick} />
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									onClick={() => fileInputRef.current?.click()}
+									disabled={formLocked}
+									className="gap-1.5"
+								>
+									<Upload className="size-4" />
+									{stagedFile ? 'Replace image' : 'Upload image'}
+								</Button>
+								{stagedFile && (
+									<>
+										{stagedPreview && <img src={stagedPreview} alt="" className="size-9 rounded border object-cover" />}
+										<span className="truncate text-xs text-muted-foreground">{stagedFile.name}</span>
+										<Button type="button" variant="ghost" size="sm" onClick={clearStagedFile} disabled={formLocked} className="gap-1.5">
+											<Trash2 className="size-3" />
+											Remove
+										</Button>
+									</>
+								)}
+							</div>
+						)}
 					</div>
 
 					<div className="grid gap-2">

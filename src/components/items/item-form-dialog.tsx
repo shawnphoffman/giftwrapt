@@ -22,6 +22,7 @@ import { useStorageStatus } from '@/hooks/use-storage-status'
 import { useUpdateItem } from '@/lib/mutations/update-item'
 import { itemsKeys } from '@/lib/queries/items'
 import { applyScrapePrefill } from '@/lib/scrapers/apply-prefill'
+import { resizeImageForUpload } from '@/lib/storage/client-resize'
 import { useScrapeUrl } from '@/lib/use-scrape-url'
 
 import { ImagePicker } from './image-picker'
@@ -399,8 +400,12 @@ export function ItemFormDialog(props: Props) {
 								if (!file || !isEdit) return
 								setUploadingImage(true)
 								try {
+									// Pre-shrink on the client so the request body fits comfortably
+									// under the function-runtime limit (Vercel ~4.5 MB on Node, 1 MB
+									// on edge). Server still re-processes via Sharp.
+									const upload = await resizeImageForUpload(file)
 									const formData = new FormData()
-									formData.append('file', file)
+									formData.append('file', upload)
 									formData.append('itemId', String(props.item.id))
 									const result = await uploadItemImage({ data: formData })
 									if (result.kind === 'error') {
