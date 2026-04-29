@@ -146,6 +146,45 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 	})
 
 // ===============================
+// READ - batched list summaries (for internal-list link resolution)
+// ===============================
+// Resolves a set of list ids to their display names, honoring privacy: rows
+// the viewer can't see (private without grant, inactive, denied) are simply
+// omitted from the response. Owners always see their own lists. Used by
+// ItemRow to render a list-icon badge with the linked list's title when an
+// item URL points at another list in this app.
+
+const GetListSummariesInputSchema = z.object({
+	listIds: z.array(z.number().int().positive()).max(50),
+})
+
+export type ListSummary = { id: number; name: string }
+
+export const getListSummaries = createServerFn({ method: 'GET' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: z.input<typeof GetListSummariesInputSchema>) => GetListSummariesInputSchema.parse(data))
+	.handler(async ({ context, data }): Promise<{ summaries: Array<ListSummary> }> => {
+		if (data.listIds.length === 0) return { summaries: [] }
+
+		const userId = context.session.user.id
+		const rows = await db.query.lists.findMany({
+			where: inArray(lists.id, data.listIds),
+			columns: { id: true, name: true, ownerId: true, isPrivate: true, isActive: true },
+		})
+
+		const visible: Array<ListSummary> = []
+		for (const row of rows) {
+			if (row.ownerId === userId) {
+				if (row.isActive) visible.push({ id: row.id, name: row.name })
+				continue
+			}
+			const view = await canViewList(userId, row)
+			if (view.ok) visible.push({ id: row.id, name: row.name })
+		}
+		return { summaries: visible }
+	})
+
+// ===============================
 // READ - my lists (owner dashboard)
 // ===============================
 

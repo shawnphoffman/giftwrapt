@@ -1,9 +1,9 @@
-import { useSuspenseQuery } from '@tanstack/react-query'
+import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { ArrowDown, ArrowUp, ArrowUpDown, Check, Filter, Store } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import type { ItemWithGifts } from '@/api/items'
-import type { GroupSummary } from '@/api/lists'
+import { getListSummaries, type GroupSummary, type ListSummary } from '@/api/lists'
 import EmptyMessage from '@/components/common/empty-message'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,10 +17,11 @@ import {
 import type { Priority } from '@/db/schema/enums'
 import { buildListEntries, type ListEntry } from '@/lib/list-entries'
 import { listItemsViewQueryOptions } from '@/lib/queries/items'
-import { getVendorFromUrl, vendorIdToName } from '@/lib/urls'
+import { getVendorFromUrl, parseInternalListLink, vendorIdToName } from '@/lib/urls'
 import { cn } from '@/lib/utils'
 
 import { GroupViewBlock } from './group-view-block'
+import { InternalListLinksProvider } from './internal-list-links-context'
 import ItemRow from './item-row'
 
 type Props = {
@@ -88,6 +89,34 @@ export default function ItemList({ listId, groups = [] }: Props) {
 	const [filter, setFilter] = useState<FilterValue>('all')
 	const [vendorFilter, setVendorFilter] = useState<ReadonlySet<string>>(() => new Set())
 	const [sort, setSort] = useState<SortValue>('priority-desc')
+
+	// Detect URLs that point at other lists in this app, batched into one
+	// query so a list with N internal links makes a single roundtrip. The
+	// origin check is client-side, so SSR yields an empty id list and the
+	// row falls back to the standard external badge until hydration.
+	const internalListIds = useMemo(() => {
+		if (typeof window === 'undefined') return [] as Array<number>
+		const origin = window.location.origin
+		const set = new Set<number>()
+		for (const i of items) {
+			const hit = parseInternalListLink(i.url, origin)
+			if (hit) set.add(hit.listId)
+		}
+		return [...set].sort((a, b) => a - b)
+	}, [items])
+
+	const { data: summaryData } = useQuery({
+		queryKey: ['list-summaries', internalListIds],
+		queryFn: () => getListSummaries({ data: { listIds: internalListIds } }),
+		enabled: internalListIds.length > 0,
+		staleTime: 60_000,
+	})
+
+	const internalListLinks = useMemo(() => {
+		const map = new Map<number, ListSummary>()
+		for (const s of summaryData?.summaries ?? []) map.set(s.id, s)
+		return map
+	}, [summaryData])
 
 	// Effective vendor id for an item: stored vendorId, or derived from url
 	// if vendorId hasn'''t been backfilled yet. NO_LINK only when there'''s no
@@ -159,100 +188,102 @@ export default function ItemList({ listId, groups = [] }: Props) {
 	const SortDirectionIcon = sortIsDescending(sort) ? ArrowDown : ArrowUp
 
 	return (
-		<div className="flex flex-col gap-3">
-			<div className="flex flex-row items-center justify-end gap-1">
-				<DropdownMenu>
-					<DropdownMenuTrigger asChild>
-						<Button variant="ghost" size="sm" className={cn('h-7 text-xs text-muted-foreground', filter !== 'all' && 'text-foreground')}>
-							<Filter className="size-3.5" />
-							{filterLabels[filter]}
-						</Button>
-					</DropdownMenuTrigger>
-					<DropdownMenuContent align="end">
-						<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Filter</DropdownMenuLabel>
-						{(['all', 'unpurchased', 'purchased'] as const).map(v => (
-							<DropdownMenuItem key={v} onClick={() => setFilter(v)}>
-								<Check className={cn('size-4', filter !== v && 'opacity-0')} />
-								{filterLabels[v]}
-							</DropdownMenuItem>
-						))}
-					</DropdownMenuContent>
-				</DropdownMenu>
-
-				{vendorOptions.length >= 1 && (
+		<InternalListLinksProvider value={internalListLinks}>
+			<div className="flex flex-col gap-3">
+				<div className="flex flex-row items-center justify-end gap-1">
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
-							<Button
-								variant="ghost"
-								size="sm"
-								className={cn('h-7 text-xs text-muted-foreground', vendorFilter.size > 0 && 'text-foreground')}
-							>
-								<Store className="size-3.5" />
-								{vendorLabel}
+							<Button variant="ghost" size="sm" className={cn('h-7 text-xs text-muted-foreground', filter !== 'all' && 'text-foreground')}>
+								<Filter className="size-3.5" />
+								{filterLabels[filter]}
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
-							<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Vendor</DropdownMenuLabel>
-							<DropdownMenuItem onClick={() => setVendorFilter(new Set())}>
-								<Check className={cn('size-4', vendorFilter.size > 0 && 'opacity-0')} />
-								All vendors
-							</DropdownMenuItem>
-							<DropdownMenuSeparator />
-							{vendorOptions.map(v => (
-								<DropdownMenuItem key={v.id} onClick={() => toggleVendor(v.id)} onSelect={e => e.preventDefault()}>
-									<Check className={cn('size-4', !vendorFilter.has(v.id) && 'opacity-0')} />
-									{v.name}
+							<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Filter</DropdownMenuLabel>
+							{(['all', 'unpurchased', 'purchased'] as const).map(v => (
+								<DropdownMenuItem key={v} onClick={() => setFilter(v)}>
+									<Check className={cn('size-4', filter !== v && 'opacity-0')} />
+									{filterLabels[v]}
 								</DropdownMenuItem>
 							))}
 						</DropdownMenuContent>
 					</DropdownMenu>
-				)}
 
-				<DropdownMenu>
-					<DropdownMenuTrigger asChild>
-						<Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground">
-							<ArrowUpDown className="size-3.5" />
-							{sortLabels[sort]}
-							<SortDirectionIcon className="size-3" />
-						</Button>
-					</DropdownMenuTrigger>
-					<DropdownMenuContent align="end">
-						<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Sort by priority</DropdownMenuLabel>
-						<DropdownMenuItem onClick={() => setSort('priority-desc')}>
-							<Check className={cn('size-4', sort !== 'priority-desc' && 'opacity-0')} />
-							High to Low
-						</DropdownMenuItem>
-						<DropdownMenuItem onClick={() => setSort('priority-asc')}>
-							<Check className={cn('size-4', sort !== 'priority-asc' && 'opacity-0')} />
-							Low to High
-						</DropdownMenuItem>
-						<DropdownMenuSeparator />
-						<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Sort by date</DropdownMenuLabel>
-						<DropdownMenuItem onClick={() => setSort('date-desc')}>
-							<Check className={cn('size-4', sort !== 'date-desc' && 'opacity-0')} />
-							Newest first
-						</DropdownMenuItem>
-						<DropdownMenuItem onClick={() => setSort('date-asc')}>
-							<Check className={cn('size-4', sort !== 'date-asc' && 'opacity-0')} />
-							Oldest first
-						</DropdownMenuItem>
-					</DropdownMenuContent>
-				</DropdownMenu>
-			</div>
-
-			{entries.length === 0 ? (
-				<EmptyMessage message="No items match the current filter" className="xs:ml-6" />
-			) : (
-				<div className="flex flex-col gap-2 xs:pl-6">
-					{entries.map(entry =>
-						entry.kind === 'item' ? (
-							<ItemRow key={`item-${entry.item.id}`} item={entry.item} />
-						) : (
-							<GroupViewBlock key={`group-${entry.group.id}`} group={entry.group} items={entry.items} />
-						)
+					{vendorOptions.length >= 1 && (
+						<DropdownMenu>
+							<DropdownMenuTrigger asChild>
+								<Button
+									variant="ghost"
+									size="sm"
+									className={cn('h-7 text-xs text-muted-foreground', vendorFilter.size > 0 && 'text-foreground')}
+								>
+									<Store className="size-3.5" />
+									{vendorLabel}
+								</Button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent align="end">
+								<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Vendor</DropdownMenuLabel>
+								<DropdownMenuItem onClick={() => setVendorFilter(new Set())}>
+									<Check className={cn('size-4', vendorFilter.size > 0 && 'opacity-0')} />
+									All vendors
+								</DropdownMenuItem>
+								<DropdownMenuSeparator />
+								{vendorOptions.map(v => (
+									<DropdownMenuItem key={v.id} onClick={() => toggleVendor(v.id)} onSelect={e => e.preventDefault()}>
+										<Check className={cn('size-4', !vendorFilter.has(v.id) && 'opacity-0')} />
+										{v.name}
+									</DropdownMenuItem>
+								))}
+							</DropdownMenuContent>
+						</DropdownMenu>
 					)}
+
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground">
+								<ArrowUpDown className="size-3.5" />
+								{sortLabels[sort]}
+								<SortDirectionIcon className="size-3" />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Sort by priority</DropdownMenuLabel>
+							<DropdownMenuItem onClick={() => setSort('priority-desc')}>
+								<Check className={cn('size-4', sort !== 'priority-desc' && 'opacity-0')} />
+								High to Low
+							</DropdownMenuItem>
+							<DropdownMenuItem onClick={() => setSort('priority-asc')}>
+								<Check className={cn('size-4', sort !== 'priority-asc' && 'opacity-0')} />
+								Low to High
+							</DropdownMenuItem>
+							<DropdownMenuSeparator />
+							<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Sort by date</DropdownMenuLabel>
+							<DropdownMenuItem onClick={() => setSort('date-desc')}>
+								<Check className={cn('size-4', sort !== 'date-desc' && 'opacity-0')} />
+								Newest first
+							</DropdownMenuItem>
+							<DropdownMenuItem onClick={() => setSort('date-asc')}>
+								<Check className={cn('size-4', sort !== 'date-asc' && 'opacity-0')} />
+								Oldest first
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
 				</div>
-			)}
-		</div>
+
+				{entries.length === 0 ? (
+					<EmptyMessage message="No items match the current filter" className="xs:ml-6" />
+				) : (
+					<div className="flex flex-col gap-2 xs:pl-6">
+						{entries.map(entry =>
+							entry.kind === 'item' ? (
+								<ItemRow key={`item-${entry.item.id}`} item={entry.item} />
+							) : (
+								<GroupViewBlock key={`group-${entry.group.id}`} group={entry.group} items={entry.items} />
+							)
+						)}
+					</div>
+				)}
+			</div>
+		</InternalListLinksProvider>
 	)
 }

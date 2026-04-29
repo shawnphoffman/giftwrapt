@@ -4,6 +4,7 @@ import { memo, type ReactNode } from 'react'
 import { toast } from 'sonner'
 
 import type { ItemWithGifts } from '@/api/lists'
+import ListLinkBadge from '@/components/common/list-link-badge'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import PriorityIcon from '@/components/common/priority-icon'
 import UrlBadge from '@/components/common/url-badge'
@@ -14,10 +15,12 @@ import { useSession } from '@/lib/auth-client'
 import { computeRemainingClaimableQuantity, computeRemainingClaimableQuantityExcluding } from '@/lib/gifts'
 import { useToggleItemAvailability } from '@/lib/mutations/toggle-item-availability'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
+import { parseInternalListLink } from '@/lib/urls'
 import { cn } from '@/lib/utils'
 
 import { ClaimAction } from './claim-action'
 import { type ClaimEntry, ClaimUsers } from './claim-users'
+import { useInternalListLinks } from './internal-list-links-context'
 import { ItemImage } from './item-image'
 import { PriceQuantityBadge } from './price-quantity-badge'
 import { QuantityRemainingBadge } from './quantity-remaining-badge'
@@ -47,6 +50,7 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 	const { data: session } = useSession()
 	const currentUserId = session?.user.id
 	const toggleAvailability = useToggleItemAvailability()
+	const internalListLinks = useInternalListLinks()
 	const isSaving =
 		useIsMutating({
 			mutationKey: ['updateItem'],
@@ -95,6 +99,8 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 	// still verify availability on the source site.
 	const urlsHidden = fullyClaimed || groupLockedForViewer
 	const linkUrl = !urlsHidden ? item.url : null
+	const internalLinkHit = linkUrl && typeof window !== 'undefined' ? parseInternalListLink(linkUrl, window.location.origin) : null
+	const internalListSummary = internalLinkHit ? internalListLinks.get(internalLinkHit.listId) : undefined
 	const hasPriorityTab = !grouped && item.priority !== 'normal'
 
 	const claimEntries: Array<ClaimEntry> = item.gifts.map(g => ({
@@ -136,7 +142,11 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 			{/* HEADER */}
 			<div className="flex items-center gap-2 font-medium leading-tight">
 				<span className={cn('truncate min-w-0', dimmed && 'opacity-60')}>{item.title}</span>
-				<UrlBadge url={linkUrl} />
+				{internalListSummary ? (
+					<ListLinkBadge listId={internalListSummary.id} name={internalListSummary.name} />
+				) : (
+					<UrlBadge url={linkUrl} />
+				)}
 				<span className="flex-1" />
 				{isSaving && <Loader2 className="size-3.5 shrink-0 text-muted-foreground animate-spin" aria-label="Saving" />}
 				{isUnavailable && <UnavailableBadge changedAt={item.availabilityChangedAt} />}

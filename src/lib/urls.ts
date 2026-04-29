@@ -84,3 +84,31 @@ export function vendorIdToName(id: string): string {
 export function getDomainFromUrl(url: string): string {
 	return getVendorFromUrl(url)?.name ?? ''
 }
+
+const INTERNAL_LIST_PATH = /^\/lists\/(\d+)\/?$/
+
+/**
+ * Detects URLs that point at a list inside this app. Returns the listId
+ * when the URL parses cleanly, its origin matches the passed origin, and
+ * the path is exactly /lists/<id> (a trailing slash is tolerated; query
+ * strings or hashes cause it to fall back to external).
+ *
+ * Pass `window.location.origin` from the client. Falsy origin returns
+ * null so SSR is a no-op.
+ */
+export function parseInternalListLink(url: string | null | undefined, origin: string | null | undefined): { listId: number } | null {
+	if (!url || !origin) return null
+	let parsed: URL
+	try {
+		parsed = new URL(url)
+	} catch {
+		return null
+	}
+	if (parsed.origin !== origin) return null
+	if (parsed.search || parsed.hash) return null
+	const match = parsed.pathname.match(INTERNAL_LIST_PATH)
+	if (!match) return null
+	const listId = Number(match[1])
+	if (!Number.isFinite(listId) || listId <= 0) return null
+	return { listId }
+}
