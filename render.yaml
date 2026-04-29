@@ -23,6 +23,11 @@ services:
         sync: false
       - key: SERVER_URL
         sync: false
+      # Display title (sidebar, document title, PWA meta). Optional; the
+      # app falls back to "GiftWrapt" if unset. Changing this in the
+      # Render dashboard takes effect on the next restart - no rebuild.
+      - key: APP_TITLE
+        sync: false
       # Storage is optional; the app boots without it and disables uploads.
       # Add Cloudflare R2, AWS S3, or any other S3-compatible bucket after
       # the first deploy. See docs/storage.md.

@@ -25,7 +25,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { ErrorBoundary } from '@/components/utilities/error-boundary'
 import { NavigationEvents } from '@/components/utilities/navigation-events'
-import { env } from '@/env'
+import { useAppSetting } from '@/hooks/use-app-settings'
 import { auth } from '@/lib/auth'
 import { authMiddleware } from '@/middleware/auth'
 
@@ -129,18 +129,19 @@ const feeds: Array<NavItem> = [
 ]
 
 function AuthenticatedRoutes() {
+	const appTitle = useAppSetting('appTitle')
 	return (
 		<SidebarProvider>
 			<Sidebar variant="inset" collapsible="icon">
 				<SidebarHeader>
 					<SidebarMenu>
 						<SidebarMenuItem>
-							<SidebarMenuButton size="lg" asChild tooltip={env.VITE_APP_TITLE}>
+							<SidebarMenuButton size="lg" asChild tooltip={appTitle}>
 								<Link to="/" className="">
 									<div className="flex items-center justify-center rounded-lg aspect-square size-8 bg-red-700 text-white hover:animate-spin">
 										<Gift className="transition-colors size-6!" />
 									</div>
-									<span className="text-lg font-bold truncate">{env.VITE_APP_TITLE}</span>
+									<span className="text-lg font-bold truncate">{appTitle}</span>
 								</Link>
 							</SidebarMenuButton>
 						</SidebarMenuItem>

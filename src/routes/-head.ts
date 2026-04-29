@@ -1,8 +1,10 @@
-import { env } from '@/env'
+interface HeadCtx {
+	loaderData?: { appTitle?: string }
+}
 
-export default function Head() {
+export default function Head(ctx: HeadCtx = {}) {
 	const isDeployed = process.env.NODE_ENV === 'production'
-	const appTitle = env.VITE_APP_TITLE
+	const appTitle = ctx.loaderData?.appTitle ?? 'GiftWrapt'
 
 	return {
 		meta: [

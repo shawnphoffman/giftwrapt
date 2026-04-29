@@ -26,13 +26,23 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 	head: Head,
 	notFoundComponent: NotFound,
 	shellComponent: RootDocument,
-	beforeLoad: async ({ context }) => {
+	loader: async ({ context }) => {
 		// Prefetch app settings + storage status on server; both hydrate to
 		// client. Run in parallel since neither depends on the other.
-		await Promise.all([
-			context.queryClient.ensureQueryData(appSettingsQueryOptions),
-			context.queryClient.ensureQueryData(storageStatusQueryOptions),
-		])
+		// Wrapped in try-catch so a transient DB hiccup (cold-start pool
+		// exhaustion, network blip) renders the error boundary with a
+		// usable fallback instead of blanking the page. The static
+		// fallbacks come from DEFAULT_APP_SETTINGS via the schema's
+		// defaults; head reads `appTitle` out of the returned object.
+		try {
+			const [settings] = await Promise.all([
+				context.queryClient.ensureQueryData(appSettingsQueryOptions),
+				context.queryClient.ensureQueryData(storageStatusQueryOptions),
+			])
+			return { appTitle: settings.appTitle }
+		} catch {
+			return { appTitle: 'GiftWrapt' }
+		}
 	},
 })
 

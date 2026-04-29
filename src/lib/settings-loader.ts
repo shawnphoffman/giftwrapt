@@ -72,6 +72,14 @@ export async function getAppSettings(db: Database | SchemaDatabase): Promise<App
 	if ('scrapeProviders' in merged) {
 		merged.scrapeProviders = decryptScrapeProviderSecrets(merged.scrapeProviders)
 	}
+	// `appTitle` precedence: DB row (admin override) > APP_TITLE env >
+	// static default. Read `process.env` directly here (not via `@/env`)
+	// so this server-only loader doesn't drag the env validator into a
+	// path that runs during SSR for unauthenticated visitors.
+	if (!('appTitle' in raw)) {
+		const envTitle = process.env.APP_TITLE
+		if (envTitle && envTitle.length > 0) merged.appTitle = envTitle
+	}
 
 	return appSettingsSchema.parse(merged)
 }

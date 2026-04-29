@@ -81,6 +81,12 @@ export const env = createEnv({
 		// Max upload size in MB, enforced before Sharp runs. Generous default
 		// for phone photos; operators can tighten if function memory is tight.
 		STORAGE_MAX_UPLOAD_MB: z.coerce.number().int().positive().default(8),
+		// Display title for the app. Server-side so it can be changed at
+		// runtime (env var or admin UI) without rebuilding the client
+		// bundle. Replaces the old VITE_APP_TITLE which Vite baked into
+		// the JS at build time and which silently fell back to the default
+		// on Docker builds that didn't pass it as a build arg.
+		APP_TITLE: z.string().min(1).max(80).default('GiftWrapt'),
 	},
 
 	/**
@@ -90,7 +96,6 @@ export const env = createEnv({
 	clientPrefix: 'VITE_',
 
 	client: {
-		VITE_APP_TITLE: z.string().min(1).default('GiftWrapt'),
 		VITE_SERVER_URL: z.url().optional(),
 	},
 
