@@ -88,6 +88,16 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 					},
 				})
 
+				if (result.kind === 'error') {
+					// Only `child-cannot-create-gift-ideas` exists today;
+					// future variants must be added here explicitly.
+					const message: Record<typeof result.reason, string> = {
+						'child-cannot-create-gift-ideas': "Children can't create gift-ideas lists.",
+					}
+					setError(message[result.reason])
+					return
+				}
+
 				if (shouldAddPartner && partnerId) {
 					const editorResult = await addListEditor({ data: { listId: result.list.id, userId: partnerId } })
 					if (editorResult.kind === 'error') {

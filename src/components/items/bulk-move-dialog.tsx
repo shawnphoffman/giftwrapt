@@ -74,6 +74,15 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 						isPrivate: newListPrivate,
 					},
 				})
+				if (created.kind === 'error') {
+					// Only `child-cannot-create-gift-ideas` exists today;
+					// future variants must be added here explicitly.
+					const message: Record<typeof created.reason, string> = {
+						'child-cannot-create-gift-ideas': "Children can't create gift-ideas lists.",
+					}
+					setError(message[created.reason])
+					return
+				}
 				await qc.invalidateQueries({ queryKey: ['my-lists-for-bulk-move'] })
 				targetId = created.list.id
 			} else {

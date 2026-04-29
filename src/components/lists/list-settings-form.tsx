@@ -89,7 +89,9 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description, g
 				})
 
 				if (result.kind === 'error') {
-					setError(result.reason === 'not-authorized' ? "You don't have permission to change this list's settings." : 'List not found.')
+					if (result.reason === 'not-authorized') setError("You don't have permission to change this list's settings.")
+					else if (result.reason === 'child-cannot-create-gift-ideas') setError("Children can't switch a list to gift-ideas.")
+					else setError('List not found.')
 					return
 				}
 

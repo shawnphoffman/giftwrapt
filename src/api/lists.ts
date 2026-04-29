@@ -319,7 +319,9 @@ const CreateListInputSchema = z.object({
 	giftIdeasTargetUserId: z.string().optional(),
 })
 
-export type CreateListResult = { kind: 'ok'; list: { id: number; name: string; type: ListType } }
+export type CreateListResult =
+	| { kind: 'ok'; list: { id: number; name: string; type: ListType } }
+	| { kind: 'error'; reason: 'child-cannot-create-gift-ideas' }
 
 export const createList = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
@@ -327,8 +329,11 @@ export const createList = createServerFn({ method: 'POST' })
 	.handler(async ({ context, data }): Promise<CreateListResult> => {
 		const userId = context.session.user.id
 
+		// Children can't own gift-ideas lists. See sec-review M10: was a
+		// raw `throw` (HTTP 500); now a structured error so the client
+		// can show a useful message instead of "Internal Server Error".
 		if (data.type === 'giftideas' && context.session.user.isChild) {
-			throw new Error('Children cannot create gift ideas lists.')
+			return { kind: 'error', reason: 'child-cannot-create-gift-ideas' }
 		}
 
 		// giftideas lists are always private; recipient is optional.
@@ -361,7 +366,7 @@ const UpdateListInputSchema = z.object({
 	giftIdeasTargetUserId: z.string().nullable().optional(),
 })
 
-export type UpdateListResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+export type UpdateListResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' | 'child-cannot-create-gift-ideas' }
 
 export const updateList = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
@@ -380,8 +385,10 @@ export const updateList = createServerFn({ method: 'POST' })
 			if (!edit.ok) return { kind: 'error', reason: 'not-authorized' }
 		}
 
+		// See sec-review M10: was a raw `throw` (HTTP 500); now a
+		// structured error so the client can show a useful message.
 		if (data.type === 'giftideas' && context.session.user.isChild) {
-			throw new Error('Children cannot create gift ideas lists.')
+			return { kind: 'error', reason: 'child-cannot-create-gift-ideas' }
 		}
 
 		const updates: Record<string, unknown> = {}
