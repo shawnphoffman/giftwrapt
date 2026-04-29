@@ -5,12 +5,11 @@ import { and, eq, inArray } from 'drizzle-orm'
 import { db } from '@/db'
 import { giftedItems, items, lists, users } from '@/db/schema'
 import type { BirthMonth } from '@/db/schema/enums'
+import { checkCronAuth } from '@/lib/cron-auth'
 import { formatGifterNames, namesForGifter, type PartneredUser } from '@/lib/gifters'
 import { createLogger } from '@/lib/logger'
 import { isEmailConfigured, sendBirthdayEmail, sendPostBirthdayEmail } from '@/lib/resend'
 import { getAppSettings } from '@/lib/settings-loader'
-
-import { checkCronAuth } from './_auth'
 
 const cronLog = createLogger('cron:birthday-emails')
 
@@ -23,7 +22,7 @@ const cronLog = createLogger('cron:birthday-emails')
 //   2. Follow-up: 14 days after birthday, send "what you got" summary
 //      with archived gifted items.
 //
-// Protected by CRON_SECRET bearer-token check (see _auth.ts). Refuses
+// Protected by CRON_SECRET bearer-token check (see lib/cron-auth.ts). Refuses
 // to run when CRON_SECRET is unset, so an operator can't accidentally
 // expose this endpoint by forgetting to configure the secret.
 

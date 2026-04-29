@@ -11,7 +11,7 @@ vi.mock('@/env', () => ({
 	},
 }))
 
-import { checkCronAuth } from '../_auth'
+import { checkCronAuth } from '../cron-auth'
 
 function silentLogger() {
 	const noop = () => {}

@@ -125,8 +125,6 @@ export const removeAvatar = createServerFn({ method: 'POST' })
 		})
 		const oldUrl = user?.image ?? null
 
-		// @ts-expect-error better-auth types `image` as `string | undefined`, but
-		// `null` is how you actually clear the column through its updateUser API.
 		await auth.api.updateUser({ body: { image: null }, headers: getRequestHeaders() })
 
 		if (oldUrl) {

@@ -6,22 +6,22 @@ Findings are prioritized by exploitability and blast radius. Each item has a fil
 
 ## Status
 
-| ID     | Title                                                           | Severity | Status |
-| ------ | --------------------------------------------------------------- | -------- | ------ |
-| C1     | fetchAppSettings exposes decrypted scraper API keys             | CRITICAL | fixed  |
-| C2     | SSRF in scraper, no private-IP / metadata blocking              | CRITICAL | fixed  |
-| C3     | Cron endpoints public when CRON_SECRET unset                    | CRITICAL | fixed  |
-| C4     | Outdated dependencies, 3 critical / 25 high CVEs                | CRITICAL | open   |
-| H1     | Admin scripts shipped inside production image                   | HIGH     | open   |
-| H2     | No rate limiting on auth or sensitive endpoints                 | HIGH     | open   |
-| H3     | Verbose health endpoint leaks build/env info                    | HIGH     | open   |
-| H4     | Image upload trusts client content-type, skips magic-byte check | HIGH     | open   |
-| H5     | AI scraper open to prompt injection                             | HIGH     | open   |
-| H6     | Backup wipe/import has weak guardrails                          | HIGH     | open   |
-| H7     | BETTER_AUTH_SECRET fallback in auth init                        | HIGH     | open   |
-| H8     | freshAge: 0 plus 7-day cookie cache                             | HIGH     | open   |
-| M1-M10 | (see below)                                                     | MEDIUM   | open   |
-| L1-L7  | (see below)                                                     | LOW      | open   |
+| ID     | Title                                                           | Severity | Status                                      |
+| ------ | --------------------------------------------------------------- | -------- | ------------------------------------------- |
+| C1     | fetchAppSettings exposes decrypted scraper API keys             | CRITICAL | fixed                                       |
+| C2     | SSRF in scraper, no private-IP / metadata blocking              | CRITICAL | fixed                                       |
+| C3     | Cron endpoints public when CRON_SECRET unset                    | CRITICAL | fixed                                       |
+| C4     | Outdated dependencies, 3 critical / 25 high CVEs                | CRITICAL | fixed (4 h3 advisories blocked by upstream) |
+| H1     | Admin scripts shipped inside production image                   | HIGH     | open                                        |
+| H2     | No rate limiting on auth or sensitive endpoints                 | HIGH     | open                                        |
+| H3     | Verbose health endpoint leaks build/env info                    | HIGH     | open                                        |
+| H4     | Image upload trusts client content-type, skips magic-byte check | HIGH     | open                                        |
+| H5     | AI scraper open to prompt injection                             | HIGH     | open                                        |
+| H6     | Backup wipe/import has weak guardrails                          | HIGH     | open                                        |
+| H7     | BETTER_AUTH_SECRET fallback in auth init                        | HIGH     | open                                        |
+| H8     | freshAge: 0 plus 7-day cookie cache                             | HIGH     | open                                        |
+| M1-M10 | (see below)                                                     | MEDIUM   | open                                        |
+| L1-L7  | (see below)                                                     | LOW      | open                                        |
 
 ---
 
@@ -91,6 +91,8 @@ Confirmed actionable updates:
 - `bn.js`, `rollup`, `ajv`: also flagged.
 
 **Fix:** `pnpm audit --prod --fix`, then re-run, then build and test. Re-run weekly via Dependabot/Renovate (a `.github/dependabot.yml` does not exist, add one).
+
+**Status (post-fix):** down from 50 advisories (3 critical / 25 high / 20 moderate / 2 low) to 4 (1 high / 3 moderate). All four remaining are `h3@2.0.0-beta.5`, exact-pinned by `@tanstack/start-server-core@1.139.12`. A `pnpm.overrides` entry forcing `h3 >= 2.0.1-rc.18` is in place but doesn't take effect because TanStack Start's exact pin overrides it; lifting these requires a TanStack Start version bump upstream. The h3 issues (middleware bypass, SSE event injection via CR, basic-auth timing leak, cookie-cleanup DoS) are tracked under residual risk for the next TanStack Start upgrade.
 
 ---
 

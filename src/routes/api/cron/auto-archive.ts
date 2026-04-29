@@ -5,10 +5,9 @@ import { and, eq, inArray } from 'drizzle-orm'
 import { db } from '@/db'
 import { giftedItems, items, lists, users } from '@/db/schema'
 import type { BirthMonth } from '@/db/schema/enums'
+import { checkCronAuth } from '@/lib/cron-auth'
 import { createLogger } from '@/lib/logger'
 import { getAppSettings } from '@/lib/settings-loader'
-
-import { checkCronAuth } from './_auth'
 
 const cronLog = createLogger('cron:auto-archive')
 
@@ -26,7 +25,7 @@ const cronLog = createLogger('cron:auto-archive')
 // "Archive" means setting items.isArchived = true, which reveals
 // gifter info to the recipient on their Received Gifts page.
 //
-// Protected by CRON_SECRET bearer-token check (see _auth.ts). Refuses
+// Protected by CRON_SECRET bearer-token check (see lib/cron-auth.ts). Refuses
 // to run when CRON_SECRET is unset, so an operator can't accidentally
 // expose this endpoint by forgetting to configure the secret.
 
