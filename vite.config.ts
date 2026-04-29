@@ -1,11 +1,12 @@
 import { statSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, resolve as resolvePath } from 'node:path'
 
 import tailwindcss from '@tailwindcss/vite'
 import { devtools } from '@tanstack/devtools-vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import { nitro } from 'nitro/vite'
+import type { Plugin } from 'vite'
 import { defineConfig } from 'vite'
 import viteTsConfigPaths from 'vite-tsconfig-paths'
 
@@ -57,6 +58,26 @@ const securityHeaders = {
 	].join('; '),
 }
 
+// Custom plugin: redirect `@/db` to a throwing client stub when bundling
+// for the browser environment. Without this, any file-route or server-fn
+// module that does `import { db } from '@/db'` at top level keeps
+// `src/db/index.ts` alive in the client graph (pg's `new Pool(...)` is a
+// module-level side effect, so Rollup can't tree-shake the import even
+// after handler bodies are stripped). Hooking `resolveId` directly with
+// `enforce: 'pre'` runs before `vite-tsconfig-paths`, which would
+// otherwise resolve `@/db` to the real `src/db/index.ts` via the
+// tsconfig `@/*` path alias.
+const dbStubPath = resolvePath(__dirname, 'src/db/_client-stub.ts')
+const dbClientAlias = (): Plugin => ({
+	name: 'wishlists:client-db-alias',
+	enforce: 'pre',
+	resolveId(source) {
+		if (this.environment.name !== 'client') return
+		if (source === '@/db') return dbStubPath
+		return null
+	},
+})
+
 const config = defineConfig({
 	// Stagehand (an optional dep used only at runtime via dynamic
 	// `await import()` in the browserbase-stagehand provider) and its
@@ -73,6 +94,7 @@ const config = defineConfig({
 		external: ['@browserbasehq/stagehand', 'playwright-core', 'chromium-bidi'],
 	},
 	plugins: [
+		dbClientAlias(),
 		!isStorybook && devtoolsEnabled && devtools(),
 		!isStorybook &&
 			nitro({
