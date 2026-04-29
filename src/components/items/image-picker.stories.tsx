@@ -4,11 +4,10 @@ import { useState } from 'react'
 import { ImagePicker } from './image-picker'
 
 /**
- * Image candidate picker shown next to the URL field after a scrape. When
- * the scrape filter leaves more than one viable image we render thumbnails
- * so the user can swap the auto-selected default. Renders nothing when the
- * candidate list has 0 or 1 image (those cases are handled silently by
- * the parent form).
+ * Image candidate picker shown next to the URL field after a scrape. We
+ * render a "No image" tile alongside the candidate thumbnails so the user
+ * can deselect when every candidate is hotlink-blocked or they just don't
+ * want a picture. Renders nothing only when the candidate list is empty.
  */
 const meta = {
 	title: 'Items/Other/Image Picker',
@@ -44,10 +43,11 @@ export const SingleImage: Story = {
 		images: [sampleImages[0]],
 		value: sampleImages[0],
 	},
+	render: () => <Interactive initial={sampleImages[0]} images={[sampleImages[0]]} />,
 	parameters: {
 		docs: {
 			description: {
-				story: 'Only one candidate survives filtering. The picker renders nothing - the parent uses the single image directly.',
+				story: 'Only one candidate survives filtering. The picker still renders so the user can opt out via the "No image" tile.',
 			},
 		},
 	},
@@ -88,6 +88,17 @@ export const Empty: Story = {
 	},
 	parameters: {
 		docs: { description: { story: 'No candidates at all (entire list got filtered out). The picker renders nothing.' } },
+	},
+}
+
+export const NoneSelected: Story = {
+	args: {
+		images: sampleImages,
+		value: '',
+	},
+	render: () => <Interactive initial="" images={sampleImages} />,
+	parameters: {
+		docs: { description: { story: 'The "No image" tile is the active selection — useful when every candidate URL is broken.' } },
 	},
 }
 
