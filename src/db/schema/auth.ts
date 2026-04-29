@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm'
-import { bigint, index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { bigint, boolean, index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core'
 
 import { timestamps } from './shared'
 import { users } from './users'
@@ -82,6 +82,40 @@ export const rateLimit = pgTable(
 		lastRequest: bigint('last_request', { mode: 'number' }),
 	},
 	table => [index('rateLimit_key_idx').on(table.key)]
+)
+
+// Better-auth's API key store. Used by the `/api/mobile/*` Hono surface
+// for native-client auth (iOS companion app). Each device install mints
+// its own key, individually revocable, separate from the cookie-based
+// session token the web uses. Schema mirrors better-auth's apiKey
+// plugin contract.
+export const apikey = pgTable(
+	'apikey',
+	{
+		id: text('id').primaryKey(),
+		name: text('name'),
+		start: text('start'),
+		prefix: text('prefix'),
+		key: text('key').notNull(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		refillInterval: integer('refill_interval'),
+		refillAmount: integer('refill_amount'),
+		lastRefillAt: timestamp('last_refill_at'),
+		enabled: boolean('enabled').notNull().default(true),
+		rateLimitEnabled: boolean('rate_limit_enabled').notNull().default(true),
+		rateLimitTimeWindow: integer('rate_limit_time_window'),
+		rateLimitMax: integer('rate_limit_max'),
+		requestCount: integer('request_count').notNull().default(0),
+		remaining: integer('remaining'),
+		lastRequest: timestamp('last_request'),
+		expiresAt: timestamp('expires_at'),
+		permissions: text('permissions'),
+		metadata: text('metadata'),
+		...timestamps,
+	},
+	table => [index('apikey_key_idx').on(table.key), index('apikey_userId_idx').on(table.userId)]
 )
 
 export const sessionRelations = relations(session, ({ one }) => ({

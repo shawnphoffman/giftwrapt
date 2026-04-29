@@ -1,12 +1,12 @@
 import type { BetterAuthOptions } from 'better-auth'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { admin, bearer, customSession } from 'better-auth/plugins'
+import { admin, apiKey, customSession } from 'better-auth/plugins'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { sql } from 'drizzle-orm'
 
 import { db } from '@/db'
-import { account, rateLimit, session, users, verification } from '@/db/schema'
+import { account, apikey, rateLimit, session, users, verification } from '@/db/schema'
 import { env } from '@/env'
 import { createLogger } from '@/lib/logger'
 
@@ -64,6 +64,7 @@ const options = {
 			account: account,
 			verificationToken: verification,
 			rateLimit: rateLimit,
+			apikey: apikey,
 		},
 	}),
 	emailAndPassword: {
@@ -113,11 +114,20 @@ const options = {
 			},
 		},
 	},
-	// `bearer()` lets non-browser clients (e.g. the iOS companion app) hold
-	// an `Authorization: Bearer <token>` instead of a session cookie. Web
-	// flows continue to use the cookie set by `tanstackStartCookies()`;
-	// both auth modes are accepted by `auth.api.getSession`.
-	plugins: [tanstackStartCookies(), admin(), bearer()],
+	// `apiKey()` mints separately-scoped, individually revocable tokens
+	// for the iOS companion app. Each device install gets its own key
+	// (stored in Keychain on the device); revoking one key doesn't sign
+	// the user out of the web. Crucially, this is *not* the bearer()
+	// plugin: `bearer()` would accept the web's session cookie value as
+	// an Authorization header, undermining the cookie's sameSite=lax
+	// CSRF defense for any token leaked via any vector. apiKey keeps
+	// the mobile token surface fully separate from the web cookie.
+	//
+	// The mobile API surface lives in a Hono app at `/api/mobile/*`
+	// (see `src/server/mobile-api/app.ts`) which calls into better-auth
+	// to validate keys; web flows here continue to use cookies via
+	// `tanstackStartCookies()`.
+	plugins: [tanstackStartCookies(), admin(), apiKey()],
 	user: {
 		modelName: 'user',
 		fields: {

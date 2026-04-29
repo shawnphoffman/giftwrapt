@@ -1,3 +1,16 @@
+// One-shot scrape: kicks the orchestrator with the same dep wiring the
+// streaming SSE route uses, but waits for the final result instead of
+// emitting per-attempt events. Shared by `scrapeUrl` (server fn, called
+// from the web add-item form) and the `/api/mobile/v1/scrape` Hono
+// endpoint (called by the iOS share extension) so both paths apply the
+// same settings, providers, and cache.
+//
+// Top-level imports of `@/db` are safe to keep here: the client build
+// aliases `@/db` to a throwing stub (see `vite.config.ts` ->
+// `dbClientAlias`), so even if a client-reachable module statically
+// imports this file, pg + drizzle-orm/node-postgres don't leak into the
+// browser bundle.
+
 import { db } from '@/db'
 import { getAppSettings } from '@/lib/settings-loader'
 
@@ -7,11 +20,6 @@ import { fetchProvider } from './providers/fetch'
 import { loadConfiguredProviders } from './providers/load-configured'
 import type { OrchestrateResult } from './types'
 
-// One-shot scrape: kicks the orchestrator with the same dep wiring the
-// streaming SSE route uses, but waits for the final result instead of
-// emitting per-attempt events. Shared by `scrapeUrl` (server function) and
-// the `/api/mobile/scrape` REST endpoint so both paths apply the same
-// settings, providers, and cache.
 export async function runOneShotScrape(args: {
 	url: string
 	userId: string
