@@ -28,27 +28,35 @@ export function StorageSummaryBar({
 	onDeleteOrphans?: () => void
 }) {
 	return (
-		<div className="flex flex-wrap items-end justify-between gap-3 rounded-md border bg-muted/30 px-4 py-3">
-			<dl className="grid grid-cols-3 gap-x-6 gap-y-1 text-sm">
-				<dt className="text-xs uppercase tracking-wide text-muted-foreground">Objects</dt>
-				<dt className="text-xs uppercase tracking-wide text-muted-foreground">Size</dt>
-				<dt className="text-xs uppercase tracking-wide text-muted-foreground">Orphans</dt>
-				<dd className="font-mono tabular-nums">{loading ? '…' : (summary?.totalCount.toLocaleString() ?? '–')}</dd>
-				<dd className="font-mono tabular-nums">{loading ? '…' : summary ? formatBytes(summary.totalBytes) : '–'}</dd>
-				<dd className="font-mono tabular-nums">
-					{loading ? '…' : summary ? `${summary.orphanCount.toLocaleString()} (${formatBytes(summary.orphanBytes)})` : '–'}
-				</dd>
-			</dl>
-			<Button
-				type="button"
-				variant="destructive"
-				size="sm"
-				onClick={onDeleteOrphans}
-				disabled={deleteOrphansDisabled || !summary || summary.orphanCount === 0}
-			>
-				<Trash2 className="size-3.5" />
-				Delete all orphans
-			</Button>
+		<div className="flex flex-col gap-2 rounded-md border bg-muted/30 px-4 py-3">
+			<div className="flex flex-wrap items-end justify-between gap-3">
+				<dl className="grid grid-cols-3 gap-x-6 gap-y-1 text-sm">
+					<dt className="text-xs uppercase tracking-wide text-muted-foreground">Objects</dt>
+					<dt className="text-xs uppercase tracking-wide text-muted-foreground">Size</dt>
+					<dt className="text-xs uppercase tracking-wide text-muted-foreground">Orphans</dt>
+					<dd className="font-mono tabular-nums">{loading ? '…' : (summary?.totalCount.toLocaleString() ?? '–')}</dd>
+					<dd className="font-mono tabular-nums">{loading ? '…' : summary ? formatBytes(summary.totalBytes) : '–'}</dd>
+					<dd className="font-mono tabular-nums">
+						{loading ? '…' : summary ? `${summary.orphanCount.toLocaleString()} (${formatBytes(summary.orphanBytes)})` : '–'}
+					</dd>
+				</dl>
+				<Button
+					type="button"
+					variant="destructive"
+					size="sm"
+					onClick={onDeleteOrphans}
+					disabled={deleteOrphansDisabled || !summary || summary.orphanCount === 0 || summary.truncated}
+				>
+					<Trash2 className="size-3.5" />
+					Delete all orphans
+				</Button>
+			</div>
+			{summary?.truncated && (
+				<p className="text-xs text-amber-600 dark:text-amber-400">
+					Bucket scan stopped at the {summary.totalCount.toLocaleString()}-object cap; counts above don't include the rest. Bulk-delete is
+					disabled while truncated.
+				</p>
+			)}
 		</div>
 	)
 }

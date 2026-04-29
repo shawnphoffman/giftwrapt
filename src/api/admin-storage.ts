@@ -205,31 +205,55 @@ export type StorageSummary = {
 	totalBytes: number
 	orphanCount: number
 	orphanBytes: number
+	// True when the bucket walk hit `WALK_OBJECT_CAP` and stopped before
+	// reading the full bucket. The summary numbers are accurate for what
+	// was scanned but undercount the rest.
+	truncated: boolean
 }
+
+// Hard cap on the bucket walk in `walkAllObjects` so a misbehaving or
+// genuinely huge bucket can't OOM the worker. Each entry is small
+// (~64 bytes) so 100k = ~6.4MB; well below any function memory tier.
+// See sec-review M8.
+const WALK_OBJECT_CAP = 100_000
 
 export type StorageSummaryResult = { kind: 'ok'; summary: StorageSummary } | { kind: 'error'; reason: 'storage-not-configured' }
 
 // Whole-bucket walk to compute totals + orphan count for the page header
 // and the bulk-delete confirm dialog. Loops every page from list().
-async function walkAllObjects(): Promise<{ inUse: Set<string>; all: Array<{ key: string; size: number }> }> {
+//
+// Capped at WALK_OBJECT_CAP entries to bound memory + DoS exposure on
+// pathological buckets (sec-review M8). Callers receive `truncated:
+// true` when the cap is hit; the bulk-delete-orphans path refuses to
+// run in that case, since it would only delete the orphans visible
+// within the cap and leave the rest.
+async function walkAllObjects(): Promise<{ inUse: Set<string>; all: Array<{ key: string; size: number }>; truncated: boolean }> {
 	const storage = getStorage()
 	if (!storage) throw new Error('storage-not-configured')
 	const inUse = await buildInUseKeySet()
 	const all: Array<{ key: string; size: number }> = []
 	let cursor: string | undefined
+	let truncated = false
 	do {
 		const page = await storage.list({ cursor, limit: 1000 })
-		for (const obj of page.objects) all.push({ key: obj.key, size: obj.size })
+		for (const obj of page.objects) {
+			if (all.length >= WALK_OBJECT_CAP) {
+				truncated = true
+				break
+			}
+			all.push({ key: obj.key, size: obj.size })
+		}
+		if (truncated) break
 		cursor = page.nextCursor ?? undefined
 	} while (cursor)
-	return { inUse, all }
+	return { inUse, all, truncated }
 }
 
 export const getStorageSummaryAsAdmin = createServerFn({ method: 'GET' })
 	.middleware([adminAuthMiddleware, loggingMiddleware])
 	.handler(async (): Promise<StorageSummaryResult> => {
 		if (!getStorage()) return StorageNotConfigured
-		const { inUse, all } = await walkAllObjects()
+		const { inUse, all, truncated } = await walkAllObjects()
 		let totalBytes = 0
 		let orphanCount = 0
 		let orphanBytes = 0
@@ -240,7 +264,7 @@ export const getStorageSummaryAsAdmin = createServerFn({ method: 'GET' })
 				orphanBytes += obj.size
 			}
 		}
-		return { kind: 'ok', summary: { totalCount: all.length, totalBytes, orphanCount, orphanBytes } }
+		return { kind: 'ok', summary: { totalCount: all.length, totalBytes, orphanCount, orphanBytes, truncated } }
 	})
 
 const DeleteKeySchema = z.object({ key: z.string().min(1) })
@@ -273,7 +297,7 @@ const DeleteOrphansSchema = z.object({ dryRun: z.boolean().optional() })
 
 export type DeleteOrphansResult =
 	| { kind: 'ok'; orphanCount: number; deleted: number; failed: number; dryRun: boolean }
-	| { kind: 'error'; reason: 'storage-not-configured' }
+	| { kind: 'error'; reason: 'storage-not-configured' | 'walk-truncated' }
 
 export const deleteOrphansAsAdmin = createServerFn({ method: 'POST' })
 	.middleware([adminAuthMiddleware, loggingMiddleware])
@@ -281,7 +305,14 @@ export const deleteOrphansAsAdmin = createServerFn({ method: 'POST' })
 	.handler(async ({ data }): Promise<DeleteOrphansResult> => {
 		const storage = getStorage()
 		if (!storage) return StorageNotConfigured
-		const { inUse, all } = await walkAllObjects()
+		const { inUse, all, truncated } = await walkAllObjects()
+		// Refuse to bulk-delete when the walk hit the cap: we'd only see
+		// the first WALK_OBJECT_CAP objects and would miss orphans past
+		// that point. Operator should clean those up via a one-shot
+		// script before running the UI button. See sec-review M8.
+		if (truncated) {
+			return { kind: 'error', reason: 'walk-truncated' }
+		}
 		const orphans = all.filter(o => !inUse.has(o.key))
 		if (data.dryRun) {
 			return { kind: 'ok', orphanCount: orphans.length, deleted: 0, failed: 0, dryRun: true }

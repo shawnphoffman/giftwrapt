@@ -100,7 +100,7 @@ const unknownObject: StorageObjectRow = {
 
 export const Empty: Story = {
 	args: {
-		summary: { totalCount: 0, totalBytes: 0, orphanCount: 0, orphanBytes: 0 },
+		summary: { totalCount: 0, totalBytes: 0, orphanCount: 0, orphanBytes: 0, truncated: false },
 		rows: [],
 	},
 	parameters: {
@@ -110,7 +110,7 @@ export const Empty: Story = {
 
 export const MixedAttachedAndOrphan: Story = {
 	args: {
-		summary: { totalCount: 5, totalBytes: 448_356, orphanCount: 2, orphanBytes: 236_204 },
+		summary: { totalCount: 5, totalBytes: 448_356, orphanCount: 2, orphanBytes: 236_204, truncated: false },
 		rows: [attachedAvatar, orphanAvatar, attachedItem, deletedItemImage, unknownObject],
 	},
 	parameters: {
@@ -125,7 +125,7 @@ export const MixedAttachedAndOrphan: Story = {
 
 export const AllOrphans: Story = {
 	args: {
-		summary: { totalCount: 3, totalBytes: 254_636, orphanCount: 3, orphanBytes: 254_636 },
+		summary: { totalCount: 3, totalBytes: 254_636, orphanCount: 3, orphanBytes: 254_636, truncated: false },
 		rows: [orphanAvatar, deletedItemImage, unknownObject],
 	},
 	parameters: {

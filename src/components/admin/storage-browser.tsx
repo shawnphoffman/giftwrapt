@@ -77,7 +77,13 @@ export function StorageBrowser() {
 
 	function openBulkDialog() {
 		dryRun.mutate(undefined, {
-			onSuccess: () => setBulkDialogOpen(true),
+			onSuccess: data => {
+				if (data.kind === 'error' && data.reason === 'walk-truncated') {
+					toast.error('Bucket is too large to bulk-delete from the UI. Run a one-shot script instead.')
+					return
+				}
+				setBulkDialogOpen(true)
+			},
 			onError: () => toast.error('Failed to count orphans'),
 		})
 	}
