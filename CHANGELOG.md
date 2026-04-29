@@ -1,5 +1,71 @@
 # Changelog
 
+## [0.18.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.17.0...v0.18.0) (2026-04-29)
+
+
+### Features
+
+* **addons:** refresh off-list gifts section UI ([dcd7b03](https://github.com/shawnphoffman/giftwrapt/commit/dcd7b033b7cd0d0d2040af3f4a085f55bb9b43f9))
+* **admin:** add storage browser for image objects ([ddc9b7b](https://github.com/shawnphoffman/giftwrapt/commit/ddc9b7b3a678585f1f7f2525b4eee985cdeb75c5))
+* **admin:** add user permissions matrix to admin/users ([af2ffec](https://github.com/shawnphoffman/giftwrapt/commit/af2ffec113496b6252f38741c0f412ef582fe2ce))
+* **admin:** delete user from edit page ([97dbd37](https://github.com/shawnphoffman/giftwrapt/commit/97dbd3753f186477a1cf92f312ba74a26689a6a0))
+* **admin:** show Guardian badge on users with guardianship ([b96c6f9](https://github.com/shawnphoffman/giftwrapt/commit/b96c6f9be0fd46ca3afc790e3ee5d7ddd80e3ee7))
+* **claim:** tint gift icon green on claim button hover ([1850b5d](https://github.com/shawnphoffman/giftwrapt/commit/1850b5d49f94d21a04831a1e52d9bfa8c1fe382f))
+* **cron:** cleanup-verification cron to purge expired tokens ([4bac914](https://github.com/shawnphoffman/giftwrapt/commit/4bac9149c9148c36d40a7caf1b5091243727e4fc))
+* **items:** admin toggle to mirror external images into storage on save ([3ac1ad1](https://github.com/shawnphoffman/giftwrapt/commit/3ac1ad129e725dc96b7596d30980480c5d98a4d5))
+* **items:** celebrate successful claims with a check-morph flourish ([ecf0fd2](https://github.com/shawnphoffman/giftwrapt/commit/ecf0fd2c6b2f527f1b46e0fd1250527c7aa54683))
+* **items:** copy item to your own list ([f520b2c](https://github.com/shawnphoffman/giftwrapt/commit/f520b2c3f8108e9419512f882e5c42203cfae3ae))
+* **items:** move list items into React Query ([9b5a106](https://github.com/shawnphoffman/giftwrapt/commit/9b5a106f85a8a454bf6c770349cfaa86d05bfb23))
+* **items:** optimistic updates for group assign, delete, and bulk ops ([531e21e](https://github.com/shawnphoffman/giftwrapt/commit/531e21e1b86c8589ec374d794dfb045d3bf84b0f))
+* **items:** optimistic updates with row-level saving indicator ([98b00a4](https://github.com/shawnphoffman/giftwrapt/commit/98b00a4c690a990bb11b0601413d12c3079471b5))
+* **items:** render internal-list links as in-app navigation badges ([7cdb12e](https://github.com/shawnphoffman/giftwrapt/commit/7cdb12e2f5f3a5139d4723f58301f182602a739e))
+* **items:** use UrlBadge in rows and reorganize storybook ([b72fc02](https://github.com/shawnphoffman/giftwrapt/commit/b72fc0295b554f96322755bf3fb9b3f2e1e51a16))
+* **lists:** add back-to-parent affordance on internal-list nav ([3fe596a](https://github.com/shawnphoffman/giftwrapt/commit/3fe596af065739e660e11bc472a87ae6da726f7d))
+* **lists:** refresh list header avatar and empty-state alignment ([39b0e29](https://github.com/shawnphoffman/giftwrapt/commit/39b0e29aea732b59d11a8687dcbcac3d9c071ba6))
+* **notes:** autolink bare URLs in rendered markdown notes ([7901141](https://github.com/shawnphoffman/giftwrapt/commit/79011418b51c14d6c029cf8d5d1042ffed3f9098))
+* **purchases:** stack priority icon under type icon in detail row ([f04d18c](https://github.com/shawnphoffman/giftwrapt/commit/f04d18c3c7ed68253c3e3e440cb4bdce54bd0109))
+* **recent:** redesign recent items and comments pages ([7376813](https://github.com/shawnphoffman/giftwrapt/commit/7376813b316206c1d57a324c6b006fa3052c7ceb))
+* **recent:** widen recent items and comments window to 60 days ([dee1fb4](https://github.com/shawnphoffman/giftwrapt/commit/dee1fb4a1d7e2051331f28c850a7e186fc1a0a8e))
+* **scraping:** per-entry timeout overrides + tier-aware progress alert ([6dc1b32](https://github.com/shawnphoffman/giftwrapt/commit/6dc1b320f7929da500b934124ae10d8cd7e75c9e))
+* **storybook:** wrap Pages stories in a centered page-frame decorator ([2b6fd5f](https://github.com/shawnphoffman/giftwrapt/commit/2b6fd5f4c955a3267fa84559368de65ffdf826a2))
+* **test:** add pglite integration harness and fix user-delete cascade ordering ([cc6aca8](https://github.com/shawnphoffman/giftwrapt/commit/cc6aca86a1f42ac0a1c18f0c94bbfd810858989b))
+
+
+### Bug Fixes
+
+* **admin:** also skip R2 .emptyFolderPlaceholder in storage list ([82ab1ef](https://github.com/shawnphoffman/giftwrapt/commit/82ab1efc1b9d0ec200360af9a81c2c6fd8f34a39))
+* **admin:** cap admin storage walk + refuse bulk-delete when truncated ([28984d3](https://github.com/shawnphoffman/giftwrapt/commit/28984d3d609f6c67908fa464c2d12daecf89f31b))
+* **admin:** hide S3 folder placeholders and open thumbnails in lightbox ([4d4f9d5](https://github.com/shawnphoffman/giftwrapt/commit/4d4f9d509c746da388fd0f4ce7ce918fb0f82eee))
+* **auth:** cap cookieCache.maxAge at 24h instead of 7d ([4191601](https://github.com/shawnphoffman/giftwrapt/commit/419160126b04359e54499d9d751bcdcfc0596438))
+* **auth:** drop empty-string fallback for BETTER_AUTH_SECRET ([057dde8](https://github.com/shawnphoffman/giftwrapt/commit/057dde8a8e8edbd8954c393930e4d9fd02f46f6f))
+* **auth:** refuse INSECURE_COOKIES on HTTPS deployments ([4d1e692](https://github.com/shawnphoffman/giftwrapt/commit/4d1e692a951b800ae0f1319f51c1e4d13a8aad79))
+* **auth:** use generic sign-in error message ([226b45d](https://github.com/shawnphoffman/giftwrapt/commit/226b45d378cb93a2aaa1bf59a450b9c80ae6d644))
+* **backup:** require typed confirm + auto pre-wipe snapshot + audit log ([9438dc3](https://github.com/shawnphoffman/giftwrapt/commit/9438dc3360590109aba4cb5ac6a0d0ee5f6ab198))
+* **cron:** fail-closed without CRON_SECRET, timing-safe bearer compare ([deb7ca3](https://github.com/shawnphoffman/giftwrapt/commit/deb7ca3a298e5c3854ef4aa954908e1c634aba70))
+* **deps:** cap better-auth override to 1.4.x to avoid 1.6 admin-plugin bundle break ([0240607](https://github.com/shawnphoffman/giftwrapt/commit/0240607011f25e3e4063d52b1e41f89410cce040))
+* **deps:** cap vite override below 8 to avoid rolldown bundler regression ([4dc13b6](https://github.com/shawnphoffman/giftwrapt/commit/4dc13b6715a19929e3f0e9fdbd9f03a087b236d0))
+* **files:** add nosniff and Vary headers to file proxy ([865e742](https://github.com/shawnphoffman/giftwrapt/commit/865e742df9c457d865b234d9cb0bd90ba14fd2b7))
+* **filters:** show vendor filter when any vendor is present ([d3f1f12](https://github.com/shawnphoffman/giftwrapt/commit/d3f1f129d25c2081a79600b13d7eda47abf43274))
+* **gifts:** remove unused getGiftsForItems server function ([016d600](https://github.com/shawnphoffman/giftwrapt/commit/016d600e9ae5001ec19e8ca901162d23ad1e4b75))
+* **health:** drop verbose mode from /api/health ([3e8ced7](https://github.com/shawnphoffman/giftwrapt/commit/3e8ced7ba2bf45080f434b86874f67644611bef0))
+* **image-picker:** hide candidates whose img element fails to load ([3573629](https://github.com/shawnphoffman/giftwrapt/commit/35736293ee340f29bd6ce8ac3862249a91c9c20b))
+* **items:** client-side resize, upload on add, no-image picker option ([5821b5d](https://github.com/shawnphoffman/giftwrapt/commit/5821b5d33ff10d160c0628173078a547472e404e))
+* **items:** extract *Impl into server-only sibling to unbreak client build ([5fbd7a6](https://github.com/shawnphoffman/giftwrapt/commit/5fbd7a64d70db94d2d9b7402ab391f36cd9704df))
+* **lists:** refresh listing pages on query-cache invalidation ([415be3d](https://github.com/shawnphoffman/giftwrapt/commit/415be3d2491fa15048cba08f792462d4f4e4df29))
+* **lists:** shrink edit-page actions on smallest screens ([4afd0a3](https://github.com/shawnphoffman/giftwrapt/commit/4afd0a3a910f8ae65e65b2cb2bb09f259bc7772a))
+* **lists:** structured error for child gift-ideas attempts ([6bd2fa8](https://github.com/shawnphoffman/giftwrapt/commit/6bd2fa8023f825610274ef8154530b5431c9718c))
+* **permissions:** unify owner-or-viewer check with canViewListAsAnyone ([8bbbd4a](https://github.com/shawnphoffman/giftwrapt/commit/8bbbd4aefa114e7116dd8cb613c5a7e80eac533b))
+* rate-limit auth, scrape, file proxy, comments, claims ([b759976](https://github.com/shawnphoffman/giftwrapt/commit/b7599766f30c3cb7788e8d5c99f64ddc0995eb85))
+* **scrape:** block SSRF via private-IP check and manual redirect walk ([f4c9200](https://github.com/shawnphoffman/giftwrapt/commit/f4c920071fbc183893bbd14e66f02f2bcdc86f8d))
+* **scrape:** bump default timeouts to 20s/45s ([be8b20a](https://github.com/shawnphoffman/giftwrapt/commit/be8b20ad975dfbaf9030a70578aed161685f5268))
+* **scrape:** harden AI extractor against prompt injection ([b2eb5e6](https://github.com/shawnphoffman/giftwrapt/commit/b2eb5e69a2db34bf7dcdfeb6137aa8431bfb3abf))
+* **settings:** migrate legacy wish-list-scraper type on read ([aa6bb86](https://github.com/shawnphoffman/giftwrapt/commit/aa6bb865f1044a21918ed912db6c0d39b7af0a75))
+* **settings:** redact decrypted scraper secrets from public reads ([8216f5a](https://github.com/shawnphoffman/giftwrapt/commit/8216f5a3c756dc1cae81fe5332e42b359875f59e))
+* **skeletons:** drop red bg from loading skeleton ([566c7a4](https://github.com/shawnphoffman/giftwrapt/commit/566c7a4d0e372fd613702ff8e0809c425ba0e9d1))
+* **storage:** default GARAGE_ADMIN_URL to compose service name ([9b3d71b](https://github.com/shawnphoffman/giftwrapt/commit/9b3d71bf44ee588932c1cbc7d8a93a13291ea777))
+* **uploads:** validate magic bytes and cap sharp pixel input ([c794e5f](https://github.com/shawnphoffman/giftwrapt/commit/c794e5f8a76b20c04c379000f1d19ae2688ab87b))
+* **urls:** lowercase unknown-vendor display names ([8fc0508](https://github.com/shawnphoffman/giftwrapt/commit/8fc05082f3763d9ef0d334e36a5ec8b84000e195))
+
 ## [0.17.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.16.0...v0.17.0) (2026-04-27)
 
 
