@@ -2,6 +2,7 @@ import { ClientOnly, createFileRoute } from '@tanstack/react-router'
 import { Suspense } from 'react'
 
 import { CreateUserForm } from '@/components/admin/create-user-form'
+import { PermissionsMatrix } from '@/components/admin/permissions-matrix'
 import { UserImpersonation } from '@/components/admin/user-impersonation'
 import { AdminUsersList } from '@/components/admin/users-list'
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
@@ -35,6 +36,21 @@ function AdminUsersPage() {
 				<CardContent>
 					<Suspense fallback={<LoadingSkeleton />}>
 						<AdminUsersList />
+					</Suspense>
+				</CardContent>
+			</Card>
+			<Card className="animate-page-in">
+				<CardHeader>
+					<CardTitle className="text-2xl">Permissions Matrix</CardTitle>
+					<CardDescription>
+						Who can view or edit whose lists. Read each row as: this viewer's access to the column owner's lists.
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<Suspense fallback={<LoadingSkeleton />}>
+						<ClientOnly>
+							<PermissionsMatrix />
+						</ClientOnly>
 					</Suspense>
 				</CardContent>
 			</Card>

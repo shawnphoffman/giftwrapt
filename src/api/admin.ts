@@ -3,6 +3,7 @@ import { and, eq, inArray } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
+import { getPermissionsMatrixQuery } from '@/db/queries/permissions-matrix'
 import { getAllUsersQuery, getUserDetailsQuery } from '@/db/queries/users'
 import type { BirthMonth, Role } from '@/db/schema'
 import { giftedItems, guardianships, items, itemScrapes, users } from '@/db/schema'
@@ -28,6 +29,15 @@ export const getUserDetailsAsAdmin = createServerFn({
 	.inputValidator((data: { userId: string }) => data)
 	.handler(async ({ data: { userId } }) => {
 		return await getUserDetailsQuery(userId)
+	})
+
+//
+export const getPermissionsMatrixAsAdmin = createServerFn({
+	method: 'GET',
+})
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.handler(async () => {
+		return await getPermissionsMatrixQuery()
 	})
 
 //
