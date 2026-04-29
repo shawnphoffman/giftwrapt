@@ -1,12 +1,12 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
 import { getPermissionsMatrixQuery } from '@/db/queries/permissions-matrix'
 import { getAllUsersQuery, getUserDetailsQuery } from '@/db/queries/users'
 import type { BirthMonth, Role } from '@/db/schema'
-import { giftedItems, guardianships, items, itemScrapes, users } from '@/db/schema'
+import { giftedItems, guardianships, items, itemScrapes, lists, users } from '@/db/schema'
 import { loggingMiddleware } from '@/lib/logger'
 import { sendTestEmail } from '@/lib/resend'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
@@ -272,3 +272,57 @@ export async function bulkArchiveClaimedItemsImpl(args: { db: SchemaDatabase }):
 export const bulkArchiveClaimedItems = createServerFn({ method: 'POST' })
 	.middleware([adminAuthMiddleware, loggingMiddleware])
 	.handler(() => bulkArchiveClaimedItemsImpl({ db }))
+
+// ===============================
+// Admin purge - hard-delete all lists and their dependents
+// ===============================
+// Wipes every list (and FK-cascaded items, claims, addons, editors,
+// item_groups, item_comments, item_scrapes) without touching users,
+// guardianships, partner pointers, or auth rows. Used by /admin/data to
+// reset content while keeping accounts intact, e.g. after archiving made
+// a list undeletable from the regular UI.
+
+export type PurgeAllListsResult = {
+	kind: 'ok'
+	listsDeleted: number
+	itemsDeleted: number
+	claimsDeleted: number
+}
+
+export async function purgeAllListsImpl(args: { db: SchemaDatabase }): Promise<PurgeAllListsResult> {
+	const { db: dbx } = args
+
+	// Snapshot image URLs before the cascade so storage cleanup can run
+	// after the DB commit. The DB rows are gone by then.
+	const itemImageRows = await dbx.select({ imageUrl: items.imageUrl }).from(items).where(isNotNull(items.imageUrl))
+	const imageUrls = itemImageRows.map(r => r.imageUrl)
+
+	let listsDeleted = 0
+	let itemsDeleted = 0
+	let claimsDeleted = 0
+
+	await dbx.transaction(async tx => {
+		const itemRows = await tx.select({ id: items.id }).from(items)
+		itemsDeleted = itemRows.length
+
+		const claimRows = await tx.select({ id: giftedItems.id }).from(giftedItems)
+		claimsDeleted = claimRows.length
+
+		const listRows = await tx.select({ id: lists.id }).from(lists)
+		listsDeleted = listRows.length
+
+		// Single delete; FK cascades handle items, listAddons, listEditors,
+		// itemGroups, giftedItems, itemComments, itemScrapes.
+		await tx.delete(lists)
+	})
+
+	if (imageUrls.length > 0) {
+		void cleanupImageUrls(imageUrls)
+	}
+
+	return { kind: 'ok', listsDeleted, itemsDeleted, claimsDeleted }
+}
+
+export const purgeAllListsAsAdmin = createServerFn({ method: 'POST' })
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.handler(() => purgeAllListsImpl({ db }))
