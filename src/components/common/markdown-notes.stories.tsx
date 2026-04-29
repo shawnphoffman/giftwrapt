@@ -36,6 +36,12 @@ export const WithList: Story = {
 	},
 }
 
+export const Autolinks: Story = {
+	args: {
+		content: `Bare URLs become clickable: https://example.com and http://docs.example.org/path?q=1.\n\nMarkdown links still work: [explicit label](https://example.com).`,
+	},
+}
+
 export const SanitizesHtml: Story = {
 	args: {
 		content: `Safe markdown renders. <script>alert('xss')</script> Scripts are stripped by rehype-sanitize.`,
