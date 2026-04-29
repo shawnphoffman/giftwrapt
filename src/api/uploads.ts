@@ -11,7 +11,7 @@ import { createLogger, loggingMiddleware } from '@/lib/logger'
 import { canEditList } from '@/lib/permissions'
 import { getStorage } from '@/lib/storage/adapter'
 import { err, ok, UploadError, type UploadResult } from '@/lib/storage/errors'
-import { processImage } from '@/lib/storage/image-pipeline'
+import { assertImageBytes, processImage } from '@/lib/storage/image-pipeline'
 import { avatarKey, itemImageKey, parseKeyFromUrl } from '@/lib/storage/keys'
 import { adminAuthMiddleware, authMiddleware } from '@/middleware/auth'
 
@@ -85,6 +85,7 @@ export const uploadAvatar = createServerFn({ method: 'POST' })
 		let buffer: Buffer
 		try {
 			const raw = await readFileAsBuffer(file)
+			assertImageBytes(raw)
 			const processed = await processImage(raw, 'avatar')
 			buffer = processed.buffer
 		} catch (error) {
@@ -171,6 +172,7 @@ export const uploadAvatarAsAdmin = createServerFn({ method: 'POST' })
 		let buffer: Buffer
 		try {
 			const raw = await readFileAsBuffer(file)
+			assertImageBytes(raw)
 			const processed = await processImage(raw, 'avatar')
 			buffer = processed.buffer
 		} catch (error) {
@@ -282,6 +284,7 @@ export const uploadItemImage = createServerFn({ method: 'POST' })
 		let buffer: Buffer
 		try {
 			const raw = await readFileAsBuffer(file)
+			assertImageBytes(raw)
 			const processed = await processImage(raw, 'item')
 			buffer = processed.buffer
 		} catch (error) {
