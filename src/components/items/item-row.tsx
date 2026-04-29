@@ -1,6 +1,6 @@
 import { useIsMutating } from '@tanstack/react-query'
 import { Copy, Loader2, MoreHorizontal, PackageCheck, PackageX } from 'lucide-react'
-import { memo, type ReactNode } from 'react'
+import { memo, type ReactNode, useState } from 'react'
 import { toast } from 'sonner'
 
 import type { ItemWithGifts } from '@/api/lists'
@@ -20,6 +20,7 @@ import { cn } from '@/lib/utils'
 
 import { ClaimAction } from './claim-action'
 import { type ClaimEntry, ClaimUsers } from './claim-users'
+import { CopyItemDialog } from './copy-item-dialog'
 import { useInternalListLinks } from './internal-list-links-context'
 import { ItemImage } from './item-image'
 import { PriceQuantityBadge } from './price-quantity-badge'
@@ -51,6 +52,7 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 	const currentUserId = session?.user.id
 	const toggleAvailability = useToggleItemAvailability()
 	const internalListLinks = useInternalListLinks()
+	const [copyOpen, setCopyOpen] = useState(false)
 	const isSaving =
 		useIsMutating({
 			mutationKey: ['updateItem'],
@@ -158,7 +160,7 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
-							<DropdownMenuItem onClick={() => toast.info('Coming soon')}>
+							<DropdownMenuItem onClick={() => setCopyOpen(true)}>
 								<Copy className="size-4" /> Copy to your list
 							</DropdownMenuItem>
 							{canToggleAvailability && (
@@ -210,6 +212,8 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 
 			{/* COMMENTS */}
 			<ItemComments itemId={item.id} commentCount={item.commentCount} trailing={trailing} />
+
+			<CopyItemDialog open={copyOpen} onOpenChange={setCopyOpen} itemId={item.id} itemTitle={item.title} />
 		</div>
 	)
 

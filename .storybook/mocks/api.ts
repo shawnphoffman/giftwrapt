@@ -33,6 +33,7 @@ export const deleteGroups = (): Promise<{ kind: 'ok'; deletedGroups: number; del
 	Promise.resolve({ kind: 'ok', deletedGroups: 0, deletedItems: 0 })
 export const moveItemsToList = (): Promise<{ kind: 'ok'; moved: number; claimsCleared: number; commentsDeleted: number }> =>
 	Promise.resolve({ kind: 'ok', moved: 0, claimsCleared: 0, commentsDeleted: 0 })
+export const copyItemToList = ok
 export const getItemsForListView = (): Promise<{ kind: 'ok'; items: Array<unknown> }> => Promise.resolve({ kind: 'ok', items: [] })
 export const getItemsForListEdit = (): Promise<{ kind: 'ok'; items: Array<unknown> }> => Promise.resolve({ kind: 'ok', items: [] })
 

@@ -111,6 +111,73 @@ export const createItem = createServerFn({ method: 'POST' })
 	})
 
 // ===============================
+// WRITE - copy an item to another list
+// ===============================
+// Clones a viewable item onto a list the user can edit. Source list only
+// needs to be visible (canViewList); target list needs edit access. Group
+// membership, claims, comments, archived state, and modifiedAt are reset on
+// the copy. Vendor is re-derived from the URL so a 'manual' override on the
+// source doesn't follow.
+
+const CopyItemInputSchema = z.object({
+	itemId: z.number().int().positive(),
+	targetListId: z.number().int().positive(),
+})
+
+export type CopyItemResult = { kind: 'ok'; item: Item } | { kind: 'error'; reason: 'not-found' | 'source-not-visible' | 'not-authorized' }
+
+export const copyItemToList = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: z.input<typeof CopyItemInputSchema>) => CopyItemInputSchema.parse(data))
+	.handler(async ({ context, data }): Promise<CopyItemResult> => {
+		const userId = context.session.user.id
+
+		const sourceItem = await db.query.items.findFirst({
+			where: eq(items.id, data.itemId),
+		})
+		if (!sourceItem) return { kind: 'error', reason: 'not-found' }
+
+		const sourceList = await db.query.lists.findFirst({
+			where: eq(lists.id, sourceItem.listId),
+			columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		})
+		if (!sourceList) return { kind: 'error', reason: 'not-found' }
+
+		const view = await canViewList(userId, sourceList)
+		if (!view.ok) return { kind: 'error', reason: 'source-not-visible' }
+
+		const targetList = await db.query.lists.findFirst({
+			where: eq(lists.id, data.targetListId),
+			columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		})
+		if (!targetList) return { kind: 'error', reason: 'not-found' }
+
+		const perm = await assertCanEditItems(userId, targetList)
+		if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
+
+		const vendor = sourceItem.url ? getVendorFromUrl(sourceItem.url) : null
+
+		const [inserted] = await db
+			.insert(items)
+			.values({
+				listId: data.targetListId,
+				title: sourceItem.title,
+				url: sourceItem.url,
+				vendorId: vendor?.id ?? null,
+				vendorSource: vendor ? 'rule' : null,
+				price: sourceItem.price,
+				currency: sourceItem.currency,
+				notes: sourceItem.notes,
+				priority: sourceItem.priority,
+				quantity: sourceItem.quantity,
+				imageUrl: sourceItem.imageUrl,
+			})
+			.returning()
+
+		return { kind: 'ok', item: inserted }
+	})
+
+// ===============================
 // WRITE - update an item
 // ===============================
 // Partial update: undefined = don't touch, null = clear the field.
