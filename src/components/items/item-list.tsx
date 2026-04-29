@@ -17,7 +17,7 @@ import {
 import type { Priority } from '@/db/schema/enums'
 import { buildListEntries, type ListEntry } from '@/lib/list-entries'
 import { listItemsViewQueryOptions } from '@/lib/queries/items'
-import { vendorIdToName } from '@/lib/urls'
+import { getVendorFromUrl, vendorIdToName } from '@/lib/urls'
 import { cn } from '@/lib/utils'
 
 import { GroupViewBlock } from './group-view-block'
@@ -89,20 +89,28 @@ export default function ItemList({ listId, groups = [] }: Props) {
 	const [vendorFilter, setVendorFilter] = useState<ReadonlySet<string>>(() => new Set())
 	const [sort, setSort] = useState<SortValue>('priority-desc')
 
-	// Distinct vendors actually present on this list. "No link" is a
-	// synthetic option that only appears when there are URL-less items.
+	// Effective vendor id for an item: stored vendorId, or derived from url
+	// if vendorId hasn'''t been backfilled yet. NO_LINK only when there'''s no
+	// url at all.
+	const effectiveVendorId = (i: { vendorId: string | null; url: string | null }): string => {
+		if (i.vendorId) return i.vendorId
+		const fromUrl = i.url ? getVendorFromUrl(i.url)?.id : null
+		return fromUrl ?? NO_LINK_VENDOR_ID
+	}
+
 	const vendorOptions = useMemo(() => {
 		const seenIds = new Set<string>()
 		const opts: Array<{ id: string; name: string }> = []
 		let hasNoLink = false
 		for (const i of items) {
-			if (i.vendorId) {
-				if (!seenIds.has(i.vendorId)) {
-					seenIds.add(i.vendorId)
-					opts.push({ id: i.vendorId, name: vendorIdToName(i.vendorId) })
-				}
-			} else {
+			const id = effectiveVendorId(i)
+			if (id === NO_LINK_VENDOR_ID) {
 				hasNoLink = true
+				continue
+			}
+			if (!seenIds.has(id)) {
+				seenIds.add(id)
+				opts.push({ id, name: vendorIdToName(id) })
 			}
 		}
 		opts.sort((a, b) => a.name.localeCompare(b.name))
@@ -115,7 +123,7 @@ export default function ItemList({ listId, groups = [] }: Props) {
 		if (filter === 'unpurchased') out = out.filter(i => i.gifts.length === 0)
 		else if (filter === 'purchased') out = out.filter(i => i.gifts.length > 0)
 		if (vendorFilter.size > 0) {
-			out = out.filter(i => vendorFilter.has(i.vendorId ?? NO_LINK_VENDOR_ID))
+			out = out.filter(i => vendorFilter.has(effectiveVendorId(i)))
 		}
 		return out
 	}, [items, filter, vendorFilter])
@@ -171,7 +179,7 @@ export default function ItemList({ listId, groups = [] }: Props) {
 					</DropdownMenuContent>
 				</DropdownMenu>
 
-				{vendorOptions.length > 1 && (
+				{vendorOptions.length >= 1 && (
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button
