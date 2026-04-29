@@ -145,7 +145,7 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 			<div className="flex items-center gap-2 font-medium leading-tight">
 				<span className={cn('truncate min-w-0', dimmed && 'opacity-60')}>{item.title}</span>
 				{internalListSummary ? (
-					<ListLinkBadge listId={internalListSummary.id} name={internalListSummary.name} />
+					<ListLinkBadge listId={internalListSummary.id} name={internalListSummary.name} from={item.listId} />
 				) : (
 					<UrlBadge url={linkUrl} />
 				)}

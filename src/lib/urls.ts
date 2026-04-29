@@ -85,13 +85,15 @@ export function getDomainFromUrl(url: string): string {
 	return getVendorFromUrl(url)?.name ?? ''
 }
 
-const INTERNAL_LIST_PATH = /^\/lists\/(\d+)\/?$/
+const INTERNAL_LIST_PATH = /^\/lists\/(\d+)(?:\/|$)/
 
 /**
  * Detects URLs that point at a list inside this app. Returns the listId
  * when the URL parses cleanly, its origin matches the passed origin, and
- * the path is exactly /lists/<id> (a trailing slash is tolerated; query
- * strings or hashes cause it to fall back to external).
+ * the path starts with /lists/<id>. Sub-routes (e.g. /edit), query
+ * strings, and fragments are tolerated and ignored - the badge always
+ * navigates to the canonical view route. This forgives URLs pasted from
+ * the edit screen or with tracking params.
  *
  * Pass `window.location.origin` from the client. Falsy origin returns
  * null so SSR is a no-op.
@@ -105,7 +107,6 @@ export function parseInternalListLink(url: string | null | undefined, origin: st
 		return null
 	}
 	if (parsed.origin !== origin) return null
-	if (parsed.search || parsed.hash) return null
 	const match = parsed.pathname.match(INTERNAL_LIST_PATH)
 	if (!match) return null
 	const listId = Number(match[1])

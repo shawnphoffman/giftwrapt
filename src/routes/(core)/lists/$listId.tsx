@@ -8,13 +8,22 @@ import UserAvatar from '@/components/common/user-avatar'
 import ItemList from '@/components/items/item-list'
 import { ItemListSkeleton } from '@/components/items/item-list-skeleton'
 import { ListAddonsSection } from '@/components/list-addons/list-addons-section'
+import BackToParentList from '@/components/lists/back-to-parent-list'
 import { Skeleton } from '@/components/ui/skeleton'
 import { listItemsViewQueryOptions } from '@/lib/queries/items'
 import { useListSSE } from '@/lib/use-list-sse'
 import { useScrollToHash } from '@/lib/use-scroll-to-hash'
 
+type ListSearch = { from?: number }
+
 export const Route = createFileRoute('/(core)/lists/$listId')({
-	loader: async ({ params, context, location }) => {
+	validateSearch: (search: Record<string, unknown>): ListSearch => {
+		const raw = search.from
+		const num = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw) : NaN
+		return Number.isFinite(num) && num > 0 ? { from: num } : {}
+	},
+	loaderDeps: ({ search }) => ({ from: search.from }),
+	loader: async ({ params, context, location, deps }) => {
 		const listId = Number(params.listId)
 		if (Number.isFinite(listId)) {
 			// Kick off the items query without awaiting. Items stream in via
@@ -34,6 +43,7 @@ export const Route = createFileRoute('/(core)/lists/$listId')({
 			throw redirect({
 				to: '/lists/$listId/edit',
 				params: { listId: result.listId },
+				search: deps.from !== undefined ? { from: deps.from } : undefined,
 				hash: location.hash || undefined,
 			})
 		}
@@ -65,6 +75,7 @@ function ListDetailPagePending() {
 
 function ListDetailPage() {
 	const list = Route.useLoaderData()
+	const { from } = Route.useSearch()
 	useListSSE(list.id)
 	useScrollToHash([list.id])
 
@@ -74,14 +85,17 @@ function ListDetailPage() {
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
 				{/* HEADING */}
-				<div className="relative flex items-center gap-3">
-					<div className="flex flex-col gap-0.5 min-w-0">
-						<div className="flex items-center min-w-0 gap-2">
-							<UserAvatar name={recipientName} image={list.owner.image} className="size-12 border-2 border-background" />
-							<h1 className="truncate">{list.name}</h1>
+				<div className="relative flex flex-col gap-1">
+					<BackToParentList from={from} />
+					<div className="flex items-center gap-3">
+						<div className="flex flex-col gap-0.5 min-w-0">
+							<div className="flex items-center min-w-0 gap-2">
+								<UserAvatar name={recipientName} image={list.owner.image} className="size-12 border-2 border-background" />
+								<h1 className="truncate">{list.name}</h1>
+							</div>
 						</div>
+						<ListTypeIcon type={list.type} className="wish-page-icon" />
 					</div>
-					<ListTypeIcon type={list.type} className="wish-page-icon" />
 				</div>
 				{list.description && <MarkdownNotes content={list.description} className="text-muted-foreground" />}
 				{/* ITEMS */}

@@ -18,6 +18,7 @@ import { memo, useState } from 'react'
 import { toast } from 'sonner'
 
 import type { GroupSummary } from '@/api/lists'
+import ListLinkBadge from '@/components/common/list-link-badge'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import PriorityIcon from '@/components/common/priority-icon'
 import UrlBadge from '@/components/common/url-badge'
@@ -49,8 +50,10 @@ import { useAssignItemsToGroup } from '@/lib/mutations/assign-items-to-group'
 import { useDeleteItem } from '@/lib/mutations/delete-item'
 import { useToggleItemAvailability } from '@/lib/mutations/toggle-item-availability'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
+import { parseInternalListLink } from '@/lib/urls'
 import { cn } from '@/lib/utils'
 
+import { useInternalListLinks } from './internal-list-links-context'
 import { ItemComments } from './item-comments'
 import { ItemFormDialog } from './item-form-dialog'
 import { ItemImage } from './item-image'
@@ -100,6 +103,10 @@ export const ItemEditRow = memo(function ItemEditRow({
 			},
 		}) > 0
 
+	const internalListLinks = useInternalListLinks()
+	const internalLinkHit = item.url && typeof window !== 'undefined' ? parseInternalListLink(item.url, window.location.origin) : null
+	const internalListSummary = internalLinkHit ? internalListLinks.get(internalLinkHit.listId) : undefined
+
 	const otherGroups = groups.filter(g => g.id !== item.groupId)
 	const hasCurrentGroup = item.groupId != null && groups.some(g => g.id === item.groupId)
 
@@ -145,7 +152,11 @@ export const ItemEditRow = memo(function ItemEditRow({
 			{/* HEADER */}
 			<div className="flex items-center gap-2 font-medium leading-tight">
 				<span className={cn('truncate min-w-0', dimmed && 'opacity-60')}>{item.title}</span>
-				<UrlBadge url={item.url} />
+				{internalListSummary ? (
+					<ListLinkBadge listId={internalListSummary.id} name={internalListSummary.name} from={item.listId} />
+				) : (
+					<UrlBadge url={item.url} />
+				)}
 				<span className="flex-1" />
 				{isSaving && <Loader2 className="size-3.5 shrink-0 text-muted-foreground animate-spin" aria-label="Saving" />}
 				{isUnavailable && <UnavailableBadge changedAt={item.availabilityChangedAt} />}

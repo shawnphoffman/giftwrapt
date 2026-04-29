@@ -1,19 +1,21 @@
-import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, notFound, useRouter } from '@tanstack/react-router'
 import { Group as GroupIcon, ListOrdered, Plus, Settings2, Shuffle } from 'lucide-react'
-import { Suspense, useState } from 'react'
+import { Suspense, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import { createItemGroup, deleteItemGroup, reorderGroupItems } from '@/api/groups'
 import { getAddableEditors, getListEditors } from '@/api/list-editors'
-import { getListForEditing, type ListForEditing } from '@/api/lists'
+import { getListForEditing, getListSummaries, type ListForEditing, type ListSummary } from '@/api/lists'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import { GroupBlock } from '@/components/items/group-block'
+import { InternalListLinksProvider } from '@/components/items/internal-list-links-context'
 import { ItemEditRow } from '@/components/items/item-edit-row'
 import { ItemFormDialog } from '@/components/items/item-form-dialog'
 import { ItemListSkeleton } from '@/components/items/item-list-skeleton'
 import { MoveItemDialog } from '@/components/items/move-item-dialog'
+import BackToParentList from '@/components/lists/back-to-parent-list'
 import { ListSettingsSheet } from '@/components/lists/list-settings-sheet'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
@@ -22,9 +24,17 @@ import type { GroupType } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { buildListEntries } from '@/lib/list-entries'
 import { itemsKeys, listItemsEditQueryOptions } from '@/lib/queries/items'
+import { parseInternalListLink } from '@/lib/urls'
 import { useScrollToHash } from '@/lib/use-scroll-to-hash'
 
+type EditSearch = { from?: number }
+
 export const Route = createFileRoute('/(core)/lists_/$listId/edit')({
+	validateSearch: (search: Record<string, unknown>): EditSearch => {
+		const raw = search.from
+		const num = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw) : NaN
+		return Number.isFinite(num) && num > 0 ? { from: num } : {}
+	},
 	loader: async ({ params, context }) => {
 		const listId = Number(params.listId)
 		if (!Number.isFinite(listId)) throw notFound()
@@ -68,6 +78,7 @@ function ListEditPagePending() {
 
 function ListEditPage() {
 	const { list, editors, addableUsers } = Route.useLoaderData()
+	const { from } = Route.useSearch()
 	const router = useRouter()
 	const queryClient = useQueryClient()
 	const [addItemOpen, setAddItemOpen] = useState(false)
@@ -120,19 +131,22 @@ function ListEditPage() {
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
 				{/* HEADING */}
-				<div className="relative flex items-center gap-3">
-					<h1 className="truncate flex-1">{list.name}</h1>
-					<ListSettingsSheet
-						listId={list.id}
-						name={list.name}
-						type={list.type}
-						isPrivate={list.isPrivate}
-						description={list.description}
-						giftIdeasTargetUserId={list.giftIdeasTargetUserId}
-						editors={editors}
-						addableUsers={addableUsers}
-						isOwner={list.isOwner}
-					/>
+				<div className="relative flex flex-col gap-1">
+					<BackToParentList from={from} />
+					<div className="flex items-center gap-3">
+						<h1 className="truncate flex-1">{list.name}</h1>
+						<ListSettingsSheet
+							listId={list.id}
+							name={list.name}
+							type={list.type}
+							isPrivate={list.isPrivate}
+							description={list.description}
+							giftIdeasTargetUserId={list.giftIdeasTargetUserId}
+							editors={editors}
+							addableUsers={addableUsers}
+							isOwner={list.isOwner}
+						/>
+					</div>
 					<ListTypeIcon type={list.type} className="wish-page-icon" />
 				</div>
 				{list.description && <MarkdownNotes content={list.description} className="text-muted-foreground" />}
@@ -219,6 +233,30 @@ function EditItemsBody({ list, onMoveItem, onAddItem, onDeleteGroup, onReorder }
 	const { data: items } = useSuspenseQuery(listItemsEditQueryOptions(list.id))
 	const entries = buildListEntries({ items, groups: list.groups })
 
+	const internalListIds = useMemo(() => {
+		if (typeof window === 'undefined') return [] as Array<number>
+		const origin = window.location.origin
+		const set = new Set<number>()
+		for (const i of items) {
+			const hit = parseInternalListLink(i.url, origin)
+			if (hit) set.add(hit.listId)
+		}
+		return [...set].sort((a, b) => a - b)
+	}, [items])
+
+	const { data: summaryData } = useQuery({
+		queryKey: ['list-summaries', internalListIds],
+		queryFn: () => getListSummaries({ data: { listIds: internalListIds } }),
+		enabled: internalListIds.length > 0,
+		staleTime: 60_000,
+	})
+
+	const internalListLinks = useMemo(() => {
+		const map = new Map<number, ListSummary>()
+		for (const s of summaryData?.summaries ?? []) map.set(s.id, s)
+		return map
+	}, [summaryData])
+
 	if (items.length === 0 && list.groups.length === 0) {
 		return (
 			<div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg bg-accent/30">
@@ -228,31 +266,33 @@ function EditItemsBody({ list, onMoveItem, onAddItem, onDeleteGroup, onReorder }
 	}
 
 	return (
-		<div className="flex flex-col gap-2 xs:pl-6">
-			{entries.map(entry =>
-				entry.kind === 'item' ? (
-					<ItemEditRow
-						key={`item-${entry.item.id}`}
-						item={entry.item}
-						commentCount={entry.item.commentCount}
-						onMoveClick={onMoveItem}
-						groups={list.groups}
-					/>
-				) : (
-					<GroupBlock
-						key={`group-${entry.group.id}`}
-						group={entry.group}
-						items={entry.items}
-						groups={list.groups}
-						listId={list.id}
-						isOwner={list.isOwner}
-						onAddItem={onAddItem}
-						onDelete={onDeleteGroup}
-						onMoveItem={onMoveItem}
-						onReorder={onReorder}
-					/>
-				)
-			)}
-		</div>
+		<InternalListLinksProvider value={internalListLinks}>
+			<div className="flex flex-col gap-2 xs:pl-6">
+				{entries.map(entry =>
+					entry.kind === 'item' ? (
+						<ItemEditRow
+							key={`item-${entry.item.id}`}
+							item={entry.item}
+							commentCount={entry.item.commentCount}
+							onMoveClick={onMoveItem}
+							groups={list.groups}
+						/>
+					) : (
+						<GroupBlock
+							key={`group-${entry.group.id}`}
+							group={entry.group}
+							items={entry.items}
+							groups={list.groups}
+							listId={list.id}
+							isOwner={list.isOwner}
+							onAddItem={onAddItem}
+							onDelete={onDeleteGroup}
+							onMoveItem={onMoveItem}
+							onReorder={onReorder}
+						/>
+					)
+				)}
+			</div>
+		</InternalListLinksProvider>
 	)
 }
