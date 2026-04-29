@@ -90,7 +90,7 @@ export function ClaimAction({
 	return (
 		<>
 			<Button size="sm" variant="outline" className="h-7" onClick={() => setCreateOpen(true)}>
-				<Gift className="size-3.5" />
+				<Gift className="size-3.5 transition-colors group-hover/button:text-green-500" />
 				Claim
 			</Button>
 			<ClaimGiftDialog
