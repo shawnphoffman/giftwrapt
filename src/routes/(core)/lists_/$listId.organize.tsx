@@ -1,11 +1,10 @@
-import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, notFound, useRouter } from '@tanstack/react-router'
 import { Move, Trash2 } from 'lucide-react'
 import { Suspense, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
-import { assignItemsToGroup } from '@/api/groups'
-import { deleteGroups, deleteItems, type ItemForEditing, setGroupsPriority, setItemsPriority } from '@/api/items'
+import { type ItemForEditing, setGroupsPriority } from '@/api/items'
 import { getListForEditing, type GroupSummary, type ListForEditing } from '@/api/lists'
 import PriorityIcon from '@/components/common/priority-icon'
 import { BulkMoveItemsDialog } from '@/components/items/bulk-move-dialog'
@@ -36,8 +35,12 @@ import {
 import { type Priority, priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { buildListEntries } from '@/lib/list-entries'
+import { useAssignItemsToGroup } from '@/lib/mutations/assign-items-to-group'
+import { useDeleteGroups } from '@/lib/mutations/delete-groups'
+import { useDeleteItems } from '@/lib/mutations/delete-items'
+import { useSetItemsPriority } from '@/lib/mutations/set-items-priority'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
-import { itemsKeys, listItemsEditQueryOptions } from '@/lib/queries/items'
+import { listItemsEditQueryOptions } from '@/lib/queries/items'
 import { cn } from '@/lib/utils'
 
 type TabMode = 'bulk' | 'reorder'
@@ -112,7 +115,10 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
 
 function BulkActionsTab({ list, items }: { list: ListForEditing; items: Array<ItemForEditing> }) {
 	const router = useRouter()
-	const queryClient = useQueryClient()
+	const deleteItemsMut = useDeleteItems()
+	const deleteGroupsMut = useDeleteGroups()
+	const setPriorityMut = useSetItemsPriority()
+	const assignGroupMut = useAssignItemsToGroup()
 	const [selected, setSelected] = useState<Set<number>>(new Set())
 	const [selectedGroups, setSelectedGroups] = useState<Set<number>>(new Set())
 	const [busy, setBusy] = useState(false)
@@ -168,10 +174,9 @@ function BulkActionsTab({ list, items }: { list: ListForEditing; items: Array<It
 		})
 	}
 
-	const refresh = async () => {
+	const clearSelection = () => {
 		setSelected(new Set())
 		setSelectedGroups(new Set())
-		await Promise.all([router.invalidate(), queryClient.invalidateQueries({ queryKey: itemsKeys.byList(list.id) })])
 	}
 
 	const runDelete = async () => {
@@ -180,45 +185,50 @@ function BulkActionsTab({ list, items }: { list: ListForEditing; items: Array<It
 		for (const gid of selectedGroupIds) for (const id of itemsByGroup.get(gid) ?? []) groupChildIds.add(id)
 		const itemOnlyIds = selectedIds.filter(id => !groupChildIds.has(id))
 
+		clearSelection()
+		setDeleteOpen(false)
+
 		let deletedItems = 0
 		let deletedGroups = 0
 		if (selectedGroupIds.length > 0) {
-			const rg = await deleteGroups({ data: { groupIds: selectedGroupIds } })
+			const rg = await deleteGroupsMut.mutateAsync({ listId: list.id, groupIds: selectedGroupIds })
 			if (rg.kind === 'ok') {
 				deletedGroups = rg.deletedGroups
 				deletedItems += rg.deletedItems
 			} else {
 				setBusy(false)
-				setDeleteOpen(false)
 				toast.error('Could not delete groups')
 				return
 			}
 		}
 		if (itemOnlyIds.length > 0) {
-			const ri = await deleteItems({ data: { itemIds: itemOnlyIds } })
+			const ri = await deleteItemsMut.mutateAsync({ listId: list.id, itemIds: itemOnlyIds })
 			if (ri.kind === 'ok') deletedItems += ri.deleted
 			else {
 				setBusy(false)
-				setDeleteOpen(false)
 				toast.error('Could not delete items')
 				return
 			}
 		}
 		setBusy(false)
-		setDeleteOpen(false)
 		const parts: Array<string> = []
 		if (deletedGroups) parts.push(`${deletedGroups} group${deletedGroups === 1 ? '' : 's'}`)
 		if (deletedItems) parts.push(`${deletedItems} item${deletedItems === 1 ? '' : 's'}`)
 		toast.success(`Deleted ${parts.join(' and ')}`)
-		await refresh()
+		// Group rows live in the route loader's list data; the items cache is
+		// already patched optimistically, so just refresh the loader.
+		if (deletedGroups > 0) await router.invalidate()
 	}
 
 	const runPriority = async (priority: Priority) => {
 		if (selectedIds.length === 0 && selectedGroupIds.length === 0) return
+		const itemIds = selectedIds
+		const groupIds = selectedGroupIds
+		clearSelection()
 		setBusy(true)
 		let updated = 0
-		if (selectedIds.length > 0) {
-			const r = await setItemsPriority({ data: { itemIds: selectedIds, priority } })
+		if (itemIds.length > 0) {
+			const r = await setPriorityMut.mutateAsync({ listId: list.id, itemIds, priority })
 			if (r.kind === 'ok') updated += r.updated
 			else {
 				setBusy(false)
@@ -226,10 +236,13 @@ function BulkActionsTab({ list, items }: { list: ListForEditing; items: Array<It
 				return
 			}
 		}
-		if (selectedGroupIds.length > 0) {
-			const r = await setGroupsPriority({ data: { groupIds: selectedGroupIds, priority } })
-			if (r.kind === 'ok') updated += r.updated
-			else {
+		if (groupIds.length > 0) {
+			const r = await setGroupsPriority({ data: { groupIds, priority } })
+			if (r.kind === 'ok') {
+				updated += r.updated
+				// Group priority lives on the route loader's group rows; refresh.
+				await router.invalidate()
+			} else {
 				setBusy(false)
 				toast.error('Could not update group priority')
 				return
@@ -237,17 +250,17 @@ function BulkActionsTab({ list, items }: { list: ListForEditing; items: Array<It
 		}
 		setBusy(false)
 		toast.success(`Priority set to ${PRIORITY_LABEL[priority]} on ${updated} row${updated === 1 ? '' : 's'}`)
-		await refresh()
 	}
 
 	const runAssignGroup = async (groupId: number | null) => {
 		if (selectedIds.length === 0) return
+		const itemIds = selectedIds
+		clearSelection()
 		setBusy(true)
-		const r = await assignItemsToGroup({ data: { itemIds: selectedIds, groupId } })
+		const r = await assignGroupMut.mutateAsync({ listId: list.id, itemIds, groupId })
 		setBusy(false)
 		if (r.kind === 'ok') {
 			toast.success(groupId === null ? 'Removed from group' : 'Items assigned to group')
-			await refresh()
 		} else {
 			toast.error(r.reason === 'mixed-lists' ? 'All items must be on the same list' : 'Could not assign group')
 		}
@@ -352,7 +365,13 @@ function BulkActionsTab({ list, items }: { list: ListForEditing; items: Array<It
 			)}
 
 			{moveOpen && (
-				<BulkMoveItemsDialog open={moveOpen} onOpenChange={setMoveOpen} itemIds={selectedIds} sourceListId={list.id} onMoved={refresh} />
+				<BulkMoveItemsDialog
+					open={moveOpen}
+					onOpenChange={setMoveOpen}
+					itemIds={selectedIds}
+					sourceListId={list.id}
+					onMoved={clearSelection}
+				/>
 			)}
 
 			<AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>

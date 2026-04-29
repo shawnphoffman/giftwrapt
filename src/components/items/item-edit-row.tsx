@@ -1,4 +1,4 @@
-import { useIsMutating, useQueryClient } from '@tanstack/react-query'
+import { useIsMutating } from '@tanstack/react-query'
 import {
 	ArrowDown,
 	ArrowRightLeft,
@@ -17,8 +17,6 @@ import {
 import { memo, useState } from 'react'
 import { toast } from 'sonner'
 
-import { assignItemsToGroup } from '@/api/groups'
-import { deleteItem } from '@/api/items'
 import type { GroupSummary } from '@/api/lists'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import PriorityIcon from '@/components/common/priority-icon'
@@ -47,9 +45,10 @@ import {
 } from '@/components/ui/dropdown-menu'
 import type { Item } from '@/db/schema/items'
 import { useSession } from '@/lib/auth-client'
+import { useAssignItemsToGroup } from '@/lib/mutations/assign-items-to-group'
+import { useDeleteItem } from '@/lib/mutations/delete-item'
 import { useToggleItemAvailability } from '@/lib/mutations/toggle-item-availability'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
-import { itemsKeys } from '@/lib/queries/items'
 import { cn } from '@/lib/utils'
 
 import { ItemComments } from './item-comments'
@@ -83,26 +82,31 @@ export const ItemEditRow = memo(function ItemEditRow({
 	onMoveUp,
 	onMoveDown,
 }: Props) {
-	const queryClient = useQueryClient()
 	const { data: session } = useSession()
 	const isAdmin = session?.user.isAdmin
 	const [editOpen, setEditOpen] = useState(false)
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 	const toggleAvailability = useToggleItemAvailability()
+	const assignGroup = useAssignItemsToGroup()
+	const deleteOne = useDeleteItem()
 	const isSaving =
 		useIsMutating({
 			mutationKey: ['updateItem'],
-			predicate: m => (m.state.variables as { itemId?: number } | undefined)?.itemId === item.id,
+			predicate: m => {
+				const vars = m.state.variables as { itemId?: number; itemIds?: ReadonlyArray<number> } | undefined
+				if (vars?.itemId === item.id) return true
+				if (vars?.itemIds?.includes(item.id)) return true
+				return false
+			},
 		}) > 0
 
 	const otherGroups = groups.filter(g => g.id !== item.groupId)
 	const hasCurrentGroup = item.groupId != null && groups.some(g => g.id === item.groupId)
 
 	const handleAssignGroup = async (groupId: number | null) => {
-		const result = await assignItemsToGroup({ data: { groupId, itemIds: [item.id] } })
+		const result = await assignGroup.mutateAsync({ listId: item.listId, itemIds: [item.id], groupId })
 		if (result.kind === 'ok') {
 			toast.success(groupId === null ? 'Removed from group' : 'Added to group')
-			await queryClient.invalidateQueries({ queryKey: itemsKeys.byList(item.listId) })
 		} else {
 			toast.error('Failed to update group')
 		}
@@ -120,15 +124,13 @@ export const ItemEditRow = memo(function ItemEditRow({
 	}
 
 	const handleDelete = async () => {
-		const result = await deleteItem({ data: { itemId: item.id } })
+		setDeleteDialogOpen(false)
+		const result = await deleteOne.mutateAsync({ listId: item.listId, itemId: item.id })
 		if (result.kind === 'ok') {
 			toast.success('Item deleted')
-			queryClient.invalidateQueries({ queryKey: ['recent', 'items'] })
-			await queryClient.invalidateQueries({ queryKey: itemsKeys.byList(item.listId) })
 		} else {
 			toast.error('Failed to delete item')
 		}
-		setDeleteDialogOpen(false)
 	}
 
 	// Standalone rows get a peeking priority tab on the left; grouped rows stay
