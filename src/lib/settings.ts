@@ -219,8 +219,14 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	enableChristmasEmails: true,
 	enableComments: true,
 	enableCommentEmails: true,
-	scrapeProviderTimeoutMs: 10_000,
-	scrapeOverallTimeoutMs: 20_000,
+	// Per-provider HTTP timeout. Hosted scrapers (Stagehand / AI on
+	// heavy pages) routinely need >10s; bumped from 10s after
+	// sec-review L5. Tune downward in /admin/scraping if you only run
+	// fast providers.
+	scrapeProviderTimeoutMs: 20_000,
+	// Overall budget for a single scrape (covers the entire chain +
+	// any parallel racers). Bumped from 20s for the same reason.
+	scrapeOverallTimeoutMs: 45_000,
 	scrapeQualityThreshold: 3,
 	scrapeCacheTtlHours: 24,
 	scrapeAiProviderEnabled: false,

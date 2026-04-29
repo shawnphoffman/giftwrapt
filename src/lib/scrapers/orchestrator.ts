@@ -17,8 +17,14 @@ import { ScrapeProviderError } from './types'
 
 const baseLog = createLogger('scrape-orchestrator')
 
-const DEFAULT_PER_PROVIDER_TIMEOUT_MS = 10_000
-const DEFAULT_OVERALL_TIMEOUT_MS = 20_000
+// Defaults used only when `deps` doesn't pass a value (i.e. in tests
+// and any future caller that bypasses the admin-configured settings).
+// Production goes through `DEFAULT_APP_SETTINGS` in src/lib/settings.ts;
+// keep both in sync. Bumped from 10s/20s after sec-review L5: hosted
+// scrapers (Stagehand / AI extractor on heavy pages) routinely need
+// more than 10s and were timing out on otherwise-healthy fetches.
+const DEFAULT_PER_PROVIDER_TIMEOUT_MS = 20_000
+const DEFAULT_OVERALL_TIMEOUT_MS = 45_000
 const DEFAULT_QUALITY_THRESHOLD = 3
 
 export async function orchestrate(options: OrchestrateOptions, deps: OrchestratorDeps): Promise<OrchestrateResult> {
