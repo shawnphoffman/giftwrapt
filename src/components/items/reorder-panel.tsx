@@ -26,6 +26,7 @@ import type { GroupSummary } from '@/api/lists'
 import PriorityIcon from '@/components/common/priority-icon'
 import type { Priority } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
+import { httpsUpgrade } from '@/lib/image-url'
 import { priorityRingClass } from '@/lib/priority-classes'
 import { itemsKeys } from '@/lib/queries/items'
 import { cn } from '@/lib/utils'
@@ -349,7 +350,7 @@ function EntryRow({ entry, dragging = false }: { entry: Entry; dragging?: boolea
 			<span className="text-sm font-medium leading-tight truncate flex-1">{item.title}</span>
 			{item.imageUrl && (
 				<div className="size-7 shrink-0 rounded bg-background/60 overflow-hidden flex items-center justify-center">
-					<img src={item.imageUrl} alt="" className="object-contain size-full" />
+					<img src={httpsUpgrade(item.imageUrl)} alt="" className="object-contain size-full" />
 				</div>
 			)}
 		</div>

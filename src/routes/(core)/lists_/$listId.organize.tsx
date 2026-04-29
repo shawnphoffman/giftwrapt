@@ -34,6 +34,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { type Priority, priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
+import { httpsUpgrade } from '@/lib/image-url'
 import { buildListEntries } from '@/lib/list-entries'
 import { useAssignItemsToGroup } from '@/lib/mutations/assign-items-to-group'
 import { useDeleteGroups } from '@/lib/mutations/delete-groups'
@@ -470,7 +471,7 @@ function OrganizeItemRow({ item, selected, onToggle }: { item: Item; selected: b
 				</div>
 				{item.imageUrl && (
 					<div className="size-10 shrink-0 rounded bg-background/60 overflow-hidden flex items-center justify-center">
-						<img src={item.imageUrl} alt="" className="object-contain size-full" />
+						<img src={httpsUpgrade(item.imageUrl)} alt="" className="object-contain size-full" />
 					</div>
 				)}
 			</label>
@@ -518,7 +519,7 @@ function OrganizeGroupBlock({
 							</div>
 							{item.imageUrl && (
 								<div className="size-10 shrink-0 rounded bg-background/60 overflow-hidden flex items-center justify-center">
-									<img src={item.imageUrl} alt="" className="object-contain size-full" />
+									<img src={httpsUpgrade(item.imageUrl)} alt="" className="object-contain size-full" />
 								</div>
 							)}
 						</li>

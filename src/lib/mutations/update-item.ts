@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { updateItem } from '@/api/items'
 import type { Item } from '@/db/schema/items'
+import { httpsUpgradeOrNull } from '@/lib/image-url'
 
 import { type ItemCacheSnapshot, patchItemById, rollbackItemCache, snapshotItemCache, transformItemCache } from './_items-cache'
 
@@ -36,7 +37,7 @@ export function useUpdateItem() {
 				notes: input.notes ?? null,
 				priority: input.priority,
 				quantity: input.quantity,
-				imageUrl: input.imageUrl ?? null,
+				imageUrl: httpsUpgradeOrNull(input.imageUrl ?? null),
 			}
 			transformItemCache(queryClient, input.listId, patchItemById(input.itemId, patch))
 			return { snapshot }

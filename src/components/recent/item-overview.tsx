@@ -9,6 +9,7 @@ import UserAvatar from '@/components/common/user-avatar'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { ListType, Priority } from '@/db/schema/enums'
+import { httpsUpgrade } from '@/lib/image-url'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
 import { cn } from '@/lib/utils'
 
@@ -102,7 +103,7 @@ export default function ItemOverview(props: ItemOverviewProps) {
 
 				{imageUrl && (
 					<div className="shrink-0 self-stretch overflow-hidden rounded-md ring-1 ring-inset ring-border bg-muted/40">
-						<img src={imageUrl} alt={title} className="h-full w-16 xs:w-24 object-cover" />
+						<img src={httpsUpgrade(imageUrl)} alt={title} className="h-full w-16 xs:w-24 object-cover" />
 					</div>
 				)}
 

@@ -13,6 +13,7 @@ import { type SchemaDatabase } from '@/db'
 import { items, lists } from '@/db/schema'
 import { priorityEnumValues, statusEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
+import { httpsUpgradeOrNull } from '@/lib/image-url'
 import { canEditList } from '@/lib/permissions'
 import { getAppSettings } from '@/lib/settings-loader'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
@@ -88,7 +89,7 @@ export async function createItemImpl(args: {
 			notes: data.notes ?? null,
 			priority: data.priority ?? 'normal',
 			quantity: data.quantity ?? 1,
-			imageUrl: data.imageUrl ?? null,
+			imageUrl: httpsUpgradeOrNull(data.imageUrl ?? null),
 			groupId: data.groupId ?? null,
 		})
 		.returning()
@@ -148,6 +149,7 @@ export async function updateItemImpl(args: {
 	// the row only ever sees the final URL. Returns the original on
 	// any failure path.
 	if (data.imageUrl !== undefined && data.imageUrl !== null) {
+		data.imageUrl = httpsUpgradeOrNull(data.imageUrl) ?? data.imageUrl
 		const mirrored = await maybeMirrorImageForItem(dbx, item.id, data.imageUrl)
 		if (mirrored !== undefined) data.imageUrl = mirrored
 	}
