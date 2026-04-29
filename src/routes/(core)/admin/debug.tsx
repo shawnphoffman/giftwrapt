@@ -25,7 +25,6 @@ function AdminDebugPage() {
 					{Object.entries({
 						version: BUILD_INFO.version,
 						commit: BUILD_INFO.commitShort || '(unknown)',
-						commitFull: BUILD_INFO.commit || '(unknown)',
 						buildTime: BUILD_INFO.buildTime || '(unknown)',
 					}).map(([key, value]) => (
 						<div key={key} className="flex flex-col w-full not-first:pt-1 not-last:pb-1 overflow-hidden">
@@ -35,6 +34,24 @@ function AdminDebugPage() {
 					))}
 				</CardContent>
 			</Card>
+			{/*  */}
+			{BUILD_INFO.vercel && (
+				<Card className="animate-page-in">
+					<CardHeader>
+						<CardTitle className="text-2xl">Vercel Deployment</CardTitle>
+					</CardHeader>
+					<CardContent className="divide-y">
+						{Object.entries(BUILD_INFO.vercel)
+							.filter(([, value]) => value)
+							.map(([key, value]) => (
+								<div key={key} className="flex flex-col w-full not-first:pt-1 not-last:pb-1 overflow-hidden">
+									<span className="font-mono text-xs font-bold text-gray-500">{key}</span>
+									<span className="font-mono text-xs break-all">{value}</span>
+								</div>
+							))}
+					</CardContent>
+				</Card>
+			)}
 			{/*  */}
 			<Card className="animate-page-in">
 				<CardHeader>

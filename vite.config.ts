@@ -42,6 +42,18 @@ process.env.VITE_APP_VERSION = pkgJson.version
 process.env.VITE_APP_COMMIT = buildCommit
 process.env.VITE_APP_BUILD_TIME = new Date().toISOString()
 
+// Vercel deployment metadata. Only forwarded when building on Vercel so the
+// admin debug page can hide the section entirely on non-Vercel builds.
+if (process.env.VERCEL) {
+	process.env.VITE_VERCEL_ENV = process.env.VERCEL_ENV ?? ''
+	process.env.VITE_VERCEL_URL = process.env.VERCEL_URL ?? ''
+	process.env.VITE_VERCEL_BRANCH_URL = process.env.VERCEL_BRANCH_URL ?? ''
+	process.env.VITE_VERCEL_GIT_COMMIT_REF = process.env.VERCEL_GIT_COMMIT_REF ?? ''
+	process.env.VITE_VERCEL_GIT_REPO_SLUG = process.env.VERCEL_GIT_REPO_SLUG ?? ''
+	process.env.VITE_VERCEL_DEPLOYMENT_ID = process.env.VERCEL_DEPLOYMENT_ID ?? ''
+	process.env.VITE_VERCEL_PROJECT_PRODUCTION_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? ''
+}
+
 const securityHeaders = {
 	// HSTS is a no-op over HTTP (browsers ignore it per RFC 6797). Useful once
 	// the deployment is fronted by HTTPS: tells browsers to refuse plaintext.
