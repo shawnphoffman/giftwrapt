@@ -76,6 +76,8 @@ export const Route = createFileRoute('/api/files/$')({
 						headers: {
 							ETag: obj.etag,
 							'Cache-Control': 'public, max-age=31536000, immutable',
+							'X-Content-Type-Options': 'nosniff',
+							Vary: 'Accept-Encoding',
 						},
 					})
 				}
@@ -87,6 +89,18 @@ export const Route = createFileRoute('/api/files/$')({
 						'Content-Type': obj.contentType,
 						'Content-Length': String(obj.contentLength),
 						'Cache-Control': 'public, max-age=31536000, immutable',
+						// Defense in depth: stop legacy browsers from MIME-sniffing
+						// the response and treating it as something other than the
+						// declared content-type. Sharp re-encodes uploads to webp so
+						// the served bytes are always images, but this header keeps
+						// any future content-type drift from becoming an XSS vector.
+						// See sec-review M3.
+						'X-Content-Type-Options': 'nosniff',
+						// Cache coherency: the response body never varies on
+						// `Accept-Encoding` for the storage layer, but we set this
+						// so any reverse proxy or CDN in front of us caches the
+						// gzipped vs identity variants separately if it negotiates.
+						Vary: 'Accept-Encoding',
 						...(obj.etag ? { ETag: obj.etag } : {}),
 					},
 				})
