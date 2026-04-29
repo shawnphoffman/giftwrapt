@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 
 import type { RecentConversationComment, RecentConversationRow } from '@/api/recent'
 
+import { withPageContainer } from '../../../.storybook/decorators'
 import { RecentCommentsPageContent } from './recent-comments-page'
 
 const now = new Date()
@@ -99,9 +100,10 @@ const sampleRows: Array<RecentConversationRow> = [
 ]
 
 const meta = {
-	title: 'Pages/Recent/Comments',
+	title: 'Pages/Recent Comments',
 	component: RecentCommentsPageContent,
 	parameters: { layout: 'fullscreen' },
+	decorators: [withPageContainer],
 } satisfies Meta<typeof RecentCommentsPageContent>
 
 export default meta

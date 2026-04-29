@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 
 import type { SummaryItem } from '@/api/purchases'
 
+import { withPageContainer } from '../../../.storybook/decorators'
 import { PurchasesPageContent } from './purchases-page'
 
 /**
@@ -198,8 +199,9 @@ const meta = {
 	title: 'Pages/Purchases',
 	component: PurchasesPageContent,
 	parameters: {
-		layout: 'padded',
+		layout: 'fullscreen',
 	},
+	decorators: [withPageContainer],
 } satisfies Meta<typeof PurchasesPageContent>
 
 export default meta

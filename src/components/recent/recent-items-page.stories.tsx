@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 
 import type { RecentItemRow } from '@/api/recent'
 
+import { withPageContainer } from '../../../.storybook/decorators'
 import { RecentItemsPageContent } from './recent-items-page'
 
 const now = new Date()
@@ -103,9 +104,10 @@ const sampleItems: Array<RecentItemRow> = [
 ]
 
 const meta = {
-	title: 'Pages/Recent/Items',
+	title: 'Pages/Recent Items',
 	component: RecentItemsPageContent,
 	parameters: { layout: 'fullscreen' },
+	decorators: [withPageContainer],
 } satisfies Meta<typeof RecentItemsPageContent>
 
 export default meta

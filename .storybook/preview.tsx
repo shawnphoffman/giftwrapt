@@ -49,7 +49,7 @@ const preview: Preview = {
 					['Item Gallery', 'Item Playground', 'Item as Buyer', 'Item as Recipient', 'Grouped Items', 'Components', 'Other'],
 					'Lists',
 					'Pages',
-					['Purchases', 'Recent', ['Items', 'Comments']],
+					['Purchases', 'Recent Items', 'Recent Comments'],
 					'Common',
 					'Utilities',
 					'Animations',
