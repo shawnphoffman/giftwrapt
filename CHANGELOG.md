@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.19.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.18.0...v0.19.0) (2026-04-29)
+
+
+### Features
+
+* **items:** open add-item dialog via /me?url= and /import?url= ([6da3143](https://github.com/shawnphoffman/giftwrapt/commit/6da3143dab5a2844886f7417eadf909c1daff268))
+* **validation:** cap free-text inputs and add admin counters ([ea9c814](https://github.com/shawnphoffman/giftwrapt/commit/ea9c814f6c57b14137182e19e67cc619f74bc00d))
+
 ## [0.18.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.17.0...v0.18.0) (2026-04-29)
 
 
