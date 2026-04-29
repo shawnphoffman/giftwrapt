@@ -30,13 +30,6 @@ const commonDomains: Array<DomainConfig> = [
 
 const idToName = new Map(commonDomains.map(d => [d.id, d.name]))
 
-function capitalizeHostname(hostname: string): string {
-	return hostname
-		.split('.')
-		.map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-		.join('.')
-}
-
 function parseHostname(url: string): string | null {
 	try {
 		const hostname = new URL(url).hostname
@@ -72,16 +65,16 @@ export function getVendorFromUrl(url: string | null | undefined): VendorInfo | n
 
 	const parts = hostname.split('.')
 	const fallback = parts.length > 2 ? parts.slice(-2).join('.') : hostname
-	return { id: fallback, name: capitalizeHostname(fallback) }
+	return { id: fallback, name: fallback.toLowerCase() }
 }
 
 /**
  * Resolves a stored vendor id to a display name. Falls back to a
- * capitalized version of the id (which is itself a hostname for unknown
+ * lowercase version of the id (which is itself a hostname for unknown
  * vendors), so this function never returns null.
  */
 export function vendorIdToName(id: string): string {
-	return idToName.get(id) ?? capitalizeHostname(id)
+	return idToName.get(id) ?? id.toLowerCase()
 }
 
 /**
