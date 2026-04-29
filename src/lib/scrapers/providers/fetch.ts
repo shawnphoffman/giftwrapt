@@ -1,4 +1,5 @@
 import { looksLikeBlocked } from '../bot-detect'
+import { safeFetch } from '../safe-fetch'
 import type { ProviderResponse, ScrapeContext, ScrapeProvider } from '../types'
 import { ScrapeProviderError } from '../types'
 
@@ -107,15 +108,13 @@ async function fetchOne(ctx: ScrapeContext, userAgent: string): Promise<Response
 		'cache-control': 'no-cache',
 		pragma: 'no-cache',
 	}
-	return fetch(ctx.url, {
-		method: 'GET',
+	// `safeFetch` walks the redirect chain manually, re-validating each
+	// hop's resolved address against the private-IP block list. See
+	// sec-review C2 / `src/lib/scrapers/safe-fetch.ts`.
+	return safeFetch(ctx.url, {
 		signal: ctx.signal,
-		redirect: 'follow',
 		headers,
-		// `fetch` follows up to its default cap; the spec doesn't expose the
-		// MAX_REDIRECTS knob directly. We document the contract here for future
-		// adapters that *do* expose it (e.g. when we move to undici directly).
-		...({} as Record<string, never>),
+		maxRedirects: MAX_REDIRECTS,
 	})
 }
 

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { _setLookupImplForTesting } from '../../safe-fetch'
 import type { ScrapeContext } from '../../types'
 import { ScrapeProviderError } from '../../types'
 import { FETCH_PROVIDER_INFO, fetchProvider } from '../fetch'
@@ -48,6 +49,11 @@ function queueError(err: Error) {
 
 beforeEach(() => {
 	queue = []
+	// `safeFetch` calls `dns.lookup` before each fetch. The test URLs
+	// (`example.test`) don't resolve, so we stub it to return a public
+	// address. The real `assertSafeUrl` logic is exercised in
+	// `safe-fetch.test.ts`.
+	_setLookupImplForTesting(async () => [{ address: '93.184.216.34', family: 4 }])
 	vi.stubGlobal('fetch', (input: RequestInfo) => {
 		const next = queue.shift()
 		if (!next) throw new Error('fetch called more times than queued responses')
@@ -72,6 +78,7 @@ beforeEach(() => {
 
 afterEach(() => {
 	vi.unstubAllGlobals()
+	_setLookupImplForTesting(null)
 })
 
 // ---------------------------------------------------------------------------

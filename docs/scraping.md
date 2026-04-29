@@ -121,6 +121,18 @@ BROWSER_TOKEN=...
 FLARESOLVERR_URL=...
 ```
 
+## SSRF protection
+
+Authenticated users supply the URL, so the scraper has to refuse to fetch addresses inside our own infrastructure. Both the always-on `fetch-provider` and the AI provider go through [`safeFetch`](../src/lib/scrapers/safe-fetch.ts), which:
+
+- rejects non-`http(s)` schemes,
+- DNS-resolves the hostname (`dns.lookup` with `all: true`) and rejects any address in a private, loopback, link-local, CGNAT, multicast, or reserved range (full list lives in the module),
+- walks redirects manually (`redirect: 'manual'`) and re-runs the same check on every hop, so a public host that 30x's to `127.0.0.1` is rejected at the redirect rather than followed,
+- caps the redirect chain (default 5),
+- sets `credentials: 'omit'`.
+
+Hosted providers (Browserbase, ScrapFly, browserless, flaresolverr, giftwrapt-scraper, custom-http) make their own outbound calls from outside our infra, so they don't need the same hostname check on the user-supplied URL - their upstream services apply their own rules. They DO go through admin-configured endpoints, which the orchestrator does not validate against this list.
+
 ## Encryption at rest
 
 Secret fields on `scrapeProviders` entries are AES-256-GCM-encrypted in `app_settings` JSONB using the same envelope helpers (`encryptAppSecret` / `decryptAppSecret`) that already protect the AI and Resend API keys. The master key is derived via scrypt from `BETTER_AUTH_SECRET`. New writes encrypt; reads accept either an envelope or legacy plaintext, so an upgrade is a no-op until the admin next saves an entry.

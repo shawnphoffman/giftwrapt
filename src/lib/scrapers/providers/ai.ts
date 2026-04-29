@@ -6,6 +6,7 @@ import { resolveAiConfig } from '@/lib/ai-config'
 import type { AiEntry } from '@/lib/settings'
 
 import { looksLikeBlocked } from '../bot-detect'
+import { safeFetch } from '../safe-fetch'
 import { type ProviderResponse, type ScrapeContext, type ScrapeProvider, scrapeResultSchema } from '../types'
 import { ScrapeProviderError } from '../types'
 
@@ -102,10 +103,10 @@ async function runAiProvider(ctx: ScrapeContext, providerId: string): Promise<Pr
 async function fetchHtmlForLlm(ctx: ScrapeContext): Promise<string> {
 	let response: Response
 	try {
-		response = await fetch(ctx.url, {
-			method: 'GET',
+		// `safeFetch` enforces SSRF-safe URLs and credentials-omit; see
+		// sec-review C2 / `src/lib/scrapers/safe-fetch.ts`.
+		response = await safeFetch(ctx.url, {
 			signal: ctx.signal,
-			redirect: 'follow',
 			headers: {
 				'user-agent': AI_USER_AGENT,
 				accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -113,6 +114,7 @@ async function fetchHtmlForLlm(ctx: ScrapeContext): Promise<string> {
 			},
 		})
 	} catch (err) {
+		if (err instanceof ScrapeProviderError) throw err
 		if (err instanceof Error && (err.name === 'AbortError' || /aborted|timeout/i.test(err.message))) {
 			throw new ScrapeProviderError('timeout', err.message)
 		}

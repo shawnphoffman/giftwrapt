@@ -9,7 +9,7 @@ Findings are prioritized by exploitability and blast radius. Each item has a fil
 | ID     | Title                                                           | Severity | Status |
 | ------ | --------------------------------------------------------------- | -------- | ------ |
 | C1     | fetchAppSettings exposes decrypted scraper API keys             | CRITICAL | fixed  |
-| C2     | SSRF in scraper, no private-IP / metadata blocking              | CRITICAL | open   |
+| C2     | SSRF in scraper, no private-IP / metadata blocking              | CRITICAL | fixed  |
 | C3     | Cron endpoints public when CRON_SECRET unset                    | CRITICAL | open   |
 | C4     | Outdated dependencies, 3 critical / 25 high CVEs                | CRITICAL | open   |
 | H1     | Admin scripts shipped inside production image                   | HIGH     | open   |
