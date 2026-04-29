@@ -63,16 +63,6 @@ pnpm dev
 
 App is at <http://localhost:3000>. Full walkthrough: [getting-started.md](./docs/getting-started.md).
 
-### Self-host with Docker
-
-```bash
-cp env.example docker/.env
-$EDITOR docker/.env       # set POSTGRES_PASSWORD, BETTER_AUTH_SECRET, BETTER_AUTH_URL, STORAGE_*
-docker compose -f docker/compose.selfhost-garage.yaml up -d
-```
-
-A RustFS variant is in [`docker/compose.selfhost-rustfs.yaml`](./docker/compose.selfhost-rustfs.yaml). Pick whichever bundled storage you like - the app behaves identically. Full guide: [self-hosting.md](./docs/self-hosting.md).
-
 ### One-click deploy
 
 | Target              | Button                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | What it provisions                                               |
@@ -99,10 +89,19 @@ Step-by-step for each (including the Supabase S3 paste): [deployment.md → One-
 
 ## Status
 
-GiftWrapt is a personal project that I run for my family. It's stable enough that I trust it with our actual gift coordination, but it's still pre-1.0 and the schema occasionally changes between releases. Pin a specific image tag in production and read the changelog before upgrading.
+GiftWrapt is a personal project that I run for my family. This is the v2 rewrite of the original wish-lists app, rebuilt from the ground up based on everything I learned running v1: cleaner data model, proper relationship-based access (guardians, partners, children), claim/reveal flows, and a saner deploy story. It's stable enough that I trust it with our actual gift coordination, but it's still pre-1.0 and the schema occasionally changes between releases. Pin a specific image tag in production and read the changelog before upgrading.
 
 Releases are cut by [release-please](https://github.com/googleapis/release-please) on every merge to `main`; the [`CHANGELOG.md`](./CHANGELOG.md) is the authoritative history. Container images are published to GitHub Container Registry: `ghcr.io/shawnphoffman/giftwrapt:vX.Y.Z`.
 
+## AI Contribution Disclosure
+
+![Level 4-5](https://badgen.net/badge/AI%20Assistance/Level%204--5?color=orange)
+
+> [!NOTE]
+> This project lives somewhere between [Level 4 and Level 5 AI assistance](https://www.visidata.org/blog/2026/ai/), sliding around depending on what corner of the codebase you're poking at. Claude Code wrote a lot of the docs, tests, and scaffolding, plus a healthy chunk of app code. The spicier bits (data model, access-control rules, auth, scraping pipeline, deploy story) are mostly hand-written, with AI riding shotgun as a rubber duck and reviewer.
+>
+> I'm a software engineer with 10+ years of experience and I've read every line. I understand how it all fits together. That said: it's pre-1.0, I'm one person, and some things almost certainly slipped past me. Before I cut a 1.0 there'll be a proper full pass, security review, and peer feedback. Until then, treat it like the lovingly-assembled family project that it is - kick the tires, file issues, don't run it on a nuclear reactor.
+
 ## License
 
-MIT.
+[GNU Affero General Public License v3.0](./LICENSE). If you run a modified version of GiftWrapt as a network service, you must offer your users the corresponding source code.
