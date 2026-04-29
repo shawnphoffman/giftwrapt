@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { GiftOnItem } from '@/api/lists'
 import { Button } from '@/components/ui/button'
 
+import { ClaimCelebration } from './claim-celebration'
 import { ClaimGiftDialog } from './claim-gift-dialog'
 
 type Props = {
@@ -58,15 +59,20 @@ export function ClaimAction({
 }: Props) {
 	const [createOpen, setCreateOpen] = useState(false)
 	const [editOpen, setEditOpen] = useState(false)
+	const [celebrating, setCelebrating] = useState(false)
 
 	const fullyClaimed = remaining === 0
 	if (myClaim) {
 		return (
 			<>
-				<Button size="sm" variant="outline" className="h-7 text-foreground" onClick={() => setEditOpen(true)} title="Edit your claim">
-					<Pencil className="size-3.5" />
-					Edit claim
-				</Button>
+				{celebrating ? (
+					<ClaimCelebration onComplete={() => setCelebrating(false)} />
+				) : (
+					<Button size="sm" variant="outline" className="h-7 text-foreground" onClick={() => setEditOpen(true)} title="Edit your claim">
+						<Pencil className="size-3.5" />
+						Edit claim
+					</Button>
+				)}
 				{editOpen && (
 					<ClaimGiftDialog
 						mode="edit"
@@ -102,6 +108,7 @@ export function ClaimAction({
 				itemImageUrl={itemImageUrl}
 				itemQuantity={itemQuantity}
 				remainingQuantity={remaining}
+				onClaimed={() => setCelebrating(true)}
 			/>
 		</>
 	)

@@ -36,8 +36,13 @@ type BaseProps = {
 	remainingQuantity: number
 }
 
-type CreateProps = BaseProps & { mode?: 'create'; gift?: never }
-type EditProps = BaseProps & { mode: 'edit'; gift: GiftOnItem }
+type CreateProps = BaseProps & {
+	mode?: 'create'
+	gift?: never
+	/** Fires after a successful new claim. Drives the success celebration. */
+	onClaimed?: () => void
+}
+type EditProps = BaseProps & { mode: 'edit'; gift: GiftOnItem; onClaimed?: never }
 
 type Props = CreateProps | EditProps
 
@@ -204,6 +209,7 @@ export function ClaimGiftDialog(props: Props) {
 					}
 
 					toast.success('Claim saved')
+					props.onClaimed?.()
 				}
 
 				onOpenChange(false)

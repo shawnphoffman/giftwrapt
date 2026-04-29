@@ -6,6 +6,7 @@ import { withThemeByClassName } from '@storybook/addon-themes'
 import type { Decorator, Preview } from '@storybook/react-vite'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
+import { MotionProvider } from '@/components/motion-provider'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
 import { __setStorybookSession } from './mocks/auth-client'
@@ -23,7 +24,9 @@ const withProviders: Decorator = (Story, ctx) => {
 		<QueryClientProvider client={queryClient}>
 			<MockRouterProvider>
 				<TooltipProvider>
-					<Story />
+					<MotionProvider>
+						<Story />
+					</MotionProvider>
 				</TooltipProvider>
 			</MockRouterProvider>
 		</QueryClientProvider>
@@ -49,6 +52,7 @@ const preview: Preview = {
 					['Purchases', 'Recent', ['Items', 'Comments']],
 					'Common',
 					'Utilities',
+					'Animations',
 				],
 			},
 		},
