@@ -192,3 +192,46 @@ export const Saving: Story = {
 	},
 	parameters: { docs: { description: { story: 'Mutation in flight - all controls temporarily disabled until the server confirms.' } } },
 }
+
+export const NearLimits: Story = {
+	args: {
+		settings: {
+			...defaultSettings,
+			scrapeProviders: [
+				{
+					type: 'browserbase-stagehand',
+					id: 'bb-stage-near',
+					// 56 chars - flips the name counter into the amber band before the cap (60).
+					name: 'Browserbase Stagehand for stubborn product pages aaaaa',
+					enabled: true,
+					tier: 2,
+					apiKey: '',
+					projectId: 'bb_proj_demo',
+					instruction:
+						'Extract the product title, current price, currency, main image URLs, the site display name, and any visible secondary images. ' +
+						'Return them in the canonical ScrapeResult shape so the orchestrator can score this against the cheaper providers. '.repeat(8),
+				},
+				{
+					type: 'custom-http',
+					id: 'custom-near',
+					// Pushes the name to exactly the cap so the counter renders right at 60/60.
+					name: 'Custom HTTP scraper aimed at niche regional retailers!!',
+					enabled: true,
+					tier: 3,
+					endpoint: 'https://niche-scraper.example.com/scrape',
+					responseKind: 'html',
+					// Long-ish header blob to demo the headers counter when it's well past 90% of HEADERS_JSON.
+					customHeaders: Array.from({ length: 80 }, (_, i) => `X-Header-${i}: ${'value-segment-'.repeat(3)}`).join('\n'),
+				},
+			],
+		},
+	},
+	parameters: {
+		docs: {
+			description: {
+				story:
+					'Two entries with content near the SHORT_NAME / MEDIUM_TEXT / HEADERS_JSON caps. Useful for eyeballing the amber and destructive states of the new character counters without any keystrokes.',
+			},
+		},
+	},
+}

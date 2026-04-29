@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { listTypeEnumValues, ListTypes } from '@/db/schema/enums'
 import { useSession } from '@/lib/auth-client'
+import { LIMITS } from '@/lib/validation/limits'
 
 type Props = {
 	open: boolean
@@ -26,10 +27,10 @@ type Props = {
 }
 
 const schema = z.object({
-	name: z.string().min(1, 'Name is required').max(200),
+	name: z.string().min(1, 'Name is required').max(LIMITS.LIST_NAME),
 	type: z.enum(listTypeEnumValues),
 	isPrivate: z.boolean(),
-	description: z.string().max(2000).optional(),
+	description: z.string().max(LIMITS.MEDIUM_TEXT).optional(),
 	giftIdeasTargetUserId: z.string().optional(),
 	addPartnerAsEditor: z.boolean(),
 })
@@ -156,6 +157,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 									autoComplete="off"
 									data-1p-ignore
 									data-lpignore="true"
+									maxLength={LIMITS.LIST_NAME}
 								/>
 								{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 									<p className="text-destructive text-sm">
@@ -277,6 +279,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 									onChange={v => field.handleChange(v)}
 									onBlur={field.handleBlur}
 									disabled={submitting}
+									maxLength={LIMITS.MEDIUM_TEXT}
 								/>
 							</div>
 						)}

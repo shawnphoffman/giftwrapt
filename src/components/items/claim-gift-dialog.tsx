@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { itemsKeys } from '@/lib/queries/items'
+import { LIMITS } from '@/lib/validation/limits'
 
 import { QuantityRemainingBadge } from './quantity-remaining-badge'
 
@@ -63,7 +64,7 @@ function getErrorMessage(errors: Array<unknown>): string {
 function buildSchema(remaining: number) {
 	return z.object({
 		quantity: z.coerce.number().int().positive('Must be at least 1').max(remaining, `Only ${remaining} left to claim`),
-		notes: z.string().max(2000, 'Too long').optional(),
+		notes: z.string().max(LIMITS.MEDIUM_TEXT, 'Too long').optional(),
 		totalCost: z
 			.string()
 			.trim()
@@ -334,6 +335,7 @@ export function ClaimGiftDialog(props: Props) {
 									onChange={e => field.handleChange(e.target.value)}
 									onBlur={field.handleBlur}
 									disabled={submitting}
+									maxLength={LIMITS.MEDIUM_TEXT}
 								/>
 								{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 									<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>

@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { toast } from 'sonner'
+import { z } from 'zod'
 
 import { addListEditor } from '@/api/list-editors'
 import { updateList } from '@/api/lists'
@@ -18,6 +19,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { ListType } from '@/db/schema/enums'
 import { listTypeEnumValues, ListTypes } from '@/db/schema/enums'
 import { useSession } from '@/lib/auth-client'
+import { LIMITS } from '@/lib/validation/limits'
+
+const schema = z.object({
+	name: z.string().min(1, 'Name is required').max(LIMITS.LIST_NAME),
+	type: z.enum(listTypeEnumValues),
+	isPrivate: z.boolean(),
+	description: z.string().max(LIMITS.MEDIUM_TEXT).optional(),
+	giftIdeasTargetUserId: z.string().optional(),
+	addPartnerAsEditor: z.boolean(),
+})
 
 const NO_RECIPIENT = '__none__'
 
@@ -64,27 +75,29 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description, g
 			addPartnerAsEditor: true,
 		},
 		onSubmit: async ({ value }) => {
-			if (!value.name.trim()) {
-				setError('Name is required')
+			const parsed = schema.safeParse(value)
+			if (!parsed.success) {
+				setError(parsed.error.issues.map(e => e.message).join(', '))
 				return
 			}
 
 			setSubmitting(true)
 			setError(null)
 			try {
-				const nextType = value.type as ListType
-				const willBePublic = nextType !== 'giftideas' && !value.isPrivate
+				const nextType = parsed.data.type
+				const willBePublic = nextType !== 'giftideas' && !parsed.data.isPrivate
 				const becomingPublic = isPrivate && willBePublic
-				const shouldAddPartner = becomingPublic && isOwner && !!partnerId && !partnerAlreadyEditor && !!partner && value.addPartnerAsEditor
+				const shouldAddPartner =
+					becomingPublic && isOwner && !!partnerId && !partnerAlreadyEditor && !!partner && parsed.data.addPartnerAsEditor
 
 				const result = await updateList({
 					data: {
 						listId,
-						name: value.name.trim(),
+						name: parsed.data.name.trim(),
 						type: nextType,
-						isPrivate: nextType === 'giftideas' ? true : value.isPrivate,
-						description: value.description.trim() || null,
-						giftIdeasTargetUserId: nextType === 'giftideas' ? value.giftIdeasTargetUserId || null : null,
+						isPrivate: nextType === 'giftideas' ? true : parsed.data.isPrivate,
+						description: parsed.data.description?.trim() || null,
+						giftIdeasTargetUserId: nextType === 'giftideas' ? parsed.data.giftIdeasTargetUserId || null : null,
 					},
 				})
 
@@ -126,7 +139,13 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description, g
 				{field => (
 					<div className="grid gap-2">
 						<Label htmlFor={field.name}>Name</Label>
-						<Input id={field.name} value={field.state.value} onChange={e => field.handleChange(e.target.value)} disabled={submitting} />
+						<Input
+							id={field.name}
+							value={field.state.value}
+							onChange={e => field.handleChange(e.target.value)}
+							disabled={submitting}
+							maxLength={LIMITS.LIST_NAME}
+						/>
 					</div>
 				)}
 			</form.Field>
@@ -261,6 +280,7 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description, g
 							value={field.state.value}
 							onChange={v => field.handleChange(v)}
 							disabled={submitting}
+							maxLength={LIMITS.MEDIUM_TEXT}
 						/>
 					</div>
 				)}

@@ -1,13 +1,28 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
 import { and, asc, eq, ne } from 'drizzle-orm'
+import { z } from 'zod'
 
 import { db } from '@/db'
 import type { BirthMonth } from '@/db/schema'
 import { users } from '@/db/schema'
 import { auth } from '@/lib/auth'
 import { loggingMiddleware } from '@/lib/logger'
+import { LIMITS } from '@/lib/validation/limits'
 import { authMiddleware } from '@/middleware/auth'
+
+const updateProfileInputSchema = z.object({
+	name: z.string().min(1).max(LIMITS.SHORT_NAME),
+	birthMonth: z.string().max(20).nullable().optional(),
+	birthDay: z.number().int().min(1).max(31).nullable().optional(),
+	birthYear: z.number().int().min(1900).max(new Date().getFullYear()).nullable().optional(),
+	partnerId: z.string().max(LIMITS.SHORT_ID).nullable().optional(),
+})
+
+const updatePasswordInputSchema = z.object({
+	currentPassword: z.string().min(1).max(LIMITS.PASSWORD),
+	newPassword: z.string().min(8).max(LIMITS.PASSWORD),
+})
 
 // Get potential partners for the current user (non-child users excluding current user)
 export const getPotentialPartners = createServerFn({
@@ -38,10 +53,7 @@ export const updateUserProfile = createServerFn({
 	method: 'POST',
 })
 	.middleware([authMiddleware, loggingMiddleware])
-	.inputValidator(
-		(data: { name: string; birthMonth?: string | null; birthDay?: number | null; birthYear?: number | null; partnerId?: string | null }) =>
-			data
-	)
+	.inputValidator((data: z.infer<typeof updateProfileInputSchema>) => updateProfileInputSchema.parse(data))
 	.handler(async ({ context, data }) => {
 		const userId = context.session.user.id
 		const currentPartnerId = context.session.user.partnerId || null
@@ -120,7 +132,7 @@ export const updateUserPassword = createServerFn({
 	method: 'POST',
 })
 	.middleware([authMiddleware, loggingMiddleware])
-	.inputValidator((data: { currentPassword: string; newPassword: string }) => data)
+	.inputValidator((data: z.infer<typeof updatePasswordInputSchema>) => updatePasswordInputSchema.parse(data))
 	.handler(async ({ data }) => {
 		// Better Auth's changePassword throws on failure
 		await auth.api.changePassword({

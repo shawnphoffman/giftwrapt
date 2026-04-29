@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { LIMITS } from '@/lib/validation/limits'
 
 export type EditablePurchase =
 	| { type: 'claim'; giftId: number; quantity: number; totalCost: string | null; notes: string | null }
@@ -31,7 +32,7 @@ const schema = z.object({
 		.refine(v => !v || /^\d+(\.\d{1,2})?$/.test(v), {
 			message: 'Must be a number like 12.50',
 		}),
-	notes: z.string().max(2000, 'Too long').optional(),
+	notes: z.string().max(LIMITS.MEDIUM_TEXT, 'Too long').optional(),
 })
 
 function getErrorMessage(errors: Array<unknown>): string {
@@ -170,6 +171,7 @@ function PurchaseEditForm({ purchase, onOpenChange }: { purchase: EditablePurcha
 									onChange={e => field.handleChange(e.target.value)}
 									onBlur={field.handleBlur}
 									disabled={submitting}
+									maxLength={LIMITS.PRICE}
 								/>
 							</div>
 							{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
@@ -191,6 +193,7 @@ function PurchaseEditForm({ purchase, onOpenChange }: { purchase: EditablePurcha
 								onChange={e => field.handleChange(e.target.value)}
 								onBlur={field.handleBlur}
 								disabled={submitting}
+								maxLength={LIMITS.MEDIUM_TEXT}
 							/>
 							{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 								<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>

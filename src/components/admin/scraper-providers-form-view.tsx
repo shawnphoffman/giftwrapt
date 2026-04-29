@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { CharacterCounter } from '@/components/ui/character-counter'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
 	DropdownMenu,
@@ -33,6 +34,7 @@ import type {
 	ScrapeProviderType,
 	ScrapflyEntry,
 } from '@/lib/settings'
+import { LIMITS } from '@/lib/validation/limits'
 
 // Presentational form for scraper-related app settings: timeouts, cache TTL,
 // quality threshold, and the discriminated `scrapeProviders` array. Pure
@@ -410,16 +412,21 @@ function EntryCard({
 
 			<CollapsibleContent className="space-y-4 px-4 pb-4 pt-3">
 				<div className="space-y-1.5 pt-3">
-					<Label htmlFor={`scraper-name-${entry.id}`} className="text-base">
-						Name
-					</Label>
+					<div className="flex items-baseline justify-between gap-2">
+						<Label htmlFor={`scraper-name-${entry.id}`} className="text-base">
+							Name
+						</Label>
+						<CharacterCounter value={draft.name} max={LIMITS.SHORT_NAME} />
+					</div>
 					<Input
 						id={`scraper-name-${entry.id}`}
 						placeholder={TYPE_LABELS[entry.type]}
 						value={draft.name}
 						disabled={disabled}
+						maxLength={LIMITS.SHORT_NAME}
 						onChange={e => setDraft(prev => ({ ...prev, name: e.target.value }))}
 					/>
+					<p className="text-xs text-muted-foreground">Shown as the header for this entry. Keep it short.</p>
 				</div>
 
 				<div className="space-y-1.5">
@@ -559,6 +566,7 @@ function BrowserlessFields({
 					placeholder="https://browserless.local"
 					value={draft.url}
 					disabled={disabled}
+					maxLength={LIMITS.URL}
 					onChange={e => setDraft(prev => ({ ...prev, url: e.target.value }))}
 				/>
 			</div>
@@ -594,6 +602,7 @@ function FlaresolverrFields({
 				placeholder="https://flaresolverr.local"
 				value={draft.url}
 				disabled={disabled}
+				maxLength={LIMITS.URL}
 				onChange={e => setDraft(prev => ({ ...prev, url: e.target.value }))}
 			/>
 			<p className="text-xs text-muted-foreground mt-1">
@@ -684,6 +693,7 @@ function BrowserbaseStagehandFields({
 					placeholder="bb_proj_..."
 					value={draft.projectId}
 					disabled={disabled}
+					maxLength={200}
 					onChange={e => setDraft(prev => ({ ...prev, projectId: e.target.value }))}
 				/>
 			</div>
@@ -696,6 +706,7 @@ function BrowserbaseStagehandFields({
 					placeholder="Inherits from /admin/ai-settings"
 					value={draft.modelName ?? ''}
 					disabled={disabled}
+					maxLength={LIMITS.SHORT_NAME}
 					onChange={e => setDraft(prev => ({ ...prev, modelName: e.target.value || undefined }))}
 				/>
 				<p className="text-xs text-muted-foreground mt-1">
@@ -704,15 +715,19 @@ function BrowserbaseStagehandFields({
 				</p>
 			</div>
 			<div className="space-y-1">
-				<Label htmlFor={`bb-stage-instr-${draft.id}`} className="text-base">
-					Extraction instruction (optional)
-				</Label>
+				<div className="flex items-baseline justify-between gap-2">
+					<Label htmlFor={`bb-stage-instr-${draft.id}`} className="text-base">
+						Extraction instruction (optional)
+					</Label>
+					<CharacterCounter value={draft.instruction ?? ''} max={LIMITS.MEDIUM_TEXT} />
+				</div>
 				<Textarea
 					id={`bb-stage-instr-${draft.id}`}
 					rows={3}
 					placeholder="Extract the product title, current price, currency, main image URLs, and the site's display name."
 					value={draft.instruction ?? ''}
 					disabled={disabled}
+					maxLength={LIMITS.MEDIUM_TEXT}
 					onChange={e => setDraft(prev => ({ ...prev, instruction: e.target.value || undefined }))}
 				/>
 				<p className="text-xs text-muted-foreground mt-1">
@@ -748,6 +763,7 @@ function GiftWraptScraperFields({
 					placeholder="https://browser-services.local"
 					value={draft.endpoint}
 					disabled={disabled}
+					maxLength={LIMITS.URL}
 					onChange={e => setDraft(prev => ({ ...prev, endpoint: e.target.value }))}
 				/>
 				{IS_DEV ? (
@@ -857,6 +873,7 @@ function CustomHttpFields({
 					placeholder="https://my-scraper.local/scrape"
 					value={draft.endpoint}
 					disabled={disabled}
+					maxLength={LIMITS.URL}
 					onChange={e => setDraft(prev => ({ ...prev, endpoint: e.target.value }))}
 				/>
 			</div>
@@ -880,9 +897,12 @@ function CustomHttpFields({
 				<ResponseKindHelp kind={draft.responseKind} />
 			</div>
 			<div className="space-y-1">
-				<Label htmlFor={`custom-headers-${draft.id}`} className="text-base">
-					Custom HTTP headers
-				</Label>
+				<div className="flex items-baseline justify-between gap-2">
+					<Label htmlFor={`custom-headers-${draft.id}`} className="text-base">
+						Custom HTTP headers
+					</Label>
+					<CharacterCounter value={draft.customHeaders ?? ''} max={LIMITS.HEADERS_JSON} />
+				</div>
 				<p className="text-xs text-muted-foreground">
 					Sent on every request to this scraper. One <code className="font-mono">Header-Name: value</code> per line. Blank lines and{' '}
 					<code className="font-mono">#</code>-prefixed comments are ignored. Encrypted at rest (often carries bearer tokens).
@@ -893,6 +913,7 @@ function CustomHttpFields({
 					placeholder={'X-Scrape-Token: abc123\nAuthorization: Bearer xyz'}
 					value={draft.customHeaders ?? ''}
 					disabled={disabled}
+					maxLength={LIMITS.HEADERS_JSON}
 					className="font-mono text-xs"
 					onChange={e => setDraft(prev => ({ ...prev, customHeaders: e.target.value || undefined }))}
 				/>
@@ -912,6 +933,7 @@ function SecretInput({
 	disabled,
 	onChange,
 	hint,
+	maxLength = LIMITS.SECRET,
 }: {
 	id: string
 	label: string
@@ -919,13 +941,22 @@ function SecretInput({
 	disabled: boolean
 	onChange: (value: string) => void
 	hint?: React.ReactNode
+	maxLength?: number
 }) {
 	return (
 		<div className="space-y-1">
 			<Label htmlFor={id} className="text-base">
 				{label}
 			</Label>
-			<Input id={id} type="password" autoComplete="off" value={value} disabled={disabled} onChange={e => onChange(e.target.value)} />
+			<Input
+				id={id}
+				type="password"
+				autoComplete="off"
+				value={value}
+				disabled={disabled}
+				maxLength={maxLength}
+				onChange={e => onChange(e.target.value)}
+			/>
 			{hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
 		</div>
 	)

@@ -6,10 +6,12 @@ import { testResendApiKeyAsAdmin } from '@/api/admin-email'
 import { SecretField, type SecretFieldState } from '@/components/admin/secret-field'
 import SendTestEmailButton from '@/components/admin/send-test-email'
 import { Button } from '@/components/ui/button'
+import { CharacterCounter } from '@/components/ui/character-counter'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { type EmailConfigResponse, useEmailConfig, useEmailConfigMutation } from '@/hooks/use-email-config'
+import { LIMITS } from '@/lib/validation/limits'
 
 export function EmailSettingsEditor() {
 	const { data, isLoading } = useEmailConfig()
@@ -147,6 +149,7 @@ function AddressesSection({ config, onSave, saving }: AddressesSectionProps) {
 				description="The address emails are sent from. Must be on a verified Resend domain."
 				type="email"
 				placeholder="notifications@yourdomain.com"
+				maxLength={LIMITS.EMAIL}
 				field={config.fromEmail}
 				envLocked={config.envLocked.fromEmail}
 				saving={saving}
@@ -160,6 +163,8 @@ function AddressesSection({ config, onSave, saving }: AddressesSectionProps) {
 				description="Optional display name shown before the address."
 				type="text"
 				placeholder="GiftWrapt"
+				maxLength={LIMITS.SHORT_NAME}
+				showCounter
 				field={config.fromName}
 				envLocked={config.envLocked.fromName}
 				saving={saving}
@@ -173,6 +178,7 @@ function AddressesSection({ config, onSave, saving }: AddressesSectionProps) {
 				description="Optional. Every outgoing email is blind-copied here. Useful for archiving or test inboxes."
 				type="email"
 				placeholder="archive@yourdomain.com"
+				maxLength={LIMITS.EMAIL}
 				field={config.bccAddress}
 				envLocked={config.envLocked.bccAddress}
 				saving={saving}
@@ -189,6 +195,8 @@ type StringFieldRowProps = {
 	description: string
 	type: 'email' | 'text'
 	placeholder: string
+	maxLength: number
+	showCounter?: boolean
 	field: { source: 'env' | 'db' | 'missing'; value?: string }
 	envLocked: boolean
 	saving: boolean
@@ -196,7 +204,20 @@ type StringFieldRowProps = {
 	onClear: () => Promise<void>
 }
 
-function StringFieldRow({ id, label, description, type, placeholder, field, envLocked, saving, onSave, onClear }: StringFieldRowProps) {
+function StringFieldRow({
+	id,
+	label,
+	description,
+	type,
+	placeholder,
+	maxLength,
+	showCounter,
+	field,
+	envLocked,
+	saving,
+	onSave,
+	onClear,
+}: StringFieldRowProps) {
 	const [draft, setDraft] = useState(field.value ?? '')
 
 	useEffect(() => {
@@ -223,11 +244,14 @@ function StringFieldRow({ id, label, description, type, placeholder, field, envL
 
 	return (
 		<div className="flex flex-col gap-2">
-			<div className="space-y-0.5">
-				<Label htmlFor={id} className="text-base">
-					{label}
-				</Label>
-				<p className="text-sm text-muted-foreground">{description}</p>
+			<div className="flex items-baseline justify-between gap-2">
+				<div className="space-y-0.5">
+					<Label htmlFor={id} className="text-base">
+						{label}
+					</Label>
+					<p className="text-sm text-muted-foreground">{description}</p>
+				</div>
+				{showCounter && <CharacterCounter value={draft} max={maxLength} />}
 			</div>
 			<div className="flex items-center gap-2">
 				<Input
@@ -236,6 +260,7 @@ function StringFieldRow({ id, label, description, type, placeholder, field, envL
 					value={draft}
 					placeholder={placeholder}
 					disabled={envLocked || saving}
+					maxLength={maxLength}
 					onChange={e => setDraft(e.target.value)}
 					onBlur={handleCommit}
 					onKeyDown={e => {

@@ -28,6 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { birthMonthEnumValues } from '@/db/schema/enums'
 import { UserSchema } from '@/db/schema/users'
 import { useSession } from '@/lib/auth-client'
+import { LIMITS } from '@/lib/validation/limits'
 
 import UserAvatar from '../common/user-avatar'
 import { Field, FieldDescription, FieldError, FieldLabel } from '../ui/field'
@@ -253,6 +254,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 							onChange={e => field.handleChange(e.target.value)}
 							onBlur={field.handleBlur}
 							disabled={isLoading}
+							maxLength={LIMITS.SHORT_NAME}
 						/>
 						{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 							<FieldError className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</FieldError>

@@ -10,6 +10,7 @@ import { AI_SETTING_KEYS, type AiSettingKey, envLockedFlags, resolveAiConfig } f
 import { DEFAULT_MAX_OUTPUT_TOKENS, type FieldSource, PROVIDER_TYPES, type ProviderType } from '@/lib/ai-types'
 import { encryptAppSecret } from '@/lib/crypto/app-secret'
 import { createLogger } from '@/lib/logger'
+import { LIMITS } from '@/lib/validation/limits'
 import { adminAuthMiddleware } from '@/middleware/auth'
 
 const adminAiLog = createLogger('admin:ai')
@@ -62,9 +63,9 @@ const providerTypeSchema = z.enum(PROVIDER_TYPES as unknown as [ProviderType, ..
 const updateInputSchema = z
 	.object({
 		providerType: z.union([providerTypeSchema, z.null()]).optional(),
-		baseUrl: z.union([z.url(), z.null()]).optional(),
-		apiKey: z.union([z.string().min(1), z.null()]).optional(),
-		model: z.union([z.string().min(1), z.null()]).optional(),
+		baseUrl: z.union([z.url().max(LIMITS.URL), z.null()]).optional(),
+		apiKey: z.union([z.string().min(1).max(LIMITS.SECRET), z.null()]).optional(),
+		model: z.union([z.string().min(1).max(LIMITS.SHORT_NAME), z.null()]).optional(),
 		maxOutputTokens: z.union([z.number().int().min(1).max(32_000), z.null()]).optional(),
 	})
 	.strict()
@@ -136,9 +137,9 @@ const testInputSchema = z
 		// Optional draft overrides. Any field not provided falls back to the
 		// currently-saved value (env or db).
 		providerType: providerTypeSchema.optional(),
-		baseUrl: z.url().optional(),
-		apiKey: z.string().min(1).optional(),
-		model: z.string().min(1).optional(),
+		baseUrl: z.url().max(LIMITS.URL).optional(),
+		apiKey: z.string().min(1).max(LIMITS.SECRET).optional(),
+		model: z.string().min(1).max(LIMITS.SHORT_NAME).optional(),
 		maxOutputTokens: z.number().int().min(1).max(32_000).optional(),
 	})
 	.strict()

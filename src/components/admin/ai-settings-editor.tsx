@@ -4,12 +4,14 @@ import { toast } from 'sonner'
 
 import { testAiConnectionAsAdmin } from '@/api/admin-ai'
 import { Button } from '@/components/ui/button'
+import { CharacterCounter } from '@/components/ui/character-counter'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { type AiConfigResponse, useAiConfig, useAiConfigMutation } from '@/hooks/use-ai-config'
 import { DEFAULT_MAX_OUTPUT_TOKENS, type ProviderType } from '@/lib/ai-types'
+import { LIMITS } from '@/lib/validation/limits'
 
 // Each entry maps a friendly name to a (providerType, baseUrl) pair plus a
 // curated model list. Adding an entry surfaces it in the provider dropdown.
@@ -304,6 +306,7 @@ function Form({ config, saving, mutate }: FormProps) {
 							value={customBaseUrl}
 							placeholder="https://example.com/v1"
 							disabled={baseUrlLocked || saving}
+							maxLength={LIMITS.URL}
 							onChange={e => setCustomBaseUrl(e.target.value)}
 						/>
 					</div>
@@ -338,6 +341,7 @@ function Form({ config, saving, mutate }: FormProps) {
 								value={apiKeyDraft}
 								placeholder="sk-…"
 								disabled={saving}
+								maxLength={LIMITS.SECRET}
 								onChange={e => setApiKeyDraft(e.target.value)}
 							/>
 							{config.apiKey.source !== 'missing' && (
@@ -377,14 +381,18 @@ function Form({ config, saving, mutate }: FormProps) {
 						</Select>
 					)}
 					{isCustomModel && (
-						<Input
-							id={modelOptions.length > 0 ? 'aiModelCustom' : 'aiModel'}
-							type="text"
-							value={customModel}
-							placeholder={modelOptions.length === 0 ? 'e.g. llama3.1:8b' : 'Enter custom model name'}
-							disabled={modelLocked || saving}
-							onChange={e => setCustomModel(e.target.value)}
-						/>
+						<>
+							<Input
+								id={modelOptions.length > 0 ? 'aiModelCustom' : 'aiModel'}
+								type="text"
+								value={customModel}
+								placeholder={modelOptions.length === 0 ? 'e.g. llama3.1:8b' : 'Enter custom model name'}
+								disabled={modelLocked || saving}
+								maxLength={LIMITS.SHORT_NAME}
+								onChange={e => setCustomModel(e.target.value)}
+							/>
+							<CharacterCounter value={customModel} max={LIMITS.SHORT_NAME} className="self-end" />
+						</>
 					)}
 					{modelLocked && <p className="text-xs text-muted-foreground">Set by AI_MODEL. Unset to edit here.</p>}
 				</div>

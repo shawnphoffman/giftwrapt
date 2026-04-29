@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { type Priority, priorityEnumValues } from '@/db/schema/enums'
 import { itemsKeys } from '@/lib/queries/items'
+import { LIMITS } from '@/lib/validation/limits'
 
 const PriorityLabels: Record<Priority, string> = {
 	low: 'Low',
@@ -82,7 +83,7 @@ export function GroupEditDialog({ open, onOpenChange, group, listId }: Props) {
 							value={name}
 							onChange={e => setName(e.target.value)}
 							placeholder="Unnamed"
-							maxLength={100}
+							maxLength={LIMITS.SHORT_NAME}
 							disabled={saving}
 						/>
 					</div>

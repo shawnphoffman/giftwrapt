@@ -8,6 +8,7 @@ import { appSettings } from '@/db/schema'
 import { encryptAppSecret } from '@/lib/crypto/app-secret'
 import { EMAIL_SETTING_KEYS, type EmailSettingKey, envLockedFlags, type FieldSource, resolveEmailConfig } from '@/lib/email-config'
 import { createLogger } from '@/lib/logger'
+import { LIMITS } from '@/lib/validation/limits'
 import { adminAuthMiddleware } from '@/middleware/auth'
 
 const adminEmailLog = createLogger('admin:email')
@@ -47,10 +48,10 @@ export const fetchEmailConfigAsAdmin = createServerFn({ method: 'GET' })
 
 const updateInputSchema = z
 	.object({
-		apiKey: z.union([z.string().min(1), z.null()]).optional(),
-		fromEmail: z.union([z.email(), z.null()]).optional(),
-		fromName: z.union([z.string().min(1), z.null()]).optional(),
-		bccAddress: z.union([z.email(), z.null()]).optional(),
+		apiKey: z.union([z.string().min(1).max(LIMITS.SECRET), z.null()]).optional(),
+		fromEmail: z.union([z.email().max(LIMITS.EMAIL), z.null()]).optional(),
+		fromName: z.union([z.string().min(1).max(LIMITS.SHORT_NAME), z.null()]).optional(),
+		bccAddress: z.union([z.email().max(LIMITS.EMAIL), z.null()]).optional(),
 	})
 	.strict()
 
@@ -114,7 +115,7 @@ export const updateEmailConfigAsAdmin = createServerFn({ method: 'POST' })
 
 const testInputSchema = z
 	.object({
-		apiKey: z.string().min(1).optional(),
+		apiKey: z.string().min(1).max(LIMITS.SECRET).optional(),
 	})
 	.strict()
 

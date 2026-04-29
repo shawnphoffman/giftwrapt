@@ -24,6 +24,7 @@ import { itemsKeys } from '@/lib/queries/items'
 import { applyScrapePrefill } from '@/lib/scrapers/apply-prefill'
 import { resizeImageForUpload } from '@/lib/storage/client-resize'
 import { useScrapeUrl } from '@/lib/use-scrape-url'
+import { LIMITS } from '@/lib/validation/limits'
 
 import { ImagePicker } from './image-picker'
 import { ScrapeProgressAlert } from './scrape-progress-alert'
@@ -46,13 +47,13 @@ const PriorityLabels: Record<string, string> = {
 }
 
 const schema = z.object({
-	title: z.string().min(1, 'Title is required').max(500),
-	url: z.string().max(2000).optional(),
-	price: z.string().max(50).optional(),
-	notes: z.string().max(5000).optional(),
+	title: z.string().min(1, 'Title is required').max(LIMITS.ITEM_TITLE),
+	url: z.string().max(LIMITS.URL).optional(),
+	price: z.string().max(LIMITS.PRICE).optional(),
+	notes: z.string().max(LIMITS.LONG_TEXT).optional(),
 	priority: z.enum(priorityEnumValues),
 	quantity: z.coerce.number().int().positive('Must be at least 1').max(999),
-	imageUrl: z.string().max(2000).optional(),
+	imageUrl: z.string().max(LIMITS.URL).optional(),
 })
 
 export function ItemFormDialog(props: Props) {
@@ -258,6 +259,7 @@ export function ItemFormDialog(props: Props) {
 											}}
 											disabled={submitting}
 											autoFocus={!isEdit}
+											maxLength={LIMITS.URL}
 										/>
 										<InputGroupAddon align="inline-end">
 											<InputGroupButton
@@ -295,6 +297,7 @@ export function ItemFormDialog(props: Props) {
 									onBlur={field.handleBlur}
 									disabled={formLocked}
 									autoFocus={isEdit}
+									maxLength={LIMITS.ITEM_TITLE}
 								/>
 								{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 									<p className="text-destructive text-sm">
@@ -318,6 +321,7 @@ export function ItemFormDialog(props: Props) {
 										onChange={e => field.handleChange(e.target.value)}
 										onBlur={field.handleBlur}
 										disabled={formLocked}
+										maxLength={LIMITS.PRICE}
 									/>
 								</div>
 							)}
@@ -385,6 +389,7 @@ export function ItemFormDialog(props: Props) {
 									onChange={v => field.handleChange(v)}
 									onBlur={field.handleBlur}
 									disabled={formLocked}
+									maxLength={LIMITS.LONG_TEXT}
 								/>
 							</div>
 						)}
@@ -470,6 +475,7 @@ export function ItemFormDialog(props: Props) {
 											onChange={e => field.handleChange(e.target.value)}
 											onBlur={field.handleBlur}
 											disabled={submitting || uploadingImage}
+											maxLength={LIMITS.URL}
 										/>
 										{showUploadButton && (
 											<>

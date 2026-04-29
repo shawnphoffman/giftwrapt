@@ -7,14 +7,18 @@ import { updateUserPassword } from '@/api/user'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { LIMITS } from '@/lib/validation/limits'
 
 import { PasswordInput } from '../ui/password-input'
 
 const PasswordSchema = z
 	.object({
-		currentPassword: z.string().min(1, 'Current password is required'),
-		newPassword: z.string().min(8, 'Password must be at least 8 characters'),
-		confirmPassword: z.string().min(1, 'Please confirm your password'),
+		currentPassword: z.string().min(1, 'Current password is required').max(LIMITS.PASSWORD),
+		newPassword: z
+			.string()
+			.min(8, 'Password must be at least 8 characters')
+			.max(LIMITS.PASSWORD, `Password must be ${LIMITS.PASSWORD} characters or fewer`),
+		confirmPassword: z.string().min(1, 'Please confirm your password').max(LIMITS.PASSWORD),
 	})
 	.refine(data => data.newPassword === data.confirmPassword, {
 		message: "Passwords don't match",
@@ -104,6 +108,7 @@ export default function PasswordForm() {
 							onChange={e => field.handleChange(e.target.value)}
 							onBlur={field.handleBlur}
 							disabled={isLoading}
+							maxLength={LIMITS.PASSWORD}
 							autoComplete="current-password"
 						/>
 						{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
@@ -124,6 +129,7 @@ export default function PasswordForm() {
 							onChange={e => field.handleChange(e.target.value)}
 							onBlur={field.handleBlur}
 							disabled={isLoading}
+							maxLength={LIMITS.PASSWORD}
 							autoComplete="new-password"
 						/>
 						{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
@@ -144,6 +150,7 @@ export default function PasswordForm() {
 							onChange={e => field.handleChange(e.target.value)}
 							onBlur={field.handleBlur}
 							disabled={isLoading}
+							maxLength={LIMITS.PASSWORD}
 							autoComplete="new-password"
 						/>
 						{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (

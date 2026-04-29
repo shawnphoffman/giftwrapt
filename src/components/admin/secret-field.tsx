@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { FieldSource } from '@/lib/email-config'
+import { LIMITS } from '@/lib/validation/limits'
 
 export type SecretFieldState = {
 	mode: 'display' | 'edit'
@@ -19,6 +20,7 @@ type Props = {
 	envLocked: boolean
 	placeholder?: string
 	saving?: boolean
+	maxLength?: number
 	onSave: (value: string) => Promise<void> | void
 	onClear?: () => Promise<void> | void
 	// Receives the current state so it can react to draft/mode (e.g. a Test
@@ -35,6 +37,7 @@ export function SecretField({
 	envLocked,
 	placeholder,
 	saving,
+	maxLength = LIMITS.SECRET,
 	onSave,
 	onClear,
 	trailingSlot,
@@ -101,6 +104,7 @@ export function SecretField({
 						autoComplete="off"
 						value={draft}
 						placeholder={placeholder}
+						maxLength={maxLength}
 						onChange={e => setDraft(e.target.value)}
 						disabled={saving}
 					/>

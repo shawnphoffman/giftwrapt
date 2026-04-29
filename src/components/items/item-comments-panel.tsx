@@ -21,6 +21,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { useSession } from '@/lib/auth-client'
 import { cn } from '@/lib/utils'
+import { LIMITS } from '@/lib/validation/limits'
 
 type Props = {
 	itemId: number
@@ -100,6 +101,7 @@ export default function ItemCommentsPanel({ itemId, onCountChange }: Props) {
 						}
 					}}
 					disabled={submitting}
+					maxLength={LIMITS.LONG_TEXT}
 					className="text-sm"
 				/>
 				<Button size="sm" onClick={handleSubmit} disabled={submitting || !newComment.trim()}>
@@ -187,6 +189,7 @@ function CommentRow({
 									}}
 									rows={2}
 									disabled={saving}
+									maxLength={LIMITS.LONG_TEXT}
 									className="text-sm"
 								/>
 								<div className="flex flex-col gap-1">

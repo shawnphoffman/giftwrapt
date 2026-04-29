@@ -2,6 +2,8 @@ import { relations } from 'drizzle-orm'
 import { boolean, index, pgTable, smallint, text, timestamp } from 'drizzle-orm/pg-core'
 import z from 'zod'
 
+import { LIMITS } from '@/lib/validation/limits'
+
 import { account, session } from './auth'
 import { birthMonthEnum, birthMonthEnumValues, roleEnum, roleEnumValues } from './enums'
 import { lists } from './lists'
@@ -37,8 +39,8 @@ export const users = pgTable(
 )
 
 export const UserSchema = z.object({
-	email: z.email('Invalid email address'),
-	name: z.string().min(1, 'Name is required'),
+	email: z.email('Invalid email address').max(LIMITS.EMAIL, `Email must be ${LIMITS.EMAIL} characters or fewer`),
+	name: z.string().min(1, 'Name is required').max(LIMITS.SHORT_NAME, `Name must be ${LIMITS.SHORT_NAME} characters or fewer`),
 	role: z.enum(roleEnumValues),
 	birthMonth: z.enum(birthMonthEnumValues).nullish(),
 	birthDay: z
@@ -63,7 +65,7 @@ export const UserSchema = z.object({
 		.optional(),
 	guardianIds: z.array(z.string()).optional(),
 	partnerId: z.string().optional(),
-	image: z.string().optional(),
+	image: z.string().max(LIMITS.URL).optional(),
 })
 
 // ------------------------------

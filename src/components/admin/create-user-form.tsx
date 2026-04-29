@@ -15,6 +15,7 @@ import { birthMonthEnumValues, roleEnumValues } from '@/db/schema/enums'
 import { UserSchema } from '@/db/schema/users'
 import type { User } from '@/db-collections/users'
 import { authClient } from '@/lib/auth-client'
+import { LIMITS } from '@/lib/validation/limits'
 
 import UserAvatar from '../common/user-avatar'
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
@@ -172,6 +173,7 @@ export function CreateUserForm() {
 							onChange={e => field.handleChange(e.target.value)}
 							onBlur={field.handleBlur}
 							disabled={isLoading}
+							maxLength={LIMITS.EMAIL}
 						/>
 						{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 							<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
@@ -192,6 +194,7 @@ export function CreateUserForm() {
 							onChange={e => field.handleChange(e.target.value)}
 							onBlur={field.handleBlur}
 							disabled={isLoading}
+							maxLength={LIMITS.SHORT_NAME}
 						/>
 						{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 							<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>

@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { LIMITS } from '@/lib/validation/limits'
 
 type BaseProps = {
 	open: boolean
@@ -26,8 +27,8 @@ type EditProps = BaseProps & { mode: 'edit'; addon: AddonOnList }
 type Props = CreateProps | EditProps
 
 const schema = z.object({
-	description: z.string().min(1, 'Description is required').max(500, 'Too long'),
-	notes: z.string().max(2000, 'Too long').optional(),
+	description: z.string().min(1, 'Description is required').max(LIMITS.SHORT_TEXT, 'Too long'),
+	notes: z.string().max(LIMITS.MEDIUM_TEXT, 'Too long').optional(),
 	totalCost: z
 		.string()
 		.trim()
@@ -166,6 +167,7 @@ export function ListAddonDialog(props: Props) {
 									onChange={e => field.handleChange(e.target.value)}
 									onBlur={field.handleBlur}
 									disabled={submitting}
+									maxLength={LIMITS.SHORT_TEXT}
 								/>
 								{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 									<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
@@ -213,6 +215,7 @@ export function ListAddonDialog(props: Props) {
 									onChange={v => field.handleChange(v)}
 									onBlur={field.handleBlur}
 									disabled={submitting}
+									maxLength={LIMITS.MEDIUM_TEXT}
 								/>
 								{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 									<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
