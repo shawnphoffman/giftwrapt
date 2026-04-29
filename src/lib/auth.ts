@@ -68,6 +68,14 @@ const options = {
 	emailAndPassword: {
 		enabled: true,
 	},
+	// CSRF posture (sec-review L6): better-auth defaults to
+	// `sameSite: 'lax'`, `httpOnly: true`, `secure` (when HTTPS) on the
+	// session cookie, and we don't override any of those. Cross-origin
+	// POSTs strip the cookie -> the auth middleware refuses the call,
+	// which is the entire CSRF defense for our server functions. Don't
+	// enable `crossSubDomainCookies` or override cookie attributes
+	// without revisiting the strategy in docs/contributing.md.
+	//
 	// Rate limit auth-related routes (sign-in, sign-up, password change,
 	// session reads). Better-auth applies stricter caps to sensitive
 	// endpoints automatically; this enables the framework's in-memory

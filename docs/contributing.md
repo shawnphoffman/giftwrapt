@@ -81,6 +81,22 @@ Pre-commit hooks run `lint-staged` (Prettier + ESLint on staged files). Commitli
 
 `release-please` watches `main` and opens a PR with the next version bump and `CHANGELOG.md` entry derived from commit messages. Merging that PR tags a release and triggers the GHCR image publish (`ghcr.io/shawnphoffman/giftwrapt:vX.Y.Z` plus `:latest`).
 
+## Security model: CSRF and server functions
+
+State-changing TanStack server functions and route handlers should always use `method: 'POST'`. The CSRF posture for those calls relies entirely on the auth cookie's `SameSite=Lax` attribute (better-auth default, set in `src/lib/auth.ts`):
+
+- **Lax** prevents the auth cookie from being attached to cross-origin `POST` requests. An attacker page on `evil.example` can render a form that posts to our server function, but the browser strips the cookie, the auth middleware sees no session, and the call is refused.
+- **Top-level navigation `GET`s do carry the Lax cookie**, but state changes are POST-only, so a malicious link can't trigger one. Reads (`method: 'GET'` server fns) are CSRF-irrelevant by definition; they don't change state.
+- **Same-site XSS would defeat this** (along with any explicit CSRF token), so the `Content-Security-Policy` headers in `vite.config.ts` and the existing input-validation pattern (every server fn uses `.inputValidator()` with zod) are the actual XSS defense.
+
+Concretely, when adding a new server function or route:
+
+- Use `createServerFn({ method: 'POST' })` for anything that writes. Never accept writes via `GET`.
+- Don't enable `crossSubDomainCookies` on better-auth without re-evaluating this posture; sharing the cookie across subdomains widens the trust boundary.
+- Don't set your own cookies bypassing better-auth's cookie helpers. If you need one, ensure `httpOnly: true`, `sameSite: 'lax'` (or `'strict'`), `secure` on HTTPS.
+
+See sec-review L6.
+
 ## Pull requests
 
 1. Branch from `main`.
