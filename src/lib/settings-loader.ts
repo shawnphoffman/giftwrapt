@@ -13,7 +13,7 @@
 // module stay browser-safe (the schema uses plain `z.string()` for secret
 // fields and never imports `node:crypto`).
 
-import type { Database } from '@/db'
+import type { Database, SchemaDatabase } from '@/db'
 import { decryptAppSecret, encryptAppSecret } from '@/lib/crypto/app-secret'
 import {
 	type AppSettings,
@@ -60,7 +60,7 @@ function decryptScrapeProviderSecrets(raw: unknown): unknown {
 		.filter(entry => entry !== null)
 }
 
-export async function getAppSettings(db: Database): Promise<AppSettings> {
+export async function getAppSettings(db: Database | SchemaDatabase): Promise<AppSettings> {
 	const raw = await loadRawSettings(db)
 
 	// Pre-process: decrypt any encrypted secret fields in

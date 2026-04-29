@@ -2,16 +2,36 @@ import { createServerFn } from '@tanstack/react-start'
 import { and, asc, count, desc, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { db } from '@/db'
+import { db, type SchemaDatabase } from '@/db'
 import { giftedItems, itemComments, itemGroups, items, lists } from '@/db/schema'
 import { availabilityEnumValues, type ListType, type Priority, priorityEnumValues, statusEnumValues } from '@/db/schema/enums'
 import type { GiftedItem } from '@/db/schema/gifts'
 import type { Item } from '@/db/schema/items'
 import { loggingMiddleware } from '@/lib/logger'
 import { canEditList, canViewList } from '@/lib/permissions'
+import { getAppSettings } from '@/lib/settings-loader'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
+import { mirrorRemoteImageToStorage } from '@/lib/storage/mirror'
 import { getVendorFromUrl } from '@/lib/urls'
 import { authMiddleware } from '@/middleware/auth'
+
+// Returns the URL to persist on `items.imageUrl`. When the
+// mirrorExternalImagesOnSave setting is on, attempts to copy the remote
+// URL into our bucket; on success returns the new storage URL, on
+// failure returns the original URL (best-effort, warning logged inside
+// the helper). Returns the original URL untouched when the setting is
+// off, the URL is missing, or it's already a storage URL.
+async function maybeMirrorImageForItem(
+	dbx: SchemaDatabase,
+	itemId: number,
+	imageUrl: string | null | undefined
+): Promise<string | null | undefined> {
+	if (!imageUrl) return imageUrl
+	const settings = await getAppSettings(dbx)
+	if (!settings.mirrorExternalImagesOnSave) return imageUrl
+	const mirrored = await mirrorRemoteImageToStorage(imageUrl, itemId)
+	return mirrored ?? imageUrl
+}
 
 // ===============================
 // Shared types for read endpoints
@@ -71,44 +91,61 @@ const CreateItemInputSchema = z.object({
 
 export type CreateItemResult = { kind: 'ok'; item: Item } | { kind: 'error'; reason: 'list-not-found' | 'not-authorized' }
 
+export async function createItemImpl(args: {
+	db: SchemaDatabase
+	actor: { id: string }
+	input: z.output<typeof CreateItemInputSchema>
+}): Promise<CreateItemResult> {
+	const { db: dbx, actor, input: data } = args
+	const userId = actor.id
+
+	const list = await dbx.query.lists.findFirst({
+		where: eq(lists.id, data.listId),
+		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+	})
+	if (!list) return { kind: 'error', reason: 'list-not-found' }
+
+	const perm = await assertCanEditItems(userId, list)
+	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
+
+	const url = data.url ?? null
+	const vendor = url ? getVendorFromUrl(url) : null
+
+	const [inserted] = await dbx
+		.insert(items)
+		.values({
+			listId: data.listId,
+			title: data.title,
+			url,
+			vendorId: vendor?.id ?? null,
+			vendorSource: vendor ? 'rule' : null,
+			price: data.price ?? null,
+			currency: data.currency ?? null,
+			notes: data.notes ?? null,
+			priority: data.priority ?? 'normal',
+			quantity: data.quantity ?? 1,
+			imageUrl: data.imageUrl ?? null,
+			groupId: data.groupId ?? null,
+		})
+		.returning()
+
+	// Best-effort: mirror an external imageUrl into our bucket so the
+	// item record references a URL we own. No-op when the setting is
+	// off, the URL is missing, or already a storage URL. Don't bump
+	// modifiedAt: matches the convention from uploadItemImage.
+	const mirrored = await maybeMirrorImageForItem(dbx, inserted.id, inserted.imageUrl)
+	if (mirrored && mirrored !== inserted.imageUrl) {
+		const [updated] = await dbx.update(items).set({ imageUrl: mirrored }).where(eq(items.id, inserted.id)).returning()
+		return { kind: 'ok', item: updated }
+	}
+
+	return { kind: 'ok', item: inserted }
+}
+
 export const createItem = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof CreateItemInputSchema>) => CreateItemInputSchema.parse(data))
-	.handler(async ({ context, data }): Promise<CreateItemResult> => {
-		const userId = context.session.user.id
-
-		const list = await db.query.lists.findFirst({
-			where: eq(lists.id, data.listId),
-			columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
-		})
-		if (!list) return { kind: 'error', reason: 'list-not-found' }
-
-		const perm = await assertCanEditItems(userId, list)
-		if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
-
-		const url = data.url ?? null
-		const vendor = url ? getVendorFromUrl(url) : null
-
-		const [inserted] = await db
-			.insert(items)
-			.values({
-				listId: data.listId,
-				title: data.title,
-				url,
-				vendorId: vendor?.id ?? null,
-				vendorSource: vendor ? 'rule' : null,
-				price: data.price ?? null,
-				currency: data.currency ?? null,
-				notes: data.notes ?? null,
-				priority: data.priority ?? 'normal',
-				quantity: data.quantity ?? 1,
-				imageUrl: data.imageUrl ?? null,
-				groupId: data.groupId ?? null,
-			})
-			.returning()
-
-		return { kind: 'ok', item: inserted }
-	})
+	.handler(({ context, data }): Promise<CreateItemResult> => createItemImpl({ db, actor: { id: context.session.user.id }, input: data }))
 
 // ===============================
 // WRITE - copy an item to another list
@@ -157,6 +194,8 @@ export const copyItemToList = createServerFn({ method: 'POST' })
 
 		const vendor = sourceItem.url ? getVendorFromUrl(sourceItem.url) : null
 
+		// Copies preserve the source `imageUrl` as-is and intentionally do
+		// not run through the mirror flow.
 		const [inserted] = await db
 			.insert(items)
 			.values({
@@ -198,73 +237,98 @@ const UpdateItemInputSchema = z.object({
 
 export type UpdateItemResult = { kind: 'ok'; item: Item } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
+export async function updateItemImpl(args: {
+	db: SchemaDatabase
+	actor: { id: string }
+	input: z.output<typeof UpdateItemInputSchema>
+}): Promise<UpdateItemResult> {
+	const { db: dbx, actor, input: data } = args
+	const userId = actor.id
+
+	const item = await dbx.query.items.findFirst({
+		where: eq(items.id, data.itemId),
+		columns: { id: true, listId: true, vendorSource: true, imageUrl: true },
+	})
+	if (!item) return { kind: 'error', reason: 'not-found' }
+
+	const list = await dbx.query.lists.findFirst({
+		where: eq(lists.id, item.listId),
+		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+	})
+	if (!list) return { kind: 'error', reason: 'not-found' }
+
+	const perm = await assertCanEditItems(userId, list)
+	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
+
+	// Mirror an external imageUrl into our bucket before writing, so
+	// the row only ever sees the final URL. Returns the original on
+	// any failure path.
+	if (data.imageUrl !== undefined && data.imageUrl !== null) {
+		const mirrored = await maybeMirrorImageForItem(dbx, item.id, data.imageUrl)
+		if (mirrored !== undefined) data.imageUrl = mirrored
+	}
+
+	const priorImageUrl = item.imageUrl
+	const updates: Record<string, unknown> = {}
+	let bumpModifiedAt = false
+
+	if (data.title !== undefined) {
+		updates.title = data.title
+		bumpModifiedAt = true
+	}
+	if (data.url !== undefined) {
+		updates.url = data.url
+		bumpModifiedAt = true
+		// Vendor lifecycle:
+		//  - URL cleared -> vendor cleared (any source).
+		//  - URL set/changed, source != 'manual' -> re-derive as 'rule'.
+		//  - URL set/changed, source == 'manual' -> leave vendor alone (user pinned it).
+		if (data.url === null) {
+			updates.vendorId = null
+			updates.vendorSource = null
+		} else if (item.vendorSource !== 'manual') {
+			const vendor = getVendorFromUrl(data.url)
+			updates.vendorId = vendor?.id ?? null
+			updates.vendorSource = vendor ? 'rule' : null
+		}
+	}
+	if (data.notes !== undefined) {
+		updates.notes = data.notes
+		bumpModifiedAt = true
+	}
+	if (data.price !== undefined) updates.price = data.price
+	if (data.currency !== undefined) updates.currency = data.currency
+	if (data.priority !== undefined) updates.priority = data.priority
+	if (data.quantity !== undefined) updates.quantity = data.quantity
+	if (data.imageUrl !== undefined) updates.imageUrl = data.imageUrl
+	if (data.status !== undefined) updates.status = data.status
+
+	if (bumpModifiedAt) {
+		updates.modifiedAt = new Date()
+	}
+
+	if (Object.keys(updates).length === 0) {
+		const fullItem = await dbx.query.items.findFirst({ where: eq(items.id, data.itemId) })
+		return { kind: 'ok', item: fullItem! }
+	}
+
+	const [updated] = await dbx.update(items).set(updates).where(eq(items.id, data.itemId)).returning()
+
+	// If we just replaced the imageUrl with a different value, the old
+	// URL is now orphaned. Best-effort cleanup matches the pattern
+	// from uploadItemImage; cleanupImageUrls is a no-op for non-storage
+	// URLs.
+	if (data.imageUrl !== undefined && priorImageUrl && priorImageUrl !== updated.imageUrl) {
+		void cleanupImageUrls([priorImageUrl])
+	}
+
+	return { kind: 'ok', item: updated }
+}
+
 export const updateItem = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof UpdateItemInputSchema>) => UpdateItemInputSchema.parse(data))
-	.handler(async ({ context, data }): Promise<UpdateItemResult> => {
-		const userId = context.session.user.id
-
-		const item = await db.query.items.findFirst({
-			where: eq(items.id, data.itemId),
-			columns: { id: true, listId: true, vendorSource: true },
-		})
-		if (!item) return { kind: 'error', reason: 'not-found' }
-
-		const list = await db.query.lists.findFirst({
-			where: eq(lists.id, item.listId),
-			columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
-		})
-		if (!list) return { kind: 'error', reason: 'not-found' }
-
-		const perm = await assertCanEditItems(userId, list)
-		if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
-
-		const updates: Record<string, unknown> = {}
-		let bumpModifiedAt = false
-
-		if (data.title !== undefined) {
-			updates.title = data.title
-			bumpModifiedAt = true
-		}
-		if (data.url !== undefined) {
-			updates.url = data.url
-			bumpModifiedAt = true
-			// Vendor lifecycle:
-			//  - URL cleared -> vendor cleared (any source).
-			//  - URL set/changed, source != 'manual' -> re-derive as 'rule'.
-			//  - URL set/changed, source == 'manual' -> leave vendor alone (user pinned it).
-			if (data.url === null) {
-				updates.vendorId = null
-				updates.vendorSource = null
-			} else if (item.vendorSource !== 'manual') {
-				const vendor = getVendorFromUrl(data.url)
-				updates.vendorId = vendor?.id ?? null
-				updates.vendorSource = vendor ? 'rule' : null
-			}
-		}
-		if (data.notes !== undefined) {
-			updates.notes = data.notes
-			bumpModifiedAt = true
-		}
-		if (data.price !== undefined) updates.price = data.price
-		if (data.currency !== undefined) updates.currency = data.currency
-		if (data.priority !== undefined) updates.priority = data.priority
-		if (data.quantity !== undefined) updates.quantity = data.quantity
-		if (data.imageUrl !== undefined) updates.imageUrl = data.imageUrl
-		if (data.status !== undefined) updates.status = data.status
-
-		if (bumpModifiedAt) {
-			updates.modifiedAt = new Date()
-		}
-
-		if (Object.keys(updates).length === 0) {
-			const fullItem = await db.query.items.findFirst({ where: eq(items.id, data.itemId) })
-			return { kind: 'ok', item: fullItem! }
-		}
-
-		const [updated] = await db.update(items).set(updates).where(eq(items.id, data.itemId)).returning()
-		return { kind: 'ok', item: updated }
-	})
+	.handler(({ context, data }): Promise<UpdateItemResult> => updateItemImpl({ db, actor: { id: context.session.user.id }, input: data }))
 
 // ===============================
 // WRITE - delete an item

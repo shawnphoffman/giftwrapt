@@ -10,7 +10,7 @@
 
 import { z } from 'zod'
 
-import type { Database } from '@/db'
+import type { Database, SchemaDatabase } from '@/db'
 import { appSettings } from '@/db/schema'
 
 // 1) Shape of settings used across the app.
@@ -175,6 +175,12 @@ export const appSettingsSchema = z.object({
 	enableComments: z.boolean(),
 	// Whether a notification email is sent to the list owner on new comments.
 	enableCommentEmails: z.boolean(),
+	// When true, item save (create/update) will fetch any non-storage
+	// imageUrl, run it through the image pipeline, and persist the
+	// resulting storage URL instead of the original. Best-effort: a
+	// fetch/process failure leaves the original URL in place. No-op when
+	// storage is not configured.
+	mirrorExternalImagesOnSave: z.boolean(),
 	// =====================================================================
 	// URL scraping
 	// =====================================================================
@@ -219,6 +225,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	enableChristmasEmails: true,
 	enableComments: true,
 	enableCommentEmails: true,
+	mirrorExternalImagesOnSave: false,
 	// Per-provider HTTP timeout. Hosted scrapers (Stagehand / AI on
 	// heavy pages) routinely need >10s; bumped from 10s after
 	// sec-review L5. Tune downward in /admin/scraping if you only run
@@ -239,7 +246,7 @@ export type AppSettings = z.infer<typeof appSettingsSchema>
 // 3) Helper to load raw key/value rows from DB. Server-only (Database
 // type only resolves on the server), but written here so the loader can
 // import a single source of truth.
-export async function loadRawSettings(db: Database): Promise<Record<string, unknown>> {
+export async function loadRawSettings(db: Database | SchemaDatabase): Promise<Record<string, unknown>> {
 	const rows = await db.select().from(appSettings)
 	return Object.fromEntries(rows.map(r => [r.key, r.value]))
 }

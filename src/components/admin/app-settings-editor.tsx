@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch'
 import { ListTypes } from '@/db/schema'
 import { adminAppSettingsQueryKey, useAdminAppSettings } from '@/hooks/use-app-settings'
 import { useIsEmailConfigured } from '@/hooks/use-is-email-configured'
+import { useStorageStatus } from '@/hooks/use-storage-status'
 import type { AppSettings } from '@/lib/settings'
 
 const IS_DEV = import.meta.env.DEV
@@ -65,6 +66,7 @@ function useSettingsEditor() {
 export function AppSettingsEditor() {
 	const { settings, isLoading, handleSettingChange } = useSettingsEditor()
 	const { data: emailConfigured } = useIsEmailConfigured()
+	const { configured: storageConfigured } = useStorageStatus()
 
 	if (isLoading) return <div className="text-sm text-muted-foreground">Loading settings...</div>
 	if (!settings) return <div className="text-sm text-muted-foreground">No settings found</div>
@@ -239,6 +241,25 @@ export function AppSettingsEditor() {
 					/>
 				</div>
 			)}
+
+			{/* Mirror external images to storage on save */}
+			<div className={`flex items-center justify-between gap-4 ${storageConfigured ? '' : 'opacity-50'}`}>
+				<div className="space-y-0.5">
+					<Label htmlFor="mirrorExternalImagesOnSave" className="text-base">
+						Mirror external images to storage on save
+					</Label>
+					<p className="text-sm text-muted-foreground">
+						When saving an item, fetch any external image URL and copy it into your bucket. Best-effort: fetch failures keep the original
+						URL. Requires storage to be configured. Existing items are not backfilled.
+					</p>
+				</div>
+				<Switch
+					id="mirrorExternalImagesOnSave"
+					checked={settings.mirrorExternalImagesOnSave}
+					disabled={!storageConfigured}
+					onCheckedChange={checked => handleSettingChange('mirrorExternalImagesOnSave', checked)}
+				/>
+			</div>
 		</div>
 	)
 }
