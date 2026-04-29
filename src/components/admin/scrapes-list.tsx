@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { useAppSettings } from '@/hooks/use-app-settings'
+import { useAdminAppSettings } from '@/hooks/use-app-settings'
 import { cn } from '@/lib/utils'
 
 // /admin/scrapes lives here. Loads the most recent N attempt rows from
@@ -26,7 +26,7 @@ const STICKY_INSPECT_CELL = 'sticky left-0 z-10 w-[52px] bg-card border-r text-r
 
 export function ScrapesList() {
 	const scrapesQuery = useQuery({ queryKey: ['admin', 'scrapes'], queryFn: () => listScrapesAsAdmin() })
-	const settingsQuery = useAppSettings()
+	const settingsQuery = useAdminAppSettings()
 	const [openId, setOpenId] = useState<number | null>(null)
 
 	// Map every configured provider entry's runtime id (`${type}:${id}`) to

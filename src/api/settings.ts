@@ -8,14 +8,39 @@ import { encryptScrapeProviderSecrets, getAppSettings } from '@/lib/settings-loa
 import { adminAuthMiddleware } from '@/middleware/auth'
 
 /**
- * Server function to fetch app settings
- * This runs on the server and returns typed, validated settings
+ * Public, unauthenticated read of app settings.
+ *
+ * Strips `scrapeProviders` because those entries carry decrypted secret
+ * fields (token / apiKey / customHeaders) after `getAppSettings` runs its
+ * envelope-decrypt pass. The root route prefetches this on every request,
+ * including for unauthenticated visitors, so any field returned here is
+ * effectively world-readable. See sec-review C1.
+ *
+ * Admin UI that needs the full provider list (with secrets) calls
+ * `fetchAppSettingsAsAdmin` instead.
  */
 export const fetchAppSettings = createServerFn({
 	method: 'GET',
 })
 	.middleware([loggingMiddleware])
-	.handler(async () => {
+	.handler(async (): Promise<AppSettings> => {
+		const full = await getAppSettings(db)
+		return { ...full, scrapeProviders: [] }
+	})
+
+/**
+ * Admin-only read of app settings, including decrypted scrapeProviders.
+ *
+ * Use from admin pages that need to display or edit scrape provider
+ * credentials. Gated by `adminAuthMiddleware`, so non-admin callers are
+ * redirected to /sign-in (or refused) before any decrypted secret is
+ * serialized.
+ */
+export const fetchAppSettingsAsAdmin = createServerFn({
+	method: 'GET',
+})
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.handler(async (): Promise<AppSettings> => {
 		return await getAppSettings(db)
 	})
 

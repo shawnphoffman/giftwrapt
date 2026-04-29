@@ -2,7 +2,7 @@ import { ClientOnly, createFileRoute } from '@tanstack/react-router'
 
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { useAppSettings } from '@/hooks/use-app-settings'
+import { useAdminAppSettings } from '@/hooks/use-app-settings'
 import { useSession } from '@/lib/auth-client'
 
 export const Route = createFileRoute('/(core)/admin/debug')({
@@ -11,7 +11,7 @@ export const Route = createFileRoute('/(core)/admin/debug')({
 
 function AdminDebugPage() {
 	const { data: session } = useSession()
-	const { data: appSettings, isLoading: isLoadingSettings } = useAppSettings()
+	const { data: appSettings, isLoading: isLoadingSettings } = useAdminAppSettings()
 
 	return (
 		<>

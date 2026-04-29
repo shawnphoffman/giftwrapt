@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { ListTypes } from '@/db/schema'
-import { appSettingsQueryKey, useAppSettings } from '@/hooks/use-app-settings'
+import { adminAppSettingsQueryKey, useAdminAppSettings } from '@/hooks/use-app-settings'
 import { useIsEmailConfigured } from '@/hooks/use-is-email-configured'
 import type { AppSettings } from '@/lib/settings'
 
@@ -22,9 +22,9 @@ function useSettingsMutation() {
 			return await updateAppSettings({ data: newSettings } as Parameters<typeof updateAppSettings>[0])
 		},
 		onMutate: async newSettings => {
-			await queryClient.cancelQueries({ queryKey: appSettingsQueryKey })
-			const previousSettings = queryClient.getQueryData<AppSettings>(appSettingsQueryKey)
-			queryClient.setQueryData<AppSettings>(appSettingsQueryKey, old => ({
+			await queryClient.cancelQueries({ queryKey: adminAppSettingsQueryKey })
+			const previousSettings = queryClient.getQueryData<AppSettings>(adminAppSettingsQueryKey)
+			queryClient.setQueryData<AppSettings>(adminAppSettingsQueryKey, old => ({
 				...old!,
 				...newSettings,
 			}))
@@ -33,13 +33,13 @@ function useSettingsMutation() {
 		},
 		onError: (error, _newSettings, context) => {
 			if (context?.previousSettings) {
-				queryClient.setQueryData(appSettingsQueryKey, context.previousSettings)
+				queryClient.setQueryData(adminAppSettingsQueryKey, context.previousSettings)
 			}
 			const message = error instanceof Error ? error.message : 'Failed to update setting'
 			toast.error(message)
 		},
 		onSuccess: (data, _variables, context) => {
-			queryClient.setQueryData<AppSettings>(appSettingsQueryKey, old => {
+			queryClient.setQueryData<AppSettings>(adminAppSettingsQueryKey, old => {
 				const updated = { ...old! }
 				for (const key of context.changedKeys) {
 					;(updated as Record<string, unknown>)[key] = data[key]
@@ -52,7 +52,7 @@ function useSettingsMutation() {
 }
 
 function useSettingsEditor() {
-	const { data: settings, isLoading } = useAppSettings()
+	const { data: settings, isLoading } = useAdminAppSettings()
 	const mutation = useSettingsMutation()
 
 	const handleSettingChange = <T extends keyof AppSettings>(key: T, value: AppSettings[T]) => {

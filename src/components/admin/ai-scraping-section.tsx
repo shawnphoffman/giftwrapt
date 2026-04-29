@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { updateAppSettings } from '@/api/settings'
 import type { AiConfigResponse } from '@/hooks/use-ai-config'
 import { useAiConfig } from '@/hooks/use-ai-config'
-import { appSettingsQueryKey, useAppSettings } from '@/hooks/use-app-settings'
+import { adminAppSettingsQueryKey, useAdminAppSettings } from '@/hooks/use-app-settings'
 import type { AppSettings } from '@/lib/settings'
 
 import { AiScrapingSectionView } from './ai-scraping-section-view'
@@ -24,19 +24,19 @@ function useScrapingTogglesMutation() {
 			return updateAppSettings({ data: changes } as Parameters<typeof updateAppSettings>[0])
 		},
 		onMutate: async changes => {
-			await queryClient.cancelQueries({ queryKey: appSettingsQueryKey })
-			const previous = queryClient.getQueryData<AppSettings>(appSettingsQueryKey)
+			await queryClient.cancelQueries({ queryKey: adminAppSettingsQueryKey })
+			const previous = queryClient.getQueryData<AppSettings>(adminAppSettingsQueryKey)
 			if (previous) {
-				queryClient.setQueryData<AppSettings>(appSettingsQueryKey, { ...previous, ...changes })
+				queryClient.setQueryData<AppSettings>(adminAppSettingsQueryKey, { ...previous, ...changes })
 			}
 			return { previous, changedKeys: Object.keys(changes) as Array<keyof AppSettings> }
 		},
 		onError: (err, _changes, ctx) => {
-			if (ctx?.previous) queryClient.setQueryData(appSettingsQueryKey, ctx.previous)
+			if (ctx?.previous) queryClient.setQueryData(adminAppSettingsQueryKey, ctx.previous)
 			toast.error(err instanceof Error ? err.message : 'Failed to update setting')
 		},
 		onSuccess: (data, _vars, ctx) => {
-			queryClient.setQueryData<AppSettings>(appSettingsQueryKey, old => {
+			queryClient.setQueryData<AppSettings>(adminAppSettingsQueryKey, old => {
 				if (!old) return old
 				const next = { ...old }
 				for (const key of ctx.changedKeys) {
@@ -50,7 +50,7 @@ function useScrapingTogglesMutation() {
 }
 
 export function AiScrapingSection() {
-	const { data: settings, isLoading: settingsLoading } = useAppSettings()
+	const { data: settings, isLoading: settingsLoading } = useAdminAppSettings()
 	const { data: aiConfig, isLoading: configLoading } = useAiConfig()
 	const mutation = useScrapingTogglesMutation()
 
