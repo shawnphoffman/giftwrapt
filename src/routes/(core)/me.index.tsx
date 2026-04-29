@@ -27,7 +27,22 @@ const myListsQueryOptions = {
 	staleTime: 60 * 1000,
 }
 
+type MeSearch = { url?: string }
+
+const isHttpUrlString = (raw: unknown): raw is string => {
+	if (typeof raw !== 'string' || raw.length === 0 || raw.length > 2000) return false
+	try {
+		const parsed = new URL(raw)
+		return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+	} catch {
+		return false
+	}
+}
+
 export const Route = createFileRoute('/(core)/me/')({
+	validateSearch: (search: Record<string, unknown>): MeSearch => {
+		return isHttpUrlString(search.url) ? { url: search.url } : {}
+	},
 	loader: ({ context }) => context.queryClient.ensureQueryData(myListsQueryOptions),
 	component: MyListsPage,
 	pendingComponent: MyListsPagePending,
@@ -61,10 +76,18 @@ function MyListsPage() {
 	const { data } = useSuspenseQuery(myListsQueryOptions)
 	const [createOpen, setCreateOpen] = useState(false)
 	const [addItemOpen, setAddItemOpen] = useState(false)
+	const [pendingUrl, setPendingUrl] = useState<string | undefined>(undefined)
 	const hash = useLocation({ select: l => l.hash })
+	const search = Route.useSearch()
 	const navigate = useNavigate()
 
 	useEffect(() => {
+		if (search.url) {
+			setPendingUrl(search.url)
+			setAddItemOpen(true)
+			navigate({ to: '/me', search: {}, hash: '', replace: true })
+			return
+		}
 		if (hash === 'new') {
 			setCreateOpen(true)
 			navigate({ to: '/me', hash: '', replace: true })
@@ -72,12 +95,19 @@ function MyListsPage() {
 			setAddItemOpen(true)
 			navigate({ to: '/me', hash: '', replace: true })
 		}
-	}, [hash, navigate])
+	}, [hash, search.url, navigate])
 
 	return (
 		<>
 			<CreateListDialog open={createOpen} onOpenChange={setCreateOpen} />
-			<AddItemDialog open={addItemOpen} onOpenChange={setAddItemOpen} />
+			<AddItemDialog
+				open={addItemOpen}
+				onOpenChange={next => {
+					setAddItemOpen(next)
+					if (!next) setPendingUrl(undefined)
+				}}
+				initialUrl={pendingUrl}
+			/>
 
 			<div className="wish-page">
 				<div className="flex flex-col flex-1 gap-6">

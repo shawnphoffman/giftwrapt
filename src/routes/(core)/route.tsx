@@ -36,9 +36,20 @@ const checkSession = createServerFn({ method: 'GET' }).handler(async () => {
 
 export const Route = createFileRoute('/(core)')({
 	component: AuthenticatedRoutes,
-	beforeLoad: async () => {
+	beforeLoad: async ({ location }) => {
 		const r = await checkSession()
-		if (!r.authed) throw redirect({ to: '/sign-in' })
+		if (!r.authed) {
+			// Round-trip through sign-in: capture the original path+search+hash
+			// so a /me?url=... or /import?url=... share-target survives the auth
+			// detour. Skip when the user was just hitting /, since that's where
+			// they'd land anyway. (The SSR path goes through authMiddleware,
+			// which performs the same capture against the raw request URL.)
+			const target = `${location.pathname}${location.searchStr}${location.hash ? `#${location.hash}` : ''}`
+			throw redirect({
+				to: '/sign-in',
+				search: target && target !== '/' ? { redirect: target } : {},
+			})
+		}
 	},
 	server: {
 		middleware: [authMiddleware],

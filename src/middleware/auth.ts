@@ -26,6 +26,21 @@ function clearAuthCookies(): void {
 	for (const name of AUTH_COOKIE_NAMES) deleteCookie(name, { path: '/' })
 }
 
+// Build a `?redirect=<original-url>` so the share-target round-trips through
+// sign-in (e.g. /me?url=... or /import?url=... arriving while signed out).
+// Returns `undefined` when the user was already heading to `/`, since that's
+// where they'd land post-auth anyway.
+function buildSignInSearch(request: Request): { redirect?: string } {
+	try {
+		const u = new URL(request.url)
+		const target = `${u.pathname}${u.search}${u.hash}`
+		if (!target || target === '/') return {}
+		return { redirect: target }
+	} catch {
+		return {}
+	}
+}
+
 // Better-auth cookieCache can surface a session whose user row no longer exists
 // (user deleted, session revoked, DB restored from backup, or in dev after a
 // `db:reset` / `db:seed`). Without intervention the request loops: middleware
@@ -39,7 +54,7 @@ function clearAuthCookies(): void {
 const LIVE_USER_TTL_MS = 10 * 60 * 1000
 const liveUserCache = new Map<string, number>()
 
-async function requireLiveUser(userId: string): Promise<void> {
+async function requireLiveUser(userId: string, request: Request): Promise<void> {
 	const now = Date.now()
 	const cached = liveUserCache.get(userId)
 	if (cached && cached > now) return
@@ -52,7 +67,7 @@ async function requireLiveUser(userId: string): Promise<void> {
 		liveUserCache.delete(userId)
 		mwLog.warn({ userId }, 'session user no longer exists, clearing cookies')
 		clearAuthCookies()
-		throw redirect({ to: '/sign-in' })
+		throw redirect({ to: '/sign-in', search: buildSignInSearch(request) })
 	}
 	liveUserCache.set(userId, now + LIVE_USER_TTL_MS)
 }
@@ -63,11 +78,11 @@ export const authMiddleware = createMiddleware().server(async ({ next, request }
 
 		if (!session) {
 			mwLog.debug('unauthenticated, redirecting to /sign-in')
-			throw redirect({ to: '/sign-in' })
+			throw redirect({ to: '/sign-in', search: buildSignInSearch(request) })
 		}
 
 		setRequestUser(session.user.id)
-		await requireLiveUser(session.user.id)
+		await requireLiveUser(session.user.id, request)
 
 		return await next({
 			context: {
@@ -87,7 +102,7 @@ export const adminAuthMiddleware = createMiddleware().server(async ({ next, requ
 		}
 
 		setRequestUser(session.user.id)
-		await requireLiveUser(session.user.id)
+		await requireLiveUser(session.user.id, request)
 
 		return await next({
 			context: {

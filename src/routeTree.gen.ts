@@ -13,6 +13,7 @@ import { Route as coreRouteRouteImport } from './routes/(core)/route'
 import { Route as coreIndexRouteImport } from './routes/(core)/index'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as coreTempRouteImport } from './routes/(core)/temp'
+import { Route as coreImportRouteImport } from './routes/(core)/import'
 import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
 import { Route as authSignOutRouteImport } from './routes/(auth)/sign-out'
 import { Route as authSignInRouteImport } from './routes/(auth)/sign-in'
@@ -68,6 +69,11 @@ const ApiHealthRoute = ApiHealthRouteImport.update({
 const coreTempRoute = coreTempRouteImport.update({
   id: '/temp',
   path: '/temp',
+  getParentRoute: () => coreRouteRoute,
+} as any)
+const coreImportRoute = coreImportRouteImport.update({
+  id: '/import',
+  path: '/import',
   getParentRoute: () => coreRouteRoute,
 } as any)
 const authSignUpRoute = authSignUpRouteImport.update({
@@ -263,6 +269,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof authSignInRoute
   '/sign-out': typeof authSignOutRoute
   '/sign-up': typeof authSignUpRoute
+  '/import': typeof coreImportRoute
   '/temp': typeof coreTempRoute
   '/api/health': typeof ApiHealthRoute
   '/': typeof coreIndexRoute
@@ -303,6 +310,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof authSignInRoute
   '/sign-out': typeof authSignOutRoute
   '/sign-up': typeof authSignUpRoute
+  '/import': typeof coreImportRoute
   '/temp': typeof coreTempRoute
   '/api/health': typeof ApiHealthRoute
   '/': typeof coreIndexRoute
@@ -347,6 +355,7 @@ export interface FileRoutesById {
   '/(auth)/sign-in': typeof authSignInRoute
   '/(auth)/sign-out': typeof authSignOutRoute
   '/(auth)/sign-up': typeof authSignUpRoute
+  '/(core)/import': typeof coreImportRoute
   '/(core)/temp': typeof coreTempRoute
   '/api/health': typeof ApiHealthRoute
   '/(core)/': typeof coreIndexRoute
@@ -391,6 +400,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-out'
     | '/sign-up'
+    | '/import'
     | '/temp'
     | '/api/health'
     | '/'
@@ -431,6 +441,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-out'
     | '/sign-up'
+    | '/import'
     | '/temp'
     | '/api/health'
     | '/'
@@ -474,6 +485,7 @@ export interface FileRouteTypes {
     | '/(auth)/sign-in'
     | '/(auth)/sign-out'
     | '/(auth)/sign-up'
+    | '/(core)/import'
     | '/(core)/temp'
     | '/api/health'
     | '/(core)/'
@@ -556,6 +568,13 @@ declare module '@tanstack/react-router' {
       path: '/temp'
       fullPath: '/temp'
       preLoaderRoute: typeof coreTempRouteImport
+      parentRoute: typeof coreRouteRoute
+    }
+    '/(core)/import': {
+      id: '/(core)/import'
+      path: '/import'
+      fullPath: '/import'
+      preLoaderRoute: typeof coreImportRouteImport
       parentRoute: typeof coreRouteRoute
     }
     '/(auth)/sign-up': {
@@ -868,6 +887,7 @@ const coreSettingsRouteRouteWithChildren =
 interface coreRouteRouteChildren {
   coreAdminRouteRoute: typeof coreAdminRouteRouteWithChildren
   coreSettingsRouteRoute: typeof coreSettingsRouteRouteWithChildren
+  coreImportRoute: typeof coreImportRoute
   coreTempRoute: typeof coreTempRoute
   coreIndexRoute: typeof coreIndexRoute
   coreItemCloneRoute: typeof coreItemCloneRoute
@@ -885,6 +905,7 @@ interface coreRouteRouteChildren {
 const coreRouteRouteChildren: coreRouteRouteChildren = {
   coreAdminRouteRoute: coreAdminRouteRouteWithChildren,
   coreSettingsRouteRoute: coreSettingsRouteRouteWithChildren,
+  coreImportRoute: coreImportRoute,
   coreTempRoute: coreTempRoute,
   coreIndexRoute: coreIndexRoute,
   coreItemCloneRoute: coreItemCloneRoute,

@@ -1,4 +1,4 @@
-import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, redirect, useNavigate, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { Image } from '@unpic/react'
 import { sql } from 'drizzle-orm'
@@ -23,7 +23,29 @@ const checkNeedsBootstrap = createServerFn({ method: 'GET' }).handler(async () =
 	return { needsBootstrap: (rows[0]?.c ?? 0) === 0 }
 })
 
+type SignInSearch = { redirect?: string }
+
+// Only allow same-origin paths to prevent open-redirect via the `redirect`
+// search param. Reject protocol-relative (`//evil.com`), absolute URLs, and
+// backslash tricks. Falls back to `/` for anything malformed.
+const safeRedirect = (raw: unknown): string => {
+	if (typeof raw !== 'string') return '/'
+	if (raw.length === 0 || raw.length > 2000) return '/'
+	if (!raw.startsWith('/')) return '/'
+	if (raw.startsWith('//') || raw.startsWith('/\\')) return '/'
+	try {
+		const parsed = new URL(raw, 'http://placeholder.invalid')
+		if (parsed.origin !== 'http://placeholder.invalid') return '/'
+	} catch {
+		return '/'
+	}
+	return raw
+}
+
 export const Route = createFileRoute('/(auth)/sign-in')({
+	validateSearch: (search: Record<string, unknown>): SignInSearch => {
+		return typeof search.redirect === 'string' ? { redirect: search.redirect } : {}
+	},
 	component: SignIn,
 	beforeLoad: async () => {
 		const { needsBootstrap } = await checkNeedsBootstrap()
@@ -33,18 +55,34 @@ export const Route = createFileRoute('/(auth)/sign-in')({
 
 function SignIn() {
 	const navigate = useNavigate()
+	const router = useRouter()
+	const { redirect: redirectRaw } = Route.useSearch()
 	const { data: session, isPending } = useSession()
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 
-	// Redirect to home if already authenticated
+	const goPostAuth = () => {
+		const target = safeRedirect(redirectRaw)
+		if (target === '/') {
+			navigate({ to: '/' })
+		} else {
+			router.history.push(target)
+		}
+	}
+
+	// Redirect to home (or the captured share-target) once auth state lands.
 	useEffect(() => {
 		if (!isPending && session?.user) {
-			navigate({ to: '/' })
+			const target = safeRedirect(redirectRaw)
+			if (target === '/') {
+				navigate({ to: '/' })
+			} else {
+				router.history.push(target)
+			}
 		}
-	}, [session, isPending, navigate])
+	}, [session, isPending, redirectRaw, navigate, router])
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault()
@@ -68,7 +106,7 @@ function SignIn() {
 				},
 				onSuccess: () => {
 					setIsLoading(false)
-					navigate({ to: '/' })
+					goPostAuth()
 				},
 				onError: () => {
 					setIsLoading(false)

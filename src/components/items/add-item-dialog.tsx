@@ -32,6 +32,7 @@ import { ScrapeProgressAlert } from './scrape-progress-alert'
 type Props = {
 	open: boolean
 	onOpenChange: (open: boolean) => void
+	initialUrl?: string
 }
 
 const PriorityLabels: Record<Priority, string> = {
@@ -59,7 +60,7 @@ function ListSelectItem({ list, owner }: { list: ListOption; owner?: { name: str
 	)
 }
 
-export function AddItemDialog({ open, onOpenChange }: Props) {
+export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 	const router = useRouter()
 	const queryClient = useQueryClient()
 	const [url, setUrl] = useState('')
@@ -129,6 +130,21 @@ export function AddItemDialog({ open, onOpenChange }: Props) {
 			cancelScrape()
 		}
 	}, [open, cancelScrape])
+
+	// Prefill URL + auto-scrape when the dialog opens with an initialUrl
+	// (e.g. share-target via /me?url=...). Mirrors handleUrlBlur but fires
+	// on open instead of focus loss. Guarded by lastScrapedUrlRef so it
+	// can't double-fire if `initialUrl` re-references during the open
+	// lifecycle.
+	useEffect(() => {
+		if (!open || !initialUrl) return
+		const trimmed = initialUrl.trim()
+		if (!trimmed) return
+		if (lastScrapedUrlRef.current === trimmed) return
+		setUrl(trimmed)
+		lastScrapedUrlRef.current = trimmed
+		startScrape(trimmed)
+	}, [open, initialUrl, startScrape])
 
 	// Object URL for the staged file's thumbnail preview. Created when a file
 	// is picked, revoked on swap or close so the blob memory doesn't linger.
