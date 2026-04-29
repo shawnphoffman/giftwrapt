@@ -31,7 +31,7 @@ const requireEnv = (name: string): string => {
 	return v
 }
 
-const ADMIN_URL = (process.env.GARAGE_ADMIN_URL ?? 'http://giftwrapt-storage:3903').replace(/\/$/, '')
+const ADMIN_URL = (process.env.GARAGE_ADMIN_URL ?? 'http://garage:3903').replace(/\/$/, '')
 const ADMIN_TOKEN = requireEnv('GARAGE_ADMIN_TOKEN')
 const BUCKET = requireEnv('STORAGE_BUCKET')
 const ACCESS_KEY_ID = requireEnv('STORAGE_ACCESS_KEY_ID')
