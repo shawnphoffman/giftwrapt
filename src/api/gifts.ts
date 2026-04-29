@@ -13,44 +13,12 @@ import { authMiddleware } from '@/middleware/auth'
 import { rateLimit } from '@/middleware/rate-limit'
 import { notifyListChange } from '@/routes/api/sse/list.$listId'
 
-// ===============================
-// READ - gifts for a batch of items
-// ===============================
-// Batch-by-itemIds rather than one-item-at-a-time so the list-detail view
-// can fetch every item's claims in a single round-trip.
-//
-// NOTE: returns ALL claims on the items, regardless of who the viewer is.
-// The visibility barrier is "can the viewer see the parent list" - enforced
-// by getListForViewing at the list level, not re-enforced here per-item.
-// Callers that don't already have list-level visibility MUST check it before
-// surfacing the result.
-
-export type GiftWithGifter = GiftedItem & {
-	gifter: {
-		id: string
-		name: string | null
-		email: string
-		image: string | null
-	}
-}
-
-export const getGiftsForItems = createServerFn({ method: 'GET' })
-	.middleware([authMiddleware, loggingMiddleware])
-	.inputValidator((data: { itemIds: Array<number> }) => ({ itemIds: data.itemIds }))
-	.handler(async ({ data }): Promise<Array<GiftWithGifter>> => {
-		if (data.itemIds.length === 0) return []
-
-		const rows = await db.query.giftedItems.findMany({
-			where: (g, { inArray }) => inArray(g.itemId, data.itemIds),
-			with: {
-				gifter: {
-					columns: { id: true, name: true, email: true, image: true },
-				},
-			},
-		})
-
-		return rows
-	})
+// (Removed: `getGiftsForItems` was an exported server function with zero
+// callers and no per-item visibility enforcement. Its docstring told future
+// callers to remember to check list-level visibility first, which made it
+// a footgun. If batched-claims-for-item-IDs is needed later, build it with
+// the visibility check inside the handler so the API isn't fragile. See
+// sec-review L1.)
 
 // ===============================
 // WRITE - claim quantity on an item
