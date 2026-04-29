@@ -11,7 +11,7 @@ import { ImagePicker } from './image-picker'
  * the parent form).
  */
 const meta = {
-	title: 'Items/Image Picker',
+	title: 'Items/Other/Image Picker',
 	component: ImagePicker,
 	parameters: { layout: 'padded' },
 	args: {

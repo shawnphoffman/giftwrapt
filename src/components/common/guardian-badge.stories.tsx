@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import GuardianBadge from './guardian-badge'
 
 const meta = {
-	title: 'Common/GuardianBadge',
+	title: 'Common/Badges/GuardianBadge',
 	component: GuardianBadge,
 	parameters: {
 		layout: 'padded',

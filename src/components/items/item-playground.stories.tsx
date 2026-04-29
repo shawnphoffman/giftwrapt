@@ -93,7 +93,7 @@ function Playground(args: PlaygroundArgs) {
 }
 
 const meta = {
-	title: 'Items/Playground',
+	title: 'Items/Item Playground',
 	component: Playground,
 	parameters: {
 		layout: 'fullscreen',

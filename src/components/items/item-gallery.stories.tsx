@@ -846,7 +846,7 @@ function Gallery({ view }: GalleryArgs) {
 }
 
 const meta = {
-	title: 'Items/Gallery',
+	title: 'Items/Item Gallery',
 	component: Gallery,
 	parameters: {
 		layout: 'fullscreen',

@@ -3,11 +3,12 @@ import {
 	ArrowDown,
 	ArrowRightLeft,
 	ArrowUp,
-	ExternalLink,
 	Group,
 	ListOrdered,
 	Loader2,
 	MoreHorizontal,
+	PackageCheck,
+	PackageX,
 	Pencil,
 	Shuffle,
 	Trash2,
@@ -21,6 +22,7 @@ import { deleteItem } from '@/api/items'
 import type { GroupSummary } from '@/api/lists'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import PriorityIcon from '@/components/common/priority-icon'
+import UrlBadge from '@/components/common/url-badge'
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -31,7 +33,6 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
 	DropdownMenu,
@@ -46,9 +47,9 @@ import {
 } from '@/components/ui/dropdown-menu'
 import type { Item } from '@/db/schema/items'
 import { useSession } from '@/lib/auth-client'
+import { useToggleItemAvailability } from '@/lib/mutations/toggle-item-availability'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
 import { itemsKeys } from '@/lib/queries/items'
-import { getDomainFromUrl } from '@/lib/urls'
 import { cn } from '@/lib/utils'
 
 import { ItemComments } from './item-comments'
@@ -56,6 +57,7 @@ import { ItemFormDialog } from './item-form-dialog'
 import { ItemImage } from './item-image'
 import { PriceQuantityBadge } from './price-quantity-badge'
 import { QuantityRemainingBadge } from './quantity-remaining-badge'
+import { UnavailableBadge } from './unavailable-badge'
 
 type Props = {
 	item: Item
@@ -86,6 +88,7 @@ export const ItemEditRow = memo(function ItemEditRow({
 	const isAdmin = session?.user.isAdmin
 	const [editOpen, setEditOpen] = useState(false)
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+	const toggleAvailability = useToggleItemAvailability()
 	const isSaving =
 		useIsMutating({
 			mutationKey: ['updateItem'],
@@ -105,6 +108,17 @@ export const ItemEditRow = memo(function ItemEditRow({
 		}
 	}
 
+	const isUnavailable = item.availability === 'unavailable'
+	const handleToggleAvailability = async () => {
+		const next = isUnavailable ? 'available' : 'unavailable'
+		const result = await toggleAvailability.mutateAsync({ listId: item.listId, itemId: item.id, availability: next })
+		if (result.kind === 'ok') {
+			toast.success(next === 'unavailable' ? 'Marked as unavailable' : 'Marked as available')
+		} else {
+			toast.error('Failed to update availability')
+		}
+	}
+
 	const handleDelete = async () => {
 		const result = await deleteItem({ data: { itemId: item.id } })
 		if (result.kind === 'ok') {
@@ -117,25 +131,22 @@ export const ItemEditRow = memo(function ItemEditRow({
 		setDeleteDialogOpen(false)
 	}
 
-	const domain = item.url ? getDomainFromUrl(item.url) || null : null
 	// Standalone rows get a peeking priority tab on the left; grouped rows stay
 	// simple since their parent group owns the priority indicator.
 	const hasPriorityTab = !grouped && item.priority !== 'normal'
-	const dimmed = item.availability === 'unavailable'
+	const dimmed = isUnavailable
 
-	const hasContentRow = !!(domain || item.notes || item.imageUrl || onMoveUp || onMoveDown)
+	const hasContentRow = !!(item.notes || item.imageUrl || onMoveUp || onMoveDown)
 
 	const rowInner = (
 		<div className="flex flex-col w-full gap-2 scroll-mt-24" id={`item-${item.id}`}>
 			{/* HEADER */}
 			<div className="flex items-center gap-2 font-medium leading-tight">
-				<span className={cn('truncate min-w-0 flex-1', dimmed && 'opacity-60')}>{item.title}</span>
+				<span className={cn('truncate min-w-0', dimmed && 'opacity-60')}>{item.title}</span>
+				<UrlBadge url={item.url} />
+				<span className="flex-1" />
 				{isSaving && <Loader2 className="size-3.5 shrink-0 text-muted-foreground animate-spin" aria-label="Saving" />}
-				{item.availability === 'unavailable' && (
-					<Badge variant="destructive" className="px-1 rounded leading-none shrink-0">
-						Unavailable
-					</Badge>
-				)}
+				{isUnavailable && <UnavailableBadge changedAt={item.availabilityChangedAt} />}
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
 						<Button variant="ghost" size="icon" className="size-7 shrink-0" aria-label="Item actions">
@@ -175,6 +186,17 @@ export const ItemEditRow = memo(function ItemEditRow({
 								</DropdownMenuSubContent>
 							</DropdownMenuSub>
 						)}
+						<DropdownMenuItem onClick={handleToggleAvailability} disabled={toggleAvailability.isPending}>
+							{isUnavailable ? (
+								<>
+									<PackageCheck className="size-4" /> Mark as available
+								</>
+							) : (
+								<>
+									<PackageX className="size-4" /> Mark as unavailable
+								</>
+							)}
+						</DropdownMenuItem>
 						<DropdownMenuSeparator />
 						<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteDialogOpen(true)}>
 							<Trash2 className="size-4" /> Delete
@@ -192,18 +214,8 @@ export const ItemEditRow = memo(function ItemEditRow({
 			{/* CONTENT */}
 			{hasContentRow && (
 				<div className="flex flex-row items-start gap-3">
-					<div className={cn('flex-1 min-w-0 flex flex-col gap-0.5', domain && '-mt-2', dimmed && 'opacity-60')}>
-						{domain && (
-							<a
-								href={item.url!}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-0.5 w-fit"
-							>
-								{domain} <ExternalLink className="size-3" />
-							</a>
-						)}
-						{item.notes && <MarkdownNotes content={item.notes} className="text-xs text-foreground/75 mt-1" />}
+					<div className={cn('flex-1 min-w-0 flex flex-col gap-0.5', dimmed && 'opacity-60')}>
+						{item.notes && <MarkdownNotes content={item.notes} className="text-xs text-foreground/75" />}
 					</div>
 					{item.imageUrl && <ItemImage src={item.imageUrl} alt={item.title} className={cn(dimmed && 'opacity-60')} />}
 					{(onMoveUp || onMoveDown) && (
@@ -260,7 +272,7 @@ export const ItemEditRow = memo(function ItemEditRow({
 					{hasPriorityTab && (
 						<div
 							className={cn(
-								'absolute left-0 top-0 h-[calc(100%-4px)] -translate-x-1/2 translate-y-[2px] w-12 rounded-md shadow-sm drop-shadow-[1px_1px_10px_rgb(0_0_0_/_0.2)] dark:drop-shadow-[1px_1px_10px_rgb(0_0_0_/_0.5)] flex items-center p-1 z-0',
+								'absolute left-0 top-0 h-[calc(100%-4px)] -translate-x-1/2 translate-y-[2px] w-12 rounded-md shadow-sm drop-shadow-[1px_1px_10px_rgb(0_0_0_/_0.2)] dark:drop-shadow-[1px_1px_10px_rgb(0_0_0_/_0.5)] hidden xs:flex items-center p-1 z-0',
 								priorityTabBgClass[item.priority]
 							)}
 							aria-hidden

@@ -40,7 +40,7 @@ const base: ItemConversationProps = {
 }
 
 const meta = {
-	title: 'Pages/Recent/ItemConversation',
+	title: 'Items/Components/ItemConversation',
 	component: ItemConversation,
 	parameters: { layout: 'fullscreen' },
 } satisfies Meta<typeof ItemConversation>

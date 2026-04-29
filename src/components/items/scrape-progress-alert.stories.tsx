@@ -10,7 +10,7 @@ import { ScrapeProgressAlert } from './scrape-progress-alert'
  * underlying useScrapeUrl hook and any retry behaviour.
  */
 const meta = {
-	title: 'Items/Scrape Progress Alert',
+	title: 'Items/Other/Scrape Progress Alert',
 	component: ScrapeProgressAlert,
 	parameters: { layout: 'padded' },
 } satisfies Meta<typeof ScrapeProgressAlert>

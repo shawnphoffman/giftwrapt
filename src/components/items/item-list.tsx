@@ -235,7 +235,7 @@ export default function ItemList({ listId, groups = [] }: Props) {
 			{entries.length === 0 ? (
 				<EmptyMessage message="No items match the current filter" />
 			) : (
-				<div className="flex flex-col gap-2 pl-6">
+				<div className="flex flex-col gap-2 xs:pl-6">
 					{entries.map(entry =>
 						entry.kind === 'item' ? (
 							<ItemRow key={`item-${entry.item.id}`} item={entry.item} />

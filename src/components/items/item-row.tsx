@@ -1,22 +1,19 @@
-import { useIsMutating, useQueryClient } from '@tanstack/react-query'
-import { Copy, ExternalLink, Loader2, MoreHorizontal, PackageCheck, PackageX } from 'lucide-react'
-import { memo, type ReactNode, useState } from 'react'
+import { useIsMutating } from '@tanstack/react-query'
+import { Copy, Loader2, MoreHorizontal, PackageCheck, PackageX } from 'lucide-react'
+import { memo, type ReactNode } from 'react'
 import { toast } from 'sonner'
 
-import { setItemAvailability } from '@/api/items'
 import type { ItemWithGifts } from '@/api/lists'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import PriorityIcon from '@/components/common/priority-icon'
+import UrlBadge from '@/components/common/url-badge'
 import { ItemComments } from '@/components/items/item-comments'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useSession } from '@/lib/auth-client'
 import { computeRemainingClaimableQuantity, computeRemainingClaimableQuantityExcluding } from '@/lib/gifts'
+import { useToggleItemAvailability } from '@/lib/mutations/toggle-item-availability'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
-import { itemsKeys } from '@/lib/queries/items'
-import { getDomainFromUrl } from '@/lib/urls'
 import { cn } from '@/lib/utils'
 
 import { ClaimAction } from './claim-action'
@@ -24,6 +21,7 @@ import { type ClaimEntry, ClaimUsers } from './claim-users'
 import { ItemImage } from './item-image'
 import { PriceQuantityBadge } from './price-quantity-badge'
 import { QuantityRemainingBadge } from './quantity-remaining-badge'
+import { UnavailableBadge } from './unavailable-badge'
 
 export type LockReason = 'order' | 'or'
 
@@ -45,13 +43,10 @@ type Props = {
 	grouped?: boolean
 }
 
-const AVAILABILITY_DATE_FORMAT: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' }
-
 function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
-	const queryClient = useQueryClient()
 	const { data: session } = useSession()
 	const currentUserId = session?.user.id
-	const [availabilityPending, setAvailabilityPending] = useState(false)
+	const toggleAvailability = useToggleItemAvailability()
 	const isSaving =
 		useIsMutating({
 			mutationKey: ['updateItem'],
@@ -70,12 +65,9 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 
 	const handleToggleAvailability = async () => {
 		const next = isUnavailable ? 'available' : 'unavailable'
-		setAvailabilityPending(true)
-		const result = await setItemAvailability({ data: { itemId: item.id, availability: next } })
-		setAvailabilityPending(false)
+		const result = await toggleAvailability.mutateAsync({ listId: item.listId, itemId: item.id, availability: next })
 		if (result.kind === 'ok') {
 			toast.success(next === 'unavailable' ? 'Marked as unavailable' : 'Marked as available')
-			await queryClient.invalidateQueries({ queryKey: itemsKeys.byList(item.listId) })
 		} else {
 			toast.error('Failed to update availability')
 		}
@@ -102,7 +94,7 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 	// just adds noise. Unavailable items keep their URL so the viewer can
 	// still verify availability on the source site.
 	const urlsHidden = fullyClaimed || groupLockedForViewer
-	const domain = item.url && !urlsHidden ? getDomainFromUrl(item.url) : null
+	const linkUrl = !urlsHidden ? item.url : null
 	const hasPriorityTab = !grouped && item.priority !== 'normal'
 
 	const claimEntries: Array<ClaimEntry> = item.gifts.map(g => ({
@@ -137,39 +129,17 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 	// can still be edited by an existing claimer, but no new claims open.
 	const showClaimAction = !!myClaim || (!fullyClaimed && !groupLockedForViewer && !isUnavailable)
 
-	const hasContentRow = !!(domain || item.notes || item.imageUrl || showClaimAction)
+	const hasContentRow = !!(item.notes || item.imageUrl || showClaimAction)
 
 	const rowInner = (
 		<div className="flex flex-col w-full gap-2 scroll-mt-24" id={`item-${item.id}`}>
 			{/* HEADER */}
 			<div className="flex items-center gap-2 font-medium leading-tight">
-				<span className={cn('truncate min-w-0 flex-1', dimmed && 'opacity-60')}>
-					{item.url && !urlsHidden ? (
-						<a href={item.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
-							{item.title}
-						</a>
-					) : (
-						item.title
-					)}
-				</span>
+				<span className={cn('truncate min-w-0', dimmed && 'opacity-60')}>{item.title}</span>
+				<UrlBadge url={linkUrl} />
+				<span className="flex-1" />
 				{isSaving && <Loader2 className="size-3.5 shrink-0 text-muted-foreground animate-spin" aria-label="Saving" />}
-				{isUnavailable &&
-					(item.availabilityChangedAt ? (
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Badge variant="destructive" className="px-1 rounded leading-none shrink-0 cursor-default">
-									Unavailable
-								</Badge>
-							</TooltipTrigger>
-							<TooltipContent side="top">
-								Marked unavailable on {new Date(item.availabilityChangedAt).toLocaleDateString('en-US', AVAILABILITY_DATE_FORMAT)}
-							</TooltipContent>
-						</Tooltip>
-					) : (
-						<Badge variant="destructive" className="px-1 rounded leading-none shrink-0">
-							Unavailable
-						</Badge>
-					))}
+				{isUnavailable && <UnavailableBadge changedAt={item.availabilityChangedAt} />}
 				{currentUserId && (
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
@@ -182,7 +152,7 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 								<Copy className="size-4" /> Copy to your list
 							</DropdownMenuItem>
 							{canToggleAvailability && (
-								<DropdownMenuItem onClick={handleToggleAvailability} disabled={availabilityPending}>
+								<DropdownMenuItem onClick={handleToggleAvailability} disabled={toggleAvailability.isPending}>
 									{isUnavailable ? (
 										<>
 											<PackageCheck className="size-4" /> Mark as available
@@ -202,18 +172,8 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 			{/* CONTENT */}
 			{hasContentRow && (
 				<div className="flex flex-row gap-3">
-					<div className={cn('flex-1 min-w-0 flex flex-col gap-0.5', domain && '-mt-2', dimmed && 'opacity-60')}>
-						{domain && (
-							<a
-								href={item.url!}
-								target="_blank"
-								rel="noopener noreferrer"
-								className="text-xs text-muted-foreground hover:underline inline-flex items-center gap-0.5 w-fit"
-							>
-								{domain} <ExternalLink className="size-3" />
-							</a>
-						)}
-						{item.notes && <MarkdownNotes content={item.notes} className="text-xs text-foreground/75 mt-1" />}
+					<div className={cn('flex-1 min-w-0 flex flex-col gap-0.5', dimmed && 'opacity-60')}>
+						{item.notes && <MarkdownNotes content={item.notes} className="text-xs text-foreground/75" />}
 					</div>
 					{(item.imageUrl || showClaimAction) && (
 						<div className="shrink-0 flex flex-col items-end gap-2 justify-between">
@@ -250,7 +210,7 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 			{hasPriorityTab && (
 				<div
 					className={cn(
-						'absolute left-0 top-0 h-[calc(100%-4px)] -translate-x-1/2 translate-y-[2px] w-12 rounded-md shadow-sm drop-shadow-[1px_1px_10px_rgb(0_0_0_/_0.2)] dark:drop-shadow-[1px_1px_10px_rgb(0_0_0_/_0.5)] flex items-center p-1 z-0',
+						'absolute left-0 top-0 h-[calc(100%-4px)] -translate-x-1/2 translate-y-[2px] w-12 rounded-md shadow-sm drop-shadow-[1px_1px_10px_rgb(0_0_0_/_0.2)] dark:drop-shadow-[1px_1px_10px_rgb(0_0_0_/_0.5)] hidden xs:flex items-center p-1 z-0',
 						priorityTabBgClass[item.priority]
 					)}
 					aria-hidden

@@ -228,7 +228,7 @@ function EditItemsBody({ list, onMoveItem, onAddItem, onDeleteGroup, onReorder }
 	}
 
 	return (
-		<div className="flex flex-col gap-2 pl-6">
+		<div className="flex flex-col gap-2 xs:pl-6">
 			{entries.map(entry =>
 				entry.kind === 'item' ? (
 					<ItemEditRow

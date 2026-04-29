@@ -16,7 +16,7 @@ const pickOneGroup: GroupSummary = { id: 10, type: 'or', name: 'Headphones', pri
 const orderGroup: GroupSummary = { id: 11, type: 'order', name: 'Coffee setup', priority: 'very-high', sortOrder: null }
 
 const meta = {
-	title: 'Items/GroupBlock',
+	title: 'Items/Grouped Items',
 	component: GroupBlock,
 	parameters: { layout: 'fullscreen' },
 	args: {

@@ -14,7 +14,7 @@ import ItemRow from './item-row'
  */
 
 const meta = {
-	title: 'Items/ItemRow (buyer view)',
+	title: 'Items/Item as Buyer',
 	component: ItemRow,
 	parameters: {
 		layout: 'fullscreen',

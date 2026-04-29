@@ -23,7 +23,7 @@ const base: ItemOverviewProps = {
 }
 
 const meta = {
-	title: 'Pages/Recent/ItemOverview',
+	title: 'Items/Components/ItemOverview',
 	component: ItemOverview,
 	parameters: { layout: 'fullscreen' },
 } satisfies Meta<typeof ItemOverview>

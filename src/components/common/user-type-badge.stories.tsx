@@ -15,7 +15,7 @@ const baseUser: User = {
 }
 
 const meta = {
-	title: 'Common/UserTypeBadge',
+	title: 'Common/Badges/UserTypeBadge',
 	component: UserTypeBadge,
 	parameters: {
 		layout: 'padded',

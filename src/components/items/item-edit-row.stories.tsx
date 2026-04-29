@@ -20,7 +20,7 @@ const groups: Array<GroupSummary> = [
 ]
 
 const meta = {
-	title: 'Items/ItemEditRow (recipient view)',
+	title: 'Items/Item as Recipient',
 	component: ItemEditRow,
 	parameters: { layout: 'fullscreen' },
 	decorators: [withItemFrame],
