@@ -23,7 +23,11 @@ const betterAuthLevel: 'info' | 'warn' | 'error' | 'debug' | undefined =
 
 const options = {
 	baseURL: env.BETTER_AUTH_URL || env.SERVER_URL || 'http://localhost:3000',
-	secret: env.BETTER_AUTH_SECRET || '',
+	// Required by the env zod schema (`min(1)`); no `|| ''` fallback so a
+	// future refactor that imports `auth` before env validation runs (or
+	// strips the schema check) crashes loudly instead of silently booting
+	// with an empty HMAC secret. See sec-review H7.
+	secret: env.BETTER_AUTH_SECRET,
 	// Pipe better-auth's internal logs into pino so auth warnings/errors show
 	// up alongside the rest of the app output and honor LOG_LEVEL.
 	logger: {
