@@ -1,14 +1,9 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 
-import { db } from '@/db'
 import { loggingMiddleware } from '@/lib/logger'
-import { buildDbBackedDeps } from '@/lib/scrapers/cache'
-import { orchestrate } from '@/lib/scrapers/orchestrator'
-import { fetchProvider } from '@/lib/scrapers/providers/fetch'
-import { loadConfiguredProviders } from '@/lib/scrapers/providers/load-configured'
+import { runOneShotScrape } from '@/lib/scrapers/run'
 import type { OrchestrateResult, ScrapeAttempt, ScrapeResult } from '@/lib/scrapers/types'
-import { getAppSettings } from '@/lib/settings-loader'
 import { authMiddleware } from '@/middleware/auth'
 
 // Re-export the structured-result shape so existing callers (item form,
@@ -43,28 +38,13 @@ export const scrapeUrl = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof ScrapeUrlInputSchema>) => ScrapeUrlInputSchema.parse(data))
 	.handler(async ({ data, context }): Promise<ScrapeUrlResult> => {
-		const [settings, configuredProviders] = await Promise.all([getAppSettings(db), loadConfiguredProviders()])
-
-		const orchestrateResult = await orchestrate(
-			{
-				url: data.url,
-				itemId: data.itemId,
-				force: data.force,
-				providerOverride: data.providerOverride,
-			},
-			{
-				...buildDbBackedDeps(db, {
-					ttlHours: settings.scrapeCacheTtlHours,
-					minScore: settings.scrapeQualityThreshold,
-					userId: context.session.user.id,
-				}),
-				providers: [fetchProvider, ...configuredProviders],
-				perProviderTimeoutMs: settings.scrapeProviderTimeoutMs,
-				overallTimeoutMs: settings.scrapeOverallTimeoutMs,
-				qualityThreshold: settings.scrapeQualityThreshold,
-			}
-		)
-
+		const orchestrateResult = await runOneShotScrape({
+			url: data.url,
+			userId: context.session.user.id,
+			itemId: data.itemId,
+			force: data.force,
+			providerOverride: data.providerOverride,
+		})
 		return mapResult(orchestrateResult)
 	})
 

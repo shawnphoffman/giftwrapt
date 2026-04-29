@@ -1,7 +1,7 @@
 import type { BetterAuthOptions } from 'better-auth'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { admin, customSession } from 'better-auth/plugins'
+import { admin, bearer, customSession } from 'better-auth/plugins'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { sql } from 'drizzle-orm'
 
@@ -109,7 +109,11 @@ const options = {
 			},
 		},
 	},
-	plugins: [tanstackStartCookies(), admin()],
+	// `bearer()` lets non-browser clients (e.g. the iOS companion app) hold
+	// an `Authorization: Bearer <token>` instead of a session cookie. Web
+	// flows continue to use the cookie set by `tanstackStartCookies()`;
+	// both auth modes are accepted by `auth.api.getSession`.
+	plugins: [tanstackStartCookies(), admin(), bearer()],
 	user: {
 		modelName: 'user',
 		fields: {

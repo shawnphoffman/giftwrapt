@@ -216,17 +216,71 @@ export type MyListsResult = {
 	children: Array<ChildListGroup>
 }
 
-export const getMyLists = createServerFn({ method: 'GET' })
-	.middleware([authMiddleware, loggingMiddleware])
-	.handler(async ({ context }): Promise<MyListsResult> => {
-		const userId = context.session.user.id
+export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
+	// Fetch owned lists, editor-shared lists, and guardianship rows in parallel.
+	// Children's actual lists need the child IDs from the guardianship rows, so
+	// they fan out in a second stage below.
+	const [ownedLists, editableRows, childRows] = await Promise.all([
+		db
+			.select({
+				id: lists.id,
+				name: lists.name,
+				type: lists.type,
+				isActive: lists.isActive,
+				isPrivate: lists.isPrivate,
+				isPrimary: lists.isPrimary,
+				description: lists.description,
+				giftIdeasTargetUserId: lists.giftIdeasTargetUserId,
+				itemCount: count(items.id),
+			})
+			.from(lists)
+			.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false)))
+			.where(and(eq(lists.ownerId, userId), eq(lists.isActive, true)))
+			.groupBy(lists.id)
+			.orderBy(desc(lists.isPrimary), asc(lists.name)),
 
-		// Fetch owned lists, editor-shared lists, and guardianship rows in parallel.
-		// Children's actual lists need the child IDs from the guardianship rows, so
-		// they fan out in a second stage below.
-		const [ownedLists, editableRows, childRows] = await Promise.all([
-			db
+		db
+			.select({
+				id: lists.id,
+				name: lists.name,
+				type: lists.type,
+				isActive: lists.isActive,
+				isPrivate: lists.isPrivate,
+				isPrimary: lists.isPrimary,
+				description: lists.description,
+				giftIdeasTargetUserId: lists.giftIdeasTargetUserId,
+				ownerName: sql<string | null>`owner.name`,
+				ownerEmail: sql<string>`owner.email`,
+				itemCount: count(items.id),
+			})
+			.from(listEditors)
+			.innerJoin(lists, and(eq(lists.id, listEditors.listId), eq(lists.isActive, true)))
+			.innerJoin(sql`users as owner`, sql`owner.id = ${lists.ownerId}`)
+			.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false)))
+			.where(eq(listEditors.userId, userId))
+			.groupBy(lists.id, sql`owner.name`, sql`owner.email`)
+			.orderBy(asc(lists.name)),
+
+		db
+			.select({
+				childId: users.id,
+				childName: users.name,
+				childEmail: users.email,
+				childImage: users.image,
+			})
+			.from(guardianships)
+			.innerJoin(users, eq(users.id, guardianships.childUserId))
+			.where(eq(guardianships.parentUserId, userId))
+			.orderBy(asc(users.name)),
+	])
+
+	// Fetch every child's lists in a single query, then group by ownerId so each
+	// guardianship row gets its own bucket. Avoids one query per child.
+	const childIds = childRows.map(c => c.childId)
+	const allChildLists = childIds.length
+		? await db
 				.select({
+					ownerId: lists.ownerId,
 					id: lists.id,
 					name: lists.name,
 					type: lists.type,
@@ -239,112 +293,58 @@ export const getMyLists = createServerFn({ method: 'GET' })
 				})
 				.from(lists)
 				.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false)))
-				.where(and(eq(lists.ownerId, userId), eq(lists.isActive, true)))
+				.where(and(inArray(lists.ownerId, childIds), eq(lists.isActive, true)))
 				.groupBy(lists.id)
-				.orderBy(desc(lists.isPrimary), asc(lists.name)),
+				.orderBy(asc(lists.name))
+		: []
+	const listsByChildId = new Map<string, Array<MyListRow>>()
+	for (const row of allChildLists) {
+		const bucket = listsByChildId.get(row.ownerId) ?? []
+		bucket.push({
+			id: row.id,
+			name: row.name,
+			type: row.type,
+			isActive: row.isActive,
+			isPrivate: row.isPrivate,
+			isPrimary: row.isPrimary,
+			description: row.description,
+			giftIdeasTargetUserId: row.giftIdeasTargetUserId,
+			itemCount: row.itemCount,
+		})
+		listsByChildId.set(row.ownerId, bucket)
+	}
+	const childListGroups: Array<ChildListGroup> = childRows.map(child => ({
+		childId: child.childId,
+		childName: child.childName,
+		childEmail: child.childEmail,
+		childImage: child.childImage,
+		lists: listsByChildId.get(child.childId) ?? [],
+	}))
 
-			db
-				.select({
-					id: lists.id,
-					name: lists.name,
-					type: lists.type,
-					isActive: lists.isActive,
-					isPrivate: lists.isPrivate,
-					isPrimary: lists.isPrimary,
-					description: lists.description,
-					giftIdeasTargetUserId: lists.giftIdeasTargetUserId,
-					ownerName: sql<string | null>`owner.name`,
-					ownerEmail: sql<string>`owner.email`,
-					itemCount: count(items.id),
-				})
-				.from(listEditors)
-				.innerJoin(lists, and(eq(lists.id, listEditors.listId), eq(lists.isActive, true)))
-				.innerJoin(sql`users as owner`, sql`owner.id = ${lists.ownerId}`)
-				.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false)))
-				.where(eq(listEditors.userId, userId))
-				.groupBy(lists.id, sql`owner.name`, sql`owner.email`)
-				.orderBy(asc(lists.name)),
+	return {
+		public: ownedLists.filter(l => !l.isPrivate && l.type !== 'giftideas'),
+		private: ownedLists.filter(l => l.isPrivate && l.type !== 'giftideas'),
+		giftIdeas: ownedLists.filter(l => l.type === 'giftideas'),
+		editable: editableRows.map(r => ({
+			id: r.id,
+			name: r.name,
+			type: r.type,
+			isActive: r.isActive,
+			isPrivate: r.isPrivate,
+			isPrimary: r.isPrimary,
+			description: r.description,
+			giftIdeasTargetUserId: r.giftIdeasTargetUserId,
+			itemCount: r.itemCount,
+			ownerName: r.ownerName,
+			ownerEmail: r.ownerEmail,
+		})),
+		children: childListGroups,
+	}
+}
 
-			db
-				.select({
-					childId: users.id,
-					childName: users.name,
-					childEmail: users.email,
-					childImage: users.image,
-				})
-				.from(guardianships)
-				.innerJoin(users, eq(users.id, guardianships.childUserId))
-				.where(eq(guardianships.parentUserId, userId))
-				.orderBy(asc(users.name)),
-		])
-
-		// Fetch every child's lists in a single query, then group by ownerId so each
-		// guardianship row gets its own bucket. Avoids one query per child.
-		const childIds = childRows.map(c => c.childId)
-		const allChildLists = childIds.length
-			? await db
-					.select({
-						ownerId: lists.ownerId,
-						id: lists.id,
-						name: lists.name,
-						type: lists.type,
-						isActive: lists.isActive,
-						isPrivate: lists.isPrivate,
-						isPrimary: lists.isPrimary,
-						description: lists.description,
-						giftIdeasTargetUserId: lists.giftIdeasTargetUserId,
-						itemCount: count(items.id),
-					})
-					.from(lists)
-					.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false)))
-					.where(and(inArray(lists.ownerId, childIds), eq(lists.isActive, true)))
-					.groupBy(lists.id)
-					.orderBy(asc(lists.name))
-			: []
-		const listsByChildId = new Map<string, Array<MyListRow>>()
-		for (const row of allChildLists) {
-			const bucket = listsByChildId.get(row.ownerId) ?? []
-			bucket.push({
-				id: row.id,
-				name: row.name,
-				type: row.type,
-				isActive: row.isActive,
-				isPrivate: row.isPrivate,
-				isPrimary: row.isPrimary,
-				description: row.description,
-				giftIdeasTargetUserId: row.giftIdeasTargetUserId,
-				itemCount: row.itemCount,
-			})
-			listsByChildId.set(row.ownerId, bucket)
-		}
-		const childListGroups: Array<ChildListGroup> = childRows.map(child => ({
-			childId: child.childId,
-			childName: child.childName,
-			childEmail: child.childEmail,
-			childImage: child.childImage,
-			lists: listsByChildId.get(child.childId) ?? [],
-		}))
-
-		return {
-			public: ownedLists.filter(l => !l.isPrivate && l.type !== 'giftideas'),
-			private: ownedLists.filter(l => l.isPrivate && l.type !== 'giftideas'),
-			giftIdeas: ownedLists.filter(l => l.type === 'giftideas'),
-			editable: editableRows.map(r => ({
-				id: r.id,
-				name: r.name,
-				type: r.type,
-				isActive: r.isActive,
-				isPrivate: r.isPrivate,
-				isPrimary: r.isPrimary,
-				description: r.description,
-				giftIdeasTargetUserId: r.giftIdeasTargetUserId,
-				itemCount: r.itemCount,
-				ownerName: r.ownerName,
-				ownerEmail: r.ownerEmail,
-			})),
-			children: childListGroups,
-		}
-	})
+export const getMyLists = createServerFn({ method: 'GET' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.handler(({ context }): Promise<MyListsResult> => getMyListsImpl(context.session.user.id))
 
 // ===============================
 // WRITE - create a list

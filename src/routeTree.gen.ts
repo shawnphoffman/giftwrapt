@@ -25,6 +25,10 @@ import { Route as coreMeIndexRouteImport } from './routes/(core)/me.index'
 import { Route as coreAdminIndexRouteImport } from './routes/(core)/admin/index'
 import { Route as ApiSseListsRouteImport } from './routes/api/sse/lists'
 import { Route as ApiScrapeStreamRouteImport } from './routes/api/scrape/stream'
+import { Route as ApiMobileScrapeRouteImport } from './routes/api/mobile/scrape'
+import { Route as ApiMobileMeRouteImport } from './routes/api/mobile/me'
+import { Route as ApiMobileListsRouteImport } from './routes/api/mobile/lists'
+import { Route as ApiMobileItemsRouteImport } from './routes/api/mobile/items'
 import { Route as ApiListsPublicRouteImport } from './routes/api/lists/public'
 import { Route as ApiFilesSplatRouteImport } from './routes/api/files/$'
 import { Route as ApiCronCleanupVerificationRouteImport } from './routes/api/cron/cleanup-verification'
@@ -51,6 +55,7 @@ import { Route as coreListsListIdOrganizeRouteImport } from './routes/(core)/lis
 import { Route as coreListsListIdEditRouteImport } from './routes/(core)/lists_/$listId.edit'
 import { Route as coreListsListIdBulkRouteImport } from './routes/(core)/lists_/$listId.bulk'
 import { Route as coreAdminUserIdRouteImport } from './routes/(core)/admin/user.$id'
+import { Route as ApiMobileListsListIdItemsRouteImport } from './routes/api/mobile/lists.$listId.items'
 
 const coreRouteRoute = coreRouteRouteImport.update({
   id: '/(core)',
@@ -129,6 +134,26 @@ const ApiSseListsRoute = ApiSseListsRouteImport.update({
 const ApiScrapeStreamRoute = ApiScrapeStreamRouteImport.update({
   id: '/api/scrape/stream',
   path: '/api/scrape/stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMobileScrapeRoute = ApiMobileScrapeRouteImport.update({
+  id: '/api/mobile/scrape',
+  path: '/api/mobile/scrape',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMobileMeRoute = ApiMobileMeRouteImport.update({
+  id: '/api/mobile/me',
+  path: '/api/mobile/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMobileListsRoute = ApiMobileListsRouteImport.update({
+  id: '/api/mobile/lists',
+  path: '/api/mobile/lists',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMobileItemsRoute = ApiMobileItemsRouteImport.update({
+  id: '/api/mobile/items',
+  path: '/api/mobile/items',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiListsPublicRoute = ApiListsPublicRouteImport.update({
@@ -262,6 +287,12 @@ const coreAdminUserIdRoute = coreAdminUserIdRouteImport.update({
   path: '/user/$id',
   getParentRoute: () => coreAdminRouteRoute,
 } as any)
+const ApiMobileListsListIdItemsRoute =
+  ApiMobileListsListIdItemsRouteImport.update({
+    id: '/$listId/items',
+    path: '/$listId/items',
+    getParentRoute: () => ApiMobileListsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/admin': typeof coreAdminRouteRouteWithChildren
@@ -294,6 +325,10 @@ export interface FileRoutesByFullPath {
   '/api/cron/cleanup-verification': typeof ApiCronCleanupVerificationRoute
   '/api/files/$': typeof ApiFilesSplatRoute
   '/api/lists/public': typeof ApiListsPublicRoute
+  '/api/mobile/items': typeof ApiMobileItemsRoute
+  '/api/mobile/lists': typeof ApiMobileListsRouteWithChildren
+  '/api/mobile/me': typeof ApiMobileMeRoute
+  '/api/mobile/scrape': typeof ApiMobileScrapeRoute
   '/api/scrape/stream': typeof ApiScrapeStreamRoute
   '/api/sse/lists': typeof ApiSseListsRoute
   '/admin/': typeof coreAdminIndexRoute
@@ -305,6 +340,7 @@ export interface FileRoutesByFullPath {
   '/lists/$listId/edit': typeof coreListsListIdEditRoute
   '/lists/$listId/organize': typeof coreListsListIdOrganizeRoute
   '/api/sse/list/$listId': typeof ApiSseListListIdRoute
+  '/api/mobile/lists/$listId/items': typeof ApiMobileListsListIdItemsRoute
 }
 export interface FileRoutesByTo {
   '/sign-in': typeof authSignInRoute
@@ -335,6 +371,10 @@ export interface FileRoutesByTo {
   '/api/cron/cleanup-verification': typeof ApiCronCleanupVerificationRoute
   '/api/files/$': typeof ApiFilesSplatRoute
   '/api/lists/public': typeof ApiListsPublicRoute
+  '/api/mobile/items': typeof ApiMobileItemsRoute
+  '/api/mobile/lists': typeof ApiMobileListsRouteWithChildren
+  '/api/mobile/me': typeof ApiMobileMeRoute
+  '/api/mobile/scrape': typeof ApiMobileScrapeRoute
   '/api/scrape/stream': typeof ApiScrapeStreamRoute
   '/api/sse/lists': typeof ApiSseListsRoute
   '/admin': typeof coreAdminIndexRoute
@@ -346,6 +386,7 @@ export interface FileRoutesByTo {
   '/lists/$listId/edit': typeof coreListsListIdEditRoute
   '/lists/$listId/organize': typeof coreListsListIdOrganizeRoute
   '/api/sse/list/$listId': typeof ApiSseListListIdRoute
+  '/api/mobile/lists/$listId/items': typeof ApiMobileListsListIdItemsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -380,6 +421,10 @@ export interface FileRoutesById {
   '/api/cron/cleanup-verification': typeof ApiCronCleanupVerificationRoute
   '/api/files/$': typeof ApiFilesSplatRoute
   '/api/lists/public': typeof ApiListsPublicRoute
+  '/api/mobile/items': typeof ApiMobileItemsRoute
+  '/api/mobile/lists': typeof ApiMobileListsRouteWithChildren
+  '/api/mobile/me': typeof ApiMobileMeRoute
+  '/api/mobile/scrape': typeof ApiMobileScrapeRoute
   '/api/scrape/stream': typeof ApiScrapeStreamRoute
   '/api/sse/lists': typeof ApiSseListsRoute
   '/(core)/admin/': typeof coreAdminIndexRoute
@@ -391,6 +436,7 @@ export interface FileRoutesById {
   '/(core)/lists_/$listId/edit': typeof coreListsListIdEditRoute
   '/(core)/lists_/$listId/organize': typeof coreListsListIdOrganizeRoute
   '/api/sse/list/$listId': typeof ApiSseListListIdRoute
+  '/api/mobile/lists/$listId/items': typeof ApiMobileListsListIdItemsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -425,6 +471,10 @@ export interface FileRouteTypes {
     | '/api/cron/cleanup-verification'
     | '/api/files/$'
     | '/api/lists/public'
+    | '/api/mobile/items'
+    | '/api/mobile/lists'
+    | '/api/mobile/me'
+    | '/api/mobile/scrape'
     | '/api/scrape/stream'
     | '/api/sse/lists'
     | '/admin/'
@@ -436,6 +486,7 @@ export interface FileRouteTypes {
     | '/lists/$listId/edit'
     | '/lists/$listId/organize'
     | '/api/sse/list/$listId'
+    | '/api/mobile/lists/$listId/items'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/sign-in'
@@ -466,6 +517,10 @@ export interface FileRouteTypes {
     | '/api/cron/cleanup-verification'
     | '/api/files/$'
     | '/api/lists/public'
+    | '/api/mobile/items'
+    | '/api/mobile/lists'
+    | '/api/mobile/me'
+    | '/api/mobile/scrape'
     | '/api/scrape/stream'
     | '/api/sse/lists'
     | '/admin'
@@ -477,6 +532,7 @@ export interface FileRouteTypes {
     | '/lists/$listId/edit'
     | '/lists/$listId/organize'
     | '/api/sse/list/$listId'
+    | '/api/mobile/lists/$listId/items'
   id:
     | '__root__'
     | '/(core)'
@@ -510,6 +566,10 @@ export interface FileRouteTypes {
     | '/api/cron/cleanup-verification'
     | '/api/files/$'
     | '/api/lists/public'
+    | '/api/mobile/items'
+    | '/api/mobile/lists'
+    | '/api/mobile/me'
+    | '/api/mobile/scrape'
     | '/api/scrape/stream'
     | '/api/sse/lists'
     | '/(core)/admin/'
@@ -521,6 +581,7 @@ export interface FileRouteTypes {
     | '/(core)/lists_/$listId/edit'
     | '/(core)/lists_/$listId/organize'
     | '/api/sse/list/$listId'
+    | '/api/mobile/lists/$listId/items'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -535,6 +596,10 @@ export interface RootRouteChildren {
   ApiCronCleanupVerificationRoute: typeof ApiCronCleanupVerificationRoute
   ApiFilesSplatRoute: typeof ApiFilesSplatRoute
   ApiListsPublicRoute: typeof ApiListsPublicRoute
+  ApiMobileItemsRoute: typeof ApiMobileItemsRoute
+  ApiMobileListsRoute: typeof ApiMobileListsRouteWithChildren
+  ApiMobileMeRoute: typeof ApiMobileMeRoute
+  ApiMobileScrapeRoute: typeof ApiMobileScrapeRoute
   ApiScrapeStreamRoute: typeof ApiScrapeStreamRoute
   ApiSseListsRoute: typeof ApiSseListsRoute
   ApiSseListListIdRoute: typeof ApiSseListListIdRoute
@@ -652,6 +717,34 @@ declare module '@tanstack/react-router' {
       path: '/api/scrape/stream'
       fullPath: '/api/scrape/stream'
       preLoaderRoute: typeof ApiScrapeStreamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/scrape': {
+      id: '/api/mobile/scrape'
+      path: '/api/mobile/scrape'
+      fullPath: '/api/mobile/scrape'
+      preLoaderRoute: typeof ApiMobileScrapeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/me': {
+      id: '/api/mobile/me'
+      path: '/api/mobile/me'
+      fullPath: '/api/mobile/me'
+      preLoaderRoute: typeof ApiMobileMeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/lists': {
+      id: '/api/mobile/lists'
+      path: '/api/mobile/lists'
+      fullPath: '/api/mobile/lists'
+      preLoaderRoute: typeof ApiMobileListsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mobile/items': {
+      id: '/api/mobile/items'
+      path: '/api/mobile/items'
+      fullPath: '/api/mobile/items'
+      preLoaderRoute: typeof ApiMobileItemsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/lists/public': {
@@ -836,6 +929,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreAdminUserIdRouteImport
       parentRoute: typeof coreAdminRouteRoute
     }
+    '/api/mobile/lists/$listId/items': {
+      id: '/api/mobile/lists/$listId/items'
+      path: '/$listId/items'
+      fullPath: '/api/mobile/lists/$listId/items'
+      preLoaderRoute: typeof ApiMobileListsListIdItemsRouteImport
+      parentRoute: typeof ApiMobileListsRoute
+    }
   }
 }
 
@@ -924,6 +1024,18 @@ const coreRouteRouteWithChildren = coreRouteRoute._addFileChildren(
   coreRouteRouteChildren,
 )
 
+interface ApiMobileListsRouteChildren {
+  ApiMobileListsListIdItemsRoute: typeof ApiMobileListsListIdItemsRoute
+}
+
+const ApiMobileListsRouteChildren: ApiMobileListsRouteChildren = {
+  ApiMobileListsListIdItemsRoute: ApiMobileListsListIdItemsRoute,
+}
+
+const ApiMobileListsRouteWithChildren = ApiMobileListsRoute._addFileChildren(
+  ApiMobileListsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   coreRouteRoute: coreRouteRouteWithChildren,
   authSignInRoute: authSignInRoute,
@@ -936,6 +1048,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCronCleanupVerificationRoute: ApiCronCleanupVerificationRoute,
   ApiFilesSplatRoute: ApiFilesSplatRoute,
   ApiListsPublicRoute: ApiListsPublicRoute,
+  ApiMobileItemsRoute: ApiMobileItemsRoute,
+  ApiMobileListsRoute: ApiMobileListsRouteWithChildren,
+  ApiMobileMeRoute: ApiMobileMeRoute,
+  ApiMobileScrapeRoute: ApiMobileScrapeRoute,
   ApiScrapeStreamRoute: ApiScrapeStreamRoute,
   ApiSseListsRoute: ApiSseListsRoute,
   ApiSseListListIdRoute: ApiSseListListIdRoute,

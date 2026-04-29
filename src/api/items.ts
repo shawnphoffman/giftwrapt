@@ -809,50 +809,58 @@ export type GetItemsForListEditResult =
 	| { kind: 'ok'; items: Array<ItemForEditing> }
 	| { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
+export async function getItemsForListEditImpl(args: {
+	userId: string
+	listId: string
+	includeArchived?: boolean
+}): Promise<GetItemsForListEditResult> {
+	const listId = Number(args.listId)
+	if (!Number.isFinite(listId)) return { kind: 'error', reason: 'not-found' }
+
+	const list = await db.query.lists.findFirst({
+		where: eq(lists.id, listId),
+		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+	})
+	if (!list) return { kind: 'error', reason: 'not-found' }
+
+	const isOwner = list.ownerId === args.userId
+	if (!isOwner) {
+		const edit = await canEditList(args.userId, list)
+		if (!edit.ok) return { kind: 'error', reason: 'not-authorized' }
+	}
+
+	const listItems = await db.query.items.findMany({
+		where: args.includeArchived ? eq(items.listId, list.id) : and(eq(items.listId, list.id), eq(items.isArchived, false)),
+		orderBy: [desc(items.createdAt)],
+	})
+
+	const commentCountRows = listItems.length
+		? await db
+				.select({ itemId: itemComments.itemId, count: count(itemComments.id) })
+				.from(itemComments)
+				.where(
+					inArray(
+						itemComments.itemId,
+						listItems.map(i => i.id)
+					)
+				)
+				.groupBy(itemComments.itemId)
+		: []
+	const commentCountByItem = new Map(commentCountRows.map(r => [r.itemId, Number(r.count)]))
+
+	return {
+		kind: 'ok',
+		items: listItems.map(i => ({ ...i, commentCount: commentCountByItem.get(i.id) ?? 0 })),
+	}
+}
+
 export const getItemsForListEdit = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: { listId: string; includeArchived?: boolean }) => ({
 		listId: data.listId,
 		includeArchived: data.includeArchived ?? false,
 	}))
-	.handler(async ({ context, data }): Promise<GetItemsForListEditResult> => {
-		const listId = Number(data.listId)
-		if (!Number.isFinite(listId)) return { kind: 'error', reason: 'not-found' }
-
-		const list = await db.query.lists.findFirst({
-			where: eq(lists.id, listId),
-			columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
-		})
-		if (!list) return { kind: 'error', reason: 'not-found' }
-
-		const userId = context.session.user.id
-		const isOwner = list.ownerId === userId
-		if (!isOwner) {
-			const edit = await canEditList(userId, list)
-			if (!edit.ok) return { kind: 'error', reason: 'not-authorized' }
-		}
-
-		const listItems = await db.query.items.findMany({
-			where: data.includeArchived ? eq(items.listId, list.id) : and(eq(items.listId, list.id), eq(items.isArchived, false)),
-			orderBy: [desc(items.createdAt)],
-		})
-
-		const commentCountRows = listItems.length
-			? await db
-					.select({ itemId: itemComments.itemId, count: count(itemComments.id) })
-					.from(itemComments)
-					.where(
-						inArray(
-							itemComments.itemId,
-							listItems.map(i => i.id)
-						)
-					)
-					.groupBy(itemComments.itemId)
-			: []
-		const commentCountByItem = new Map(commentCountRows.map(r => [r.itemId, Number(r.count)]))
-
-		return {
-			kind: 'ok',
-			items: listItems.map(i => ({ ...i, commentCount: commentCountByItem.get(i.id) ?? 0 })),
-		}
-	})
+	.handler(
+		({ context, data }): Promise<GetItemsForListEditResult> =>
+			getItemsForListEditImpl({ userId: context.session.user.id, listId: data.listId, includeArchived: data.includeArchived })
+	)
