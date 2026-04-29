@@ -10,9 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import type { BackupFile, BackupFileTables } from '@/lib/backup/schema'
-import { BackupFileSchema } from '@/lib/backup/schema'
-
-const WIPE_CONFIRM_PHRASE = 'WIPE AND RESTORE'
+import { BackupFileSchema, WIPE_CONFIRM_PHRASE } from '@/lib/backup/schema'
 
 type Mode = 'merge' | 'wipe'
 
@@ -75,11 +73,22 @@ export default function ImportData() {
 		if (!parsed) return
 		setSubmitting(true)
 		try {
-			const result = await importAppDataAsAdmin({ data: { mode, data: parsed } })
+			const result = await importAppDataAsAdmin({
+				data: {
+					mode,
+					data: parsed,
+					...(mode === 'wipe' ? { confirmWipe: WIPE_CONFIRM_PHRASE } : {}),
+				},
+			})
 			if (result.kind === 'ok') {
 				const total = Object.values(result.counts).reduce((sum, n) => sum + n, 0)
 				toast.success(`Imported ${total.toLocaleString()} rows`, {
-					description: TABLE_ORDER.map(name => `${name}: ${result.counts[name]}`).join(' · '),
+					description: [
+						TABLE_ORDER.map(name => `${name}: ${result.counts[name]}`).join(' · '),
+						result.snapshotKey ? `Pre-wipe snapshot: ${result.snapshotKey}` : null,
+					]
+						.filter(Boolean)
+						.join('\n'),
 				})
 				await queryClient.invalidateQueries()
 				setFileName(null)
@@ -184,6 +193,12 @@ function humanErrorReason(reason: string): string {
 	switch (reason) {
 		case 'current-admin-missing':
 			return 'Your account is not in the backup'
+		case 'wipe-confirm-required':
+			return 'Wipe refused: confirmation phrase missing'
+		case 'snapshot-required':
+			return 'Wipe refused: pre-wipe snapshot could not be written'
+		case 'snapshot-failed':
+			return 'Wipe refused: pre-wipe snapshot failed'
 		case 'import-failed':
 			return 'Import failed'
 		default:

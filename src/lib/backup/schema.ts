@@ -166,7 +166,20 @@ export const BackupFileSchema = z.object({
 export type BackupFile = z.infer<typeof BackupFileSchema>
 export type BackupFileTables = BackupFile['tables']
 
+// Confirmation phrase the server requires when `mode === 'wipe'`. The
+// import-data UI prompts the admin to type this string into a text box;
+// the server re-validates it as a defense against accidental, replayed,
+// or forged wipe calls bypassing the UI. See sec-review H6.
+export const WIPE_CONFIRM_PHRASE = 'WIPE AND RESTORE'
+
 export const BackupImportInputSchema = z.object({
 	mode: z.enum(['wipe', 'merge']),
 	data: BackupFileSchema,
+	// Required when `mode === 'wipe'`. Must equal `WIPE_CONFIRM_PHRASE`.
+	// Validated in the handler so the schema itself stays simple to share.
+	confirmWipe: z.string().optional(),
+	// Set true to allow a wipe when storage isn't configured (and so
+	// the server can't write a pre-wipe snapshot). Otherwise the wipe is
+	// refused. See sec-review H6.
+	confirmSkipSnapshot: z.boolean().optional(),
 })
