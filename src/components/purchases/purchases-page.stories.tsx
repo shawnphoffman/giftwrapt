@@ -8,8 +8,7 @@ import { PurchasesPageContent } from './purchases-page'
 /**
  * Unified purchases page: spending metrics, monthly bar chart, and a
  * collapsible per-recipient breakdown with rich detail rows (markdown notes,
- * external links, edit button). Partners collapse into one group when both
- * are recipients of the same list.
+ * external links, edit button).
  */
 
 function daysAgo(n: number): Date {
@@ -37,7 +36,6 @@ function item(overrides: Partial<SummaryItem>): SummaryItem {
 		ownerName: 'Owner',
 		ownerEmail: 'owner@example.com',
 		ownerImage: null,
-		ownerPartnerId: null,
 		...overrides,
 	}
 }
@@ -107,7 +105,6 @@ const samItems: Array<SummaryItem> = [
 		ownerId: 'user-sam',
 		ownerName: 'Sam Sibling',
 		ownerEmail: 'sam@example.com',
-		ownerPartnerId: 'user-jordan',
 	}),
 	item({
 		giftId: 32,
@@ -119,7 +116,6 @@ const samItems: Array<SummaryItem> = [
 		ownerId: 'user-sam',
 		ownerName: 'Sam Sibling',
 		ownerEmail: 'sam@example.com',
-		ownerPartnerId: 'user-jordan',
 	}),
 	item({
 		type: 'addon',
@@ -134,7 +130,6 @@ const samItems: Array<SummaryItem> = [
 		ownerId: 'user-sam',
 		ownerName: 'Sam Sibling',
 		ownerEmail: 'sam@example.com',
-		ownerPartnerId: 'user-jordan',
 	}),
 ]
 

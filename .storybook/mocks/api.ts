@@ -88,6 +88,7 @@ export const updateList = ok
 export const deleteList = ok
 export const setPrimaryList = ok
 export const getListForEditing = () => Promise.resolve({ kind: 'ok' as const, list: null })
+export const getListSummaries = (): Promise<{ summaries: Array<unknown> }> => Promise.resolve({ summaries: [] })
 
 // @/api/purchases
 export const getPurchaseSummary = (): Promise<Array<unknown>> => Promise.resolve([])

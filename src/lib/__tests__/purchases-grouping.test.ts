@@ -23,7 +23,6 @@ function item(overrides: Partial<SummaryItem> = {}): SummaryItem {
 		ownerName: 'Owner One',
 		ownerEmail: 'owner1@example.com',
 		ownerImage: null,
-		ownerPartnerId: null,
 		...overrides,
 	}
 }
@@ -60,28 +59,15 @@ describe('groupByPerson', () => {
 		expect(groups.map(g => g.name)).toEqual(['B', 'C', 'A'])
 	})
 
-	it('collapses partnered recipients into one group when both appear', () => {
-		// Alice + Bob are partners. Both receive gifts. They should collapse
-		// into a single household row with the partner name surfaced.
+	it('keeps partnered recipients in separate groups', () => {
+		// Partners are intentionally not merged on the purchases (spending) side.
+		// Each recipient gets their own row even when they're partners.
 		const groups = groupByPerson([
-			item({ ownerId: 'alice', ownerName: 'Alice', ownerEmail: 'alice@x', ownerPartnerId: 'bob', cost: 40 }),
-			item({ ownerId: 'bob', ownerName: 'Bob', ownerEmail: 'bob@x', ownerPartnerId: 'alice', cost: 60 }),
+			item({ ownerId: 'alice', ownerName: 'Alice', ownerEmail: 'alice@x', cost: 40 }),
+			item({ ownerId: 'bob', ownerName: 'Bob', ownerEmail: 'bob@x', cost: 60 }),
 		])
-		expect(groups).toHaveLength(1)
-		expect(groups[0]).toMatchObject({
-			key: 'alice',
-			name: 'Alice',
-			partnerName: 'Bob',
-			totalSpent: 100,
-		})
-	})
-
-	it('keeps partnered recipients separate if only one appears', () => {
-		// Alice has a partner but Bob isn't in the list. We shouldn't invent
-		// a partnerName from a partnerId that doesn't have any items.
-		const groups = groupByPerson([item({ ownerId: 'alice', ownerName: 'Alice', ownerEmail: 'alice@x', ownerPartnerId: 'bob', cost: 40 })])
-		expect(groups).toHaveLength(1)
-		expect(groups[0].partnerName).toBeNull()
+		expect(groups).toHaveLength(2)
+		expect(groups.map(g => g.name).sort()).toEqual(['Alice', 'Bob'])
 	})
 
 	it('counts co-gifter claims but leaves totals unchanged (cost is zero)', () => {

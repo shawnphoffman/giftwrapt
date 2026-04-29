@@ -219,7 +219,7 @@ export function PurchasesPageContent({ items }: Props) {
 	const recipientChartData = useMemo(
 		() =>
 			groups.map(g => ({
-				name: g.partnerName ? `${g.name} & ${g.partnerName}` : g.name,
+				name: g.name,
 				gifts: g.giftsTotal,
 				addons: g.addonsTotal,
 			})),
@@ -303,7 +303,6 @@ export function PurchasesPageContent({ items }: Props) {
 															<div className="flex flex-col min-w-0">
 																<div className="flex items-center gap-2 min-w-0">
 																	<span className="font-medium truncate">{g.name}</span>
-																	{g.partnerName && <span className="text-xs text-muted-foreground truncate">& {g.partnerName}</span>}
 																</div>
 																<span className="text-xs text-muted-foreground">
 																	{purchaseCount} {purchaseCount === 1 ? 'purchase' : 'purchases'}

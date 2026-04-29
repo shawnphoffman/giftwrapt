@@ -34,7 +34,6 @@ export type SummaryItem = {
 	ownerName: string | null
 	ownerEmail: string
 	ownerImage: string | null
-	ownerPartnerId: string | null
 }
 
 export const getPurchaseSummary = createServerFn({ method: 'GET' })
@@ -85,7 +84,6 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 				listOwnerName: sql<string | null>`owner.name`,
 				listOwnerEmail: sql<string>`owner.email`,
 				listOwnerImage: sql<string | null>`owner.image`,
-				listOwnerPartnerId: sql<string | null>`owner.partner_id`,
 			})
 			.from(giftedItems)
 			.innerJoin(items, eq(items.id, giftedItems.itemId))
@@ -106,7 +104,6 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 				listOwnerName: sql<string | null>`owner.name`,
 				listOwnerEmail: sql<string>`owner.email`,
 				listOwnerImage: sql<string | null>`owner.image`,
-				listOwnerPartnerId: sql<string | null>`owner.partner_id`,
 			})
 			.from(listAddons)
 			.innerJoin(lists, eq(lists.id, listAddons.listId))
@@ -137,7 +134,6 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 				ownerName: r.listOwnerName,
 				ownerEmail: r.listOwnerEmail,
 				ownerImage: r.listOwnerImage,
-				ownerPartnerId: r.listOwnerPartnerId,
 			}
 		})
 
@@ -159,7 +155,6 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 			ownerName: r.listOwnerName,
 			ownerEmail: r.listOwnerEmail,
 			ownerImage: r.listOwnerImage,
-			ownerPartnerId: r.listOwnerPartnerId,
 		}))
 
 		return [...claims, ...addons]
