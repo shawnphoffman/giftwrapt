@@ -158,7 +158,8 @@ function ListEditPage() {
 							{list.isOwner && (
 								<Button size="sm" variant="outline" asChild>
 									<Link to="/lists/$listId/organize" params={{ listId: String(list.id) }}>
-										<Settings2 className="size-4" /> Organize
+										<Settings2 className="size-4" />
+										<span className="sr-only xs:not-sr-only">Organize</span>
 									</Link>
 								</Button>
 							)}
@@ -166,7 +167,8 @@ function ListEditPage() {
 								<DropdownMenu>
 									<DropdownMenuTrigger asChild>
 										<Button size="sm" variant="outline">
-											<GroupIcon className="size-4" /> New group
+											<GroupIcon className="size-4" /> <span className="xs:hidden">Group</span>
+											<span className="hidden xs:inline">New group</span>
 										</Button>
 									</DropdownMenuTrigger>
 									<DropdownMenuContent align="end">
@@ -180,7 +182,8 @@ function ListEditPage() {
 								</DropdownMenu>
 							)}
 							<Button size="sm" onClick={() => openAddItemDialog(null)}>
-								<Plus className="size-4" /> Add item
+								<Plus className="size-4" /> <span className="xs:hidden">Add</span>
+								<span className="hidden xs:inline">Add item</span>
 							</Button>
 						</div>
 					</div>
