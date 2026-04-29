@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.20.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.19.0...v0.20.0) (2026-04-29)
+
+
+### Features
+
+* **api:** add /api/mobile REST surface and bearer auth ([7fc3e45](https://github.com/shawnphoffman/giftwrapt/commit/7fc3e45bd515e3c66d04735c15b08ee3f704dbaf))
+* **deploy:** add one-click deploy buttons for Vercel, Railway, Render, Coolify ([cae8091](https://github.com/shawnphoffman/giftwrapt/commit/cae80918bf2802b18cb7435b8bc243d430345f9b))
+* **mobile:** isolate mobile API behind Hono gateway with apiKey auth ([99013f8](https://github.com/shawnphoffman/giftwrapt/commit/99013f8c8a3d0b35733bf27ed9fb6f90dc02c4bd))
+* **title:** move app title from build-time env to runtime config ([2099db1](https://github.com/shawnphoffman/giftwrapt/commit/2099db1b1a2e74854f3375b65af6b093e9b6b71a))
+
+
+### Bug Fixes
+
+* **deploy:** alias @/db to client stub to keep pg out of browser bundle ([d5e68bc](https://github.com/shawnphoffman/giftwrapt/commit/d5e68bcb3f59fcd8e5aa82173168802501368b06))
+* **deploy:** unblock sign-out and rate limits on multi-instance deploys ([6a8c6c8](https://github.com/shawnphoffman/giftwrapt/commit/6a8c6c846583274db0cf8e654a466f9b0df2403e))
+
 ## [0.19.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.18.0...v0.19.0) (2026-04-29)
 
 
