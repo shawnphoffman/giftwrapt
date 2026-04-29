@@ -12,6 +12,11 @@ RUN pnpm install --frozen-lockfile
 # (.output/scripts/*.mjs) - `pnpm build` runs vite build + build:cli.
 FROM base AS builder
 ENV NODE_OPTIONS=--max-old-space-size=4096
+# APP_COMMIT is baked into the bundle (vite.config.ts → VITE_APP_COMMIT) so the
+# admin debug page can show which commit produced this image. Defaults to empty;
+# CI passes the release SHA via --build-arg.
+ARG APP_COMMIT=""
+ENV APP_COMMIT=$APP_COMMIT
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm build

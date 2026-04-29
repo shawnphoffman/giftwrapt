@@ -1,4 +1,4 @@
-import { statSync } from 'node:fs'
+import { readFileSync, statSync } from 'node:fs'
 import { join, resolve as resolvePath } from 'node:path'
 
 import tailwindcss from '@tailwindcss/vite'
@@ -32,6 +32,15 @@ const devtoolsEnabled = shouldEnableDevtools()
 // Expose to the client bundle via Vite's env-var pipeline so __root.tsx can
 // conditionally render <TanStackDevtools>.
 process.env.VITE_TANSTACK_DEVTOOLS = String(devtoolsEnabled)
+
+// Build-time identity. Baked into the bundle once and read by the admin debug
+// page. APP_COMMIT comes from the Docker build-arg in CI; on Vercel it falls
+// back to VERCEL_GIT_COMMIT_SHA; in plain `git`-aware environments to GITHUB_SHA.
+const pkgJson = JSON.parse(readFileSync(resolvePath(__dirname, 'package.json'), 'utf8')) as { version: string }
+const buildCommit = process.env.APP_COMMIT || process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || ''
+process.env.VITE_APP_VERSION = pkgJson.version
+process.env.VITE_APP_COMMIT = buildCommit
+process.env.VITE_APP_BUILD_TIME = new Date().toISOString()
 
 const securityHeaders = {
 	// HSTS is a no-op over HTTP (browsers ignore it per RFC 6797). Useful once
