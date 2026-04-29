@@ -73,6 +73,9 @@ export function AppSettingsEditor() {
 
 	return (
 		<div className="space-y-6">
+			{/* App Title */}
+			<AppTitleField currentValue={settings.appTitle} onSave={value => handleSettingChange('appTitle', value)} />
+
 			{/* Default List Type */}
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
@@ -271,6 +274,57 @@ type DaysSettingProps = {
 	value: number
 	disabled?: boolean
 	onCommit: (value: number) => void
+}
+
+interface AppTitleFieldProps {
+	currentValue: string
+	onSave: (next: string) => void
+}
+
+function AppTitleField({ currentValue, onSave }: AppTitleFieldProps) {
+	const [draft, setDraft] = useState(currentValue)
+
+	// Keep local draft in sync if the server value changes (after a successful save
+	// from another tab, or after the optimistic update settles).
+	useEffect(() => {
+		setDraft(currentValue)
+	}, [currentValue])
+
+	const handleCommit = () => {
+		const trimmed = draft.trim()
+		// Reject empty - schema enforces min(1). Snap back to current.
+		if (trimmed.length === 0) {
+			setDraft(currentValue)
+			return
+		}
+		if (trimmed === currentValue) return
+		onSave(trimmed)
+	}
+
+	return (
+		<div className="flex items-center justify-between gap-4">
+			<div className="space-y-0.5">
+				<Label htmlFor="appTitle" className="text-base">
+					App Title
+				</Label>
+				<p className="text-sm text-muted-foreground">Shown in the browser tab, sidebar, and PWA install prompts</p>
+			</div>
+			<Input
+				id="appTitle"
+				type="text"
+				maxLength={80}
+				value={draft}
+				onChange={e => setDraft(e.target.value)}
+				onBlur={handleCommit}
+				onKeyDown={e => {
+					if (e.key === 'Enter') {
+						e.currentTarget.blur()
+					}
+				}}
+				className="w-48"
+			/>
+		</div>
+	)
 }
 
 function DaysSetting({ id, label, description, value, disabled, onCommit }: DaysSettingProps) {

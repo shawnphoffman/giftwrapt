@@ -164,10 +164,13 @@ export const SCRAPE_PROVIDER_SECRET_FIELDS: Record<ScrapeProviderType, ReadonlyA
 }
 
 export const appSettingsSchema = z.object({
-	// Display title shown in the document <title>, PWA meta, and OG tags.
-	// Sourced server-side from the APP_TITLE env var (with a static
-	// fallback) and surfaced through the public app-settings query so
-	// SSR and client hydration agree, preventing a flash on first paint.
+	// Display title shown in the document <title>, PWA meta, OG tags, and
+	// the sidebar header. Admin-editable from /admin; defaults to
+	// 'GiftWrapt' until an admin changes it. Surfaced through the public
+	// app-settings query so SSR and client hydration agree, preventing a
+	// flash on first paint. Replaced the build-time VITE_APP_TITLE env
+	// var, which baked into the JS at build time and silently fell back
+	// to the default on Docker builds that didn't pass it as a build arg.
 	appTitle: z.string().min(1).max(80),
 	enableHolidayLists: z.boolean(),
 	enableBirthdayLists: z.boolean(),
@@ -224,12 +227,6 @@ export const appSettingsSchema = z.object({
 })
 
 // 2) Default values in code (for when DB is empty or missing keys)
-//
-// `appTitle` is the static client-safe fallback. Server-side reads
-// (`getAppSettings` in `settings-loader.ts`) override it with
-// `process.env.APP_TITLE` when the DB row is absent, so operators can
-// set the title via env without a rebuild and admins can override it
-// per-deploy from the UI without touching env.
 export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	appTitle: 'GiftWrapt',
 	enableHolidayLists: true,
