@@ -16,6 +16,23 @@ const trustedOrigins = env.TRUSTED_ORIGINS?.split(',')
 
 const authLog = createLogger('auth')
 
+// Guard against accidentally booting an HTTPS deployment with the
+// Secure-flag-disabled escape hatch on. INSECURE_COOKIES exists for
+// HTTP-only LAN setups (browsers refuse to store Secure cookies on
+// HTTP pages); it has no business being on once the server is reached
+// via HTTPS, where it just makes session cookies stealable on a MITM.
+// Refuse to start instead of silently shipping a misconfigured
+// production. See sec-review M1.
+const baseUrl = env.BETTER_AUTH_URL || env.SERVER_URL || ''
+if (env.INSECURE_COOKIES && baseUrl.startsWith('https://')) {
+	throw new Error(
+		`INSECURE_COOKIES=true is set but ${env.BETTER_AUTH_URL ? 'BETTER_AUTH_URL' : 'SERVER_URL'} is HTTPS (${baseUrl}). Drop one of them; the Secure flag must be on for HTTPS deployments.`
+	)
+}
+if (env.INSECURE_COOKIES) {
+	authLog.warn('INSECURE_COOKIES=true: auth cookies will be sent without the Secure flag. Only safe for plain-HTTP dev / LAN deployments.')
+}
+
 // Map LOG_LEVEL to the narrower set better-auth accepts. 'fatal' collapses to
 // 'error', 'trace' to 'debug', 'silent' disables entirely.
 const betterAuthLevel: 'info' | 'warn' | 'error' | 'debug' | undefined =
