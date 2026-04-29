@@ -6,9 +6,11 @@ import { db } from '@/db'
 import { itemComments, items, lists, users } from '@/db/schema'
 import { createLogger, loggingMiddleware } from '@/lib/logger'
 import { canViewList } from '@/lib/permissions'
+import { commentLimiter } from '@/lib/rate-limits'
 import { sendNewCommentEmail } from '@/lib/resend'
 import { getAppSettings } from '@/lib/settings-loader'
 import { authMiddleware } from '@/middleware/auth'
+import { rateLimit } from '@/middleware/rate-limit'
 
 const commentsLog = createLogger('api:comments')
 
@@ -93,7 +95,7 @@ export type CreateCommentResult =
 	| { kind: 'error'; reason: 'item-not-found' | 'not-visible' | 'comments-disabled' }
 
 export const createItemComment = createServerFn({ method: 'POST' })
-	.middleware([authMiddleware, loggingMiddleware])
+	.middleware([authMiddleware, rateLimit(commentLimiter), loggingMiddleware])
 	.inputValidator((data: z.input<typeof CreateCommentInputSchema>) => CreateCommentInputSchema.parse(data))
 	.handler(async ({ context, data }): Promise<CreateCommentResult> => {
 		const userId = context.session.user.id

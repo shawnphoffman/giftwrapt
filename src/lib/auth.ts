@@ -51,6 +51,17 @@ const options = {
 	emailAndPassword: {
 		enabled: true,
 	},
+	// Rate limit auth-related routes (sign-in, sign-up, password change,
+	// session reads). Better-auth applies stricter caps to sensitive
+	// endpoints automatically; this enables the framework's in-memory
+	// limiter so that's effective. See sec-review H2.
+	rateLimit: {
+		enabled: true,
+		// Storage choice: 'memory' is per-instance and resets on deploy.
+		// For multi-instance deployments switch to 'database' (uses the
+		// `ratelimit` table better-auth provisions).
+		storage: 'memory',
+	},
 	// First-admin bootstrap: if no admin exists yet, the next signup becomes one.
 	// Covers the fresh-deploy case (empty DB) and also the recovery case where
 	// an operator intentionally demotes/deletes every admin to rebootstrap.

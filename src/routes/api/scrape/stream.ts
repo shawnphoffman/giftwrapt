@@ -3,6 +3,8 @@ import { createFileRoute } from '@tanstack/react-router'
 import { db } from '@/db'
 import { auth } from '@/lib/auth'
 import { createLogger } from '@/lib/logger'
+import { rateLimitKeyForRequest } from '@/lib/rate-limit'
+import { scrapeLimiter } from '@/lib/rate-limits'
 import { buildDbBackedDeps } from '@/lib/scrapers/cache'
 import { orchestrate } from '@/lib/scrapers/orchestrator'
 import { fetchProvider } from '@/lib/scrapers/providers/fetch'
@@ -31,6 +33,17 @@ export const Route = createFileRoute('/api/scrape/stream')({
 				const session = await auth.api.getSession({ headers: request.headers })
 				if (!session?.user.id) {
 					return new Response('Unauthorized', { status: 401 })
+				}
+
+				// Per-user rate limit. See sec-review H2.
+				const rateKey = rateLimitKeyForRequest(request, session.user.id)
+				const rateResult = scrapeLimiter.consume(rateKey)
+				if (!rateResult.allowed) {
+					sseLog.warn({ key: rateKey, retryAfterMs: rateResult.retryAfterMs }, 'scrape rate limit exceeded')
+					return new Response('Too Many Requests', {
+						status: 429,
+						headers: { 'retry-after': String(Math.ceil(rateResult.retryAfterMs / 1000)) },
+					})
 				}
 
 				const requestUrl = new URL(request.url)

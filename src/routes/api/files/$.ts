@@ -3,6 +3,8 @@ import { Readable } from 'node:stream'
 import { createFileRoute } from '@tanstack/react-router'
 
 import { createLogger } from '@/lib/logger'
+import { rateLimitKeyForRequest } from '@/lib/rate-limit'
+import { fileProxyLimiter } from '@/lib/rate-limits'
 import { getStorage } from '@/lib/storage/adapter'
 import { UploadError } from '@/lib/storage/errors'
 
@@ -35,6 +37,18 @@ export const Route = createFileRoute('/api/files/$')({
 				const key = params._splat ?? ''
 				if (!key) {
 					return new Response('missing key', { status: 400 })
+				}
+
+				// Per-IP rate limit. The proxy is unauthenticated (object keys
+				// are the access control via 8-10 char nanoid), so the key
+				// here is the client IP. See sec-review H2.
+				const rateKey = rateLimitKeyForRequest(request)
+				const rateResult = fileProxyLimiter.consume(rateKey)
+				if (!rateResult.allowed) {
+					return new Response('Too Many Requests', {
+						status: 429,
+						headers: { 'retry-after': String(Math.ceil(rateResult.retryAfterMs / 1000)) },
+					})
 				}
 
 				const storage = getStorage()
