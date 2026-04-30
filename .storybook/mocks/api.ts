@@ -77,6 +77,7 @@ export const getRecentComments = emptyArray
 
 // @/api/user
 export const getPotentialPartners = emptyArray
+export const getGiftIdeasRecipients = emptyArray
 export const updateUserProfile = ok
 export const updateUserPassword = ok
 
