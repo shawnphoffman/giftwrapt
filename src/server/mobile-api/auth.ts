@@ -1,14 +1,23 @@
 // Hono middleware that authenticates a request using a better-auth
 // API key. The mobile app sends `Authorization: Bearer <api-key>`;
 // better-auth's apiKey plugin verifies the key against the `apikey`
-// table and returns the associated session. Keys are minted per-device
-// (one per iOS install) and individually revocable from an admin UI -
-// this is intentionally separate from the web's session cookie surface
-// so a leaked mobile key can be killed without signing the user out
-// of every browser session.
+// table. Keys are minted per-device (one per iOS install) and
+// individually revocable from an admin UI - this is intentionally
+// separate from the web's session cookie surface so a leaked mobile
+// key can be killed without signing the user out of every browser
+// session.
+//
+// Role lookup is a direct DB read off `result.key.userId` rather than
+// a second `auth.api.getSession()` round-trip. getSession would re-run
+// the apiKey plugin's `before` hook (re-hashing the bearer token,
+// re-querying the apikey row, and incrementing requestCount a second
+// time), doubling the per-key rate-limit cost on every mobile request.
 
+import { eq } from 'drizzle-orm'
 import type { Context, MiddlewareHandler } from 'hono'
 
+import { db } from '@/db'
+import { users } from '@/db/schema'
 import { auth } from '@/lib/auth'
 
 export interface MobileAuthContext {
@@ -32,18 +41,16 @@ export const requireMobileApiKey: MiddlewareHandler<MobileAuthContext> = async (
 		return c.json({ error: 'unauthorized' }, 401)
 	}
 
-	// Look up the user the key is bound to. Admin/child flags drive
-	// route-level authorization decisions inside individual handlers.
-	const session = await auth.api.getSession({
-		headers: new Headers({ 'x-api-key': key }),
-	})
-	if (!session?.user.id) {
+	const userId = result.key.userId
+	const rows = await db.select({ role: users.role }).from(users).where(eq(users.id, userId)).limit(1)
+	if (rows.length === 0) {
 		return c.json({ error: 'unauthorized' }, 401)
 	}
+	const role = rows[0].role
 
-	c.set('userId', session.user.id)
-	c.set('userIsAdmin', session.user.isAdmin)
-	c.set('userIsChild', session.user.isChild)
+	c.set('userId', userId)
+	c.set('userIsAdmin', role === 'admin')
+	c.set('userIsChild', role === 'child')
 	return next()
 }
 
