@@ -127,7 +127,26 @@ const options = {
 	// (see `src/server/mobile-api/app.ts`) which calls into better-auth
 	// to validate keys; web flows here continue to use cookies via
 	// `tanstackStartCookies()`.
-	plugins: [tanstackStartCookies(), admin(), apiKey({ enableSessionForAPIKeys: true })],
+	// Per-key rate limit overrides better-auth's plugin defaults (10
+	// req/24h), which were far too tight for a chatty native client where
+	// every mobile request also hits `verifyApiKey` + `getSession` in the
+	// Hono auth middleware (2 increments per request). 300/min gives a
+	// real user comfortable headroom while still throttling a runaway
+	// client or scraping a leaked key. Note: only affects keys minted
+	// after this change, the columns on existing rows were baked in at
+	// creation time.
+	plugins: [
+		tanstackStartCookies(),
+		admin(),
+		apiKey({
+			enableSessionForAPIKeys: true,
+			rateLimit: {
+				enabled: true,
+				maxRequests: 300,
+				timeWindow: 1000 * 60,
+			},
+		}),
+	],
 	user: {
 		modelName: 'user',
 		fields: {
