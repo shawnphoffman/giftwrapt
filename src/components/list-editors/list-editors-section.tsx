@@ -106,8 +106,11 @@ export function ListEditorsSection({ listId, editors, addableUsers }: Props) {
 									const suffix = isChild ? ' (child)' : u.name ? ` (${u.email})` : ''
 									return (
 										<SelectItem key={u.id} value={u.id} disabled={isChild}>
-											{display}
-											{suffix}
+											<UserAvatar name={display} image={u.image} size="small" />
+											<span className="truncate">
+												{display}
+												{suffix}
+											</span>
 										</SelectItem>
 									)
 								})}

@@ -581,8 +581,11 @@ function EditUserFormInner({
 											<SelectItem value="__none__">None</SelectItem>
 											{partnerOptions.map(partnerUser => (
 												<SelectItem key={partnerUser.id} value={partnerUser.id}>
-													{partnerUser.name || partnerUser.email}
-													{partnerUser.role === 'admin' && ' (Admin)'}
+													<UserAvatar name={partnerUser.name || partnerUser.email} image={partnerUser.image} size="small" />
+													<span className="truncate">
+														{partnerUser.name || partnerUser.email}
+														{partnerUser.role === 'admin' && ' (Admin)'}
+													</span>
 												</SelectItem>
 											))}
 										</SelectContent>
