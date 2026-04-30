@@ -20,7 +20,7 @@ export function ListAddonsSection({ listId, addons }: Props) {
 
 	return (
 		<div className="flex flex-col gap-3">
-			<div className="flex flex-row items-center justify-between">
+			<div className="flex flex-col gap-2 xs:flex-row xs:items-center xs:justify-between">
 				<div className="flex items-center gap-1.5">
 					<h2 className="text-lg font-semibold">Off-List Gifts</h2>
 					<Popover>
