@@ -127,7 +127,7 @@ const options = {
 	// (see `src/server/mobile-api/app.ts`) which calls into better-auth
 	// to validate keys; web flows here continue to use cookies via
 	// `tanstackStartCookies()`.
-	plugins: [tanstackStartCookies(), admin(), apiKey()],
+	plugins: [tanstackStartCookies(), admin(), apiKey({ enableSessionForAPIKeys: true })],
 	user: {
 		modelName: 'user',
 		fields: {

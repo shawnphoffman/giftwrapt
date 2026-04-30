@@ -195,6 +195,10 @@ export const appSettingsSchema = z.object({
 	// fetch/process failure leaves the original URL in place. No-op when
 	// storage is not configured.
 	mirrorExternalImagesOnSave: z.boolean(),
+	// When true, signed-in users can see /settings/devices and mint
+	// per-device API keys for the mobile companion app. Off by default
+	// so the surface stays hidden until an admin opts in.
+	enableMobileApp: z.boolean(),
 	// =====================================================================
 	// URL scraping
 	// =====================================================================
@@ -241,6 +245,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	enableComments: true,
 	enableCommentEmails: true,
 	mirrorExternalImagesOnSave: false,
+	enableMobileApp: false,
 	// Per-provider HTTP timeout. Hosted scrapers (Stagehand / AI on
 	// heavy pages) routinely need >10s; bumped from 10s after
 	// sec-review L5. Tune downward in /admin/scraping if you only run

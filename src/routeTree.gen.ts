@@ -35,6 +35,7 @@ import { Route as ApiCronAutoArchiveRouteImport } from './routes/api/cron/auto-a
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as coreSettingsSecurityRouteImport } from './routes/(core)/settings/security'
 import { Route as coreSettingsPermissionsRouteImport } from './routes/(core)/settings/permissions'
+import { Route as coreSettingsDevicesRouteImport } from './routes/(core)/settings/devices'
 import { Route as coreRecentItemsRouteImport } from './routes/(core)/recent.items'
 import { Route as coreRecentCommentsRouteImport } from './routes/(core)/recent.comments'
 import { Route as corePurchasesReceivedRouteImport } from './routes/(core)/purchases.received'
@@ -184,6 +185,11 @@ const coreSettingsPermissionsRoute = coreSettingsPermissionsRouteImport.update({
   path: '/permissions',
   getParentRoute: () => coreSettingsRouteRoute,
 } as any)
+const coreSettingsDevicesRoute = coreSettingsDevicesRouteImport.update({
+  id: '/devices',
+  path: '/devices',
+  getParentRoute: () => coreSettingsRouteRoute,
+} as any)
 const coreRecentItemsRoute = coreRecentItemsRouteImport.update({
   id: '/recent/items',
   path: '/recent/items',
@@ -299,6 +305,7 @@ export interface FileRoutesByFullPath {
   '/purchases/received': typeof corePurchasesReceivedRoute
   '/recent/comments': typeof coreRecentCommentsRoute
   '/recent/items': typeof coreRecentItemsRoute
+  '/settings/devices': typeof coreSettingsDevicesRoute
   '/settings/permissions': typeof coreSettingsPermissionsRoute
   '/settings/security': typeof coreSettingsSecurityRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -342,6 +349,7 @@ export interface FileRoutesByTo {
   '/purchases/received': typeof corePurchasesReceivedRoute
   '/recent/comments': typeof coreRecentCommentsRoute
   '/recent/items': typeof coreRecentItemsRoute
+  '/settings/devices': typeof coreSettingsDevicesRoute
   '/settings/permissions': typeof coreSettingsPermissionsRoute
   '/settings/security': typeof coreSettingsSecurityRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -389,6 +397,7 @@ export interface FileRoutesById {
   '/(core)/purchases/received': typeof corePurchasesReceivedRoute
   '/(core)/recent/comments': typeof coreRecentCommentsRoute
   '/(core)/recent/items': typeof coreRecentItemsRoute
+  '/(core)/settings/devices': typeof coreSettingsDevicesRoute
   '/(core)/settings/permissions': typeof coreSettingsPermissionsRoute
   '/(core)/settings/security': typeof coreSettingsSecurityRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -436,6 +445,7 @@ export interface FileRouteTypes {
     | '/purchases/received'
     | '/recent/comments'
     | '/recent/items'
+    | '/settings/devices'
     | '/settings/permissions'
     | '/settings/security'
     | '/api/auth/$'
@@ -479,6 +489,7 @@ export interface FileRouteTypes {
     | '/purchases/received'
     | '/recent/comments'
     | '/recent/items'
+    | '/settings/devices'
     | '/settings/permissions'
     | '/settings/security'
     | '/api/auth/$'
@@ -525,6 +536,7 @@ export interface FileRouteTypes {
     | '/(core)/purchases/received'
     | '/(core)/recent/comments'
     | '/(core)/recent/items'
+    | '/(core)/settings/devices'
     | '/(core)/settings/permissions'
     | '/(core)/settings/security'
     | '/api/auth/$'
@@ -750,6 +762,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreSettingsPermissionsRouteImport
       parentRoute: typeof coreSettingsRouteRoute
     }
+    '/(core)/settings/devices': {
+      id: '/(core)/settings/devices'
+      path: '/devices'
+      fullPath: '/settings/devices'
+      preLoaderRoute: typeof coreSettingsDevicesRouteImport
+      parentRoute: typeof coreSettingsRouteRoute
+    }
     '/(core)/recent/items': {
       id: '/(core)/recent/items'
       path: '/recent/items'
@@ -910,12 +929,14 @@ const coreAdminRouteRouteWithChildren = coreAdminRouteRoute._addFileChildren(
 )
 
 interface coreSettingsRouteRouteChildren {
+  coreSettingsDevicesRoute: typeof coreSettingsDevicesRoute
   coreSettingsPermissionsRoute: typeof coreSettingsPermissionsRoute
   coreSettingsSecurityRoute: typeof coreSettingsSecurityRoute
   coreSettingsIndexRoute: typeof coreSettingsIndexRoute
 }
 
 const coreSettingsRouteRouteChildren: coreSettingsRouteRouteChildren = {
+  coreSettingsDevicesRoute: coreSettingsDevicesRoute,
   coreSettingsPermissionsRoute: coreSettingsPermissionsRoute,
   coreSettingsSecurityRoute: coreSettingsSecurityRoute,
   coreSettingsIndexRoute: coreSettingsIndexRoute,

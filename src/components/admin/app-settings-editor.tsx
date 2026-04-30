@@ -245,6 +245,23 @@ export function AppSettingsEditor() {
 				</div>
 			)}
 
+			{/* Enable Mobile App */}
+			<div className="flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<Label htmlFor="enableMobileApp" className="text-base">
+						Enable Mobile App
+					</Label>
+					<p className="text-sm text-muted-foreground">
+						Allow users to manage per-device API keys for the iOS companion app from their settings.
+					</p>
+				</div>
+				<Switch
+					id="enableMobileApp"
+					checked={settings.enableMobileApp}
+					onCheckedChange={checked => handleSettingChange('enableMobileApp', checked)}
+				/>
+			</div>
+
 			{/* Mirror external images to storage on save */}
 			<div className={`flex items-center justify-between gap-4 ${storageConfigured ? '' : 'opacity-50'}`}>
 				<div className="space-y-0.5">

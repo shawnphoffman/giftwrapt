@@ -3,6 +3,7 @@ import { LogOut } from 'lucide-react'
 
 import { buttonVariants } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { useAppSetting } from '@/hooks/use-app-settings'
 import { cn } from '@/lib/utils'
 
 function navLinkClass(active: boolean) {
@@ -11,6 +12,7 @@ function navLinkClass(active: boolean) {
 
 export default function SettingsLinks() {
 	const { pathname } = useLocation()
+	const mobileAppEnabled = useAppSetting('enableMobileApp')
 
 	return (
 		<>
@@ -23,6 +25,11 @@ export default function SettingsLinks() {
 			<Link to="/settings/permissions" className={navLinkClass(pathname === '/settings/permissions')}>
 				Permissions
 			</Link>
+			{mobileAppEnabled && (
+				<Link to="/settings/devices" className={navLinkClass(pathname === '/settings/devices')}>
+					Devices
+				</Link>
+			)}
 			<Separator className="my-1" />
 			<Link to="/sign-out" className={navLinkClass(false)}>
 				<LogOut />
