@@ -5,7 +5,7 @@ import { z } from 'zod'
 import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
 import { giftedItems, guardianships, itemGroups, items, listAddons, listEditors, lists, users } from '@/db/schema'
-import { type GroupType, type ListType, listTypeEnumValues, type Priority } from '@/db/schema/enums'
+import { type BirthMonth, type GroupType, type ListType, listTypeEnumValues, type Priority } from '@/db/schema/enums'
 import type { ListAddon } from '@/db/schema/lists'
 import { loggingMiddleware } from '@/lib/logger'
 import { canEditList, canViewList } from '@/lib/permissions'
@@ -211,6 +211,11 @@ export type ChildListGroup = {
 	childName: string | null
 	childEmail: string
 	childImage: string | null
+	// Birthdates are exposed only for guardian -> child relationships.
+	// Never populated for editable-list owners (other adults) - by design.
+	birthMonth: BirthMonth | null
+	birthDay: number | null
+	birthYear: number | null
 	lists: Array<MyListRow>
 }
 
@@ -273,6 +278,9 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 				childName: users.name,
 				childEmail: users.email,
 				childImage: users.image,
+				birthMonth: users.birthMonth,
+				birthDay: users.birthDay,
+				birthYear: users.birthYear,
 			})
 			.from(guardianships)
 			.innerJoin(users, eq(users.id, guardianships.childUserId))
@@ -338,6 +346,9 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 		childName: child.childName,
 		childEmail: child.childEmail,
 		childImage: child.childImage,
+		birthMonth: child.birthMonth,
+		birthDay: child.birthDay,
+		birthYear: child.birthYear,
 		lists: listsByChildId.get(child.childId) ?? [],
 	}))
 
