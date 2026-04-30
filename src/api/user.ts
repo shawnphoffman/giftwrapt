@@ -1,11 +1,11 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
-import { and, asc, eq, ne } from 'drizzle-orm'
+import { and, asc, eq, inArray, ne, or } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
 import type { BirthMonth } from '@/db/schema'
-import { users } from '@/db/schema'
+import { guardianships, users } from '@/db/schema'
 import { auth } from '@/lib/auth'
 import { loggingMiddleware } from '@/lib/logger'
 import { LIMITS } from '@/lib/validation/limits'
@@ -46,6 +46,36 @@ export const getPotentialPartners = createServerFn({
 		})
 
 		return potentialPartners
+	})
+
+// Get recipients eligible for a gift-ideas list: non-child users (excluding the
+// current user) plus any children the current user is a guardian of.
+export const getGiftIdeasRecipients = createServerFn({
+	method: 'GET',
+})
+	.middleware([authMiddleware, loggingMiddleware])
+	.handler(async ({ context }) => {
+		const currentUserId = context.session.user.id
+
+		const myWards = await db.query.guardianships.findMany({
+			where: eq(guardianships.parentUserId, currentUserId),
+			columns: { childUserId: true },
+		})
+		const wardIds = myWards.map(g => g.childUserId)
+
+		const recipients = await db.query.users.findMany({
+			where: and(ne(users.id, currentUserId), or(ne(users.role, 'child'), wardIds.length > 0 ? inArray(users.id, wardIds) : undefined)),
+			orderBy: [asc(users.name), asc(users.email)],
+			columns: {
+				id: true,
+				name: true,
+				email: true,
+				image: true,
+				role: true,
+			},
+		})
+
+		return recipients
 	})
 
 // Update user profile

@@ -7,7 +7,7 @@ import { z } from 'zod'
 
 import { addListEditor } from '@/api/list-editors'
 import { updateList } from '@/api/lists'
-import { getPotentialPartners } from '@/api/user'
+import { getGiftIdeasRecipients } from '@/api/user'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import { MarkdownTextarea } from '@/components/common/markdown-textarea'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -56,8 +56,8 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description, g
 	const partnerAlreadyEditor = !!partnerId && editorUserIds.includes(partnerId)
 
 	const { data: users } = useQuery({
-		queryKey: ['potential-partners'],
-		queryFn: () => getPotentialPartners(),
+		queryKey: ['gift-ideas-recipients'],
+		queryFn: () => getGiftIdeasRecipients(),
 		enabled: isGiftIdeas || (!!partnerId && !partnerAlreadyEditor),
 		staleTime: 10 * 60 * 1000,
 	})
