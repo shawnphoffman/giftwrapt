@@ -88,6 +88,20 @@ export function ItemFormDialog(props: Props) {
 		}
 	}
 
+	// Items whose URL points back into our own /lists/:id route are
+	// "sublist" links, not external products. Skip scraping them.
+	const isSublistUrl = (raw: string): boolean => {
+		const trimmed = raw.trim()
+		if (!trimmed) return false
+		try {
+			const parsed = new URL(trimmed)
+			if (typeof window !== 'undefined' && parsed.origin !== window.location.origin) return false
+			return /^\/lists\/\d+(?:\/|$)/.test(parsed.pathname)
+		} catch {
+			return false
+		}
+	}
+
 	const form = useForm({
 		defaultValues: {
 			title: isEdit ? props.item.title : '',
@@ -210,6 +224,7 @@ export function ItemFormDialog(props: Props) {
 	const triggerAutoScrape = (rawUrl: string) => {
 		const trimmed = rawUrl.trim()
 		if (!isHttpUrl(trimmed)) return
+		if (isSublistUrl(trimmed)) return
 		if (trimmed === lastScrapedUrlRef.current) return
 		lastScrapedUrlRef.current = trimmed
 		startScrape(trimmed)
@@ -218,6 +233,7 @@ export function ItemFormDialog(props: Props) {
 	const triggerManualScrape = (rawUrl: string) => {
 		const trimmed = rawUrl.trim()
 		if (!isHttpUrl(trimmed)) return
+		if (isSublistUrl(trimmed)) return
 		// Manual button always forces a fresh scrape so users can re-run after
 		// editing the URL or just to bypass the cache.
 		lastScrapedUrlRef.current = trimmed
@@ -242,7 +258,7 @@ export function ItemFormDialog(props: Props) {
 				>
 					<form.Field name="url">
 						{field => {
-							const urlScrapable = isHttpUrl(field.state.value)
+							const urlScrapable = isHttpUrl(field.state.value) && !isSublistUrl(field.state.value)
 							return (
 								<div className="grid gap-2">
 									<Label htmlFor={field.name}>URL (optional)</Label>
@@ -257,7 +273,7 @@ export function ItemFormDialog(props: Props) {
 												field.handleBlur()
 												triggerAutoScrape(field.state.value)
 											}}
-											disabled={submitting}
+											disabled={submitting || scrapeInFlight}
 											autoFocus={!isEdit}
 											maxLength={LIMITS.URL}
 										/>
