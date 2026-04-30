@@ -12,12 +12,7 @@ count.txt
 .vinxi
 storybook-static
 
-.notes
-wish-lists-workspace.code-workspace
-
-.cursor/plans/
-
 .claude/*
 !.claude/launch.json
-
-_NOTES_/
+.cursor/plans/
+._notes_local/
