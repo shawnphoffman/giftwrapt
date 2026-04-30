@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, asc, count, desc, eq, inArray, ne, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, inArray, max, ne, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import type { SchemaDatabase } from '@/db'
@@ -216,6 +216,11 @@ export type ChildListGroup = {
 	birthMonth: BirthMonth | null
 	birthDay: number | null
 	birthYear: number | null
+	// Most recent claim (giftedItems.createdAt) by the requesting user on any
+	// of this child's lists. Drives the "haven't bought anything recently"
+	// indicator on the iOS upcoming-birthdays widget. null when the user has
+	// never claimed an item on this child's lists.
+	lastGiftedAt: Date | null
 	lists: Array<MyListRow>
 }
 
@@ -235,6 +240,21 @@ export type MyListsResult = {
 }
 
 export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
+	// Subquery: per recipient (list owner), the most recent moment this user
+	// committed to a gift on one of their lists. Used by the iOS upcoming-
+	// birthdays widget to flag children the user hasn't gifted recently.
+	const lastGiftedSubquery = db
+		.select({
+			recipientOwnerId: lists.ownerId,
+			lastGiftedAt: max(giftedItems.createdAt).as('lastGiftedAt'),
+		})
+		.from(giftedItems)
+		.innerJoin(items, eq(items.id, giftedItems.itemId))
+		.innerJoin(lists, eq(lists.id, items.listId))
+		.where(eq(giftedItems.gifterId, userId))
+		.groupBy(lists.ownerId)
+		.as('lastGifted')
+
 	// Fetch owned lists, editor-shared lists, and guardianship rows in parallel.
 	// Children's actual lists need the child IDs from the guardianship rows, so
 	// they fan out in a second stage below.
@@ -280,6 +300,10 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 			.groupBy(lists.id, sql`owner.name`, sql`owner.email`, sql`owner.image`)
 			.orderBy(asc(lists.name)),
 
+		// `lastGifted` is grouped by the recipient list-owner (the child) so
+		// the leftJoin below pins it to the right guardianship row. Filtering
+		// on gifterId=userId scopes the aggregate to *this* user's claims;
+		// the existing gifted_items_gifterId_idx covers the lookup.
 		db
 			.select({
 				childId: users.id,
@@ -289,9 +313,11 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 				birthMonth: users.birthMonth,
 				birthDay: users.birthDay,
 				birthYear: users.birthYear,
+				lastGiftedAt: lastGiftedSubquery.lastGiftedAt,
 			})
 			.from(guardianships)
 			.innerJoin(users, eq(users.id, guardianships.childUserId))
+			.leftJoin(lastGiftedSubquery, eq(lastGiftedSubquery.recipientOwnerId, users.id))
 			.where(eq(guardianships.parentUserId, userId))
 			.orderBy(asc(users.name)),
 	])
@@ -380,6 +406,7 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 		birthMonth: child.birthMonth,
 		birthDay: child.birthDay,
 		birthYear: child.birthYear,
+		lastGiftedAt: child.lastGiftedAt,
 		lists: listsByChildId.get(child.childId) ?? [],
 	}))
 
