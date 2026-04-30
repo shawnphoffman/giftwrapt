@@ -19,6 +19,7 @@ const recipientBase: MyListRowType = {
 	isPrimary: false,
 	description: null,
 	giftIdeasTargetUserId: null,
+	giftIdeasTarget: null,
 	itemCount: 12,
 }
 
@@ -69,7 +70,13 @@ export const RecipientArchived: Story = {
 export const RecipientGiftIdeas: Story = {
 	args: {
 		role: 'recipient',
-		list: { ...recipientBase, name: 'Ideas for Alex', type: 'giftideas', giftIdeasTargetUserId: 'user-2' },
+		list: {
+			...recipientBase,
+			name: 'Ideas for Alex',
+			type: 'giftideas',
+			giftIdeasTargetUserId: 'user-2',
+			giftIdeasTarget: { id: 'user-2', name: 'Alex Example', email: 'alex@example.com', image: null },
+		},
 	},
 }
 

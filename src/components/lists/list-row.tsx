@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { deleteList, type MyListRow as MyListRowType, setPrimaryList, updateList } from '@/api/lists'
 import CountBadge from '@/components/common/count-badge'
 import ListTypeIcon from '@/components/common/list-type-icon'
+import UserAvatar from '@/components/common/user-avatar'
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -108,6 +109,14 @@ function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: { 
 				<Link to="/lists/$listId/edit" params={{ listId: String(list.id) }} className="flex-1 font-medium leading-tight truncate">
 					{list.name}
 				</Link>
+				{list.type === 'giftideas' && list.giftIdeasTarget && (
+					<UserAvatar
+						name={list.giftIdeasTarget.name || list.giftIdeasTarget.email}
+						image={list.giftIdeasTarget.image}
+						size="small"
+						className="shrink-0"
+					/>
+				)}
 				{showOwner && <span className="text-xs text-muted-foreground truncate max-w-32">{showOwner.name || showOwner.email}</span>}
 				{list.isPrimary && <Star className="size-4 text-yellow-500 fill-yellow-500 shrink-0" />}
 				{!list.isActive && (

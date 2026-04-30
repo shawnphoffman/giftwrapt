@@ -197,6 +197,12 @@ export type MyListRow = {
 	isPrimary: boolean
 	description: string | null
 	giftIdeasTargetUserId: string | null
+	giftIdeasTarget: {
+		id: string
+		name: string | null
+		email: string
+		image: string | null
+	} | null
 	itemCount: number
 }
 
@@ -309,10 +315,24 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 			isPrimary: row.isPrimary,
 			description: row.description,
 			giftIdeasTargetUserId: row.giftIdeasTargetUserId,
+			giftIdeasTarget: null,
 			itemCount: row.itemCount,
 		})
 		listsByChildId.set(row.ownerId, bucket)
 	}
+
+	// Resolve target-user details for any gift-ideas list that points at a real user.
+	const targetUserIds = Array.from(
+		new Set([...ownedLists, ...editableRows].map(l => l.giftIdeasTargetUserId).filter((id): id is string => Boolean(id)))
+	)
+	const targetUsers = targetUserIds.length
+		? await db
+				.select({ id: users.id, name: users.name, email: users.email, image: users.image })
+				.from(users)
+				.where(inArray(users.id, targetUserIds))
+		: []
+	const targetUserById = new Map(targetUsers.map(u => [u.id, u]))
+	const resolveTarget = (id: string | null) => (id ? (targetUserById.get(id) ?? null) : null)
 	const childListGroups: Array<ChildListGroup> = childRows.map(child => ({
 		childId: child.childId,
 		childName: child.childName,
@@ -321,10 +341,23 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 		lists: listsByChildId.get(child.childId) ?? [],
 	}))
 
+	const decorateOwned = (l: (typeof ownedLists)[number]): MyListRow => ({
+		id: l.id,
+		name: l.name,
+		type: l.type,
+		isActive: l.isActive,
+		isPrivate: l.isPrivate,
+		isPrimary: l.isPrimary,
+		description: l.description,
+		giftIdeasTargetUserId: l.giftIdeasTargetUserId,
+		giftIdeasTarget: resolveTarget(l.giftIdeasTargetUserId),
+		itemCount: l.itemCount,
+	})
+
 	return {
-		public: ownedLists.filter(l => !l.isPrivate && l.type !== 'giftideas'),
-		private: ownedLists.filter(l => l.isPrivate && l.type !== 'giftideas'),
-		giftIdeas: ownedLists.filter(l => l.type === 'giftideas'),
+		public: ownedLists.filter(l => !l.isPrivate && l.type !== 'giftideas').map(decorateOwned),
+		private: ownedLists.filter(l => l.isPrivate && l.type !== 'giftideas').map(decorateOwned),
+		giftIdeas: ownedLists.filter(l => l.type === 'giftideas').map(decorateOwned),
 		editable: editableRows.map(r => ({
 			id: r.id,
 			name: r.name,
@@ -334,6 +367,7 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 			isPrimary: r.isPrimary,
 			description: r.description,
 			giftIdeasTargetUserId: r.giftIdeasTargetUserId,
+			giftIdeasTarget: resolveTarget(r.giftIdeasTargetUserId),
 			itemCount: r.itemCount,
 			ownerName: r.ownerName,
 			ownerEmail: r.ownerEmail,
