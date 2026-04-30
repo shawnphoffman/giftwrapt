@@ -29,7 +29,7 @@ The Vercel button uses the Marketplace `stores=[{...integrationSlug:"supabase"..
 3. Prompts you for `BETTER_AUTH_SECRET` (generate with `openssl rand -base64 32`).
 4. Builds with `pnpm vercel-build` (migrations + Vite build).
 
-[`src/env.ts`](../src/env.ts) has fallbacks so you don't need to rename the Supabase-injected vars: `DATABASE_URL` falls back to `POSTGRES_URL`, and `STORAGE_ENDPOINT` is auto-derived from `SUPABASE_URL` (it becomes `<SUPABASE_URL>/storage/v1/s3`).
+[`src/env.ts`](../src/env.ts) has fallbacks so you don't need to rename the Supabase-injected vars: `DATABASE_URL` falls back to `POSTGRES_URL`, and `STORAGE_ENDPOINT` is auto-derived from `SUPABASE_URL` (it becomes `<SUPABASE_URL>/storage/v1/s3`). On Vercel production deploys, `BETTER_AUTH_URL` is also auto-derived from `VERCEL_PROJECT_PRODUCTION_URL`, so first sign-up works without an "Invalid origin" paste step. (Preview deploys live on per-branch hostnames; if you want auth working there, set `BETTER_AUTH_URL` explicitly on the preview environment or add the preview hostname to `TRUSTED_ORIGINS`.)
 
 After the first deploy, **enable Supabase Storage S3 access and paste the credentials**:
 
@@ -89,7 +89,7 @@ The repo is set up for Vercel deployment out of the box.
 3. Provide env vars (see [env.example](../env.example)). For Vercel specifically:
    - `DATABASE_URL` from a managed Postgres (Vercel Postgres, Neon, Supabase, etc.)
    - `STORAGE_*` pointing at an external S3-compatible bucket. Cloudflare R2, AWS S3, and Supabase Storage all work; recipes are in [storage.md](./storage.md). Garage and RustFS are self-host-only.
-   - `BETTER_AUTH_URL` set to your production URL.
+   - `BETTER_AUTH_URL` is auto-derived from `VERCEL_PROJECT_PRODUCTION_URL` on production deploys; only set it explicitly if you've added a custom domain you want auth bound to instead of the `*.vercel.app` URL.
 
 The bundled `INIT_GARAGE` / `INIT_RUSTFS` flags should stay unset on Vercel; you're using an external bucket.
 

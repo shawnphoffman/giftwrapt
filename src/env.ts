@@ -109,6 +109,16 @@ export const env = createEnv({
 		STORAGE_ENDPOINT:
 			process.env.STORAGE_ENDPOINT ??
 			(process.env.SUPABASE_URL ? `${process.env.SUPABASE_URL.replace(/\/$/, '')}/storage/v1/s3` : undefined),
+		// On Vercel production, derive BETTER_AUTH_URL from the auto-injected
+		// production hostname so first-deploy sign-up doesn't 'Invalid origin'.
+		// Production-only: preview deploys live on per-branch hostnames and
+		// would mismatch the production URL; users can set BETTER_AUTH_URL
+		// explicitly (or extend TRUSTED_ORIGINS) if they want auth on previews.
+		BETTER_AUTH_URL:
+			process.env.BETTER_AUTH_URL ??
+			(process.env.VERCEL_ENV === 'production' && process.env.VERCEL_PROJECT_PRODUCTION_URL
+				? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+				: undefined),
 	},
 
 	/**
