@@ -2,15 +2,14 @@ import { createCollection } from '@tanstack/db'
 import { queryCollectionOptions } from '@tanstack/query-db-collection'
 import { z } from 'zod'
 
-import { UserSchema } from '@/db/schema/users'
 import { getContext } from '@/integrations/tanstack-query/root-provider'
 
-// Schema matching the API response: users with their public lists
+// Schema matching the API response: users with their public lists.
+// Mirrors PublicUser / PublicList from src/api/lists.ts.
 const ListSchema = z.object({
 	id: z.number(),
 	name: z.string(),
-	type: z.enum(['wishlist', 'christmas', 'birthday', 'giftideas', 'todos', 'test']),
-	isActive: z.boolean(),
+	type: z.enum(['wishlist', 'christmas', 'birthday', 'todos', 'test']),
 	description: z.string().nullable(),
 	createdAt: z.string(),
 	updatedAt: z.string(),
@@ -18,25 +17,19 @@ const ListSchema = z.object({
 	itemsRemaining: z.number(),
 })
 
-const PartnerSchema = z.object({
+const UserWithListsSchema = z.object({
 	id: z.string(),
 	name: z.string().nullable(),
 	email: z.string(),
 	image: z.string().nullable(),
-})
-
-const UserWithListsSchema = z.object({
-	...UserSchema.shape,
-	id: z.string(),
-	email: z.string(),
-	image: z.string().nullable(),
-	// DB returns null for users without a partner; UserSchema.partnerId is
-	// z.string().optional() (fine for form input, rejects null from the wire).
-	partnerId: z.string().nullish(),
-	partner: PartnerSchema.nullish(),
-	// Most recent claim by the requesting user on any of this user's lists.
-	// ISO 8601 string or null. Powers the "have I gifted them recently?"
-	// indicator on the iOS upcoming-birthdays widget.
+	birthMonth: z
+		.enum(['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'])
+		.nullable(),
+	birthDay: z.number().nullable(),
+	partnerId: z.string().nullable(),
+	// Most recent claim (by the viewer or their partner / co-gifters) on
+	// any of this user's lists. ISO 8601 string or null. Powers the
+	// "have I gifted them recently?" indicator on the iOS widget.
 	lastGiftedAt: z.string().nullable(),
 	lists: z.array(ListSchema),
 })

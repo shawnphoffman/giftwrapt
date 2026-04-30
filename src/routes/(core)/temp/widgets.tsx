@@ -180,7 +180,7 @@ function WidgetsPageInner() {
 									const elapsed = daysSince(user.lastGiftedAt, now)
 									const inWidget = daysUntil != null && daysUntil <= horizon
 									const warning = elapsed == null || elapsed > threshold
-									const displayName = user.name
+									const displayName = user.name ?? user.email
 									return (
 										<tr key={user.id} className="border-b last:border-b-0">
 											<td className="py-2 pr-4">
@@ -273,7 +273,7 @@ function WidgetFrame({ rows }: { rows: Array<WidgetRow> }) {
 			</div>
 			<ul className="flex flex-col gap-2.5">
 				{rows.map(row => {
-					const displayName = row.user.name
+					const displayName = row.user.name ?? row.user.email
 					return (
 						<li key={row.user.id} className="flex items-center gap-3">
 							<div className="relative">

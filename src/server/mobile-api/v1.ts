@@ -13,7 +13,7 @@ import { Hono } from 'hono'
 
 import { createItemImpl, CreateItemInputSchema, deleteItemImpl, updateItemImpl, UpdateItemInputSchema } from '@/api/_items-impl'
 import { getItemsForListEditImpl } from '@/api/items'
-import { getMyListsImpl } from '@/api/lists'
+import { getMyListsImpl, getPublicListsImpl } from '@/api/lists'
 import { db } from '@/db'
 import { runOneShotScrape } from '@/lib/scrapers/run'
 
@@ -48,6 +48,16 @@ v1.get('/lists', async c => {
 	const userId = c.get('userId')
 	const result = await getMyListsImpl(userId)
 	return c.json(result)
+})
+
+// GET /v1/lists/public - axis-1 universe ("who can I shop for") for the
+// All Lists tab and the Birthdays widget. Envelope reserves nextCursor
+// for a future cursor without forcing a v2 bump; v1 always returns the
+// full set and ignores any incoming ?cursor=.
+v1.get('/lists/public', async c => {
+	const userId = c.get('userId')
+	const users = await getPublicListsImpl(userId)
+	return c.json({ users, nextCursor: null })
 })
 
 // GET /v1/lists/:listId/items - items in a specific list, with optional archived inclusion.

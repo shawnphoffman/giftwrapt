@@ -7,6 +7,7 @@ import { db } from '@/db'
 import { giftedItems, guardianships, itemGroups, items, listAddons, listEditors, lists, users } from '@/db/schema'
 import { type BirthMonth, type GroupType, type ListType, listTypeEnumValues, type Priority } from '@/db/schema/enums'
 import type { ListAddon } from '@/db/schema/lists'
+import { computeListItemCounts } from '@/lib/gifts'
 import { loggingMiddleware } from '@/lib/logger'
 import { canEditList, canViewList } from '@/lib/permissions'
 import { authMiddleware } from '@/middleware/auth'
@@ -459,6 +460,151 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 export const getMyLists = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.handler(({ context }): Promise<MyListsResult> => getMyListsImpl(context.session.user.id))
+
+// =====================================================================
+// PUBLIC LISTS (axis 1: "who can I shop for")
+//
+// Powers the web home page and the iOS All Lists tab + Birthdays widget.
+// Consumed by:
+//   - src/routes/api/lists/public.ts (web, session cookie auth)
+//   - src/server/mobile-api/v1.ts    (mobile, apiKey auth)
+//
+// Both callers MUST receive the same narrowed shape; do not reintroduce
+// the per-caller `...user` spread that previously leaked role / banned /
+// birthYear / etc.
+// =====================================================================
+
+export type PublicListType = Exclude<ListType, 'giftideas'>
+
+export type PublicList = {
+	id: number
+	name: string
+	type: PublicListType
+	description: string | null
+	itemsTotal: number
+	itemsRemaining: number
+	createdAt: string
+	updatedAt: string
+}
+
+export type PublicUser = {
+	id: string
+	name: string | null
+	email: string
+	image: string | null
+	birthMonth: BirthMonth | null
+	birthDay: number | null
+	// Scalar only. Lets clients render "Alice & Bob" pairing as a pure
+	// client-side render later without a v1.x bump. The full partner
+	// object is intentionally not surfaced here.
+	partnerId: string | null
+	// Most recent claim by the requesting user (or their partner, or
+	// either as a co-gifter) on any list owned by this user. ISO 8601
+	// or null. Drives the "have I gifted them recently?" indicator on
+	// the iOS upcoming-birthdays widget. See gift-credit predicate
+	// in .notes/logic.md and src/api/purchases.ts:67.
+	lastGiftedAt: string | null
+	lists: Array<PublicList>
+}
+
+export async function getPublicListsImpl(viewerUserId: string): Promise<Array<PublicUser>> {
+	// Owners who explicitly denied this viewer.
+	const deniedRelationships = await db.query.userRelationships.findMany({
+		where: (rel, { and, eq }) => and(eq(rel.viewerUserId, viewerUserId), eq(rel.canView, false)),
+		columns: { ownerUserId: true },
+	})
+	const deniedOwnerIds = deniedRelationships.map(rel => rel.ownerUserId)
+
+	// Resolve the viewer's partner so claim credit follows the
+	// "gifts credit both partners" contract (.notes/logic.md).
+	const me = await db.query.users.findFirst({
+		where: eq(users.id, viewerUserId),
+		columns: { partnerId: true },
+	})
+	const gifterIds: Array<string> = me?.partnerId ? [viewerUserId, me.partnerId] : [viewerUserId]
+
+	// Per-recipient most-recent claim where the viewer OR their partner
+	// is the primary gifter, OR either appears in additionalGifterIds as
+	// a co-gifter. Single grouped query.
+	const lastGiftedRows = await db
+		.select({
+			recipientId: lists.ownerId,
+			lastGiftedAt: max(giftedItems.createdAt),
+		})
+		.from(giftedItems)
+		.innerJoin(items, eq(items.id, giftedItems.itemId))
+		.innerJoin(lists, eq(lists.id, items.listId))
+		.where(or(inArray(giftedItems.gifterId, gifterIds), arrayOverlaps(giftedItems.additionalGifterIds, gifterIds)))
+		.groupBy(lists.ownerId)
+	const lastGiftedByUserId = new Map<string, Date | null>(lastGiftedRows.map(r => [r.recipientId, r.lastGiftedAt]))
+
+	const allUsers = await db.query.users.findMany({
+		where: (us, { and, ne, notInArray }) =>
+			deniedOwnerIds.length > 0 ? and(ne(us.id, viewerUserId), notInArray(us.id, deniedOwnerIds)) : ne(us.id, viewerUserId),
+		columns: {
+			id: true,
+			name: true,
+			email: true,
+			image: true,
+			birthMonth: true,
+			birthDay: true,
+			partnerId: true,
+		},
+		with: {
+			lists: {
+				// Belt-and-suspenders: gift-ideas lists are guardian-only by
+				// convention. Filtering on type explicitly means a misconfigured
+				// public gift-ideas row cannot leak the target user's identity
+				// through this endpoint.
+				where: (l, { and, eq, ne }) => and(eq(l.isPrivate, false), eq(l.isActive, true), ne(l.type, 'giftideas')),
+				orderBy: [desc(lists.createdAt)],
+				columns: {
+					id: true,
+					name: true,
+					type: true,
+					description: true,
+					createdAt: true,
+					updatedAt: true,
+				},
+				with: {
+					items: {
+						with: {
+							gifts: { columns: { quantity: true } },
+						},
+					},
+				},
+			},
+		},
+	})
+
+	return allUsers.map(user => {
+		const lastGiftedAt = lastGiftedByUserId.get(user.id) ?? null
+		return {
+			id: user.id,
+			name: user.name,
+			email: user.email,
+			image: user.image,
+			birthMonth: user.birthMonth,
+			birthDay: user.birthDay,
+			partnerId: user.partnerId ?? null,
+			lastGiftedAt: lastGiftedAt instanceof Date ? lastGiftedAt.toISOString() : lastGiftedAt,
+			lists: user.lists.map(list => {
+				const { items: listItems, ...rest } = list
+				const { total, unclaimed } = computeListItemCounts(listItems)
+				return {
+					id: rest.id,
+					name: rest.name,
+					type: rest.type as PublicListType,
+					description: rest.description,
+					itemsTotal: total,
+					itemsRemaining: unclaimed,
+					createdAt: rest.createdAt instanceof Date ? rest.createdAt.toISOString() : rest.createdAt,
+					updatedAt: rest.updatedAt instanceof Date ? rest.updatedAt.toISOString() : rest.updatedAt,
+				}
+			}),
+		}
+	})
+}
 
 // ===============================
 // WRITE - create a list

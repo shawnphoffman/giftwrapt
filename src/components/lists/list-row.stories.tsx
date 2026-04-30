@@ -27,7 +27,6 @@ const gifterBase: GifterList = {
 	id: 1,
 	name: 'Their Wish List',
 	type: 'wishlist',
-	isActive: true,
 	description: null,
 	createdAt: '2026-01-01T00:00:00Z',
 	updatedAt: '2026-01-01T00:00:00Z',
@@ -203,13 +202,15 @@ export const GifterAllTypes: Story = {
 	args: { role: 'gifter', list: gifterBase },
 	render: () => (
 		<div className="flex flex-col gap-1">
-			{listTypeEnumValues.map((type, i) => (
-				<ListRow
-					key={type}
-					role="gifter"
-					list={{ ...gifterBase, id: i + 1, type, name: `${type} list`, itemsTotal: 8 + i, itemsRemaining: 3 + i }}
-				/>
-			))}
+			{listTypeEnumValues
+				.filter(type => type !== 'giftideas')
+				.map((type, i) => (
+					<ListRow
+						key={type}
+						role="gifter"
+						list={{ ...gifterBase, id: i + 1, type, name: `${type} list`, itemsTotal: 8 + i, itemsRemaining: 3 + i }}
+					/>
+				))}
 		</div>
 	),
 }
