@@ -17,12 +17,15 @@ import {
 	createItemImpl,
 	CreateItemInputSchema,
 	type CreateItemResult,
+	deleteItemImpl,
+	DeleteItemInputSchema,
+	type DeleteItemResult,
 	updateItemImpl,
 	UpdateItemInputSchema,
 	type UpdateItemResult,
 } from './_items-impl'
 
-export type { CreateItemResult, UpdateItemResult } from './_items-impl'
+export type { CreateItemResult, DeleteItemResult, UpdateItemResult } from './_items-impl'
 
 // ===============================
 // Shared types for read endpoints
@@ -157,39 +160,10 @@ export const updateItem = createServerFn({ method: 'POST' })
 // ===============================
 // Hard delete. FK cascades handle claims and comments.
 
-const DeleteItemInputSchema = z.object({
-	itemId: z.number().int().positive(),
-})
-
-export type DeleteItemResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
-
 export const deleteItem = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof DeleteItemInputSchema>) => DeleteItemInputSchema.parse(data))
-	.handler(async ({ context, data }): Promise<DeleteItemResult> => {
-		const userId = context.session.user.id
-
-		const item = await db.query.items.findFirst({
-			where: eq(items.id, data.itemId),
-			columns: { id: true, listId: true, imageUrl: true },
-		})
-		if (!item) return { kind: 'error', reason: 'not-found' }
-
-		const list = await db.query.lists.findFirst({
-			where: eq(lists.id, item.listId),
-			columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
-		})
-		if (!list) return { kind: 'error', reason: 'not-found' }
-
-		const perm = await assertCanEditItems(userId, list)
-		if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
-
-		await db.delete(items).where(eq(items.id, data.itemId))
-		// Post-commit storage cleanup. Best-effort; orphans are collected
-		// by the future storage-gc sweeper (TODO(storage-gc)).
-		await cleanupImageUrls([item.imageUrl])
-		return { kind: 'ok' }
-	})
+	.handler(({ context, data }): Promise<DeleteItemResult> => deleteItemImpl({ db, actor: { id: context.session.user.id }, input: data }))
 
 // ===============================
 // WRITE - archive/unarchive an item

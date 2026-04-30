@@ -210,3 +210,39 @@ export async function updateItemImpl(args: {
 
 	return { kind: 'ok', item: updated }
 }
+
+export const DeleteItemInputSchema = z.object({
+	itemId: z.number().int().positive(),
+})
+
+export type DeleteItemResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+
+export async function deleteItemImpl(args: {
+	db: SchemaDatabase
+	actor: { id: string }
+	input: z.output<typeof DeleteItemInputSchema>
+}): Promise<DeleteItemResult> {
+	const { db: dbx, actor, input } = args
+	const userId = actor.id
+
+	const item = await dbx.query.items.findFirst({
+		where: eq(items.id, input.itemId),
+		columns: { id: true, listId: true, imageUrl: true },
+	})
+	if (!item) return { kind: 'error', reason: 'not-found' }
+
+	const list = await dbx.query.lists.findFirst({
+		where: eq(lists.id, item.listId),
+		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+	})
+	if (!list) return { kind: 'error', reason: 'not-found' }
+
+	const perm = await assertCanEditItems(userId, list)
+	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
+
+	await dbx.delete(items).where(eq(items.id, input.itemId))
+	// Post-commit storage cleanup. Best-effort; orphans are collected by
+	// the future storage-gc sweeper (TODO(storage-gc)).
+	await cleanupImageUrls([item.imageUrl])
+	return { kind: 'ok' }
+}
