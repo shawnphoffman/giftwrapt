@@ -10,6 +10,7 @@ import { createList } from '@/api/lists'
 import { getGiftIdeasRecipients } from '@/api/user'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import { MarkdownTextarea } from '@/components/common/markdown-textarea'
+import UserAvatar from '@/components/common/user-avatar'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -211,7 +212,8 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 										<SelectContent>
 											{users?.map(u => (
 												<SelectItem key={u.id} value={u.id}>
-													{u.name || u.email}
+													<UserAvatar name={u.name || u.email} image={u.image} size="small" />
+													<span className="truncate">{u.name || u.email}</span>
 												</SelectItem>
 											))}
 										</SelectContent>
