@@ -27,6 +27,7 @@ import { ErrorBoundary } from '@/components/utilities/error-boundary'
 import { NavigationEvents } from '@/components/utilities/navigation-events'
 import { useAppSetting } from '@/hooks/use-app-settings'
 import { auth } from '@/lib/auth'
+import { useVersionCheck } from '@/lib/use-version-check'
 import { authMiddleware } from '@/middleware/auth'
 
 const checkSession = createServerFn({ method: 'GET' }).handler(async () => {
@@ -130,6 +131,7 @@ const feeds: Array<NavItem> = [
 
 function AuthenticatedRoutes() {
 	const appTitle = useAppSetting('appTitle')
+	useVersionCheck()
 	return (
 		<SidebarProvider>
 			<Sidebar variant="inset" collapsible="icon">

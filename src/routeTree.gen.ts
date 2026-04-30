@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as coreRouteRouteImport } from './routes/(core)/route'
 import { Route as coreIndexRouteImport } from './routes/(core)/index'
+import { Route as ApiVersionRouteImport } from './routes/api/version'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as coreTempRouteImport } from './routes/(core)/temp'
 import { Route as coreImportRouteImport } from './routes/(core)/import'
@@ -61,6 +62,11 @@ const coreIndexRoute = coreIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => coreRouteRoute,
+} as any)
+const ApiVersionRoute = ApiVersionRouteImport.update({
+  id: '/api/version',
+  path: '/api/version',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
@@ -278,6 +284,7 @@ export interface FileRoutesByFullPath {
   '/import': typeof coreImportRoute
   '/temp': typeof coreTempRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/version': typeof ApiVersionRoute
   '/': typeof coreIndexRoute
   '/admin/ai': typeof coreAdminAiRoute
   '/admin/data': typeof coreAdminDataRoute
@@ -320,6 +327,7 @@ export interface FileRoutesByTo {
   '/import': typeof coreImportRoute
   '/temp': typeof coreTempRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/version': typeof ApiVersionRoute
   '/': typeof coreIndexRoute
   '/admin/ai': typeof coreAdminAiRoute
   '/admin/data': typeof coreAdminDataRoute
@@ -366,6 +374,7 @@ export interface FileRoutesById {
   '/(core)/import': typeof coreImportRoute
   '/(core)/temp': typeof coreTempRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/version': typeof ApiVersionRoute
   '/(core)/': typeof coreIndexRoute
   '/(core)/admin/ai': typeof coreAdminAiRoute
   '/(core)/admin/data': typeof coreAdminDataRoute
@@ -412,6 +421,7 @@ export interface FileRouteTypes {
     | '/import'
     | '/temp'
     | '/api/health'
+    | '/api/version'
     | '/'
     | '/admin/ai'
     | '/admin/data'
@@ -454,6 +464,7 @@ export interface FileRouteTypes {
     | '/import'
     | '/temp'
     | '/api/health'
+    | '/api/version'
     | '/'
     | '/admin/ai'
     | '/admin/data'
@@ -499,6 +510,7 @@ export interface FileRouteTypes {
     | '/(core)/import'
     | '/(core)/temp'
     | '/api/health'
+    | '/api/version'
     | '/(core)/'
     | '/(core)/admin/ai'
     | '/(core)/admin/data'
@@ -541,6 +553,7 @@ export interface RootRouteChildren {
   authSignOutRoute: typeof authSignOutRoute
   authSignUpRoute: typeof authSignUpRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  ApiVersionRoute: typeof ApiVersionRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCronAutoArchiveRoute: typeof ApiCronAutoArchiveRoute
   ApiCronBirthdayEmailsRoute: typeof ApiCronBirthdayEmailsRoute
@@ -568,6 +581,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof coreIndexRouteImport
       parentRoute: typeof coreRouteRoute
+    }
+    '/api/version': {
+      id: '/api/version'
+      path: '/api/version'
+      fullPath: '/api/version'
+      preLoaderRoute: typeof ApiVersionRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/health': {
       id: '/api/health'
@@ -950,6 +970,7 @@ const rootRouteChildren: RootRouteChildren = {
   authSignOutRoute: authSignOutRoute,
   authSignUpRoute: authSignUpRoute,
   ApiHealthRoute: ApiHealthRoute,
+  ApiVersionRoute: ApiVersionRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCronAutoArchiveRoute: ApiCronAutoArchiveRoute,
   ApiCronBirthdayEmailsRoute: ApiCronBirthdayEmailsRoute,
