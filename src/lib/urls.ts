@@ -78,6 +78,15 @@ export function vendorIdToName(id: string): string {
 }
 
 /**
+ * True when the id corresponds to a curated rule in `commonDomains`
+ * (e.g. 'amazon', 'etsy'). Unknown vendors fall back to a hostname id
+ * and return false.
+ */
+export function isKnownVendor(id: string): boolean {
+	return idToName.has(id)
+}
+
+/**
  * Backwards-compatible display helper. Returns the friendly vendor name
  * for the URL, or '' if the URL can't be parsed.
  */

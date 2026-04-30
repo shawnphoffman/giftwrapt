@@ -1,5 +1,5 @@
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
-import { ArrowDown, ArrowUp, ArrowUpDown, Check, Filter, Store } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Check, Filter } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import type { ItemWithGifts } from '@/api/items'
@@ -17,12 +17,13 @@ import {
 import type { Priority } from '@/db/schema/enums'
 import { buildListEntries, type ListEntry } from '@/lib/list-entries'
 import { listItemsViewQueryOptions } from '@/lib/queries/items'
-import { getVendorFromUrl, parseInternalListLink, vendorIdToName } from '@/lib/urls'
+import { getVendorFromUrl, isKnownVendor, parseInternalListLink, vendorIdToName } from '@/lib/urls'
 import { cn } from '@/lib/utils'
 
 import { GroupViewBlock } from './group-view-block'
 import { InternalListLinksProvider } from './internal-list-links-context'
 import ItemRow from './item-row'
+import { VendorFilterDropdown, type VendorOption } from './vendor-filter-dropdown'
 
 type Props = {
 	listId: number
@@ -127,23 +128,20 @@ export default function ItemList({ listId, groups = [] }: Props) {
 		return fromUrl ?? NO_LINK_VENDOR_ID
 	}
 
-	const vendorOptions = useMemo(() => {
-		const seenIds = new Set<string>()
-		const opts: Array<{ id: string; name: string }> = []
-		let hasNoLink = false
+	const vendorOptions = useMemo<Array<VendorOption>>(() => {
+		const counts = new Map<string, number>()
 		for (const i of items) {
 			const id = effectiveVendorId(i)
+			counts.set(id, (counts.get(id) ?? 0) + 1)
+		}
+		const opts: Array<VendorOption> = []
+		for (const [id, count] of counts) {
 			if (id === NO_LINK_VENDOR_ID) {
-				hasNoLink = true
-				continue
-			}
-			if (!seenIds.has(id)) {
-				seenIds.add(id)
-				opts.push({ id, name: vendorIdToName(id) })
+				opts.push({ id, name: 'No link', count, isKnown: false })
+			} else {
+				opts.push({ id, name: vendorIdToName(id), count, isKnown: isKnownVendor(id) })
 			}
 		}
-		opts.sort((a, b) => a.name.localeCompare(b.name))
-		if (hasNoLink) opts.push({ id: NO_LINK_VENDOR_ID, name: 'No link' })
 		return opts
 	}, [items])
 
@@ -175,16 +173,6 @@ export default function ItemList({ listId, groups = [] }: Props) {
 		})
 	}
 
-	let vendorLabel: string
-	if (vendorFilter.size === 0) {
-		vendorLabel = 'All vendors'
-	} else if (vendorFilter.size === 1) {
-		const [only] = vendorFilter
-		vendorLabel = only === NO_LINK_VENDOR_ID ? 'No link' : vendorIdToName(only)
-	} else {
-		vendorLabel = `${vendorFilter.size} vendors`
-	}
-
 	const SortDirectionIcon = sortIsDescending(sort) ? ArrowDown : ArrowUp
 
 	return (
@@ -210,32 +198,12 @@ export default function ItemList({ listId, groups = [] }: Props) {
 					</DropdownMenu>
 
 					{vendorOptions.length >= 1 && (
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button
-									variant="ghost"
-									size="sm"
-									className={cn('h-7 text-xs text-muted-foreground', vendorFilter.size > 0 && 'text-foreground')}
-								>
-									<Store className="size-3.5" />
-									{vendorLabel}
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent align="end">
-								<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Vendor</DropdownMenuLabel>
-								<DropdownMenuItem onClick={() => setVendorFilter(new Set())}>
-									<Check className={cn('size-4', vendorFilter.size > 0 && 'opacity-0')} />
-									All vendors
-								</DropdownMenuItem>
-								<DropdownMenuSeparator />
-								{vendorOptions.map(v => (
-									<DropdownMenuItem key={v.id} onClick={() => toggleVendor(v.id)} onSelect={e => e.preventDefault()}>
-										<Check className={cn('size-4', !vendorFilter.has(v.id) && 'opacity-0')} />
-										{v.name}
-									</DropdownMenuItem>
-								))}
-							</DropdownMenuContent>
-						</DropdownMenu>
+						<VendorFilterDropdown
+							options={vendorOptions}
+							selected={vendorFilter}
+							onToggle={toggleVendor}
+							onClear={() => setVendorFilter(new Set())}
+						/>
 					)}
 
 					<DropdownMenu>
