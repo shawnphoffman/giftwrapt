@@ -1,4 +1,5 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useQueryClient } from '@tanstack/react-query'
+import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 
 import Loading from '@/components/loading'
@@ -10,6 +11,8 @@ export const Route = createFileRoute('/(auth)/sign-out')({
 
 function SignOut() {
 	const navigate = useNavigate()
+	const router = useRouter()
+	const queryClient = useQueryClient()
 	const [error, setError] = useState<string | null>(null)
 
 	useEffect(() => {
@@ -21,13 +24,24 @@ function SignOut() {
 			// next route's middleware/sign-in flow will treat the cookie as
 			// stale and clear it.
 			const SIGN_OUT_TIMEOUT_MS = 4_000
+			// Drop every client-side cache so the next user doesn't see the
+			// previous user's data: queryClient is a module-level singleton
+			// (root-provider.tsx) and TanStack DB collections (db-collections/)
+			// share it, so clearing here drains both. router.invalidate()
+			// forces loaders to refetch on the next route.
+			const purgeCaches = async () => {
+				queryClient.clear()
+				await router.invalidate()
+			}
 			try {
 				await Promise.race([
 					signOut(),
 					new Promise((_, reject) => setTimeout(() => reject(new Error('sign-out timed out')), SIGN_OUT_TIMEOUT_MS)),
 				])
+				await purgeCaches()
 				navigate({ to: '/sign-in' })
 			} catch (err) {
+				await purgeCaches()
 				setError(err instanceof Error ? err.message : 'Failed to sign out')
 				setTimeout(() => {
 					navigate({ to: '/sign-in' })
@@ -36,7 +50,7 @@ function SignOut() {
 		}
 
 		handleSignOut()
-	}, [navigate])
+	}, [navigate, router, queryClient])
 
 	if (error) {
 		return (
