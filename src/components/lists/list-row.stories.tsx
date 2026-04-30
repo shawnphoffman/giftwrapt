@@ -80,6 +80,24 @@ export const RecipientGiftIdeas: Story = {
 	},
 }
 
+export const RecipientGiftIdeasWithAvatar: Story = {
+	args: {
+		role: 'recipient',
+		list: {
+			...recipientBase,
+			name: 'Ideas for Morgan',
+			type: 'giftideas',
+			giftIdeasTargetUserId: 'user-3',
+			giftIdeasTarget: {
+				id: 'user-3',
+				name: 'Morgan Example',
+				email: 'morgan@example.com',
+				image: 'https://i.pravatar.cc/128?img=22',
+			},
+		},
+	},
+}
+
 export const RecipientEmpty: Story = {
 	args: { role: 'recipient', list: { ...recipientBase, name: 'Brand new', itemCount: 0 } },
 }
