@@ -142,9 +142,13 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description, g
 						<Label htmlFor={field.name}>Name</Label>
 						<Input
 							id={field.name}
+							name="list-name"
 							value={field.state.value}
 							onChange={e => field.handleChange(e.target.value)}
 							disabled={submitting}
+							autoComplete="off"
+							data-1p-ignore
+							data-lpignore="true"
 							maxLength={LIMITS.LIST_NAME}
 						/>
 					</div>

@@ -80,9 +80,13 @@ export function GroupEditDialog({ open, onOpenChange, group, listId }: Props) {
 						<Label htmlFor={`group-name-${group.id}`}>Name (optional)</Label>
 						<Input
 							id={`group-name-${group.id}`}
+							name="group-name"
 							value={name}
 							onChange={e => setName(e.target.value)}
 							placeholder="Unnamed"
+							autoComplete="off"
+							data-1p-ignore
+							data-lpignore="true"
 							maxLength={LIMITS.SHORT_NAME}
 							disabled={saving}
 						/>

@@ -307,12 +307,16 @@ export function ItemFormDialog(props: Props) {
 								<Label htmlFor={field.name}>Title</Label>
 								<Input
 									id={field.name}
+									name="item-title"
 									placeholder="e.g. AirPods Pro"
 									value={field.state.value}
 									onChange={e => field.handleChange(e.target.value)}
 									onBlur={field.handleBlur}
 									disabled={formLocked}
 									autoFocus={isEdit}
+									autoComplete="off"
+									data-1p-ignore
+									data-lpignore="true"
 									maxLength={LIMITS.ITEM_TITLE}
 								/>
 								{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
