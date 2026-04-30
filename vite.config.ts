@@ -67,11 +67,12 @@ const securityHeaders = {
 		// 'unsafe-eval' is needed by something in the production bundle (a wasm
 		// shim or one of the @tanstack libs); blocking it surfaces as an
 		// uncaught CSP error and a stuck loading spinner.
-		"script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+		"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live",
 		"style-src 'self' 'unsafe-inline'",
 		"img-src 'self' data: https:",
 		"font-src 'self' data:",
-		"connect-src 'self'",
+		"connect-src 'self' https://vercel.live wss://ws-us3.pusher.com",
+		'frame-src https://vercel.live',
 		"object-src 'none'",
 		"base-uri 'self'",
 		"form-action 'self'",
