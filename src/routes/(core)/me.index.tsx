@@ -81,6 +81,9 @@ function MyListsPage() {
 	const search = Route.useSearch()
 	const navigate = useNavigate()
 
+	const editableGiftIdeas = data.editable.filter(l => l.type === 'giftideas')
+	const editableOther = data.editable.filter(l => l.type !== 'giftideas')
+
 	useEffect(() => {
 		if (search.url) {
 			setPendingUrl(search.url)
@@ -140,11 +143,30 @@ function MyListsPage() {
 					/>
 
 					{/* GIFT IDEAS LISTS */}
-					<ListSection
-						title="Gift Ideas for Others"
-						description="Idea lists for other people. Helpful for adding things throughout the year that you think someone might like."
-						lists={data.giftIdeas}
-					/>
+					<ListsCard>
+						<ListsCardHeader className="flex-col items-start gap-1">
+							<ListsCardTitle>Gift Ideas for Others</ListsCardTitle>
+							<ListsCardDescription className="italic">
+								Idea lists for other people. Helpful for adding things throughout the year that you think someone might like.
+							</ListsCardDescription>
+						</ListsCardHeader>
+						<ListsCardLists>
+							{data.giftIdeas.length === 0 && editableGiftIdeas.length === 0 ? (
+								<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30 italic">
+									No lists yet.
+								</div>
+							) : (
+								<>
+									{data.giftIdeas.map(list => (
+										<ListRow key={list.id} role="recipient" list={list} />
+									))}
+									{editableGiftIdeas.map(list => (
+										<ListRow key={list.id} role="recipient" list={list} showOwner={{ name: list.ownerName, email: list.ownerEmail }} />
+									))}
+								</>
+							)}
+						</ListsCardLists>
+					</ListsCard>
 
 					{/* CHILDREN'S LISTS */}
 					{data.children.length > 0 && (
@@ -164,14 +186,14 @@ function MyListsPage() {
 					)}
 
 					{/* EDITABLE LISTS */}
-					{data.editable.length > 0 && (
+					{editableOther.length > 0 && (
 						<ListsCard>
 							<ListsCardHeader className="flex-col items-start gap-1">
 								<ListsCardTitle>Lists I Can Edit</ListsCardTitle>
 								<ListsCardDescription className="italic">Lists that others created and added you as an editor.</ListsCardDescription>
 							</ListsCardHeader>
 							<ListsCardLists>
-								{data.editable.map(list => (
+								{editableOther.map(list => (
 									<ListRow key={list.id} role="recipient" list={list} showOwner={{ name: list.ownerName, email: list.ownerEmail }} />
 								))}
 							</ListsCardLists>
