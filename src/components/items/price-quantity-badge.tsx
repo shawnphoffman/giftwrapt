@@ -17,6 +17,10 @@ export function PriceQuantityBadge({ price, quantity, hideQuantity = false, clas
 	const showQty = !hideQuantity && quantity > 1
 	if (!showPrice && !showQty) return null
 
+	const trimmed = price?.trim() ?? ''
+	const isNumeric = /^\d+(\.\d+)?$/.test(trimmed)
+	const displayPrice = isNumeric ? `$${trimmed}` : trimmed
+
 	return (
 		<span
 			className={cn(
@@ -24,7 +28,7 @@ export function PriceQuantityBadge({ price, quantity, hideQuantity = false, clas
 				className
 			)}
 		>
-			{showPrice && <span className={cn('py-0.5 pl-2 text-foreground', showQty ? 'pr-1' : 'pr-2')}>${price}</span>}
+			{showPrice && <span className={cn('py-0.5 pl-2 text-foreground', showQty ? 'pr-1' : 'pr-2')}>{displayPrice}</span>}
 			{showPrice && showQty && <span className="w-px bg-border" aria-hidden />}
 			{showQty && <span className={cn('py-0.5 pr-2 text-foreground', showPrice ? 'pl-1' : 'pl-2')}>x{quantity}</span>}
 		</span>

@@ -34,3 +34,19 @@ export const Empty: Story = {
 		docs: { description: { story: 'No price and quantity of 1: renders nothing.' } },
 	},
 }
+
+export const PriceWithLeadingSymbol: Story = {
+	args: { price: '$2800', quantity: 1 },
+	parameters: {
+		docs: {
+			description: { story: 'Price already includes a currency symbol: render as-is, do not prepend another $.' },
+		},
+	},
+}
+
+export const PriceNonNumeric: Story = {
+	args: { price: 'Free', quantity: 1 },
+	parameters: {
+		docs: { description: { story: 'Non-numeric price: render the value as-is without a leading $.' } },
+	},
+}
