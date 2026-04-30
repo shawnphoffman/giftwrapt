@@ -19,6 +19,7 @@ type Props = {
 	editors: Array<EditorOnList>
 	addableUsers: Array<AddableEditorUser>
 	isOwner: boolean
+	defaultOpen?: boolean
 }
 
 export function ListSettingsSheet({
@@ -31,8 +32,9 @@ export function ListSettingsSheet({
 	editors,
 	addableUsers,
 	isOwner,
+	defaultOpen = false,
 }: Props) {
-	const [open, setOpen] = useState(false)
+	const [open, setOpen] = useState(defaultOpen)
 
 	return (
 		<Sheet open={open} onOpenChange={setOpen}>

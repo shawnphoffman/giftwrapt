@@ -3,7 +3,7 @@ import { and, asc, eq, inArray, ne, notInArray } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
-import { listEditors, lists, users } from '@/db/schema'
+import { listEditors, lists, userRelationships, users } from '@/db/schema'
 import type { ListType, Role } from '@/db/schema/enums'
 import { loggingMiddleware } from '@/lib/logger'
 import { authMiddleware } from '@/middleware/auth'
@@ -125,9 +125,10 @@ export const addListEditor = createServerFn({ method: 'POST' })
 // ===============================
 // READ - users eligible to be added as editors
 // ===============================
-// Returns every user who is not the list owner and not already an editor.
-// Includes role so the UI can disable child accounts. Only the list owner
-// gets a populated list; others receive [].
+// Returns every user who is not the list owner, not already an editor, and
+// not someone the owner has explicitly denied view access to. Includes role
+// so the UI can disable child accounts. Only the list owner gets a populated
+// list; others receive [].
 
 export type AddableEditorUser = {
 	id: string
@@ -153,10 +154,16 @@ export const getAddableEditors = createServerFn({ method: 'GET' })
 			where: eq(listEditors.listId, data.listId),
 			columns: { userId: true },
 		})
-		const takenIds = existing.map(e => e.userId)
+
+		const denied = await db.query.userRelationships.findMany({
+			where: and(eq(userRelationships.ownerUserId, ownerId), eq(userRelationships.canView, false)),
+			columns: { viewerUserId: true },
+		})
+
+		const excludedIds = Array.from(new Set([...existing.map(e => e.userId), ...denied.map(d => d.viewerUserId)]))
 
 		const rows = await db.query.users.findMany({
-			where: takenIds.length > 0 ? and(ne(users.id, ownerId), notInArray(users.id, takenIds)) : ne(users.id, ownerId),
+			where: excludedIds.length > 0 ? and(ne(users.id, ownerId), notInArray(users.id, excludedIds)) : ne(users.id, ownerId),
 			columns: { id: true, name: true, email: true, image: true, role: true },
 			orderBy: [asc(users.name), asc(users.email)],
 		})

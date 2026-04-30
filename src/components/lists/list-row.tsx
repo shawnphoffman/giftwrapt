@@ -188,7 +188,7 @@ function RecipientRow({
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
 						<DropdownMenuItem asChild>
-							<Link to="/lists/$listId/edit" params={{ listId: String(list.id) }}>
+							<Link to="/lists/$listId/edit" params={{ listId: String(list.id) }} search={{ settings: true }}>
 								<Pencil className="size-4" /> Edit
 							</Link>
 						</DropdownMenuItem>

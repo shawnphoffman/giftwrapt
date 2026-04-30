@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, notFound, useRouter } from '@tanstack/react-router'
 import { Group as GroupIcon, ListOrdered, Plus, Settings2, Shuffle } from 'lucide-react'
-import { Suspense, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { createItemGroup, deleteItemGroup, reorderGroupItems } from '@/api/groups'
@@ -27,13 +27,17 @@ import { itemsKeys, listItemsEditQueryOptions } from '@/lib/queries/items'
 import { parseInternalListLink } from '@/lib/urls'
 import { useScrollToHash } from '@/lib/use-scroll-to-hash'
 
-type EditSearch = { from?: number }
+type EditSearch = { from?: number; settings?: boolean }
 
 export const Route = createFileRoute('/(core)/lists_/$listId/edit')({
 	validateSearch: (search: Record<string, unknown>): EditSearch => {
-		const raw = search.from
-		const num = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw) : NaN
-		return Number.isFinite(num) && num > 0 ? { from: num } : {}
+		const result: EditSearch = {}
+		const rawFrom = search.from
+		const num = typeof rawFrom === 'number' ? rawFrom : typeof rawFrom === 'string' ? Number(rawFrom) : NaN
+		if (Number.isFinite(num) && num > 0) result.from = num
+		const rawSettings = search.settings
+		if (rawSettings === true || rawSettings === 'true' || rawSettings === 1 || rawSettings === '1') result.settings = true
+		return result
 	},
 	loader: async ({ params, context }) => {
 		const listId = Number(params.listId)
@@ -78,13 +82,21 @@ function ListEditPagePending() {
 
 function ListEditPage() {
 	const { list, editors, addableUsers } = Route.useLoaderData()
-	const { from } = Route.useSearch()
+	const { from, settings } = Route.useSearch()
 	const router = useRouter()
+	const navigate = Route.useNavigate()
 	const queryClient = useQueryClient()
 	const [addItemOpen, setAddItemOpen] = useState(false)
 	const [addItemGroupId, setAddItemGroupId] = useState<number | null>(null)
 	const [moveItem, setMoveItem] = useState<Item | null>(null)
 	useScrollToHash([list.id])
+
+	const initialSettingsOpen = useRef(settings === true).current
+	useEffect(() => {
+		if (settings) {
+			void navigate({ search: prev => ({ ...prev, settings: undefined }), replace: true })
+		}
+	}, [settings, navigate])
 
 	const refreshAfterGroupChange = () =>
 		Promise.all([router.invalidate(), queryClient.invalidateQueries({ queryKey: itemsKeys.byList(list.id) })])
@@ -145,6 +157,7 @@ function ListEditPage() {
 							editors={editors}
 							addableUsers={addableUsers}
 							isOwner={list.isOwner}
+							defaultOpen={initialSettingsOpen}
 						/>
 					</div>
 					<ListTypeIcon type={list.type} className="wish-page-icon" />
