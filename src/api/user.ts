@@ -1,11 +1,11 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
-import { and, asc, eq, inArray, ne, or } from 'drizzle-orm'
+import { and, asc, eq, ne, notInArray } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
 import type { BirthMonth } from '@/db/schema'
-import { guardianships, users } from '@/db/schema'
+import { userRelationships, users } from '@/db/schema'
 import { auth } from '@/lib/auth'
 import { loggingMiddleware } from '@/lib/logger'
 import { LIMITS } from '@/lib/validation/limits'
@@ -48,8 +48,9 @@ export const getPotentialPartners = createServerFn({
 		return potentialPartners
 	})
 
-// Get recipients eligible for a gift-ideas list: non-child users (excluding the
-// current user) plus any children the current user is a guardian of.
+// Get recipients eligible for a gift-ideas list: anyone the current user could
+// plausibly buy gifts for, i.e. any user except themselves and anyone who has
+// explicitly hidden their lists from the current user.
 export const getGiftIdeasRecipients = createServerFn({
 	method: 'GET',
 })
@@ -57,14 +58,14 @@ export const getGiftIdeasRecipients = createServerFn({
 	.handler(async ({ context }) => {
 		const currentUserId = context.session.user.id
 
-		const myWards = await db.query.guardianships.findMany({
-			where: eq(guardianships.parentUserId, currentUserId),
-			columns: { childUserId: true },
-		})
-		const wardIds = myWards.map(g => g.childUserId)
+		const blockers = await db
+			.select({ ownerUserId: userRelationships.ownerUserId })
+			.from(userRelationships)
+			.where(and(eq(userRelationships.viewerUserId, currentUserId), eq(userRelationships.canView, false)))
+		const blockedOwnerIds = blockers.map(b => b.ownerUserId)
 
 		const recipients = await db.query.users.findMany({
-			where: and(ne(users.id, currentUserId), or(ne(users.role, 'child'), wardIds.length > 0 ? inArray(users.id, wardIds) : undefined)),
+			where: and(ne(users.id, currentUserId), blockedOwnerIds.length > 0 ? notInArray(users.id, blockedOwnerIds) : undefined),
 			orderBy: [asc(users.name), asc(users.email)],
 			columns: {
 				id: true,
