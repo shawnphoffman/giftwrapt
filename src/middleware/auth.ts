@@ -49,8 +49,10 @@ function buildSignInSearch(request: Request): { redirect?: string } {
 // Clear the cookies on the way to /sign-in so the client-side session state
 // actually flips to signed-out.
 //
-// Cached per warm serverless instance for 10 minutes to match better-auth's
-// cookieCache.refreshCache.updateAge window. Cold starts revalidate naturally.
+// Cached per warm serverless instance for 10 minutes. better-auth's
+// cookieCache trusts the encrypted cookie for its full maxAge (24h) without
+// hitting the DB, so this middleware is the actual "user still exists / is
+// still a real account" check. Cold starts revalidate naturally.
 const LIVE_USER_TTL_MS = 10 * 60 * 1000
 const liveUserCache = new Map<string, number>()
 

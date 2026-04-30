@@ -188,17 +188,16 @@ const options = {
 	session: {
 		cookieCache: {
 			enabled: true,
-			// 24h upper bound on the encrypted session cookie. Combined
-			// with `refreshCache.updateAge: 10m` (active users get
-			// re-checked against the DB every 10 minutes anyway), this is
-			// the worst-case staleness window for an idle user's role /
-			// status. Was 7d before sec-review H8; shorter caps the
-			// blast radius of a stolen-but-idle cookie and of a recently
-			// demoted account that hasn't pinged the server yet.
+			// 24h upper bound on the encrypted session cookie. The DB
+			// re-check on every authenticated request is handled by
+			// `requireLiveUser` in src/middleware/auth.ts (10-min
+			// per-instance TTL), so this is the worst-case staleness
+			// window for an idle user's role / status before the
+			// middleware path runs again. Was 7d before sec-review H8;
+			// shorter caps the blast radius of a stolen-but-idle cookie
+			// and of a recently demoted account that hasn't pinged the
+			// server yet.
 			maxAge: 60 * 60 * 24, // 24 hours
-			refreshCache: {
-				updateAge: 60 * 10, // Refresh against DB every 10 minutes
-			},
 		},
 	},
 } satisfies BetterAuthOptions
@@ -271,9 +270,6 @@ export const auth = betterAuth({
 			// the explanation there. Both copies are merged by
 			// customSession.
 			maxAge: 60 * 60 * 24, // 24 hours
-			refreshCache: {
-				updateAge: 60 * 10, // Refresh against DB every 10 minutes
-			},
 		},
 	},
 })

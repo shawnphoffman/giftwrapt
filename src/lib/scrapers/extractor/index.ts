@@ -1,4 +1,10 @@
-import * as cheerio from 'cheerio'
+// `cheerio/slim` exports the same `load` we use, but skips the top-level
+// `import * as undici from 'undici'` that the full entry does for
+// `cheerio.fromURL`. Vite hoists undici's lazy `require('node:sqlite')`
+// into a static top-level `import 'node:sqlite'` in the bundled server
+// output, which trips Node's "ExperimentalWarning: SQLite" at boot. We
+// never call `fromURL`, so slim is a drop-in.
+import * as cheerio from 'cheerio/slim'
 
 import type { ScrapeResult } from '../types'
 import { parseHeuristics } from './heuristics'
