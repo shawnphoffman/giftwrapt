@@ -18,6 +18,10 @@ export type SummaryItem = {
 	giftId: number | null
 	addonId: number | null
 	isOwn: boolean
+	// True when this purchase was made by the current user's partner (primary
+	// gifter is the partner, not a co-gifter). Used to surface a partner
+	// avatar on the row.
+	isPartnerPurchase: boolean
 	// True when the current user (or their partner) is only a co-gifter on this
 	// claim, never the primary. Co-gifter claims are shown with $0 until we
 	// build UI to capture per-gifter spend.
@@ -36,9 +40,14 @@ export type SummaryItem = {
 	ownerImage: string | null
 }
 
+export type PurchaseSummary = {
+	items: Array<SummaryItem>
+	partner: { name: string; image: string | null } | null
+}
+
 export const getPurchaseSummary = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware, loggingMiddleware])
-	.handler(async ({ context }): Promise<Array<SummaryItem>> => {
+	.handler(async ({ context }): Promise<PurchaseSummary> => {
 		const userId = context.session.user.id
 
 		const currentUser = await db.query.users.findFirst({
@@ -46,6 +55,14 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 			columns: { partnerId: true },
 		})
 		const myPartnerId = currentUser?.partnerId ?? null
+
+		const partnerUser = myPartnerId
+			? await db.query.users.findFirst({
+					where: eq(users.id, myPartnerId),
+					columns: { name: true, email: true, image: true },
+				})
+			: null
+		const partner = partnerUser ? { name: partnerUser.name || partnerUser.email, image: partnerUser.image } : null
 
 		const gifterIds = [userId]
 		if (myPartnerId) gifterIds.push(myPartnerId)
@@ -113,6 +130,7 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 		const claims: Array<SummaryItem> = claimRows.map(r => {
 			const isPrimary = gifterIds.includes(r.gifterId)
 			const isCoGifter = !isPrimary
+			const isOwn = r.gifterId === userId
 			// Co-gifter spend is unknown per gifter today; zero it out so totals
 			// and averages don't double-count the primary's total.
 			const cost = isCoGifter ? 0 : r.totalCost ? parseFloat(r.totalCost) : null
@@ -120,7 +138,8 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 				type: 'claim',
 				giftId: r.giftId,
 				addonId: null,
-				isOwn: r.gifterId === userId,
+				isOwn,
+				isPartnerPurchase: !isOwn && !isCoGifter && myPartnerId !== null && r.gifterId === myPartnerId,
 				isCoGifter,
 				title: r.itemTitle,
 				itemUrl: r.itemUrl,
@@ -142,6 +161,7 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 			giftId: null,
 			addonId: r.addonId,
 			isOwn: r.gifterId === userId,
+			isPartnerPurchase: r.gifterId !== userId && myPartnerId !== null && r.gifterId === myPartnerId,
 			isCoGifter: false,
 			title: r.description,
 			itemUrl: null,
@@ -157,5 +177,5 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 			ownerImage: r.listOwnerImage,
 		}))
 
-		return [...claims, ...addons]
+		return { items: [...claims, ...addons], partner }
 	})

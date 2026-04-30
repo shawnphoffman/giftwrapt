@@ -91,7 +91,7 @@ export const getListForEditing = () => Promise.resolve({ kind: 'ok' as const, li
 export const getListSummaries = (): Promise<{ summaries: Array<unknown> }> => Promise.resolve({ summaries: [] })
 
 // @/api/purchases
-export const getPurchaseSummary = (): Promise<Array<unknown>> => Promise.resolve([])
+export const getPurchaseSummary = (): Promise<{ items: Array<unknown>; partner: null }> => Promise.resolve({ items: [], partner: null })
 
 // @/api/list-addons
 export const createListAddon = ok

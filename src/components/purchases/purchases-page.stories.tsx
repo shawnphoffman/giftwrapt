@@ -23,6 +23,7 @@ function item(overrides: Partial<SummaryItem>): SummaryItem {
 		giftId: 1,
 		addonId: null,
 		isOwn: true,
+		isPartnerPurchase: false,
 		isCoGifter: false,
 		title: 'Untitled',
 		itemUrl: null,
@@ -203,21 +204,40 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const MultiplePeople: Story = {
-	args: { items: allItems },
+	args: { items: allItems, partner: null },
 }
 
 export const SinglePerson: Story = {
-	args: { items: jamieItems },
+	args: { items: jamieItems, partner: null },
 }
 
 export const WithPartner: Story = {
-	args: { items: samItems },
+	args: { items: samItems, partner: null },
+}
+
+export const WithPartnerPurchases: Story = {
+	args: {
+		items: [
+			...jamieItems.slice(0, 1),
+			{
+				...jamieItems[1],
+				isOwn: false,
+				isPartnerPurchase: true,
+			},
+			{
+				...jamieItems[3],
+				isOwn: false,
+				isPartnerPurchase: true,
+			},
+		],
+		partner: { name: 'Alex Partner', image: null },
+	},
 }
 
 export const WithCoGifter: Story = {
-	args: { items: coGifterItems },
+	args: { items: coGifterItems, partner: null },
 }
 
 export const Empty: Story = {
-	args: { items: [] },
+	args: { items: [], partner: null },
 }

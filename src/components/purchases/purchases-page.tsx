@@ -55,6 +55,7 @@ function toEditable(item: SummaryItem): EditablePurchase | null {
 
 type Props = {
 	items: Array<SummaryItem>
+	partner: { name: string; image: string | null } | null
 }
 
 type Timeframe = '30d' | '60d' | '6m' | '12m' | 'all'
@@ -130,7 +131,7 @@ function buildMonthlyBuckets(items: Array<SummaryItem>): Array<MonthBucket> {
 	return result
 }
 
-export function PurchasesPageContent({ items }: Props) {
+export function PurchasesPageContent({ items, partner }: Props) {
 	const [timeframe, setTimeframe] = useState<Timeframe>('6m')
 	const [openKeys, setOpenKeys] = useState<Set<string>>(new Set())
 	const [editing, setEditing] = useState<EditablePurchase | null>(null)
@@ -333,7 +334,7 @@ export function PurchasesPageContent({ items }: Props) {
 															<div className="overflow-hidden">
 																<div className="divide-y border-b bg-muted/50">
 																	{g.items.map((item, i) => (
-																		<PurchaseDetailRow key={`${g.key}-${i}`} item={item} onEdit={() => openEdit(item)} />
+																		<PurchaseDetailRow key={`${g.key}-${i}`} item={item} partner={partner} onEdit={() => openEdit(item)} />
 																	))}
 																</div>
 															</div>
@@ -467,9 +468,18 @@ export function PurchasesPageContent({ items }: Props) {
 	)
 }
 
-function PurchaseDetailRow({ item, onEdit }: { item: SummaryItem; onEdit: () => void }) {
+function PurchaseDetailRow({
+	item,
+	partner,
+	onEdit,
+}: {
+	item: SummaryItem
+	partner: { name: string; image: string | null } | null
+	onEdit: () => void
+}) {
 	const hasNotes = !!item.notes
 	const editable = item.isOwn && !item.isCoGifter
+	const showPartner = item.isPartnerPurchase && partner !== null
 
 	return (
 		<div className="flex items-start gap-3 px-3 py-2.5">
@@ -507,7 +517,19 @@ function PurchaseDetailRow({ item, onEdit }: { item: SummaryItem; onEdit: () => 
 					)}
 				</div>
 				{hasNotes && <MarkdownNotes content={item.notes!} className="text-xs text-foreground/75 mt-0.5" />}
-				<div className="text-xs text-muted-foreground truncate">{item.listName}</div>
+				<div className="flex items-center gap-1.5 min-w-0">
+					{showPartner && (
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<span className="shrink-0" onClick={e => e.stopPropagation()}>
+									<UserAvatar name={partner.name} image={partner.image} size="small" />
+								</span>
+							</TooltipTrigger>
+							<TooltipContent>Claimed by your partner ({partner.name})</TooltipContent>
+						</Tooltip>
+					)}
+					<div className="text-xs text-muted-foreground truncate">{item.listName}</div>
+				</div>
 			</div>
 			{item.type === 'claim' && item.quantity > 1 && (
 				<Badge variant="secondary" className="text-xs tabular-nums shrink-0">

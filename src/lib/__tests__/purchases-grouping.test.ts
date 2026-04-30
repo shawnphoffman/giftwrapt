@@ -10,6 +10,7 @@ function item(overrides: Partial<SummaryItem> = {}): SummaryItem {
 		giftId: 1,
 		addonId: null,
 		isOwn: true,
+		isPartnerPurchase: false,
 		isCoGifter: false,
 		title: 'A thing',
 		itemUrl: null,

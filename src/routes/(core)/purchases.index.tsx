@@ -9,6 +9,6 @@ export const Route = createFileRoute('/(core)/purchases/')({
 })
 
 function PurchasesPage() {
-	const items = Route.useLoaderData()
-	return <PurchasesPageContent items={items} />
+	const data = Route.useLoaderData()
+	return <PurchasesPageContent items={data.items} partner={data.partner} />
 }
