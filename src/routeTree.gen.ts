@@ -13,13 +13,14 @@ import { Route as coreRouteRouteImport } from './routes/(core)/route'
 import { Route as coreIndexRouteImport } from './routes/(core)/index'
 import { Route as ApiVersionRouteImport } from './routes/api/version'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
-import { Route as coreTempRouteImport } from './routes/(core)/temp'
 import { Route as coreImportRouteImport } from './routes/(core)/import'
 import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
 import { Route as authSignOutRouteImport } from './routes/(auth)/sign-out'
 import { Route as authSignInRouteImport } from './routes/(auth)/sign-in'
+import { Route as coreTempRouteRouteImport } from './routes/(core)/temp/route'
 import { Route as coreSettingsRouteRouteImport } from './routes/(core)/settings/route'
 import { Route as coreAdminRouteRouteImport } from './routes/(core)/admin/route'
+import { Route as coreTempIndexRouteImport } from './routes/(core)/temp/index'
 import { Route as coreSettingsIndexRouteImport } from './routes/(core)/settings/index'
 import { Route as corePurchasesIndexRouteImport } from './routes/(core)/purchases.index'
 import { Route as coreMeIndexRouteImport } from './routes/(core)/me.index'
@@ -33,6 +34,7 @@ import { Route as ApiCronCleanupVerificationRouteImport } from './routes/api/cro
 import { Route as ApiCronBirthdayEmailsRouteImport } from './routes/api/cron/birthday-emails'
 import { Route as ApiCronAutoArchiveRouteImport } from './routes/api/cron/auto-archive'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as coreTempWidgetsRouteImport } from './routes/(core)/temp/widgets'
 import { Route as coreSettingsSecurityRouteImport } from './routes/(core)/settings/security'
 import { Route as coreSettingsPermissionsRouteImport } from './routes/(core)/settings/permissions'
 import { Route as coreSettingsDevicesRouteImport } from './routes/(core)/settings/devices'
@@ -74,11 +76,6 @@ const ApiHealthRoute = ApiHealthRouteImport.update({
   path: '/api/health',
   getParentRoute: () => rootRouteImport,
 } as any)
-const coreTempRoute = coreTempRouteImport.update({
-  id: '/temp',
-  path: '/temp',
-  getParentRoute: () => coreRouteRoute,
-} as any)
 const coreImportRoute = coreImportRouteImport.update({
   id: '/import',
   path: '/import',
@@ -99,6 +96,11 @@ const authSignInRoute = authSignInRouteImport.update({
   path: '/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
+const coreTempRouteRoute = coreTempRouteRouteImport.update({
+  id: '/temp',
+  path: '/temp',
+  getParentRoute: () => coreRouteRoute,
+} as any)
 const coreSettingsRouteRoute = coreSettingsRouteRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -108,6 +110,11 @@ const coreAdminRouteRoute = coreAdminRouteRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => coreRouteRoute,
+} as any)
+const coreTempIndexRoute = coreTempIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => coreTempRouteRoute,
 } as any)
 const coreSettingsIndexRoute = coreSettingsIndexRouteImport.update({
   id: '/',
@@ -174,6 +181,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
+} as any)
+const coreTempWidgetsRoute = coreTempWidgetsRouteImport.update({
+  id: '/widgets',
+  path: '/widgets',
+  getParentRoute: () => coreTempRouteRoute,
 } as any)
 const coreSettingsSecurityRoute = coreSettingsSecurityRouteImport.update({
   id: '/security',
@@ -284,11 +296,11 @@ const coreAdminUserIdRoute = coreAdminUserIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/admin': typeof coreAdminRouteRouteWithChildren
   '/settings': typeof coreSettingsRouteRouteWithChildren
+  '/temp': typeof coreTempRouteRouteWithChildren
   '/sign-in': typeof authSignInRoute
   '/sign-out': typeof authSignOutRoute
   '/sign-up': typeof authSignUpRoute
   '/import': typeof coreImportRoute
-  '/temp': typeof coreTempRoute
   '/api/health': typeof ApiHealthRoute
   '/api/version': typeof ApiVersionRoute
   '/': typeof coreIndexRoute
@@ -308,6 +320,7 @@ export interface FileRoutesByFullPath {
   '/settings/devices': typeof coreSettingsDevicesRoute
   '/settings/permissions': typeof coreSettingsPermissionsRoute
   '/settings/security': typeof coreSettingsSecurityRoute
+  '/temp/widgets': typeof coreTempWidgetsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
@@ -321,6 +334,7 @@ export interface FileRoutesByFullPath {
   '/me': typeof coreMeIndexRoute
   '/purchases': typeof corePurchasesIndexRoute
   '/settings/': typeof coreSettingsIndexRoute
+  '/temp/': typeof coreTempIndexRoute
   '/admin/user/$id': typeof coreAdminUserIdRoute
   '/lists/$listId/bulk': typeof coreListsListIdBulkRoute
   '/lists/$listId/edit': typeof coreListsListIdEditRoute
@@ -332,7 +346,6 @@ export interface FileRoutesByTo {
   '/sign-out': typeof authSignOutRoute
   '/sign-up': typeof authSignUpRoute
   '/import': typeof coreImportRoute
-  '/temp': typeof coreTempRoute
   '/api/health': typeof ApiHealthRoute
   '/api/version': typeof ApiVersionRoute
   '/': typeof coreIndexRoute
@@ -352,6 +365,7 @@ export interface FileRoutesByTo {
   '/settings/devices': typeof coreSettingsDevicesRoute
   '/settings/permissions': typeof coreSettingsPermissionsRoute
   '/settings/security': typeof coreSettingsSecurityRoute
+  '/temp/widgets': typeof coreTempWidgetsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
@@ -365,6 +379,7 @@ export interface FileRoutesByTo {
   '/me': typeof coreMeIndexRoute
   '/purchases': typeof corePurchasesIndexRoute
   '/settings': typeof coreSettingsIndexRoute
+  '/temp': typeof coreTempIndexRoute
   '/admin/user/$id': typeof coreAdminUserIdRoute
   '/lists/$listId/bulk': typeof coreListsListIdBulkRoute
   '/lists/$listId/edit': typeof coreListsListIdEditRoute
@@ -376,11 +391,11 @@ export interface FileRoutesById {
   '/(core)': typeof coreRouteRouteWithChildren
   '/(core)/admin': typeof coreAdminRouteRouteWithChildren
   '/(core)/settings': typeof coreSettingsRouteRouteWithChildren
+  '/(core)/temp': typeof coreTempRouteRouteWithChildren
   '/(auth)/sign-in': typeof authSignInRoute
   '/(auth)/sign-out': typeof authSignOutRoute
   '/(auth)/sign-up': typeof authSignUpRoute
   '/(core)/import': typeof coreImportRoute
-  '/(core)/temp': typeof coreTempRoute
   '/api/health': typeof ApiHealthRoute
   '/api/version': typeof ApiVersionRoute
   '/(core)/': typeof coreIndexRoute
@@ -400,6 +415,7 @@ export interface FileRoutesById {
   '/(core)/settings/devices': typeof coreSettingsDevicesRoute
   '/(core)/settings/permissions': typeof coreSettingsPermissionsRoute
   '/(core)/settings/security': typeof coreSettingsSecurityRoute
+  '/(core)/temp/widgets': typeof coreTempWidgetsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
@@ -413,6 +429,7 @@ export interface FileRoutesById {
   '/(core)/me/': typeof coreMeIndexRoute
   '/(core)/purchases/': typeof corePurchasesIndexRoute
   '/(core)/settings/': typeof coreSettingsIndexRoute
+  '/(core)/temp/': typeof coreTempIndexRoute
   '/(core)/admin/user/$id': typeof coreAdminUserIdRoute
   '/(core)/lists_/$listId/bulk': typeof coreListsListIdBulkRoute
   '/(core)/lists_/$listId/edit': typeof coreListsListIdEditRoute
@@ -424,11 +441,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/admin'
     | '/settings'
+    | '/temp'
     | '/sign-in'
     | '/sign-out'
     | '/sign-up'
     | '/import'
-    | '/temp'
     | '/api/health'
     | '/api/version'
     | '/'
@@ -448,6 +465,7 @@ export interface FileRouteTypes {
     | '/settings/devices'
     | '/settings/permissions'
     | '/settings/security'
+    | '/temp/widgets'
     | '/api/auth/$'
     | '/api/cron/auto-archive'
     | '/api/cron/birthday-emails'
@@ -461,6 +479,7 @@ export interface FileRouteTypes {
     | '/me'
     | '/purchases'
     | '/settings/'
+    | '/temp/'
     | '/admin/user/$id'
     | '/lists/$listId/bulk'
     | '/lists/$listId/edit'
@@ -472,7 +491,6 @@ export interface FileRouteTypes {
     | '/sign-out'
     | '/sign-up'
     | '/import'
-    | '/temp'
     | '/api/health'
     | '/api/version'
     | '/'
@@ -492,6 +510,7 @@ export interface FileRouteTypes {
     | '/settings/devices'
     | '/settings/permissions'
     | '/settings/security'
+    | '/temp/widgets'
     | '/api/auth/$'
     | '/api/cron/auto-archive'
     | '/api/cron/birthday-emails'
@@ -505,6 +524,7 @@ export interface FileRouteTypes {
     | '/me'
     | '/purchases'
     | '/settings'
+    | '/temp'
     | '/admin/user/$id'
     | '/lists/$listId/bulk'
     | '/lists/$listId/edit'
@@ -515,11 +535,11 @@ export interface FileRouteTypes {
     | '/(core)'
     | '/(core)/admin'
     | '/(core)/settings'
+    | '/(core)/temp'
     | '/(auth)/sign-in'
     | '/(auth)/sign-out'
     | '/(auth)/sign-up'
     | '/(core)/import'
-    | '/(core)/temp'
     | '/api/health'
     | '/api/version'
     | '/(core)/'
@@ -539,6 +559,7 @@ export interface FileRouteTypes {
     | '/(core)/settings/devices'
     | '/(core)/settings/permissions'
     | '/(core)/settings/security'
+    | '/(core)/temp/widgets'
     | '/api/auth/$'
     | '/api/cron/auto-archive'
     | '/api/cron/birthday-emails'
@@ -552,6 +573,7 @@ export interface FileRouteTypes {
     | '/(core)/me/'
     | '/(core)/purchases/'
     | '/(core)/settings/'
+    | '/(core)/temp/'
     | '/(core)/admin/user/$id'
     | '/(core)/lists_/$listId/bulk'
     | '/(core)/lists_/$listId/edit'
@@ -608,13 +630,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/(core)/temp': {
-      id: '/(core)/temp'
-      path: '/temp'
-      fullPath: '/temp'
-      preLoaderRoute: typeof coreTempRouteImport
-      parentRoute: typeof coreRouteRoute
-    }
     '/(core)/import': {
       id: '/(core)/import'
       path: '/import'
@@ -643,6 +658,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authSignInRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/(core)/temp': {
+      id: '/(core)/temp'
+      path: '/temp'
+      fullPath: '/temp'
+      preLoaderRoute: typeof coreTempRouteRouteImport
+      parentRoute: typeof coreRouteRoute
+    }
     '/(core)/settings': {
       id: '/(core)/settings'
       path: '/settings'
@@ -656,6 +678,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin'
       preLoaderRoute: typeof coreAdminRouteRouteImport
       parentRoute: typeof coreRouteRoute
+    }
+    '/(core)/temp/': {
+      id: '/(core)/temp/'
+      path: '/'
+      fullPath: '/temp/'
+      preLoaderRoute: typeof coreTempIndexRouteImport
+      parentRoute: typeof coreTempRouteRoute
     }
     '/(core)/settings/': {
       id: '/(core)/settings/'
@@ -747,6 +776,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/(core)/temp/widgets': {
+      id: '/(core)/temp/widgets'
+      path: '/widgets'
+      fullPath: '/temp/widgets'
+      preLoaderRoute: typeof coreTempWidgetsRouteImport
+      parentRoute: typeof coreTempRouteRoute
     }
     '/(core)/settings/security': {
       id: '/(core)/settings/security'
@@ -945,11 +981,25 @@ const coreSettingsRouteRouteChildren: coreSettingsRouteRouteChildren = {
 const coreSettingsRouteRouteWithChildren =
   coreSettingsRouteRoute._addFileChildren(coreSettingsRouteRouteChildren)
 
+interface coreTempRouteRouteChildren {
+  coreTempWidgetsRoute: typeof coreTempWidgetsRoute
+  coreTempIndexRoute: typeof coreTempIndexRoute
+}
+
+const coreTempRouteRouteChildren: coreTempRouteRouteChildren = {
+  coreTempWidgetsRoute: coreTempWidgetsRoute,
+  coreTempIndexRoute: coreTempIndexRoute,
+}
+
+const coreTempRouteRouteWithChildren = coreTempRouteRoute._addFileChildren(
+  coreTempRouteRouteChildren,
+)
+
 interface coreRouteRouteChildren {
   coreAdminRouteRoute: typeof coreAdminRouteRouteWithChildren
   coreSettingsRouteRoute: typeof coreSettingsRouteRouteWithChildren
+  coreTempRouteRoute: typeof coreTempRouteRouteWithChildren
   coreImportRoute: typeof coreImportRoute
-  coreTempRoute: typeof coreTempRoute
   coreIndexRoute: typeof coreIndexRoute
   coreItemCloneRoute: typeof coreItemCloneRoute
   coreListsListIdRoute: typeof coreListsListIdRoute
@@ -966,8 +1016,8 @@ interface coreRouteRouteChildren {
 const coreRouteRouteChildren: coreRouteRouteChildren = {
   coreAdminRouteRoute: coreAdminRouteRouteWithChildren,
   coreSettingsRouteRoute: coreSettingsRouteRouteWithChildren,
+  coreTempRouteRoute: coreTempRouteRouteWithChildren,
   coreImportRoute: coreImportRoute,
-  coreTempRoute: coreTempRoute,
   coreIndexRoute: coreIndexRoute,
   coreItemCloneRoute: coreItemCloneRoute,
   coreListsListIdRoute: coreListsListIdRoute,

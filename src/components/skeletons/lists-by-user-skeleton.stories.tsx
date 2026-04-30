@@ -14,6 +14,7 @@ const sampleUser: UserWithLists = {
 	birthMonth: 'may',
 	birthDay: 12,
 	partnerId: null,
+	lastGiftedAt: null,
 	lists: [
 		{
 			id: 1,

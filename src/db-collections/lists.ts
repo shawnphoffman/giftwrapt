@@ -34,6 +34,10 @@ const UserWithListsSchema = z.object({
 	// z.string().optional() (fine for form input, rejects null from the wire).
 	partnerId: z.string().nullish(),
 	partner: PartnerSchema.nullish(),
+	// Most recent claim by the requesting user on any of this user's lists.
+	// ISO 8601 string or null. Powers the "have I gifted them recently?"
+	// indicator on the iOS upcoming-birthdays widget.
+	lastGiftedAt: z.string().nullable(),
 	lists: z.array(ListSchema),
 })
 

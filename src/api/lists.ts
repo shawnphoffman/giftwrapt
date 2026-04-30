@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, asc, count, desc, eq, inArray, max, ne, sql } from 'drizzle-orm'
+import { and, arrayOverlaps, asc, count, desc, eq, inArray, max, ne, or, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import type { SchemaDatabase } from '@/db'
@@ -240,9 +240,18 @@ export type MyListsResult = {
 }
 
 export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
-	// Subquery: per recipient (list owner), the most recent moment this user
-	// committed to a gift on one of their lists. Used by the iOS upcoming-
-	// birthdays widget to flag children the user hasn't gifted recently.
+	// Resolve the requesting user's partner so claim credit follows the
+	// "gifts credit both partners" contract (see src/api/received.ts).
+	const me = await db.query.users.findFirst({
+		where: eq(users.id, userId),
+		columns: { partnerId: true },
+	})
+	const gifterIds: Array<string> = me?.partnerId ? [userId, me.partnerId] : [userId]
+
+	// Subquery: per recipient (list owner), the most recent moment the user OR
+	// their partner committed to a gift, including co-gifter rows where either
+	// appears in additionalGifterIds. Drives the "have I gifted them recently?"
+	// indicator on the iOS upcoming-birthdays widget.
 	const lastGiftedSubquery = db
 		.select({
 			recipientOwnerId: lists.ownerId,
@@ -251,7 +260,7 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 		.from(giftedItems)
 		.innerJoin(items, eq(items.id, giftedItems.itemId))
 		.innerJoin(lists, eq(lists.id, items.listId))
-		.where(eq(giftedItems.gifterId, userId))
+		.where(or(inArray(giftedItems.gifterId, gifterIds), arrayOverlaps(giftedItems.additionalGifterIds, gifterIds)))
 		.groupBy(lists.ownerId)
 		.as('lastGifted')
 
