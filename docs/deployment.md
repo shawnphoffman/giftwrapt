@@ -48,13 +48,26 @@ Supabase Storage S3 details and a longer recipe live in [storage.md → Supabase
 
 ### One-click: Railway
 
-The Railway button creates a service that builds from this repo's `Dockerfile`, using [`railway.json`](../railway.json) for the healthcheck and restart policy. Railway's free deploy URL doesn't auto-attach a Postgres plugin, so:
+> **Heads up:** the Railway button is _not_ truly one-click yet. It deploys the app service only - you have to add Postgres and wire env vars yourself before the app will boot. The steps below get you to a working deploy in about 3 minutes.
 
-1. Click the badge. Railway connects to a fork and starts a service.
-2. In the Railway project, **+ New → Database → PostgreSQL**.
-3. In the app service's variables, add `DATABASE_URL = ${{Postgres.DATABASE_URL}}`. (Railway resolves variable references between services.)
-4. Add `BETTER_AUTH_SECRET` (generate with `openssl rand -base64 32`) and `BETTER_AUTH_URL` (the public URL Railway gave the app).
-5. Optionally, wire up an external S3 bucket via `STORAGE_*` env vars - see [storage.md](./storage.md). The app boots fine without storage; uploads return 503 until you add it.
+The button creates a single service that builds from this repo's `Dockerfile`, using [`railway.json`](../railway.json) for the healthcheck and restart policy. Railway's GitHub deploy URL has no concept of multi-service blueprints (unlike Render's `render.yaml`), so the database and env wiring are manual.
+
+**After clicking the badge:**
+
+1. **Wait for the first build to fail.** It will - the app exits because `DATABASE_URL` is unset. That's expected.
+2. **Add Postgres.** In the Railway project canvas: **+ New → Database → Add PostgreSQL**. Wait for it to go green.
+3. **Wire the database.** Click your app service → **Variables** tab → **+ New Variable**:
+   - Name: `DATABASE_URL`
+   - Value: click the `{}` icon and pick `Postgres → DATABASE_URL` (or type `${{Postgres.DATABASE_URL}}` - the service name must match exactly, including case).
+4. **Set the auth vars** (same Variables tab, **+ New Variable** for each):
+   - `BETTER_AUTH_SECRET` = output of `openssl rand -base64 32` (run locally, paste the result).
+   - `BETTER_AUTH_URL` = `https://${{RAILWAY_PUBLIC_DOMAIN}}` - Railway substitutes the assigned `*.up.railway.app` host automatically. If you've already added a custom domain, hardcode that instead (e.g. `https://giftwrapt.example.com`).
+5. **Redeploy.** The variable changes trigger a new deploy. Watch the deploy logs - you should see migrations run and then `starting giftwrapt`.
+6. **(Optional) Image uploads.** The app boots fine without storage; upload endpoints return 503 until you wire `STORAGE_*` vars to an external S3 bucket (Cloudflare R2, AWS S3, Supabase Storage). Recipes in [storage.md](./storage.md).
+
+**Common issue: `DATABASE_URL is not set; cannot run migrations`** in deploy logs after step 3. Either the Postgres service has a different name than `Postgres` (check the canvas tile, edit the reference to match), or you saved the variable but didn't redeploy - reference resolution happens at deploy time, not on save.
+
+**Common issue: `Invalid origin` on `/sign-up`.** `BETTER_AUTH_URL` is missing or doesn't match the URL you're visiting. The app falls back to `http://localhost:3000`, which rejects the Railway-assigned origin. Set it per step 4 and redeploy.
 
 ### One-click: Render
 
