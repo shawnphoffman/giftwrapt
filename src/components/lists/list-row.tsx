@@ -29,6 +29,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import type { UserWithLists } from '@/db-collections/lists'
 import { useSession } from '@/lib/auth-client'
 import { cn } from '@/lib/utils'
@@ -36,6 +37,24 @@ import { cn } from '@/lib/utils'
 type GifterList = UserWithLists['lists'][number]
 
 type EditorInfo = { name: string | null; email: string; image: string | null }
+
+function HoverableAvatar({ name, image, className }: { name: string; image: string | null; className?: string }) {
+	return (
+		<TooltipProvider delayDuration={150}>
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<span className="inline-flex shrink-0">
+						<UserAvatar name={name} image={image} size="small" className={className} />
+					</span>
+				</TooltipTrigger>
+				<TooltipContent className="flex items-center gap-2">
+					<UserAvatar name={name} image={image} size="small" />
+					<span className="font-medium">{name}</span>
+				</TooltipContent>
+			</Tooltip>
+		</TooltipProvider>
+	)
+}
 
 type Props =
 	| {
@@ -130,10 +149,9 @@ function RecipientRow({
 						className="h-5 gap-1 pl-2 pr-0 leading-none font-bold uppercase text-[10px] tracking-wider border-teal-500/40 bg-teal-500/10 text-teal-500"
 					>
 						for
-						<UserAvatar
+						<HoverableAvatar
 							name={list.giftIdeasTarget.name || list.giftIdeasTarget.email}
 							image={list.giftIdeasTarget.image}
-							size="small"
 							className="size-5 ring-2 ring-teal-500/40"
 						/>
 					</Badge>
@@ -145,11 +163,11 @@ function RecipientRow({
 							className="h-5 gap-1 pl-2 pr-0 leading-none font-bold uppercase text-[10px] tracking-wider text-muted-foreground relative z-10"
 						>
 							by
-							<UserAvatar name={showOwner.name || showOwner.email} image={showOwner.image} size="small" className="size-5" />
+							<HoverableAvatar name={showOwner.name || showOwner.email} image={showOwner.image} className="size-5" />
 						</Badge>
 						{editors?.map((editor, i) => (
 							<div key={editor.email} className="relative" style={{ zIndex: editors.length - i }}>
-								<UserAvatar name={editor.name || editor.email} image={editor.image} size="small" className="size-5 ring-1 ring-border" />
+								<HoverableAvatar name={editor.name || editor.email} image={editor.image} className="size-5 ring-1 ring-border" />
 							</div>
 						))}
 					</div>
