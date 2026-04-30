@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, redirect, useNavigate, useRouter } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { Image } from '@unpic/react'
@@ -56,12 +57,22 @@ export const Route = createFileRoute('/(auth)/sign-in')({
 function SignIn() {
 	const navigate = useNavigate()
 	const router = useRouter()
+	const queryClient = useQueryClient()
 	const { redirect: redirectRaw } = Route.useSearch()
 	const { data: session, isPending } = useSession()
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+
+	// Mirror the sign-out cache purge: queryClient is a module-level singleton
+	// (root-provider.tsx) shared with TanStack DB collections, so without this
+	// the next user can briefly see the previous session's cached data (or an
+	// empty result captured during the transition).
+	const purgeCaches = async () => {
+		queryClient.clear()
+		await router.invalidate()
+	}
 
 	const goPostAuth = () => {
 		const target = safeRedirect(redirectRaw)
@@ -104,8 +115,9 @@ function SignIn() {
 				onRequest: () => {
 					setIsLoading(true)
 				},
-				onSuccess: () => {
+				onSuccess: async () => {
 					setIsLoading(false)
+					await purgeCaches()
 					goPostAuth()
 				},
 				onError: () => {
