@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.22.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.21.0...v0.22.0) (2026-04-30)
+
+
+### Features
+
+* **admin:** show optional vercel deployment info on debug page ([df51548](https://github.com/shawnphoffman/giftwrapt/commit/df515486dba1c139730a41cf32d7ef6463fd7847))
+* **auth:** auto-derive BETTER_AUTH_URL on Vercel production ([c7fec7d](https://github.com/shawnphoffman/giftwrapt/commit/c7fec7d8a95690c3d369006efdc7e26837c0dba3))
+* **items:** skip scrape for sublist URLs and lock URL during scrape ([ea0699b](https://github.com/shawnphoffman/giftwrapt/commit/ea0699beef1df6bbc45140ca1b3facaa3fbb8ba3))
+* **lists:** animate user avatar on card hover ([ff15710](https://github.com/shawnphoffman/giftwrapt/commit/ff157102aff8b16a9fe59db311f7b40c088e5a87))
+* **lists:** include guardian's children as gift-ideas recipients ([c749d9e](https://github.com/shawnphoffman/giftwrapt/commit/c749d9ed460ff74022031b62d77b0974751c4d33))
+* **lists:** show avatar in gift-ideas recipient select ([94619f5](https://github.com/shawnphoffman/giftwrapt/commit/94619f524f4b9e157cd1004aee0e40354cb86015))
+* **lists:** show recipient avatar on gift-ideas rows ([4b8313d](https://github.com/shawnphoffman/giftwrapt/commit/4b8313d1e0a983ef26536bdf61235f704f8e6b80))
+* **purchases:** show partner avatar on partner-claimed rows ([1e39712](https://github.com/shawnphoffman/giftwrapt/commit/1e397126596389cbbc31337b1a975de1000cd83a))
+* **ui:** show avatar alongside name in user select options ([ec15159](https://github.com/shawnphoffman/giftwrapt/commit/ec15159bebdda59562ad85fe68fe2830c0e2aa88))
+
+
+### Bug Fixes
+
+* **items:** upgrade http image URLs to https ([25c3837](https://github.com/shawnphoffman/giftwrapt/commit/25c3837da2be2b236593e4e663d5635b16b044b1))
+* **lists:** widen gift-ideas recipients to anyone visible to viewer ([b967b8c](https://github.com/shawnphoffman/giftwrapt/commit/b967b8c4b19290b51a7a83f16be342fdcb174700))
+
 ## [0.21.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.20.0...v0.21.0) (2026-04-29)
 
 
