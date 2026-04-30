@@ -11,7 +11,7 @@
 
 import { Hono } from 'hono'
 
-import { createItemImpl, CreateItemInputSchema } from '@/api/_items-impl'
+import { createItemImpl, CreateItemInputSchema, deleteItemImpl, updateItemImpl, UpdateItemInputSchema } from '@/api/_items-impl'
 import { getItemsForListEditImpl } from '@/api/items'
 import { getMyListsImpl } from '@/api/lists'
 import { db } from '@/db'
@@ -62,6 +62,58 @@ v1.get('/lists/:listId/items', async c => {
 		return c.json({ error: result.reason }, status)
 	}
 	return c.json({ items: result.items })
+})
+
+// PATCH /v1/items/:itemId - partial update of an item.
+v1.patch('/items/:itemId', async c => {
+	const userId = c.get('userId')
+	const itemIdParam = Number(c.req.param('itemId'))
+	if (!Number.isFinite(itemIdParam) || itemIdParam <= 0) {
+		return c.json({ error: 'invalid-id' }, 400)
+	}
+	let body: unknown
+	try {
+		body = await c.req.json()
+	} catch {
+		return c.json({ error: 'invalid-json' }, 400)
+	}
+	const parsed = UpdateItemInputSchema.safeParse({
+		...(body as object),
+		itemId: itemIdParam,
+	})
+	if (!parsed.success) {
+		return c.json({ error: 'invalid-input', issues: parsed.error.issues }, 400)
+	}
+
+	const result = await updateItemImpl({
+		db,
+		actor: { id: userId },
+		input: parsed.data,
+	})
+	if (result.kind === 'error') {
+		const status = result.reason === 'not-found' ? 404 : 403
+		return c.json({ error: result.reason }, status)
+	}
+	return c.json({ item: result.item })
+})
+
+// DELETE /v1/items/:itemId - hard delete an item.
+v1.delete('/items/:itemId', async c => {
+	const userId = c.get('userId')
+	const itemIdParam = Number(c.req.param('itemId'))
+	if (!Number.isFinite(itemIdParam) || itemIdParam <= 0) {
+		return c.json({ error: 'invalid-id' }, 400)
+	}
+	const result = await deleteItemImpl({
+		db,
+		actor: { id: userId },
+		input: { itemId: itemIdParam },
+	})
+	if (result.kind === 'error') {
+		const status = result.reason === 'not-found' ? 404 : 403
+		return c.json({ error: result.reason }, status)
+	}
+	return c.json({ ok: true })
 })
 
 // POST /v1/items - create a new item.
