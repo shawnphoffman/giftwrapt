@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.23.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.22.0...v0.23.0) (2026-04-30)
+
+
+### Features
+
+* **client:** detect build-version mismatch after deploy ([ed0c5b2](https://github.com/shawnphoffman/giftwrapt/commit/ed0c5b2422adc5bdfb28012607a0d373849ea536))
+
+
+### Bug Fixes
+
+* **auth:** purge client caches and retry on sign-in ([04f7552](https://github.com/shawnphoffman/giftwrapt/commit/04f75528a9c5e58b094ab849b615c95d88ec80d0))
+* **auth:** purge client caches on sign-out ([8173ca5](https://github.com/shawnphoffman/giftwrapt/commit/8173ca51c7992592010d9261eb0c228136aa9652))
+* **forms:** disable browser autocomplete on list and item name inputs ([96d21eb](https://github.com/shawnphoffman/giftwrapt/commit/96d21eb2ef54cbc6bd9c2791c17572d8a464f02a))
+* **items:** skip $ prefix when price already has one or is non-numeric ([cf13099](https://github.com/shawnphoffman/giftwrapt/commit/cf13099f2c95e7f09fd7d94634b9cbe8a7a788ec))
+
 ## [0.22.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.21.0...v0.22.0) (2026-04-30)
 
 
