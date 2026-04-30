@@ -1,5 +1,4 @@
-import { useQueryClient } from '@tanstack/react-query'
-import { createFileRoute, redirect, useNavigate, useRouter } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { Image } from '@unpic/react'
 import { sql } from 'drizzle-orm'
@@ -55,9 +54,6 @@ export const Route = createFileRoute('/(auth)/sign-in')({
 })
 
 function SignIn() {
-	const navigate = useNavigate()
-	const router = useRouter()
-	const queryClient = useQueryClient()
 	const { redirect: redirectRaw } = Route.useSearch()
 	const { data: session, isPending } = useSession()
 	const [email, setEmail] = useState('')
@@ -65,35 +61,22 @@ function SignIn() {
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 
-	// Mirror the sign-out cache purge: queryClient is a module-level singleton
-	// (root-provider.tsx) shared with TanStack DB collections, so without this
-	// the next user can briefly see the previous session's cached data (or an
-	// empty result captured during the transition).
-	const purgeCaches = async () => {
-		queryClient.clear()
-		await router.invalidate()
-	}
-
+	// Hard-reload after sign-in instead of SPA-navigating. The QueryClient and
+	// TanStack DB collections are module-level singletons, and on mobile Safari
+	// the new auth cookie can lag behind the JS promise resolution. Both make
+	// SPA navigation race-prone. A full reload boots the next page with the
+	// cookie committed and a fresh client state.
 	const goPostAuth = () => {
 		const target = safeRedirect(redirectRaw)
-		if (target === '/') {
-			navigate({ to: '/' })
-		} else {
-			router.history.push(target)
-		}
+		window.location.assign(target)
 	}
 
 	// Redirect to home (or the captured share-target) once auth state lands.
 	useEffect(() => {
 		if (!isPending && session?.user) {
-			const target = safeRedirect(redirectRaw)
-			if (target === '/') {
-				navigate({ to: '/' })
-			} else {
-				router.history.push(target)
-			}
+			goPostAuth()
 		}
-	}, [session, isPending, redirectRaw, navigate, router])
+	}, [session, isPending, redirectRaw])
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault()
@@ -115,9 +98,8 @@ function SignIn() {
 				onRequest: () => {
 					setIsLoading(true)
 				},
-				onSuccess: async () => {
+				onSuccess: () => {
 					setIsLoading(false)
-					await purgeCaches()
 					goPostAuth()
 				},
 				onError: () => {

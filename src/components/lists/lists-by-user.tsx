@@ -1,6 +1,5 @@
 import { useLiveQuery } from '@tanstack/react-db'
 import { Link } from '@tanstack/react-router'
-import { useEffect, useState } from 'react'
 
 import { ClientOnly } from '@/components/utilities/client-only'
 import type { BirthMonth } from '@/db/schema/enums'
@@ -11,12 +10,6 @@ import { useListsSSE } from '@/lib/use-lists-sse'
 
 import ListsByUserSkeleton from '../skeletons/lists-by-user-skeleton'
 import ListsForUser from './lists-for-user'
-
-// Backoff schedule for silent retries when the public-lists fetch comes
-// back empty. Covers the case where the collection (a module-level
-// singleton) returned a stale or auth-racing empty result. After these
-// attempts we let the rendered empty state stand.
-const EMPTY_RETRY_DELAYS_MS = [800, 2000, 5000] as const
 
 // Map month names to numbers (1-12)
 const monthToNumber: Record<BirthMonth, number> = {
@@ -78,55 +71,20 @@ const sortUserGroupsByBirthDate = (a: UserWithLists, b: UserWithLists) => {
 
 function ListsByUserContent() {
 	const { data: session } = useSession()
-	const userId = session?.user.id
 	const isAdmin = session?.user.isAdmin ?? false
 
 	// Keep the grouped public-lists query live: any claim/unclaim anywhere
 	// should refresh the unclaimed/total badge counts.
 	useListsSSE()
 
-	// Use useLiveQuery to query the collection directly
-	// The collection's queryFn automatically fetches from the API route
-	// This provides live updates, automatic caching, and local-first behavior
-	// The API route is still needed (server-side database access), but this
-	// gives us a cleaner client-side API with live updates
 	const queryResult = useLiveQuery(q =>
 		q.from({ user: usersWithListsCollection }).select(({ user }) => ({
 			...user,
 		}))
 	)
 
-	// Convert Map to array for easier use
 	const usersData = Array.from(queryResult.data.values()) as Array<UserWithLists>
 	const isLoading = queryResult.isLoading
-
-	// Force a refetch on signed-in user transition. The collection is a
-	// module-level singleton whose data persists across sign-in/out, so
-	// without this the new user can briefly see the previous user's view
-	// (or an empty result captured during the auth handoff).
-	useEffect(() => {
-		if (!userId) return
-		void usersWithListsCollection.utils.refetch()
-	}, [userId])
-
-	// Silently retry an empty result with backoff. The most common cause is a
-	// stale-cache flash right after sign-in where the first fetch raced the
-	// auth cookie. Reset attempts whenever the signed-in user changes.
-	const [retryAttempt, setRetryAttempt] = useState(0)
-	useEffect(() => {
-		setRetryAttempt(0)
-	}, [userId])
-	useEffect(() => {
-		if (!userId) return
-		if (isLoading) return
-		if (usersData.length > 0) return
-		if (retryAttempt >= EMPTY_RETRY_DELAYS_MS.length) return
-		const timer = setTimeout(() => {
-			void usersWithListsCollection.utils.refetch()
-			setRetryAttempt(n => n + 1)
-		}, EMPTY_RETRY_DELAYS_MS[retryAttempt])
-		return () => clearTimeout(timer)
-	}, [userId, isLoading, usersData.length, retryAttempt])
 
 	if (isLoading && usersData.length === 0) {
 		return (
