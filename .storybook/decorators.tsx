@@ -7,3 +7,15 @@ export const withPageContainer: Decorator = Story => (
 		</div>
 	</div>
 )
+
+// Centered boundary for full-page stories. The dashed inner box has a fixed
+// min-h/min-w so you can visually verify the page content is centered and
+// padded correctly inside a known viewport, regardless of how the page
+// itself stretches with `min-h-screen`.
+export const withCenteredBoundary: Decorator = Story => (
+	<div className="flex items-center justify-center min-h-screen w-full p-12 bg-muted/20">
+		<div className="relative w-full min-w-[360px] min-h-[640px] border-2 border-dashed border-muted-foreground/40 rounded-lg overflow-hidden bg-background">
+			<Story />
+		</div>
+	</div>
+)

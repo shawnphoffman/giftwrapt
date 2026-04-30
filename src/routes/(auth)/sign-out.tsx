@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 
-import Loading from '@/components/loading'
+import { SignOutPageContent } from '@/components/auth/sign-out-page'
 import { signOut } from '@/lib/auth-client'
 
 export const Route = createFileRoute('/(auth)/sign-out')({
@@ -52,23 +52,5 @@ function SignOut() {
 		handleSignOut()
 	}, [navigate, router, queryClient])
 
-	if (error) {
-		return (
-			<div className="flex items-center justify-center min-h-[calc(100vh-3rem)] p-4">
-				<div className="text-center space-y-4">
-					<p className="text-destructive">{error}</p>
-					<p className="text-sm text-muted-foreground">Redirecting to sign in...</p>
-				</div>
-			</div>
-		)
-	}
-
-	return (
-		<div className="flex items-center justify-center min-h-[calc(100vh-3rem)] p-4">
-			<div className="text-center space-y-4">
-				<Loading className="text-primary" />
-				<p className="text-muted-foreground">Signing out...</p>
-			</div>
-		</div>
-	)
+	return <SignOutPageContent error={error} />
 }
