@@ -161,7 +161,13 @@ function MyListsPage() {
 										<ListRow key={list.id} role="recipient" list={list} />
 									))}
 									{editableGiftIdeas.map(list => (
-										<ListRow key={list.id} role="recipient" list={list} showOwner={{ name: list.ownerName, email: list.ownerEmail }} />
+										<ListRow
+											key={list.id}
+											role="recipient"
+											list={list}
+											showOwner={{ name: list.ownerName, email: list.ownerEmail, image: list.ownerImage }}
+											editors={list.otherEditors}
+										/>
 									))}
 								</>
 							)}
@@ -194,7 +200,13 @@ function MyListsPage() {
 							</ListsCardHeader>
 							<ListsCardLists>
 								{editableOther.map(list => (
-									<ListRow key={list.id} role="recipient" list={list} showOwner={{ name: list.ownerName, email: list.ownerEmail }} />
+									<ListRow
+										key={list.id}
+										role="recipient"
+										list={list}
+										showOwner={{ name: list.ownerName, email: list.ownerEmail, image: list.ownerImage }}
+										editors={list.otherEditors}
+									/>
 								))}
 							</ListsCardLists>
 						</ListsCard>

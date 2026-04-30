@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, asc, count, desc, eq, inArray, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, inArray, ne, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import type { SchemaDatabase } from '@/db'
@@ -223,7 +223,14 @@ export type MyListsResult = {
 	public: Array<MyListRow>
 	private: Array<MyListRow>
 	giftIdeas: Array<MyListRow>
-	editable: Array<MyListRow & { ownerName: string | null; ownerEmail: string }>
+	editable: Array<
+		MyListRow & {
+			ownerName: string | null
+			ownerEmail: string
+			ownerImage: string | null
+			otherEditors: Array<{ name: string | null; email: string; image: string | null }>
+		}
+	>
 	children: Array<ChildListGroup>
 }
 
@@ -262,6 +269,7 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 				giftIdeasTargetUserId: lists.giftIdeasTargetUserId,
 				ownerName: sql<string | null>`owner.name`,
 				ownerEmail: sql<string>`owner.email`,
+				ownerImage: sql<string | null>`owner.image`,
 				itemCount: count(items.id),
 			})
 			.from(listEditors)
@@ -269,7 +277,7 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 			.innerJoin(sql`users as owner`, sql`owner.id = ${lists.ownerId}`)
 			.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false)))
 			.where(eq(listEditors.userId, userId))
-			.groupBy(lists.id, sql`owner.name`, sql`owner.email`)
+			.groupBy(lists.id, sql`owner.name`, sql`owner.email`, sql`owner.image`)
 			.orderBy(asc(lists.name)),
 
 		db
@@ -329,6 +337,29 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 		listsByChildId.set(row.ownerId, bucket)
 	}
 
+	// Fetch the other editors of every editable list (excluding the current user)
+	// so the UI can render them stacked behind the owner badge.
+	const editableListIds = editableRows.map(r => r.id)
+	const otherEditorRows = editableListIds.length
+		? await db
+				.select({
+					listId: listEditors.listId,
+					name: users.name,
+					email: users.email,
+					image: users.image,
+				})
+				.from(listEditors)
+				.innerJoin(users, eq(users.id, listEditors.userId))
+				.where(and(inArray(listEditors.listId, editableListIds), ne(listEditors.userId, userId)))
+				.orderBy(asc(users.name))
+		: []
+	const otherEditorsByListId = new Map<number, Array<{ name: string | null; email: string; image: string | null }>>()
+	for (const row of otherEditorRows) {
+		const bucket = otherEditorsByListId.get(row.listId) ?? []
+		bucket.push({ name: row.name, email: row.email, image: row.image })
+		otherEditorsByListId.set(row.listId, bucket)
+	}
+
 	// Resolve target-user details for any gift-ideas list that points at a real user.
 	const targetUserIds = Array.from(
 		new Set([...ownedLists, ...editableRows].map(l => l.giftIdeasTargetUserId).filter((id): id is string => Boolean(id)))
@@ -382,6 +413,8 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 			itemCount: r.itemCount,
 			ownerName: r.ownerName,
 			ownerEmail: r.ownerEmail,
+			ownerImage: r.ownerImage,
+			otherEditors: otherEditorsByListId.get(r.id) ?? [],
 		})),
 		children: childListGroups,
 	}

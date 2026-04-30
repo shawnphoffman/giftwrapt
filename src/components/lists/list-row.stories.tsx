@@ -102,14 +102,88 @@ export const RecipientEmpty: Story = {
 	args: { role: 'recipient', list: { ...recipientBase, name: 'Brand new', itemCount: 0 } },
 }
 
-export const RecipientWithOwner: Story = {
-	args: {
-		role: 'recipient',
-		list: { ...recipientBase, name: 'Shared family list' },
-		showOwner: { name: 'Sam Sibling', email: 'sam@example.com' },
+export const RecipientVariations: Story = {
+	args: { role: 'recipient', list: recipientBase },
+	render: () => {
+		const carol = { id: 'u-carol', name: 'Carol', email: 'carol@example.com', image: 'https://i.pravatar.cc/128?img=47' }
+		const chase = { id: 'u-chase', name: 'Chase', email: 'chase@example.com', image: 'https://i.pravatar.cc/128?img=15' }
+		const shawn = { name: 'Shawn', email: 'shawn@example.com', image: 'https://i.pravatar.cc/128?img=68' }
+		const noImageOwner = { name: 'Brandon', email: 'brandon@example.com', image: null }
+		const editors = [
+			{ name: 'Alex', email: 'alex@example.com', image: 'https://i.pravatar.cc/128?img=12' },
+			{ name: 'Morgan', email: 'morgan@example.com', image: 'https://i.pravatar.cc/128?img=22' },
+			{ name: 'Jamie', email: 'jamie@example.com', image: null },
+		]
+
+		const giftIdeas = (overrides: Partial<MyListRowType> & { id: number }): MyListRowType => ({
+			...recipientBase,
+			type: 'giftideas',
+			...overrides,
+		})
+
+		return (
+			<div className="flex flex-col gap-1">
+				<ListRow
+					role="recipient"
+					list={giftIdeas({ id: 1, name: 'Ideas for Carol (mine)', giftIdeasTargetUserId: carol.id, giftIdeasTarget: carol })}
+				/>
+				<ListRow
+					role="recipient"
+					list={giftIdeas({
+						id: 2,
+						name: 'Ideas for Conrad (mine, free-text recipient)',
+						giftIdeasTargetUserId: null,
+						giftIdeasTarget: null,
+					})}
+				/>
+				<ListRow
+					role="recipient"
+					list={giftIdeas({ id: 3, name: 'Ideas for Carol (Shawn owns)', giftIdeasTargetUserId: carol.id, giftIdeasTarget: carol })}
+					showOwner={shawn}
+				/>
+				<ListRow
+					role="recipient"
+					list={giftIdeas({
+						id: 4,
+						name: 'Ideas for Brandon (Shawn owns, no avatar owner)',
+						giftIdeasTargetUserId: null,
+						giftIdeasTarget: null,
+					})}
+					showOwner={noImageOwner}
+				/>
+				<ListRow
+					role="recipient"
+					list={giftIdeas({ id: 5, name: 'Ideas for Chase (1 other editor)', giftIdeasTargetUserId: chase.id, giftIdeasTarget: chase })}
+					showOwner={shawn}
+					editors={editors.slice(0, 1)}
+				/>
+				<ListRow
+					role="recipient"
+					list={giftIdeas({ id: 6, name: 'Ideas for Chase (3 other editors)', giftIdeasTargetUserId: chase.id, giftIdeasTarget: chase })}
+					showOwner={shawn}
+					editors={editors}
+				/>
+				<ListRow
+					role="recipient"
+					list={{ ...recipientBase, id: 7, name: 'Shared family wishlist (non-gift-ideas, owner only)' }}
+					showOwner={shawn}
+				/>
+				<ListRow
+					role="recipient"
+					list={{ ...recipientBase, id: 8, name: 'Shared family wishlist (non-gift-ideas, owner + editors)' }}
+					showOwner={shawn}
+					editors={editors}
+				/>
+			</div>
+		)
 	},
 	parameters: {
-		docs: { description: { story: 'Editor view: shows whose list it is when the current user is a co-editor.' } },
+		docs: {
+			description: {
+				story:
+					'All recipient-row variations in one place: gift-ideas with linked recipient, gift-ideas with free-text recipient, lists I own vs lists with an owner badge, and editor avatars stacked behind the owner badge.',
+			},
+		},
 	},
 }
 

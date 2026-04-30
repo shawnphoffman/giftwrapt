@@ -35,8 +35,15 @@ import { cn } from '@/lib/utils'
 
 type GifterList = UserWithLists['lists'][number]
 
+type EditorInfo = { name: string | null; email: string; image: string | null }
+
 type Props =
-	| { role: 'recipient'; list: MyListRowType; showOwner?: { name: string | null; email: string } }
+	| {
+			role: 'recipient'
+			list: MyListRowType
+			showOwner?: { name: string | null; email: string; image: string | null }
+			editors?: Array<EditorInfo>
+	  }
 	| { role: 'gifter'; list: GifterList }
 
 const rowClass = 'text-lg flex min-h-11 bg-transparent hover:bg-muted rounded p-2 items-center gap-2'
@@ -48,12 +55,20 @@ function ListRowShell({ children, archived, asChild = false }: { children: React
 
 export function ListRow(props: Props) {
 	if (props.role === 'recipient') {
-		return <RecipientRow list={props.list} showOwner={props.showOwner} />
+		return <RecipientRow list={props.list} showOwner={props.showOwner} editors={props.editors} />
 	}
 	return <GifterRow list={props.list} />
 }
 
-function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: { name: string | null; email: string } }) {
+function RecipientRow({
+	list,
+	showOwner,
+	editors,
+}: {
+	list: MyListRowType
+	showOwner?: { name: string | null; email: string; image: string | null }
+	editors?: Array<EditorInfo>
+}) {
 	const router = useRouter()
 	const queryClient = useQueryClient()
 	const { data: session } = useSession()
@@ -110,14 +125,35 @@ function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: { 
 					{list.name}
 				</Link>
 				{list.type === 'giftideas' && list.giftIdeasTarget && (
-					<UserAvatar
-						name={list.giftIdeasTarget.name || list.giftIdeasTarget.email}
-						image={list.giftIdeasTarget.image}
-						size="small"
-						className="shrink-0"
-					/>
+					<Badge
+						variant="outline"
+						className="h-5 gap-1 pl-2 pr-0 leading-none font-bold uppercase text-[10px] tracking-wider border-teal-500/40 bg-teal-500/10 text-teal-500"
+					>
+						for
+						<UserAvatar
+							name={list.giftIdeasTarget.name || list.giftIdeasTarget.email}
+							image={list.giftIdeasTarget.image}
+							size="small"
+							className="size-5 ring-2 ring-teal-500/40"
+						/>
+					</Badge>
 				)}
-				{showOwner && <span className="text-xs text-muted-foreground truncate max-w-32">{showOwner.name || showOwner.email}</span>}
+				{showOwner && (
+					<div className="flex items-center -space-x-1.5 shrink-0">
+						<Badge
+							variant="outline"
+							className="h-5 gap-1 pl-2 pr-0 leading-none font-bold uppercase text-[10px] tracking-wider text-muted-foreground relative z-10"
+						>
+							by
+							<UserAvatar name={showOwner.name || showOwner.email} image={showOwner.image} size="small" className="size-5" />
+						</Badge>
+						{editors?.map((editor, i) => (
+							<div key={editor.email} className="relative" style={{ zIndex: editors.length - i }}>
+								<UserAvatar name={editor.name || editor.email} image={editor.image} size="small" className="size-5 ring-1 ring-border" />
+							</div>
+						))}
+					</div>
+				)}
 				{list.isPrimary && <Star className="size-4 text-yellow-500 fill-yellow-500 shrink-0" />}
 				{!list.isActive && (
 					<Badge variant="outline" className="gap-1 shrink-0 text-xs text-muted-foreground">
