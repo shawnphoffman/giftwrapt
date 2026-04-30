@@ -15,4 +15,7 @@ storybook-static
 .claude/*
 !.claude/launch.json
 .cursor/plans/
-._notes_local/
+.notes.local/
+CLAUDE.local.md
+# TEMPORARY
+.notes/
