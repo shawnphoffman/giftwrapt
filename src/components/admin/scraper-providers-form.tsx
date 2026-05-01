@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 
 import { updateAppSettings } from '@/api/settings'
-import { adminAppSettingsQueryKey, useAdminAppSettings } from '@/hooks/use-app-settings'
+import { adminAppSettingsQueryKey, notifyAppSettingsChanged, useAdminAppSettings } from '@/hooks/use-app-settings'
 import type { AppSettings } from '@/lib/settings'
 
 import { type ScraperProvidersFormChangeKey, ScraperProvidersFormView } from './scraper-providers-form-view'
@@ -38,6 +38,7 @@ function useScraperProvidersMutation() {
 				}
 				return next
 			})
+			notifyAppSettingsChanged(queryClient)
 			toast.success('Setting updated')
 		},
 	})

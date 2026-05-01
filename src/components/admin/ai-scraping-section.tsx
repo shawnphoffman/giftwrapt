@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { updateAppSettings } from '@/api/settings'
 import type { AiConfigResponse } from '@/hooks/use-ai-config'
 import { useAiConfig } from '@/hooks/use-ai-config'
-import { adminAppSettingsQueryKey, useAdminAppSettings } from '@/hooks/use-app-settings'
+import { adminAppSettingsQueryKey, notifyAppSettingsChanged, useAdminAppSettings } from '@/hooks/use-app-settings'
 import type { AppSettings } from '@/lib/settings'
 
 import { AiScrapingSectionView } from './ai-scraping-section-view'
@@ -44,6 +44,7 @@ function useScrapingTogglesMutation() {
 				}
 				return next
 			})
+			notifyAppSettingsChanged(queryClient)
 			toast.success('Setting updated')
 		},
 	})

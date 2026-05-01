@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import { ListTypes } from '@/db/schema'
-import { adminAppSettingsQueryKey, useAdminAppSettings } from '@/hooks/use-app-settings'
+import { adminAppSettingsQueryKey, notifyAppSettingsChanged, useAdminAppSettings } from '@/hooks/use-app-settings'
 import { useIsEmailConfigured } from '@/hooks/use-is-email-configured'
 import { useStorageStatus } from '@/hooks/use-storage-status'
 import type { AppSettings } from '@/lib/settings'
@@ -47,6 +47,7 @@ function useSettingsMutation() {
 				}
 				return updated
 			})
+			notifyAppSettingsChanged(queryClient)
 			toast.success('Setting updated')
 		},
 	})

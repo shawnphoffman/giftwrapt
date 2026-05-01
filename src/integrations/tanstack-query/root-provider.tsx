@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider, useQueryErrorResetBoundary } from '@tanstack/react-query'
 
 import { ErrorBoundary } from '@/components/utilities/error-boundary'
+import { setupAppSettingsBroadcastListener } from '@/hooks/use-app-settings'
 
 function makeQueryClient() {
 	return new QueryClient({
@@ -31,7 +32,13 @@ export function getContext() {
 	if (typeof window === 'undefined') {
 		return { queryClient: makeQueryClient() }
 	}
-	if (!browserQueryClient) browserQueryClient = makeQueryClient()
+	if (!browserQueryClient) {
+		browserQueryClient = makeQueryClient()
+		// One-time wiring per browser session: listen for cross-tab app-settings
+		// change notifications and invalidate the public settings cache so
+		// feature gates (sidebar links, etc.) stay in sync across tabs.
+		setupAppSettingsBroadcastListener(browserQueryClient)
+	}
 	return { queryClient: browserQueryClient }
 }
 

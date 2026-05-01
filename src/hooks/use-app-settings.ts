@@ -1,4 +1,4 @@
-import { queryOptions, useQuery, useSuspenseQuery } from '@tanstack/react-query'
+import { type QueryClient, queryOptions, useQuery, useSuspenseQuery } from '@tanstack/react-query'
 
 import { fetchAppSettings, fetchAppSettingsAsAdmin } from '@/api/settings'
 import { type AppSettings, DEFAULT_APP_SETTINGS } from '@/lib/settings'
@@ -102,4 +102,62 @@ export function useAdminAppSettings() {
  */
 export function useAdminAppSettingsSuspense() {
 	return useSuspenseQuery(adminAppSettingsQueryOptions)
+}
+
+/**
+ * BroadcastChannel name for cross-tab app-settings change notifications.
+ *
+ * Admin mutations only update `adminAppSettingsQueryKey` in their own tab.
+ * The public `appSettingsQueryKey` powers feature gates (sidebar links,
+ * toggle visibility) across every tab, so we broadcast a "changed" signal
+ * after a successful admin update and have other tabs invalidate their
+ * public cache. Same-tab invalidation happens directly via the helper.
+ */
+const APP_SETTINGS_BROADCAST = 'app-settings-changed'
+
+// Per-tab id so the BroadcastChannel listener can skip messages this tab
+// posted itself. Without this, `notifyAppSettingsChanged` would invalidate
+// once locally, then again when its own broadcast looped back through the
+// listener wired in this same tab (two refetches per toggle).
+const TAB_ID = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`
+
+type AppSettingsBroadcastMessage = { type: 'changed'; tabId: string }
+
+function getBroadcastChannel(): BroadcastChannel | null {
+	if (typeof window === 'undefined') return null
+	if (typeof BroadcastChannel === 'undefined') return null
+	return new BroadcastChannel(APP_SETTINGS_BROADCAST)
+}
+
+/**
+ * Call after a successful admin app-settings mutation. Invalidates the
+ * public settings cache in this tab and notifies other tabs in the same
+ * browser to do the same.
+ */
+export function notifyAppSettingsChanged(queryClient: QueryClient): void {
+	queryClient.invalidateQueries({ queryKey: appSettingsQueryKey })
+	const ch = getBroadcastChannel()
+	if (!ch) return
+	try {
+		const msg: AppSettingsBroadcastMessage = { type: 'changed', tabId: TAB_ID }
+		ch.postMessage(msg)
+	} finally {
+		ch.close()
+	}
+}
+
+/**
+ * Wire up the cross-tab listener. Returns a cleanup function. Safe to call
+ * multiple times; the caller is responsible for calling cleanup.
+ */
+export function setupAppSettingsBroadcastListener(queryClient: QueryClient): () => void {
+	const ch = getBroadcastChannel()
+	if (!ch) return () => {}
+	ch.onmessage = event => {
+		const data = event.data as AppSettingsBroadcastMessage | undefined
+		if (data?.type !== 'changed') return
+		if (data.tabId === TAB_ID) return
+		queryClient.invalidateQueries({ queryKey: appSettingsQueryKey })
+	}
+	return () => ch.close()
 }
