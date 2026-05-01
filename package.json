@@ -24,6 +24,7 @@
 		"db:pull": "drizzle-kit pull",
 		"db:studio": "drizzle-kit studio",
 		"db:seed": "tsx --env-file=.env.local scripts/seed.ts",
+		"db:seed:screenshots": "tsx --env-file=.env.local scripts/seed-screenshots.ts",
 		"db:reset": "drizzle-kit push --force && pnpm db:seed",
 		"admin:create": "tsx scripts/admin-create.ts",
 		"admin:reset-password": "tsx scripts/admin-reset-password.ts",
