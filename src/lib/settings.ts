@@ -211,6 +211,13 @@ export const appSettingsSchema = z.object({
 	// non-HTTPS LAN deploy (where WebAuthn won't work anyway) doesn't
 	// confuse users with a broken affordance.
 	enablePasskeys: z.boolean(),
+	// When true, /admin/oidc is reachable and the consent screen at
+	// /oauth/consent is wired up. Off by default — the better-auth
+	// plugin still mounts the .well-known + /oauth2/* routes
+	// regardless, but third-party apps can't use them until at least
+	// one oauthApplication row exists, which requires this UI to
+	// create one.
+	enableOidcProvider: z.boolean(),
 	// =====================================================================
 	// URL scraping
 	// =====================================================================
@@ -260,6 +267,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	enableMobileApp: false,
 	require2faForAdmins: false,
 	enablePasskeys: false,
+	enableOidcProvider: false,
 	// Per-provider HTTP timeout. Hosted scrapers (Stagehand / AI on
 	// heavy pages) routinely need >10s; bumped from 10s after
 	// sec-review L5. Tune downward in /admin/scraping if you only run

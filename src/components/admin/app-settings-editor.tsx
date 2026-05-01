@@ -298,6 +298,24 @@ export function AppSettingsEditor() {
 				/>
 			</div>
 
+			{/* Enable OIDC Provider */}
+			<div className="flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<Label htmlFor="enableOidcProvider" className="text-base">
+						Enable OIDC provider
+					</Label>
+					<p className="text-sm text-muted-foreground">
+						Let third-party apps "Sign in with GiftWrapt". Reveals the /admin/oidc client manager and the consent screen. Discovery and
+						token endpoints (.well-known, /oauth2/*) stay live regardless.
+					</p>
+				</div>
+				<Switch
+					id="enableOidcProvider"
+					checked={settings.enableOidcProvider}
+					onCheckedChange={checked => handleSettingChange('enableOidcProvider', checked)}
+				/>
+			</div>
+
 			{/* Mirror external images to storage on save */}
 			<div className={`flex items-center justify-between gap-4 ${storageConfigured ? '' : 'opacity-50'}`}>
 				<div className="space-y-0.5">

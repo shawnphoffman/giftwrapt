@@ -1,7 +1,8 @@
 import { Link, useLocation } from '@tanstack/react-router'
-import { Bug, Database, Globe, HardDrive, Lock, Mail, ScanSearch, Sparkles, Users } from 'lucide-react'
+import { Bug, Database, Globe, HardDrive, KeyRound, Lock, Mail, ScanSearch, Sparkles, Users } from 'lucide-react'
 
 import { buttonVariants } from '@/components/ui/button'
+import { useAppSetting } from '@/hooks/use-app-settings'
 import { useStorageStatus } from '@/hooks/use-storage-status'
 import { cn } from '@/lib/utils'
 
@@ -12,6 +13,7 @@ function navLinkClass(active: boolean) {
 export default function AdminLinks() {
 	const { pathname } = useLocation()
 	const { configured: storageConfigured } = useStorageStatus()
+	const oidcEnabled = useAppSetting('enableOidcProvider')
 
 	return (
 		<>
@@ -43,6 +45,12 @@ export default function AdminLinks() {
 				<Database />
 				Data
 			</Link>
+			{oidcEnabled && (
+				<Link to="/admin/oidc" className={navLinkClass(pathname === '/admin/oidc')}>
+					<KeyRound />
+					OIDC
+				</Link>
+			)}
 			{storageConfigured && (
 				<Link to="/admin/storage" className={navLinkClass(pathname === '/admin/storage')}>
 					<HardDrive />
