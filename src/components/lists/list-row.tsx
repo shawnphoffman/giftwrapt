@@ -1,7 +1,7 @@
 import { Slot } from '@radix-ui/react-slot'
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, useRouter } from '@tanstack/react-router'
-import { Archive, ArchiveRestore, MoreHorizontal, Pencil, Star, StarOff, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, Crown, MoreHorizontal, Pencil, Star, StarOff, Trash2 } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -19,6 +19,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { AvatarGroupCount } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -144,33 +145,48 @@ function RecipientRow({
 					{list.name}
 				</Link>
 				{list.type === 'giftideas' && list.giftIdeasTarget && (
-					<Badge
-						variant="outline"
-						className="h-5 gap-1 pl-2 pr-0 leading-none font-bold uppercase text-[10px] tracking-wider border-teal-500/40 bg-teal-500/10 text-teal-500"
-					>
-						for
+					<div className="h-5 flex items-center gap-1 pl-2 pr-0 leading-none font-bold uppercase text-[10px] tracking-wider text-teal-500">
+						<span>for</span>
 						<HoverableAvatar
 							name={list.giftIdeasTarget.name || list.giftIdeasTarget.email}
 							image={list.giftIdeasTarget.image}
-							className="size-5 ring-2 ring-teal-500/40"
+							className="size-5 ring-1 ring-teal-500/40"
 						/>
-					</Badge>
+					</div>
 				)}
 				{showOwner && (
-					<div className="flex items-center -space-x-1.5 shrink-0">
-						<Badge
-							variant="outline"
-							className="h-5 gap-1 pl-2 pr-0 leading-none font-bold uppercase text-[10px] tracking-wider text-muted-foreground relative z-10"
-						>
-							by
-							<HoverableAvatar name={showOwner.name || showOwner.email} image={showOwner.image} className="size-5" />
-						</Badge>
-						{editors?.map((editor, i) => (
-							<div key={editor.email} className="relative" style={{ zIndex: editors.length - i }}>
-								<HoverableAvatar name={editor.name || editor.email} image={editor.image} className="size-5 ring-1 ring-border" />
-							</div>
-						))}
-					</div>
+					<TooltipProvider delayDuration={150}>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<div className="flex items-center -space-x-0.75 shrink-0">
+									<UserAvatar
+										name={showOwner.name || showOwner.email}
+										image={showOwner.image}
+										size="small"
+										className="relative z-10 size-5 ring-1 ring-background border-0"
+									/>
+									{editors && editors.length > 0 && (
+										<AvatarGroupCount className="size-5 shrink-0 rounded-full bg-muted text-muted-foreground text-[10px] font-bold leading-none flex items-center justify-center select-none ring-1">
+											+{editors.length}
+										</AvatarGroupCount>
+									)}
+								</div>
+							</TooltipTrigger>
+							<TooltipContent className="flex flex-col gap-1.5">
+								<div className="flex items-center gap-2 justify-items-start w-full">
+									<UserAvatar name={showOwner.name || showOwner.email} image={showOwner.image} size="small" />
+									<span className="font-medium">{showOwner.name || showOwner.email}</span>
+									<Crown className="size-3 text-yellow-500 fill-yellow-500" aria-label="Owner" />
+								</div>
+								{editors?.map(editor => (
+									<div key={editor.email} className="flex items-center gap-2 justify-items-start w-full">
+										<UserAvatar name={editor.name || editor.email} image={editor.image} size="small" />
+										<span className="font-medium">{editor.name || editor.email}</span>
+									</div>
+								))}
+							</TooltipContent>
+						</Tooltip>
+					</TooltipProvider>
 				)}
 				{list.isPrimary && <Star className="size-4 text-yellow-500 fill-yellow-500 shrink-0" />}
 				{!list.isActive && (
