@@ -29,6 +29,10 @@ export const users = pgTable(
 		birthYear: smallint('birth_year'),
 		image: text('image'),
 		partnerId: text('partner_id'),
+		// Set by better-auth's two-factor plugin once a user finishes
+		// TOTP enrollment. Read by the sign-in flow to know whether to
+		// route to the 2FA challenge after a successful password.
+		twoFactorEnabled: boolean('two_factor_enabled').default(false).notNull(),
 		...timestamps,
 		// TO_REVIEW
 		emailVerified: boolean('email_verified').default(false).notNull(),

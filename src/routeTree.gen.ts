@@ -17,6 +17,8 @@ import { Route as coreImportRouteImport } from './routes/(core)/import'
 import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
 import { Route as authSignOutRouteImport } from './routes/(auth)/sign-out'
 import { Route as authSignInRouteImport } from './routes/(auth)/sign-in'
+import { Route as authResetPasswordRouteImport } from './routes/(auth)/reset-password'
+import { Route as authForgotPasswordRouteImport } from './routes/(auth)/forgot-password'
 import { Route as coreTempRouteRouteImport } from './routes/(core)/temp/route'
 import { Route as coreSettingsRouteRouteImport } from './routes/(core)/settings/route'
 import { Route as coreAdminRouteRouteImport } from './routes/(core)/admin/route'
@@ -94,6 +96,16 @@ const authSignOutRoute = authSignOutRouteImport.update({
 const authSignInRoute = authSignInRouteImport.update({
   id: '/(auth)/sign-in',
   path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const authResetPasswordRoute = authResetPasswordRouteImport.update({
+  id: '/(auth)/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const authForgotPasswordRoute = authForgotPasswordRouteImport.update({
+  id: '/(auth)/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const coreTempRouteRoute = coreTempRouteRouteImport.update({
@@ -297,6 +309,8 @@ export interface FileRoutesByFullPath {
   '/admin': typeof coreAdminRouteRouteWithChildren
   '/settings': typeof coreSettingsRouteRouteWithChildren
   '/temp': typeof coreTempRouteRouteWithChildren
+  '/forgot-password': typeof authForgotPasswordRoute
+  '/reset-password': typeof authResetPasswordRoute
   '/sign-in': typeof authSignInRoute
   '/sign-out': typeof authSignOutRoute
   '/sign-up': typeof authSignUpRoute
@@ -342,6 +356,8 @@ export interface FileRoutesByFullPath {
   '/api/sse/list/$listId': typeof ApiSseListListIdRoute
 }
 export interface FileRoutesByTo {
+  '/forgot-password': typeof authForgotPasswordRoute
+  '/reset-password': typeof authResetPasswordRoute
   '/sign-in': typeof authSignInRoute
   '/sign-out': typeof authSignOutRoute
   '/sign-up': typeof authSignUpRoute
@@ -392,6 +408,8 @@ export interface FileRoutesById {
   '/(core)/admin': typeof coreAdminRouteRouteWithChildren
   '/(core)/settings': typeof coreSettingsRouteRouteWithChildren
   '/(core)/temp': typeof coreTempRouteRouteWithChildren
+  '/(auth)/forgot-password': typeof authForgotPasswordRoute
+  '/(auth)/reset-password': typeof authResetPasswordRoute
   '/(auth)/sign-in': typeof authSignInRoute
   '/(auth)/sign-out': typeof authSignOutRoute
   '/(auth)/sign-up': typeof authSignUpRoute
@@ -442,6 +460,8 @@ export interface FileRouteTypes {
     | '/admin'
     | '/settings'
     | '/temp'
+    | '/forgot-password'
+    | '/reset-password'
     | '/sign-in'
     | '/sign-out'
     | '/sign-up'
@@ -487,6 +507,8 @@ export interface FileRouteTypes {
     | '/api/sse/list/$listId'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/forgot-password'
+    | '/reset-password'
     | '/sign-in'
     | '/sign-out'
     | '/sign-up'
@@ -536,6 +558,8 @@ export interface FileRouteTypes {
     | '/(core)/admin'
     | '/(core)/settings'
     | '/(core)/temp'
+    | '/(auth)/forgot-password'
+    | '/(auth)/reset-password'
     | '/(auth)/sign-in'
     | '/(auth)/sign-out'
     | '/(auth)/sign-up'
@@ -583,6 +607,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   coreRouteRoute: typeof coreRouteRouteWithChildren
+  authForgotPasswordRoute: typeof authForgotPasswordRoute
+  authResetPasswordRoute: typeof authResetPasswordRoute
   authSignInRoute: typeof authSignInRoute
   authSignOutRoute: typeof authSignOutRoute
   authSignUpRoute: typeof authSignUpRoute
@@ -656,6 +682,20 @@ declare module '@tanstack/react-router' {
       path: '/sign-in'
       fullPath: '/sign-in'
       preLoaderRoute: typeof authSignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(auth)/reset-password': {
+      id: '/(auth)/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof authResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(auth)/forgot-password': {
+      id: '/(auth)/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof authForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(core)/temp': {
@@ -1037,6 +1077,8 @@ const coreRouteRouteWithChildren = coreRouteRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   coreRouteRoute: coreRouteRouteWithChildren,
+  authForgotPasswordRoute: authForgotPasswordRoute,
+  authResetPasswordRoute: authResetPasswordRoute,
   authSignInRoute: authSignInRoute,
   authSignOutRoute: authSignOutRoute,
   authSignUpRoute: authSignUpRoute,
@@ -1056,12 +1098,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

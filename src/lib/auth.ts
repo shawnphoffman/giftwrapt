@@ -1,14 +1,34 @@
+import { passkey } from '@better-auth/passkey'
 import type { BetterAuthOptions } from 'better-auth'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { admin, apiKey, customSession } from 'better-auth/plugins'
+import { admin, apiKey, customSession, oidcProvider, twoFactor } from 'better-auth/plugins'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { sql } from 'drizzle-orm'
 
 import { db } from '@/db'
-import { account, apikey, rateLimit, session, users, verification } from '@/db/schema'
+import {
+	account,
+	apikey,
+	oauthAccessToken,
+	oauthApplication,
+	oauthConsent,
+	passkey as passkeyTable,
+	rateLimit,
+	session,
+	twoFactor as twoFactorTable,
+	users,
+	verification,
+} from '@/db/schema'
 import { env } from '@/env'
 import { createLogger } from '@/lib/logger'
+import { sendPasswordResetEmail } from '@/lib/resend'
+
+// Password-reset tokens issued by better-auth's `forgetPassword` API are
+// good for this many minutes. Used both as the better-auth option and
+// in the email body so the user-facing "good for N minutes" copy can't
+// drift from reality.
+const PASSWORD_RESET_TOKEN_TTL_MINUTES = 60
 
 const trustedOrigins = env.TRUSTED_ORIGINS?.split(',')
 	.map(o => o.trim())
@@ -65,10 +85,33 @@ const options = {
 			verificationToken: verification,
 			rateLimit: rateLimit,
 			apikey: apikey,
+			twoFactor: twoFactorTable,
+			passkey: passkeyTable,
+			oauthApplication: oauthApplication,
+			oauthAccessToken: oauthAccessToken,
+			oauthConsent: oauthConsent,
 		},
 	}),
 	emailAndPassword: {
 		enabled: true,
+		// `sendResetPassword` is the hook better-auth calls when
+		// `authClient.forgetPassword({ email })` succeeds. We hand
+		// the user a tokenized URL pointing at our `/reset-password`
+		// route which calls `authClient.resetPassword` to finish.
+		// If the underlying email send is skipped because Resend
+		// isn't configured, sendPasswordResetEmail logs and returns
+		// null — the user-facing flow always reports "if an account
+		// exists you'll receive an email" so the lack of email
+		// doesn't leak account existence.
+		sendResetPassword: async ({ user, url }) => {
+			await sendPasswordResetEmail({
+				name: user.name,
+				recipient: user.email,
+				resetUrl: url,
+				expiresInMinutes: PASSWORD_RESET_TOKEN_TTL_MINUTES,
+			})
+		},
+		resetPasswordTokenExpiresIn: PASSWORD_RESET_TOKEN_TTL_MINUTES * 60,
 	},
 	// CSRF posture (sec-review L6): better-auth defaults to
 	// `sameSite: 'lax'`, `httpOnly: true`, `secure` (when HTTPS) on the
@@ -145,6 +188,37 @@ const options = {
 				maxRequests: 300,
 				timeWindow: 1000 * 60,
 			},
+		}),
+		// TOTP-only 2FA. `skipVerificationOnEnable: false` (default)
+		// means the user has to enter a valid TOTP once *during*
+		// enrollment before `twoFactorEnabled` flips on, so a busted
+		// authenticator app can't lock them out. Backup codes are
+		// generated on enable; we surface them in the user settings
+		// UI so the user can store them somewhere safe before signing
+		// out.
+		twoFactor({
+			issuer: 'GiftWrapt',
+		}),
+		// WebAuthn / passkey. Add-on only — see sign-in / sign-up
+		// pages: there is no passkey-first onboarding. `rpName` shows
+		// up in the OS authenticator prompt; `rpID` defaults to the
+		// hostname of `baseURL` (set above), which is what we want for
+		// every deploy except local-dev where ngrok / lan IPs would
+		// trip WebAuthn's same-origin check — operators on those
+		// setups should set BETTER_AUTH_URL to match the URL the
+		// browser loads.
+		passkey({
+			rpName: 'GiftWrapt',
+		}),
+		// OIDC provider. Lets third-party apps sign their users in
+		// "with GiftWrapt". Disabled until an admin actually creates
+		// an oauthApplication row from the admin UI; the plugin's
+		// endpoints (.well-known/openid-configuration, /authorize,
+		// /token, /userinfo) are mounted unconditionally so a client
+		// app can discover the provider before any apps exist.
+		oidcProvider({
+			loginPage: '/sign-in',
+			consentPage: '/oauth/consent',
 		}),
 	],
 	user: {

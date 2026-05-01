@@ -118,6 +118,123 @@ export const apikey = pgTable(
 	table => [index('apikey_key_idx').on(table.key), index('apikey_userId_idx').on(table.userId)]
 )
 
+// Better-auth `twoFactor()` plugin store. Holds the per-user TOTP secret
+// and the JSON-encoded backup-codes array. Better-auth also adds a
+// `twoFactorEnabled boolean` to the `users` table (see users.ts) so the
+// session can advertise the gate without joining this table on every
+// request. Schema mirrors better-auth/plugins/two-factor/schema.
+export const twoFactor = pgTable(
+	'twoFactor',
+	{
+		id: text('id').primaryKey(),
+		secret: text('secret').notNull(),
+		backupCodes: text('backup_codes').notNull(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+	},
+	table => [index('twoFactor_userId_idx').on(table.userId), index('twoFactor_secret_idx').on(table.secret)]
+)
+
+// Better-auth `passkey()` plugin store (WebAuthn credentials). One row
+// per registered authenticator. `credentialID` is the WebAuthn
+// credential ID (base64url) and is unique per credential; `publicKey`
+// is the COSE-encoded public key used for signature verification.
+// Schema mirrors @better-auth/passkey/schema.
+export const passkey = pgTable(
+	'passkey',
+	{
+		id: text('id').primaryKey(),
+		name: text('name'),
+		publicKey: text('public_key').notNull(),
+		userId: text('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		credentialID: text('credential_id').notNull(),
+		counter: integer('counter').notNull(),
+		deviceType: text('device_type').notNull(),
+		backedUp: boolean('backed_up').notNull(),
+		transports: text('transports'),
+		createdAt: timestamp('created_at').defaultNow(),
+		aaguid: text('aaguid'),
+	},
+	table => [index('passkey_userId_idx').on(table.userId), index('passkey_credentialID_idx').on(table.credentialID)]
+)
+
+// Better-auth `oidcProvider()` plugin tables. The app *is* the OIDC
+// provider (issues tokens to third-party clients). Three tables:
+//
+//   oauthApplication — registered OIDC clients (client_id/secret,
+//     redirect URIs, type, optional owner). Admin-managed.
+//   oauthAccessToken — issued access + refresh token pairs scoped to
+//     a (clientId, userId) pair.
+//   oauthConsent     — per-user consent decisions for a given client
+//     so the consent screen only appears once per scope set.
+//
+// Field shapes mirror better-auth/plugins/oidc-provider/schema. We use
+// `text` for every datetime to match better-auth's `type: 'date'` write
+// path which serializes via the drizzle adapter.
+export const oauthApplication = pgTable(
+	'oauthApplication',
+	{
+		id: text('id').primaryKey(),
+		name: text('name').notNull(),
+		icon: text('icon'),
+		metadata: text('metadata'),
+		clientId: text('client_id').notNull().unique(),
+		clientSecret: text('client_secret'),
+		redirectUrls: text('redirect_urls').notNull(),
+		type: text('type').notNull(),
+		disabled: boolean('disabled').notNull().default(false),
+		userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
+		createdAt: timestamp('created_at').notNull().defaultNow(),
+		updatedAt: timestamp('updated_at').notNull().defaultNow(),
+	},
+	table => [index('oauthApplication_userId_idx').on(table.userId), index('oauthApplication_clientId_idx').on(table.clientId)]
+)
+
+export const oauthAccessToken = pgTable(
+	'oauthAccessToken',
+	{
+		id: text('id').primaryKey(),
+		accessToken: text('access_token').notNull().unique(),
+		refreshToken: text('refresh_token').notNull().unique(),
+		accessTokenExpiresAt: timestamp('access_token_expires_at').notNull(),
+		refreshTokenExpiresAt: timestamp('refresh_token_expires_at').notNull(),
+		clientId: text('client_id')
+			.notNull()
+			.references(() => oauthApplication.clientId, { onDelete: 'cascade' }),
+		userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
+		scopes: text('scopes').notNull(),
+		createdAt: timestamp('created_at').notNull().defaultNow(),
+		updatedAt: timestamp('updated_at').notNull().defaultNow(),
+	},
+	table => [
+		index('oauthAccessToken_clientId_idx').on(table.clientId),
+		index('oauthAccessToken_userId_idx').on(table.userId),
+		index('oauthAccessToken_accessToken_idx').on(table.accessToken),
+		index('oauthAccessToken_refreshToken_idx').on(table.refreshToken),
+	]
+)
+
+export const oauthConsent = pgTable(
+	'oauthConsent',
+	{
+		id: text('id').primaryKey(),
+		clientId: text('client_id')
+			.notNull()
+			.references(() => oauthApplication.clientId, { onDelete: 'cascade' }),
+		userId: text('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		scopes: text('scopes').notNull(),
+		createdAt: timestamp('created_at').notNull().defaultNow(),
+		updatedAt: timestamp('updated_at').notNull().defaultNow(),
+		consentGiven: boolean('consent_given').notNull(),
+	},
+	table => [index('oauthConsent_clientId_idx').on(table.clientId), index('oauthConsent_userId_idx').on(table.userId)]
+)
+
 export const sessionRelations = relations(session, ({ one }) => ({
 	user: one(users, {
 		fields: [session.userId],

@@ -98,5 +98,5 @@ function SignIn() {
 		return null
 	}
 
-	return <SignInPageContent onSubmit={handleSignIn} />
+	return <SignInPageContent onSubmit={handleSignIn} forgotPasswordHref="/forgot-password" />
 }

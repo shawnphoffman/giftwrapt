@@ -3,6 +3,7 @@ import { Resend } from 'resend'
 import { db } from '@/db'
 import BirthdayEmail from '@/emails/happy-birthday-email'
 import NewCommentEmail from '@/emails/new-comment-email'
+import PasswordResetEmail from '@/emails/password-reset-email'
 import PostBirthdayEmail from '@/emails/post-birthday-email'
 import TestEmail from '@/emails/test-email'
 import { type ResolvedEmailConfig, resolveEmailConfig } from '@/lib/email-config'
@@ -119,6 +120,35 @@ export const sendPostBirthdayEmail = async (recipient: string, items: Array<{ ti
 		react: <PostBirthdayEmail items={items} />,
 	})
 	logSendResult('post-birthday', recipient, res as SendResult)
+	return res
+}
+
+// Sends the better-auth password-reset link. Wired into
+// `emailAndPassword.sendResetPassword` in src/lib/auth.ts. Returns
+// `null` (and logs a warning) if email isn't configured so the
+// underlying auth call doesn't appear to succeed when nothing was
+// actually sent — callers in the API surface check `isEmailConfigured()`
+// up front to decide whether to even offer the reset path.
+export const sendPasswordResetEmail = async (params: {
+	name?: string | null
+	recipient: string
+	resetUrl: string
+	expiresInMinutes: number
+}) => {
+	const cfg = await resolveEmailConfig(db)
+	const client = buildClient(cfg)
+	if (!client || !cfg.isValid) {
+		warnNotConfigured('sendPasswordResetEmail')
+		return null
+	}
+	emailLog.info({ kind: 'password-reset', recipient: params.recipient }, 'sending email')
+	const res = await client.emails.send({
+		...commonEmailProps(cfg),
+		to: params.recipient,
+		subject: 'Reset your GiftWrapt password',
+		react: <PasswordResetEmail name={params.name} resetUrl={params.resetUrl} expiresInMinutes={params.expiresInMinutes} />,
+	})
+	logSendResult('password-reset', params.recipient, res as SendResult)
 	return res
 }
 

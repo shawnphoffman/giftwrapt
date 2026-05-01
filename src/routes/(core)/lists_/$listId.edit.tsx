@@ -94,7 +94,7 @@ function ListEditPage() {
 	const initialSettingsOpen = useRef(settings === true).current
 	useEffect(() => {
 		if (settings) {
-			void navigate({ search: prev => ({ ...prev, settings: undefined }), replace: true })
+			void navigate({ search: (prev: EditSearch) => ({ ...prev, settings: undefined }), replace: true })
 		}
 	}, [settings, navigate])
 

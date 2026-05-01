@@ -12,11 +12,12 @@ export type SignInPageContentProps = {
 	onSubmit: (email: string, password: string) => Promise<void>
 	initialError?: string | null
 	forceLoading?: boolean
+	forgotPasswordHref?: string
 }
 
 const GENERIC_SIGN_IN_ERROR = 'Invalid email or password.'
 
-export function SignInPageContent({ onSubmit, initialError = null, forceLoading = false }: SignInPageContentProps) {
+export function SignInPageContent({ onSubmit, initialError = null, forceLoading = false, forgotPasswordHref }: SignInPageContentProps) {
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
@@ -68,7 +69,14 @@ export function SignInPageContent({ onSubmit, initialError = null, forceLoading 
 					</div>
 
 					<div className="space-y-2">
-						<Label htmlFor="password">Password</Label>
+						<div className="flex items-baseline justify-between">
+							<Label htmlFor="password">Password</Label>
+							{forgotPasswordHref && (
+								<a href={forgotPasswordHref} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4">
+									Forgot password?
+								</a>
+							)}
+						</div>
 						<PasswordInput
 							id="password"
 							placeholder="••••••••"

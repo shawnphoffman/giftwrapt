@@ -61,4 +61,15 @@ describe('resend module with email fully unconfigured', () => {
 		const { sendTestEmail } = await import('@/lib/resend')
 		await expect(sendTestEmail()).rejects.toThrow(/not configured/i)
 	})
+
+	it('no-ops sendPasswordResetEmail and returns null', async () => {
+		const { sendPasswordResetEmail } = await import('@/lib/resend')
+		const result = await sendPasswordResetEmail({
+			name: 'Alice',
+			recipient: 'alice@example.com',
+			resetUrl: 'https://example.test/reset-password?token=x',
+			expiresInMinutes: 60,
+		})
+		expect(result).toBeNull()
+	})
 })
