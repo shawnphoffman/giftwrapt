@@ -1,11 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
-import { lt } from 'drizzle-orm'
 
 import { db } from '@/db'
-import { verification } from '@/db/schema'
 import { checkCronAuth } from '@/lib/cron-auth'
 import { createLogger } from '@/lib/logger'
+
+import { cleanupVerificationImpl } from './_cleanup-verification-impl'
 
 const cronLog = createLogger('cron:cleanup-verification')
 
@@ -29,9 +29,7 @@ export const Route = createFileRoute('/api/cron/cleanup-verification')({
 				const authError = checkCronAuth(request, cronLog)
 				if (authError) return authError
 
-				const now = new Date()
-				const result = await db.delete(verification).where(lt(verification.expiresAt, now))
-				const deleted = result.rowCount ?? 0
+				const { deleted } = await cleanupVerificationImpl({ db, now: new Date() })
 				const durationMs = Date.now() - started
 
 				cronLog.info({ deleted, durationMs }, 'verification cleanup complete')

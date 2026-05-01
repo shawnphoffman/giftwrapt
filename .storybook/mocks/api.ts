@@ -111,3 +111,28 @@ export const removeAvatarAsAdmin = ok
 
 // @/api/storage-status
 export const fetchStorageStatus = (): Promise<{ configured: boolean }> => Promise.resolve({ configured: true })
+
+// @/api/admin-oidc
+export const oidcAppTypeValues = ['web', 'native', 'public', 'user-agent-based'] as const
+export type OidcAppType = (typeof oidcAppTypeValues)[number]
+export type OidcApplicationRow = {
+	id: string
+	clientId: string
+	clientSecret: string | null
+	name: string
+	type: OidcAppType
+	icon: string | null
+	redirectUrls: Array<string>
+	disabled: boolean
+	createdAt: Date
+	updatedAt: Date
+}
+export const listOidcApplicationsAsAdmin = (): Promise<Array<OidcApplicationRow>> => Promise.resolve([])
+export const createOidcApplicationAsAdmin = ok
+export const updateOidcApplicationAsAdmin = ok
+export const deleteOidcApplicationAsAdmin = ok
+export const rotateOidcSecretAsAdmin = ok
+
+// @/api/oidc
+export const getOidcClientPublicInfo = (): Promise<{ kind: 'ok'; client: null }> => Promise.resolve({ kind: 'ok', client: null })
+export const submitOidcConsent = ok

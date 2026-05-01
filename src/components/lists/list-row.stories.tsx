@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import type { ComponentProps } from 'react'
+import { expect, userEvent, within } from 'storybook/test'
 
 import type { MyListRow as MyListRowType } from '@/api/lists'
 import { listTypeEnumValues } from '@/db/schema/enums'
@@ -52,6 +53,23 @@ type Story = StoryObj<ListRowProps>
 
 export const RecipientDefault: Story = {
 	args: { role: 'recipient', list: recipientBase },
+	play: async ({ canvasElement, args }: { canvasElement: HTMLElement; args: ListRowProps }) => {
+		const canvas = within(canvasElement)
+		await expect(canvas.getByText(args.list.name)).toBeInTheDocument()
+	},
+}
+
+export const RecipientMenuOpens: Story = {
+	args: { role: 'recipient', list: recipientBase },
+	play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+		const canvas = within(canvasElement)
+		const trigger = canvas.getAllByRole('button').find(b => b.getAttribute('aria-haspopup') === 'menu')
+		await expect(trigger).toBeDefined()
+		await userEvent.click(trigger!)
+		// Menu items render in a portal.
+		await expect(await within(document.body).findByRole('menuitem', { name: /edit/i })).toBeInTheDocument()
+	},
+	tags: ['!autodocs'],
 }
 
 export const RecipientPrimary: Story = {

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, userEvent, within } from 'storybook/test'
+import { expect, userEvent, waitFor, within } from 'storybook/test'
 
 import type { GroupSummary } from '@/api/lists'
 
@@ -49,7 +49,32 @@ export const MenuOpens: Story = {
 		const menuTrigger = canvas.getAllByRole('button').find(b => b.getAttribute('aria-haspopup') === 'menu')
 		await expect(menuTrigger).toBeDefined()
 		await userEvent.click(menuTrigger!)
-		await expect(await within(document.body).findByRole('menuitem', { name: /edit/i })).toBeInTheDocument()
+		// Verify the canonical owner actions in the menu so a regression
+		// that drops one fails loudly. Items are: Edit, Mark unavailable,
+		// Delete (plus Move/Group depending on props).
+		const body = within(document.body)
+		await expect(await body.findByRole('menuitem', { name: /edit/i })).toBeInTheDocument()
+		await expect(await body.findByRole('menuitem', { name: /mark as unavailable/i })).toBeInTheDocument()
+		await expect(await body.findByRole('menuitem', { name: /delete/i })).toBeInTheDocument()
+	},
+	tags: ['!autodocs'],
+}
+
+export const MenuClosesOnEscape: Story = {
+	args: {
+		item: makeItem({ title: 'Closable menu' }),
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement)
+		const menuTrigger = canvas.getAllByRole('button').find(b => b.getAttribute('aria-haspopup') === 'menu')!
+		await userEvent.click(menuTrigger)
+		await within(document.body).findByRole('menuitem', { name: /edit/i })
+		await userEvent.keyboard('{Escape}')
+		// Radix's exit animation can keep the node mounted briefly. Wait
+		// for it to disappear instead of asserting on a stale reference.
+		await waitFor(() => {
+			expect(within(document.body).queryByRole('menuitem', { name: /edit/i })).not.toBeInTheDocument()
+		})
 	},
 	tags: ['!autodocs'],
 }

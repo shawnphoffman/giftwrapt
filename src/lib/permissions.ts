@@ -9,7 +9,8 @@
 
 import { and, eq } from 'drizzle-orm'
 
-import { db } from '@/db'
+import type { SchemaDatabase } from '@/db'
+import { db as defaultDb } from '@/db'
 import { guardianships, listEditors, userRelationships } from '@/db/schema'
 
 export type CanViewListResult = { ok: true } | { ok: false; reason: 'inactive' | 'private' | 'denied' }
@@ -21,13 +22,17 @@ type ListForVisibilityCheck = {
 	isActive: boolean
 }
 
-export async function canViewList(viewerId: string, list: ListForVisibilityCheck): Promise<CanViewListResult> {
+export async function canViewList(
+	viewerId: string,
+	list: ListForVisibilityCheck,
+	dbx: SchemaDatabase = defaultDb
+): Promise<CanViewListResult> {
 	if (!list.isActive) return { ok: false, reason: 'inactive' }
 	if (list.isPrivate) return { ok: false, reason: 'private' }
 
 	// Explicit deny from the list owner wins over any default "yes".
 	// The absence of a row means the default policy (visible) applies.
-	const denied = await db.query.userRelationships.findFirst({
+	const denied = await dbx.query.userRelationships.findFirst({
 		where: and(
 			eq(userRelationships.ownerUserId, list.ownerId),
 			eq(userRelationships.viewerUserId, viewerId),
@@ -45,9 +50,13 @@ export async function canViewList(viewerId: string, list: ListForVisibilityCheck
 // than open-coding `if (ownerId === viewerId) skip; else canViewList(...)`,
 // which is easy to drift out of sync if the visibility rules ever
 // change. See sec-review M9.
-export async function canViewListAsAnyone(viewerId: string, list: ListForVisibilityCheck): Promise<CanViewListResult> {
+export async function canViewListAsAnyone(
+	viewerId: string,
+	list: ListForVisibilityCheck,
+	dbx: SchemaDatabase = defaultDb
+): Promise<CanViewListResult> {
 	if (list.ownerId === viewerId) return { ok: true }
-	return canViewList(viewerId, list)
+	return canViewList(viewerId, list, dbx)
 }
 
 // ===============================
@@ -66,16 +75,20 @@ export async function canViewListAsAnyone(viewerId: string, list: ListForVisibil
 
 export type CanEditListResult = { ok: true } | { ok: false; reason: 'not-editor' }
 
-export async function canEditList(userId: string, list: ListForVisibilityCheck): Promise<CanEditListResult> {
+export async function canEditList(
+	userId: string,
+	list: ListForVisibilityCheck,
+	dbx: SchemaDatabase = defaultDb
+): Promise<CanEditListResult> {
 	// Guardianship grant: viewer is a guardian of the list owner.
-	const guardianGrant = await db.query.guardianships.findFirst({
+	const guardianGrant = await dbx.query.guardianships.findFirst({
 		where: and(eq(guardianships.parentUserId, userId), eq(guardianships.childUserId, list.ownerId)),
 		columns: { parentUserId: true },
 	})
 	if (guardianGrant) return { ok: true }
 
 	// User-level blanket edit grant.
-	const userGrant = await db.query.userRelationships.findFirst({
+	const userGrant = await dbx.query.userRelationships.findFirst({
 		where: and(
 			eq(userRelationships.ownerUserId, list.ownerId),
 			eq(userRelationships.viewerUserId, userId),
@@ -86,7 +99,7 @@ export async function canEditList(userId: string, list: ListForVisibilityCheck):
 	if (userGrant) return { ok: true }
 
 	// List-level editor grant.
-	const listGrant = await db.query.listEditors.findFirst({
+	const listGrant = await dbx.query.listEditors.findFirst({
 		where: and(eq(listEditors.listId, list.id), eq(listEditors.userId, userId)),
 		columns: { id: true },
 	})

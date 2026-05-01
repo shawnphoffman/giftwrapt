@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
+import { expect, within } from 'storybook/test'
 
 import type { GroupSummary } from '@/api/lists'
 
@@ -50,6 +51,15 @@ export const PickOneWithItems: Story = {
 			makeItemForEditing({ groupId: 10, title: 'AirPods Max', price: '549', imageUrl: placeholderImages.square }),
 		],
 	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement)
+		// All three items render inside the group block.
+		await expect(canvas.getByText(/Sony WH-1000XM5/)).toBeInTheDocument()
+		await expect(canvas.getByText(/Bose QuietComfort Ultra/)).toBeInTheDocument()
+		await expect(canvas.getByText(/AirPods Max/)).toBeInTheDocument()
+		// Group label is visible on the header.
+		await expect(canvas.getByText(/Headphones/)).toBeInTheDocument()
+	},
 }
 
 export const OrderedWithReorder: Story = {
@@ -60,6 +70,14 @@ export const OrderedWithReorder: Story = {
 			makeItemForEditing({ groupId: 11, title: 'Grinder', price: '249', groupSortOrder: 1 }),
 			makeItemForEditing({ groupId: 11, title: 'Scale', price: '65', groupSortOrder: 2, imageUrl: placeholderImages.squareSmall }),
 		],
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement)
+		// Order group renders all items in the configured order.
+		const titles = ['Espresso machine', 'Grinder', 'Scale']
+		for (const title of titles) {
+			await expect(canvas.getByText(title)).toBeInTheDocument()
+		}
 	},
 }
 

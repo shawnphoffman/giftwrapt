@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, userEvent, within } from 'storybook/test'
+import { expect, userEvent, waitFor, within } from 'storybook/test'
 
 import { priorityEnumValues } from '@/db/schema/enums'
 
@@ -108,7 +108,30 @@ export const ClaimDialogOpens: Story = {
 		const button = canvas.getByRole('button', { name: /claim/i })
 		await userEvent.click(button)
 		// Dialog renders in a portal, so query from the document body.
-		await expect(await within(document.body).findByRole('dialog')).toBeInTheDocument()
+		const dialog = await within(document.body).findByRole('dialog')
+		await expect(dialog).toBeInTheDocument()
+		// The claim form should expose a confirm action and a way to cancel.
+		// Submit / cancel are both rendered as buttons inside the dialog.
+		await expect(within(dialog).getAllByRole('button').length).toBeGreaterThan(0)
+	},
+	tags: ['!autodocs'],
+}
+
+export const ClaimDialogCancelable: Story = {
+	args: {
+		item: makeItemWithGifts({ title: 'Cancellable claim dialog' }),
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement)
+		await userEvent.click(canvas.getByRole('button', { name: /claim/i }))
+		await within(document.body).findByRole('dialog')
+		// Pressing Escape closes the radix dialog. Wait for the exit
+		// animation; asserting on the stale reference races the unmount.
+		await userEvent.keyboard('{Escape}')
+		await waitFor(() => {
+			expect(within(document.body).queryByRole('dialog')).not.toBeInTheDocument()
+		})
+		await expect(canvas.getByRole('button', { name: /claim/i })).toBeInTheDocument()
 	},
 	tags: ['!autodocs'],
 }

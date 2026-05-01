@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid'
 
 import type { SchemaDatabase } from '@/db'
-import type { GiftedItem, Item, ItemComment, ItemScrape, List, ListAddon, ListEditor, Role, User } from '@/db/schema'
+import type { BirthMonth, GiftedItem, Item, ItemComment, ItemScrape, List, ListAddon, ListEditor, Role, User } from '@/db/schema'
 import {
 	account,
 	giftedItems,
@@ -31,19 +31,29 @@ export async function makeUser(
 		role: Role
 		image: string | null
 		partnerId: string | null
+		birthMonth: BirthMonth | null
+		birthDay: number | null
+		banned: boolean
 	}> = {}
 ): Promise<User> {
 	const id = overrides.id ?? `user_${nextId()}`
 	const email = overrides.email ?? `${id}@test.local`
+	// Explicit null on `name` is meaningful (the column is nullable and
+	// some flows test the "no display name" path), so distinguish
+	// "override unset" from "override is null".
+	const name = 'name' in overrides ? overrides.name : `Test ${id}`
 	const [row] = await tx
 		.insert(users)
 		.values({
 			id,
 			email,
-			name: overrides.name ?? `Test ${id}`,
+			name,
 			role: overrides.role ?? 'user',
 			image: overrides.image ?? null,
 			partnerId: overrides.partnerId ?? null,
+			birthMonth: overrides.birthMonth ?? null,
+			birthDay: overrides.birthDay ?? null,
+			banned: overrides.banned ?? false,
 		})
 		.returning()
 	return row

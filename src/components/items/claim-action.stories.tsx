@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
+import { expect, userEvent, within } from 'storybook/test'
 
 import { makeGift, viewerUser } from './_stories/fixtures'
 import { ClaimAction } from './claim-action'
@@ -41,6 +42,21 @@ type Story = StoryObj<typeof meta>
 export const Claimable: Story = {
 	args: { remaining: 1, remainingForEdit: 1 },
 	parameters: { docs: { description: { story: 'qty=1, no claim yet, no lock. Renders the "Claim" button.' } } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement)
+		await expect(canvas.getByRole('button', { name: /^claim$/i })).toBeInTheDocument()
+	},
+}
+
+export const ClaimableOpensDialog: Story = {
+	args: { remaining: 1, remainingForEdit: 1 },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement)
+		await userEvent.click(canvas.getByRole('button', { name: /^claim$/i }))
+		// Dialog renders into a portal — query off document.body.
+		await expect(await within(document.body).findByRole('dialog')).toBeInTheDocument()
+	},
+	tags: ['!autodocs'],
 }
 
 export const ClaimableMulti: Story = {
@@ -56,6 +72,12 @@ export const HasClaim: Story = {
 		myClaim: makeGift({ gifterId: viewerUser.id, gifter: viewerUser, quantity: 1 }),
 	},
 	parameters: { docs: { description: { story: 'Viewer has an existing claim. Renders "Edit claim" instead of "Claim".' } } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement)
+		// "Edit claim" replaces "Claim" once viewer already owns a claim.
+		await expect(canvas.getByRole('button', { name: /edit claim/i })).toBeInTheDocument()
+		await expect(canvas.queryByRole('button', { name: /^claim$/i })).not.toBeInTheDocument()
+	},
 }
 
 export const HasClaimFullyClaimed: Story = {
@@ -71,6 +93,12 @@ export const HasClaimFullyClaimed: Story = {
 export const FullyClaimedByOthers: Story = {
 	args: { remaining: 0, remainingForEdit: 0 },
 	parameters: { docs: { description: { story: 'qty=1 fully claimed by someone else, viewer has no claim. Renders nothing.' } } },
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement)
+		// Both action buttons are suppressed: nothing the viewer can do.
+		await expect(canvas.queryByRole('button', { name: /^claim$/i })).not.toBeInTheDocument()
+		await expect(canvas.queryByRole('button', { name: /edit claim/i })).not.toBeInTheDocument()
+	},
 }
 
 export const Locked: Story = {
