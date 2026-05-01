@@ -53,6 +53,7 @@ import { Route as coreAdminEmailRouteImport } from './routes/(core)/admin/email'
 import { Route as coreAdminDebugRouteImport } from './routes/(core)/admin/debug'
 import { Route as coreAdminDataRouteImport } from './routes/(core)/admin/data'
 import { Route as coreAdminAiRouteImport } from './routes/(core)/admin/ai'
+import { Route as authSignInTwoFactorRouteImport } from './routes/(auth)/sign-in.two-factor'
 import { Route as ApiSseListListIdRouteImport } from './routes/api/sse/list.$listId'
 import { Route as coreListsListIdOrganizeRouteImport } from './routes/(core)/lists_/$listId.organize'
 import { Route as coreListsListIdEditRouteImport } from './routes/(core)/lists_/$listId.edit'
@@ -279,6 +280,11 @@ const coreAdminAiRoute = coreAdminAiRouteImport.update({
   path: '/ai',
   getParentRoute: () => coreAdminRouteRoute,
 } as any)
+const authSignInTwoFactorRoute = authSignInTwoFactorRouteImport.update({
+  id: '/two-factor',
+  path: '/two-factor',
+  getParentRoute: () => authSignInRoute,
+} as any)
 const ApiSseListListIdRoute = ApiSseListListIdRouteImport.update({
   id: '/api/sse/list/$listId',
   path: '/api/sse/list/$listId',
@@ -311,13 +317,14 @@ export interface FileRoutesByFullPath {
   '/temp': typeof coreTempRouteRouteWithChildren
   '/forgot-password': typeof authForgotPasswordRoute
   '/reset-password': typeof authResetPasswordRoute
-  '/sign-in': typeof authSignInRoute
+  '/sign-in': typeof authSignInRouteWithChildren
   '/sign-out': typeof authSignOutRoute
   '/sign-up': typeof authSignUpRoute
   '/import': typeof coreImportRoute
   '/api/health': typeof ApiHealthRoute
   '/api/version': typeof ApiVersionRoute
   '/': typeof coreIndexRoute
+  '/sign-in/two-factor': typeof authSignInTwoFactorRoute
   '/admin/ai': typeof coreAdminAiRoute
   '/admin/data': typeof coreAdminDataRoute
   '/admin/debug': typeof coreAdminDebugRoute
@@ -358,13 +365,14 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/forgot-password': typeof authForgotPasswordRoute
   '/reset-password': typeof authResetPasswordRoute
-  '/sign-in': typeof authSignInRoute
+  '/sign-in': typeof authSignInRouteWithChildren
   '/sign-out': typeof authSignOutRoute
   '/sign-up': typeof authSignUpRoute
   '/import': typeof coreImportRoute
   '/api/health': typeof ApiHealthRoute
   '/api/version': typeof ApiVersionRoute
   '/': typeof coreIndexRoute
+  '/sign-in/two-factor': typeof authSignInTwoFactorRoute
   '/admin/ai': typeof coreAdminAiRoute
   '/admin/data': typeof coreAdminDataRoute
   '/admin/debug': typeof coreAdminDebugRoute
@@ -410,13 +418,14 @@ export interface FileRoutesById {
   '/(core)/temp': typeof coreTempRouteRouteWithChildren
   '/(auth)/forgot-password': typeof authForgotPasswordRoute
   '/(auth)/reset-password': typeof authResetPasswordRoute
-  '/(auth)/sign-in': typeof authSignInRoute
+  '/(auth)/sign-in': typeof authSignInRouteWithChildren
   '/(auth)/sign-out': typeof authSignOutRoute
   '/(auth)/sign-up': typeof authSignUpRoute
   '/(core)/import': typeof coreImportRoute
   '/api/health': typeof ApiHealthRoute
   '/api/version': typeof ApiVersionRoute
   '/(core)/': typeof coreIndexRoute
+  '/(auth)/sign-in/two-factor': typeof authSignInTwoFactorRoute
   '/(core)/admin/ai': typeof coreAdminAiRoute
   '/(core)/admin/data': typeof coreAdminDataRoute
   '/(core)/admin/debug': typeof coreAdminDebugRoute
@@ -469,6 +478,7 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/api/version'
     | '/'
+    | '/sign-in/two-factor'
     | '/admin/ai'
     | '/admin/data'
     | '/admin/debug'
@@ -516,6 +526,7 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/api/version'
     | '/'
+    | '/sign-in/two-factor'
     | '/admin/ai'
     | '/admin/data'
     | '/admin/debug'
@@ -567,6 +578,7 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/api/version'
     | '/(core)/'
+    | '/(auth)/sign-in/two-factor'
     | '/(core)/admin/ai'
     | '/(core)/admin/data'
     | '/(core)/admin/debug'
@@ -609,7 +621,7 @@ export interface RootRouteChildren {
   coreRouteRoute: typeof coreRouteRouteWithChildren
   authForgotPasswordRoute: typeof authForgotPasswordRoute
   authResetPasswordRoute: typeof authResetPasswordRoute
-  authSignInRoute: typeof authSignInRoute
+  authSignInRoute: typeof authSignInRouteWithChildren
   authSignOutRoute: typeof authSignOutRoute
   authSignUpRoute: typeof authSignUpRoute
   ApiHealthRoute: typeof ApiHealthRoute
@@ -936,6 +948,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreAdminAiRouteImport
       parentRoute: typeof coreAdminRouteRoute
     }
+    '/(auth)/sign-in/two-factor': {
+      id: '/(auth)/sign-in/two-factor'
+      path: '/two-factor'
+      fullPath: '/sign-in/two-factor'
+      preLoaderRoute: typeof authSignInTwoFactorRouteImport
+      parentRoute: typeof authSignInRoute
+    }
     '/api/sse/list/$listId': {
       id: '/api/sse/list/$listId'
       path: '/api/sse/list/$listId'
@@ -1075,11 +1094,23 @@ const coreRouteRouteWithChildren = coreRouteRoute._addFileChildren(
   coreRouteRouteChildren,
 )
 
+interface authSignInRouteChildren {
+  authSignInTwoFactorRoute: typeof authSignInTwoFactorRoute
+}
+
+const authSignInRouteChildren: authSignInRouteChildren = {
+  authSignInTwoFactorRoute: authSignInTwoFactorRoute,
+}
+
+const authSignInRouteWithChildren = authSignInRoute._addFileChildren(
+  authSignInRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   coreRouteRoute: coreRouteRouteWithChildren,
   authForgotPasswordRoute: authForgotPasswordRoute,
   authResetPasswordRoute: authResetPasswordRoute,
-  authSignInRoute: authSignInRoute,
+  authSignInRoute: authSignInRouteWithChildren,
   authSignOutRoute: authSignOutRoute,
   authSignUpRoute: authSignUpRoute,
   ApiHealthRoute: ApiHealthRoute,

@@ -262,6 +262,24 @@ export function AppSettingsEditor() {
 				/>
 			</div>
 
+			{/* Require 2FA for admins */}
+			<div className="flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<Label htmlFor="require2faForAdmins" className="text-base">
+						Require 2FA for admins
+					</Label>
+					<p className="text-sm text-muted-foreground">
+						Force every admin account to enroll TOTP two-factor auth. Admins without 2FA enabled get sent to /settings/security on their
+						next page load.
+					</p>
+				</div>
+				<Switch
+					id="require2faForAdmins"
+					checked={settings.require2faForAdmins}
+					onCheckedChange={checked => handleSettingChange('require2faForAdmins', checked)}
+				/>
+			</div>
+
 			{/* Mirror external images to storage on save */}
 			<div className={`flex items-center justify-between gap-4 ${storageConfigured ? '' : 'opacity-50'}`}>
 				<div className="space-y-0.5">

@@ -73,16 +73,25 @@ function SignIn() {
 		// messages ("user not found" vs "invalid credentials") leak whether
 		// an email exists in the DB. We don't surface those to the client
 		// here; the actual error is in the server logs. See sec-review M5.
-		const { error: signInError } = await authClient.signIn.email(
-			{ email, password },
-			{
-				onSuccess: () => {
-					goPostAuth()
-				},
-			}
-		)
-
+		const { data, error: signInError } = await authClient.signIn.email({ email, password })
 		if (signInError) throw new Error('sign-in failed')
+
+		// 2FA hand-off: when the user has TOTP enrolled, better-auth's
+		// twoFactor plugin replaces the post-sign-in session with a
+		// short-lived 2FA-pending cookie and returns
+		// `{ twoFactorRedirect: true }` on the body. Better-auth's
+		// sign-in response type doesn't include the plugin-augmented
+		// shape, so cast through `unknown` to read the flag.
+		const twoFactorPending = (data as unknown as { twoFactorRedirect?: boolean }).twoFactorRedirect === true
+		if (twoFactorPending) {
+			const target = safeRedirect(redirectRaw)
+			const params = new URLSearchParams()
+			if (target !== '/') params.set('redirect', target)
+			window.location.assign(`/sign-in/two-factor${params.toString() ? `?${params.toString()}` : ''}`)
+			return
+		}
+
+		goPostAuth()
 	}
 
 	if (isPending) {
