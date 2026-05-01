@@ -8,11 +8,13 @@ import type { Hono } from 'hono'
 import { z } from 'zod'
 
 import {
+	getMyPeopleImpl,
 	getOwnersWithRelationshipsForMeImpl,
 	getUsersWithRelationshipsImpl,
 	upsertUserRelationshipsImpl,
 	upsertViewerRelationshipsImpl,
 } from '@/api/_permissions-impl'
+import { db } from '@/db'
 
 import type { MobileAuthContext } from '../auth'
 import { jsonError } from '../envelope'
@@ -20,6 +22,18 @@ import { jsonError } from '../envelope'
 type App = Hono<MobileAuthContext>
 
 export function registerRelationshipRoutes(v1: App): void {
+	// GET /v1/me/people - consolidated person directory used by the
+	// mobile/MCP clients to populate person pickers and resolve names
+	// without three round-trips. Returns every other user with computed
+	// flags for the four pairwise visibility/edit dimensions plus
+	// partner status. See `getMyPeopleImpl` in
+	// `src/api/_permissions-impl.ts` for the field semantics.
+	v1.get('/me/people', async c => {
+		const currentUserId = c.get('userId')
+		const people = await getMyPeopleImpl(db, currentUserId)
+		return c.json({ people })
+	})
+
 	v1.get('/me/relationships/viewers', async c => {
 		const currentUserId = c.get('userId')
 		const relationships = await getUsersWithRelationshipsImpl(currentUserId)

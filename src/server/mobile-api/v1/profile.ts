@@ -29,6 +29,34 @@ const UpdateProfileInputSchema = z.object({
 })
 
 export function registerProfileRoutes(v1: App): void {
+	// GET /v1/me/profile - the authenticated user's full profile,
+	// including birthday and partner. Distinct from `GET /v1/me`,
+	// whose response shape is frozen byte-identical to the `user`
+	// block of `POST /v1/sign-in` (iOS widgets and the share extension
+	// cache it). New consumers (MCP, future widgets that need birthday
+	// context) should pull from here instead.
+	v1.get('/me/profile', async c => {
+		const userId = c.get('userId')
+		const isAdmin = c.get('userIsAdmin')
+		const isChild = c.get('userIsChild')
+		const row = await db.query.users.findFirst({
+			where: eq(users.id, userId),
+			columns: {
+				id: true,
+				name: true,
+				email: true,
+				image: true,
+				role: true,
+				partnerId: true,
+				birthMonth: true,
+				birthDay: true,
+				birthYear: true,
+			},
+		})
+		if (!row) return jsonError(c, 404, 'not-found')
+		return c.json({ user: { ...row, isAdmin, isChild } })
+	})
+
 	// PATCH /v1/me - update profile (name, image, partner, birthday).
 	//
 	// Schema diverges from the web's `updateProfileInputSchema`

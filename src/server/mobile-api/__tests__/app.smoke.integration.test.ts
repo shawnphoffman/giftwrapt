@@ -57,6 +57,16 @@ describe('mobile app routing', () => {
 		expect(body.error.code).toBe('unauthorized')
 	})
 
+	it.each(['/api/mobile/v1/me/profile', '/api/mobile/v1/me/people', '/api/mobile/v1/me/gifts'])(
+		'returns 401 + verbose envelope for %s without bearer (route is registered + apiKey-gated)',
+		async path => {
+			const res = await mobileApp.fetch(new Request(`http://t${path}`))
+			expect(res.status).toBe(401)
+			const body = (await res.json()) as { error: { code: string } }
+			expect(body.error.code).toBe('unauthorized')
+		}
+	)
+
 	it('rejects sign-in with malformed JSON body', async () => {
 		const res = await mobileApp.fetch(
 			new Request('http://t/api/mobile/v1/sign-in', {

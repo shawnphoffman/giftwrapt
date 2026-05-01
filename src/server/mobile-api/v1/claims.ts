@@ -1,5 +1,6 @@
 // Gifter flow: open someone else's list, claim items, manage co-gifters.
 //
+//   GET    /v1/me/gifts                 -> my outgoing claims (read-only)
 //   GET    /v1/lists/:listId            -> list metadata + addons + groups
 //   GET    /v1/lists/:listId/view-items -> items with claims (gifter view)
 //   POST   /v1/items/:itemId/claim      -> claim quantity on an item
@@ -15,6 +16,7 @@ import type { Hono } from 'hono'
 import {
 	ClaimGiftInputSchema,
 	claimItemGiftImpl,
+	getMyGiftsImpl,
 	UnclaimGiftInputSchema,
 	unclaimItemGiftImpl,
 	updateCoGiftersImpl,
@@ -24,6 +26,7 @@ import {
 } from '@/api/_gifts-impl'
 import { getItemsForListViewImpl } from '@/api/_items-extra-impl'
 import { getListForViewingImpl } from '@/api/_lists-impl'
+import { db } from '@/db'
 import { claimLimiter } from '@/lib/rate-limits'
 
 import type { MobileAuthContext } from '../auth'
@@ -35,6 +38,16 @@ type App = Hono<MobileAuthContext>
 const VALID_SORTS = new Set(['priority-asc', 'priority-desc', 'date-asc', 'date-desc'])
 
 export function registerClaimRoutes(v1: App): void {
+	// GET /v1/me/gifts - my outgoing claims, including ones where I'm
+	// only a co-gifter. Narrower than `getPurchaseSummary`: no partner
+	// purchases, no off-list addons. Use this for "what have I committed
+	// to giving" surfaces (mobile gifts tab, MCP `list_my_claims`).
+	v1.get('/me/gifts', async c => {
+		const userId = c.get('userId')
+		const gifts = await getMyGiftsImpl(db, userId)
+		return c.json({ gifts })
+	})
+
 	// GET /v1/lists/:listId - viewing metadata for someone else's list.
 	v1.get('/lists/:listId', async c => {
 		const userId = c.get('userId')

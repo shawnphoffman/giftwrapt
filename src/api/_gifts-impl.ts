@@ -5,15 +5,128 @@
 // `gifts.ts` only references these from inside server-fn handler
 // bodies, which TanStack Start strips on the client.
 
-import { and, eq, ne, sql } from 'drizzle-orm'
+import { and, arrayOverlaps, desc, eq, inArray, ne, or, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { db } from '@/db'
-import { giftedItems, itemGroups, items, lists } from '@/db/schema'
+import { db, type SchemaDatabase } from '@/db'
+import { giftedItems, itemGroups, items, lists, users } from '@/db/schema'
 import type { GiftedItem } from '@/db/schema/gifts'
 import { computeRemainingClaimableQuantity } from '@/lib/gifts'
 import { canViewList } from '@/lib/permissions'
 import { notifyListChange } from '@/routes/api/sse/list.$listId'
+
+// ===============================
+// READ - my outgoing gifts (claims)
+// ===============================
+// Flat list of every claim the current user is part of, either as the
+// primary gifter (giftedItems.gifterId) or as a co-gifter
+// (giftedItems.additionalGifterIds contains my id). Joins through
+// items + lists to populate the recipient context the caller needs to
+// display "you got X for Y" without follow-up round-trips.
+//
+// Intentionally narrower than `getPurchaseSummary` in `src/api/purchases.ts`:
+// no partner purchases, no off-list addons. Use this when you want
+// "what have I committed to giving"; use the summary for the spending
+// dashboard.
+
+export type MyGiftRow = {
+	id: number
+	itemId: number
+	itemTitle: string
+	itemUrl: string | null
+	itemImageUrl: string | null
+	itemPrice: string | null
+	itemCurrency: string | null
+	quantity: number
+	totalCost: string | null
+	notes: string | null
+	isPrimaryGifter: boolean
+	isCoGifter: boolean
+	additionalGifterIds: Array<string> | null
+	list: {
+		id: number
+		name: string
+		ownerId: string
+		ownerName: string | null
+		ownerEmail: string
+	}
+	createdAt: string
+	updatedAt: string
+}
+
+// `dbx` accepts either the singleton `db` or a transaction handle so
+// integration tests can run inside `withRollback` without deadlocking
+// against the open savepoint (pglite is single-connection).
+export async function getMyGiftsImpl(dbx: SchemaDatabase, currentUserId: string): Promise<Array<MyGiftRow>> {
+	const rows = await dbx
+		.select({
+			giftId: giftedItems.id,
+			gifterId: giftedItems.gifterId,
+			additionalGifterIds: giftedItems.additionalGifterIds,
+			quantity: giftedItems.quantity,
+			totalCost: giftedItems.totalCost,
+			notes: giftedItems.notes,
+			createdAt: giftedItems.createdAt,
+			updatedAt: giftedItems.updatedAt,
+			itemId: items.id,
+			itemTitle: items.title,
+			itemUrl: items.url,
+			itemImageUrl: items.imageUrl,
+			itemPrice: items.price,
+			itemCurrency: items.currency,
+			listId: lists.id,
+			listName: lists.name,
+			listOwnerId: lists.ownerId,
+		})
+		.from(giftedItems)
+		.innerJoin(items, eq(items.id, giftedItems.itemId))
+		.innerJoin(lists, eq(lists.id, items.listId))
+		.where(or(eq(giftedItems.gifterId, currentUserId), arrayOverlaps(giftedItems.additionalGifterIds, [currentUserId])))
+		.orderBy(desc(giftedItems.createdAt))
+
+	const ownerIds = Array.from(new Set(rows.map(r => r.listOwnerId)))
+	const owners =
+		ownerIds.length > 0
+			? await dbx.query.users.findMany({
+					where: inArray(users.id, ownerIds),
+					columns: { id: true, name: true, email: true },
+				})
+			: []
+	const ownerMap = new Map(owners.map(o => [o.id, o]))
+
+	function toIso(value: Date | string | null | undefined): string {
+		if (!value) return new Date().toISOString()
+		return value instanceof Date ? value.toISOString() : new Date(value).toISOString()
+	}
+
+	return rows.map(r => {
+		const owner = ownerMap.get(r.listOwnerId)
+		return {
+			id: r.giftId,
+			itemId: r.itemId,
+			itemTitle: r.itemTitle,
+			itemUrl: r.itemUrl,
+			itemImageUrl: r.itemImageUrl,
+			itemPrice: r.itemPrice,
+			itemCurrency: r.itemCurrency,
+			quantity: r.quantity,
+			totalCost: r.totalCost,
+			notes: r.notes,
+			isPrimaryGifter: r.gifterId === currentUserId,
+			isCoGifter: (r.additionalGifterIds ?? []).includes(currentUserId),
+			additionalGifterIds: r.additionalGifterIds,
+			list: {
+				id: r.listId,
+				name: r.listName,
+				ownerId: r.listOwnerId,
+				ownerName: owner?.name ?? null,
+				ownerEmail: owner?.email ?? '',
+			},
+			createdAt: toIso(r.createdAt),
+			updatedAt: toIso(r.updatedAt),
+		}
+	})
+}
 
 // ===============================
 // CLAIM

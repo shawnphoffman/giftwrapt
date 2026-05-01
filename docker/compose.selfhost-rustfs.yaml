@@ -30,6 +30,11 @@
 #   docker compose -f docker/compose.selfhost-rustfs.yaml exec app \
 #     node .output/scripts/admin-create.mjs \
 #     --email=admin@example.com --password=SecurePass123 --name=Admin
+#
+# Optional MCP sidecar (talk to your wishlist through Claude Desktop / Code):
+#   docker compose -f docker/compose.selfhost-rustfs.yaml --profile mcp up -d
+# The `mcp` service is a thin shim over /api/mobile/v1/*. See
+# https://github.com/shawnphoffman/giftwrapt-mcp for setup details.
 
 services:
   app:
@@ -67,6 +72,31 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    restart: unless-stopped
+
+  # Optional Model Context Protocol sidecar (`--profile mcp`). Lets you
+  # interact with your wishlist via Claude Desktop / Code / Web. Talks to
+  # the app over the compose network using a giftwrapt apiKey (mint one
+  # at /settings/devices). The image is published from the
+  # shawnphoffman/giftwrapt-mcp repo. Default deployments don't include
+  # this service - you opt in with the profile flag above.
+  mcp:
+    image: ${MCP_IMAGE:-ghcr.io/shawnphoffman/giftwrapt-mcp:latest}
+    profiles: ['mcp']
+    environment:
+      GIFTWRAPT_BASE_URL: http://app:3000
+      # Single-tenant pin: leave unset for multi-user pass-through (each
+      # client sends its own Bearer header). See the giftwrapt-mcp README.
+      GIFTWRAPT_API_KEY: ${GIFTWRAPT_MCP_API_KEY:-}
+      # Shared-secret port gate; only meaningful when GIFTWRAPT_API_KEY is set.
+      MCP_BEARER_TOKEN: ${MCP_BEARER_TOKEN:-}
+      MCP_PORT: 8787
+      MCP_LOG_LEVEL: ${MCP_LOG_LEVEL:-info}
+    ports:
+      - '${MCP_PORT:-8787}:8787'
+    depends_on:
+      app:
+        condition: service_started
     restart: unless-stopped
 
   rustfs:

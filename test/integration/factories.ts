@@ -33,6 +33,7 @@ export async function makeUser(
 		partnerId: string | null
 		birthMonth: BirthMonth | null
 		birthDay: number | null
+		birthYear: number | null
 		banned: boolean
 	}> = {}
 ): Promise<User> {
@@ -53,6 +54,7 @@ export async function makeUser(
 			partnerId: overrides.partnerId ?? null,
 			birthMonth: overrides.birthMonth ?? null,
 			birthDay: overrides.birthDay ?? null,
+			birthYear: overrides.birthYear ?? null,
 			banned: overrides.banned ?? false,
 		})
 		.returning()
@@ -106,6 +108,8 @@ export async function makeGiftedItem(
 			quantity: overrides.quantity ?? 1,
 			totalCost: overrides.totalCost ?? null,
 			notes: overrides.notes ?? null,
+			...(overrides.createdAt !== undefined ? { createdAt: overrides.createdAt } : {}),
+			...(overrides.updatedAt !== undefined ? { updatedAt: overrides.updatedAt } : {}),
 		})
 		.returning()
 	return row
