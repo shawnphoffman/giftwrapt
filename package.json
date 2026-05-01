@@ -26,6 +26,7 @@
 		"db:seed": "tsx --env-file=.env.local scripts/seed.ts",
 		"db:seed:screenshots": "tsx --env-file=.env.local scripts/seed-screenshots.ts",
 		"db:reset": "drizzle-kit push --force && pnpm db:seed",
+		"screenshots": "tsx --env-file=.env.local scripts/screenshots.ts",
 		"admin:create": "tsx scripts/admin-create.ts",
 		"admin:reset-password": "tsx scripts/admin-reset-password.ts",
 		"storage:init": "tsx scripts/init-garage.ts",

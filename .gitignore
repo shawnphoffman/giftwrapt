@@ -16,6 +16,8 @@ storybook-static
 !.claude/launch.json
 
 # Screenshot generator artifacts
+/screenshots/
+.cache/screenshots/
 scripts/screenshots/.fixture-ids.json
 .cursor/plans/
 .notes.local/
