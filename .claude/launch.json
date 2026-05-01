@@ -3,15 +3,18 @@
 	"configurations": [
 		{
 			"name": "GiftWrapt (dev)",
-			"runtimeExecutable": "pnpm",
-			"runtimeArgs": ["dev"],
+			"runtimeExecutable": "bash",
+			"runtimeArgs": ["-c", "export NVM_DIR=\"$HOME/.nvm\"; . \"$NVM_DIR/nvm.sh\"; nvm use default >/dev/null; exec pnpm dev"],
 			"port": 3001,
 			"autoPort": true
 		},
 		{
 			"name": "Storybook",
-			"runtimeExecutable": "sh",
-			"runtimeArgs": ["-c", "STORYBOOK=true pnpm exec storybook dev --no-open --ci -p $PORT"],
+			"runtimeExecutable": "bash",
+			"runtimeArgs": [
+				"-c",
+				"export NVM_DIR=\"$HOME/.nvm\"; . \"$NVM_DIR/nvm.sh\"; nvm use default >/dev/null; STORYBOOK=true exec pnpm exec storybook dev --no-open --ci -p $PORT"
+			],
 			"port": 6020,
 			"autoPort": true
 		}

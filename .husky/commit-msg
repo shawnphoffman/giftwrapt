@@ -1,1 +1,11 @@
+# Activate nvm if present so pnpm picks up the user's default Node
+# (non-interactive shells don't auto-load nvm). Safe no-op if nvm
+# isn't installed.
+if [ -s "$HOME/.nvm/nvm.sh" ]; then
+	export NVM_DIR="$HOME/.nvm"
+	# shellcheck source=/dev/null
+	. "$NVM_DIR/nvm.sh"
+	nvm use default >/dev/null 2>&1 || true
+fi
+
 pnpm exec commitlint --edit "$1"
