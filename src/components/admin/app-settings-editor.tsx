@@ -280,6 +280,24 @@ export function AppSettingsEditor() {
 				/>
 			</div>
 
+			{/* Enable Passkeys */}
+			<div className="flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<Label htmlFor="enablePasskeys" className="text-base">
+						Enable passkeys
+					</Label>
+					<p className="text-sm text-muted-foreground">
+						Let signed-in users register WebAuthn passkeys (Touch ID, Face ID, hardware keys) and use them as a sign-in option. Off by
+						default — turn on for HTTPS deployments only.
+					</p>
+				</div>
+				<Switch
+					id="enablePasskeys"
+					checked={settings.enablePasskeys}
+					onCheckedChange={checked => handleSettingChange('enablePasskeys', checked)}
+				/>
+			</div>
+
 			{/* Mirror external images to storage on save */}
 			<div className={`flex items-center justify-between gap-4 ${storageConfigured ? '' : 'opacity-50'}`}>
 				<div className="space-y-0.5">

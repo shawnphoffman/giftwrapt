@@ -31,3 +31,12 @@ export const SubmitFails: Story = {
 		onSubmit: () => Promise.reject(new Error('boom')),
 	},
 }
+
+export const WithPasskeyOption: Story = {
+	args: {
+		forgotPasswordHref: '/forgot-password',
+		onSignInWithPasskey: async () => {
+			await new Promise(resolve => setTimeout(resolve, 500))
+		},
+	},
+}

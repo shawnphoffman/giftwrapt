@@ -1,4 +1,5 @@
 import { Image } from '@unpic/react'
+import { KeyRound } from 'lucide-react'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -13,17 +14,28 @@ export type SignInPageContentProps = {
 	initialError?: string | null
 	forceLoading?: boolean
 	forgotPasswordHref?: string
+	// Optional secondary path: "Sign in with a passkey". Pass an
+	// async handler in to enable the button. We deliberately keep this
+	// as an *option*, never a default — passkey is add-on only.
+	onSignInWithPasskey?: () => Promise<void>
 }
 
 const GENERIC_SIGN_IN_ERROR = 'Invalid email or password.'
 
-export function SignInPageContent({ onSubmit, initialError = null, forceLoading = false, forgotPasswordHref }: SignInPageContentProps) {
+export function SignInPageContent({
+	onSubmit,
+	initialError = null,
+	forceLoading = false,
+	forgotPasswordHref,
+	onSignInWithPasskey,
+}: SignInPageContentProps) {
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
+	const [passkeyLoading, setPasskeyLoading] = useState(false)
 	const [error, setError] = useState<string | null>(initialError)
 
-	const showLoading = isLoading || forceLoading
+	const showLoading = isLoading || forceLoading || passkeyLoading
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault()
@@ -35,6 +47,19 @@ export function SignInPageContent({ onSubmit, initialError = null, forceLoading 
 			setError(GENERIC_SIGN_IN_ERROR)
 		} finally {
 			setIsLoading(false)
+		}
+	}
+
+	const handlePasskey = async () => {
+		if (!onSignInWithPasskey) return
+		setPasskeyLoading(true)
+		setError(null)
+		try {
+			await onSignInWithPasskey()
+		} catch {
+			setError("Couldn't sign in with that passkey. Try again or use your password.")
+		} finally {
+			setPasskeyLoading(false)
 		}
 	}
 
@@ -89,8 +114,22 @@ export function SignInPageContent({ onSubmit, initialError = null, forceLoading 
 					</div>
 
 					<Button type="submit" className="w-full" disabled={showLoading}>
-						{showLoading ? 'Signing in...' : 'Sign in'}
+						{showLoading && !passkeyLoading ? 'Signing in...' : 'Sign in'}
 					</Button>
+
+					{onSignInWithPasskey && (
+						<>
+							<div className="flex items-center gap-2 pt-2 text-xs text-muted-foreground">
+								<div className="h-px flex-1 bg-border" />
+								<span>or</span>
+								<div className="h-px flex-1 bg-border" />
+							</div>
+							<Button type="button" variant="outline" className="w-full" disabled={showLoading} onClick={handlePasskey}>
+								<KeyRound className="size-4" />
+								{passkeyLoading ? 'Authenticating…' : 'Sign in with a passkey'}
+							</Button>
+						</>
+					)}
 				</form>
 			</div>
 		</div>

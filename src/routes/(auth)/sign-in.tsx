@@ -7,6 +7,7 @@ import { SignInPageContent } from '@/components/auth/sign-in-page'
 import Loading from '@/components/loading'
 import { db } from '@/db'
 import { users } from '@/db/schema'
+import { useAppSetting } from '@/hooks/use-app-settings'
 import { authClient, useSession } from '@/lib/auth-client'
 
 const checkNeedsBootstrap = createServerFn({ method: 'GET' }).handler(async () => {
@@ -50,6 +51,7 @@ export const Route = createFileRoute('/(auth)/sign-in')({
 function SignIn() {
 	const { redirect: redirectRaw } = Route.useSearch()
 	const { data: session, isPending } = useSession()
+	const passkeysEnabled = useAppSetting('enablePasskeys')
 
 	// Hard-reload after sign-in instead of SPA-navigating. The QueryClient and
 	// TanStack DB collections are module-level singletons, and on mobile Safari
@@ -94,6 +96,12 @@ function SignIn() {
 		goPostAuth()
 	}
 
+	const handlePasskeySignIn = async () => {
+		const { error: passkeyError } = await authClient.signIn.passkey()
+		if (passkeyError) throw new Error('passkey sign-in failed')
+		goPostAuth()
+	}
+
 	if (isPending) {
 		return (
 			<div className="flex items-center justify-center w-full h-screen">
@@ -107,5 +115,11 @@ function SignIn() {
 		return null
 	}
 
-	return <SignInPageContent onSubmit={handleSignIn} forgotPasswordHref="/forgot-password" />
+	return (
+		<SignInPageContent
+			onSubmit={handleSignIn}
+			forgotPasswordHref="/forgot-password"
+			onSignInWithPasskey={passkeysEnabled ? handlePasskeySignIn : undefined}
+		/>
+	)
 }

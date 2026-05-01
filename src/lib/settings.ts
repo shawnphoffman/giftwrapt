@@ -204,6 +204,13 @@ export const appSettingsSchema = z.object({
 	// with an enrollment banner if `twoFactorEnabled === false` on
 	// their session. Doesn't affect non-admins.
 	require2faForAdmins: z.boolean(),
+	// When true, the security page shows a passkeys panel and the
+	// sign-in page surfaces a "Sign in with a passkey" button. The
+	// underlying better-auth endpoints stay live regardless — this
+	// only gates the UI surface. Off by default so an operator on a
+	// non-HTTPS LAN deploy (where WebAuthn won't work anyway) doesn't
+	// confuse users with a broken affordance.
+	enablePasskeys: z.boolean(),
 	// =====================================================================
 	// URL scraping
 	// =====================================================================
@@ -252,6 +259,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	mirrorExternalImagesOnSave: false,
 	enableMobileApp: false,
 	require2faForAdmins: false,
+	enablePasskeys: false,
 	// Per-provider HTTP timeout. Hosted scrapers (Stagehand / AI on
 	// heavy pages) routinely need >10s; bumped from 10s after
 	// sec-review L5. Tune downward in /admin/scraping if you only run

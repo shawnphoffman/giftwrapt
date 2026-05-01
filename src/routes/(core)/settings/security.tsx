@@ -1,10 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
 
+import PasskeysSection from '@/components/settings/passkeys-section'
 import PasswordForm from '@/components/settings/password-form'
 import TwoFactorSection from '@/components/settings/two-factor-section'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import { useAppSetting } from '@/hooks/use-app-settings'
 
 type Search = { enroll?: '2fa' }
 
@@ -17,6 +19,7 @@ export const Route = createFileRoute('/(core)/settings/security')({
 
 function SecurityPage() {
 	const { enroll } = Route.useSearch()
+	const passkeysEnabled = useAppSetting('enablePasskeys')
 	return (
 		<div className="animate-page-in gap-6 flex flex-col">
 			<CardHeader className="">
@@ -50,6 +53,21 @@ function SecurityPage() {
 					</div>
 					<TwoFactorSection />
 				</section>
+
+				{passkeysEnabled && (
+					<>
+						<Separator />
+						<section className="space-y-3">
+							<div>
+								<h2 className="text-lg font-semibold">Passkeys</h2>
+								<p className="text-sm text-muted-foreground">
+									Add Touch ID, Face ID, or hardware security keys as a faster way to sign in. Each device gets its own passkey.
+								</p>
+							</div>
+							<PasskeysSection />
+						</section>
+					</>
+				)}
 			</CardContent>
 		</div>
 	)
