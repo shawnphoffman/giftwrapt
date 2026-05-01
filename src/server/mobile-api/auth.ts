@@ -20,37 +20,47 @@ import { db } from '@/db'
 import { users } from '@/db/schema'
 import { auth } from '@/lib/auth'
 
+import { jsonError } from './envelope'
+
 export interface MobileAuthContext {
 	Variables: {
 		userId: string
 		userIsAdmin: boolean
 		userIsChild: boolean
+		// The apikey row id of the calling device, populated alongside
+		// `userId` when the bearer key validates. Used by the
+		// `/me/devices` endpoints to mark the current row, and by
+		// `DELETE /me/devices` to skip the calling key in the bulk
+		// revoke loop (so the very last DELETE is what causes the next
+		// request to 401).
+		apiKeyId: string
 	}
 }
 
 export const requireMobileApiKey: MiddlewareHandler<MobileAuthContext> = async (c, next) => {
 	const authHeader = c.req.header('authorization')
 	if (!authHeader || !authHeader.toLowerCase().startsWith('bearer ')) {
-		return c.json({ error: 'unauthorized' }, 401)
+		return jsonError(c, 401, 'unauthorized')
 	}
 	const key = authHeader.slice(7).trim()
-	if (!key) return c.json({ error: 'unauthorized' }, 401)
+	if (!key) return jsonError(c, 401, 'unauthorized')
 
 	const result = await auth.api.verifyApiKey({ body: { key } })
 	if (!result.valid || !result.key) {
-		return c.json({ error: 'unauthorized' }, 401)
+		return jsonError(c, 401, 'unauthorized')
 	}
 
 	const userId = result.key.userId
 	const rows = await db.select({ role: users.role }).from(users).where(eq(users.id, userId)).limit(1)
 	if (rows.length === 0) {
-		return c.json({ error: 'unauthorized' }, 401)
+		return jsonError(c, 401, 'unauthorized')
 	}
 	const role = rows[0].role
 
 	c.set('userId', userId)
 	c.set('userIsAdmin', role === 'admin')
 	c.set('userIsChild', role === 'child')
+	c.set('apiKeyId', result.key.id)
 	return next()
 }
 

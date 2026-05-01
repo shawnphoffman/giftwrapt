@@ -29,17 +29,40 @@
 
 import { Hono } from 'hono'
 
+import { db } from '@/db'
+import { getAppSettings } from '@/lib/settings-loader'
+
+import { jsonError } from './envelope'
+import { minClientVersionHeader } from './middleware'
 import { v1 } from './v1'
 
 export const mobileApp = new Hono().basePath('/api/mobile')
 
+// Applied to every response (auth failures, 404s, errors, success).
+// Lets iOS hard-update from any response, including pre-auth ones.
+mobileApp.use('*', minClientVersionHeader)
+
+// Operator kill switch: when an admin flips `enableMobileApp` off, the
+// entire mobile surface returns 503 immediately - including sign-in
+// AND every authenticated route. Existing apiKeys keep working only
+// while the flag is on, so a leaked key plus a flipped flag means iOS
+// is locked out without a redeploy. Defense-in-depth around the
+// per-fn checks already in `mobile-keys.ts` and the sign-in route.
+mobileApp.use('*', async (c, next) => {
+	const settings = await getAppSettings(db)
+	if (!settings.enableMobileApp) {
+		return jsonError(c, 503, 'mobile-app-disabled')
+	}
+	return next()
+})
+
 mobileApp.route('/v1', v1)
 
-mobileApp.notFound(c => c.json({ error: 'not-found' }, 404))
+mobileApp.notFound(c => jsonError(c, 404, 'not-found'))
 
 mobileApp.onError((_err, c) => {
 	// Don't leak stack traces or internal details to mobile clients.
 	// Real diagnostic info goes to server logs via the existing pino
 	// pipeline (any thrown error bubbles to Nitro's logger).
-	return c.json({ error: 'internal-error' }, 500)
+	return jsonError(c, 500, 'internal-error')
 })

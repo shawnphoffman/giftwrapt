@@ -42,3 +42,13 @@ export const fileProxyLimiter = createRateLimiter({
 	max: 300,
 	windowMs: 60_000,
 })
+
+// Mobile sign-in attempts. Per-IP since this endpoint runs before any
+// session exists. 10/min/IP keeps brute-force unattractive while
+// still letting a user with a fat-fingered password retry comfortably.
+// See `src/server/mobile-api/v1.ts` (`POST /v1/sign-in`).
+export const mobileSignInLimiter = createRateLimiter({
+	name: 'mobile-sign-in',
+	max: 10,
+	windowMs: 60_000,
+})

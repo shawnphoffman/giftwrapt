@@ -79,7 +79,20 @@ export const getGiftIdeasRecipients = createServerFn({
 		return recipients
 	})
 
-// Update user profile
+// Update user profile.
+//
+// Why the body is inline (not extracted to a top-level `*Impl`): this
+// handler references `auth.api.updateUser`, which lives in
+// `@/lib/auth.ts`. That module evaluates `env.TRUSTED_ORIGINS` at top
+// level. As long as the `auth` reference stays inside the
+// `.handler(...)` callback, TanStack Start's strip removes it from the
+// client bundle and Rollup tree-shakes the `auth` import. Lifting it
+// into a top-level `*Impl` function keeps the reference alive (the
+// strip only touches handler bodies), the import survives, and the
+// client bundle blows up at first paint with t3-env's "server-side
+// variable on the client" guard. Same trap to avoid in any other
+// `src/api/*.ts` file that touches `@/lib/auth` (or another
+// top-level-env-reading module).
 export const updateUserProfile = createServerFn({
 	method: 'POST',
 })
@@ -89,7 +102,6 @@ export const updateUserProfile = createServerFn({
 		const userId = context.session.user.id
 		const currentPartnerId = context.session.user.partnerId || null
 
-		// Build update object with only provided fields
 		const updateData: {
 			name?: string
 			birthMonth?: BirthMonth | null
@@ -109,23 +121,15 @@ export const updateUserProfile = createServerFn({
 			updateData.birthYear = data.birthYear ?? null
 		}
 
-		// Handle partner changes
 		const newPartnerId = data.partnerId !== undefined ? data.partnerId || null : undefined
 
-		// Wrap the entire bidirectional partner swap in a transaction. Without
-		// it, a crash mid-way could leave orphaned references (A points to B
-		// but B points somewhere else) and the UI would show a mismatched pair.
 		const result = await db.transaction(async tx => {
 			if (newPartnerId !== undefined) {
 				updateData.partnerId = newPartnerId
-
-				// Clear our previous partner's reference back to us (if changing).
 				if (currentPartnerId && currentPartnerId !== newPartnerId) {
 					await tx.update(users).set({ partnerId: null }).where(eq(users.id, currentPartnerId))
 				}
-
 				if (newPartnerId) {
-					// If the incoming partner was linked to someone else, unlink that third party first.
 					const newPartner = await tx.query.users.findFirst({
 						where: eq(users.id, newPartnerId),
 						columns: { partnerId: true },
@@ -136,7 +140,6 @@ export const updateUserProfile = createServerFn({
 					await tx.update(users).set({ partnerId: userId }).where(eq(users.id, newPartnerId))
 				}
 			}
-
 			return await tx.update(users).set(updateData).where(eq(users.id, userId))
 		})
 
@@ -157,6 +160,8 @@ export const updateUserProfile = createServerFn({
 
 		return { success: true, rowsUpdated: result.rowCount }
 	})
+
+export { updateProfileInputSchema as UpdateProfileInputSchema }
 
 // Update user password
 export const updateUserPassword = createServerFn({

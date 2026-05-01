@@ -1,239 +1,53 @@
-import { createServerFn } from '@tanstack/react-start'
-import { asc, eq } from 'drizzle-orm'
-import { z } from 'zod'
+// Server-fn surface for item comments. All implementations live in
+// `_comments-impl.ts` so the client bundle never sees the static
+// import chain into `@/lib/resend` (top-level env access) or
+// `@/lib/settings-loader` -> `@/lib/crypto/app-secret` ->
+// `node:crypto`. This file only references the impls and schemas
+// from inside `.handler()` and `.inputValidator()` callbacks, which
+// TanStack Start strips on the client.
 
-import { db } from '@/db'
-import { itemComments, items, lists, users } from '@/db/schema'
-import { createLogger, loggingMiddleware } from '@/lib/logger'
-import { canViewListAsAnyone } from '@/lib/permissions'
+import { createServerFn } from '@tanstack/react-start'
+import type { z } from 'zod'
+
+import { loggingMiddleware } from '@/lib/logger'
 import { commentLimiter } from '@/lib/rate-limits'
-import { sendNewCommentEmail } from '@/lib/resend'
-import { getAppSettings } from '@/lib/settings-loader'
 import { authMiddleware } from '@/middleware/auth'
 import { rateLimit } from '@/middleware/rate-limit'
 
-const commentsLog = createLogger('api:comments')
+import {
+	type CommentWithUser,
+	CreateCommentInputSchema,
+	type CreateCommentResult,
+	createItemCommentImpl,
+	DeleteCommentInputSchema,
+	type DeleteCommentResult,
+	deleteItemCommentImpl,
+	getCommentsForItemImpl,
+	UpdateCommentInputSchema,
+	type UpdateCommentResult,
+	updateItemCommentImpl,
+} from './_comments-impl'
 
-// ===============================
-// Types
-// ===============================
-
-export type CommentWithUser = {
-	id: number
-	itemId: number
-	comment: string
-	createdAt: Date
-	updatedAt: Date
-	user: {
-		id: string
-		name: string | null
-		email: string
-		image: string | null
-	}
-}
-
-// ===============================
-// READ - comments for an item
-// ===============================
+export type { CommentWithUser, CreateCommentResult, DeleteCommentResult, UpdateCommentResult } from './_comments-impl'
 
 export const getCommentsForItem = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: { itemId: number }) => ({ itemId: data.itemId }))
-	.handler(async ({ context, data }): Promise<Array<CommentWithUser>> => {
-		const userId = context.session.user.id
-
-		// Verify the viewer can see the parent list.
-		const item = await db.query.items.findFirst({
-			where: eq(items.id, data.itemId),
-			columns: { id: true, listId: true },
-		})
-		if (!item) return []
-
-		const list = await db.query.lists.findFirst({
-			where: eq(lists.id, item.listId),
-			columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
-		})
-		if (!list) return []
-
-		const view = await canViewListAsAnyone(userId, list)
-		if (!view.ok) return []
-
-		const rows = await db.query.itemComments.findMany({
-			where: eq(itemComments.itemId, data.itemId),
-			orderBy: [asc(itemComments.createdAt)],
-			with: {
-				user: {
-					columns: { id: true, name: true, email: true, image: true },
-				},
-			},
-		})
-
-		return rows.map(r => ({
-			id: r.id,
-			itemId: r.itemId,
-			comment: r.comment,
-			createdAt: r.createdAt,
-			updatedAt: r.updatedAt,
-			user: r.user,
-		}))
-	})
-
-// ===============================
-// WRITE - create a comment
-// ===============================
-
-const CreateCommentInputSchema = z.object({
-	itemId: z.number().int().positive(),
-	comment: z.string().min(1).max(5000),
-})
-
-export type CreateCommentResult =
-	| { kind: 'ok'; comment: CommentWithUser }
-	| { kind: 'error'; reason: 'item-not-found' | 'not-visible' | 'comments-disabled' }
+	.handler(
+		({ context, data }): Promise<Array<CommentWithUser>> => getCommentsForItemImpl({ userId: context.session.user.id, itemId: data.itemId })
+	)
 
 export const createItemComment = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, rateLimit(commentLimiter), loggingMiddleware])
 	.inputValidator((data: z.input<typeof CreateCommentInputSchema>) => CreateCommentInputSchema.parse(data))
-	.handler(async ({ context, data }): Promise<CreateCommentResult> => {
-		const userId = context.session.user.id
-
-		const settings = await getAppSettings(db)
-		if (!settings.enableComments) return { kind: 'error', reason: 'comments-disabled' }
-
-		const item = await db.query.items.findFirst({
-			where: eq(items.id, data.itemId),
-			columns: { id: true, listId: true, title: true },
-		})
-		if (!item) return { kind: 'error', reason: 'item-not-found' }
-
-		const list = await db.query.lists.findFirst({
-			where: eq(lists.id, item.listId),
-			columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
-		})
-		if (!list) return { kind: 'error', reason: 'item-not-found' }
-
-		const view = await canViewListAsAnyone(userId, list)
-		if (!view.ok) return { kind: 'error', reason: 'not-visible' }
-
-		const [inserted] = await db
-			.insert(itemComments)
-			.values({
-				itemId: data.itemId,
-				userId,
-				comment: data.comment,
-			})
-			.returning()
-
-		// Fetch the user for the response.
-		const commenter = await db.query.users.findFirst({
-			where: eq(users.id, userId),
-			columns: { id: true, name: true, email: true, image: true },
-		})
-
-		const result: CommentWithUser = {
-			id: inserted.id,
-			itemId: inserted.itemId,
-			comment: inserted.comment,
-			createdAt: inserted.createdAt,
-			updatedAt: inserted.updatedAt,
-			user: commenter!,
-		}
-
-		// Send email to list owner (if commenter is not the owner).
-		if (list.ownerId !== userId && settings.enableCommentEmails) {
-			try {
-				const owner = await db.query.users.findFirst({
-					where: eq(users.id, list.ownerId),
-					columns: { name: true, email: true },
-				})
-				if (owner) {
-					await sendNewCommentEmail(
-						owner.name || 'there',
-						owner.email,
-						commenter?.name || commenter?.email || 'Someone',
-						data.comment,
-						item.title,
-						list.id,
-						item.id
-					)
-				}
-			} catch (err) {
-				// Email failure shouldn't block the comment creation.
-				commentsLog.error({ err, listId: list.id, itemId: item.id }, 'failed to send comment notification email')
-			}
-		}
-
-		return { kind: 'ok', comment: result }
-	})
-
-// ===============================
-// WRITE - update a comment
-// ===============================
-
-const UpdateCommentInputSchema = z.object({
-	commentId: z.number().int().positive(),
-	comment: z.string().min(1).max(5000),
-})
-
-export type UpdateCommentResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-yours' }
+	.handler(({ context, data }): Promise<CreateCommentResult> => createItemCommentImpl({ userId: context.session.user.id, input: data }))
 
 export const updateItemComment = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof UpdateCommentInputSchema>) => UpdateCommentInputSchema.parse(data))
-	.handler(async ({ context, data }): Promise<UpdateCommentResult> => {
-		const userId = context.session.user.id
-
-		const existing = await db.query.itemComments.findFirst({
-			where: eq(itemComments.id, data.commentId),
-			columns: { id: true, userId: true },
-		})
-		if (!existing) return { kind: 'error', reason: 'not-found' }
-		if (existing.userId !== userId) return { kind: 'error', reason: 'not-yours' }
-
-		await db.update(itemComments).set({ comment: data.comment }).where(eq(itemComments.id, data.commentId))
-
-		return { kind: 'ok' }
-	})
-
-// ===============================
-// WRITE - delete a comment (hard delete)
-// ===============================
-
-const DeleteCommentInputSchema = z.object({
-	commentId: z.number().int().positive(),
-})
-
-export type DeleteCommentResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+	.handler(({ context, data }): Promise<UpdateCommentResult> => updateItemCommentImpl({ userId: context.session.user.id, input: data }))
 
 export const deleteItemComment = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof DeleteCommentInputSchema>) => DeleteCommentInputSchema.parse(data))
-	.handler(async ({ context, data }): Promise<DeleteCommentResult> => {
-		const userId = context.session.user.id
-
-		const existing = await db.query.itemComments.findFirst({
-			where: eq(itemComments.id, data.commentId),
-			columns: { id: true, userId: true, itemId: true },
-		})
-		if (!existing) return { kind: 'error', reason: 'not-found' }
-
-		// Original commenter or list owner can delete.
-		if (existing.userId !== userId) {
-			const item = await db.query.items.findFirst({
-				where: eq(items.id, existing.itemId),
-				columns: { listId: true },
-			})
-			if (!item) return { kind: 'error', reason: 'not-found' }
-
-			const list = await db.query.lists.findFirst({
-				where: eq(lists.id, item.listId),
-				columns: { ownerId: true },
-			})
-			if (!list || list.ownerId !== userId) {
-				return { kind: 'error', reason: 'not-authorized' }
-			}
-		}
-
-		await db.delete(itemComments).where(eq(itemComments.id, data.commentId))
-		return { kind: 'ok' }
-	})
+	.handler(({ context, data }): Promise<DeleteCommentResult> => deleteItemCommentImpl({ userId: context.session.user.id, input: data }))
