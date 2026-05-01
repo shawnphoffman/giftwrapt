@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.24.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.23.0...v0.24.0) (2026-04-30)
+
+
+### Features
+
+* **api:** add /api/mobile/v1/lists/public, narrow public-lists shape ([2126920](https://github.com/shawnphoffman/giftwrapt/commit/21269208a30e5e5cb4be387d677b9e5d0444b27a))
+* **auth:** add storybook stories for sign-in and sign-out pages ([d16c113](https://github.com/shawnphoffman/giftwrapt/commit/d16c11374005c39deece5db41f599eeba571c169))
+* **items:** cap priority tab height at 64px ([bc523fe](https://github.com/shawnphoffman/giftwrapt/commit/bc523fe562007d80fa45b4f3b56596dd1b246804))
+* **items:** group known vendors and show counts in vendor filter ([d06e24e](https://github.com/shawnphoffman/giftwrapt/commit/d06e24eb3b94df09f2263c4ad5b4476dee5d0bef))
+* **list-row:** show avatar+name tooltip on hover ([0c097ba](https://github.com/shawnphoffman/giftwrapt/commit/0c097ba67fd5bc35a84b8c1f20fa1373cb0a67b2))
+* **lists:** expose child birthdates on getMyLists ([3844127](https://github.com/shawnphoffman/giftwrapt/commit/3844127db5346ecd7e65c528075646d725380e14))
+* **lists:** expose lastGiftedAt for upcoming-birthdays widget ([1e32bbe](https://github.com/shawnphoffman/giftwrapt/commit/1e32bbe74fe589165810524ee00f9acf85b48f81))
+* **lists:** open settings sheet from row Edit, hide denied users ([803a6d4](https://github.com/shawnphoffman/giftwrapt/commit/803a6d44c64753aa758497d9c7bf0f303633c6c2))
+* **me:** differentiate gift-ideas recipient and list owner ([d41fdec](https://github.com/shawnphoffman/giftwrapt/commit/d41fdec06e95a8c15be4d665f7722e024a7780cc))
+* **me:** show editable gift-ideas lists in Gift Ideas section ([7718dcc](https://github.com/shawnphoffman/giftwrapt/commit/7718dcc1b6b7b9f3bdb4fcbdba0d23fc2ba7eed9))
+* **mobile-api:** add PATCH and DELETE for items on v1 ([c661014](https://github.com/shawnphoffman/giftwrapt/commit/c6610147b950eecbb850f33d7de4d6c38781abe5))
+* **mobile-api:** add per-user device key management ([092c2f8](https://github.com/shawnphoffman/giftwrapt/commit/092c2f845ca204361c56e24cae800de1200eb767))
+* **notes:** style links to stand out in light and dark modes ([1d305bc](https://github.com/shawnphoffman/giftwrapt/commit/1d305bc601473fd10d7fe60e269375a96a392433))
+* **settings:** add icons to settings nav links ([bc38dce](https://github.com/shawnphoffman/giftwrapt/commit/bc38dce0b41fe766fe5b56d6f88c5578505fa069))
+* **temp:** add /temp/widgets preview for iOS birthdays widget ([a8fb619](https://github.com/shawnphoffman/giftwrapt/commit/a8fb61934cf32c423548a57c3f5ed2a356ef8a35))
+
+
+### Bug Fixes
+
+* **auth:** hard-reload after sign-in to dodge cookie/cache races ([645d365](https://github.com/shawnphoffman/giftwrapt/commit/645d365184ef4b4df57fd7c2474fb5416e7b4fc8))
+* **auth:** raise mobile apiKey plugin rate limit ([843f8f4](https://github.com/shawnphoffman/giftwrapt/commit/843f8f4d5783da8b640ecb536f8c76acd5f50c6c))
+* **list-addons:** stack header on narrow screens ([0f77833](https://github.com/shawnphoffman/giftwrapt/commit/0f77833d2c29c897d3f97d8088b7f5bc705ced37))
+* **storybook:** stub getGiftIdeasRecipients in api mocks ([ee8466f](https://github.com/shawnphoffman/giftwrapt/commit/ee8466f8d588889f034e87076c28293b0843dbec))
+* **styles:** prevent h1 descender clipping under truncate ([eb9a19d](https://github.com/shawnphoffman/giftwrapt/commit/eb9a19de00cc54bdaf336bca1a7e2a1d8349d3af))
+
+
+### Performance Improvements
+
+* **mobile-api:** drop redundant getSession in auth middleware ([015c802](https://github.com/shawnphoffman/giftwrapt/commit/015c802b0e43ac4952e11877b44027bea75a7b24))
+
 ## [0.23.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.22.0...v0.23.0) (2026-04-30)
 
 
