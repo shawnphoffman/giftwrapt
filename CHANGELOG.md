@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.25.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.24.0...v0.25.0) (2026-05-01)
+
+
+### Features
+
+* **auth:** foundation + password reset / account recovery ([ff5722a](https://github.com/shawnphoffman/giftwrapt/commit/ff5722a5a2f47a0ae6571d4674e0be7f69f8a211))
+* **auth:** oidc provider with admin CRUD and consent screen ([a3d6c7e](https://github.com/shawnphoffman/giftwrapt/commit/a3d6c7e68c07bd00892e6b2a75e6bb17461ac162))
+* **auth:** passkeys (webauthn) as opt-in sign-in path ([6e0f5e8](https://github.com/shawnphoffman/giftwrapt/commit/6e0f5e8a332a6d1ad97b3b9fde9e957db63c0a47))
+* **auth:** totp two-factor authentication ([97f1d1b](https://github.com/shawnphoffman/giftwrapt/commit/97f1d1b5b1091351f1caf54cfbdccad2223a0314))
+* **mobile-api:** add /me/profile, /me/people, /me/gifts for MCP sidecar ([68c1637](https://github.com/shawnphoffman/giftwrapt/commit/68c1637bf5f5f92968d594168e5c15f37cf539ba))
+* **mobile-api:** land iOS-facing REST surface and isolate impls into _*-impl files ([52cf92a](https://github.com/shawnphoffman/giftwrapt/commit/52cf92ae25531fae0ee22ce6bc26f0b8190f811a))
+* **screenshots:** add interactive Playwright capture CLI ([c31c672](https://github.com/shawnphoffman/giftwrapt/commit/c31c67277980a394161e8eb7464733a1afd82a63))
+* **seed:** add screenshots fixture seeder ([c52b1e4](https://github.com/shawnphoffman/giftwrapt/commit/c52b1e48cf9e5bd0c84fa1fb81c9763a75266fa8))
+* **ui:** refine group, settings, comment, and lightbox interactions ([a340a64](https://github.com/shawnphoffman/giftwrapt/commit/a340a642a8c00fd7d3528f597e47a477f7cfdfc8))
+
+
+### Bug Fixes
+
+* **admin:** refresh public app-settings after admin toggle ([286122d](https://github.com/shawnphoffman/giftwrapt/commit/286122dfb49a55efa20376864817b74e71c42121))
+* **lists:** rework owner and editors avatar stack on list rows ([24ade32](https://github.com/shawnphoffman/giftwrapt/commit/24ade326d34aeca9ae6614e439e6693e8dd627b6))
+
 ## [0.24.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.23.0...v0.24.0) (2026-04-30)
 
 
