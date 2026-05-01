@@ -41,7 +41,7 @@ export function GroupBlock({ group, items, groups, listId, isOwner, onAddItem, o
 	const hasPriorityTab = group.priority !== 'normal'
 
 	return (
-		<div className="relative">
+		<div id={`group-${group.id}`} className="relative scroll-mt-24">
 			{hasPriorityTab && (
 				<div
 					className={cn(

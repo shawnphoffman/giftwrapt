@@ -54,6 +54,8 @@ export type MoveItemsResult =
 
 export type ArchiveItemsResult = { kind: 'ok'; updated: number } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
+export type ArchiveListPurchasesResult = { kind: 'ok'; updated: number } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+
 export type DeleteItemsResult = { kind: 'ok'; deleted: number } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export type SetItemsPriorityResult = { kind: 'ok'; updated: number } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
@@ -110,6 +112,10 @@ export const MoveItemsInputSchema = z.object({
 export const ArchiveItemsInputSchema = z.object({
 	itemIds: BulkIdsSchema,
 	archived: z.boolean(),
+})
+
+export const ArchiveListPurchasesInputSchema = z.object({
+	listId: z.number().int().positive(),
 })
 
 export const DeleteItemsInputSchema = z.object({
@@ -379,6 +385,32 @@ export async function archiveItemsImpl(args: {
 		.set({ isArchived: data.archived })
 		.where(inArray(items.id, [...data.itemIds]))
 	return { kind: 'ok', updated: data.itemIds.length }
+}
+
+export async function archiveListPurchasesImpl(args: {
+	userId: string
+	input: z.infer<typeof ArchiveListPurchasesInputSchema>
+}): Promise<ArchiveListPurchasesResult> {
+	const { userId, input: data } = args
+
+	const list = await db.query.lists.findFirst({
+		where: eq(lists.id, data.listId),
+		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+	})
+	if (!list) return { kind: 'error', reason: 'not-found' }
+	const perm = await assertCanEditItems(userId, list)
+	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
+
+	const claimedRows = await db
+		.selectDistinct({ itemId: giftedItems.itemId })
+		.from(giftedItems)
+		.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), eq(items.listId, list.id)))
+
+	if (claimedRows.length === 0) return { kind: 'ok', updated: 0 }
+
+	const ids = claimedRows.map(r => r.itemId)
+	await db.update(items).set({ isArchived: true }).where(inArray(items.id, ids))
+	return { kind: 'ok', updated: ids.length }
 }
 
 export async function deleteItemsImpl(args: { userId: string; input: z.infer<typeof DeleteItemsInputSchema> }): Promise<DeleteItemsResult> {

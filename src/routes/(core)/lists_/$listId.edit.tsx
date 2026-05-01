@@ -101,11 +101,27 @@ function ListEditPage() {
 	const refreshAfterGroupChange = () =>
 		Promise.all([router.invalidate(), queryClient.invalidateQueries({ queryKey: itemsKeys.byList(list.id) })])
 
+	const scrollToGroup = (groupId: number) => {
+		let attempts = 0
+		const tryScroll = () => {
+			const el = document.getElementById(`group-${groupId}`)
+			if (el) {
+				const rect = el.getBoundingClientRect()
+				const isVisible = rect.top >= 0 && rect.bottom <= window.innerHeight
+				if (!isVisible) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+				return
+			}
+			if (attempts++ < 20) setTimeout(tryScroll, 50)
+		}
+		tryScroll()
+	}
+
 	const handleCreateGroup = async (type: GroupType) => {
 		const result = await createItemGroup({ data: { listId: list.id, type } })
 		if (result.kind === 'ok') {
 			toast.success(`${type === 'or' ? '"Pick one"' : '"Ordered"'} group created`)
 			await refreshAfterGroupChange()
+			scrollToGroup(result.group.id)
 		} else {
 			toast.error('Failed to create group')
 		}

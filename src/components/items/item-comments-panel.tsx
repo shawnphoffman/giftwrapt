@@ -102,7 +102,7 @@ export default function ItemCommentsPanel({ itemId, onCountChange }: Props) {
 					}}
 					disabled={submitting}
 					maxLength={LIMITS.LONG_TEXT}
-					className="text-sm"
+					className="text-base md:text-sm"
 				/>
 				<Button size="sm" onClick={handleSubmit} disabled={submitting || !newComment.trim()}>
 					{submitting ? '...' : 'Post'}
@@ -190,7 +190,7 @@ function CommentRow({
 									rows={2}
 									disabled={saving}
 									maxLength={LIMITS.LONG_TEXT}
-									className="text-sm"
+									className="text-base md:text-sm"
 								/>
 								<div className="flex flex-col gap-1">
 									<Button size="sm" variant="ghost" onClick={handleSave} disabled={saving}>

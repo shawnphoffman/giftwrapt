@@ -20,6 +20,9 @@ import {
 	archiveItemsImpl,
 	ArchiveItemsInputSchema,
 	type ArchiveItemsResult,
+	archiveListPurchasesImpl,
+	ArchiveListPurchasesInputSchema,
+	type ArchiveListPurchasesResult,
 	CopyItemInputSchema,
 	type CopyItemResult,
 	copyItemToListImpl,
@@ -68,6 +71,7 @@ import {
 export type {
 	ArchiveItemResult,
 	ArchiveItemsResult,
+	ArchiveListPurchasesResult,
 	CopyItemResult,
 	DeleteGroupsResult,
 	DeleteItemsResult,
@@ -127,6 +131,13 @@ export const archiveItems = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof ArchiveItemsInputSchema>) => ArchiveItemsInputSchema.parse(data))
 	.handler(({ context, data }): Promise<ArchiveItemsResult> => archiveItemsImpl({ userId: context.session.user.id, input: data }))
+
+export const archiveListPurchases = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: z.input<typeof ArchiveListPurchasesInputSchema>) => ArchiveListPurchasesInputSchema.parse(data))
+	.handler(
+		({ context, data }): Promise<ArchiveListPurchasesResult> => archiveListPurchasesImpl({ userId: context.session.user.id, input: data })
+	)
 
 export const deleteItems = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])

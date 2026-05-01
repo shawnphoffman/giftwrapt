@@ -1,13 +1,16 @@
 import { useForm } from '@tanstack/react-form'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
+import { Archive } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
+import { archiveListPurchases } from '@/api/items'
 import { addListEditor } from '@/api/list-editors'
 import { updateList } from '@/api/lists'
 import { getGiftIdeasRecipients } from '@/api/user'
+import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import { MarkdownTextarea } from '@/components/common/markdown-textarea'
 import UserAvatar from '@/components/common/user-avatar'
@@ -17,9 +20,11 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Separator } from '@/components/ui/separator'
 import type { ListType } from '@/db/schema/enums'
 import { listTypeEnumValues, ListTypes } from '@/db/schema/enums'
 import { useSession } from '@/lib/auth-client'
+import { itemsKeys } from '@/lib/queries/items'
 import { LIMITS } from '@/lib/validation/limits'
 
 const schema = z.object({
@@ -65,6 +70,22 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description, g
 
 	const partner = partnerId ? users?.find(u => u.id === partnerId) : undefined
 	const partnerLabel = partner ? partner.name || partner.email : 'your partner'
+
+	const [archivePurchasesOpen, setArchivePurchasesOpen] = useState(false)
+
+	const handleArchivePurchases = async () => {
+		const result = await archiveListPurchases({ data: { listId } })
+		if (result.kind === 'error') {
+			toast.error("You don't have permission to archive purchases on this list.")
+			return
+		}
+		if (result.updated === 0) {
+			toast.info('No claimed items to archive.')
+		} else {
+			toast.success(`Archived ${result.updated} claimed ${result.updated === 1 ? 'item' : 'items'}.`)
+		}
+		await Promise.all([queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) }), router.invalidate()])
+	}
 
 	const form = useForm({
 		defaultValues: {
@@ -302,6 +323,41 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description, g
 			<Button type="submit" disabled={submitting}>
 				{submitting ? 'Saving…' : 'Save settings'}
 			</Button>
+
+			{isOwner && (
+				<>
+					<Separator />
+					<div className="grid gap-2">
+						<Label>Archive claimed items</Label>
+						<p className="text-muted-foreground text-xs">
+							Mark every claimed item on this list as archived. Archived items reveal who claimed them on your Received Gifts page, so only
+							do this once you've received the gifts.
+						</p>
+						<Button type="button" variant="outline" onClick={() => setArchivePurchasesOpen(true)} className="w-fit">
+							<Archive className="size-4" />
+							Archive all purchases
+						</Button>
+					</div>
+					<ConfirmDialog
+						open={archivePurchasesOpen}
+						onOpenChange={setArchivePurchasesOpen}
+						title="Archive all purchases on this list?"
+						description={
+							<>
+								This will archive every item on this list that has been claimed. Archived items move out of the active list and the people
+								who claimed them will be revealed to you on your Received Gifts page.
+								<br />
+								<br />
+								Only do this once you've received the gifts. This can't be undone in bulk.
+							</>
+						}
+						confirmLabel="Archive purchases"
+						confirmBusyLabel="Archiving…"
+						destructive
+						onConfirm={handleArchivePurchases}
+					/>
+				</>
+			)}
 		</form>
 	)
 }

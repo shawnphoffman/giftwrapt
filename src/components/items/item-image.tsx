@@ -1,6 +1,7 @@
+import { XIcon } from 'lucide-react'
 import { useState } from 'react'
 
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { httpsUpgrade } from '@/lib/image-url'
 import { cn } from '@/lib/utils'
 
@@ -33,9 +34,19 @@ export function ItemImage({ src, alt, className }: Props) {
 			</button>
 
 			<Dialog open={open} onOpenChange={setOpen}>
-				<DialogContent className="max-w-[min(90vw,48rem)] sm:max-w-[min(90vw,48rem)] p-2 bg-popover" showCloseButton>
+				<DialogContent
+					className="max-w-[min(90vw,48rem)] sm:max-w-[min(90vw,48rem)] p-2 bg-popover duration-200 data-open:zoom-in-90 data-closed:zoom-out-90"
+					showCloseButton={false}
+				>
 					<DialogTitle className="sr-only">{alt}</DialogTitle>
 					<img src={safeSrc} alt={alt} className="w-full h-auto max-h-[80vh] object-contain rounded-md" />
+					<DialogClose
+						aria-label="Close"
+						className="absolute top-3 right-3 inline-flex size-8 items-center justify-center rounded-full bg-black/50 text-white shadow-sm ring-1 ring-white/20 backdrop-blur-sm outline-none transition hover:bg-black/70 focus-visible:ring-2 focus-visible:ring-white"
+					>
+						<XIcon className="size-4" />
+						<span className="sr-only">Close</span>
+					</DialogClose>
 				</DialogContent>
 			</Dialog>
 		</>
