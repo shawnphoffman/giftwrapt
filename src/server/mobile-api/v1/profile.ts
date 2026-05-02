@@ -140,7 +140,7 @@ export function registerProfileRoutes(v1: App): void {
 		const rows = await db.query.users.findMany({
 			where: and(ne(users.id, currentUserId), ne(users.role, 'child')),
 			orderBy: [asc(users.name), asc(users.email)],
-			columns: { id: true, name: true, email: true, image: true, role: true },
+			columns: { id: true, name: true, email: true, image: true, role: true, partnerId: true },
 		})
 		return c.json({ users: rows })
 	})

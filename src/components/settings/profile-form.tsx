@@ -85,7 +85,8 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 	const [editorChangePrompt, setEditorChangePrompt] = useState<EditorChangePrompt | null>(null)
 	const [applyingEditorChanges, setApplyingEditorChanges] = useState(false)
 	const queryClient = useQueryClient()
-	const { refetch: refetchSession } = useSession()
+	const { data: session, refetch: refetchSession } = useSession()
+	const currentUserId = session?.user.id ?? null
 
 	// Fetch potential partners
 	const { data: potentialPartners = [], isLoading: isLoadingPartners } = useQuery({
@@ -373,15 +374,19 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 							</SelectTrigger>
 							<SelectContent>
 								<SelectItem value="__none__">None</SelectItem>
-								{potentialPartners.map(partnerUser => (
-									<SelectItem key={partnerUser.id} value={partnerUser.id}>
-										<span className="flex items-center gap-2">
-											<UserAvatar name={partnerUser.name || partnerUser.email} image={partnerUser.image} size="small" />
-											{partnerUser.name || partnerUser.email}
-											{partnerUser.role === 'admin' && <span className="text-xs text-muted-foreground">(Admin)</span>}
-										</span>
-									</SelectItem>
-								))}
+								{potentialPartners.map(partnerUser => {
+									const alreadyPartnered = !!partnerUser.partnerId && partnerUser.partnerId !== currentUserId
+									return (
+										<SelectItem key={partnerUser.id} value={partnerUser.id} disabled={alreadyPartnered}>
+											<span className="flex items-center gap-2">
+												<UserAvatar name={partnerUser.name || partnerUser.email} image={partnerUser.image} size="small" />
+												{partnerUser.name || partnerUser.email}
+												{partnerUser.role === 'admin' && <span className="text-xs text-muted-foreground">(Admin)</span>}
+												{alreadyPartnered && <span className="text-xs text-muted-foreground">(already partnered)</span>}
+											</span>
+										</SelectItem>
+									)
+								})}
 							</SelectContent>
 						</Select>
 						{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (

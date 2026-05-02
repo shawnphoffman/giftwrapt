@@ -42,6 +42,7 @@ export const getPotentialPartners = createServerFn({
 				email: true,
 				image: true,
 				role: true,
+				partnerId: true,
 			},
 		})
 
