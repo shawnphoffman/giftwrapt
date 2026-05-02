@@ -200,17 +200,19 @@ function MyListsPage() {
 
 					{/* DEPENDENTS' LISTS */}
 					{data.dependents.length > 0 && (
-						<div className="flex flex-col gap-2">
-							<h3>Dependents' Lists</h3>
-							<div className="text-sm italic leading-tight text-muted-foreground">
-								Lists for pets, babies, or anyone else you receive gifts on behalf of.
-							</div>
-							<div className="flex flex-col gap-3">
+						<ListsCard>
+							<ListsCardHeader className="flex-col items-start gap-1">
+								<ListsCardTitle>Dependents' Lists</ListsCardTitle>
+								<ListsCardDescription className="italic">
+									Lists for pets, babies, or anyone else you receive gifts on behalf of.
+								</ListsCardDescription>
+							</ListsCardHeader>
+							<ListsCardLists className="gap-3">
 								{data.dependents.map(dep => (
 									<DependentListSection key={dep.dependentId} dependent={dep} />
 								))}
-							</div>
-						</div>
+							</ListsCardLists>
+						</ListsCard>
 					)}
 
 					{/* EDITABLE LISTS */}
