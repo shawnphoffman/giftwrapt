@@ -2,6 +2,7 @@ import { createFileRoute, notFound, redirect } from '@tanstack/react-router'
 import { Suspense } from 'react'
 
 import { getListForViewing } from '@/api/lists'
+import DependentAvatar from '@/components/common/dependent-avatar'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import UserAvatar from '@/components/common/user-avatar'
@@ -79,7 +80,10 @@ function ListDetailPage() {
 	useListSSE(list.id)
 	useScrollToHash([list.id])
 
-	const recipientName = list.owner.name || list.owner.email
+	// For dependent-subject lists the recipient is the dependent (pet,
+	// baby, etc.), not the user who created the list. Swap to the
+	// DependentAvatar (Sprout fallback) when the subject is set.
+	const recipientName = list.subjectDependent ? list.subjectDependent.name : list.owner.name || list.owner.email
 
 	return (
 		<div className="wish-page">
@@ -90,7 +94,15 @@ function ListDetailPage() {
 					<div className="flex items-center gap-3">
 						<div className="flex flex-col gap-0.5 min-w-0">
 							<div className="flex items-center min-w-0 gap-2">
-								<UserAvatar name={recipientName} image={list.owner.image} className="size-12 border-2 border-background" />
+								{list.subjectDependent ? (
+									<DependentAvatar
+										name={list.subjectDependent.name}
+										image={list.subjectDependent.image}
+										className="size-12 border-2 border-background"
+									/>
+								) : (
+									<UserAvatar name={recipientName} image={list.owner.image} className="size-12 border-2 border-background" />
+								)}
 								<h1 className="truncate">{list.name}</h1>
 							</div>
 						</div>

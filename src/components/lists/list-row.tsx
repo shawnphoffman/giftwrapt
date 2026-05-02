@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 
 import { deleteList, type MyListRow as MyListRowType, setPrimaryList, updateList } from '@/api/lists'
 import CountBadge from '@/components/common/count-badge'
+import DependentAvatar from '@/components/common/dependent-avatar'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import UserAvatar from '@/components/common/user-avatar'
 import {
@@ -57,11 +58,19 @@ function HoverableAvatar({ name, image, className }: { name: string; image: stri
 	)
 }
 
+// `showOwner` can describe a regular user owner OR a dependent subject.
+// When a list has `subjectDependentId`, surfaces should pass the
+// dependent shape so the row renders DependentAvatar / Sprout fallback
+// instead of the guardian who created the list.
+type RowOwner =
+	| { kind?: 'user'; name: string | null; email: string; image: string | null }
+	| { kind: 'dependent'; name: string; image: string | null }
+
 type Props =
 	| {
 			role: 'recipient'
 			list: MyListRowType
-			showOwner?: { name: string | null; email: string; image: string | null }
+			showOwner?: RowOwner
 			editors?: Array<EditorInfo>
 	  }
 	| { role: 'gifter'; list: GifterList }
@@ -80,15 +89,7 @@ export function ListRow(props: Props) {
 	return <GifterRow list={props.list} />
 }
 
-function RecipientRow({
-	list,
-	showOwner,
-	editors,
-}: {
-	list: MyListRowType
-	showOwner?: { name: string | null; email: string; image: string | null }
-	editors?: Array<EditorInfo>
-}) {
+function RecipientRow({ list, showOwner, editors }: { list: MyListRowType; showOwner?: RowOwner; editors?: Array<EditorInfo> }) {
 	const router = useRouter()
 	const queryClient = useQueryClient()
 	const { data: session } = useSession()
@@ -159,12 +160,21 @@ function RecipientRow({
 						<Tooltip>
 							<TooltipTrigger asChild>
 								<div className="flex items-center -space-x-0.75 shrink-0">
-									<UserAvatar
-										name={showOwner.name || showOwner.email}
-										image={showOwner.image}
-										size="small"
-										className="relative z-10 size-5 ring-1 ring-background border-0"
-									/>
+									{showOwner.kind === 'dependent' ? (
+										<DependentAvatar
+											name={showOwner.name}
+											image={showOwner.image}
+											size="small"
+											className="relative z-10 size-5 ring-1 ring-background border-0"
+										/>
+									) : (
+										<UserAvatar
+											name={showOwner.name || showOwner.email}
+											image={showOwner.image}
+											size="small"
+											className="relative z-10 size-5 ring-1 ring-background border-0"
+										/>
+									)}
 									{editors && editors.length > 0 && (
 										<AvatarGroupCount className="size-5 shrink-0 rounded-full bg-muted text-muted-foreground text-[10px] font-bold leading-none flex items-center justify-center select-none ring-1">
 											+{editors.length}
@@ -174,9 +184,18 @@ function RecipientRow({
 							</TooltipTrigger>
 							<TooltipContent className="flex flex-col gap-1.5">
 								<div className="flex items-center gap-2 justify-items-start w-full">
-									<UserAvatar name={showOwner.name || showOwner.email} image={showOwner.image} size="small" />
-									<span className="font-medium">{showOwner.name || showOwner.email}</span>
-									<Crown className="size-3 text-yellow-500 fill-yellow-500" aria-label="Owner" />
+									{showOwner.kind === 'dependent' ? (
+										<>
+											<DependentAvatar name={showOwner.name} image={showOwner.image} size="small" />
+											<span className="font-medium">{showOwner.name}</span>
+										</>
+									) : (
+										<>
+											<UserAvatar name={showOwner.name || showOwner.email} image={showOwner.image} size="small" />
+											<span className="font-medium">{showOwner.name || showOwner.email}</span>
+											<Crown className="size-3 text-yellow-500 fill-yellow-500" aria-label="Owner" />
+										</>
+									)}
 								</div>
 								{editors?.map(editor => (
 									<div key={editor.email} className="flex items-center gap-2 justify-items-start w-full">

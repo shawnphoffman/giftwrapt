@@ -143,6 +143,12 @@ export type MyListsResult = {
 			ownerName: string | null
 			ownerEmail: string
 			ownerImage: string | null
+			// Populated when the list has a subject dependent. UI surfaces
+			// (e.g. /me's "Lists I Can Edit" row) should use this in place of
+			// the owner identity to put the dependent's avatar/name on the
+			// row instead of the guardian who created it.
+			subjectDependentName: string | null
+			subjectDependentImage: string | null
 			otherEditors: Array<{ name: string | null; email: string; image: string | null }>
 		}
 	>
@@ -452,6 +458,8 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 				giftIdeasTargetUserId: lists.giftIdeasTargetUserId,
 				giftIdeasTargetDependentId: lists.giftIdeasTargetDependentId,
 				subjectDependentId: lists.subjectDependentId,
+				subjectDependentName: sql<string | null>`subject_dep.name`,
+				subjectDependentImage: sql<string | null>`subject_dep.image`,
 				ownerName: sql<string | null>`owner.name`,
 				ownerEmail: sql<string>`owner.email`,
 				ownerImage: sql<string | null>`owner.image`,
@@ -460,9 +468,10 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 			.from(listEditors)
 			.innerJoin(lists, and(eq(lists.id, listEditors.listId), eq(lists.isActive, true)))
 			.innerJoin(sql`users as owner`, sql`owner.id = ${lists.ownerId}`)
+			.leftJoin(sql`dependents as subject_dep`, sql`subject_dep.id = ${lists.subjectDependentId}`)
 			.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false)))
 			.where(eq(listEditors.userId, userId))
-			.groupBy(lists.id, sql`owner.name`, sql`owner.email`, sql`owner.image`)
+			.groupBy(lists.id, sql`owner.name`, sql`owner.email`, sql`owner.image`, sql`subject_dep.name`, sql`subject_dep.image`)
 			.orderBy(asc(lists.name)),
 
 		db
@@ -715,6 +724,8 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 			ownerName: r.ownerName,
 			ownerEmail: r.ownerEmail,
 			ownerImage: r.ownerImage,
+			subjectDependentName: r.subjectDependentName,
+			subjectDependentImage: r.subjectDependentImage,
 			otherEditors: otherEditorsByListId.get(r.id) ?? [],
 		})),
 		children: childListGroups,
