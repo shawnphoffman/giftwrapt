@@ -14,6 +14,7 @@ import {
 	updateUserPartner,
 } from '@/api/admin'
 import { removeAvatarAsAdmin, uploadAvatarAsAdmin } from '@/api/uploads'
+import { RoleLegend } from '@/components/admin/role-legend'
 import { BirthDaySelect } from '@/components/common/birth-day-select'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import InputTooltip from '@/components/common/input-tooltip'
@@ -475,13 +476,7 @@ function EditUserFormInner({
 			<form.Field name="role">
 				{field => (
 					<div className="grid gap-2 w-full">
-						<Label htmlFor={field.name}>
-							Role
-							<InputTooltip>
-								<span className="font-semibold underline">Child</span> users are allowed to make their own lists but they cannot participate
-								in purchasing or view other users' lists.
-							</InputTooltip>
-						</Label>
+						<Label htmlFor={field.name}>Role</Label>
 						<Select
 							onValueChange={value => field.handleChange(value as (typeof roleEnumValues)[number])}
 							value={field.state.value}
@@ -498,6 +493,7 @@ function EditUserFormInner({
 								))}
 							</SelectContent>
 						</Select>
+						<RoleLegend />
 						{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 							<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
 						)}

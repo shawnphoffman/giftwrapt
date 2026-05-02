@@ -64,8 +64,8 @@ export function AdminUsersList() {
 function UserRow({ user }: { user: User }) {
 	return (
 		<Link
-			to={`/admin/user/$id`}
-			params={{ id: user.id }}
+			to="/admin/users"
+			search={prev => ({ ...prev, editUser: user.id })}
 			className="grid grid-cols-subgrid col-span-full items-center gap-3 p-3 hover:bg-muted/50 transition-colors"
 		>
 			<IdentityCell user={user} />

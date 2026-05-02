@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, useLocation, useNavigate } from '@tanstack/react-router'
-import { Baby, ListOrdered, Plus, Sprout } from 'lucide-react'
+import { Baby, ListOrdered, Plus } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { type ChildListGroup, type DependentListGroup, getMyLists, type MyListRow } from '@/api/lists'
@@ -197,9 +197,7 @@ function MyListsPage() {
 					{/* DEPENDENTS' LISTS */}
 					{data.dependents.length > 0 && (
 						<div className="flex flex-col gap-2">
-							<h3 className="flex items-center gap-2">
-								<Sprout className="size-5 text-emerald-600" /> Dependents' Lists
-							</h3>
+							<h3>Dependents' Lists</h3>
 							<div className="text-sm italic leading-tight text-muted-foreground">
 								Lists for pets, babies, or anyone else you receive gifts on behalf of.
 							</div>

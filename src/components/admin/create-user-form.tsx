@@ -4,6 +4,7 @@ import { useState } from 'react'
 import type { z } from 'zod'
 
 import { createGuardianships, getUsersAsAdmin, updateUserPartner } from '@/api/admin'
+import { RoleLegend } from '@/components/admin/role-legend'
 import { BirthDaySelect } from '@/components/common/birth-day-select'
 import InputTooltip from '@/components/common/input-tooltip'
 import { Button } from '@/components/ui/button'
@@ -33,7 +34,7 @@ function getErrorMessage(errors: Array<unknown>): string {
 		.join(', ')
 }
 
-export function CreateUserForm() {
+export function CreateUserForm({ onCreated }: { onCreated?: () => void } = {}) {
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [success, setSuccess] = useState(false)
@@ -144,6 +145,7 @@ export function CreateUserForm() {
 				queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
 				// Clear success message after 5 seconds
 				setTimeout(() => setSuccess(false), 5000)
+				onCreated?.()
 			}
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Failed to create user')
@@ -295,13 +297,7 @@ export function CreateUserForm() {
 			<form.Field name="role">
 				{field => (
 					<div className="grid gap-2 w-full">
-						<Label htmlFor={field.name}>
-							Role
-							<InputTooltip>
-								<span className="font-semibold underline">Child</span> users are allowed to make their own lists but they cannot participate
-								in purchasing or view other users' lists.
-							</InputTooltip>
-						</Label>
+						<Label htmlFor={field.name}>Role</Label>
 						<Select
 							onValueChange={value => field.handleChange(value as (typeof roleEnumValues)[number])}
 							value={field.state.value}
@@ -318,6 +314,7 @@ export function CreateUserForm() {
 								))}
 							</SelectContent>
 						</Select>
+						<RoleLegend />
 						{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 							<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
 						)}

@@ -37,7 +37,7 @@ const monthLabels: Record<BirthMonth, string> = {
 	december: 'December',
 }
 
-export function CreateDependentForm() {
+export function CreateDependentForm({ onCreated }: { onCreated?: () => void } = {}) {
 	const queryClient = useQueryClient()
 
 	const usersQuery = useQuery({
@@ -80,6 +80,7 @@ export function CreateDependentForm() {
 			queryClient.invalidateQueries({ queryKey: ['my-lists'] })
 			queryClient.invalidateQueries({ queryKey: ['lists', 'public', 'dependents'] })
 			queryClient.invalidateQueries({ queryKey: ['permissions-matrix'] })
+			onCreated?.()
 		},
 		onError: () => toast.error("Couldn't add dependent"),
 	})
