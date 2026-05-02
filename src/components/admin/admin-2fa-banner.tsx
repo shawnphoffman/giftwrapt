@@ -29,9 +29,7 @@ export function Admin2faBanner() {
 	return (
 		<Alert variant="destructive" className="max-w-4xl">
 			<ShieldAlert className="size-4" />
-			<AlertTitle>
-				{missing.length === 1 ? '1 admin is missing 2FA' : `${missing.length} admins are missing 2FA`}
-			</AlertTitle>
+			<AlertTitle>{missing.length === 1 ? '1 admin is missing 2FA' : `${missing.length} admins are missing 2FA`}</AlertTitle>
 			<AlertDescription>
 				<p>
 					App policy requires admins to enroll TOTP two-factor auth. Ask {names} to set it up at{' '}
