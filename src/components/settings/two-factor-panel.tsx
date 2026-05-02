@@ -85,7 +85,7 @@ function DisabledView({ onStartEnrollment, busy }: TwoFactorPanelContentProps) {
 				<p className="text-xs text-muted-foreground">Enter your current password to begin enrollment.</p>
 			</div>
 			<form onSubmit={handle} className="flex flex-col gap-2 sm:flex-row sm:items-end">
-				<div className="grid gap-1 flex-1">
+				<div className="grid gap-2 flex-1">
 					<Label htmlFor="enable-2fa-password">Current password</Label>
 					<PasswordInput
 						id="enable-2fa-password"
@@ -180,7 +180,7 @@ function EnrollingView({
 			</div>
 
 			<form onSubmit={handle} className="space-y-2">
-				<div className="grid gap-1">
+				<div className="grid gap-2">
 					<Label htmlFor="verify-totp-code">Step 2 — enter the 6-digit code</Label>
 					<Input
 						id="verify-totp-code"
@@ -255,7 +255,7 @@ function EnabledView({ onDisable, onRegenerateBackupCodes, busy }: TwoFactorPane
 					<p className="text-xs text-muted-foreground">Invalidates any existing codes. Stash the new ones somewhere safe.</p>
 				</div>
 				<div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-					<div className="grid gap-1 flex-1">
+					<div className="grid gap-2 flex-1">
 						<Label htmlFor="regen-2fa-password">Current password</Label>
 						<PasswordInput
 							id="regen-2fa-password"
@@ -278,7 +278,7 @@ function EnabledView({ onDisable, onRegenerateBackupCodes, busy }: TwoFactorPane
 					<p className="text-xs text-muted-foreground">Removes the TOTP requirement and clears all backup codes.</p>
 				</div>
 				<div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-					<div className="grid gap-1 flex-1">
+					<div className="grid gap-2 flex-1">
 						<Label htmlFor="disable-2fa-password">Current password</Label>
 						<PasswordInput
 							id="disable-2fa-password"

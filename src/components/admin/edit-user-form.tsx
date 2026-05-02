@@ -441,7 +441,7 @@ function EditUserFormInner({
 							<Label htmlFor={field.name} className="flex items-center gap-1.5">
 								Birth Year
 								<InputTooltip>
-									Optional. Used only to tailor recommendations and the user's experience &mdash; never to display their age.
+									Optional. Used only to tailor recommendations and the user's experience. Never displayed publicly.
 								</InputTooltip>
 							</Label>
 							<Input

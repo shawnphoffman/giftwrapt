@@ -35,6 +35,14 @@ import { Field, FieldDescription, FieldError, FieldLabel } from '../ui/field'
 
 type UpdateProfileFormValues = z.infer<typeof UserSchema>
 
+// Birth-year picker spans 120 years back, newest first so the typical user
+// scrolls a short distance instead of paging through 1900s.
+const BIRTH_YEAR_RANGE = 120
+function birthYearOptions(): Array<number> {
+	const now = new Date().getFullYear()
+	return Array.from({ length: BIRTH_YEAR_RANGE + 1 }, (_, i) => now - i)
+}
+
 // Helper to extract error messages from TanStack Form errors (which can be objects or strings)
 function getErrorMessage(errors: Array<unknown>): string {
 	return errors
@@ -263,7 +271,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 				)}
 			</form.Field>
 
-			<div className="grid grid-cols-1 gap-4 @md/subpage:grid-cols-3">
+			<div className="grid grid-cols-1 gap-4 @md/subpage:grid-cols-2">
 				<form.Field name="birthMonth">
 					{field => (
 						<Field className="gap-1">
@@ -314,43 +322,37 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 						</Field>
 					)}
 				</form.Field>
-
-				<form.Field name="birthYear">
-					{field => (
-						<Field className="gap-1">
-							<FieldLabel htmlFor={field.name} className="flex items-center gap-1.5">
-								Birth Year
-								<InputTooltip>
-									Optional. Used only to tailor recommendations and your experience &mdash; never to display your age to anyone.
-								</InputTooltip>
-							</FieldLabel>
-							<Input
-								id={field.name}
-								type="number"
-								inputMode="numeric"
-								min={1900}
-								max={new Date().getFullYear()}
-								placeholder="YYYY"
-								value={field.state.value ?? ''}
-								onChange={e => {
-									const raw = e.target.value
-									if (raw === '') {
-										field.handleChange(undefined)
-										return
-									}
-									const parsed = Number.parseInt(raw, 10)
-									field.handleChange(Number.isNaN(parsed) ? undefined : parsed)
-								}}
-								onBlur={field.handleBlur}
-								disabled={isLoading}
-							/>
-							{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
-								<FieldError className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</FieldError>
-							)}
-						</Field>
-					)}
-				</form.Field>
 			</div>
+
+			<form.Field name="birthYear">
+				{field => (
+					<Field className="gap-1">
+						<FieldLabel htmlFor={field.name} className="flex items-center gap-1.5">
+							Birth Year
+							<InputTooltip>Optional. Used only to tailor recommendations and your experience. Never displayed publicly.</InputTooltip>
+						</FieldLabel>
+						<Select
+							value={field.state.value ? String(field.state.value) : ''}
+							onValueChange={value => field.handleChange(value === '' ? undefined : Number(value))}
+							disabled={isLoading}
+						>
+							<SelectTrigger id={field.name} className="w-full @md/subpage:w-40">
+								<SelectValue placeholder="Select year" />
+							</SelectTrigger>
+							<SelectContent>
+								{birthYearOptions().map(year => (
+									<SelectItem key={year} value={String(year)}>
+										{year}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+						{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+							<FieldError className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</FieldError>
+						)}
+					</Field>
+				)}
+			</form.Field>
 
 			<form.Field name="partnerId">
 				{field => (
