@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { CharacterCounter } from './character-counter'
 
 const meta = {
-	title: 'UI/Character Counter',
+	title: 'Common/Character Counter',
 	component: CharacterCounter,
 	parameters: { layout: 'padded' },
 	args: { max: 60 },

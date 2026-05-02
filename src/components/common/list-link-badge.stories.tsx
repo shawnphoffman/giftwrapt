@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import ListLinkBadge from './list-link-badge'
 
 const meta = {
-	title: 'Common/ListLinkBadge',
+	title: 'Common/Badges/ListLinkBadge',
 	component: ListLinkBadge,
 	parameters: { layout: 'padded' },
 } satisfies Meta<typeof ListLinkBadge>
