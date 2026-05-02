@@ -72,7 +72,9 @@ const BirthFields = {
 export const CreateDependentInputSchema = z.object({
 	name: z.string().min(1).max(60),
 	image: z.string().max(2000).nullable().optional(),
-	guardianIds: z.array(z.string().min(1)).min(0).max(20).default([]),
+	// Admin-supplied list of guardian user ids. At least one is required so
+	// the dependent has at least one user who can manage them.
+	guardianIds: z.array(z.string().min(1)).min(1).max(20),
 	...BirthFields,
 })
 
@@ -104,14 +106,6 @@ export const RemoveDependentGuardianInputSchema = z.object({
 function toIso(value: Date | string | null | undefined): string {
 	if (!value) return new Date().toISOString()
 	return value instanceof Date ? value.toISOString() : new Date(value).toISOString()
-}
-
-async function isGuardian(userId: string, dependentId: string, dbx: SchemaDatabase): Promise<boolean> {
-	const row = await dbx.query.dependentGuardianships.findFirst({
-		where: and(eq(dependentGuardianships.guardianUserId, userId), eq(dependentGuardianships.dependentId, dependentId)),
-		columns: { guardianUserId: true },
-	})
-	return !!row
 }
 
 async function loadDependentSummary(id: string, dbx: SchemaDatabase): Promise<DependentSummary | null> {
@@ -192,6 +186,9 @@ export async function getMyDependentsImpl(args: { userId: string; dbx?: SchemaDa
 // Writes
 // ===============================
 
+// Admin-only: create a dependent and assign one or more guardian users.
+// The actor (admin) does NOT auto-become a guardian; admins specify
+// `guardianIds` explicitly. Children cannot be guardians.
 export async function createDependentImpl(args: {
 	userId: string
 	input: z.infer<typeof CreateDependentInputSchema>
@@ -199,24 +196,13 @@ export async function createDependentImpl(args: {
 }): Promise<CreateDependentResult> {
 	const { dbx = db, userId, input } = args
 
-	const creator = await dbx.query.users.findFirst({
-		where: eq(users.id, userId),
-		columns: { role: true },
+	const guardianIds = Array.from(new Set(input.guardianIds))
+	const guardians = await dbx.query.users.findMany({
+		where: inArray(users.id, guardianIds),
+		columns: { id: true, role: true },
 	})
-	if (!creator || creator.role === 'child') return { kind: 'error', reason: 'role-not-allowed' }
-
-	const guardianIds = Array.from(new Set([userId, ...input.guardianIds]))
-	if (guardianIds.length > 1) {
-		const guardians = await dbx.query.users.findMany({
-			where: inArray(
-				users.id,
-				guardianIds.filter(id => id !== userId)
-			),
-			columns: { id: true, role: true },
-		})
-		if (guardians.length !== guardianIds.length - 1) return { kind: 'error', reason: 'guardian-not-found' }
-		if (guardians.some(g => g.role === 'child')) return { kind: 'error', reason: 'guardian-role-not-allowed' }
-	}
+	if (guardians.length !== guardianIds.length) return { kind: 'error', reason: 'guardian-not-found' }
+	if (guardians.some(g => g.role === 'child')) return { kind: 'error', reason: 'guardian-role-not-allowed' }
 
 	const id = crypto.randomUUID()
 	const now = new Date()
@@ -248,18 +234,19 @@ export async function createDependentImpl(args: {
 	return { kind: 'ok', dependent: summary }
 }
 
+// Admin-only: edit a dependent's name / photo / birthday. Authz is gated
+// by the server-fn middleware; this impl trusts the caller and just runs
+// the update.
 export async function updateDependentImpl(args: {
-	userId: string
 	input: z.infer<typeof UpdateDependentInputSchema>
 	dbx?: SchemaDatabase
 }): Promise<UpdateDependentResult> {
-	const { dbx = db, userId, input } = args
+	const { dbx = db, input } = args
 	const row = await dbx.query.dependents.findFirst({
 		where: eq(dependents.id, input.id),
 		columns: { id: true },
 	})
 	if (!row) return { kind: 'error', reason: 'not-found' }
-	if (!(await isGuardian(userId, input.id, dbx))) return { kind: 'error', reason: 'not-authorized' }
 
 	const patch: Record<string, unknown> = {}
 	if (input.name !== undefined) patch.name = input.name
@@ -277,18 +264,17 @@ export async function updateDependentImpl(args: {
 	return { kind: 'ok', dependent: summary }
 }
 
-// Delete a dependent. If any of their lists has at least one claim,
-// we force-archive instead of hard-delete (mirrors the lists rule).
-// Otherwise cascade-delete the dependent + their lists + their
+// Admin-only: delete a dependent. If any of their lists has at least
+// one claim we force-archive instead of hard-delete (mirrors the lists
+// rule). Otherwise cascade-delete the dependent + their lists + their
 // guardianships.
-export async function deleteDependentImpl(args: { userId: string; id: string; dbx?: SchemaDatabase }): Promise<DeleteDependentResult> {
-	const { dbx = db, userId, id } = args
+export async function deleteDependentImpl(args: { id: string; dbx?: SchemaDatabase }): Promise<DeleteDependentResult> {
+	const { dbx = db, id } = args
 	const row = await dbx.query.dependents.findFirst({
 		where: eq(dependents.id, id),
 		columns: { id: true },
 	})
 	if (!row) return { kind: 'error', reason: 'not-found' }
-	if (!(await isGuardian(userId, id, dbx))) return { kind: 'error', reason: 'not-authorized' }
 
 	// Detect any claim attached to a list owned-by-subject for this dependent.
 	const hasClaims = await dbx
@@ -315,18 +301,17 @@ export async function deleteDependentImpl(args: { userId: string; id: string; db
 	return { kind: 'ok', action: 'deleted' }
 }
 
+// Admin-only: add a guardian to a dependent.
 export async function addGuardianImpl(args: {
-	userId: string
 	input: z.infer<typeof AddDependentGuardianInputSchema>
 	dbx?: SchemaDatabase
 }): Promise<AddGuardianResult> {
-	const { dbx = db, userId, input } = args
+	const { dbx = db, input } = args
 	const row = await dbx.query.dependents.findFirst({
 		where: eq(dependents.id, input.dependentId),
 		columns: { id: true },
 	})
 	if (!row) return { kind: 'error', reason: 'not-found' }
-	if (!(await isGuardian(userId, input.dependentId, dbx))) return { kind: 'error', reason: 'not-authorized' }
 
 	const target = await dbx.query.users.findFirst({
 		where: eq(users.id, input.userId),
@@ -351,18 +336,17 @@ export async function addGuardianImpl(args: {
 	return { kind: 'ok' }
 }
 
+// Admin-only: remove a guardian from a dependent.
 export async function removeGuardianImpl(args: {
-	userId: string
 	input: z.infer<typeof RemoveDependentGuardianInputSchema>
 	dbx?: SchemaDatabase
 }): Promise<RemoveGuardianResult> {
-	const { dbx = db, userId, input } = args
+	const { dbx = db, input } = args
 	const row = await dbx.query.dependents.findFirst({
 		where: eq(dependents.id, input.dependentId),
 		columns: { id: true },
 	})
 	if (!row) return { kind: 'error', reason: 'not-found' }
-	if (!(await isGuardian(userId, input.dependentId, dbx))) return { kind: 'error', reason: 'not-authorized' }
 
 	// Refuse to drop the last guardian: a dependent with no guardians is
 	// unmanageable.
@@ -376,6 +360,61 @@ export async function removeGuardianImpl(args: {
 		.delete(dependentGuardianships)
 		.where(and(eq(dependentGuardianships.guardianUserId, input.userId), eq(dependentGuardianships.dependentId, input.dependentId)))
 	return { kind: 'ok' }
+}
+
+// ===============================
+// Admin reads
+// ===============================
+
+// Admin-only: list every dependent in the system, including archived,
+// for the management UI. Includes the resolved guardian users so the
+// admin form can render avatars and names without a second round trip.
+export type AdminDependentRow = DependentSummary & {
+	guardians: Array<{ id: string; name: string | null; email: string; image: string | null }>
+}
+
+export type AdminDependentsResult = { dependents: Array<AdminDependentRow> }
+
+export async function getAllDependentsImpl(dbx: SchemaDatabase = db): Promise<AdminDependentsResult> {
+	const rows = await dbx.query.dependents.findMany({
+		orderBy: (d, { desc: dsc, asc: a }) => [dsc(d.isArchived), a(d.name)],
+	})
+	if (rows.length === 0) return { dependents: [] }
+	const ids = rows.map(r => r.id)
+	const guardianRows = await dbx
+		.select({
+			dependentId: dependentGuardianships.dependentId,
+			guardianUserId: dependentGuardianships.guardianUserId,
+			name: users.name,
+			email: users.email,
+			image: users.image,
+		})
+		.from(dependentGuardianships)
+		.innerJoin(users, eq(users.id, dependentGuardianships.guardianUserId))
+		.where(inArray(dependentGuardianships.dependentId, ids))
+
+	const guardianMap = new Map<string, Array<{ id: string; name: string | null; email: string; image: string | null }>>()
+	for (const g of guardianRows) {
+		const arr = guardianMap.get(g.dependentId) ?? []
+		arr.push({ id: g.guardianUserId, name: g.name, email: g.email, image: g.image })
+		guardianMap.set(g.dependentId, arr)
+	}
+
+	return {
+		dependents: rows.map(row => ({
+			id: row.id,
+			name: row.name,
+			image: row.image,
+			birthMonth: row.birthMonth,
+			birthDay: row.birthDay,
+			birthYear: row.birthYear,
+			isArchived: row.isArchived,
+			createdAt: toIso(row.createdAt),
+			updatedAt: toIso(row.updatedAt),
+			guardianIds: (guardianMap.get(row.id) ?? []).map(g => g.id),
+			guardians: guardianMap.get(row.id) ?? [],
+		})),
+	}
 }
 
 // ===============================
