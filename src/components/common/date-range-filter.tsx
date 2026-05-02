@@ -1,10 +1,10 @@
 import { CalendarIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { RangeCalendarPopover } from '@/components/common/range-calendar-popover'
+import { SegmentedToggle } from '@/components/common/segmented-toggle'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { formatTimeframeLabel, TIMEFRAME_PRESETS, type TimeframePreset, type TimeframeValue } from '@/lib/timeframe'
 
 type Props = { value: TimeframeValue; onChange: (next: TimeframeValue) => void }
@@ -13,25 +13,23 @@ export function DateRangeFilter({ value, onChange }: Props) {
 	const [open, setOpen] = useState(false)
 	const segmentedValue = value.kind === 'preset' ? value.preset : ''
 
-	function handlePresetChange(v: string) {
-		if (!v) return
-		onChange({ kind: 'preset', preset: v as TimeframePreset })
-	}
+	const presetOptions = useMemo(
+		() =>
+			TIMEFRAME_PRESETS.map(opt => ({
+				value: opt.value,
+				label: opt.label.replace('Last ', '').replace(' days', 'd').replace(' months', 'm'),
+				ariaLabel: opt.label,
+			})),
+		[]
+	)
 
 	return (
 		<div className="flex items-center gap-2 flex-wrap">
-			<ToggleGroup type="single" variant="outline" size="sm" value={segmentedValue} onValueChange={handlePresetChange}>
-				{TIMEFRAME_PRESETS.map(opt => (
-					<ToggleGroupItem
-						key={opt.value}
-						value={opt.value}
-						aria-label={opt.label}
-						className="bg-background dark:bg-input/30 dark:hover:bg-input/50 data-[state=on]:bg-emerald-100 data-[state=on]:text-emerald-800 data-[state=on]:hover:bg-emerald-200 dark:data-[state=on]:bg-emerald-950 dark:data-[state=on]:text-emerald-200 dark:data-[state=on]:hover:bg-emerald-900"
-					>
-						{opt.label.replace('Last ', '').replace(' days', 'd').replace(' months', 'm')}
-					</ToggleGroupItem>
-				))}
-			</ToggleGroup>
+			<SegmentedToggle<TimeframePreset>
+				value={segmentedValue}
+				onValueChange={preset => onChange({ kind: 'preset', preset })}
+				options={presetOptions}
+			/>
 			<Popover open={open} onOpenChange={setOpen}>
 				<PopoverTrigger asChild>
 					<Button variant={value.kind === 'custom' ? 'secondary' : 'outline'} size="sm">
