@@ -149,6 +149,121 @@ export const HeavyDenies: Story = {
 	},
 }
 
+function buildLargeOrg(): PermissionsMatrixData {
+	const users: Array<PermissionsMatrixUser> = []
+	const guardianships: PermissionsMatrixData['guardianships'] = []
+	const relationships: PermissionsMatrixData['relationships'] = []
+	const listEditorCounts: PermissionsMatrixData['listEditorCounts'] = []
+
+	const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
+	// 1 admin
+	users.push(user('admin', 'Admin', 'admin'))
+
+	// 5 partner pairs (10 users) - each pair shares full view+edit both ways
+	const partnerPairs: Array<[string, string]> = [
+		['alice', 'bob'],
+		['carol', 'dave'],
+		['eve', 'frank'],
+		['grace', 'henry'],
+		['ivy', 'jack'],
+	]
+	for (const [a, b] of partnerPairs) {
+		users.push(user(a, cap(a), 'user', b))
+		users.push(user(b, cap(b), 'user', a))
+		relationships.push({ ownerUserId: a, viewerUserId: b, canView: true, canEdit: true })
+		relationships.push({ ownerUserId: b, viewerUserId: a, canView: true, canEdit: true })
+	}
+
+	// 8 children, each cycled through guardian pairs (so most have 2 guardians)
+	const kids = ['kiddo', 'teen', 'baby', 'junior', 'minor', 'youngling', 'pup', 'cub']
+	kids.forEach((kid, i) => {
+		users.push(user(kid, cap(kid), 'child'))
+		const [g1, g2] = partnerPairs[i % partnerPairs.length]
+		guardianships.push({ parentUserId: g1, childUserId: kid })
+		guardianships.push({ parentUserId: g2, childUserId: kid })
+	})
+
+	// 31 regular users to round out to 50
+	const extras = [
+		'liam',
+		'mia',
+		'noah',
+		'olivia',
+		'parker',
+		'quinn',
+		'rachel',
+		'sam',
+		'tara',
+		'uma',
+		'vince',
+		'wendy',
+		'xander',
+		'yara',
+		'zoe',
+		'amber',
+		'blake',
+		'colin',
+		'dana',
+		'ethan',
+		'fiona',
+		'gus',
+		'hank',
+		'iris',
+		'jade',
+		'kyle',
+		'lola',
+		'max',
+		'nina',
+		'orion',
+		'piper',
+	]
+	for (const name of extras) {
+		users.push(user(name, cap(name)))
+	}
+
+	// Sprinkle additional grants: a few extended-family-style edit grants
+	relationships.push({ ownerUserId: 'alice', viewerUserId: 'carol', canView: true, canEdit: true })
+	relationships.push({ ownerUserId: 'liam', viewerUserId: 'mia', canView: true, canEdit: true })
+	relationships.push({ ownerUserId: 'mia', viewerUserId: 'liam', canView: true, canEdit: true })
+	relationships.push({ ownerUserId: 'noah', viewerUserId: 'olivia', canView: true, canEdit: true })
+	relationships.push({ ownerUserId: 'tara', viewerUserId: 'sam', canView: true, canEdit: true })
+
+	// And a handful of denies (distant in-laws, etc.)
+	relationships.push({ ownerUserId: 'alice', viewerUserId: 'orion', canView: false, canEdit: false })
+	relationships.push({ ownerUserId: 'bob', viewerUserId: 'piper', canView: false, canEdit: false })
+	relationships.push({ ownerUserId: 'carol', viewerUserId: 'max', canView: false, canEdit: false })
+	relationships.push({ ownerUserId: 'eve', viewerUserId: 'gus', canView: false, canEdit: false })
+	relationships.push({ ownerUserId: 'liam', viewerUserId: 'admin', canView: false, canEdit: false })
+	relationships.push({ ownerUserId: 'fiona', viewerUserId: 'hank', canView: false, canEdit: false })
+
+	// List-level editor grants overlap with some user-level grants and stand alone in others
+	listEditorCounts.push({ ownerId: 'alice', userId: 'carol', count: 3 })
+	listEditorCounts.push({ ownerId: 'alice', userId: 'admin', count: 1 })
+	listEditorCounts.push({ ownerId: 'bob', userId: 'admin', count: 2 })
+	listEditorCounts.push({ ownerId: 'carol', userId: 'dave', count: 1 })
+	listEditorCounts.push({ ownerId: 'liam', userId: 'mia', count: 5 })
+	listEditorCounts.push({ ownerId: 'noah', userId: 'liam', count: 1 })
+	listEditorCounts.push({ ownerId: 'tara', userId: 'uma', count: 2 })
+	listEditorCounts.push({ ownerId: 'wendy', userId: 'xander', count: 1 })
+	listEditorCounts.push({ ownerId: 'amber', userId: 'blake', count: 4 })
+	listEditorCounts.push({ ownerId: 'iris', userId: 'jade', count: 2 })
+
+	return { users, guardianships, relationships, listEditorCounts }
+}
+
+export const LargeOrg: Story = {
+	args: { data: buildLargeOrg() },
+	parameters: {
+		docs: {
+			description: {
+				story:
+					'50 users: 1 admin, 5 partner pairs (10), 8 children with shared guardians, and 31 extended-family/non-related users. Sprinkled with edit grants, denies, and list-level editor counts. Useful for stress-testing density, scroll behavior, and how the legend reads against a dense matrix.',
+			},
+		},
+	},
+}
+
 export const ListEditorsOnly: Story = {
 	args: {
 		data: {

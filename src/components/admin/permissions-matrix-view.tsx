@@ -1,5 +1,5 @@
 import { Heart, Pencil, Shield, ShieldOff } from 'lucide-react'
-import { useMemo } from 'react'
+import { type ReactNode, useMemo } from 'react'
 
 import UserAvatar from '@/components/common/user-avatar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
@@ -178,38 +178,54 @@ export function PermissionsMatrixView({ data }: { data: PermissionsMatrixData })
 }
 
 function Legend() {
-	const items: Array<{ kind: CellKind; label: string; hint: string }> = [
+	const userLevelGrants: Array<{ kind: CellKind; label: string; hint: string }> = [
 		{ kind: 'guardian', label: 'Guardian', hint: 'Full view + edit on child user' },
 		{ kind: 'editor', label: 'Editor', hint: 'User-level edit grant' },
 		{ kind: 'view', label: 'View', hint: 'Default: public + active lists' },
 		{ kind: 'denied', label: 'Denied', hint: 'Owner blocked viewer' },
-		{ kind: 'self', label: 'Self', hint: 'Owner of these lists' },
 	]
 	return (
-		<div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
-			{items.map(it => (
-				<div key={it.kind} className="flex items-center gap-1.5">
-					<div className={cn('flex items-center justify-center size-6 rounded-sm', cellClasses(it.kind))}>
-						<CellGlyph cell={{ kind: it.kind, editorListCount: 0, isPartner: false }} />
+		<div className="space-y-3 text-xs text-muted-foreground">
+			<LegendSection title="User-level grants">
+				{userLevelGrants.map(it => (
+					<LegendItem key={it.kind} label={it.label} hint={it.hint}>
+						<div className={cn('flex items-center justify-center size-6 rounded-sm', cellClasses(it.kind))}>
+							<CellGlyph cell={{ kind: it.kind, editorListCount: 0, isPartner: false }} />
+						</div>
+					</LegendItem>
+				))}
+			</LegendSection>
+			<LegendSection title="Other">
+				<LegendItem label="Partner" hint="Bidirectional partner link">
+					<div className="relative size-6 rounded-sm bg-muted">
+						<Heart className="absolute top-0.5 right-0.5 size-2.5 fill-pink-500 text-pink-500" />
 					</div>
-					<span className="font-medium text-foreground">{it.label}</span>
-					<span>{it.hint}</span>
-				</div>
-			))}
-			<div className="flex items-center gap-1.5">
-				<div className="relative size-6 rounded-sm bg-muted">
-					<Heart className="absolute top-0.5 right-0.5 size-2.5 fill-pink-500 text-pink-500" />
-				</div>
-				<span className="font-medium text-foreground">Partner</span>
-				<span>Bidirectional partner link</span>
-			</div>
-			<div className="flex items-center gap-1.5">
-				<div className="flex items-center justify-center size-6 rounded-sm bg-sky-500/15 text-sky-700 dark:text-sky-400 text-[9px] font-semibold">
-					+N
-				</div>
-				<span className="font-medium text-foreground">+N</span>
-				<span>List-level edit grants</span>
-			</div>
+				</LegendItem>
+				<LegendItem label="+N" hint="List-level edit grants">
+					<div className="flex items-center justify-center size-6 rounded-sm bg-sky-500/15 text-sky-700 dark:text-sky-400 text-[9px] font-semibold">
+						+N
+					</div>
+				</LegendItem>
+			</LegendSection>
+		</div>
+	)
+}
+
+function LegendSection({ title, children }: { title: string; children: ReactNode }) {
+	return (
+		<div className="space-y-1.5">
+			<div className="text-[10px] uppercase tracking-wide font-medium text-muted-foreground">{title}</div>
+			<div className="flex flex-wrap items-center gap-x-4 gap-y-2">{children}</div>
+		</div>
+	)
+}
+
+function LegendItem({ label, hint, children }: { label: string; hint: string; children: ReactNode }) {
+	return (
+		<div className="flex items-center gap-1.5">
+			{children}
+			<span className="font-medium text-foreground">{label}</span>
+			<span>{hint}</span>
 		</div>
 	)
 }
