@@ -6,11 +6,13 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
+import { getMyDependents } from '@/api/dependents'
 import { archiveListPurchases } from '@/api/items'
 import { addListEditor } from '@/api/list-editors'
 import { updateList } from '@/api/lists'
 import { getGiftIdeasRecipients } from '@/api/user'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
+import DependentAvatar from '@/components/common/dependent-avatar'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import { MarkdownTextarea } from '@/components/common/markdown-textarea'
 import UserAvatar from '@/components/common/user-avatar'
@@ -33,6 +35,7 @@ const schema = z.object({
 	isPrivate: z.boolean(),
 	description: z.string().max(LIMITS.MEDIUM_TEXT).optional(),
 	giftIdeasTargetUserId: z.string().optional(),
+	subjectDependentId: z.string().optional(),
 	addPartnerAsEditor: z.boolean(),
 })
 
@@ -45,11 +48,22 @@ type Props = {
 	isPrivate: boolean
 	description: string | null
 	giftIdeasTargetUserId: string | null
+	subjectDependentId: string | null
 	editorUserIds: Array<string>
 	isOwner: boolean
 }
 
-export function ListSettingsForm({ listId, name, type, isPrivate, description, giftIdeasTargetUserId, editorUserIds, isOwner }: Props) {
+export function ListSettingsForm({
+	listId,
+	name,
+	type,
+	isPrivate,
+	description,
+	giftIdeasTargetUserId,
+	subjectDependentId,
+	editorUserIds,
+	isOwner,
+}: Props) {
 	const router = useRouter()
 	const queryClient = useQueryClient()
 	const { data: session } = useSession()
@@ -67,6 +81,15 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description, g
 		enabled: isGiftIdeas || (!!partnerId && !partnerAlreadyEditor),
 		staleTime: 10 * 60 * 1000,
 	})
+
+	const { data: myDependents } = useQuery({
+		queryKey: ['dependents', 'mine'],
+		queryFn: () => getMyDependents(),
+		enabled: isOwner && !isGiftIdeas,
+		staleTime: 5 * 60 * 1000,
+	})
+
+	const activeDependents = (myDependents?.dependents ?? []).filter(d => !d.isArchived)
 
 	const partner = partnerId ? users?.find(u => u.id === partnerId) : undefined
 	const partnerLabel = partner ? partner.name || partner.email : 'your partner'
@@ -94,6 +117,7 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description, g
 			isPrivate,
 			description: description ?? '',
 			giftIdeasTargetUserId: giftIdeasTargetUserId ?? '',
+			subjectDependentId: subjectDependentId ?? '',
 			addPartnerAsEditor: true,
 		},
 		onSubmit: async ({ value }) => {
@@ -120,12 +144,14 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description, g
 						isPrivate: nextType === 'giftideas' ? true : parsed.data.isPrivate,
 						description: parsed.data.description?.trim() || null,
 						giftIdeasTargetUserId: nextType === 'giftideas' ? parsed.data.giftIdeasTargetUserId || null : null,
+						subjectDependentId: isOwner && nextType !== 'giftideas' ? parsed.data.subjectDependentId || null : undefined,
 					},
 				})
 
 				if (result.kind === 'error') {
 					if (result.reason === 'not-authorized') setError("You don't have permission to change this list's settings.")
 					else if (result.reason === 'child-cannot-create-gift-ideas') setError("Children can't switch a list to gift-ideas.")
+					else if (result.reason === 'not-dependent-guardian') setError("You're not a guardian of that dependent.")
 					else setError('List not found.')
 					return
 				}
@@ -247,6 +273,30 @@ export function ListSettingsForm({ listId, name, type, isPrivate, description, g
 							</div>
 						)
 					}}
+				</form.Field>
+			)}
+
+			{!isGiftIdeas && isOwner && activeDependents.length > 0 && (
+				<form.Field name="subjectDependentId">
+					{field => (
+						<div className="grid gap-2">
+							<Label htmlFor={field.name}>List is for (optional)</Label>
+							<Select value={field.state.value || 'me'} onValueChange={v => field.handleChange(v === 'me' ? '' : v)} disabled={submitting}>
+								<SelectTrigger id={field.name}>
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="me">Me</SelectItem>
+									{activeDependents.map(d => (
+										<SelectItem key={d.id} value={d.id}>
+											<DependentAvatar name={d.name} image={d.image} size="small" />
+											<span className="truncate">{d.name}</span>
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
+						</div>
+					)}
 				</form.Field>
 			)}
 

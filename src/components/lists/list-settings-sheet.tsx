@@ -16,6 +16,7 @@ type Props = {
 	isPrivate: boolean
 	description: string | null
 	giftIdeasTargetUserId: string | null
+	subjectDependentId: string | null
 	editors: Array<EditorOnList>
 	addableUsers: Array<AddableEditorUser>
 	isOwner: boolean
@@ -29,6 +30,7 @@ export function ListSettingsSheet({
 	isPrivate,
 	description,
 	giftIdeasTargetUserId,
+	subjectDependentId,
 	editors,
 	addableUsers,
 	isOwner,
@@ -56,6 +58,7 @@ export function ListSettingsSheet({
 						isPrivate={isPrivate}
 						description={description}
 						giftIdeasTargetUserId={giftIdeasTargetUserId}
+						subjectDependentId={subjectDependentId}
 						editorUserIds={editors.map(e => e.userId)}
 						isOwner={isOwner}
 					/>

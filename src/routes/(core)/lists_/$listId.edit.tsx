@@ -170,6 +170,7 @@ function ListEditPage() {
 							isPrivate={list.isPrivate}
 							description={list.description}
 							giftIdeasTargetUserId={list.giftIdeasTargetUserId}
+							subjectDependentId={list.subjectDependentId}
 							editors={editors}
 							addableUsers={addableUsers}
 							isOwner={list.isOwner}

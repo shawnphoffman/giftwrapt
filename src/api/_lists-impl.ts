@@ -200,7 +200,9 @@ export type CreateListResult =
 	| { kind: 'ok'; list: { id: number; name: string; type: ListType } }
 	| { kind: 'error'; reason: 'child-cannot-create-gift-ideas' | 'not-dependent-guardian' }
 
-export type UpdateListResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' | 'child-cannot-create-gift-ideas' }
+export type UpdateListResult =
+	| { kind: 'ok' }
+	| { kind: 'error'; reason: 'not-found' | 'not-authorized' | 'child-cannot-create-gift-ideas' | 'not-dependent-guardian' }
 
 export type DeleteListResult = { kind: 'ok'; action: 'deleted' | 'archived' } | { kind: 'error'; reason: 'not-found' | 'not-owner' }
 
@@ -216,6 +218,7 @@ export type ListForEditing = {
 	description: string | null
 	ownerId: string
 	giftIdeasTargetUserId: string | null
+	subjectDependentId: string | null
 	groups: Array<GroupSummary>
 	isOwner: boolean
 }
@@ -251,6 +254,7 @@ export const UpdateListInputSchema = z.object({
 	isActive: z.boolean().optional(),
 	giftIdeasTargetUserId: z.string().nullable().optional(),
 	giftIdeasTargetDependentId: z.string().nullable().optional(),
+	subjectDependentId: z.string().nullable().optional(),
 })
 
 export const DeleteListInputSchema = z.object({
@@ -1052,6 +1056,16 @@ export async function updateListImpl(args: {
 		updates.giftIdeasTargetDependentId = data.giftIdeasTargetDependentId
 		if (data.giftIdeasTargetDependentId) updates.giftIdeasTargetUserId = null
 	}
+	if (data.subjectDependentId !== undefined && isOwner) {
+		if (data.subjectDependentId) {
+			const guard = await db.query.dependentGuardianships.findFirst({
+				where: and(eq(dependentGuardianships.guardianUserId, actor.id), eq(dependentGuardianships.dependentId, data.subjectDependentId)),
+				columns: { guardianUserId: true },
+			})
+			if (!guard) return { kind: 'error', reason: 'not-dependent-guardian' }
+		}
+		updates.subjectDependentId = data.subjectDependentId
+	}
 
 	const nextType = data.type ?? undefined
 	if (nextType === 'giftideas') {
@@ -1155,6 +1169,7 @@ export async function getListForEditingImpl(args: {
 			description: true,
 			ownerId: true,
 			giftIdeasTargetUserId: true,
+			subjectDependentId: true,
 		},
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
@@ -1183,6 +1198,7 @@ export async function getListForEditingImpl(args: {
 			description: list.description,
 			ownerId: list.ownerId,
 			giftIdeasTargetUserId: list.giftIdeasTargetUserId,
+			subjectDependentId: list.subjectDependentId,
 			groups,
 			isOwner,
 		},
