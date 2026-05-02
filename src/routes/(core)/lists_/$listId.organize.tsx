@@ -456,7 +456,7 @@ function OrganizeItemRow({ item, selected, onToggle }: { item: Item; selected: b
 			<PriorityTab priority={item.priority} />
 			<label
 				className={cn(
-					'relative z-10 flex items-center gap-3 p-2 ps-4 ring-1 ring-inset ring-border rounded-lg bg-muted/40 shadow-sm hover:bg-muted/60 cursor-pointer',
+					'relative z-10 flex items-center gap-3 p-2 ps-4 ring-1 ring-inset ring-border rounded-lg bg-card shadow-sm hover:bg-accent cursor-pointer',
 					priorityRingClass[item.priority]
 				)}
 			>
