@@ -7,7 +7,6 @@ import { db } from '@/db'
 import { users } from '@/db/schema'
 import { createLogger } from '@/lib/logger'
 import { runWithRequest, setRequestUser } from '@/lib/request-context'
-import { getAppSettings } from '@/lib/settings-loader'
 
 import { auth } from '../lib/auth'
 
@@ -106,31 +105,6 @@ export const adminAuthMiddleware = createMiddleware().server(async ({ next, requ
 
 		setRequestUser(session.user.id)
 		await requireLiveUser(session.user.id, request)
-
-		// Admin-2FA gate: when an admin has logged in without TOTP and
-		// the operator turned on `require2faForAdmins`, bounce them to
-		// /settings/security so they can enroll. Don't loop back to the
-		// admin layout afterwards — the user needs to flip 2FA on first
-		// from a non-admin context. We use a cheap sentinel
-		// `?enroll=2fa` so the security page can render an explanatory
-		// banner instead of springing the form on someone with no
-		// context. Cached app-settings are read on every admin
-		// nav anyway via TanStack Query, so this DB hit is negligible.
-		const u = (() => {
-			try {
-				return new URL(request.url)
-			} catch {
-				return null
-			}
-		})()
-		const isEnrolling = u?.pathname === '/settings/security'
-		if (!session.user.twoFactorEnabled && !isEnrolling) {
-			const settings = await getAppSettings(db)
-			if (settings.require2faForAdmins) {
-				mwLog.warn({ userId: session.user.id }, 'admin missing 2FA, redirecting to enrollment')
-				throw redirect({ to: '/settings/security', search: { enroll: '2fa' } })
-			}
-		}
 
 		return await next({
 			context: {
