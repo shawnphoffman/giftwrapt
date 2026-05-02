@@ -22,7 +22,6 @@ import { Route as authForgotPasswordRouteImport } from './routes/(auth)/forgot-p
 import { Route as coreTempRouteRouteImport } from './routes/(core)/temp/route'
 import { Route as coreSettingsRouteRouteImport } from './routes/(core)/settings/route'
 import { Route as coreAdminRouteRouteImport } from './routes/(core)/admin/route'
-import { Route as coreTempIndexRouteImport } from './routes/(core)/temp/index'
 import { Route as coreSettingsIndexRouteImport } from './routes/(core)/settings/index'
 import { Route as corePurchasesIndexRouteImport } from './routes/(core)/purchases.index'
 import { Route as coreMeIndexRouteImport } from './routes/(core)/me.index'
@@ -124,11 +123,6 @@ const coreAdminRouteRoute = coreAdminRouteRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => coreRouteRoute,
-} as any)
-const coreTempIndexRoute = coreTempIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => coreTempRouteRoute,
 } as any)
 const coreSettingsIndexRoute = coreSettingsIndexRouteImport.update({
   id: '/',
@@ -362,7 +356,6 @@ export interface FileRoutesByFullPath {
   '/me': typeof coreMeIndexRoute
   '/purchases': typeof corePurchasesIndexRoute
   '/settings/': typeof coreSettingsIndexRoute
-  '/temp/': typeof coreTempIndexRoute
   '/admin/user/$id': typeof coreAdminUserIdRoute
   '/lists/$listId/bulk': typeof coreListsListIdBulkRoute
   '/lists/$listId/edit': typeof coreListsListIdEditRoute
@@ -370,6 +363,7 @@ export interface FileRoutesByFullPath {
   '/api/sse/list/$listId': typeof ApiSseListListIdRoute
 }
 export interface FileRoutesByTo {
+  '/temp': typeof coreTempRouteRouteWithChildren
   '/forgot-password': typeof authForgotPasswordRoute
   '/reset-password': typeof authResetPasswordRoute
   '/sign-in': typeof authSignInRouteWithChildren
@@ -411,7 +405,6 @@ export interface FileRoutesByTo {
   '/me': typeof coreMeIndexRoute
   '/purchases': typeof corePurchasesIndexRoute
   '/settings': typeof coreSettingsIndexRoute
-  '/temp': typeof coreTempIndexRoute
   '/admin/user/$id': typeof coreAdminUserIdRoute
   '/lists/$listId/bulk': typeof coreListsListIdBulkRoute
   '/lists/$listId/edit': typeof coreListsListIdEditRoute
@@ -465,7 +458,6 @@ export interface FileRoutesById {
   '/(core)/me/': typeof coreMeIndexRoute
   '/(core)/purchases/': typeof corePurchasesIndexRoute
   '/(core)/settings/': typeof coreSettingsIndexRoute
-  '/(core)/temp/': typeof coreTempIndexRoute
   '/(core)/admin/user/$id': typeof coreAdminUserIdRoute
   '/(core)/lists_/$listId/bulk': typeof coreListsListIdBulkRoute
   '/(core)/lists_/$listId/edit': typeof coreListsListIdEditRoute
@@ -519,7 +511,6 @@ export interface FileRouteTypes {
     | '/me'
     | '/purchases'
     | '/settings/'
-    | '/temp/'
     | '/admin/user/$id'
     | '/lists/$listId/bulk'
     | '/lists/$listId/edit'
@@ -527,6 +518,7 @@ export interface FileRouteTypes {
     | '/api/sse/list/$listId'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/temp'
     | '/forgot-password'
     | '/reset-password'
     | '/sign-in'
@@ -568,7 +560,6 @@ export interface FileRouteTypes {
     | '/me'
     | '/purchases'
     | '/settings'
-    | '/temp'
     | '/admin/user/$id'
     | '/lists/$listId/bulk'
     | '/lists/$listId/edit'
@@ -621,7 +612,6 @@ export interface FileRouteTypes {
     | '/(core)/me/'
     | '/(core)/purchases/'
     | '/(core)/settings/'
-    | '/(core)/temp/'
     | '/(core)/admin/user/$id'
     | '/(core)/lists_/$listId/bulk'
     | '/(core)/lists_/$listId/edit'
@@ -742,13 +732,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin'
       preLoaderRoute: typeof coreAdminRouteRouteImport
       parentRoute: typeof coreRouteRoute
-    }
-    '/(core)/temp/': {
-      id: '/(core)/temp/'
-      path: '/'
-      fullPath: '/temp/'
-      preLoaderRoute: typeof coreTempIndexRouteImport
-      parentRoute: typeof coreTempRouteRoute
     }
     '/(core)/settings/': {
       id: '/(core)/settings/'
@@ -1061,12 +1044,10 @@ const coreSettingsRouteRouteWithChildren =
 
 interface coreTempRouteRouteChildren {
   coreTempWidgetsRoute: typeof coreTempWidgetsRoute
-  coreTempIndexRoute: typeof coreTempIndexRoute
 }
 
 const coreTempRouteRouteChildren: coreTempRouteRouteChildren = {
   coreTempWidgetsRoute: coreTempWidgetsRoute,
-  coreTempIndexRoute: coreTempIndexRoute,
 }
 
 const coreTempRouteRouteWithChildren = coreTempRouteRoute._addFileChildren(
