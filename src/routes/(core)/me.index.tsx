@@ -168,7 +168,11 @@ function MyListsPage() {
 											key={list.id}
 											role="recipient"
 											list={list}
-											showOwner={{ name: list.ownerName, email: list.ownerEmail, image: list.ownerImage }}
+											showOwner={
+												list.subjectDependentId && list.subjectDependentName
+													? { kind: 'dependent', name: list.subjectDependentName, image: list.subjectDependentImage }
+													: { name: list.ownerName, email: list.ownerEmail, image: list.ownerImage }
+											}
 											editors={list.otherEditors}
 										/>
 									))}

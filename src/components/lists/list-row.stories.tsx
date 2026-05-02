@@ -195,6 +195,27 @@ export const RecipientVariations: Story = {
 					showOwner={shawn}
 					editors={editors}
 				/>
+				<ListRow
+					role="recipient"
+					list={{
+						...recipientBase,
+						id: 9,
+						name: "Mochi's Wishlist (dependent-subject, no other editors)",
+						subjectDependentId: 'dep-mochi',
+					}}
+					showOwner={{ kind: 'dependent', name: 'Mochi', image: null }}
+				/>
+				<ListRow
+					role="recipient"
+					list={{
+						...recipientBase,
+						id: 10,
+						name: "Peanut's Registry (dependent-subject + 2 co-guardians as editors)",
+						subjectDependentId: 'dep-peanut',
+					}}
+					showOwner={{ kind: 'dependent', name: 'Peanut', image: null }}
+					editors={editors.slice(0, 2)}
+				/>
 			</div>
 		)
 	},

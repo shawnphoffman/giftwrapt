@@ -41,6 +41,8 @@ import { sql } from 'drizzle-orm'
 
 import { db } from '@/db'
 import {
+	dependentGuardianships,
+	dependents,
 	giftedItems,
 	guardianships,
 	itemComments,
@@ -147,6 +149,7 @@ async function createList(input: {
 	isPrivate?: boolean
 	description?: string
 	giftIdeasTargetUserId?: string
+	subjectDependentId?: string
 }): Promise<number> {
 	const [row] = await db
 		.insert(lists)
@@ -158,6 +161,7 @@ async function createList(input: {
 			isPrivate: input.type === 'giftideas' ? true : (input.isPrivate ?? false),
 			description: input.description,
 			giftIdeasTargetUserId: input.giftIdeasTargetUserId,
+			subjectDependentId: input.subjectDependentId,
 		})
 		.returning({ id: lists.id })
 	return row.id
@@ -197,6 +201,8 @@ async function reset() {
 			"lists",
 			"user_relationships",
 			"guardianships",
+			"dependent_guardianships",
+			"dependents",
 			"session",
 			"account",
 			"verification",
@@ -297,6 +303,43 @@ async function main() {
 		{ parentUserId: bobId, childUserId: kidId },
 		{ parentUserId: aliceId, childUserId: teenId },
 		{ parentUserId: bobId, childUserId: teenId },
+	])
+
+	// ----------------------------------------------------------------
+	// DEPENDENTS
+	// ----------------------------------------------------------------
+	// Two dependents: a pet co-managed by Alice + Bob, and a baby co-managed
+	// by Dave + Eve. They exercise the dependent-subject list path on /me,
+	// /received, the create-list dialog picker, the public-feed Sprout
+	// avatar, and the permissions matrix dependent columns.
+	console.log('🌱 Creating dependents...')
+	const mochiId = crypto.randomUUID()
+	const peanutId = crypto.randomUUID()
+	await db.insert(dependents).values([
+		{
+			id: mochiId,
+			name: 'Mochi',
+			image: null,
+			birthMonth: 'march',
+			birthDay: 12,
+			birthYear: 2022,
+			createdByUserId: aliceId,
+		},
+		{
+			id: peanutId,
+			name: 'Peanut',
+			image: null,
+			birthMonth: 'september',
+			birthDay: 1,
+			birthYear: 2025,
+			createdByUserId: daveId,
+		},
+	])
+	await db.insert(dependentGuardianships).values([
+		{ guardianUserId: aliceId, dependentId: mochiId },
+		{ guardianUserId: bobId, dependentId: mochiId },
+		{ guardianUserId: daveId, dependentId: peanutId },
+		{ guardianUserId: eveId, dependentId: peanutId },
 	])
 
 	// ----------------------------------------------------------------
@@ -451,6 +494,24 @@ async function main() {
 	})
 
 	const teenWishlist = await createList({ name: "Teen's Wishlist", ownerId: teenId, isPrimary: true })
+
+	// Dependent-subject lists. Owner is the creating guardian; the
+	// `subjectDependentId` flips the list into the dependent's identity
+	// across /me, /received, the public feed, and the recent surfaces.
+	const mochiWishlist = await createList({
+		name: "Mochi's Wishlist",
+		ownerId: aliceId,
+		isPrimary: true,
+		subjectDependentId: mochiId,
+		description: 'Treats, toys, the occasional sweater.',
+	})
+	const peanutWishlist = await createList({
+		name: "Peanut's Registry",
+		ownerId: daveId,
+		isPrimary: true,
+		subjectDependentId: peanutId,
+		description: 'Baby gear and outgrown-things-go-fast staples.',
+	})
 
 	// ----------------------------------------------------------------
 	// ITEMS - alice
@@ -947,6 +1008,29 @@ async function main() {
 			currency: 'USD',
 		},
 		{ listId: teenWishlist, title: 'Skateboard wheels', priority: 'low', quantity: 4 },
+	])
+
+	// ----------------------------------------------------------------
+	// ITEMS - dependents
+	// ----------------------------------------------------------------
+	console.log('🎁 Adding dependent items...')
+	await insertItems([
+		{ listId: mochiWishlist, title: 'Salmon-flavor training treats', priority: 'high', quantity: 2 },
+		{ listId: mochiWishlist, title: 'New collar, medium', priority: 'normal', price: '24.00', currency: 'USD' },
+		{ listId: mochiWishlist, title: 'Dental chew variety pack', priority: 'normal' },
+		{ listId: mochiWishlist, title: 'Heated bed (when she finally outgrows the fleece)', priority: 'low' },
+	])
+	await insertItems([
+		{
+			listId: peanutWishlist,
+			title: 'Crib sheets, 3-pack',
+			priority: 'very-high',
+			quantity: 3,
+			price: '36.00',
+			currency: 'USD',
+		},
+		{ listId: peanutWishlist, title: 'Sleep sack, 6mo', priority: 'high', quantity: 2 },
+		{ listId: peanutWishlist, title: 'Books for the next size up', priority: 'normal' },
 	])
 
 	// ----------------------------------------------------------------

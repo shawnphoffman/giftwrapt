@@ -94,6 +94,12 @@ export type RecentItemRow = {
 	listOwnerName: string | null
 	listOwnerEmail: string
 	listOwnerImage: string | null
+	// Populated when the list is FOR a dependent. UI surfaces should
+	// render the dependent's identity in place of the (guardian) owner's
+	// when this is non-null.
+	subjectDependentId: string | null
+	subjectDependentName: string | null
+	subjectDependentImage: string | null
 	commentCount: number
 }
 
@@ -126,10 +132,14 @@ export const getRecentItems = createServerFn({ method: 'GET' })
 				listOwnerName: users.name,
 				listOwnerEmail: users.email,
 				listOwnerImage: users.image,
+				subjectDependentId: lists.subjectDependentId,
+				subjectDependentName: sql<string | null>`subject_dep.name`,
+				subjectDependentImage: sql<string | null>`subject_dep.image`,
 			})
 			.from(items)
 			.innerJoin(lists, and(eq(lists.id, items.listId), eq(lists.isActive, true), eq(lists.isPrivate, false)))
 			.innerJoin(users, eq(users.id, lists.ownerId))
+			.leftJoin(sql`dependents as subject_dep`, sql`subject_dep.id = ${lists.subjectDependentId}`)
 			.where(and(eq(items.isArchived, false), gte(items.createdAt, sixtyDaysAgo), notInArray(lists.ownerId, deniedOwners)))
 			.orderBy(desc(items.createdAt))
 			.limit(50)
@@ -192,6 +202,9 @@ export type RecentConversationRow = {
 	listOwnerName: string | null
 	listOwnerEmail: string
 	listOwnerImage: string | null
+	subjectDependentId: string | null
+	subjectDependentName: string | null
+	subjectDependentImage: string | null
 	comments: Array<RecentConversationComment>
 	commentCount: number
 }
@@ -241,10 +254,14 @@ export const getRecentConversations = createServerFn({ method: 'GET' })
 				listOwnerName: users.name,
 				listOwnerEmail: users.email,
 				listOwnerImage: users.image,
+				subjectDependentId: lists.subjectDependentId,
+				subjectDependentName: sql<string | null>`subject_dep.name`,
+				subjectDependentImage: sql<string | null>`subject_dep.image`,
 			})
 			.from(items)
 			.innerJoin(lists, eq(lists.id, items.listId))
 			.innerJoin(users, eq(users.id, lists.ownerId))
+			.leftJoin(sql`dependents as subject_dep`, sql`subject_dep.id = ${lists.subjectDependentId}`)
 			.where(inArray(items.id, itemIds))
 
 		const restrictedCtx = await loadRestrictedContext(viewerId)

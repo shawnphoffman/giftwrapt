@@ -39,6 +39,8 @@ export function RecentCommentsPageContent({ rows }: Props) {
 								listOwnerName={row.listOwnerName}
 								listOwnerEmail={row.listOwnerEmail}
 								listOwnerImage={row.listOwnerImage}
+								subjectDependentName={row.subjectDependentName}
+								subjectDependentImage={row.subjectDependentImage}
 								comments={row.comments}
 								commentCount={row.commentCount}
 							/>

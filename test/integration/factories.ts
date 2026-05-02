@@ -74,7 +74,9 @@ export async function makeList(tx: Tx, overrides: Partial<typeof lists.$inferIns
 			isPrimary: overrides.isPrimary ?? false,
 			description: overrides.description ?? null,
 			ownerId: overrides.ownerId,
+			subjectDependentId: overrides.subjectDependentId ?? null,
 			giftIdeasTargetUserId: overrides.giftIdeasTargetUserId ?? null,
+			giftIdeasTargetDependentId: overrides.giftIdeasTargetDependentId ?? null,
 		})
 		.returning()
 	return row

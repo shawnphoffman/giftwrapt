@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { formatDistanceToNow } from 'date-fns'
 import { ArrowRight, MessageSquare } from 'lucide-react'
 
+import DependentAvatar from '@/components/common/dependent-avatar'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import PriorityIcon from '@/components/common/priority-icon'
 import UrlBadge from '@/components/common/url-badge'
@@ -37,6 +38,11 @@ export type ItemConversationProps = {
 	listOwnerName: string | null
 	listOwnerEmail: string
 	listOwnerImage?: string | null
+	// When set, the list is FOR a dependent and the recipient identity
+	// renders the dependent's name + Sprout fallback in place of the
+	// guardian-creator's avatar.
+	subjectDependentName?: string | null
+	subjectDependentImage?: string | null
 	comments: Array<ConversationComment>
 	commentCount: number
 }
@@ -55,11 +61,14 @@ export default function ItemConversation(props: ItemConversationProps) {
 		listOwnerName,
 		listOwnerEmail,
 		listOwnerImage,
+		subjectDependentName,
+		subjectDependentImage,
 		comments,
 		commentCount,
 	} = props
 
-	const ownerName = listOwnerName || listOwnerEmail
+	const isDependentSubject = !!subjectDependentName
+	const ownerName = subjectDependentName ?? listOwnerName ?? listOwnerEmail
 	const when = formatDistanceToNow(new Date(createdAt), { addSuffix: true })
 	const hasPriorityTab = priority !== 'normal'
 	const hiddenComments = Math.max(0, commentCount - comments.length)
@@ -90,7 +99,11 @@ export default function ItemConversation(props: ItemConversationProps) {
 							<Tooltip>
 								<TooltipTrigger asChild>
 									<span className="shrink-0 inline-flex">
-										<UserAvatar name={ownerName} image={listOwnerImage} size="small" className="size-7" />
+										{isDependentSubject ? (
+											<DependentAvatar name={ownerName} image={subjectDependentImage ?? null} size="small" className="size-7" />
+										) : (
+											<UserAvatar name={ownerName} image={listOwnerImage} size="small" className="size-7" />
+										)}
 									</span>
 								</TooltipTrigger>
 								<TooltipContent side="top">{ownerName}</TooltipContent>

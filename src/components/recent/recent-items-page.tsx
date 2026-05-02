@@ -40,6 +40,8 @@ export function RecentItemsPageContent({ items }: Props) {
 								listOwnerName={item.listOwnerName}
 								listOwnerEmail={item.listOwnerEmail}
 								listOwnerImage={item.listOwnerImage}
+								subjectDependentName={item.subjectDependentName}
+								subjectDependentImage={item.subjectDependentImage}
 							/>
 						))}
 					</div>

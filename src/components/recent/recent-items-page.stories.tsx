@@ -25,6 +25,9 @@ function row(overrides: Partial<RecentItemRow> = {}): RecentItemRow {
 		listOwnerName: 'Sam Sibling',
 		listOwnerEmail: 'sam@example.com',
 		listOwnerImage: null,
+		subjectDependentId: null,
+		subjectDependentName: null,
+		subjectDependentImage: null,
 		commentCount: 0,
 		...overrides,
 	}

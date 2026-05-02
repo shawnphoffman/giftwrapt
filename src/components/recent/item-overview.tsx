@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { formatDistanceToNow } from 'date-fns'
 import { ArrowRight, MessageSquare } from 'lucide-react'
 
+import DependentAvatar from '@/components/common/dependent-avatar'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import PriorityIcon from '@/components/common/priority-icon'
 import UrlBadge from '@/components/common/url-badge'
@@ -27,6 +28,11 @@ export type ItemOverviewProps = {
 	listOwnerName: string | null
 	listOwnerEmail: string
 	listOwnerImage?: string | null
+	// When the list is FOR a dependent, render the dependent's
+	// identity (name + Sprout-fallback avatar) instead of the
+	// guardian-creator's. Both fields are required to switch.
+	subjectDependentName?: string | null
+	subjectDependentImage?: string | null
 }
 
 export default function ItemOverview(props: ItemOverviewProps) {
@@ -44,9 +50,12 @@ export default function ItemOverview(props: ItemOverviewProps) {
 		listOwnerName,
 		listOwnerEmail,
 		listOwnerImage,
+		subjectDependentName,
+		subjectDependentImage,
 	} = props
 
-	const ownerName = listOwnerName || listOwnerEmail
+	const isDependentSubject = !!subjectDependentName
+	const ownerName = subjectDependentName ?? listOwnerName ?? listOwnerEmail
 	const when = formatDistanceToNow(new Date(createdAt), { addSuffix: true })
 	const hasPriorityTab = priority !== 'normal'
 
@@ -75,7 +84,11 @@ export default function ItemOverview(props: ItemOverviewProps) {
 						<Tooltip>
 							<TooltipTrigger asChild>
 								<span className="shrink-0 inline-flex">
-									<UserAvatar name={ownerName} image={listOwnerImage} size="small" className="size-7" />
+									{isDependentSubject ? (
+										<DependentAvatar name={ownerName} image={subjectDependentImage ?? null} size="small" className="size-7" />
+									) : (
+										<UserAvatar name={ownerName} image={listOwnerImage} size="small" className="size-7" />
+									)}
 								</span>
 							</TooltipTrigger>
 							<TooltipContent side="top">{ownerName}</TooltipContent>
