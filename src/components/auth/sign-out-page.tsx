@@ -19,7 +19,7 @@ export function SignOutPageContent({ error = null }: SignOutPageContentProps) {
 	return (
 		<div className="flex items-center justify-center min-h-[calc(100vh-3rem)] p-4">
 			<div className="text-center space-y-4">
-				<Loading className="text-primary" />
+				<Loading className="mx-auto text-primary" />
 				<p className="text-muted-foreground">Signing out...</p>
 			</div>
 		</div>
