@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.26.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.25.0...v0.26.0) (2026-05-02)
+
+
+### Features
+
+* **admin:** redesign users list with subgrid alignment and richer per-row info ([dd12ee6](https://github.com/shawnphoffman/giftwrapt/commit/dd12ee6b099919c7f45b2c799ce396d8cb8e492c))
+* **admin:** section permissions matrix legend and add 50-user story ([5cd515d](https://github.com/shawnphoffman/giftwrapt/commit/5cd515dfa60c7c4e8d2582c6436aee8c116e314e))
+* **admin:** show banner when admins are missing 2FA ([5770c8e](https://github.com/shawnphoffman/giftwrapt/commit/5770c8ec8310fea7a73e103393376a351a860a39))
+* **auth:** use 6-slot OTP input on 2FA challenge ([5446c6d](https://github.com/shawnphoffman/giftwrapt/commit/5446c6dd3c2bb1881d55af19ff0f7d12bde190c2))
+* **dependents:** admin-only CRUD with shadcn confirms ([690af28](https://github.com/shawnphoffman/giftwrapt/commit/690af28011e8fddce9ff39bccabc948cd5a312d2))
+* **dependents:** non-user gift recipients (pets, babies, anyone managed) ([ae4677f](https://github.com/shawnphoffman/giftwrapt/commit/ae4677ff188bd4e99d956636c491c0d1b6d99e86))
+* **items:** unify badge with over-claim and unavailable states ([add9c43](https://github.com/shawnphoffman/giftwrapt/commit/add9c43357ec50f545c6d68910ab5be8d717cc8c))
+* **lists:** nudge owners to pick a primary list ([abf8882](https://github.com/shawnphoffman/giftwrapt/commit/abf888275094050307d422fcc14f129a44c0f4bf))
+* **lists:** surface primary list at top of all-lists view ([50acf67](https://github.com/shawnphoffman/giftwrapt/commit/50acf673f934baf05ff17dc6bd13ded17027d439))
+* **permissions:** add restricted access level ([a3237d2](https://github.com/shawnphoffman/giftwrapt/commit/a3237d22dcc90e4085db5aa3d21c048bcf42e806))
+* **settings:** disable already-partnered users in partner picker ([8668ccd](https://github.com/shawnphoffman/giftwrapt/commit/8668ccd9b6aff59f067af1cd5484e4cfcaa000c7))
+
+
+### Bug Fixes
+
+* **auth:** center sign-out spinner ([ae5bd32](https://github.com/shawnphoffman/giftwrapt/commit/ae5bd320e74e22ff895c0529de811b4ce72acf28))
+* **dependents:** show dependent identity on lists for a dependent ([de75907](https://github.com/shawnphoffman/giftwrapt/commit/de759070ca8d350fa564f43879006452641a883a))
+* **settings:** polish profile + 2FA copy and form spacing ([a5b2b46](https://github.com/shawnphoffman/giftwrapt/commit/a5b2b46251f60fa8bc86bc834d9b0db4f3005fa3))
+* **settings:** stop infinite refetch loop in passkeys panel ([73ba7bf](https://github.com/shawnphoffman/giftwrapt/commit/73ba7bf07002317afa7e4eac704957672748a012))
+
 ## [0.25.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.24.0...v0.25.0) (2026-05-01)
 
 
