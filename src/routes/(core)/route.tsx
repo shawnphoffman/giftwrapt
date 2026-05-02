@@ -116,16 +116,16 @@ const actions: Array<NavItem> = [
 
 const feeds: Array<NavItem> = [
 	{
-		name: 'Recent Comments',
-		url: '/recent/comments',
-		icon: MessagesSquare,
-		hoverColor: 'group-hover/link:text-teal-500 group-data-[status=active]/link:text-teal-500',
-	},
-	{
-		name: 'Recent Items',
+		name: 'Items',
 		url: '/recent/items',
 		icon: Inbox,
 		hoverColor: 'group-hover/link:text-purple-500 group-data-[status=active]/link:text-purple-500',
+	},
+	{
+		name: 'Comments',
+		url: '/recent/comments',
+		icon: MessagesSquare,
+		hoverColor: 'group-hover/link:text-teal-500 group-data-[status=active]/link:text-teal-500',
 	},
 ]
 
@@ -153,7 +153,7 @@ function AuthenticatedRoutes() {
 					<NavSection title="Lists" items={main} />
 					<NavSection title="Actions" items={actions} />
 					<NavSection title="Purchases" items={purchases} />
-					<NavSection title="Feeds" items={feeds} />
+					<NavSection title="Recent" items={feeds} />
 					<NavBottom />
 				</SidebarContent>
 				<SidebarFooter>

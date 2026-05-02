@@ -12,7 +12,7 @@ export function RecentCommentsPageContent({ rows }: Props) {
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
 				<div className="relative">
-					<h1 className="flex flex-row items-center gap-2">Recent Comments</h1>
+					<h1 className="flex flex-row items-center gap-2">Comments</h1>
 					<MessagesSquare className="text-teal-500 wish-page-icon" />
 				</div>
 

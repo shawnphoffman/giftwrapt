@@ -12,7 +12,7 @@ export function RecentItemsPageContent({ items }: Props) {
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
 				<div className="relative">
-					<h1 className="flex flex-row items-center gap-2">Recent Items</h1>
+					<h1 className="flex flex-row items-center gap-2">Items</h1>
 					<Inbox className="text-purple-500 wish-page-icon" />
 				</div>
 
