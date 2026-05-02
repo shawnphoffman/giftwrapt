@@ -37,7 +37,7 @@ const monthLabels: Record<BirthMonth, string> = {
 	december: 'December',
 }
 
-export function CreateDependentForm({ onCreated }: { onCreated?: () => void } = {}) {
+export function CreateDependentForm({ onCreated }: { onCreated?: () => void }) {
 	const queryClient = useQueryClient()
 
 	const usersQuery = useQuery({

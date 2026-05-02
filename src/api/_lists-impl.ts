@@ -404,14 +404,14 @@ export async function getListSummariesImpl(args: {
 	return { summaries: visible }
 }
 
-export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
-	const me = await db.query.users.findFirst({
+export async function getMyListsImpl(userId: string, dbx: SchemaDatabase = db): Promise<MyListsResult> {
+	const me = await dbx.query.users.findFirst({
 		where: eq(users.id, userId),
 		columns: { partnerId: true },
 	})
 	const gifterIds: Array<string> = me?.partnerId ? [userId, me.partnerId] : [userId]
 
-	const lastGiftedSubquery = db
+	const lastGiftedSubquery = dbx
 		.select({
 			recipientOwnerId: lists.ownerId,
 			lastGiftedAt: max(giftedItems.createdAt).as('lastGiftedAt'),
@@ -424,7 +424,7 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 		.as('lastGifted')
 
 	const [ownedLists, editableRows, childRows, dependentRows] = await Promise.all([
-		db
+		dbx
 			.select({
 				id: lists.id,
 				name: lists.name,
@@ -446,7 +446,7 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 			.groupBy(lists.id)
 			.orderBy(desc(lists.isPrimary), asc(lists.name)),
 
-		db
+		dbx
 			.select({
 				id: lists.id,
 				name: lists.name,
@@ -474,7 +474,7 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 			.groupBy(lists.id, sql`owner.name`, sql`owner.email`, sql`owner.image`, sql`subject_dep.name`, sql`subject_dep.image`)
 			.orderBy(asc(lists.name)),
 
-		db
+		dbx
 			.select({
 				childId: users.id,
 				childName: users.name,
@@ -491,7 +491,7 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 			.where(eq(guardianships.parentUserId, userId))
 			.orderBy(asc(users.name)),
 
-		db
+		dbx
 			.select({
 				dependentId: dependents.id,
 				dependentName: dependents.name,
@@ -508,7 +508,7 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 
 	const childIds = childRows.map(c => c.childId)
 	const allChildLists = childIds.length
-		? await db
+		? await dbx
 				.select({
 					ownerId: lists.ownerId,
 					id: lists.id,
@@ -552,7 +552,7 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 
 	const dependentIds = dependentRows.map(d => d.dependentId)
 	const allDependentLists = dependentIds.length
-		? await db
+		? await dbx
 				.select({
 					subjectDependentId: lists.subjectDependentId,
 					id: lists.id,
@@ -598,7 +598,7 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 	// where this dependent is the subject. Uses the same gifter/co-gifter
 	// predicate as the user surface above.
 	const dependentLastGiftedRows = dependentIds.length
-		? await db
+		? await dbx
 				.select({
 					subjectDependentId: lists.subjectDependentId,
 					lastGiftedAt: max(giftedItems.createdAt),
@@ -621,7 +621,7 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 
 	const editableListIds = editableRows.map(r => r.id)
 	const otherEditorRows = editableListIds.length
-		? await db
+		? await dbx
 				.select({
 					listId: listEditors.listId,
 					name: users.name,
@@ -644,7 +644,7 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 		new Set([...ownedLists, ...editableRows].map(l => l.giftIdeasTargetUserId).filter((id): id is string => Boolean(id)))
 	)
 	const targetUsers = targetUserIds.length
-		? await db
+		? await dbx
 				.select({ id: users.id, name: users.name, email: users.email, image: users.image })
 				.from(users)
 				.where(inArray(users.id, targetUserIds))
@@ -656,7 +656,7 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 		new Set([...ownedLists, ...editableRows].map(l => l.giftIdeasTargetDependentId).filter((id): id is string => Boolean(id)))
 	)
 	const targetDependents = targetDependentIds.length
-		? await db
+		? await dbx
 				.select({ id: dependents.id, name: dependents.name, image: dependents.image })
 				.from(dependents)
 				.where(inArray(dependents.id, targetDependentIds))

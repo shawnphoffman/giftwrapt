@@ -42,6 +42,12 @@ const sixUsers: Array<PermissionsMatrixUser> = [
 
 const baseHousehold: PermissionsMatrixData = {
 	users: sixUsers,
+	dependents: [
+		// Mochi is co-managed by Alice + Bob (partners). The matrix shows
+		// Mochi as a column on the right; both partners read as 'guardian'
+		// on her cells, while Carol's cell uses the inherited deny from Bob.
+		{ id: 'dep-mochi', name: 'Mochi', image: null, guardianIds: ['alice', 'bob'] },
+	],
 	guardianships: [
 		{ parentUserId: 'alice', childUserId: 'kid' },
 		{ parentUserId: 'alice', childUserId: 'teen' },
@@ -54,7 +60,10 @@ const baseHousehold: PermissionsMatrixData = {
 		{ ownerUserId: 'bob', viewerUserId: 'alice', accessLevel: 'view', canEdit: true },
 		// Carol is granted blanket edit on Alice's lists.
 		{ ownerUserId: 'alice', viewerUserId: 'carol', accessLevel: 'view', canEdit: true },
-		// Bob explicitly hides his lists from Carol.
+		// Bob explicitly hides his lists from Carol. Because dependent
+		// visibility inherits from each guardian's userRelationships, this
+		// also denies Carol from seeing Mochi's lists (Bob is one of Mochi's
+		// guardians).
 		{ ownerUserId: 'bob', viewerUserId: 'carol', accessLevel: 'none', canEdit: false },
 		// Alice has restricted Admin (e.g. extended-family demo) so they can
 		// shop for Alice but not see what others have already bought.
@@ -124,6 +133,44 @@ export const NoRelationships: Story = {
 			description: {
 				story:
 					'No guardianships or grants configured. Every off-diagonal cell falls back to the default "view" (public + active lists), making it easy to spot when permissions are bare.',
+			},
+		},
+	},
+}
+
+export const WithDependents: Story = {
+	args: {
+		data: {
+			users: [user('alice', 'Alice'), user('bob', 'Bob'), user('carol', 'Carol'), user('dave', 'Dave')],
+			dependents: [
+				// Mochi: co-managed by Alice + Bob, no overrides -> default
+				// view for outsiders.
+				{ id: 'dep-mochi', name: 'Mochi', image: null, guardianIds: ['alice', 'bob'] },
+				// Peanut: co-managed by Alice + Bob, but Bob has restricted
+				// Carol on his own lists. Carol's cell on Peanut should read
+				// 'restricted' (no guardian granted view, one set restricted).
+				{ id: 'dep-peanut', name: 'Peanut', image: null, guardianIds: ['alice', 'bob'] },
+				// Whiskers: solely managed by Dave who has explicitly denied
+				// Carol. Carol's cell on Whiskers should read 'denied'.
+				{ id: 'dep-whiskers', name: 'Whiskers', image: null, guardianIds: ['dave'] },
+			],
+			guardianships: [],
+			relationships: [
+				// Bob restricts Carol on his own lists; the restriction
+				// propagates to Peanut (Bob is one of Peanut's guardians,
+				// and Alice has no grant for Carol on Peanut).
+				{ ownerUserId: 'bob', viewerUserId: 'carol', accessLevel: 'restricted', canEdit: false },
+				// Dave denies Carol; propagates to Whiskers.
+				{ ownerUserId: 'dave', viewerUserId: 'carol', accessLevel: 'none', canEdit: false },
+			],
+			listEditorCounts: [],
+		},
+	},
+	parameters: {
+		docs: {
+			description: {
+				story:
+					"Three dependents demonstrating how each guardian's userRelationships propagate to the dependent column: Mochi (no overrides → default view), Peanut (Bob's restricted on Carol propagates), Whiskers (Dave's deny on Carol propagates). The dependent rows on the left are absent because dependents never act as viewers.",
 			},
 		},
 	},

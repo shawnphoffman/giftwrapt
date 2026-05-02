@@ -38,6 +38,8 @@ const config: StorybookConfig = {
 			'@/api/uploads': path.join(mocksDir, 'api.ts'),
 			'@/api/storage-status': path.join(mocksDir, 'api.ts'),
 			'@/api/admin-oidc': path.join(mocksDir, 'api.ts'),
+			'@/api/admin': path.join(mocksDir, 'api.ts'),
+			'@/api/dependents': path.join(mocksDir, 'api.ts'),
 			'@/api/oidc': path.join(mocksDir, 'api.ts'),
 			'@/lib/auth-client': path.join(mocksDir, 'auth-client.ts'),
 			'@/env': path.join(mocksDir, 'env.ts'),

@@ -136,3 +136,43 @@ export const rotateOidcSecretAsAdmin = ok
 // @/api/oidc
 export const getOidcClientPublicInfo = (): Promise<{ kind: 'ok'; client: null }> => Promise.resolve({ kind: 'ok', client: null })
 export const submitOidcConsent = ok
+
+// @/api/admin
+export const getUsersAsAdmin = emptyArray
+export const getUserDetailsAsAdmin = (): Promise<null> => Promise.resolve(null)
+export const getPermissionsMatrixAsAdmin = (): Promise<{
+	users: []
+	dependents: []
+	guardianships: []
+	relationships: []
+	listEditorCounts: []
+}> => Promise.resolve({ users: [], dependents: [], guardianships: [], relationships: [], listEditorCounts: [] })
+export const updateUserAsAdmin = ok
+export const banUserAsAdmin = ok
+export const unbanUserAsAdmin = ok
+export const sendVerifyEmailAsAdmin = ok
+export const updateUserPartner = ok
+export const createGuardianships = ok
+export const removeGuardianshipsForChild = ok
+export const sendTestEmailAsAdmin = ok
+
+// @/api/dependents
+export type DependentSummary = {
+	id: string
+	name: string
+	image: string | null
+	birthMonth: string | null
+	birthDay: number | null
+	birthYear: number | null
+	isArchived: boolean
+	createdAt: string
+	updatedAt: string
+	guardianIds: Array<string>
+}
+export const getMyDependents = (): Promise<{ dependents: Array<unknown> }> => Promise.resolve({ dependents: [] })
+export const getAllDependents = (): Promise<{ dependents: Array<unknown> }> => Promise.resolve({ dependents: [] })
+export const createDependent = ok
+export const updateDependent = ok
+export const deleteDependent = ok
+export const addDependentGuardian = ok
+export const removeDependentGuardian = ok

@@ -34,7 +34,7 @@ function getErrorMessage(errors: Array<unknown>): string {
 		.join(', ')
 }
 
-export function CreateUserForm({ onCreated }: { onCreated?: () => void } = {}) {
+export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onCreated: undefined }) {
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [success, setSuccess] = useState(false)
