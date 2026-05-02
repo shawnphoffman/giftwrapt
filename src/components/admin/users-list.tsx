@@ -156,7 +156,7 @@ function RelationshipCell({ user }: { user: User }) {
 
 function BadgesCell({ user }: { user: User }) {
 	return (
-		<div className="flex items-center gap-1.5 text-xs text-muted-foreground capitalize justify-start flex-wrap">
+		<div className="flex flex-col items-start gap-1.5 text-xs text-muted-foreground capitalize justify-start flex-wrap">
 			{user.banned && (
 				<Tip label="This user is banned and cannot sign in">
 					<span className="inline-flex items-center gap-1 rounded bg-destructive/10 px-1.5 py-0.5 text-[10px] font-medium text-destructive uppercase tracking-wide">
