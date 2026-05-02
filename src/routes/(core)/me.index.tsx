@@ -17,6 +17,7 @@ import {
 	ListsCardLists,
 	ListsCardTitle,
 } from '@/components/lists/lists-card'
+import { PrimaryListNudge } from '@/components/lists/primary-list-nudge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -127,6 +128,7 @@ function MyListsPage() {
 					<div className="text-sm text-muted-foreground">
 						Mark any list as <strong>primary</strong> from its action menu. Quick-imported gift ideas land there by default.
 					</div>
+					<PrimaryListNudge />
 
 					{/* PUBLIC LISTS */}
 					<ListSection
