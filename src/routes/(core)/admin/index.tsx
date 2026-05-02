@@ -1,6 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { AppSettingsEditor } from '@/components/admin/app-settings-editor'
+import {
+	BirthdaySettingsSection,
+	ChristmasSettingsSection,
+	CommentsSettingsSection,
+	CoreSettingsSection,
+	TodoSettingsSection,
+} from '@/components/admin/app-settings-editor'
 import { StorageDisabledBanner } from '@/components/common/storage-disabled-banner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ClientOnly } from '@/components/utilities/client-only'
@@ -22,7 +28,51 @@ function AdminPage() {
 				</CardHeader>
 				<CardContent>
 					<ClientOnly>
-						<AppSettingsEditor />
+						<CoreSettingsSection />
+					</ClientOnly>
+				</CardContent>
+			</Card>
+			<Card className="animate-page-in max-w-xl">
+				<CardHeader>
+					<CardTitle className="text-2xl">Christmas Lists</CardTitle>
+					<CardDescription>Christmas-themed lists, automatic post-holiday archiving, and seasonal emails.</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<ClientOnly>
+						<ChristmasSettingsSection />
+					</ClientOnly>
+				</CardContent>
+			</Card>
+			<Card className="animate-page-in max-w-xl">
+				<CardHeader>
+					<CardTitle className="text-2xl">Birthday Lists</CardTitle>
+					<CardDescription>Birthday lists, automatic archiving after a birthday, and birthday emails.</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<ClientOnly>
+						<BirthdaySettingsSection />
+					</ClientOnly>
+				</CardContent>
+			</Card>
+			<Card className="animate-page-in max-w-xl">
+				<CardHeader>
+					<CardTitle className="text-2xl">Todo Lists</CardTitle>
+					<CardDescription>Allow users to create todo lists.</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<ClientOnly>
+						<TodoSettingsSection />
+					</ClientOnly>
+				</CardContent>
+			</Card>
+			<Card className="animate-page-in max-w-xl">
+				<CardHeader>
+					<CardTitle className="text-2xl">Comments</CardTitle>
+					<CardDescription>Item comments and the related email notifications.</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<ClientOnly>
+						<CommentsSettingsSection />
 					</ClientOnly>
 				</CardContent>
 			</Card>

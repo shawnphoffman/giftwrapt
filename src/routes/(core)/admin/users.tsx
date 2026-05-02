@@ -28,7 +28,7 @@ function AdminUsersPage() {
 					</Suspense>
 				</CardContent>
 			</Card>
-			<Card className="animate-page-in max-w-xl">
+			<Card className="animate-page-in">
 				<CardHeader>
 					<CardTitle className="text-2xl">Users</CardTitle>
 					<CardDescription>Manage users and their permissions.</CardDescription>

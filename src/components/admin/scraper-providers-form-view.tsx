@@ -65,6 +65,16 @@ export type ScraperProvidersFormChangeKey =
 	| 'scrapeProviders'
 
 export function ScraperProvidersFormView({ settings, disabled, onChange }: ScraperProvidersFormViewProps) {
+	return (
+		<div className="@container/scraper-form space-y-8">
+			<ScraperTimingFormView settings={settings} disabled={disabled} onChange={onChange} />
+			<Separator />
+			<ScrapeProvidersListView settings={settings} disabled={disabled} onChange={onChange} />
+		</div>
+	)
+}
+
+export function ScraperTimingFormView({ settings, disabled, onChange }: ScraperProvidersFormViewProps) {
 	const inputDisabled = disabled === true
 
 	return (
@@ -107,9 +117,15 @@ export function ScraperProvidersFormView({ settings, disabled, onChange }: Scrap
 				min={0}
 				onCommit={value => onChange('scrapeCacheTtlHours', value)}
 			/>
+		</div>
+	)
+}
 
-			<Separator />
+export function ScrapeProvidersListView({ settings, disabled, onChange }: ScraperProvidersFormViewProps) {
+	const inputDisabled = disabled === true
 
+	return (
+		<div className="@container/scraper-form">
 			<ScrapeProvidersSection
 				entries={settings.scrapeProviders}
 				disabled={inputDisabled}

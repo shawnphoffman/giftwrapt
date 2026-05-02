@@ -211,7 +211,7 @@ export const appSettingsSchema = z.object({
 	// non-HTTPS LAN deploy (where WebAuthn won't work anyway) doesn't
 	// confuse users with a broken affordance.
 	enablePasskeys: z.boolean(),
-	// When true, /admin/oidc is reachable and the consent screen at
+	// When true, the OIDC client manager appears under /admin/auth and the consent screen at
 	// /oauth/consent is wired up. Off by default — the better-auth
 	// plugin still mounts the .well-known + /oauth2/* routes
 	// regardless, but third-party apps can't use them until at least

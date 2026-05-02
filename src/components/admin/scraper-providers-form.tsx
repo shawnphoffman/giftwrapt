@@ -5,7 +5,12 @@ import { updateAppSettings } from '@/api/settings'
 import { adminAppSettingsQueryKey, notifyAppSettingsChanged, useAdminAppSettings } from '@/hooks/use-app-settings'
 import type { AppSettings } from '@/lib/settings'
 
-import { type ScraperProvidersFormChangeKey, ScraperProvidersFormView } from './scraper-providers-form-view'
+import {
+	ScrapeProvidersListView,
+	type ScraperProvidersFormChangeKey,
+	ScraperProvidersFormView,
+	ScraperTimingFormView,
+} from './scraper-providers-form-view'
 
 // Data-aware container around `<ScraperProvidersFormView>`. Wires it up to
 // the existing useAppSettings + updateAppSettings infrastructure with the
@@ -57,6 +62,50 @@ export function ScraperProvidersForm() {
 
 	return (
 		<ScraperProvidersFormView
+			settings={settings}
+			disabled={mutation.isPending}
+			onChange={<TKey extends ScraperProvidersFormChangeKey>(key: TKey, value: AppSettings[TKey]) =>
+				mutation.mutate({ [key]: value } as Partial<AppSettings>)
+			}
+		/>
+	)
+}
+
+export function ScraperTimingForm() {
+	const { data: settings, isLoading } = useAdminAppSettings()
+	const mutation = useScraperProvidersMutation()
+
+	if (isLoading) {
+		return <div className="text-sm text-muted-foreground">Loading scraping settings…</div>
+	}
+	if (!settings) {
+		return <div className="text-sm text-muted-foreground">No settings found.</div>
+	}
+
+	return (
+		<ScraperTimingFormView
+			settings={settings}
+			disabled={mutation.isPending}
+			onChange={<TKey extends ScraperProvidersFormChangeKey>(key: TKey, value: AppSettings[TKey]) =>
+				mutation.mutate({ [key]: value } as Partial<AppSettings>)
+			}
+		/>
+	)
+}
+
+export function ScrapeProvidersList() {
+	const { data: settings, isLoading } = useAdminAppSettings()
+	const mutation = useScraperProvidersMutation()
+
+	if (isLoading) {
+		return <div className="text-sm text-muted-foreground">Loading scrapers…</div>
+	}
+	if (!settings) {
+		return <div className="text-sm text-muted-foreground">No settings found.</div>
+	}
+
+	return (
+		<ScrapeProvidersListView
 			settings={settings}
 			disabled={mutation.isPending}
 			onChange={<TKey extends ScraperProvidersFormChangeKey>(key: TKey, value: AppSettings[TKey]) =>

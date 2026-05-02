@@ -49,11 +49,10 @@ import { Route as coreItemCloneRouteImport } from './routes/(core)/item.clone'
 import { Route as coreAdminUsersRouteImport } from './routes/(core)/admin/users'
 import { Route as coreAdminStorageRouteImport } from './routes/(core)/admin/storage'
 import { Route as coreAdminScrapingRouteImport } from './routes/(core)/admin/scraping'
-import { Route as coreAdminScrapesRouteImport } from './routes/(core)/admin/scrapes'
-import { Route as coreAdminOidcRouteImport } from './routes/(core)/admin/oidc'
 import { Route as coreAdminEmailRouteImport } from './routes/(core)/admin/email'
 import { Route as coreAdminDebugRouteImport } from './routes/(core)/admin/debug'
 import { Route as coreAdminDataRouteImport } from './routes/(core)/admin/data'
+import { Route as coreAdminAuthRouteImport } from './routes/(core)/admin/auth'
 import { Route as coreAdminAiRouteImport } from './routes/(core)/admin/ai'
 import { Route as authSignInTwoFactorRouteImport } from './routes/(auth)/sign-in.two-factor'
 import { Route as ApiSseListListIdRouteImport } from './routes/api/sse/list.$listId'
@@ -262,16 +261,6 @@ const coreAdminScrapingRoute = coreAdminScrapingRouteImport.update({
   path: '/scraping',
   getParentRoute: () => coreAdminRouteRoute,
 } as any)
-const coreAdminScrapesRoute = coreAdminScrapesRouteImport.update({
-  id: '/scrapes',
-  path: '/scrapes',
-  getParentRoute: () => coreAdminRouteRoute,
-} as any)
-const coreAdminOidcRoute = coreAdminOidcRouteImport.update({
-  id: '/oidc',
-  path: '/oidc',
-  getParentRoute: () => coreAdminRouteRoute,
-} as any)
 const coreAdminEmailRoute = coreAdminEmailRouteImport.update({
   id: '/email',
   path: '/email',
@@ -285,6 +274,11 @@ const coreAdminDebugRoute = coreAdminDebugRouteImport.update({
 const coreAdminDataRoute = coreAdminDataRouteImport.update({
   id: '/data',
   path: '/data',
+  getParentRoute: () => coreAdminRouteRoute,
+} as any)
+const coreAdminAuthRoute = coreAdminAuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => coreAdminRouteRoute,
 } as any)
 const coreAdminAiRoute = coreAdminAiRouteImport.update({
@@ -338,11 +332,10 @@ export interface FileRoutesByFullPath {
   '/': typeof coreIndexRoute
   '/sign-in/two-factor': typeof authSignInTwoFactorRoute
   '/admin/ai': typeof coreAdminAiRoute
+  '/admin/auth': typeof coreAdminAuthRoute
   '/admin/data': typeof coreAdminDataRoute
   '/admin/debug': typeof coreAdminDebugRoute
   '/admin/email': typeof coreAdminEmailRoute
-  '/admin/oidc': typeof coreAdminOidcRoute
-  '/admin/scrapes': typeof coreAdminScrapesRoute
   '/admin/scraping': typeof coreAdminScrapingRoute
   '/admin/storage': typeof coreAdminStorageRoute
   '/admin/users': typeof coreAdminUsersRoute
@@ -388,11 +381,10 @@ export interface FileRoutesByTo {
   '/': typeof coreIndexRoute
   '/sign-in/two-factor': typeof authSignInTwoFactorRoute
   '/admin/ai': typeof coreAdminAiRoute
+  '/admin/auth': typeof coreAdminAuthRoute
   '/admin/data': typeof coreAdminDataRoute
   '/admin/debug': typeof coreAdminDebugRoute
   '/admin/email': typeof coreAdminEmailRoute
-  '/admin/oidc': typeof coreAdminOidcRoute
-  '/admin/scrapes': typeof coreAdminScrapesRoute
   '/admin/scraping': typeof coreAdminScrapingRoute
   '/admin/storage': typeof coreAdminStorageRoute
   '/admin/users': typeof coreAdminUsersRoute
@@ -443,11 +435,10 @@ export interface FileRoutesById {
   '/(core)/': typeof coreIndexRoute
   '/(auth)/sign-in/two-factor': typeof authSignInTwoFactorRoute
   '/(core)/admin/ai': typeof coreAdminAiRoute
+  '/(core)/admin/auth': typeof coreAdminAuthRoute
   '/(core)/admin/data': typeof coreAdminDataRoute
   '/(core)/admin/debug': typeof coreAdminDebugRoute
   '/(core)/admin/email': typeof coreAdminEmailRoute
-  '/(core)/admin/oidc': typeof coreAdminOidcRoute
-  '/(core)/admin/scrapes': typeof coreAdminScrapesRoute
   '/(core)/admin/scraping': typeof coreAdminScrapingRoute
   '/(core)/admin/storage': typeof coreAdminStorageRoute
   '/(core)/admin/users': typeof coreAdminUsersRoute
@@ -498,11 +489,10 @@ export interface FileRouteTypes {
     | '/'
     | '/sign-in/two-factor'
     | '/admin/ai'
+    | '/admin/auth'
     | '/admin/data'
     | '/admin/debug'
     | '/admin/email'
-    | '/admin/oidc'
-    | '/admin/scrapes'
     | '/admin/scraping'
     | '/admin/storage'
     | '/admin/users'
@@ -548,11 +538,10 @@ export interface FileRouteTypes {
     | '/'
     | '/sign-in/two-factor'
     | '/admin/ai'
+    | '/admin/auth'
     | '/admin/data'
     | '/admin/debug'
     | '/admin/email'
-    | '/admin/oidc'
-    | '/admin/scrapes'
     | '/admin/scraping'
     | '/admin/storage'
     | '/admin/users'
@@ -602,11 +591,10 @@ export interface FileRouteTypes {
     | '/(core)/'
     | '/(auth)/sign-in/two-factor'
     | '/(core)/admin/ai'
+    | '/(core)/admin/auth'
     | '/(core)/admin/data'
     | '/(core)/admin/debug'
     | '/(core)/admin/email'
-    | '/(core)/admin/oidc'
-    | '/(core)/admin/scrapes'
     | '/(core)/admin/scraping'
     | '/(core)/admin/storage'
     | '/(core)/admin/users'
@@ -944,20 +932,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreAdminScrapingRouteImport
       parentRoute: typeof coreAdminRouteRoute
     }
-    '/(core)/admin/scrapes': {
-      id: '/(core)/admin/scrapes'
-      path: '/scrapes'
-      fullPath: '/admin/scrapes'
-      preLoaderRoute: typeof coreAdminScrapesRouteImport
-      parentRoute: typeof coreAdminRouteRoute
-    }
-    '/(core)/admin/oidc': {
-      id: '/(core)/admin/oidc'
-      path: '/oidc'
-      fullPath: '/admin/oidc'
-      preLoaderRoute: typeof coreAdminOidcRouteImport
-      parentRoute: typeof coreAdminRouteRoute
-    }
     '/(core)/admin/email': {
       id: '/(core)/admin/email'
       path: '/email'
@@ -977,6 +951,13 @@ declare module '@tanstack/react-router' {
       path: '/data'
       fullPath: '/admin/data'
       preLoaderRoute: typeof coreAdminDataRouteImport
+      parentRoute: typeof coreAdminRouteRoute
+    }
+    '/(core)/admin/auth': {
+      id: '/(core)/admin/auth'
+      path: '/auth'
+      fullPath: '/admin/auth'
+      preLoaderRoute: typeof coreAdminAuthRouteImport
       parentRoute: typeof coreAdminRouteRoute
     }
     '/(core)/admin/ai': {
@@ -1033,11 +1014,10 @@ declare module '@tanstack/react-router' {
 
 interface coreAdminRouteRouteChildren {
   coreAdminAiRoute: typeof coreAdminAiRoute
+  coreAdminAuthRoute: typeof coreAdminAuthRoute
   coreAdminDataRoute: typeof coreAdminDataRoute
   coreAdminDebugRoute: typeof coreAdminDebugRoute
   coreAdminEmailRoute: typeof coreAdminEmailRoute
-  coreAdminOidcRoute: typeof coreAdminOidcRoute
-  coreAdminScrapesRoute: typeof coreAdminScrapesRoute
   coreAdminScrapingRoute: typeof coreAdminScrapingRoute
   coreAdminStorageRoute: typeof coreAdminStorageRoute
   coreAdminUsersRoute: typeof coreAdminUsersRoute
@@ -1047,11 +1027,10 @@ interface coreAdminRouteRouteChildren {
 
 const coreAdminRouteRouteChildren: coreAdminRouteRouteChildren = {
   coreAdminAiRoute: coreAdminAiRoute,
+  coreAdminAuthRoute: coreAdminAuthRoute,
   coreAdminDataRoute: coreAdminDataRoute,
   coreAdminDebugRoute: coreAdminDebugRoute,
   coreAdminEmailRoute: coreAdminEmailRoute,
-  coreAdminOidcRoute: coreAdminOidcRoute,
-  coreAdminScrapesRoute: coreAdminScrapesRoute,
   coreAdminScrapingRoute: coreAdminScrapingRoute,
   coreAdminStorageRoute: coreAdminStorageRoute,
   coreAdminUsersRoute: coreAdminUsersRoute,

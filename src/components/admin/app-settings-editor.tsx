@@ -64,20 +64,21 @@ function useSettingsEditor() {
 	return { settings, isLoading, handleSettingChange }
 }
 
-export function AppSettingsEditor() {
-	const { settings, isLoading, handleSettingChange } = useSettingsEditor()
-	const { data: emailConfigured } = useIsEmailConfigured()
-	const { configured: storageConfigured } = useStorageStatus()
-
+function LoadingOrEmpty({ isLoading, settings }: { isLoading: boolean; settings: AppSettings | undefined }) {
 	if (isLoading) return <div className="text-sm text-muted-foreground">Loading settings...</div>
 	if (!settings) return <div className="text-sm text-muted-foreground">No settings found</div>
+	return null
+}
+
+export function CoreSettingsSection() {
+	const { settings, isLoading, handleSettingChange } = useSettingsEditor()
+
+	if (!settings) return <LoadingOrEmpty isLoading={isLoading} settings={settings} />
 
 	return (
 		<div className="space-y-6">
-			{/* App Title */}
 			<AppTitleField currentValue={settings.appTitle} onSave={value => handleSettingChange('appTitle', value)} />
 
-			{/* Default List Type */}
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="defaultListType" className="text-base">
@@ -108,7 +109,33 @@ export function AppSettingsEditor() {
 				</Select>
 			</div>
 
-			{/* Enable Christmas Lists */}
+			<div className="flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<Label htmlFor="enableMobileApp" className="text-base">
+						Enable API & API Keys
+					</Label>
+					<p className="text-sm text-muted-foreground">
+						Let users issue per-device API keys from their settings. Powers the iOS companion app and the MCP server.
+					</p>
+				</div>
+				<Switch
+					id="enableMobileApp"
+					checked={settings.enableMobileApp}
+					onCheckedChange={checked => handleSettingChange('enableMobileApp', checked)}
+				/>
+			</div>
+		</div>
+	)
+}
+
+export function ChristmasSettingsSection() {
+	const { settings, isLoading, handleSettingChange } = useSettingsEditor()
+	const { data: emailConfigured } = useIsEmailConfigured()
+
+	if (!settings) return <LoadingOrEmpty isLoading={isLoading} settings={settings} />
+
+	return (
+		<div className="space-y-6">
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="enableHolidayLists" className="text-base">
@@ -123,7 +150,6 @@ export function AppSettingsEditor() {
 				/>
 			</div>
 
-			{/* Archive after Christmas (dependent on Enable Christmas Lists) */}
 			<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableHolidayLists ? '' : 'opacity-50'}`}>
 				<DaysSetting
 					id="archiveDaysAfterChristmas"
@@ -135,7 +161,6 @@ export function AppSettingsEditor() {
 				/>
 			</div>
 
-			{/* Enable Christmas emails (dependent on Enable Christmas Lists) */}
 			{emailConfigured && (
 				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableHolidayLists ? '' : 'opacity-50'}`}>
 					<div className="space-y-0.5">
@@ -152,8 +177,18 @@ export function AppSettingsEditor() {
 					/>
 				</div>
 			)}
+		</div>
+	)
+}
 
-			{/* Enable Birthday Lists */}
+export function BirthdaySettingsSection() {
+	const { settings, isLoading, handleSettingChange } = useSettingsEditor()
+	const { data: emailConfigured } = useIsEmailConfigured()
+
+	if (!settings) return <LoadingOrEmpty isLoading={isLoading} settings={settings} />
+
+	return (
+		<div className="space-y-6">
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="enableBirthdayLists" className="text-base">
@@ -168,7 +203,6 @@ export function AppSettingsEditor() {
 				/>
 			</div>
 
-			{/* Archive after birthday (dependent on Enable Birthday Lists) */}
 			<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableBirthdayLists ? '' : 'opacity-50'}`}>
 				<DaysSetting
 					id="archiveDaysAfterBirthday"
@@ -180,7 +214,6 @@ export function AppSettingsEditor() {
 				/>
 			</div>
 
-			{/* Enable birthday emails (dependent on Enable Birthday Lists) */}
 			{emailConfigured && (
 				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableBirthdayLists ? '' : 'opacity-50'}`}>
 					<div className="space-y-0.5">
@@ -197,23 +230,40 @@ export function AppSettingsEditor() {
 					/>
 				</div>
 			)}
+		</div>
+	)
+}
 
-			{/* Enable Todo Lists */}
-			<div className="flex items-center justify-between gap-4">
-				<div className="space-y-0.5">
-					<Label htmlFor="enableTodoLists" className="text-base">
-						Enable Todo Lists
-					</Label>
-					<p className="text-sm text-muted-foreground">Allow users to create todo lists</p>
-				</div>
-				<Switch
-					id="enableTodoLists"
-					checked={settings.enableTodoLists}
-					onCheckedChange={checked => handleSettingChange('enableTodoLists', checked)}
-				/>
+export function TodoSettingsSection() {
+	const { settings, isLoading, handleSettingChange } = useSettingsEditor()
+
+	if (!settings) return <LoadingOrEmpty isLoading={isLoading} settings={settings} />
+
+	return (
+		<div className="flex items-center justify-between gap-4">
+			<div className="space-y-0.5">
+				<Label htmlFor="enableTodoLists" className="text-base">
+					Enable Todo Lists
+				</Label>
+				<p className="text-sm text-muted-foreground">Allow users to create todo lists</p>
 			</div>
+			<Switch
+				id="enableTodoLists"
+				checked={settings.enableTodoLists}
+				onCheckedChange={checked => handleSettingChange('enableTodoLists', checked)}
+			/>
+		</div>
+	)
+}
 
-			{/* Enable Comments */}
+export function CommentsSettingsSection() {
+	const { settings, isLoading, handleSettingChange } = useSettingsEditor()
+	const { data: emailConfigured } = useIsEmailConfigured()
+
+	if (!settings) return <LoadingOrEmpty isLoading={isLoading} settings={settings} />
+
+	return (
+		<div className="space-y-6">
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="enableComments" className="text-base">
@@ -228,7 +278,6 @@ export function AppSettingsEditor() {
 				/>
 			</div>
 
-			{/* Enable Comment Emails (dependent on Enable Comments) */}
 			{emailConfigured && (
 				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableComments ? '' : 'opacity-50'}`}>
 					<div className="space-y-0.5">
@@ -245,25 +294,17 @@ export function AppSettingsEditor() {
 					/>
 				</div>
 			)}
+		</div>
+	)
+}
 
-			{/* Enable Mobile App */}
-			<div className="flex items-center justify-between gap-4">
-				<div className="space-y-0.5">
-					<Label htmlFor="enableMobileApp" className="text-base">
-						Enable Mobile App
-					</Label>
-					<p className="text-sm text-muted-foreground">
-						Allow users to manage per-device API keys for the iOS companion app from their settings.
-					</p>
-				</div>
-				<Switch
-					id="enableMobileApp"
-					checked={settings.enableMobileApp}
-					onCheckedChange={checked => handleSettingChange('enableMobileApp', checked)}
-				/>
-			</div>
+export function AuthSettingsSection() {
+	const { settings, isLoading, handleSettingChange } = useSettingsEditor()
 
-			{/* Require 2FA for admins */}
+	if (!settings) return <LoadingOrEmpty isLoading={isLoading} settings={settings} />
+
+	return (
+		<div className="space-y-6">
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="require2faForAdmins" className="text-base">
@@ -281,7 +322,6 @@ export function AppSettingsEditor() {
 				/>
 			</div>
 
-			{/* Enable Passkeys */}
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="enablePasskeys" className="text-base">
@@ -289,7 +329,7 @@ export function AppSettingsEditor() {
 					</Label>
 					<p className="text-sm text-muted-foreground">
 						Let signed-in users register WebAuthn passkeys (Touch ID, Face ID, hardware keys) and use them as a sign-in option. Off by
-						default — turn on for HTTPS deployments only.
+						default, turn on for HTTPS deployments only.
 					</p>
 				</div>
 				<Switch
@@ -299,15 +339,14 @@ export function AppSettingsEditor() {
 				/>
 			</div>
 
-			{/* Enable OIDC Provider */}
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="enableOidcProvider" className="text-base">
 						Enable OIDC provider
 					</Label>
 					<p className="text-sm text-muted-foreground">
-						Let third-party apps "Sign in with GiftWrapt". Reveals the /admin/oidc client manager and the consent screen. Discovery and
-						token endpoints (.well-known, /oauth2/*) stay live regardless.
+						Let third-party apps "Sign in with GiftWrapt". Reveals the OIDC client manager below and the consent screen. Discovery and token
+						endpoints (.well-known, /oauth2/*) stay live regardless.
 					</p>
 				</div>
 				<Switch
@@ -316,25 +355,33 @@ export function AppSettingsEditor() {
 					onCheckedChange={checked => handleSettingChange('enableOidcProvider', checked)}
 				/>
 			</div>
+		</div>
+	)
+}
 
-			{/* Mirror external images to storage on save */}
-			<div className={`flex items-center justify-between gap-4 ${storageConfigured ? '' : 'opacity-50'}`}>
-				<div className="space-y-0.5">
-					<Label htmlFor="mirrorExternalImagesOnSave" className="text-base">
-						Mirror external images to storage on save
-					</Label>
-					<p className="text-sm text-muted-foreground">
-						When saving an item, fetch any external image URL and copy it into your bucket. Best-effort: fetch failures keep the original
-						URL. Requires storage to be configured. Existing items are not backfilled.
-					</p>
-				</div>
-				<Switch
-					id="mirrorExternalImagesOnSave"
-					checked={settings.mirrorExternalImagesOnSave}
-					disabled={!storageConfigured}
-					onCheckedChange={checked => handleSettingChange('mirrorExternalImagesOnSave', checked)}
-				/>
+export function StorageMirrorSection() {
+	const { settings, isLoading, handleSettingChange } = useSettingsEditor()
+	const { configured: storageConfigured } = useStorageStatus()
+
+	if (!settings) return <LoadingOrEmpty isLoading={isLoading} settings={settings} />
+
+	return (
+		<div className={`flex items-center justify-between gap-4 ${storageConfigured ? '' : 'opacity-50'}`}>
+			<div className="space-y-0.5">
+				<Label htmlFor="mirrorExternalImagesOnSave" className="text-base">
+					Mirror external images to storage on save
+				</Label>
+				<p className="text-sm text-muted-foreground">
+					When saving an item, fetch any external image URL and copy it into your bucket. Best-effort: fetch failures keep the original URL.
+					Requires storage to be configured. Existing items are not backfilled.
+				</p>
 			</div>
+			<Switch
+				id="mirrorExternalImagesOnSave"
+				checked={settings.mirrorExternalImagesOnSave}
+				disabled={!storageConfigured}
+				onCheckedChange={checked => handleSettingChange('mirrorExternalImagesOnSave', checked)}
+			/>
 		</div>
 	)
 }
@@ -356,15 +403,12 @@ interface AppTitleFieldProps {
 function AppTitleField({ currentValue, onSave }: AppTitleFieldProps) {
 	const [draft, setDraft] = useState(currentValue)
 
-	// Keep local draft in sync if the server value changes (after a successful save
-	// from another tab, or after the optimistic update settles).
 	useEffect(() => {
 		setDraft(currentValue)
 	}, [currentValue])
 
 	const handleCommit = () => {
 		const trimmed = draft.trim()
-		// Reject empty - schema enforces min(1). Snap back to current.
 		if (trimmed.length === 0) {
 			setDraft(currentValue)
 			return
@@ -402,7 +446,6 @@ function AppTitleField({ currentValue, onSave }: AppTitleFieldProps) {
 function DaysSetting({ id, label, description, value, disabled, onCommit }: DaysSettingProps) {
 	const [draft, setDraft] = useState(String(value))
 
-	// Keep local draft in sync if the server value changes (after a successful save).
 	useEffect(() => {
 		setDraft(String(value))
 	}, [value])
@@ -410,7 +453,7 @@ function DaysSetting({ id, label, description, value, disabled, onCommit }: Days
 	const handleCommit = () => {
 		const parsed = parseInt(draft, 10)
 		if (!Number.isFinite(parsed) || parsed < 1) {
-			setDraft(String(value)) // Reject invalid input, snap back to current value.
+			setDraft(String(value))
 			return
 		}
 		if (parsed === value) return
