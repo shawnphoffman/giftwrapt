@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.27.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.26.0...v0.27.0) (2026-05-02)
+
+
+### Features
+
+* **filters:** add date-range filter with presets and custom range ([9461d94](https://github.com/shawnphoffman/giftwrapt/commit/9461d9460e26dd1b1bb83c1197afffd6602c8628))
+* **items:** rework reorder panel with multi-select drag and mobile-friendly grip ([6eab08d](https://github.com/shawnphoffman/giftwrapt/commit/6eab08dd0647a1b646ae420600ebfb112b68d204))
+* **items:** show dependent lists in move/bulk-move pickers ([2e9496a](https://github.com/shawnphoffman/giftwrapt/commit/2e9496a2587e4a24cd8152b157174d458b476fec))
+* **lists:** allow reassigning a list to a dependent from settings ([d71e4ec](https://github.com/shawnphoffman/giftwrapt/commit/d71e4ec5cb6f0d5bc6b0dd020be1eeac42be360a))
+* **received:** aggregate by gifter household with timeframe + KPIs ([fc38b50](https://github.com/shawnphoffman/giftwrapt/commit/fc38b5084a94252d54912bb97a23b1dd67c000ba))
+
+
+### Bug Fixes
+
+* **db:** bump 0017 journal when past 0016 high-water mark ([1aafefe](https://github.com/shawnphoffman/giftwrapt/commit/1aafefe2a7a1782df1cc8977a1f4b04cc38a104c))
+* **db:** fall back to POSTGRES_URL in drizzle config ([b8c37df](https://github.com/shawnphoffman/giftwrapt/commit/b8c37df13b64789c9a40e5b519ebba0ceee5c6a2))
+* **items:** don't auto-scrape unchanged URL on edit ([6e355d2](https://github.com/shawnphoffman/giftwrapt/commit/6e355d2667c21e6e303bd53ed369a5636c6cfc2e))
+
 ## [0.26.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.25.0...v0.26.0) (2026-05-02)
 
 
