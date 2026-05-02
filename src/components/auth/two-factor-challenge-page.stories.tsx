@@ -21,7 +21,7 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const TotpMode: Story = {}
+export const TOTPMode: Story = {}
 
 export const BackupCodeMode: Story = {
 	args: { mode: 'backup' },

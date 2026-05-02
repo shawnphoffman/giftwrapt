@@ -97,6 +97,7 @@
 		"drizzle-zod": "^0.8.3",
 		"fast-jwt": "^6.0.2",
 		"hono": "^4.12.15",
+		"input-otp": "^1.4.2",
 		"linkify-react": "^4.3.2",
 		"lucide-react": "^0.555.0",
 		"markdown-it": "^14.1.0",

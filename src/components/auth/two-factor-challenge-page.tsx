@@ -1,10 +1,12 @@
 import { Image } from '@unpic/react'
+import { REGEXP_ONLY_DIGITS } from 'input-otp'
 import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { GradientBackground } from '@/components/ui/gradient-background'
 import { Input } from '@/components/ui/input'
+import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from '@/components/ui/input-otp'
 import { Label } from '@/components/ui/label'
 import logo from '@/images/logo.webp'
 
@@ -39,8 +41,8 @@ export function TwoFactorChallengePageContent({
 
 	const showLoading = submitting || forceLoading
 
-	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-		e.preventDefault()
+	const submit = async () => {
+		if (showLoading) return
 		setError(null)
 		setSubmitting(true)
 		try {
@@ -53,6 +55,18 @@ export function TwoFactorChallengePageContent({
 			setError(GENERIC_ERROR)
 		} finally {
 			setSubmitting(false)
+		}
+	}
+
+	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+		e.preventDefault()
+		await submit()
+	}
+
+	const handleTotpChange = (next: string) => {
+		setCode(next)
+		if (next.length === TOTP_LENGTH) {
+			void submit()
 		}
 	}
 
@@ -82,27 +96,51 @@ export function TwoFactorChallengePageContent({
 				<form onSubmit={handleSubmit} className="space-y-3">
 					{error && <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">{error}</div>}
 
-					<div className="space-y-2">
-						<Label htmlFor="2fa-code">{mode === 'totp' ? 'Authenticator code' : 'Backup code'}</Label>
-						<Input
+					{mode === 'totp' ? (
+						<InputOTP
 							id="2fa-code"
+							maxLength={TOTP_LENGTH}
 							value={code}
-							onChange={e => {
-								if (mode === 'totp') {
-									setCode(e.target.value.replace(/\D/g, '').slice(0, TOTP_LENGTH))
-								} else {
-									setCode(e.target.value.toUpperCase().slice(0, 64))
-								}
-							}}
-							inputMode={mode === 'totp' ? 'numeric' : 'text'}
+							onChange={handleTotpChange}
+							pattern={REGEXP_ONLY_DIGITS}
+							inputMode="numeric"
 							autoComplete="one-time-code"
-							placeholder={mode === 'totp' ? '123456' : 'XXXX-XXXX'}
-							required
 							disabled={showLoading}
 							autoFocus
-							className="font-mono tracking-[0.3em] text-base md:text-base"
-						/>
-					</div>
+							containerClassName="justify-center my-6"
+						>
+							<InputOTPGroup>
+								<InputOTPSlot index={0} className="size-12 text-lg" />
+								<InputOTPSlot index={1} className="size-12 text-lg" />
+							</InputOTPGroup>
+							<InputOTPSeparator />
+							<InputOTPGroup>
+								<InputOTPSlot index={2} className="size-12 text-lg" />
+								<InputOTPSlot index={3} className="size-12 text-lg" />
+							</InputOTPGroup>
+							<InputOTPSeparator />
+							<InputOTPGroup>
+								<InputOTPSlot index={4} className="size-12 text-lg" />
+								<InputOTPSlot index={5} className="size-12 text-lg" />
+							</InputOTPGroup>
+						</InputOTP>
+					) : (
+						<div className="space-y-2">
+							<Label htmlFor="2fa-code">Backup code</Label>
+							<Input
+								id="2fa-code"
+								value={code}
+								onChange={e => setCode(e.target.value.toUpperCase().slice(0, 64))}
+								inputMode="text"
+								autoComplete="one-time-code"
+								placeholder="XXXX-XXXX"
+								required
+								disabled={showLoading}
+								autoFocus
+								className="font-mono tracking-[0.3em] text-base md:text-base"
+							/>
+						</div>
+					)}
 
 					{mode === 'totp' && (
 						<div className="flex items-center gap-2">
