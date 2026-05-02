@@ -271,6 +271,7 @@ function GifterRow({ list }: { list: GifterList }) {
 			<Link to="/lists/$listId" params={{ listId: String(list.id) }}>
 				<ListTypeIcon type={list.type} className="size-6 shrink-0" />
 				<div className="font-medium leading-tight flex-1 truncate">{list.name}</div>
+				{list.isPrimary && <Star className="size-4 text-yellow-500 fill-yellow-500 shrink-0" />}
 				<CountBadge count={list.itemsTotal} remaining={list.itemsRemaining} />
 			</Link>
 		</ListRowShell>

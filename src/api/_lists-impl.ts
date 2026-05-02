@@ -119,6 +119,7 @@ export type PublicList = {
 	name: string
 	type: PublicListType
 	description: string | null
+	isPrimary: boolean
 	itemsTotal: number
 	itemsRemaining: number
 	createdAt: string
@@ -546,12 +547,13 @@ export async function getPublicListsImpl(viewerUserId: string): Promise<Array<Pu
 		with: {
 			lists: {
 				where: (l, { and: a, eq: e, ne: n }) => a(e(l.isPrivate, false), e(l.isActive, true), n(l.type, 'giftideas')),
-				orderBy: [desc(lists.createdAt)],
+				orderBy: [desc(lists.isPrimary), desc(lists.createdAt)],
 				columns: {
 					id: true,
 					name: true,
 					type: true,
 					description: true,
+					isPrimary: true,
 					createdAt: true,
 					updatedAt: true,
 				},
@@ -585,6 +587,7 @@ export async function getPublicListsImpl(viewerUserId: string): Promise<Array<Pu
 					name: rest.name,
 					type: rest.type as PublicListType,
 					description: rest.description,
+					isPrimary: rest.isPrimary,
 					itemsTotal: total,
 					itemsRemaining: unclaimed,
 					createdAt: rest.createdAt instanceof Date ? rest.createdAt.toISOString() : rest.createdAt,

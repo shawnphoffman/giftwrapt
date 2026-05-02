@@ -11,6 +11,7 @@ const ListSchema = z.object({
 	name: z.string(),
 	type: z.enum(['wishlist', 'christmas', 'birthday', 'todos', 'test']),
 	description: z.string().nullable(),
+	isPrimary: z.boolean(),
 	createdAt: z.string(),
 	updatedAt: z.string(),
 	itemsTotal: z.number(),
