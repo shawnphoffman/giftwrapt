@@ -75,10 +75,9 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 					},
 				})
 				if (created.kind === 'error') {
-					// Only `child-cannot-create-gift-ideas` exists today;
-					// future variants must be added here explicitly.
 					const message: Record<typeof created.reason, string> = {
 						'child-cannot-create-gift-ideas': "Children can't create gift-ideas lists.",
+						'not-dependent-guardian': "You're not a guardian of that dependent.",
 					}
 					setError(message[created.reason])
 					return

@@ -21,6 +21,9 @@ const recipientBase: MyListRowType = {
 	description: null,
 	giftIdeasTargetUserId: null,
 	giftIdeasTarget: null,
+	giftIdeasTargetDependentId: null,
+	giftIdeasTargetDependent: null,
+	subjectDependentId: null,
 	itemCount: 12,
 }
 

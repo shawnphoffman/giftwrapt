@@ -83,7 +83,7 @@ export const ReorderGroupItemsInputSchema = z.object({
 // Helpers
 // ===============================
 
-type ListForPerm = { id: number; ownerId: string; isPrivate: boolean; isActive: boolean }
+type ListForPerm = { id: number; ownerId: string; subjectDependentId: string | null; isPrivate: boolean; isActive: boolean }
 
 async function loadListForEdit(
 	userId: string,
@@ -91,7 +91,7 @@ async function loadListForEdit(
 ): Promise<{ ok: true; list: ListForPerm } | { ok: false; reason: 'not-found' | 'not-authorized' }> {
 	const list = await db.query.lists.findFirst({
 		where: eq(lists.id, listId),
-		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { ok: false, reason: 'not-found' }
 	if (list.ownerId !== userId) {
@@ -180,7 +180,7 @@ export async function moveGroupToListImpl(args: { userId: string; input: z.infer
 
 	const sourceList = await db.query.lists.findFirst({
 		where: eq(lists.id, group.listId),
-		columns: { id: true, ownerId: true, isPrivate: true, isActive: true, type: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true, type: true },
 	})
 	if (!sourceList) return { kind: 'error', reason: 'not-found' }
 	const sourcePerm = await loadListForEdit(userId, sourceList.id)
@@ -188,7 +188,7 @@ export async function moveGroupToListImpl(args: { userId: string; input: z.infer
 
 	const targetList = await db.query.lists.findFirst({
 		where: eq(lists.id, data.targetListId),
-		columns: { id: true, ownerId: true, isPrivate: true, isActive: true, type: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true, type: true },
 	})
 	if (!targetList) return { kind: 'error', reason: 'not-found' }
 	const targetPerm = await loadListForEdit(userId, targetList.id)

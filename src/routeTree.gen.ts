@@ -29,6 +29,7 @@ import { Route as coreAdminIndexRouteImport } from './routes/(core)/admin/index'
 import { Route as ApiSseListsRouteImport } from './routes/api/sse/lists'
 import { Route as ApiScrapeStreamRouteImport } from './routes/api/scrape/stream'
 import { Route as ApiMobileSplatRouteImport } from './routes/api/mobile/$'
+import { Route as ApiListsPublicDependentsRouteImport } from './routes/api/lists/public-dependents'
 import { Route as ApiListsPublicRouteImport } from './routes/api/lists/public'
 import { Route as ApiFilesSplatRouteImport } from './routes/api/files/$'
 import { Route as ApiCronCleanupVerificationRouteImport } from './routes/api/cron/cleanup-verification'
@@ -39,6 +40,7 @@ import { Route as coreTempWidgetsRouteImport } from './routes/(core)/temp/widget
 import { Route as coreSettingsSecurityRouteImport } from './routes/(core)/settings/security'
 import { Route as coreSettingsPermissionsRouteImport } from './routes/(core)/settings/permissions'
 import { Route as coreSettingsDevicesRouteImport } from './routes/(core)/settings/devices'
+import { Route as coreSettingsDependentsRouteImport } from './routes/(core)/settings/dependents'
 import { Route as coreRecentItemsRouteImport } from './routes/(core)/recent.items'
 import { Route as coreRecentCommentsRouteImport } from './routes/(core)/recent.comments'
 import { Route as corePurchasesReceivedRouteImport } from './routes/(core)/purchases.received'
@@ -159,6 +161,12 @@ const ApiMobileSplatRoute = ApiMobileSplatRouteImport.update({
   path: '/api/mobile/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiListsPublicDependentsRoute =
+  ApiListsPublicDependentsRouteImport.update({
+    id: '/api/lists/public-dependents',
+    path: '/api/lists/public-dependents',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiListsPublicRoute = ApiListsPublicRouteImport.update({
   id: '/api/lists/public',
   path: '/api/lists/public',
@@ -208,6 +216,11 @@ const coreSettingsPermissionsRoute = coreSettingsPermissionsRouteImport.update({
 const coreSettingsDevicesRoute = coreSettingsDevicesRouteImport.update({
   id: '/devices',
   path: '/devices',
+  getParentRoute: () => coreSettingsRouteRoute,
+} as any)
+const coreSettingsDependentsRoute = coreSettingsDependentsRouteImport.update({
+  id: '/dependents',
+  path: '/dependents',
   getParentRoute: () => coreSettingsRouteRoute,
 } as any)
 const coreRecentItemsRoute = coreRecentItemsRouteImport.update({
@@ -339,6 +352,7 @@ export interface FileRoutesByFullPath {
   '/purchases/received': typeof corePurchasesReceivedRoute
   '/recent/comments': typeof coreRecentCommentsRoute
   '/recent/items': typeof coreRecentItemsRoute
+  '/settings/dependents': typeof coreSettingsDependentsRoute
   '/settings/devices': typeof coreSettingsDevicesRoute
   '/settings/permissions': typeof coreSettingsPermissionsRoute
   '/settings/security': typeof coreSettingsSecurityRoute
@@ -349,6 +363,7 @@ export interface FileRoutesByFullPath {
   '/api/cron/cleanup-verification': typeof ApiCronCleanupVerificationRoute
   '/api/files/$': typeof ApiFilesSplatRoute
   '/api/lists/public': typeof ApiListsPublicRoute
+  '/api/lists/public-dependents': typeof ApiListsPublicDependentsRoute
   '/api/mobile/$': typeof ApiMobileSplatRoute
   '/api/scrape/stream': typeof ApiScrapeStreamRoute
   '/api/sse/lists': typeof ApiSseListsRoute
@@ -388,6 +403,7 @@ export interface FileRoutesByTo {
   '/purchases/received': typeof corePurchasesReceivedRoute
   '/recent/comments': typeof coreRecentCommentsRoute
   '/recent/items': typeof coreRecentItemsRoute
+  '/settings/dependents': typeof coreSettingsDependentsRoute
   '/settings/devices': typeof coreSettingsDevicesRoute
   '/settings/permissions': typeof coreSettingsPermissionsRoute
   '/settings/security': typeof coreSettingsSecurityRoute
@@ -398,6 +414,7 @@ export interface FileRoutesByTo {
   '/api/cron/cleanup-verification': typeof ApiCronCleanupVerificationRoute
   '/api/files/$': typeof ApiFilesSplatRoute
   '/api/lists/public': typeof ApiListsPublicRoute
+  '/api/lists/public-dependents': typeof ApiListsPublicDependentsRoute
   '/api/mobile/$': typeof ApiMobileSplatRoute
   '/api/scrape/stream': typeof ApiScrapeStreamRoute
   '/api/sse/lists': typeof ApiSseListsRoute
@@ -441,6 +458,7 @@ export interface FileRoutesById {
   '/(core)/purchases/received': typeof corePurchasesReceivedRoute
   '/(core)/recent/comments': typeof coreRecentCommentsRoute
   '/(core)/recent/items': typeof coreRecentItemsRoute
+  '/(core)/settings/dependents': typeof coreSettingsDependentsRoute
   '/(core)/settings/devices': typeof coreSettingsDevicesRoute
   '/(core)/settings/permissions': typeof coreSettingsPermissionsRoute
   '/(core)/settings/security': typeof coreSettingsSecurityRoute
@@ -451,6 +469,7 @@ export interface FileRoutesById {
   '/api/cron/cleanup-verification': typeof ApiCronCleanupVerificationRoute
   '/api/files/$': typeof ApiFilesSplatRoute
   '/api/lists/public': typeof ApiListsPublicRoute
+  '/api/lists/public-dependents': typeof ApiListsPublicDependentsRoute
   '/api/mobile/$': typeof ApiMobileSplatRoute
   '/api/scrape/stream': typeof ApiScrapeStreamRoute
   '/api/sse/lists': typeof ApiSseListsRoute
@@ -494,6 +513,7 @@ export interface FileRouteTypes {
     | '/purchases/received'
     | '/recent/comments'
     | '/recent/items'
+    | '/settings/dependents'
     | '/settings/devices'
     | '/settings/permissions'
     | '/settings/security'
@@ -504,6 +524,7 @@ export interface FileRouteTypes {
     | '/api/cron/cleanup-verification'
     | '/api/files/$'
     | '/api/lists/public'
+    | '/api/lists/public-dependents'
     | '/api/mobile/$'
     | '/api/scrape/stream'
     | '/api/sse/lists'
@@ -543,6 +564,7 @@ export interface FileRouteTypes {
     | '/purchases/received'
     | '/recent/comments'
     | '/recent/items'
+    | '/settings/dependents'
     | '/settings/devices'
     | '/settings/permissions'
     | '/settings/security'
@@ -553,6 +575,7 @@ export interface FileRouteTypes {
     | '/api/cron/cleanup-verification'
     | '/api/files/$'
     | '/api/lists/public'
+    | '/api/lists/public-dependents'
     | '/api/mobile/$'
     | '/api/scrape/stream'
     | '/api/sse/lists'
@@ -595,6 +618,7 @@ export interface FileRouteTypes {
     | '/(core)/purchases/received'
     | '/(core)/recent/comments'
     | '/(core)/recent/items'
+    | '/(core)/settings/dependents'
     | '/(core)/settings/devices'
     | '/(core)/settings/permissions'
     | '/(core)/settings/security'
@@ -605,6 +629,7 @@ export interface FileRouteTypes {
     | '/api/cron/cleanup-verification'
     | '/api/files/$'
     | '/api/lists/public'
+    | '/api/lists/public-dependents'
     | '/api/mobile/$'
     | '/api/scrape/stream'
     | '/api/sse/lists'
@@ -634,6 +659,7 @@ export interface RootRouteChildren {
   ApiCronCleanupVerificationRoute: typeof ApiCronCleanupVerificationRoute
   ApiFilesSplatRoute: typeof ApiFilesSplatRoute
   ApiListsPublicRoute: typeof ApiListsPublicRoute
+  ApiListsPublicDependentsRoute: typeof ApiListsPublicDependentsRoute
   ApiMobileSplatRoute: typeof ApiMobileSplatRoute
   ApiScrapeStreamRoute: typeof ApiScrapeStreamRoute
   ApiSseListsRoute: typeof ApiSseListsRoute
@@ -782,6 +808,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMobileSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/lists/public-dependents': {
+      id: '/api/lists/public-dependents'
+      path: '/api/lists/public-dependents'
+      fullPath: '/api/lists/public-dependents'
+      preLoaderRoute: typeof ApiListsPublicDependentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/lists/public': {
       id: '/api/lists/public'
       path: '/api/lists/public'
@@ -850,6 +883,13 @@ declare module '@tanstack/react-router' {
       path: '/devices'
       fullPath: '/settings/devices'
       preLoaderRoute: typeof coreSettingsDevicesRouteImport
+      parentRoute: typeof coreSettingsRouteRoute
+    }
+    '/(core)/settings/dependents': {
+      id: '/(core)/settings/dependents'
+      path: '/dependents'
+      fullPath: '/settings/dependents'
+      preLoaderRoute: typeof coreSettingsDependentsRouteImport
       parentRoute: typeof coreSettingsRouteRoute
     }
     '/(core)/recent/items': {
@@ -1026,6 +1066,7 @@ const coreAdminRouteRouteWithChildren = coreAdminRouteRoute._addFileChildren(
 )
 
 interface coreSettingsRouteRouteChildren {
+  coreSettingsDependentsRoute: typeof coreSettingsDependentsRoute
   coreSettingsDevicesRoute: typeof coreSettingsDevicesRoute
   coreSettingsPermissionsRoute: typeof coreSettingsPermissionsRoute
   coreSettingsSecurityRoute: typeof coreSettingsSecurityRoute
@@ -1033,6 +1074,7 @@ interface coreSettingsRouteRouteChildren {
 }
 
 const coreSettingsRouteRouteChildren: coreSettingsRouteRouteChildren = {
+  coreSettingsDependentsRoute: coreSettingsDependentsRoute,
   coreSettingsDevicesRoute: coreSettingsDevicesRoute,
   coreSettingsPermissionsRoute: coreSettingsPermissionsRoute,
   coreSettingsSecurityRoute: coreSettingsSecurityRoute,
@@ -1123,6 +1165,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCronCleanupVerificationRoute: ApiCronCleanupVerificationRoute,
   ApiFilesSplatRoute: ApiFilesSplatRoute,
   ApiListsPublicRoute: ApiListsPublicRoute,
+  ApiListsPublicDependentsRoute: ApiListsPublicDependentsRoute,
   ApiMobileSplatRoute: ApiMobileSplatRoute,
   ApiScrapeStreamRoute: ApiScrapeStreamRoute,
   ApiSseListsRoute: ApiSseListsRoute,

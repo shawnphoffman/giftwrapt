@@ -1,9 +1,17 @@
-import { Eye, Heart, Pencil, Shield, ShieldOff } from 'lucide-react'
+import { Eye, Heart, Pencil, Shield, ShieldOff, Sprout } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 
+import DependentAvatar from '@/components/common/dependent-avatar'
 import UserAvatar from '@/components/common/user-avatar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { buildIndices, type Cell, type CellKind, classifyCell, type PermissionsMatrixData } from '@/lib/permissions-matrix'
+import {
+	buildIndices,
+	type Cell,
+	type CellKind,
+	classifyCell,
+	classifyDependentCell,
+	type PermissionsMatrixData,
+} from '@/lib/permissions-matrix'
 import { cn } from '@/lib/utils'
 
 type HeaderUser = { id: string; name: string | null; email: string; image: string | null }
@@ -109,9 +117,22 @@ function HeaderUserCell({ user, axis }: { user: HeaderUser; axis: 'col' | 'row' 
 	)
 }
 
+function HeaderDependentCell({ name, image }: { name: string; image: string | null }) {
+	return (
+		<div className="flex flex-col items-center gap-1 px-1 py-2 w-12">
+			<DependentAvatar name={name} image={image} size="small" />
+			<div className="text-[10px] leading-tight font-medium text-center truncate w-full flex items-center gap-0.5" title={name}>
+				<Sprout className="size-2.5 shrink-0 text-emerald-600" />
+				{name.split(' ')[0]}
+			</div>
+		</div>
+	)
+}
+
 export function PermissionsMatrixView({ data }: { data: PermissionsMatrixData }) {
 	const indices = useMemo(() => buildIndices(data), [data])
 	const users = data.users
+	const dependents = data.dependents ?? []
 
 	if (users.length === 0) {
 		return <div className="text-sm text-muted-foreground">No users found.</div>
@@ -133,6 +154,11 @@ export function PermissionsMatrixView({ data }: { data: PermissionsMatrixData })
 								{users.map(owner => (
 									<th key={owner.id} className="sticky top-0 z-20 bg-card border-b align-bottom">
 										<HeaderUserCell user={owner} axis="col" />
+									</th>
+								))}
+								{dependents.map(dep => (
+									<th key={`dep-${dep.id}`} className="sticky top-0 z-20 bg-card border-b align-bottom">
+										<HeaderDependentCell name={dep.name} image={dep.image} />
 									</th>
 								))}
 							</tr>
@@ -170,6 +196,30 @@ export function PermissionsMatrixView({ data }: { data: PermissionsMatrixData })
 													</TooltipTrigger>
 													<TooltipContent side="top">
 														<CellTooltip cell={cell} viewerName={viewer.name || viewer.email} ownerName={owner.name || owner.email} />
+													</TooltipContent>
+												</Tooltip>
+											</td>
+										)
+									})}
+									{dependents.map(dep => {
+										const cell = classifyDependentCell({
+											viewerId: viewer.id,
+											dependentId: dep.id,
+											guardianIds: dep.guardianIds,
+											relationships: indices.relationships,
+										})
+										return (
+											<td key={`dep-${dep.id}`} className="p-0 border-b border-l/30">
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<div
+															className={cn('relative size-12 flex items-center justify-center transition-colors', cellClasses(cell.kind))}
+														>
+															<CellGlyph cell={cell} />
+														</div>
+													</TooltipTrigger>
+													<TooltipContent side="top">
+														<CellTooltip cell={cell} viewerName={viewer.name || viewer.email} ownerName={dep.name} />
 													</TooltipContent>
 												</Tooltip>
 											</td>

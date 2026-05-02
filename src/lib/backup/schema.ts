@@ -65,7 +65,29 @@ const listRowSchema = z.object({
 	isPrimary: z.boolean(),
 	description: z.string().nullable(),
 	ownerId: z.string(),
+	subjectDependentId: z.string().nullable(),
 	giftIdeasTargetUserId: z.string().nullable(),
+	giftIdeasTargetDependentId: z.string().nullable(),
+	updatedAt: dateField,
+	createdAt: dateField,
+})
+
+const dependentRowSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	image: z.string().nullable(),
+	birthMonth: z.enum(birthMonthEnumValues).nullable(),
+	birthDay: z.number().int().nullable(),
+	birthYear: z.number().int().nullable(),
+	createdByUserId: z.string(),
+	isArchived: z.boolean(),
+	updatedAt: dateField,
+	createdAt: dateField,
+})
+
+const dependentGuardianshipRowSchema = z.object({
+	guardianUserId: z.string(),
+	dependentId: z.string(),
 	updatedAt: dateField,
 	createdAt: dateField,
 })
@@ -154,6 +176,8 @@ export const BackupFileSchema = z.object({
 		appSettings: z.array(appSettingRowSchema),
 		userRelationships: z.array(userRelationshipRowSchema),
 		guardianships: z.array(guardianshipRowSchema),
+		dependents: z.array(dependentRowSchema).default([]),
+		dependentGuardianships: z.array(dependentGuardianshipRowSchema).default([]),
 		lists: z.array(listRowSchema),
 		itemGroups: z.array(itemGroupRowSchema),
 		items: z.array(itemRowSchema),

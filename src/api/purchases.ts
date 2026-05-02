@@ -34,6 +34,13 @@ export type SummaryItem = {
 	quantity: number
 	listName: string
 	createdAt: Date
+	// Recipient identity. For most lists this is the list owner; for
+	// dependent-subject lists it's the dependent. `recipientKind` lets
+	// the UI tell them apart (e.g. swap the avatar fallback) and
+	// `subjectDependentId` is non-null only when the recipient is a
+	// dependent.
+	recipientKind: 'user' | 'dependent'
+	subjectDependentId: string | null
 	ownerId: string
 	ownerName: string | null
 	ownerEmail: string
@@ -85,6 +92,11 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 		// they appear in additionalGifterIds (co-gifter).
 		const claimGifterFilter = or(inGifters, arrayOverlaps(giftedItems.additionalGifterIds, gifterIds))
 
+		// Exclude claims on lists I own personally (gift to myself, dropped),
+		// but KEEP claims on lists I created FOR a dependent - the recipient
+		// is the dependent, not me.
+		const ownerExclude = or(ne(lists.ownerId, userId), sql`${lists.subjectDependentId} IS NOT NULL`)
+
 		const claimRows = await db
 			.select({
 				giftId: giftedItems.id,
@@ -101,12 +113,16 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 				listOwnerName: sql<string | null>`owner.name`,
 				listOwnerEmail: sql<string>`owner.email`,
 				listOwnerImage: sql<string | null>`owner.image`,
+				subjectDependentId: lists.subjectDependentId,
+				dependentName: sql<string | null>`dep.name`,
+				dependentImage: sql<string | null>`dep.image`,
 			})
 			.from(giftedItems)
 			.innerJoin(items, eq(items.id, giftedItems.itemId))
 			.innerJoin(lists, eq(lists.id, items.listId))
 			.innerJoin(sql`users as owner`, sql`owner.id = ${lists.ownerId}`)
-			.where(and(claimGifterFilter, ne(lists.ownerId, userId)))
+			.leftJoin(sql`dependents as dep`, sql`dep.id = ${lists.subjectDependentId}`)
+			.where(and(claimGifterFilter, ownerExclude))
 
 		const addonRows = await db
 			.select({
@@ -121,11 +137,45 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 				listOwnerName: sql<string | null>`owner.name`,
 				listOwnerEmail: sql<string>`owner.email`,
 				listOwnerImage: sql<string | null>`owner.image`,
+				subjectDependentId: lists.subjectDependentId,
+				dependentName: sql<string | null>`dep.name`,
+				dependentImage: sql<string | null>`dep.image`,
 			})
 			.from(listAddons)
 			.innerJoin(lists, eq(lists.id, listAddons.listId))
 			.innerJoin(sql`users as owner`, sql`owner.id = ${lists.ownerId}`)
-			.where(and(inAddonGifters, ne(lists.ownerId, userId)))
+			.leftJoin(sql`dependents as dep`, sql`dep.id = ${lists.subjectDependentId}`)
+			.where(and(inAddonGifters, ownerExclude))
+
+		// Recipient name resolution: when the list is FOR a dependent, the
+		// "recipient" UI surfaces use the dependent's name/avatar instead
+		// of the (guardian) owner's. The owner-side fields are still populated
+		// (raw owner identity is sometimes useful for debugging / admin views).
+		function resolveRecipient<
+			T extends {
+				subjectDependentId: string | null
+				listOwnerName: string | null
+				listOwnerEmail: string
+				listOwnerImage: string | null
+				dependentName: string | null
+				dependentImage: string | null
+			},
+		>(r: T): { recipientKind: 'user' | 'dependent'; ownerName: string | null; ownerEmail: string; ownerImage: string | null } {
+			if (r.subjectDependentId) {
+				return {
+					recipientKind: 'dependent',
+					ownerName: r.dependentName,
+					ownerEmail: '',
+					ownerImage: r.dependentImage,
+				}
+			}
+			return {
+				recipientKind: 'user',
+				ownerName: r.listOwnerName,
+				ownerEmail: r.listOwnerEmail,
+				ownerImage: r.listOwnerImage,
+			}
+		}
 
 		const claims: Array<SummaryItem> = claimRows.map(r => {
 			const isPrimary = gifterIds.includes(r.gifterId)
@@ -134,6 +184,7 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 			// Co-gifter spend is unknown per gifter today; zero it out so totals
 			// and averages don't double-count the primary's total.
 			const cost = isCoGifter ? 0 : r.totalCost ? parseFloat(r.totalCost) : null
+			const recipient = resolveRecipient(r)
 			return {
 				type: 'claim',
 				giftId: r.giftId,
@@ -149,33 +200,40 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 				quantity: r.quantity,
 				listName: r.listName,
 				createdAt: r.createdAt,
+				recipientKind: recipient.recipientKind,
+				subjectDependentId: r.subjectDependentId,
 				ownerId: r.listOwnerId,
-				ownerName: r.listOwnerName,
-				ownerEmail: r.listOwnerEmail,
-				ownerImage: r.listOwnerImage,
+				ownerName: recipient.ownerName,
+				ownerEmail: recipient.ownerEmail,
+				ownerImage: recipient.ownerImage,
 			}
 		})
 
-		const addons: Array<SummaryItem> = addonRows.map(r => ({
-			type: 'addon',
-			giftId: null,
-			addonId: r.addonId,
-			isOwn: r.gifterId === userId,
-			isPartnerPurchase: r.gifterId !== userId && myPartnerId !== null && r.gifterId === myPartnerId,
-			isCoGifter: false,
-			title: r.description,
-			itemUrl: null,
-			cost: r.totalCost ? parseFloat(r.totalCost) : null,
-			totalCostRaw: r.totalCost,
-			notes: r.notes,
-			quantity: 1,
-			listName: r.listName,
-			createdAt: r.createdAt,
-			ownerId: r.listOwnerId,
-			ownerName: r.listOwnerName,
-			ownerEmail: r.listOwnerEmail,
-			ownerImage: r.listOwnerImage,
-		}))
+		const addons: Array<SummaryItem> = addonRows.map(r => {
+			const recipient = resolveRecipient(r)
+			return {
+				type: 'addon',
+				giftId: null,
+				addonId: r.addonId,
+				isOwn: r.gifterId === userId,
+				isPartnerPurchase: r.gifterId !== userId && myPartnerId !== null && r.gifterId === myPartnerId,
+				isCoGifter: false,
+				title: r.description,
+				itemUrl: null,
+				cost: r.totalCost ? parseFloat(r.totalCost) : null,
+				totalCostRaw: r.totalCost,
+				notes: r.notes,
+				quantity: 1,
+				listName: r.listName,
+				createdAt: r.createdAt,
+				recipientKind: recipient.recipientKind,
+				subjectDependentId: r.subjectDependentId,
+				ownerId: r.listOwnerId,
+				ownerName: recipient.ownerName,
+				ownerEmail: recipient.ownerEmail,
+				ownerImage: recipient.ownerImage,
+			}
+		})
 
 		return { items: [...claims, ...addons], partner }
 	})

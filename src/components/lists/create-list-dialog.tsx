@@ -5,9 +5,11 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
+import { getMyDependents } from '@/api/dependents'
 import { addListEditor } from '@/api/list-editors'
 import { createList } from '@/api/lists'
 import { getGiftIdeasRecipients } from '@/api/user'
+import DependentAvatar from '@/components/common/dependent-avatar'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import { MarkdownTextarea } from '@/components/common/markdown-textarea'
 import UserAvatar from '@/components/common/user-avatar'
@@ -33,6 +35,8 @@ const schema = z.object({
 	isPrivate: z.boolean(),
 	description: z.string().max(LIMITS.MEDIUM_TEXT).optional(),
 	giftIdeasTargetUserId: z.string().optional(),
+	giftIdeasTargetDependentId: z.string().optional(),
+	subjectDependentId: z.string().optional(),
 	addPartnerAsEditor: z.boolean(),
 })
 
@@ -53,6 +57,13 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 		staleTime: 10 * 60 * 1000,
 	})
 
+	const { data: myDependents } = useQuery({
+		queryKey: ['dependents', 'mine'],
+		queryFn: () => getMyDependents(),
+		enabled: open,
+		staleTime: 5 * 60 * 1000,
+	})
+
 	const partner = partnerId ? users?.find(u => u.id === partnerId) : undefined
 	const partnerLabel = partner ? partner.name || partner.email : 'your partner'
 
@@ -65,6 +76,8 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 			isPrivate: false,
 			description: '',
 			giftIdeasTargetUserId: '',
+			giftIdeasTargetDependentId: '',
+			subjectDependentId: '',
 			addPartnerAsEditor: true,
 		},
 		onSubmit: async ({ value }) => {
@@ -80,21 +93,32 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 				const willBePublic = parsed.data.type !== 'giftideas' && !parsed.data.isPrivate
 				const shouldAddPartner = willBePublic && !!partnerId && !!partner && parsed.data.addPartnerAsEditor
 
+				// A gift-ideas target can be a user OR a dependent, not both.
+				// Pick whichever the form has a value for; the server enforces
+				// mutual exclusion in storage.
+				const giftIdeasTargetUserId =
+					parsed.data.type === 'giftideas' && parsed.data.giftIdeasTargetUserId ? parsed.data.giftIdeasTargetUserId : undefined
+				const giftIdeasTargetDependentId =
+					parsed.data.type === 'giftideas' && parsed.data.giftIdeasTargetDependentId && !giftIdeasTargetUserId
+						? parsed.data.giftIdeasTargetDependentId
+						: undefined
+
 				const result = await createList({
 					data: {
 						name: parsed.data.name,
 						type: parsed.data.type,
 						isPrivate: parsed.data.type === 'giftideas' ? true : parsed.data.isPrivate,
 						description: parsed.data.description?.trim() || undefined,
-						giftIdeasTargetUserId: parsed.data.type === 'giftideas' ? parsed.data.giftIdeasTargetUserId || undefined : undefined,
+						giftIdeasTargetUserId,
+						giftIdeasTargetDependentId,
+						subjectDependentId: parsed.data.subjectDependentId || undefined,
 					},
 				})
 
 				if (result.kind === 'error') {
-					// Only `child-cannot-create-gift-ideas` exists today;
-					// future variants must be added here explicitly.
 					const message: Record<typeof result.reason, string> = {
 						'child-cannot-create-gift-ideas': "Children can't create gift-ideas lists.",
+						'not-dependent-guardian': "You're not a guardian of that dependent.",
 					}
 					setError(message[result.reason])
 					return
@@ -201,21 +225,89 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 					</form.Field>
 
 					{isGiftIdeas && (
-						<form.Field name="giftIdeasTargetUserId">
+						<div className="grid gap-2">
+							<Label>Gift ideas for (optional)</Label>
+							<form.Field name="giftIdeasTargetUserId">
+								{userField => (
+									<form.Field name="giftIdeasTargetDependentId">
+										{depField => {
+											// Combined value: prefix with "u:" or "d:" so a single
+											// Select can carry either kind. Empty string means no target.
+											const combined = userField.state.value
+												? `u:${userField.state.value}`
+												: depField.state.value
+													? `d:${depField.state.value}`
+													: ''
+											return (
+												<Select
+													value={combined}
+													onValueChange={v => {
+														if (!v) {
+															userField.handleChange('')
+															depField.handleChange('')
+															return
+														}
+														if (v.startsWith('u:')) {
+															userField.handleChange(v.slice(2))
+															depField.handleChange('')
+														} else if (v.startsWith('d:')) {
+															userField.handleChange('')
+															depField.handleChange(v.slice(2))
+														}
+													}}
+													disabled={submitting}
+												>
+													<SelectTrigger>
+														<SelectValue placeholder="Select a person" />
+													</SelectTrigger>
+													<SelectContent>
+														{users?.map(u => (
+															<SelectItem key={`u:${u.id}`} value={`u:${u.id}`}>
+																<UserAvatar name={u.name || u.email} image={u.image} size="small" />
+																<span className="truncate">{u.name || u.email}</span>
+															</SelectItem>
+														))}
+														{(myDependents?.dependents ?? [])
+															.filter(d => !d.isArchived)
+															.map(d => (
+																<SelectItem key={`d:${d.id}`} value={`d:${d.id}`}>
+																	<DependentAvatar name={d.name} image={d.image} size="small" />
+																	<span className="truncate">{d.name}</span>
+																</SelectItem>
+															))}
+													</SelectContent>
+												</Select>
+											)
+										}}
+									</form.Field>
+								)}
+							</form.Field>
+						</div>
+					)}
+
+					{!isGiftIdeas && (myDependents?.dependents ?? []).filter(d => !d.isArchived).length > 0 && (
+						<form.Field name="subjectDependentId">
 							{field => (
 								<div className="grid gap-2">
-									<Label htmlFor={field.name}>Gift ideas for (optional)</Label>
-									<Select value={field.state.value} onValueChange={field.handleChange} disabled={submitting}>
+									<Label htmlFor={field.name}>List is for (optional)</Label>
+									<Select
+										value={field.state.value || 'me'}
+										onValueChange={v => field.handleChange(v === 'me' ? '' : v)}
+										disabled={submitting}
+									>
 										<SelectTrigger id={field.name}>
-											<SelectValue placeholder="Select a person" />
+											<SelectValue />
 										</SelectTrigger>
 										<SelectContent>
-											{users?.map(u => (
-												<SelectItem key={u.id} value={u.id}>
-													<UserAvatar name={u.name || u.email} image={u.image} size="small" />
-													<span className="truncate">{u.name || u.email}</span>
-												</SelectItem>
-											))}
+											<SelectItem value="me">Me</SelectItem>
+											{(myDependents?.dependents ?? [])
+												.filter(d => !d.isArchived)
+												.map(d => (
+													<SelectItem key={d.id} value={d.id}>
+														<DependentAvatar name={d.name} image={d.image} size="small" />
+														<span className="truncate">{d.name}</span>
+													</SelectItem>
+												))}
 										</SelectContent>
 									</Select>
 								</div>

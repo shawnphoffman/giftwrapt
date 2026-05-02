@@ -23,8 +23,10 @@ import {
 	getListSummariesImpl,
 	GetListSummariesInputSchema,
 	getMyListsImpl,
+	getPublicDependentsImpl,
 	type ListSummary,
 	type MyListsResult,
+	type PublicDependent,
 	setPrimaryListImpl,
 	SetPrimaryListInputSchema,
 	type SetPrimaryListResult,
@@ -39,14 +41,17 @@ export type {
 	ChildListGroup,
 	CreateListResult,
 	DeleteListResult,
+	DependentListGroup,
 	GetListForEditingResult,
 	GetListForViewingResult,
 	GroupSummary,
 	ListForEditing,
 	ListForViewing,
+	ListForViewingSubjectDependent,
 	ListSummary,
 	MyListRow,
 	MyListsResult,
+	PublicDependent,
 	PublicList,
 	PublicListType,
 	PublicUser,
@@ -73,6 +78,13 @@ export const getListSummaries = createServerFn({ method: 'GET' })
 export const getMyLists = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.handler(({ context }): Promise<MyListsResult> => getMyListsImpl(context.session.user.id))
+
+// Public-feed dependents (pets, babies, etc. with at least one public list).
+// Mirrors the user-side `/api/lists/public` shape but groups by dependent
+// rather than by user.
+export const getPublicDependents = createServerFn({ method: 'GET' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.handler(({ context }): Promise<Array<PublicDependent>> => getPublicDependentsImpl(context.session.user.id))
 
 export const createList = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])

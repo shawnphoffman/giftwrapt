@@ -13,7 +13,7 @@ import { giftedItems, itemComments, itemGroups, items, lists, users } from '@/db
 import { availabilityEnumValues, type ListType, type Priority, priorityEnumValues } from '@/db/schema/enums'
 import type { GiftedItem } from '@/db/schema/gifts'
 import type { Item } from '@/db/schema/items'
-import { canEditList, canViewList, getViewerAccessLevel } from '@/lib/permissions'
+import { canEditList, canViewList, getViewerAccessLevelForList } from '@/lib/permissions'
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { getVendorFromUrl } from '@/lib/urls'
@@ -177,7 +177,7 @@ export const DeleteGroupsInputSchema = z.object({
 // Helpers
 // ===============================
 
-type ListForPermCheck = { id: number; ownerId: string; isPrivate: boolean; isActive: boolean }
+type ListForPermCheck = { id: number; ownerId: string; subjectDependentId: string | null; isPrivate: boolean; isActive: boolean }
 
 async function assertCanEditItems(userId: string, list: ListForPermCheck): Promise<{ ok: true } | { ok: false; reason: 'not-authorized' }> {
 	if (list.ownerId === userId) return { ok: true }
@@ -212,7 +212,7 @@ async function loadAndAuthorizeItems(
 	const listIds = [...new Set(rows.map(r => r.listId))]
 	const listRows = await db.query.lists.findMany({
 		where: inArray(lists.id, listIds),
-		columns: { id: true, ownerId: true, isPrivate: true, isActive: true, type: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true, type: true },
 	})
 	if (listRows.length !== listIds.length) return { ok: false, reason: 'not-found' }
 
@@ -237,7 +237,7 @@ export async function copyItemToListImpl(args: { userId: string; input: z.infer<
 
 	const sourceList = await db.query.lists.findFirst({
 		where: eq(lists.id, sourceItem.listId),
-		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!sourceList) return { kind: 'error', reason: 'not-found' }
 
@@ -246,7 +246,7 @@ export async function copyItemToListImpl(args: { userId: string; input: z.infer<
 
 	const targetList = await db.query.lists.findFirst({
 		where: eq(lists.id, data.targetListId),
-		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!targetList) return { kind: 'error', reason: 'not-found' }
 
@@ -286,7 +286,7 @@ export async function archiveItemImpl(args: { userId: string; input: z.infer<typ
 
 	const list = await db.query.lists.findFirst({
 		where: eq(lists.id, item.listId),
-		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 
@@ -311,7 +311,7 @@ export async function setItemAvailabilityImpl(args: {
 
 	const list = await db.query.lists.findFirst({
 		where: eq(lists.id, item.listId),
-		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 
@@ -334,7 +334,7 @@ export async function moveItemsToListImpl(args: { userId: string; input: z.infer
 
 	const targetList = await db.query.lists.findFirst({
 		where: eq(lists.id, data.targetListId),
-		columns: { id: true, ownerId: true, isPrivate: true, isActive: true, type: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true, type: true },
 	})
 	if (!targetList) return { kind: 'error', reason: 'not-found' }
 	const targetPerm = await assertCanEditItems(userId, targetList)
@@ -396,7 +396,7 @@ export async function archiveListPurchasesImpl(args: {
 
 	const list = await db.query.lists.findFirst({
 		where: eq(lists.id, data.listId),
-		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 	const perm = await assertCanEditItems(userId, list)
@@ -452,7 +452,7 @@ export async function reorderItemsImpl(args: {
 
 	const list = await db.query.lists.findFirst({
 		where: eq(lists.id, data.listId),
-		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 	const perm = await assertCanEditItems(userId, list)
@@ -485,7 +485,7 @@ export async function reorderListEntriesImpl(args: {
 
 	const list = await db.query.lists.findFirst({
 		where: eq(lists.id, data.listId),
-		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 	const perm = await assertCanEditItems(userId, list)
@@ -544,7 +544,7 @@ export async function setGroupsPriorityImpl(args: {
 
 	const list = await db.query.lists.findFirst({
 		where: eq(lists.id, groupRows[0].listId),
-		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 	const perm = await assertCanEditItems(userId, list)
@@ -570,7 +570,7 @@ export async function deleteGroupsImpl(args: {
 
 	const list = await db.query.lists.findFirst({
 		where: eq(lists.id, groupRows[0].listId),
-		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 	const perm = await assertCanEditItems(userId, list)
@@ -604,16 +604,20 @@ export async function getItemsForListViewImpl(args: {
 
 	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, listId),
-		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 
-	if (list.ownerId === args.userId) return { kind: 'error', reason: 'is-owner' }
+	// For dependent-subject lists the gifter universe doesn't include
+	// "the list owner is a real recipient" - the owner is the guardian,
+	// not the recipient. Guardians (including the creator) get the same
+	// gifter view that any other claimer has.
+	if (list.ownerId === args.userId && !list.subjectDependentId) return { kind: 'error', reason: 'is-owner' }
 
 	const view = await canViewList(args.userId, list, dbx)
 	if (!view.ok) return { kind: 'error', reason: 'not-visible' }
 
-	const accessLevel = await getViewerAccessLevel(args.userId, list.ownerId, dbx)
+	const accessLevel = await getViewerAccessLevelForList(args.userId, list, dbx)
 	const [sortBy, sortOrder] = sort.split('-') as [string, 'asc' | 'desc']
 	const orderBy = sortBy === 'priority' ? [asc(items.id)] : sortOrder === 'asc' ? [asc(items.createdAt)] : [desc(items.createdAt)]
 
@@ -701,7 +705,7 @@ export async function getItemsForListEditImpl(args: {
 
 	const list = await db.query.lists.findFirst({
 		where: eq(lists.id, listId),
-		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 

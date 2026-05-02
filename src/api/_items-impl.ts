@@ -20,7 +20,7 @@ import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { mirrorRemoteImageToStorage } from '@/lib/storage/mirror'
 import { getVendorFromUrl } from '@/lib/urls'
 
-type ListForPermCheck = { id: number; ownerId: string; isPrivate: boolean; isActive: boolean }
+type ListForPermCheck = { id: number; ownerId: string; subjectDependentId: string | null; isPrivate: boolean; isActive: boolean }
 
 async function assertCanEditItems(userId: string, list: ListForPermCheck): Promise<{ ok: true } | { ok: false; reason: 'not-authorized' }> {
 	if (list.ownerId === userId) return { ok: true }
@@ -66,7 +66,7 @@ export async function createItemImpl(args: {
 
 	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, data.listId),
-		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'list-not-found' }
 
@@ -138,7 +138,7 @@ export async function updateItemImpl(args: {
 
 	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, item.listId),
-		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 
@@ -233,7 +233,7 @@ export async function deleteItemImpl(args: {
 
 	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, item.listId),
-		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 

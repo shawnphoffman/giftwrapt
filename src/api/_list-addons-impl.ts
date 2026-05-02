@@ -70,7 +70,7 @@ export async function createListAddonImpl(args: {
 
 	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, data.listId),
-		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'list-not-found' }
 	if (list.ownerId === userId) return { kind: 'error', reason: 'cannot-add-to-own-list' }

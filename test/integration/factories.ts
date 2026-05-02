@@ -1,9 +1,11 @@
 import { nanoid } from 'nanoid'
 
 import type { SchemaDatabase } from '@/db'
-import type { BirthMonth, GiftedItem, Item, ItemComment, ItemScrape, List, ListAddon, ListEditor, Role, User } from '@/db/schema'
+import type { BirthMonth, Dependent, GiftedItem, Item, ItemComment, ItemScrape, List, ListAddon, ListEditor, Role, User } from '@/db/schema'
 import {
 	account,
+	dependentGuardianships,
+	dependents,
 	giftedItems,
 	guardianships,
 	itemComments,
@@ -117,6 +119,40 @@ export async function makeGiftedItem(
 
 export async function makeGuardianship(tx: Tx, args: { parentUserId: string; childUserId: string }): Promise<void> {
 	await tx.insert(guardianships).values(args)
+}
+
+export async function makeDependent(
+	tx: Tx,
+	overrides: Partial<{
+		id: string
+		name: string
+		image: string | null
+		birthMonth: BirthMonth | null
+		birthDay: number | null
+		birthYear: number | null
+		isArchived: boolean
+		createdByUserId: string
+	}> & { createdByUserId: string }
+): Promise<Dependent> {
+	const id = overrides.id ?? `dep_${nextId()}`
+	const [row] = await tx
+		.insert(dependents)
+		.values({
+			id,
+			name: overrides.name ?? `Dependent ${id}`,
+			image: overrides.image ?? null,
+			birthMonth: overrides.birthMonth ?? null,
+			birthDay: overrides.birthDay ?? null,
+			birthYear: overrides.birthYear ?? null,
+			isArchived: overrides.isArchived ?? false,
+			createdByUserId: overrides.createdByUserId,
+		})
+		.returning()
+	return row
+}
+
+export async function makeDependentGuardianship(tx: Tx, args: { guardianUserId: string; dependentId: string }): Promise<void> {
+	await tx.insert(dependentGuardianships).values(args)
 }
 
 export async function makeUserRelationship(

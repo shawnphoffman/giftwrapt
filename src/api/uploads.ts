@@ -232,7 +232,7 @@ export const removeAvatarAsAdmin = createServerFn({ method: 'POST' })
 // Permission check mirrors src/api/items.ts. Kept local here to avoid a
 // cross-module helper; the `canEditList` primitive already covers the hard
 // case (list-level editor grants).
-type ListForPermCheck = { id: number; ownerId: string; isPrivate: boolean; isActive: boolean }
+type ListForPermCheck = { id: number; ownerId: string; subjectDependentId: string | null; isPrivate: boolean; isActive: boolean }
 
 async function canUserEditItemsOn(userId: string, list: ListForPermCheck): Promise<boolean> {
 	if (list.ownerId === userId) return true
@@ -271,7 +271,7 @@ export const uploadItemImage = createServerFn({ method: 'POST' })
 
 		const list = await db.query.lists.findFirst({
 			where: eq(lists.id, item.listId),
-			columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+			columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 		})
 		if (!list) return err('not-found', 'list not found')
 
@@ -332,7 +332,7 @@ export const removeItemImage = createServerFn({ method: 'POST' })
 
 		const list = await db.query.lists.findFirst({
 			where: eq(lists.id, item.listId),
-			columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+			columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 		})
 		if (!list) return err('not-found', 'list not found')
 

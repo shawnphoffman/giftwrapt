@@ -1,8 +1,8 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, desc, eq, inArray } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull } from 'drizzle-orm'
 
 import { db } from '@/db'
-import { giftedItems, items, listAddons, lists, users } from '@/db/schema'
+import { dependentGuardianships, dependents, giftedItems, items, listAddons, lists, users } from '@/db/schema'
 import { namesForGifter, type PartneredUser } from '@/lib/gifters'
 import { loggingMiddleware } from '@/lib/logger'
 import { authMiddleware } from '@/middleware/auth'
@@ -41,9 +41,16 @@ export type ReceivedAddonRow = {
 	archivedAt: Date
 }
 
+export type DependentReceivedSection = {
+	dependent: { id: string; name: string; image: string | null }
+	gifts: Array<ReceivedGiftRow>
+	addons: Array<ReceivedAddonRow>
+}
+
 export type ReceivedGiftsResult = {
 	gifts: Array<ReceivedGiftRow>
 	addons: Array<ReceivedAddonRow>
+	dependents: Array<DependentReceivedSection>
 }
 
 export const getReceivedGifts = createServerFn({ method: 'GET' })
@@ -51,6 +58,8 @@ export const getReceivedGifts = createServerFn({ method: 'GET' })
 	.handler(async ({ context }): Promise<ReceivedGiftsResult> => {
 		const userId = context.session.user.id
 
+		// Personal received gifts: only lists I own AND that aren't FOR a
+		// dependent (those collapse into the per-dependent sections below).
 		const giftRows = await db
 			.select({
 				itemId: items.id,
@@ -63,10 +72,12 @@ export const getReceivedGifts = createServerFn({ method: 'GET' })
 				additionalGifterIds: giftedItems.additionalGifterIds,
 				quantity: giftedItems.quantity,
 				archivedAt: items.updatedAt,
+				subjectDependentId: lists.subjectDependentId,
 			})
 			.from(giftedItems)
 			.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, true)))
-			.innerJoin(lists, and(eq(lists.id, items.listId), eq(lists.ownerId, userId)))
+			.innerJoin(lists, eq(lists.id, items.listId))
+			.where(and(eq(lists.ownerId, userId), isNull(lists.subjectDependentId)))
 			.orderBy(desc(items.updatedAt))
 
 		const addonRows = await db
@@ -78,11 +89,90 @@ export const getReceivedGifts = createServerFn({ method: 'GET' })
 				listName: lists.name,
 				gifterId: listAddons.userId,
 				archivedAt: listAddons.createdAt,
+				subjectDependentId: lists.subjectDependentId,
 			})
 			.from(listAddons)
-			.innerJoin(lists, and(eq(lists.id, listAddons.listId), eq(lists.ownerId, userId)))
-			.where(eq(listAddons.isArchived, true))
+			.innerJoin(lists, eq(lists.id, listAddons.listId))
+			.where(and(eq(lists.ownerId, userId), eq(listAddons.isArchived, true), isNull(lists.subjectDependentId)))
 			.orderBy(desc(listAddons.createdAt))
+
+		// Per-dependent gifts: every list with a subjectDependentId that this
+		// guardian is a guardian of, archived items only.
+		const myDependentRows = await db
+			.select({ dependentId: dependentGuardianships.dependentId })
+			.from(dependentGuardianships)
+			.where(eq(dependentGuardianships.guardianUserId, userId))
+		const myDependentIds = myDependentRows.map(r => r.dependentId)
+
+		type DependentGiftRow = {
+			itemId: number
+			itemTitle: string
+			itemImageUrl: string | null
+			itemPrice: string | null
+			listId: number
+			listName: string
+			gifterId: string
+			additionalGifterIds: Array<string> | null
+			quantity: number
+			archivedAt: Date
+			subjectDependentId: string | null
+		}
+		type DependentAddonRow = {
+			addonId: number
+			description: string
+			totalCost: string | null
+			listId: number
+			listName: string
+			gifterId: string
+			archivedAt: Date
+			subjectDependentId: string | null
+		}
+
+		let dependentGiftRows: Array<DependentGiftRow> = []
+		let dependentAddonRows: Array<DependentAddonRow> = []
+		const dependentMeta = new Map<string, { id: string; name: string; image: string | null }>()
+		if (myDependentIds.length > 0) {
+			dependentGiftRows = await db
+				.select({
+					itemId: items.id,
+					itemTitle: items.title,
+					itemImageUrl: items.imageUrl,
+					itemPrice: items.price,
+					listId: lists.id,
+					listName: lists.name,
+					gifterId: giftedItems.gifterId,
+					additionalGifterIds: giftedItems.additionalGifterIds,
+					quantity: giftedItems.quantity,
+					archivedAt: items.updatedAt,
+					subjectDependentId: lists.subjectDependentId,
+				})
+				.from(giftedItems)
+				.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, true)))
+				.innerJoin(lists, and(eq(lists.id, items.listId), inArray(lists.subjectDependentId, myDependentIds)))
+				.orderBy(desc(items.updatedAt))
+
+			dependentAddonRows = await db
+				.select({
+					addonId: listAddons.id,
+					description: listAddons.description,
+					totalCost: listAddons.totalCost,
+					listId: lists.id,
+					listName: lists.name,
+					gifterId: listAddons.userId,
+					archivedAt: listAddons.createdAt,
+					subjectDependentId: lists.subjectDependentId,
+				})
+				.from(listAddons)
+				.innerJoin(lists, and(eq(lists.id, listAddons.listId), inArray(lists.subjectDependentId, myDependentIds)))
+				.where(eq(listAddons.isArchived, true))
+				.orderBy(desc(listAddons.createdAt))
+
+			const dependentRows = await db
+				.select({ id: dependents.id, name: dependents.name, image: dependents.image })
+				.from(dependents)
+				.where(inArray(dependents.id, myDependentIds))
+			for (const d of dependentRows) dependentMeta.set(d.id, { id: d.id, name: d.name, image: d.image })
+		}
 
 		// Resolve the initial pool of gifter userIds referenced by claims + addons.
 		const seedIds = new Set<string>()
@@ -91,6 +181,11 @@ export const getReceivedGifts = createServerFn({ method: 'GET' })
 			for (const id of row.additionalGifterIds ?? []) seedIds.add(id)
 		}
 		for (const row of addonRows) seedIds.add(row.gifterId)
+		for (const row of dependentGiftRows) {
+			seedIds.add(row.gifterId)
+			for (const id of row.additionalGifterIds ?? []) seedIds.add(id)
+		}
+		for (const row of dependentAddonRows) seedIds.add(row.gifterId)
 
 		const userLookup = new Map<string, PartneredUser>()
 		if (seedIds.size > 0) {
@@ -147,5 +242,46 @@ export const getReceivedGifts = createServerFn({ method: 'GET' })
 			archivedAt: r.archivedAt,
 		}))
 
-		return { gifts, addons }
+		const dependentSections = new Map<string, DependentReceivedSection>()
+		for (const meta of dependentMeta.values()) {
+			dependentSections.set(meta.id, { dependent: meta, gifts: [], addons: [] })
+		}
+		for (const r of dependentGiftRows) {
+			if (!r.subjectDependentId) continue
+			const section = dependentSections.get(r.subjectDependentId)
+			if (!section) continue
+			section.gifts.push({
+				type: 'item',
+				itemId: r.itemId,
+				itemTitle: r.itemTitle,
+				itemImageUrl: r.itemImageUrl,
+				itemPrice: r.itemPrice,
+				listId: r.listId,
+				listName: r.listName,
+				gifterNames: collectNames(r.gifterId, r.additionalGifterIds),
+				quantity: r.quantity,
+				archivedAt: r.archivedAt,
+			})
+		}
+		for (const r of dependentAddonRows) {
+			if (!r.subjectDependentId) continue
+			const section = dependentSections.get(r.subjectDependentId)
+			if (!section) continue
+			section.addons.push({
+				type: 'addon',
+				addonId: r.addonId,
+				description: r.description,
+				totalCost: r.totalCost,
+				listId: r.listId,
+				listName: r.listName,
+				gifterNames: collectNames(r.gifterId, null),
+				archivedAt: r.archivedAt,
+			})
+		}
+
+		// Drop sections with no gifts and no addons - the UI shouldn't show
+		// an empty "Mochi" header.
+		const dependentsResult = Array.from(dependentSections.values()).filter(s => s.gifts.length > 0 || s.addons.length > 0)
+
+		return { gifts, addons, dependents: dependentsResult }
 	})

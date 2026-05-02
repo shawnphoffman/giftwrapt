@@ -33,6 +33,8 @@ function item(overrides: Partial<SummaryItem>): SummaryItem {
 		quantity: 1,
 		listName: 'Wish List',
 		createdAt: new Date(),
+		recipientKind: 'user',
+		subjectDependentId: null,
 		ownerId: 'user-1',
 		ownerName: 'Owner',
 		ownerEmail: 'owner@example.com',

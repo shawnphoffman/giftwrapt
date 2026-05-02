@@ -71,8 +71,18 @@ export type PermissionsMatrixUser = {
 	isGuardian: boolean
 }
 
+export type PermissionsMatrixDependent = {
+	id: string
+	name: string
+	image: string | null
+	guardianIds: Array<string>
+}
+
 export type PermissionsMatrixData = {
 	users: Array<PermissionsMatrixUser>
+	// Optional for backwards-compat with mocks/fixtures written before
+	// dependents existed; the live query always populates it.
+	dependents?: Array<PermissionsMatrixDependent>
 	guardianships: Array<{ parentUserId: string; childUserId: string }>
 	relationships: Array<{ ownerUserId: string; viewerUserId: string; accessLevel: AccessLevel; canEdit: boolean }>
 	listEditorCounts: Array<{ ownerId: string; userId: string; count: number }>
@@ -91,4 +101,39 @@ export function buildIndices(data: PermissionsMatrixData) {
 	const partnerOf = new Map<string, string | null>()
 	for (const u of data.users) partnerOf.set(u.id, u.partnerId)
 	return { guardianPairs, relationships, listEditorCounts, partnerOf }
+}
+
+// Classify a cell where the OWNER is a dependent. The viewer is always a
+// user. Resolution order:
+//   guardian > explicit deny (from any guardian) > restricted > view default
+// Edit grants from `userRelationships.canEdit` and per-list editor rows
+// don't apply to dependents in v1: the only edit access on a dependent's
+// list is via `dependentGuardianships`. Partnership annotation is dropped
+// (a dependent has no partner).
+export type ClassifyDependentCellArgs = {
+	viewerId: string
+	dependentId: string
+	guardianIds: Array<string>
+	relationships: Map<string, { accessLevel: AccessLevel; canEdit: boolean }>
+}
+
+export function classifyDependentCell(args: ClassifyDependentCellArgs): Cell {
+	const { viewerId, guardianIds, relationships } = args
+	if (guardianIds.includes(viewerId)) {
+		return { kind: 'guardian', editorListCount: 0, isPartner: false }
+	}
+	let mostPermissive: AccessLevel | null = null
+	for (const guardianId of guardianIds) {
+		const rel = relationships.get(ownerViewerKey(guardianId, viewerId))
+		if (!rel) continue
+		if (rel.accessLevel === 'none') {
+			return { kind: 'denied', editorListCount: 0, isPartner: false }
+		}
+		if (rel.accessLevel === 'view') mostPermissive = 'view'
+		else if (mostPermissive !== 'view') mostPermissive = 'restricted'
+	}
+	if (mostPermissive === 'restricted') {
+		return { kind: 'restricted', editorListCount: 0, isPartner: false }
+	}
+	return { kind: 'view', editorListCount: 0, isPartner: false }
 }

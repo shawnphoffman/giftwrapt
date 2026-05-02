@@ -35,7 +35,7 @@ export function registerGroupRoutes(v1: App): void {
 		// View permission gate (web does this in the route loader).
 		const list = await db.query.lists.findFirst({
 			where: eq(lists.id, listId),
-			columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+			columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 		})
 		if (!list) return jsonError(c, 404, 'not-found')
 		if (list.ownerId !== userId) {

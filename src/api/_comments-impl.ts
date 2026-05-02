@@ -44,7 +44,7 @@ export async function getCommentsForItemImpl(args: { userId: string; itemId: num
 
 	const list = await db.query.lists.findFirst({
 		where: eq(lists.id, item.listId),
-		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return []
 
@@ -95,7 +95,7 @@ export async function createItemCommentImpl(args: {
 
 	const list = await db.query.lists.findFirst({
 		where: eq(lists.id, item.listId),
-		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'item-not-found' }
 

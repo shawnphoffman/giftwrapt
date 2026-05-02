@@ -4,6 +4,8 @@ import { eq, sql } from 'drizzle-orm'
 import { db } from '@/db'
 import {
 	appSettings,
+	dependentGuardianships,
+	dependents,
 	giftedItems,
 	guardianships,
 	itemComments,
@@ -36,6 +38,8 @@ export const exportAppDataAsAdmin = createServerFn({ method: 'GET' })
 			appSettingsRows,
 			userRelationshipsRows,
 			guardianshipsRows,
+			dependentsRows,
+			dependentGuardianshipsRows,
 			listsRows,
 			itemGroupsRows,
 			itemsRows,
@@ -48,6 +52,8 @@ export const exportAppDataAsAdmin = createServerFn({ method: 'GET' })
 			db.select().from(appSettings),
 			db.select().from(userRelationships),
 			db.select().from(guardianships),
+			db.select().from(dependents),
+			db.select().from(dependentGuardianships),
 			db.select().from(lists),
 			db.select().from(itemGroups),
 			db.select().from(items),
@@ -62,13 +68,11 @@ export const exportAppDataAsAdmin = createServerFn({ method: 'GET' })
 			exportedAt: new Date().toISOString(),
 			tables: {
 				users: usersRows,
-				// Drizzle selects jsonb().notNull() as `unknown` in practice even
-				// though TS 5's NonNullable<unknown> resolves to `{}`. Cast rather
-				// than forcing `$type<{}>()` on the column, which would propagate
-				// into every consumer of the settings reader.
 				appSettings: appSettingsRows as BackupFile['tables']['appSettings'],
 				userRelationships: userRelationshipsRows,
 				guardianships: guardianshipsRows,
+				dependents: dependentsRows,
+				dependentGuardianships: dependentGuardianshipsRows,
 				lists: listsRows,
 				itemGroups: itemGroupsRows,
 				items: itemsRows,
@@ -274,6 +278,52 @@ export const importAppDataAsAdmin = createServerFn({ method: 'POST' })
 					result.guardianships = tables.guardianships.length
 				}
 
+				// -------- dependents --------
+				if (tables.dependents.length > 0) {
+					if (mode === 'wipe') {
+						await tx.insert(dependents).values(tables.dependents)
+					} else {
+						for (const row of tables.dependents) {
+							await tx
+								.insert(dependents)
+								.values(row)
+								.onConflictDoUpdate({
+									target: dependents.id,
+									set: {
+										name: row.name,
+										image: row.image,
+										birthMonth: row.birthMonth,
+										birthDay: row.birthDay,
+										birthYear: row.birthYear,
+										createdByUserId: row.createdByUserId,
+										isArchived: row.isArchived,
+										createdAt: row.createdAt,
+										updatedAt: row.updatedAt,
+									},
+								})
+						}
+					}
+					result.dependents = tables.dependents.length
+				}
+
+				// -------- dependentGuardianships --------
+				if (tables.dependentGuardianships.length > 0) {
+					if (mode === 'wipe') {
+						await tx.insert(dependentGuardianships).values(tables.dependentGuardianships)
+					} else {
+						for (const row of tables.dependentGuardianships) {
+							await tx
+								.insert(dependentGuardianships)
+								.values(row)
+								.onConflictDoUpdate({
+									target: [dependentGuardianships.guardianUserId, dependentGuardianships.dependentId],
+									set: { createdAt: row.createdAt, updatedAt: row.updatedAt },
+								})
+						}
+					}
+					result.dependentGuardianships = tables.dependentGuardianships.length
+				}
+
 				// -------- lists --------
 				if (tables.lists.length > 0) {
 					if (mode === 'wipe') {
@@ -293,7 +343,9 @@ export const importAppDataAsAdmin = createServerFn({ method: 'POST' })
 										isPrimary: row.isPrimary,
 										description: row.description,
 										ownerId: row.ownerId,
+										subjectDependentId: row.subjectDependentId,
 										giftIdeasTargetUserId: row.giftIdeasTargetUserId,
+										giftIdeasTargetDependentId: row.giftIdeasTargetDependentId,
 										createdAt: row.createdAt,
 										updatedAt: row.updatedAt,
 									},
@@ -513,6 +565,8 @@ async function captureFullSnapshot(): Promise<BackupFile> {
 		appSettingsRows,
 		userRelationshipsRows,
 		guardianshipsRows,
+		dependentsRows,
+		dependentGuardianshipsRows,
 		listsRows,
 		itemGroupsRows,
 		itemsRows,
@@ -525,6 +579,8 @@ async function captureFullSnapshot(): Promise<BackupFile> {
 		db.select().from(appSettings),
 		db.select().from(userRelationships),
 		db.select().from(guardianships),
+		db.select().from(dependents),
+		db.select().from(dependentGuardianships),
 		db.select().from(lists),
 		db.select().from(itemGroups),
 		db.select().from(items),
@@ -541,6 +597,8 @@ async function captureFullSnapshot(): Promise<BackupFile> {
 			appSettings: appSettingsRows as BackupFile['tables']['appSettings'],
 			userRelationships: userRelationshipsRows,
 			guardianships: guardianshipsRows,
+			dependents: dependentsRows,
+			dependentGuardianships: dependentGuardianshipsRows,
 			lists: listsRows,
 			itemGroups: itemGroupsRows,
 			items: itemsRows,
@@ -558,6 +616,8 @@ function countsFromTables(tables: BackupFileTables): ImportCounts {
 		appSettings: tables.appSettings.length,
 		userRelationships: tables.userRelationships.length,
 		guardianships: tables.guardianships.length,
+		dependents: tables.dependents.length,
+		dependentGuardianships: tables.dependentGuardianships.length,
 		lists: tables.lists.length,
 		itemGroups: tables.itemGroups.length,
 		items: tables.items.length,
@@ -574,6 +634,8 @@ function emptyCounts(): ImportCounts {
 		appSettings: 0,
 		userRelationships: 0,
 		guardianships: 0,
+		dependents: 0,
+		dependentGuardianships: 0,
 		lists: 0,
 		itemGroups: 0,
 		items: 0,
@@ -595,6 +657,10 @@ function dbTableName(name: keyof BackupFileTables): string {
 			return 'user_relationships'
 		case 'guardianships':
 			return 'guardianships'
+		case 'dependents':
+			return 'dependents'
+		case 'dependentGuardianships':
+			return 'dependent_guardianships'
 		case 'lists':
 			return 'lists'
 		case 'itemGroups':

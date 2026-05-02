@@ -38,6 +38,21 @@ const UserWithListsSchema = z.object({
 export type UserWithLists = z.infer<typeof UserWithListsSchema>
 export type List = z.infer<typeof ListSchema>
 
+const DependentWithListsSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	image: z.string().nullable(),
+	birthMonth: z
+		.enum(['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'])
+		.nullable(),
+	birthDay: z.number().nullable(),
+	guardianIds: z.array(z.string()),
+	lastGiftedAt: z.string().nullable(),
+	lists: z.array(ListSchema),
+})
+
+export type DependentWithLists = z.infer<typeof DependentWithListsSchema>
+
 // Helper to get the API URL (absolute URL for server-side, relative for client-side)
 const getApiUrl = (path: string): string => {
 	// On the client, relative URLs work fine
@@ -66,5 +81,22 @@ export const usersWithListsCollection = createCollection(
 		queryClient: getContext().queryClient,
 		getKey: (user: UserWithLists) => user.id,
 		schema: UserWithListsSchema,
+	})
+)
+
+export const dependentsWithListsCollection = createCollection(
+	queryCollectionOptions({
+		queryKey: ['lists', 'public', 'dependents'],
+		queryFn: async () => {
+			const url = getApiUrl('/api/lists/public-dependents')
+			const response = await fetch(url)
+			if (!response.ok) {
+				throw new Error('Failed to fetch public dependent lists')
+			}
+			return response.json()
+		},
+		queryClient: getContext().queryClient,
+		getKey: (dep: DependentWithLists) => dep.id,
+		schema: DependentWithListsSchema,
 	})
 )

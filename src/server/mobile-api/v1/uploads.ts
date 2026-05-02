@@ -175,7 +175,7 @@ export function registerUploadRoutes(v1: App): void {
 
 		const list = await db.query.lists.findFirst({
 			where: eq(lists.id, item.listId),
-			columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+			columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 		})
 		if (!list) return jsonError(c, 404, 'list-not-found')
 		if (list.ownerId !== userId) {
@@ -221,7 +221,7 @@ export function registerUploadRoutes(v1: App): void {
 		if (!item) return jsonError(c, 404, 'item-not-found')
 		const list = await db.query.lists.findFirst({
 			where: eq(lists.id, item.listId),
-			columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+			columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 		})
 		if (!list) return jsonError(c, 404, 'list-not-found')
 		if (list.ownerId !== userId) {

@@ -181,10 +181,16 @@ export async function claimItemGiftImpl(args: { gifterId: string; input: z.infer
 
 		const list = await tx.query.lists.findFirst({
 			where: eq(lists.id, lockedItem.list_id),
-			columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+			columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 		})
 		if (!list) return { kind: 'error', reason: 'item-not-found' }
-		if (list.ownerId === gifterId) return { kind: 'error', reason: 'cannot-claim-own-list' }
+		// Self-claim is rejected when the list owner is the recipient. For
+		// dependent-subject lists the recipient is the dependent, not the
+		// guardian who created the list, so guardians (including the owner)
+		// can claim - it's a normal gift TO the dependent.
+		if (list.ownerId === gifterId && !list.subjectDependentId) {
+			return { kind: 'error', reason: 'cannot-claim-own-list' }
+		}
 
 		const view = await canViewList(gifterId, list)
 		if (!view.ok) return { kind: 'error', reason: 'not-visible' }

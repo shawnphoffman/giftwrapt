@@ -3,12 +3,13 @@ import { Link } from '@tanstack/react-router'
 
 import { ClientOnly } from '@/components/utilities/client-only'
 import type { BirthMonth } from '@/db/schema/enums'
-import type { UserWithLists } from '@/db-collections/lists'
-import { usersWithListsCollection } from '@/db-collections/lists'
+import type { DependentWithLists, UserWithLists } from '@/db-collections/lists'
+import { dependentsWithListsCollection, usersWithListsCollection } from '@/db-collections/lists'
 import { useSession } from '@/lib/auth-client'
 import { useListsSSE } from '@/lib/use-lists-sse'
 
 import ListsByUserSkeleton from '../skeletons/lists-by-user-skeleton'
+import ListsForDependent from './lists-for-dependent'
 import ListsForUser from './lists-for-user'
 
 // Map month names to numbers (1-12)
@@ -82,11 +83,13 @@ function ListsByUserContent() {
 			...user,
 		}))
 	)
+	const dependentsResult = useLiveQuery(q => q.from({ dep: dependentsWithListsCollection }).select(({ dep }) => ({ ...dep })))
 
 	const usersData = Array.from(queryResult.data.values()) as Array<UserWithLists>
+	const dependentsData = Array.from(dependentsResult.data.values()) as Array<DependentWithLists>
 	const isLoading = queryResult.isLoading
 
-	if (isLoading && usersData.length === 0) {
+	if (isLoading && usersData.length === 0 && dependentsData.length === 0) {
 		return (
 			<div className="space-y-6">
 				{[...Array(3)].map((_, i) => (
@@ -98,8 +101,12 @@ function ListsByUserContent() {
 
 	// Sort users by next upcoming birthday
 	const sortedUsers = [...usersData].sort(sortUserGroupsByBirthDate)
+	// Dependents share the same sort fn shape (id/name/birthMonth/birthDay).
+	const sortedDependents = [...dependentsData].sort((a, b) =>
+		sortUserGroupsByBirthDate(a as unknown as UserWithLists, b as unknown as UserWithLists)
+	)
 
-	if (sortedUsers.length === 0) {
+	if (sortedUsers.length === 0 && sortedDependents.length === 0) {
 		return (
 			<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30">
 				No users.
@@ -120,6 +127,9 @@ function ListsByUserContent() {
 		<div className="gap-2 flex flex-col">
 			{sortedUsers.map(user => (
 				<ListsForUser key={user.id} user={user} />
+			))}
+			{sortedDependents.map(dep => (
+				<ListsForDependent key={dep.id} dependent={dep} />
 			))}
 		</div>
 	)

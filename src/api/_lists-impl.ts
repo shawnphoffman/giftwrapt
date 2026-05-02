@@ -9,11 +9,22 @@ import { z } from 'zod'
 
 import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
-import { giftedItems, guardianships, itemGroups, items, listAddons, listEditors, lists, users } from '@/db/schema'
+import {
+	dependentGuardianships,
+	dependents,
+	giftedItems,
+	guardianships,
+	itemGroups,
+	items,
+	listAddons,
+	listEditors,
+	lists,
+	users,
+} from '@/db/schema'
 import { type BirthMonth, type GroupType, type ListType, listTypeEnumValues, type Priority } from '@/db/schema/enums'
 import type { ListAddon } from '@/db/schema/lists'
 import { computeListItemCounts } from '@/lib/gifts'
-import { canEditList, canViewList, getViewerAccessLevel } from '@/lib/permissions'
+import { canEditList, canViewList, getViewerAccessLevelForList } from '@/lib/permissions'
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
 
 // =====================================================================
@@ -40,6 +51,12 @@ export type GroupSummary = {
 	sortOrder: number | null
 }
 
+export type ListForViewingSubjectDependent = {
+	id: string
+	name: string
+	image: string | null
+}
+
 export type ListForViewing = {
 	id: number
 	name: string
@@ -51,6 +68,7 @@ export type ListForViewing = {
 		email: string
 		image: string | null
 	}
+	subjectDependent: ListForViewingSubjectDependent | null
 	groups: Array<GroupSummary>
 	addons: Array<AddonOnList>
 }
@@ -83,6 +101,13 @@ export type MyListRow = {
 		email: string
 		image: string | null
 	} | null
+	giftIdeasTargetDependentId: string | null
+	giftIdeasTargetDependent: {
+		id: string
+		name: string
+		image: string | null
+	} | null
+	subjectDependentId: string | null
 	itemCount: number
 }
 
@@ -91,6 +116,17 @@ export type ChildListGroup = {
 	childName: string | null
 	childEmail: string
 	childImage: string | null
+	birthMonth: BirthMonth | null
+	birthDay: number | null
+	birthYear: number | null
+	lastGiftedAt: Date | null
+	lists: Array<MyListRow>
+}
+
+export type DependentListGroup = {
+	dependentId: string
+	dependentName: string
+	dependentImage: string | null
 	birthMonth: BirthMonth | null
 	birthDay: number | null
 	birthYear: number | null
@@ -111,6 +147,7 @@ export type MyListsResult = {
 		}
 	>
 	children: Array<ChildListGroup>
+	dependents: Array<DependentListGroup>
 }
 
 export type PublicListType = Exclude<ListType, 'giftideas'>
@@ -139,9 +176,23 @@ export type PublicUser = {
 	lists: Array<PublicList>
 }
 
+// Dependents surfaced in the public-lists feed alongside users. Lists
+// where `subjectDependentId` matches collapse into a single feed entry
+// with the dependent's name/avatar (rather than the guardian-creator's).
+export type PublicDependent = {
+	id: string
+	name: string
+	image: string | null
+	birthMonth: BirthMonth | null
+	birthDay: number | null
+	guardianIds: Array<string>
+	lastGiftedAt: string | null
+	lists: Array<PublicList>
+}
+
 export type CreateListResult =
 	| { kind: 'ok'; list: { id: number; name: string; type: ListType } }
-	| { kind: 'error'; reason: 'child-cannot-create-gift-ideas' }
+	| { kind: 'error'; reason: 'child-cannot-create-gift-ideas' | 'not-dependent-guardian' }
 
 export type UpdateListResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' | 'child-cannot-create-gift-ideas' }
 
@@ -179,6 +230,10 @@ export const CreateListInputSchema = z.object({
 	isPrivate: z.boolean().default(false),
 	description: z.string().max(2000).optional(),
 	giftIdeasTargetUserId: z.string().optional(),
+	giftIdeasTargetDependentId: z.string().optional(),
+	// When set, the new list is FOR a dependent. The actor must be a
+	// guardian of this dependent; the actor remains the `ownerId`.
+	subjectDependentId: z.string().optional(),
 })
 
 export const UpdateListInputSchema = z.object({
@@ -189,6 +244,7 @@ export const UpdateListInputSchema = z.object({
 	description: z.string().max(2000).nullable().optional(),
 	isActive: z.boolean().optional(),
 	giftIdeasTargetUserId: z.string().nullable().optional(),
+	giftIdeasTargetDependentId: z.string().nullable().optional(),
 })
 
 export const DeleteListInputSchema = z.object({
@@ -223,6 +279,7 @@ export async function getListForViewingImpl(args: {
 			isActive: true,
 			isPrivate: true,
 			ownerId: true,
+			subjectDependentId: true,
 		},
 		with: {
 			owner: {
@@ -233,19 +290,29 @@ export async function getListForViewingImpl(args: {
 					image: true,
 				},
 			},
+			subjectDependent: {
+				columns: {
+					id: true,
+					name: true,
+					image: true,
+				},
+			},
 		},
 	})
 
 	if (!list?.owner) return null
 
-	if (list.ownerId === args.userId) {
+	// For dependent-subject lists, the owner is the guardian, not the
+	// recipient - guardians shouldn't be redirected to "their own" edit
+	// view because the list isn't really theirs as a recipient.
+	if (list.ownerId === args.userId && !list.subjectDependentId) {
 		return { kind: 'redirect', listId: String(list.id) }
 	}
 
 	const view = await canViewList(args.userId, list, dbx)
 	if (!view.ok) return null
 
-	const accessLevel = await getViewerAccessLevel(args.userId, list.ownerId, dbx)
+	const accessLevel = await getViewerAccessLevelForList(args.userId, list, dbx)
 
 	const [addons, viewGroups] = await Promise.all([
 		// Restricted viewers see ONLY their own addons - they can still
@@ -294,6 +361,13 @@ export async function getListForViewingImpl(args: {
 				email: list.owner.email,
 				image: list.owner.image,
 			},
+			subjectDependent: list.subjectDependent
+				? {
+						id: list.subjectDependent.id,
+						name: list.subjectDependent.name,
+						image: list.subjectDependent.image,
+					}
+				: null,
 			groups: viewGroups,
 			addons,
 		},
@@ -309,7 +383,7 @@ export async function getListSummariesImpl(args: {
 
 	const rows = await db.query.lists.findMany({
 		where: inArray(lists.id, data.listIds),
-		columns: { id: true, name: true, ownerId: true, isPrivate: true, isActive: true },
+		columns: { id: true, name: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 
 	const visible: Array<ListSummary> = []
@@ -343,7 +417,7 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 		.groupBy(lists.ownerId)
 		.as('lastGifted')
 
-	const [ownedLists, editableRows, childRows] = await Promise.all([
+	const [ownedLists, editableRows, childRows, dependentRows] = await Promise.all([
 		db
 			.select({
 				id: lists.id,
@@ -354,11 +428,15 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 				isPrimary: lists.isPrimary,
 				description: lists.description,
 				giftIdeasTargetUserId: lists.giftIdeasTargetUserId,
+				giftIdeasTargetDependentId: lists.giftIdeasTargetDependentId,
+				subjectDependentId: lists.subjectDependentId,
 				itemCount: count(items.id),
 			})
 			.from(lists)
+			// "Owned by me" excludes lists I created FOR a dependent - those
+			// belong in the dependents section below, not in my personal lists.
 			.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false)))
-			.where(and(eq(lists.ownerId, userId), eq(lists.isActive, true)))
+			.where(and(eq(lists.ownerId, userId), eq(lists.isActive, true), sql`${lists.subjectDependentId} IS NULL`))
 			.groupBy(lists.id)
 			.orderBy(desc(lists.isPrimary), asc(lists.name)),
 
@@ -372,6 +450,8 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 				isPrimary: lists.isPrimary,
 				description: lists.description,
 				giftIdeasTargetUserId: lists.giftIdeasTargetUserId,
+				giftIdeasTargetDependentId: lists.giftIdeasTargetDependentId,
+				subjectDependentId: lists.subjectDependentId,
 				ownerName: sql<string | null>`owner.name`,
 				ownerEmail: sql<string>`owner.email`,
 				ownerImage: sql<string | null>`owner.image`,
@@ -401,6 +481,20 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 			.leftJoin(lastGiftedSubquery, eq(lastGiftedSubquery.recipientOwnerId, users.id))
 			.where(eq(guardianships.parentUserId, userId))
 			.orderBy(asc(users.name)),
+
+		db
+			.select({
+				dependentId: dependents.id,
+				dependentName: dependents.name,
+				dependentImage: dependents.image,
+				birthMonth: dependents.birthMonth,
+				birthDay: dependents.birthDay,
+				birthYear: dependents.birthYear,
+			})
+			.from(dependentGuardianships)
+			.innerJoin(dependents, and(eq(dependents.id, dependentGuardianships.dependentId), eq(dependents.isArchived, false)))
+			.where(eq(dependentGuardianships.guardianUserId, userId))
+			.orderBy(asc(dependents.name)),
 	])
 
 	const childIds = childRows.map(c => c.childId)
@@ -416,6 +510,8 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 					isPrimary: lists.isPrimary,
 					description: lists.description,
 					giftIdeasTargetUserId: lists.giftIdeasTargetUserId,
+					giftIdeasTargetDependentId: lists.giftIdeasTargetDependentId,
+					subjectDependentId: lists.subjectDependentId,
 					itemCount: count(items.id),
 				})
 				.from(lists)
@@ -437,9 +533,81 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 			description: row.description,
 			giftIdeasTargetUserId: row.giftIdeasTargetUserId,
 			giftIdeasTarget: null,
+			giftIdeasTargetDependentId: row.giftIdeasTargetDependentId,
+			giftIdeasTargetDependent: null,
+			subjectDependentId: row.subjectDependentId,
 			itemCount: row.itemCount,
 		})
 		listsByChildId.set(row.ownerId, bucket)
+	}
+
+	const dependentIds = dependentRows.map(d => d.dependentId)
+	const allDependentLists = dependentIds.length
+		? await db
+				.select({
+					subjectDependentId: lists.subjectDependentId,
+					id: lists.id,
+					name: lists.name,
+					type: lists.type,
+					isActive: lists.isActive,
+					isPrivate: lists.isPrivate,
+					isPrimary: lists.isPrimary,
+					description: lists.description,
+					giftIdeasTargetUserId: lists.giftIdeasTargetUserId,
+					giftIdeasTargetDependentId: lists.giftIdeasTargetDependentId,
+					itemCount: count(items.id),
+				})
+				.from(lists)
+				.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false)))
+				.where(and(inArray(lists.subjectDependentId, dependentIds), eq(lists.isActive, true)))
+				.groupBy(lists.id)
+				.orderBy(asc(lists.name))
+		: []
+	const listsByDependentId = new Map<string, Array<MyListRow>>()
+	for (const row of allDependentLists) {
+		if (!row.subjectDependentId) continue
+		const bucket = listsByDependentId.get(row.subjectDependentId) ?? []
+		bucket.push({
+			id: row.id,
+			name: row.name,
+			type: row.type,
+			isActive: row.isActive,
+			isPrivate: row.isPrivate,
+			isPrimary: row.isPrimary,
+			description: row.description,
+			giftIdeasTargetUserId: row.giftIdeasTargetUserId,
+			giftIdeasTarget: null,
+			giftIdeasTargetDependentId: row.giftIdeasTargetDependentId,
+			giftIdeasTargetDependent: null,
+			subjectDependentId: row.subjectDependentId,
+			itemCount: row.itemCount,
+		})
+		listsByDependentId.set(row.subjectDependentId, bucket)
+	}
+
+	// "Last gifted at" for dependents: most recent claim across all lists
+	// where this dependent is the subject. Uses the same gifter/co-gifter
+	// predicate as the user surface above.
+	const dependentLastGiftedRows = dependentIds.length
+		? await db
+				.select({
+					subjectDependentId: lists.subjectDependentId,
+					lastGiftedAt: max(giftedItems.createdAt),
+				})
+				.from(giftedItems)
+				.innerJoin(items, eq(items.id, giftedItems.itemId))
+				.innerJoin(lists, eq(lists.id, items.listId))
+				.where(
+					and(
+						inArray(lists.subjectDependentId, dependentIds),
+						or(inArray(giftedItems.gifterId, gifterIds), arrayOverlaps(giftedItems.additionalGifterIds, gifterIds))
+					)
+				)
+				.groupBy(lists.subjectDependentId)
+		: []
+	const lastGiftedByDependentId = new Map<string, Date | null>()
+	for (const row of dependentLastGiftedRows) {
+		if (row.subjectDependentId) lastGiftedByDependentId.set(row.subjectDependentId, row.lastGiftedAt)
 	}
 
 	const editableListIds = editableRows.map(r => r.id)
@@ -474,6 +642,19 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 		: []
 	const targetUserById = new Map(targetUsers.map(u => [u.id, u]))
 	const resolveTarget = (id: string | null) => (id ? (targetUserById.get(id) ?? null) : null)
+
+	const targetDependentIds = Array.from(
+		new Set([...ownedLists, ...editableRows].map(l => l.giftIdeasTargetDependentId).filter((id): id is string => Boolean(id)))
+	)
+	const targetDependents = targetDependentIds.length
+		? await db
+				.select({ id: dependents.id, name: dependents.name, image: dependents.image })
+				.from(dependents)
+				.where(inArray(dependents.id, targetDependentIds))
+		: []
+	const targetDependentById = new Map(targetDependents.map(d => [d.id, d]))
+	const resolveTargetDependent = (id: string | null) => (id ? (targetDependentById.get(id) ?? null) : null)
+
 	const childListGroups: Array<ChildListGroup> = childRows.map(child => ({
 		childId: child.childId,
 		childName: child.childName,
@@ -486,6 +667,17 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 		lists: listsByChildId.get(child.childId) ?? [],
 	}))
 
+	const dependentListGroups: Array<DependentListGroup> = dependentRows.map(d => ({
+		dependentId: d.dependentId,
+		dependentName: d.dependentName,
+		dependentImage: d.dependentImage,
+		birthMonth: d.birthMonth,
+		birthDay: d.birthDay,
+		birthYear: d.birthYear,
+		lastGiftedAt: lastGiftedByDependentId.get(d.dependentId) ?? null,
+		lists: listsByDependentId.get(d.dependentId) ?? [],
+	}))
+
 	const decorateOwned = (l: (typeof ownedLists)[number]): MyListRow => ({
 		id: l.id,
 		name: l.name,
@@ -496,6 +688,9 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 		description: l.description,
 		giftIdeasTargetUserId: l.giftIdeasTargetUserId,
 		giftIdeasTarget: resolveTarget(l.giftIdeasTargetUserId),
+		giftIdeasTargetDependentId: l.giftIdeasTargetDependentId,
+		giftIdeasTargetDependent: resolveTargetDependent(l.giftIdeasTargetDependentId),
+		subjectDependentId: l.subjectDependentId,
 		itemCount: l.itemCount,
 	})
 
@@ -513,6 +708,9 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 			description: r.description,
 			giftIdeasTargetUserId: r.giftIdeasTargetUserId,
 			giftIdeasTarget: resolveTarget(r.giftIdeasTargetUserId),
+			giftIdeasTargetDependentId: r.giftIdeasTargetDependentId,
+			giftIdeasTargetDependent: resolveTargetDependent(r.giftIdeasTargetDependentId),
+			subjectDependentId: r.subjectDependentId,
 			itemCount: r.itemCount,
 			ownerName: r.ownerName,
 			ownerEmail: r.ownerEmail,
@@ -520,6 +718,7 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 			otherEditors: otherEditorsByListId.get(r.id) ?? [],
 		})),
 		children: childListGroups,
+		dependents: dependentListGroups,
 	}
 }
 
@@ -571,8 +770,12 @@ export async function getPublicListsImpl(viewerUserId: string): Promise<Array<Pu
 			partnerId: true,
 		},
 		with: {
+			// Lists owned by this user, EXCLUDING any that are about a
+			// dependent - those surface under the dependent's own feed entry,
+			// not under the guardian-creator's.
 			lists: {
-				where: (l, { and: a, eq: e, ne: n }) => a(e(l.isPrivate, false), e(l.isActive, true), n(l.type, 'giftideas')),
+				where: (l, { and: a, eq: e, ne: n, isNull }) =>
+					a(e(l.isPrivate, false), e(l.isActive, true), n(l.type, 'giftideas'), isNull(l.subjectDependentId)),
 				orderBy: [desc(lists.isPrimary), desc(lists.createdAt)],
 				columns: {
 					id: true,
@@ -643,6 +846,121 @@ export async function getPublicListsImpl(viewerUserId: string): Promise<Array<Pu
 	})
 }
 
+// Mirror of getPublicListsImpl for dependent recipients. Lists where
+// `subjectDependentId IS NOT NULL` are grouped by their subject so that
+// a dependent appears as a single feed entry, not under each guardian
+// who happened to author one of their lists.
+export async function getPublicDependentsImpl(viewerUserId: string): Promise<Array<PublicDependent>> {
+	const me = await db.query.users.findFirst({
+		where: eq(users.id, viewerUserId),
+		columns: { partnerId: true },
+	})
+	const gifterIds: Array<string> = me?.partnerId ? [viewerUserId, me.partnerId] : [viewerUserId]
+
+	// "Last gifted" per dependent (any list with that subjectDependentId).
+	const lastGiftedRows = await db
+		.select({
+			subjectDependentId: lists.subjectDependentId,
+			lastGiftedAt: max(giftedItems.createdAt),
+		})
+		.from(giftedItems)
+		.innerJoin(items, eq(items.id, giftedItems.itemId))
+		.innerJoin(lists, eq(lists.id, items.listId))
+		.where(or(inArray(giftedItems.gifterId, gifterIds), arrayOverlaps(giftedItems.additionalGifterIds, gifterIds)))
+		.groupBy(lists.subjectDependentId)
+	const lastGiftedByDependentId = new Map<string, Date | null>()
+	for (const row of lastGiftedRows) {
+		if (row.subjectDependentId) lastGiftedByDependentId.set(row.subjectDependentId, row.lastGiftedAt)
+	}
+
+	const allDependents = await db.query.dependents.findMany({
+		where: eq(dependents.isArchived, false),
+		columns: {
+			id: true,
+			name: true,
+			image: true,
+			birthMonth: true,
+			birthDay: true,
+		},
+		with: {
+			guardianships: {
+				columns: { guardianUserId: true },
+			},
+			// All non-private, non-giftideas active lists owned-by-subject for this dependent.
+		},
+	})
+
+	if (allDependents.length === 0) return []
+
+	const dependentIds = allDependents.map(d => d.id)
+	const dependentLists = await db.query.lists.findMany({
+		where: (l, { and: a, eq: e, ne: n, isNotNull: nn, inArray: ia }) =>
+			a(
+				e(l.isPrivate, false),
+				e(l.isActive, true),
+				n(l.type, 'giftideas'),
+				nn(l.subjectDependentId),
+				ia(l.subjectDependentId, dependentIds)
+			),
+		orderBy: [desc(lists.isPrimary), desc(lists.createdAt)],
+		columns: {
+			id: true,
+			name: true,
+			type: true,
+			description: true,
+			isPrimary: true,
+			subjectDependentId: true,
+			createdAt: true,
+			updatedAt: true,
+		},
+		with: {
+			items: {
+				columns: { id: true, isArchived: true, quantity: true, groupId: true, groupSortOrder: true },
+				with: {
+					gifts: { columns: { gifterId: true, additionalGifterIds: true, quantity: true } },
+				},
+			},
+			itemGroups: { columns: { id: true, type: true } },
+		},
+	})
+
+	const listsByDependentId = new Map<string, Array<PublicList>>()
+	for (const list of dependentLists) {
+		if (!list.subjectDependentId) continue
+		const visibleItems = list.items.filter(i => !i.isArchived)
+		const { total, unclaimed } = computeListItemCounts(visibleItems)
+		const bucket = listsByDependentId.get(list.subjectDependentId) ?? []
+		bucket.push({
+			id: list.id,
+			name: list.name,
+			type: list.type as PublicListType,
+			description: list.description,
+			isPrimary: list.isPrimary,
+			itemsTotal: total,
+			itemsRemaining: unclaimed,
+			createdAt: list.createdAt instanceof Date ? list.createdAt.toISOString() : list.createdAt,
+			updatedAt: list.updatedAt instanceof Date ? list.updatedAt.toISOString() : list.updatedAt,
+		})
+		listsByDependentId.set(list.subjectDependentId, bucket)
+	}
+
+	return allDependents
+		.filter(d => (listsByDependentId.get(d.id)?.length ?? 0) > 0)
+		.map(d => {
+			const lastGiftedAt = lastGiftedByDependentId.get(d.id) ?? null
+			return {
+				id: d.id,
+				name: d.name,
+				image: d.image,
+				birthMonth: d.birthMonth,
+				birthDay: d.birthDay,
+				guardianIds: d.guardianships.map(g => g.guardianUserId),
+				lastGiftedAt: lastGiftedAt instanceof Date ? lastGiftedAt.toISOString() : lastGiftedAt,
+				lists: listsByDependentId.get(d.id) ?? [],
+			}
+		})
+}
+
 export async function createListImpl(args: {
 	actor: { id: string; isChild: boolean }
 	input: z.infer<typeof CreateListInputSchema>
@@ -653,6 +971,23 @@ export async function createListImpl(args: {
 		return { kind: 'error', reason: 'child-cannot-create-gift-ideas' }
 	}
 
+	// If a subject-dependent is requested, the actor must be one of its
+	// guardians. Children can't be guardians (enforced elsewhere) so the
+	// child-create rule above is sufficient on the role side.
+	if (data.subjectDependentId) {
+		const guard = await db.query.dependentGuardianships.findFirst({
+			where: and(eq(dependentGuardianships.guardianUserId, actor.id), eq(dependentGuardianships.dependentId, data.subjectDependentId)),
+			columns: { guardianUserId: true },
+		})
+		if (!guard) return { kind: 'error', reason: 'not-dependent-guardian' }
+	}
+
+	// Resolve the gift-ideas target. Exactly one of user / dependent may be
+	// set; both null is valid (a generic gift-ideas list with no pinned
+	// recipient).
+	const giftIdeasTargetUserId = data.type === 'giftideas' ? (data.giftIdeasTargetUserId ?? null) : null
+	const giftIdeasTargetDependentId = data.type === 'giftideas' ? (data.giftIdeasTargetDependentId ?? null) : null
+
 	const [inserted] = await db
 		.insert(lists)
 		.values({
@@ -661,7 +996,9 @@ export async function createListImpl(args: {
 			isPrivate: data.type === 'giftideas' ? true : data.isPrivate,
 			description: data.description ?? null,
 			ownerId: actor.id,
-			giftIdeasTargetUserId: data.type === 'giftideas' ? (data.giftIdeasTargetUserId ?? null) : null,
+			subjectDependentId: data.subjectDependentId ?? null,
+			giftIdeasTargetUserId,
+			giftIdeasTargetDependentId,
 		})
 		.returning({ id: lists.id, name: lists.name, type: lists.type })
 
@@ -676,7 +1013,7 @@ export async function updateListImpl(args: {
 
 	const list = await db.query.lists.findFirst({
 		where: eq(lists.id, data.listId),
-		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 	const isOwner = list.ownerId === actor.id
@@ -695,13 +1032,22 @@ export async function updateListImpl(args: {
 	if (data.isPrivate !== undefined) updates.isPrivate = data.isPrivate
 	if (data.description !== undefined) updates.description = data.description
 	if (data.isActive !== undefined) updates.isActive = data.isActive
-	if (data.giftIdeasTargetUserId !== undefined && isOwner) updates.giftIdeasTargetUserId = data.giftIdeasTargetUserId
+	if (data.giftIdeasTargetUserId !== undefined && isOwner) {
+		updates.giftIdeasTargetUserId = data.giftIdeasTargetUserId
+		// Setting a user target clears the dependent target (mutually exclusive).
+		if (data.giftIdeasTargetUserId) updates.giftIdeasTargetDependentId = null
+	}
+	if (data.giftIdeasTargetDependentId !== undefined && isOwner) {
+		updates.giftIdeasTargetDependentId = data.giftIdeasTargetDependentId
+		if (data.giftIdeasTargetDependentId) updates.giftIdeasTargetUserId = null
+	}
 
 	const nextType = data.type ?? undefined
 	if (nextType === 'giftideas') {
 		updates.isPrivate = true
 	} else if (nextType !== undefined) {
 		updates.giftIdeasTargetUserId = null
+		updates.giftIdeasTargetDependentId = null
 	}
 
 	if (Object.keys(updates).length > 0) {

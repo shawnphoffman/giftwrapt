@@ -1,9 +1,10 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, useLocation, useNavigate } from '@tanstack/react-router'
-import { Baby, ListOrdered, Plus } from 'lucide-react'
+import { Baby, ListOrdered, Plus, Sprout } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
-import { type ChildListGroup, getMyLists, type MyListRow } from '@/api/lists'
+import { type ChildListGroup, type DependentListGroup, getMyLists, type MyListRow } from '@/api/lists'
+import DependentAvatar from '@/components/common/dependent-avatar'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import UserAvatar from '@/components/common/user-avatar'
 import { AddItemDialog } from '@/components/items/add-item-dialog'
@@ -193,6 +194,23 @@ function MyListsPage() {
 						</div>
 					)}
 
+					{/* DEPENDENTS' LISTS */}
+					{data.dependents.length > 0 && (
+						<div className="flex flex-col gap-2">
+							<h3 className="flex items-center gap-2">
+								<Sprout className="size-5 text-emerald-600" /> Dependents' Lists
+							</h3>
+							<div className="text-sm italic leading-tight text-muted-foreground">
+								Lists for pets, babies, or anyone else you receive gifts on behalf of.
+							</div>
+							<div className="flex flex-col gap-3">
+								{data.dependents.map(dep => (
+									<DependentListSection key={dep.dependentId} dependent={dep} />
+								))}
+							</div>
+						</div>
+					)}
+
 					{/* EDITABLE LISTS */}
 					{editableOther.length > 0 && (
 						<ListsCard>
@@ -250,6 +268,34 @@ function ChildListSection({ child }: { child: ChildListGroup }) {
 					<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30 italic">No lists yet.</div>
 				) : (
 					child.lists.map(list => (
+						<ListsCardList key={list.id} asChild className="text-base">
+							<Link to="/lists/$listId/edit" params={{ listId: String(list.id) }}>
+								<ListTypeIcon type={list.type} className="size-5 shrink-0" />
+								<span className="flex-1 font-medium leading-tight truncate">{list.name}</span>
+								<Badge variant="secondary" className="text-xs tabular-nums shrink-0">
+									{list.itemCount}
+								</Badge>
+							</Link>
+						</ListsCardList>
+					))
+				)}
+			</ListsCardLists>
+		</ListsCard>
+	)
+}
+
+function DependentListSection({ dependent }: { dependent: DependentListGroup }) {
+	return (
+		<ListsCard>
+			<ListsCardHeader>
+				<DependentAvatar name={dependent.dependentName} image={dependent.dependentImage} size="small" />
+				<ListsCardTitle className="text-base font-medium">{dependent.dependentName}</ListsCardTitle>
+			</ListsCardHeader>
+			<ListsCardLists>
+				{dependent.lists.length === 0 ? (
+					<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30 italic">No lists yet.</div>
+				) : (
+					dependent.lists.map(list => (
 						<ListsCardList key={list.id} asChild className="text-base">
 							<Link to="/lists/$listId/edit" params={{ listId: String(list.id) }}>
 								<ListTypeIcon type={list.type} className="size-5 shrink-0" />

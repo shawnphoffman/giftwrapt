@@ -1,6 +1,7 @@
 import { relations } from 'drizzle-orm'
 import { boolean, index, integer, numeric, pgTable, serial, text } from 'drizzle-orm/pg-core'
 
+import { dependents } from './dependents'
 import { listTypeEnum } from './enums'
 import { itemGroups, items } from './items'
 import { listEditors } from './permissions'
@@ -23,9 +24,21 @@ export const lists = pgTable(
 		ownerId: text('owner_id')
 			.notNull()
 			.references(() => users.id, { onDelete: 'cascade' }),
+		// When set, this list is FOR a non-user dependent (pet, baby, etc.).
+		// Permission predicates (canViewList / canEditList) consult
+		// `dependentGuardianships` for the subject; gifters see the
+		// dependent's name/avatar in place of the owner's. The `ownerId`
+		// in this case is the guardian who created the list.
+		subjectDependentId: text('subject_dependent_id').references(() => dependents.id, { onDelete: 'cascade' }),
 		// Only populated for type === 'giftideas'. The user this list is tracking ideas FOR.
 		// Never visible to that user.
 		giftIdeasTargetUserId: text('gift_ideas_target_user_id').references(() => users.id, { onDelete: 'set null' }),
+		// Only populated for type === 'giftideas' when the target is a
+		// dependent rather than a user. Mutually exclusive with
+		// `giftIdeasTargetUserId` (enforced in the API layer).
+		giftIdeasTargetDependentId: text('gift_ideas_target_dependent_id').references(() => dependents.id, {
+			onDelete: 'set null',
+		}),
 		...timestamps,
 	},
 	table => [
@@ -33,6 +46,8 @@ export const lists = pgTable(
 		index('lists_ownerId_isActive_idx').on(table.ownerId, table.isActive),
 		index('lists_isPrivate_isActive_idx').on(table.isPrivate, table.isActive),
 		index('lists_giftIdeasTargetUserId_idx').on(table.giftIdeasTargetUserId),
+		index('lists_subjectDependentId_idx').on(table.subjectDependentId),
+		index('lists_giftIdeasTargetDependentId_idx').on(table.giftIdeasTargetDependentId),
 	]
 )
 
@@ -42,10 +57,20 @@ export const listsRelations = relations(lists, ({ one, many }) => ({
 		references: [users.id],
 		relationName: 'owner',
 	}),
+	subjectDependent: one(dependents, {
+		fields: [lists.subjectDependentId],
+		references: [dependents.id],
+		relationName: 'subjectDependent',
+	}),
 	giftIdeasTarget: one(users, {
 		fields: [lists.giftIdeasTargetUserId],
 		references: [users.id],
 		relationName: 'giftIdeasTarget',
+	}),
+	giftIdeasTargetDependent: one(dependents, {
+		fields: [lists.giftIdeasTargetDependentId],
+		references: [dependents.id],
+		relationName: 'giftIdeasTargetDependent',
 	}),
 	itemGroups: many(itemGroups),
 	items: many(items),

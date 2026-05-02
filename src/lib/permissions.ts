@@ -7,11 +7,11 @@
  * themselves before or after this, depending on their needs.
  */
 
-import { and, eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { db as defaultDb } from '@/db'
-import { guardianships, listEditors, userRelationships, users } from '@/db/schema'
+import { dependentGuardianships, guardianships, listEditors, userRelationships, users } from '@/db/schema'
 import type { AccessLevel } from '@/db/schema/enums'
 
 export type CanViewListResult = { ok: true } | { ok: false; reason: 'inactive' | 'private' | 'denied' }
@@ -19,8 +19,24 @@ export type CanViewListResult = { ok: true } | { ok: false; reason: 'inactive' |
 type ListForVisibilityCheck = {
 	id: number
 	ownerId: string
+	subjectDependentId?: string | null
 	isPrivate: boolean
 	isActive: boolean
+}
+
+// Resolve the user IDs whose `userRelationships` rows govern visibility for
+// `list`. For a normal user-owned list this is just the owner. For a
+// dependent-subject list this is every guardian of the dependent: a viewer
+// is denied if ANY guardian has explicitly denied them, and granted view
+// access via the same default-allow policy otherwise.
+async function getRelationshipOwnerIds(list: ListForVisibilityCheck, dbx: SchemaDatabase): Promise<Array<string>> {
+	if (!list.subjectDependentId) return [list.ownerId]
+	const guardians = await dbx
+		.select({ guardianUserId: dependentGuardianships.guardianUserId })
+		.from(dependentGuardianships)
+		.where(eq(dependentGuardianships.dependentId, list.subjectDependentId))
+	const ids = guardians.map(g => g.guardianUserId)
+	return ids.length > 0 ? ids : [list.ownerId]
 }
 
 export async function canViewList(
@@ -29,17 +45,29 @@ export async function canViewList(
 	dbx: SchemaDatabase = defaultDb
 ): Promise<CanViewListResult> {
 	if (!list.isActive) return { ok: false, reason: 'inactive' }
+
+	// Guardians of the dependent always see the list, regardless of
+	// privacy or relationship overrides.
+	if (list.subjectDependentId) {
+		const guard = await dbx.query.dependentGuardianships.findFirst({
+			where: and(eq(dependentGuardianships.guardianUserId, viewerId), eq(dependentGuardianships.dependentId, list.subjectDependentId)),
+			columns: { guardianUserId: true },
+		})
+		if (guard) return { ok: true }
+	}
+
 	if (list.isPrivate) return { ok: false, reason: 'private' }
 
-	// Explicit deny from the list owner wins over any default "yes".
-	// The absence of a row means the default policy (visible) applies.
-	// Restricted is still ok at the LIST level; per-item filtering happens
-	// in the read paths.
-	const rel = await dbx.query.userRelationships.findFirst({
-		where: and(eq(userRelationships.ownerUserId, list.ownerId), eq(userRelationships.viewerUserId, viewerId)),
-		columns: { accessLevel: true },
-	})
-	if (rel?.accessLevel === 'none') return { ok: false, reason: 'denied' }
+	// Explicit deny from any owning user wins over any default "yes".
+	// For dependent-subject lists, the dependent's privacy inherits from
+	// each guardian: a viewer the guardian has set to `none` cannot see
+	// the dependent's lists either.
+	const ownerIds = await getRelationshipOwnerIds(list, dbx)
+	const rels = await dbx
+		.select({ accessLevel: userRelationships.accessLevel })
+		.from(userRelationships)
+		.where(and(inArray(userRelationships.ownerUserId, ownerIds), eq(userRelationships.viewerUserId, viewerId)))
+	if (rels.some(r => r.accessLevel === 'none')) return { ok: false, reason: 'denied' }
 
 	return { ok: true }
 }
@@ -56,6 +84,22 @@ export async function canViewListAsAnyone(
 ): Promise<CanViewListResult> {
 	if (list.ownerId === viewerId) return { ok: true }
 	return canViewList(viewerId, list, dbx)
+}
+
+// True when the viewer is a guardian of the list's subject dependent.
+// Pulled out so callers (e.g. canEditList, the "self-claim" gate) can
+// share the same predicate.
+export async function isDependentGuardianOfList(
+	viewerId: string,
+	list: { subjectDependentId?: string | null },
+	dbx: SchemaDatabase = defaultDb
+): Promise<boolean> {
+	if (!list.subjectDependentId) return false
+	const guard = await dbx.query.dependentGuardianships.findFirst({
+		where: and(eq(dependentGuardianships.guardianUserId, viewerId), eq(dependentGuardianships.dependentId, list.subjectDependentId)),
+		columns: { guardianUserId: true },
+	})
+	return !!guard
 }
 
 // ===============================
@@ -84,6 +128,10 @@ export async function canEditList(
 	list: ListForVisibilityCheck,
 	dbx: SchemaDatabase = defaultDb
 ): Promise<CanEditListResult> {
+	// Dependent-subject grant: viewer is a guardian of the dependent the
+	// list is FOR. Always full edit, mirrors the child guardianship rule.
+	if (await isDependentGuardianOfList(userId, list, dbx)) return { ok: true }
+
 	// Guardianship grant: viewer is a guardian of the list owner.
 	const guardianGrant = await dbx.query.guardianships.findFirst({
 		where: and(eq(guardianships.parentUserId, userId), eq(guardianships.childUserId, list.ownerId)),
@@ -158,4 +206,43 @@ export async function getViewerAccessLevel(
 		columns: { accessLevel: true },
 	})
 	return rel?.accessLevel ?? 'view'
+}
+
+// Like `getViewerAccessLevel`, but list-aware: dependent-subject lists
+// resolve via the dependent's guardians rather than the list's owner.
+// - Guardian of the dependent: 'owner' (full access).
+// - Otherwise: the most permissive `userRelationships` row across all
+//   guardians wins, with explicit deny ('none') from any single guardian
+//   blocking access (mirrors canViewList).
+export async function getViewerAccessLevelForList(
+	viewerId: string,
+	list: { ownerId: string; subjectDependentId?: string | null },
+	dbx: SchemaDatabase = defaultDb
+): Promise<ResolvedAccessLevel> {
+	if (list.subjectDependentId) {
+		// Guardian of the dependent acts as "owner" of the list for
+		// access-level purposes; full read+write.
+		const guard = await dbx.query.dependentGuardianships.findFirst({
+			where: and(eq(dependentGuardianships.guardianUserId, viewerId), eq(dependentGuardianships.dependentId, list.subjectDependentId)),
+			columns: { guardianUserId: true },
+		})
+		if (guard) return 'owner'
+
+		const guardianRows = await dbx
+			.select({ guardianUserId: dependentGuardianships.guardianUserId })
+			.from(dependentGuardianships)
+			.where(eq(dependentGuardianships.dependentId, list.subjectDependentId))
+		const guardianIds = guardianRows.map(g => g.guardianUserId)
+		if (guardianIds.length === 0) return getViewerAccessLevel(viewerId, list.ownerId, dbx)
+
+		const rels = await dbx
+			.select({ accessLevel: userRelationships.accessLevel })
+			.from(userRelationships)
+			.where(and(inArray(userRelationships.ownerUserId, guardianIds), eq(userRelationships.viewerUserId, viewerId)))
+		if (rels.some(r => r.accessLevel === 'none')) return 'none'
+		if (rels.some(r => r.accessLevel === 'view')) return 'view'
+		if (rels.some(r => r.accessLevel === 'restricted')) return 'restricted'
+		return 'view'
+	}
+	return getViewerAccessLevel(viewerId, list.ownerId, dbx)
 }
