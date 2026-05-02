@@ -18,7 +18,7 @@ function SettingsRoute() {
 					<Settings className="text-lime-500 wish-page-icon" />
 				</div>
 				{/* CONTENT */}
-				<div className="mx-auto grid w-full max-w-6xl items-start gap-6 md:grid-cols-[180px_1fr] lg:grid-cols-[220px_1fr]">
+				<div className="mx-auto grid w-full max-w-6xl items-start gap-6 md:grid-cols-[180px_1fr] lg:grid-cols-[165px_1fr]">
 					<nav className="grid gap-1">
 						<SettingsLinks />
 					</nav>
