@@ -82,7 +82,7 @@ const options = {
 			user: users,
 			session: session,
 			account: account,
-			verificationToken: verification,
+			verification: verification,
 			rateLimit: rateLimit,
 			apikey: apikey,
 			twoFactor: twoFactorTable,

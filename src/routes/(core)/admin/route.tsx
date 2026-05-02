@@ -1,7 +1,9 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router'
 import { Lock } from 'lucide-react'
 
+import { Admin2faBanner } from '@/components/admin/admin-2fa-banner'
 import AdminLinks from '@/components/admin/links'
+import { ClientOnly } from '@/components/utilities/client-only'
 import { adminAuthMiddleware } from '@/middleware/auth'
 
 export const Route = createFileRoute('/(core)/admin')({
@@ -26,6 +28,9 @@ function AdminRoutes() {
 						<AdminLinks />
 					</nav>
 					<div className="gap-6 flex flex-col @container/admin-content">
+						<ClientOnly>
+							<Admin2faBanner />
+						</ClientOnly>
 						<Outlet />
 					</div>
 				</div>

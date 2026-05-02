@@ -311,8 +311,8 @@ export function AuthSettingsSection() {
 						Require 2FA for admins
 					</Label>
 					<p className="text-sm text-muted-foreground">
-						Force every admin account to enroll TOTP two-factor auth. Admins without 2FA enabled get sent to /settings/security on their
-						next page load.
+						Encourage every admin account to enroll TOTP two-factor auth. We'll show a banner across /admin nagging any admin still missing
+						2FA to enroll on /settings/security.
 					</p>
 				</div>
 				<Switch
