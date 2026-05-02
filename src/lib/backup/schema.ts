@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import {
+	accessLevelEnumValues,
 	availabilityEnumValues,
 	birthMonthEnumValues,
 	groupTypeEnumValues,
@@ -42,7 +43,7 @@ const appSettingRowSchema = z.object({
 const userRelationshipRowSchema = z.object({
 	ownerUserId: z.string(),
 	viewerUserId: z.string(),
-	canView: z.boolean(),
+	accessLevel: z.enum(accessLevelEnumValues),
 	canEdit: z.boolean(),
 	updatedAt: dateField,
 	createdAt: dateField,

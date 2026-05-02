@@ -13,7 +13,8 @@ import { giftedItems, guardianships, itemGroups, items, listAddons, listEditors,
 import { type BirthMonth, type GroupType, type ListType, listTypeEnumValues, type Priority } from '@/db/schema/enums'
 import type { ListAddon } from '@/db/schema/lists'
 import { computeListItemCounts } from '@/lib/gifts'
-import { canEditList, canViewList } from '@/lib/permissions'
+import { canEditList, canViewList, getViewerAccessLevel } from '@/lib/permissions'
+import { filterItemsForRestricted } from '@/lib/restricted-filter'
 
 // =====================================================================
 // Public types
@@ -203,11 +204,16 @@ export const SetPrimaryListInputSchema = z.object({
 // Impls
 // =====================================================================
 
-export async function getListForViewingImpl(args: { userId: string; listId: string }): Promise<GetListForViewingResult> {
+export async function getListForViewingImpl(args: {
+	userId: string
+	listId: string
+	dbx?: SchemaDatabase
+}): Promise<GetListForViewingResult> {
+	const { dbx = db } = args
 	const listId = Number(args.listId)
 	if (!Number.isFinite(listId)) return null
 
-	const list = await db.query.lists.findFirst({
+	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, listId),
 		columns: {
 			id: true,
@@ -236,12 +242,22 @@ export async function getListForViewingImpl(args: { userId: string; listId: stri
 		return { kind: 'redirect', listId: String(list.id) }
 	}
 
-	const view = await canViewList(args.userId, list)
+	const view = await canViewList(args.userId, list, dbx)
 	if (!view.ok) return null
 
+	const accessLevel = await getViewerAccessLevel(args.userId, list.ownerId, dbx)
+
 	const [addons, viewGroups] = await Promise.all([
-		db.query.listAddons.findMany({
-			where: eq(listAddons.listId, list.id),
+		// Restricted viewers see ONLY their own addons - they can still
+		// volunteer extras, and need to see what they've offered, but they
+		// don't get to see other gifters' addons (same spoiler-protection
+		// rationale as the item filter). The owner-side received-gifts view
+		// surfaces them once revealed.
+		dbx.query.listAddons.findMany({
+			where:
+				accessLevel === 'restricted'
+					? and(eq(listAddons.listId, list.id), eq(listAddons.userId, args.userId))
+					: eq(listAddons.listId, list.id),
 			columns: {
 				id: true,
 				listId: true,
@@ -259,7 +275,7 @@ export async function getListForViewingImpl(args: { userId: string; listId: stri
 			},
 			orderBy: [desc(listAddons.createdAt)],
 		}),
-		db.query.itemGroups.findMany({
+		dbx.query.itemGroups.findMany({
 			where: eq(itemGroups.listId, list.id),
 			columns: { id: true, type: true, name: true, priority: true, sortOrder: true },
 		}),
@@ -509,10 +525,18 @@ export async function getMyListsImpl(userId: string): Promise<MyListsResult> {
 
 export async function getPublicListsImpl(viewerUserId: string): Promise<Array<PublicUser>> {
 	const deniedRelationships = await db.query.userRelationships.findMany({
-		where: (rel, { and: a, eq: e }) => a(e(rel.viewerUserId, viewerUserId), e(rel.canView, false)),
+		where: (rel, { and: a, eq: e }) => a(e(rel.viewerUserId, viewerUserId), e(rel.accessLevel, 'none')),
 		columns: { ownerUserId: true },
 	})
 	const deniedOwnerIds = deniedRelationships.map(rel => rel.ownerUserId)
+
+	// Per-owner restricted set so we can apply per-item filtering when
+	// rolling up itemsRemaining/itemsTotal for the public-list view.
+	const restrictedRelationships = await db.query.userRelationships.findMany({
+		where: (rel, { and: a, eq: e }) => a(e(rel.viewerUserId, viewerUserId), e(rel.accessLevel, 'restricted')),
+		columns: { ownerUserId: true },
+	})
+	const restrictedOwnerIds = new Set(restrictedRelationships.map(rel => rel.ownerUserId))
 
 	const me = await db.query.users.findFirst({
 		where: eq(users.id, viewerUserId),
@@ -531,6 +555,8 @@ export async function getPublicListsImpl(viewerUserId: string): Promise<Array<Pu
 		.where(or(inArray(giftedItems.gifterId, gifterIds), arrayOverlaps(giftedItems.additionalGifterIds, gifterIds)))
 		.groupBy(lists.ownerId)
 	const lastGiftedByUserId = new Map<string, Date | null>(lastGiftedRows.map(r => [r.recipientId, r.lastGiftedAt]))
+
+	const viewerPartnerId = me?.partnerId ?? null
 
 	const allUsers = await db.query.users.findMany({
 		where: (us, { and: a, ne: n, notInArray: nia }) =>
@@ -558,9 +584,19 @@ export async function getPublicListsImpl(viewerUserId: string): Promise<Array<Pu
 					updatedAt: true,
 				},
 				with: {
+					itemGroups: { columns: { id: true, type: true } },
 					items: {
+						columns: {
+							id: true,
+							isArchived: true,
+							quantity: true,
+							groupId: true,
+							groupSortOrder: true,
+						},
 						with: {
-							gifts: { columns: { quantity: true } },
+							gifts: {
+								columns: { gifterId: true, additionalGifterIds: true, quantity: true },
+							},
 						},
 					},
 				},
@@ -570,6 +606,7 @@ export async function getPublicListsImpl(viewerUserId: string): Promise<Array<Pu
 
 	return allUsers.map(user => {
 		const lastGiftedAt = lastGiftedByUserId.get(user.id) ?? null
+		const isRestrictedHere = restrictedOwnerIds.has(user.id)
 		return {
 			id: user.id,
 			name: user.name,
@@ -580,8 +617,16 @@ export async function getPublicListsImpl(viewerUserId: string): Promise<Array<Pu
 			partnerId: user.partnerId ?? null,
 			lastGiftedAt: lastGiftedAt instanceof Date ? lastGiftedAt.toISOString() : lastGiftedAt,
 			lists: user.lists.map(list => {
-				const { items: listItems, ...rest } = list
-				const { total, unclaimed } = computeListItemCounts(listItems)
+				const { items: listItems, itemGroups: listGroups, ...rest } = list
+				const visibleItems = isRestrictedHere
+					? filterItemsForRestricted(
+							listItems.filter(i => !i.isArchived),
+							listGroups,
+							viewerUserId,
+							viewerPartnerId
+						)
+					: listItems
+				const { total, unclaimed } = computeListItemCounts(visibleItems)
 				return {
 					id: rest.id,
 					name: rest.name,
@@ -732,11 +777,16 @@ export async function setPrimaryListImpl(args: {
 	return { kind: 'ok' }
 }
 
-export async function getListForEditingImpl(args: { userId: string; listId: string }): Promise<GetListForEditingResult> {
+export async function getListForEditingImpl(args: {
+	userId: string
+	listId: string
+	dbx?: SchemaDatabase
+}): Promise<GetListForEditingResult> {
+	const { dbx = db } = args
 	const listId = Number(args.listId)
 	if (!Number.isFinite(listId)) return { kind: 'error', reason: 'not-found' }
 
-	const list = await db.query.lists.findFirst({
+	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, listId),
 		columns: {
 			id: true,
@@ -755,11 +805,11 @@ export async function getListForEditingImpl(args: { userId: string; listId: stri
 	const isOwner = list.ownerId === args.userId
 
 	if (!isOwner) {
-		const edit = await canEditList(args.userId, list)
+		const edit = await canEditList(args.userId, list, dbx)
 		if (!edit.ok) return { kind: 'error', reason: 'not-authorized' }
 	}
 
-	const groups = await db.query.itemGroups.findMany({
+	const groups = await dbx.query.itemGroups.findMany({
 		where: eq(itemGroups.listId, list.id),
 		columns: { id: true, type: true, name: true, priority: true, sortOrder: true },
 	})

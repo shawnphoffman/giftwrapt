@@ -60,3 +60,14 @@ export type Role = (typeof roleEnumValues)[number]
 export const groupTypeEnumValues = ['or', 'order'] as const
 export const groupTypeEnum = pgEnum('group_type', groupTypeEnumValues)
 export type GroupType = (typeof groupTypeEnumValues)[number]
+
+// Per-relationship access tiers stored on userRelationships.access_level.
+// - 'none':       explicit deny, the prior canView=false state.
+// - 'restricted': can see lists and claim, but only items unclaimed by
+//                 anyone outside (viewer, viewer's partner). No list addons.
+//                 Mutually exclusive with edit grants.
+// - 'view':       full visibility, the prior canView=true state and the
+//                 default for new rows.
+export const accessLevelEnumValues = ['none', 'restricted', 'view'] as const
+export const accessLevelEnum = pgEnum('access_level', accessLevelEnumValues)
+export type AccessLevel = (typeof accessLevelEnumValues)[number]

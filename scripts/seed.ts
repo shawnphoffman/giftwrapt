@@ -307,32 +307,32 @@ async function main() {
 	console.log('👥 Wiring up user relationships (view/edit grants)...')
 	await db.insert(userRelationships).values([
 		// Partners - full mutual access.
-		{ ownerUserId: aliceId, viewerUserId: bobId, canView: true, canEdit: true },
-		{ ownerUserId: bobId, viewerUserId: aliceId, canView: true, canEdit: true },
-		{ ownerUserId: daveId, viewerUserId: eveId, canView: true, canEdit: true },
-		{ ownerUserId: eveId, viewerUserId: daveId, canView: true, canEdit: true },
+		{ ownerUserId: aliceId, viewerUserId: bobId, accessLevel: 'view', canEdit: true },
+		{ ownerUserId: bobId, viewerUserId: aliceId, accessLevel: 'view', canEdit: true },
+		{ ownerUserId: daveId, viewerUserId: eveId, accessLevel: 'view', canEdit: true },
+		{ ownerUserId: eveId, viewerUserId: daveId, accessLevel: 'view', canEdit: true },
 
 		// Friend circle around alice - mutual view, no edit.
-		{ ownerUserId: aliceId, viewerUserId: carolId, canView: true, canEdit: false },
-		{ ownerUserId: carolId, viewerUserId: aliceId, canView: true, canEdit: false },
-		{ ownerUserId: aliceId, viewerUserId: daveId, canView: true, canEdit: false },
-		{ ownerUserId: daveId, viewerUserId: aliceId, canView: true, canEdit: false },
+		{ ownerUserId: aliceId, viewerUserId: carolId, accessLevel: 'view', canEdit: false },
+		{ ownerUserId: carolId, viewerUserId: aliceId, accessLevel: 'view', canEdit: false },
+		{ ownerUserId: aliceId, viewerUserId: daveId, accessLevel: 'view', canEdit: false },
+		{ ownerUserId: daveId, viewerUserId: aliceId, accessLevel: 'view', canEdit: false },
 
 		// Eve's gifter-perspective list is public to alice / bob / carol so they
 		// can pop in and view it as gifters.
-		{ ownerUserId: eveId, viewerUserId: aliceId, canView: true, canEdit: false },
-		{ ownerUserId: aliceId, viewerUserId: eveId, canView: true, canEdit: false },
-		{ ownerUserId: eveId, viewerUserId: bobId, canView: true, canEdit: false },
-		{ ownerUserId: bobId, viewerUserId: eveId, canView: true, canEdit: false },
-		{ ownerUserId: eveId, viewerUserId: carolId, canView: true, canEdit: false },
-		{ ownerUserId: carolId, viewerUserId: eveId, canView: true, canEdit: false },
+		{ ownerUserId: eveId, viewerUserId: aliceId, accessLevel: 'view', canEdit: false },
+		{ ownerUserId: aliceId, viewerUserId: eveId, accessLevel: 'view', canEdit: false },
+		{ ownerUserId: eveId, viewerUserId: bobId, accessLevel: 'view', canEdit: false },
+		{ ownerUserId: bobId, viewerUserId: eveId, accessLevel: 'view', canEdit: false },
+		{ ownerUserId: eveId, viewerUserId: carolId, accessLevel: 'view', canEdit: false },
+		{ ownerUserId: carolId, viewerUserId: eveId, accessLevel: 'view', canEdit: false },
 
 		// Admin showcase - one-way view grants for the people who'll browse it.
-		{ ownerUserId: adminId, viewerUserId: bobId, canView: true, canEdit: false },
-		{ ownerUserId: adminId, viewerUserId: carolId, canView: true, canEdit: false },
-		{ ownerUserId: adminId, viewerUserId: eveId, canView: true, canEdit: false },
-		{ ownerUserId: adminId, viewerUserId: daveId, canView: true, canEdit: false },
-		{ ownerUserId: adminId, viewerUserId: graceId, canView: true, canEdit: false },
+		{ ownerUserId: adminId, viewerUserId: bobId, accessLevel: 'view', canEdit: false },
+		{ ownerUserId: adminId, viewerUserId: carolId, accessLevel: 'view', canEdit: false },
+		{ ownerUserId: adminId, viewerUserId: eveId, accessLevel: 'view', canEdit: false },
+		{ ownerUserId: adminId, viewerUserId: daveId, accessLevel: 'view', canEdit: false },
+		{ ownerUserId: adminId, viewerUserId: graceId, accessLevel: 'view', canEdit: false },
 	])
 
 	// ----------------------------------------------------------------

@@ -1,6 +1,7 @@
 import { relations } from 'drizzle-orm'
 import { boolean, index, integer, pgTable, primaryKey, serial, text, unique } from 'drizzle-orm/pg-core'
 
+import { accessLevelEnum } from './enums'
 import { lists } from './lists'
 import { timestamps } from './shared'
 import { users } from './users'
@@ -14,7 +15,7 @@ export const userRelationships = pgTable(
 		viewerUserId: text('viewer_user_id')
 			.notNull()
 			.references(() => users.id, { onDelete: 'cascade' }),
-		canView: boolean('can_view').default(true).notNull(),
+		accessLevel: accessLevelEnum('access_level').default('view').notNull(),
 		canEdit: boolean('can_edit').default(false).notNull(),
 		...timestamps,
 	},

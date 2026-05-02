@@ -13,11 +13,19 @@ import {
 	getUsersWithRelationshipsImpl,
 	upsertUserRelationshipsImpl,
 	type UpsertUserRelationshipsInput,
+	type UpsertUserRelationshipsResult,
 	upsertViewerRelationshipsImpl,
 	type UpsertViewerRelationshipsInput,
+	type UpsertViewerRelationshipsResult,
 } from './_permissions-impl'
 
-export type { RelationshipRow, UpsertUserRelationshipsInput, UpsertViewerRelationshipsInput } from './_permissions-impl'
+export type {
+	RelationshipRow,
+	UpsertUserRelationshipsInput,
+	UpsertUserRelationshipsResult,
+	UpsertViewerRelationshipsInput,
+	UpsertViewerRelationshipsResult,
+} from './_permissions-impl'
 
 export const getUsersWithRelationships = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware, loggingMiddleware])
@@ -30,9 +38,15 @@ export const getOwnersWithRelationshipsForMe = createServerFn({ method: 'GET' })
 export const upsertUserRelationships = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: UpsertUserRelationshipsInput) => data)
-	.handler(({ context, data }) => upsertUserRelationshipsImpl({ ownerUserId: context.session.user.id, input: data }))
+	.handler(
+		({ context, data }): Promise<UpsertUserRelationshipsResult> =>
+			upsertUserRelationshipsImpl({ ownerUserId: context.session.user.id, input: data })
+	)
 
 export const upsertViewerRelationships = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: UpsertViewerRelationshipsInput) => data)
-	.handler(({ context, data }) => upsertViewerRelationshipsImpl({ viewerUserId: context.session.user.id, input: data }))
+	.handler(
+		({ context, data }): Promise<UpsertViewerRelationshipsResult> =>
+			upsertViewerRelationshipsImpl({ viewerUserId: context.session.user.id, input: data })
+	)

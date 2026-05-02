@@ -1,4 +1,4 @@
-import { Heart, Pencil, Shield, ShieldOff } from 'lucide-react'
+import { Eye, Heart, Pencil, Shield, ShieldOff } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 
 import UserAvatar from '@/components/common/user-avatar'
@@ -29,6 +29,12 @@ function CellTooltip({ cell, viewerName, ownerName }: { cell: Cell; viewerName: 
 		case 'denied':
 			lines.push(`${ownerName} has explicitly denied ${viewerName} from viewing their lists.`)
 			break
+		case 'restricted':
+			lines.push(`${ownerName} has restricted ${viewerName}'s view: visible items only, no addons, no edits.`)
+			if (cell.editorListCount > 0) {
+				lines.push(`(${cell.editorListCount} stale list-level edit grant${cell.editorListCount === 1 ? '' : 's'} ignored.)`)
+			}
+			break
 		case 'view':
 			lines.push(`${viewerName} can view ${ownerName}'s public, active lists (default).`)
 			if (cell.editorListCount > 0) {
@@ -56,6 +62,8 @@ function CellGlyph({ cell }: { cell: Cell }) {
 			return <Pencil className="size-3.5" />
 		case 'denied':
 			return <ShieldOff className="size-3.5" />
+		case 'restricted':
+			return <Eye className="size-3.5" />
 		case 'view':
 			return <span className="size-1.5 rounded-full bg-current opacity-60" />
 	}
@@ -71,6 +79,8 @@ function cellClasses(kind: CellKind): string {
 			return 'bg-sky-500/15 text-sky-700 dark:text-sky-400'
 		case 'denied':
 			return 'bg-red-500/15 text-red-700 dark:text-red-400'
+		case 'restricted':
+			return 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
 		case 'view':
 			return 'text-muted-foreground hover:bg-muted/40'
 	}
@@ -182,6 +192,7 @@ function Legend() {
 		{ kind: 'guardian', label: 'Guardian', hint: 'Full view + edit on child user' },
 		{ kind: 'editor', label: 'Editor', hint: 'User-level edit grant' },
 		{ kind: 'view', label: 'View', hint: 'Default: public + active lists' },
+		{ kind: 'restricted', label: 'Restricted', hint: 'Can claim, but unclaimed items only; no addons' },
 		{ kind: 'denied', label: 'Denied', hint: 'Owner blocked viewer' },
 	]
 	return (

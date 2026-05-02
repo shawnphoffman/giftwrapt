@@ -4,11 +4,13 @@
 // strongest grant the viewer has on the owner's lists, plus annotations for
 // per-list editor grants and the partner relationship. The resolution order
 // mirrors `canEditList` / `canViewList` in `@/lib/permissions`:
-//   self > guardian > explicit deny > user-level edit > list-level edit > default view
+//   self > guardian > explicit deny > restricted > user-level edit > list-level edit > default view
 // Partner is an annotation, not a permission, because partnership alone
 // doesn't grant view/edit beyond the public default.
 
-export type CellKind = 'self' | 'guardian' | 'editor' | 'view' | 'denied'
+import type { AccessLevel } from '@/db/schema/enums'
+
+export type CellKind = 'self' | 'guardian' | 'editor' | 'view' | 'denied' | 'restricted'
 
 export type Cell = {
 	kind: CellKind
@@ -20,7 +22,7 @@ export type ClassifyCellArgs = {
 	viewerId: string
 	ownerId: string
 	guardianPairs: Set<string>
-	relationships: Map<string, { canView: boolean; canEdit: boolean }>
+	relationships: Map<string, { accessLevel: AccessLevel; canEdit: boolean }>
 	listEditorCounts: Map<string, number>
 	partnerOf: Map<string, string | null>
 }
@@ -43,10 +45,14 @@ export function classifyCell(args: ClassifyCellArgs): Cell {
 	const rel = relationships.get(ownerViewerKey(ownerId, viewerId))
 	const editorListCount = listEditorCounts.get(ownerViewerKey(ownerId, viewerId)) ?? 0
 
-	if (rel && rel.canView === false) {
+	if (rel?.accessLevel === 'none') {
 		return { kind: 'denied', editorListCount, isPartner }
 	}
-	if (rel && rel.canEdit === true) {
+	if (rel?.accessLevel === 'restricted') {
+		// Restricted suppresses all edit grants by design.
+		return { kind: 'restricted', editorListCount, isPartner }
+	}
+	if (rel?.canEdit === true) {
 		return { kind: 'editor', editorListCount, isPartner }
 	}
 	if (editorListCount > 0) {
@@ -68,15 +74,15 @@ export type PermissionsMatrixUser = {
 export type PermissionsMatrixData = {
 	users: Array<PermissionsMatrixUser>
 	guardianships: Array<{ parentUserId: string; childUserId: string }>
-	relationships: Array<{ ownerUserId: string; viewerUserId: string; canView: boolean; canEdit: boolean }>
+	relationships: Array<{ ownerUserId: string; viewerUserId: string; accessLevel: AccessLevel; canEdit: boolean }>
 	listEditorCounts: Array<{ ownerId: string; userId: string; count: number }>
 }
 
 export function buildIndices(data: PermissionsMatrixData) {
 	const guardianPairs = new Set(data.guardianships.map(g => guardianKey(g.parentUserId, g.childUserId)))
-	const relationships = new Map<string, { canView: boolean; canEdit: boolean }>()
+	const relationships = new Map<string, { accessLevel: AccessLevel; canEdit: boolean }>()
 	for (const r of data.relationships) {
-		relationships.set(ownerViewerKey(r.ownerUserId, r.viewerUserId), { canView: r.canView, canEdit: r.canEdit })
+		relationships.set(ownerViewerKey(r.ownerUserId, r.viewerUserId), { accessLevel: r.accessLevel, canEdit: r.canEdit })
 	}
 	const listEditorCounts = new Map<string, number>()
 	for (const e of data.listEditorCounts) {

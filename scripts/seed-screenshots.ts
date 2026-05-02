@@ -306,20 +306,20 @@ async function main() {
 	// admin ↔ nobday: mutual view-only (pure gifter-mode capture, sparse data).
 	console.log('👥 Wiring view/edit grants...')
 	await db.insert(userRelationships).values([
-		{ ownerUserId: adminId, viewerUserId: partnerId, canView: true, canEdit: true },
-		{ ownerUserId: partnerId, viewerUserId: adminId, canView: true, canEdit: true },
-		{ ownerUserId: adminId, viewerUserId: friendId, canView: true, canEdit: true },
-		{ ownerUserId: friendId, viewerUserId: adminId, canView: true, canEdit: true },
-		{ ownerUserId: adminId, viewerUserId: gifterId, canView: true, canEdit: false },
-		{ ownerUserId: gifterId, viewerUserId: adminId, canView: true, canEdit: false },
-		{ ownerUserId: adminId, viewerUserId: nobdayId, canView: true, canEdit: false },
-		{ ownerUserId: nobdayId, viewerUserId: adminId, canView: true, canEdit: false },
+		{ ownerUserId: adminId, viewerUserId: partnerId, accessLevel: 'view', canEdit: true },
+		{ ownerUserId: partnerId, viewerUserId: adminId, accessLevel: 'view', canEdit: true },
+		{ ownerUserId: adminId, viewerUserId: friendId, accessLevel: 'view', canEdit: true },
+		{ ownerUserId: friendId, viewerUserId: adminId, accessLevel: 'view', canEdit: true },
+		{ ownerUserId: adminId, viewerUserId: gifterId, accessLevel: 'view', canEdit: false },
+		{ ownerUserId: gifterId, viewerUserId: adminId, accessLevel: 'view', canEdit: false },
+		{ ownerUserId: adminId, viewerUserId: nobdayId, accessLevel: 'view', canEdit: false },
+		{ ownerUserId: nobdayId, viewerUserId: adminId, accessLevel: 'view', canEdit: false },
 		// Friend ↔ gifter so partial-claim scenarios on gifter's list make sense.
-		{ ownerUserId: gifterId, viewerUserId: friendId, canView: true, canEdit: false },
-		{ ownerUserId: friendId, viewerUserId: gifterId, canView: true, canEdit: false },
+		{ ownerUserId: gifterId, viewerUserId: friendId, accessLevel: 'view', canEdit: false },
+		{ ownerUserId: friendId, viewerUserId: gifterId, accessLevel: 'view', canEdit: false },
 		// Partner ↔ friend so cross-claims on each other's lists work.
-		{ ownerUserId: partnerId, viewerUserId: friendId, canView: true, canEdit: false },
-		{ ownerUserId: friendId, viewerUserId: partnerId, canView: true, canEdit: false },
+		{ ownerUserId: partnerId, viewerUserId: friendId, accessLevel: 'view', canEdit: false },
+		{ ownerUserId: friendId, viewerUserId: partnerId, accessLevel: 'view', canEdit: false },
 	])
 
 	// --------------------------------------------------------------- LISTS

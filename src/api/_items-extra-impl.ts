@@ -8,12 +8,13 @@
 import { and, asc, count, desc, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { db } from '@/db'
-import { giftedItems, itemComments, itemGroups, items, lists } from '@/db/schema'
+import { db, type SchemaDatabase } from '@/db'
+import { giftedItems, itemComments, itemGroups, items, lists, users } from '@/db/schema'
 import { availabilityEnumValues, type ListType, type Priority, priorityEnumValues } from '@/db/schema/enums'
 import type { GiftedItem } from '@/db/schema/gifts'
 import type { Item } from '@/db/schema/items'
-import { canEditList, canViewList } from '@/lib/permissions'
+import { canEditList, canViewList, getViewerAccessLevel } from '@/lib/permissions'
+import { filterItemsForRestricted } from '@/lib/restricted-filter'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { getVendorFromUrl } from '@/lib/urls'
 
@@ -594,12 +595,14 @@ export async function getItemsForListViewImpl(args: {
 	userId: string
 	listId: string
 	sort?: SortOption
+	dbx?: SchemaDatabase
 }): Promise<GetItemsForListViewResult> {
+	const { dbx = db } = args
 	const sort = args.sort ?? ('priority-desc' as SortOption)
 	const listId = Number(args.listId)
 	if (!Number.isFinite(listId)) return { kind: 'error', reason: 'not-found' }
 
-	const list = await db.query.lists.findFirst({
+	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, listId),
 		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
 	})
@@ -607,14 +610,15 @@ export async function getItemsForListViewImpl(args: {
 
 	if (list.ownerId === args.userId) return { kind: 'error', reason: 'is-owner' }
 
-	const view = await canViewList(args.userId, list)
+	const view = await canViewList(args.userId, list, dbx)
 	if (!view.ok) return { kind: 'error', reason: 'not-visible' }
 
+	const accessLevel = await getViewerAccessLevel(args.userId, list.ownerId, dbx)
 	const [sortBy, sortOrder] = sort.split('-') as [string, 'asc' | 'desc']
 	const orderBy = sortBy === 'priority' ? [asc(items.id)] : sortOrder === 'asc' ? [asc(items.createdAt)] : [desc(items.createdAt)]
 
-	const [listItems, viewGroups] = await Promise.all([
-		db.query.items.findMany({
+	const [listItemsRaw, viewGroups, groupTypes, viewerRow] = await Promise.all([
+		dbx.query.items.findMany({
 			where: and(eq(items.listId, list.id), eq(items.isArchived, false)),
 			orderBy,
 			with: {
@@ -637,14 +641,26 @@ export async function getItemsForListViewImpl(args: {
 				},
 			},
 		}),
-		db.query.itemGroups.findMany({
+		dbx.query.itemGroups.findMany({
 			where: eq(itemGroups.listId, list.id),
 			columns: { id: true, priority: true },
 		}),
+		dbx.query.itemGroups.findMany({
+			where: eq(itemGroups.listId, list.id),
+			columns: { id: true, type: true },
+		}),
+		accessLevel === 'restricted'
+			? dbx.query.users.findFirst({ where: eq(users.id, args.userId), columns: { partnerId: true } })
+			: Promise.resolve(null),
 	])
 
+	const listItems =
+		accessLevel === 'restricted'
+			? filterItemsForRestricted(listItemsRaw, groupTypes, args.userId, viewerRow?.partnerId ?? null)
+			: listItemsRaw
+
 	const commentCountRows = listItems.length
-		? await db
+		? await dbx
 				.select({ itemId: itemComments.itemId, count: count(itemComments.id) })
 				.from(itemComments)
 				.where(

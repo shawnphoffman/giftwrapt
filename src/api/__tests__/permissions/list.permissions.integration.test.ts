@@ -88,8 +88,8 @@ describe('canEditList × matrix', () => {
 // (intentional? update the constant) or filter logic regressed.
 describe('matrix coverage', () => {
 	it('runs at least one test per (role × list-state × action) cell', () => {
-		// 8 roles × 6 list states × 3 actions = 144 expected cells.
+		// 9 roles × 6 list states × 3 actions = 162 expected cells.
 		const total = viewExpectations.length + viewAsAnyoneExpectations.length + editExpectations.length
-		expect(total).toBe(144)
+		expect(total).toBe(162)
 	})
 })

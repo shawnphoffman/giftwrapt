@@ -100,6 +100,18 @@ export const SEEDERS: Record<Role, (args: SeedArgs) => Promise<ListScenario>> = 
 		return { viewer, owner, list }
 	},
 
+	restricted: async ({ tx, listState }) => {
+		const owner = await makeUser(tx)
+		const viewer = await makeUser(tx)
+		await makeUserRelationship(tx, {
+			ownerUserId: owner.id,
+			viewerUserId: viewer.id,
+			accessLevel: 'restricted',
+		})
+		const list = await makeList(tx, { ownerId: owner.id, ...listOverridesFor(listState) })
+		return { viewer, owner, list }
+	},
+
 	default: async ({ tx, listState }) => {
 		const owner = await makeUser(tx)
 		const viewer = await makeUser(tx)

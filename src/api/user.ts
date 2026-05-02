@@ -62,7 +62,7 @@ export const getGiftIdeasRecipients = createServerFn({
 		const blockers = await db
 			.select({ ownerUserId: userRelationships.ownerUserId })
 			.from(userRelationships)
-			.where(and(eq(userRelationships.viewerUserId, currentUserId), eq(userRelationships.canView, false)))
+			.where(and(eq(userRelationships.viewerUserId, currentUserId), eq(userRelationships.accessLevel, 'none')))
 		const blockedOwnerIds = blockers.map(b => b.ownerUserId)
 
 		const recipients = await db.query.users.findMany({

@@ -50,14 +50,31 @@ describe('classifyCell', () => {
 
 	it('returns denied when the owner has explicitly hidden their lists from the viewer', () => {
 		const { indices } = setup({
-			relationships: [{ ownerUserId: 'alice', viewerUserId: 'bob', canView: false, canEdit: false }],
+			relationships: [{ ownerUserId: 'alice', viewerUserId: 'bob', accessLevel: 'none', canEdit: false }],
 		})
 		expect(classifyCell({ viewerId: 'bob', ownerId: 'alice', ...indices }).kind).toBe('denied')
 	})
 
+	it('returns restricted when the owner has set the viewer to restricted', () => {
+		const { indices } = setup({
+			relationships: [{ ownerUserId: 'alice', viewerUserId: 'bob', accessLevel: 'restricted', canEdit: false }],
+		})
+		expect(classifyCell({ viewerId: 'bob', ownerId: 'alice', ...indices }).kind).toBe('restricted')
+	})
+
+	it('returns restricted even when a stale canEdit or list-editor row is present (restricted wins)', () => {
+		const { indices } = setup({
+			relationships: [{ ownerUserId: 'alice', viewerUserId: 'bob', accessLevel: 'restricted', canEdit: true }],
+			listEditorCounts: [{ ownerId: 'alice', userId: 'bob', count: 2 }],
+		})
+		const cell = classifyCell({ viewerId: 'bob', ownerId: 'alice', ...indices })
+		expect(cell.kind).toBe('restricted')
+		expect(cell.editorListCount).toBe(2)
+	})
+
 	it('returns editor for a user-level edit grant', () => {
 		const { indices } = setup({
-			relationships: [{ ownerUserId: 'alice', viewerUserId: 'bob', canView: true, canEdit: true }],
+			relationships: [{ ownerUserId: 'alice', viewerUserId: 'bob', accessLevel: 'view', canEdit: true }],
 		})
 		expect(classifyCell({ viewerId: 'bob', ownerId: 'alice', ...indices }).kind).toBe('editor')
 	})
@@ -93,7 +110,7 @@ describe('classifyCell', () => {
 		// stale deny row still reads as full access.
 		const { indices } = setup({
 			guardianships: [{ parentUserId: 'alice', childUserId: 'kid' }],
-			relationships: [{ ownerUserId: 'kid', viewerUserId: 'alice', canView: false, canEdit: false }],
+			relationships: [{ ownerUserId: 'kid', viewerUserId: 'alice', accessLevel: 'none', canEdit: false }],
 		})
 		expect(classifyCell({ viewerId: 'alice', ownerId: 'kid', ...indices }).kind).toBe('guardian')
 	})
@@ -102,7 +119,7 @@ describe('classifyCell', () => {
 		// If the owner has revoked view at the user level, list-level editor
 		// rows should not silently restore access in the UI.
 		const { indices } = setup({
-			relationships: [{ ownerUserId: 'alice', viewerUserId: 'bob', canView: false, canEdit: false }],
+			relationships: [{ ownerUserId: 'alice', viewerUserId: 'bob', accessLevel: 'none', canEdit: false }],
 			listEditorCounts: [{ ownerId: 'alice', userId: 'bob', count: 1 }],
 		})
 		expect(classifyCell({ viewerId: 'bob', ownerId: 'alice', ...indices }).kind).toBe('denied')
@@ -119,7 +136,7 @@ describe('classifyCell', () => {
 
 	it('preserves editorListCount for editor cells', () => {
 		const { indices } = setup({
-			relationships: [{ ownerUserId: 'alice', viewerUserId: 'bob', canView: true, canEdit: true }],
+			relationships: [{ ownerUserId: 'alice', viewerUserId: 'bob', accessLevel: 'view', canEdit: true }],
 			listEditorCounts: [{ ownerId: 'alice', userId: 'bob', count: 4 }],
 		})
 		const cell = classifyCell({ viewerId: 'bob', ownerId: 'alice', ...indices })
@@ -145,11 +162,11 @@ describe('buildIndices', () => {
 		const data: PermissionsMatrixData = {
 			users: [],
 			guardianships: [],
-			relationships: [{ ownerUserId: 'o', viewerUserId: 'v', canView: true, canEdit: true }],
+			relationships: [{ ownerUserId: 'o', viewerUserId: 'v', accessLevel: 'view', canEdit: true }],
 			listEditorCounts: [{ ownerId: 'o', userId: 'v', count: 5 }],
 		}
 		const idx = buildIndices(data)
-		expect(idx.relationships.get(ownerViewerKey('o', 'v'))).toEqual({ canView: true, canEdit: true })
+		expect(idx.relationships.get(ownerViewerKey('o', 'v'))).toEqual({ accessLevel: 'view', canEdit: true })
 		expect(idx.listEditorCounts.get(ownerViewerKey('o', 'v'))).toBe(5)
 	})
 

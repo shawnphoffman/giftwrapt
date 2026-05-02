@@ -2,10 +2,78 @@ import { createServerFn } from '@tanstack/react-start'
 import { and, count, desc, eq, gte, inArray, max, notInArray, sql } from 'drizzle-orm'
 
 import { db } from '@/db'
-import { itemComments, items, lists, userRelationships, users } from '@/db/schema'
+import { giftedItems, itemComments, itemGroups, items, lists, userRelationships, users } from '@/db/schema'
 import type { ListType, Priority } from '@/db/schema/enums'
 import { loggingMiddleware } from '@/lib/logger'
+import { filterItemsForRestricted } from '@/lib/restricted-filter'
 import { authMiddleware } from '@/middleware/auth'
+
+// Loads the partner/restricted context the recent feeds need. Cached as a
+// single helper so both feeds keep the same restricted-filter behaviour.
+async function loadRestrictedContext(viewerId: string): Promise<{ restrictedOwnerIds: Set<string>; viewerPartnerId: string | null }> {
+	const [restrictedRels, me] = await Promise.all([
+		db.query.userRelationships.findMany({
+			where: (rel, { and: a, eq: e }) => a(e(rel.viewerUserId, viewerId), e(rel.accessLevel, 'restricted')),
+			columns: { ownerUserId: true },
+		}),
+		db.query.users.findFirst({ where: eq(users.id, viewerId), columns: { partnerId: true } }),
+	])
+	return {
+		restrictedOwnerIds: new Set(restrictedRels.map(r => r.ownerUserId)),
+		viewerPartnerId: me?.partnerId ?? null,
+	}
+}
+
+// Drops items that a restricted viewer should not see in cross-list feeds.
+// `rowsByOwner` lets the caller skip the DB lookup for non-restricted owners.
+async function dropItemsHiddenFromRestricted<T extends { id: number; listOwnerId: string }>(
+	rows: ReadonlyArray<T>,
+	viewerId: string,
+	context: { restrictedOwnerIds: Set<string>; viewerPartnerId: string | null }
+): Promise<Array<T>> {
+	if (context.restrictedOwnerIds.size === 0) return [...rows]
+	const restrictedItemIds = rows.filter(r => context.restrictedOwnerIds.has(r.listOwnerId)).map(r => r.id)
+	if (restrictedItemIds.length === 0) return [...rows]
+
+	const [itemRows, claimRows] = await Promise.all([
+		db
+			.select({ id: items.id, quantity: items.quantity, groupId: items.groupId, groupSortOrder: items.groupSortOrder })
+			.from(items)
+			.where(inArray(items.id, restrictedItemIds)),
+		db
+			.select({
+				itemId: giftedItems.itemId,
+				gifterId: giftedItems.gifterId,
+				additionalGifterIds: giftedItems.additionalGifterIds,
+				quantity: giftedItems.quantity,
+			})
+			.from(giftedItems)
+			.where(inArray(giftedItems.itemId, restrictedItemIds)),
+	])
+	const groupIds = Array.from(new Set(itemRows.map(i => i.groupId).filter((g): g is number => g !== null)))
+	const groupRows =
+		groupIds.length > 0
+			? await db.select({ id: itemGroups.id, type: itemGroups.type }).from(itemGroups).where(inArray(itemGroups.id, groupIds))
+			: []
+
+	const claimsByItem = new Map<number, Array<{ gifterId: string; additionalGifterIds: Array<string> | null; quantity: number }>>()
+	for (const c of claimRows) {
+		const bucket = claimsByItem.get(c.itemId) ?? []
+		bucket.push({ gifterId: c.gifterId, additionalGifterIds: c.additionalGifterIds, quantity: c.quantity })
+		claimsByItem.set(c.itemId, bucket)
+	}
+	const itemsForFilter = itemRows.map(i => ({
+		id: i.id,
+		quantity: i.quantity,
+		groupId: i.groupId,
+		groupSortOrder: i.groupSortOrder,
+		gifts: claimsByItem.get(i.id) ?? [],
+	}))
+	const visible = filterItemsForRestricted(itemsForFilter, groupRows, viewerId, context.viewerPartnerId)
+	const visibleIds = new Set(visible.map(i => i.id))
+
+	return rows.filter(r => !context.restrictedOwnerIds.has(r.listOwnerId) || visibleIds.has(r.id))
+}
 
 // ===============================
 // READ - recent items (across visible lists)
@@ -39,9 +107,9 @@ export const getRecentItems = createServerFn({ method: 'GET' })
 		const deniedOwners = db
 			.select({ ownerUserId: userRelationships.ownerUserId })
 			.from(userRelationships)
-			.where(and(eq(userRelationships.viewerUserId, viewerId), eq(userRelationships.canView, false)))
+			.where(and(eq(userRelationships.viewerUserId, viewerId), eq(userRelationships.accessLevel, 'none')))
 
-		const rows = await db
+		const rawRows = await db
 			.select({
 				id: items.id,
 				title: items.title,
@@ -54,6 +122,7 @@ export const getRecentItems = createServerFn({ method: 'GET' })
 				listId: lists.id,
 				listName: lists.name,
 				listType: lists.type,
+				listOwnerId: lists.ownerId,
 				listOwnerName: users.name,
 				listOwnerEmail: users.email,
 				listOwnerImage: users.image,
@@ -64,6 +133,9 @@ export const getRecentItems = createServerFn({ method: 'GET' })
 			.where(and(eq(items.isArchived, false), gte(items.createdAt, sixtyDaysAgo), notInArray(lists.ownerId, deniedOwners)))
 			.orderBy(desc(items.createdAt))
 			.limit(50)
+
+		const restrictedCtx = await loadRestrictedContext(viewerId)
+		const rows = await dropItemsHiddenFromRestricted(rawRows, viewerId, restrictedCtx)
 
 		const itemIds = rows.map(r => r.id)
 		const counts =
@@ -76,12 +148,16 @@ export const getRecentItems = createServerFn({ method: 'GET' })
 				: []
 		const countMap = new Map(counts.map(c => [c.itemId, Number(c.total)]))
 
-		return rows.map(r => ({
-			...r,
-			priority: r.priority,
-			listType: r.listType,
-			commentCount: countMap.get(r.id) ?? 0,
-		}))
+		return rows.map(r => {
+			// Strip the helper-only listOwnerId from the public payload.
+			const { listOwnerId: _ownerId, ...rest } = r
+			return {
+				...rest,
+				priority: r.priority,
+				listType: r.listType,
+				commentCount: countMap.get(r.id) ?? 0,
+			}
+		})
 	})
 
 // ===============================
@@ -130,7 +206,7 @@ export const getRecentConversations = createServerFn({ method: 'GET' })
 		const deniedOwners = db
 			.select({ ownerUserId: userRelationships.ownerUserId })
 			.from(userRelationships)
-			.where(and(eq(userRelationships.viewerUserId, viewerId), eq(userRelationships.canView, false)))
+			.where(and(eq(userRelationships.viewerUserId, viewerId), eq(userRelationships.accessLevel, 'none')))
 
 		const activeItems = await db
 			.select({
@@ -150,7 +226,7 @@ export const getRecentConversations = createServerFn({ method: 'GET' })
 
 		const itemIds = activeItems.map(r => r.itemId)
 
-		const itemRows = await db
+		const itemRowsRaw = await db
 			.select({
 				id: items.id,
 				title: items.title,
@@ -161,6 +237,7 @@ export const getRecentConversations = createServerFn({ method: 'GET' })
 				listId: lists.id,
 				listName: lists.name,
 				listType: lists.type,
+				listOwnerId: lists.ownerId,
 				listOwnerName: users.name,
 				listOwnerEmail: users.email,
 				listOwnerImage: users.image,
@@ -169,6 +246,9 @@ export const getRecentConversations = createServerFn({ method: 'GET' })
 			.innerJoin(lists, eq(lists.id, items.listId))
 			.innerJoin(users, eq(users.id, lists.ownerId))
 			.where(inArray(items.id, itemIds))
+
+		const restrictedCtx = await loadRestrictedContext(viewerId)
+		const itemRows = await dropItemsHiddenFromRestricted(itemRowsRaw, viewerId, restrictedCtx)
 
 		const itemMap = new Map(itemRows.map(r => [r.id, r]))
 

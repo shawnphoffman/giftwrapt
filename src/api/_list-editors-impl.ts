@@ -3,10 +3,10 @@
 // files: keeps the server-only static import chain out of the client
 // bundle.
 
-import { and, asc, eq, ne, notInArray } from 'drizzle-orm'
+import { and, asc, eq, inArray, ne, notInArray } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { db } from '@/db'
+import { db, type SchemaDatabase } from '@/db'
 import { listEditors, lists, userRelationships, users } from '@/db/schema'
 import type { Role } from '@/db/schema/enums'
 
@@ -29,7 +29,14 @@ export type AddEditorResult =
 	| { kind: 'ok'; editor: EditorOnList }
 	| {
 			kind: 'error'
-			reason: 'list-not-found' | 'not-owner' | 'user-not-found' | 'already-editor' | 'cannot-add-self' | 'user-is-child'
+			reason:
+				| 'list-not-found'
+				| 'not-owner'
+				| 'user-not-found'
+				| 'already-editor'
+				| 'cannot-add-self'
+				| 'user-is-child'
+				| 'user-is-restricted'
 	  }
 
 export type AddableEditorUser = {
@@ -77,10 +84,14 @@ export async function getListEditorsImpl(args: { userId: string; listId: number 
 	return rows
 }
 
-export async function addListEditorImpl(args: { ownerId: string; input: z.infer<typeof AddEditorInputSchema> }): Promise<AddEditorResult> {
-	const { ownerId, input: data } = args
+export async function addListEditorImpl(args: {
+	ownerId: string
+	input: z.infer<typeof AddEditorInputSchema>
+	dbx?: SchemaDatabase
+}): Promise<AddEditorResult> {
+	const { ownerId, input: data, dbx = db } = args
 
-	const list = await db.query.lists.findFirst({
+	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, data.listId),
 		columns: { id: true, ownerId: true },
 	})
@@ -89,20 +100,32 @@ export async function addListEditorImpl(args: { ownerId: string; input: z.infer<
 
 	if (data.userId === ownerId) return { kind: 'error', reason: 'cannot-add-self' }
 
-	const targetUser = await db.query.users.findFirst({
+	const targetUser = await dbx.query.users.findFirst({
 		where: eq(users.id, data.userId),
 		columns: { id: true, name: true, email: true, image: true, role: true },
 	})
 	if (!targetUser) return { kind: 'error', reason: 'user-not-found' }
 	if (targetUser.role === 'child') return { kind: 'error', reason: 'user-is-child' }
 
-	const existing = await db.query.listEditors.findFirst({
+	// Restricted users can never appear in listEditors for the same owner.
+	// "Restricted wins" on conflict (logic.md edit-conflict rule).
+	const restrictedRel = await dbx.query.userRelationships.findFirst({
+		where: and(
+			eq(userRelationships.ownerUserId, ownerId),
+			eq(userRelationships.viewerUserId, targetUser.id),
+			eq(userRelationships.accessLevel, 'restricted')
+		),
+		columns: { ownerUserId: true },
+	})
+	if (restrictedRel) return { kind: 'error', reason: 'user-is-restricted' }
+
+	const existing = await dbx.query.listEditors.findFirst({
 		where: and(eq(listEditors.listId, data.listId), eq(listEditors.userId, targetUser.id)),
 		columns: { id: true },
 	})
 	if (existing) return { kind: 'error', reason: 'already-editor' }
 
-	const [inserted] = await db
+	const [inserted] = await dbx
 		.insert(listEditors)
 		.values({
 			listId: data.listId,
@@ -140,12 +163,16 @@ export async function getAddableEditorsImpl(args: { ownerId: string; listId: num
 		columns: { userId: true },
 	})
 
-	const denied = await db.query.userRelationships.findMany({
-		where: and(eq(userRelationships.ownerUserId, ownerId), eq(userRelationships.canView, false)),
+	// Exclude users who can't see the owner's lists at all (none) AND users
+	// the owner has marked as restricted - both should be hidden from the
+	// editor picker (the restricted ones will hard-fail in addListEditorImpl
+	// anyway, but better to not surface them in the UI).
+	const blocked = await db.query.userRelationships.findMany({
+		where: and(eq(userRelationships.ownerUserId, ownerId), inArray(userRelationships.accessLevel, ['none', 'restricted'])),
 		columns: { viewerUserId: true },
 	})
 
-	const excludedIds = Array.from(new Set([...existing.map(e => e.userId), ...denied.map(d => d.viewerUserId)]))
+	const excludedIds = Array.from(new Set([...existing.map(e => e.userId), ...blocked.map(d => d.viewerUserId)]))
 
 	const rows = await db.query.users.findMany({
 		where: excludedIds.length > 0 ? and(ne(users.id, ownerId), notInArray(users.id, excludedIds)) : ne(users.id, ownerId),

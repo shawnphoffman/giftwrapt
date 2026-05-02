@@ -45,6 +45,7 @@ export function ListEditorsSection({ listId, editors, addableUsers }: Props) {
 					'already-editor': 'This user is already an editor.',
 					'cannot-add-self': "You can't add yourself as an editor.",
 					'user-is-child': "Child accounts can't be editors.",
+					'user-is-restricted': "You've set this user to restricted; remove the restriction first to add them as an editor.",
 					'not-owner': "You don't own this list.",
 					'list-not-found': 'This list no longer exists.',
 				}

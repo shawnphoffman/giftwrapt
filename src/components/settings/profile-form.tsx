@@ -168,6 +168,11 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 			await refetchSession()
 			// Invalidate potential partners in case partner relationships changed
 			queryClient.invalidateQueries({ queryKey: ['potentialPartners'] })
+			// Partner changes flip `cannotBeRestricted` server-side, so the
+			// settings/permissions Restricted toggle disables/re-enables for
+			// the new (and old) partner. Drop the cache so the next visit
+			// refetches with the fresh flag.
+			queryClient.invalidateQueries({ queryKey: ['permissions'] })
 
 			if (partnerChanged) {
 				const affected = await getPartnerEditorAffectedLists({ data: { prevPartnerId, nextPartnerId } })

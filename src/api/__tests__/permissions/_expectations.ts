@@ -43,6 +43,8 @@ const canViewListExpectations: ReadonlyArray<Expectation<'view-via-canViewList'>
 		// requires callers to short-circuit on `list.ownerId === viewerId`
 		// themselves. Capture today's behaviour: helper denies on the
 		// listState filters even when called with the owner's own id.
+		// Restricted viewers also pass canViewList - the filtering happens
+		// at the item level, not the list level.
 		const expected: 'allow' | 'deny' = (() => {
 			if (!listState.active) return 'deny'
 			if (listState.privacy === 'private' || listState.privacy === 'gift-ideas') return 'deny'
@@ -113,10 +115,18 @@ function editAllowedFor(role: Role): boolean {
 		case 'owner':
 		case 'partner':
 		case 'denied':
+		case 'restricted':
 		case 'default':
 		case 'child-role':
 			return false
 	}
+}
+
+// Restricted viewers get a distinct deny reason ('restricted'), separate
+// from the default 'not-editor'. Capture that asymmetry so a future change
+// that drops the restricted-wins suppression fails this test.
+function editDenyReasonFor(role: Role): 'not-editor' | 'restricted' {
+	return role === 'restricted' ? 'restricted' : 'not-editor'
 }
 
 const canEditListExpectations: ReadonlyArray<Expectation<'edit-via-canEditList'>> = ALL_ROLES.flatMap(role =>
@@ -127,7 +137,7 @@ const canEditListExpectations: ReadonlyArray<Expectation<'edit-via-canEditList'>
 			listState,
 			action: 'edit-via-canEditList',
 			expected,
-			reasonOnDeny: expected === 'deny' ? 'not-editor' : undefined,
+			reasonOnDeny: expected === 'deny' ? editDenyReasonFor(role) : undefined,
 		}
 	})
 )

@@ -245,7 +245,7 @@ export const importAppDataAsAdmin = createServerFn({ method: 'POST' })
 								.onConflictDoUpdate({
 									target: [userRelationships.ownerUserId, userRelationships.viewerUserId],
 									set: {
-										canView: row.canView,
+										accessLevel: row.accessLevel,
 										canEdit: row.canEdit,
 										createdAt: row.createdAt,
 										updatedAt: row.updatedAt,

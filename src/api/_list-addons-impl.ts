@@ -5,7 +5,7 @@
 import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { db } from '@/db'
+import { db, type SchemaDatabase } from '@/db'
 import { listAddons, lists } from '@/db/schema'
 import type { ListAddon } from '@/db/schema/lists'
 import { canViewList } from '@/lib/permissions'
@@ -64,20 +64,21 @@ export const DeleteAddonInputSchema = z.object({
 export async function createListAddonImpl(args: {
 	userId: string
 	input: z.infer<typeof CreateAddonInputSchema>
+	dbx?: SchemaDatabase
 }): Promise<CreateAddonResult> {
-	const { userId, input: data } = args
+	const { userId, input: data, dbx = db } = args
 
-	const list = await db.query.lists.findFirst({
+	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, data.listId),
 		columns: { id: true, ownerId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'list-not-found' }
 	if (list.ownerId === userId) return { kind: 'error', reason: 'cannot-add-to-own-list' }
 
-	const view = await canViewList(userId, list)
+	const view = await canViewList(userId, list, dbx)
 	if (!view.ok) return { kind: 'error', reason: 'not-visible' }
 
-	const [inserted] = await db
+	const [inserted] = await dbx
 		.insert(listAddons)
 		.values({
 			listId: data.listId,

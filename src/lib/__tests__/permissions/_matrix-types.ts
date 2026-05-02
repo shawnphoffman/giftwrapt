@@ -4,7 +4,7 @@
 // role / resource / action only requires touching one file.
 
 /**
- * The eight actor types the system distinguishes today. Captured from
+ * The nine actor types the system distinguishes today. Captured from
  * `.notes/logic.md` and the inline checks in `src/lib/permissions.ts`,
  * `src/api/_lists-impl.ts`, and friends.
  *
@@ -14,11 +14,14 @@
  *   Logical access depends on list privacy: public is granted by default, private requires an explicit editor row.
  * - `list-editor`: the viewer has a row in `listEditors` for the specific list.
  * - `user-edit`: the viewer has `userRelationships.canEdit = true` for the owner (blanket grant).
- * - `denied`: the viewer has `userRelationships.canView = false` for the owner.
+ * - `denied`: the viewer has `userRelationships.accessLevel = 'none'` for the owner.
+ * - `restricted`: the viewer has `userRelationships.accessLevel = 'restricted'` for the owner.
+ *   List-level visibility is unchanged from `default` (canViewList still returns ok); the
+ *   item filter narrows what's surfaced. canEditList denies with reason 'restricted'.
  * - `default`: no relationship row exists; the system default ("yes for public, no for private") applies.
  * - `child-role`: the viewer's `users.role = 'child'`. Mostly affects what they can CREATE, not view.
  */
-export type Role = 'owner' | 'guardian' | 'partner' | 'list-editor' | 'user-edit' | 'denied' | 'default' | 'child-role'
+export type Role = 'owner' | 'guardian' | 'partner' | 'list-editor' | 'user-edit' | 'denied' | 'restricted' | 'default' | 'child-role'
 
 export const ALL_ROLES: ReadonlyArray<Role> = [
 	'owner',
@@ -27,6 +30,7 @@ export const ALL_ROLES: ReadonlyArray<Role> = [
 	'list-editor',
 	'user-edit',
 	'denied',
+	'restricted',
 	'default',
 	'child-role',
 ]

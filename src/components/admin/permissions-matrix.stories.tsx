@@ -50,12 +50,15 @@ const baseHousehold: PermissionsMatrixData = {
 	],
 	relationships: [
 		// Partners share full edit on each other.
-		{ ownerUserId: 'alice', viewerUserId: 'bob', canView: true, canEdit: true },
-		{ ownerUserId: 'bob', viewerUserId: 'alice', canView: true, canEdit: true },
+		{ ownerUserId: 'alice', viewerUserId: 'bob', accessLevel: 'view', canEdit: true },
+		{ ownerUserId: 'bob', viewerUserId: 'alice', accessLevel: 'view', canEdit: true },
 		// Carol is granted blanket edit on Alice's lists.
-		{ ownerUserId: 'alice', viewerUserId: 'carol', canView: true, canEdit: true },
+		{ ownerUserId: 'alice', viewerUserId: 'carol', accessLevel: 'view', canEdit: true },
 		// Bob explicitly hides his lists from Carol.
-		{ ownerUserId: 'bob', viewerUserId: 'carol', canView: false, canEdit: false },
+		{ ownerUserId: 'bob', viewerUserId: 'carol', accessLevel: 'none', canEdit: false },
+		// Alice has restricted Admin (e.g. extended-family demo) so they can
+		// shop for Alice but not see what others have already bought.
+		{ ownerUserId: 'alice', viewerUserId: 'admin', accessLevel: 'restricted', canEdit: false },
 	],
 	listEditorCounts: [
 		// Carol also has list-level edit on two of Alice's lists (overlaps the user-level grant: +N still annotated).
@@ -134,7 +137,7 @@ export const HeavyDenies: Story = {
 			relationships: sixUsers.flatMap(owner =>
 				sixUsers
 					.filter(viewer => viewer.id !== owner.id)
-					.map(viewer => ({ ownerUserId: owner.id, viewerUserId: viewer.id, canView: false, canEdit: false }))
+					.map(viewer => ({ ownerUserId: owner.id, viewerUserId: viewer.id, accessLevel: 'none', canEdit: false }))
 			),
 			listEditorCounts: [],
 		},
@@ -171,8 +174,8 @@ function buildLargeOrg(): PermissionsMatrixData {
 	for (const [a, b] of partnerPairs) {
 		users.push(user(a, cap(a), 'user', b))
 		users.push(user(b, cap(b), 'user', a))
-		relationships.push({ ownerUserId: a, viewerUserId: b, canView: true, canEdit: true })
-		relationships.push({ ownerUserId: b, viewerUserId: a, canView: true, canEdit: true })
+		relationships.push({ ownerUserId: a, viewerUserId: b, accessLevel: 'view', canEdit: true })
+		relationships.push({ ownerUserId: b, viewerUserId: a, accessLevel: 'view', canEdit: true })
 	}
 
 	// 8 children, each cycled through guardian pairs (so most have 2 guardians)
@@ -223,19 +226,25 @@ function buildLargeOrg(): PermissionsMatrixData {
 	}
 
 	// Sprinkle additional grants: a few extended-family-style edit grants
-	relationships.push({ ownerUserId: 'alice', viewerUserId: 'carol', canView: true, canEdit: true })
-	relationships.push({ ownerUserId: 'liam', viewerUserId: 'mia', canView: true, canEdit: true })
-	relationships.push({ ownerUserId: 'mia', viewerUserId: 'liam', canView: true, canEdit: true })
-	relationships.push({ ownerUserId: 'noah', viewerUserId: 'olivia', canView: true, canEdit: true })
-	relationships.push({ ownerUserId: 'tara', viewerUserId: 'sam', canView: true, canEdit: true })
+	relationships.push({ ownerUserId: 'alice', viewerUserId: 'carol', accessLevel: 'view', canEdit: true })
+	relationships.push({ ownerUserId: 'liam', viewerUserId: 'mia', accessLevel: 'view', canEdit: true })
+	relationships.push({ ownerUserId: 'mia', viewerUserId: 'liam', accessLevel: 'view', canEdit: true })
+	relationships.push({ ownerUserId: 'noah', viewerUserId: 'olivia', accessLevel: 'view', canEdit: true })
+	relationships.push({ ownerUserId: 'tara', viewerUserId: 'sam', accessLevel: 'view', canEdit: true })
 
 	// And a handful of denies (distant in-laws, etc.)
-	relationships.push({ ownerUserId: 'alice', viewerUserId: 'orion', canView: false, canEdit: false })
-	relationships.push({ ownerUserId: 'bob', viewerUserId: 'piper', canView: false, canEdit: false })
-	relationships.push({ ownerUserId: 'carol', viewerUserId: 'max', canView: false, canEdit: false })
-	relationships.push({ ownerUserId: 'eve', viewerUserId: 'gus', canView: false, canEdit: false })
-	relationships.push({ ownerUserId: 'liam', viewerUserId: 'admin', canView: false, canEdit: false })
-	relationships.push({ ownerUserId: 'fiona', viewerUserId: 'hank', canView: false, canEdit: false })
+	relationships.push({ ownerUserId: 'alice', viewerUserId: 'orion', accessLevel: 'none', canEdit: false })
+	relationships.push({ ownerUserId: 'bob', viewerUserId: 'piper', accessLevel: 'none', canEdit: false })
+	relationships.push({ ownerUserId: 'carol', viewerUserId: 'max', accessLevel: 'none', canEdit: false })
+	relationships.push({ ownerUserId: 'eve', viewerUserId: 'gus', accessLevel: 'none', canEdit: false })
+	relationships.push({ ownerUserId: 'liam', viewerUserId: 'admin', accessLevel: 'none', canEdit: false })
+	relationships.push({ ownerUserId: 'fiona', viewerUserId: 'hank', accessLevel: 'none', canEdit: false })
+
+	// A few restricted-tier grants (the spoiler-protected "shop but don't see
+	// others' purchases" relationships).
+	relationships.push({ ownerUserId: 'alice', viewerUserId: 'gus', accessLevel: 'restricted', canEdit: false })
+	relationships.push({ ownerUserId: 'noah', viewerUserId: 'admin', accessLevel: 'restricted', canEdit: false })
+	relationships.push({ ownerUserId: 'eve', viewerUserId: 'piper', accessLevel: 'restricted', canEdit: false })
 
 	// List-level editor grants overlap with some user-level grants and stand alone in others
 	listEditorCounts.push({ ownerId: 'alice', userId: 'carol', count: 3 })

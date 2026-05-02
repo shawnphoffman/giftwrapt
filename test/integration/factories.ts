@@ -121,12 +121,22 @@ export async function makeGuardianship(tx: Tx, args: { parentUserId: string; chi
 
 export async function makeUserRelationship(
 	tx: Tx,
-	args: { ownerUserId: string; viewerUserId: string; canView?: boolean; canEdit?: boolean }
+	args: {
+		ownerUserId: string
+		viewerUserId: string
+		// Either field accepted; if both omitted defaults to ('view', false).
+		// `canView` is the pre-0016 legacy shape, kept so older tests don't
+		// have to change shape just for the rename.
+		canView?: boolean
+		accessLevel?: 'none' | 'restricted' | 'view'
+		canEdit?: boolean
+	}
 ): Promise<void> {
+	const accessLevel: 'none' | 'restricted' | 'view' = args.accessLevel ?? (args.canView === false ? 'none' : 'view')
 	await tx.insert(userRelationships).values({
 		ownerUserId: args.ownerUserId,
 		viewerUserId: args.viewerUserId,
-		canView: args.canView ?? true,
+		accessLevel,
 		canEdit: args.canEdit ?? false,
 	})
 }

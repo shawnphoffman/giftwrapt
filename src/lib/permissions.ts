@@ -11,7 +11,8 @@ import { and, eq } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { db as defaultDb } from '@/db'
-import { guardianships, listEditors, userRelationships } from '@/db/schema'
+import { guardianships, listEditors, userRelationships, users } from '@/db/schema'
+import type { AccessLevel } from '@/db/schema/enums'
 
 export type CanViewListResult = { ok: true } | { ok: false; reason: 'inactive' | 'private' | 'denied' }
 
@@ -32,15 +33,13 @@ export async function canViewList(
 
 	// Explicit deny from the list owner wins over any default "yes".
 	// The absence of a row means the default policy (visible) applies.
-	const denied = await dbx.query.userRelationships.findFirst({
-		where: and(
-			eq(userRelationships.ownerUserId, list.ownerId),
-			eq(userRelationships.viewerUserId, viewerId),
-			eq(userRelationships.canView, false)
-		),
-		columns: { ownerUserId: true },
+	// Restricted is still ok at the LIST level; per-item filtering happens
+	// in the read paths.
+	const rel = await dbx.query.userRelationships.findFirst({
+		where: and(eq(userRelationships.ownerUserId, list.ownerId), eq(userRelationships.viewerUserId, viewerId)),
+		columns: { accessLevel: true },
 	})
-	if (denied) return { ok: false, reason: 'denied' }
+	if (rel?.accessLevel === 'none') return { ok: false, reason: 'denied' }
 
 	return { ok: true }
 }
@@ -72,8 +71,13 @@ export async function canViewListAsAnyone(
 // Any one is sufficient. The owner always has implicit edit access,
 // but callers should check ownership separately (this helper is for
 // non-owners).
+//
+// Restricted wins on conflict: if userRelationships.accessLevel = 'restricted'
+// for the (owner, viewer) pair, edit grants from layers (2) and (3) are
+// ignored. Guardianship (layer 1) is unaffected because partners and
+// guardians cannot be set to restricted.
 
-export type CanEditListResult = { ok: true } | { ok: false; reason: 'not-editor' }
+export type CanEditListResult = { ok: true } | { ok: false; reason: 'not-editor' | 'restricted' }
 
 export async function canEditList(
 	userId: string,
@@ -87,16 +91,16 @@ export async function canEditList(
 	})
 	if (guardianGrant) return { ok: true }
 
-	// User-level blanket edit grant.
-	const userGrant = await dbx.query.userRelationships.findFirst({
-		where: and(
-			eq(userRelationships.ownerUserId, list.ownerId),
-			eq(userRelationships.viewerUserId, userId),
-			eq(userRelationships.canEdit, true)
-		),
-		columns: { ownerUserId: true },
+	const rel = await dbx.query.userRelationships.findFirst({
+		where: and(eq(userRelationships.ownerUserId, list.ownerId), eq(userRelationships.viewerUserId, userId)),
+		columns: { accessLevel: true, canEdit: true },
 	})
-	if (userGrant) return { ok: true }
+
+	// Restricted suppresses every non-guardian edit grant.
+	if (rel?.accessLevel === 'restricted') return { ok: false, reason: 'restricted' }
+
+	// User-level blanket edit grant.
+	if (rel?.canEdit) return { ok: true }
 
 	// List-level editor grant.
 	const listGrant = await dbx.query.listEditors.findFirst({
@@ -106,4 +110,52 @@ export async function canEditList(
 	if (listGrant) return { ok: true }
 
 	return { ok: false, reason: 'not-editor' }
+}
+
+// ===============================
+// getViewerAccessLevel
+// ===============================
+// Canonical resolver for "what tier does this viewer get on this owner's
+// universe of lists?". Used by item-filter code paths and by UI surfaces
+// that need to know the level without making a separate access check.
+//
+// Resolution order (strongest first):
+//   - owner   : viewer === owner
+//   - guardian: viewer is a parent of owner in `guardianships`
+//   - partner : viewer is the owner's partnerId (always 'view'; partner
+//               can never be 'restricted')
+//   - explicit `userRelationships` row's `accessLevel`
+//   - 'view'  : default for any authenticated pair with no row
+//
+// Note that 'restricted' is NEVER returned for guardian/partner pairs even
+// if a stale row says so, mirroring the role rules. The relationship-update
+// path rejects setting 'restricted' on those pairs in the first place; this
+// resolver is the safety net.
+
+export type ResolvedAccessLevel = AccessLevel | 'owner'
+
+export async function getViewerAccessLevel(
+	viewerId: string,
+	ownerId: string,
+	dbx: SchemaDatabase = defaultDb
+): Promise<ResolvedAccessLevel> {
+	if (viewerId === ownerId) return 'owner'
+
+	const guardianGrant = await dbx.query.guardianships.findFirst({
+		where: and(eq(guardianships.parentUserId, viewerId), eq(guardianships.childUserId, ownerId)),
+		columns: { parentUserId: true },
+	})
+	if (guardianGrant) return 'view'
+
+	const owner = await dbx.query.users.findFirst({
+		where: eq(users.id, ownerId),
+		columns: { partnerId: true },
+	})
+	if (owner?.partnerId === viewerId) return 'view'
+
+	const rel = await dbx.query.userRelationships.findFirst({
+		where: and(eq(userRelationships.ownerUserId, ownerId), eq(userRelationships.viewerUserId, viewerId)),
+		columns: { accessLevel: true },
+	})
+	return rel?.accessLevel ?? 'view'
 }

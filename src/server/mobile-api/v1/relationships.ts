@@ -8,6 +8,7 @@ import type { Hono } from 'hono'
 import { z } from 'zod'
 
 import {
+	accessLevelEnumValues,
 	getMyPeopleImpl,
 	getOwnersWithRelationshipsForMeImpl,
 	getUsersWithRelationshipsImpl,
@@ -59,7 +60,7 @@ export function registerRelationshipRoutes(v1: App): void {
 				.array(
 					z.object({
 						viewerUserId: z.string().min(1),
-						canView: z.boolean(),
+						accessLevel: z.enum(accessLevelEnumValues),
 						canEdit: z.boolean(),
 					})
 				)
@@ -67,7 +68,10 @@ export function registerRelationshipRoutes(v1: App): void {
 		})
 		const parsed = schema.safeParse(body)
 		if (!parsed.success) return jsonError(c, 400, 'invalid-input', { data: { issues: parsed.error.issues } })
-		await upsertUserRelationshipsImpl({ ownerUserId, input: parsed.data })
+		const result = await upsertUserRelationshipsImpl({ ownerUserId, input: parsed.data })
+		if (!result.success) {
+			return jsonError(c, 400, result.reason, { data: { viewerUserIds: result.viewerUserIds } })
+		}
 		return c.json({ ok: true, count: parsed.data.relationships.length })
 	})
 
@@ -84,14 +88,17 @@ export function registerRelationshipRoutes(v1: App): void {
 				.array(
 					z.object({
 						ownerUserId: z.string().min(1),
-						canView: z.boolean(),
+						accessLevel: z.enum(accessLevelEnumValues),
 					})
 				)
 				.max(500),
 		})
 		const parsed = schema.safeParse(body)
 		if (!parsed.success) return jsonError(c, 400, 'invalid-input', { data: { issues: parsed.error.issues } })
-		await upsertViewerRelationshipsImpl({ viewerUserId, input: parsed.data })
+		const result = await upsertViewerRelationshipsImpl({ viewerUserId, input: parsed.data })
+		if (!result.success) {
+			return jsonError(c, 400, result.reason, { data: { ownerUserIds: result.ownerUserIds } })
+		}
 		return c.json({ ok: true, count: parsed.data.relationships.length })
 	})
 }

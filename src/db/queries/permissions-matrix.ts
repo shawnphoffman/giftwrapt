@@ -15,7 +15,7 @@ export const getPermissionsMatrixQuery = async (): Promise<PermissionsMatrixData
 			.select({
 				ownerUserId: userRelationships.ownerUserId,
 				viewerUserId: userRelationships.viewerUserId,
-				canView: userRelationships.canView,
+				accessLevel: userRelationships.accessLevel,
 				canEdit: userRelationships.canEdit,
 			})
 			.from(userRelationships),
