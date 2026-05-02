@@ -25,7 +25,6 @@ import { useInternalListLinks } from './internal-list-links-context'
 import { ItemImage } from './item-image'
 import { PriceQuantityBadge } from './price-quantity-badge'
 import { QuantityRemainingBadge } from './quantity-remaining-badge'
-import { UnavailableBadge } from './unavailable-badge'
 
 export type LockReason = 'order' | 'or'
 
@@ -63,6 +62,10 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 		item.quantity,
 		item.gifts.map(g => ({ quantity: g.quantity }))
 	)
+	// Unclamped sum of every gifter's claim quantity. Passed to the badge so it
+	// can detect the over-claim case (recipient lowered items.quantity after
+	// claims existed); `remaining` alone can't express it because it clamps to 0.
+	const claimedCount = item.gifts.reduce((sum, g) => sum + g.quantity, 0)
 	const fullyClaimed = remaining === 0
 	const myClaim = currentUserId ? item.gifts.find(g => g.gifterId === currentUserId) : undefined
 	const isUnavailable = item.availability === 'unavailable'
@@ -120,8 +123,11 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 			variant="inline-pill"
 			quantity={item.quantity}
 			remaining={remaining}
+			claimedCount={claimedCount}
 			youClaimed={!!myClaim}
 			lockReason={groupLockedForViewer ? lockReason : undefined}
+			unavailable={isUnavailable}
+			unavailableChangedAt={item.availabilityChangedAt}
 		/>
 	)
 	const trailing = (
@@ -151,7 +157,6 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 				)}
 				<span className="flex-1" />
 				{isSaving && <Loader2 className="size-3.5 shrink-0 text-muted-foreground animate-spin" aria-label="Saving" />}
-				{isUnavailable && <UnavailableBadge changedAt={item.availabilityChangedAt} />}
 				{currentUserId && (
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
@@ -202,6 +207,9 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 										remainingForEdit={remainingForEdit}
 										myClaim={myClaim}
 										locked={groupLockedForViewer}
+										claimedCount={claimedCount}
+										unavailable={isUnavailable}
+										unavailableChangedAt={item.availabilityChangedAt}
 									/>
 								</div>
 							)}

@@ -37,6 +37,10 @@ type Props = {
 	 * claims remain editable, matching the server-side guards.
 	 */
 	locked?: boolean
+	/** Forwarded to the dialog's header badge; lets it show over-claim and unavailable states. */
+	claimedCount?: number
+	unavailable?: boolean
+	unavailableChangedAt?: Date | string | null
 }
 
 /**
@@ -56,6 +60,9 @@ export function ClaimAction({
 	remainingForEdit,
 	myClaim,
 	locked = false,
+	claimedCount,
+	unavailable,
+	unavailableChangedAt,
 }: Props) {
 	const [createOpen, setCreateOpen] = useState(false)
 	const [editOpen, setEditOpen] = useState(false)
@@ -85,6 +92,9 @@ export function ClaimAction({
 						itemImageUrl={itemImageUrl}
 						itemQuantity={itemQuantity}
 						remainingQuantity={remainingForEdit}
+						claimedCount={claimedCount}
+						unavailable={unavailable}
+						unavailableChangedAt={unavailableChangedAt}
 					/>
 				)}
 			</>
@@ -108,6 +118,9 @@ export function ClaimAction({
 				itemImageUrl={itemImageUrl}
 				itemQuantity={itemQuantity}
 				remainingQuantity={remaining}
+				claimedCount={claimedCount}
+				unavailable={unavailable}
+				unavailableChangedAt={unavailableChangedAt}
 				onClaimed={() => setCelebrating(true)}
 			/>
 		</>

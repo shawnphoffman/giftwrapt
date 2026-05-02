@@ -59,7 +59,6 @@ import { ItemFormDialog } from './item-form-dialog'
 import { ItemImage } from './item-image'
 import { PriceQuantityBadge } from './price-quantity-badge'
 import { QuantityRemainingBadge } from './quantity-remaining-badge'
-import { UnavailableBadge } from './unavailable-badge'
 
 type Props = {
 	item: Item
@@ -159,7 +158,16 @@ export const ItemEditRow = memo(function ItemEditRow({
 				)}
 				<span className="flex-1" />
 				{isSaving && <Loader2 className="size-3.5 shrink-0 text-muted-foreground animate-spin" aria-label="Saving" />}
-				{isUnavailable && <UnavailableBadge changedAt={item.availabilityChangedAt} />}
+				{isUnavailable && (
+					<QuantityRemainingBadge
+						variant="inline-pill"
+						quantity={item.quantity}
+						remaining={item.quantity}
+						firstPerson
+						unavailable
+						unavailableChangedAt={item.availabilityChangedAt}
+					/>
+				)}
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
 						<Button variant="ghost" size="icon" className="size-7 shrink-0" aria-label="Item actions">

@@ -35,6 +35,11 @@ type BaseProps = {
 	// For edit mode:   remaining = item.quantity - sum(OTHER claims), so the
 	// current claim's own quantity is part of the budget the user can spend.
 	remainingQuantity: number
+	/** Unclamped sum of every claim quantity, used by the badge to detect over-claim. */
+	claimedCount?: number
+	/** Item availability is 'unavailable'; surfaces in the dialog header badge. */
+	unavailable?: boolean
+	unavailableChangedAt?: Date | string | null
 }
 
 type CreateProps = BaseProps & {
@@ -76,7 +81,19 @@ function buildSchema(remaining: number) {
 }
 
 export function ClaimGiftDialog(props: Props) {
-	const { open, onOpenChange, itemId, listId, itemTitle, itemImageUrl, itemQuantity, remainingQuantity } = props
+	const {
+		open,
+		onOpenChange,
+		itemId,
+		listId,
+		itemTitle,
+		itemImageUrl,
+		itemQuantity,
+		remainingQuantity,
+		claimedCount,
+		unavailable,
+		unavailableChangedAt,
+	} = props
 	const isEdit = props.mode === 'edit'
 	const router = useRouter()
 	const queryClient = useQueryClient()
@@ -113,7 +130,14 @@ export function ClaimGiftDialog(props: Props) {
 		await Promise.all([router.invalidate(), queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })])
 	}
 
-	const schema = buildSchema(remainingQuantity)
+	// In edit mode, allow at least the existing claim's current quantity even
+	// when remainingQuantity is 0. This handles the over-claim case (recipient
+	// lowered items.quantity below sum(claims) without knowing claims existed):
+	// without this, an existing claimer can't save edits to notes/totalCost
+	// without unclaiming first. Server-side guard still rejects increases that
+	// violate the invariant.
+	const effectiveMax = isEdit ? Math.max(remainingQuantity, props.gift.quantity) : remainingQuantity
+	const schema = buildSchema(effectiveMax)
 
 	const form = useForm({
 		defaultValues: {
@@ -268,7 +292,7 @@ export function ClaimGiftDialog(props: Props) {
 							// total is 1 or only 1 slot is left to claim. The field stays
 							// mounted so the default quantity (1, or the edited gift's value)
 							// still submits.
-							if (remainingQuantity <= 1) return null
+							if (effectiveMax <= 1) return null
 							return (
 								<div className="grid gap-2">
 									<div className="flex items-center gap-3">
@@ -279,14 +303,21 @@ export function ClaimGiftDialog(props: Props) {
 											id={field.name}
 											type="number"
 											min={1}
-											max={remainingQuantity}
+											max={effectiveMax}
 											value={field.state.value}
 											onChange={e => field.handleChange(e.target.value)}
 											onBlur={field.handleBlur}
 											disabled={submitting}
 											className="flex-1 min-w-0"
 										/>
-										<QuantityRemainingBadge variant="inline-pill" quantity={itemQuantity} remaining={remainingQuantity} />
+										<QuantityRemainingBadge
+											variant="inline-pill"
+											quantity={itemQuantity}
+											remaining={remainingQuantity}
+											claimedCount={claimedCount}
+											unavailable={unavailable}
+											unavailableChangedAt={unavailableChangedAt}
+										/>
 									</div>
 									{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 										<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
@@ -376,7 +407,7 @@ export function ClaimGiftDialog(props: Props) {
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
 							Cancel
 						</Button>
-						<Button type="submit" disabled={submitting || remainingQuantity === 0}>
+						<Button type="submit" disabled={submitting || effectiveMax === 0}>
 							{submitting ? 'Saving…' : isEdit ? 'Save' : 'Claim'}
 						</Button>
 					</DialogFooter>
