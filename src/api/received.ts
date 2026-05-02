@@ -4,7 +4,7 @@ import { and, desc, eq, inArray, isNull } from 'drizzle-orm'
 import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
 import { dependentGuardianships, dependents, giftedItems, items, listAddons, lists, users } from '@/db/schema'
-import { namesForGifter, type PartneredUser } from '@/lib/gifters'
+import { displayName, formatGifterNames, namesForGifter, type PartneredUser } from '@/lib/gifters'
 import { loggingMiddleware } from '@/lib/logger'
 import { authMiddleware } from '@/middleware/auth'
 
@@ -15,6 +15,16 @@ import { authMiddleware } from '@/middleware/auth'
 // This surfaces gifter info that was hidden during spoiler protection.
 // Each gifter is shown alongside their partner when one is set, matching
 // the settings page promise that gifts credit both partners.
+
+// A gifter household: solo gifter, or a primary + partner pair. The pair
+// label uses `formatGifterNames`, e.g. "Alice & Bob". The viewer's own
+// partner is intentionally NOT paired with the viewer (the viewer is not a
+// gifter); they show as a solo unit when they are the gifter.
+export type GifterUnit = {
+	key: string
+	label: string
+	members: Array<{ id: string; name: string; image: string | null }>
+}
 
 export type ReceivedGiftRow = {
 	type: 'item'
@@ -27,8 +37,14 @@ export type ReceivedGiftRow = {
 	// Every person credited on the claim: primary gifter, their partner (if any),
 	// each co-gifter, and each co-gifter's partner. De-duplicated display names.
 	gifterNames: Array<string>
+	// Structured gifter households. One per distinct partner-pair (or solo).
+	// Two co-gifters from the same household collapse to a single unit.
+	gifterUnits: Array<GifterUnit>
 	quantity: number
 	archivedAt: Date
+	createdAt: Date
+	recipientKind: 'self' | 'dependent'
+	recipientId: string
 }
 
 export type ReceivedAddonRow = {
@@ -39,7 +55,11 @@ export type ReceivedAddonRow = {
 	listId: number
 	listName: string
 	gifterNames: Array<string>
+	gifterUnits: Array<GifterUnit>
 	archivedAt: Date
+	createdAt: Date
+	recipientKind: 'self' | 'dependent'
+	recipientId: string
 }
 
 export type DependentReceivedSection = {
@@ -52,6 +72,56 @@ export type ReceivedGiftsResult = {
 	gifts: Array<ReceivedGiftRow>
 	addons: Array<ReceivedAddonRow>
 	dependents: Array<DependentReceivedSection>
+}
+
+type GifterUserMeta = PartneredUser & { image: string | null }
+
+// Resolve the gifter ids on a single claim/addon into deduped household
+// units. Viewer's own partner is forced solo (we never pair a gifter with
+// the viewer, since the viewer isn't a gifter).
+function buildGifterUnits(
+	primaryId: string,
+	additionalIds: Array<string> | null,
+	viewerId: string,
+	lookup: ReadonlyMap<string, GifterUserMeta>
+): Array<GifterUnit> {
+	const ids = new Set<string>([primaryId, ...(additionalIds ?? [])])
+	const units = new Map<string, GifterUnit>()
+
+	for (const id of ids) {
+		const user = lookup.get(id)
+		if (!user) continue
+
+		// Symmetric partner check: viewer's partner is whoever has the viewer
+		// as their partnerId, or whoever is named in the viewer's partnerId.
+		const viewer = lookup.get(viewerId)
+		const isViewerPartner = user.partnerId === viewerId || (viewer?.partnerId !== null && viewer?.partnerId === user.id)
+
+		const partner = !isViewerPartner && user.partnerId ? lookup.get(user.partnerId) : undefined
+
+		if (partner) {
+			const sorted = [user, partner].sort((a, b) => (a.id! < b.id! ? -1 : 1))
+			const key = `pair:${sorted[0].id}:${sorted[1].id}`
+			if (!units.has(key)) {
+				units.set(key, {
+					key,
+					label: formatGifterNames(sorted.map(displayName)),
+					members: sorted.map(u => ({ id: u.id!, name: displayName(u), image: u.image })),
+				})
+			}
+		} else {
+			const key = `solo:${user.id}`
+			if (!units.has(key)) {
+				units.set(key, {
+					key,
+					label: displayName(user),
+					members: [{ id: user.id!, name: displayName(user), image: user.image }],
+				})
+			}
+		}
+	}
+
+	return Array.from(units.values())
 }
 
 export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaDatabase }): Promise<ReceivedGiftsResult> {
@@ -173,8 +243,9 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 		for (const d of dependentRows) dependentMeta.set(d.id, { id: d.id, name: d.name, image: d.image })
 	}
 
-	// Resolve the initial pool of gifter userIds referenced by claims + addons.
-	const seedIds = new Set<string>()
+	// Resolve the initial pool of gifter userIds referenced by claims + addons,
+	// plus the viewer themselves (so the viewer-partner check can resolve).
+	const seedIds = new Set<string>([userId])
 	for (const row of giftRows) {
 		seedIds.add(row.gifterId)
 		for (const id of row.additionalGifterIds ?? []) seedIds.add(id)
@@ -186,10 +257,10 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 	}
 	for (const row of dependentAddonRows) seedIds.add(row.gifterId)
 
-	const userLookup = new Map<string, PartneredUser>()
+	const userLookup = new Map<string, GifterUserMeta>()
 	if (seedIds.size > 0) {
 		const rows = await dbx
-			.select({ id: users.id, name: users.name, email: users.email, partnerId: users.partnerId })
+			.select({ id: users.id, name: users.name, email: users.email, image: users.image, partnerId: users.partnerId })
 			.from(users)
 			.where(inArray(users.id, Array.from(seedIds)))
 		for (const r of rows) userLookup.set(r.id, r)
@@ -202,7 +273,7 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 	}
 	if (partnerIds.size > 0) {
 		const rows = await dbx
-			.select({ id: users.id, name: users.name, email: users.email, partnerId: users.partnerId })
+			.select({ id: users.id, name: users.name, email: users.email, image: users.image, partnerId: users.partnerId })
 			.from(users)
 			.where(inArray(users.id, Array.from(partnerIds)))
 		for (const r of rows) userLookup.set(r.id, r)
@@ -226,8 +297,12 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 		listId: r.listId,
 		listName: r.listName,
 		gifterNames: collectNames(r.gifterId, r.additionalGifterIds),
+		gifterUnits: buildGifterUnits(r.gifterId, r.additionalGifterIds, userId, userLookup),
 		quantity: r.quantity,
 		archivedAt: r.archivedAt,
+		createdAt: r.archivedAt,
+		recipientKind: 'self',
+		recipientId: userId,
 	}))
 
 	const addons: Array<ReceivedAddonRow> = addonRows.map(r => ({
@@ -238,7 +313,11 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 		listId: r.listId,
 		listName: r.listName,
 		gifterNames: collectNames(r.gifterId, null),
+		gifterUnits: buildGifterUnits(r.gifterId, null, userId, userLookup),
 		archivedAt: r.archivedAt,
+		createdAt: r.archivedAt,
+		recipientKind: 'self',
+		recipientId: userId,
 	}))
 
 	const dependentSections = new Map<string, DependentReceivedSection>()
@@ -258,8 +337,12 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 			listId: r.listId,
 			listName: r.listName,
 			gifterNames: collectNames(r.gifterId, r.additionalGifterIds),
+			gifterUnits: buildGifterUnits(r.gifterId, r.additionalGifterIds, userId, userLookup),
 			quantity: r.quantity,
 			archivedAt: r.archivedAt,
+			createdAt: r.archivedAt,
+			recipientKind: 'dependent',
+			recipientId: r.subjectDependentId,
 		})
 	}
 	for (const r of dependentAddonRows) {
@@ -274,7 +357,11 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 			listId: r.listId,
 			listName: r.listName,
 			gifterNames: collectNames(r.gifterId, null),
+			gifterUnits: buildGifterUnits(r.gifterId, null, userId, userLookup),
 			archivedAt: r.archivedAt,
+			createdAt: r.archivedAt,
+			recipientKind: 'dependent',
+			recipientId: r.subjectDependentId,
 		})
 	}
 
