@@ -7,25 +7,21 @@ import { authClient } from '@/lib/auth-client'
 // Quick check for browser WebAuthn support. We bail out of the panel
 // entirely if it's not present so users don't get confused by failing
 // "register" calls in old Chromium / Firefox-on-iPad-via-RDP setups.
+// Default to `true` so SSR matches the common case; downgrade after
+// mount if the API isn't actually present.
 function browserSupportsPasskeys(): boolean {
-	if (typeof window === 'undefined') return false
-	return typeof window.PublicKeyCredential === 'function'
+	return typeof window !== 'undefined' && typeof window.PublicKeyCredential === 'function'
 }
 
 export default function PasskeysSection() {
-	const [supported] = useState(() => browserSupportsPasskeys())
+	const [supported, setSupported] = useState(true)
+	useEffect(() => {
+		setSupported(browserSupportsPasskeys())
+	}, [])
 	const list = authClient.useListPasskeys()
 	const [busyId, setBusyId] = useState<string | null>(null)
 	const [registering, setRegistering] = useState(false)
 	const [error, setError] = useState<string | null>(null)
-	const [refreshTick, setRefreshTick] = useState(0)
-
-	useEffect(() => {
-		// Re-fetch when our local mutations (rename/delete) fire so the
-		// rendered list catches up. The plugin's atom doesn't auto-
-		// refresh on mutations to /passkey/* endpoints.
-		void list.refetch()
-	}, [list, refreshTick])
 
 	const passkeys: Array<PasskeySummary> | null = list.data
 		? list.data.map(p => ({
@@ -43,7 +39,7 @@ export default function PasskeysSection() {
 			const { error: addError } = await authClient.passkey.addPasskey({ name })
 			if (addError) throw new Error(addError.message ?? 'Registration failed.')
 			toast.success(`Passkey "${name}" added`)
-			setRefreshTick(n => n + 1)
+			await list.refetch()
 		} catch (err) {
 			// User-cancel / WebAuthn-NotAllowedError surfaces here; a
 			// generic copy is fine since the browser already showed its
@@ -62,7 +58,7 @@ export default function PasskeysSection() {
 			const { error: updateError } = await authClient.passkey.updatePasskey({ id, name })
 			if (updateError) throw new Error(updateError.message ?? 'Rename failed.')
 			toast.success('Passkey renamed')
-			setRefreshTick(n => n + 1)
+			await list.refetch()
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Couldn't rename that passkey.")
 		} finally {
@@ -77,7 +73,7 @@ export default function PasskeysSection() {
 			const { error: deleteError } = await authClient.passkey.deletePasskey({ id })
 			if (deleteError) throw new Error(deleteError.message ?? 'Delete failed.')
 			toast.success('Passkey removed')
-			setRefreshTick(n => n + 1)
+			await list.refetch()
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Couldn't remove that passkey.")
 		} finally {
