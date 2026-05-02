@@ -3,6 +3,7 @@ import { ChevronDown, ChevronsDownUp, ChevronsUpDown, Gift, PackageOpen, Package
 import { Fragment, useMemo, useState } from 'react'
 
 import type { GifterUnit, ReceivedGiftsResult } from '@/api/received'
+import { DateRangeFilter } from '@/components/common/date-range-filter'
 import UserAvatar from '@/components/common/user-avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -11,40 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { groupByGifterUnit, type ReceivedRow } from '@/lib/received-grouping'
+import { matchesTimeframe, type TimeframeValue } from '@/lib/timeframe'
 
 type Props = {
 	data: ReceivedGiftsResult
-}
-
-type Timeframe = '30d' | '60d' | '6m' | '12m' | 'all'
-
-const TIMEFRAME_OPTIONS: Array<{ value: Timeframe; label: string }> = [
-	{ value: '30d', label: 'Last 30 days' },
-	{ value: '60d', label: 'Last 60 days' },
-	{ value: '6m', label: 'Last 6 months' },
-	{ value: '12m', label: 'Last 12 months' },
-	{ value: 'all', label: 'All time' },
-]
-
-function timeframeCutoff(tf: Timeframe): Date | null {
-	if (tf === 'all') return null
-	const now = Date.now()
-	switch (tf) {
-		case '30d':
-			return new Date(now - 30 * 24 * 60 * 60 * 1000)
-		case '60d':
-			return new Date(now - 60 * 24 * 60 * 60 * 1000)
-		case '6m': {
-			const d = new Date()
-			d.setMonth(d.getMonth() - 6)
-			return d
-		}
-		case '12m': {
-			const d = new Date()
-			d.setFullYear(d.getFullYear() - 1)
-			return d
-		}
-	}
 }
 
 const SELF_RECIPIENT_KEY = '__self__'
@@ -69,7 +40,7 @@ export function ReceivedPageContent({ data }: Props) {
 		if (hasDependents) return dependentTabs[0].id
 		return SELF_RECIPIENT_KEY
 	})
-	const [timeframe, setTimeframe] = useState<Timeframe>('12m')
+	const [timeframe, setTimeframe] = useState<TimeframeValue>({ kind: 'preset', preset: '12m' })
 	const [openKeys, setOpenKeys] = useState<Set<string>>(new Set())
 
 	const activeRows: Array<ReceivedRow> = useMemo(() => {
@@ -77,11 +48,7 @@ export function ReceivedPageContent({ data }: Props) {
 		return dependentRows.get(recipientKey) ?? []
 	}, [recipientKey, selfRows, dependentRows])
 
-	const filtered = useMemo(() => {
-		const cutoff = timeframeCutoff(timeframe)
-		if (!cutoff) return activeRows
-		return activeRows.filter(r => new Date(r.createdAt) >= cutoff)
-	}, [activeRows, timeframe])
+	const filtered = useMemo(() => activeRows.filter(r => matchesTimeframe(r.createdAt, timeframe)), [activeRows, timeframe])
 
 	const groups = useMemo(() => groupByGifterUnit(filtered), [filtered])
 
@@ -149,19 +116,7 @@ export function ReceivedPageContent({ data }: Props) {
 										</Select>
 									</>
 								)}
-								<span className="text-sm text-muted-foreground">Timeframe:</span>
-								<Select value={timeframe} onValueChange={v => setTimeframe(v as Timeframe)}>
-									<SelectTrigger className="w-[180px]">
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										{TIMEFRAME_OPTIONS.map(opt => (
-											<SelectItem key={opt.value} value={opt.value}>
-												{opt.label}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
+								<DateRangeFilter value={timeframe} onChange={setTimeframe} />
 							</div>
 							{groups.length > 0 && (
 								<Button variant="outline" size="sm" onClick={toggleAll}>

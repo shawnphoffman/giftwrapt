@@ -16,6 +16,7 @@ import { Fragment, useMemo, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 
 import type { SummaryItem } from '@/api/purchases'
+import { DateRangeFilter } from '@/components/common/date-range-filter'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import UserAvatar from '@/components/common/user-avatar'
 import { type EditablePurchase, PurchaseEditDialog } from '@/components/purchases/purchase-edit-dialog'
@@ -23,10 +24,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { groupByPerson, type PersonGroup } from '@/lib/purchases-grouping'
+import { matchesTimeframe, type TimeframeValue } from '@/lib/timeframe'
 
 import { Separator } from '../ui/separator'
 
@@ -56,37 +57,6 @@ function toEditable(item: SummaryItem): EditablePurchase | null {
 type Props = {
 	items: Array<SummaryItem>
 	partner: { name: string; image: string | null } | null
-}
-
-type Timeframe = '30d' | '60d' | '6m' | '12m' | 'all'
-
-const TIMEFRAME_OPTIONS: Array<{ value: Timeframe; label: string }> = [
-	{ value: '30d', label: 'Last 30 days' },
-	{ value: '60d', label: 'Last 60 days' },
-	{ value: '6m', label: 'Last 6 months' },
-	{ value: '12m', label: 'Last 12 months' },
-	{ value: 'all', label: 'All time' },
-]
-
-function timeframeCutoff(tf: Timeframe): Date | null {
-	if (tf === 'all') return null
-	const now = Date.now()
-	switch (tf) {
-		case '30d':
-			return new Date(now - 30 * 24 * 60 * 60 * 1000)
-		case '60d':
-			return new Date(now - 60 * 24 * 60 * 60 * 1000)
-		case '6m': {
-			const d = new Date()
-			d.setMonth(d.getMonth() - 6)
-			return d
-		}
-		case '12m': {
-			const d = new Date()
-			d.setFullYear(d.getFullYear() - 1)
-			return d
-		}
-	}
 }
 
 function fmt(n: number): string {
@@ -132,7 +102,7 @@ function buildMonthlyBuckets(items: Array<SummaryItem>): Array<MonthBucket> {
 }
 
 export function PurchasesPageContent({ items, partner }: Props) {
-	const [timeframe, setTimeframe] = useState<Timeframe>('6m')
+	const [timeframe, setTimeframe] = useState<TimeframeValue>({ kind: 'preset', preset: '6m' })
 	const [openKeys, setOpenKeys] = useState<Set<string>>(new Set())
 	const [editing, setEditing] = useState<EditablePurchase | null>(null)
 	const [dialogOpen, setDialogOpen] = useState(false)
@@ -158,11 +128,7 @@ export function PurchasesPageContent({ items, partner }: Props) {
 		})
 	}
 
-	const filtered = useMemo(() => {
-		const cutoff = timeframeCutoff(timeframe)
-		if (!cutoff) return items
-		return items.filter(i => new Date(i.createdAt) >= cutoff)
-	}, [items, timeframe])
+	const filtered = useMemo(() => items.filter(i => matchesTimeframe(i.createdAt, timeframe)), [items, timeframe])
 
 	const groups = useMemo(() => groupByPerson(filtered), [filtered])
 	const monthly = useMemo(() => buildMonthlyBuckets(filtered), [filtered])
@@ -243,21 +209,7 @@ export function PurchasesPageContent({ items, partner }: Props) {
 
 				{/* CONTROLS */}
 				<div className="flex flex-wrap items-center justify-between gap-3">
-					<div className="flex items-center gap-2">
-						<span className="text-sm text-muted-foreground">Timeframe:</span>
-						<Select value={timeframe} onValueChange={v => setTimeframe(v as Timeframe)}>
-							<SelectTrigger className="w-[180px]">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								{TIMEFRAME_OPTIONS.map(opt => (
-									<SelectItem key={opt.value} value={opt.value}>
-										{opt.label}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					</div>
+					<DateRangeFilter value={timeframe} onChange={setTimeframe} />
 					{groups.length > 0 && (
 						<Button variant="outline" size="sm" onClick={toggleAll}>
 							{allOpen ? (
