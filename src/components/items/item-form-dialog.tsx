@@ -210,13 +210,19 @@ export function ItemFormDialog(props: Props) {
 	// Tear down any in-flight scrape and reset prefill state when the dialog
 	// closes. The form itself is reset by callers post-submit; this runs
 	// regardless to clean up the side-effect of opening + closing without
-	// saving.
+	// saving. On open in edit mode, seed the ref with the item's existing
+	// URL so an unchanged URL doesn't auto-scrape on first blur; the
+	// Sparkles button still force-scrapes.
+	const initialUrl = isEdit ? (props.item.url ?? '') : null
 	useEffect(() => {
-		if (open) return
+		if (open) {
+			if (initialUrl !== null) lastScrapedUrlRef.current = initialUrl.trim()
+			return
+		}
 		cancelScrape()
 		lastScrapedUrlRef.current = ''
 		setImageCandidates([])
-	}, [open, cancelScrape])
+	}, [open, initialUrl, cancelScrape])
 
 	const formLocked = submitting || scrapeState.phase === 'scraping'
 	const scrapeInFlight = scrapeState.phase === 'scraping'
