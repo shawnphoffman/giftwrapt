@@ -30,6 +30,8 @@ import { sql } from 'drizzle-orm'
 import { db } from '@/db'
 import type { BirthMonth } from '@/db/schema'
 import {
+	dependentGuardianships,
+	dependents,
 	giftedItems,
 	guardianships,
 	itemComments,
@@ -146,6 +148,7 @@ async function createList(input: {
 	isPrivate?: boolean
 	description?: string
 	giftIdeasTargetUserId?: string
+	subjectDependentId?: string
 	createdAt?: Date
 }): Promise<number> {
 	const [row] = await db
@@ -158,6 +161,7 @@ async function createList(input: {
 			isPrivate: input.type === 'giftideas' ? true : (input.isPrivate ?? false),
 			description: input.description,
 			giftIdeasTargetUserId: input.giftIdeasTargetUserId,
+			subjectDependentId: input.subjectDependentId,
 			...(input.createdAt ? { createdAt: input.createdAt } : {}),
 		})
 		.returning({ id: lists.id })
@@ -209,6 +213,8 @@ async function reset() {
 			"lists",
 			"user_relationships",
 			"guardianships",
+			"dependent_guardianships",
+			"dependents",
 			"session",
 			"account",
 			"verification",
@@ -297,6 +303,28 @@ async function main() {
 	await db.insert(guardianships).values([
 		{ parentUserId: adminId, childUserId: childId },
 		{ parentUserId: partnerId, childUserId: childId },
+	])
+
+	// ----------------------------------------------- DEPENDENTS
+	// One dependent (a pet) co-managed by admin + partner. Gives every
+	// screenshot a chance to capture the dependent surfaces: /me's
+	// "Dependents' Lists" section, the public-feed Sprout entry, the
+	// /received per-dependent block, and the permissions-matrix
+	// dependent column.
+	console.log('🌱 Creating dependent...')
+	const petId = crypto.randomUUID()
+	await db.insert(dependents).values({
+		id: petId,
+		name: 'Buddy',
+		image: null,
+		birthMonth: 'april',
+		birthDay: 22,
+		birthYear: 2021,
+		createdByUserId: adminId,
+	})
+	await db.insert(dependentGuardianships).values([
+		{ guardianUserId: adminId, dependentId: petId },
+		{ guardianUserId: partnerId, dependentId: petId },
 	])
 
 	// ---------------------------------------------------- USER RELATIONSHIPS
@@ -451,6 +479,18 @@ async function main() {
 		type: 'christmas',
 		ownerId: childId,
 		createdAt: daysAgo(25),
+	})
+
+	// Dependent-subject list (Buddy the pet, co-managed by admin + partner).
+	// Owner stays the guardian; subjectDependentId flips the recipient
+	// identity throughout the app.
+	const buddyWishlist = await createList({
+		name: "Buddy's Wishlist",
+		ownerId: adminId,
+		isPrimary: true,
+		subjectDependentId: petId,
+		description: 'Treats, toys, and the occasional sweater.',
+		createdAt: daysAgo(35),
 	})
 
 	// --------------------------------------------- ITEMS - admin primary wishlist
@@ -1127,6 +1167,36 @@ async function main() {
 			createdAt: daysAgo(15),
 		},
 		{ listId: childChristmas, title: 'Sticker book', priority: 'low', quantity: 3, createdAt: daysAgo(8) },
+	])
+
+	// ---------------------------------------------------- ITEMS - dependent
+	console.log('🎁 Adding Buddy items...')
+	await insertItems([
+		{
+			listId: buddyWishlist,
+			title: 'Salmon-flavor training treats',
+			priority: 'high',
+			quantity: 2,
+			imageUrl: ph.square('Treats', 'f97316'),
+			createdAt: daysAgo(28),
+		},
+		{
+			listId: buddyWishlist,
+			title: 'Heavy-duty rope toy',
+			priority: 'normal',
+			price: '18.00',
+			currency: 'USD',
+			createdAt: daysAgo(20),
+		},
+		{
+			listId: buddyWishlist,
+			title: 'New collar, medium',
+			priority: 'normal',
+			price: '24.00',
+			currency: 'USD',
+			createdAt: daysAgo(12),
+		},
+		{ listId: buddyWishlist, title: 'Heated bed (winter, eventually)', priority: 'low', createdAt: daysAgo(5) },
 	])
 
 	// ----------------------------------------------------- CLAIMS / GIFTS

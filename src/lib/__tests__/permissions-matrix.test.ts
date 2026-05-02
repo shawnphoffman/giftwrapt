@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
+import type { AccessLevel } from '@/db/schema/enums'
+
 import {
 	buildIndices,
 	classifyCell,
+	classifyDependentCell,
 	guardianKey,
 	ownerViewerKey,
 	type PermissionsMatrixData,
@@ -142,6 +145,102 @@ describe('classifyCell', () => {
 		const cell = classifyCell({ viewerId: 'bob', ownerId: 'alice', ...indices })
 		expect(cell.kind).toBe('editor')
 		expect(cell.editorListCount).toBe(4)
+	})
+})
+
+describe('classifyDependentCell', () => {
+	// `relationships` here mimics what `buildIndices().relationships` would
+	// produce: a Map keyed by `${ownerUserId}|${viewerUserId}`.
+	function relMap(entries: Array<[string, string, AccessLevel]>): Map<string, { accessLevel: AccessLevel; canEdit: boolean }> {
+		return new Map(entries.map(([owner, viewer, accessLevel]) => [ownerViewerKey(owner, viewer), { accessLevel, canEdit: false }]))
+	}
+
+	it('returns guardian when viewer is one of the guardians', () => {
+		const cell = classifyDependentCell({
+			viewerId: 'alice',
+			dependentId: 'mochi',
+			guardianIds: ['alice', 'bob'],
+			relationships: new Map(),
+		})
+		expect(cell.kind).toBe('guardian')
+	})
+
+	it('returns view by default for non-guardian viewers', () => {
+		const cell = classifyDependentCell({
+			viewerId: 'carol',
+			dependentId: 'mochi',
+			guardianIds: ['alice', 'bob'],
+			relationships: new Map(),
+		})
+		expect(cell.kind).toBe('view')
+	})
+
+	it("returns denied if ANY guardian has set the viewer to 'none'", () => {
+		// Even if the other guardian shares freely, an explicit deny on
+		// either guardian's userRelationship blocks the dependent.
+		const cell = classifyDependentCell({
+			viewerId: 'carol',
+			dependentId: 'mochi',
+			guardianIds: ['alice', 'bob'],
+			relationships: relMap([
+				['alice', 'carol', 'view'],
+				['bob', 'carol', 'none'],
+			]),
+		})
+		expect(cell.kind).toBe('denied')
+	})
+
+	it('returns restricted only when no guardian has granted view', () => {
+		const cell = classifyDependentCell({
+			viewerId: 'carol',
+			dependentId: 'mochi',
+			guardianIds: ['alice', 'bob'],
+			relationships: relMap([
+				['alice', 'carol', 'restricted'],
+				['bob', 'carol', 'restricted'],
+			]),
+		})
+		expect(cell.kind).toBe('restricted')
+	})
+
+	it('prefers view over restricted when guardians disagree', () => {
+		// One guardian shares fully, another restricts. The most permissive
+		// grant wins (mirrors canViewList: any guardian's view is sufficient
+		// unless someone explicitly denied).
+		const cell = classifyDependentCell({
+			viewerId: 'carol',
+			dependentId: 'mochi',
+			guardianIds: ['alice', 'bob'],
+			relationships: relMap([
+				['alice', 'carol', 'view'],
+				['bob', 'carol', 'restricted'],
+			]),
+		})
+		expect(cell.kind).toBe('view')
+	})
+
+	it('never sets isPartner on a dependent cell', () => {
+		// Dependents have no partner concept by design.
+		const cell = classifyDependentCell({
+			viewerId: 'alice',
+			dependentId: 'mochi',
+			guardianIds: ['alice'],
+			relationships: new Map(),
+		})
+		expect(cell.isPartner).toBe(false)
+	})
+
+	it('always reports zero editor list count', () => {
+		// Edit access on a dependent's list flows through dependentGuardianships,
+		// not listEditors. The matrix shouldn't surface a list-editor count
+		// for dependent cells even if such rows exist on the lists themselves.
+		const cell = classifyDependentCell({
+			viewerId: 'alice',
+			dependentId: 'mochi',
+			guardianIds: ['alice'],
+			relationships: new Map(),
+		})
+		expect(cell.editorListCount).toBe(0)
 	})
 })
 
