@@ -4,7 +4,7 @@ import { withCenteredBoundary } from '../../../.storybook/decorators'
 import { SignOutPageContent } from './sign-out-page'
 
 const meta = {
-	title: 'Pages/Sign Out',
+	title: 'Pages/Auth/Sign Out',
 	component: SignOutPageContent,
 	parameters: { layout: 'fullscreen' },
 	decorators: [withCenteredBoundary],

@@ -4,7 +4,7 @@ import { withCenteredBoundary } from '../../../.storybook/decorators'
 import { OAuthConsentPageContent } from './oauth-consent-page'
 
 const meta = {
-	title: 'Pages/OAuth Consent',
+	title: 'Pages/Auth/OAuth Consent',
 	component: OAuthConsentPageContent,
 	parameters: { layout: 'fullscreen' },
 	decorators: [withCenteredBoundary],

@@ -4,7 +4,7 @@ import { withCenteredBoundary } from '../../../.storybook/decorators'
 import { ForgotPasswordPageContent } from './forgot-password-page'
 
 const meta = {
-	title: 'Pages/Forgot Password',
+	title: 'Pages/Auth/Forgot Password',
 	component: ForgotPasswordPageContent,
 	parameters: { layout: 'fullscreen' },
 	decorators: [withCenteredBoundary],

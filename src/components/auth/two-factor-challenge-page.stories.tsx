@@ -5,7 +5,7 @@ import { withCenteredBoundary } from '../../../.storybook/decorators'
 import { TwoFactorChallengePageContent, type TwoFactorMode } from './two-factor-challenge-page'
 
 const meta = {
-	title: 'Pages/Two Factor Challenge',
+	title: 'Pages/Auth/Two Factor Challenge',
 	component: TwoFactorChallengePageContent,
 	parameters: { layout: 'fullscreen' },
 	decorators: [withCenteredBoundary],

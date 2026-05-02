@@ -5,7 +5,7 @@ import { withCenteredBoundary } from '../../../.storybook/decorators'
 import { SignInPageContent } from './sign-in-page'
 
 const meta = {
-	title: 'Pages/Sign In',
+	title: 'Pages/Auth/Sign In',
 	component: SignInPageContent,
 	parameters: { layout: 'fullscreen' },
 	decorators: [withCenteredBoundary],
