@@ -28,12 +28,14 @@ const monthToNumber: Record<BirthMonth, number> = {
 	december: 12,
 }
 
-const sortUserGroupsByBirthDate = (a: UserWithLists, b: UserWithLists) => {
+type BirthdayLike = { birthMonth: BirthMonth | null; birthDay: number | null }
+
+const sortByBirthDate = (a: BirthdayLike, b: BirthdayLike) => {
 	const currentDate = new Date()
 	const currentMonth = currentDate.getMonth() + 1
 	const currentDay = currentDate.getDate()
 
-	// If user doesn't have birth month/day, put them at the end
+	// If entry doesn't have birth month/day, put it at the end
 	if (!a.birthMonth || !a.birthDay) {
 		return 1
 	}
@@ -70,6 +72,8 @@ const sortUserGroupsByBirthDate = (a: UserWithLists, b: UserWithLists) => {
 	return aMonth - bMonth
 }
 
+const isDependent = (entry: UserWithLists | DependentWithLists): entry is DependentWithLists => 'guardianIds' in entry
+
 function ListsByUserContent() {
 	const { data: session } = useSession()
 	const isAdmin = session?.user.isAdmin ?? false
@@ -99,14 +103,10 @@ function ListsByUserContent() {
 		)
 	}
 
-	// Sort users by next upcoming birthday
-	const sortedUsers = [...usersData].sort(sortUserGroupsByBirthDate)
-	// Dependents share the same sort fn shape (id/name/birthMonth/birthDay).
-	const sortedDependents = [...dependentsData].sort((a, b) =>
-		sortUserGroupsByBirthDate(a as unknown as UserWithLists, b as unknown as UserWithLists)
-	)
+	// Interleave users and dependents into one birthday-sorted stream
+	const sortedEntries: Array<UserWithLists | DependentWithLists> = [...usersData, ...dependentsData].sort(sortByBirthDate)
 
-	if (sortedUsers.length === 0 && sortedDependents.length === 0) {
+	if (sortedEntries.length === 0) {
 		return (
 			<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30">
 				No users.
@@ -125,12 +125,13 @@ function ListsByUserContent() {
 
 	return (
 		<div className="gap-2 flex flex-col">
-			{sortedUsers.map(user => (
-				<ListsForUser key={user.id} user={user} />
-			))}
-			{sortedDependents.map(dep => (
-				<ListsForDependent key={dep.id} dependent={dep} />
-			))}
+			{sortedEntries.map(entry =>
+				isDependent(entry) ? (
+					<ListsForDependent key={`dep-${entry.id}`} dependent={entry} />
+				) : (
+					<ListsForUser key={`user-${entry.id}`} user={entry} />
+				)
+			)}
 		</div>
 	)
 }
