@@ -47,6 +47,9 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 	const publicLists = myLists?.public.filter(l => l.id !== sourceListId) ?? []
 	const privateLists = myLists?.private.filter(l => l.id !== sourceListId) ?? []
 	const giftIdeasLists = myLists?.giftIdeas.filter(l => l.id !== sourceListId) ?? []
+	const dependentGroups = (myLists?.dependents ?? [])
+		.map(d => ({ ...d, lists: d.lists.filter(l => l.id !== sourceListId) }))
+		.filter(d => d.lists.length > 0)
 
 	const creatingNew = selectedListId === NEW_LIST_VALUE
 	const isGiftIdeas = newListType === 'giftideas'
@@ -168,6 +171,16 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 										))}
 									</SelectGroup>
 								)}
+								{dependentGroups.map(d => (
+									<SelectGroup key={d.dependentId}>
+										<SelectLabel>For {d.dependentName}</SelectLabel>
+										{d.lists.map(l => (
+											<SelectItem key={l.id} value={String(l.id)}>
+												{l.name}
+											</SelectItem>
+										))}
+									</SelectGroup>
+								))}
 								<SelectGroup>
 									<SelectLabel>Other</SelectLabel>
 									<SelectItem value={NEW_LIST_VALUE}>

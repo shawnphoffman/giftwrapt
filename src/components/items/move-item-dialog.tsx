@@ -74,7 +74,10 @@ export function MoveItemDialog({ open, onOpenChange, item }: Props) {
 	const publicLists = myLists?.public.filter(l => l.id !== item.listId) ?? []
 	const privateLists = myLists?.private.filter(l => l.id !== item.listId) ?? []
 	const giftIdeasLists = myLists?.giftIdeas.filter(l => l.id !== item.listId) ?? []
-	const hasOptions = publicLists.length > 0 || privateLists.length > 0 || giftIdeasLists.length > 0
+	const dependentGroups = (myLists?.dependents ?? [])
+		.map(d => ({ ...d, lists: d.lists.filter(l => l.id !== item.listId) }))
+		.filter(d => d.lists.length > 0)
+	const hasOptions = publicLists.length > 0 || privateLists.length > 0 || giftIdeasLists.length > 0 || dependentGroups.length > 0
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -125,6 +128,16 @@ export function MoveItemDialog({ open, onOpenChange, item }: Props) {
 											))}
 										</SelectGroup>
 									)}
+									{dependentGroups.map(d => (
+										<SelectGroup key={d.dependentId}>
+											<SelectLabel>For {d.dependentName}</SelectLabel>
+											{d.lists.map(l => (
+												<SelectItem key={l.id} value={String(l.id)}>
+													{l.name}
+												</SelectItem>
+											))}
+										</SelectGroup>
+									))}
 								</SelectContent>
 							</Select>
 						)}
