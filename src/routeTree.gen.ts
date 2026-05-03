@@ -32,6 +32,7 @@ import { Route as ApiMobileSplatRouteImport } from './routes/api/mobile/$'
 import { Route as ApiListsPublicDependentsRouteImport } from './routes/api/lists/public-dependents'
 import { Route as ApiListsPublicRouteImport } from './routes/api/lists/public'
 import { Route as ApiFilesSplatRouteImport } from './routes/api/files/$'
+import { Route as ApiCronIntelligenceRecommendationsRouteImport } from './routes/api/cron/intelligence-recommendations'
 import { Route as ApiCronCleanupVerificationRouteImport } from './routes/api/cron/cleanup-verification'
 import { Route as ApiCronBirthdayEmailsRouteImport } from './routes/api/cron/birthday-emails'
 import { Route as ApiCronAutoArchiveRouteImport } from './routes/api/cron/auto-archive'
@@ -177,6 +178,12 @@ const ApiFilesSplatRoute = ApiFilesSplatRouteImport.update({
   path: '/api/files/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCronIntelligenceRecommendationsRoute =
+  ApiCronIntelligenceRecommendationsRouteImport.update({
+    id: '/api/cron/intelligence-recommendations',
+    path: '/api/cron/intelligence-recommendations',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiCronCleanupVerificationRoute =
   ApiCronCleanupVerificationRouteImport.update({
     id: '/api/cron/cleanup-verification',
@@ -361,6 +368,7 @@ export interface FileRoutesByFullPath {
   '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
   '/api/cron/cleanup-verification': typeof ApiCronCleanupVerificationRoute
+  '/api/cron/intelligence-recommendations': typeof ApiCronIntelligenceRecommendationsRoute
   '/api/files/$': typeof ApiFilesSplatRoute
   '/api/lists/public': typeof ApiListsPublicRoute
   '/api/lists/public-dependents': typeof ApiListsPublicDependentsRoute
@@ -412,6 +420,7 @@ export interface FileRoutesByTo {
   '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
   '/api/cron/cleanup-verification': typeof ApiCronCleanupVerificationRoute
+  '/api/cron/intelligence-recommendations': typeof ApiCronIntelligenceRecommendationsRoute
   '/api/files/$': typeof ApiFilesSplatRoute
   '/api/lists/public': typeof ApiListsPublicRoute
   '/api/lists/public-dependents': typeof ApiListsPublicDependentsRoute
@@ -467,6 +476,7 @@ export interface FileRoutesById {
   '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
   '/api/cron/cleanup-verification': typeof ApiCronCleanupVerificationRoute
+  '/api/cron/intelligence-recommendations': typeof ApiCronIntelligenceRecommendationsRoute
   '/api/files/$': typeof ApiFilesSplatRoute
   '/api/lists/public': typeof ApiListsPublicRoute
   '/api/lists/public-dependents': typeof ApiListsPublicDependentsRoute
@@ -522,6 +532,7 @@ export interface FileRouteTypes {
     | '/api/cron/auto-archive'
     | '/api/cron/birthday-emails'
     | '/api/cron/cleanup-verification'
+    | '/api/cron/intelligence-recommendations'
     | '/api/files/$'
     | '/api/lists/public'
     | '/api/lists/public-dependents'
@@ -573,6 +584,7 @@ export interface FileRouteTypes {
     | '/api/cron/auto-archive'
     | '/api/cron/birthday-emails'
     | '/api/cron/cleanup-verification'
+    | '/api/cron/intelligence-recommendations'
     | '/api/files/$'
     | '/api/lists/public'
     | '/api/lists/public-dependents'
@@ -627,6 +639,7 @@ export interface FileRouteTypes {
     | '/api/cron/auto-archive'
     | '/api/cron/birthday-emails'
     | '/api/cron/cleanup-verification'
+    | '/api/cron/intelligence-recommendations'
     | '/api/files/$'
     | '/api/lists/public'
     | '/api/lists/public-dependents'
@@ -657,6 +670,7 @@ export interface RootRouteChildren {
   ApiCronAutoArchiveRoute: typeof ApiCronAutoArchiveRoute
   ApiCronBirthdayEmailsRoute: typeof ApiCronBirthdayEmailsRoute
   ApiCronCleanupVerificationRoute: typeof ApiCronCleanupVerificationRoute
+  ApiCronIntelligenceRecommendationsRoute: typeof ApiCronIntelligenceRecommendationsRoute
   ApiFilesSplatRoute: typeof ApiFilesSplatRoute
   ApiListsPublicRoute: typeof ApiListsPublicRoute
   ApiListsPublicDependentsRoute: typeof ApiListsPublicDependentsRoute
@@ -827,6 +841,13 @@ declare module '@tanstack/react-router' {
       path: '/api/files/$'
       fullPath: '/api/files/$'
       preLoaderRoute: typeof ApiFilesSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/cron/intelligence-recommendations': {
+      id: '/api/cron/intelligence-recommendations'
+      path: '/api/cron/intelligence-recommendations'
+      fullPath: '/api/cron/intelligence-recommendations'
+      preLoaderRoute: typeof ApiCronIntelligenceRecommendationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/cron/cleanup-verification': {
@@ -1163,6 +1184,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCronAutoArchiveRoute: ApiCronAutoArchiveRoute,
   ApiCronBirthdayEmailsRoute: ApiCronBirthdayEmailsRoute,
   ApiCronCleanupVerificationRoute: ApiCronCleanupVerificationRoute,
+  ApiCronIntelligenceRecommendationsRoute:
+    ApiCronIntelligenceRecommendationsRoute,
   ApiFilesSplatRoute: ApiFilesSplatRoute,
   ApiListsPublicRoute: ApiListsPublicRoute,
   ApiListsPublicDependentsRoute: ApiListsPublicDependentsRoute,

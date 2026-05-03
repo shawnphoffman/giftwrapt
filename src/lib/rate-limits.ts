@@ -16,6 +16,18 @@ export const commentLimiter = createRateLimiter({
 	windowMs: 60_000,
 })
 
+// Manual Intelligence refresh per user. Each call fans out to multiple
+// AI provider invocations (one per analyzer per affected list), so the
+// cost per call is high. 5/hour is plenty for "I just changed something
+// and want fresh recs" while still bounding runaway abuse. Long window
+// matches the human "wait and look again" cadence; the more granular
+// admin-configurable cooldown lives in `intelligenceManualRefreshCooldownMinutes`.
+export const intelligenceRefreshLimiter = createRateLimiter({
+	name: 'intelligence-refresh',
+	max: 5,
+	windowMs: 60 * 60_000,
+})
+
 // Claim / unclaim / update mutations per user. These are SQL-only but
 // fire SSE events to every connected client; rapid toggling is annoying
 // to other viewers.
