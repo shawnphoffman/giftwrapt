@@ -13,6 +13,7 @@ import { Route as coreRouteRouteImport } from './routes/(core)/route'
 import { Route as coreIndexRouteImport } from './routes/(core)/index'
 import { Route as ApiVersionRouteImport } from './routes/api/version'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as coreIntelligenceRouteImport } from './routes/(core)/intelligence'
 import { Route as coreImportRouteImport } from './routes/(core)/import'
 import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
 import { Route as authSignOutRouteImport } from './routes/(auth)/sign-out'
@@ -81,6 +82,11 @@ const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
   path: '/api/health',
   getParentRoute: () => rootRouteImport,
+} as any)
+const coreIntelligenceRoute = coreIntelligenceRouteImport.update({
+  id: '/intelligence',
+  path: '/intelligence',
+  getParentRoute: () => coreRouteRoute,
 } as any)
 const coreImportRoute = coreImportRouteImport.update({
   id: '/import',
@@ -341,6 +347,7 @@ export interface FileRoutesByFullPath {
   '/sign-out': typeof authSignOutRoute
   '/sign-up': typeof authSignUpRoute
   '/import': typeof coreImportRoute
+  '/intelligence': typeof coreIntelligenceRoute
   '/api/health': typeof ApiHealthRoute
   '/api/version': typeof ApiVersionRoute
   '/': typeof coreIndexRoute
@@ -393,6 +400,7 @@ export interface FileRoutesByTo {
   '/sign-out': typeof authSignOutRoute
   '/sign-up': typeof authSignUpRoute
   '/import': typeof coreImportRoute
+  '/intelligence': typeof coreIntelligenceRoute
   '/api/health': typeof ApiHealthRoute
   '/api/version': typeof ApiVersionRoute
   '/': typeof coreIndexRoute
@@ -449,6 +457,7 @@ export interface FileRoutesById {
   '/(auth)/sign-out': typeof authSignOutRoute
   '/(auth)/sign-up': typeof authSignUpRoute
   '/(core)/import': typeof coreImportRoute
+  '/(core)/intelligence': typeof coreIntelligenceRoute
   '/api/health': typeof ApiHealthRoute
   '/api/version': typeof ApiVersionRoute
   '/(core)/': typeof coreIndexRoute
@@ -505,6 +514,7 @@ export interface FileRouteTypes {
     | '/sign-out'
     | '/sign-up'
     | '/import'
+    | '/intelligence'
     | '/api/health'
     | '/api/version'
     | '/'
@@ -557,6 +567,7 @@ export interface FileRouteTypes {
     | '/sign-out'
     | '/sign-up'
     | '/import'
+    | '/intelligence'
     | '/api/health'
     | '/api/version'
     | '/'
@@ -612,6 +623,7 @@ export interface FileRouteTypes {
     | '/(auth)/sign-out'
     | '/(auth)/sign-up'
     | '/(core)/import'
+    | '/(core)/intelligence'
     | '/api/health'
     | '/api/version'
     | '/(core)/'
@@ -709,6 +721,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/health'
       preLoaderRoute: typeof ApiHealthRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/(core)/intelligence': {
+      id: '/(core)/intelligence'
+      path: '/intelligence'
+      fullPath: '/intelligence'
+      preLoaderRoute: typeof coreIntelligenceRouteImport
+      parentRoute: typeof coreRouteRoute
     }
     '/(core)/import': {
       id: '/(core)/import'
@@ -1122,6 +1141,7 @@ interface coreRouteRouteChildren {
   coreSettingsRouteRoute: typeof coreSettingsRouteRouteWithChildren
   coreTempRouteRoute: typeof coreTempRouteRouteWithChildren
   coreImportRoute: typeof coreImportRoute
+  coreIntelligenceRoute: typeof coreIntelligenceRoute
   coreIndexRoute: typeof coreIndexRoute
   coreItemCloneRoute: typeof coreItemCloneRoute
   coreListsListIdRoute: typeof coreListsListIdRoute
@@ -1141,6 +1161,7 @@ const coreRouteRouteChildren: coreRouteRouteChildren = {
   coreSettingsRouteRoute: coreSettingsRouteRouteWithChildren,
   coreTempRouteRoute: coreTempRouteRouteWithChildren,
   coreImportRoute: coreImportRoute,
+  coreIntelligenceRoute: coreIntelligenceRoute,
   coreIndexRoute: coreIndexRoute,
   coreItemCloneRoute: coreItemCloneRoute,
   coreListsListIdRoute: coreListsListIdRoute,
