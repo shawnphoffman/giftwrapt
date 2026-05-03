@@ -1,5 +1,5 @@
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
-import { ArrowDown, ArrowUp, ArrowUpDown, Check, Filter } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Check, DollarSign, Filter } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
 import type { ItemWithGifts } from '@/api/items'
@@ -14,6 +14,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
 import type { Priority } from '@/db/schema/enums'
 import { buildListEntries, type ListEntry } from '@/lib/list-entries'
 import { listItemsViewQueryOptions } from '@/lib/queries/items'
@@ -32,6 +33,7 @@ type Props = {
 
 type FilterValue = 'all' | 'unpurchased' | 'purchased'
 type SortValue = 'priority-desc' | 'priority-asc' | 'date-desc' | 'date-asc'
+type PricePresetId = 'all' | 'under-25' | '25-50' | '50-100' | '100-250' | 'over-250' | 'custom'
 
 // Synthetic vendor id for items without a URL. Real vendor ids come from
 // hostnames or the rule table in src/lib/urls.ts, neither of which produces
@@ -49,6 +51,23 @@ const sortLabels: Record<SortValue, string> = {
 	'priority-asc': 'Priority',
 	'date-desc': 'Newest',
 	'date-asc': 'Oldest',
+}
+
+const pricePresets: ReadonlyArray<{ id: Exclude<PricePresetId, 'custom' | 'all'>; label: string; min: number | null; max: number | null }> =
+	[
+		{ id: 'under-25', label: 'Under $25', min: null, max: 25 },
+		{ id: '25-50', label: '$25 – $50', min: 25, max: 50 },
+		{ id: '50-100', label: '$50 – $100', min: 50, max: 100 },
+		{ id: '100-250', label: '$100 – $250', min: 100, max: 250 },
+		{ id: 'over-250', label: 'Over $250', min: 250, max: null },
+	]
+
+function parsePrice(raw: string | null): number | null {
+	if (!raw) return null
+	const cleaned = raw.replace(/[^0-9.]/g, '')
+	if (!cleaned) return null
+	const n = Number.parseFloat(cleaned)
+	return Number.isFinite(n) ? n : null
 }
 
 const priorityRank: Record<Priority, number> = { 'very-high': 4, high: 3, normal: 2, low: 1 }
@@ -90,6 +109,9 @@ export default function ItemList({ listId, groups = [] }: Props) {
 	const [filter, setFilter] = useState<FilterValue>('all')
 	const [vendorFilter, setVendorFilter] = useState<ReadonlySet<string>>(() => new Set())
 	const [sort, setSort] = useState<SortValue>('priority-desc')
+	const [pricePreset, setPricePreset] = useState<PricePresetId>('all')
+	const [customMin, setCustomMin] = useState<string>('')
+	const [customMax, setCustomMax] = useState<string>('')
 
 	// Detect URLs that point at other lists in this app, batched into one
 	// query so a list with N internal links makes a single roundtrip. The
@@ -145,6 +167,18 @@ export default function ItemList({ listId, groups = [] }: Props) {
 		return opts
 	}, [items])
 
+	const activePriceRange = useMemo<{ min: number | null; max: number | null } | null>(() => {
+		if (pricePreset === 'all') return null
+		if (pricePreset === 'custom') {
+			const min = parsePrice(customMin)
+			const max = parsePrice(customMax)
+			if (min === null && max === null) return null
+			return { min, max }
+		}
+		const preset = pricePresets.find(p => p.id === pricePreset)
+		return preset ? { min: preset.min, max: preset.max } : null
+	}, [pricePreset, customMin, customMax])
+
 	const filteredItems = useMemo(() => {
 		let out = items
 		if (filter === 'unpurchased') out = out.filter(i => i.gifts.length === 0)
@@ -152,8 +186,18 @@ export default function ItemList({ listId, groups = [] }: Props) {
 		if (vendorFilter.size > 0) {
 			out = out.filter(i => vendorFilter.has(effectiveVendorId(i)))
 		}
+		if (activePriceRange) {
+			const { min, max } = activePriceRange
+			out = out.filter(i => {
+				const price = parsePrice(i.price)
+				if (price === null) return false
+				if (min !== null && price < min) return false
+				if (max !== null && price > max) return false
+				return true
+			})
+		}
 		return out
-	}, [items, filter, vendorFilter])
+	}, [items, filter, vendorFilter, activePriceRange])
 
 	const entries = useMemo(() => {
 		const base = buildListEntries({ items: filteredItems, groups })
@@ -171,6 +215,19 @@ export default function ItemList({ listId, groups = [] }: Props) {
 			else next.add(id)
 			return next
 		})
+	}
+
+	let priceLabel: string
+	if (pricePreset === 'all' || !activePriceRange) {
+		priceLabel = 'Any price'
+	} else if (pricePreset === 'custom') {
+		const { min, max } = activePriceRange
+		if (min !== null && max !== null) priceLabel = `$${min} – $${max}`
+		else if (min !== null) priceLabel = `Over $${min}`
+		else if (max !== null) priceLabel = `Under $${max}`
+		else priceLabel = 'Any price'
+	} else {
+		priceLabel = pricePresets.find(p => p.id === pricePreset)?.label ?? 'Any price'
 	}
 
 	const SortDirectionIcon = sortIsDescending(sort) ? ArrowDown : ArrowUp
@@ -205,6 +262,65 @@ export default function ItemList({ listId, groups = [] }: Props) {
 							onClear={() => setVendorFilter(new Set())}
 						/>
 					)}
+
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button
+								variant="ghost"
+								size="sm"
+								className={cn('h-7 text-xs text-muted-foreground', pricePreset !== 'all' && 'text-foreground')}
+							>
+								<DollarSign className="size-3.5" />
+								{priceLabel}
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Price</DropdownMenuLabel>
+							<DropdownMenuItem onClick={() => setPricePreset('all')}>
+								<Check className={cn('size-4', pricePreset !== 'all' && 'opacity-0')} />
+								Any price
+							</DropdownMenuItem>
+							<DropdownMenuSeparator />
+							{pricePresets.map(p => (
+								<DropdownMenuItem key={p.id} onClick={() => setPricePreset(p.id)}>
+									<Check className={cn('size-4', pricePreset !== p.id && 'opacity-0')} />
+									{p.label}
+								</DropdownMenuItem>
+							))}
+							<DropdownMenuSeparator />
+							<DropdownMenuItem onClick={() => setPricePreset('custom')} onSelect={e => e.preventDefault()}>
+								<Check className={cn('size-4', pricePreset !== 'custom' && 'opacity-0')} />
+								Custom
+							</DropdownMenuItem>
+							{pricePreset === 'custom' && (
+								<div
+									className="flex items-center gap-1.5 px-2 py-1.5"
+									onClick={e => e.stopPropagation()}
+									onKeyDown={e => e.stopPropagation()}
+								>
+									<Input
+										type="number"
+										inputMode="decimal"
+										min={0}
+										placeholder="Min"
+										value={customMin}
+										onChange={e => setCustomMin(e.target.value)}
+										className="h-7 w-20 text-xs"
+									/>
+									<span className="text-xs text-muted-foreground">–</span>
+									<Input
+										type="number"
+										inputMode="decimal"
+										min={0}
+										placeholder="Max"
+										value={customMax}
+										onChange={e => setCustomMax(e.target.value)}
+										className="h-7 w-20 text-xs"
+									/>
+								</div>
+							)}
+						</DropdownMenuContent>
+					</DropdownMenu>
 
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
