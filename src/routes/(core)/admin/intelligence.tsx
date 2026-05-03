@@ -3,7 +3,13 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { toast } from 'sonner'
 
-import { adminInvalidateInputHash, adminPurgeRecsForUser, adminRunForUser, getAdminIntelligenceData } from '@/api/admin-intelligence'
+import {
+	adminInvalidateInputHash,
+	adminPurgeRecsForUser,
+	adminRunForMe,
+	adminRunForUser,
+	getAdminIntelligenceData,
+} from '@/api/admin-intelligence'
 import { updateAppSettings } from '@/api/settings'
 import type { AdminIntelligenceData } from '@/components/intelligence/__fixtures__/types'
 import { AdminIntelligencePageContent } from '@/components/intelligence/admin-intelligence-page'
@@ -54,7 +60,7 @@ function AdminIntelligenceRoute() {
 	})
 
 	const runForMeMutation = useMutation({
-		mutationFn: () => adminRunForUser({ data: { userId: getCurrentAdminUserId(data) } }),
+		mutationFn: () => adminRunForMe(),
 		onSuccess: invalidate,
 	})
 	const runForUserMutation = useMutation({
@@ -82,13 +88,6 @@ function AdminIntelligenceRoute() {
 			onPurgeRecs={userId => purgeMutation.mutate(userId)}
 		/>
 	)
-}
-
-// First run row's userId is a fine "me" stand-in for the dashboard. Real
-// session id is captured by adminAuthMiddleware on the server fn anyway;
-// the admin can pass any user id.
-function getCurrentAdminUserId(data: Awaited<ReturnType<typeof getAdminIntelligenceData>>): string {
-	return data.runs[0]?.userId ?? ''
 }
 
 function adaptAdminData(raw: Awaited<ReturnType<typeof getAdminIntelligenceData>>): AdminIntelligenceData {

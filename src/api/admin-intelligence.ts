@@ -271,6 +271,16 @@ export const adminRunForUser = createServerFn({ method: 'POST' })
 		return await generateForUser(db, data.userId, { trigger: 'manual', respectUnreadGuard: false })
 	})
 
+// "Run for me now" - resolves the admin's user id from the session. The
+// admin route component doesn't have access to the session client-side
+// (only via server fns), so we expose this dedicated entry instead of
+// asking the client to pass its own id.
+export const adminRunForMe = createServerFn({ method: 'POST' })
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.handler(async ({ context }) => {
+		return await generateForUser(db, context.session.user.id, { trigger: 'manual', respectUnreadGuard: false })
+	})
+
 export const adminInvalidateInputHash = createServerFn({ method: 'POST' })
 	.middleware([adminAuthMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof userIdSchema>) => userIdSchema.parse(data))
