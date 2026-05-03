@@ -4,7 +4,7 @@ import { timestamps } from './shared'
 
 export const appSettings = pgTable('app_settings', {
 	key: text('key').primaryKey(),
-	value: jsonb('value').notNull(),
+	value: jsonb('value'),
 	...timestamps,
 })
 
