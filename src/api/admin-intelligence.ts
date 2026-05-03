@@ -1,11 +1,11 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, avg, count, desc, eq, gte, sql, sum } from 'drizzle-orm'
+import { and, asc, avg, count, desc, eq, gte, inArray, sql, sum } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
 import { recommendationRuns, recommendationRunSteps, recommendations, users } from '@/db/schema'
 import { resolveAiConfig } from '@/lib/ai-config'
-import { ANALYZERS } from '@/lib/intelligence/registry'
+import { ANALYZERS, getAnalyzer } from '@/lib/intelligence/registry'
 import { generateForUser } from '@/lib/intelligence/runner'
 import { loggingMiddleware } from '@/lib/logger'
 import { getAppSettings } from '@/lib/settings-loader'
@@ -232,6 +232,29 @@ export const getAdminIntelligenceData = createServerFn({ method: 'GET' })
 			db.select({ overdue: count() }).from(users).where(eq(users.banned, false)),
 		])
 
+		// Per-run rec counts grouped by analyzer. Joined to the same set of
+		// runs above (batchId === runId) so the table shows what each run
+		// actually produced instead of always rendering "-".
+		const runIds = recentRuns.map(r => r.id)
+		const runRecCounts =
+			runIds.length === 0
+				? []
+				: await db
+						.select({
+							batchId: recommendations.batchId,
+							analyzerId: recommendations.analyzerId,
+							n: count(),
+						})
+						.from(recommendations)
+						.where(inArray(recommendations.batchId, runIds))
+						.groupBy(recommendations.batchId, recommendations.analyzerId)
+		const recCountMap = new Map<string, Record<string, number>>()
+		for (const row of runRecCounts) {
+			const cur = recCountMap.get(row.batchId) ?? {}
+			cur[row.analyzerId] = row.n
+			recCountMap.set(row.batchId, cur)
+		}
+
 		const today: (typeof dailySeries)[number] | undefined = dailySeries.at(-1)
 		return {
 			settings: {
@@ -292,7 +315,7 @@ export const getAdminIntelligenceData = createServerFn({ method: 'GET' })
 				estimatedCostUsd: r.cost / 1_000_000,
 				durationMs: r.finishedAt ? r.finishedAt.getTime() - r.startedAt.getTime() : null,
 				inputHashShort: r.inputHash?.slice(0, 4) ?? null,
-				recCounts: {} as Record<string, number>,
+				recCounts: recCountMap.get(r.id) ?? ({} as Record<string, number>),
 			})),
 			dailySeries,
 		}
@@ -344,4 +367,132 @@ export const adminPurgeRecsForUser = createServerFn({ method: 'POST' })
 	.handler(async ({ data }) => {
 		const result = await db.delete(recommendations).where(eq(recommendations.userId, data.userId)).returning({ id: recommendations.id })
 		return { ok: true as const, deleted: result.length }
+	})
+
+// ─── Read: per-run debug detail ─────────────────────────────────────────────
+//
+// Powers the "click a row" debug panel on the admin Intelligence page so
+// "4 ok" runs aren't a black box — admins can see the exact prompt sent
+// to each analyzer, the raw model response, the parsed output, and which
+// recommendations were persisted (or why none were, for heuristic-only
+// or empty-output runs).
+
+const runIdSchema = z.object({ runId: z.string().min(1) })
+
+export const getAdminRunDetail = createServerFn({ method: 'GET' })
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.inputValidator((data: z.input<typeof runIdSchema>) => runIdSchema.parse(data))
+	.handler(async ({ data }) => {
+		const runRows = await db
+			.select({
+				id: recommendationRuns.id,
+				userId: recommendationRuns.userId,
+				userName: users.name,
+				userImage: users.image,
+				startedAt: recommendationRuns.startedAt,
+				finishedAt: recommendationRuns.finishedAt,
+				status: recommendationRuns.status,
+				trigger: recommendationRuns.trigger,
+				skipReason: recommendationRuns.skipReason,
+				error: recommendationRuns.error,
+				tokensIn: recommendationRuns.tokensIn,
+				tokensOut: recommendationRuns.tokensOut,
+				cost: recommendationRuns.estimatedCostMicroUsd,
+				inputHash: recommendationRuns.inputHash,
+			})
+			.from(recommendationRuns)
+			.leftJoin(users, eq(users.id, recommendationRuns.userId))
+			.where(eq(recommendationRuns.id, data.runId))
+			.limit(1)
+		if (runRows.length === 0) {
+			throw new Error(`run ${data.runId} not found`)
+		}
+		const runRow = runRows[0]
+
+		const [stepRows, recRows] = await Promise.all([
+			db
+				.select({
+					id: recommendationRunSteps.id,
+					analyzer: recommendationRunSteps.analyzer,
+					prompt: recommendationRunSteps.prompt,
+					responseRaw: recommendationRunSteps.responseRaw,
+					parsed: recommendationRunSteps.parsed,
+					tokensIn: recommendationRunSteps.tokensIn,
+					tokensOut: recommendationRunSteps.tokensOut,
+					latencyMs: recommendationRunSteps.latencyMs,
+					error: recommendationRunSteps.error,
+					createdAt: recommendationRunSteps.createdAt,
+				})
+				.from(recommendationRunSteps)
+				.where(eq(recommendationRunSteps.runId, data.runId))
+				.orderBy(asc(recommendationRunSteps.id)),
+			db
+				.select({
+					id: recommendations.id,
+					analyzerId: recommendations.analyzerId,
+					kind: recommendations.kind,
+					status: recommendations.status,
+					severity: recommendations.severity,
+					title: recommendations.title,
+					body: recommendations.body,
+					payload: recommendations.payload,
+					fingerprint: recommendations.fingerprint,
+					createdAt: recommendations.createdAt,
+					dismissedAt: recommendations.dismissedAt,
+				})
+				.from(recommendations)
+				.where(eq(recommendations.batchId, data.runId))
+				.orderBy(asc(recommendations.analyzerId), asc(recommendations.createdAt)),
+		])
+
+		// jsonb columns come back from drizzle typed as `unknown`. The server-fn
+		// return type checker requires JSON-serializable shapes, so we stringify
+		// `parsed` and `payload` here and let the panel re-parse / pretty-print
+		// for display. This sidesteps the `{}` vs `unknown` mismatch and keeps
+		// the wire payload self-describing.
+		return {
+			run: {
+				id: runRow.id,
+				userId: runRow.userId,
+				userName: runRow.userName ?? 'unknown',
+				userImage: runRow.userImage ?? null,
+				startedAt: runRow.startedAt,
+				finishedAt: runRow.finishedAt,
+				status: runRow.status,
+				trigger: runRow.trigger,
+				skipReason: runRow.skipReason,
+				error: runRow.error,
+				tokensIn: runRow.tokensIn,
+				tokensOut: runRow.tokensOut,
+				estimatedCostUsd: runRow.cost / 1_000_000,
+				durationMs: runRow.finishedAt ? runRow.finishedAt.getTime() - runRow.startedAt.getTime() : null,
+				inputHash: runRow.inputHash,
+			},
+			steps: stepRows.map(s => ({
+				id: s.id,
+				analyzerId: s.analyzer,
+				analyzerLabel: getAnalyzer(s.analyzer)?.label ?? s.analyzer,
+				prompt: s.prompt,
+				responseRaw: s.responseRaw,
+				parsedJson: s.parsed == null ? null : JSON.stringify(s.parsed),
+				tokensIn: s.tokensIn,
+				tokensOut: s.tokensOut,
+				latencyMs: s.latencyMs,
+				error: s.error,
+			})),
+			recs: recRows.map(r => ({
+				id: r.id,
+				analyzerId: r.analyzerId,
+				analyzerLabel: getAnalyzer(r.analyzerId)?.label ?? r.analyzerId,
+				kind: r.kind,
+				status: r.status,
+				severity: r.severity,
+				title: r.title,
+				body: r.body,
+				payloadJson: r.payload == null ? null : JSON.stringify(r.payload),
+				fingerprint: r.fingerprint,
+				createdAt: r.createdAt,
+				dismissedAt: r.dismissedAt,
+			})),
+		}
 	})

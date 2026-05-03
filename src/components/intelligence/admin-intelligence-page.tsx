@@ -1,5 +1,5 @@
 import { format, formatDistanceToNow } from 'date-fns'
-import { AlertTriangle, ArrowUpRight, Hash, Lock, Mail, PlayCircle, Sparkles, TimerReset } from 'lucide-react'
+import { AlertTriangle, ArrowUpRight, ChevronRight, Hash, Lock, Mail, PlayCircle, Sparkles, TimerReset } from 'lucide-react'
 import { useState } from 'react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 
@@ -431,8 +431,20 @@ function RunsTable({
 						</TableHeader>
 						<TableBody>
 							{runs.map(run => (
-								<TableRow key={run.id} className="cursor-pointer" onClick={() => onOpenRun?.(run.id)}>
-									<TableCell className="font-medium">{run.userName}</TableCell>
+								<TableRow
+									key={run.id}
+									data-intelligence="admin-runs-row"
+									data-run-id={run.id}
+									className="cursor-pointer hover:bg-muted/50 group"
+									onClick={() => onOpenRun?.(run.id)}
+									title="Click to inspect run details"
+								>
+									<TableCell className="font-medium">
+										<span className="inline-flex items-center gap-1.5">
+											<ChevronRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+											{run.userName}
+										</span>
+									</TableCell>
 									<TableCell>
 										<Badge variant="outline">{run.trigger}</Badge>
 									</TableCell>
@@ -447,6 +459,9 @@ function RunsTable({
 									</TableCell>
 									<TableCell className="text-right">
 										<div className="flex justify-end gap-1" onClick={e => e.stopPropagation()}>
+											<Button size="sm" variant="ghost" onClick={() => onOpenRun?.(run.id)}>
+												Inspect
+											</Button>
 											<Button size="sm" variant="ghost" onClick={() => onRunForUser?.(run.userId)}>
 												Re-run
 											</Button>
