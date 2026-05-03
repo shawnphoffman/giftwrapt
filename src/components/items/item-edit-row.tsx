@@ -44,9 +44,11 @@ import {
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import type { GroupType } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { useSession } from '@/lib/auth-client'
 import { useAssignItemsToGroup } from '@/lib/mutations/assign-items-to-group'
+import { useCreateGroupAndAssignItems } from '@/lib/mutations/create-group-and-assign'
 import { useDeleteItem } from '@/lib/mutations/delete-item'
 import { useToggleItemAvailability } from '@/lib/mutations/toggle-item-availability'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
@@ -90,6 +92,7 @@ export const ItemEditRow = memo(function ItemEditRow({
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 	const toggleAvailability = useToggleItemAvailability()
 	const assignGroup = useAssignItemsToGroup()
+	const createGroupAndAssign = useCreateGroupAndAssignItems()
 	const deleteOne = useDeleteItem()
 	const isSaving =
 		useIsMutating({
@@ -115,6 +118,15 @@ export const ItemEditRow = memo(function ItemEditRow({
 			toast.success(groupId === null ? 'Removed from group' : 'Added to group')
 		} else {
 			toast.error('Failed to update group')
+		}
+	}
+
+	const handleCreateGroupWithItem = async (type: GroupType) => {
+		const result = await createGroupAndAssign.mutateAsync({ listId: item.listId, itemIds: [item.id], type })
+		if (result.kind === 'ok') {
+			toast.success(`${type === 'or' ? '"Pick one"' : '"Ordered"'} group created`)
+		} else {
+			toast.error('Failed to create group')
 		}
 	}
 
@@ -183,30 +195,35 @@ export const ItemEditRow = memo(function ItemEditRow({
 								<ArrowRightLeft className="size-4" /> Move to...
 							</DropdownMenuItem>
 						)}
-						{groups.length > 0 && (
-							<DropdownMenuSub>
-								<DropdownMenuSubTrigger>
-									<Group className="size-4" /> Group
-								</DropdownMenuSubTrigger>
-								<DropdownMenuSubContent>
-									{otherGroups.map(g => {
-										const GroupTypeIcon = g.type === 'or' ? Shuffle : ListOrdered
-										const label = g.name || `${g.type === 'or' ? 'Pick one' : 'In order'} group #${g.id}`
-										return (
-											<DropdownMenuItem key={g.id} onClick={() => handleAssignGroup(g.id)}>
-												<GroupTypeIcon className="size-4" /> {label}
-											</DropdownMenuItem>
-										)
-									})}
-									{hasCurrentGroup && otherGroups.length > 0 && <DropdownMenuSeparator />}
-									{hasCurrentGroup && (
-										<DropdownMenuItem onClick={() => handleAssignGroup(null)}>
-											<Ungroup className="size-4" /> Remove from group
+						<DropdownMenuSub>
+							<DropdownMenuSubTrigger>
+								<Group className="size-4" /> Group
+							</DropdownMenuSubTrigger>
+							<DropdownMenuSubContent>
+								<DropdownMenuItem onClick={() => handleCreateGroupWithItem('or')}>
+									<Shuffle className="size-4" /> New "Pick one" group
+								</DropdownMenuItem>
+								<DropdownMenuItem onClick={() => handleCreateGroupWithItem('order')}>
+									<ListOrdered className="size-4" /> New "In order" group
+								</DropdownMenuItem>
+								{otherGroups.length > 0 && <DropdownMenuSeparator />}
+								{otherGroups.map(g => {
+									const GroupTypeIcon = g.type === 'or' ? Shuffle : ListOrdered
+									const label = g.name || `${g.type === 'or' ? 'Pick one' : 'In order'} group #${g.id}`
+									return (
+										<DropdownMenuItem key={g.id} onClick={() => handleAssignGroup(g.id)}>
+											<GroupTypeIcon className="size-4" /> {label}
 										</DropdownMenuItem>
-									)}
-								</DropdownMenuSubContent>
-							</DropdownMenuSub>
-						)}
+									)
+								})}
+								{hasCurrentGroup && <DropdownMenuSeparator />}
+								{hasCurrentGroup && (
+									<DropdownMenuItem onClick={() => handleAssignGroup(null)}>
+										<Ungroup className="size-4" /> Remove from group
+									</DropdownMenuItem>
+								)}
+							</DropdownMenuSubContent>
+						</DropdownMenuSub>
 						<DropdownMenuItem onClick={handleToggleAvailability} disabled={toggleAvailability.isPending}>
 							{isUnavailable ? (
 								<>
