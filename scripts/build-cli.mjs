@@ -40,6 +40,8 @@ const entries = [
 	{ in: resolve(root, 'scripts/seed.ts'), out: 'seed' },
 	{ in: resolve(root, 'scripts/init-garage.ts'), out: 'init-garage' },
 	{ in: resolve(root, 'scripts/init-rustfs.ts'), out: 'init-rustfs' },
+	{ in: resolve(root, 'scripts/intelligence-run-once.ts'), out: 'intelligence-run-once' },
+	{ in: resolve(root, 'scripts/intelligence-worker.ts'), out: 'intelligence-worker' },
 ]
 
 // Single build with splitting:true so shared deps (drizzle-orm, pg, better-auth,

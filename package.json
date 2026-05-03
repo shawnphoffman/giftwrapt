@@ -31,6 +31,8 @@
 		"screenshots": "tsx --env-file=.env.local scripts/screenshots.ts",
 		"admin:create": "tsx scripts/admin-create.ts",
 		"admin:reset-password": "tsx scripts/admin-reset-password.ts",
+		"intelligence:run-once": "tsx scripts/intelligence-run-once.ts",
+		"intelligence:worker": "tsx scripts/intelligence-worker.ts",
 		"storage:init": "tsx scripts/init-garage.ts",
 		"storage:init:rustfs": "tsx scripts/init-rustfs.ts",
 		"storybook": "STORYBOOK=true storybook dev -p 6006",
