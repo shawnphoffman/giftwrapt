@@ -1,4 +1,4 @@
-import { Eye, Heart, Pencil, Shield, ShieldOff, Sprout } from 'lucide-react'
+import { EyeOff, Heart, Pencil, Shield, ShieldOff, Sprout } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 
 import DependentAvatar from '@/components/common/dependent-avatar'
@@ -71,7 +71,7 @@ function CellGlyph({ cell }: { cell: Cell }) {
 		case 'denied':
 			return <ShieldOff className="size-3.5" />
 		case 'restricted':
-			return <Eye className="size-3.5" />
+			return <EyeOff className="size-3.5" />
 		case 'view':
 			return <span className="size-1.5 rounded-full bg-current opacity-60" />
 	}
