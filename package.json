@@ -18,6 +18,7 @@
 		"lint": "eslint",
 		"format": "prettier",
 		"check": "prettier --config prettier.config.js --write . && eslint --fix",
+		"security": "semgrep scan --config=p/typescript --config=p/react --config=p/owasp-top-ten --error",
 		"db:check": "tsx scripts/check-migrations.ts",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",

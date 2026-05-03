@@ -1,0 +1,36 @@
+# Generated / vendored
+node_modules/
+dist/
+dist-ssr/
+.output/
+.nitro/
+.tanstack/
+.vinxi/
+.wrangler/
+storybook-static/
+.cache/
+
+# Build artifacts
+*.min.js
+*.bundle.js
+
+# DB migrations are generated; review them as a diff, not via static analysis
+drizzle/
+
+# Tests and stories carry intentional bad-pattern fixtures
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+*.stories.tsx
+src/**/__fixtures__/
+src/**/__mocks__/
+
+# Screenshot pipeline scratch
+screenshots/
+scripts/screenshots/
+
+# Local-only files
+*.local
+.env
+.env.*
