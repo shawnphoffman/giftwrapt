@@ -24,7 +24,7 @@ import { combineHashes } from './hash'
 import { notifyForRun } from './notify'
 import { checkPreconditions } from './preconditions'
 import { ANALYZERS, isAnalyzerEnabled } from './registry'
-import type { AnalyzerRecOutput, AnalyzerStep } from './types'
+import { type AnalyzerRecOutput, type AnalyzerStep, recPayloadSchema } from './types'
 
 const log = createLogger('intelligence-runner')
 
@@ -198,11 +198,14 @@ async function loadSettings(db: Database): Promise<AppSettings> {
 async function resolveModel(db: Database, settings: AppSettings): Promise<LanguageModel | null> {
 	const ai = await resolveAiConfig(db)
 	if (!ai.isValid) return null
-	const override = settings.intelligenceModelOverride
+	// `intelligenceModelOverride` swaps only the model id within the
+	// globally-configured provider. Provider/apiKey/baseUrl always come
+	// from the canonical AI config so secrets stay in one place.
+	const modelOverride = settings.intelligenceModelOverride
 	return createAiModel({
 		providerType: ai.providerType.value!,
 		apiKey: ai.apiKey.value!,
-		model: override?.model ?? ai.model.value!,
+		model: modelOverride ?? ai.model.value!,
 		baseUrl: ai.baseUrl.value,
 	})
 }
@@ -289,7 +292,7 @@ async function persistBatch(
 }
 
 function payloadFor(o: AnalyzerRecOutput): Record<string, unknown> {
-	return {
+	const candidate = {
 		actions: o.actions,
 		dismissDescription: o.dismissDescription,
 		affected: o.affected,
@@ -297,6 +300,18 @@ function payloadFor(o: AnalyzerRecOutput): Record<string, unknown> {
 		relatedItems: o.relatedItems,
 		interaction: o.interaction,
 	}
+	// Validate analyzer output against the wire shape before persisting.
+	// Catches analyzer regressions (typos, dropped fields, wrong intent
+	// values) at insert time instead of letting them slip into recs.payload
+	// where they'd surface as broken cards on the user-facing page.
+	const result = recPayloadSchema.safeParse(candidate)
+	if (!result.success) {
+		log.warn(
+			{ analyzerId: o.kind, issues: result.error.issues.slice(0, 5) },
+			'rec payload failed schema validation; persisting raw shape (fix the analyzer)'
+		)
+	}
+	return candidate
 }
 
 // Anthropic input/output token estimate. Production should use real

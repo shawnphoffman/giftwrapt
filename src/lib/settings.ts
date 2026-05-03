@@ -276,9 +276,12 @@ export const appSettingsSchema = z.object({
 	// Per-analyzer enable/disable. New analyzers default to enabled in code
 	// (`Analyzer.enabledByDefault`); this map only stores admin overrides.
 	intelligencePerAnalyzerEnabled: z.record(z.string(), z.boolean()),
-	// Optional per-feature model override. When unset, uses the global AI
-	// config from `src/lib/ai-config.ts`.
-	intelligenceModelOverride: z.union([z.null(), z.object({ provider: z.string().min(1), model: z.string().min(1) })]),
+	// Optional per-feature model name override (e.g. "claude-haiku-4-5" to
+	// use a cheaper model for Intelligence than the global default). The
+	// provider/apiKey/baseUrl come from the global AI config; the override
+	// only swaps the model id within that provider. Null = "use the global
+	// model name as-is."
+	intelligenceModelOverride: z.union([z.null(), z.string().min(1).max(120)]),
 	// Notification scaffold. Toggles wired in admin UI but no transport
 	// shipped in v1. `notifyForRun()` reads these and logs intent only.
 	intelligenceEmailEnabled: z.boolean(),

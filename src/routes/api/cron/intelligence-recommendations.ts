@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
-import { and, count, eq, isNull, lt, notExists, or, sql } from 'drizzle-orm'
+import { and, eq, isNull, lt, notExists, or, sql } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { recommendationRuns, recommendationRunSteps, recommendations, users } from '@/db/schema'
@@ -15,7 +15,11 @@ const cronLog = createLogger('cron:intelligence')
 // (or who have never run), AND who have zero active recs (the unread-recs
 // guard at the SQL level so we don't even pick them up). Bounded by the
 // admin-configured batch size.
-async function selectOverdueUsers(refreshIntervalDays: number, limit: number): Promise<Array<string>> {
+//
+// Returns both the limited slice the caller will process this tick AND
+// the unlimited total so the cron summary can report "remaining" without
+// running the same predicates twice.
+async function selectOverdueUsers(refreshIntervalDays: number, limit: number): Promise<{ ids: Array<string>; totalOverdue: number }> {
 	const cutoff = new Date(Date.now() - refreshIntervalDays * 86400000)
 
 	// Subquery: users with at least one active rec (skip these via NOT EXISTS).
@@ -35,15 +39,21 @@ async function selectOverdueUsers(refreshIntervalDays: number, limit: number): P
 		.groupBy(recommendationRuns.userId)
 		.as('last_success')
 
+	// Single query: window function gives us the total-match count alongside
+	// each row, so the caller can compute "remaining = total - processed"
+	// without re-running the predicates.
 	const rows = await db
-		.select({ id: users.id })
+		.select({
+			id: users.id,
+			total: sql<number>`count(*) over()`.mapWith(Number),
+		})
 		.from(users)
 		.leftJoin(lastSuccess, eq(lastSuccess.userId, users.id))
 		.where(and(eq(users.banned, false), notExists(hasActiveRecs), or(isNull(lastSuccess.finishedAt), lt(lastSuccess.finishedAt, cutoff))))
 		.orderBy(sql`${lastSuccess.finishedAt} asc nulls first`)
 		.limit(limit)
 
-	return rows.map(r => r.id)
+	return { ids: rows.map(r => r.id), totalOverdue: rows[0]?.total ?? 0 }
 }
 
 // concurrency-bounded promise pool, no extra dependency
@@ -93,7 +103,10 @@ export const Route = createFileRoute('/api/cron/intelligence-recommendations')({
 					return json({ ok: true, skipped: 'intelligence disabled', date: new Date().toISOString() })
 				}
 
-				const userIds = await selectOverdueUsers(settings.intelligenceRefreshIntervalDays, settings.intelligenceUsersPerInvocation)
+				const { ids: userIds, totalOverdue } = await selectOverdueUsers(
+					settings.intelligenceRefreshIntervalDays,
+					settings.intelligenceUsersPerInvocation
+				)
 
 				let succeeded = 0
 				let skipped = 0
@@ -129,37 +142,7 @@ export const Route = createFileRoute('/api/cron/intelligence-recommendations')({
 					stepDays: settings.intelligenceRunStepsRetentionDays,
 				})
 
-				const cutoff = new Date(Date.now() - settings.intelligenceRefreshIntervalDays * 86400000)
-				const remainingRow = await db
-					.select({ value: count() })
-					.from(users)
-					.where(
-						and(
-							eq(users.banned, false),
-							notExists(
-								db
-									.select({ userId: recommendations.userId })
-									.from(recommendations)
-									.where(and(eq(recommendations.userId, users.id), eq(recommendations.status, 'active')))
-							),
-							or(
-								notExists(
-									db
-										.select({ id: recommendationRuns.id })
-										.from(recommendationRuns)
-										.where(and(eq(recommendationRuns.userId, users.id), eq(recommendationRuns.status, 'success')))
-								),
-								// any successful run finished before the cutoff
-								sql`exists (
-									select 1 from ${recommendationRuns}
-									where ${recommendationRuns.userId} = ${users.id}
-									and ${recommendationRuns.status} = 'success'
-									and ${recommendationRuns.finishedAt} < ${cutoff.toISOString()}
-								)`
-							)
-						)
-					)
-				const remaining = Math.max(0, remainingRow[0].value - userIds.length)
+				const remaining = Math.max(0, totalOverdue - userIds.length)
 
 				const summary = {
 					ok: true,

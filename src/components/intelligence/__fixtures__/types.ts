@@ -142,7 +142,7 @@ export type AdminIntelligenceData = {
 		staleRecRetentionDays: number
 		runStepsRetentionDays: number
 		dryRun: boolean
-		modelOverride?: { provider: string; model: string } | null
+		modelOverride?: string | null
 		email: {
 			enabled: boolean
 			weeklyDigestEnabled: boolean

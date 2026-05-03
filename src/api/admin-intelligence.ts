@@ -101,26 +101,62 @@ async function loadDailySeries(): Promise<
 	}>
 > {
 	const fromDate = new Date(Date.now() - 13 * 86400000)
-	const rows = await db
-		.select({
-			date: sql<string>`to_char(${recommendationRuns.startedAt}::date, 'YYYY-MM-DD')`,
-			status: recommendationRuns.status,
-			tokensIn: sum(recommendationRuns.tokensIn).mapWith(Number),
-			tokensOut: sum(recommendationRuns.tokensOut).mapWith(Number),
-			cost: sum(recommendationRuns.estimatedCostMicroUsd).mapWith(Number),
-			n: count(),
-		})
-		.from(recommendationRuns)
-		.where(gte(recommendationRuns.startedAt, fromDate))
-		.groupBy(sql`${recommendationRuns.startedAt}::date`, recommendationRuns.status)
-		.orderBy(sql`${recommendationRuns.startedAt}::date asc`)
+	const [runsByDay, recsByDay] = await Promise.all([
+		db
+			.select({
+				date: sql<string>`to_char(${recommendationRuns.startedAt}::date, 'YYYY-MM-DD')`,
+				status: recommendationRuns.status,
+				tokensIn: sum(recommendationRuns.tokensIn).mapWith(Number),
+				tokensOut: sum(recommendationRuns.tokensOut).mapWith(Number),
+				cost: sum(recommendationRuns.estimatedCostMicroUsd).mapWith(Number),
+				n: count(),
+			})
+			.from(recommendationRuns)
+			.where(gte(recommendationRuns.startedAt, fromDate))
+			.groupBy(sql`${recommendationRuns.startedAt}::date`, recommendationRuns.status)
+			.orderBy(sql`${recommendationRuns.startedAt}::date asc`),
+		// Recs created per day + dismissed per day. createdAt drives the
+		// "active recs" arrival rate; dismissedAt (when set) drives the
+		// dismissed-per-day count. `applied` recs are inferred from the
+		// status column on the same row, keyed off updatedAt-ish (we use
+		// createdAt since there's no separate appliedAt timestamp; this
+		// is good enough for a rolling chart).
+		db
+			.select({
+				date: sql<string>`to_char(${recommendations.createdAt}::date, 'YYYY-MM-DD')`,
+				status: recommendations.status,
+				n: count(),
+			})
+			.from(recommendations)
+			.where(gte(recommendations.createdAt, fromDate))
+			.groupBy(sql`${recommendations.createdAt}::date`, recommendations.status),
+	])
 
-	const map = new Map<
-		string,
-		{ runsSuccess: number; runsSkipped: number; runsError: number; tokensIn: number; tokensOut: number; costMicro: number }
-	>()
-	for (const r of rows) {
-		const cur = map.get(r.date) ?? { runsSuccess: 0, runsSkipped: 0, runsError: 0, tokensIn: 0, tokensOut: 0, costMicro: 0 }
+	type Bucket = {
+		runsSuccess: number
+		runsSkipped: number
+		runsError: number
+		tokensIn: number
+		tokensOut: number
+		costMicro: number
+		activeRecs: number
+		dismissedRecs: number
+		appliedRecs: number
+	}
+	const empty: Bucket = {
+		runsSuccess: 0,
+		runsSkipped: 0,
+		runsError: 0,
+		tokensIn: 0,
+		tokensOut: 0,
+		costMicro: 0,
+		activeRecs: 0,
+		dismissedRecs: 0,
+		appliedRecs: 0,
+	}
+	const map = new Map<string, Bucket>()
+	for (const r of runsByDay) {
+		const cur = map.get(r.date) ?? { ...empty }
 		if (r.status === 'success') cur.runsSuccess += r.n
 		else if (r.status === 'error') cur.runsError += r.n
 		else cur.runsSkipped += r.n
@@ -129,13 +165,20 @@ async function loadDailySeries(): Promise<
 		cur.costMicro += r.cost
 		map.set(r.date, cur)
 	}
+	for (const r of recsByDay) {
+		const cur = map.get(r.date) ?? { ...empty }
+		if (r.status === 'active') cur.activeRecs += r.n
+		else if (r.status === 'dismissed') cur.dismissedRecs += r.n
+		else cur.appliedRecs += r.n // status === 'applied' (only remaining enum value)
+		map.set(r.date, cur)
+	}
 
 	const out = []
 	for (let i = 13; i >= 0; i--) {
 		const d = new Date()
 		d.setDate(d.getDate() - i)
 		const key = d.toISOString().slice(0, 10)
-		const v = map.get(key) ?? { runsSuccess: 0, runsSkipped: 0, runsError: 0, tokensIn: 0, tokensOut: 0, costMicro: 0 }
+		const v = map.get(key) ?? empty
 		out.push({
 			date: key,
 			runsSuccess: v.runsSuccess,
@@ -144,9 +187,9 @@ async function loadDailySeries(): Promise<
 			tokensIn: v.tokensIn,
 			tokensOut: v.tokensOut,
 			costUsd: v.costMicro / 1_000_000,
-			activeRecs: 0,
-			dismissedRecs: 0,
-			appliedRecs: 0,
+			activeRecs: v.activeRecs,
+			dismissedRecs: v.dismissedRecs,
+			appliedRecs: v.appliedRecs,
 		})
 	}
 	return out
