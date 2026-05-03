@@ -127,6 +127,13 @@
       "when": 1777740000001,
       "tag": "0017_military_dreaming_celestial",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1777787226586,
+      "tag": "0018_nappy_ultimo",
+      "breakpoints": true
     }
   ]
 }

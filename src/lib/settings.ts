@@ -247,6 +247,43 @@ export const appSettingsSchema = z.object({
 	// Drag-reorder in the admin UI persists the new order via
 	// `updateAppSettings({ scrapeProviders })`.
 	scrapeProviders: z.array(scrapeProviderEntrySchema).max(16),
+	// =====================================================================
+	// Intelligence (AI-assisted recommendations)
+	// =====================================================================
+	// Top-level on/off. When false, cron skips all users and the user-facing
+	// page renders a "feature disabled" state.
+	intelligenceEnabled: z.boolean(),
+	// Cron regenerates recs when the user's last successful run finished
+	// at least this many days ago AND no active recs are still un-reviewed.
+	intelligenceRefreshIntervalDays: z.number().int().min(1).max(90),
+	// Manual-refresh rate limit per user (minutes between manual triggers).
+	intelligenceManualRefreshCooldownMinutes: z.number().int().min(1).max(1440),
+	// Max items per analyzer prompt. Caps token usage on power users.
+	intelligenceCandidateCap: z.number().int().min(1).max(500),
+	// Max parallel users in a single cron tick. Avoids provider rate limits.
+	intelligenceConcurrency: z.number().int().min(1).max(20),
+	// How many users a single cron invocation processes before bailing for
+	// the next tick. Lower if cron times out; raise for faster drain.
+	intelligenceUsersPerInvocation: z.number().int().min(1).max(500),
+	// Retention sweep windows (days). Sweep runs at the end of each cron
+	// invocation. Both default to 30 days.
+	intelligenceStaleRecRetentionDays: z.number().int().min(1).max(365),
+	intelligenceRunStepsRetentionDays: z.number().int().min(1).max(365),
+	// When true, runs go through the full pipeline (model calls, step
+	// logging) but do NOT persist any `recommendations` rows. Run rows
+	// and run-step rows are still written so admins can debug.
+	intelligenceDryRun: z.boolean(),
+	// Per-analyzer enable/disable. New analyzers default to enabled in code
+	// (`Analyzer.enabledByDefault`); this map only stores admin overrides.
+	intelligencePerAnalyzerEnabled: z.record(z.string(), z.boolean()),
+	// Optional per-feature model override. When unset, uses the global AI
+	// config from `src/lib/ai-config.ts`.
+	intelligenceModelOverride: z.union([z.null(), z.object({ provider: z.string().min(1), model: z.string().min(1) })]),
+	// Notification scaffold. Toggles wired in admin UI but no transport
+	// shipped in v1. `notifyForRun()` reads these and logs intent only.
+	intelligenceEmailEnabled: z.boolean(),
+	intelligenceEmailWeeklyDigestEnabled: z.boolean(),
+	intelligenceEmailTestRecipient: z.union([z.null(), z.email()]),
 })
 
 // 2) Default values in code (for when DB is empty or missing keys)
@@ -281,6 +318,21 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	scrapeAiProviderEnabled: false,
 	scrapeAiCleanTitlesEnabled: false,
 	scrapeProviders: [],
+	// Intelligence: feature is off by default. Admin must explicitly enable.
+	intelligenceEnabled: false,
+	intelligenceRefreshIntervalDays: 7,
+	intelligenceManualRefreshCooldownMinutes: 60,
+	intelligenceCandidateCap: 50,
+	intelligenceConcurrency: 3,
+	intelligenceUsersPerInvocation: 25,
+	intelligenceStaleRecRetentionDays: 30,
+	intelligenceRunStepsRetentionDays: 30,
+	intelligenceDryRun: false,
+	intelligencePerAnalyzerEnabled: {},
+	intelligenceModelOverride: null,
+	intelligenceEmailEnabled: false,
+	intelligenceEmailWeeklyDigestEnabled: false,
+	intelligenceEmailTestRecipient: null,
 }
 
 export type AppSettings = z.infer<typeof appSettingsSchema>
