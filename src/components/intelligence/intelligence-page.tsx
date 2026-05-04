@@ -177,13 +177,13 @@ function Header({
 				<div
 					data-intelligence="page-header-icon"
 					className={cn(
-						'flex size-10 items-center justify-center rounded-xl shadow-sm',
+						'flex size-10 shrink-0 items-center justify-center rounded-xl shadow-sm',
 						'bg-gradient-to-br from-amber-500 via-pink-500 to-fuchsia-600',
 						'dark:from-amber-700 dark:via-pink-700 dark:to-fuchsia-800',
 						'ring-1 ring-fuchsia-400/40 dark:ring-fuchsia-600/40'
 					)}
 				>
-					<Sparkles className="size-5 text-amber-100 drop-shadow-[0_0_4px_rgba(255,255,255,0.6)]" />
+					<Sparkles className="size-5 shrink-0 text-amber-100 drop-shadow-[0_0_4px_rgba(255,255,255,0.6)]" />
 				</div>
 				<div>
 					<h1 data-intelligence="page-title" className="text-2xl font-semibold tracking-tight">

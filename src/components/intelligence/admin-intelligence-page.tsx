@@ -9,25 +9,30 @@ import {
 	Cpu,
 	Database,
 	Hash,
+	Info,
 	Loader2,
 	Lock,
 	Mail,
+	MoreHorizontal,
 	PlayCircle,
 	Sparkles,
 	TimerReset,
 	Users as UsersIcon,
 } from 'lucide-react'
-import { useState } from 'react'
+import * as React from 'react'
+import { useEffect, useState } from 'react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
@@ -87,34 +92,19 @@ export function AdminIntelligencePageContent({
 				<div className="flex items-start gap-3">
 					<div
 						className={cn(
-							'flex size-10 items-center justify-center rounded-xl shadow-sm',
+							'flex size-10 shrink-0 items-center justify-center rounded-xl shadow-sm',
 							'bg-gradient-to-br from-amber-500 via-pink-500 to-fuchsia-600',
 							'dark:from-amber-700 dark:via-pink-700 dark:to-fuchsia-800',
 							'ring-1 ring-fuchsia-400/40 dark:ring-fuchsia-600/40'
 						)}
 					>
-						<Sparkles className="size-5 text-amber-100 drop-shadow-[0_0_4px_rgba(255,255,255,0.6)]" />
+						<Sparkles className="size-5 shrink-0 text-amber-100 drop-shadow-[0_0_4px_rgba(255,255,255,0.6)]" />
 					</div>
 					<div>
 						<h1 className="text-2xl font-semibold tracking-tight">Intelligence</h1>
 						<p className="text-sm text-muted-foreground">Configure analyzers, debug runs, and inspect costs.</p>
 					</div>
 				</div>
-				{enabled && !providerMissing && (
-					<div className="flex items-center gap-2">
-						<Button
-							data-intelligence="admin-run-for-me"
-							data-pending={runForMePending ? 'true' : 'false'}
-							size="sm"
-							variant="outline"
-							onClick={onRunForMe}
-							disabled={runForMePending}
-						>
-							{runForMePending ? <Loader2 className="size-4 animate-spin" /> : <PlayCircle className="size-4" />}
-							{runForMePending ? 'Running…' : 'Run for me now'}
-						</Button>
-					</div>
-				)}
 			</header>
 
 			{providerMissing && <ProviderMissingBanner />}
@@ -124,6 +114,7 @@ export function AdminIntelligencePageContent({
 			{enabled && !providerMissing && (
 				<>
 					<HealthGrid data={data} providerSummary={providerSummary} />
+					<ActionsCard onRunForMe={onRunForMe} runForMePending={runForMePending} />
 					<SettingsPanel data={data} patch={patch} />
 					<RunsTable
 						runs={filteredRuns}
@@ -174,21 +165,124 @@ function ProviderMissingBanner() {
 
 function EnableToggleCard({ enabled, disabled, onToggle }: { enabled: boolean; disabled: boolean; onToggle: (v: boolean) => void }) {
 	return (
-		<Card data-intelligence="admin-enable-card">
+		<Card
+			data-intelligence="admin-enable-card"
+			className={cn(
+				enabled &&
+					'border-transparent bg-gradient-to-br from-amber-500 via-pink-500 to-fuchsia-600 dark:from-amber-700 dark:via-pink-700 dark:to-fuchsia-800 ring-1 ring-fuchsia-400/40 dark:ring-fuchsia-600/40 shadow-md shadow-fuchsia-500/20'
+			)}
+		>
 			<CardContent className="px-4 py-2.5 flex items-center justify-between gap-4">
-				<div className="flex flex-col gap-1">
-					<div className="flex items-center gap-2">
-						<span className="text-lg font-semibold">Intelligence feature</span>
-						<Badge variant={enabled ? 'secondary' : 'outline'}>{enabled ? 'on' : 'off'}</Badge>
-					</div>
-					<p className="text-sm text-muted-foreground">
+				<div className="flex flex-col gap-1 min-w-0">
+					<span className={cn('text-lg font-semibold', enabled && 'text-white drop-shadow-sm')}>Intelligence</span>
+					<p className={cn('text-sm', enabled ? 'text-white/95' : 'text-muted-foreground')}>
 						{enabled
-							? 'Cron is generating recommendations. Users see the Intelligence page; manual refresh is allowed.'
+							? 'Recommendations are flowing. Cron is delivering fresh insights, users have the Intelligence page, and manual refresh is unlocked.'
 							: 'All recommendation generation is paused. Users do not see the page; manual refresh is blocked. Toggling on enables the rest of this admin surface.'}
 						{disabled && ' Configure an AI provider before turning this on.'}
 					</p>
 				</div>
-				<Switch data-intelligence="admin-enable-switch" checked={enabled} disabled={disabled} onCheckedChange={onToggle} />
+				<Switch
+					data-intelligence="admin-enable-switch"
+					size="lg"
+					checked={enabled}
+					disabled={disabled}
+					onCheckedChange={onToggle}
+					className={cn(enabled && 'data-checked:bg-white/30 border-white/50')}
+				/>
+			</CardContent>
+		</Card>
+	)
+}
+
+function AnalyzerBadge({ tone, children }: { tone: 'kind-heuristic' | 'kind-ai' | 'trigger' | 'status'; children: React.ReactNode }) {
+	if (tone === 'kind-ai') {
+		return (
+			<span className="inline-flex items-center rounded-md border border-transparent bg-gradient-to-br from-amber-500 via-pink-500 to-fuchsia-600 px-1.5 py-0.5 text-[10px] font-medium text-white shadow-sm dark:from-amber-700 dark:via-pink-700 dark:to-fuchsia-800">
+				{children}
+			</span>
+		)
+	}
+	if (tone === 'kind-heuristic') {
+		return (
+			<Badge variant="secondary" className="text-[10px]">
+				{children}
+			</Badge>
+		)
+	}
+	if (tone === 'status') {
+		return (
+			<Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-600 dark:text-amber-400">
+				{children}
+			</Badge>
+		)
+	}
+	return (
+		<Badge variant="outline" className="text-[10px]">
+			{children}
+		</Badge>
+	)
+}
+
+function AnalyzerBadgeList({ kind, triggers, status }: { kind: AnalyzerKind; triggers: Array<AnalyzerTrigger>; status?: AnalyzerStatus }) {
+	return (
+		<>
+			<AnalyzerBadge tone={kind === 'ai' ? 'kind-ai' : 'kind-heuristic'}>{kind === 'ai' ? 'AI' : 'Heuristic'}</AnalyzerBadge>
+			{triggers.includes('cron') && <AnalyzerBadge tone="trigger">Cron</AnalyzerBadge>}
+			{triggers.includes('manual') && <AnalyzerBadge tone="trigger">Manual</AnalyzerBadge>}
+			{status === 'coming-soon' && <AnalyzerBadge tone="status">Coming Soon</AnalyzerBadge>}
+		</>
+	)
+}
+
+function AnalyzerBadges({ kind, triggers, status }: { kind: AnalyzerKind; triggers: Array<AnalyzerTrigger>; status?: AnalyzerStatus }) {
+	return (
+		<>
+			<div className="hidden sm:flex items-center gap-1.5 flex-wrap">
+				<AnalyzerBadgeList kind={kind} triggers={triggers} status={status} />
+			</div>
+			<div className="sm:hidden">
+				<Popover>
+					<PopoverTrigger asChild>
+						<Button
+							size="sm"
+							variant="ghost"
+							className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+							aria-label="Show analyzer details"
+						>
+							<Info className="size-4" />
+						</Button>
+					</PopoverTrigger>
+					<PopoverContent align="start" className="w-auto p-2 flex flex-wrap gap-1.5">
+						<AnalyzerBadgeList kind={kind} triggers={triggers} status={status} />
+					</PopoverContent>
+				</Popover>
+			</div>
+		</>
+	)
+}
+
+function ActionsCard({ onRunForMe, runForMePending }: { onRunForMe?: () => void; runForMePending?: boolean }) {
+	return (
+		<Card data-intelligence="admin-actions-card" size="sm">
+			<CardHeader>
+				<CardTitle>Actions</CardTitle>
+				<CardDescription>Manually trigger a run. More targets (other users, batches) will live here.</CardDescription>
+			</CardHeader>
+			<CardContent className="pb-4">
+				<div className="flex flex-wrap items-center gap-2">
+					<Button
+						data-intelligence="admin-run-for-me"
+						data-pending={runForMePending ? 'true' : 'false'}
+						size="sm"
+						variant="outline"
+						onClick={onRunForMe}
+						disabled={runForMePending}
+					>
+						{runForMePending ? <Loader2 className="size-4 animate-spin" /> : <PlayCircle className="size-4" />}
+						{runForMePending ? 'Running…' : 'Run for me now'}
+					</Button>
+				</div>
 			</CardContent>
 		</Card>
 	)
@@ -282,33 +376,37 @@ function MetricCard({ label, value, sub }: { label: string; value: string; sub: 
 // Per-analyzer descriptions for the Analyzers section. Hardcoded here so
 // admins see what each toggle actually does without having to dig into
 // the analyzer source. Keep these short — long copy belongs in docs.
+type AnalyzerKind = 'heuristic' | 'ai'
+type AnalyzerTrigger = 'cron' | 'manual'
+type AnalyzerStatus = 'coming-soon'
+
 const ANALYZER_META: Record<
 	AnalyzerId,
-	{ label: string; description: string; trigger: string; usesModel: boolean; status?: 'coming-soon' }
+	{ label: string; description: string; kind: AnalyzerKind; triggers: Array<AnalyzerTrigger>; status?: AnalyzerStatus }
 > = {
 	'primary-list': {
 		label: 'Primary list',
 		description: 'Suggests setting a primary list when the user has multiple active lists but none are marked primary.',
-		trigger: 'Cron + manual',
-		usesModel: false,
+		kind: 'heuristic',
+		triggers: ['cron', 'manual'],
 	},
 	'stale-items': {
 		label: 'Stale items',
 		description: 'Reviews items not edited in 6+ months and asks the model to flag any worth cleaning up.',
-		trigger: 'Cron + manual',
-		usesModel: true,
+		kind: 'ai',
+		triggers: ['cron', 'manual'],
 	},
 	duplicates: {
 		label: 'Duplicates',
 		description: 'Finds items with similar titles across different lists and asks the model to confirm true duplicates.',
-		trigger: 'Cron + manual',
-		usesModel: true,
+		kind: 'ai',
+		triggers: ['cron', 'manual'],
 	},
 	grouping: {
 		label: 'Grouping',
 		description: 'Reserved toggle — analyzer not yet implemented. Enabling it has no effect today.',
-		trigger: 'Cron + manual',
-		usesModel: true,
+		kind: 'ai',
+		triggers: ['cron', 'manual'],
 		status: 'coming-soon',
 	},
 }
@@ -317,13 +415,12 @@ function SettingsPanel({ data, patch }: { data: AdminIntelligenceData; patch: (p
 	const s = data.settings
 	const audienceCount = data.health.queue.overdue
 	return (
-		<Card data-intelligence="admin-settings">
-			<CardContent className="p-5 flex flex-col gap-3">
-				<div className="flex items-baseline justify-between gap-2 flex-wrap">
-					<h2 className="text-lg font-semibold">Settings</h2>
-					<p className="text-xs text-muted-foreground">All settings are global. Per-user overrides aren&apos;t supported yet.</p>
-				</div>
-
+		<Card data-intelligence="admin-settings" size="sm">
+			<CardHeader>
+				<CardTitle>Settings</CardTitle>
+				<CardDescription>All settings are global. Per-user overrides aren&apos;t supported yet.</CardDescription>
+			</CardHeader>
+			<CardContent className="flex flex-col gap-3 pb-4">
 				<SettingsSection
 					id="schedule"
 					icon={CalendarClock}
@@ -377,17 +474,7 @@ function SettingsPanel({ data, patch }: { data: AdminIntelligenceData; patch: (p
 									<div className="flex flex-col gap-1 min-w-0">
 										<div className="flex items-center gap-2 flex-wrap">
 											<span className="text-sm font-medium">{meta.label}</span>
-											<Badge variant="outline" className="text-[10px]">
-												{meta.usesModel ? 'uses model' : 'heuristic only'}
-											</Badge>
-											<Badge variant="outline" className="text-[10px]">
-												{meta.trigger}
-											</Badge>
-											{meta.status === 'coming-soon' && (
-												<Badge variant="outline" className="text-[10px]">
-													coming soon
-												</Badge>
-											)}
+											<AnalyzerBadges kind={meta.kind} triggers={meta.triggers} status={meta.status} />
 										</div>
 										<p className="text-xs text-muted-foreground">{meta.description}</p>
 									</div>
@@ -513,12 +600,12 @@ function SettingsPanel({ data, patch }: { data: AdminIntelligenceData; patch: (p
 						/>
 						<div className="md:col-span-2">
 							<Label className="text-xs text-muted-foreground">Test recipient (admin only)</Label>
-							<Input
+							<TextInputOnBlur
 								className="mt-1"
 								type="email"
 								placeholder="optional"
 								value={s.email.testRecipient ?? ''}
-								onChange={e => patch({ email: { ...s.email, testRecipient: e.target.value || null } })}
+								onCommit={v => patch({ email: { ...s.email, testRecipient: v || null } })}
 							/>
 						</div>
 					</div>
@@ -596,16 +683,74 @@ function ToggleRow({
 	)
 }
 
+function TextInputOnBlur({
+	value,
+	onCommit,
+	className,
+	type = 'text',
+	placeholder,
+}: {
+	value: string
+	onCommit: (v: string) => void
+	className?: string
+	type?: string
+	placeholder?: string
+}) {
+	const [draft, setDraft] = useState(value)
+	useEffect(() => {
+		setDraft(value)
+	}, [value])
+	const commit = () => {
+		if (draft !== value) onCommit(draft)
+	}
+	return (
+		<Input
+			className={className}
+			type={type}
+			placeholder={placeholder}
+			value={draft}
+			onChange={e => setDraft(e.target.value)}
+			onBlur={commit}
+			onKeyDown={e => {
+				if (e.key === 'Enter') {
+					e.currentTarget.blur()
+				} else if (e.key === 'Escape') {
+					setDraft(value)
+					e.currentTarget.blur()
+				}
+			}}
+		/>
+	)
+}
+
 function NumberRow({ label, value, onChange, hint }: { label: string; value: number; onChange: (n: number) => void; hint?: string }) {
+	const [draft, setDraft] = useState(String(value))
+	useEffect(() => {
+		setDraft(String(value))
+	}, [value])
+	const commit = () => {
+		const n = Number(draft)
+		if (!Number.isNaN(n) && n !== value) {
+			onChange(n)
+		} else {
+			setDraft(String(value))
+		}
+	}
 	return (
 		<div className="flex flex-col gap-1.5">
 			<Label className="text-sm">{label}</Label>
 			<Input
 				type="number"
-				value={value}
-				onChange={e => {
-					const n = Number(e.target.value)
-					if (!Number.isNaN(n)) onChange(n)
+				value={draft}
+				onChange={e => setDraft(e.target.value)}
+				onBlur={commit}
+				onKeyDown={e => {
+					if (e.key === 'Enter') {
+						e.currentTarget.blur()
+					} else if (e.key === 'Escape') {
+						setDraft(String(value))
+						e.currentTarget.blur()
+					}
 				}}
 			/>
 			{hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
@@ -664,7 +809,7 @@ function RunsTable({
 								<TableHead>Started</TableHead>
 								<TableHead>Duration</TableHead>
 								<TableHead>Recs</TableHead>
-								<TableHead>Tokens</TableHead>
+								<TableHead>Tokens (out / in)</TableHead>
 								<TableHead className="text-right">Actions</TableHead>
 							</TableRow>
 						</TableHeader>
@@ -694,25 +839,42 @@ function RunsTable({
 										</div>
 									</TableCell>
 									<TableCell className="text-muted-foreground text-xs">{formatDistanceToNow(run.startedAt, { addSuffix: true })}</TableCell>
-									<TableCell className="tabular-nums text-xs">{run.durationMs ? `${run.durationMs}ms` : '-'}</TableCell>
+									<TableCell className="tabular-nums text-xs">{run.durationMs ? formatDuration(run.durationMs) : '-'}</TableCell>
 									<TableCell className="text-xs">{summarizeRecCounts(run)}</TableCell>
 									<TableCell className="text-xs tabular-nums">
-										{run.tokensIn ? `${formatNumber(run.tokensIn)} / ${formatNumber(run.tokensOut ?? 0)}` : '-'}
+										{run.tokensIn ? `${formatNumber(run.tokensOut ?? 0)} / ${formatNumber(run.tokensIn)}` : '-'}
 									</TableCell>
 									<TableCell className="text-right">
-										<div className="flex justify-end gap-1" onClick={e => e.stopPropagation()}>
-											<Button size="sm" variant="ghost" onClick={() => onOpenRun?.(run.id)}>
-												Inspect
-											</Button>
-											<Button size="sm" variant="ghost" onClick={() => onRunForUser?.(run.userId)}>
-												Re-run
-											</Button>
-											<Button size="sm" variant="ghost" onClick={() => onInvalidateHash?.(run.userId)}>
-												Invalidate
-											</Button>
-											<Button size="sm" variant="ghost" onClick={() => onPurgeRecs?.(run.userId)}>
-												Purge
-											</Button>
+										<div onClick={e => e.stopPropagation()} className="flex justify-end">
+											<div className="hidden lg:flex gap-1.5">
+												<Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => onOpenRun?.(run.id)}>
+													Inspect
+												</Button>
+												<Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => onRunForUser?.(run.userId)}>
+													Re-run
+												</Button>
+												<Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => onInvalidateHash?.(run.userId)}>
+													Invalidate
+												</Button>
+												<Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => onPurgeRecs?.(run.userId)}>
+													Purge
+												</Button>
+											</div>
+											<div className="lg:hidden">
+												<DropdownMenu>
+													<DropdownMenuTrigger asChild>
+														<Button size="sm" variant="outline" className="h-7 w-7 p-0" aria-label="Run actions">
+															<MoreHorizontal className="size-4" />
+														</Button>
+													</DropdownMenuTrigger>
+													<DropdownMenuContent align="end">
+														<DropdownMenuItem onSelect={() => onOpenRun?.(run.id)}>Inspect</DropdownMenuItem>
+														<DropdownMenuItem onSelect={() => onRunForUser?.(run.userId)}>Re-run</DropdownMenuItem>
+														<DropdownMenuItem onSelect={() => onInvalidateHash?.(run.userId)}>Invalidate</DropdownMenuItem>
+														<DropdownMenuItem onSelect={() => onPurgeRecs?.(run.userId)}>Purge</DropdownMenuItem>
+													</DropdownMenuContent>
+												</DropdownMenu>
+											</div>
 										</div>
 									</TableCell>
 								</TableRow>
@@ -757,7 +919,7 @@ function StepBreakdown({ counts }: { counts?: AdminRunRow['stepCounts'] }) {
 }
 
 function StatusBadge({ run }: { run: AdminRunRow }) {
-	if (run.status === 'success') return <Badge variant="secondary">success</Badge>
+	if (run.status === 'success') return null
 	if (run.status === 'error')
 		return (
 			<span className="inline-flex items-center gap-1.5">
@@ -788,6 +950,18 @@ function sumBucket(o: Record<string, number>): number {
 function formatNumber(n: number): string {
 	if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
 	return n.toString()
+}
+
+function formatDuration(ms: number): string {
+	if (ms < 1000) return `${ms}ms`
+	if (ms < 60_000) {
+		const s = ms / 1000
+		return s < 10 ? `${s.toFixed(1)}s` : `${Math.floor(s)}s`
+	}
+	const totalSec = Math.floor(ms / 1000)
+	const m = Math.floor(totalSec / 60)
+	const s = totalSec % 60
+	return s === 0 ? `${m}m` : `${m}m ${s}s`
 }
 
 // ─── Charts ──────────────────────────────────────────────────────────────────
