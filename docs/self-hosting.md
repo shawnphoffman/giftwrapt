@@ -121,6 +121,15 @@ When email is unconfigured:
 - The admin "send test email" button is hidden
 - Birthday/Christmas/comment email toggles in admin settings are hidden
 
+## Cron and background jobs
+
+Several scheduled endpoints live under `/api/cron/*` (auto-archive,
+birthday emails, intelligence recommendations, the item-scrape queue,
+and verification cleanup). Wire them up to whatever scheduler your
+platform offers (system crontab, Docker Compose worker service, etc.).
+The full inventory plus per-platform recipes lives in
+[.notes/cron-and-jobs.md](../.notes/cron-and-jobs.md).
+
 ## Updating
 
 ```bash

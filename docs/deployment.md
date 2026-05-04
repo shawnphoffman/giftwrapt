@@ -106,6 +106,17 @@ The repo is set up for Vercel deployment out of the box.
 
 The bundled `INIT_GARAGE` / `INIT_RUSTFS` flags should stay unset on Vercel; you're using an external bucket.
 
+## Cron and background jobs
+
+The app exposes several `/api/cron/*` endpoints (auto-archive, birthday
+emails, intelligence recommendations, item-scrape queue, verification
+cleanup) that need an external scheduler. For Vercel, add a `crons`
+array to `vercel.json` with one entry per endpoint; for Railway /
+Render, point a Cron service at each URL with `Authorization: Bearer
+$CRON_SECRET`. The full deployment-platform matrix and the lock-key
+namespace convention for adding a new cron-tick runner live in
+[.notes/cron-and-jobs.md](../.notes/cron-and-jobs.md).
+
 ## Custom Node deploy
 
 ```bash
