@@ -103,8 +103,12 @@ function ListsByUserContent() {
 		)
 	}
 
-	// Interleave users and dependents into one birthday-sorted stream
-	const sortedEntries: Array<UserWithLists | DependentWithLists> = [...usersData, ...dependentsData].sort(sortByBirthDate)
+	// Interleave users and dependents into one birthday-sorted stream.
+	// Hide entries with no lists from the feed; the page heading surfaces
+	// them via the info-icon popover instead.
+	const sortedEntries: Array<UserWithLists | DependentWithLists> = [...usersData, ...dependentsData]
+		.filter(entry => entry.lists.length > 0)
+		.sort(sortByBirthDate)
 
 	if (sortedEntries.length === 0) {
 		return (
