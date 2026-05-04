@@ -38,11 +38,23 @@ export type ActionIntent =
 	| 'destructive' // deletes or otherwise irreversible - red
 	| 'ai' // hands off to a model - gradient
 
+// Apply payload attached to an action that can be executed server-side
+// without leaving the page (vs. informational actions which only
+// describe what to do). Currently only the grouping analyzer emits one.
+export type RecommendationApply = {
+	kind: 'create-group'
+	listId: string
+	groupType: 'or' | 'order'
+	itemIds: Array<string>
+	priority: 'very-high' | 'high' | 'normal' | 'low'
+}
+
 export type RecommendationAction = {
 	label: string // short verb on the button itself: "Merge lists", "Delete items", "Dismiss"
 	description: string // sentence(s) on the row explaining what this action does and any consequences
 	intent: ActionIntent
 	confirmCopy?: string // shown in a confirm dialog before firing destructive direct actions
+	apply?: RecommendationApply // when set, the rec card renders an apply button that triggers this server-side
 }
 
 export type AffectedSummary = {

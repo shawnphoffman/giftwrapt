@@ -404,10 +404,10 @@ const ANALYZER_META: Record<
 	},
 	grouping: {
 		label: 'Grouping',
-		description: 'Reserved toggle — analyzer not yet implemented. Enabling it has no effect today.',
+		description:
+			'Suggests "pick one" or "in order" groups for ungrouped items that look like alternates of the same need or a prerequisite sequence.',
 		kind: 'ai',
 		triggers: ['cron', 'manual'],
-		status: 'coming-soon',
 	},
 }
 

@@ -26,11 +26,24 @@ export type ItemRef = {
 	availability: 'available' | 'unavailable'
 }
 
+// Apply payload attached to an action that can be executed server-side
+// without leaving the page (vs. informational actions which only
+// describe what to do). Currently only the grouping analyzer emits one;
+// future analyzers can add new `kind`s here.
+export type RecommendationApply = {
+	kind: 'create-group'
+	listId: string
+	groupType: 'or' | 'order'
+	itemIds: Array<string>
+	priority: 'very-high' | 'high' | 'normal' | 'low'
+}
+
 export type RecommendationAction = {
 	label: string
 	description: string
 	intent: ActionIntent
 	confirmCopy?: string
+	apply?: RecommendationApply
 }
 
 export type AffectedSummary = {
@@ -95,6 +108,15 @@ export const recPayloadSchema = z.object({
 				description: z.string(),
 				intent: z.enum(ACTION_INTENTS),
 				confirmCopy: z.string().optional(),
+				apply: z
+					.object({
+						kind: z.literal('create-group'),
+						listId: z.string(),
+						groupType: z.enum(['or', 'order']),
+						itemIds: z.array(z.string()),
+						priority: z.enum(['very-high', 'high', 'normal', 'low']),
+					})
+					.optional(),
 			})
 		)
 		.optional(),

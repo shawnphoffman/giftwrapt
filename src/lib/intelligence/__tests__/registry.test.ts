@@ -5,7 +5,7 @@ import { ANALYZERS, isAnalyzerEnabled } from '../registry'
 describe('analyzer registry', () => {
 	it('lists v1 analyzers', () => {
 		const ids = ANALYZERS.map(a => a.id)
-		expect(ids).toEqual(['primary-list', 'stale-items', 'duplicates'])
+		expect(ids).toEqual(['primary-list', 'stale-items', 'duplicates', 'grouping'])
 	})
 
 	it('respects per-analyzer enable overrides', () => {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { buildDuplicatesPrompt, duplicatesResponseSchema } from '../prompts/duplicates'
+import { buildGroupingPrompt, groupingResponseSchema } from '../prompts/grouping'
 import { buildStaleItemsPrompt, staleItemsResponseSchema } from '../prompts/stale-items'
 
 describe('stale-items prompt', () => {
@@ -76,5 +77,58 @@ describe('duplicates prompt', () => {
 			pairs: [{ leftItemId: '1', rightItemId: '2', confident: true, rationale: 'same product' }],
 		})
 		expect(result.pairs).toHaveLength(1)
+	})
+})
+
+describe('grouping prompt', () => {
+	it('renders clusters with item ids, biases toward skip, and never mentions claims/gifters', () => {
+		const out = buildGroupingPrompt({
+			clusters: [
+				{
+					listId: '10',
+					listName: 'Birthday 2026',
+					items: [
+						{ itemId: '1', title: 'Weber Spirit grill' },
+						{ itemId: '2', title: 'Traeger Pro 575 grill' },
+					],
+				},
+				{
+					listId: '10',
+					listName: 'Birthday 2026',
+					items: [
+						{ itemId: '3', title: 'PlayStation 5' },
+						{ itemId: '4', title: 'PS5 DualSense controller (white)' },
+						{ itemId: '5', title: 'PS5 DualSense controller (red)' },
+					],
+				},
+			],
+		})
+		expect(out).toContain('Weber Spirit grill')
+		expect(out).toContain('Traeger Pro 575 grill')
+		expect(out).toContain('PlayStation 5')
+		expect(out).toContain('id=1')
+		expect(out).toContain('id=5')
+		// Numbered cluster headers so the response can reference clusterIndex.
+		expect(out).toContain('1. List "Birthday 2026":')
+		expect(out).toContain('2. List "Birthday 2026":')
+		// Bias toward "skip" + the protective instruction.
+		expect(out).toMatch(/bias toward "skip"/i)
+		expect(out).toMatch(/never mention.*claim/i)
+		// Decision vocabulary present.
+		expect(out).toContain('"or"')
+		expect(out).toContain('"order"')
+	})
+
+	it('parses a well-formed grouping response', () => {
+		const result = groupingResponseSchema.parse({
+			groups: [
+				{ clusterIndex: 1, decision: 'or', itemIds: ['1', '2'], rationale: 'two grills serving the same purpose' },
+				{ clusterIndex: 2, decision: 'order', itemIds: ['3', '4', '5'], rationale: 'console first, then accessories' },
+				{ clusterIndex: 3, decision: 'skip', itemIds: [], rationale: 'unrelated' },
+			],
+		})
+		expect(result.groups).toHaveLength(3)
+		expect(result.groups[0].decision).toBe('or')
+		expect(result.groups[1].itemIds).toEqual(['3', '4', '5'])
 	})
 })

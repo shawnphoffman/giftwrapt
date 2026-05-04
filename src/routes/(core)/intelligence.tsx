@@ -4,6 +4,8 @@ import { useMemo } from 'react'
 import { toast } from 'sonner'
 
 import {
+	applyRecommendation,
+	type ApplyRecommendationResult,
 	dismissRecommendation,
 	getMyRecommendations,
 	type IntelligencePagePayload,
@@ -45,6 +47,16 @@ function IntelligenceRoute() {
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: intelligenceQueryOptions.queryKey }),
 	})
 
+	const applyServerMutation = useMutation({
+		mutationFn: (input: { id: string; apply: NonNullable<Parameters<typeof applyRecommendation>[0]>['data']['apply'] }) =>
+			applyRecommendation({ data: input }),
+		onSuccess: (result: ApplyRecommendationResult) => {
+			queryClient.invalidateQueries({ queryKey: intelligenceQueryOptions.queryKey })
+			if (!result.ok) toast.error(applyErrorMessage(result.reason))
+		},
+		onError: e => toast.error(e instanceof Error ? e.message : 'Action failed'),
+	})
+
 	const state: IntelligencePageState = useMemo(() => buildState(data, refreshMutation.isPending), [data, refreshMutation.isPending])
 
 	return (
@@ -52,10 +64,33 @@ function IntelligenceRoute() {
 			state={state}
 			onRefresh={() => refreshMutation.mutate()}
 			onDismiss={rec => dismissMutation.mutate(rec.id)}
-			onAction={rec => applyMutation.mutate(rec.id)}
+			onAction={(rec, action) => {
+				if (action.apply) {
+					applyServerMutation.mutate({ id: rec.id, apply: action.apply })
+				} else {
+					applyMutation.mutate(rec.id)
+				}
+			}}
 			onSelectListPicker={rec => applyMutation.mutate(rec.id)}
 		/>
 	)
+}
+
+function applyErrorMessage(reason: Exclude<ApplyRecommendationResult, { ok: true }>['reason']): string {
+	switch (reason) {
+		case 'rec-not-active':
+			return 'This suggestion is no longer active. Refresh to see the latest.'
+		case 'cannot-edit':
+			return "You can't edit that list anymore."
+		case 'items-changed':
+			return 'These items have changed since the suggestion was made. Refresh to see the latest.'
+		case 'list-not-found':
+			return 'That list no longer exists.'
+		case 'rec-not-found':
+			return 'Suggestion not found.'
+		case 'unknown-apply-kind':
+			return "We don't know how to apply that action."
+	}
 }
 
 function buildState(data: IntelligencePagePayload, generating: boolean): IntelligencePageState {
