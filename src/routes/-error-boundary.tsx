@@ -1,5 +1,3 @@
-import { Link } from '@tanstack/react-router'
-
 interface ErrorBoundaryFallbackProps {
 	error: Error
 	reset: () => void
@@ -18,12 +16,14 @@ export default function ErrorBoundaryFallback({ error, reset }: ErrorBoundaryFal
 					>
 						Try again
 					</button>
-					<Link
-						to="/"
+					<button
+						onClick={() => {
+							window.location.href = '/'
+						}}
 						className="px-4 py-2 text-sm font-medium border border-input bg-background rounded-md hover:bg-accent transition-colors"
 					>
 						Go home
-					</Link>
+					</button>
 				</div>
 			</div>
 		</div>

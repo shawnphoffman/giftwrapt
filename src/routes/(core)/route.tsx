@@ -201,6 +201,7 @@ function AuthenticatedRoutes() {
 										</button>
 										<Link
 											to="/"
+											onClick={reset}
 											className="px-4 py-2 text-sm font-medium border border-input bg-background rounded-md hover:bg-accent transition-colors"
 										>
 											Go home
