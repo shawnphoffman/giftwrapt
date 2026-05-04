@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, notFound, useRouter } from '@tanstack/react-router'
-import { Group as GroupIcon, ListOrdered, Plus, Settings2, Shuffle } from 'lucide-react'
+import { Group as GroupIcon, ListOrdered, Settings2, Shuffle } from 'lucide-react'
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -10,6 +10,7 @@ import { getListForEditing, getListSummaries, type ListForEditing, type ListSumm
 import ListTypeTile from '@/components/common/list-type-tile'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import { GroupBlock } from '@/components/items/group-block'
+import { AddItemSplitButton } from '@/components/items/import/add-item-split-button'
 import { InternalListLinksProvider } from '@/components/items/internal-list-links-context'
 import { ItemEditRow } from '@/components/items/item-edit-row'
 import { ItemFormDialog } from '@/components/items/item-form-dialog'
@@ -211,10 +212,7 @@ function ListEditPage() {
 									</DropdownMenuContent>
 								</DropdownMenu>
 							)}
-							<Button size="sm" onClick={() => openAddItemDialog(null)}>
-								<Plus className="size-4" /> <span className="xs:hidden">Add</span>
-								<span className="hidden xs:inline">Add item</span>
-							</Button>
+							<AddItemSplitButton listId={list.id} onAddItem={() => openAddItemDialog(null)} />
 						</div>
 					</div>
 

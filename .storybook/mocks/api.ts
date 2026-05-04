@@ -11,6 +11,8 @@
  * exist here. The stubs no-op; stories should not trigger server actions.
  */
 
+import { DEFAULT_APP_SETTINGS } from '@/lib/settings'
+
 type OkResult = { kind: 'ok' }
 const ok = (): Promise<OkResult> => Promise.resolve({ kind: 'ok' })
 const emptyArray = (): Promise<Array<unknown>> => Promise.resolve([])
@@ -176,3 +178,23 @@ export const updateDependent = ok
 export const deleteDependent = ok
 export const addDependentGuardian = ok
 export const removeDependentGuardian = ok
+
+// @/api/settings
+export const fetchAppSettings = (): Promise<typeof DEFAULT_APP_SETTINGS> => Promise.resolve(DEFAULT_APP_SETTINGS)
+export const fetchAppSettingsAsAdmin = (): Promise<typeof DEFAULT_APP_SETTINGS> => Promise.resolve(DEFAULT_APP_SETTINGS)
+export const updateAppSettings = ok
+
+// @/api/import
+export type ItemDraft = {
+	title?: string | null
+	url?: string | null
+	price?: string | null
+	currency?: string | null
+	imageUrl?: string | null
+	notes?: string | null
+	priority?: string
+	quantity?: number
+}
+export const bulkCreateItems = (): Promise<{ kind: 'ok'; items: Array<unknown>; enqueued: number }> =>
+	Promise.resolve({ kind: 'ok', items: [], enqueued: 0 })
+export const fetchImportSource = (): Promise<{ kind: 'ok'; drafts: Array<ItemDraft> }> => Promise.resolve({ kind: 'ok', drafts: [] })

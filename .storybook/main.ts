@@ -41,6 +41,8 @@ const config: StorybookConfig = {
 			'@/api/admin': path.join(mocksDir, 'api.ts'),
 			'@/api/dependents': path.join(mocksDir, 'api.ts'),
 			'@/api/oidc': path.join(mocksDir, 'api.ts'),
+			'@/api/settings': path.join(mocksDir, 'api.ts'),
+			'@/api/import': path.join(mocksDir, 'api.ts'),
 			'@/lib/auth-client': path.join(mocksDir, 'auth-client.ts'),
 			'@/env': path.join(mocksDir, 'env.ts'),
 			// Base `@/` alias for everything else - the Vite preset Storybook uses
