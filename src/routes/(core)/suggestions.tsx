@@ -9,7 +9,6 @@ import {
 	dismissRecommendation,
 	getMyRecommendations,
 	type IntelligencePagePayload,
-	markRecommendationApplied,
 	refreshMyRecommendations,
 } from '@/api/intelligence'
 import type { IntelligencePageState, Recommendation } from '@/components/intelligence/__fixtures__/types'
@@ -40,11 +39,6 @@ function IntelligenceRoute() {
 		mutationFn: (id: string) => dismissRecommendation({ data: { id } }),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: intelligenceQueryOptions.queryKey }),
 		onError: e => toast.error(e instanceof Error ? e.message : 'Dismiss failed'),
-	})
-
-	const applyMutation = useMutation({
-		mutationFn: (id: string) => markRecommendationApplied({ data: { id } }),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: intelligenceQueryOptions.queryKey }),
 	})
 
 	const applyServerMutation = useMutation({
@@ -81,7 +75,7 @@ function IntelligenceRoute() {
 					return
 				}
 			}}
-			onSelectListPicker={rec => applyMutation.mutate(rec.id)}
+			onSelectListPicker={(rec, listId) => applyServerMutation.mutate({ id: rec.id, apply: { kind: 'set-primary-list', listId } })}
 		/>
 	)
 }
@@ -94,8 +88,14 @@ function applyErrorMessage(reason: Exclude<ApplyRecommendationResult, { ok: true
 			return "You can't edit that list anymore."
 		case 'items-changed':
 			return 'These items have changed since the suggestion was made. Refresh to see the latest.'
+		case 'items-have-claims':
+			return 'One of these items has a claim now, so we left it alone. Refresh to see the latest.'
 		case 'list-not-found':
 			return 'That list no longer exists.'
+		case 'invalid-list-type':
+			return "That list type can't be set as primary."
+		case 'not-owner':
+			return "You don't own that list."
 		case 'rec-not-found':
 			return 'Suggestion not found.'
 		case 'unknown-apply-kind':

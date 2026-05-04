@@ -28,15 +28,24 @@ export type ItemRef = {
 
 // Apply payload attached to an action that can be executed server-side
 // without leaving the page (vs. informational actions which only
-// describe what to do). Currently only the grouping analyzer emits one;
-// future analyzers can add new `kind`s here.
-export type RecommendationApply = {
-	kind: 'create-group'
-	listId: string
-	groupType: 'or' | 'order'
-	itemIds: Array<string>
-	priority: 'very-high' | 'high' | 'normal' | 'low'
-}
+// describe what to do).
+export type RecommendationApply =
+	| {
+			kind: 'create-group'
+			listId: string
+			groupType: 'or' | 'order'
+			itemIds: Array<string>
+			priority: 'very-high' | 'high' | 'normal' | 'low'
+	  }
+	| {
+			kind: 'delete-items'
+			listId: string
+			itemIds: Array<string>
+	  }
+	| {
+			kind: 'set-primary-list'
+			listId: string
+	  }
 
 export type RecommendationAction = {
 	label: string
@@ -114,13 +123,24 @@ export const recPayloadSchema = z.object({
 				confirmCopy: z.string().optional(),
 				href: z.string().optional(),
 				apply: z
-					.object({
-						kind: z.literal('create-group'),
-						listId: z.string(),
-						groupType: z.enum(['or', 'order']),
-						itemIds: z.array(z.string()),
-						priority: z.enum(['very-high', 'high', 'normal', 'low']),
-					})
+					.discriminatedUnion('kind', [
+						z.object({
+							kind: z.literal('create-group'),
+							listId: z.string(),
+							groupType: z.enum(['or', 'order']),
+							itemIds: z.array(z.string()),
+							priority: z.enum(['very-high', 'high', 'normal', 'low']),
+						}),
+						z.object({
+							kind: z.literal('delete-items'),
+							listId: z.string(),
+							itemIds: z.array(z.string()),
+						}),
+						z.object({
+							kind: z.literal('set-primary-list'),
+							listId: z.string(),
+						}),
+					])
 					.optional(),
 			})
 		)

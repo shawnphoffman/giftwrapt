@@ -177,6 +177,11 @@ export const staleItemsAnalyzer: Analyzer = {
 								? 'Permanently delete this item. It has no claims, so no gifters are affected.'
 								: `Permanently delete all ${itemRefs.length} items.`,
 						intent: 'destructive',
+						confirmCopy:
+							itemRefs.length === 1
+								? `Permanently delete "${itemRefs[0].title}" from ${listRef.name}? This cannot be undone.`
+								: `Permanently delete ${itemRefs.length} items from ${listRef.name}? This cannot be undone.`,
+						apply: { kind: 'delete-items', listId: listRef.id, itemIds: itemRefs.map(it => it.id) },
 					},
 				],
 				dismissDescription: "Hide this recommendation. We won't suggest it again unless these items change.",

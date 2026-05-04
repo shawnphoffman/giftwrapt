@@ -40,14 +40,24 @@ export type ActionIntent =
 
 // Apply payload attached to an action that can be executed server-side
 // without leaving the page (vs. informational actions which only
-// describe what to do). Currently only the grouping analyzer emits one.
-export type RecommendationApply = {
-	kind: 'create-group'
-	listId: string
-	groupType: 'or' | 'order'
-	itemIds: Array<string>
-	priority: 'very-high' | 'high' | 'normal' | 'low'
-}
+// describe what to do).
+export type RecommendationApply =
+	| {
+			kind: 'create-group'
+			listId: string
+			groupType: 'or' | 'order'
+			itemIds: Array<string>
+			priority: 'very-high' | 'high' | 'normal' | 'low'
+	  }
+	| {
+			kind: 'delete-items'
+			listId: string
+			itemIds: Array<string>
+	  }
+	| {
+			kind: 'set-primary-list'
+			listId: string
+	  }
 
 export type RecommendationAction = {
 	label: string // short verb on the button itself: "Merge lists", "Delete items", "Dismiss"

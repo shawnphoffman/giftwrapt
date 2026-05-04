@@ -53,6 +53,7 @@ describe('applyRecommendationImpl - create-group', () => {
 
 			expect(result.ok).toBe(true)
 			if (!result.ok) return // narrow
+			if (result.kind !== 'create-group') throw new Error('expected create-group result')
 
 			const groupRow = await tx.query.itemGroups.findFirst({
 				where: eq(itemGroups.id, Number.parseInt(result.groupId, 10)),
