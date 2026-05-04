@@ -48,8 +48,8 @@ type Props = {
 export default function ListTypeTile({ type, className }: Props) {
 	const { bg, ring, icon: Icon } = TYPE_STYLES[type]
 	return (
-		<span className={cn('flex size-10 shrink-0 items-center justify-center rounded-xl shadow-sm', bg, ring, className)}>
-			<Icon className="size-7 shrink-0 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.4)]" />
+		<span className={cn('flex xs:size-10 size-8 shrink-0 items-center justify-center rounded-xl shadow-sm', bg, ring, className)}>
+			<Icon className="xs:size-7 size-5 shrink-0 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.4)]" />
 		</span>
 	)
 }

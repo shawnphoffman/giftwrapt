@@ -14,13 +14,13 @@ export default function UserAvatar({ name, image, className, size = 'medium' }: 
 	const initials = name.charAt(0).toUpperCase() || '?'
 	const parentVariants = {
 		huge: 'size-28',
-		large: 'size-18',
+		large: 'xs:size-18 size-12',
 		medium: 'size-10',
 		small: 'size-6',
 	}
 	const fallbackVariants = {
 		huge: 'text-6xl',
-		large: 'text-4xl',
+		large: 'xs:text-4xl text-2xl',
 		medium: 'text-2xl',
 		small: 'text-sm',
 	}

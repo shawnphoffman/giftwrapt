@@ -91,16 +91,18 @@ function ListDetailPage() {
 				{/* HEADING */}
 				<div className="flex flex-col gap-1">
 					<BackToParentList from={from} />
-					<div className="flex items-center gap-3 min-w-0">
-						{list.subjectDependent ? (
-							<DependentAvatar
-								name={list.subjectDependent.name}
-								image={list.subjectDependent.image}
-								className="size-12 border-2 border-background"
-							/>
-						) : (
-							<UserAvatar name={recipientName} image={list.owner.image} className="size-12 border-2 border-background" />
-						)}
+					<div className="flex items-center gap-1 xs:gap-3 min-w-0 group/list-title ">
+						<div className="origin-center transition-transform duration-200 ease-out group-hover/list-title:scale-125 group-hover/list-title:-rotate-3">
+							{list.subjectDependent ? (
+								<DependentAvatar
+									name={list.subjectDependent.name}
+									image={list.subjectDependent.image}
+									className="size-20 border-2 border-background"
+								/>
+							) : (
+								<UserAvatar name={recipientName} image={list.owner.image} size="large" className="border-2 border-background" />
+							)}
+						</div>
 						<ListTypeTile type={list.type} />
 						<h1 className="truncate">{list.name}</h1>
 					</div>

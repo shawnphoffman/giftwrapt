@@ -235,7 +235,7 @@ export default function ItemList({ listId, groups = [] }: Props) {
 	return (
 		<InternalListLinksProvider value={internalListLinks}>
 			<div className="flex flex-col gap-3">
-				<div className="flex flex-row items-center justify-end gap-1">
+				<div className="flex flex-row items-center justify-end gap-1 flex-wrap">
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button variant="ghost" size="sm" className={cn('h-7 text-xs text-muted-foreground', filter !== 'all' && 'text-foreground')}>
