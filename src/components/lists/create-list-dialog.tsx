@@ -21,6 +21,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { listTypeEnumValues, ListTypes } from '@/db/schema/enums'
 import { useSession } from '@/lib/auth-client'
 import { LIMITS } from '@/lib/validation/limits'
@@ -199,36 +200,68 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 						)}
 					</form.Field>
 
-					<form.Field name="type">
-						{field => (
-							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Type</Label>
-								<Select
-									value={field.state.value}
-									onValueChange={v => {
-										field.handleChange(v)
-										setSelectedType(v)
-										if (v === 'giftideas') {
-											form.setFieldValue('isPrivate', true)
-										}
-									}}
-									disabled={submitting}
-								>
-									<SelectTrigger id={field.name}>
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										{availableTypes.map(t => (
-											<SelectItem key={t} value={t}>
-												<ListTypeIcon type={t} className="size-4" />
-												{ListTypes[t]}
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							</div>
+					<div className="grid gap-4 sm:grid-cols-2">
+						<form.Field name="type">
+							{field => (
+								<div className="grid gap-2">
+									<Label htmlFor={field.name}>Type</Label>
+									<Select
+										value={field.state.value}
+										onValueChange={v => {
+											field.handleChange(v)
+											setSelectedType(v)
+											if (v === 'giftideas') {
+												form.setFieldValue('isPrivate', true)
+											}
+										}}
+										disabled={submitting}
+									>
+										<SelectTrigger id={field.name} className="w-full">
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											{availableTypes.map(t => (
+												<SelectItem key={t} value={t}>
+													<ListTypeIcon type={t} className="size-4" />
+													{ListTypes[t]}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+								</div>
+							)}
+						</form.Field>
+
+						{!isGiftIdeas && (myDependents?.dependents ?? []).filter(d => !d.isArchived).length > 0 && (
+							<form.Field name="subjectDependentId">
+								{field => (
+									<div className="grid gap-2">
+										<Label htmlFor={field.name}>List is for (optional)</Label>
+										<Select
+											value={field.state.value || 'me'}
+											onValueChange={v => field.handleChange(v === 'me' ? '' : v)}
+											disabled={submitting}
+										>
+											<SelectTrigger id={field.name} className="w-full">
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="me">Me</SelectItem>
+												{(myDependents?.dependents ?? [])
+													.filter(d => !d.isArchived)
+													.map(d => (
+														<SelectItem key={d.id} value={d.id}>
+															<DependentAvatar name={d.name} image={d.image} size="small" />
+															<span className="truncate">{d.name}</span>
+														</SelectItem>
+													))}
+											</SelectContent>
+										</Select>
+									</div>
+								)}
+							</form.Field>
 						)}
-					</form.Field>
+					</div>
 
 					{isGiftIdeas && (
 						<div className="grid gap-2">
@@ -291,48 +324,18 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 						</div>
 					)}
 
-					{!isGiftIdeas && (myDependents?.dependents ?? []).filter(d => !d.isArchived).length > 0 && (
-						<form.Field name="subjectDependentId">
-							{field => (
-								<div className="grid gap-2">
-									<Label htmlFor={field.name}>List is for (optional)</Label>
-									<Select
-										value={field.state.value || 'me'}
-										onValueChange={v => field.handleChange(v === 'me' ? '' : v)}
-										disabled={submitting}
-									>
-										<SelectTrigger id={field.name}>
-											<SelectValue />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="me">Me</SelectItem>
-											{(myDependents?.dependents ?? [])
-												.filter(d => !d.isArchived)
-												.map(d => (
-													<SelectItem key={d.id} value={d.id}>
-														<DependentAvatar name={d.name} image={d.image} size="small" />
-														<span className="truncate">{d.name}</span>
-													</SelectItem>
-												))}
-										</SelectContent>
-									</Select>
-								</div>
-							)}
-						</form.Field>
-					)}
-
 					<form.Field name="isPrivate">
 						{field => (
-							<div className="flex items-center gap-2">
-								<Checkbox
+							<div className="flex items-center justify-between gap-3">
+								<Label htmlFor={field.name} className="font-normal">
+									Private list {isGiftIdeas && '(always private for Gift Ideas)'}
+								</Label>
+								<Switch
 									id={field.name}
 									checked={isGiftIdeas ? true : field.state.value}
 									onCheckedChange={v => field.handleChange(v === true)}
 									disabled={submitting || isGiftIdeas}
 								/>
-								<Label htmlFor={field.name} className="font-normal">
-									Private list {isGiftIdeas && '(always private for Gift Ideas)'}
-								</Label>
 							</div>
 						)}
 					</form.Field>
