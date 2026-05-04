@@ -124,6 +124,7 @@ function AdminIntelligenceRoute() {
 				onInvalidateHash={userId => invalidateHashMutation.mutate(userId)}
 				onPurgeRecs={userId => purgeMutation.mutate(userId)}
 				onOpenRun={runId => setOpenRunId(runId)}
+				runForMePending={runForMeMutation.isPending}
 			/>
 			<Sheet open={openRunId !== null} onOpenChange={open => !open && setOpenRunId(null)}>
 				<SheetContent
@@ -173,6 +174,7 @@ function adaptAdminData(raw: Awaited<ReturnType<typeof getAdminIntelligenceData>
 			durationMs: r.durationMs,
 			inputHashShort: r.inputHashShort,
 			recCounts: r.recCounts as AdminIntelligenceData['runs'][number]['recCounts'],
+			stepCounts: r.stepCounts,
 		})),
 		dailySeries: raw.dailySeries,
 	}

@@ -5,7 +5,13 @@ import { items, lists } from '@/db/schema'
 
 import type { Analyzer } from '../analyzer'
 import { combineHashes, sha256Hex } from '../hash'
-import { buildStaleItemsPrompt, type StaleItemsCandidate, staleItemsResponseSchema } from '../prompts/stale-items'
+import {
+	buildStaleItemsPrompt,
+	STALE_ITEMS_MAX_LISTS,
+	STALE_ITEMS_MAX_RECS_PER_LIST,
+	type StaleItemsCandidate,
+	staleItemsResponseSchema,
+} from '../prompts/stale-items'
 import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ItemRef, ListRef } from '../types'
 
 const STALE_DAYS_THRESHOLD = 180 // 6 months
@@ -138,10 +144,10 @@ export const staleItemsAnalyzer: Analyzer = {
 					recs: Array<{ include: boolean; severity: 'info' | 'suggest' | 'important'; headline: string; rationale: string }>
 				}>
 			}
-		).lists
+		).lists.slice(0, STALE_ITEMS_MAX_LISTS)
 
 		for (const aiList of aiLists) {
-			const flagged = aiList.recs.filter(r => r.include)
+			const flagged = aiList.recs.slice(0, STALE_ITEMS_MAX_RECS_PER_LIST).filter(r => r.include)
 			if (flagged.length === 0) continue
 			// Resolve the model's listId back to the DB rows. Skip lists the
 			// model invented or that aren't in our candidate set.

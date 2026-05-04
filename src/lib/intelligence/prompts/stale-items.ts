@@ -10,21 +10,31 @@ import { z } from 'zod'
 // (cheaper, faster) but a single error or schema-parse failure kills the
 // whole stale-items batch instead of just one list.
 
+// NOTE on schema constraints: OpenAI's structured-output validator rejects
+// `maxItems` on arrays (and `min`/`max` on strings). Keep these schemas
+// "shape-only" — bound the size by the prompt + post-processing slice in
+// the analyzer instead of via Zod modifiers that translate to unsupported
+// JSON-schema keywords.
 export const staleItemsRecSchema = z.object({
 	include: z.boolean(),
 	severity: z.enum(['info', 'suggest', 'important']),
-	headline: z.string().min(1).max(120),
-	rationale: z.string().min(1).max(280),
+	headline: z.string(),
+	rationale: z.string(),
 })
 
 export const staleItemsListSchema = z.object({
 	listId: z.string(),
-	recs: z.array(staleItemsRecSchema).max(8),
+	recs: z.array(staleItemsRecSchema),
 })
 
 export const staleItemsResponseSchema = z.object({
-	lists: z.array(staleItemsListSchema).max(20),
+	lists: z.array(staleItemsListSchema),
 })
+
+// Soft caps applied post-parse so a misbehaving model can't dump a huge
+// payload into our DB. Matches the previous schema-level limits.
+export const STALE_ITEMS_MAX_LISTS = 20
+export const STALE_ITEMS_MAX_RECS_PER_LIST = 8
 
 export type StaleItemsResponse = z.infer<typeof staleItemsResponseSchema>
 

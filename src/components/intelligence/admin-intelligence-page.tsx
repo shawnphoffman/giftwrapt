@@ -1,5 +1,5 @@
 import { format, formatDistanceToNow } from 'date-fns'
-import { AlertTriangle, ArrowUpRight, ChevronRight, Hash, Lock, Mail, PlayCircle, Sparkles, TimerReset } from 'lucide-react'
+import { AlertTriangle, ArrowUpRight, ChevronRight, Hash, Loader2, Lock, Mail, PlayCircle, Sparkles, TimerReset } from 'lucide-react'
 import { useState } from 'react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 
@@ -27,6 +27,9 @@ type Props = {
 	onInvalidateHash?: (userId: string) => void
 	onPurgeRecs?: (userId: string) => void
 	onOpenRun?: (runId: string) => void
+	// True while the "Run for me now" mutation is in flight. The button
+	// disables itself + shows a spinner so admins can't stack requests.
+	runForMePending?: boolean
 }
 
 const ANALYZER_ORDER: Array<AnalyzerId> = ['primary-list', 'stale-items', 'duplicates', 'grouping']
@@ -39,6 +42,7 @@ export function AdminIntelligencePageContent({
 	onInvalidateHash,
 	onPurgeRecs,
 	onOpenRun,
+	runForMePending,
 }: Props) {
 	const [filter, setFilter] = useState<'all' | 'success' | 'skipped' | 'error'>('all')
 	const filteredRuns = data.runs.filter(r => filter === 'all' || r.status === filter)
@@ -81,9 +85,16 @@ export function AdminIntelligencePageContent({
 				</div>
 				{enabled && !providerMissing && (
 					<div className="flex items-center gap-2">
-						<Button data-intelligence="admin-run-for-me" size="sm" variant="outline" onClick={onRunForMe}>
-							<PlayCircle className="size-4" />
-							Run for me now
+						<Button
+							data-intelligence="admin-run-for-me"
+							data-pending={runForMePending ? 'true' : 'false'}
+							size="sm"
+							variant="outline"
+							onClick={onRunForMe}
+							disabled={runForMePending}
+						>
+							{runForMePending ? <Loader2 className="size-4 animate-spin" /> : <PlayCircle className="size-4" />}
+							{runForMePending ? 'Running…' : 'Run for me now'}
 						</Button>
 					</div>
 				)}
@@ -449,7 +460,10 @@ function RunsTable({
 										<Badge variant="outline">{run.trigger}</Badge>
 									</TableCell>
 									<TableCell>
-										<StatusBadge run={run} />
+										<div className="flex flex-col items-start gap-0.5">
+											<StatusBadge run={run} />
+											<StepBreakdown counts={run.stepCounts} />
+										</div>
 									</TableCell>
 									<TableCell className="text-muted-foreground text-xs">{formatDistanceToNow(run.startedAt, { addSuffix: true })}</TableCell>
 									<TableCell className="tabular-nums text-xs">{run.durationMs ? `${run.durationMs}ms` : '-'}</TableCell>
@@ -480,6 +494,37 @@ function RunsTable({
 				</div>
 			)}
 		</section>
+	)
+}
+
+// Compact step breakdown (e.g. "3 ok · 2 err · 1 noop") that lives under
+// the run-level Status badge. Lets admins see partial failures without
+// us having to invent a "partial" run status.
+function StepBreakdown({ counts }: { counts?: AdminRunRow['stepCounts'] }) {
+	if (!counts) return null
+	const total = counts.ok + counts.error + counts.noop
+	if (total === 0) return null
+	const segments: Array<{ label: string; n: number; tone: 'ok' | 'err' | 'noop' }> = []
+	if (counts.ok > 0) segments.push({ label: 'ok', n: counts.ok, tone: 'ok' })
+	if (counts.error > 0) segments.push({ label: 'err', n: counts.error, tone: 'err' })
+	if (counts.noop > 0) segments.push({ label: 'noop', n: counts.noop, tone: 'noop' })
+	return (
+		<div data-intelligence="admin-runs-step-breakdown" className="flex items-center gap-1 text-[10px] tabular-nums">
+			{segments.map((s, i) => (
+				<span key={s.label} className="inline-flex items-center gap-1">
+					<span
+						className={cn(
+							s.tone === 'ok' && 'text-emerald-600 dark:text-emerald-400',
+							s.tone === 'err' && 'text-destructive',
+							s.tone === 'noop' && 'text-muted-foreground'
+						)}
+					>
+						{s.n} {s.label}
+					</span>
+					{i < segments.length - 1 && <span className="text-muted-foreground">·</span>}
+				</span>
+			))}
+		</div>
 	)
 }
 

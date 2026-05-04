@@ -5,7 +5,7 @@ import { items, lists } from '@/db/schema'
 
 import type { Analyzer } from '../analyzer'
 import { combineHashes, sha256Hex } from '../hash'
-import { buildDuplicatesPrompt, type DuplicateCandidate, duplicatesResponseSchema } from '../prompts/duplicates'
+import { buildDuplicatesPrompt, type DuplicateCandidate, DUPLICATES_MAX_PAIRS, duplicatesResponseSchema } from '../prompts/duplicates'
 import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ItemRef, ListRef } from '../types'
 
 // Heuristic pre-filter: normalize titles and surface pairs across the
@@ -119,7 +119,9 @@ export const duplicatesAnalyzer: Analyzer = {
 			return { recs, steps, inputHash: combineHashes([inputHash]) }
 		}
 
-		const aiPairs = (parsed as { pairs: Array<{ leftItemId: string; rightItemId: string; confident: boolean; rationale: string }> }).pairs
+		const aiPairs = (
+			parsed as { pairs: Array<{ leftItemId: string; rightItemId: string; confident: boolean; rationale: string }> }
+		).pairs.slice(0, DUPLICATES_MAX_PAIRS)
 		for (const aiPair of aiPairs) {
 			if (!aiPair.confident) continue
 			const dbPair = candidatePairs.find(p => String(p[0].itemId) === aiPair.leftItemId && String(p[1].itemId) === aiPair.rightItemId)
