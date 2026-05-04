@@ -1,6 +1,6 @@
 import { format, formatDistanceToNow } from 'date-fns'
-import { AlertTriangle, CheckCheck, Loader2, RefreshCw, Sparkles } from 'lucide-react'
-import { useMemo } from 'react'
+import { AlertTriangle, CheckCheck, ChevronDown, ChevronRight, Loader2, RefreshCw, RotateCcw, Sparkles } from 'lucide-react'
+import { useMemo, useState } from 'react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -16,6 +16,7 @@ type Props = {
 	onRefresh?: () => void
 	onAction?: (rec: Recommendation, action: RecommendationAction) => void
 	onDismiss?: (rec: Recommendation) => void
+	onReactivate?: (rec: Recommendation) => void
 	onSelectListPicker?: (rec: Recommendation, listId: string) => void
 }
 
@@ -40,7 +41,7 @@ function sortRecs(recs: Array<Recommendation>): Array<Recommendation> {
 	})
 }
 
-export function IntelligencePageContent({ state, onRefresh, onAction, onDismiss, onSelectListPicker }: Props) {
+export function IntelligencePageContent({ state, onRefresh, onAction, onDismiss, onReactivate, onSelectListPicker }: Props) {
 	if (state.kind === 'disabled') {
 		return (
 			<div data-intelligence="page" data-page-state="disabled" className="wish-page">
@@ -143,14 +144,78 @@ export function IntelligencePageContent({ state, onRefresh, onAction, onDismiss,
 				</div>
 			)}
 
+			{dismissed.length > 0 && <DismissedDisclosure dismissed={dismissed} onReactivate={onReactivate} />}
+
 			{(dismissed.length > 0 || applied.length > 0) && (
-				<div data-intelligence="page-summary" className="mt-10 text-xs text-muted-foreground">
+				<div data-intelligence="page-summary" className="mt-6 text-xs text-muted-foreground">
 					{applied.length > 0 && <span>{applied.length} applied · </span>}
 					{dismissed.length > 0 && <span>{dismissed.length} dismissed. </span>}
-					Dismissed items stay hidden across regenerations until the underlying targets change.
+					Dismissed items stay hidden across regenerations until the underlying targets change, or until you bring one back.
 				</div>
 			)}
 		</div>
+	)
+}
+
+function DismissedDisclosure({
+	dismissed,
+	onReactivate,
+}: {
+	dismissed: Array<Recommendation>
+	onReactivate?: (rec: Recommendation) => void
+}) {
+	const [open, setOpen] = useState(false)
+	return (
+		<section
+			data-intelligence="dismissed-disclosure"
+			data-open={open}
+			className="mt-10 rounded-md border border-border bg-card/40 overflow-hidden"
+		>
+			<button
+				type="button"
+				data-intelligence="dismissed-toggle"
+				className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm font-medium hover:bg-muted/40 transition-colors"
+				onClick={() => setOpen(o => !o)}
+				aria-expanded={open}
+			>
+				{open ? <ChevronDown className="size-4 text-muted-foreground" /> : <ChevronRight className="size-4 text-muted-foreground" />}
+				Show dismissed
+				<span className="text-xs text-muted-foreground tabular-nums">({dismissed.length})</span>
+			</button>
+			{open && (
+				<ul data-intelligence="dismissed-list" className="divide-y divide-border/60">
+					{dismissed.map(rec => (
+						<DismissedRow key={rec.id} rec={rec} onReactivate={onReactivate} />
+					))}
+				</ul>
+			)}
+		</section>
+	)
+}
+
+function DismissedRow({ rec, onReactivate }: { rec: Recommendation; onReactivate?: (rec: Recommendation) => void }) {
+	return (
+		<li data-intelligence="dismissed-row" data-rec-id={rec.id} className="flex items-start gap-3 px-3 py-2.5">
+			<div className="flex-1 min-w-0">
+				<p data-intelligence="dismissed-title" className="text-sm font-medium leading-snug">
+					{rec.title}
+				</p>
+				<p data-intelligence="dismissed-meta" className="text-xs text-muted-foreground">
+					Dismissed {rec.dismissedAt ? formatDistanceToNow(rec.dismissedAt, { addSuffix: true }) : 'recently'}
+				</p>
+			</div>
+			<Button
+				data-intelligence="dismissed-reactivate"
+				size="sm"
+				variant="outline"
+				className="shrink-0"
+				onClick={() => onReactivate?.(rec)}
+				disabled={!onReactivate}
+			>
+				<RotateCcw className="size-3.5" />
+				Bring back
+			</Button>
+		</li>
 	)
 }
 

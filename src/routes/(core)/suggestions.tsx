@@ -9,6 +9,7 @@ import {
 	dismissRecommendation,
 	getMyRecommendations,
 	type IntelligencePagePayload,
+	reactivateRecommendation,
 	refreshMyRecommendations,
 } from '@/api/intelligence'
 import type { IntelligencePageState, Recommendation } from '@/components/intelligence/__fixtures__/types'
@@ -41,6 +42,12 @@ function IntelligenceRoute() {
 		onError: e => toast.error(e instanceof Error ? e.message : 'Dismiss failed'),
 	})
 
+	const reactivateMutation = useMutation({
+		mutationFn: (id: string) => reactivateRecommendation({ data: { id } }),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: intelligenceQueryOptions.queryKey }),
+		onError: e => toast.error(e instanceof Error ? e.message : 'Reactivate failed'),
+	})
+
 	const applyServerMutation = useMutation({
 		mutationFn: (input: { id: string; apply: NonNullable<Parameters<typeof applyRecommendation>[0]>['data']['apply'] }) =>
 			applyRecommendation({ data: input }),
@@ -58,6 +65,7 @@ function IntelligenceRoute() {
 			state={state}
 			onRefresh={() => refreshMutation.mutate()}
 			onDismiss={rec => dismissMutation.mutate(rec.id)}
+			onReactivate={rec => reactivateMutation.mutate(rec.id)}
 			onAction={(rec, action) => {
 				// Navigation actions (href) are handled in the rec card as
 				// anchor links and never reach this handler. Apply actions

@@ -128,7 +128,7 @@ export const refreshMyRecommendations = createServerFn({ method: 'POST' })
 		return await generateForUser(db, userId, { trigger: 'manual', respectUnreadGuard: false })
 	})
 
-// ─── Mutate: dismiss ────────────────────────────────────────────────────────
+// ─── Mutate: dismiss / un-dismiss ───────────────────────────────────────────
 
 const recIdSchema = z.object({ id: z.uuid() })
 
@@ -140,6 +140,23 @@ export const dismissRecommendation = createServerFn({ method: 'POST' })
 		const result = await db
 			.update(recommendations)
 			.set({ status: 'dismissed', dismissedAt: sql`now()` })
+			.where(and(eq(recommendations.id, data.id), eq(recommendations.userId, userId)))
+			.returning({ id: recommendations.id })
+		return { ok: result.length > 0 }
+	})
+
+// Inverse of dismiss: flips the rec back to `active`. Without this,
+// dismissal stickiness (see notes/logic.md) plus retention sweeps make a
+// dismissed rec effectively unrecoverable, which is a footgun when the
+// user dismissed by accident.
+export const reactivateRecommendation = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: z.input<typeof recIdSchema>) => recIdSchema.parse(data))
+	.handler(async ({ context, data }) => {
+		const userId = context.session.user.id
+		const result = await db
+			.update(recommendations)
+			.set({ status: 'active', dismissedAt: null })
 			.where(and(eq(recommendations.id, data.id), eq(recommendations.userId, userId)))
 			.returning({ id: recommendations.id })
 		return { ok: result.length > 0 }
