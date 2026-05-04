@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { ScanSearch } from 'lucide-react'
 import { useState } from 'react'
 
+import { ImportSettingsForm } from '@/components/admin/import-settings-form'
 import { ScrapeProvidersList, ScraperTimingForm } from '@/components/admin/scraper-providers-form'
 import { ScrapesList } from '@/components/admin/scrapes-list'
 import { Button } from '@/components/ui/button'
@@ -28,6 +29,20 @@ function AdminScrapingPage() {
 				<CardContent>
 					<ClientOnly>
 						<ScraperTimingForm />
+					</ClientOnly>
+				</CardContent>
+			</Card>
+			<Card className="animate-page-in">
+				<CardHeader>
+					<CardTitle className="text-2xl">Bulk Import & Scrape Queue</CardTitle>
+					<CardDescription>
+						Foundation flags for the bulk-import flow on the list-edit page. The scrape queue is a background cron-tick runner that fills in
+						URL metadata after items are created.
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<ClientOnly>
+						<ImportSettingsForm />
 					</ClientOnly>
 				</CardContent>
 			</Card>

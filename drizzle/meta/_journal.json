@@ -148,6 +148,13 @@
       "when": 1777933160254,
       "tag": "0020_silent_killraven",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1777934493765,
+      "tag": "0021_last_vanisher",
+      "breakpoints": true
     }
   ]
 }

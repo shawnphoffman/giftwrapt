@@ -248,6 +248,28 @@ export const appSettingsSchema = z.object({
 	// `updateAppSettings({ scrapeProviders })`.
 	scrapeProviders: z.array(scrapeProviderEntrySchema).max(16),
 	// =====================================================================
+	// Item import (bulk create + background scrape queue)
+	// =====================================================================
+	// Master switch for the bulk-import flow on the list-edit page. While
+	// off, parse + bulk-create server fns reject and the cron tick exits
+	// without claiming jobs. Defaults true so existing deployments don't
+	// regress; admins can flip this to disable noisy import work in
+	// resource-constrained environments.
+	importEnabled: z.boolean(),
+	// How many distinct users a single scrape-queue cron tick processes
+	// before bailing for the next tick. Mirrors
+	// `intelligenceUsersPerInvocation`; lower if cron times out, raise to
+	// drain a backlog faster.
+	scrapeQueueUsersPerInvocation: z.number().int().min(1).max(500),
+	// Max parallel jobs PER USER inside one cron tick. Doubles as the
+	// `LIMIT` on the per-user pull, so a single user's queue can't starve
+	// other users on the same tick.
+	scrapeQueueConcurrency: z.number().int().min(1).max(20),
+	// Max attempts per job before flipping to `failed`. A failed job is
+	// kept for diagnostics; the parent item retains whatever fields were
+	// set at create time.
+	scrapeQueueMaxAttempts: z.number().int().min(1).max(10),
+	// =====================================================================
 	// Intelligence (AI-assisted recommendations)
 	// =====================================================================
 	// Top-level on/off. When false, cron skips all users and the user-facing
@@ -321,6 +343,12 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	scrapeAiProviderEnabled: false,
 	scrapeAiCleanTitlesEnabled: false,
 	scrapeProviders: [],
+	// Item import: on by default. Disabling hides the Import dropdown
+	// and short-circuits the scrape-queue cron tick.
+	importEnabled: true,
+	scrapeQueueUsersPerInvocation: 25,
+	scrapeQueueConcurrency: 3,
+	scrapeQueueMaxAttempts: 3,
 	// Intelligence: feature is off by default. Admin must explicitly enable.
 	intelligenceEnabled: false,
 	intelligenceRefreshIntervalDays: 7,

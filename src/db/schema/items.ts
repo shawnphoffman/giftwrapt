@@ -1,5 +1,5 @@
-import { relations } from 'drizzle-orm'
-import { boolean, index, integer, json, pgTable, serial, smallint, text, timestamp } from 'drizzle-orm/pg-core'
+import { relations, sql } from 'drizzle-orm'
+import { boolean, index, integer, json, pgEnum, pgTable, serial, smallint, text, timestamp } from 'drizzle-orm/pg-core'
 
 import { availabilityEnum, groupTypeEnum, priorityEnum, statusEnum } from './enums'
 import { giftedItems } from './gifts'
@@ -166,6 +166,65 @@ export type ItemScrape = typeof itemScrapes.$inferSelect
 export type NewItemScrape = typeof itemScrapes.$inferInsert
 
 // ===============================
+// ITEM SCRAPE JOBS (background queue)
+// ===============================
+// Backs the bulk-import flow: a row is inserted whenever an item is created
+// with a URL but missing scraped metadata (title / image / price). The
+// scrape-queue runner ([src/lib/import/scrape-queue/runner.ts]) picks
+// `pending` rows whose `nextAttemptAt <= now()`, calls
+// `runOneShotScrape()`, and merges any returned fields into the parent
+// item without clobbering values the user already filled in.
+//
+// On failure, attempts is bumped and `nextAttemptAt` is pushed out via
+// exponential backoff. After `scrapeQueueMaxAttempts`, the row flips to
+// `failed` and stays for diagnostics; the parent item keeps whatever
+// fields it had at insert time.
+//
+// Idempotency: callers should rely on `enqueueScrapeJob`, which no-ops
+// when a `pending` row already exists for the (itemId) - re-enqueueing
+// a job that's already in flight is a logic bug, not a duplicate.
+export const itemScrapeJobStatusEnumValues = ['pending', 'running', 'success', 'failed'] as const
+export const itemScrapeJobStatusEnum = pgEnum('item_scrape_job_status', itemScrapeJobStatusEnumValues)
+export type ItemScrapeJobStatus = (typeof itemScrapeJobStatusEnumValues)[number]
+
+export const itemScrapeJobs = pgTable(
+	'item_scrape_jobs',
+	{
+		id: serial('id').primaryKey(),
+		itemId: integer('item_id')
+			.notNull()
+			.references(() => items.id, { onDelete: 'cascade' }),
+		userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
+		url: text('url').notNull(),
+		status: itemScrapeJobStatusEnum('status').default('pending').notNull(),
+		attempts: smallint('attempts').default(0).notNull(),
+		lastError: text('last_error'),
+		nextAttemptAt: timestamp('next_attempt_at', { withTimezone: true }).defaultNow().notNull(),
+		enqueuedAt: timestamp('enqueued_at', { withTimezone: true }).defaultNow().notNull(),
+		completedAt: timestamp('completed_at', { withTimezone: true }),
+	},
+	table => [
+		// Drives the cron pull: "ready jobs to run, oldest first."
+		index('item_scrape_jobs_status_nextAttemptAt_idx').on(table.status, table.nextAttemptAt),
+		index('item_scrape_jobs_itemId_idx').on(table.itemId),
+		index('item_scrape_jobs_userId_idx').on(table.userId),
+	]
+)
+
+export type ItemScrapeJob = typeof itemScrapeJobs.$inferSelect
+export type NewItemScrapeJob = typeof itemScrapeJobs.$inferInsert
+
+// SQL fragment for the per-user advisory lock key. Postgres
+// `pg_try_advisory_lock(bigint)` requires an int8; hash the user id so
+// concurrent runs for the same user collide and runs for different users
+// don't. Mirrors `intelligenceLockKeySql`; the prefix string MUST stay
+// unique across runners (see `.notes/cron-and-jobs.md` for the
+// namespace convention).
+export function itemScrapeQueueLockKeySql(userId: string) {
+	return sql`hashtextextended(${`item-scrape-queue:${userId}`}, 0)`
+}
+
+// ===============================
 // RELATIONS
 // ===============================
 export const itemRelations = relations(items, ({ one, many }) => ({
@@ -205,5 +264,16 @@ export const itemScrapeRelations = relations(itemScrapes, ({ one }) => ({
 	item: one(items, {
 		fields: [itemScrapes.itemId],
 		references: [items.id],
+	}),
+}))
+
+export const itemScrapeJobRelations = relations(itemScrapeJobs, ({ one }) => ({
+	item: one(items, {
+		fields: [itemScrapeJobs.itemId],
+		references: [items.id],
+	}),
+	user: one(users, {
+		fields: [itemScrapeJobs.userId],
+		references: [users.id],
 	}),
 }))
