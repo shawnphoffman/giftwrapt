@@ -122,7 +122,7 @@ export function QuantityRemainingBadge({
 						{firstPerson ? 'want' : 'wants'} {quantity}
 					</span>
 					<span aria-hidden>·</span>
-					<span className="text-red-700 dark:text-red-400">unavailable</span>
+					<span className="text-red-800 dark:text-red-400">unavailable</span>
 				</span>
 			)
 		} else if (variant === 'inline-pill') {
@@ -137,7 +137,7 @@ export function QuantityRemainingBadge({
 						{firstPerson ? 'Want' : 'Wants'} {quantity}
 					</span>
 					<span aria-hidden>·</span>
-					<span className="text-red-700 dark:text-red-400">Unavailable</span>
+					<span className="text-red-800 dark:text-red-400">Unavailable</span>
 				</span>
 			)
 		} else if (variant === 'dots') {
@@ -149,7 +149,7 @@ export function QuantityRemainingBadge({
 					)}
 				>
 					<span>×{quantity}</span>
-					<span className="text-red-700 dark:text-red-400">Unavailable</span>
+					<span className="text-red-800 dark:text-red-400">Unavailable</span>
 				</span>
 			)
 		} else {
@@ -158,7 +158,7 @@ export function QuantityRemainingBadge({
 				<span
 					className={cn(
 						'inline-flex items-stretch shrink-0 rounded-full border overflow-hidden text-xs font-medium whitespace-nowrap',
-						'border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-400',
+						'border-red-500/40 bg-red-500/10 text-red-800 dark:text-red-400',
 						className
 					)}
 				>
@@ -205,7 +205,7 @@ export function QuantityRemainingBadge({
 					<span aria-hidden>·</span>
 					<span>{claimedCount} claimed</span>
 					<span aria-hidden>·</span>
-					<span className="text-yellow-700 dark:text-yellow-400">{overBy} over</span>
+					<span className="text-yellow-800 dark:text-yellow-400">{overBy} over</span>
 				</span>
 			)
 			return wrapWithLockPopover(pill, showLock ? explanation : null)
@@ -227,7 +227,7 @@ export function QuantityRemainingBadge({
 						{firstPerson ? 'Want' : 'Wants'} {quantity}
 					</span>
 					<span aria-hidden>·</span>
-					<span className="text-yellow-700 dark:text-yellow-400">{overBy} Overclaimed</span>
+					<span className="text-yellow-800 dark:text-yellow-400">{overBy} Overclaimed</span>
 				</span>
 			)
 			return wrapWithLockPopover(pill, showLock ? explanation : null)
@@ -258,7 +258,7 @@ export function QuantityRemainingBadge({
 							return <span key={i} className={cn('size-1.5 rounded-full', tone)} />
 						})}
 					</span>
-					<span className="text-yellow-700 dark:text-yellow-400">overclaimed</span>
+					<span className="text-yellow-800 dark:text-yellow-400">overclaimed</span>
 				</span>
 			)
 			return wrapWithLockPopover(pill, showLock ? explanation : null)
@@ -269,7 +269,7 @@ export function QuantityRemainingBadge({
 			<span
 				className={cn(
 					'inline-flex items-stretch shrink-0 rounded-full border overflow-hidden text-xs font-medium whitespace-nowrap',
-					'border-yellow-500/40 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
+					'border-yellow-500/40 bg-yellow-500/10 text-yellow-800 dark:text-yellow-400',
 					className
 				)}
 			>
@@ -300,7 +300,7 @@ export function QuantityRemainingBadge({
 					'inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap',
 					isPill && 'rounded-full border px-2 py-0.5',
 					successTone
-						? cn('text-emerald-700 dark:text-emerald-400', isPill && 'border-emerald-500/30 bg-emerald-500/10')
+						? cn('text-emerald-800 dark:text-emerald-400', isPill && 'border-emerald-500/30 bg-emerald-500/10')
 						: 'text-muted-foreground',
 					isInline && 'px-0',
 					className
@@ -348,7 +348,7 @@ export function QuantityRemainingBadge({
 			<span
 				className={cn(
 					'inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap',
-					success ? 'text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground',
+					success ? 'text-emerald-800 dark:text-emerald-400' : 'text-muted-foreground',
 					isPill && 'rounded-full border px-2 py-0.5',
 					isPill && success && 'border-emerald-500/30 bg-emerald-500/10',
 					className
@@ -361,7 +361,7 @@ export function QuantityRemainingBadge({
 				{hasClaims && (
 					<>
 						<span aria-hidden>·</span>
-						<span className={cn(success ? undefined : fullyClaimed ? 'text-muted-foreground' : 'text-orange-600 dark:text-orange-400')}>
+						<span className={cn(success ? undefined : fullyClaimed ? 'text-muted-foreground' : 'text-orange-800 dark:text-orange-400')}>
 							{claimedLabel}
 						</span>
 					</>
@@ -376,7 +376,7 @@ export function QuantityRemainingBadge({
 			<span
 				className={cn(
 					'inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap',
-					success && 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+					success && 'border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-400',
 					!success && fullyClaimed && 'text-muted-foreground',
 					className
 				)}
@@ -414,7 +414,7 @@ export function QuantityRemainingBadge({
 		<span
 			className={cn(
 				'inline-flex items-stretch shrink-0 rounded-full border overflow-hidden text-xs font-medium whitespace-nowrap',
-				success && 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+				success && 'border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-400',
 				!success && fullyClaimed && 'text-muted-foreground',
 				className
 			)}
@@ -431,7 +431,7 @@ export function QuantityRemainingBadge({
 			{hasClaims && (
 				<>
 					<span className={cn('w-px', success ? 'bg-emerald-500/30' : 'bg-border')} aria-hidden />
-					<span className={cn('py-0.5 pl-1 pr-2', !success && !fullyClaimed && 'text-orange-700 dark:text-orange-400 bg-orange-500/10')}>
+					<span className={cn('py-0.5 pl-1 pr-2', !success && !fullyClaimed && 'text-orange-800 dark:text-orange-400 bg-orange-500/10')}>
 						{fullyClaimed ? 'All Claimed' : `${remaining} Left`}
 					</span>
 				</>
