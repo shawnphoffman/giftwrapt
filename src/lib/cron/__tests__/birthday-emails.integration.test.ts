@@ -7,9 +7,9 @@
 
 import { describe, expect, it, vi } from 'vitest'
 
-import { makeGiftedItem, makeItem, makeList, makeUser } from '../../../../../test/integration/factories'
-import { withRollback } from '../../../../../test/integration/setup'
-import { birthdayEmailsImpl } from '../_birthday-emails-impl'
+import { makeGiftedItem, makeItem, makeList, makeUser } from '../../../../test/integration/factories'
+import { withRollback } from '../../../../test/integration/setup'
+import { birthdayEmailsImpl } from '../birthday-emails'
 
 vi.mock('@/lib/resend', () => ({
 	sendBirthdayEmail: vi.fn((_name: string, _to: string) => Promise.resolve(null)),

@@ -2,12 +2,11 @@ import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 
 import { db } from '@/db'
+import { birthdayEmailsImpl } from '@/lib/cron/birthday-emails'
 import { checkCronAuth } from '@/lib/cron-auth'
 import { createLogger } from '@/lib/logger'
 import { isEmailConfigured } from '@/lib/resend'
 import { getAppSettings } from '@/lib/settings-loader'
-
-import { birthdayEmailsImpl } from './_birthday-emails-impl'
 
 const cronLog = createLogger('cron:birthday-emails')
 

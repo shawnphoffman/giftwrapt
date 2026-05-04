@@ -1,8 +1,8 @@
-// Server-only impl for the /api/cron/birthday-emails route. Lives in a
-// separate file so integration tests can drive the email-selection
-// logic with a transactional `db` (per-test savepoint via withRollback)
-// while the email-send side-effects get vi.mock'd at the resend module
-// boundary.
+// Server-only impl for the /api/cron/birthday-emails route. Lives
+// outside the routes folder so integration tests can drive the
+// email-selection logic with a transactional `db` (per-test savepoint
+// via withRollback) while the email-send side-effects get vi.mock'd at
+// the resend module boundary.
 
 import { and, eq, inArray } from 'drizzle-orm'
 

@@ -1,10 +1,10 @@
-// Server-only impl for the /api/cron/auto-archive route. Lives in a
-// separate file so integration tests can call it with a transactional
-// `db` (per-test savepoint via `withRollback`) rather than going through
-// the full route handler.
+// Server-only impl for the /api/cron/auto-archive route. Lives outside
+// the routes folder so integration tests can call it with a
+// transactional `db` (per-test savepoint via `withRollback`) rather
+// than going through the full route handler.
 //
-// The handler in `auto-archive.ts` is a thin wrapper that checks the
-// CRON_SECRET and delegates here.
+// The handler in `src/routes/api/cron/auto-archive.ts` is a thin
+// wrapper that checks the CRON_SECRET and delegates here.
 
 import { and, eq, inArray } from 'drizzle-orm'
 

@@ -2,10 +2,9 @@ import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 
 import { db } from '@/db'
+import { cleanupVerificationImpl } from '@/lib/cron/cleanup-verification'
 import { checkCronAuth } from '@/lib/cron-auth'
 import { createLogger } from '@/lib/logger'
-
-import { cleanupVerificationImpl } from './_cleanup-verification-impl'
 
 const cronLog = createLogger('cron:cleanup-verification')
 

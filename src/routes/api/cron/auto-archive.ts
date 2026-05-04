@@ -2,11 +2,10 @@ import { createFileRoute } from '@tanstack/react-router'
 import { json } from '@tanstack/react-start'
 
 import { db } from '@/db'
+import { autoArchiveImpl } from '@/lib/cron/auto-archive'
 import { checkCronAuth } from '@/lib/cron-auth'
 import { createLogger } from '@/lib/logger'
 import { getAppSettings } from '@/lib/settings-loader'
-
-import { autoArchiveImpl } from './_auto-archive-impl'
 
 const cronLog = createLogger('cron:auto-archive')
 

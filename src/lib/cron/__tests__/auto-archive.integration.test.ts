@@ -12,9 +12,9 @@ import { describe, expect, it } from 'vitest'
 
 import { giftedItems, items } from '@/db/schema'
 
-import { makeGiftedItem, makeItem, makeList, makeUser } from '../../../../../test/integration/factories'
-import { withRollback } from '../../../../../test/integration/setup'
-import { autoArchiveImpl } from '../_auto-archive-impl'
+import { makeGiftedItem, makeItem, makeList, makeUser } from '../../../../test/integration/factories'
+import { withRollback } from '../../../../test/integration/setup'
+import { autoArchiveImpl } from '../auto-archive'
 
 describe('autoArchiveImpl - birthday lists', () => {
 	it('archives claimed items on a birthday list when run on the configured delay', async () => {

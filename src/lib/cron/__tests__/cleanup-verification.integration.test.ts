@@ -8,8 +8,8 @@ import { describe, expect, it } from 'vitest'
 
 import { verification } from '@/db/schema'
 
-import { withRollback } from '../../../../../test/integration/setup'
-import { cleanupVerificationImpl } from '../_cleanup-verification-impl'
+import { withRollback } from '../../../../test/integration/setup'
+import { cleanupVerificationImpl } from '../cleanup-verification'
 
 const NOW = new Date('2026-04-30T12:00:00Z')
 
