@@ -7,7 +7,9 @@ import {
 	adminPurgeRecsForUser,
 	adminRunForMe,
 	adminRunForUser,
+	type AdminUserRunSummary,
 	getAdminIntelligenceData,
+	getAdminUserRunSummaries,
 } from '@/api/admin-intelligence'
 import { updateAppSettings } from '@/api/settings'
 
@@ -18,6 +20,14 @@ export const adminIntelligenceQueryOptions = {
 	queryFn: () => getAdminIntelligenceData(),
 	staleTime: 30_000,
 }
+
+export const adminUserRunSummariesQueryOptions = {
+	queryKey: ['admin', 'intelligence', 'user-summaries'] as const,
+	queryFn: () => getAdminUserRunSummaries(),
+	staleTime: 30_000,
+}
+
+export type AdminUserRunSummaryView = Omit<AdminUserRunSummary, 'lastRunAt'> & { lastRunAt: Date | null }
 
 export function useAdminIntelligence() {
 	const { data: raw } = useSuspenseQuery(adminIntelligenceQueryOptions)
@@ -50,13 +60,18 @@ export function useAdminIntelligence() {
 		onError: e => toast.error(e instanceof Error ? e.message : 'Settings update failed'),
 	})
 
+	const invalidateAll = () => {
+		queryClient.invalidateQueries({ queryKey: adminIntelligenceQueryOptions.queryKey })
+		queryClient.invalidateQueries({ queryKey: adminUserRunSummariesQueryOptions.queryKey })
+	}
+
 	const runForMeMutation = useMutation({
 		mutationFn: () => adminRunForMe(),
-		onSuccess: invalidate,
+		onSuccess: invalidateAll,
 	})
 	const runForUserMutation = useMutation({
 		mutationFn: (userId: string) => adminRunForUser({ data: { userId } }),
-		onSuccess: invalidate,
+		onSuccess: invalidateAll,
 	})
 	const invalidateHashMutation = useMutation({
 		mutationFn: (userId: string) => adminInvalidateInputHash({ data: { userId } }),
@@ -77,7 +92,17 @@ export function useAdminIntelligence() {
 		invalidateHash: (userId: string) => invalidateHashMutation.mutate(userId),
 		purgeRecs: (userId: string) => purgeMutation.mutate(userId),
 		runForMePending: runForMeMutation.isPending,
+		runForUserPendingId: runForUserMutation.isPending ? runForUserMutation.variables : null,
 	}
+}
+
+export function useAdminUserRunSummaries(): { summaries: Array<AdminUserRunSummaryView> } {
+	const { data } = useSuspenseQuery(adminUserRunSummariesQueryOptions)
+	const summaries = useMemo<Array<AdminUserRunSummaryView>>(
+		() => data.map(s => ({ ...s, lastRunAt: s.lastRunAt ? new Date(s.lastRunAt) : null })),
+		[data]
+	)
+	return { summaries }
 }
 
 function adaptAdminData(raw: Awaited<ReturnType<typeof getAdminIntelligenceData>>): AdminIntelligenceData {

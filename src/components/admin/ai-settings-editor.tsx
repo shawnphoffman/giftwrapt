@@ -263,7 +263,7 @@ function Form({ config, saving, mutate }: FormProps) {
 		<div className="flex flex-col gap-6">
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-2xl">AI</CardTitle>
+					<CardTitle>AI</CardTitle>
 					<CardDescription>
 						Configure the AI provider used for scraping post-passes and Intelligence recommendations. Any OpenAI-compatible endpoint works.
 						Values provided via environment variables take precedence and cannot be edited here.
@@ -422,7 +422,7 @@ function Form({ config, saving, mutate }: FormProps) {
 
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-2xl">Provider settings</CardTitle>
+					<CardTitle>Provider settings</CardTitle>
 					<CardDescription>
 						Tunables that apply across every AI feature. Provider-specific options will live here as we add them.
 					</CardDescription>

@@ -401,6 +401,116 @@ export const adminPurgeRecsForUser = createServerFn({ method: 'POST' })
 		return { ok: true as const, deleted: result.length }
 	})
 
+// ─── Read: per-user run summaries ───────────────────────────────────────────
+//
+// Powers the "Run for users" panel on the admin Intelligence page. Returns
+// every non-banned user with their most recent run + active/dismissed/applied
+// rec counts, so an admin can see at a glance who has stale recs, who has
+// never run, and trigger a manual run for any of them.
+
+export type AdminUserRunSummary = {
+	userId: string
+	name: string | null
+	image: string | null
+	email: string
+	role: 'user' | 'admin' | 'child'
+	isMe: boolean
+	lastRunAt: Date | null
+	lastRunStatus: 'running' | 'success' | 'error' | 'skipped' | null
+	lastRunSkipReason: string | null
+	activeRecs: number
+	dismissedRecs: number
+	appliedRecs: number
+}
+
+export const getAdminUserRunSummaries = createServerFn({ method: 'GET' })
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.handler(async ({ context }): Promise<Array<AdminUserRunSummary>> => {
+		const me = context.session.user.id
+
+		// One query per slice. The user table is small enough (admin tool) that
+		// three round trips is fine and keeps the SQL readable.
+		const userRows = await db
+			.select({ id: users.id, name: users.name, email: users.email, image: users.image, role: users.role })
+			.from(users)
+			.where(eq(users.banned, false))
+			.orderBy(asc(sql`lower(${users.name})`))
+
+		// Most recent run per user (regardless of status).
+		const lastRunRows = await db
+			.select({
+				userId: recommendationRuns.userId,
+				startedAt: sql<Date>`max(${recommendationRuns.startedAt})`.as('startedAt'),
+			})
+			.from(recommendationRuns)
+			.groupBy(recommendationRuns.userId)
+		const lastRunByUser = new Map(lastRunRows.map(r => [r.userId, r.startedAt]))
+
+		// Resolve those startedAt timestamps back to the run's status. We fetch
+		// rows by (userId, startedAt) tuple, which keys the run uniquely
+		// because startedAt is per-user-monotonic in practice.
+		const lastRunDetailRows = lastRunRows.length
+			? await db
+					.select({
+						userId: recommendationRuns.userId,
+						startedAt: recommendationRuns.startedAt,
+						status: recommendationRuns.status,
+						skipReason: recommendationRuns.skipReason,
+					})
+					.from(recommendationRuns)
+					.where(
+						inArray(
+							recommendationRuns.userId,
+							lastRunRows.map(r => r.userId)
+						)
+					)
+			: []
+		const detailByUser = new Map<string, { status: AdminUserRunSummary['lastRunStatus']; skipReason: string | null }>()
+		for (const row of lastRunDetailRows) {
+			const ts = lastRunByUser.get(row.userId)
+			if (!ts) continue
+			if (row.startedAt.getTime() === ts.getTime()) {
+				detailByUser.set(row.userId, { status: row.status, skipReason: row.skipReason })
+			}
+		}
+
+		const recCountRows = await db
+			.select({
+				userId: recommendations.userId,
+				status: recommendations.status,
+				n: count(),
+			})
+			.from(recommendations)
+			.groupBy(recommendations.userId, recommendations.status)
+		const recCountsByUser = new Map<string, { active: number; dismissed: number; applied: number }>()
+		for (const row of recCountRows) {
+			const cur = recCountsByUser.get(row.userId) ?? { active: 0, dismissed: 0, applied: 0 }
+			if (row.status === 'active') cur.active = row.n
+			else if (row.status === 'dismissed') cur.dismissed = row.n
+			else cur.applied = row.n
+			recCountsByUser.set(row.userId, cur)
+		}
+
+		return userRows.map(u => {
+			const detail = detailByUser.get(u.id) ?? null
+			const counts = recCountsByUser.get(u.id) ?? { active: 0, dismissed: 0, applied: 0 }
+			return {
+				userId: u.id,
+				name: u.name,
+				image: u.image,
+				email: u.email,
+				role: u.role,
+				isMe: u.id === me,
+				lastRunAt: lastRunByUser.get(u.id) ?? null,
+				lastRunStatus: detail?.status ?? null,
+				lastRunSkipReason: detail?.skipReason ?? null,
+				activeRecs: counts.active,
+				dismissedRecs: counts.dismissed,
+				appliedRecs: counts.applied,
+			}
+		})
+	})
+
 // ─── Read: per-run debug detail ─────────────────────────────────────────────
 //
 // Powers the "click a row" debug panel on the admin Intelligence page so

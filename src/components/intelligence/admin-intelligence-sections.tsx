@@ -34,7 +34,7 @@ export function IntelligenceGeneralSettingsCard({ data, patch }: { data: AdminIn
 	return (
 		<Card data-intelligence="admin-settings-general">
 			<CardHeader>
-				<CardTitle className="text-2xl flex items-center gap-2">
+				<CardTitle className="flex items-center gap-2">
 					<Beaker className="size-6 text-muted-foreground" />
 					Settings
 				</CardTitle>
@@ -95,7 +95,7 @@ export function IntelligenceAnalyzersCard({ data, patch }: { data: AdminIntellig
 	return (
 		<Card data-intelligence="admin-settings-analyzers">
 			<CardHeader>
-				<CardTitle className="text-2xl flex items-center gap-2">
+				<CardTitle className="flex items-center gap-2">
 					<Sparkles className="size-6 text-muted-foreground" />
 					Analyzers
 				</CardTitle>
@@ -151,7 +151,7 @@ export function IntelligenceSchedulingCard({ data, patch }: { data: AdminIntelli
 	return (
 		<Card data-intelligence="admin-settings-scheduling">
 			<CardHeader>
-				<CardTitle className="text-2xl flex items-center gap-2">
+				<CardTitle className="flex items-center gap-2">
 					<CalendarClock className="size-6 text-muted-foreground" />
 					Scheduling
 				</CardTitle>
@@ -217,7 +217,7 @@ export function IntelligenceNotificationsCard({ data, patch }: { data: AdminInte
 	return (
 		<Card data-intelligence="admin-settings-notifications">
 			<CardHeader>
-				<CardTitle className="text-2xl flex items-center gap-2">
+				<CardTitle className="flex items-center gap-2">
 					<Mail className="size-6 text-muted-foreground" />
 					Notifications
 				</CardTitle>

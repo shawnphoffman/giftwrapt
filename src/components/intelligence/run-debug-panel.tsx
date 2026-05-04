@@ -2,7 +2,7 @@ import { format, formatDistanceToNow } from 'date-fns'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 
 export type RunDebugStep = {
@@ -162,39 +162,45 @@ export function RunDebugPanel({ state }: Props) {
 }
 
 function StepCard({ step }: { step: RunDebugStep }) {
+	const hasBody = !!step.error || !!step.prompt || !!step.responseRaw || step.parsedJson != null
+	const isHeuristic = !step.prompt && !step.responseRaw && step.parsedJson == null && !step.error
 	return (
-		<Card data-intelligence="admin-run-debug-step" data-analyzer={step.analyzerId}>
-			<CardContent className="p-3 flex flex-col gap-2">
-				<div className="flex items-center justify-between gap-2">
-					<div className="flex items-center gap-2">
-						<span className="text-sm font-medium">{step.analyzerLabel}</span>
+		<Card size="sm" data-intelligence="admin-run-debug-step" data-analyzer={step.analyzerId}>
+			<CardHeader>
+				<CardTitle className="flex items-center justify-between gap-2">
+					<span className="flex items-center gap-2">
+						{step.analyzerLabel}
 						{step.error ? <Badge variant="destructive">error</Badge> : <Badge variant="secondary">ok</Badge>}
-					</div>
-					<div className="text-[11px] text-muted-foreground tabular-nums">
+					</span>
+					<span className="text-[11px] font-normal text-muted-foreground tabular-nums">
 						{step.latencyMs}ms
 						{(step.tokensIn > 0 || step.tokensOut > 0) && ` · ${step.tokensIn} in / ${step.tokensOut} out`}
-					</div>
-				</div>
-				{step.error && <div className="text-xs text-destructive font-mono whitespace-pre-wrap">{step.error}</div>}
-				{!step.prompt && !step.responseRaw && step.parsedJson == null && !step.error && (
-					<div className="text-[11px] text-muted-foreground italic">
-						Heuristic-only step — no model call. Latency above is the analyzer&apos;s own logic.
-					</div>
-				)}
-				{step.prompt && <DebugBlock label="Prompt" body={step.prompt} />}
-				{step.responseRaw && <DebugBlock label="Raw response" body={step.responseRaw} />}
-				{step.parsedJson && <DebugBlock label="Parsed" body={prettyJson(step.parsedJson)} />}
-			</CardContent>
+					</span>
+				</CardTitle>
+			</CardHeader>
+			{(hasBody || isHeuristic) && (
+				<CardContent className="flex flex-col gap-2">
+					{step.error && <div className="text-xs text-destructive font-mono whitespace-pre-wrap">{step.error}</div>}
+					{isHeuristic && (
+						<div className="text-[11px] text-muted-foreground italic">
+							Heuristic-only step, no model call. Latency above is the analyzer&apos;s own logic.
+						</div>
+					)}
+					{step.prompt && <DebugBlock label="Prompt" body={step.prompt} />}
+					{step.responseRaw && <DebugBlock label="Raw response" body={step.responseRaw} />}
+					{step.parsedJson && <DebugBlock label="Parsed" body={prettyJson(step.parsedJson)} />}
+				</CardContent>
+			)}
 		</Card>
 	)
 }
 
 function RecCard({ rec }: { rec: RunDebugRec }) {
 	return (
-		<Card data-intelligence="admin-run-debug-rec" data-analyzer={rec.analyzerId}>
-			<CardContent className="p-3 flex flex-col gap-1.5">
-				<div className="flex items-center justify-between gap-2 flex-wrap">
-					<div className="flex items-center gap-2 flex-wrap">
+		<Card size="sm" data-intelligence="admin-run-debug-rec" data-analyzer={rec.analyzerId}>
+			<CardHeader>
+				<CardTitle className="flex flex-col gap-1.5">
+					<span className="flex items-center gap-1.5 flex-wrap">
 						<Badge variant="outline" className="text-[10px]">
 							{rec.analyzerLabel}
 						</Badge>
@@ -203,9 +209,11 @@ function RecCard({ rec }: { rec: RunDebugRec }) {
 						</Badge>
 						<RecStatusBadge status={rec.status} />
 						<RecSeverityBadge severity={rec.severity} />
-					</div>
-				</div>
-				<div className="text-sm font-medium">{rec.title}</div>
+					</span>
+					<span className="text-sm font-medium">{rec.title}</span>
+				</CardTitle>
+			</CardHeader>
+			<CardContent className="flex flex-col gap-1.5">
 				<div className="text-xs text-muted-foreground whitespace-pre-wrap">{rec.body}</div>
 				{rec.payloadJson && <DebugBlock label="Payload" body={prettyJson(rec.payloadJson)} />}
 				<div className="text-[10px] text-muted-foreground font-mono">fp: {rec.fingerprint}</div>

@@ -57,7 +57,7 @@ export function AiFeaturesCard() {
 		return (
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-2xl">Features</CardTitle>
+					<CardTitle>Features</CardTitle>
 				</CardHeader>
 				<CardContent className="text-sm text-muted-foreground">Loading…</CardContent>
 			</Card>
@@ -67,7 +67,7 @@ export function AiFeaturesCard() {
 		return (
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-2xl">Features</CardTitle>
+					<CardTitle>Features</CardTitle>
 				</CardHeader>
 				<CardContent className="text-sm text-muted-foreground">No settings found.</CardContent>
 			</Card>
@@ -80,7 +80,7 @@ export function AiFeaturesCard() {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle className="text-2xl">Features</CardTitle>
+				<CardTitle>Features</CardTitle>
 				<CardDescription>AI-powered features that depend on the provider above. Disabled until a provider is configured.</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-6">

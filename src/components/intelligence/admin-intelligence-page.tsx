@@ -24,6 +24,7 @@ import { useEffect, useState } from 'react'
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -43,28 +44,30 @@ import type { AdminIntelligenceData, AdminRunRow, AnalyzerId, DailySeriesPoint }
 
 type Props = {
 	data: AdminIntelligenceData
+	// Defaults to [] so storybook stories that don't care about the
+	// run-for-user table can omit it.
+	userSummaries?: ReadonlyArray<AdminUserRunSummaryRow>
 	onSettingsChange?: (next: AdminIntelligenceData['settings']) => void
 	onRunForUser?: (userId: string) => void
-	onRunForMe?: () => void
 	onInvalidateHash?: (userId: string) => void
 	onPurgeRecs?: (userId: string) => void
 	onOpenRun?: (runId: string) => void
-	// True while the "Run for me now" mutation is in flight. The button
-	// disables itself + shows a spinner so admins can't stack requests.
-	runForMePending?: boolean
+	// userId currently running, if any, so per-row "Run" buttons can show
+	// a spinner without stacking requests.
+	runningUserId?: string | null
 }
 
 export const ANALYZER_ORDER: Array<AnalyzerId> = ['primary-list', 'stale-items', 'duplicates', 'grouping']
 
 export function AdminIntelligencePageContent({
 	data,
+	userSummaries = [],
 	onSettingsChange,
 	onRunForUser,
-	onRunForMe,
 	onInvalidateHash,
 	onPurgeRecs,
 	onOpenRun,
-	runForMePending,
+	runningUserId,
 }: Props) {
 	const [filter, setFilter] = useState<'all' | 'success' | 'skipped' | 'error'>('all')
 	const filteredRuns = data.runs.filter(r => filter === 'all' || r.status === filter)
@@ -128,7 +131,7 @@ export function AdminIntelligencePageContent({
 			{enabled && !providerMissing && (
 				<>
 					<HealthGrid data={data} providerSummary={providerSummary} />
-					<ActionsCard onRunForMe={onRunForMe} runForMePending={runForMePending} />
+					<ActionsCard summaries={userSummaries} onRunForUser={onRunForUser} runningUserId={runningUserId} />
 					<SettingsPanel data={data} patch={patch} />
 					<RunsTable
 						runs={filteredRuns}
@@ -252,29 +255,156 @@ export function AnalyzerBadges({
 	)
 }
 
-export function ActionsCard({ onRunForMe, runForMePending }: { onRunForMe?: () => void; runForMePending?: boolean }) {
+export type AdminUserRunSummaryRow = {
+	userId: string
+	name: string | null
+	image: string | null
+	email: string
+	role: 'user' | 'admin' | 'child'
+	isMe: boolean
+	lastRunAt: Date | null
+	lastRunStatus: 'running' | 'success' | 'error' | 'skipped' | null
+	lastRunSkipReason: string | null
+	activeRecs: number
+	dismissedRecs: number
+	appliedRecs: number
+}
+
+export function ActionsCard({
+	summaries,
+	onRunForUser,
+	runningUserId,
+}: {
+	summaries: ReadonlyArray<AdminUserRunSummaryRow>
+	onRunForUser?: (userId: string) => void
+	runningUserId?: string | null
+}) {
+	const sorted = React.useMemo(() => sortSummaries(summaries), [summaries])
 	return (
 		<Card data-intelligence="admin-actions-card">
 			<CardHeader>
-				<CardTitle className="text-2xl">Actions</CardTitle>
-				<CardDescription>Manually trigger a run. More targets (other users, batches) will live here.</CardDescription>
+				<CardTitle>Actions</CardTitle>
+				<CardDescription>
+					Trigger a manual run for any user. Last run + active rec count below help find who&apos;s overdue.
+				</CardDescription>
 			</CardHeader>
-			<CardContent className="pb-4">
-				<div className="flex flex-wrap items-center gap-2">
-					<Button
-						data-intelligence="admin-run-for-me"
-						data-pending={runForMePending ? 'true' : 'false'}
-						size="sm"
-						variant="outline"
-						onClick={onRunForMe}
-						disabled={runForMePending}
-					>
-						{runForMePending ? <Loader2 className="size-4 animate-spin" /> : <PlayCircle className="size-4" />}
-						{runForMePending ? 'Running…' : 'Run for me now'}
-					</Button>
-				</div>
+			<CardContent>
+				<Table data-intelligence="admin-actions-user-table">
+					<TableHeader>
+						<TableRow>
+							<TableHead>User</TableHead>
+							<TableHead className="hidden md:table-cell">Last run</TableHead>
+							<TableHead className="text-right">Recs (active / dismissed / applied)</TableHead>
+							<TableHead className="text-right">Run</TableHead>
+						</TableRow>
+					</TableHeader>
+					<TableBody>
+						{sorted.map(row => (
+							<UserActionRow key={row.userId} row={row} onRunForUser={onRunForUser} runningUserId={runningUserId} />
+						))}
+					</TableBody>
+				</Table>
 			</CardContent>
 		</Card>
+	)
+}
+
+function sortSummaries(rows: ReadonlyArray<AdminUserRunSummaryRow>): Array<AdminUserRunSummaryRow> {
+	// Surface "needs attention" first: never-run users at the top, then
+	// users with active recs (descending), then by oldest run.
+	return [...rows].sort((a, b) => {
+		if (a.isMe !== b.isMe) return a.isMe ? -1 : 1
+		const aNever = a.lastRunAt == null
+		const bNever = b.lastRunAt == null
+		if (aNever !== bNever) return aNever ? -1 : 1
+		if (a.activeRecs !== b.activeRecs) return b.activeRecs - a.activeRecs
+		const aTime = a.lastRunAt?.getTime() ?? 0
+		const bTime = b.lastRunAt?.getTime() ?? 0
+		return aTime - bTime
+	})
+}
+
+function UserActionRow({
+	row,
+	onRunForUser,
+	runningUserId,
+}: {
+	row: AdminUserRunSummaryRow
+	onRunForUser?: (userId: string) => void
+	runningUserId?: string | null
+}) {
+	const pending = runningUserId === row.userId
+	const initials = (row.name ?? row.email).slice(0, 2).toUpperCase()
+	return (
+		<TableRow data-intelligence="admin-actions-user-row" data-user-id={row.userId} data-is-me={row.isMe ? 'true' : 'false'}>
+			<TableCell>
+				<div className="flex items-center gap-2 min-w-0">
+					<Avatar className="size-7 shrink-0">
+						{row.image && <AvatarImage src={row.image} alt={row.name ?? row.email} />}
+						<AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
+					</Avatar>
+					<div className="flex flex-col min-w-0">
+						<span className="text-sm font-medium truncate flex items-center gap-1.5">
+							{row.name ?? row.email}
+							{row.isMe && (
+								<Badge variant="secondary" className="text-[10px]">
+									you
+								</Badge>
+							)}
+							{row.role !== 'user' && (
+								<Badge variant="outline" className="text-[10px]">
+									{row.role}
+								</Badge>
+							)}
+						</span>
+						<span className="text-[11px] text-muted-foreground truncate">{row.email}</span>
+					</div>
+				</div>
+			</TableCell>
+			<TableCell className="hidden md:table-cell">
+				<LastRunCell row={row} />
+			</TableCell>
+			<TableCell className="text-right tabular-nums">
+				<span className="text-sm font-medium">{row.activeRecs}</span>
+				<span className="text-muted-foreground"> / {row.dismissedRecs}</span>
+				<span className="text-muted-foreground"> / {row.appliedRecs}</span>
+			</TableCell>
+			<TableCell className="text-right">
+				<Button
+					data-intelligence="admin-run-for-user"
+					data-user-id={row.userId}
+					size="sm"
+					variant="outline"
+					onClick={() => onRunForUser?.(row.userId)}
+					disabled={pending || !onRunForUser}
+				>
+					{pending ? <Loader2 className="size-4 animate-spin" /> : <PlayCircle className="size-4" />}
+					{pending ? 'Running' : 'Run'}
+				</Button>
+			</TableCell>
+		</TableRow>
+	)
+}
+
+function LastRunCell({ row }: { row: AdminUserRunSummaryRow }) {
+	if (!row.lastRunAt) {
+		return <span className="text-xs text-muted-foreground italic">never run</span>
+	}
+	const variant: 'destructive' | 'secondary' | 'outline' = row.lastRunStatus === 'error' ? 'destructive' : 'secondary'
+	return (
+		<div className="flex flex-col gap-0.5">
+			<span className="text-xs text-muted-foreground" title={format(row.lastRunAt, 'PPpp')}>
+				{formatDistanceToNow(row.lastRunAt, { addSuffix: true })}
+			</span>
+			<span className="flex items-center gap-1.5">
+				{row.lastRunStatus && (
+					<Badge variant={variant} className="text-[10px]">
+						{row.lastRunStatus}
+					</Badge>
+				)}
+				{row.lastRunSkipReason && <span className="text-[10px] text-muted-foreground font-mono">{row.lastRunSkipReason}</span>}
+			</span>
+		</div>
 	)
 }
 
@@ -319,7 +449,7 @@ export function HealthGrid({ data, providerSummary }: { data: AdminIntelligenceD
 			<div className="md:col-span-2 lg:col-span-4">
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-2xl">Analyzers</CardTitle>
+						<CardTitle>Analyzers</CardTitle>
 						<CardDescription>Average duration · tokens · active recommendations</CardDescription>
 					</CardHeader>
 					<CardContent>
@@ -344,7 +474,7 @@ export function HealthGrid({ data, providerSummary }: { data: AdminIntelligenceD
 			<div className="md:col-span-2 lg:col-span-4">
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-2xl">Queue</CardTitle>
+						<CardTitle>Queue</CardTitle>
 						<CardDescription>
 							7d: {health.last7d.success} ok · {sumBucket(health.last7d.skipped)} skipped · {health.last7d.error} err
 						</CardDescription>
@@ -831,7 +961,7 @@ export function RunsTable({
 		<Card data-intelligence="admin-runs">
 			<CardHeader className="flex flex-row items-start justify-between gap-3 flex-wrap">
 				<div className="space-y-1.5">
-					<CardTitle className="text-2xl">Recent runs</CardTitle>
+					<CardTitle>Recent runs</CardTitle>
 					<CardDescription>Most recent recommendation runs across every user. Click a row to inspect run details.</CardDescription>
 				</div>
 				<div data-intelligence="admin-runs-filter" className="flex items-center gap-1.5">
@@ -1036,7 +1166,7 @@ function RunsActivityChart({ data }: { data: Array<DailySeriesPoint> }) {
 	return (
 		<Card data-intelligence="admin-chart-runs">
 			<CardHeader>
-				<CardTitle className="text-2xl">Runs (14 days)</CardTitle>
+				<CardTitle>Runs (14 days)</CardTitle>
 				<CardDescription className="tabular-nums">{total} total</CardDescription>
 			</CardHeader>
 			<CardContent>
@@ -1071,7 +1201,7 @@ function TokenUsageChart({ data }: { data: Array<DailySeriesPoint> }) {
 	return (
 		<Card data-intelligence="admin-chart-tokens">
 			<CardHeader>
-				<CardTitle className="text-2xl">Tokens &amp; cost (14 days)</CardTitle>
+				<CardTitle>Tokens &amp; cost (14 days)</CardTitle>
 				<CardDescription className="tabular-nums">${totalCost.toFixed(2)} total</CardDescription>
 			</CardHeader>
 			<CardContent>

@@ -5,18 +5,25 @@ import { ProviderMissingBanner } from '@/components/intelligence/admin-intellige
 import { IntelligenceFeatureDisabledBanner } from '@/components/intelligence/admin-intelligence-sections'
 import {
 	adminIntelligenceQueryOptions,
+	adminUserRunSummariesQueryOptions,
 	isProviderMissing,
 	providerSummaryFor,
 	useAdminIntelligence,
+	useAdminUserRunSummaries,
 } from '@/components/intelligence/use-admin-intelligence'
 
 export const Route = createFileRoute('/(core)/admin_/intelligence/')({
-	loader: ({ context }) => context.queryClient.ensureQueryData(adminIntelligenceQueryOptions),
+	loader: ({ context }) =>
+		Promise.all([
+			context.queryClient.ensureQueryData(adminIntelligenceQueryOptions),
+			context.queryClient.ensureQueryData(adminUserRunSummariesQueryOptions),
+		]),
 	component: IntelligenceStatsRoute,
 })
 
 function IntelligenceStatsRoute() {
-	const { data, runForMe, runForMePending } = useAdminIntelligence()
+	const { data, runForUser, runForUserPendingId } = useAdminIntelligence()
+	const { summaries } = useAdminUserRunSummaries()
 	const providerMissing = isProviderMissing(data)
 
 	if (!data.settings.enabled) {
@@ -30,7 +37,7 @@ function IntelligenceStatsRoute() {
 	return (
 		<>
 			<HealthGrid data={data} providerSummary={providerSummaryFor(data)} />
-			<ActionsCard onRunForMe={runForMe} runForMePending={runForMePending} />
+			<ActionsCard summaries={summaries} onRunForUser={runForUser} runningUserId={runForUserPendingId} />
 		</>
 	)
 }
