@@ -6,7 +6,7 @@
 //   - getAppSettings(db): reads JSONB rows, walks the secret-field paths
 //     defined in SCRAPE_PROVIDER_SECRET_FIELDS, decrypts envelopes to
 //     plaintext strings, then runs the (browser-safe) Zod schema parse.
-//   - encryptScrapeProviderSecrets(providers): the inverse — walks the
+//   - encryptScrapeProviderSecrets(providers): the inverse, walks the
 //     same paths and encrypts plaintext to envelopes before upsert.
 //
 // Keeping this module separate from `settings.ts` is what lets that

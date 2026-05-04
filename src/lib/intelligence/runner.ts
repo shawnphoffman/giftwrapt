@@ -157,8 +157,8 @@ export async function generateForUser(db: Database, userId: string, opts: Genera
 
 			// Per-analyzer model calls trap their own errors into step rows
 			// rather than throwing, so one bad analyzer doesn't poison the
-			// rest. The run-level status stays binary (the run *completed*)
-			// — admins read partial failures via the per-step ok/error/noop
+			// rest. The run-level status stays binary (the run *completed*).
+			// Admins read partial failures via the per-step ok/error/noop
 			// breakdown surfaced in the runs table and the debug panel.
 			const cost = estimateCostMicroUsd(totalIn, totalOut)
 			await db

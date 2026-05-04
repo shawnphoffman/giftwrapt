@@ -1,7 +1,7 @@
 /**
  * Dev-server health check.
  *
- * The screenshot script doesn't try to spawn `pnpm dev` itself — booting a
+ * The screenshot script doesn't try to spawn `pnpm dev` itself. Booting a
  * Vite dev server with DB migrations from inside another tsx process is
  * fragile, and the user almost always has one running already. We just
  * verify the URL is reachable and bail with a helpful error if not.

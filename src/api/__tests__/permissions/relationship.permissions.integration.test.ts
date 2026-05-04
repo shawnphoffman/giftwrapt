@@ -8,7 +8,7 @@
 //                                      cannot grant self canEdit)
 //
 // The viewer-perspective upsert's inability to self-grant canEdit is a
-// load-bearing invariant — it's what stops a viewer from elevating their
+// load-bearing invariant; it's what stops a viewer from elevating their
 // own access. Make sure that asymmetry is locked in when populating.
 
 import { describe, expect, it } from 'vitest'

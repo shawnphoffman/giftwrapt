@@ -161,7 +161,7 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 	// Prefill empty (or untouched) fields when a scrape result arrives. Runs
 	// for both `partial` (a winner is in but parallels still racing) and
 	// `done` (final winner). Re-runs harmlessly if `result_updated` swaps
-	// the result later — fields that already hold user input are skipped
+	// the result later, since fields that already hold user input are skipped
 	// because of the empty-value check.
 	useEffect(() => {
 		if (scrapeState.phase !== 'partial' && scrapeState.phase !== 'done') return
@@ -251,7 +251,7 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 
 			// Upload the staged file (if any) now that we have an itemId. The
 			// storage key embeds itemId, so this can't run earlier. A failure
-			// here doesn't roll back the item — the user can retry the upload
+			// here doesn't roll back the item; the user can retry the upload
 			// from the edit dialog.
 			if (stagedFile) {
 				try {
@@ -286,7 +286,7 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 		e.target.value = ''
 		if (!file) return
 		setStagedFile(file)
-		// A direct upload supersedes any candidate URL selection — the saved
+		// A direct upload supersedes any candidate URL selection: the saved
 		// item ends up with the uploaded image, so showing both as "selected"
 		// would be misleading.
 		setImageUrl('')

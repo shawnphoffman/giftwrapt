@@ -21,7 +21,7 @@ export function listItemsViewQueryOptions(listId: number, sort: SortOption = 'pr
 		queryFn: async () => {
 			const result = await getItemsForListView({ data: { listId: String(listId), sort } })
 			if (result.kind === 'error') {
-				// is-owner / not-visible / not-found — the route loader handles
+				// is-owner / not-visible / not-found. The route loader handles
 				// the user-facing redirect / 404. Return [] so the page renders
 				// without items rather than crashing the suspense boundary.
 				return []

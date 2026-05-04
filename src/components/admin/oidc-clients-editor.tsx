@@ -391,8 +391,8 @@ function SecretRevealDialog({
 		<Dialog open={!!reveal} onOpenChange={open => !open && onClose()}>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>{reveal?.name} — credentials</DialogTitle>
-					<DialogDescription>Copy these now. The client secret can't be retrieved later — you'd have to rotate it.</DialogDescription>
+					<DialogTitle>{reveal?.name} credentials</DialogTitle>
+					<DialogDescription>Copy these now. The client secret can't be retrieved later, so you'd have to rotate it.</DialogDescription>
 				</DialogHeader>
 				{reveal && (
 					<div className="space-y-2 text-sm">

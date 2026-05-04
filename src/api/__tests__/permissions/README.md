@@ -32,8 +32,8 @@ pnpm test:integration src/api/__tests__/permissions/list.permissions.integration
 ## Adding a rule
 
 1. Decide which resource it touches. If it spans multiple, prefer
-   duplicating expectation rows over building a cross-resource helper —
-   the matrix is meant to be flat and greppable.
+   duplicating expectation rows over building a cross-resource helper.
+   The matrix is meant to be flat and greppable.
 2. If the rule introduces a new role or list sub-state, extend the
    unions in `src/lib/__tests__/permissions/_matrix-types.ts` first.
    TypeScript will surface every test file that needs updating.
@@ -47,7 +47,7 @@ pnpm test:integration src/api/__tests__/permissions/list.permissions.integration
 
 ## Linking back to logic.md
 
-The helper-level expectations capture the **enforcement** behaviour —
+The helper-level expectations capture the **enforcement** behaviour:
 what `canViewList` / `canEditList` return today. Some of `.notes/logic.md`'s
 rules describe **higher-level** behaviour layered on top by impls
 (e.g., "guardians can view private lists" is enforced by `getListForEditingImpl`,

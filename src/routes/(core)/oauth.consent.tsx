@@ -51,7 +51,7 @@ function OAuthConsentRoute() {
 	const submit = async (accept: boolean): Promise<void> => {
 		// `authClient.oauth2.consent` is the path-to-object mapping for
 		// /oauth2/consent. Better-auth returns `{ redirectURI }` on
-		// success — accept and deny both terminate at the OIDC client's
+		// success. Accept and deny both terminate at the OIDC client's
 		// redirect URI (with `?code=…` on accept and `?error=…` on
 		// deny), so the redirect handling is identical.
 		const fn = (

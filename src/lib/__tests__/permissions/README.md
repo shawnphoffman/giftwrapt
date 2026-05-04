@@ -15,7 +15,7 @@ the integration suite.
 ## Why two locations
 
 The unit and integration projects in `vitest.config.ts` are deliberately
-separate — unit tests run in pure node with no DB stubbing, integration
+separate. Unit tests run in pure node with no DB stubbing, integration
 tests use a per-worker pglite + per-test savepoint rollback. The shared
 types live in the unit project because they have no runtime dependencies;
 copying them into the integration project would risk drift.
@@ -30,7 +30,7 @@ When a rule lands in `.notes/logic.md`:
 2. Add the rule's expectations to the relevant resource table in
    `src/api/__tests__/permissions/_expectations.ts`.
 3. The per-resource integration test files iterate the table with
-   `it.each` — no test changes needed unless the new rule requires a
+   `it.each`, so no test changes are needed unless the new rule requires a
    new seed shape.
 
 The duplicate-key validator at the bottom of `_matrix-types.ts`

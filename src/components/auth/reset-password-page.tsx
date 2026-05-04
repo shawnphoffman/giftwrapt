@@ -17,7 +17,7 @@ export type ResetPasswordPageContentProps = {
 }
 
 const MIN_PASSWORD_LENGTH = 8
-const GENERIC_SUBMIT_ERROR = "We couldn't reset your password. The link may have expired — request a new one and try again."
+const GENERIC_SUBMIT_ERROR = "We couldn't reset your password. The link may have expired. Request a new one and try again."
 
 export function ResetPasswordPageContent({
 	onSubmit,

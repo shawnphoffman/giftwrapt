@@ -11,7 +11,7 @@ import type { ScrapeResult } from './types'
 // URL-based dedup against `itemScrapes`. Returns the most recent successful
 // scrape of the same URL within `ttlHours`, scored above `minScore`.
 //
-// Storage is jsonb (`response` column) — when we wrote the row, the
+// Storage is jsonb (`response` column). When we wrote the row, the
 // orchestrator persisted the structured ScrapeResult under the providerId
 // the row's keyed by, plus the original `title/description/price/...`
 // columns the schema already had. We rebuild a ScrapeResult from those

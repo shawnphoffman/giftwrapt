@@ -83,7 +83,7 @@ function describeState(state: GalleryState): { wants: string; claimed: string; o
 	const claimedNum = overClaimed ? (state.claimedCount as number) : state.quantity - state.remaining
 	return {
 		wants: `×${state.quantity}`,
-		claimed: claimedNum > 0 ? `×${claimedNum}` : '—',
+		claimed: claimedNum > 0 ? `×${claimedNum}` : '0',
 		overclaimed: overClaimed,
 	}
 }

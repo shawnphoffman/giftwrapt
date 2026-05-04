@@ -7,7 +7,7 @@ import { items, itemScrapes, lists, users } from '@/db/schema'
 import { loggingMiddleware } from '@/lib/logger'
 import { adminAuthMiddleware } from '@/middleware/auth'
 
-// Server fns powering /admin/scrapes — a debugging view for inspecting
+// Server fns powering /admin/scrapes, a debugging view for inspecting
 // every scrape attempt's persisted row. Useful when the streaming UX
 // reports a green provider but the form prefill came up empty: load the
 // detail, look at the raw `response` jsonb + the per-column extracted
@@ -70,7 +70,7 @@ export const listScrapesAsAdmin = createServerFn({ method: 'GET' })
 const ScrapeIdSchema = z.object({ id: z.number().int().positive() })
 
 // `response` carries whatever the orchestrator stashed in the jsonb column
-// at persist time — usually a structured object, but always JSON-shaped.
+// at persist time. Usually a structured object, but always JSON-shaped.
 // `unknown` would be stricter but TanStack's RPC inferrer narrows it back
 // to `{}`; this looser shape survives the trip and is what the dialog ends
 // up `JSON.stringify`-ing anyway.

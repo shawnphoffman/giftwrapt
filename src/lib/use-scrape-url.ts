@@ -154,7 +154,7 @@ export function useScrapeUrl(): {
 			source.onerror = () => {
 				// EventSource auto-reconnects unless we close it. If the route
 				// already emitted a terminal event, sourceRef is null and this
-				// onerror is the natural socket close — ignore. Otherwise treat
+				// onerror is the natural socket close, so ignore. Otherwise treat
 				// it as a hard failure and surface it.
 				if (sourceRef.current === null) return
 				closeSource()

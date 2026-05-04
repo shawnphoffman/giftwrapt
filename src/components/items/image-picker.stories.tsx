@@ -98,7 +98,7 @@ export const NoneSelected: Story = {
 	},
 	render: () => <Interactive initial="" images={sampleImages} />,
 	parameters: {
-		docs: { description: { story: 'The "No image" tile is the active selection — useful when every candidate URL is broken.' } },
+		docs: { description: { story: 'The "No image" tile is the active selection, useful when every candidate URL is broken.' } },
 	},
 }
 

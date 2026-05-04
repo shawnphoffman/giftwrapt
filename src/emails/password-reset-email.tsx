@@ -43,7 +43,7 @@ export function PasswordResetEmail({ name, resetUrl, expiresInMinutes }: Props) 
 						</Text>
 						<Hr className="border-[#eaeaea] my-[26px] mx-0 w-full border border-solid" />
 						<Text className="text-[12px] text-[#525252] leading-[20px]">
-							If you didn't request a password reset you can safely ignore this email — your password won't change.
+							If you didn't request a password reset you can safely ignore this email. Your password won't change.
 						</Text>
 					</Container>
 				</Body>

@@ -53,7 +53,7 @@ export const ClaimableOpensDialog: Story = {
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement)
 		await userEvent.click(canvas.getByRole('button', { name: /^claim$/i }))
-		// Dialog renders into a portal — query off document.body.
+		// Dialog renders into a portal, so query off document.body.
 		await expect(await within(document.body).findByRole('dialog')).toBeInTheDocument()
 	},
 	tags: ['!autodocs'],

@@ -94,7 +94,7 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 	// claim, the rule is forward-only so they can still edit, matching the
 	// server-side guard.
 	const groupLockedForViewer = !!lockReason && !myClaim
-	// Visual "done" state — fully claimed (including by the viewer
+	// Visual "done" state: fully claimed (including by the viewer
 	// themselves), group-locked, or marked unavailable.
 	const dimmed = fullyClaimed || groupLockedForViewer || isUnavailable
 

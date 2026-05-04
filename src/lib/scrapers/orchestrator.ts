@@ -140,7 +140,7 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 			const { result, score, scoreContext } = evaluateResponse(response, deps)
 			// Minimum-signal gate: a "successful" attempt must produce at
 			// least a non-empty title. Without that, downstream UX has
-			// nothing meaningful to show — a fetch that returns an empty
+			// nothing meaningful to show. A fetch that returns an empty
 			// envelope or lands on a page where extraction whiffed
 			// completely should be persisted as ok:false with errorCode
 			// invalid_response, not as ok:true score:0. The catch branch
@@ -313,7 +313,7 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 }
 
 // Minimum-signal gate. A scraped result is only "successful" if it carries
-// at least a non-empty title — anything less has nothing useful to show
+// at least a non-empty title; anything less has nothing useful to show
 // the user, regardless of how the scoring function felt about other
 // fields. Cheaper than the score function and intentionally separate:
 // score is for ranking, this is for valid/invalid.

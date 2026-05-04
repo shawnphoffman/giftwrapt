@@ -43,7 +43,7 @@ export default function TwoFactorSection() {
 			const { error: verifyError } = await authClient.twoFactor.verifyTotp({ code })
 			if (verifyError) throw new Error("Code didn't match. Check your authenticator and try again.")
 			toast.success('Two-factor auth enabled')
-			// Surface backup codes once verification succeeds — they
+			// Surface backup codes once verification succeeds: they
 			// were issued at enable() time, but we hold them off-screen
 			// until the user actually completes the verify step so a
 			// half-finished enrollment doesn't leave codes orphaned.

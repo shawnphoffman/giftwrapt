@@ -16,7 +16,7 @@ export type SignInPageContentProps = {
 	forgotPasswordHref?: string
 	// Optional secondary path: "Sign in with a passkey". Pass an
 	// async handler in to enable the button. We deliberately keep this
-	// as an *option*, never a default — passkey is add-on only.
+	// as an *option*, never a default. Passkey is add-on only.
 	onSignInWithPasskey?: () => Promise<void>
 }
 

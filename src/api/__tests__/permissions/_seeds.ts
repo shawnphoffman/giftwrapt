@@ -38,8 +38,8 @@ function listOverridesFor(state: ListState): {
  * declared role accurately describes the relationship between viewer
  * and owner.
  *
- * Seeders are kept tiny and explicit — no shared helper that switches on
- * `role` internally — so the role contract is greppable from any test
+ * Seeders are kept tiny and explicit, with no shared helper that switches on
+ * `role` internally, so the role contract is greppable from any test
  * file that consults the matrix.
  */
 export const SEEDERS: Record<Role, (args: SeedArgs) => Promise<ListScenario>> = {

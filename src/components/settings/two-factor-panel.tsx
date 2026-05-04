@@ -141,7 +141,7 @@ function EnrollingView({
 	return (
 		<div className="space-y-3">
 			<Alert>
-				<AlertTitle>Step 1 — scan with your authenticator app</AlertTitle>
+				<AlertTitle>Step 1: scan with your authenticator app</AlertTitle>
 				<AlertDescription>
 					Open your authenticator and add a new account by scanning the QR code below. If you can't scan, enter the secret manually.
 				</AlertDescription>
@@ -181,7 +181,7 @@ function EnrollingView({
 
 			<form onSubmit={handle} className="space-y-2">
 				<div className="grid gap-2">
-					<Label htmlFor="verify-totp-code">Step 2 — enter the 6-digit code</Label>
+					<Label htmlFor="verify-totp-code">Step 2: enter the 6-digit code</Label>
 					<Input
 						id="verify-totp-code"
 						value={code}

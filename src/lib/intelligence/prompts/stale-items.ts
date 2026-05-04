@@ -12,7 +12,7 @@ import { z } from 'zod'
 
 // NOTE on schema constraints: OpenAI's structured-output validator rejects
 // `maxItems` on arrays (and `min`/`max` on strings). Keep these schemas
-// "shape-only" — bound the size by the prompt + post-processing slice in
+// "shape-only", and bound the size by the prompt + post-processing slice in
 // the analyzer instead of via Zod modifiers that translate to unsupported
 // JSON-schema keywords.
 export const staleItemsRecSchema = z.object({

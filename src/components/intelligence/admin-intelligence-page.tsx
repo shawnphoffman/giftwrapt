@@ -533,7 +533,7 @@ function MetricCard({
 
 // Per-analyzer descriptions for the Analyzers section. Hardcoded here so
 // admins see what each toggle actually does without having to dig into
-// the analyzer source. Keep these short — long copy belongs in docs.
+// the analyzer source. Keep these short; long copy belongs in docs.
 export type AnalyzerKind = 'heuristic' | 'ai'
 export type AnalyzerTrigger = 'cron' | 'manual'
 export type AnalyzerStatus = 'coming-soon'
@@ -562,7 +562,7 @@ export const ANALYZER_META: Record<
 		label: 'Duplicates',
 		description: 'Finds items with similar titles across different lists and asks the model to confirm true duplicates.',
 		example:
-			'"Stanley tumbler 30oz" appears on both your Birthday list and your Wishlist. Looks like the same item — keep one and remove the other.',
+			'"Stanley tumbler 30oz" appears on both your Birthday list and your Wishlist. Looks like the same item, so keep one and remove the other.',
 		kind: 'ai',
 		triggers: ['cron', 'manual'],
 	},
@@ -627,7 +627,7 @@ export function SettingsPanel({
 					defaultOpen
 				>
 					<p className="text-xs text-muted-foreground">
-						Each analyzer runs in sequence per user. Errors in one don&apos;t block the others — partial failures show under each run&apos;s
+						Each analyzer runs in sequence per user. Errors in one don&apos;t block the others; partial failures show under each run&apos;s
 						status in the table below.
 					</p>
 					<div className="flex flex-col gap-2">

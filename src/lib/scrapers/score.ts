@@ -47,7 +47,7 @@ function hasMeaningfulTitle(result: ScrapeResult, ctx: { html?: string }): boole
 			if (title.toLowerCase() === host.toLowerCase()) return false
 			if (title.toLowerCase() === host.replace(/^www\./, '').toLowerCase()) return false
 		} catch {
-			// Ignore — fall through to the html-derived check below.
+			// Ignore, fall through to the html-derived check below.
 		}
 	}
 	// `ctx.html` is used here only as a hook for future rules; explicit cast

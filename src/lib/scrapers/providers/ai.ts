@@ -169,7 +169,7 @@ async function fetchHtmlForLlm(ctx: ScrapeContext): Promise<string> {
 		throw new ScrapeProviderError('network_error', err instanceof Error ? err.message : String(err))
 	}
 	if (response.status >= 400) {
-		// We still try to extract from whatever body we got — the LLM might
+		// We still try to extract from whatever body we got. The LLM might
 		// be able to read a server-error page and report the listing as
 		// unavailable, which is itself useful signal. But surface 4xx/5xx
 		// distinctly so the orchestrator's classification stays consistent.

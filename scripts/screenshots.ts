@@ -228,7 +228,7 @@ async function run(plan: RunPlan, ids: FixtureIds) {
 							} catch (err) {
 								const msg = err instanceof Error ? err.message : String(err)
 								failed.push({ slug: route.slug, viewport: viewportName, theme, error: msg })
-								console.log(`  ✗ [${viewportName}/${theme}] ${route.slug} — ${msg}`)
+								console.log(`  ✗ [${viewportName}/${theme}] ${route.slug}: ${msg}`)
 							}
 						}
 					} finally {

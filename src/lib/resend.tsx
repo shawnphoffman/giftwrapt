@@ -127,7 +127,7 @@ export const sendPostBirthdayEmail = async (recipient: string, items: Array<{ ti
 // `emailAndPassword.sendResetPassword` in src/lib/auth.ts. Returns
 // `null` (and logs a warning) if email isn't configured so the
 // underlying auth call doesn't appear to succeed when nothing was
-// actually sent — callers in the API surface check `isEmailConfigured()`
+// actually sent. Callers in the API surface check `isEmailConfigured()`
 // up front to decide whether to even offer the reset path.
 export const sendPasswordResetEmail = async (params: {
 	name?: string | null

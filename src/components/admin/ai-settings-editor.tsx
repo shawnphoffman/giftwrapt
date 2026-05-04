@@ -458,7 +458,7 @@ function Form({ config, saving, mutate }: FormProps) {
 				</CardContent>
 			</Card>
 
-			{/* Save button row — covers both Provider and Provider settings cards */}
+			{/* Save button row covers both Provider and Provider settings cards */}
 			<div className="flex items-center gap-2">
 				<Button type="button" onClick={handleSave} disabled={!dirty || saving}>
 					{saving ? 'Saving…' : 'Save'}

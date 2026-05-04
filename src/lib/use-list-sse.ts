@@ -9,7 +9,7 @@ import { itemsKeys } from '@/lib/queries/items'
  * route loader (list metadata, addons, groups) and the items React Query
  * cache when changes arrive.
  *
- * SSE messages don't carry payload kind — any event means "something on
+ * SSE messages don't carry payload kind, so any event means "something on
  * this list changed somewhere," so both refresh paths fire. If the
  * channel ever grows enough traffic to make this wasteful, gate by event
  * kind.

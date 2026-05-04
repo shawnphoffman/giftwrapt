@@ -8,7 +8,7 @@ import { getAppSettings } from '@/lib/settings-loader'
 import type { ScrapeResult } from '../types'
 
 // Post-pass that runs after the orchestrator picks a winning result. Asks
-// the configured LLM to normalise the title — strip retailer noise, brand
+// the configured LLM to normalise the title, stripping retailer noise, brand
 // prefixes, "| Free Shipping" suffixes, etc. The original title is kept
 // alongside so we can show both / revert / diagnose.
 //

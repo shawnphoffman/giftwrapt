@@ -137,7 +137,7 @@ describe('transformItemCache', () => {
 
 	it('skips queries whose data is undefined', () => {
 		const qc = makeClient()
-		// Seed a cache entry with undefined data — `setQueryData(_, undefined)`
+		// Seed a cache entry with undefined data. `setQueryData(_, undefined)`
 		// does NOT register the entry, so we can't seed undefined directly.
 		// Instead, leave the cache empty and assert the transform is a no-op.
 		transformItemCache(qc, 1, () => {

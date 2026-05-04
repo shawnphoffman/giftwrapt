@@ -8,7 +8,7 @@
 //     * 'sequence' group: must claim in order
 //     * visibility gate via canViewList (denies private)
 //   - unclaimItemGiftImpl
-//     * hard-delete only — no isArchived column on giftedItems (logic.md §3)
+//     * hard-delete only; no isArchived column on giftedItems (logic.md §3)
 //   - updateItemGiftImpl
 //     * quantity edit honors over-claim cap
 //   - updateCoGiftersImpl
@@ -17,7 +17,7 @@
 //
 // The partner-aware credit predicate
 // (`gifterId IN [me, partner] OR additionalGifterIds && [me, partner]`)
-// is the most important rule to lock down here — it's the canonical
+// is the most important rule to lock down here. It's the canonical
 // source of "who gifted this" and silently under-counts when wrong.
 
 import { describe, expect, it } from 'vitest'

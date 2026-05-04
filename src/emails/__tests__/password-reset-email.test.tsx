@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import PasswordResetEmail from '../password-reset-email'
 
 // React's HTML renderer inserts `<!-- -->` separators between adjacent
-// text segments — strip those (and html entities for apostrophes) so
+// text segments, so strip those (and html entities for apostrophes) so
 // assertions can be written against the human-readable form.
 const text = (html: string) => html.replace(/<!--\s*-->/g, '').replace(/&#x27;/g, "'")
 

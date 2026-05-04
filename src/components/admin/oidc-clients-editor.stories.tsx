@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import { OidcClientsEditor } from './oidc-clients-editor'
 
-// Stories run against a fresh QueryClient — the component issues a
+// Stories run against a fresh QueryClient. The component issues a
 // `listOidcApplicationsAsAdmin` server fn which Storybook can't actually
 // call. The query stays in `pending` forever in a story without a mock,
 // so each variant below provides one via `setQueryData`.

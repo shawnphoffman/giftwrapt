@@ -43,7 +43,7 @@ export function useUpdateItem() {
 			return { snapshot }
 		},
 
-		// Server returned the canonical row — write it into every items cache so
+		// Server returned the canonical row, so write it into every items cache so
 		// any computed-then-stripped fields (e.g. modifiedAt) match server state.
 		onSuccess: (result, input, ctx: { snapshot: ItemCacheSnapshot }) => {
 			if (result.kind === 'error') {

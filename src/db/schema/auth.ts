@@ -164,11 +164,11 @@ export const passkey = pgTable(
 // Better-auth `oidcProvider()` plugin tables. The app *is* the OIDC
 // provider (issues tokens to third-party clients). Three tables:
 //
-//   oauthApplication — registered OIDC clients (client_id/secret,
+//   oauthApplication: registered OIDC clients (client_id/secret,
 //     redirect URIs, type, optional owner). Admin-managed.
-//   oauthAccessToken — issued access + refresh token pairs scoped to
+//   oauthAccessToken: issued access + refresh token pairs scoped to
 //     a (clientId, userId) pair.
-//   oauthConsent     — per-user consent decisions for a given client
+//   oauthConsent:     per-user consent decisions for a given client
 //     so the consent screen only appears once per scope set.
 //
 // Field shapes mirror better-auth/plugins/oidc-provider/schema. We use

@@ -23,12 +23,12 @@ type Props = {
 // candidate fails to load, we clear the selection so the form doesn't end
 // up persisting a known-broken URL.
 //
-// Renders nothing only when there are zero candidates — i.e. when there's
+// Renders nothing only when there are zero candidates, i.e. when there's
 // nothing for the user to act on.
 export function ImagePicker({ images, value, onChange, className, disabled }: Props): React.ReactElement | null {
 	const [failed, setFailed] = React.useState<ReadonlySet<string>>(() => new Set())
 
-	// Reset failure tracking when the candidate list changes — a fresh
+	// Reset failure tracking when the candidate list changes. A fresh
 	// scrape may produce different URLs and we don't want to carry over
 	// stale failures (also lets a re-scrape recover if the host was
 	// flaking).

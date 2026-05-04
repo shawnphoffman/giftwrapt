@@ -7,7 +7,7 @@
 //                               2026-04-21, so this path may be retired)
 //   - deleteListAddonImpl      (author-only, hard-delete)
 //
-// Per logic.md, addons are recipient-driven for fulfilment — do NOT
+// Per logic.md, addons are recipient-driven for fulfilment. Do NOT
 // re-introduce a gifter-facing "mark as given" surface. If a future
 // rule lands here, it should still be triggered by the recipient flow.
 

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-// NOTE: keep these schemas shape-only — OpenAI's structured-output
+// NOTE: keep these schemas shape-only, since OpenAI's structured-output
 // validator rejects `maxItems` on arrays and `min`/`max` on strings.
 // Bound the response with the prompt + a post-parse slice in the analyzer.
 export const duplicatePairSchema = z.object({

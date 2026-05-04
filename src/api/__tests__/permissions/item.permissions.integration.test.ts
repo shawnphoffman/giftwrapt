@@ -6,7 +6,7 @@
 //   - createItemImpl           (edit-gated; child role × gift-ideas list interaction TBD)
 //   - updateItemImpl
 //   - archiveItemImpl
-//   - deleteItemsImpl          (hard-delete on unclaimed; archive on claimed — see logic.md)
+//   - deleteItemsImpl          (hard-delete on unclaimed; archive on claimed; see logic.md)
 //   - copyItemToListImpl       (cross-list edit gating)
 //
 // Add expectation rows to `itemExpectations` in `_expectations.ts` and

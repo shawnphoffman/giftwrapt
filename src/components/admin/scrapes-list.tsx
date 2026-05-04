@@ -114,7 +114,7 @@ function ScrapeRow({ row, labelFor, onInspect }: { row: ScrapeListRow; labelFor:
 				<span title={formatDateTime(row.createdAt)}>{formatWhen(row.createdAt)}</span>
 			</TableCell>
 			<TableCell>
-				{/* Constrain via an inner block — `max-w-*` on a <td> alone is
+				{/* Constrain via an inner block, since `max-w-*` on a <td> alone is
 				    ignored by the auto table layout; this gives the truncate
 				    something to bite against. */}
 				<div className="w-[260px] max-w-[40vw]">

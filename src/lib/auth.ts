@@ -100,7 +100,7 @@ const options = {
 		// route which calls `authClient.resetPassword` to finish.
 		// If the underlying email send is skipped because Resend
 		// isn't configured, sendPasswordResetEmail logs and returns
-		// null — the user-facing flow always reports "if an account
+		// null. The user-facing flow always reports "if an account
 		// exists you'll receive an email" so the lack of email
 		// doesn't leak account existence.
 		sendResetPassword: async ({ user, url }) => {
@@ -199,12 +199,12 @@ const options = {
 		twoFactor({
 			issuer: 'GiftWrapt',
 		}),
-		// WebAuthn / passkey. Add-on only — see sign-in / sign-up
+		// WebAuthn / passkey. Add-on only; see sign-in / sign-up
 		// pages: there is no passkey-first onboarding. `rpName` shows
 		// up in the OS authenticator prompt; `rpID` defaults to the
 		// hostname of `baseURL` (set above), which is what we want for
 		// every deploy except local-dev where ngrok / lan IPs would
-		// trip WebAuthn's same-origin check — operators on those
+		// trip WebAuthn's same-origin check. Operators on those
 		// setups should set BETTER_AUTH_URL to match the URL the
 		// browser loads.
 		passkey({

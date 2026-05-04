@@ -9,7 +9,7 @@
 // The expectations recorded here are the **today** behaviour of the
 // canonical permission helpers (`canViewList`, `canEditList`) plus
 // any inline checks already enforced in the impls. When `.notes/logic.md`
-// adds a new rule, the table here must change to match — that's the
+// adds a new rule, the table here must change to match. That's the
 // load-bearing assertion the suite exists to make.
 
 import {
@@ -32,7 +32,7 @@ import {
 //   - allow           otherwise
 //
 // Guardian and partner roles do NOT get implicit view access through this
-// helper — guardians reach private lists via `canEditList` (which subsumes
+// helper. Guardians reach private lists via `canEditList` (which subsumes
 // view in the edit flow) and partners are limited to public lists by
 // design (logic.md notes a possible future change there).
 // ---------------------------------------------------------------------------
@@ -99,7 +99,7 @@ const canViewListAsAnyoneExpectations: ReadonlyArray<Expectation<'view-via-canVi
 // and otherwise denies with reason 'not-editor'.
 //
 // list state (active/private/gift-ideas) does NOT factor into the
-// edit-grant decision today — even an inactive list is editable for a
+// edit-grant decision today; even an inactive list is editable for a
 // guardian or explicit editor. This captures that.
 // ---------------------------------------------------------------------------
 

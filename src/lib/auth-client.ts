@@ -14,7 +14,7 @@ export const authClient = createAuthClient({
 	plugins: [
 		adminClient(),
 		customSessionClient<typeof auth>(),
-		// `redirect: false` — we drive routing ourselves so the
+		// `redirect: false`, since we drive routing ourselves so the
 		// challenge step lands on /sign-in/two-factor with the
 		// `?redirect=` param preserved instead of jumping straight to
 		// `/`. The plugin still throws a `TWO_FACTOR_REQUIRED`-shaped

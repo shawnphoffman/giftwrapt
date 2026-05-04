@@ -7,7 +7,7 @@
 //   - deleteItemCommentImpl    (author OR list owner)
 //
 // The "list owner can delete any comment on their own list" path is the
-// most subtle rule here — make sure to cover both author-different-from-owner
+// most subtle rule here, so make sure to cover both author-different-from-owner
 // and author-is-owner cases when populating.
 
 import { describe, expect, it } from 'vitest'

@@ -514,7 +514,7 @@ export const getAdminUserRunSummaries = createServerFn({ method: 'GET' })
 // ─── Read: per-run debug detail ─────────────────────────────────────────────
 //
 // Powers the "click a row" debug panel on the admin Intelligence page so
-// "4 ok" runs aren't a black box — admins can see the exact prompt sent
+// "4 ok" runs aren't a black box. Admins can see the exact prompt sent
 // to each analyzer, the raw model response, the parsed output, and which
 // recommendations were persisted (or why none were, for heuristic-only
 // or empty-output runs).
