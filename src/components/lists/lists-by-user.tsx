@@ -91,9 +91,9 @@ function ListsByUserContent() {
 
 	const usersData = Array.from(queryResult.data.values()) as Array<UserWithLists>
 	const dependentsData = Array.from(dependentsResult.data.values()) as Array<DependentWithLists>
-	const isLoading = queryResult.isLoading
+	const isLoading = queryResult.isLoading || dependentsResult.isLoading
 
-	if (isLoading && usersData.length === 0 && dependentsData.length === 0) {
+	if (isLoading) {
 		return (
 			<div className="space-y-6">
 				{[...Array(3)].map((_, i) => (
