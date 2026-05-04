@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { type ChildListGroup, type DependentListGroup, getMyLists, type MyListRow } from '@/api/lists'
 import DependentAvatar from '@/components/common/dependent-avatar'
 import ListTypeIcon from '@/components/common/list-type-icon'
+import { PageHeading } from '@/components/common/page-heading'
 import UserAvatar from '@/components/common/user-avatar'
 import { AddItemDialog } from '@/components/items/add-item-dialog'
 import { CreateListDialog } from '@/components/lists/create-list-dialog'
@@ -54,10 +55,7 @@ function MyListsPagePending() {
 	return (
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
-				<div className="relative flex flex-row flex-wrap justify-between gap-2">
-					<h1>My Lists</h1>
-					<ListOrdered className="text-red-500 wish-page-icon" />
-				</div>
+				<PageHeading title="My Lists" icon={ListOrdered} color="red" />
 				{Array.from({ length: 3 }).map((_section, sectionIdx) => (
 					<div key={sectionIdx} className="flex flex-col gap-2">
 						<Skeleton className="h-5 w-48" />
@@ -117,15 +115,13 @@ function MyListsPage() {
 			<div className="wish-page">
 				<div className="flex flex-col flex-1 gap-6">
 					{/* HEADING */}
-					<div className="relative flex flex-row flex-wrap justify-between gap-2">
-						<h1>My Lists</h1>
-						<ListOrdered className="text-red-500 wish-page-icon" />
-						<div className="flex flex-row flex-wrap justify-end flex-1 gap-0.5 items-center md:justify-end shrink-0">
+					<PageHeading title="My Lists" icon={ListOrdered} color="red">
+						<div className="flex flex-row flex-wrap justify-end gap-0.5 items-center shrink-0">
 							<Button size="sm" onClick={() => setCreateOpen(true)}>
 								<Plus className="size-4" /> New list
 							</Button>
 						</div>
-					</div>
+					</PageHeading>
 					<div className="text-sm text-muted-foreground">
 						Mark any list as <strong>primary</strong> from its action menu. Quick-imported gift ideas land there by default.
 					</div>

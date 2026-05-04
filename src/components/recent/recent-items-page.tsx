@@ -1,6 +1,7 @@
 import { Inbox } from 'lucide-react'
 
 import type { RecentItemRow } from '@/api/recent'
+import { PageHeading } from '@/components/common/page-heading'
 import ItemOverview from '@/components/recent/item-overview'
 
 type Props = {
@@ -11,10 +12,7 @@ export function RecentItemsPageContent({ items }: Props) {
 	return (
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
-				<div className="relative">
-					<h1 className="flex flex-row items-center gap-2">Items</h1>
-					<Inbox className="text-purple-500 wish-page-icon" />
-				</div>
+				<PageHeading title="Recent Items" icon={Inbox} color="purple" />
 
 				<p className="text-sm text-muted-foreground">New items added to lists you can see in the last 60 days, newest first.</p>
 

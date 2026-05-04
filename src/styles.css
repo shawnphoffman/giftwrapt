@@ -253,6 +253,22 @@ code {
 	}
 }
 
+@utility animate-throb {
+	animation: throb 2.4s ease-in-out infinite;
+}
+
+@keyframes throb {
+	0%,
+	100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 0.55;
+		transform: scale(1.15);
+	}
+}
+
 @layer components {
 	.wish-page {
 		@apply flex flex-col flex-1 w-full max-w-3xl px-2 animate-page-in pb-2 @container/page;

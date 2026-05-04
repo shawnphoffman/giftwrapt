@@ -3,7 +3,7 @@ import { Suspense } from 'react'
 
 import { getListForViewing } from '@/api/lists'
 import DependentAvatar from '@/components/common/dependent-avatar'
-import ListTypeIcon from '@/components/common/list-type-icon'
+import ListTypeTile from '@/components/common/list-type-tile'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import UserAvatar from '@/components/common/user-avatar'
 import ItemList from '@/components/items/item-list'
@@ -89,24 +89,20 @@ function ListDetailPage() {
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
 				{/* HEADING */}
-				<div className="relative flex flex-col gap-1">
+				<div className="flex flex-col gap-1">
 					<BackToParentList from={from} />
-					<div className="flex items-center gap-3">
-						<div className="flex flex-col gap-0.5 min-w-0">
-							<div className="flex items-center min-w-0 gap-2">
-								{list.subjectDependent ? (
-									<DependentAvatar
-										name={list.subjectDependent.name}
-										image={list.subjectDependent.image}
-										className="size-12 border-2 border-background"
-									/>
-								) : (
-									<UserAvatar name={recipientName} image={list.owner.image} className="size-12 border-2 border-background" />
-								)}
-								<h1 className="truncate">{list.name}</h1>
-							</div>
-						</div>
-						<ListTypeIcon type={list.type} className="wish-page-icon" />
+					<div className="flex items-center gap-3 min-w-0">
+						{list.subjectDependent ? (
+							<DependentAvatar
+								name={list.subjectDependent.name}
+								image={list.subjectDependent.image}
+								className="size-12 border-2 border-background"
+							/>
+						) : (
+							<UserAvatar name={recipientName} image={list.owner.image} className="size-12 border-2 border-background" />
+						)}
+						<ListTypeTile type={list.type} />
+						<h1 className="truncate">{list.name}</h1>
 					</div>
 				</div>
 				{list.description && <MarkdownNotes content={list.description} className="text-muted-foreground" />}

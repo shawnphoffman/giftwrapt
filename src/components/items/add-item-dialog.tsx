@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
-import { Loader2, Lock, Sparkles, Star, Trash2, Upload } from 'lucide-react'
+import { Loader2, Lock, Sparkles, SquarePlus, Star, Trash2, Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -298,7 +298,12 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Add an item</DialogTitle>
+					<DialogTitle className="flex items-center gap-2">
+						<span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-blue-500 dark:bg-blue-600 ring-1 ring-blue-400/40 dark:ring-blue-600/40 shadow-sm">
+							<SquarePlus className="size-[21px] shrink-0 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.4)]" />
+						</span>
+						Add an item
+					</DialogTitle>
 					<DialogDescription>Pick a list and fill in the details. You'll be taken to the list after saving.</DialogDescription>
 				</DialogHeader>
 

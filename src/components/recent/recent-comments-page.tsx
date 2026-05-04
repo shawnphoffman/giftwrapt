@@ -1,6 +1,7 @@
 import { MessagesSquare } from 'lucide-react'
 
 import type { RecentConversationRow } from '@/api/recent'
+import { PageHeading } from '@/components/common/page-heading'
 import ItemConversation from '@/components/recent/item-conversation'
 
 type Props = {
@@ -11,10 +12,7 @@ export function RecentCommentsPageContent({ rows }: Props) {
 	return (
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
-				<div className="relative">
-					<h1 className="flex flex-row items-center gap-2">Comments</h1>
-					<MessagesSquare className="text-teal-500 wish-page-icon" />
-				</div>
+				<PageHeading title="Recent Comments" icon={MessagesSquare} color="teal" />
 
 				<p className="text-sm text-muted-foreground">Items with comment activity in the last 60 days, ordered by the most recent reply.</p>
 

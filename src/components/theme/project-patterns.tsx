@@ -3,18 +3,29 @@ import {
 	Crown,
 	ExternalLink,
 	EyeOff,
+	FlaskConical,
 	Gift,
 	Heart,
+	Inbox,
 	List,
+	ListChecks,
+	ListOrdered,
+	ListPlus,
 	Lock,
+	type LucideIcon,
+	MessagesSquare,
 	PackageOpen,
 	PackagePlus,
 	Pencil,
+	Receipt,
+	Settings,
 	Shield,
 	ShieldOff,
 	Sparkles,
 	Sprout,
+	SquarePlus,
 	Star,
+	WandSparkles,
 } from 'lucide-react'
 
 import BirthdayBadge from '@/components/common/birthday-badge'
@@ -203,6 +214,28 @@ function StatusDot({ tone, label, className }: { tone: string; label: string; cl
 		<div className={cn('flex items-center gap-2', className)}>
 			<span className={cn('size-2.5 rounded-full', tone)} aria-hidden />
 			<span className="text-xs font-mono text-muted-foreground">{label}</span>
+		</div>
+	)
+}
+
+function PageIconSwatch({ label, icon: Icon, bg, ring }: { label: string; icon: LucideIcon; bg: string; ring: string }) {
+	return (
+		<div className="flex flex-col items-start gap-2 rounded-md border border-border bg-muted/10 p-3">
+			<span className={cn('flex size-10 shrink-0 items-center justify-center rounded-xl shadow-sm ring-1', bg, ring)}>
+				<Icon className="size-7 shrink-0 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.4)]" />
+			</span>
+			<span className="text-xs font-medium leading-tight">{label}</span>
+		</div>
+	)
+}
+
+function DialogIconSwatch({ label, icon: Icon, bg, ring }: { label: string; icon: LucideIcon; bg: string; ring: string }) {
+	return (
+		<div className="flex items-center gap-2 rounded-md border border-border bg-muted/10 p-3">
+			<span className={cn('flex size-7 shrink-0 items-center justify-center rounded-md shadow-sm ring-1', bg, ring)}>
+				<Icon className="size-[21px] shrink-0 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.4)]" />
+			</span>
+			<span className="text-xs font-medium leading-tight">{label}</span>
 		</div>
 	)
 }
@@ -583,7 +616,7 @@ export default function ProjectPatterns() {
 								<PackageOpen className="size-5" />
 								Total
 							</CardTitle>
-							<CardDescription>Items across all received gifts</CardDescription>
+							<CardDescription className="text-foreground/50">Items across all received gifts</CardDescription>
 						</CardHeader>
 						<CardContent>
 							<span className="text-3xl font-bold tabular-nums">42</span>
@@ -595,7 +628,7 @@ export default function ProjectPatterns() {
 								<Gift className="size-5" />
 								Gifts
 							</CardTitle>
-							<CardDescription>Claims that landed</CardDescription>
+							<CardDescription className="text-foreground/50">Claims that landed</CardDescription>
 						</CardHeader>
 						<CardContent>
 							<span className="text-3xl font-bold tabular-nums">28</span>
@@ -607,7 +640,7 @@ export default function ProjectPatterns() {
 								<PackagePlus className="size-5" />
 								Off-list
 							</CardTitle>
-							<CardDescription>Volunteer addons</CardDescription>
+							<CardDescription className="text-foreground/50">Volunteer addons</CardDescription>
 						</CardHeader>
 						<CardContent>
 							<span className="text-3xl font-bold tabular-nums">7</span>
@@ -615,31 +648,110 @@ export default function ProjectPatterns() {
 					</Card>
 				</div>
 
-				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-					<div className="flex items-start gap-3">
-						<div
-							className={cn(
-								'flex size-10 items-center justify-center rounded-xl shadow-sm shrink-0',
-								'bg-gradient-to-br from-amber-500 via-pink-500 to-fuchsia-600',
-								'dark:from-amber-700 dark:via-pink-700 dark:to-fuchsia-800',
-								'ring-1 ring-fuchsia-400/40 dark:ring-fuchsia-600/40'
-							)}
-						>
-							<Sparkles className="size-5 text-amber-100 drop-shadow-[0_0_4px_rgba(255,255,255,0.6)]" />
-						</div>
-						<div>
-							<h3 className="text-base font-semibold tracking-tight">Intelligence header</h3>
-							<p className="text-xs text-muted-foreground">Page header treatment for AI surfaces. Pairs with the AI button gradient.</p>
-						</div>
+				<div className="flex flex-col gap-3">
+					<div>
+						<h3 className="text-base font-semibold tracking-tight">Page heading icons</h3>
+						<p className="text-xs text-muted-foreground">
+							Colored bg square (size-10) with white glyph at 75% (size-7). Drives the &lt;PageHeading&gt; component shared across every
+							top-level page.
+						</p>
 					</div>
-					<div className="flex items-start gap-3">
-						<div className={cn('flex size-9 items-center justify-center rounded-lg bg-muted/40 ring-1 ring-border shrink-0')}>
-							<List className="size-4" />
-						</div>
-						<div>
-							<h3 className="text-base font-semibold">Section header</h3>
-							<p className="text-xs text-muted-foreground">Used in recommendation groups. Muted icon chip + title + meta line.</p>
-						</div>
+					<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+						<PageIconSwatch
+							label="Wish Lists"
+							icon={ListChecks}
+							bg="bg-green-500 dark:bg-green-600"
+							ring="ring-green-400/40 dark:ring-green-600/40"
+						/>
+						<PageIconSwatch
+							label="My Lists"
+							icon={ListOrdered}
+							bg="bg-red-500 dark:bg-red-600"
+							ring="ring-red-400/40 dark:ring-red-600/40"
+						/>
+						<PageIconSwatch
+							label="Suggestions"
+							icon={Sparkles}
+							bg="bg-gradient-to-br from-amber-500 via-pink-500 to-fuchsia-600 dark:from-amber-700 dark:via-pink-700 dark:to-fuchsia-800"
+							ring="ring-fuchsia-400/40 dark:ring-fuchsia-600/40"
+						/>
+						<PageIconSwatch
+							label="Purchases"
+							icon={Receipt}
+							bg="bg-pink-500 dark:bg-pink-600"
+							ring="ring-pink-400/40 dark:ring-pink-600/40"
+						/>
+						<PageIconSwatch
+							label="Received"
+							icon={PackageOpen}
+							bg="bg-cyan-500 dark:bg-cyan-600"
+							ring="ring-cyan-400/40 dark:ring-cyan-600/40"
+						/>
+						<PageIconSwatch
+							label="Recent Items"
+							icon={Inbox}
+							bg="bg-purple-500 dark:bg-purple-600"
+							ring="ring-purple-400/40 dark:ring-purple-600/40"
+						/>
+						<PageIconSwatch
+							label="Recent Comments"
+							icon={MessagesSquare}
+							bg="bg-teal-500 dark:bg-teal-600"
+							ring="ring-teal-400/40 dark:ring-teal-600/40"
+						/>
+						<PageIconSwatch
+							label="Settings"
+							icon={Settings}
+							bg="bg-lime-500 dark:bg-lime-600"
+							ring="ring-lime-400/40 dark:ring-lime-600/40"
+						/>
+						<PageIconSwatch label="Admin" icon={Lock} bg="bg-red-500 dark:bg-red-600" ring="ring-red-400/40 dark:ring-red-600/40" />
+						<PageIconSwatch
+							label="Admin Intelligence"
+							icon={WandSparkles}
+							bg="bg-gradient-to-br from-amber-500 via-pink-500 to-fuchsia-600 dark:from-amber-700 dark:via-pink-700 dark:to-fuchsia-800"
+							ring="ring-fuchsia-400/40 dark:ring-fuchsia-600/40"
+						/>
+						<PageIconSwatch
+							label="Temp"
+							icon={FlaskConical}
+							bg="bg-amber-500 dark:bg-amber-600"
+							ring="ring-amber-400/40 dark:ring-amber-600/40"
+						/>
+					</div>
+				</div>
+
+				<div className="flex flex-col gap-3">
+					<div>
+						<h3 className="text-base font-semibold tracking-tight">Dialog title icons</h3>
+						<p className="text-xs text-muted-foreground">
+							Compact variant (size-7 bg, size-[21px] glyph - 75%) used inside dialog titles. The color matches the sidebar entry that
+							triggers the dialog.
+						</p>
+					</div>
+					<div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+						<DialogIconSwatch
+							label="Add an item"
+							icon={SquarePlus}
+							bg="bg-blue-500 dark:bg-blue-600"
+							ring="ring-blue-400/40 dark:ring-blue-600/40"
+						/>
+						<DialogIconSwatch
+							label="Create a new list"
+							icon={ListPlus}
+							bg="bg-yellow-500 dark:bg-yellow-600"
+							ring="ring-yellow-400/40 dark:ring-yellow-600/40"
+						/>
+					</div>
+				</div>
+
+				<div className="flex items-start gap-3">
+					<div className={cn('flex size-9 items-center justify-center rounded-lg bg-muted/40 ring-1 ring-border shrink-0')}>
+						<List className="size-4" />
+					</div>
+					<div>
+						<h3 className="text-base font-semibold">Section header</h3>
+						<p className="text-xs text-muted-foreground">Used in recommendation groups. Muted icon chip + title + meta line.</p>
 					</div>
 				</div>
 

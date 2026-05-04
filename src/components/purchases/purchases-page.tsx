@@ -18,6 +18,7 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import type { SummaryItem } from '@/api/purchases'
 import { DateRangeFilter } from '@/components/common/date-range-filter'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
+import { PageHeading } from '@/components/common/page-heading'
 import UserAvatar from '@/components/common/user-avatar'
 import { type EditablePurchase, PurchaseEditDialog } from '@/components/purchases/purchase-edit-dialog'
 import { Badge } from '@/components/ui/badge'
@@ -196,11 +197,7 @@ export function PurchasesPageContent({ items, partner }: Props) {
 	return (
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
-				{/* HEADING */}
-				<div className="relative">
-					<h1 className="flex flex-row items-center gap-2">Purchases</h1>
-					<Receipt className="text-pink-500 wish-page-icon" />
-				</div>
+				<PageHeading title="Purchases" icon={Receipt} color="pink" />
 
 				<p className="text-sm text-muted-foreground">
 					All of your purchases and addons over time. If you have a partner, their purchases appear here too (excluding gifts for you). Edit

@@ -1,6 +1,7 @@
 import { useForm } from '@tanstack/react-form'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
+import { ListPlus } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -154,7 +155,12 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Create a new list</DialogTitle>
+					<DialogTitle className="flex items-center gap-2">
+						<span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-yellow-500 dark:bg-yellow-600 ring-1 ring-yellow-400/40 dark:ring-yellow-600/40 shadow-sm">
+							<ListPlus className="size-[21px] shrink-0 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.4)]" />
+						</span>
+						Create a list
+					</DialogTitle>
 					<DialogDescription>Choose a name and type for your list. You can change these later.</DialogDescription>
 				</DialogHeader>
 

@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router'
 import { Settings } from 'lucide-react'
 
+import { PageHeading } from '@/components/common/page-heading'
 import SettingsLinks from '@/components/settings/links'
 import { Card } from '@/components/ui/card'
 
@@ -13,10 +14,7 @@ function SettingsRoute() {
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
 				{/* HEADING */}
-				<div className="relative">
-					<h1 className="flex flex-row items-center gap-2">Settings</h1>
-					<Settings className="text-lime-500 wish-page-icon" />
-				</div>
+				<PageHeading title="Settings" icon={Settings} color="lime" />
 				{/* CONTENT */}
 				<div className="mx-auto grid w-full max-w-6xl items-start gap-6 md:grid-cols-[180px_1fr] lg:grid-cols-[165px_1fr]">
 					<nav className="grid gap-1">

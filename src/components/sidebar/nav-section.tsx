@@ -11,7 +11,7 @@ import {
 import { cn } from '@/lib/utils'
 
 type Props = {
-	title: string
+	title?: string
 	items: Array<NavItem>
 	className?: string
 }
@@ -58,7 +58,9 @@ export const NavItem = ({ item, className }: { item: NavItem; className?: string
 export default function NavSection({ title, items, className }: Props) {
 	return (
 		<SidebarGroup className={className}>
-			<SidebarGroupLabel className="text-sm font-semibold underline underline-offset-4 decoration-dashed">{title}</SidebarGroupLabel>
+			{title && (
+				<SidebarGroupLabel className="text-sm font-semibold underline underline-offset-4 decoration-dashed">{title}</SidebarGroupLabel>
+			)}
 			<SidebarGroupContent>
 				<SidebarMenu>
 					{items.map(item => (

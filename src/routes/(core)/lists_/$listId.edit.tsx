@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import { createItemGroup, deleteItemGroup, reorderGroupItems } from '@/api/groups'
 import { getAddableEditors, getListEditors } from '@/api/list-editors'
 import { getListForEditing, getListSummaries, type ListForEditing, type ListSummary } from '@/api/lists'
-import ListTypeIcon from '@/components/common/list-type-icon'
+import ListTypeTile from '@/components/common/list-type-tile'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import { GroupBlock } from '@/components/items/group-block'
 import { InternalListLinksProvider } from '@/components/items/internal-list-links-context'
@@ -159,9 +159,10 @@ function ListEditPage() {
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
 				{/* HEADING */}
-				<div className="relative flex flex-col gap-1">
+				<div className="flex flex-col gap-1">
 					<BackToParentList from={from} />
-					<div className="flex items-center gap-3">
+					<div className="flex items-center gap-3 min-w-0">
+						<ListTypeTile type={list.type} />
 						<h1 className="truncate flex-1">{list.name}</h1>
 						<ListSettingsSheet
 							listId={list.id}
@@ -177,7 +178,6 @@ function ListEditPage() {
 							defaultOpen={initialSettingsOpen}
 						/>
 					</div>
-					<ListTypeIcon type={list.type} className="wish-page-icon" />
 				</div>
 				{list.description && <MarkdownNotes content={list.description} className="text-muted-foreground" />}
 

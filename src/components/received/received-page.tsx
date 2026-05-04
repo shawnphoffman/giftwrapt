@@ -4,6 +4,7 @@ import { Fragment, useMemo, useState } from 'react'
 
 import type { GifterUnit, ReceivedGiftsResult } from '@/api/received'
 import { DateRangeFilter } from '@/components/common/date-range-filter'
+import { PageHeading } from '@/components/common/page-heading'
 import UserAvatar from '@/components/common/user-avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -78,11 +79,7 @@ export function ReceivedPageContent({ data }: Props) {
 	return (
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
-				{/* HEADING */}
-				<div className="relative">
-					<h1 className="flex flex-row items-center gap-2">Received</h1>
-					<PackageOpen className="text-cyan-500 wish-page-icon" />
-				</div>
+				<PageHeading title="Received" icon={PackageOpen} color="cyan" />
 
 				<p className="text-sm text-muted-foreground">
 					Gifts that have been archived on your lists. Once archived, you can see who gifted each item. Partnered gifters appear together as

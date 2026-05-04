@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router'
 import { FlaskConical } from 'lucide-react'
 
+import { PageHeading } from '@/components/common/page-heading'
 import TempLinks from '@/components/temp/links'
 import { adminAuthMiddleware } from '@/middleware/auth'
 
@@ -16,10 +17,7 @@ function TempRoutes() {
 		<div className="wish-page max-w-7xl min-w-fit">
 			<div className="flex flex-col flex-1 gap-6">
 				{/* HEADING */}
-				<div className="relative">
-					<h1 className="flex flex-row items-center gap-2 text-amber-500">Temp</h1>
-					<FlaskConical className="text-amber-500 wish-page-icon" />
-				</div>
+				<PageHeading title="Temp" icon={FlaskConical} color="amber" titleClassName="text-amber-500" />
 				{/* CONTENT */}
 				<div className="mx-auto grid w-full max-w-8xl items-start gap-6 md:grid-cols-[180px_1fr] lg:grid-cols-[165px_1fr]">
 					<nav className="grid gap-1">
