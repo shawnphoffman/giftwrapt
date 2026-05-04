@@ -54,9 +54,12 @@ export type RecommendationAction = {
 	confirmCopy?: string
 	apply?: RecommendationApply
 	// When set, the rec card renders the action as a navigation link
-	// (target=_blank). Navigation actions never resolve the rec; the
-	// user can come back and apply or dismiss it explicitly.
-	href?: string
+	// (target=_blank) into the list (or directly to an item via fragment).
+	// Navigation actions never resolve the rec; the user can come back
+	// and apply or dismiss it explicitly. Encoding nav as structured
+	// (listId, itemId?) instead of a free-form URL keeps the analyzer
+	// output in domain terms and lets the renderer own URL shape.
+	nav?: { listId: string; itemId?: string }
 }
 
 export type AffectedSummary = {
@@ -121,7 +124,7 @@ export const recPayloadSchema = z.object({
 				description: z.string(),
 				intent: z.enum(ACTION_INTENTS),
 				confirmCopy: z.string().optional(),
-				href: z.string().optional(),
+				nav: z.object({ listId: z.string(), itemId: z.string().optional() }).optional(),
 				apply: z
 					.discriminatedUnion('kind', [
 						z.object({

@@ -182,7 +182,7 @@ export const staleItemsAnalyzer: Analyzer = {
 							label: 'Open list',
 							description: `Jump to ${listRef.name} so you can edit or remove these items one at a time.`,
 							intent: 'do',
-							href: `/lists/${listRef.id}`,
+							nav: { listId: listRef.id },
 						},
 						{
 							label: itemRefs.length === 1 ? 'Delete item' : `Delete ${itemRefs.length} items`,
@@ -265,7 +265,7 @@ function buildHeuristicRec({ list, items: itemRefs }: { list: ListRef; items: Ar
 				label: 'Open list',
 				description: `Jump to ${list.name} to review.`,
 				intent: 'do',
-				href: `/lists/${list.id}`,
+				nav: { listId: list.id },
 			},
 		],
 		affected: {

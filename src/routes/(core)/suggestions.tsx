@@ -12,7 +12,7 @@ import {
 	reactivateRecommendation,
 	refreshMyRecommendations,
 } from '@/api/intelligence'
-import type { IntelligencePageState, Recommendation } from '@/components/intelligence/__fixtures__/types'
+import type { IntelligencePageState, Recommendation, RecommendationAction } from '@/components/intelligence/__fixtures__/types'
 import { IntelligencePageContent } from '@/components/intelligence/intelligence-page'
 
 const intelligenceQueryOptions = {
@@ -67,7 +67,7 @@ function IntelligenceRoute() {
 			onDismiss={rec => dismissMutation.mutate(rec.id)}
 			onReactivate={rec => reactivateMutation.mutate(rec.id)}
 			onAction={(rec, action) => {
-				// Navigation actions (href) are handled in the rec card as
+				// Navigation actions (nav) are handled in the rec card as
 				// anchor links and never reach this handler. Apply actions
 				// run a server mutation that flips the rec to applied on
 				// success. Noop actions ("Keep both", "Keep separate") are
@@ -117,6 +117,29 @@ function buildState(data: IntelligencePagePayload, generating: boolean): Intelli
 
 	const recs: Array<Recommendation> = data.recs.map(r => {
 		const payload = (r.payload ?? {}) as Partial<Recommendation>
+		// Legacy recs persisted before nav was introduced stored navigation
+		// targets as `href: "/lists/..."`. Convert those to the structured
+		// `nav` shape on read so the rec card renders them as proper links
+		// instead of falling through to the confirm-dialog path. Also handle
+		// the even-older shape where `intent: 'do'` actions had neither
+		// `href` nor `apply`; for those, derive nav from the rec's list
+		// context.
+		const fallbackListId = payload.relatedLists?.[0]?.id ?? payload.affected?.listChips?.[0]?.id ?? null
+		const actions = payload.actions?.map(rawAction => {
+			const a = rawAction as RecommendationAction & { href?: string }
+			if (a.nav || a.apply) return rawAction
+			if (a.href) {
+				const m = /^\/lists\/([^#]+)(?:#item-(.+))?$/.exec(a.href)
+				if (m) {
+					const { href: _drop, ...rest } = a
+					return { ...rest, nav: { listId: m[1], ...(m[2] ? { itemId: m[2] } : {}) } }
+				}
+			}
+			if (a.intent === 'do' && fallbackListId) {
+				return { ...rawAction, nav: { listId: fallbackListId } }
+			}
+			return rawAction
+		})
 		return {
 			id: r.id,
 			analyzerId: r.analyzerId as Recommendation['analyzerId'],
@@ -127,7 +150,7 @@ function buildState(data: IntelligencePagePayload, generating: boolean): Intelli
 			body: r.body,
 			createdAt: new Date(r.createdAt),
 			dismissedAt: r.dismissedAt ? new Date(r.dismissedAt) : null,
-			actions: payload.actions,
+			actions,
 			dismissDescription: payload.dismissDescription,
 			affected: payload.affected,
 			relatedLists: payload.relatedLists,

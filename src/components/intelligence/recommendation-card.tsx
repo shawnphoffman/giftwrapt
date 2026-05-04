@@ -119,8 +119,12 @@ const DEFAULT_DISMISS_DESCRIPTION = "Hide this recommendation. We won't show it 
 
 // Anything that resolves a rec (apply, destructive, noop-as-dismiss,
 // explicit dismiss) goes through a confirmation. Navigation actions
-// (`href`) bypass this entirely; they don't change rec status.
+// (`nav`) bypass this entirely; they don't change rec status.
 type PendingConfirm = { kind: 'action'; action: RecommendationAction } | { kind: 'dismiss' }
+
+function navHref(nav: { listId: string; itemId?: string }): string {
+	return nav.itemId ? `/lists/${nav.listId}#item-${nav.itemId}` : `/lists/${nav.listId}`
+}
 
 export function RecommendationCard({ rec, position, onAction, onDismiss, onSelectListPicker }: Props) {
 	const sev = SEVERITY_META[rec.severity]
@@ -133,10 +137,10 @@ export function RecommendationCard({ rec, position, onAction, onDismiss, onSelec
 	const [pending, setPending] = useState<PendingConfirm | null>(null)
 
 	const handleActionClick = (action: RecommendationAction) => {
-		// href actions are anchor links and never reach here, but guard
+		// nav actions are anchor links and never reach here, but guard
 		// anyway so future callers can't accidentally route nav through
 		// the confirm path.
-		if (action.href) return
+		if (action.nav) return
 		setPending({ kind: 'action', action })
 	}
 	const handleDismissClick = () => setPending({ kind: 'dismiss' })
@@ -467,8 +471,8 @@ function ActionRow({ action, onClick }: { action: RecommendationAction; onClick:
 }
 
 function ActionButton({ action, onClick }: { action: RecommendationAction; onClick: () => void }) {
-	if (action.href) {
-		return <LinkButton label={action.label} href={action.href} intent={action.intent} />
+	if (action.nav) {
+		return <LinkButton label={action.label} href={navHref(action.nav)} intent={action.intent} />
 	}
 	if (action.intent === 'ai') {
 		return <AiButton label={action.label} onClick={onClick} />

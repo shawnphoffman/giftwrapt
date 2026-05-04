@@ -65,7 +65,7 @@ export type RecommendationAction = {
 	intent: ActionIntent
 	confirmCopy?: string // shown in a confirm dialog before firing apply/dismiss actions
 	apply?: RecommendationApply // when set, the rec card renders an apply button that triggers this server-side
-	href?: string // when set, the rec card renders the action as a navigation link; never resolves the rec
+	nav?: { listId: string; itemId?: string } // when set, the rec card renders the action as a navigation link to the list (or item via fragment); never resolves the rec
 }
 
 export type AffectedSummary = {
