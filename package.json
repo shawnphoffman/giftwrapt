@@ -33,6 +33,7 @@
 		"admin:reset-password": "tsx scripts/admin-reset-password.ts",
 		"intelligence:run-once": "tsx scripts/intelligence-run-once.ts",
 		"intelligence:worker": "tsx scripts/intelligence-worker.ts",
+		"scrape-queue:run-once": "tsx scripts/scrape-queue-run-once.ts",
 		"storage:init": "tsx scripts/init-garage.ts",
 		"storage:init:rustfs": "tsx scripts/init-rustfs.ts",
 		"storybook": "STORYBOOK=true storybook dev -p 6006",
