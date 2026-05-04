@@ -4,9 +4,19 @@ import { useState } from 'react'
 import DependentAvatar from '@/components/common/dependent-avatar'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import UserAvatar from '@/components/common/user-avatar'
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
@@ -107,6 +117,11 @@ const SEVERITY_META: Record<
 
 const DEFAULT_DISMISS_DESCRIPTION = "Hide this recommendation. We won't show it again unless the underlying items or lists change."
 
+// Anything that resolves a rec (apply, destructive, noop-as-dismiss,
+// explicit dismiss) goes through a confirmation. Navigation actions
+// (`href`) bypass this entirely; they don't change rec status.
+type PendingConfirm = { kind: 'action'; action: RecommendationAction } | { kind: 'dismiss' }
+
 export function RecommendationCard({ rec, position, onAction, onDismiss, onSelectListPicker }: Props) {
 	const sev = SEVERITY_META[rec.severity]
 	const SevIcon = sev.icon
@@ -114,6 +129,23 @@ export function RecommendationCard({ rec, position, onAction, onDismiss, onSelec
 	const applied = rec.status === 'applied'
 	const inactive = dismissed || applied
 	const isPicker = rec.interaction?.kind === 'list-picker'
+	const dismissDescription = rec.dismissDescription ?? DEFAULT_DISMISS_DESCRIPTION
+	const [pending, setPending] = useState<PendingConfirm | null>(null)
+
+	const handleActionClick = (action: RecommendationAction) => {
+		// href actions are anchor links and never reach here, but guard
+		// anyway so future callers can't accidentally route nav through
+		// the confirm path.
+		if (action.href) return
+		setPending({ kind: 'action', action })
+	}
+	const handleDismissClick = () => setPending({ kind: 'dismiss' })
+	const handleConfirm = () => {
+		if (!pending) return
+		if (pending.kind === 'action') onAction?.(rec, pending.action)
+		else onDismiss?.(rec)
+		setPending(null)
+	}
 
 	return (
 		<Card
@@ -201,26 +233,89 @@ export function RecommendationCard({ rec, position, onAction, onDismiss, onSelec
 				{!inactive && !isPicker && (
 					<ActionsSection
 						actions={rec.actions ?? []}
-						dismissDescription={rec.dismissDescription ?? DEFAULT_DISMISS_DESCRIPTION}
-						onAction={action => onAction?.(rec, action)}
-						onDismiss={() => onDismiss?.(rec)}
+						dismissDescription={dismissDescription}
+						onAction={handleActionClick}
+						onDismiss={handleDismissClick}
 					/>
 				)}
 
 				{!inactive && isPicker && onDismiss && (
-					<ActionsSection
-						actions={[]}
-						dismissDescription={rec.dismissDescription ?? DEFAULT_DISMISS_DESCRIPTION}
-						onAction={() => undefined}
-						onDismiss={() => onDismiss(rec)}
-					/>
+					<ActionsSection actions={[]} dismissDescription={dismissDescription} onAction={() => undefined} onDismiss={handleDismissClick} />
 				)}
 			</div>
+
+			<RecommendationConfirmDialog
+				rec={rec}
+				pending={pending}
+				dismissDescription={dismissDescription}
+				onCancel={() => setPending(null)}
+				onConfirm={handleConfirm}
+			/>
 		</Card>
 	)
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
+
+function RecommendationConfirmDialog({
+	rec,
+	pending,
+	dismissDescription,
+	onCancel,
+	onConfirm,
+}: {
+	rec: Recommendation
+	pending: PendingConfirm | null
+	dismissDescription: string
+	onCancel: () => void
+	onConfirm: () => void
+}) {
+	const action = pending?.kind === 'action' ? pending.action : null
+	// Noop intent (e.g. "Keep both" / "Keep separate") is treated as an
+	// explicit dismiss in the route handler, so the dialog mirrors that.
+	const isDismissLike = pending?.kind === 'dismiss' || action?.intent === 'noop'
+	const isDestructive = action?.intent === 'destructive'
+	const title = isDismissLike ? 'Dismiss this suggestion?' : (action?.label ?? 'Confirm action')
+	const body = isDismissLike
+		? (action?.confirmCopy ?? action?.description ?? dismissDescription)
+		: (action?.confirmCopy ?? action?.description ?? 'This will resolve the suggestion.')
+	const confirmLabel = isDismissLike ? 'Dismiss' : (action?.label ?? 'Confirm')
+	const confirmClass = isDestructive
+		? buttonVariants({ variant: 'destructive' })
+		: cn(
+				buttonVariants({ variant: 'default' }),
+				'bg-emerald-600 hover:bg-emerald-500 dark:bg-emerald-700 dark:hover:bg-emerald-600 text-white'
+			)
+
+	return (
+		<AlertDialog
+			open={pending !== null}
+			onOpenChange={open => {
+				if (!open) onCancel()
+			}}
+		>
+			<AlertDialogContent data-intelligence="confirm-dialog" data-confirm-kind={pending?.kind ?? 'none'}>
+				<AlertDialogHeader>
+					<AlertDialogTitle data-intelligence="confirm-title">{title}</AlertDialogTitle>
+					<AlertDialogDescription asChild>
+						<div data-intelligence="confirm-body" className="flex flex-col gap-2 text-sm">
+							<span>{body}</span>
+							<span data-intelligence="confirm-rec-title" className="text-muted-foreground italic">
+								{rec.title}
+							</span>
+						</div>
+					</AlertDialogDescription>
+				</AlertDialogHeader>
+				<AlertDialogFooter>
+					<AlertDialogCancel data-intelligence="confirm-cancel">Cancel</AlertDialogCancel>
+					<AlertDialogAction data-intelligence="confirm-confirm" className={confirmClass} onClick={onConfirm}>
+						{confirmLabel}
+					</AlertDialogAction>
+				</AlertDialogFooter>
+			</AlertDialogContent>
+		</AlertDialog>
+	)
+}
 
 function AffectedPanel({ affected, relatedItems }: { affected: AffectedSummary; relatedItems?: Array<ItemRef> }) {
 	const lists = affected.listChips ?? []
