@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 
 import { testAiConnectionAsAdmin } from '@/api/admin-ai'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { CharacterCounter } from '@/components/ui/character-counter'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -259,196 +260,215 @@ function Form({ config, saving, mutate }: FormProps) {
 		config.maxOutputTokens.source === 'db'
 
 	return (
-		<div className="flex flex-col gap-8">
-			<section className="flex flex-col gap-6">
-				{/* Provider */}
-				<div className="flex flex-col gap-2">
-					<div className="space-y-0.5">
-						<Label htmlFor="aiProvider" className="text-base">
-							Provider
-						</Label>
-						<p className="text-sm text-muted-foreground">
-							Pick OpenAI, Anthropic, a known OpenAI-compatible provider, or Custom to point at any other endpoint.
-						</p>
-					</div>
-					<Select value={providerId} onValueChange={handleProviderChange} disabled={providerTypeLocked || baseUrlLocked || saving}>
-						<SelectTrigger id="aiProvider" className="w-full">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							{PROVIDERS.map(p => (
-								<SelectItem key={p.id} value={p.id}>
-									{p.name}
-								</SelectItem>
-							))}
-							<SelectItem value={CUSTOM_PROVIDER_ID}>Custom…</SelectItem>
-						</SelectContent>
-					</Select>
-					{!isCustomProvider && provider?.baseUrl && <p className="text-xs text-muted-foreground font-mono">{provider.baseUrl}</p>}
-					{providerTypeLocked && <p className="text-xs text-muted-foreground">Set by AI_PROVIDER_TYPE. Unset to edit here.</p>}
-					{baseUrlLocked && <p className="text-xs text-muted-foreground">Set by AI_BASE_URL. Unset to edit here.</p>}
-				</div>
-
-				{/* Custom base URL (only when provider type is openai-compatible AND custom) */}
-				{showsBaseUrl && isCustomProvider && (
+		<div className="flex flex-col gap-6">
+			<Card>
+				<CardHeader>
+					<CardTitle className="text-2xl">AI</CardTitle>
+					<CardDescription>
+						Configure the AI provider used for scraping post-passes and Intelligence recommendations. Any OpenAI-compatible endpoint works.
+						Values provided via environment variables take precedence and cannot be edited here.
+					</CardDescription>
+				</CardHeader>
+				<CardContent className="flex flex-col gap-6">
+					{/* Provider */}
 					<div className="flex flex-col gap-2">
 						<div className="space-y-0.5">
-							<Label htmlFor="aiBaseUrl" className="text-base">
-								Base URL
+							<Label htmlFor="aiProvider" className="text-base">
+								Provider
 							</Label>
 							<p className="text-sm text-muted-foreground">
-								The chat-completions API root, without a trailing slash. Example: http://localhost:11434/v1
+								Pick OpenAI, Anthropic, a known OpenAI-compatible provider, or Custom to point at any other endpoint.
+							</p>
+						</div>
+						<Select value={providerId} onValueChange={handleProviderChange} disabled={providerTypeLocked || baseUrlLocked || saving}>
+							<SelectTrigger id="aiProvider" className="w-full">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								{PROVIDERS.map(p => (
+									<SelectItem key={p.id} value={p.id}>
+										{p.name}
+									</SelectItem>
+								))}
+								<SelectItem value={CUSTOM_PROVIDER_ID}>Custom…</SelectItem>
+							</SelectContent>
+						</Select>
+						{!isCustomProvider && provider?.baseUrl && <p className="text-xs text-muted-foreground font-mono">{provider.baseUrl}</p>}
+						{providerTypeLocked && <p className="text-xs text-muted-foreground">Set by AI_PROVIDER_TYPE. Unset to edit here.</p>}
+						{baseUrlLocked && <p className="text-xs text-muted-foreground">Set by AI_BASE_URL. Unset to edit here.</p>}
+					</div>
+
+					{/* Custom base URL (only when provider type is openai-compatible AND custom) */}
+					{showsBaseUrl && isCustomProvider && (
+						<div className="flex flex-col gap-2">
+							<div className="space-y-0.5">
+								<Label htmlFor="aiBaseUrl" className="text-base">
+									Base URL
+								</Label>
+								<p className="text-sm text-muted-foreground">
+									The chat-completions API root, without a trailing slash. Example: http://localhost:11434/v1
+								</p>
+							</div>
+							<Input
+								id="aiBaseUrl"
+								type="url"
+								value={customBaseUrl}
+								placeholder="https://example.com/v1"
+								disabled={baseUrlLocked || saving}
+								maxLength={LIMITS.URL}
+								onChange={e => setCustomBaseUrl(e.target.value)}
+							/>
+						</div>
+					)}
+
+					{/* API key */}
+					<div className="flex flex-col gap-2">
+						<div className="space-y-0.5">
+							<Label htmlFor="aiApiKey" className="text-base">
+								API Key
+							</Label>
+							<p className="text-sm text-muted-foreground">Bearer token sent to the provider. Encrypted at rest.</p>
+						</div>
+						{apiKeyLocked ? (
+							<>
+								<Input id="aiApiKey" value={config.apiKey.preview ?? ''} disabled readOnly className="font-mono" />
+								<p className="text-xs text-muted-foreground">Set by AI_API_KEY. Unset to edit here.</p>
+							</>
+						) : apiKeyMode === 'display' && config.apiKey.source === 'db' ? (
+							<div className="flex items-center gap-2">
+								<Input id="aiApiKey" value={config.apiKey.preview ?? ''} disabled readOnly className="font-mono" />
+								<Button type="button" variant="secondary" onClick={handleApiKeyReplace} disabled={saving}>
+									Replace
+								</Button>
+							</div>
+						) : (
+							<div className="flex items-center gap-2">
+								<Input
+									id="aiApiKey"
+									type="password"
+									autoComplete="off"
+									value={apiKeyDraft}
+									placeholder="sk-…"
+									disabled={saving}
+									maxLength={LIMITS.SECRET}
+									onChange={e => setApiKeyDraft(e.target.value)}
+								/>
+								{config.apiKey.source !== 'missing' && (
+									<Button type="button" variant="outline" onClick={handleApiKeyCancel} disabled={saving}>
+										Cancel
+									</Button>
+								)}
+							</div>
+						)}
+					</div>
+
+					{/* Model */}
+					<div className="flex flex-col gap-2">
+						<div className="space-y-0.5">
+							<Label htmlFor="aiModel" className="text-base">
+								Model
+							</Label>
+							<p className="text-sm text-muted-foreground">
+								{modelOptions.length > 0
+									? 'Pick from common models for this provider, or choose Custom.'
+									: 'Enter a model identifier supported by this provider.'}
+							</p>
+						</div>
+						{modelOptions.length > 0 && (
+							<Select value={modelSelect} onValueChange={setModelSelect} disabled={modelLocked || saving}>
+								<SelectTrigger id="aiModel" className="w-full">
+									<SelectValue placeholder="Select a model" />
+								</SelectTrigger>
+								<SelectContent>
+									{modelOptions.map(m => (
+										<SelectItem key={m} value={m}>
+											{m}
+										</SelectItem>
+									))}
+									<SelectItem value={CUSTOM_MODEL_VALUE}>Custom…</SelectItem>
+								</SelectContent>
+							</Select>
+						)}
+						{isCustomModel && (
+							<>
+								<Input
+									id={modelOptions.length > 0 ? 'aiModelCustom' : 'aiModel'}
+									type="text"
+									value={customModel}
+									placeholder={modelOptions.length === 0 ? 'e.g. llama3.1:8b' : 'Enter custom model name'}
+									disabled={modelLocked || saving}
+									maxLength={LIMITS.SHORT_NAME}
+									onChange={e => setCustomModel(e.target.value)}
+								/>
+								<CharacterCounter value={customModel} max={LIMITS.SHORT_NAME} className="self-end" />
+							</>
+						)}
+						{modelLocked && <p className="text-xs text-muted-foreground">Set by AI_MODEL. Unset to edit here.</p>}
+					</div>
+
+					<Separator />
+
+					<TestConnectionSection
+						canTest={canTest}
+						dirty={dirty}
+						draftProviderType={providerTypeDirty ? effectiveProviderType : undefined}
+						draftApiKey={apiKeyDirty ? apiKeyDraft : undefined}
+						draftBaseUrl={baseUrlDirty && showsBaseUrl ? effectiveBaseUrl : undefined}
+						draftModel={modelDirty ? effectiveModel : undefined}
+						draftMaxOutputTokens={maxTokensDirty ? effectiveMaxTokens : undefined}
+					/>
+				</CardContent>
+			</Card>
+
+			<Card>
+				<CardHeader>
+					<CardTitle className="text-2xl">Provider settings</CardTitle>
+					<CardDescription>
+						Tunables that apply across every AI feature. Provider-specific options will live here as we add them.
+					</CardDescription>
+				</CardHeader>
+				<CardContent className="flex flex-col gap-6">
+					{/* Max output tokens */}
+					<div className="flex flex-col gap-2">
+						<div className="space-y-0.5">
+							<Label htmlFor="aiMaxOutputTokens" className="text-base">
+								Max output tokens
+							</Label>
+							<p className="text-sm text-muted-foreground">
+								Caps the response length for connection tests and any AI features. Reasoning models need at least a few hundred.
 							</p>
 						</div>
 						<Input
-							id="aiBaseUrl"
-							type="url"
-							value={customBaseUrl}
-							placeholder="https://example.com/v1"
-							disabled={baseUrlLocked || saving}
-							maxLength={LIMITS.URL}
-							onChange={e => setCustomBaseUrl(e.target.value)}
+							id="aiMaxOutputTokens"
+							type="number"
+							inputMode="numeric"
+							min={1}
+							max={64_000}
+							value={maxTokensDraft}
+							placeholder={String(DEFAULT_MAX_OUTPUT_TOKENS)}
+							disabled={maxTokensLocked || saving}
+							onChange={e => setMaxTokensDraft(e.target.value)}
+							className="w-40"
 						/>
+						{!maxTokensValid && maxTokensDraft.length > 0 && (
+							<p className="text-xs text-destructive">Enter a whole number between 1 and 64000.</p>
+						)}
+						{maxTokensLocked && <p className="text-xs text-muted-foreground">Set by AI_MAX_OUTPUT_TOKENS. Unset to edit here.</p>}
 					</div>
-				)}
+				</CardContent>
+			</Card>
 
-				{/* API key */}
-				<div className="flex flex-col gap-2">
-					<div className="space-y-0.5">
-						<Label htmlFor="aiApiKey" className="text-base">
-							API Key
-						</Label>
-						<p className="text-sm text-muted-foreground">Bearer token sent to the provider. Encrypted at rest.</p>
-					</div>
-					{apiKeyLocked ? (
-						<>
-							<Input id="aiApiKey" value={config.apiKey.preview ?? ''} disabled readOnly className="font-mono" />
-							<p className="text-xs text-muted-foreground">Set by AI_API_KEY. Unset to edit here.</p>
-						</>
-					) : apiKeyMode === 'display' && config.apiKey.source === 'db' ? (
-						<div className="flex items-center gap-2">
-							<Input id="aiApiKey" value={config.apiKey.preview ?? ''} disabled readOnly className="font-mono" />
-							<Button type="button" variant="secondary" onClick={handleApiKeyReplace} disabled={saving}>
-								Replace
-							</Button>
-						</div>
-					) : (
-						<div className="flex items-center gap-2">
-							<Input
-								id="aiApiKey"
-								type="password"
-								autoComplete="off"
-								value={apiKeyDraft}
-								placeholder="sk-…"
-								disabled={saving}
-								maxLength={LIMITS.SECRET}
-								onChange={e => setApiKeyDraft(e.target.value)}
-							/>
-							{config.apiKey.source !== 'missing' && (
-								<Button type="button" variant="outline" onClick={handleApiKeyCancel} disabled={saving}>
-									Cancel
-								</Button>
-							)}
-						</div>
-					)}
-				</div>
-
-				{/* Model */}
-				<div className="flex flex-col gap-2">
-					<div className="space-y-0.5">
-						<Label htmlFor="aiModel" className="text-base">
-							Model
-						</Label>
-						<p className="text-sm text-muted-foreground">
-							{modelOptions.length > 0
-								? 'Pick from common models for this provider, or choose Custom.'
-								: 'Enter a model identifier supported by this provider.'}
-						</p>
-					</div>
-					{modelOptions.length > 0 && (
-						<Select value={modelSelect} onValueChange={setModelSelect} disabled={modelLocked || saving}>
-							<SelectTrigger id="aiModel" className="w-full">
-								<SelectValue placeholder="Select a model" />
-							</SelectTrigger>
-							<SelectContent>
-								{modelOptions.map(m => (
-									<SelectItem key={m} value={m}>
-										{m}
-									</SelectItem>
-								))}
-								<SelectItem value={CUSTOM_MODEL_VALUE}>Custom…</SelectItem>
-							</SelectContent>
-						</Select>
-					)}
-					{isCustomModel && (
-						<>
-							<Input
-								id={modelOptions.length > 0 ? 'aiModelCustom' : 'aiModel'}
-								type="text"
-								value={customModel}
-								placeholder={modelOptions.length === 0 ? 'e.g. llama3.1:8b' : 'Enter custom model name'}
-								disabled={modelLocked || saving}
-								maxLength={LIMITS.SHORT_NAME}
-								onChange={e => setCustomModel(e.target.value)}
-							/>
-							<CharacterCounter value={customModel} max={LIMITS.SHORT_NAME} className="self-end" />
-						</>
-					)}
-					{modelLocked && <p className="text-xs text-muted-foreground">Set by AI_MODEL. Unset to edit here.</p>}
-				</div>
-
-				{/* Max output tokens */}
-				<div className="flex flex-col gap-2">
-					<div className="space-y-0.5">
-						<Label htmlFor="aiMaxOutputTokens" className="text-base">
-							Max output tokens
-						</Label>
-						<p className="text-sm text-muted-foreground">
-							Caps the response length for connection tests and any AI features. Reasoning models need at least a few hundred.
-						</p>
-					</div>
-					<Input
-						id="aiMaxOutputTokens"
-						type="number"
-						inputMode="numeric"
-						min={1}
-						max={64_000}
-						value={maxTokensDraft}
-						placeholder={String(DEFAULT_MAX_OUTPUT_TOKENS)}
-						disabled={maxTokensLocked || saving}
-						onChange={e => setMaxTokensDraft(e.target.value)}
-						className="w-40"
-					/>
-					{!maxTokensValid && maxTokensDraft.length > 0 && (
-						<p className="text-xs text-destructive">Enter a whole number between 1 and 64000.</p>
-					)}
-					{maxTokensLocked && <p className="text-xs text-muted-foreground">Set by AI_MAX_OUTPUT_TOKENS. Unset to edit here.</p>}
-				</div>
-
-				{/* Save button row */}
-				<div className="flex items-center gap-2">
-					<Button type="button" onClick={handleSave} disabled={!dirty || saving}>
-						{saving ? 'Saving…' : 'Save'}
+			{/* Save button row — covers both Provider and Provider settings cards */}
+			<div className="flex items-center gap-2">
+				<Button type="button" onClick={handleSave} disabled={!dirty || saving}>
+					{saving ? 'Saving…' : 'Save'}
+				</Button>
+				{hasAnyDbValue && (
+					<Button type="button" variant="outline" onClick={handleClearAll} disabled={saving}>
+						Clear all
 					</Button>
-					{hasAnyDbValue && (
-						<Button type="button" variant="outline" onClick={handleClearAll} disabled={saving}>
-							Clear all
-						</Button>
-					)}
-				</div>
-			</section>
-
-			<Separator />
-
-			<TestConnectionSection
-				canTest={canTest}
-				dirty={dirty}
-				draftProviderType={providerTypeDirty ? effectiveProviderType : undefined}
-				draftApiKey={apiKeyDirty ? apiKeyDraft : undefined}
-				draftBaseUrl={baseUrlDirty && showsBaseUrl ? effectiveBaseUrl : undefined}
-				draftModel={modelDirty ? effectiveModel : undefined}
-				draftMaxOutputTokens={maxTokensDirty ? effectiveMaxTokens : undefined}
-			/>
+				)}
+			</div>
 		</div>
 	)
 }
