@@ -143,8 +143,8 @@ export function AdminIntelligencePageContent({
 			)}
 
 			{enabled && providerMissing && (
-				<Card data-intelligence="admin-blocked-by-provider">
-					<CardContent className="p-6 text-sm text-muted-foreground">
+				<Card data-intelligence="admin-blocked-by-provider" data-card-variant="state">
+					<CardContent className="p-6 text-center text-sm text-muted-foreground">
 						Settings, analyzers, and run history are hidden until an AI provider is configured. Once a provider is set up, this page will
 						populate.
 					</CardContent>

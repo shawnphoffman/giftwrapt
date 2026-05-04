@@ -243,6 +243,176 @@ function DialogIconSwatch({ label, icon: Icon, bg, ring }: { label: string; icon
 const ACTION_BTN_BASE =
 	'inline-flex h-8 shrink-0 items-center gap-1 rounded-md px-2.5 text-sm font-medium text-white whitespace-nowrap transition-all duration-150'
 
+// Canonical Card variants. The catalog renders one example of each plus
+// a static JSX recipe a contributor can copy. New cards in the codebase
+// should match one of these shapes; deviations should be intentional and
+// documented inline.
+type CardVariant = {
+	id: 'section' | 'dense' | 'hero-gradient' | 'metric-tile' | 'state' | 'legacy'
+	name: string
+	when: string
+	notWhen?: string
+	snippet: string
+	render: () => React.ReactElement
+}
+
+const CARD_VARIANTS: Array<CardVariant> = [
+	{
+		id: 'section',
+		name: 'Section',
+		when: 'Default. Top-level labeled chunk on a page. Header carries the title; body holds the section content.',
+		notWhen: "Don't inline an <h2> in CardContent or override the default px-6 padding without a real reason.",
+		snippet: `<Card>
+  <CardHeader>
+    <CardTitle>Audience</CardTitle>
+    <CardDescription>Eligible users for this run</CardDescription>
+  </CardHeader>
+  <CardContent>{...}</CardContent>
+</Card>`,
+		render: () => (
+			<Card>
+				<CardHeader>
+					<CardTitle>Audience</CardTitle>
+					<CardDescription>Eligible users for this run</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<p className="text-sm text-muted-foreground">42 users overdue for a refresh, 6 gated by unread recs.</p>
+				</CardContent>
+			</Card>
+		),
+	},
+	{
+		id: 'dense',
+		name: 'Dense',
+		when: 'Same shape as Section but tighter padding (size="sm"). Use for nested sub-cards or grids of 3+ peer cards.',
+		notWhen: 'Top-level page sections are always Section, not Dense.',
+		snippet: `<Card size="sm">
+  <CardHeader>
+    <CardTitle>Active recs</CardTitle>
+    <CardDescription>across 4 analyzers</CardDescription>
+  </CardHeader>
+  <CardContent>{...}</CardContent>
+</Card>`,
+		render: () => (
+			<Card size="sm">
+				<CardHeader>
+					<CardTitle>Active recs</CardTitle>
+					<CardDescription>across 4 analyzers</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<span className="text-2xl font-bold tabular-nums">17</span>
+				</CardContent>
+			</Card>
+		),
+	},
+	{
+		id: 'hero-gradient',
+		name: 'Hero gradient',
+		when: 'A featured surface like a feature toggle or call-to-action. Pairs the AI brand gradient with white text.',
+		notWhen: 'Limit one per page. Stacking gradients dilutes them. Use Section for the rest.',
+		snippet: `<Card
+  className={cn(
+    'border-transparent shadow-md shadow-fuchsia-500/20',
+    'ring-1 ring-fuchsia-400/40 dark:ring-fuchsia-600/40',
+    'bg-gradient-to-br from-amber-500 via-pink-500 to-fuchsia-600',
+    'dark:from-amber-700 dark:via-pink-700 dark:to-fuchsia-800',
+  )}
+>
+  <CardHeader>
+    <CardTitle className="text-white drop-shadow-sm">Intelligence</CardTitle>
+    <CardDescription className="text-white/95">{...}</CardDescription>
+  </CardHeader>
+  <CardContent className="text-white/95">{...}</CardContent>
+</Card>`,
+		render: () => (
+			<Card
+				className={cn(
+					'border-transparent shadow-md shadow-fuchsia-500/20',
+					'ring-1 ring-fuchsia-400/40 dark:ring-fuchsia-600/40',
+					'bg-gradient-to-br from-amber-500 via-pink-500 to-fuchsia-600',
+					'dark:from-amber-700 dark:via-pink-700 dark:to-fuchsia-800'
+				)}
+			>
+				<CardHeader>
+					<CardTitle className="text-white drop-shadow-sm">Intelligence</CardTitle>
+					<CardDescription className="text-white/95">Recommendations are flowing.</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<p className="text-sm text-white/95">Cron is delivering fresh insights.</p>
+				</CardContent>
+			</Card>
+		),
+	},
+	{
+		id: 'metric-tile',
+		name: 'Metric tile',
+		when: 'A single statistic in a hero row, often translucently gradient-filled. Always shows a number as its primary content.',
+		notWhen: 'If the body is anything other than a single value, reach for Dense instead.',
+		snippet: `<Card size="sm" className="bg-gradient-to-br from-cyan-400/40 via-sky-400/30 to-blue-500/40">
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2">
+      <Icon className="size-5" /> Total
+    </CardTitle>
+    <CardDescription className="text-foreground/50">…</CardDescription>
+  </CardHeader>
+  <CardContent>
+    <span className="text-3xl font-bold tabular-nums">42</span>
+  </CardContent>
+</Card>`,
+		render: () => (
+			<Card size="sm" className="bg-gradient-to-br from-cyan-400/40 via-sky-400/30 to-blue-500/40">
+				<CardHeader>
+					<CardTitle className="flex items-center gap-2">
+						<PackageOpen className="size-5" />
+						Total
+					</CardTitle>
+					<CardDescription className="text-foreground/50">Items received this year</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<span className="text-3xl font-bold tabular-nums">42</span>
+				</CardContent>
+			</Card>
+		),
+	},
+	{
+		id: 'state',
+		name: 'Empty / state',
+		when: 'Placeholder for a non-data state: feature off, no provider, error gate. Centered muted text, no header.',
+		notWhen: 'If the user can act on this card, use Section so they have a title to anchor to.',
+		snippet: `<Card>
+  <CardContent className="p-6 text-center text-sm text-muted-foreground">
+    Settings are hidden until an AI provider is configured.
+  </CardContent>
+</Card>`,
+		render: () => (
+			<Card>
+				<CardContent className="p-6 text-center text-sm text-muted-foreground">
+					Settings are hidden until an AI provider is configured.
+				</CardContent>
+			</Card>
+		),
+	},
+	{
+		id: 'legacy',
+		name: 'Legacy bare Card (deprecated)',
+		when: "Inherited shape: <Card> + <CardContent> with an inline heading. Most existing consumers look like this. Don't add new instances; migrate to Section when you're already in the file.",
+		snippet: `<Card>
+  <CardContent className="p-4">
+    <h2 className="text-lg font-semibold">Section</h2>
+    <p className="text-sm text-muted-foreground">…</p>
+  </CardContent>
+</Card>`,
+		render: () => (
+			<Card>
+				<CardContent className="p-4">
+					<h2 className="text-lg font-semibold">Section</h2>
+					<p className="text-sm text-muted-foreground mt-1">Inline heading defeats the slot semantics. Avoid in new code.</p>
+				</CardContent>
+			</Card>
+		),
+	},
+]
+
 export default function ProjectPatterns() {
 	return (
 		<div className="flex flex-col gap-10">
@@ -599,6 +769,37 @@ export default function ProjectPatterns() {
 						</a>
 						<span className="text-xs text-muted-foreground">back-to-parent emerald pill</span>
 					</div>
+				</div>
+			</Section>
+
+			<Separator />
+
+			{/* CARD VARIANTS */}
+			<Section
+				title="Card variants"
+				description="Six canonical Card shapes. Pick one before reaching for the primitive. Section is the default; Hero gradient is one-per-page; Metric tile and Dense are for grids; State has no header; Legacy is what most older code looks like and should be migrated when touched."
+			>
+				<div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+					{CARD_VARIANTS.map(v => (
+						<div key={v.id} data-card-variant={v.id} className="flex flex-col gap-2 rounded-lg border border-border/60 bg-muted/10 p-3">
+							<div className="flex items-baseline justify-between gap-2">
+								<h3 className="text-sm font-semibold">{v.name}</h3>
+								<code className="text-[10px] font-mono text-muted-foreground">data-card-variant=&quot;{v.id}&quot;</code>
+							</div>
+							<p className="text-xs text-muted-foreground leading-relaxed">
+								<span className="font-medium text-foreground/80">When:</span> {v.when}
+							</p>
+							{v.notWhen && (
+								<p className="text-xs text-muted-foreground leading-relaxed">
+									<span className="font-medium text-foreground/80">Not when:</span> {v.notWhen}
+								</p>
+							)}
+							<div className="pt-1">{v.render()}</div>
+							<pre className="text-[11px] font-mono leading-snug rounded-md bg-background/60 ring-1 ring-foreground/10 p-2 overflow-x-auto whitespace-pre">
+								{v.snippet}
+							</pre>
+						</div>
+					))}
 				</div>
 			</Section>
 

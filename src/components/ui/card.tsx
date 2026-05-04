@@ -1,3 +1,6 @@
+// See `Theme / Project Patterns / Card variants` in Storybook for the
+// canonical Section / Dense / Hero gradient / Metric tile / State / Legacy
+// shapes. Pick one before composing a new card from these primitives.
 import * as React from 'react'
 
 import { cn } from '@/lib/utils'
