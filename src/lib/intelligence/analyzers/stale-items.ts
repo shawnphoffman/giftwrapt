@@ -1,9 +1,10 @@
 import { generateObject } from 'ai'
-import { and, asc, desc, eq, ne, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, isNull, ne, sql } from 'drizzle-orm'
 
 import { items, lists } from '@/db/schema'
 
 import type { Analyzer } from '../analyzer'
+import type { AnalyzerSubject } from '../context'
 import { combineHashes, sha256Hex } from '../hash'
 import {
 	buildStaleItemsPrompt,
@@ -44,6 +45,7 @@ export const staleItemsAnalyzer: Analyzer = {
 			.where(
 				and(
 					eq(lists.ownerId, ctx.userId),
+					ctx.dependentId === null ? isNull(lists.subjectDependentId) : eq(lists.subjectDependentId, ctx.dependentId),
 					eq(lists.isActive, true),
 					ne(lists.type, 'giftideas'),
 					eq(items.isArchived, false),
@@ -86,7 +88,7 @@ export const staleItemsAnalyzer: Analyzer = {
 		if (!ctx.model) {
 			for (const [listId, group] of byList.entries()) {
 				if (group.length < 2) continue
-				const listRef = listRefFor(listId, group)
+				const listRef = listRefFor(listId, group, ctx.subject)
 				const itemRefs = itemRefsFor(group)
 				recs.push(buildHeuristicRec({ list: listRef, items: itemRefs }))
 			}
@@ -166,7 +168,7 @@ export const staleItemsAnalyzer: Analyzer = {
 			// Build a one-time map of itemId -> row so each rec can pluck
 			// only the items it flagged, not the entire candidate group.
 			const candidatesById = new Map(group.map(c => [String(c.itemId), c]))
-			const listRef = listRefFor(numericListId, group)
+			const listRef = listRefFor(numericListId, group, ctx.subject)
 
 			for (const ai of flagged) {
 				const flaggedRows = ai.itemIds.map(id => candidatesById.get(id)).filter((r): r is (typeof group)[number] => r !== undefined)
@@ -228,14 +230,21 @@ type CandidateRow = {
 	listIsPrivate: boolean
 }
 
-function listRefFor(listId: number, group: ReadonlyArray<CandidateRow>): ListRef {
+function listRefFor(listId: number, group: ReadonlyArray<CandidateRow>, subject: AnalyzerSubject): ListRef {
 	return {
 		id: String(listId),
 		name: group[0].listName,
 		type: group[0].listType as ListRef['type'],
 		isPrivate: group[0].listIsPrivate,
-		subject: { kind: 'user', name: 'You', image: null },
+		subject: subjectToListSubject(subject),
 	}
+}
+
+function subjectToListSubject(subject: AnalyzerSubject): ListRef['subject'] {
+	if (subject.kind === 'dependent') {
+		return { kind: 'dependent', name: subject.name, image: subject.image }
+	}
+	return { kind: 'user', name: subject.name, image: subject.image }
 }
 
 function itemRefsFor(rows: ReadonlyArray<CandidateRow>): Array<ItemRef> {

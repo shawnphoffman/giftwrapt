@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { index, integer, jsonb, pgEnum, pgTable, serial, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 
+import { dependents } from './dependents'
 import { users } from './users'
 
 // ===============================
@@ -41,6 +42,12 @@ export const recommendations = pgTable(
 		userId: text('user_id')
 			.notNull()
 			.references(() => users.id, { onDelete: 'cascade' }),
+		// When set, the rec is scoped to one of the user's dependents (the
+		// user is the guardian; the dependent is the gift recipient). When
+		// null, the rec is about the user's own lists. Recs scope is part of
+		// the fingerprint so a stale-items rec for the user and the same
+		// shape for a dependent never collide on dedup.
+		dependentId: text('dependent_id').references(() => dependents.id, { onDelete: 'cascade' }),
 		// All recs from one generation run share a batchId so admins can scope
 		// "what came out of this run" without reconstructing from timestamps.
 		batchId: uuid('batch_id').notNull(),
@@ -69,6 +76,9 @@ export const recommendations = pgTable(
 		index('recommendations_user_status_created_idx').on(table.userId, table.status, table.createdAt.desc()),
 		index('recommendations_user_batch_idx').on(table.userId, table.batchId),
 		index('recommendations_user_fingerprint_idx').on(table.userId, table.fingerprint),
+		// Lets the user-facing suggestions page split recs into "mine" vs
+		// "for my dependents" without scanning the full set per user.
+		index('recommendations_user_dependent_status_idx').on(table.userId, table.dependentId, table.status),
 	]
 )
 

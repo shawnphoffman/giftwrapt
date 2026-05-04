@@ -1,4 +1,4 @@
-import { and, eq, ne, sql } from 'drizzle-orm'
+import { and, eq, isNull, ne, sql } from 'drizzle-orm'
 
 import { lists } from '@/db/schema'
 
@@ -29,7 +29,14 @@ export const primaryListAnalyzer: Analyzer = {
 			})
 			.from(lists)
 			.leftJoin(sql`users u`, sql`u.id = ${lists.ownerId}`)
-			.where(and(eq(lists.ownerId, ctx.userId), eq(lists.isActive, true), ne(lists.type, 'giftideas')))
+			.where(
+				and(
+					eq(lists.ownerId, ctx.userId),
+					ctx.dependentId === null ? isNull(lists.subjectDependentId) : eq(lists.subjectDependentId, ctx.dependentId),
+					eq(lists.isActive, true),
+					ne(lists.type, 'giftideas')
+				)
+			)
 
 		const hasPrimary = userLists.some(l => l.isPrimary)
 		const eligible = userLists.filter(l => !l.isPrimary)
@@ -49,22 +56,33 @@ export const primaryListAnalyzer: Analyzer = {
 			return { recs: [], steps, inputHash: combineHashes([inputHash]) }
 		}
 
-		const subjectName = userLists.find(l => l.ownerName)?.ownerName ?? 'You'
+		const subjectName = ctx.subject.kind === 'dependent' ? ctx.subject.name : (userLists.find(l => l.ownerName)?.ownerName ?? 'You')
+		const subjectImage = ctx.subject.image
+		const listSubject: ListRef['subject'] =
+			ctx.subject.kind === 'dependent'
+				? { kind: 'dependent', name: subjectName, image: subjectImage }
+				: { kind: 'user', name: subjectName, image: subjectImage }
 		const eligibleRefs: Array<ListRef> = eligible.map(l => ({
 			id: String(l.id),
 			name: l.name,
 			type: l.type as ListRef['type'],
 			isPrivate: l.isPrivate,
-			subject: { kind: 'user', name: subjectName, image: null },
+			subject: listSubject,
 		}))
+
+		const isDependent = ctx.subject.kind === 'dependent'
+		const title = isDependent ? `Pick a primary list for ${ctx.subject.name}` : 'Pick a primary list'
+		const body = isDependent
+			? `${ctx.subject.name} has ${eligible.length} active list${eligible.length === 1 ? '' : 's'} but none are marked primary. The primary list is the one shoppers see first - choosing one helps gifters know where to focus.`
+			: `You have ${eligible.length} active list${eligible.length === 1 ? '' : 's'} but none are marked primary. Your primary list is the one shoppers see first - choosing one helps gifters know where to focus.`
 
 		return {
 			recs: [
 				{
 					kind: 'no-primary',
 					severity: 'important',
-					title: 'Pick a primary list',
-					body: `You have ${eligible.length} active list${eligible.length === 1 ? '' : 's'} but none are marked primary. Your primary list is the one shoppers see first - choosing one helps gifters know where to focus.`,
+					title,
+					body,
 					interaction: {
 						kind: 'list-picker',
 						saveLabel: 'Save as primary',

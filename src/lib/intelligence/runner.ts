@@ -1,9 +1,12 @@
 import { type LanguageModel } from 'ai'
-import { and, count, eq, sql } from 'drizzle-orm'
+import { and, count, eq, inArray, sql } from 'drizzle-orm'
 
 import type { Database } from '@/db'
 import {
+	dependentGuardianships,
+	dependents,
 	intelligenceLockKeySql,
+	lists,
 	type NewRecommendation,
 	type NewRecommendationRun,
 	type NewRecommendationRunStep,
@@ -11,6 +14,7 @@ import {
 	recommendationRunSteps,
 	recommendations,
 	type RecommendationStatus,
+	users,
 } from '@/db/schema'
 import { createAiModel } from '@/lib/ai-client'
 import { resolveAiConfig } from '@/lib/ai-config'
@@ -18,7 +22,7 @@ import { createLogger } from '@/lib/logger'
 import { type AppSettings, DEFAULT_APP_SETTINGS } from '@/lib/settings'
 import { getAppSettings } from '@/lib/settings-loader'
 
-import type { AnalyzerContext } from './context'
+import type { AnalyzerContext, AnalyzerSubject } from './context'
 import { fingerprintFor } from './fingerprint'
 import { combineHashes } from './hash'
 import { notifyForRun } from './notify'
@@ -74,16 +78,20 @@ export async function generateForUser(db: Database, userId: string, opts: Genera
 		}
 
 		const model = await resolveModel(db, settings)
-		const ctx: AnalyzerContext = {
-			db,
-			userId,
-			model,
-			settings,
-			logger: log,
-			now: new Date(),
-			candidateCap: settings.intelligenceCandidateCap,
-			dryRun: settings.intelligenceDryRun,
-		}
+		const now = new Date()
+
+		// Resolve the recipient subjects for this run: the user (always) +
+		// every dependent the user guardians who has at least one active
+		// non-giftideas list owned by the user. Each subject becomes a
+		// separate analyzer pass; outputs are persisted in one batch so
+		// the per-user advisory lock and skip semantics still cover all of
+		// them atomically.
+		const userSubject = await loadUserSubject(db, userId)
+		const dependentSubjects = await loadDependentSubjects(db, userId)
+		const passes: Array<{ dependentId: string | null; subject: AnalyzerSubject }> = [
+			{ dependentId: null, subject: userSubject },
+			...dependentSubjects.map(d => ({ dependentId: d.id, subject: d as AnalyzerSubject })),
+		]
 
 		// Open a run row up front so admins can see "running" state.
 		const [run] = await db
@@ -96,39 +104,56 @@ export async function generateForUser(db: Database, userId: string, opts: Genera
 			.returning({ id: recommendationRuns.id })
 
 		try {
-			const allOutputs: Array<AnalyzerRecOutput & { analyzerId: string }> = []
+			const allOutputs: Array<AnalyzerRecOutput & { analyzerId: string; dependentId: string | null }> = []
 			const allSteps: Array<NewRecommendationRunStep> = []
 			const inputHashSlices: Array<string | null> = []
 			let totalIn = 0
 			let totalOut = 0
 
-			for (const analyzer of ANALYZERS) {
-				if (!isAnalyzerEnabled(analyzer, settings.intelligencePerAnalyzerEnabled)) continue
-				try {
-					const result = await analyzer.run(ctx)
-					inputHashSlices.push(result.inputHash)
-					for (const rec of result.recs) {
-						allOutputs.push({ ...rec, analyzerId: analyzer.id })
+			for (const pass of passes) {
+				const ctx: AnalyzerContext = {
+					db,
+					userId,
+					model,
+					settings,
+					logger: log,
+					now,
+					candidateCap: settings.intelligenceCandidateCap,
+					dryRun: settings.intelligenceDryRun,
+					dependentId: pass.dependentId,
+					subject: pass.subject,
+				}
+				for (const analyzer of ANALYZERS) {
+					if (!isAnalyzerEnabled(analyzer, settings.intelligencePerAnalyzerEnabled)) continue
+					try {
+						const result = await analyzer.run(ctx)
+						// Tag the input-hash slice with the dependent scope so a
+						// rec set that's identical "shape" but different scope
+						// doesn't collide on the unchanged-input guard.
+						inputHashSlices.push(result.inputHash ? `${pass.dependentId ?? 'self'}:${result.inputHash}` : result.inputHash)
+						for (const rec of result.recs) {
+							allOutputs.push({ ...rec, analyzerId: analyzer.id, dependentId: pass.dependentId })
+						}
+						for (const step of result.steps) {
+							totalIn += step.tokensIn ?? 0
+							totalOut += step.tokensOut ?? 0
+							allSteps.push(stepRow(run.id, analyzer.id, step))
+						}
+					} catch (err) {
+						const msg = err instanceof Error ? err.message : String(err)
+						allSteps.push({
+							runId: run.id,
+							analyzer: analyzer.id,
+							prompt: null,
+							responseRaw: null,
+							parsed: null,
+							tokensIn: 0,
+							tokensOut: 0,
+							latencyMs: 0,
+							error: msg,
+						})
+						log.warn({ analyzer: analyzer.id, dependentId: pass.dependentId, err: msg }, 'analyzer threw; continuing')
 					}
-					for (const step of result.steps) {
-						totalIn += step.tokensIn ?? 0
-						totalOut += step.tokensOut ?? 0
-						allSteps.push(stepRow(run.id, analyzer.id, step))
-					}
-				} catch (err) {
-					const msg = err instanceof Error ? err.message : String(err)
-					allSteps.push({
-						runId: run.id,
-						analyzer: analyzer.id,
-						prompt: null,
-						responseRaw: null,
-						parsed: null,
-						tokensIn: 0,
-						tokensOut: 0,
-						latencyMs: 0,
-						error: msg,
-					})
-					log.warn({ analyzer: analyzer.id, err: msg }, 'analyzer threw; continuing')
 				}
 			}
 
@@ -243,7 +268,7 @@ async function persistBatch(
 	db: Database,
 	userId: string,
 	batchId: string,
-	outputs: Array<AnalyzerRecOutput & { analyzerId: string }>,
+	outputs: Array<AnalyzerRecOutput & { analyzerId: string; dependentId: string | null }>,
 	dryRun: boolean
 ): Promise<number> {
 	if (dryRun) return outputs.length
@@ -252,7 +277,12 @@ async function persistBatch(
 	// status from prior recs that share a fingerprint.
 	const fps = outputs.map(o => ({
 		...o,
-		fingerprint: fingerprintFor({ analyzerId: o.analyzerId, kind: o.kind, fingerprintTargets: o.fingerprintTargets }),
+		fingerprint: fingerprintFor({
+			analyzerId: o.analyzerId,
+			kind: o.kind,
+			fingerprintTargets: o.fingerprintTargets,
+			dependentId: o.dependentId,
+		}),
 	}))
 
 	const prior =
@@ -275,6 +305,7 @@ async function persistBatch(
 		const status: RecommendationStatus = carry?.status === 'dismissed' || carry?.status === 'applied' ? carry.status : 'active'
 		return {
 			userId,
+			dependentId: o.dependentId,
 			batchId,
 			analyzerId: o.analyzerId,
 			kind: o.kind,
@@ -288,12 +319,55 @@ async function persistBatch(
 		}
 	})
 
-	// Replace prior batch in a single transaction.
+	// Replace prior batch in a single transaction. Covers both the user's
+	// own recs and any per-dependent recs in one shot so the suggestions
+	// page never sees a half-rotated batch.
 	return await db.transaction(async tx => {
 		await tx.delete(recommendations).where(eq(recommendations.userId, userId))
 		if (inserts.length > 0) await tx.insert(recommendations).values(inserts)
 		return inserts.length
 	})
+}
+
+// ─── Subject resolution ─────────────────────────────────────────────────────
+
+async function loadUserSubject(db: Database, userId: string): Promise<AnalyzerSubject> {
+	const rows = await db.select({ name: users.name, image: users.image }).from(users).where(eq(users.id, userId)).limit(1)
+	if (rows.length === 0) return { kind: 'user', name: 'You', image: null }
+	const row = rows[0]
+	return {
+		kind: 'user',
+		name: row.name ?? 'You',
+		image: row.image ?? null,
+	}
+}
+
+// Returns the dependents this user guardians who have at least one active
+// non-giftideas list owned by the user. The list-presence filter avoids
+// burning analyzer passes (and AI tokens) on dependents the user has
+// added but never authored a list for.
+async function loadDependentSubjects(
+	db: Database,
+	userId: string
+): Promise<Array<{ kind: 'dependent'; id: string; name: string; image: string | null }>> {
+	const guardianed = await db
+		.select({ id: dependents.id, name: dependents.name, image: dependents.image, isArchived: dependents.isArchived })
+		.from(dependentGuardianships)
+		.innerJoin(dependents, eq(dependentGuardianships.dependentId, dependents.id))
+		.where(eq(dependentGuardianships.guardianUserId, userId))
+
+	const active = guardianed.filter(d => !d.isArchived)
+	if (active.length === 0) return []
+
+	const ids = active.map(d => d.id)
+	const listRows = await db
+		.selectDistinct({ subjectDependentId: lists.subjectDependentId })
+		.from(lists)
+		.where(
+			and(eq(lists.ownerId, userId), eq(lists.isActive, true), inArray(lists.subjectDependentId, ids), sql`${lists.type} <> 'giftideas'`)
+		)
+	const withLists = new Set(listRows.map(r => r.subjectDependentId).filter((v): v is string => v !== null))
+	return active.filter(d => withLists.has(d.id)).map(d => ({ kind: 'dependent' as const, id: d.id, name: d.name, image: d.image }))
 }
 
 function payloadFor(o: AnalyzerRecOutput): Record<string, unknown> {

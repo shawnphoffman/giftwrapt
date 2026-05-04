@@ -1,9 +1,9 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, count, desc, eq, gt, inArray, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, gt, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db, type SchemaDatabase } from '@/db'
-import { giftedItems, itemGroups, items, lists, recommendationRuns, recommendations } from '@/db/schema'
+import { dependentGuardianships, dependents, giftedItems, itemGroups, items, lists, recommendationRuns, recommendations } from '@/db/schema'
 import { resolveAiConfig } from '@/lib/ai-config'
 import { generateForUser } from '@/lib/intelligence/runner'
 import { loggingMiddleware } from '@/lib/logger'
@@ -25,13 +25,23 @@ export type IntelligenceRecRow = {
 	body: string
 	createdAt: Date
 	dismissedAt: Date | null
+	dependentId: string | null
 	payload: Record<string, never> | null
+}
+
+export type IntelligenceDependentRecGroup = {
+	dependent: { id: string; name: string; image: string | null }
+	recs: Array<IntelligenceRecRow>
 }
 
 export type IntelligencePagePayload = {
 	enabled: boolean
 	providerConfigured: boolean
+	// Recs the user owns directly (recommendations.dependentId IS NULL).
 	recs: Array<IntelligenceRecRow>
+	// Recs scoped to each dependent the user guardians, sorted by dependent
+	// name. Empty when there are no dependent recs (or no dependents).
+	byDependent: Array<IntelligenceDependentRecGroup>
 	lastRun: {
 		id: string
 		startedAt: Date
@@ -53,7 +63,7 @@ export const getMyRecommendations = createServerFn({ method: 'GET' })
 		const settings = await getAppSettings(db)
 		const aiConfig = await resolveAiConfig(db)
 
-		const [recs, lastRunRow] = await Promise.all([
+		const [allRecs, lastRunRow, guardianedDeps] = await Promise.all([
 			db
 				.select({
 					id: recommendations.id,
@@ -65,6 +75,7 @@ export const getMyRecommendations = createServerFn({ method: 'GET' })
 					body: recommendations.body,
 					createdAt: recommendations.createdAt,
 					dismissedAt: recommendations.dismissedAt,
+					dependentId: recommendations.dependentId,
 					payload: recommendations.payload,
 				})
 				.from(recommendations)
@@ -76,6 +87,15 @@ export const getMyRecommendations = createServerFn({ method: 'GET' })
 				.where(eq(recommendationRuns.userId, userId))
 				.orderBy(desc(recommendationRuns.startedAt))
 				.limit(1),
+			// Dependents the user guardians, joined with the dependent row
+			// itself so we have name + image for the section header. Sorted by
+			// name so the UI order is stable across regenerations.
+			db
+				.select({ id: dependents.id, name: dependents.name, image: dependents.image })
+				.from(dependentGuardianships)
+				.innerJoin(dependents, eq(dependentGuardianships.dependentId, dependents.id))
+				.where(eq(dependentGuardianships.guardianUserId, userId))
+				.orderBy(asc(dependents.name)),
 		])
 
 		const lastRun: (typeof lastRunRow)[number] | null = lastRunRow.length > 0 ? lastRunRow[0] : null
@@ -83,10 +103,31 @@ export const getMyRecommendations = createServerFn({ method: 'GET' })
 		const lastFinished = lastRun?.finishedAt
 		const nextEligibleRefreshAt = lastFinished ? new Date(lastFinished.getTime() + cooldownMs) : null
 
+		const userRecs: Array<IntelligenceRecRow> = []
+		const recsByDep = new Map<string, Array<IntelligenceRecRow>>()
+		for (const r of allRecs) {
+			const row: IntelligenceRecRow = { ...r, payload: r.payload as Record<string, never> | null }
+			if (r.dependentId === null) {
+				userRecs.push(row)
+			} else {
+				const arr = recsByDep.get(r.dependentId) ?? []
+				arr.push(row)
+				recsByDep.set(r.dependentId, arr)
+			}
+		}
+
+		const byDependent: Array<IntelligenceDependentRecGroup> = []
+		for (const dep of guardianedDeps) {
+			const recs = recsByDep.get(dep.id)
+			if (!recs || recs.length === 0) continue
+			byDependent.push({ dependent: { id: dep.id, name: dep.name, image: dep.image }, recs })
+		}
+
 		return {
 			enabled: settings.intelligenceEnabled,
 			providerConfigured: aiConfig.isValid,
-			recs: recs.map(r => ({ ...r, payload: r.payload as Record<string, never> | null })),
+			recs: userRecs,
+			byDependent,
 			lastRun: lastRun
 				? {
 						id: lastRun.id,

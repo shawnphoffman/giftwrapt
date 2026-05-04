@@ -9,7 +9,7 @@ import type { AnalyzerContext } from '../context'
 
 const noopLogger = { info: () => undefined, warn: () => undefined, error: () => undefined }
 
-function buildCtx(tx: any, userId: string): AnalyzerContext {
+function buildCtx(tx: any, userId: string, opts: Partial<AnalyzerContext> = {}): AnalyzerContext {
 	return {
 		db: tx,
 		userId,
@@ -19,6 +19,9 @@ function buildCtx(tx: any, userId: string): AnalyzerContext {
 		now: new Date(),
 		candidateCap: 50,
 		dryRun: false,
+		dependentId: null,
+		subject: { kind: 'user', name: 'You', image: null },
+		...opts,
 	}
 }
 

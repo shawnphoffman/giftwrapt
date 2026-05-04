@@ -8,12 +8,14 @@ import {
 	type ApplyRecommendationResult,
 	dismissRecommendation,
 	getMyRecommendations,
+	type IntelligenceDependentRecGroup,
 	type IntelligencePagePayload,
+	type IntelligenceRecRow,
 	reactivateRecommendation,
 	refreshMyRecommendations,
 } from '@/api/intelligence'
 import type { IntelligencePageState, Recommendation, RecommendationAction } from '@/components/intelligence/__fixtures__/types'
-import { IntelligencePageContent } from '@/components/intelligence/intelligence-page'
+import { type DependentRecGroup, IntelligencePageContent } from '@/components/intelligence/intelligence-page'
 
 const intelligenceQueryOptions = {
 	queryKey: ['intelligence', 'me'] as const,
@@ -59,10 +61,12 @@ function IntelligenceRoute() {
 	})
 
 	const state: IntelligencePageState = useMemo(() => buildState(data, refreshMutation.isPending), [data, refreshMutation.isPending])
+	const dependentGroups: Array<DependentRecGroup> = useMemo(() => buildDependentGroups(data.byDependent), [data.byDependent])
 
 	return (
 		<IntelligencePageContent
 			state={state}
+			dependentGroups={dependentGroups}
 			onRefresh={() => refreshMutation.mutate()}
 			onDismiss={rec => dismissMutation.mutate(rec.id)}
 			onReactivate={rec => reactivateMutation.mutate(rec.id)}
@@ -111,53 +115,62 @@ function applyErrorMessage(reason: Exclude<ApplyRecommendationResult, { ok: true
 	}
 }
 
+function rowToRecommendation(r: IntelligenceRecRow): Recommendation {
+	const payload = (r.payload ?? {}) as Partial<Recommendation>
+	// Legacy recs persisted before nav was introduced stored navigation
+	// targets as `href: "/lists/..."`. Convert those to the structured
+	// `nav` shape on read so the rec card renders them as proper links
+	// instead of falling through to the confirm-dialog path. Also handle
+	// the even-older shape where `intent: 'do'` actions had neither
+	// `href` nor `apply`; for those, derive nav from the rec's list
+	// context.
+	const fallbackListId = payload.relatedLists?.[0]?.id ?? payload.affected?.listChips?.[0]?.id ?? null
+	const actions = payload.actions?.map(rawAction => {
+		const a = rawAction as RecommendationAction & { href?: string }
+		if (a.nav || a.apply) return rawAction
+		if (a.href) {
+			const m = /^\/lists\/([^#]+)(?:#item-(.+))?$/.exec(a.href)
+			if (m) {
+				const { href: _drop, ...rest } = a
+				return { ...rest, nav: { listId: m[1], ...(m[2] ? { itemId: m[2] } : {}) } }
+			}
+		}
+		if (a.intent === 'do' && fallbackListId) {
+			return { ...rawAction, nav: { listId: fallbackListId } }
+		}
+		return rawAction
+	})
+	return {
+		id: r.id,
+		analyzerId: r.analyzerId as Recommendation['analyzerId'],
+		kind: r.kind,
+		severity: r.severity,
+		status: r.status,
+		title: r.title,
+		body: r.body,
+		createdAt: new Date(r.createdAt),
+		dismissedAt: r.dismissedAt ? new Date(r.dismissedAt) : null,
+		actions,
+		dismissDescription: payload.dismissDescription,
+		affected: payload.affected,
+		relatedLists: payload.relatedLists,
+		relatedItems: payload.relatedItems,
+		interaction: payload.interaction,
+	}
+}
+
+function buildDependentGroups(byDependent: ReadonlyArray<IntelligenceDependentRecGroup>): Array<DependentRecGroup> {
+	return byDependent.map(group => ({
+		dependent: group.dependent,
+		recs: group.recs.map(rowToRecommendation),
+	}))
+}
+
 function buildState(data: IntelligencePagePayload, generating: boolean): IntelligencePageState {
 	if (!data.enabled) return { kind: 'disabled', reason: 'feature-disabled' }
 	if (!data.providerConfigured) return { kind: 'disabled', reason: 'no-provider' }
 
-	const recs: Array<Recommendation> = data.recs.map(r => {
-		const payload = (r.payload ?? {}) as Partial<Recommendation>
-		// Legacy recs persisted before nav was introduced stored navigation
-		// targets as `href: "/lists/..."`. Convert those to the structured
-		// `nav` shape on read so the rec card renders them as proper links
-		// instead of falling through to the confirm-dialog path. Also handle
-		// the even-older shape where `intent: 'do'` actions had neither
-		// `href` nor `apply`; for those, derive nav from the rec's list
-		// context.
-		const fallbackListId = payload.relatedLists?.[0]?.id ?? payload.affected?.listChips?.[0]?.id ?? null
-		const actions = payload.actions?.map(rawAction => {
-			const a = rawAction as RecommendationAction & { href?: string }
-			if (a.nav || a.apply) return rawAction
-			if (a.href) {
-				const m = /^\/lists\/([^#]+)(?:#item-(.+))?$/.exec(a.href)
-				if (m) {
-					const { href: _drop, ...rest } = a
-					return { ...rest, nav: { listId: m[1], ...(m[2] ? { itemId: m[2] } : {}) } }
-				}
-			}
-			if (a.intent === 'do' && fallbackListId) {
-				return { ...rawAction, nav: { listId: fallbackListId } }
-			}
-			return rawAction
-		})
-		return {
-			id: r.id,
-			analyzerId: r.analyzerId as Recommendation['analyzerId'],
-			kind: r.kind,
-			severity: r.severity,
-			status: r.status,
-			title: r.title,
-			body: r.body,
-			createdAt: new Date(r.createdAt),
-			dismissedAt: r.dismissedAt ? new Date(r.dismissedAt) : null,
-			actions,
-			dismissDescription: payload.dismissDescription,
-			affected: payload.affected,
-			relatedLists: payload.relatedLists,
-			relatedItems: payload.relatedItems,
-			interaction: payload.interaction,
-		}
-	})
+	const recs: Array<Recommendation> = data.recs.map(rowToRecommendation)
 
 	const baseData = {
 		enabled: data.enabled,

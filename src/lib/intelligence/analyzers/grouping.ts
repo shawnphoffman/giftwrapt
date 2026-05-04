@@ -4,6 +4,7 @@ import { and, eq, isNull, ne } from 'drizzle-orm'
 import { items, lists } from '@/db/schema'
 
 import type { Analyzer } from '../analyzer'
+import type { AnalyzerSubject } from '../context'
 import { combineHashes, sha256Hex } from '../hash'
 import {
 	buildGroupingPrompt,
@@ -44,6 +45,7 @@ export const groupingAnalyzer: Analyzer = {
 			.where(
 				and(
 					eq(lists.ownerId, ctx.userId),
+					ctx.dependentId === null ? isNull(lists.subjectDependentId) : eq(lists.subjectDependentId, ctx.dependentId),
 					eq(lists.isActive, true),
 					ne(lists.type, 'giftideas'),
 					eq(items.isArchived, false),
@@ -149,7 +151,7 @@ export const groupingAnalyzer: Analyzer = {
 				if (row) orderedRows.push(row)
 			}
 			if (orderedRows.length < 2) continue
-			recs.push(buildGroupRec(orderedRows, cluster.listId, cluster.listName, group.decision, group.rationale))
+			recs.push(buildGroupRec(orderedRows, cluster.listId, cluster.listName, group.decision, group.rationale, ctx.subject))
 		}
 
 		return { recs, steps, inputHash: combineHashes([inputHash]) }
@@ -295,13 +297,24 @@ function buildGroupRec<
 		listType: string
 		listIsPrivate: boolean
 	},
->(rows: ReadonlyArray<TRow>, listId: number, listName: string, decision: 'or' | 'order', rationale: string): AnalyzerRecOutput {
+>(
+	rows: ReadonlyArray<TRow>,
+	listId: number,
+	listName: string,
+	decision: 'or' | 'order',
+	rationale: string,
+	subject: AnalyzerSubject
+): AnalyzerRecOutput {
+	const listSubject: ListRef['subject'] =
+		subject.kind === 'dependent'
+			? { kind: 'dependent', name: subject.name, image: subject.image }
+			: { kind: 'user', name: subject.name, image: subject.image }
 	const listRef: ListRef = {
 		id: String(listId),
 		name: listName,
 		type: rows[0].listType as ListRef['type'],
 		isPrivate: rows[0].listIsPrivate,
-		subject: { kind: 'user', name: 'You', image: null },
+		subject: listSubject,
 	}
 	const itemRefs: Array<ItemRef> = rows.map(r => ({
 		id: String(r.itemId),

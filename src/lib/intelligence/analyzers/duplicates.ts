@@ -1,9 +1,10 @@
 import { generateObject } from 'ai'
-import { and, eq, ne } from 'drizzle-orm'
+import { and, eq, isNull, ne } from 'drizzle-orm'
 
 import { items, lists } from '@/db/schema'
 
 import type { Analyzer } from '../analyzer'
+import type { AnalyzerSubject } from '../context'
 import { combineHashes, sha256Hex } from '../hash'
 import { buildDuplicatesPrompt, type DuplicateCandidate, DUPLICATES_MAX_PAIRS, duplicatesResponseSchema } from '../prompts/duplicates'
 import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ItemRef, ListRef } from '../types'
@@ -33,7 +34,15 @@ export const duplicatesAnalyzer: Analyzer = {
 			})
 			.from(items)
 			.innerJoin(lists, eq(items.listId, lists.id))
-			.where(and(eq(lists.ownerId, ctx.userId), eq(lists.isActive, true), ne(lists.type, 'giftideas'), eq(items.isArchived, false)))
+			.where(
+				and(
+					eq(lists.ownerId, ctx.userId),
+					ctx.dependentId === null ? isNull(lists.subjectDependentId) : eq(lists.subjectDependentId, ctx.dependentId),
+					eq(lists.isActive, true),
+					ne(lists.type, 'giftideas'),
+					eq(items.isArchived, false)
+				)
+			)
 			.limit(ctx.candidateCap * 4)
 
 		const loadStep: AnalyzerStep = { name: 'load-items', latencyMs: Date.now() - t0 }
@@ -87,7 +96,13 @@ export const duplicatesAnalyzer: Analyzer = {
 		if (!ctx.model) {
 			for (const pair of candidatePairs) {
 				recs.push(
-					buildPairRec(pair, 'info', 'Possible duplicate across lists', 'These items have very similar titles and live on different lists.')
+					buildPairRec(
+						pair,
+						'info',
+						'Possible duplicate across lists',
+						'These items have very similar titles and live on different lists.',
+						ctx.subject
+					)
 				)
 			}
 			return { recs, steps, inputHash: combineHashes([inputHash]) }
@@ -126,7 +141,7 @@ export const duplicatesAnalyzer: Analyzer = {
 			if (!aiPair.confident) continue
 			const dbPair = candidatePairs.find(p => String(p[0].itemId) === aiPair.leftItemId && String(p[1].itemId) === aiPair.rightItemId)
 			if (!dbPair) continue
-			recs.push(buildPairRec(dbPair, 'suggest', `Same item on two lists`, aiPair.rationale))
+			recs.push(buildPairRec(dbPair, 'suggest', `Same item on two lists`, aiPair.rationale, ctx.subject))
 		}
 
 		return { recs, steps, inputHash: combineHashes([inputHash]) }
@@ -168,22 +183,27 @@ function buildPairRec(
 	],
 	severity: 'info' | 'suggest' | 'important',
 	title: string,
-	rationale: string
+	rationale: string,
+	subject: AnalyzerSubject
 ): AnalyzerRecOutput {
 	const [a, b] = pair
+	const listSubject: ListRef['subject'] =
+		subject.kind === 'dependent'
+			? { kind: 'dependent', name: subject.name, image: subject.image }
+			: { kind: 'user', name: subject.name, image: subject.image }
 	const listA: ListRef = {
 		id: String(a.listId),
 		name: a.listName,
 		type: a.listType as ListRef['type'],
 		isPrivate: a.listIsPrivate,
-		subject: { kind: 'user', name: 'You', image: null },
+		subject: listSubject,
 	}
 	const listB: ListRef = {
 		id: String(b.listId),
 		name: b.listName,
 		type: b.listType as ListRef['type'],
 		isPrivate: b.listIsPrivate,
-		subject: { kind: 'user', name: 'You', image: null },
+		subject: listSubject,
 	}
 	const itemA: ItemRef = {
 		id: String(a.itemId),

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import type { Database } from '@/db'
 import { appSettings, recommendationRuns, recommendations } from '@/db/schema'
 
-import { makeList, makeUser } from '../../../../test/integration/factories'
+import { makeDependent, makeDependentGuardianship, makeItem, makeList, makeUser } from '../../../../test/integration/factories'
 import { withRollback } from '../../../../test/integration/setup'
 import { fingerprintFor } from '../fingerprint'
 import { generateForUser } from '../runner'
@@ -19,6 +19,18 @@ async function setIntelligenceEnabled(tx: any, enabled: boolean) {
 		.insert(appSettings)
 		.values({ key: 'intelligenceEnabled', value: enabled })
 		.onConflictDoUpdate({ target: appSettings.key, set: { value: enabled } })
+}
+
+// Configure a sham AI provider so the runner's preconditions pass and we
+// can exercise the per-dependent pass loop. Heuristic-only analyzers
+// (primary-list) don't actually call the model so the runner returns
+// successful recs without any external network access.
+async function configureAi(tx: any) {
+	const setting = (key: string, value: unknown) =>
+		tx.insert(appSettings).values({ key, value }).onConflictDoUpdate({ target: appSettings.key, set: { value } })
+	await setting('aiProviderType', 'anthropic')
+	await setting('aiApiKey', 'test-key')
+	await setting('aiModel', 'claude-3-7-sonnet-latest')
 }
 
 describe('generateForUser - skip states', () => {
@@ -65,6 +77,64 @@ describe('fingerprint stickiness (carrying dismissals across regenerations)', ()
 		const a = fingerprintFor({ analyzerId: 'duplicates', kind: 'cross-list-duplicate', fingerprintTargets: ['10', '20'] })
 		const b = fingerprintFor({ analyzerId: 'duplicates', kind: 'cross-list-duplicate', fingerprintTargets: ['20', '10'] })
 		expect(a).toBe(b)
+	})
+})
+
+describe('per-dependent pass', () => {
+	it('persists per-dependent recs alongside the user pass', async () => {
+		// Heuristic-only path: primary-list emits a no-primary rec when the
+		// candidate list set has zero primaries. The user has a list of
+		// their own, and a dependent has its own list; both passes should
+		// produce one rec each, with dependentId set on the dependent's row.
+		await withRollback(async tx => {
+			const guardian = await makeUser(tx)
+			const dep = await makeDependent(tx, { createdByUserId: guardian.id, name: 'Pippa' })
+			await makeDependentGuardianship(tx, { guardianUserId: guardian.id, dependentId: dep.id })
+
+			const ownList = await makeList(tx, { ownerId: guardian.id, type: 'wishlist', isPrimary: false })
+			await makeItem(tx, { listId: ownList.id })
+			const depList = await makeList(tx, { ownerId: guardian.id, subjectDependentId: dep.id, type: 'wishlist', isPrimary: false })
+			await makeItem(tx, { listId: depList.id })
+
+			await setIntelligenceEnabled(tx, true)
+			await configureAi(tx)
+
+			const result = await generateForUser(tx as unknown as Database, guardian.id, { trigger: 'manual' })
+			expect(result.status).toBe('success')
+
+			const rows = await tx.select().from(recommendations).where(eq(recommendations.userId, guardian.id))
+			const userRecs = rows.filter(r => r.dependentId === null)
+			const depRecs = rows.filter(r => r.dependentId === dep.id)
+
+			// primary-list (heuristic-only) should fire once for the user
+			// scope and once for the dependent scope. Other analyzers (the
+			// AI-calling ones) likely error out without a real provider, but
+			// per-analyzer errors are trapped into step rows and don't fail
+			// the run.
+			expect(userRecs.some(r => r.analyzerId === 'primary-list')).toBe(true)
+			expect(depRecs.some(r => r.analyzerId === 'primary-list')).toBe(true)
+		})
+	})
+
+	it('skips dependents with no active non-giftideas lists owned by the guardian', async () => {
+		await withRollback(async tx => {
+			const guardian = await makeUser(tx)
+			const dep = await makeDependent(tx, { createdByUserId: guardian.id })
+			await makeDependentGuardianship(tx, { guardianUserId: guardian.id, dependentId: dep.id })
+			// Guardian has their own list, but the dependent has no list of
+			// their own; we should NOT spin up a dependent pass for them.
+			await makeList(tx, { ownerId: guardian.id, type: 'wishlist', isPrimary: false })
+
+			await setIntelligenceEnabled(tx, true)
+			await configureAi(tx)
+
+			const result = await generateForUser(tx as unknown as Database, guardian.id, { trigger: 'manual' })
+			expect(result.status).toBe('success')
+
+			const rows = await tx.select().from(recommendations).where(eq(recommendations.userId, guardian.id))
+			const depRecs = rows.filter(r => r.dependentId === dep.id)
+			expect(depRecs).toHaveLength(0)
+		})
 	})
 })
 

@@ -2,6 +2,7 @@ import { format, formatDistanceToNow } from 'date-fns'
 import { AlertTriangle, CheckCheck, ChevronDown, ChevronRight, Loader2, RefreshCw, RotateCcw, Sparkles } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
+import DependentAvatar from '@/components/common/dependent-avatar'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -11,6 +12,15 @@ import type { IntelligencePageState, Recommendation, RecommendationAction, Recom
 import { RecommendationCard } from './recommendation-card'
 import { groupKeyForAnalyzer } from './recommendation-group'
 
+// One subsection of the "For your dependents" rollup. Each dependent the
+// guardian has active recs for becomes one of these. Rendered below the
+// user's own recs; dismissed/applied recs roll up into the existing
+// dismissed-disclosure rather than appearing here per-dependent.
+export type DependentRecGroup = {
+	dependent: { id: string; name: string; image: string | null }
+	recs: Array<Recommendation>
+}
+
 type Props = {
 	state: IntelligencePageState
 	onRefresh?: () => void
@@ -18,6 +28,11 @@ type Props = {
 	onDismiss?: (rec: Recommendation) => void
 	onReactivate?: (rec: Recommendation) => void
 	onSelectListPicker?: (rec: Recommendation, listId: string) => void
+	// Active recs scoped to the user's dependents. Rendered as a
+	// "For your dependents" rollup below the user's own recs. Dismissed
+	// and applied per-dependent recs roll into the global disclosure
+	// below, same as the user's own.
+	dependentGroups?: ReadonlyArray<DependentRecGroup>
 }
 
 const SEVERITY_RANK: Record<RecommendationSeverity, number> = { important: 0, suggest: 1, info: 2 }
@@ -41,7 +56,15 @@ function sortRecs(recs: Array<Recommendation>): Array<Recommendation> {
 	})
 }
 
-export function IntelligencePageContent({ state, onRefresh, onAction, onDismiss, onReactivate, onSelectListPicker }: Props) {
+export function IntelligencePageContent({
+	state,
+	onRefresh,
+	onAction,
+	onDismiss,
+	onReactivate,
+	onSelectListPicker,
+	dependentGroups,
+}: Props) {
 	if (state.kind === 'disabled') {
 		return (
 			<div data-intelligence="page" data-page-state="disabled" className="wish-page">
@@ -110,7 +133,7 @@ export function IntelligencePageContent({ state, onRefresh, onAction, onDismiss,
 				</Alert>
 			)}
 
-			{active.length === 0 && !generating ? (
+			{active.length === 0 && !generating && (!dependentGroups || dependentGroups.every(g => g.recs.length === 0)) ? (
 				<EmptyState dismissedCount={dismissed.length} appliedCount={applied.length} />
 			) : (
 				<div data-intelligence="page-groups" className="flex flex-col gap-8">
@@ -144,6 +167,10 @@ export function IntelligencePageContent({ state, onRefresh, onAction, onDismiss,
 				</div>
 			)}
 
+			{dependentGroups && dependentGroups.some(g => g.recs.length > 0) && (
+				<DependentSections groups={dependentGroups} onAction={onAction} onDismiss={onDismiss} onSelectListPicker={onSelectListPicker} />
+			)}
+
 			{dismissed.length > 0 && <DismissedDisclosure dismissed={dismissed} onReactivate={onReactivate} />}
 
 			{(dismissed.length > 0 || applied.length > 0) && (
@@ -154,6 +181,60 @@ export function IntelligencePageContent({ state, onRefresh, onAction, onDismiss,
 				</div>
 			)}
 		</div>
+	)
+}
+
+function DependentSections({
+	groups,
+	onAction,
+	onDismiss,
+	onSelectListPicker,
+}: {
+	groups: ReadonlyArray<DependentRecGroup>
+	onAction?: (rec: Recommendation, action: RecommendationAction) => void
+	onDismiss?: (rec: Recommendation) => void
+	onSelectListPicker?: (rec: Recommendation, listId: string) => void
+}) {
+	// Filter to active-only here so the per-dependent counts match what's
+	// rendered below. Dismissed/applied per-dependent recs roll into the
+	// global disclosure rather than appearing here twice.
+	const activeGroups = groups.map(g => ({ ...g, recs: g.recs.filter(r => r.status === 'active') })).filter(g => g.recs.length > 0)
+	if (activeGroups.length === 0) return null
+	return (
+		<section data-intelligence="page-dependents" className="mt-10 flex flex-col gap-6">
+			<header data-intelligence="page-dependents-header" className="flex flex-col gap-1">
+				<h2 className="text-base font-semibold">For your dependents</h2>
+				<p className="text-xs text-muted-foreground">
+					Suggestions about lists you manage on someone else&apos;s behalf. They behave just like your own.
+				</p>
+			</header>
+			{activeGroups.map(group => (
+				<section
+					key={group.dependent.id}
+					data-intelligence="page-dependent"
+					data-dependent-id={group.dependent.id}
+					className="flex flex-col gap-3"
+				>
+					<header data-intelligence="page-dependent-header" className="flex items-center gap-2">
+						<DependentAvatar name={group.dependent.name} image={group.dependent.image} size="small" />
+						<span className="text-sm font-medium">{group.dependent.name}</span>
+						<span className="text-xs text-muted-foreground">{group.recs.length} active</span>
+					</header>
+					<div data-intelligence="page-dependent-cards" className="flex flex-col gap-3">
+						{group.recs.map((rec, idx) => (
+							<RecommendationCard
+								key={rec.id}
+								rec={rec}
+								position={{ index: idx + 1, total: group.recs.length }}
+								onAction={onAction}
+								onDismiss={onDismiss}
+								onSelectListPicker={onSelectListPicker}
+							/>
+						))}
+					</div>
+				</section>
+			))}
+		</section>
 	)
 }
 
