@@ -107,8 +107,11 @@ export function RunDebugPanel({ state }: Props) {
 				)}
 				{run.error && <div className="text-xs text-destructive font-mono mt-1 whitespace-pre-wrap">{run.error}</div>}
 				{run.inputHash && (
-					<div className="text-xs text-muted-foreground mt-1">
-						Input hash: <span className="font-mono">{run.inputHash}</span>
+					<div className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+						<span>Input hash:</span>
+						<span className="font-mono" title={run.inputHash}>
+							{run.inputHash.slice(0, 12)}…
+						</span>
 					</div>
 				)}
 			</section>
@@ -116,9 +119,12 @@ export function RunDebugPanel({ state }: Props) {
 			<Separator />
 
 			<section className="flex flex-col gap-2">
-				<h3 className="text-sm font-semibold">
-					Analyzer steps <span className="text-muted-foreground font-normal">({steps.length})</span>
-				</h3>
+				<div className="flex items-baseline justify-between gap-2 flex-wrap">
+					<h3 className="text-sm font-semibold">
+						Analyzer steps <span className="text-muted-foreground font-normal">({steps.length})</span>
+					</h3>
+					<StepBreakdownInline steps={steps} />
+				</div>
 				{steps.length === 0 ? (
 					<p data-intelligence="admin-run-debug-no-steps" className="text-xs text-muted-foreground">
 						No steps recorded for this run. The run may have been skipped before any analyzer executed (see skip reason above).
@@ -259,6 +265,25 @@ function RecSeverityBadge({ severity }: { severity: RunDebugRec['severity'] }) {
 		<Badge variant={variant} className="text-[10px]">
 			{severity}
 		</Badge>
+	)
+}
+
+function StepBreakdownInline({ steps }: { steps: Array<RunDebugStep> }) {
+	let ok = 0
+	let err = 0
+	let noop = 0
+	for (const s of steps) {
+		if (s.error != null && s.error !== '') err++
+		else if (s.prompt != null) ok++
+		else noop++
+	}
+	if (ok + err + noop === 0) return null
+	return (
+		<div className="flex items-center gap-2 text-[11px] tabular-nums">
+			{ok > 0 && <span className="text-emerald-600 dark:text-emerald-400">{ok} ok</span>}
+			{err > 0 && <span className="text-destructive">{err} err</span>}
+			{noop > 0 && <span className="text-muted-foreground">{noop} noop</span>}
+		</div>
 	)
 }
 

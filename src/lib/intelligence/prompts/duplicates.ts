@@ -1,15 +1,20 @@
 import { z } from 'zod'
 
+// NOTE: keep these schemas shape-only — OpenAI's structured-output
+// validator rejects `maxItems` on arrays and `min`/`max` on strings.
+// Bound the response with the prompt + a post-parse slice in the analyzer.
 export const duplicatePairSchema = z.object({
 	leftItemId: z.string(),
 	rightItemId: z.string(),
 	confident: z.boolean(),
-	rationale: z.string().min(1).max(240),
+	rationale: z.string(),
 })
 
 export const duplicatesResponseSchema = z.object({
-	pairs: z.array(duplicatePairSchema).max(8),
+	pairs: z.array(duplicatePairSchema),
 })
+
+export const DUPLICATES_MAX_PAIRS = 8
 
 export type DuplicatesResponse = z.infer<typeof duplicatesResponseSchema>
 

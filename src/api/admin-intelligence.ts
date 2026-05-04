@@ -236,10 +236,10 @@ export const getAdminIntelligenceData = createServerFn({ method: 'GET' })
 		// runs above (batchId === runId) so the table shows what each run
 		// actually produced instead of always rendering "-".
 		const runIds = recentRuns.map(r => r.id)
-		const runRecCounts =
+		const [runRecCounts, runStepRows] = await Promise.all([
 			runIds.length === 0
-				? []
-				: await db
+				? Promise.resolve<Array<{ batchId: string; analyzerId: string; n: number }>>([])
+				: db
 						.select({
 							batchId: recommendations.batchId,
 							analyzerId: recommendations.analyzerId,
@@ -247,12 +247,43 @@ export const getAdminIntelligenceData = createServerFn({ method: 'GET' })
 						})
 						.from(recommendations)
 						.where(inArray(recommendations.batchId, runIds))
-						.groupBy(recommendations.batchId, recommendations.analyzerId)
+						.groupBy(recommendations.batchId, recommendations.analyzerId),
+			// Step outcome breakdown per run. We classify each step as:
+			//   - error: error column is non-null
+			//   - ok:    a model call happened (prompt is non-null) without error
+			//   - noop:  heuristic-only step with no model call
+			// This lets the admin see "3 ok · 2 err · 1 noop" without us
+			// having to lie about the run-level status.
+			runIds.length === 0
+				? Promise.resolve<Array<{ runId: string; hasError: boolean; hasPrompt: boolean; n: number }>>([])
+				: db
+						.select({
+							runId: recommendationRunSteps.runId,
+							hasError: sql<boolean>`${recommendationRunSteps.error} is not null`,
+							hasPrompt: sql<boolean>`${recommendationRunSteps.prompt} is not null`,
+							n: count(),
+						})
+						.from(recommendationRunSteps)
+						.where(inArray(recommendationRunSteps.runId, runIds))
+						.groupBy(
+							recommendationRunSteps.runId,
+							sql`${recommendationRunSteps.error} is not null`,
+							sql`${recommendationRunSteps.prompt} is not null`
+						),
+		])
 		const recCountMap = new Map<string, Record<string, number>>()
 		for (const row of runRecCounts) {
 			const cur = recCountMap.get(row.batchId) ?? {}
 			cur[row.analyzerId] = row.n
 			recCountMap.set(row.batchId, cur)
+		}
+		const stepCountMap = new Map<string, { ok: number; error: number; noop: number }>()
+		for (const row of runStepRows) {
+			const cur = stepCountMap.get(row.runId) ?? { ok: 0, error: 0, noop: 0 }
+			if (row.hasError) cur.error += row.n
+			else if (row.hasPrompt) cur.ok += row.n
+			else cur.noop += row.n
+			stepCountMap.set(row.runId, cur)
 		}
 
 		const today: (typeof dailySeries)[number] | undefined = dailySeries.at(-1)
@@ -316,6 +347,7 @@ export const getAdminIntelligenceData = createServerFn({ method: 'GET' })
 				durationMs: r.finishedAt ? r.finishedAt.getTime() - r.startedAt.getTime() : null,
 				inputHashShort: r.inputHash?.slice(0, 4) ?? null,
 				recCounts: recCountMap.get(r.id) ?? ({} as Record<string, number>),
+				stepCounts: stepCountMap.get(r.id) ?? { ok: 0, error: 0, noop: 0 },
 			})),
 			dailySeries,
 		}

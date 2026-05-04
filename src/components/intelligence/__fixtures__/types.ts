@@ -176,6 +176,12 @@ export type AdminRunRow = IntelligenceRunSummary & {
 	durationMs?: number | null
 	inputHashShort?: string | null
 	recCounts: Partial<Record<AnalyzerId, number>>
+	// Per-step outcome breakdown so the runs table can show partial
+	// failures explicitly instead of hiding them behind a "success" badge.
+	//   - ok: a model call returned successfully
+	//   - error: the step recorded an error string
+	//   - noop: heuristic-only step (no model call)
+	stepCounts?: { ok: number; error: number; noop: number }
 }
 
 export type RunDetailStep = {

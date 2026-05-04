@@ -4,32 +4,55 @@ import { buildDuplicatesPrompt, duplicatesResponseSchema } from '../prompts/dupl
 import { buildStaleItemsPrompt, staleItemsResponseSchema } from '../prompts/stale-items'
 
 describe('stale-items prompt', () => {
-	it('renders candidate ages and never mentions claims/gifters', () => {
+	it('renders candidate ages grouped by list and never mentions claims/gifters', () => {
 		const now = new Date('2026-05-01T00:00:00Z')
 		const candidates = [
 			{
 				itemId: '1',
 				title: 'Old kettle',
+				listId: '10',
 				listName: 'My Wishlist',
 				listType: 'wishlist',
 				updatedAt: new Date('2025-01-01T00:00:00Z'),
+				availability: 'available' as const,
+			},
+			{
+				itemId: '2',
+				title: 'Old mug',
+				listId: '11',
+				listName: 'Birthday',
+				listType: 'birthday',
+				updatedAt: new Date('2024-06-01T00:00:00Z'),
 				availability: 'available' as const,
 			},
 		]
 		const out = buildStaleItemsPrompt({ candidates, now })
 		expect(out).toContain('Old kettle')
 		expect(out).toContain('My Wishlist')
+		expect(out).toContain('Old mug')
+		expect(out).toContain('Birthday')
+		// listIds are echoed in the prompt so the model can reference them
+		// in its grouped response.
+		expect(out).toContain('id=10')
+		expect(out).toContain('id=11')
 		expect(out).toMatch(/last edited \d+ days ago/)
 		// Carries the protective instruction ("NEVER mention ...") so the
 		// model knows not to invent claim/gifter context.
 		expect(out).toMatch(/never mention.*claim/i)
 	})
 
-	it('parses a well-formed model response', () => {
+	it('parses a well-formed grouped model response', () => {
 		const result = staleItemsResponseSchema.parse({
-			recs: [{ include: true, severity: 'suggest', headline: 'Old', rationale: 'unused for a while' }],
+			lists: [
+				{
+					listId: '10',
+					recs: [{ include: true, severity: 'suggest', headline: 'Old', rationale: 'unused for a while' }],
+				},
+				{ listId: '11', recs: [] },
+			],
 		})
-		expect(result.recs).toHaveLength(1)
+		expect(result.lists).toHaveLength(2)
+		expect(result.lists[0].recs).toHaveLength(1)
 	})
 })
 
