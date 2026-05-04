@@ -444,7 +444,13 @@ export const getAdminUserRunSummaries = createServerFn({ method: 'GET' })
 			})
 			.from(recommendationRuns)
 			.groupBy(recommendationRuns.userId)
-		const lastRunByUser = new Map(lastRunRows.map(r => [r.userId, r.startedAt]))
+		// `max(startedAt)` comes back through `sql<Date>` which doesn't run
+		// drizzle's column-level Date parser, so the driver hands us an ISO
+		// string in production. Coerce once so every downstream consumer
+		// (the dedupe compare below, and the serialized `lastRunAt` field)
+		// gets a real Date.
+		const toDate = (v: Date | string): Date => (v instanceof Date ? v : new Date(v))
+		const lastRunByUser = new Map(lastRunRows.map(r => [r.userId, toDate(r.startedAt)] as const))
 
 		// Resolve those startedAt timestamps back to the run's status. We fetch
 		// rows by (userId, startedAt) tuple, which keys the run uniquely
