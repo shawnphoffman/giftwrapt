@@ -269,11 +269,7 @@ export default function ProjectPatterns() {
 				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 					{GRADIENTS.map(g => (
 						<Tile key={g.name} label={g.name} code={g.code}>
-							{/* Two-tone backdrop so translucent gradients (e.g. metric /40) read clearly in both light and dark modes. */}
-							<div className="grid grid-cols-2 h-24">
-								<div aria-hidden style={{ backgroundColor: '#ffffff', ...gradientStyle(g) }} />
-								<div aria-hidden style={{ backgroundColor: '#0a0a0a', ...gradientStyle(g) }} />
-							</div>
+							<div aria-hidden className="h-24 bg-card" style={gradientStyle(g)} />
 							<div className="px-3 py-2 text-[11px] text-muted-foreground leading-tight border-t border-foreground/10">{g.role}</div>
 						</Tile>
 					))}
