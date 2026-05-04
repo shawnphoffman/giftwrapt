@@ -20,6 +20,11 @@ export const staleItemsRecSchema = z.object({
 	severity: z.enum(['info', 'suggest', 'important']),
 	headline: z.string(),
 	rationale: z.string(),
+	// Item ids this rec is specifically about - the headline / rationale
+	// must read true for these items only. Echoed exactly from the input.
+	// Co-flag tightly related items (e.g. "all three Starbucks seasonal
+	// mugs"); list them separately when they're independent concerns.
+	itemIds: z.array(z.string()),
 })
 
 export const staleItemsListSchema = z.object({
@@ -62,9 +67,9 @@ export function buildStaleItemsPrompt(args: { candidates: ReadonlyArray<StaleIte
 
 	const sections: Array<string> = []
 	for (const [listId, group] of byList.entries()) {
-		const lines = group.items.map((c, i) => {
+		const lines = group.items.map(c => {
 			const days = Math.max(0, Math.floor((now.getTime() - c.updatedAt.getTime()) / 86400000))
-			return `  ${i + 1}. "${c.title}" - last edited ${days} days ago, ${c.availability}`
+			return `  itemId=${c.itemId} title="${c.title}" lastEditedDays=${days} ${c.availability}`
 		})
 		sections.push([`List id=${listId} name="${group.listName}" type=${group.listType}`, ...lines].join('\n'))
 	}
@@ -72,8 +77,10 @@ export function buildStaleItemsPrompt(args: { candidates: ReadonlyArray<StaleIte
 	return [
 		'You are a wishlist hygiene assistant. The user owns the items below, grouped by list. Each item has not been edited in a long time.',
 		'Decide which (if any) deserve a "consider cleaning up" recommendation. Be conservative: items that are still relevant should NOT be flagged.',
+		'Each rec must target the specific items it describes. Echo their itemIds exactly from the input.',
+		'Co-flag tightly related items (e.g. multiple seasonal variants of the same product) as one rec with multiple itemIds. List unrelated stale items as separate recs.',
 		'Respond grouped by list, echoing each listId exactly as given. For each list, include 0+ recs (skip lists where nothing should be flagged).',
-		'For each rec respond whether to include it, the severity (info/suggest/important), a short headline, and a one-sentence rationale.',
+		'For each rec respond whether to include it, the severity (info/suggest/important), a short headline, a one-sentence rationale, and the itemIds it targets.',
 		'NEVER mention gift claims, gifters, recipients, or who has purchased anything. You do not have that information.',
 		'',
 		'Lists:',

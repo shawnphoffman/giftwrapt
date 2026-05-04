@@ -86,7 +86,8 @@ export const staleItemsAnalyzer: Analyzer = {
 		if (!ctx.model) {
 			for (const [listId, group] of byList.entries()) {
 				if (group.length < 2) continue
-				const { listRef, itemRefs } = refsForGroup(listId, group)
+				const listRef = listRefFor(listId, group)
+				const itemRefs = itemRefsFor(group)
 				recs.push(buildHeuristicRec({ list: listRef, items: itemRefs }))
 			}
 			return { recs, steps, inputHash: combineHashes([inputHash]) }
@@ -141,7 +142,13 @@ export const staleItemsAnalyzer: Analyzer = {
 			parsed as {
 				lists: Array<{
 					listId: string
-					recs: Array<{ include: boolean; severity: 'info' | 'suggest' | 'important'; headline: string; rationale: string }>
+					recs: Array<{
+						include: boolean
+						severity: 'info' | 'suggest' | 'important'
+						headline: string
+						rationale: string
+						itemIds: Array<string>
+					}>
 				}>
 			}
 		).lists.slice(0, STALE_ITEMS_MAX_LISTS)
@@ -156,87 +163,91 @@ export const staleItemsAnalyzer: Analyzer = {
 			const group = byList.get(numericListId)
 			if (!group) continue
 
-			const { listRef, itemRefs } = refsForGroup(numericListId, group)
-			const severity = pickSeverity(flagged.map(r => r.severity))
-			recs.push({
-				kind: itemRefs.length === 1 ? 'old-item' : 'old-items',
-				severity,
-				title: flagged[0].headline,
-				body: flagged[0].rationale,
-				actions: [
-					{
-						label: 'Open list',
-						description: `Jump to ${listRef.name} so you can edit or remove these items one at a time.`,
-						intent: 'do',
-						href: `/lists/${listRef.id}`,
+			// Build a one-time map of itemId -> row so each rec can pluck
+			// only the items it flagged, not the entire candidate group.
+			const candidatesById = new Map(group.map(c => [String(c.itemId), c]))
+			const listRef = listRefFor(numericListId, group)
+
+			for (const ai of flagged) {
+				const flaggedRows = ai.itemIds.map(id => candidatesById.get(id)).filter((r): r is (typeof group)[number] => r !== undefined)
+				if (flaggedRows.length === 0) continue
+				const itemRefs = itemRefsFor(flaggedRows)
+				recs.push({
+					kind: itemRefs.length === 1 ? 'old-item' : 'old-items',
+					severity: ai.severity,
+					title: ai.headline,
+					body: ai.rationale,
+					actions: [
+						{
+							label: 'Open list',
+							description: `Jump to ${listRef.name} so you can edit or remove these items one at a time.`,
+							intent: 'do',
+							href: `/lists/${listRef.id}`,
+						},
+						{
+							label: itemRefs.length === 1 ? 'Delete item' : `Delete ${itemRefs.length} items`,
+							description:
+								itemRefs.length === 1
+									? 'Permanently delete this item. It has no claims, so no gifters are affected.'
+									: `Permanently delete all ${itemRefs.length} items.`,
+							intent: 'destructive',
+							confirmCopy:
+								itemRefs.length === 1
+									? `Permanently delete "${itemRefs[0].title}" from ${listRef.name}? This cannot be undone.`
+									: `Permanently delete ${itemRefs.length} items from ${listRef.name}? This cannot be undone.`,
+							apply: { kind: 'delete-items', listId: listRef.id, itemIds: itemRefs.map(it => it.id) },
+						},
+					],
+					dismissDescription: "Hide this recommendation. We won't suggest it again unless these items change.",
+					affected: {
+						noun: itemRefs.length === 1 ? 'item' : 'items',
+						count: itemRefs.length,
+						lines: itemRefs.map(it => `${it.title} · last edited ${daysSince(it.updatedAt, ctx.now)} days ago`),
+						listChips: [listRef],
 					},
-					{
-						label: itemRefs.length === 1 ? 'Delete item' : `Delete ${itemRefs.length} items`,
-						description:
-							itemRefs.length === 1
-								? 'Permanently delete this item. It has no claims, so no gifters are affected.'
-								: `Permanently delete all ${itemRefs.length} items.`,
-						intent: 'destructive',
-						confirmCopy:
-							itemRefs.length === 1
-								? `Permanently delete "${itemRefs[0].title}" from ${listRef.name}? This cannot be undone.`
-								: `Permanently delete ${itemRefs.length} items from ${listRef.name}? This cannot be undone.`,
-						apply: { kind: 'delete-items', listId: listRef.id, itemIds: itemRefs.map(it => it.id) },
-					},
-				],
-				dismissDescription: "Hide this recommendation. We won't suggest it again unless these items change.",
-				affected: {
-					noun: itemRefs.length === 1 ? 'item' : 'items',
-					count: itemRefs.length,
-					lines: itemRefs.map(it => `${it.title} · last edited ${daysSince(it.updatedAt, ctx.now)} days ago`),
-					listChips: [listRef],
-				},
-				relatedItems: itemRefs,
-				relatedLists: [listRef],
-				fingerprintTargets: itemRefs.map(it => it.id),
-			})
+					relatedItems: itemRefs,
+					relatedLists: [listRef],
+					fingerprintTargets: itemRefs.map(it => it.id),
+				})
+			}
 		}
 
 		return { recs, steps, inputHash: combineHashes([inputHash]) }
 	},
 }
 
-function refsForGroup(
-	listId: number,
-	group: Array<{
-		itemId: number
-		title: string
-		updatedAt: Date
-		availability: 'available' | 'unavailable'
-		imageUrl: string | null
-		listName: string
-		listType: string
-		listIsPrivate: boolean
-	}>
-): { listRef: ListRef; itemRefs: Array<ItemRef> } {
-	const listRef: ListRef = {
+type CandidateRow = {
+	itemId: number
+	title: string
+	updatedAt: Date
+	availability: 'available' | 'unavailable'
+	imageUrl: string | null
+	listId: number
+	listName: string
+	listType: string
+	listIsPrivate: boolean
+}
+
+function listRefFor(listId: number, group: ReadonlyArray<CandidateRow>): ListRef {
+	return {
 		id: String(listId),
 		name: group[0].listName,
 		type: group[0].listType as ListRef['type'],
 		isPrivate: group[0].listIsPrivate,
 		subject: { kind: 'user', name: 'You', image: null },
 	}
-	const itemRefs: Array<ItemRef> = group.map(g => ({
+}
+
+function itemRefsFor(rows: ReadonlyArray<CandidateRow>): Array<ItemRef> {
+	return rows.map(g => ({
 		id: String(g.itemId),
 		title: g.title,
-		listId: String(listId),
+		listId: String(g.listId),
 		listName: g.listName,
 		imageUrl: g.imageUrl,
 		updatedAt: g.updatedAt,
 		availability: g.availability,
 	}))
-	return { listRef, itemRefs }
-}
-
-function pickSeverity(severities: Array<'info' | 'suggest' | 'important'>): 'info' | 'suggest' | 'important' {
-	if (severities.includes('important')) return 'important'
-	if (severities.includes('suggest')) return 'suggest'
-	return 'info'
 }
 
 function daysSince(date: Date, now: Date): number {

@@ -36,7 +36,7 @@ describe('stale-items prompt', () => {
 		// in its grouped response.
 		expect(out).toContain('id=10')
 		expect(out).toContain('id=11')
-		expect(out).toMatch(/last edited \d+ days ago/)
+		expect(out).toMatch(/lastEditedDays=\d+/)
 		// Carries the protective instruction ("NEVER mention ...") so the
 		// model knows not to invent claim/gifter context.
 		expect(out).toMatch(/never mention.*claim/i)
@@ -47,7 +47,7 @@ describe('stale-items prompt', () => {
 			lists: [
 				{
 					listId: '10',
-					recs: [{ include: true, severity: 'suggest', headline: 'Old', rationale: 'unused for a while' }],
+					recs: [{ include: true, severity: 'suggest', headline: 'Old', rationale: 'unused for a while', itemIds: ['100', '101'] }],
 				},
 				{ listId: '11', recs: [] },
 			],
