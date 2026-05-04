@@ -7,26 +7,30 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbS
 export default function NavBreadcrumbs() {
 	const location = useLocation()
 
-	const isDeepAdmin = location.pathname.includes('/admin/')
+	const isAdminIntelligence = location.pathname === '/admin/intelligence' || location.pathname.startsWith('/admin/intelligence/')
+	const isDeepAdmin = location.pathname.includes('/admin/') && !isAdminIntelligence
 	const isAdminUserEdit = location.pathname.startsWith('/admin/user/')
+	const isAdminIntelligenceSubpage = location.pathname.startsWith('/admin/intelligence/') && location.pathname !== '/admin/intelligence/'
 
 	const isBeyondEditing = location.pathname.includes('/select')
 	const isEditingList = location.pathname.includes('/edit') || isBeyondEditing
 	const isViewingList = location.pathname.includes('/lists/')
 
-	const parentCrumb = isDeepAdmin
-		? { href: '/admin', label: 'Back to Admin' }
-		: isEditingList
-			? {
-					href: '/me',
-					label: 'My Lists',
-				}
-			: isViewingList
+	const parentCrumb = isAdminIntelligenceSubpage
+		? { href: '/admin/intelligence', label: 'Back to Intelligence' }
+		: isDeepAdmin
+			? { href: '/admin', label: 'Back to Admin' }
+			: isEditingList
 				? {
-						href: '/',
-						label: 'All Lists',
+						href: '/me',
+						label: 'My Lists',
 					}
-				: null
+				: isViewingList
+					? {
+							href: '/',
+							label: 'All Lists',
+						}
+					: null
 
 	if (!parentCrumb) return null
 	return (

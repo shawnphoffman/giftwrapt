@@ -54,7 +54,7 @@ type Props = {
 	runForMePending?: boolean
 }
 
-const ANALYZER_ORDER: Array<AnalyzerId> = ['primary-list', 'stale-items', 'duplicates', 'grouping']
+export const ANALYZER_ORDER: Array<AnalyzerId> = ['primary-list', 'stale-items', 'duplicates', 'grouping']
 
 export function AdminIntelligencePageContent({
 	data,
@@ -109,7 +109,21 @@ export function AdminIntelligencePageContent({
 
 			{providerMissing && <ProviderMissingBanner />}
 
-			<EnableToggleCard enabled={enabled} disabled={providerMissing} onToggle={v => patch({ enabled: v })} />
+			{!enabled && (
+				<Alert data-intelligence="admin-intelligence-disabled-banner">
+					<AlertTitle>Intelligence is disabled</AlertTitle>
+					<AlertDescription className="flex flex-col gap-2">
+						<span>All recommendation generation is paused. Users do not see the Intelligence page; manual refresh is blocked.</span>
+						<a
+							className="inline-flex items-center gap-1 self-start rounded-md border border-border bg-muted/40 px-2.5 py-1 text-xs font-medium hover:bg-muted/60"
+							href="/admin/ai"
+						>
+							Enable on AI settings
+							<ArrowUpRight className="size-3.5" />
+						</a>
+					</AlertDescription>
+				</Alert>
+			)}
 
 			{enabled && !providerMissing && (
 				<>
@@ -140,7 +154,7 @@ export function AdminIntelligencePageContent({
 	)
 }
 
-function ProviderMissingBanner() {
+export function ProviderMissingBanner() {
 	return (
 		<Alert data-intelligence="admin-no-provider-banner" variant="destructive">
 			<AlertTriangle className="size-4" />
@@ -160,38 +174,6 @@ function ProviderMissingBanner() {
 				</a>
 			</AlertDescription>
 		</Alert>
-	)
-}
-
-function EnableToggleCard({ enabled, disabled, onToggle }: { enabled: boolean; disabled: boolean; onToggle: (v: boolean) => void }) {
-	return (
-		<Card
-			data-intelligence="admin-enable-card"
-			className={cn(
-				enabled &&
-					'border-transparent bg-gradient-to-br from-amber-500 via-pink-500 to-fuchsia-600 dark:from-amber-700 dark:via-pink-700 dark:to-fuchsia-800 ring-1 ring-fuchsia-400/40 dark:ring-fuchsia-600/40 shadow-md shadow-fuchsia-500/20'
-			)}
-		>
-			<CardContent className="px-4 py-2.5 flex items-center justify-between gap-4">
-				<div className="flex flex-col gap-1 min-w-0">
-					<span className={cn('text-lg font-semibold', enabled && 'text-white drop-shadow-sm')}>Intelligence</span>
-					<p className={cn('text-sm', enabled ? 'text-white/95' : 'text-muted-foreground')}>
-						{enabled
-							? 'Recommendations are flowing. Cron is delivering fresh insights, users have the Intelligence page, and manual refresh is unlocked.'
-							: 'All recommendation generation is paused. Users do not see the page; manual refresh is blocked. Toggling on enables the rest of this admin surface.'}
-						{disabled && ' Configure an AI provider before turning this on.'}
-					</p>
-				</div>
-				<Switch
-					data-intelligence="admin-enable-switch"
-					size="lg"
-					checked={enabled}
-					disabled={disabled}
-					onCheckedChange={onToggle}
-					className={cn(enabled && 'data-checked:bg-white/30 border-white/50')}
-				/>
-			</CardContent>
-		</Card>
 	)
 }
 
@@ -235,7 +217,15 @@ function AnalyzerBadgeList({ kind, triggers, status }: { kind: AnalyzerKind; tri
 	)
 }
 
-function AnalyzerBadges({ kind, triggers, status }: { kind: AnalyzerKind; triggers: Array<AnalyzerTrigger>; status?: AnalyzerStatus }) {
+export function AnalyzerBadges({
+	kind,
+	triggers,
+	status,
+}: {
+	kind: AnalyzerKind
+	triggers: Array<AnalyzerTrigger>
+	status?: AnalyzerStatus
+}) {
 	return (
 		<>
 			<div className="hidden sm:flex items-center gap-1.5 flex-wrap">
@@ -262,11 +252,11 @@ function AnalyzerBadges({ kind, triggers, status }: { kind: AnalyzerKind; trigge
 	)
 }
 
-function ActionsCard({ onRunForMe, runForMePending }: { onRunForMe?: () => void; runForMePending?: boolean }) {
+export function ActionsCard({ onRunForMe, runForMePending }: { onRunForMe?: () => void; runForMePending?: boolean }) {
 	return (
-		<Card data-intelligence="admin-actions-card" size="sm">
+		<Card data-intelligence="admin-actions-card">
 			<CardHeader>
-				<CardTitle>Actions</CardTitle>
+				<CardTitle className="text-2xl">Actions</CardTitle>
 				<CardDescription>Manually trigger a run. More targets (other users, batches) will live here.</CardDescription>
 			</CardHeader>
 			<CardContent className="pb-4">
@@ -288,22 +278,38 @@ function ActionsCard({ onRunForMe, runForMePending }: { onRunForMe?: () => void;
 	)
 }
 
-function HealthGrid({ data, providerSummary }: { data: AdminIntelligenceData; providerSummary: string }) {
+export function HealthGrid({ data, providerSummary }: { data: AdminIntelligenceData; providerSummary: string }) {
 	const { health } = data
 	return (
 		<section data-intelligence="admin-health-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-			<MetricCard label="Active recs" value={health.totalActiveRecs.toString()} sub={`across ${health.analyzers.length} analyzers`} />
 			<MetricCard
+				icon={Sparkles}
+				label="Active recommendations"
+				value={health.totalActiveRecs.toString()}
+				sub={`across ${health.analyzers.length} analyzers`}
+				gradient="from-fuchsia-400/40 via-pink-400/30 to-rose-500/40"
+			/>
+			<MetricCard
+				icon={PlayCircle}
 				label="Runs (24h)"
 				value={`${health.last24h.success} ok`}
 				sub={`${sumBucket(health.last24h.skipped)} skipped · ${health.last24h.error} error`}
+				gradient="from-emerald-400/40 via-teal-400/30 to-cyan-500/40"
 			/>
 			<MetricCard
+				icon={Hash}
 				label="Tokens / day"
 				value={`${formatNumber(health.dailyTokensIn + health.dailyTokensOut)}`}
 				sub={`${formatNumber(health.dailyTokensIn)} in · ${formatNumber(health.dailyTokensOut)} out`}
+				gradient="from-amber-400/40 via-orange-400/30 to-pink-500/40"
 			/>
-			<MetricCard label="Est. cost / day" value={`$${health.dailyEstimatedCostUsd.toFixed(2)}`} sub={providerSummary} />
+			<MetricCard
+				icon={Cpu}
+				label="Estimated cost / day"
+				value={`$${health.dailyEstimatedCostUsd.toFixed(2)}`}
+				sub={providerSummary}
+				gradient="from-violet-400/40 via-purple-400/30 to-fuchsia-500/40"
+			/>
 
 			<div className="md:col-span-2 lg:col-span-4 grid grid-cols-1 lg:grid-cols-2 gap-3">
 				<RunsActivityChart data={data.dailySeries} />
@@ -312,11 +318,11 @@ function HealthGrid({ data, providerSummary }: { data: AdminIntelligenceData; pr
 
 			<div className="md:col-span-2 lg:col-span-4">
 				<Card>
-					<CardContent className="p-4">
-						<div className="flex items-center justify-between mb-3">
-							<h3 className="text-sm font-semibold">Analyzers</h3>
-							<div className="text-xs text-muted-foreground">avg duration · tokens · active recs</div>
-						</div>
+					<CardHeader>
+						<CardTitle className="text-2xl">Analyzers</CardTitle>
+						<CardDescription>Average duration · tokens · active recommendations</CardDescription>
+					</CardHeader>
+					<CardContent>
 						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
 							{health.analyzers.map(a => (
 								<div key={a.id} className="rounded-lg border border-border bg-muted/20 px-3 py-2">
@@ -327,7 +333,7 @@ function HealthGrid({ data, providerSummary }: { data: AdminIntelligenceData; pr
 									<div className="mt-1 text-xs text-muted-foreground">
 										{a.avgDurationMs}ms · {formatNumber(a.avgTokensIn)} in / {formatNumber(a.avgTokensOut)} out
 									</div>
-									<div className="text-xs">{a.activeRecs} active recs</div>
+									<div className="text-xs">{a.activeRecs} active recommendations</div>
 								</div>
 							))}
 						</div>
@@ -337,12 +343,17 @@ function HealthGrid({ data, providerSummary }: { data: AdminIntelligenceData; pr
 
 			<div className="md:col-span-2 lg:col-span-4">
 				<Card>
-					<CardContent className="p-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-						<QueueStat icon={TimerReset} label="Overdue" value={health.queue.overdue} />
-						<QueueStat icon={Hash} label="Gated by unread" value={health.queue.gatedByUnreadRecs} />
-						<QueueStat icon={Lock} label="Lock held" value={health.queue.lockHeld} />
-						<div className="ml-auto text-xs text-muted-foreground">
+					<CardHeader>
+						<CardTitle className="text-2xl">Queue</CardTitle>
+						<CardDescription>
 							7d: {health.last7d.success} ok · {sumBucket(health.last7d.skipped)} skipped · {health.last7d.error} err
+						</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
+							<QueueStat icon={TimerReset} label="Overdue" value={health.queue.overdue} />
+							<QueueStat icon={Hash} label="Gated by unread" value={health.queue.gatedByUnreadRecs} />
+							<QueueStat icon={Lock} label="Lock held" value={health.queue.lockHeld} />
 						</div>
 					</CardContent>
 				</Card>
@@ -361,13 +372,30 @@ function QueueStat({ icon: Icon, label, value }: { icon: React.ComponentType<{ c
 	)
 }
 
-function MetricCard({ label, value, sub }: { label: string; value: string; sub: string }) {
+function MetricCard({
+	icon: Icon,
+	label,
+	value,
+	sub,
+	gradient,
+}: {
+	icon: React.ComponentType<{ className?: string }>
+	label: string
+	value: string
+	sub: string
+	gradient: string
+}) {
 	return (
-		<Card>
-			<CardContent className="p-4">
-				<div className="text-sm uppercase tracking-wide text-muted-foreground font-medium">{label}</div>
-				<div className="mt-1 text-4xl font-bold tabular-nums leading-none">{value}</div>
-				<div className="mt-1.5 text-sm text-muted-foreground">{sub}</div>
+		<Card size="sm" className={cn('bg-gradient-to-br', gradient)}>
+			<CardHeader>
+				<CardTitle className="flex items-center gap-2">
+					<Icon className="size-5" />
+					{label}
+				</CardTitle>
+				<CardDescription className="text-foreground/50">{sub}</CardDescription>
+			</CardHeader>
+			<CardContent>
+				<span className="text-3xl font-bold tabular-nums">{value}</span>
 			</CardContent>
 		</Card>
 	)
@@ -376,29 +404,35 @@ function MetricCard({ label, value, sub }: { label: string; value: string; sub: 
 // Per-analyzer descriptions for the Analyzers section. Hardcoded here so
 // admins see what each toggle actually does without having to dig into
 // the analyzer source. Keep these short — long copy belongs in docs.
-type AnalyzerKind = 'heuristic' | 'ai'
-type AnalyzerTrigger = 'cron' | 'manual'
-type AnalyzerStatus = 'coming-soon'
+export type AnalyzerKind = 'heuristic' | 'ai'
+export type AnalyzerTrigger = 'cron' | 'manual'
+export type AnalyzerStatus = 'coming-soon'
 
-const ANALYZER_META: Record<
+export const ANALYZER_META: Record<
 	AnalyzerId,
-	{ label: string; description: string; kind: AnalyzerKind; triggers: Array<AnalyzerTrigger>; status?: AnalyzerStatus }
+	{ label: string; description: string; example: string; kind: AnalyzerKind; triggers: Array<AnalyzerTrigger>; status?: AnalyzerStatus }
 > = {
 	'primary-list': {
 		label: 'Primary list',
 		description: 'Suggests setting a primary list when the user has multiple active lists but none are marked primary.',
+		example:
+			'You have 3 active wishlists but none are marked primary. Set one so people who want to shop for you know where to look first.',
 		kind: 'heuristic',
 		triggers: ['cron', 'manual'],
 	},
 	'stale-items': {
 		label: 'Stale items',
 		description: 'Reviews items not edited in 6+ months and asks the model to flag any worth cleaning up.',
+		example:
+			'"Wireless headphones (model XYZ)" hasn\'t been touched in 11 months and the linked product is discontinued. Consider archiving or replacing it.',
 		kind: 'ai',
 		triggers: ['cron', 'manual'],
 	},
 	duplicates: {
 		label: 'Duplicates',
 		description: 'Finds items with similar titles across different lists and asks the model to confirm true duplicates.',
+		example:
+			'"Stanley tumbler 30oz" appears on both your Birthday list and your Wishlist. Looks like the same item — keep one and remove the other.',
 		kind: 'ai',
 		triggers: ['cron', 'manual'],
 	},
@@ -406,12 +440,19 @@ const ANALYZER_META: Record<
 		label: 'Grouping',
 		description:
 			'Suggests "pick one" or "in order" groups for ungrouped items that look like alternates of the same need or a prerequisite sequence.',
+		example: 'These three coffee grinders look like alternates of the same need. Group as "pick one" so gifters know to only buy one.',
 		kind: 'ai',
 		triggers: ['cron', 'manual'],
 	},
 }
 
-function SettingsPanel({ data, patch }: { data: AdminIntelligenceData; patch: (p: Partial<AdminIntelligenceData['settings']>) => void }) {
+export function SettingsPanel({
+	data,
+	patch,
+}: {
+	data: AdminIntelligenceData
+	patch: (p: Partial<AdminIntelligenceData['settings']>) => void
+}) {
 	const s = data.settings
 	const audienceCount = data.health.queue.overdue
 	return (
@@ -514,7 +555,8 @@ function SettingsPanel({ data, patch }: { data: AdminIntelligenceData; patch: (p
 				>
 					<p className="text-xs text-muted-foreground">
 						The candidate cap bounds how many items each analyzer feeds into the model. Smaller caps mean cheaper / faster runs but
-						potentially missed recs. Dry run leaves the model calls + step rows in place but skips writing recommendations to the DB.
+						potentially missed recommendations. Dry run leaves the model calls + step rows in place but skips writing recommendations to the
+						database.
 					</p>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
@@ -523,7 +565,7 @@ function SettingsPanel({ data, patch }: { data: AdminIntelligenceData; patch: (p
 							value={s.candidateCap}
 							onChange={v => patch({ candidateCap: v })}
 						/>
-						<ToggleRow label="Dry run (don't persist recs)" checked={s.dryRun} onChange={v => patch({ dryRun: v })} />
+						<ToggleRow label="Dry run (don't persist recommendations)" checked={s.dryRun} onChange={v => patch({ dryRun: v })} />
 					</div>
 				</SettingsSection>
 
@@ -557,15 +599,15 @@ function SettingsPanel({ data, patch }: { data: AdminIntelligenceData; patch: (p
 					id="retention"
 					icon={Database}
 					title="Retention"
-					summary={`recs ${s.staleRecRetentionDays}d · run steps ${s.runStepsRetentionDays}d`}
+					summary={`recommendations ${s.staleRecRetentionDays}d · run steps ${s.runStepsRetentionDays}d`}
 				>
 					<p className="text-xs text-muted-foreground">
 						Old, dismissed/applied recommendations and old run-step debug rows are pruned on this schedule.
 					</p>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
-							label="Stale rec retention (days)"
-							hint="Dismissed/applied recs older than this are deleted."
+							label="Stale recommendation retention (days)"
+							hint="Dismissed and applied recommendations older than this are deleted."
 							value={s.staleRecRetentionDays}
 							onChange={v => patch({ staleRecRetentionDays: v })}
 						/>
@@ -615,7 +657,7 @@ function SettingsPanel({ data, patch }: { data: AdminIntelligenceData; patch: (p
 	)
 }
 
-function SettingsSection({
+export function SettingsSection({
 	id,
 	icon: Icon,
 	title,
@@ -664,7 +706,7 @@ function SettingsSection({
 	)
 }
 
-function ToggleRow({
+export function ToggleRow({
 	label,
 	checked,
 	onChange,
@@ -683,7 +725,7 @@ function ToggleRow({
 	)
 }
 
-function TextInputOnBlur({
+export function TextInputOnBlur({
 	value,
 	onCommit,
 	className,
@@ -723,7 +765,17 @@ function TextInputOnBlur({
 	)
 }
 
-function NumberRow({ label, value, onChange, hint }: { label: string; value: number; onChange: (n: number) => void; hint?: string }) {
+export function NumberRow({
+	label,
+	value,
+	onChange,
+	hint,
+}: {
+	label: string
+	value: number
+	onChange: (n: number) => void
+	hint?: string
+}) {
 	const [draft, setDraft] = useState(String(value))
 	useEffect(() => {
 		setDraft(String(value))
@@ -758,7 +810,7 @@ function NumberRow({ label, value, onChange, hint }: { label: string; value: num
 	)
 }
 
-function RunsTable({
+export function RunsTable({
 	runs,
 	filter,
 	setFilter,
@@ -776,9 +828,12 @@ function RunsTable({
 	onPurgeRecs?: (userId: string) => void
 }) {
 	return (
-		<section data-intelligence="admin-runs" className="flex flex-col gap-3">
-			<div className="flex items-center justify-between gap-3 flex-wrap">
-				<h2 className="text-lg font-semibold">Recent runs</h2>
+		<Card data-intelligence="admin-runs">
+			<CardHeader className="flex flex-row items-start justify-between gap-3 flex-wrap">
+				<div className="space-y-1.5">
+					<CardTitle className="text-2xl">Recent runs</CardTitle>
+					<CardDescription>Most recent recommendation runs across every user. Click a row to inspect run details.</CardDescription>
+				</div>
 				<div data-intelligence="admin-runs-filter" className="flex items-center gap-1.5">
 					{(['all', 'success', 'skipped', 'error'] as const).map(f => (
 						<Button
@@ -793,97 +848,101 @@ function RunsTable({
 						</Button>
 					))}
 				</div>
-			</div>
-			{runs.length === 0 ? (
-				<p data-intelligence="admin-runs-empty" className="text-sm text-muted-foreground py-2">
-					No runs match this filter.
-				</p>
-			) : (
-				<div className="rounded-md border border-border overflow-hidden">
-					<Table data-intelligence="admin-runs-table">
-						<TableHeader>
-							<TableRow>
-								<TableHead>User</TableHead>
-								<TableHead>Trigger</TableHead>
-								<TableHead>Status</TableHead>
-								<TableHead>Started</TableHead>
-								<TableHead>Duration</TableHead>
-								<TableHead>Recs</TableHead>
-								<TableHead>Tokens (out / in)</TableHead>
-								<TableHead className="text-right">Actions</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{runs.map(run => (
-								<TableRow
-									key={run.id}
-									data-intelligence="admin-runs-row"
-									data-run-id={run.id}
-									className="cursor-pointer hover:bg-muted/50 group"
-									onClick={() => onOpenRun?.(run.id)}
-									title="Click to inspect run details"
-								>
-									<TableCell className="font-medium">
-										<span className="inline-flex items-center gap-1.5">
-											<ChevronRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
-											{run.userName}
-										</span>
-									</TableCell>
-									<TableCell>
-										<Badge variant="outline">{run.trigger}</Badge>
-									</TableCell>
-									<TableCell>
-										<div className="flex flex-col items-start gap-0.5">
-											<StatusBadge run={run} />
-											<StepBreakdown counts={run.stepCounts} />
-										</div>
-									</TableCell>
-									<TableCell className="text-muted-foreground text-xs">{formatDistanceToNow(run.startedAt, { addSuffix: true })}</TableCell>
-									<TableCell className="tabular-nums text-xs">{run.durationMs ? formatDuration(run.durationMs) : '-'}</TableCell>
-									<TableCell className="text-xs">{summarizeRecCounts(run)}</TableCell>
-									<TableCell className="text-xs tabular-nums">
-										{run.tokensIn ? `${formatNumber(run.tokensOut ?? 0)} / ${formatNumber(run.tokensIn)}` : '-'}
-									</TableCell>
-									<TableCell className="text-right">
-										<div onClick={e => e.stopPropagation()} className="flex justify-end">
-											<div className="hidden lg:flex gap-1.5">
-												<Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => onOpenRun?.(run.id)}>
-													Inspect
-												</Button>
-												<Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => onRunForUser?.(run.userId)}>
-													Re-run
-												</Button>
-												<Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => onInvalidateHash?.(run.userId)}>
-													Invalidate
-												</Button>
-												<Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => onPurgeRecs?.(run.userId)}>
-													Purge
-												</Button>
-											</div>
-											<div className="lg:hidden">
-												<DropdownMenu>
-													<DropdownMenuTrigger asChild>
-														<Button size="sm" variant="outline" className="h-7 w-7 p-0" aria-label="Run actions">
-															<MoreHorizontal className="size-4" />
-														</Button>
-													</DropdownMenuTrigger>
-													<DropdownMenuContent align="end">
-														<DropdownMenuItem onSelect={() => onOpenRun?.(run.id)}>Inspect</DropdownMenuItem>
-														<DropdownMenuItem onSelect={() => onRunForUser?.(run.userId)}>Re-run</DropdownMenuItem>
-														<DropdownMenuItem onSelect={() => onInvalidateHash?.(run.userId)}>Invalidate</DropdownMenuItem>
-														<DropdownMenuItem onSelect={() => onPurgeRecs?.(run.userId)}>Purge</DropdownMenuItem>
-													</DropdownMenuContent>
-												</DropdownMenu>
-											</div>
-										</div>
-									</TableCell>
+			</CardHeader>
+			<CardContent>
+				{runs.length === 0 ? (
+					<p data-intelligence="admin-runs-empty" className="text-sm text-muted-foreground py-2">
+						No runs match this filter.
+					</p>
+				) : (
+					<div className="rounded-lg border overflow-x-auto">
+						<Table data-intelligence="admin-runs-table">
+							<TableHeader>
+								<TableRow>
+									<TableHead>User</TableHead>
+									<TableHead>Trigger</TableHead>
+									<TableHead>Status</TableHead>
+									<TableHead>Started</TableHead>
+									<TableHead>Duration</TableHead>
+									<TableHead>Recommendations</TableHead>
+									<TableHead>Tokens (out / in)</TableHead>
+									<TableHead className="text-right">Actions</TableHead>
 								</TableRow>
-							))}
-						</TableBody>
-					</Table>
-				</div>
-			)}
-		</section>
+							</TableHeader>
+							<TableBody>
+								{runs.map(run => (
+									<TableRow
+										key={run.id}
+										data-intelligence="admin-runs-row"
+										data-run-id={run.id}
+										className="cursor-pointer hover:bg-muted/50 group"
+										onClick={() => onOpenRun?.(run.id)}
+										title="Click to inspect run details"
+									>
+										<TableCell className="font-medium">
+											<span className="inline-flex items-center gap-1.5">
+												<ChevronRight className="size-3.5 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+												{run.userName}
+											</span>
+										</TableCell>
+										<TableCell>
+											<Badge variant="outline">{run.trigger}</Badge>
+										</TableCell>
+										<TableCell>
+											<div className="flex flex-col items-start gap-0.5">
+												<StatusBadge run={run} />
+												<StepBreakdown counts={run.stepCounts} />
+											</div>
+										</TableCell>
+										<TableCell className="text-muted-foreground text-xs">
+											{formatDistanceToNow(run.startedAt, { addSuffix: true })}
+										</TableCell>
+										<TableCell className="tabular-nums text-xs">{run.durationMs ? formatDuration(run.durationMs) : '-'}</TableCell>
+										<TableCell className="text-xs">{summarizeRecCounts(run)}</TableCell>
+										<TableCell className="text-xs tabular-nums">
+											{run.tokensIn ? `${formatNumber(run.tokensOut ?? 0)} / ${formatNumber(run.tokensIn)}` : '-'}
+										</TableCell>
+										<TableCell className="text-right">
+											<div onClick={e => e.stopPropagation()} className="flex justify-end">
+												<div className="hidden lg:flex gap-1.5">
+													<Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => onOpenRun?.(run.id)}>
+														Inspect
+													</Button>
+													<Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => onRunForUser?.(run.userId)}>
+														Re-run
+													</Button>
+													<Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => onInvalidateHash?.(run.userId)}>
+														Invalidate
+													</Button>
+													<Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => onPurgeRecs?.(run.userId)}>
+														Purge
+													</Button>
+												</div>
+												<div className="lg:hidden">
+													<DropdownMenu>
+														<DropdownMenuTrigger asChild>
+															<Button size="sm" variant="outline" className="h-7 w-7 p-0" aria-label="Run actions">
+																<MoreHorizontal className="size-4" />
+															</Button>
+														</DropdownMenuTrigger>
+														<DropdownMenuContent align="end">
+															<DropdownMenuItem onSelect={() => onOpenRun?.(run.id)}>Inspect</DropdownMenuItem>
+															<DropdownMenuItem onSelect={() => onRunForUser?.(run.userId)}>Re-run</DropdownMenuItem>
+															<DropdownMenuItem onSelect={() => onInvalidateHash?.(run.userId)}>Invalidate</DropdownMenuItem>
+															<DropdownMenuItem onSelect={() => onPurgeRecs?.(run.userId)}>Purge</DropdownMenuItem>
+														</DropdownMenuContent>
+													</DropdownMenu>
+												</div>
+											</div>
+										</TableCell>
+									</TableRow>
+								))}
+							</TableBody>
+						</Table>
+					</div>
+				)}
+			</CardContent>
+		</Card>
 	)
 }
 
@@ -976,11 +1035,11 @@ function RunsActivityChart({ data }: { data: Array<DailySeriesPoint> }) {
 	const total = data.reduce((s, d) => s + d.runsSuccess + d.runsSkipped + d.runsError, 0)
 	return (
 		<Card data-intelligence="admin-chart-runs">
-			<CardContent className="p-4">
-				<div className="flex items-baseline justify-between mb-3">
-					<h3 className="text-sm font-semibold">Runs (14 days)</h3>
-					<span className="text-xs text-muted-foreground tabular-nums">{total} total</span>
-				</div>
+			<CardHeader>
+				<CardTitle className="text-2xl">Runs (14 days)</CardTitle>
+				<CardDescription className="tabular-nums">{total} total</CardDescription>
+			</CardHeader>
+			<CardContent>
 				<ChartContainer config={runsChartConfig} className="aspect-auto h-44 w-full">
 					<BarChart accessibilityLayer data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
 						<CartesianGrid vertical={false} strokeDasharray="3 3" />
@@ -1011,11 +1070,11 @@ function TokenUsageChart({ data }: { data: Array<DailySeriesPoint> }) {
 	const totalCost = data.reduce((s, d) => s + d.costUsd, 0)
 	return (
 		<Card data-intelligence="admin-chart-tokens">
-			<CardContent className="p-4">
-				<div className="flex items-baseline justify-between mb-3">
-					<h3 className="text-sm font-semibold">Tokens & cost (14 days)</h3>
-					<span className="text-xs text-muted-foreground tabular-nums">${totalCost.toFixed(2)} total</span>
-				</div>
+			<CardHeader>
+				<CardTitle className="text-2xl">Tokens &amp; cost (14 days)</CardTitle>
+				<CardDescription className="tabular-nums">${totalCost.toFixed(2)} total</CardDescription>
+			</CardHeader>
+			<CardContent>
 				<ChartContainer config={tokensChartConfig} className="aspect-auto h-44 w-full">
 					<AreaChart accessibilityLayer data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
 						<defs>

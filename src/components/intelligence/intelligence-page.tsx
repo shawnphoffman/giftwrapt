@@ -172,9 +172,9 @@ function Header({
 	nextEligibleRefreshAt?: Date | null
 }) {
 	return (
-		<div data-intelligence="page-header" className="flex items-start justify-between gap-4 mb-6">
-			<div data-intelligence="page-header-title-block" className="flex items-start gap-3">
-				<div
+		<div data-intelligence="page-header" className="flex flex-col gap-3 mb-6">
+			<h1 data-intelligence="page-title" className="flex flex-row items-center gap-3">
+				<span
 					data-intelligence="page-header-icon"
 					className={cn(
 						'flex size-10 shrink-0 items-center justify-center rounded-xl shadow-sm',
@@ -183,32 +183,30 @@ function Header({
 						'ring-1 ring-fuchsia-400/40 dark:ring-fuchsia-600/40'
 					)}
 				>
-					<Sparkles className="size-5 shrink-0 text-amber-100 drop-shadow-[0_0_4px_rgba(255,255,255,0.6)]" />
-				</div>
-				<div>
-					<h1 data-intelligence="page-title" className="text-2xl font-semibold tracking-tight">
-						Intelligence
-					</h1>
-					<p data-intelligence="page-tagline" className="text-sm text-muted-foreground">
-						AI-assisted recommendations to keep your lists healthy. Updated periodically; refresh anytime.
-					</p>
-					{lastRunAt && (
-						<p data-intelligence="page-last-updated" className="mt-1 text-xs text-muted-foreground">
-							Last updated {formatDistanceToNow(lastRunAt, { addSuffix: true })}
-						</p>
-					)}
-				</div>
-			</div>
-			{showRefresh && (
-				<div data-intelligence="page-refresh-block" className="flex flex-col items-end gap-1">
-					<Button data-intelligence="page-refresh-button" size="sm" variant="outline" disabled={disabled} onClick={onRefresh}>
-						<RefreshCw className={cn('size-4', generating && 'animate-spin')} />
-						{generating ? 'Refreshing' : 'Refresh'}
-					</Button>
-					{cooldownActive && nextEligibleRefreshAt && (
-						<span data-intelligence="page-cooldown-note" className="text-[11px] text-muted-foreground whitespace-nowrap">
-							Available again {format(nextEligibleRefreshAt, 'p')}
-						</span>
+					<Sparkles className="size-7 shrink-0 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.4)]" />
+				</span>
+				Suggestions
+			</h1>
+			<p data-intelligence="page-tagline" className="text-sm text-muted-foreground">
+				AI-assisted recommendations to keep your lists healthy. Updated periodically; refresh anytime.
+			</p>
+			{(lastRunAt || showRefresh) && (
+				<div data-intelligence="page-meta-row" className="flex items-center justify-between gap-3 flex-wrap">
+					<div className="text-xs text-muted-foreground">
+						{lastRunAt ? <>Last updated {formatDistanceToNow(lastRunAt, { addSuffix: true })}</> : null}
+					</div>
+					{showRefresh && (
+						<div data-intelligence="page-refresh-block" className="flex items-center gap-2">
+							{cooldownActive && nextEligibleRefreshAt && (
+								<span data-intelligence="page-cooldown-note" className="text-[11px] text-muted-foreground whitespace-nowrap">
+									Available again {format(nextEligibleRefreshAt, 'p')}
+								</span>
+							)}
+							<Button data-intelligence="page-refresh-button" size="sm" variant="outline" disabled={disabled} onClick={onRefresh}>
+								<RefreshCw className={cn('size-4', generating && 'animate-spin')} />
+								{generating ? 'Refreshing' : 'Refresh'}
+							</Button>
+						</div>
 					)}
 				</div>
 			)}
@@ -245,7 +243,7 @@ function EmptyState({ dismissedCount, appliedCount }: { dismissedCount: number; 
 					<CheckCheck className="size-6 text-emerald-600" />
 				</div>
 				<h2 className="text-lg font-semibold">All caught up</h2>
-				<p className="text-sm text-muted-foreground max-w-sm">Nothing left to act on. Check back later, or hit Refresh to look again.</p>
+				<p className="text-sm text-muted-foreground">Nothing left to act on. Check back later, or hit Refresh to look again.</p>
 				{(dismissedCount > 0 || appliedCount > 0) && (
 					<p className="text-xs text-muted-foreground">
 						{appliedCount > 0 && `${appliedCount} applied`}
@@ -261,16 +259,16 @@ function EmptyState({ dismissedCount, appliedCount }: { dismissedCount: number; 
 function DisabledState({ reason }: { reason: 'feature-disabled' | 'no-provider' }) {
 	const message =
 		reason === 'feature-disabled'
-			? 'The Intelligence feature is currently disabled. An admin can turn it on from the admin Intelligence page.'
-			: 'No AI provider is configured. An admin needs to add a provider before recommendations can be generated.'
+			? 'Suggestions are currently disabled. An admin can turn them on from the admin Intelligence page.'
+			: 'No AI provider is configured. An admin needs to add a provider before suggestions can be generated.'
 	return (
 		<Card data-intelligence="page-disabled-state" data-disabled-reason={reason}>
 			<CardContent className="p-8 flex flex-col items-center justify-center text-center gap-3">
 				<div className="flex size-12 items-center justify-center rounded-full bg-muted ring-1 ring-border">
 					<Sparkles className="size-6 text-muted-foreground" />
 				</div>
-				<h2 className="text-lg font-semibold">Intelligence is offline</h2>
-				<p className="text-sm text-muted-foreground max-w-sm">{message}</p>
+				<h2 className="text-lg font-semibold">Suggestions are offline</h2>
+				<p className="text-sm text-muted-foreground">{message}</p>
 			</CardContent>
 		</Card>
 	)

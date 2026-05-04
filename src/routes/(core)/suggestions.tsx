@@ -21,7 +21,7 @@ const intelligenceQueryOptions = {
 	staleTime: 10_000,
 }
 
-export const Route = createFileRoute('/(core)/intelligence')({
+export const Route = createFileRoute('/(core)/suggestions')({
 	loader: ({ context }) => context.queryClient.ensureQueryData(intelligenceQueryOptions),
 	component: IntelligenceRoute,
 })

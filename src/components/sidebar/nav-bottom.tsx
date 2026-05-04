@@ -3,6 +3,7 @@ import { Settings } from 'lucide-react'
 import { SidebarGroup, SidebarGroupContent, SidebarMenu } from '@/components/ui/sidebar'
 
 import { ThemeSwitcher } from '../ui/theme-switcher'
+import AdminIntelligenceNavLink from './nav-admin-intelligence-link'
 import AdminNavLink from './nav-admin-link'
 import { NavItem } from './nav-section'
 import StopImpersonationLink from './stop-impersonation-link'
@@ -13,6 +14,7 @@ export default function NavBottom() {
 			<SidebarGroupContent>
 				<SidebarMenu>
 					<StopImpersonationLink />
+					<AdminIntelligenceNavLink />
 					<AdminNavLink />
 					{/* {items.map(item => (
 						<NavItem key={item.name} item={item} />

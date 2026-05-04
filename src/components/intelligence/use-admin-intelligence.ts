@@ -1,6 +1,5 @@
-import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { createFileRoute } from '@tanstack/react-router'
-import { useMemo, useState } from 'react'
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { toast } from 'sonner'
 
 import {
@@ -9,43 +8,24 @@ import {
 	adminRunForMe,
 	adminRunForUser,
 	getAdminIntelligenceData,
-	getAdminRunDetail,
 } from '@/api/admin-intelligence'
 import { updateAppSettings } from '@/api/settings'
-import type { AdminIntelligenceData } from '@/components/intelligence/__fixtures__/types'
-import { AdminIntelligencePageContent } from '@/components/intelligence/admin-intelligence-page'
-import { RunDebugPanel } from '@/components/intelligence/run-debug-panel'
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 
-const adminIntelligenceQueryOptions = {
+import type { AdminIntelligenceData } from './__fixtures__/types'
+
+export const adminIntelligenceQueryOptions = {
 	queryKey: ['admin', 'intelligence'] as const,
 	queryFn: () => getAdminIntelligenceData(),
 	staleTime: 30_000,
 }
 
-export const Route = createFileRoute('/(core)/admin/intelligence')({
-	loader: ({ context }) => context.queryClient.ensureQueryData(adminIntelligenceQueryOptions),
-	component: AdminIntelligenceRoute,
-})
-
-function AdminIntelligenceRoute() {
-	const { data } = useSuspenseQuery(adminIntelligenceQueryOptions)
+export function useAdminIntelligence() {
+	const { data: raw } = useSuspenseQuery(adminIntelligenceQueryOptions)
 	const queryClient = useQueryClient()
 	const invalidate = () => queryClient.invalidateQueries({ queryKey: adminIntelligenceQueryOptions.queryKey })
 
-	const [openRunId, setOpenRunId] = useState<string | null>(null)
-	const runDetailQuery = useQuery({
-		queryKey: ['admin', 'intelligence', 'run', openRunId] as const,
-		queryFn: () => getAdminRunDetail({ data: { runId: openRunId! } }),
-		enabled: openRunId !== null,
-		staleTime: 30_000,
-	})
-
 	const settingsMutation = useMutation({
 		mutationFn: (changes: Partial<AdminIntelligenceData['settings']>) => {
-			// Map the typed admin-fixture settings shape onto the flat
-			// intelligence* keys in appSettingsSchema. Only forward changed
-			// keys so unrelated rows aren't touched.
 			const payload: Record<string, unknown> = {}
 			if (changes.enabled !== undefined) payload.intelligenceEnabled = changes.enabled
 			if (changes.refreshIntervalDays !== undefined) payload.intelligenceRefreshIntervalDays = changes.refreshIntervalDays
@@ -87,60 +67,17 @@ function AdminIntelligenceRoute() {
 		onSuccess: invalidate,
 	})
 
-	const adapted = useMemo<AdminIntelligenceData>(() => adaptAdminData(data), [data])
+	const data = useMemo<AdminIntelligenceData>(() => adaptAdminData(raw), [raw])
 
-	const debugState = !openRunId
-		? { kind: 'loading' as const }
-		: runDetailQuery.isLoading || runDetailQuery.isFetching
-			? { kind: 'loading' as const }
-			: runDetailQuery.error
-				? { kind: 'error' as const, message: runDetailQuery.error instanceof Error ? runDetailQuery.error.message : 'Unknown error' }
-				: runDetailQuery.data
-					? {
-							kind: 'loaded' as const,
-							data: {
-								run: {
-									...runDetailQuery.data.run,
-									startedAt: new Date(runDetailQuery.data.run.startedAt),
-									finishedAt: runDetailQuery.data.run.finishedAt ? new Date(runDetailQuery.data.run.finishedAt) : null,
-								},
-								steps: runDetailQuery.data.steps,
-								recs: runDetailQuery.data.recs.map(r => ({
-									...r,
-									createdAt: new Date(r.createdAt),
-									dismissedAt: r.dismissedAt ? new Date(r.dismissedAt) : null,
-								})),
-							},
-						}
-					: { kind: 'loading' as const }
-
-	return (
-		<>
-			<AdminIntelligencePageContent
-				data={adapted}
-				onSettingsChange={changes => settingsMutation.mutate(changes)}
-				onRunForMe={() => runForMeMutation.mutate()}
-				onRunForUser={userId => runForUserMutation.mutate(userId)}
-				onInvalidateHash={userId => invalidateHashMutation.mutate(userId)}
-				onPurgeRecs={userId => purgeMutation.mutate(userId)}
-				onOpenRun={runId => setOpenRunId(runId)}
-				runForMePending={runForMeMutation.isPending}
-			/>
-			<Sheet open={openRunId !== null} onOpenChange={open => !open && setOpenRunId(null)}>
-				<SheetContent
-					data-intelligence="admin-run-debug-sheet"
-					side="right"
-					className="w-full sm:max-w-2xl data-[side=right]:sm:max-w-2xl flex flex-col gap-0 p-0"
-				>
-					<SheetHeader className="border-b border-border">
-						<SheetTitle>Run debug</SheetTitle>
-						<SheetDescription className="font-mono text-[11px] truncate">{openRunId ?? ''}</SheetDescription>
-					</SheetHeader>
-					<RunDebugPanel state={debugState} />
-				</SheetContent>
-			</Sheet>
-		</>
-	)
+	return {
+		data,
+		patch: (changes: Partial<AdminIntelligenceData['settings']>) => settingsMutation.mutate(changes),
+		runForMe: () => runForMeMutation.mutate(),
+		runForUser: (userId: string) => runForUserMutation.mutate(userId),
+		invalidateHash: (userId: string) => invalidateHashMutation.mutate(userId),
+		purgeRecs: (userId: string) => purgeMutation.mutate(userId),
+		runForMePending: runForMeMutation.isPending,
+	}
 }
 
 function adaptAdminData(raw: Awaited<ReturnType<typeof getAdminIntelligenceData>>): AdminIntelligenceData {
@@ -178,4 +115,13 @@ function adaptAdminData(raw: Awaited<ReturnType<typeof getAdminIntelligenceData>
 		})),
 		dailySeries: raw.dailySeries,
 	}
+}
+
+export function providerSummaryFor(data: AdminIntelligenceData): string {
+	if (data.health.provider.source === 'none') return 'No provider configured'
+	return `${data.health.provider.provider ?? '?'} / ${data.health.provider.model ?? '?'} (${data.health.provider.source})`
+}
+
+export function isProviderMissing(data: AdminIntelligenceData): boolean {
+	return data.health.provider.source === 'none'
 }

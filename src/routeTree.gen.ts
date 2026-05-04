@@ -13,7 +13,7 @@ import { Route as coreRouteRouteImport } from './routes/(core)/route'
 import { Route as coreIndexRouteImport } from './routes/(core)/index'
 import { Route as ApiVersionRouteImport } from './routes/api/version'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
-import { Route as coreIntelligenceRouteImport } from './routes/(core)/intelligence'
+import { Route as coreSuggestionsRouteImport } from './routes/(core)/suggestions'
 import { Route as coreImportRouteImport } from './routes/(core)/import'
 import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
 import { Route as authSignOutRouteImport } from './routes/(auth)/sign-out'
@@ -52,17 +52,23 @@ import { Route as coreItemCloneRouteImport } from './routes/(core)/item.clone'
 import { Route as coreAdminUsersRouteImport } from './routes/(core)/admin/users'
 import { Route as coreAdminStorageRouteImport } from './routes/(core)/admin/storage'
 import { Route as coreAdminScrapingRouteImport } from './routes/(core)/admin/scraping'
-import { Route as coreAdminIntelligenceRouteImport } from './routes/(core)/admin/intelligence'
 import { Route as coreAdminEmailRouteImport } from './routes/(core)/admin/email'
 import { Route as coreAdminDebugRouteImport } from './routes/(core)/admin/debug'
 import { Route as coreAdminDataRouteImport } from './routes/(core)/admin/data'
 import { Route as coreAdminAuthRouteImport } from './routes/(core)/admin/auth'
 import { Route as coreAdminAiRouteImport } from './routes/(core)/admin/ai'
 import { Route as authSignInTwoFactorRouteImport } from './routes/(auth)/sign-in.two-factor'
+import { Route as coreAdminIntelligenceRouteRouteImport } from './routes/(core)/admin_/intelligence/route'
+import { Route as coreAdminIntelligenceIndexRouteImport } from './routes/(core)/admin_/intelligence/index'
 import { Route as ApiSseListListIdRouteImport } from './routes/api/sse/list.$listId'
 import { Route as coreListsListIdOrganizeRouteImport } from './routes/(core)/lists_/$listId.organize'
 import { Route as coreListsListIdEditRouteImport } from './routes/(core)/lists_/$listId.edit'
 import { Route as coreListsListIdBulkRouteImport } from './routes/(core)/lists_/$listId.bulk'
+import { Route as coreAdminIntelligenceSettingsRouteImport } from './routes/(core)/admin_/intelligence/settings'
+import { Route as coreAdminIntelligenceSchedulingRouteImport } from './routes/(core)/admin_/intelligence/scheduling'
+import { Route as coreAdminIntelligenceNotificationsRouteImport } from './routes/(core)/admin_/intelligence/notifications'
+import { Route as coreAdminIntelligenceHistoryRouteImport } from './routes/(core)/admin_/intelligence/history'
+import { Route as coreAdminIntelligenceAnalyzersRouteImport } from './routes/(core)/admin_/intelligence/analyzers'
 import { Route as coreAdminUserIdRouteImport } from './routes/(core)/admin/user.$id'
 
 const coreRouteRoute = coreRouteRouteImport.update({
@@ -84,9 +90,9 @@ const ApiHealthRoute = ApiHealthRouteImport.update({
   path: '/api/health',
   getParentRoute: () => rootRouteImport,
 } as any)
-const coreIntelligenceRoute = coreIntelligenceRouteImport.update({
-  id: '/intelligence',
-  path: '/intelligence',
+const coreSuggestionsRoute = coreSuggestionsRouteImport.update({
+  id: '/suggestions',
+  path: '/suggestions',
   getParentRoute: () => coreRouteRoute,
 } as any)
 const coreImportRoute = coreImportRouteImport.update({
@@ -282,11 +288,6 @@ const coreAdminScrapingRoute = coreAdminScrapingRouteImport.update({
   path: '/scraping',
   getParentRoute: () => coreAdminRouteRoute,
 } as any)
-const coreAdminIntelligenceRoute = coreAdminIntelligenceRouteImport.update({
-  id: '/intelligence',
-  path: '/intelligence',
-  getParentRoute: () => coreAdminRouteRoute,
-} as any)
 const coreAdminEmailRoute = coreAdminEmailRouteImport.update({
   id: '/email',
   path: '/email',
@@ -317,6 +318,18 @@ const authSignInTwoFactorRoute = authSignInTwoFactorRouteImport.update({
   path: '/two-factor',
   getParentRoute: () => authSignInRoute,
 } as any)
+const coreAdminIntelligenceRouteRoute =
+  coreAdminIntelligenceRouteRouteImport.update({
+    id: '/admin_/intelligence',
+    path: '/admin/intelligence',
+    getParentRoute: () => coreRouteRoute,
+  } as any)
+const coreAdminIntelligenceIndexRoute =
+  coreAdminIntelligenceIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => coreAdminIntelligenceRouteRoute,
+  } as any)
 const ApiSseListListIdRoute = ApiSseListListIdRouteImport.update({
   id: '/api/sse/list/$listId',
   path: '/api/sse/list/$listId',
@@ -337,6 +350,36 @@ const coreListsListIdBulkRoute = coreListsListIdBulkRouteImport.update({
   path: '/lists/$listId/bulk',
   getParentRoute: () => coreRouteRoute,
 } as any)
+const coreAdminIntelligenceSettingsRoute =
+  coreAdminIntelligenceSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => coreAdminIntelligenceRouteRoute,
+  } as any)
+const coreAdminIntelligenceSchedulingRoute =
+  coreAdminIntelligenceSchedulingRouteImport.update({
+    id: '/scheduling',
+    path: '/scheduling',
+    getParentRoute: () => coreAdminIntelligenceRouteRoute,
+  } as any)
+const coreAdminIntelligenceNotificationsRoute =
+  coreAdminIntelligenceNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => coreAdminIntelligenceRouteRoute,
+  } as any)
+const coreAdminIntelligenceHistoryRoute =
+  coreAdminIntelligenceHistoryRouteImport.update({
+    id: '/history',
+    path: '/history',
+    getParentRoute: () => coreAdminIntelligenceRouteRoute,
+  } as any)
+const coreAdminIntelligenceAnalyzersRoute =
+  coreAdminIntelligenceAnalyzersRouteImport.update({
+    id: '/analyzers',
+    path: '/analyzers',
+    getParentRoute: () => coreAdminIntelligenceRouteRoute,
+  } as any)
 const coreAdminUserIdRoute = coreAdminUserIdRouteImport.update({
   id: '/user/$id',
   path: '/user/$id',
@@ -353,17 +396,17 @@ export interface FileRoutesByFullPath {
   '/sign-out': typeof authSignOutRoute
   '/sign-up': typeof authSignUpRoute
   '/import': typeof coreImportRoute
-  '/intelligence': typeof coreIntelligenceRoute
+  '/suggestions': typeof coreSuggestionsRoute
   '/api/health': typeof ApiHealthRoute
   '/api/version': typeof ApiVersionRoute
   '/': typeof coreIndexRoute
+  '/admin/intelligence': typeof coreAdminIntelligenceRouteRouteWithChildren
   '/sign-in/two-factor': typeof authSignInTwoFactorRoute
   '/admin/ai': typeof coreAdminAiRoute
   '/admin/auth': typeof coreAdminAuthRoute
   '/admin/data': typeof coreAdminDataRoute
   '/admin/debug': typeof coreAdminDebugRoute
   '/admin/email': typeof coreAdminEmailRoute
-  '/admin/intelligence': typeof coreAdminIntelligenceRoute
   '/admin/scraping': typeof coreAdminScrapingRoute
   '/admin/storage': typeof coreAdminStorageRoute
   '/admin/users': typeof coreAdminUsersRoute
@@ -394,10 +437,16 @@ export interface FileRoutesByFullPath {
   '/purchases': typeof corePurchasesIndexRoute
   '/settings/': typeof coreSettingsIndexRoute
   '/admin/user/$id': typeof coreAdminUserIdRoute
+  '/admin/intelligence/analyzers': typeof coreAdminIntelligenceAnalyzersRoute
+  '/admin/intelligence/history': typeof coreAdminIntelligenceHistoryRoute
+  '/admin/intelligence/notifications': typeof coreAdminIntelligenceNotificationsRoute
+  '/admin/intelligence/scheduling': typeof coreAdminIntelligenceSchedulingRoute
+  '/admin/intelligence/settings': typeof coreAdminIntelligenceSettingsRoute
   '/lists/$listId/bulk': typeof coreListsListIdBulkRoute
   '/lists/$listId/edit': typeof coreListsListIdEditRoute
   '/lists/$listId/organize': typeof coreListsListIdOrganizeRoute
   '/api/sse/list/$listId': typeof ApiSseListListIdRoute
+  '/admin/intelligence/': typeof coreAdminIntelligenceIndexRoute
 }
 export interface FileRoutesByTo {
   '/temp': typeof coreTempRouteRouteWithChildren
@@ -407,7 +456,7 @@ export interface FileRoutesByTo {
   '/sign-out': typeof authSignOutRoute
   '/sign-up': typeof authSignUpRoute
   '/import': typeof coreImportRoute
-  '/intelligence': typeof coreIntelligenceRoute
+  '/suggestions': typeof coreSuggestionsRoute
   '/api/health': typeof ApiHealthRoute
   '/api/version': typeof ApiVersionRoute
   '/': typeof coreIndexRoute
@@ -417,7 +466,6 @@ export interface FileRoutesByTo {
   '/admin/data': typeof coreAdminDataRoute
   '/admin/debug': typeof coreAdminDebugRoute
   '/admin/email': typeof coreAdminEmailRoute
-  '/admin/intelligence': typeof coreAdminIntelligenceRoute
   '/admin/scraping': typeof coreAdminScrapingRoute
   '/admin/storage': typeof coreAdminStorageRoute
   '/admin/users': typeof coreAdminUsersRoute
@@ -448,10 +496,16 @@ export interface FileRoutesByTo {
   '/purchases': typeof corePurchasesIndexRoute
   '/settings': typeof coreSettingsIndexRoute
   '/admin/user/$id': typeof coreAdminUserIdRoute
+  '/admin/intelligence/analyzers': typeof coreAdminIntelligenceAnalyzersRoute
+  '/admin/intelligence/history': typeof coreAdminIntelligenceHistoryRoute
+  '/admin/intelligence/notifications': typeof coreAdminIntelligenceNotificationsRoute
+  '/admin/intelligence/scheduling': typeof coreAdminIntelligenceSchedulingRoute
+  '/admin/intelligence/settings': typeof coreAdminIntelligenceSettingsRoute
   '/lists/$listId/bulk': typeof coreListsListIdBulkRoute
   '/lists/$listId/edit': typeof coreListsListIdEditRoute
   '/lists/$listId/organize': typeof coreListsListIdOrganizeRoute
   '/api/sse/list/$listId': typeof ApiSseListListIdRoute
+  '/admin/intelligence': typeof coreAdminIntelligenceIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -465,17 +519,17 @@ export interface FileRoutesById {
   '/(auth)/sign-out': typeof authSignOutRoute
   '/(auth)/sign-up': typeof authSignUpRoute
   '/(core)/import': typeof coreImportRoute
-  '/(core)/intelligence': typeof coreIntelligenceRoute
+  '/(core)/suggestions': typeof coreSuggestionsRoute
   '/api/health': typeof ApiHealthRoute
   '/api/version': typeof ApiVersionRoute
   '/(core)/': typeof coreIndexRoute
+  '/(core)/admin_/intelligence': typeof coreAdminIntelligenceRouteRouteWithChildren
   '/(auth)/sign-in/two-factor': typeof authSignInTwoFactorRoute
   '/(core)/admin/ai': typeof coreAdminAiRoute
   '/(core)/admin/auth': typeof coreAdminAuthRoute
   '/(core)/admin/data': typeof coreAdminDataRoute
   '/(core)/admin/debug': typeof coreAdminDebugRoute
   '/(core)/admin/email': typeof coreAdminEmailRoute
-  '/(core)/admin/intelligence': typeof coreAdminIntelligenceRoute
   '/(core)/admin/scraping': typeof coreAdminScrapingRoute
   '/(core)/admin/storage': typeof coreAdminStorageRoute
   '/(core)/admin/users': typeof coreAdminUsersRoute
@@ -506,10 +560,16 @@ export interface FileRoutesById {
   '/(core)/purchases/': typeof corePurchasesIndexRoute
   '/(core)/settings/': typeof coreSettingsIndexRoute
   '/(core)/admin/user/$id': typeof coreAdminUserIdRoute
+  '/(core)/admin_/intelligence/analyzers': typeof coreAdminIntelligenceAnalyzersRoute
+  '/(core)/admin_/intelligence/history': typeof coreAdminIntelligenceHistoryRoute
+  '/(core)/admin_/intelligence/notifications': typeof coreAdminIntelligenceNotificationsRoute
+  '/(core)/admin_/intelligence/scheduling': typeof coreAdminIntelligenceSchedulingRoute
+  '/(core)/admin_/intelligence/settings': typeof coreAdminIntelligenceSettingsRoute
   '/(core)/lists_/$listId/bulk': typeof coreListsListIdBulkRoute
   '/(core)/lists_/$listId/edit': typeof coreListsListIdEditRoute
   '/(core)/lists_/$listId/organize': typeof coreListsListIdOrganizeRoute
   '/api/sse/list/$listId': typeof ApiSseListListIdRoute
+  '/(core)/admin_/intelligence/': typeof coreAdminIntelligenceIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -523,17 +583,17 @@ export interface FileRouteTypes {
     | '/sign-out'
     | '/sign-up'
     | '/import'
-    | '/intelligence'
+    | '/suggestions'
     | '/api/health'
     | '/api/version'
     | '/'
+    | '/admin/intelligence'
     | '/sign-in/two-factor'
     | '/admin/ai'
     | '/admin/auth'
     | '/admin/data'
     | '/admin/debug'
     | '/admin/email'
-    | '/admin/intelligence'
     | '/admin/scraping'
     | '/admin/storage'
     | '/admin/users'
@@ -564,10 +624,16 @@ export interface FileRouteTypes {
     | '/purchases'
     | '/settings/'
     | '/admin/user/$id'
+    | '/admin/intelligence/analyzers'
+    | '/admin/intelligence/history'
+    | '/admin/intelligence/notifications'
+    | '/admin/intelligence/scheduling'
+    | '/admin/intelligence/settings'
     | '/lists/$listId/bulk'
     | '/lists/$listId/edit'
     | '/lists/$listId/organize'
     | '/api/sse/list/$listId'
+    | '/admin/intelligence/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/temp'
@@ -577,7 +643,7 @@ export interface FileRouteTypes {
     | '/sign-out'
     | '/sign-up'
     | '/import'
-    | '/intelligence'
+    | '/suggestions'
     | '/api/health'
     | '/api/version'
     | '/'
@@ -587,7 +653,6 @@ export interface FileRouteTypes {
     | '/admin/data'
     | '/admin/debug'
     | '/admin/email'
-    | '/admin/intelligence'
     | '/admin/scraping'
     | '/admin/storage'
     | '/admin/users'
@@ -618,10 +683,16 @@ export interface FileRouteTypes {
     | '/purchases'
     | '/settings'
     | '/admin/user/$id'
+    | '/admin/intelligence/analyzers'
+    | '/admin/intelligence/history'
+    | '/admin/intelligence/notifications'
+    | '/admin/intelligence/scheduling'
+    | '/admin/intelligence/settings'
     | '/lists/$listId/bulk'
     | '/lists/$listId/edit'
     | '/lists/$listId/organize'
     | '/api/sse/list/$listId'
+    | '/admin/intelligence'
   id:
     | '__root__'
     | '/(core)'
@@ -634,17 +705,17 @@ export interface FileRouteTypes {
     | '/(auth)/sign-out'
     | '/(auth)/sign-up'
     | '/(core)/import'
-    | '/(core)/intelligence'
+    | '/(core)/suggestions'
     | '/api/health'
     | '/api/version'
     | '/(core)/'
+    | '/(core)/admin_/intelligence'
     | '/(auth)/sign-in/two-factor'
     | '/(core)/admin/ai'
     | '/(core)/admin/auth'
     | '/(core)/admin/data'
     | '/(core)/admin/debug'
     | '/(core)/admin/email'
-    | '/(core)/admin/intelligence'
     | '/(core)/admin/scraping'
     | '/(core)/admin/storage'
     | '/(core)/admin/users'
@@ -675,10 +746,16 @@ export interface FileRouteTypes {
     | '/(core)/purchases/'
     | '/(core)/settings/'
     | '/(core)/admin/user/$id'
+    | '/(core)/admin_/intelligence/analyzers'
+    | '/(core)/admin_/intelligence/history'
+    | '/(core)/admin_/intelligence/notifications'
+    | '/(core)/admin_/intelligence/scheduling'
+    | '/(core)/admin_/intelligence/settings'
     | '/(core)/lists_/$listId/bulk'
     | '/(core)/lists_/$listId/edit'
     | '/(core)/lists_/$listId/organize'
     | '/api/sse/list/$listId'
+    | '/(core)/admin_/intelligence/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -734,11 +811,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/(core)/intelligence': {
-      id: '/(core)/intelligence'
-      path: '/intelligence'
-      fullPath: '/intelligence'
-      preLoaderRoute: typeof coreIntelligenceRouteImport
+    '/(core)/suggestions': {
+      id: '/(core)/suggestions'
+      path: '/suggestions'
+      fullPath: '/suggestions'
+      preLoaderRoute: typeof coreSuggestionsRouteImport
       parentRoute: typeof coreRouteRoute
     }
     '/(core)/import': {
@@ -1007,13 +1084,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreAdminScrapingRouteImport
       parentRoute: typeof coreAdminRouteRoute
     }
-    '/(core)/admin/intelligence': {
-      id: '/(core)/admin/intelligence'
-      path: '/intelligence'
-      fullPath: '/admin/intelligence'
-      preLoaderRoute: typeof coreAdminIntelligenceRouteImport
-      parentRoute: typeof coreAdminRouteRoute
-    }
     '/(core)/admin/email': {
       id: '/(core)/admin/email'
       path: '/email'
@@ -1056,6 +1126,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authSignInTwoFactorRouteImport
       parentRoute: typeof authSignInRoute
     }
+    '/(core)/admin_/intelligence': {
+      id: '/(core)/admin_/intelligence'
+      path: '/admin/intelligence'
+      fullPath: '/admin/intelligence'
+      preLoaderRoute: typeof coreAdminIntelligenceRouteRouteImport
+      parentRoute: typeof coreRouteRoute
+    }
+    '/(core)/admin_/intelligence/': {
+      id: '/(core)/admin_/intelligence/'
+      path: '/'
+      fullPath: '/admin/intelligence/'
+      preLoaderRoute: typeof coreAdminIntelligenceIndexRouteImport
+      parentRoute: typeof coreAdminIntelligenceRouteRoute
+    }
     '/api/sse/list/$listId': {
       id: '/api/sse/list/$listId'
       path: '/api/sse/list/$listId'
@@ -1084,6 +1168,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreListsListIdBulkRouteImport
       parentRoute: typeof coreRouteRoute
     }
+    '/(core)/admin_/intelligence/settings': {
+      id: '/(core)/admin_/intelligence/settings'
+      path: '/settings'
+      fullPath: '/admin/intelligence/settings'
+      preLoaderRoute: typeof coreAdminIntelligenceSettingsRouteImport
+      parentRoute: typeof coreAdminIntelligenceRouteRoute
+    }
+    '/(core)/admin_/intelligence/scheduling': {
+      id: '/(core)/admin_/intelligence/scheduling'
+      path: '/scheduling'
+      fullPath: '/admin/intelligence/scheduling'
+      preLoaderRoute: typeof coreAdminIntelligenceSchedulingRouteImport
+      parentRoute: typeof coreAdminIntelligenceRouteRoute
+    }
+    '/(core)/admin_/intelligence/notifications': {
+      id: '/(core)/admin_/intelligence/notifications'
+      path: '/notifications'
+      fullPath: '/admin/intelligence/notifications'
+      preLoaderRoute: typeof coreAdminIntelligenceNotificationsRouteImport
+      parentRoute: typeof coreAdminIntelligenceRouteRoute
+    }
+    '/(core)/admin_/intelligence/history': {
+      id: '/(core)/admin_/intelligence/history'
+      path: '/history'
+      fullPath: '/admin/intelligence/history'
+      preLoaderRoute: typeof coreAdminIntelligenceHistoryRouteImport
+      parentRoute: typeof coreAdminIntelligenceRouteRoute
+    }
+    '/(core)/admin_/intelligence/analyzers': {
+      id: '/(core)/admin_/intelligence/analyzers'
+      path: '/analyzers'
+      fullPath: '/admin/intelligence/analyzers'
+      preLoaderRoute: typeof coreAdminIntelligenceAnalyzersRouteImport
+      parentRoute: typeof coreAdminIntelligenceRouteRoute
+    }
     '/(core)/admin/user/$id': {
       id: '/(core)/admin/user/$id'
       path: '/user/$id'
@@ -1100,7 +1219,6 @@ interface coreAdminRouteRouteChildren {
   coreAdminDataRoute: typeof coreAdminDataRoute
   coreAdminDebugRoute: typeof coreAdminDebugRoute
   coreAdminEmailRoute: typeof coreAdminEmailRoute
-  coreAdminIntelligenceRoute: typeof coreAdminIntelligenceRoute
   coreAdminScrapingRoute: typeof coreAdminScrapingRoute
   coreAdminStorageRoute: typeof coreAdminStorageRoute
   coreAdminUsersRoute: typeof coreAdminUsersRoute
@@ -1114,7 +1232,6 @@ const coreAdminRouteRouteChildren: coreAdminRouteRouteChildren = {
   coreAdminDataRoute: coreAdminDataRoute,
   coreAdminDebugRoute: coreAdminDebugRoute,
   coreAdminEmailRoute: coreAdminEmailRoute,
-  coreAdminIntelligenceRoute: coreAdminIntelligenceRoute,
   coreAdminScrapingRoute: coreAdminScrapingRoute,
   coreAdminStorageRoute: coreAdminStorageRoute,
   coreAdminUsersRoute: coreAdminUsersRoute,
@@ -1157,13 +1274,39 @@ const coreTempRouteRouteWithChildren = coreTempRouteRoute._addFileChildren(
   coreTempRouteRouteChildren,
 )
 
+interface coreAdminIntelligenceRouteRouteChildren {
+  coreAdminIntelligenceAnalyzersRoute: typeof coreAdminIntelligenceAnalyzersRoute
+  coreAdminIntelligenceHistoryRoute: typeof coreAdminIntelligenceHistoryRoute
+  coreAdminIntelligenceNotificationsRoute: typeof coreAdminIntelligenceNotificationsRoute
+  coreAdminIntelligenceSchedulingRoute: typeof coreAdminIntelligenceSchedulingRoute
+  coreAdminIntelligenceSettingsRoute: typeof coreAdminIntelligenceSettingsRoute
+  coreAdminIntelligenceIndexRoute: typeof coreAdminIntelligenceIndexRoute
+}
+
+const coreAdminIntelligenceRouteRouteChildren: coreAdminIntelligenceRouteRouteChildren =
+  {
+    coreAdminIntelligenceAnalyzersRoute: coreAdminIntelligenceAnalyzersRoute,
+    coreAdminIntelligenceHistoryRoute: coreAdminIntelligenceHistoryRoute,
+    coreAdminIntelligenceNotificationsRoute:
+      coreAdminIntelligenceNotificationsRoute,
+    coreAdminIntelligenceSchedulingRoute: coreAdminIntelligenceSchedulingRoute,
+    coreAdminIntelligenceSettingsRoute: coreAdminIntelligenceSettingsRoute,
+    coreAdminIntelligenceIndexRoute: coreAdminIntelligenceIndexRoute,
+  }
+
+const coreAdminIntelligenceRouteRouteWithChildren =
+  coreAdminIntelligenceRouteRoute._addFileChildren(
+    coreAdminIntelligenceRouteRouteChildren,
+  )
+
 interface coreRouteRouteChildren {
   coreAdminRouteRoute: typeof coreAdminRouteRouteWithChildren
   coreSettingsRouteRoute: typeof coreSettingsRouteRouteWithChildren
   coreTempRouteRoute: typeof coreTempRouteRouteWithChildren
   coreImportRoute: typeof coreImportRoute
-  coreIntelligenceRoute: typeof coreIntelligenceRoute
+  coreSuggestionsRoute: typeof coreSuggestionsRoute
   coreIndexRoute: typeof coreIndexRoute
+  coreAdminIntelligenceRouteRoute: typeof coreAdminIntelligenceRouteRouteWithChildren
   coreItemCloneRoute: typeof coreItemCloneRoute
   coreListsListIdRoute: typeof coreListsListIdRoute
   coreOauthConsentRoute: typeof coreOauthConsentRoute
@@ -1182,8 +1325,9 @@ const coreRouteRouteChildren: coreRouteRouteChildren = {
   coreSettingsRouteRoute: coreSettingsRouteRouteWithChildren,
   coreTempRouteRoute: coreTempRouteRouteWithChildren,
   coreImportRoute: coreImportRoute,
-  coreIntelligenceRoute: coreIntelligenceRoute,
+  coreSuggestionsRoute: coreSuggestionsRoute,
   coreIndexRoute: coreIndexRoute,
+  coreAdminIntelligenceRouteRoute: coreAdminIntelligenceRouteRouteWithChildren,
   coreItemCloneRoute: coreItemCloneRoute,
   coreListsListIdRoute: coreListsListIdRoute,
   coreOauthConsentRoute: coreOauthConsentRoute,

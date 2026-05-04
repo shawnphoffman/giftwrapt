@@ -56,19 +56,14 @@ export const Route = createFileRoute('/(core)')({
 		middleware: [authMiddleware],
 	},
 })
-// Dev-only: gated nav entry while we polish the user-facing Intelligence
-// page. The route itself is registered + reachable in every environment;
-// only the affordance in the side-nav is hidden until we lift the flag.
-const intelligenceNav: Array<NavItem> = [
-	{
-		name: 'Intelligence',
-		url: '/intelligence',
-		icon: Sparkles,
-		hoverColor: 'group-hover/link:text-fuchsia-500 group-data-[status=active]/link:text-fuchsia-500',
-	},
-]
-
 const main: Array<NavItem> = [
+	{
+		name: 'Suggestions',
+		url: '/suggestions',
+		icon: Sparkles,
+		hoverColor:
+			'group-hover/link:text-fuchsia-500 group-data-[status=active]/link:text-fuchsia-500 group-data-[status=active]/link:animate-throb',
+	},
 	{
 		name: 'All Lists',
 		url: '/',
@@ -162,7 +157,6 @@ function AuthenticatedRoutes() {
 					</SidebarMenu>
 				</SidebarHeader>
 				<SidebarContent>
-					{import.meta.env.DEV && <NavSection title="Intelligence" items={intelligenceNav} />}
 					<NavSection title="Lists" items={main} />
 					<NavSection title="Actions" items={actions} />
 					<NavSection title="Purchases" items={purchases} />
