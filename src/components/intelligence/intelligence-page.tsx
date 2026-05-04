@@ -243,7 +243,7 @@ function Header({
 					data-intelligence="page-header-icon"
 					className={cn(
 						'flex size-10 shrink-0 items-center justify-center rounded-xl shadow-sm',
-						'bg-gradient-to-br from-amber-500 via-pink-500 to-fuchsia-600',
+						'bg-linear-to-br from-amber-500 via-pink-500 to-fuchsia-600',
 						'dark:from-amber-700 dark:via-pink-700 dark:to-fuchsia-800',
 						'ring-1 ring-fuchsia-400/40 dark:ring-fuchsia-600/40'
 					)}
@@ -253,7 +253,7 @@ function Header({
 				Suggestions
 			</h1>
 			<p data-intelligence="page-tagline" className="text-sm text-muted-foreground">
-				AI-assisted recommendations to keep your lists healthy. Updated periodically; refresh anytime.
+				These personalized recommendations updated periodically so make sure to check back regularly.
 			</p>
 			{(lastRunAt || showRefresh) && (
 				<div data-intelligence="page-meta-row" className="flex items-center justify-between gap-3 flex-wrap">
@@ -292,7 +292,7 @@ function ProgressBar({ total, reviewed, active }: { total: number; reviewed: num
 			<div data-intelligence="page-progress-track" className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
 				<div
 					data-intelligence="page-progress-fill"
-					className="h-full bg-gradient-to-r from-amber-400 to-fuchsia-500 transition-[width]"
+					className="h-full bg-linear-to-r from-amber-400 to-fuchsia-500 transition-[width]"
 					style={{ width: `${pct}%` }}
 				/>
 			</div>
