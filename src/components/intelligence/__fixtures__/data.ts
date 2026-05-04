@@ -108,6 +108,7 @@ const recStaleItems: Recommendation = {
 			label: 'Open list',
 			description: 'Jump to My Wishlist with these items highlighted so you can edit or remove them one at a time.',
 			intent: 'do',
+			href: '/lists/wishlist-generic',
 		},
 		{
 			label: 'Delete 3 items',
@@ -144,6 +145,7 @@ const recStaleSingle: Recommendation = {
 			label: 'Open item',
 			description: 'Jump to the item editor on Mochi Wishlist.',
 			intent: 'do',
+			href: '/lists/dependent-list#item-treats',
 		},
 		{
 			label: 'Delete item',
@@ -174,9 +176,16 @@ const recDuplicates: Recommendation = {
 	createdAt: hoursAgo(2),
 	actions: [
 		{
-			label: 'Compare items',
-			description: 'Open a side-by-side view so you can pick which copy to keep. The other is deleted. Neither has a claim yet.',
+			label: 'Open Christmas 2026',
+			description: 'Jump to Christmas 2026 so you can review or delete this copy.',
 			intent: 'do',
+			href: '/lists/wishlist-christmas#item-dupe1',
+		},
+		{
+			label: 'Open Birthday',
+			description: 'Jump to Birthday so you can review or delete this copy.',
+			intent: 'do',
+			href: '/lists/birthday-list#item-dupe2',
 		},
 		{
 			label: 'Keep both',
@@ -270,6 +279,7 @@ const recGroupingDependent: Recommendation = {
 			label: 'Open list',
 			description: "Jump to Mochi Wishlist's editor so you can add items yourself.",
 			intent: 'do',
+			href: '/lists/dependent-list',
 		},
 		{
 			label: 'Suggest items',

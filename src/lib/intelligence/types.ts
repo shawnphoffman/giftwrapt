@@ -44,6 +44,10 @@ export type RecommendationAction = {
 	intent: ActionIntent
 	confirmCopy?: string
 	apply?: RecommendationApply
+	// When set, the rec card renders the action as a navigation link
+	// (target=_blank). Navigation actions never resolve the rec; the
+	// user can come back and apply or dismiss it explicitly.
+	href?: string
 }
 
 export type AffectedSummary = {
@@ -108,6 +112,7 @@ export const recPayloadSchema = z.object({
 				description: z.string(),
 				intent: z.enum(ACTION_INTENTS),
 				confirmCopy: z.string().optional(),
+				href: z.string().optional(),
 				apply: z
 					.object({
 						kind: z.literal('create-group'),

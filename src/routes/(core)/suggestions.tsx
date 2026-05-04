@@ -65,10 +65,20 @@ function IntelligenceRoute() {
 			onRefresh={() => refreshMutation.mutate()}
 			onDismiss={rec => dismissMutation.mutate(rec.id)}
 			onAction={(rec, action) => {
+				// Navigation actions (href) are handled in the rec card as
+				// anchor links and never reach this handler. Apply actions
+				// run a server mutation that flips the rec to applied on
+				// success. Noop actions ("Keep both", "Keep separate") are
+				// declines, so they route through dismiss. Anything else
+				// would be a bug: the user clicked a button that does
+				// nothing, so do nothing instead of silently applying.
 				if (action.apply) {
 					applyServerMutation.mutate({ id: rec.id, apply: action.apply })
-				} else {
-					applyMutation.mutate(rec.id)
+					return
+				}
+				if (action.intent === 'noop') {
+					dismissMutation.mutate(rec.id)
+					return
 				}
 			}}
 			onSelectListPicker={rec => applyMutation.mutate(rec.id)}

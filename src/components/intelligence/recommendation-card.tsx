@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cn } from '@/lib/utils'
 
 import type {
+	ActionIntent,
 	AffectedSummary,
 	AnalyzerId,
 	ItemRef,
@@ -371,6 +372,9 @@ function ActionRow({ action, onClick }: { action: RecommendationAction; onClick:
 }
 
 function ActionButton({ action, onClick }: { action: RecommendationAction; onClick: () => void }) {
+	if (action.href) {
+		return <LinkButton label={action.label} href={action.href} intent={action.intent} />
+	}
 	if (action.intent === 'ai') {
 		return <AiButton label={action.label} onClick={onClick} />
 	}
@@ -405,6 +409,32 @@ function ActionButton({ action, onClick }: { action: RecommendationAction; onCli
 			<ArrowRight className="size-3.5" />
 			{action.label}
 		</Button>
+	)
+}
+
+function LinkButton({ label, href, intent }: { label: string; href: string; intent: ActionIntent }) {
+	return (
+		<a
+			data-intelligence="action-button"
+			data-action-intent={intent}
+			data-action-link
+			href={href}
+			target="_blank"
+			rel="noopener"
+			className={cn(
+				ACTION_BTN_BASE,
+				'bg-emerald-600 ring-1 ring-emerald-500/50 shadow-sm',
+				'dark:bg-emerald-700 dark:ring-emerald-600/50',
+				'transition-all duration-150',
+				'hover:bg-emerald-500 hover:ring-emerald-400/70 hover:shadow-md hover:shadow-emerald-500/30 hover:-translate-y-px',
+				'dark:hover:bg-emerald-600 dark:hover:ring-emerald-500/70',
+				'active:translate-y-0 active:shadow-sm',
+				'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400'
+			)}
+		>
+			<ExternalLink className="size-3.5" />
+			{label}
+		</a>
 	)
 }
 

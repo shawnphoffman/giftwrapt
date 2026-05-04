@@ -210,9 +210,16 @@ function buildPairRec(
 		body: rationale,
 		actions: [
 			{
-				label: 'Compare items',
-				description: 'Open a side-by-side view so you can pick which copy to keep. The other is deleted. Neither has a claim yet.',
+				label: `Open ${a.listName}`,
+				description: `Jump to ${a.listName} so you can review or delete this copy.`,
 				intent: 'do',
+				href: `/lists/${a.listId}#item-${a.itemId}`,
+			},
+			{
+				label: `Open ${b.listName}`,
+				description: `Jump to ${b.listName} so you can review or delete this copy.`,
+				intent: 'do',
+				href: `/lists/${b.listId}#item-${b.itemId}`,
 			},
 			{ label: 'Keep both', description: "These are actually different items. We won't flag this pair again.", intent: 'noop' },
 		],

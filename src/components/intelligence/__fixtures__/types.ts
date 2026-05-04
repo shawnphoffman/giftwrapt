@@ -53,8 +53,9 @@ export type RecommendationAction = {
 	label: string // short verb on the button itself: "Merge lists", "Delete items", "Dismiss"
 	description: string // sentence(s) on the row explaining what this action does and any consequences
 	intent: ActionIntent
-	confirmCopy?: string // shown in a confirm dialog before firing destructive direct actions
+	confirmCopy?: string // shown in a confirm dialog before firing apply/dismiss actions
 	apply?: RecommendationApply // when set, the rec card renders an apply button that triggers this server-side
+	href?: string // when set, the rec card renders the action as a navigation link; never resolves the rec
 }
 
 export type AffectedSummary = {
