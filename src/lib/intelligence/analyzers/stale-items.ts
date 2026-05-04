@@ -59,8 +59,12 @@ export const staleItemsAnalyzer: Analyzer = {
 			return { recs: [], steps: [loadStep], inputHash: combineHashes([inputHash]) }
 		}
 
-		// Group candidates by list. The AI sees one prompt per list (small,
-		// scoped). Per-list grouping also makes the resulting recs cleaner.
+		// Group candidates by list. The AI sees a single batched prompt
+		// covering ALL lists; per-list grouping just shapes the prompt and
+		// makes the response easy to map back. One model call per round
+		// instead of one per list = lower latency and fewer per-call
+		// overheads. Tradeoff: one parse/network failure kills the whole
+		// stale-items batch instead of just one list.
 		const byList = new Map<number, Array<(typeof candidates)[number]>>()
 		for (const c of candidates) {
 			const arr = byList.get(c.listId) ?? []
@@ -71,80 +75,82 @@ export const staleItemsAnalyzer: Analyzer = {
 		const steps: Array<AnalyzerStep> = [loadStep]
 		const recs: Array<AnalyzerRecOutput> = []
 
-		for (const [listId, group] of byList.entries()) {
-			const listRef: ListRef = {
-				id: String(listId),
-				name: group[0].listName,
-				type: group[0].listType as ListRef['type'],
-				isPrivate: group[0].listIsPrivate,
-				subject: { kind: 'user', name: 'You', image: null },
+		// Heuristic-only fallback when no model is configured: surface a
+		// single muted rec per list when the count is meaningful.
+		if (!ctx.model) {
+			for (const [listId, group] of byList.entries()) {
+				if (group.length < 2) continue
+				const { listRef, itemRefs } = refsForGroup(listId, group)
+				recs.push(buildHeuristicRec({ list: listRef, items: itemRefs }))
 			}
-			const itemRefs: Array<ItemRef> = group.map(g => ({
-				id: String(g.itemId),
-				title: g.title,
-				listId: String(listId),
-				listName: g.listName,
-				imageUrl: g.imageUrl,
-				updatedAt: g.updatedAt,
-				availability: g.availability,
-			}))
+			return { recs, steps, inputHash: combineHashes([inputHash]) }
+		}
 
-			const promptCandidates: Array<StaleItemsCandidate> = group.map(g => ({
-				itemId: String(g.itemId),
-				title: g.title,
-				listName: g.listName,
-				listType: g.listType,
-				updatedAt: g.updatedAt,
-				availability: g.availability,
-			}))
+		const promptCandidates: Array<StaleItemsCandidate> = candidates.map(c => ({
+			itemId: String(c.itemId),
+			title: c.title,
+			listId: String(c.listId),
+			listName: c.listName,
+			listType: c.listType,
+			updatedAt: c.updatedAt,
+			availability: c.availability,
+		}))
 
-			// Heuristic-only fallback when no model is configured: surface a
-			// single muted rec per list when the count is meaningful.
-			if (!ctx.model) {
-				if (promptCandidates.length >= 2) {
-					recs.push(buildHeuristicRec({ list: listRef, items: itemRefs }))
-				}
-				continue
-			}
-
-			const prompt = buildStaleItemsPrompt({ candidates: promptCandidates, now: ctx.now })
-			const stepStart = Date.now()
-			let parsed: unknown = null
-			let responseRaw: string | null = null
-			let error: string | null = null
-			let tokensIn = 0
-			let tokensOut = 0
-			try {
-				const result = await generateObject({
-					model: ctx.model,
-					schema: staleItemsResponseSchema,
-					prompt,
-				})
-				parsed = result.object
-				responseRaw = JSON.stringify(result.object)
-				tokensIn = result.usage.inputTokens ?? 0
-				tokensOut = result.usage.outputTokens ?? 0
-			} catch (err) {
-				error = err instanceof Error ? err.message : String(err)
-			}
-			steps.push({
-				name: `stale:list:${listId}`,
+		const prompt = buildStaleItemsPrompt({ candidates: promptCandidates, now: ctx.now })
+		const stepStart = Date.now()
+		let parsed: unknown = null
+		let responseRaw: string | null = null
+		let error: string | null = null
+		let tokensIn = 0
+		let tokensOut = 0
+		try {
+			const result = await generateObject({
+				model: ctx.model,
+				schema: staleItemsResponseSchema,
 				prompt,
-				responseRaw,
-				parsed,
-				tokensIn,
-				tokensOut,
-				latencyMs: Date.now() - stepStart,
-				error,
 			})
+			parsed = result.object
+			responseRaw = JSON.stringify(result.object)
+			tokensIn = result.usage.inputTokens ?? 0
+			tokensOut = result.usage.outputTokens ?? 0
+		} catch (err) {
+			error = err instanceof Error ? err.message : String(err)
+		}
+		steps.push({
+			name: 'stale:batched',
+			prompt,
+			responseRaw,
+			parsed,
+			tokensIn,
+			tokensOut,
+			latencyMs: Date.now() - stepStart,
+			error,
+		})
 
-			if (error || !parsed) continue
-			const aiRecs = (
-				parsed as { recs: Array<{ include: boolean; severity: 'info' | 'suggest' | 'important'; headline: string; rationale: string }> }
-			).recs
-			const flagged = aiRecs.filter(r => r.include)
+		if (error || !parsed) {
+			return { recs, steps, inputHash: combineHashes([inputHash]) }
+		}
+
+		const aiLists = (
+			parsed as {
+				lists: Array<{
+					listId: string
+					recs: Array<{ include: boolean; severity: 'info' | 'suggest' | 'important'; headline: string; rationale: string }>
+				}>
+			}
+		).lists
+
+		for (const aiList of aiLists) {
+			const flagged = aiList.recs.filter(r => r.include)
 			if (flagged.length === 0) continue
-			// Single grouped rec per list, severity = max of flagged.
+			// Resolve the model's listId back to the DB rows. Skip lists the
+			// model invented or that aren't in our candidate set.
+			const numericListId = Number(aiList.listId)
+			if (!Number.isFinite(numericListId)) continue
+			const group = byList.get(numericListId)
+			if (!group) continue
+
+			const { listRef, itemRefs } = refsForGroup(numericListId, group)
 			const severity = pickSeverity(flagged.map(r => r.severity))
 			recs.push({
 				kind: itemRefs.length === 1 ? 'old-item' : 'old-items',
@@ -181,6 +187,38 @@ export const staleItemsAnalyzer: Analyzer = {
 
 		return { recs, steps, inputHash: combineHashes([inputHash]) }
 	},
+}
+
+function refsForGroup(
+	listId: number,
+	group: Array<{
+		itemId: number
+		title: string
+		updatedAt: Date
+		availability: 'available' | 'unavailable'
+		imageUrl: string | null
+		listName: string
+		listType: string
+		listIsPrivate: boolean
+	}>
+): { listRef: ListRef; itemRefs: Array<ItemRef> } {
+	const listRef: ListRef = {
+		id: String(listId),
+		name: group[0].listName,
+		type: group[0].listType as ListRef['type'],
+		isPrivate: group[0].listIsPrivate,
+		subject: { kind: 'user', name: 'You', image: null },
+	}
+	const itemRefs: Array<ItemRef> = group.map(g => ({
+		id: String(g.itemId),
+		title: g.title,
+		listId: String(listId),
+		listName: g.listName,
+		imageUrl: g.imageUrl,
+		updatedAt: g.updatedAt,
+		availability: g.availability,
+	}))
+	return { listRef, itemRefs }
 }
 
 function pickSeverity(severities: Array<'info' | 'suggest' | 'important'>): 'info' | 'suggest' | 'important' {
