@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, desc, eq, gt, inArray, sql } from 'drizzle-orm'
+import { and, count, desc, eq, gt, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db, type SchemaDatabase } from '@/db'
@@ -100,6 +100,25 @@ export const getMyRecommendations = createServerFn({ method: 'GET' })
 				: null,
 			nextEligibleRefreshAt,
 		}
+	})
+
+// ─── Read: active rec count (sidebar gate) ──────────────────────────────────
+//
+// Tiny endpoint for the sidebar to decide whether to show the Suggestions
+// link. Returns 0 when the feature is disabled so the sidebar treats
+// "feature off" the same as "no active recs" — either way, no link.
+
+export const getMyActiveRecommendationCount = createServerFn({ method: 'GET' })
+	.middleware([authMiddleware])
+	.handler(async ({ context }) => {
+		const userId = context.session.user.id
+		const settings = await getAppSettings(db)
+		if (!settings.intelligenceEnabled) return { count: 0 }
+		const rows = await db
+			.select({ n: count() })
+			.from(recommendations)
+			.where(and(eq(recommendations.userId, userId), eq(recommendations.status, 'active')))
+		return { count: rows[0]?.n ?? 0 }
 	})
 
 // ─── Mutate: refresh ────────────────────────────────────────────────────────

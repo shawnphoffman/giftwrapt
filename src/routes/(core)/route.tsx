@@ -1,9 +1,11 @@
+import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, Outlet, redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
 import { Gift, Inbox, ListChecks, ListOrdered, ListPlus, MessagesSquare, PackageOpen, Receipt, Sparkles, SquarePlus } from 'lucide-react'
-import { Suspense } from 'react'
+import { Suspense, useMemo } from 'react'
 
+import { getMyActiveRecommendationCount } from '@/api/intelligence'
 import Loading from '@/components/loading'
 import NavBottom from '@/components/sidebar/nav-bottom'
 import NavBreadcrumbs from '@/components/sidebar/nav-breadcrumbs'
@@ -56,14 +58,15 @@ export const Route = createFileRoute('/(core)')({
 		middleware: [authMiddleware],
 	},
 })
-const main: Array<NavItem> = [
-	{
-		name: 'Suggestions',
-		url: '/suggestions',
-		icon: Sparkles,
-		hoverColor:
-			'group-hover/link:text-fuchsia-500 group-data-[status=active]/link:text-fuchsia-500 group-data-[status=active]/link:animate-throb',
-	},
+const suggestionsNav: NavItem = {
+	name: 'Suggestions',
+	url: '/suggestions',
+	icon: Sparkles,
+	hoverColor:
+		'group-hover/link:text-fuchsia-500 group-data-[status=active]/link:text-fuchsia-500 group-data-[status=active]/link:animate-throb',
+}
+
+const mainBase: Array<NavItem> = [
 	{
 		name: 'All Lists',
 		url: '/',
@@ -139,6 +142,15 @@ const feeds: Array<NavItem> = [
 function AuthenticatedRoutes() {
 	const appTitle = useAppSetting('appTitle')
 	useVersionCheck()
+	// Hide Suggestions in the sidebar when the user has no active recs (or
+	// the feature is off). Cheap COUNT query, refetched on the same cadence
+	// as the suggestions page so the link reappears once a new batch lands.
+	const { data: recCount } = useQuery({
+		queryKey: ['intelligence', 'me', 'active-count'] as const,
+		queryFn: () => getMyActiveRecommendationCount(),
+		staleTime: 30_000,
+	})
+	const main = useMemo(() => (recCount && recCount.count > 0 ? [suggestionsNav, ...mainBase] : mainBase), [recCount])
 	return (
 		<SidebarProvider>
 			<Sidebar variant="inset" collapsible="icon">
