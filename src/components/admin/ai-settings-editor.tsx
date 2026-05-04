@@ -156,7 +156,7 @@ function Form({ config, saving, mutate }: FormProps) {
 	const effectiveModel = isCustomModel ? customModel.trim() : modelSelect
 
 	const maxTokensParsed = Number.parseInt(maxTokensDraft, 10)
-	const maxTokensValid = Number.isInteger(maxTokensParsed) && maxTokensParsed >= 1 && maxTokensParsed <= 32_000
+	const maxTokensValid = Number.isInteger(maxTokensParsed) && maxTokensParsed >= 1 && maxTokensParsed <= 64_000
 	const effectiveMaxTokens = maxTokensValid ? maxTokensParsed : config.maxOutputTokens.value
 
 	// Compute whether each field differs from saved.
@@ -412,7 +412,7 @@ function Form({ config, saving, mutate }: FormProps) {
 						type="number"
 						inputMode="numeric"
 						min={1}
-						max={32_000}
+						max={64_000}
 						value={maxTokensDraft}
 						placeholder={String(DEFAULT_MAX_OUTPUT_TOKENS)}
 						disabled={maxTokensLocked || saving}
@@ -420,7 +420,7 @@ function Form({ config, saving, mutate }: FormProps) {
 						className="w-40"
 					/>
 					{!maxTokensValid && maxTokensDraft.length > 0 && (
-						<p className="text-xs text-destructive">Enter a whole number between 1 and 32000.</p>
+						<p className="text-xs text-destructive">Enter a whole number between 1 and 64000.</p>
 					)}
 					{maxTokensLocked && <p className="text-xs text-muted-foreground">Set by AI_MAX_OUTPUT_TOKENS. Unset to edit here.</p>}
 				</div>

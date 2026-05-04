@@ -7,6 +7,6 @@ export type ProviderType = 'openai' | 'openai-compatible' | 'anthropic'
 
 export const PROVIDER_TYPES: ReadonlyArray<ProviderType> = ['openai', 'openai-compatible', 'anthropic']
 
-export const DEFAULT_MAX_OUTPUT_TOKENS = 1024
+export const DEFAULT_MAX_OUTPUT_TOKENS = 4096
 
 export type FieldSource = 'env' | 'db' | 'default' | 'missing'

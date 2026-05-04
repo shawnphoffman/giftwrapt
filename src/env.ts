@@ -35,7 +35,7 @@ export const env = createEnv({
 		AI_BASE_URL: z.url().optional(),
 		AI_API_KEY: z.string().min(1).optional(),
 		AI_MODEL: z.string().min(1).optional(),
-		AI_MAX_OUTPUT_TOKENS: z.coerce.number().int().min(1).max(32_000).optional(),
+		AI_MAX_OUTPUT_TOKENS: z.coerce.number().int().min(1).max(64_000).optional(),
 		// Cron job authentication. Optional (cron handlers fail-closed and
 		// return 503 when unset), but if set must be a meaningful secret.
 		// Compared against the `Authorization: Bearer ...` header in

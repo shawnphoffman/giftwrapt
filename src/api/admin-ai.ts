@@ -66,7 +66,7 @@ const updateInputSchema = z
 		baseUrl: z.union([z.url().max(LIMITS.URL), z.null()]).optional(),
 		apiKey: z.union([z.string().min(1).max(LIMITS.SECRET), z.null()]).optional(),
 		model: z.union([z.string().min(1).max(LIMITS.SHORT_NAME), z.null()]).optional(),
-		maxOutputTokens: z.union([z.number().int().min(1).max(32_000), z.null()]).optional(),
+		maxOutputTokens: z.union([z.number().int().min(1).max(64_000), z.null()]).optional(),
 	})
 	.strict()
 
@@ -140,7 +140,7 @@ const testInputSchema = z
 		baseUrl: z.url().max(LIMITS.URL).optional(),
 		apiKey: z.string().min(1).max(LIMITS.SECRET).optional(),
 		model: z.string().min(1).max(LIMITS.SHORT_NAME).optional(),
-		maxOutputTokens: z.number().int().min(1).max(32_000).optional(),
+		maxOutputTokens: z.number().int().min(1).max(64_000).optional(),
 	})
 	.strict()
 
