@@ -11,12 +11,26 @@ import type { AnalyzerResult, ListRef } from '../types'
 //
 // Eligible lists for the picker = the user's active, non-giftideas lists
 // (giftideas are spoiler surfaces and can't be primary by definition).
+//
+// Dependent subjects are skipped: `lists.isPrimary` is per-owner, not
+// per-(owner, dependent), and `setPrimaryListImpl` clears the previous
+// primary for the entire owner. Surfacing a "pick a primary list for
+// <dependent>" rec would silently overwrite the guardian's own primary
+// list when applied. If we ever scope primary by dependent, drop this
+// guard.
 export const primaryListAnalyzer: Analyzer = {
 	id: 'primary-list',
 	label: 'Primary list',
 	enabledByDefault: true,
 	async run(ctx): Promise<AnalyzerResult> {
 		const t0 = Date.now()
+		if (ctx.subject.kind === 'dependent') {
+			return {
+				recs: [],
+				steps: [{ name: 'load-lists', latencyMs: Date.now() - t0 }],
+				inputHash: combineHashes([sha256Hex('primary-list|dependent-skip')]),
+			}
+		}
 		const userLists = await ctx.db
 			.select({
 				id: lists.id,
@@ -29,14 +43,7 @@ export const primaryListAnalyzer: Analyzer = {
 			})
 			.from(lists)
 			.leftJoin(sql`users u`, sql`u.id = ${lists.ownerId}`)
-			.where(
-				and(
-					eq(lists.ownerId, ctx.userId),
-					ctx.dependentId === null ? isNull(lists.subjectDependentId) : eq(lists.subjectDependentId, ctx.dependentId),
-					eq(lists.isActive, true),
-					ne(lists.type, 'giftideas')
-				)
-			)
+			.where(and(eq(lists.ownerId, ctx.userId), isNull(lists.subjectDependentId), eq(lists.isActive, true), ne(lists.type, 'giftideas')))
 
 		const hasPrimary = userLists.some(l => l.isPrimary)
 		const eligible = userLists.filter(l => !l.isPrimary)
@@ -56,12 +63,8 @@ export const primaryListAnalyzer: Analyzer = {
 			return { recs: [], steps, inputHash: combineHashes([inputHash]) }
 		}
 
-		const subjectName = ctx.subject.kind === 'dependent' ? ctx.subject.name : (userLists.find(l => l.ownerName)?.ownerName ?? 'You')
-		const subjectImage = ctx.subject.image
-		const listSubject: ListRef['subject'] =
-			ctx.subject.kind === 'dependent'
-				? { kind: 'dependent', name: subjectName, image: subjectImage }
-				: { kind: 'user', name: subjectName, image: subjectImage }
+		const subjectName = userLists.find(l => l.ownerName)?.ownerName ?? 'You'
+		const listSubject: ListRef['subject'] = { kind: 'user', name: subjectName, image: ctx.subject.image }
 		const eligibleRefs: Array<ListRef> = eligible.map(l => ({
 			id: String(l.id),
 			name: l.name,
@@ -70,19 +73,13 @@ export const primaryListAnalyzer: Analyzer = {
 			subject: listSubject,
 		}))
 
-		const isDependent = ctx.subject.kind === 'dependent'
-		const title = isDependent ? `Pick a primary list for ${ctx.subject.name}` : 'Pick a primary list'
-		const body = isDependent
-			? `${ctx.subject.name} has ${eligible.length} active list${eligible.length === 1 ? '' : 's'} but none are marked primary. The primary list is the one shoppers see first - choosing one helps gifters know where to focus.`
-			: `You have ${eligible.length} active list${eligible.length === 1 ? '' : 's'} but none are marked primary. Your primary list is the one shoppers see first - choosing one helps gifters know where to focus.`
-
 		return {
 			recs: [
 				{
 					kind: 'no-primary',
 					severity: 'important',
-					title,
-					body,
+					title: 'Pick a primary list',
+					body: `You have ${eligible.length} active list${eligible.length === 1 ? '' : 's'} but none are marked primary. Your primary list is the one shoppers see first - choosing one helps gifters know where to focus.`,
 					interaction: {
 						kind: 'list-picker',
 						saveLabel: 'Save as primary',
