@@ -81,11 +81,14 @@ describe('fingerprint stickiness (carrying dismissals across regenerations)', ()
 })
 
 describe('per-dependent pass', () => {
-	it('persists per-dependent recs alongside the user pass', async () => {
-		// Heuristic-only path: primary-list emits a no-primary rec when the
+	it('runs primary-list for the user pass but skips it for dependent passes', async () => {
+		// primary-list is heuristic-only and emits a no-primary rec when the
 		// candidate list set has zero primaries. The user has a list of
-		// their own, and a dependent has its own list; both passes should
-		// produce one rec each, with dependentId set on the dependent's row.
+		// their own, so the user pass should produce one. The dependent has
+		// its own list too, but `lists.isPrimary` is per-owner and applying
+		// a "pick a primary" rec on a dependent would clobber the
+		// guardian's own primary - so the analyzer deliberately skips the
+		// dependent subject and emits no rec there.
 		await withRollback(async tx => {
 			const guardian = await makeUser(tx)
 			const dep = await makeDependent(tx, { createdByUserId: guardian.id, name: 'Pippa' })
@@ -106,13 +109,12 @@ describe('per-dependent pass', () => {
 			const userRecs = rows.filter(r => r.dependentId === null)
 			const depRecs = rows.filter(r => r.dependentId === dep.id)
 
-			// primary-list (heuristic-only) should fire once for the user
-			// scope and once for the dependent scope. Other analyzers (the
-			// AI-calling ones) likely error out without a real provider, but
-			// per-analyzer errors are trapped into step rows and don't fail
-			// the run.
+			// User pass fires primary-list; dependent pass does not. Other
+			// analyzers (AI-calling) likely error out without a real
+			// provider, but per-analyzer errors are trapped into step rows
+			// and don't fail the run.
 			expect(userRecs.some(r => r.analyzerId === 'primary-list')).toBe(true)
-			expect(depRecs.some(r => r.analyzerId === 'primary-list')).toBe(true)
+			expect(depRecs.some(r => r.analyzerId === 'primary-list')).toBe(false)
 		})
 	})
 
