@@ -309,6 +309,10 @@ export const appSettingsSchema = z.object({
 	intelligenceEmailEnabled: z.boolean(),
 	intelligenceEmailWeeklyDigestEnabled: z.boolean(),
 	intelligenceEmailTestRecipient: z.union([z.null(), z.email()]),
+	// How many days of `cron_runs` history to keep. The daily verification-
+	// cleanup tick sweeps rows older than this. 90 days = roughly one
+	// quarter of operational history at five endpoints.
+	cronRunsRetentionDays: z.number().int().min(7).max(365),
 })
 
 // 2) Default values in code (for when DB is empty or missing keys)
@@ -364,6 +368,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	intelligenceEmailEnabled: false,
 	intelligenceEmailWeeklyDigestEnabled: false,
 	intelligenceEmailTestRecipient: null,
+	cronRunsRetentionDays: 90,
 }
 
 export type AppSettings = z.infer<typeof appSettingsSchema>

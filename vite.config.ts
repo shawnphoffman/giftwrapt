@@ -110,6 +110,10 @@ const config = defineConfig({
 	// affecting production builds (where Nitro handles externalization).
 	optimizeDeps: {
 		exclude: ['@browserbasehq/stagehand', 'playwright-core', 'chromium-bidi'],
+		// Force-prebundle so it shares the host React instance under
+		// dev. Without this we hit "Cannot read properties of null
+		// (reading 'useState')" because the dep ships its own copy.
+		include: ['@tanstack/react-table'],
 	},
 	ssr: {
 		noExternal: [],

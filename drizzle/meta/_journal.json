@@ -155,6 +155,13 @@
       "when": 1777934493765,
       "tag": "0021_last_vanisher",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1777982295899,
+      "tag": "0022_broad_the_initiative",
+      "breakpoints": true
     }
   ]
 }
