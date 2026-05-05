@@ -65,7 +65,6 @@ import { Route as coreAdminIntelligenceIndexRouteImport } from './routes/(core)/
 import { Route as ApiSseListListIdRouteImport } from './routes/api/sse/list.$listId'
 import { Route as coreListsListIdOrganizeRouteImport } from './routes/(core)/lists_/$listId.organize'
 import { Route as coreListsListIdEditRouteImport } from './routes/(core)/lists_/$listId.edit'
-import { Route as coreListsListIdBulkRouteImport } from './routes/(core)/lists_/$listId.bulk'
 import { Route as coreAdminIntelligenceSettingsRouteImport } from './routes/(core)/admin_/intelligence/settings'
 import { Route as coreAdminIntelligenceSchedulingRouteImport } from './routes/(core)/admin_/intelligence/scheduling'
 import { Route as coreAdminIntelligenceNotificationsRouteImport } from './routes/(core)/admin_/intelligence/notifications'
@@ -357,11 +356,6 @@ const coreListsListIdEditRoute = coreListsListIdEditRouteImport.update({
   path: '/lists/$listId/edit',
   getParentRoute: () => coreRouteRoute,
 } as any)
-const coreListsListIdBulkRoute = coreListsListIdBulkRouteImport.update({
-  id: '/lists_/$listId/bulk',
-  path: '/lists/$listId/bulk',
-  getParentRoute: () => coreRouteRoute,
-} as any)
 const coreAdminIntelligenceSettingsRoute =
   coreAdminIntelligenceSettingsRouteImport.update({
     id: '/settings',
@@ -456,7 +450,6 @@ export interface FileRoutesByFullPath {
   '/admin/intelligence/notifications': typeof coreAdminIntelligenceNotificationsRoute
   '/admin/intelligence/scheduling': typeof coreAdminIntelligenceSchedulingRoute
   '/admin/intelligence/settings': typeof coreAdminIntelligenceSettingsRoute
-  '/lists/$listId/bulk': typeof coreListsListIdBulkRoute
   '/lists/$listId/edit': typeof coreListsListIdEditRoute
   '/lists/$listId/organize': typeof coreListsListIdOrganizeRoute
   '/api/sse/list/$listId': typeof ApiSseListListIdRoute
@@ -517,7 +510,6 @@ export interface FileRoutesByTo {
   '/admin/intelligence/notifications': typeof coreAdminIntelligenceNotificationsRoute
   '/admin/intelligence/scheduling': typeof coreAdminIntelligenceSchedulingRoute
   '/admin/intelligence/settings': typeof coreAdminIntelligenceSettingsRoute
-  '/lists/$listId/bulk': typeof coreListsListIdBulkRoute
   '/lists/$listId/edit': typeof coreListsListIdEditRoute
   '/lists/$listId/organize': typeof coreListsListIdOrganizeRoute
   '/api/sse/list/$listId': typeof ApiSseListListIdRoute
@@ -583,7 +575,6 @@ export interface FileRoutesById {
   '/(core)/admin_/intelligence/notifications': typeof coreAdminIntelligenceNotificationsRoute
   '/(core)/admin_/intelligence/scheduling': typeof coreAdminIntelligenceSchedulingRoute
   '/(core)/admin_/intelligence/settings': typeof coreAdminIntelligenceSettingsRoute
-  '/(core)/lists_/$listId/bulk': typeof coreListsListIdBulkRoute
   '/(core)/lists_/$listId/edit': typeof coreListsListIdEditRoute
   '/(core)/lists_/$listId/organize': typeof coreListsListIdOrganizeRoute
   '/api/sse/list/$listId': typeof ApiSseListListIdRoute
@@ -649,7 +640,6 @@ export interface FileRouteTypes {
     | '/admin/intelligence/notifications'
     | '/admin/intelligence/scheduling'
     | '/admin/intelligence/settings'
-    | '/lists/$listId/bulk'
     | '/lists/$listId/edit'
     | '/lists/$listId/organize'
     | '/api/sse/list/$listId'
@@ -710,7 +700,6 @@ export interface FileRouteTypes {
     | '/admin/intelligence/notifications'
     | '/admin/intelligence/scheduling'
     | '/admin/intelligence/settings'
-    | '/lists/$listId/bulk'
     | '/lists/$listId/edit'
     | '/lists/$listId/organize'
     | '/api/sse/list/$listId'
@@ -775,7 +764,6 @@ export interface FileRouteTypes {
     | '/(core)/admin_/intelligence/notifications'
     | '/(core)/admin_/intelligence/scheduling'
     | '/(core)/admin_/intelligence/settings'
-    | '/(core)/lists_/$listId/bulk'
     | '/(core)/lists_/$listId/edit'
     | '/(core)/lists_/$listId/organize'
     | '/api/sse/list/$listId'
@@ -1200,13 +1188,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreListsListIdEditRouteImport
       parentRoute: typeof coreRouteRoute
     }
-    '/(core)/lists_/$listId/bulk': {
-      id: '/(core)/lists_/$listId/bulk'
-      path: '/lists/$listId/bulk'
-      fullPath: '/lists/$listId/bulk'
-      preLoaderRoute: typeof coreListsListIdBulkRouteImport
-      parentRoute: typeof coreRouteRoute
-    }
     '/(core)/admin_/intelligence/settings': {
       id: '/(core)/admin_/intelligence/settings'
       path: '/settings'
@@ -1356,7 +1337,6 @@ interface coreRouteRouteChildren {
   coreRecentItemsRoute: typeof coreRecentItemsRoute
   coreMeIndexRoute: typeof coreMeIndexRoute
   corePurchasesIndexRoute: typeof corePurchasesIndexRoute
-  coreListsListIdBulkRoute: typeof coreListsListIdBulkRoute
   coreListsListIdEditRoute: typeof coreListsListIdEditRoute
   coreListsListIdOrganizeRoute: typeof coreListsListIdOrganizeRoute
 }
@@ -1377,7 +1357,6 @@ const coreRouteRouteChildren: coreRouteRouteChildren = {
   coreRecentItemsRoute: coreRecentItemsRoute,
   coreMeIndexRoute: coreMeIndexRoute,
   corePurchasesIndexRoute: corePurchasesIndexRoute,
-  coreListsListIdBulkRoute: coreListsListIdBulkRoute,
   coreListsListIdEditRoute: coreListsListIdEditRoute,
   coreListsListIdOrganizeRoute: coreListsListIdOrganizeRoute,
 }

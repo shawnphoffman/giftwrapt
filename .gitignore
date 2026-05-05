@@ -24,3 +24,5 @@ scripts/screenshots/.fixture-ids.json
 CLAUDE.local.md
 # TEMPORARY
 .notes/
+
+.env.local.screenshots

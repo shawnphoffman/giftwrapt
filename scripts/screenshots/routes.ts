@@ -4,15 +4,19 @@ export const ROUTES: ReadonlyArray<RouteDef> = [
 	// ---------------------------------------------------------------- Logged out
 	{ slug: 'sign-in', label: 'Sign in', path: '/sign-in', auth: false, waitFor: 'form' },
 	{ slug: 'sign-up', label: 'Sign up', path: '/sign-up', auth: false, waitFor: 'form' },
+	{ slug: 'forgot-password', label: 'Forgot password', path: '/forgot-password', auth: false, waitFor: 'form' },
+	{ slug: 'reset-password', label: 'Reset password', path: '/reset-password', auth: false, waitFor: 'form' },
 
 	// ---------------------------------------------------------------- Authenticated (admin)
 	{ slug: 'home', label: 'Home / dashboard', path: '/' },
 	{ slug: 'me', label: 'Profile', path: '/me' },
+	{ slug: 'suggestions', label: 'Suggestions (intelligence)', path: '/suggestions' },
 
 	{ slug: 'settings', label: 'Settings', path: '/settings' },
 	{ slug: 'settings-security', label: 'Settings: security', path: '/settings/security' },
 	{ slug: 'settings-permissions', label: 'Settings: permissions', path: '/settings/permissions' },
 	{ slug: 'settings-devices', label: 'Settings: devices', path: '/settings/devices' },
+	{ slug: 'settings-dependents', label: 'Settings: dependents', path: '/settings/dependents' },
 
 	{ slug: 'purchases', label: 'Purchases (gave)', path: '/purchases' },
 	{ slug: 'purchases-received', label: 'Purchases: received', path: '/purchases/received' },
@@ -24,7 +28,6 @@ export const ROUTES: ReadonlyArray<RouteDef> = [
 	{ slug: 'list-admin-wishlist', label: "Admin's primary wishlist", path: ids => `/lists/${ids.lists.adminWishlist}` },
 	{ slug: 'list-admin-wishlist-edit', label: 'Admin wishlist: edit', path: ids => `/lists/${ids.lists.adminWishlist}/edit` },
 	{ slug: 'list-admin-wishlist-organize', label: 'Admin wishlist: organize', path: ids => `/lists/${ids.lists.adminWishlist}/organize` },
-	{ slug: 'list-admin-wishlist-bulk', label: 'Admin wishlist: bulk', path: ids => `/lists/${ids.lists.adminWishlist}/bulk` },
 	{ slug: 'list-admin-christmas', label: 'Admin christmas list', path: ids => `/lists/${ids.lists.adminChristmas}` },
 	{ slug: 'list-admin-birthday', label: 'Admin birthday list', path: ids => `/lists/${ids.lists.adminBirthday}` },
 	{ slug: 'list-admin-todos', label: 'Admin todos', path: ids => `/lists/${ids.lists.adminTodos}` },
@@ -49,9 +52,21 @@ export const ROUTES: ReadonlyArray<RouteDef> = [
 
 	// Admin panel
 	{ slug: 'admin', label: 'Admin', path: '/admin' },
+	{ slug: 'admin-email', label: 'Admin: email', path: '/admin/email' },
+	{ slug: 'admin-auth', label: 'Admin: auth', path: '/admin/auth' },
 	{ slug: 'admin-users', label: 'Admin: users', path: '/admin/users' },
+	{ slug: 'admin-scraping', label: 'Admin: scraping', path: '/admin/scraping' },
+	{ slug: 'admin-ai', label: 'Admin: ai', path: '/admin/ai' },
 	{ slug: 'admin-data', label: 'Admin: data', path: '/admin/data' },
+	{ slug: 'admin-scheduling', label: 'Admin: scheduling', path: '/admin/scheduling' },
 	{ slug: 'admin-storage', label: 'Admin: storage', path: '/admin/storage' },
-	{ slug: 'admin-scrapes', label: 'Admin: scrapes', path: '/admin/scrapes' },
-	{ slug: 'admin-debug', label: 'Admin: debug', path: '/admin/debug' },
+	// { slug: 'admin-debug', label: 'Admin: debug', path: '/admin/debug' },
+
+	// Admin panel
+	{ slug: 'admin-intelligence', label: 'Admin: intelligence', path: '/admin/intelligence' },
+	{ slug: 'admin-intelligence-settings', label: 'Admin: intelligence: settings', path: '/admin/intelligence/settings' },
+	{ slug: 'admin-intelligence-analyzers', label: 'Admin: intelligence: analyzers', path: '/admin/intelligence/analyzers' },
+	{ slug: 'admin-intelligence-scheduling', label: 'Admin: intelligence: scheduling', path: '/admin/intelligence/scheduling' },
+	{ slug: 'admin-intelligence-notifications', label: 'Admin: intelligence: notifications', path: '/admin/intelligence/notifications' },
+	{ slug: 'admin-intelligence-history', label: 'Admin: intelligence: history', path: '/admin/intelligence/history' },
 ]

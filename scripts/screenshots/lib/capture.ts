@@ -30,6 +30,13 @@ export async function captureRoute(page: Page, route: RouteDef, url: string, out
 	const waitFor = route.waitFor ?? 'main, [role="main"], body'
 	await page.locator(waitFor).first().waitFor({ state: 'visible', timeout: 15_000 })
 
+	// Extra: wait for loading skeletons to disappear, if any.
+	await page
+		.waitForFunction(() => !document.querySelector('[data-slot="skeleton"]'), { timeout: 10_000 })
+		.catch(() => {
+			// Ignore timeout – better a slightly-loading screenshot than failing the whole run.
+		})
+
 	// Inject animation-killer + toast-hider AFTER the page has hydrated, so
 	// any first-render motion is already settled.
 	await page.addStyleTag({ content: ANIM_OFF_CSS })

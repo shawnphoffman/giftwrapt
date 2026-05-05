@@ -11,14 +11,18 @@
  *
  * Prerequisites:
  *   - DB seeded: `SEED_SAFE=1 pnpm db:seed:screenshots`
- *   - Dev server up in another terminal: `pnpm dev`
+ *   - Env: loads `.env.local.screenshots` then `.env.local` (screenshots wins on overlap).
+ *     Default URL comes from `SERVER_URL` / `VITE_SERVER_URL` when `--url` is omitted.
+ *   - Dev server for captures: `pnpm dev:screenshots` (loads `.env.local.screenshots`).
+ *     Set `VITE_TANSTACK_DEVTOOLS=false` there so TanStack devtools stay off in the bundle.
  */
 
 import { readFile } from 'node:fs/promises'
 import { resolve as resolvePath } from 'node:path'
 import { parseArgs } from 'node:util'
 
-import { checkbox, confirm, input, select } from '@inquirer/prompts'
+import { checkbox, confirm, input } from '@inquirer/prompts'
+import { config as loadDotenv } from 'dotenv'
 import { chromium } from 'playwright'
 
 import { loginAndSaveState } from './screenshots/lib/auth'
@@ -31,6 +35,25 @@ import { type FixtureIds, type Theme, type ViewportName, VIEWPORTS } from './scr
 
 const REPO_ROOT = resolvePath(new URL('..', import.meta.url).pathname)
 const FIXTURE_IDS_PATH = resolvePath(REPO_ROOT, 'scripts/screenshots/.fixture-ids.json')
+
+/** Screenshots env wins for overlapping keys; `.env.local` fills in the rest. */
+function loadScreenshotEnvFiles(): void {
+	loadDotenv({ path: resolvePath(REPO_ROOT, '.env.local.screenshots') })
+	loadDotenv({ path: resolvePath(REPO_ROOT, '.env.local') })
+}
+
+function defaultServerBaseUrl(): string {
+	const raw = (process.env.SERVER_URL ?? process.env.VITE_SERVER_URL ?? '').trim()
+	if (!raw) return 'http://localhost:3000'
+	try {
+		const u = new URL(raw)
+		const path = u.pathname === '/' ? '' : u.pathname.replace(/\/$/, '')
+		const base = `${u.origin}${path}`
+		return base || u.origin
+	} catch {
+		return 'http://localhost:3000'
+	}
+}
 const STORAGE_STATE_PATH = resolvePath(REPO_ROOT, '.cache/screenshots/storageState.json')
 const DEFAULT_OUT = resolvePath(REPO_ROOT, 'screenshots')
 
@@ -93,10 +116,10 @@ async function gatherChoices(flags: CliFlags) {
 
 	if (flags.nonInteractive) {
 		return {
-			url: flags.url ?? 'http://localhost:3000',
+			url: flags.url ?? defaultServerBaseUrl(),
 			outDir: flags.out ? resolvePath(flags.out) : DEFAULT_OUT,
 			routeSlugs: flags.routes ?? allRouteSlugs,
-			viewports: flags.viewports ?? (['mobile', 'wide'] as Array<ViewportName>),
+			viewports: flags.viewports ?? (['mobile', 'wide', 'basic'] as Array<ViewportName>),
 			themes: flags.themes ?? (['light', 'dark'] as Array<Theme>),
 		}
 	}
@@ -105,15 +128,16 @@ async function gatherChoices(flags: CliFlags) {
 	if (flags.url) {
 		url = flags.url
 	} else {
-		const picked = await select<string>({
-			message: 'Environment',
-			choices: [
-				{ name: 'Local dev (http://localhost:3000)', value: 'http://localhost:3000' },
-				{ name: 'Custom URL...', value: '__custom__' },
-			],
-			default: 'http://localhost:3000',
+		url = await input({
+			message: 'Server base URL',
+			default: defaultServerBaseUrl(),
 		})
-		url = picked === '__custom__' ? await input({ message: 'Base URL', default: 'http://localhost:3000' }) : picked
+		url = url.trim()
+		try {
+			new URL(url)
+		} catch {
+			throw new Error(`Not a valid URL: ${url}`)
+		}
 	}
 
 	const outDir = flags.out ? resolvePath(flags.out) : DEFAULT_OUT
@@ -123,8 +147,9 @@ async function gatherChoices(flags: CliFlags) {
 		(await checkbox<ViewportName>({
 			message: 'Viewports',
 			choices: [
-				{ name: 'Mobile (390x844)', value: 'mobile', checked: true },
-				{ name: 'Wide desktop (1920x1080)', value: 'wide', checked: true },
+				{ name: 'Mobile (390x844)', value: 'mobile', checked: false },
+				{ name: 'Basic (1080x1000)', value: 'basic', checked: true },
+				{ name: 'Wide (1920x1080)', value: 'wide', checked: false },
 			],
 			required: true,
 		}))
@@ -261,12 +286,10 @@ async function run(plan: RunPlan, ids: FixtureIds) {
 }
 
 async function main() {
+	loadScreenshotEnvFiles()
 	const flags = parseCliFlags()
 
 	const ids = await loadFixtureIds()
-	const url = flags.url ?? (flags.nonInteractive ? 'http://localhost:3000' : 'http://localhost:3000')
-	console.log(`🌐 Checking dev server at ${url}...`)
-	await waitForServer(url)
 
 	if (!flags.nonInteractive) {
 		const ok = await confirm({
@@ -280,9 +303,13 @@ async function main() {
 	}
 
 	const choices = await gatherChoices(flags)
+
+	console.log(`🌐 Checking dev server at ${choices.url}...`)
+	await waitForServer(choices.url)
+
 	const runId = timestampSlug()
 
-	await run({ ...choices, url: choices.url, runId }, ids)
+	await run({ ...choices, runId }, ids)
 }
 
 main().catch(err => {

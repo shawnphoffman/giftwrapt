@@ -96,7 +96,7 @@ export function AdminIntelligencePageContent({
 					<div
 						className={cn(
 							'flex size-10 shrink-0 items-center justify-center rounded-xl shadow-sm',
-							'bg-gradient-to-br from-amber-500 via-pink-500 to-fuchsia-600',
+							'bg-linear-to-br from-amber-500 via-pink-500 to-fuchsia-600',
 							'dark:from-amber-700 dark:via-pink-700 dark:to-fuchsia-800',
 							'ring-1 ring-fuchsia-400/40 dark:ring-fuchsia-600/40'
 						)}
@@ -183,7 +183,7 @@ export function ProviderMissingBanner() {
 function AnalyzerBadge({ tone, children }: { tone: 'kind-heuristic' | 'kind-ai' | 'trigger' | 'status'; children: React.ReactNode }) {
 	if (tone === 'kind-ai') {
 		return (
-			<span className="inline-flex items-center rounded-md border border-transparent bg-gradient-to-br from-amber-500 via-pink-500 to-fuchsia-600 px-1.5 py-0.5 text-[10px] font-medium text-white shadow-sm dark:from-amber-700 dark:via-pink-700 dark:to-fuchsia-800">
+			<span className="inline-flex items-center rounded-md border border-transparent bg-linear-to-br from-amber-500 via-pink-500 to-fuchsia-600 px-1.5 py-0.5 text-[10px] font-medium text-white shadow-sm dark:from-amber-700 dark:via-pink-700 dark:to-fuchsia-800">
 				{children}
 			</span>
 		)
@@ -411,7 +411,7 @@ function LastRunCell({ row }: { row: AdminUserRunSummaryRow }) {
 export function HealthGrid({ data, providerSummary }: { data: AdminIntelligenceData; providerSummary: string }) {
 	const { health } = data
 	return (
-		<section data-intelligence="admin-health-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+		<section data-intelligence="admin-health-grid" className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-3">
 			<MetricCard
 				icon={Sparkles}
 				label="Active recommendations"
@@ -441,19 +441,19 @@ export function HealthGrid({ data, providerSummary }: { data: AdminIntelligenceD
 				gradient="from-violet-400/40 via-purple-400/30 to-fuchsia-500/40"
 			/>
 
-			<div className="md:col-span-2 lg:col-span-4 grid grid-cols-1 lg:grid-cols-2 gap-3">
+			<div className="lg:col-span-2 xl:col-span-4 grid grid-cols-1 xl:grid-cols-2 gap-3">
 				<RunsActivityChart data={data.dailySeries} />
 				<TokenUsageChart data={data.dailySeries} />
 			</div>
 
-			<div className="md:col-span-2 lg:col-span-4">
+			<div className="lg:col-span-2 xl:col-span-4">
 				<Card>
 					<CardHeader>
 						<CardTitle>Analyzers</CardTitle>
 						<CardDescription>Average duration · tokens · active recommendations</CardDescription>
 					</CardHeader>
 					<CardContent>
-						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+						<div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-4 gap-3">
 							{health.analyzers.map(a => (
 								<div key={a.id} className="rounded-lg border border-border bg-muted/20 px-3 py-2">
 									<div className="flex items-center justify-between">
@@ -471,7 +471,7 @@ export function HealthGrid({ data, providerSummary }: { data: AdminIntelligenceD
 				</Card>
 			</div>
 
-			<div className="md:col-span-2 lg:col-span-4">
+			<div className="lg:col-span-2 xl:col-span-4">
 				<Card>
 					<CardHeader>
 						<CardTitle>Queue</CardTitle>
@@ -516,7 +516,7 @@ function MetricCard({
 	gradient: string
 }) {
 	return (
-		<Card size="sm" className={cn('bg-gradient-to-br', gradient)}>
+		<Card size="sm" className={cn('bg-linear-to-br', gradient)}>
 			<CardHeader>
 				<CardTitle className="flex items-center gap-2">
 					<Icon className="size-5" />
@@ -603,7 +603,7 @@ export function SettingsPanel({
 						Recommendations regenerate on a per-user cron and on manual &quot;Run for me now&quot; clicks. Each user is eligible no more
 						often than the cron interval; manual runs are gated by the cooldown to prevent stacking.
 					</p>
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+					<div className="grid grid-cols-1 xl:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
 							label="Cron refresh interval (days)"
 							hint="How often the cron will regenerate recommendations for each user."
@@ -688,7 +688,7 @@ export function SettingsPanel({
 						potentially missed recommendations. Dry run leaves the model calls + step rows in place but skips writing recommendations to the
 						database.
 					</p>
-					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+					<div className="grid grid-cols-1 xl:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
 							label="Candidate cap per analyzer"
 							hint="Hard limit on items / pairs sent to the model in a single run."

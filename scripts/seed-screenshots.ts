@@ -106,12 +106,26 @@ function birthdayInDays(days: number): { birthMonth: BirthMonth; birthDay: numbe
 }
 
 // ------------------------------------------------------------------
-// Placeholder image helper - fast, fake-looking, predictable.
+// Placeholder image helpers - real photos via loremflickr (tag-based,
+// deterministic via the `lock` param) and DiceBear avatars for users.
+// The `hex` parameter is ignored (kept for call-site compatibility).
 // ------------------------------------------------------------------
+function stableHash(s: string): number {
+	let h = 2166136261
+	for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619)
+	return Math.abs(h | 0)
+}
+function photo(label: string, w: number, h: number): string {
+	const tags = encodeURIComponent(label.toLowerCase())
+	return `https://loremflickr.com/${w}/${h}/${tags}?lock=${stableHash(label)}`
+}
 const ph = {
-	square: (label: string, hex = '4f46e5') => `https://placehold.co/600x600/${hex}/fff?text=${encodeURIComponent(label)}`,
-	wide: (label: string, hex = '14b8a6') => `https://placehold.co/800x500/${hex}/fff?text=${encodeURIComponent(label)}`,
-	tall: (label: string, hex = 'ec4899') => `https://placehold.co/500x800/${hex}/fff?text=${encodeURIComponent(label)}`,
+	square: (label: string, _hex?: string) => photo(label, 600, 600),
+	wide: (label: string, _hex?: string) => photo(label, 800, 500),
+	tall: (label: string, _hex?: string) => photo(label, 500, 800),
+}
+function avatarUrl(seed: string, style: 'lorelei' | 'avataaars' | 'personas' | 'bottts' = 'lorelei'): string {
+	return `https://api.dicebear.com/9.x/${style}/svg?seed=${encodeURIComponent(seed)}`
 }
 
 // ------------------------------------------------------------------
@@ -123,6 +137,7 @@ async function signUp(input: {
 	role: 'user' | 'admin' | 'child'
 	birthMonth?: BirthMonth | null
 	birthDay?: number | null
+	avatarStyle?: 'lorelei' | 'avataaars' | 'personas' | 'bottts'
 }): Promise<string> {
 	const result = await auth.api.signUpEmail({
 		body: { email: input.email, password: PASSWORD, name: input.name } as never,
@@ -135,6 +150,7 @@ async function signUp(input: {
 			role: input.role,
 			birthMonth: (input.birthMonth ?? null) as never,
 			birthDay: input.birthDay ?? null,
+			image: avatarUrl(input.email, input.avatarStyle ?? 'lorelei'),
 		})
 		.where(sql`id = ${id}`)
 	return id
@@ -256,36 +272,42 @@ async function main() {
 		email: 'admin@example.test',
 		name: 'Sam Rivera',
 		role: 'admin',
+		avatarStyle: 'lorelei',
 		...birthdayInDays(5), // close: birthday in 5 days
 	})
 	const partnerId = await signUp({
 		email: 'partner@example.test',
 		name: 'Alex Rivera',
 		role: 'user',
+		avatarStyle: 'avataaars',
 		...birthdayInDays(18), // soon-ish: birthday in 18 days
 	})
 	const friendId = await signUp({
 		email: 'friend@example.test',
 		name: 'Jordan Lee',
 		role: 'user',
+		avatarStyle: 'personas',
 		...birthdayInDays(200), // far: ~6.5 months out
 	})
 	const gifterId = await signUp({
 		email: 'gifter@example.test',
 		name: 'Morgan Patel',
 		role: 'user',
+		avatarStyle: 'lorelei',
 		...birthdayInDays(-45), // past: birthday already passed this year
 	})
 	const nobdayId = await signUp({
 		email: 'nobday@example.test',
 		name: 'Riley Chen',
 		role: 'user',
+		avatarStyle: 'avataaars',
 		// no birthMonth/birthDay
 	})
 	const childId = await signUp({
 		email: 'child@example.test',
 		name: 'Casey Rivera',
 		role: 'child',
+		avatarStyle: 'personas',
 		...birthdayInDays(21), // close-ish: 3 weeks
 	})
 
@@ -316,7 +338,7 @@ async function main() {
 	await db.insert(dependents).values({
 		id: petId,
 		name: 'Buddy',
-		image: null,
+		image: photo('golden retriever puppy', 600, 600),
 		birthMonth: 'april',
 		birthDay: 22,
 		birthYear: 2021,
