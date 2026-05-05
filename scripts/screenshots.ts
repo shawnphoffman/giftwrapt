@@ -29,6 +29,7 @@ import { loginAndSaveState } from './screenshots/lib/auth'
 import { captureRoute, resolveRoutePath } from './screenshots/lib/capture'
 import { waitForServer } from './screenshots/lib/dev-server'
 import { ensureDirFor, fileForRun, type ManifestEntry, mirrorToLatest, timestampSlug, writeManifest } from './screenshots/lib/output'
+import { composeSplitsForRun } from './screenshots/lib/split'
 import { applyTheme } from './screenshots/lib/theme'
 import { ROUTES } from './screenshots/routes'
 import { type FixtureIds, type Theme, type ViewportName, VIEWPORTS } from './screenshots/types'
@@ -64,6 +65,7 @@ interface CliFlags {
 	viewports?: Array<ViewportName>
 	themes?: Array<Theme>
 	nonInteractive: boolean
+	split: boolean
 }
 
 function parseCliFlags(): CliFlags {
@@ -75,6 +77,7 @@ function parseCliFlags(): CliFlags {
 			viewports: { type: 'string' },
 			themes: { type: 'string' },
 			'non-interactive': { type: 'boolean', default: false },
+			'no-split': { type: 'boolean', default: false },
 		},
 		strict: true,
 		allowPositionals: false,
@@ -95,6 +98,7 @@ function parseCliFlags(): CliFlags {
 		viewports: split(values.viewports) as Array<ViewportName> | undefined,
 		themes: split(values.themes) as Array<Theme> | undefined,
 		nonInteractive: values['non-interactive'] === true,
+		split: values['no-split'] !== true,
 	}
 }
 
@@ -184,6 +188,7 @@ interface RunPlan {
 	viewports: Array<ViewportName>
 	themes: Array<Theme>
 	routeSlugs: Array<string>
+	split: boolean
 }
 
 async function run(plan: RunPlan, ids: FixtureIds) {
@@ -266,6 +271,19 @@ async function run(plan: RunPlan, ids: FixtureIds) {
 		await browser.close()
 	}
 
+	let splitCreated = 0
+	if (plan.split && plan.themes.includes('light') && plan.themes.includes('dark') && entries.length > 0) {
+		console.log('\n🪞 Composing split images...')
+		const result = await composeSplitsForRun(plan.outDir, plan.runId, entries)
+		splitCreated = result.created.length
+		for (const entry of result.created) {
+			console.log(`  ✓ [${entry.viewport}/split] ${entry.slug} (${entry.bytes} B, ${entry.durationMs}ms)`)
+		}
+		for (const skip of result.skipped) {
+			console.log(`  · [${skip.viewport}/split] ${skip.slug}: skipped (${skip.reason})`)
+		}
+	}
+
 	const finishedAt = new Date()
 	const manifestPath = await writeManifest(plan.outDir, plan.runId, {
 		startedAt: startedAt.toISOString(),
@@ -279,7 +297,9 @@ async function run(plan: RunPlan, ids: FixtureIds) {
 	await mirrorToLatest(plan.outDir, plan.runId)
 
 	console.log('')
-	console.log(`✅ Captured ${entries.length} screenshots${failed.length ? `, ${failed.length} failed` : ''}.`)
+	console.log(
+		`✅ Captured ${entries.length} screenshots${failed.length ? `, ${failed.length} failed` : ''}${splitCreated ? `, ${splitCreated} split` : ''}.`
+	)
 	console.log(`   Run:    ${resolvePath(plan.outDir, plan.runId)}`)
 	console.log(`   Latest: ${resolvePath(plan.outDir, 'latest')}`)
 	console.log(`   Manifest: ${manifestPath}`)
@@ -309,7 +329,7 @@ async function main() {
 
 	const runId = timestampSlug()
 
-	await run({ ...choices, runId }, ids)
+	await run({ ...choices, runId, split: flags.split }, ids)
 }
 
 main().catch(err => {
