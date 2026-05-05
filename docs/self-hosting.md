@@ -123,12 +123,31 @@ When email is unconfigured:
 
 ## Cron and background jobs
 
-Several scheduled endpoints live under `/api/cron/*` (auto-archive,
-birthday emails, intelligence recommendations, the item-scrape queue,
-and verification cleanup). Wire them up to whatever scheduler your
-platform offers (system crontab, Docker Compose worker service, etc.).
-The full inventory plus per-platform recipes lives in
-[.notes/cron-and-jobs.md](../.notes/cron-and-jobs.md).
+The shipped compose files
+([compose.selfhost-garage.yaml](../docker/compose.selfhost-garage.yaml)
+and [compose.selfhost-rustfs.yaml](../docker/compose.selfhost-rustfs.yaml))
+**include a `cron` sidecar by default**. It runs busybox `crond`
+against a crontab generated at boot from
+[docker/cron-entrypoint.sh](../docker/cron-entrypoint.sh) and hits the
+five `/api/cron/*` endpoints (auto-archive, birthday emails,
+verification cleanup, intelligence recommendations, item-scrape queue)
+on a daily UTC schedule.
+
+The sidecar requires `CRON_SECRET` to be set in `docker/.env`; if
+unset it fatals at startup and the container restarts in a loop with a
+clear error message. Generate a value with
+`openssl rand -base64 48 | tr -d '/+=' | head -c 48` and add it to the
+env file before bringing the stack up. Operators can verify cron is
+firing by visiting `/admin/scheduling` once signed in.
+
+To customize schedules: edit `docker/cron-entrypoint.sh` and recreate
+the service with
+`docker compose -f docker/compose.selfhost-garage.yaml up -d --force-recreate cron`.
+Higher cadences are safe (per-user advisory locks de-duplicate work).
+
+Per-platform alternatives (system crontab, long-lived worker service,
+hitting the endpoints from a separate host) and the full inventory
+live in [.notes/cron-and-jobs.md](../.notes/cron-and-jobs.md).
 
 ## Updating
 
