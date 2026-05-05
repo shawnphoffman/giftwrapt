@@ -13,6 +13,9 @@ const MIN_INTERVAL_BETWEEN_CHECKS_MS = 30 * 1000
 // SessionStorage key: once the user dismisses the toast for a given server
 // commit, don't nag again for the same one this tab session.
 const DISMISSED_KEY = '__version_check_dismissed_commit'
+// Sonner merges toasts by id; default `toast()` always appends, so repeated
+// polls would stack. Use `toast.message()` + stable id instead.
+const VERSION_TOAST_ID = '__version_check_toast'
 
 interface VersionResponse {
 	commit: string
@@ -89,7 +92,8 @@ export function useVersionCheck(): void {
 			if (server.commit === clientCommit) return
 			if (getDismissedCommit() === server.commit) return
 
-			toast('A new version is available', {
+			toast.message('A new version is available', {
+				id: VERSION_TOAST_ID,
 				description: 'Refresh to load the latest update.',
 				duration: Number.POSITIVE_INFINITY,
 				action: {
