@@ -1,5 +1,64 @@
 # Changelog
 
+## [0.28.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.27.0...v0.28.0) (2026-05-05)
+
+
+### Features
+
+* **admin:** add scheduling page with cron run history and manual triggers ([99df09e](https://github.com/shawnphoffman/giftwrapt/commit/99df09e02d303bdb939c92c499555e92f379f050))
+* **deploy:** wire cron defaults across vercel, render, and self-host ([afdf681](https://github.com/shawnphoffman/giftwrapt/commit/afdf681da96c41022fda805f0cf1a95fab23345d))
+* **filters:** add price filter with presets and custom range ([6170240](https://github.com/shawnphoffman/giftwrapt/commit/61702404ba49e23944117fd3f761356357c4ddc3))
+* **import:** add itemScrapeJobs schema and import settings ([7509324](https://github.com/shawnphoffman/giftwrapt/commit/7509324d09ebb9e7970eb677c6171d9b213351a5))
+* **import:** amazon wishlist source ([fedfa63](https://github.com/shawnphoffman/giftwrapt/commit/fedfa63cd7e192020cb69ce1d13b3bbf04ed7207))
+* **import:** apple notes source ([1e750c9](https://github.com/shawnphoffman/giftwrapt/commit/1e750c99066433fb3026199ac48ff880013df64f))
+* **import:** bulkCreateItems server fn ([9555cea](https://github.com/shawnphoffman/giftwrapt/commit/9555cea2f6bf07b28553819634c65a0fcac2fe89))
+* **import:** paste-urls source ([5be1bee](https://github.com/shawnphoffman/giftwrapt/commit/5be1bee8d150a009591af4b53c4572dbaed23154))
+* **import:** preview table for bulk imports ([1562369](https://github.com/shawnphoffman/giftwrapt/commit/1562369648756ef9fdb82fe8271b9373fdd5a9d8))
+* **import:** scrape-queue runner with cron tick ([8ce042a](https://github.com/shawnphoffman/giftwrapt/commit/8ce042a6d5d5f727cc52cf3b280ddf69570e6288))
+* **intelligence-admin:** polish admin page ([7bf6226](https://github.com/shawnphoffman/giftwrapt/commit/7bf622656753a8bba103a01dc0e745e8697accdb))
+* **intelligence:** add CLI scripts for Shape B/C deployments ([10abe86](https://github.com/shawnphoffman/giftwrapt/commit/10abe86a9ff2cd13ea843cede4ae32e8f195157a))
+* **intelligence:** add DB schema and admin settings ([eaf5622](https://github.com/shawnphoffman/giftwrapt/commit/eaf5622db465c942ba02d23fdc1f2d87f05e33a0))
+* **intelligence:** add per-run debug panel to admin runs table ([#62](https://github.com/shawnphoffman/giftwrapt/issues/62)) ([1786fb6](https://github.com/shawnphoffman/giftwrapt/commit/1786fb615d2a3517d515b1ff1bd562b73f9d564e))
+* **intelligence:** admin run debug panel + settings cleanup ([#63](https://github.com/shawnphoffman/giftwrapt/issues/63)) ([0c458ec](https://github.com/shawnphoffman/giftwrapt/commit/0c458ecca8cce3eaf189a9d946d865f1dd36b2fb))
+* **intelligence:** adminRunForMe + integration tests ([1e60f34](https://github.com/shawnphoffman/giftwrapt/commit/1e60f346744b8127c90916d94a418dc5d243c0d2))
+* **intelligence:** allow un-dismissing recs from the suggestions page ([275b810](https://github.com/shawnphoffman/giftwrapt/commit/275b8103f202b7a6e503572c71b7221772dc7634))
+* **intelligence:** confirm rec-resolving actions in a dialog ([4753958](https://github.com/shawnphoffman/giftwrapt/commit/47539582ecff0e624219401a2f19c8dbba4e11d9))
+* **intelligence:** cron endpoint and server functions ([f300e5b](https://github.com/shawnphoffman/giftwrapt/commit/f300e5ba6a96ab2fe3097cb5f32ddb6bbcbd6605))
+* **intelligence:** grouping analyzer with apply-able recs ([691419e](https://github.com/shawnphoffman/giftwrapt/commit/691419ebea03a56d0eabb99fa5c7bbed82b682a1))
+* **intelligence:** include dependents in guardian recommendations ([13e468c](https://github.com/shawnphoffman/giftwrapt/commit/13e468c23b51ef7c68e8a6c4eb1683606c04a968))
+* **intelligence:** pipeline core, three analyzers, runner ([38dbbce](https://github.com/shawnphoffman/giftwrapt/commit/38dbbce839c0024a32a6474cf3ff4948b2c3aa73))
+* **intelligence:** rename to Suggestions, split admin into sub-routes ([2c32a01](https://github.com/shawnphoffman/giftwrapt/commit/2c32a0123362be3a2bdda2297af01f741043ee1c))
+* **intelligence:** storybook scaffolding for AI recommendations page ([d7672ad](https://github.com/shawnphoffman/giftwrapt/commit/d7672ada264b9dea64ff89374573a20cd815b7ab))
+* **intelligence:** user-list actions card with per-user run + stats ([8e97178](https://github.com/shawnphoffman/giftwrapt/commit/8e97178c4d7eee80504d18e6afccad6c3dcf73d1))
+* **intelligence:** wire admin intelligence route ([3fe0791](https://github.com/shawnphoffman/giftwrapt/commit/3fe0791962fb22fa4bd016b1fa4b1e2fa47432b0))
+* **intelligence:** wire delete-items + set-primary-list apply kinds ([1ad2efe](https://github.com/shawnphoffman/giftwrapt/commit/1ad2efec3244c0daae1adbb35dba38c67975c929))
+* **intelligence:** wire user-facing route + nav and add tests ([b35c5af](https://github.com/shawnphoffman/giftwrapt/commit/b35c5af9e326931ab5175d96a65f7c69a613a38d))
+* **items:** always show Group submenu with create-and-assign options ([3f8e8a1](https://github.com/shawnphoffman/giftwrapt/commit/3f8e8a1dcfbb7a75a6f706ad2edf3edf77d7b227))
+* **items:** split add-item button with import dropdown ([c35a247](https://github.com/shawnphoffman/giftwrapt/commit/c35a247252fe2a857161e319e9e99670af1cbc0e))
+* **lists:** hide users without lists, surface them in heading popover ([f985b11](https://github.com/shawnphoffman/giftwrapt/commit/f985b11c2ccbb1f7f3c857fa58be9146ca669ae6))
+* **lists:** interleave dependents with users by upcoming birthday on All Lists ([5ac798f](https://github.com/shawnphoffman/giftwrapt/commit/5ac798ffa220e123d07fc2adc856992cf41d1a79))
+* **lists:** pair Type with List-is-for, swap private checkbox for switch ([dd2b7ae](https://github.com/shawnphoffman/giftwrapt/commit/dd2b7ae873750cc08bb5caabe5d3fcd628aa4e62))
+* **sidebar:** hide Suggestions link when no active recs ([9da9458](https://github.com/shawnphoffman/giftwrapt/commit/9da9458021e9b27cc619ceab05464abedf2264c2))
+* **storybook:** add project patterns reference ([d8e877e](https://github.com/shawnphoffman/giftwrapt/commit/d8e877e22c664913dac597a22ac443f3aead271e))
+* **theme:** add split button to project patterns ([8318762](https://github.com/shawnphoffman/giftwrapt/commit/8318762ae813ff9dea28f91c248d5ebdbfff1823))
+* **theme:** add split button to theme reference ([f424bd1](https://github.com/shawnphoffman/giftwrapt/commit/f424bd11f4d7571ecf6cc00188ce0989b17d2a7d))
+* **theme:** document canonical Card variants in project-patterns story ([c632084](https://github.com/shawnphoffman/giftwrapt/commit/c632084da58f6a1b29ac84c64dcb2bbfe59b465b))
+* **ui:** add lg size variant to Switch ([83e31e1](https://github.com/shawnphoffman/giftwrapt/commit/83e31e1a791397a45c0a76d2b4d3c0e32da2c684))
+
+
+### Bug Fixes
+
+* **admin:** use EyeOff icon for restricted access glyph ([ce9aa2a](https://github.com/shawnphoffman/giftwrapt/commit/ce9aa2a00f12c99ad9ad0efb3aa3dd4f1651798e))
+* **db:** allow null app_settings.value ([de441b9](https://github.com/shawnphoffman/giftwrapt/commit/de441b9be4c0238b0911d27af755772dce046fed))
+* **error-boundary:** make Go home actually clear error state ([daf535b](https://github.com/shawnphoffman/giftwrapt/commit/daf535b23247082cc7a863131a3456b91d2fd71b))
+* **intelligence:** coerce admin run-summary aggregate to Date ([ad8bdb8](https://github.com/shawnphoffman/giftwrapt/commit/ad8bdb84d096b38a2284b17c849b184d7d1a1d98))
+* **intelligence:** make navigation actions actually navigate ([2dcb3de](https://github.com/shawnphoffman/giftwrapt/commit/2dcb3ded78183324712a0cd69d402c1915559a6f))
+* **intelligence:** scope stale-items recs to the items the AI flagged ([0557e02](https://github.com/shawnphoffman/giftwrapt/commit/0557e02908aad38ff5ec847d01293a20797da5ce))
+* **items:** darken claim-state copy for light-mode contrast ([1a41520](https://github.com/shawnphoffman/giftwrapt/commit/1a41520d87b6d6f01242d55b75a3810a0364ddcc))
+* **lists:** wait for both user and dependent queries on All Lists ([788656d](https://github.com/shawnphoffman/giftwrapt/commit/788656dfd82a41c416b56d1d397579778960e119))
+* **theme:** tidy split button styles and labels ([85a6177](https://github.com/shawnphoffman/giftwrapt/commit/85a61778b318025b5cc3c5494730a77691ad5d5d))
+* **version-check:** single toast for stale build ([bc73515](https://github.com/shawnphoffman/giftwrapt/commit/bc7351572794940c33ecba72e6e55fdd0392a675))
+
 ## [0.27.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.26.0...v0.27.0) (2026-05-02)
 
 
