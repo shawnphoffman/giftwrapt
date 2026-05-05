@@ -30,6 +30,10 @@ export function parseHeuristics($: CheerioAPI, finalUrl: string): Partial<Scrape
 		if (price.currency) result.currency = price.currency
 	}
 
+	const rating = findRating($)
+	if (rating.ratingValue !== undefined) result.ratingValue = rating.ratingValue
+	if (rating.ratingCount !== undefined) result.ratingCount = rating.ratingCount
+
 	// Pick the first <img> in document order that has a src and isn't a tiny
 	// tracking pixel based on its declared dimensions. Image filtering proper
 	// happens later (in commit 3); this is just so the heuristic doesn't
@@ -46,6 +50,102 @@ export function parseHeuristics($: CheerioAPI, finalUrl: string): Partial<Scrape
 	if (images.length) result.imageUrls = images.slice(0, 8)
 
 	return result
+}
+
+// ===========================================================================
+// Aggregate rating heuristics
+// ===========================================================================
+//
+// Last-resort rating extraction for sites that don't emit Schema.org
+// AggregateRating via JSON-LD or microdata. Tuned for Amazon (the dominant
+// case in practice), but the patterns are generic enough to catch other
+// retailers that follow the same conventions.
+//
+// Patterns checked, in order:
+//   1. Amazon's `<span class="a-icon-alt">4.5 out of 5 stars</span>`,
+//      paired with `<span id="acrCustomerReviewText">1,234 ratings</span>`.
+//   2. The Amazon star icon class itself: `a-star-4-5` → 4.5 / 5.
+//   3. `<span data-hook="rating-out-of-text">4.5 out of 5</span>`
+//      (Amazon reviews pages).
+//   4. Generic "X out of Y stars" / "X / Y stars" anywhere in body text,
+//      gated to one match so noisy pages don't yield phantom ratings.
+//
+// All paths normalize to 0..1 against the implied bestRating (5 for "stars",
+// otherwise the explicit denominator).
+
+const RATING_OUT_OF_RE = /(\d+(?:\.\d+)?)\s*(?:out of|\/)\s*(\d+(?:\.\d+)?)\s*(?:stars?)?/i
+const STAR_CLASS_RE = /\ba-star-(\d)(?:-(\d))?\b/
+
+function findRating($: CheerioAPI): { ratingValue?: number; ratingCount?: number } {
+	let ratingValue: number | undefined
+	let ratingCount: number | undefined
+
+	// Amazon's accessible-text span: "4.5 out of 5 stars".
+	for (const el of $('span.a-icon-alt').toArray()) {
+		const text = $(el).text()
+		const match = text.match(RATING_OUT_OF_RE)
+		if (match) {
+			ratingValue = normalizeRating(match[1], match[2])
+			break
+		}
+	}
+
+	// Amazon star icon class fallback (`a-star-4-5` => 4.5 / 5).
+	if (ratingValue === undefined) {
+		for (const el of $('i.a-icon-star, i.a-icon-star-small').toArray()) {
+			const cls = $(el).attr('class') ?? ''
+			const match = cls.match(STAR_CLASS_RE)
+			if (match) {
+				const whole = Number.parseInt(match[1], 10)
+				const half = match[2] ? Number.parseInt(match[2], 10) / 10 : 0
+				const value = whole + half
+				if (Number.isFinite(value)) ratingValue = clamp01Heuristic(value / 5)
+				break
+			}
+		}
+	}
+
+	// Amazon reviews page: `<span data-hook="rating-out-of-text">`.
+	if (ratingValue === undefined) {
+		const hookText = $('[data-hook="rating-out-of-text"]').first().text()
+		if (hookText) {
+			const match = hookText.match(RATING_OUT_OF_RE)
+			if (match) ratingValue = normalizeRating(match[1], match[2])
+		}
+	}
+
+	// Amazon: "1,234 ratings" / "1,234 global ratings".
+	const countText = $('#acrCustomerReviewText').first().text().trim() || $('[data-hook="total-review-count"]').first().text().trim()
+	if (countText) {
+		const parsed = Number.parseInt(countText.replace(/[^0-9]/g, ''), 10)
+		if (Number.isFinite(parsed) && parsed >= 0) ratingCount = parsed
+	}
+
+	// Generic last-resort: scan body text for the first "X out of Y stars".
+	// Only used when nothing more specific fired. Skipped when the document
+	// is large (unbounded text scans on a 1MB page get expensive).
+	if (ratingValue === undefined) {
+		const bodyText = $('body').text()
+		if (bodyText.length < 200_000) {
+			const match = bodyText.match(/(\d+(?:\.\d+)?)\s*(?:out of|\/)\s*(\d+(?:\.\d+)?)\s*stars?/i)
+			if (match) ratingValue = normalizeRating(match[1], match[2])
+		}
+	}
+
+	return { ratingValue, ratingCount }
+}
+
+function normalizeRating(rawText: string, bestText: string): number | undefined {
+	const raw = Number.parseFloat(rawText)
+	const best = Number.parseFloat(bestText)
+	if (!Number.isFinite(raw) || !Number.isFinite(best) || best <= 0) return undefined
+	return clamp01Heuristic(raw / best)
+}
+
+function clamp01Heuristic(value: number): number {
+	if (value < 0) return 0
+	if (value > 1) return 1
+	return value
 }
 
 function safeHostname(url: string): string | null {

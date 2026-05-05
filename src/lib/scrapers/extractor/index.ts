@@ -39,6 +39,8 @@ export function extractFromRaw(html: string, finalUrl: string): ScrapeResult {
 		if (!merged.price && layer.price) merged.price = layer.price
 		if (!merged.currency && layer.currency) merged.currency = layer.currency
 		if (!merged.siteName && layer.siteName) merged.siteName = layer.siteName
+		if (merged.ratingValue === undefined && layer.ratingValue !== undefined) merged.ratingValue = layer.ratingValue
+		if (merged.ratingCount === undefined && layer.ratingCount !== undefined) merged.ratingCount = layer.ratingCount
 		if (layer.imageUrls && layer.imageUrls.length) {
 			for (const url of layer.imageUrls) {
 				if (!merged.imageUrls.includes(url)) merged.imageUrls.push(url)

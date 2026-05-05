@@ -1,6 +1,6 @@
-import { and, desc, eq, gte, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, isNotNull, sql } from 'drizzle-orm'
 
-import type { Database } from '@/db'
+import type { Database, SchemaDatabase } from '@/db'
 import { itemScrapes } from '@/db/schema'
 
 import { extractFromRaw } from './extractor'
@@ -34,6 +34,8 @@ export async function loadCachedScrape(
 			price: itemScrapes.price,
 			currency: itemScrapes.currency,
 			imageUrls: itemScrapes.imageUrls,
+			ratingValue: itemScrapes.ratingValue,
+			ratingCount: itemScrapes.ratingCount,
 		})
 		.from(itemScrapes)
 		.where(and(eq(itemScrapes.url, url), eq(itemScrapes.ok, true), gte(itemScrapes.createdAt, since)))
@@ -50,8 +52,34 @@ export async function loadCachedScrape(
 		currency: row.currency ?? undefined,
 		imageUrls: row.imageUrls ?? [],
 		finalUrl: url,
+		ratingValue: row.ratingValue ?? undefined,
+		ratingCount: row.ratingCount ?? undefined,
 	}
 	return { result, fromProvider: row.scraperId }
+}
+
+// Looks up the most recent successful scrape for the given URL that has
+// at least one rating field set. Used at item-create time to inherit
+// ratings the form-driven scrape collected before the item existed.
+// Returns null when no usable row is found.
+export async function loadCachedScrapeRating(
+	db: SchemaDatabase,
+	url: string,
+	options: { ttlHours: number }
+): Promise<{ ratingValue: number | null; ratingCount: number | null } | null> {
+	if (options.ttlHours <= 0) return null
+	const since = new Date(Date.now() - options.ttlHours * 60 * 60 * 1000)
+	const rows = await db
+		.select({
+			ratingValue: itemScrapes.ratingValue,
+			ratingCount: itemScrapes.ratingCount,
+		})
+		.from(itemScrapes)
+		.where(and(eq(itemScrapes.url, url), eq(itemScrapes.ok, true), gte(itemScrapes.createdAt, since), isNotNull(itemScrapes.ratingValue)))
+		.orderBy(desc(itemScrapes.createdAt))
+		.limit(1)
+	if (rows.length === 0) return null
+	return rows[0]
 }
 
 // Persists a single attempt row. Designed to be called from the orchestrator's
@@ -87,6 +115,8 @@ export async function persistScrapeAttempt(
 		price: record.result?.price ?? null,
 		currency: record.result?.currency ?? null,
 		imageUrls: record.result?.imageUrls ?? null,
+		ratingValue: record.result?.ratingValue ?? null,
+		ratingCount: record.result?.ratingCount ?? null,
 	})
 }
 

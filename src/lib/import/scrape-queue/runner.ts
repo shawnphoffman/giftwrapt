@@ -371,6 +371,16 @@ export async function mergeScrapeIntoItem(db: SchemaDatabase, itemId: number, sc
 	if (!existing.imageUrl && candidate) {
 		updates.imageUrl = httpsUpgradeOrNull(candidate)
 	}
+	// Ratings are not user-controllable, so a re-scrape that surfaces a
+	// rating always wins. We don't clear an existing rating when the
+	// new scrape returns nothing - provider variance shouldn't drop
+	// good signal we already have.
+	if (typeof result.ratingValue === 'number') {
+		updates.ratingValue = result.ratingValue
+	}
+	if (typeof result.ratingCount === 'number') {
+		updates.ratingCount = result.ratingCount
+	}
 	// Vendor: if URL is set and vendor still missing (no rule match at
 	// create-time, e.g. a redirect target only known post-scrape), try
 	// to derive from the scrape's `finalUrl` as a fallback. Don't

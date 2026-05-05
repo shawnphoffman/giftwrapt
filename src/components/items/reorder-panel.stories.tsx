@@ -33,6 +33,8 @@ function makeItem(overrides: Partial<Item> = {}): Item {
 		price: null,
 		currency: 'USD',
 		notes: null,
+		ratingValue: null,
+		ratingCount: null,
 		priority: 'normal',
 		isArchived: false,
 		quantity: 1,

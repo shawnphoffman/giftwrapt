@@ -53,6 +53,11 @@ export function parseJsonLd($: CheerioAPI, finalUrl: string): Partial<ScrapeResu
 			const brand = readBrandName(product['brand']) ?? readBrandName(product['manufacturer'])
 			if (brand) result.siteName = brand
 		}
+		if (result.ratingValue === undefined || result.ratingCount === undefined) {
+			const rating = extractAggregateRating(product['aggregateRating'])
+			if (rating.ratingValue !== undefined && result.ratingValue === undefined) result.ratingValue = rating.ratingValue
+			if (rating.ratingCount !== undefined && result.ratingCount === undefined) result.ratingCount = rating.ratingCount
+		}
 	}
 
 	if (!result.siteName && meta.siteName) result.siteName = meta.siteName
@@ -122,6 +127,53 @@ function readPriceFields(obj: Record<string, unknown>): { price?: string; curren
 	const price = stringField(obj['price']) ?? numberField(obj['price'])
 	const currency = stringField(obj['priceCurrency']) ?? stringField(obj['currency'])
 	return { price, currency }
+}
+
+// Schema.org AggregateRating: { ratingValue, bestRating?, ratingCount?,
+// reviewCount? }. Some sites ship it as an array (multiple sources), so we
+// pick the first usable entry. ratingValue is normalized against bestRating
+// (default 5). ratingCount falls back to reviewCount when ratingCount is
+// absent.
+function extractAggregateRating(node: unknown): { ratingValue?: number; ratingCount?: number } {
+	if (!node) return {}
+	const list = Array.isArray(node) ? node : [node]
+	for (const entry of list) {
+		if (!entry || typeof entry !== 'object') continue
+		const obj = entry as Record<string, unknown>
+		const raw = numericField(obj['ratingValue'])
+		const best = numericField(obj['bestRating']) ?? 5
+		const count = integerField(obj['ratingCount']) ?? integerField(obj['reviewCount'])
+		const out: { ratingValue?: number; ratingCount?: number } = {}
+		if (raw !== undefined && best > 0) {
+			const normalized = raw / best
+			if (Number.isFinite(normalized)) out.ratingValue = clamp01(normalized)
+		}
+		if (count !== undefined) out.ratingCount = count
+		if (out.ratingValue !== undefined || out.ratingCount !== undefined) return out
+	}
+	return {}
+}
+
+function numericField(value: unknown): number | undefined {
+	if (typeof value === 'number' && Number.isFinite(value)) return value
+	if (typeof value === 'string') {
+		const parsed = Number.parseFloat(value.trim())
+		return Number.isFinite(parsed) ? parsed : undefined
+	}
+	return undefined
+}
+
+function integerField(value: unknown): number | undefined {
+	const n = numericField(value)
+	if (n === undefined) return undefined
+	const i = Math.trunc(n)
+	return i >= 0 ? i : undefined
+}
+
+function clamp01(value: number): number {
+	if (value < 0) return 0
+	if (value > 1) return 1
+	return value
 }
 
 function readBrandName(brand: unknown): string | undefined {

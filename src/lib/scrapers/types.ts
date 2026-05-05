@@ -18,6 +18,14 @@ export const scrapeResultSchema = z.object({
 	imageUrls: z.array(z.string()).default([]),
 	siteName: z.string().optional(),
 	finalUrl: z.string().optional(),
+	// Aggregate review rating, normalized to a 0..1 scale. e.g. 4.2 of 5
+	// stars becomes 0.84. Extractors are responsible for normalizing
+	// against `bestRating` (Schema.org) or the well-known scale of the
+	// host site (Amazon = 5). Absent when the page doesn't surface one.
+	ratingValue: z.number().min(0).max(1).optional(),
+	// Number of ratings/reviews behind ratingValue. Used by analyzers to
+	// avoid acting on tiny samples. Absent when the page doesn't expose it.
+	ratingCount: z.number().int().nonnegative().optional(),
 })
 
 export type ScrapeResult = z.infer<typeof scrapeResultSchema>

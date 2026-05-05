@@ -38,6 +38,45 @@ describe('extractFromRaw: JSON-LD product', () => {
 		expect(result.currency).toBe('USD')
 		expect(result.imageUrls).toEqual(['https://cdn.example.test/json-ld-1.jpg', 'https://cdn.example.test/json-ld-2.jpg'])
 	})
+
+	it('parses aggregateRating and normalizes against bestRating', () => {
+		const result = extractFromRaw(fixture('json-ld-product.html'), FINAL_URL)
+		// 4.2 / 5 = 0.84
+		expect(result.ratingValue).toBeCloseTo(0.84, 5)
+		expect(result.ratingCount).toBe(128)
+	})
+
+	it('defaults bestRating to 5 when omitted', () => {
+		const html = `
+			<html><head><script type="application/ld+json">
+				${JSON.stringify({
+					'@context': 'https://schema.org',
+					'@type': 'Product',
+					name: 'No-bestRating Widget',
+					aggregateRating: { '@type': 'AggregateRating', ratingValue: 4, ratingCount: 10 },
+				})}
+			</script></head><body></body></html>
+		`
+		const result = extractFromRaw(html, FINAL_URL)
+		expect(result.ratingValue).toBeCloseTo(0.8, 5)
+		expect(result.ratingCount).toBe(10)
+	})
+
+	it('falls back to reviewCount when ratingCount is absent', () => {
+		const html = `
+			<html><head><script type="application/ld+json">
+				${JSON.stringify({
+					'@context': 'https://schema.org',
+					'@type': 'Product',
+					name: 'reviewCount fallback',
+					aggregateRating: { ratingValue: 5, bestRating: 5, reviewCount: 7 },
+				})}
+			</script></head><body></body></html>
+		`
+		const result = extractFromRaw(html, FINAL_URL)
+		expect(result.ratingValue).toBe(1)
+		expect(result.ratingCount).toBe(7)
+	})
 })
 
 describe('extractFromRaw: microdata product', () => {
@@ -48,6 +87,45 @@ describe('extractFromRaw: microdata product', () => {
 		expect(result.price).toBe('9.95')
 		expect(result.currency).toBe('GBP')
 		expect(result.imageUrls).toEqual(['https://cdn.example.test/microdata-1.jpg'])
+	})
+
+	it('parses nested aggregateRating scope and normalizes', () => {
+		const result = extractFromRaw(fixture('microdata-product.html'), FINAL_URL)
+		// 3.5 / 5 = 0.7
+		expect(result.ratingValue).toBeCloseTo(0.7, 5)
+		expect(result.ratingCount).toBe(42)
+	})
+})
+
+describe('extractFromRaw: Amazon-style markup', () => {
+	it('reads "X out of Y stars" from a-icon-alt and the acrCustomerReviewText count', () => {
+		const result = extractFromRaw(fixture('amazon-style.html'), FINAL_URL)
+		// 4.6 / 5 = 0.92
+		expect(result.ratingValue).toBeCloseTo(0.92, 5)
+		expect(result.ratingCount).toBe(2847)
+	})
+
+	it('falls back to the a-star-X-Y class when no a-icon-alt text is present', () => {
+		const html = `
+			<html><body>
+				<i class="a-icon a-icon-star a-star-3-5"></i>
+			</body></html>
+		`
+		const result = extractFromRaw(html, FINAL_URL)
+		// 3.5 / 5 = 0.7
+		expect(result.ratingValue).toBeCloseTo(0.7, 5)
+	})
+
+	it('reads rating-out-of-text data-hook on reviews pages', () => {
+		const html = `
+			<html><body>
+				<span data-hook="rating-out-of-text">4.0 out of 5</span>
+				<span data-hook="total-review-count">1,000 ratings</span>
+			</body></html>
+		`
+		const result = extractFromRaw(html, FINAL_URL)
+		expect(result.ratingValue).toBeCloseTo(0.8, 5)
+		expect(result.ratingCount).toBe(1000)
 	})
 })
 

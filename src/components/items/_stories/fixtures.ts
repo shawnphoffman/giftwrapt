@@ -60,6 +60,8 @@ export function makeItem(overrides: Partial<Item> = {}): Item {
 		price: '349.99',
 		currency: 'USD',
 		notes: null,
+		ratingValue: null,
+		ratingCount: null,
 		priority: 'normal',
 		isArchived: false,
 		quantity: 1,

@@ -1,5 +1,5 @@
 import { relations, sql } from 'drizzle-orm'
-import { boolean, index, integer, json, pgEnum, pgTable, serial, smallint, text, timestamp } from 'drizzle-orm/pg-core'
+import { boolean, index, integer, json, pgEnum, pgTable, real, serial, smallint, text, timestamp } from 'drizzle-orm/pg-core'
 
 import { availabilityEnum, groupTypeEnum, priorityEnum, statusEnum } from './enums'
 import { giftedItems } from './gifts'
@@ -37,6 +37,12 @@ export const items = pgTable(
 		price: text('price'),
 		currency: text('currency'),
 		notes: text('notes'),
+		// Aggregate review rating, normalized to 0..1. Populated from
+		// scrapes (Schema.org AggregateRating, Amazon star markup, etc.).
+		// Null when the source page didn't surface a rating.
+		ratingValue: real('rating_value'),
+		// Number of ratings/reviews behind ratingValue. Null when not exposed.
+		ratingCount: integer('rating_count'),
 		priority: priorityEnum('priority').default('normal').notNull(),
 		isArchived: boolean('is_archived').default(false).notNull(),
 		quantity: smallint('quantity').default(1).notNull(),
@@ -148,6 +154,11 @@ export const itemScrapes = pgTable(
 		price: text('price'),
 		currency: text('currency'),
 		imageUrls: text('image_urls').array(),
+		// Same shape as items.ratingValue / items.ratingCount. Persisted
+		// per-attempt so the cache lookup can rebuild a ScrapeResult without
+		// re-parsing the raw response.
+		ratingValue: real('rating_value'),
+		ratingCount: integer('rating_count'),
 		...timestamps,
 	},
 	table => [

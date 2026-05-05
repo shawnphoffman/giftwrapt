@@ -11,7 +11,10 @@
 // imports this file, pg + drizzle-orm/node-postgres don't leak into the
 // browser bundle.
 
+import { eq } from 'drizzle-orm'
+
 import { db } from '@/db'
+import { items } from '@/db/schema'
 import { getAppSettings } from '@/lib/settings-loader'
 
 import { buildDbBackedDeps } from './cache'
@@ -31,7 +34,7 @@ export async function runOneShotScrape(args: {
 }): Promise<OrchestrateResult> {
 	const [settings, configuredProviders] = await Promise.all([getAppSettings(db), loadConfiguredProviders()])
 
-	return orchestrate(
+	const result = await orchestrate(
 		{
 			url: args.url,
 			itemId: args.itemId,
@@ -52,4 +55,20 @@ export async function runOneShotScrape(args: {
 			qualityThreshold: settings.scrapeQualityThreshold,
 		}
 	)
+
+	// When the scrape was associated with an existing item, persist any
+	// ratings the result surfaced. Ratings aren't user-controllable, so
+	// they don't go through the form-prefill rule (`applyScrapePrefill`)
+	// and need a direct write. Missing ratings don't clear an existing
+	// value (provider variance).
+	if (result.kind === 'ok' && args.itemId !== undefined) {
+		const updates: Record<string, number> = {}
+		if (typeof result.result.ratingValue === 'number') updates.ratingValue = result.result.ratingValue
+		if (typeof result.result.ratingCount === 'number') updates.ratingCount = result.result.ratingCount
+		if (Object.keys(updates).length > 0) {
+			await db.update(items).set(updates).where(eq(items.id, args.itemId))
+		}
+	}
+
+	return result
 }

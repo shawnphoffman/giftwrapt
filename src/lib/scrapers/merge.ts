@@ -23,6 +23,11 @@ import type { MergeContribution, MergedResult, ScrapeResult } from './types'
 // always inherited from the base.
 const SCALAR_FIELDS = ['title', 'description', 'price', 'currency', 'siteName', 'finalUrl'] as const
 
+// Numeric fields that fill-the-gaps from runners-up. Same first-non-empty
+// rule as scalars; "empty" here means `undefined` (zero is a valid rating
+// or rating count).
+const NUMERIC_FIELDS = ['ratingValue', 'ratingCount'] as const
+
 export function mergeWithinTier(contributions: ReadonlyArray<MergeContribution>): MergedResult {
 	if (contributions.length === 0) {
 		// Caller shouldn't call us here; produce a sane empty result so
@@ -51,6 +56,18 @@ export function mergeWithinTier(contributions: ReadonlyArray<MergeContribution>)
 		for (let i = 1; i < sorted.length; i++) {
 			const candidate = sorted[i].result[field]
 			if (isFilled(candidate)) {
+				;(merged as Record<string, unknown>)[field] = candidate
+				contributingIds.add(sorted[i].fromProvider)
+				break
+			}
+		}
+	}
+
+	for (const field of NUMERIC_FIELDS) {
+		if (typeof merged[field] === 'number') continue
+		for (let i = 1; i < sorted.length; i++) {
+			const candidate = sorted[i].result[field]
+			if (typeof candidate === 'number') {
 				;(merged as Record<string, unknown>)[field] = candidate
 				contributingIds.add(sorted[i].fromProvider)
 				break

@@ -15,6 +15,7 @@ import { priorityEnumValues, statusEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { httpsUpgradeOrNull } from '@/lib/image-url'
 import { canEditList } from '@/lib/permissions'
+import { loadCachedScrapeRating } from '@/lib/scrapers/cache'
 import { getAppSettings } from '@/lib/settings-loader'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { mirrorRemoteImageToStorage } from '@/lib/storage/mirror'
@@ -76,6 +77,16 @@ export async function createItemImpl(args: {
 	const url = data.url ?? null
 	const vendor = url ? getVendorFromUrl(url) : null
 
+	// Inherit ratings from the most recent successful scrape of this URL,
+	// if one exists. Form-driven scrapes happen before the item exists, so
+	// they persist to itemScrapes without an itemId; this is where those
+	// ratings make it onto the item row.
+	let inheritedRating: { ratingValue: number | null; ratingCount: number | null } | null = null
+	if (url) {
+		const settings = await getAppSettings(dbx)
+		inheritedRating = await loadCachedScrapeRating(dbx, url, { ttlHours: settings.scrapeCacheTtlHours })
+	}
+
 	const [inserted] = await dbx
 		.insert(items)
 		.values({
@@ -91,6 +102,8 @@ export async function createItemImpl(args: {
 			quantity: data.quantity ?? 1,
 			imageUrl: httpsUpgradeOrNull(data.imageUrl ?? null),
 			groupId: data.groupId ?? null,
+			ratingValue: inheritedRating?.ratingValue ?? null,
+			ratingCount: inheritedRating?.ratingCount ?? null,
 		})
 		.returning()
 
@@ -177,6 +190,10 @@ export async function updateItemImpl(args: {
 			updates.vendorId = vendor?.id ?? null
 			updates.vendorSource = vendor ? 'rule' : null
 		}
+		// Ratings belong to the previous URL; clear them so a re-scrape
+		// of the new URL repopulates without stale data lingering.
+		updates.ratingValue = null
+		updates.ratingCount = null
 	}
 	if (data.notes !== undefined) {
 		updates.notes = data.notes
