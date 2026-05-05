@@ -2,6 +2,7 @@ import { AlertTriangle, AtSign, Bold, ChevronRight, Copy, Info, Italic, MoreHori
 import { useId, useState } from 'react'
 import { toast } from 'sonner'
 
+import { AddItemSplitButton } from '@/components/items/import/add-item-split-button'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
 	AlertDialog,
@@ -261,6 +262,10 @@ export default function ThemeReference() {
 						<Button disabled variant="destructive">
 							destructive
 						</Button>
+					</div>
+					<div className="flex flex-row flex-wrap items-center gap-2">
+						<code className="text-xs text-muted-foreground w-12 font-mono">split</code>
+						<AddItemSplitButton listId={0} onAddItem={() => toast.success('Add item')} importEnabledOverride={true} />
 					</div>
 				</div>
 			</Section>
