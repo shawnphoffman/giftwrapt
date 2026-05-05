@@ -99,6 +99,24 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  # Cron sidecar. Reads CRON_SECRET from the env file and curls the app's
+  # /api/cron/* endpoints on a daily schedule (mirrors vercel.json). To
+  # change schedules, edit ./cron-entrypoint.sh and recreate the service.
+  # Higher cadences are safe: per-user advisory locks de-duplicate work.
+  cron:
+    image: alpine:3.20
+    env_file: .env
+    environment:
+      CRON_APP_URL: ${CRON_APP_URL:-http://app:3000}
+      TZ: ${TZ:-UTC}
+    volumes:
+      - ./cron-entrypoint.sh:/cron-entrypoint.sh:ro
+    command: ['sh', '/cron-entrypoint.sh']
+    depends_on:
+      app:
+        condition: service_started
+    restart: unless-stopped
+
   rustfs:
     image: rustfs/rustfs:latest
     environment:

@@ -99,6 +99,29 @@ services:
         condition: service_started
     restart: unless-stopped
 
+  # Cron sidecar. Reads CRON_SECRET from the env file and curls the app's
+  # /api/cron/* endpoints on a daily schedule (mirrors vercel.json). To
+  # disable, run with `--profile no-cron` (the default profile is empty so
+  # it always runs, but compose ignores undefined services on stop). To
+  # change schedules, edit ./cron-entrypoint.sh and recreate the service.
+  # Higher cadences are safe: per-user advisory locks de-duplicate work.
+  cron:
+    image: alpine:3.20
+    env_file: .env
+    environment:
+      # Talks to the app over the compose network. Override CRON_APP_URL if
+      # the app service is named differently or you want crons to hit a
+      # public URL (slower, but exercises the same code path as Vercel).
+      CRON_APP_URL: ${CRON_APP_URL:-http://app:3000}
+      TZ: ${TZ:-UTC}
+    volumes:
+      - ./cron-entrypoint.sh:/cron-entrypoint.sh:ro
+    command: ['sh', '/cron-entrypoint.sh']
+    depends_on:
+      app:
+        condition: service_started
+    restart: unless-stopped
+
   garage:
     image: dxflrs/garage:v1.0.1
     environment:

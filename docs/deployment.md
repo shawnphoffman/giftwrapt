@@ -108,14 +108,108 @@ The bundled `INIT_GARAGE` / `INIT_RUSTFS` flags should stay unset on Vercel; you
 
 ## Cron and background jobs
 
-The app exposes several `/api/cron/*` endpoints (auto-archive, birthday
+The app exposes five `/api/cron/*` endpoints (auto-archive, birthday
 emails, intelligence recommendations, item-scrape queue, verification
-cleanup) that need an external scheduler. For Vercel, add a `crons`
-array to `vercel.json` with one entry per endpoint; for Railway /
-Render, point a Cron service at each URL with `Authorization: Bearer
-$CRON_SECRET`. The full deployment-platform matrix and the lock-key
-namespace convention for adding a new cron-tick runner live in
-[.notes/cron-and-jobs.md](../.notes/cron-and-jobs.md).
+cleanup). They are protected by `CRON_SECRET` and **only fire if a
+scheduler is wired up** - the app does not self-schedule. Always set
+`CRON_SECRET` to a long random string before relying on cron.
+
+Confirm what's actually firing in production via `/admin/scheduling`.
+Each row shows last run, last success (amber when stale > 3× the
+expected interval), next fire time computed from the schedule, and the
+last 24h count of runs and errors. There is also a "Run now" button
+per endpoint that bypasses the schedule - the fastest way to verify
+each route is healthy after a deploy.
+
+### Vercel
+
+The repo ships `vercel.json` with all five endpoints at **daily**
+cadences (Hobby-tier compatible). Schedules are in UTC. To customize:
+edit `vercel.json` and redeploy - Vercel reads it at build time, so
+there is no admin-dashboard-editable schedule. The admin scheduling
+page surfaces a banner explaining this on Vercel deployments.
+
+- **Hobby**: daily-only.
+- **Pro / Enterprise**: any cron expression. Bump intelligence to
+  hourly (`0 * * * *`) and the scrape queue to 5-min (`*/5 * * * *`)
+  if you want them at full cadence; both runners are designed for
+  sub-daily ticks.
+- `CRON_SECRET` must be set in the project's env vars or every
+  invocation returns 503. Vercel auto-attaches the
+  `Authorization: Bearer ...` header.
+
+### Railway
+
+Railway's `railway.json` only declares one service per blueprint, so
+**cron is not auto-configured** - you have to add Cron services from
+the Railway dashboard after the first deploy. The web service alone
+will run, but no cron will ever fire and `/admin/scheduling` will
+report "never" everywhere.
+
+Add one Cron service per endpoint via the Railway canvas (`+ New →
+Cron`). Use the same daily UTC schedules as the other targets and a
+curl start command:
+
+```bash
+curl -fsSL --retry 3 -H "Authorization: Bearer $CRON_SECRET" $SERVER_URL/api/cron/auto-archive
+```
+
+Set `CRON_SECRET` and `SERVER_URL` once at the project (shared) env
+group so every Cron inherits them.
+
+### Render
+
+`render.yaml` ships **all five Cron Jobs by default** alongside the
+web service and managed Postgres. The blueprint button provisions
+everything. `CRON_SECRET` is auto-generated on the web service and
+inherited by every cron via `fromService:`, so there's no manual env
+paste. To customize: edit `schedule:` on any cron service in
+`render.yaml` and re-deploy. To drop a job (e.g. birthday-emails when
+Resend isn't configured) delete its service block. Render Cron Jobs
+require a paid plan (Hobby+); the free tier does not include cron.
+
+### Self-hosted Docker Compose
+
+Both production compose files
+([docker/compose.selfhost-garage.yaml](../docker/compose.selfhost-garage.yaml)
+and
+[docker/compose.selfhost-rustfs.yaml](../docker/compose.selfhost-rustfs.yaml))
+include a **`cron` sidecar** by default - a tiny alpine container
+running busybox `crond` with a crontab generated at boot from
+[docker/cron-entrypoint.sh](../docker/cron-entrypoint.sh). It hits
+the app over the compose network at `http://app:3000` with
+`Authorization: Bearer $CRON_SECRET`.
+
+To customize schedules: edit `docker/cron-entrypoint.sh` and recreate
+the service:
+
+```sh
+docker compose -f docker/compose.selfhost-garage.yaml up -d --force-recreate cron
+```
+
+The cron daemon is busybox; standard 5-field cron expressions (UTC).
+Per-user advisory locks make higher cadences safe.
+
+### Customizing schedules across deployments
+
+Cron expressions live in three places that should stay in sync:
+
+| File                        | Used by                                   |
+| --------------------------- | ----------------------------------------- |
+| `vercel.json`               | Vercel's scheduler at deploy time         |
+| `render.yaml`               | Render Cron Jobs                          |
+| `docker/cron-entrypoint.sh` | Self-hosted Docker Compose cron sidecar   |
+| `src/lib/cron/registry.ts`  | `/admin/scheduling` "next fire" estimates |
+
+Railway is dashboard-managed (no committed file). When you change a
+schedule, update every file your deployment uses _plus_ the registry
+so the admin page's expectations match reality. The registry is the
+only one that affects what's shown to the user; the other three drive
+actual firing.
+
+The full deployment-platform matrix, the lock-key namespace convention
+for adding a new cron-tick runner, and the complete sample-schedule
+table live in [.notes/cron-and-jobs.md](../.notes/cron-and-jobs.md).
 
 ## Custom Node deploy
 

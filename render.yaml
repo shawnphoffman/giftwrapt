@@ -43,3 +43,112 @@ services:
         sync: false
       - key: RESEND_FROM_EMAIL
         sync: false
+      # CRON_SECRET protects /api/cron/* and is also consumed by every cron
+      # service below. Auto-generated so the web app and the schedulers
+      # share one value without a manual paste.
+      - key: CRON_SECRET
+        generateValue: true
+
+  # Cron services. One per /api/cron/* endpoint. Each is a tiny
+  # curl-only Cron Job that hits the web service's URL with the bearer
+  # token. Schedules below are daily UTC and mirror vercel.json so the
+  # admin /admin/scheduling page's "next fire" estimate matches reality
+  # across both targets. Higher cadences are safe (per-user advisory
+  # locks de-duplicate work) but Render Cron Jobs bill per minute of
+  # runtime; daily is the cheapest sensible default. Edit the schedule
+  # field on any service to change. Remove a service entirely if you
+  # don't want it (e.g. drop birthday-emails if RESEND isn't configured).
+  - type: cron
+    name: cron-cleanup-verification
+    runtime: image
+    image:
+      url: curlimages/curl:8.10.1
+    schedule: '0 3 * * *'
+    startCommand: 'curl -fsSL --retry 3 -H "Authorization: Bearer $CRON_SECRET" $SERVER_URL/api/cron/cleanup-verification'
+    envVars:
+      - key: CRON_SECRET
+        fromService:
+          type: web
+          name: giftwrapt
+          envVarKey: CRON_SECRET
+      - key: SERVER_URL
+        fromService:
+          type: web
+          name: giftwrapt
+          envVarKey: SERVER_URL
+
+  - type: cron
+    name: cron-intelligence-recommendations
+    runtime: image
+    image:
+      url: curlimages/curl:8.10.1
+    schedule: '0 4 * * *'
+    startCommand: 'curl -fsSL --retry 3 -H "Authorization: Bearer $CRON_SECRET" $SERVER_URL/api/cron/intelligence-recommendations'
+    envVars:
+      - key: CRON_SECRET
+        fromService:
+          type: web
+          name: giftwrapt
+          envVarKey: CRON_SECRET
+      - key: SERVER_URL
+        fromService:
+          type: web
+          name: giftwrapt
+          envVarKey: SERVER_URL
+
+  - type: cron
+    name: cron-item-scrape-queue
+    runtime: image
+    image:
+      url: curlimages/curl:8.10.1
+    schedule: '0 5 * * *'
+    startCommand: 'curl -fsSL --retry 3 -H "Authorization: Bearer $CRON_SECRET" $SERVER_URL/api/cron/item-scrape-queue'
+    envVars:
+      - key: CRON_SECRET
+        fromService:
+          type: web
+          name: giftwrapt
+          envVarKey: CRON_SECRET
+      - key: SERVER_URL
+        fromService:
+          type: web
+          name: giftwrapt
+          envVarKey: SERVER_URL
+
+  - type: cron
+    name: cron-auto-archive
+    runtime: image
+    image:
+      url: curlimages/curl:8.10.1
+    schedule: '0 6 * * *'
+    startCommand: 'curl -fsSL --retry 3 -H "Authorization: Bearer $CRON_SECRET" $SERVER_URL/api/cron/auto-archive'
+    envVars:
+      - key: CRON_SECRET
+        fromService:
+          type: web
+          name: giftwrapt
+          envVarKey: CRON_SECRET
+      - key: SERVER_URL
+        fromService:
+          type: web
+          name: giftwrapt
+          envVarKey: SERVER_URL
+
+  - type: cron
+    name: cron-birthday-emails
+    runtime: image
+    image:
+      url: curlimages/curl:8.10.1
+    schedule: '0 7 * * *'
+    startCommand: 'curl -fsSL --retry 3 -H "Authorization: Bearer $CRON_SECRET" $SERVER_URL/api/cron/birthday-emails'
+    envVars:
+      - key: CRON_SECRET
+        fromService:
+          type: web
+          name: giftwrapt
+          envVarKey: CRON_SECRET
+      - key: SERVER_URL
+        fromService:
+          type: web
+          name: giftwrapt
+          envVarKey: SERVER_URL

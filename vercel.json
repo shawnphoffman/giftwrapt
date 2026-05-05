@@ -1,0 +1,10 @@
+{
+	"$schema": "https://openapi.vercel.sh/vercel.json",
+	"crons": [
+		{ "path": "/api/cron/cleanup-verification", "schedule": "0 3 * * *" },
+		{ "path": "/api/cron/auto-archive", "schedule": "0 6 * * *" },
+		{ "path": "/api/cron/birthday-emails", "schedule": "0 7 * * *" },
+		{ "path": "/api/cron/intelligence-recommendations", "schedule": "0 4 * * *" },
+		{ "path": "/api/cron/item-scrape-queue", "schedule": "0 5 * * *" }
+	]
+}

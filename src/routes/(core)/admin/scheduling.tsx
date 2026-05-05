@@ -1,5 +1,6 @@
 import { ClientOnly, createFileRoute } from '@tanstack/react-router'
 
+import { CronDeploymentBanner } from '@/components/admin/cron-deployment-banner'
 import { CronEndpointsPanel } from '@/components/admin/cron-endpoints-panel'
 import { CronRunsTable } from '@/components/admin/cron-runs-table'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,6 +12,9 @@ export const Route = createFileRoute('/(core)/admin/scheduling')({
 function AdminSchedulingPage() {
 	return (
 		<>
+			<ClientOnly>
+				<CronDeploymentBanner />
+			</ClientOnly>
 			<Card className="animate-page-in">
 				<CardHeader>
 					<CardTitle className="text-2xl">Cron endpoints</CardTitle>
