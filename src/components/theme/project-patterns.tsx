@@ -27,6 +27,7 @@ import {
 	Star,
 	WandSparkles,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 import BirthdayBadge from '@/components/common/birthday-badge'
 import CountBadge from '@/components/common/count-badge'
@@ -36,6 +37,7 @@ import GuardianBadge from '@/components/common/guardian-badge'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import PriorityIcon from '@/components/common/priority-icon'
 import UserAvatar from '@/components/common/user-avatar'
+import { AddItemSplitButton } from '@/components/items/import/add-item-split-button'
 import { PriceQuantityBadge } from '@/components/items/price-quantity-badge'
 import { QuantityRemainingBadge } from '@/components/items/quantity-remaining-badge'
 import { Badge } from '@/components/ui/badge'
@@ -768,6 +770,11 @@ export default function ProjectPatterns() {
 							<span className="truncate font-semibold">Christmas list</span>
 						</a>
 						<span className="text-xs text-muted-foreground">back-to-parent emerald pill</span>
+					</div>
+
+					<div className="flex flex-wrap items-center gap-3">
+						<AddItemSplitButton listId={0} onAddItem={() => toast.success('Add item')} importEnabledOverride={true} />
+						<span className="text-xs text-muted-foreground">list-edit add-item split button (primary action + import-source dropdown)</span>
 					</div>
 				</div>
 			</Section>
