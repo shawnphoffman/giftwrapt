@@ -209,7 +209,7 @@ export default function ThemeReference() {
 				<div className="flex flex-col gap-3">
 					{(['default', 'sm', 'lg', 'icon'] as const).map(size => (
 						<div key={size} className="flex flex-row flex-wrap items-center gap-2">
-							<code className="text-xs text-muted-foreground w-12 font-mono">{size}</code>
+							<code className="text-xs text-muted-foreground font-mono w-20">{size}</code>
 							<Button
 								size={size}
 								variant="default"
@@ -251,7 +251,7 @@ export default function ThemeReference() {
 						</div>
 					))}
 					<div className="flex flex-row flex-wrap items-center gap-2">
-						<code className="text-xs text-muted-foreground w-12 font-mono">disabled</code>
+						<code className="text-xs text-muted-foreground w-20 font-mono">disabled</code>
 						<Button disabled>default</Button>
 						<Button disabled variant="secondary">
 							secondary
@@ -264,7 +264,7 @@ export default function ThemeReference() {
 						</Button>
 					</div>
 					<div className="flex flex-row flex-wrap items-center gap-2">
-						<code className="text-xs text-muted-foreground w-12 font-mono">split</code>
+						<code className="text-xs text-muted-foreground w-20 font-mono">split</code>
 						<AddItemSplitButton listId={0} onAddItem={() => toast.success('Add item')} importEnabledOverride={true} />
 					</div>
 				</div>

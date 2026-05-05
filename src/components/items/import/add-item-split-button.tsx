@@ -45,8 +45,8 @@ export function AddItemSplitButton({ listId, onAddItem, importEnabledOverride }:
 
 	return (
 		<>
-			<div data-slot="button-group" className="inline-flex items-stretch isolate">
-				<Button size="sm" onClick={onAddItem} className="rounded-r-none border-r border-r-primary-foreground/20 focus-visible:z-10">
+			<div className="inline-flex items-stretch isolate">
+				<Button size="sm" onClick={onAddItem} className="rounded-r-none border-r-0 focus-visible:z-10">
 					<Plus className="size-4" /> <span className="xs:hidden">Add</span>
 					<span className="hidden xs:inline">Add item</span>
 				</Button>
