@@ -1,4 +1,4 @@
-import { Check, Gift, Lock, MoreHorizontal, PackageOpen, PackagePlus, Smartphone, Sparkles } from 'lucide-react'
+import { Cake, Check, ChevronRight, Gift, Lock, MoreHorizontal, PackageOpen, PackagePlus, Smartphone, Sparkles } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -6,6 +6,18 @@ import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 
 const SECTION_GAP = 'flex flex-col gap-3'
+
+function CodeSnippet({ snippet }: { snippet: string }) {
+	return (
+		<details className="group/code rounded-md ring-1 ring-foreground/10 bg-background/60 overflow-hidden">
+			<summary className="cursor-pointer select-none list-none flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground hover:text-foreground">
+				<ChevronRight className="size-3 transition-transform group-open/code:rotate-90" />
+				Show code
+			</summary>
+			<pre className="text-[11px] font-mono leading-snug p-2 pt-0 overflow-x-auto whitespace-pre">{snippet}</pre>
+		</details>
+	)
+}
 
 function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
 	return (
@@ -303,6 +315,30 @@ const OUTLIERS: Array<Outlier> = [
   </CardHeader>
   <CardContent className="px-4">{lists.map(...)}</CardContent>
 </Card>`,
+		render: () => (
+			<Card className="group/user-card py-4 gap-2 overflow-visible relative hover:z-10 max-w-sm">
+				<CardHeader className="px-4 flex flex-row items-center gap-3">
+					<div className="flex size-10 shrink-0 items-center justify-center rounded-full border-2 border-background bg-gradient-to-br from-pink-400 to-fuchsia-500 text-sm font-semibold text-white origin-bottom transition-transform group-hover/user-card:scale-150 group-hover/user-card:-rotate-6">
+						DH
+					</div>
+					<CardTitle className="text-2xl font-semibold">Diana</CardTitle>
+					<Badge variant="outline" className="ml-auto gap-1">
+						<Cake className="size-3" />
+						Apr 18
+					</Badge>
+				</CardHeader>
+				<CardContent className="px-4 flex flex-col gap-0">
+					<div className="rounded p-2 hover:bg-muted flex items-center justify-between text-sm">
+						<span>Birthday 2026</span>
+						<ChevronRight className="size-4 text-muted-foreground" />
+					</div>
+					<div className="rounded p-2 hover:bg-muted flex items-center justify-between text-sm">
+						<span>Christmas</span>
+						<ChevronRight className="size-4 text-muted-foreground" />
+					</div>
+				</CardContent>
+			</Card>
+		),
 	},
 	{
 		id: 'lists-card',
@@ -322,6 +358,30 @@ function ListsCardLists(props) {
 function ListsCardList(props) {
   return <div className="rounded p-2 bg-transparent hover:bg-muted ..." {...props} />
 }`,
+		render: () => (
+			<Card data-slot="lists-card" className="py-4 gap-2 max-w-sm">
+				<CardHeader className="flex flex-row items-center gap-3 px-4">
+					<div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+						SH
+					</div>
+					<CardTitle className="text-xl font-semibold">Shawn</CardTitle>
+				</CardHeader>
+				<CardContent className="flex flex-col gap-0 px-4">
+					<div className="rounded p-2 bg-transparent hover:bg-muted flex items-center justify-between text-sm">
+						<span>Wishlist</span>
+						<span className="text-xs text-muted-foreground">12 items</span>
+					</div>
+					<div className="rounded p-2 bg-transparent hover:bg-muted flex items-center justify-between text-sm">
+						<span>Birthday 2026</span>
+						<span className="text-xs text-muted-foreground">5 items</span>
+					</div>
+					<div className="rounded p-2 bg-transparent hover:bg-muted flex items-center justify-between text-sm">
+						<span>Christmas</span>
+						<span className="text-xs text-muted-foreground">8 items</span>
+					</div>
+				</CardContent>
+			</Card>
+		),
 	},
 	{
 		id: 'settings-shell',
@@ -334,6 +394,19 @@ function ListsCardList(props) {
     <Outlet />
   </Card>
 </div>`,
+		render: () => (
+			<div className="grid gap-6">
+				<Card className="@container/subpage">
+					<CardHeader>
+						<CardTitle>Profile</CardTitle>
+						<CardDescription>This shell holds whichever settings sub-page is active.</CardDescription>
+					</CardHeader>
+					<CardContent className="text-sm text-muted-foreground">
+						Sub-pages render their own CardHeader / CardContent directly into this shell (see next outlier).
+					</CardContent>
+				</Card>
+			</div>
+		),
 	},
 	{
 		id: 'settings-subpage-without-card',
@@ -354,6 +427,19 @@ function ListsCardList(props) {
   </CardHeader>
   <CardContent>{...}</CardContent>
 </div>`,
+		render: () => (
+			<div className="rounded-xl border bg-card text-card-foreground">
+				<div className="gap-6 flex flex-col">
+					<CardHeader>
+						<CardTitle className="text-2xl">Profile</CardTitle>
+						<CardDescription>Update your profile information.</CardDescription>
+					</CardHeader>
+					<CardContent className="text-sm text-muted-foreground">
+						The wrapping border / bg-card is the Settings route shell; this sub-page only renders the slots.
+					</CardContent>
+				</div>
+			</div>
+		),
 	},
 	{
 		id: 'admin-debug-divide-y',
@@ -372,6 +458,27 @@ function ListsCardList(props) {
     ))}
   </CardContent>
 </Card>`,
+		render: () => (
+			<Card>
+				<CardHeader>
+					<CardTitle>Build Info</CardTitle>
+				</CardHeader>
+				<CardContent className="divide-y">
+					{(
+						[
+							['commitSha', 'fedfa63'],
+							['nodeVersion', 'v22.11.0'],
+							['deploy', 'preview'],
+						] as const
+					).map(([key, value]) => (
+						<div key={key} className="flex flex-col w-full not-first:pt-1 not-last:pb-1">
+							<span className="font-mono text-xs text-muted-foreground">{key}</span>
+							<span className="font-mono text-xs">{value}</span>
+						</div>
+					))}
+				</CardContent>
+			</Card>
+		),
 	},
 	{
 		id: 'permissions-grid',
@@ -393,6 +500,39 @@ function ListsCardList(props) {
     ))}
   </div>
 </CardContent>`,
+		render: () => (
+			<Card>
+				<CardHeader>
+					<CardTitle>Permissions</CardTitle>
+					<CardDescription>Who can see your lists.</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<div className="grid min-w-max grid-cols-[auto_auto] divide-y">
+						<div className="contents text-xs font-medium uppercase text-muted-foreground">
+							<span className="px-4 py-2">Person</span>
+							<span className="px-4 py-2">Access</span>
+						</div>
+						{(
+							[
+								{ id: 'a', name: 'Diana', access: 'View' },
+								{ id: 'b', name: 'Mom', access: 'Restricted' },
+								{ id: 'c', name: 'Cousin Pat', access: 'None' },
+							] as const
+						).map(row => (
+							<div key={row.id} className="contents">
+								<div className="flex items-center gap-3 px-4 py-3">
+									<div className="size-7 rounded-full bg-muted flex items-center justify-center text-xs font-medium">{row.name[0]}</div>
+									<span className="text-sm">{row.name}</span>
+								</div>
+								<div className="flex items-center px-4 py-3">
+									<Badge variant="outline">{row.access}</Badge>
+								</div>
+							</div>
+						))}
+					</div>
+				</CardContent>
+			</Card>
+		),
 	},
 	{
 		id: 'card-with-action',
@@ -489,9 +629,7 @@ export default function CardVariants() {
 								</p>
 							)}
 							<div className="pt-1">{v.render()}</div>
-							<pre className="text-[11px] font-mono leading-snug rounded-md bg-background/60 ring-1 ring-foreground/10 p-2 overflow-x-auto whitespace-pre">
-								{v.snippet}
-							</pre>
+							<CodeSnippet snippet={v.snippet} />
 							<div className="rounded-md bg-background/40 ring-1 ring-foreground/10 p-2 flex flex-col gap-1.5">
 								<span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Where you'll see it</span>
 								<ul className="flex flex-col gap-1">
@@ -529,9 +667,7 @@ export default function CardVariants() {
 							</div>
 							<p className="text-xs text-muted-foreground leading-relaxed">{o.howItDiffers}</p>
 							{o.render && <div className="pt-1">{o.render()}</div>}
-							<pre className="text-[11px] font-mono leading-snug rounded-md bg-background/60 ring-1 ring-foreground/10 p-2 overflow-x-auto whitespace-pre">
-								{o.snippet}
-							</pre>
+							<CodeSnippet snippet={o.snippet} />
 						</div>
 					))}
 				</div>
