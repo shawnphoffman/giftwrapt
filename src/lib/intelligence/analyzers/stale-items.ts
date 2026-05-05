@@ -13,7 +13,7 @@ import {
 	type StaleItemsCandidate,
 	staleItemsResponseSchema,
 } from '../prompts/stale-items'
-import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ItemRef, ListRef } from '../types'
+import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ItemRef, ListRef, RecommendationAction } from '../types'
 
 const STALE_DAYS_THRESHOLD = 180 // 6 months
 
@@ -179,27 +179,7 @@ export const staleItemsAnalyzer: Analyzer = {
 					severity: ai.severity,
 					title: ai.headline,
 					body: ai.rationale,
-					actions: [
-						{
-							label: 'Open list',
-							description: `Jump to ${listRef.name} so you can edit or remove these items one at a time.`,
-							intent: 'do',
-							nav: { listId: listRef.id },
-						},
-						{
-							label: itemRefs.length === 1 ? 'Delete item' : `Delete ${itemRefs.length} items`,
-							description:
-								itemRefs.length === 1
-									? 'Permanently delete this item. It has no claims, so no gifters are affected.'
-									: `Permanently delete all ${itemRefs.length} items.`,
-							intent: 'destructive',
-							confirmCopy:
-								itemRefs.length === 1
-									? `Permanently delete "${itemRefs[0].title}" from ${listRef.name}? This cannot be undone.`
-									: `Permanently delete ${itemRefs.length} items from ${listRef.name}? This cannot be undone.`,
-							apply: { kind: 'delete-items', listId: listRef.id, itemIds: itemRefs.map(it => it.id) },
-						},
-					],
+					actions: buildStaleItemsActions(itemRefs, listRef),
 					dismissDescription: "Hide this recommendation. We won't suggest it again unless these items change.",
 					affected: {
 						noun: itemRefs.length === 1 ? 'item' : 'items',
@@ -261,6 +241,47 @@ function itemRefsFor(rows: ReadonlyArray<CandidateRow>): Array<ItemRef> {
 
 function daysSince(date: Date, now: Date): number {
 	return Math.max(0, Math.floor((now.getTime() - date.getTime()) / 86400000))
+}
+
+// One delete row per flagged item when there are 2+. The model can co-flag
+// items as "duplicates" or "redundant" - in that case the user wants to
+// keep one, not delete all - so a bulk delete-all is the wrong default.
+// Per-item rows let the user pick which copy goes; if everything is truly
+// stale, they click each row in turn.
+function buildStaleItemsActions(itemRefs: Array<ItemRef>, listRef: ListRef): Array<RecommendationAction> {
+	const openList: RecommendationAction = {
+		label: 'Open list',
+		description: `Jump to ${listRef.name} so you can edit or remove these items one at a time.`,
+		intent: 'do',
+		nav: { listId: listRef.id },
+	}
+
+	if (itemRefs.length === 1) {
+		const it = itemRefs[0]
+		return [
+			openList,
+			{
+				label: 'Delete item',
+				description: 'Permanently delete this item. It has no claims, so no gifters are affected.',
+				intent: 'destructive',
+				confirmCopy: `Permanently delete "${it.title}" from ${listRef.name}? This cannot be undone.`,
+				apply: { kind: 'delete-items', listId: listRef.id, itemIds: [it.id] },
+			},
+		]
+	}
+
+	return [
+		openList,
+		...itemRefs.map(
+			(it): RecommendationAction => ({
+				label: 'Delete',
+				description: `Delete "${it.title}".`,
+				intent: 'destructive',
+				confirmCopy: `Permanently delete "${it.title}" from ${listRef.name}? This cannot be undone.`,
+				apply: { kind: 'delete-items', listId: listRef.id, itemIds: [it.id] },
+			})
+		),
+	]
 }
 
 function buildHeuristicRec({ list, items: itemRefs }: { list: ListRef; items: Array<ItemRef> }): AnalyzerRecOutput {

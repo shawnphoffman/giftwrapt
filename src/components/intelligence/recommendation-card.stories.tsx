@@ -30,3 +30,5 @@ export const SeverityImportant: Story = { args: { rec: { ...recsById['rec-1'], s
 
 export const Dismissed: Story = { args: { rec: { ...recsById['rec-2'], status: 'dismissed', dismissedAt: new Date() } } }
 export const Applied: Story = { args: { rec: { ...recsById['rec-1'], status: 'applied' } } }
+
+export const Busy: Story = { args: { rec: recsById['rec-2'], pending: true } }

@@ -63,10 +63,22 @@ function IntelligenceRoute() {
 	const state: IntelligencePageState = useMemo(() => buildState(data, refreshMutation.isPending), [data, refreshMutation.isPending])
 	const dependentGroups: Array<DependentRecGroup> = useMemo(() => buildDependentGroups(data.byDependent), [data.byDependent])
 
+	// Per-rec pending set so each card can lock interactions while its
+	// own apply/dismiss is in flight. We track the in-flight id from
+	// each mutation's `variables` rather than a separate state hook so
+	// the lock auto-clears on settle without an extra effect.
+	const pendingRecIds = useMemo(() => {
+		const ids = new Set<string>()
+		if (applyServerMutation.isPending) ids.add(applyServerMutation.variables.id)
+		if (dismissMutation.isPending) ids.add(dismissMutation.variables)
+		return ids
+	}, [applyServerMutation.isPending, applyServerMutation.variables, dismissMutation.isPending, dismissMutation.variables])
+
 	return (
 		<IntelligencePageContent
 			state={state}
 			dependentGroups={dependentGroups}
+			pendingRecIds={pendingRecIds}
 			onRefresh={() => refreshMutation.mutate()}
 			onDismiss={rec => dismissMutation.mutate(rec.id)}
 			onReactivate={rec => reactivateMutation.mutate(rec.id)}

@@ -33,6 +33,10 @@ type Props = {
 	// and applied per-dependent recs roll into the global disclosure
 	// below, same as the user's own.
 	dependentGroups?: ReadonlyArray<DependentRecGroup>
+	// Rec ids whose apply/dismiss mutation is currently in flight. Cards
+	// for these ids render a busy overlay so the user can't fire a second
+	// action against the same rec before the first round-trips.
+	pendingRecIds?: ReadonlySet<string>
 }
 
 const SEVERITY_RANK: Record<RecommendationSeverity, number> = { important: 0, suggest: 1, info: 2 }
@@ -64,6 +68,7 @@ export function IntelligencePageContent({
 	onReactivate,
 	onSelectListPicker,
 	dependentGroups,
+	pendingRecIds,
 }: Props) {
 	if (state.kind === 'disabled') {
 		return (
@@ -158,6 +163,7 @@ export function IntelligencePageContent({
 											onAction={onAction}
 											onDismiss={onDismiss}
 											onSelectListPicker={onSelectListPicker}
+											pending={pendingRecIds?.has(rec.id) ?? false}
 										/>
 									))}
 								</div>
@@ -168,7 +174,13 @@ export function IntelligencePageContent({
 			)}
 
 			{dependentGroups && dependentGroups.some(g => g.recs.length > 0) && (
-				<DependentSections groups={dependentGroups} onAction={onAction} onDismiss={onDismiss} onSelectListPicker={onSelectListPicker} />
+				<DependentSections
+					groups={dependentGroups}
+					onAction={onAction}
+					onDismiss={onDismiss}
+					onSelectListPicker={onSelectListPicker}
+					pendingRecIds={pendingRecIds}
+				/>
 			)}
 
 			{dismissed.length > 0 && <DismissedDisclosure dismissed={dismissed} onReactivate={onReactivate} />}
@@ -189,11 +201,13 @@ function DependentSections({
 	onAction,
 	onDismiss,
 	onSelectListPicker,
+	pendingRecIds,
 }: {
 	groups: ReadonlyArray<DependentRecGroup>
 	onAction?: (rec: Recommendation, action: RecommendationAction) => void
 	onDismiss?: (rec: Recommendation) => void
 	onSelectListPicker?: (rec: Recommendation, listId: string) => void
+	pendingRecIds?: ReadonlySet<string>
 }) {
 	// Filter to active-only here so the per-dependent counts match what's
 	// rendered below. Dismissed/applied per-dependent recs roll into the
@@ -229,6 +243,7 @@ function DependentSections({
 								onAction={onAction}
 								onDismiss={onDismiss}
 								onSelectListPicker={onSelectListPicker}
+								pending={pendingRecIds?.has(rec.id) ?? false}
 							/>
 						))}
 					</div>

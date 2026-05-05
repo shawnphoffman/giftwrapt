@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, Check, ExternalLink, Info, Lightbulb, Package, Sparkles, X } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Check, ExternalLink, Info, Lightbulb, Loader2, Package, Sparkles, X } from 'lucide-react'
 import { useState } from 'react'
 
 import DependentAvatar from '@/components/common/dependent-avatar'
@@ -69,6 +69,10 @@ type Props = {
 	onAction?: (rec: Recommendation, action: RecommendationAction) => void
 	onDismiss?: (rec: Recommendation) => void
 	onSelectListPicker?: (rec: Recommendation, listId: string) => void
+	// True while an apply or dismiss mutation for this rec is in flight.
+	// We render an overlay + lock interactions so the user can't fire a
+	// second action against the same card before the first round-trips.
+	pending?: boolean
 }
 
 const ANALYZER_LABEL: Record<AnalyzerId, string> = {
@@ -126,7 +130,7 @@ function navHref(nav: { listId: string; itemId?: string }): string {
 	return nav.itemId ? `/lists/${nav.listId}#item-${nav.itemId}` : `/lists/${nav.listId}`
 }
 
-export function RecommendationCard({ rec, position, onAction, onDismiss, onSelectListPicker }: Props) {
+export function RecommendationCard({ rec, position, onAction, onDismiss, onSelectListPicker, pending: busy = false }: Props) {
 	const sev = SEVERITY_META[rec.severity]
 	const SevIcon = sev.icon
 	const dismissed = rec.status === 'dismissed'
@@ -158,6 +162,8 @@ export function RecommendationCard({ rec, position, onAction, onDismiss, onSelec
 			data-rec-analyzer={rec.analyzerId}
 			data-rec-severity={rec.severity}
 			data-rec-status={rec.status}
+			data-rec-busy={busy ? 'true' : 'false'}
+			aria-busy={busy}
 			className={cn('relative overflow-hidden p-0 gap-0 transition-opacity', inactive && 'opacity-60')}
 		>
 			{/* Severity color bar on the left edge */}
@@ -255,6 +261,18 @@ export function RecommendationCard({ rec, position, onAction, onDismiss, onSelec
 				onCancel={() => setPending(null)}
 				onConfirm={handleConfirm}
 			/>
+
+			{busy && (
+				<div
+					data-intelligence="card-busy-overlay"
+					className="absolute inset-0 z-20 flex items-center justify-center gap-2 bg-background/70 backdrop-blur-[1px]"
+					role="status"
+					aria-live="polite"
+				>
+					<Loader2 className="size-4 animate-spin text-muted-foreground" />
+					<span className="text-xs font-medium text-muted-foreground">Applying…</span>
+				</div>
+			)}
 		</Card>
 	)
 }
