@@ -45,8 +45,17 @@ export function registerConfigRoutes(v1: App): void {
 	})
 
 	// GET /v1/storage/status - whether avatar/item-image upload is
-	// available. iOS hides upload controls when this is false.
+	// available. iOS hides upload controls when `canUpload` is false.
+	//
+	// Wrapped under `status` to match the rest of the mobile-API
+	// envelope convention. `bytesUsed` / `bytesQuota` are reserved
+	// for future quota reporting; the iOS decoder treats them as
+	// optional Ints and ignores them when absent.
 	v1.get('/storage/status', c => {
-		return c.json({ configured: isStorageConfigured() })
+		return c.json({
+			status: {
+				canUpload: isStorageConfigured(),
+			},
+		})
 	})
 }
