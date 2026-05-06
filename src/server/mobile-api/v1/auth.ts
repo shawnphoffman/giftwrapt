@@ -13,16 +13,20 @@
 // token, runs ASAuthorizationController locally, then posts the
 // assertion + deviceName to `finish`.
 //
+// `/v1/auth/oidc/{begin,finish}` (no auth) - external-OIDC sign-in
+// flow. Wire-complete but stubbed until an operator wires
+// better-auth's `genericOAuth` plugin in `auth.ts`; the deployment
+// has no external providers configured today so both endpoints
+// reject any providerId with `unknown-provider`.
+//
 // All terminal endpoints converge on the same `{ apiKey, user, device }`
 // envelope `POST /v1/sign-in` returns, via `mintEnvelopeFromSessionCookie`.
 // See `.notes/plans/2026-05-mobile-auth-extensions.md`.
 
-import { eq } from 'drizzle-orm'
 import type { Context, Hono } from 'hono'
 import { z } from 'zod'
 
 import { db } from '@/db'
-import { oauthApplication } from '@/db/schema'
 import { auth } from '@/lib/auth'
 import { mobileSignInLimiter } from '@/lib/rate-limits'
 import { LIMITS } from '@/lib/validation/limits'
@@ -59,6 +63,28 @@ const PasskeyFinishSchema = z.object({
 	response: z.record(z.string(), z.unknown()),
 })
 
+const OidcBeginSchema = z.object({
+	providerId: z.string().min(1).max(64),
+	deviceName: z.string().min(1).max(LIMITS.SHORT_NAME),
+})
+
+const OidcFinishSchema = z.object({
+	challengeToken: z.string().min(1).max(128),
+	providerId: z.string().min(1).max(64),
+	code: z.string().min(1).max(2048),
+	state: z.string().min(1).max(256),
+})
+
+/**
+ * External-OIDC providers iOS can sign in via. Empty until
+ * better-auth's `genericOAuth` plugin is wired into `auth.ts`. Once
+ * it is, swap this for a read of the configured providers (the
+ * plugin keeps them on `auth.options`).
+ */
+function configuredOidcProviders(): ReadonlyArray<{ id: string; label: string }> {
+	return []
+}
+
 export function registerAuthRoutes(v1: App): void {
 	// =================================================================
 	// GET /v1/auth/capabilities (no auth)
@@ -67,7 +93,7 @@ export function registerAuthRoutes(v1: App): void {
 	// Deployment-level discovery so iOS knows which sign-in affordances
 	// to render. Cached by iOS per host. Don't put any user-specific
 	// information here; this is read by anyone who knows the host URL.
-	v1.get('/auth/capabilities', rateLimit(mobileSignInLimiter), async c => {
+	v1.get('/auth/capabilities', rateLimit(mobileSignInLimiter), c => {
 		// `password` is hard-true for now: every deployment has email
 		// + password enabled (auth.ts has no escape hatch). Encoded as
 		// a value rather than `true` literal so a future env-driven
@@ -76,27 +102,22 @@ export function registerAuthRoutes(v1: App): void {
 		const totpEnabled = true
 		const passkeyEnabled = true
 
-		const oidcRows = await db
-			.select({
-				clientId: oauthApplication.clientId,
-				name: oauthApplication.name,
-			})
-			.from(oauthApplication)
-			.where(eq(oauthApplication.disabled, false))
+		// External-OIDC sign-in (Google, Apple, etc) requires
+		// better-auth's `genericOAuth` plugin to be wired in `auth.ts`.
+		// The deployment doesn't currently load it, so iOS sees an
+		// empty array and hides the OIDC sign-in row. When the plugin
+		// lands, surface its configured providers here.
+		//
+		// Don't read `oauthApplication` for this list - that table
+		// represents external apps that consume OIDC FROM us (server-
+		// as-provider), not external providers we're a client of.
+		const oidcProviders: Array<{ id: string; label: string; kind: 'generic' }> = []
 
 		return c.json({
 			password: passwordEnabled,
 			totp: totpEnabled,
 			passkey: passkeyEnabled,
-			oidc: oidcRows.map(r => ({
-				id: r.clientId,
-				label: r.name,
-				// v1 doesn't try to fingerprint provider type. iOS
-				// renders a generic OIDC button for each row. When we
-				// wire google/apple as first-class buttons later, the
-				// server will compute `kind` from a column we add then.
-				kind: 'generic' as const,
-			})),
+			oidc: oidcProviders,
 		})
 	})
 
@@ -266,6 +287,99 @@ export function registerAuthRoutes(v1: App): void {
 		}
 
 		return mintEnvelopeFromSessionCookie(c, realCookieHeader, trimmedDeviceName, 'invalid-code')
+	})
+
+	// =================================================================
+	// POST /v1/auth/oidc/begin (no auth)
+	// =================================================================
+	//
+	// Asks the configured external OIDC provider for an authorization
+	// URL + PKCE pair, stashes the provider context (so `finish` knows
+	// which provider to exchange the code with) under an opaque token,
+	// and returns the URL iOS opens in `ASWebAuthenticationSession`.
+	//
+	// Currently a stub: no providers are configured because `auth.ts`
+	// doesn't load better-auth's `genericOAuth` plugin. Every call
+	// returns `unknown-provider` until that wiring lands. The contract
+	// is in place so iOS can ship the OIDC code path now and have it
+	// light up automatically when the operator wires a provider.
+	v1.post('/auth/oidc/begin', rateLimit(mobileSignInLimiter), async c => {
+		let body: unknown
+		try {
+			body = await c.req.json()
+		} catch {
+			return jsonError(c, 400, 'invalid-json')
+		}
+		const parsed = OidcBeginSchema.safeParse(body)
+		if (!parsed.success) {
+			return jsonError(c, 400, 'invalid-input', { data: { issues: parsed.error.issues } })
+		}
+		const { providerId, deviceName } = parsed.data
+
+		const providers = configuredOidcProviders()
+		const known = providers.find(p => p.id === providerId)
+		if (!known) {
+			return jsonError(c, 404, 'unknown-provider')
+		}
+
+		// When `genericOAuth` is wired, replace this branch with a
+		// call to `auth.api.signInWithOAuth2({ body: { providerId,
+		// callbackURL: '...' }, asResponse: true })`, parse the
+		// returned `url` + `state` + `codeVerifier`, stash both under
+		// `createPending('oidc', { providerId, codeVerifier, state,
+		// deviceName }, 600)`, and return them. Until then this branch
+		// is unreachable.
+		void deviceName
+		return jsonError(c, 501, 'not-implemented', {
+			message: 'OIDC sign-in is configured but the begin handler is not wired.',
+		})
+	})
+
+	// =================================================================
+	// POST /v1/auth/oidc/finish (no auth)
+	// =================================================================
+	//
+	// Consumes the begin token, exchanges the authorization code with
+	// the IdP, and mints an apiKey under the resulting session.
+	//
+	// Same stubbed posture as `oidc/begin` until external-OIDC config
+	// lands. Returns `invalid-challenge` for any token (since `begin`
+	// never mints one) so iOS sees a clean failure.
+	v1.post('/auth/oidc/finish', rateLimit(mobileSignInLimiter), async c => {
+		let body: unknown
+		try {
+			body = await c.req.json()
+		} catch {
+			return jsonError(c, 400, 'invalid-json')
+		}
+		const parsed = OidcFinishSchema.safeParse(body)
+		if (!parsed.success) {
+			return jsonError(c, 400, 'invalid-input', { data: { issues: parsed.error.issues } })
+		}
+		const { challengeToken, providerId } = parsed.data
+
+		// Validate the providerId is one we'd accept; cheaper than a
+		// DB hit when no providers exist anyway.
+		const providers = configuredOidcProviders()
+		if (!providers.find(p => p.id === providerId)) {
+			return jsonError(c, 404, 'unknown-provider')
+		}
+
+		// Even if a token were minted, this branch is unreachable
+		// today. The `consumePending` call burns the row regardless,
+		// matching the single-use semantics of every other flow.
+		const pending = await consumePending(challengeToken, 'oidc')
+		if (!pending) {
+			return jsonError(c, 400, 'invalid-challenge')
+		}
+
+		// Wire-complete stub: when `genericOAuth` lands, this is the
+		// place to call `auth.api.oAuth2Callback` (or the equivalent
+		// "exchange code -> session" path) and forward the resulting
+		// session cookie into `mintEnvelopeFromSessionCookie`.
+		return jsonError(c, 501, 'not-implemented', {
+			message: 'OIDC sign-in is configured but the finish handler is not wired.',
+		})
 	})
 }
 

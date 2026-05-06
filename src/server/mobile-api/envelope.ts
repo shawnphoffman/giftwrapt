@@ -40,6 +40,8 @@ const DEFAULT_MESSAGES: Partial<Record<string, string>> = {
 	'sign-in-failed': 'Email or password is incorrect.',
 	'invalid-challenge': 'Sign-in challenge expired or already used. Please start over.',
 	'invalid-code': 'That code is incorrect or expired.',
+	'unknown-provider': 'That sign-in provider is not configured on this server.',
+	'not-implemented': 'That capability is configured but not yet wired on this server.',
 	'over-claim': 'Not enough remaining quantity.',
 	'group-already-claimed': 'Another item in this group has already been claimed.',
 	'group-out-of-order': 'Earlier items in this group must be claimed first.',
