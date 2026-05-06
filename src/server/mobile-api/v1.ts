@@ -24,6 +24,7 @@ import { LIMITS } from '@/lib/validation/limits'
 import type { MobileAuthContext } from './auth'
 import { requireMobileApiKey } from './auth'
 import { createPending } from './auth-pending'
+import { mergeSetCookiesToCookieHeader } from './cookies'
 import { listDevicesForUserImpl, revokeAllDevicesImpl, revokeDeviceImpl } from './devices'
 import { jsonError } from './envelope'
 import { rateLimit } from './middleware'
@@ -40,30 +41,6 @@ const SignInInputSchema = z.object({
 	password: z.string().min(1).max(LIMITS.PASSWORD),
 	deviceName: z.string().min(1).max(LIMITS.SHORT_NAME),
 })
-
-// Forward Set-Cookie values from a better-auth response as a single
-// `cookie:` request header so the next `auth.api.*` call can find the
-// freshly-minted session. better-auth exposes Set-Cookies on the
-// Response; we strip everything after the first `;` per cookie to
-// turn server-side attributes (Path, HttpOnly, SameSite) into the
-// pure `name=value` pairs the request side expects.
-function setCookiesToCookieHeader(res: Response): string {
-	const getSetCookie = (res.headers as unknown as { getSetCookie?: () => Array<string> }).getSetCookie
-	const list = typeof getSetCookie === 'function' ? getSetCookie.call(res.headers) : []
-	if (list.length === 0) {
-		const single = res.headers.get('set-cookie')
-		if (!single) return ''
-		return single
-			.split(',')
-			.map(s => s.split(';')[0]?.trim())
-			.filter(Boolean)
-			.join('; ')
-	}
-	return list
-		.map(sc => sc.split(';')[0]?.trim())
-		.filter(Boolean)
-		.join('; ')
-}
 
 // POST /v1/sign-in - validate email/password + mint a per-device apiKey.
 //
@@ -105,7 +82,7 @@ v1.post('/sign-in', rateLimit(mobileSignInLimiter), async c => {
 		return jsonError(c, 401, 'sign-in-failed')
 	}
 
-	const cookieHeader = setCookiesToCookieHeader(signInResponse)
+	const cookieHeader = mergeSetCookiesToCookieHeader(signInResponse)
 	if (!cookieHeader) {
 		// Should never happen with correct better-auth config; fail
 		// loudly so it surfaces in logs.

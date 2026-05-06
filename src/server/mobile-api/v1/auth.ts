@@ -21,6 +21,7 @@ import { LIMITS } from '@/lib/validation/limits'
 
 import type { MobileAuthContext } from '../auth'
 import { consumePending } from '../auth-pending'
+import { mergeSetCookiesToCookieHeader } from '../cookies'
 import { jsonError } from '../envelope'
 import { rateLimit } from '../middleware'
 
@@ -126,7 +127,7 @@ export function registerAuthRoutes(v1: App): void {
 			return jsonError(c, 401, 'invalid-code')
 		}
 
-		const realCookieHeader = setCookiesToCookieHeader(verifyResponse)
+		const realCookieHeader = mergeSetCookiesToCookieHeader(verifyResponse)
 		if (!realCookieHeader) {
 			return jsonError(c, 500, 'internal-error')
 		}
@@ -185,30 +186,6 @@ export function registerAuthRoutes(v1: App): void {
 			},
 		})
 	})
-}
-
-/**
- * Forward Set-Cookie values from a better-auth response as a single
- * `cookie:` request header so the next `auth.api.*` call can find the
- * freshly-minted session. Mirrors the helper in v1.ts; copied locally
- * to keep this module self-contained.
- */
-function setCookiesToCookieHeader(res: Response): string {
-	const getSetCookie = (res.headers as unknown as { getSetCookie?: () => Array<string> }).getSetCookie
-	const list = typeof getSetCookie === 'function' ? getSetCookie.call(res.headers) : []
-	if (list.length === 0) {
-		const single = res.headers.get('set-cookie')
-		if (!single) return ''
-		return single
-			.split(',')
-			.map(s => s.split(';')[0]?.trim())
-			.filter(Boolean)
-			.join('; ')
-	}
-	return list
-		.map(sc => sc.split(';')[0]?.trim())
-		.filter(Boolean)
-		.join('; ')
 }
 
 function toIso(value: Date | string | null | undefined): string | null {
