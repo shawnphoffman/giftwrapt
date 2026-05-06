@@ -24,6 +24,7 @@ import {
 import { type BirthMonth, type GroupType, type ListType, listTypeEnumValues, type Priority } from '@/db/schema/enums'
 import type { ListAddon } from '@/db/schema/lists'
 import { computeListItemCounts } from '@/lib/gifts'
+import { isValidHolidayKey } from '@/lib/holidays'
 import { canEditList, canViewList, getViewerAccessLevelForList } from '@/lib/permissions'
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
 
@@ -198,11 +199,14 @@ export type PublicDependent = {
 
 export type CreateListResult =
 	| { kind: 'ok'; list: { id: number; name: string; type: ListType } }
-	| { kind: 'error'; reason: 'child-cannot-create-gift-ideas' | 'not-dependent-guardian' }
+	| { kind: 'error'; reason: 'child-cannot-create-gift-ideas' | 'not-dependent-guardian' | 'invalid-holiday-selection' }
 
 export type UpdateListResult =
 	| { kind: 'ok' }
-	| { kind: 'error'; reason: 'not-found' | 'not-authorized' | 'child-cannot-create-gift-ideas' | 'not-dependent-guardian' }
+	| {
+			kind: 'error'
+			reason: 'not-found' | 'not-authorized' | 'child-cannot-create-gift-ideas' | 'not-dependent-guardian' | 'invalid-holiday-selection'
+	  }
 
 export type DeleteListResult = { kind: 'ok'; action: 'deleted' | 'archived' } | { kind: 'error'; reason: 'not-found' | 'not-owner' }
 
@@ -219,6 +223,8 @@ export type ListForEditing = {
 	ownerId: string
 	giftIdeasTargetUserId: string | null
 	subjectDependentId: string | null
+	holidayCountry: string | null
+	holidayKey: string | null
 	groups: Array<GroupSummary>
 	isOwner: boolean
 }
@@ -243,6 +249,12 @@ export const CreateListInputSchema = z.object({
 	// When set, the new list is FOR a dependent. The actor must be a
 	// guardian of this dependent; the actor remains the `ownerId`.
 	subjectDependentId: z.string().optional(),
+	// Required when type === 'holiday'; ignored otherwise. ISO 3166-1
+	// alpha-2 country code + slug from the curated allowlist in
+	// src/lib/holidays.ts. The impl validates the pair against the
+	// catalog before insert.
+	holidayCountry: z.string().optional(),
+	holidayKey: z.string().optional(),
 })
 
 export const UpdateListInputSchema = z.object({
@@ -255,6 +267,8 @@ export const UpdateListInputSchema = z.object({
 	giftIdeasTargetUserId: z.string().nullable().optional(),
 	giftIdeasTargetDependentId: z.string().nullable().optional(),
 	subjectDependentId: z.string().nullable().optional(),
+	holidayCountry: z.string().nullable().optional(),
+	holidayKey: z.string().nullable().optional(),
 })
 
 export const DeleteListInputSchema = z.object({
@@ -976,6 +990,20 @@ export async function getPublicDependentsImpl(viewerUserId: string): Promise<Arr
 		})
 }
 
+// Returns the country code from the user's most recently created
+// `holiday`-typed list, or null if they've never made one. Powers the
+// create-list dialog's "default to last-used country" affordance, with
+// the UI falling back to 'US' when this returns null.
+export async function getMyLastHolidayCountryImpl(args: { userId: string; dbx?: SchemaDatabase }): Promise<string | null> {
+	const dbx = args.dbx ?? db
+	const row = await dbx.query.lists.findFirst({
+		where: and(eq(lists.ownerId, args.userId), eq(lists.type, 'holiday')),
+		columns: { holidayCountry: true },
+		orderBy: [desc(lists.createdAt)],
+	})
+	return row?.holidayCountry ?? null
+}
+
 export async function createListImpl(args: {
 	actor: { id: string; isChild: boolean }
 	input: z.infer<typeof CreateListInputSchema>
@@ -1003,6 +1031,19 @@ export async function createListImpl(args: {
 	const giftIdeasTargetUserId = data.type === 'giftideas' ? (data.giftIdeasTargetUserId ?? null) : null
 	const giftIdeasTargetDependentId = data.type === 'giftideas' ? (data.giftIdeasTargetDependentId ?? null) : null
 
+	// Holiday metadata: required + validated when type === 'holiday'; null
+	// otherwise so a switch back to a non-holiday type doesn't carry
+	// stale country/key values.
+	let holidayCountry: string | null = null
+	let holidayKey: string | null = null
+	if (data.type === 'holiday') {
+		if (!data.holidayCountry || !data.holidayKey || !isValidHolidayKey(data.holidayCountry, data.holidayKey)) {
+			return { kind: 'error', reason: 'invalid-holiday-selection' }
+		}
+		holidayCountry = data.holidayCountry
+		holidayKey = data.holidayKey
+	}
+
 	const [inserted] = await db
 		.insert(lists)
 		.values({
@@ -1014,6 +1055,8 @@ export async function createListImpl(args: {
 			subjectDependentId: data.subjectDependentId ?? null,
 			giftIdeasTargetUserId,
 			giftIdeasTargetDependentId,
+			holidayCountry,
+			holidayKey,
 		})
 		.returning({ id: lists.id, name: lists.name, type: lists.type })
 
@@ -1028,7 +1071,16 @@ export async function updateListImpl(args: {
 
 	const list = await db.query.lists.findFirst({
 		where: eq(lists.id, data.listId),
-		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
+		columns: {
+			id: true,
+			ownerId: true,
+			subjectDependentId: true,
+			isPrivate: true,
+			isActive: true,
+			type: true,
+			holidayCountry: true,
+			holidayKey: true,
+		},
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 	const isOwner = list.ownerId === actor.id
@@ -1067,12 +1119,39 @@ export async function updateListImpl(args: {
 		updates.subjectDependentId = data.subjectDependentId
 	}
 
-	const nextType = data.type ?? undefined
-	if (nextType === 'giftideas') {
+	const nextType = data.type ?? list.type
+	if (data.type === 'giftideas') {
 		updates.isPrivate = true
-	} else if (nextType !== undefined) {
+	}
+	if (data.type !== undefined && data.type !== 'giftideas') {
 		updates.giftIdeasTargetUserId = null
 		updates.giftIdeasTargetDependentId = null
+	}
+
+	// Holiday metadata: validate when the result will be a holiday list,
+	// null when it leaves the holiday type. `lastHolidayArchiveAt` is
+	// per-(list, holiday) state; null it whenever country or key
+	// changes so a repurposed list never inherits stale archive
+	// bookkeeping.
+	if (nextType === 'holiday') {
+		const country = data.holidayCountry !== undefined ? data.holidayCountry : list.holidayCountry
+		const key = data.holidayKey !== undefined ? data.holidayKey : list.holidayKey
+		if (!country || !key || !isValidHolidayKey(country, key)) {
+			return { kind: 'error', reason: 'invalid-holiday-selection' }
+		}
+		if (data.holidayCountry !== undefined) updates.holidayCountry = country
+		if (data.holidayKey !== undefined) updates.holidayKey = key
+		const countryChanged = data.holidayCountry !== undefined && data.holidayCountry !== list.holidayCountry
+		const keyChanged = data.holidayKey !== undefined && data.holidayKey !== list.holidayKey
+		const typeJustBecameHoliday = data.type === 'holiday' && list.type !== 'holiday'
+		if (countryChanged || keyChanged || typeJustBecameHoliday) {
+			updates.lastHolidayArchiveAt = null
+		}
+	} else if (data.type !== undefined && data.type !== 'holiday') {
+		// Type is changing AWAY from holiday: clear all holiday metadata.
+		updates.holidayCountry = null
+		updates.holidayKey = null
+		updates.lastHolidayArchiveAt = null
 	}
 
 	if (Object.keys(updates).length > 0) {
@@ -1170,6 +1249,8 @@ export async function getListForEditingImpl(args: {
 			ownerId: true,
 			giftIdeasTargetUserId: true,
 			subjectDependentId: true,
+			holidayCountry: true,
+			holidayKey: true,
 		},
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
@@ -1199,6 +1280,8 @@ export async function getListForEditingImpl(args: {
 			ownerId: list.ownerId,
 			giftIdeasTargetUserId: list.giftIdeasTargetUserId,
 			subjectDependentId: list.subjectDependentId,
+			holidayCountry: list.holidayCountry,
+			holidayKey: list.holidayKey,
 			groups,
 			isOwner,
 		},

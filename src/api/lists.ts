@@ -22,6 +22,7 @@ import {
 	type GetListForViewingResult,
 	getListSummariesImpl,
 	GetListSummariesInputSchema,
+	getMyLastHolidayCountryImpl,
 	getMyListsImpl,
 	getPublicDependentsImpl,
 	type ListSummary,
@@ -78,6 +79,10 @@ export const getListSummaries = createServerFn({ method: 'GET' })
 export const getMyLists = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.handler(({ context }): Promise<MyListsResult> => getMyListsImpl(context.session.user.id))
+
+export const getMyLastHolidayCountry = createServerFn({ method: 'GET' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.handler(({ context }): Promise<string | null> => getMyLastHolidayCountryImpl({ userId: context.session.user.id }))
 
 // Public-feed dependents (pets, babies, etc. with at least one public list).
 // Mirrors the user-side `/api/lists/public` shape but groups by dependent
