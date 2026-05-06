@@ -38,6 +38,8 @@ const DEFAULT_MESSAGES: Partial<Record<string, string>> = {
 	'rate-limited': 'Too many requests. Try again shortly.',
 	'mobile-app-disabled': 'Mobile API is disabled by the administrator.',
 	'sign-in-failed': 'Email or password is incorrect.',
+	'invalid-challenge': 'Sign-in challenge expired or already used. Please start over.',
+	'invalid-code': 'That code is incorrect or expired.',
 	'over-claim': 'Not enough remaining quantity.',
 	'group-already-claimed': 'Another item in this group has already been claimed.',
 	'group-out-of-order': 'Earlier items in this group must be claimed first.',

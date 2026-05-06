@@ -23,9 +23,11 @@ import { LIMITS } from '@/lib/validation/limits'
 
 import type { MobileAuthContext } from './auth'
 import { requireMobileApiKey } from './auth'
+import { createPending } from './auth-pending'
 import { listDevicesForUserImpl, revokeAllDevicesImpl, revokeDeviceImpl } from './devices'
 import { jsonError } from './envelope'
 import { rateLimit } from './middleware'
+import { registerAuthRoutes } from './v1/auth'
 
 const v1 = new Hono<MobileAuthContext>()
 
@@ -110,6 +112,34 @@ v1.post('/sign-in', rateLimit(mobileSignInLimiter), async c => {
 		return jsonError(c, 500, 'internal-error')
 	}
 
+	// 2FA fork: when the user has TOTP enrolled, better-auth's
+	// twoFactor plugin replaces the post-sign-in body with
+	// `{ twoFactorRedirect: true }` and the cookie above is the
+	// short-lived 2FA-pending cookie (NOT a real session). We hold
+	// that cookie under an opaque challenge token and hand the token
+	// back to iOS; the client finishes via `POST /v1/auth/totp/verify`.
+	let signInBody: unknown = null
+	try {
+		signInBody = await signInResponse.clone().json()
+	} catch {
+		// Response wasn't JSON. Fall through to the existing happy
+		// path which reads the session.
+	}
+	const twoFactorPending =
+		typeof signInBody === 'object' && signInBody !== null && (signInBody as { twoFactorRedirect?: unknown }).twoFactorRedirect === true
+	if (twoFactorPending) {
+		const TOTP_CHALLENGE_TTL_SECONDS = 300
+		const { token, ttlSeconds } = await createPending(
+			{ kind: 'totp', cookieHeader, deviceName: deviceName.trim() },
+			TOTP_CHALLENGE_TTL_SECONDS
+		)
+		return c.json({
+			challengeToken: token,
+			ttlSeconds,
+			methods: ['totp'],
+		})
+	}
+
 	// Mint the per-device apiKey under the freshly-minted session. The
 	// session itself is then thrown away (iOS never sees the cookie).
 	let userId: string | null = null
@@ -169,6 +199,11 @@ v1.post('/sign-in', rateLimit(mobileSignInLimiter), async c => {
 		},
 	})
 })
+
+// Auth-extension routes are public (capabilities probe + TOTP
+// challenge finish step). Register them before the apiKey middleware
+// below so they're not gated on a key the user doesn't have yet.
+registerAuthRoutes(v1)
 
 // =====================================================================
 // Authenticated (apiKey required from here down)
