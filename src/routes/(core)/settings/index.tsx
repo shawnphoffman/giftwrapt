@@ -2,7 +2,9 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import AvatarUpload from '@/components/settings/avatar-upload'
 import ProfileForm from '@/components/settings/profile-form'
-import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { RelationLabelsSection } from '@/components/settings/relation-labels-section'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useAppSettings } from '@/hooks/use-app-settings'
 import { useSession } from '@/lib/auth-client'
 
 export const Route = createFileRoute('/(core)/settings/')({
@@ -11,6 +13,7 @@ export const Route = createFileRoute('/(core)/settings/')({
 
 function SettingsPage() {
 	const { data: session } = useSession()
+	const { data: appSettings } = useAppSettings()
 
 	if (!session?.user) {
 		return null
@@ -35,6 +38,18 @@ function SettingsPage() {
 					/>
 				</div>
 			</CardContent>
+
+			{appSettings?.enableParentalRelations && (
+				<Card>
+					<CardHeader>
+						<CardTitle className="text-xl">People I shop for</CardTitle>
+						<CardDescription>Tag the people you shop for on Mother’s Day and Father’s Day.</CardDescription>
+					</CardHeader>
+					<CardContent>
+						<RelationLabelsSection />
+					</CardContent>
+				</Card>
+			)}
 		</div>
 	)
 }
