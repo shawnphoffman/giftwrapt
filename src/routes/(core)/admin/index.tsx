@@ -5,6 +5,7 @@ import {
 	ChristmasSettingsSection,
 	CommentsSettingsSection,
 	CoreSettingsSection,
+	GenericHolidaySettingsSection,
 	TodoSettingsSection,
 } from '@/components/admin/app-settings-editor'
 import { StorageDisabledBanner } from '@/components/common/storage-disabled-banner'
@@ -51,6 +52,20 @@ function AdminPage() {
 				<CardContent>
 					<ClientOnly>
 						<BirthdaySettingsSection />
+					</ClientOnly>
+				</CardContent>
+			</Card>
+			<Card className="animate-page-in max-w-xl">
+				<CardHeader>
+					<CardTitle className="text-2xl">Holiday Lists</CardTitle>
+					<CardDescription>
+						Generic holiday lists (Easter, Mother's Day, Halloween, and more), with auto-archiving after each holiday and an optional email
+						summary.
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<ClientOnly>
+						<GenericHolidaySettingsSection />
 					</ClientOnly>
 				</CardContent>
 			</Card>

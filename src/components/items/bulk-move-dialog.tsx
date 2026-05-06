@@ -81,6 +81,7 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 					const message: Record<typeof created.reason, string> = {
 						'child-cannot-create-gift-ideas': "Children can't create gift-ideas lists.",
 						'not-dependent-guardian': "You're not a guardian of that dependent.",
+						'invalid-holiday-selection': 'Holiday lists need a country and holiday picked from the catalog.',
 					}
 					setError(message[created.reason])
 					return

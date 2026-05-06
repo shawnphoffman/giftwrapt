@@ -95,8 +95,9 @@ export function CoreSettingsSection() {
 					</SelectTrigger>
 					<SelectContent>
 						{(Object.entries(ListTypes) as Array<[keyof typeof ListTypes, string]>).map(([type, label]) => {
-							if (type === 'christmas' && !settings.enableHolidayLists) return null
+							if (type === 'christmas' && !settings.enableChristmasLists) return null
 							if (type === 'birthday' && !settings.enableBirthdayLists) return null
+							if (type === 'holiday' && !settings.enableGenericHolidayLists) return null
 							if (type === 'todos' && !settings.enableTodoLists) return null
 							if (type === 'test' && !IS_DEV) return null
 							return (
@@ -138,31 +139,31 @@ export function ChristmasSettingsSection() {
 		<div className="space-y-6">
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
-					<Label htmlFor="enableHolidayLists" className="text-base">
+					<Label htmlFor="enableChristmasLists" className="text-base">
 						Enable Christmas Lists
 					</Label>
 					<p className="text-sm text-muted-foreground">Allow users to create Christmas-themed lists</p>
 				</div>
 				<Switch
-					id="enableHolidayLists"
-					checked={settings.enableHolidayLists}
-					onCheckedChange={checked => handleSettingChange('enableHolidayLists', checked)}
+					id="enableChristmasLists"
+					checked={settings.enableChristmasLists}
+					onCheckedChange={checked => handleSettingChange('enableChristmasLists', checked)}
 				/>
 			</div>
 
-			<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableHolidayLists ? '' : 'opacity-50'}`}>
+			<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableChristmasLists ? '' : 'opacity-50'}`}>
 				<DaysSetting
 					id="archiveDaysAfterChristmas"
 					label="Archive after Christmas"
 					description="Days after Dec 25 to automatically archive claimed items on Christmas lists"
 					value={settings.archiveDaysAfterChristmas}
-					disabled={!settings.enableHolidayLists}
+					disabled={!settings.enableChristmasLists}
 					onCommit={value => handleSettingChange('archiveDaysAfterChristmas', value)}
 				/>
 			</div>
 
 			{emailConfigured && (
-				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableHolidayLists ? '' : 'opacity-50'}`}>
+				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableChristmasLists ? '' : 'opacity-50'}`}>
 					<div className="space-y-0.5">
 						<Label htmlFor="enableChristmasEmails" className="text-base">
 							Enable Christmas emails
@@ -172,8 +173,64 @@ export function ChristmasSettingsSection() {
 					<Switch
 						id="enableChristmasEmails"
 						checked={settings.enableChristmasEmails}
-						disabled={!settings.enableHolidayLists}
+						disabled={!settings.enableChristmasLists}
 						onCheckedChange={checked => handleSettingChange('enableChristmasEmails', checked)}
+					/>
+				</div>
+			)}
+		</div>
+	)
+}
+
+export function GenericHolidaySettingsSection() {
+	const { settings, isLoading, handleSettingChange } = useSettingsEditor()
+	const { data: emailConfigured } = useIsEmailConfigured()
+
+	if (!settings) return <LoadingOrEmpty isLoading={isLoading} settings={settings} />
+
+	return (
+		<div className="space-y-6">
+			<div className="flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<Label htmlFor="enableGenericHolidayLists" className="text-base">
+						Enable Holiday Lists
+					</Label>
+					<p className="text-sm text-muted-foreground">
+						Allow users to create lists for occasions like Easter, Mother's Day, Halloween, Diwali, etc. Christmas remains a separate list
+						type above.
+					</p>
+				</div>
+				<Switch
+					id="enableGenericHolidayLists"
+					checked={settings.enableGenericHolidayLists}
+					onCheckedChange={checked => handleSettingChange('enableGenericHolidayLists', checked)}
+				/>
+			</div>
+
+			<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableGenericHolidayLists ? '' : 'opacity-50'}`}>
+				<DaysSetting
+					id="archiveDaysAfterHoliday"
+					label="Archive after holiday"
+					description="Days after a holiday's end date to automatically archive claimed items on holiday-typed lists. Multi-day holidays archive against the end of the festival."
+					value={settings.archiveDaysAfterHoliday}
+					disabled={!settings.enableGenericHolidayLists}
+					onCommit={value => handleSettingChange('archiveDaysAfterHoliday', value)}
+				/>
+			</div>
+
+			{emailConfigured && (
+				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableGenericHolidayLists ? '' : 'opacity-50'}`}>
+					<div className="space-y-0.5">
+						<Label htmlFor="enableGenericHolidayEmails" className="text-base">
+							Enable holiday emails
+						</Label>
+						<p className="text-sm text-muted-foreground">Send a generic post-holiday email when items are auto-archived on holiday lists</p>
+					</div>
+					<Switch
+						id="enableGenericHolidayEmails"
+						checked={settings.enableGenericHolidayEmails}
+						disabled={!settings.enableGenericHolidayLists}
+						onCheckedChange={checked => handleSettingChange('enableGenericHolidayEmails', checked)}
 					/>
 				</div>
 			)}
