@@ -25,6 +25,7 @@ import {
 	SidebarTrigger,
 } from '@/components/ui/sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
+import { EdgeSwipeListener } from '@/components/utilities/edge-swipe-listener'
 import { ErrorBoundary } from '@/components/utilities/error-boundary'
 import { NavigationEvents } from '@/components/utilities/navigation-events'
 import { useAppSetting } from '@/hooks/use-app-settings'
@@ -183,7 +184,11 @@ function AuthenticatedRoutes() {
 			</Sidebar>
 			<SidebarInset>
 				{/* <header className="sticky top-0 z-10 flex items-center justify-between h-12 gap-2 shrink-0 w-full"> */}
-				<header className=" top-0 z-10 flex items-center justify-between h-12 gap-2 shrink-0 w-full">
+				{/* `pt-[env(...)]` only adds height in iOS PWA standalone mode where
+				    `apple-mobile-web-app-status-bar-style: black-translucent` lets
+				    content render under the status bar; in regular Safari/desktop
+				    the inset is 0 so this is a no-op. */}
+				<header className=" top-0 z-10 flex items-center justify-between h-12 gap-2 shrink-0 w-full pt-[env(safe-area-inset-top)] box-content">
 					<div className="flex items-center gap-2 w-fit rounded-lg px-4">
 						<SidebarTrigger className=" -ml-1 [&_svg]:size-6! bg-background/75" />
 						<div className="bg-background/75 rounded-lg px-2">
@@ -233,6 +238,7 @@ function AuthenticatedRoutes() {
 			<Suspense fallback={null}>
 				<NavigationEvents />
 			</Suspense>
+			<EdgeSwipeListener />
 		</SidebarProvider>
 	)
 }
