@@ -58,12 +58,22 @@ hot reload won't pick up the change).
 
 1. Open `http://localhost:3000/sign-in` in any browser.
 2. Click **Sign in with mock IdP**.
-3. The redirect lands on the mock server's "log in" page; pick any
-   sub claim, set an email matching an existing user (or any new
-   email if `Auto Register` is on), submit.
-4. The redirect chain hands back to `/api/auth/oauth2/callback/oidc`,
-   which exchanges the code, mints a session, redirects to the
-   post-auth target.
+3. The redirect lands on the mock server's login form. **Paste this
+   JSON into the "Claims" textarea** before submitting:
+
+   ```json
+   { "email": "test@example.com", "name": "Test User", "email_verified": true }
+   ```
+
+   The default form returns an id_token with only `sub`, which
+   better-auth rejects with
+   `/api/auth/error?error=email_is_missing`. Any email works; with
+   `Match existing users by: email` set, it'll link to that existing
+   user (if present) or auto-register one (if `Auto Register` is on).
+
+4. Submit. The redirect chain hands back to
+   `/api/auth/oauth2/callback/oidc`, which exchanges the code, mints
+   a session, redirects to the post-auth target.
 
 If any step 4xx's, the better-auth log line in the dev server's
 stderr names the exact problem (`unsupported response_type`,
@@ -82,15 +92,21 @@ Same boot stack as above, plus:
 4. Tap the OIDC button. `ASWebAuthenticationSession` opens onto
    `http://localhost:3000/api/mobile/v1/auth/oidc/_jump?token=...`,
    which 302s to the mock IdP login page.
-5. Pick a user, submit. The chain runs through better-auth's
-   callback, GiftWrapt's `_native-done`, and ends with a 302 to
-   `wishlists://oauth?token=...`. The auth session captures the
-   redirect, hands control back to the app.
+5. Pick a user, **paste the same claims JSON as the web flow above
+   into the Claims textarea**, submit. The chain runs through
+   better-auth's callback, GiftWrapt's `_native-done`, and ends with
+   a 302 to `wishlists://oauth?token=...`. The auth session
+   captures the redirect, hands control back to the app.
 6. iOS posts `oidc/finish`, gets the `{ apiKey, user, device }`
    envelope, and `RootView` swaps to the authenticated tab view.
 
 Common gotchas:
 
+- **`/api/auth/error?error=email_is_missing`** after the mock IdP
+  login: the default click-through form returns an id_token with
+  only `sub`. Paste the claims JSON above into the "Claims"
+  textarea on the login form before submitting. (better-auth needs
+  `email` to find / create the local user.)
 - **"Sign-in expired"** on the iOS error banner: the begin TTL is
   10 minutes, but if the dev server restarted between begin and
   finish, the in-memory state is gone. Sign in again.
