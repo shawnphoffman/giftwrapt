@@ -38,6 +38,7 @@ export const moveItemsToList = (): Promise<{ kind: 'ok'; moved: number; claimsCl
 export const copyItemToList = ok
 export const getItemsForListView = (): Promise<{ kind: 'ok'; items: Array<unknown> }> => Promise.resolve({ kind: 'ok', items: [] })
 export const getItemsForListEdit = (): Promise<{ kind: 'ok'; items: Array<unknown> }> => Promise.resolve({ kind: 'ok', items: [] })
+export const archiveListPurchases = (): Promise<{ kind: 'ok'; archived: number }> => Promise.resolve({ kind: 'ok', archived: 0 })
 
 // @/api/groups
 export const createItemGroup = ok
@@ -207,6 +208,73 @@ export const removeDependentGuardian = ok
 export const fetchAppSettings = (): Promise<typeof DEFAULT_APP_SETTINGS> => Promise.resolve(DEFAULT_APP_SETTINGS)
 export const fetchAppSettingsAsAdmin = (): Promise<typeof DEFAULT_APP_SETTINGS> => Promise.resolve(DEFAULT_APP_SETTINGS)
 export const updateAppSettings = ok
+
+// @/api/list-editors
+export const addListEditor = ok
+export const removeListEditor = ok
+export const getListEditors = emptyArray
+export const getAddableEditors = emptyArray
+export const getPartnerEditorAffectedLists = (): Promise<{ toAdd: Array<unknown>; toRemove: Array<unknown> }> =>
+	Promise.resolve({ toAdd: [], toRemove: [] })
+export const applyPartnerEditorChanges = ok
+
+// @/api/relation-labels
+export const addRelationLabel = ok
+export const removeRelationLabel = ok
+export const getMyRelationLabels = emptyArray
+
+// @/api/permissions
+export const upsertUserRelationships = ok
+export const upsertViewerRelationships = ok
+export const getUsersWithRelationships = emptyArray
+
+// @/api/intelligence
+export const applyRecommendation = ok
+export const dismissRecommendation = ok
+export const getMyRecommendations = emptyArray
+export const requestRecommendationsRefresh = ok
+
+// @/api/admin-intelligence
+export const adminInvalidateInputHash = ok
+export const adminPurgeRecsForUser = ok
+export const adminRunForMe = ok
+export const adminRunForUser = ok
+export const getAdminIntelligenceData = (): Promise<null> => Promise.resolve(null)
+export const getAdminUserRunSummaries = emptyArray
+
+// @/api/admin-ai
+export const testAiConnectionAsAdmin = ok
+
+// @/api/admin-cron
+export const getCronEndpointsSummaryAsAdmin = (): Promise<{ endpoints: Array<unknown> }> => Promise.resolve({ endpoints: [] })
+export const runCronAsAdmin = ok
+export const getCronRunsAsAdmin = emptyArray
+
+// @/api/admin-email
+export const testResendApiKeyAsAdmin = ok
+
+// @/api/admin-oidc-client
+export const fetchOidcClientConfigAsAdmin = (): Promise<null> => Promise.resolve(null)
+export const updateOidcClientConfigAsAdmin = ok
+
+// @/api/admin-scrapes
+export const getScrapeDetailAsAdmin = (): Promise<null> => Promise.resolve(null)
+export const listScrapesAsAdmin = emptyArray
+
+// @/api/admin-storage
+export const fetchStorageBrowser = (): Promise<{ objects: Array<unknown>; summary: null }> =>
+	Promise.resolve({ objects: [], summary: null })
+export const deleteStorageObjectAsAdmin = ok
+
+// @/api/backup
+export const exportAppDataAsAdmin = ok
+export const importAppDataAsAdmin = ok
+
+// @/api/recent
+// (only types are imported, but keep this section as a marker)
+
+// @/api/received
+// (only types are imported, but keep this section as a marker)
 
 // @/api/import
 export type ItemDraft = {
