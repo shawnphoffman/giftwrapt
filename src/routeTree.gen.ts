@@ -27,6 +27,7 @@ import { Route as coreSettingsIndexRouteImport } from './routes/(core)/settings/
 import { Route as corePurchasesIndexRouteImport } from './routes/(core)/purchases.index'
 import { Route as coreMeIndexRouteImport } from './routes/(core)/me.index'
 import { Route as coreAdminIndexRouteImport } from './routes/(core)/admin/index'
+import { Route as ApiWidgetsUpcomingHolidaysRouteImport } from './routes/api/widgets/upcoming-holidays'
 import { Route as ApiSseListsRouteImport } from './routes/api/sse/lists'
 import { Route as ApiScrapeStreamRouteImport } from './routes/api/scrape/stream'
 import { Route as ApiMobileSplatRouteImport } from './routes/api/mobile/$'
@@ -161,6 +162,12 @@ const coreAdminIndexRoute = coreAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => coreAdminRouteRoute,
 } as any)
+const ApiWidgetsUpcomingHolidaysRoute =
+  ApiWidgetsUpcomingHolidaysRouteImport.update({
+    id: '/api/widgets/upcoming-holidays',
+    path: '/api/widgets/upcoming-holidays',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiSseListsRoute = ApiSseListsRouteImport.update({
   id: '/api/sse/lists',
   path: '/api/sse/lists',
@@ -440,6 +447,7 @@ export interface FileRoutesByFullPath {
   '/api/mobile/$': typeof ApiMobileSplatRoute
   '/api/scrape/stream': typeof ApiScrapeStreamRoute
   '/api/sse/lists': typeof ApiSseListsRoute
+  '/api/widgets/upcoming-holidays': typeof ApiWidgetsUpcomingHolidaysRoute
   '/admin/': typeof coreAdminIndexRoute
   '/me': typeof coreMeIndexRoute
   '/purchases': typeof corePurchasesIndexRoute
@@ -500,6 +508,7 @@ export interface FileRoutesByTo {
   '/api/mobile/$': typeof ApiMobileSplatRoute
   '/api/scrape/stream': typeof ApiScrapeStreamRoute
   '/api/sse/lists': typeof ApiSseListsRoute
+  '/api/widgets/upcoming-holidays': typeof ApiWidgetsUpcomingHolidaysRoute
   '/admin': typeof coreAdminIndexRoute
   '/me': typeof coreMeIndexRoute
   '/purchases': typeof corePurchasesIndexRoute
@@ -565,6 +574,7 @@ export interface FileRoutesById {
   '/api/mobile/$': typeof ApiMobileSplatRoute
   '/api/scrape/stream': typeof ApiScrapeStreamRoute
   '/api/sse/lists': typeof ApiSseListsRoute
+  '/api/widgets/upcoming-holidays': typeof ApiWidgetsUpcomingHolidaysRoute
   '/(core)/admin/': typeof coreAdminIndexRoute
   '/(core)/me/': typeof coreMeIndexRoute
   '/(core)/purchases/': typeof corePurchasesIndexRoute
@@ -630,6 +640,7 @@ export interface FileRouteTypes {
     | '/api/mobile/$'
     | '/api/scrape/stream'
     | '/api/sse/lists'
+    | '/api/widgets/upcoming-holidays'
     | '/admin/'
     | '/me'
     | '/purchases'
@@ -690,6 +701,7 @@ export interface FileRouteTypes {
     | '/api/mobile/$'
     | '/api/scrape/stream'
     | '/api/sse/lists'
+    | '/api/widgets/upcoming-holidays'
     | '/admin'
     | '/me'
     | '/purchases'
@@ -754,6 +766,7 @@ export interface FileRouteTypes {
     | '/api/mobile/$'
     | '/api/scrape/stream'
     | '/api/sse/lists'
+    | '/api/widgets/upcoming-holidays'
     | '/(core)/admin/'
     | '/(core)/me/'
     | '/(core)/purchases/'
@@ -791,6 +804,7 @@ export interface RootRouteChildren {
   ApiMobileSplatRoute: typeof ApiMobileSplatRoute
   ApiScrapeStreamRoute: typeof ApiScrapeStreamRoute
   ApiSseListsRoute: typeof ApiSseListsRoute
+  ApiWidgetsUpcomingHolidaysRoute: typeof ApiWidgetsUpcomingHolidaysRoute
   ApiSseListListIdRoute: typeof ApiSseListListIdRoute
 }
 
@@ -921,6 +935,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof coreAdminIndexRouteImport
       parentRoute: typeof coreAdminRouteRoute
+    }
+    '/api/widgets/upcoming-holidays': {
+      id: '/api/widgets/upcoming-holidays'
+      path: '/api/widgets/upcoming-holidays'
+      fullPath: '/api/widgets/upcoming-holidays'
+      preLoaderRoute: typeof ApiWidgetsUpcomingHolidaysRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/sse/lists': {
       id: '/api/sse/lists'
@@ -1399,6 +1420,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiMobileSplatRoute: ApiMobileSplatRoute,
   ApiScrapeStreamRoute: ApiScrapeStreamRoute,
   ApiSseListsRoute: ApiSseListsRoute,
+  ApiWidgetsUpcomingHolidaysRoute: ApiWidgetsUpcomingHolidaysRoute,
   ApiSseListListIdRoute: ApiSseListListIdRoute,
 }
 export const routeTree = rootRouteImport

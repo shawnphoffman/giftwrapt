@@ -407,6 +407,7 @@ import { registerListRoutes } from './v1/lists'
 import { registerProfileRoutes } from './v1/profile'
 import { registerRelationshipRoutes } from './v1/relationships'
 import { registerUploadRoutes } from './v1/uploads'
+import { registerWidgetRoutes } from './v1/widgets'
 
 registerClaimRoutes(v1)
 registerListRoutes(v1)
@@ -419,5 +420,6 @@ registerRelationshipRoutes(v1)
 registerProfileRoutes(v1)
 registerConfigRoutes(v1)
 registerUploadRoutes(v1)
+registerWidgetRoutes(v1)
 
 export { v1 }
