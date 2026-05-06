@@ -14,6 +14,11 @@ name: 'giftwrapt-dev'
 #   docker compose --profile rustfs up -d
 #   pnpm storage:init:rustfs       # idempotent bucket-create
 #
+# Optional: a mock OIDC provider for smoke-testing the iOS sign-in flow.
+# Stack with any storage backend you're already running:
+#   docker compose --profile mock-oidc up -d
+# See docs/oidc-smoke-test.md for the full setup recipe.
+#
 # Then:
 #   pnpm dev                       # run the app
 #   docker compose --profile <p> down       # stop (keeps data)
@@ -102,6 +107,27 @@ services:
       # local dev; on the public internet, change the default creds first).
       - 9000:9000
       - 9001:9001
+
+  # Mock OIDC provider for smoke-testing the iOS sign-in flow against
+  # a real-shaped IdP without needing Authentik / Keycloak / Pocket ID
+  # running. Stateless, no UI clutter; the "log in" page is just a
+  # click-through "pick a user" form. Discovery doc lives at
+  #   http://localhost:8080/default/.well-known/openid-configuration
+  # See `docs/oidc-smoke-test.md` for the full setup recipe.
+  #
+  #   docker compose --profile mock-oidc up -d
+  mock-oidc:
+    image: ghcr.io/navikt/mock-oauth2-server:2.1.10
+    container_name: giftwrapt-dev-mock-oidc
+    restart: unless-stopped
+    profiles: ['mock-oidc']
+    ports:
+      - 8080:8080
+    # Defaults publish a `default` issuer at `http://localhost:8080`
+    # which matches what the GiftWrapt server expects when it follows
+    # the redirect chain from the host. Don't set SERVER_HOSTNAME /
+    # SERVER_PORT - the image treats unrecognized envs as fatal and
+    # silently fails to bind.
 
 volumes:
   postgres_data:
