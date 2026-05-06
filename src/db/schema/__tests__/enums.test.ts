@@ -14,7 +14,7 @@ import {
 // Treat a failure here as "go read the diff and think," not "just update the test."
 describe('schema enums', () => {
 	it('list_type has all the supported values', () => {
-		expect([...listTypeEnumValues]).toEqual(['wishlist', 'christmas', 'birthday', 'giftideas', 'todos', 'test'])
+		expect([...listTypeEnumValues]).toEqual(['wishlist', 'christmas', 'birthday', 'giftideas', 'holiday', 'todos', 'test'])
 	})
 
 	it('availability has exactly available/unavailable', () => {
