@@ -47,7 +47,6 @@ import { Route as coreSettingsDependentsRouteImport } from './routes/(core)/sett
 import { Route as coreRecentItemsRouteImport } from './routes/(core)/recent.items'
 import { Route as coreRecentCommentsRouteImport } from './routes/(core)/recent.comments'
 import { Route as corePurchasesReceivedRouteImport } from './routes/(core)/purchases.received'
-import { Route as coreOauthConsentRouteImport } from './routes/(core)/oauth.consent'
 import { Route as coreListsListIdRouteImport } from './routes/(core)/lists/$listId'
 import { Route as coreItemCloneRouteImport } from './routes/(core)/item.clone'
 import { Route as coreAdminUsersRouteImport } from './routes/(core)/admin/users'
@@ -264,11 +263,6 @@ const corePurchasesReceivedRoute = corePurchasesReceivedRouteImport.update({
   path: '/purchases/received',
   getParentRoute: () => coreRouteRoute,
 } as any)
-const coreOauthConsentRoute = coreOauthConsentRouteImport.update({
-  id: '/oauth/consent',
-  path: '/oauth/consent',
-  getParentRoute: () => coreRouteRoute,
-} as any)
 const coreListsListIdRoute = coreListsListIdRouteImport.update({
   id: '/lists/$listId',
   path: '/lists/$listId',
@@ -419,7 +413,6 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof coreAdminUsersRoute
   '/item/clone': typeof coreItemCloneRoute
   '/lists/$listId': typeof coreListsListIdRoute
-  '/oauth/consent': typeof coreOauthConsentRoute
   '/purchases/received': typeof corePurchasesReceivedRoute
   '/recent/comments': typeof coreRecentCommentsRoute
   '/recent/items': typeof coreRecentItemsRoute
@@ -479,7 +472,6 @@ export interface FileRoutesByTo {
   '/admin/users': typeof coreAdminUsersRoute
   '/item/clone': typeof coreItemCloneRoute
   '/lists/$listId': typeof coreListsListIdRoute
-  '/oauth/consent': typeof coreOauthConsentRoute
   '/purchases/received': typeof corePurchasesReceivedRoute
   '/recent/comments': typeof coreRecentCommentsRoute
   '/recent/items': typeof coreRecentItemsRoute
@@ -544,7 +536,6 @@ export interface FileRoutesById {
   '/(core)/admin/users': typeof coreAdminUsersRoute
   '/(core)/item/clone': typeof coreItemCloneRoute
   '/(core)/lists/$listId': typeof coreListsListIdRoute
-  '/(core)/oauth/consent': typeof coreOauthConsentRoute
   '/(core)/purchases/received': typeof corePurchasesReceivedRoute
   '/(core)/recent/comments': typeof coreRecentCommentsRoute
   '/(core)/recent/items': typeof coreRecentItemsRoute
@@ -609,7 +600,6 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/item/clone'
     | '/lists/$listId'
-    | '/oauth/consent'
     | '/purchases/received'
     | '/recent/comments'
     | '/recent/items'
@@ -669,7 +659,6 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/item/clone'
     | '/lists/$listId'
-    | '/oauth/consent'
     | '/purchases/received'
     | '/recent/comments'
     | '/recent/items'
@@ -733,7 +722,6 @@ export interface FileRouteTypes {
     | '/(core)/admin/users'
     | '/(core)/item/clone'
     | '/(core)/lists/$listId'
-    | '/(core)/oauth/consent'
     | '/(core)/purchases/received'
     | '/(core)/recent/comments'
     | '/(core)/recent/items'
@@ -1062,13 +1050,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof corePurchasesReceivedRouteImport
       parentRoute: typeof coreRouteRoute
     }
-    '/(core)/oauth/consent': {
-      id: '/(core)/oauth/consent'
-      path: '/oauth/consent'
-      fullPath: '/oauth/consent'
-      preLoaderRoute: typeof coreOauthConsentRouteImport
-      parentRoute: typeof coreRouteRoute
-    }
     '/(core)/lists/$listId': {
       id: '/(core)/lists/$listId'
       path: '/lists/$listId'
@@ -1331,7 +1312,6 @@ interface coreRouteRouteChildren {
   coreAdminIntelligenceRouteRoute: typeof coreAdminIntelligenceRouteRouteWithChildren
   coreItemCloneRoute: typeof coreItemCloneRoute
   coreListsListIdRoute: typeof coreListsListIdRoute
-  coreOauthConsentRoute: typeof coreOauthConsentRoute
   corePurchasesReceivedRoute: typeof corePurchasesReceivedRoute
   coreRecentCommentsRoute: typeof coreRecentCommentsRoute
   coreRecentItemsRoute: typeof coreRecentItemsRoute
@@ -1351,7 +1331,6 @@ const coreRouteRouteChildren: coreRouteRouteChildren = {
   coreAdminIntelligenceRouteRoute: coreAdminIntelligenceRouteRouteWithChildren,
   coreItemCloneRoute: coreItemCloneRoute,
   coreListsListIdRoute: coreListsListIdRoute,
-  coreOauthConsentRoute: coreOauthConsentRoute,
   corePurchasesReceivedRoute: corePurchasesReceivedRoute,
   coreRecentCommentsRoute: coreRecentCommentsRoute,
   coreRecentItemsRoute: coreRecentItemsRoute,

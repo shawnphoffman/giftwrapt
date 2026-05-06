@@ -2,24 +2,12 @@ import { passkey } from '@better-auth/passkey'
 import type { BetterAuthOptions } from 'better-auth'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { admin, apiKey, customSession, oidcProvider, twoFactor } from 'better-auth/plugins'
+import { admin, apiKey, customSession, twoFactor } from 'better-auth/plugins'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { sql } from 'drizzle-orm'
 
 import { db } from '@/db'
-import {
-	account,
-	apikey,
-	oauthAccessToken,
-	oauthApplication,
-	oauthConsent,
-	passkey as passkeyTable,
-	rateLimit,
-	session,
-	twoFactor as twoFactorTable,
-	users,
-	verification,
-} from '@/db/schema'
+import { account, apikey, passkey as passkeyTable, rateLimit, session, twoFactor as twoFactorTable, users, verification } from '@/db/schema'
 import { env } from '@/env'
 import { createLogger } from '@/lib/logger'
 import { sendPasswordResetEmail } from '@/lib/resend'
@@ -87,9 +75,6 @@ const options = {
 			apikey: apikey,
 			twoFactor: twoFactorTable,
 			passkey: passkeyTable,
-			oauthApplication: oauthApplication,
-			oauthAccessToken: oauthAccessToken,
-			oauthConsent: oauthConsent,
 		},
 	}),
 	emailAndPassword: {
@@ -209,16 +194,6 @@ const options = {
 		// browser loads.
 		passkey({
 			rpName: 'GiftWrapt',
-		}),
-		// OIDC provider. Lets third-party apps sign their users in
-		// "with GiftWrapt". Disabled until an admin actually creates
-		// an oauthApplication row from the admin UI; the plugin's
-		// endpoints (.well-known/openid-configuration, /authorize,
-		// /token, /userinfo) are mounted unconditionally so a client
-		// app can discover the provider before any apps exist.
-		oidcProvider({
-			loginPage: '/sign-in',
-			consentPage: '/oauth/consent',
 		}),
 	],
 	user: {
