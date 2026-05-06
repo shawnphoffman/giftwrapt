@@ -20,7 +20,7 @@ import {
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -69,7 +69,7 @@ function DevicesPage() {
 	}
 
 	return (
-		<div className="animate-page-in gap-6 flex flex-col">
+		<Card className="animate-page-in">
 			<CardHeader>
 				<CardTitle className="text-2xl">Devices</CardTitle>
 				<CardDescription>
@@ -123,7 +123,7 @@ function DevicesPage() {
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
-		</div>
+		</Card>
 	)
 }
 

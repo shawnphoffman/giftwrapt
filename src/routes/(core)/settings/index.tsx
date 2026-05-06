@@ -20,29 +20,30 @@ function SettingsPage() {
 	}
 
 	return (
-		<div className="animate-page-in gap-6 flex flex-col">
-			{/* <CardHeader className="flex"> Do this when there is no description*/}
-			<CardHeader>
-				<CardTitle className="text-2xl">Profile</CardTitle>
-				<CardDescription>Update your profile information.</CardDescription>
-			</CardHeader>
-			<CardContent>
-				<div className="flex flex-col items-center w-full gap-4 @md/subpage:flex-row @md/subpage:items-start">
-					<AvatarUpload image={session.user.image} displayName={session.user.name} />
-					<ProfileForm
-						name={session.user.name || ''}
-						birthMonth={session.user.birthMonth}
-						birthDay={session.user.birthDay}
-						birthYear={session.user.birthYear}
-						partnerId={session.user.partnerId}
-					/>
-				</div>
-			</CardContent>
+		<div className="animate-page-in grid gap-6">
+			<Card>
+				<CardHeader>
+					<CardTitle className="text-2xl">Profile</CardTitle>
+					<CardDescription>Update your profile information.</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<div className="flex flex-col items-center w-full gap-4 @md/subpage:flex-row @md/subpage:items-start">
+						<AvatarUpload image={session.user.image} displayName={session.user.name} />
+						<ProfileForm
+							name={session.user.name || ''}
+							birthMonth={session.user.birthMonth}
+							birthDay={session.user.birthDay}
+							birthYear={session.user.birthYear}
+							partnerId={session.user.partnerId}
+						/>
+					</div>
+				</CardContent>
+			</Card>
 
 			{appSettings?.enableParentalRelations && (
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-xl">People I shop for</CardTitle>
+						<CardTitle className="text-2xl">People I shop for</CardTitle>
 						<CardDescription>Tag the people you shop for on Mother’s Day and Father’s Day.</CardDescription>
 					</CardHeader>
 					<CardContent>

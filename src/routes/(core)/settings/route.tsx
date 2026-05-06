@@ -3,7 +3,6 @@ import { Settings } from 'lucide-react'
 
 import { PageHeading } from '@/components/common/page-heading'
 import SettingsLinks from '@/components/settings/links'
-import { Card } from '@/components/ui/card'
 
 export const Route = createFileRoute('/(core)/settings')({
 	component: SettingsRoute,
@@ -20,10 +19,10 @@ function SettingsRoute() {
 					<nav className="grid gap-1">
 						<SettingsLinks />
 					</nav>
-					<div className="grid gap-6 animate-page-in">
-						<Card className="@container/subpage">
-							<Outlet />
-						</Card>
+					{/* @container/subpage: child pages run container queries against
+					    this shell (e.g. profile-form's @md/subpage:grid-cols-2). */}
+					<div className="@container/subpage grid gap-6">
+						<Outlet />
 					</div>
 				</div>
 			</div>

@@ -10,7 +10,7 @@ import { getOwnersWithRelationshipsForMe, getUsersWithRelationships, upsertUserR
 import UserAvatar from '@/components/common/user-avatar'
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { Button } from '@/components/ui/button'
-import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -138,7 +138,7 @@ function PermissionsPage() {
 	const hasRows = rows.length > 0
 
 	return (
-		<div className="animate-page-in gap-6 flex flex-col">
+		<Card className="animate-page-in">
 			<CardHeader>
 				<CardTitle className="text-2xl">Permissions</CardTitle>
 				<CardDescription>
@@ -228,7 +228,7 @@ function PermissionsPage() {
 					</form>
 				)}
 			</CardContent>
-		</div>
+		</Card>
 	)
 }
 

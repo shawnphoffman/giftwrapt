@@ -7,7 +7,7 @@ import { Sprout } from 'lucide-react'
 import { getMyDependents } from '@/api/dependents'
 import DependentAvatar from '@/components/common/dependent-avatar'
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
-import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { BirthMonth } from '@/db/schema/enums'
 
 export const Route = createFileRoute('/(core)/settings/dependents')({
@@ -40,7 +40,7 @@ function DependentsSettingsPage() {
 	})
 
 	return (
-		<div className="animate-page-in gap-6 flex flex-col">
+		<Card className="animate-page-in">
 			<CardHeader>
 				<CardTitle className="text-2xl flex items-center gap-2">
 					<Sprout className="size-5 text-emerald-600" />
@@ -73,6 +73,6 @@ function DependentsSettingsPage() {
 					})
 				)}
 			</CardContent>
-		</div>
+		</Card>
 	)
 }

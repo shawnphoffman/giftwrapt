@@ -388,56 +388,28 @@ function ListsCardList(props) {
 		name: 'Settings route shell',
 		files: ['routes/(core)/settings/route.tsx'],
 		howItDiffers:
-			'Empty <Card> used purely as a layout container. No header, no content slot, no children other than <Outlet />. The only className is @container/subpage so child pages can run @container queries against this shell.',
-		snippet: `<div className="grid gap-6 animate-page-in">
-  <Card className="@container/subpage">
-    <Outlet />
-  </Card>
+			'Plain <div> with @container/subpage so child pages can run @container queries against this shell. Each sub-page owns its own <Card>(s) directly, so adding a second section to a page is just another sibling Card.',
+		snippet: `<div className="@container/subpage grid gap-6">
+  <Outlet />
 </div>`,
 		render: () => (
-			<div className="grid gap-6">
-				<Card className="@container/subpage">
+			<div className="@container/subpage grid gap-6">
+				<Card>
 					<CardHeader>
 						<CardTitle>Profile</CardTitle>
-						<CardDescription>This shell holds whichever settings sub-page is active.</CardDescription>
+						<CardDescription>Each sub-page renders its own Card(s) into the shell.</CardDescription>
 					</CardHeader>
 					<CardContent className="text-sm text-muted-foreground">
-						Sub-pages render their own CardHeader / CardContent directly into this shell (see next outlier).
+						The shell only provides spacing and the @container query; visual chrome lives on each Card.
 					</CardContent>
 				</Card>
-			</div>
-		),
-	},
-	{
-		id: 'settings-subpage-without-card',
-		name: 'Settings sub-pages: CardHeader / CardContent without a Card',
-		files: [
-			'routes/(core)/settings/index.tsx',
-			'routes/(core)/settings/security.tsx',
-			'routes/(core)/settings/devices.tsx',
-			'routes/(core)/settings/dependents.tsx',
-			'routes/(core)/settings/permissions.tsx',
-		],
-		howItDiffers:
-			'Direct child of a plain <div>, not a <Card>. The settings route shell above provides the card chrome; each sub-page renders only the slots. This breaks the "Card is a component, not a layout" rule and only works because the parent shell exists.',
-		snippet: `<div className="animate-page-in gap-6 flex flex-col">
-  <CardHeader>
-    <CardTitle className="text-2xl">Profile</CardTitle>
-    <CardDescription>Update your profile information.</CardDescription>
-  </CardHeader>
-  <CardContent>{...}</CardContent>
-</div>`,
-		render: () => (
-			<div className="rounded-xl border bg-card text-card-foreground">
-				<div className="gap-6 flex flex-col">
+				<Card>
 					<CardHeader>
-						<CardTitle className="text-2xl">Profile</CardTitle>
-						<CardDescription>Update your profile information.</CardDescription>
+						<CardTitle>Sibling section</CardTitle>
+						<CardDescription>Adding another section is just another Card.</CardDescription>
 					</CardHeader>
-					<CardContent className="text-sm text-muted-foreground">
-						The wrapping border / bg-card is the Settings route shell; this sub-page only renders the slots.
-					</CardContent>
-				</div>
+					<CardContent className="text-sm text-muted-foreground">No nesting required.</CardContent>
+				</Card>
 			</div>
 		),
 	},

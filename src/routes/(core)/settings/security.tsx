@@ -3,7 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import PasskeysSection from '@/components/settings/passkeys-section'
 import PasswordForm from '@/components/settings/password-form'
 import TwoFactorSection from '@/components/settings/two-factor-section'
-import { CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { useAppSetting } from '@/hooks/use-app-settings'
 
@@ -14,8 +14,8 @@ export const Route = createFileRoute('/(core)/settings/security')({
 function SecurityPage() {
 	const passkeysEnabled = useAppSetting('enablePasskeys')
 	return (
-		<div className="animate-page-in gap-6 flex flex-col">
-			<CardHeader className="">
+		<Card className="animate-page-in">
+			<CardHeader>
 				<CardTitle className="text-2xl">Security</CardTitle>
 				<CardDescription>Change your password and security settings.</CardDescription>
 			</CardHeader>
@@ -53,6 +53,6 @@ function SecurityPage() {
 					</>
 				)}
 			</CardContent>
-		</div>
+		</Card>
 	)
 }
