@@ -15,6 +15,7 @@ export type EncryptedEnvelope = {
 const ALGO = 'aes-256-gcm'
 const KEY_LEN = 32
 const IV_LEN = 12
+const TAG_LEN = 16
 // Fixed salt is fine: BETTER_AUTH_SECRET is the actual secret; the salt's
 // only job is to domain-separate this derived key from other uses of the
 // same master secret.
@@ -30,7 +31,7 @@ function getKey(): Buffer {
 
 export function encryptAppSecret(plaintext: string): EncryptedEnvelope {
 	const iv = randomBytes(IV_LEN)
-	const cipher = createCipheriv(ALGO, getKey(), iv)
+	const cipher = createCipheriv(ALGO, getKey(), iv, { authTagLength: TAG_LEN })
 	const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()])
 	const tag = cipher.getAuthTag()
 	return {
@@ -45,7 +46,7 @@ export function decryptAppSecret(envelope: EncryptedEnvelope): string {
 	const iv = Buffer.from(envelope.iv, 'hex')
 	const tag = Buffer.from(envelope.tag, 'hex')
 	const ciphertext = Buffer.from(envelope.data, 'hex')
-	const decipher = createDecipheriv(ALGO, getKey(), iv)
+	const decipher = createDecipheriv(ALGO, getKey(), iv, { authTagLength: TAG_LEN })
 	decipher.setAuthTag(tag)
 	const plaintext = Buffer.concat([decipher.update(ciphertext), decipher.final()])
 	return plaintext.toString('utf8')
