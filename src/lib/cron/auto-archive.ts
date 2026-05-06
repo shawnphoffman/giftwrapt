@@ -6,11 +6,12 @@
 // The handler in `src/routes/api/cron/auto-archive.ts` is a thin
 // wrapper that checks the CRON_SECRET and delegates here.
 
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { giftedItems, items, lists, users } from '@/db/schema'
 import type { BirthMonth } from '@/db/schema/enums'
+import { endOfOccurrence, lastOccurrence } from '@/lib/holidays'
 
 const MONTHS: ReadonlyArray<BirthMonth> = [
 	'january',
@@ -30,6 +31,10 @@ const MONTHS: ReadonlyArray<BirthMonth> = [
 export type AutoArchiveResult = {
 	birthdayArchived: number
 	christmasArchived: number
+	holidayArchived: number
+	// One row per holiday list whose items were archived this run. Used by
+	// the email cron to pick recipients without re-running the date math.
+	holidayArchivedDetails: Array<{ listId: number; ownerId: string; holidayCountry: string; holidayKey: string; itemCount: number }>
 }
 
 type Args = {
@@ -37,11 +42,20 @@ type Args = {
 	now: Date
 	archiveDaysAfterBirthday: number
 	archiveDaysAfterChristmas: number
+	archiveDaysAfterHoliday: number
 }
 
-export async function autoArchiveImpl({ db, now, archiveDaysAfterBirthday, archiveDaysAfterChristmas }: Args): Promise<AutoArchiveResult> {
+export async function autoArchiveImpl({
+	db,
+	now,
+	archiveDaysAfterBirthday,
+	archiveDaysAfterChristmas,
+	archiveDaysAfterHoliday,
+}: Args): Promise<AutoArchiveResult> {
 	let birthdayArchived = 0
 	let christmasArchived = 0
+	let holidayArchived = 0
+	const holidayArchivedDetails: AutoArchiveResult['holidayArchivedDetails'] = []
 
 	// === Birthday auto-archive ===
 	const birthdayDate = new Date(now)
@@ -97,5 +111,61 @@ export async function autoArchiveImpl({ db, now, archiveDaysAfterBirthday, archi
 		}
 	}
 
-	return { birthdayArchived, christmasArchived }
+	// === Generic-holiday auto-archive ===
+	// Per-list date math: each holiday list has its own (country, key) so
+	// we compute lastOccurrence/end at cron time rather than filtering by
+	// a global "is the holiday today" gate. The lastHolidayArchiveAt
+	// column is the idempotency mark; we never re-archive for the same
+	// occurrence.
+	const holidayLists = await db.query.lists.findMany({
+		where: and(eq(lists.type, 'holiday'), eq(lists.isActive, true), isNotNull(lists.holidayCountry), isNotNull(lists.holidayKey)),
+		columns: {
+			id: true,
+			ownerId: true,
+			holidayCountry: true,
+			holidayKey: true,
+			lastHolidayArchiveAt: true,
+		},
+	})
+
+	for (const list of holidayLists) {
+		if (!list.holidayCountry || !list.holidayKey) continue
+		const occurrenceStart = lastOccurrence(list.holidayCountry, list.holidayKey, now)
+		if (!occurrenceStart) continue
+		const occurrenceEnd = endOfOccurrence(list.holidayCountry, list.holidayKey, occurrenceStart)
+		if (!occurrenceEnd) continue
+
+		const cutoff = new Date(occurrenceEnd.getTime() + archiveDaysAfterHoliday * 24 * 60 * 60 * 1000)
+		if (now.getTime() < cutoff.getTime()) continue
+		// Already archived for this occurrence? `lastHolidayArchiveAt`
+		// gets stamped at cron time, so a later run sees it >= the
+		// occurrence start and short-circuits.
+		if (list.lastHolidayArchiveAt && list.lastHolidayArchiveAt.getTime() >= occurrenceStart.getTime()) continue
+
+		const claimedItemIds = await db
+			.selectDistinct({ itemId: giftedItems.itemId })
+			.from(giftedItems)
+			.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), eq(items.listId, list.id)))
+
+		if (claimedItemIds.length > 0) {
+			const ids = claimedItemIds.map(r => r.itemId)
+			await db.update(items).set({ isArchived: true }).where(inArray(items.id, ids))
+			holidayArchived += ids.length
+			holidayArchivedDetails.push({
+				listId: list.id,
+				ownerId: list.ownerId,
+				holidayCountry: list.holidayCountry,
+				holidayKey: list.holidayKey,
+				itemCount: ids.length,
+			})
+		}
+
+		// Stamp the timestamp regardless of whether items were actually
+		// archived this run. The mark is "we processed this list for
+		// this occurrence," not "we archived items." Otherwise an empty
+		// list would re-trigger every day until the offset rolls over.
+		await db.update(lists).set({ lastHolidayArchiveAt: now }).where(eq(lists.id, list.id))
+	}
+
+	return { birthdayArchived, christmasArchived, holidayArchived, holidayArchivedDetails }
 }

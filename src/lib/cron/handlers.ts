@@ -6,17 +6,20 @@
 
 import { and, eq, isNull, lt, notExists, or, sql } from 'drizzle-orm'
 
+import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
-import { recommendationRuns, recommendationRunSteps, recommendations, users } from '@/db/schema'
+import { lists, recommendationRuns, recommendationRunSteps, recommendations, users } from '@/db/schema'
+import type { AutoArchiveResult } from '@/lib/cron/auto-archive'
 import { autoArchiveImpl } from '@/lib/cron/auto-archive'
 import { birthdayEmailsImpl } from '@/lib/cron/birthday-emails'
 import { cleanupVerificationImpl } from '@/lib/cron/cleanup-verification'
 import { sweepCronRuns } from '@/lib/cron/record-run'
 import type { CronEndpoint } from '@/lib/cron/registry'
+import { listHolidaysFor } from '@/lib/holidays'
 import { processOnce } from '@/lib/import/scrape-queue/runner'
 import { generateForUser } from '@/lib/intelligence/runner'
 import { createLogger } from '@/lib/logger'
-import { isEmailConfigured } from '@/lib/resend'
+import { isEmailConfigured, sendPostHolidayEmail } from '@/lib/resend'
 import { getAppSettings } from '@/lib/settings-loader'
 
 const log = createLogger('cron:handlers')
@@ -83,28 +86,77 @@ async function runIntelligenceRetentionSweep(args: { recDays: number; stepDays: 
 	return { recsDeleted: recRows.length, stepsDeleted: stepRows.length }
 }
 
+// Looks up each owner's email and the matching catalog name for the
+// holiday, then fires `sendPostHolidayEmail`. Returns the count of
+// successfully-attempted sends (doesn't distinguish failures since
+// resend logs them inline).
+async function sendGenericHolidayEmails(dbx: SchemaDatabase, details: AutoArchiveResult['holidayArchivedDetails']): Promise<number> {
+	if (details.length === 0) return 0
+	if (!(await isEmailConfigured())) return 0
+	let sent = 0
+	// Resolve the list name + owner email per detail row. Could be done
+	// with a single IN query, but keeping it per-row keeps a failed
+	// lookup from blocking the rest. The detail set is bounded by the
+	// number of holiday lists archived in a single cron run.
+	for (const d of details) {
+		const owner = await dbx.query.users.findFirst({
+			where: eq(users.id, d.ownerId),
+			columns: { id: true, email: true },
+		})
+		if (!owner) continue
+		const list = await dbx.query.lists.findFirst({
+			where: eq(lists.id, d.listId),
+			columns: { name: true },
+		})
+		const catalog = listHolidaysFor(d.holidayCountry).find(h => h.key === d.holidayKey)
+		if (!list || !catalog) continue
+		await sendPostHolidayEmail(owner.email, { holidayName: catalog.name, listName: list.name })
+		sent += 1
+	}
+	return sent
+}
+
 export async function runAutoArchive() {
 	const started = Date.now()
 	const settings = await getAppSettings(db)
 	const now = new Date()
 
-	const { birthdayArchived, christmasArchived } = await autoArchiveImpl({
+	const { birthdayArchived, christmasArchived, holidayArchived, holidayArchivedDetails } = await autoArchiveImpl({
 		db,
 		now,
 		archiveDaysAfterBirthday: settings.archiveDaysAfterBirthday,
 		archiveDaysAfterChristmas: settings.archiveDaysAfterChristmas,
+		archiveDaysAfterHoliday: settings.archiveDaysAfterHoliday,
 	})
 
+	// Generic post-holiday email send. Inline here so the cron run sees
+	// it as one operation; the email itself is fire-and-forget per
+	// owner (failures don't block the archive).
+	let holidayEmailsSent = 0
+	if (settings.enableGenericHolidayEmails && holidayArchivedDetails.length > 0) {
+		try {
+			holidayEmailsSent = await sendGenericHolidayEmails(db, holidayArchivedDetails)
+		} catch (err) {
+			log.warn({ err: err instanceof Error ? err.message : String(err) }, 'post-holiday email batch failed')
+		}
+	}
+
 	const durationMs = Date.now() - started
-	log.info({ endpoint: '/api/cron/auto-archive', birthdayArchived, christmasArchived, durationMs }, 'cron run complete')
+	log.info(
+		{ endpoint: '/api/cron/auto-archive', birthdayArchived, christmasArchived, holidayArchived, holidayEmailsSent, durationMs },
+		'cron run complete'
+	)
 
 	return {
 		ok: true,
 		birthdayArchived,
 		christmasArchived,
+		holidayArchived,
+		holidayEmailsSent,
 		settings: {
 			archiveDaysAfterBirthday: settings.archiveDaysAfterBirthday,
 			archiveDaysAfterChristmas: settings.archiveDaysAfterChristmas,
+			archiveDaysAfterHoliday: settings.archiveDaysAfterHoliday,
 		},
 		date: now.toISOString(),
 	}
