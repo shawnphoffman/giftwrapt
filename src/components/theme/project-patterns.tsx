@@ -208,7 +208,7 @@ function gradientStyle(g: GradientDef): React.CSSProperties {
 	return { backgroundImage: `linear-gradient(${g.dir}, ${stops})` }
 }
 
-const LIST_TYPES = ['wishlist', 'christmas', 'birthday', 'giftideas', 'todos'] as const
+const LIST_TYPES = ['wishlist', 'christmas', 'birthday', 'giftideas', 'holiday', 'todos'] as const
 const PRIORITIES = ['very-high', 'high', 'normal', 'low'] as const
 
 function StatusDot({ tone, label, className }: { tone: string; label: string; className?: string }) {

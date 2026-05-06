@@ -79,19 +79,26 @@ export const getRecentComments = emptyArray
 
 // @/api/user
 export const getPotentialPartners = emptyArray
-export const getGiftIdeasRecipients = emptyArray
+type StorybookGiftIdeasRecipient = { id: string; name: string | null; email: string; image: string | null }
+let storybookGiftIdeasRecipients: Array<StorybookGiftIdeasRecipient> = []
+export function __setStorybookGiftIdeasRecipients(recipients: Array<StorybookGiftIdeasRecipient>) {
+	storybookGiftIdeasRecipients = recipients
+}
+export const getGiftIdeasRecipients = (): Promise<Array<StorybookGiftIdeasRecipient>> => Promise.resolve(storybookGiftIdeasRecipients)
 export const updateUserProfile = ok
 export const updateUserPassword = ok
 
 // @/api/lists
 export const getListForViewing = () => Promise.resolve({ kind: 'ok' as const, list: null })
 export const getMyLists = () => Promise.resolve({ lists: [], childGroups: [] })
-export const createList = ok
+export const createList = (): Promise<{ kind: 'ok'; list: { id: number; name: string; type: string } }> =>
+	Promise.resolve({ kind: 'ok', list: { id: 1, name: 'New list', type: 'wishlist' } })
 export const updateList = ok
 export const deleteList = ok
 export const setPrimaryList = ok
 export const getListForEditing = () => Promise.resolve({ kind: 'ok' as const, list: null })
 export const getListSummaries = (): Promise<{ summaries: Array<unknown> }> => Promise.resolve({ summaries: [] })
+export const getMyLastHolidayCountry = (): Promise<string | null> => Promise.resolve(null)
 
 // @/api/purchases
 export const getPurchaseSummary = (): Promise<{ items: Array<unknown>; partner: null }> => Promise.resolve({ items: [], partner: null })
@@ -171,7 +178,24 @@ export type DependentSummary = {
 	updatedAt: string
 	guardianIds: Array<string>
 }
-export const getMyDependents = (): Promise<{ dependents: Array<unknown> }> => Promise.resolve({ dependents: [] })
+type StorybookDependent = {
+	id: string
+	name: string
+	image: string | null
+	birthMonth: string | null
+	birthDay: number | null
+	birthYear: number | null
+	isArchived: boolean
+	createdAt: string
+	updatedAt: string
+	guardianIds: Array<string>
+}
+let storybookDependents: Array<StorybookDependent> = []
+export function __setStorybookDependents(dependents: Array<StorybookDependent>) {
+	storybookDependents = dependents
+}
+export const getMyDependents = (): Promise<{ dependents: Array<StorybookDependent> }> =>
+	Promise.resolve({ dependents: storybookDependents })
 export const getAllDependents = (): Promise<{ dependents: Array<unknown> }> => Promise.resolve({ dependents: [] })
 export const createDependent = ok
 export const updateDependent = ok

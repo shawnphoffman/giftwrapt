@@ -38,3 +38,4 @@ export const Wishlist: Story = { args: { type: 'wishlist' } }
 export const Christmas: Story = { args: { type: 'christmas' } }
 export const Birthday: Story = { args: { type: 'birthday' } }
 export const GiftIdeas: Story = { args: { type: 'giftideas' } }
+export const Holiday: Story = { args: { type: 'holiday' } }

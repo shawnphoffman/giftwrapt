@@ -12,6 +12,13 @@ type User = {
 	name: string | null
 	email: string
 	image: string | null
+	// Optional fields the real session carries (better-auth `user` plugin
+	// extensions). Stories opt in by setting them on the session passed
+	// to `__setStorybookSession`.
+	isChild?: boolean
+	partnerId?: string | null
+	role?: string
+	isAdmin?: boolean
 }
 
 type Session = { user: User } | null
