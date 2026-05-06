@@ -16,17 +16,23 @@ type App = Hono<MobileAuthContext>
 export function registerConfigRoutes(v1: App): void {
 	// GET /v1/app-settings - public-readable subset of admin-managed
 	// app settings. iOS uses these to hide/show feature toggles.
+	//
+	// Wrapped under `settings` to match the rest of the mobile-API
+	// envelope convention (`{ resource: ... }`). iOS's
+	// `AppSettingsResponse` decodes `{ settings: AppSettings }`.
 	v1.get('/app-settings', async c => {
 		const settings = await getAppSettings(db)
 		return c.json({
-			appTitle: settings.appTitle,
-			enableComments: settings.enableComments,
-			enableCommentEmails: settings.enableCommentEmails,
-			enableMobileApp: settings.enableMobileApp,
-			enableHolidayLists: settings.enableHolidayLists,
-			enableBirthdayLists: settings.enableBirthdayLists,
-			enableTodoLists: settings.enableTodoLists,
-			defaultListType: settings.defaultListType,
+			settings: {
+				appTitle: settings.appTitle,
+				enableComments: settings.enableComments,
+				enableCommentEmails: settings.enableCommentEmails,
+				enableMobileApp: settings.enableMobileApp,
+				enableHolidayLists: settings.enableHolidayLists,
+				enableBirthdayLists: settings.enableBirthdayLists,
+				enableTodoLists: settings.enableTodoLists,
+				defaultListType: settings.defaultListType,
+			},
 		})
 	})
 
