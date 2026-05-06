@@ -176,6 +176,13 @@
       "when": 1778086226842,
       "tag": "0024_greedy_sphinx",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1778088608739,
+      "tag": "0025_dapper_cassandra_nova",
+      "breakpoints": true
     }
   ]
 }

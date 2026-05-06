@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm'
-import { boolean, index, integer, numeric, pgTable, serial, text } from 'drizzle-orm/pg-core'
+import { boolean, index, integer, numeric, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core'
 
 import { dependents } from './dependents'
 import { listTypeEnum } from './enums'
@@ -39,6 +39,16 @@ export const lists = pgTable(
 		giftIdeasTargetDependentId: text('gift_ideas_target_dependent_id').references(() => dependents.id, {
 			onDelete: 'set null',
 		}),
+		// Only populated for type === 'holiday'. ISO 3166-1 alpha-2.
+		holidayCountry: text('holiday_country'),
+		// Only populated for type === 'holiday'. Slug from the curated
+		// allowlist in src/lib/holidays.ts (e.g. 'easter', 'thanksgiving').
+		holidayKey: text('holiday_key'),
+		// Stamped by the auto-archive cron when it fires for this list's
+		// most recent occurrence. Per-(list, holiday); nulled on type/
+		// country/key change so a repurposed list never inherits stale
+		// archive bookkeeping.
+		lastHolidayArchiveAt: timestamp('last_holiday_archive_at'),
 		...timestamps,
 	},
 	table => [
