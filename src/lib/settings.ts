@@ -199,11 +199,6 @@ export const appSettingsSchema = z.object({
 	// per-device API keys for the mobile companion app. Off by default
 	// so the surface stays hidden until an admin opts in.
 	enableMobileApp: z.boolean(),
-	// Forces every admin account to have TOTP 2FA enrolled. While on,
-	// the admin layout middleware sends admins to /settings/security
-	// with an enrollment banner if `twoFactorEnabled === false` on
-	// their session. Doesn't affect non-admins.
-	require2faForAdmins: z.boolean(),
 	// When true, the security page shows a passkeys panel and the
 	// sign-in page surfaces a "Sign in with a passkey" button. The
 	// underlying better-auth endpoints stay live regardless; this
@@ -324,7 +319,6 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	enableCommentEmails: true,
 	mirrorExternalImagesOnSave: false,
 	enableMobileApp: false,
-	require2faForAdmins: false,
 	enablePasskeys: false,
 	// Per-provider HTTP timeout. Hosted scrapers (Stagehand / AI on
 	// heavy pages) routinely need >10s; bumped from 10s after

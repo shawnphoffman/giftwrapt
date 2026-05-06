@@ -307,23 +307,6 @@ export function AuthSettingsSection() {
 		<div className="space-y-6">
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
-					<Label htmlFor="require2faForAdmins" className="text-base">
-						Require 2FA for admins
-					</Label>
-					<p className="text-sm text-muted-foreground">
-						Encourage every admin account to enroll TOTP two-factor auth. We'll show a banner across /admin nagging any admin still missing
-						2FA to enroll on /settings/security.
-					</p>
-				</div>
-				<Switch
-					id="require2faForAdmins"
-					checked={settings.require2faForAdmins}
-					onCheckedChange={checked => handleSettingChange('require2faForAdmins', checked)}
-				/>
-			</div>
-
-			<div className="flex items-center justify-between gap-4">
-				<div className="space-y-0.5">
 					<Label htmlFor="enablePasskeys" className="text-base">
 						Enable passkeys
 					</Label>
