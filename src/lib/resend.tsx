@@ -5,6 +5,7 @@ import BirthdayEmail from '@/emails/happy-birthday-email'
 import NewCommentEmail from '@/emails/new-comment-email'
 import PasswordResetEmail from '@/emails/password-reset-email'
 import PostBirthdayEmail from '@/emails/post-birthday-email'
+import PostHolidayEmail from '@/emails/post-holiday-email'
 import TestEmail from '@/emails/test-email'
 import { type ResolvedEmailConfig, resolveEmailConfig } from '@/lib/email-config'
 import { createLogger } from '@/lib/logger'
@@ -120,6 +121,24 @@ export const sendPostBirthdayEmail = async (recipient: string, items: Array<{ ti
 		react: <PostBirthdayEmail items={items} />,
 	})
 	logSendResult('post-birthday', recipient, res as SendResult)
+	return res
+}
+
+export const sendPostHolidayEmail = async (recipient: string, args: { holidayName: string; listName: string }) => {
+	const cfg = await resolveEmailConfig(db)
+	const client = buildClient(cfg)
+	if (!client || !cfg.isValid) {
+		warnNotConfigured('sendPostHolidayEmail')
+		return null
+	}
+	emailLog.info({ kind: 'post-holiday', recipient, holidayName: args.holidayName }, 'sending email')
+	const res = await client.emails.send({
+		...commonEmailProps(cfg),
+		to: recipient,
+		subject: `A look back at your ${args.holidayName} list`,
+		react: <PostHolidayEmail holidayName={args.holidayName} listName={args.listName} />,
+	})
+	logSendResult('post-holiday', recipient, res as SendResult)
 	return res
 }
 
