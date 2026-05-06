@@ -261,6 +261,16 @@ export const appSettingsSchema = z.object({
 	enableChristmasEmails: z.boolean(),
 	// Whether generic post-holiday emails are sent on auto-archive.
 	enableGenericHolidayEmails: z.boolean(),
+	// Master gate for the parental-relations layer (Mother's Day /
+	// Father's Day cross-person flows). Off hides the profile section,
+	// skips the Intelligence "set your people" analyzer, and disables
+	// the holiday reminder emails. The catalog entries stay available
+	// regardless so users can make a self-celebrant Mother's Day list.
+	enableParentalRelations: z.boolean(),
+	// Days before Mother's Day / Father's Day to send a reminder email
+	// to users who have declared at least one mother / father. Single
+	// global window since the email body is the same for both.
+	parentalRelationsReminderLeadDays: z.number().int().min(1).max(60),
 	// Whether users can post comments on items.
 	enableComments: z.boolean(),
 	// Whether a notification email is sent to the list owner on new comments.
@@ -400,6 +410,8 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	enableBirthdayEmails: true,
 	enableChristmasEmails: true,
 	enableGenericHolidayEmails: true,
+	enableParentalRelations: true,
+	parentalRelationsReminderLeadDays: 7,
 	enableComments: true,
 	enableCommentEmails: true,
 	mirrorExternalImagesOnSave: false,
