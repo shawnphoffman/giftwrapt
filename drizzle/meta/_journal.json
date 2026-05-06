@@ -183,6 +183,13 @@
       "when": 1778088608739,
       "tag": "0025_dapper_cassandra_nova",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1778092932519,
+      "tag": "0026_lovely_black_knight",
+      "breakpoints": true
     }
   ]
 }

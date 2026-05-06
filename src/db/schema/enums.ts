@@ -72,3 +72,11 @@ export type GroupType = (typeof groupTypeEnumValues)[number]
 export const accessLevelEnumValues = ['none', 'restricted', 'view'] as const
 export const accessLevelEnum = pgEnum('access_level', accessLevelEnumValues)
 export type AccessLevel = (typeof accessLevelEnumValues)[number]
+
+// User-declared relation labels (e.g. "this user is my mother"). Pure
+// annotation, no permission implications; canViewList/canEditList
+// never read these. Feeds Intelligence "set your people" recs and
+// holiday reminder emails for occasion-driven shopping flows.
+export const relationLabelEnumValues = ['mother', 'father'] as const
+export const relationLabelEnum = pgEnum('relation_label', relationLabelEnumValues)
+export type RelationLabel = (typeof relationLabelEnumValues)[number]
