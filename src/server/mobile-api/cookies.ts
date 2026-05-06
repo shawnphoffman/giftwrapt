@@ -16,12 +16,8 @@
 // take the "existing session" branch instead of the 2FA-cookie path,
 // silently breaking the mobile sign-in flow.
 
-interface HeadersWithGetSetCookie extends Headers {
-	getSetCookie?: () => Array<string>
-}
-
 export function mergeSetCookiesToCookieHeader(res: Response): string {
-	const headers = res.headers as HeadersWithGetSetCookie
+	const headers = res.headers as unknown as { getSetCookie?: () => Array<string> } & Headers
 	let list: Array<string>
 	if (typeof headers.getSetCookie === 'function') {
 		list = headers.getSetCookie()

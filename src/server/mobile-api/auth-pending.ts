@@ -26,7 +26,10 @@ const IDENTIFIER_PREFIX = 'mobile-auth-pending:'
 
 export type MobilePendingPayload =
 	| { kind: 'totp'; cookieHeader: string; deviceName: string }
-	| { kind: 'passkey'; challenge: string; deviceName: string; email?: string }
+	// Passkey: stashes the WebAuthn challenge cookie minted by
+	// better-auth's `generatePasskeyAuthenticationOptions`. iOS sends
+	// the deviceName on `finish`, so we don't pre-bind it here.
+	| { kind: 'passkey'; cookieHeader: string }
 	| { kind: 'oidc'; providerId: string; codeVerifier: string; state: string; deviceName: string }
 
 type PendingKind = MobilePendingPayload['kind']
