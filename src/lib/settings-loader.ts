@@ -88,6 +88,15 @@ function decryptOidcClientSecret(raw: unknown): unknown {
 export async function getAppSettings(db: Database | SchemaDatabase): Promise<AppSettings> {
 	const raw = await loadRawSettings(db)
 
+	// Legacy key migration: `enableHolidayLists` was renamed to
+	// `enableChristmasLists` (it always gated christmas only). If a
+	// self-hoster's existing app_settings row still uses the old key and
+	// the new key isn't present, fall the value through. Defer to the
+	// new key when both exist.
+	if ('enableHolidayLists' in raw && !('enableChristmasLists' in raw)) {
+		raw.enableChristmasLists = raw.enableHolidayLists
+	}
+
 	// Pre-process: decrypt any encrypted secret fields so the Zod
 	// schema sees only plaintext.
 	const merged: Record<string, unknown> = {

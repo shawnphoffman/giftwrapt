@@ -35,7 +35,7 @@ export const appSettingsQueryOptions = queryOptions({
  * function MyComponent() {
  *   const { data: settings, isLoading } = useAppSettings()
  *   if (isLoading) return <Loading />
- *   return <div>{settings.enableHolidayLists ? 'Holiday Lists Enabled' : 'Disabled'}</div>
+ *   return <div>{settings.enableChristmasLists ? 'Christmas Lists Enabled' : 'Disabled'}</div>
  * }
  * ```
  */
@@ -52,7 +52,7 @@ export function useAppSettings() {
  * function MyComponent() {
  *   const { data: settings } = useAppSettingsSuspense()
  *   // settings is guaranteed to be defined here
- *   return <div>{settings.enableHolidayLists ? 'Enabled' : 'Disabled'}</div>
+ *   return <div>{settings.enableChristmasLists ? 'Enabled' : 'Disabled'}</div>
  * }
  * ```
  */

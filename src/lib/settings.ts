@@ -233,19 +233,34 @@ export const appSettingsSchema = z.object({
 	// var, which baked into the JS at build time and silently fell back
 	// to the default on Docker builds that didn't pass it as a build arg.
 	appTitle: z.string().min(1).max(80),
-	enableHolidayLists: z.boolean(),
+	// Christmas list type gate. Renamed from `enableHolidayLists` (which
+	// historically gated only `christmas`). The settings loader maps any
+	// legacy `enableHolidayLists` row to this key on read so self-hosters
+	// keep their toggle state across the upgrade.
+	enableChristmasLists: z.boolean(),
 	enableBirthdayLists: z.boolean(),
 	enableTodoLists: z.boolean(),
-	defaultListType: z.enum(['wishlist', 'christmas', 'birthday', 'giftideas', 'todos', 'test']),
+	// Generic `holiday` list type gate (Easter, Mother's Day, Diwali, etc.,
+	// via the curated catalog in src/lib/holidays.ts). Independent from
+	// `enableChristmasLists`; christmas remains a first-class list type.
+	enableGenericHolidayLists: z.boolean(),
+	defaultListType: z.enum(['wishlist', 'christmas', 'birthday', 'giftideas', 'holiday', 'todos', 'test']),
 	enableGiftsForNonUsers: z.boolean(),
 	// Days after a birthday before claimed items are auto-archived.
 	archiveDaysAfterBirthday: z.number().int().positive(),
 	// Days after Dec 25 before claimed Christmas items are auto-archived.
 	archiveDaysAfterChristmas: z.number().int().positive(),
+	// Days after a generic holiday's end date before claimed items on
+	// holiday-typed lists are auto-archived. Multi-day holidays (Hanukkah,
+	// Diwali) archive against the end of the festival; single-day
+	// holidays archive against the holiday date itself.
+	archiveDaysAfterHoliday: z.number().int().positive(),
 	// Whether birthday emails (day-of + follow-up) are sent.
 	enableBirthdayEmails: z.boolean(),
 	// Whether Christmas emails are sent.
 	enableChristmasEmails: z.boolean(),
+	// Whether generic post-holiday emails are sent on auto-archive.
+	enableGenericHolidayEmails: z.boolean(),
 	// Whether users can post comments on items.
 	enableComments: z.boolean(),
 	// Whether a notification email is sent to the list owner on new comments.
@@ -373,15 +388,18 @@ export const appSettingsSchema = z.object({
 // 2) Default values in code (for when DB is empty or missing keys)
 export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	appTitle: 'GiftWrapt',
-	enableHolidayLists: true,
+	enableChristmasLists: true,
 	enableBirthdayLists: true,
 	enableTodoLists: true,
+	enableGenericHolidayLists: true,
 	defaultListType: 'wishlist',
 	enableGiftsForNonUsers: false,
 	archiveDaysAfterBirthday: 14,
 	archiveDaysAfterChristmas: 14,
+	archiveDaysAfterHoliday: 14,
 	enableBirthdayEmails: true,
 	enableChristmasEmails: true,
+	enableGenericHolidayEmails: true,
 	enableComments: true,
 	enableCommentEmails: true,
 	mirrorExternalImagesOnSave: false,
