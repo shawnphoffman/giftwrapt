@@ -177,7 +177,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent>
+			<DialogContent className="sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						<span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-yellow-500 dark:bg-yellow-600 ring-1 ring-yellow-400/40 dark:ring-yellow-600/40 shadow-sm">
@@ -223,7 +223,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 						)}
 					</form.Field>
 
-					<div className="grid gap-4 sm:grid-cols-2">
+					<div className="grid gap-4 sm:grid-cols-2 [&>*]:min-w-0">
 						<form.Field name="type">
 							{field => (
 								<div className="grid gap-2">
@@ -291,7 +291,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 					</div>
 
 					{isHoliday && (
-						<div className="grid gap-4 sm:grid-cols-2">
+						<div className="grid gap-4 sm:grid-cols-2 [&>*]:min-w-0">
 							<form.Field name="holidayCountry">
 								{field => (
 									<div className="grid gap-2">
