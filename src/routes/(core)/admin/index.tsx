@@ -6,6 +6,7 @@ import {
 	CommentsSettingsSection,
 	CoreSettingsSection,
 	GenericHolidaySettingsSection,
+	ParentalRelationsSettingsSection,
 	TodoSettingsSection,
 } from '@/components/admin/app-settings-editor'
 import { StorageDisabledBanner } from '@/components/common/storage-disabled-banner'
@@ -66,6 +67,20 @@ function AdminPage() {
 				<CardContent>
 					<ClientOnly>
 						<GenericHolidaySettingsSection />
+					</ClientOnly>
+				</CardContent>
+			</Card>
+			<Card className="animate-page-in max-w-xl">
+				<CardHeader>
+					<CardTitle className="text-2xl">Parental Relations</CardTitle>
+					<CardDescription>
+						Cross-person flows for Mother’s Day and Father’s Day. Users tag the mothers and fathers they shop for; reminders and Suggestions
+						use those tags.
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<ClientOnly>
+						<ParentalRelationsSettingsSection />
 					</ClientOnly>
 				</CardContent>
 			</Card>

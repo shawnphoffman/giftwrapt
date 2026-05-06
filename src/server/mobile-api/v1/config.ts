@@ -32,6 +32,7 @@ export function registerConfigRoutes(v1: App): void {
 				enableBirthdayLists: settings.enableBirthdayLists,
 				enableGenericHolidayLists: settings.enableGenericHolidayLists,
 				enableTodoLists: settings.enableTodoLists,
+				enableParentalRelations: settings.enableParentalRelations,
 				defaultListType: settings.defaultListType,
 			},
 		})

@@ -291,6 +291,44 @@ export function BirthdaySettingsSection() {
 	)
 }
 
+export function ParentalRelationsSettingsSection() {
+	const { settings, isLoading, handleSettingChange } = useSettingsEditor()
+
+	if (!settings) return <LoadingOrEmpty isLoading={isLoading} settings={settings} />
+
+	return (
+		<div className="space-y-6">
+			<div className="flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<Label htmlFor="enableParentalRelations" className="text-base">
+						Enable parental relations
+					</Label>
+					<p className="text-sm text-muted-foreground">
+						Lets users tag mothers and fathers (other users or dependents) so Mother’s Day and Father’s Day reminders + Suggestions know who
+						they’re shopping for. Holiday catalog entries stay available regardless.
+					</p>
+				</div>
+				<Switch
+					id="enableParentalRelations"
+					checked={settings.enableParentalRelations}
+					onCheckedChange={checked => handleSettingChange('enableParentalRelations', checked)}
+				/>
+			</div>
+
+			<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableParentalRelations ? '' : 'opacity-50'}`}>
+				<DaysSetting
+					id="parentalRelationsReminderLeadDays"
+					label="Reminder lead time"
+					description="Days before Mother’s Day or Father’s Day to email users a reminder of the people they’ve tagged"
+					value={settings.parentalRelationsReminderLeadDays}
+					disabled={!settings.enableParentalRelations}
+					onCommit={value => handleSettingChange('parentalRelationsReminderLeadDays', value)}
+				/>
+			</div>
+		</div>
+	)
+}
+
 export function TodoSettingsSection() {
 	const { settings, isLoading, handleSettingChange } = useSettingsEditor()
 
