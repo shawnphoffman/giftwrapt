@@ -26,20 +26,16 @@ const IDENTIFIER_PREFIX = 'mobile-auth-pending:'
 
 export type MobilePendingPayload =
 	| { kind: 'totp'; cookieHeader: string; deviceName: string }
-	// Passkey: stashes the WebAuthn challenge cookie minted by
-	// better-auth's `generatePasskeyAuthenticationOptions`. iOS sends
-	// the deviceName on `finish`, so we don't pre-bind it here.
-	| { kind: 'passkey'; cookieHeader: string }
-	// OIDC step 1: written by `/v1/auth/oidc/begin`. Holds the bits
-	// `_jump` + `_native-done` need to drive the IdP round trip
-	// without trusting the iOS client to re-send them. The
-	// `redirectUri` is admin-whitelisted before we get here.
-	| { kind: 'oidc-init'; deviceName: string; redirectUri: string }
-	// OIDC step 2: written by `_native-done` after the IdP round trip
-	// mints a session and an apiKey. iOS picks up the envelope via
-	// `/v1/auth/oidc/finish` (single-use; consumePending burns the
-	// row).
-	| { kind: 'oidc-result'; envelope: Record<string, unknown> }
+	// Browser-driven sign-in step 1: written by `/v1/auth/{oidc,passkey}/begin`.
+	// `flow` distinguishes the two so a leaked token can't redeem
+	// the wrong endpoint; `redirectUri` is admin-whitelisted (OIDC)
+	// or fixed-by-bundle (passkey) before we get here.
+	| { kind: 'browser-init'; flow: 'oidc' | 'passkey'; deviceName: string; redirectUri: string }
+	// Browser-driven sign-in step 2: written by `_native-done` after
+	// the in-app browser session minted a real session and an apiKey.
+	// iOS picks up the envelope via `/v1/auth/{oidc,passkey}/finish`.
+	// Single-use; `consumePending` burns the row.
+	| { kind: 'browser-result'; flow: 'oidc' | 'passkey'; envelope: Record<string, unknown> }
 
 type PendingKind = MobilePendingPayload['kind']
 

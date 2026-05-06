@@ -1,28 +1,34 @@
-// End-to-end smoke tests for the mobile passkey sign-in flow.
+// Wire-contract tests for the mobile passkey sign-in flow.
 //
-// We can't fully simulate a WebAuthn authenticator in vitest without
-// pulling in @simplewebauthn/server's signing primitives, so the
-// "happy path" here only exercises:
+// As of the browser-driven refactor (mirrors the OIDC architecture),
+// passkey is structurally identical to OIDC: iOS calls `begin`, opens
+// `signInUrl` in `ASWebAuthenticationSession`, and posts `finish` with
+// the challenge token to retrieve the standard envelope. The actual
+// WebAuthn ceremony runs in Safari against the server's relying party.
 //
-//   1. /v1/auth/passkey/begin returns `{ challengeToken, ttlSeconds,
-//      publicKey }` with a non-trivial challenge.
-//   2. /v1/auth/passkey/finish with an unknown token returns
-//      `invalid-challenge` (single-use semantics).
-//   3. /v1/auth/passkey/finish with a token from begin but a forged
-//      WebAuthn assertion gets rejected as `invalid-code` AND the
-//      token is consumed (replay returns `invalid-challenge`).
+// The full IdP-equivalent round trip can't be exercised in vitest (no
+// real authenticator to drive `navigator.credentials.get`), so we pin
+// the wire shape:
 //
-// The cryptographic happy path - "valid assertion mints an apiKey" -
-// is covered by better-auth's own test suite plus iOS's WebAuthn
-// integration; we just confirm the wire glue here.
+//   - capabilities probe surfaces `passkey: true` only when the
+//     mobile-redirect-URI whitelist is non-empty
+//   - begin returns `{ challengeToken, ttlSeconds, signInUrl }` when
+//     the redirectUri is on the whitelist
+//   - begin rejects unwhitelisted redirect URIs with `redirect-not-allowed`
+//   - finish returns `invalid-challenge` for any unknown / unconsumed
+//     token
 
+import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { db } from '@/db'
 import { appSettings } from '@/db/schema'
 import { mobileSignInLimiter } from '@/lib/rate-limits'
+import { encryptOidcClientSecrets } from '@/lib/settings-loader'
 
 import { mobileApp } from '../app'
+
+const REDIRECT_URI = 'wishlists://oauth'
 
 async function enableMobileApp(enabled: boolean): Promise<void> {
 	await db
@@ -31,7 +37,31 @@ async function enableMobileApp(enabled: boolean): Promise<void> {
 		.onConflictDoUpdate({ target: appSettings.key, set: { value: enabled } })
 }
 
-async function postPasskeyBegin(body: unknown = {}): Promise<Response> {
+async function setMobileRedirectUris(uris: Array<string>): Promise<void> {
+	const value = encryptOidcClientSecrets({
+		enabled: false,
+		issuerUrl: '',
+		authorizationUrl: '',
+		tokenUrl: '',
+		userinfoUrl: '',
+		jwksUrl: '',
+		logoutUrl: '',
+		clientId: '',
+		clientSecret: '',
+		scopes: [],
+		buttonText: '',
+		matchExistingUsersBy: 'none',
+		autoRegister: true,
+		mobileRedirectUris: uris,
+	})
+	await db.insert(appSettings).values({ key: 'oidcClient', value }).onConflictDoUpdate({ target: appSettings.key, set: { value } })
+}
+
+async function clearOidcConfig(): Promise<void> {
+	await db.delete(appSettings).where(eq(appSettings.key, 'oidcClient'))
+}
+
+async function postPasskeyBegin(body: unknown): Promise<Response> {
 	return mobileApp.fetch(
 		new Request('http://t/api/mobile/v1/auth/passkey/begin', {
 			method: 'POST',
@@ -51,91 +81,83 @@ async function postPasskeyFinish(body: unknown): Promise<Response> {
 	)
 }
 
-describe('mobile sign-in: passkey', () => {
-	beforeEach(() => {
+describe('mobile sign-in: passkey (browser flow)', () => {
+	beforeEach(async () => {
 		mobileSignInLimiter._resetForTesting()
-	})
-
-	afterEach(() => {
-		mobileSignInLimiter._resetForTesting()
-	})
-
-	it('begin returns the documented challenge envelope', async () => {
 		await enableMobileApp(true)
-		const res = await postPasskeyBegin({})
+	})
+
+	afterEach(async () => {
+		await clearOidcConfig()
+	})
+
+	it('capabilities reports passkey:false when no mobile redirect URIs are configured', async () => {
+		await clearOidcConfig()
+		const res = await mobileApp.fetch(new Request('http://t/api/mobile/v1/auth/capabilities'))
 		expect(res.status).toBe(200)
-		const body = (await res.json()) as {
-			challengeToken: string
-			ttlSeconds: number
-			publicKey: { challenge?: unknown; rpId?: unknown; allowCredentials?: unknown }
-		}
+		const body = (await res.json()) as { passkey: boolean }
+		expect(body.passkey).toBe(false)
+	})
+
+	it('capabilities reports passkey:true once the whitelist has any URI', async () => {
+		await setMobileRedirectUris([REDIRECT_URI])
+		const res = await mobileApp.fetch(new Request('http://t/api/mobile/v1/auth/capabilities'))
+		expect(res.status).toBe(200)
+		const body = (await res.json()) as { passkey: boolean }
+		expect(body.passkey).toBe(true)
+	})
+
+	it('begin returns the documented envelope on the happy front-half', async () => {
+		await setMobileRedirectUris([REDIRECT_URI])
+		const res = await postPasskeyBegin({ deviceName: 'My iPhone', redirectUri: REDIRECT_URI })
+		expect(res.status).toBe(200)
+		const body = (await res.json()) as { challengeToken: string; ttlSeconds: number; signInUrl: string }
 		expect(typeof body.challengeToken).toBe('string')
 		expect(body.challengeToken.length).toBeGreaterThan(20)
 		expect(body.ttlSeconds).toBeGreaterThan(0)
-		// The exact field names depend on better-auth's WebAuthn options
-		// shape; just confirm we got back a non-empty options object.
-		expect(typeof body.publicKey).toBe('object')
-		expect(Object.keys(body.publicKey).length).toBeGreaterThan(0)
+		expect(body.signInUrl).toMatch(/\/sign-in\/mobile-passkey\?token=/u)
 	})
 
-	it('finish with an unknown challengeToken returns invalid-challenge', async () => {
-		await enableMobileApp(true)
-		const res = await postPasskeyFinish({
-			challengeToken: 'totally-bogus',
-			deviceName: 'iPhone',
-			response: { id: 'fake', type: 'public-key', rawId: 'fake', response: {} },
-		})
+	it('begin rejects unwhitelisted redirect URIs with redirect-not-allowed', async () => {
+		await setMobileRedirectUris([REDIRECT_URI])
+		const res = await postPasskeyBegin({ deviceName: 'iPhone', redirectUri: 'evil://oauth' })
+		expect(res.status).toBe(400)
+		const body = (await res.json()) as { error: { code: string } }
+		expect(body.error.code).toBe('redirect-not-allowed')
+	})
+
+	it('begin rejects malformed bodies with invalid-input', async () => {
+		await setMobileRedirectUris([REDIRECT_URI])
+		const res = await postPasskeyBegin({ deviceName: '', redirectUri: REDIRECT_URI })
+		expect(res.status).toBe(400)
+		const body = (await res.json()) as { error: { code: string } }
+		expect(body.error.code).toBe('invalid-input')
+	})
+
+	it('finish rejects an unknown challengeToken with invalid-challenge', async () => {
+		const res = await postPasskeyFinish({ challengeToken: 'totally-bogus' })
 		expect(res.status).toBe(400)
 		const body = (await res.json()) as { error: { code: string } }
 		expect(body.error.code).toBe('invalid-challenge')
 	})
 
-	it('finish with a forged assertion fails and burns the token', async () => {
-		await enableMobileApp(true)
-		const beginRes = await postPasskeyBegin({})
-		const beginBody = (await beginRes.json()) as { challengeToken: string }
-		expect(beginBody.challengeToken).toBeDefined()
+	it('finish rejects a not-yet-completed challenge token with invalid-challenge', async () => {
+		await setMobileRedirectUris([REDIRECT_URI])
+		const beginRes = await postPasskeyBegin({ deviceName: 'iPhone', redirectUri: REDIRECT_URI })
+		const { challengeToken } = (await beginRes.json()) as { challengeToken: string }
 
-		const finishRes = await postPasskeyFinish({
-			challengeToken: beginBody.challengeToken,
-			deviceName: 'My iPhone',
-			// Better-auth's verifyPasskeyAuthentication will reject
-			// unrecognized credentials. The exact error code depends
-			// on the WebAuthn library, but the response should be a
-			// non-2xx that our handler maps to 401 invalid-code.
-			response: {
-				id: 'AAA',
-				type: 'public-key',
-				rawId: 'AAA',
-				response: {
-					clientDataJSON: '',
-					authenticatorData: '',
-					signature: '',
-				},
-			},
-		})
-		// Either 400 invalid-input (zod failure on the response shape)
-		// or 401 invalid-code (better-auth rejection). The helper's
-		// envelope is uniform either way.
-		expect([400, 401]).toContain(finishRes.status)
-
-		// Single-use: replaying the token even with the same forged
-		// assertion now returns invalid-challenge.
-		const replayRes = await postPasskeyFinish({
-			challengeToken: beginBody.challengeToken,
-			deviceName: 'iPhone',
-			response: { id: 'AAA', type: 'public-key', rawId: 'AAA', response: {} },
-		})
-		expect(replayRes.status).toBe(400)
-		const replayBody = (await replayRes.json()) as { error: { code: string } }
-		expect(replayBody.error.code).toBe('invalid-challenge')
+		// Calling finish before the in-app browser session has run
+		// the WebAuthn round trip means the row is still in
+		// `browser-init` shape, which `consumePending('browser-result')`
+		// won't match.
+		const res = await postPasskeyFinish({ challengeToken })
+		expect(res.status).toBe(400)
+		const body = (await res.json()) as { error: { code: string } }
+		expect(body.error.code).toBe('invalid-challenge')
 	})
 
-	it('finish with a malformed body returns invalid-input', async () => {
-		await enableMobileApp(true)
-		const res = await postPasskeyFinish({
-			// missing challengeToken + deviceName + response
-		})
+	it('finish rejects malformed bodies with invalid-input', async () => {
+		const res = await postPasskeyFinish({})
 		expect(res.status).toBe(400)
 		const body = (await res.json()) as { error: { code: string } }
 		expect(body.error.code).toBe('invalid-input')

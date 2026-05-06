@@ -59,6 +59,7 @@ import { Route as coreAdminDataRouteImport } from './routes/(core)/admin/data'
 import { Route as coreAdminAuthRouteImport } from './routes/(core)/admin/auth'
 import { Route as coreAdminAiRouteImport } from './routes/(core)/admin/ai'
 import { Route as authSignInTwoFactorRouteImport } from './routes/(auth)/sign-in.two-factor'
+import { Route as authSignInMobilePasskeyRouteImport } from './routes/(auth)/sign-in.mobile-passkey'
 import { Route as coreAdminIntelligenceRouteRouteImport } from './routes/(core)/admin_/intelligence/route'
 import { Route as coreAdminIntelligenceIndexRouteImport } from './routes/(core)/admin_/intelligence/index'
 import { Route as ApiSseListListIdRouteImport } from './routes/api/sse/list.$listId'
@@ -323,6 +324,11 @@ const authSignInTwoFactorRoute = authSignInTwoFactorRouteImport.update({
   path: '/two-factor',
   getParentRoute: () => authSignInRoute,
 } as any)
+const authSignInMobilePasskeyRoute = authSignInMobilePasskeyRouteImport.update({
+  id: '/mobile-passkey',
+  path: '/mobile-passkey',
+  getParentRoute: () => authSignInRoute,
+} as any)
 const coreAdminIntelligenceRouteRoute =
   coreAdminIntelligenceRouteRouteImport.update({
     id: '/admin_/intelligence',
@@ -401,6 +407,7 @@ export interface FileRoutesByFullPath {
   '/api/version': typeof ApiVersionRoute
   '/': typeof coreIndexRoute
   '/admin/intelligence': typeof coreAdminIntelligenceRouteRouteWithChildren
+  '/sign-in/mobile-passkey': typeof authSignInMobilePasskeyRoute
   '/sign-in/two-factor': typeof authSignInTwoFactorRoute
   '/admin/ai': typeof coreAdminAiRoute
   '/admin/auth': typeof coreAdminAuthRoute
@@ -460,6 +467,7 @@ export interface FileRoutesByTo {
   '/api/health': typeof ApiHealthRoute
   '/api/version': typeof ApiVersionRoute
   '/': typeof coreIndexRoute
+  '/sign-in/mobile-passkey': typeof authSignInMobilePasskeyRoute
   '/sign-in/two-factor': typeof authSignInTwoFactorRoute
   '/admin/ai': typeof coreAdminAiRoute
   '/admin/auth': typeof coreAdminAuthRoute
@@ -524,6 +532,7 @@ export interface FileRoutesById {
   '/api/version': typeof ApiVersionRoute
   '/(core)/': typeof coreIndexRoute
   '/(core)/admin_/intelligence': typeof coreAdminIntelligenceRouteRouteWithChildren
+  '/(auth)/sign-in/mobile-passkey': typeof authSignInMobilePasskeyRoute
   '/(auth)/sign-in/two-factor': typeof authSignInTwoFactorRoute
   '/(core)/admin/ai': typeof coreAdminAiRoute
   '/(core)/admin/auth': typeof coreAdminAuthRoute
@@ -588,6 +597,7 @@ export interface FileRouteTypes {
     | '/api/version'
     | '/'
     | '/admin/intelligence'
+    | '/sign-in/mobile-passkey'
     | '/sign-in/two-factor'
     | '/admin/ai'
     | '/admin/auth'
@@ -647,6 +657,7 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/api/version'
     | '/'
+    | '/sign-in/mobile-passkey'
     | '/sign-in/two-factor'
     | '/admin/ai'
     | '/admin/auth'
@@ -710,6 +721,7 @@ export interface FileRouteTypes {
     | '/api/version'
     | '/(core)/'
     | '/(core)/admin_/intelligence'
+    | '/(auth)/sign-in/mobile-passkey'
     | '/(auth)/sign-in/two-factor'
     | '/(core)/admin/ai'
     | '/(core)/admin/auth'
@@ -1134,6 +1146,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof authSignInTwoFactorRouteImport
       parentRoute: typeof authSignInRoute
     }
+    '/(auth)/sign-in/mobile-passkey': {
+      id: '/(auth)/sign-in/mobile-passkey'
+      path: '/mobile-passkey'
+      fullPath: '/sign-in/mobile-passkey'
+      preLoaderRoute: typeof authSignInMobilePasskeyRouteImport
+      parentRoute: typeof authSignInRoute
+    }
     '/(core)/admin_/intelligence': {
       id: '/(core)/admin_/intelligence'
       path: '/admin/intelligence'
@@ -1345,10 +1364,12 @@ const coreRouteRouteWithChildren = coreRouteRoute._addFileChildren(
 )
 
 interface authSignInRouteChildren {
+  authSignInMobilePasskeyRoute: typeof authSignInMobilePasskeyRoute
   authSignInTwoFactorRoute: typeof authSignInTwoFactorRoute
 }
 
 const authSignInRouteChildren: authSignInRouteChildren = {
+  authSignInMobilePasskeyRoute: authSignInMobilePasskeyRoute,
   authSignInTwoFactorRoute: authSignInTwoFactorRoute,
 }
 

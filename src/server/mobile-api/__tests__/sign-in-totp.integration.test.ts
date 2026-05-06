@@ -270,7 +270,11 @@ describe('mobile auth capabilities probe', () => {
 		}
 		expect(body.password).toBe(true)
 		expect(body.totp).toBe(true)
-		expect(body.passkey).toBe(true)
+		// Passkey now requires the admin-managed mobile-redirect-URI
+		// whitelist to be non-empty (browser-driven flow). The
+		// dedicated passkey suite covers the populated case; here we
+		// just confirm the field is a boolean.
+		expect(typeof body.passkey).toBe('boolean')
 		expect(Array.isArray(body.oidc)).toBe(true)
 		// No oauthApplication rows are seeded by default.
 		for (const row of body.oidc) {
