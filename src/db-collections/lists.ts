@@ -9,7 +9,7 @@ import { getContext } from '@/integrations/tanstack-query/root-provider'
 const ListSchema = z.object({
 	id: z.number(),
 	name: z.string(),
-	type: z.enum(['wishlist', 'christmas', 'birthday', 'todos', 'test']),
+	type: z.enum(['wishlist', 'christmas', 'birthday', 'holiday', 'todos', 'test']),
 	description: z.string().nullable(),
 	isPrimary: z.boolean(),
 	createdAt: z.string(),

@@ -8,7 +8,7 @@ import { z } from 'zod'
 
 import { getMyDependents } from '@/api/dependents'
 import { addListEditor } from '@/api/list-editors'
-import { createList } from '@/api/lists'
+import { createList, getMyLastHolidayCountry } from '@/api/lists'
 import { getGiftIdeasRecipients } from '@/api/user'
 import DependentAvatar from '@/components/common/dependent-avatar'
 import ListTypeIcon from '@/components/common/list-type-icon'
@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { listTypeEnumValues, ListTypes } from '@/db/schema/enums'
 import { useSession } from '@/lib/auth-client'
+import { isCountryCode, listCountries, listHolidaysFor } from '@/lib/holidays'
 import { LIMITS } from '@/lib/validation/limits'
 
 type Props = {
@@ -39,8 +40,14 @@ const schema = z.object({
 	giftIdeasTargetUserId: z.string().optional(),
 	giftIdeasTargetDependentId: z.string().optional(),
 	subjectDependentId: z.string().optional(),
+	holidayCountry: z.string().optional(),
+	holidayKey: z.string().optional(),
 	addPartnerAsEditor: z.boolean(),
 })
+
+function formatHolidayDate(d: Date): string {
+	return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
 
 export function CreateListDialog({ open, onOpenChange }: Props) {
 	const router = useRouter()
@@ -66,6 +73,16 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 		staleTime: 5 * 60 * 1000,
 	})
 
+	// Default the holiday country picker to the user's most recently
+	// used country (US fallback). Cheap server fn; only fires when the
+	// dialog is open.
+	const { data: lastHolidayCountry } = useQuery({
+		queryKey: ['my-last-holiday-country'],
+		queryFn: () => getMyLastHolidayCountry(),
+		enabled: open,
+		staleTime: 10 * 60 * 1000,
+	})
+
 	const partner = partnerId ? users?.find(u => u.id === partnerId) : undefined
 	const partnerLabel = partner ? partner.name || partner.email : 'your partner'
 
@@ -80,6 +97,8 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 			giftIdeasTargetUserId: '',
 			giftIdeasTargetDependentId: '',
 			subjectDependentId: '',
+			holidayCountry: '',
+			holidayKey: '',
 			addPartnerAsEditor: true,
 		},
 		onSubmit: async ({ value }) => {
@@ -114,6 +133,8 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 						giftIdeasTargetUserId,
 						giftIdeasTargetDependentId,
 						subjectDependentId: parsed.data.subjectDependentId || undefined,
+						holidayCountry: parsed.data.type === 'holiday' ? parsed.data.holidayCountry || undefined : undefined,
+						holidayKey: parsed.data.type === 'holiday' ? parsed.data.holidayKey || undefined : undefined,
 					},
 				})
 
@@ -121,6 +142,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 					const message: Record<typeof result.reason, string> = {
 						'child-cannot-create-gift-ideas': "Children can't create gift-ideas lists.",
 						'not-dependent-guardian': "You're not a guardian of that dependent.",
+						'invalid-holiday-selection': 'Please pick a country and holiday for this list.',
 					}
 					setError(message[result.reason])
 					return
@@ -151,6 +173,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 	})
 
 	const isGiftIdeas = selectedType === 'giftideas'
+	const isHoliday = selectedType === 'holiday'
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -213,6 +236,10 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 											if (v === 'giftideas') {
 												form.setFieldValue('isPrivate', true)
 											}
+											if (v === 'holiday' && !form.getFieldValue('holidayCountry')) {
+												const country = lastHolidayCountry && isCountryCode(lastHolidayCountry) ? lastHolidayCountry : 'US'
+												form.setFieldValue('holidayCountry', country)
+											}
 										}}
 										disabled={submitting}
 									>
@@ -262,6 +289,66 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 							</form.Field>
 						)}
 					</div>
+
+					{isHoliday && (
+						<div className="grid gap-4 sm:grid-cols-2">
+							<form.Field name="holidayCountry">
+								{field => (
+									<div className="grid gap-2">
+										<Label htmlFor={field.name}>Country</Label>
+										<Select
+											value={field.state.value}
+											onValueChange={v => {
+												field.handleChange(v)
+												// Clear the holiday key when the country changes:
+												// rules and slugs differ across countries.
+												form.setFieldValue('holidayKey', '')
+											}}
+											disabled={submitting}
+										>
+											<SelectTrigger id={field.name} className="w-full">
+												<SelectValue placeholder="Select a country" />
+											</SelectTrigger>
+											<SelectContent>
+												{listCountries().map(c => (
+													<SelectItem key={c.code} value={c.code}>
+														{c.name}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+									</div>
+								)}
+							</form.Field>
+
+							<form.Subscribe selector={s => s.values.holidayCountry}>
+								{country => (
+									<form.Field name="holidayKey">
+										{field => {
+											const options = country ? listHolidaysFor(country) : []
+											return (
+												<div className="grid gap-2">
+													<Label htmlFor={field.name}>Holiday</Label>
+													<Select value={field.state.value} onValueChange={v => field.handleChange(v)} disabled={submitting || !country}>
+														<SelectTrigger id={field.name} className="w-full">
+															<SelectValue placeholder={country ? 'Select a holiday' : 'Pick a country first'} />
+														</SelectTrigger>
+														<SelectContent>
+															{options.map(h => (
+																<SelectItem key={h.key} value={h.key}>
+																	{h.name} ({formatHolidayDate(h.start)})
+																</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
+												</div>
+											)
+										}}
+									</form.Field>
+								)}
+							</form.Subscribe>
+						</div>
+					)}
 
 					{isGiftIdeas && (
 						<div className="grid gap-2">
