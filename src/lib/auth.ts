@@ -2,7 +2,7 @@ import { passkey } from '@better-auth/passkey'
 import type { BetterAuthOptions } from 'better-auth'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { admin, apiKey, customSession, twoFactor } from 'better-auth/plugins'
+import { admin, apiKey, customSession, genericOAuth, twoFactor } from 'better-auth/plugins'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { sql } from 'drizzle-orm'
 
@@ -11,6 +11,8 @@ import { account, apikey, passkey as passkeyTable, rateLimit, session, twoFactor
 import { env } from '@/env'
 import { createLogger } from '@/lib/logger'
 import { sendPasswordResetEmail } from '@/lib/resend'
+import type { OidcClientConfig } from '@/lib/settings'
+import { getAppSettings } from '@/lib/settings-loader'
 
 // Password-reset tokens issued by better-auth's `forgetPassword` API are
 // good for this many minutes. Used both as the better-auth option and
@@ -45,6 +47,64 @@ if (env.INSECURE_COOKIES) {
 // 'error', 'trace' to 'debug', 'silent' disables entirely.
 const betterAuthLevel: 'info' | 'warn' | 'error' | 'debug' | undefined =
 	env.LOG_LEVEL === 'silent' ? undefined : env.LOG_LEVEL === 'fatal' ? 'error' : env.LOG_LEVEL === 'trace' ? 'debug' : env.LOG_LEVEL
+
+// Load the admin-managed OIDC client config from `app_settings`
+// before constructing the better-auth instance. Top-level await is
+// load-bearing here: better-auth's `genericOAuth` plugin reads its
+// provider list once at construction time, so the only way for an
+// admin form save to take effect is a server restart (matches
+// Audiobookshelf's "restart server after saving" semantics; the form
+// surfaces this in a banner).
+//
+// Failure mode: if the DB read throws (cold deploy with empty
+// app_settings, network blip, bad encryption key on `clientSecret`),
+// fall back to "OIDC disabled" rather than crashing the whole auth
+// stack. Operators can still sign in with email + password and fix
+// the config from the admin UI.
+async function loadOidcClientConfig(): Promise<OidcClientConfig | null> {
+	try {
+		const settings = await getAppSettings(db)
+		const cfg = settings.oidcClient
+		if (!cfg.enabled) return null
+		if (!cfg.clientId || !cfg.clientSecret) return null
+		const hasEndpoints = cfg.issuerUrl.length > 0 || (cfg.authorizationUrl.length > 0 && cfg.tokenUrl.length > 0)
+		if (!hasEndpoints) return null
+		return cfg
+	} catch (err) {
+		authLog.warn({ err }, 'OIDC client settings unreadable at boot; sign-in via OIDC disabled until next restart.')
+		return null
+	}
+}
+
+const oidcClientConfig = await loadOidcClientConfig()
+
+/** Build the `genericOAuth` plugin args from the admin-managed config. */
+function buildGenericOAuthPlugins(cfg: OidcClientConfig | null) {
+	if (!cfg) return [] as const
+	const scopes = cfg.scopes.length > 0 ? cfg.scopes : ['openid', 'email', 'profile']
+	// Prefer explicit endpoints if all three are set; fall back to
+	// constructing a discovery URL from the issuer otherwise.
+	const explicitEndpoints = cfg.authorizationUrl.length > 0 && cfg.tokenUrl.length > 0
+	const discoveryUrl =
+		!explicitEndpoints && cfg.issuerUrl.length > 0 ? cfg.issuerUrl.replace(/\/+$/u, '') + '/.well-known/openid-configuration' : undefined
+	return [
+		genericOAuth({
+			config: [
+				{
+					providerId: 'oidc',
+					clientId: cfg.clientId,
+					clientSecret: cfg.clientSecret,
+					...(discoveryUrl ? { discoveryUrl } : {}),
+					...(explicitEndpoints ? { authorizationUrl: cfg.authorizationUrl, tokenUrl: cfg.tokenUrl } : {}),
+					...(cfg.userinfoUrl.length > 0 ? { userInfoUrl: cfg.userinfoUrl } : {}),
+					scopes,
+					pkce: true,
+					disableSignUp: !cfg.autoRegister,
+				},
+			],
+		}),
+	] as const
+}
 
 const options = {
 	baseURL: env.BETTER_AUTH_URL || env.SERVER_URL || 'http://localhost:3000',
@@ -195,6 +255,10 @@ const options = {
 		passkey({
 			rpName: 'GiftWrapt',
 		}),
+		// External OIDC sign-in. Loaded only when the admin form has
+		// stored a fully-configured provider; otherwise the array is
+		// empty and the plugin contributes nothing.
+		...buildGenericOAuthPlugins(oidcClientConfig),
 	],
 	user: {
 		modelName: 'user',

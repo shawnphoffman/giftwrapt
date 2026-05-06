@@ -1,5 +1,5 @@
 import { passkeyClient } from '@better-auth/passkey/client'
-import { adminClient, customSessionClient, oidcClient, twoFactorClient } from 'better-auth/client/plugins'
+import { adminClient, customSessionClient, genericOAuthClient, twoFactorClient } from 'better-auth/client/plugins'
 import { createAuthClient } from 'better-auth/react'
 
 import { env } from '@/env'
@@ -21,7 +21,12 @@ export const authClient = createAuthClient({
 		// response which the sign-in page maps to a navigate call.
 		twoFactorClient({ onTwoFactorRedirect: () => {} }),
 		passkeyClient(),
-		oidcClient(),
+		// External OIDC sign-in (sign INTO GiftWrapt with an external
+		// IdP). The server-side plugin is loaded conditionally based
+		// on admin settings; this client runtime is loaded
+		// unconditionally so calls fail with a documented error
+		// instead of 404 when no provider is configured.
+		genericOAuthClient(),
 	],
 })
 

@@ -163,6 +163,67 @@ export const SCRAPE_PROVIDER_SECRET_FIELDS: Record<ScrapeProviderType, ReadonlyA
 	scrapfly: ['apiKey'],
 }
 
+// OIDC sign-in (sign INTO GiftWrapt with an external IdP). Single
+// provider per deployment; the admin form at /admin/auth manages it.
+// `clientSecret` is a secret field stored encrypted at rest (envelope
+// in `app_settings.value`); the loader decrypts before parse and the
+// admin write path re-encrypts before upsert.
+//
+// Empty strings are accepted for optional URL fields so the form can
+// distinguish "not set" from a placeholder. The loader normalizes
+// empty strings to undefined where the better-auth plugin requires
+// it.
+export const oidcClientConfigSchema = z.object({
+	// Master enable. When false, the genericOAuth plugin is loaded
+	// with `config: []` (no-op) and the iOS capabilities probe
+	// returns an empty `oidc[]`.
+	enabled: z.boolean(),
+	// OIDC discovery document URL (issuer + `/.well-known/openid-configuration`).
+	// When set, the better-auth plugin fetches the four endpoints +
+	// JWKS automatically. Leave the explicit URL fields empty to
+	// rely on discovery; populate any of them to override.
+	issuerUrl: z.string().max(2000),
+	authorizationUrl: z.string().max(2000),
+	tokenUrl: z.string().max(2000),
+	userinfoUrl: z.string().max(2000),
+	jwksUrl: z.string().max(2000),
+	logoutUrl: z.string().max(2000),
+	clientId: z.string().max(500),
+	// Stored encrypted (envelope shape) at rest; the schema sees
+	// plaintext after the loader runs.
+	clientSecret: z.string().max(2000),
+	// OAuth scopes; defaults to OIDC's standard ["openid","email","profile"]
+	// when the array is empty.
+	scopes: z.array(z.string().min(1).max(80)).max(20),
+	// Admin-tunable label for the sign-in button. Falls back to
+	// "Sign in with OpenID" when empty.
+	buttonText: z.string().max(80),
+	// How to reconcile a returning user whose IdP-provided email
+	// matches an existing local account:
+	// - 'none': always create a new local user (better-auth's default
+	//   when there's no existing `account` row).
+	// - 'email': match an existing user by email and link the OIDC
+	//   account to it. Use when GiftWrapt was bootstrapped with
+	//   email+password and admins now want to swap to OIDC without
+	//   migrating users by hand.
+	matchExistingUsersBy: z.enum(['none', 'email']),
+	// When true, a successful sign-in for an unknown email creates a
+	// new user. When false, only existing users (matched per
+	// `matchExistingUsersBy`) can sign in.
+	autoRegister: z.boolean(),
+	// URL schemes the iOS mobile-API redirect leg is allowed to
+	// bounce back through. The mobile begin endpoint validates the
+	// requested scheme is on this list before issuing a token. One
+	// scheme per line in the form; whitespace trimmed.
+	mobileRedirectUris: z.array(z.string().min(1).max(200)).max(8),
+})
+
+export type OidcClientConfig = z.infer<typeof oidcClientConfigSchema>
+
+// `clientSecret` is the only secret in this object today. Path is
+// scoped to the `oidcClient` settings key.
+export const OIDC_CLIENT_SECRET_FIELDS = ['clientSecret'] as const
+
 export const appSettingsSchema = z.object({
 	// Display title shown in the document <title>, PWA meta, OG tags, and
 	// the sidebar header. Admin-editable from /admin; defaults to
@@ -206,6 +267,12 @@ export const appSettingsSchema = z.object({
 	// non-HTTPS LAN deploy (where WebAuthn won't work anyway) doesn't
 	// confuse users with a broken affordance.
 	enablePasskeys: z.boolean(),
+	// OIDC sign-in (single external provider per deployment). Managed
+	// from /admin/auth; takes effect after a server restart because
+	// better-auth's `genericOAuth` plugin loads its provider list at
+	// boot. See `oidcClientConfigSchema` above and the loader pass in
+	// `src/lib/settings-loader.ts` that decrypts `clientSecret`.
+	oidcClient: oidcClientConfigSchema,
 	// =====================================================================
 	// URL scraping
 	// =====================================================================
@@ -320,6 +387,22 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	mirrorExternalImagesOnSave: false,
 	enableMobileApp: false,
 	enablePasskeys: false,
+	oidcClient: {
+		enabled: false,
+		issuerUrl: '',
+		authorizationUrl: '',
+		tokenUrl: '',
+		userinfoUrl: '',
+		jwksUrl: '',
+		logoutUrl: '',
+		clientId: '',
+		clientSecret: '',
+		scopes: [],
+		buttonText: '',
+		matchExistingUsersBy: 'none' as const,
+		autoRegister: true,
+		mobileRedirectUris: [],
+	},
 	// Per-provider HTTP timeout. Hosted scrapers (Stagehand / AI on
 	// heavy pages) routinely need >10s; bumped from 10s after
 	// sec-review L5. Tune downward in /admin/scraping if you only run

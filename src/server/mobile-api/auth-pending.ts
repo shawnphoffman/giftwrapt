@@ -30,7 +30,16 @@ export type MobilePendingPayload =
 	// better-auth's `generatePasskeyAuthenticationOptions`. iOS sends
 	// the deviceName on `finish`, so we don't pre-bind it here.
 	| { kind: 'passkey'; cookieHeader: string }
-	| { kind: 'oidc'; providerId: string; codeVerifier: string; state: string; deviceName: string }
+	// OIDC step 1: written by `/v1/auth/oidc/begin`. Holds the bits
+	// `_jump` + `_native-done` need to drive the IdP round trip
+	// without trusting the iOS client to re-send them. The
+	// `redirectUri` is admin-whitelisted before we get here.
+	| { kind: 'oidc-init'; deviceName: string; redirectUri: string }
+	// OIDC step 2: written by `_native-done` after the IdP round trip
+	// mints a session and an apiKey. iOS picks up the envelope via
+	// `/v1/auth/oidc/finish` (single-use; consumePending burns the
+	// row).
+	| { kind: 'oidc-result'; envelope: Record<string, unknown> }
 
 type PendingKind = MobilePendingPayload['kind']
 
@@ -85,6 +94,62 @@ export async function consumePending<TKind extends PendingKind>(
 	}
 	if (parsed.kind !== expectedKind) return null
 	return parsed as Extract<MobilePendingPayload, { kind: TKind }>
+}
+
+/**
+ * Read a pending payload WITHOUT deleting the row. Used by the OIDC
+ * `/_jump` GET endpoint, which needs the providerId to drive the
+ * better-auth redirect but doesn't yet want to consume the token -
+ * the actual consumption happens when `_native-done` rotates the
+ * row, or when an unrelated `consumePending` call burns it on
+ * `/finish`. Returns `null` on miss.
+ */
+export async function peekPending<TKind extends PendingKind>(
+	token: string,
+	expectedKind: TKind
+): Promise<Extract<MobilePendingPayload, { kind: TKind }> | null> {
+	if (!token || token.length > 128) return null
+	const identifier = `${IDENTIFIER_PREFIX}${token}`
+	const rows = await db
+		.select({ value: verification.value })
+		.from(verification)
+		.where(and(eq(verification.identifier, identifier), gt(verification.expiresAt, new Date())))
+		.limit(1)
+	if (rows.length === 0) return null
+	const row = rows[0]
+	let parsed: MobilePendingPayload
+	try {
+		parsed = JSON.parse(row.value) as MobilePendingPayload
+	} catch {
+		log.warn({ identifier }, 'pending challenge value not JSON')
+		return null
+	}
+	if (parsed.kind !== expectedKind) return null
+	return parsed as Extract<MobilePendingPayload, { kind: TKind }>
+}
+
+/**
+ * Replace the payload under an existing token while keeping the same
+ * token live. Used by the OIDC flow's `_native-done` step to rotate
+ * an `oidc-init` row into an `oidc-result` row that `/oidc/finish`
+ * can consume. Refreshes the TTL.
+ *
+ * Returns `true` if a row was rotated, `false` if there was nothing
+ * to rotate (caller surfaces this as a sign-in failure).
+ */
+export async function rotatePending(token: string, payload: MobilePendingPayload, ttlSeconds: number): Promise<boolean> {
+	if (ttlSeconds <= 0 || ttlSeconds > 60 * 60) {
+		throw new Error(`mobile-auth-pending: invalid ttlSeconds=${ttlSeconds} (must be 1..3600)`)
+	}
+	if (!token || token.length > 128) return false
+	const identifier = `${IDENTIFIER_PREFIX}${token}`
+	const expiresAt = new Date(Date.now() + ttlSeconds * 1000)
+	const rows = await db
+		.update(verification)
+		.set({ value: JSON.stringify(payload), expiresAt })
+		.where(eq(verification.identifier, identifier))
+		.returning({ id: verification.id })
+	return rows.length > 0
 }
 
 /**

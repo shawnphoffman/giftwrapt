@@ -1,8 +1,10 @@
+import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { sql } from 'drizzle-orm'
 import { useEffect } from 'react'
 
+import { fetchPublicOidcClientInfo } from '@/api/admin-oidc-client'
 import { SignInPageContent } from '@/components/auth/sign-in-page'
 import Loading from '@/components/loading'
 import { db } from '@/db'
@@ -52,6 +54,11 @@ function SignIn() {
 	const { redirect: redirectRaw } = Route.useSearch()
 	const { data: session, isPending } = useSession()
 	const passkeysEnabled = useAppSetting('enablePasskeys')
+	const { data: oidcInfo } = useQuery({
+		queryKey: ['public', 'oidc-client-info'],
+		queryFn: () => fetchPublicOidcClientInfo(),
+		staleTime: 5 * 60 * 1000,
+	})
 
 	// Hard-reload after sign-in instead of SPA-navigating. The QueryClient and
 	// TanStack DB collections are module-level singletons, and on mobile Safari
@@ -102,6 +109,21 @@ function SignIn() {
 		goPostAuth()
 	}
 
+	const handleOidcSignIn = async () => {
+		// `signIn.oauth2` (genericOAuth's web entry point) issues a
+		// 302 to the IdP authorize URL with the better-auth state
+		// cookie set. The `callbackURL` is where better-auth's
+		// /api/auth/oauth2/callback/oidc redirects to after the code
+		// exchange + session mint, which is just the post-auth target
+		// for us.
+		const callbackURL = safeRedirect(redirectRaw)
+		const { error } = await authClient.signIn.oauth2({ providerId: 'oidc', callbackURL })
+		if (error) throw new Error(error.message ?? 'oidc sign-in failed')
+		// authClient handles the redirect; we don't need to call
+		// goPostAuth - the IdP roundtrip will land us back on
+		// `callbackURL` once authenticated.
+	}
+
 	if (isPending) {
 		return (
 			<div className="flex items-center justify-center w-full h-screen">
@@ -120,6 +142,8 @@ function SignIn() {
 			onSubmit={handleSignIn}
 			forgotPasswordHref="/forgot-password"
 			onSignInWithPasskey={passkeysEnabled ? handlePasskeySignIn : undefined}
+			onSignInWithOidc={oidcInfo?.enabled ? handleOidcSignIn : undefined}
+			oidcButtonText={oidcInfo?.buttonText}
 		/>
 	)
 }

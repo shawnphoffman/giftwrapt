@@ -13,29 +13,47 @@
 // token, runs ASAuthorizationController locally, then posts the
 // assertion + deviceName to `finish`.
 //
-// `/v1/auth/oidc/{begin,finish}` (no auth) - external-OIDC sign-in
-// flow. Wire-complete but stubbed until an operator wires
-// better-auth's `genericOAuth` plugin in `auth.ts`; the deployment
-// has no external providers configured today so both endpoints
-// reject any providerId with `unknown-provider`.
+// `/v1/auth/oidc/{begin, _jump, _native-done, finish}` (no auth) -
+// external-OIDC sign-in. Single provider per deployment, configured
+// at /admin/auth (see `src/components/admin/oidc-client-editor.tsx`).
+// The flow is a four-step round trip:
+//   1. iOS calls `oidc/begin` and gets back `{ challengeToken, signInUrl }`.
+//   2. iOS opens `signInUrl` in `ASWebAuthenticationSession`. The URL
+//      points at our `_jump` endpoint, which kicks off better-auth's
+//      `signInWithOAuth2` and 302s onward to the IdP. The state cookie
+//      lives in the in-app browser session.
+//   3. The IdP redirects to better-auth's standard
+//      `/api/auth/oauth2/callback/oidc`, which exchanges the code,
+//      mints a session, and 302s to our `_native-done` endpoint
+//      (configured as `callbackURL` on the begin step).
+//   4. `_native-done` reads the session, mints an apiKey, parks the
+//      `{ apiKey, user, device }` envelope under the same challenge
+//      token, and 302s the browser at the iOS-supplied
+//      `redirectUri` (validated against the admin-configured
+//      whitelist) so `ASWebAuthenticationSession` returns control.
+//   5. iOS posts `oidc/finish` with the token to retrieve the envelope.
 //
 // All terminal endpoints converge on the same `{ apiKey, user, device }`
 // envelope `POST /v1/sign-in` returns, via `mintEnvelopeFromSessionCookie`.
-// See `.notes/plans/2026-05-mobile-auth-extensions.md`.
 
 import type { Context, Hono } from 'hono'
 import { z } from 'zod'
 
 import { db } from '@/db'
+import { env } from '@/env'
 import { auth } from '@/lib/auth'
+import { createLogger } from '@/lib/logger'
 import { mobileSignInLimiter } from '@/lib/rate-limits'
+import { getAppSettings } from '@/lib/settings-loader'
 import { LIMITS } from '@/lib/validation/limits'
 
 import type { MobileAuthContext } from '../auth'
-import { consumePending, createPending } from '../auth-pending'
+import { consumePending, createPending, peekPending, rotatePending } from '../auth-pending'
 import { mergeSetCookiesToCookieHeader } from '../cookies'
 import { jsonError } from '../envelope'
 import { rateLimit } from '../middleware'
+
+const oidcLog = createLogger('mobile-api-oidc')
 
 type App = Hono<MobileAuthContext>
 
@@ -64,72 +82,68 @@ const PasskeyFinishSchema = z.object({
 })
 
 const OidcBeginSchema = z.object({
-	providerId: z.string().min(1).max(64),
 	deviceName: z.string().min(1).max(LIMITS.SHORT_NAME),
+	// The URL scheme the iOS app registered for the redirect leg.
+	// Validated against `oidcClient.mobileRedirectUris` before any
+	// challenge token is minted.
+	redirectUri: z.string().min(1).max(2000),
 })
 
 const OidcFinishSchema = z.object({
 	challengeToken: z.string().min(1).max(128),
-	providerId: z.string().min(1).max(64),
-	code: z.string().min(1).max(2048),
-	state: z.string().min(1).max(256),
 })
 
+const OIDC_INIT_TTL_SECONDS = 600
+const OIDC_RESULT_TTL_SECONDS = 120
+
 /**
- * External-OIDC providers iOS can sign in via. Empty until
- * better-auth's `genericOAuth` plugin is wired into `auth.ts`. Once
- * it is, swap this for a read of the configured providers (the
- * plugin keeps them on `auth.options`).
+ * Public-readable view of the configured OIDC provider. Reads from
+ * `app_settings` live so the iOS capabilities probe always reflects
+ * what the admin form last saved (the better-auth plugin still
+ * requires a server restart to actually accept new sign-ins, but the
+ * probe itself doesn't need to wait for that).
  */
-function configuredOidcProviders(): ReadonlyArray<{ id: string; label: string }> {
-	return []
+async function configuredOidcProvider(): Promise<{ id: 'oidc'; label: string; mobileRedirectUris: ReadonlyArray<string> } | null> {
+	try {
+		const settings = await getAppSettings(db)
+		const cfg = settings.oidcClient
+		if (!cfg.enabled || !cfg.clientId || !cfg.clientSecret) return null
+		const hasEndpoints = cfg.issuerUrl.length > 0 || (cfg.authorizationUrl.length > 0 && cfg.tokenUrl.length > 0)
+		if (!hasEndpoints) return null
+		return {
+			id: 'oidc',
+			label: cfg.buttonText.trim() || 'Sign in with OpenID',
+			mobileRedirectUris: cfg.mobileRedirectUris,
+		}
+	} catch (err) {
+		oidcLog.warn({ err }, 'reading OIDC client settings failed')
+		return null
+	}
 }
 
 export function registerAuthRoutes(v1: App): void {
 	// =================================================================
 	// GET /v1/auth/capabilities (no auth)
 	// =================================================================
-	//
-	// Deployment-level discovery so iOS knows which sign-in affordances
-	// to render. Cached by iOS per host. Don't put any user-specific
-	// information here; this is read by anyone who knows the host URL.
-	v1.get('/auth/capabilities', rateLimit(mobileSignInLimiter), c => {
-		// `password` is hard-true for now: every deployment has email
-		// + password enabled (auth.ts has no escape hatch). Encoded as
-		// a value rather than `true` literal so a future env-driven
-		// disable doesn't require an iOS bump.
+	v1.get('/auth/capabilities', rateLimit(mobileSignInLimiter), async c => {
 		const passwordEnabled = true
 		const totpEnabled = true
 		const passkeyEnabled = true
 
-		// External-OIDC sign-in (Google, Apple, etc) requires
-		// better-auth's `genericOAuth` plugin to be wired in `auth.ts`.
-		// The deployment doesn't currently load it, so iOS sees an
-		// empty array and hides the OIDC sign-in row. When the plugin
-		// lands, surface its configured providers here.
-		//
-		// Don't read `oauthApplication` for this list - that table
-		// represents external apps that consume OIDC FROM us (server-
-		// as-provider), not external providers we're a client of.
-		const oidcProviders: Array<{ id: string; label: string; kind: 'generic' }> = []
+		const provider = await configuredOidcProvider()
+		const oidc = provider ? [{ id: provider.id, label: provider.label, kind: 'generic' as const }] : []
 
 		return c.json({
 			password: passwordEnabled,
 			totp: totpEnabled,
 			passkey: passkeyEnabled,
-			oidc: oidcProviders,
+			oidc,
 		})
 	})
 
 	// =================================================================
 	// POST /v1/auth/totp/verify (no auth - opaque challenge token)
 	// =================================================================
-	//
-	// Finish step for the 2FA fork. iOS calls this after `POST /sign-in`
-	// returned `{ challengeToken, ttlSeconds, methods: ['totp'] }`.
-	// Single-use: the challenge token is consumed before we call
-	// better-auth, so a wrong code burns the token and forces the user
-	// back to the password step.
 	v1.post('/auth/totp/verify', rateLimit(mobileSignInLimiter), async c => {
 		let body: unknown
 		try {
@@ -147,18 +161,11 @@ export function registerAuthRoutes(v1: App): void {
 		if (!pending) {
 			return jsonError(c, 400, 'invalid-challenge')
 		}
-		// Bound the deviceName the same way `/sign-in` does on input;
-		// the value came from a previous trusted body but we still
-		// trim before handing it back to better-auth.
 		const deviceName = pending.deviceName.trim().slice(0, LIMITS.SHORT_NAME)
 		if (!deviceName) {
 			return jsonError(c, 500, 'internal-error')
 		}
 
-		// Restore the 2FA-pending cookie so better-auth's verifyTOTP
-		// recognizes the in-progress sign-in. `asResponse: true` lets
-		// us pull the freshly-minted real session cookie out of the
-		// Set-Cookie header.
 		let verifyResponse: Response
 		try {
 			verifyResponse = await auth.api.verifyTOTP({
@@ -184,15 +191,8 @@ export function registerAuthRoutes(v1: App): void {
 	// =================================================================
 	// POST /v1/auth/passkey/begin (no auth)
 	// =================================================================
-	//
-	// Asks better-auth for a WebAuthn assertion challenge, stashes the
-	// resulting challenge cookie under an opaque token (2-minute TTL),
-	// and returns the public-key options iOS feeds into
-	// `ASAuthorizationController`. Single-use: each begin mints a new
-	// challenge so a leaked token can't be replayed.
 	v1.post('/auth/passkey/begin', rateLimit(mobileSignInLimiter), async c => {
 		let body: unknown = null
-		// Empty body is allowed: WebAuthn supports username-less flows.
 		try {
 			const text = await c.req.text()
 			body = text ? JSON.parse(text) : {}
@@ -204,11 +204,6 @@ export function registerAuthRoutes(v1: App): void {
 			return jsonError(c, 400, 'invalid-input', { data: { issues: parsed.error.issues } })
 		}
 
-		// Better-auth's GET endpoint takes no body; the email scoping
-		// is informational only on the mobile side (we'd need a custom
-		// endpoint to filter `allowCredentials` server-side, which v1
-		// doesn't do). Pass `email` through for forward-compat but
-		// don't fail if better-auth ignores it.
 		let optionsResponse: Response
 		try {
 			optionsResponse = await auth.api.generatePasskeyAuthenticationOptions({
@@ -240,11 +235,6 @@ export function registerAuthRoutes(v1: App): void {
 	// =================================================================
 	// POST /v1/auth/passkey/finish (no auth)
 	// =================================================================
-	//
-	// Consumes the begin's challenge token, hands the assertion to
-	// better-auth's `verifyPasskeyAuthentication` under the restored
-	// challenge cookie, and mints an apiKey under the resulting
-	// session. Mirrors the totp/verify shape down to the error codes.
 	v1.post('/auth/passkey/finish', rateLimit(mobileSignInLimiter), async c => {
 		let body: unknown
 		try {
@@ -292,17 +282,6 @@ export function registerAuthRoutes(v1: App): void {
 	// =================================================================
 	// POST /v1/auth/oidc/begin (no auth)
 	// =================================================================
-	//
-	// Asks the configured external OIDC provider for an authorization
-	// URL + PKCE pair, stashes the provider context (so `finish` knows
-	// which provider to exchange the code with) under an opaque token,
-	// and returns the URL iOS opens in `ASWebAuthenticationSession`.
-	//
-	// Currently a stub: no providers are configured because `auth.ts`
-	// doesn't load better-auth's `genericOAuth` plugin. Every call
-	// returns `unknown-provider` until that wiring lands. The contract
-	// is in place so iOS can ship the OIDC code path now and have it
-	// light up automatically when the operator wires a provider.
 	v1.post('/auth/oidc/begin', rateLimit(mobileSignInLimiter), async c => {
 		let body: unknown
 		try {
@@ -314,37 +293,203 @@ export function registerAuthRoutes(v1: App): void {
 		if (!parsed.success) {
 			return jsonError(c, 400, 'invalid-input', { data: { issues: parsed.error.issues } })
 		}
-		const { providerId, deviceName } = parsed.data
+		const { deviceName, redirectUri } = parsed.data
 
-		const providers = configuredOidcProviders()
-		const known = providers.find(p => p.id === providerId)
-		if (!known) {
-			return jsonError(c, 404, 'unknown-provider')
+		const provider = await configuredOidcProvider()
+		if (!provider) {
+			return jsonError(c, 404, 'oidc-not-configured')
+		}
+		if (!provider.mobileRedirectUris.includes(redirectUri)) {
+			return jsonError(c, 400, 'redirect-not-allowed', {
+				message: 'redirectUri must match one of the admin-configured mobile redirect URIs.',
+			})
 		}
 
-		// When `genericOAuth` is wired, replace this branch with a
-		// call to `auth.api.signInWithOAuth2({ body: { providerId,
-		// callbackURL: '...' }, asResponse: true })`, parse the
-		// returned `url` + `state` + `codeVerifier`, stash both under
-		// `createPending('oidc', { providerId, codeVerifier, state,
-		// deviceName }, 600)`, and return them. Until then this branch
-		// is unreachable.
-		void deviceName
-		return jsonError(c, 501, 'not-implemented', {
-			message: 'OIDC sign-in is configured but the begin handler is not wired.',
+		const trimmedDeviceName = deviceName.trim().slice(0, LIMITS.SHORT_NAME)
+		if (!trimmedDeviceName) {
+			return jsonError(c, 400, 'invalid-input')
+		}
+
+		const { token, ttlSeconds } = await createPending(
+			{ kind: 'oidc-init', deviceName: trimmedDeviceName, redirectUri },
+			OIDC_INIT_TTL_SECONDS
+		)
+		const signInUrl = makeAbsoluteServerUrl(`api/mobile/v1/auth/oidc/_jump?token=${encodeURIComponent(token)}`)
+
+		return c.json({ challengeToken: token, ttlSeconds, signInUrl })
+	})
+
+	// =================================================================
+	// GET /v1/auth/oidc/_jump (no auth)
+	// =================================================================
+	v1.get('/auth/oidc/_jump', rateLimit(mobileSignInLimiter), async c => {
+		const token = c.req.query('token') ?? ''
+		const pending = await peekPending(token, 'oidc-init')
+		if (!pending) {
+			return new Response('Sign-in link expired or invalid.', {
+				status: 400,
+				headers: { 'content-type': 'text/plain; charset=utf-8' },
+			})
+		}
+		const provider = await configuredOidcProvider()
+		if (!provider) {
+			return new Response('Sign-in is not configured.', {
+				status: 410,
+				headers: { 'content-type': 'text/plain; charset=utf-8' },
+			})
+		}
+
+		const callbackURL = makeAbsoluteServerUrl(`api/mobile/v1/auth/oidc/_native-done?token=${encodeURIComponent(token)}`)
+		let signInResponse: Response
+		try {
+			signInResponse = await auth.api.signInWithOAuth2({
+				body: {
+					providerId: 'oidc',
+					callbackURL,
+					errorCallbackURL: callbackURL,
+				},
+				asResponse: true,
+			})
+		} catch (err) {
+			oidcLog.error({ err }, 'signInWithOAuth2 failed')
+			return new Response('Could not start sign-in. Please try again.', {
+				status: 500,
+				headers: { 'content-type': 'text/plain; charset=utf-8' },
+			})
+		}
+
+		let target: string | null = null
+		try {
+			const json = (await signInResponse.clone().json()) as { url?: string }
+			target = json.url ?? null
+		} catch {
+			target = null
+		}
+		if (!target) {
+			oidcLog.error({ status: signInResponse.status }, 'no auth URL returned from signInWithOAuth2')
+			return new Response('Sign-in temporarily unavailable.', {
+				status: 502,
+				headers: { 'content-type': 'text/plain; charset=utf-8' },
+			})
+		}
+
+		const headers = new Headers({ Location: target })
+		const setCookies = readSetCookies(signInResponse)
+		for (const sc of setCookies) {
+			headers.append('Set-Cookie', sc)
+		}
+		return new Response(null, { status: 302, headers })
+	})
+
+	// =================================================================
+	// GET /v1/auth/oidc/_native-done (no auth)
+	// =================================================================
+	v1.get('/auth/oidc/_native-done', async c => {
+		const token = c.req.query('token') ?? ''
+		const pending = await peekPending(token, 'oidc-init')
+		if (!pending) {
+			return new Response('Sign-in link expired or invalid.', {
+				status: 400,
+				headers: { 'content-type': 'text/plain; charset=utf-8' },
+			})
+		}
+
+		// Validate the redirect target against the admin-configured
+		// whitelist again here. The admin could have removed the URI
+		// between begin and now; failing closed is safer than bouncing
+		// to a stale scheme.
+		const provider = await configuredOidcProvider()
+		if (!provider || !provider.mobileRedirectUris.includes(pending.redirectUri)) {
+			oidcLog.warn({ token: token.slice(0, 8) }, 'redirectUri no longer allowed; failing the OIDC flow')
+			await consumePending(token, 'oidc-init')
+			return new Response('Sign-in completed but the redirect target is no longer allowed.', {
+				status: 410,
+				headers: { 'content-type': 'text/plain; charset=utf-8' },
+			})
+		}
+
+		const errorParam = c.req.query('error')
+		if (errorParam) {
+			oidcLog.warn({ error: errorParam }, 'OIDC callback returned an error')
+			await consumePending(token, 'oidc-init')
+			return redirectToMobileScheme(pending.redirectUri, { error: errorParam })
+		}
+
+		const incomingCookie = c.req.header('cookie') ?? ''
+		if (!incomingCookie) {
+			oidcLog.warn('OIDC _native-done called without a session cookie')
+			await consumePending(token, 'oidc-init')
+			return redirectToMobileScheme(pending.redirectUri, { error: 'no-session' })
+		}
+
+		let userId: string | null = null
+		try {
+			const session = await auth.api.getSession({ headers: new Headers({ cookie: incomingCookie }) })
+			userId = session?.user.id ?? null
+		} catch (err) {
+			oidcLog.error({ err }, 'getSession failed in _native-done')
+			userId = null
+		}
+		if (!userId) {
+			await consumePending(token, 'oidc-init')
+			return redirectToMobileScheme(pending.redirectUri, { error: 'no-session' })
+		}
+
+		let created
+		try {
+			created = await auth.api.createApiKey({
+				body: { name: pending.deviceName },
+				headers: new Headers({ cookie: incomingCookie }),
+			})
+		} catch (err) {
+			oidcLog.error({ err }, 'createApiKey failed in _native-done')
+			await consumePending(token, 'oidc-init')
+			return redirectToMobileScheme(pending.redirectUri, { error: 'apikey-failed' })
+		}
+
+		const userRow = await db.query.users.findFirst({
+			where: (u, { eq: ueq }) => ueq(u.id, userId),
+			columns: { id: true, name: true, email: true, image: true, role: true },
 		})
+		if (!userRow) {
+			await consumePending(token, 'oidc-init')
+			return redirectToMobileScheme(pending.redirectUri, { error: 'no-user' })
+		}
+
+		const envelope = {
+			apiKey: created.key,
+			user: {
+				id: userRow.id,
+				name: userRow.name,
+				email: userRow.email,
+				image: userRow.image,
+				role: userRow.role,
+				isAdmin: userRow.role === 'admin',
+				isChild: userRow.role === 'child',
+			},
+			device: {
+				id: created.id,
+				prefix: created.prefix ?? null,
+				name: created.name ?? null,
+				createdAt: toIso(created.createdAt) ?? new Date().toISOString(),
+				updatedAt: toIso(created.updatedAt) ?? new Date().toISOString(),
+				lastRequest: toIso(created.lastRequest ?? null),
+				expiresAt: toIso(created.expiresAt ?? null),
+			},
+		}
+
+		const rotated = await rotatePending(token, { kind: 'oidc-result', envelope }, OIDC_RESULT_TTL_SECONDS)
+		if (!rotated) {
+			oidcLog.error({ token: token.slice(0, 8) }, 'rotatePending found no row to rotate')
+			return redirectToMobileScheme(pending.redirectUri, { error: 'invalid-challenge' })
+		}
+
+		return redirectToMobileScheme(pending.redirectUri, { token })
 	})
 
 	// =================================================================
 	// POST /v1/auth/oidc/finish (no auth)
 	// =================================================================
-	//
-	// Consumes the begin token, exchanges the authorization code with
-	// the IdP, and mints an apiKey under the resulting session.
-	//
-	// Same stubbed posture as `oidc/begin` until external-OIDC config
-	// lands. Returns `invalid-challenge` for any token (since `begin`
-	// never mints one) so iOS sees a clean failure.
 	v1.post('/auth/oidc/finish', rateLimit(mobileSignInLimiter), async c => {
 		let body: unknown
 		try {
@@ -356,38 +501,21 @@ export function registerAuthRoutes(v1: App): void {
 		if (!parsed.success) {
 			return jsonError(c, 400, 'invalid-input', { data: { issues: parsed.error.issues } })
 		}
-		const { challengeToken, providerId } = parsed.data
+		const { challengeToken } = parsed.data
 
-		// Validate the providerId is one we'd accept; cheaper than a
-		// DB hit when no providers exist anyway.
-		const providers = configuredOidcProviders()
-		if (!providers.find(p => p.id === providerId)) {
-			return jsonError(c, 404, 'unknown-provider')
-		}
-
-		// Even if a token were minted, this branch is unreachable
-		// today. The `consumePending` call burns the row regardless,
-		// matching the single-use semantics of every other flow.
-		const pending = await consumePending(challengeToken, 'oidc')
+		const pending = await consumePending(challengeToken, 'oidc-result')
 		if (!pending) {
 			return jsonError(c, 400, 'invalid-challenge')
 		}
-
-		// Wire-complete stub: when `genericOAuth` lands, this is the
-		// place to call `auth.api.oAuth2Callback` (or the equivalent
-		// "exchange code -> session" path) and forward the resulting
-		// session cookie into `mintEnvelopeFromSessionCookie`.
-		return jsonError(c, 501, 'not-implemented', {
-			message: 'OIDC sign-in is configured but the finish handler is not wired.',
-		})
+		return c.json(pending.envelope)
 	})
 }
 
 /**
  * Shared "promote a session cookie to an iOS apiKey envelope" helper.
  * Used by every flow that lands on a fresh better-auth session: TOTP,
- * passkey, OIDC. Returns the standard `{ apiKey, user, device }`
- * shape on success, or jsonError(c, 401, fallbackCode) on any miss.
+ * passkey. Returns the standard `{ apiKey, user, device }` shape on
+ * success, or jsonError(c, 401, fallbackCode) on any miss.
  */
 async function mintEnvelopeFromSessionCookie(
 	c: Context<MobileAuthContext>,
@@ -446,6 +574,36 @@ async function mintEnvelopeFromSessionCookie(
 			expiresAt: toIso(created.expiresAt ?? null),
 		},
 	})
+}
+
+function makeAbsoluteServerUrl(pathAndQuery: string): string {
+	const base = env.BETTER_AUTH_URL ?? env.SERVER_URL ?? 'http://localhost:3000'
+	return new URL(pathAndQuery.replace(/^\/+/u, ''), base.endsWith('/') ? base : `${base}/`).toString()
+}
+
+/**
+ * Build a 302 to the iOS-supplied redirect URI with the documented
+ * query shape: `?token=...` on success, `?error=...` on failure.
+ * `redirectUri` is the admin-whitelisted scheme already validated
+ * upstream.
+ */
+function redirectToMobileScheme(redirectUri: string, params: { token?: string; error?: string }): Response {
+	const target = new URL(redirectUri)
+	if (params.token) target.searchParams.set('token', params.token)
+	if (params.error) target.searchParams.set('error', params.error)
+	return new Response(null, {
+		status: 302,
+		headers: { Location: target.toString() },
+	})
+}
+
+function readSetCookies(res: Response): Array<string> {
+	const headers = res.headers as unknown as { getSetCookie?: () => Array<string> } & Headers
+	if (typeof headers.getSetCookie === 'function') {
+		return headers.getSetCookie()
+	}
+	const single = res.headers.get('set-cookie')
+	return single ? [single] : []
 }
 
 function toIso(value: Date | string | null | undefined): string | null {

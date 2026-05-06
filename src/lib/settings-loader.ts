@@ -21,6 +21,8 @@ import {
 	DEFAULT_APP_SETTINGS,
 	loadRawSettings,
 	looksLikeEncryptedEnvelope,
+	OIDC_CLIENT_SECRET_FIELDS,
+	type OidcClientConfig,
 	SCRAPE_PROVIDER_SECRET_FIELDS,
 } from '@/lib/settings'
 
@@ -60,17 +62,43 @@ function decryptScrapeProviderSecrets(raw: unknown): unknown {
 		.filter(entry => entry !== null)
 }
 
+/**
+ * Walk `oidcClient` and decrypt the `clientSecret` envelope to
+ * plaintext before the Zod schema sees it. Bad envelopes (wrong key,
+ * tampered) yield an empty string, which the runtime treats as "not
+ * configured" instead of taking the whole settings load down.
+ */
+function decryptOidcClientSecret(raw: unknown): unknown {
+	if (!raw || typeof raw !== 'object') return raw
+	const o = raw as Record<string, unknown>
+	const out: Record<string, unknown> = { ...o }
+	for (const field of OIDC_CLIENT_SECRET_FIELDS) {
+		const value = o[field]
+		if (looksLikeEncryptedEnvelope(value)) {
+			try {
+				out[field] = decryptAppSecret(value as Parameters<typeof decryptAppSecret>[0])
+			} catch {
+				out[field] = ''
+			}
+		}
+	}
+	return out
+}
+
 export async function getAppSettings(db: Database | SchemaDatabase): Promise<AppSettings> {
 	const raw = await loadRawSettings(db)
 
-	// Pre-process: decrypt any encrypted secret fields in
-	// `scrapeProviders` so the Zod schema sees only plaintext.
+	// Pre-process: decrypt any encrypted secret fields so the Zod
+	// schema sees only plaintext.
 	const merged: Record<string, unknown> = {
 		...DEFAULT_APP_SETTINGS,
 		...raw,
 	}
 	if ('scrapeProviders' in merged) {
 		merged.scrapeProviders = decryptScrapeProviderSecrets(merged.scrapeProviders)
+	}
+	if ('oidcClient' in merged) {
+		merged.oidcClient = decryptOidcClientSecret(merged.oidcClient)
 	}
 
 	return appSettingsSchema.parse(merged)
@@ -93,4 +121,21 @@ export function encryptScrapeProviderSecrets(providers: AppSettings['scrapeProvi
 		}
 		return out
 	})
+}
+
+/**
+ * Encrypt the `clientSecret` field on the OIDC client settings blob
+ * before it's persisted to `app_settings.value`. Empty strings (the
+ * "not configured" state) stay as empty strings; non-empty values
+ * become the EncryptedEnvelope shape.
+ */
+export function encryptOidcClientSecrets(config: OidcClientConfig): Record<string, unknown> {
+	const out: Record<string, unknown> = { ...config }
+	for (const field of OIDC_CLIENT_SECRET_FIELDS) {
+		const value = (config as Record<string, unknown>)[field]
+		if (typeof value === 'string' && value.length > 0) {
+			out[field] = encryptAppSecret(value)
+		}
+	}
+	return out
 }

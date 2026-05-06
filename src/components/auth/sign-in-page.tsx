@@ -18,6 +18,11 @@ export type SignInPageContentProps = {
 	// async handler in to enable the button. We deliberately keep this
 	// as an *option*, never a default. Passkey is add-on only.
 	onSignInWithPasskey?: () => Promise<void>
+	// Optional tertiary path: "Sign in with OpenID". Configured via
+	// the admin form at /admin/auth; surfaced here as a button when
+	// the deployment has a wired-up provider.
+	onSignInWithOidc?: () => Promise<void>
+	oidcButtonText?: string
 }
 
 const GENERIC_SIGN_IN_ERROR = 'Invalid email or password.'
@@ -28,14 +33,17 @@ export function SignInPageContent({
 	forceLoading = false,
 	forgotPasswordHref,
 	onSignInWithPasskey,
+	onSignInWithOidc,
+	oidcButtonText,
 }: SignInPageContentProps) {
 	const [email, setEmail] = useState('')
 	const [password, setPassword] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
 	const [passkeyLoading, setPasskeyLoading] = useState(false)
+	const [oidcLoading, setOidcLoading] = useState(false)
 	const [error, setError] = useState<string | null>(initialError)
 
-	const showLoading = isLoading || forceLoading || passkeyLoading
+	const showLoading = isLoading || forceLoading || passkeyLoading || oidcLoading
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault()
@@ -60,6 +68,19 @@ export function SignInPageContent({
 			setError("Couldn't sign in with that passkey. Try again or use your password.")
 		} finally {
 			setPasskeyLoading(false)
+		}
+	}
+
+	const handleOidc = async () => {
+		if (!onSignInWithOidc) return
+		setOidcLoading(true)
+		setError(null)
+		try {
+			await onSignInWithOidc()
+		} catch {
+			setError("Couldn't reach the OpenID provider. Try again or use your password.")
+		} finally {
+			setOidcLoading(false)
 		}
 	}
 
@@ -117,18 +138,23 @@ export function SignInPageContent({
 						{showLoading && !passkeyLoading ? 'Signing in...' : 'Sign in'}
 					</Button>
 
+					{(onSignInWithPasskey || onSignInWithOidc) && (
+						<div className="flex items-center gap-2 pt-2 text-xs text-muted-foreground">
+							<div className="h-px flex-1 bg-border" />
+							<span>or</span>
+							<div className="h-px flex-1 bg-border" />
+						</div>
+					)}
 					{onSignInWithPasskey && (
-						<>
-							<div className="flex items-center gap-2 pt-2 text-xs text-muted-foreground">
-								<div className="h-px flex-1 bg-border" />
-								<span>or</span>
-								<div className="h-px flex-1 bg-border" />
-							</div>
-							<Button type="button" variant="outline" className="w-full" disabled={showLoading} onClick={handlePasskey}>
-								<KeyRound className="size-4" />
-								{passkeyLoading ? 'Authenticating…' : 'Sign in with a passkey'}
-							</Button>
-						</>
+						<Button type="button" variant="outline" className="w-full" disabled={showLoading} onClick={handlePasskey}>
+							<KeyRound className="size-4" />
+							{passkeyLoading ? 'Authenticating…' : 'Sign in with a passkey'}
+						</Button>
+					)}
+					{onSignInWithOidc && (
+						<Button type="button" variant="outline" className="w-full" disabled={showLoading} onClick={handleOidc}>
+							{oidcLoading ? 'Redirecting…' : (oidcButtonText ?? 'Sign in with OpenID')}
+						</Button>
 					)}
 				</form>
 			</div>
