@@ -3,6 +3,7 @@ import { Resend } from 'resend'
 import { db } from '@/db'
 import BirthdayEmail from '@/emails/happy-birthday-email'
 import NewCommentEmail from '@/emails/new-comment-email'
+import ParentalRelationsReminderEmail from '@/emails/parental-relations-reminder-email'
 import PasswordResetEmail from '@/emails/password-reset-email'
 import PostBirthdayEmail from '@/emails/post-birthday-email'
 import PostHolidayEmail from '@/emails/post-holiday-email'
@@ -121,6 +122,30 @@ export const sendPostBirthdayEmail = async (recipient: string, items: Array<{ ti
 		react: <PostBirthdayEmail items={items} />,
 	})
 	logSendResult('post-birthday', recipient, res as SendResult)
+	return res
+}
+
+export const sendParentalRelationsReminderEmail = async (
+	recipient: string,
+	args: { holidayName: string; leadDays: number; people: Array<{ name: string }> }
+) => {
+	const cfg = await resolveEmailConfig(db)
+	const client = buildClient(cfg)
+	if (!client || !cfg.isValid) {
+		warnNotConfigured('sendParentalRelationsReminderEmail')
+		return null
+	}
+	emailLog.info(
+		{ kind: 'parental-relations-reminder', recipient, holidayName: args.holidayName, count: args.people.length },
+		'sending email'
+	)
+	const res = await client.emails.send({
+		...commonEmailProps(cfg),
+		to: recipient,
+		subject: `${args.holidayName} is in ${args.leadDays} days`,
+		react: <ParentalRelationsReminderEmail holidayName={args.holidayName} leadDays={args.leadDays} people={args.people} />,
+	})
+	logSendResult('parental-relations-reminder', recipient, res as SendResult)
 	return res
 }
 
