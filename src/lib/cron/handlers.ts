@@ -13,6 +13,7 @@ import type { AutoArchiveResult } from '@/lib/cron/auto-archive'
 import { autoArchiveImpl } from '@/lib/cron/auto-archive'
 import { birthdayEmailsImpl } from '@/lib/cron/birthday-emails'
 import { cleanupVerificationImpl } from '@/lib/cron/cleanup-verification'
+import { parentalRemindersImpl } from '@/lib/cron/parental-reminders'
 import { sweepCronRuns } from '@/lib/cron/record-run'
 import type { CronEndpoint } from '@/lib/cron/registry'
 import { listHolidaysFor } from '@/lib/holidays'
@@ -170,16 +171,47 @@ export async function runBirthdayEmails() {
 	}
 
 	const settings = await getAppSettings(db)
-	if (!settings.enableBirthdayEmails) {
-		return { ok: true, skipped: 'disabled', date: new Date().toISOString() }
+	const now = new Date()
+
+	let birthdayEmails = 0
+	let followUpEmails = 0
+	let parentalReminderEmails = 0
+
+	// The cron's name is "birthday-emails" but we use it as the daily
+	// outbound-mail tick: birthday + post-birthday from `enableBirthdayEmails`,
+	// parental-relations reminders from `enableParentalRelations`. Each
+	// branch is feature-gated independently.
+	if (settings.enableBirthdayEmails) {
+		const result = await birthdayEmailsImpl({ db, now })
+		birthdayEmails = result.birthdayEmails
+		followUpEmails = result.followUpEmails
+	}
+	if (settings.enableParentalRelations) {
+		try {
+			const result = await parentalRemindersImpl({ db, now, leadDays: settings.parentalRelationsReminderLeadDays })
+			parentalReminderEmails = result.parentalReminderEmails
+		} catch (err) {
+			log.warn({ err: err instanceof Error ? err.message : String(err) }, 'parental-reminders batch failed')
+		}
 	}
 
-	const now = new Date()
-	const { birthdayEmails, followUpEmails } = await birthdayEmailsImpl({ db, now })
 	const durationMs = Date.now() - started
-	log.info({ endpoint: '/api/cron/birthday-emails', birthdayEmails, followUpEmails, durationMs }, 'cron run complete')
+	log.info(
+		{ endpoint: '/api/cron/birthday-emails', birthdayEmails, followUpEmails, parentalReminderEmails, durationMs },
+		'cron run complete'
+	)
 
-	return { ok: true, birthdayEmails, followUpEmails, date: now.toISOString() }
+	if (
+		birthdayEmails === 0 &&
+		followUpEmails === 0 &&
+		parentalReminderEmails === 0 &&
+		!settings.enableBirthdayEmails &&
+		!settings.enableParentalRelations
+	) {
+		return { ok: true, skipped: 'disabled', date: now.toISOString() }
+	}
+
+	return { ok: true, birthdayEmails, followUpEmails, parentalReminderEmails, date: now.toISOString() }
 }
 
 export async function runCleanupVerification() {
