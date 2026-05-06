@@ -1,4 +1,4 @@
-import { Cake, CheckCheck, FlaskConical, Gift, Lightbulb, type LucideIcon, TreePine } from 'lucide-react'
+import { Cake, CheckCheck, FlaskConical, Gift, Lightbulb, type LucideIcon, PartyPopper, TreePine } from 'lucide-react'
 
 import type { ListType } from '@/db/schema/enums'
 import { cn } from '@/lib/utils'
@@ -27,6 +27,11 @@ const TYPE_STYLES: Record<ListType, { bg: string; ring: string; icon: LucideIcon
 		bg: 'bg-teal-500 dark:bg-teal-600',
 		ring: 'ring-1 ring-teal-400/40 dark:ring-teal-600/40',
 		icon: Lightbulb,
+	},
+	holiday: {
+		bg: 'bg-amber-500 dark:bg-amber-600',
+		ring: 'ring-1 ring-amber-400/40 dark:ring-amber-600/40',
+		icon: PartyPopper,
 	},
 	todos: {
 		bg: 'bg-orange-500 dark:bg-orange-600',
