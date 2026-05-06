@@ -169,6 +169,13 @@
       "when": 1778007958502,
       "tag": "0023_previous_blockbuster",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1778086226842,
+      "tag": "0024_greedy_sphinx",
+      "breakpoints": true
     }
   ]
 }
