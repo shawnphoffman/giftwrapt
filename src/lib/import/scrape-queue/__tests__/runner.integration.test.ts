@@ -17,7 +17,7 @@ vi.mock('@/lib/scrapers/run', () => ({
 // Stub the SSE notifier to avoid pulling in the full route module (which
 // imports from server-only paths in some bundler contexts).
 vi.mock('@/routes/api/sse/list.$listId', () => ({
-	notifyListChange: vi.fn(),
+	notifyListEvent: vi.fn(),
 }))
 
 // Storage mirror is gated on the setting; we leave the default off but

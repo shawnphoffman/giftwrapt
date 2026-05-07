@@ -17,6 +17,7 @@ import { canEditList, canViewList, getViewerAccessLevelForList } from '@/lib/per
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { getVendorFromUrl } from '@/lib/urls'
+import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 
 // ===============================
 // Public types
@@ -272,6 +273,7 @@ export async function copyItemToListImpl(args: { userId: string; input: z.infer<
 		})
 		.returning()
 
+	notifyListEvent({ kind: 'item', listId: data.targetListId, itemId: inserted.id, shape: 'added' })
 	return { kind: 'ok', item: inserted }
 }
 
@@ -294,6 +296,7 @@ export async function archiveItemImpl(args: { userId: string; input: z.infer<typ
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	await db.update(items).set({ isArchived: data.archived }).where(eq(items.id, data.itemId))
+	notifyListEvent({ kind: 'item', listId: item.listId, itemId: data.itemId })
 	return { kind: 'ok' }
 }
 
@@ -323,6 +326,7 @@ export async function setItemAvailabilityImpl(args: {
 		.set({ availability: data.availability, availabilityChangedAt: new Date() })
 		.where(eq(items.id, data.itemId))
 		.returning()
+	notifyListEvent({ kind: 'item', listId: item.listId, itemId: updated.id })
 	return { kind: 'ok', item: updated }
 }
 
@@ -348,7 +352,7 @@ export async function moveItemsToListImpl(args: { userId: string; input: z.infer
 		})
 		.map(r => r.id)
 
-	return await db.transaction(async tx => {
+	const result = await db.transaction(async tx => {
 		await tx
 			.update(items)
 			.set({ listId: data.targetListId, groupId: null, groupSortOrder: null })
@@ -369,8 +373,20 @@ export async function moveItemsToListImpl(args: { userId: string; input: z.infer
 			commentsDeleted = deleted.length
 		}
 
-		return { kind: 'ok', moved: data.itemIds.length, claimsCleared, commentsDeleted }
+		return { kind: 'ok' as const, moved: data.itemIds.length, claimsCleared, commentsDeleted }
 	})
+
+	// Per the plan: type-crossing moves clear claims but the two `item`
+	// shape events on source/dest are sufficient — cleared claims fall out
+	// of the refetched items query without an extra `claim` event.
+	for (const row of loaded.rows) {
+		if (row.listId !== data.targetListId) {
+			notifyListEvent({ kind: 'item', listId: row.listId, itemId: row.id, shape: 'removed' })
+		}
+		notifyListEvent({ kind: 'item', listId: data.targetListId, itemId: row.id, shape: 'added' })
+	}
+
+	return result
 }
 
 export async function archiveItemsImpl(args: {
@@ -385,6 +401,9 @@ export async function archiveItemsImpl(args: {
 		.update(items)
 		.set({ isArchived: data.archived })
 		.where(inArray(items.id, [...data.itemIds]))
+	for (const row of loaded.rows) {
+		notifyListEvent({ kind: 'item', listId: row.listId, itemId: row.id })
+	}
 	return { kind: 'ok', updated: data.itemIds.length }
 }
 
@@ -411,6 +430,9 @@ export async function archiveListPurchasesImpl(args: {
 
 	const ids = claimedRows.map(r => r.itemId)
 	await db.update(items).set({ isArchived: true }).where(inArray(items.id, ids))
+	for (const id of ids) {
+		notifyListEvent({ kind: 'item', listId: list.id, itemId: id })
+	}
 	return { kind: 'ok', updated: ids.length }
 }
 
@@ -426,6 +448,9 @@ export async function deleteItemsImpl(args: { userId: string; input: z.infer<typ
 
 	await db.delete(items).where(inArray(items.id, [...data.itemIds]))
 	await cleanupImageUrls(rows.map(r => r.imageUrl))
+	for (const row of loaded.rows) {
+		notifyListEvent({ kind: 'item', listId: row.listId, itemId: row.id, shape: 'removed' })
+	}
 	return { kind: 'ok', deleted: data.itemIds.length }
 }
 
@@ -441,6 +466,9 @@ export async function setItemsPriorityImpl(args: {
 		.update(items)
 		.set({ priority: data.priority })
 		.where(inArray(items.id, [...data.itemIds]))
+	for (const row of loaded.rows) {
+		notifyListEvent({ kind: 'item', listId: row.listId, itemId: row.id })
+	}
 	return { kind: 'ok', updated: data.itemIds.length }
 }
 
@@ -474,6 +502,7 @@ export async function reorderItemsImpl(args: {
 				.where(and(eq(items.id, u.itemId), eq(items.listId, data.listId)))
 		}
 	})
+	notifyListEvent({ kind: 'item', listId: data.listId, itemId: -1 })
 	return { kind: 'ok', updated: data.updates.length }
 }
 
@@ -525,6 +554,7 @@ export async function reorderListEntriesImpl(args: {
 				.where(and(eq(itemGroups.id, u.groupId), eq(itemGroups.listId, data.listId)))
 		}
 	})
+	notifyListEvent({ kind: 'item', listId: data.listId, itemId: -1 })
 	return { kind: 'ok', updatedItems: data.items.length, updatedGroups: data.groups.length }
 }
 
@@ -551,6 +581,7 @@ export async function setGroupsPriorityImpl(args: {
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	await db.update(itemGroups).set({ priority: data.priority }).where(inArray(itemGroups.id, data.groupIds))
+	notifyListEvent({ kind: 'item', listId: groupRows[0].listId, itemId: -1 })
 	return { kind: 'ok', updated: data.groupIds.length }
 }
 
@@ -588,6 +619,7 @@ export async function deleteGroupsImpl(args: {
 	})
 
 	await cleanupImageUrls(itemRows.map(r => r.imageUrl))
+	notifyListEvent({ kind: 'item', listId: groupRows[0].listId, itemId: -1 })
 	return { kind: 'ok', deletedGroups: data.groupIds.length, deletedItems: itemIds.length }
 }
 

@@ -20,6 +20,7 @@ import { getAppSettings } from '@/lib/settings-loader'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { mirrorRemoteImageToStorage } from '@/lib/storage/mirror'
 import { getVendorFromUrl } from '@/lib/urls'
+import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 
 type ListForPermCheck = { id: number; ownerId: string; subjectDependentId: string | null; isPrivate: boolean; isActive: boolean }
 
@@ -114,9 +115,11 @@ export async function createItemImpl(args: {
 	const mirrored = await maybeMirrorImageForItem(dbx, inserted.id, inserted.imageUrl)
 	if (mirrored && mirrored !== inserted.imageUrl) {
 		const [updated] = await dbx.update(items).set({ imageUrl: mirrored }).where(eq(items.id, inserted.id)).returning()
+		notifyListEvent({ kind: 'item', listId: data.listId, itemId: updated.id, shape: 'added' })
 		return { kind: 'ok', item: updated }
 	}
 
+	notifyListEvent({ kind: 'item', listId: data.listId, itemId: inserted.id, shape: 'added' })
 	return { kind: 'ok', item: inserted }
 }
 
@@ -225,6 +228,7 @@ export async function updateItemImpl(args: {
 		void cleanupImageUrls([priorImageUrl])
 	}
 
+	notifyListEvent({ kind: 'item', listId: item.listId, itemId: updated.id })
 	return { kind: 'ok', item: updated }
 }
 
@@ -261,5 +265,6 @@ export async function deleteItemImpl(args: {
 	// Post-commit storage cleanup. Best-effort; orphans are collected by
 	// the future storage-gc sweeper (TODO(storage-gc)).
 	await cleanupImageUrls([item.imageUrl])
+	notifyListEvent({ kind: 'item', listId: item.listId, itemId: input.itemId, shape: 'removed' })
 	return { kind: 'ok' }
 }

@@ -12,6 +12,7 @@ import { giftedItems, itemComments, itemGroups, items, lists } from '@/db/schema
 import { type GroupType, groupTypeEnumValues, type ListType, type Priority, priorityEnumValues } from '@/db/schema/enums'
 import type { ItemGroup } from '@/db/schema/items'
 import { canEditList } from '@/lib/permissions'
+import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 
 // ===============================
 // Public types
@@ -121,6 +122,7 @@ export async function createItemGroupImpl(args: {
 	const perm = await loadListForEdit(userId, data.listId)
 	if (!perm.ok) return { kind: 'error', reason: perm.reason }
 	const [inserted] = await db.insert(itemGroups).values({ listId: data.listId, type: data.type }).returning()
+	notifyListEvent({ kind: 'item', listId: data.listId, itemId: -1 })
 	return { kind: 'ok', group: inserted }
 }
 
@@ -145,6 +147,7 @@ export async function updateItemGroupImpl(args: {
 	if (data.priority !== undefined) updates.priority = data.priority
 
 	await db.update(itemGroups).set(updates).where(eq(itemGroups.id, data.groupId))
+	notifyListEvent({ kind: 'item', listId: group.listId, itemId: -1 })
 	return { kind: 'ok' }
 }
 
@@ -165,6 +168,7 @@ export async function deleteItemGroupImpl(args: {
 
 	await db.update(items).set({ groupSortOrder: null }).where(eq(items.groupId, data.groupId))
 	await db.delete(itemGroups).where(eq(itemGroups.id, data.groupId))
+	notifyListEvent({ kind: 'item', listId: group.listId, itemId: -1 })
 	return { kind: 'ok' }
 }
 
@@ -202,7 +206,7 @@ export async function moveGroupToListImpl(args: { userId: string; input: z.infer
 
 	const destructive = isCrossTypeMoveDestructive(sourceList.type, targetList.type)
 
-	return await db.transaction(async tx => {
+	const result = await db.transaction(async tx => {
 		await tx.update(itemGroups).set({ listId: data.targetListId }).where(eq(itemGroups.id, data.groupId))
 
 		if (itemIds.length > 0) {
@@ -221,8 +225,13 @@ export async function moveGroupToListImpl(args: { userId: string; input: z.infer
 			commentsDeleted = deleted.length
 		}
 
-		return { kind: 'ok', movedItems: itemIds.length, claimsCleared, commentsDeleted }
+		return { kind: 'ok' as const, movedItems: itemIds.length, claimsCleared, commentsDeleted }
 	})
+
+	notifyListEvent({ kind: 'item', listId: group.listId, itemId: -1, shape: 'removed' })
+	notifyListEvent({ kind: 'item', listId: data.targetListId, itemId: -1, shape: 'added' })
+
+	return result
 }
 
 export async function assignItemsToGroupImpl(args: {
@@ -256,6 +265,7 @@ export async function assignItemsToGroupImpl(args: {
 	const setData = data.groupId === null ? { groupId: null, groupSortOrder: null } : { groupId: data.groupId }
 	await db.update(items).set(setData).where(inArray(items.id, data.itemIds))
 
+	notifyListEvent({ kind: 'item', listId, itemId: -1 })
 	return { kind: 'ok' }
 }
 
@@ -283,6 +293,7 @@ export async function reorderGroupItemsImpl(args: {
 		}
 	})
 
+	notifyListEvent({ kind: 'item', listId: group.listId, itemId: -1 })
 	return { kind: 'ok' }
 }
 

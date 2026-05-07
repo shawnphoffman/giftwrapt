@@ -7,10 +7,15 @@ import type { ListEvent } from '@/routes/api/sse/list.$listId'
 
 /**
  * Connects to the SSE endpoint for a given list and dispatches narrow
- * invalidations per typed `ListEvent` kind. Only `kind: 'list'` invalidates
- * the route loader (list metadata, addons, groups). Item / comment / addon
- * kinds are no-ops in PR 1; their handlers land alongside mutation
- * instrumentation in PR 2.
+ * invalidations per typed `ListEvent` kind on the per-list channel
+ * (gifter view of `/lists/$listId`).
+ *
+ * Dispatch policy (matches the plan's subscriber map):
+ *  - claim: refresh the items query (item.gifts changed).
+ *  - item:  refresh the items query (covers add / update / remove).
+ *  - comment: refresh that item's comment thread, NOT the items query.
+ *  - addon: invalidate the route loader; addons live on `list.addons`.
+ *  - list:  invalidate the route loader (list metadata changed).
  */
 export function useListSSE(listId: number) {
 	const router = useRouter()
@@ -32,15 +37,15 @@ export function useListSSE(listId: number) {
 				}
 				switch (event.kind) {
 					case 'claim':
+					case 'item':
 						queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })
 						break
+					case 'comment':
+						queryClient.invalidateQueries({ queryKey: ['item-comments', event.itemId] })
+						break
+					case 'addon':
 					case 'list':
 						router.invalidate()
-						break
-					case 'item':
-					case 'comment':
-					case 'addon':
-						// Wired up in PR 2 alongside mutation instrumentation.
 						break
 				}
 			}

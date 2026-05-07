@@ -16,6 +16,7 @@ import { createLogger } from '@/lib/logger'
 import { canViewListAsAnyone } from '@/lib/permissions'
 import { sendNewCommentEmail } from '@/lib/resend'
 import { getAppSettings } from '@/lib/settings-loader'
+import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 
 const commentsLog = createLogger('api:comments')
 
@@ -147,6 +148,7 @@ export async function createItemCommentImpl(args: {
 		}
 	}
 
+	notifyListEvent({ kind: 'comment', listId: list.id, itemId: data.itemId, shape: 'added' })
 	return { kind: 'ok', comment: result }
 }
 
@@ -165,12 +167,18 @@ export async function updateItemCommentImpl(args: {
 
 	const existing = await db.query.itemComments.findFirst({
 		where: eq(itemComments.id, data.commentId),
-		columns: { id: true, userId: true },
+		columns: { id: true, userId: true, itemId: true },
 	})
 	if (!existing) return { kind: 'error', reason: 'not-found' }
 	if (existing.userId !== userId) return { kind: 'error', reason: 'not-yours' }
 
 	await db.update(itemComments).set({ comment: data.comment }).where(eq(itemComments.id, data.commentId))
+
+	const item = await db.query.items.findFirst({
+		where: eq(items.id, existing.itemId),
+		columns: { listId: true },
+	})
+	if (item) notifyListEvent({ kind: 'comment', listId: item.listId, itemId: existing.itemId })
 	return { kind: 'ok' }
 }
 
@@ -192,13 +200,13 @@ export async function deleteItemCommentImpl(args: {
 	})
 	if (!existing) return { kind: 'error', reason: 'not-found' }
 
-	if (existing.userId !== userId) {
-		const item = await db.query.items.findFirst({
-			where: eq(items.id, existing.itemId),
-			columns: { listId: true },
-		})
-		if (!item) return { kind: 'error', reason: 'not-found' }
+	const item = await db.query.items.findFirst({
+		where: eq(items.id, existing.itemId),
+		columns: { listId: true },
+	})
+	if (!item) return { kind: 'error', reason: 'not-found' }
 
+	if (existing.userId !== userId) {
 		const list = await db.query.lists.findFirst({
 			where: eq(lists.id, item.listId),
 			columns: { ownerId: true },
@@ -209,5 +217,6 @@ export async function deleteItemCommentImpl(args: {
 	}
 
 	await db.delete(itemComments).where(eq(itemComments.id, data.commentId))
+	notifyListEvent({ kind: 'comment', listId: item.listId, itemId: existing.itemId, shape: 'removed' })
 	return { kind: 'ok' }
 }

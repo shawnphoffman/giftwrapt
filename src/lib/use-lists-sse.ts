@@ -6,16 +6,18 @@ import type { ListEvent } from '@/routes/api/sse/list.$listId'
 /**
  * Subscribes to the "any list changed" SSE channel and invalidates the
  * grouped public-lists query so the home-page unclaimed/total badges stay
- * live when anyone (you or someone else) claims or unclaims on any list.
+ * live as users mutate anywhere.
  *
- * Dispatches per typed `ListEvent` kind. PR 1 handles `claim`; other kinds
- * are no-ops until their mutation paths are instrumented in PR 2 (only
- * kinds that affect badge counts will invalidate then: `claim`, `item.shape`,
- * `list`).
+ * Only kinds that move badge counts trigger an invalidate:
+ *  - claim:                claim/unclaim shifts unclaimed/total counters.
+ *  - item with `shape`:    add/remove of items moves totals.
+ *  - list (any shape):     a new/removed/archived list reshapes the feed.
+ *
+ * `item` without shape (rename, priority, availability, archive-reveal),
+ * `comment`, and `addon` don't move counts and are dropped here.
  *
  * Fails closed: if EventSource is unavailable, callers still pick up
- * changes via the claimant's own client-side invalidation and the usual
- * stale-time / focus-refetch fallbacks.
+ * changes via stale-time / focus-refetch fallbacks.
  */
 export function useListsSSE() {
 	const queryClient = useQueryClient()
@@ -34,16 +36,21 @@ export function useListsSSE() {
 				} catch {
 					return
 				}
+				let invalidate = false
 				switch (event.kind) {
 					case 'claim':
-						queryClient.invalidateQueries({ queryKey: ['lists', 'public', 'grouped'] })
+					case 'list':
+						invalidate = true
 						break
 					case 'item':
+						invalidate = !!event.shape
+						break
 					case 'comment':
 					case 'addon':
-					case 'list':
-						// Wired up in PR 2 alongside mutation instrumentation.
 						break
+				}
+				if (invalidate) {
+					queryClient.invalidateQueries({ queryKey: ['lists', 'public', 'grouped'] })
 				}
 			}
 

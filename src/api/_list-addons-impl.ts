@@ -9,6 +9,7 @@ import { db, type SchemaDatabase } from '@/db'
 import { listAddons, lists } from '@/db/schema'
 import type { ListAddon } from '@/db/schema/lists'
 import { canViewList } from '@/lib/permissions'
+import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 
 // ===============================
 // Public types
@@ -89,6 +90,7 @@ export async function createListAddonImpl(args: {
 		})
 		.returning()
 
+	notifyListEvent({ kind: 'addon', listId: data.listId, addonId: inserted.id, shape: 'added' })
 	return { kind: 'ok', addon: inserted }
 }
 
@@ -100,7 +102,7 @@ export async function updateListAddonImpl(args: {
 
 	const existing = await db.query.listAddons.findFirst({
 		where: eq(listAddons.id, data.addonId),
-		columns: { id: true, userId: true },
+		columns: { id: true, userId: true, listId: true },
 	})
 	if (!existing) return { kind: 'error', reason: 'not-found' }
 	if (existing.userId !== userId) return { kind: 'error', reason: 'not-yours' }
@@ -115,6 +117,7 @@ export async function updateListAddonImpl(args: {
 		.where(eq(listAddons.id, data.addonId))
 		.returning()
 
+	notifyListEvent({ kind: 'addon', listId: existing.listId, addonId: existing.id })
 	return { kind: 'ok', addon: updated }
 }
 
@@ -126,13 +129,14 @@ export async function archiveListAddonImpl(args: {
 
 	const existing = await db.query.listAddons.findFirst({
 		where: eq(listAddons.id, data.addonId),
-		columns: { id: true, userId: true, isArchived: true },
+		columns: { id: true, userId: true, isArchived: true, listId: true },
 	})
 	if (!existing) return { kind: 'error', reason: 'not-found' }
 	if (existing.userId !== userId) return { kind: 'error', reason: 'not-yours' }
 	if (existing.isArchived) return { kind: 'error', reason: 'already-archived' }
 
 	await db.update(listAddons).set({ isArchived: true }).where(eq(listAddons.id, data.addonId))
+	notifyListEvent({ kind: 'addon', listId: existing.listId, addonId: existing.id, shape: 'removed' })
 	return { kind: 'ok' }
 }
 
@@ -144,11 +148,12 @@ export async function deleteListAddonImpl(args: {
 
 	const existing = await db.query.listAddons.findFirst({
 		where: eq(listAddons.id, data.addonId),
-		columns: { id: true, userId: true },
+		columns: { id: true, userId: true, listId: true },
 	})
 	if (!existing) return { kind: 'error', reason: 'not-found' }
 	if (existing.userId !== userId) return { kind: 'error', reason: 'not-yours' }
 
 	await db.delete(listAddons).where(and(eq(listAddons.id, data.addonId), eq(listAddons.userId, userId)))
+	notifyListEvent({ kind: 'addon', listId: existing.listId, addonId: existing.id, shape: 'removed' })
 	return { kind: 'ok' }
 }

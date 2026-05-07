@@ -27,6 +27,7 @@ import { computeListItemCounts } from '@/lib/gifts'
 import { isValidHolidayKey } from '@/lib/holidays'
 import { canEditList, canViewList, getViewerAccessLevelForList } from '@/lib/permissions'
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
+import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 
 // =====================================================================
 // Public types
@@ -1060,6 +1061,7 @@ export async function createListImpl(args: {
 		})
 		.returning({ id: lists.id, name: lists.name, type: lists.type })
 
+	notifyListEvent({ kind: 'list', listId: inserted.id, shape: 'added' })
 	return { kind: 'ok', list: inserted }
 }
 
@@ -1158,6 +1160,14 @@ export async function updateListImpl(args: {
 		await db.update(lists).set(updates).where(eq(lists.id, data.listId))
 	}
 
+	// `isActive: false` is the archive flow; treat it as a shape change so
+	// home-feed badges drop the list. Other updates carry no shape.
+	if (data.isActive === false) {
+		notifyListEvent({ kind: 'list', listId: data.listId, shape: 'archived' })
+	} else {
+		notifyListEvent({ kind: 'list', listId: data.listId })
+	}
+
 	return { kind: 'ok' }
 }
 
@@ -1193,10 +1203,12 @@ export async function deleteListImpl(args: {
 
 	if (hasClaims) {
 		await dbx.update(lists).set({ isActive: false }).where(eq(lists.id, input.listId))
+		notifyListEvent({ kind: 'list', listId: input.listId, shape: 'archived' })
 		return { kind: 'ok', action: 'archived' }
 	}
 
 	await dbx.delete(lists).where(eq(lists.id, input.listId))
+	notifyListEvent({ kind: 'list', listId: input.listId, shape: 'removed' })
 	return { kind: 'ok', action: 'deleted' }
 }
 

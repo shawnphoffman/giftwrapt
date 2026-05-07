@@ -37,7 +37,7 @@ import { type AppSettings, DEFAULT_APP_SETTINGS } from '@/lib/settings'
 import { getAppSettings } from '@/lib/settings-loader'
 import { mirrorRemoteImageToStorage } from '@/lib/storage/mirror'
 import { getVendorFromUrl } from '@/lib/urls'
-import { notifyListChange } from '@/routes/api/sse/list.$listId'
+import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 
 const log = createLogger('scrape-queue-runner')
 
@@ -439,7 +439,7 @@ function isBlankTitleSubstitute(title: string, url: string): boolean {
 async function notifyListForItem(db: SchemaDatabase, itemId: number) {
 	try {
 		const row = await db.query.items.findFirst({ where: eq(items.id, itemId), columns: { listId: true } })
-		if (row) notifyListChange(row.listId)
+		if (row) notifyListEvent({ kind: 'item', listId: row.listId, itemId })
 	} catch (err) {
 		log.warn({ itemId, err: err instanceof Error ? err.message : String(err) }, 'sse notify failed')
 	}

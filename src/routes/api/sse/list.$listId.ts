@@ -60,16 +60,6 @@ export function notifyListEvent(event: ListEvent) {
 	writeAll(anyListWriters, message, w => anyListWriters.delete(w))
 }
 
-// Backwards-compat shim for the scrape-queue runner, which still emits a
-// generic "list changed" signal post-scrape. PR 2 replaces this caller with
-// a typed `notifyListEvent({ kind: 'item', ... })` once items mutation
-// instrumentation lands. Until then, treat the scrape completion as an item
-// update so the per-list hook can do the right thing in PR 2 without a
-// further server change.
-export function notifyListChange(listId: number) {
-	notifyListEvent({ kind: 'item', listId, itemId: -1 })
-}
-
 export function registerAnyListWriter(writer: Writer) {
 	anyListWriters.add(writer)
 }
