@@ -126,8 +126,9 @@ export function ClaimGiftDialog(props: Props) {
 		}
 		toast.success('Claim removed')
 		onOpenChange(false)
-		queryClient.invalidateQueries({ queryKey: ['lists', 'public', 'grouped'] })
-		await Promise.all([router.invalidate(), queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })])
+		// SSE-driven refresh covers observers (per-list channel) and the
+		// claimant's own list view. Home-page badges for the claimant pick
+		// up on next visit via React Query's staleTime + refetchOnMount.
 	}
 
 	// In edit mode, allow at least the existing claim's current quantity even
@@ -239,12 +240,9 @@ export function ClaimGiftDialog(props: Props) {
 
 				onOpenChange(false)
 				form.reset()
-				// Refresh the grouped public-lists query so the home-page
-				// "unclaimed / total" badge reflects this claim immediately,
-				// the items query so item.gifts updates, and the route loader
-				// for any list-meta consumers.
-				queryClient.invalidateQueries({ queryKey: ['lists', 'public', 'grouped'] })
-				await Promise.all([router.invalidate(), queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })])
+				// SSE-driven refresh covers observers and the claimant's own
+				// list view. Home-page badges for the claimant pick up on
+				// next visit via React Query's staleTime + refetchOnMount.
 			} catch (err) {
 				setError(err instanceof Error ? err.message : 'Failed to save claim')
 			} finally {

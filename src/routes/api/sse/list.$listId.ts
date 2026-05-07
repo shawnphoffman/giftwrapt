@@ -10,13 +10,23 @@ const sseLog = createLogger('sse:list')
 // ===============================
 // Lightweight SSE: clients connect, we keep a set of connected
 // writers keyed by listId. When a mutation happens (claim, comment,
-// item change), the server function calls `notifyListChange(listId)`
+// item change), the server function calls `notifyListEvent(event)`
 // which writes to all connected streams for that list.
 //
 // This is NOT a DB-level change listener (no Supabase Realtime).
 // It's a simple "push invalidation" from our own server functions.
 
 type Writer = WritableStreamDefaultWriter<Uint8Array>
+
+// Typed event taxonomy. Clients switch on `kind` and invalidate only the
+// affected query. Payload carries no row data, only ids — restricted-viewer
+// filtering still applies on the resulting refetch.
+export type ListEvent =
+	| { kind: 'claim'; listId: number }
+	| { kind: 'item'; listId: number; itemId: number; shape?: 'added' | 'removed' }
+	| { kind: 'comment'; listId: number; itemId: number; shape?: 'added' | 'removed' }
+	| { kind: 'addon'; listId: number; addonId: number; shape?: 'added' | 'removed' }
+	| { kind: 'list'; listId: number; shape?: 'added' | 'removed' | 'archived' }
 
 // Per-list subscribers - used by viewers of a specific list-detail page.
 const listWriters = new Map<number, Set<Writer>>()
@@ -36,17 +46,28 @@ function writeAll(writers: Iterable<Writer>, message: Uint8Array, onFailed: (w: 
 	}
 }
 
-export function notifyListChange(listId: number) {
+export function notifyListEvent(event: ListEvent) {
+	const { listId } = event
 	const perList = listWriters.get(listId)
 	if ((!perList || perList.size === 0) && anyListWriters.size === 0) return
 
 	const encoder = new TextEncoder()
-	const message = encoder.encode(`data: ${JSON.stringify({ type: 'invalidate', listId, ts: Date.now() })}\n\n`)
+	const message = encoder.encode(`data: ${JSON.stringify(event)}\n\n`)
 
-	sseLog.debug({ listId, perListSubs: perList?.size ?? 0, anyListSubs: anyListWriters.size }, 'broadcasting list change')
+	sseLog.debug({ kind: event.kind, listId, perListSubs: perList?.size ?? 0, anyListSubs: anyListWriters.size }, 'broadcasting list event')
 
 	if (perList) writeAll(perList, message, w => perList.delete(w))
 	writeAll(anyListWriters, message, w => anyListWriters.delete(w))
+}
+
+// Backwards-compat shim for the scrape-queue runner, which still emits a
+// generic "list changed" signal post-scrape. PR 2 replaces this caller with
+// a typed `notifyListEvent({ kind: 'item', ... })` once items mutation
+// instrumentation lands. Until then, treat the scrape completion as an item
+// update so the per-list hook can do the right thing in PR 2 without a
+// further server change.
+export function notifyListChange(listId: number) {
+	notifyListEvent({ kind: 'item', listId, itemId: -1 })
 }
 
 export function registerAnyListWriter(writer: Writer) {

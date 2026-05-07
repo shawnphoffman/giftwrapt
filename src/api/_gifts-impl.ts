@@ -13,7 +13,7 @@ import { giftedItems, itemGroups, items, lists, users } from '@/db/schema'
 import type { GiftedItem } from '@/db/schema/gifts'
 import { computeRemainingClaimableQuantity } from '@/lib/gifts'
 import { canViewList } from '@/lib/permissions'
-import { notifyListChange } from '@/routes/api/sse/list.$listId'
+import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 
 // ===============================
 // READ - my outgoing gifts (claims)
@@ -268,7 +268,7 @@ export async function claimItemGiftImpl(args: { gifterId: string; input: z.infer
 		return { kind: 'ok', gift: inserted }
 	})
 
-	if (notifyCtx.listId !== null) notifyListChange(notifyCtx.listId)
+	if (notifyCtx.listId !== null) notifyListEvent({ kind: 'claim', listId: notifyCtx.listId })
 	return result
 }
 
@@ -335,7 +335,7 @@ export async function updateItemGiftImpl(args: {
 		return { kind: 'ok', gift: updated }
 	})
 
-	if (notifyCtx.listId !== null) notifyListChange(notifyCtx.listId)
+	if (notifyCtx.listId !== null) notifyListEvent({ kind: 'claim', listId: notifyCtx.listId })
 	return result
 }
 
@@ -366,7 +366,7 @@ export async function unclaimItemGiftImpl(args: {
 
 	await db.delete(giftedItems).where(and(eq(giftedItems.id, data.giftId), eq(giftedItems.gifterId, gifterId)))
 
-	notifyListChange(existing.listId)
+	notifyListEvent({ kind: 'claim', listId: existing.listId })
 	return { kind: 'ok' }
 }
 
