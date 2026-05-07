@@ -16,7 +16,7 @@ import { cleanupVerificationImpl } from '@/lib/cron/cleanup-verification'
 import { parentalRemindersImpl } from '@/lib/cron/parental-reminders'
 import { sweepCronRuns } from '@/lib/cron/record-run'
 import type { CronEndpoint } from '@/lib/cron/registry'
-import { listHolidaysFor } from '@/lib/holidays'
+import { getCatalogEntry } from '@/lib/holidays'
 import { processOnce } from '@/lib/import/scrape-queue/runner'
 import { generateForUser } from '@/lib/intelligence/runner'
 import { createLogger } from '@/lib/logger'
@@ -109,7 +109,7 @@ async function sendGenericHolidayEmails(dbx: SchemaDatabase, details: AutoArchiv
 			where: eq(lists.id, d.listId),
 			columns: { name: true },
 		})
-		const catalog = listHolidaysFor(d.holidayCountry).find(h => h.key === d.holidayKey)
+		const catalog = await getCatalogEntry(d.holidayCountry, d.holidayKey, dbx)
 		if (!list || !catalog) continue
 		await sendPostHolidayEmail(owner.email, { holidayName: catalog.name, listName: list.name })
 		sent += 1

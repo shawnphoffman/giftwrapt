@@ -101,6 +101,48 @@ export const getListForEditing = () => Promise.resolve({ kind: 'ok' as const, li
 export const getListSummaries = (): Promise<{ summaries: Array<unknown> }> => Promise.resolve({ summaries: [] })
 export const getMyLastHolidayCountry = (): Promise<string | null> => Promise.resolve(null)
 
+// @/api/holiday-catalog
+type StorybookHolidayEntry = { key: string; name: string; rule: string; start: string; end: string }
+const STORYBOOK_HOLIDAY_SNAPSHOT = {
+	year: 2026,
+	countries: [
+		{ code: 'US', name: 'United States' },
+		{ code: 'CA', name: 'Canada' },
+		{ code: 'GB', name: 'United Kingdom' },
+		{ code: 'AU', name: 'Australia' },
+	],
+	byCountry: {
+		US: [
+			{ key: 'easter', name: 'Easter Sunday', rule: 'easter', start: '2026-04-05T04:00:00.000Z', end: '2026-04-06T04:00:00.000Z' },
+			{
+				key: 'mothers-day',
+				name: "Mother's Day",
+				rule: '2nd sunday in May',
+				start: '2026-05-10T04:00:00.000Z',
+				end: '2026-05-11T04:00:00.000Z',
+			},
+			{
+				key: 'thanksgiving',
+				name: 'Thanksgiving Day',
+				rule: '4th thursday in November',
+				start: '2026-11-26T05:00:00.000Z',
+				end: '2026-11-27T05:00:00.000Z',
+			},
+		] as Array<StorybookHolidayEntry>,
+		CA: [{ key: 'canada-day', name: 'Canada Day', rule: '07-01', start: '2026-07-01T04:00:00.000Z', end: '2026-07-02T04:00:00.000Z' }],
+		GB: [{ key: 'easter', name: 'Easter Sunday', rule: 'easter', start: '2026-04-05T00:00:00.000Z', end: '2026-04-06T00:00:00.000Z' }],
+		AU: [{ key: 'anzac-day', name: 'Anzac Day', rule: '04-25', start: '2026-04-25T00:00:00.000Z', end: '2026-04-26T00:00:00.000Z' }],
+	} as Record<string, Array<StorybookHolidayEntry>>,
+}
+export const getHolidaySnapshot = (): Promise<typeof STORYBOOK_HOLIDAY_SNAPSHOT> => Promise.resolve(STORYBOOK_HOLIDAY_SNAPSHOT)
+export const listCatalogEntriesAsAdmin = emptyArray
+export const listLibraryCandidatesAsAdmin = emptyArray
+export const getAdminSupportedCountries = (): Promise<Array<{ code: string; name: string }>> =>
+	Promise.resolve(STORYBOOK_HOLIDAY_SNAPSHOT.countries)
+export const addCatalogEntryAsAdmin = ok
+export const updateCatalogEntryAsAdmin = ok
+export const deleteCatalogEntryAsAdmin = ok
+
 // @/api/purchases
 export const getPurchaseSummary = (): Promise<{ items: Array<unknown>; partner: null }> => Promise.resolve({ items: [], partner: null })
 

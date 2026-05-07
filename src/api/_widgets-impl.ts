@@ -9,7 +9,7 @@ import { and, arrayOverlaps, eq, inArray, max, or, sql } from 'drizzle-orm'
 import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
 import { dependentGuardianships, giftedItems, guardianships, items, listEditors, lists, userRelationships, users } from '@/db/schema'
-import { listHolidaysFor, nextOccurrence } from '@/lib/holidays'
+import { getCatalogEntry, nextOccurrence } from '@/lib/holidays'
 
 // =====================================================================
 // Public types
@@ -168,18 +168,17 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 		}
 	}
 
-	// Memoize country->key->name lookups so we resolve the human-readable
-	// holiday label once per (country, year) instead of per-row.
-	const nameCache = new Map<string, Map<string, string>>()
-	const year = now.getFullYear()
-	function resolveHolidayName(country: string, key: string): string | null {
-		let yearMap = nameCache.get(country)
-		if (!yearMap) {
-			yearMap = new Map<string, string>()
-			for (const h of listHolidaysFor(country, year)) yearMap.set(h.key, h.name)
-			nameCache.set(country, yearMap)
-		}
-		return yearMap.get(key) ?? null
+	// Memoize (country, key) -> name lookups against the catalog table.
+	// Includes disabled entries so existing lists pinned to a now-hidden
+	// holiday continue to appear in the widget.
+	const nameCache = new Map<string, string | null>()
+	async function resolveHolidayName(country: string, key: string): Promise<string | null> {
+		const cacheKey = `${country}:${key}`
+		if (nameCache.has(cacheKey)) return nameCache.get(cacheKey) ?? null
+		const entry = await getCatalogEntry(country, key, dbx)
+		const name = entry?.name ?? null
+		nameCache.set(cacheKey, name)
+		return name
 	}
 
 	const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
@@ -212,7 +211,7 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 			}
 		}
 
-		const occurrence = nextOccurrence(c.holidayCountry, c.holidayKey, now)
+		const occurrence = await nextOccurrence(c.holidayCountry, c.holidayKey, now, dbx)
 		if (!occurrence) continue
 
 		// Skip occurrences the auto-archive cron already processed for this
@@ -223,7 +222,7 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 		const daysUntil = Math.round((occurrenceStart - todayStart) / 86_400_000)
 		if (daysUntil < 0 || daysUntil > horizonDays) continue
 
-		const holidayName = resolveHolidayName(c.holidayCountry, c.holidayKey)
+		const holidayName = await resolveHolidayName(c.holidayCountry, c.holidayKey)
 		if (!holidayName) continue
 
 		const recipient: HolidayWidgetRecipient = c.subjectDependentId

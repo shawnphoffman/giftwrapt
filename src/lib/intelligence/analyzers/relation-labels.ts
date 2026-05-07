@@ -49,8 +49,8 @@ export const relationLabelsAnalyzer: Analyzer = {
 		}
 
 		const leadMs = ctx.settings.parentalRelationsReminderLeadDays * 24 * 60 * 60 * 1000
-		const mdDate = nextOccurrence(COUNTRY, MOTHERS_DAY_KEY, ctx.now)
-		const fdDate = nextOccurrence(COUNTRY, FATHERS_DAY_KEY, ctx.now)
+		const mdDate = await nextOccurrence(COUNTRY, MOTHERS_DAY_KEY, ctx.now, ctx.db)
+		const fdDate = await nextOccurrence(COUNTRY, FATHERS_DAY_KEY, ctx.now, ctx.db)
 
 		const motherDue = mdDate ? mdDate.getTime() - ctx.now.getTime() <= leadMs : false
 		const fatherDue = fdDate ? fdDate.getTime() - ctx.now.getTime() <= leadMs : false

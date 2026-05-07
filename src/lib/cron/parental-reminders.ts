@@ -13,7 +13,7 @@ import { eq, inArray } from 'drizzle-orm'
 import type { SchemaDatabase } from '@/db'
 import { dependents, userRelationLabels, users } from '@/db/schema'
 import type { RelationLabel } from '@/db/schema/enums'
-import { listHolidaysFor, nextOccurrence } from '@/lib/holidays'
+import { getCatalogEntry, nextOccurrence } from '@/lib/holidays'
 import { sendParentalRelationsReminderEmail } from '@/lib/resend'
 
 const COUNTRY = 'US'
@@ -38,7 +38,7 @@ function isSameUtcDay(a: Date, b: Date): boolean {
 }
 
 export async function parentalRemindersImpl({ db, now, leadDays }: Args): Promise<ParentalRemindersResult> {
-	const triggers = resolveTriggers(now, leadDays)
+	const triggers = await resolveTriggers(db, now, leadDays)
 	if (triggers.length === 0) {
 		return { parentalReminderEmails: 0 }
 	}
@@ -87,7 +87,8 @@ export async function parentalRemindersImpl({ db, now, leadDays }: Args): Promis
 			byUserId.set(row.userId, existing)
 		}
 
-		const holidayName = listHolidaysFor(COUNTRY).find(h => h.key === trigger.key)?.name ?? trigger.key
+		const entry = await getCatalogEntry(COUNTRY, trigger.key, db)
+		const holidayName = entry?.name ?? trigger.key
 
 		for (const recipient of byUserId.values()) {
 			try {
@@ -111,7 +112,7 @@ export async function parentalRemindersImpl({ db, now, leadDays }: Args): Promis
 // `now` in calendar terms. Today is "exactly N days before" if (now +
 // leadDays) lands on the same calendar day as the holiday's next
 // occurrence.
-function resolveTriggers(now: Date, leadDays: number): Array<LabelTrigger> {
+async function resolveTriggers(db: SchemaDatabase, now: Date, leadDays: number): Promise<Array<LabelTrigger>> {
 	const target = new Date(now)
 	target.setUTCDate(target.getUTCDate() + leadDays)
 
@@ -120,7 +121,7 @@ function resolveTriggers(now: Date, leadDays: number): Array<LabelTrigger> {
 		['mother', 'mothers-day'],
 		['father', 'fathers-day'],
 	] as const) {
-		const date = nextOccurrence(COUNTRY, key, now)
+		const date = await nextOccurrence(COUNTRY, key, now, db)
 		if (date && isSameUtcDay(date, target)) {
 			out.push({ label, key, date })
 		}

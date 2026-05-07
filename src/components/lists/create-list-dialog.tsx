@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { getMyDependents } from '@/api/dependents'
+import { getHolidaySnapshot } from '@/api/holiday-catalog'
 import { addListEditor } from '@/api/list-editors'
 import { createList, getMyLastHolidayCountry } from '@/api/lists'
 import { getGiftIdeasRecipients } from '@/api/user'
@@ -24,7 +25,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { listTypeEnumValues, ListTypes } from '@/db/schema/enums'
 import { useSession } from '@/lib/auth-client'
-import { isCountryCode, listCountries, listHolidaysFor } from '@/lib/holidays'
 import { LIMITS } from '@/lib/validation/limits'
 
 type Props = {
@@ -83,10 +83,25 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 		staleTime: 10 * 60 * 1000,
 	})
 
+	// Per-deploy holiday catalog (admin-curated). Drives the country +
+	// holiday pickers below.
+	const { data: holidaySnapshot } = useQuery({
+		queryKey: ['holiday-snapshot'],
+		queryFn: () => getHolidaySnapshot(),
+		enabled: open,
+		staleTime: 10 * 60 * 1000,
+	})
+	const supportedCountries = holidaySnapshot?.countries ?? []
+	const holidaysByCountry = holidaySnapshot?.byCountry ?? {}
+	const isKnownCountry = (code: string) => supportedCountries.some(c => c.code === code)
+
 	const partner = partnerId ? users?.find(u => u.id === partnerId) : undefined
 	const partnerLabel = partner ? partner.name || partner.email : 'your partner'
 
-	const availableTypes = isChild ? listTypeEnumValues.filter(t => t !== 'giftideas') : listTypeEnumValues
+	const noHolidaysConfigured = holidaySnapshot !== undefined && supportedCountries.length === 0
+	const availableTypes = (isChild ? listTypeEnumValues.filter(t => t !== 'giftideas') : listTypeEnumValues).filter(
+		t => !(t === 'holiday' && noHolidaysConfigured)
+	)
 
 	const form = useForm({
 		defaultValues: {
@@ -237,8 +252,10 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 												form.setFieldValue('isPrivate', true)
 											}
 											if (v === 'holiday' && !form.getFieldValue('holidayCountry')) {
-												const country = lastHolidayCountry && isCountryCode(lastHolidayCountry) ? lastHolidayCountry : 'US'
-												form.setFieldValue('holidayCountry', country)
+												const last = lastHolidayCountry && isKnownCountry(lastHolidayCountry) ? lastHolidayCountry : null
+												const fallback = supportedCountries[0]?.code ?? null
+												const country = last ?? fallback
+												if (country) form.setFieldValue('holidayCountry', country)
 											}
 										}}
 										disabled={submitting}
@@ -310,7 +327,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 												<SelectValue placeholder="Select a country" />
 											</SelectTrigger>
 											<SelectContent>
-												{listCountries().map(c => (
+												{supportedCountries.map(c => (
 													<SelectItem key={c.code} value={c.code}>
 														{c.name}
 													</SelectItem>
@@ -325,7 +342,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 								{country => (
 									<form.Field name="holidayKey">
 										{field => {
-											const options = country ? listHolidaysFor(country) : []
+											const options = country ? (holidaysByCountry[country] ?? []) : []
 											return (
 												<div className="grid gap-2">
 													<Label htmlFor={field.name}>Holiday</Label>
@@ -336,7 +353,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 														<SelectContent>
 															{options.map(h => (
 																<SelectItem key={h.key} value={h.key}>
-																	{h.name} ({formatHolidayDate(h.start)})
+																	{h.name} ({formatHolidayDate(new Date(h.start))})
 																</SelectItem>
 															))}
 														</SelectContent>

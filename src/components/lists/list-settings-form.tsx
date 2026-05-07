@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { getMyDependents } from '@/api/dependents'
+import { getHolidaySnapshot } from '@/api/holiday-catalog'
 import { archiveListPurchases } from '@/api/items'
 import { addListEditor } from '@/api/list-editors'
 import { updateList } from '@/api/lists'
@@ -26,7 +27,6 @@ import { Separator } from '@/components/ui/separator'
 import type { ListType } from '@/db/schema/enums'
 import { listTypeEnumValues, ListTypes } from '@/db/schema/enums'
 import { useSession } from '@/lib/auth-client'
-import { listCountries, listHolidaysFor } from '@/lib/holidays'
 import { itemsKeys } from '@/lib/queries/items'
 import { LIMITS } from '@/lib/validation/limits'
 
@@ -102,6 +102,15 @@ export function ListSettingsForm({
 	})
 
 	const activeDependents = (myDependents?.dependents ?? []).filter(d => !d.isArchived)
+
+	const { data: holidaySnapshot } = useQuery({
+		queryKey: ['holiday-snapshot'],
+		queryFn: () => getHolidaySnapshot(),
+		enabled: isHoliday,
+		staleTime: 10 * 60 * 1000,
+	})
+	const supportedCountries = holidaySnapshot?.countries ?? []
+	const holidaysByCountry = holidaySnapshot?.byCountry ?? {}
 
 	const partner = partnerId ? users?.find(u => u.id === partnerId) : undefined
 	const partnerLabel = partner ? partner.name || partner.email : 'your partner'
@@ -336,7 +345,7 @@ export function ListSettingsForm({
 										<SelectValue placeholder="Select a country" />
 									</SelectTrigger>
 									<SelectContent>
-										{listCountries().map(c => (
+										{supportedCountries.map(c => (
 											<SelectItem key={c.code} value={c.code}>
 												{c.name}
 											</SelectItem>
@@ -351,7 +360,7 @@ export function ListSettingsForm({
 						{country => (
 							<form.Field name="holidayKey">
 								{field => {
-									const options = country ? listHolidaysFor(country) : []
+									const options = country ? (holidaysByCountry[country] ?? []) : []
 									return (
 										<div className="grid gap-2">
 											<Label htmlFor={field.name}>Holiday</Label>
@@ -362,7 +371,7 @@ export function ListSettingsForm({
 												<SelectContent>
 													{options.map(h => (
 														<SelectItem key={h.key} value={h.key}>
-															{h.name} ({formatHolidayDate(h.start)})
+															{h.name} ({formatHolidayDate(new Date(h.start))})
 														</SelectItem>
 													))}
 												</SelectContent>

@@ -9,6 +9,7 @@ import {
 	ParentalRelationsSettingsSection,
 	TodoSettingsSection,
 } from '@/components/admin/app-settings-editor'
+import { HolidayCatalogSection } from '@/components/admin/holiday-catalog-section'
 import { StorageDisabledBanner } from '@/components/common/storage-disabled-banner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ClientOnly } from '@/components/utilities/client-only'
@@ -67,6 +68,20 @@ function AdminPage() {
 				<CardContent>
 					<ClientOnly>
 						<GenericHolidaySettingsSection />
+					</ClientOnly>
+				</CardContent>
+			</Card>
+			<Card className="animate-page-in max-w-xl">
+				<CardHeader>
+					<CardTitle className="text-2xl">Holiday Catalog</CardTitle>
+					<CardDescription>
+						Curate which holidays are available when users create a holiday list. Toggle entries on or off, rename them, or add new ones
+						from the bundled library.
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<ClientOnly>
+						<HolidayCatalogSection />
 					</ClientOnly>
 				</CardContent>
 			</Card>

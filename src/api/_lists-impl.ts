@@ -1037,7 +1037,7 @@ export async function createListImpl(args: {
 	let holidayCountry: string | null = null
 	let holidayKey: string | null = null
 	if (data.type === 'holiday') {
-		if (!data.holidayCountry || !data.holidayKey || !isValidHolidayKey(data.holidayCountry, data.holidayKey)) {
+		if (!data.holidayCountry || !data.holidayKey || !(await isValidHolidayKey(data.holidayCountry, data.holidayKey))) {
 			return { kind: 'error', reason: 'invalid-holiday-selection' }
 		}
 		holidayCountry = data.holidayCountry
@@ -1136,7 +1136,7 @@ export async function updateListImpl(args: {
 	if (nextType === 'holiday') {
 		const country = data.holidayCountry !== undefined ? data.holidayCountry : list.holidayCountry
 		const key = data.holidayKey !== undefined ? data.holidayKey : list.holidayKey
-		if (!country || !key || !isValidHolidayKey(country, key)) {
+		if (!country || !key || !(await isValidHolidayKey(country, key))) {
 			return { kind: 'error', reason: 'invalid-holiday-selection' }
 		}
 		if (data.holidayCountry !== undefined) updates.holidayCountry = country

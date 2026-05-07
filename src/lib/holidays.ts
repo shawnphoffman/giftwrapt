@@ -1,131 +1,79 @@
-// Curated holiday catalog backed by the `date-holidays` library.
+// Holiday catalog helpers backed by the per-deploy `holiday_catalog`
+// table (see src/db/schema/holiday-catalog.ts) and the bundled
+// `date-holidays` library.
 //
-// Why curated: `date-holidays` returns dozens of entries per country
-// (some `public`, many `observance`, plus religious feasts and obscure
-// observances). For a gift-giving app we want a tight list of "occasions
-// you might gift for", which is a much smaller subset. The allowlist
-// here is the contract; new entries are added as users ask for them.
-//
-// Stable identifier: each catalog entry has a stable URL-safe `slug`
-// (`'easter'`, `'mothers-day'`) that becomes `lists.holiday_key` in the
-// DB. Internally the slug maps to the library's `rule` string, which is
-// what we use to look the holiday up at runtime. If a future
-// `date-holidays` version changes a rule string for one of our entries,
-// the unit tests catch it.
-//
-// Christmas: NOT in the allowlist. `christmas` is a first-class list
-// type with its own theming, cron, and emails. Picking "Christmas Day"
-// inside a generic holiday list would be redundant.
+// Two layers:
+// 1. Sync, library-only helpers. Take a `rule` string and a country
+//    code; compute next/last/end occurrence locally. Used by both
+//    server and client (the client receives `rule` via a snapshot
+//    server fn and computes dates without an extra round trip).
+// 2. Async, DB-backed helpers. Resolve `(country, slug)` against the
+//    catalog table. The validation path (`isValidHolidayKey`) returns
+//    `true` only for ENABLED rows so admin can hide entries from
+//    new-list creation. The date resolvers (`nextOccurrence` etc.)
+//    accept disabled rows so existing lists pinned to a now-disabled
+//    entry continue to render and auto-archive correctly.
 
 import type { HolidaysTypes } from 'date-holidays'
 import Holidays from 'date-holidays'
+import { and, eq } from 'drizzle-orm'
 
-export type CountryCode = 'US' | 'CA' | 'GB' | 'AU'
+import type { SchemaDatabase } from '@/db'
+import { db } from '@/db'
+import { seedHolidayCatalogIfEmpty } from '@/db/holiday-catalog-seed'
+import { holidayCatalog } from '@/db/schema'
 
-const COUNTRY_CODES: ReadonlyArray<CountryCode> = ['US', 'CA', 'GB', 'AU']
-
-export const SUPPORTED_COUNTRIES: ReadonlyArray<{ code: CountryCode; name: string }> = [
+// Display-only metadata for the launch countries. The catalog table
+// stores arbitrary country codes, but these are the names the admin
+// picker labels by default. Any country code in the table that isn't
+// listed here is shown by its raw code.
+export const SUPPORTED_COUNTRIES: ReadonlyArray<{ code: string; name: string }> = [
 	{ code: 'US', name: 'United States' },
 	{ code: 'CA', name: 'Canada' },
 	{ code: 'GB', name: 'United Kingdom' },
 	{ code: 'AU', name: 'Australia' },
 ]
 
-interface CatalogEntry {
-	slug: string
-	name: string
-	// Exact `rule` string from `date-holidays` for the canonical (non-
-	// substitute) holiday in that country. Verified by the unit test
-	// suite against the bundled library version.
-	rule: string
-}
-
-const ALLOWLIST: Record<CountryCode, ReadonlyArray<CatalogEntry>> = {
-	US: [
-		{ slug: 'new-year', name: "New Year's Day", rule: '01-01 and if sunday then next monday if saturday then previous friday' },
-		{ slug: 'mlk-day', name: 'Martin Luther King Jr. Day', rule: '3rd monday in January' },
-		{ slug: 'valentines', name: "Valentine's Day", rule: '02-14' },
-		{ slug: 'st-patricks', name: "St. Patrick's Day", rule: '03-17' },
-		{ slug: 'easter', name: 'Easter Sunday', rule: 'easter' },
-		{ slug: 'mothers-day', name: "Mother's Day", rule: '2nd sunday in May' },
-		{ slug: 'memorial-day', name: 'Memorial Day', rule: 'monday before 06-01' },
-		{ slug: 'juneteenth', name: 'Juneteenth', rule: '06-19 and if sunday then next monday if saturday then previous friday since 2021' },
-		{ slug: 'fathers-day', name: "Father's Day", rule: '3rd sunday in June' },
-		{ slug: 'independence-day', name: 'Independence Day', rule: '07-04 and if sunday then next monday if saturday then previous friday' },
-		{ slug: 'labor-day', name: 'Labor Day', rule: '1st monday in September' },
-		{ slug: 'halloween', name: 'Halloween', rule: '10-31 18:00' },
-		{ slug: 'veterans-day', name: 'Veterans Day', rule: '11-11' },
-		{ slug: 'thanksgiving', name: 'Thanksgiving Day', rule: '4th thursday in November' },
-		{ slug: 'new-years-eve', name: "New Year's Eve", rule: '12-31' },
-	],
-	CA: [
-		{ slug: 'new-year', name: "New Year's Day", rule: '01-01' },
-		{ slug: 'valentines', name: "Valentine's Day", rule: '02-14' },
-		{ slug: 'st-patricks', name: "St. Patrick's Day", rule: '03-17' },
-		{ slug: 'good-friday', name: 'Good Friday', rule: 'easter -2' },
-		{ slug: 'easter', name: 'Easter Sunday', rule: 'easter' },
-		{ slug: 'mothers-day', name: "Mother's Day", rule: '2nd sunday after 05-01' },
-		{ slug: 'fathers-day', name: "Father's Day", rule: '3rd sunday after 06-01' },
-		{ slug: 'canada-day', name: 'Canada Day', rule: '07-01' },
-		{ slug: 'labour-day', name: 'Labour Day', rule: '1st monday in September' },
-		{ slug: 'thanksgiving', name: 'Thanksgiving', rule: '2nd monday after 10-01' },
-		{ slug: 'halloween', name: 'Halloween', rule: '10-31 18:00' },
-		{ slug: 'boxing-day', name: 'Boxing Day', rule: '12-26' },
-	],
-	GB: [
-		{ slug: 'new-year', name: "New Year's Day", rule: '01-01' },
-		// Mothering Sunday in the UK is "Mother's Day" but on a different
-		// date (Sunday three weeks before Easter). The slug stays
-		// 'mothering-sunday' so it's distinct from US 'mothers-day'.
-		{ slug: 'mothering-sunday', name: 'Mothering Sunday', rule: 'easter -21' },
-		{ slug: 'good-friday', name: 'Good Friday', rule: 'easter -2' },
-		{ slug: 'easter', name: 'Easter Sunday', rule: 'easter' },
-		{ slug: 'easter-monday', name: 'Easter Monday', rule: 'easter 1' },
-		{ slug: 'fathers-day', name: "Father's Day", rule: '3rd sunday in June' },
-		{ slug: 'boxing-day', name: 'Boxing Day', rule: '12-26' },
-	],
-	AU: [
-		{ slug: 'new-year', name: "New Year's Day", rule: '01-01 and if saturday,sunday then next monday' },
-		{ slug: 'australia-day', name: 'Australia Day', rule: '01-26 if saturday,sunday then next monday' },
-		{ slug: 'good-friday', name: 'Good Friday', rule: 'easter -2' },
-		{ slug: 'easter-saturday', name: 'Easter Saturday', rule: 'easter -1' },
-		{ slug: 'easter', name: 'Easter Sunday', rule: 'easter' },
-		{ slug: 'easter-monday', name: 'Easter Monday', rule: 'easter 1' },
-		{ slug: 'anzac-day', name: 'Anzac Day', rule: '04-25' },
-		{ slug: 'mothers-day', name: "Mother's Day", rule: '2nd sunday in May' },
-		{ slug: 'fathers-day', name: "Father's Day", rule: '1st sunday in September' },
-		{ slug: 'boxing-day', name: 'Boxing Day', rule: '12-26 and if saturday then next monday if sunday then next tuesday' },
-	],
-}
+// Set of country codes the bundled `date-holidays` library actually
+// has data for. Computed once at module load; the library exposes its
+// catalog via `Holidays.getCountries()`.
+const SUPPORTED_LIBRARY_CODES: ReadonlySet<string> = (() => {
+	try {
+		return new Set(Object.keys(new Holidays().getCountries()))
+	} catch {
+		return new Set<string>()
+	}
+})()
 
 // `date-holidays` is mutable per-instance; cache one per country so
 // repeated lookups don't re-parse the country dataset.
-const instanceCache = new Map<CountryCode, Holidays>()
-function getInstance(country: CountryCode): Holidays {
-	let inst = instanceCache.get(country)
-	if (!inst) {
+const instanceCache = new Map<string, Holidays | null>()
+function getInstance(country: string): Holidays | null {
+	if (!isCountryCode(country)) return null
+	if (instanceCache.has(country)) return instanceCache.get(country) ?? null
+	let inst: Holidays | null = null
+	try {
 		inst = new Holidays(country, { types: ['public', 'observance'] })
-		instanceCache.set(country, inst)
+	} catch {
+		inst = null
 	}
+	instanceCache.set(country, inst)
 	return inst
 }
 
-export function isCountryCode(value: string): value is CountryCode {
-	return (COUNTRY_CODES as ReadonlyArray<string>).includes(value)
+// Returns true if the given code is a known country in the bundled
+// `date-holidays` library. Case-strict (uppercase) so the catalog's
+// `(country, slug)` natural key stays a stable join target.
+export function isCountryCode(value: string): boolean {
+	if (!value || !/^[A-Z]{2}$/.test(value)) return false
+	return SUPPORTED_LIBRARY_CODES.has(value)
 }
 
-function findEntry(country: string, slug: string): CatalogEntry | null {
-	if (!isCountryCode(country)) return null
-	return ALLOWLIST[country].find(e => e.slug === slug) ?? null
-}
-
-function findHolidayInYear(country: CountryCode, rule: string, year: number): HolidaysTypes.Holiday | null {
-	const holidays = getInstance(country).getHolidays(year)
+function findHolidayInYear(country: string, rule: string, year: number): HolidaysTypes.Holiday | null {
+	const inst = getInstance(country)
+	if (!inst) return null
+	const holidays = inst.getHolidays(year)
 	return holidays.find(h => h.rule === rule && !h.substitute) ?? null
-}
-
-export function listCountries(): ReadonlyArray<{ code: CountryCode; name: string }> {
-	return SUPPORTED_COUNTRIES
 }
 
 export interface CatalogHoliday {
@@ -135,63 +83,176 @@ export interface CatalogHoliday {
 	end: Date
 }
 
-// Returns the curated holiday list for a given country and year, sorted
-// by start date. Empty array for unsupported countries.
-export function listHolidaysFor(country: string, year: number = new Date().getFullYear()): Array<CatalogHoliday> {
+// =====================================================================
+// Sync, rule-driven date math (no DB)
+// =====================================================================
+
+// Resolves the (start, end) of the holiday in a specific year. Null if
+// the rule isn't recognized or the country isn't in the library.
+export function resolveOccurrenceForRule(country: string, rule: string, year: number): { start: Date; end: Date } | null {
+	const h = findHolidayInYear(country, rule, year)
+	if (!h) return null
+	return { start: new Date(h.start), end: new Date(h.end) }
+}
+
+export function nextOccurrenceForRule(country: string, rule: string, now: Date = new Date()): Date | null {
+	const year = now.getFullYear()
+	const thisYear = findHolidayInYear(country, rule, year)
+	if (thisYear && thisYear.end.getTime() > now.getTime()) return new Date(thisYear.start)
+	const nextYear = findHolidayInYear(country, rule, year + 1)
+	return nextYear ? new Date(nextYear.start) : null
+}
+
+export function lastOccurrenceForRule(country: string, rule: string, now: Date = new Date()): Date | null {
+	const year = now.getFullYear()
+	const thisYear = findHolidayInYear(country, rule, year)
+	if (thisYear && thisYear.end.getTime() <= now.getTime()) return new Date(thisYear.start)
+	const lastYear = findHolidayInYear(country, rule, year - 1)
+	return lastYear ? new Date(lastYear.start) : null
+}
+
+export function endOfOccurrenceForRule(country: string, rule: string, occurrenceStart: Date): Date | null {
+	const h = findHolidayInYear(country, rule, occurrenceStart.getFullYear())
+	return h ? new Date(h.end) : null
+}
+
+// =====================================================================
+// Async, DB-backed catalog helpers
+// =====================================================================
+
+interface CatalogRow {
+	country: string
+	slug: string
+	name: string
+	rule: string
+	isEnabled: boolean
+}
+
+// Returns the catalog row regardless of `isEnabled`. The cron and the
+// widget name resolver use this so existing lists pinned to a disabled
+// entry keep working.
+export async function getCatalogEntry(country: string, slug: string, dbx: SchemaDatabase = db): Promise<CatalogRow | null> {
+	await seedHolidayCatalogIfEmpty(dbx)
+	const row = await dbx.query.holidayCatalog.findFirst({
+		where: and(eq(holidayCatalog.country, country), eq(holidayCatalog.slug, slug)),
+		columns: { country: true, slug: true, name: true, rule: true, isEnabled: true },
+	})
+	return row ?? null
+}
+
+// Returns the country codes that have at least one enabled catalog
+// entry, intersected with the launch country list when present so the
+// UI gets the friendly name.
+export async function listEnabledCountries(dbx: SchemaDatabase = db): Promise<Array<{ code: string; name: string }>> {
+	await seedHolidayCatalogIfEmpty(dbx)
+	const rows = await dbx.selectDistinct({ country: holidayCatalog.country }).from(holidayCatalog).where(eq(holidayCatalog.isEnabled, true))
+	const known = new Map(SUPPORTED_COUNTRIES.map(c => [c.code, c.name]))
+	const out: Array<{ code: string; name: string }> = []
+	for (const r of rows) out.push({ code: r.country, name: known.get(r.country) ?? r.country })
+	out.sort((a, b) => a.name.localeCompare(b.name))
+	return out
+}
+
+// Returns enabled catalog entries for a country with computed
+// (start, end) for the given year. Empty when no entries are enabled.
+export async function listHolidaysFor(
+	country: string,
+	year: number = new Date().getFullYear(),
+	dbx: SchemaDatabase = db
+): Promise<Array<CatalogHoliday>> {
 	if (!isCountryCode(country)) return []
+	await seedHolidayCatalogIfEmpty(dbx)
+	const rows = await dbx.query.holidayCatalog.findMany({
+		where: and(eq(holidayCatalog.country, country), eq(holidayCatalog.isEnabled, true)),
+		columns: { slug: true, name: true, rule: true },
+	})
 	const out: Array<CatalogHoliday> = []
-	for (const entry of ALLOWLIST[country]) {
-		const h = findHolidayInYear(country, entry.rule, year)
-		if (!h) continue
-		out.push({ key: entry.slug, name: entry.name, start: new Date(h.start), end: new Date(h.end) })
+	for (const row of rows) {
+		const occ = resolveOccurrenceForRule(country, row.rule, year)
+		if (!occ) continue
+		out.push({ key: row.slug, name: row.name, start: occ.start, end: occ.end })
 	}
 	out.sort((a, b) => a.start.getTime() - b.start.getTime())
 	return out
 }
 
-// Validates that (country, key) corresponds to a real catalog entry.
-// Used by the API layer when accepting `lists.holidayCountry` and
-// `lists.holidayKey` on create/update.
-export function isValidHolidayKey(country: string, key: string): boolean {
-	return findEntry(country, key) !== null
+// Validates that (country, key) corresponds to an enabled catalog
+// entry. Used by the create/update list paths. Disabled entries fail
+// here so admin can stop new lists from being created against a
+// hidden holiday.
+export async function isValidHolidayKey(country: string, key: string, dbx: SchemaDatabase = db): Promise<boolean> {
+	const entry = await getCatalogEntry(country, key, dbx)
+	return entry?.isEnabled === true
 }
 
-// Returns the start date of the next occurrence (today's occurrence if
-// it hasn't ended yet, otherwise next year's). Null for unknown country
-// or key.
-export function nextOccurrence(country: string, key: string, now: Date = new Date()): Date | null {
-	if (!isCountryCode(country)) return null
-	const entry = findEntry(country, key)
+// =====================================================================
+// Date resolvers that read from the catalog table
+// =====================================================================
+
+export async function nextOccurrence(country: string, key: string, now: Date = new Date(), dbx: SchemaDatabase = db): Promise<Date | null> {
+	const entry = await getCatalogEntry(country, key, dbx)
 	if (!entry) return null
+	return nextOccurrenceForRule(country, entry.rule, now)
+}
+
+export async function lastOccurrence(country: string, key: string, now: Date = new Date(), dbx: SchemaDatabase = db): Promise<Date | null> {
+	const entry = await getCatalogEntry(country, key, dbx)
+	if (!entry) return null
+	return lastOccurrenceForRule(country, entry.rule, now)
+}
+
+export async function endOfOccurrence(country: string, key: string, occurrenceStart: Date, dbx: SchemaDatabase = db): Promise<Date | null> {
+	const entry = await getCatalogEntry(country, key, dbx)
+	if (!entry) return null
+	return endOfOccurrenceForRule(country, entry.rule, occurrenceStart)
+}
+
+// =====================================================================
+// Snapshot for client-side pickers
+// =====================================================================
+
+export interface HolidaySnapshotEntry {
+	key: string
+	name: string
+	rule: string
+	start: string
+	end: string
+}
+
+export interface HolidaySnapshot {
+	year: number
+	countries: Array<{ code: string; name: string }>
+	byCountry: Record<string, Array<HolidaySnapshotEntry>>
+}
+
+// Single round-trip data shape for the new-list pickers. Computes the
+// (start, end) for each enabled entry against the current year so the
+// client can render labels like "Easter (Apr 5, 2026)" without
+// loading `date-holidays`.
+export async function getHolidaySnapshot(now: Date = new Date(), dbx: SchemaDatabase = db): Promise<HolidaySnapshot> {
+	await seedHolidayCatalogIfEmpty(dbx)
 	const year = now.getFullYear()
-	const thisYear = findHolidayInYear(country, entry.rule, year)
-	if (thisYear && thisYear.end.getTime() > now.getTime()) return new Date(thisYear.start)
-	const nextYear = findHolidayInYear(country, entry.rule, year + 1)
-	return nextYear ? new Date(nextYear.start) : null
-}
-
-// Returns the start date of the most recent occurrence whose end date
-// is at or before `now`. If the current year's occurrence hasn't ended
-// yet, returns last year's. Null for unknown country or key.
-export function lastOccurrence(country: string, key: string, now: Date = new Date()): Date | null {
-	if (!isCountryCode(country)) return null
-	const entry = findEntry(country, key)
-	if (!entry) return null
-	const year = now.getFullYear()
-	const thisYear = findHolidayInYear(country, entry.rule, year)
-	if (thisYear && thisYear.end.getTime() <= now.getTime()) return new Date(thisYear.start)
-	const lastYear = findHolidayInYear(country, entry.rule, year - 1)
-	return lastYear ? new Date(lastYear.start) : null
-}
-
-// Returns the end date of the occurrence whose start matches the given
-// year. For multi-day holidays this is later than the start; for
-// single-day holidays the library returns end = start + 1 day. The cron
-// archive math uses this to add `archiveDaysAfterHoliday` days.
-export function endOfOccurrence(country: string, key: string, occurrenceStart: Date): Date | null {
-	if (!isCountryCode(country)) return null
-	const entry = findEntry(country, key)
-	if (!entry) return null
-	const h = findHolidayInYear(country, entry.rule, occurrenceStart.getFullYear())
-	return h ? new Date(h.end) : null
+	const countries = await listEnabledCountries(dbx)
+	const byCountry: Record<string, Array<HolidaySnapshotEntry>> = {}
+	for (const c of countries) {
+		const rows = await dbx.query.holidayCatalog.findMany({
+			where: and(eq(holidayCatalog.country, c.code), eq(holidayCatalog.isEnabled, true)),
+			columns: { slug: true, name: true, rule: true },
+		})
+		const entries: Array<HolidaySnapshotEntry> = []
+		for (const row of rows) {
+			const occ = resolveOccurrenceForRule(c.code, row.rule, year)
+			if (!occ) continue
+			entries.push({
+				key: row.slug,
+				name: row.name,
+				rule: row.rule,
+				start: occ.start.toISOString(),
+				end: occ.end.toISOString(),
+			})
+		}
+		entries.sort((a, b) => a.start.localeCompare(b.start))
+		byCountry[c.code] = entries
+	}
+	return { year, countries, byCountry }
 }

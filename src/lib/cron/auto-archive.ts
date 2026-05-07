@@ -130,9 +130,9 @@ export async function autoArchiveImpl({
 
 	for (const list of holidayLists) {
 		if (!list.holidayCountry || !list.holidayKey) continue
-		const occurrenceStart = lastOccurrence(list.holidayCountry, list.holidayKey, now)
+		const occurrenceStart = await lastOccurrence(list.holidayCountry, list.holidayKey, now, db)
 		if (!occurrenceStart) continue
-		const occurrenceEnd = endOfOccurrence(list.holidayCountry, list.holidayKey, occurrenceStart)
+		const occurrenceEnd = await endOfOccurrence(list.holidayCountry, list.holidayKey, occurrenceStart, db)
 		if (!occurrenceEnd) continue
 
 		const cutoff = new Date(occurrenceEnd.getTime() + archiveDaysAfterHoliday * 24 * 60 * 60 * 1000)

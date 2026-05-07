@@ -190,6 +190,13 @@
       "when": 1778092932519,
       "tag": "0026_lovely_black_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1778152956848,
+      "tag": "0027_eminent_stepford_cuckoos",
+      "breakpoints": true
     }
   ]
 }
