@@ -24,12 +24,15 @@ type SignInSearch = { redirect?: string }
 
 // Only allow same-origin paths to prevent open-redirect via the `redirect`
 // search param. Reject protocol-relative (`//evil.com`), absolute URLs, and
-// backslash tricks. Falls back to `/` for anything malformed.
+// backslash tricks. Reject TanStack Start internal paths (`/_serverFn`, etc.)
+// so post-auth navigation can't land on a server-fn endpoint and render raw
+// seroval data instead of a page. Falls back to `/` for anything malformed.
 const safeRedirect = (raw: unknown): string => {
 	if (typeof raw !== 'string') return '/'
 	if (raw.length === 0 || raw.length > 2000) return '/'
 	if (!raw.startsWith('/')) return '/'
 	if (raw.startsWith('//') || raw.startsWith('/\\')) return '/'
+	if (raw.startsWith('/_')) return '/'
 	try {
 		const parsed = new URL(raw, 'http://placeholder.invalid')
 		if (parsed.origin !== 'http://placeholder.invalid') return '/'

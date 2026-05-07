@@ -30,11 +30,19 @@ function clearAuthCookies(): void {
 // sign-in (e.g. /me?url=... or /import?url=... arriving while signed out).
 // Returns `undefined` when the user was already heading to `/`, since that's
 // where they'd land post-auth anyway.
+//
+// authMiddleware is also attached to server functions (e.g.
+// getMyActiveRecommendationCount), where `request.url` is the internal
+// `/_serverFn?...` endpoint rather than a user-visible page. Without the
+// `_`-prefix filter the post-auth `window.location.assign(redirect)` in
+// sign-in lands the browser on the server-fn URL and renders raw seroval
+// data ({"t":10,...}) instead of the home page.
 function buildSignInSearch(request: Request): { redirect?: string } {
 	try {
 		const u = new URL(request.url)
 		const target = `${u.pathname}${u.search}${u.hash}`
 		if (!target || target === '/') return {}
+		if (u.pathname.startsWith('/_')) return {}
 		return { redirect: target }
 	} catch {
 		return {}

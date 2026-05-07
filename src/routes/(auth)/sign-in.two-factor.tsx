@@ -11,6 +11,7 @@ const safeRedirect = (raw: unknown): string => {
 	if (raw.length === 0 || raw.length > 2000) return '/'
 	if (!raw.startsWith('/')) return '/'
 	if (raw.startsWith('//') || raw.startsWith('/\\')) return '/'
+	if (raw.startsWith('/_')) return '/'
 	try {
 		const parsed = new URL(raw, 'http://placeholder.invalid')
 		if (parsed.origin !== 'http://placeholder.invalid') return '/'
