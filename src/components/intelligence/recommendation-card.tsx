@@ -80,6 +80,10 @@ const ANALYZER_LABEL: Record<AnalyzerId, string> = {
 	'stale-items': 'Cleanup',
 	duplicates: 'Organize',
 	grouping: 'Organize',
+	'missing-price': 'Cleanup',
+	'missing-image': 'Cleanup',
+	'stale-scrape': 'Cleanup',
+	'clothing-prefs': 'Cleanup',
 }
 
 type SeverityVariant = 'outline' | 'secondary' | 'destructive' | 'amber'
@@ -126,8 +130,10 @@ const DEFAULT_DISMISS_DESCRIPTION = "Hide this recommendation. We won't show it 
 // (`nav`) bypass this entirely; they don't change rec status.
 type PendingConfirm = { kind: 'action'; action: RecommendationAction } | { kind: 'dismiss' }
 
-function navHref(nav: { listId: string; itemId?: string }): string {
-	return nav.itemId ? `/lists/${nav.listId}#item-${nav.itemId}` : `/lists/${nav.listId}`
+function navHref(nav: { listId: string; itemId?: string; openEdit?: boolean }): string {
+	if (!nav.itemId) return `/lists/${nav.listId}`
+	const search = nav.openEdit ? `?edit=${nav.itemId}` : ''
+	return `/lists/${nav.listId}${search}#item-${nav.itemId}`
 }
 
 export function RecommendationCard({ rec, position, onAction, onDismiss, onSelectListPicker, pending: busy = false }: Props) {

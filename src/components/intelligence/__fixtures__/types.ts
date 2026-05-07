@@ -4,7 +4,15 @@
 // fixtures during the Storybook-first phase so the components can be built
 // and reviewed without any DB or API code.
 
-export type AnalyzerId = 'primary-list' | 'stale-items' | 'duplicates' | 'grouping'
+export type AnalyzerId =
+	| 'primary-list'
+	| 'stale-items'
+	| 'duplicates'
+	| 'grouping'
+	| 'missing-price'
+	| 'missing-image'
+	| 'stale-scrape'
+	| 'clothing-prefs'
 
 export type RecommendationSeverity = 'info' | 'suggest' | 'important'
 
@@ -65,7 +73,7 @@ export type RecommendationAction = {
 	intent: ActionIntent
 	confirmCopy?: string // shown in a confirm dialog before firing apply/dismiss actions
 	apply?: RecommendationApply // when set, the rec card renders an apply button that triggers this server-side
-	nav?: { listId: string; itemId?: string } // when set, the rec card renders the action as a navigation link to the list (or item via fragment); never resolves the rec
+	nav?: { listId: string; itemId?: string; openEdit?: boolean } // when set, the rec card renders the action as a navigation link to the list (or item via fragment); never resolves the rec. openEdit=true asks the list page to open the item's edit dialog on arrival.
 }
 
 export type AffectedSummary = {

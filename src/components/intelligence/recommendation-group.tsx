@@ -20,7 +20,15 @@ const GROUP_META: Record<RecGroupKey, { label: string; description: string; icon
 
 export function groupKeyForAnalyzer(analyzerId: Recommendation['analyzerId']): RecGroupKey {
 	if (analyzerId === 'primary-list') return 'setup'
-	if (analyzerId === 'stale-items') return 'cleanup'
+	if (
+		analyzerId === 'stale-items' ||
+		analyzerId === 'missing-price' ||
+		analyzerId === 'missing-image' ||
+		analyzerId === 'stale-scrape' ||
+		analyzerId === 'clothing-prefs'
+	) {
+		return 'cleanup'
+	}
 	return 'organize'
 }
 

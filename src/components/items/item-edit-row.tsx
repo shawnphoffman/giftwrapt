@@ -1,4 +1,5 @@
 import { useIsMutating } from '@tanstack/react-query'
+import { useLocation } from '@tanstack/react-router'
 import {
 	ArrowDown,
 	ArrowRightLeft,
@@ -14,7 +15,7 @@ import {
 	Trash2,
 	Ungroup,
 } from 'lucide-react'
-import { memo, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import type { GroupSummary } from '@/api/lists'
@@ -90,6 +91,20 @@ export const ItemEditRow = memo(function ItemEditRow({
 	const isAdmin = session?.user.isAdmin
 	const [editOpen, setEditOpen] = useState(false)
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+
+	// Suggestion deep-links land on the list with `?edit=ITEM_ID` and pop
+	// open the matching item's edit dialog on first mount. Tracked in a ref
+	// so we don't re-open on subsequent renders if the user closes the
+	// dialog manually.
+	const editFromSearch = useLocation({ select: l => (l.search as { edit?: number } | undefined)?.edit })
+	const autoOpenedRef = useRef(false)
+	useEffect(() => {
+		if (autoOpenedRef.current) return
+		if (editFromSearch === item.id) {
+			autoOpenedRef.current = true
+			setEditOpen(true)
+		}
+	}, [editFromSearch, item.id])
 	const toggleAvailability = useToggleItemAvailability()
 	const assignGroup = useAssignItemsToGroup()
 	const createGroupAndAssign = useCreateGroupAndAssignItems()

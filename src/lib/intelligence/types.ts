@@ -59,7 +59,7 @@ export type RecommendationAction = {
 	// and apply or dismiss it explicitly. Encoding nav as structured
 	// (listId, itemId?) instead of a free-form URL keeps the analyzer
 	// output in domain terms and lets the renderer own URL shape.
-	nav?: { listId: string; itemId?: string }
+	nav?: { listId: string; itemId?: string; openEdit?: boolean }
 }
 
 export type AffectedSummary = {
@@ -124,7 +124,7 @@ export const recPayloadSchema = z.object({
 				description: z.string(),
 				intent: z.enum(ACTION_INTENTS),
 				confirmCopy: z.string().optional(),
-				nav: z.object({ listId: z.string(), itemId: z.string().optional() }).optional(),
+				nav: z.object({ listId: z.string(), itemId: z.string().optional(), openEdit: z.boolean().optional() }).optional(),
 				apply: z
 					.discriminatedUnion('kind', [
 						z.object({

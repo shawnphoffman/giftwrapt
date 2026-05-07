@@ -439,7 +439,16 @@ export const adminData: AdminIntelligenceData = {
 		dryRun: false,
 		modelOverride: null,
 		email: { enabled: false, weeklyDigestEnabled: false, testRecipient: null },
-		perAnalyzerEnabled: { 'primary-list': true, 'stale-items': true, duplicates: true, grouping: true },
+		perAnalyzerEnabled: {
+			'primary-list': true,
+			'stale-items': true,
+			duplicates: true,
+			grouping: true,
+			'missing-price': true,
+			'missing-image': true,
+			'stale-scrape': true,
+			'clothing-prefs': true,
+		},
 	},
 	health: {
 		totalActiveRecs: 142,

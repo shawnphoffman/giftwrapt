@@ -28,7 +28,7 @@ import { itemsKeys, listItemsEditQueryOptions } from '@/lib/queries/items'
 import { parseInternalListLink } from '@/lib/urls'
 import { useScrollToHash } from '@/lib/use-scroll-to-hash'
 
-type EditSearch = { from?: number; settings?: boolean }
+type EditSearch = { from?: number; settings?: boolean; edit?: number }
 
 export const Route = createFileRoute('/(core)/lists_/$listId/edit')({
 	validateSearch: (search: Record<string, unknown>): EditSearch => {
@@ -38,6 +38,9 @@ export const Route = createFileRoute('/(core)/lists_/$listId/edit')({
 		if (Number.isFinite(num) && num > 0) result.from = num
 		const rawSettings = search.settings
 		if (rawSettings === true || rawSettings === 'true' || rawSettings === 1 || rawSettings === '1') result.settings = true
+		const rawEdit = search.edit
+		const editNum = typeof rawEdit === 'number' ? rawEdit : typeof rawEdit === 'string' ? Number(rawEdit) : NaN
+		if (Number.isFinite(editNum) && editNum > 0) result.edit = editNum
 		return result
 	},
 	loader: async ({ params, context }) => {

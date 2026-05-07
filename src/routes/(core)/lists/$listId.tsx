@@ -15,15 +15,20 @@ import { listItemsViewQueryOptions } from '@/lib/queries/items'
 import { useListSSE } from '@/lib/use-list-sse'
 import { useScrollToHash } from '@/lib/use-scroll-to-hash'
 
-type ListSearch = { from?: number }
+type ListSearch = { from?: number; edit?: number }
 
 export const Route = createFileRoute('/(core)/lists/$listId')({
 	validateSearch: (search: Record<string, unknown>): ListSearch => {
-		const raw = search.from
-		const num = typeof raw === 'number' ? raw : typeof raw === 'string' ? Number(raw) : NaN
-		return Number.isFinite(num) && num > 0 ? { from: num } : {}
+		const out: ListSearch = {}
+		const fromRaw = search.from
+		const fromNum = typeof fromRaw === 'number' ? fromRaw : typeof fromRaw === 'string' ? Number(fromRaw) : NaN
+		if (Number.isFinite(fromNum) && fromNum > 0) out.from = fromNum
+		const editRaw = search.edit
+		const editNum = typeof editRaw === 'number' ? editRaw : typeof editRaw === 'string' ? Number(editRaw) : NaN
+		if (Number.isFinite(editNum) && editNum > 0) out.edit = editNum
+		return out
 	},
-	loaderDeps: ({ search }) => ({ from: search.from }),
+	loaderDeps: ({ search }) => ({ from: search.from, edit: search.edit }),
 	loader: async ({ params, context, location, deps }) => {
 		const listId = Number(params.listId)
 		if (Number.isFinite(listId)) {
@@ -41,10 +46,13 @@ export const Route = createFileRoute('/(core)/lists/$listId')({
 		}
 
 		if (result.kind === 'redirect') {
+			const carry: { from?: number; edit?: number } = {}
+			if (deps.from !== undefined) carry.from = deps.from
+			if (deps.edit !== undefined) carry.edit = deps.edit
 			throw redirect({
 				to: '/lists/$listId/edit',
 				params: { listId: result.listId },
-				search: deps.from !== undefined ? { from: deps.from } : undefined,
+				search: Object.keys(carry).length > 0 ? carry : undefined,
 				hash: location.hash || undefined,
 			})
 		}

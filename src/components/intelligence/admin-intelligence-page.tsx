@@ -57,7 +57,16 @@ type Props = {
 	runningUserId?: string | null
 }
 
-export const ANALYZER_ORDER: Array<AnalyzerId> = ['primary-list', 'stale-items', 'duplicates', 'grouping']
+export const ANALYZER_ORDER: Array<AnalyzerId> = [
+	'primary-list',
+	'stale-items',
+	'duplicates',
+	'grouping',
+	'missing-price',
+	'missing-image',
+	'stale-scrape',
+	'clothing-prefs',
+]
 
 export function AdminIntelligencePageContent({
 	data,
@@ -571,6 +580,34 @@ export const ANALYZER_META: Record<
 		description:
 			'Suggests "pick one" or "in order" groups for ungrouped items that look like alternates of the same need or a prerequisite sequence.',
 		example: 'These three coffee grinders look like alternates of the same need. Group as "pick one" so gifters know to only buy one.',
+		kind: 'ai',
+		triggers: ['cron', 'manual'],
+	},
+	'missing-price': {
+		label: 'Missing prices',
+		description: 'Surfaces items that have a URL but no price recorded so the user can fill one in.',
+		example: '"Stanley tumbler 30oz" has a link but no price set. Adding one helps gifters budget.',
+		kind: 'heuristic',
+		triggers: ['cron', 'manual'],
+	},
+	'missing-image': {
+		label: 'Unselected images',
+		description: 'Surfaces items where the scraper found candidate images but none have been picked yet.',
+		example: 'The scraper found 4 candidate images for "Levis 511" but no image is set on the item. Pick one.',
+		kind: 'heuristic',
+		triggers: ['cron', 'manual'],
+	},
+	'stale-scrape': {
+		label: 'Stale or unscraped URLs',
+		description: "Surfaces items whose linked product hasn't been re-scraped in months (or was never scraped).",
+		example: 'The link on "Wireless headphones" was last scraped 9 months ago. Refresh to catch price/availability changes.',
+		kind: 'heuristic',
+		triggers: ['cron', 'manual'],
+	},
+	'clothing-prefs': {
+		label: 'Clothing size & color',
+		description: 'Asks the model to flag clothing items missing a size or color and suggest common options.',
+		example: '"Levis 511 jeans" has no size noted - common adult sizes are 30x32, 32x32, 34x32. Add yours.',
 		kind: 'ai',
 		triggers: ['cron', 'manual'],
 	},

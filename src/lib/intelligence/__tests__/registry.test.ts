@@ -3,9 +3,19 @@ import { describe, expect, it } from 'vitest'
 import { ANALYZERS, isAnalyzerEnabled } from '../registry'
 
 describe('analyzer registry', () => {
-	it('lists v1 analyzers', () => {
+	it('lists registered analyzers', () => {
 		const ids = ANALYZERS.map(a => a.id)
-		expect(ids).toEqual(['primary-list', 'stale-items', 'duplicates', 'grouping'])
+		expect(ids).toEqual([
+			'primary-list',
+			'relation-labels',
+			'stale-items',
+			'duplicates',
+			'grouping',
+			'missing-price',
+			'missing-image',
+			'stale-scrape',
+			'clothing-prefs',
+		])
 	})
 
 	it('respects per-analyzer enable overrides', () => {
