@@ -26,6 +26,7 @@ import type { Item } from '@/db/schema/items'
 import { buildListEntries } from '@/lib/list-entries'
 import { itemsKeys, listItemsEditQueryOptions } from '@/lib/queries/items'
 import { parseInternalListLink } from '@/lib/urls'
+import { useListSSE } from '@/lib/use-list-sse'
 import { useScrollToHash } from '@/lib/use-scroll-to-hash'
 
 type EditSearch = { from?: number; settings?: boolean; edit?: number }
@@ -90,6 +91,7 @@ function ListEditPage() {
 	const router = useRouter()
 	const navigate = Route.useNavigate()
 	const queryClient = useQueryClient()
+	useListSSE(list.id, 'edit')
 	const [addItemOpen, setAddItemOpen] = useState(false)
 	const [addItemGroupId, setAddItemGroupId] = useState<number | null>(null)
 	const [moveItem, setMoveItem] = useState<Item | null>(null)

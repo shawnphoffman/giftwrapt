@@ -23,6 +23,7 @@ import { PrimaryListNudge } from '@/components/lists/primary-list-nudge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useMeSSE } from '@/lib/use-me-sse'
 
 const myListsQueryOptions = {
 	queryKey: ['my-lists'] as const,
@@ -73,6 +74,7 @@ function MyListsPagePending() {
 }
 
 function MyListsPage() {
+	useMeSSE()
 	const { data } = useSuspenseQuery(myListsQueryOptions)
 	const [createOpen, setCreateOpen] = useState(false)
 	const [addItemOpen, setAddItemOpen] = useState(false)

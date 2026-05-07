@@ -1,4 +1,4 @@
-import { useQueryClient } from '@tanstack/react-query'
+import { type QueryClient, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { useEffect } from 'react'
 
@@ -6,18 +6,56 @@ import { itemsKeys } from '@/lib/queries/items'
 import type { ListEvent } from '@/routes/api/sse/list.$listId'
 
 /**
- * Connects to the SSE endpoint for a given list and dispatches narrow
- * invalidations per typed `ListEvent` kind on the per-list channel
- * (gifter view of `/lists/$listId`).
+ * Per-list SSE subscriber, parameterized by which surface is mounting it.
  *
- * Dispatch policy (matches the plan's subscriber map):
- *  - claim: refresh the items query (item.gifts changed).
- *  - item:  refresh the items query (covers add / update / remove).
- *  - comment: refresh that item's comment thread, NOT the items query.
- *  - addon: invalidate the route loader; addons live on `list.addons`.
- *  - list:  invalidate the route loader (list metadata changed).
+ * - `gifter` (default): the public/gifter view of `/lists/$listId`. Sees all
+ *   five kinds.
+ * - `edit`: the owner's edit view at `/lists_/$listId/edit`. Spoiler
+ *   protection: claim events are intentionally ignored - the owner cannot
+ *   see claims (per .notes/logic.md), so refetching would either flicker
+ *   counts the owner shouldn't react to or leak claim presence via timing.
+ * - `organize`: the owner's reorder/grouping view. Cares about item shape
+ *   and list metadata only; comments and addons are not rendered there.
  */
-export function useListSSE(listId: number) {
+export type ListSSEMode = 'gifter' | 'edit' | 'organize'
+
+type DispatchDeps = {
+	queryClient: Pick<QueryClient, 'invalidateQueries'>
+	router: { invalidate: () => void | Promise<unknown> }
+	listId: number
+	mode: ListSSEMode
+}
+
+/**
+ * Pure dispatcher: maps a `ListEvent` to invalidations under the given mode.
+ * Exported for unit tests (spoiler-protection regression in particular).
+ */
+export function dispatchListEvent(event: ListEvent, deps: DispatchDeps): void {
+	const { queryClient, router, listId, mode } = deps
+	switch (event.kind) {
+		case 'claim':
+			// Spoiler protection: owner-side surfaces never refetch on claims.
+			if (mode === 'edit' || mode === 'organize') return
+			queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })
+			return
+		case 'item':
+			queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })
+			return
+		case 'comment':
+			if (mode === 'organize') return
+			queryClient.invalidateQueries({ queryKey: ['item-comments', event.itemId] })
+			return
+		case 'addon':
+			if (mode === 'organize') return
+			void router.invalidate()
+			return
+		case 'list':
+			void router.invalidate()
+			return
+	}
+}
+
+export function useListSSE(listId: number, mode: ListSSEMode = 'gifter') {
 	const router = useRouter()
 	const queryClient = useQueryClient()
 
@@ -35,19 +73,7 @@ export function useListSSE(listId: number) {
 				} catch {
 					return
 				}
-				switch (event.kind) {
-					case 'claim':
-					case 'item':
-						queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })
-						break
-					case 'comment':
-						queryClient.invalidateQueries({ queryKey: ['item-comments', event.itemId] })
-						break
-					case 'addon':
-					case 'list':
-						router.invalidate()
-						break
-				}
+				dispatchListEvent(event, { queryClient, router, listId, mode })
 			}
 
 			es.onerror = () => {
@@ -60,5 +86,5 @@ export function useListSSE(listId: number) {
 		return () => {
 			es?.close()
 		}
-	}, [listId, router, queryClient])
+	}, [listId, mode, router, queryClient])
 }
