@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { getRecentItems } from '@/api/recent'
 import { RecentItemsPageContent } from '@/components/recent/recent-items-page'
+import { useRecentItemsSSE } from '@/lib/use-recent-items-sse'
 
 const recentItemsQueryOptions = {
 	queryKey: ['recent', 'items'] as const,
@@ -16,6 +17,7 @@ export const Route = createFileRoute('/(core)/recent/items')({
 })
 
 function RecentItemsPage() {
+	useRecentItemsSSE()
 	const { data: items } = useSuspenseQuery(recentItemsQueryOptions)
 	return <RecentItemsPageContent items={items} />
 }
