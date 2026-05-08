@@ -129,7 +129,10 @@ function SignIn() {
 
 	if (isPending) {
 		return (
-			<div className="flex items-center justify-center w-full h-screen">
+			<div
+				className="flex items-center justify-center w-full h-screen"
+				style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+			>
 				<Loading />
 			</div>
 		)
