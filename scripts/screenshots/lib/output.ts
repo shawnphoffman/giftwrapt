@@ -6,6 +6,7 @@
  *   <root>/<timestamp>/manifest.json
  */
 
+import type { Dirent } from 'node:fs'
 import { copyFile, mkdir, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 
@@ -57,6 +58,34 @@ export async function writeManifest(rootDir: string, runId: string, meta: RunMet
 	const path = join(rootDir, runId, 'manifest.json')
 	await writeFile(path, JSON.stringify(meta, null, 2) + '\n')
 	return path
+}
+
+// Keep only the `keep` most-recent timestamped run folders; delete the
+// rest. The `latest` mirror and any non-timestamp directory (manifest
+// extras, READMEs, etc.) are left alone. Returns the slugs that were
+// removed so the caller can log them.
+//
+// Folder names are matched against `YYYYMMDD-HHMMSS` produced by
+// `timestampSlug` so a typo'd custom folder isn't accidentally
+// considered for deletion.
+const TIMESTAMP_RE = /^\d{8}-\d{6}$/
+export async function pruneOldRuns(rootDir: string, keep: number): Promise<Array<string>> {
+	const { readdir } = await import('node:fs/promises')
+	let entries: Array<Dirent>
+	try {
+		entries = await readdir(rootDir, { withFileTypes: true })
+	} catch {
+		return []
+	}
+	const runs = entries
+		.filter(e => e.isDirectory() && TIMESTAMP_RE.test(e.name))
+		.map(e => e.name)
+		.sort() // ascending; timestamp slug sorts lexicographically
+	const stale = runs.slice(0, Math.max(0, runs.length - keep))
+	for (const slug of stale) {
+		await rm(join(rootDir, slug), { recursive: true, force: true })
+	}
+	return stale
 }
 
 async function copyDir(from: string, to: string): Promise<void> {

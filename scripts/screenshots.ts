@@ -28,7 +28,15 @@ import { chromium } from 'playwright'
 import { loginAndSaveState } from './screenshots/lib/auth'
 import { captureRoute, resolveRoutePath } from './screenshots/lib/capture'
 import { waitForServer } from './screenshots/lib/dev-server'
-import { ensureDirFor, fileForRun, type ManifestEntry, mirrorToLatest, timestampSlug, writeManifest } from './screenshots/lib/output'
+import {
+	ensureDirFor,
+	fileForRun,
+	type ManifestEntry,
+	mirrorToLatest,
+	pruneOldRuns,
+	timestampSlug,
+	writeManifest,
+} from './screenshots/lib/output'
 import { composeSplitsForRun } from './screenshots/lib/split'
 import { applyTheme } from './screenshots/lib/theme'
 import { ROUTES } from './screenshots/routes'
@@ -295,6 +303,15 @@ async function run(plan: RunPlan, ids: FixtureIds) {
 	})
 
 	await mirrorToLatest(plan.outDir, plan.runId)
+
+	// Retention: keep the current run plus the `KEEP_RUNS - 1` most recent
+	// previous runs; delete everything older. `latest/` is unaffected
+	// because it's a non-timestamp folder.
+	const KEEP_RUNS = 4
+	const pruned = await pruneOldRuns(plan.outDir, KEEP_RUNS)
+	if (pruned.length > 0) {
+		console.log(`🧹 Pruned ${pruned.length} old run folder(s): ${pruned.join(', ')}`)
+	}
 
 	console.log('')
 	console.log(

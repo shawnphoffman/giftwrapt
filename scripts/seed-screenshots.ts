@@ -30,21 +30,29 @@ import { sql } from 'drizzle-orm'
 import { db } from '@/db'
 import type { BirthMonth } from '@/db/schema'
 import {
+	appSettings,
 	dependentGuardianships,
 	dependents,
 	giftedItems,
 	guardianships,
+	holidayCatalog,
 	itemComments,
 	itemGroups,
 	items,
+	itemScrapes,
 	listAddons,
 	listEditors,
 	lists,
 	type NewItem,
+	recommendationRuns,
+	recommendations,
+	userRelationLabels,
 	userRelationships,
 	users,
 } from '@/db/schema'
 import { auth } from '@/lib/auth'
+import { encryptAppSecret } from '@/lib/crypto/app-secret'
+import { fingerprintFor } from '@/lib/intelligence/fingerprint'
 
 const FIXTURE_IDS_PATH = new URL('./screenshots/.fixture-ids.json', import.meta.url).pathname
 const PASSWORD = 'SeedPass123!'
@@ -227,10 +235,16 @@ async function reset() {
 			"items",
 			"item_groups",
 			"lists",
+			"user_relation_labels",
 			"user_relationships",
 			"guardianships",
 			"dependent_guardianships",
 			"dependents",
+			"recommendations",
+			"recommendation_run_steps",
+			"recommendation_runs",
+			"holiday_catalog",
+			"app_settings",
 			"session",
 			"account",
 			"verification",
@@ -265,6 +279,175 @@ async function main() {
 	console.log(`🕐 Seed time: ${seedTime.toISOString()}`)
 	console.log('🔥 Resetting tables...')
 	await reset()
+
+	// --------------------------------------------------------- APP SETTINGS
+	// Fake-but-complete configuration so every admin/feature surface looks
+	// "live" in screenshots: AI provider configured, email provider
+	// configured, intelligence on, passkeys on, OIDC on, scraper providers
+	// populated. None of these credentials work; we never actually call
+	// the upstream APIs in a screenshot run.
+	console.log('⚙️  Seeding app_settings (fake configured)...')
+	await db.insert(appSettings).values([
+		{ key: 'appTitle', value: 'GiftWrapt' },
+
+		// List type gates: keep only wishlists + birthdays + giftideas. Drop
+		// christmas/todos/holiday so /admin doesn't show every toggle on.
+		{ key: 'enableChristmasLists', value: false },
+		{ key: 'enableBirthdayLists', value: true },
+		{ key: 'enableTodoLists', value: false },
+		// Generic holiday lists ON so the holiday-list type and the
+		// catalog-driven Mother's Day / Father's Day pickers appear.
+		{ key: 'enableGenericHolidayLists', value: true },
+		{ key: 'defaultListType', value: 'wishlist' },
+
+		// Email features ON.
+		{ key: 'enableBirthdayEmails', value: true },
+		{ key: 'enableChristmasEmails', value: false },
+		{ key: 'enableGenericHolidayEmails', value: true },
+		{ key: 'enableComments', value: true },
+		{ key: 'enableCommentEmails', value: true },
+
+		// Parental relations (Mother's / Father's Day) ON.
+		{ key: 'enableParentalRelations', value: true },
+		{ key: 'parentalRelationsReminderLeadDays', value: 7 },
+
+		// Mobile + passkeys + OIDC ON so the sign-in page surfaces every
+		// auth path.
+		{ key: 'enableMobileApp', value: true },
+		{ key: 'enablePasskeys', value: true },
+		{
+			key: 'oidcClient',
+			value: {
+				enabled: true,
+				issuerUrl: 'https://idp.example.test',
+				authorizationUrl: '',
+				tokenUrl: '',
+				userinfoUrl: '',
+				jwksUrl: '',
+				logoutUrl: '',
+				clientId: 'giftwrapt-screenshots',
+				// Encrypted envelope so the loader's decrypt-on-read pass
+				// matches the prod write path.
+				clientSecret: encryptAppSecret('not-a-real-secret-but-non-empty'),
+				scopes: ['openid', 'email', 'profile'],
+				buttonText: 'Sign in with Example IdP',
+				matchExistingUsersBy: 'email',
+				autoRegister: true,
+				mobileRedirectUris: ['giftwrapt://oauth/callback'],
+			},
+		},
+
+		// AI provider: fake but valid-shape config so /admin/ai shows
+		// configured state and Intelligence treats the provider as resolvable.
+		{ key: 'aiProviderType', value: 'anthropic' },
+		{ key: 'aiModel', value: 'claude-sonnet-4-6' },
+		{ key: 'aiBaseUrl', value: 'https://api.anthropic.com' },
+		{ key: 'aiApiKey', value: encryptAppSecret('sk-ant-screenshot-fake-not-a-real-key-XXXXXXXXXXX1234') },
+		{ key: 'aiMaxOutputTokens', value: 4096 },
+
+		// Email provider: fake Resend-shaped config.
+		{ key: 'resendApiKey', value: encryptAppSecret('re_screenshot_fake_NotARealKey1234567890') },
+		{ key: 'resendFromEmail', value: 'GiftWrapt <hello@example.test>' },
+		{ key: 'resendFromName', value: 'GiftWrapt' },
+		{ key: 'resendBccAddress', value: 'archive@example.test' },
+
+		// Scraper timing + providers list: a varied chain so /admin/scraping
+		// shows real rows in the providers list with the expected mix of
+		// types, tiers, and toggles.
+		{ key: 'scrapeProviderTimeoutMs', value: 20_000 },
+		{ key: 'scrapeOverallTimeoutMs', value: 45_000 },
+		{ key: 'scrapeQualityThreshold', value: 3 },
+		{ key: 'scrapeCacheTtlHours', value: 24 },
+		{ key: 'scrapeAiProviderEnabled', value: true },
+		{ key: 'scrapeAiCleanTitlesEnabled', value: true },
+		{
+			key: 'scrapeProviders',
+			value: [
+				{
+					id: 'gw-fly',
+					type: 'giftwrapt-scraper',
+					name: 'GiftWrapt Scraper (hosted)',
+					enabled: true,
+					tier: 1,
+					endpoint: 'https://scraper.example.test',
+					token: encryptAppSecret('gw_screenshot_fake_token_AAAAAAAAA'),
+				},
+				{
+					id: 'browserless-pri',
+					type: 'browserless',
+					name: 'Browserless (primary)',
+					enabled: true,
+					tier: 1,
+					url: 'https://chrome.example.test',
+					token: encryptAppSecret('bl_screenshot_fake_token_BBBBBBBBB'),
+				},
+				{
+					id: 'flaresolverr',
+					type: 'flaresolverr',
+					name: 'FlareSolverr (cloudflare)',
+					enabled: true,
+					tier: 2,
+					url: 'http://flaresolverr.local:8191',
+				},
+				{
+					id: 'scrapfly-1',
+					type: 'scrapfly',
+					name: 'ScrapFly (anti-bot)',
+					enabled: false,
+					tier: 3,
+					apiKey: encryptAppSecret('sf_screenshot_fake_CCCCCCCCC'),
+					asp: true,
+					renderJs: false,
+				},
+				{
+					id: 'ai-extract',
+					type: 'ai',
+					name: 'AI extractor',
+					enabled: true,
+					tier: 4,
+				},
+			],
+		},
+
+		// Bulk import + scrape queue.
+		{ key: 'importEnabled', value: true },
+		{ key: 'scrapeQueueUsersPerInvocation', value: 25 },
+		{ key: 'scrapeQueueConcurrency', value: 3 },
+		{ key: 'scrapeQueueMaxAttempts', value: 3 },
+
+		// Intelligence ON with a tuned config.
+		{ key: 'intelligenceEnabled', value: true },
+		{ key: 'intelligenceRefreshIntervalDays', value: 7 },
+		{ key: 'intelligenceManualRefreshCooldownMinutes', value: 60 },
+		{ key: 'intelligenceCandidateCap', value: 50 },
+		{ key: 'intelligenceConcurrency', value: 3 },
+		{ key: 'intelligenceUsersPerInvocation', value: 25 },
+		{ key: 'intelligenceStaleRecRetentionDays', value: 30 },
+		{ key: 'intelligenceRunStepsRetentionDays', value: 30 },
+		{ key: 'intelligenceDryRun', value: false },
+		{ key: 'intelligencePerAnalyzerEnabled', value: { 'primary-list': true, 'stale-items': true, duplicates: true, grouping: true } },
+		{ key: 'intelligenceModelOverride', value: null },
+		{ key: 'intelligenceEmailEnabled', value: true },
+		{ key: 'intelligenceEmailWeeklyDigestEnabled', value: false },
+		{ key: 'intelligenceEmailTestRecipient', value: 'admin@example.test' },
+		{ key: 'cronRunsRetentionDays', value: 90 },
+
+		// Misc.
+		{ key: 'archiveDaysAfterBirthday', value: 14 },
+		{ key: 'archiveDaysAfterChristmas', value: 14 },
+		{ key: 'archiveDaysAfterHoliday', value: 14 },
+		{ key: 'enableGiftsForNonUsers', value: true },
+		{ key: 'mirrorExternalImagesOnSave', value: false },
+	])
+
+	// --------------------------------------------------------- HOLIDAY CATALOG
+	// User wants only Mother's Day + Father's Day enabled in the catalog.
+	// Seed JUST those two (US) so the new-list holiday picker is short.
+	console.log('🎉 Seeding holiday catalog (mothers + fathers only)...')
+	await db.insert(holidayCatalog).values([
+		{ country: 'US', slug: 'mothers-day', name: "Mother's Day", rule: '2nd sunday in May', isEnabled: true },
+		{ country: 'US', slug: 'fathers-day', name: "Father's Day", rule: '3rd sunday in June', isEnabled: true },
+	])
 
 	// ------------------------------------------------------------- USERS
 	console.log('👤 Creating users (varied birthdays)...')
@@ -309,6 +492,16 @@ async function main() {
 		role: 'child',
 		avatarStyle: 'personas',
 		...birthdayInDays(21), // close-ish: 3 weeks
+	})
+	// Distant acquaintance whose lists admin can see at all only as a
+	// `restricted` viewer. Drives capture of the filtered item view, the
+	// stripped co-gifter columns, and the disabled Restrict toggle UI.
+	const restrictedOwnerId = await signUp({
+		email: 'distant@example.test',
+		name: 'Sky Patel',
+		role: 'user',
+		avatarStyle: 'bottts',
+		...birthdayInDays(95),
 	})
 
 	// ----------------------------------------------- PARTNERSHIPS / GUARDIANSHIPS
@@ -370,6 +563,16 @@ async function main() {
 		// Partner ↔ friend so cross-claims on each other's lists work.
 		{ ownerUserId: partnerId, viewerUserId: friendId, accessLevel: 'view', canEdit: false },
 		{ ownerUserId: friendId, viewerUserId: partnerId, accessLevel: 'view', canEdit: false },
+		// Restricted owner ↔ admin: admin sees the distant user's lists only
+		// in the filtered restricted view; the distant user gets default view
+		// of admin (no overrides). Restricted owner ↔ friend + gifter is
+		// view-only so the seed can add real claims by them on the distant
+		// user's items (those claims should be hidden from admin).
+		{ ownerUserId: restrictedOwnerId, viewerUserId: adminId, accessLevel: 'restricted', canEdit: false },
+		{ ownerUserId: restrictedOwnerId, viewerUserId: friendId, accessLevel: 'view', canEdit: false },
+		{ ownerUserId: friendId, viewerUserId: restrictedOwnerId, accessLevel: 'view', canEdit: false },
+		{ ownerUserId: restrictedOwnerId, viewerUserId: gifterId, accessLevel: 'view', canEdit: false },
+		{ ownerUserId: gifterId, viewerUserId: restrictedOwnerId, accessLevel: 'view', canEdit: false },
 	])
 
 	// --------------------------------------------------------------- LISTS
@@ -515,6 +718,15 @@ async function main() {
 		createdAt: daysAgo(35),
 	})
 
+	// Distant user's wishlist - admin sees this through the restricted lens.
+	const restrictedOwnerWishlist = await createList({
+		name: "Sky's Wishlist",
+		ownerId: restrictedOwnerId,
+		isPrimary: true,
+		description: 'Casual list - no rush on anything.',
+		createdAt: daysAgo(45),
+	})
+
 	// --------------------------------------------- ITEMS - admin primary wishlist
 	// Kitchen-sink: every priority, varied lengths, mix of states. Time
 	// distribution is older → newer down the list.
@@ -530,7 +742,7 @@ async function main() {
 			price: '1499.00',
 			currency: 'USD',
 			quantity: 1,
-			createdAt: daysAgo(110),
+			createdAt: daysAgo(310),
 		},
 		{
 			listId: adminWishlist,
@@ -541,16 +753,7 @@ async function main() {
 			imageUrl: ph.square('Headphones', '0f172a'),
 			price: '299.00',
 			currency: 'USD',
-			createdAt: daysAgo(85),
-		},
-		{
-			listId: adminWishlist,
-			title: 'Mug',
-			priority: 'low',
-			imageUrl: ph.square('Mug', '7c2d12'),
-			price: '18.00',
-			currency: 'USD',
-			createdAt: daysAgo(60),
+			createdAt: daysAgo(220),
 		},
 		{
 			listId: adminWishlist,
@@ -560,27 +763,7 @@ async function main() {
 			imageUrl: ph.tall('Stoneware', 'b45309'),
 			price: '64.00',
 			currency: 'USD',
-			createdAt: daysAgo(54),
-		},
-		{
-			listId: adminWishlist,
-			title: 'Specialty coffee beans',
-			priority: 'normal',
-			quantity: 6,
-			imageUrl: ph.square('Coffee', '7c2d12'),
-			price: '22.50',
-			currency: 'USD',
-			notes: SHORT_NOTES,
-			createdAt: daysAgo(40),
-		},
-		{
-			listId: adminWishlist,
-			title: 'Wool socks',
-			priority: 'low',
-			quantity: 12,
-			price: '14.00',
-			currency: 'USD',
-			createdAt: daysAgo(38),
+			createdAt: daysAgo(155),
 		},
 		{
 			listId: adminWishlist,
@@ -592,16 +775,7 @@ async function main() {
 			price: '45.00',
 			currency: 'USD',
 			notes: 'This one is sold out at the label - waiting on a restock.',
-			createdAt: daysAgo(35),
-		},
-		{
-			listId: adminWishlist,
-			title: 'Artisanal soap',
-			priority: 'low',
-			quantity: 5,
-			// no price on purpose
-			imageUrl: ph.square('Soap', 'd97706'),
-			createdAt: daysAgo(28),
+			createdAt: daysAgo(105),
 		},
 		{
 			listId: adminWishlist,
@@ -611,16 +785,7 @@ async function main() {
 			price: '42.00',
 			currency: 'USD',
 			notes: MEDIUM_NOTES,
-			createdAt: daysAgo(20),
-		},
-		{
-			listId: adminWishlist,
-			title: 'Out-of-print woodworking book',
-			priority: 'normal',
-			availability: 'unavailable',
-			availabilityChangedAt: daysAgo(60),
-			notes: 'Long-tail search - any used copies welcome.',
-			createdAt: daysAgo(18),
+			createdAt: daysAgo(70),
 		},
 		{
 			listId: adminWishlist,
@@ -629,7 +794,7 @@ async function main() {
 			quantity: 2,
 			price: '5.00',
 			currency: 'USD',
-			createdAt: daysAgo(14),
+			createdAt: daysAgo(45),
 		},
 		{
 			listId: adminWishlist,
@@ -640,7 +805,7 @@ async function main() {
 			price: '18.00',
 			currency: 'USD',
 			notes: 'Any flavor mix is fine.',
-			createdAt: daysAgo(10),
+			createdAt: daysAgo(18),
 		},
 		{
 			listId: adminWishlist,
@@ -920,6 +1085,89 @@ async function main() {
 			price: '48.00',
 			currency: 'USD',
 			createdAt: daysAgo(90),
+		},
+	])
+
+	// Partner wishlist groups: an "or" pick-one with one sibling already
+	// claimed (so admin in gifter mode sees the others locked) and an
+	// "order" sequence with the first step claimed (so the second step is
+	// the only one currently claimable). Gives the gifter view real
+	// group-state surfaces to capture.
+	const partnerTentPick = await createGroup({
+		listId: partnerWishlist,
+		name: 'Pick one tent',
+		type: 'or',
+		priority: 'high',
+	})
+	const partnerTentItems = await insertItems([
+		{
+			listId: partnerWishlist,
+			groupId: partnerTentPick,
+			title: 'Two-person backpacking tent',
+			priority: 'high',
+			price: '320.00',
+			currency: 'USD',
+			imageUrl: ph.square('Tent', '15803d'),
+			createdAt: daysAgo(45),
+		},
+		{
+			listId: partnerWishlist,
+			groupId: partnerTentPick,
+			title: 'Three-person family tent',
+			priority: 'high',
+			price: '420.00',
+			currency: 'USD',
+			imageUrl: ph.square('Tent Family', '166534'),
+			createdAt: daysAgo(45),
+		},
+		{
+			listId: partnerWishlist,
+			groupId: partnerTentPick,
+			title: 'Lightweight bivy',
+			priority: 'normal',
+			price: '180.00',
+			currency: 'USD',
+			createdAt: daysAgo(45),
+		},
+	])
+
+	const partnerBikeOrder = await createGroup({
+		listId: partnerWishlist,
+		name: 'Bike upgrade kit',
+		type: 'order',
+		priority: 'very-high',
+	})
+	const partnerBikeItems = await insertItems([
+		{
+			listId: partnerWishlist,
+			groupId: partnerBikeOrder,
+			title: 'Drivetrain swap (groupset)',
+			priority: 'very-high',
+			price: '550.00',
+			currency: 'USD',
+			imageUrl: ph.wide('Drivetrain', '0f172a'),
+			groupSortOrder: 1,
+			createdAt: daysAgo(40),
+		},
+		{
+			listId: partnerWishlist,
+			groupId: partnerBikeOrder,
+			title: 'Replacement wheelset',
+			priority: 'high',
+			price: '780.00',
+			currency: 'USD',
+			groupSortOrder: 2,
+			createdAt: daysAgo(40),
+		},
+		{
+			listId: partnerWishlist,
+			groupId: partnerBikeOrder,
+			title: 'Carbon handlebar',
+			priority: 'normal',
+			price: '210.00',
+			currency: 'USD',
+			groupSortOrder: 3,
+			createdAt: daysAgo(40),
 		},
 	])
 
@@ -1221,6 +1469,60 @@ async function main() {
 		{ listId: buddyWishlist, title: 'Heated bed (winter, eventually)', priority: 'low', createdAt: daysAgo(5) },
 	])
 
+	// ---------------------------------------------------- ITEMS - distant (restricted)
+	console.log('🎁 Adding distant-user items (restricted view)...')
+	const restrictedOwnerItems = await insertItems([
+		{
+			listId: restrictedOwnerWishlist,
+			title: 'Travel adapter set',
+			priority: 'normal',
+			price: '32.00',
+			currency: 'USD',
+			imageUrl: ph.square('Adapter', '0f172a'),
+			createdAt: daysAgo(40),
+		},
+		{
+			listId: restrictedOwnerWishlist,
+			title: 'Carry-on suitcase',
+			priority: 'high',
+			price: '240.00',
+			currency: 'USD',
+			imageUrl: ph.wide('Suitcase', '1f2937'),
+			createdAt: daysAgo(35),
+		},
+		{
+			listId: restrictedOwnerWishlist,
+			title: 'Packing cubes (set of 6)',
+			priority: 'normal',
+			price: '38.00',
+			currency: 'USD',
+			createdAt: daysAgo(28),
+		},
+		{
+			listId: restrictedOwnerWishlist,
+			title: 'Noise-cancelling earbuds',
+			priority: 'high',
+			price: '199.00',
+			currency: 'USD',
+			imageUrl: ph.square('Earbuds', '0e7490'),
+			createdAt: daysAgo(20),
+		},
+		{
+			listId: restrictedOwnerWishlist,
+			title: 'Pocket umbrella',
+			priority: 'low',
+			price: '22.00',
+			currency: 'USD',
+			createdAt: daysAgo(15),
+		},
+		{
+			listId: restrictedOwnerWishlist,
+			title: 'Reading lamp',
+			priority: 'low',
+			createdAt: daysAgo(10),
+		},
+	])
+
 	// ----------------------------------------------------- CLAIMS / GIFTS
 	// Admin RECEIVED gifts:
 	//  - cookbook (full, archived) from partner
@@ -1400,6 +1702,66 @@ async function main() {
 
 		// Nobday: admin claimed "A book" (so even sparse list shows a claim).
 		{ itemId: need(nobdayItems, 'A book'), gifterId: adminId, quantity: 1, createdAt: daysAgo(7) },
+
+		// Partner tent "or" group: friend already grabbed the family tent, so
+		// admin's gifter view should render the other two siblings as locked
+		// out by `group-already-claimed`.
+		{
+			itemId: need(partnerTentItems, 'Three-person family tent'),
+			gifterId: friendId,
+			quantity: 1,
+			totalCost: '420.00',
+			notes: 'Picked it up at the outdoor co-op.',
+			createdAt: daysAgo(14),
+		},
+
+		// Partner bike "order" group: gifter took the first step (drivetrain).
+		// Steps 2+ are locked until step 1 is fully claimed - admin in gifter
+		// mode should see the order-gate UI on the wheelset and handlebar.
+		{
+			itemId: need(partnerBikeItems, 'Drivetrain swap (groupset)'),
+			gifterId: gifterId,
+			quantity: 1,
+			totalCost: '550.00',
+			createdAt: daysAgo(11),
+		},
+
+		// Distant-user (restricted) claims by friend + gifter only. Admin is
+		// `accessLevel: 'restricted'` on this owner, so the item filter must
+		// hide every item where every claim is by someone other than admin or
+		// admin's partner. Travel adapter, suitcase, packing cubes, earbuds
+		// each get a non-admin claim; pocket umbrella + reading lamp stay
+		// unclaimed (and therefore visible).
+		{
+			itemId: need(restrictedOwnerItems, 'Travel adapter set'),
+			gifterId: friendId,
+			quantity: 1,
+			totalCost: '32.00',
+			createdAt: daysAgo(20),
+		},
+		{
+			itemId: need(restrictedOwnerItems, 'Carry-on suitcase'),
+			gifterId: gifterId,
+			quantity: 1,
+			totalCost: '240.00',
+			createdAt: daysAgo(18),
+		},
+		{
+			itemId: need(restrictedOwnerItems, 'Packing cubes (set of 6)'),
+			gifterId: friendId,
+			additionalGifterIds: [gifterId],
+			quantity: 1,
+			totalCost: '38.00',
+			notes: 'Co-gifting these.',
+			createdAt: daysAgo(12),
+		},
+		{
+			itemId: need(restrictedOwnerItems, 'Noise-cancelling earbuds'),
+			gifterId: gifterId,
+			quantity: 1,
+			totalCost: '199.00',
+			createdAt: daysAgo(8),
+		},
 	])
 
 	// ------------------------------------------------- ADDONS (off-list gifts)
@@ -1504,6 +1866,284 @@ async function main() {
 		},
 	])
 
+	// --------------------------------------------------------- RELATION LABELS
+	// Mother's Day / Father's Day flows key off `userRelationLabels`.
+	// Seed admin's two declarations so the profile screen, the holiday
+	// reminder cron, and the relation-labels Intelligence analyzer all
+	// have something real to render. Friend (Jordan) plays mom; gifter
+	// (Morgan) plays dad. Per-direction; their reverse rows aren't seeded.
+	console.log('👪 Seeding relation labels (mother + father)...')
+	await db.insert(userRelationLabels).values([
+		{ userId: adminId, label: 'mother', targetUserId: friendId },
+		{ userId: adminId, label: 'father', targetUserId: gifterId },
+	])
+
+	// ---------------------------------------------------------------- SCRAPES
+	// Fake scrape history so /admin/scraping's "Recent scrapes" dialog has
+	// rows. Mix of successful + failed attempts across multiple providers
+	// so the table renders varied state badges.
+	console.log('🕷️  Seeding fake scrape history...')
+	const espressoItemId = need(adminItems, 'Espresso machine')
+	const headphonesItemId = need(adminItems, 'Noise-cancelling headphones')
+	const knifeItemId = need(partnerItems, 'New chef knife')
+	await db.insert(itemScrapes).values([
+		{
+			itemId: espressoItemId,
+			userId: adminId,
+			url: 'https://example.com/espresso',
+			scraperId: 'fetch-provider:builtin',
+			ok: true,
+			score: 5,
+			ms: 412,
+			title: 'La Marzocco Linea Mini',
+			cleanTitle: 'La Marzocco Linea Mini',
+			description: 'Compact dual-boiler home espresso machine.',
+			price: '5800',
+			currency: 'USD',
+			imageUrls: ['https://example.com/img/espresso.jpg'],
+			ratingValue: 4.8,
+			ratingCount: 124,
+			response: { status: 200, contentType: 'text/html' },
+			createdAt: hoursAgo(12),
+		},
+		{
+			itemId: espressoItemId,
+			userId: adminId,
+			url: 'https://example.com/espresso',
+			scraperId: 'browserless:browserless-pri',
+			ok: true,
+			score: 4,
+			ms: 1840,
+			title: 'La Marzocco Linea Mini Espresso',
+			price: '5800',
+			currency: 'USD',
+			response: { status: 200, contentType: 'text/html' },
+			createdAt: hoursAgo(12),
+		},
+		{
+			itemId: headphonesItemId,
+			userId: adminId,
+			url: 'https://example.com/headphones',
+			scraperId: 'giftwrapt-scraper:gw-fly',
+			ok: true,
+			score: 5,
+			ms: 920,
+			title: 'Sony WH-1000XM5',
+			cleanTitle: 'Sony WH-1000XM5',
+			price: '349',
+			currency: 'USD',
+			ratingValue: 4.7,
+			ratingCount: 4321,
+			response: { status: 200 },
+			createdAt: daysAgo(2),
+		},
+		{
+			itemId: knifeItemId,
+			userId: adminId,
+			url: 'https://example.com/chef-knife',
+			scraperId: 'flaresolverr:flaresolverr',
+			ok: false,
+			ms: 30000,
+			errorCode: 'TIMEOUT',
+			response: { error: 'upstream timed out after 30s' },
+			createdAt: daysAgo(3),
+		},
+		{
+			itemId: null,
+			userId: adminId,
+			url: 'https://example.com/orphan-product',
+			scraperId: 'ai:ai-extract',
+			ok: true,
+			score: 3,
+			ms: 2200,
+			title: 'Probably a coffee grinder',
+			price: '249',
+			currency: 'USD',
+			response: { status: 200, model: 'claude-sonnet-4-6' },
+			createdAt: daysAgo(5),
+		},
+		{
+			itemId: null,
+			userId: adminId,
+			url: 'https://blocked.example.test/item/42',
+			scraperId: 'fetch-provider:builtin',
+			ok: false,
+			ms: 320,
+			errorCode: 'BLOCKED_403',
+			response: { status: 403 },
+			createdAt: daysAgo(7),
+		},
+	])
+
+	// -------------------------------------------------------- RECOMMENDATIONS
+	// Seed a finished Intelligence run + a handful of active recs for
+	// admin so /suggestions and /admin/intelligence/history are populated.
+	// `payload` mirrors the analyzer-output shape so the rec card renders
+	// real action buttons + affected counts.
+	console.log('🧠 Seeding intelligence run + recommendations...')
+	const batchId = crypto.randomUUID()
+	const runId = crypto.randomUUID()
+	await db.insert(recommendationRuns).values({
+		id: runId,
+		userId: adminId,
+		startedAt: hoursAgo(8),
+		finishedAt: hoursAgo(8),
+		status: 'success',
+		trigger: 'cron',
+		inputHash: 'screenshot-fake-input-hash',
+		tokensIn: 4200,
+		tokensOut: 980,
+		estimatedCostMicroUsd: 24500,
+	})
+
+	const espressoStrId = String(espressoItemId)
+	const headphonesStrId = String(headphonesItemId)
+	const adminWishlistStrId = String(adminWishlist)
+	const adminTodosStrId = String(adminTodos)
+	const adminPrivateStrId = String(adminPrivate)
+
+	await db.insert(recommendations).values([
+		{
+			userId: adminId,
+			batchId,
+			analyzerId: 'primary-list',
+			kind: 'pin-primary',
+			fingerprint: fingerprintFor({ analyzerId: 'primary-list', kind: 'pin-primary', fingerprintTargets: [adminWishlistStrId] }),
+			status: 'active',
+			severity: 'suggest',
+			title: 'Pin "Birthday Wishlist" as primary',
+			body: 'Most of your activity is on this list. Pinning it primary keeps it at the top of every gifter view.',
+			payload: {
+				actions: [
+					{
+						label: 'Set as primary',
+						description: 'Pin this list as your primary wishlist.',
+						intent: 'do',
+						apply: { kind: 'set-primary-list', listId: adminWishlistStrId },
+					},
+					{
+						label: 'Open list',
+						description: 'Jump to the list and pin it manually.',
+						intent: 'noop',
+						nav: { listId: adminWishlistStrId, openEdit: false },
+					},
+				],
+				affected: { noun: 'list', count: 1, lines: ['Birthday Wishlist (29 items, last edited today)'] },
+			},
+			createdAt: hoursAgo(8),
+		},
+		{
+			userId: adminId,
+			batchId,
+			analyzerId: 'stale-items',
+			kind: 'old-items',
+			fingerprint: fingerprintFor({
+				analyzerId: 'stale-items',
+				kind: 'old-items',
+				fingerprintTargets: [espressoStrId, headphonesStrId],
+			}),
+			status: 'active',
+			severity: 'suggest',
+			title: "Two items haven't been touched in months",
+			body: "These items are still on your primary wishlist but the last edit was over six months ago. Confirm they're still wanted, or archive.",
+			payload: {
+				actions: [
+					{
+						label: 'Open Espresso machine',
+						description: 'Review the item and decide.',
+						intent: 'noop',
+						nav: { listId: adminWishlistStrId, itemId: espressoStrId },
+					},
+				],
+				affected: {
+					noun: 'item',
+					count: 2,
+					lines: ['Espresso machine (310 days old)', 'Noise-cancelling headphones (220 days old)'],
+				},
+				dismissDescription: "Don't surface these again until they change.",
+			},
+			createdAt: hoursAgo(8),
+		},
+		{
+			userId: adminId,
+			batchId,
+			analyzerId: 'duplicates',
+			kind: 'cross-list-duplicate',
+			fingerprint: fingerprintFor({
+				analyzerId: 'duplicates',
+				kind: 'cross-list-duplicate',
+				fingerprintTargets: [adminWishlistStrId, adminPrivateStrId],
+			}),
+			status: 'active',
+			severity: 'info',
+			title: 'Possible duplicate across two lists',
+			body: '"Leather journal" appears on both your Birthday Wishlist and your Private Wishlist. Keep the public copy and remove the private one to avoid surprises.',
+			payload: {
+				actions: [
+					{
+						label: 'Open private list',
+						description: 'Review and decide.',
+						intent: 'noop',
+						nav: { listId: adminPrivateStrId },
+					},
+				],
+				affected: { noun: 'item', count: 1, lines: ['Leather journal'] },
+			},
+			createdAt: hoursAgo(8),
+		},
+		{
+			userId: adminId,
+			batchId,
+			analyzerId: 'grouping',
+			kind: 'suggest-or-group',
+			fingerprint: fingerprintFor({
+				analyzerId: 'grouping',
+				kind: 'suggest-or-group',
+				fingerprintTargets: [adminTodosStrId],
+			}),
+			status: 'active',
+			severity: 'suggest',
+			title: 'Group "House Projects" weekend tasks',
+			body: 'These three items look like alternative weekend projects, not a sequence. Grouping them as "pick one" tells helpers to claim only one.',
+			payload: {
+				actions: [
+					{
+						label: 'Group as Pick One',
+						description: 'Create an "or" group with these items.',
+						intent: 'do',
+						apply: {
+							kind: 'create-group',
+							listId: adminTodosStrId,
+							groupType: 'or',
+							priority: 'normal',
+							itemIds: [],
+						},
+					},
+				],
+				affected: { noun: 'item', count: 3, lines: ['Fix the squeaky door', 'Re-caulk bathtub', 'Touch up paint in hallway'] },
+			},
+			createdAt: hoursAgo(8),
+		},
+		{
+			userId: adminId,
+			batchId,
+			analyzerId: 'stale-items',
+			kind: 'old-items',
+			fingerprint: fingerprintFor({
+				analyzerId: 'stale-items',
+				kind: 'old-items',
+				fingerprintTargets: ['dismissed-fake'],
+			}),
+			status: 'dismissed',
+			severity: 'info',
+			title: 'Already-resolved suggestion',
+			body: 'You dismissed this earlier. Kept here so the dismissed state is captured in screenshots.',
+			payload: { affected: { noun: 'item', count: 1, lines: ['Old idea you decided against'] } },
+			createdAt: daysAgo(3),
+			dismissedAt: daysAgo(2),
+		},
+	])
+
 	// --------------------------------------------------------- FIXTURE-IDS FILE
 	const fixtureIds = {
 		generatedAt: seedTime.toISOString(),
@@ -1514,6 +2154,7 @@ async function main() {
 			gifter: gifterId,
 			nobday: nobdayId,
 			child: childId,
+			restrictedOwner: restrictedOwnerId,
 		},
 		lists: {
 			adminWishlist,
@@ -1533,6 +2174,8 @@ async function main() {
 			nobdayWishlist,
 			childWishlist,
 			childChristmas,
+			buddyWishlist,
+			restrictedOwnerWishlist,
 		},
 	}
 
@@ -1551,6 +2194,7 @@ async function main() {
 	console.log('     gifter@example.test   - one-way view, past birthday this year')
 	console.log('     nobday@example.test   - no birthday set')
 	console.log("     child@example.test    - admin + partner's child, birthday in 21 days")
+	console.log('     distant@example.test  - distant acquaintance; admin is restricted on their lists')
 	console.log('')
 	console.log('   Now run: pnpm screenshots')
 }

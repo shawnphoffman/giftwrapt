@@ -50,6 +50,7 @@ export interface FixtureIds {
 		gifter: string
 		nobday: string
 		child: string
+		restrictedOwner: string
 	}
 	lists: {
 		adminWishlist: number
@@ -69,6 +70,8 @@ export interface FixtureIds {
 		nobdayWishlist: number
 		childWishlist: number
 		childChristmas: number
+		buddyWishlist: number
+		restrictedOwnerWishlist: number
 	}
 }
 
