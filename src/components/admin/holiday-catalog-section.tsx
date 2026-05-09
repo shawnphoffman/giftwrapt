@@ -130,7 +130,7 @@ export function HolidayCatalogSection() {
 					<AlertTitle>No holidays configured</AlertTitle>
 					<AlertDescription>
 						Users won't see {countries.find(c => c.code === activeCountry)?.name ?? activeCountry} in the country dropdown until at least
-						one holiday is added below.
+						one holiday is added and enabled below.
 					</AlertDescription>
 				</Alert>
 			) : (
@@ -274,7 +274,7 @@ function AddHolidayDialog({ open, onOpenChange, country, onAdded }: AddDialogPro
 				toast.error(msg[result.reason])
 				return
 			}
-			toast.success('Holiday added to catalog.')
+			toast.success('Holiday added (disabled). Toggle it on to surface it in the new-list pickers.')
 			onAdded()
 		},
 		onError: () => toast.error('Failed to add holiday.'),
@@ -286,7 +286,8 @@ function AddHolidayDialog({ open, onOpenChange, country, onAdded }: AddDialogPro
 				<DialogHeader>
 					<DialogTitle>Add a holiday</DialogTitle>
 					<DialogDescription>
-						Pick from the bundled date-holidays catalog. The display name and slug can be edited after the entry is added.
+						Pick from the bundled date-holidays catalog. New entries are added disabled - flip them on from the catalog list once you're
+						happy with the name. The display name and slug stay editable after the entry is added.
 					</DialogDescription>
 				</DialogHeader>
 				<div className="space-y-3">

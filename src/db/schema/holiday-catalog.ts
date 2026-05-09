@@ -15,6 +15,13 @@
 // auto-archiving and rendering correctly. Disabled entries never appear
 // in the new-list pickers. Deletion is rejected when any list still
 // references the row; admin sees the count and is steered to disable.
+//
+// Opt-in by default: every catalog row, whether seeded or admin-added,
+// starts disabled. An operator must explicitly enable each holiday they
+// want to surface in the new-list pickers - even for the launch
+// countries. This keeps fresh deploys empty until intentionally
+// curated, instead of shipping a default policy that may not match the
+// deploy's user base.
 
 import { relations } from 'drizzle-orm'
 import { boolean, index, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
@@ -43,8 +50,9 @@ export const holidayCatalog = pgTable(
 		rule: text('rule').notNull(),
 		// Hides the entry from the new-list pickers. Existing lists
 		// referencing the row continue to work (date helpers ignore the
-		// flag).
-		isEnabled: boolean('is_enabled').default(true).notNull(),
+		// flag). Defaults to false so admins must opt in to each holiday;
+		// see the file header for the rationale.
+		isEnabled: boolean('is_enabled').default(false).notNull(),
 		...timestamps,
 	},
 	table => [

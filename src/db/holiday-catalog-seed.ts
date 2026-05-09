@@ -9,8 +9,16 @@
 //
 // Self-host upgrade story: an existing deploy on PR1 (in-tree allowlist)
 // upgrades; first request that touches the catalog fills the table
-// with the same rows the const used to define. Admin can then prune,
-// rename, toggle, or extend.
+// with the same rows the const used to define. Admin can then enable,
+// rename, prune, or extend.
+//
+// Opt-in policy: every seeded row starts disabled. Existing deploys
+// that already populated the catalog under the old "enabled by default"
+// policy keep whatever isEnabled state their admin curated - the seed
+// only runs against an empty table, so the new default cannot
+// retroactively disable anyone's catalog. Fresh deploys, however, see
+// no holidays in the new-list pickers until an admin opts each one in
+// (per country) from the admin catalog page.
 
 import { sql } from 'drizzle-orm'
 
@@ -113,6 +121,10 @@ export async function seedHolidayCatalogIfEmpty(dbx: SchemaDatabase): Promise<vo
 		slug: e.slug,
 		name: e.name,
 		rule: e.rule,
+		// Explicit even though the column default is now `false`: the
+		// opt-in policy is the whole point of the seed shape, and a
+		// future schema flip shouldn't silently re-enable every row.
+		isEnabled: false,
 	}))
 	await dbx.insert(holidayCatalog).values(rows).onConflictDoNothing()
 }

@@ -248,9 +248,12 @@ export async function addCatalogEntryImpl(args: {
 	})
 	if (existing) return { kind: 'error', reason: 'duplicate-slug' }
 
+	// New rows land disabled (opt-in policy - see the holiday-catalog
+	// schema header). The admin enables them from the same row in the
+	// catalog UI once they've confirmed the rule and rendered name.
 	const [row] = await dbx
 		.insert(holidayCatalog)
-		.values({ country, slug, name, rule })
+		.values({ country, slug, name, rule, isEnabled: false })
 		.returning({ id: holidayCatalog.id, slug: holidayCatalog.slug })
 
 	return { kind: 'ok', id: row.id, slug: row.slug }

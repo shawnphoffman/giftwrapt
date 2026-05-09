@@ -1,6 +1,11 @@
 // Integration coverage for the holiday-catalog admin impls. Exercises
 // the seed-on-first-read bootstrap, list/add/update/delete CRUD, the
 // in-use guard on delete, and the snapshot used by the new-list pickers.
+//
+// Opt-in default: every seeded row starts disabled, and so does every
+// row added by the admin. Tests that need a row to be visible to
+// `isValidHolidayKey` / the snapshot enable it explicitly via
+// `updateCatalogEntryImpl`.
 
 import { describe, expect, it } from 'vitest'
 
@@ -33,9 +38,17 @@ describe('holiday-catalog: seed bootstrap', () => {
 		})
 	})
 
-	it('isValidHolidayKey accepts seeded entries and rejects unknown keys', async () => {
+	it('isValidHolidayKey only accepts entries an admin has enabled', async () => {
 		await withRollback(async tx => {
 			_resetHolidayCatalogSeedLatchForTesting()
+			// Seeded rows start disabled (opt-in policy), so the new-list
+			// validator rejects them until an admin flips them on.
+			expect(await isValidHolidayKey('US', 'easter', tx)).toBe(false)
+
+			const list = await listCatalogEntriesImpl({ input: { country: 'US' }, dbx: tx })
+			const easter = list.find(e => e.slug === 'easter')!
+			await updateCatalogEntryImpl({ input: { id: easter.id, isEnabled: true }, dbx: tx })
+
 			expect(await isValidHolidayKey('US', 'easter', tx)).toBe(true)
 			expect(await isValidHolidayKey('US', 'made-up', tx)).toBe(false)
 			expect(await isValidHolidayKey('FR', 'easter', tx)).toBe(false)
@@ -52,8 +65,17 @@ describe('holiday-catalog: enable / disable behavior', () => {
 			const easter = list.find(e => e.slug === 'easter')
 			expect(easter).toBeDefined()
 
-			const update = await updateCatalogEntryImpl({ input: { id: easter!.id, isEnabled: false }, dbx: tx })
-			expect(update.kind).toBe('ok')
+			// Seeded rows are opt-in; flip Easter on so we can verify it
+			// flows through the snapshot, then flip it back off and assert
+			// it disappears (while date math keeps working for any list
+			// that was already pinned to it).
+			const enable = await updateCatalogEntryImpl({ input: { id: easter!.id, isEnabled: true }, dbx: tx })
+			expect(enable.kind).toBe('ok')
+			const enabledSnap = await getHolidaySnapshotImpl({ dbx: tx })
+			expect((enabledSnap.byCountry['US'] ?? []).find(h => h.key === 'easter')).toBeDefined()
+
+			const disable = await updateCatalogEntryImpl({ input: { id: easter!.id, isEnabled: false }, dbx: tx })
+			expect(disable.kind).toBe('ok')
 
 			// Snapshot only surfaces enabled entries.
 			const snap = await getHolidaySnapshotImpl({ dbx: tx })
@@ -73,6 +95,21 @@ describe('holiday-catalog: enable / disable behavior', () => {
 			expect(last?.toISOString().slice(0, 10)).toBe('2026-04-05')
 			const end = await endOfOccurrence('US', 'easter', new Date('2026-04-05T00:00:00Z'), tx)
 			expect(end?.toISOString().slice(0, 10)).toBe('2026-04-06')
+		})
+	})
+
+	it('seeded rows start disabled across every country', async () => {
+		await withRollback(async tx => {
+			_resetHolidayCatalogSeedLatchForTesting()
+			for (const country of ['US', 'CA', 'GB', 'AU']) {
+				const rows = await listCatalogEntriesImpl({ input: { country }, dbx: tx })
+				expect(rows.length).toBeGreaterThan(0)
+				expect(rows.every(r => r.isEnabled === false)).toBe(true)
+			}
+			// And the snapshot is empty until an admin opts something in.
+			const snap = await getHolidaySnapshotImpl({ dbx: tx })
+			expect(snap.countries).toEqual([])
+			expect(snap.byCountry).toEqual({})
 		})
 	})
 })
@@ -109,7 +146,7 @@ describe('holiday-catalog: add', () => {
 		})
 	})
 
-	it('adds a new entry from the library and surfaces it in the snapshot', async () => {
+	it('adds a new entry from the library disabled, and surfaces it only after the admin enables it', async () => {
 		await withRollback(async tx => {
 			_resetHolidayCatalogSeedLatchForTesting()
 			await listCatalogEntriesImpl({ input: { country: 'US' }, dbx: tx })
@@ -127,12 +164,17 @@ describe('holiday-catalog: add', () => {
 				dbx: tx,
 			})
 			expect(result.kind).toBe('ok')
+			if (result.kind !== 'ok') return
 
-			const snap = await getHolidaySnapshotImpl({ dbx: tx })
-			const us = snap.byCountry['US'] ?? []
-			if (result.kind === 'ok') {
-				expect(us.find(h => h.key === result.slug)).toBeDefined()
-			}
+			// Newly added entries are opt-in: invisible to the snapshot
+			// until the admin flips them on.
+			const before = await getHolidaySnapshotImpl({ dbx: tx })
+			expect((before.byCountry['US'] ?? []).find(h => h.key === result.slug)).toBeUndefined()
+
+			await updateCatalogEntryImpl({ input: { id: result.id, isEnabled: true }, dbx: tx })
+
+			const after = await getHolidaySnapshotImpl({ dbx: tx })
+			expect((after.byCountry['US'] ?? []).find(h => h.key === result.slug)).toBeDefined()
 		})
 	})
 })
@@ -179,9 +221,20 @@ describe('holiday-catalog: delete', () => {
 })
 
 describe('holiday-catalog: snapshot shape', () => {
-	it('returns countries in alphabetical order with computed start/end ISO strings', async () => {
+	it('returns enabled countries in alphabetical order with computed start/end ISO strings', async () => {
 		await withRollback(async tx => {
 			_resetHolidayCatalogSeedLatchForTesting()
+			// Opt in to one row per launch country so the snapshot has
+			// something to render. The shape assertions below don't care
+			// which holiday is on, just that an enabled row from each
+			// country flows through with valid (start, end) ISO strings.
+			for (const country of ['US', 'CA', 'GB', 'AU']) {
+				const rows = await listCatalogEntriesImpl({ input: { country }, dbx: tx })
+				const target = rows.find(r => r.slug === 'easter') ?? rows[0]
+				expect(target).toBeDefined()
+				await updateCatalogEntryImpl({ input: { id: target.id, isEnabled: true }, dbx: tx })
+			}
+
 			const snap = await getHolidaySnapshotImpl({ dbx: tx })
 			const codes = snap.countries.map(c => c.code)
 			expect(codes).toContain('US')
