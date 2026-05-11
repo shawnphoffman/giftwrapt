@@ -7,8 +7,10 @@ import { toast } from 'sonner'
 import { createItemGroup, deleteItemGroup, reorderGroupItems } from '@/api/groups'
 import { getAddableEditors, getListEditors } from '@/api/list-editors'
 import { getListForEditing, getListSummaries, type ListForEditing, type ListSummary } from '@/api/lists'
+import DependentAvatar from '@/components/common/dependent-avatar'
 import ListTypeTile from '@/components/common/list-type-tile'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
+import UserAvatar from '@/components/common/user-avatar'
 import { GroupBlock } from '@/components/items/group-block'
 import { AddItemSplitButton } from '@/components/items/import/add-item-split-button'
 import { InternalListLinksProvider } from '@/components/items/internal-list-links-context'
@@ -167,7 +169,22 @@ function ListEditPage() {
 				{/* HEADING */}
 				<div className="flex flex-col gap-1">
 					<BackToParentList from={from} />
-					<div className="flex items-center gap-3 min-w-0">
+					<div className="flex items-center gap-1 xs:gap-3 min-w-0">
+						{list.subjectDependent ? (
+							<DependentAvatar
+								name={list.subjectDependent.name}
+								image={list.subjectDependent.image}
+								size="large"
+								className="border-2 border-background"
+							/>
+						) : !list.isOwner ? (
+							<UserAvatar
+								name={list.owner.name || list.owner.email}
+								image={list.owner.image}
+								size="large"
+								className="border-2 border-background"
+							/>
+						) : null}
 						<ListTypeTile type={list.type} />
 						<h1 className="truncate flex-1">{list.name}</h1>
 						<ListSettingsSheet

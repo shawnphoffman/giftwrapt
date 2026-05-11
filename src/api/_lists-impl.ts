@@ -239,6 +239,13 @@ export type ListForEditing = {
 	holidayKey: string | null
 	groups: Array<GroupSummary>
 	isOwner: boolean
+	owner: {
+		id: string
+		name: string | null
+		email: string
+		image: string | null
+	}
+	subjectDependent: ListForViewingSubjectDependent | null
 }
 
 export type GetListForEditingResult = { kind: 'ok'; list: ListForEditing } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
@@ -1301,6 +1308,14 @@ export async function getListForEditingImpl(args: {
 			holidayCountry: true,
 			holidayKey: true,
 		},
+		with: {
+			owner: {
+				columns: { id: true, name: true, email: true, image: true },
+			},
+			subjectDependent: {
+				columns: { id: true, name: true, image: true },
+			},
+		},
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 
@@ -1333,6 +1348,19 @@ export async function getListForEditingImpl(args: {
 			holidayKey: list.holidayKey,
 			groups,
 			isOwner,
+			owner: {
+				id: list.owner.id,
+				name: list.owner.name,
+				email: list.owner.email,
+				image: list.owner.image,
+			},
+			subjectDependent: list.subjectDependent
+				? {
+						id: list.subjectDependent.id,
+						name: list.subjectDependent.name,
+						image: list.subjectDependent.image,
+					}
+				: null,
 		},
 	}
 }
