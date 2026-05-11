@@ -246,14 +246,14 @@ export const appSettingsSchema = z.object({
 	enableGenericHolidayLists: z.boolean(),
 	defaultListType: z.enum(['wishlist', 'christmas', 'birthday', 'giftideas', 'holiday', 'todos', 'test']),
 	// Days after a birthday before claimed items are auto-archived.
-	archiveDaysAfterBirthday: z.number().int().positive().default(14),
+	archiveDaysAfterBirthday: z.number().int().positive(),
 	// Days after Dec 25 before claimed Christmas items are auto-archived.
-	archiveDaysAfterChristmas: z.number().int().positive().default(14),
+	archiveDaysAfterChristmas: z.number().int().positive(),
 	// Days after a generic holiday's end date before claimed items on
 	// holiday-typed lists are auto-archived. Multi-day holidays (Hanukkah,
 	// Diwali) archive against the end of the festival; single-day
 	// holidays archive against the holiday date itself.
-	archiveDaysAfterHoliday: z.number().int().positive().default(14),
+	archiveDaysAfterHoliday: z.number().int().positive(),
 	// Whether birthday emails (day-of + follow-up) are sent.
 	enableBirthdayEmails: z.boolean(),
 	// Whether Christmas emails are sent.
@@ -265,11 +265,11 @@ export const appSettingsSchema = z.object({
 	// skips the Intelligence "set your people" analyzer, and disables
 	// the holiday reminder emails. The catalog entries stay available
 	// regardless so users can make a self-celebrant Mother's Day list.
-	enableParentalRelations: z.boolean().default(false),
+	enableParentalRelations: z.boolean(),
 	// Days before Mother's Day / Father's Day to send a reminder email
 	// to users who have declared at least one mother / father. Single
 	// global window since the email body is the same for both.
-	parentalRelationsReminderLeadDays: z.number().int().min(1).max(90).default(21),
+	parentalRelationsReminderLeadDays: z.number().int().min(1).max(90),
 	// Whether users can post comments on items.
 	enableComments: z.boolean(),
 	// Whether a notification email is sent to the list owner on new comments.
@@ -283,7 +283,7 @@ export const appSettingsSchema = z.object({
 	// When true, signed-in users can see /settings/devices and mint
 	// per-device API keys for the mobile companion app. Off by default
 	// so the surface stays hidden until an admin opts in.
-	enableMobileApp: z.boolean().default(false),
+	enableMobileApp: z.boolean(),
 	// When true, the security page shows a passkeys panel and the
 	// sign-in page surfaces a "Sign in with a passkey" button. The
 	// underlying better-auth endpoints stay live regardless; this
