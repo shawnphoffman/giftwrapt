@@ -105,7 +105,8 @@ function ListDetailPage() {
 								<DependentAvatar
 									name={list.subjectDependent.name}
 									image={list.subjectDependent.image}
-									className="size-20 border-2 border-background"
+									size="large"
+									className=" border-2 border-background"
 								/>
 							) : (
 								<UserAvatar name={recipientName} image={list.owner.image} size="large" className="border-2 border-background" />

@@ -18,13 +18,13 @@ type DependentAvatarProps = {
 export default function DependentAvatar({ name, image, className, size = 'medium' }: DependentAvatarProps) {
 	const parentVariants = {
 		huge: 'size-28',
-		large: 'size-18',
+		large: 'xs:size-18 size-12',
 		medium: 'size-10',
 		small: 'size-6',
 	}
 	const iconVariants = {
 		huge: 'size-14',
-		large: 'size-10',
+		large: 'xs:size-10 size-5',
 		medium: 'size-5',
 		small: 'size-3',
 	}
