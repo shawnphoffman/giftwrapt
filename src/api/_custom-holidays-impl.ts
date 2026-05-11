@@ -21,10 +21,11 @@
 //     defaultListType WITHOUT clearing claims. Special-cased to bypass
 //     the standard isCrossTypeMoveDestructive rule.
 
-import { and, count, eq, inArray, sql } from 'drizzle-orm'
+import { and, count, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { db } from '@/db'
+import type { SchemaDatabase } from '@/db'
+import { db as defaultDb } from '@/db'
 import { customHolidays, holidayCatalog, lists } from '@/db/schema'
 import { customHolidayNextOccurrence } from '@/lib/custom-holidays'
 import { getAppSettings } from '@/lib/settings-loader'
@@ -64,12 +65,13 @@ export type AdminCustomHoliday = {
 	updatedAt: Date
 }
 
-export async function listCustomHolidaysImpl(): Promise<Array<AdminCustomHoliday>> {
-	const rows = await db.select().from(customHolidays).orderBy(customHolidays.title)
+export async function listCustomHolidaysImpl(args: { dbx?: SchemaDatabase } = {}): Promise<Array<AdminCustomHoliday>> {
+	const dbx = args.dbx ?? defaultDb
+	const rows = await dbx.select().from(customHolidays).orderBy(customHolidays.title)
 	if (rows.length === 0) return []
 
 	// Usage counts in one round trip.
-	const usageRows = await db
+	const usageRows = await dbx
 		.select({ id: lists.customHolidayId, n: count() })
 		.from(lists)
 		.where(
@@ -83,7 +85,7 @@ export async function listCustomHolidaysImpl(): Promise<Array<AdminCustomHoliday
 
 	const out: Array<AdminCustomHoliday> = []
 	for (const r of rows) {
-		const next = await customHolidayNextOccurrence(r, new Date(), db)
+		const next = await customHolidayNextOccurrence(r, new Date(), dbx)
 		out.push({
 			id: r.id,
 			title: r.title,
@@ -118,13 +120,15 @@ export const ListCatalogCandidatesInputSchema = z.object({
 //     source='catalog' (so admins don't add duplicates).
 export async function listCatalogCandidatesImpl(args: {
 	input: z.output<typeof ListCatalogCandidatesInputSchema>
+	dbx?: SchemaDatabase
 }): Promise<Array<CatalogCandidate>> {
-	const rows = await db
+	const dbx = args.dbx ?? defaultDb
+	const rows = await dbx
 		.select({ country: holidayCatalog.country, key: holidayCatalog.slug, name: holidayCatalog.name })
 		.from(holidayCatalog)
 		.where(eq(holidayCatalog.country, args.input.country))
 
-	const existing = await db
+	const existing = await dbx
 		.select({ key: customHolidays.catalogKey, country: customHolidays.catalogCountry })
 		.from(customHolidays)
 		.where(and(eq(customHolidays.source, 'catalog'), eq(customHolidays.catalogCountry, args.input.country)))
@@ -145,13 +149,15 @@ export type AddCustomHolidayResult =
 
 export async function addCatalogCustomHolidayImpl(args: {
 	input: z.output<typeof AddCatalogCustomHolidayInputSchema>
+	dbx?: SchemaDatabase
 }): Promise<AddCustomHolidayResult> {
-	const catalog = await db.query.holidayCatalog.findFirst({
+	const dbx = args.dbx ?? defaultDb
+	const catalog = await dbx.query.holidayCatalog.findFirst({
 		where: and(eq(holidayCatalog.country, args.input.country), eq(holidayCatalog.slug, args.input.key)),
 	})
 	if (!catalog) return { kind: 'error', reason: 'catalog-entry-not-found' }
 
-	const dupe = await db
+	const dupe = await dbx
 		.select({ id: customHolidays.id })
 		.from(customHolidays)
 		.where(
@@ -164,7 +170,7 @@ export async function addCatalogCustomHolidayImpl(args: {
 		.limit(1)
 	if (dupe.length > 0) return { kind: 'error', reason: 'already-exists' }
 
-	const [inserted] = await db
+	const [inserted] = await dbx
 		.insert(customHolidays)
 		.values({
 			title: args.input.title ?? catalog.name,
@@ -186,7 +192,9 @@ export const AddCustomCustomHolidayInputSchema = z.object({
 
 export async function addCustomCustomHolidayImpl(args: {
 	input: z.output<typeof AddCustomCustomHolidayInputSchema>
+	dbx?: SchemaDatabase
 }): Promise<AddCustomHolidayResult> {
+	const dbx = args.dbx ?? defaultDb
 	const { title, month, day, year, repeatsAnnually } = args.input
 	// repeatsAnnually=true → ignore the year (recurs every year). false → year required.
 	const effectiveYear = repeatsAnnually ? null : year
@@ -200,7 +208,7 @@ export async function addCustomCustomHolidayImpl(args: {
 		return { kind: 'error', reason: 'invalid-date' }
 	}
 
-	const [inserted] = await db
+	const [inserted] = await dbx
 		.insert(customHolidays)
 		.values({
 			title,
@@ -227,8 +235,10 @@ export type UpdateCustomHolidayResult =
 
 export async function updateCustomHolidayImpl(args: {
 	input: z.output<typeof UpdateCustomHolidayInputSchema>
+	dbx?: SchemaDatabase
 }): Promise<UpdateCustomHolidayResult> {
-	const row = await db.query.customHolidays.findFirst({ where: eq(customHolidays.id, args.input.id) })
+	const dbx = args.dbx ?? defaultDb
+	const row = await dbx.query.customHolidays.findFirst({ where: eq(customHolidays.id, args.input.id) })
 	if (!row) return { kind: 'error', reason: 'not-found' }
 
 	const update: Partial<typeof customHolidays.$inferInsert> = {}
@@ -250,7 +260,7 @@ export async function updateCustomHolidayImpl(args: {
 	}
 
 	if (Object.keys(update).length === 0) return { kind: 'ok' }
-	await db.update(customHolidays).set(update).where(eq(customHolidays.id, args.input.id))
+	await dbx.update(customHolidays).set(update).where(eq(customHolidays.id, args.input.id))
 	return { kind: 'ok' }
 }
 
@@ -267,15 +277,17 @@ export type DeleteCustomHolidayResult = { kind: 'ok'; convertedListCount: number
 // action, not a user move.
 export async function deleteCustomHolidayImpl(args: {
 	input: z.output<typeof DeleteCustomHolidayInputSchema>
+	dbx?: SchemaDatabase
 }): Promise<DeleteCustomHolidayResult> {
-	const row = await db.query.customHolidays.findFirst({ where: eq(customHolidays.id, args.input.id) })
+	const dbx = args.dbx ?? defaultDb
+	const row = await dbx.query.customHolidays.findFirst({ where: eq(customHolidays.id, args.input.id) })
 	if (!row) return { kind: 'error', reason: 'not-found' }
 
-	const settings = await getAppSettings(db)
+	const settings = await getAppSettings(dbx)
 	const fallbackType = settings.defaultListType === 'todos' || settings.defaultListType === 'test' ? 'wishlist' : settings.defaultListType
 
 	let convertedListCount = 0
-	await db.transaction(async tx => {
+	await dbx.transaction(async tx => {
 		const affected = await tx.select({ id: lists.id }).from(lists).where(eq(lists.customHolidayId, args.input.id))
 		if (affected.length > 0) {
 			await tx
@@ -311,11 +323,12 @@ export type CustomHolidayForPicker = {
 	nextOccurrenceIso: string | null
 }
 
-export async function listCustomHolidaysForPickerImpl(): Promise<Array<CustomHolidayForPicker>> {
-	const rows = await db.select().from(customHolidays).orderBy(customHolidays.title)
+export async function listCustomHolidaysForPickerImpl(args: { dbx?: SchemaDatabase } = {}): Promise<Array<CustomHolidayForPicker>> {
+	const dbx = args.dbx ?? defaultDb
+	const rows = await dbx.select().from(customHolidays).orderBy(customHolidays.title)
 	const out: Array<CustomHolidayForPicker> = []
 	for (const r of rows) {
-		const next = await customHolidayNextOccurrence(r, new Date(), db)
+		const next = await customHolidayNextOccurrence(r, new Date(), dbx)
 		out.push({ id: r.id, title: r.title, nextOccurrenceIso: next ? next.toISOString() : null })
 	}
 	// Sort by next-occurrence ascending; nulls last.
@@ -327,6 +340,3 @@ export async function listCustomHolidaysForPickerImpl(): Promise<Array<CustomHol
 	})
 	return out
 }
-
-// Suppress unused warnings for sql tag if the impl is later trimmed.
-export const __sqlTag = sql

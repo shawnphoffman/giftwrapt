@@ -79,6 +79,7 @@ export async function makeList(tx: Tx, overrides: Partial<typeof lists.$inferIns
 			giftIdeasTargetDependentId: overrides.giftIdeasTargetDependentId ?? null,
 			holidayCountry: overrides.holidayCountry ?? null,
 			holidayKey: overrides.holidayKey ?? null,
+			customHolidayId: overrides.customHolidayId ?? null,
 			lastHolidayArchiveAt: overrides.lastHolidayArchiveAt ?? null,
 		})
 		.returning()
