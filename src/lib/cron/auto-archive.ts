@@ -32,6 +32,9 @@ export type AutoArchiveResult = {
 	birthdayArchived: number
 	christmasArchived: number
 	holidayArchived: number
+	// One row per christmas list whose items were archived this run. Used
+	// by the email cron to pick recipients without re-running the date math.
+	christmasArchivedDetails: Array<{ listId: number; ownerId: string; itemCount: number }>
 	// One row per holiday list whose items were archived this run. Used by
 	// the email cron to pick recipients without re-running the date math.
 	holidayArchivedDetails: Array<{ listId: number; ownerId: string; holidayCountry: string; holidayKey: string; itemCount: number }>
@@ -55,6 +58,7 @@ export async function autoArchiveImpl({
 	let birthdayArchived = 0
 	let christmasArchived = 0
 	let holidayArchived = 0
+	const christmasArchivedDetails: AutoArchiveResult['christmasArchivedDetails'] = []
 	const holidayArchivedDetails: AutoArchiveResult['holidayArchivedDetails'] = []
 
 	// === Birthday auto-archive ===
@@ -95,19 +99,18 @@ export async function autoArchiveImpl({
 	if (daysSinceChristmas === archiveDaysAfterChristmas) {
 		const christmasLists = await db.query.lists.findMany({
 			where: and(eq(lists.type, 'christmas'), eq(lists.isActive, true)),
-			columns: { id: true },
+			columns: { id: true, ownerId: true },
 		})
-		if (christmasLists.length > 0) {
-			const listIds = christmasLists.map(l => l.id)
+		for (const list of christmasLists) {
 			const claimedItemIds = await db
 				.selectDistinct({ itemId: giftedItems.itemId })
 				.from(giftedItems)
-				.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), inArray(items.listId, listIds)))
-			if (claimedItemIds.length > 0) {
-				const ids = claimedItemIds.map(r => r.itemId)
-				await db.update(items).set({ isArchived: true }).where(inArray(items.id, ids))
-				christmasArchived += ids.length
-			}
+				.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), eq(items.listId, list.id)))
+			if (claimedItemIds.length === 0) continue
+			const ids = claimedItemIds.map(r => r.itemId)
+			await db.update(items).set({ isArchived: true }).where(inArray(items.id, ids))
+			christmasArchived += ids.length
+			christmasArchivedDetails.push({ listId: list.id, ownerId: list.ownerId, itemCount: ids.length })
 		}
 	}
 
@@ -167,5 +170,5 @@ export async function autoArchiveImpl({
 		await db.update(lists).set({ lastHolidayArchiveAt: now }).where(eq(lists.id, list.id))
 	}
 
-	return { birthdayArchived, christmasArchived, holidayArchived, holidayArchivedDetails }
+	return { birthdayArchived, christmasArchived, holidayArchived, christmasArchivedDetails, holidayArchivedDetails }
 }

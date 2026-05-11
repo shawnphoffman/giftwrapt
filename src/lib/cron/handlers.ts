@@ -87,6 +87,31 @@ async function runIntelligenceRetentionSweep(args: { recDays: number; stepDays: 
 	return { recsDeleted: recRows.length, stepsDeleted: stepRows.length }
 }
 
+// Looks up each owner's email and list name and fires
+// `sendPostHolidayEmail` with `holidayName: 'Christmas'`. Mirrors the
+// generic-holiday email path; broken out so the gates can fire
+// independently per setting.
+async function sendChristmasEmails(dbx: SchemaDatabase, details: AutoArchiveResult['christmasArchivedDetails']): Promise<number> {
+	if (details.length === 0) return 0
+	if (!(await isEmailConfigured())) return 0
+	let sent = 0
+	for (const d of details) {
+		const owner = await dbx.query.users.findFirst({
+			where: eq(users.id, d.ownerId),
+			columns: { id: true, email: true },
+		})
+		if (!owner) continue
+		const list = await dbx.query.lists.findFirst({
+			where: eq(lists.id, d.listId),
+			columns: { name: true },
+		})
+		if (!list) continue
+		await sendPostHolidayEmail(owner.email, { holidayName: 'Christmas', listName: list.name })
+		sent += 1
+	}
+	return sent
+}
+
 // Looks up each owner's email and the matching catalog name for the
 // holiday, then fires `sendPostHolidayEmail`. Returns the count of
 // successfully-attempted sends (doesn't distinguish failures since
@@ -122,7 +147,7 @@ export async function runAutoArchive() {
 	const settings = await getAppSettings(db)
 	const now = new Date()
 
-	const { birthdayArchived, christmasArchived, holidayArchived, holidayArchivedDetails } = await autoArchiveImpl({
+	const { birthdayArchived, christmasArchived, holidayArchived, christmasArchivedDetails, holidayArchivedDetails } = await autoArchiveImpl({
 		db,
 		now,
 		archiveDaysAfterBirthday: settings.archiveDaysAfterBirthday,
@@ -130,9 +155,19 @@ export async function runAutoArchive() {
 		archiveDaysAfterHoliday: settings.archiveDaysAfterHoliday,
 	})
 
-	// Generic post-holiday email send. Inline here so the cron run sees
-	// it as one operation; the email itself is fire-and-forget per
-	// owner (failures don't block the archive).
+	// Post-archive email sends. Inline here so the cron run sees them as
+	// one operation; each send is fire-and-forget per owner (failures
+	// don't block the archive). Christmas and generic-holiday gates fire
+	// independently.
+	let christmasEmailsSent = 0
+	if (settings.enableChristmasEmails && christmasArchivedDetails.length > 0) {
+		try {
+			christmasEmailsSent = await sendChristmasEmails(db, christmasArchivedDetails)
+		} catch (err) {
+			log.warn({ err: err instanceof Error ? err.message : String(err) }, 'post-christmas email batch failed')
+		}
+	}
+
 	let holidayEmailsSent = 0
 	if (settings.enableGenericHolidayEmails && holidayArchivedDetails.length > 0) {
 		try {
@@ -144,7 +179,15 @@ export async function runAutoArchive() {
 
 	const durationMs = Date.now() - started
 	log.info(
-		{ endpoint: '/api/cron/auto-archive', birthdayArchived, christmasArchived, holidayArchived, holidayEmailsSent, durationMs },
+		{
+			endpoint: '/api/cron/auto-archive',
+			birthdayArchived,
+			christmasArchived,
+			holidayArchived,
+			christmasEmailsSent,
+			holidayEmailsSent,
+			durationMs,
+		},
 		'cron run complete'
 	)
 
@@ -153,6 +196,7 @@ export async function runAutoArchive() {
 		birthdayArchived,
 		christmasArchived,
 		holidayArchived,
+		christmasEmailsSent,
 		holidayEmailsSent,
 		settings: {
 			archiveDaysAfterBirthday: settings.archiveDaysAfterBirthday,
