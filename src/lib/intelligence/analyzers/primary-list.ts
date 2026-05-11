@@ -43,7 +43,15 @@ export const primaryListAnalyzer: Analyzer = {
 			})
 			.from(lists)
 			.leftJoin(sql`users u`, sql`u.id = ${lists.ownerId}`)
-			.where(and(eq(lists.ownerId, ctx.userId), isNull(lists.subjectDependentId), eq(lists.isActive, true), ne(lists.type, 'giftideas')))
+			.where(
+				and(
+					eq(lists.ownerId, ctx.userId),
+					isNull(lists.subjectDependentId),
+					eq(lists.isActive, true),
+					ne(lists.type, 'giftideas'),
+					ne(lists.type, 'todos')
+				)
+			)
 
 		const hasPrimary = userLists.some(l => l.isPrimary)
 		const eligible = userLists.filter(l => !l.isPrimary)

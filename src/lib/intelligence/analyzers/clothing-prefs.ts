@@ -48,6 +48,7 @@ export const clothingPrefsAnalyzer: Analyzer = {
 					ctx.dependentId === null ? isNull(lists.subjectDependentId) : eq(lists.subjectDependentId, ctx.dependentId),
 					eq(lists.isActive, true),
 					ne(lists.type, 'giftideas'),
+					ne(lists.type, 'todos'),
 					eq(items.isArchived, false)
 				)
 			)
