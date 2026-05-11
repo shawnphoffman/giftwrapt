@@ -181,19 +181,22 @@ function MyListsPage() {
 
 					{/* CHILDREN'S LISTS */}
 					{data.children.length > 0 && (
-						<div className="flex flex-col gap-2">
-							<h3 className="flex items-center gap-2">
-								<Baby className="size-5" /> Children's Lists
-							</h3>
-							<div className="text-sm italic leading-tight text-muted-foreground">
-								Lists belonging to your child accounts. You have full edit access as their guardian.
-							</div>
-							<div className="flex flex-col gap-3">
+						<ListsCard>
+							<ListsCardHeader className="flex-col items-start gap-1">
+								<ListsCardTitle>
+									<Baby className="size-5 inline mr-2" />
+									Children's Lists
+								</ListsCardTitle>
+								<ListsCardDescription className="italic">
+									Lists belonging to your child accounts. You have full edit access as their guardian.
+								</ListsCardDescription>
+							</ListsCardHeader>
+							<ListsCardLists className="gap-3">
 								{data.children.map(child => (
 									<ChildListSection key={child.childId} child={child} />
 								))}
-							</div>
-						</div>
+							</ListsCardLists>
+						</ListsCard>
 					)}
 
 					{/* DEPENDENTS' LISTS */}
