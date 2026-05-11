@@ -25,6 +25,8 @@ const PUBLIC_ALLOW_LIST: ReadonlyMap<string, string> = new Map([
 	['common.ts:isEmailConfigured', 'public boolean health probe'],
 	// Boolean health probe for object storage config. Driven by env, no I/O.
 	['storage-status.ts:fetchStorageStatus', 'public boolean health probe'],
+	// Public OIDC button info for the sign-in page (used before auth).
+	['admin-oidc-client.ts:fetchPublicOidcClientInfo', 'public sign-in button info, no secrets'],
 ])
 
 type ServerFn = {
