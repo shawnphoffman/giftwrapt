@@ -87,13 +87,13 @@ export function CronEndpointsPanel() {
 				<table className="w-full text-sm">
 					<thead className="border-b text-left text-xs uppercase text-muted-foreground">
 						<tr>
-							<th className="py-2 pr-3 font-medium">Endpoint</th>
-							<th className="py-2 pr-3 font-medium">Schedule</th>
-							<th className="py-2 pr-3 font-medium">Last run</th>
-							<th className="py-2 pr-3 font-medium">Last success</th>
-							<th className="py-2 pr-3 font-medium">Next fire</th>
-							<th className="py-2 pr-3 font-medium text-right">24h</th>
-							<th className="py-2 pr-3 font-medium text-right">Actions</th>
+							<th className="py-2 pr-3 font-medium whitespace-nowrap">Endpoint</th>
+							<th className="py-2 pr-3 font-medium whitespace-nowrap">Schedule</th>
+							<th className="py-2 pr-3 font-medium whitespace-nowrap">Last run</th>
+							<th className="py-2 pr-3 font-medium whitespace-nowrap">Last success</th>
+							<th className="py-2 pr-3 font-medium whitespace-nowrap">Next fire</th>
+							<th className="py-2 pr-3 font-medium text-right whitespace-nowrap">24h</th>
+							<th className="py-2 pr-3 font-medium text-right whitespace-nowrap">Actions</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -108,13 +108,13 @@ export function CronEndpointsPanel() {
 									<td className="py-3 pr-3">
 										<div className="flex flex-col">
 											<span className="font-medium">{entry.label}</span>
-											<code className="text-xs text-muted-foreground">{entry.path}</code>
+											<code className="text-xs text-muted-foreground text-nowrap">{entry.path}</code>
 											<span className="text-xs text-muted-foreground">{entry.description}</span>
 										</div>
 									</td>
 									<td className="py-3 pr-3">
 										<div className="flex flex-col">
-											<code className="text-xs">{entry.schedule}</code>
+											<code className="text-xs text-nowrap">{entry.schedule}</code>
 											<span className="text-xs text-muted-foreground">{entry.cadence}</span>
 										</div>
 									</td>
@@ -148,7 +148,7 @@ export function CronEndpointsPanel() {
 											<div className="flex items-center gap-1">
 												<Clock className="size-3 text-muted-foreground" />
 												<Tooltip>
-													<TooltipTrigger className="text-left">{relativeOrDash(next)}</TooltipTrigger>
+													<TooltipTrigger className="text-left text-nowrap">{relativeOrDash(next)}</TooltipTrigger>
 													<TooltipContent>{next.toLocaleString()}</TooltipContent>
 												</Tooltip>
 											</div>

@@ -1138,6 +1138,7 @@ export async function updateListImpl(args: {
 			type: true,
 			holidayCountry: true,
 			holidayKey: true,
+			customHolidayId: true,
 		},
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
@@ -1203,28 +1204,46 @@ export async function updateListImpl(args: {
 	}
 
 	// Holiday metadata: validate when the result will be a holiday list,
-	// null when it leaves the holiday type. `lastHolidayArchiveAt` is
-	// per-(list, holiday) state; null it whenever country or key
-	// changes so a repurposed list never inherits stale archive
-	// bookkeeping.
+	// null when it leaves the holiday type. The customHolidayId path is
+	// preferred; legacy holidayCountry/holidayKey writes still validate
+	// via isValidHolidayKey so older callers keep working until the
+	// columns are dropped.
 	if (nextType === 'holiday') {
-		const country = data.holidayCountry !== undefined ? data.holidayCountry : list.holidayCountry
-		const key = data.holidayKey !== undefined ? data.holidayKey : list.holidayKey
-		if (!country || !key || !(await isValidHolidayKey(country, key))) {
-			return { kind: 'error', reason: 'invalid-holiday-selection' }
-		}
-		if (data.holidayCountry !== undefined) updates.holidayCountry = country
-		if (data.holidayKey !== undefined) updates.holidayKey = key
-		const countryChanged = data.holidayCountry !== undefined && data.holidayCountry !== list.holidayCountry
-		const keyChanged = data.holidayKey !== undefined && data.holidayKey !== list.holidayKey
-		const typeJustBecameHoliday = data.type === 'holiday' && list.type !== 'holiday'
-		if (countryChanged || keyChanged || typeJustBecameHoliday) {
-			updates.lastHolidayArchiveAt = null
+		const nextCustomHolidayId = data.customHolidayId !== undefined ? data.customHolidayId : list.customHolidayId
+		if (nextCustomHolidayId) {
+			const row = await db.query.customHolidays.findFirst({
+				where: eq(customHolidays.id, nextCustomHolidayId),
+			})
+			if (!row) return { kind: 'error', reason: 'invalid-holiday-selection' }
+			if (data.customHolidayId !== undefined) updates.customHolidayId = row.id
+			// Back-fill legacy columns from the resolved row so existing
+			// auto-archive read paths keep working.
+			updates.holidayCountry = row.catalogCountry
+			updates.holidayKey = row.catalogKey
+			const customIdChanged = data.customHolidayId !== undefined && data.customHolidayId !== list.customHolidayId
+			const typeJustBecameHoliday = data.type === 'holiday' && list.type !== 'holiday'
+			if (customIdChanged || typeJustBecameHoliday) updates.lastHolidayArchiveAt = null
+		} else {
+			// Legacy path: country + key direct write.
+			const country = data.holidayCountry !== undefined ? data.holidayCountry : list.holidayCountry
+			const key = data.holidayKey !== undefined ? data.holidayKey : list.holidayKey
+			if (!country || !key || !(await isValidHolidayKey(country, key))) {
+				return { kind: 'error', reason: 'invalid-holiday-selection' }
+			}
+			if (data.holidayCountry !== undefined) updates.holidayCountry = country
+			if (data.holidayKey !== undefined) updates.holidayKey = key
+			const countryChanged = data.holidayCountry !== undefined && data.holidayCountry !== list.holidayCountry
+			const keyChanged = data.holidayKey !== undefined && data.holidayKey !== list.holidayKey
+			const typeJustBecameHoliday = data.type === 'holiday' && list.type !== 'holiday'
+			if (countryChanged || keyChanged || typeJustBecameHoliday) {
+				updates.lastHolidayArchiveAt = null
+			}
 		}
 	} else if (data.type !== undefined && data.type !== 'holiday') {
 		// Type is changing AWAY from holiday: clear all holiday metadata.
 		updates.holidayCountry = null
 		updates.holidayKey = null
+		updates.customHolidayId = null
 		updates.lastHolidayArchiveAt = null
 	}
 

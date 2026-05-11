@@ -17,7 +17,7 @@ function AdminSchedulingPage() {
 			</ClientOnly>
 			<Card className="animate-page-in">
 				<CardHeader>
-					<CardTitle className="text-2xl">Cron endpoints</CardTitle>
+					<CardTitle className="text-2xl">Cron Endpoints</CardTitle>
 					<CardDescription>
 						Each row is a registered <code>/api/cron/*</code> route. <em>Last success</em> goes amber when the gap exceeds three intervals,
 						which usually means the scheduler has stopped firing.
@@ -32,7 +32,7 @@ function AdminSchedulingPage() {
 
 			<Card className="animate-page-in">
 				<CardHeader>
-					<CardTitle className="text-2xl">Run history</CardTitle>
+					<CardTitle className="text-2xl">Run History</CardTitle>
 					<CardDescription>
 						Every invocation writes a row here. History is kept for the configured retention window (default 90 days) and pruned daily by
 						the verification-cleanup tick.

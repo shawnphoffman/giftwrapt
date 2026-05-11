@@ -6,11 +6,12 @@
 // The handler in `src/routes/api/cron/auto-archive.ts` is a thin
 // wrapper that checks the CRON_SECRET and delegates here.
 
-import { and, eq, inArray, isNotNull } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, or } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { giftedItems, items, lists, users } from '@/db/schema'
 import type { BirthMonth } from '@/db/schema/enums'
+import { customHolidayNextOccurrence } from '@/lib/custom-holidays'
 import { endOfOccurrence, lastOccurrence } from '@/lib/holidays'
 
 const MONTHS: ReadonlyArray<BirthMonth> = [
@@ -115,34 +116,76 @@ export async function autoArchiveImpl({
 	}
 
 	// === Generic-holiday auto-archive ===
-	// Per-list date math: each holiday list has its own (country, key) so
-	// we compute lastOccurrence/end at cron time rather than filtering by
-	// a global "is the holiday today" gate. The lastHolidayArchiveAt
-	// column is the idempotency mark; we never re-archive for the same
-	// occurrence.
+	// Per-list date math. Two paths during the transition:
+	//   1. New: `lists.customHolidayId` resolves to a custom_holidays row
+	//      whose next-occurrence date drives the cutoff. The row's source
+	//      can be 'catalog' (rule-based) or 'custom' (fixed month/day).
+	//   2. Legacy: when customHolidayId is null but holidayCountry/Key are
+	//      set, fall back to the old lastOccurrence/endOfOccurrence path.
+	// lastHolidayArchiveAt is the idempotency mark for both paths.
 	const holidayLists = await db.query.lists.findMany({
-		where: and(eq(lists.type, 'holiday'), eq(lists.isActive, true), isNotNull(lists.holidayCountry), isNotNull(lists.holidayKey)),
+		where: and(
+			eq(lists.type, 'holiday'),
+			eq(lists.isActive, true),
+			or(isNotNull(lists.customHolidayId), and(isNotNull(lists.holidayCountry), isNotNull(lists.holidayKey)))
+		),
 		columns: {
 			id: true,
 			ownerId: true,
 			holidayCountry: true,
 			holidayKey: true,
+			customHolidayId: true,
 			lastHolidayArchiveAt: true,
+		},
+		with: {
+			customHoliday: true,
 		},
 	})
 
 	for (const list of holidayLists) {
-		if (!list.holidayCountry || !list.holidayKey) continue
-		const occurrenceStart = await lastOccurrence(list.holidayCountry, list.holidayKey, now, db)
-		if (!occurrenceStart) continue
-		const occurrenceEnd = await endOfOccurrence(list.holidayCountry, list.holidayKey, occurrenceStart, db)
-		if (!occurrenceEnd) continue
+		let occurrenceStart: Date | null = null
+		let occurrenceEnd: Date | null = null
+		let detailCountry: string | null = null
+		let detailKey: string | null = null
 
+		if (list.customHoliday) {
+			// New path: derive the occurrence from the customHolidays row.
+			// For catalog-source rows, lastOccurrence still applies (rules
+			// have a duration). For custom rows, the "occurrence" is a
+			// single day equal to (year, month, day).
+			if (list.customHoliday.source === 'catalog' && list.customHoliday.catalogCountry && list.customHoliday.catalogKey) {
+				occurrenceStart = await lastOccurrence(list.customHoliday.catalogCountry, list.customHoliday.catalogKey, now, db)
+				if (occurrenceStart) {
+					occurrenceEnd = await endOfOccurrence(list.customHoliday.catalogCountry, list.customHoliday.catalogKey, occurrenceStart, db)
+				}
+				detailCountry = list.customHoliday.catalogCountry
+				detailKey = list.customHoliday.catalogKey
+			} else if (list.customHoliday.source === 'custom') {
+				// Custom date: use the most recent past occurrence (or skip
+				// if all are in the future).
+				const next = await customHolidayNextOccurrence(list.customHoliday, now, db)
+				// "Last" = the most recent past occurrence. If next-occurrence
+				// is today or earlier, that's it. Otherwise back-roll one year
+				// for annual recurrence.
+				if (next && next.getTime() <= now.getTime()) {
+					occurrenceStart = next
+				} else if (next && list.customHoliday.customYear === null) {
+					// Annual: previous year's occurrence.
+					occurrenceStart = new Date(Date.UTC(next.getUTCFullYear() - 1, next.getUTCMonth(), next.getUTCDate()))
+				}
+				if (occurrenceStart) occurrenceEnd = occurrenceStart
+			}
+		} else if (list.holidayCountry && list.holidayKey) {
+			// Legacy path.
+			occurrenceStart = await lastOccurrence(list.holidayCountry, list.holidayKey, now, db)
+			if (occurrenceStart) occurrenceEnd = await endOfOccurrence(list.holidayCountry, list.holidayKey, occurrenceStart, db)
+			detailCountry = list.holidayCountry
+			detailKey = list.holidayKey
+		}
+
+		if (!occurrenceStart || !occurrenceEnd) continue
 		const cutoff = new Date(occurrenceEnd.getTime() + archiveDaysAfterHoliday * 24 * 60 * 60 * 1000)
 		if (now.getTime() < cutoff.getTime()) continue
-		// Already archived for this occurrence? `lastHolidayArchiveAt`
-		// gets stamped at cron time, so a later run sees it >= the
-		// occurrence start and short-circuits.
 		if (list.lastHolidayArchiveAt && list.lastHolidayArchiveAt.getTime() >= occurrenceStart.getTime()) continue
 
 		const claimedItemIds = await db
@@ -157,16 +200,12 @@ export async function autoArchiveImpl({
 			holidayArchivedDetails.push({
 				listId: list.id,
 				ownerId: list.ownerId,
-				holidayCountry: list.holidayCountry,
-				holidayKey: list.holidayKey,
+				holidayCountry: detailCountry ?? '',
+				holidayKey: detailKey ?? '',
 				itemCount: ids.length,
 			})
 		}
 
-		// Stamp the timestamp regardless of whether items were actually
-		// archived this run. The mark is "we processed this list for
-		// this occurrence," not "we archived items." Otherwise an empty
-		// list would re-trigger every day until the offset rolls over.
 		await db.update(lists).set({ lastHolidayArchiveAt: now }).where(eq(lists.id, list.id))
 	}
 
