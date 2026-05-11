@@ -472,17 +472,23 @@ export function ParentalRelationsSettingsSection() {
 						Country for Mother's / Father's Day
 					</Label>
 					<p className="text-sm text-muted-foreground">
-						ISO 3166-1 alpha-2. Used to resolve Mother's and Father's Day dates (which vary by country). Defaults to US.
+						Used to resolve Mother's and Father's Day dates (which vary by country). Defaults to US.
 					</p>
 				</div>
-				<Input
-					id="relationshipRemindersCountry"
-					type="text"
-					maxLength={2}
+				<Select
 					value={settings.relationshipRemindersCountry}
-					onChange={e => handleSettingChange('relationshipRemindersCountry', e.target.value.toUpperCase())}
-					className="w-24 uppercase"
-				/>
+					onValueChange={value => handleSettingChange('relationshipRemindersCountry', value)}
+				>
+					<SelectTrigger id="relationshipRemindersCountry" className="w-[200px]">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="US">United States</SelectItem>
+						<SelectItem value="CA">Canada</SelectItem>
+						<SelectItem value="GB">United Kingdom</SelectItem>
+						<SelectItem value="AU">Australia</SelectItem>
+					</SelectContent>
+				</Select>
 			</div>
 
 			<ReminderFamilyBlock
