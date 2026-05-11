@@ -25,10 +25,10 @@ export default function Head(ctx: HeadCtx = {}) {
 			},
 			{
 				title: `${appTitle} ${isDeployed ? '' : '| Dev'}`,
-				description: 'Sharing wish lists made easy.',
+				description: 'Wish lists made easy.',
 				openGraph: {
 					title: appTitle,
-					description: 'Sharing wish lists made easy.',
+					description: 'Wish lists made easy.',
 					type: 'website',
 					url: '/',
 					locale: 'en_US',

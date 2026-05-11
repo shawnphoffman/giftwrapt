@@ -3,7 +3,7 @@
 
 # GiftWrapt
 
-**Sharing wish lists made easy.**
+**Wish lists made easy.**
 
 [Getting started](./docs/getting-started.md) ·
 [Self-hosting](./docs/self-hosting.md) ·

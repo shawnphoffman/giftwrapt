@@ -1,7 +1,7 @@
 {
 	"name": "GiftWrapt",
 	"short_name": "GiftWrapt",
-	"description": "Sharing wish lists made easy.",
+	"description": "Wish lists made easy.",
 	"start_url": "/",
 	"scope": "/",
 	"display": "standalone",
