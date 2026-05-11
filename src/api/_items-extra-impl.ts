@@ -52,7 +52,7 @@ export type SetItemAvailabilityResult = { kind: 'ok'; item: Item } | { kind: 'er
 
 export type MoveItemsResult =
 	| { kind: 'ok'; moved: number; claimsCleared: number; commentsDeleted: number }
-	| { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+	| { kind: 'error'; reason: 'not-found' | 'not-authorized' | 'todo-items-cannot-cross-types' }
 
 export type ArchiveItemsResult = { kind: 'ok'; updated: number } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
@@ -343,6 +343,16 @@ export async function moveItemsToListImpl(args: { userId: string; input: z.infer
 	if (!targetList) return { kind: 'error', reason: 'not-found' }
 	const targetPerm = await assertCanEditItems(userId, targetList)
 	if (!targetPerm.ok) return { kind: 'error', reason: 'not-authorized' }
+
+	// Todo lists are isolated: an item from a todo list can't move to a
+	// non-todo list and vice versa. Within-todos moves are allowed
+	// (covered by the source==target check below).
+	const anyTodoCrossType = loaded.rows.some(r => {
+		const src = loaded.lists.get(r.listId)!
+		if (src.type === targetList.type) return false
+		return src.type === 'todos' || targetList.type === 'todos'
+	})
+	if (anyTodoCrossType) return { kind: 'error', reason: 'todo-items-cannot-cross-types' }
 
 	const destructiveItemIds = loaded.rows
 		.filter(r => r.listId !== data.targetListId)

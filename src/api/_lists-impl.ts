@@ -218,6 +218,7 @@ export type UpdateListResult =
 				| 'not-dependent-guardian'
 				| 'invalid-holiday-selection'
 				| 'list-type-disabled'
+				| 'todo-list-type-locked'
 	  }
 
 export type DeleteListResult = { kind: 'ok'; action: 'deleted' | 'archived' } | { kind: 'error'; reason: 'not-found' | 'not-owner' }
@@ -1133,6 +1134,12 @@ export async function updateListImpl(args: {
 	// of a list that already exists on a now-disabled type; the toggle
 	// blocks new creation/conversion, not maintenance of existing data.
 	if (data.type !== undefined && data.type !== list.type) {
+		// Todo lists are type-locked once created. No conversion in either
+		// direction (a todo can't become a wishlist; a wishlist can't
+		// become a todo). The row shape is too different to map cleanly.
+		if (list.type === 'todos' || data.type === 'todos') {
+			return { kind: 'error', reason: 'todo-list-type-locked' }
+		}
 		const settings = await getAppSettings(db)
 		if (isListTypeDisabled(data.type, settings)) {
 			return { kind: 'error', reason: 'list-type-disabled' }

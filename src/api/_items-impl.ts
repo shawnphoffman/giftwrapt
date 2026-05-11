@@ -56,7 +56,9 @@ export const CreateItemInputSchema = z.object({
 	groupId: z.number().int().positive().optional(),
 })
 
-export type CreateItemResult = { kind: 'ok'; item: Item } | { kind: 'error'; reason: 'list-not-found' | 'not-authorized' }
+export type CreateItemResult =
+	| { kind: 'ok'; item: Item }
+	| { kind: 'error'; reason: 'list-not-found' | 'not-authorized' | 'todo-list-rejects-items' }
 
 export async function createItemImpl(args: {
 	db: SchemaDatabase
@@ -68,9 +70,10 @@ export async function createItemImpl(args: {
 
 	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, data.listId),
-		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true, type: true },
 	})
 	if (!list) return { kind: 'error', reason: 'list-not-found' }
+	if (list.type === 'todos') return { kind: 'error', reason: 'todo-list-rejects-items' }
 
 	const perm = await assertCanEditItems(userId, list)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
