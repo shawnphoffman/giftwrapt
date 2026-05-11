@@ -44,7 +44,7 @@ function SettingsPage() {
 			{appSettings?.enableParentalRelations && (
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-2xl">People I shop for</CardTitle>
+						<CardTitle className="text-2xl">Relationships</CardTitle>
 						<CardDescription>Tag the people you shop for on Mother’s Day and Father’s Day.</CardDescription>
 					</CardHeader>
 					<CardContent>

@@ -8,9 +8,21 @@ import { getAllUsersQuery, getUserDetailsQuery } from '@/db/queries/users'
 import type { BirthMonth, Role } from '@/db/schema'
 import { giftedItems, guardianships, items, itemScrapes, lists, users } from '@/db/schema'
 import { loggingMiddleware } from '@/lib/logger'
+import { applyPartnerAndAnniversary } from '@/lib/partner-update'
 import { sendTestEmail } from '@/lib/resend'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { adminAuthMiddleware } from '@/middleware/auth'
+
+import {
+	addRelationLabelImpl,
+	AddRelationLabelInputSchema,
+	type AddRelationLabelResult,
+	getMyRelationLabelsImpl,
+	type RelationLabelRow,
+	removeRelationLabelImpl,
+	RemoveRelationLabelInputSchema,
+	type RemoveRelationLabelResult,
+} from './_relation-labels-impl'
 
 //
 export const getUsersAsAdmin = createServerFn({
@@ -139,6 +151,7 @@ export const updateUserAsAdmin = createServerFn({
 			birthYear?: number | null
 			image?: string | null
 			partnerId?: string | null
+			partnerAnniversary?: string | null
 		}) => data
 	)
 	.handler(async ({ data }) => {
@@ -154,6 +167,7 @@ export const updateUserAsAdmin = createServerFn({
 			birthYear?: number | null
 			image?: string | null
 			partnerId?: string | null
+			partnerAnniversary?: string | null
 		} = {}
 
 		if (updateData.email !== undefined) updateFields.email = updateData.email
@@ -167,16 +181,28 @@ export const updateUserAsAdmin = createServerFn({
 		if (updateData.birthDay !== undefined) updateFields.birthDay = updateData.birthDay
 		if (updateData.birthYear !== undefined) updateFields.birthYear = updateData.birthYear
 		if (updateData.image !== undefined) updateFields.image = updateData.image
-		if (updateData.partnerId !== undefined) updateFields.partnerId = updateData.partnerId
 
-		// Update user in database
-		await db.update(users).set(updateFields).where(eq(users.id, userId))
+		// Partner + anniversary go through the shared helper so the
+		// bidirectional mirror (and dangling-anniversary guards) match the
+		// self-edit path exactly. Admins act on behalf of the target user,
+		// so `userId` here is the EDITED user, not the actor.
+		const me = await db.query.users.findFirst({ where: eq(users.id, userId), columns: { partnerId: true } })
+		const currentPartnerId = me?.partnerId ?? null
+		const newPartnerId = updateData.partnerId !== undefined ? updateData.partnerId || null : undefined
+		const newAnniversary = updateData.partnerAnniversary !== undefined ? updateData.partnerAnniversary || null : undefined
 
-		// Also update via Better Auth if email or name changed
-		if (updateData.email || updateData.name) {
-			// Note: Better Auth updateUser might need to be called separately
-			// This depends on your Better Auth setup
-		}
+		await db.transaction(async tx => {
+			const { selfUpdates } = await applyPartnerAndAnniversary(tx, {
+				userId,
+				currentPartnerId,
+				newPartnerId,
+				newAnniversary,
+			})
+			Object.assign(updateFields, selfUpdates)
+			if (Object.keys(updateFields).length > 0) {
+				await tx.update(users).set(updateFields).where(eq(users.id, userId))
+			}
+		})
 
 		return { success: true }
 	})
@@ -242,6 +268,39 @@ export const deleteUserAsAdmin = createServerFn({ method: 'POST' })
 			input: data,
 		})
 	)
+
+// ===============================
+// Relation labels (admin acting on behalf of a user)
+// ===============================
+// Mirror of the self-service relation-labels server fns, but the target
+// user is whoever the admin is editing instead of the actor. The impl
+// functions are written generically around `userId` so we just feed in
+// the edited user's id.
+
+export const getRelationLabelsForUserAsAdmin = createServerFn({ method: 'GET' })
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.inputValidator((data: { userId: string }) => data)
+	.handler(({ data }): Promise<Array<RelationLabelRow>> => getMyRelationLabelsImpl({ userId: data.userId }))
+
+export const addRelationLabelForUserAsAdmin = createServerFn({ method: 'POST' })
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.inputValidator((data: { userId: string; label: string; targetUserId?: string; targetDependentId?: string }) => ({
+		userId: data.userId,
+		input: AddRelationLabelInputSchema.parse({
+			label: data.label,
+			targetUserId: data.targetUserId,
+			targetDependentId: data.targetDependentId,
+		}),
+	}))
+	.handler(({ data }): Promise<AddRelationLabelResult> => addRelationLabelImpl({ userId: data.userId, input: data.input }))
+
+export const removeRelationLabelForUserAsAdmin = createServerFn({ method: 'POST' })
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.inputValidator((data: { userId: string; id: number }) => ({
+		userId: data.userId,
+		input: RemoveRelationLabelInputSchema.parse({ id: data.id }),
+	}))
+	.handler(({ data }): Promise<RemoveRelationLabelResult> => removeRelationLabelImpl({ userId: data.userId, input: data.input }))
 
 // ===============================
 // Admin bulk archive - archive all claimed, non-archived items

@@ -2,12 +2,18 @@
 // declare 0:N mothers and 0:N fathers (each can be a `users` row OR a
 // `dependents` row). Pure annotation; no permission implications. Drives
 // Intelligence "set your people" recs and holiday reminder emails.
+//
+// The section is polymorphic over WHO it's editing for. Self-service
+// usage (the profile page) uses the default `selfOps` bundle of server
+// fns; the admin "Edit user" dialog passes `adminOpsFor(userId)` so an
+// admin can manage someone else's labels without touching their own.
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
+import { addRelationLabelForUserAsAdmin, getRelationLabelsForUserAsAdmin, removeRelationLabelForUserAsAdmin } from '@/api/admin'
 import { getMyDependents } from '@/api/dependents'
 import { addRelationLabel, getMyRelationLabels, type RelationLabelRow, removeRelationLabel } from '@/api/relation-labels'
 import { getGiftIdeasRecipients } from '@/api/user'
@@ -24,31 +30,77 @@ const BUCKETS: ReadonlyArray<Bucket> = [
 	{
 		label: 'mother',
 		title: 'Mothers',
-		addCta: 'Add a mother',
+		addCta: 'Add',
 		emptyHelp: 'Tag the people you shop for on Mother’s Day. They’ll appear on reminders and in Suggestions.',
 	},
 	{
 		label: 'father',
 		title: 'Fathers',
-		addCta: 'Add a father',
+		addCta: 'Add',
 		emptyHelp: 'Tag the people you shop for on Father’s Day. They’ll appear on reminders and in Suggestions.',
 	},
 ]
 
-export function RelationLabelsSection() {
+type AddInput = {
+	label: RelationLabel
+	targetUserId?: string
+	targetDependentId?: string
+}
+
+// Pluggable backend so the same UI drives self-service and admin
+// edit-user surfaces. Each ops bundle bakes in the target userId where
+// necessary so the component never has to know which mode it's in.
+export type RelationLabelsOps = {
+	listKey: ReadonlyArray<unknown>
+	list: () => Promise<Array<RelationLabelRow>>
+	add: (input: AddInput) => Promise<unknown>
+	remove: (id: number) => Promise<unknown>
+}
+
+export const selfOps: RelationLabelsOps = {
+	listKey: ['my-relation-labels'],
+	list: () => getMyRelationLabels(),
+	add: input => addRelationLabel({ data: input }),
+	remove: id => removeRelationLabel({ data: { id } }),
+}
+
+export function adminOpsFor(userId: string): RelationLabelsOps {
+	return {
+		listKey: ['admin', 'relation-labels', userId],
+		list: () => getRelationLabelsForUserAsAdmin({ data: { userId } }),
+		add: input => addRelationLabelForUserAsAdmin({ data: { userId, ...input } }),
+		remove: id => removeRelationLabelForUserAsAdmin({ data: { userId, id } }),
+	}
+}
+
+type RelationLabelsSectionProps = {
+	ops?: RelationLabelsOps
+	// When true, hides the dependent picker. Admin context can't easily
+	// scope the dependents list to the edited user, so v1 keeps admin to
+	// user targets only. The user can always add dependent rows from
+	// their own profile page.
+	hideDependents?: boolean
+}
+
+export function RelationLabelsSection({ ops = selfOps, hideDependents = false }: RelationLabelsSectionProps = {}) {
 	const queryClient = useQueryClient()
 
-	const { data: rows = [] } = useQuery({ queryKey: ['my-relation-labels'], queryFn: () => getMyRelationLabels(), staleTime: 60_000 })
+	const { data: rows = [] } = useQuery({ queryKey: ops.listKey, queryFn: () => ops.list(), staleTime: 60_000 })
 	const { data: people = [] } = useQuery({
 		queryKey: ['gift-ideas-recipients'],
 		queryFn: () => getGiftIdeasRecipients(),
 		staleTime: 10 * 60 * 1000,
 	})
-	const { data: deps } = useQuery({ queryKey: ['dependents', 'mine'], queryFn: () => getMyDependents(), staleTime: 5 * 60 * 1000 })
+	const { data: deps } = useQuery({
+		queryKey: ['dependents', 'mine'],
+		queryFn: () => getMyDependents(),
+		staleTime: 5 * 60 * 1000,
+		enabled: !hideDependents,
+	})
 
 	const removeMutation = useMutation({
-		mutationFn: (id: number) => removeRelationLabel({ data: { id } }),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: ['my-relation-labels'] }),
+		mutationFn: (id: number) => ops.remove(id),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: ops.listKey }),
 		onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Failed to remove'),
 	})
 
@@ -60,7 +112,8 @@ export function RelationLabelsSection() {
 					bucket={b}
 					rows={rows.filter(r => r.label === b.label)}
 					people={people}
-					dependents={(deps?.dependents ?? []).filter(d => !d.isArchived)}
+					dependents={hideDependents ? [] : (deps?.dependents ?? []).filter(d => !d.isArchived)}
+					ops={ops}
 					onRemove={id => removeMutation.mutate(id)}
 				/>
 			))}
@@ -73,10 +126,11 @@ type RelationBucketProps = {
 	rows: ReadonlyArray<RelationLabelRow>
 	people: ReadonlyArray<{ id: string; name: string | null; email: string; image: string | null }>
 	dependents: ReadonlyArray<{ id: string; name: string; image: string | null }>
+	ops: RelationLabelsOps
 	onRemove: (id: number) => void
 }
 
-function RelationBucket({ bucket, rows, people, dependents, onRemove }: RelationBucketProps) {
+function RelationBucket({ bucket, rows, people, dependents, ops, onRemove }: RelationBucketProps) {
 	const queryClient = useQueryClient()
 	const [adding, setAdding] = useState(false)
 	const [pickerValue, setPickerValue] = useState('')
@@ -84,31 +138,30 @@ function RelationBucket({ bucket, rows, people, dependents, onRemove }: Relation
 	const claimedIds = new Set(rows.map(r => `${r.target.kind}:${r.target.id}`))
 
 	const addMutation = useMutation({
-		mutationFn: (value: string) => {
+		mutationFn: async (value: string) => {
 			const [kind, id] = value.split(':') as ['u' | 'd', string]
-			return addRelationLabel({
-				data: {
-					label: bucket.label,
-					targetUserId: kind === 'u' ? id : undefined,
-					targetDependentId: kind === 'd' ? id : undefined,
-				},
+			return await ops.add({
+				label: bucket.label,
+				targetUserId: kind === 'u' ? id : undefined,
+				targetDependentId: kind === 'd' ? id : undefined,
 			})
 		},
 		onSuccess: result => {
-			if (result.kind === 'error') {
-				const message: Record<typeof result.reason, string> = {
+			const r = result as { kind: 'ok' | 'error'; reason?: string }
+			if (r.kind === 'error') {
+				const message: Record<string, string> = {
 					'invalid-target': 'Pick someone before saving.',
 					'self-target': "You can't add yourself.",
 					duplicate: 'They’re already in this list.',
 					'target-not-found': "Couldn't find that person.",
 					'not-dependent-guardian': 'You’re not a guardian of that dependent.',
 				}
-				toast.error(message[result.reason])
+				toast.error(message[r.reason ?? ''] ?? 'Failed to add')
 				return
 			}
 			setAdding(false)
 			setPickerValue('')
-			queryClient.invalidateQueries({ queryKey: ['my-relation-labels'] })
+			queryClient.invalidateQueries({ queryKey: ops.listKey })
 		},
 		onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Failed to add'),
 	})

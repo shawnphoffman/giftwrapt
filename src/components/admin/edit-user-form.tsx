@@ -5,14 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { z } from 'zod'
 
-import {
-	deleteUserAsAdmin,
-	getGuardianshipsForChild,
-	getUsersAsAdmin,
-	updateGuardianships,
-	updateUserAsAdmin,
-	updateUserPartner,
-} from '@/api/admin'
+import { deleteUserAsAdmin, getGuardianshipsForChild, getUsersAsAdmin, updateGuardianships, updateUserAsAdmin } from '@/api/admin'
 import { removeAvatarAsAdmin, uploadAvatarAsAdmin } from '@/api/uploads'
 import { RoleLegend } from '@/components/admin/role-legend'
 import { BirthDaySelect } from '@/components/common/birth-day-select'
@@ -20,6 +13,7 @@ import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import InputTooltip from '@/components/common/input-tooltip'
 import UserAvatar from '@/components/common/user-avatar'
 import AvatarUpload from '@/components/settings/avatar-upload'
+import { adminOpsFor, RelationLabelsSection } from '@/components/settings/relation-labels-section'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -155,6 +149,7 @@ function EditUserFormInner({
 			birthYear: user.birthYear ?? undefined,
 			guardianIds: existingGuardianIds,
 			partnerId: user.partnerId ?? undefined,
+			partnerAnniversary: user.partnerAnniversary ?? undefined,
 			image: user.image ?? undefined,
 		},
 		onSubmit: async ({ value }) => {
@@ -190,8 +185,12 @@ function EditUserFormInner({
 		try {
 			// Normalize partnerId (handle __none__ case)
 			const normalizedPartnerId = data.partnerId === '__none__' ? null : data.partnerId || null
+			const normalizedAnniversary = data.partnerAnniversary ? data.partnerAnniversary : null
 
-			// Update user basic info
+			// Update user basic info. updateUserAsAdmin now handles the
+			// bidirectional partner + anniversary mirror via the shared
+			// `applyPartnerAndAnniversary` helper, so we no longer need
+			// the second `updateUserPartner` round-trip.
 			await updateUserAsAdmin({
 				data: {
 					userId,
@@ -203,6 +202,7 @@ function EditUserFormInner({
 					birthYear: data.birthYear ?? null,
 					image: data.image === '' ? null : data.image || null,
 					partnerId: normalizedPartnerId,
+					partnerAnniversary: normalizedAnniversary,
 				},
 			} as Parameters<typeof updateUserAsAdmin>[0])
 
@@ -220,44 +220,6 @@ function EditUserFormInner({
 					setError('User updated but failed to update guardianships. Please update manually.')
 					setIsLoading(false)
 					return
-				}
-			}
-
-			// Handle partner relationship
-			const newPartnerId = normalizedPartnerId
-			const oldPartnerId = user.partnerId || null
-
-			// If partner changed, update both users
-			if (newPartnerId !== oldPartnerId) {
-				// Remove old partner relationship if it existed
-				if (oldPartnerId) {
-					try {
-						await updateUserPartner({
-							data: {
-								userId: oldPartnerId,
-								partnerId: null,
-							},
-						} as Parameters<typeof updateUserPartner>[0])
-					} catch (partnerError) {
-						console.error('Failed to remove old partner relationship:', partnerError)
-					}
-				}
-
-				// Set new partner relationship
-				if (newPartnerId) {
-					try {
-						await updateUserPartner({
-							data: {
-								userId: newPartnerId,
-								partnerId: userId,
-							},
-						} as Parameters<typeof updateUserPartner>[0])
-					} catch (partnerError) {
-						console.error('Failed to update partner relationship:', partnerError)
-						setError('User updated but failed to update partner relationship. Please update manually.')
-						setIsLoading(false)
-						return
-					}
 				}
 			}
 
@@ -559,42 +521,79 @@ function EditUserFormInner({
 			<form.Subscribe selector={state => state.values.role}>
 				{role =>
 					(role === 'user' || role === 'admin') && (
-						<form.Field name="partnerId">
-							{field => (
-								<div className="grid gap-2">
-									<Label htmlFor={field.name}>Partner</Label>
-									<Select
-										onValueChange={value => {
-											field.handleChange(value === '__none__' ? undefined : value)
-										}}
-										value={field.state.value || '__none__'}
-										disabled={isLoading}
-									>
-										<SelectTrigger id={field.name} className="w-full">
-											<SelectValue placeholder="Select partner (optional)" />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="__none__">None</SelectItem>
-											{partnerOptions.map(partnerUser => (
-												<SelectItem key={partnerUser.id} value={partnerUser.id}>
-													<UserAvatar name={partnerUser.name || partnerUser.email} image={partnerUser.image} size="small" />
-													<span className="truncate">
-														{partnerUser.name || partnerUser.email}
-														{partnerUser.role === 'admin' && ' (Admin)'}
-													</span>
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-									{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
-										<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
-									)}
-								</div>
-							)}
-						</form.Field>
+						<>
+							<form.Field name="partnerId">
+								{field => (
+									<div className="grid gap-2">
+										<Label htmlFor={field.name}>Partner</Label>
+										<Select
+											onValueChange={value => {
+												field.handleChange(value === '__none__' ? undefined : value)
+											}}
+											value={field.state.value || '__none__'}
+											disabled={isLoading}
+										>
+											<SelectTrigger id={field.name} className="w-full">
+												<SelectValue placeholder="Select partner (optional)" />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="__none__">None</SelectItem>
+												{partnerOptions.map(partnerUser => (
+													<SelectItem key={partnerUser.id} value={partnerUser.id}>
+														<UserAvatar name={partnerUser.name || partnerUser.email} image={partnerUser.image} size="small" />
+														<span className="truncate">
+															{partnerUser.name || partnerUser.email}
+															{partnerUser.role === 'admin' && ' (Admin)'}
+														</span>
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+										{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+											<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
+										)}
+									</div>
+								)}
+							</form.Field>
+
+							<form.Subscribe selector={state => state.values.partnerId}>
+								{selectedPartnerId =>
+									selectedPartnerId && selectedPartnerId !== '__none__' ? (
+										<form.Field name="partnerAnniversary">
+											{field => (
+												<div className="grid gap-2">
+													<Label htmlFor={field.name} className="flex items-center gap-1.5">
+														Partner Anniversary
+														<InputTooltip>Optional. Mirrored onto both partners so the date appears on either profile.</InputTooltip>
+													</Label>
+													<Input
+														id={field.name}
+														type="date"
+														value={field.state.value ?? ''}
+														onChange={e => field.handleChange(e.target.value === '' ? undefined : e.target.value)}
+														onBlur={field.handleBlur}
+														disabled={isLoading}
+														className="w-full sm:w-48"
+													/>
+													{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+														<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
+													)}
+												</div>
+											)}
+										</form.Field>
+									) : null
+								}
+							</form.Subscribe>
+						</>
 					)
 				}
 			</form.Subscribe>
+
+			<div className="grid gap-2 pt-2">
+				<Label>Relationships</Label>
+				<p className="text-xs text-muted-foreground">People this user shops for on Mother’s Day and Father’s Day.</p>
+				<RelationLabelsSection ops={adminOpsFor(userId)} hideDependents />
+			</div>
 
 			{error && (
 				<Alert variant="destructive">
