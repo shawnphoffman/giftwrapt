@@ -274,6 +274,39 @@ export const appSettingsSchema = z.object({
 	enableComments: z.boolean(),
 	// Whether a notification email is sent to the list owner on new comments.
 	enableCommentEmails: z.boolean(),
+	// =====================================================================
+	// Pre-event broadcast reminders (Phase B). Each family sends one email
+	// to every user when (today + leadDays) matches the event date, gated
+	// by both the list-type master toggle and the email-master toggle.
+	// =====================================================================
+	enableBirthdayReminderEmails: z.boolean(),
+	birthdayReminderLeadDays: z.number().int().min(1).max(365),
+	enableChristmasReminderEmails: z.boolean(),
+	christmasReminderLeadDays: z.number().int().min(1).max(365),
+	enableHolidayReminderEmails: z.boolean(),
+	holidayReminderLeadDays: z.number().int().min(1).max(365),
+	// =====================================================================
+	// Relationship reminders (Phase C). Replaces enableParentalRelations.
+	// Each of the four families has independent master + lead-days + email
+	// toggles. Mother's/Father's date math uses `relationshipRemindersCountry`.
+	// Valentine's is Feb 14 globally; Anniversary uses users.partnerAnniversary.
+	// =====================================================================
+	enableMothersDayReminders: z.boolean(),
+	mothersDayReminderLeadDays: z.number().int().min(1).max(365),
+	enableMothersDayReminderEmails: z.boolean(),
+	enableFathersDayReminders: z.boolean(),
+	fathersDayReminderLeadDays: z.number().int().min(1).max(365),
+	enableFathersDayReminderEmails: z.boolean(),
+	enableValentinesDayReminders: z.boolean(),
+	valentinesDayReminderLeadDays: z.number().int().min(1).max(365),
+	enableValentinesDayReminderEmails: z.boolean(),
+	enableAnniversaryReminders: z.boolean(),
+	anniversaryReminderLeadDays: z.number().int().min(1).max(365),
+	enableAnniversaryReminderEmails: z.boolean(),
+	// ISO 3166-1 alpha-2. Mother's/Father's Day date resolution uses
+	// this country (US default; date-holidays library handles the rest).
+	// Valentine's and Anniversary are country-independent.
+	relationshipRemindersCountry: z.string().min(2).max(2),
 	// When true, item save (create/update) will fetch any non-storage
 	// imageUrl, run it through the image pipeline, and persist the
 	// resulting storage URL instead of the original. Best-effort: a
@@ -412,6 +445,25 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	parentalRelationsReminderLeadDays: 21,
 	enableComments: true,
 	enableCommentEmails: false,
+	enableBirthdayReminderEmails: false,
+	birthdayReminderLeadDays: 30,
+	enableChristmasReminderEmails: false,
+	christmasReminderLeadDays: 30,
+	enableHolidayReminderEmails: false,
+	holidayReminderLeadDays: 30,
+	enableMothersDayReminders: false,
+	mothersDayReminderLeadDays: 30,
+	enableMothersDayReminderEmails: false,
+	enableFathersDayReminders: false,
+	fathersDayReminderLeadDays: 30,
+	enableFathersDayReminderEmails: false,
+	enableValentinesDayReminders: false,
+	valentinesDayReminderLeadDays: 30,
+	enableValentinesDayReminderEmails: false,
+	enableAnniversaryReminders: false,
+	anniversaryReminderLeadDays: 30,
+	enableAnniversaryReminderEmails: false,
+	relationshipRemindersCountry: 'US',
 	mirrorExternalImagesOnSave: false,
 	enableMobileApp: false,
 	enablePasskeys: false,
