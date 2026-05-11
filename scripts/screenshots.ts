@@ -309,6 +309,7 @@ async function run(plan: RunPlan, ids: FixtureIds) {
 	const isFullRouteRun = plan.routeSlugs.length === ROUTES.length
 	if (plan.viewports.includes('basic') && isFullRouteRun) {
 		for (const theme of plan.themes) {
+			// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 			if (theme !== 'light' && theme !== 'dark') continue
 			const copied = await mirrorViewportThemeTo(plan.outDir, plan.runId, 'basic', theme, DOCS_SCREENSHOTS_DIR)
 			if (copied > 0) {

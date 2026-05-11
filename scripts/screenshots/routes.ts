@@ -21,30 +21,34 @@ const clickReorderTab = async (page: Page) => {
 }
 
 export const ROUTES: ReadonlyArray<RouteDef> = [
-	// ---------------------------------------------------------------- Logged out
+	// ----------------------------------------------------------------
+	// AUTH
+	// ----------------------------------------------------------------
 	{ slug: 'sign-in', label: 'Sign in', path: '/sign-in', auth: false, waitFor: 'form' },
 	{ slug: 'sign-in-mobile-passkey', label: 'Sign in: mobile passkey', path: '/sign-in/mobile-passkey', auth: false },
 	{ slug: 'sign-in-two-factor', label: 'Sign in: two-factor', path: '/sign-in/two-factor', auth: false },
 	{ slug: 'sign-up', label: 'Sign up', path: '/sign-up', auth: false, waitFor: 'form' },
-	{ slug: 'forgot-password', label: 'Forgot password', path: '/forgot-password', auth: false, waitFor: 'form' },
-	{ slug: 'reset-password', label: 'Reset password', path: '/reset-password', auth: false, waitFor: 'form' },
+	{ slug: 'sign-in-forgot-password', label: 'Forgot password', path: '/forgot-password', auth: false, waitFor: 'form' },
+	{ slug: 'sign-in-reset-password', label: 'Reset password', path: '/reset-password', auth: false, waitFor: 'form' },
 
-	// ---------------------------------------------------------------- Authenticated (admin)
-	{ slug: 'home', label: 'Home / dashboard', path: '/' },
-	{ slug: 'me', label: 'Profile', path: '/me' },
-	{ slug: 'suggestions', label: 'Suggestions (intelligence)', path: '/suggestions' },
+	// ----------------------------------------------------------------
+	// Authenticated (admin)
+	// ----------------------------------------------------------------
+	{ slug: 'all-lists', label: 'All Lists', path: '/' },
+	{ slug: 'my-lists', label: 'My Lists', path: '/me' },
+	{ slug: 'suggestions', label: 'My Suggestions', path: '/suggestions' },
 
-	{ slug: 'settings', label: 'Settings', path: '/settings' },
-	{ slug: 'settings-security', label: 'Settings: security', path: '/settings/security' },
-	{ slug: 'settings-permissions', label: 'Settings: permissions', path: '/settings/permissions' },
-	{ slug: 'settings-devices', label: 'Settings: devices', path: '/settings/devices' },
-	{ slug: 'settings-dependents', label: 'Settings: dependents', path: '/settings/dependents' },
+	{ slug: 'settings-profile', label: 'Settings (Profile)', path: '/settings' },
+	{ slug: 'settings-security', label: 'Settings (Security)', path: '/settings/security' },
+	{ slug: 'settings-permissions', label: 'Settings (Permissions)', path: '/settings/permissions' },
+	{ slug: 'settings-devices', label: 'Settings (Devices)', path: '/settings/devices' },
+	{ slug: 'settings-dependents', label: 'Settings (Dependents)', path: '/settings/dependents' },
 
-	{ slug: 'purchases', label: 'Purchases (gave)', path: '/purchases' },
-	{ slug: 'purchases-received', label: 'Purchases: received', path: '/purchases/received' },
+	{ slug: 'my-purchases', label: 'My Purchases', path: '/purchases' },
+	{ slug: 'my-received', label: 'My Received', path: '/purchases/received' },
 
-	{ slug: 'recent-items', label: 'Recent items', path: '/recent/items' },
-	{ slug: 'recent-comments', label: 'Recent comments', path: '/recent/comments' },
+	{ slug: 'recent-items', label: 'Recent Items', path: '/recent/items' },
+	{ slug: 'recent-comments', label: 'Recent Comments', path: '/recent/comments' },
 
 	// Admin's own lists - one capture per list-type variant.
 	// `/lists/$id` redirects the owner to `/edit`, so just hit the view URL.
@@ -98,7 +102,7 @@ export const ROUTES: ReadonlyArray<RouteDef> = [
 	},
 
 	// 404 / not-found rendering.
-	{ slug: 'not-found', label: 'Not found (404)', path: '/this-route-does-not-exist' },
+	// { slug: 'not-found', label: 'Not found (404)', path: '/this-route-does-not-exist' },
 
 	// Admin panel
 	{ slug: 'admin', label: 'Admin', path: '/admin' },
