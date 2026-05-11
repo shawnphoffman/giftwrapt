@@ -67,10 +67,38 @@ export async function captureRoute(page: Page, route: RouteDef, url: string, out
 		await route.prep(page)
 	}
 
-	// Settle: scroll to top, wait for fonts, give images a moment.
+	// Settle: scroll to top, wait for fonts, wait for every <img> to finish loading.
 	await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior }))
 	await page.evaluate(() => document.fonts.ready).catch(() => undefined)
-	await page.waitForTimeout(250)
+
+	// Full-page screenshots include below-the-fold content, so lazy-loaded images
+	// won't trigger until we scroll past them. Walk the page top-to-bottom to force
+	// any IntersectionObserver-based loaders, then return to the top.
+	await page
+		.evaluate(async () => {
+			const step = Math.max(200, Math.floor(window.innerHeight * 0.8))
+			for (let y = 0; y < document.documentElement.scrollHeight; y += step) {
+				window.scrollTo({ top: y, behavior: 'instant' as ScrollBehavior })
+				await new Promise(r => requestAnimationFrame(() => r(null)))
+			}
+			window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
+		})
+		.catch(() => undefined)
+
+	await page
+		.waitForFunction(
+			() => {
+				const imgs = Array.from(document.images)
+				return imgs.every(img => img.complete && img.naturalWidth > 0)
+			},
+			{ timeout: 15_000 }
+		)
+		.catch(() => {
+			// Don't fail the whole run on a single broken image; the per-image check
+			// above will surface as a visibly empty box in the screenshot.
+		})
+
+	await page.waitForTimeout(100)
 
 	await page.screenshot({ path: outPath, fullPage: true, animations: 'disabled' })
 }
