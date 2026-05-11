@@ -13,9 +13,11 @@ import type { AutoArchiveResult } from '@/lib/cron/auto-archive'
 import { autoArchiveImpl } from '@/lib/cron/auto-archive'
 import { birthdayEmailsImpl } from '@/lib/cron/birthday-emails'
 import { cleanupVerificationImpl } from '@/lib/cron/cleanup-verification'
+import { listOwnerRemindersImpl } from '@/lib/cron/list-owner-reminders'
 import { parentalRemindersImpl } from '@/lib/cron/parental-reminders'
 import { sweepCronRuns } from '@/lib/cron/record-run'
 import type { CronEndpoint } from '@/lib/cron/registry'
+import { relationshipRemindersImpl } from '@/lib/cron/relationship-reminders'
 import { getCatalogEntry } from '@/lib/holidays'
 import { processOnce } from '@/lib/import/scrape-queue/runner'
 import { generateForUser } from '@/lib/intelligence/runner'
@@ -223,8 +225,9 @@ export async function runBirthdayEmails() {
 
 	// The cron's name is "birthday-emails" but we use it as the daily
 	// outbound-mail tick: birthday + post-birthday from `enableBirthdayEmails`,
-	// parental-relations reminders from `enableParentalRelations`. Each
-	// branch is feature-gated independently.
+	// legacy parental-relations from `enableParentalRelations`, and the new
+	// list-owner pre-event reminders + relationship reminders introduced
+	// in the holiday rework. Each branch is feature-gated independently.
 	if (settings.enableBirthdayEmails) {
 		const result = await birthdayEmailsImpl({ db, now })
 		birthdayEmails = result.birthdayEmails
@@ -239,23 +242,72 @@ export async function runBirthdayEmails() {
 		}
 	}
 
+	let listOwnerReminders: { birthdayReminders: number; christmasReminders: number; customHolidayReminders: number } = {
+		birthdayReminders: 0,
+		christmasReminders: 0,
+		customHolidayReminders: 0,
+	}
+	try {
+		listOwnerReminders = await listOwnerRemindersImpl({ db, now, settings })
+	} catch (err) {
+		log.warn({ err: err instanceof Error ? err.message : String(err) }, 'list-owner-reminders batch failed')
+	}
+
+	let relationshipReminders: {
+		mothersDayReminders: number
+		fathersDayReminders: number
+		valentinesDayReminders: number
+		anniversaryReminders: number
+	} = { mothersDayReminders: 0, fathersDayReminders: 0, valentinesDayReminders: 0, anniversaryReminders: 0 }
+	try {
+		relationshipReminders = await relationshipRemindersImpl({ db, now, settings })
+	} catch (err) {
+		log.warn({ err: err instanceof Error ? err.message : String(err) }, 'relationship-reminders batch failed')
+	}
+
 	const durationMs = Date.now() - started
 	log.info(
-		{ endpoint: '/api/cron/birthday-emails', birthdayEmails, followUpEmails, parentalReminderEmails, durationMs },
+		{
+			endpoint: '/api/cron/birthday-emails',
+			birthdayEmails,
+			followUpEmails,
+			parentalReminderEmails,
+			listOwnerReminders,
+			relationshipReminders,
+			durationMs,
+		},
 		'cron run complete'
 	)
+
+	const totalListOwner =
+		listOwnerReminders.birthdayReminders + listOwnerReminders.christmasReminders + listOwnerReminders.customHolidayReminders
+	const totalRelationship =
+		relationshipReminders.mothersDayReminders +
+		relationshipReminders.fathersDayReminders +
+		relationshipReminders.valentinesDayReminders +
+		relationshipReminders.anniversaryReminders
 
 	if (
 		birthdayEmails === 0 &&
 		followUpEmails === 0 &&
 		parentalReminderEmails === 0 &&
+		totalListOwner === 0 &&
+		totalRelationship === 0 &&
 		!settings.enableBirthdayEmails &&
 		!settings.enableParentalRelations
 	) {
 		return { ok: true, skipped: 'disabled', date: now.toISOString() }
 	}
 
-	return { ok: true, birthdayEmails, followUpEmails, parentalReminderEmails, date: now.toISOString() }
+	return {
+		ok: true,
+		birthdayEmails,
+		followUpEmails,
+		parentalReminderEmails,
+		listOwnerReminders,
+		relationshipReminders,
+		date: now.toISOString(),
+	}
 }
 
 export async function runCleanupVerification() {
