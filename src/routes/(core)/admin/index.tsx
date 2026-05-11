@@ -98,10 +98,10 @@ function AdminPage() {
 			</Card>
 			<Card className="animate-page-in max-w-xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Parental Relations</CardTitle>
+					<CardTitle className="text-2xl">Relationship Reminders</CardTitle>
 					<CardDescription>
-						Cross-person flows for Mother's Day and Father's Day. Users tag the mothers and fathers they shop for; reminders and Suggestions
-						use those tags.
+						Cross-person reminders for Mother's Day, Father's Day, Valentine's Day, and partner anniversaries. Each family has its own
+						master, lead-time, and email toggle; the masters also gate the related profile inputs (parent labels, anniversary date).
 					</CardDescription>
 				</CardHeader>
 				<CardContent>

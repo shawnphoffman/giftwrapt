@@ -178,6 +178,38 @@ export function ChristmasSettingsSection() {
 					/>
 				</div>
 			)}
+
+			{emailConfigured && (
+				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableChristmasLists ? '' : 'opacity-50'}`}>
+					<div className="space-y-0.5">
+						<Label htmlFor="enableChristmasReminderEmails" className="text-base">
+							Send pre-Christmas reminder emails
+						</Label>
+						<p className="text-sm text-muted-foreground">Email every user N days before Christmas so they can spruce up their list</p>
+					</div>
+					<Switch
+						id="enableChristmasReminderEmails"
+						checked={settings.enableChristmasReminderEmails}
+						disabled={!settings.enableChristmasLists}
+						onCheckedChange={checked => handleSettingChange('enableChristmasReminderEmails', checked)}
+					/>
+				</div>
+			)}
+
+			{emailConfigured && (
+				<div
+					className={`flex items-center justify-between gap-4 pl-12 ${settings.enableChristmasReminderEmails && settings.enableChristmasLists ? '' : 'opacity-50'}`}
+				>
+					<DaysSetting
+						id="christmasReminderLeadDays"
+						label="Christmas reminder lead time"
+						description="Days before Dec 25 to send the pre-Christmas reminder email"
+						value={settings.christmasReminderLeadDays}
+						disabled={!settings.enableChristmasReminderEmails || !settings.enableChristmasLists}
+						onCommit={value => handleSettingChange('christmasReminderLeadDays', value)}
+					/>
+				</div>
+			)}
 		</div>
 	)
 }
@@ -234,6 +266,40 @@ export function GenericHolidaySettingsSection() {
 					/>
 				</div>
 			)}
+
+			{emailConfigured && (
+				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableGenericHolidayLists ? '' : 'opacity-50'}`}>
+					<div className="space-y-0.5">
+						<Label htmlFor="enableHolidayReminderEmails" className="text-base">
+							Send pre-holiday reminder emails
+						</Label>
+						<p className="text-sm text-muted-foreground">
+							Broadcast a reminder N days before each custom holiday, prompting users to make a list
+						</p>
+					</div>
+					<Switch
+						id="enableHolidayReminderEmails"
+						checked={settings.enableHolidayReminderEmails}
+						disabled={!settings.enableGenericHolidayLists}
+						onCheckedChange={checked => handleSettingChange('enableHolidayReminderEmails', checked)}
+					/>
+				</div>
+			)}
+
+			{emailConfigured && (
+				<div
+					className={`flex items-center justify-between gap-4 pl-12 ${settings.enableHolidayReminderEmails && settings.enableGenericHolidayLists ? '' : 'opacity-50'}`}
+				>
+					<DaysSetting
+						id="holidayReminderLeadDays"
+						label="Holiday reminder lead time"
+						description="Days before a holiday to broadcast the pre-holiday reminder"
+						value={settings.holidayReminderLeadDays}
+						disabled={!settings.enableHolidayReminderEmails || !settings.enableGenericHolidayLists}
+						onCommit={value => handleSettingChange('holidayReminderLeadDays', value)}
+					/>
+				</div>
+			)}
 		</div>
 	)
 }
@@ -287,12 +353,114 @@ export function BirthdaySettingsSection() {
 					/>
 				</div>
 			)}
+
+			{emailConfigured && (
+				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableBirthdayLists ? '' : 'opacity-50'}`}>
+					<div className="space-y-0.5">
+						<Label htmlFor="enableBirthdayReminderEmails" className="text-base">
+							Send pre-birthday reminder emails
+						</Label>
+						<p className="text-sm text-muted-foreground">Email each user N days before their birthday so they can spruce up their list</p>
+					</div>
+					<Switch
+						id="enableBirthdayReminderEmails"
+						checked={settings.enableBirthdayReminderEmails}
+						disabled={!settings.enableBirthdayLists}
+						onCheckedChange={checked => handleSettingChange('enableBirthdayReminderEmails', checked)}
+					/>
+				</div>
+			)}
+
+			{emailConfigured && (
+				<div
+					className={`flex items-center justify-between gap-4 pl-12 ${settings.enableBirthdayReminderEmails && settings.enableBirthdayLists ? '' : 'opacity-50'}`}
+				>
+					<DaysSetting
+						id="birthdayReminderLeadDays"
+						label="Birthday reminder lead time"
+						description="Days before a birthday to send the pre-birthday reminder email"
+						value={settings.birthdayReminderLeadDays}
+						disabled={!settings.enableBirthdayReminderEmails || !settings.enableBirthdayLists}
+						onCommit={value => handleSettingChange('birthdayReminderLeadDays', value)}
+					/>
+				</div>
+			)}
+		</div>
+	)
+}
+
+type ReminderFamilyArgs = {
+	settings: AppSettings
+	emailConfigured: boolean
+	handleSettingChange: <T extends keyof AppSettings>(key: T, value: AppSettings[T]) => void
+	masterKey: keyof AppSettings
+	leadDaysKey: keyof AppSettings
+	emailKey: keyof AppSettings
+	title: string
+	description: string
+}
+
+function ReminderFamilyBlock({
+	settings,
+	emailConfigured,
+	handleSettingChange,
+	masterKey,
+	leadDaysKey,
+	emailKey,
+	title,
+	description,
+}: ReminderFamilyArgs) {
+	const masterOn = settings[masterKey] as boolean
+	const emailOn = settings[emailKey] as boolean
+	const leadDays = settings[leadDaysKey] as number
+	return (
+		<div className="space-y-4 border-t pt-4 first:border-t-0 first:pt-0">
+			<div className="flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<Label htmlFor={masterKey as string} className="text-base">
+						{title}
+					</Label>
+					<p className="text-sm text-muted-foreground">{description}</p>
+				</div>
+				<Switch
+					id={masterKey as string}
+					checked={masterOn}
+					onCheckedChange={checked => handleSettingChange(masterKey, checked as AppSettings[typeof masterKey])}
+				/>
+			</div>
+			<div className={`flex items-center justify-between gap-4 pl-6 ${masterOn ? '' : 'opacity-50'}`}>
+				<DaysSetting
+					id={leadDaysKey as string}
+					label="Reminder lead time"
+					description={`Days before ${title} to send the reminder`}
+					value={leadDays}
+					disabled={!masterOn}
+					onCommit={value => handleSettingChange(leadDaysKey, value as AppSettings[typeof leadDaysKey])}
+				/>
+			</div>
+			{emailConfigured && (
+				<div className={`flex items-center justify-between gap-4 pl-6 ${masterOn ? '' : 'opacity-50'}`}>
+					<div className="space-y-0.5">
+						<Label htmlFor={emailKey as string} className="text-base">
+							Send {title} reminder emails
+						</Label>
+						<p className="text-sm text-muted-foreground">Email the reminder when the lead-time window matches</p>
+					</div>
+					<Switch
+						id={emailKey as string}
+						checked={emailOn}
+						disabled={!masterOn}
+						onCheckedChange={checked => handleSettingChange(emailKey, checked as AppSettings[typeof emailKey])}
+					/>
+				</div>
+			)}
 		</div>
 	)
 }
 
 export function ParentalRelationsSettingsSection() {
 	const { settings, isLoading, handleSettingChange } = useSettingsEditor()
+	const { data: emailConfigured } = useIsEmailConfigured()
 
 	if (!settings) return <LoadingOrEmpty isLoading={isLoading} settings={settings} />
 
@@ -300,31 +468,63 @@ export function ParentalRelationsSettingsSection() {
 		<div className="space-y-6">
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
-					<Label htmlFor="enableParentalRelations" className="text-base">
-						Enable parental relations
+					<Label htmlFor="relationshipRemindersCountry" className="text-base">
+						Country for Mother's / Father's Day
 					</Label>
 					<p className="text-sm text-muted-foreground">
-						Lets users tag mothers and fathers (other users or dependents) so Mother’s Day and Father’s Day reminders + Suggestions know who
-						they’re shopping for. Holiday catalog entries stay available regardless.
+						ISO 3166-1 alpha-2. Used to resolve Mother's and Father's Day dates (which vary by country). Defaults to US.
 					</p>
 				</div>
-				<Switch
-					id="enableParentalRelations"
-					checked={settings.enableParentalRelations}
-					onCheckedChange={checked => handleSettingChange('enableParentalRelations', checked)}
+				<Input
+					id="relationshipRemindersCountry"
+					type="text"
+					maxLength={2}
+					value={settings.relationshipRemindersCountry}
+					onChange={e => handleSettingChange('relationshipRemindersCountry', e.target.value.toUpperCase())}
+					className="w-24 uppercase"
 				/>
 			</div>
 
-			<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableParentalRelations ? '' : 'opacity-50'}`}>
-				<DaysSetting
-					id="parentalRelationsReminderLeadDays"
-					label="Reminder lead time"
-					description="Days before Mother’s Day or Father’s Day to email users a reminder of the people they’ve tagged"
-					value={settings.parentalRelationsReminderLeadDays}
-					disabled={!settings.enableParentalRelations}
-					onCommit={value => handleSettingChange('parentalRelationsReminderLeadDays', value)}
-				/>
-			</div>
+			<ReminderFamilyBlock
+				settings={settings}
+				emailConfigured={!!emailConfigured}
+				handleSettingChange={handleSettingChange}
+				masterKey="enableMothersDayReminders"
+				leadDaysKey="mothersDayReminderLeadDays"
+				emailKey="enableMothersDayReminderEmails"
+				title="Mother's Day"
+				description="Reminders + parent-label tagging (mothers) for the people you shop for"
+			/>
+			<ReminderFamilyBlock
+				settings={settings}
+				emailConfigured={!!emailConfigured}
+				handleSettingChange={handleSettingChange}
+				masterKey="enableFathersDayReminders"
+				leadDaysKey="fathersDayReminderLeadDays"
+				emailKey="enableFathersDayReminderEmails"
+				title="Father's Day"
+				description="Reminders + parent-label tagging (fathers) for the people you shop for"
+			/>
+			<ReminderFamilyBlock
+				settings={settings}
+				emailConfigured={!!emailConfigured}
+				handleSettingChange={handleSettingChange}
+				masterKey="enableValentinesDayReminders"
+				leadDaysKey="valentinesDayReminderLeadDays"
+				emailKey="enableValentinesDayReminderEmails"
+				title="Valentine's Day"
+				description="Reminders for users with a partner (Feb 14 globally)"
+			/>
+			<ReminderFamilyBlock
+				settings={settings}
+				emailConfigured={!!emailConfigured}
+				handleSettingChange={handleSettingChange}
+				masterKey="enableAnniversaryReminders"
+				leadDaysKey="anniversaryReminderLeadDays"
+				emailKey="enableAnniversaryReminderEmails"
+				title="Partner anniversary"
+				description="Reminders + the anniversary date field on profiles. Both partners are emailed; clearing the master hides the input."
+			/>
 		</div>
 	)
 }
