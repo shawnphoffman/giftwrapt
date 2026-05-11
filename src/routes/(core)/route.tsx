@@ -63,8 +63,7 @@ const suggestionsNav: NavItem = {
 	name: 'Suggestions',
 	url: '/suggestions',
 	icon: Sparkles,
-	hoverColor:
-		'group-hover/link:text-fuchsia-500 group-data-[status=active]/link:text-fuchsia-500 group-data-[status=active]/link:animate-throb',
+	hoverColor: 'group-hover/link:text-fuchsia-500 group-data-[status=active]/link:text-fuchsia-500 animate-throb',
 }
 
 const mainBase: Array<NavItem> = [
