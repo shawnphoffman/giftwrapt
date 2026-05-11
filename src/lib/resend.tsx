@@ -4,10 +4,15 @@ import { db } from '@/db'
 import BirthdayEmail from '@/emails/happy-birthday-email'
 import NewCommentEmail from '@/emails/new-comment-email'
 import ParentalRelationsReminderEmail from '@/emails/parental-relations-reminder-email'
+import PartnerAnniversaryReminderEmail from '@/emails/partner-anniversary-reminder-email'
 import PasswordResetEmail from '@/emails/password-reset-email'
 import PostBirthdayEmail from '@/emails/post-birthday-email'
 import PostHolidayEmail from '@/emails/post-holiday-email'
+import PreBirthdayReminderEmail from '@/emails/pre-birthday-reminder-email'
+import PreChristmasReminderEmail from '@/emails/pre-christmas-reminder-email'
+import PreCustomHolidayReminderEmail from '@/emails/pre-custom-holiday-reminder-email'
 import TestEmail from '@/emails/test-email'
+import ValentinesDayReminderEmail from '@/emails/valentines-day-reminder-email'
 import { type ResolvedEmailConfig, resolveEmailConfig } from '@/lib/email-config'
 import { createLogger } from '@/lib/logger'
 
@@ -146,6 +151,102 @@ export const sendParentalRelationsReminderEmail = async (
 		react: <ParentalRelationsReminderEmail holidayName={args.holidayName} leadDays={args.leadDays} people={args.people} />,
 	})
 	logSendResult('parental-relations-reminder', recipient, res as SendResult)
+	return res
+}
+
+export const sendPreBirthdayReminderEmail = async (recipient: string, args: { name: string; leadDays: number }) => {
+	const cfg = await resolveEmailConfig(db)
+	const client = buildClient(cfg)
+	if (!client || !cfg.isValid) {
+		warnNotConfigured('sendPreBirthdayReminderEmail')
+		return null
+	}
+	emailLog.info({ kind: 'pre-birthday-reminder', recipient, leadDays: args.leadDays }, 'sending email')
+	const res = await client.emails.send({
+		...commonEmailProps(cfg),
+		to: recipient,
+		subject: `Your birthday is in ${args.leadDays} days`,
+		react: <PreBirthdayReminderEmail name={args.name} leadDays={args.leadDays} />,
+	})
+	logSendResult('pre-birthday-reminder', recipient, res as SendResult)
+	return res
+}
+
+export const sendPreChristmasReminderEmail = async (recipient: string, args: { name: string; leadDays: number }) => {
+	const cfg = await resolveEmailConfig(db)
+	const client = buildClient(cfg)
+	if (!client || !cfg.isValid) {
+		warnNotConfigured('sendPreChristmasReminderEmail')
+		return null
+	}
+	emailLog.info({ kind: 'pre-christmas-reminder', recipient, leadDays: args.leadDays }, 'sending email')
+	const res = await client.emails.send({
+		...commonEmailProps(cfg),
+		to: recipient,
+		subject: `Christmas is in ${args.leadDays} days`,
+		react: <PreChristmasReminderEmail name={args.name} leadDays={args.leadDays} />,
+	})
+	logSendResult('pre-christmas-reminder', recipient, res as SendResult)
+	return res
+}
+
+export const sendPreCustomHolidayReminderEmail = async (
+	recipient: string,
+	args: { name: string; holidayName: string; leadDays: number }
+) => {
+	const cfg = await resolveEmailConfig(db)
+	const client = buildClient(cfg)
+	if (!client || !cfg.isValid) {
+		warnNotConfigured('sendPreCustomHolidayReminderEmail')
+		return null
+	}
+	emailLog.info({ kind: 'pre-custom-holiday-reminder', recipient, holidayName: args.holidayName, leadDays: args.leadDays }, 'sending email')
+	const res = await client.emails.send({
+		...commonEmailProps(cfg),
+		to: recipient,
+		subject: `${args.holidayName} is in ${args.leadDays} days`,
+		react: <PreCustomHolidayReminderEmail name={args.name} holidayName={args.holidayName} leadDays={args.leadDays} />,
+	})
+	logSendResult('pre-custom-holiday-reminder', recipient, res as SendResult)
+	return res
+}
+
+export const sendValentinesDayReminderEmail = async (recipient: string, args: { name: string; partnerName: string; leadDays: number }) => {
+	const cfg = await resolveEmailConfig(db)
+	const client = buildClient(cfg)
+	if (!client || !cfg.isValid) {
+		warnNotConfigured('sendValentinesDayReminderEmail')
+		return null
+	}
+	emailLog.info({ kind: 'valentines-day-reminder', recipient, leadDays: args.leadDays }, 'sending email')
+	const res = await client.emails.send({
+		...commonEmailProps(cfg),
+		to: recipient,
+		subject: `Valentine's Day is in ${args.leadDays} days`,
+		react: <ValentinesDayReminderEmail name={args.name} partnerName={args.partnerName} leadDays={args.leadDays} />,
+	})
+	logSendResult('valentines-day-reminder', recipient, res as SendResult)
+	return res
+}
+
+export const sendPartnerAnniversaryReminderEmail = async (
+	recipient: string,
+	args: { name: string; partnerName: string; leadDays: number }
+) => {
+	const cfg = await resolveEmailConfig(db)
+	const client = buildClient(cfg)
+	if (!client || !cfg.isValid) {
+		warnNotConfigured('sendPartnerAnniversaryReminderEmail')
+		return null
+	}
+	emailLog.info({ kind: 'partner-anniversary-reminder', recipient, leadDays: args.leadDays }, 'sending email')
+	const res = await client.emails.send({
+		...commonEmailProps(cfg),
+		to: recipient,
+		subject: `Your anniversary with ${args.partnerName} is in ${args.leadDays} days`,
+		react: <PartnerAnniversaryReminderEmail name={args.name} partnerName={args.partnerName} leadDays={args.leadDays} />,
+	})
+	logSendResult('partner-anniversary-reminder', recipient, res as SendResult)
 	return res
 }
 
