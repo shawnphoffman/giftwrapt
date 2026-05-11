@@ -245,7 +245,6 @@ export const appSettingsSchema = z.object({
 	// `enableChristmasLists`; christmas remains a first-class list type.
 	enableGenericHolidayLists: z.boolean(),
 	defaultListType: z.enum(['wishlist', 'christmas', 'birthday', 'giftideas', 'holiday', 'todos', 'test']),
-	enableGiftsForNonUsers: z.boolean(),
 	// Days after a birthday before claimed items are auto-archived.
 	archiveDaysAfterBirthday: z.number().int().positive().default(14),
 	// Days after Dec 25 before claimed Christmas items are auto-archived.
@@ -403,7 +402,6 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	enableTodoLists: true,
 	enableGenericHolidayLists: true,
 	defaultListType: 'wishlist',
-	enableGiftsForNonUsers: false,
 	archiveDaysAfterBirthday: 14,
 	archiveDaysAfterChristmas: 14,
 	archiveDaysAfterHoliday: 14,

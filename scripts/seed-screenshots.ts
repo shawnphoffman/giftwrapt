@@ -436,7 +436,6 @@ async function main() {
 		{ key: 'archiveDaysAfterBirthday', value: 14 },
 		{ key: 'archiveDaysAfterChristmas', value: 14 },
 		{ key: 'archiveDaysAfterHoliday', value: 14 },
-		{ key: 'enableGiftsForNonUsers', value: true },
 		{ key: 'mirrorExternalImagesOnSave', value: false },
 	])
 
