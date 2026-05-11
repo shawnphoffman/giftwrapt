@@ -27,6 +27,8 @@ import { computeListItemCounts } from '@/lib/gifts'
 import { isValidHolidayKey } from '@/lib/holidays'
 import { canEditList, canViewList, getViewerAccessLevelForList } from '@/lib/permissions'
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
+import type { AppSettings } from '@/lib/settings'
+import { getAppSettings } from '@/lib/settings-loader'
 import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 
 // =====================================================================
@@ -200,13 +202,22 @@ export type PublicDependent = {
 
 export type CreateListResult =
 	| { kind: 'ok'; list: { id: number; name: string; type: ListType } }
-	| { kind: 'error'; reason: 'child-cannot-create-gift-ideas' | 'not-dependent-guardian' | 'invalid-holiday-selection' }
+	| {
+			kind: 'error'
+			reason: 'child-cannot-create-gift-ideas' | 'not-dependent-guardian' | 'invalid-holiday-selection' | 'list-type-disabled'
+	  }
 
 export type UpdateListResult =
 	| { kind: 'ok' }
 	| {
 			kind: 'error'
-			reason: 'not-found' | 'not-authorized' | 'child-cannot-create-gift-ideas' | 'not-dependent-guardian' | 'invalid-holiday-selection'
+			reason:
+				| 'not-found'
+				| 'not-authorized'
+				| 'child-cannot-create-gift-ideas'
+				| 'not-dependent-guardian'
+				| 'invalid-holiday-selection'
+				| 'list-type-disabled'
 	  }
 
 export type DeleteListResult = { kind: 'ok'; action: 'deleted' | 'archived' } | { kind: 'error'; reason: 'not-found' | 'not-owner' }
@@ -1005,6 +1016,17 @@ export async function getMyLastHolidayCountryImpl(args: { userId: string; dbx?: 
 	return row?.holidayCountry ?? null
 }
 
+// Admin-gated list types. `wishlist` and `giftideas` are always available
+// (the former is the universal default, the latter has its own role gate).
+// Returns true when the type is admin-disabled.
+function isListTypeDisabled(type: ListType, settings: AppSettings): boolean {
+	if (type === 'christmas') return !settings.enableChristmasLists
+	if (type === 'birthday') return !settings.enableBirthdayLists
+	if (type === 'holiday') return !settings.enableGenericHolidayLists
+	if (type === 'todos') return !settings.enableTodoLists
+	return false
+}
+
 export async function createListImpl(args: {
 	actor: { id: string; isChild: boolean }
 	input: z.infer<typeof CreateListInputSchema>
@@ -1013,6 +1035,11 @@ export async function createListImpl(args: {
 
 	if (data.type === 'giftideas' && actor.isChild) {
 		return { kind: 'error', reason: 'child-cannot-create-gift-ideas' }
+	}
+
+	const settings = await getAppSettings(db)
+	if (isListTypeDisabled(data.type, settings)) {
+		return { kind: 'error', reason: 'list-type-disabled' }
 	}
 
 	// If a subject-dependent is requested, the actor must be one of its
@@ -1093,6 +1120,16 @@ export async function updateListImpl(args: {
 
 	if (data.type === 'giftideas' && actor.isChild) {
 		return { kind: 'error', reason: 'child-cannot-create-gift-ideas' }
+	}
+
+	// Gate type CHANGES on the admin toggles. We don't gate a no-op edit
+	// of a list that already exists on a now-disabled type; the toggle
+	// blocks new creation/conversion, not maintenance of existing data.
+	if (data.type !== undefined && data.type !== list.type) {
+		const settings = await getAppSettings(db)
+		if (isListTypeDisabled(data.type, settings)) {
+			return { kind: 'error', reason: 'list-type-disabled' }
+		}
 	}
 
 	const updates: Record<string, unknown> = {}

@@ -82,6 +82,7 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 						'child-cannot-create-gift-ideas': "Children can't create gift-ideas lists.",
 						'not-dependent-guardian': "You're not a guardian of that dependent.",
 						'invalid-holiday-selection': 'Holiday lists need a country and holiday picked from the catalog.',
+						'list-type-disabled': 'That list type is disabled by the admin.',
 					}
 					setError(message[created.reason])
 					return

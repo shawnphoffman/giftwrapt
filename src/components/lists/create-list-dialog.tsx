@@ -158,6 +158,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 						'child-cannot-create-gift-ideas': "Children can't create gift-ideas lists.",
 						'not-dependent-guardian': "You're not a guardian of that dependent.",
 						'invalid-holiday-selection': 'Please pick a country and holiday for this list.',
+						'list-type-disabled': 'That list type is disabled by the admin.',
 					}
 					setError(message[result.reason])
 					return
