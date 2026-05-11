@@ -37,12 +37,12 @@ function AdminPage() {
 			</Card>
 			<Card className="animate-page-in max-w-xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Christmas Lists</CardTitle>
-					<CardDescription>Christmas-themed lists, automatic post-holiday archiving, and seasonal emails.</CardDescription>
+					<CardTitle className="text-2xl">Comments</CardTitle>
+					<CardDescription>Item comments and the related email notifications.</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<ClientOnly>
-						<ChristmasSettingsSection />
+						<CommentsSettingsSection />
 					</ClientOnly>
 				</CardContent>
 			</Card>
@@ -54,6 +54,17 @@ function AdminPage() {
 				<CardContent>
 					<ClientOnly>
 						<BirthdaySettingsSection />
+					</ClientOnly>
+				</CardContent>
+			</Card>
+			<Card className="animate-page-in max-w-xl">
+				<CardHeader>
+					<CardTitle className="text-2xl">Christmas Lists</CardTitle>
+					<CardDescription>Christmas-themed lists, automatic post-holiday archiving, and seasonal emails.</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<ClientOnly>
+						<ChristmasSettingsSection />
 					</ClientOnly>
 				</CardContent>
 			</Card>
@@ -89,7 +100,7 @@ function AdminPage() {
 				<CardHeader>
 					<CardTitle className="text-2xl">Parental Relations</CardTitle>
 					<CardDescription>
-						Cross-person flows for Mother’s Day and Father’s Day. Users tag the mothers and fathers they shop for; reminders and Suggestions
+						Cross-person flows for Mother's Day and Father's Day. Users tag the mothers and fathers they shop for; reminders and Suggestions
 						use those tags.
 					</CardDescription>
 				</CardHeader>
@@ -107,17 +118,6 @@ function AdminPage() {
 				<CardContent>
 					<ClientOnly>
 						<TodoSettingsSection />
-					</ClientOnly>
-				</CardContent>
-			</Card>
-			<Card className="animate-page-in max-w-xl">
-				<CardHeader>
-					<CardTitle className="text-2xl">Comments</CardTitle>
-					<CardDescription>Item comments and the related email notifications.</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<ClientOnly>
-						<CommentsSettingsSection />
 					</ClientOnly>
 				</CardContent>
 			</Card>
