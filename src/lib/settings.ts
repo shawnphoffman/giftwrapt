@@ -247,14 +247,14 @@ export const appSettingsSchema = z.object({
 	defaultListType: z.enum(['wishlist', 'christmas', 'birthday', 'giftideas', 'holiday', 'todos', 'test']),
 	enableGiftsForNonUsers: z.boolean(),
 	// Days after a birthday before claimed items are auto-archived.
-	archiveDaysAfterBirthday: z.number().int().positive(),
+	archiveDaysAfterBirthday: z.number().int().positive().default(14),
 	// Days after Dec 25 before claimed Christmas items are auto-archived.
-	archiveDaysAfterChristmas: z.number().int().positive(),
+	archiveDaysAfterChristmas: z.number().int().positive().default(14),
 	// Days after a generic holiday's end date before claimed items on
 	// holiday-typed lists are auto-archived. Multi-day holidays (Hanukkah,
 	// Diwali) archive against the end of the festival; single-day
 	// holidays archive against the holiday date itself.
-	archiveDaysAfterHoliday: z.number().int().positive(),
+	archiveDaysAfterHoliday: z.number().int().positive().default(14),
 	// Whether birthday emails (day-of + follow-up) are sent.
 	enableBirthdayEmails: z.boolean(),
 	// Whether Christmas emails are sent.
@@ -266,11 +266,11 @@ export const appSettingsSchema = z.object({
 	// skips the Intelligence "set your people" analyzer, and disables
 	// the holiday reminder emails. The catalog entries stay available
 	// regardless so users can make a self-celebrant Mother's Day list.
-	enableParentalRelations: z.boolean(),
+	enableParentalRelations: z.boolean().default(false),
 	// Days before Mother's Day / Father's Day to send a reminder email
 	// to users who have declared at least one mother / father. Single
 	// global window since the email body is the same for both.
-	parentalRelationsReminderLeadDays: z.number().int().min(1).max(60),
+	parentalRelationsReminderLeadDays: z.number().int().min(1).max(90).default(21),
 	// Whether users can post comments on items.
 	enableComments: z.boolean(),
 	// Whether a notification email is sent to the list owner on new comments.
@@ -284,7 +284,7 @@ export const appSettingsSchema = z.object({
 	// When true, signed-in users can see /settings/devices and mint
 	// per-device API keys for the mobile companion app. Off by default
 	// so the surface stays hidden until an admin opts in.
-	enableMobileApp: z.boolean(),
+	enableMobileApp: z.boolean().default(false),
 	// When true, the security page shows a passkeys panel and the
 	// sign-in page surfaces a "Sign in with a passkey" button. The
 	// underlying better-auth endpoints stay live regardless; this
@@ -392,7 +392,7 @@ export const appSettingsSchema = z.object({
 	// How many days of `cron_runs` history to keep. The daily verification-
 	// cleanup tick sweeps rows older than this. 90 days = roughly one
 	// quarter of operational history at five endpoints.
-	cronRunsRetentionDays: z.number().int().min(7).max(365),
+	cronRunsRetentionDays: z.number().int().min(0).max(365),
 })
 
 // 2) Default values in code (for when DB is empty or missing keys)
@@ -407,13 +407,13 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	archiveDaysAfterBirthday: 14,
 	archiveDaysAfterChristmas: 14,
 	archiveDaysAfterHoliday: 14,
-	enableBirthdayEmails: true,
-	enableChristmasEmails: true,
-	enableGenericHolidayEmails: true,
-	enableParentalRelations: true,
-	parentalRelationsReminderLeadDays: 7,
+	enableBirthdayEmails: false,
+	enableChristmasEmails: false,
+	enableGenericHolidayEmails: false,
+	enableParentalRelations: false,
+	parentalRelationsReminderLeadDays: 21,
 	enableComments: true,
-	enableCommentEmails: true,
+	enableCommentEmails: false,
 	mirrorExternalImagesOnSave: false,
 	enableMobileApp: false,
 	enablePasskeys: false,

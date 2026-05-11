@@ -309,7 +309,7 @@ async function main() {
 
 		// Parental relations (Mother's / Father's Day) ON.
 		{ key: 'enableParentalRelations', value: true },
-		{ key: 'parentalRelationsReminderLeadDays', value: 7 },
+		{ key: 'parentalRelationsReminderLeadDays', value: 21 },
 
 		// Mobile + passkeys + OIDC ON so the sign-in page surfaces every
 		// auth path.
