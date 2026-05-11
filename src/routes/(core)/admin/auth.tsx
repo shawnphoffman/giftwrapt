@@ -25,7 +25,7 @@ function AdminAuthPage() {
 			</Card>
 			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">OIDC sign-in</CardTitle>
+					<CardTitle className="text-2xl">OIDC Sign-in</CardTitle>
 					<CardDescription>
 						Let users sign in with an external OpenID Connect provider. Single provider per deployment; changes take effect after a server
 						restart.

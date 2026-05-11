@@ -15,7 +15,7 @@ function AdminDataPage() {
 		<>
 			<Card className="animate-page-in max-w-xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Export backup</CardTitle>
+					<CardTitle className="text-2xl">Export Backup</CardTitle>
 					<CardDescription>Download a JSON snapshot of all app data.</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -26,7 +26,7 @@ function AdminDataPage() {
 			</Card>
 			<Card className="animate-page-in max-w-xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Import backup</CardTitle>
+					<CardTitle className="text-2xl">Import Backup</CardTitle>
 					<CardDescription>Restore app data from a previously exported JSON snapshot.</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -37,7 +37,7 @@ function AdminDataPage() {
 			</Card>
 			<Card className="animate-page-in max-w-xl border-destructive/40">
 				<CardHeader>
-					<CardTitle className="text-2xl">Purge all data</CardTitle>
+					<CardTitle className="text-2xl">Purge All Data</CardTitle>
 					<CardDescription>
 						Permanently delete every list, item, claim, comment, addon, and editor record. Users, guardianships, and partner links are
 						preserved. Cannot be undone.
