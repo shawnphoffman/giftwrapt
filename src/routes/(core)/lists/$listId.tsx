@@ -10,7 +10,9 @@ import ItemList from '@/components/items/item-list'
 import { ItemListSkeleton } from '@/components/items/item-list-skeleton'
 import { ListAddonsSection } from '@/components/list-addons/list-addons-section'
 import BackToParentList from '@/components/lists/back-to-parent-list'
+import { TodoList } from '@/components/todos/todo-list'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useSession } from '@/lib/auth-client'
 import { listItemsViewQueryOptions } from '@/lib/queries/items'
 import { useListSSE } from '@/lib/use-list-sse'
 import { useScrollToHash } from '@/lib/use-scroll-to-hash'
@@ -85,6 +87,7 @@ function ListDetailPagePending() {
 function ListDetailPage() {
 	const list = Route.useLoaderData()
 	const { from } = Route.useSearch()
+	const { data: session } = useSession()
 	useListSSE(list.id)
 	useScrollToHash([list.id])
 
@@ -117,12 +120,23 @@ function ListDetailPage() {
 					</div>
 				</div>
 				{list.description && <MarkdownNotes content={list.description} className="text-muted-foreground" />}
-				{/* ITEMS */}
-				<Suspense fallback={<ItemListSkeleton />}>
-					<ItemList listId={list.id} groups={list.groups} />
-				</Suspense>
-				{/* OFF-LIST GIFTS */}
-				<ListAddonsSection listId={list.id} addons={list.addons} />
+				{list.type === 'todos' ? (
+					// Todo lists have a totally different row shape (separate
+					// todoItems table, single claim field, no gift fields) so
+					// they render through their own component instead of the
+					// gift-item path. canEdit is approximated by ownership;
+					// fine-grained edit checks happen server-side per mutation.
+					<TodoList listId={list.id} canEdit={!!session && session.user.id === list.owner.id} />
+				) : (
+					<>
+						{/* ITEMS */}
+						<Suspense fallback={<ItemListSkeleton />}>
+							<ItemList listId={list.id} groups={list.groups} />
+						</Suspense>
+						{/* OFF-LIST GIFTS */}
+						<ListAddonsSection listId={list.id} addons={list.addons} />
+					</>
+				)}
 			</div>
 		</div>
 	)
