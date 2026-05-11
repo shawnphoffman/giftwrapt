@@ -41,14 +41,17 @@ function SettingsPage() {
 				</CardContent>
 			</Card>
 
-			{appSettings?.enableParentalRelations && (
+			{(appSettings?.enableMothersDayReminders || appSettings?.enableFathersDayReminders) && (
 				<Card>
 					<CardHeader>
 						<CardTitle className="text-2xl">Relationships</CardTitle>
-						<CardDescription>Tag the people you shop for on Mother’s Day and Father’s Day.</CardDescription>
+						<CardDescription>Tag the people you shop for on Mother's Day and Father's Day.</CardDescription>
 					</CardHeader>
 					<CardContent>
-						<RelationLabelsSection />
+						<RelationLabelsSection
+							showMothers={appSettings.enableMothersDayReminders}
+							showFathers={appSettings.enableFathersDayReminders}
+						/>
 					</CardContent>
 				</Card>
 			)}

@@ -80,9 +80,19 @@ type RelationLabelsSectionProps = {
 	// user targets only. The user can always add dependent rows from
 	// their own profile page.
 	hideDependents?: boolean
+	// Per-arm gating from the admin Relationship Reminders settings.
+	// When false, the corresponding bucket is hidden. Default true so
+	// existing admin/edit-user callers keep showing both.
+	showMothers?: boolean
+	showFathers?: boolean
 }
 
-export function RelationLabelsSection({ ops = selfOps, hideDependents = false }: RelationLabelsSectionProps = {}) {
+export function RelationLabelsSection({
+	ops = selfOps,
+	hideDependents = false,
+	showMothers = true,
+	showFathers = true,
+}: RelationLabelsSectionProps = {}) {
 	const queryClient = useQueryClient()
 
 	const { data: rows = [] } = useQuery({ queryKey: ops.listKey, queryFn: () => ops.list(), staleTime: 60_000 })
@@ -104,9 +114,11 @@ export function RelationLabelsSection({ ops = selfOps, hideDependents = false }:
 		onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Failed to remove'),
 	})
 
+	const visibleBuckets = BUCKETS.filter(b => (b.label === 'mother' ? showMothers : showFathers))
+
 	return (
 		<div className="grid gap-6">
-			{BUCKETS.map(b => (
+			{visibleBuckets.map(b => (
 				<RelationBucket
 					key={b.label}
 					bucket={b}

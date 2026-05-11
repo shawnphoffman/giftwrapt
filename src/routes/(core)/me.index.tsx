@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, useLocation, useNavigate } from '@tanstack/react-router'
-import { Baby, ListOrdered, Plus } from 'lucide-react'
+import { Baby, ListOrdered, Plus, Sprout } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { type ChildListGroup, type DependentListGroup, getMyLists, type MyListRow } from '@/api/lists'
@@ -183,8 +183,8 @@ function MyListsPage() {
 					{data.children.length > 0 && (
 						<ListsCard>
 							<ListsCardHeader className="flex-col items-start gap-1">
-								<ListsCardTitle>
-									<Baby className="size-5 inline mr-2" />
+								<ListsCardTitle className="flex items-center gap-2">
+									<Baby className="size-5 inline" />
 									Children's Lists
 								</ListsCardTitle>
 								<ListsCardDescription className="italic">
@@ -203,7 +203,10 @@ function MyListsPage() {
 					{data.dependents.length > 0 && (
 						<ListsCard>
 							<ListsCardHeader className="flex-col items-start gap-1">
-								<ListsCardTitle>Dependents' Lists</ListsCardTitle>
+								<ListsCardTitle className="flex items-center gap-2">
+									<Sprout className="size-5 inline" />
+									Dependents' Lists
+								</ListsCardTitle>
 								<ListsCardDescription className="italic">
 									Lists for pets, babies, or anyone else you receive gifts on behalf of.
 								</ListsCardDescription>

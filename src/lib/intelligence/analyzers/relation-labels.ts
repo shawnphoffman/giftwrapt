@@ -21,7 +21,6 @@ import type { AnalyzerResult } from '../types'
 
 const MOTHERS_DAY_KEY = 'mothers-day'
 const FATHERS_DAY_KEY = 'fathers-day'
-const COUNTRY = 'US'
 
 export const relationLabelsAnalyzer: Analyzer = {
 	id: 'relation-labels',
@@ -40,7 +39,11 @@ export const relationLabelsAnalyzer: Analyzer = {
 			}
 		}
 
-		if (!ctx.settings.enableParentalRelations) {
+		// Per-arm gating: each of Mother's / Father's Day has its own
+		// master toggle and lead-days. If both arms are off, skip entirely.
+		const motherEnabled = ctx.settings.enableMothersDayReminders
+		const fatherEnabled = ctx.settings.enableFathersDayReminders
+		if (!motherEnabled && !fatherEnabled) {
 			return {
 				recs: [],
 				steps: [{ name: 'check-flag', latencyMs: Date.now() - t0 }],
@@ -48,12 +51,14 @@ export const relationLabelsAnalyzer: Analyzer = {
 			}
 		}
 
-		const leadMs = ctx.settings.parentalRelationsReminderLeadDays * 24 * 60 * 60 * 1000
-		const mdDate = await nextOccurrence(COUNTRY, MOTHERS_DAY_KEY, ctx.now, ctx.db)
-		const fdDate = await nextOccurrence(COUNTRY, FATHERS_DAY_KEY, ctx.now, ctx.db)
+		const country = ctx.settings.relationshipRemindersCountry || 'US'
+		const motherLeadMs = ctx.settings.mothersDayReminderLeadDays * 24 * 60 * 60 * 1000
+		const fatherLeadMs = ctx.settings.fathersDayReminderLeadDays * 24 * 60 * 60 * 1000
+		const mdDate = motherEnabled ? await nextOccurrence(country, MOTHERS_DAY_KEY, ctx.now, ctx.db) : null
+		const fdDate = fatherEnabled ? await nextOccurrence(country, FATHERS_DAY_KEY, ctx.now, ctx.db) : null
 
-		const motherDue = mdDate ? mdDate.getTime() - ctx.now.getTime() <= leadMs : false
-		const fatherDue = fdDate ? fdDate.getTime() - ctx.now.getTime() <= leadMs : false
+		const motherDue = motherEnabled && mdDate ? mdDate.getTime() - ctx.now.getTime() <= motherLeadMs : false
+		const fatherDue = fatherEnabled && fdDate ? fdDate.getTime() - ctx.now.getTime() <= fatherLeadMs : false
 
 		if (!motherDue && !fatherDue) {
 			return {

@@ -19,7 +19,15 @@ function buildCtx(tx: any, userId: string, opts: Partial<AnalyzerContext> = {}):
 		db: tx,
 		userId,
 		model: null,
-		settings: DEFAULT_APP_SETTINGS,
+		// Both arms enabled with a 7-day lead so the tests below land within
+		// the trigger window for May 10 Mother's Day / Jun 21 Father's Day.
+		settings: {
+			...DEFAULT_APP_SETTINGS,
+			enableMothersDayReminders: true,
+			mothersDayReminderLeadDays: 7,
+			enableFathersDayReminders: true,
+			fathersDayReminderLeadDays: 7,
+		},
 		logger: noopLogger,
 		now: new Date(),
 		candidateCap: 50,
@@ -37,7 +45,7 @@ describe('relationLabelsAnalyzer', () => {
 			const user = await makeUser(tx)
 			const ctx = buildCtx(tx, user.id, {
 				now: new Date('2026-05-03T12:00:00Z'),
-				settings: { ...DEFAULT_APP_SETTINGS, enableParentalRelations: false },
+				settings: { ...DEFAULT_APP_SETTINGS, enableMothersDayReminders: false, enableFathersDayReminders: false },
 			})
 			const result = await relationLabelsAnalyzer.run(ctx)
 			expect(result.recs).toHaveLength(0)

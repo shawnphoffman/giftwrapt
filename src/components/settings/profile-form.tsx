@@ -27,6 +27,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { birthMonthEnumValues } from '@/db/schema/enums'
 import { UserSchema } from '@/db/schema/users'
+import { useAppSetting } from '@/hooks/use-app-settings'
 import { useSession } from '@/lib/auth-client'
 import { LIMITS } from '@/lib/validation/limits'
 
@@ -88,6 +89,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 	const queryClient = useQueryClient()
 	const { data: session, refetch: refetchSession } = useSession()
 	const currentUserId = session?.user.id ?? null
+	const anniversaryEnabled = useAppSetting('enableAnniversaryReminders')
 
 	// Fetch potential partners
 	const { data: potentialPartners = [], isLoading: isLoadingPartners } = useQuery({
@@ -416,7 +418,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 
 			<form.Subscribe selector={state => state.values.partnerId}>
 				{selectedPartnerId =>
-					selectedPartnerId ? (
+					selectedPartnerId && anniversaryEnabled ? (
 						<form.Field name="partnerAnniversary">
 							{field => (
 								<Field className="gap-1">
