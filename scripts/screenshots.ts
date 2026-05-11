@@ -33,6 +33,7 @@ import {
 	fileForRun,
 	type ManifestEntry,
 	mirrorToLatest,
+	mirrorViewportThemeTo,
 	pruneOldRuns,
 	timestampSlug,
 	writeManifest,
@@ -65,6 +66,7 @@ function defaultServerBaseUrl(): string {
 }
 const STORAGE_STATE_PATH = resolvePath(REPO_ROOT, '.cache/screenshots/storageState.json')
 const DEFAULT_OUT = resolvePath(REPO_ROOT, 'screenshots')
+const DOCS_SCREENSHOTS_DIR = resolvePath(REPO_ROOT, '../docs/src/screenshots')
 
 interface CliFlags {
 	url?: string
@@ -303,6 +305,19 @@ async function run(plan: RunPlan, ids: FixtureIds) {
 	})
 
 	await mirrorToLatest(plan.outDir, plan.runId)
+
+	const isFullRouteRun = plan.routeSlugs.length === ROUTES.length
+	if (plan.viewports.includes('basic') && isFullRouteRun) {
+		for (const theme of plan.themes) {
+			if (theme !== 'light' && theme !== 'dark') continue
+			const copied = await mirrorViewportThemeTo(plan.outDir, plan.runId, 'basic', theme, DOCS_SCREENSHOTS_DIR)
+			if (copied > 0) {
+				console.log(`📚 Mirrored ${copied} basic/${theme} screenshot(s) to ${resolvePath(DOCS_SCREENSHOTS_DIR, 'basic', theme)}`)
+			}
+		}
+	} else if (plan.viewports.includes('basic')) {
+		console.log('📚 Skipping docs mirror (partial route run; docs sync only happens on full runs).')
+	}
 
 	// Retention: keep the current run plus the `KEEP_RUNS - 1` most recent
 	// previous runs; delete everything older. `latest/` is unaffected

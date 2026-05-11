@@ -54,6 +54,37 @@ export async function mirrorToLatest(rootDir: string, runId: string): Promise<vo
 	await copyDir(join(rootDir, runId), latestPath)
 }
 
+// Mirror a single (viewport, theme) subtree from the given run into an
+// external destination, preserving the `<viewport>/<theme>/<slug>.png`
+// layout. Silently no-ops when the source subtree doesn't exist (e.g.,
+// that viewport/theme wasn't captured this run).
+export async function mirrorViewportThemeTo(
+	rootDir: string,
+	runId: string,
+	viewport: ViewportName,
+	theme: Theme,
+	destRoot: string
+): Promise<number> {
+	const { readdir } = await import('node:fs/promises')
+	const src = join(rootDir, runId, viewport, theme)
+	let entries: Array<Dirent>
+	try {
+		entries = await readdir(src, { withFileTypes: true })
+	} catch {
+		return 0
+	}
+	const dst = join(destRoot, viewport, theme)
+	await rm(dst, { recursive: true, force: true })
+	await mkdir(dst, { recursive: true })
+	let count = 0
+	for (const entry of entries) {
+		if (!entry.isFile()) continue
+		await copyFile(join(src, entry.name), join(dst, entry.name))
+		count += 1
+	}
+	return count
+}
+
 export async function writeManifest(rootDir: string, runId: string, meta: RunMeta): Promise<string> {
 	const path = join(rootDir, runId, 'manifest.json')
 	await writeFile(path, JSON.stringify(meta, null, 2) + '\n')
