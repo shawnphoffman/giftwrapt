@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm'
-import { boolean, index, pgTable, smallint, text, timestamp } from 'drizzle-orm/pg-core'
+import { boolean, date, index, pgTable, smallint, text, timestamp } from 'drizzle-orm/pg-core'
 import z from 'zod'
 
 import { LIMITS } from '@/lib/validation/limits'
@@ -29,6 +29,11 @@ export const users = pgTable(
 		birthYear: smallint('birth_year'),
 		image: text('image'),
 		partnerId: text('partner_id'),
+		// Optional anniversary date for the current partnership. Kept in
+		// sync bidirectionally with the partner's row by `updateUserProfile`,
+		// and cleared when the partnership is dissolved. See
+		// `.notes/logic.md#roles--relationships`.
+		partnerAnniversary: date('partner_anniversary', { mode: 'string' }),
 		// Set by better-auth's two-factor plugin once a user finishes
 		// TOTP enrollment. Read by the sign-in flow to know whether to
 		// route to the 2FA challenge after a successful password.
@@ -69,6 +74,7 @@ export const UserSchema = z.object({
 		.optional(),
 	guardianIds: z.array(z.string()).optional(),
 	partnerId: z.string().optional(),
+	partnerAnniversary: z.union([z.iso.date('Anniversary must be a valid date'), z.literal(''), z.null()]).optional(),
 	image: z.string().max(LIMITS.URL).optional(),
 })
 

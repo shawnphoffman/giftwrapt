@@ -296,6 +296,11 @@ const options = {
 				required: false,
 				input: true,
 			},
+			partnerAnniversary: {
+				type: 'string',
+				required: false,
+				input: true,
+			},
 		},
 	},
 	session: {
@@ -363,6 +368,11 @@ export const auth = betterAuth({
 				input: true,
 			},
 			partnerId: {
+				type: 'string',
+				required: false,
+				input: true,
+			},
+			partnerAnniversary: {
 				type: 'string',
 				required: false,
 				input: true,

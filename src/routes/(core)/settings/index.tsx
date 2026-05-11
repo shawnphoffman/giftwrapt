@@ -35,6 +35,7 @@ function SettingsPage() {
 							birthDay={session.user.birthDay}
 							birthYear={session.user.birthYear}
 							partnerId={session.user.partnerId}
+							partnerAnniversary={session.user.partnerAnniversary}
 						/>
 					</div>
 				</CardContent>

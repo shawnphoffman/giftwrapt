@@ -8,6 +8,7 @@ import type { BirthMonth } from '@/db/schema'
 import { userRelationships, users } from '@/db/schema'
 import { auth } from '@/lib/auth'
 import { loggingMiddleware } from '@/lib/logger'
+import { applyPartnerAndAnniversary } from '@/lib/partner-update'
 import { LIMITS } from '@/lib/validation/limits'
 import { authMiddleware } from '@/middleware/auth'
 
@@ -17,6 +18,10 @@ const updateProfileInputSchema = z.object({
 	birthDay: z.number().int().min(1).max(31).nullable().optional(),
 	birthYear: z.number().int().min(1900).max(new Date().getFullYear()).nullable().optional(),
 	partnerId: z.string().max(LIMITS.SHORT_ID).nullable().optional(),
+	// YYYY-MM-DD string; `null` clears. Ignored when the user has no
+	// partner (whether they already had none or just cleared it in the
+	// same submit). Bidirectionally mirrored onto the partner's row.
+	partnerAnniversary: z.union([z.iso.date(), z.literal(''), z.null()]).optional(),
 })
 
 const updatePasswordInputSchema = z.object({
@@ -109,6 +114,7 @@ export const updateUserProfile = createServerFn({
 			birthDay?: number | null
 			birthYear?: number | null
 			partnerId?: string | null
+			partnerAnniversary?: string | null
 		} = {}
 
 		updateData.name = data.name
@@ -123,24 +129,16 @@ export const updateUserProfile = createServerFn({
 		}
 
 		const newPartnerId = data.partnerId !== undefined ? data.partnerId || null : undefined
+		const newAnniversary = data.partnerAnniversary !== undefined ? data.partnerAnniversary || null : undefined
 
 		const result = await db.transaction(async tx => {
-			if (newPartnerId !== undefined) {
-				updateData.partnerId = newPartnerId
-				if (currentPartnerId && currentPartnerId !== newPartnerId) {
-					await tx.update(users).set({ partnerId: null }).where(eq(users.id, currentPartnerId))
-				}
-				if (newPartnerId) {
-					const newPartner = await tx.query.users.findFirst({
-						where: eq(users.id, newPartnerId),
-						columns: { partnerId: true },
-					})
-					if (newPartner?.partnerId && newPartner.partnerId !== userId) {
-						await tx.update(users).set({ partnerId: null }).where(eq(users.id, newPartner.partnerId))
-					}
-					await tx.update(users).set({ partnerId: userId }).where(eq(users.id, newPartnerId))
-				}
-			}
+			const { selfUpdates } = await applyPartnerAndAnniversary(tx, {
+				userId,
+				currentPartnerId,
+				newPartnerId,
+				newAnniversary,
+			})
+			Object.assign(updateData, selfUpdates)
 			return await tx.update(users).set(updateData).where(eq(users.id, userId))
 		})
 
@@ -155,6 +153,7 @@ export const updateUserProfile = createServerFn({
 				...(data.birthMonth !== undefined && { birthMonth: data.birthMonth || null }),
 				...(data.birthYear !== undefined && { birthYear: data.birthYear ?? null }),
 				...(newPartnerId !== undefined && { partnerId: newPartnerId }),
+				...(updateData.partnerAnniversary !== undefined && { partnerAnniversary: updateData.partnerAnniversary }),
 			},
 			headers: getRequestHeaders(),
 		})

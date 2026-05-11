@@ -204,6 +204,13 @@
       "when": 1778327473920,
       "tag": "0028_omniscient_crusher_hogan",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1778465151427,
+      "tag": "0029_new_infant_terrible",
+      "breakpoints": true
     }
   ]
 }

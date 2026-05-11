@@ -60,6 +60,7 @@ type ProfileFormProps = {
 	birthDay?: number | null
 	birthYear?: number | null
 	partnerId?: string | null
+	partnerAnniversary?: string | null
 }
 
 type EditorChangePrompt = {
@@ -73,7 +74,7 @@ type EditorChangePrompt = {
 	removeSelections: Record<number, boolean>
 }
 
-export default function ProfileForm({ name, birthMonth, birthDay, birthYear, partnerId }: ProfileFormProps) {
+export default function ProfileForm({ name, birthMonth, birthDay, birthYear, partnerId, partnerAnniversary }: ProfileFormProps) {
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [success, setSuccess] = useState(false)
@@ -104,10 +105,18 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 			birthDay: birthDay ?? undefined,
 			birthYear: birthYear ?? undefined,
 			partnerId: partnerId ?? undefined,
+			partnerAnniversary: partnerAnniversary ?? undefined,
 		},
 		onSubmit: async ({ value }) => {
 			// Validate with Zod before submitting (only the fields we're using)
-			const result = UserSchema.pick({ name: true, birthMonth: true, birthDay: true, birthYear: true, partnerId: true }).safeParse(value)
+			const result = UserSchema.pick({
+				name: true,
+				birthMonth: true,
+				birthDay: true,
+				birthYear: true,
+				partnerId: true,
+				partnerAnniversary: true,
+			}).safeParse(value)
 			if (!result.success) {
 				setError(result.error.issues.map((e: { message: string }) => e.message).join(', '))
 				return
@@ -144,10 +153,14 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 				birthDay?: number | null
 				birthYear?: number | null
 				partnerId?: string | null
+				partnerAnniversary?: string | null
 			} = {
 				name: data.name,
 				// Always send partnerId since it's part of the form (undefined/null means clear partner)
 				partnerId: data.partnerId || null,
+				// Always send anniversary; server ignores it when there is
+				// no effective partner and clears both sides otherwise.
+				partnerAnniversary: data.partnerAnniversary ? data.partnerAnniversary : null,
 			}
 			if (data.birthMonth !== undefined) {
 				updateData.birthMonth = data.birthMonth
@@ -400,6 +413,35 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 					</Field>
 				)}
 			</form.Field>
+
+			<form.Subscribe selector={state => state.values.partnerId}>
+				{selectedPartnerId =>
+					selectedPartnerId ? (
+						<form.Field name="partnerAnniversary">
+							{field => (
+								<Field className="gap-1">
+									<FieldLabel htmlFor={field.name} className="flex items-center gap-1.5">
+										Anniversary
+										<InputTooltip>Optional. Shared with your partner so it appears on both your profiles.</InputTooltip>
+									</FieldLabel>
+									<Input
+										id={field.name}
+										type="date"
+										value={field.state.value ?? ''}
+										onChange={e => field.handleChange(e.target.value === '' ? undefined : e.target.value)}
+										onBlur={field.handleBlur}
+										disabled={isLoading}
+										className="w-full @md/subpage:w-48"
+									/>
+									{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+										<FieldError className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</FieldError>
+									)}
+								</Field>
+							)}
+						</form.Field>
+					) : null
+				}
+			</form.Subscribe>
 			{/* </FieldGroup> */}
 			{/* // </FieldSet> */}
 

@@ -12,6 +12,7 @@ import { z } from 'zod'
 import { db } from '@/db'
 import type { BirthMonth } from '@/db/schema'
 import { userRelationships, users } from '@/db/schema'
+import { applyPartnerAndAnniversary } from '@/lib/partner-update'
 import { LIMITS } from '@/lib/validation/limits'
 
 import type { MobileAuthContext } from '../auth'
@@ -25,6 +26,7 @@ const UpdateProfileInputSchema = z.object({
 	birthDay: z.number().int().min(1).max(31).nullable().optional(),
 	birthYear: z.number().int().min(1900).max(new Date().getFullYear()).nullable().optional(),
 	partnerId: z.string().max(LIMITS.SHORT_ID).nullable().optional(),
+	partnerAnniversary: z.union([z.iso.date(), z.literal(''), z.null()]).optional(),
 	image: z.string().nullable().optional(),
 })
 
@@ -48,6 +50,7 @@ export function registerProfileRoutes(v1: App): void {
 				image: true,
 				role: true,
 				partnerId: true,
+				partnerAnniversary: true,
 				birthMonth: true,
 				birthDay: true,
 				birthYear: true,
@@ -85,6 +88,7 @@ export function registerProfileRoutes(v1: App): void {
 			birthDay?: number | null
 			birthYear?: number | null
 			partnerId?: string | null
+			partnerAnniversary?: string | null
 		} = {}
 		if (parsed.data.name !== undefined) updates.name = parsed.data.name
 		if (parsed.data.image !== undefined) updates.image = parsed.data.image
@@ -93,24 +97,16 @@ export function registerProfileRoutes(v1: App): void {
 		if (parsed.data.birthYear !== undefined) updates.birthYear = parsed.data.birthYear ?? null
 
 		const newPartnerId = parsed.data.partnerId !== undefined ? parsed.data.partnerId || null : undefined
+		const newAnniversary = parsed.data.partnerAnniversary !== undefined ? parsed.data.partnerAnniversary || null : undefined
 
 		await db.transaction(async tx => {
-			if (newPartnerId !== undefined) {
-				updates.partnerId = newPartnerId
-				if (currentPartnerId && currentPartnerId !== newPartnerId) {
-					await tx.update(users).set({ partnerId: null }).where(eq(users.id, currentPartnerId))
-				}
-				if (newPartnerId) {
-					const newPartner = await tx.query.users.findFirst({
-						where: eq(users.id, newPartnerId),
-						columns: { partnerId: true },
-					})
-					if (newPartner?.partnerId && newPartner.partnerId !== userId) {
-						await tx.update(users).set({ partnerId: null }).where(eq(users.id, newPartner.partnerId))
-					}
-					await tx.update(users).set({ partnerId: userId }).where(eq(users.id, newPartnerId))
-				}
-			}
+			const { selfUpdates } = await applyPartnerAndAnniversary(tx, {
+				userId,
+				currentPartnerId,
+				newPartnerId,
+				newAnniversary,
+			})
+			Object.assign(updates, selfUpdates)
 			if (Object.keys(updates).length > 0) {
 				await tx.update(users).set(updates).where(eq(users.id, userId))
 			}
@@ -125,6 +121,7 @@ export function registerProfileRoutes(v1: App): void {
 				image: true,
 				role: true,
 				partnerId: true,
+				partnerAnniversary: true,
 				birthMonth: true,
 				birthDay: true,
 				birthYear: true,
