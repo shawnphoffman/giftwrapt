@@ -5,10 +5,7 @@
 
 **Wish lists made easy.**
 
-[Getting started](./docs/getting-started.md) ·
-[Self-hosting](./docs/self-hosting.md) ·
-[Deployment](./docs/deployment.md) ·
-[Contributing](./docs/contributing.md)
+[Getting started](https://giftwrapt.dev)
 
 </div>
 
@@ -73,19 +70,6 @@ App is at <http://localhost:3000>. Full walkthrough: [getting-started.md](./docs
 | Coolify (self-host) | [![Deploy on Coolify](https://img.shields.io/badge/Deploy%20on-Coolify-6B46C1)](./docs/deployment.md#one-click-coolify-self-host)                                                                                                                                                                                                                                                                                                                                                                                                                                               | Full stack: app + Postgres + Garage S3 from the bundled compose. |
 
 Step-by-step for each (including the Supabase S3 paste): [deployment.md → One-click deployment](./docs/deployment.md#one-click-deployment).
-
-## Documentation
-
-| Topic                                               | Doc                                                  |
-| --------------------------------------------------- | ---------------------------------------------------- |
-| Local dev setup                                     | [docs/getting-started.md](./docs/getting-started.md) |
-| Self-hosting with Docker                            | [docs/self-hosting.md](./docs/self-hosting.md)       |
-| Deployment options (Vercel, Docker, custom Node)    | [docs/deployment.md](./docs/deployment.md)           |
-| Storage backends (Garage, RustFS, S3, R2, Supabase) | [docs/storage.md](./docs/storage.md)                 |
-| URL scraping pipeline                               | [docs/scraping.md](./docs/scraping.md)               |
-| Local-dev seeded users and admin recovery           | [docs/local-dev-admin.md](./docs/local-dev-admin.md) |
-| Upgrading shadcn components                         | [docs/shadcn-upgrades.md](./docs/shadcn-upgrades.md) |
-| Contributing, scripts, conventions                  | [docs/contributing.md](./docs/contributing.md)       |
 
 ## Status
 
