@@ -1,6 +1,7 @@
 import { relations } from 'drizzle-orm'
-import { boolean, index, integer, numeric, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core'
+import { boolean, index, integer, numeric, pgTable, serial, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 
+import { customHolidays } from './custom-holidays'
 import { dependents } from './dependents'
 import { listTypeEnum } from './enums'
 import { itemGroups, items } from './items'
@@ -40,15 +41,24 @@ export const lists = pgTable(
 			onDelete: 'set null',
 		}),
 		// Only populated for type === 'holiday'. ISO 3166-1 alpha-2.
+		// Legacy: superseded by `customHolidayId` once the custom-holidays
+		// migration runs. Read by the auto-archive cron only when
+		// `customHolidayId` is null (no migrated row exists yet).
 		holidayCountry: text('holiday_country'),
 		// Only populated for type === 'holiday'. Slug from the curated
 		// allowlist in src/lib/holidays.ts (e.g. 'easter', 'thanksgiving').
+		// Legacy alongside `holidayCountry`.
 		holidayKey: text('holiday_key'),
 		// Stamped by the auto-archive cron when it fires for this list's
 		// most recent occurrence. Per-(list, holiday); nulled on type/
 		// country/key change so a repurposed list never inherits stale
 		// archive bookkeeping.
 		lastHolidayArchiveAt: timestamp('last_holiday_archive_at'),
+		// Replaces the legacy `holidayCountry` + `holidayKey` pair. Points
+		// at a single admin-curated row in `custom_holidays`, which itself
+		// contains the catalog reference or fully custom date logic. Only
+		// populated for type === 'holiday'.
+		customHolidayId: uuid('custom_holiday_id').references(() => customHolidays.id, { onDelete: 'set null' }),
 		...timestamps,
 	},
 	table => [
@@ -58,6 +68,7 @@ export const lists = pgTable(
 		index('lists_giftIdeasTargetUserId_idx').on(table.giftIdeasTargetUserId),
 		index('lists_subjectDependentId_idx').on(table.subjectDependentId),
 		index('lists_giftIdeasTargetDependentId_idx').on(table.giftIdeasTargetDependentId),
+		index('lists_customHolidayId_idx').on(table.customHolidayId),
 	]
 )
 
@@ -81,6 +92,10 @@ export const listsRelations = relations(lists, ({ one, many }) => ({
 		fields: [lists.giftIdeasTargetDependentId],
 		references: [dependents.id],
 		relationName: 'giftIdeasTargetDependent',
+	}),
+	customHoliday: one(customHolidays, {
+		fields: [lists.customHolidayId],
+		references: [customHolidays.id],
 	}),
 	itemGroups: many(itemGroups),
 	items: many(items),
