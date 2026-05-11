@@ -6,10 +6,10 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
+import { listCustomHolidaysForPicker } from '@/api/custom-holidays'
 import { getMyDependents } from '@/api/dependents'
-import { getHolidaySnapshot } from '@/api/holiday-catalog'
 import { addListEditor } from '@/api/list-editors'
-import { createList, getMyLastHolidayCountry } from '@/api/lists'
+import { createList } from '@/api/lists'
 import { getGiftIdeasRecipients } from '@/api/user'
 import DependentAvatar from '@/components/common/dependent-avatar'
 import ListTypeIcon from '@/components/common/list-type-icon'
@@ -40,8 +40,7 @@ const schema = z.object({
 	giftIdeasTargetUserId: z.string().optional(),
 	giftIdeasTargetDependentId: z.string().optional(),
 	subjectDependentId: z.string().optional(),
-	holidayCountry: z.string().optional(),
-	holidayKey: z.string().optional(),
+	customHolidayId: z.string().optional(),
 	addPartnerAsEditor: z.boolean(),
 })
 
@@ -73,32 +72,19 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 		staleTime: 5 * 60 * 1000,
 	})
 
-	// Default the holiday country picker to the user's most recently
-	// used country (US fallback). Cheap server fn; only fires when the
-	// dialog is open.
-	const { data: lastHolidayCountry } = useQuery({
-		queryKey: ['my-last-holiday-country'],
-		queryFn: () => getMyLastHolidayCountry(),
+	// Admin-curated custom holidays. Drives the single holiday picker
+	// below. Each row pre-resolves its next-occurrence date for display.
+	const { data: customHolidays } = useQuery({
+		queryKey: ['custom-holidays-for-picker'],
+		queryFn: () => listCustomHolidaysForPicker(),
 		enabled: open,
 		staleTime: 10 * 60 * 1000,
 	})
-
-	// Per-deploy holiday catalog (admin-curated). Drives the country +
-	// holiday pickers below.
-	const { data: holidaySnapshot } = useQuery({
-		queryKey: ['holiday-snapshot'],
-		queryFn: () => getHolidaySnapshot(),
-		enabled: open,
-		staleTime: 10 * 60 * 1000,
-	})
-	const supportedCountries = holidaySnapshot?.countries ?? []
-	const holidaysByCountry = holidaySnapshot?.byCountry ?? {}
-	const isKnownCountry = (code: string) => supportedCountries.some(c => c.code === code)
 
 	const partner = partnerId ? users?.find(u => u.id === partnerId) : undefined
 	const partnerLabel = partner ? partner.name || partner.email : 'your partner'
 
-	const noHolidaysConfigured = holidaySnapshot !== undefined && supportedCountries.length === 0
+	const noHolidaysConfigured = customHolidays !== undefined && customHolidays.length === 0
 	const availableTypes = (isChild ? listTypeEnumValues.filter(t => t !== 'giftideas') : listTypeEnumValues).filter(
 		t => !(t === 'holiday' && noHolidaysConfigured)
 	)
@@ -112,8 +98,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 			giftIdeasTargetUserId: '',
 			giftIdeasTargetDependentId: '',
 			subjectDependentId: '',
-			holidayCountry: '',
-			holidayKey: '',
+			customHolidayId: '',
 			addPartnerAsEditor: true,
 		},
 		onSubmit: async ({ value }) => {
@@ -148,8 +133,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 						giftIdeasTargetUserId,
 						giftIdeasTargetDependentId,
 						subjectDependentId: parsed.data.subjectDependentId || undefined,
-						holidayCountry: parsed.data.type === 'holiday' ? parsed.data.holidayCountry || undefined : undefined,
-						holidayKey: parsed.data.type === 'holiday' ? parsed.data.holidayKey || undefined : undefined,
+						customHolidayId: parsed.data.type === 'holiday' ? parsed.data.customHolidayId || undefined : undefined,
 					},
 				})
 
@@ -157,7 +141,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 					const message: Record<typeof result.reason, string> = {
 						'child-cannot-create-gift-ideas': "Children can't create gift-ideas lists.",
 						'not-dependent-guardian': "You're not a guardian of that dependent.",
-						'invalid-holiday-selection': 'Please pick a country and holiday for this list.',
+						'invalid-holiday-selection': 'Please pick a holiday for this list.',
 						'list-type-disabled': 'That list type is disabled by the admin.',
 					}
 					setError(message[result.reason])
@@ -252,11 +236,9 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 											if (v === 'giftideas') {
 												form.setFieldValue('isPrivate', true)
 											}
-											if (v === 'holiday' && !form.getFieldValue('holidayCountry')) {
-												const last = lastHolidayCountry && isKnownCountry(lastHolidayCountry) ? lastHolidayCountry : null
-												const fallback = supportedCountries[0]?.code ?? null
-												const country = last ?? fallback
-												if (country) form.setFieldValue('holidayCountry', country)
+											if (v === 'holiday' && !form.getFieldValue('customHolidayId')) {
+												const first = customHolidays?.[0]?.id
+												if (first) form.setFieldValue('customHolidayId', first)
 											}
 										}}
 										disabled={submitting}
@@ -309,62 +291,27 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 					</div>
 
 					{isHoliday && (
-						<div className="grid gap-4 sm:grid-cols-2 [&>*]:min-w-0">
-							<form.Field name="holidayCountry">
+						<div className="grid gap-2">
+							<form.Field name="customHolidayId">
 								{field => (
-									<div className="grid gap-2">
-										<Label htmlFor={field.name}>Country</Label>
-										<Select
-											value={field.state.value}
-											onValueChange={v => {
-												field.handleChange(v)
-												// Clear the holiday key when the country changes:
-												// rules and slugs differ across countries.
-												form.setFieldValue('holidayKey', '')
-											}}
-											disabled={submitting}
-										>
+									<>
+										<Label htmlFor={field.name}>Holiday</Label>
+										<Select value={field.state.value} onValueChange={v => field.handleChange(v)} disabled={submitting}>
 											<SelectTrigger id={field.name} className="w-full">
-												<SelectValue placeholder="Select a country" />
+												<SelectValue placeholder="Select a holiday" />
 											</SelectTrigger>
 											<SelectContent>
-												{supportedCountries.map(c => (
-													<SelectItem key={c.code} value={c.code}>
-														{c.name}
+												{(customHolidays ?? []).map(h => (
+													<SelectItem key={h.id} value={h.id}>
+														{h.title}
+														{h.nextOccurrenceIso ? ` (${formatHolidayDate(new Date(h.nextOccurrenceIso))})` : ''}
 													</SelectItem>
 												))}
 											</SelectContent>
 										</Select>
-									</div>
+									</>
 								)}
 							</form.Field>
-
-							<form.Subscribe selector={s => s.values.holidayCountry}>
-								{country => (
-									<form.Field name="holidayKey">
-										{field => {
-											const options = country ? (holidaysByCountry[country] ?? []) : []
-											return (
-												<div className="grid gap-2">
-													<Label htmlFor={field.name}>Holiday</Label>
-													<Select value={field.state.value} onValueChange={v => field.handleChange(v)} disabled={submitting || !country}>
-														<SelectTrigger id={field.name} className="w-full">
-															<SelectValue placeholder={country ? 'Select a holiday' : 'Pick a country first'} />
-														</SelectTrigger>
-														<SelectContent>
-															{options.map(h => (
-																<SelectItem key={h.key} value={h.key}>
-																	{h.name} ({formatHolidayDate(new Date(h.start))})
-																</SelectItem>
-															))}
-														</SelectContent>
-													</Select>
-												</div>
-											)
-										}}
-									</form.Field>
-								)}
-							</form.Subscribe>
 						</div>
 					)}
 

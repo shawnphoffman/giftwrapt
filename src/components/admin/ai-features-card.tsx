@@ -57,7 +57,7 @@ export function AiFeaturesCard() {
 		return (
 			<Card>
 				<CardHeader>
-					<CardTitle>Features</CardTitle>
+					<CardTitle className="text-2xl">AI Features</CardTitle>
 				</CardHeader>
 				<CardContent className="text-sm text-muted-foreground">Loading…</CardContent>
 			</Card>
@@ -67,7 +67,7 @@ export function AiFeaturesCard() {
 		return (
 			<Card>
 				<CardHeader>
-					<CardTitle>Features</CardTitle>
+					<CardTitle className="text-2xl">AI Features</CardTitle>
 				</CardHeader>
 				<CardContent className="text-sm text-muted-foreground">No settings found.</CardContent>
 			</Card>
@@ -80,7 +80,7 @@ export function AiFeaturesCard() {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Features</CardTitle>
+				<CardTitle className="text-2xl">AI Features</CardTitle>
 				<CardDescription>AI-powered features that depend on the provider above. Disabled until a provider is configured.</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-6">
@@ -142,7 +142,7 @@ export function AiFeaturesCard() {
 						</div>
 						<Switch
 							id="intelligenceEnabled"
-							size="lg"
+							// size="lg"
 							checked={settings.intelligenceEnabled}
 							disabled={inputsDisabled}
 							onCheckedChange={checked => mutation.mutate({ intelligenceEnabled: checked } as Partial<AppSettings>)}

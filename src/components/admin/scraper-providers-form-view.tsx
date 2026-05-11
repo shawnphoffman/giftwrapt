@@ -217,7 +217,6 @@ function ScrapeProvidersSection({
 		<div className="space-y-4">
 			<div className="flex flex-col gap-3 @md/scraper-form:flex-row @md/scraper-form:items-end @md/scraper-form:justify-between @md/scraper-form:gap-4">
 				<div className="space-y-0.5">
-					<Label className="text-base">Scrape providers</Label>
 					<p className="text-sm text-muted-foreground">
 						Each entry runs only when configured and enabled. Tier 1 entries fire in parallel; the chain advances to tier 2 only if tier
 						1&apos;s merged result falls below the quality threshold, and so on. Pick a tier to move an entry between tiers.

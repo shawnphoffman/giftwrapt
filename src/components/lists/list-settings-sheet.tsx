@@ -17,8 +17,7 @@ type Props = {
 	description: string | null
 	giftIdeasTargetUserId: string | null
 	subjectDependentId: string | null
-	holidayCountry: string | null
-	holidayKey: string | null
+	customHolidayId: string | null
 	editors: Array<EditorOnList>
 	addableUsers: Array<AddableEditorUser>
 	isOwner: boolean
@@ -33,8 +32,7 @@ export function ListSettingsSheet({
 	description,
 	giftIdeasTargetUserId,
 	subjectDependentId,
-	holidayCountry,
-	holidayKey,
+	customHolidayId,
 	editors,
 	addableUsers,
 	isOwner,
@@ -63,8 +61,7 @@ export function ListSettingsSheet({
 						description={description}
 						giftIdeasTargetUserId={giftIdeasTargetUserId}
 						subjectDependentId={subjectDependentId}
-						holidayCountry={holidayCountry}
-						holidayKey={holidayKey}
+						customHolidayId={customHolidayId}
 						editorUserIds={editors.map(e => e.userId)}
 						isOwner={isOwner}
 					/>

@@ -45,8 +45,8 @@ export const Wishlist: Story = {
 		description: null,
 		giftIdeasTargetUserId: null,
 		subjectDependentId: null,
-		holidayCountry: null,
-		holidayKey: null,
+		customHolidayId: null,
+
 		editorUserIds: [],
 		isOwner: true,
 	},
@@ -64,8 +64,8 @@ export const Holiday: Story = {
 		description: null,
 		giftIdeasTargetUserId: null,
 		subjectDependentId: null,
-		holidayCountry: 'US',
-		holidayKey: 'thanksgiving',
+		customHolidayId: null,
+
 		editorUserIds: [],
 		isOwner: true,
 	},
@@ -82,8 +82,8 @@ export const HolidayUK: Story = {
 		description: null,
 		giftIdeasTargetUserId: null,
 		subjectDependentId: null,
-		holidayCountry: 'GB',
-		holidayKey: 'mothering-sunday',
+		customHolidayId: null,
+
 		editorUserIds: [],
 		isOwner: true,
 	},

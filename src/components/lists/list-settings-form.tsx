@@ -6,8 +6,8 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
+import { listCustomHolidaysForPicker } from '@/api/custom-holidays'
 import { getMyDependents } from '@/api/dependents'
-import { getHolidaySnapshot } from '@/api/holiday-catalog'
 import { archiveListPurchases } from '@/api/items'
 import { addListEditor } from '@/api/list-editors'
 import { updateList } from '@/api/lists'
@@ -37,8 +37,7 @@ const schema = z.object({
 	description: z.string().max(LIMITS.MEDIUM_TEXT).optional(),
 	giftIdeasTargetUserId: z.string().optional(),
 	subjectDependentId: z.string().optional(),
-	holidayCountry: z.string().optional(),
-	holidayKey: z.string().optional(),
+	customHolidayId: z.string().optional(),
 	addPartnerAsEditor: z.boolean(),
 })
 
@@ -56,8 +55,7 @@ type Props = {
 	description: string | null
 	giftIdeasTargetUserId: string | null
 	subjectDependentId: string | null
-	holidayCountry: string | null
-	holidayKey: string | null
+	customHolidayId: string | null
 	editorUserIds: Array<string>
 	isOwner: boolean
 }
@@ -70,8 +68,7 @@ export function ListSettingsForm({
 	description,
 	giftIdeasTargetUserId,
 	subjectDependentId,
-	holidayCountry,
-	holidayKey,
+	customHolidayId,
 	editorUserIds,
 	isOwner,
 }: Props) {
@@ -103,14 +100,12 @@ export function ListSettingsForm({
 
 	const activeDependents = (myDependents?.dependents ?? []).filter(d => !d.isArchived)
 
-	const { data: holidaySnapshot } = useQuery({
-		queryKey: ['holiday-snapshot'],
-		queryFn: () => getHolidaySnapshot(),
+	const { data: customHolidays } = useQuery({
+		queryKey: ['custom-holidays-for-picker'],
+		queryFn: () => listCustomHolidaysForPicker(),
 		enabled: isHoliday,
 		staleTime: 10 * 60 * 1000,
 	})
-	const supportedCountries = holidaySnapshot?.countries ?? []
-	const holidaysByCountry = holidaySnapshot?.byCountry ?? {}
 
 	const partner = partnerId ? users?.find(u => u.id === partnerId) : undefined
 	const partnerLabel = partner ? partner.name || partner.email : 'your partner'
@@ -139,8 +134,7 @@ export function ListSettingsForm({
 			description: description ?? '',
 			giftIdeasTargetUserId: giftIdeasTargetUserId ?? '',
 			subjectDependentId: subjectDependentId ?? '',
-			holidayCountry: holidayCountry ?? '',
-			holidayKey: holidayKey ?? '',
+			customHolidayId: customHolidayId ?? '',
 			addPartnerAsEditor: true,
 		},
 		onSubmit: async ({ value }) => {
@@ -168,8 +162,7 @@ export function ListSettingsForm({
 						description: parsed.data.description?.trim() || null,
 						giftIdeasTargetUserId: nextType === 'giftideas' ? parsed.data.giftIdeasTargetUserId || null : null,
 						subjectDependentId: isOwner && nextType !== 'giftideas' ? parsed.data.subjectDependentId || null : undefined,
-						holidayCountry: nextType === 'holiday' ? parsed.data.holidayCountry || null : null,
-						holidayKey: nextType === 'holiday' ? parsed.data.holidayKey || null : null,
+						customHolidayId: nextType === 'holiday' ? parsed.data.customHolidayId || null : null,
 					},
 				})
 
@@ -327,61 +320,27 @@ export function ListSettingsForm({
 			)}
 
 			{isHoliday && (
-				<div className="grid gap-4 sm:grid-cols-2">
-					<form.Field name="holidayCountry">
+				<div className="grid gap-2">
+					<form.Field name="customHolidayId">
 						{field => (
-							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Country</Label>
-								<Select
-									value={field.state.value}
-									onValueChange={v => {
-										field.handleChange(v)
-										// A new country invalidates the previous key.
-										form.setFieldValue('holidayKey', '')
-									}}
-									disabled={submitting}
-								>
+							<>
+								<Label htmlFor={field.name}>Holiday</Label>
+								<Select value={field.state.value} onValueChange={v => field.handleChange(v)} disabled={submitting}>
 									<SelectTrigger id={field.name}>
-										<SelectValue placeholder="Select a country" />
+										<SelectValue placeholder="Select a holiday" />
 									</SelectTrigger>
 									<SelectContent>
-										{supportedCountries.map(c => (
-											<SelectItem key={c.code} value={c.code}>
-												{c.name}
+										{(customHolidays ?? []).map(h => (
+											<SelectItem key={h.id} value={h.id}>
+												{h.title}
+												{h.nextOccurrenceIso ? ` (${formatHolidayDate(new Date(h.nextOccurrenceIso))})` : ''}
 											</SelectItem>
 										))}
 									</SelectContent>
 								</Select>
-							</div>
+							</>
 						)}
 					</form.Field>
-
-					<form.Subscribe selector={s => s.values.holidayCountry}>
-						{country => (
-							<form.Field name="holidayKey">
-								{field => {
-									const options = country ? (holidaysByCountry[country] ?? []) : []
-									return (
-										<div className="grid gap-2">
-											<Label htmlFor={field.name}>Holiday</Label>
-											<Select value={field.state.value} onValueChange={v => field.handleChange(v)} disabled={submitting || !country}>
-												<SelectTrigger id={field.name}>
-													<SelectValue placeholder={country ? 'Select a holiday' : 'Pick a country first'} />
-												</SelectTrigger>
-												<SelectContent>
-													{options.map(h => (
-														<SelectItem key={h.key} value={h.key}>
-															{h.name} ({formatHolidayDate(new Date(h.start))})
-														</SelectItem>
-													))}
-												</SelectContent>
-											</Select>
-										</div>
-									)
-								}}
-							</form.Field>
-						)}
-					</form.Subscribe>
 				</div>
 			)}
 

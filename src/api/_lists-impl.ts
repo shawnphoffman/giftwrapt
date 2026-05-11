@@ -10,6 +10,7 @@ import { z } from 'zod'
 import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
 import {
+	customHolidays,
 	dependentGuardianships,
 	dependents,
 	giftedItems,
@@ -238,6 +239,7 @@ export type ListForEditing = {
 	subjectDependentId: string | null
 	holidayCountry: string | null
 	holidayKey: string | null
+	customHolidayId: string | null
 	groups: Array<GroupSummary>
 	isOwner: boolean
 	owner: {
@@ -271,10 +273,15 @@ export const CreateListInputSchema = z.object({
 	subjectDependentId: z.string().optional(),
 	// Required when type === 'holiday'; ignored otherwise. ISO 3166-1
 	// alpha-2 country code + slug from the curated allowlist in
-	// src/lib/holidays.ts. The impl validates the pair against the
-	// catalog before insert.
+	// src/lib/holidays.ts. Legacy path; superseded by `customHolidayId`.
+	// Still accepted so older clients continue to work until the picker
+	// swap is fully rolled out.
 	holidayCountry: z.string().optional(),
 	holidayKey: z.string().optional(),
+	// New path: a UUID pointing at a custom_holidays row. Preferred when
+	// both are supplied. When only this is set, the impl resolves the
+	// row to derive country/key for legacy column writes.
+	customHolidayId: z.uuid().optional(),
 })
 
 export const UpdateListInputSchema = z.object({
@@ -289,6 +296,7 @@ export const UpdateListInputSchema = z.object({
 	subjectDependentId: z.string().nullable().optional(),
 	holidayCountry: z.string().nullable().optional(),
 	holidayKey: z.string().nullable().optional(),
+	customHolidayId: z.uuid().nullable().optional(),
 })
 
 export const DeleteListInputSchema = z.object({
@@ -1067,17 +1075,29 @@ export async function createListImpl(args: {
 	const giftIdeasTargetUserId = data.type === 'giftideas' ? (data.giftIdeasTargetUserId ?? null) : null
 	const giftIdeasTargetDependentId = data.type === 'giftideas' ? (data.giftIdeasTargetDependentId ?? null) : null
 
-	// Holiday metadata: required + validated when type === 'holiday'; null
-	// otherwise so a switch back to a non-holiday type doesn't carry
-	// stale country/key values.
+	// Holiday metadata: required when type === 'holiday'. Prefer the new
+	// `customHolidayId` path; fall back to the legacy (country, key) pair
+	// for older clients that haven't swapped pickers yet. Either path
+	// must resolve to a real custom_holidays row OR a valid catalog
+	// entry, or the create fails with `invalid-holiday-selection`.
 	let holidayCountry: string | null = null
 	let holidayKey: string | null = null
+	let customHolidayId: string | null = null
 	if (data.type === 'holiday') {
-		if (!data.holidayCountry || !data.holidayKey || !(await isValidHolidayKey(data.holidayCountry, data.holidayKey))) {
+		if (data.customHolidayId) {
+			const row = await db.query.customHolidays.findFirst({
+				where: eq(customHolidays.id, data.customHolidayId),
+			})
+			if (!row) return { kind: 'error', reason: 'invalid-holiday-selection' }
+			customHolidayId = row.id
+			holidayCountry = row.catalogCountry
+			holidayKey = row.catalogKey
+		} else if (data.holidayCountry && data.holidayKey && (await isValidHolidayKey(data.holidayCountry, data.holidayKey))) {
+			holidayCountry = data.holidayCountry
+			holidayKey = data.holidayKey
+		} else {
 			return { kind: 'error', reason: 'invalid-holiday-selection' }
 		}
-		holidayCountry = data.holidayCountry
-		holidayKey = data.holidayKey
 	}
 
 	const [inserted] = await db
@@ -1093,6 +1113,7 @@ export async function createListImpl(args: {
 			giftIdeasTargetDependentId,
 			holidayCountry,
 			holidayKey,
+			customHolidayId,
 		})
 		.returning({ id: lists.id, name: lists.name, type: lists.type })
 
@@ -1314,6 +1335,7 @@ export async function getListForEditingImpl(args: {
 			subjectDependentId: true,
 			holidayCountry: true,
 			holidayKey: true,
+			customHolidayId: true,
 		},
 		with: {
 			owner: {
@@ -1353,6 +1375,7 @@ export async function getListForEditingImpl(args: {
 			subjectDependentId: list.subjectDependentId,
 			holidayCountry: list.holidayCountry,
 			holidayKey: list.holidayKey,
+			customHolidayId: list.customHolidayId,
 			groups,
 			isOwner,
 			owner: {

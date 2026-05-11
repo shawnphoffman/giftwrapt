@@ -195,8 +195,7 @@ function ListEditPage() {
 							description={list.description}
 							giftIdeasTargetUserId={list.giftIdeasTargetUserId}
 							subjectDependentId={list.subjectDependentId}
-							holidayCountry={list.holidayCountry}
-							holidayKey={list.holidayKey}
+							customHolidayId={list.customHolidayId}
 							editors={editors}
 							addableUsers={addableUsers}
 							isOwner={list.isOwner}
