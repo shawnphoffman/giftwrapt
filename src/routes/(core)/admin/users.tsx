@@ -37,7 +37,7 @@ function AdminUsersPage() {
 
 	return (
 		<>
-			<Card className="animate-page-in max-w-xl">
+			<Card className="animate-page-in">
 				<CardHeader>
 					<CardTitle className="text-2xl">Impersonation</CardTitle>
 					<CardDescription>Impersonate a user to see the app as they do.</CardDescription>

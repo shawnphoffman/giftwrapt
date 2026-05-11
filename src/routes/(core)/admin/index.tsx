@@ -9,7 +9,7 @@ import {
 	ParentalRelationsSettingsSection,
 	TodoSettingsSection,
 } from '@/components/admin/app-settings-editor'
-import { HolidayCatalogSection } from '@/components/admin/holiday-catalog-section'
+import { CustomHolidaysSection } from '@/components/admin/custom-holidays-section'
 import { StorageDisabledBanner } from '@/components/common/storage-disabled-banner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ClientOnly } from '@/components/utilities/client-only'
@@ -84,15 +84,15 @@ function AdminPage() {
 			</Card>
 			<Card className="animate-page-in max-w-xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Holiday Catalog</CardTitle>
+					<CardTitle className="text-2xl">Custom Holidays</CardTitle>
 					<CardDescription>
-						Curate which holidays are available when users create a holiday list. Toggle entries on or off, rename them, or add new ones
-						from the bundled library.
+						The set of holidays available when users create a holiday-typed list. Add from the bundled gift-giving catalog or define your
+						own. Deleting an in-use holiday converts its lists to the default list type without clearing claims.
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<ClientOnly>
-						<HolidayCatalogSection />
+						<CustomHolidaysSection />
 					</ClientOnly>
 				</CardContent>
 			</Card>

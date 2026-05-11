@@ -1,4 +1,4 @@
-import { EyeOff, Heart, Pencil, Shield, ShieldOff, Sprout } from 'lucide-react'
+import { EyeOff, Heart, Pencil, Shield, ShieldOff } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 
 import DependentAvatar from '@/components/common/dependent-avatar'
@@ -121,8 +121,7 @@ function HeaderDependentCell({ name, image }: { name: string; image: string | nu
 	return (
 		<div className="flex flex-col items-center gap-1 px-1 py-2 w-12">
 			<DependentAvatar name={name} image={image} size="small" />
-			<div className="text-[10px] leading-tight font-medium text-center truncate w-full flex items-center gap-0.5" title={name}>
-				<Sprout className="size-2.5 shrink-0 text-emerald-600" />
+			<div className="text-[10px] leading-tight font-medium text-center truncate w-fit flex items-center gap-0.5" title={name}>
 				{name.split(' ')[0]}
 			</div>
 		</div>
@@ -141,7 +140,7 @@ export function PermissionsMatrixView({ data }: { data: PermissionsMatrixData })
 	return (
 		<TooltipProvider delayDuration={150}>
 			<div className="space-y-4">
-				<div className="overflow-auto rounded-md border max-h-[70vh]">
+				<div className="overflow-auto rounded-md border max-h-[70vh] w-fit max-w-full">
 					<table className="border-separate border-spacing-0">
 						<thead>
 							<tr>

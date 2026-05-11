@@ -12,7 +12,7 @@ export const Route = createFileRoute('/(core)/admin/auth')({
 function AdminAuthPage() {
 	return (
 		<>
-			<Card className="animate-page-in max-w-xl">
+			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
 					<CardTitle className="text-2xl">Auth</CardTitle>
 					<CardDescription>WebAuthn passkeys.</CardDescription>
