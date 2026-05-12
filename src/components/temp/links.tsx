@@ -1,5 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router'
-import { Smartphone } from 'lucide-react'
+import { Cake, Gift } from 'lucide-react'
 
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -13,9 +13,13 @@ export default function TempLinks() {
 
 	return (
 		<>
-			<Link to="/temp/widgets" className={navLinkClass(pathname === '/temp/widgets')}>
-				<Smartphone />
-				Widgets
+			<Link to="/temp" className={navLinkClass(pathname === '/temp' || pathname === '/temp/')}>
+				<Gift />
+				Holidays
+			</Link>
+			<Link to="/temp/birthdays" className={navLinkClass(pathname === '/temp/birthdays')}>
+				<Cake />
+				Birthdays
 			</Link>
 		</>
 	)

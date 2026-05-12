@@ -23,6 +23,7 @@ import { Route as authForgotPasswordRouteImport } from './routes/(auth)/forgot-p
 import { Route as coreTempRouteRouteImport } from './routes/(core)/temp/route'
 import { Route as coreSettingsRouteRouteImport } from './routes/(core)/settings/route'
 import { Route as coreAdminRouteRouteImport } from './routes/(core)/admin/route'
+import { Route as coreTempIndexRouteImport } from './routes/(core)/temp/index'
 import { Route as coreSettingsIndexRouteImport } from './routes/(core)/settings/index'
 import { Route as corePurchasesIndexRouteImport } from './routes/(core)/purchases.index'
 import { Route as coreMeIndexRouteImport } from './routes/(core)/me.index'
@@ -40,7 +41,7 @@ import { Route as ApiCronCleanupVerificationRouteImport } from './routes/api/cro
 import { Route as ApiCronBirthdayEmailsRouteImport } from './routes/api/cron/birthday-emails'
 import { Route as ApiCronAutoArchiveRouteImport } from './routes/api/cron/auto-archive'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as coreTempWidgetsRouteImport } from './routes/(core)/temp/widgets'
+import { Route as coreTempBirthdaysRouteImport } from './routes/(core)/temp/birthdays'
 import { Route as coreSettingsSecurityRouteImport } from './routes/(core)/settings/security'
 import { Route as coreSettingsPermissionsRouteImport } from './routes/(core)/settings/permissions'
 import { Route as coreSettingsDevicesRouteImport } from './routes/(core)/settings/devices'
@@ -142,6 +143,11 @@ const coreAdminRouteRoute = coreAdminRouteRouteImport.update({
   path: '/admin',
   getParentRoute: () => coreRouteRoute,
 } as any)
+const coreTempIndexRoute = coreTempIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => coreTempRouteRoute,
+} as any)
 const coreSettingsIndexRoute = coreSettingsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -231,9 +237,9 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const coreTempWidgetsRoute = coreTempWidgetsRouteImport.update({
-  id: '/widgets',
-  path: '/widgets',
+const coreTempBirthdaysRoute = coreTempBirthdaysRouteImport.update({
+  id: '/birthdays',
+  path: '/birthdays',
   getParentRoute: () => coreTempRouteRoute,
 } as any)
 const coreSettingsSecurityRoute = coreSettingsSecurityRouteImport.update({
@@ -434,7 +440,7 @@ export interface FileRoutesByFullPath {
   '/settings/devices': typeof coreSettingsDevicesRoute
   '/settings/permissions': typeof coreSettingsPermissionsRoute
   '/settings/security': typeof coreSettingsSecurityRoute
-  '/temp/widgets': typeof coreTempWidgetsRoute
+  '/temp/birthdays': typeof coreTempBirthdaysRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
@@ -452,6 +458,7 @@ export interface FileRoutesByFullPath {
   '/me': typeof coreMeIndexRoute
   '/purchases': typeof corePurchasesIndexRoute
   '/settings/': typeof coreSettingsIndexRoute
+  '/temp/': typeof coreTempIndexRoute
   '/admin/user/$id': typeof coreAdminUserIdRoute
   '/admin/intelligence/analyzers': typeof coreAdminIntelligenceAnalyzersRoute
   '/admin/intelligence/history': typeof coreAdminIntelligenceHistoryRoute
@@ -464,7 +471,6 @@ export interface FileRoutesByFullPath {
   '/admin/intelligence/': typeof coreAdminIntelligenceIndexRoute
 }
 export interface FileRoutesByTo {
-  '/temp': typeof coreTempRouteRouteWithChildren
   '/forgot-password': typeof authForgotPasswordRoute
   '/reset-password': typeof authResetPasswordRoute
   '/sign-in': typeof authSignInRouteWithChildren
@@ -495,7 +501,7 @@ export interface FileRoutesByTo {
   '/settings/devices': typeof coreSettingsDevicesRoute
   '/settings/permissions': typeof coreSettingsPermissionsRoute
   '/settings/security': typeof coreSettingsSecurityRoute
-  '/temp/widgets': typeof coreTempWidgetsRoute
+  '/temp/birthdays': typeof coreTempBirthdaysRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
@@ -513,6 +519,7 @@ export interface FileRoutesByTo {
   '/me': typeof coreMeIndexRoute
   '/purchases': typeof corePurchasesIndexRoute
   '/settings': typeof coreSettingsIndexRoute
+  '/temp': typeof coreTempIndexRoute
   '/admin/user/$id': typeof coreAdminUserIdRoute
   '/admin/intelligence/analyzers': typeof coreAdminIntelligenceAnalyzersRoute
   '/admin/intelligence/history': typeof coreAdminIntelligenceHistoryRoute
@@ -561,7 +568,7 @@ export interface FileRoutesById {
   '/(core)/settings/devices': typeof coreSettingsDevicesRoute
   '/(core)/settings/permissions': typeof coreSettingsPermissionsRoute
   '/(core)/settings/security': typeof coreSettingsSecurityRoute
-  '/(core)/temp/widgets': typeof coreTempWidgetsRoute
+  '/(core)/temp/birthdays': typeof coreTempBirthdaysRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
@@ -579,6 +586,7 @@ export interface FileRoutesById {
   '/(core)/me/': typeof coreMeIndexRoute
   '/(core)/purchases/': typeof corePurchasesIndexRoute
   '/(core)/settings/': typeof coreSettingsIndexRoute
+  '/(core)/temp/': typeof coreTempIndexRoute
   '/(core)/admin/user/$id': typeof coreAdminUserIdRoute
   '/(core)/admin_/intelligence/analyzers': typeof coreAdminIntelligenceAnalyzersRoute
   '/(core)/admin_/intelligence/history': typeof coreAdminIntelligenceHistoryRoute
@@ -627,7 +635,7 @@ export interface FileRouteTypes {
     | '/settings/devices'
     | '/settings/permissions'
     | '/settings/security'
-    | '/temp/widgets'
+    | '/temp/birthdays'
     | '/api/auth/$'
     | '/api/cron/auto-archive'
     | '/api/cron/birthday-emails'
@@ -645,6 +653,7 @@ export interface FileRouteTypes {
     | '/me'
     | '/purchases'
     | '/settings/'
+    | '/temp/'
     | '/admin/user/$id'
     | '/admin/intelligence/analyzers'
     | '/admin/intelligence/history'
@@ -657,7 +666,6 @@ export interface FileRouteTypes {
     | '/admin/intelligence/'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/temp'
     | '/forgot-password'
     | '/reset-password'
     | '/sign-in'
@@ -688,7 +696,7 @@ export interface FileRouteTypes {
     | '/settings/devices'
     | '/settings/permissions'
     | '/settings/security'
-    | '/temp/widgets'
+    | '/temp/birthdays'
     | '/api/auth/$'
     | '/api/cron/auto-archive'
     | '/api/cron/birthday-emails'
@@ -706,6 +714,7 @@ export interface FileRouteTypes {
     | '/me'
     | '/purchases'
     | '/settings'
+    | '/temp'
     | '/admin/user/$id'
     | '/admin/intelligence/analyzers'
     | '/admin/intelligence/history'
@@ -753,7 +762,7 @@ export interface FileRouteTypes {
     | '/(core)/settings/devices'
     | '/(core)/settings/permissions'
     | '/(core)/settings/security'
-    | '/(core)/temp/widgets'
+    | '/(core)/temp/birthdays'
     | '/api/auth/$'
     | '/api/cron/auto-archive'
     | '/api/cron/birthday-emails'
@@ -771,6 +780,7 @@ export interface FileRouteTypes {
     | '/(core)/me/'
     | '/(core)/purchases/'
     | '/(core)/settings/'
+    | '/(core)/temp/'
     | '/(core)/admin/user/$id'
     | '/(core)/admin_/intelligence/analyzers'
     | '/(core)/admin_/intelligence/history'
@@ -908,6 +918,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreAdminRouteRouteImport
       parentRoute: typeof coreRouteRoute
     }
+    '/(core)/temp/': {
+      id: '/(core)/temp/'
+      path: '/'
+      fullPath: '/temp/'
+      preLoaderRoute: typeof coreTempIndexRouteImport
+      parentRoute: typeof coreTempRouteRoute
+    }
     '/(core)/settings/': {
       id: '/(core)/settings/'
       path: '/'
@@ -1027,11 +1044,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/(core)/temp/widgets': {
-      id: '/(core)/temp/widgets'
-      path: '/widgets'
-      fullPath: '/temp/widgets'
-      preLoaderRoute: typeof coreTempWidgetsRouteImport
+    '/(core)/temp/birthdays': {
+      id: '/(core)/temp/birthdays'
+      path: '/birthdays'
+      fullPath: '/temp/birthdays'
+      preLoaderRoute: typeof coreTempBirthdaysRouteImport
       parentRoute: typeof coreTempRouteRoute
     }
     '/(core)/settings/security': {
@@ -1306,11 +1323,13 @@ const coreSettingsRouteRouteWithChildren =
   coreSettingsRouteRoute._addFileChildren(coreSettingsRouteRouteChildren)
 
 interface coreTempRouteRouteChildren {
-  coreTempWidgetsRoute: typeof coreTempWidgetsRoute
+  coreTempBirthdaysRoute: typeof coreTempBirthdaysRoute
+  coreTempIndexRoute: typeof coreTempIndexRoute
 }
 
 const coreTempRouteRouteChildren: coreTempRouteRouteChildren = {
-  coreTempWidgetsRoute: coreTempWidgetsRoute,
+  coreTempBirthdaysRoute: coreTempBirthdaysRoute,
+  coreTempIndexRoute: coreTempIndexRoute,
 }
 
 const coreTempRouteRouteWithChildren = coreTempRouteRoute._addFileChildren(
