@@ -90,14 +90,13 @@ export async function makeItem(tx: Tx, overrides: Partial<typeof items.$inferIns
 	const [row] = await tx
 		.insert(items)
 		.values({
-			listId: overrides.listId,
-			groupId: overrides.groupId ?? null,
-			title: overrides.title ?? `Item ${nextId()}`,
-			status: overrides.status ?? 'incomplete',
-			availability: overrides.availability ?? 'available',
-			isArchived: overrides.isArchived ?? false,
-			priority: overrides.priority ?? 'normal',
-			quantity: overrides.quantity ?? 1,
+			title: `Item ${nextId()}`,
+			status: 'incomplete',
+			availability: 'available',
+			isArchived: false,
+			priority: 'normal',
+			quantity: 1,
+			...overrides,
 		})
 		.returning()
 	return row
