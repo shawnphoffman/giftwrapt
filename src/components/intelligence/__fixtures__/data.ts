@@ -311,6 +311,29 @@ const recGroupingDependent: Recommendation = {
 	relatedLists: [dependentList],
 }
 
+// Relation-labels rec uses the path-shaped nav variant to point at /settings/
+// (no list scope at all). Kept in fixtures so the story for the path-nav
+// variant has a representative payload.
+const recRelationLabels: Recommendation = {
+	id: 'rec-8',
+	analyzerId: 'primary-list',
+	kind: 'set-relation-labels',
+	severity: 'suggest',
+	status: 'active',
+	title: 'Tell us who you shop for',
+	body: "Mothers won't see this list, but tagging the mothers you shop for lets us send you a reminder before the holiday and surface their lists in Suggestions. Head to your profile to add them.",
+	createdAt: hoursAgo(2),
+	actions: [
+		{
+			label: 'Open settings',
+			description: 'Add the people you shop for in your profile.',
+			intent: 'do',
+			nav: { path: '/settings/' },
+		},
+	],
+	dismissDescription: 'Hide this reminder until next year.',
+}
+
 const lastRun: IntelligenceRunSummary = {
 	id: 'run-current',
 	startedAt: hoursAgo(2),
@@ -333,6 +356,7 @@ export const populatedData: IntelligencePageData = {
 		recGroupingDestructive,
 		recGroupingTypeCrossing,
 		recGroupingDependent,
+		recRelationLabels,
 	],
 	lastRun,
 	nextEligibleRefreshAt: hoursAgo(-1),

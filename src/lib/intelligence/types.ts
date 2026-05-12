@@ -54,12 +54,14 @@ export type RecommendationAction = {
 	confirmCopy?: string
 	apply?: RecommendationApply
 	// When set, the rec card renders the action as a navigation link
-	// (target=_blank) into the list (or directly to an item via fragment).
-	// Navigation actions never resolve the rec; the user can come back
-	// and apply or dismiss it explicitly. Encoding nav as structured
-	// (listId, itemId?) instead of a free-form URL keeps the analyzer
-	// output in domain terms and lets the renderer own URL shape.
-	nav?: { listId: string; itemId?: string; openEdit?: boolean }
+	// (target=_blank). Navigation actions never resolve the rec; the
+	// user can come back and apply or dismiss it explicitly. The
+	// list-shaped variant points at /lists/{id} (optionally fragment to
+	// an item; openEdit=true opens the item's edit dialog on arrival).
+	// The path-shaped variant points at an arbitrary absolute path,
+	// for navigation targets that aren't list/item URLs (e.g.
+	// '/settings/'). Distinguish with `'path' in nav`.
+	nav?: { listId: string; itemId?: string; openEdit?: boolean } | { path: string }
 }
 
 export type AffectedSummary = {
@@ -124,7 +126,12 @@ export const recPayloadSchema = z.object({
 				description: z.string(),
 				intent: z.enum(ACTION_INTENTS),
 				confirmCopy: z.string().optional(),
-				nav: z.object({ listId: z.string(), itemId: z.string().optional(), openEdit: z.boolean().optional() }).optional(),
+				nav: z
+					.union([
+						z.object({ listId: z.string(), itemId: z.string().optional(), openEdit: z.boolean().optional() }),
+						z.object({ path: z.string() }),
+					])
+					.optional(),
 				apply: z
 					.discriminatedUnion('kind', [
 						z.object({

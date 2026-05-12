@@ -14,8 +14,9 @@ import {
 	reactivateRecommendation,
 	refreshMyRecommendations,
 } from '@/api/intelligence'
-import type { IntelligencePageState, Recommendation, RecommendationAction } from '@/components/intelligence/__fixtures__/types'
+import type { IntelligencePageState, Recommendation } from '@/components/intelligence/__fixtures__/types'
 import { type DependentRecGroup, IntelligencePageContent } from '@/components/intelligence/intelligence-page'
+import { coerceLegacyAction } from '@/lib/intelligence/coerce-legacy-action'
 
 const intelligenceQueryOptions = {
 	queryKey: ['intelligence', 'me'] as const,
@@ -129,29 +130,8 @@ function applyErrorMessage(reason: Exclude<ApplyRecommendationResult, { ok: true
 
 function rowToRecommendation(r: IntelligenceRecRow): Recommendation {
 	const payload = (r.payload ?? {}) as Partial<Recommendation>
-	// Legacy recs persisted before nav was introduced stored navigation
-	// targets as `href: "/lists/..."`. Convert those to the structured
-	// `nav` shape on read so the rec card renders them as proper links
-	// instead of falling through to the confirm-dialog path. Also handle
-	// the even-older shape where `intent: 'do'` actions had neither
-	// `href` nor `apply`; for those, derive nav from the rec's list
-	// context.
 	const fallbackListId = payload.relatedLists?.[0]?.id ?? payload.affected?.listChips?.[0]?.id ?? null
-	const actions = payload.actions?.map(rawAction => {
-		const a = rawAction as RecommendationAction & { href?: string }
-		if (a.nav || a.apply) return rawAction
-		if (a.href) {
-			const m = /^\/lists\/([^#]+)(?:#item-(.+))?$/.exec(a.href)
-			if (m) {
-				const { href: _drop, ...rest } = a
-				return { ...rest, nav: { listId: m[1], ...(m[2] ? { itemId: m[2] } : {}) } }
-			}
-		}
-		if (a.intent === 'do' && fallbackListId) {
-			return { ...rawAction, nav: { listId: fallbackListId } }
-		}
-		return rawAction
-	})
+	const actions = payload.actions?.map(a => coerceLegacyAction(a, fallbackListId))
 	return {
 		id: r.id,
 		analyzerId: r.analyzerId as Recommendation['analyzerId'],

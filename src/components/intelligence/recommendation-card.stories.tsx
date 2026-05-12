@@ -23,6 +23,7 @@ export const DuplicatesAcrossLists: Story = { args: { rec: recsById['rec-4'] } }
 export const GroupingMergeSafe: Story = { args: { rec: recsById['rec-5'] } }
 export const GroupingTypeCrossingDestructive: Story = { args: { rec: recsById['rec-6'] } }
 export const GroupingDependentList: Story = { args: { rec: recsById['rec-7'] } }
+export const RelationLabelsPathNav: Story = { args: { rec: recsById['rec-8'] } }
 
 export const SeverityInfo: Story = { args: { rec: { ...recsById['rec-3'], severity: 'info' } } }
 export const SeveritySuggest: Story = { args: { rec: { ...recsById['rec-2'], severity: 'suggest' } } }

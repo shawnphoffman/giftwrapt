@@ -130,7 +130,10 @@ const DEFAULT_DISMISS_DESCRIPTION = "Hide this recommendation. We won't show it 
 // (`nav`) bypass this entirely; they don't change rec status.
 type PendingConfirm = { kind: 'action'; action: RecommendationAction } | { kind: 'dismiss' }
 
-function navHref(nav: { listId: string; itemId?: string; openEdit?: boolean }): string {
+type NavTarget = { listId: string; itemId?: string; openEdit?: boolean } | { path: string }
+
+function navHref(nav: NavTarget): string {
+	if ('path' in nav) return nav.path
 	if (!nav.itemId) return `/lists/${nav.listId}`
 	const search = nav.openEdit ? `?edit=${nav.itemId}` : ''
 	return `/lists/${nav.listId}${search}#item-${nav.itemId}`

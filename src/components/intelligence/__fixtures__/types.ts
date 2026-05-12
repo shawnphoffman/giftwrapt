@@ -73,7 +73,13 @@ export type RecommendationAction = {
 	intent: ActionIntent
 	confirmCopy?: string // shown in a confirm dialog before firing apply/dismiss actions
 	apply?: RecommendationApply // when set, the rec card renders an apply button that triggers this server-side
-	nav?: { listId: string; itemId?: string; openEdit?: boolean } // when set, the rec card renders the action as a navigation link to the list (or item via fragment); never resolves the rec. openEdit=true asks the list page to open the item's edit dialog on arrival.
+	// when set, the rec card renders the action as a navigation link;
+	// never resolves the rec. The list-shaped variant points at a list
+	// (or item via fragment); openEdit=true asks the list page to open
+	// the item's edit dialog on arrival. The path-shaped variant points
+	// at an arbitrary absolute path (e.g. '/settings/') for navigation
+	// targets that aren't list/item URLs.
+	nav?: { listId: string; itemId?: string; openEdit?: boolean } | { path: string }
 }
 
 export type AffectedSummary = {

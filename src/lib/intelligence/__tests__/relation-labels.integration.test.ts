@@ -70,6 +70,11 @@ describe('relationLabelsAnalyzer', () => {
 			expect(result.recs).toHaveLength(1)
 			expect(result.recs[0].kind).toBe('set-relation-labels')
 			expect(result.recs[0].body).toContain('mothers')
+			// nav must point at /settings/ via the path-shaped variant,
+			// NOT the broken `{ listId: 'settings' }` shape that built
+			// `/lists/settings` (a route that doesn't exist).
+			const action = result.recs[0].actions?.[0]
+			expect(action?.nav).toEqual({ path: '/settings/' })
 		})
 	})
 

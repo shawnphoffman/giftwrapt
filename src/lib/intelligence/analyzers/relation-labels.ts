@@ -116,7 +116,7 @@ export const relationLabelsAnalyzer: Analyzer = {
 							label: 'Open settings',
 							description: 'Add the people you shop for in your profile.',
 							intent: 'do',
-							nav: { listId: 'settings' },
+							nav: { path: '/settings/' },
 						},
 					],
 					affected: undefined,
