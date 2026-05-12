@@ -135,6 +135,14 @@ const STORYBOOK_HOLIDAY_SNAPSHOT = {
 	} as Record<string, Array<StorybookHolidayEntry>>,
 }
 export const getHolidaySnapshot = (): Promise<typeof STORYBOOK_HOLIDAY_SNAPSHOT> => Promise.resolve(STORYBOOK_HOLIDAY_SNAPSHOT)
+
+// @/api/custom-holidays
+export const listCustomHolidaysForPicker = emptyArray
+export const listCustomHolidaysAsAdmin = emptyArray
+export const createCustomHolidayAsAdmin = ok
+export const updateCustomHolidayAsAdmin = ok
+export const deleteCustomHolidayAsAdmin = ok
+export const previewCustomHolidayOccurrence = (): Promise<null> => Promise.resolve(null)
 export const listCatalogEntriesAsAdmin = emptyArray
 export const listLibraryCandidatesAsAdmin = emptyArray
 export const getAdminSupportedCountries = (): Promise<Array<{ code: string; name: string }>> =>

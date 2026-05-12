@@ -2,8 +2,7 @@ import { createMiddleware } from '@tanstack/react-start'
 import pino, { type Logger, type LoggerOptions } from 'pino'
 
 import { env } from '@/env'
-
-import { getRequestLogger } from './request-context'
+import { getRequestLogger } from '@/lib/request-context'
 
 // Root logger. Structured NDJSON in prod; pretty-printed in dev (or when
 // LOG_PRETTY=true is set explicitly). Level is driven by LOG_LEVEL so it can

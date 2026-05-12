@@ -22,6 +22,7 @@ const config: StorybookConfig = {
 		cfg.plugins = cfg.plugins || []
 		cfg.plugins.push(tailwindcss())
 		cfg.resolve = cfg.resolve || {}
+		cfg.resolve.dedupe = [...(cfg.resolve.dedupe || []), 'react', 'react-dom']
 		cfg.resolve.alias = {
 			...(cfg.resolve.alias || {}),
 			// Swap server/IO modules for browser-safe stubs so components that
@@ -50,6 +51,7 @@ const config: StorybookConfig = {
 			'@/api/backup': path.join(mocksDir, 'api.ts'),
 			'@/api/dependents': path.join(mocksDir, 'api.ts'),
 			'@/api/holiday-catalog': path.join(mocksDir, 'api.ts'),
+			'@/api/custom-holidays': path.join(mocksDir, 'api.ts'),
 			'@/api/intelligence': path.join(mocksDir, 'api.ts'),
 			'@/api/permissions': path.join(mocksDir, 'api.ts'),
 			'@/api/recent': path.join(mocksDir, 'api.ts'),
@@ -65,6 +67,21 @@ const config: StorybookConfig = {
 			// TanStack Start Vite plugin is active. Storybook doesn't run that
 			// plugin, so we hand it a no-op stub.
 			'@tanstack/react-start/server': path.join(mocksDir, 'react-start-server.ts'),
+			// Uses `AsyncLocalStorage` from `node:async_hooks` at the top level,
+			// which Vite externalizes for browser builds. The resulting stub
+			// doesn't export `AsyncLocalStorage`, so the build fails to resolve
+			// the symbol. Stories never invoke real handlers, so a no-op stub
+			// keeps the graph happy.
+			'@tanstack/start-storage-context': path.join(mocksDir, 'start-storage-context.ts'),
+			// Instantiates Node's AsyncLocalStorage at module init - same
+			// browser-stub problem as `@tanstack/start-storage-context`. Replace
+			// with a no-op so stories that transitively import the logger don't
+			// abort the build.
+			'@/lib/request-context': path.join(mocksDir, 'request-context.ts'),
+			// Imports `node:crypto` (scryptSync, etc.) at module init.
+			// Storybook bundle doesn't touch real secrets, so the exports just
+			// need to exist as no-ops.
+			'@/lib/crypto/app-secret': path.join(mocksDir, 'crypto-app-secret.ts'),
 			// Base `@/` alias for everything else - the Vite preset Storybook uses
 			// doesn't read `tsconfig.json` paths.
 			'@': srcDir,
