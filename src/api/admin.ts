@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, eq, inArray, isNotNull } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNotNull, ne } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
@@ -301,6 +301,22 @@ export const removeRelationLabelForUserAsAdmin = createServerFn({ method: 'POST'
 		input: RemoveRelationLabelInputSchema.parse({ id: data.id }),
 	}))
 	.handler(({ data }): Promise<RemoveRelationLabelResult> => removeRelationLabelImpl({ userId: data.userId, input: data.input }))
+
+// Candidate people for an admin-driven relation-labels picker. Mirrors
+// `getGiftIdeasRecipients` but excludes the edited user (not the actor)
+// and applies no privacy filter: the actor is an admin and the edited
+// user's own 'none' relationships are a self-service preference, not a
+// constraint on what an admin can assign.
+export const getRelationLabelCandidatesForUserAsAdmin = createServerFn({ method: 'GET' })
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.inputValidator((data: { userId: string }) => data)
+	.handler(async ({ data }) => {
+		return await db.query.users.findMany({
+			where: ne(users.id, data.userId),
+			orderBy: [asc(users.name), asc(users.email)],
+			columns: { id: true, name: true, email: true, image: true, role: true },
+		})
+	})
 
 // ===============================
 // Admin bulk archive - archive all claimed, non-archived items

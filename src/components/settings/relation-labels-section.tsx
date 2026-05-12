@@ -13,7 +13,12 @@ import { Plus, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { addRelationLabelForUserAsAdmin, getRelationLabelsForUserAsAdmin, removeRelationLabelForUserAsAdmin } from '@/api/admin'
+import {
+	addRelationLabelForUserAsAdmin,
+	getRelationLabelCandidatesForUserAsAdmin,
+	getRelationLabelsForUserAsAdmin,
+	removeRelationLabelForUserAsAdmin,
+} from '@/api/admin'
 import { getMyDependents } from '@/api/dependents'
 import { addRelationLabel, getMyRelationLabels, type RelationLabelRow, removeRelationLabel } from '@/api/relation-labels'
 import { getGiftIdeasRecipients } from '@/api/user'
@@ -47,14 +52,21 @@ type AddInput = {
 	targetDependentId?: string
 }
 
+type PersonOption = { id: string; name: string | null; email: string; image: string | null }
+
 // Pluggable backend so the same UI drives self-service and admin
 // edit-user surfaces. Each ops bundle bakes in the target userId where
-// necessary so the component never has to know which mode it's in.
+// necessary so the component never has to know which mode it's in. The
+// `people` slot is part of the bundle so admin context can fetch an
+// unfiltered candidate list instead of inheriting the actor's privacy
+// filter from `getGiftIdeasRecipients`.
 export type RelationLabelsOps = {
 	listKey: ReadonlyArray<unknown>
 	list: () => Promise<Array<RelationLabelRow>>
 	add: (input: AddInput) => Promise<unknown>
 	remove: (id: number) => Promise<unknown>
+	peopleKey: ReadonlyArray<unknown>
+	listPeople: () => Promise<Array<PersonOption>>
 }
 
 export const selfOps: RelationLabelsOps = {
@@ -62,6 +74,8 @@ export const selfOps: RelationLabelsOps = {
 	list: () => getMyRelationLabels(),
 	add: input => addRelationLabel({ data: input }),
 	remove: id => removeRelationLabel({ data: { id } }),
+	peopleKey: ['gift-ideas-recipients'],
+	listPeople: () => getGiftIdeasRecipients(),
 }
 
 export function adminOpsFor(userId: string): RelationLabelsOps {
@@ -70,6 +84,8 @@ export function adminOpsFor(userId: string): RelationLabelsOps {
 		list: () => getRelationLabelsForUserAsAdmin({ data: { userId } }),
 		add: input => addRelationLabelForUserAsAdmin({ data: { userId, ...input } }),
 		remove: id => removeRelationLabelForUserAsAdmin({ data: { userId, id } }),
+		peopleKey: ['admin', 'relation-label-candidates', userId],
+		listPeople: () => getRelationLabelCandidatesForUserAsAdmin({ data: { userId } }),
 	}
 }
 
@@ -97,8 +113,8 @@ export function RelationLabelsSection({
 
 	const { data: rows = [] } = useQuery({ queryKey: ops.listKey, queryFn: () => ops.list(), staleTime: 60_000 })
 	const { data: people = [] } = useQuery({
-		queryKey: ['gift-ideas-recipients'],
-		queryFn: () => getGiftIdeasRecipients(),
+		queryKey: ops.peopleKey,
+		queryFn: () => ops.listPeople(),
 		staleTime: 10 * 60 * 1000,
 	})
 	const { data: deps } = useQuery({
