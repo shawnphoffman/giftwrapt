@@ -1,6 +1,6 @@
 import { format, formatDistanceToNow } from 'date-fns'
 import { AlertTriangle, CheckCheck, ChevronDown, ChevronRight, Loader2, RefreshCw, RotateCcw, Sparkles } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import DependentAvatar from '@/components/common/dependent-avatar'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
 import type { IntelligencePageState, Recommendation, RecommendationAction, RecommendationSeverity } from './__fixtures__/types'
+import { buildFilterSections, isRecVisible, ListFilterPopover, type ListFilterSection } from './list-filter-popover'
 import { RecommendationCard } from './recommendation-card'
 import { groupKeyForAnalyzer } from './recommendation-group'
 
@@ -83,7 +84,7 @@ export function IntelligencePageContent({
 	const generating = state.kind === 'generating'
 	const errorMessage = state.kind === 'error' ? state.message : null
 
-	const { active, applied, dismissed, sorted } = useMemo(() => {
+	const { active, applied, dismissed } = useMemo(() => {
 		const a: Array<Recommendation> = []
 		const ap: Array<Recommendation> = []
 		const d: Array<Recommendation> = []
@@ -92,7 +93,7 @@ export function IntelligencePageContent({
 			else if (rec.status === 'applied') ap.push(rec)
 			else d.push(rec)
 		}
-		return { active: a, applied: ap, dismissed: d, sorted: sortRecs(a) }
+		return { active: a, applied: ap, dismissed: d }
 	}, [data.recs])
 
 	const total = data.recs.length
@@ -100,13 +101,77 @@ export function IntelligencePageContent({
 	const cooldownActive = data.nextEligibleRefreshAt ? data.nextEligibleRefreshAt.getTime() > Date.now() : false
 	const refreshDisabled = generating || cooldownActive
 
+	// ─── List filter (session-only, not persisted) ─────────────────────────
+	//
+	// Derived from active user-scope recs + active dependent-scope recs.
+	// Selection state starts with everything checked. As recs come and go
+	// across regenerations, the popover's option set shifts; we prune the
+	// selected set so it doesn't accumulate stale list ids, and any newly
+	// surfaced list defaults to checked.
+
+	const activeDependentGroups = useMemo(
+		() => (dependentGroups ?? []).map(g => ({ ...g, recs: g.recs.filter(r => r.status === 'active') })).filter(g => g.recs.length > 0),
+		[dependentGroups]
+	)
+
+	const filterSections = useMemo(() => buildFilterSections(active, activeDependentGroups), [active, activeDependentGroups])
+
+	const allFilterIds = useMemo(() => {
+		const ids = new Set<string>()
+		for (const section of filterSections) for (const opt of section.options) ids.add(opt.listId)
+		return ids
+	}, [filterSections])
+
+	const [selectedListIds, setSelectedListIds] = useState<Set<string>>(allFilterIds)
+
+	// Reconcile selection state with the latest option set. Newly surfaced
+	// ids are added to the selection (default "visible"); ids that no
+	// longer appear are dropped so the count badge can't show > 0 for
+	// invisible options.
+	useEffect(() => {
+		setSelectedListIds(prev => {
+			let changed = false
+			const next = new Set<string>()
+			for (const id of allFilterIds) {
+				if (prev.has(id)) {
+					next.add(id)
+				} else {
+					// If the previous selection had at least one entry and this
+					// id is new, default to checked. If the previous selection
+					// was empty, the user has explicitly cleared everything;
+					// don't undo that.
+					if (prev.size > 0) {
+						next.add(id)
+						changed = true
+					}
+				}
+			}
+			for (const id of prev) {
+				if (!allFilterIds.has(id)) {
+					changed = true
+				}
+			}
+			if (!changed && next.size === prev.size) return prev
+			return next
+		})
+	}, [allFilterIds])
+
+	const visibleActive = useMemo(() => active.filter(r => isRecVisible(r, selectedListIds)), [active, selectedListIds])
+	const visibleSorted = useMemo(() => sortRecs(visibleActive), [visibleActive])
+	const visibleDependentGroups = useMemo(
+		() =>
+			activeDependentGroups.map(g => ({ ...g, recs: g.recs.filter(r => isRecVisible(r, selectedListIds)) })).filter(g => g.recs.length > 0),
+		[activeDependentGroups, selectedListIds]
+	)
+	const filterEmpty = allFilterIds.size > 0 && selectedListIds.size === 0
+
 	const groupedActive = useMemo(() => {
 		const buckets: Record<RecommendationSeverity, Array<Recommendation>> = { important: [], suggest: [], info: [] }
-		for (const rec of sorted) {
+		for (const rec of visibleSorted) {
 			buckets[rec.severity].push(rec)
 		}
 		return buckets
-	}, [sorted])
+	}, [visibleSorted])
 
 	return (
 		<div data-intelligence="page" data-page-state={state.kind} className="wish-page">
@@ -118,6 +183,9 @@ export function IntelligencePageContent({
 				lastRunAt={data.lastRun?.finishedAt ?? null}
 				cooldownActive={cooldownActive}
 				nextEligibleRefreshAt={data.nextEligibleRefreshAt ?? null}
+				filterSections={filterSections}
+				selectedListIds={selectedListIds}
+				onSelectedListIdsChange={setSelectedListIds}
 			/>
 
 			{total > 0 && <ProgressBar total={total} reviewed={reviewed} active={active.length} />}
@@ -138,8 +206,12 @@ export function IntelligencePageContent({
 				</Alert>
 			)}
 
-			{active.length === 0 && !generating && (!dependentGroups || dependentGroups.every(g => g.recs.length === 0)) ? (
+			{active.length === 0 && !generating && activeDependentGroups.length === 0 ? (
 				<EmptyState dismissedCount={dismissed.length} appliedCount={applied.length} />
+			) : filterEmpty ? (
+				<FilterEmptyState onSelectAll={() => setSelectedListIds(new Set(allFilterIds))} />
+			) : visibleActive.length === 0 && visibleDependentGroups.length === 0 ? (
+				<FilterEmptyState onSelectAll={() => setSelectedListIds(new Set(allFilterIds))} />
 			) : (
 				<div data-intelligence="page-groups" className="flex flex-col gap-8">
 					{SEVERITY_ORDER.map(severity => {
@@ -159,7 +231,7 @@ export function IntelligencePageContent({
 										<RecommendationCard
 											key={rec.id}
 											rec={rec}
-											position={{ index: sorted.indexOf(rec) + 1, total: active.length }}
+											position={{ index: visibleSorted.indexOf(rec) + 1, total: visibleActive.length }}
 											onAction={onAction}
 											onDismiss={onDismiss}
 											onSelectListPicker={onSelectListPicker}
@@ -173,9 +245,9 @@ export function IntelligencePageContent({
 				</div>
 			)}
 
-			{dependentGroups && dependentGroups.some(g => g.recs.length > 0) && (
+			{visibleDependentGroups.length > 0 && (
 				<DependentSections
-					groups={dependentGroups}
+					groups={visibleDependentGroups}
 					onAction={onAction}
 					onDismiss={onDismiss}
 					onSelectListPicker={onSelectListPicker}
@@ -323,6 +395,9 @@ function Header({
 	lastRunAt = null,
 	cooldownActive = false,
 	nextEligibleRefreshAt = null,
+	filterSections,
+	selectedListIds,
+	onSelectedListIdsChange,
 }: {
 	showRefresh: boolean
 	generating?: boolean
@@ -331,6 +406,9 @@ function Header({
 	lastRunAt?: Date | null
 	cooldownActive?: boolean
 	nextEligibleRefreshAt?: Date | null
+	filterSections?: ReadonlyArray<ListFilterSection>
+	selectedListIds?: ReadonlySet<string>
+	onSelectedListIdsChange?: (next: Set<string>) => void
 }) {
 	return (
 		<div data-intelligence="page-header" className="flex flex-col gap-3 mb-6">
@@ -359,13 +437,35 @@ function Header({
 					{showRefresh && (
 						<div data-intelligence="page-refresh-block" className="flex items-center gap-2">
 							{cooldownActive && nextEligibleRefreshAt && (
-								<span data-intelligence="page-cooldown-note" className="text-[11px] text-muted-foreground whitespace-nowrap">
+								<span
+									data-intelligence="page-cooldown-note"
+									className="hidden sm:inline text-[11px] text-muted-foreground whitespace-nowrap"
+								>
 									Available again {format(nextEligibleRefreshAt, 'p')}
 								</span>
 							)}
-							<Button data-intelligence="page-refresh-button" size="sm" variant="outline" disabled={disabled} onClick={onRefresh}>
+							{filterSections && selectedListIds && onSelectedListIdsChange && (
+								<>
+									{/* Mobile: icon-only filter button */}
+									<div className="sm:hidden">
+										<ListFilterPopover sections={filterSections} selected={selectedListIds} onChange={onSelectedListIdsChange} iconOnly />
+									</div>
+									{/* Desktop: labelled filter button */}
+									<div className="hidden sm:block">
+										<ListFilterPopover sections={filterSections} selected={selectedListIds} onChange={onSelectedListIdsChange} />
+									</div>
+								</>
+							)}
+							<Button
+								data-intelligence="page-refresh-button"
+								size="sm"
+								variant="outline"
+								disabled={disabled}
+								onClick={onRefresh}
+								aria-label="Refresh suggestions"
+							>
 								<RefreshCw className={cn('size-4', generating && 'animate-spin')} />
-								{generating ? 'Refreshing' : 'Refresh'}
+								<span className="hidden sm:inline">{generating ? 'Refreshing' : 'Refresh'}</span>
 							</Button>
 						</div>
 					)}
@@ -412,6 +512,23 @@ function EmptyState({ dismissedCount, appliedCount }: { dismissedCount: number; 
 						{dismissedCount > 0 && `${dismissedCount} dismissed`} in this batch.
 					</p>
 				)}
+			</CardContent>
+		</Card>
+	)
+}
+
+function FilterEmptyState({ onSelectAll }: { onSelectAll: () => void }) {
+	return (
+		<Card data-intelligence="page-filter-empty-state">
+			<CardContent className="p-8 flex flex-col items-center justify-center text-center gap-3">
+				<div className="flex size-12 items-center justify-center rounded-full bg-muted ring-1 ring-border">
+					<CheckCheck className="size-6 text-muted-foreground" />
+				</div>
+				<h2 className="text-lg font-semibold">No suggestions match the current list filter</h2>
+				<p className="text-sm text-muted-foreground">Try expanding the filter to see suggestions for more lists.</p>
+				<Button data-intelligence="page-filter-empty-select-all" size="sm" variant="outline" onClick={onSelectAll}>
+					Select all
+				</Button>
 			</CardContent>
 		</Card>
 	)

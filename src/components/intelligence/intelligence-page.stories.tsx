@@ -23,6 +23,20 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Populated: Story = { args: { state: { kind: 'loaded', data: populatedData } } }
+// The page renders a list-filter popover next to the Refresh button.
+// Open it from this story to see "Your lists" plus the "Global suggestions"
+// pseudo-row pulled from the relation-labels rec in populatedData.
+export const PopulatedWithListFilter: Story = {
+	args: { state: { kind: 'loaded', data: populatedData } },
+	parameters: {
+		docs: {
+			description: {
+				story:
+					'Click the Filter button in the header. Uncheck a list to mute its recs; uncheck Global to mute the "Tell us who you shop for" reminder. Reset by reloading - the selection is session-only.',
+			},
+		},
+	},
+}
 export const PartialProgress: Story = { args: { state: { kind: 'loaded', data: partialProgressData } } }
 export const Cooldown: Story = { args: { state: { kind: 'loaded', data: cooldownData } } }
 export const Empty: Story = { args: { state: { kind: 'loaded', data: emptyData } } }
