@@ -51,7 +51,7 @@ export const cronRegistry = [
 	},
 ] as const
 
-export const CRON_ENDPOINTS = cronRegistry.map(e => e.path)
+export const CRON_ENDPOINTS = cronRegistry.map(e => e.path) as unknown as readonly [CronEndpoint, ...Array<CronEndpoint>]
 
 export function getCronEntry(path: string) {
 	return cronRegistry.find(e => e.path === path)

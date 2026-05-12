@@ -194,7 +194,7 @@ export function CronRunsTable() {
 						))}
 					</SelectContent>
 				</Select>
-				<Select value={String(pagination.pageSize)} onValueChange={v => setPagination(p => ({ pageIndex: 0, pageSize: Number(v) }))}>
+				<Select value={String(pagination.pageSize)} onValueChange={v => setPagination(() => ({ pageIndex: 0, pageSize: Number(v) }))}>
 					<SelectTrigger className="w-[110px]">
 						<SelectValue />
 					</SelectTrigger>

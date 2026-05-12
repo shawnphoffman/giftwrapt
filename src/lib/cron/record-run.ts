@@ -25,7 +25,7 @@ type RecordCronRunOptions<T> = {
 	run: () => Promise<T>
 }
 
-export async function recordCronRun<T extends Record<string, unknown> | undefined>({ endpoint, run }: RecordCronRunOptions<T>): Promise<T> {
+export async function recordCronRun<T extends Record<string, {}> | undefined>({ endpoint, run }: RecordCronRunOptions<T>): Promise<T> {
 	const started = Date.now()
 	const inserted = await db.insert(cronRuns).values({ endpoint, status: 'running' }).returning({ id: cronRuns.id })
 	const runId = inserted[0]?.id

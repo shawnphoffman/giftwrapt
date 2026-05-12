@@ -208,7 +208,7 @@ export async function runAutoArchive() {
 	}
 }
 
-export async function runBirthdayEmails() {
+export async function runBirthdayEmails(): Promise<Record<string, {}>> {
 	const started = Date.now()
 
 	if (!(await isEmailConfigured())) {
@@ -300,7 +300,7 @@ export async function runCleanupVerification() {
 	return { ok: true, deleted, cronRunsSweep, durationMs }
 }
 
-export async function runIntelligenceRecommendations() {
+export async function runIntelligenceRecommendations(): Promise<Record<string, {}>> {
 	const started = Date.now()
 	const settings = await getAppSettings(db)
 	if (!settings.intelligenceEnabled) {
@@ -363,7 +363,7 @@ export async function runIntelligenceRecommendations() {
 	return summary
 }
 
-export async function runItemScrapeQueue() {
+export async function runItemScrapeQueue(): Promise<Record<string, {}>> {
 	const started = Date.now()
 	const settings = await getAppSettings(db)
 	if (!settings.importEnabled) {
@@ -376,7 +376,12 @@ export async function runItemScrapeQueue() {
 	return out
 }
 
-export const cronHandlers: Record<CronEndpoint, () => Promise<Record<string, unknown>>> = {
+// `Record<string, {}>` (non-null values) is the shape tanstack-start's
+// serializer requires for the `runCronAsAdmin` return type. Each handler
+// declares this return type explicitly so the discriminated unions across
+// early-skip vs main-result branches don't generate `?: undefined` keys
+// that fail the constraint.
+export const cronHandlers: Record<CronEndpoint, () => Promise<Record<string, {}>>> = {
 	'/api/cron/auto-archive': runAutoArchive,
 	'/api/cron/birthday-emails': runBirthdayEmails,
 	'/api/cron/cleanup-verification': runCleanupVerification,

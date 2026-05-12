@@ -6,14 +6,14 @@ import { db } from '@/db'
 import { cronRuns, cronRunStatusEnumValues } from '@/db/schema'
 import { cronHandlers } from '@/lib/cron/handlers'
 import { recordCronRun } from '@/lib/cron/record-run'
-import { CRON_ENDPOINTS, type CronEndpoint, cronRegistry } from '@/lib/cron/registry'
+import { CRON_ENDPOINTS, cronRegistry } from '@/lib/cron/registry'
 import { createLogger, loggingMiddleware } from '@/lib/logger'
 import { adminAuthMiddleware } from '@/middleware/auth'
 
 const log = createLogger('admin:cron')
 
 const listInput = z.object({
-	endpoint: z.union([z.enum(CRON_ENDPOINTS as readonly [string, ...Array<string>]), z.literal('all')]).default('all'),
+	endpoint: z.union([z.enum(CRON_ENDPOINTS), z.literal('all')]).default('all'),
 	status: z.union([z.enum(cronRunStatusEnumValues), z.literal('all')]).default('all'),
 	pageIndex: z.number().int().min(0).default(0),
 	pageSize: z.number().int().min(10).max(200).default(50),
@@ -110,7 +110,7 @@ export const getCronEndpointsSummaryAsAdmin = createServerFn({ method: 'GET' })
 // (within a 10-minute window, beyond which we assume the row was
 // orphaned by a process kill).
 const runInput = z.object({
-	endpoint: z.enum(CRON_ENDPOINTS as readonly [CronEndpoint, ...Array<CronEndpoint>]),
+	endpoint: z.enum(CRON_ENDPOINTS),
 })
 
 export const runCronAsAdmin = createServerFn({ method: 'POST' })

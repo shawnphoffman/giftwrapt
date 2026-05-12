@@ -38,7 +38,10 @@ export const cronRuns = pgTable(
 		// Populated when status='error'.
 		error: text('error'),
 		// Per-endpoint structured result. Shape varies by route.
-		summary: jsonb('summary'),
+		// Typed as `Record<string, {}>` (non-null values) to satisfy the
+		// tanstack-start server-fn serializer, which rejects `unknown`
+		// in the return shape.
+		summary: jsonb('summary').$type<Record<string, {}> | null>(),
 	},
 	table => [
 		index('cron_runs_endpoint_started_idx').on(table.endpoint, table.startedAt.desc()),
