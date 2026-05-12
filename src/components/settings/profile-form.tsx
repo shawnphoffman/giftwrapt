@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -426,14 +427,23 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 										Anniversary
 										<InputTooltip>Optional. Shared with your partner so it appears on both your profiles.</InputTooltip>
 									</FieldLabel>
-									<Input
+									{/*
+									 * Native `<input type="date">` fights controlled-value
+									 * re-renders: each keystroke in the year segment fires
+									 * onChange with the empty string until the whole date
+									 * is valid, so React snaps the year back and only the
+									 * arrow keys actually scroll. DatePicker buffers the
+									 * partial typed value locally and only emits a complete
+									 * `YYYY-MM-DD` string to the form, then provides a
+									 * calendar popover with a year dropdown for clickers.
+									 */}
+									<DatePicker
 										id={field.name}
-										type="date"
-										value={field.state.value ?? ''}
-										onChange={e => field.handleChange(e.target.value === '' ? undefined : e.target.value)}
+										value={field.state.value ?? undefined}
+										onChange={next => field.handleChange(next)}
 										onBlur={field.handleBlur}
 										disabled={isLoading}
-										className="w-full @md/subpage:w-48"
+										className="w-full @md/subpage:w-64"
 									/>
 									{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 										<FieldError className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</FieldError>
