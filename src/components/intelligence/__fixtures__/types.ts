@@ -89,6 +89,19 @@ export type AffectedSummary = {
 	listChips?: Array<ListRef> // optional list chips below the bullets
 }
 
+// A single sub-row inside a bundled recommendation. Bundled recs replace
+// the per-item card-explosion pattern: instead of one card per item, the
+// card lists each item as a sub-row with its own Edit (nav) link and Skip
+// (per-sub-item dismiss). Bundles are per-(list × analyzer kind); see
+// `bundleNav` for the bundle-level "Open list" link.
+export type RecSubItem = {
+	id: string // stable id used to persist sub-item dismissals
+	title: string
+	detail?: string // muted second line (e.g. "Common sizes: M, L, XL")
+	thumbnailUrl?: string | null
+	nav: { listId: string; itemId: string; openEdit?: boolean }
+}
+
 export type RecommendationKind =
 	| { kind: 'standard' } // standard rec card
 	| { kind: 'list-picker'; eligibleLists: Array<ListRef>; saveLabel: string } // inline picker (e.g. set primary list)
@@ -110,6 +123,21 @@ export type Recommendation = {
 	relatedLists?: Array<ListRef>
 	relatedItems?: Array<ItemRef>
 	interaction?: RecommendationKind // discriminator for the in-card UI (default: standard)
+	// Bundled per-list recs (e.g. "Missing prices on Alice's Wishlist")
+	// carry a list of sub-items. Each sub-item gets its own Edit + Skip
+	// affordance in the rec card. When set, the rec card renders sub-rows
+	// in place of the per-rec Actions list and suppresses `relatedItems`
+	// chips in the affected panel (they'd duplicate the sub-rows).
+	subItems?: Array<RecSubItem>
+	// Sub-item ids that the user has dismissed via the "Skip" affordance.
+	// The read-side hides these from the rendered `subItems`; the bundle
+	// is still considered active as long as at least one un-dismissed
+	// sub-item remains.
+	dismissedSubItemIds?: Array<string>
+	// Bundle-level "Open list" link for the user to bulk-fix items in-place
+	// rather than tabbing through N edit dialogs. Distinct from sub-row
+	// nav (which targets a specific item).
+	bundleNav?: { listId: string }
 }
 
 export type IntelligenceRunSummary = {

@@ -218,6 +218,13 @@
       "when": 1778535539231,
       "tag": "0030_keen_kingpin",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1778549275670,
+      "tag": "0031_long_kingpin",
+      "breakpoints": true
     }
   ]
 }

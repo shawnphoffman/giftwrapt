@@ -25,6 +25,12 @@ export const GroupingTypeCrossingDestructive: Story = { args: { rec: recsById['r
 export const GroupingDependentList: Story = { args: { rec: recsById['rec-7'] } }
 export const RelationLabelsPathNav: Story = { args: { rec: recsById['rec-8'] } }
 
+// Bundled recs (Change 1): one card per (list × analyzer kind) with
+// per-sub-item Edit + Skip and a bundle-level "Open list" affordance.
+export const BundleMissingPrice: Story = { args: { rec: recsById['rec-bundle-1'] } }
+export const BundleClothingWithSkippedSubItem: Story = { args: { rec: recsById['rec-bundle-2'] } }
+export const BundleOverflowShowAll: Story = { args: { rec: recsById['rec-bundle-3'] } }
+
 export const SeverityInfo: Story = { args: { rec: { ...recsById['rec-3'], severity: 'info' } } }
 export const SeveritySuggest: Story = { args: { rec: { ...recsById['rec-2'], severity: 'suggest' } } }
 export const SeverityImportant: Story = { args: { rec: { ...recsById['rec-1'], severity: 'important' } } }

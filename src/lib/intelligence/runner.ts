@@ -14,6 +14,7 @@ import {
 	recommendationRunSteps,
 	recommendations,
 	type RecommendationStatus,
+	recommendationSubItemDismissals,
 	users,
 } from '@/db/schema'
 import { createAiModel } from '@/lib/ai-client'
@@ -319,12 +320,47 @@ async function persistBatch(
 		}
 	})
 
+	// Compute the (fingerprint, subItemId) pairs that the new bundle set
+	// will claim. Anything in `recommendation_sub_item_dismissals` for this
+	// user whose pair is NOT in this set is now stale (the item left the
+	// candidate set: was fixed, deleted, archived) and should be pruned so
+	// the dismissals table doesn't accumulate forever.
+	const liveDismissalKeys = new Set<string>()
+	for (const o of fps) {
+		if (!o.subItems) continue
+		for (const sub of o.subItems) liveDismissalKeys.add(`${o.fingerprint}:${sub.id}`)
+	}
+
 	// Replace prior batch in a single transaction. Covers both the user's
 	// own recs and any per-dependent recs in one shot so the suggestions
-	// page never sees a half-rotated batch.
+	// page never sees a half-rotated batch. The sub-item dismissals table
+	// is pruned in the same transaction so a partial-failure can't leave
+	// dangling rows.
 	return await db.transaction(async tx => {
 		await tx.delete(recommendations).where(eq(recommendations.userId, userId))
 		if (inserts.length > 0) await tx.insert(recommendations).values(inserts)
+
+		const existingDismissals = await tx
+			.select({
+				fingerprint: recommendationSubItemDismissals.fingerprint,
+				subItemId: recommendationSubItemDismissals.subItemId,
+			})
+			.from(recommendationSubItemDismissals)
+			.where(eq(recommendationSubItemDismissals.userId, userId))
+		for (const d of existingDismissals) {
+			if (!liveDismissalKeys.has(`${d.fingerprint}:${d.subItemId}`)) {
+				await tx
+					.delete(recommendationSubItemDismissals)
+					.where(
+						and(
+							eq(recommendationSubItemDismissals.userId, userId),
+							eq(recommendationSubItemDismissals.fingerprint, d.fingerprint),
+							eq(recommendationSubItemDismissals.subItemId, d.subItemId)
+						)
+					)
+			}
+		}
+
 		return inserts.length
 	})
 }
@@ -378,6 +414,8 @@ function payloadFor(o: AnalyzerRecOutput): Record<string, unknown> {
 		relatedLists: o.relatedLists,
 		relatedItems: o.relatedItems,
 		interaction: o.interaction,
+		subItems: o.subItems,
+		bundleNav: o.bundleNav,
 	}
 	// Validate analyzer output against the wire shape before persisting.
 	// Catches analyzer regressions (typos, dropped fields, wrong intent

@@ -71,6 +71,17 @@ export type AffectedSummary = {
 	listChips?: Array<ListRef>
 }
 
+// A single sub-row inside a bundled rec (see AnalyzerRecOutput.subItems).
+// Stable `id` is what gets persisted in recommendation_sub_item_dismissals
+// when the user dismisses just one sub-item rather than the whole bundle.
+export type RecSubItem = {
+	id: string
+	title: string
+	detail?: string
+	thumbnailUrl?: string | null
+	nav: { listId: string; itemId: string; openEdit?: boolean }
+}
+
 export type RecommendationInteraction = { kind: 'standard' } | { kind: 'list-picker'; eligibleLists: Array<ListRef>; saveLabel: string }
 
 // ─── Analyzer output ────────────────────────────────────────────────────────
@@ -86,6 +97,14 @@ export type AnalyzerRecOutput = {
 	relatedLists?: Array<ListRef>
 	relatedItems?: Array<ItemRef>
 	interaction?: RecommendationInteraction
+	// Bundled per-list recs carry an ordered list of sub-items, each
+	// with their own Edit nav + Skip dismissal. Bundles fingerprint by
+	// `(analyzerId, kind, listId)` so sub-item dismissals survive across
+	// regenerations even as items rotate in/out of the bundle.
+	subItems?: Array<RecSubItem>
+	// Bundle-level "Open list" target so the user can bulk-fix all
+	// sub-items inline on the list page.
+	bundleNav?: { listId: string }
 	// Stable target ids that, combined with analyzerId + kind, define the
 	// rec's fingerprint. Order doesn't matter; we sort before hashing.
 	fingerprintTargets: Array<string>
@@ -167,6 +186,18 @@ export const recPayloadSchema = z.object({
 	relatedLists: z.array(z.unknown()).optional(),
 	relatedItems: z.array(z.unknown()).optional(),
 	interaction: z.unknown().optional(),
+	subItems: z
+		.array(
+			z.object({
+				id: z.string(),
+				title: z.string(),
+				detail: z.string().optional(),
+				thumbnailUrl: z.string().nullable().optional(),
+				nav: z.object({ listId: z.string(), itemId: z.string(), openEdit: z.boolean().optional() }),
+			})
+		)
+		.optional(),
+	bundleNav: z.object({ listId: z.string() }).optional(),
 })
 
 export type RecPayload = z.infer<typeof recPayloadSchema>

@@ -29,6 +29,8 @@ type Props = {
 	onDismiss?: (rec: Recommendation) => void
 	onReactivate?: (rec: Recommendation) => void
 	onSelectListPicker?: (rec: Recommendation, listId: string) => void
+	// Per-sub-item Skip handler for bundled recs.
+	onDismissSubItem?: (rec: Recommendation, subItemId: string) => void
 	// Active recs scoped to the user's dependents. Rendered as a
 	// "For your dependents" rollup below the user's own recs. Dismissed
 	// and applied per-dependent recs roll into the global disclosure
@@ -68,6 +70,7 @@ export function IntelligencePageContent({
 	onDismiss,
 	onReactivate,
 	onSelectListPicker,
+	onDismissSubItem,
 	dependentGroups,
 	pendingRecIds,
 }: Props) {
@@ -235,6 +238,7 @@ export function IntelligencePageContent({
 											onAction={onAction}
 											onDismiss={onDismiss}
 											onSelectListPicker={onSelectListPicker}
+											onDismissSubItem={onDismissSubItem}
 											pending={pendingRecIds?.has(rec.id) ?? false}
 										/>
 									))}
@@ -251,6 +255,7 @@ export function IntelligencePageContent({
 					onAction={onAction}
 					onDismiss={onDismiss}
 					onSelectListPicker={onSelectListPicker}
+					onDismissSubItem={onDismissSubItem}
 					pendingRecIds={pendingRecIds}
 				/>
 			)}
@@ -273,12 +278,14 @@ function DependentSections({
 	onAction,
 	onDismiss,
 	onSelectListPicker,
+	onDismissSubItem,
 	pendingRecIds,
 }: {
 	groups: ReadonlyArray<DependentRecGroup>
 	onAction?: (rec: Recommendation, action: RecommendationAction) => void
 	onDismiss?: (rec: Recommendation) => void
 	onSelectListPicker?: (rec: Recommendation, listId: string) => void
+	onDismissSubItem?: (rec: Recommendation, subItemId: string) => void
 	pendingRecIds?: ReadonlySet<string>
 }) {
 	// Filter to active-only here so the per-dependent counts match what's
@@ -315,6 +322,7 @@ function DependentSections({
 								onAction={onAction}
 								onDismiss={onDismiss}
 								onSelectListPicker={onSelectListPicker}
+								onDismissSubItem={onDismissSubItem}
 								pending={pendingRecIds?.has(rec.id) ?? false}
 							/>
 						))}

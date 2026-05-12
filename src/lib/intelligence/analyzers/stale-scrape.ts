@@ -5,12 +5,14 @@ import { items, itemScrapes, lists } from '@/db/schema'
 import type { Analyzer } from '../analyzer'
 import type { AnalyzerSubject } from '../context'
 import { combineHashes, sha256Hex } from '../hash'
-import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ItemRef, ListRef } from '../types'
+import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ListRef, RecSubItem } from '../types'
 
 // Items with a URL whose linked product hasn't been re-scraped in a long
 // time (or never scraped at all) drift out of date - prices change, items
-// go out of stock, listings move. Surface them so the user can re-scrape
-// from the edit dialog.
+// go out of stock, listings move. Bundled per list and per kind: a list
+// with both never-scraped and stale-scraped items gets TWO bundle recs
+// (one of kind 'unscraped-url', one of kind 'stale-scrape') because the
+// two kinds have distinct copy and intent.
 const STALE_SCRAPE_THRESHOLD_DAYS = 120
 
 export const staleScrapeAnalyzer: Analyzer = {
@@ -21,9 +23,6 @@ export const staleScrapeAnalyzer: Analyzer = {
 		const t0 = Date.now()
 		const cutoff = new Date(ctx.now.getTime() - STALE_SCRAPE_THRESHOLD_DAYS * 86400000)
 
-		// Latest successful scrape per item via a correlated subquery. The
-		// items.id partial index on item_scrapes(itemId, createdAt DESC)
-		// makes this O(log n) per item.
 		const latestScrapeAt = sql<Date | null>`(
 			SELECT MAX(${itemScrapes.createdAt})
 			FROM ${itemScrapes}
@@ -72,7 +71,7 @@ export const staleScrapeAnalyzer: Analyzer = {
 			return { recs: [], steps: [loadStep], inputHash: combineHashes([inputHash]) }
 		}
 
-		const recs: Array<AnalyzerRecOutput> = candidates.map(c => buildRec(c, ctx.now, ctx.subject))
+		const recs = buildBundles(candidates, ctx.now, ctx.subject)
 		return { recs, steps: [loadStep], inputHash: combineHashes([inputHash]) }
 	},
 }
@@ -91,55 +90,78 @@ type CandidateRow = {
 	latestScrapeAt: Date | null
 }
 
-function buildRec(row: CandidateRow, now: Date, subject: AnalyzerSubject): AnalyzerRecOutput {
+type BundleKey = `${number}:unscraped-url` | `${number}:stale-scrape`
+
+function buildBundles(rows: ReadonlyArray<CandidateRow>, now: Date, subject: AnalyzerSubject): Array<AnalyzerRecOutput> {
+	const byBundle = new Map<BundleKey, { kind: 'unscraped-url' | 'stale-scrape'; listId: number; rows: Array<CandidateRow> }>()
+	for (const row of rows) {
+		const kind: 'unscraped-url' | 'stale-scrape' = row.latestScrapeAt === null ? 'unscraped-url' : 'stale-scrape'
+		const key: BundleKey = `${row.listId}:${kind}`
+		let bucket = byBundle.get(key)
+		if (!bucket) {
+			bucket = { kind, listId: row.listId, rows: [] }
+			byBundle.set(key, bucket)
+		}
+		bucket.rows.push(row)
+	}
+	const recs: Array<AnalyzerRecOutput> = []
+	for (const [, bundle] of byBundle) {
+		bundle.rows.sort((a, b) => a.title.localeCompare(b.title))
+		const first = bundle.rows[0]
+		const listRef = makeListRef(first, subject)
+		const subItems: Array<RecSubItem> = bundle.rows.map(c => {
+			const ageDays = c.latestScrapeAt === null ? null : Math.max(0, Math.floor((now.getTime() - c.latestScrapeAt.getTime()) / 86400000))
+			const detail = ageDays === null ? 'Never scraped' : `Last scraped ${ageDays} day${ageDays === 1 ? '' : 's'} ago`
+			return {
+				id: String(c.itemId),
+				title: c.title,
+				detail,
+				thumbnailUrl: c.imageUrl,
+				nav: { listId: String(c.listId), itemId: String(c.itemId), openEdit: true },
+			}
+		})
+		const count = subItems.length
+		const isUnscraped = bundle.kind === 'unscraped-url'
+		recs.push({
+			kind: bundle.kind,
+			severity: 'info',
+			title: isUnscraped
+				? count === 1
+					? `Pull details for an item on ${first.listName}`
+					: `Pull details for items on ${first.listName}`
+				: count === 1
+					? `Refresh details for an item on ${first.listName}`
+					: `Refresh details for items on ${first.listName}`,
+			body: isUnscraped
+				? "These items have links but we haven't pulled their title, price, or image yet. Open the list to bulk-refresh, or use Edit / Skip on each item below."
+				: `Linked product details haven't been refreshed in over ${STALE_SCRAPE_THRESHOLD_DAYS} days, so price and availability may be out of date. Open the list to bulk-refresh, or use Edit / Skip on each item below.`,
+			actions: [],
+			dismissDescription: "Hide this suggestion for this list. We won't surface it again unless the underlying scrape history changes.",
+			affected: {
+				noun: count === 1 ? 'item' : 'items',
+				count,
+				lines: [`${first.listName} · ${count} ${isUnscraped ? 'unscraped' : 'stale'} item${count === 1 ? '' : 's'}`],
+				listChips: [listRef],
+			},
+			relatedLists: [listRef],
+			fingerprintTargets: [`list:${first.listId}`],
+			subItems,
+			bundleNav: { listId: String(first.listId) },
+		})
+	}
+	return recs
+}
+
+function makeListRef(row: CandidateRow, subject: AnalyzerSubject): ListRef {
 	const listSubject: ListRef['subject'] =
 		subject.kind === 'dependent'
 			? { kind: 'dependent', name: subject.name, image: subject.image }
 			: { kind: 'user', name: subject.name, image: subject.image }
-	const listRef: ListRef = {
+	return {
 		id: String(row.listId),
 		name: row.listName,
 		type: row.listType as ListRef['type'],
 		isPrivate: row.listIsPrivate,
 		subject: listSubject,
-	}
-	const itemRef: ItemRef = {
-		id: String(row.itemId),
-		title: row.title,
-		listId: String(row.listId),
-		listName: row.listName,
-		imageUrl: row.imageUrl,
-		updatedAt: row.updatedAt,
-		availability: row.availability,
-	}
-	const neverScraped = row.latestScrapeAt === null
-	const ageDays = neverScraped ? null : Math.max(0, Math.floor((now.getTime() - row.latestScrapeAt!.getTime()) / 86400000))
-	const ageLabel = neverScraped ? 'never scraped' : `last scraped ${ageDays} days ago`
-
-	return {
-		kind: neverScraped ? 'unscraped-url' : 'stale-scrape',
-		severity: 'info',
-		title: neverScraped ? `Pull details for ${row.title}` : `Refresh details for ${row.title}`,
-		body: neverScraped
-			? "This item has a link but we haven't pulled its title, price, or image yet. Opening the edit dialog lets you re-trigger the scrape."
-			: `Linked product details haven't been refreshed in over ${STALE_SCRAPE_THRESHOLD_DAYS} days, so price and availability may be out of date.`,
-		actions: [
-			{
-				label: 'Edit item',
-				description: 'Open the edit dialog for this item so you can re-scrape the URL or update the details by hand.',
-				intent: 'do',
-				nav: { listId: String(row.listId), itemId: String(row.itemId), openEdit: true },
-			},
-		],
-		dismissDescription: "Hide this suggestion. We won't surface it again unless the URL or scrape history changes.",
-		affected: {
-			noun: 'item',
-			count: 1,
-			lines: [`${row.title} · on ${row.listName}`, ageLabel],
-			listChips: [listRef],
-		},
-		relatedItems: [itemRef],
-		relatedLists: [listRef],
-		fingerprintTargets: [String(row.itemId)],
 	}
 }

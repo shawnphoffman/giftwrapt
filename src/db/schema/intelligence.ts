@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { index, integer, jsonb, pgEnum, pgTable, serial, text, timestamp, uuid } from 'drizzle-orm/pg-core'
+import { index, integer, jsonb, pgEnum, pgTable, primaryKey, serial, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 
 import { dependents } from './dependents'
 import { users } from './users'
@@ -148,6 +148,36 @@ export const recommendationRunSteps = pgTable(
 
 export type RecommendationRunStep = typeof recommendationRunSteps.$inferSelect
 export type NewRecommendationRunStep = typeof recommendationRunSteps.$inferInsert
+
+// Per-sub-item dismissal state for bundled recs. Keyed by fingerprint so a
+// dismissal survives the DELETE+INSERT cycle in `persistBatch` (the new rec
+// row has a different `recommendations.id` each regen, but the same
+// fingerprint as long as `(analyzerId, kind, listId)` is unchanged).
+//
+// Lifecycle: appended when the user clicks "Skip" on a sub-item; pruned
+// during `persistBatch` if the corresponding sub-item is no longer in the
+// bundle's membership (item fixed / deleted / archived). Auto-cascades on
+// account deletion via the `user_id` FK.
+export const recommendationSubItemDismissals = pgTable(
+	'recommendation_sub_item_dismissals',
+	{
+		userId: text('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		fingerprint: text('fingerprint').notNull(),
+		// String id so future analyzers can dismiss non-item sub-rows (e.g.
+		// "duplicate pair" or list-level sub-targets) without a migration.
+		subItemId: text('sub_item_id').notNull(),
+		dismissedAt: timestamp('dismissed_at').defaultNow().notNull(),
+	},
+	table => [
+		primaryKey({ columns: [table.userId, table.fingerprint, table.subItemId] }),
+		index('rec_sub_item_dismissals_user_fingerprint_idx').on(table.userId, table.fingerprint),
+	]
+)
+
+export type RecommendationSubItemDismissal = typeof recommendationSubItemDismissals.$inferSelect
+export type NewRecommendationSubItemDismissal = typeof recommendationSubItemDismissals.$inferInsert
 
 // Convenience: SQL fragment for the per-user advisory lock key. Postgres
 // `pg_try_advisory_lock(bigint)` requires an int8; hash the user id so

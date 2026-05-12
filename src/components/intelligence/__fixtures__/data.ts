@@ -311,6 +311,117 @@ const recGroupingDependent: Recommendation = {
 	relatedLists: [dependentList],
 }
 
+// Bundled per-list rec: one card listing every item missing a price on
+// `My Wishlist`. Each sub-row has its own Edit nav + Skip action; the
+// bundle has an "Open list" link + a bundle-level Dismiss.
+const recMissingPriceBundle: Recommendation = {
+	id: 'rec-bundle-1',
+	analyzerId: 'missing-price',
+	kind: 'missing-price',
+	severity: 'info',
+	status: 'active',
+	title: 'Add prices to items on My Wishlist',
+	body: 'These items have links but no price set. Filling them in helps gifters budget and surfaces them on price-filtered views. Open the list to fix several at once, or use Edit / Skip on each item below.',
+	createdAt: hoursAgo(1),
+	subItems: [
+		{
+			id: 'item-price-1',
+			title: 'Anker 737 Power Bank',
+			nav: { listId: wishlistGeneric.id, itemId: 'item-price-1', openEdit: true },
+		},
+		{
+			id: 'item-price-2',
+			title: 'Logitech MX Keys',
+			nav: { listId: wishlistGeneric.id, itemId: 'item-price-2', openEdit: true },
+		},
+		{
+			id: 'item-price-3',
+			title: 'Bose QuietComfort Earbuds II',
+			nav: { listId: wishlistGeneric.id, itemId: 'item-price-3', openEdit: true },
+		},
+	],
+	bundleNav: { listId: wishlistGeneric.id },
+	dismissDescription: "Hide this suggestion for this list. We won't surface it again unless something changes about these items.",
+	affected: {
+		noun: 'items',
+		count: 3,
+		lines: ['My Wishlist · 3 items missing a price'],
+		listChips: [wishlistGeneric],
+	},
+	relatedLists: [wishlistGeneric],
+}
+
+// Bundle with one sub-item already dismissed by the user. The middle item
+// is skipped, so only the first and third render. The dismiss-set
+// preserves the order of the remaining items.
+const recClothingBundleWithSkipped: Recommendation = {
+	id: 'rec-bundle-2',
+	analyzerId: 'clothing-prefs',
+	kind: 'clothing-missing-prefs',
+	severity: 'suggest',
+	status: 'active',
+	title: 'Pin down sizing on items on Christmas 2026',
+	body: "These clothing items don't have a size or color pinned down. Gifters can guess wrong without one - the model's per-item notes are below.",
+	createdAt: hoursAgo(2),
+	subItems: [
+		{
+			id: 'item-cloth-1',
+			title: 'Patagonia Nano Puff jacket',
+			detail: "No size is set and 'jacket' covers a 6-size range; pin one down before a gifter shops.",
+			nav: { listId: wishlistChristmas.id, itemId: 'item-cloth-1', openEdit: true },
+		},
+		{
+			id: 'item-cloth-2',
+			title: 'Smartwool merino crew socks',
+			detail: 'Sock size and color are both missing.',
+			nav: { listId: wishlistChristmas.id, itemId: 'item-cloth-2', openEdit: true },
+		},
+		{
+			id: 'item-cloth-3',
+			title: 'Nike Pegasus 41',
+			detail: 'Pegasus is sized like a regular shoe but a half-size note keeps gifters from guessing.',
+			nav: { listId: wishlistChristmas.id, itemId: 'item-cloth-3', openEdit: true },
+		},
+	],
+	dismissedSubItemIds: ['item-cloth-2'],
+	bundleNav: { listId: wishlistChristmas.id },
+	dismissDescription: "Hide this suggestion for this list. We won't surface it again unless something changes about these items.",
+	affected: {
+		noun: 'items',
+		count: 3,
+		lines: ['Christmas 2026 · 3 clothing items missing sizing or color'],
+		listChips: [wishlistChristmas],
+	},
+	relatedLists: [wishlistChristmas],
+}
+
+// Bundle that overflows the 25-row cap so the "Show all" expander renders.
+const recMissingImageOverflowBundle: Recommendation = {
+	id: 'rec-bundle-3',
+	analyzerId: 'missing-image',
+	kind: 'missing-image-selection',
+	severity: 'info',
+	status: 'active',
+	title: 'Pick images for items on My Wishlist',
+	body: 'These items have candidate images we scraped from their linked pages, but none of those have been picked yet. Open the list to choose images for several at once, or use Edit / Skip on each item below.',
+	createdAt: hoursAgo(2),
+	subItems: Array.from({ length: 30 }, (_, i) => ({
+		id: `item-img-${i + 1}`,
+		title: `Item ${i + 1} on the wishlist`,
+		detail: `${(i % 6) + 1} candidate image${i % 6 === 0 ? '' : 's'} available`,
+		nav: { listId: wishlistGeneric.id, itemId: `item-img-${i + 1}`, openEdit: true } as const,
+	})),
+	bundleNav: { listId: wishlistGeneric.id },
+	dismissDescription: "Hide this suggestion for this list. We won't surface it again unless something changes about these items.",
+	affected: {
+		noun: 'items',
+		count: 30,
+		lines: ['My Wishlist · 30 items with unselected images'],
+		listChips: [wishlistGeneric],
+	},
+	relatedLists: [wishlistGeneric],
+}
+
 // Relation-labels rec uses the path-shaped nav variant to point at /settings/
 // (no list scope at all). Kept in fixtures so the story for the path-nav
 // variant has a representative payload.
@@ -357,6 +468,9 @@ export const populatedData: IntelligencePageData = {
 		recGroupingTypeCrossing,
 		recGroupingDependent,
 		recRelationLabels,
+		recMissingPriceBundle,
+		recClothingBundleWithSkipped,
+		recMissingImageOverflowBundle,
 	],
 	lastRun,
 	nextEligibleRefreshAt: hoursAgo(-1),

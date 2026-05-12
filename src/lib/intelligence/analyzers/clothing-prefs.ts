@@ -6,20 +6,15 @@ import { items, lists } from '@/db/schema'
 import type { Analyzer } from '../analyzer'
 import type { AnalyzerSubject } from '../context'
 import { combineHashes, sha256Hex } from '../hash'
-import {
-	buildClothingPrefsPrompt,
-	CLOTHING_PREFS_MAX_OPTIONS,
-	CLOTHING_PREFS_MAX_RECS,
-	type ClothingPrefsCandidate,
-	clothingPrefsResponseSchema,
-} from '../prompts/clothing-prefs'
-import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ItemRef, ListRef } from '../types'
+import { buildClothingPrefsPrompt, type ClothingPrefsCandidate, clothingPrefsResponseSchema } from '../prompts/clothing-prefs'
+import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ListRef, RecSubItem } from '../types'
 
 // AI-driven: hands every active item title + notes to the model and lets
 // it (a) classify which are clothing and (b) suggest size/color slates for
-// the ones that need preferences pinned down. Heuristic title-detection
-// would be brittle ("White hat" - is that color? a brand?), so the model
-// owns the call.
+// the ones that need preferences pinned down. Bundled per list: the bundle
+// body is a static intro, each sub-row keeps the AI's per-item rationale
+// as its muted second line. Drops the legacy CLOTHING_PREFS_MAX_RECS
+// post-filter since bundling already prevents card-explosion.
 export const clothingPrefsAnalyzer: Analyzer = {
 	id: 'clothing-prefs',
 	label: 'Clothing size & color',
@@ -66,10 +61,6 @@ export const clothingPrefsAnalyzer: Analyzer = {
 			return { recs: [], steps: [loadStep], inputHash: combineHashes([inputHash]) }
 		}
 
-		// No-AI fallback: this analyzer's whole job is "is this clothing
-		// AND is the preference already pinned down?", which is a bad fit
-		// for a regex heuristic. Bail out cleanly so users without a model
-		// don't get noisy false positives.
 		if (!ctx.model) {
 			return { recs: [], steps: [loadStep], inputHash: combineHashes([inputHash]) }
 		}
@@ -118,6 +109,9 @@ export const clothingPrefsAnalyzer: Analyzer = {
 			return { recs: [], steps: [loadStep, aiStep], inputHash: combineHashes([inputHash]) }
 		}
 
+		// Pull every per-item AI result that says (a) it's clothing and (b)
+		// at least one preference is missing. We no longer truncate via
+		// CLOTHING_PREFS_MAX_RECS: bundling makes "too many cards" a non-issue.
 		const aiItems = (
 			parsed as {
 				items: Array<{
@@ -131,17 +125,9 @@ export const clothingPrefsAnalyzer: Analyzer = {
 					suggestedColors: Array<string>
 				}>
 			}
-		).items
-			.filter(it => it.include && !(it.hasSize && it.hasColor))
-			.slice(0, CLOTHING_PREFS_MAX_RECS)
+		).items.filter(it => it.include && !(it.hasSize && it.hasColor))
 
-		const recs: Array<AnalyzerRecOutput> = []
-		for (const ai of aiItems) {
-			const row = candidatesById.get(ai.itemId)
-			if (!row) continue
-			recs.push(buildRec(row, ai, ctx.subject))
-		}
-
+		const recs = buildBundles(aiItems, candidatesById, ctx.subject)
 		return { recs, steps: [loadStep, aiStep], inputHash: combineHashes([inputHash]) }
 	},
 }
@@ -159,66 +145,76 @@ type CandidateRow = {
 	listIsPrivate: boolean
 }
 
-function buildRec(
-	row: CandidateRow,
-	ai: {
-		hasSize: boolean
-		hasColor: boolean
-		headline: string
-		rationale: string
-		suggestedSizes: Array<string>
-		suggestedColors: Array<string>
-	},
+type AiItem = {
+	itemId: string
+	hasSize: boolean
+	hasColor: boolean
+	rationale: string
+	suggestedSizes: Array<string>
+	suggestedColors: Array<string>
+}
+
+function buildBundles(
+	aiItems: ReadonlyArray<AiItem>,
+	candidatesById: Map<string, CandidateRow>,
 	subject: AnalyzerSubject
-): AnalyzerRecOutput {
+): Array<AnalyzerRecOutput> {
+	const byList = new Map<number, Array<{ ai: AiItem; row: CandidateRow }>>()
+	for (const ai of aiItems) {
+		const row = candidatesById.get(ai.itemId)
+		if (!row) continue
+		const arr = byList.get(row.listId) ?? []
+		arr.push({ ai, row })
+		byList.set(row.listId, arr)
+	}
+	const recs: Array<AnalyzerRecOutput> = []
+	for (const [, listEntries] of byList) {
+		listEntries.sort((a, b) => a.row.title.localeCompare(b.row.title))
+		const first = listEntries[0].row
+		const listRef = makeListRef(first, subject)
+		const subItems: Array<RecSubItem> = listEntries.map(({ ai, row }) => ({
+			id: String(row.itemId),
+			title: row.title,
+			detail: ai.rationale,
+			thumbnailUrl: row.imageUrl,
+			nav: { listId: String(row.listId), itemId: String(row.itemId), openEdit: true },
+		}))
+		const count = subItems.length
+		recs.push({
+			kind: 'clothing-missing-prefs',
+			severity: 'suggest',
+			title: count === 1 ? `Pin down sizing on an item on ${first.listName}` : `Pin down sizing on items on ${first.listName}`,
+			body:
+				count === 1
+					? "This clothing item doesn't have a size or color pinned down. Gifters can guess wrong without one."
+					: "These clothing items don't have a size or color pinned down. Gifters can guess wrong without one - the model's per-item notes are below.",
+			actions: [],
+			dismissDescription: "Hide this suggestion for this list. We won't surface it again unless something changes about these items.",
+			affected: {
+				noun: count === 1 ? 'item' : 'items',
+				count,
+				lines: [`${first.listName} · ${count} clothing item${count === 1 ? '' : 's'} missing sizing or color`],
+				listChips: [listRef],
+			},
+			relatedLists: [listRef],
+			fingerprintTargets: [`list:${first.listId}`],
+			subItems,
+			bundleNav: { listId: String(first.listId) },
+		})
+	}
+	return recs
+}
+
+function makeListRef(row: CandidateRow, subject: AnalyzerSubject): ListRef {
 	const listSubject: ListRef['subject'] =
 		subject.kind === 'dependent'
 			? { kind: 'dependent', name: subject.name, image: subject.image }
 			: { kind: 'user', name: subject.name, image: subject.image }
-	const listRef: ListRef = {
+	return {
 		id: String(row.listId),
 		name: row.listName,
 		type: row.listType as ListRef['type'],
 		isPrivate: row.listIsPrivate,
 		subject: listSubject,
-	}
-	const itemRef: ItemRef = {
-		id: String(row.itemId),
-		title: row.title,
-		listId: String(row.listId),
-		listName: row.listName,
-		imageUrl: row.imageUrl,
-		updatedAt: row.updatedAt,
-		availability: row.availability,
-	}
-	const sizes = ai.suggestedSizes.slice(0, CLOTHING_PREFS_MAX_OPTIONS)
-	const colors = ai.suggestedColors.slice(0, CLOTHING_PREFS_MAX_OPTIONS)
-	const lines: Array<string> = [`${row.title} · on ${row.listName}`]
-	if (!ai.hasSize && sizes.length > 0) lines.push(`Common sizes: ${sizes.join(', ')}`)
-	if (!ai.hasColor && colors.length > 0) lines.push(`Popular colors: ${colors.join(', ')}`)
-
-	return {
-		kind: 'clothing-missing-prefs',
-		severity: 'suggest',
-		title: ai.headline,
-		body: ai.rationale,
-		actions: [
-			{
-				label: 'Edit item',
-				description: 'Open the edit dialog for this item so you can record size or color in the notes.',
-				intent: 'do',
-				nav: { listId: String(row.listId), itemId: String(row.itemId), openEdit: true },
-			},
-		],
-		dismissDescription: "Hide this suggestion. We won't surface it again unless this item changes.",
-		affected: {
-			noun: 'item',
-			count: 1,
-			lines,
-			listChips: [listRef],
-		},
-		relatedItems: [itemRef],
-		relatedLists: [listRef],
-		fingerprintTargets: [String(row.itemId)],
 	}
 }

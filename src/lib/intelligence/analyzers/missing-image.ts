@@ -5,12 +5,12 @@ import { items, itemScrapes, lists } from '@/db/schema'
 import type { Analyzer } from '../analyzer'
 import type { AnalyzerSubject } from '../context'
 import { combineHashes, sha256Hex } from '../hash'
-import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ItemRef, ListRef } from '../types'
+import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ListRef, RecSubItem } from '../types'
 
 // Items where the user added a URL, the scraper found candidate images,
 // but the item itself still has no `imageUrl` selected. Almost always
 // means the user skipped picking from the image chooser at scrape time.
-// One short hop into the edit dialog lets them pick.
+// Bundled per list (see missing-price.ts header for the bundling model).
 export const missingImageAnalyzer: Analyzer = {
 	id: 'missing-image',
 	label: 'Unselected images',
@@ -18,10 +18,6 @@ export const missingImageAnalyzer: Analyzer = {
 	async run(ctx): Promise<AnalyzerResult> {
 		const t0 = Date.now()
 
-		// Pull the latest successful scrape per item that has a non-empty
-		// imageUrls array. Items without a URL or with an imageUrl already
-		// set are filtered out; the inner subquery returns the most recent
-		// scrape with candidate images.
 		const candidateImages = sql<Array<string> | null>`(
 			SELECT ${itemScrapes.imageUrls}
 			FROM ${itemScrapes}
@@ -75,7 +71,7 @@ export const missingImageAnalyzer: Analyzer = {
 			return { recs: [], steps: [loadStep], inputHash: combineHashes([inputHash]) }
 		}
 
-		const recs: Array<AnalyzerRecOutput> = candidates.map(c => buildRec(c, ctx.subject))
+		const recs = buildBundles(candidates, ctx.subject)
 		return { recs, steps: [loadStep], inputHash: combineHashes([inputHash]) }
 	},
 }
@@ -94,50 +90,64 @@ type CandidateRow = {
 	candidateImages: Array<string> | null
 }
 
-function buildRec(row: CandidateRow, subject: AnalyzerSubject): AnalyzerRecOutput {
+function buildBundles(rows: ReadonlyArray<CandidateRow>, subject: AnalyzerSubject): Array<AnalyzerRecOutput> {
+	const byList = new Map<number, Array<CandidateRow>>()
+	for (const row of rows) {
+		const arr = byList.get(row.listId) ?? []
+		arr.push(row)
+		byList.set(row.listId, arr)
+	}
+	const recs: Array<AnalyzerRecOutput> = []
+	for (const [, listRows] of byList) {
+		listRows.sort((a, b) => a.title.localeCompare(b.title))
+		const first = listRows[0]
+		const listRef = makeListRef(first, subject)
+		const subItems: Array<RecSubItem> = listRows.map(c => {
+			const n = c.candidateImages?.length ?? 0
+			return {
+				id: String(c.itemId),
+				title: c.title,
+				detail: `${n} candidate image${n === 1 ? '' : 's'} available`,
+				thumbnailUrl: c.imageUrl,
+				nav: { listId: String(c.listId), itemId: String(c.itemId), openEdit: true },
+			}
+		})
+		const count = subItems.length
+		recs.push({
+			kind: 'missing-image-selection',
+			severity: 'info',
+			title: count === 1 ? `Pick an image for an item on ${first.listName}` : `Pick images for items on ${first.listName}`,
+			body:
+				count === 1
+					? 'We pulled candidate images from the linked page but none are set on this item yet.'
+					: 'These items have candidate images we scraped from their linked pages, but none of those have been picked yet. Open the list to choose images for several at once, or use Edit / Skip on each item below.',
+			actions: [],
+			dismissDescription: "Hide this suggestion for this list. We won't surface it again unless something changes about these items.",
+			affected: {
+				noun: count === 1 ? 'item' : 'items',
+				count,
+				lines: [`${first.listName} · ${count} item${count === 1 ? '' : 's'} with unselected images`],
+				listChips: [listRef],
+			},
+			relatedLists: [listRef],
+			fingerprintTargets: [`list:${first.listId}`],
+			subItems,
+			bundleNav: { listId: String(first.listId) },
+		})
+	}
+	return recs
+}
+
+function makeListRef(row: CandidateRow, subject: AnalyzerSubject): ListRef {
 	const listSubject: ListRef['subject'] =
 		subject.kind === 'dependent'
 			? { kind: 'dependent', name: subject.name, image: subject.image }
 			: { kind: 'user', name: subject.name, image: subject.image }
-	const listRef: ListRef = {
+	return {
 		id: String(row.listId),
 		name: row.listName,
 		type: row.listType as ListRef['type'],
 		isPrivate: row.listIsPrivate,
 		subject: listSubject,
-	}
-	const itemRef: ItemRef = {
-		id: String(row.itemId),
-		title: row.title,
-		listId: String(row.listId),
-		listName: row.listName,
-		imageUrl: row.imageUrl,
-		updatedAt: row.updatedAt,
-		availability: row.availability,
-	}
-	const candidateCount = row.candidateImages?.length ?? 0
-	return {
-		kind: 'missing-image-selection',
-		severity: 'info',
-		title: `Pick an image for ${row.title}`,
-		body: `We pulled ${candidateCount} candidate image${candidateCount === 1 ? '' : 's'} from the linked page but none are set on this item yet.`,
-		actions: [
-			{
-				label: 'Choose image',
-				description: 'Open the edit dialog for this item so you can pick one of the scraped candidate images.',
-				intent: 'do',
-				nav: { listId: String(row.listId), itemId: String(row.itemId), openEdit: true },
-			},
-		],
-		dismissDescription: "Hide this suggestion. We won't surface it again unless this item changes.",
-		affected: {
-			noun: 'item',
-			count: 1,
-			lines: [`${row.title} · on ${row.listName}`, `${candidateCount} candidate image${candidateCount === 1 ? '' : 's'} available`],
-			listChips: [listRef],
-		},
-		relatedItems: [itemRef],
-		relatedLists: [listRef],
-		fingerprintTargets: [String(row.itemId)],
 	}
 }

@@ -7,6 +7,7 @@ import {
 	applyRecommendation,
 	type ApplyRecommendationResult,
 	dismissRecommendation,
+	dismissRecommendationSubItem,
 	getMyRecommendations,
 	type IntelligenceDependentRecGroup,
 	type IntelligencePagePayload,
@@ -49,6 +50,12 @@ function IntelligenceRoute() {
 		mutationFn: (id: string) => reactivateRecommendation({ data: { id } }),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: intelligenceQueryOptions.queryKey }),
 		onError: e => toast.error(e instanceof Error ? e.message : 'Reactivate failed'),
+	})
+
+	const dismissSubItemMutation = useMutation({
+		mutationFn: (input: { id: string; subItemId: string }) => dismissRecommendationSubItem({ data: input }),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: intelligenceQueryOptions.queryKey }),
+		onError: e => toast.error(e instanceof Error ? e.message : 'Skip failed'),
 	})
 
 	const applyServerMutation = useMutation({
@@ -101,6 +108,7 @@ function IntelligenceRoute() {
 				}
 			}}
 			onSelectListPicker={(rec, listId) => applyServerMutation.mutate({ id: rec.id, apply: { kind: 'set-primary-list', listId } })}
+			onDismissSubItem={(rec, subItemId) => dismissSubItemMutation.mutate({ id: rec.id, subItemId })}
 		/>
 	)
 }
@@ -148,6 +156,9 @@ function rowToRecommendation(r: IntelligenceRecRow): Recommendation {
 		relatedLists: payload.relatedLists,
 		relatedItems: payload.relatedItems,
 		interaction: payload.interaction,
+		subItems: payload.subItems,
+		bundleNav: payload.bundleNav,
+		dismissedSubItemIds: r.dismissedSubItemIds,
 	}
 }
 

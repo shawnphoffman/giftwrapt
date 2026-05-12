@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, Check, ExternalLink, Info, Lightbulb, Loader2, Package, Sparkles, X } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Check, ChevronDown, ExternalLink, Info, Lightbulb, Loader2, Package, Sparkles, X } from 'lucide-react'
 import { useState } from 'react'
 
 import DependentAvatar from '@/components/common/dependent-avatar'
@@ -30,6 +30,7 @@ import type {
 	Recommendation,
 	RecommendationAction,
 	RecommendationSeverity,
+	RecSubItem,
 } from './__fixtures__/types'
 
 function listHref(list: ListRef): string {
@@ -69,11 +70,19 @@ type Props = {
 	onAction?: (rec: Recommendation, action: RecommendationAction) => void
 	onDismiss?: (rec: Recommendation) => void
 	onSelectListPicker?: (rec: Recommendation, listId: string) => void
+	// Called when the user clicks Skip on a single sub-row inside a bundled
+	// rec. Distinct from `onDismiss`, which dismisses the entire bundle.
+	onDismissSubItem?: (rec: Recommendation, subItemId: string) => void
 	// True while an apply or dismiss mutation for this rec is in flight.
 	// We render an overlay + lock interactions so the user can't fire a
 	// second action against the same card before the first round-trips.
 	pending?: boolean
 }
+
+// Hard cap on rendered sub-rows. The full set is in the payload; rows
+// beyond this cap hide behind a "Show all" expander so a bundle with
+// 200 items doesn't render as a 200-row card by default.
+const SUB_ITEM_RENDER_CAP = 25
 
 const ANALYZER_LABEL: Record<AnalyzerId, string> = {
 	'primary-list': 'Setup',
@@ -139,7 +148,15 @@ function navHref(nav: NavTarget): string {
 	return `/lists/${nav.listId}${search}#item-${nav.itemId}`
 }
 
-export function RecommendationCard({ rec, position, onAction, onDismiss, onSelectListPicker, pending: busy = false }: Props) {
+export function RecommendationCard({
+	rec,
+	position,
+	onAction,
+	onDismiss,
+	onSelectListPicker,
+	onDismissSubItem,
+	pending: busy = false,
+}: Props) {
 	const sev = SEVERITY_META[rec.severity]
 	const SevIcon = sev.icon
 	const dismissed = rec.status === 'dismissed'
@@ -147,6 +164,13 @@ export function RecommendationCard({ rec, position, onAction, onDismiss, onSelec
 	const inactive = dismissed || applied
 	const isPicker = rec.interaction?.kind === 'list-picker'
 	const dismissDescription = rec.dismissDescription ?? DEFAULT_DISMISS_DESCRIPTION
+
+	// Bundled-rec mode: when subItems is set, drop the rec-level Actions
+	// list in favor of per-sub-row Edit + Skip rows. The dismissed-set
+	// hides individually skipped sub-items from rendering.
+	const dismissedSubSet = new Set(rec.dismissedSubItemIds ?? [])
+	const visibleSubItems = (rec.subItems ?? []).filter(s => !dismissedSubSet.has(s.id))
+	const isBundle = (rec.subItems?.length ?? 0) > 0
 	const [pending, setPending] = useState<PendingConfirm | null>(null)
 
 	const handleActionClick = (action: RecommendationAction) => {
@@ -239,7 +263,7 @@ export function RecommendationCard({ rec, position, onAction, onDismiss, onSelec
 					</div>
 				</section>
 
-				{rec.affected && <AffectedPanel affected={rec.affected} relatedItems={rec.relatedItems} />}
+				{rec.affected && <AffectedPanel affected={rec.affected} relatedItems={isBundle ? undefined : rec.relatedItems} />}
 
 				{!inactive && isPicker && rec.interaction?.kind === 'list-picker' && (
 					<ListPickerInteraction
@@ -249,7 +273,17 @@ export function RecommendationCard({ rec, position, onAction, onDismiss, onSelec
 					/>
 				)}
 
-				{!inactive && !isPicker && (
+				{!inactive && !isPicker && isBundle && (
+					<SubItemsSection
+						subItems={visibleSubItems}
+						bundleNav={rec.bundleNav}
+						dismissDescription={dismissDescription}
+						onDismissSubItem={subItemId => onDismissSubItem?.(rec, subItemId)}
+						onDismiss={handleDismissClick}
+					/>
+				)}
+
+				{!inactive && !isPicker && !isBundle && (
 					<ActionsSection
 						actions={rec.actions ?? []}
 						dismissDescription={dismissDescription}
@@ -448,6 +482,123 @@ function ItemAvatar({ item }: { item: ItemRef }) {
 			{item.imageUrl && <AvatarImage src={item.imageUrl} alt={item.title} />}
 			<AvatarFallback className="bg-muted text-muted-foreground">
 				<Package className="size-3" />
+			</AvatarFallback>
+		</Avatar>
+	)
+}
+
+function SubItemsSection({
+	subItems,
+	bundleNav,
+	dismissDescription,
+	onDismissSubItem,
+	onDismiss,
+}: {
+	subItems: ReadonlyArray<RecSubItem>
+	bundleNav?: { listId: string }
+	dismissDescription: string
+	onDismissSubItem: (subItemId: string) => void
+	onDismiss: () => void
+}) {
+	const [expanded, setExpanded] = useState(false)
+	const capped = !expanded && subItems.length > SUB_ITEM_RENDER_CAP
+	const renderedSubItems = capped ? subItems.slice(0, SUB_ITEM_RENDER_CAP) : subItems
+	const hiddenCount = subItems.length - renderedSubItems.length
+	return (
+		<section data-intelligence="sub-items-section" className="rounded-md border border-border bg-card/40 overflow-hidden">
+			<header data-intelligence="sub-items-heading" className="flex items-center justify-between gap-2 bg-muted/30 px-3 py-1.5">
+				<span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Items</span>
+				<span data-intelligence="sub-items-count" className="text-[11px] tabular-nums text-muted-foreground">
+					{subItems.length} {subItems.length === 1 ? 'item' : 'items'}
+				</span>
+			</header>
+			<ul data-intelligence="sub-items-list" className="divide-y divide-border/60">
+				{renderedSubItems.map(sub => (
+					<SubItemRow key={sub.id} sub={sub} onSkip={() => onDismissSubItem(sub.id)} />
+				))}
+				{hiddenCount > 0 && (
+					<li data-intelligence="sub-items-show-all" className="flex items-center px-3 py-2.5">
+						<button
+							type="button"
+							data-intelligence="sub-items-show-all-button"
+							onClick={() => setExpanded(true)}
+							className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
+						>
+							<ChevronDown className="size-3.5" />
+							Show all ({hiddenCount} more)
+						</button>
+					</li>
+				)}
+				{bundleNav && (
+					<li
+						data-intelligence="sub-items-bundle-nav"
+						className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:gap-4 bg-muted/20"
+					>
+						<p className="flex-1 text-sm leading-snug text-muted-foreground">Open the list to bulk-fix in-place.</p>
+						<LinkButton label="Open list" href={`/lists/${bundleNav.listId}`} intent="do" />
+					</li>
+				)}
+				<DismissRow description={dismissDescription} onClick={onDismiss} />
+			</ul>
+		</section>
+	)
+}
+
+function SubItemRow({ sub, onSkip }: { sub: RecSubItem; onSkip: () => void }) {
+	return (
+		<li
+			data-intelligence="sub-item-row"
+			data-sub-item-id={sub.id}
+			className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:gap-3"
+		>
+			<SubItemAvatar item={sub} />
+			<div className="flex-1 min-w-0">
+				<p data-intelligence="sub-item-title" className="text-sm font-medium leading-snug truncate">
+					{sub.title}
+				</p>
+				{sub.detail && (
+					<p data-intelligence="sub-item-detail" className="text-xs text-muted-foreground leading-snug">
+						{sub.detail}
+					</p>
+				)}
+			</div>
+			<div data-intelligence="sub-item-actions" className="flex items-center gap-2 self-start sm:self-center sm:shrink-0">
+				<a
+					data-intelligence="sub-item-edit"
+					data-action-intent="do"
+					data-action-link
+					href={navHref(sub.nav)}
+					target="_blank"
+					rel="noopener"
+					className={cn(
+						'inline-flex h-8 shrink-0 items-center gap-1 rounded-md px-2.5 text-sm font-medium text-white whitespace-nowrap',
+						'bg-emerald-600 ring-1 ring-emerald-500/50 shadow-sm',
+						'dark:bg-emerald-700 dark:ring-emerald-600/50',
+						'transition-all duration-150',
+						'hover:bg-emerald-500 hover:ring-emerald-400/70 hover:shadow-md hover:shadow-emerald-500/30 hover:-translate-y-px',
+						'dark:hover:bg-emerald-600 dark:hover:ring-emerald-500/70',
+						'active:translate-y-0 active:shadow-sm',
+						'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400'
+					)}
+				>
+					<ExternalLink className="size-3.5" />
+					Edit
+				</a>
+				<Button data-intelligence="sub-item-skip" size="sm" variant="outline" onClick={onSkip} aria-label="Skip this item">
+					<X className="size-3.5" />
+					<span className="sr-only sm:not-sr-only">Skip</span>
+				</Button>
+			</div>
+		</li>
+	)
+}
+
+function SubItemAvatar({ item }: { item: RecSubItem }) {
+	return (
+		<Avatar className="size-8 shrink-0">
+			{item.thumbnailUrl && <AvatarImage src={item.thumbnailUrl} alt={item.title} />}
+			<AvatarFallback className="bg-muted text-muted-foreground">
+				<Package className="size-4" />
 			</AvatarFallback>
 		</Avatar>
 	)

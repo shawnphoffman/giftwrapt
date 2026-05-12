@@ -3,7 +3,17 @@ import { and, asc, count, desc, eq, gt, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db, type SchemaDatabase } from '@/db'
-import { dependentGuardianships, dependents, giftedItems, itemGroups, items, lists, recommendationRuns, recommendations } from '@/db/schema'
+import {
+	dependentGuardianships,
+	dependents,
+	giftedItems,
+	itemGroups,
+	items,
+	lists,
+	recommendationRuns,
+	recommendations,
+	recommendationSubItemDismissals,
+} from '@/db/schema'
 import { resolveAiConfig } from '@/lib/ai-config'
 import { generateForUser } from '@/lib/intelligence/runner'
 import { loggingMiddleware } from '@/lib/logger'
@@ -27,6 +37,11 @@ export type IntelligenceRecRow = {
 	dismissedAt: Date | null
 	dependentId: string | null
 	payload: Record<string, never> | null
+	// Sub-item ids the user has dismissed via per-sub-item Skip. Read-side
+	// filter; the payload's `subItems` field still contains every current
+	// sub-item, so the client knows whether the bundle has anything left
+	// to render and the dismissals are easy to debug.
+	dismissedSubItemIds?: Array<string>
 }
 
 export type IntelligenceDependentRecGroup = {
@@ -63,7 +78,7 @@ export const getMyRecommendations = createServerFn({ method: 'GET' })
 		const settings = await getAppSettings(db)
 		const aiConfig = await resolveAiConfig(db)
 
-		const [allRecs, lastRunRow, guardianedDeps] = await Promise.all([
+		const [allRecs, allSubItemDismissals, lastRunRow, guardianedDeps] = await Promise.all([
 			db
 				.select({
 					id: recommendations.id,
@@ -77,10 +92,18 @@ export const getMyRecommendations = createServerFn({ method: 'GET' })
 					dismissedAt: recommendations.dismissedAt,
 					dependentId: recommendations.dependentId,
 					payload: recommendations.payload,
+					fingerprint: recommendations.fingerprint,
 				})
 				.from(recommendations)
 				.where(eq(recommendations.userId, userId))
 				.orderBy(desc(recommendations.createdAt)),
+			db
+				.select({
+					fingerprint: recommendationSubItemDismissals.fingerprint,
+					subItemId: recommendationSubItemDismissals.subItemId,
+				})
+				.from(recommendationSubItemDismissals)
+				.where(eq(recommendationSubItemDismissals.userId, userId)),
 			db
 				.select()
 				.from(recommendationRuns)
@@ -103,10 +126,36 @@ export const getMyRecommendations = createServerFn({ method: 'GET' })
 		const lastFinished = lastRun?.finishedAt
 		const nextEligibleRefreshAt = lastFinished ? new Date(lastFinished.getTime() + cooldownMs) : null
 
+		// Group dismissals by fingerprint so each rec gets its slice without
+		// scanning the full list.
+		const dismissalsByFingerprint = new Map<string, Array<string>>()
+		for (const d of allSubItemDismissals) {
+			const arr = dismissalsByFingerprint.get(d.fingerprint) ?? []
+			arr.push(d.subItemId)
+			dismissalsByFingerprint.set(d.fingerprint, arr)
+		}
+
 		const userRecs: Array<IntelligenceRecRow> = []
 		const recsByDep = new Map<string, Array<IntelligenceRecRow>>()
 		for (const r of allRecs) {
-			const row: IntelligenceRecRow = { ...r, payload: r.payload as Record<string, never> | null }
+			const dismissedSubItemIds = dismissalsByFingerprint.get(r.fingerprint) ?? []
+			// Auto-hide a bundle whose every sub-item has been dismissed: the
+			// user clicked Skip on each row. The DB row stays `active` so a
+			// regen with new candidates re-surfaces it; for now it just
+			// doesn't render. This is the "auto-empty bundle" rule.
+			if (r.status === 'active' && dismissedSubItemIds.length > 0) {
+				const payload = (r.payload ?? {}) as { subItems?: Array<{ id: string }> }
+				const subItems = payload.subItems ?? []
+				if (subItems.length > 0 && subItems.every(s => dismissedSubItemIds.includes(s.id))) {
+					continue
+				}
+			}
+			const { fingerprint: _fp, ...rest } = r
+			const row: IntelligenceRecRow = {
+				...rest,
+				payload: r.payload as Record<string, never> | null,
+				dismissedSubItemIds: dismissedSubItemIds.length > 0 ? dismissedSubItemIds : undefined,
+			}
 			if (r.dependentId === null) {
 				userRecs.push(row)
 			} else {
@@ -203,6 +252,28 @@ export const dismissRecommendation = createServerFn({ method: 'POST' })
 			.where(and(eq(recommendations.id, data.id), eq(recommendations.userId, userId)))
 			.returning({ id: recommendations.id })
 		return { ok: result.length > 0 }
+	})
+
+// Dismisses a single sub-item from a bundled rec. The bundle itself stays
+// active; the sub-item is hidden from rendering and won't come back unless
+// the underlying item leaves and re-enters the bundle (prune-on-regen).
+const subItemDismissSchema = z.object({ id: z.uuid(), subItemId: z.string().min(1) })
+
+export const dismissRecommendationSubItem = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: z.input<typeof subItemDismissSchema>) => subItemDismissSchema.parse(data))
+	.handler(async ({ context, data }) => {
+		const userId = context.session.user.id
+		const rec = await db.query.recommendations.findFirst({
+			where: and(eq(recommendations.id, data.id), eq(recommendations.userId, userId)),
+			columns: { id: true, fingerprint: true },
+		})
+		if (!rec) return { ok: false as const, reason: 'rec-not-found' as const }
+		await db
+			.insert(recommendationSubItemDismissals)
+			.values({ userId, fingerprint: rec.fingerprint, subItemId: data.subItemId })
+			.onConflictDoNothing()
+		return { ok: true as const }
 	})
 
 // Inverse of dismiss: flips the rec back to `active`. Without this,
