@@ -164,7 +164,8 @@ const options = {
 	// POSTs strip the cookie -> the auth middleware refuses the call,
 	// which is the entire CSRF defense for our server functions. Don't
 	// enable `crossSubDomainCookies` or override cookie attributes
-	// without revisiting the strategy in docs/contributing.md.
+	// without revisiting the strategy in
+	// https://giftwrapt.dev/contributing/contributing/.
 	//
 	// Rate limit auth-related routes (sign-in, sign-up, password change,
 	// session reads). Better-auth applies stricter caps to sensitive

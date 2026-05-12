@@ -60,8 +60,8 @@ export const env = createEnv({
 		// missing the app boots without image uploads (banner in-app, 503 on
 		// upload endpoints, no-op cleanups). Set all five to enable. Works with
 		// Garage (local + self-host), AWS S3, Cloudflare R2, Supabase Storage's
-		// S3 API, any other S3-compat vendor. See docs/storage.md for
-		// deployment recipes.
+		// S3 API, any other S3-compat vendor. See
+		// https://giftwrapt.dev/configuration/storage/ for deployment recipes.
 		STORAGE_ENDPOINT: z.url().optional(),
 		STORAGE_REGION: z.string().min(1).optional(),
 		STORAGE_BUCKET: z.string().min(1).optional(),

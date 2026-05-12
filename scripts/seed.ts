@@ -8,7 +8,8 @@
  * !!!  DEV ONLY  !!!
  *
  * The seeded passwords (`SeedPass123!`) are committed to this repo, baked
- * into stories, and documented in docs/local-dev-admin.md - they are
+ * into stories, and documented at
+ * https://giftwrapt.dev/contributing/local-dev-admin/ - they are
  * effectively public. Anyone who can reach a server with this seed loaded
  * has admin access. Never run against a database that anything outside
  * your laptop can connect to. See sec-review L3.

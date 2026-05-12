@@ -135,7 +135,7 @@ services:
     # network. The app serves images via /api/files/* so clients never need
     # direct bucket access. If you want direct S3 URLs (faster, offloads
     # bandwidth), add a reverse-proxy rule for 3900 and set STORAGE_PUBLIC_URL
-    # in .env - see docs/storage.md.
+    # in .env - see https://giftwrapt.dev/configuration/storage/.
     healthcheck:
       test: ['CMD', '/garage', 'status']
       interval: 5s
