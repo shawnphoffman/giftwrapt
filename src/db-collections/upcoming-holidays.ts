@@ -27,8 +27,11 @@ const HolidayWidgetRowSchema = z.object({
 	listName: z.string(),
 	recipient: HolidayWidgetRecipientSchema,
 	ownedByMe: z.boolean(),
-	holidayCountry: z.string(),
-	holidayKey: z.string(),
+	// Null for source='custom' admin-curated rows (no catalog reference);
+	// populated for the legacy holidayCountry/Key pair and for catalog-
+	// source custom_holidays rows.
+	holidayCountry: z.string().nullable(),
+	holidayKey: z.string().nullable(),
 	holidayName: z.string(),
 	occurrenceStart: z.string(),
 	daysUntil: z.number(),

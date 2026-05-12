@@ -8,7 +8,18 @@ import { and, arrayOverlaps, eq, inArray, max, or, sql } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
-import { dependentGuardianships, giftedItems, guardianships, items, listEditors, lists, userRelationships, users } from '@/db/schema'
+import {
+	customHolidays,
+	dependentGuardianships,
+	giftedItems,
+	guardianships,
+	items,
+	listEditors,
+	lists,
+	userRelationships,
+	users,
+} from '@/db/schema'
+import { customHolidayNextOccurrence, type CustomHolidayRow } from '@/lib/custom-holidays'
 import { getCatalogEntry, nextOccurrence } from '@/lib/holidays'
 
 // =====================================================================
@@ -24,8 +35,16 @@ export type HolidayWidgetRow = {
 	listName: string
 	recipient: HolidayWidgetRecipient
 	ownedByMe: boolean
-	holidayCountry: string
-	holidayKey: string
+	// Country / key are populated only when the row resolves through the
+	// bundled `date-holidays` catalog (either a legacy
+	// `lists.holidayCountry/holidayKey` pair, or a `custom_holidays` row
+	// with `source = 'catalog'`). They are null for fully custom
+	// admin-curated dates (`source = 'custom'`), which carry no catalog
+	// reference. iOS strips both fields at the wire layer; the web
+	// collection consumes neither, so callers should treat them as
+	// debug-only.
+	holidayCountry: string | null
+	holidayKey: string | null
 	holidayName: string
 	occurrenceStart: string
 	daysUntil: number
@@ -114,6 +133,7 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 			isActive: lists.isActive,
 			holidayCountry: lists.holidayCountry,
 			holidayKey: lists.holidayKey,
+			customHolidayId: lists.customHolidayId,
 			lastHolidayArchiveAt: lists.lastHolidayArchiveAt,
 			ownerName: sql<string | null>`owner.name`,
 			ownerImage: sql<string | null>`owner.image`,
@@ -126,6 +146,19 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 		.where(and(eq(lists.type, 'holiday'), eq(lists.isActive, true), or(...visibilityClauses)))
 
 	if (candidates.length === 0) return []
+
+	// Batch-load the referenced `custom_holidays` rows. Each list resolves
+	// its occurrence and display name through this row when present
+	// (`source = 'catalog'` runs through the bundled rule helpers,
+	// `source = 'custom'` reads the stored month/day/year directly). Lists
+	// without a `customHolidayId` fall back to the legacy
+	// `holidayCountry`/`holidayKey` pair below.
+	const customHolidayIds = Array.from(new Set(candidates.map(c => c.customHolidayId).filter((id): id is string => Boolean(id))))
+	const customHolidayById = new Map<string, CustomHolidayRow>()
+	if (customHolidayIds.length > 0) {
+		const rows = await dbx.select().from(customHolidays).where(inArray(customHolidays.id, customHolidayIds))
+		for (const row of rows) customHolidayById.set(row.id, row)
+	}
 
 	// Resolve last-gifted-at per recipient. For user recipients, key off
 	// `lists.ownerId`; for dependent recipients, key off
@@ -181,11 +214,26 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 		return name
 	}
 
-	const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+	// Anchor daysUntil to UTC calendar days so the legacy `date-holidays`
+	// path (local-midnight Date objects) and the new `custom_holidays`
+	// path (UTC-midnight Date objects) agree on what "today" means
+	// regardless of the server's local timezone. Both paths produce dates
+	// whose UTC-component date matches the intended calendar day; using
+	// UTC getters keeps the calendar-day math TZ-invariant.
+	const todayStart = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
 
 	const rows: Array<HolidayWidgetRow> = []
 	for (const c of candidates) {
-		if (!c.holidayCountry || !c.holidayKey) continue
+		const customHoliday = c.customHolidayId ? (customHolidayById.get(c.customHolidayId) ?? null) : null
+
+		// A list reaches the widget through one of two paths:
+		//   1. `customHolidayId` points at an admin-curated `custom_holidays`
+		//      row (preferred; mirrors the auto-archive cron's resolution).
+		//   2. Legacy `holidayCountry` + `holidayKey` pair on `lists` (kept
+		//      for rows that haven't been migrated to a custom_holidays row).
+		// Rows with neither path resolvable are silently skipped: the list
+		// is misconfigured and there's no occurrence to show.
+		if (!customHoliday && (!c.holidayCountry || !c.holidayKey)) continue
 
 		// A row is "directly authorized" when the SQL universe placed it via
 		// owner / editor / dependent-guardian / child-guardian. The "public"
@@ -211,19 +259,38 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 			}
 		}
 
-		const occurrence = await nextOccurrence(c.holidayCountry, c.holidayKey, now, dbx)
-		if (!occurrence) continue
+		// Resolve next occurrence + display name + (best-effort) catalog
+		// reference pair. The catalog reference is null for source='custom'
+		// rows because they don't have one; iOS strips it before delivery
+		// either way.
+		let occurrence: Date | null = null
+		let holidayName: string | null = null
+		let detailCountry: string | null = null
+		let detailKey: string | null = null
+
+		if (customHoliday) {
+			occurrence = await customHolidayNextOccurrence(customHoliday, now, dbx)
+			holidayName = customHoliday.title
+			if (customHoliday.source === 'catalog') {
+				detailCountry = customHoliday.catalogCountry
+				detailKey = customHoliday.catalogKey
+			}
+		} else if (c.holidayCountry && c.holidayKey) {
+			occurrence = await nextOccurrence(c.holidayCountry, c.holidayKey, now, dbx)
+			holidayName = await resolveHolidayName(c.holidayCountry, c.holidayKey)
+			detailCountry = c.holidayCountry
+			detailKey = c.holidayKey
+		}
+
+		if (!occurrence || !holidayName) continue
 
 		// Skip occurrences the auto-archive cron already processed for this
 		// list so we don't double-remind through the year wrap.
 		if (c.lastHolidayArchiveAt && c.lastHolidayArchiveAt.getTime() >= occurrence.getTime()) continue
 
-		const occurrenceStart = new Date(occurrence.getFullYear(), occurrence.getMonth(), occurrence.getDate()).getTime()
+		const occurrenceStart = Date.UTC(occurrence.getUTCFullYear(), occurrence.getUTCMonth(), occurrence.getUTCDate())
 		const daysUntil = Math.round((occurrenceStart - todayStart) / 86_400_000)
 		if (daysUntil < 0 || daysUntil > horizonDays) continue
-
-		const holidayName = await resolveHolidayName(c.holidayCountry, c.holidayKey)
-		if (!holidayName) continue
 
 		const recipient: HolidayWidgetRecipient = c.subjectDependentId
 			? { kind: 'dependent', id: c.subjectDependentId, name: c.dependentName ?? '', image: c.dependentImage }
@@ -238,8 +305,8 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 			listName: c.name,
 			recipient,
 			ownedByMe: c.ownerId === userId,
-			holidayCountry: c.holidayCountry,
-			holidayKey: c.holidayKey,
+			holidayCountry: detailCountry,
+			holidayKey: detailKey,
 			holidayName,
 			occurrenceStart: occurrence.toISOString(),
 			daysUntil,
