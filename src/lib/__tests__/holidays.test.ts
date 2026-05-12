@@ -10,9 +10,15 @@ import {
 } from '@/lib/holidays'
 
 describe('SUPPORTED_COUNTRIES', () => {
-	it('lists the launch countries', () => {
-		const codes = SUPPORTED_COUNTRIES.map(c => c.code)
+	it('starts with the original launch set in fixed order', () => {
+		const codes = SUPPORTED_COUNTRIES.slice(0, 4).map(c => c.code)
 		expect(codes).toEqual(['US', 'CA', 'GB', 'AU'])
+	})
+
+	it('sorts the remaining countries alphabetically by code', () => {
+		const rest = SUPPORTED_COUNTRIES.slice(4)
+		const codes = rest.map(c => c.code)
+		expect(codes).toEqual([...codes].sort())
 	})
 })
 
