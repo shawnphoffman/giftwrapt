@@ -12,7 +12,7 @@
  * Prerequisites:
  *   - DB seeded: `SEED_SAFE=1 pnpm db:seed:screenshots`
  *   - Env: loads `.env.local.screenshots` then `.env.local` (screenshots wins on overlap).
- *     Default URL comes from `SERVER_URL` / `VITE_SERVER_URL` when `--url` is omitted.
+ *     Default URL comes from `BETTER_AUTH_URL` when `--url` is omitted.
  *   - Dev server for captures: `pnpm dev:screenshots` (loads `.env.local.screenshots`).
  *     Set `VITE_TANSTACK_DEVTOOLS=false` there so TanStack devtools stay off in the bundle.
  */
@@ -53,7 +53,7 @@ function loadScreenshotEnvFiles(): void {
 }
 
 function defaultServerBaseUrl(): string {
-	const raw = (process.env.SERVER_URL ?? process.env.VITE_SERVER_URL ?? '').trim()
+	const raw = (process.env.BETTER_AUTH_URL ?? '').trim()
 	if (!raw) return 'http://localhost:3000'
 	try {
 		const u = new URL(raw)

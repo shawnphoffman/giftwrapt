@@ -1,6 +1,6 @@
 import { Body, Container, Head, Heading, Html, Img, Link, Section, Tailwind, Text } from '@react-email/components'
 
-const baseUrl = process.env.SERVER_URL || 'http://localhost:3000'
+const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3002'
 
 interface PostHolidayEmailProps {
 	// Display name of the holiday (e.g. "Easter", "Mother's Day"). Used
@@ -23,7 +23,7 @@ export default function PostHolidayEmail({ holidayName, listName }: PostHolidayE
 						<Heading className="mx-0 my-[30px] p-0 text-center font-bold text-[24px] text-black">{`Happy ${holidayName}!`}</Heading>
 						<Text className="text-[14px] text-black leading-[24px] text-center">
 							We hope your {holidayName} was wonderful. Claimed items on your list <strong>{listName}</strong> have been archived; you can
-							see who gifted what on your <Link href={`${baseUrl}/settings/received`}>Received Gifts</Link> page.
+							see who gifted what on your <Link href={`${baseUrl}/purchases/received`}>Received Gifts</Link> page.
 						</Text>
 					</Container>
 				</Body>

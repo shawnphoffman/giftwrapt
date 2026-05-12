@@ -40,7 +40,7 @@ export type HolidayWidgetRow = z.infer<typeof HolidayWidgetRowSchema>
 
 const getApiUrl = (path: string): string => {
 	if (typeof window !== 'undefined') return path
-	const baseUrl = process.env.SERVER_URL || process.env.BETTER_AUTH_URL || 'http://localhost:3000'
+	const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3002'
 	return `${baseUrl}${path}`
 }
 

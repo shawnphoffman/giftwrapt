@@ -22,7 +22,7 @@ import { dependents, userRelationLabels, users } from '@/db/schema'
 import type { RelationLabel } from '@/db/schema/enums'
 import { isSameUtcDay } from '@/lib/custom-holidays'
 import { getCatalogEntry, nextOccurrence } from '@/lib/holidays'
-import { sendParentalRelationsReminderEmail, sendPartnerAnniversaryReminderEmail, sendValentinesDayReminderEmail } from '@/lib/resend'
+import { sendParentsDayReminderEmail, sendPartnerAnniversaryReminderEmail, sendValentinesDayReminderEmail } from '@/lib/resend'
 
 export type RelationshipRemindersResult = {
 	mothersDayReminders: number
@@ -146,7 +146,7 @@ async function sendParentLabelReminders(
 	let sent = 0
 	for (const recipient of byUserId.values()) {
 		try {
-			await sendParentalRelationsReminderEmail(recipient.email, { holidayName, leadDays, people: recipient.people })
+			await sendParentsDayReminderEmail(recipient.email, { holidayName, leadDays, people: recipient.people })
 			sent += 1
 		} catch {
 			/* logged in resend */

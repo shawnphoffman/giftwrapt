@@ -508,7 +508,7 @@ async function mintEnvelopeFromSessionCookie(
 }
 
 function makeAbsoluteServerUrl(pathAndQuery: string): string {
-	const base = env.BETTER_AUTH_URL ?? env.SERVER_URL ?? 'http://localhost:3000'
+	const base = env.BETTER_AUTH_URL ?? 'http://localhost:3000'
 	return new URL(pathAndQuery.replace(/^\/+/u, ''), base.endsWith('/') ? base : `${base}/`).toString()
 }
 

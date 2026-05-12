@@ -39,7 +39,7 @@ export function parseKeyFromUrl(url: string, publicUrlBase: string | undefined):
 	try {
 		// Proxy route first: `/api/files/<key>`. This can arrive as an
 		// absolute URL (when STORAGE_PUBLIC_URL was unset at write time and we
-		// stored `${SERVER_URL}/api/files/<key>`) or as a root-relative path.
+		// stored `${BETTER_AUTH_URL}/api/files/<key>`) or as a root-relative path.
 		const proxyMatch = /\/api\/files\/(.+)$/.exec(url)
 		if (proxyMatch?.[1]) return decodeURIComponent(proxyMatch[1])
 

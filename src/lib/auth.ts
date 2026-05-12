@@ -33,10 +33,10 @@ const authLog = createLogger('auth')
 // via HTTPS, where it just makes session cookies stealable on a MITM.
 // Refuse to start instead of silently shipping a misconfigured
 // production. See sec-review M1.
-const baseUrl = env.BETTER_AUTH_URL || env.SERVER_URL || ''
+const baseUrl = env.BETTER_AUTH_URL || ''
 if (env.INSECURE_COOKIES && baseUrl.startsWith('https://')) {
 	throw new Error(
-		`INSECURE_COOKIES=true is set but ${env.BETTER_AUTH_URL ? 'BETTER_AUTH_URL' : 'SERVER_URL'} is HTTPS (${baseUrl}). Drop one of them; the Secure flag must be on for HTTPS deployments.`
+		`INSECURE_COOKIES=true is set but BETTER_AUTH_URL is HTTPS (${baseUrl}). Drop one of them; the Secure flag must be on for HTTPS deployments.`
 	)
 }
 if (env.INSECURE_COOKIES) {
@@ -107,7 +107,7 @@ function buildGenericOAuthPlugins(cfg: OidcClientConfig | null) {
 }
 
 const options = {
-	baseURL: env.BETTER_AUTH_URL || env.SERVER_URL || 'http://localhost:3000',
+	baseURL: env.BETTER_AUTH_URL || 'http://localhost:3000',
 	// Required by the env zod schema (`min(1)`); no `|| ''` fallback so a
 	// future refactor that imports `auth` before env validation runs (or
 	// strips the schema check) crashes loudly instead of silently booting

@@ -61,7 +61,7 @@ const getApiUrl = (path: string): string => {
 	}
 	// On the server, we need an absolute URL
 	// Use environment variable or default to localhost for development
-	const baseUrl = process.env.SERVER_URL || process.env.BETTER_AUTH_URL || 'http://localhost:3000'
+	const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3002'
 	return `${baseUrl}${path}`
 }
 

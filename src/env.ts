@@ -3,7 +3,6 @@ import { z } from 'zod'
 
 export const env = createEnv({
 	server: {
-		SERVER_URL: z.url().optional(),
 		// PORT: z.number().optional(),
 		DATABASE_URL: z.url(),
 		BETTER_AUTH_SECRET: z.string().min(1),
@@ -89,9 +88,7 @@ export const env = createEnv({
 	 */
 	clientPrefix: 'VITE_',
 
-	client: {
-		VITE_SERVER_URL: z.url().optional(),
-	},
+	client: {},
 
 	/**
 	 * What object holds the environment variables at runtime.

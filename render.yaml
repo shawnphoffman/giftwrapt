@@ -21,8 +21,6 @@ services:
         generateValue: true
       - key: BETTER_AUTH_URL
         sync: false
-      - key: SERVER_URL
-        sync: false
       # Storage is optional; the app boots without it and disables uploads.
       # Add Cloudflare R2, AWS S3, or any other S3-compatible bucket after
       # the first deploy. See docs/storage.md.
@@ -64,18 +62,18 @@ services:
     image:
       url: curlimages/curl:8.10.1
     schedule: '0 3 * * *'
-    startCommand: 'curl -fsSL --retry 3 -H "Authorization: Bearer $CRON_SECRET" $SERVER_URL/api/cron/cleanup-verification'
+    startCommand: 'curl -fsSL --retry 3 -H "Authorization: Bearer $CRON_SECRET" $BETTER_AUTH_URL/api/cron/cleanup-verification'
     envVars:
       - key: CRON_SECRET
         fromService:
           type: web
           name: giftwrapt
           envVarKey: CRON_SECRET
-      - key: SERVER_URL
+      - key: BETTER_AUTH_URL
         fromService:
           type: web
           name: giftwrapt
-          envVarKey: SERVER_URL
+          envVarKey: BETTER_AUTH_URL
 
   - type: cron
     name: cron-intelligence-recommendations
@@ -83,18 +81,18 @@ services:
     image:
       url: curlimages/curl:8.10.1
     schedule: '0 4 * * *'
-    startCommand: 'curl -fsSL --retry 3 -H "Authorization: Bearer $CRON_SECRET" $SERVER_URL/api/cron/intelligence-recommendations'
+    startCommand: 'curl -fsSL --retry 3 -H "Authorization: Bearer $CRON_SECRET" $BETTER_AUTH_URL/api/cron/intelligence-recommendations'
     envVars:
       - key: CRON_SECRET
         fromService:
           type: web
           name: giftwrapt
           envVarKey: CRON_SECRET
-      - key: SERVER_URL
+      - key: BETTER_AUTH_URL
         fromService:
           type: web
           name: giftwrapt
-          envVarKey: SERVER_URL
+          envVarKey: BETTER_AUTH_URL
 
   - type: cron
     name: cron-item-scrape-queue
@@ -102,18 +100,18 @@ services:
     image:
       url: curlimages/curl:8.10.1
     schedule: '0 5 * * *'
-    startCommand: 'curl -fsSL --retry 3 -H "Authorization: Bearer $CRON_SECRET" $SERVER_URL/api/cron/item-scrape-queue'
+    startCommand: 'curl -fsSL --retry 3 -H "Authorization: Bearer $CRON_SECRET" $BETTER_AUTH_URL/api/cron/item-scrape-queue'
     envVars:
       - key: CRON_SECRET
         fromService:
           type: web
           name: giftwrapt
           envVarKey: CRON_SECRET
-      - key: SERVER_URL
+      - key: BETTER_AUTH_URL
         fromService:
           type: web
           name: giftwrapt
-          envVarKey: SERVER_URL
+          envVarKey: BETTER_AUTH_URL
 
   - type: cron
     name: cron-auto-archive
@@ -121,18 +119,18 @@ services:
     image:
       url: curlimages/curl:8.10.1
     schedule: '0 6 * * *'
-    startCommand: 'curl -fsSL --retry 3 -H "Authorization: Bearer $CRON_SECRET" $SERVER_URL/api/cron/auto-archive'
+    startCommand: 'curl -fsSL --retry 3 -H "Authorization: Bearer $CRON_SECRET" $BETTER_AUTH_URL/api/cron/auto-archive'
     envVars:
       - key: CRON_SECRET
         fromService:
           type: web
           name: giftwrapt
           envVarKey: CRON_SECRET
-      - key: SERVER_URL
+      - key: BETTER_AUTH_URL
         fromService:
           type: web
           name: giftwrapt
-          envVarKey: SERVER_URL
+          envVarKey: BETTER_AUTH_URL
 
   - type: cron
     name: cron-birthday-emails
@@ -140,15 +138,15 @@ services:
     image:
       url: curlimages/curl:8.10.1
     schedule: '0 7 * * *'
-    startCommand: 'curl -fsSL --retry 3 -H "Authorization: Bearer $CRON_SECRET" $SERVER_URL/api/cron/birthday-emails'
+    startCommand: 'curl -fsSL --retry 3 -H "Authorization: Bearer $CRON_SECRET" $BETTER_AUTH_URL/api/cron/birthday-emails'
     envVars:
       - key: CRON_SECRET
         fromService:
           type: web
           name: giftwrapt
           envVarKey: CRON_SECRET
-      - key: SERVER_URL
+      - key: BETTER_AUTH_URL
         fromService:
           type: web
           name: giftwrapt
-          envVarKey: SERVER_URL
+          envVarKey: BETTER_AUTH_URL

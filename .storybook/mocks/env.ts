@@ -6,6 +6,4 @@
  * server dependencies we don't need. This stub exposes only what client
  * code reads.
  */
-export const env = {
-	VITE_SERVER_URL: 'http://localhost:3000',
-}
+export const env = {}

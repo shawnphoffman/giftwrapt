@@ -1,6 +1,6 @@
 import { Body, Container, Head, Heading, Html, Img, Link, Section, Tailwind, Text } from '@react-email/components'
 
-const baseUrl = process.env.SERVER_URL || 'http://localhost:3000'
+const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3002'
 
 interface ValentinesDayReminderEmailProps {
 	name: string
@@ -20,8 +20,8 @@ export default function ValentinesDayReminderEmail({ name, partnerName, leadDays
 						</Section>
 						<Heading className="mx-0 my-[30px] p-0 text-center font-bold text-[24px] text-black">{`Valentine's Day is in ${leadDays} days`}</Heading>
 						<Text className="text-[14px] text-black leading-[24px] text-center">
-							{name}, Valentine's Day is coming up. Check what {partnerName} has on their list at{' '}
-							<Link href={`${baseUrl}/lists`}>All Lists</Link>.
+							{name}, Valentine's Day is coming up. Check what {partnerName} has on their list at <Link href={`${baseUrl}`}>All Lists</Link>
+							.
 						</Text>
 					</Container>
 				</Body>

@@ -1,6 +1,6 @@
 import { Body, Column, Container, Head, Heading, Hr, Html, Img, Link, Row, Section, Tailwind, Text } from '@react-email/components'
 
-const baseUrl = process.env.SERVER_URL || 'http://localhost:3000'
+const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3002'
 
 interface PostBirthdayEmailProps {
 	// `gifters` is pre-formatted (e.g. "Alice & Bob" or "Alice, Bob & Carol")
@@ -37,8 +37,8 @@ export default function PostBirthdayEmail({ items }: PostBirthdayEmailProps) {
 							</Section>
 						))}
 						<Text className="text-sm text-center text-black">
-							These items have been archived for convenience and can be found in the{' '}
-							<Link href={`${baseUrl}/settings/received`}>Received Gifts</Link> section.
+							These items have been archived for convenience and can be found on your{' '}
+							<Link href={`${baseUrl}/purchases/received`}>Received Gifts</Link> page.
 						</Text>
 					</Container>
 				</Body>

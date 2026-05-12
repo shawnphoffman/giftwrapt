@@ -1,14 +1,14 @@
 import { Body, Container, Head, Heading, Html, Img, Link, Section, Tailwind, Text } from '@react-email/components'
 
-const baseUrl = process.env.SERVER_URL || 'http://localhost:3000'
+const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3002'
 
-interface ParentalRelationsReminderEmailProps {
+interface ParentsDayReminderEmailProps {
 	holidayName: string
 	leadDays: number
 	people: Array<{ name: string }>
 }
 
-export default function ParentalRelationsReminderEmail({ holidayName, leadDays, people }: ParentalRelationsReminderEmailProps) {
+export default function ParentsDayReminderEmail({ holidayName, leadDays, people }: ParentsDayReminderEmailProps) {
 	const formattedNames = formatList(people.map(p => p.name))
 	return (
 		<Html>
@@ -23,8 +23,8 @@ export default function ParentalRelationsReminderEmail({ holidayName, leadDays, 
 							{holidayName} is in {leadDays} days
 						</Heading>
 						<Text className="text-[14px] text-black leading-[24px] text-center">
-							You’ve tagged {formattedNames} for {holidayName}. Take a peek at their lists on{' '}
-							<Link href={`${baseUrl}/lists`}>GiftWrapt</Link> if you’re still looking for something.
+							You’ve tagged {formattedNames} for {holidayName}. Take a peek at their <Link href={`${baseUrl}/lists`}>lists</Link> if you’re
+							still looking for something.
 						</Text>
 					</Container>
 				</Body>
@@ -40,8 +40,8 @@ function formatList(names: ReadonlyArray<string>): string {
 	return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`
 }
 
-ParentalRelationsReminderEmail.PreviewProps = {
+ParentsDayReminderEmail.PreviewProps = {
 	holidayName: "Mother's Day",
 	leadDays: 7,
 	people: [{ name: 'Mom' }, { name: 'Sandra' }],
-} as ParentalRelationsReminderEmailProps
+} as ParentsDayReminderEmailProps

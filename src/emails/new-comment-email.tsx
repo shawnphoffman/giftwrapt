@@ -1,6 +1,6 @@
 import { Body, Button, Container, Head, Heading, Html, Img, Section, Tailwind, Text } from '@react-email/components'
 
-const baseUrl = process.env.SERVER_URL || 'http://localhost:3000'
+const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3002'
 
 interface TestEmailProps {
 	username?: string
