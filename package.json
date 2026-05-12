@@ -2,7 +2,17 @@
 	"name": "giftwrapt",
 	"version": "0.28.0",
 	"private": true,
+	"description": "Self-hostable wish list app for families and small groups.",
 	"license": "AGPL-3.0-only",
+	"homepage": "https://giftwrapt.dev",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/shawnphoffman/giftwrapt.git"
+	},
+	"bugs": {
+		"url": "https://github.com/shawnphoffman/giftwrapt/issues"
+	},
+	"author": "Shawn Hoffman <shawn.p.hoffman@gmail.com>",
 	"type": "module",
 	"packageManager": "pnpm@10.28.0",
 	"scripts": {
