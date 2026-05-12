@@ -43,6 +43,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useAppSetting } from '@/hooks/use-app-settings'
 import { SUPPORTED_COUNTRIES } from '@/lib/holidays'
 
 const MONTHS: ReadonlyArray<{ value: string; label: string; days: number }> = [
@@ -72,10 +73,27 @@ function formatNextOccurrence(iso: string | null): string {
 }
 
 export function CustomHolidaysSection() {
+	// Gated on the master "deployment celebrates generic holidays" toggle.
+	// Disabling it everywhere (cron, widget, list-creation) - admin
+	// shouldn't be able to curate rows that nothing surfaces. Existing
+	// rows persist in the DB; flipping the toggle back on reveals them
+	// again with no data loss.
+	const enabled = useAppSetting('enableGenericHolidayLists')
+
 	const query = useQuery({
 		queryKey: customHolidaysQueryKey,
 		queryFn: () => listCustomHolidaysAsAdmin(),
+		enabled,
 	})
+
+	if (!enabled) {
+		return (
+			<div className="text-sm text-muted-foreground">
+				Holiday lists are disabled for this deployment. Turn on <span className="font-medium">Enable Holiday Lists</span> above to curate
+				custom holidays.
+			</div>
+		)
+	}
 
 	const rows = query.data ?? []
 
