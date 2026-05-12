@@ -34,6 +34,12 @@ async function seedRelationshipCatalog(tx: any) {
 		.values([
 			{ country: 'US', slug: 'mothers-day', name: "Mother's Day", rule: '2nd sunday in May', isEnabled: true },
 			{ country: 'US', slug: 'fathers-day', name: "Father's Day", rule: '3rd sunday in June', isEnabled: true },
+			// UK's Mother's Day equivalent is Mothering Sunday on a
+			// different date. Seed it under the same slug the production
+			// seed uses so the slug map in `lib/holidays.ts` is the only
+			// thing the cron/widget rely on to do the routing.
+			{ country: 'GB', slug: 'mothering-sunday', name: 'Mothering Sunday', rule: 'easter -21', isEnabled: true },
+			{ country: 'GB', slug: 'fathers-day', name: "Father's Day", rule: '3rd sunday in June', isEnabled: true },
 		])
 		.onConflictDoNothing()
 }
@@ -102,6 +108,24 @@ describe('getUpcomingHolidaysImpl', () => {
 				const rows = await getUpcomingHolidaysImpl({ userId: me.id, limit: 10, now: NOW, dbx: tx })
 				expect(rows.find(r => r.id === 'fathers-day:US')).toBeDefined()
 				expect(rows.find(r => r.id === 'mothers-day:US')).toBeUndefined()
+			})
+		})
+
+		it("resolves Mother's Day in GB via the `mothering-sunday` slug map", async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				await enableAllTenantGates(tx)
+				await setSetting(tx, 'relationshipRemindersCountry', 'GB')
+				const me = await makeUser(tx)
+				const mom = await makeUser(tx)
+				await tx.insert(userRelationLabels).values({ userId: me.id, label: 'mother', targetUserId: mom.id })
+
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, limit: 10, now: NOW, dbx: tx })
+				// GB Mother's Day in 2026 = Mothering Sunday = 21 days before
+				// Easter (Apr 5 2026) = Mar 15 2026 = 14 days from NOW.
+				const md = rows.find(r => r.id === 'mothers-day:GB')
+				expect(md).toBeDefined()
+				expect(md?.daysUntil).toBe(14)
 			})
 		})
 

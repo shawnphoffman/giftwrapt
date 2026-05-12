@@ -23,16 +23,62 @@ import { db } from '@/db'
 import { seedHolidayCatalogIfEmpty } from '@/db/holiday-catalog-seed'
 import { holidayCatalog } from '@/db/schema'
 
-// Display-only metadata for the launch countries. The catalog table
+// Display-only metadata for the supported countries. The catalog table
 // stores arbitrary country codes, but these are the names the admin
 // picker labels by default. Any country code in the table that isn't
 // listed here is shown by its raw code.
+//
+// Order matters for the admin pickers - the first four are the original
+// launch set and stay grouped first; the rest are sorted alphabetically
+// by display name when surfaced.
 export const SUPPORTED_COUNTRIES: ReadonlyArray<{ code: string; name: string }> = [
 	{ code: 'US', name: 'United States' },
 	{ code: 'CA', name: 'Canada' },
 	{ code: 'GB', name: 'United Kingdom' },
 	{ code: 'AU', name: 'Australia' },
+	{ code: 'AT', name: 'Austria' },
+	{ code: 'BE', name: 'Belgium' },
+	{ code: 'BR', name: 'Brazil' },
+	{ code: 'CH', name: 'Switzerland' },
+	{ code: 'DE', name: 'Germany' },
+	{ code: 'DK', name: 'Denmark' },
+	{ code: 'ES', name: 'Spain' },
+	{ code: 'FI', name: 'Finland' },
+	{ code: 'FR', name: 'France' },
+	{ code: 'IE', name: 'Ireland' },
+	{ code: 'IT', name: 'Italy' },
+	{ code: 'MX', name: 'Mexico' },
+	{ code: 'NL', name: 'Netherlands' },
+	{ code: 'NO', name: 'Norway' },
+	{ code: 'SE', name: 'Sweden' },
+	{ code: 'ZA', name: 'South Africa' },
 ]
+
+// Per-country slug overrides for the relationship-reminder families.
+// Mother's Day in the UK is on Mothering Sunday (different date and
+// historical name) so the catalog stores it under `mothering-sunday`;
+// the cron and widget look it up via this map rather than baking the
+// override into every call site. Add entries here when a country's
+// catalog slug for one of these families diverges from the default.
+const MOTHERS_DAY_SLUG_BY_COUNTRY: Readonly<Record<string, string>> = {
+	GB: 'mothering-sunday',
+}
+
+const FATHERS_DAY_SLUG_BY_COUNTRY: Readonly<Record<string, string>> = {}
+
+const VALENTINES_SLUG_BY_COUNTRY: Readonly<Record<string, string>> = {}
+
+export function mothersDaySlug(country: string): string {
+	return MOTHERS_DAY_SLUG_BY_COUNTRY[country] ?? 'mothers-day'
+}
+
+export function fathersDaySlug(country: string): string {
+	return FATHERS_DAY_SLUG_BY_COUNTRY[country] ?? 'fathers-day'
+}
+
+export function valentinesSlug(country: string): string {
+	return VALENTINES_SLUG_BY_COUNTRY[country] ?? 'valentines'
+}
 
 // Set of country codes the bundled `date-holidays` library actually
 // has data for. Computed once at module load; the library exposes its

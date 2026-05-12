@@ -106,6 +106,59 @@ export const HOLIDAY_CATALOG_SEED: ReadonlyArray<SeedEntry> = [
 		name: 'Boxing Day',
 		rule: '12-26 and if saturday then next monday if sunday then next tuesday',
 	},
+	// IE
+	{ country: 'IE', slug: 'easter', name: 'Easter Sunday', rule: 'easter' },
+	{ country: 'IE', slug: 'mothers-day', name: 'Mothering Sunday', rule: 'easter -21' },
+	{ country: 'IE', slug: 'fathers-day', name: "Father's Day", rule: '3rd sunday in June' },
+	// DE
+	{ country: 'DE', slug: 'easter', name: 'Easter Sunday', rule: 'easter' },
+	{ country: 'DE', slug: 'mothers-day', name: 'Muttertag', rule: '2nd sunday in May' },
+	// FR
+	{ country: 'FR', slug: 'easter', name: 'Easter Sunday', rule: 'easter' },
+	{ country: 'FR', slug: 'mothers-day', name: 'Fête des Mères', rule: 'sunday before 06-01' },
+	// IT
+	{ country: 'IT', slug: 'easter', name: 'Easter Sunday', rule: 'easter' },
+	{ country: 'IT', slug: 'mothers-day', name: 'Festa della Mamma', rule: '2nd sunday in May' },
+	// ES
+	{ country: 'ES', slug: 'easter', name: 'Easter Sunday', rule: 'easter' },
+	{ country: 'ES', slug: 'mothers-day', name: 'Día de la Madre', rule: '1st sunday in May' },
+	// NL
+	{ country: 'NL', slug: 'easter', name: 'Easter Sunday', rule: 'easter' },
+	{ country: 'NL', slug: 'mothers-day', name: 'Moederdag', rule: '2nd sunday in May' },
+	{ country: 'NL', slug: 'fathers-day', name: 'Vaderdag', rule: '3rd sunday in June' },
+	// MX
+	{ country: 'MX', slug: 'mothers-day', name: 'Día de la Madre', rule: '05-10' },
+	// BR
+	{ country: 'BR', slug: 'easter', name: 'Easter Sunday', rule: 'easter' },
+	{ country: 'BR', slug: 'mothers-day', name: 'Dia das Mães', rule: '2nd sunday in May' },
+	{ country: 'BR', slug: 'fathers-day', name: 'Dia dos Pais', rule: '2nd sunday in August' },
+	// ZA
+	{ country: 'ZA', slug: 'easter', name: 'Easter Sunday', rule: 'easter' },
+	{ country: 'ZA', slug: 'mothers-day', name: "Mother's Day", rule: '2nd sunday in May' },
+	{ country: 'ZA', slug: 'fathers-day', name: "Father's Day", rule: '3rd sunday in June' },
+	// NO
+	{ country: 'NO', slug: 'easter', name: 'Easter Sunday', rule: 'easter' },
+	{ country: 'NO', slug: 'mothers-day', name: 'Morsdag', rule: '2nd sunday in February' },
+	{ country: 'NO', slug: 'fathers-day', name: 'Farsdag', rule: '2nd sunday in November' },
+	// SE
+	{ country: 'SE', slug: 'easter', name: 'Easter Sunday', rule: 'easter' },
+	{ country: 'SE', slug: 'mothers-day', name: 'Morsdag', rule: 'sunday before 06-01' },
+	// DK
+	{ country: 'DK', slug: 'easter', name: 'Easter Sunday', rule: 'easter' },
+	{ country: 'DK', slug: 'mothers-day', name: 'Mors Dag', rule: '2nd sunday in May' },
+	// CH
+	{ country: 'CH', slug: 'easter', name: 'Easter Sunday', rule: 'easter' },
+	{ country: 'CH', slug: 'mothers-day', name: 'Muttertag', rule: '2nd sunday in May' },
+	// AT
+	{ country: 'AT', slug: 'easter', name: 'Easter Sunday', rule: 'easter' },
+	{ country: 'AT', slug: 'mothers-day', name: 'Muttertag', rule: '2nd sunday in May' },
+	// BE
+	{ country: 'BE', slug: 'easter', name: 'Easter Sunday', rule: 'easter' },
+	{ country: 'BE', slug: 'mothers-day', name: 'Moederdag', rule: '2nd sunday in May' },
+	// FI
+	{ country: 'FI', slug: 'easter', name: 'Easter Sunday', rule: 'easter' },
+	{ country: 'FI', slug: 'mothers-day', name: 'Äitienpäivä', rule: '2nd sunday in May' },
+	{ country: 'FI', slug: 'fathers-day', name: 'Isänpäivä', rule: '2nd sunday in November' },
 ]
 
 // Inserts the default catalog rows iff the table is currently empty.

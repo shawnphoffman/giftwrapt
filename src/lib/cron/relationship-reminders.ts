@@ -21,7 +21,7 @@ import type { SchemaDatabase } from '@/db'
 import { dependents, userRelationLabels, users } from '@/db/schema'
 import type { RelationLabel } from '@/db/schema/enums'
 import { isSameUtcDay } from '@/lib/custom-holidays'
-import { getCatalogEntry, nextOccurrence } from '@/lib/holidays'
+import { fathersDaySlug, getCatalogEntry, mothersDaySlug, nextOccurrence } from '@/lib/holidays'
 import { sendParentsDayReminderEmail, sendPartnerAnniversaryReminderEmail, sendValentinesDayReminderEmail } from '@/lib/resend'
 
 export type RelationshipRemindersResult = {
@@ -64,7 +64,7 @@ export async function relationshipRemindersImpl({ db, now, settings }: Args): Pr
 			db,
 			now,
 			'mother',
-			'mothers-day',
+			mothersDaySlug(settings.relationshipRemindersCountry),
 			settings.mothersDayReminderLeadDays,
 			settings.relationshipRemindersCountry
 		)
@@ -74,7 +74,7 @@ export async function relationshipRemindersImpl({ db, now, settings }: Args): Pr
 			db,
 			now,
 			'father',
-			'fathers-day',
+			fathersDaySlug(settings.relationshipRemindersCountry),
 			settings.fathersDayReminderLeadDays,
 			settings.relationshipRemindersCountry
 		)

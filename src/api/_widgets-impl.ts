@@ -55,7 +55,7 @@ import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
 import { customHolidays, userRelationLabels, users } from '@/db/schema'
 import { customHolidayNextOccurrence, startOfUtcDay } from '@/lib/custom-holidays'
-import { nextOccurrence } from '@/lib/holidays'
+import { fathersDaySlug, mothersDaySlug, nextOccurrence } from '@/lib/holidays'
 import { getAppSettings } from '@/lib/settings-loader'
 
 // =====================================================================
@@ -203,7 +203,7 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 	}
 
 	if (settings.enableMothersDayReminders && hasMotherLabel) {
-		const mothersDay = await nextOccurrence(country, 'mothers-day', now, dbx)
+		const mothersDay = await nextOccurrence(country, mothersDaySlug(country), now, dbx)
 		if (mothersDay) {
 			candidates.push({
 				id: `mothers-day:${country}`,
@@ -216,7 +216,7 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 	}
 
 	if (settings.enableFathersDayReminders && hasFatherLabel) {
-		const fathersDay = await nextOccurrence(country, 'fathers-day', now, dbx)
+		const fathersDay = await nextOccurrence(country, fathersDaySlug(country), now, dbx)
 		if (fathersDay) {
 			candidates.push({
 				id: `fathers-day:${country}`,

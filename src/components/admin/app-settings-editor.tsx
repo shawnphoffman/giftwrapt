@@ -11,6 +11,7 @@ import { ListTypes } from '@/db/schema'
 import { adminAppSettingsQueryKey, notifyAppSettingsChanged, useAdminAppSettings } from '@/hooks/use-app-settings'
 import { useIsEmailConfigured } from '@/hooks/use-is-email-configured'
 import { useStorageStatus } from '@/hooks/use-storage-status'
+import { SUPPORTED_COUNTRIES } from '@/lib/holidays'
 import type { AppSettings } from '@/lib/settings'
 
 const IS_DEV = import.meta.env.DEV
@@ -482,11 +483,19 @@ export function ParentalRelationsSettingsSection() {
 					<SelectTrigger id="relationshipRemindersCountry" className="w-[200px]">
 						<SelectValue />
 					</SelectTrigger>
+					{/*
+					 * Sourced from SUPPORTED_COUNTRIES so adding a country to
+					 * the helper there flows through to the admin picker
+					 * automatically. The list intentionally tracks the catalog
+					 * seed - new entries to one without the other surface
+					 * users with no resolvable Mother's / Father's Day.
+					 */}
 					<SelectContent>
-						<SelectItem value="US">United States</SelectItem>
-						<SelectItem value="CA">Canada</SelectItem>
-						<SelectItem value="GB">United Kingdom</SelectItem>
-						<SelectItem value="AU">Australia</SelectItem>
+						{SUPPORTED_COUNTRIES.map(c => (
+							<SelectItem key={c.code} value={c.code}>
+								{c.name}
+							</SelectItem>
+						))}
 					</SelectContent>
 				</Select>
 			</div>
