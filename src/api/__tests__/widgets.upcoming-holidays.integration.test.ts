@@ -1,406 +1,393 @@
-// Integration coverage for `getUpcomingHolidaysImpl`. The unit tests in
-// src/lib/__tests__/holidays cover the catalog math; this file covers the
-// permission/visibility surface, recipient-identity rendering for
-// dependent-subject lists, and the partner-credit path on lastGiftedAt.
+// Integration coverage for `getUpcomingHolidaysImpl`. The feed is
+// per-user and holiday-centric, capped at the closest N. Sources:
+//   - Admin-curated `custom_holidays` (catalog + custom).
+//   - Hard-coded gift-giving holidays, each gated on whether the
+//     signed-in user has someone to celebrate with - Mother's/Father's
+//     Day on `userRelationLabels`, Valentine's on `partnerId`, Christmas
+//     universal.
+//   - Per-user `users.partnerAnniversary` when both that AND
+//     `partnerId` are set.
+//
+// Dedup is by UTC (month, day): custom rows beat hardcoded so an admin
+// override always wins.
 
+import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import { getUpcomingHolidaysImpl } from '@/api/_widgets-impl'
-import { customHolidays, holidayCatalog } from '@/db/schema'
+import { appSettings, customHolidays, holidayCatalog, userRelationLabels, users } from '@/db/schema'
 
-import {
-	makeDependent,
-	makeDependentGuardianship,
-	makeGiftedItem,
-	makeItem,
-	makeList,
-	makeListEditor,
-	makeUser,
-	makeUserRelationship,
-} from '../../../test/integration/factories'
+import { makeUser } from '../../../test/integration/factories'
 import { withRollback } from '../../../test/integration/setup'
 
-// Pin "now" to a moment well before Easter so the catalog math has a
-// stable next-occurrence to find. Easter 2026 = Apr 5, ends Apr 6.
+// Pin "now" to a moment well before Mother's Day / Father's Day in the
+// US (May 10 and June 21 2026 respectively) so the per-arm catalog
+// math has a stable next-occurrence to find. Christmas (Dec 25),
+// Valentine's (Feb 14 next year), anniversary if set.
 const NOW = new Date('2026-03-01T12:00:00Z')
 
+// `relationshipRemindersCountry` defaults to 'US' so Mother's/Father's
+// Day catalog rows need seeding. The catalog seeder is idempotent.
+async function seedRelationshipCatalog(tx: any) {
+	await tx
+		.insert(holidayCatalog)
+		.values([
+			{ country: 'US', slug: 'mothers-day', name: "Mother's Day", rule: '2nd sunday in May', isEnabled: true },
+			{ country: 'US', slug: 'fathers-day', name: "Father's Day", rule: '3rd sunday in June', isEnabled: true },
+		])
+		.onConflictDoNothing()
+}
+
+// `app_settings` is a key/value table; one row per setting. Loader merges
+// with DEFAULT_APP_SETTINGS at read time. The defaults enable Christmas
+// + generic holidays but DISABLE every other reminder family, so most
+// tests need to flip the relevant toggles on.
+async function setSetting(tx: any, key: string, value: unknown) {
+	await tx.insert(appSettings).values({ key, value }).onConflictDoUpdate({ target: appSettings.key, set: { value } })
+}
+
+// Helper for tests that want every tenant toggle the widget reads to be
+// ON. Keeps each per-user-gating test focused on user state without
+// having to repeat the tenant-toggle setup.
+async function enableAllTenantGates(tx: any) {
+	for (const key of [
+		'enableChristmasLists',
+		'enableGenericHolidayLists',
+		'enableMothersDayReminders',
+		'enableFathersDayReminders',
+		'enableValentinesDayReminders',
+		'enableAnniversaryReminders',
+	]) {
+		await setSetting(tx, key, true)
+	}
+}
+
 describe('getUpcomingHolidaysImpl', () => {
-	it('surfaces my own holiday list with daysUntil within the horizon', async () => {
-		await withRollback(async tx => {
-			const me = await makeUser(tx, { name: 'Me' })
-			const list = await makeList(tx, {
-				ownerId: me.id,
-				type: 'holiday',
-				holidayCountry: 'US',
-				holidayKey: 'easter',
-				isPrivate: false,
-			})
-
-			const rows = await getUpcomingHolidaysImpl({ userId: me.id, horizonDays: 60, now: NOW, dbx: tx })
-			expect(rows).toHaveLength(1)
-			expect(rows[0]?.listId).toBe(list.id)
-			expect(rows[0]?.holidayName).toBe('Easter Sunday')
-			expect(rows[0]?.ownedByMe).toBe(true)
-			expect(rows[0]?.recipient).toEqual({ kind: 'user', id: me.id, name: 'Me', image: null })
-			// Mar 1 -> Apr 5 = 35 days
-			expect(rows[0]?.daysUntil).toBe(35)
-		})
-	})
-
-	it('skips occurrences already stamped via lastHolidayArchiveAt', async () => {
-		await withRollback(async tx => {
-			const me = await makeUser(tx)
-			await makeList(tx, {
-				ownerId: me.id,
-				type: 'holiday',
-				holidayCountry: 'US',
-				holidayKey: 'easter',
-				isPrivate: false,
-				// Apr 5 has been archived; no point reminding for this year's
-				// occurrence again.
-				lastHolidayArchiveAt: new Date('2026-04-10T12:00:00Z'),
-			})
-
-			const rows = await getUpcomingHolidaysImpl({ userId: me.id, horizonDays: 60, now: NOW, dbx: tx })
-			expect(rows).toEqual([])
-		})
-	})
-
-	it('hides lists outside the horizon', async () => {
-		await withRollback(async tx => {
-			const me = await makeUser(tx)
-			await makeList(tx, {
-				ownerId: me.id,
-				type: 'holiday',
-				holidayCountry: 'US',
-				holidayKey: 'easter',
-				isPrivate: false,
-			})
-
-			const rows = await getUpcomingHolidaysImpl({ userId: me.id, horizonDays: 7, now: NOW, dbx: tx })
-			expect(rows).toEqual([])
-		})
-	})
-
-	it('renders the dependent identity for dependent-subject lists', async () => {
-		await withRollback(async tx => {
-			const me = await makeUser(tx)
-			const dep = await makeDependent(tx, { name: 'Mochi', createdByUserId: me.id })
-			await makeDependentGuardianship(tx, { guardianUserId: me.id, dependentId: dep.id })
-			const list = await makeList(tx, {
-				ownerId: me.id,
-				subjectDependentId: dep.id,
-				type: 'holiday',
-				holidayCountry: 'US',
-				holidayKey: 'easter',
-				isPrivate: false,
-			})
-
-			const rows = await getUpcomingHolidaysImpl({ userId: me.id, horizonDays: 60, now: NOW, dbx: tx })
-			expect(rows).toHaveLength(1)
-			expect(rows[0]?.listId).toBe(list.id)
-			expect(rows[0]?.recipient).toEqual({ kind: 'dependent', id: dep.id, name: 'Mochi', image: null })
-		})
-	})
-
-	it('respects the none relationship by hiding the public holiday list', async () => {
-		await withRollback(async tx => {
-			const owner = await makeUser(tx)
-			const stranger = await makeUser(tx)
-			await makeList(tx, {
-				ownerId: owner.id,
-				type: 'holiday',
-				holidayCountry: 'US',
-				holidayKey: 'easter',
-				isPrivate: false,
-			})
-			await makeUserRelationship(tx, { ownerUserId: owner.id, viewerUserId: stranger.id, accessLevel: 'none' })
-
-			const rows = await getUpcomingHolidaysImpl({ userId: stranger.id, horizonDays: 60, now: NOW, dbx: tx })
-			expect(rows).toEqual([])
-		})
-	})
-
-	it('still surfaces the list for a restricted viewer (item-level filtering does not apply at the list feed)', async () => {
-		await withRollback(async tx => {
-			const owner = await makeUser(tx)
-			const viewer = await makeUser(tx)
-			const list = await makeList(tx, {
-				ownerId: owner.id,
-				type: 'holiday',
-				holidayCountry: 'US',
-				holidayKey: 'easter',
-				isPrivate: false,
-			})
-			await makeUserRelationship(tx, { ownerUserId: owner.id, viewerUserId: viewer.id, accessLevel: 'restricted' })
-
-			const rows = await getUpcomingHolidaysImpl({ userId: viewer.id, horizonDays: 60, now: NOW, dbx: tx })
-			expect(rows).toHaveLength(1)
-			expect(rows[0]?.listId).toBe(list.id)
-		})
-	})
-
-	it('counts partner claims for lastGiftedAt', async () => {
-		await withRollback(async tx => {
-			const partner = await makeUser(tx)
-			const me = await makeUser(tx, { partnerId: partner.id })
-			const recipient = await makeUser(tx)
-			const recipientList = await makeList(tx, {
-				ownerId: recipient.id,
-				type: 'wishlist',
-				isPrivate: false,
-			})
-			const item = await makeItem(tx, { listId: recipientList.id })
-			// The partner gifted the recipient yesterday; me's widget feed
-			// should reflect that as `lastGiftedAt`.
-			const yesterday = new Date(NOW.getTime() - 24 * 60 * 60 * 1000)
-			await makeGiftedItem(tx, { itemId: item.id, gifterId: partner.id, createdAt: yesterday })
-
-			await makeList(tx, {
-				ownerId: recipient.id,
-				type: 'holiday',
-				holidayCountry: 'US',
-				holidayKey: 'easter',
-				isPrivate: false,
-			})
-
-			const rows = await getUpcomingHolidaysImpl({ userId: me.id, horizonDays: 60, now: NOW, dbx: tx })
-			expect(rows).toHaveLength(1)
-			expect(rows[0]?.lastGiftedAt).toBe(yesterday.toISOString())
-		})
-	})
-
-	it('includes private holiday lists I am a list editor on', async () => {
-		await withRollback(async tx => {
-			const owner = await makeUser(tx)
-			const editor = await makeUser(tx)
-			const list = await makeList(tx, {
-				ownerId: owner.id,
-				type: 'holiday',
-				holidayCountry: 'US',
-				holidayKey: 'easter',
-				isPrivate: true,
-			})
-			await makeListEditor(tx, { listId: list.id, userId: editor.id, ownerId: owner.id })
-
-			const rows = await getUpcomingHolidaysImpl({ userId: editor.id, horizonDays: 60, now: NOW, dbx: tx })
-			expect(rows.map(r => r.listId)).toEqual([list.id])
-			expect(rows[0]?.ownedByMe).toBe(false)
-		})
-	})
-
-	it('skips inactive and non-holiday lists', async () => {
-		await withRollback(async tx => {
-			const me = await makeUser(tx)
-			await makeList(tx, {
-				ownerId: me.id,
-				type: 'holiday',
-				holidayCountry: 'US',
-				holidayKey: 'easter',
-				isPrivate: false,
-				isActive: false,
-			})
-			await makeList(tx, {
-				ownerId: me.id,
-				type: 'wishlist',
-				isPrivate: false,
-			})
-
-			const rows = await getUpcomingHolidaysImpl({ userId: me.id, horizonDays: 60, now: NOW, dbx: tx })
-			expect(rows).toEqual([])
-		})
-	})
-
-	describe('customHolidayId resolution', () => {
-		it("surfaces a list pinned to a catalog-source custom_holidays row and uses the row's title", async () => {
+	describe('baseline (no relations, no partner, no custom)', () => {
+		it('returns only Christmas for an unpartnered user with no relation labels', async () => {
 			await withRollback(async tx => {
-				const me = await makeUser(tx, { name: 'Me' })
-				// Seed the catalog entry the custom_holidays row points at.
-				// The widget impl resolves the next occurrence through this
-				// row's `rule`, not through the curated allowlist directly.
-				await tx
-					.insert(holidayCatalog)
-					.values({ country: 'US', slug: 'easter', name: 'Easter Sunday', rule: 'easter', isEnabled: true })
-					.onConflictDoNothing()
-				const [ch] = await tx
-					.insert(customHolidays)
-					.values({
-						title: 'Easter (curated)',
-						source: 'catalog',
-						catalogCountry: 'US',
-						catalogKey: 'easter',
-					})
-					.returning()
-
-				const list = await makeList(tx, {
-					ownerId: me.id,
-					type: 'holiday',
-					customHolidayId: ch.id,
-					isPrivate: false,
-				})
-
-				const rows = await getUpcomingHolidaysImpl({ userId: me.id, horizonDays: 60, now: NOW, dbx: tx })
-				expect(rows).toHaveLength(1)
-				expect(rows[0]?.listId).toBe(list.id)
-				// Display name comes from the admin row's `title`, not the
-				// catalog row's `name`, so admins can rename per-deployment.
-				expect(rows[0]?.holidayName).toBe('Easter (curated)')
-				// Catalog reference is preserved for legacy / debug callers.
-				expect(rows[0]?.holidayCountry).toBe('US')
-				expect(rows[0]?.holidayKey).toBe('easter')
-			})
-		})
-
-		it('surfaces a list pinned to a custom-source row with annual recurrence', async () => {
-			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
 				const me = await makeUser(tx)
-				// `customYear: null` means "repeats annually." `NOW` is Mar 1
-				// 2026, so a (month=4, day=10) row should resolve to Apr 10
-				// 2026 - 40 days out, comfortably inside the 60-day horizon.
-				const [ch] = await tx
-					.insert(customHolidays)
-					.values({
-						title: 'Founders Day',
-						source: 'custom',
-						customMonth: 4,
-						customDay: 10,
-						customYear: null,
-					})
-					.returning()
 
-				const list = await makeList(tx, {
-					ownerId: me.id,
-					type: 'holiday',
-					customHolidayId: ch.id,
-					isPrivate: false,
-				})
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, limit: 10, now: NOW, dbx: tx })
+				expect(rows.map(r => r.id)).toEqual(['christmas'])
+				expect(rows[0]?.daysUntil).toBe(299)
+			})
+		})
+	})
 
-				const rows = await getUpcomingHolidaysImpl({ userId: me.id, horizonDays: 60, now: NOW, dbx: tx })
-				expect(rows).toHaveLength(1)
-				expect(rows[0]?.listId).toBe(list.id)
-				expect(rows[0]?.holidayName).toBe('Founders Day')
-				// No catalog reference for source='custom' rows.
-				expect(rows[0]?.holidayCountry).toBeNull()
-				expect(rows[0]?.holidayKey).toBeNull()
-				expect(rows[0]?.daysUntil).toBe(40)
+	describe("Mother's / Father's Day per-user gating (tenant gates ON)", () => {
+		it("surfaces Mother's Day only when the user has a `mother` relation label", async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				await enableAllTenantGates(tx)
+				const me = await makeUser(tx)
+				const mom = await makeUser(tx)
+				await tx.insert(userRelationLabels).values({ userId: me.id, label: 'mother', targetUserId: mom.id })
+
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, limit: 10, now: NOW, dbx: tx })
+				expect(rows.find(r => r.id === 'mothers-day:US')).toBeDefined()
+				expect(rows.find(r => r.id === 'fathers-day:US')).toBeUndefined()
 			})
 		})
 
-		it('rolls a past annual custom date forward to next year', async () => {
+		it("surfaces Father's Day only when the user has a `father` relation label", async () => {
 			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				await enableAllTenantGates(tx)
 				const me = await makeUser(tx)
-				// (month=2, day=14) sits before NOW (Mar 1). Annual recurrence
-				// should roll it to Feb 14 2027 - 350 days out, well outside
-				// the 60-day horizon.
+				const dad = await makeUser(tx)
+				await tx.insert(userRelationLabels).values({ userId: me.id, label: 'father', targetUserId: dad.id })
+
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, limit: 10, now: NOW, dbx: tx })
+				expect(rows.find(r => r.id === 'fathers-day:US')).toBeDefined()
+				expect(rows.find(r => r.id === 'mothers-day:US')).toBeUndefined()
+			})
+		})
+
+		it("does not surface Mother's Day for someone else's relation labels", async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				await enableAllTenantGates(tx)
+				const me = await makeUser(tx)
+				const stranger = await makeUser(tx)
+				const mom = await makeUser(tx)
+				await tx.insert(userRelationLabels).values({ userId: stranger.id, label: 'mother', targetUserId: mom.id })
+
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, limit: 10, now: NOW, dbx: tx })
+				expect(rows.find(r => r.id === 'mothers-day:US')).toBeUndefined()
+			})
+		})
+	})
+
+	describe("Valentine's Day + anniversary per-user gating (tenant gates ON)", () => {
+		it("surfaces Valentine's Day only when the user has a partner", async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				await enableAllTenantGates(tx)
+				const partner = await makeUser(tx)
+				const me = await makeUser(tx, { partnerId: partner.id })
+
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, limit: 10, now: NOW, dbx: tx })
+				expect(rows.find(r => r.id === 'valentines')).toBeDefined()
+			})
+		})
+
+		it("omits Valentine's Day when the user is unpartnered", async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				await enableAllTenantGates(tx)
+				const me = await makeUser(tx)
+
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, limit: 10, now: NOW, dbx: tx })
+				expect(rows.find(r => r.id === 'valentines')).toBeUndefined()
+			})
+		})
+
+		it('surfaces the anniversary when partnerId AND partnerAnniversary are set', async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				await enableAllTenantGates(tx)
+				const partner = await makeUser(tx)
+				const me = await makeUser(tx, { partnerId: partner.id })
+				await tx.update(users).set({ partnerAnniversary: '2018-04-20' }).where(eq(users.id, me.id))
+
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, limit: 10, now: NOW, dbx: tx })
+				const anniv = rows.find(r => r.id === `anniversary:${me.id}`)
+				expect(anniv).toBeDefined()
+				expect(anniv?.daysUntil).toBe(50)
+			})
+		})
+
+		it('omits the anniversary when partnerAnniversary is set but the user is no longer partnered', async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				await enableAllTenantGates(tx)
+				const me = await makeUser(tx)
+				// Stale anniversary value with no current partner (e.g. partner
+				// cleared but anniversary column not yet wiped). The widget
+				// should not leak this forward as a celebration.
+				await tx.update(users).set({ partnerAnniversary: '2018-04-20' }).where(eq(users.id, me.id))
+
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, limit: 10, now: NOW, dbx: tx })
+				expect(rows.find(r => r.id.startsWith('anniversary:'))).toBeUndefined()
+			})
+		})
+
+		it("does not surface anyone else's anniversary", async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				await enableAllTenantGates(tx)
+				const me = await makeUser(tx)
+				const strangerPartner = await makeUser(tx)
+				const stranger = await makeUser(tx, { partnerId: strangerPartner.id })
+				await tx.update(users).set({ partnerAnniversary: '2018-04-20' }).where(eq(users.id, stranger.id))
+
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, limit: 10, now: NOW, dbx: tx })
+				expect(rows.find(r => r.id.startsWith('anniversary:'))).toBeUndefined()
+			})
+		})
+	})
+
+	describe('tenant master toggles', () => {
+		it('suppresses Christmas when `enableChristmasLists` is off', async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				await enableAllTenantGates(tx)
+				await setSetting(tx, 'enableChristmasLists', false)
+				const me = await makeUser(tx)
+
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, limit: 10, now: NOW, dbx: tx })
+				expect(rows.find(r => r.id === 'christmas')).toBeUndefined()
+			})
+		})
+
+		it("suppresses Valentine's Day when `enableValentinesDayReminders` is off, even for partnered users", async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				await enableAllTenantGates(tx)
+				await setSetting(tx, 'enableValentinesDayReminders', false)
+				const partner = await makeUser(tx)
+				const me = await makeUser(tx, { partnerId: partner.id })
+
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, limit: 10, now: NOW, dbx: tx })
+				expect(rows.find(r => r.id === 'valentines')).toBeUndefined()
+			})
+		})
+
+		it("suppresses Mother's Day when `enableMothersDayReminders` is off, even for users with a mother label", async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				await enableAllTenantGates(tx)
+				await setSetting(tx, 'enableMothersDayReminders', false)
+				const me = await makeUser(tx)
+				const mom = await makeUser(tx)
+				await tx.insert(userRelationLabels).values({ userId: me.id, label: 'mother', targetUserId: mom.id })
+
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, limit: 10, now: NOW, dbx: tx })
+				expect(rows.find(r => r.id === 'mothers-day:US')).toBeUndefined()
+			})
+		})
+
+		it("suppresses Father's Day when `enableFathersDayReminders` is off, even for users with a father label", async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				await enableAllTenantGates(tx)
+				await setSetting(tx, 'enableFathersDayReminders', false)
+				const me = await makeUser(tx)
+				const dad = await makeUser(tx)
+				await tx.insert(userRelationLabels).values({ userId: me.id, label: 'father', targetUserId: dad.id })
+
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, limit: 10, now: NOW, dbx: tx })
+				expect(rows.find(r => r.id === 'fathers-day:US')).toBeUndefined()
+			})
+		})
+
+		it('suppresses the anniversary when `enableAnniversaryReminders` is off, even when the user has one', async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				await enableAllTenantGates(tx)
+				await setSetting(tx, 'enableAnniversaryReminders', false)
+				const partner = await makeUser(tx)
+				const me = await makeUser(tx, { partnerId: partner.id })
+				await tx.update(users).set({ partnerAnniversary: '2018-04-20' }).where(eq(users.id, me.id))
+
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, limit: 10, now: NOW, dbx: tx })
+				expect(rows.find(r => r.id.startsWith('anniversary:'))).toBeUndefined()
+			})
+		})
+
+		it('suppresses every admin-curated `custom_holidays` row when `enableGenericHolidayLists` is off', async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				await enableAllTenantGates(tx)
+				await setSetting(tx, 'enableGenericHolidayLists', false)
+				const me = await makeUser(tx)
+				await tx.insert(customHolidays).values({ title: 'Founders Day', source: 'custom', customMonth: 3, customDay: 10, customYear: null })
+
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, limit: 10, now: NOW, dbx: tx })
+				expect(rows.find(r => r.source === 'custom')).toBeUndefined()
+			})
+		})
+
+		it('returns nothing when every tenant toggle is off', async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				for (const key of [
+					'enableChristmasLists',
+					'enableGenericHolidayLists',
+					'enableMothersDayReminders',
+					'enableFathersDayReminders',
+					'enableValentinesDayReminders',
+					'enableAnniversaryReminders',
+				]) {
+					await setSetting(tx, key, false)
+				}
+				const partner = await makeUser(tx)
+				const me = await makeUser(tx, { partnerId: partner.id })
+				const mom = await makeUser(tx)
+				await tx.insert(userRelationLabels).values({ userId: me.id, label: 'mother', targetUserId: mom.id })
+				await tx.update(users).set({ partnerAnniversary: '2018-04-20' }).where(eq(users.id, me.id))
+				await tx.insert(customHolidays).values({ title: 'Founders Day', source: 'custom', customMonth: 3, customDay: 10, customYear: null })
+
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, limit: 10, now: NOW, dbx: tx })
+				expect(rows).toEqual([])
+			})
+		})
+	})
+
+	describe('Christmas (universal)', () => {
+		it('surfaces Christmas for every user', async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				const me = await makeUser(tx)
+
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, limit: 10, now: NOW, dbx: tx })
+				expect(rows.find(r => r.id === 'christmas')).toBeDefined()
+				expect(rows.find(r => r.id === 'christmas')?.daysUntil).toBe(299)
+			})
+		})
+	})
+
+	describe('admin-curated custom_holidays', () => {
+		it('surfaces every row regardless of user relations', async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				const me = await makeUser(tx)
 				const [ch] = await tx
 					.insert(customHolidays)
-					.values({
-						title: "Valentine's",
-						source: 'custom',
-						customMonth: 2,
-						customDay: 14,
-						customYear: null,
-					})
+					.values({ title: 'Founders Day', source: 'custom', customMonth: 3, customDay: 10, customYear: null })
 					.returning()
 
-				await makeList(tx, {
-					ownerId: me.id,
-					type: 'holiday',
-					customHolidayId: ch.id,
-					isPrivate: false,
-				})
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, now: NOW, dbx: tx })
+				expect(rows[0]?.id).toBe(`custom:${ch.id}`)
+				expect(rows[0]?.daysUntil).toBe(9)
+			})
+		})
 
-				const inHorizon = await getUpcomingHolidaysImpl({ userId: me.id, horizonDays: 60, now: NOW, dbx: tx })
-				expect(inHorizon).toEqual([])
+		it('lets a custom_holiday override a hard-coded holiday on the same UTC (month, day)', async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				const me = await makeUser(tx)
+				const [ch] = await tx
+					.insert(customHolidays)
+					.values({ title: 'Family Christmas', source: 'custom', customMonth: 12, customDay: 25, customYear: null })
+					.returning()
 
-				const wideHorizon = await getUpcomingHolidaysImpl({ userId: me.id, horizonDays: 366, now: NOW, dbx: tx })
-				expect(wideHorizon).toHaveLength(1)
-				expect(wideHorizon[0]?.daysUntil).toBe(350)
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, limit: 10, now: NOW, dbx: tx })
+				expect(rows.find(r => r.id === 'christmas')).toBeUndefined()
+				expect(rows.find(r => r.id === `custom:${ch.id}`)).toBeDefined()
 			})
 		})
 
 		it('drops a custom-source one-time date whose year has already passed', async () => {
 			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
 				const me = await makeUser(tx)
-				const [ch] = await tx
-					.insert(customHolidays)
-					.values({
-						title: 'Wedding 2025',
-						source: 'custom',
-						customMonth: 9,
-						customDay: 15,
-						customYear: 2025,
-					})
-					.returning()
+				await tx.insert(customHolidays).values({ title: 'Wedding 2025', source: 'custom', customMonth: 9, customDay: 15, customYear: 2025 })
 
-				await makeList(tx, {
-					ownerId: me.id,
-					type: 'holiday',
-					customHolidayId: ch.id,
-					isPrivate: false,
-				})
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, limit: 10, now: NOW, dbx: tx })
+				expect(rows.find(r => r.title === 'Wedding 2025')).toBeUndefined()
+			})
+		})
+	})
 
-				const rows = await getUpcomingHolidaysImpl({ userId: me.id, horizonDays: 366, now: NOW, dbx: tx })
-				expect(rows).toEqual([])
+	describe('sort + cap + horizon', () => {
+		it('combines all sources and returns the closest `limit` rows by daysUntil', async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				await enableAllTenantGates(tx)
+				const partner = await makeUser(tx)
+				const me = await makeUser(tx, { partnerId: partner.id })
+				const mom = await makeUser(tx)
+				await tx.insert(userRelationLabels).values({ userId: me.id, label: 'mother', targetUserId: mom.id })
+				await tx.update(users).set({ partnerAnniversary: '2018-04-20' }).where(eq(users.id, me.id)) // 50 days
+				// Founders Day, Mar 10 = 9 days.
+				await tx.insert(customHolidays).values({ title: 'Founders Day', source: 'custom', customMonth: 3, customDay: 10, customYear: null })
+
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, now: NOW, dbx: tx })
+				// Closest 3 in order: Founders Day (9d), Anniversary (50d), Mother's Day (70d).
+				expect(rows.map(r => r.daysUntil)).toEqual([9, 50, 70])
 			})
 		})
 
-		it('surfaces a custom-source one-time date in a future year that lands inside the horizon', async () => {
+		it('respects horizonDays when supplied', async () => {
 			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
 				const me = await makeUser(tx)
-				// A one-time date on Mar 15 2026 is 14 days out from NOW.
-				const [ch] = await tx
-					.insert(customHolidays)
-					.values({
-						title: 'Wedding 2026',
-						source: 'custom',
-						customMonth: 3,
-						customDay: 15,
-						customYear: 2026,
-					})
-					.returning()
-
-				const list = await makeList(tx, {
-					ownerId: me.id,
-					type: 'holiday',
-					customHolidayId: ch.id,
-					isPrivate: false,
-				})
-
+				// 30-day horizon: Christmas (299 days) is the only hard-coded
+				// row, and it's outside.
 				const rows = await getUpcomingHolidaysImpl({ userId: me.id, horizonDays: 30, now: NOW, dbx: tx })
-				expect(rows).toHaveLength(1)
-				expect(rows[0]?.listId).toBe(list.id)
-				expect(rows[0]?.holidayName).toBe('Wedding 2026')
-				expect(rows[0]?.daysUntil).toBe(14)
+				expect(rows).toEqual([])
 			})
 		})
 
-		it('still honors lastHolidayArchiveAt on a custom-source row', async () => {
+		it('returns an empty list when limit is zero or negative', async () => {
 			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
 				const me = await makeUser(tx)
-				const [ch] = await tx
-					.insert(customHolidays)
-					.values({
-						title: 'Founders Day',
-						source: 'custom',
-						customMonth: 4,
-						customDay: 10,
-						customYear: null,
-					})
-					.returning()
-
-				await makeList(tx, {
-					ownerId: me.id,
-					type: 'holiday',
-					customHolidayId: ch.id,
-					isPrivate: false,
-					// Already archived this year; the widget should suppress the
-					// row through the year wrap.
-					lastHolidayArchiveAt: new Date('2026-04-12T12:00:00Z'),
-				})
-
-				const rows = await getUpcomingHolidaysImpl({ userId: me.id, horizonDays: 60, now: NOW, dbx: tx })
-				expect(rows).toEqual([])
+				expect(await getUpcomingHolidaysImpl({ userId: me.id, limit: 0, now: NOW, dbx: tx })).toEqual([])
+				expect(await getUpcomingHolidaysImpl({ userId: me.id, limit: -1, now: NOW, dbx: tx })).toEqual([])
 			})
 		})
 	})

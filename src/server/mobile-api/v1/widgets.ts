@@ -2,7 +2,15 @@
 // rows; the existing birthday widget reads from `/v1/lists/public` and
 // computes its own countdowns.
 //
-//   GET /v1/widgets/upcoming-holidays?horizonDays=30
+//   GET /v1/widgets/upcoming-holidays?limit=3
+//
+// The wire shape is shared with the web db-collection
+// (`upcomingHolidaysCollection`) so iOS and the web widget surface read
+// the same payload byte-for-byte. Each row is a holiday, not a list:
+// admin-curated `custom_holidays` plus the hardcoded gift-giving
+// holidays (Christmas, Valentine's, Mother's Day, Father's Day) plus
+// the signed-in user's anniversary when set. The server returns the
+// closest `limit` holidays sorted by `daysUntil` (default 3).
 
 import type { Hono } from 'hono'
 
@@ -12,21 +20,12 @@ import type { MobileAuthContext } from '../auth'
 
 type App = Hono<MobileAuthContext>
 
-// Strip server-internal identifiers (country / key) from the wire shape.
-// iOS only needs the human-readable holiday name to render; the country
-// and slug are catalog primary keys with no UI use, and exposing them
-// would couple the iOS client to internal data shapes.
-function toMobileRow(row: Awaited<ReturnType<typeof getUpcomingHolidaysImpl>>[number]) {
-	const { holidayCountry: _country, holidayKey: _key, ...rest } = row
-	return rest
-}
-
 export function registerWidgetRoutes(v1: App): void {
 	v1.get('/widgets/upcoming-holidays', async c => {
 		const userId = c.get('userId')
-		const horizonRaw = Number(c.req.query('horizonDays') ?? '30')
-		const horizonDays = Number.isFinite(horizonRaw) ? Math.max(0, Math.min(366, Math.trunc(horizonRaw))) : 30
-		const rows = await getUpcomingHolidaysImpl({ userId, horizonDays })
-		return c.json({ rows: rows.map(toMobileRow), nextCursor: null })
+		const limitRaw = Number(c.req.query('limit') ?? '3')
+		const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(50, Math.trunc(limitRaw))) : 3
+		const rows = await getUpcomingHolidaysImpl({ userId, limit })
+		return c.json({ rows, nextCursor: null })
 	})
 }

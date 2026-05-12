@@ -4,42 +4,19 @@ import { z } from 'zod'
 
 import { getContext } from '@/integrations/tanstack-query/root-provider'
 
-// Mirror of `HolidayWidgetRow` in src/api/_widgets-impl.ts. Kept as a
-// runtime-checked Zod schema so the collection rejects payloads that
-// drift out of sync with the server contract.
-const HolidayWidgetRecipientSchema = z.discriminatedUnion('kind', [
-	z.object({
-		kind: z.literal('user'),
-		id: z.string(),
-		name: z.string().nullable(),
-		image: z.string().nullable(),
-	}),
-	z.object({
-		kind: z.literal('dependent'),
-		id: z.string(),
-		name: z.string(),
-		image: z.string().nullable(),
-	}),
-])
-
-const HolidayWidgetRowSchema = z.object({
-	listId: z.number(),
-	listName: z.string(),
-	recipient: HolidayWidgetRecipientSchema,
-	ownedByMe: z.boolean(),
-	// Null for source='custom' admin-curated rows (no catalog reference);
-	// populated for the legacy holidayCountry/Key pair and for catalog-
-	// source custom_holidays rows.
-	holidayCountry: z.string().nullable(),
-	holidayKey: z.string().nullable(),
-	holidayName: z.string(),
+// Mirror of `UpcomingHolidayRow` in src/api/_widgets-impl.ts. Each row is
+// a single holiday (admin-curated or hardcoded reminder family), not a
+// specific list — the widget is a "what's coming up" surface, not a
+// list dashboard.
+const UpcomingHolidayRowSchema = z.object({
+	id: z.string(),
+	source: z.enum(['custom', 'christmas', 'mothers-day', 'fathers-day', 'valentines', 'anniversary']),
+	title: z.string(),
 	occurrenceStart: z.string(),
 	daysUntil: z.number(),
-	lastGiftedAt: z.string().nullable(),
 })
 
-export type HolidayWidgetRecipient = z.infer<typeof HolidayWidgetRecipientSchema>
-export type HolidayWidgetRow = z.infer<typeof HolidayWidgetRowSchema>
+export type UpcomingHolidayRow = z.infer<typeof UpcomingHolidayRowSchema>
 
 const getApiUrl = (path: string): string => {
 	if (typeof window !== 'undefined') return path
@@ -51,7 +28,9 @@ export const upcomingHolidaysCollection = createCollection(
 	queryCollectionOptions({
 		queryKey: ['widgets', 'upcoming-holidays'],
 		queryFn: async () => {
-			const url = getApiUrl('/api/widgets/upcoming-holidays?horizonDays=60')
+			// Debug surface wants every candidate the server would consider,
+			// not just the top 3. iOS uses the default limit (3) directly.
+			const url = getApiUrl('/api/widgets/upcoming-holidays?limit=50')
 			const response = await fetch(url)
 			if (!response.ok) {
 				throw new Error('Failed to fetch upcoming holidays')
@@ -59,7 +38,7 @@ export const upcomingHolidaysCollection = createCollection(
 			return response.json()
 		},
 		queryClient: getContext().queryClient,
-		getKey: (row: HolidayWidgetRow) => row.listId,
-		schema: HolidayWidgetRowSchema,
+		getKey: (row: UpcomingHolidayRow) => row.id,
+		schema: UpcomingHolidayRowSchema,
 	})
 )
