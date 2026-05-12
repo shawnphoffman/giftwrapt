@@ -43,6 +43,22 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { SUPPORTED_COUNTRIES } from '@/lib/holidays'
+
+const MONTHS: ReadonlyArray<{ value: string; label: string; days: number }> = [
+	{ value: '1', label: 'January', days: 31 },
+	{ value: '2', label: 'February', days: 29 },
+	{ value: '3', label: 'March', days: 31 },
+	{ value: '4', label: 'April', days: 30 },
+	{ value: '5', label: 'May', days: 31 },
+	{ value: '6', label: 'June', days: 30 },
+	{ value: '7', label: 'July', days: 31 },
+	{ value: '8', label: 'August', days: 31 },
+	{ value: '9', label: 'September', days: 30 },
+	{ value: '10', label: 'October', days: 31 },
+	{ value: '11', label: 'November', days: 30 },
+	{ value: '12', label: 'December', days: 31 },
+]
 
 const customHolidaysQueryKey = ['admin-custom-holidays'] as const
 
@@ -65,14 +81,9 @@ export function CustomHolidaysSection() {
 
 	return (
 		<div className="space-y-4">
-			<div className="flex items-center justify-between gap-2">
-				<p className="text-sm text-muted-foreground">
-					Holidays available when users create a holiday list. Add from the bundled catalog or define your own.
-				</p>
-				<div className="flex gap-2">
-					<AddFromCatalogDialog />
-					<AddCustomDialog />
-				</div>
+			<div className="flex justify-end gap-2">
+				<AddFromCatalogDialog />
+				<AddCustomDialog />
 			</div>
 
 			{query.isLoading ? (
@@ -198,20 +209,31 @@ function CustomHolidayRow({ row }: { row: AdminCustomHoliday }) {
 	)
 }
 
+const PRIMARY_COUNTRY_ORDER: ReadonlyArray<string> = SUPPORTED_COUNTRIES.map(c => c.code)
+
+function compareCandidates(a: { country: string; name: string }, b: { country: string; name: string }): number {
+	const ai = PRIMARY_COUNTRY_ORDER.indexOf(a.country)
+	const bi = PRIMARY_COUNTRY_ORDER.indexOf(b.country)
+	const aRank = ai === -1 ? PRIMARY_COUNTRY_ORDER.length : ai
+	const bRank = bi === -1 ? PRIMARY_COUNTRY_ORDER.length : bi
+	if (aRank !== bRank) return aRank - bRank
+	if (a.country !== b.country) return a.country.localeCompare(b.country)
+	return a.name.localeCompare(b.name)
+}
+
 function AddFromCatalogDialog() {
 	const qc = useQueryClient()
 	const [open, setOpen] = useState(false)
-	const [country, setCountry] = useState('US')
 
 	const candidatesQuery = useQuery({
-		queryKey: ['admin-custom-holidays-catalog-candidates', country],
-		queryFn: () => listCatalogCandidatesAsAdmin({ data: { country } }),
+		queryKey: ['admin-custom-holidays-catalog-candidates'],
+		queryFn: () => listCatalogCandidatesAsAdmin(),
 		enabled: open,
 	})
 
 	const add = useMutation({
-		mutationFn: async (key: string) => {
-			const result = await addCatalogCustomHolidayAsAdmin({ data: { country, key } })
+		mutationFn: async (args: { country: string; key: string }) => {
+			const result = await addCatalogCustomHolidayAsAdmin({ data: args })
 			if (result.kind === 'error') throw new Error(result.reason)
 		},
 		onSuccess: () => {
@@ -221,7 +243,7 @@ function AddFromCatalogDialog() {
 		onError: err => toast.error(err instanceof Error ? err.message : 'Failed to add holiday'),
 	})
 
-	const candidates = candidatesQuery.data ?? []
+	const candidates = [...(candidatesQuery.data ?? [])].sort(compareCandidates)
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
@@ -236,30 +258,18 @@ function AddFromCatalogDialog() {
 					<DialogDescription>Curated gift-giving holidays from the bundled date-holidays library.</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-3">
-					<div className="flex items-center gap-2">
-						<Label htmlFor="catalog-country">Country</Label>
-						<Select value={country} onValueChange={setCountry}>
-							<SelectTrigger id="catalog-country" className="w-[180px]">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="US">United States</SelectItem>
-								<SelectItem value="CA">Canada</SelectItem>
-								<SelectItem value="GB">United Kingdom</SelectItem>
-								<SelectItem value="AU">Australia</SelectItem>
-							</SelectContent>
-						</Select>
-					</div>
 					{candidatesQuery.isLoading ? (
 						<p className="text-sm text-muted-foreground">Loading...</p>
 					) : candidates.length === 0 ? (
-						<p className="text-sm text-muted-foreground">No more gift-giving holidays available for {country}.</p>
+						<p className="text-sm text-muted-foreground">No more gift-giving holidays available.</p>
 					) : (
-						<ul className="flex flex-col gap-1 max-h-72 overflow-auto">
+						<ul className="flex flex-col gap-1 max-h-96 overflow-auto">
 							{candidates.map(c => (
 								<li key={`${c.country}:${c.key}`} className="flex items-center justify-between gap-2 rounded border border-border p-2">
-									<span>{c.name}</span>
-									<Button size="sm" onClick={() => add.mutate(c.key)} disabled={add.isPending}>
+									<span>
+										<span className="font-mono text-xs text-muted-foreground">{c.country}</span> - {c.name}
+									</span>
+									<Button size="sm" onClick={() => add.mutate({ country: c.country, key: c.key })} disabled={add.isPending}>
 										Add
 									</Button>
 								</li>
@@ -281,10 +291,13 @@ function AddCustomDialog() {
 	const qc = useQueryClient()
 	const [open, setOpen] = useState(false)
 	const [title, setTitle] = useState('')
-	const [month, setMonth] = useState('1')
-	const [day, setDay] = useState('1')
+	const [month, setMonth] = useState('')
+	const [day, setDay] = useState('')
 	const [annual, setAnnual] = useState(true)
 	const [year, setYear] = useState(String(new Date().getUTCFullYear()))
+
+	const selectedMonth = MONTHS.find(m => m.value === month)
+	const dayOptions = selectedMonth ? Array.from({ length: selectedMonth.days }, (_, i) => String(i + 1)) : []
 
 	const add = useMutation({
 		mutationFn: async () => {
@@ -301,8 +314,8 @@ function AddCustomDialog() {
 		},
 		onSuccess: () => {
 			setTitle('')
-			setMonth('1')
-			setDay('1')
+			setMonth('')
+			setDay('')
 			setAnnual(true)
 			setYear(String(new Date().getUTCFullYear()))
 			setOpen(false)
@@ -311,8 +324,7 @@ function AddCustomDialog() {
 		onError: err => toast.error(err instanceof Error ? err.message : 'Failed to add holiday'),
 	})
 
-	const canSubmit =
-		title.trim().length > 0 && Number.isFinite(Number(month)) && Number.isFinite(Number(day)) && (annual || Number.isFinite(Number(year)))
+	const canSubmit = title.trim().length > 0 && month !== '' && day !== '' && (annual || Number.isFinite(Number(year)))
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
@@ -334,11 +346,39 @@ function AddCustomDialog() {
 					<div className="flex gap-2">
 						<div className="flex flex-col gap-1.5 flex-1">
 							<Label htmlFor="custom-month">Month</Label>
-							<Input id="custom-month" type="number" min={1} max={12} value={month} onChange={e => setMonth(e.target.value)} />
+							<Select
+								value={month}
+								onValueChange={value => {
+									setMonth(value)
+									setDay('')
+								}}
+							>
+								<SelectTrigger id="custom-month">
+									<SelectValue placeholder="Select month" />
+								</SelectTrigger>
+								<SelectContent>
+									{MONTHS.map(m => (
+										<SelectItem key={m.value} value={m.value}>
+											{m.label}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
 						</div>
 						<div className="flex flex-col gap-1.5 flex-1">
 							<Label htmlFor="custom-day">Day</Label>
-							<Input id="custom-day" type="number" min={1} max={31} value={day} onChange={e => setDay(e.target.value)} />
+							<Select value={day} onValueChange={setDay} disabled={!selectedMonth}>
+								<SelectTrigger id="custom-day">
+									<SelectValue placeholder={selectedMonth ? 'Select day' : 'Pick a month first'} />
+								</SelectTrigger>
+								<SelectContent>
+									{dayOptions.map(d => (
+										<SelectItem key={d} value={d}>
+											{d}
+										</SelectItem>
+									))}
+								</SelectContent>
+							</Select>
 						</div>
 					</div>
 					<label className="flex items-center gap-2 cursor-pointer">

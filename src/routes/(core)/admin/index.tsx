@@ -76,24 +76,22 @@ function AdminPage() {
 						summary.
 					</CardDescription>
 				</CardHeader>
-				<CardContent>
+				<CardContent className="space-y-8">
 					<ClientOnly>
 						<GenericHolidaySettingsSection />
 					</ClientOnly>
-				</CardContent>
-			</Card>
-			<Card className="animate-page-in max-w-xl">
-				<CardHeader>
-					<CardTitle className="text-2xl">Custom Holidays</CardTitle>
-					<CardDescription>
-						The set of holidays available when users create a holiday-typed list. Add from the bundled gift-giving catalog or define your
-						own. Deleting an in-use holiday converts its lists to the default list type without clearing claims.
-					</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<ClientOnly>
-						<CustomHolidaysSection />
-					</ClientOnly>
+					<div className="space-y-3 border-t border-border pt-6">
+						<div className="space-y-0.5">
+							<h3 className="text-base font-medium">Available holidays</h3>
+							<p className="text-sm text-muted-foreground">
+								The set of holidays users can pick when creating a holiday-typed list. Add from the bundled gift-giving catalog or define
+								your own. Deleting an in-use holiday converts its lists to the default list type without clearing claims.
+							</p>
+						</div>
+						<ClientOnly>
+							<CustomHolidaysSection />
+						</ClientOnly>
+					</div>
 				</CardContent>
 			</Card>
 			<Card className="animate-page-in max-w-xl">

@@ -110,28 +110,20 @@ export type CatalogCandidate = {
 	name: string
 }
 
-export const ListCatalogCandidatesInputSchema = z.object({
-	country: z.string().min(2).max(2),
-})
-
-// Returns catalog rows for the given country that:
+// Returns catalog rows across all countries that:
 //   - are in the gift-giving inclusion set, AND
 //   - aren't already pinned by an existing custom_holidays row of
 //     source='catalog' (so admins don't add duplicates).
-export async function listCatalogCandidatesImpl(args: {
-	input: z.output<typeof ListCatalogCandidatesInputSchema>
-	dbx?: SchemaDatabase
-}): Promise<Array<CatalogCandidate>> {
+export async function listCatalogCandidatesImpl(args: { dbx?: SchemaDatabase } = {}): Promise<Array<CatalogCandidate>> {
 	const dbx = args.dbx ?? defaultDb
 	const rows = await dbx
 		.select({ country: holidayCatalog.country, key: holidayCatalog.slug, name: holidayCatalog.name })
 		.from(holidayCatalog)
-		.where(eq(holidayCatalog.country, args.input.country))
 
 	const existing = await dbx
 		.select({ key: customHolidays.catalogKey, country: customHolidays.catalogCountry })
 		.from(customHolidays)
-		.where(and(eq(customHolidays.source, 'catalog'), eq(customHolidays.catalogCountry, args.input.country)))
+		.where(eq(customHolidays.source, 'catalog'))
 	const taken = new Set<string>(existing.map(r => `${r.country}:${r.key}`))
 
 	return rows.filter(r => CATALOG_GIFT_GIVING_INCLUSION.has(r.key) && !taken.has(`${r.country}:${r.key}`))

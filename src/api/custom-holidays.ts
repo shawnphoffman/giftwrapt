@@ -20,7 +20,6 @@ import {
 	DeleteCustomHolidayInputSchema,
 	type DeleteCustomHolidayResult,
 	listCatalogCandidatesImpl,
-	ListCatalogCandidatesInputSchema,
 	listCustomHolidaysForPickerImpl,
 	listCustomHolidaysImpl,
 	updateCustomHolidayImpl,
@@ -42,11 +41,10 @@ export const listCustomHolidaysAsAdmin = createServerFn({ method: 'GET' })
 	.middleware([adminAuthMiddleware, loggingMiddleware])
 	.handler((): Promise<Array<AdminCustomHoliday>> => listCustomHolidaysImpl())
 
-// Admin: catalog candidates available to add for a country.
+// Admin: catalog candidates available to add across all countries.
 export const listCatalogCandidatesAsAdmin = createServerFn({ method: 'GET' })
 	.middleware([adminAuthMiddleware, loggingMiddleware])
-	.inputValidator((data: z.input<typeof ListCatalogCandidatesInputSchema>) => ListCatalogCandidatesInputSchema.parse(data))
-	.handler(({ data }): Promise<Array<CatalogCandidate>> => listCatalogCandidatesImpl({ input: data }))
+	.handler((): Promise<Array<CatalogCandidate>> => listCatalogCandidatesImpl())
 
 export const addCatalogCustomHolidayAsAdmin = createServerFn({ method: 'POST' })
 	.middleware([adminAuthMiddleware, loggingMiddleware])
