@@ -233,14 +233,14 @@ function PermissionsPage() {
 }
 
 function ShareIndicator({ sharedWithMe }: { sharedWithMe: AccessTier }) {
+	// Restricted is intentionally rendered the same as view here: the viewer
+	// should not be able to tell whether someone has restricted them.
 	const label =
 		sharedWithMe === 'edit'
 			? "They've given you edit access to their lists"
-			: sharedWithMe === 'view'
-				? 'They share their lists with you'
-				: sharedWithMe === 'restricted'
-					? "They've shared their lists with you in restricted mode"
-					: "They haven't shared their lists with you"
+			: sharedWithMe === 'none'
+				? "They haven't shared their lists with you"
+				: 'They share their lists with you'
 	return (
 		<Tooltip>
 			<TooltipTrigger asChild>
@@ -249,8 +249,7 @@ function ShareIndicator({ sharedWithMe }: { sharedWithMe: AccessTier }) {
 					className={cn(
 						'inline-block size-3 rounded-full shrink-0 transition-shadow',
 						sharedWithMe === 'none' && 'border border-muted-foreground/40 bg-transparent',
-						sharedWithMe === 'restricted' && 'bg-amber-500',
-						sharedWithMe === 'view' && 'bg-primary',
+						(sharedWithMe === 'view' || sharedWithMe === 'restricted') && 'bg-primary',
 						sharedWithMe === 'edit' && 'animate-edit-pulse'
 					)}
 				/>
@@ -304,10 +303,6 @@ function Legend() {
 			<div className="flex items-center gap-1.5">
 				<span className="inline-block size-3 rounded-full border border-muted-foreground/40" />
 				They haven't shared
-			</div>
-			<div className="flex items-center gap-1.5">
-				<span className="inline-block size-3 rounded-full bg-amber-500" />
-				Restricted (no others' purchases)
 			</div>
 			<div className="flex items-center gap-1.5">
 				<span className="inline-block size-3 rounded-full bg-primary" />
