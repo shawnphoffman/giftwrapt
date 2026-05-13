@@ -47,6 +47,45 @@ jobs:
       - name: Run integration tests
         run: pnpm test:integration
 
+  # Production build + source-map leak guard (see
+  # .notes/security/2026-05-checklist-audit.md item 44). Vite's default
+  # `build.sourcemap` is `false`, but a future config tweak (or a transitive
+  # plugin) could flip it on and ship maps to the client unnoticed. Required
+  # check - if this fails, either remove the map-emitting setting or
+  # exclude the maps from the deployable output. Also acts as a build-time
+  # regression guard since neither test.yml nor main-pipeline.yml currently
+  # runs `pnpm build` on PRs.
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Assert no source maps in client bundle
+        run: |
+          maps=$(find .output/public dist -name '*.map' 2>/dev/null || true)
+          if [ -n "$maps" ]; then
+            echo "::error::Source maps found in deployable output:"
+            echo "$maps"
+            exit 1
+          fi
+          echo "OK: no .map files in client bundle"
+
   # Warn-only semgrep scan (see .notes/security/2026-05-checklist-audit.md
   # item 33). Runs in parallel with `test` so PR feedback isn't slowed.
   # Promote to required after we've triaged the OWASP ruleset's hits.
