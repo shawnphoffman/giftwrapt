@@ -151,14 +151,18 @@ export type ClaimGiftResult =
 	  }
 	| { kind: 'error'; reason: 'over-claim'; remaining: number }
 
-export async function claimItemGiftImpl(args: { gifterId: string; input: z.infer<typeof ClaimGiftInputSchema> }): Promise<ClaimGiftResult> {
-	const { gifterId, input: data } = args
+export async function claimItemGiftImpl(args: {
+	gifterId: string
+	input: z.infer<typeof ClaimGiftInputSchema>
+	dbx?: SchemaDatabase
+}): Promise<ClaimGiftResult> {
+	const { gifterId, input: data, dbx = db } = args
 	const notifyCtx = { listId: null as number | null }
 
-	const result: ClaimGiftResult = await db.transaction(async (tx): Promise<ClaimGiftResult> => {
-		const lockedRows = await tx.execute(
+	const result: ClaimGiftResult = await dbx.transaction(async (tx): Promise<ClaimGiftResult> => {
+		const lockedRows = (await tx.execute(
 			sql`SELECT id, list_id, quantity, is_archived, availability, group_id, group_sort_order FROM items WHERE id = ${data.itemId} FOR UPDATE`
-		)
+		)) as { rows: Array<unknown> }
 		const lockedItem = lockedRows.rows[0] as
 			| {
 					id: number
@@ -192,7 +196,7 @@ export async function claimItemGiftImpl(args: { gifterId: string; input: z.infer
 			return { kind: 'error', reason: 'cannot-claim-own-list' }
 		}
 
-		const view = await canViewList(gifterId, list)
+		const view = await canViewList(gifterId, list, tx)
 		if (!view.ok) return { kind: 'error', reason: 'not-visible' }
 
 		if (lockedItem.group_id !== null) {
@@ -295,11 +299,12 @@ export type UpdateGiftResult =
 export async function updateItemGiftImpl(args: {
 	gifterId: string
 	input: z.infer<typeof UpdateGiftInputSchema>
+	dbx?: SchemaDatabase
 }): Promise<UpdateGiftResult> {
-	const { gifterId, input: data } = args
+	const { gifterId, input: data, dbx = db } = args
 	const notifyCtx = { listId: null as number | null }
 
-	const result: UpdateGiftResult = await db.transaction(async (tx): Promise<UpdateGiftResult> => {
+	const result: UpdateGiftResult = await dbx.transaction(async (tx): Promise<UpdateGiftResult> => {
 		const gift = await tx.query.giftedItems.findFirst({
 			where: eq(giftedItems.id, data.giftId),
 			columns: { id: true, itemId: true, gifterId: true },
@@ -307,7 +312,9 @@ export async function updateItemGiftImpl(args: {
 		if (!gift) return { kind: 'error', reason: 'not-found' }
 		if (gift.gifterId !== gifterId) return { kind: 'error', reason: 'not-yours' }
 
-		const lockedRows = await tx.execute(sql`SELECT id, list_id, quantity, is_archived FROM items WHERE id = ${gift.itemId} FOR UPDATE`)
+		const lockedRows = (await tx.execute(
+			sql`SELECT id, list_id, quantity, is_archived FROM items WHERE id = ${gift.itemId} FOR UPDATE`
+		)) as { rows: Array<unknown> }
 		const lockedItem = lockedRows.rows[0] as { id: number; list_id: number; quantity: number; is_archived: boolean } | undefined
 		if (!lockedItem || lockedItem.is_archived) return { kind: 'error', reason: 'not-found' }
 
@@ -352,10 +359,11 @@ export type UnclaimGiftResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-f
 export async function unclaimItemGiftImpl(args: {
 	gifterId: string
 	input: z.infer<typeof UnclaimGiftInputSchema>
+	dbx?: SchemaDatabase
 }): Promise<UnclaimGiftResult> {
-	const { gifterId, input: data } = args
+	const { gifterId, input: data, dbx = db } = args
 
-	const existing = await db
+	const existing = await dbx
 		.select({ id: giftedItems.id, gifterId: giftedItems.gifterId, listId: items.listId })
 		.from(giftedItems)
 		.innerJoin(items, eq(items.id, giftedItems.itemId))
@@ -364,7 +372,7 @@ export async function unclaimItemGiftImpl(args: {
 	if (!existing) return { kind: 'error', reason: 'not-found' }
 	if (existing.gifterId !== gifterId) return { kind: 'error', reason: 'not-yours' }
 
-	await db.delete(giftedItems).where(and(eq(giftedItems.id, data.giftId), eq(giftedItems.gifterId, gifterId)))
+	await dbx.delete(giftedItems).where(and(eq(giftedItems.id, data.giftId), eq(giftedItems.gifterId, gifterId)))
 
 	notifyListEvent({ kind: 'claim', listId: existing.listId })
 	return { kind: 'ok' }
@@ -386,10 +394,11 @@ export type UpdateCoGiftersResult =
 export async function updateCoGiftersImpl(args: {
 	gifterId: string
 	input: z.infer<typeof UpdateCoGiftersInputSchema>
+	dbx?: SchemaDatabase
 }): Promise<UpdateCoGiftersResult> {
-	const { gifterId, input: data } = args
+	const { gifterId, input: data, dbx = db } = args
 
-	const gift = await db.query.giftedItems.findFirst({
+	const gift = await dbx.query.giftedItems.findFirst({
 		where: eq(giftedItems.id, data.giftId),
 		columns: { id: true, gifterId: true },
 	})
@@ -398,7 +407,7 @@ export async function updateCoGiftersImpl(args: {
 
 	const ids = data.additionalGifterIds.length > 0 ? data.additionalGifterIds : null
 
-	const [updated] = await db
+	const [updated] = await dbx
 		.update(giftedItems)
 		.set({ additionalGifterIds: ids })
 		.where(eq(giftedItems.id, data.giftId))

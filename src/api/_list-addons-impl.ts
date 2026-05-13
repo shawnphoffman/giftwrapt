@@ -97,17 +97,18 @@ export async function createListAddonImpl(args: {
 export async function updateListAddonImpl(args: {
 	userId: string
 	input: z.infer<typeof UpdateAddonInputSchema>
+	dbx?: SchemaDatabase
 }): Promise<UpdateAddonResult> {
-	const { userId, input: data } = args
+	const { userId, input: data, dbx = db } = args
 
-	const existing = await db.query.listAddons.findFirst({
+	const existing = await dbx.query.listAddons.findFirst({
 		where: eq(listAddons.id, data.addonId),
 		columns: { id: true, userId: true, listId: true },
 	})
 	if (!existing) return { kind: 'error', reason: 'not-found' }
 	if (existing.userId !== userId) return { kind: 'error', reason: 'not-yours' }
 
-	const [updated] = await db
+	const [updated] = await dbx
 		.update(listAddons)
 		.set({
 			...(data.description !== undefined ? { description: data.description } : {}),
@@ -124,10 +125,11 @@ export async function updateListAddonImpl(args: {
 export async function archiveListAddonImpl(args: {
 	userId: string
 	input: z.infer<typeof ArchiveAddonInputSchema>
+	dbx?: SchemaDatabase
 }): Promise<ArchiveAddonResult> {
-	const { userId, input: data } = args
+	const { userId, input: data, dbx = db } = args
 
-	const existing = await db.query.listAddons.findFirst({
+	const existing = await dbx.query.listAddons.findFirst({
 		where: eq(listAddons.id, data.addonId),
 		columns: { id: true, userId: true, isArchived: true, listId: true },
 	})
@@ -135,7 +137,7 @@ export async function archiveListAddonImpl(args: {
 	if (existing.userId !== userId) return { kind: 'error', reason: 'not-yours' }
 	if (existing.isArchived) return { kind: 'error', reason: 'already-archived' }
 
-	await db.update(listAddons).set({ isArchived: true }).where(eq(listAddons.id, data.addonId))
+	await dbx.update(listAddons).set({ isArchived: true }).where(eq(listAddons.id, data.addonId))
 	notifyListEvent({ kind: 'addon', listId: existing.listId, addonId: existing.id, shape: 'removed' })
 	return { kind: 'ok' }
 }
@@ -143,17 +145,18 @@ export async function archiveListAddonImpl(args: {
 export async function deleteListAddonImpl(args: {
 	userId: string
 	input: z.infer<typeof DeleteAddonInputSchema>
+	dbx?: SchemaDatabase
 }): Promise<DeleteAddonResult> {
-	const { userId, input: data } = args
+	const { userId, input: data, dbx = db } = args
 
-	const existing = await db.query.listAddons.findFirst({
+	const existing = await dbx.query.listAddons.findFirst({
 		where: eq(listAddons.id, data.addonId),
 		columns: { id: true, userId: true, listId: true },
 	})
 	if (!existing) return { kind: 'error', reason: 'not-found' }
 	if (existing.userId !== userId) return { kind: 'error', reason: 'not-yours' }
 
-	await db.delete(listAddons).where(and(eq(listAddons.id, data.addonId), eq(listAddons.userId, userId)))
+	await dbx.delete(listAddons).where(and(eq(listAddons.id, data.addonId), eq(listAddons.userId, userId)))
 	notifyListEvent({ kind: 'addon', listId: existing.listId, addonId: existing.id, shape: 'removed' })
 	return { kind: 'ok' }
 }

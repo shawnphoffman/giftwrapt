@@ -24,9 +24,13 @@ import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 
 type ListForPermCheck = { id: number; ownerId: string; subjectDependentId: string | null; isPrivate: boolean; isActive: boolean }
 
-async function assertCanEditItems(userId: string, list: ListForPermCheck): Promise<{ ok: true } | { ok: false; reason: 'not-authorized' }> {
+async function assertCanEditItems(
+	userId: string,
+	list: ListForPermCheck,
+	dbx: SchemaDatabase
+): Promise<{ ok: true } | { ok: false; reason: 'not-authorized' }> {
 	if (list.ownerId === userId) return { ok: true }
-	const edit = await canEditList(userId, list)
+	const edit = await canEditList(userId, list, dbx)
 	if (!edit.ok) return { ok: false, reason: 'not-authorized' }
 	return { ok: true }
 }
@@ -75,7 +79,7 @@ export async function createItemImpl(args: {
 	if (!list) return { kind: 'error', reason: 'list-not-found' }
 	if (list.type === 'todos') return { kind: 'error', reason: 'todo-list-rejects-items' }
 
-	const perm = await assertCanEditItems(userId, list)
+	const perm = await assertCanEditItems(userId, list, dbx)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	const url = data.url ?? null
@@ -161,7 +165,7 @@ export async function updateItemImpl(args: {
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 
-	const perm = await assertCanEditItems(userId, list)
+	const perm = await assertCanEditItems(userId, list, dbx)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	// Mirror an external imageUrl into our bucket before writing, so
@@ -261,7 +265,7 @@ export async function deleteItemImpl(args: {
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 
-	const perm = await assertCanEditItems(userId, list)
+	const perm = await assertCanEditItems(userId, list, dbx)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	await dbx.delete(items).where(eq(items.id, input.itemId))

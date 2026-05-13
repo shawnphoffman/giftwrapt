@@ -7,12 +7,12 @@
 // needs matrix coverage, copy the structure here into the matching
 // resource file.
 
+import { withRollback } from '@test/integration/setup'
 import { describe, expect, it } from 'vitest'
 
 import { describeListState } from '@/lib/__tests__/permissions/_matrix-types'
 import { canEditList, canViewList, canViewListAsAnyone } from '@/lib/permissions'
 
-import { withRollback } from '../../../../test/integration/setup'
 import { listExpectations } from './_expectations'
 import { seedFor } from './_seeds'
 

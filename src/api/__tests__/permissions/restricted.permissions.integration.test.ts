@@ -13,6 +13,17 @@
 // Item-level filter coverage lives in src/lib/__tests__/restricted-filter.test.ts
 // (pure-function unit tests; no DB needed).
 
+import {
+	makeGiftedItem,
+	makeGuardianship,
+	makeItem,
+	makeList,
+	makeListAddon,
+	makeListEditor,
+	makeUser,
+	makeUserRelationship,
+} from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { and, eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
@@ -23,18 +34,6 @@ import { getListForEditingImpl, getListForViewingImpl } from '@/api/_lists-impl'
 import { upsertUserRelationshipsImpl } from '@/api/_permissions-impl'
 import { listEditors, userRelationships, users } from '@/db/schema'
 import { canEditList, getViewerAccessLevel } from '@/lib/permissions'
-
-import {
-	makeGiftedItem,
-	makeGuardianship,
-	makeItem,
-	makeList,
-	makeListAddon,
-	makeListEditor,
-	makeUser,
-	makeUserRelationship,
-} from '../../../../test/integration/factories'
-import { withRollback } from '../../../../test/integration/setup'
 
 describe('getViewerAccessLevel', () => {
 	it("returns 'owner' when viewer === owner", async () => {

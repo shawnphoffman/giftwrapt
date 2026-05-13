@@ -66,16 +66,16 @@ export const RemoveEditorInputSchema = z.object({
 // Impls
 // ===============================
 
-export async function getListEditorsImpl(args: { userId: string; listId: number }): Promise<Array<EditorOnList>> {
-	const { userId, listId } = args
+export async function getListEditorsImpl(args: { userId: string; listId: number; dbx?: SchemaDatabase }): Promise<Array<EditorOnList>> {
+	const { userId, listId, dbx = db } = args
 
-	const list = await db.query.lists.findFirst({
+	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, listId),
 		columns: { id: true, ownerId: true },
 	})
 	if (!list || list.ownerId !== userId) return []
 
-	const rows = await db.query.listEditors.findMany({
+	const rows = await dbx.query.listEditors.findMany({
 		where: eq(listEditors.listId, listId),
 		columns: { id: true, userId: true },
 		with: { user: { columns: { id: true, name: true, email: true, image: true } } },
@@ -149,16 +149,20 @@ export async function addListEditorImpl(args: {
 	}
 }
 
-export async function getAddableEditorsImpl(args: { ownerId: string; listId: number }): Promise<Array<AddableEditorUser>> {
-	const { ownerId, listId } = args
+export async function getAddableEditorsImpl(args: {
+	ownerId: string
+	listId: number
+	dbx?: SchemaDatabase
+}): Promise<Array<AddableEditorUser>> {
+	const { ownerId, listId, dbx = db } = args
 
-	const list = await db.query.lists.findFirst({
+	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, listId),
 		columns: { id: true, ownerId: true },
 	})
 	if (!list || list.ownerId !== ownerId) return []
 
-	const existing = await db.query.listEditors.findMany({
+	const existing = await dbx.query.listEditors.findMany({
 		where: eq(listEditors.listId, listId),
 		columns: { userId: true },
 	})
@@ -167,14 +171,14 @@ export async function getAddableEditorsImpl(args: { ownerId: string; listId: num
 	// the owner has marked as restricted - both should be hidden from the
 	// editor picker (the restricted ones will hard-fail in addListEditorImpl
 	// anyway, but better to not surface them in the UI).
-	const blocked = await db.query.userRelationships.findMany({
+	const blocked = await dbx.query.userRelationships.findMany({
 		where: and(eq(userRelationships.ownerUserId, ownerId), inArray(userRelationships.accessLevel, ['none', 'restricted'])),
 		columns: { viewerUserId: true },
 	})
 
 	const excludedIds = Array.from(new Set([...existing.map(e => e.userId), ...blocked.map(d => d.viewerUserId)]))
 
-	const rows = await db.query.users.findMany({
+	const rows = await dbx.query.users.findMany({
 		where: excludedIds.length > 0 ? and(ne(users.id, ownerId), notInArray(users.id, excludedIds)) : ne(users.id, ownerId),
 		columns: { id: true, name: true, email: true, image: true, role: true },
 		orderBy: [asc(users.name), asc(users.email)],
@@ -186,16 +190,17 @@ export async function getAddableEditorsImpl(args: { ownerId: string; listId: num
 export async function removeListEditorImpl(args: {
 	ownerId: string
 	input: z.infer<typeof RemoveEditorInputSchema>
+	dbx?: SchemaDatabase
 }): Promise<RemoveEditorResult> {
-	const { ownerId, input: data } = args
+	const { ownerId, input: data, dbx = db } = args
 
-	const existing = await db.query.listEditors.findFirst({
+	const existing = await dbx.query.listEditors.findFirst({
 		where: eq(listEditors.id, data.editorId),
 		columns: { id: true, ownerId: true },
 	})
 	if (!existing) return { kind: 'error', reason: 'not-found' }
 	if (existing.ownerId !== ownerId) return { kind: 'error', reason: 'not-owner' }
 
-	await db.delete(listEditors).where(eq(listEditors.id, data.editorId))
+	await dbx.delete(listEditors).where(eq(listEditors.id, data.editorId))
 	return { kind: 'ok' }
 }

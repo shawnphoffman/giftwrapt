@@ -10,7 +10,7 @@
 import { asc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { db } from '@/db'
+import { db, type SchemaDatabase } from '@/db'
 import { itemComments, items, lists, users } from '@/db/schema'
 import { createLogger } from '@/lib/logger'
 import { canViewListAsAnyone } from '@/lib/permissions'
@@ -34,25 +34,29 @@ export type CommentWithUser = {
 	}
 }
 
-export async function getCommentsForItemImpl(args: { userId: string; itemId: number }): Promise<Array<CommentWithUser>> {
-	const { userId, itemId } = args
+export async function getCommentsForItemImpl(args: {
+	userId: string
+	itemId: number
+	dbx?: SchemaDatabase
+}): Promise<Array<CommentWithUser>> {
+	const { userId, itemId, dbx = db } = args
 
-	const item = await db.query.items.findFirst({
+	const item = await dbx.query.items.findFirst({
 		where: eq(items.id, itemId),
 		columns: { id: true, listId: true },
 	})
 	if (!item) return []
 
-	const list = await db.query.lists.findFirst({
+	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, item.listId),
 		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return []
 
-	const view = await canViewListAsAnyone(userId, list)
+	const view = await canViewListAsAnyone(userId, list, dbx)
 	if (!view.ok) return []
 
-	const rows = await db.query.itemComments.findMany({
+	const rows = await dbx.query.itemComments.findMany({
 		where: eq(itemComments.itemId, itemId),
 		orderBy: [asc(itemComments.createdAt)],
 		with: {
@@ -82,28 +86,29 @@ export type CreateCommentResult =
 export async function createItemCommentImpl(args: {
 	userId: string
 	input: z.infer<typeof CreateCommentInputSchema>
+	dbx?: SchemaDatabase
 }): Promise<CreateCommentResult> {
-	const { userId, input: data } = args
+	const { userId, input: data, dbx = db } = args
 
-	const settings = await getAppSettings(db)
+	const settings = await getAppSettings(dbx)
 	if (!settings.enableComments) return { kind: 'error', reason: 'comments-disabled' }
 
-	const item = await db.query.items.findFirst({
+	const item = await dbx.query.items.findFirst({
 		where: eq(items.id, data.itemId),
 		columns: { id: true, listId: true, title: true },
 	})
 	if (!item) return { kind: 'error', reason: 'item-not-found' }
 
-	const list = await db.query.lists.findFirst({
+	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, item.listId),
 		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'item-not-found' }
 
-	const view = await canViewListAsAnyone(userId, list)
+	const view = await canViewListAsAnyone(userId, list, dbx)
 	if (!view.ok) return { kind: 'error', reason: 'not-visible' }
 
-	const [inserted] = await db
+	const [inserted] = await dbx
 		.insert(itemComments)
 		.values({
 			itemId: data.itemId,
@@ -112,7 +117,7 @@ export async function createItemCommentImpl(args: {
 		})
 		.returning()
 
-	const commenter = await db.query.users.findFirst({
+	const commenter = await dbx.query.users.findFirst({
 		where: eq(users.id, userId),
 		columns: { id: true, name: true, email: true, image: true },
 	})
@@ -128,7 +133,7 @@ export async function createItemCommentImpl(args: {
 
 	if (list.ownerId !== userId && settings.enableCommentEmails) {
 		try {
-			const owner = await db.query.users.findFirst({
+			const owner = await dbx.query.users.findFirst({
 				where: eq(users.id, list.ownerId),
 				columns: { name: true, email: true },
 			})
@@ -162,19 +167,20 @@ export type UpdateCommentResult = { kind: 'ok' } | { kind: 'error'; reason: 'not
 export async function updateItemCommentImpl(args: {
 	userId: string
 	input: z.infer<typeof UpdateCommentInputSchema>
+	dbx?: SchemaDatabase
 }): Promise<UpdateCommentResult> {
-	const { userId, input: data } = args
+	const { userId, input: data, dbx = db } = args
 
-	const existing = await db.query.itemComments.findFirst({
+	const existing = await dbx.query.itemComments.findFirst({
 		where: eq(itemComments.id, data.commentId),
 		columns: { id: true, userId: true, itemId: true },
 	})
 	if (!existing) return { kind: 'error', reason: 'not-found' }
 	if (existing.userId !== userId) return { kind: 'error', reason: 'not-yours' }
 
-	await db.update(itemComments).set({ comment: data.comment }).where(eq(itemComments.id, data.commentId))
+	await dbx.update(itemComments).set({ comment: data.comment }).where(eq(itemComments.id, data.commentId))
 
-	const item = await db.query.items.findFirst({
+	const item = await dbx.query.items.findFirst({
 		where: eq(items.id, existing.itemId),
 		columns: { listId: true },
 	})
@@ -191,23 +197,24 @@ export type DeleteCommentResult = { kind: 'ok' } | { kind: 'error'; reason: 'not
 export async function deleteItemCommentImpl(args: {
 	userId: string
 	input: z.infer<typeof DeleteCommentInputSchema>
+	dbx?: SchemaDatabase
 }): Promise<DeleteCommentResult> {
-	const { userId, input: data } = args
+	const { userId, input: data, dbx = db } = args
 
-	const existing = await db.query.itemComments.findFirst({
+	const existing = await dbx.query.itemComments.findFirst({
 		where: eq(itemComments.id, data.commentId),
 		columns: { id: true, userId: true, itemId: true },
 	})
 	if (!existing) return { kind: 'error', reason: 'not-found' }
 
-	const item = await db.query.items.findFirst({
+	const item = await dbx.query.items.findFirst({
 		where: eq(items.id, existing.itemId),
 		columns: { listId: true },
 	})
 	if (!item) return { kind: 'error', reason: 'not-found' }
 
 	if (existing.userId !== userId) {
-		const list = await db.query.lists.findFirst({
+		const list = await dbx.query.lists.findFirst({
 			where: eq(lists.id, item.listId),
 			columns: { ownerId: true },
 		})
@@ -216,7 +223,7 @@ export async function deleteItemCommentImpl(args: {
 		}
 	}
 
-	await db.delete(itemComments).where(eq(itemComments.id, data.commentId))
+	await dbx.delete(itemComments).where(eq(itemComments.id, data.commentId))
 	notifyListEvent({ kind: 'comment', listId: item.listId, itemId: existing.itemId, shape: 'removed' })
 	return { kind: 'ok' }
 }

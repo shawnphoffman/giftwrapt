@@ -1,8 +1,8 @@
+import { makeGuardianship, makeList, makeListEditor, makeUser, makeUserRelationship } from '@test/integration/factories'
+
 import type { SchemaDatabase } from '@/db'
 import type { List, User } from '@/db/schema'
 import type { ListState, Role } from '@/lib/__tests__/permissions/_matrix-types'
-
-import { makeGuardianship, makeList, makeListEditor, makeUser, makeUserRelationship } from '../../../../test/integration/factories'
 
 /**
  * Standard scenario every list-level permission test consumes. Resource

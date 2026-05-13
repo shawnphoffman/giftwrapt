@@ -180,9 +180,13 @@ export const DeleteGroupsInputSchema = z.object({
 
 type ListForPermCheck = { id: number; ownerId: string; subjectDependentId: string | null; isPrivate: boolean; isActive: boolean }
 
-async function assertCanEditItems(userId: string, list: ListForPermCheck): Promise<{ ok: true } | { ok: false; reason: 'not-authorized' }> {
+async function assertCanEditItems(
+	userId: string,
+	list: ListForPermCheck,
+	dbx: SchemaDatabase = db
+): Promise<{ ok: true } | { ok: false; reason: 'not-authorized' }> {
 	if (list.ownerId === userId) return { ok: true }
-	const edit = await canEditList(userId, list)
+	const edit = await canEditList(userId, list, dbx)
 	if (!edit.ok) return { ok: false, reason: 'not-authorized' }
 	return { ok: true }
 }
@@ -277,25 +281,29 @@ export async function copyItemToListImpl(args: { userId: string; input: z.infer<
 	return { kind: 'ok', item: inserted }
 }
 
-export async function archiveItemImpl(args: { userId: string; input: z.infer<typeof ArchiveItemInputSchema> }): Promise<ArchiveItemResult> {
-	const { userId, input: data } = args
+export async function archiveItemImpl(args: {
+	userId: string
+	input: z.infer<typeof ArchiveItemInputSchema>
+	dbx?: SchemaDatabase
+}): Promise<ArchiveItemResult> {
+	const { userId, input: data, dbx = db } = args
 
-	const item = await db.query.items.findFirst({
+	const item = await dbx.query.items.findFirst({
 		where: eq(items.id, data.itemId),
 		columns: { id: true, listId: true },
 	})
 	if (!item) return { kind: 'error', reason: 'not-found' }
 
-	const list = await db.query.lists.findFirst({
+	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, item.listId),
 		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 
-	const perm = await assertCanEditItems(userId, list)
+	const perm = await assertCanEditItems(userId, list, dbx)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
-	await db.update(items).set({ isArchived: data.archived }).where(eq(items.id, data.itemId))
+	await dbx.update(items).set({ isArchived: data.archived }).where(eq(items.id, data.itemId))
 	notifyListEvent({ kind: 'item', listId: item.listId, itemId: data.itemId })
 	return { kind: 'ok' }
 }

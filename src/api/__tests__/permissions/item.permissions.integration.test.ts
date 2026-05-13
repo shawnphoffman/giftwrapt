@@ -1,29 +1,171 @@
 // Item-level permissions matrix.
 //
-// Surfaces to cover when populated:
-//   - getItemsForListViewImpl  (visibility-gated)
-//   - getItemsForListEditImpl  (edit-gated)
-//   - createItemImpl           (edit-gated; child role × gift-ideas list interaction TBD)
-//   - updateItemImpl
-//   - archiveItemImpl
-//   - deleteItemsImpl          (hard-delete on unclaimed; archive on claimed; see logic.md)
-//   - copyItemToListImpl       (cross-list edit gating)
+// Surfaces covered:
+//   - getItemsForListViewImpl  (visibility-gated; owner short-circuits to 'is-owner')
+//   - createItemImpl           (edit-gated via assertCanEditItems)
+//   - updateItemImpl           (edit-gated)
+//   - archiveItemImpl          (edit-gated)
+//   - deleteItemImpl           (edit-gated)
 //
-// Add expectation rows to `itemExpectations` in `_expectations.ts` and
-// extend `_seeds.ts` with an item-bearing scenario when ready.
+// The matrix encodes role x list-state x action; resource-specific gates
+// that don't fit that shape live in the standalone describe blocks below.
 
+import { makeGiftedItem, makeItem, makeList, makeUser } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { describe, expect, it } from 'vitest'
 
+import { archiveItemImpl, getItemsForListViewImpl } from '@/api/_items-extra-impl'
+import { createItemImpl, deleteItemImpl, updateItemImpl } from '@/api/_items-impl'
+import { describeListState } from '@/lib/__tests__/permissions/_matrix-types'
+
 import { itemExpectations } from './_expectations'
+import { seedFor } from './_seeds'
 
-describe('item permissions × matrix', () => {
-	it.skipIf(itemExpectations.length === 0)('matrix is populated', () => {
-		expect(itemExpectations.length).toBeGreaterThan(0)
+const viewItemExpectations = itemExpectations.filter(e => e.action === 'view-item')
+const createItemExpectations = itemExpectations.filter(e => e.action === 'create-item')
+const updateItemExpectations = itemExpectations.filter(e => e.action === 'update-item')
+const archiveItemExpectations = itemExpectations.filter(e => e.action === 'archive-item')
+const deleteItemExpectations = itemExpectations.filter(e => e.action === 'delete-item')
+
+describe('getItemsForListView x matrix', () => {
+	it.each(viewItemExpectations)(
+		'role=$role state=$listState.privacy/$listState.active -> $expected',
+		async ({ role, listState, expected, reasonOnDeny }) => {
+			await withRollback(async tx => {
+				const { viewer, list } = await seedFor(role, { tx, listState })
+				await makeItem(tx, { listId: list.id, title: 'matrix-item' })
+				const result = await getItemsForListViewImpl({ userId: viewer.id, listId: String(list.id), dbx: tx })
+				if (expected === 'allow') {
+					expect(result.kind, `${role} on ${describeListState(listState)} should view-allow`).toBe('ok')
+				} else {
+					expect(result.kind, `${role} on ${describeListState(listState)} should view-deny`).toBe('error')
+					if (result.kind === 'error' && reasonOnDeny) expect(result.reason).toBe(reasonOnDeny)
+				}
+			})
+		}
+	)
+})
+
+describe('createItem x matrix', () => {
+	it.each(createItemExpectations)(
+		'role=$role state=$listState.privacy/$listState.active -> $expected',
+		async ({ role, listState, expected, reasonOnDeny }) => {
+			await withRollback(async tx => {
+				const { viewer, list } = await seedFor(role, { tx, listState })
+				const result = await createItemImpl({
+					db: tx,
+					actor: { id: viewer.id },
+					input: { listId: list.id, title: 'new-item' },
+				})
+				if (expected === 'allow') {
+					expect(result.kind, `${role} on ${describeListState(listState)} should create-allow`).toBe('ok')
+				} else {
+					expect(result.kind, `${role} on ${describeListState(listState)} should create-deny`).toBe('error')
+					if (result.kind === 'error' && reasonOnDeny) expect(result.reason).toBe(reasonOnDeny)
+				}
+			})
+		}
+	)
+})
+
+describe('updateItem x matrix', () => {
+	it.each(updateItemExpectations)(
+		'role=$role state=$listState.privacy/$listState.active -> $expected',
+		async ({ role, listState, expected, reasonOnDeny }) => {
+			await withRollback(async tx => {
+				const { viewer, list } = await seedFor(role, { tx, listState })
+				const item = await makeItem(tx, { listId: list.id })
+				const result = await updateItemImpl({
+					db: tx,
+					actor: { id: viewer.id },
+					input: { itemId: item.id, title: 'renamed' },
+				})
+				if (expected === 'allow') {
+					expect(result.kind, `${role} on ${describeListState(listState)} should update-allow`).toBe('ok')
+				} else {
+					expect(result.kind, `${role} on ${describeListState(listState)} should update-deny`).toBe('error')
+					if (result.kind === 'error' && reasonOnDeny) expect(result.reason).toBe(reasonOnDeny)
+				}
+			})
+		}
+	)
+})
+
+describe('archiveItem x matrix', () => {
+	it.each(archiveItemExpectations)(
+		'role=$role state=$listState.privacy/$listState.active -> $expected',
+		async ({ role, listState, expected, reasonOnDeny }) => {
+			await withRollback(async tx => {
+				const { viewer, list } = await seedFor(role, { tx, listState })
+				const item = await makeItem(tx, { listId: list.id })
+				const result = await archiveItemImpl({ userId: viewer.id, input: { itemId: item.id, archived: true }, dbx: tx })
+				if (expected === 'allow') {
+					expect(result.kind, `${role} on ${describeListState(listState)} should archive-allow`).toBe('ok')
+				} else {
+					expect(result.kind, `${role} on ${describeListState(listState)} should archive-deny`).toBe('error')
+					if (result.kind === 'error' && reasonOnDeny) expect(result.reason).toBe(reasonOnDeny)
+				}
+			})
+		}
+	)
+})
+
+describe('deleteItem x matrix', () => {
+	it.each(deleteItemExpectations)(
+		'role=$role state=$listState.privacy/$listState.active -> $expected',
+		async ({ role, listState, expected, reasonOnDeny }) => {
+			await withRollback(async tx => {
+				const { viewer, list } = await seedFor(role, { tx, listState })
+				const item = await makeItem(tx, { listId: list.id })
+				const result = await deleteItemImpl({
+					db: tx,
+					actor: { id: viewer.id },
+					input: { itemId: item.id },
+				})
+				if (expected === 'allow') {
+					expect(result.kind, `${role} on ${describeListState(listState)} should delete-allow`).toBe('ok')
+				} else {
+					expect(result.kind, `${role} on ${describeListState(listState)} should delete-deny`).toBe('error')
+					if (result.kind === 'error' && reasonOnDeny) expect(result.reason).toBe(reasonOnDeny)
+				}
+			})
+		}
+	)
+})
+
+// ---------------------------------------------------------------------------
+// Non-matrix invariants
+// ---------------------------------------------------------------------------
+
+describe('getItemsForListView - restricted item-filter handoff', () => {
+	// Locks in "list-level allow, item-level filter applies separately"
+	// for the restricted role. The deeper filter cases (multi-claimer,
+	// partner-claimer, co-gifter scrubbing) live in
+	// restricted.permissions.integration.test.ts.
+	it('returns ok for a restricted viewer even when items exist', async () => {
+		await withRollback(async tx => {
+			const { viewer, list } = await seedFor('restricted', { tx, listState: { privacy: 'public', active: true } })
+			await makeItem(tx, { listId: list.id, title: 'unclaimed-visible' })
+			const result = await getItemsForListViewImpl({ userId: viewer.id, listId: String(list.id), dbx: tx })
+			expect(result.kind).toBe('ok')
+		})
 	})
+})
 
-	if (itemExpectations.length === 0) {
-		// Stub placeholder so the file shows up in test discovery without
-		// failing. Remove this once the matrix is populated.
-		it.todo('populate itemExpectations and replace with it.each')
-	}
+describe('deleteItem keeps claimed items reachable via archive', () => {
+	// The recipient never sees claims (spoiler protection); the receiver-
+	// side delete on a claimed item is a hard delete today (the recipient-
+	// deletes-claimed-item project is still on the TODO). Capture today's
+	// behavior so a future shift to soft-delete is a deliberate breakage.
+	it('hard-deletes the item and its giftedItems rows', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx)
+			const gifter = await makeUser(tx)
+			const list = await makeList(tx, { ownerId: owner.id })
+			const item = await makeItem(tx, { listId: list.id })
+			await makeGiftedItem(tx, { itemId: item.id, gifterId: gifter.id })
+			const result = await deleteItemImpl({ db: tx, actor: { id: owner.id }, input: { itemId: item.id } })
+			expect(result.kind).toBe('ok')
+		})
+	})
 })
