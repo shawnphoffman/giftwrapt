@@ -229,7 +229,7 @@ export type NewItemScrapeJob = typeof itemScrapeJobs.$inferInsert
 // `pg_try_advisory_lock(bigint)` requires an int8; hash the user id so
 // concurrent runs for the same user collide and runs for different users
 // don't. Mirrors `intelligenceLockKeySql`; the prefix string MUST stay
-// unique across runners (see `.notes/cron-and-jobs.md` for the
+// unique across runners (see `.notes/architecture/cron-and-jobs.md` for the
 // namespace convention).
 export function itemScrapeQueueLockKeySql(userId: string) {
 	return sql`hashtextextended(${`item-scrape-queue:${userId}`}, 0)`

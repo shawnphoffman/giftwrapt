@@ -2,7 +2,7 @@
 // scheduling page (labels + descriptions + suggested cron expressions)
 // and for `recordCronRun`'s endpoint validation. Keep in sync with
 // vercel.json (the actual scheduler-of-record on Vercel) and
-// .notes/cron-and-jobs.md when adding a new route.
+// .notes/architecture/cron-and-jobs.md when adding a new route.
 //
 // Schedules below match the daily cadences shipped in vercel.json so the
 // `/admin/scheduling` "next fire" estimate matches reality on the
