@@ -8,14 +8,13 @@
 
 import { randomUUID } from 'node:crypto'
 
+import { makeUser } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { and, eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import { db } from '@/db'
 import { recommendations, recommendationSubItemDismissals } from '@/db/schema'
-
-import { makeUser } from '../../../test/integration/factories'
-import { withRollback } from '../../../test/integration/setup'
 
 async function insertBundleRec(tx: Parameters<Parameters<typeof withRollback>[0]>[0], args: { userId: string; fingerprint?: string }) {
 	const fingerprint = args.fingerprint ?? `test-${randomUUID()}`

@@ -2,6 +2,8 @@
 // and custom flavors), update, list-with-usage-count, and delete with
 // admin-cascade conversion of dependent lists.
 
+import { makeGiftedItem, makeItem, makeList, makeUser } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
@@ -13,9 +15,6 @@ import {
 	updateCustomHolidayImpl,
 } from '@/api/_custom-holidays-impl'
 import { customHolidays, giftedItems, holidayCatalog, lists } from '@/db/schema'
-
-import { makeGiftedItem, makeItem, makeList, makeUser } from '../../../test/integration/factories'
-import { withRollback } from '../../../test/integration/setup'
 
 async function seedCatalog(tx: any) {
 	// Drop in a tiny catalog row so the catalog-source add path has

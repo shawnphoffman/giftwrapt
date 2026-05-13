@@ -4,11 +4,11 @@
 // by `src/lib/__tests__/cron-auth.test.ts`. This file focuses on what
 // that can't see: that the impl actually deletes only expired rows.
 
+import { withRollback } from '@test/integration/setup'
 import { describe, expect, it } from 'vitest'
 
 import { verification } from '@/db/schema'
 
-import { withRollback } from '../../../../test/integration/setup'
 import { cleanupVerificationImpl } from '../cleanup-verification'
 
 const NOW = new Date('2026-04-30T12:00:00Z')

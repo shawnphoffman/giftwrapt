@@ -3,12 +3,11 @@
 // requirement, idempotency) and that get/add/remove round-trip
 // correctly for both user and dependent targets.
 
+import { makeDependent, makeDependentGuardianship, makeUser } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { describe, expect, it } from 'vitest'
 
 import { addRelationLabelImpl, getMyRelationLabelsImpl, removeRelationLabelImpl } from '@/api/_relation-labels-impl'
-
-import { makeDependent, makeDependentGuardianship, makeUser } from '../../../test/integration/factories'
-import { withRollback } from '../../../test/integration/setup'
 
 describe('relation-labels API', () => {
 	it('returns rows with resolved user targets', async () => {

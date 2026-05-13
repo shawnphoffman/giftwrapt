@@ -1,3 +1,5 @@
+import { makeList, makeUser } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { eq } from 'drizzle-orm'
 import sharp from 'sharp'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -7,9 +9,6 @@ import { appSettings, items } from '@/db/schema'
 import type * as EnvModule from '@/env'
 import { _setStorageForTesting, type StorageAdapter } from '@/lib/storage/adapter'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
-
-import { makeList, makeUser } from '../../../test/integration/factories'
-import { withRollback } from '../../../test/integration/setup'
 
 vi.mock('@/env', async () => {
 	const actual = await vi.importActual<typeof EnvModule>('@/env')

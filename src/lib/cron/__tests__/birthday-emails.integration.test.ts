@@ -5,10 +5,10 @@
 // network requests. We assert that the right recipients were selected
 // and that the call payloads carry the expected names / item titles.
 
+import { makeGiftedItem, makeItem, makeList, makeUser } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { describe, expect, it, vi } from 'vitest'
 
-import { makeGiftedItem, makeItem, makeList, makeUser } from '../../../../test/integration/factories'
-import { withRollback } from '../../../../test/integration/setup'
 import { birthdayEmailsImpl } from '../birthday-emails'
 
 vi.mock('@/lib/resend', () => ({

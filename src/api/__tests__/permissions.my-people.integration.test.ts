@@ -1,10 +1,9 @@
+import { makeUser, makeUserRelationship } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { describe, expect, it } from 'vitest'
 
 import { getMyPeopleImpl } from '@/api/_permissions-impl'
 import { users } from '@/db/schema'
-
-import { makeUser, makeUserRelationship } from '../../../test/integration/factories'
-import { withRollback } from '../../../test/integration/setup'
 
 describe('getMyPeopleImpl', () => {
 	it('returns every other user with default open visibility flags', async () => {

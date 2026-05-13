@@ -7,13 +7,13 @@
 // can't see: that the impl actually archives the right rows, leaves
 // others alone, and respects the settings-driven delays.
 
+import { makeGiftedItem, makeItem, makeList, makeUser } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { eq, inArray } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import { giftedItems, items } from '@/db/schema'
 
-import { makeGiftedItem, makeItem, makeList, makeUser } from '../../../../test/integration/factories'
-import { withRollback } from '../../../../test/integration/setup'
 import { autoArchiveImpl } from '../auto-archive'
 
 describe('autoArchiveImpl - birthday lists', () => {

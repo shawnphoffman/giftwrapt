@@ -6,15 +6,14 @@
 //   - list-type isolation: items can't be created on todo lists,
 //     todos can't be moved across types via moveItemsToList.
 
+import { makeList, makeUser } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import { createItemImpl } from '@/api/_items-impl'
 import { createTodoImpl, deleteTodoImpl, toggleTodoClaimImpl, updateTodoImpl } from '@/api/_todos-impl'
 import { todoItems } from '@/db/schema'
-
-import { makeList, makeUser } from '../../../test/integration/factories'
-import { withRollback } from '../../../test/integration/setup'
 
 describe('todo API', () => {
 	it('createTodo rejects non-todo lists', async () => {

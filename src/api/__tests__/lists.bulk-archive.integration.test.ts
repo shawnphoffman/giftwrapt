@@ -1,11 +1,10 @@
+import { makeGiftedItem, makeItem, makeList, makeUser } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { eq, inArray } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import { bulkArchiveClaimedItemsImpl } from '@/api/admin'
 import { items } from '@/db/schema'
-
-import { makeGiftedItem, makeItem, makeList, makeUser } from '../../../test/integration/factories'
-import { withRollback } from '../../../test/integration/setup'
 
 describe('bulkArchiveClaimedItemsImpl', () => {
 	it('archives only non-archived items that have at least one claim', async () => {

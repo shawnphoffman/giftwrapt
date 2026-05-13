@@ -1,13 +1,12 @@
 import { randomUUID } from 'node:crypto'
 
+import { makeItem, makeList, makeUser } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { eq, inArray } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import { applyRecommendationImpl } from '@/api/intelligence'
 import { itemGroups, items, listEditors, recommendations } from '@/db/schema'
-
-import { makeItem, makeList, makeUser } from '../../../test/integration/factories'
-import { withRollback } from '../../../test/integration/setup'
 
 async function makeGroupRec(
 	tx: Parameters<Parameters<typeof withRollback>[0]>[0],

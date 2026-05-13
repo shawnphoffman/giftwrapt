@@ -1,11 +1,10 @@
+import { makeGiftedItem, makeItem, makeList, makeListEditor, makeUser } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import { deleteListImpl } from '@/api/_lists-impl'
 import { giftedItems, items, lists } from '@/db/schema'
-
-import { makeGiftedItem, makeItem, makeList, makeListEditor, makeUser } from '../../../test/integration/factories'
-import { withRollback } from '../../../test/integration/setup'
 
 describe('deleteListImpl', () => {
 	it('hard-deletes a list with no claims and cascades its items', async () => {

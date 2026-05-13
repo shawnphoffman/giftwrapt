@@ -1,11 +1,10 @@
+import { makeList, makeUser } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { eq, sql } from 'drizzle-orm'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { Database } from '@/db'
 import { appSettings, items, itemScrapeJobs } from '@/db/schema'
-
-import { makeList, makeUser } from '../../../../../test/integration/factories'
-import { withRollback } from '../../../../../test/integration/setup'
 
 // Stub `runOneShotScrape` so tests don't need network access. The mock
 // is reconfigured per-test via mockImplementation.

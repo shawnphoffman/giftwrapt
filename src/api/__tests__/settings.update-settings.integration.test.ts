@@ -1,9 +1,8 @@
+import { withRollback } from '@test/integration/setup'
 import { describe, expect, it } from 'vitest'
 
 import { appSettings } from '@/db/schema'
 import { getAppSettings } from '@/lib/settings-loader'
-
-import { withRollback } from '../../../test/integration/setup'
 
 // Regression test for a reported (but not reproduced on main) UI symptom
 // where toggling `enableChristmasLists` or `enableBirthdayLists` in the

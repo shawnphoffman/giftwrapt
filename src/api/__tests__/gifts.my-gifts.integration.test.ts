@@ -1,9 +1,8 @@
+import { makeGiftedItem, makeItem, makeList, makeUser } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { describe, expect, it } from 'vitest'
 
 import { getMyGiftsImpl } from '@/api/_gifts-impl'
-
-import { makeGiftedItem, makeItem, makeList, makeUser } from '../../../test/integration/factories'
-import { withRollback } from '../../../test/integration/setup'
 
 describe('getMyGiftsImpl', () => {
 	it('returns claims where I am the primary gifter', async () => {

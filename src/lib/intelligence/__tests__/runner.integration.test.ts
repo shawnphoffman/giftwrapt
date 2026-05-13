@@ -1,11 +1,11 @@
+import { makeDependent, makeDependentGuardianship, makeItem, makeList, makeUser } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import type { Database } from '@/db'
 import { appSettings, recommendationRuns, recommendations } from '@/db/schema'
 
-import { makeDependent, makeDependentGuardianship, makeItem, makeList, makeUser } from '../../../../test/integration/factories'
-import { withRollback } from '../../../../test/integration/setup'
 import { fingerprintFor } from '../fingerprint'
 import { generateForUser } from '../runner'
 

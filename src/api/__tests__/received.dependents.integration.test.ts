@@ -7,14 +7,13 @@
 // Spoiler protection still applies: only items where `isArchived = true`
 // are visible.
 
+import { makeDependent, makeDependentGuardianship, makeGiftedItem, makeItem, makeList, makeUser } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import { getReceivedGiftsImpl } from '@/api/received'
 import { items } from '@/db/schema'
-
-import { makeDependent, makeDependentGuardianship, makeGiftedItem, makeItem, makeList, makeUser } from '../../../test/integration/factories'
-import { withRollback } from '../../../test/integration/setup'
 
 describe('getReceivedGiftsImpl - dependent sections', () => {
 	it('groups archived items on dependent-subject lists into per-dependent sections', async () => {

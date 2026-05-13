@@ -1,3 +1,5 @@
+import { makeDependent, makeDependentGuardianship, makeGiftedItem, makeItem, makeList, makeUser } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
@@ -11,9 +13,6 @@ import {
 } from '@/api/_dependents-impl'
 import { dependentGuardianships, dependents, lists } from '@/db/schema'
 import { canEditList, canViewList } from '@/lib/permissions'
-
-import { makeDependent, makeDependentGuardianship, makeGiftedItem, makeItem, makeList, makeUser } from '../../../test/integration/factories'
-import { withRollback } from '../../../test/integration/setup'
 
 describe('createDependentImpl', () => {
 	it('inserts the dependent + guardianship rows for the supplied guardians', async () => {

@@ -1,11 +1,11 @@
+import { makeDependent, makeDependentGuardianship, makeItem, makeList, makeUser } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import { items } from '@/db/schema'
 import { DEFAULT_APP_SETTINGS } from '@/lib/settings'
 
-import { makeDependent, makeDependentGuardianship, makeItem, makeList, makeUser } from '../../../../test/integration/factories'
-import { withRollback } from '../../../../test/integration/setup'
 import { staleItemsAnalyzer } from '../analyzers/stale-items'
 import type { AnalyzerContext } from '../context'
 

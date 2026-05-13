@@ -1,3 +1,18 @@
+import {
+	makeAccount,
+	makeGiftedItem,
+	makeGuardianship,
+	makeItem,
+	makeItemComment,
+	makeItemScrape,
+	makeList,
+	makeListAddon,
+	makeListEditor,
+	makeSession,
+	makeUser,
+	makeUserRelationship,
+} from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { eq } from 'drizzle-orm'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -17,22 +32,6 @@ import {
 	users,
 } from '@/db/schema'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
-
-import {
-	makeAccount,
-	makeGiftedItem,
-	makeGuardianship,
-	makeItem,
-	makeItemComment,
-	makeItemScrape,
-	makeList,
-	makeListAddon,
-	makeListEditor,
-	makeSession,
-	makeUser,
-	makeUserRelationship,
-} from '../../../test/integration/factories'
-import { withRollback } from '../../../test/integration/setup'
 
 afterEach(() => {
 	vi.mocked(cleanupImageUrls).mockClear()

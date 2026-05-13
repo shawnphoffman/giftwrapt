@@ -11,14 +11,13 @@
 // Dedup is by UTC (month, day): custom rows beat hardcoded so an admin
 // override always wins.
 
+import { makeUser } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import { getUpcomingHolidaysImpl } from '@/api/_widgets-impl'
 import { appSettings, customHolidays, holidayCatalog, userRelationLabels, users } from '@/db/schema'
-
-import { makeUser } from '../../../test/integration/factories'
-import { withRollback } from '../../../test/integration/setup'
 
 // Pin "now" to a moment well before Mother's Day / Father's Day in the
 // US (May 10 and June 21 2026 respectively) so the per-arm catalog

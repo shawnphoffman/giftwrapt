@@ -1,9 +1,9 @@
+import { makeList, makeUser } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { describe, expect, it } from 'vitest'
 
 import { DEFAULT_APP_SETTINGS } from '@/lib/settings'
 
-import { makeList, makeUser } from '../../../../test/integration/factories'
-import { withRollback } from '../../../../test/integration/setup'
 import { primaryListAnalyzer } from '../analyzers/primary-list'
 import type { AnalyzerContext } from '../context'
 

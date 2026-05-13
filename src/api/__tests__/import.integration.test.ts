@@ -1,10 +1,9 @@
+import { makeList, makeUser } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import { appSettings, items, itemScrapeJobs } from '@/db/schema'
-
-import { makeList, makeUser } from '../../../test/integration/factories'
-import { withRollback } from '../../../test/integration/setup'
 
 // The impl runs `enqueueScrapeJob`, which only writes a row - no
 // network. We do not need to mock `runOneShotScrape` here; the runner

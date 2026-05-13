@@ -2,13 +2,13 @@
 // flag, the lead-time window, the per-label miss / fill states, and
 // fingerprint stability across years.
 
+import { makeUser } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { describe, expect, it } from 'vitest'
 
 import { addRelationLabelImpl } from '@/api/_relation-labels-impl'
 import { DEFAULT_APP_SETTINGS } from '@/lib/settings'
 
-import { makeUser } from '../../../../test/integration/factories'
-import { withRollback } from '../../../../test/integration/setup'
 import { relationLabelsAnalyzer } from '../analyzers/relation-labels'
 import type { AnalyzerContext } from '../context'
 

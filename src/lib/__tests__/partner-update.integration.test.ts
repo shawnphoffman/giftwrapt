@@ -1,11 +1,10 @@
+import { makeUser } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import { users } from '@/db/schema'
 import { applyPartnerAndAnniversary } from '@/lib/partner-update'
-
-import { makeUser } from '../../../test/integration/factories'
-import { withRollback } from '../../../test/integration/setup'
 
 async function readPair(tx: Parameters<Parameters<typeof withRollback>[0]>[0], aId: string, bId: string) {
 	const rows = await tx.select().from(users).where(eq(users.id, aId))

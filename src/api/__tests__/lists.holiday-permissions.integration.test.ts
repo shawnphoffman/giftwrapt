@@ -4,12 +4,11 @@
 // future regressions where someone adds a type-specific branch and
 // silently changes permission behavior for holiday lists.
 
+import { makeGuardianship, makeList, makeListEditor, makeUser, makeUserRelationship } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { describe, expect, it } from 'vitest'
 
 import { canEditList, canViewList, canViewListAsAnyone } from '@/lib/permissions'
-
-import { makeGuardianship, makeList, makeListEditor, makeUser, makeUserRelationship } from '../../../test/integration/factories'
-import { withRollback } from '../../../test/integration/setup'
 
 describe('holiday list permissions', () => {
 	it('owner can view and edit', async () => {

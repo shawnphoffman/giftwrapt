@@ -3,12 +3,11 @@
 // and the impl-level CRUD, but the actual list assembly that /me, the
 // public feed, and the create-list picker all consume happens here.
 
+import { makeDependent, makeDependentGuardianship, makeItem, makeList, makeUser } from '@test/integration/factories'
+import { withRollback } from '@test/integration/setup'
 import { describe, expect, it } from 'vitest'
 
 import { getMyListsImpl } from '@/api/_lists-impl'
-
-import { makeDependent, makeDependentGuardianship, makeItem, makeList, makeUser } from '../../../test/integration/factories'
-import { withRollback } from '../../../test/integration/setup'
 
 describe('getMyListsImpl - dependents section', () => {
 	it('returns a per-dependent group for each guardianship the caller has', async () => {
