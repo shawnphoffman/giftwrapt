@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.30.1](https://github.com/shawnphoffman/giftwrapt/compare/v0.30.0...v0.30.1) (2026-05-13)
+
+
+### Bug Fixes
+
+* **cron:** fix stale .notes/cron-and-jobs.md path in code comments ([6a8507f](https://github.com/shawnphoffman/giftwrapt/commit/6a8507fe07a006eb4291cea34226f66277a58384))
+
 ## [0.30.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.29.0...v0.30.0) (2026-05-12)
 
 
