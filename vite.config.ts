@@ -58,6 +58,24 @@ if (process.env.VERCEL) {
 	process.env.VITE_VERCEL_PROJECT_PRODUCTION_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? ''
 }
 
+// The Vercel preview overlay (live-comments / toolbar) is the only
+// third-party script we ever load, and Vercel only injects it on preview
+// deploys - never on production, never on self-host. Allowlist its origins
+// in CSP only when we're actually building a preview; everyone else gets
+// the tighter `'self'`-only posture. SRI is moot for the same reason: we
+// have no third-party origin to apply integrity hashes to on production
+// or self-host builds, and Vercel rotates its preview script per deploy
+// so a stable integrity hash isn't available even when it IS loaded.
+// See `.notes/security/2026-05-checklist-audit.md` item 46.
+const isVercelPreviewBuild = process.env.VERCEL_ENV === 'preview'
+const vercelLiveOrigins = isVercelPreviewBuild
+	? {
+			script: ' https://vercel.live',
+			connect: ' https://vercel.live wss://ws-us3.pusher.com',
+			frame: 'https://vercel.live',
+		}
+	: { script: '', connect: '', frame: "'none'" }
+
 const securityHeaders = {
 	// HSTS is a no-op over HTTP (browsers ignore it per RFC 6797). Useful once
 	// the deployment is fronted by HTTPS: tells browsers to refuse plaintext.
@@ -75,12 +93,12 @@ const securityHeaders = {
 		// `Function()`/`eval()` in the bundle and the app stalls with a CSP
 		// error in the browser console, re-add `'unsafe-eval'` here as a
 		// short-term unblock and file a TODO to track down the source.
-		"script-src 'self' 'unsafe-inline' https://vercel.live",
+		`script-src 'self' 'unsafe-inline'${vercelLiveOrigins.script}`,
 		"style-src 'self' 'unsafe-inline'",
 		"img-src 'self' data: https:",
 		"font-src 'self' data:",
-		"connect-src 'self' https://vercel.live wss://ws-us3.pusher.com",
-		'frame-src https://vercel.live',
+		`connect-src 'self'${vercelLiveOrigins.connect}`,
+		`frame-src ${vercelLiveOrigins.frame}`,
 		"object-src 'none'",
 		"base-uri 'self'",
 		"form-action 'self'",
