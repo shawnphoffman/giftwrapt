@@ -12,6 +12,7 @@ count.txt
 .wrangler
 .output
 .vinxi
+.vercel
 storybook-static
 
 .claude/*
