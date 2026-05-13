@@ -31,6 +31,12 @@ Everything lives at **[giftwrapt.dev](https://giftwrapt.dev)**:
 
 ## Quick start
 
+One-click deploy to Railway (web service + Postgres + 5 cron services, auto-generated secrets):
+
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/giftwrapt)
+
+Or run locally with Docker:
+
 ```bash
 git clone https://github.com/shawnphoffman/giftwrapt.git
 cd giftwrapt

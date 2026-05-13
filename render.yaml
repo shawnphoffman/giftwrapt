@@ -60,7 +60,7 @@ services:
     name: cron-cleanup-verification
     runtime: image
     image:
-      url: curlimages/curl:8.10.1
+      url: curlimages/curl:8.20.0
     schedule: '0 3 * * *'
     startCommand: 'curl -fsSL --retry 3 -H "Authorization: Bearer $CRON_SECRET" $BETTER_AUTH_URL/api/cron/cleanup-verification'
     envVars:
@@ -79,7 +79,7 @@ services:
     name: cron-intelligence-recommendations
     runtime: image
     image:
-      url: curlimages/curl:8.10.1
+      url: curlimages/curl:8.20.0
     schedule: '0 4 * * *'
     startCommand: 'curl -fsSL --retry 3 -H "Authorization: Bearer $CRON_SECRET" $BETTER_AUTH_URL/api/cron/intelligence-recommendations'
     envVars:
@@ -98,7 +98,7 @@ services:
     name: cron-item-scrape-queue
     runtime: image
     image:
-      url: curlimages/curl:8.10.1
+      url: curlimages/curl:8.20.0
     schedule: '0 5 * * *'
     startCommand: 'curl -fsSL --retry 3 -H "Authorization: Bearer $CRON_SECRET" $BETTER_AUTH_URL/api/cron/item-scrape-queue'
     envVars:
@@ -117,7 +117,7 @@ services:
     name: cron-auto-archive
     runtime: image
     image:
-      url: curlimages/curl:8.10.1
+      url: curlimages/curl:8.20.0
     schedule: '0 6 * * *'
     startCommand: 'curl -fsSL --retry 3 -H "Authorization: Bearer $CRON_SECRET" $BETTER_AUTH_URL/api/cron/auto-archive'
     envVars:
@@ -136,7 +136,7 @@ services:
     name: cron-birthday-emails
     runtime: image
     image:
-      url: curlimages/curl:8.10.1
+      url: curlimages/curl:8.20.0
     schedule: '0 7 * * *'
     startCommand: 'curl -fsSL --retry 3 -H "Authorization: Bearer $CRON_SECRET" $BETTER_AUTH_URL/api/cron/birthday-emails'
     envVars:

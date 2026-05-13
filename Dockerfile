@@ -28,6 +28,11 @@ FROM node:22-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+# Bind to all interfaces (incl. IPv6) by default. PaaS providers like Railway
+# and Fly use IPv6-only private networking; the Linux dual-stack default also
+# accepts IPv4 connections, so this is a safe override for self-hosters too.
+# Override with HOST=0.0.0.0 if you need IPv4-only for some reason.
+ENV HOST=::
 
 RUN addgroup --system --gid 1001 nodejs && \
 	adduser --system --uid 1001 --ingroup nodejs nodejs
