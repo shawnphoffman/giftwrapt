@@ -68,10 +68,14 @@ const securityHeaders = {
 	// reverse proxy (or add it back here) and everything still works.
 	'Content-Security-Policy': [
 		"default-src 'self'",
-		// 'unsafe-eval' is needed by something in the production bundle (a wasm
-		// shim or one of the @tanstack libs); blocking it surfaces as an
-		// uncaught CSP error and a stuck loading spinner.
-		"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live",
+		// `'unsafe-eval'` was previously needed by the `qrcode` client lib
+		// loaded on /settings/security for 2FA enrollment. QR rendering moved
+		// server-side (see `src/api/totp-qr.ts`) so the dep no longer reaches
+		// the client bundle. If a future TanStack/wasm dep reintroduces
+		// `Function()`/`eval()` in the bundle and the app stalls with a CSP
+		// error in the browser console, re-add `'unsafe-eval'` here as a
+		// short-term unblock and file a TODO to track down the source.
+		"script-src 'self' 'unsafe-inline' https://vercel.live",
 		"style-src 'self' 'unsafe-inline'",
 		"img-src 'self' data: https:",
 		"font-src 'self' data:",

@@ -1,7 +1,7 @@
 import { Eye, EyeOff } from 'lucide-react'
-import QRCode from 'qrcode'
 import { useEffect, useState } from 'react'
 
+import { getTotpQrSvg } from '@/api/totp-qr'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -117,10 +117,14 @@ function EnrollingView({
 
 	const manualSecret = extractTotpSecret(enrollment.totpURI)
 
+	// QR rendering is server-side so the qrcode library (which uses
+	// `Function(...)`) never reaches the client bundle - lets us drop
+	// `'unsafe-eval'` from the production CSP. See `src/api/totp-qr.ts`.
 	useEffect(() => {
 		let cancelled = false
-		void QRCode.toDataURL(enrollment.totpURI, { width: 240, margin: 1 }).then(url => {
-			if (!cancelled) setQrDataUrl(url)
+		void getTotpQrSvg({ data: { totpURI: enrollment.totpURI } }).then(({ svg }) => {
+			if (cancelled) return
+			setQrDataUrl(`data:image/svg+xml;utf8,${encodeURIComponent(svg)}`)
 		})
 		return () => {
 			cancelled = true
