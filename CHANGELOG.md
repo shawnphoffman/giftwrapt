@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.30.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.29.0...v0.30.0) (2026-05-12)
+
+
+### Features
+
+* **holidays:** route Mother's Day per country, expand catalog ([517328c](https://github.com/shawnphoffman/giftwrapt/commit/517328cba6fb87d517bf98bbcea991e839dabdf9))
+* **widget:** add custom_holidays resolution path ([be7ce83](https://github.com/shawnphoffman/giftwrapt/commit/be7ce830b912811de59f9f1d241369db38ec17ef))
+* **widgets:** redesign upcoming-holidays feed as per-user list ([939e8ab](https://github.com/shawnphoffman/giftwrapt/commit/939e8abcc21fb3b6063c451131a6d6b6b5cccac6))
+
+
+### Bug Fixes
+
+* **admin:** gate custom-holidays section on enableGenericHolidayLists ([e783264](https://github.com/shawnphoffman/giftwrapt/commit/e78326437e71775d2661754a9067a95f3c92cd7d))
+* **admin:** unfilter relation-labels picker in admin edit-user flow ([d4cadfb](https://github.com/shawnphoffman/giftwrapt/commit/d4cadfb79c8574005c103ad7d4b31e747916f496))
+* **cron:** satisfy tanstack-start serializer for admin cron return types ([1051316](https://github.com/shawnphoffman/giftwrapt/commit/10513160ddee0ad9304dec189d567fc83fbb4168))
+* **permissions:** hide restricted indicator from restricted users ([bf4a181](https://github.com/shawnphoffman/giftwrapt/commit/bf4a1815781dffda35e45b79bc8b046db89694e8))
+* **profile:** replace native date input with masked date picker ([3b7bd9c](https://github.com/shawnphoffman/giftwrapt/commit/3b7bd9c8f80cd8ca771bf45aef31f2657e13513b))
+
 ## [0.29.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.28.0...v0.29.0) (2026-05-12)
 
 
