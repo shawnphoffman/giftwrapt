@@ -27,6 +27,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Warn-only for now (see .notes/security/2026-05-checklist-audit.md
+      # items 17 and 33). Surfaces high/critical CVEs in CI logs without
+      # blocking merges; promote to required once we've seen the steady
+      # state and added any necessary `pnpm.overrides`.
+      - name: Audit dependencies (warn-only)
+        run: pnpm audit --prod --audit-level=high
+        continue-on-error: true
+
       - name: Check drizzle journal invariants
         run: pnpm db:check
 
@@ -38,3 +46,36 @@ jobs:
 
       - name: Run integration tests
         run: pnpm test:integration
+
+  # Warn-only semgrep scan (see .notes/security/2026-05-checklist-audit.md
+  # item 33). Runs in parallel with `test` so PR feedback isn't slowed.
+  # Promote to required after we've triaged the OWASP ruleset's hits.
+  security:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install semgrep
+        run: pip install semgrep
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run semgrep
+        run: pnpm security
