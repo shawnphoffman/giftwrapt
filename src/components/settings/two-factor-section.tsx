@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 
+import { getTotpQrSvg } from '@/api/totp-qr'
 import { type EnrollmentPayload, TwoFactorPanelContent, type TwoFactorStatus } from '@/components/settings/two-factor-panel'
 import { authClient, useSession } from '@/lib/auth-client'
 
@@ -34,8 +35,19 @@ export default function TwoFactorSection() {
 		guard('enable two-factor auth', async () => {
 			const { data, error: enableError } = await authClient.twoFactor.enable({ password })
 			if (enableError) throw new Error(enableError.message ?? 'Wrong password.')
-			setEnrollment({ totpURI: data.totpURI, backupCodes: data.backupCodes })
+			// Render the panel immediately with the secret/codes; fetch the
+			// server-rendered QR SVG asynchronously and patch it in when
+			// it arrives. See `src/api/totp-qr.ts` for the why
+			// (CSP `'unsafe-eval'` removal).
+			setEnrollment({ totpURI: data.totpURI, backupCodes: data.backupCodes, qrSvg: null })
 			setStatus('enrolling')
+			void getTotpQrSvg({ data: { totpURI: data.totpURI } })
+				.then(({ svg }) => {
+					setEnrollment(prev => (prev && prev.totpURI === data.totpURI ? { ...prev, qrSvg: svg } : prev))
+				})
+				.catch(err => {
+					setError(err instanceof Error ? err.message : "Couldn't render the QR code.")
+				})
 		})
 
 	const handleVerifyEnrollment = (code: string) =>

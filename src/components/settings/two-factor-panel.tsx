@@ -1,7 +1,6 @@
 import { Eye, EyeOff } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
-import { getTotpQrSvg } from '@/api/totp-qr'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,6 +18,11 @@ export type TwoFactorStatus = 'disabled' | 'enrolling' | 'enabled'
 export type EnrollmentPayload = {
 	totpURI: string
 	backupCodes: Array<string>
+	// Server-rendered QR SVG, fetched asynchronously by the parent after
+	// enrollment starts. `null` while in flight (renders a "Generating QR…"
+	// fallback). See `src/components/settings/two-factor-section.tsx` and
+	// `src/api/totp-qr.ts`.
+	qrSvg: string | null
 }
 
 export type TwoFactorPanelContentProps = {
@@ -113,23 +117,9 @@ function EnrollingView({
 	const [code, setCode] = useState('')
 	const [submitting, setSubmitting] = useState(false)
 	const [secretShown, setSecretShown] = useState(false)
-	const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
 
 	const manualSecret = extractTotpSecret(enrollment.totpURI)
-
-	// QR rendering is server-side so the qrcode library (which uses
-	// `Function(...)`) never reaches the client bundle - lets us drop
-	// `'unsafe-eval'` from the production CSP. See `src/api/totp-qr.ts`.
-	useEffect(() => {
-		let cancelled = false
-		void getTotpQrSvg({ data: { totpURI: enrollment.totpURI } }).then(({ svg }) => {
-			if (cancelled) return
-			setQrDataUrl(`data:image/svg+xml;utf8,${encodeURIComponent(svg)}`)
-		})
-		return () => {
-			cancelled = true
-		}
-	}, [enrollment.totpURI])
+	const qrDataUrl = enrollment.qrSvg ? `data:image/svg+xml;utf8,${encodeURIComponent(enrollment.qrSvg)}` : null
 
 	const handle = async (e: React.FormEvent) => {
 		e.preventDefault()

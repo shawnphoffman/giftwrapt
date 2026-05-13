@@ -10,18 +10,25 @@ import { authMiddleware } from '@/middleware/auth'
 // drop `'unsafe-eval'` from the production CSP. See
 // `.notes/security/2026-05-checklist-audit.md` §34.
 
-const inputSchema = z.object({
+export const totpQrInputSchema = z.object({
 	totpURI: z.string().startsWith('otpauth://').max(2048),
 })
 
+export type TotpQrInput = z.infer<typeof totpQrInputSchema>
+
+// Pure handler exposed for unit tests. The `createServerFn` wrapper below
+// just composes auth middleware + input validation + this function; pulling
+// it out keeps the test target dependency-free.
+export async function renderTotpQrSvg(input: TotpQrInput): Promise<{ svg: string }> {
+	const svg = await QRCode.toString(input.totpURI, {
+		type: 'svg',
+		margin: 1,
+		width: 240,
+	})
+	return { svg }
+}
+
 export const getTotpQrSvg = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware])
-	.inputValidator((data: z.infer<typeof inputSchema>) => inputSchema.parse(data))
-	.handler(async ({ data }): Promise<{ svg: string }> => {
-		const svg = await QRCode.toString(data.totpURI, {
-			type: 'svg',
-			margin: 1,
-			width: 240,
-		})
-		return { svg }
-	})
+	.inputValidator((data: TotpQrInput) => totpQrInputSchema.parse(data))
+	.handler(({ data }): Promise<{ svg: string }> => renderTotpQrSvg(data))
