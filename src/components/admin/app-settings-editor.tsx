@@ -11,7 +11,7 @@ import { ListTypes } from '@/db/schema'
 import { adminAppSettingsQueryKey, notifyAppSettingsChanged, useAdminAppSettings } from '@/hooks/use-app-settings'
 import { useIsEmailConfigured } from '@/hooks/use-is-email-configured'
 import { useStorageStatus } from '@/hooks/use-storage-status'
-import { SUPPORTED_COUNTRIES } from '@/lib/holidays'
+import { SUPPORTED_COUNTRIES } from '@/lib/holidays-countries'
 import type { AppSettings } from '@/lib/settings'
 
 const IS_DEV = import.meta.env.DEV

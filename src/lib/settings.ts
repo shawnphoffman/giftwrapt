@@ -294,8 +294,9 @@ export const appSettingsSchema = z.object({
 	anniversaryReminderLeadDays: z.number().int().min(1).max(365),
 	enableAnniversaryReminderEmails: z.boolean(),
 	// ISO 3166-1 alpha-2. Mother's/Father's Day date resolution uses
-	// this country (US default; date-holidays library handles the rest).
-	// Valentine's and Anniversary are country-independent.
+	// this country (US default; resolved via the pre-computed
+	// occurrences table). Valentine's and Anniversary are country-
+	// independent.
 	relationshipRemindersCountry: z.string().min(2).max(2),
 	// When true, item save (create/update) will fetch any non-storage
 	// imageUrl, run it through the image pipeline, and persist the

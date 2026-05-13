@@ -32,9 +32,10 @@ export const holidayCatalog = pgTable(
 	'holiday_catalog',
 	{
 		id: uuid('id').primaryKey().defaultRandom(),
-		// ISO 3166-1 alpha-2. Validated against `date-holidays` at write
-		// time; not constrained at the DB level so admins can later add
-		// countries the launch defaults didn't include.
+		// ISO 3166-1 alpha-2. Validated against the curated
+		// `SUPPORTED_COUNTRIES` set at write time; not constrained at
+		// the DB level so admins can later add countries the launch
+		// defaults didn't include (after seeding + re-generation).
 		country: text('country').notNull(),
 		// URL-safe identifier. Matches `lists.holidayKey`. Stable for the
 		// lifetime of the entry; renaming changes `name`, never `slug`.
@@ -42,11 +43,13 @@ export const holidayCatalog = pgTable(
 		// Display name shown in the new-list pickers and surfaces that
 		// resolve a holiday name from `(country, key)`.
 		name: text('name').notNull(),
-		// Exact `rule` string from the bundled `date-holidays` library.
-		// Date math (next/last/end occurrence) re-runs the library against
-		// this rule. If a future library version changes a rule for one
-		// of our entries, the entry resolves to null and the unit tests
-		// catch it.
+		// Informational copy of the `date-holidays` rule string that
+		// produced this entry's occurrences at generation time. The
+		// runtime resolves (country, slug) against the pre-computed
+		// occurrences table (src/lib/holiday-occurrences.generated.ts)
+		// and never re-parses this field; it's preserved so admins
+		// can see what defined each row and so the build-time generator
+		// can re-resolve dates when the window is refreshed.
 		rule: text('rule').notNull(),
 		// Hides the entry from the new-list pickers. Existing lists
 		// referencing the row continue to work (date helpers ignore the

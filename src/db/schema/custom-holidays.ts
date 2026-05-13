@@ -8,9 +8,9 @@
 //
 //   - source='catalog': the row points at a `(catalogCountry, catalogKey)`
 //     entry in the pre-existing `holiday_catalog` table. Date math runs
-//     through the `date-holidays` library via `nextOccurrenceForRule`.
-//     Used for holidays with non-trivial recurrence (Easter, Hanukkah,
-//     Mother's-Day-of-Lent, Lunar New Year, etc.).
+//     through `nextOccurrenceBySlug`, which reads the pre-computed
+//     static occurrences table. Used for holidays with non-trivial
+//     recurrence (Easter, Mothering Sunday, Thanksgiving, etc.).
 //
 //   - source='custom': fully custom date. `customMonth` + `customDay`
 //     are required; `customYear` is optional. When `customYear` is null,
@@ -35,8 +35,9 @@ export const customHolidays = pgTable(
 		id: uuid('id').primaryKey().defaultRandom(),
 		title: text('title').notNull(),
 		source: customHolidaySourceEnum('source').notNull(),
-		// Populated when source='catalog'. ISO 3166-1 alpha-2 + slug from
-		// the bundled `date-holidays` library, matching `holiday_catalog`.
+		// Populated when source='catalog'. ISO 3166-1 alpha-2 + slug
+		// pointing at a row in `holiday_catalog`; the date is resolved
+		// via the pre-computed occurrences table at runtime.
 		catalogCountry: text('catalog_country'),
 		catalogKey: text('catalog_key'),
 		// Populated when source='custom'. Month 1-12, day 1-31.

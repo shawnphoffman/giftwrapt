@@ -3,8 +3,8 @@
 // Two flavors of row, discriminated by `source`:
 //
 //   - source='catalog': resolves via the pre-existing
-//     `holiday_catalog` rule + the `date-holidays` library
-//     (nextOccurrenceForRule).
+//     `holiday_catalog` (country, slug) lookup against the static
+//     pre-computed occurrence table.
 //
 //   - source='custom': uses the stored (month, day, year?) directly.
 //     `year=null` means "repeats annually"; the next occurrence rolls
@@ -19,7 +19,7 @@ import { and, eq } from 'drizzle-orm'
 import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
 import { customHolidays, holidayCatalog } from '@/db/schema'
-import { nextOccurrenceForRule } from '@/lib/holidays'
+import { nextOccurrenceBySlug } from '@/lib/holidays'
 
 export type CustomHolidayRow = typeof customHolidays.$inferSelect
 
@@ -42,10 +42,10 @@ export async function customHolidayNextOccurrence(
 		if (!row.catalogCountry || !row.catalogKey) return null
 		const entry = await dbx.query.holidayCatalog.findFirst({
 			where: and(eq(holidayCatalog.country, row.catalogCountry), eq(holidayCatalog.slug, row.catalogKey)),
-			columns: { country: true, slug: true, rule: true },
+			columns: { country: true, slug: true },
 		})
 		if (!entry) return null
-		return nextOccurrenceForRule(entry.country, entry.rule, now)
+		return nextOccurrenceBySlug(entry.country, entry.slug, now)
 	}
 
 	// source='custom'

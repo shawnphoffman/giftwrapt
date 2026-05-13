@@ -44,7 +44,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAppSetting } from '@/hooks/use-app-settings'
-import { SUPPORTED_COUNTRIES } from '@/lib/holidays'
+import { SUPPORTED_COUNTRIES } from '@/lib/holidays-countries'
 
 const MONTHS: ReadonlyArray<{ value: string; label: string; days: number }> = [
 	{ value: '1', label: 'January', days: 31 },
@@ -273,7 +273,7 @@ function AddFromCatalogDialog() {
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>Add holiday from catalog</DialogTitle>
-					<DialogDescription>Curated gift-giving holidays from the bundled date-holidays library.</DialogDescription>
+					<DialogDescription>Curated gift-giving holidays for the supported countries.</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-3">
 					{candidatesQuery.isLoading ? (

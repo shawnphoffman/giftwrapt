@@ -4,7 +4,7 @@
 //
 //   - source='catalog': points at a (catalogCountry, catalogKey) pair
 //     in the bundled holiday_catalog. Date math runs through
-//     nextOccurrenceForRule.
+//     nextOccurrenceBySlug (static pre-computed occurrences table).
 //   - source='custom': fully custom (month, day, optional year).
 //     customYear=null → repeats annually; set → one-time.
 //
