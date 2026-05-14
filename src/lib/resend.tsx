@@ -1,22 +1,18 @@
 import { Resend } from 'resend'
 
 import { db } from '@/db'
-import BirthdayEmail from '@/emails/happy-birthday-email'
-import NewCommentEmail from '@/emails/new-comment-email'
-import OrphanClaimCleanupReminderEmail from '@/emails/orphan-claim-cleanup-reminder-email'
-import OrphanClaimEmail from '@/emails/orphan-claim-email'
-import ParentsDayReminderEmail from '@/emails/parents-day-reminder-email'
-import PartnerAnniversaryReminderEmail from '@/emails/partner-anniversary-reminder-email'
-import PasswordResetEmail from '@/emails/password-reset-email'
-import PostBirthdayEmail from '@/emails/post-birthday-email'
-import PostHolidayEmail from '@/emails/post-holiday-email'
-import PreBirthdayReminderEmail from '@/emails/pre-birthday-reminder-email'
-import PreChristmasReminderEmail from '@/emails/pre-christmas-reminder-email'
-import PreCustomHolidayReminderEmail from '@/emails/pre-custom-holiday-reminder-email'
-import TestEmail from '@/emails/test-email'
-import ValentinesDayReminderEmail from '@/emails/valentines-day-reminder-email'
 import { type ResolvedEmailConfig, resolveEmailConfig } from '@/lib/email-config'
 import { createLogger } from '@/lib/logger'
+
+// Email templates are lazy-loaded inside each send fn below. Statically
+// importing them here drags `@react-email/components` (~1.4 MB) and its
+// tailwindcss runtime into every server route bundle that transitively
+// imports `@/lib/resend` (via `@/lib/orphan-claims`, better-auth, etc.).
+// Dynamic imports keep the heavy renderer paid only when an email
+// actually fires. Resend's SDK itself dynamically imports
+// `@react-email/render`, so removing the static template imports here
+// is sufficient to break the chain — see
+// `node_modules/resend/dist/index.mjs`'s `await import('@react-email/render')`.
 
 const emailLog = createLogger('email')
 
@@ -84,6 +80,7 @@ export const sendNewCommentEmail = async (
 		return null
 	}
 	emailLog.info({ kind: 'new-comment', recipient, listId, itemId }, 'sending email')
+	const { default: NewCommentEmail } = await import('@/emails/new-comment-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: recipient,
@@ -104,6 +101,7 @@ export const sendBirthdayEmail = async (name: string, recipient: string) => {
 		return null
 	}
 	emailLog.info({ kind: 'birthday', recipient }, 'sending email')
+	const { default: BirthdayEmail } = await import('@/emails/happy-birthday-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: recipient,
@@ -122,6 +120,7 @@ export const sendPostBirthdayEmail = async (recipient: string, items: Array<{ ti
 		return null
 	}
 	emailLog.info({ kind: 'post-birthday', recipient, itemCount: items.length }, 'sending email')
+	const { default: PostBirthdayEmail } = await import('@/emails/post-birthday-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: recipient,
@@ -146,6 +145,7 @@ export const sendParentsDayReminderEmail = async (
 		{ kind: 'parental-relations-reminder', recipient, holidayName: args.holidayName, count: args.people.length },
 		'sending email'
 	)
+	const { default: ParentsDayReminderEmail } = await import('@/emails/parents-day-reminder-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: recipient,
@@ -164,6 +164,7 @@ export const sendPreBirthdayReminderEmail = async (recipient: string, args: { na
 		return null
 	}
 	emailLog.info({ kind: 'pre-birthday-reminder', recipient, leadDays: args.leadDays }, 'sending email')
+	const { default: PreBirthdayReminderEmail } = await import('@/emails/pre-birthday-reminder-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: recipient,
@@ -182,6 +183,7 @@ export const sendPreChristmasReminderEmail = async (recipient: string, args: { n
 		return null
 	}
 	emailLog.info({ kind: 'pre-christmas-reminder', recipient, leadDays: args.leadDays }, 'sending email')
+	const { default: PreChristmasReminderEmail } = await import('@/emails/pre-christmas-reminder-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: recipient,
@@ -203,6 +205,7 @@ export const sendPreCustomHolidayReminderEmail = async (
 		return null
 	}
 	emailLog.info({ kind: 'pre-custom-holiday-reminder', recipient, holidayName: args.holidayName, leadDays: args.leadDays }, 'sending email')
+	const { default: PreCustomHolidayReminderEmail } = await import('@/emails/pre-custom-holiday-reminder-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: recipient,
@@ -221,6 +224,7 @@ export const sendValentinesDayReminderEmail = async (recipient: string, args: { 
 		return null
 	}
 	emailLog.info({ kind: 'valentines-day-reminder', recipient, leadDays: args.leadDays }, 'sending email')
+	const { default: ValentinesDayReminderEmail } = await import('@/emails/valentines-day-reminder-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: recipient,
@@ -242,6 +246,7 @@ export const sendPartnerAnniversaryReminderEmail = async (
 		return null
 	}
 	emailLog.info({ kind: 'partner-anniversary-reminder', recipient, leadDays: args.leadDays }, 'sending email')
+	const { default: PartnerAnniversaryReminderEmail } = await import('@/emails/partner-anniversary-reminder-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: recipient,
@@ -270,6 +275,7 @@ export const sendOrphanClaimEmail = async (
 		return null
 	}
 	emailLog.info({ kind: 'orphan-claim', recipient, listId: args.listId }, 'sending email')
+	const { default: OrphanClaimEmail } = await import('@/emails/orphan-claim-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: recipient,
@@ -300,6 +306,7 @@ export const sendOrphanClaimCleanupReminderEmail = async (
 		return null
 	}
 	emailLog.info({ kind: 'orphan-claim-cleanup-reminder', recipient, listId: args.listId }, 'sending email')
+	const { default: OrphanClaimCleanupReminderEmail } = await import('@/emails/orphan-claim-cleanup-reminder-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: recipient,
@@ -327,6 +334,7 @@ export const sendPostHolidayEmail = async (recipient: string, args: { holidayNam
 		return null
 	}
 	emailLog.info({ kind: 'post-holiday', recipient, holidayName: args.holidayName }, 'sending email')
+	const { default: PostHolidayEmail } = await import('@/emails/post-holiday-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: recipient,
@@ -356,6 +364,7 @@ export const sendPasswordResetEmail = async (params: {
 		return null
 	}
 	emailLog.info({ kind: 'password-reset', recipient: params.recipient }, 'sending email')
+	const { default: PasswordResetEmail } = await import('@/emails/password-reset-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: params.recipient,
@@ -375,6 +384,7 @@ export const sendTestEmail = async () => {
 
 	const to = cfg.bccAddress.value || cfg.fromEmail.value!
 	emailLog.info({ kind: 'test', recipient: to }, 'sending email')
+	const { default: TestEmail } = await import('@/emails/test-email')
 	const res = await client.emails.send({
 		from: getFromEmail(cfg),
 		to,
