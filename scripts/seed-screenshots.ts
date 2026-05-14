@@ -10,7 +10,7 @@
  * !!! DEV ONLY !!!
  *
  * Same safety guards as the dev seed (SEED_SAFE=1, localhost-only,
- * TRUNCATE before insert). The seeded password is `SeedPass123!`.
+ * TRUNCATE before insert). The seeded password is `password`.
  *
  * Time-relative: every `createdAt`, `availabilityChangedAt`, and birthday
  * is computed as an offset from the script's start time. Re-running the
@@ -19,7 +19,11 @@
  * meaningful regardless of when the seed last ran.
  *
  * Usage:
- *   SEED_SAFE=1 pnpm db:seed:screenshots
+ *   pnpm dev:screenshots
+ *
+ * `dev:screenshots` chains DB ensure + migrate + seed + the dev server in one
+ * step; SEED_SAFE=1 is set there. Run this script directly only when iterating
+ * on the seed itself, and remember to pass SEED_SAFE=1.
  */
 
 import { mkdir, writeFile } from 'node:fs/promises'
@@ -55,14 +59,16 @@ import { encryptAppSecret } from '@/lib/crypto/app-secret'
 import { fingerprintFor } from '@/lib/intelligence/fingerprint'
 
 const FIXTURE_IDS_PATH = new URL('./screenshots/.fixture-ids.json', import.meta.url).pathname
-const PASSWORD = 'SeedPass123!'
+const PASSWORD = 'password'
 
 // ------------------------------------------------------------------
 // Safety guards (mirrors scripts/seed.ts)
 // ------------------------------------------------------------------
 function assertSafe() {
 	if (process.env.SEED_SAFE !== '1') {
-		throw new Error('Refusing to seed: SEED_SAFE=1 is not set. Run as `SEED_SAFE=1 pnpm db:seed:screenshots`.')
+		throw new Error(
+			'Refusing to seed: SEED_SAFE=1 is not set. Run `pnpm dev:screenshots` (which sets it), or pass SEED_SAFE=1 manually when invoking this script directly.'
+		)
 	}
 	const url = process.env.DATABASE_URL
 	if (!url) throw new Error('DATABASE_URL is not set.')
@@ -273,10 +279,7 @@ const LONG_NOTES =
 const MEDIUM_NOTES = 'Any color but red. Pre-order is fine if it is on backorder.'
 const SHORT_NOTES = 'Size large.'
 
-const LONG_DESCRIPTION =
-	'Mostly stocking-stuffer-sized things plus a few bigger ticket items. Open to alternatives on most of these - prices are ' +
-	'rough estimates pulled from the original listings, not strict targets. Anything marked very-high is the priority for the ' +
-	'big day; the rest are bonuses for whoever wants to pitch in.'
+const LONG_DESCRIPTION = 'Mostly stocking-stuffer-sized things plus a few bigger ticket items.'
 
 // ------------------------------------------------------------------
 // Main
@@ -753,7 +756,7 @@ async function main() {
 			listId: adminWishlist,
 			title: 'Espresso machine',
 			priority: 'very-high',
-			url: 'https://example.com/espresso',
+			url: 'https://amazon.com/espresso',
 			notes: LONG_NOTES,
 			imageUrl: ph.square('Espresso', '1f2937'),
 			price: '1499.00',
@@ -765,7 +768,7 @@ async function main() {
 			listId: adminWishlist,
 			title: 'Noise-cancelling headphones',
 			priority: 'high',
-			url: 'https://example.com/headphones',
+			url: 'https://walmart.com/headphones',
 			notes: MEDIUM_NOTES,
 			imageUrl: ph.square('Headphones', '0f172a'),
 			price: '299.00',
@@ -1244,7 +1247,7 @@ async function main() {
 			listId: friendWishlist,
 			title: 'Indoor herb garden kit',
 			priority: 'high',
-			imageUrl: ph.wide('Herb Garden', '15803d'),
+			imageUrl: ph.wide('Gardening', '15803d'),
 			price: '65.00',
 			currency: 'USD',
 			notes: MEDIUM_NOTES,
@@ -1258,6 +1261,15 @@ async function main() {
 			imageUrl: ph.square('Tea', '047857'),
 			price: '24.00',
 			currency: 'USD',
+			notes: [
+				'A few I keep coming back to:',
+				'',
+				'- [Harney & Sons Paris Black Tea](https://example.test/harney-paris)',
+				'- [Bellocq No. 19 White Wolf](https://example.test/bellocq-white-wolf)',
+				'- [Rishi Jade Cloud Green](https://example.test/rishi-jade-cloud)',
+				'- [Smith Teamaker Lord Bergamot](https://example.test/smith-lord-bergamot)',
+				'- [In Pursuit of Tea Silver Needle](https://example.test/ipot-silver-needle)',
+			].join('\n'),
 			createdAt: daysAgo(60),
 		},
 		{
@@ -1866,19 +1878,19 @@ async function main() {
 		{
 			itemId: need(adminItems, 'Stand mixer'),
 			userId: friendId,
-			comment: 'Already on it - going in with morgan on the matte black one.',
+			comment: 'Matte black is the cleanest, IMO.',
 			createdAt: daysAgo(63),
 		},
 		{
 			itemId: need(partnerItems, 'New chef knife'),
 			userId: adminId,
-			comment: 'Got it - shipping next week.',
+			comment: 'I have the smaller version - the balance is great.',
 			createdAt: daysAgo(27),
 		},
 		{
 			itemId: need(friendItems, 'Indoor herb garden kit'),
 			userId: adminId,
-			comment: 'Saw this on sale yesterday, grabbed one.',
+			comment: 'Saw this on sale at the hardware store last weekend - looks worth it.',
 			createdAt: daysAgo(16),
 		},
 	])
@@ -2231,7 +2243,7 @@ async function main() {
 	console.log('')
 	console.log('✅ Screenshot seed complete.')
 	console.log('')
-	console.log('   Cast (all password: SeedPass123!):')
+	console.log('   Cast (all password: password):')
 	console.log('     admin@example.test    - admin, partnered + guardian, birthday in 5 days')
 	console.log("     partner@example.test  - admin's partner, birthday in 18 days")
 	console.log('     friend@example.test   - mutual edit access, far birthday (~6 months)')

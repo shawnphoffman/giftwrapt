@@ -10,7 +10,7 @@ import { dirname } from 'node:path'
 import type { Browser } from 'playwright'
 
 export const ADMIN_EMAIL = 'admin@example.test'
-export const ADMIN_PASSWORD = 'SeedPass123!'
+export const ADMIN_PASSWORD = 'password'
 
 export async function loginAndSaveState(
 	browser: Browser,

@@ -10,11 +10,12 @@
  *   pnpm screenshots --non-interactive --routes=home,me
  *
  * Prerequisites:
- *   - DB seeded: `SEED_SAFE=1 pnpm db:seed:screenshots`
- *   - Env: loads `.env.local.screenshots` then `.env.local` (screenshots wins on overlap).
- *     Default URL comes from `BETTER_AUTH_URL` when `--url` is omitted.
- *   - Dev server for captures: `pnpm dev:screenshots` (loads `.env.local.screenshots`).
- *     Set `VITE_TANSTACK_DEVTOOLS=false` there so TanStack devtools stay off in the bundle.
+ *   - Run `pnpm dev:screenshots` in another shell. It ensures the screenshot
+ *     DB exists, applies migrations, seeds fresh fixture data, and starts the
+ *     Vite dev server with the fake STORAGE_* env from `.env.local.screenshots`.
+ *   - Env (this script): loads `.env.local.screenshots` then `.env.local`
+ *     (screenshots wins on overlap). Default URL comes from `BETTER_AUTH_URL`
+ *     when `--url` is omitted.
  */
 
 import { readFile } from 'node:fs/promises'
@@ -119,7 +120,7 @@ async function loadFixtureIds(): Promise<FixtureIds> {
 	} catch {
 		throw new Error(
 			`Fixture IDs not found at ${FIXTURE_IDS_PATH}.\n` +
-				`Run \`SEED_SAFE=1 pnpm db:seed:screenshots\` first to seed the DB and generate the fixture file.`
+				`Run \`pnpm dev:screenshots\` first to seed the DB and start the dev server; it generates the fixture file.`
 		)
 	}
 	return JSON.parse(raw) as FixtureIds
@@ -350,7 +351,7 @@ async function main() {
 			default: true,
 		})
 		if (!ok) {
-			console.log('Aborted. Re-run `pnpm db:seed:screenshots` and try again.')
+			console.log('Aborted. Re-run `pnpm dev:screenshots` to reseed, then try again.')
 			process.exit(0)
 		}
 	}
