@@ -20,6 +20,7 @@ import { DateRangeFilter } from '@/components/common/date-range-filter'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import { PageHeading } from '@/components/common/page-heading'
 import UserAvatar from '@/components/common/user-avatar'
+import { PurchasesOrphanSummary } from '@/components/orphan-claims/purchases-orphan-summary'
 import { type EditablePurchase, PurchaseEditDialog } from '@/components/purchases/purchase-edit-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -203,6 +204,8 @@ export function PurchasesPageContent({ items, partner }: Props) {
 					All of your purchases and addons over time. If you have a partner, their purchases appear here too (excluding gifts for you). Edit
 					any row to record pricing and notes, which stay private to you.
 				</p>
+
+				<PurchasesOrphanSummary />
 
 				{/* CONTROLS */}
 				<div className="flex flex-wrap items-center justify-between gap-3">

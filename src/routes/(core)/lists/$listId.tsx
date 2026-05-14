@@ -10,6 +10,7 @@ import ItemList from '@/components/items/item-list'
 import { ItemListSkeleton } from '@/components/items/item-list-skeleton'
 import { ListAddonsSection } from '@/components/list-addons/list-addons-section'
 import BackToParentList from '@/components/lists/back-to-parent-list'
+import { ListOrphanAlert } from '@/components/orphan-claims/list-orphan-alert'
 import { TodoList } from '@/components/todos/todo-list'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useSession } from '@/lib/auth-client'
@@ -120,6 +121,7 @@ function ListDetailPage() {
 					</div>
 				</div>
 				{list.description && <MarkdownNotes content={list.description} className="text-muted-foreground" />}
+				{list.type !== 'todos' && <ListOrphanAlert listId={list.id} />}
 				{list.type === 'todos' ? (
 					// Todo lists have a totally different row shape (separate
 					// todoItems table, single claim field, no gift fields) so
