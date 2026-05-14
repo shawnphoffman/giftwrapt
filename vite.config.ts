@@ -6,7 +6,8 @@ import { devtools } from '@tanstack/devtools-vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import { nitro } from 'nitro/vite'
-import type { Plugin } from 'vite'
+import { visualizer } from 'rollup-plugin-visualizer'
+import type { Plugin, PluginOption } from 'vite'
 import { defineConfig } from 'vite'
 import viteTsConfigPaths from 'vite-tsconfig-paths'
 
@@ -132,6 +133,20 @@ const dbClientAlias = (): Plugin => ({
 	},
 })
 
+// Bundle-size visualizer. Off by default; flip on with `ANALYZE=1 pnpm build`
+// to emit separate treemap reports per environment. The reports land at
+// `dist/{client,ssr}-stats.html`; diff them across commits to verify that a
+// bundle-targeted change actually landed.
+const analyzeEnabled = process.env.ANALYZE === '1'
+const visualizerForEnv = (envName: 'client' | 'ssr'): PluginOption =>
+	visualizer({
+		filename: `dist/${envName}-stats.html`,
+		template: 'treemap',
+		gzipSize: true,
+		brotliSize: true,
+		title: `giftwrapt ${envName} bundle`,
+	}) as PluginOption
+
 const config = defineConfig({
 	// Stagehand (an optional dep used only at runtime via dynamic
 	// `await import()` in the browserbase-stagehand provider) and its
@@ -151,6 +166,12 @@ const config = defineConfig({
 		noExternal: [],
 		external: ['@browserbasehq/stagehand', 'playwright-core', 'chromium-bidi'],
 	},
+	...(analyzeEnabled && {
+		environments: {
+			client: { build: { rollupOptions: { plugins: [visualizerForEnv('client')] } } },
+			ssr: { build: { rollupOptions: { plugins: [visualizerForEnv('ssr')] } } },
+		},
+	}),
 	plugins: [
 		dbClientAlias(),
 		!isStorybook && devtoolsEnabled && devtools(),
