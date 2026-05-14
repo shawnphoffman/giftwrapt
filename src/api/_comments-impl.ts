@@ -7,7 +7,7 @@
 // strip the import of `_comments-impl.ts` becomes unused and Rollup
 // tree-shakes the whole file out of the client bundle.
 
-import { asc, eq } from 'drizzle-orm'
+import { and, asc, eq, isNull } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db, type SchemaDatabase } from '@/db'
@@ -41,8 +41,11 @@ export async function getCommentsForItemImpl(args: {
 }): Promise<Array<CommentWithUser>> {
 	const { userId, itemId, dbx = db } = args
 
+	// Pending-deletion items have no readable comments anywhere - the
+	// orphan-alert UI is intentionally a comment-free surface, and the
+	// recipient can't see the item at all.
 	const item = await dbx.query.items.findFirst({
-		where: eq(items.id, itemId),
+		where: and(eq(items.id, itemId), isNull(items.pendingDeletionAt)),
 		columns: { id: true, listId: true },
 	})
 	if (!item) return []
@@ -93,8 +96,12 @@ export async function createItemCommentImpl(args: {
 	const settings = await getAppSettings(dbx)
 	if (!settings.enableComments) return { kind: 'error', reason: 'comments-disabled' }
 
+	// New comments are not allowed on pending-deletion items. The item is
+	// invisible to its recipient and the only audience that can see it
+	// (gifters with claims) interacts with it through the orphan-alert UI,
+	// which is comment-free by design.
 	const item = await dbx.query.items.findFirst({
-		where: eq(items.id, data.itemId),
+		where: and(eq(items.id, data.itemId), isNull(items.pendingDeletionAt)),
 		columns: { id: true, listId: true, title: true },
 	})
 	if (!item) return { kind: 'error', reason: 'item-not-found' }

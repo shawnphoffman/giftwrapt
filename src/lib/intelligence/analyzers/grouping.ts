@@ -50,6 +50,7 @@ export const groupingAnalyzer: Analyzer = {
 					ne(lists.type, 'giftideas'),
 					ne(lists.type, 'todos'),
 					eq(items.isArchived, false),
+					isNull(items.pendingDeletionAt),
 					isNull(items.groupId)
 				)
 			)

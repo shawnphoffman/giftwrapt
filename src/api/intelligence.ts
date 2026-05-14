@@ -394,13 +394,20 @@ async function applyCreateGroup(
 	}
 
 	const itemRows = await tx
-		.select({ id: items.id, groupId: items.groupId, listId: items.listId, isArchived: items.isArchived })
+		.select({
+			id: items.id,
+			groupId: items.groupId,
+			listId: items.listId,
+			isArchived: items.isArchived,
+			pendingDeletionAt: items.pendingDeletionAt,
+		})
 		.from(items)
 		.where(inArray(items.id, itemIdNums))
 	if (itemRows.length !== itemIdNums.length) return { ok: false, reason: 'items-changed' }
 	for (const row of itemRows) {
 		if (row.listId !== listIdNum) return { ok: false, reason: 'items-changed' }
 		if (row.isArchived) return { ok: false, reason: 'items-changed' }
+		if (row.pendingDeletionAt !== null) return { ok: false, reason: 'items-changed' }
 		if (row.groupId !== null) return { ok: false, reason: 'items-changed' }
 	}
 

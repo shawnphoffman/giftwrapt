@@ -225,6 +225,13 @@
       "when": 1778549275670,
       "tag": "0031_long_kingpin",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1778600000000,
+      "tag": "0032_pending_deletion",
+      "breakpoints": true
     }
   ]
 }

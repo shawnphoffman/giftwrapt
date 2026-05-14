@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, count, desc, eq, gte, inArray, max, notInArray, sql } from 'drizzle-orm'
+import { and, count, desc, eq, gte, inArray, isNull, max, notInArray, sql } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { giftedItems, itemComments, itemGroups, items, lists, userRelationships, users } from '@/db/schema'
@@ -140,7 +140,14 @@ export const getRecentItems = createServerFn({ method: 'GET' })
 			.innerJoin(lists, and(eq(lists.id, items.listId), eq(lists.isActive, true), eq(lists.isPrivate, false)))
 			.innerJoin(users, eq(users.id, lists.ownerId))
 			.leftJoin(sql`dependents as subject_dep`, sql`subject_dep.id = ${lists.subjectDependentId}`)
-			.where(and(eq(items.isArchived, false), gte(items.createdAt, sixtyDaysAgo), notInArray(lists.ownerId, deniedOwners)))
+			.where(
+				and(
+					eq(items.isArchived, false),
+					isNull(items.pendingDeletionAt),
+					gte(items.createdAt, sixtyDaysAgo),
+					notInArray(lists.ownerId, deniedOwners)
+				)
+			)
 			.orderBy(desc(items.createdAt))
 			.limit(50)
 
@@ -230,7 +237,14 @@ export const getRecentConversations = createServerFn({ method: 'GET' })
 			.from(itemComments)
 			.innerJoin(items, eq(items.id, itemComments.itemId))
 			.innerJoin(lists, and(eq(lists.id, items.listId), eq(lists.isActive, true), eq(lists.isPrivate, false)))
-			.where(and(eq(items.isArchived, false), gte(itemComments.createdAt, sixtyDaysAgo), notInArray(lists.ownerId, deniedOwners)))
+			.where(
+				and(
+					eq(items.isArchived, false),
+					isNull(items.pendingDeletionAt),
+					gte(itemComments.createdAt, sixtyDaysAgo),
+					notInArray(lists.ownerId, deniedOwners)
+				)
+			)
 			.groupBy(itemComments.itemId)
 			.orderBy(desc(max(itemComments.createdAt)))
 			.limit(ITEM_LIMIT)

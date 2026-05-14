@@ -5,7 +5,7 @@
 // of the client bundle by ensuring `items.ts` only references these
 // from inside server-fn handler / inputValidator bodies.
 
-import { and, asc, count, desc, eq, inArray } from 'drizzle-orm'
+import { and, asc, count, desc, eq, inArray, isNull } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db, type SchemaDatabase } from '@/db'
@@ -208,8 +208,11 @@ async function loadAndAuthorizeItems(
 	| { ok: true; rows: Array<ItemRow>; lists: Map<number, ListForPermCheck & { type: ListType }> }
 	| { ok: false; reason: 'not-found' | 'not-authorized' }
 > {
+	// Pending-deletion items are excluded so the recipient's bulk
+	// mutations (organize / move / etc.) treat them as not-found, matching
+	// the per-item 404 contract.
 	const rows = await db.query.items.findMany({
-		where: inArray(items.id, [...itemIds]),
+		where: and(inArray(items.id, [...itemIds]), isNull(items.pendingDeletionAt)),
 		columns: { id: true, listId: true },
 	})
 	if (rows.length !== itemIds.length) return { ok: false, reason: 'not-found' }
@@ -237,7 +240,11 @@ async function loadAndAuthorizeItems(
 export async function copyItemToListImpl(args: { userId: string; input: z.infer<typeof CopyItemInputSchema> }): Promise<CopyItemResult> {
 	const { userId, input: data } = args
 
-	const sourceItem = await db.query.items.findFirst({ where: eq(items.id, data.itemId) })
+	// Pending-deletion items are invisible everywhere except the alert UI
+	// for the audience with standing on their claims; copy is not allowed.
+	const sourceItem = await db.query.items.findFirst({
+		where: and(eq(items.id, data.itemId), isNull(items.pendingDeletionAt)),
+	})
 	if (!sourceItem) return { kind: 'error', reason: 'not-found' }
 
 	const sourceList = await db.query.lists.findFirst({
@@ -288,8 +295,9 @@ export async function archiveItemImpl(args: {
 }): Promise<ArchiveItemResult> {
 	const { userId, input: data, dbx = db } = args
 
+	// Pending-deletion items are not-found from the recipient's perspective.
 	const item = await dbx.query.items.findFirst({
-		where: eq(items.id, data.itemId),
+		where: and(eq(items.id, data.itemId), isNull(items.pendingDeletionAt)),
 		columns: { id: true, listId: true },
 	})
 	if (!item) return { kind: 'error', reason: 'not-found' }
@@ -315,7 +323,7 @@ export async function setItemAvailabilityImpl(args: {
 	const { userId, input: data } = args
 
 	const item = await db.query.items.findFirst({
-		where: eq(items.id, data.itemId),
+		where: and(eq(items.id, data.itemId), isNull(items.pendingDeletionAt)),
 		columns: { id: true, listId: true },
 	})
 	if (!item) return { kind: 'error', reason: 'not-found' }
@@ -442,7 +450,10 @@ export async function archiveListPurchasesImpl(args: {
 	const claimedRows = await db
 		.selectDistinct({ itemId: giftedItems.itemId })
 		.from(giftedItems)
-		.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), eq(items.listId, list.id)))
+		.innerJoin(
+			items,
+			and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), isNull(items.pendingDeletionAt), eq(items.listId, list.id))
+		)
 
 	if (claimedRows.length === 0) return { kind: 'ok', updated: 0 }
 
@@ -665,7 +676,12 @@ export async function getItemsForListViewImpl(args: {
 	if (list.ownerId === args.userId && !list.subjectDependentId) return { kind: 'error', reason: 'is-owner' }
 
 	const view = await canViewList(args.userId, list, dbx)
-	if (!view.ok) return { kind: 'error', reason: 'not-visible' }
+	if (!view.ok) {
+		// Archived-list orphan-resolution exception: render an empty item
+		// list so the page can show its orphan-aside instead of failing.
+		if (view.reason === 'inactive') return { kind: 'ok', items: [] }
+		return { kind: 'error', reason: 'not-visible' }
+	}
 
 	const accessLevel = await getViewerAccessLevelForList(args.userId, list, dbx)
 	const [sortBy, sortOrder] = sort.split('-') as [string, 'asc' | 'desc']
@@ -673,7 +689,7 @@ export async function getItemsForListViewImpl(args: {
 
 	const [listItemsRaw, viewGroups, groupTypes, viewerRow] = await Promise.all([
 		dbx.query.items.findMany({
-			where: and(eq(items.listId, list.id), eq(items.isArchived, false)),
+			where: and(eq(items.listId, list.id), eq(items.isArchived, false), isNull(items.pendingDeletionAt)),
 			orderBy,
 			with: {
 				gifts: {
@@ -765,8 +781,13 @@ export async function getItemsForListEditImpl(args: {
 		if (!edit.ok) return { kind: 'error', reason: 'not-authorized' }
 	}
 
+	// Pending-deletion items are invisible to the recipient even with
+	// `includeArchived` (which surfaces revealed gifts in the organize
+	// view). Spoiler protection extends to that view.
 	const listItems = await db.query.items.findMany({
-		where: args.includeArchived ? eq(items.listId, list.id) : and(eq(items.listId, list.id), eq(items.isArchived, false)),
+		where: args.includeArchived
+			? and(eq(items.listId, list.id), isNull(items.pendingDeletionAt))
+			: and(eq(items.listId, list.id), eq(items.isArchived, false), isNull(items.pendingDeletionAt)),
 		orderBy: [desc(items.createdAt)],
 	})
 

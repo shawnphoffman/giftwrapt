@@ -216,7 +216,7 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 				subjectDependentId: lists.subjectDependentId,
 			})
 			.from(giftedItems)
-			.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, true)))
+			.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, true), isNull(items.pendingDeletionAt)))
 			.innerJoin(lists, and(eq(lists.id, items.listId), inArray(lists.subjectDependentId, myDependentIds)))
 			.orderBy(desc(items.updatedAt))
 

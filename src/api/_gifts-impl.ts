@@ -5,7 +5,7 @@
 // `gifts.ts` only references these from inside server-fn handler
 // bodies, which TanStack Start strips on the client.
 
-import { and, arrayOverlaps, desc, eq, inArray, ne, or, sql } from 'drizzle-orm'
+import { and, arrayOverlaps, desc, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db, type SchemaDatabase } from '@/db'
@@ -161,7 +161,7 @@ export async function claimItemGiftImpl(args: {
 
 	const result: ClaimGiftResult = await dbx.transaction(async (tx): Promise<ClaimGiftResult> => {
 		const lockedRows = (await tx.execute(
-			sql`SELECT id, list_id, quantity, is_archived, availability, group_id, group_sort_order FROM items WHERE id = ${data.itemId} FOR UPDATE`
+			sql`SELECT id, list_id, quantity, is_archived, availability, group_id, group_sort_order, pending_deletion_at FROM items WHERE id = ${data.itemId} FOR UPDATE`
 		)) as { rows: Array<unknown> }
 		const lockedItem = lockedRows.rows[0] as
 			| {
@@ -172,10 +172,14 @@ export async function claimItemGiftImpl(args: {
 					availability: 'available' | 'unavailable'
 					group_id: number | null
 					group_sort_order: number | null
+					pending_deletion_at: Date | null
 			  }
 			| undefined
 
-		if (!lockedItem || lockedItem.is_archived) {
+		// Pending-deletion items cannot accept new claims - they're on
+		// their way out (the recipient deleted them) and the orphan-alert
+		// flow handles their existing claims.
+		if (!lockedItem || lockedItem.is_archived || lockedItem.pending_deletion_at !== null) {
 			return { kind: 'error', reason: 'item-not-found' }
 		}
 
@@ -207,10 +211,13 @@ export async function claimItemGiftImpl(args: {
 
 			if (group) {
 				if (group.type === 'or') {
+					// Pending-deletion siblings don't gate the group: the
+					// recipient deleted them, so the gate they represented is
+					// no longer wanted.
 					const siblings = await tx
 						.select({ itemId: giftedItems.itemId, title: items.title })
 						.from(giftedItems)
-						.innerJoin(items, eq(items.id, giftedItems.itemId))
+						.innerJoin(items, and(eq(items.id, giftedItems.itemId), isNull(items.pendingDeletionAt)))
 						.where(and(eq(items.groupId, group.id), ne(items.id, data.itemId)))
 						.limit(1)
 
@@ -218,6 +225,8 @@ export async function claimItemGiftImpl(args: {
 						return { kind: 'error', reason: 'group-already-claimed', blockingItemTitle: siblings[0].title }
 					}
 				} else if (lockedItem.group_sort_order !== null) {
+					// Same rule for `order` groups: pending-deletion items
+					// don't satisfy or block the prerequisite chain.
 					const earlierItems = await tx
 						.select({
 							itemId: items.id,
@@ -230,6 +239,7 @@ export async function claimItemGiftImpl(args: {
 							and(
 								eq(items.groupId, group.id),
 								eq(items.isArchived, false),
+								isNull(items.pendingDeletionAt),
 								ne(items.id, data.itemId),
 								sql`${items.groupSortOrder} IS NOT NULL`,
 								sql`${items.groupSortOrder} < ${lockedItem.group_sort_order}`

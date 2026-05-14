@@ -53,6 +53,7 @@ export const staleScrapeAnalyzer: Analyzer = {
 					ne(lists.type, 'giftideas'),
 					ne(lists.type, 'todos'),
 					eq(items.isArchived, false),
+					isNull(items.pendingDeletionAt),
 					isNotNull(items.url),
 					sql`(${latestScrapeAt} IS NULL OR ${latestScrapeAt} < ${cutoff.toISOString()})`
 				)

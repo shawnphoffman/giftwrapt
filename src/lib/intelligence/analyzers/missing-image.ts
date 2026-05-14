@@ -53,6 +53,7 @@ export const missingImageAnalyzer: Analyzer = {
 					ne(lists.type, 'giftideas'),
 					ne(lists.type, 'todos'),
 					eq(items.isArchived, false),
+					isNull(items.pendingDeletionAt),
 					isNull(items.imageUrl),
 					sql`${candidateImages} IS NOT NULL`
 				)

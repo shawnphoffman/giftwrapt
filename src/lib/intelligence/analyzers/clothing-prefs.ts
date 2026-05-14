@@ -44,7 +44,8 @@ export const clothingPrefsAnalyzer: Analyzer = {
 					eq(lists.isActive, true),
 					ne(lists.type, 'giftideas'),
 					ne(lists.type, 'todos'),
-					eq(items.isArchived, false)
+					eq(items.isArchived, false),
+					isNull(items.pendingDeletionAt)
 				)
 			)
 			.limit(ctx.candidateCap)

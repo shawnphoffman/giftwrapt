@@ -37,6 +37,7 @@ function makeItem(overrides: Partial<Item> = {}): Item {
 		ratingCount: null,
 		priority: 'normal',
 		isArchived: false,
+		pendingDeletionAt: null,
 		quantity: 1,
 		groupSortOrder: null,
 		sortOrder: null,

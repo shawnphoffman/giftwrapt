@@ -4,7 +4,7 @@
 // bundle. `groups.ts` only references these from inside server-fn
 // handler / inputValidator bodies.
 
-import { and, asc, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
@@ -304,7 +304,7 @@ export async function getGroupsForListImpl(args: { listId: number }): Promise<Ar
 	})
 
 	const allItems = await db.query.items.findMany({
-		where: and(eq(items.listId, listId), eq(items.isArchived, false)),
+		where: and(eq(items.listId, listId), eq(items.isArchived, false), isNull(items.pendingDeletionAt)),
 		columns: { id: true, groupId: true, groupSortOrder: true },
 		orderBy: [asc(items.groupSortOrder), asc(items.id)],
 	})

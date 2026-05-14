@@ -50,6 +50,7 @@ export const staleItemsAnalyzer: Analyzer = {
 					ne(lists.type, 'giftideas'),
 					ne(lists.type, 'todos'),
 					eq(items.isArchived, false),
+					isNull(items.pendingDeletionAt),
 					sql`${items.updatedAt} < ${cutoff.toISOString()}`
 				)
 			)

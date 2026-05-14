@@ -26,6 +26,7 @@ import { type BirthMonth, type GroupType, type ListType, listTypeEnumValues, typ
 import type { ListAddon } from '@/db/schema/lists'
 import { computeListItemCounts } from '@/lib/gifts'
 import { isValidHolidayKey } from '@/lib/holidays'
+import { userHasPendingDeletionClaimOnList } from '@/lib/orphan-claims'
 import { canEditList, canViewList, getViewerAccessLevelForList } from '@/lib/permissions'
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
 import type { AppSettings } from '@/lib/settings'
@@ -362,7 +363,17 @@ export async function getListForViewingImpl(args: {
 	}
 
 	const view = await canViewList(args.userId, list, dbx)
-	if (!view.ok) return null
+	// Allow archived-list navigation as a fallback when the caller has a
+	// pending-deletion claim on the list. The /purchases summary alert
+	// links here so the gifter can ack from the per-list alert UI even
+	// after the recipient archived the list.
+	if (!view.ok) {
+		if (view.reason === 'inactive' && (await userHasPendingDeletionClaimOnList(dbx, args.userId, list.id))) {
+			// fall through to the normal payload
+		} else {
+			return null
+		}
+	}
 
 	const accessLevel = await getViewerAccessLevelForList(args.userId, list, dbx)
 
@@ -487,7 +498,7 @@ export async function getMyListsImpl(userId: string, dbx: SchemaDatabase = db): 
 			.from(lists)
 			// "Owned by me" excludes lists I created FOR a dependent - those
 			// belong in the dependents section below, not in my personal lists.
-			.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false)))
+			.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false), sql`${items.pendingDeletionAt} IS NULL`))
 			.where(and(eq(lists.ownerId, userId), eq(lists.isActive, true), sql`${lists.subjectDependentId} IS NULL`))
 			.groupBy(lists.id)
 			.orderBy(desc(lists.isPrimary), asc(lists.name)),
@@ -515,7 +526,7 @@ export async function getMyListsImpl(userId: string, dbx: SchemaDatabase = db): 
 			.innerJoin(lists, and(eq(lists.id, listEditors.listId), eq(lists.isActive, true)))
 			.innerJoin(sql`users as owner`, sql`owner.id = ${lists.ownerId}`)
 			.leftJoin(sql`dependents as subject_dep`, sql`subject_dep.id = ${lists.subjectDependentId}`)
-			.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false)))
+			.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false), sql`${items.pendingDeletionAt} IS NULL`))
 			.where(eq(listEditors.userId, userId))
 			.groupBy(lists.id, sql`owner.name`, sql`owner.email`, sql`owner.image`, sql`subject_dep.name`, sql`subject_dep.image`)
 			.orderBy(asc(lists.name)),
@@ -570,7 +581,7 @@ export async function getMyListsImpl(userId: string, dbx: SchemaDatabase = db): 
 					itemCount: count(items.id),
 				})
 				.from(lists)
-				.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false)))
+				.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false), sql`${items.pendingDeletionAt} IS NULL`))
 				.where(and(inArray(lists.ownerId, childIds), eq(lists.isActive, true)))
 				.groupBy(lists.id)
 				.orderBy(asc(lists.name))
@@ -613,7 +624,7 @@ export async function getMyListsImpl(userId: string, dbx: SchemaDatabase = db): 
 					itemCount: count(items.id),
 				})
 				.from(lists)
-				.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false)))
+				.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false), sql`${items.pendingDeletionAt} IS NULL`))
 				.where(and(inArray(lists.subjectDependentId, dependentIds), eq(lists.isActive, true)))
 				.groupBy(lists.id)
 				.orderBy(asc(lists.name))
@@ -846,6 +857,7 @@ export async function getPublicListsImpl(viewerUserId: string): Promise<Array<Pu
 				with: {
 					itemGroups: { columns: { id: true, type: true } },
 					items: {
+						where: (i, { isNull }) => isNull(i.pendingDeletionAt),
 						columns: {
 							id: true,
 							isArchived: true,
@@ -972,6 +984,7 @@ export async function getPublicDependentsImpl(viewerUserId: string): Promise<Arr
 		},
 		with: {
 			items: {
+				where: (i, { isNull }) => isNull(i.pendingDeletionAt),
 				columns: { id: true, isArchived: true, quantity: true, groupId: true, groupSortOrder: true },
 				with: {
 					gifts: { columns: { gifterId: true, additionalGifterIds: true, quantity: true } },

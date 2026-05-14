@@ -43,6 +43,7 @@ export const missingPriceAnalyzer: Analyzer = {
 					ne(lists.type, 'giftideas'),
 					ne(lists.type, 'todos'),
 					eq(items.isArchived, false),
+					isNull(items.pendingDeletionAt),
 					isNotNull(items.url),
 					isNull(items.price)
 				)

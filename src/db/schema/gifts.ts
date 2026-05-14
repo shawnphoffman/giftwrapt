@@ -1,5 +1,5 @@
 import { relations, sql } from 'drizzle-orm'
-import { check, index, integer, numeric, pgTable, serial, smallint, text } from 'drizzle-orm/pg-core'
+import { check, index, integer, numeric, pgTable, serial, smallint, text, timestamp } from 'drizzle-orm/pg-core'
 
 import { items } from './items'
 import { timestamps } from './shared'
@@ -30,6 +30,11 @@ export const giftedItems = pgTable(
 		quantity: smallint('quantity').default(1).notNull(),
 		totalCost: numeric('total_cost'),
 		notes: text('notes'),
+		// Idempotency mark for the day-before reminder email fired when the
+		// parent item is in pending-deletion. Set when the reminder cron has
+		// emailed this claim's audience; null otherwise. Cleared on no
+		// occasion (the row hard-deletes on ack or auto-cleanup).
+		orphanReminderSentAt: timestamp('orphan_reminder_sent_at', { withTimezone: true }),
 		...timestamps,
 	},
 	table => [

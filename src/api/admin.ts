@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, asc, eq, inArray, isNotNull, ne } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNotNull, isNull, ne } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
@@ -332,7 +332,7 @@ export async function bulkArchiveClaimedItemsImpl(args: { db: SchemaDatabase }):
 	const claimedItemIds = await dbx
 		.selectDistinct({ itemId: giftedItems.itemId })
 		.from(giftedItems)
-		.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false)))
+		.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), isNull(items.pendingDeletionAt)))
 
 	if (claimedItemIds.length === 0) {
 		return { kind: 'ok', archivedCount: 0 }

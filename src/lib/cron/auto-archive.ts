@@ -6,7 +6,7 @@
 // The handler in `src/routes/api/cron/auto-archive.ts` is a thin
 // wrapper that checks the CRON_SECRET and delegates here.
 
-import { and, eq, inArray, isNotNull, or } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, isNull, or } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { giftedItems, items, lists, users } from '@/db/schema'
@@ -84,7 +84,10 @@ export async function autoArchiveImpl({
 		const claimedItemIds = await db
 			.selectDistinct({ itemId: giftedItems.itemId })
 			.from(giftedItems)
-			.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), inArray(items.listId, listIds)))
+			.innerJoin(
+				items,
+				and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), isNull(items.pendingDeletionAt), inArray(items.listId, listIds))
+			)
 
 		if (claimedItemIds.length === 0) continue
 		const ids = claimedItemIds.map(r => r.itemId)
@@ -106,7 +109,10 @@ export async function autoArchiveImpl({
 			const claimedItemIds = await db
 				.selectDistinct({ itemId: giftedItems.itemId })
 				.from(giftedItems)
-				.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), eq(items.listId, list.id)))
+				.innerJoin(
+					items,
+					and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), isNull(items.pendingDeletionAt), eq(items.listId, list.id))
+				)
 			if (claimedItemIds.length === 0) continue
 			const ids = claimedItemIds.map(r => r.itemId)
 			await db.update(items).set({ isArchived: true }).where(inArray(items.id, ids))
@@ -191,7 +197,10 @@ export async function autoArchiveImpl({
 		const claimedItemIds = await db
 			.selectDistinct({ itemId: giftedItems.itemId })
 			.from(giftedItems)
-			.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), eq(items.listId, list.id)))
+			.innerJoin(
+				items,
+				and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), isNull(items.pendingDeletionAt), eq(items.listId, list.id))
+			)
 
 		if (claimedItemIds.length > 0) {
 			const ids = claimedItemIds.map(r => r.itemId)

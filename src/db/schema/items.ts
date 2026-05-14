@@ -45,6 +45,13 @@ export const items = pgTable(
 		ratingCount: integer('rating_count'),
 		priority: priorityEnum('priority').default('normal').notNull(),
 		isArchived: boolean('is_archived').default(false).notNull(),
+		// Set when a recipient deletes an item that has active claims. The
+		// item is invisible to the recipient and to non-claimers; only the
+		// gifter+partner audience for each surviving claim sees it (in the
+		// orphan-alert surface). Orthogonal to `isArchived` - pending-
+		// deletion items NEVER reach the reveal flow. Cleared only on
+		// hard-delete of the item (last claim acked or auto-cleanup cron).
+		pendingDeletionAt: timestamp('pending_deletion_at', { withTimezone: true }),
 		quantity: smallint('quantity').default(1).notNull(),
 		// Position within an item group. Only meaningful when groupId is set.
 		// Used by 'order' groups to enforce claim sequence.
@@ -61,6 +68,7 @@ export const items = pgTable(
 		index('items_listId_isArchived_idx').on(table.listId, table.isArchived),
 		index('items_listId_vendorId_idx').on(table.listId, table.vendorId),
 		index('items_groupId_idx').on(table.groupId),
+		index('items_pendingDeletionAt_idx').on(table.pendingDeletionAt),
 		// index('items_status_idx').on(table.status),
 	]
 )
