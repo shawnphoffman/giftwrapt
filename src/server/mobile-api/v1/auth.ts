@@ -58,8 +58,8 @@ const BrowserBeginSchema = z.object({
 	deviceName: z.string().min(1).max(LIMITS.SHORT_NAME),
 	// The custom URL scheme the iOS app registered for the redirect
 	// leg. Validated against the admin-configured whitelist
-	// (`oidcClient.mobileRedirectUris`) before any challenge token
-	// is minted. The same whitelist gates both passkey and OIDC so
+	// (`mobileApp.redirectUris`) before any challenge token is
+	// minted. The same whitelist gates both passkey and OIDC so
 	// admins have one place to manage iOS app schemes.
 	redirectUri: z.string().min(1).max(2000),
 })
@@ -95,14 +95,14 @@ async function configuredOidcProvider(): Promise<{ id: 'oidc'; label: string } |
 /**
  * The single source of truth for "which iOS app schemes can we
  * redirect to". Both passkey and OIDC consult this; an empty list
- * means mobile sign-in via the browser flow isn't enabled (admins
- * configure it under /admin/auth's OIDC section, which doubles as
- * the mobile-app whitelist).
+ * means mobile sign-in via the browser flow isn't enabled. Admins
+ * configure it under /admin/auth's Mobile app card. Fresh deployments
+ * ship with the canonical iOS scheme so passkey is on by default.
  */
 async function configuredMobileRedirectUris(): Promise<ReadonlyArray<string>> {
 	try {
 		const settings = await getAppSettings(db)
-		return settings.oidcClient.mobileRedirectUris
+		return settings.mobileApp.redirectUris
 	} catch {
 		return []
 	}

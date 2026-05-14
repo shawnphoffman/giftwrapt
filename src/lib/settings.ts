@@ -211,14 +211,30 @@ export const oidcClientConfigSchema = z.object({
 	// new user. When false, only existing users (matched per
 	// `matchExistingUsersBy`) can sign in.
 	autoRegister: z.boolean(),
-	// URL schemes the iOS mobile-API redirect leg is allowed to
-	// bounce back through. The mobile begin endpoint validates the
-	// requested scheme is on this list before issuing a token. One
-	// scheme per line in the form; whitespace trimmed.
-	mobileRedirectUris: z.array(z.string().min(1).max(200)).max(8),
 })
 
 export type OidcClientConfig = z.infer<typeof oidcClientConfigSchema>
+
+// Mobile app config (top-level since 2026-05). The redirect-URI
+// whitelist gates BOTH passkey and OIDC sign-in from the mobile-API
+// begin endpoints: the capabilities probe derives `passkey:
+// list.length > 0`, and `/passkey/begin` + `/oidc/begin` validate
+// the requested `redirectUri` against this list. Lives outside
+// `oidcClient` because it isn't OIDC-specific; the canonical iOS
+// app's scheme ships as the default so fresh deployments have
+// passkey on out of the box.
+export const mobileAppConfigSchema = z.object({
+	// URL schemes the iOS mobile-API redirect leg is allowed to
+	// bounce back through. The begin endpoints validate the
+	// requested URI is on this list before issuing a token. One
+	// scheme per line in the admin form; whitespace trimmed.
+	// Default ships `wishlists://oauth` (the canonical iOS app's
+	// CFBundleURLScheme); admins running a forked build with a
+	// different scheme can replace it.
+	redirectUris: z.array(z.string().min(1).max(200)).max(8),
+})
+
+export type MobileAppConfig = z.infer<typeof mobileAppConfigSchema>
 
 // `clientSecret` is the only secret in this object today. Path is
 // scoped to the `oidcClient` settings key.
@@ -321,6 +337,11 @@ export const appSettingsSchema = z.object({
 	// boot. See `oidcClientConfigSchema` above and the loader pass in
 	// `src/lib/settings-loader.ts` that decrypts `clientSecret`.
 	oidcClient: oidcClientConfigSchema,
+	// Mobile app settings (top-level so the redirect-URI whitelist is
+	// editable from /admin/auth without being buried in the OIDC card).
+	// See `mobileAppConfigSchema` above. Gates passkey + OIDC begin
+	// endpoints on the mobile API.
+	mobileApp: mobileAppConfigSchema,
 	// =====================================================================
 	// URL scraping
 	// =====================================================================
@@ -481,7 +502,9 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 		buttonText: '',
 		matchExistingUsersBy: 'none' as const,
 		autoRegister: true,
-		mobileRedirectUris: [],
+	},
+	mobileApp: {
+		redirectUris: ['wishlists://oauth'],
 	},
 	// Per-provider HTTP timeout. Hosted scrapers (Stagehand / AI on
 	// heavy pages) routinely need >10s; bumped from 10s after

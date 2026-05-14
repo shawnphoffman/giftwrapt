@@ -341,7 +341,12 @@ async function main() {
 				buttonText: 'Sign in with Example IdP',
 				matchExistingUsersBy: 'email',
 				autoRegister: true,
-				mobileRedirectUris: ['giftwrapt://oauth/callback'],
+			},
+		},
+		{
+			key: 'mobileApp',
+			value: {
+				redirectUris: ['giftwrapt://oauth/callback'],
 			},
 		},
 
