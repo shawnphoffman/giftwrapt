@@ -26,7 +26,7 @@ import { encryptOidcClientSecrets } from '@/lib/settings-loader'
 
 import { mobileApp } from '../app'
 
-const REDIRECT_URI = 'com.shawnhoffman.wishlists://oauth'
+const REDIRECT_URI = 'wishlists://oauth'
 
 async function enableMobileApp(enabled: boolean): Promise<void> {
 	await db
@@ -41,7 +41,6 @@ async function setOidcConfig(
 		clientId: string
 		clientSecret: string
 		issuerUrl: string
-		mobileRedirectUris: Array<string>
 		buttonText: string
 	}>
 ): Promise<void> {
@@ -59,13 +58,21 @@ async function setOidcConfig(
 		buttonText: overrides.buttonText ?? '',
 		matchExistingUsersBy: 'none',
 		autoRegister: true,
-		mobileRedirectUris: overrides.mobileRedirectUris ?? [REDIRECT_URI],
 	})
 	await db.insert(appSettings).values({ key: 'oidcClient', value }).onConflictDoUpdate({ target: appSettings.key, set: { value } })
 }
 
+async function setMobileRedirectUris(uris: Array<string>): Promise<void> {
+	const value = { redirectUris: uris }
+	await db.insert(appSettings).values({ key: 'mobileApp', value }).onConflictDoUpdate({ target: appSettings.key, set: { value } })
+}
+
 async function clearOidcConfig(): Promise<void> {
 	await db.delete(appSettings).where(eq(appSettings.key, 'oidcClient'))
+}
+
+async function clearMobileAppConfig(): Promise<void> {
+	await db.delete(appSettings).where(eq(appSettings.key, 'mobileApp'))
 }
 
 async function postOidcBegin(body: unknown): Promise<Response> {
@@ -92,10 +99,16 @@ describe('mobile sign-in: OIDC', () => {
 	beforeEach(async () => {
 		mobileSignInLimiter._resetForTesting()
 		await enableMobileApp(true)
+		// OIDC tests want a known whitelist; the schema default
+		// `['wishlists://oauth']` already matches REDIRECT_URI, but
+		// pin it explicitly so changes to the default can't break
+		// these tests.
+		await setMobileRedirectUris([REDIRECT_URI])
 	})
 
 	afterEach(async () => {
 		await clearOidcConfig()
+		await clearMobileAppConfig()
 	})
 
 	it('capabilities surfaces nothing when no provider is configured', async () => {

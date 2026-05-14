@@ -24,7 +24,6 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { db } from '@/db'
 import { appSettings } from '@/db/schema'
 import { mobileSignInLimiter } from '@/lib/rate-limits'
-import { encryptOidcClientSecrets } from '@/lib/settings-loader'
 
 import { mobileApp } from '../app'
 
@@ -38,27 +37,12 @@ async function enableMobileApp(enabled: boolean): Promise<void> {
 }
 
 async function setMobileRedirectUris(uris: Array<string>): Promise<void> {
-	const value = encryptOidcClientSecrets({
-		enabled: false,
-		issuerUrl: '',
-		authorizationUrl: '',
-		tokenUrl: '',
-		userinfoUrl: '',
-		jwksUrl: '',
-		logoutUrl: '',
-		clientId: '',
-		clientSecret: '',
-		scopes: [],
-		buttonText: '',
-		matchExistingUsersBy: 'none',
-		autoRegister: true,
-		mobileRedirectUris: uris,
-	})
-	await db.insert(appSettings).values({ key: 'oidcClient', value }).onConflictDoUpdate({ target: appSettings.key, set: { value } })
+	const value = { redirectUris: uris }
+	await db.insert(appSettings).values({ key: 'mobileApp', value }).onConflictDoUpdate({ target: appSettings.key, set: { value } })
 }
 
-async function clearOidcConfig(): Promise<void> {
-	await db.delete(appSettings).where(eq(appSettings.key, 'oidcClient'))
+async function clearMobileAppConfig(): Promise<void> {
+	await db.delete(appSettings).where(eq(appSettings.key, 'mobileApp'))
 }
 
 async function postPasskeyBegin(body: unknown): Promise<Response> {
@@ -85,14 +69,30 @@ describe('mobile sign-in: passkey (browser flow)', () => {
 	beforeEach(async () => {
 		mobileSignInLimiter._resetForTesting()
 		await enableMobileApp(true)
+		// Start each test with a known-empty whitelist so the
+		// schema-level default (`['wishlists://oauth']`) doesn't bleed
+		// across tests that want to assert the "no URIs configured"
+		// state. Individual tests opt in to a non-empty list via
+		// `setMobileRedirectUris`.
+		await setMobileRedirectUris([])
 	})
 
 	afterEach(async () => {
-		await clearOidcConfig()
+		await clearMobileAppConfig()
 	})
 
-	it('capabilities reports passkey:false when no mobile redirect URIs are configured', async () => {
-		await clearOidcConfig()
+	it('capabilities reports passkey:true on a fresh DB (default kicks in)', async () => {
+		// Fresh deployments ship `wishlists://oauth` as the default so
+		// the canonical iOS app gets passkey out of the box.
+		await clearMobileAppConfig()
+		const res = await mobileApp.fetch(new Request('http://t/api/mobile/v1/auth/capabilities'))
+		expect(res.status).toBe(200)
+		const body = (await res.json()) as { passkey: boolean }
+		expect(body.passkey).toBe(true)
+	})
+
+	it('capabilities reports passkey:false when admin explicitly empties the whitelist', async () => {
+		await setMobileRedirectUris([])
 		const res = await mobileApp.fetch(new Request('http://t/api/mobile/v1/auth/capabilities'))
 		expect(res.status).toBe(200)
 		const body = (await res.json()) as { passkey: boolean }
