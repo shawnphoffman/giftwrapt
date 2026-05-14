@@ -1,0 +1,71 @@
+// Storybook stories per list-hygiene rec variant. Bucketed under
+// `Intelligence / List hygiene` so screenshots are easy to scan and tweak
+// when copy or layout shifts. Each variant exercises a distinct rec kind
+// or rec state (active / dismissed / applied) so QA can verify the card
+// renders correctly across the analyzer's whole decision tree.
+
+import type { Meta, StoryObj } from '@storybook/react-vite'
+
+import { withPageContainer } from '../../../.storybook/decorators'
+import { listHygieneRecsByKind } from './__fixtures__/data'
+import { RecommendationCard } from './recommendation-card'
+
+const meta = {
+	title: 'Intelligence/List hygiene',
+	component: RecommendationCard,
+	parameters: { layout: 'fullscreen' },
+	decorators: [withPageContainer],
+} satisfies Meta<typeof RecommendationCard>
+
+export default meta
+type Story = StoryObj<typeof meta>
+
+// === Branch 1: convert public non-matching list ===
+
+export const ConvertPublicListForBirthday: Story = {
+	args: { rec: listHygieneRecsByKind.convertBirthday },
+}
+
+export const ConvertPublicListForChristmas: Story = {
+	args: { rec: listHygieneRecsByKind.convertChristmas },
+}
+
+export const ConvertPublicListHolidayRebind: Story = {
+	args: { rec: listHygieneRecsByKind.convertHolidayRebind },
+}
+
+// === Branch 2: flip private matching list public ===
+
+export const MakePrivateMatchingListPublic: Story = {
+	args: { rec: listHygieneRecsByKind.makePublic },
+}
+
+// === Branch 3: create event list ===
+
+export const CreateEventListForUser: Story = {
+	args: { rec: listHygieneRecsByKind.createEventList },
+}
+
+export const CreateEventListForDependent: Story = {
+	args: { rec: listHygieneRecsByKind.createEventListDependent },
+}
+
+// === Branch 4: rotate primary ===
+
+export const WrongPrimaryForEvent: Story = {
+	args: { rec: listHygieneRecsByKind.wrongPrimary },
+}
+
+// === States ===
+
+export const ConvertDismissed: Story = {
+	args: { rec: { ...listHygieneRecsByKind.convertBirthday, status: 'dismissed', dismissedAt: new Date() } },
+}
+
+export const ConvertApplied: Story = {
+	args: { rec: { ...listHygieneRecsByKind.convertBirthday, status: 'applied' } },
+}
+
+export const ConvertBusy: Story = {
+	args: { rec: listHygieneRecsByKind.convertBirthday, pending: true },
+}

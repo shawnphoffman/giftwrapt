@@ -59,6 +59,8 @@ type Props = {
 
 export const ANALYZER_ORDER: Array<AnalyzerId> = [
 	'primary-list',
+	'list-hygiene',
+	'relation-labels',
 	'stale-items',
 	'duplicates',
 	'grouping',
@@ -556,6 +558,22 @@ export const ANALYZER_META: Record<
 		description: 'Suggests setting a primary list when the user has multiple active lists but none are marked primary.',
 		example:
 			'You have 3 active wishlists but none are marked primary. Set one so people who want to shop for you know where to look first.',
+		kind: 'heuristic',
+		triggers: ['cron', 'manual'],
+	},
+	'list-hygiene': {
+		label: 'List hygiene',
+		description:
+			"Calendar-aware nudges to reshape lists for upcoming auto-archive events (birthdays, Christmas, custom holidays). Suggests convert / make-public / create / set-primary, depending on the user's current lists.",
+		example:
+			'Your birthday is in 14 days and your only public list is a Christmas list. Convert it to a birthday list and rename it so gifts auto-reveal on the right day.',
+		kind: 'heuristic',
+		triggers: ['cron', 'manual'],
+	},
+	'relation-labels': {
+		label: 'Relation labels',
+		description: "Nudges users to declare mother / father relationships when Mother's/Father's Day approaches.",
+		example: "Mother's Day is in 7 days. Tag a parent so the system can remind you and shape your gift-tracking.",
 		kind: 'heuristic',
 		triggers: ['cron', 'manual'],
 	},

@@ -5,6 +5,7 @@ import { lists } from '@/db/schema'
 import type { Analyzer } from '../analyzer'
 import { combineHashes, sha256Hex } from '../hash'
 import type { AnalyzerResult, ListRef } from '../types'
+import { eventIsCovered, getInWindowEventsForSubject } from '../upcoming-events'
 
 // Pure heuristic analyzer: does the user have any active list with
 // `isPrimary = true`? If not, surface a list-picker rec. No AI calls.
@@ -39,6 +40,7 @@ export const primaryListAnalyzer: Analyzer = {
 				isPrivate: lists.isPrivate,
 				isPrimary: lists.isPrimary,
 				isActive: lists.isActive,
+				customHolidayId: lists.customHolidayId,
 				ownerName: sql<string>`coalesce(u.name, '')`,
 			})
 			.from(lists)
@@ -71,12 +73,29 @@ export const primaryListAnalyzer: Analyzer = {
 			return { recs: [], steps, inputHash: combineHashes([inputHash]) }
 		}
 
+		// Yield to list-hygiene when an in-window event has a matching list:
+		// list-hygiene's create-event-list / wrong-primary-for-event recs
+		// will surface calendar-aware primary handling. Without this yield,
+		// the user sees BOTH a generic "pick any primary" and a specific
+		// "set X as primary because <event>" — redundant.
+		const events = await getInWindowEventsForSubject({
+			userId: ctx.userId,
+			dependentId: null,
+			settings: ctx.settings,
+			now: ctx.now,
+			dbx: ctx.db,
+		})
+		const calendarCovered = events.some(event => eventIsCovered(event, userLists))
+		if (calendarCovered) {
+			return { recs: [], steps, inputHash: combineHashes([inputHash]) }
+		}
+
 		const subjectName = userLists.find(l => l.ownerName)?.ownerName ?? 'You'
 		const listSubject: ListRef['subject'] = { kind: 'user', name: subjectName, image: ctx.subject.image }
 		const eligibleRefs: Array<ListRef> = eligible.map(l => ({
 			id: String(l.id),
 			name: l.name,
-			type: l.type as ListRef['type'],
+			type: l.type,
 			isPrivate: l.isPrivate,
 			subject: listSubject,
 		}))

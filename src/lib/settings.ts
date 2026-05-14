@@ -412,6 +412,17 @@ export const appSettingsSchema = z.object({
 	intelligenceEmailEnabled: z.boolean(),
 	intelligenceEmailWeeklyDigestEnabled: z.boolean(),
 	intelligenceEmailTestRecipient: z.union([z.null(), z.email()]),
+	// List-hygiene analyzer: how many days BEFORE an event qualifies as
+	// "in-window" for nudges (convert / make public / create / set primary).
+	// 45 means we start nudging 45 days before the event.
+	intelligenceUpcomingWindowDays: z.number().int().min(1).max(365),
+	// List-hygiene analyzer: the minimum days-until-event threshold below
+	// which we stop firing convert/create/privacy recs. 1 means "we keep
+	// nudging up through the day before; on the day-of we go quiet."
+	// Converting close to the event still improves auto-archive coverage
+	// (we never propose conversions AWAY from a matching type), so the
+	// floor exists mostly to avoid same-day churn.
+	intelligenceMinDaysBeforeEventForRecs: z.number().int().min(0).max(365),
 	// How many days of `cron_runs` history to keep. The daily verification-
 	// cleanup tick sweeps rows older than this. 90 days = roughly one
 	// quarter of operational history at five endpoints.
@@ -506,6 +517,8 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	intelligenceEmailEnabled: false,
 	intelligenceEmailWeeklyDigestEnabled: false,
 	intelligenceEmailTestRecipient: null,
+	intelligenceUpcomingWindowDays: 45,
+	intelligenceMinDaysBeforeEventForRecs: 1,
 	cronRunsRetentionDays: 90,
 }
 

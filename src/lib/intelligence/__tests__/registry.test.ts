@@ -7,6 +7,7 @@ describe('analyzer registry', () => {
 		const ids = ANALYZERS.map(a => a.id)
 		expect(ids).toEqual([
 			'primary-list',
+			'list-hygiene',
 			'relation-labels',
 			'stale-items',
 			'duplicates',

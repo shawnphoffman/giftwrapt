@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import type { ListRef as UiListRef } from '@/components/intelligence/__fixtures__/types'
 import type { RecommendationSeverity } from '@/db/schema'
+import { listTypeEnumValues } from '@/db/schema/enums'
 
 // ─── Public-facing types ────────────────────────────────────────────────────
 //
@@ -45,6 +46,35 @@ export type RecommendationApply =
 	| {
 			kind: 'set-primary-list'
 			listId: string
+	  }
+	| {
+			// Convert an existing list to a different type (optionally renaming
+			// it and re-binding a customHolidayId). Delegates to updateListImpl
+			// so all server-side rules (todos lock, giftideas force-private,
+			// holiday metadata wiring + lastHolidayArchiveAt clear) apply.
+			kind: 'convert-list'
+			listId: string
+			newType: (typeof listTypeEnumValues)[number]
+			newName?: string
+			newCustomHolidayId?: string | null
+	  }
+	| {
+			// Flip a list between public and private. Delegates to updateListImpl.
+			kind: 'change-list-privacy'
+			listId: string
+			isPrivate: boolean
+	  }
+	| {
+			// Create a new list pre-filled for an upcoming event. When
+			// setAsPrimary is true AND the subject still has no primary at
+			// apply time, the new list is promoted to primary as well.
+			kind: 'create-list'
+			type: (typeof listTypeEnumValues)[number]
+			name: string
+			isPrivate: boolean
+			setAsPrimary: boolean
+			customHolidayId?: string | null
+			subjectDependentId?: string | null
 	  }
 
 export type RecommendationAction = {
@@ -168,6 +198,27 @@ export const recPayloadSchema = z.object({
 						z.object({
 							kind: z.literal('set-primary-list'),
 							listId: z.string(),
+						}),
+						z.object({
+							kind: z.literal('convert-list'),
+							listId: z.string(),
+							newType: z.enum(listTypeEnumValues),
+							newName: z.string().optional(),
+							newCustomHolidayId: z.string().nullable().optional(),
+						}),
+						z.object({
+							kind: z.literal('change-list-privacy'),
+							listId: z.string(),
+							isPrivate: z.boolean(),
+						}),
+						z.object({
+							kind: z.literal('create-list'),
+							type: z.enum(listTypeEnumValues),
+							name: z.string(),
+							isPrivate: z.boolean(),
+							setAsPrimary: z.boolean(),
+							customHolidayId: z.string().nullable().optional(),
+							subjectDependentId: z.string().nullable().optional(),
 						}),
 					])
 					.optional(),

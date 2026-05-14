@@ -2,8 +2,10 @@ import { createServerFn } from '@tanstack/react-start'
 import { and, asc, count, desc, eq, gt, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
+import { isListTypeDisabled } from '@/api/_lists-impl'
 import { db, type SchemaDatabase } from '@/db'
 import {
+	customHolidays,
 	dependentGuardianships,
 	dependents,
 	giftedItems,
@@ -13,7 +15,9 @@ import {
 	recommendationRuns,
 	recommendations,
 	recommendationSubItemDismissals,
+	users,
 } from '@/db/schema'
+import { listTypeEnumValues } from '@/db/schema/enums'
 import { resolveAiConfig } from '@/lib/ai-config'
 import { generateForUser } from '@/lib/intelligence/runner'
 import { loggingMiddleware } from '@/lib/logger'
@@ -319,15 +323,49 @@ const setPrimaryListApplySchema = z.object({
 	listId: z.string(),
 })
 
+const convertListApplySchema = z.object({
+	kind: z.literal('convert-list'),
+	listId: z.string(),
+	newType: z.enum(listTypeEnumValues),
+	newName: z.string().min(1).max(200).optional(),
+	newCustomHolidayId: z.string().nullable().optional(),
+})
+
+const changeListPrivacyApplySchema = z.object({
+	kind: z.literal('change-list-privacy'),
+	listId: z.string(),
+	isPrivate: z.boolean(),
+})
+
+const createListApplySchema = z.object({
+	kind: z.literal('create-list'),
+	type: z.enum(listTypeEnumValues),
+	name: z.string().min(1).max(200),
+	isPrivate: z.boolean(),
+	setAsPrimary: z.boolean(),
+	customHolidayId: z.string().nullable().optional(),
+	subjectDependentId: z.string().nullable().optional(),
+})
+
 const applyInputSchema = z.object({
 	id: z.uuid(),
-	apply: z.discriminatedUnion('kind', [createGroupApplySchema, deleteItemsApplySchema, setPrimaryListApplySchema]),
+	apply: z.discriminatedUnion('kind', [
+		createGroupApplySchema,
+		deleteItemsApplySchema,
+		setPrimaryListApplySchema,
+		convertListApplySchema,
+		changeListPrivacyApplySchema,
+		createListApplySchema,
+	]),
 })
 
 export type ApplyRecommendationResult =
 	| { ok: true; kind: 'create-group'; groupId: string }
 	| { ok: true; kind: 'delete-items'; deletedCount: number }
 	| { ok: true; kind: 'set-primary-list'; primaryListId: string }
+	| { ok: true; kind: 'convert-list'; listId: string }
+	| { ok: true; kind: 'change-list-privacy'; listId: string }
+	| { ok: true; kind: 'create-list'; listId: string; setPrimary: boolean }
 	| {
 			ok: false
 			reason:
@@ -340,6 +378,12 @@ export type ApplyRecommendationResult =
 				| 'invalid-list-type'
 				| 'not-owner'
 				| 'unknown-apply-kind'
+				| 'list-type-disabled'
+				| 'todo-list-type-locked'
+				| 'invalid-holiday-selection'
+				| 'not-dependent-guardian'
+				| 'child-cannot-create-gift-ideas'
+				| 'no-change'
 	  }
 
 // Reusable impl that any caller (server fn, integration tests, future
@@ -364,6 +408,12 @@ export async function applyRecommendationImpl(
 			return await applyDeleteItems(tx, userId, input.id, input.apply)
 		case 'set-primary-list':
 			return await applySetPrimaryList(tx, userId, input.id, input.apply)
+		case 'convert-list':
+			return await applyConvertList(tx, userId, input.id, input.apply)
+		case 'change-list-privacy':
+			return await applyChangeListPrivacy(tx, userId, input.id, input.apply)
+		case 'create-list':
+			return await applyCreateList(tx, userId, input.id, input.apply)
 	}
 }
 
@@ -493,6 +543,200 @@ async function applySetPrimaryList(
 	await tx.update(recommendations).set({ status: 'applied' }).where(eq(recommendations.id, recId))
 
 	return { ok: true, kind: 'set-primary-list', primaryListId: String(listIdNum) }
+}
+
+// Mirrors the validation in updateListImpl (src/api/_lists-impl.ts) for
+// the type+name+customHolidayId path. Inline so the whole apply runs
+// inside the rec-state transaction. Keep this in sync if updateListImpl
+// gains new guardrails.
+async function applyConvertList(
+	tx: SchemaDatabase,
+	userId: string,
+	recId: string,
+	apply: z.infer<typeof convertListApplySchema>
+): Promise<ApplyRecommendationResult> {
+	const listIdNum = Number.parseInt(apply.listId, 10)
+	if (!Number.isFinite(listIdNum)) return { ok: false, reason: 'list-not-found' }
+
+	const list = await tx.query.lists.findFirst({
+		where: eq(lists.id, listIdNum),
+		columns: {
+			id: true,
+			ownerId: true,
+			subjectDependentId: true,
+			isPrivate: true,
+			isActive: true,
+			type: true,
+			holidayCountry: true,
+			holidayKey: true,
+			customHolidayId: true,
+		},
+	})
+	if (!list) return { ok: false, reason: 'list-not-found' }
+	if (!list.isActive) return { ok: false, reason: 'list-not-found' }
+	if (list.ownerId !== userId) {
+		const editGate = await canEditList(userId, list, tx)
+		if (!editGate.ok) return { ok: false, reason: 'cannot-edit' }
+	}
+
+	// No-op convert: rec is stale but harmless. Mark applied so the user
+	// doesn't see it again.
+	if (
+		list.type === apply.newType &&
+		(apply.newCustomHolidayId === undefined || (apply.newCustomHolidayId ?? null) === list.customHolidayId)
+	) {
+		await tx.update(recommendations).set({ status: 'applied' }).where(eq(recommendations.id, recId))
+		return { ok: true, kind: 'convert-list', listId: String(listIdNum) }
+	}
+
+	// Same gates as updateListImpl: todos-lock + tenant type-disable.
+	if (list.type === 'todos' || apply.newType === 'todos') {
+		return { ok: false, reason: 'todo-list-type-locked' }
+	}
+	if (apply.newType === 'giftideas' || list.type === 'giftideas') {
+		// Convert into/out of giftideas isn't a hygiene action; refuse.
+		return { ok: false, reason: 'invalid-list-type' }
+	}
+	const settings = await getAppSettings(tx)
+	if (isListTypeDisabled(apply.newType, settings)) {
+		return { ok: false, reason: 'list-type-disabled' }
+	}
+
+	const updates: Record<string, unknown> = { type: apply.newType }
+	if (apply.newName !== undefined) updates.name = apply.newName
+
+	// Holiday wiring mirrors updateListImpl. Convert TO holiday requires a
+	// customHolidayId; convert AWAY clears it.
+	if (apply.newType === 'holiday') {
+		const nextCustomHolidayId = apply.newCustomHolidayId !== undefined ? apply.newCustomHolidayId : list.customHolidayId
+		if (!nextCustomHolidayId) return { ok: false, reason: 'invalid-holiday-selection' }
+		const row = await tx.query.customHolidays.findFirst({ where: eq(customHolidays.id, nextCustomHolidayId) })
+		if (!row) return { ok: false, reason: 'invalid-holiday-selection' }
+		updates.customHolidayId = row.id
+		updates.holidayCountry = row.catalogCountry
+		updates.holidayKey = row.catalogKey
+		const customIdChanged = apply.newCustomHolidayId !== undefined && apply.newCustomHolidayId !== list.customHolidayId
+		const typeJustBecameHoliday = list.type !== 'holiday'
+		if (customIdChanged || typeJustBecameHoliday) updates.lastHolidayArchiveAt = null
+	} else if (list.type === 'holiday') {
+		// Leaving holiday — clear all holiday metadata.
+		updates.holidayCountry = null
+		updates.holidayKey = null
+		updates.customHolidayId = null
+		updates.lastHolidayArchiveAt = null
+	}
+
+	await tx.update(lists).set(updates).where(eq(lists.id, listIdNum))
+	await tx.update(recommendations).set({ status: 'applied' }).where(eq(recommendations.id, recId))
+	return { ok: true, kind: 'convert-list', listId: String(listIdNum) }
+}
+
+async function applyChangeListPrivacy(
+	tx: SchemaDatabase,
+	userId: string,
+	recId: string,
+	apply: z.infer<typeof changeListPrivacyApplySchema>
+): Promise<ApplyRecommendationResult> {
+	const listIdNum = Number.parseInt(apply.listId, 10)
+	if (!Number.isFinite(listIdNum)) return { ok: false, reason: 'list-not-found' }
+
+	const list = await tx.query.lists.findFirst({
+		where: eq(lists.id, listIdNum),
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true, type: true },
+	})
+	if (!list) return { ok: false, reason: 'list-not-found' }
+	if (!list.isActive) return { ok: false, reason: 'list-not-found' }
+	if (list.ownerId !== userId) {
+		const editGate = await canEditList(userId, list, tx)
+		if (!editGate.ok) return { ok: false, reason: 'cannot-edit' }
+	}
+
+	// giftideas is force-private; can't flip public via this path.
+	if (list.type === 'giftideas') return { ok: false, reason: 'invalid-list-type' }
+
+	if (list.isPrivate === apply.isPrivate) {
+		// No-op: mark applied so the user doesn't see it again.
+		await tx.update(recommendations).set({ status: 'applied' }).where(eq(recommendations.id, recId))
+		return { ok: true, kind: 'change-list-privacy', listId: String(listIdNum) }
+	}
+
+	await tx.update(lists).set({ isPrivate: apply.isPrivate }).where(eq(lists.id, listIdNum))
+	await tx.update(recommendations).set({ status: 'applied' }).where(eq(recommendations.id, recId))
+	return { ok: true, kind: 'change-list-privacy', listId: String(listIdNum) }
+}
+
+// Mirrors createListImpl. Same per-type gating, dependent guardian check,
+// and holiday wiring. After insert, if setAsPrimary is true AND the
+// subject still has no primary at this moment, promote the new list.
+async function applyCreateList(
+	tx: SchemaDatabase,
+	userId: string,
+	recId: string,
+	apply: z.infer<typeof createListApplySchema>
+): Promise<ApplyRecommendationResult> {
+	// Caller may have been demoted to child since rec generation. Re-read.
+	const me = await tx.query.users.findFirst({ where: eq(users.id, userId), columns: { role: true } })
+	const isChild = me?.role === 'child'
+	if (apply.type === 'giftideas' && isChild) {
+		return { ok: false, reason: 'child-cannot-create-gift-ideas' }
+	}
+
+	const settings = await getAppSettings(tx)
+	if (isListTypeDisabled(apply.type, settings)) {
+		return { ok: false, reason: 'list-type-disabled' }
+	}
+
+	if (apply.subjectDependentId) {
+		const guard = await tx.query.dependentGuardianships.findFirst({
+			where: and(eq(dependentGuardianships.guardianUserId, userId), eq(dependentGuardianships.dependentId, apply.subjectDependentId)),
+			columns: { guardianUserId: true },
+		})
+		if (!guard) return { ok: false, reason: 'not-dependent-guardian' }
+	}
+
+	let holidayCountry: string | null = null
+	let holidayKey: string | null = null
+	let resolvedCustomHolidayId: string | null = null
+	if (apply.type === 'holiday') {
+		if (!apply.customHolidayId) return { ok: false, reason: 'invalid-holiday-selection' }
+		const row = await tx.query.customHolidays.findFirst({ where: eq(customHolidays.id, apply.customHolidayId) })
+		if (!row) return { ok: false, reason: 'invalid-holiday-selection' }
+		resolvedCustomHolidayId = row.id
+		holidayCountry = row.catalogCountry
+		holidayKey = row.catalogKey
+	}
+
+	const [inserted] = await tx
+		.insert(lists)
+		.values({
+			name: apply.name,
+			type: apply.type,
+			isPrivate: apply.type === 'giftideas' ? true : apply.isPrivate,
+			ownerId: userId,
+			subjectDependentId: apply.subjectDependentId ?? null,
+			holidayCountry,
+			holidayKey,
+			customHolidayId: resolvedCustomHolidayId,
+		})
+		.returning({ id: lists.id })
+
+	let didSetPrimary = false
+	if (apply.setAsPrimary) {
+		// Only promote when no primary currently exists for this owner. We
+		// never silently steal the user's manually-chosen primary.
+		const existingPrimary = await tx
+			.select({ id: lists.id })
+			.from(lists)
+			.where(and(eq(lists.ownerId, userId), eq(lists.isPrimary, true)))
+			.limit(1)
+		if (existingPrimary.length === 0) {
+			await tx.update(lists).set({ isPrimary: true }).where(eq(lists.id, inserted.id))
+			didSetPrimary = true
+		}
+	}
+
+	await tx.update(recommendations).set({ status: 'applied' }).where(eq(recommendations.id, recId))
+	return { ok: true, kind: 'create-list', listId: String(inserted.id), setPrimary: didSetPrimary }
 }
 
 export const applyRecommendation = createServerFn({ method: 'POST' })

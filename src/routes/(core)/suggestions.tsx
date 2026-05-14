@@ -133,6 +133,18 @@ function applyErrorMessage(reason: Exclude<ApplyRecommendationResult, { ok: true
 			return 'Suggestion not found.'
 		case 'unknown-apply-kind':
 			return "We don't know how to apply that action."
+		case 'list-type-disabled':
+			return "That list type isn't enabled on this deployment anymore."
+		case 'todo-list-type-locked':
+			return "Todo lists can't be converted to or from another type."
+		case 'invalid-holiday-selection':
+			return 'That holiday selection is invalid. Refresh to see the latest.'
+		case 'not-dependent-guardian':
+			return "You're not a guardian of that dependent."
+		case 'child-cannot-create-gift-ideas':
+			return "Children can't create gift-ideas lists."
+		case 'no-change':
+			return 'Nothing to change — the list is already in the requested shape.'
 	}
 }
 

@@ -1047,8 +1047,10 @@ export async function getMyLastHolidayCountryImpl(args: { userId: string; dbx?: 
 
 // Admin-gated list types. `wishlist` and `giftideas` are always available
 // (the former is the universal default, the latter has its own role gate).
-// Returns true when the type is admin-disabled.
-function isListTypeDisabled(type: ListType, settings: AppSettings): boolean {
+// Returns true when the type is admin-disabled. Exported so apply paths
+// in src/api/intelligence.ts can pre-validate without round-tripping
+// through createListImpl / updateListImpl.
+export function isListTypeDisabled(type: ListType, settings: AppSettings): boolean {
 	if (type === 'christmas') return !settings.enableChristmasLists
 	if (type === 'birthday') return !settings.enableBirthdayLists
 	if (type === 'holiday') return !settings.enableGenericHolidayLists

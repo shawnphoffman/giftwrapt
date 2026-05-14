@@ -86,6 +86,8 @@ const SUB_ITEM_RENDER_CAP = 25
 
 const ANALYZER_LABEL: Record<AnalyzerId, string> = {
 	'primary-list': 'Setup',
+	'list-hygiene': 'Setup',
+	'relation-labels': 'Setup',
 	'stale-items': 'Cleanup',
 	duplicates: 'Organize',
 	grouping: 'Organize',

@@ -297,6 +297,8 @@ export const getAdminIntelligenceData = createServerFn({ method: 'GET' })
 				usersPerInvocation: settings.intelligenceUsersPerInvocation,
 				staleRecRetentionDays: settings.intelligenceStaleRecRetentionDays,
 				runStepsRetentionDays: settings.intelligenceRunStepsRetentionDays,
+				upcomingWindowDays: settings.intelligenceUpcomingWindowDays,
+				minDaysBeforeEventForRecs: settings.intelligenceMinDaysBeforeEventForRecs,
 				dryRun: settings.intelligenceDryRun,
 				modelOverride: settings.intelligenceModelOverride,
 				email: {

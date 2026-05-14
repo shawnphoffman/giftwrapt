@@ -9,6 +9,7 @@ import { z } from 'zod'
 import { listCustomHolidaysForPicker } from '@/api/custom-holidays'
 import { getMyDependents } from '@/api/dependents'
 import { archiveListPurchases } from '@/api/items'
+import { getListChangeImpactInputs } from '@/api/list-change-impact'
 import { addListEditor } from '@/api/list-editors'
 import { updateList } from '@/api/lists'
 import { getGiftIdeasRecipients } from '@/api/user'
@@ -17,6 +18,7 @@ import DependentAvatar from '@/components/common/dependent-avatar'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import { MarkdownTextarea } from '@/components/common/markdown-textarea'
 import UserAvatar from '@/components/common/user-avatar'
+import { ListChangeImpactWarnings } from '@/components/lists/list-change-impact-warnings'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -27,6 +29,7 @@ import { Separator } from '@/components/ui/separator'
 import type { ListType } from '@/db/schema/enums'
 import { listTypeEnumValues, ListTypes } from '@/db/schema/enums'
 import { useSession } from '@/lib/auth-client'
+import { evaluateListChangeImpact } from '@/lib/list-change-impact'
 import { itemsKeys } from '@/lib/queries/items'
 import { LIMITS } from '@/lib/validation/limits'
 
@@ -83,6 +86,7 @@ export function ListSettingsForm({
 	const isGiftIdeas = selectedType === 'giftideas'
 	const isHoliday = selectedType === 'holiday'
 	const partnerAlreadyEditor = !!partnerId && editorUserIds.includes(partnerId)
+	const [selectedCustomHolidayId, setSelectedCustomHolidayId] = useState<string | null>(customHolidayId ?? null)
 
 	const { data: users } = useQuery({
 		queryKey: ['gift-ideas-recipients'],
@@ -106,6 +110,34 @@ export function ListSettingsForm({
 		enabled: isHoliday,
 		staleTime: 10 * 60 * 1000,
 	})
+
+	// Calendar-proximity warnings: never reveal claim state. Only the
+	// owner sees these warnings (server fn refuses non-owner requests).
+	const { data: changeImpactInputs } = useQuery({
+		queryKey: ['list-change-impact-inputs', listId],
+		queryFn: () => getListChangeImpactInputs({ data: { listId } }),
+		enabled: isOwner,
+		staleTime: 30_000,
+	})
+
+	const proposedType = selectedType as ListType
+	const proposedCustomHolidayId = proposedType === 'holiday' ? selectedCustomHolidayId : null
+	const changeImpact = changeImpactInputs
+		? evaluateListChangeImpact({
+				list: {
+					id: listId,
+					type,
+					customHolidayId: customHolidayId ?? null,
+					isActive: true,
+				},
+				proposed: {
+					type: proposedType,
+					customHolidayId: proposedCustomHolidayId,
+				},
+				inWindowEvents: changeImpactInputs.inWindowEvents,
+				otherSubjectLists: changeImpactInputs.otherSubjectLists,
+			})
+		: { warnings: [] }
 
 	const partner = partnerId ? users?.find(u => u.id === partnerId) : undefined
 	const partnerLabel = partner ? partner.name || partner.email : 'your partner'
@@ -325,7 +357,14 @@ export function ListSettingsForm({
 						{field => (
 							<>
 								<Label htmlFor={field.name}>Holiday</Label>
-								<Select value={field.state.value} onValueChange={v => field.handleChange(v)} disabled={submitting}>
+								<Select
+									value={field.state.value}
+									onValueChange={v => {
+										field.handleChange(v)
+										setSelectedCustomHolidayId(v || null)
+									}}
+									disabled={submitting}
+								>
 									<SelectTrigger id={field.name}>
 										<SelectValue placeholder="Select a holiday" />
 									</SelectTrigger>
@@ -413,6 +452,8 @@ export function ListSettingsForm({
 					<AlertDescription>{error}</AlertDescription>
 				</Alert>
 			)}
+
+			<ListChangeImpactWarnings warnings={changeImpact.warnings} />
 
 			<Button type="submit" disabled={submitting}>
 				{submitting ? 'Saving…' : 'Save settings'}

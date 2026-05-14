@@ -13,6 +13,8 @@ export type AnalyzerId =
 	| 'missing-image'
 	| 'stale-scrape'
 	| 'clothing-prefs'
+	| 'list-hygiene'
+	| 'relation-labels'
 
 export type RecommendationSeverity = 'info' | 'suggest' | 'important'
 
@@ -25,7 +27,11 @@ export type ListSubject = { kind: 'user'; name: string; image?: string | null } 
 export type ListRef = {
 	id: string
 	name: string
-	type: 'wishlist' | 'christmas' | 'birthday' | 'giftideas'
+	// Mirrors `listTypeEnumValues` in src/db/schema/enums.ts. Widened past
+	// the original wishlist/christmas/birthday/giftideas set to include
+	// holiday/todos/test so list-hygiene recs that touch holiday-typed
+	// lists can still produce a list chip.
+	type: 'wishlist' | 'christmas' | 'birthday' | 'giftideas' | 'holiday' | 'todos' | 'test'
 	isPrivate: boolean
 	subject: ListSubject
 }
@@ -48,7 +54,8 @@ export type ActionIntent =
 
 // Apply payload attached to an action that can be executed server-side
 // without leaving the page (vs. informational actions which only
-// describe what to do).
+// describe what to do). Mirror of `RecommendationApply` in
+// src/lib/intelligence/types.ts — keep in sync.
 export type RecommendationApply =
 	| {
 			kind: 'create-group'
@@ -65,6 +72,27 @@ export type RecommendationApply =
 	| {
 			kind: 'set-primary-list'
 			listId: string
+	  }
+	| {
+			kind: 'convert-list'
+			listId: string
+			newType: 'wishlist' | 'christmas' | 'birthday' | 'giftideas' | 'holiday' | 'todos' | 'test'
+			newName?: string
+			newCustomHolidayId?: string | null
+	  }
+	| {
+			kind: 'change-list-privacy'
+			listId: string
+			isPrivate: boolean
+	  }
+	| {
+			kind: 'create-list'
+			type: 'wishlist' | 'christmas' | 'birthday' | 'giftideas' | 'holiday' | 'todos' | 'test'
+			name: string
+			isPrivate: boolean
+			setAsPrimary: boolean
+			customHolidayId?: string | null
+			subjectDependentId?: string | null
 	  }
 
 export type RecommendationAction = {
@@ -214,6 +242,13 @@ export type AdminIntelligenceData = {
 			testRecipient?: string | null
 		}
 		perAnalyzerEnabled: Record<AnalyzerId, boolean>
+		// list-hygiene analyzer: how many days BEFORE an event qualifies as
+		// "in window" for nudges (convert / make public / create / set
+		// primary). Default 45.
+		upcomingWindowDays: number
+		// list-hygiene analyzer: minimum days-until-event threshold. Default
+		// 1 — analyzer goes quiet on the day-of.
+		minDaysBeforeEventForRecs: number
 	}
 	health: {
 		totalActiveRecs: number

@@ -259,6 +259,10 @@ export const fetchAppSettings = (): Promise<typeof DEFAULT_APP_SETTINGS> => Prom
 export const fetchAppSettingsAsAdmin = (): Promise<typeof DEFAULT_APP_SETTINGS> => Promise.resolve(DEFAULT_APP_SETTINGS)
 export const updateAppSettings = ok
 
+// @/api/list-change-impact
+export const getListChangeImpactInputs = (): Promise<{ inWindowEvents: Array<unknown>; otherSubjectLists: Array<unknown> }> =>
+	Promise.resolve({ inWindowEvents: [], otherSubjectLists: [] })
+
 // @/api/list-editors
 export const addListEditor = ok
 export const removeListEditor = ok

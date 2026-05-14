@@ -1,4 +1,4 @@
-import { ArrowUpRight, Beaker, CalendarClock, Cpu, Database, Mail, Sparkles } from 'lucide-react'
+import { ArrowUpRight, Beaker, CalendarCheck2, CalendarClock, Cpu, Database, Mail, Sparkles } from 'lucide-react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -82,6 +82,31 @@ export function IntelligenceGeneralSettingsCard({ data, patch }: { data: AdminIn
 							hint="Per-step debug rows (prompt / response / parsed) older than this are deleted."
 							value={s.runStepsRetentionDays}
 							onChange={v => patch({ runStepsRetentionDays: v })}
+						/>
+					</div>
+				</section>
+
+				<section className="flex flex-col gap-3">
+					<div className="flex items-center gap-2">
+						<CalendarCheck2 className="size-4 text-muted-foreground" />
+						<h3 className="text-sm font-semibold">List hygiene</h3>
+					</div>
+					<p className="text-xs text-muted-foreground">
+						The list-hygiene analyzer surfaces calendar-aware nudges (convert / make public / create / set primary) for upcoming birthdays,
+						Christmas, and admin-curated holidays. These knobs bound when the analyzer fires per event.
+					</p>
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+						<NumberRow
+							label="Upcoming-event window (days)"
+							hint="Event must be within this many days of today to drive a rec. 45 = start nudging six weeks before."
+							value={s.upcomingWindowDays}
+							onChange={v => patch({ upcomingWindowDays: v })}
+						/>
+						<NumberRow
+							label="Minimum days before event (days)"
+							hint="Stop firing convert/create/privacy recs once the event is this close. 1 = analyzer goes quiet on the day-of."
+							value={s.minDaysBeforeEventForRecs}
+							onChange={v => patch({ minDaysBeforeEventForRecs: v })}
 						/>
 					</div>
 				</section>

@@ -456,6 +456,253 @@ const lastRun: IntelligenceRunSummary = {
 	estimatedCostUsd: 0.014,
 }
 
+// ─── List hygiene (calendar-aware) ───────────────────────────────────────────
+
+const oldChristmasList: ListRef = {
+	id: 'list-old-xmas',
+	name: 'Christmas 2025',
+	type: 'christmas',
+	isPrivate: false,
+	subject: userSubject,
+}
+
+const privateBirthdayList: ListRef = {
+	id: 'list-priv-bday',
+	name: 'Birthday 2026',
+	type: 'birthday',
+	isPrivate: true,
+	subject: userSubject,
+}
+
+const holidayEasterList: ListRef = {
+	id: 'list-easter',
+	name: 'Easter Plans',
+	type: 'holiday',
+	isPrivate: false,
+	subject: userSubject,
+}
+
+const wishlistPrimary: ListRef = {
+	id: 'list-primary',
+	name: 'My Wishlist',
+	type: 'wishlist',
+	isPrivate: false,
+	subject: userSubject,
+}
+
+const targetBirthdayList: ListRef = {
+	id: 'list-target-bday',
+	name: 'Birthday 2026',
+	type: 'birthday',
+	isPrivate: false,
+	subject: userSubject,
+}
+
+const dependentPrivateBirthday: ListRef = {
+	id: 'list-mochi-bday',
+	name: 'Birthday 2026',
+	type: 'birthday',
+	isPrivate: true,
+	subject: dependentSubject,
+}
+
+// Convert public non-matching list (important). User has a public
+// christmas list and birthday is approaching.
+const recConvertPublicForBirthday: Recommendation = {
+	id: 'rec-hygiene-convert-bday',
+	analyzerId: 'list-hygiene' as Recommendation['analyzerId'],
+	kind: 'convert-public-list',
+	severity: 'important',
+	status: 'active',
+	title: 'Reshape "Christmas 2025" for Birthday',
+	body: 'Your Birthday is in 14 days and the most-attention-getting list "Christmas 2025" isn\'t shaped for it. Convert it to a birthday list and rename it to "Birthday 2026" so gifts auto-reveal on the right day.',
+	createdAt: hoursAgo(3),
+	actions: [
+		{
+			label: 'Convert to birthday',
+			description: "Change the list's type and rename it. Items and existing claims stay put.",
+			intent: 'do',
+			apply: {
+				kind: 'convert-list',
+				listId: oldChristmasList.id,
+				newType: 'birthday',
+				newName: 'Birthday 2026',
+			},
+		},
+	],
+	affected: { noun: 'list', count: 1, lines: [oldChristmasList.name], listChips: [oldChristmasList] },
+	relatedLists: [oldChristmasList],
+}
+
+// Convert public non-matching list — christmas variant (user has wishlist
+// only, christmas approaching).
+const recConvertPublicForChristmas: Recommendation = {
+	id: 'rec-hygiene-convert-xmas',
+	analyzerId: 'list-hygiene' as Recommendation['analyzerId'],
+	kind: 'convert-public-list',
+	severity: 'important',
+	status: 'active',
+	title: 'Reshape "My Wishlist" for Christmas',
+	body: 'Your Christmas is in 24 days and the most-attention-getting list "My Wishlist" isn\'t shaped for it. Convert it to a Christmas list and rename it to "Christmas 2026" so gifts auto-reveal on the right day.',
+	createdAt: hoursAgo(3),
+	actions: [
+		{
+			label: 'Convert to Christmas',
+			description: "Change the list's type and rename it. Items and existing claims stay put.",
+			intent: 'do',
+			apply: {
+				kind: 'convert-list',
+				listId: wishlistGeneric.id,
+				newType: 'christmas',
+				newName: 'Christmas 2026',
+			},
+		},
+	],
+	affected: { noun: 'list', count: 1, lines: [wishlistGeneric.name], listChips: [wishlistGeneric] },
+	relatedLists: [wishlistGeneric],
+}
+
+// Custom-holiday rebind variant (holiday list bound to a past event, the
+// next one's a different customHoliday).
+const recConvertHolidayRebind: Recommendation = {
+	id: 'rec-hygiene-rebind',
+	analyzerId: 'list-hygiene' as Recommendation['analyzerId'],
+	kind: 'convert-public-list',
+	severity: 'important',
+	status: 'active',
+	title: 'Reshape "Easter Plans" for Halloween',
+	body: 'Your Halloween is in 30 days and the most-attention-getting list "Easter Plans" is bound to last year\'s Easter. Re-bind it to Halloween and rename it to "Halloween 2026" so gifts auto-reveal on the right day.',
+	createdAt: hoursAgo(4),
+	actions: [
+		{
+			label: 'Re-bind to Halloween',
+			description: 'Change the holiday this list is bound to and rename it. Items and existing claims stay put.',
+			intent: 'do',
+			apply: {
+				kind: 'convert-list',
+				listId: holidayEasterList.id,
+				newType: 'holiday',
+				newName: 'Halloween 2026',
+				newCustomHolidayId: 'halloween-id',
+			},
+		},
+	],
+	affected: { noun: 'list', count: 1, lines: [holidayEasterList.name], listChips: [holidayEasterList] },
+	relatedLists: [holidayEasterList],
+}
+
+// Make-private-list-public (suggest). User has a private birthday list
+// that's ready to publicize.
+const recMakePrivateListPublic: Recommendation = {
+	id: 'rec-hygiene-go-public',
+	analyzerId: 'list-hygiene' as Recommendation['analyzerId'],
+	kind: 'make-private-list-public',
+	severity: 'suggest',
+	status: 'active',
+	title: 'Make "Birthday 2026" public for Birthday',
+	body: 'Your Birthday is in 14 days. "Birthday 2026" is set up for the event but it\'s private — gifters can\'t see it. Making it public lets people shop from it.',
+	createdAt: hoursAgo(2),
+	actions: [
+		{
+			label: 'Make public',
+			description: 'Flip the list to public so gifters can find it.',
+			intent: 'do',
+			apply: { kind: 'change-list-privacy', listId: privateBirthdayList.id, isPrivate: false },
+		},
+	],
+	affected: { noun: 'list', count: 1, lines: [privateBirthdayList.name], listChips: [privateBirthdayList] },
+	relatedLists: [privateBirthdayList],
+}
+
+// Create-event-list (suggest). User has no list for the upcoming event.
+const recCreateEventList: Recommendation = {
+	id: 'rec-hygiene-create-bday',
+	analyzerId: 'list-hygiene' as Recommendation['analyzerId'],
+	kind: 'create-event-list',
+	severity: 'suggest',
+	status: 'active',
+	title: 'Create a birthday list for Birthday',
+	body: "Your Birthday is in 14 days, and there's no list set up to auto-reveal gifts on that day. Want to scaffold one?",
+	createdAt: hoursAgo(1),
+	actions: [
+		{
+			label: 'Create "Birthday 2026"',
+			description: 'Creates a private list pre-named for the event. You can flip it to public once you add some items.',
+			intent: 'do',
+			apply: {
+				kind: 'create-list',
+				type: 'birthday',
+				name: 'Birthday 2026',
+				isPrivate: true,
+				setAsPrimary: true,
+			},
+		},
+	],
+}
+
+// Dependent-subject create-event-list variant.
+const recCreateEventListDependent: Recommendation = {
+	id: 'rec-hygiene-create-bday-dep',
+	analyzerId: 'list-hygiene' as Recommendation['analyzerId'],
+	kind: 'create-event-list',
+	severity: 'suggest',
+	status: 'active',
+	title: 'Create a birthday list for Birthday',
+	body: "Mochi's Birthday is in 7 days, and there's no list set up to auto-reveal gifts on that day. Want to scaffold one?",
+	createdAt: hoursAgo(1),
+	actions: [
+		{
+			label: 'Create "Birthday 2026"',
+			description: 'Creates a private list pre-named for the event. You can flip it to public once you add some items.',
+			intent: 'do',
+			apply: {
+				kind: 'create-list',
+				type: 'birthday',
+				name: 'Birthday 2026',
+				isPrivate: true,
+				setAsPrimary: false,
+				subjectDependentId: 'mochi-id',
+			},
+		},
+	],
+	relatedLists: [dependentPrivateBirthday],
+}
+
+// Wrong-primary-for-event (suggest). User-subject only.
+const recWrongPrimaryForEvent: Recommendation = {
+	id: 'rec-hygiene-set-primary',
+	analyzerId: 'list-hygiene' as Recommendation['analyzerId'],
+	kind: 'wrong-primary-for-event',
+	severity: 'suggest',
+	status: 'active',
+	title: 'Set "Birthday 2026" as your primary for Birthday',
+	body: 'Your Birthday is in 14 days but "Birthday 2026" isn\'t your primary list. Making it primary means new items default into it.',
+	createdAt: hoursAgo(1),
+	actions: [
+		{
+			label: 'Set as primary',
+			description: 'Promotes this list to primary; the current primary is demoted.',
+			intent: 'do',
+			apply: { kind: 'set-primary-list', listId: targetBirthdayList.id },
+		},
+	],
+	affected: { noun: 'list', count: 1, lines: [targetBirthdayList.name], listChips: [targetBirthdayList] },
+	relatedLists: [targetBirthdayList],
+}
+
+// Map kept around for stories that want to look up by kind.
+export const listHygieneRecsByKind = {
+	convertBirthday: recConvertPublicForBirthday,
+	convertChristmas: recConvertPublicForChristmas,
+	convertHolidayRebind: recConvertHolidayRebind,
+	makePublic: recMakePrivateListPublic,
+	createEventList: recCreateEventList,
+	createEventListDependent: recCreateEventListDependent,
+	wrongPrimary: recWrongPrimaryForEvent,
+}
+
+void wishlistPrimary // referenced by storybook decorators that pull from this module
+
 export const populatedData: IntelligencePageData = {
 	enabled: true,
 	providerConfigured: true,
@@ -574,11 +821,15 @@ export const adminData: AdminIntelligenceData = {
 		usersPerInvocation: 25,
 		staleRecRetentionDays: 30,
 		runStepsRetentionDays: 30,
+		upcomingWindowDays: 45,
+		minDaysBeforeEventForRecs: 1,
 		dryRun: false,
 		modelOverride: null,
 		email: { enabled: false, weeklyDigestEnabled: false, testRecipient: null },
 		perAnalyzerEnabled: {
 			'primary-list': true,
+			'list-hygiene': true,
+			'relation-labels': true,
 			'stale-items': true,
 			duplicates: true,
 			grouping: true,

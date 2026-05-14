@@ -2,6 +2,7 @@ import type { Analyzer } from './analyzer'
 import { clothingPrefsAnalyzer } from './analyzers/clothing-prefs'
 import { duplicatesAnalyzer } from './analyzers/duplicates'
 import { groupingAnalyzer } from './analyzers/grouping'
+import { listHygieneAnalyzer } from './analyzers/list-hygiene'
 import { missingImageAnalyzer } from './analyzers/missing-image'
 import { missingPriceAnalyzer } from './analyzers/missing-price'
 import { primaryListAnalyzer } from './analyzers/primary-list'
@@ -11,9 +12,13 @@ import { staleScrapeAnalyzer } from './analyzers/stale-scrape'
 
 // Order is the order analyzers run + the order recs surface within their
 // severity bucket on the user-facing page. Setup-style analyzers go first,
-// per-item polish analyzers run after the structural ones.
+// per-item polish analyzers run after the structural ones. list-hygiene
+// sits right after primary-list: both are "is your list shape right?"
+// analyzers, and primary-list yields to list-hygiene when an in-window
+// event has matching coverage so we don't double-surface primary recs.
 export const ANALYZERS: ReadonlyArray<Analyzer> = [
 	primaryListAnalyzer,
+	listHygieneAnalyzer,
 	relationLabelsAnalyzer,
 	staleItemsAnalyzer,
 	duplicatesAnalyzer,
