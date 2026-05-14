@@ -1,4 +1,4 @@
-import { Body, Column, Container, Head, Heading, Hr, Html, Img, Link, Row, Section, Tailwind, Text } from '@react-email/components'
+import { Body, Column, Container, Head, Heading, Hr, Html, Img, Link, Row, Section, Tailwind, Text } from 'react-email'
 
 const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3002'
 
