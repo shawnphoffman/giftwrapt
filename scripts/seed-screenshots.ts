@@ -132,8 +132,16 @@ const ph = {
 	wide: (label: string, _hex?: string) => photo(label, 800, 500),
 	tall: (label: string, _hex?: string) => photo(label, 500, 800),
 }
-function avatarUrl(seed: string, style: 'lorelei' | 'avataaars' | 'personas' | 'bottts' = 'lorelei'): string {
-	return `https://api.dicebear.com/9.x/${style}/svg?seed=${encodeURIComponent(seed)}`
+function avatarUrl(seed: string): string {
+	const params = new URLSearchParams({
+		scale: '120',
+		radius: '50',
+		backgroundType: 'solid,gradientLinear',
+		translateX: '-5',
+		backgroundColor: 'b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf',
+		seed,
+	})
+	return `https://api.dicebear.com/9.x/open-peeps/svg?${params.toString()}`
 }
 
 // ------------------------------------------------------------------
@@ -145,7 +153,7 @@ async function signUp(input: {
 	role: 'user' | 'admin' | 'child'
 	birthMonth?: BirthMonth | null
 	birthDay?: number | null
-	avatarStyle?: 'lorelei' | 'avataaars' | 'personas' | 'bottts'
+	avatarSeed: string
 }): Promise<string> {
 	const result = await auth.api.signUpEmail({
 		body: { email: input.email, password: PASSWORD, name: input.name } as never,
@@ -158,7 +166,7 @@ async function signUp(input: {
 			role: input.role,
 			birthMonth: (input.birthMonth ?? null) as never,
 			birthDay: input.birthDay ?? null,
-			image: avatarUrl(input.email, input.avatarStyle ?? 'lorelei'),
+			image: avatarUrl(input.avatarSeed),
 		})
 		.where(sql`id = ${id}`)
 	return id
@@ -454,42 +462,42 @@ async function main() {
 		email: 'admin@example.test',
 		name: 'Sam Rivera',
 		role: 'admin',
-		avatarStyle: 'lorelei',
+		avatarSeed: 'Luis',
 		...birthdayInDays(5), // close: birthday in 5 days
 	})
 	const partnerId = await signUp({
 		email: 'partner@example.test',
 		name: 'Alex Rivera',
 		role: 'user',
-		avatarStyle: 'avataaars',
+		avatarSeed: 'Maria',
 		...birthdayInDays(18), // soon-ish: birthday in 18 days
 	})
 	const friendId = await signUp({
 		email: 'friend@example.test',
 		name: 'Jordan Lee',
 		role: 'user',
-		avatarStyle: 'personas',
+		avatarSeed: 'Aiden',
 		...birthdayInDays(200), // far: ~6.5 months out
 	})
 	const gifterId = await signUp({
 		email: 'gifter@example.test',
 		name: 'Morgan Patel',
 		role: 'user',
-		avatarStyle: 'lorelei',
+		avatarSeed: 'Sophia',
 		...birthdayInDays(-45), // past: birthday already passed this year
 	})
 	const nobdayId = await signUp({
 		email: 'nobday@example.test',
 		name: 'Riley Chen',
 		role: 'user',
-		avatarStyle: 'avataaars',
+		avatarSeed: 'Kai',
 		// no birthMonth/birthDay
 	})
 	const childId = await signUp({
 		email: 'child@example.test',
 		name: 'Casey Rivera',
 		role: 'child',
-		avatarStyle: 'personas',
+		avatarSeed: 'Nora',
 		...birthdayInDays(21), // close-ish: 3 weeks
 	})
 	// Distant acquaintance whose lists admin can see at all only as a
@@ -499,7 +507,7 @@ async function main() {
 		email: 'distant@example.test',
 		name: 'Sky Patel',
 		role: 'user',
-		avatarStyle: 'bottts',
+		avatarSeed: 'Elena',
 		...birthdayInDays(95),
 	})
 
