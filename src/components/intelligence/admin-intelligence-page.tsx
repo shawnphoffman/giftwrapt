@@ -441,7 +441,7 @@ export function HealthGrid({ data, providerSummary }: { data: AdminIntelligenceD
 		<section data-intelligence="admin-health-grid" className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-3">
 			<MetricCard
 				icon={Sparkles}
-				label="Active recommendations"
+				label="Active Recs"
 				value={health.totalActiveRecs.toString()}
 				sub={`across ${health.analyzers.length} analyzers`}
 				gradient="from-fuchsia-400/40 via-pink-400/30 to-rose-500/40"
@@ -455,15 +455,15 @@ export function HealthGrid({ data, providerSummary }: { data: AdminIntelligenceD
 			/>
 			<MetricCard
 				icon={Hash}
-				label="Tokens / day"
+				label="Tokens / Day"
 				value={`${formatNumber(health.dailyTokensIn + health.dailyTokensOut)}`}
 				sub={`${formatNumber(health.dailyTokensIn)} in · ${formatNumber(health.dailyTokensOut)} out`}
 				gradient="from-amber-400/40 via-orange-400/30 to-pink-500/40"
 			/>
 			<MetricCard
 				icon={Cpu}
-				label="Estimated cost / day"
-				value={`$${health.dailyEstimatedCostUsd.toFixed(2)}`}
+				label="Cost / Day"
+				value={`~$${health.dailyEstimatedCostUsd.toFixed(2)}`}
 				sub={providerSummary}
 				gradient="from-violet-400/40 via-purple-400/30 to-fuchsia-500/40"
 			/>

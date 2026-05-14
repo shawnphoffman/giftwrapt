@@ -29,10 +29,16 @@ function LegendDot({ color, label }: { color: string; label: string }) {
 	)
 }
 
+const RUNS_COLORS = {
+	success: 'var(--color-emerald-500)',
+	skipped: 'var(--color-cyan-500)',
+	error: 'var(--color-rose-500)',
+}
+
 const runsChartConfig: ChartConfig = {
-	runsSuccess: { label: 'Success', color: 'var(--color-emerald-500, oklch(0.7 0.17 162))' },
-	runsSkipped: { label: 'Skipped', color: 'var(--color-muted-foreground, oklch(0.55 0 0))' },
-	runsError: { label: 'Error', color: 'var(--color-destructive, oklch(0.6 0.22 22))' },
+	runsSuccess: { label: 'Success', color: RUNS_COLORS.success },
+	runsSkipped: { label: 'Skipped', color: RUNS_COLORS.skipped },
+	runsError: { label: 'Error', color: RUNS_COLORS.error },
 }
 
 export function RunsActivityChart({ data }: { data: Array<DailySeriesPoint> }) {
@@ -56,18 +62,23 @@ export function RunsActivityChart({ data }: { data: Array<DailySeriesPoint> }) {
 					</BarChart>
 				</ChartContainer>
 				<div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-					<LegendDot color="var(--color-runsSuccess)" label="Success" />
-					<LegendDot color="var(--color-runsSkipped)" label="Skipped" />
-					<LegendDot color="var(--color-runsError)" label="Error" />
+					<LegendDot color={RUNS_COLORS.success} label="Success" />
+					<LegendDot color={RUNS_COLORS.skipped} label="Skipped" />
+					<LegendDot color={RUNS_COLORS.error} label="Error" />
 				</div>
 			</CardContent>
 		</Card>
 	)
 }
 
+const TOKENS_COLORS = {
+	in: 'var(--color-fuchsia-500)',
+	out: 'var(--color-amber-500)',
+}
+
 const tokensChartConfig: ChartConfig = {
-	tokensIn: { label: 'In', color: 'var(--color-fuchsia-500, oklch(0.66 0.27 330))' },
-	tokensOut: { label: 'Out', color: 'var(--color-amber-500, oklch(0.78 0.17 70))' },
+	tokensIn: { label: 'In', color: TOKENS_COLORS.in },
+	tokensOut: { label: 'Out', color: TOKENS_COLORS.out },
 }
 
 export function TokenUsageChart({ data }: { data: Array<DailySeriesPoint> }) {
@@ -100,8 +111,8 @@ export function TokenUsageChart({ data }: { data: Array<DailySeriesPoint> }) {
 					</AreaChart>
 				</ChartContainer>
 				<div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
-					<LegendDot color="var(--color-tokensIn)" label="Input" />
-					<LegendDot color="var(--color-tokensOut)" label="Output" />
+					<LegendDot color={TOKENS_COLORS.in} label="Input" />
+					<LegendDot color={TOKENS_COLORS.out} label="Output" />
 				</div>
 			</CardContent>
 		</Card>
