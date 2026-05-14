@@ -204,7 +204,7 @@ export function PurchasesPageContent({ items, partner }: Props) {
 	return (
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
-				<PageHeading title="Purchases" icon={Receipt} color="cyan" />
+				<PageHeading title="Purchases" icon={Receipt} color="pink" />
 
 				<p className="text-sm text-muted-foreground">
 					All of your purchases and addons over time. If you have a partner, their purchases appear here too (excluding gifts for you). Edit
