@@ -14,6 +14,7 @@ import { autoArchiveImpl } from '@/lib/cron/auto-archive'
 import { birthdayEmailsImpl } from '@/lib/cron/birthday-emails'
 import { cleanupVerificationImpl } from '@/lib/cron/cleanup-verification'
 import { listOwnerRemindersImpl } from '@/lib/cron/list-owner-reminders'
+import { orphanClaimCleanupImpl } from '@/lib/cron/orphan-claim-cleanup'
 import { sweepCronRuns } from '@/lib/cron/record-run'
 import type { CronEndpoint } from '@/lib/cron/registry'
 import { relationshipRemindersImpl } from '@/lib/cron/relationship-reminders'
@@ -210,13 +211,30 @@ export async function runAutoArchive() {
 
 export async function runBirthdayEmails(): Promise<Record<string, {}>> {
 	const started = Date.now()
+	const now = new Date()
+	const emailConfigured = await isEmailConfigured()
+	const settings = await getAppSettings(db)
 
-	if (!(await isEmailConfigured())) {
-		return { ok: true, skipped: 'email-not-configured', date: new Date().toISOString() }
+	// Orphan-claim cleanup runs regardless of email config: pass 2 (the
+	// hard-delete on event day) is a data lifecycle operation, not a
+	// notification. Pass 1 (the day-before reminder) is gated on email
+	// config inside the impl.
+	let orphanClaimCleanup: { remindersSent: number; itemsDeleted: number; claimsDeleted: number } = {
+		remindersSent: 0,
+		itemsDeleted: 0,
+		claimsDeleted: 0,
+	}
+	try {
+		orphanClaimCleanup = await orphanClaimCleanupImpl({ db, now })
+	} catch (err) {
+		log.warn({ err: err instanceof Error ? err.message : String(err) }, 'orphan-claim-cleanup batch failed')
 	}
 
-	const settings = await getAppSettings(db)
-	const now = new Date()
+	if (!emailConfigured) {
+		const totalOrphan = orphanClaimCleanup.remindersSent + orphanClaimCleanup.itemsDeleted
+		if (totalOrphan === 0) return { ok: true, skipped: 'email-not-configured', date: now.toISOString() }
+		return { ok: true, skipped: 'email-not-configured', orphanClaimCleanup, date: now.toISOString() }
+	}
 
 	let birthdayEmails = 0
 	let followUpEmails = 0
@@ -262,6 +280,7 @@ export async function runBirthdayEmails(): Promise<Record<string, {}>> {
 			followUpEmails,
 			listOwnerReminders,
 			relationshipReminders,
+			orphanClaimCleanup,
 			durationMs,
 		},
 		'cron run complete'
@@ -274,8 +293,16 @@ export async function runBirthdayEmails(): Promise<Record<string, {}>> {
 		relationshipReminders.fathersDayReminders +
 		relationshipReminders.valentinesDayReminders +
 		relationshipReminders.anniversaryReminders
+	const totalOrphan = orphanClaimCleanup.remindersSent + orphanClaimCleanup.itemsDeleted
 
-	if (birthdayEmails === 0 && followUpEmails === 0 && totalListOwner === 0 && totalRelationship === 0 && !settings.enableBirthdayEmails) {
+	if (
+		birthdayEmails === 0 &&
+		followUpEmails === 0 &&
+		totalListOwner === 0 &&
+		totalRelationship === 0 &&
+		totalOrphan === 0 &&
+		!settings.enableBirthdayEmails
+	) {
 		return { ok: true, skipped: 'disabled', date: now.toISOString() }
 	}
 
@@ -285,6 +312,7 @@ export async function runBirthdayEmails(): Promise<Record<string, {}>> {
 		followUpEmails,
 		listOwnerReminders,
 		relationshipReminders,
+		orphanClaimCleanup,
 		date: now.toISOString(),
 	}
 }
