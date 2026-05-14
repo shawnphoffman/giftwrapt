@@ -313,5 +313,9 @@ export const sendTestEmail = async () => {
 		react: <TestEmail />,
 	})
 	logSendResult('test', to, res as SendResult)
+	if (res.error) {
+		const msg = 'message' in res.error ? String(res.error.message) : 'Resend rejected the request.'
+		throw new Error(msg)
+	}
 	return res
 }
