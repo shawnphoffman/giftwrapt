@@ -7,10 +7,13 @@ import { db } from '@/db'
 import type { BirthMonth } from '@/db/schema'
 import { userRelationships, users } from '@/db/schema'
 import { auth } from '@/lib/auth'
-import { loggingMiddleware } from '@/lib/logger'
+import { createLogger, loggingMiddleware } from '@/lib/logger'
 import { applyPartnerAndAnniversary } from '@/lib/partner-update'
 import { LIMITS } from '@/lib/validation/limits'
 import { authMiddleware } from '@/middleware/auth'
+import { revokeAllDevicesImpl } from '@/server/mobile-api/devices'
+
+const passwordLog = createLogger('password-change')
 
 const updateProfileInputSchema = z.object({
 	name: z.string().min(1).max(LIMITS.SHORT_NAME),
@@ -163,21 +166,42 @@ export const updateUserProfile = createServerFn({
 
 export { updateProfileInputSchema as UpdateProfileInputSchema }
 
-// Update user password
+// Update user password.
+//
+// On success we revoke every OTHER access path so the password change
+// actually behaves like a "kick everyone out" signal:
+//
+//   - `revokeOtherSessions: true` tells better-auth to wipe every
+//     entry in the `session` table that isn't the current request's.
+//     The user stays signed in here; every other browser/tab gets a
+//     401 on the next nav.
+//   - `revokeAllDevicesImpl(userId)` deletes every row in the `apikey`
+//     table for this user. iOS catches the next 401 as the global
+//     sign-out signal (matches the documented revoke-all contract in
+//     `src/server/mobile-api/devices.ts`).
+//
+// The reset-password flow has equivalent wiring in `@/lib/auth`
+// (`emailAndPassword.revokeSessionsOnPasswordReset` and `onPasswordReset`).
+// See `.notes/security/2026-05-checklist-audit.md` §47 follow-up.
 export const updateUserPassword = createServerFn({
 	method: 'POST',
 })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.infer<typeof updatePasswordInputSchema>) => updatePasswordInputSchema.parse(data))
-	.handler(async ({ data }) => {
+	.handler(async ({ context, data }) => {
 		// Better Auth's changePassword throws on failure
 		await auth.api.changePassword({
 			body: {
 				currentPassword: data.currentPassword,
 				newPassword: data.newPassword,
+				revokeOtherSessions: true,
 			},
 			headers: getRequestHeaders(),
 		})
+
+		const userId = context.session.user.id
+		const revoked = await revokeAllDevicesImpl(userId)
+		passwordLog.info({ userId, revokedKeys: revoked.revoked }, 'password change: revoked mobile apiKeys')
 
 		return { success: true }
 	})

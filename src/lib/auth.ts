@@ -157,6 +157,28 @@ const options = {
 			})
 		},
 		resetPasswordTokenExpiresIn: PASSWORD_RESET_TOKEN_TTL_MINUTES * 60,
+		// Revoke EVERY other access surface on a successful password
+		// reset. The user just proved (via email) that they own the
+		// account; we treat the reset as a "kick out everyone who was
+		// signed in under the old password" signal.
+		//
+		// Two surfaces, two mechanisms:
+		// 1. `revokeSessionsOnPasswordReset: true` - better-auth's own
+		//    `session` table is wiped (the web). The user who clicked
+		//    the reset link wasn't logged in, so there is no "current
+		//    session" to preserve.
+		// 2. `onPasswordReset` - mobile apiKeys live in a separate
+		//    `apikey` table that better-auth doesn't touch. We delete
+		//    those manually. iOS catches the next 401 as the sign-out
+		//    signal (matches the documented `revokeAllDevicesImpl`
+		//    contract).
+		// See `.notes/security/2026-05-checklist-audit.md` §47 follow-up.
+		revokeSessionsOnPasswordReset: true,
+		onPasswordReset: async ({ user }) => {
+			const { revokeAllDevicesImpl } = await import('@/server/mobile-api/devices')
+			const result = await revokeAllDevicesImpl(user.id)
+			authLog.info({ userId: user.id, revokedKeys: result.revoked }, 'password reset: revoked mobile apiKeys')
+		},
 	},
 	// CSRF posture (sec-review L6): better-auth defaults to
 	// `sameSite: 'lax'`, `httpOnly: true`, `secure` (when HTTPS) on the
