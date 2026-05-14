@@ -6,14 +6,15 @@
 // client environment, letting Rollup tree-shake this whole file out
 // of the client bundle.
 
-import { eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { type SchemaDatabase } from '@/db'
-import { items, lists } from '@/db/schema'
+import { giftedItems, items, lists } from '@/db/schema'
 import { priorityEnumValues, statusEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { httpsUpgradeOrNull } from '@/lib/image-url'
+import { dispatchOrphanClaimEmails, resolveListRecipientName } from '@/lib/orphan-claims'
 import { canEditList } from '@/lib/permissions'
 import { loadCachedScrapeRating } from '@/lib/scrapers/cache'
 import { getAppSettings } from '@/lib/settings-loader'
@@ -153,8 +154,10 @@ export async function updateItemImpl(args: {
 	const { db: dbx, actor, input: data } = args
 	const userId = actor.id
 
+	// Pending-deletion items are not-found from the recipient's perspective
+	// (they "deleted" it; revealing a 200 response would tip off the spoiler).
 	const item = await dbx.query.items.findFirst({
-		where: eq(items.id, data.itemId),
+		where: and(eq(items.id, data.itemId), isNull(items.pendingDeletionAt)),
 		columns: { id: true, listId: true, vendorSource: true, imageUrl: true },
 	})
 	if (!item) return { kind: 'error', reason: 'not-found' }
@@ -253,20 +256,45 @@ export async function deleteItemImpl(args: {
 	const { db: dbx, actor, input } = args
 	const userId = actor.id
 
+	// Filter `pendingDeletionAt IS NULL` so a stale recipient client can't
+	// re-trigger the orphan flow on an item that's already in
+	// pending-deletion. Treat it as not-found, matching the recipient-side
+	// 404 contract for every mutation against a pending-deletion item.
 	const item = await dbx.query.items.findFirst({
-		where: eq(items.id, input.itemId),
-		columns: { id: true, listId: true, imageUrl: true },
+		where: and(eq(items.id, input.itemId), isNull(items.pendingDeletionAt)),
+		columns: { id: true, listId: true, title: true, imageUrl: true },
 	})
 	if (!item) return { kind: 'error', reason: 'not-found' }
 
 	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, item.listId),
-		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
+		columns: { id: true, name: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 
 	const perm = await assertCanEditItems(userId, list, dbx)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
+
+	// If any active claims exist on the item, this becomes a pending-deletion
+	// flip rather than a hard-delete. The item disappears from the
+	// recipient's view (and every other non-claimer surface) but its claims
+	// stay live so gifters can act on the orphan via the alert UI.
+	const claimCount = await dbx.$count(giftedItems, eq(giftedItems.itemId, input.itemId))
+	if (claimCount > 0) {
+		await dbx.update(items).set({ pendingDeletionAt: new Date() }).where(eq(items.id, input.itemId))
+		const recipientName = await resolveListRecipientName(dbx, list)
+		await dispatchOrphanClaimEmails({
+			dbx,
+			itemId: item.id,
+			itemTitle: item.title,
+			itemImageUrl: item.imageUrl,
+			listId: list.id,
+			listName: list.name,
+			recipientName,
+		})
+		notifyListEvent({ kind: 'item', listId: item.listId, itemId: input.itemId, shape: 'removed' })
+		return { kind: 'ok' }
+	}
 
 	await dbx.delete(items).where(eq(items.id, input.itemId))
 	// Post-commit storage cleanup. Best-effort; orphans are collected by

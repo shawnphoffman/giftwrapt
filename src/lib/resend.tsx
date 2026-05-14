@@ -3,6 +3,8 @@ import { Resend } from 'resend'
 import { db } from '@/db'
 import BirthdayEmail from '@/emails/happy-birthday-email'
 import NewCommentEmail from '@/emails/new-comment-email'
+import OrphanClaimCleanupReminderEmail from '@/emails/orphan-claim-cleanup-reminder-email'
+import OrphanClaimEmail from '@/emails/orphan-claim-email'
 import ParentsDayReminderEmail from '@/emails/parents-day-reminder-email'
 import PartnerAnniversaryReminderEmail from '@/emails/partner-anniversary-reminder-email'
 import PasswordResetEmail from '@/emails/password-reset-email'
@@ -247,6 +249,73 @@ export const sendPartnerAnniversaryReminderEmail = async (
 		react: <PartnerAnniversaryReminderEmail name={args.name} partnerName={args.partnerName} leadDays={args.leadDays} />,
 	})
 	logSendResult('partner-anniversary-reminder', recipient, res as SendResult)
+	return res
+}
+
+export const sendOrphanClaimEmail = async (
+	recipient: string,
+	args: {
+		username: string
+		itemTitle: string
+		itemImageUrl: string | null
+		recipientName: string
+		listId: number
+		listName: string
+	}
+) => {
+	const cfg = await resolveEmailConfig(db)
+	const client = buildClient(cfg)
+	if (!client || !cfg.isValid) {
+		warnNotConfigured('sendOrphanClaimEmail')
+		return null
+	}
+	emailLog.info({ kind: 'orphan-claim', recipient, listId: args.listId }, 'sending email')
+	const res = await client.emails.send({
+		...commonEmailProps(cfg),
+		to: recipient,
+		subject: `An item you claimed for ${args.recipientName} was removed`,
+		react: (
+			<OrphanClaimEmail
+				username={args.username}
+				itemTitle={args.itemTitle}
+				itemImageUrl={args.itemImageUrl}
+				recipientName={args.recipientName}
+				listId={args.listId}
+				listName={args.listName}
+			/>
+		),
+	})
+	logSendResult('orphan-claim', recipient, res as SendResult)
+	return res
+}
+
+export const sendOrphanClaimCleanupReminderEmail = async (
+	recipient: string,
+	args: { username: string; itemTitle: string; recipientName: string; eventLabel: string; listId: number; listName: string }
+) => {
+	const cfg = await resolveEmailConfig(db)
+	const client = buildClient(cfg)
+	if (!client || !cfg.isValid) {
+		warnNotConfigured('sendOrphanClaimCleanupReminderEmail')
+		return null
+	}
+	emailLog.info({ kind: 'orphan-claim-cleanup-reminder', recipient, listId: args.listId }, 'sending email')
+	const res = await client.emails.send({
+		...commonEmailProps(cfg),
+		to: recipient,
+		subject: `Cleaning up an unanswered claim tomorrow`,
+		react: (
+			<OrphanClaimCleanupReminderEmail
+				username={args.username}
+				itemTitle={args.itemTitle}
+				recipientName={args.recipientName}
+				eventLabel={args.eventLabel}
+				listId={args.listId}
+				listName={args.listName}
+			/>
+		),
+	})
+	logSendResult('orphan-claim-cleanup-reminder', recipient, res as SendResult)
 	return res
 }
 
