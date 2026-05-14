@@ -11,6 +11,7 @@ import UserAvatar from '@/components/common/user-avatar'
 import { AddItemDialog } from '@/components/items/add-item-dialog'
 import { CreateListDialog } from '@/components/lists/create-list-dialog'
 import { ListRow } from '@/components/lists/list-row'
+import { ListTypeLegend } from '@/components/lists/list-type-legend'
 import {
 	ListsCard,
 	ListsCardDescription,
@@ -127,6 +128,7 @@ function MyListsPage() {
 					<div className="text-sm text-muted-foreground">
 						Mark any list as <strong>primary</strong> from its action menu. Quick-imported gift ideas land there by default.
 					</div>
+					<ListTypeLegend />
 					<PrimaryListNudge />
 
 					{/* PUBLIC LISTS */}
