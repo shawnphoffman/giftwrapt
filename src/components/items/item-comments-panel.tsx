@@ -90,7 +90,7 @@ export default function ItemCommentsPanel({ itemId, onCountChange }: Props) {
 
 			<div className="flex gap-2">
 				<Textarea
-					placeholder="Write a comment..."
+					placeholder="Write a comment (visible to everyone, including the recipient)..."
 					rows={2}
 					value={newComment}
 					onChange={e => setNewComment(e.target.value)}
