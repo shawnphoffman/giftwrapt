@@ -29,7 +29,7 @@ import { isValidHolidayKey } from '@/lib/holidays'
 import { userHasPendingDeletionClaimOnList } from '@/lib/orphan-claims'
 import { canEditList, canViewList, getViewerAccessLevelForList } from '@/lib/permissions'
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
-import type { AppSettings } from '@/lib/settings'
+import { isListTypeDisabled } from '@/lib/settings'
 import { getAppSettings } from '@/lib/settings-loader'
 import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 
@@ -1045,18 +1045,9 @@ export async function getMyLastHolidayCountryImpl(args: { userId: string; dbx?: 
 	return row?.holidayCountry ?? null
 }
 
-// Admin-gated list types. `wishlist` and `giftideas` are always available
-// (the former is the universal default, the latter has its own role gate).
-// Returns true when the type is admin-disabled. Exported so apply paths
-// in src/api/intelligence.ts can pre-validate without round-tripping
-// through createListImpl / updateListImpl.
-export function isListTypeDisabled(type: ListType, settings: AppSettings): boolean {
-	if (type === 'christmas') return !settings.enableChristmasLists
-	if (type === 'birthday') return !settings.enableBirthdayLists
-	if (type === 'holiday') return !settings.enableGenericHolidayLists
-	if (type === 'todos') return !settings.enableTodoLists
-	return false
-}
+// `isListTypeDisabled` previously lived here; it has moved to
+// `@/lib/settings` (imported above) so client surfaces can pre-validate
+// without dragging this entire server-only module into the browser bundle.
 
 export async function createListImpl(args: {
 	actor: { id: string; isChild: boolean }

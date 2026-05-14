@@ -2,7 +2,6 @@ import { createServerFn } from '@tanstack/react-start'
 import { and, asc, count, desc, eq, gt, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { isListTypeDisabled } from '@/api/_lists-impl'
 import { db, type SchemaDatabase } from '@/db'
 import {
 	customHolidays,
@@ -23,7 +22,11 @@ import { generateForUser } from '@/lib/intelligence/runner'
 import { loggingMiddleware } from '@/lib/logger'
 import { canEditList } from '@/lib/permissions'
 import { intelligenceRefreshLimiter } from '@/lib/rate-limits'
-import { getAppSettings } from '@/lib/settings-loader'
+import { isListTypeDisabled } from '@/lib/settings'
+// `getAppSettings` is imported lazily inside every call site below so the
+// `settings-loader -> crypto/app-secret -> node:crypto` chain stays out
+// of the client graph (server-fn surface; the splitter can't elide a
+// static import here once any top-level helper references it).
 import { authMiddleware } from '@/middleware/auth'
 import { rateLimit } from '@/middleware/rate-limit'
 
@@ -79,6 +82,7 @@ export const getMyRecommendations = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.handler(async ({ context }) => {
 		const userId = context.session.user.id
+		const { getAppSettings } = await import('@/lib/settings-loader')
 		const settings = await getAppSettings(db)
 		const aiConfig = await resolveAiConfig(db)
 
@@ -206,6 +210,7 @@ export const getMyActiveRecommendationCount = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware])
 	.handler(async ({ context }) => {
 		const userId = context.session.user.id
+		const { getAppSettings } = await import('@/lib/settings-loader')
 		const settings = await getAppSettings(db)
 		if (!settings.intelligenceEnabled) return { count: 0 }
 		const rows = await db
@@ -221,6 +226,7 @@ export const refreshMyRecommendations = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, rateLimit(intelligenceRefreshLimiter), loggingMiddleware])
 	.handler(async ({ context }) => {
 		const userId = context.session.user.id
+		const { getAppSettings } = await import('@/lib/settings-loader')
 		const settings = await getAppSettings(db)
 
 		// Per-user cooldown enforced at the server-fn layer so the user gets
@@ -597,6 +603,12 @@ async function applyConvertList(
 		// Convert into/out of giftideas isn't a hygiene action; refuse.
 		return { ok: false, reason: 'invalid-list-type' }
 	}
+	// Lazy `getAppSettings` import: this helper is reachable from the
+	// exported `applyRecommendationImpl`, so a static reference would
+	// keep the entire `settings-loader -> crypto/app-secret -> node:crypto`
+	// chain in the client graph (whose splitter can't elide it). Loading
+	// dynamically keeps it server-only without changing semantics.
+	const { getAppSettings } = await import('@/lib/settings-loader')
 	const settings = await getAppSettings(tx)
 	if (isListTypeDisabled(apply.newType, settings)) {
 		return { ok: false, reason: 'list-type-disabled' }
@@ -681,6 +693,7 @@ async function applyCreateList(
 		return { ok: false, reason: 'child-cannot-create-gift-ideas' }
 	}
 
+	const { getAppSettings } = await import('@/lib/settings-loader')
 	const settings = await getAppSettings(tx)
 	if (isListTypeDisabled(apply.type, settings)) {
 		return { ok: false, reason: 'list-type-disabled' }

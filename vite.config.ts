@@ -116,12 +116,18 @@ const securityHeaders = {
 // otherwise resolve `@/db` to the real `src/db/index.ts` via the
 // tsconfig `@/*` path alias.
 const dbStubPath = resolvePath(__dirname, 'src/db/_client-stub.ts')
+const appSecretStubPath = resolvePath(__dirname, 'src/lib/crypto/_client-stub.ts')
 const dbClientAlias = (): Plugin => ({
 	name: 'wishlists:client-db-alias',
 	enforce: 'pre',
 	resolveId(source) {
 		if (this.environment.name !== 'client') return
 		if (source === '@/db') return dbStubPath
+		// `@/lib/crypto/app-secret` does `import { scryptSync } from 'node:crypto'`,
+		// which Vite externalises in the browser and rollup then errors on. The
+		// helpers only run server-side (server-fn handlers, cron, Hono routes);
+		// alias the import to a throwing stub so it never reaches the client graph.
+		if (source === '@/lib/crypto/app-secret') return appSecretStubPath
 		return null
 	},
 })

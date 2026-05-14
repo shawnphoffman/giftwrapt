@@ -12,6 +12,7 @@ import { z } from 'zod'
 
 import type { Database, SchemaDatabase } from '@/db'
 import { appSettings } from '@/db/schema'
+import type { ListType } from '@/db/schema/enums'
 
 // 1) Shape of settings used across the app.
 // Defaults live in DEFAULT_APP_SETTINGS below, NOT on the schema fields:
@@ -562,4 +563,17 @@ export function looksLikeEncryptedEnvelope(value: unknown): boolean {
 	if (!value || typeof value !== 'object') return false
 	const v = value as Record<string, unknown>
 	return v.v === 1 && typeof v.iv === 'string' && typeof v.tag === 'string' && typeof v.data === 'string'
+}
+
+// Admin-gated list types. `wishlist` and `giftideas` are always available
+// (the former is the universal default, the latter has its own role gate).
+// Returns true when the type is admin-disabled. Lives here (alongside
+// AppSettings) so apply paths in src/api/intelligence.ts can pre-validate
+// without statically importing from the server-only _lists-impl module.
+export function isListTypeDisabled(type: ListType, settings: AppSettings): boolean {
+	if (type === 'christmas') return !settings.enableChristmasLists
+	if (type === 'birthday') return !settings.enableBirthdayLists
+	if (type === 'holiday') return !settings.enableGenericHolidayLists
+	if (type === 'todos') return !settings.enableTodoLists
+	return false
 }
