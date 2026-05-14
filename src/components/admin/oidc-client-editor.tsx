@@ -1,8 +1,10 @@
 // Admin form for the single OIDC sign-in provider (sign INTO
 // GiftWrapt with an external IdP). The shape follows the Audiobookshelf
 // OpenID Connect Authentication form: enable toggle, issuer + endpoint
-// URLs, client id/secret, allowed mobile redirect URIs, button text,
-// and the user-matching toggles.
+// URLs, client id/secret, button text, and the user-matching toggles.
+// The mobile redirect-URI whitelist used to live here; it now has its
+// own top-level `mobileApp` settings row + admin card (see
+// MobileAppEditor) because it gates passkey too, not just OIDC.
 //
 // Persisted in `app_settings.oidcClient` as a JSONB blob with the
 // `clientSecret` field encrypted at rest. Changes only take effect on
@@ -21,13 +23,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { Textarea } from '@/components/ui/textarea'
 
 const QUERY_KEY = ['admin', 'oidc-client'] as const
 
-type FormState = Omit<OidcClientConfigResponse, 'mobileRedirectUris' | 'scopes'> & {
-	// Newline-separated for the textarea; serialized to/from arrays.
-	mobileRedirectUrisText: string
+type FormState = Omit<OidcClientConfigResponse, 'scopes'> & {
 	scopesText: string
 	// Empty string = "leave the stored secret alone".
 	clientSecretInput: string
@@ -49,7 +48,6 @@ function configToForm(config: OidcClientConfigResponse): FormState {
 		buttonText: config.buttonText,
 		matchExistingUsersBy: config.matchExistingUsersBy,
 		autoRegister: config.autoRegister,
-		mobileRedirectUrisText: config.mobileRedirectUris.join('\n'),
 	}
 }
 
@@ -89,10 +87,6 @@ export function OidcClientEditor() {
 				buttonText: state.buttonText.trim(),
 				matchExistingUsersBy: state.matchExistingUsersBy,
 				autoRegister: state.autoRegister,
-				mobileRedirectUris: state.mobileRedirectUrisText
-					.split(/\n+/u)
-					.map(s => s.trim())
-					.filter(Boolean),
 			}
 			const result = await updateOidcClientConfigAsAdmin({ data: payload })
 			if (!result.ok) throw new Error(result.error)
@@ -197,20 +191,6 @@ export function OidcClientEditor() {
 							placeholder="openid email profile"
 							value={form.scopesText}
 							onChange={e => set('scopesText', e.target.value)}
-						/>
-					</Field>
-
-					<Field
-						id="oidc-mobile-redirects"
-						label="Allowed Mobile Redirect URIs"
-						hint="One URI per line. The iOS app's begin endpoint validates the requested scheme is on this list before issuing a sign-in URL."
-					>
-						<Textarea
-							id="oidc-mobile-redirects"
-							placeholder="com.shawnhoffman.wishlists://oauth"
-							value={form.mobileRedirectUrisText}
-							onChange={e => set('mobileRedirectUrisText', e.target.value)}
-							rows={3}
 						/>
 					</Field>
 

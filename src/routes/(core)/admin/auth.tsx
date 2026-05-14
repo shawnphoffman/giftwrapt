@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { AuthSettingsSection } from '@/components/admin/app-settings-editor'
+import { MobileAppEditor } from '@/components/admin/mobile-app-editor'
 import { OidcClientEditor } from '@/components/admin/oidc-client-editor'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ClientOnly } from '@/components/utilities/client-only'
@@ -20,6 +21,19 @@ function AdminAuthPage() {
 				<CardContent>
 					<ClientOnly>
 						<AuthSettingsSection />
+					</ClientOnly>
+				</CardContent>
+			</Card>
+			<Card className="animate-page-in max-w-2xl">
+				<CardHeader>
+					<CardTitle className="text-2xl">Mobile app</CardTitle>
+					<CardDescription>
+						Redirect URIs the iOS app is allowed to receive sign-in tokens on. Gates both passkey and OIDC sign-in from iOS.
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<ClientOnly>
+						<MobileAppEditor />
 					</ClientOnly>
 				</CardContent>
 			</Card>

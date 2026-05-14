@@ -1,5 +1,8 @@
 // Server functions for the admin OIDC-client config page. Reads and
-// writes the single `oidcClient` row in `app_settings`.
+// writes the single `oidcClient` row in `app_settings`. The mobile
+// redirect-URI whitelist used to live here as `mobileRedirectUris`;
+// since 2026-05 it's a sibling `mobileApp` row managed via
+// `admin-mobile-app.ts`.
 //
 // `clientSecret` is encrypted at rest (envelope shape via
 // `src/lib/crypto/app-secret`); the read returns whether a secret is
