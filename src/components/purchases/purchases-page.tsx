@@ -204,7 +204,7 @@ export function PurchasesPageContent({ items, partner }: Props) {
 	return (
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
-				<PageHeading title="Purchases" icon={Receipt} color="pink" />
+				<PageHeading title="Purchases" icon={Receipt} color="cyan" />
 
 				<p className="text-sm text-muted-foreground">
 					All of your purchases and addons over time. If you have a partner, their purchases appear here too (excluding gifts for you). Edit
@@ -270,13 +270,13 @@ export function PurchasesPageContent({ items, partner }: Props) {
 														</div>
 													</TableCell>
 													<TableCell className="text-right">
-														<MoneyChip amount={g.giftsTotal} variant="blue" />
+														<MoneyChip amount={g.giftsTotal} variant="gifts" />
 													</TableCell>
 													<TableCell className="text-right">
-														<MoneyChip amount={g.addonsTotal} variant="orange" />
+														<MoneyChip amount={g.addonsTotal} variant="addons" />
 													</TableCell>
 													<TableCell className="text-right">
-														<MoneyChip amount={g.totalSpent} variant="green" />
+														<MoneyChip amount={g.totalSpent} variant="total" />
 													</TableCell>
 													<TableCell className="pr-3 text-muted-foreground">
 														<ChevronDown className={`size-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -307,13 +307,13 @@ export function PurchasesPageContent({ items, partner }: Props) {
 									<TableRow>
 										<TableCell className="pl-3 font-semibold">Total</TableCell>
 										<TableCell className="text-right">
-											<MoneyChip amount={metrics.giftsTotalSpend} variant="blue" />
+											<MoneyChip amount={metrics.giftsTotalSpend} variant="gifts" />
 										</TableCell>
 										<TableCell className="text-right">
-											<MoneyChip amount={metrics.addonsTotalSpend} variant="orange" />
+											<MoneyChip amount={metrics.addonsTotalSpend} variant="addons" />
 										</TableCell>
 										<TableCell className="text-right">
-											<MoneyChip amount={metrics.totalSpend} variant="green" />
+											<MoneyChip amount={metrics.totalSpend} variant="total" />
 										</TableCell>
 										<TableCell className="pr-3"></TableCell>
 									</TableRow>
@@ -327,17 +327,17 @@ export function PurchasesPageContent({ items, partner }: Props) {
 						<div className="flex flex-col gap-4 **:data-[slot=card]:bg-linear-to-t **:data-[slot=card]:from-accent/50 **:data-[slot=card]:to-card dark:**:data-[slot=card]:bg-card">
 							<div className="grid grid-cols-1 @md/page:grid-cols-2 @4xl/page:grid-cols-3 gap-4">
 								<MetricsGroup title="Totals" cols={3}>
-									<Metric label="Total Spend" value={<MoneyChip amount={metrics.totalSpend} variant="green" />} />
-									<Metric label="Gifts" value={<MoneyChip amount={metrics.giftsTotalSpend} variant="blue" />} />
-									<Metric label="Addons" value={<MoneyChip amount={metrics.addonsTotalSpend} variant="orange" />} />
+									<Metric label="Total Spend" value={<MoneyChip amount={metrics.totalSpend} variant="total" />} />
+									<Metric label="Gifts" value={<MoneyChip amount={metrics.giftsTotalSpend} variant="gifts" />} />
+									<Metric label="Addons" value={<MoneyChip amount={metrics.addonsTotalSpend} variant="addons" />} />
 									<Metric label="Total Items" value={<span className="text-base font-semibold tabular-nums">{metrics.totalItems}</span>} />
 									<Metric label="Gifts" value={<span className="text-base font-semibold tabular-nums">{metrics.totalGifts}</span>} />
 									<Metric label="Addons" value={<span className="text-base font-semibold tabular-nums">{metrics.totalAddons}</span>} />
 								</MetricsGroup>
 
 								<MetricsGroup title="Averages">
-									<Metric label="Per Item" value={<MoneyChip amount={metrics.perItem} variant="green" />} />
-									<Metric label="Per Item (excl. $0)" value={<MoneyChip amount={metrics.perItemExclZero} variant="green" />} />
+									<Metric label="Per Item" value={<MoneyChip amount={metrics.perItem} variant="total" />} />
+									<Metric label="Per Item (excl. $0)" value={<MoneyChip amount={metrics.perItemExclZero} variant="total" />} />
 									<Metric
 										label="Items/Person"
 										value={<span className="text-base font-semibold tabular-nums">{metrics.itemsPerPerson.toFixed(1)}</span>}
@@ -351,7 +351,7 @@ export function PurchasesPageContent({ items, partner }: Props) {
 								<MetricsGroup title="Highlights" className="@md/page:col-span-2 @4xl/page:col-span-1">
 									<Metric label="Recipients" value={<span className="text-base font-semibold tabular-nums">{metrics.totalPeople}</span>} />
 									<Metric label="Max Recipient" value={<PersonCell group={metrics.topGroup} />} />
-									<Metric label="Max Single Item" value={<MoneyChip amount={metrics.maxSpend} variant="green" />} />
+									<Metric label="Max Single Item" value={<MoneyChip amount={metrics.maxSpend} variant="total" />} />
 									<Metric label="Min Recipient" value={<PersonCell group={metrics.bottomGroup} />} />
 								</MetricsGroup>
 							</div>
@@ -520,7 +520,7 @@ function PersonCell({ group }: { group: PersonGroup | null }) {
 		<div className="flex items-center gap-2 min-w-0">
 			<UserAvatar name={group.name} image={group.image} size="small" />
 			<span className="truncate text-sm font-medium">{group.name}</span>
-			<MoneyChip amount={group.totalSpent} variant="green" />
+			<MoneyChip amount={group.totalSpent} variant="total" />
 		</div>
 	)
 }
@@ -544,16 +544,16 @@ function Metric({ label, value, tooltip }: { label: string; value: React.ReactNo
 	)
 }
 
-function MoneyChip({ amount, variant }: { amount: number; variant: 'green' | 'orange' | 'blue' | 'muted' }) {
+function MoneyChip({ amount, variant }: { amount: number; variant: 'total' | 'gifts' | 'addons' | 'muted' }) {
 	const zero = amount === 0
 	const classes = zero
 		? 'bg-muted text-muted-foreground'
-		: variant === 'green'
-			? 'bg-green-700 text-white'
-			: variant === 'orange'
-				? 'bg-orange-700 text-white'
-				: variant === 'blue'
-					? 'bg-blue-700 text-white'
+		: variant === 'total'
+			? 'bg-pink-700 text-white'
+			: variant === 'addons'
+				? 'bg-violet-700 text-white'
+				: variant === 'gifts'
+					? 'bg-cyan-700 text-white'
 					: 'bg-muted text-foreground'
 	return (
 		<span className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-medium tabular-nums ${classes}`}>

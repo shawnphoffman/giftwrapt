@@ -10,8 +10,8 @@ import { CardContent } from '@/components/ui/card'
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 
 const chartConfig = {
-	gifts: { label: 'Gifts', color: 'var(--color-blue-700)' },
-	addons: { label: 'Addons', color: 'var(--color-orange-700)' },
+	gifts: { label: 'Gifts', color: 'var(--color-cyan-700)' },
+	addons: { label: 'Addons', color: 'var(--color-violet-700)' },
 } satisfies ChartConfig
 
 type RecipientPoint = { name: string; gifts: number; addons: number }
