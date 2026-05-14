@@ -12,8 +12,7 @@ import {
 	Users,
 	Zap,
 } from 'lucide-react'
-import { Fragment, useMemo, useState } from 'react'
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
+import { Fragment, lazy, Suspense, useMemo, useState } from 'react'
 
 import type { SummaryItem } from '@/api/purchases'
 import { DateRangeFilter } from '@/components/common/date-range-filter'
@@ -25,9 +24,21 @@ import { type EditablePurchase, PurchaseEditDialog } from '@/components/purchase
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+
+// recharts is ~350 KB. The chart cards only render once spend data is
+// summarised, so paying that cost up front for every /purchases visit
+// (especially for empty / first-time users) is wasteful. Pull the chart
+// island in lazily so the page paints first, then hydrates the charts.
+const SpendByRecipientChart = lazy(() => import('./purchases-charts').then(m => ({ default: m.SpendByRecipientChart })))
+const SpendOverTimeChart = lazy(() => import('./purchases-charts').then(m => ({ default: m.SpendOverTimeChart })))
+const ChartCardFallback = () => (
+	<CardContent>
+		<Skeleton className="h-60 w-full" />
+	</CardContent>
+)
 import { groupByPerson, type PersonGroup } from '@/lib/purchases-grouping'
 import { matchesTimeframe, type TimeframeValue } from '@/lib/timeframe'
 
@@ -64,11 +75,6 @@ type Props = {
 function fmt(n: number): string {
 	return n.toFixed(2)
 }
-
-const chartConfig = {
-	gifts: { label: 'Gifts', color: 'var(--color-blue-700)' },
-	addons: { label: 'Addons', color: 'var(--color-orange-700)' },
-} satisfies ChartConfig
 
 type MonthBucket = { month: string; gifts: number; addons: number }
 
@@ -358,31 +364,9 @@ export function PurchasesPageContent({ items, partner }: Props) {
 										</CardTitle>
 										<CardDescription>Per recipient, stacked by gift vs. addon.</CardDescription>
 									</CardHeader>
-									<CardContent>
-										{recipientChartData.length > 0 ? (
-											<ChartContainer config={chartConfig} className="aspect-auto h-60 w-full">
-												<BarChart accessibilityLayer data={recipientChartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-													<CartesianGrid vertical={false} />
-													<XAxis
-														dataKey="name"
-														tickLine={false}
-														axisLine={false}
-														tickMargin={8}
-														interval={0}
-														tickFormatter={v => (v.length > 12 ? `${v.slice(0, 11)}\u2026` : v)}
-													/>
-													<YAxis tickLine={false} axisLine={false} tickMargin={8} width={40} tickFormatter={v => `$${v}`} />
-													<ChartTooltip
-														content={<ChartTooltipContent indicator="dot" valueFormatter={v => `$${Number(v).toFixed(2)}`} />}
-													/>
-													<Bar dataKey="gifts" stackId="a" fill="var(--color-gifts)" isAnimationActive={false} radius={[0, 0, 0, 0]} />
-													<Bar dataKey="addons" stackId="a" fill="var(--color-addons)" isAnimationActive={false} radius={[4, 4, 0, 0]} />
-												</BarChart>
-											</ChartContainer>
-										) : (
-											<div className="text-sm text-muted-foreground py-6 text-center">No data.</div>
-										)}
-									</CardContent>
+									<Suspense fallback={<ChartCardFallback />}>
+										<SpendByRecipientChart data={recipientChartData} />
+									</Suspense>
 								</Card>
 
 								<Card size="sm" className="min-w-0">
@@ -390,24 +374,9 @@ export function PurchasesPageContent({ items, partner }: Props) {
 										<CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Spend Over Time</CardTitle>
 										<CardDescription>Per month, stacked by gift vs. addon.</CardDescription>
 									</CardHeader>
-									<CardContent>
-										{monthly.length > 0 ? (
-											<ChartContainer config={chartConfig} className="aspect-auto h-60 w-full">
-												<BarChart accessibilityLayer data={monthly} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-													<CartesianGrid vertical={false} />
-													<XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
-													<YAxis tickLine={false} axisLine={false} tickMargin={8} width={40} tickFormatter={v => `$${v}`} />
-													<ChartTooltip
-														content={<ChartTooltipContent indicator="dot" valueFormatter={v => `$${Number(v).toFixed(2)}`} />}
-													/>
-													<Bar dataKey="gifts" stackId="a" fill="var(--color-gifts)" isAnimationActive={false} radius={[0, 0, 0, 0]} />
-													<Bar dataKey="addons" stackId="a" fill="var(--color-addons)" isAnimationActive={false} radius={[4, 4, 0, 0]} />
-												</BarChart>
-											</ChartContainer>
-										) : (
-											<div className="text-sm text-muted-foreground py-6 text-center">No data.</div>
-										)}
-									</CardContent>
+									<Suspense fallback={<ChartCardFallback />}>
+										<SpendOverTimeChart data={monthly} />
+									</Suspense>
 								</Card>
 							</div>
 						</div>
