@@ -3,23 +3,9 @@ import { useState } from 'react'
 
 import { TwoFactorChallengePageContent, type TwoFactorMode } from '@/components/auth/two-factor-challenge-page'
 import { authClient } from '@/lib/auth-client'
+import { safeRedirect } from '@/lib/safe-redirect'
 
 type Search = { redirect?: string }
-
-const safeRedirect = (raw: unknown): string => {
-	if (typeof raw !== 'string') return '/'
-	if (raw.length === 0 || raw.length > 2000) return '/'
-	if (!raw.startsWith('/')) return '/'
-	if (raw.startsWith('//') || raw.startsWith('/\\')) return '/'
-	if (raw.startsWith('/_')) return '/'
-	try {
-		const parsed = new URL(raw, 'http://placeholder.invalid')
-		if (parsed.origin !== 'http://placeholder.invalid') return '/'
-	} catch {
-		return '/'
-	}
-	return raw
-}
 
 export const Route = createFileRoute('/(auth)/sign-in/two-factor')({
 	validateSearch: (search: Record<string, unknown>): Search => {
