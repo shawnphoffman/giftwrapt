@@ -311,6 +311,10 @@ export const testResendApiKeyAsAdmin = ok
 export const fetchOidcClientConfigAsAdmin = (): Promise<null> => Promise.resolve(null)
 export const updateOidcClientConfigAsAdmin = ok
 
+// @/api/admin-mobile-app
+export const fetchMobileAppConfigAsAdmin = (): Promise<null> => Promise.resolve(null)
+export const updateMobileAppConfigAsAdmin = ok
+
 // @/api/admin-scrapes
 export const getScrapeDetailAsAdmin = (): Promise<null> => Promise.resolve(null)
 export const listScrapesAsAdmin = emptyArray

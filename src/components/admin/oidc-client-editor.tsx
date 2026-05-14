@@ -19,10 +19,9 @@ import { toast } from 'sonner'
 import { fetchOidcClientConfigAsAdmin, type OidcClientConfigResponse, updateOidcClientConfigAsAdmin } from '@/api/admin-oidc-client'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Switch } from '@/components/ui/switch'
 
 const QUERY_KEY = ['admin', 'oidc-client'] as const
 
@@ -113,7 +112,8 @@ export function OidcClientEditor() {
 
 	return (
 		<div className="space-y-6">
-			<div className="flex items-start justify-between gap-4">
+			<div className="flex items-start gap-3">
+				<Checkbox id="oidc-enabled" className="mt-1" checked={form.enabled} onCheckedChange={v => set('enabled', v === true)} />
 				<div className="space-y-1">
 					<Label htmlFor="oidc-enabled" className="text-base flex items-center gap-2">
 						{form.enabled ? <ShieldCheck className="size-4 text-green-600" /> : <ShieldAlert className="size-4 text-muted-foreground" />}
@@ -123,7 +123,6 @@ export function OidcClientEditor() {
 						Let users sign in with an external OIDC identity provider (Authentik, Authelia, Pocket ID, Keycloak, Google, etc).
 					</p>
 				</div>
-				<Switch id="oidc-enabled" checked={form.enabled} onCheckedChange={v => set('enabled', v)} />
 			</div>
 
 			<div className={form.enabled ? '' : 'opacity-50 pointer-events-none'}>
@@ -203,38 +202,49 @@ export function OidcClientEditor() {
 						/>
 					</Field>
 
-					<Field
-						id="oidc-match"
-						label="Match existing users by"
-						hint="When set, a returning user whose IdP-provided email matches a local account will be linked instead of duplicated."
-					>
-						<Select value={form.matchExistingUsersBy} onValueChange={v => set('matchExistingUsersBy', v as 'none' | 'email')}>
-							<SelectTrigger id="oidc-match" className="w-fit">
-								<SelectValue />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="none">Do not match</SelectItem>
-								<SelectItem value="email">Match by email</SelectItem>
-							</SelectContent>
-						</Select>
-					</Field>
+					{/*
+					Checkboxes (not Switches) for these two batched settings: in this
+					codebase a `<Switch>` is by convention an auto-saving control,
+					and these only persist when the form's Save button is pressed.
+					*/}
+					<div className="flex items-start gap-3">
+						<Checkbox
+							id="oidc-link-by-email"
+							className="mt-1"
+							checked={form.matchExistingUsersBy === 'email'}
+							onCheckedChange={v => set('matchExistingUsersBy', v === true ? 'email' : 'none')}
+						/>
+						<div className="space-y-0.5">
+							<Label htmlFor="oidc-link-by-email" className="text-base">
+								Link Existing Accounts by Email
+							</Label>
+							<p className="text-sm text-muted-foreground">
+								When a returning user&apos;s IdP-provided email matches a local account, link the two instead of creating a duplicate.
+							</p>
+						</div>
+					</div>
 
-					<div className="flex items-center justify-between gap-4">
+					<div className="flex items-start gap-3">
+						<Checkbox
+							id="oidc-auto-register"
+							className="mt-1"
+							checked={form.autoRegister}
+							onCheckedChange={v => set('autoRegister', v === true)}
+						/>
 						<div className="space-y-0.5">
 							<Label htmlFor="oidc-auto-register" className="text-base">
-								Auto Register
+								Auto Register New Accounts
 							</Label>
 							<p className="text-sm text-muted-foreground">Create a new local account for any unknown email returned by the IdP.</p>
 						</div>
-						<Switch id="oidc-auto-register" checked={form.autoRegister} onCheckedChange={v => set('autoRegister', v)} />
 					</div>
 				</div>
 			</div>
 
 			{dirty && (
-				<Alert>
-					<AlertTitle>Restart required</AlertTitle>
-					<AlertDescription>better-auth loads OIDC providers at boot. Save and restart the server to apply changes.</AlertDescription>
+				<Alert variant="warning">
+					<AlertTitle>Restart Required</AlertTitle>
+					<AlertDescription>OIDC providers are loaded on boot. Save and restart the server to apply changes.</AlertDescription>
 				</Alert>
 			)}
 
@@ -262,7 +272,9 @@ export function OidcClientEditor() {
 function Field({ id, label, hint, children }: { id: string; label: string; hint?: string; children: React.ReactNode }) {
 	return (
 		<div className="space-y-1.5">
-			<Label htmlFor={id}>{label}</Label>
+			<Label htmlFor={id} className="text-base">
+				{label}
+			</Label>
 			{children}
 			{hint && <p className="text-xs text-muted-foreground">{hint}</p>}
 		</div>

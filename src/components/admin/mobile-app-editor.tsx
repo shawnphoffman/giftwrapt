@@ -6,7 +6,6 @@
 // of the box.
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Smartphone } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -78,19 +77,10 @@ export function MobileAppEditor() {
 
 	return (
 		<div className="space-y-6">
-			<div className="space-y-1">
-				<Label htmlFor="mobile-redirect-uris" className="text-base flex items-center gap-2">
-					<Smartphone className="size-4 text-muted-foreground" />
-					Mobile app
-				</Label>
-				<p className="text-sm text-muted-foreground">
-					Redirect URIs the iOS app is allowed to receive sign-in tokens on. Required for both passkey and OIDC sign-in from iOS; an empty
-					list disables both.
-				</p>
-			</div>
-
 			<div className="space-y-1.5">
-				<Label htmlFor="mobile-redirect-uris">Allowed redirect URIs</Label>
+				<Label htmlFor="mobile-redirect-uris" className="text-base">
+					Allowed Redirect URIs
+				</Label>
 				<Textarea
 					id="mobile-redirect-uris"
 					placeholder="wishlists://oauth"
@@ -99,8 +89,9 @@ export function MobileAppEditor() {
 					rows={3}
 				/>
 				<p className="text-xs text-muted-foreground">
-					One URI per line. The iOS app uses <code className="font-mono">wishlists://oauth</code> by default. Remove this entry only if
-					you&apos;re running a forked build with a different URL scheme.
+					One URI per line. Required for passkey AND OIDC sign-in from the iOS app — leave empty to disable both on mobile. The iOS app uses{' '}
+					<code className="font-mono">wishlists://oauth</code> by default; remove this entry only if you&apos;re running a forked build with
+					a different URL scheme.
 				</p>
 			</div>
 

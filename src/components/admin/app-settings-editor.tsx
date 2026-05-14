@@ -618,11 +618,11 @@ export function AuthSettingsSection() {
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="enablePasskeys" className="text-base">
-						Enable passkeys
+						Enable Passkeys
 					</Label>
 					<p className="text-sm text-muted-foreground">
-						Let signed-in users register WebAuthn passkeys (Touch ID, Face ID, hardware keys) and use them as a sign-in option. Off by
-						default, turn on for HTTPS deployments only.
+						Let signed-in users register WebAuthn passkeys (Touch ID, Face ID, hardware keys) and use them as a sign-in option. HTTPS
+						deployment is required.
 					</p>
 				</div>
 				<Switch

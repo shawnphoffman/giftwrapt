@@ -4,6 +4,7 @@ import { AuthSettingsSection } from '@/components/admin/app-settings-editor'
 import { MobileAppEditor } from '@/components/admin/mobile-app-editor'
 import { OidcClientEditor } from '@/components/admin/oidc-client-editor'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
 import { ClientOnly } from '@/components/utilities/client-only'
 
 export const Route = createFileRoute('/(core)/admin/auth')({
@@ -16,22 +17,12 @@ function AdminAuthPage() {
 			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
 					<CardTitle className="text-2xl">Auth</CardTitle>
-					<CardDescription>WebAuthn passkeys.</CardDescription>
 				</CardHeader>
-				<CardContent>
+				<CardContent className="space-y-6">
 					<ClientOnly>
 						<AuthSettingsSection />
 					</ClientOnly>
-				</CardContent>
-			</Card>
-			<Card className="animate-page-in max-w-2xl">
-				<CardHeader>
-					<CardTitle className="text-2xl">Mobile app</CardTitle>
-					<CardDescription>
-						Redirect URIs the iOS app is allowed to receive sign-in tokens on. Gates both passkey and OIDC sign-in from iOS.
-					</CardDescription>
-				</CardHeader>
-				<CardContent>
+					<Separator />
 					<ClientOnly>
 						<MobileAppEditor />
 					</ClientOnly>
@@ -42,7 +33,7 @@ function AdminAuthPage() {
 					<CardTitle className="text-2xl">OIDC Sign-in</CardTitle>
 					<CardDescription>
 						Let users sign in with an external OpenID Connect provider. Single provider per deployment; changes take effect after a server
-						restart.
+						restart. iOS sign-in additionally requires at least one mobile redirect URI above.
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
