@@ -326,6 +326,38 @@ export const importAppDataAsAdmin = ok
 // @/api/received
 // (only types are imported, but keep this section as a marker)
 
+// @/api/orphan-claims
+// Stories that need rows visible should prime the React Query cache with
+// `client.setQueryData(['orphan-claims', 'list', listId], rows)` etc.
+// These stubs return empty by default so unsuspected mounts are silent.
+export type OrphanedClaimRow = {
+	giftId: number
+	itemId: number
+	itemTitle: string
+	itemUrl: string | null
+	itemImageUrl: string | null
+	itemPrice: string | null
+	itemCurrency: string | null
+	quantity: number
+	totalCost: string | null
+	notes: string | null
+	isPartnerPurchase: boolean
+	pendingDeletionAt: Date
+}
+export type OrphanedClaimSummaryRow = {
+	listId: number
+	listName: string
+	listIsActive: boolean
+	listOwnerId: string
+	recipientKind: 'user' | 'dependent'
+	recipientName: string
+	count: number
+}
+export type AcknowledgeOrphanedClaimResult = { kind: 'ok'; itemDeleted: boolean } | { kind: 'error'; reason: string }
+export const getOrphanedClaimsForList = (): Promise<Array<OrphanedClaimRow>> => Promise.resolve([])
+export const getOrphanedClaimsSummary = (): Promise<Array<OrphanedClaimSummaryRow>> => Promise.resolve([])
+export const acknowledgeOrphanedClaim = (): Promise<AcknowledgeOrphanedClaimResult> => Promise.resolve({ kind: 'ok', itemDeleted: true })
+
 // @/api/import
 export type ItemDraft = {
 	title?: string | null
