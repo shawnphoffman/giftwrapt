@@ -17,12 +17,28 @@ const chartConfig = {
 type RecipientPoint = { name: string; gifts: number; addons: number }
 type MonthPoint = { month: string; gifts: number; addons: number }
 
+function SpendGradients() {
+	return (
+		<defs>
+			<linearGradient id="fillGifts" x1="0" y1="0" x2="0" y2="1">
+				<stop offset="0%" stopColor="var(--color-gifts)" stopOpacity={1} />
+				<stop offset="100%" stopColor="var(--color-gifts)" stopOpacity={0.45} />
+			</linearGradient>
+			<linearGradient id="fillAddons" x1="0" y1="0" x2="0" y2="1">
+				<stop offset="0%" stopColor="var(--color-addons)" stopOpacity={1} />
+				<stop offset="100%" stopColor="var(--color-addons)" stopOpacity={0.45} />
+			</linearGradient>
+		</defs>
+	)
+}
+
 export function SpendByRecipientChart({ data }: { data: Array<RecipientPoint> }) {
 	return (
 		<CardContent>
 			{data.length > 0 ? (
 				<ChartContainer config={chartConfig} className="aspect-auto h-60 w-full">
 					<BarChart accessibilityLayer data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+						<SpendGradients />
 						<CartesianGrid vertical={false} />
 						<XAxis
 							dataKey="name"
@@ -34,8 +50,8 @@ export function SpendByRecipientChart({ data }: { data: Array<RecipientPoint> })
 						/>
 						<YAxis tickLine={false} axisLine={false} tickMargin={8} width={40} tickFormatter={v => `$${v}`} />
 						<ChartTooltip content={<ChartTooltipContent indicator="dot" valueFormatter={v => `$${Number(v).toFixed(2)}`} />} />
-						<Bar dataKey="gifts" stackId="a" fill="var(--color-gifts)" isAnimationActive={false} radius={[0, 0, 0, 0]} />
-						<Bar dataKey="addons" stackId="a" fill="var(--color-addons)" isAnimationActive={false} radius={[4, 4, 0, 0]} />
+						<Bar dataKey="gifts" stackId="a" fill="url(#fillGifts)" isAnimationActive={false} radius={[0, 0, 0, 0]} />
+						<Bar dataKey="addons" stackId="a" fill="url(#fillAddons)" isAnimationActive={false} radius={[4, 4, 0, 0]} />
 					</BarChart>
 				</ChartContainer>
 			) : (
@@ -51,12 +67,13 @@ export function SpendOverTimeChart({ data }: { data: Array<MonthPoint> }) {
 			{data.length > 0 ? (
 				<ChartContainer config={chartConfig} className="aspect-auto h-60 w-full">
 					<BarChart accessibilityLayer data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+						<SpendGradients />
 						<CartesianGrid vertical={false} />
 						<XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
 						<YAxis tickLine={false} axisLine={false} tickMargin={8} width={40} tickFormatter={v => `$${v}`} />
 						<ChartTooltip content={<ChartTooltipContent indicator="dot" valueFormatter={v => `$${Number(v).toFixed(2)}`} />} />
-						<Bar dataKey="gifts" stackId="a" fill="var(--color-gifts)" isAnimationActive={false} radius={[0, 0, 0, 0]} />
-						<Bar dataKey="addons" stackId="a" fill="var(--color-addons)" isAnimationActive={false} radius={[4, 4, 0, 0]} />
+						<Bar dataKey="gifts" stackId="a" fill="url(#fillGifts)" isAnimationActive={false} radius={[0, 0, 0, 0]} />
+						<Bar dataKey="addons" stackId="a" fill="url(#fillAddons)" isAnimationActive={false} radius={[4, 4, 0, 0]} />
 					</BarChart>
 				</ChartContainer>
 			) : (

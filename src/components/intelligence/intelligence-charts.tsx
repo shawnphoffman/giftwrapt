@@ -52,13 +52,27 @@ export function RunsActivityChart({ data }: { data: Array<DailySeriesPoint> }) {
 			<CardContent>
 				<ChartContainer config={runsChartConfig} className="aspect-auto h-44 w-full">
 					<BarChart accessibilityLayer data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+						<defs>
+							<linearGradient id="fillRunsSuccess" x1="0" y1="0" x2="0" y2="1">
+								<stop offset="0%" stopColor="var(--color-runsSuccess)" stopOpacity={1} />
+								<stop offset="100%" stopColor="var(--color-runsSuccess)" stopOpacity={0.45} />
+							</linearGradient>
+							<linearGradient id="fillRunsSkipped" x1="0" y1="0" x2="0" y2="1">
+								<stop offset="0%" stopColor="var(--color-runsSkipped)" stopOpacity={1} />
+								<stop offset="100%" stopColor="var(--color-runsSkipped)" stopOpacity={0.45} />
+							</linearGradient>
+							<linearGradient id="fillRunsError" x1="0" y1="0" x2="0" y2="1">
+								<stop offset="0%" stopColor="var(--color-runsError)" stopOpacity={1} />
+								<stop offset="100%" stopColor="var(--color-runsError)" stopOpacity={0.45} />
+							</linearGradient>
+						</defs>
 						<CartesianGrid vertical={false} strokeDasharray="3 3" />
 						<XAxis dataKey="date" tickLine={false} axisLine={false} tickFormatter={shortDate} fontSize={10} />
 						<YAxis tickLine={false} axisLine={false} fontSize={10} width={28} />
 						<ChartTooltip content={<ChartTooltipContent />} />
-						<Bar dataKey="runsSuccess" stackId="r" fill="var(--color-runsSuccess)" radius={[0, 0, 0, 0]} />
-						<Bar dataKey="runsSkipped" stackId="r" fill="var(--color-runsSkipped)" radius={[0, 0, 0, 0]} />
-						<Bar dataKey="runsError" stackId="r" fill="var(--color-runsError)" radius={[3, 3, 0, 0]} />
+						<Bar dataKey="runsSuccess" stackId="r" fill="url(#fillRunsSuccess)" radius={[0, 0, 0, 0]} />
+						<Bar dataKey="runsSkipped" stackId="r" fill="url(#fillRunsSkipped)" radius={[0, 0, 0, 0]} />
+						<Bar dataKey="runsError" stackId="r" fill="url(#fillRunsError)" radius={[4, 4, 0, 0]} />
 					</BarChart>
 				</ChartContainer>
 				<div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
