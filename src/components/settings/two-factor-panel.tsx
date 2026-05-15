@@ -81,30 +81,23 @@ function DisabledView({ onStartEnrollment, busy }: TwoFactorPanelContentProps) {
 	}
 
 	return (
-		<div className="space-y-3">
-			<div className="space-y-1">
-				<p className="text-sm">
-					Two-factor authentication adds a one-time code from an app like 1Password, Authy, or Google Authenticator on top of your password.
-				</p>
+		<form onSubmit={handle} className="flex flex-col gap-2 sm:flex-row sm:items-start">
+			<div className="grid gap-2 flex-1">
+				<Label htmlFor="enable-2fa-password">Current password</Label>
+				<PasswordInput
+					id="enable-2fa-password"
+					value={password}
+					onChange={e => setPassword(e.target.value)}
+					required
+					autoComplete="current-password"
+					disabled={submitting || busy}
+				/>
 				<p className="text-xs text-muted-foreground">Enter your current password to begin enrollment.</p>
 			</div>
-			<form onSubmit={handle} className="flex flex-col gap-2 sm:flex-row sm:items-end">
-				<div className="grid gap-2 flex-1">
-					<Label htmlFor="enable-2fa-password">Current password</Label>
-					<PasswordInput
-						id="enable-2fa-password"
-						value={password}
-						onChange={e => setPassword(e.target.value)}
-						required
-						autoComplete="current-password"
-						disabled={submitting || busy}
-					/>
-				</div>
-				<Button type="submit" disabled={submitting || busy || !password}>
-					{submitting ? 'Generating…' : 'Enable two-factor auth'}
-				</Button>
-			</form>
-		</div>
+			<Button type="submit" disabled={submitting || busy || !password} className="sm:mt-7">
+				{submitting ? 'Generating…' : 'Enable two-factor auth'}
+			</Button>
+		</form>
 	)
 }
 
