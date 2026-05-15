@@ -456,6 +456,22 @@ export const appSettingsSchema = z.object({
 	// AI. The prompt sees ONLY the current name, target list type, event
 	// title, and event year — never item content, never claim data.
 	intelligenceListHygieneRenameWithAi: z.boolean(),
+	// List-hygiene analyzer: stale-public-list pass. Number of days that
+	// must elapse after an event-bound list's relevant occurrence before
+	// it is eligible to be flagged as stale. Defaults to 90 — past the
+	// auto-archive cron's last sweep, past most "spoiler hold-back"
+	// windows, and far enough that mistakenly flagging an actively-used
+	// list is unlikely. Increasing this biases toward letting lists run
+	// long (the spoiler-safety preference); decreasing surfaces clutter
+	// sooner at higher risk of false positives.
+	intelligenceStaleListPastEventDays: z.number().int().min(1).max(3650),
+	// List-hygiene analyzer: stale-public-list pass. Number of months of
+	// owner inactivity (no updates to the list itself OR any of its
+	// items) before a list is eligible to be flagged as stale. Applies
+	// to ALL list types including wishlists (which have no calendar
+	// binding). 12 months matches the auto-archive yearly cadence and
+	// the user's "run long" preference.
+	intelligenceStaleListInactiveMonths: z.number().int().min(1).max(120),
 	// How many days of `cron_runs` history to keep. The daily verification-
 	// cleanup tick sweeps rows older than this. 90 days = roughly one
 	// quarter of operational history at five endpoints.
@@ -555,6 +571,8 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	intelligenceUpcomingWindowDays: 45,
 	intelligenceMinDaysBeforeEventForRecs: 1,
 	intelligenceListHygieneRenameWithAi: false,
+	intelligenceStaleListPastEventDays: 90,
+	intelligenceStaleListInactiveMonths: 12,
 	cronRunsRetentionDays: 90,
 }
 

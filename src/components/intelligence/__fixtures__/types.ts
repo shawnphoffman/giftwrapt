@@ -104,6 +104,13 @@ export type RecommendationApply =
 			survivorListId: string
 			sourceListIds: Array<string>
 	  }
+	| {
+			// Archive a list (flip isActive=false). Reversible; items and
+			// any past claims stay queryable. Used by the stale-public-
+			// list rec's primary action.
+			kind: 'archive-list'
+			listId: string
+	  }
 
 export type RecommendationAction = {
 	label: string // short verb on the button itself: "Merge lists", "Delete items", "Dismiss"
@@ -262,6 +269,15 @@ export type AdminIntelligenceData = {
 		// list-hygiene analyzer: opt-in AI rename for the convert-public-list
 		// branch. Default false — analyzer uses the deterministic regex.
 		listHygieneRenameWithAi: boolean
+		// list-hygiene analyzer: stale-public-list pass. Days past the
+		// relevant event before an event-bound list qualifies as stale.
+		// Default 90.
+		staleListPastEventDays: number
+		// list-hygiene analyzer: stale-public-list pass. Months of owner
+		// inactivity (lists.updatedAt AND max(items.updatedAt) both old)
+		// before a list qualifies as stale. Applies to all eligible types
+		// including wishlists. Default 12.
+		staleListInactiveMonths: number
 	}
 	health: {
 		totalActiveRecs: number

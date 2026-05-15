@@ -71,6 +71,19 @@ function nextAnnualDate(month: number, day: number, now: Date): Date {
 	return new Date(Date.UTC(thisYear + 1, month - 1, day))
 }
 
+// Mirror of `nextAnnualDate` rolled backward. Resolves the most recent
+// past occurrence (< today UTC) of a fixed (month, day) — this year's
+// occurrence if it has already passed, otherwise last year's. Used by
+// the stale-public-list pass to compute how long ago a list's relevant
+// event was. Exported for unit tests.
+export function lastAnnualDate(month: number, day: number, now: Date): Date {
+	const thisYear = now.getUTCFullYear()
+	const todayMs = startOfUtcDay(now).getTime()
+	const candidate = new Date(Date.UTC(thisYear, month - 1, day))
+	if (candidate.getTime() < todayMs) return candidate
+	return new Date(Date.UTC(thisYear - 1, month - 1, day))
+}
+
 function utcDayMs(d: Date): number {
 	return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
 }

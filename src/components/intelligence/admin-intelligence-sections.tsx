@@ -124,6 +124,25 @@ export function IntelligenceGeneralSettingsCard({ data, patch }: { data: AdminIn
 							aria-label="AI-assisted rename"
 						/>
 					</div>
+					<p className="text-xs text-muted-foreground">
+						Stale-public-list pass: flags old public lists for archive (reversible) or conversion to a plain wishlist. Spoiler-safe by
+						construction — the candidate query never reads claim data or recipient-controlled archive state. Increasing these knobs biases
+						toward letting lists run long (the spoiler-safety preference).
+					</p>
+					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+						<NumberRow
+							label="Days past event before flagged stale"
+							hint="Event-bound lists (christmas/birthday/holiday) only fire after the relevant event is at least this many days in the past. 90 = roughly a quarter past Christmas before suggesting archive."
+							value={s.staleListPastEventDays}
+							onChange={v => patch({ staleListPastEventDays: v })}
+						/>
+						<NumberRow
+							label="Months of inactivity before flagged stale"
+							hint="Both lists.updatedAt AND max(items.updatedAt) must be older than this. Applies to all eligible types, including wishlists. 12 months matches the auto-archive yearly cadence."
+							value={s.staleListInactiveMonths}
+							onChange={v => patch({ staleListInactiveMonths: v })}
+						/>
+					</div>
 				</section>
 			</CardContent>
 		</Card>

@@ -361,6 +361,11 @@ const mergeListsApplySchema = z.object({
 	sourceListIds: z.array(z.string()).min(1),
 })
 
+const archiveListApplySchema = z.object({
+	kind: z.literal('archive-list'),
+	listId: z.string(),
+})
+
 const applyInputSchema = z.object({
 	id: z.uuid(),
 	apply: z.discriminatedUnion('kind', [
@@ -371,6 +376,7 @@ const applyInputSchema = z.object({
 		changeListPrivacyApplySchema,
 		createListApplySchema,
 		mergeListsApplySchema,
+		archiveListApplySchema,
 	]),
 })
 
@@ -382,6 +388,7 @@ export type ApplyRecommendationResult =
 	| { ok: true; kind: 'change-list-privacy'; listId: string }
 	| { ok: true; kind: 'create-list'; listId: string; setPrimary: boolean }
 	| { ok: true; kind: 'merge-lists'; survivorListId: string; archivedSourceListIds: Array<string> }
+	| { ok: true; kind: 'archive-list'; listId: string }
 	| {
 			ok: false
 			reason:
@@ -434,6 +441,8 @@ export async function applyRecommendationImpl(
 			return await applyCreateList(tx, userId, input.id, input.apply)
 		case 'merge-lists':
 			return await applyMergeLists(tx, userId, input.id, input.apply)
+		case 'archive-list':
+			return await applyArchiveList(tx, userId, input.id, input.apply)
 	}
 }
 
@@ -891,6 +900,43 @@ async function applyMergeLists(
 		survivorListId: String(survivorIdNum),
 		archivedSourceListIds: sourceIdsResolved.map(String),
 	}
+}
+
+// Flips a list to inactive. Reversible — items, addons, and any past
+// claims stay queryable; the owner can un-archive later via the edit
+// dialog. Used by the stale-public-list rec when the owner picks
+// "Archive list" over "Convert to wishlist". The rec generation pass
+// keys staleness off `lists.updatedAt` + `MAX(items.updatedAt)` only,
+// never `giftedItems` — so there's no claim-existence read on either
+// side of the flow.
+async function applyArchiveList(
+	tx: SchemaDatabase,
+	userId: string,
+	recId: string,
+	apply: z.infer<typeof archiveListApplySchema>
+): Promise<ApplyRecommendationResult> {
+	const listIdNum = Number.parseInt(apply.listId, 10)
+	if (!Number.isFinite(listIdNum)) return { ok: false, reason: 'list-not-found' }
+
+	const list = await tx.query.lists.findFirst({
+		where: eq(lists.id, listIdNum),
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true, type: true },
+	})
+	if (!list) return { ok: false, reason: 'list-not-found' }
+	if (!list.isActive) {
+		// Already archived — mark applied so the user doesn't see the
+		// suggestion again. Mirrors the change-list-privacy no-op path.
+		await tx.update(recommendations).set({ status: 'applied' }).where(eq(recommendations.id, recId))
+		return { ok: true, kind: 'archive-list', listId: String(listIdNum) }
+	}
+	if (list.ownerId !== userId) {
+		const editGate = await canEditList(userId, list, tx)
+		if (!editGate.ok) return { ok: false, reason: 'cannot-edit' }
+	}
+
+	await tx.update(lists).set({ isActive: false }).where(eq(lists.id, listIdNum))
+	await tx.update(recommendations).set({ status: 'applied' }).where(eq(recommendations.id, recId))
+	return { ok: true, kind: 'archive-list', listId: String(listIdNum) }
 }
 
 export const applyRecommendation = createServerFn({ method: 'POST' })

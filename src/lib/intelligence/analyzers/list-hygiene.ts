@@ -25,11 +25,14 @@
 //      not per-(owner, dependent).
 
 import { generateObject } from 'ai'
-import { and, asc, count, desc, eq, inArray, isNull, ne } from 'drizzle-orm'
+import { and, asc, count, desc, eq, inArray, isNull, max, ne } from 'drizzle-orm'
 
-import { items, lists } from '@/db/schema'
-import type { ListType } from '@/db/schema/enums'
+import type { SchemaDatabase } from '@/db'
+import { customHolidays, items, lists, users } from '@/db/schema'
+import { birthMonthEnumValues, type ListType } from '@/db/schema/enums'
+import { customHolidayLastOccurrence } from '@/lib/custom-holidays'
 import { SPOILER_PROTECTED_TYPES } from '@/lib/list-type-moves'
+import type { AppSettings } from '@/lib/settings'
 
 import type { Analyzer } from '../analyzer'
 import type { AnalyzerContext } from '../context'
@@ -41,7 +44,7 @@ import {
 	validateRenameResponse,
 } from '../prompts/list-hygiene-rename'
 import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ListRef } from '../types'
-import { eventIsCovered, getInWindowEventsForSubject, type InWindowEvent } from '../upcoming-events'
+import { eventIsCovered, getInWindowEventsForSubject, type InWindowEvent, lastAnnualDate } from '../upcoming-events'
 
 // Threshold the older list in a candidate duplicate pair must clear: if
 // its `updatedAt` is within this window, the list is considered "still
@@ -171,15 +174,17 @@ export const listHygieneAnalyzer: Analyzer = {
 		const listsStep: AnalyzerStep = { name: 'load-lists', latencyMs: Date.now() - t0 }
 		steps.push(listsStep)
 
-		// Per-list non-archived, non-pending-deletion item count. Used by the
-		// duplicates pass to require both clusters' lists to have at least
-		// one "real" item (empty lists are the delete/archive surface, not
-		// the merge surface). `items.isArchived` is recipient-controlled
-		// and therefore safe to read here; we never read `giftedItems`.
+		// Per-list non-archived, non-pending-deletion item count + the most
+		// recent `items.updatedAt` across that bucket. The count is used by
+		// the duplicates pass (clusters require both lists to have at least
+		// one "real" item) and the stale-list pass (empty-list short-cut).
+		// The MAX is used by the stale-list pass to compute owner-inactivity
+		// for non-event-bound types. `items.isArchived` is recipient-
+		// controlled and therefore safe to read; we never read `giftedItems`.
 		const itemCountRows =
 			subjectLists.length > 0
 				? await ctx.db
-						.select({ listId: items.listId, n: count(items.id) })
+						.select({ listId: items.listId, n: count(items.id), maxUpdatedAt: max(items.updatedAt) })
 						.from(items)
 						.where(
 							and(
@@ -194,6 +199,9 @@ export const listHygieneAnalyzer: Analyzer = {
 						.groupBy(items.listId)
 				: []
 		const itemCountByList = new Map<number, number>(itemCountRows.map(r => [r.listId, Number(r.n)]))
+		const maxItemUpdatedAtByList = new Map<number, Date | null>(
+			itemCountRows.map(r => [r.listId, r.maxUpdatedAt ? new Date(r.maxUpdatedAt) : null])
+		)
 		steps.push({ name: 'load-item-counts', latencyMs: Date.now() - t0 })
 
 		// Stable input hash slice: events x list-shape + duplicate-cluster
@@ -222,10 +230,23 @@ export const listHygieneAnalyzer: Analyzer = {
 		const renameState: RenameState = { aiCallsUsed: 0 }
 
 		// Calendar-quiet case: the per-event branches have nothing to do
-		// but the duplicates pass can still fire on its own.
+		// but the duplicates pass and the stale-public-list pass can
+		// still fire on their own.
 		if (events.length === 0) {
 			const clusters = findDuplicateClusters({ subjectLists, itemCountByList, now: ctx.now })
 			for (const cluster of clusters) recs.push(buildMergeRec({ cluster, subject }))
+			if (ctx.dependentId === null) {
+				const stale = await findStalePublicLists({
+					subjectLists,
+					itemCountByList,
+					maxItemUpdatedAtByList,
+					now: ctx.now,
+					settings: ctx.settings,
+					userId: ctx.userId,
+					dbx: ctx.db,
+				})
+				for (const candidate of stale) recs.push(buildStaleListRec({ candidate, subject }))
+			}
 			return { recs, steps, inputHash: combineHashes([inputHash]) }
 		}
 
@@ -352,6 +373,24 @@ export const listHygieneAnalyzer: Analyzer = {
 		// merge — see MERGE_ELIGIBLE_TYPES.
 		const clusters = findDuplicateClusters({ subjectLists, itemCountByList, now: ctx.now })
 		for (const cluster of clusters) recs.push(buildMergeRec({ cluster, subject }))
+
+		// === Stale-public-list pass (user-subject runs only) ===
+		// Time-delay only by construction: NEVER reads `giftedItems` or
+		// `items.isArchived` to decide who to flag. Spoiler safety is
+		// preserved at the candidate-query level — we rely on enough wall-
+		// clock time having passed that holding-back is unlikely.
+		if (ctx.dependentId === null) {
+			const stale = await findStalePublicLists({
+				subjectLists,
+				itemCountByList,
+				maxItemUpdatedAtByList,
+				now: ctx.now,
+				settings: ctx.settings,
+				userId: ctx.userId,
+				dbx: ctx.db,
+			})
+			for (const candidate of stale) recs.push(buildStaleListRec({ candidate, subject }))
+		}
 
 		return {
 			recs,
@@ -648,6 +687,7 @@ function prettyListType(type: ListType): string {
 			return 'test'
 	}
 }
+
 // ─── Duplicate clustering ───────────────────────────────────────────────────
 
 export type DuplicateListRow = {
@@ -783,5 +823,294 @@ function buildMergeRec(args: { cluster: DuplicateCluster; subject: SubjectListSu
 		},
 		relatedLists: [survivorRef],
 		fingerprintTargets: ['duplicate-event-lists', type, customHolidayId ?? '', ...all.map(l => String(l.id)).sort()],
+	}
+}
+
+// ─── Stale-public-list pass ─────────────────────────────────────────────────
+
+// Reverse of the convert-list rename rule: strip event tokens AND year
+// tokens, collapse whitespace, fall back to "Wishlist" when nothing
+// meaningful remains. Used by the stale-public-list rec's "Convert to
+// wishlist" action so the proposed `newName` doesn't carry stale
+// event-themed copy (e.g. "Christmas 2023") into the converted list.
+// Exported for unit tests.
+export function reverseRenameToWishlist(currentName: string): string {
+	// Use a global-flag clone so every match is stripped, not just the
+	// first one. The shared constants at the top of this file are not
+	// global because the convert-rename path only needs `.test`.
+	const eventGlobal = new RegExp(EVENT_TOKEN_RE.source, 'gi')
+	const yearGlobal = new RegExp(YEAR_TOKEN_RE.source, 'g')
+	const stripped = currentName.replace(eventGlobal, '').replace(yearGlobal, '').replace(/\s+/g, ' ').trim()
+	if (stripped.length >= 3) return stripped
+	return 'Wishlist'
+}
+
+// Listed types whose `lists.type` corresponds to a calendar event. The
+// stale-list "event-passed" predicate fires only for these types; the
+// wishlist case never satisfies branch 1 of `evaluateStaleListPredicate`.
+const EVENT_BOUND_TYPES: ReadonlySet<ListType> = new Set(['birthday', 'christmas', 'holiday'])
+
+// Types eligible for the stale-list rec at all. Mirrors the merge-
+// eligible set: anything outside `SPOILER_PROTECTED_TYPES` + `holiday`
+// either has no calendar binding worth flagging or is already filtered
+// upstream (giftideas / todos).
+const STALE_ELIGIBLE_TYPES: ReadonlySet<ListType> = new Set([...SPOILER_PROTECTED_TYPES, 'holiday'])
+
+export type StaleListPredicateInput = {
+	list: { type: ListType; updatedAt: Date }
+	// Most recent `items.updatedAt` for non-archived, non-pending-deletion
+	// items on this list. Null when the list is empty (treated as
+	// satisfying the items half of the inactive predicate — there's
+	// nothing to invalidate the silence).
+	maxItemUpdatedAt: Date | null
+	// Most recent past occurrence of the relevant calendar event for
+	// the list's type. Null for `wishlist` (not event-bound) and for
+	// holiday-typed lists with a customHolidayId that no longer
+	// resolves to a past occurrence (catalog entry missing, etc.).
+	lastEventDate: Date | null
+	now: Date
+	pastEventDays: number
+	inactiveMonths: number
+}
+
+export type StaleListReason = 'event-passed' | 'inactive' | 'both'
+
+// Pure predicate. Exported for unit tests. Returns `null` when the
+// list is NOT stale by either branch.
+export function evaluateStaleListPredicate(input: StaleListPredicateInput): StaleListReason | null {
+	const { list, maxItemUpdatedAt, lastEventDate, now, pastEventDays, inactiveMonths } = input
+
+	// Branch 1: event-passed. Only applies to event-bound types AND
+	// only when we successfully resolved a past occurrence.
+	let eventPassed = false
+	if (EVENT_BOUND_TYPES.has(list.type) && lastEventDate) {
+		const daysSinceEvent = Math.floor((now.getTime() - lastEventDate.getTime()) / 86_400_000)
+		if (daysSinceEvent >= pastEventDays) eventPassed = true
+	}
+
+	// Branch 2: owner-inactive. Both `lists.updatedAt` AND
+	// MAX(items.updatedAt) must be older than the threshold. An empty
+	// list (maxItemUpdatedAt === null) satisfies the items half because
+	// there's nothing to invalidate the silence.
+	const inactiveCutoff = new Date(now.getTime() - inactiveMonths * 30 * 86_400_000)
+	const listInactive = list.updatedAt.getTime() < inactiveCutoff.getTime()
+	const itemsInactive = maxItemUpdatedAt === null || maxItemUpdatedAt.getTime() < inactiveCutoff.getTime()
+	const ownerInactive = listInactive && itemsInactive
+
+	if (eventPassed && ownerInactive) return 'both'
+	if (eventPassed) return 'event-passed'
+	if (ownerInactive) return 'inactive'
+	return null
+}
+
+export type StaleListCandidate = {
+	list: {
+		id: number
+		name: string
+		type: ListType
+		isPrivate: boolean
+		customHolidayId: string | null
+		updatedAt: Date
+	}
+	reason: StaleListReason
+	// The most recent past occurrence the predicate keyed off, when the
+	// reason includes event-passed. Used in the rec body copy to render
+	// "Last <EventTitle> was <N> days ago." Null when the reason is
+	// `inactive`.
+	lastEventDate: Date | null
+	// The pretty event title for body copy. Same null rule as
+	// `lastEventDate`.
+	eventTitle: string | null
+}
+
+// Orchestrator. Resolves "last event date" per list (birthday from
+// users.birthMonth/Day, Christmas from Dec 25, holiday from
+// customHolidays via `customHolidayLastOccurrence`) and runs the
+// predicate. Restricted to public lists owned by the subject user with
+// no `subjectDependentId` (user-subject runs only). The candidate set
+// SQL-level filter never reads `giftedItems` or `items.isArchived` to
+// decide who to flag — spoiler safety by construction.
+export async function findStalePublicLists(args: {
+	subjectLists: ReadonlyArray<{
+		id: number
+		name: string
+		type: ListType
+		isPrimary: boolean
+		isPrivate: boolean
+		isActive: boolean
+		customHolidayId: string | null
+		updatedAt: Date
+		createdAt: Date
+	}>
+	itemCountByList: ReadonlyMap<number, number>
+	maxItemUpdatedAtByList: ReadonlyMap<number, Date | null>
+	now: Date
+	settings: AppSettings
+	userId: string
+	dbx: SchemaDatabase
+}): Promise<Array<StaleListCandidate>> {
+	const { subjectLists, maxItemUpdatedAtByList, now, settings, userId, dbx } = args
+
+	// Filter to candidates eligible for the stale-list rec.
+	const candidates = subjectLists.filter(l => {
+		if (l.isPrivate) return false
+		if (!l.isActive) return false
+		if (!STALE_ELIGIBLE_TYPES.has(l.type)) return false
+		return true
+	})
+	if (candidates.length === 0) return []
+
+	// Resolve user's birthday once (only when at least one candidate
+	// could use it). Birthday list type uses it; wishlist also uses it
+	// when interpreted as a birthday surface, but the stale-list pass
+	// keys off `list.type` so a wishlist never hits the event-passed
+	// branch — no need to load the user's birth month for that case.
+	let lastBirthdayDate: Date | null = null
+	const hasBirthdayCandidate = candidates.some(l => l.type === 'birthday')
+	if (hasBirthdayCandidate) {
+		const me = await dbx.query.users.findFirst({
+			where: eq(users.id, userId),
+			columns: { birthMonth: true, birthDay: true },
+		})
+		const bMonth = me?.birthMonth ? birthMonthEnumValues.indexOf(me.birthMonth) + 1 : null
+		const bDay = me?.birthDay ?? null
+		if (bMonth && bDay) {
+			lastBirthdayDate = lastAnnualDate(bMonth, bDay, now)
+		}
+	}
+
+	// Christmas: Dec 25 of either this year (if today is past it) or
+	// last year. No tenant gate here — even when Christmas lists are
+	// disabled, an existing christmas-typed list that's gone stale is
+	// still a useful nudge to clean up.
+	const lastChristmasDate = lastAnnualDate(12, 25, now)
+
+	// Resolve per-customHolidayId last occurrences for any holiday-typed
+	// candidates. One query per unique id; small N (lists per user).
+	const holidayIds = Array.from(
+		new Set(
+			candidates
+				.filter(l => l.type === 'holiday')
+				.map(l => l.customHolidayId)
+				.filter((id): id is string => id !== null)
+		)
+	)
+	const lastHolidayByCustomId = new Map<string, { date: Date | null; title: string }>()
+	if (holidayIds.length > 0) {
+		const rows = await dbx.query.customHolidays.findMany({
+			where: inArray(customHolidays.id, holidayIds),
+		})
+		for (const row of rows) {
+			const last = await customHolidayLastOccurrence(row, now, dbx)
+			lastHolidayByCustomId.set(row.id, { date: last, title: row.title })
+		}
+	}
+
+	const out: Array<StaleListCandidate> = []
+	for (const list of candidates) {
+		const maxItemUpdatedAt = maxItemUpdatedAtByList.get(list.id) ?? null
+		const itemCount = args.itemCountByList.get(list.id) ?? 0
+		// Empty AND active for less than the inactive threshold? Defer
+		// to deletion instead — but the empty-list-and-old case still
+		// fires via the inactive branch below.
+		let lastEventDate: Date | null = null
+		let eventTitle: string | null = null
+		if (list.type === 'birthday') {
+			lastEventDate = lastBirthdayDate
+			eventTitle = 'Birthday'
+		} else if (list.type === 'christmas') {
+			lastEventDate = lastChristmasDate
+			eventTitle = 'Christmas'
+		} else if (list.type === 'holiday' && list.customHolidayId) {
+			const entry = lastHolidayByCustomId.get(list.customHolidayId)
+			lastEventDate = entry?.date ?? null
+			eventTitle = entry?.title ?? null
+		}
+
+		const reason = evaluateStaleListPredicate({
+			list: { type: list.type, updatedAt: list.updatedAt },
+			maxItemUpdatedAt,
+			lastEventDate,
+			now,
+			pastEventDays: settings.intelligenceStaleListPastEventDays,
+			inactiveMonths: settings.intelligenceStaleListInactiveMonths,
+		})
+		if (!reason) continue
+
+		// Defensive: when the reason is `event-passed` but we couldn't
+		// resolve the event title (rare, e.g. holiday row gone), drop
+		// the candidate. Surfacing a rec with placeholder copy would be
+		// worse than silence.
+		if ((reason === 'event-passed' || reason === 'both') && eventTitle === null) continue
+
+		void itemCount // referenced for symmetry with duplicates pass; predicate doesn't gate on it
+		out.push({
+			list: {
+				id: list.id,
+				name: list.name,
+				type: list.type,
+				isPrivate: list.isPrivate,
+				customHolidayId: list.customHolidayId,
+				updatedAt: list.updatedAt,
+			},
+			reason,
+			lastEventDate: reason === 'inactive' ? null : lastEventDate,
+			eventTitle: reason === 'inactive' ? null : eventTitle,
+		})
+	}
+
+	// Stable order: oldest list `updatedAt` first so the most-stale
+	// candidate renders at the top.
+	out.sort((a, b) => a.list.updatedAt.getTime() - b.list.updatedAt.getTime() || a.list.id - b.list.id)
+	return out
+}
+
+function buildStaleListRec(args: { candidate: StaleListCandidate; subject: SubjectListSummary }): AnalyzerRecOutput {
+	const { candidate, subject } = args
+	const { list, reason, lastEventDate, eventTitle } = candidate
+	const ref = listRefFor(list, subject)
+	const daysSince = lastEventDate ? Math.floor((Date.now() - lastEventDate.getTime()) / 86_400_000) : 0
+
+	let body: string
+	if (reason === 'inactive') {
+		body = `"${list.name}" hasn't been touched in over a year. Archive it if you're done, or convert it to a plain wishlist if it's still useful.`
+	} else {
+		const inactiveTail = reason === 'both' ? " It also hasn't been touched in over a year." : ''
+		body = `Last ${eventTitle} was ${daysSince} ${daysSince === 1 ? 'day' : 'days'} ago and "${list.name}" is still active. Archive it if you're done, or convert it to a plain wishlist if it's still useful.${inactiveTail}`
+	}
+
+	return {
+		kind: 'stale-public-list',
+		severity: 'suggest',
+		title: `"${list.name}" looks stale`,
+		body,
+		actions: [
+			{
+				label: 'Archive list',
+				description: 'Flip the list to inactive. Items and any past gifts stay queryable; you can un-archive later.',
+				intent: 'do',
+				apply: { kind: 'archive-list', listId: String(list.id) },
+			},
+			{
+				label: 'Convert to wishlist',
+				description: 'Strip the event binding and rename to a plain wishlist. Useful if the list is still relevant year-round.',
+				intent: 'do',
+				apply: {
+					kind: 'convert-list',
+					listId: String(list.id),
+					newType: 'wishlist',
+					newName: reverseRenameToWishlist(list.name),
+					newCustomHolidayId: null,
+				},
+			},
+		],
+		affected: {
+			noun: 'list',
+			count: 1,
+			lines: [list.name],
+			listChips: [ref],
+		},
+		relatedLists: [ref],
+		fingerprintTargets: ['stale-public-list', String(list.id), reason],
 	}
 }

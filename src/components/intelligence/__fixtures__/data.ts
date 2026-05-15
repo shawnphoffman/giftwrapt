@@ -865,6 +865,133 @@ const recConvertPublicForBirthdayAiNamed: Recommendation = {
 	relatedLists: [aiNameCandidateList],
 }
 
+// === Stale-public-list recs (phase 2) ===
+const stalePublicChristmasList: ListRef = {
+	id: 'list-stale-christmas',
+	name: 'Christmas 2025',
+	type: 'christmas',
+	isPrivate: false,
+	subject: userSubject,
+}
+const staleInactiveWishlist: ListRef = {
+	id: 'list-stale-wishlist',
+	name: 'Books I Used to Want',
+	type: 'wishlist',
+	isPrivate: false,
+	subject: userSubject,
+}
+const staleBothList: ListRef = {
+	id: 'list-stale-both',
+	name: 'Christmas 2024',
+	type: 'christmas',
+	isPrivate: false,
+	subject: userSubject,
+}
+
+const recStalePublicEventPassed: Recommendation = {
+	id: 'rec-hygiene-stale-event',
+	analyzerId: 'list-hygiene' as Recommendation['analyzerId'],
+	kind: 'stale-public-list',
+	severity: 'suggest',
+	status: 'active',
+	title: `"${stalePublicChristmasList.name}" looks stale`,
+	body: `Last Christmas was 140 days ago and "${stalePublicChristmasList.name}" is still active. Archive it if you're done, or convert it to a plain wishlist if it's still useful.`,
+	createdAt: hoursAgo(1),
+	actions: [
+		{
+			label: 'Archive list',
+			description: 'Flip the list to inactive. Items and any past gifts stay queryable; you can un-archive later.',
+			intent: 'do',
+			apply: { kind: 'archive-list', listId: stalePublicChristmasList.id },
+		},
+		{
+			label: 'Convert to wishlist',
+			description: 'Strip the event binding and rename to a plain wishlist. Useful if the list is still relevant year-round.',
+			intent: 'do',
+			apply: {
+				kind: 'convert-list',
+				listId: stalePublicChristmasList.id,
+				newType: 'wishlist',
+				newName: 'Wishlist',
+				newCustomHolidayId: null,
+			},
+		},
+	],
+	affected: {
+		noun: 'list',
+		count: 1,
+		lines: [stalePublicChristmasList.name],
+		listChips: [stalePublicChristmasList],
+	},
+	relatedLists: [stalePublicChristmasList],
+}
+
+const recStalePublicInactive: Recommendation = {
+	id: 'rec-hygiene-stale-inactive',
+	analyzerId: 'list-hygiene' as Recommendation['analyzerId'],
+	kind: 'stale-public-list',
+	severity: 'suggest',
+	status: 'active',
+	title: `"${staleInactiveWishlist.name}" looks stale`,
+	body: `"${staleInactiveWishlist.name}" hasn't been touched in over a year. Archive it if you're done, or convert it to a plain wishlist if it's still useful.`,
+	createdAt: hoursAgo(1),
+	actions: [
+		{
+			label: 'Archive list',
+			description: 'Flip the list to inactive. Items and any past gifts stay queryable; you can un-archive later.',
+			intent: 'do',
+			apply: { kind: 'archive-list', listId: staleInactiveWishlist.id },
+		},
+		{
+			label: 'Convert to wishlist',
+			description: 'Strip the event binding and rename to a plain wishlist. Useful if the list is still relevant year-round.',
+			intent: 'do',
+			apply: {
+				kind: 'convert-list',
+				listId: staleInactiveWishlist.id,
+				newType: 'wishlist',
+				newName: 'Books I Used to Want',
+				newCustomHolidayId: null,
+			},
+		},
+	],
+	affected: { noun: 'list', count: 1, lines: [staleInactiveWishlist.name], listChips: [staleInactiveWishlist] },
+	relatedLists: [staleInactiveWishlist],
+}
+
+const recStalePublicBoth: Recommendation = {
+	id: 'rec-hygiene-stale-both',
+	analyzerId: 'list-hygiene' as Recommendation['analyzerId'],
+	kind: 'stale-public-list',
+	severity: 'suggest',
+	status: 'active',
+	title: `"${staleBothList.name}" looks stale`,
+	body: `Last Christmas was 505 days ago and "${staleBothList.name}" is still active. Archive it if you're done, or convert it to a plain wishlist if it's still useful. It also hasn't been touched in over a year.`,
+	createdAt: hoursAgo(1),
+	actions: [
+		{
+			label: 'Archive list',
+			description: 'Flip the list to inactive. Items and any past gifts stay queryable; you can un-archive later.',
+			intent: 'do',
+			apply: { kind: 'archive-list', listId: staleBothList.id },
+		},
+		{
+			label: 'Convert to wishlist',
+			description: 'Strip the event binding and rename to a plain wishlist. Useful if the list is still relevant year-round.',
+			intent: 'do',
+			apply: {
+				kind: 'convert-list',
+				listId: staleBothList.id,
+				newType: 'wishlist',
+				newName: 'Wishlist',
+				newCustomHolidayId: null,
+			},
+		},
+	],
+	affected: { noun: 'list', count: 1, lines: [staleBothList.name], listChips: [staleBothList] },
+	relatedLists: [staleBothList],
+}
+
 // Map kept around for stories that want to look up by kind.
 export const listHygieneRecsByKind = {
 	convertBirthday: recConvertPublicForBirthday,
@@ -878,6 +1005,9 @@ export const listHygieneRecsByKind = {
 	mergeTwoWishlists: recMergeTwoWishlists,
 	mergeThreeWishlists: recMergeThreeWishlists,
 	mergeHolidayCluster: recMergeHolidayCluster,
+	stalePublicEventPassed: recStalePublicEventPassed,
+	stalePublicInactive: recStalePublicInactive,
+	stalePublicBoth: recStalePublicBoth,
 }
 
 void wishlistPrimary // referenced by storybook decorators that pull from this module
@@ -1003,6 +1133,8 @@ export const adminData: AdminIntelligenceData = {
 		upcomingWindowDays: 45,
 		minDaysBeforeEventForRecs: 1,
 		listHygieneRenameWithAi: false,
+		staleListPastEventDays: 90,
+		staleListInactiveMonths: 12,
 		dryRun: false,
 		modelOverride: null,
 		email: { enabled: false, weeklyDigestEnabled: false, testRecipient: null },

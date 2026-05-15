@@ -90,6 +90,15 @@ export type RecommendationApply =
 			survivorListId: string
 			sourceListIds: Array<string>
 	  }
+	| {
+			// Archive a list (isActive=false). Reversible — items, addons,
+			// and any past claims stay queryable and the owner can flip
+			// the list back on later via the edit-list dialog. Used by
+			// the stale-public-list rec when the owner picks "Archive
+			// list" over "Convert to wishlist".
+			kind: 'archive-list'
+			listId: string
+	  }
 
 export type RecommendationAction = {
 	label: string
@@ -238,6 +247,10 @@ export const recPayloadSchema = z.object({
 							kind: z.literal('merge-lists'),
 							survivorListId: z.string(),
 							sourceListIds: z.array(z.string()).min(1),
+						}),
+						z.object({
+							kind: z.literal('archive-list'),
+							listId: z.string(),
 						}),
 					])
 					.optional(),

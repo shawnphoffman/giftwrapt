@@ -49,6 +49,8 @@ export function useAdminIntelligence() {
 			if (changes.upcomingWindowDays !== undefined) payload.intelligenceUpcomingWindowDays = changes.upcomingWindowDays
 			if (changes.minDaysBeforeEventForRecs !== undefined) payload.intelligenceMinDaysBeforeEventForRecs = changes.minDaysBeforeEventForRecs
 			if (changes.listHygieneRenameWithAi !== undefined) payload.intelligenceListHygieneRenameWithAi = changes.listHygieneRenameWithAi
+			if (changes.staleListPastEventDays !== undefined) payload.intelligenceStaleListPastEventDays = changes.staleListPastEventDays
+			if (changes.staleListInactiveMonths !== undefined) payload.intelligenceStaleListInactiveMonths = changes.staleListInactiveMonths
 			if (changes.dryRun !== undefined) payload.intelligenceDryRun = changes.dryRun
 			if (changes.modelOverride !== undefined) payload.intelligenceModelOverride = changes.modelOverride
 			if (changes.perAnalyzerEnabled !== undefined) payload.intelligencePerAnalyzerEnabled = changes.perAnalyzerEnabled

@@ -300,6 +300,8 @@ export const getAdminIntelligenceData = createServerFn({ method: 'GET' })
 				upcomingWindowDays: settings.intelligenceUpcomingWindowDays,
 				minDaysBeforeEventForRecs: settings.intelligenceMinDaysBeforeEventForRecs,
 				listHygieneRenameWithAi: settings.intelligenceListHygieneRenameWithAi,
+				staleListPastEventDays: settings.intelligenceStaleListPastEventDays,
+				staleListInactiveMonths: settings.intelligenceStaleListInactiveMonths,
 				dryRun: settings.intelligenceDryRun,
 				modelOverride: settings.intelligenceModelOverride,
 				email: {

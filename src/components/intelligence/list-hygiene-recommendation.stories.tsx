@@ -80,6 +80,24 @@ export const MergeHolidayCluster: Story = {
 	args: { rec: listHygieneRecsByKind.mergeHolidayCluster },
 }
 
+// === Stale-public-list (phase 2) ===
+// Two-action card (Archive + Convert to wishlist). Branch-specific
+// body copy varies — event-passed mentions the event/days-ago,
+// inactive mentions the year-without-touches, the combined variant
+// appends the "also" sentence.
+
+export const StalePublicEventPassed: Story = {
+	args: { rec: listHygieneRecsByKind.stalePublicEventPassed },
+}
+
+export const StalePublicInactive: Story = {
+	args: { rec: listHygieneRecsByKind.stalePublicInactive },
+}
+
+export const StalePublicBoth: Story = {
+	args: { rec: listHygieneRecsByKind.stalePublicBoth },
+}
+
 // === States ===
 
 export const ConvertDismissed: Story = {
