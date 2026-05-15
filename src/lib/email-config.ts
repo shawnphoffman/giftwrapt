@@ -1,6 +1,6 @@
 import { inArray } from 'drizzle-orm'
 
-import type { Database } from '@/db'
+import type { Database, SchemaDatabase } from '@/db'
 import { appSettings } from '@/db/schema'
 import { env } from '@/env'
 import { decryptAppSecret, isEncryptedEnvelope } from '@/lib/crypto/app-secret'
@@ -32,7 +32,7 @@ export const EMAIL_SETTING_KEYS = {
 
 export type EmailSettingKey = (typeof EMAIL_SETTING_KEYS)[keyof typeof EMAIL_SETTING_KEYS]
 
-async function loadDbEmailSettings(db: Database): Promise<Record<EmailSettingKey, unknown>> {
+async function loadDbEmailSettings(db: Database | SchemaDatabase): Promise<Record<EmailSettingKey, unknown>> {
 	const keys = Object.values(EMAIL_SETTING_KEYS)
 	const rows = await db.select().from(appSettings).where(inArray(appSettings.key, keys))
 	const out: Record<string, unknown> = {}
@@ -67,7 +67,7 @@ function field(envValue: string | undefined, dbValue: string | undefined): Email
 	return { source: 'missing' }
 }
 
-export async function resolveEmailConfig(db: Database): Promise<ResolvedEmailConfig> {
+export async function resolveEmailConfig(db: Database | SchemaDatabase): Promise<ResolvedEmailConfig> {
 	const dbRaw = await loadDbEmailSettings(db)
 
 	const apiKey = field(env.RESEND_API_KEY, decryptApiKey(dbRaw[EMAIL_SETTING_KEYS.apiKey]))

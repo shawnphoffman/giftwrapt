@@ -319,25 +319,26 @@ export async function archiveItemImpl(args: {
 export async function setItemAvailabilityImpl(args: {
 	userId: string
 	input: z.infer<typeof SetItemAvailabilityInputSchema>
+	dbx?: SchemaDatabase
 }): Promise<SetItemAvailabilityResult> {
-	const { userId, input: data } = args
+	const { userId, input: data, dbx = db } = args
 
-	const item = await db.query.items.findFirst({
+	const item = await dbx.query.items.findFirst({
 		where: and(eq(items.id, data.itemId), isNull(items.pendingDeletionAt)),
 		columns: { id: true, listId: true },
 	})
 	if (!item) return { kind: 'error', reason: 'not-found' }
 
-	const list = await db.query.lists.findFirst({
+	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, item.listId),
 		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 
-	const view = await canViewList(userId, list)
+	const view = await canViewList(userId, list, dbx)
 	if (!view.ok) return { kind: 'error', reason: 'not-visible' }
 
-	const [updated] = await db
+	const [updated] = await dbx
 		.update(items)
 		.set({ availability: data.availability, availabilityChangedAt: new Date() })
 		.where(eq(items.id, data.itemId))
@@ -765,11 +766,13 @@ export async function getItemsForListEditImpl(args: {
 	userId: string
 	listId: string
 	includeArchived?: boolean
+	dbx?: SchemaDatabase
 }): Promise<GetItemsForListEditResult> {
+	const { dbx = db } = args
 	const listId = Number(args.listId)
 	if (!Number.isFinite(listId)) return { kind: 'error', reason: 'not-found' }
 
-	const list = await db.query.lists.findFirst({
+	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, listId),
 		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
@@ -777,14 +780,14 @@ export async function getItemsForListEditImpl(args: {
 
 	const isOwner = list.ownerId === args.userId
 	if (!isOwner) {
-		const edit = await canEditList(args.userId, list)
+		const edit = await canEditList(args.userId, list, dbx)
 		if (!edit.ok) return { kind: 'error', reason: 'not-authorized' }
 	}
 
 	// Pending-deletion items are invisible to the recipient even with
 	// `includeArchived` (which surfaces revealed gifts in the organize
 	// view). Spoiler protection extends to that view.
-	const listItems = await db.query.items.findMany({
+	const listItems = await dbx.query.items.findMany({
 		where: args.includeArchived
 			? and(eq(items.listId, list.id), isNull(items.pendingDeletionAt))
 			: and(eq(items.listId, list.id), eq(items.isArchived, false), isNull(items.pendingDeletionAt)),
@@ -792,7 +795,7 @@ export async function getItemsForListEditImpl(args: {
 	})
 
 	const commentCountRows = listItems.length
-		? await db
+		? await dbx
 				.select({ itemId: itemComments.itemId, count: count(itemComments.id) })
 				.from(itemComments)
 				.where(

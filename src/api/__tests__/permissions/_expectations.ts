@@ -177,10 +177,15 @@ type ViewGatedOptions = {
 	ownerDenyReason?: string
 	// Reason the impl reports when canViewList denies (mostly 'not-visible').
 	viewDeniedReason: string
+	// `view-item` (getItemsForListViewImpl) returns an empty 'ok' on inactive
+	// lists instead of denying, so the page can render its orphan-aside
+	// (logic.md "archived-list orphan-resolution exception"). Other view-
+	// gated surfaces keep the strict deny.
+	inactiveAllowsAsEmpty?: boolean
 }
 
 function viewGatedExpectations(opts: ViewGatedOptions): ReadonlyArray<Expectation> {
-	const { action, ownerExpected, ownerDenyReason, viewDeniedReason } = opts
+	const { action, ownerExpected, ownerDenyReason, viewDeniedReason, inactiveAllowsAsEmpty = false } = opts
 	return ALL_ROLES.flatMap(role =>
 		ALL_LIST_STATES.map<Expectation>(listState => {
 			if (role === 'owner') {
@@ -198,12 +203,20 @@ function viewGatedExpectations(opts: ViewGatedOptions): ReadonlyArray<Expectatio
 			// canViewList is owner-blind and ignores guardianship and the
 			// edit-grant tables).
 			const denies = !listState.active || listState.privacy !== 'public' || role === 'denied'
+			// The archived-list bypass: getItemsForListViewImpl checks the
+			// `inactive` reason before any other and returns an empty 'ok'
+			// so the orphan-aside renders. canViewList yields 'inactive'
+			// before any other reason, so the bypass swallows ALL non-owner
+			// denies once `isActive=false`, even when privacy/denied would
+			// have applied on an active list.
+			const inactiveBypassApplies = inactiveAllowsAsEmpty && !listState.active
+			const expected = inactiveBypassApplies ? 'allow' : denies ? 'deny' : 'allow'
 			return {
 				role,
 				listState,
 				action,
-				expected: denies ? 'deny' : 'allow',
-				reasonOnDeny: denies ? viewDeniedReason : undefined,
+				expected,
+				reasonOnDeny: expected === 'deny' ? viewDeniedReason : undefined,
 			}
 		})
 	)
@@ -255,6 +268,7 @@ export const itemExpectations: ReadonlyArray<Expectation> = [
 		ownerExpected: 'deny',
 		ownerDenyReason: 'is-owner',
 		viewDeniedReason: 'not-visible',
+		inactiveAllowsAsEmpty: true,
 	}),
 	...editGatedExpectations({ action: 'create-item', denyReason: 'not-authorized' }),
 	...editGatedExpectations({ action: 'update-item', denyReason: 'not-authorized' }),

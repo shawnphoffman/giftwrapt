@@ -123,6 +123,7 @@ export async function makeGiftedItem(
 			quantity: overrides.quantity ?? 1,
 			totalCost: overrides.totalCost ?? null,
 			notes: overrides.notes ?? null,
+			...(overrides.orphanReminderSentAt !== undefined ? { orphanReminderSentAt: overrides.orphanReminderSentAt } : {}),
 			...(overrides.createdAt !== undefined ? { createdAt: overrides.createdAt } : {}),
 			...(overrides.updatedAt !== undefined ? { updatedAt: overrides.updatedAt } : {}),
 		})

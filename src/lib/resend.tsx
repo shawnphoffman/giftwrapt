@@ -1,6 +1,6 @@
 import { Resend } from 'resend'
 
-import { db } from '@/db'
+import { type Database, db, type SchemaDatabase } from '@/db'
 import { type ResolvedEmailConfig, resolveEmailConfig } from '@/lib/email-config'
 import { createLogger } from '@/lib/logger'
 
@@ -20,8 +20,8 @@ const emailLog = createLogger('email')
 // that don't want transactional email). Build the Resend client per send so a
 // runtime config change takes effect without a restart.
 
-export const isEmailConfigured = async (): Promise<boolean> => {
-	const cfg = await resolveEmailConfig(db)
+export const isEmailConfigured = async (dbx: Database | SchemaDatabase = db): Promise<boolean> => {
+	const cfg = await resolveEmailConfig(dbx)
 	return cfg.isValid
 }
 

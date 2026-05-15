@@ -122,7 +122,7 @@ export async function dispatchOrphanClaimEmails(args: {
 	recipientName: string
 }): Promise<void> {
 	const { dbx, itemId, itemTitle, itemImageUrl, listId, listName, recipientName } = args
-	if (!(await isEmailConfigured())) return
+	if (!(await isEmailConfigured(dbx))) return
 	const audience = await resolveOrphanItemAudience(dbx, itemId)
 	for (const member of audience) {
 		try {
@@ -146,12 +146,24 @@ export async function dispatchOrphanClaimEmails(args: {
 // Returns true if the user (or their partner) has any active
 // pending-deletion claim on the given list. Used to allow the gifter to
 // navigate to a now-archived list whose orphan they need to resolve.
+//
+// Partnership is stored on a single nullable `partnerId` column but
+// treated symmetrically by gift-credit code (see logic.md "Partnership
+// is a single nullable column"), so we resolve the partner from BOTH
+// sides: either the viewer declared a partner, or some other user
+// declared the viewer as their partner.
 export async function userHasPendingDeletionClaimOnList(dbx: SchemaDatabase, userId: string, listId: number): Promise<boolean> {
-	const me = await dbx.query.users.findFirst({
-		where: eq(users.id, userId),
-		columns: { partnerId: true },
-	})
-	const partnerId = me?.partnerId ?? null
+	const [me, inverse] = await Promise.all([
+		dbx.query.users.findFirst({
+			where: eq(users.id, userId),
+			columns: { partnerId: true },
+		}),
+		dbx.query.users.findFirst({
+			where: eq(users.partnerId, userId),
+			columns: { id: true },
+		}),
+	])
+	const partnerId = me?.partnerId ?? inverse?.id ?? null
 	const candidateGifterIds = partnerId ? [userId, partnerId] : [userId]
 	const itemRows = await dbx.query.items.findMany({
 		where: (i, { and: a, eq: e, isNotNull: nn }) => a(e(i.listId, listId), nn(i.pendingDeletionAt)),

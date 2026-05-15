@@ -22,7 +22,7 @@ describe('pending-deletion visibility on the recipient side', () => {
 			await makeItem(tx, { listId: list.id, title: 'visible' })
 			await makeItem(tx, { listId: list.id, title: 'pending', pendingDeletionAt: PENDING })
 
-			const result = await getItemsForListEditImpl({ userId: owner.id, listId: String(list.id) })
+			const result = await getItemsForListEditImpl({ userId: owner.id, listId: String(list.id), dbx: tx })
 			expect(result.kind).toBe('ok')
 			if (result.kind !== 'ok') return
 			expect(result.items.map(i => i.title)).toEqual(['visible'])
@@ -40,6 +40,7 @@ describe('pending-deletion visibility on the recipient side', () => {
 				userId: owner.id,
 				listId: String(list.id),
 				includeArchived: true,
+				dbx: tx,
 			})
 			expect(result.kind).toBe('ok')
 			if (result.kind !== 'ok') return
@@ -86,6 +87,7 @@ describe('pending-deletion visibility on the recipient side', () => {
 			const result = await setItemAvailabilityImpl({
 				userId: owner.id,
 				input: { itemId: item.id, availability: 'unavailable' },
+				dbx: tx,
 			})
 			expect(result).toEqual({ kind: 'error', reason: 'not-found' })
 		})
