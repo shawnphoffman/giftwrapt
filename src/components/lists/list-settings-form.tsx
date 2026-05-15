@@ -33,6 +33,8 @@ import { evaluateListChangeImpact } from '@/lib/list-change-impact'
 import { itemsKeys } from '@/lib/queries/items'
 import { LIMITS } from '@/lib/validation/limits'
 
+const IS_DEV = import.meta.env.DEV
+
 const schema = z.object({
 	name: z.string().min(1, 'Name is required').max(LIMITS.LIST_NAME),
 	type: z.enum(listTypeEnumValues),
@@ -272,12 +274,14 @@ export function ListSettingsForm({
 								<SelectValue />
 							</SelectTrigger>
 							<SelectContent>
-								{listTypeEnumValues.map(t => (
-									<SelectItem key={t} value={t}>
-										<ListTypeIcon type={t} className="size-4" />
-										{ListTypes[t]}
-									</SelectItem>
-								))}
+								{listTypeEnumValues
+									.filter(t => !(t === 'test' && !IS_DEV))
+									.map(t => (
+										<SelectItem key={t} value={t}>
+											<ListTypeIcon type={t} className="size-4" />
+											{ListTypes[t]}
+										</SelectItem>
+									))}
 							</SelectContent>
 						</Select>
 					</div>

@@ -32,6 +32,8 @@ type Props = {
 	onOpenChange: (open: boolean) => void
 }
 
+const IS_DEV = import.meta.env.DEV
+
 const schema = z.object({
 	name: z.string().min(1, 'Name is required').max(LIMITS.LIST_NAME),
 	type: z.enum(listTypeEnumValues),
@@ -85,9 +87,9 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 	const partnerLabel = partner ? partner.name || partner.email : 'your partner'
 
 	const noHolidaysConfigured = customHolidays !== undefined && customHolidays.length === 0
-	const availableTypes = (isChild ? listTypeEnumValues.filter(t => t !== 'giftideas') : listTypeEnumValues).filter(
-		t => !(t === 'holiday' && noHolidaysConfigured)
-	)
+	const availableTypes = (isChild ? listTypeEnumValues.filter(t => t !== 'giftideas') : listTypeEnumValues)
+		.filter(t => !(t === 'holiday' && noHolidaysConfigured))
+		.filter(t => !(t === 'test' && !IS_DEV))
 
 	const form = useForm({
 		defaultValues: {
