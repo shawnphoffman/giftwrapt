@@ -12,7 +12,7 @@ export function StorageDisabledBanner() {
 	const { configured } = useStorageStatus()
 	if (configured) return null
 	return (
-		<Alert variant="destructive">
+		<Alert variant="destructive" className="max-w-xl">
 			<AlertTriangle />
 			<AlertTitle>Image uploads are disabled</AlertTitle>
 			<AlertDescription>

@@ -21,9 +21,7 @@ export const Route = createFileRoute('/(core)/admin/')({
 function AdminPage() {
 	return (
 		<>
-			<div className="max-w-xl">
-				<StorageDisabledBanner />
-			</div>
+			<StorageDisabledBanner />
 			<Card className="animate-page-in max-w-xl">
 				<CardHeader>
 					<CardTitle className="text-2xl">App Settings</CardTitle>
