@@ -40,7 +40,7 @@ export function ScrapeProgressAlert({ state, url, onCancel, onRetry, className }
 					{onRetry && (
 						<div className="mt-2">
 							<Button type="button" size="sm" variant="outline" onClick={onRetry}>
-								Try again
+								Try Again
 							</Button>
 						</div>
 					)}

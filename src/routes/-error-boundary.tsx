@@ -14,7 +14,7 @@ export default function ErrorBoundaryFallback({ error, reset }: ErrorBoundaryFal
 						onClick={reset}
 						className="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary rounded-md hover:bg-primary/90 transition-colors"
 					>
-						Try again
+						Try Again
 					</button>
 					<button
 						onClick={() => {
@@ -22,7 +22,7 @@ export default function ErrorBoundaryFallback({ error, reset }: ErrorBoundaryFal
 						}}
 						className="px-4 py-2 text-sm font-medium border border-input bg-background rounded-md hover:bg-accent transition-colors"
 					>
-						Go home
+						Go Home
 					</button>
 				</div>
 			</div>

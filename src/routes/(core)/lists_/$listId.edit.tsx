@@ -225,7 +225,7 @@ function ListEditPage() {
 										<DropdownMenuTrigger asChild>
 											<Button size="sm" variant="outline">
 												<GroupIcon className="size-4" /> <span className="xs:hidden">Group</span>
-												<span className="hidden xs:inline">New group</span>
+												<span className="hidden xs:inline">New Group</span>
 											</Button>
 										</DropdownMenuTrigger>
 										<DropdownMenuContent align="end">

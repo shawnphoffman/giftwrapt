@@ -2039,7 +2039,7 @@ async function main() {
 						apply: { kind: 'set-primary-list', listId: adminWishlistStrId },
 					},
 					{
-						label: 'Open list',
+						label: 'Open List',
 						description: 'Jump to the list and pin it manually.',
 						intent: 'noop',
 						nav: { listId: adminWishlistStrId, openEdit: false },

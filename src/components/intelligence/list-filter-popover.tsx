@@ -118,7 +118,7 @@ export function ListFilterPopover({ sections, selected, onChange, iconOnly = fal
 							disabled={allChecked}
 							className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none"
 						>
-							Select all
+							Select All
 						</button>
 						<span className="text-xs text-muted-foreground/40">·</span>
 						<button

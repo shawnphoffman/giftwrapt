@@ -267,7 +267,7 @@ function AddFromCatalogDialog() {
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
 				<Button variant="outline" size="sm">
-					<Plus className="size-4 mr-1" /> From catalog
+					<Plus className="size-4 mr-1" /> From Catalog
 				</Button>
 			</DialogTrigger>
 			<DialogContent>

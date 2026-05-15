@@ -305,7 +305,7 @@ function BackupCodesPanel({ codes, onDismiss }: { codes: Array<string>; onDismis
 				</ul>
 				{onDismiss && (
 					<Button type="button" variant="ghost" size="sm" className="mt-2" onClick={onDismiss}>
-						I've saved them
+						I've Saved Them
 					</Button>
 				)}
 			</AlertDescription>

@@ -54,7 +54,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 						<AlertDescription className="mt-2">{this.state.error.message || 'An unexpected error occurred'}</AlertDescription>
 						<div className="mt-4">
 							<Button onClick={this.reset} variant="outline" size="sm">
-								Try again
+								Try Again
 							</Button>
 						</div>
 					</Alert>

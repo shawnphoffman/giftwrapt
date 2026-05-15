@@ -465,7 +465,7 @@ function Form({ config, saving, mutate }: FormProps) {
 				</Button>
 				{hasAnyDbValue && (
 					<Button type="button" variant="outline" onClick={handleClearAll} disabled={saving}>
-						Clear all
+						Clear All
 					</Button>
 				)}
 			</div>

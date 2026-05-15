@@ -535,7 +535,7 @@ function FilterEmptyState({ onSelectAll }: { onSelectAll: () => void }) {
 				<h2 className="text-lg font-semibold">No suggestions match the current list filter</h2>
 				<p className="text-sm text-muted-foreground">Try expanding the filter to see suggestions for more lists.</p>
 				<Button data-intelligence="page-filter-empty-select-all" size="sm" variant="outline" onClick={onSelectAll}>
-					Select all
+					Select All
 				</Button>
 			</CardContent>
 		</Card>

@@ -77,7 +77,7 @@ export function ForgotPasswordPageContent({
 							The link is good for 60 minutes. Check your spam folder if it doesn't arrive shortly.
 						</div>
 						<Button asChild variant="outline" className="w-full">
-							<a href={signInHref}>Back to sign in</a>
+							<a href={signInHref}>Back to Sign In</a>
 						</Button>
 					</div>
 				) : (
@@ -99,12 +99,12 @@ export function ForgotPasswordPageContent({
 						</div>
 
 						<Button type="submit" className="w-full" disabled={showLoading || !emailEnabled}>
-							{showLoading ? 'Sending…' : 'Send reset link'}
+							{showLoading ? 'Sending…' : 'Send Reset Link'}
 						</Button>
 
 						<div className="pt-1 text-center text-sm">
 							<a href={signInHref} className="text-muted-foreground hover:text-foreground underline underline-offset-4">
-								Back to sign in
+								Back to Sign In
 							</a>
 						</div>
 					</form>

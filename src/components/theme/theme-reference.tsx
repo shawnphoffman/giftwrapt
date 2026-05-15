@@ -444,19 +444,19 @@ export default function ThemeReference() {
 				<div className="flex flex-row flex-wrap items-center gap-3">
 					<Tooltip>
 						<TooltipTrigger asChild>
-							<Button variant="outline">Hover for tooltip</Button>
+							<Button variant="outline">Hover for Tooltip</Button>
 						</TooltipTrigger>
 						<TooltipContent>Tooltip content, anchored above.</TooltipContent>
 					</Tooltip>
 
 					<Popover>
 						<PopoverTrigger asChild>
-							<Button variant="outline">Open popover</Button>
+							<Button variant="outline">Open Popover</Button>
 						</PopoverTrigger>
 						<PopoverContent className="w-64 flex flex-col gap-2">
 							<p className="text-sm font-medium">Popover title</p>
 							<p className="text-xs text-muted-foreground">Free-form content inside a popover surface.</p>
-							<Button size="sm">Do thing</Button>
+							<Button size="sm">Do Thing</Button>
 						</PopoverContent>
 					</Popover>
 
@@ -485,7 +485,7 @@ export default function ThemeReference() {
 
 					<Dialog>
 						<DialogTrigger asChild>
-							<Button variant="outline">Open dialog</Button>
+							<Button variant="outline">Open Dialog</Button>
 						</DialogTrigger>
 						<DialogContent>
 							<DialogHeader>
@@ -507,7 +507,7 @@ export default function ThemeReference() {
 
 					<AlertDialog>
 						<AlertDialogTrigger asChild>
-							<Button variant="destructive">Open alert</Button>
+							<Button variant="destructive">Open Alert</Button>
 						</AlertDialogTrigger>
 						<AlertDialogContent>
 							<AlertDialogHeader>

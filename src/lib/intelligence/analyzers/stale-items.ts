@@ -252,7 +252,7 @@ function daysSince(date: Date, now: Date): number {
 // stale, they click each row in turn.
 function buildStaleItemsActions(itemRefs: Array<ItemRef>, listRef: ListRef): Array<RecommendationAction> {
 	const openList: RecommendationAction = {
-		label: 'Open list',
+		label: 'Open List',
 		description: `Jump to ${listRef.name} so you can edit or remove these items one at a time.`,
 		intent: 'do',
 		nav: { listId: listRef.id },
@@ -294,7 +294,7 @@ function buildHeuristicRec({ list, items: itemRefs }: { list: ListRef; items: Ar
 		body: `${itemRefs.length} items here haven't been edited in over six months. Worth a glance.`,
 		actions: [
 			{
-				label: 'Open list',
+				label: 'Open List',
 				description: `Jump to ${list.name} to review.`,
 				intent: 'do',
 				nav: { listId: list.id },

@@ -105,7 +105,7 @@ const recStaleItems: Recommendation = {
 	createdAt: hoursAgo(2),
 	actions: [
 		{
-			label: 'Open list',
+			label: 'Open List',
 			description: 'Jump to My Wishlist so you can edit or remove these items one at a time.',
 			intent: 'do',
 			nav: { listId: 'wishlist-generic' },
@@ -291,7 +291,7 @@ const recGroupingDependent: Recommendation = {
 	createdAt: hoursAgo(2),
 	actions: [
 		{
-			label: 'Open list',
+			label: 'Open List',
 			description: "Jump to Mochi Wishlist's editor so you can add items yourself.",
 			intent: 'do',
 			nav: { listId: 'dependent-list' },

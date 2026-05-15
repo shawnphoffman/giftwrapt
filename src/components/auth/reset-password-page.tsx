@@ -81,7 +81,7 @@ export function ResetPasswordPageContent({
 
 				{submitted ? (
 					<Button asChild className="w-full">
-						<a href={signInHref}>Continue to sign in</a>
+						<a href={signInHref}>Continue to Sign In</a>
 					</Button>
 				) : (
 					<form onSubmit={handleSubmit} className="space-y-2">

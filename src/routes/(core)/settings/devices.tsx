@@ -79,7 +79,7 @@ function DevicesPage() {
 			</CardHeader>
 			<CardContent className="space-y-6">
 				<div className="flex justify-end">
-					<Button onClick={() => setCreateOpen(true)}>Create new device key</Button>
+					<Button onClick={() => setCreateOpen(true)}>Create New Device Key</Button>
 				</div>
 
 				{isLoading ? (

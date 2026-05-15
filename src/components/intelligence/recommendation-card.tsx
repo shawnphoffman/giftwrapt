@@ -538,7 +538,7 @@ function SubItemsSection({
 						className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:gap-4 bg-muted/20"
 					>
 						<p className="flex-1 text-sm leading-snug text-muted-foreground">Open the list to bulk-fix in-place.</p>
-						<LinkButton label="Open list" href={`/lists/${bundleNav.listId}`} intent="do" />
+						<LinkButton label="Open List" href={`/lists/${bundleNav.listId}`} intent="do" />
 					</li>
 				)}
 				<DismissRow description={dismissDescription} onClick={onDismiss} />

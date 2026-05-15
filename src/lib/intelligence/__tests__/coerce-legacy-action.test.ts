@@ -29,7 +29,7 @@ describe('coerceLegacyAction', () => {
 
 	it('preserves a well-formed list nav', () => {
 		const action: RecommendationAction = {
-			label: 'Open list',
+			label: 'Open List',
 			description: 'Go to the list.',
 			intent: 'do',
 			nav: { listId: 'list-1' },
@@ -40,7 +40,7 @@ describe('coerceLegacyAction', () => {
 
 	it('parses the legacy `href: "/lists/..."` shape into a list nav', () => {
 		const action = {
-			label: 'Open list',
+			label: 'Open List',
 			description: 'Go to the list.',
 			intent: 'do',
 			href: '/lists/list-7',

@@ -35,7 +35,7 @@ export function RunDetailContent({ data, onBack, onRerunDryRun, onRerunPersist }
 				</div>
 				<div className="flex gap-2">
 					<Button size="sm" variant="outline" onClick={onRerunDryRun}>
-						Re-run (dry)
+						Re-run (Dry)
 					</Button>
 					<Button size="sm" onClick={onRerunPersist}>
 						Re-run

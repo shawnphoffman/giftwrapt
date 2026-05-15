@@ -38,7 +38,7 @@ export function AddItemSplitButton({ listId, onAddItem, importEnabledOverride }:
 		return (
 			<Button size="sm" onClick={onAddItem}>
 				<Plus className="size-4" /> <span className="xs:hidden">Add</span>
-				<span className="hidden xs:inline">Add item</span>
+				<span className="hidden xs:inline">Add Item</span>
 			</Button>
 		)
 	}
@@ -48,7 +48,7 @@ export function AddItemSplitButton({ listId, onAddItem, importEnabledOverride }:
 			<div className="inline-flex items-stretch isolate">
 				<Button size="sm" onClick={onAddItem} className="rounded-r-none border-r-0 focus-visible:z-10">
 					<Plus className="size-4" /> <span className="xs:hidden">Add</span>
-					<span className="hidden xs:inline">Add item</span>
+					<span className="hidden xs:inline">Add Item</span>
 				</Button>
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>

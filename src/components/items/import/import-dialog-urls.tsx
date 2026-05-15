@@ -118,7 +118,7 @@ export function ImportDialogUrls({ listId, open, onOpenChange }: Props) {
 								Cancel
 							</Button>
 							<Button type="button" onClick={goToPreview} disabled={previewCount === 0}>
-								Preview {previewCount} item{previewCount === 1 ? '' : 's'}
+								Preview {previewCount} Item{previewCount === 1 ? '' : 's'}
 							</Button>
 						</DialogFooter>
 					</div>

@@ -43,7 +43,7 @@ export function PurchasesOrphanSummary() {
 							</div>
 							<Button asChild size="sm" variant="outline" className="shrink-0">
 								<Link to="/lists/$listId" params={{ listId: String(row.listId) }}>
-									Open list
+									Open List
 								</Link>
 							</Button>
 						</div>

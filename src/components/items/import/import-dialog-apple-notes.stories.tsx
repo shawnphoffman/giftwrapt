@@ -25,7 +25,7 @@ export const Closed: Story = {
 		const [open, setOpen] = useState(false)
 		return (
 			<>
-				<Button onClick={() => setOpen(true)}>Open dialog</Button>
+				<Button onClick={() => setOpen(true)}>Open Dialog</Button>
 				<ImportDialogAppleNotes listId={1} open={open} onOpenChange={setOpen} />
 			</>
 		)
