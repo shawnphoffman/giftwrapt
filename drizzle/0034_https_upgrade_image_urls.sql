@@ -14,7 +14,7 @@
 UPDATE "items"
 SET "image_url" = 'https://' || substring("image_url" FROM 8)
 WHERE "image_url" LIKE 'http://%';
-
+--> statement-breakpoint
 UPDATE "item_scrapes"
 SET "image_urls" = (
 	SELECT array_agg(
