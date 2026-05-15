@@ -107,7 +107,7 @@ function buildGenericOAuthPlugins(cfg: OidcClientConfig | null) {
 }
 
 const options = {
-	baseURL: env.BETTER_AUTH_URL || 'http://localhost:3000',
+	baseURL: env.BETTER_AUTH_URL || 'http://localhost:3001',
 	// Required by the env zod schema (`min(1)`); no `|| ''` fallback so a
 	// future refactor that imports `auth` before env validation runs (or
 	// strips the schema check) crashes loudly instead of silently booting

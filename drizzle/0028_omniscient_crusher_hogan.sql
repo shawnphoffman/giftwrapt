@@ -1,1 +1,0 @@
-ALTER TABLE "holiday_catalog" ALTER COLUMN "is_enabled" SET DEFAULT false;

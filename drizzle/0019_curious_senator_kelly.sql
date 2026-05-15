@@ -1,1 +1,0 @@
-ALTER TABLE "app_settings" ALTER COLUMN "value" DROP NOT NULL;

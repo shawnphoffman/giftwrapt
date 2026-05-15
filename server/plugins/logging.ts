@@ -11,7 +11,7 @@ const accessLog = createLogger('http')
 const startTimestamps = new WeakMap<object, number>()
 
 export default defineNitroPlugin(nitroApp => {
-	const port = process.env.PORT ?? '3000'
+	const port = process.env.PORT ?? '3001'
 	logger.info(
 		{
 			port,

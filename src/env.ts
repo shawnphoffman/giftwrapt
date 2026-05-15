@@ -80,6 +80,12 @@ export const env = createEnv({
 		// Max upload size in MB, enforced before Sharp runs. Generous default
 		// for phone photos; operators can tighten if function memory is tight.
 		STORAGE_MAX_UPLOAD_MB: z.coerce.number().int().positive().default(8),
+		// Skip the boot-time HeadBucket connectivity check. Intended for the
+		// screenshot dev server (.env.local.screenshots), which sets fake
+		// STORAGE_* values to satisfy the configured-ness gate without actually
+		// reaching out to a bucket. Leave unset (false) for any environment
+		// that uploads real images.
+		STORAGE_SKIP_BOOT_CHECK: z.stringbool().default(false),
 	},
 
 	/**

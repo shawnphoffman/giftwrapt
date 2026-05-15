@@ -1,1 +1,0 @@
-ALTER TABLE "item_groups" ADD COLUMN "sort_order" integer;

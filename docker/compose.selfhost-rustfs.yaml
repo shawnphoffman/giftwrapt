@@ -51,7 +51,7 @@ services:
       # you're pointing STORAGE_* at an external S3-compatible bucket.
       INIT_RUSTFS: ${INIT_RUSTFS:-true}
     ports:
-      - '${APP_PORT:-3000}:3000'
+      - '${APP_PORT:-3001}:3001'
     depends_on:
       postgres:
         condition: service_healthy
@@ -84,7 +84,7 @@ services:
     image: ${MCP_IMAGE:-ghcr.io/shawnphoffman/giftwrapt-mcp:latest}
     profiles: ['mcp']
     environment:
-      GIFTWRAPT_BASE_URL: http://app:3000
+      GIFTWRAPT_BASE_URL: http://app:3001
       # Single-tenant pin: leave unset for multi-user pass-through (each
       # client sends its own Bearer header). See the giftwrapt-mcp README.
       GIFTWRAPT_API_KEY: ${GIFTWRAPT_MCP_API_KEY:-}
@@ -107,7 +107,7 @@ services:
     image: alpine:3.20
     env_file: .env
     environment:
-      CRON_APP_URL: ${CRON_APP_URL:-http://app:3000}
+      CRON_APP_URL: ${CRON_APP_URL:-http://app:3001}
       TZ: ${TZ:-UTC}
     volumes:
       - ./cron-entrypoint.sh:/cron-entrypoint.sh:ro

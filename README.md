@@ -40,7 +40,7 @@ Or run locally with Docker:
 ```bash
 git clone https://github.com/shawnphoffman/giftwrapt.git
 cd giftwrapt
-cp env.example docker/.env
+cp .env.example docker/.env
 $EDITOR docker/.env    # set POSTGRES_PASSWORD, BETTER_AUTH_SECRET, BETTER_AUTH_URL, CRON_SECRET
 docker compose -f docker/compose.selfhost-garage.yaml up -d
 ```

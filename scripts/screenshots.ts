@@ -55,14 +55,14 @@ function loadScreenshotEnvFiles(): void {
 
 function defaultServerBaseUrl(): string {
 	const raw = (process.env.BETTER_AUTH_URL ?? '').trim()
-	if (!raw) return 'http://localhost:3000'
+	if (!raw) return 'http://localhost:3001'
 	try {
 		const u = new URL(raw)
 		const path = u.pathname === '/' ? '' : u.pathname.replace(/\/$/, '')
 		const base = `${u.origin}${path}`
 		return base || u.origin
 	} catch {
-		return 'http://localhost:3000'
+		return 'http://localhost:3001'
 	}
 }
 const STORAGE_STATE_PATH = resolvePath(REPO_ROOT, '.cache/screenshots/storageState.json')

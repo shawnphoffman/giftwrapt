@@ -28,7 +28,7 @@ if [ -z "${CRON_SECRET:-}" ]; then
 	exit 1
 fi
 
-APP_URL="${CRON_APP_URL:-http://app:3000}"
+APP_URL="${CRON_APP_URL:-http://app:3001}"
 
 mkdir -p /etc/crontabs
 cat > /etc/crontabs/root <<EOF

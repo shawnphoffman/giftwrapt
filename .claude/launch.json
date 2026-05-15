@@ -9,6 +9,13 @@
 			"autoPort": true
 		},
 		{
+			"name": "GiftWrapt (screenshots)",
+			"runtimeExecutable": "bash",
+			"runtimeArgs": ["-c", "export NVM_DIR=\"$HOME/.nvm\"; . \"$NVM_DIR/nvm.sh\"; nvm use default >/dev/null; exec pnpm dev:screenshots"],
+			"port": 3003,
+			"autoPort": true
+		},
+		{
 			"name": "Email Preview",
 			"runtimeExecutable": "bash",
 			"runtimeArgs": [

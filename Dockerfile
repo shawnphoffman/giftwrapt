@@ -33,6 +33,9 @@ ENV NODE_ENV=production
 # accepts IPv4 connections, so this is a safe override for self-hosters too.
 # Override with HOST=0.0.0.0 if you need IPv4-only for some reason.
 ENV HOST=::
+# Nitro reads PORT at boot to pick its listener; default to 3001 to match the
+# rest of the project (local dev, .env templates, compose port mappings).
+ENV PORT=3001
 
 RUN addgroup --system --gid 1001 nodejs && \
 	adduser --system --uid 1001 --ingroup nodejs nodejs
@@ -63,7 +66,7 @@ RUN rm -rf /usr/local/lib/node_modules \
 	/usr/local/bin/yarn* \
 	2>/dev/null || true
 
-EXPOSE 3000
+EXPOSE 3001
 
 USER nodejs
 

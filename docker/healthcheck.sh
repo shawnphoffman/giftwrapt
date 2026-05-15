@@ -12,7 +12,7 @@
 # diagnostic instead of an empty Output field.
 node -e "
 const http = require('http');
-const port = process.env.NITRO_PORT || process.env.PORT || 3000;
+const port = process.env.NITRO_PORT || process.env.PORT || 3001;
 const req = http.get('http://127.0.0.1:' + port + '/api/health', (res) => {
   let body = '';
   res.setEncoding('utf8');

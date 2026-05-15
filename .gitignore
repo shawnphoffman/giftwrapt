@@ -7,6 +7,8 @@ dist-ssr
 count.txt
 .env*
 !.env.example
+!.env.local.example
+!.env.local.screenshots.example
 .nitro
 .tanstack
 .wrangler

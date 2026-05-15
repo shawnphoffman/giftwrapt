@@ -43,7 +43,7 @@ services:
       # pointing STORAGE_* at an external S3-compatible bucket.
       INIT_GARAGE: ${INIT_GARAGE:-true}
     ports:
-      - '${APP_PORT:-3000}:3000'
+      - '${APP_PORT:-3001}:3001'
     depends_on:
       postgres:
         condition: service_healthy
@@ -84,7 +84,7 @@ services:
     image: ${MCP_IMAGE:-ghcr.io/shawnphoffman/giftwrapt-mcp:latest}
     profiles: ['mcp']
     environment:
-      GIFTWRAPT_BASE_URL: http://app:3000
+      GIFTWRAPT_BASE_URL: http://app:3001
       # Single-tenant pin: leave unset for multi-user pass-through (each
       # client sends its own Bearer header). See the giftwrapt-mcp README.
       GIFTWRAPT_API_KEY: ${GIFTWRAPT_MCP_API_KEY:-}
@@ -112,7 +112,7 @@ services:
       # Talks to the app over the compose network. Override CRON_APP_URL if
       # the app service is named differently or you want crons to hit a
       # public URL (slower, but exercises the same code path as Vercel).
-      CRON_APP_URL: ${CRON_APP_URL:-http://app:3000}
+      CRON_APP_URL: ${CRON_APP_URL:-http://app:3001}
       TZ: ${TZ:-UTC}
     volumes:
       - ./cron-entrypoint.sh:/cron-entrypoint.sh:ro

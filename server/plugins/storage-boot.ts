@@ -20,6 +20,14 @@ export default defineNitroPlugin(async () => {
 		return
 	}
 
+	if (env.STORAGE_SKIP_BOOT_CHECK) {
+		log.warn(
+			{ endpoint: env.STORAGE_ENDPOINT, bucket: env.STORAGE_BUCKET },
+			'storage.boot.skipped: STORAGE_SKIP_BOOT_CHECK=true. HeadBucket not attempted; image uploads will fail if credentials are wrong.'
+		)
+		return
+	}
+
 	const storage = getStorage()
 	if (!storage) return
 	try {

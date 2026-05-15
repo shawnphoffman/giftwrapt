@@ -1,3 +1,0 @@
-ALTER TABLE "recommendations" ADD COLUMN "dependent_id" text;--> statement-breakpoint
-ALTER TABLE "recommendations" ADD CONSTRAINT "recommendations_dependent_id_dependents_id_fk" FOREIGN KEY ("dependent_id") REFERENCES "public"."dependents"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "recommendations_user_dependent_status_idx" ON "recommendations" USING btree ("user_id","dependent_id","status");

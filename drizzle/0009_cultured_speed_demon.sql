@@ -1,1 +1,0 @@
-ALTER TABLE "items" ADD COLUMN "availability_changed_at" timestamp with time zone;

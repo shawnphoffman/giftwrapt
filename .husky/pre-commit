@@ -9,3 +9,11 @@ if [ -s "$HOME/.nvm/nvm.sh" ]; then
 fi
 
 pnpm exec lint-staged
+
+# When anything under drizzle/ is staged, validate the migration journal
+# invariants before the commit lands. Catches hand-edited `when` values,
+# missing/duplicate idx, etc. — the class of bug that caused the 0017
+# silent-skip incident and the 0.31.0 fresh-deploy migration failure.
+if git diff --cached --name-only --diff-filter=ACMR | grep -q '^drizzle/'; then
+	pnpm db:check || exit 1
+fi
