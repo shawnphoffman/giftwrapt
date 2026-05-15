@@ -1,7 +1,7 @@
 import type { Page } from 'playwright'
 
 export type Theme = 'light' | 'dark'
-export type ViewportName = 'mobile' | 'wide' | 'basic'
+export type ViewportName = 'mobile' | 'basic'
 
 export interface Viewport {
 	name: ViewportName
@@ -23,19 +23,11 @@ export const VIEWPORTS: Record<ViewportName, Viewport> = {
 	},
 	basic: {
 		name: 'basic',
-		width: 1080,
+		width: 1060,
 		height: 1000,
 		isMobile: false,
 		hasTouch: false,
 		deviceScaleFactor: 2,
-	},
-	wide: {
-		name: 'wide',
-		width: 1920,
-		height: 1080,
-		isMobile: false,
-		hasTouch: false,
-		deviceScaleFactor: 1,
 	},
 }
 

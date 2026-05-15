@@ -134,7 +134,7 @@ async function gatherChoices(flags: CliFlags) {
 			url: flags.url ?? defaultServerBaseUrl(),
 			outDir: flags.out ? resolvePath(flags.out) : DEFAULT_OUT,
 			routeSlugs: flags.routes ?? allRouteSlugs,
-			viewports: flags.viewports ?? (['mobile', 'wide', 'basic'] as Array<ViewportName>),
+			viewports: flags.viewports ?? (['basic'] as Array<ViewportName>),
 			themes: flags.themes ?? (['light', 'dark'] as Array<Theme>),
 		}
 	}
@@ -163,8 +163,7 @@ async function gatherChoices(flags: CliFlags) {
 			message: 'Viewports',
 			choices: [
 				{ name: 'Mobile (390x844)', value: 'mobile', checked: false },
-				{ name: 'Basic (1080x1000)', value: 'basic', checked: true },
-				{ name: 'Wide (1920x1080)', value: 'wide', checked: false },
+				{ name: 'Basic (1060x1000)', value: 'basic', checked: true },
 			],
 			required: true,
 		}))
