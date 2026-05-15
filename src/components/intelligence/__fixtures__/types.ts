@@ -259,6 +259,9 @@ export type AdminIntelligenceData = {
 		// list-hygiene analyzer: minimum days-until-event threshold. Default
 		// 1 — analyzer goes quiet on the day-of.
 		minDaysBeforeEventForRecs: number
+		// list-hygiene analyzer: opt-in AI rename for the convert-public-list
+		// branch. Default false — analyzer uses the deterministic regex.
+		listHygieneRenameWithAi: boolean
 	}
 	health: {
 		totalActiveRecs: number

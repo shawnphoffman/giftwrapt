@@ -109,6 +109,21 @@ export function IntelligenceGeneralSettingsCard({ data, patch }: { data: AdminIn
 							onChange={v => patch({ minDaysBeforeEventForRecs: v })}
 						/>
 					</div>
+					<div className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2">
+						<div className="flex flex-col gap-0.5">
+							<Label className="text-sm">AI-assisted rename on Convert</Label>
+							<span className="text-xs text-muted-foreground">
+								When on, the Convert action proposes the new list name via the same AI provider as the other analyzers. The prompt sees only
+								the current name, target type, event title, and year — never item content or claim data. Falls back to the deterministic
+								regex when the AI is unavailable or the response fails validation. Capped at 5 calls per run.
+							</span>
+						</div>
+						<Switch
+							checked={s.listHygieneRenameWithAi}
+							onCheckedChange={v => patch({ listHygieneRenameWithAi: v })}
+							aria-label="AI-assisted rename"
+						/>
+					</div>
 				</section>
 			</CardContent>
 		</Card>

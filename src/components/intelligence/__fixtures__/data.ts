@@ -823,11 +823,54 @@ const recMergeHolidayCluster: Recommendation = {
 	relatedLists: [mergeSurvivorEaster],
 }
 
+// AI-assisted rename variant (phase 2). Same shape as
+// `recConvertPublicForBirthday` but the proposed name is what an AI
+// rename would produce when the toggle is enabled and the response
+// passes validation. Used by the storybook story under
+// `Intelligence / List hygiene / ConvertAIName`.
+const aiNameCandidateList: ListRef = {
+	id: 'list-sams-big',
+	name: "Sam's Big List",
+	type: 'wishlist',
+	isPrivate: false,
+	subject: userSubject,
+}
+
+const recConvertPublicForBirthdayAiNamed: Recommendation = {
+	id: 'rec-hygiene-convert-bday-ai',
+	analyzerId: 'list-hygiene' as Recommendation['analyzerId'],
+	kind: 'convert-public-list',
+	severity: 'important',
+	status: 'active',
+	title: `Reshape "${aiNameCandidateList.name}" for Birthday`,
+	body: `Your Birthday is in 14 days and the most-attention-getting list "${aiNameCandidateList.name}" isn't shaped for it. Convert it to a birthday list and rename it to "Sam's Birthday 2026" so gifts auto-reveal on the right day.`,
+	createdAt: hoursAgo(2),
+	actions: [
+		{
+			label: 'Convert to birthday',
+			description: "Change the list's type and rename it. Items and existing claims stay put.",
+			intent: 'do',
+			apply: {
+				kind: 'convert-list',
+				listId: aiNameCandidateList.id,
+				newType: 'birthday',
+				// AI proposed a name that preserves the owner's first name
+				// while introducing the event + year. The user can edit
+				// this in the rec card before applying.
+				newName: "Sam's Birthday 2026",
+			},
+		},
+	],
+	affected: { noun: 'list', count: 1, lines: [aiNameCandidateList.name], listChips: [aiNameCandidateList] },
+	relatedLists: [aiNameCandidateList],
+}
+
 // Map kept around for stories that want to look up by kind.
 export const listHygieneRecsByKind = {
 	convertBirthday: recConvertPublicForBirthday,
 	convertChristmas: recConvertPublicForChristmas,
 	convertHolidayRebind: recConvertHolidayRebind,
+	convertBirthdayAiNamed: recConvertPublicForBirthdayAiNamed,
 	makePublic: recMakePrivateListPublic,
 	createEventList: recCreateEventList,
 	createEventListDependent: recCreateEventListDependent,
@@ -959,6 +1002,7 @@ export const adminData: AdminIntelligenceData = {
 		runStepsRetentionDays: 30,
 		upcomingWindowDays: 45,
 		minDaysBeforeEventForRecs: 1,
+		listHygieneRenameWithAi: false,
 		dryRun: false,
 		modelOverride: null,
 		email: { enabled: false, weeklyDigestEnabled: false, testRecipient: null },

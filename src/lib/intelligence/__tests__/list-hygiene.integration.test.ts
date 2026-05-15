@@ -7,14 +7,27 @@
 import { makeList, makeUser } from '@test/integration/factories'
 import { withRollback } from '@test/integration/setup'
 import { eq } from 'drizzle-orm'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { customHolidays, dependentGuardianships, dependents, lists } from '@/db/schema'
 import { DEFAULT_APP_SETTINGS } from '@/lib/settings'
 
+// Mock the `ai` package at the top of the file so the AI-rename
+// branch-1 tests below can drive `generateObject` without booting a
+// real provider. The other tests in this file pass `model: null`, so
+// they never reach the mock.
+vi.mock('ai', () => ({
+	generateObject: vi.fn(),
+}))
+
+import { generateObject } from 'ai'
+
 import { listHygieneAnalyzer, renameForConvert } from '../analyzers/list-hygiene'
 import { primaryListAnalyzer } from '../analyzers/primary-list'
 import type { AnalyzerContext } from '../context'
+
+const mockedGenerateObject = vi.mocked(generateObject)
+const sentinelModel = { sentinel: true } as unknown as NonNullable<AnalyzerContext['model']>
 
 const noopLogger = { info: () => undefined, warn: () => undefined, error: () => undefined }
 
@@ -332,6 +345,106 @@ describe('applyRecommendationImpl branches', () => {
 			const fp1 = r1.recs[0]?.fingerprintTargets.slice().sort().join(',')
 			const fp2 = r2.recs[0]?.fingerprintTargets.slice().sort().join(',')
 			expect(fp1).toBe(fp2)
+		})
+	})
+
+	describe('branch 1: AI-assisted rename (phase 2)', () => {
+		beforeEach(() => {
+			mockedGenerateObject.mockReset()
+		})
+
+		it('uses the AI-derived name on the rec when toggle is on and response is valid', async () => {
+			mockedGenerateObject.mockResolvedValue({
+				object: { name: "Sam's Birthday 2026" },
+				usage: { inputTokens: 50, outputTokens: 8 },
+			} as unknown as Awaited<ReturnType<typeof generateObject>>)
+
+			await withRollback(async tx => {
+				const user = await makeUser(tx, { birthMonth: 'june', birthDay: 5, name: 'Sam' })
+				await makeList(tx, { ownerId: user.id, type: 'christmas', isPrivate: false, name: "Sam's Big List" })
+
+				const result = await listHygieneAnalyzer.run(
+					buildCtx(tx, user.id, {
+						model: sentinelModel,
+						settings: { ...DEFAULT_APP_SETTINGS, intelligenceListHygieneRenameWithAi: true },
+					})
+				)
+				const convert = result.recs.find(r => r.kind === 'convert-public-list')
+				const apply = convert?.actions?.[0]?.apply
+				expect(apply?.kind).toBe('convert-list')
+				if (apply?.kind === 'convert-list') {
+					expect(apply.newName).toBe("Sam's Birthday 2026")
+				}
+				expect(mockedGenerateObject).toHaveBeenCalledTimes(1)
+			})
+		})
+
+		it('falls back to the regex name when the AI response fails validation', async () => {
+			// Banned word triggers validator rejection; the regex would
+			// preserve the candidate name because it has no event/year
+			// token.
+			mockedGenerateObject.mockResolvedValue({
+				object: { name: 'Birthday gifts 2026' },
+				usage: { inputTokens: 50, outputTokens: 8 },
+			} as unknown as Awaited<ReturnType<typeof generateObject>>)
+
+			await withRollback(async tx => {
+				const user = await makeUser(tx, { birthMonth: 'june', birthDay: 5 })
+				await makeList(tx, { ownerId: user.id, type: 'christmas', isPrivate: false, name: "Sam's Big List" })
+
+				const result = await listHygieneAnalyzer.run(
+					buildCtx(tx, user.id, {
+						model: sentinelModel,
+						settings: { ...DEFAULT_APP_SETTINGS, intelligenceListHygieneRenameWithAi: true },
+					})
+				)
+				const convert = result.recs.find(r => r.kind === 'convert-public-list')
+				const apply = convert?.actions?.[0]?.apply
+				if (apply?.kind === 'convert-list') {
+					// Regex fallback path: name with no event/year token is
+					// preserved verbatim.
+					expect(apply.newName).toBe("Sam's Big List")
+				}
+				expect(result.steps.some(s => s.name === 'rename-fallback-validation')).toBe(true)
+			})
+		})
+
+		it('falls back to regex when toggle is on but no provider model is supplied', async () => {
+			await withRollback(async tx => {
+				const user = await makeUser(tx, { birthMonth: 'june', birthDay: 5 })
+				await makeList(tx, { ownerId: user.id, type: 'christmas', isPrivate: false, name: 'Christmas 2025' })
+
+				const result = await listHygieneAnalyzer.run(
+					buildCtx(tx, user.id, {
+						model: null,
+						settings: { ...DEFAULT_APP_SETTINGS, intelligenceListHygieneRenameWithAi: true },
+					})
+				)
+				const convert = result.recs.find(r => r.kind === 'convert-public-list')
+				const apply = convert?.actions?.[0]?.apply
+				if (apply?.kind === 'convert-list') {
+					// Regex matched the year token, swapped to "Birthday 2026".
+					expect(apply.newName).toBe('Birthday 2026')
+				}
+				expect(mockedGenerateObject).not.toHaveBeenCalled()
+				expect(result.steps.some(s => s.name === 'rename-fallback-no-provider')).toBe(true)
+			})
+		})
+
+		it('does not call the AI when toggle is off (default)', async () => {
+			await withRollback(async tx => {
+				const user = await makeUser(tx, { birthMonth: 'june', birthDay: 5 })
+				await makeList(tx, { ownerId: user.id, type: 'christmas', isPrivate: false, name: "Sam's Big List" })
+
+				const result = await listHygieneAnalyzer.run(buildCtx(tx, user.id, { model: sentinelModel }))
+				expect(mockedGenerateObject).not.toHaveBeenCalled()
+				// Default toggle is off — regex preserves the custom name.
+				const convert = result.recs.find(r => r.kind === 'convert-public-list')
+				const apply = convert?.actions?.[0]?.apply
+				if (apply?.kind === 'convert-list') {
+					expect(apply.newName).toBe("Sam's Big List")
+				}
+			})
 		})
 	})
 })

@@ -24,6 +24,7 @@
 //      Dependent runs skip this branch — `lists.isPrimary` is per-owner,
 //      not per-(owner, dependent).
 
+import { generateObject } from 'ai'
 import { and, asc, count, desc, eq, inArray, isNull, ne } from 'drizzle-orm'
 
 import { items, lists } from '@/db/schema'
@@ -31,7 +32,14 @@ import type { ListType } from '@/db/schema/enums'
 import { SPOILER_PROTECTED_TYPES } from '@/lib/list-type-moves'
 
 import type { Analyzer } from '../analyzer'
+import type { AnalyzerContext } from '../context'
 import { combineHashes, sha256Hex } from '../hash'
+import {
+	buildListHygieneRenamePrompt,
+	LIST_HYGIENE_RENAME_AI_CAP,
+	listHygieneRenameResponseSchema,
+	validateRenameResponse,
+} from '../prompts/list-hygiene-rename'
 import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ListRef } from '../types'
 import { eventIsCovered, getInWindowEventsForSubject, type InWindowEvent } from '../upcoming-events'
 
@@ -207,6 +215,12 @@ export const listHygieneAnalyzer: Analyzer = {
 		const recs: Array<AnalyzerRecOutput> = []
 		const subject = subjectListRef(ctx.subject)
 
+		// Per-run state for the opt-in AI rename path on branch 1. The
+		// cap defends against pathological seed states (one user with
+		// many public non-matching lists) by bounding total AI calls
+		// inside a single analyzer pass.
+		const renameState: RenameState = { aiCallsUsed: 0 }
+
 		// Calendar-quiet case: the per-event branches have nothing to do
 		// but the duplicates pass can still fire on its own.
 		if (events.length === 0) {
@@ -270,7 +284,15 @@ export const listHygieneAnalyzer: Analyzer = {
 					if (breaksOther) continue
 
 					const eventYear = event.occurrence.getUTCFullYear()
-					const newName = renameForConvert(candidate.name, event.eventTitle, eventYear)
+					const newName = await chooseConvertName({
+						ctx,
+						steps,
+						state: renameState,
+						currentName: candidate.name,
+						newType: canonicalType,
+						eventTitle: event.eventTitle,
+						eventYear,
+					})
 
 					recs.push(
 						buildConvertRec({
@@ -337,6 +359,98 @@ export const listHygieneAnalyzer: Analyzer = {
 			inputHash: combineHashes([inputHash]),
 		}
 	},
+}
+
+// ─── AI rename chooser ──────────────────────────────────────────────────────
+
+// Mutable state threaded through every branch-1 candidate in a single
+// analyzer pass. The cap counter survives across events because the
+// cap is a per-run total, not per-event.
+type RenameState = { aiCallsUsed: number }
+
+type ChooseConvertNameArgs = {
+	ctx: AnalyzerContext
+	steps: Array<AnalyzerStep>
+	state: RenameState
+	currentName: string
+	newType: ListType
+	eventTitle: string
+	eventYear: number
+}
+
+// Returns the proposed `newName` for a `convert-public-list` rec
+// candidate. When the AI toggle is off, returns the regex name from
+// `renameForConvert`. When the toggle is on, attempts a single AI call
+// (with per-run cap), validates the response, and falls back to the
+// regex name on any failure. The decision is recorded as a run-step so
+// admins can audit `rename-fallback-*` paths.
+export async function chooseConvertName(args: ChooseConvertNameArgs): Promise<string> {
+	const { ctx, steps, state, currentName, newType, eventTitle, eventYear } = args
+	const regexName = renameForConvert(currentName, eventTitle, eventYear)
+
+	if (!ctx.settings.intelligenceListHygieneRenameWithAi) return regexName
+
+	// Provider not configured (or otherwise unavailable): silently fall
+	// back to the regex path for this run. Telemetry records the reason
+	// so it's debuggable from the admin runs surface.
+	if (!ctx.model) {
+		steps.push({ name: 'rename-fallback-no-provider', latencyMs: 0 })
+		return regexName
+	}
+
+	if (state.aiCallsUsed >= LIST_HYGIENE_RENAME_AI_CAP) {
+		steps.push({ name: 'rename-fallback-cap', latencyMs: 0 })
+		return regexName
+	}
+
+	state.aiCallsUsed += 1
+	const prompt = buildListHygieneRenamePrompt({
+		currentName,
+		newType: prettyListType(newType),
+		eventTitle,
+		eventYear,
+	})
+	const stepStart = Date.now()
+	let parsed: unknown = null
+	let responseRaw: string | null = null
+	let error: string | null = null
+	let tokensIn = 0
+	let tokensOut = 0
+	try {
+		const result = await generateObject({
+			model: ctx.model,
+			schema: listHygieneRenameResponseSchema,
+			prompt,
+		})
+		parsed = result.object
+		responseRaw = JSON.stringify(result.object)
+		tokensIn = result.usage.inputTokens ?? 0
+		tokensOut = result.usage.outputTokens ?? 0
+	} catch (err) {
+		error = err instanceof Error ? err.message : String(err)
+	}
+	steps.push({
+		name: 'list-hygiene-rename',
+		prompt,
+		responseRaw,
+		parsed,
+		tokensIn,
+		tokensOut,
+		latencyMs: Date.now() - stepStart,
+		error,
+	})
+
+	if (error || !parsed) {
+		steps.push({ name: 'rename-fallback-error', latencyMs: 0 })
+		return regexName
+	}
+
+	const validated = validateRenameResponse(parsed, { eventTitle, eventYear })
+	if (validated === null) {
+		steps.push({ name: 'rename-fallback-validation', latencyMs: 0 })
+		return regexName
+	}
+	return validated
 }
 
 // ─── Rec builders ───────────────────────────────────────────────────────────

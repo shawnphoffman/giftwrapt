@@ -445,6 +445,17 @@ export const appSettingsSchema = z.object({
 	// (we never propose conversions AWAY from a matching type), so the
 	// floor exists mostly to avoid same-day churn.
 	intelligenceMinDaysBeforeEventForRecs: z.number().int().min(0).max(365),
+	// List-hygiene analyzer: opt-in AI rename for the convert-public-list
+	// branch. When false (default), the analyzer uses the existing regex
+	// `renameForConvert` path verbatim. When true, the analyzer attempts
+	// an AI rename per candidate (capped per-run, see analyzer code),
+	// validates the response (length, banned-word probe, year/title
+	// presence), and falls back to the regex name when the AI is
+	// unavailable or the response fails validation. The proposed name is
+	// baked into the rec at generation time; apply does NOT re-call the
+	// AI. The prompt sees ONLY the current name, target list type, event
+	// title, and event year — never item content, never claim data.
+	intelligenceListHygieneRenameWithAi: z.boolean(),
 	// How many days of `cron_runs` history to keep. The daily verification-
 	// cleanup tick sweeps rows older than this. 90 days = roughly one
 	// quarter of operational history at five endpoints.
@@ -543,6 +554,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	intelligenceEmailTestRecipient: null,
 	intelligenceUpcomingWindowDays: 45,
 	intelligenceMinDaysBeforeEventForRecs: 1,
+	intelligenceListHygieneRenameWithAi: false,
 	cronRunsRetentionDays: 90,
 }
 

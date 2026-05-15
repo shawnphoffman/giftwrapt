@@ -34,6 +34,16 @@ export const ConvertPublicListHolidayRebind: Story = {
 	args: { rec: listHygieneRecsByKind.convertHolidayRebind },
 }
 
+// AI-assisted rename variant (phase 2). Same rec card; the difference
+// is the proposed `newName` in the apply payload — what the AI returns
+// when the toggle is enabled and the response passes validation.
+// Renders to verify the card looks right when the model rebuilds the
+// owner's first name around the event (regex path would preserve
+// "Sam's Big List" verbatim instead).
+export const ConvertPublicListWithAiName: Story = {
+	args: { rec: listHygieneRecsByKind.convertBirthdayAiNamed },
+}
+
 // === Branch 2: flip private matching list public ===
 
 export const MakePrivateMatchingListPublic: Story = {
