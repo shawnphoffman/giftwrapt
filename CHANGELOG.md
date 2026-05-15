@@ -1,5 +1,43 @@
 # Changelog
 
+## [0.31.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.30.1...v0.31.0) (2026-05-15)
+
+
+### Features
+
+* **admin:** extract mobile-app redirect URIs into dedicated editor ([e910ec7](https://github.com/shawnphoffman/giftwrapt/commit/e910ec7eeba31a3f7d3553e0cf41577d4866e9df))
+* **cron:** auto-cleanup orphan claims on event date ([e4ac509](https://github.com/shawnphoffman/giftwrapt/commit/e4ac5098590ef5a2c897867e3bc9de37f662fd2a))
+* **deploy:** publish Railway one-click template ([c985642](https://github.com/shawnphoffman/giftwrapt/commit/c985642d2d299d1ca13ef9b26a682e658de830cd))
+* **intelligence:** ai-assisted rename for convert (list-hygiene phase 2) ([0a503c0](https://github.com/shawnphoffman/giftwrapt/commit/0a503c0324b3aca5335c5cb087a167879236fae6))
+* **intelligence:** list-hygiene analyzer for upcoming archive events ([6153bc3](https://github.com/shawnphoffman/giftwrapt/commit/6153bc3fcd1af9efc7798ffb0d065686e45627d5))
+* **intelligence:** merge duplicate event lists (list-hygiene phase 2) ([e18836d](https://github.com/shawnphoffman/giftwrapt/commit/e18836d1965ad0eb08b4e18ca784a7234e6bbf7f))
+* **intelligence:** stale-public-list detection (list-hygiene phase 2) ([6e1ecce](https://github.com/shawnphoffman/giftwrapt/commit/6e1eccee992fe698732c0743c21a9ea0a5660248))
+* **items:** add pendingDeletionAt + read-time safety net ([6f68492](https://github.com/shawnphoffman/giftwrapt/commit/6f684921b39d1bf25b037c50c7de184658edaee9))
+* **items:** orphan-claim flow for recipient-deleted items ([16378fa](https://github.com/shawnphoffman/giftwrapt/commit/16378fa14153341507be4f745eec5ad1addd6ebb))
+* **me:** list-type legend modal ([cbb3079](https://github.com/shawnphoffman/giftwrapt/commit/cbb3079ee3d387f88683a9da72bfccdfa61fe73b))
+* **orphan-claims:** per-list alert + /purchases summary UI ([57cada7](https://github.com/shawnphoffman/giftwrapt/commit/57cada749a9bfdc5ded6e16ec2133ef8f529a83b))
+* **settings:** hoist mobileRedirectUris to top-level mobileApp config ([51f9be1](https://github.com/shawnphoffman/giftwrapt/commit/51f9be1ba2dd2cf28b165c195f60ff2a917f773b))
+
+
+### Bug Fixes
+
+* **auth:** auto-revoke other sessions + mobile keys on password change ([bcd160e](https://github.com/shawnphoffman/giftwrapt/commit/bcd160e6505951e1098f39957ce7b2404b10c587))
+* **build:** keep client bundle free of node:crypto ([4b569b7](https://github.com/shawnphoffman/giftwrapt/commit/4b569b74fd74e473c03410dcf8be38f771663921))
+* **comments:** warn that comments are public in the input placeholder ([84b3815](https://github.com/shawnphoffman/giftwrapt/commit/84b3815f0e6b14babf437203846df9d16e8737ba))
+* **email:** surface Resend errors from sendTestEmail ([1a6d159](https://github.com/shawnphoffman/giftwrapt/commit/1a6d159cd35a319928d726e260aa85810d715e69))
+* **images:** upgrade http image URLs to https ([e2c6a4e](https://github.com/shawnphoffman/giftwrapt/commit/e2c6a4eebb0651c174312c9e38bf645e98364f2e))
+* **markdown-notes:** show list bullets and isolate link hover ([f87e393](https://github.com/shawnphoffman/giftwrapt/commit/f87e3933d274367d7f08c90cdd0f7872af5a77c0))
+* **migrations:** split 0034 with statement-breakpoint for pglite ([843f9a1](https://github.com/shawnphoffman/giftwrapt/commit/843f9a10f22f80dc792b9e74ebb87f1bffda6d06))
+* **purchases:** restore page icon color to match sidebar ([e05fcc6](https://github.com/shawnphoffman/giftwrapt/commit/e05fcc6b9ae52a00f5fcff2cdb7564604d28622b))
+* **stories:** query orphan-summary link by text, not role ([148731e](https://github.com/shawnphoffman/giftwrapt/commit/148731eb208f2a6f83e4cfd8d5227af167e57f9b))
+* **tests,orphan-claims:** unblock suite and resolve partner symmetrically ([ce7a682](https://github.com/shawnphoffman/giftwrapt/commit/ce7a682e91b85e0c6c2fc64826ff94b550b6db31))
+
+
+### Performance Improvements
+
+* **charts:** lazy-load recharts on purchases and admin intelligence ([d114d14](https://github.com/shawnphoffman/giftwrapt/commit/d114d14ad37ed6537d66b984523210dad57fd767))
+* **email:** lazy-load templates in resend so they stay out of routes ([61646c0](https://github.com/shawnphoffman/giftwrapt/commit/61646c06a1ee06f41308210441b25e22c935ca7c))
+
 ## [0.30.1](https://github.com/shawnphoffman/giftwrapt/compare/v0.30.0...v0.30.1) (2026-05-13)
 
 
