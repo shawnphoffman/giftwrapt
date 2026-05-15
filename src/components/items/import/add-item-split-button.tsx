@@ -24,7 +24,7 @@ type ImportSource = 'urls' | 'apple-notes' | 'amazon'
  * Split-button affordance on the list-edit toolbar. The primary face
  * preserves the one-click "Add item" flow into the existing
  * `ItemFormDialog`. The caret trigger opens a dropdown of bulk-import
- * sources (paste URLs, Apple Notes, Amazon wish list).
+ * sources (paste URLs, Apple Notes, Amazon Wish List).
  *
  * The caret is hidden when `importEnabled=false` in app settings so the
  * UI degrades gracefully to the original single-button shape.
@@ -64,7 +64,7 @@ export function AddItemSplitButton({ listId, onAddItem, importEnabledOverride }:
 							<Apple className="size-4" /> Apple Notes
 						</DropdownMenuItem>
 						<DropdownMenuItem onClick={() => setOpenSource('amazon')}>
-							<ShoppingBag className="size-4" /> Amazon wish list
+							<ShoppingBag className="size-4" /> Amazon Wish List
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>

@@ -37,6 +37,6 @@ export const Open: Story = {
 		const body = within(document.body)
 		expect(await body.findByText('Paste URLs')).toBeInTheDocument()
 		expect(await body.findByText('Apple Notes')).toBeInTheDocument()
-		expect(await body.findByText('Amazon wish list')).toBeInTheDocument()
+		expect(await body.findByText('Amazon Wish List')).toBeInTheDocument()
 	},
 }

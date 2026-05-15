@@ -113,7 +113,7 @@ export function ImportDialogAmazon({ listId, open, onOpenChange }: Props) {
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						<ShoppingBag className="size-5" /> Import from Amazon wish list
+						<ShoppingBag className="size-5" /> Import from Amazon Wish List
 					</DialogTitle>
 					<DialogDescription>
 						Paste your wish list URL. If Amazon blocks the fetch, we'll ask you to paste the page's HTML instead.
@@ -123,7 +123,7 @@ export function ImportDialogAmazon({ listId, open, onOpenChange }: Props) {
 				{step === 'url' && (
 					<div className="flex flex-col gap-3">
 						<div className="grid gap-2">
-							<Label htmlFor="import-amazon-url">Amazon wish list URL</Label>
+							<Label htmlFor="import-amazon-url">Amazon Wish List URL</Label>
 							<Input
 								id="import-amazon-url"
 								type="url"
