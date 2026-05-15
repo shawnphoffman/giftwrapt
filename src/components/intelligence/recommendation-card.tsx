@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { httpsUpgrade } from '@/lib/image-url'
 import { cn } from '@/lib/utils'
 
 import type {
@@ -481,7 +482,7 @@ function ItemReferenceLink({ item }: { item: ItemRef }) {
 function ItemAvatar({ item }: { item: ItemRef }) {
 	return (
 		<Avatar className="size-6">
-			{item.imageUrl && <AvatarImage src={item.imageUrl} alt={item.title} />}
+			{item.imageUrl && <AvatarImage src={httpsUpgrade(item.imageUrl)} alt={item.title} />}
 			<AvatarFallback className="bg-muted text-muted-foreground">
 				<Package className="size-3" />
 			</AvatarFallback>
@@ -598,7 +599,7 @@ function SubItemRow({ sub, onSkip }: { sub: RecSubItem; onSkip: () => void }) {
 function SubItemAvatar({ item }: { item: RecSubItem }) {
 	return (
 		<Avatar className="size-8 shrink-0">
-			{item.thumbnailUrl && <AvatarImage src={item.thumbnailUrl} alt={item.title} />}
+			{item.thumbnailUrl && <AvatarImage src={httpsUpgrade(item.thumbnailUrl)} alt={item.title} />}
 			<AvatarFallback className="bg-muted text-muted-foreground">
 				<Package className="size-4" />
 			</AvatarFallback>

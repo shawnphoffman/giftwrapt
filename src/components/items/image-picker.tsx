@@ -1,6 +1,7 @@
 import { ImageOff } from 'lucide-react'
 import * as React from 'react'
 
+import { httpsUpgrade } from '@/lib/image-url'
 import { cn } from '@/lib/utils'
 
 type Props = {
@@ -125,7 +126,7 @@ function ImageThumb({
 				disabled && 'opacity-50 cursor-not-allowed'
 			)}
 		>
-			<img src={url} alt="" loading="lazy" onError={onError} className="h-full w-full object-cover" />
+			<img src={httpsUpgrade(url)} alt="" loading="lazy" onError={onError} className="h-full w-full object-cover" />
 		</button>
 	)
 }

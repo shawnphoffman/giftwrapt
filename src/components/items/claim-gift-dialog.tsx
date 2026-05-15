@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { httpsUpgrade } from '@/lib/image-url'
 import { itemsKeys } from '@/lib/queries/items'
 import { LIMITS } from '@/lib/validation/limits'
 
@@ -268,7 +269,7 @@ export function ClaimGiftDialog(props: Props) {
 						</div>
 						{itemImageUrl && (
 							<img
-								src={itemImageUrl}
+								src={httpsUpgrade(itemImageUrl)}
 								alt=""
 								className="size-14 shrink-0 rounded-md object-contain ring-1 ring-inset ring-border bg-muted/40"
 							/>

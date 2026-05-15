@@ -239,6 +239,13 @@
       "when": 1778700000000,
       "tag": "0033_mobile_app_redirect_uris",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1778816126853,
+      "tag": "0034_https_upgrade_image_urls",
+      "breakpoints": true
     }
   ]
 }

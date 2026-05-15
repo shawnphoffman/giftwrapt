@@ -12,6 +12,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { httpsUpgrade } from '@/lib/image-url'
 import { groupByGifterUnit, type ReceivedRow } from '@/lib/received-grouping'
 import { matchesTimeframe, type TimeframeValue } from '@/lib/timeframe'
 
@@ -241,7 +242,7 @@ function ReceivedDetailRow({ row }: { row: ReceivedRow }) {
 				{row.type === 'item' ? <Gift className="size-4 text-muted-foreground" /> : <PackagePlus className="size-4 text-muted-foreground" />}
 			</div>
 			{row.type === 'item' && row.itemImageUrl ? (
-				<img src={row.itemImageUrl} alt="" className="size-10 object-contain rounded shrink-0" />
+				<img src={httpsUpgrade(row.itemImageUrl)} alt="" className="size-10 object-contain rounded shrink-0" />
 			) : null}
 			<div className="flex-1 min-w-0">
 				<div className="flex items-center gap-2 min-w-0">

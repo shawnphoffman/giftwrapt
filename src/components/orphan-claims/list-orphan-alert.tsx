@@ -11,6 +11,7 @@ import { toast } from 'sonner'
 import { acknowledgeOrphanedClaim, getOrphanedClaimsForList, type OrphanedClaimRow } from '@/api/orphan-claims'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { httpsUpgrade } from '@/lib/image-url'
 
 const orphanQueryKey = (listId: number) => ['orphan-claims', 'list', listId] as const
 
@@ -72,7 +73,7 @@ function OrphanRow({ row, pending, onAck }: { row: OrphanedClaimRow; pending: bo
 	return (
 		<div className="flex flex-row items-center gap-3 rounded-md border border-destructive/30 bg-background/60 p-3">
 			{row.itemImageUrl ? (
-				<img src={row.itemImageUrl} alt="" className="size-14 rounded object-cover shrink-0" loading="lazy" />
+				<img src={httpsUpgrade(row.itemImageUrl)} alt="" className="size-14 rounded object-cover shrink-0" loading="lazy" />
 			) : (
 				<div className="size-14 rounded bg-muted shrink-0" aria-hidden />
 			)}

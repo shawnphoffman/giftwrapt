@@ -19,6 +19,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { useStorageStatus } from '@/hooks/use-storage-status'
+import { httpsUpgrade } from '@/lib/image-url'
 import { useUpdateItem } from '@/lib/mutations/update-item'
 import { itemsKeys } from '@/lib/queries/items'
 import { applyScrapePrefill } from '@/lib/scrapers/apply-prefill'
@@ -473,7 +474,7 @@ export function ItemFormDialog(props: Props) {
 									{/* Preview current image if any */}
 									{currentUrl && (
 										<div className="flex items-center gap-3">
-											<img src={currentUrl} alt="" className="size-16 rounded border object-cover" />
+											<img src={httpsUpgrade(currentUrl)} alt="" className="size-16 rounded border object-cover" />
 											<Button
 												type="button"
 												variant="ghost"
