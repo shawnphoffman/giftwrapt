@@ -32,6 +32,8 @@
 		"check": "prettier --config prettier.config.js --write . && eslint --fix",
 		"security": "semgrep scan --config=p/typescript --config=p/react --config=p/owasp-top-ten --error",
 		"setup:env": "tsx scripts/init-env.ts",
+		"generate:compose": "tsx scripts/compose-registry/index.ts",
+		"check:compose": "tsx scripts/compose-registry/index.ts --check",
 		"compose:up": "docker compose --env-file .env.local --profile garage up -d",
 		"compose:up:rustfs": "docker compose --env-file .env.local --profile rustfs up -d",
 		"compose:down": "docker compose --env-file .env.local down",

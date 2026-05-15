@@ -42,7 +42,7 @@ git clone https://github.com/shawnphoffman/giftwrapt.git
 cd giftwrapt
 cp .env.example docker/.env
 $EDITOR docker/.env    # set POSTGRES_PASSWORD, BETTER_AUTH_SECRET, BETTER_AUTH_URL, CRON_SECRET
-docker compose -f docker/compose.selfhost-garage.yaml up -d
+docker compose -f docker/compose.selfhost-garage-cron.yaml up -d
 ```
 
 Open `BETTER_AUTH_URL` in a browser. The first user to sign up is auto-promoted to admin.

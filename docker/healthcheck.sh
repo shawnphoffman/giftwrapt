@@ -2,7 +2,7 @@
 # Lightweight health check using Node.js (always available in the image).
 # Port is resolved from the same env vars Nitro uses for its listen port, so
 # the probe follows the server when it's rehomed (NITRO_PORT, PORT). Note:
-# APP_PORT in docker-compose.selfhost.yml is the host-side port mapping only;
+# APP_PORT in the docker/compose.selfhost-*.yaml files is the host-side port mapping only;
 # it doesn't change what the app binds to inside the container, so it is NOT
 # consulted here.
 # Hitting 127.0.0.1 rather than `localhost` sidesteps the IPv4/IPv6 coin-flip
