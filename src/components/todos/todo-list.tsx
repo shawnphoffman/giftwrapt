@@ -128,12 +128,12 @@ function AddTodoDialog({ listId }: { listId: number }) {
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
 				<Button variant="outline" className="self-start">
-					Add todo
+					Add ToDo
 				</Button>
 			</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>New todo</DialogTitle>
+					<DialogTitle>Add ToDo</DialogTitle>
 					<DialogDescription>Markdown rendered in notes. URLs go in notes.</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-3">

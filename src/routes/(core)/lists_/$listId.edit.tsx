@@ -20,6 +20,7 @@ import { ItemListSkeleton } from '@/components/items/item-list-skeleton'
 import { MoveItemDialog } from '@/components/items/move-item-dialog'
 import BackToParentList from '@/components/lists/back-to-parent-list'
 import { ListSettingsSheet } from '@/components/lists/list-settings-sheet'
+import { TodoList } from '@/components/todos/todo-list'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -205,62 +206,67 @@ function ListEditPage() {
 				</div>
 				{list.description && <MarkdownNotes content={list.description} className="text-muted-foreground" />}
 
-				{/* ITEMS */}
-				<div className="flex flex-col gap-2">
-					<div className="flex items-center justify-end">
-						<div className="flex gap-2">
-							{list.isOwner && (
-								<Button size="sm" variant="outline" asChild>
-									<Link to="/lists/$listId/organize" params={{ listId: String(list.id) }}>
-										<Settings2 className="size-4" />
-										<span className="sr-only xs:not-sr-only">Organize</span>
-									</Link>
-								</Button>
-							)}
-							{list.isOwner && (
-								<DropdownMenu>
-									<DropdownMenuTrigger asChild>
-										<Button size="sm" variant="outline">
-											<GroupIcon className="size-4" /> <span className="xs:hidden">Group</span>
-											<span className="hidden xs:inline">New group</span>
-										</Button>
-									</DropdownMenuTrigger>
-									<DropdownMenuContent align="end">
-										<DropdownMenuItem onClick={() => handleCreateGroup('or')}>
-											<Shuffle className="size-4" /> Pick one
-										</DropdownMenuItem>
-										<DropdownMenuItem onClick={() => handleCreateGroup('order')}>
-											<ListOrdered className="size-4" /> In order
-										</DropdownMenuItem>
-									</DropdownMenuContent>
-								</DropdownMenu>
-							)}
-							<AddItemSplitButton listId={list.id} onAddItem={() => openAddItemDialog(null)} />
+				{list.type === 'todos' ? (
+					<TodoList listId={list.id} canEdit={list.isOwner} />
+				) : (
+					<div className="flex flex-col gap-2">
+						<div className="flex items-center justify-end">
+							<div className="flex gap-2">
+								{list.isOwner && (
+									<Button size="sm" variant="outline" asChild>
+										<Link to="/lists/$listId/organize" params={{ listId: String(list.id) }}>
+											<Settings2 className="size-4" />
+											<span className="sr-only xs:not-sr-only">Organize</span>
+										</Link>
+									</Button>
+								)}
+								{list.isOwner && (
+									<DropdownMenu>
+										<DropdownMenuTrigger asChild>
+											<Button size="sm" variant="outline">
+												<GroupIcon className="size-4" /> <span className="xs:hidden">Group</span>
+												<span className="hidden xs:inline">New group</span>
+											</Button>
+										</DropdownMenuTrigger>
+										<DropdownMenuContent align="end">
+											<DropdownMenuItem onClick={() => handleCreateGroup('or')}>
+												<Shuffle className="size-4" /> Pick one
+											</DropdownMenuItem>
+											<DropdownMenuItem onClick={() => handleCreateGroup('order')}>
+												<ListOrdered className="size-4" /> In order
+											</DropdownMenuItem>
+										</DropdownMenuContent>
+									</DropdownMenu>
+								)}
+								<AddItemSplitButton listId={list.id} onAddItem={() => openAddItemDialog(null)} />
+							</div>
 						</div>
-					</div>
 
-					<Suspense fallback={<ItemListSkeleton />}>
-						<EditItemsBody
-							list={list}
-							onMoveItem={onMoveItem}
-							onAddItem={openAddItemDialog}
-							onDeleteGroup={handleDeleteGroup}
-							onReorder={handleReorder}
-						/>
-					</Suspense>
-				</div>
+						<Suspense fallback={<ItemListSkeleton />}>
+							<EditItemsBody
+								list={list}
+								onMoveItem={onMoveItem}
+								onAddItem={openAddItemDialog}
+								onDeleteGroup={handleDeleteGroup}
+								onReorder={handleReorder}
+							/>
+						</Suspense>
+					</div>
+				)}
 			</div>
 
-			<ItemFormDialog
-				open={addItemOpen}
-				onOpenChange={open => {
-					setAddItemOpen(open)
-					if (!open) setAddItemGroupId(null)
-				}}
-				mode="create"
-				listId={list.id}
-				groupId={addItemGroupId}
-			/>
+			{list.type !== 'todos' && (
+				<ItemFormDialog
+					open={addItemOpen}
+					onOpenChange={open => {
+						setAddItemOpen(open)
+						if (!open) setAddItemGroupId(null)
+					}}
+					mode="create"
+					listId={list.id}
+					groupId={addItemGroupId}
+				/>
+			)}
 
 			{moveItem && (
 				<MoveItemDialog

@@ -98,11 +98,17 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 		enabled: open,
 	})
 
-	const publicLists = myLists?.public ?? []
-	const privateLists = myLists?.private ?? []
+	// Todo lists use a separate row table (todo_items) and reject gift-item
+	// creation server-side. Filter them out so they never appear in the
+	// list-picker dropdown for this gift-item dialog.
+	const publicLists = (myLists?.public ?? []).filter(l => l.type !== 'todos')
+	const privateLists = (myLists?.private ?? []).filter(l => l.type !== 'todos')
 	const giftIdeasLists = myLists?.giftIdeas ?? []
-	const editableLists = myLists?.editable ?? []
-	const children = myLists?.children ?? []
+	const editableLists = (myLists?.editable ?? []).filter(l => l.type !== 'todos')
+	const children = (myLists?.children ?? []).map(c => ({
+		...c,
+		lists: c.lists.filter(l => l.type !== 'todos'),
+	}))
 
 	useEffect(() => {
 		if (selectedListId || !myLists) return
@@ -245,7 +251,13 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 			})
 
 			if (result.kind === 'error') {
-				setError(result.reason === 'not-authorized' ? 'No permission to add to that list.' : 'List not found.')
+				if (result.reason === 'not-authorized') {
+					setError('No permission to add to that list.')
+				} else if (result.reason === 'todo-list-rejects-items') {
+					setError("This is a to-do list; it doesn't accept gift items. Add a to-do from the list page instead.")
+				} else {
+					setError('List not found.')
+				}
 				return
 			}
 

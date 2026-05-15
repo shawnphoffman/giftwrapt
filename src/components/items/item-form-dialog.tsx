@@ -175,7 +175,13 @@ export function ItemFormDialog(props: Props) {
 				})
 
 				if (result.kind === 'error') {
-					setError(result.reason === 'not-authorized' ? 'You no longer have permission to add items to this list.' : 'List not found.')
+					if (result.reason === 'not-authorized') {
+						setError('You no longer have permission to add items to this list.')
+					} else if (result.reason === 'todo-list-rejects-items') {
+						setError("This is a to-do list; it doesn't accept gift items. Add a to-do from the list page instead.")
+					} else {
+						setError('List not found.')
+					}
 					return
 				}
 
