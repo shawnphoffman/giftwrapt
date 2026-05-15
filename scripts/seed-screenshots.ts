@@ -120,24 +120,12 @@ function birthdayInDays(days: number): { birthMonth: BirthMonth; birthDay: numbe
 }
 
 // ------------------------------------------------------------------
-// Placeholder image helpers - real photos via loremflickr (tag-based,
-// deterministic via the `lock` param) and DiceBear avatars for users.
-// The `hex` parameter is ignored (kept for call-site compatibility).
+// User avatars via DiceBear. Item images are baked literal strings -
+// originally generated via `photo()` calling loremflickr, then resolved
+// to their final `/cache/resized/...` paths by `scripts/bake-seed-images.ts`
+// to skip the per-render redirect cost. Run that script after adding new
+// items to bake their URLs too.
 // ------------------------------------------------------------------
-function stableHash(s: string): number {
-	let h = 2166136261
-	for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619)
-	return Math.abs(h | 0)
-}
-function photo(label: string, w: number, h: number): string {
-	const tags = encodeURIComponent(label.toLowerCase())
-	return `https://loremflickr.com/${w}/${h}/${tags}?lock=${stableHash(label)}`
-}
-const ph = {
-	square: (label: string, _hex?: string) => photo(label, 600, 600),
-	wide: (label: string, _hex?: string) => photo(label, 800, 500),
-	tall: (label: string, _hex?: string) => photo(label, 500, 800),
-}
 function avatarUrl(seed: string): string {
 	const params = new URLSearchParams({
 		scale: '120',
@@ -551,7 +539,7 @@ async function main() {
 	await db.insert(dependents).values({
 		id: petId,
 		name: 'Buddy',
-		image: photo('golden retriever puppy', 600, 600),
+		image: 'https://loremflickr.com/cache/resized/65535_54352136387_bc49e5cae1_c_600_600_nofilter.jpg',
 		birthMonth: 'april',
 		birthDay: 22,
 		birthYear: 2021,
@@ -758,7 +746,7 @@ async function main() {
 			priority: 'very-high',
 			url: 'https://amazon.com/espresso',
 			notes: LONG_NOTES,
-			imageUrl: ph.square('Espresso', '1f2937'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_54075880149_f316da2f06_c_600_600_nofilter.jpg',
 			price: '1499.00',
 			currency: 'USD',
 			quantity: 1,
@@ -770,7 +758,7 @@ async function main() {
 			priority: 'high',
 			url: 'https://walmart.com/headphones',
 			notes: MEDIUM_NOTES,
-			imageUrl: ph.square('Headphones', '0f172a'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_54543941973_8633330885_b_600_600_nofilter.jpg',
 			price: '299.00',
 			currency: 'USD',
 			createdAt: daysAgo(220),
@@ -780,7 +768,7 @@ async function main() {
 			title: LONG_TITLE,
 			priority: 'normal',
 			notes: 'No rush on this one.',
-			imageUrl: ph.tall('Stoneware', 'b45309'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_54045361168_54931f19c7_c_500_800_nofilter.jpg',
 			price: '64.00',
 			currency: 'USD',
 			createdAt: daysAgo(155),
@@ -791,7 +779,7 @@ async function main() {
 			priority: 'normal',
 			availability: 'unavailable',
 			availabilityChangedAt: daysAgo(2),
-			imageUrl: ph.square('Vinyl', '171717'),
+			imageUrl: 'https://loremflickr.com/cache/resized/3630_3327587512_63df5b14fb_z_600_600_nofilter.jpg',
 			price: '45.00',
 			currency: 'USD',
 			notes: 'This one is sold out at the label - waiting on a restock.',
@@ -801,7 +789,7 @@ async function main() {
 			listId: adminWishlist,
 			title: 'Leather journal',
 			priority: 'normal',
-			imageUrl: ph.tall('Journal', '78350f'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_54210557433_bc12d09075_c_500_800_nofilter.jpg',
 			price: '42.00',
 			currency: 'USD',
 			notes: MEDIUM_NOTES,
@@ -821,7 +809,7 @@ async function main() {
 			title: 'Box of chocolates',
 			priority: 'normal',
 			quantity: 5,
-			imageUrl: ph.square('Chocolates', 'a16207'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_52731088165_74fcec59fb_h_600_600_nofilter.jpg',
 			price: '18.00',
 			currency: 'USD',
 			notes: 'Any flavor mix is fine.',
@@ -831,7 +819,7 @@ async function main() {
 			listId: adminWishlist,
 			title: 'New cookbook',
 			priority: 'high',
-			imageUrl: ph.tall('Cookbook', 'be185d'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_54562842089_0b97a7f6c2_c_500_800_nofilter.jpg',
 			price: '34.50',
 			currency: 'USD',
 			notes: 'Vegetarian focus, ideally one with weeknight-fast recipes.',
@@ -842,7 +830,7 @@ async function main() {
 			listId: adminWishlist,
 			title: 'Stand mixer',
 			priority: 'high',
-			imageUrl: ph.square('Mixer', 'be185d'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_50642939417_8da80f22db_b_600_600_nofilter.jpg',
 			price: '449.00',
 			currency: 'USD',
 			notes: 'Color preference: matte black or sage green.',
@@ -868,7 +856,7 @@ async function main() {
 			priority: 'high',
 			price: '1499.00',
 			currency: 'USD',
-			imageUrl: ph.square('Cam A', '262626'),
+			imageUrl: 'https://loremflickr.com/cache/resized/3387_3506961979_5b7370941d_c_600_600_nofilter.jpg',
 			createdAt: daysAgo(50),
 		},
 		{
@@ -878,7 +866,7 @@ async function main() {
 			priority: 'high',
 			price: '1699.00',
 			currency: 'USD',
-			imageUrl: ph.square('Cam B', '404040'),
+			imageUrl: 'https://loremflickr.com/cache/resized/defaultImage.small_600_600_nofilter.jpg',
 			createdAt: daysAgo(50),
 		},
 		{
@@ -906,7 +894,7 @@ async function main() {
 			priority: 'very-high',
 			price: '499.99',
 			currency: 'USD',
-			imageUrl: ph.wide('Console', '111827'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_53190257095_1c9e541efe_c_800_500_nofilter.jpg',
 			groupSortOrder: 1,
 			createdAt: daysAgo(30),
 		},
@@ -941,7 +929,7 @@ async function main() {
 			listId: adminChristmas,
 			title: 'Cozy wool blanket',
 			priority: 'high',
-			imageUrl: ph.wide('Blanket', 'b91c1c'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_53778568789_cda3f9375e_h_800_500_nofilter.jpg',
 			price: '79.00',
 			currency: 'USD',
 			createdAt: daysAgo(40),
@@ -967,7 +955,7 @@ async function main() {
 			priority: 'high',
 			price: '120.00',
 			currency: 'USD',
-			imageUrl: ph.tall('Scotch', '78350f'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_54083311725_481e312c09_h_500_800_nofilter.jpg',
 			createdAt: daysAgo(50),
 		},
 		{ listId: adminBirthday, title: 'Plant for the office', priority: 'normal', createdAt: daysAgo(40) },
@@ -1025,7 +1013,7 @@ async function main() {
 			priority: 'low',
 			price: '220.00',
 			currency: 'USD',
-			imageUrl: ph.tall('Perfume', '4c1d95'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_54487367748_e0d319bd16_h_500_800_nofilter.jpg',
 			createdAt: daysAgo(20),
 		},
 	])
@@ -1050,7 +1038,7 @@ async function main() {
 			listId: partnerWishlist,
 			title: 'Mountain bike helmet',
 			priority: 'high',
-			imageUrl: ph.square('Helmet', '1d4ed8'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_54282210117_d3579e1178_b_600_600_nofilter.jpg',
 			price: '110.00',
 			currency: 'USD',
 			createdAt: daysAgo(75),
@@ -1077,7 +1065,7 @@ async function main() {
 			priority: 'high',
 			price: '180.00',
 			currency: 'USD',
-			imageUrl: ph.square('Knife', '0f172a'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_54526640753_4140942f47_z_600_600_nofilter.jpg',
 			notes: MEDIUM_NOTES,
 			createdAt: daysAgo(35),
 		},
@@ -1087,7 +1075,7 @@ async function main() {
 			priority: 'normal',
 			price: '34.50',
 			currency: 'USD',
-			imageUrl: ph.tall('Cookbook', '14b8a6'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_54562842089_0b97a7f6c2_c_500_800_nofilter.jpg',
 			createdAt: daysAgo(22),
 		},
 		{
@@ -1101,7 +1089,7 @@ async function main() {
 			title: 'Fancy hot sauce sampler',
 			priority: 'normal',
 			isArchived: true, // already received
-			imageUrl: ph.square('Hot Sauce', 'b91c1c'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_52120806431_339f40d13b_c_600_600_nofilter.jpg',
 			price: '48.00',
 			currency: 'USD',
 			createdAt: daysAgo(90),
@@ -1127,7 +1115,7 @@ async function main() {
 			priority: 'high',
 			price: '320.00',
 			currency: 'USD',
-			imageUrl: ph.square('Tent', '15803d'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_53438122963_3d7e7bc47d_b_600_600_nofilter.jpg',
 			createdAt: daysAgo(45),
 		},
 		{
@@ -1137,7 +1125,7 @@ async function main() {
 			priority: 'high',
 			price: '420.00',
 			currency: 'USD',
-			imageUrl: ph.square('Tent Family', '166534'),
+			imageUrl: 'https://loremflickr.com/cache/resized/defaultImage.small_600_600_nofilter.jpg',
 			createdAt: daysAgo(45),
 		},
 		{
@@ -1165,7 +1153,7 @@ async function main() {
 			priority: 'very-high',
 			price: '550.00',
 			currency: 'USD',
-			imageUrl: ph.wide('Drivetrain', '0f172a'),
+			imageUrl: 'https://loremflickr.com/cache/resized/3846_15076849198_7384d0f610_c_800_500_nofilter.jpg',
 			groupSortOrder: 1,
 			createdAt: daysAgo(40),
 		},
@@ -1203,7 +1191,7 @@ async function main() {
 			listId: partnerChristmas,
 			title: 'Wool throw blanket',
 			priority: 'high',
-			imageUrl: ph.wide('Throw', 'b91c1c'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_53022968992_2250ced9e4_h_800_500_nofilter.jpg',
 			price: '95.00',
 			currency: 'USD',
 			createdAt: daysAgo(30),
@@ -1215,7 +1203,7 @@ async function main() {
 			quantity: 3,
 			price: '36.00',
 			currency: 'USD',
-			imageUrl: ph.square('Candles', 'a16207'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_54125561316_55606c13a0_c_600_600_nofilter.jpg',
 			createdAt: daysAgo(28),
 		},
 		{
@@ -1247,7 +1235,7 @@ async function main() {
 			listId: friendWishlist,
 			title: 'Indoor herb garden kit',
 			priority: 'high',
-			imageUrl: ph.wide('Gardening', '15803d'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_54022250523_a633e67dc8_h_800_500_nofilter.jpg',
 			price: '65.00',
 			currency: 'USD',
 			notes: MEDIUM_NOTES,
@@ -1258,7 +1246,7 @@ async function main() {
 			title: 'Good tea',
 			priority: 'normal',
 			quantity: 2,
-			imageUrl: ph.square('Tea', '047857'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_54407399864_a6af7325e9_h_600_600_nofilter.jpg',
 			price: '24.00',
 			currency: 'USD',
 			notes: [
@@ -1298,7 +1286,7 @@ async function main() {
 			quantity: 4,
 			price: '28.00',
 			currency: 'USD',
-			imageUrl: ph.square('Beeswax', 'a16207'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_52227808768_c51c1cb3a0_h_600_600_nofilter.jpg',
 			createdAt: daysAgo(25),
 		},
 		{
@@ -1307,7 +1295,7 @@ async function main() {
 			priority: 'high',
 			price: '85.00',
 			currency: 'USD',
-			imageUrl: ph.wide('Slippers', '78350f'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_53496706485_1c9acd293f_b_800_500_nofilter.jpg',
 			createdAt: daysAgo(22),
 		},
 		{
@@ -1337,7 +1325,7 @@ async function main() {
 			quantity: 3,
 			price: '12.00',
 			currency: 'USD',
-			imageUrl: ph.tall('Notebook', '0f172a'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_53904759041_f703db5e12_h_500_800_nofilter.jpg',
 			createdAt: daysAgo(95),
 		},
 		{
@@ -1346,7 +1334,7 @@ async function main() {
 			priority: 'high',
 			price: '129.00',
 			currency: 'USD',
-			imageUrl: ph.square('Speaker', '1f2937'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_54270988476_d3e66cca2d_b_600_600_nofilter.jpg',
 			notes: MEDIUM_NOTES,
 			createdAt: daysAgo(80),
 		},
@@ -1383,7 +1371,7 @@ async function main() {
 			priority: 'normal',
 			price: '42.00',
 			currency: 'USD',
-			imageUrl: ph.tall('Bottle', '0e7490'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_54108814500_48d2e8bc1d_c_500_800_nofilter.jpg',
 			createdAt: daysAgo(20),
 		},
 	])
@@ -1403,7 +1391,7 @@ async function main() {
 			priority: 'high',
 			price: '120.00',
 			currency: 'USD',
-			imageUrl: ph.square('Daypack', '1d4ed8'),
+			imageUrl: 'https://loremflickr.com/cache/resized/8470_8117856014_8b4fb3263e_z_600_600_nofilter.jpg',
 			createdAt: daysAgo(40),
 		},
 		{
@@ -1437,7 +1425,7 @@ async function main() {
 			listId: childWishlist,
 			title: 'LEGO set',
 			priority: 'very-high',
-			imageUrl: ph.square('LEGO', 'eab308'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_53083639079_631b11b449_c_600_600_nofilter.jpg',
 			price: '79.99',
 			currency: 'USD',
 			createdAt: daysAgo(35),
@@ -1447,7 +1435,7 @@ async function main() {
 			title: 'Art supplies',
 			priority: 'normal',
 			quantity: 2,
-			imageUrl: ph.wide('Art Supplies', 'db2777'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_50617561243_9cb914b886_h_800_500_nofilter.jpg',
 			price: '32.00',
 			currency: 'USD',
 			createdAt: daysAgo(30),
@@ -1462,7 +1450,7 @@ async function main() {
 			listId: childChristmas,
 			title: 'Stuffed dragon',
 			priority: 'high',
-			imageUrl: ph.tall('Dragon', '7c3aed'),
+			imageUrl: 'https://loremflickr.com/cache/resized/5088_5218892605_b622a64573_h_500_800_nofilter.jpg',
 			createdAt: daysAgo(15),
 		},
 		{ listId: childChristmas, title: 'Sticker book', priority: 'low', quantity: 3, createdAt: daysAgo(8) },
@@ -1476,7 +1464,7 @@ async function main() {
 			title: 'Salmon-flavor training treats',
 			priority: 'high',
 			quantity: 2,
-			imageUrl: ph.square('Treats', 'f97316'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_54129994751_9d68381915_b_600_600_nofilter.jpg',
 			createdAt: daysAgo(28),
 		},
 		{
@@ -1507,7 +1495,7 @@ async function main() {
 			priority: 'normal',
 			price: '32.00',
 			currency: 'USD',
-			imageUrl: ph.square('Adapter', '0f172a'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_54183007200_be081cce29_h_600_600_nofilter.jpg',
 			createdAt: daysAgo(40),
 		},
 		{
@@ -1516,7 +1504,7 @@ async function main() {
 			priority: 'high',
 			price: '240.00',
 			currency: 'USD',
-			imageUrl: ph.wide('Suitcase', '1f2937'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_54453820653_8c83ac7607_h_800_500_nofilter.jpg',
 			createdAt: daysAgo(35),
 		},
 		{
@@ -1533,7 +1521,7 @@ async function main() {
 			priority: 'high',
 			price: '199.00',
 			currency: 'USD',
-			imageUrl: ph.square('Earbuds', '0e7490'),
+			imageUrl: 'https://loremflickr.com/cache/resized/65535_51107417276_5b7dca1b45_h_600_600_nofilter.jpg',
 			createdAt: daysAgo(20),
 		},
 		{
