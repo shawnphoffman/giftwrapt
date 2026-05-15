@@ -259,9 +259,6 @@ importers:
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      open-graph-scraper:
-        specifier: ^6.11.0
-        version: 6.11.0
       pg:
         specifier: ^8.11.0
         version: 8.16.3
@@ -7006,10 +7003,6 @@ packages:
   onetime@7.0.0:
     resolution: {integrity: sha512-VXJjc87FScF88uafS3JllDgvAm+c/Slfz06lorj2uAY34rlUu0Nt+v8wreiImcrgAjjIHp1rXpTDlLOGw29WwQ==}
     engines: {node: '>=18'}
-
-  open-graph-scraper@6.11.0:
-    resolution: {integrity: sha512-KkO3qMMzJj9KYGtCl19dRtncb+RuBiG/P9BgukcAG4p2w9wSAWTE90vL6/xqth1K9ThkYF/+xfTGrVvU79TJtQ==}
-    engines: {node: '>=20.0.0'}
 
   open@11.0.0:
     resolution: {integrity: sha512-smsWv2LzFjP03xmvFoJ331ss6h+jixfA4UUV/Bsiyuu4YJPfN+FIQGOIiv4w9/+MoHkfkJ22UIaQWRVFRfH6Vw==}
@@ -15773,13 +15766,6 @@ snapshots:
   onetime@7.0.0:
     dependencies:
       mimic-function: 5.0.1
-
-  open-graph-scraper@6.11.0:
-    dependencies:
-      chardet: 2.1.1
-      cheerio: 1.2.0
-      iconv-lite: 0.7.0
-      undici: 7.25.0
 
   open@11.0.0:
     dependencies:
