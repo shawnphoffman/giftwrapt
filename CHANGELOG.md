@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.32.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.31.0...v0.32.0) (2026-05-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* squash migrations to baseline and overhaul local dev setup
+
+### Features
+
+* squash migrations to baseline and overhaul local dev setup ([a813eca](https://github.com/shawnphoffman/giftwrapt/commit/a813eca31a61101d3d9acdbe710b22824a1c04ab))
+
 ## [0.31.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.30.1...v0.31.0) (2026-05-15)
 
 
