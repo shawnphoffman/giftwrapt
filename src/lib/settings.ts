@@ -246,9 +246,7 @@ export const appSettingsSchema = z.object({
 	// the sidebar header. Admin-editable from /admin; defaults to
 	// 'GiftWrapt' until an admin changes it. Surfaced through the public
 	// app-settings query so SSR and client hydration agree, preventing a
-	// flash on first paint. Replaced the build-time VITE_APP_TITLE env
-	// var, which baked into the JS at build time and silently fell back
-	// to the default on Docker builds that didn't pass it as a build arg.
+	// flash on first paint.
 	appTitle: z.string().min(1).max(80),
 	// Christmas list type gate. Renamed from `enableHolidayLists` (which
 	// historically gated only `christmas`). The settings loader maps any

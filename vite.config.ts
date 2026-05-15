@@ -15,15 +15,7 @@ const isStorybook = process.env.STORYBOOK === 'true'
 
 // Default on in the main checkout, off in git worktrees (they multiply dev
 // servers and each devtools instance binds its own WS port).
-// Explicit wins: VITE_TANSTACK_DEVTOOLS (e.g. from .env.local) then TANSTACK_DEVTOOLS.
 function shouldEnableDevtools(): boolean {
-	const viteExplicit = process.env.VITE_TANSTACK_DEVTOOLS?.toLowerCase()
-	if (viteExplicit === 'false' || viteExplicit === '0') return false
-	if (viteExplicit === 'true' || viteExplicit === '1') return true
-
-	const flag = process.env.TANSTACK_DEVTOOLS?.toLowerCase()
-	if (flag === '1' || flag === 'true' || flag === 'on') return true
-	if (flag === '0' || flag === 'false' || flag === 'off') return false
 	try {
 		// In a main checkout .git is a directory; in a worktree it's a file
 		// pointing at <common-dir>/worktrees/<name>.
@@ -34,9 +26,6 @@ function shouldEnableDevtools(): boolean {
 }
 
 const devtoolsEnabled = shouldEnableDevtools()
-// Bakes into the client bundle; __root reads import.meta.env.VITE_TANSTACK_DEVTOOLS.
-// Env files can set VITE_TANSTACK_DEVTOOLS or TANSTACK_DEVTOOLS (see shouldEnableDevtools).
-process.env.VITE_TANSTACK_DEVTOOLS = String(devtoolsEnabled)
 
 // Build-time identity. Baked into the bundle once and read by the admin debug
 // page. APP_COMMIT comes from the Docker build-arg in CI; on Vercel it falls
