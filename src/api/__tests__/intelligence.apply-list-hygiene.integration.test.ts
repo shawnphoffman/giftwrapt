@@ -106,8 +106,6 @@ describe('applyRecommendationImpl - convert-list', () => {
 				ownerId: owner.id,
 				type: 'holiday',
 				customHolidayId: easterId,
-				holidayCountry: 'US',
-				holidayKey: 'easter',
 			})
 			const rec = await makeRec(tx, { userId: owner.id })
 
@@ -124,8 +122,6 @@ describe('applyRecommendationImpl - convert-list', () => {
 			const after = await tx.query.lists.findFirst({ where: eq(lists.id, list.id) })
 			expect(after?.type).toBe('birthday')
 			expect(after?.customHolidayId).toBeNull()
-			expect(after?.holidayCountry).toBeNull()
-			expect(after?.holidayKey).toBeNull()
 		})
 	})
 

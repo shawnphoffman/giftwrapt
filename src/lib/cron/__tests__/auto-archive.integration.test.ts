@@ -12,9 +12,17 @@ import { withRollback } from '@test/integration/setup'
 import { eq, inArray } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
-import { giftedItems, items } from '@/db/schema'
+import { customHolidays, giftedItems, items } from '@/db/schema'
 
 import { autoArchiveImpl } from '../auto-archive'
+
+async function makeEasterCustomHoliday(tx: Parameters<typeof autoArchiveImpl>[0]['db']): Promise<string> {
+	const [row] = await tx
+		.insert(customHolidays)
+		.values({ title: 'Easter', source: 'catalog', catalogCountry: 'US', catalogKey: 'easter' })
+		.returning({ id: customHolidays.id })
+	return row.id
+}
 
 describe('autoArchiveImpl - birthday lists', () => {
 	it('archives claimed items on a birthday list when run on the configured delay', async () => {
@@ -265,11 +273,11 @@ describe('autoArchiveImpl - holiday lists', () => {
 		await withRollback(async tx => {
 			const owner = await makeUser(tx)
 			const gifter = await makeUser(tx)
+			const customHolidayId = await makeEasterCustomHoliday(tx)
 			const list = await makeList(tx, {
 				ownerId: owner.id,
 				type: 'holiday',
-				holidayCountry: 'US',
-				holidayKey: 'easter',
+				customHolidayId,
 			})
 			const item = await makeItem(tx, { listId: list.id })
 			await makeGiftedItem(tx, { itemId: item.id, gifterId: gifter.id })
@@ -294,11 +302,11 @@ describe('autoArchiveImpl - holiday lists', () => {
 		await withRollback(async tx => {
 			const owner = await makeUser(tx)
 			const gifter = await makeUser(tx)
+			const customHolidayId = await makeEasterCustomHoliday(tx)
 			const list = await makeList(tx, {
 				ownerId: owner.id,
 				type: 'holiday',
-				holidayCountry: 'US',
-				holidayKey: 'easter',
+				customHolidayId,
 			})
 			const claimed = await makeItem(tx, { listId: list.id })
 			const unclaimed = await makeItem(tx, { listId: list.id })
@@ -319,8 +327,7 @@ describe('autoArchiveImpl - holiday lists', () => {
 			expect(result.holidayArchivedDetails[0]).toMatchObject({
 				listId: list.id,
 				ownerId: owner.id,
-				holidayCountry: 'US',
-				holidayKey: 'easter',
+				holidayName: 'Easter',
 				itemCount: 1,
 			})
 			const rows = await tx
@@ -338,11 +345,11 @@ describe('autoArchiveImpl - holiday lists', () => {
 		await withRollback(async tx => {
 			const owner = await makeUser(tx)
 			const gifter = await makeUser(tx)
+			const customHolidayId = await makeEasterCustomHoliday(tx)
 			const list = await makeList(tx, {
 				ownerId: owner.id,
 				type: 'holiday',
-				holidayCountry: 'US',
-				holidayKey: 'easter',
+				customHolidayId,
 				lastHolidayArchiveAt: new Date('2026-04-21T12:00:00Z'),
 			})
 			const claimed = await makeItem(tx, { listId: list.id })
@@ -367,11 +374,11 @@ describe('autoArchiveImpl - holiday lists', () => {
 			const owner = await makeUser(tx)
 			const gifter = await makeUser(tx)
 			// Easter 2026 = April 5; Easter 2027 = March 28.
+			const customHolidayId = await makeEasterCustomHoliday(tx)
 			const list = await makeList(tx, {
 				ownerId: owner.id,
 				type: 'holiday',
-				holidayCountry: 'US',
-				holidayKey: 'easter',
+				customHolidayId,
 				lastHolidayArchiveAt: new Date('2026-04-21T12:00:00Z'),
 			})
 			const claimed = await makeItem(tx, { listId: list.id })
@@ -390,7 +397,7 @@ describe('autoArchiveImpl - holiday lists', () => {
 		})
 	})
 
-	it('skips lists with type=holiday but no country/key set', async () => {
+	it('skips lists with type=holiday but no customHolidayId set', async () => {
 		// Defensive: API validation prevents this state on the create/
 		// update path, but a partial migration or backup-restore could
 		// leave such a row. Cron must not throw.
@@ -400,8 +407,7 @@ describe('autoArchiveImpl - holiday lists', () => {
 			const list = await makeList(tx, {
 				ownerId: owner.id,
 				type: 'holiday',
-				holidayCountry: null,
-				holidayKey: null,
+				customHolidayId: null,
 			})
 			const claimed = await makeItem(tx, { listId: list.id })
 			await makeGiftedItem(tx, { itemId: claimed.id, gifterId: gifter.id })

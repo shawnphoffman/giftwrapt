@@ -159,8 +159,6 @@ describe('custom_holidays admin path', () => {
 
 			const afterList = await tx.select().from(lists).where(eq(lists.id, list.id))
 			expect(afterList[0].customHolidayId).toBeNull()
-			expect(afterList[0].holidayCountry).toBeNull()
-			expect(afterList[0].holidayKey).toBeNull()
 			// Should now be the default list type, NOT wiped of claims.
 			expect(afterList[0].type).toBe('wishlist')
 

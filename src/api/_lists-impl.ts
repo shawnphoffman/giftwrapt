@@ -4,7 +4,7 @@
 // handler / inputValidator bodies, which TanStack Start strips on the
 // client.
 
-import { and, arrayOverlaps, asc, count, desc, eq, inArray, max, ne, or, sql } from 'drizzle-orm'
+import { and, arrayOverlaps, asc, count, desc, eq, inArray, isNotNull, max, ne, or, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import type { SchemaDatabase } from '@/db'
@@ -25,7 +25,6 @@ import {
 import { type BirthMonth, type GroupType, type ListType, listTypeEnumValues, type Priority } from '@/db/schema/enums'
 import type { ListAddon } from '@/db/schema/lists'
 import { computeListItemCounts } from '@/lib/gifts'
-import { isValidHolidayKey } from '@/lib/holidays'
 import { userHasPendingDeletionClaimOnList } from '@/lib/orphan-claims'
 import { canEditList, canViewList, getViewerAccessLevelForList } from '@/lib/permissions'
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
@@ -238,8 +237,6 @@ export type ListForEditing = {
 	ownerId: string
 	giftIdeasTargetUserId: string | null
 	subjectDependentId: string | null
-	holidayCountry: string | null
-	holidayKey: string | null
 	customHolidayId: string | null
 	groups: Array<GroupSummary>
 	isOwner: boolean
@@ -272,16 +269,8 @@ export const CreateListInputSchema = z.object({
 	// When set, the new list is FOR a dependent. The actor must be a
 	// guardian of this dependent; the actor remains the `ownerId`.
 	subjectDependentId: z.string().optional(),
-	// Required when type === 'holiday'; ignored otherwise. ISO 3166-1
-	// alpha-2 country code + slug from the curated allowlist in
-	// src/lib/holidays.ts. Legacy path; superseded by `customHolidayId`.
-	// Still accepted so older clients continue to work until the picker
-	// swap is fully rolled out.
-	holidayCountry: z.string().optional(),
-	holidayKey: z.string().optional(),
-	// New path: a UUID pointing at a custom_holidays row. Preferred when
-	// both are supplied. When only this is set, the impl resolves the
-	// row to derive country/key for legacy column writes.
+	// Required when type === 'holiday'. UUID pointing at a custom_holidays
+	// row that drives the holiday date math.
 	customHolidayId: z.uuid().optional(),
 })
 
@@ -295,8 +284,6 @@ export const UpdateListInputSchema = z.object({
 	giftIdeasTargetUserId: z.string().nullable().optional(),
 	giftIdeasTargetDependentId: z.string().nullable().optional(),
 	subjectDependentId: z.string().nullable().optional(),
-	holidayCountry: z.string().nullable().optional(),
-	holidayKey: z.string().nullable().optional(),
 	customHolidayId: z.uuid().nullable().optional(),
 })
 
@@ -1038,11 +1025,12 @@ export async function getPublicDependentsImpl(viewerUserId: string): Promise<Arr
 export async function getMyLastHolidayCountryImpl(args: { userId: string; dbx?: SchemaDatabase }): Promise<string | null> {
 	const dbx = args.dbx ?? db
 	const row = await dbx.query.lists.findFirst({
-		where: and(eq(lists.ownerId, args.userId), eq(lists.type, 'holiday')),
-		columns: { holidayCountry: true },
+		where: and(eq(lists.ownerId, args.userId), eq(lists.type, 'holiday'), isNotNull(lists.customHolidayId)),
+		columns: { customHolidayId: true },
 		orderBy: [desc(lists.createdAt)],
+		with: { customHoliday: { columns: { catalogCountry: true } } },
 	})
-	return row?.holidayCountry ?? null
+	return row?.customHoliday?.catalogCountry ?? null
 }
 
 // `isListTypeDisabled` previously lived here; it has moved to
@@ -1081,29 +1069,17 @@ export async function createListImpl(args: {
 	const giftIdeasTargetUserId = data.type === 'giftideas' ? (data.giftIdeasTargetUserId ?? null) : null
 	const giftIdeasTargetDependentId = data.type === 'giftideas' ? (data.giftIdeasTargetDependentId ?? null) : null
 
-	// Holiday metadata: required when type === 'holiday'. Prefer the new
-	// `customHolidayId` path; fall back to the legacy (country, key) pair
-	// for older clients that haven't swapped pickers yet. Either path
-	// must resolve to a real custom_holidays row OR a valid catalog
-	// entry, or the create fails with `invalid-holiday-selection`.
-	let holidayCountry: string | null = null
-	let holidayKey: string | null = null
+	// Holiday metadata: required when type === 'holiday'. Resolves a
+	// custom_holidays row by id, or the create fails with
+	// `invalid-holiday-selection`.
 	let customHolidayId: string | null = null
 	if (data.type === 'holiday') {
-		if (data.customHolidayId) {
-			const row = await db.query.customHolidays.findFirst({
-				where: eq(customHolidays.id, data.customHolidayId),
-			})
-			if (!row) return { kind: 'error', reason: 'invalid-holiday-selection' }
-			customHolidayId = row.id
-			holidayCountry = row.catalogCountry
-			holidayKey = row.catalogKey
-		} else if (data.holidayCountry && data.holidayKey && (await isValidHolidayKey(data.holidayCountry, data.holidayKey))) {
-			holidayCountry = data.holidayCountry
-			holidayKey = data.holidayKey
-		} else {
-			return { kind: 'error', reason: 'invalid-holiday-selection' }
-		}
+		if (!data.customHolidayId) return { kind: 'error', reason: 'invalid-holiday-selection' }
+		const row = await db.query.customHolidays.findFirst({
+			where: eq(customHolidays.id, data.customHolidayId),
+		})
+		if (!row) return { kind: 'error', reason: 'invalid-holiday-selection' }
+		customHolidayId = row.id
 	}
 
 	const [inserted] = await db
@@ -1117,8 +1093,6 @@ export async function createListImpl(args: {
 			subjectDependentId: data.subjectDependentId ?? null,
 			giftIdeasTargetUserId,
 			giftIdeasTargetDependentId,
-			holidayCountry,
-			holidayKey,
 			customHolidayId,
 		})
 		.returning({ id: lists.id, name: lists.name, type: lists.type })
@@ -1142,8 +1116,6 @@ export async function updateListImpl(args: {
 			isPrivate: true,
 			isActive: true,
 			type: true,
-			holidayCountry: true,
-			holidayKey: true,
 			customHolidayId: true,
 		},
 	})
@@ -1210,45 +1182,20 @@ export async function updateListImpl(args: {
 	}
 
 	// Holiday metadata: validate when the result will be a holiday list,
-	// null when it leaves the holiday type. The customHolidayId path is
-	// preferred; legacy holidayCountry/holidayKey writes still validate
-	// via isValidHolidayKey so older callers keep working until the
-	// columns are dropped.
+	// null when it leaves the holiday type.
 	if (nextType === 'holiday') {
 		const nextCustomHolidayId = data.customHolidayId !== undefined ? data.customHolidayId : list.customHolidayId
-		if (nextCustomHolidayId) {
-			const row = await db.query.customHolidays.findFirst({
-				where: eq(customHolidays.id, nextCustomHolidayId),
-			})
-			if (!row) return { kind: 'error', reason: 'invalid-holiday-selection' }
-			if (data.customHolidayId !== undefined) updates.customHolidayId = row.id
-			// Back-fill legacy columns from the resolved row so existing
-			// auto-archive read paths keep working.
-			updates.holidayCountry = row.catalogCountry
-			updates.holidayKey = row.catalogKey
-			const customIdChanged = data.customHolidayId !== undefined && data.customHolidayId !== list.customHolidayId
-			const typeJustBecameHoliday = data.type === 'holiday' && list.type !== 'holiday'
-			if (customIdChanged || typeJustBecameHoliday) updates.lastHolidayArchiveAt = null
-		} else {
-			// Legacy path: country + key direct write.
-			const country = data.holidayCountry !== undefined ? data.holidayCountry : list.holidayCountry
-			const key = data.holidayKey !== undefined ? data.holidayKey : list.holidayKey
-			if (!country || !key || !(await isValidHolidayKey(country, key))) {
-				return { kind: 'error', reason: 'invalid-holiday-selection' }
-			}
-			if (data.holidayCountry !== undefined) updates.holidayCountry = country
-			if (data.holidayKey !== undefined) updates.holidayKey = key
-			const countryChanged = data.holidayCountry !== undefined && data.holidayCountry !== list.holidayCountry
-			const keyChanged = data.holidayKey !== undefined && data.holidayKey !== list.holidayKey
-			const typeJustBecameHoliday = data.type === 'holiday' && list.type !== 'holiday'
-			if (countryChanged || keyChanged || typeJustBecameHoliday) {
-				updates.lastHolidayArchiveAt = null
-			}
-		}
+		if (!nextCustomHolidayId) return { kind: 'error', reason: 'invalid-holiday-selection' }
+		const row = await db.query.customHolidays.findFirst({
+			where: eq(customHolidays.id, nextCustomHolidayId),
+		})
+		if (!row) return { kind: 'error', reason: 'invalid-holiday-selection' }
+		if (data.customHolidayId !== undefined) updates.customHolidayId = row.id
+		const customIdChanged = data.customHolidayId !== undefined && data.customHolidayId !== list.customHolidayId
+		const typeJustBecameHoliday = data.type === 'holiday' && list.type !== 'holiday'
+		if (customIdChanged || typeJustBecameHoliday) updates.lastHolidayArchiveAt = null
 	} else if (data.type !== undefined && data.type !== 'holiday') {
 		// Type is changing AWAY from holiday: clear all holiday metadata.
-		updates.holidayCountry = null
-		updates.holidayKey = null
 		updates.customHolidayId = null
 		updates.lastHolidayArchiveAt = null
 	}
@@ -1358,8 +1305,6 @@ export async function getListForEditingImpl(args: {
 			ownerId: true,
 			giftIdeasTargetUserId: true,
 			subjectDependentId: true,
-			holidayCountry: true,
-			holidayKey: true,
 			customHolidayId: true,
 		},
 		with: {
@@ -1398,8 +1343,6 @@ export async function getListForEditingImpl(args: {
 			ownerId: list.ownerId,
 			giftIdeasTargetUserId: list.giftIdeasTargetUserId,
 			subjectDependentId: list.subjectDependentId,
-			holidayCountry: list.holidayCountry,
-			holidayKey: list.holidayKey,
 			customHolidayId: list.customHolidayId,
 			groups,
 			isOwner,

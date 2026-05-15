@@ -77,8 +77,6 @@ export async function makeList(tx: Tx, overrides: Partial<typeof lists.$inferIns
 			subjectDependentId: overrides.subjectDependentId ?? null,
 			giftIdeasTargetUserId: overrides.giftIdeasTargetUserId ?? null,
 			giftIdeasTargetDependentId: overrides.giftIdeasTargetDependentId ?? null,
-			holidayCountry: overrides.holidayCountry ?? null,
-			holidayKey: overrides.holidayKey ?? null,
 			customHolidayId: overrides.customHolidayId ?? null,
 			lastHolidayArchiveAt: overrides.lastHolidayArchiveAt ?? null,
 			// Honor explicit createdAt/updatedAt so tests can fabricate old

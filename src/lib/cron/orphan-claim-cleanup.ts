@@ -18,7 +18,6 @@ import { eq, isNotNull } from 'drizzle-orm'
 import type { SchemaDatabase } from '@/db'
 import { giftedItems, items, users } from '@/db/schema'
 import { customHolidayNextOccurrence } from '@/lib/custom-holidays'
-import { nextOccurrenceBySlug } from '@/lib/holidays'
 import { createLogger } from '@/lib/logger'
 import { resolveListRecipientName } from '@/lib/orphan-claims'
 import { isEmailConfigured, sendOrphanClaimCleanupReminderEmail } from '@/lib/resend'
@@ -34,8 +33,6 @@ type ListWithType = {
 	type: string
 	ownerId: string
 	subjectDependentId: string | null
-	holidayCountry: string | null
-	holidayKey: string | null
 	customHolidayId: string | null
 }
 
@@ -101,17 +98,12 @@ async function resolveListEventDate(dbx: SchemaDatabase, list: ListWithType, now
 		return candidate
 	}
 	if (list.type === 'holiday') {
-		// Prefer the customHolidayId path; fall back to legacy
-		// (country, key) pair to mirror the auto-archive resolver.
 		if (list.customHolidayId) {
 			const row = await dbx.query.customHolidays.findFirst({
 				where: (h, { eq: e }) => e(h.id, list.customHolidayId!),
 			})
 			if (!row) return null
 			return await customHolidayNextOccurrence(row, now, dbx)
-		}
-		if (list.holidayCountry && list.holidayKey) {
-			return nextOccurrenceBySlug(list.holidayCountry, list.holidayKey, now)
 		}
 	}
 	return null
@@ -198,8 +190,6 @@ export async function orphanClaimCleanupImpl(args: { db: SchemaDatabase; now: Da
 			type: true,
 			ownerId: true,
 			subjectDependentId: true,
-			holidayCountry: true,
-			holidayKey: true,
 			customHolidayId: true,
 		},
 	})

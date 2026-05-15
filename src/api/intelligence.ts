@@ -596,8 +596,6 @@ async function applyConvertList(
 			isPrivate: true,
 			isActive: true,
 			type: true,
-			holidayCountry: true,
-			holidayKey: true,
 			customHolidayId: true,
 		},
 	})
@@ -648,15 +646,11 @@ async function applyConvertList(
 		const row = await tx.query.customHolidays.findFirst({ where: eq(customHolidays.id, nextCustomHolidayId) })
 		if (!row) return { ok: false, reason: 'invalid-holiday-selection' }
 		updates.customHolidayId = row.id
-		updates.holidayCountry = row.catalogCountry
-		updates.holidayKey = row.catalogKey
 		const customIdChanged = apply.newCustomHolidayId !== undefined && apply.newCustomHolidayId !== list.customHolidayId
 		const typeJustBecameHoliday = list.type !== 'holiday'
 		if (customIdChanged || typeJustBecameHoliday) updates.lastHolidayArchiveAt = null
 	} else if (list.type === 'holiday') {
 		// Leaving holiday — clear all holiday metadata.
-		updates.holidayCountry = null
-		updates.holidayKey = null
 		updates.customHolidayId = null
 		updates.lastHolidayArchiveAt = null
 	}
@@ -730,16 +724,12 @@ async function applyCreateList(
 		if (!guard) return { ok: false, reason: 'not-dependent-guardian' }
 	}
 
-	let holidayCountry: string | null = null
-	let holidayKey: string | null = null
 	let resolvedCustomHolidayId: string | null = null
 	if (apply.type === 'holiday') {
 		if (!apply.customHolidayId) return { ok: false, reason: 'invalid-holiday-selection' }
 		const row = await tx.query.customHolidays.findFirst({ where: eq(customHolidays.id, apply.customHolidayId) })
 		if (!row) return { ok: false, reason: 'invalid-holiday-selection' }
 		resolvedCustomHolidayId = row.id
-		holidayCountry = row.catalogCountry
-		holidayKey = row.catalogKey
 	}
 
 	const [inserted] = await tx
@@ -750,8 +740,6 @@ async function applyCreateList(
 			isPrivate: apply.type === 'giftideas' ? true : apply.isPrivate,
 			ownerId: userId,
 			subjectDependentId: apply.subjectDependentId ?? null,
-			holidayCountry,
-			holidayKey,
 			customHolidayId: resolvedCustomHolidayId,
 		})
 		.returning({ id: lists.id })

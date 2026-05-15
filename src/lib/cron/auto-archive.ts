@@ -6,7 +6,7 @@
 // The handler in `src/routes/api/cron/auto-archive.ts` is a thin
 // wrapper that checks the CRON_SECRET and delegates here.
 
-import { and, eq, inArray, isNotNull, isNull, or } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { giftedItems, items, lists, users } from '@/db/schema'
@@ -38,7 +38,7 @@ export type AutoArchiveResult = {
 	christmasArchivedDetails: Array<{ listId: number; ownerId: string; itemCount: number }>
 	// One row per holiday list whose items were archived this run. Used by
 	// the email cron to pick recipients without re-running the date math.
-	holidayArchivedDetails: Array<{ listId: number; ownerId: string; holidayCountry: string; holidayKey: string; itemCount: number }>
+	holidayArchivedDetails: Array<{ listId: number; ownerId: string; holidayName: string; itemCount: number }>
 }
 
 type Args = {
@@ -122,24 +122,15 @@ export async function autoArchiveImpl({
 	}
 
 	// === Generic-holiday auto-archive ===
-	// Per-list date math. Two paths during the transition:
-	//   1. New: `lists.customHolidayId` resolves to a custom_holidays row
-	//      whose next-occurrence date drives the cutoff. The row's source
-	//      can be 'catalog' (rule-based) or 'custom' (fixed month/day).
-	//   2. Legacy: when customHolidayId is null but holidayCountry/Key are
-	//      set, fall back to the old lastOccurrence/endOfOccurrence path.
-	// lastHolidayArchiveAt is the idempotency mark for both paths.
+	// Per-list date math driven by `lists.customHolidayId`: the resolved
+	// custom_holidays row's next-occurrence date drives the cutoff. The
+	// row's source can be 'catalog' (rule-based) or 'custom' (fixed
+	// month/day). lastHolidayArchiveAt is the idempotency mark.
 	const holidayLists = await db.query.lists.findMany({
-		where: and(
-			eq(lists.type, 'holiday'),
-			eq(lists.isActive, true),
-			or(isNotNull(lists.customHolidayId), and(isNotNull(lists.holidayCountry), isNotNull(lists.holidayKey)))
-		),
+		where: and(eq(lists.type, 'holiday'), eq(lists.isActive, true), isNotNull(lists.customHolidayId)),
 		columns: {
 			id: true,
 			ownerId: true,
-			holidayCountry: true,
-			holidayKey: true,
 			customHolidayId: true,
 			lastHolidayArchiveAt: true,
 		},
@@ -151,42 +142,31 @@ export async function autoArchiveImpl({
 	for (const list of holidayLists) {
 		let occurrenceStart: Date | null = null
 		let occurrenceEnd: Date | null = null
-		let detailCountry: string | null = null
-		let detailKey: string | null = null
 
-		if (list.customHoliday) {
-			// New path: derive the occurrence from the customHolidays row.
-			// For catalog-source rows, lastOccurrence still applies (rules
-			// have a duration). For custom rows, the "occurrence" is a
-			// single day equal to (year, month, day).
-			if (list.customHoliday.source === 'catalog' && list.customHoliday.catalogCountry && list.customHoliday.catalogKey) {
-				occurrenceStart = await lastOccurrence(list.customHoliday.catalogCountry, list.customHoliday.catalogKey, now, db)
-				if (occurrenceStart) {
-					occurrenceEnd = await endOfOccurrence(list.customHoliday.catalogCountry, list.customHoliday.catalogKey, occurrenceStart, db)
-				}
-				detailCountry = list.customHoliday.catalogCountry
-				detailKey = list.customHoliday.catalogKey
-			} else if (list.customHoliday.source === 'custom') {
-				// Custom date: use the most recent past occurrence (or skip
-				// if all are in the future).
-				const next = await customHolidayNextOccurrence(list.customHoliday, now, db)
-				// "Last" = the most recent past occurrence. If next-occurrence
-				// is today or earlier, that's it. Otherwise back-roll one year
-				// for annual recurrence.
-				if (next && next.getTime() <= now.getTime()) {
-					occurrenceStart = next
-				} else if (next && list.customHoliday.customYear === null) {
-					// Annual: previous year's occurrence.
-					occurrenceStart = new Date(Date.UTC(next.getUTCFullYear() - 1, next.getUTCMonth(), next.getUTCDate()))
-				}
-				if (occurrenceStart) occurrenceEnd = occurrenceStart
+		if (!list.customHoliday) continue
+
+		// For catalog-source rows, lastOccurrence still applies (rules
+		// have a duration). For custom rows, the "occurrence" is a single
+		// day equal to (year, month, day).
+		if (list.customHoliday.source === 'catalog' && list.customHoliday.catalogCountry && list.customHoliday.catalogKey) {
+			occurrenceStart = await lastOccurrence(list.customHoliday.catalogCountry, list.customHoliday.catalogKey, now, db)
+			if (occurrenceStart) {
+				occurrenceEnd = await endOfOccurrence(list.customHoliday.catalogCountry, list.customHoliday.catalogKey, occurrenceStart, db)
 			}
-		} else if (list.holidayCountry && list.holidayKey) {
-			// Legacy path.
-			occurrenceStart = await lastOccurrence(list.holidayCountry, list.holidayKey, now, db)
-			if (occurrenceStart) occurrenceEnd = await endOfOccurrence(list.holidayCountry, list.holidayKey, occurrenceStart, db)
-			detailCountry = list.holidayCountry
-			detailKey = list.holidayKey
+		} else if (list.customHoliday.source === 'custom') {
+			// Custom date: use the most recent past occurrence (or skip if
+			// all are in the future).
+			const next = await customHolidayNextOccurrence(list.customHoliday, now, db)
+			// "Last" = the most recent past occurrence. If next-occurrence
+			// is today or earlier, that's it. Otherwise back-roll one year
+			// for annual recurrence.
+			if (next && next.getTime() <= now.getTime()) {
+				occurrenceStart = next
+			} else if (next && list.customHoliday.customYear === null) {
+				// Annual: previous year's occurrence.
+				occurrenceStart = new Date(Date.UTC(next.getUTCFullYear() - 1, next.getUTCMonth(), next.getUTCDate()))
+			}
+			if (occurrenceStart) occurrenceEnd = occurrenceStart
 		}
 
 		if (!occurrenceStart || !occurrenceEnd) continue
@@ -209,8 +189,7 @@ export async function autoArchiveImpl({
 			holidayArchivedDetails.push({
 				listId: list.id,
 				ownerId: list.ownerId,
-				holidayCountry: detailCountry ?? '',
-				holidayKey: detailKey ?? '',
+				holidayName: list.customHoliday.title,
 				itemCount: ids.length,
 			})
 		}

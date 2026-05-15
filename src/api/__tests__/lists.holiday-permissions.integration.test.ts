@@ -21,8 +21,6 @@ describe('holiday list permissions', () => {
 			const list = await makeList(tx, {
 				ownerId: owner.id,
 				type: 'holiday',
-				holidayCountry: 'US',
-				holidayKey: 'thanksgiving',
 				isPrivate: true,
 				isActive: true,
 			})
@@ -43,8 +41,6 @@ describe('holiday list permissions', () => {
 			const list = await makeList(tx, {
 				ownerId: child.id,
 				type: 'holiday',
-				holidayCountry: 'US',
-				holidayKey: 'easter',
 				isPrivate: true,
 				isActive: true,
 			})
@@ -64,8 +60,6 @@ describe('holiday list permissions', () => {
 			const list = await makeList(tx, {
 				ownerId: owner.id,
 				type: 'holiday',
-				holidayCountry: 'US',
-				holidayKey: 'mothers-day',
 				isPrivate: false,
 				isActive: true,
 			})
@@ -84,8 +78,6 @@ describe('holiday list permissions', () => {
 			const list = await makeList(tx, {
 				ownerId: owner.id,
 				type: 'holiday',
-				holidayCountry: 'CA',
-				holidayKey: 'canada-day',
 				isPrivate: false,
 				isActive: true,
 			})
@@ -102,8 +94,6 @@ describe('holiday list permissions', () => {
 			const list = await makeList(tx, {
 				ownerId: owner.id,
 				type: 'holiday',
-				holidayCountry: 'AU',
-				holidayKey: 'fathers-day',
 				isPrivate: false,
 				isActive: true,
 			})
@@ -124,8 +114,6 @@ describe('holiday list permissions', () => {
 			const list = await makeList(tx, {
 				ownerId: owner.id,
 				type: 'holiday',
-				holidayCountry: 'GB',
-				holidayKey: 'mothering-sunday',
 				isPrivate: false,
 				isActive: true,
 			})
@@ -147,8 +135,6 @@ describe('holiday list permissions', () => {
 			const list = await makeList(tx, {
 				ownerId: owner.id,
 				type: 'holiday',
-				holidayCountry: 'US',
-				holidayKey: 'halloween',
 				isPrivate: true,
 				isActive: true,
 			})

@@ -286,8 +286,6 @@ export async function deleteCustomHolidayImpl(args: {
 				.update(lists)
 				.set({
 					customHolidayId: null,
-					holidayCountry: null,
-					holidayKey: null,
 					lastHolidayArchiveAt: null,
 					// Force-convert to defaultListType. Claims are intentionally
 					// NOT cleared (admin-cascade exception).

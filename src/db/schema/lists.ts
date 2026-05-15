@@ -40,22 +40,12 @@ export const lists = pgTable(
 		giftIdeasTargetDependentId: text('gift_ideas_target_dependent_id').references(() => dependents.id, {
 			onDelete: 'set null',
 		}),
-		// Only populated for type === 'holiday'. ISO 3166-1 alpha-2.
-		// Legacy: superseded by `customHolidayId` once the custom-holidays
-		// migration runs. Read by the auto-archive cron only when
-		// `customHolidayId` is null (no migrated row exists yet).
-		holidayCountry: text('holiday_country'),
-		// Only populated for type === 'holiday'. Slug from the curated
-		// allowlist in src/lib/holidays.ts (e.g. 'easter', 'thanksgiving').
-		// Legacy alongside `holidayCountry`.
-		holidayKey: text('holiday_key'),
 		// Stamped by the auto-archive cron when it fires for this list's
-		// most recent occurrence. Per-(list, holiday); nulled on type/
-		// country/key change so a repurposed list never inherits stale
-		// archive bookkeeping.
+		// most recent occurrence. Per-(list, holiday); nulled on holiday
+		// change so a repurposed list never inherits stale archive
+		// bookkeeping.
 		lastHolidayArchiveAt: timestamp('last_holiday_archive_at'),
-		// Replaces the legacy `holidayCountry` + `holidayKey` pair. Points
-		// at a single admin-curated row in `custom_holidays`, which itself
+		// Points at an admin-curated row in `custom_holidays`, which itself
 		// contains the catalog reference or fully custom date logic. Only
 		// populated for type === 'holiday'.
 		customHolidayId: uuid('custom_holiday_id').references(() => customHolidays.id, { onDelete: 'set null' }),

@@ -18,7 +18,6 @@ import { orphanClaimCleanupImpl } from '@/lib/cron/orphan-claim-cleanup'
 import { sweepCronRuns } from '@/lib/cron/record-run'
 import type { CronEndpoint } from '@/lib/cron/registry'
 import { relationshipRemindersImpl } from '@/lib/cron/relationship-reminders'
-import { getCatalogEntry } from '@/lib/holidays'
 import { processOnce } from '@/lib/import/scrape-queue/runner'
 import { generateForUser } from '@/lib/intelligence/runner'
 import { createLogger } from '@/lib/logger'
@@ -136,9 +135,8 @@ async function sendGenericHolidayEmails(dbx: SchemaDatabase, details: AutoArchiv
 			where: eq(lists.id, d.listId),
 			columns: { name: true },
 		})
-		const catalog = await getCatalogEntry(d.holidayCountry, d.holidayKey, dbx)
-		if (!list || !catalog) continue
-		await sendPostHolidayEmail(owner.email, { holidayName: catalog.name, listName: list.name })
+		if (!list) continue
+		await sendPostHolidayEmail(owner.email, { holidayName: d.holidayName, listName: list.name })
 		sent += 1
 	}
 	return sent
