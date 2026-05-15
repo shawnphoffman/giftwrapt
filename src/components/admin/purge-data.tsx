@@ -55,7 +55,7 @@ export default function PurgeData() {
 			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Purge all list data?</AlertDialogTitle>
+						<AlertDialogTitle>Purge All List Data?</AlertDialogTitle>
 						<AlertDialogDescription>
 							This permanently deletes every list, item, claim, comment, addon, and editor record across all users. User accounts,
 							guardianships, and partner pointers are kept. Item images are removed from storage on a best-effort basis. There is no undo.

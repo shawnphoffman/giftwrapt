@@ -56,7 +56,7 @@ export function TwoFactorPanelContent(props: TwoFactorPanelContentProps) {
 
 			{error && (
 				<Alert variant="destructive">
-					<AlertTitle>Couldn't update 2FA</AlertTitle>
+					<AlertTitle>Couldn't Update 2FA</AlertTitle>
 					<AlertDescription>{error}</AlertDescription>
 				</Alert>
 			)}
@@ -83,7 +83,7 @@ function DisabledView({ onStartEnrollment, busy }: TwoFactorPanelContentProps) {
 	return (
 		<form onSubmit={handle} className="flex flex-col gap-2 sm:flex-row sm:items-start">
 			<div className="grid gap-2 flex-1">
-				<Label htmlFor="enable-2fa-password">Current password</Label>
+				<Label htmlFor="enable-2fa-password">Current Password</Label>
 				<PasswordInput
 					id="enable-2fa-password"
 					value={password}
@@ -128,7 +128,7 @@ function EnrollingView({
 	return (
 		<div className="space-y-3">
 			<Alert>
-				<AlertTitle>Step 1: scan with your authenticator app</AlertTitle>
+				<AlertTitle>Step 1: Scan With Your Authenticator App</AlertTitle>
 				<AlertDescription>
 					Open your authenticator and add a new account by scanning the QR code below. If you can't scan, enter the secret manually.
 				</AlertDescription>
@@ -144,7 +144,7 @@ function EnrollingView({
 				</div>
 				<div className="flex-1 space-y-2 text-sm">
 					<div>
-						<Label className="text-xs">Manual secret</Label>
+						<Label className="text-xs">Manual Secret</Label>
 						<div className="mt-1 flex items-center gap-2">
 							<code className={cn('flex-1 rounded bg-muted px-2 py-1 font-mono text-xs break-all', !secretShown && 'blur-sm select-none')}>
 								{manualSecret ?? 'unavailable'}
@@ -168,7 +168,7 @@ function EnrollingView({
 
 			<form onSubmit={handle} className="space-y-2">
 				<div className="grid gap-2">
-					<Label htmlFor="verify-totp-code">Step 2: enter the 6-digit code</Label>
+					<Label htmlFor="verify-totp-code">Step 2: Enter the 6-Digit Code</Label>
 					<Input
 						id="verify-totp-code"
 						value={code}
@@ -232,18 +232,18 @@ function EnabledView({ onDisable, onRegenerateBackupCodes, busy }: TwoFactorPane
 	return (
 		<div className="space-y-4">
 			<Alert>
-				<AlertTitle>Two-factor authentication is on</AlertTitle>
+				<AlertTitle>Two-Factor Authentication Is On</AlertTitle>
 				<AlertDescription>You'll be asked for a code from your authenticator app every time you sign in.</AlertDescription>
 			</Alert>
 
 			<form onSubmit={handleRegen} className="space-y-2 rounded-md border p-3">
 				<div className="space-y-1">
-					<p className="text-sm font-medium">Regenerate backup codes</p>
+					<p className="text-sm font-medium">Regenerate Backup Codes</p>
 					<p className="text-xs text-muted-foreground">Invalidates any existing codes. Stash the new ones somewhere safe.</p>
 				</div>
 				<div className="flex flex-col gap-2 sm:flex-row sm:items-end">
 					<div className="grid gap-2 flex-1">
-						<Label htmlFor="regen-2fa-password">Current password</Label>
+						<Label htmlFor="regen-2fa-password">Current Password</Label>
 						<PasswordInput
 							id="regen-2fa-password"
 							value={regenPassword}
@@ -261,12 +261,12 @@ function EnabledView({ onDisable, onRegenerateBackupCodes, busy }: TwoFactorPane
 
 			<form onSubmit={handleDisable} className="space-y-2 rounded-md border border-destructive/30 p-3">
 				<div className="space-y-1">
-					<p className="text-sm font-medium text-destructive">Turn off two-factor auth</p>
+					<p className="text-sm font-medium text-destructive">Turn Off Two-Factor Auth</p>
 					<p className="text-xs text-muted-foreground">Removes the TOTP requirement and clears all backup codes.</p>
 				</div>
 				<div className="flex flex-col gap-2 sm:flex-row sm:items-end">
 					<div className="grid gap-2 flex-1">
-						<Label htmlFor="disable-2fa-password">Current password</Label>
+						<Label htmlFor="disable-2fa-password">Current Password</Label>
 						<PasswordInput
 							id="disable-2fa-password"
 							value={disablePassword}
@@ -293,7 +293,7 @@ function EnabledView({ onDisable, onRegenerateBackupCodes, busy }: TwoFactorPane
 function BackupCodesPanel({ codes, onDismiss }: { codes: Array<string>; onDismiss?: () => void }) {
 	return (
 		<Alert>
-			<AlertTitle>Save your backup codes</AlertTitle>
+			<AlertTitle>Save Your Backup Codes</AlertTitle>
 			<AlertDescription>
 				<p className="mb-2 text-xs">Each code is single-use. Use them if you lose access to your authenticator app.</p>
 				<ul className="grid grid-cols-2 gap-1 font-mono text-xs sm:grid-cols-3">

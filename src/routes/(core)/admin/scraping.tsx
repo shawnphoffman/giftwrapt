@@ -78,7 +78,7 @@ function AdminScrapingPage() {
 			<Dialog open={scrapesOpen} onOpenChange={setScrapesOpen}>
 				<DialogContent className="sm:max-w-[95vw] max-h-[90vh] overflow-y-auto">
 					<DialogHeader>
-						<DialogTitle>Recent scrapes</DialogTitle>
+						<DialogTitle>Recent Scrapes</DialogTitle>
 						<DialogDescription>
 							Recent scrape attempts (newest first, capped at 200). Click the inspect icon on any row to see the full response data, the
 							per-column extracted fields, and which user triggered the scrape.

@@ -108,7 +108,7 @@ function AdminUsersPage() {
 			<Dialog open={addUserOpen} onOpenChange={setAddUserOpen}>
 				<DialogContent className="max-w-xl">
 					<DialogHeader>
-						<DialogTitle>Add user</DialogTitle>
+						<DialogTitle>Add User</DialogTitle>
 					</DialogHeader>
 					<ClientOnly>
 						<CreateUserForm onCreated={() => setAddUserOpen(false)} />
@@ -119,7 +119,7 @@ function AdminUsersPage() {
 			<Dialog open={editUserId !== null} onOpenChange={open => !open && closeEditUser()}>
 				<DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
 					<DialogHeader>
-						<DialogTitle>Edit user</DialogTitle>
+						<DialogTitle>Edit User</DialogTitle>
 					</DialogHeader>
 					<Suspense fallback={<LoadingSkeleton />}>
 						<ClientOnly>{editUserId && <EditUserForm userId={editUserId} />}</ClientOnly>
@@ -130,7 +130,7 @@ function AdminUsersPage() {
 			<Dialog open={addDependentOpen} onOpenChange={setAddDependentOpen}>
 				<DialogContent className="max-w-xl">
 					<DialogHeader>
-						<DialogTitle>Add dependent</DialogTitle>
+						<DialogTitle>Add Dependent</DialogTitle>
 						<DialogDescription>
 							Pick at least one guardian; they'll see the dependent on /me, /received, and the create-list picker.
 						</DialogDescription>

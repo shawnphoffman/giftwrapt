@@ -106,7 +106,7 @@ export function CreateDependentForm({ onCreated }: { onCreated?: () => void }) {
 
 			<div className="grid grid-cols-3 gap-2">
 				<div className="space-y-1">
-					<Label htmlFor="dep-month">Birth month</Label>
+					<Label htmlFor="dep-month">Birth Month</Label>
 					<Select value={birthMonth} onValueChange={v => setBirthMonth(v as BirthMonth)}>
 						<SelectTrigger id="dep-month">
 							<SelectValue placeholder="(none)" />

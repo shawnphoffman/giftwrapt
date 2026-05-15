@@ -139,13 +139,13 @@ function AddressesSection({ config, onSave, saving }: AddressesSectionProps) {
 	return (
 		<section className="flex flex-col gap-6">
 			<div className="space-y-0.5">
-				<h3 className="text-lg font-medium">From address &amp; BCC</h3>
+				<h3 className="text-lg font-medium">From Address &amp; BCC</h3>
 				<p className="text-sm text-muted-foreground">Controls the visible sender and optional BCC recipient on every email.</p>
 			</div>
 
 			<StringFieldRow
 				id="resendFromEmail"
-				label="From email"
+				label="From Email"
 				description="The address emails are sent from. Must be on a verified Resend domain."
 				type="email"
 				placeholder="notifications@yourdomain.com"
@@ -159,7 +159,7 @@ function AddressesSection({ config, onSave, saving }: AddressesSectionProps) {
 
 			<StringFieldRow
 				id="resendFromName"
-				label="From name"
+				label="From Name"
 				description="Optional display name shown before the address."
 				type="text"
 				placeholder="GiftWrapt"
@@ -174,7 +174,7 @@ function AddressesSection({ config, onSave, saving }: AddressesSectionProps) {
 
 			<StringFieldRow
 				id="resendBccAddress"
-				label="BCC address"
+				label="BCC Address"
 				description="Optional. Every outgoing email is blind-copied here. Useful for archiving or test inboxes."
 				type="email"
 				placeholder="archive@yourdomain.com"
@@ -287,7 +287,7 @@ function SendTestSection() {
 	return (
 		<section className="flex flex-col gap-3 max-w-md">
 			<div className="space-y-0.5">
-				<h3 className="text-lg font-medium">Send a test email</h3>
+				<h3 className="text-lg font-medium">Send a Test Email</h3>
 				<p className="text-sm text-muted-foreground">
 					Sends to the configured BCC address, or the From address if no BCC is set. Verifies the full send path end-to-end.
 				</p>

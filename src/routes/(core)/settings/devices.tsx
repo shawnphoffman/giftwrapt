@@ -197,7 +197,7 @@ function CreateKeyDialog({
 		>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Create device key</DialogTitle>
+					<DialogTitle>Create Device Key</DialogTitle>
 					<DialogDescription>Give the device a name you'll recognize, like "My iPhone" or "Living room iPad".</DialogDescription>
 				</DialogHeader>
 				<form
@@ -208,7 +208,7 @@ function CreateKeyDialog({
 					className="space-y-4"
 				>
 					<div className="space-y-2">
-						<Label htmlFor="deviceName">Device name</Label>
+						<Label htmlFor="deviceName">Device Name</Label>
 						<Input
 							id="deviceName"
 							value={name}
@@ -271,7 +271,7 @@ function MintedKeyDialog({
 					<DialogDescription>Copy this key and paste it into the mobile app now. You won't be able to see it again.</DialogDescription>
 				</DialogHeader>
 				<div className="space-y-2">
-					<Label htmlFor="mintedKey">API key</Label>
+					<Label htmlFor="mintedKey">API Key</Label>
 					<div className="flex items-stretch gap-2">
 						<Input
 							id="mintedKey"

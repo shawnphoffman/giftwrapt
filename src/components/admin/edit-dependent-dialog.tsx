@@ -189,7 +189,7 @@ export function EditDependentDialog({
 
 					<div className="grid grid-cols-3 gap-2">
 						<div className="space-y-1">
-							<Label htmlFor="edit-dep-month">Birth month</Label>
+							<Label htmlFor="edit-dep-month">Birth Month</Label>
 							<Select value={birthMonth} onValueChange={v => setBirthMonth(v as BirthMonth)} disabled={saveMutation.isPending}>
 								<SelectTrigger id="edit-dep-month">
 									<SelectValue placeholder="(none)" />
@@ -332,7 +332,7 @@ export function EditDependentDialog({
 				<AlertDialog open={pendingGuardianRemoval !== null} onOpenChange={open => !open && setPendingGuardianRemoval(null)}>
 					<AlertDialogContent>
 						<AlertDialogHeader>
-							<AlertDialogTitle>Remove guardian?</AlertDialogTitle>
+							<AlertDialogTitle>Remove Guardian?</AlertDialogTitle>
 							<AlertDialogDescription>
 								{(() => {
 									const g = dependent.guardians.find(x => x.id === pendingGuardianRemoval)

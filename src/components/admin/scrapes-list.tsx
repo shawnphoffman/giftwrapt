@@ -186,7 +186,7 @@ function ScrapeDetailDialog({
 		<Dialog open={open} onOpenChange={next => !next && onClose()}>
 			<DialogContent className="sm:max-w-[95vw] max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>Scrape attempt {openId !== null && <span className="font-mono text-base">#{openId}</span>}</DialogTitle>
+					<DialogTitle>Scrape Attempt {openId !== null && <span className="font-mono text-base">#{openId}</span>}</DialogTitle>
 					<DialogDescription>Persisted row from item_scrapes. Use this to debug provider responses.</DialogDescription>
 				</DialogHeader>
 

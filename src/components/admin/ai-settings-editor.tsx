@@ -432,7 +432,7 @@ function Form({ config, saving, mutate }: FormProps) {
 					<div className="flex flex-col gap-2">
 						<div className="space-y-0.5">
 							<Label htmlFor="aiMaxOutputTokens" className="text-base">
-								Max output tokens
+								Max Output Tokens
 							</Label>
 							<p className="text-sm text-muted-foreground">
 								Caps the response length for connection tests and any AI features. Reasoning models need at least a few hundred.
@@ -529,7 +529,7 @@ function TestConnectionSection({
 	return (
 		<section className="flex flex-col gap-3">
 			<div className="space-y-0.5">
-				<h3 className="text-lg font-medium">Test connection</h3>
+				<h3 className="text-lg font-medium">Test Connection</h3>
 				<p className="text-sm text-muted-foreground">
 					Sends a small chat request through the Vercel AI SDK to verify the provider, API key, and model in one round-trip.
 					{dirty ? ' Uses the values currently in the form (including unsaved drafts).' : ''}

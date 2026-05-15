@@ -481,7 +481,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>{pendingPartnerChange?.partnerId ? 'Change partner?' : 'Remove partner?'}</AlertDialogTitle>
+						<AlertDialogTitle>{pendingPartnerChange?.partnerId ? 'Change Partner?' : 'Remove Partner?'}</AlertDialogTitle>
 						<AlertDialogDescription>
 							{currentPartnerName
 								? `You are currently partnered with ${currentPartnerName}. Saving will unlink them and stop showing gifts as given by both of you.`
@@ -511,7 +511,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 			>
 				<DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-lg">
 					<DialogHeader>
-						<DialogTitle>Update list editors?</DialogTitle>
+						<DialogTitle>Update List Editors?</DialogTitle>
 						<DialogDescription>Your partner change affects who has editor access on some of your lists.</DialogDescription>
 					</DialogHeader>
 					{editorChangePrompt && (

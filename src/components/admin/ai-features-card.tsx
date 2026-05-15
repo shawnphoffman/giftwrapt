@@ -99,7 +99,7 @@ export function AiFeaturesCard() {
 					<div className="flex items-center justify-between gap-4">
 						<div className="space-y-0.5">
 							<Label htmlFor="scrapeAiCleanTitlesEnabled" className="text-base">
-								Clean imported titles
+								Clean Imported Titles
 							</Label>
 							<p className="text-sm text-muted-foreground">
 								Runs a small AI pass on the winning result to strip retailer noise from the title.

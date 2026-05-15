@@ -81,7 +81,7 @@ export function ScraperTimingFormView({ settings, disabled, onChange }: ScraperP
 		<div className="@container/scraper-form space-y-8">
 			<NumberRow
 				id="scrapeProviderTimeoutMs"
-				label="Per-provider timeout"
+				label="Per-Provider Timeout"
 				suffix="s"
 				multiplier={1000}
 				hint="Maximum time any one provider has to return before the orchestrator gives up on it and tries the next one."
@@ -91,7 +91,7 @@ export function ScraperTimingFormView({ settings, disabled, onChange }: ScraperP
 			/>
 			<NumberRow
 				id="scrapeOverallTimeoutMs"
-				label="Overall scrape budget"
+				label="Overall Scrape Budget"
 				suffix="s"
 				multiplier={1000}
 				hint="Hard upper bound on a single scrape including parallel providers. Anything still running at this point is cancelled."
@@ -101,7 +101,7 @@ export function ScraperTimingFormView({ settings, disabled, onChange }: ScraperP
 			/>
 			<NumberRow
 				id="scrapeQualityThreshold"
-				label="Quality threshold"
+				label="Quality Threshold"
 				hint="Score above which the chain stops trying further providers. Lower = more permissive, higher = more thorough but slower."
 				value={settings.scrapeQualityThreshold}
 				disabled={inputDisabled}
@@ -161,7 +161,7 @@ type AddOption = { type: ScrapeProviderType; label: string; hint: string }
 
 const ADD_OPTION_GROUPS: Array<{ label: string; options: Array<AddOption> }> = [
 	{
-		label: 'Self-hosted',
+		label: 'Self-Hosted',
 		options: [
 			{ type: 'browserless', label: 'Browserless', hint: 'JS-rendering container' },
 			{ type: 'flaresolverr', label: 'Flaresolverr', hint: 'Cloudflare bypass' },
@@ -657,7 +657,7 @@ function BrowserbaseFetchFields({
 			<div className="flex flex-col gap-3 @md/scraper-form:flex-row @md/scraper-form:gap-6">
 				<SwitchRow
 					id={`bb-fetch-proxies-${draft.id}`}
-					label="Use proxies"
+					label="Use Proxies"
 					hint="Routes the fetch through Browserbase's residential proxy network."
 					checked={draft.proxies}
 					disabled={disabled}
@@ -665,7 +665,7 @@ function BrowserbaseFetchFields({
 				/>
 				<SwitchRow
 					id={`bb-fetch-redirects-${draft.id}`}
-					label="Allow redirects"
+					label="Allow Redirects"
 					hint="Follow 3xx responses to the final URL before returning the body."
 					checked={draft.allowRedirects}
 					disabled={disabled}
@@ -714,7 +714,7 @@ function BrowserbaseStagehandFields({
 			</div>
 			<div className="space-y-1">
 				<Label htmlFor={`bb-stage-model-${draft.id}`} className="text-base">
-					Model name (optional)
+					Model Name (optional)
 				</Label>
 				<Input
 					id={`bb-stage-model-${draft.id}`}
@@ -732,7 +732,7 @@ function BrowserbaseStagehandFields({
 			<div className="space-y-1">
 				<div className="flex items-baseline justify-between gap-2">
 					<Label htmlFor={`bb-stage-instr-${draft.id}`} className="text-base">
-						Extraction instruction (optional)
+						Extraction Instruction (optional)
 					</Label>
 					<CharacterCounter value={draft.instruction ?? ''} max={LIMITS.MEDIUM_TEXT} />
 				</div>
@@ -839,7 +839,7 @@ function ScrapflyFields({
 			<div className="flex flex-col gap-3">
 				<SwitchRow
 					id={`scrapfly-asp-${draft.id}`}
-					label="Anti-scraping protection"
+					label="Anti-Scraping Protection"
 					hint="Sends asp=true. Bypasses most bot walls; costs more credits per call."
 					checked={draft.asp}
 					disabled={disabled}
@@ -894,7 +894,7 @@ function CustomHttpFields({
 			</div>
 			<div className="space-y-1">
 				<Label htmlFor={`custom-kind-${draft.id}`} className="text-base">
-					Response kind
+					Response Kind
 				</Label>
 				<Select
 					value={draft.responseKind}
@@ -914,7 +914,7 @@ function CustomHttpFields({
 			<div className="space-y-1">
 				<div className="flex items-baseline justify-between gap-2">
 					<Label htmlFor={`custom-headers-${draft.id}`} className="text-base">
-						Custom HTTP headers
+						Custom HTTP Headers
 					</Label>
 					<CharacterCounter value={draft.customHeaders ?? ''} max={LIMITS.HEADERS_JSON} />
 				</div>
@@ -1092,7 +1092,7 @@ function TimeoutOverrideRow({
 	return (
 		<div className="space-y-1.5">
 			<Label htmlFor={id} className="text-base">
-				Timeout override (optional)
+				Timeout Override (optional)
 			</Label>
 			<div className="relative w-full sm:max-w-xs">
 				<Input

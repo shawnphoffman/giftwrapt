@@ -155,7 +155,7 @@ export function ChristmasSettingsSection() {
 			<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableChristmasLists ? '' : 'opacity-50'}`}>
 				<DaysSetting
 					id="archiveDaysAfterChristmas"
-					label="Archive after Christmas"
+					label="Archive After Christmas"
 					description="Days after Dec 25 to automatically archive claimed items on Christmas lists"
 					value={settings.archiveDaysAfterChristmas}
 					disabled={!settings.enableChristmasLists}
@@ -167,7 +167,7 @@ export function ChristmasSettingsSection() {
 				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableChristmasLists ? '' : 'opacity-50'}`}>
 					<div className="space-y-0.5">
 						<Label htmlFor="enableChristmasEmails" className="text-base">
-							Enable Christmas emails
+							Enable Christmas Emails
 						</Label>
 						<p className="text-sm text-muted-foreground">Send Christmas-related emails to users</p>
 					</div>
@@ -184,7 +184,7 @@ export function ChristmasSettingsSection() {
 				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableChristmasLists ? '' : 'opacity-50'}`}>
 					<div className="space-y-0.5">
 						<Label htmlFor="enableChristmasReminderEmails" className="text-base">
-							Send pre-Christmas reminder emails
+							Send Pre-Christmas Reminder Emails
 						</Label>
 						<p className="text-sm text-muted-foreground">Email every user N days before Christmas so they can spruce up their list</p>
 					</div>
@@ -203,7 +203,7 @@ export function ChristmasSettingsSection() {
 				>
 					<DaysSetting
 						id="christmasReminderLeadDays"
-						label="Christmas reminder lead time"
+						label="Christmas Reminder Lead Time"
 						description="Days before Dec 25 to send the pre-Christmas reminder email"
 						value={settings.christmasReminderLeadDays}
 						disabled={!settings.enableChristmasReminderEmails || !settings.enableChristmasLists}
@@ -243,7 +243,7 @@ export function GenericHolidaySettingsSection() {
 			<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableGenericHolidayLists ? '' : 'opacity-50'}`}>
 				<DaysSetting
 					id="archiveDaysAfterHoliday"
-					label="Archive after holiday"
+					label="Archive After Holiday"
 					description="Days after a holiday's end date to automatically archive claimed items on holiday-typed lists. Multi-day holidays archive against the end of the festival."
 					value={settings.archiveDaysAfterHoliday}
 					disabled={!settings.enableGenericHolidayLists}
@@ -255,7 +255,7 @@ export function GenericHolidaySettingsSection() {
 				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableGenericHolidayLists ? '' : 'opacity-50'}`}>
 					<div className="space-y-0.5">
 						<Label htmlFor="enableGenericHolidayEmails" className="text-base">
-							Enable holiday emails
+							Enable Holiday Emails
 						</Label>
 						<p className="text-sm text-muted-foreground">Send a generic post-holiday email when items are auto-archived on holiday lists</p>
 					</div>
@@ -272,7 +272,7 @@ export function GenericHolidaySettingsSection() {
 				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableGenericHolidayLists ? '' : 'opacity-50'}`}>
 					<div className="space-y-0.5">
 						<Label htmlFor="enableHolidayReminderEmails" className="text-base">
-							Send pre-holiday reminder emails
+							Send Pre-Holiday Reminder Emails
 						</Label>
 						<p className="text-sm text-muted-foreground">
 							Broadcast a reminder N days before each custom holiday, prompting users to make a list
@@ -293,7 +293,7 @@ export function GenericHolidaySettingsSection() {
 				>
 					<DaysSetting
 						id="holidayReminderLeadDays"
-						label="Holiday reminder lead time"
+						label="Holiday Reminder Lead Time"
 						description="Days before a holiday to broadcast the pre-holiday reminder"
 						value={settings.holidayReminderLeadDays}
 						disabled={!settings.enableHolidayReminderEmails || !settings.enableGenericHolidayLists}
@@ -330,7 +330,7 @@ export function BirthdaySettingsSection() {
 			<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableBirthdayLists ? '' : 'opacity-50'}`}>
 				<DaysSetting
 					id="archiveDaysAfterBirthday"
-					label="Archive after birthday"
+					label="Archive After Birthday"
 					description="Days after a birthday to automatically archive claimed items on birthday/wishlist lists"
 					value={settings.archiveDaysAfterBirthday}
 					disabled={!settings.enableBirthdayLists}
@@ -342,7 +342,7 @@ export function BirthdaySettingsSection() {
 				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableBirthdayLists ? '' : 'opacity-50'}`}>
 					<div className="space-y-0.5">
 						<Label htmlFor="enableBirthdayEmails" className="text-base">
-							Enable birthday emails
+							Enable Birthday Emails
 						</Label>
 						<p className="text-sm text-muted-foreground">Send day-of birthday greetings and the post-birthday gift summary</p>
 					</div>
@@ -359,7 +359,7 @@ export function BirthdaySettingsSection() {
 				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableBirthdayLists ? '' : 'opacity-50'}`}>
 					<div className="space-y-0.5">
 						<Label htmlFor="enableBirthdayReminderEmails" className="text-base">
-							Send pre-birthday reminder emails
+							Send Pre-Birthday Reminder Emails
 						</Label>
 						<p className="text-sm text-muted-foreground">Email each user N days before their birthday so they can spruce up their list</p>
 					</div>
@@ -378,7 +378,7 @@ export function BirthdaySettingsSection() {
 				>
 					<DaysSetting
 						id="birthdayReminderLeadDays"
-						label="Birthday reminder lead time"
+						label="Birthday Reminder Lead Time"
 						description="Days before a birthday to send the pre-birthday reminder email"
 						value={settings.birthdayReminderLeadDays}
 						disabled={!settings.enableBirthdayReminderEmails || !settings.enableBirthdayLists}
@@ -432,7 +432,7 @@ function ReminderFamilyBlock({
 			<div className={`flex items-center justify-between gap-4 pl-6 ${masterOn ? '' : 'opacity-50'}`}>
 				<DaysSetting
 					id={leadDaysKey as string}
-					label="Reminder lead time"
+					label="Reminder Lead Time"
 					description={`Days before ${title} to send the reminder`}
 					value={leadDays}
 					disabled={!masterOn}
@@ -443,7 +443,7 @@ function ReminderFamilyBlock({
 				<div className={`flex items-center justify-between gap-4 pl-6 ${masterOn ? '' : 'opacity-50'}`}>
 					<div className="space-y-0.5">
 						<Label htmlFor={emailKey as string} className="text-base">
-							Send {title} reminder emails
+							Send {title} Reminder Emails
 						</Label>
 						<p className="text-sm text-muted-foreground">Email the reminder when the lead-time window matches</p>
 					</div>
@@ -645,7 +645,7 @@ export function StorageMirrorSection() {
 		<div className={`flex items-center justify-between gap-4 ${storageConfigured ? '' : 'opacity-50'}`}>
 			<div className="space-y-0.5">
 				<Label htmlFor="mirrorExternalImagesOnSave" className="text-base">
-					Mirror external images to storage on save
+					Mirror External Images to Storage on Save
 				</Label>
 				<p className="text-sm text-muted-foreground">
 					When saving an item, fetch any external image URL and copy it into your bucket. Best-effort: fetch failures keep the original URL.

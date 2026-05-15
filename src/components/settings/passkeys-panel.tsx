@@ -62,7 +62,7 @@ export function PasskeysPanelContent({
 	if (!supported) {
 		return (
 			<Alert>
-				<AlertTitle>Passkeys aren't supported here</AlertTitle>
+				<AlertTitle>Passkeys Aren't Supported Here</AlertTitle>
 				<AlertDescription>
 					This browser doesn't expose the WebAuthn API. Try a recent version of Safari, Chrome, Firefox, or Edge.
 				</AlertDescription>
@@ -74,7 +74,7 @@ export function PasskeysPanelContent({
 		<div className="space-y-4">
 			<form onSubmit={handleRegister} className="flex flex-col gap-2 sm:flex-row sm:items-end rounded-md border p-3">
 				<div className="flex-1 grid gap-1">
-					<Label htmlFor="new-passkey-name">Add a passkey</Label>
+					<Label htmlFor="new-passkey-name">Add a Passkey</Label>
 					<Input
 						id="new-passkey-name"
 						value={newName}
@@ -92,7 +92,7 @@ export function PasskeysPanelContent({
 
 			{error && (
 				<Alert variant="destructive">
-					<AlertTitle>Couldn't update passkeys</AlertTitle>
+					<AlertTitle>Couldn't Update Passkeys</AlertTitle>
 					<AlertDescription>{error}</AlertDescription>
 				</Alert>
 			)}
@@ -205,7 +205,7 @@ function PasskeyRow({
 			<AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Remove this passkey?</AlertDialogTitle>
+						<AlertDialogTitle>Remove This Passkey?</AlertDialogTitle>
 						<AlertDialogDescription>
 							The device that registered this passkey won't be able to sign in with it anymore. You can always add a new one later.
 						</AlertDialogDescription>

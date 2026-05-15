@@ -78,7 +78,7 @@ export function ImportSettingsForm() {
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="importEnabled" className="text-base">
-						Enable bulk import
+						Enable Bulk Import
 					</Label>
 					<p className="text-sm text-muted-foreground">
 						Master switch for the bulk-import flow on the list-edit page. While off, the parse + bulk-create server functions reject and the
@@ -95,7 +95,7 @@ export function ImportSettingsForm() {
 
 			<NumberField
 				id="scrapeQueueUsersPerInvocation"
-				label="Users per cron invocation"
+				label="Users per Cron Invocation"
 				hint="How many distinct users a single scrape-queue cron tick processes before bailing for the next tick."
 				value={settings.scrapeQueueUsersPerInvocation}
 				min={1}
@@ -105,7 +105,7 @@ export function ImportSettingsForm() {
 			/>
 			<NumberField
 				id="scrapeQueueConcurrency"
-				label="Per-user concurrency"
+				label="Per-User Concurrency"
 				hint="Max parallel jobs PER USER inside one cron tick. Doubles as the LIMIT on the per-user pull."
 				value={settings.scrapeQueueConcurrency}
 				min={1}
@@ -115,7 +115,7 @@ export function ImportSettingsForm() {
 			/>
 			<NumberField
 				id="scrapeQueueMaxAttempts"
-				label="Max attempts per job"
+				label="Max Attempts per Job"
 				hint="Number of attempts before a job flips to failed. Failed jobs are retained for diagnostics."
 				value={settings.scrapeQueueMaxAttempts}
 				min={1}

@@ -15,7 +15,7 @@ export function CronDeploymentBanner() {
 	return (
 		<Alert>
 			<Triangle className="size-4" />
-			<AlertTitle>Schedules are managed in vercel.json</AlertTitle>
+			<AlertTitle>Schedules Are Managed in vercel.json</AlertTitle>
 			<AlertDescription>
 				This deployment is on Vercel, where cron schedules are read from <code>vercel.json</code> at deploy time and cannot be edited from
 				the dashboard. To change a schedule, update the file and redeploy. Hobby tier supports daily-only schedules; Pro unlocks any cron

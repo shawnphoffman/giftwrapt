@@ -119,7 +119,7 @@ export default function ImportData() {
 
 			{parseError && (
 				<Alert variant="destructive">
-					<AlertTitle>Invalid backup file</AlertTitle>
+					<AlertTitle>Invalid Backup File</AlertTitle>
 					<AlertDescription>{parseError}</AlertDescription>
 				</Alert>
 			)}
@@ -155,7 +155,7 @@ export default function ImportData() {
 							<label className="flex items-start gap-3 rounded-md border p-3 cursor-pointer hover:bg-muted/40">
 								<RadioGroupItem value="wipe" id="mode-wipe" className="mt-0.5" />
 								<div className="space-y-0.5">
-									<div className="text-sm font-medium">Wipe and restore</div>
+									<div className="text-sm font-medium">Wipe and Restore</div>
 									<div className="text-xs text-muted-foreground">
 										Delete all existing app data (including every user and all sessions), then insert rows from the backup. You will be
 										signed out and will need to re-authenticate.

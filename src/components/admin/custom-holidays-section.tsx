@@ -272,7 +272,7 @@ function AddFromCatalogDialog() {
 			</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Add holiday from catalog</DialogTitle>
+					<DialogTitle>Add Holiday From Catalog</DialogTitle>
 					<DialogDescription>Curated gift-giving holidays for the supported countries.</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-3">
@@ -353,7 +353,7 @@ function AddCustomDialog() {
 			</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Add custom holiday</DialogTitle>
+					<DialogTitle>Add Custom Holiday</DialogTitle>
 					<DialogDescription>Define a holiday with a fixed date. Annual recurrence is the default.</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-3">

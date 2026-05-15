@@ -82,7 +82,7 @@ function AdminPage() {
 					</ClientOnly>
 					<div className="space-y-3 border-t border-border pt-6">
 						<div className="space-y-0.5">
-							<h3 className="text-base font-medium">Available holidays</h3>
+							<h3 className="text-base font-medium">Available Holidays</h3>
 							<p className="text-sm text-muted-foreground">
 								The set of holidays users can pick when creating a holiday-typed list. Add from the bundled gift-giving catalog or define
 								your own. Deleting an in-use holiday converts its lists to the default list type without clearing claims.

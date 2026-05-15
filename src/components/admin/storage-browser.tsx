@@ -126,7 +126,7 @@ export function StorageBrowser() {
 				open={bulkDialogOpen}
 				onOpenChange={setBulkDialogOpen}
 				destructive
-				title="Delete all orphans?"
+				title="Delete All Orphans?"
 				description={
 					dryRunCount === null
 						? 'Loading…'
