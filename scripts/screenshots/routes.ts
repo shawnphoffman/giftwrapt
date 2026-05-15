@@ -16,8 +16,36 @@ import type { RouteDef } from './types'
 // distinguishing axis (gifter view, view-only, guardianship, dependent,
 // restricted, sparse). Showing every user's wishlist is repetitive.
 
+const DIALOG = '[data-slot="dialog-content"]'
+
 const clickReorderTab = async (page: Page) => {
 	await page.getByRole('button', { name: 'Reorder' }).click()
+}
+
+const waitForDialog = async (page: Page) => {
+	await page.locator(DIALOG).first().waitFor({ state: 'visible' })
+}
+
+const openClaimDialog = async (page: Page) => {
+	await page.getByRole('button', { name: 'Claim', exact: true }).first().click()
+	await waitForDialog(page)
+}
+
+const openItemEditDialog = async (page: Page) => {
+	await page.getByRole('button', { name: 'Item actions' }).first().click()
+	await page.getByRole('menuitem', { name: 'Edit' }).first().click()
+	await waitForDialog(page)
+}
+
+const openGroupEditDialog = async (page: Page) => {
+	await page.getByRole('button', { name: 'Group actions' }).first().click()
+	await page.getByRole('menuitem', { name: 'Edit' }).first().click()
+	await waitForDialog(page)
+}
+
+const openListSettingsSheet = async (page: Page) => {
+	await page.getByRole('button', { name: 'List settings' }).first().click()
+	await page.locator('[data-slot="sheet-content"]').first().waitFor({ state: 'visible' })
 }
 
 export const ROUTES: ReadonlyArray<RouteDef> = [
@@ -36,6 +64,8 @@ export const ROUTES: ReadonlyArray<RouteDef> = [
 	// ----------------------------------------------------------------
 	{ slug: 'all-lists', label: 'All Lists', path: '/' },
 	{ slug: 'my-lists', label: 'My Lists', path: '/me' },
+	{ slug: 'me-create-list-dialog', label: 'My Lists: create-list dialog', path: '/me#new', waitFor: DIALOG },
+	{ slug: 'me-add-item-dialog', label: 'My Lists: add-item dialog', path: '/me#add-item', waitFor: DIALOG },
 	{ slug: 'suggestions', label: 'My Suggestions', path: '/suggestions' },
 
 	{ slug: 'settings-profile', label: 'Settings (Profile)', path: '/settings' },
@@ -64,6 +94,24 @@ export const ROUTES: ReadonlyArray<RouteDef> = [
 		path: ids => `/lists/${ids.lists.adminWishlist}/organize`,
 		prep: clickReorderTab,
 	},
+	{
+		slug: 'list-admin-wishlist-edit-item-dialog',
+		label: 'Admin wishlist: edit-item dialog',
+		path: ids => `/lists/${ids.lists.adminWishlist}/edit`,
+		prep: openItemEditDialog,
+	},
+	{
+		slug: 'list-admin-wishlist-group-edit-dialog',
+		label: 'Admin wishlist: group-edit dialog',
+		path: ids => `/lists/${ids.lists.adminWishlist}/edit`,
+		prep: openGroupEditDialog,
+	},
+	{
+		slug: 'list-admin-wishlist-settings-sheet',
+		label: 'Admin wishlist: list-settings sheet',
+		path: ids => `/lists/${ids.lists.adminWishlist}/edit`,
+		prep: openListSettingsSheet,
+	},
 	{ slug: 'list-admin-christmas', label: 'Admin christmas list', path: ids => `/lists/${ids.lists.adminChristmas}` },
 	{ slug: 'list-admin-birthday', label: 'Admin birthday list', path: ids => `/lists/${ids.lists.adminBirthday}` },
 	{ slug: 'list-admin-todos', label: 'Admin todos', path: ids => `/lists/${ids.lists.adminTodos}` },
@@ -82,6 +130,12 @@ export const ROUTES: ReadonlyArray<RouteDef> = [
 		path: ids => `/lists/${ids.lists.partnerWishlist}/edit`,
 	},
 	{ slug: 'list-gifter-wishlist', label: "Gifter's wishlist (view-only mode)", path: ids => `/lists/${ids.lists.gifterWishlist}` },
+	{
+		slug: 'list-gifter-wishlist-claim-dialog',
+		label: "Gifter's wishlist: claim-gift dialog",
+		path: ids => `/lists/${ids.lists.gifterWishlist}`,
+		prep: openClaimDialog,
+	},
 	{ slug: 'list-nobday-wishlist', label: "Nobday's sparse wishlist", path: ids => `/lists/${ids.lists.nobdayWishlist}` },
 	{ slug: 'list-child-wishlist', label: "Child's wishlist (admin via guardianship)", path: ids => `/lists/${ids.lists.childWishlist}` },
 	{
@@ -115,6 +169,7 @@ export const ROUTES: ReadonlyArray<RouteDef> = [
 	{ slug: 'admin-data', label: 'Admin: data', path: '/admin/data' },
 	{ slug: 'admin-scheduling', label: 'Admin: scheduling', path: '/admin/scheduling' },
 	{ slug: 'admin-storage', label: 'Admin: storage', path: '/admin/storage' },
+	// { slug: 'admin-debug', label: 'Admin: debug', path: '/admin/debug' },
 
 	// Intelligence admin
 	{ slug: 'admin-intelligence', label: 'Admin: intelligence', path: '/admin/intelligence' },
