@@ -483,7 +483,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	appTitle: 'GiftWrapt',
 	enableChristmasLists: true,
 	enableBirthdayLists: true,
-	enableTodoLists: true,
+	enableTodoLists: false,
 	enableGenericHolidayLists: true,
 	defaultListType: 'wishlist',
 	archiveDaysAfterBirthday: 14,
