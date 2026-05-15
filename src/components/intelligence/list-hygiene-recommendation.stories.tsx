@@ -56,6 +56,20 @@ export const WrongPrimaryForEvent: Story = {
 	args: { rec: listHygieneRecsByKind.wrongPrimary },
 }
 
+// === Duplicate-event-lists merge (phase 2) ===
+
+export const MergeTwoWishlists: Story = {
+	args: { rec: listHygieneRecsByKind.mergeTwoWishlists },
+}
+
+export const MergeThreeWishlists: Story = {
+	args: { rec: listHygieneRecsByKind.mergeThreeWishlists },
+}
+
+export const MergeHolidayCluster: Story = {
+	args: { rec: listHygieneRecsByKind.mergeHolidayCluster },
+}
+
 // === States ===
 
 export const ConvertDismissed: Story = {

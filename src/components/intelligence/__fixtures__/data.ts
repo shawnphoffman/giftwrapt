@@ -690,6 +690,139 @@ const recWrongPrimaryForEvent: Recommendation = {
 	relatedLists: [targetBirthdayList],
 }
 
+// === Duplicate-event-lists merge recs (phase 2) ===
+// Two-list wishlist cluster: older list forgotten (last touched > 1y),
+// newer one created last week.
+const mergeSurvivorWishlist: ListRef = {
+	id: 'list-wish-keep',
+	name: 'New Wishlist',
+	type: 'wishlist',
+	isPrivate: false,
+	subject: userSubject,
+}
+const mergeSourceWishlist: ListRef = {
+	id: 'list-wish-old',
+	name: 'Old Wishlist',
+	type: 'wishlist',
+	isPrivate: false,
+	subject: userSubject,
+}
+const mergeExtraSourceWishlist: ListRef = {
+	id: 'list-wish-old-2',
+	name: 'Wishlist 2024',
+	type: 'wishlist',
+	isPrivate: false,
+	subject: userSubject,
+}
+
+const recMergeTwoWishlists: Recommendation = {
+	id: 'rec-hygiene-merge-2',
+	analyzerId: 'list-hygiene' as Recommendation['analyzerId'],
+	kind: 'duplicate-event-lists',
+	severity: 'suggest',
+	status: 'active',
+	title: 'Merge 1 older list into "New Wishlist"',
+	body: 'You have 2 active wishlists. "New Wishlist" was created most recently; the older one hasn\'t been touched in over a year. Merging moves items into the newer list and archives the older one.',
+	createdAt: hoursAgo(1),
+	actions: [
+		{
+			label: 'Merge into newest',
+			description:
+				'Moves items, item groups, and list addons onto the newer list. Older lists are archived (reversible), not deleted; existing claims follow the items.',
+			intent: 'do',
+			apply: {
+				kind: 'merge-lists',
+				survivorListId: mergeSurvivorWishlist.id,
+				sourceListIds: [mergeSourceWishlist.id],
+			},
+		},
+	],
+	affected: {
+		noun: 'list',
+		count: 2,
+		lines: [mergeSurvivorWishlist.name, mergeSourceWishlist.name],
+		listChips: [mergeSurvivorWishlist, mergeSourceWishlist],
+	},
+	relatedLists: [mergeSurvivorWishlist],
+}
+
+const recMergeThreeWishlists: Recommendation = {
+	id: 'rec-hygiene-merge-3',
+	analyzerId: 'list-hygiene' as Recommendation['analyzerId'],
+	kind: 'duplicate-event-lists',
+	severity: 'suggest',
+	status: 'active',
+	title: 'Merge 2 older lists into "New Wishlist"',
+	body: 'You have 3 active wishlists. "New Wishlist" was created most recently; the older ones haven\'t been touched in over a year. Merging moves items into the newer list and archives the older ones.',
+	createdAt: hoursAgo(1),
+	actions: [
+		{
+			label: 'Merge into newest',
+			description:
+				'Moves items, item groups, and list addons onto the newer list. Older lists are archived (reversible), not deleted; existing claims follow the items.',
+			intent: 'do',
+			apply: {
+				kind: 'merge-lists',
+				survivorListId: mergeSurvivorWishlist.id,
+				sourceListIds: [mergeSourceWishlist.id, mergeExtraSourceWishlist.id],
+			},
+		},
+	],
+	affected: {
+		noun: 'list',
+		count: 3,
+		lines: [mergeSurvivorWishlist.name, mergeSourceWishlist.name, mergeExtraSourceWishlist.name],
+		listChips: [mergeSurvivorWishlist, mergeSourceWishlist, mergeExtraSourceWishlist],
+	},
+	relatedLists: [mergeSurvivorWishlist],
+}
+
+const mergeSurvivorEaster: ListRef = {
+	id: 'list-easter-new',
+	name: 'Easter 2026',
+	type: 'holiday',
+	isPrivate: false,
+	subject: userSubject,
+}
+const mergeSourceEaster: ListRef = {
+	id: 'list-easter-old',
+	name: 'Easter 2025',
+	type: 'holiday',
+	isPrivate: false,
+	subject: userSubject,
+}
+
+const recMergeHolidayCluster: Recommendation = {
+	id: 'rec-hygiene-merge-holiday',
+	analyzerId: 'list-hygiene' as Recommendation['analyzerId'],
+	kind: 'duplicate-event-lists',
+	severity: 'suggest',
+	status: 'active',
+	title: 'Merge 1 older list into "Easter 2026"',
+	body: 'You have 2 active holiday lists. "Easter 2026" was created most recently; the older one hasn\'t been touched in over a year. Merging moves items into the newer list and archives the older one.',
+	createdAt: hoursAgo(1),
+	actions: [
+		{
+			label: 'Merge into newest',
+			description:
+				'Moves items, item groups, and list addons onto the newer list. Older lists are archived (reversible), not deleted; existing claims follow the items.',
+			intent: 'do',
+			apply: {
+				kind: 'merge-lists',
+				survivorListId: mergeSurvivorEaster.id,
+				sourceListIds: [mergeSourceEaster.id],
+			},
+		},
+	],
+	affected: {
+		noun: 'list',
+		count: 2,
+		lines: [mergeSurvivorEaster.name, mergeSourceEaster.name],
+		listChips: [mergeSurvivorEaster, mergeSourceEaster],
+	},
+	relatedLists: [mergeSurvivorEaster],
+}
+
 // Map kept around for stories that want to look up by kind.
 export const listHygieneRecsByKind = {
 	convertBirthday: recConvertPublicForBirthday,
@@ -699,6 +832,9 @@ export const listHygieneRecsByKind = {
 	createEventList: recCreateEventList,
 	createEventListDependent: recCreateEventListDependent,
 	wrongPrimary: recWrongPrimaryForEvent,
+	mergeTwoWishlists: recMergeTwoWishlists,
+	mergeThreeWishlists: recMergeThreeWishlists,
+	mergeHolidayCluster: recMergeHolidayCluster,
 }
 
 void wishlistPrimary // referenced by storybook decorators that pull from this module

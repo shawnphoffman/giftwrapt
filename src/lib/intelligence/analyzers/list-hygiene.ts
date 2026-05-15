@@ -24,15 +24,30 @@
 //      Dependent runs skip this branch — `lists.isPrimary` is per-owner,
 //      not per-(owner, dependent).
 
-import { and, asc, desc, eq, isNull, ne } from 'drizzle-orm'
+import { and, asc, count, desc, eq, inArray, isNull, ne } from 'drizzle-orm'
 
-import { lists } from '@/db/schema'
+import { items, lists } from '@/db/schema'
 import type { ListType } from '@/db/schema/enums'
+import { SPOILER_PROTECTED_TYPES } from '@/lib/list-type-moves'
 
 import type { Analyzer } from '../analyzer'
 import { combineHashes, sha256Hex } from '../hash'
 import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ListRef } from '../types'
 import { eventIsCovered, getInWindowEventsForSubject, type InWindowEvent } from '../upcoming-events'
+
+// Threshold the older list in a candidate duplicate pair must clear: if
+// its `updatedAt` is within this window, the list is considered "still
+// in active use" and the pair is not surfaced as a duplicate. 365 days
+// is a hardcoded constant so we don't surface noisy near-duplicates the
+// owner is actively managing; promote to a setting if operators ask.
+const DUPLICATE_FORGOTTEN_AGE_MS = 365 * 24 * 60 * 60 * 1000
+
+// Types eligible for `merge-lists` apply. Mirrors
+// `SPOILER_PROTECTED_TYPES` plus `holiday` (holiday-to-holiday merges
+// are safe iff `customHolidayId` matches on both sides). The
+// `isCrossTypeMoveDestructive` assertion in the apply branch ensures
+// claims survive every merge this analyzer proposes.
+const MERGE_ELIGIBLE_TYPES: ReadonlySet<ListType> = new Set([...SPOILER_PROTECTED_TYPES, 'holiday'])
 
 // ─── Rename rule ────────────────────────────────────────────────────────────
 // Deterministic: if the existing name contains an event-themed token OR a
@@ -131,6 +146,7 @@ export const listHygieneAnalyzer: Analyzer = {
 				isPrivate: lists.isPrivate,
 				isActive: lists.isActive,
 				customHolidayId: lists.customHolidayId,
+				createdAt: lists.createdAt,
 				updatedAt: lists.updatedAt,
 			})
 			.from(lists)
@@ -147,29 +163,57 @@ export const listHygieneAnalyzer: Analyzer = {
 		const listsStep: AnalyzerStep = { name: 'load-lists', latencyMs: Date.now() - t0 }
 		steps.push(listsStep)
 
-		// Cheap pre-bail: events empty (calendar quiet) OR no events whose
-		// canonical type is even allowed by tenant settings.
-		if (events.length === 0) {
-			return {
-				recs: [],
-				steps,
-				inputHash: combineHashes([sha256Hex(`list-hygiene|no-events`)]),
-			}
-		}
+		// Per-list non-archived, non-pending-deletion item count. Used by the
+		// duplicates pass to require both clusters' lists to have at least
+		// one "real" item (empty lists are the delete/archive surface, not
+		// the merge surface). `items.isArchived` is recipient-controlled
+		// and therefore safe to read here; we never read `giftedItems`.
+		const itemCountRows =
+			subjectLists.length > 0
+				? await ctx.db
+						.select({ listId: items.listId, n: count(items.id) })
+						.from(items)
+						.where(
+							and(
+								inArray(
+									items.listId,
+									subjectLists.map(l => l.id)
+								),
+								eq(items.isArchived, false),
+								isNull(items.pendingDeletionAt)
+							)
+						)
+						.groupBy(items.listId)
+				: []
+		const itemCountByList = new Map<number, number>(itemCountRows.map(r => [r.listId, Number(r.n)]))
+		steps.push({ name: 'load-item-counts', latencyMs: Date.now() - t0 })
 
-		// Stable input hash slice: events x list-shape. Don't include
-		// `updatedAt` here — we don't want the analyzer to re-run cache
-		// just because a list got touched. We include each list's id +
-		// type + customHolidayId + isPrimary + isPrivate.
+		// Stable input hash slice: events x list-shape + duplicate-cluster
+		// shape. Don't include `updatedAt` directly — we don't want the
+		// analyzer to re-run cache just because a list got touched — but
+		// we DO bucket `createdAt` to the day so a freshly-created list
+		// joining a cluster invalidates the hash.
 		const eventsSlice = events.map(e => `${e.kind}:${e.occurrenceISO}:${'customHolidayId' in e ? e.customHolidayId : ''}`).join(',')
 		const listsSlice = subjectLists
-			.map(l => `${l.id}:${l.type}:${l.customHolidayId ?? ''}:${l.isPrimary ? 1 : 0}:${l.isPrivate ? 1 : 0}`)
+			.map(l => {
+				const createdDay = Math.floor(l.createdAt.getTime() / 86_400_000)
+				const hasItems = (itemCountByList.get(l.id) ?? 0) > 0 ? 1 : 0
+				return `${l.id}:${l.type}:${l.customHolidayId ?? ''}:${l.isPrimary ? 1 : 0}:${l.isPrivate ? 1 : 0}:${createdDay}:${hasItems}`
+			})
 			.sort()
 			.join(',')
 		const inputHash = sha256Hex(`list-hygiene|${ctx.dependentId ?? 'user'}|events=${eventsSlice}|lists=${listsSlice}`)
 
 		const recs: Array<AnalyzerRecOutput> = []
 		const subject = subjectListRef(ctx.subject)
+
+		// Calendar-quiet case: the per-event branches have nothing to do
+		// but the duplicates pass can still fire on its own.
+		if (events.length === 0) {
+			const clusters = findDuplicateClusters({ subjectLists, itemCountByList, now: ctx.now })
+			for (const cluster of clusters) recs.push(buildMergeRec({ cluster, subject }))
+			return { recs, steps, inputHash: combineHashes([inputHash]) }
+		}
 
 		for (const event of events) {
 			const canonicalType = canonicalTypeForEvent(event)
@@ -278,6 +322,14 @@ export const listHygieneAnalyzer: Analyzer = {
 				}
 			}
 		}
+
+		// === Duplicates pass (independent of the per-event loop) ===
+		// Surfaces clusters of same-type (and matching-customHolidayId for
+		// holiday) lists where the older list looks forgotten relative to
+		// the newer one. Restricted to types whose claims can survive a
+		// merge — see MERGE_ELIGIBLE_TYPES.
+		const clusters = findDuplicateClusters({ subjectLists, itemCountByList, now: ctx.now })
+		for (const cluster of clusters) recs.push(buildMergeRec({ cluster, subject }))
 
 		return {
 			recs,
@@ -480,5 +532,142 @@ function prettyListType(type: ListType): string {
 			return 'todo'
 		case 'test':
 			return 'test'
+	}
+}
+// ─── Duplicate clustering ───────────────────────────────────────────────────
+
+export type DuplicateListRow = {
+	id: number
+	name: string
+	type: ListType
+	isPrimary: boolean
+	isPrivate: boolean
+	customHolidayId: string | null
+	createdAt: Date
+	updatedAt: Date
+}
+
+export type DuplicateCluster = {
+	type: ListType
+	customHolidayId: string | null
+	survivor: DuplicateListRow
+	sources: ReadonlyArray<DuplicateListRow>
+}
+
+// Pure helper, exported for unit tests. Groups subjectLists into clusters
+// where:
+//   - All members share the same `type` (and same `customHolidayId` when
+//     `type='holiday'`).
+//   - Members' type is in `MERGE_ELIGIBLE_TYPES` (claim-preserving).
+//   - Every member has at least one non-archived, non-pending-deletion
+//     item (per the `itemCountByList` map).
+//   - The OLDEST member (by `createdAt`) has `updatedAt` more than
+//     `DUPLICATE_FORGOTTEN_AGE_MS` ago, so the cluster looks forgotten
+//     rather than actively co-managed.
+// Survivor selection within a cluster:
+//   1. newest `createdAt`
+//   2. tie -> `isPrimary=true` wins
+//   3. tie -> highest `updatedAt` wins
+//   4. tie -> lowest `id` wins (stable for tests).
+export function findDuplicateClusters(args: {
+	subjectLists: ReadonlyArray<DuplicateListRow>
+	itemCountByList: ReadonlyMap<number, number>
+	now: Date
+}): Array<DuplicateCluster> {
+	const { subjectLists, itemCountByList, now } = args
+	const forgottenCutoff = now.getTime() - DUPLICATE_FORGOTTEN_AGE_MS
+
+	// Bucket by (type, customHolidayId-or-null). Only merge-eligible
+	// types reach the bucketing step. Lists with zero non-archived,
+	// non-pending-deletion items are excluded (empty lists are out).
+	const buckets = new Map<string, Array<DuplicateListRow>>()
+	for (const list of subjectLists) {
+		if (!MERGE_ELIGIBLE_TYPES.has(list.type)) continue
+		if ((itemCountByList.get(list.id) ?? 0) === 0) continue
+		// Holiday clusters require a non-null customHolidayId on both sides
+		// so the apply branch's matching check never has to handle null.
+		if (list.type === 'holiday' && list.customHolidayId === null) continue
+		const key = `${list.type}|${list.customHolidayId ?? ''}`
+		const arr = buckets.get(key) ?? []
+		arr.push(list)
+		buckets.set(key, arr)
+	}
+
+	const clusters: Array<DuplicateCluster> = []
+	for (const [, bucket] of buckets) {
+		if (bucket.length < 2) continue
+		// Oldest by createdAt; ties broken by lowest id for stability.
+		const oldest = bucket.reduce((acc, l) => {
+			if (l.createdAt.getTime() < acc.createdAt.getTime()) return l
+			if (l.createdAt.getTime() === acc.createdAt.getTime() && l.id < acc.id) return l
+			return acc
+		})
+		if (oldest.updatedAt.getTime() > forgottenCutoff) continue
+		const sorted = [...bucket].sort((a, b) => {
+			// Newest createdAt first.
+			if (a.createdAt.getTime() !== b.createdAt.getTime()) {
+				return b.createdAt.getTime() - a.createdAt.getTime()
+			}
+			// isPrimary wins.
+			if (a.isPrimary !== b.isPrimary) return a.isPrimary ? -1 : 1
+			// Highest updatedAt.
+			if (a.updatedAt.getTime() !== b.updatedAt.getTime()) {
+				return b.updatedAt.getTime() - a.updatedAt.getTime()
+			}
+			// Lowest id (stable test order).
+			return a.id - b.id
+		})
+		const survivor = sorted[0]
+		const sources = sorted.slice(1)
+		clusters.push({ type: survivor.type, customHolidayId: survivor.customHolidayId, survivor, sources })
+	}
+
+	// Stable cluster order for deterministic rec output.
+	clusters.sort((a, b) => {
+		if (a.type !== b.type) return a.type.localeCompare(b.type)
+		const aKey = a.customHolidayId ?? ''
+		const bKey = b.customHolidayId ?? ''
+		if (aKey !== bKey) return aKey.localeCompare(bKey)
+		return a.survivor.id - b.survivor.id
+	})
+	return clusters
+}
+
+function buildMergeRec(args: { cluster: DuplicateCluster; subject: SubjectListSummary }): AnalyzerRecOutput {
+	const { cluster, subject } = args
+	const { survivor, sources, type, customHolidayId } = cluster
+	const all = [survivor, ...sources]
+	const survivorRef = listRefFor(survivor, subject)
+	const listChips = all.map(l => listRefFor(l, subject))
+	const sourceCountWord = sources.length === 1 ? '1 older list' : `${sources.length} older lists`
+	const olderText = sources.length === 1 ? "the older one hasn't" : "the older ones haven't"
+	const title = `Merge ${sourceCountWord} into "${survivor.name}"`
+	const body = `You have ${all.length} active ${prettyListType(type)} lists. "${survivor.name}" was created most recently; ${olderText} been touched in over a year. Merging moves items into the newer list and archives the older one${sources.length === 1 ? '' : 's'}.`
+	return {
+		kind: 'duplicate-event-lists',
+		severity: 'suggest',
+		title,
+		body,
+		actions: [
+			{
+				label: 'Merge into newest',
+				description:
+					'Moves items, item groups, and list addons onto the newer list. Older lists are archived (reversible), not deleted; existing claims follow the items.',
+				intent: 'do',
+				apply: {
+					kind: 'merge-lists',
+					survivorListId: String(survivor.id),
+					sourceListIds: sources.map(s => String(s.id)),
+				},
+			},
+		],
+		affected: {
+			noun: 'list',
+			count: all.length,
+			lines: all.map(l => l.name),
+			listChips,
+		},
+		relatedLists: [survivorRef],
+		fingerprintTargets: ['duplicate-event-lists', type, customHolidayId ?? '', ...all.map(l => String(l.id)).sort()],
 	}
 }

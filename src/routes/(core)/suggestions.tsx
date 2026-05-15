@@ -145,6 +145,10 @@ function applyErrorMessage(reason: Exclude<ApplyRecommendationResult, { ok: true
 			return "Children can't create gift-ideas lists."
 		case 'no-change':
 			return 'Nothing to change — the list is already in the requested shape.'
+		case 'merge-cluster-mismatch':
+			return 'These lists changed since the suggestion was made. Refresh to see the latest.'
+		case 'merge-cross-type-destructive':
+			return "These lists can't be safely merged anymore. Refresh to see the latest."
 	}
 }
 

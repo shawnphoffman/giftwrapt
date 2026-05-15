@@ -81,6 +81,14 @@ export async function makeList(tx: Tx, overrides: Partial<typeof lists.$inferIns
 			holidayKey: overrides.holidayKey ?? null,
 			customHolidayId: overrides.customHolidayId ?? null,
 			lastHolidayArchiveAt: overrides.lastHolidayArchiveAt ?? null,
+			// Honor explicit createdAt/updatedAt so tests can fabricate old
+			// rows (e.g. the list-hygiene duplicate-clusters predicate keys
+			// off `createdAt` + `updatedAt`). Drizzle's $onUpdate trigger
+			// would overwrite an explicit updatedAt on a future update; the
+			// tests that care reload the row directly without going through
+			// an update path.
+			...(overrides.createdAt !== undefined ? { createdAt: overrides.createdAt } : {}),
+			...(overrides.updatedAt !== undefined ? { updatedAt: overrides.updatedAt } : {}),
 		})
 		.returning()
 	return row

@@ -13,11 +13,19 @@ import { giftedItems, itemComments, itemGroups, items, lists, users } from '@/db
 import { availabilityEnumValues, type ListType, type Priority, priorityEnumValues } from '@/db/schema/enums'
 import type { GiftedItem } from '@/db/schema/gifts'
 import type { Item } from '@/db/schema/items'
+import { isCrossTypeMoveDestructive, SPOILER_PROTECTED_TYPES } from '@/lib/list-type-moves'
 import { canEditList, canViewList, getViewerAccessLevelForList } from '@/lib/permissions'
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { getVendorFromUrl } from '@/lib/urls'
 import { notifyListEvent } from '@/routes/api/sse/list.$listId'
+
+// Re-exported for callers that already import from this module (mirrors
+// the previous local definition). The predicate itself lives in
+// src/lib/list-type-moves.ts so the intelligence merge-lists apply
+// branch can import it without pulling this file's SSE / storage /
+// restricted-filter imports.
+export { isCrossTypeMoveDestructive, SPOILER_PROTECTED_TYPES }
 
 // ===============================
 // Public types
@@ -189,14 +197,6 @@ async function assertCanEditItems(
 	const edit = await canEditList(userId, list, dbx)
 	if (!edit.ok) return { ok: false, reason: 'not-authorized' }
 	return { ok: true }
-}
-
-const SPOILER_PROTECTED_TYPES: ReadonlySet<ListType> = new Set(['wishlist', 'christmas', 'birthday'])
-
-function isCrossTypeMoveDestructive(sourceType: ListType, targetType: ListType): boolean {
-	if (sourceType === targetType) return false
-	if (SPOILER_PROTECTED_TYPES.has(sourceType) && SPOILER_PROTECTED_TYPES.has(targetType)) return false
-	return true
 }
 
 type ItemRow = { id: number; listId: number }

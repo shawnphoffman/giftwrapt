@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, asc, count, desc, eq, gt, inArray, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, gt, inArray, isNull, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db, type SchemaDatabase } from '@/db'
@@ -10,6 +10,7 @@ import {
 	giftedItems,
 	itemGroups,
 	items,
+	listAddons,
 	lists,
 	recommendationRuns,
 	recommendations,
@@ -19,6 +20,7 @@ import {
 import { listTypeEnumValues } from '@/db/schema/enums'
 import { resolveAiConfig } from '@/lib/ai-config'
 import { generateForUser } from '@/lib/intelligence/runner'
+import { isCrossTypeMoveDestructive } from '@/lib/list-type-moves'
 import { loggingMiddleware } from '@/lib/logger'
 import { canEditList } from '@/lib/permissions'
 import { intelligenceRefreshLimiter } from '@/lib/rate-limits'
@@ -353,6 +355,12 @@ const createListApplySchema = z.object({
 	subjectDependentId: z.string().nullable().optional(),
 })
 
+const mergeListsApplySchema = z.object({
+	kind: z.literal('merge-lists'),
+	survivorListId: z.string(),
+	sourceListIds: z.array(z.string()).min(1),
+})
+
 const applyInputSchema = z.object({
 	id: z.uuid(),
 	apply: z.discriminatedUnion('kind', [
@@ -362,6 +370,7 @@ const applyInputSchema = z.object({
 		convertListApplySchema,
 		changeListPrivacyApplySchema,
 		createListApplySchema,
+		mergeListsApplySchema,
 	]),
 })
 
@@ -372,6 +381,7 @@ export type ApplyRecommendationResult =
 	| { ok: true; kind: 'convert-list'; listId: string }
 	| { ok: true; kind: 'change-list-privacy'; listId: string }
 	| { ok: true; kind: 'create-list'; listId: string; setPrimary: boolean }
+	| { ok: true; kind: 'merge-lists'; survivorListId: string; archivedSourceListIds: Array<string> }
 	| {
 			ok: false
 			reason:
@@ -390,6 +400,8 @@ export type ApplyRecommendationResult =
 				| 'not-dependent-guardian'
 				| 'child-cannot-create-gift-ideas'
 				| 'no-change'
+				| 'merge-cluster-mismatch'
+				| 'merge-cross-type-destructive'
 	  }
 
 // Reusable impl that any caller (server fn, integration tests, future
@@ -420,6 +432,8 @@ export async function applyRecommendationImpl(
 			return await applyChangeListPrivacy(tx, userId, input.id, input.apply)
 		case 'create-list':
 			return await applyCreateList(tx, userId, input.id, input.apply)
+		case 'merge-lists':
+			return await applyMergeLists(tx, userId, input.id, input.apply)
 	}
 }
 
@@ -750,6 +764,133 @@ async function applyCreateList(
 
 	await tx.update(recommendations).set({ status: 'applied' }).where(eq(recommendations.id, recId))
 	return { ok: true, kind: 'create-list', listId: String(inserted.id), setPrimary: didSetPrimary }
+}
+
+// Merges one or more source lists into a survivor list. Restricted to
+// spoiler-protected types (wishlist/christmas/birthday) and matching-
+// customHolidayId holiday lists so claims always survive the move.
+// Items, item groups, and list addons are re-pointed at the survivor;
+// `gifted_items` rows point at `item_id` not `list_id` so they ride
+// along implicitly. Source lists are force-archived (isActive=false),
+// not hard-deleted, because pending-deletion items stay on the source
+// list for the orphan-alert flow. See
+// .notes/plans/2026-05-merge-duplicate-event-lists.md for the spec.
+async function applyMergeLists(
+	tx: SchemaDatabase,
+	userId: string,
+	recId: string,
+	apply: z.infer<typeof mergeListsApplySchema>
+): Promise<ApplyRecommendationResult> {
+	const survivorIdNum = Number.parseInt(apply.survivorListId, 10)
+	const sourceIdNums = apply.sourceListIds.map(id => Number.parseInt(id, 10))
+	if (!Number.isFinite(survivorIdNum) || sourceIdNums.some(n => !Number.isFinite(n))) {
+		return { ok: false, reason: 'list-not-found' }
+	}
+	// Survivor must not appear in the source list — would self-merge.
+	if (sourceIdNums.includes(survivorIdNum)) {
+		return { ok: false, reason: 'merge-cluster-mismatch' }
+	}
+
+	// Pull every list in the cluster at once. SELECT FOR UPDATE locks the
+	// rows so a concurrent type-change / archive / delete can't drift the
+	// validation; mirrors the pattern used by claimItemGiftImpl.
+	const clusterIds = [survivorIdNum, ...sourceIdNums]
+	const clusterRows = await tx
+		.select({
+			id: lists.id,
+			ownerId: lists.ownerId,
+			subjectDependentId: lists.subjectDependentId,
+			isPrivate: lists.isPrivate,
+			isActive: lists.isActive,
+			type: lists.type,
+			customHolidayId: lists.customHolidayId,
+		})
+		.from(lists)
+		.where(inArray(lists.id, clusterIds))
+		.for('update')
+	if (clusterRows.length !== clusterIds.length) return { ok: false, reason: 'list-not-found' }
+
+	const survivor = clusterRows.find(l => l.id === survivorIdNum)
+	if (!survivor) return { ok: false, reason: 'list-not-found' }
+	if (!survivor.isActive) return { ok: false, reason: 'list-not-found' }
+	if (survivor.ownerId !== userId) {
+		const editGate = await canEditList(userId, survivor, tx)
+		if (!editGate.ok) return { ok: false, reason: 'cannot-edit' }
+	}
+
+	const sources = clusterRows.filter(l => l.id !== survivorIdNum)
+	for (const src of sources) {
+		// All-or-nothing: any drift on a single source fails the whole apply.
+		if (!src.isActive) return { ok: false, reason: 'merge-cluster-mismatch' }
+		if (src.type !== survivor.type) return { ok: false, reason: 'merge-cluster-mismatch' }
+		if (src.ownerId !== survivor.ownerId) return { ok: false, reason: 'merge-cluster-mismatch' }
+		if (src.subjectDependentId !== survivor.subjectDependentId) {
+			return { ok: false, reason: 'merge-cluster-mismatch' }
+		}
+		// Holiday cluster: customHolidayId must match. For non-holiday types,
+		// customHolidayId is allowed to be null on either side.
+		if (survivor.type === 'holiday' && src.customHolidayId !== survivor.customHolidayId) {
+			return { ok: false, reason: 'merge-cluster-mismatch' }
+		}
+		if (src.ownerId !== userId) {
+			const editGate = await canEditList(userId, src, tx)
+			if (!editGate.ok) return { ok: false, reason: 'cannot-edit' }
+		}
+		// Defense-in-depth assertion: the rec only ever proposes same-type or
+		// matching-customHolidayId merges, so this MUST be false. If it ever
+		// returns true the rec generator drifted and we abort rather than
+		// silently clear claims.
+		if (isCrossTypeMoveDestructive(src.type, survivor.type)) {
+			return { ok: false, reason: 'merge-cross-type-destructive' }
+		}
+	}
+
+	const sourceIdsResolved = sources.map(s => s.id)
+
+	// Step 4: re-point items. Pending-deletion items stay on the source list
+	// because the orphan-alert audience needs them queryable there; the
+	// source list survives the archive in step 8 with these items intact.
+	await tx
+		.update(items)
+		.set({ listId: survivorIdNum })
+		.where(and(inArray(items.listId, sourceIdsResolved), isNull(items.pendingDeletionAt)))
+
+	// Step 5: re-point item groups. `items.groupId` is left as-is so the
+	// group identity (type, priority, sortOrder, members) carries through
+	// unchanged — a critical guarantee because group priority overrides
+	// item priority (logic.md "Items in a group inherit the group's priority").
+	await tx.update(itemGroups).set({ listId: survivorIdNum }).where(inArray(itemGroups.listId, sourceIdsResolved))
+
+	// Step 6: re-point list addons. `listAddons.userId` (the gifter) is
+	// untouched; addon ownership is a gifter-side concept and doesn't
+	// change just because the recipient merged lists.
+	await tx.update(listAddons).set({ listId: survivorIdNum }).where(inArray(listAddons.listId, sourceIdsResolved))
+
+	// Step 7: `gifted_items` survives unmoved. The claim row points at
+	// `item_id`, not `list_id`, so step 4 carries claims to the survivor
+	// implicitly. The split-claim invariant
+	// (SUM(giftedItems.quantity) <= items.quantity) is unaffected because
+	// per-item quantity didn't change.
+
+	// Step 8: force-archive source lists. Not a hard delete: pending-
+	// deletion items still on the source list need the row to stay
+	// queryable for the orphan-alert audience.
+	await tx.update(lists).set({ isActive: false }).where(inArray(lists.id, sourceIdsResolved))
+
+	// Step 9: survivor's lastHolidayArchiveAt is left as-is. The merge
+	// doesn't reset the auto-archive idempotency mark; if the survivor
+	// already had its event archived for this occurrence, the merge
+	// doesn't make those archived items un-revealed.
+
+	// Step 10: flip rec.
+	await tx.update(recommendations).set({ status: 'applied' }).where(eq(recommendations.id, recId))
+
+	return {
+		ok: true,
+		kind: 'merge-lists',
+		survivorListId: String(survivorIdNum),
+		archivedSourceListIds: sourceIdsResolved.map(String),
+	}
 }
 
 export const applyRecommendation = createServerFn({ method: 'POST' })

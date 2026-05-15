@@ -76,6 +76,20 @@ export type RecommendationApply =
 			customHolidayId?: string | null
 			subjectDependentId?: string | null
 	  }
+	| {
+			// Merge one or more source lists into a survivor list. Restricted
+			// to spoiler-protected types (wishlist/christmas/birthday) and
+			// matching-customHolidayId holiday lists so claims always survive
+			// the move (see isCrossTypeMoveDestructive in
+			// src/api/_items-extra-impl.ts). Items, item groups, and list
+			// addons are re-pointed at the survivor; the source lists are
+			// force-archived (isActive=false), not hard-deleted, because
+			// pending-deletion items stay on the source for the orphan-alert
+			// flow.
+			kind: 'merge-lists'
+			survivorListId: string
+			sourceListIds: Array<string>
+	  }
 
 export type RecommendationAction = {
 	label: string
@@ -219,6 +233,11 @@ export const recPayloadSchema = z.object({
 							setAsPrimary: z.boolean(),
 							customHolidayId: z.string().nullable().optional(),
 							subjectDependentId: z.string().nullable().optional(),
+						}),
+						z.object({
+							kind: z.literal('merge-lists'),
+							survivorListId: z.string(),
+							sourceListIds: z.array(z.string()).min(1),
 						}),
 					])
 					.optional(),

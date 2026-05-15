@@ -94,6 +94,16 @@ export type RecommendationApply =
 			customHolidayId?: string | null
 			subjectDependentId?: string | null
 	  }
+	| {
+			// Merge older same-type (and matching-customHolidayId for
+			// holiday) lists into a survivor. Spoiler-safe by construction:
+			// claims follow items implicitly and source lists are archived
+			// (not hard-deleted). See applyRecommendationImpl in
+			// src/api/intelligence.ts for the 10-step transaction.
+			kind: 'merge-lists'
+			survivorListId: string
+			sourceListIds: Array<string>
+	  }
 
 export type RecommendationAction = {
 	label: string // short verb on the button itself: "Merge lists", "Delete items", "Dismiss"
