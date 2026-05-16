@@ -31,10 +31,6 @@ function SecurityPage() {
 				<Separator />
 
 				<section className="space-y-3">
-					<div>
-						<h2 className="text-lg font-semibold">Two-Factor Authentication</h2>
-						<p className="text-sm text-muted-foreground">Use an authenticator app to require a one-time code on every sign-in.</p>
-					</div>
 					<TwoFactorSection />
 				</section>
 

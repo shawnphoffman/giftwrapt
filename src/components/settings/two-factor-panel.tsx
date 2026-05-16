@@ -1,11 +1,22 @@
 import { Eye, EyeOff } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PasswordInput } from '@/components/ui/password-input'
+import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 
 // User-facing state for the 2FA section. Drives the panel's UI:
@@ -44,11 +55,14 @@ const BACKUP_CODE_DELIMITER = '-'
 
 export function TwoFactorPanelContent(props: TwoFactorPanelContentProps) {
 	const { status, enrollment, pendingBackupCodes, error, busy } = props
+	const isEnabled = status === 'enabled'
+	const isEnrolling = status === 'enrolling'
 	return (
 		<div className="space-y-4">
-			{status === 'disabled' && <DisabledView {...props} />}
-			{status === 'enrolling' && enrollment && <EnrollingView {...props} enrollment={enrollment} />}
-			{status === 'enabled' && <EnabledView {...props} />}
+			<TwoFactorHeader status={status} {...props} />
+
+			{isEnrolling && enrollment && <EnrollingView {...props} enrollment={enrollment} />}
+			{isEnabled && <EnabledExtras {...props} />}
 
 			{pendingBackupCodes && pendingBackupCodes.length > 0 && (
 				<BackupCodesPanel codes={pendingBackupCodes} onDismiss={props.onDismissBackupCodes} />
@@ -66,38 +80,50 @@ export function TwoFactorPanelContent(props: TwoFactorPanelContentProps) {
 	)
 }
 
-function DisabledView({ onStartEnrollment, busy }: TwoFactorPanelContentProps) {
-	const [password, setPassword] = useState('')
-	const [submitting, setSubmitting] = useState(false)
-
-	const handle = async (e: React.FormEvent) => {
-		e.preventDefault()
-		setSubmitting(true)
-		try {
-			await onStartEnrollment(password)
-		} finally {
-			setSubmitting(false)
-		}
-	}
+function TwoFactorHeader({ status, onStartEnrollment, onDisable, busy }: TwoFactorPanelContentProps) {
+	const [enableDialogOpen, setEnableDialogOpen] = useState(false)
+	const [disableDialogOpen, setDisableDialogOpen] = useState(false)
+	const checked = status === 'enabled' || status === 'enrolling'
+	const ariaLabel = checked ? 'Disable two-factor authentication' : 'Enable two-factor authentication'
 
 	return (
-		<form onSubmit={handle} className="flex flex-col gap-2 sm:flex-row sm:items-start">
-			<div className="grid gap-2 flex-1">
-				<Label htmlFor="enable-2fa-password">Current Password</Label>
-				<PasswordInput
-					id="enable-2fa-password"
-					value={password}
-					onChange={e => setPassword(e.target.value)}
-					required
-					autoComplete="current-password"
-					disabled={submitting || busy}
+		<>
+			<div className="flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<h2 className="text-lg font-semibold">Two-Factor Authentication</h2>
+					<p className="text-sm text-muted-foreground">Use an authenticator app to require a one-time code on every sign-in.</p>
+				</div>
+				<Switch
+					checked={checked}
+					onCheckedChange={() => {
+						if (busy) return
+						if (checked) setDisableDialogOpen(true)
+						else setEnableDialogOpen(true)
+					}}
+					disabled={busy}
+					aria-label={ariaLabel}
 				/>
-				<p className="text-xs text-muted-foreground">Enter your current password to begin enrollment.</p>
 			</div>
-			<Button type="submit" disabled={submitting || busy || !password} className="sm:mt-7">
-				{submitting ? 'Generating…' : 'Enable two-factor auth'}
-			</Button>
-		</form>
+			<PasswordPromptDialog
+				open={enableDialogOpen}
+				onOpenChange={setEnableDialogOpen}
+				title="Enable two-factor auth"
+				description="Enter your current password to begin enrollment."
+				confirmLabel="Continue"
+				confirmBusyLabel="Generating…"
+				onConfirm={onStartEnrollment}
+			/>
+			<PasswordPromptDialog
+				open={disableDialogOpen}
+				onOpenChange={setDisableDialogOpen}
+				title="Turn off two-factor auth"
+				description="Removes the TOTP requirement and clears all backup codes. Your account will fall back to password-only sign-in."
+				confirmLabel="Disable"
+				confirmBusyLabel="Disabling…"
+				destructive
+				onConfirm={onDisable}
+			/>
+		</>
 	)
 }
 
@@ -195,28 +221,9 @@ function EnrollingView({
 	)
 }
 
-function EnabledView({ onDisable, onRegenerateBackupCodes, busy }: TwoFactorPanelContentProps) {
-	const [disablePassword, setDisablePassword] = useState('')
+function EnabledExtras({ onRegenerateBackupCodes, busy }: TwoFactorPanelContentProps) {
 	const [regenPassword, setRegenPassword] = useState('')
-	const [disabling, setDisabling] = useState(false)
 	const [regenerating, setRegenerating] = useState(false)
-	const [confirmDisable, setConfirmDisable] = useState(false)
-
-	const handleDisable = async (e: React.FormEvent) => {
-		e.preventDefault()
-		if (!confirmDisable) {
-			setConfirmDisable(true)
-			return
-		}
-		setDisabling(true)
-		try {
-			await onDisable(disablePassword)
-			setConfirmDisable(false)
-			setDisablePassword('')
-		} finally {
-			setDisabling(false)
-		}
-	}
 
 	const handleRegen = async (e: React.FormEvent) => {
 		e.preventDefault()
@@ -258,35 +265,89 @@ function EnabledView({ onDisable, onRegenerateBackupCodes, busy }: TwoFactorPane
 					</Button>
 				</div>
 			</form>
+		</div>
+	)
+}
 
-			<form onSubmit={handleDisable} className="space-y-2 rounded-md border border-destructive/30 p-3">
-				<div className="space-y-1">
-					<p className="text-sm font-medium text-destructive">Turn Off Two-Factor Auth</p>
-					<p className="text-xs text-muted-foreground">Removes the TOTP requirement and clears all backup codes.</p>
-				</div>
-				<div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-					<div className="grid gap-2 flex-1">
-						<Label htmlFor="disable-2fa-password">Current Password</Label>
+function PasswordPromptDialog({
+	open,
+	onOpenChange,
+	title,
+	description,
+	confirmLabel,
+	confirmBusyLabel,
+	destructive,
+	onConfirm,
+}: {
+	open: boolean
+	onOpenChange: (open: boolean) => void
+	title: string
+	description: string
+	confirmLabel: string
+	confirmBusyLabel?: string
+	destructive?: boolean
+	// Returns once the server flow finishes. If it throws or the parent's
+	// `error` prop becomes non-null after this resolves, the dialog stays
+	// open so the user can retry; otherwise it closes.
+	onConfirm: (password: string) => Promise<void> | void
+}) {
+	const [password, setPassword] = useState('')
+	const [submitting, setSubmitting] = useState(false)
+
+	useEffect(() => {
+		if (!open) {
+			setPassword('')
+			setSubmitting(false)
+		}
+	}, [open])
+
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault()
+		if (!password || submitting) return
+		setSubmitting(true)
+		try {
+			await onConfirm(password)
+			onOpenChange(false)
+		} finally {
+			setSubmitting(false)
+		}
+	}
+
+	return (
+		<AlertDialog open={open} onOpenChange={onOpenChange}>
+			<AlertDialogContent>
+				<form onSubmit={handleSubmit} className="space-y-4">
+					<AlertDialogHeader>
+						<AlertDialogTitle>{title}</AlertDialogTitle>
+						<AlertDialogDescription>{description}</AlertDialogDescription>
+					</AlertDialogHeader>
+					<div className="grid gap-2">
+						<Label htmlFor="two-factor-prompt-password">Current Password</Label>
 						<PasswordInput
-							id="disable-2fa-password"
-							value={disablePassword}
-							onChange={e => setDisablePassword(e.target.value)}
+							id="two-factor-prompt-password"
+							value={password}
+							onChange={e => setPassword(e.target.value)}
 							required
 							autoComplete="current-password"
-							disabled={disabling || busy}
+							disabled={submitting}
+							autoFocus
 						/>
 					</div>
-					<Button type="submit" variant="destructive" disabled={disabling || busy || !disablePassword}>
-						{disabling ? 'Disabling…' : confirmDisable ? 'Confirm disable' : 'Disable'}
-					</Button>
-				</div>
-				{confirmDisable && (
-					<p className="text-xs text-muted-foreground">
-						Click the button again to confirm. Your account will fall back to password-only sign-in.
-					</p>
-				)}
-			</form>
-		</div>
+					<AlertDialogFooter>
+						<AlertDialogCancel disabled={submitting} type="button">
+							Cancel
+						</AlertDialogCancel>
+						<AlertDialogAction
+							type="submit"
+							disabled={submitting || !password}
+							className={destructive ? 'bg-destructive hover:bg-destructive/90' : undefined}
+						>
+							{submitting ? (confirmBusyLabel ?? 'Working…') : confirmLabel}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</form>
+			</AlertDialogContent>
+		</AlertDialog>
 	)
 }
 
