@@ -1,7 +1,7 @@
 import { useForm } from '@tanstack/react-form'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { z } from 'zod'
 
@@ -86,6 +86,16 @@ export function EditUserForm({ userId }: { userId: string }) {
 		staleTime: 10 * 60 * 1000,
 	})
 
+	// Permissions are fetched here so the master submit can save them in
+	// the same round-trip as the rest of the form. The editor used to
+	// have its own Save button which was easy to miss.
+	const { data: relationships, isLoading: isLoadingRelationships } = useQuery({
+		queryKey: ['admin', 'permissions', userId],
+		queryFn: () => getUserRelationshipsAsAdmin({ data: { userId } }),
+		staleTime: 10 * 60 * 1000,
+		refetchOnMount: 'always',
+	})
+
 	// Filter out child users from guardian options (only users and admins can be guardians)
 	const guardianOptions = allUsers.filter(u => u.role !== 'child' && u.id !== userId)
 
@@ -116,6 +126,19 @@ export function EditUserForm({ userId }: { userId: string }) {
 			isLoadingUsers={isLoadingUsers}
 			guardianOptions={guardianOptions}
 			partnerOptions={partnerOptions}
+			initialPermissionRows={
+				relationships
+					? relationships.map(r => ({
+							id: r.id,
+							email: r.email,
+							name: r.name,
+							image: r.image,
+							access: toTier(r.accessLevel, r.canEdit),
+							cannotBeRestricted: r.cannotBeRestricted,
+						}))
+					: null
+			}
+			isLoadingRelationships={isLoadingRelationships}
 			queryClient={queryClient}
 		/>
 	)
@@ -129,6 +152,8 @@ function EditUserFormInner({
 	isLoadingUsers,
 	guardianOptions,
 	partnerOptions,
+	initialPermissionRows,
+	isLoadingRelationships,
 	queryClient,
 }: {
 	user: DbUser
@@ -138,6 +163,8 @@ function EditUserFormInner({
 	isLoadingUsers: boolean
 	guardianOptions: Array<User>
 	partnerOptions: Array<User>
+	initialPermissionRows: Array<PermissionRow> | null
+	isLoadingRelationships: boolean
 	queryClient: ReturnType<typeof useQueryClient>
 }) {
 	const [isLoading, setIsLoading] = useState(false)
@@ -148,6 +175,15 @@ function EditUserFormInner({
 	const navigate = useNavigate()
 	const { data: session } = useSession()
 	const isSelf = session?.user.id === userId
+
+	// Mirror of the editor's current rows so the master submit can persist
+	// permissions changes alongside user info + guardianships in one go.
+	// Seeded from the initial fetch; the embedded PermissionsEditor pushes
+	// updates back through onChange.
+	const [permissionRows, setPermissionRows] = useState<Array<PermissionRow> | null>(initialPermissionRows)
+	useEffect(() => {
+		if (initialPermissionRows) setPermissionRows(initialPermissionRows)
+	}, [initialPermissionRows])
 
 	const form = useForm({
 		defaultValues: {
@@ -228,6 +264,36 @@ function EditUserFormInner({
 				} catch (guardianError) {
 					console.error('Failed to update guardianships:', guardianError)
 					setError('User updated but failed to update guardianships. Please update manually.')
+					setIsLoading(false)
+					return
+				}
+			}
+
+			// Persist permission edits. Folded into the master submit so the
+			// dialog has a single Update button instead of the older split where
+			// permissions had their own Save action.
+			if (permissionRows) {
+				try {
+					const result = await upsertUserRelationshipsAsAdmin({
+						data: {
+							userId,
+							input: {
+								relationships: permissionRows.map(row => ({
+									viewerUserId: row.id,
+									...fromTier(row.access),
+								})),
+							},
+						},
+					})
+					if (!result.success) {
+						setError('Some users cannot be set to restricted (partner or guardian relationships are always full view).')
+						setIsLoading(false)
+						return
+					}
+					queryClient.invalidateQueries({ queryKey: ['admin', 'permissions', userId] })
+				} catch (permError) {
+					console.error('Failed to update permissions:', permError)
+					setError('User updated but failed to update permissions. Please try again.')
 					setIsLoading(false)
 					return
 				}
@@ -611,10 +677,6 @@ function EditUserFormInner({
 				</Alert>
 			)}
 
-			<Button type="submit" disabled={isLoading} className="w-full" variant="default">
-				{isLoading ? 'Updating user...' : 'Update User'}
-			</Button>
-
 			<div className="grid gap-2 pt-2 border-t">
 				<h3 className="pt-2 font-medium text-2xl">Relationships</h3>
 				<p className="text-xs text-muted-foreground">People this user shops for on Mother’s Day and Father’s Day.</p>
@@ -627,8 +689,19 @@ function EditUserFormInner({
 					Choose what each person can do with <strong>{user.name || user.email}</strong>'s wish lists. Partners and guardians always have
 					full view.
 				</p>
-				<UserPermissionsEditor userId={userId} />
+				<PermissionsEditor
+					embedded
+					rows={permissionRows}
+					isLoading={isLoadingRelationships || permissionRows === null}
+					isSaving={isLoading}
+					onChange={setPermissionRows}
+					showShareIndicator={false}
+				/>
 			</div>
+
+			<Button type="submit" disabled={isLoading} className="w-full" variant="default">
+				{isLoading ? 'Updating user...' : 'Update User'}
+			</Button>
 
 			{!isSelf && (
 				<div className="border-t pt-4 space-y-2">
@@ -682,64 +755,5 @@ function EditUserFormInner({
 				</div>
 			)}
 		</form>
-	)
-}
-
-function UserPermissionsEditor({ userId }: { userId: string }) {
-	const queryClient = useQueryClient()
-	const [isSaving, setIsSaving] = useState(false)
-
-	const { data: relationships, isLoading } = useQuery({
-		queryKey: ['admin', 'permissions', userId],
-		queryFn: () => getUserRelationshipsAsAdmin({ data: { userId } }),
-		staleTime: 10 * 60 * 1000,
-		refetchOnMount: 'always',
-	})
-
-	const rows = useMemo<Array<PermissionRow> | null>(() => {
-		if (!relationships) return null
-		return relationships.map(r => ({
-			id: r.id,
-			email: r.email,
-			name: r.name,
-			image: r.image,
-			access: toTier(r.accessLevel, r.canEdit),
-			cannotBeRestricted: r.cannotBeRestricted,
-		}))
-	}, [relationships])
-
-	const handleSave = async (next: Array<PermissionRow>) => {
-		setIsSaving(true)
-		try {
-			const result = await upsertUserRelationshipsAsAdmin({
-				data: {
-					userId,
-					input: {
-						relationships: next.map(row => ({
-							viewerUserId: row.id,
-							...fromTier(row.access),
-						})),
-					},
-				},
-			})
-			if (!result.success) {
-				toast.error('Some users cannot be set to restricted (partner or guardian relationships are always full view).')
-				return
-			}
-			toast.success('Permissions updated')
-			queryClient.invalidateQueries({ queryKey: ['admin', 'permissions', userId] })
-		} finally {
-			setIsSaving(false)
-		}
-	}
-
-	return (
-		<PermissionsEditor
-			rows={rows}
-			isLoading={isLoading || rows === null}
-			isSaving={isSaving}
-			onSave={handleSave}
-			showShareIndicator={false}
-		/>
 	)
 }

@@ -1,8 +1,9 @@
 import { Loader2, Trash2, Upload } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { removeAvatar, uploadAvatar } from '@/api/uploads'
+import { AvatarCropperDialog } from '@/components/settings/avatar-cropper-dialog'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useStorageStatus } from '@/hooks/use-storage-status'
@@ -29,6 +30,9 @@ interface ProfileAvatarProps {
 export default function AvatarUpload({ image, displayName, onUpload, onRemove, onSuccess }: ProfileAvatarProps) {
 	const [isUploading, setIsUploading] = useState(false)
 	const [isRemoving, setIsRemoving] = useState(false)
+	const [cropperOpen, setCropperOpen] = useState(false)
+	const [cropperSrc, setCropperSrc] = useState<string | null>(null)
+	const [cropperFileName, setCropperFileName] = useState<string | undefined>(undefined)
 	const fileInputRef = useRef<HTMLInputElement>(null)
 	const { refetch: refetchSession } = useSession()
 	const { configured: storageConfigured } = useStorageStatus()
@@ -40,22 +44,41 @@ export default function AvatarUpload({ image, displayName, onUpload, onRemove, o
 	// any) still renders; clicking does nothing; remove button is hidden.
 	const uploadsDisabled = !storageConfigured
 
-	const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+	// Revoke the object URL once the cropper is fully closed and we no
+	// longer need to display it. Holding it across an upload means the
+	// browser keeps the file blob alive until the user is done framing.
+	useEffect(() => {
+		if (cropperOpen || !cropperSrc) return
+		URL.revokeObjectURL(cropperSrc)
+		setCropperSrc(null)
+	}, [cropperOpen, cropperSrc])
+
+	const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0]
 		// Reset the input so picking the same file twice still triggers change.
 		e.target.value = ''
 		if (!file) return
+		if (!file.type.startsWith('image/')) {
+			toast.error('Please choose an image file')
+			return
+		}
+		const url = URL.createObjectURL(file)
+		setCropperSrc(url)
+		setCropperFileName(file.name)
+		setCropperOpen(true)
+	}
 
+	const uploadFile = async (file: File): Promise<UploadResult<{ url: string }>> => {
+		if (onUpload) return await onUpload(file)
+		const form = new FormData()
+		form.append('file', file)
+		return await uploadAvatar({ data: form })
+	}
+
+	const handleCropped = async (file: File) => {
 		setIsUploading(true)
 		try {
-			let result: UploadResult<{ url: string }>
-			if (onUpload) {
-				result = await onUpload(file)
-			} else {
-				const form = new FormData()
-				form.append('file', file)
-				result = await uploadAvatar({ data: form })
-			}
+			const result = await uploadFile(file)
 			if (result.kind === 'error') {
 				toast.error(`Avatar upload failed: ${result.message}`)
 				return
@@ -66,6 +89,7 @@ export default function AvatarUpload({ image, displayName, onUpload, onRemove, o
 			} else {
 				await refetchSession()
 			}
+			setCropperOpen(false)
 		} catch (error) {
 			const msg = error instanceof Error ? error.message : 'unknown error'
 			toast.error(`Avatar upload failed: ${msg}`)
@@ -110,6 +134,13 @@ export default function AvatarUpload({ image, displayName, onUpload, onRemove, o
 
 	return (
 		<div className="flex flex-col items-center gap-2">
+			<AvatarCropperDialog
+				open={cropperOpen}
+				onOpenChange={setCropperOpen}
+				imageSrc={cropperSrc}
+				fileName={cropperFileName}
+				onCropped={handleCropped}
+			/>
 			<input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept="image/*" disabled={busy} />
 			<Avatar
 				className="border-foreground group relative flex h-28 w-28 cursor-pointer flex-col items-center justify-center border-2 transition-all"

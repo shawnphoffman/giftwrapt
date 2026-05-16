@@ -51,15 +51,32 @@ type Props = {
 	rows: Array<PermissionRow> | null
 	isLoading: boolean
 	isSaving: boolean
-	onSave: (rows: Array<PermissionRow>) => Promise<void>
+	// Optional when the editor is embedded — the parent saves on its own
+	// submit and reads the current rows via onChange.
+	onSave?: (rows: Array<PermissionRow>) => Promise<void>
 	// When true, render the "they share with you" green-dot indicator next
 	// to each name. The admin-acting-on-behalf surface omits this since the
 	// actor isn't the owner.
 	showShareIndicator?: boolean
 	emptyLabel?: string
+	// When true, the editor doesn't render its own Save button — the
+	// parent owns submission and the editor just bubbles up state changes
+	// via onChange. Used by the admin Edit User dialog so a single "Update
+	// User" action saves everything (user info, guardianships, permissions).
+	embedded?: boolean
+	onChange?: (rows: Array<PermissionRow>) => void
 }
 
-export function PermissionsEditor({ rows: initialRows, isLoading, isSaving, onSave, showShareIndicator = true, emptyLabel }: Props) {
+export function PermissionsEditor({
+	rows: initialRows,
+	isLoading,
+	isSaving,
+	onSave,
+	showShareIndicator = true,
+	emptyLabel,
+	embedded = false,
+	onChange,
+}: Props) {
 	const [rows, setRows] = useState<Array<PermissionRow>>([])
 	const [dirty, setDirty] = useState(false)
 
@@ -76,12 +93,17 @@ export function PermissionsEditor({ rows: initialRows, isLoading, isSaving, onSa
 	}, [incomingKey, initialRows])
 
 	const handleAccessChange = (userId: string, access: AccessTier) => {
-		setRows(prev => prev.map(row => (row.id === userId ? { ...row, access } : row)))
+		setRows(prev => {
+			const next = prev.map(row => (row.id === userId ? { ...row, access } : row))
+			onChange?.(next)
+			return next
+		})
 		setDirty(true)
 	}
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault()
+		if (!onSave) return
 		try {
 			await onSave(rows)
 			setDirty(false)
@@ -101,71 +123,83 @@ export function PermissionsEditor({ rows: initialRows, isLoading, isSaving, onSa
 		return <div className="text-sm text-muted-foreground">{emptyLabel ?? 'No other users found'}</div>
 	}
 
+	const table = (
+		<div className="rounded-lg border overflow-x-auto">
+			<div className="grid min-w-max grid-cols-[auto_auto] divide-y">
+				<div className="contents text-xs font-medium uppercase tracking-wide text-muted-foreground bg-muted/30">
+					<span className="px-4 py-2 bg-muted/30 flex items-center">Person</span>
+					<span className="px-4 py-2 bg-muted/30 flex items-center gap-1.5">
+						Access
+						<AccessHelp />
+					</span>
+				</div>
+				{rows.map(row => (
+					<div key={row.id} className="contents">
+						<div className="flex items-center gap-3 px-4 py-3">
+							<UserAvatar name={row.name || row.email} image={row.image} size="medium" />
+							<div className="font-medium whitespace-nowrap">{row.name || row.email}</div>
+							{showShareIndicator && row.sharedWithMe ? <ShareIndicator sharedWithMe={row.sharedWithMe} /> : null}
+						</div>
+						<div className="flex items-center px-4 py-3">
+							<ToggleGroup
+								type="single"
+								variant="outline"
+								value={row.access}
+								onValueChange={value => {
+									if (value) handleAccessChange(row.id, value as AccessTier)
+								}}
+								disabled={isSaving}
+							>
+								<ToggleGroupItem
+									value="none"
+									aria-label="No access"
+									className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
+								>
+									None
+								</ToggleGroupItem>
+								<ToggleGroupItem
+									value="restricted"
+									aria-label="Restricted access"
+									disabled={row.cannotBeRestricted}
+									title={row.cannotBeRestricted ? 'Partners and guardians cannot be set to restricted' : undefined}
+									className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
+								>
+									Restrict
+								</ToggleGroupItem>
+								<ToggleGroupItem
+									value="view"
+									aria-label="View access"
+									className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
+								>
+									View
+								</ToggleGroupItem>
+								<ToggleGroupItem
+									value="edit"
+									aria-label="Edit access"
+									className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
+								>
+									Edit
+								</ToggleGroupItem>
+							</ToggleGroup>
+						</div>
+					</div>
+				))}
+			</div>
+		</div>
+	)
+
+	if (embedded) {
+		return (
+			<div className="space-y-4">
+				{table}
+				{showShareIndicator ? <Legend /> : null}
+			</div>
+		)
+	}
+
 	return (
 		<form onSubmit={handleSubmit} className="space-y-4">
-			<div className="rounded-lg border overflow-x-auto">
-				<div className="grid min-w-max grid-cols-[auto_auto] divide-y">
-					<div className="contents text-xs font-medium uppercase tracking-wide text-muted-foreground bg-muted/30">
-						<span className="px-4 py-2 bg-muted/30 flex items-center">Person</span>
-						<span className="px-4 py-2 bg-muted/30 flex items-center gap-1.5">
-							Access
-							<AccessHelp />
-						</span>
-					</div>
-					{rows.map(row => (
-						<div key={row.id} className="contents">
-							<div className="flex items-center gap-3 px-4 py-3">
-								<UserAvatar name={row.name || row.email} image={row.image} size="medium" />
-								<div className="font-medium whitespace-nowrap">{row.name || row.email}</div>
-								{showShareIndicator && row.sharedWithMe ? <ShareIndicator sharedWithMe={row.sharedWithMe} /> : null}
-							</div>
-							<div className="flex items-center px-4 py-3">
-								<ToggleGroup
-									type="single"
-									variant="outline"
-									value={row.access}
-									onValueChange={value => {
-										if (value) handleAccessChange(row.id, value as AccessTier)
-									}}
-									disabled={isSaving}
-								>
-									<ToggleGroupItem
-										value="none"
-										aria-label="No access"
-										className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
-									>
-										None
-									</ToggleGroupItem>
-									<ToggleGroupItem
-										value="restricted"
-										aria-label="Restricted access"
-										disabled={row.cannotBeRestricted}
-										title={row.cannotBeRestricted ? 'Partners and guardians cannot be set to restricted' : undefined}
-										className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
-									>
-										Restrict
-									</ToggleGroupItem>
-									<ToggleGroupItem
-										value="view"
-										aria-label="View access"
-										className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
-									>
-										View
-									</ToggleGroupItem>
-									<ToggleGroupItem
-										value="edit"
-										aria-label="Edit access"
-										className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
-									>
-										Edit
-									</ToggleGroupItem>
-								</ToggleGroup>
-							</div>
-						</div>
-					))}
-				</div>
-			</div>
-
+			{table}
 			<div className="flex items-center justify-between gap-4">
 				{showShareIndicator ? <Legend /> : <span />}
 				<Button type="submit" disabled={isSaving || !dirty}>
