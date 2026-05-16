@@ -14,6 +14,13 @@ import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { adminAuthMiddleware } from '@/middleware/auth'
 
 import {
+	getUsersWithRelationshipsImpl,
+	type RelationshipRow,
+	upsertUserRelationshipsImpl,
+	type UpsertUserRelationshipsInput,
+	type UpsertUserRelationshipsResult,
+} from './_permissions-impl'
+import {
 	addRelationLabelImpl,
 	AddRelationLabelInputSchema,
 	type AddRelationLabelResult,
@@ -301,6 +308,27 @@ export const removeRelationLabelForUserAsAdmin = createServerFn({ method: 'POST'
 		input: RemoveRelationLabelInputSchema.parse({ id: data.id }),
 	}))
 	.handler(({ data }): Promise<RemoveRelationLabelResult> => removeRelationLabelImpl({ userId: data.userId, input: data.input }))
+
+// ===============================
+// Permissions (admin acting on behalf of a user)
+// ===============================
+// Mirror of the self-service permissions server fns, but the "owner"
+// (whose lists' access is being granted) is the user the admin is
+// editing rather than the actor. Reuses the shared impls so the
+// restricted-on-partner/guardian guard and listEditors cleanup all
+// match the self-service path.
+
+export const getUserRelationshipsAsAdmin = createServerFn({ method: 'GET' })
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.inputValidator((data: { userId: string }) => data)
+	.handler(({ data }): Promise<Array<RelationshipRow>> => getUsersWithRelationshipsImpl(data.userId))
+
+export const upsertUserRelationshipsAsAdmin = createServerFn({ method: 'POST' })
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.inputValidator((data: { userId: string; input: UpsertUserRelationshipsInput }) => data)
+	.handler(
+		({ data }): Promise<UpsertUserRelationshipsResult> => upsertUserRelationshipsImpl({ ownerUserId: data.userId, input: data.input })
+	)
 
 // Candidate people for an admin-driven relation-labels picker. Mirrors
 // `getGiftIdeasRecipients` but excludes the edited user (not the actor)

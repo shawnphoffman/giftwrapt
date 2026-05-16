@@ -73,7 +73,8 @@ function AdminUsersPage() {
 					<div className="flex items-center justify-between gap-4">
 						<CardTitle className="text-2xl">Dependents</CardTitle>
 						<Button onClick={() => setAddDependentOpen(true)} size="sm">
-							<Plus className="size-4" /> Add dependent
+							<Plus className="size-4" />
+							Add
 						</Button>
 					</div>
 					<CardDescription>
@@ -117,7 +118,7 @@ function AdminUsersPage() {
 			</Dialog>
 
 			<Dialog open={editUserId !== null} onOpenChange={open => !open && closeEditUser()}>
-				<DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+				<DialogContent className="overflow-y-auto">
 					<DialogHeader>
 						<DialogTitle>Edit User</DialogTitle>
 					</DialogHeader>

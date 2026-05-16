@@ -1,11 +1,19 @@
 import { useForm } from '@tanstack/react-form'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { z } from 'zod'
 
-import { deleteUserAsAdmin, getGuardianshipsForChild, getUsersAsAdmin, updateGuardianships, updateUserAsAdmin } from '@/api/admin'
+import {
+	deleteUserAsAdmin,
+	getGuardianshipsForChild,
+	getUserRelationshipsAsAdmin,
+	getUsersAsAdmin,
+	updateGuardianships,
+	updateUserAsAdmin,
+	upsertUserRelationshipsAsAdmin,
+} from '@/api/admin'
 import { removeAvatarAsAdmin, uploadAvatarAsAdmin } from '@/api/uploads'
 import { RoleLegend } from '@/components/admin/role-legend'
 import { BirthDaySelect } from '@/components/common/birth-day-select'
@@ -13,9 +21,11 @@ import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import InputTooltip from '@/components/common/input-tooltip'
 import UserAvatar from '@/components/common/user-avatar'
 import AvatarUpload from '@/components/settings/avatar-upload'
+import { fromTier, type PermissionRow, PermissionsEditor, toTier } from '@/components/settings/permissions-editor'
 import { adminOpsFor, RelationLabelsSection } from '@/components/settings/relation-labels-section'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -566,14 +576,13 @@ function EditUserFormInner({
 														Partner Anniversary
 														<InputTooltip>Optional. Mirrored onto both partners so the date appears on either profile.</InputTooltip>
 													</Label>
-													<Input
+													<DatePicker
 														id={field.name}
-														type="date"
-														value={field.state.value ?? ''}
-														onChange={e => field.handleChange(e.target.value === '' ? undefined : e.target.value)}
+														value={field.state.value ?? undefined}
+														onChange={next => field.handleChange(next)}
 														onBlur={field.handleBlur}
 														disabled={isLoading}
-														className="w-full sm:w-48"
+														className="w-full sm:w-72"
 													/>
 													{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 														<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
@@ -588,12 +597,6 @@ function EditUserFormInner({
 					)
 				}
 			</form.Subscribe>
-
-			<div className="grid gap-2 pt-2">
-				<Label>Relationships</Label>
-				<p className="text-xs text-muted-foreground">People this user shops for on Mother’s Day and Father’s Day.</p>
-				<RelationLabelsSection ops={adminOpsFor(userId)} hideDependents />
-			</div>
 
 			{error && (
 				<Alert variant="destructive">
@@ -612,16 +615,31 @@ function EditUserFormInner({
 				{isLoading ? 'Updating user...' : 'Update User'}
 			</Button>
 
+			<div className="grid gap-2 pt-2 border-t">
+				<h3 className="pt-2 font-medium text-2xl">Relationships</h3>
+				<p className="text-xs text-muted-foreground">People this user shops for on Mother’s Day and Father’s Day.</p>
+				<RelationLabelsSection ops={adminOpsFor(userId)} hideDependents />
+			</div>
+
+			<div className="grid gap-2 pt-2 border-t">
+				<h3 className="pt-2 font-medium text-2xl">Permissions</h3>
+				<p className="text-xs text-muted-foreground">
+					Choose what each person can do with <strong>{user.name || user.email}</strong>'s wish lists. Partners and guardians always have
+					full view.
+				</p>
+				<UserPermissionsEditor userId={userId} />
+			</div>
+
 			{!isSelf && (
-				<div className="border-t pt-6 mt-8 space-y-3">
+				<div className="border-t pt-4 space-y-2">
 					<div>
-						<h3 className="text-sm font-semibold text-destructive">Danger Zone</h3>
-						<p className="text-xs text-muted-foreground mt-1">
+						<h3 className="text-2xl font-medium text-destructive">Danger Zone</h3>
+						<p className="text-xs text-muted-foreground mt-2">
 							Permanently delete this user. Their lists, items, claims, comments, and partner/guardian links will all be removed.
 						</p>
 					</div>
 					<Button type="button" variant="destructive" className="w-full" onClick={() => setDeleteDialogOpen(true)} disabled={isLoading}>
-						Delete user
+						Delete User
 					</Button>
 					<ConfirmDialog
 						open={deleteDialogOpen}
@@ -637,7 +655,7 @@ function EditUserFormInner({
 								<strong>This cannot be undone.</strong>
 							</>
 						}
-						confirmLabel="Delete user"
+						confirmLabel="Delete User"
 						confirmBusyLabel="Deleting..."
 						onConfirm={async () => {
 							const result = await deleteUserAsAdmin({ data: { userId } })
@@ -664,5 +682,64 @@ function EditUserFormInner({
 				</div>
 			)}
 		</form>
+	)
+}
+
+function UserPermissionsEditor({ userId }: { userId: string }) {
+	const queryClient = useQueryClient()
+	const [isSaving, setIsSaving] = useState(false)
+
+	const { data: relationships, isLoading } = useQuery({
+		queryKey: ['admin', 'permissions', userId],
+		queryFn: () => getUserRelationshipsAsAdmin({ data: { userId } }),
+		staleTime: 10 * 60 * 1000,
+		refetchOnMount: 'always',
+	})
+
+	const rows = useMemo<Array<PermissionRow> | null>(() => {
+		if (!relationships) return null
+		return relationships.map(r => ({
+			id: r.id,
+			email: r.email,
+			name: r.name,
+			image: r.image,
+			access: toTier(r.accessLevel, r.canEdit),
+			cannotBeRestricted: r.cannotBeRestricted,
+		}))
+	}, [relationships])
+
+	const handleSave = async (next: Array<PermissionRow>) => {
+		setIsSaving(true)
+		try {
+			const result = await upsertUserRelationshipsAsAdmin({
+				data: {
+					userId,
+					input: {
+						relationships: next.map(row => ({
+							viewerUserId: row.id,
+							...fromTier(row.access),
+						})),
+					},
+				},
+			})
+			if (!result.success) {
+				toast.error('Some users cannot be set to restricted (partner or guardian relationships are always full view).')
+				return
+			}
+			toast.success('Permissions updated')
+			queryClient.invalidateQueries({ queryKey: ['admin', 'permissions', userId] })
+		} finally {
+			setIsSaving(false)
+		}
+	}
+
+	return (
+		<PermissionsEditor
+			rows={rows}
+			isLoading={isLoading || rows === null}
+			isSaving={isSaving}
+			onSave={handleSave}
+			showShareIndicator={false}
+		/>
 	)
 }
