@@ -3,6 +3,14 @@
 import { Loader2, RotateCcw, ZoomIn, ZoomOut } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import {
+	clampTranslation,
+	computeCropRect,
+	computeScaleBounds,
+	fitImage,
+	type NaturalSize,
+	zoomAround,
+} from '@/components/settings/avatar-cropper-math'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Slider } from '@/components/ui/slider'
@@ -14,10 +22,8 @@ import { Slider } from '@/components/ui/slider'
 // rasterize the visible crop to a JPEG File that flows back into the
 // existing upload pipeline (server still re-encodes to 256x256 WebP).
 //
-// Math uses transform-origin: top-left so the image's displayed top-left
-// is exactly (tx, ty) and natural-pixel point (px, py) maps to display
-// position (px*scale + tx, py*scale + ty). Cover constraint: the rendered
-// image must blanket the viewport, so tx ∈ [v - w*s, 0] and same for y.
+// Math lives in ./avatar-cropper-math so the geometry (clamp, zoom,
+// crop rect) is testable in plain node without a DOM.
 
 interface AvatarCropperDialogProps {
 	open: boolean
@@ -36,7 +42,7 @@ const OUTPUT_SIZE = 512
 export function AvatarCropperDialog({ open, onOpenChange, imageSrc, fileName, onCropped }: AvatarCropperDialogProps) {
 	const imgRef = useRef<HTMLImageElement | null>(null)
 	const viewportRef = useRef<HTMLDivElement | null>(null)
-	const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null)
+	const [naturalSize, setNaturalSize] = useState<NaturalSize | null>(null)
 	const [viewportSize, setViewportSize] = useState(320)
 	const [scale, setScale] = useState(1)
 	const [minScale, setMinScale] = useState(1)
@@ -68,27 +74,13 @@ export function AvatarCropperDialog({ open, onOpenChange, imageSrc, fileName, on
 		return () => ro.disconnect()
 	}, [open])
 
-	const clamp = useCallback(
-		(nx: number, ny: number, s: number) => {
-			if (!naturalSize) return { nx, ny }
-			const { w, h } = naturalSize
-			const v = viewportSize
-			return {
-				nx: Math.min(0, Math.max(v - w * s, nx)),
-				ny: Math.min(0, Math.max(v - h * s, ny)),
-			}
-		},
-		[naturalSize, viewportSize]
-	)
-
-	const fitImage = useCallback((w: number, h: number, v: number) => {
-		const minS = Math.max(v / w, v / h)
-		const maxS = Math.max(minS * 4, minS + 0.01)
-		setMinScale(minS)
-		setMaxScale(maxS)
-		setScale(minS)
-		setTx((v - w * minS) / 2)
-		setTy((v - h * minS) / 2)
+	const applyFit = useCallback((natural: NaturalSize, v: number) => {
+		const fit = fitImage(natural, v)
+		setMinScale(fit.bounds.min)
+		setMaxScale(fit.bounds.max)
+		setScale(fit.scale)
+		setTx(fit.translation.tx)
+		setTy(fit.translation.ty)
 	}, [])
 
 	const handleImageLoad = useCallback(() => {
@@ -101,34 +93,30 @@ export function AvatarCropperDialog({ open, onOpenChange, imageSrc, fileName, on
 			return
 		}
 		setLoadError(false)
-		setNaturalSize({ w, h })
-		fitImage(w, h, viewportSize)
-	}, [fitImage, viewportSize])
+		const natural = { w, h }
+		setNaturalSize(natural)
+		applyFit(natural, viewportSize)
+	}, [applyFit, viewportSize])
 
 	// If the viewport resizes after the image is loaded (responsive
 	// shrinking, rotation), refit the bounds without snapping the user's
 	// framing back to center.
 	useEffect(() => {
 		if (!naturalSize) return
-		const { w, h } = naturalSize
-		const v = viewportSize
-		const minS = Math.max(v / w, v / h)
-		const maxS = Math.max(minS * 4, minS + 0.01)
-		setMinScale(minS)
-		setMaxScale(maxS)
-		setScale(prev => Math.max(minS, Math.min(maxS, prev)))
+		const bounds = computeScaleBounds(naturalSize, viewportSize)
+		setMinScale(bounds.min)
+		setMaxScale(bounds.max)
+		setScale(prev => Math.max(bounds.min, Math.min(bounds.max, prev)))
 	}, [viewportSize, naturalSize])
 
 	useEffect(() => {
-		setTx(prev => {
-			const next = clamp(prev, 0, scale)
-			return next.nx
-		})
-		setTy(prev => {
-			const next = clamp(0, prev, scale)
-			return next.ny
-		})
-	}, [scale, viewportSize, naturalSize, clamp])
+		if (!naturalSize) return
+		// Functional setState so we don't have to depend on tx/ty and loop on
+		// our own writes — clamping just normalizes whatever the current
+		// translation is after a scale/viewport change.
+		setTx(prev => clampTranslation({ tx: prev, ty: 0 }, naturalSize, viewportSize, scale).tx)
+		setTy(prev => clampTranslation({ tx: 0, ty: prev }, naturalSize, viewportSize, scale).ty)
+	}, [scale, viewportSize, naturalSize])
 
 	const dragRef = useRef<{ startX: number; startY: number; baseTx: number; baseTy: number; pointerId: number } | null>(null)
 	const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -139,10 +127,15 @@ export function AvatarCropperDialog({ open, onOpenChange, imageSrc, fileName, on
 	}
 	const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
 		const drag = dragRef.current
-		if (!drag || drag.pointerId !== e.pointerId) return
-		const next = clamp(drag.baseTx + (e.clientX - drag.startX), drag.baseTy + (e.clientY - drag.startY), scale)
-		setTx(next.nx)
-		setTy(next.ny)
+		if (!drag || drag.pointerId !== e.pointerId || !naturalSize) return
+		const next = clampTranslation(
+			{ tx: drag.baseTx + (e.clientX - drag.startX), ty: drag.baseTy + (e.clientY - drag.startY) },
+			naturalSize,
+			viewportSize,
+			scale
+		)
+		setTx(next.tx)
+		setTy(next.ty)
 	}
 	const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
 		const drag = dragRef.current
@@ -157,17 +150,13 @@ export function AvatarCropperDialog({ open, onOpenChange, imageSrc, fileName, on
 
 	const zoomAroundCenter = (newScale: number) => {
 		if (!naturalSize) return
-		const clampedScale = Math.max(minScale, Math.min(maxScale, newScale))
-		const cx = viewportSize / 2
-		const cy = viewportSize / 2
-		const ix = (cx - tx) / scale
-		const iy = (cy - ty) / scale
-		const newTx = cx - ix * clampedScale
-		const newTy = cy - iy * clampedScale
-		const clamped = clamp(newTx, newTy, clampedScale)
-		setScale(clampedScale)
-		setTx(clamped.nx)
-		setTy(clamped.ny)
+		const next = zoomAround({ scale, tx, ty }, newScale, { x: viewportSize / 2, y: viewportSize / 2 }, naturalSize, viewportSize, {
+			min: minScale,
+			max: maxScale,
+		})
+		setScale(next.scale)
+		setTx(next.tx)
+		setTy(next.ty)
 	}
 
 	const onWheel = (e: React.WheelEvent<HTMLDivElement>) => {
@@ -185,17 +174,13 @@ export function AvatarCropperDialog({ open, onOpenChange, imageSrc, fileName, on
 
 	const handleReset = () => {
 		if (!naturalSize) return
-		const { w, h } = naturalSize
-		fitImage(w, h, viewportSize)
+		applyFit(naturalSize, viewportSize)
 	}
 
 	const handleSave = async () => {
 		const img = imgRef.current
 		if (!img || !naturalSize || saving) return
-		const v = viewportSize
-		const sx = -tx / scale
-		const sy = -ty / scale
-		const sSize = v / scale
+		const { sx, sy, sSize } = computeCropRect({ tx, ty }, scale, viewportSize)
 
 		const canvas = document.createElement('canvas')
 		canvas.width = OUTPUT_SIZE
