@@ -86,7 +86,7 @@ export function SecretField({
 			) : mode === 'display' && source === 'db' ? (
 				<div className="flex items-center gap-2">
 					<Input id={id} value={preview ?? ''} disabled readOnly className="font-mono" />
-					<Button type="button" variant="secondary" onClick={handleReplace} disabled={saving}>
+					<Button type="button" variant="outline" onClick={handleReplace} disabled={saving}>
 						Replace
 					</Button>
 					{onClear && (

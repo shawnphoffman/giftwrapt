@@ -48,7 +48,7 @@ export function StorageSummaryBar({
 					disabled={deleteOrphansDisabled || !summary || summary.orphanCount === 0 || summary.truncated}
 				>
 					<Trash2 className="size-3.5" />
-					Delete all orphans
+					Delete All Orphans
 				</Button>
 			</div>
 			{summary?.truncated && (
@@ -75,7 +75,8 @@ export function StorageFilterPills({ active, onChange }: { active: StorageBrowse
 					key={f.value}
 					type="button"
 					variant={active === f.value ? 'default' : 'outline'}
-					size="sm"
+					size="xs"
+					className="uppercase tracking-wide"
 					onClick={() => onChange(f.value)}
 				>
 					{f.label}

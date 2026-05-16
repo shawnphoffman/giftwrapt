@@ -71,7 +71,7 @@ function AdminScrapingPage() {
 				<CardContent>
 					<Button type="button" variant="outline" onClick={() => setScrapesOpen(true)}>
 						<ScanSearch />
-						View recent scrapes
+						View Recent Scrapes
 					</Button>
 				</CardContent>
 			</Card>

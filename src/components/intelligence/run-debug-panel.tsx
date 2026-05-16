@@ -226,7 +226,7 @@ function DebugBlock({ label, body }: { label: string; body: string }) {
 	return (
 		<details className="text-xs">
 			<summary className="cursor-pointer text-muted-foreground select-none">{label}</summary>
-			<pre className="mt-1.5 max-h-72 overflow-auto rounded bg-muted/50 p-2 text-[11px] whitespace-pre-wrap break-words">{body}</pre>
+			<pre className="mt-1.5 max-h-72 overflow-auto rounded bg-muted/50 p-2 text-[11px] whitespace-pre-wrap wrap-break-word">{body}</pre>
 		</details>
 	)
 }

@@ -36,7 +36,7 @@ export default function ExportData() {
 	}, [])
 
 	return (
-		<Button onClick={handleDownload} disabled={downloading} variant="secondary" className="gap-2">
+		<Button onClick={handleDownload} disabled={downloading} variant="outline" className="gap-2">
 			<Download />
 			{downloading ? 'Preparing...' : 'Download backup'}
 		</Button>

@@ -232,7 +232,7 @@ function ScrapeProvidersSection({
 							className="gap-1.5 self-start @md/scraper-form:self-auto"
 						>
 							<Plus className="size-3.5" />
-							Add scraper
+							Add Scraper
 							<ChevronDown className="size-3.5" />
 						</Button>
 					</DropdownMenuTrigger>
@@ -388,7 +388,7 @@ function EntryCard({
 	return (
 		<Collapsible open={expanded} onOpenChange={setOpen} className="overflow-hidden rounded-md border bg-muted/40 shadow-sm">
 			<div className={`flex items-center gap-2 p-3 ${expanded ? 'bg-muted border-b' : ''}`}>
-				<Badge variant="secondary" className="font-mono text-xs shrink-0">
+				<Badge variant="outline" className="font-mono text-xs shrink-0">
 					{TYPE_LABELS[entry.type]}
 				</Badge>
 				<CollapsibleTrigger asChild>
@@ -482,7 +482,7 @@ function EntryCard({
 
 				<div className="flex items-center justify-end gap-2 pt-3 border-t -mx-4 px-4">
 					{dirty && <span className="mr-auto text-xs text-muted-foreground italic">Unsaved changes</span>}
-					<Button type="button" variant="outline" size="xs" disabled={disabled || !dirty} onClick={reset}>
+					<Button type="button" variant="outline" size="sm" disabled={disabled || !dirty} onClick={reset}>
 						Reset
 					</Button>
 					<Button type="button" size="sm" disabled={disabled || !dirty} onClick={save}>

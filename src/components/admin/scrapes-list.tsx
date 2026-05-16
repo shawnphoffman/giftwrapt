@@ -144,7 +144,7 @@ function ScrapeRow({ row, labelFor, onInspect }: { row: ScrapeListRow; labelFor:
 						{row.listName && <span className="text-muted-foreground truncate">{row.listName}</span>}
 					</div>
 				) : (
-					<Badge variant="secondary" className="text-[10px]">
+					<Badge variant="outline" className="text-[10px]">
 						standalone
 					</Badge>
 				)}
@@ -305,7 +305,7 @@ function DetailField({ label, children }: { label: string; children: React.React
 	return (
 		<>
 			<dt className="text-xs uppercase tracking-wide text-muted-foreground @md/admin-content:text-right">{label}</dt>
-			<dd className="text-sm break-words">{children}</dd>
+			<dd className="text-sm wrap-break-word">{children}</dd>
 		</>
 	)
 }

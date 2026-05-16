@@ -220,7 +220,7 @@ export default function ThemeReference() {
 							</Button>
 							<Button
 								size={size}
-								variant="secondary"
+								variant="outline"
 								onClick={() => toast.success('secondary')}
 								aria-label={size === 'icon' ? 'secondary' : undefined}
 							>
@@ -258,7 +258,7 @@ export default function ThemeReference() {
 					<div className="flex flex-row flex-wrap items-center gap-2">
 						<code className="text-xs text-muted-foreground w-20 font-mono">disabled</code>
 						<Button disabled>default</Button>
-						<Button disabled variant="secondary">
+						<Button disabled variant="outline">
 							secondary
 						</Button>
 						<Button disabled variant="outline">

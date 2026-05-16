@@ -122,7 +122,7 @@ function TestKeyButton({ state, hasResolvedKey }: TestKeyButtonProps) {
 	}, [draftReady, state.draft])
 
 	return (
-		<Button type="button" variant="secondary" className="gap-2" onClick={handleClick} disabled={!canTest || testing}>
+		<Button type="button" variant="outline" className="gap-2" onClick={handleClick} disabled={!canTest || testing}>
 			{Icon}
 			{testing ? 'Testing…' : 'Test'}
 		</Button>

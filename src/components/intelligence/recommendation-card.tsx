@@ -454,7 +454,7 @@ function ListReferenceLink({ list }: { list: ListRef }) {
 				<UserAvatar name={list.subject.name} image={list.subject.image} size="small" />
 			)}
 			<ListTypeIcon type={list.type} className="size-3.5" />
-			<span className="font-medium truncate max-w-[12rem]">{list.name}</span>
+			<span className="font-medium truncate max-w-48">{list.name}</span>
 			<ExternalLink className="size-3 text-muted-foreground/70 group-hover/ref:text-foreground" />
 		</a>
 	)
@@ -756,7 +756,7 @@ function AiButton({ label, onClick }: { label: string; onClick: () => void }) {
 			className={cn(
 				'group/ai-btn relative',
 				ACTION_BTN_BASE,
-				'bg-gradient-to-br from-amber-500 via-pink-500 to-fuchsia-600',
+				'bg-linear-to-br from-amber-500 via-pink-500 to-fuchsia-600',
 				'dark:from-amber-700 dark:via-pink-700 dark:to-fuchsia-800',
 				'shadow-sm ring-1 ring-fuchsia-400/40 dark:ring-fuchsia-600/40',
 				'transition-all duration-200',

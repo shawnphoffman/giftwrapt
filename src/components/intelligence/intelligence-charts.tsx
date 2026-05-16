@@ -46,7 +46,7 @@ export function RunsActivityChart({ data }: { data: Array<DailySeriesPoint> }) {
 	return (
 		<Card data-intelligence="admin-chart-runs">
 			<CardHeader>
-				<CardTitle>Runs (14 days)</CardTitle>
+				<CardTitle className="text-2xl">Runs (14 days)</CardTitle>
 				<CardDescription className="tabular-nums">{total} total</CardDescription>
 			</CardHeader>
 			<CardContent>
@@ -100,7 +100,7 @@ export function TokenUsageChart({ data }: { data: Array<DailySeriesPoint> }) {
 	return (
 		<Card data-intelligence="admin-chart-tokens">
 			<CardHeader>
-				<CardTitle>Tokens &amp; cost (14 days)</CardTitle>
+				<CardTitle className="text-2xl">Tokens &amp; Cost (14 days)</CardTitle>
 				<CardDescription className="tabular-nums">${totalCost.toFixed(2)} total</CardDescription>
 			</CardHeader>
 			<CardContent>

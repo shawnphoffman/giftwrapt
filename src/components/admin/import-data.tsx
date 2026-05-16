@@ -110,7 +110,7 @@ export default function ImportData() {
 		<div className="space-y-4">
 			<div>
 				<input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={handleFileChange} />
-				<Button type="button" variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={submitting} className="gap-2">
+				<Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={submitting} className="gap-2">
 					<Upload />
 					{fileName ? 'Choose a different file' : 'Choose backup file'}
 				</Button>

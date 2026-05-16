@@ -337,7 +337,7 @@ function Form({ config, saving, mutate }: FormProps) {
 						) : apiKeyMode === 'display' && config.apiKey.source === 'db' ? (
 							<div className="flex items-center gap-2">
 								<Input id="aiApiKey" value={config.apiKey.preview ?? ''} disabled readOnly className="font-mono" />
-								<Button type="button" variant="secondary" onClick={handleApiKeyReplace} disabled={saving}>
+								<Button type="button" variant="outline" onClick={handleApiKeyReplace} disabled={saving}>
 									Replace
 								</Button>
 							</div>
@@ -536,9 +536,9 @@ function TestConnectionSection({
 				</p>
 			</div>
 			<div className="flex items-center gap-2">
-				<Button type="button" variant="secondary" className="gap-2" onClick={handleClick} disabled={!canTest || testing}>
+				<Button type="button" variant="outline" className="gap-2" onClick={handleClick} disabled={!canTest || testing}>
 					{Icon}
-					{testing ? 'Testing…' : 'Test connection'}
+					{testing ? 'Testing…' : 'Test Connection'}
 				</Button>
 				{result?.ok === true && <span className="text-sm text-muted-foreground">OK ({result.latencyMs} ms)</span>}
 				{result?.ok === false && <span className="text-sm text-destructive">{result.error}</span>}

@@ -29,7 +29,7 @@ function AdminStoragePage() {
 
 	return (
 		<>
-			<Card className="animate-page-in max-w-xl">
+			<Card className="animate-page-in">
 				<CardHeader>
 					<CardTitle className="text-2xl">Storage Settings</CardTitle>
 					<CardDescription>Behavior that runs whenever items are saved with external image URLs.</CardDescription>

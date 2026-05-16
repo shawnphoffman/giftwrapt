@@ -43,7 +43,7 @@ export default function PurgeData() {
 		<>
 			<Button onClick={() => setOpen(true)} variant="destructive" className="gap-2">
 				<Trash2 />
-				Purge all lists & data
+				Purge Everything
 			</Button>
 
 			<AlertDialog

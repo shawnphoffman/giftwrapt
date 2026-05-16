@@ -50,7 +50,7 @@ const TokenUsageChart = lazy(() => import('./intelligence-charts').then(m => ({ 
 const ChartCardFallback = ({ title }: { title: string }) => (
 	<Card>
 		<CardHeader>
-			<CardTitle>{title}</CardTitle>
+			<CardTitle className="text-2xl">{title}</CardTitle>
 		</CardHeader>
 		<CardContent>
 			<Skeleton className="h-44 w-full" />
@@ -210,7 +210,7 @@ export function ProviderMissingBanner() {
 function AnalyzerBadge({ tone, children }: { tone: 'kind-heuristic' | 'kind-ai' | 'trigger' | 'status'; children: React.ReactNode }) {
 	if (tone === 'kind-ai') {
 		return (
-			<span className="inline-flex items-center rounded-md border border-transparent bg-linear-to-br from-amber-500 via-pink-500 to-fuchsia-600 px-1.5 py-0.5 text-[10px] font-medium text-white shadow-sm dark:from-amber-700 dark:via-pink-700 dark:to-fuchsia-800">
+			<span className="inline-flex items-center rounded-md bg-linear-to-br from-amber-500 via-pink-500 to-fuchsia-600 px-1.5 py-0.5 text-[10px] font-medium text-white shadow-sm dark:from-amber-700 dark:via-pink-700 dark:to-fuchsia-800">
 				{children}
 			</span>
 		)
@@ -310,7 +310,7 @@ export function ActionsCard({
 	return (
 		<Card data-intelligence="admin-actions-card">
 			<CardHeader>
-				<CardTitle>Actions</CardTitle>
+				<CardTitle className="text-2xl">Actions</CardTitle>
 				<CardDescription>
 					Trigger a manual run for any user. Last run + active rec count below help find who&apos;s overdue.
 				</CardDescription>
@@ -480,7 +480,7 @@ export function HealthGrid({ data, providerSummary }: { data: AdminIntelligenceD
 			<div className="lg:col-span-2 xl:col-span-4">
 				<Card>
 					<CardHeader>
-						<CardTitle>Analyzers</CardTitle>
+						<CardTitle className="text-2xl">Analyzers</CardTitle>
 						<CardDescription>Average duration · tokens · active recommendations</CardDescription>
 					</CardHeader>
 					<CardContent>
@@ -505,7 +505,7 @@ export function HealthGrid({ data, providerSummary }: { data: AdminIntelligenceD
 			<div className="lg:col-span-2 xl:col-span-4">
 				<Card>
 					<CardHeader>
-						<CardTitle>Queue</CardTitle>
+						<CardTitle className="text-2xl">Queue</CardTitle>
 						<CardDescription>
 							7d: {health.last7d.success} ok · {sumBucket(health.last7d.skipped)} skipped · {health.last7d.error} err
 						</CardDescription>
@@ -547,16 +547,16 @@ function MetricCard({
 	gradient: string
 }) {
 	return (
-		<Card size="sm" className={cn('bg-linear-to-br', gradient)}>
+		<Card className={cn('bg-linear-to-br', gradient)}>
 			<CardHeader>
-				<CardTitle className="flex items-center gap-2">
+				<CardTitle className="text-2xl flex items-center gap-2">
 					<Icon className="size-5" />
 					{label}
 				</CardTitle>
 				<CardDescription className="text-foreground/50">{sub}</CardDescription>
 			</CardHeader>
 			<CardContent>
-				<span className="text-3xl font-bold tabular-nums">{value}</span>
+				<span className="text-4xl font-bold tabular-nums">{value}</span>
 			</CardContent>
 		</Card>
 	)
@@ -574,7 +574,7 @@ export const ANALYZER_META: Record<
 	{ label: string; description: string; example: string; kind: AnalyzerKind; triggers: Array<AnalyzerTrigger>; status?: AnalyzerStatus }
 > = {
 	'primary-list': {
-		label: 'Primary list',
+		label: 'Primary List',
 		description: 'Suggests setting a primary list when the user has multiple active lists but none are marked primary.',
 		example:
 			'You have 3 active wishlists but none are marked primary. Set one so people who want to shop for you know where to look first.',
@@ -582,7 +582,7 @@ export const ANALYZER_META: Record<
 		triggers: ['cron', 'manual'],
 	},
 	'list-hygiene': {
-		label: 'List hygiene',
+		label: 'List Hygiene',
 		description:
 			"Calendar-aware nudges to reshape lists for upcoming auto-archive events (birthdays, Christmas, custom holidays). Suggests convert / make-public / create / set-primary, depending on the user's current lists.",
 		example:
@@ -591,14 +591,14 @@ export const ANALYZER_META: Record<
 		triggers: ['cron', 'manual'],
 	},
 	'relation-labels': {
-		label: 'Relation labels',
+		label: 'Relation Labels',
 		description: "Nudges users to declare mother / father relationships when Mother's/Father's Day approaches.",
 		example: "Mother's Day is in 7 days. Tag a parent so the system can remind you and shape your gift-tracking.",
 		kind: 'heuristic',
 		triggers: ['cron', 'manual'],
 	},
 	'stale-items': {
-		label: 'Stale items',
+		label: 'Stale Items',
 		description: 'Reviews items not edited in 6+ months and asks the model to flag any worth cleaning up.',
 		example:
 			'"Wireless headphones (model XYZ)" hasn\'t been touched in 11 months and the linked product is discontinued. Consider archiving or replacing it.',
@@ -622,28 +622,28 @@ export const ANALYZER_META: Record<
 		triggers: ['cron', 'manual'],
 	},
 	'missing-price': {
-		label: 'Missing prices',
+		label: 'Missing Prices',
 		description: 'Surfaces items that have a URL but no price recorded so the user can fill one in.',
 		example: '"Stanley tumbler 30oz" has a link but no price set. Adding one helps gifters budget.',
 		kind: 'heuristic',
 		triggers: ['cron', 'manual'],
 	},
 	'missing-image': {
-		label: 'Unselected images',
+		label: 'Unselected Images',
 		description: 'Surfaces items where the scraper found candidate images but none have been picked yet.',
 		example: 'The scraper found 4 candidate images for "Levis 511" but no image is set on the item. Pick one.',
 		kind: 'heuristic',
 		triggers: ['cron', 'manual'],
 	},
 	'stale-scrape': {
-		label: 'Stale or unscraped URLs',
+		label: 'Stale or Unscraped URLs',
 		description: "Surfaces items whose linked product hasn't been re-scraped in months (or was never scraped).",
 		example: 'The link on "Wireless headphones" was last scraped 9 months ago. Refresh to catch price/availability changes.',
 		kind: 'heuristic',
 		triggers: ['cron', 'manual'],
 	},
 	'clothing-prefs': {
-		label: 'Clothing size & color',
+		label: 'Clothing Size & Color',
 		description: 'Asks the model to flag clothing items missing a size or color and suggest common options.',
 		example: '"Levis 511 jeans" has no size noted - common adult sizes are 30x32, 32x32, 34x32. Add yours.',
 		kind: 'ai',
@@ -661,16 +661,16 @@ export function SettingsPanel({
 	const s = data.settings
 	const audienceCount = data.health.queue.overdue
 	return (
-		<Card data-intelligence="admin-settings" size="sm">
+		<Card data-intelligence="admin-settings">
 			<CardHeader>
-				<CardTitle>Settings</CardTitle>
+				<CardTitle className="text-2xl">Settings</CardTitle>
 				<CardDescription>All settings are global. Per-user overrides aren&apos;t supported yet.</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-3 pb-4">
 				<SettingsSection
 					id="schedule"
 					icon={CalendarClock}
-					title="Schedule & triggers"
+					title="Schedule & Triggers"
 					summary={`Cron every ${s.refreshIntervalDays}d · manual cooldown ${s.manualRefreshCooldownMinutes}m`}
 					defaultOpen
 				>
@@ -1036,7 +1036,7 @@ export function RunsTable({
 		<Card data-intelligence="admin-runs">
 			<CardHeader className="flex flex-row items-start justify-between gap-3 flex-wrap">
 				<div className="space-y-1.5">
-					<CardTitle>Recent runs</CardTitle>
+					<CardTitle className="text-2xl">Recent Runs</CardTitle>
 					<CardDescription>Most recent recommendation runs across every user. Click a row to inspect run details.</CardDescription>
 				</div>
 				<div data-intelligence="admin-runs-filter" className="flex items-center gap-1.5">
@@ -1045,8 +1045,9 @@ export function RunsTable({
 							key={f}
 							data-intelligence="admin-runs-filter-button"
 							data-filter-value={f}
-							size="sm"
+							size="xs"
 							variant={filter === f ? 'default' : 'outline'}
+							className="uppercase"
 							onClick={() => setFilter(f)}
 						>
 							{f}

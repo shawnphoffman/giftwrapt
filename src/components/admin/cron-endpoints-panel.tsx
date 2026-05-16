@@ -40,7 +40,7 @@ function RunNowButton({ endpoint, label }: { endpoint: CronEndpoint; label: stri
 			} else if (result.reason === 'already-running') {
 				toast.warning(`${label} is already running`)
 			} else {
-				toast.error(`${label} failed: ${result.error ?? 'unknown error'}`)
+				toast.error(`${label} failed: ${result.error}`)
 			}
 			qc.invalidateQueries({ queryKey: ['admin', 'cron'] })
 		},

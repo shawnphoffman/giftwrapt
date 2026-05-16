@@ -34,17 +34,17 @@ export function IntelligenceGeneralSettingsCard({ data, patch }: { data: AdminIn
 	return (
 		<Card data-intelligence="admin-settings-general">
 			<CardHeader>
-				<CardTitle className="flex items-center gap-2">
+				<CardTitle className="text-2xl flex items-center gap-2">
 					<Beaker className="size-6 text-muted-foreground" />
 					Settings
 				</CardTitle>
 				<CardDescription>General behavior, inputs, and retention. All settings are global.</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-6">
-				<section className="flex flex-col gap-3">
+				<section className="flex flex-col gap-2">
 					<div className="flex items-center gap-2">
 						<Beaker className="size-4 text-muted-foreground" />
-						<h3 className="text-sm font-semibold">Inputs &amp; dry run</h3>
+						<h3 className="text-lg font-semibold">Inputs &amp; Dry Run</h3>
 					</div>
 					<p className="text-xs text-muted-foreground">
 						The candidate cap bounds how many items each analyzer feeds into the model. Smaller caps mean cheaper / faster runs but
@@ -58,14 +58,14 @@ export function IntelligenceGeneralSettingsCard({ data, patch }: { data: AdminIn
 							value={s.candidateCap}
 							onChange={v => patch({ candidateCap: v })}
 						/>
-						<ToggleRow label="Dry run (don't persist recommendations)" checked={s.dryRun} onChange={v => patch({ dryRun: v })} />
+						<ToggleRow label="Dry Run" checked={s.dryRun} onChange={v => patch({ dryRun: v })} />
 					</div>
 				</section>
 
-				<section className="flex flex-col gap-3">
+				<section className="flex flex-col gap-2">
 					<div className="flex items-center gap-2">
 						<Database className="size-4 text-muted-foreground" />
-						<h3 className="text-sm font-semibold">Retention</h3>
+						<h3 className="text-lg font-semibold">Retention</h3>
 					</div>
 					<p className="text-xs text-muted-foreground">
 						Old, dismissed/applied recommendations and old run-step debug rows are pruned on this schedule.
@@ -86,10 +86,10 @@ export function IntelligenceGeneralSettingsCard({ data, patch }: { data: AdminIn
 					</div>
 				</section>
 
-				<section className="flex flex-col gap-3">
+				<section className="flex flex-col gap-2">
 					<div className="flex items-center gap-2">
 						<CalendarCheck2 className="size-4 text-muted-foreground" />
-						<h3 className="text-sm font-semibold">List hygiene</h3>
+						<h3 className="text-lg font-semibold">List Hygiene</h3>
 					</div>
 					<p className="text-xs text-muted-foreground">
 						The list-hygiene analyzer surfaces calendar-aware nudges (convert / make public / create / set primary) for upcoming birthdays,
@@ -111,7 +111,7 @@ export function IntelligenceGeneralSettingsCard({ data, patch }: { data: AdminIn
 					</div>
 					<div className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2">
 						<div className="flex flex-col gap-0.5">
-							<Label className="text-sm">AI-assisted rename on Convert</Label>
+							<Label className="text-lg">AI-assisted rename on Convert</Label>
 							<span className="text-xs text-muted-foreground">
 								When on, the Convert action proposes the new list name via the same AI provider as the other analyzers. The prompt sees only
 								the current name, target type, event title, and year — never item content or claim data. Falls back to the deterministic
@@ -154,7 +154,7 @@ export function IntelligenceAnalyzersCard({ data, patch }: { data: AdminIntellig
 	return (
 		<Card data-intelligence="admin-settings-analyzers">
 			<CardHeader>
-				<CardTitle className="flex items-center gap-2">
+				<CardTitle className="text-2xl flex items-center gap-2">
 					<Sparkles className="size-6 text-muted-foreground" />
 					Analyzers
 				</CardTitle>
@@ -163,7 +163,7 @@ export function IntelligenceAnalyzersCard({ data, patch }: { data: AdminIntellig
 					per user; errors in one don&apos;t block the others.
 				</CardDescription>
 			</CardHeader>
-			<CardContent className="flex flex-col gap-2">
+			<CardContent className="flex flex-col gap-6">
 				{ANALYZER_ORDER.map(id => {
 					const meta = ANALYZER_META[id]
 					const enabled = s.perAnalyzerEnabled[id]
@@ -177,10 +177,10 @@ export function IntelligenceAnalyzersCard({ data, patch }: { data: AdminIntellig
 						>
 							<div className="flex flex-col gap-2 min-w-0">
 								<div className="flex items-center gap-2 flex-wrap">
-									<span className="text-sm font-medium">{meta.label}</span>
+									<span className="text-lg font-medium">{meta.label}</span>
 									<AnalyzerBadges kind={meta.kind} triggers={meta.triggers} status={meta.status} />
 								</div>
-								<p className="text-xs text-muted-foreground">{meta.description}</p>
+								<p className="text-sm text-muted-foreground">{meta.description}</p>
 								<div
 									data-intelligence="admin-analyzer-example"
 									className="rounded-md border border-border/60 bg-background/50 px-2.5 py-1.5"
@@ -210,17 +210,17 @@ export function IntelligenceSchedulingCard({ data, patch }: { data: AdminIntelli
 	return (
 		<Card data-intelligence="admin-settings-scheduling">
 			<CardHeader>
-				<CardTitle className="flex items-center gap-2">
+				<CardTitle className="text-2xl flex items-center gap-2">
 					<CalendarClock className="size-6 text-muted-foreground" />
 					Scheduling
 				</CardTitle>
 				<CardDescription>How often recommendations regenerate, and how the cron processes batches of users.</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-6">
-				<section className="flex flex-col gap-3">
+				<section className="flex flex-col gap-2">
 					<div className="flex items-center gap-2">
 						<CalendarClock className="size-4 text-muted-foreground" />
-						<h3 className="text-sm font-semibold">Schedule &amp; triggers</h3>
+						<h3 className="text-lg font-semibold">Schedule &amp; Triggers</h3>
 					</div>
 					<p className="text-xs text-muted-foreground">
 						Recommendations regenerate on a per-user cron and on manual &quot;Run for me now&quot; clicks. Each user is eligible no more
@@ -228,13 +228,13 @@ export function IntelligenceSchedulingCard({ data, patch }: { data: AdminIntelli
 					</p>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
-							label="Cron refresh interval (days)"
+							label="Cron Refresh Interval (days)"
 							hint="How often the cron will regenerate recommendations for each user."
 							value={s.refreshIntervalDays}
 							onChange={v => patch({ refreshIntervalDays: v })}
 						/>
 						<NumberRow
-							label="Manual refresh cooldown (min)"
+							label="Manual Refresh Cooldown (minutes)"
 							hint="Minimum gap between manual runs for the same user."
 							value={s.manualRefreshCooldownMinutes}
 							onChange={v => patch({ manualRefreshCooldownMinutes: v })}
@@ -242,10 +242,10 @@ export function IntelligenceSchedulingCard({ data, patch }: { data: AdminIntelli
 					</div>
 				</section>
 
-				<section className="flex flex-col gap-3">
+				<section className="flex flex-col gap-2">
 					<div className="flex items-center gap-2">
 						<Cpu className="size-4 text-muted-foreground" />
-						<h3 className="text-sm font-semibold">Cron workers</h3>
+						<h3 className="text-lg font-semibold">Cron Workers</h3>
 					</div>
 					<p className="text-xs text-muted-foreground">
 						Advanced. Controls how many users the cron processes per invocation and how many run in parallel. Raise these only after
@@ -253,13 +253,13 @@ export function IntelligenceSchedulingCard({ data, patch }: { data: AdminIntelli
 					</p>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
-							label="Cron concurrency"
+							label="Cron Concurrency"
 							hint="Number of users processed in parallel inside one invocation."
 							value={s.concurrency}
 							onChange={v => patch({ concurrency: v })}
 						/>
 						<NumberRow
-							label="Users per cron invocation"
+							label="Users per Cron Invocation"
 							hint="Maximum users the cron will pick up before yielding."
 							value={s.usersPerInvocation}
 							onChange={v => patch({ usersPerInvocation: v })}
@@ -276,13 +276,13 @@ export function IntelligenceNotificationsCard({ data, patch }: { data: AdminInte
 	return (
 		<Card data-intelligence="admin-settings-notifications">
 			<CardHeader>
-				<CardTitle className="flex items-center gap-2">
+				<CardTitle className="text-2xl flex items-center gap-2">
 					<Mail className="size-6 text-muted-foreground" />
 					Notifications
 				</CardTitle>
 				<CardDescription>Email digest scaffolding. Delivery is not yet wired up.</CardDescription>
 			</CardHeader>
-			<CardContent className="flex flex-col gap-4">
+			<CardContent className="flex flex-col gap-6">
 				<Alert>
 					<AlertTitle>Delivery not yet implemented</AlertTitle>
 					<AlertDescription>
@@ -290,18 +290,18 @@ export function IntelligenceNotificationsCard({ data, patch }: { data: AdminInte
 					</AlertDescription>
 				</Alert>
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
-					<ToggleRow label="Email enabled" checked={s.email.enabled} onChange={v => patch({ email: { ...s.email, enabled: v } })} />
+					<ToggleRow label="Email Enabled" checked={s.email.enabled} onChange={v => patch({ email: { ...s.email, enabled: v } })} />
 					<ToggleRow
-						label="Weekly digest"
+						label="Weekly Digest"
 						checked={s.email.weeklyDigestEnabled}
 						onChange={v => patch({ email: { ...s.email, weeklyDigestEnabled: v } })}
 					/>
 					<div className="md:col-span-2">
-						<Label className="text-xs text-muted-foreground">Test recipient (admin only)</Label>
+						<Label className="text-xs text-muted-foreground">Test Recipient</Label>
 						<TextInputOnBlur
 							className="mt-1"
 							type="email"
-							placeholder="optional"
+							placeholder="Optional"
 							value={s.email.testRecipient ?? ''}
 							onCommit={v => patch({ email: { ...s.email, testRecipient: v || null } })}
 						/>
