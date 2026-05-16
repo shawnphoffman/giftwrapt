@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.34.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.33.0...v0.34.0) (2026-05-16)
+
+
+### Features
+
+* **profile:** circular crop dialog and unified admin edit-user save ([f4cabc8](https://github.com/shawnphoffman/giftwrapt/commit/f4cabc8bf958af5560dd9156261bbc2daca7e8c3))
+
 ## [0.33.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.32.0...v0.33.0) (2026-05-16)
 
 
