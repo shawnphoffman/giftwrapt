@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.33.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.32.0...v0.33.0) (2026-05-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* **settings:** fresh deployments no longer expose the todos list type out of the box. Operators can re-enable via the admin app-settings editor.
+
+### Features
+
+* **admin:** expand edit-user modal with DatePicker and per-user permissions ([3663060](https://github.com/shawnphoffman/giftwrapt/commit/3663060977f0b1998f27570075a260442704d4da))
+* **docker:** generate selfhost compose matrix from feature registry ([6b0a407](https://github.com/shawnphoffman/giftwrapt/commit/6b0a40708b7031a651b6747ef08a2c825af331cb))
+* **settings:** default enableTodoLists to false for new tenants ([7076921](https://github.com/shawnphoffman/giftwrapt/commit/7076921f111b2f0fdce159db18b8ffbcefbdd87f))
+* **todos:** confirm item deletes and align settings UI with type-lock ([c1f0610](https://github.com/shawnphoffman/giftwrapt/commit/c1f06106a3d6e391c0805b2a4d006b7fa42bf2b6))
+
+
+### Bug Fixes
+
+* **calendar:** render dropdown caption layout cleanly ([3c08c00](https://github.com/shawnphoffman/giftwrapt/commit/3c08c009fab15203e32ee6c4aac703ccfaf2e3b4))
+* capitalize "Amazon Wish List" consistently ([eece254](https://github.com/shawnphoffman/giftwrapt/commit/eece254baa88a8ceaf21f7670a12a398269e3bbd))
+* **lists:** gate "test" list type to local dev only ([c74e7f9](https://github.com/shawnphoffman/giftwrapt/commit/c74e7f9972145ebab6bc5f1aa3c411028ee7eb76))
+* **todos:** render TodoList on edit page and align add-item dialogs ([73b6061](https://github.com/shawnphoffman/giftwrapt/commit/73b6061508a7c8b382b1c9a3c5774ce79a072883))
+
 ## [0.32.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.31.0...v0.32.0) (2026-05-15)
 
 
