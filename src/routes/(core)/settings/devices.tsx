@@ -150,7 +150,7 @@ function DeviceRow({ keyRow, onRevoke }: { keyRow: MobileApiKeySummary; onRevoke
 				</div>
 			</div>
 			<Button
-				variant="ghost"
+				variant="outline"
 				size="sm"
 				onClick={onRevoke}
 				aria-label="Revoke device key"

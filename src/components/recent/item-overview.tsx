@@ -123,7 +123,7 @@ export default function ItemOverview(props: ItemOverviewProps) {
 				<div className="flex flex-col items-center justify-between shrink-0 self-stretch gap-2">
 					<Tooltip>
 						<TooltipTrigger asChild>
-							<Button asChild size="icon" variant="ghost" className="size-7 cursor-pointer">
+							<Button asChild size="icon" variant="outline" className="size-7 cursor-pointer">
 								<Link to="/lists/$listId" params={{ listId: String(listId) }} hash={`item-${id}`}>
 									<ArrowRight className="size-4" />
 								</Link>

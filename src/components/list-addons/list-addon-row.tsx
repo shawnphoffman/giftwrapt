@@ -75,7 +75,7 @@ export function ListAddonRow({ addon, listId }: Props) {
 					{isMine && (
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
-								<Button variant="ghost" size="icon" className="size-7 shrink-0" aria-label="Off-list gift actions">
+								<Button variant="outline" size="icon" className="size-7 shrink-0" aria-label="Off-list gift actions">
 									<MoreHorizontal className="size-5" />
 								</Button>
 							</DropdownMenuTrigger>

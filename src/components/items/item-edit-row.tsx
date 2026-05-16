@@ -197,7 +197,7 @@ export const ItemEditRow = memo(function ItemEditRow({
 				)}
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-						<Button variant="ghost" size="icon" className="size-7 shrink-0" aria-label="Item actions">
+						<Button variant="outline" size="icon" className="size-7 shrink-0" aria-label="Item actions">
 							<MoreHorizontal className="size-5" />
 						</Button>
 					</DropdownMenuTrigger>
@@ -274,7 +274,7 @@ export const ItemEditRow = memo(function ItemEditRow({
 					{(onMoveUp || onMoveDown) && (
 						<div className="flex flex-col shrink-0">
 							<Button
-								variant="ghost"
+								variant="outline"
 								size="icon"
 								className="size-7"
 								onClick={onMoveUp}
@@ -285,7 +285,7 @@ export const ItemEditRow = memo(function ItemEditRow({
 								<ArrowUp className="size-4" />
 							</Button>
 							<Button
-								variant="ghost"
+								variant="outline"
 								size="icon"
 								className="size-7"
 								onClick={onMoveDown}

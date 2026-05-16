@@ -61,7 +61,7 @@ function NoListsPopoverContent() {
 			<PopoverTrigger asChild>
 				<Button
 					type="button"
-					variant="ghost"
+					variant="outline"
 					size="icon"
 					className="size-8 text-muted-foreground hover:text-foreground"
 					aria-label={`${empty.length} ${empty.length === 1 ? 'person has' : 'people have'} no lists`}

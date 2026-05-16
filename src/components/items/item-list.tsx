@@ -238,7 +238,11 @@ export default function ItemList({ listId, groups = [] }: Props) {
 				<div className="flex flex-row items-center justify-end gap-1 flex-wrap">
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
-							<Button variant="ghost" size="sm" className={cn('h-7 text-xs text-muted-foreground', filter !== 'all' && 'text-foreground')}>
+							<Button
+								variant="outline"
+								size="xs"
+								className={cn('h-7 text-xs text-muted-foreground', filter !== 'all' && 'text-foreground')}
+							>
 								<Filter className="size-3.5" />
 								{filterLabels[filter]}
 							</Button>
@@ -266,7 +270,7 @@ export default function ItemList({ listId, groups = [] }: Props) {
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button
-								variant="ghost"
+								variant="outline"
 								size="sm"
 								className={cn('h-7 text-xs text-muted-foreground', pricePreset !== 'all' && 'text-foreground')}
 							>
@@ -324,7 +328,7 @@ export default function ItemList({ listId, groups = [] }: Props) {
 
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
-							<Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground">
+							<Button variant="outline" size="xs" className="h-7 text-xs text-muted-foreground">
 								<ArrowUpDown className="size-3.5" />
 								{sortLabels[sort]}
 								<SortDirectionIcon className="size-3" />

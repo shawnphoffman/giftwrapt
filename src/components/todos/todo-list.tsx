@@ -93,7 +93,7 @@ function TodoRowItem({ todo, listId, canEdit }: { todo: TodoRow; listId: number;
 				{done && todo.claimedByName && <p className="text-xs text-muted-foreground">Done by {todo.claimedByName}</p>}
 			</div>
 			{canEdit && (
-				<Button variant="ghost" size="sm" onClick={() => remove.mutate()} disabled={remove.isPending}>
+				<Button variant="outline" size="xs" onClick={() => remove.mutate()} disabled={remove.isPending}>
 					Delete
 				</Button>
 			)}
@@ -147,7 +147,7 @@ function AddTodoDialog({ listId }: { listId: number }) {
 					</div>
 				</div>
 				<DialogFooter>
-					<Button variant="ghost" onClick={() => setOpen(false)}>
+					<Button variant="outline" onClick={() => setOpen(false)}>
 						Cancel
 					</Button>
 					<Button onClick={() => create.mutate()} disabled={!title.trim() || create.isPending}>

@@ -66,7 +66,7 @@ export type ScraperProvidersFormChangeKey =
 
 export function ScraperProvidersFormView({ settings, disabled, onChange }: ScraperProvidersFormViewProps) {
 	return (
-		<div className="@container/scraper-form space-y-8">
+		<div className="@container/scraper-form space-y-6">
 			<ScraperTimingFormView settings={settings} disabled={disabled} onChange={onChange} />
 			<Separator />
 			<ScrapeProvidersListView settings={settings} disabled={disabled} onChange={onChange} />
@@ -78,7 +78,7 @@ export function ScraperTimingFormView({ settings, disabled, onChange }: ScraperP
 	const inputDisabled = disabled === true
 
 	return (
-		<div className="@container/scraper-form space-y-8">
+		<div className="@container/scraper-form space-y-6">
 			<NumberRow
 				id="scrapeProviderTimeoutMs"
 				label="Per-Provider Timeout"
@@ -414,7 +414,7 @@ function EntryCard({
 				/>
 				<Button
 					type="button"
-					variant="ghost"
+					variant="outline"
 					size="icon"
 					className="h-8 w-8"
 					disabled={disabled}
@@ -482,7 +482,7 @@ function EntryCard({
 
 				<div className="flex items-center justify-end gap-2 pt-3 border-t -mx-4 px-4">
 					{dirty && <span className="mr-auto text-xs text-muted-foreground italic">Unsaved changes</span>}
-					<Button type="button" variant="ghost" size="sm" disabled={disabled || !dirty} onClick={reset}>
+					<Button type="button" variant="outline" size="xs" disabled={disabled || !dirty} onClick={reset}>
 						Reset
 					</Button>
 					<Button type="button" size="sm" disabled={disabled || !dirty} onClick={save}>

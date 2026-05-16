@@ -286,7 +286,7 @@ export function EditDependentDialog({
 					<DialogFooter className="!justify-between sm:!justify-between">
 						<Button
 							type="button"
-							variant="ghost"
+							variant="outline"
 							className="text-destructive hover:text-destructive hover:bg-destructive/10"
 							onClick={() => setConfirmDeleteOpen(true)}
 							disabled={saveMutation.isPending || deleteMutation.isPending}
@@ -294,7 +294,7 @@ export function EditDependentDialog({
 							<Trash2 className="size-4" /> Delete
 						</Button>
 						<div className="flex items-center gap-2">
-							<Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={saveMutation.isPending}>
+							<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saveMutation.isPending}>
 								Cancel
 							</Button>
 							<Button type="submit" disabled={saveMutation.isPending || !dirty || !name.trim()}>

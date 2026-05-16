@@ -136,7 +136,7 @@ export default function AvatarUpload({ image, displayName, onUpload, onRemove, o
 			</Avatar>
 			{image && (
 				<Button
-					variant="ghost"
+					variant="outline"
 					size="sm"
 					disabled={busy}
 					onClick={handleRemove}

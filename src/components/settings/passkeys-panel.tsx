@@ -156,7 +156,7 @@ function PasskeyRow({
 						<Button
 							type="button"
 							size="sm"
-							variant="ghost"
+							variant="outline"
 							onClick={() => {
 								setEditing(false)
 								setDraft(passkey.name ?? '')
@@ -186,11 +186,11 @@ function PasskeyRow({
 			</div>
 			{!editing && (
 				<div className="flex gap-0.5">
-					<Button variant="ghost" size="icon-sm" onClick={() => setEditing(true)} disabled={busy} aria-label="Rename passkey">
+					<Button variant="outline" size="icon-sm" onClick={() => setEditing(true)} disabled={busy} aria-label="Rename passkey">
 						<Pencil className="size-4" />
 					</Button>
 					<Button
-						variant="ghost"
+						variant="outline"
 						size="icon-sm"
 						onClick={() => setConfirmOpen(true)}
 						disabled={busy}

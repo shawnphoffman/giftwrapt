@@ -111,7 +111,7 @@ function ToolbarButton({ label, icon, onClick }: { label: string; icon: React.Re
 	return (
 		<Button
 			type="button"
-			variant="ghost"
+			variant="outline"
 			size="icon"
 			className="size-7 text-muted-foreground hover:text-foreground"
 			onClick={onClick}

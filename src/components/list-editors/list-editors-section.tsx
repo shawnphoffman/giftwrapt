@@ -140,7 +140,7 @@ export function ListEditorsSection({ listId, editors, addableUsers }: Props) {
 								</div>
 								<Button
 									size="sm"
-									variant="ghost"
+									variant="outline"
 									onClick={() => setRemoveTarget(editor)}
 									title="Remove editor"
 									className="text-destructive hover:text-destructive"

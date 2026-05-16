@@ -24,7 +24,7 @@ export function ThemeSwitcher({ className }: { className?: string }) {
 
 	if (!mounted) {
 		return (
-			<Button variant="ghost" size="icon" className={buttonClasses} disabled={true} aria-label="Toggle theme" suppressHydrationWarning>
+			<Button variant="outline" size="icon" className={buttonClasses} disabled={true} aria-label="Toggle theme" suppressHydrationWarning>
 				<Moon className={iconClasses} />
 			</Button>
 		)
@@ -34,7 +34,7 @@ export function ThemeSwitcher({ className }: { className?: string }) {
 
 	return (
 		<Button
-			variant="ghost"
+			variant="outline"
 			size="icon"
 			className={buttonClasses}
 			onClick={() => setTheme(isDark ? 'light' : 'dark')}

@@ -21,7 +21,7 @@ const PasswordInput = ({ className, ...props }: React.InputHTMLAttributes<HTMLIn
 			<Input type={showPassword ? 'text' : 'password'} className={cn('pr-10', className)} {...props} />
 			<Button
 				type="button"
-				variant="ghost"
+				variant="outline"
 				size="icon"
 				className="absolute right-0 top-0 hover:bg-transparent"
 				onClick={handleTogglePasswordVisibility}

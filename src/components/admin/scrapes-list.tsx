@@ -106,7 +106,7 @@ function ScrapeRow({ row, labelFor, onInspect }: { row: ScrapeListRow; labelFor:
 	return (
 		<TableRow className="group/row">
 			<TableCell className={STICKY_INSPECT_CELL}>
-				<Button type="button" variant="ghost" size="icon" onClick={onInspect} aria-label={`Inspect scrape #${row.id}`}>
+				<Button type="button" variant="outline" size="icon" onClick={onInspect} aria-label={`Inspect scrape #${row.id}`}>
 					<Eye className="size-4" />
 				</Button>
 			</TableCell>

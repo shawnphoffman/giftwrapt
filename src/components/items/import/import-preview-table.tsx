@@ -112,7 +112,7 @@ export function ImportPreviewTable({
 				</label>
 				<div className="flex items-center gap-2">
 					{selectedCount > 0 && (
-						<Button type="button" variant="ghost" size="xs" onClick={removeSelected} disabled={submitting}>
+						<Button type="button" variant="outline" size="xs" onClick={removeSelected} disabled={submitting}>
 							<Trash2 className="size-3" /> Remove {selectedCount}
 						</Button>
 					)}
@@ -158,7 +158,7 @@ export function ImportPreviewTable({
 							</div>
 							<Button
 								type="button"
-								variant="ghost"
+								variant="outline"
 								size="icon-sm"
 								onClick={() => removeAt(index)}
 								disabled={submitting}

@@ -29,20 +29,18 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { RelationLabel } from '@/db/schema/enums'
 
-type Bucket = { label: RelationLabel; title: string; addCta: string; emptyHelp: string }
+type Bucket = { label: RelationLabel; title: string; addCta: string }
 
 const BUCKETS: ReadonlyArray<Bucket> = [
 	{
 		label: 'mother',
 		title: 'Mothers',
 		addCta: 'Add',
-		emptyHelp: 'Tag the people you shop for on Mother’s Day. They’ll appear on reminders and in Suggestions.',
 	},
 	{
 		label: 'father',
 		title: 'Fathers',
 		addCta: 'Add',
-		emptyHelp: 'Tag the people you shop for on Father’s Day. They’ll appear on reminders and in Suggestions.',
 	},
 ]
 
@@ -199,17 +197,15 @@ function RelationBucket({ bucket, rows, people, dependents, ops, onRemove }: Rel
 
 	return (
 		<div className="grid gap-2">
-			<div className="flex items-center justify-between">
+			<div className="flex items-center justify-between  h-6">
 				<Label>{bucket.title}</Label>
 				{!adding && (
-					<Button type="button" variant="ghost" size="sm" onClick={() => setAdding(true)}>
+					<Button type="button" variant="outline" size="xs" onClick={() => setAdding(true)}>
 						<Plus className="size-4" />
 						{bucket.addCta}
 					</Button>
 				)}
 			</div>
-
-			{rows.length === 0 && !adding && <p className="text-muted-foreground text-xs">{bucket.emptyHelp}</p>}
 
 			{rows.length > 0 && (
 				<ul className="grid gap-1">
@@ -226,7 +222,7 @@ function RelationBucket({ bucket, rows, people, dependents, ops, onRemove }: Rel
 									<span className="flex-1 truncate text-sm">{r.target.name}</span>
 								</>
 							)}
-							<Button type="button" variant="ghost" size="icon" aria-label="Remove" onClick={() => onRemove(r.id)}>
+							<Button type="button" variant="outline" size="icon" aria-label="Remove" onClick={() => onRemove(r.id)}>
 								<Trash2 className="size-4" />
 							</Button>
 						</li>
@@ -264,7 +260,7 @@ function RelationBucket({ bucket, rows, people, dependents, ops, onRemove }: Rel
 					<Button
 						type="button"
 						size="sm"
-						variant="ghost"
+						variant="outline"
 						onClick={() => {
 							setAdding(false)
 							setPickerValue('')

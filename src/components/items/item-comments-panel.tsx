@@ -193,10 +193,10 @@ function CommentRow({
 									className="text-base md:text-sm"
 								/>
 								<div className="flex flex-col gap-1">
-									<Button size="sm" variant="ghost" onClick={handleSave} disabled={saving}>
+									<Button size="sm" variant="outline" onClick={handleSave} disabled={saving}>
 										Save
 									</Button>
-									<Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+									<Button size="sm" variant="outline" onClick={() => setEditing(false)}>
 										Cancel
 									</Button>
 								</div>
@@ -217,10 +217,10 @@ function CommentRow({
 				</div>
 				{isOwn && !editing && (
 					<div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-						<Button variant="ghost" size="icon" className="size-6" onClick={() => setEditing(true)} aria-label="Edit comment">
+						<Button variant="outline" size="icon" className="size-6" onClick={() => setEditing(true)} aria-label="Edit comment">
 							<Pencil className="size-3" />
 						</Button>
-						<Button variant="ghost" size="icon" className="size-6" onClick={() => setDeleteOpen(true)} aria-label="Delete comment">
+						<Button variant="outline" size="icon" className="size-6" onClick={() => setDeleteOpen(true)} aria-label="Delete comment">
 							<Trash2 className="size-3" />
 						</Button>
 					</div>

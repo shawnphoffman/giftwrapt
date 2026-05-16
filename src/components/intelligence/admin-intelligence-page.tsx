@@ -266,7 +266,7 @@ export function AnalyzerBadges({
 					<PopoverTrigger asChild>
 						<Button
 							size="sm"
-							variant="ghost"
+							variant="outline"
 							className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
 							aria-label="Show analyzer details"
 						>

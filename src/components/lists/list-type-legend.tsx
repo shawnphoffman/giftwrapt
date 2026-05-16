@@ -122,7 +122,7 @@ export function ListTypeLegend({ className }: { className?: string }) {
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
 				<Button
-					variant="ghost"
+					variant="outline"
 					size="sm"
 					className={cn('h-7 -mt-2 self-start text-xs text-muted-foreground hover:text-foreground', className)}
 				>

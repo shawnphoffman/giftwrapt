@@ -472,7 +472,7 @@ function PurchaseDetailRow({
 			</Badge>
 			{editable ? (
 				<Button
-					variant="ghost"
+					variant="outline"
 					size="icon"
 					className="size-7 shrink-0 text-muted-foreground hover:text-foreground"
 					onClick={e => {

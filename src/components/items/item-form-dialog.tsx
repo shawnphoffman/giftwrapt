@@ -483,7 +483,7 @@ export function ItemFormDialog(props: Props) {
 											<img src={httpsUpgrade(currentUrl)} alt="" className="size-16 rounded border object-cover" />
 											<Button
 												type="button"
-												variant="ghost"
+												variant="outline"
 												size="sm"
 												onClick={handleRemove}
 												disabled={submitting || uploadingImage}

@@ -234,7 +234,12 @@ export default function ThemeReference() {
 							>
 								{size === 'icon' ? <Star /> : 'outline'}
 							</Button>
-							<Button size={size} variant="ghost" onClick={() => toast.success('ghost')} aria-label={size === 'icon' ? 'ghost' : undefined}>
+							<Button
+								size={size}
+								variant="outline"
+								onClick={() => toast.success('ghost')}
+								aria-label={size === 'icon' ? 'ghost' : undefined}
+							>
 								{size === 'icon' ? <Star /> : 'ghost'}
 							</Button>
 							<Button
@@ -419,7 +424,7 @@ export default function ThemeReference() {
 					<InputGroup>
 						<InputGroupInput defaultValue="https://example.com/share/abc123" readOnly />
 						<InputGroupAddon align="inline-end">
-							<Button size="sm" variant="ghost" onClick={() => toast.success('Copied')}>
+							<Button size="sm" variant="outline" onClick={() => toast.success('Copied')}>
 								<Copy data-icon="inline-start" />
 								Copy
 							</Button>
@@ -566,7 +571,7 @@ export default function ThemeReference() {
 							<CardAction>
 								<DropdownMenu>
 									<DropdownMenuTrigger asChild>
-										<Button size="sm" variant="ghost" aria-label="Card actions">
+										<Button size="sm" variant="outline" aria-label="Card actions">
 											<MoreHorizontal />
 										</Button>
 									</DropdownMenuTrigger>
@@ -591,7 +596,7 @@ export default function ThemeReference() {
 						</CardContent>
 						<CardFooter className="border-t justify-between">
 							<span className="text-xs text-muted-foreground">Updated 2m ago</span>
-							<Button size="sm" variant="ghost">
+							<Button size="sm" variant="outline">
 								View
 							</Button>
 						</CardFooter>

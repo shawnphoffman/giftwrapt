@@ -76,7 +76,7 @@ export function GroupBlock({ group, items, groups, listId, isOwner, onAddItem, o
 					<div className="ml-auto" />
 					{isOwner && (
 						<Button
-							variant="ghost"
+							variant="outline"
 							size="icon"
 							className="size-7"
 							onClick={() => onAddItem(group.id)}
@@ -89,7 +89,7 @@ export function GroupBlock({ group, items, groups, listId, isOwner, onAddItem, o
 					{isOwner && (
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
-								<Button variant="ghost" size="icon" className="size-7" title="Group actions" aria-label="Group actions">
+								<Button variant="outline" size="icon" className="size-7" title="Group actions" aria-label="Group actions">
 									<MoreHorizontal className="size-4" />
 								</Button>
 							</DropdownMenuTrigger>

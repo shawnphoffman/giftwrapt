@@ -176,7 +176,7 @@ function StorageTableRow({
 			<TableCell className="text-right">
 				<Button
 					type="button"
-					variant="ghost"
+					variant="outline"
 					size="icon"
 					aria-label={`Delete ${row.key}`}
 					title={row.status === 'attached' ? 'Cannot delete: still attached to a row' : 'Delete object'}

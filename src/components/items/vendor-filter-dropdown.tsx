@@ -63,7 +63,7 @@ export function VendorFilterDropdown({ options, selected, onToggle, onClear }: P
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<Button variant="ghost" size="sm" className={cn('h-7 text-xs text-muted-foreground', selected.size > 0 && 'text-foreground')}>
+				<Button variant="outline" size="xs" className={cn('h-7 text-xs text-muted-foreground', selected.size > 0 && 'text-foreground')}>
 					<Store className="size-3.5" />
 					{label}
 				</Button>

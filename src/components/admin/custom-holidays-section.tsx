@@ -176,7 +176,7 @@ function CustomHolidayRow({ row }: { row: AdminCustomHoliday }) {
 						<Button
 							type="button"
 							size="sm"
-							variant="ghost"
+							variant="outline"
 							onClick={() => {
 								setTitle(row.title)
 								setEditing(false)
@@ -204,7 +204,7 @@ function CustomHolidayRow({ row }: { row: AdminCustomHoliday }) {
 			</div>
 			<AlertDialog>
 				<AlertDialogTrigger asChild>
-					<Button variant="ghost" size="sm" aria-label="Delete">
+					<Button variant="outline" size="xs" aria-label="Delete">
 						<Trash2 className="size-4" />
 					</Button>
 				</AlertDialogTrigger>
@@ -296,7 +296,7 @@ function AddFromCatalogDialog() {
 					)}
 				</div>
 				<DialogFooter>
-					<Button variant="ghost" onClick={() => setOpen(false)}>
+					<Button variant="outline" onClick={() => setOpen(false)}>
 						Close
 					</Button>
 				</DialogFooter>
@@ -411,7 +411,7 @@ function AddCustomDialog() {
 					)}
 				</div>
 				<DialogFooter>
-					<Button variant="ghost" onClick={() => setOpen(false)}>
+					<Button variant="outline" onClick={() => setOpen(false)}>
 						Cancel
 					</Button>
 					<Button onClick={() => add.mutate()} disabled={!canSubmit || add.isPending}>

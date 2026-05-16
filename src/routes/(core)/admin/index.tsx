@@ -74,7 +74,7 @@ function AdminPage() {
 						summary.
 					</CardDescription>
 				</CardHeader>
-				<CardContent className="space-y-8">
+				<CardContent className="space-y-6">
 					<ClientOnly>
 						<GenericHolidaySettingsSection />
 					</ClientOnly>

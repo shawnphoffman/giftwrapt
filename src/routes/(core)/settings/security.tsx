@@ -19,7 +19,7 @@ function SecurityPage() {
 				<CardTitle className="text-2xl">Security</CardTitle>
 				<CardDescription>Change your password and security settings.</CardDescription>
 			</CardHeader>
-			<CardContent className="space-y-8">
+			<CardContent className="space-y-6">
 				<section className="space-y-3">
 					<div>
 						<h2 className="text-lg font-semibold">Password</h2>

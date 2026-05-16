@@ -152,7 +152,7 @@ function EnrollingView({
 							<Button
 								type="button"
 								size="icon-sm"
-								variant="ghost"
+								variant="outline"
 								onClick={() => setSecretShown(s => !s)}
 								title={secretShown ? 'Hide secret' : 'Show secret'}
 							>
@@ -186,7 +186,7 @@ function EnrollingView({
 					<Button type="submit" disabled={submitting || busy || code.length !== TOTP_CODE_LENGTH}>
 						{submitting ? 'Verifying…' : 'Verify and turn on'}
 					</Button>
-					<Button type="button" variant="ghost" onClick={onCancelEnrollment} disabled={submitting || busy}>
+					<Button type="button" variant="outline" onClick={onCancelEnrollment} disabled={submitting || busy}>
 						Cancel
 					</Button>
 				</div>
@@ -304,7 +304,7 @@ function BackupCodesPanel({ codes, onDismiss }: { codes: Array<string>; onDismis
 					))}
 				</ul>
 				{onDismiss && (
-					<Button type="button" variant="ghost" size="sm" className="mt-2" onClick={onDismiss}>
+					<Button type="button" variant="outline" size="xs" className="mt-2" onClick={onDismiss}>
 						I've Saved Them
 					</Button>
 				)}

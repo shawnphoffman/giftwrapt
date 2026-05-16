@@ -22,7 +22,7 @@ export function RunDetailContent({ data, onBack, onRerunDryRun, onRerunPersist }
 		<div className="flex flex-col gap-6 max-w-6xl w-full mx-auto px-4 py-6">
 			<header className="flex items-center justify-between gap-4">
 				<div className="flex items-center gap-3">
-					<Button size="sm" variant="ghost" onClick={onBack}>
+					<Button size="sm" variant="outline" onClick={onBack}>
 						<ArrowLeft className="size-4" /> Back
 					</Button>
 					<div>
