@@ -276,6 +276,7 @@ export function ListSettingsForm({
 							<SelectContent>
 								{listTypeEnumValues
 									.filter(t => !(t === 'test' && !IS_DEV))
+									.filter(t => (type === 'todos' ? t === 'todos' : t !== 'todos'))
 									.map(t => (
 										<SelectItem key={t} value={t}>
 											<ListTypeIcon type={t} className="size-4" />
@@ -463,7 +464,7 @@ export function ListSettingsForm({
 				{submitting ? 'Saving…' : 'Save settings'}
 			</Button>
 
-			{isOwner && (
+			{isOwner && type !== 'todos' && (
 				<>
 					<Separator />
 					<div className="grid gap-2">

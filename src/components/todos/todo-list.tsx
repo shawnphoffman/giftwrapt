@@ -7,10 +7,12 @@
 // CRUD flow is shipped and validated.
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Plus } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { createTodo, deleteTodo, listTodos, type TodoRow, toggleTodoClaim } from '@/api/todos'
+import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -58,6 +60,7 @@ export function TodoList({ listId, canEdit }: { listId: number; canEdit: boolean
 function TodoRowItem({ todo, listId, canEdit }: { todo: TodoRow; listId: number; canEdit: boolean }) {
 	const qc = useQueryClient()
 	const done = todo.claimedByUserId !== null
+	const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
 
 	const toggle = useMutation({
 		mutationFn: async () => {
@@ -79,7 +82,7 @@ function TodoRowItem({ todo, listId, canEdit }: { todo: TodoRow; listId: number;
 	})
 
 	return (
-		<li className="flex items-start gap-3 rounded border border-border bg-card p-3">
+		<li className="relative z-10 flex items-start gap-2 p-2 ps-4 ring-1 ring-inset ring-border rounded-lg bg-card shadow-sm">
 			<button
 				type="button"
 				onClick={() => toggle.mutate()}
@@ -93,9 +96,21 @@ function TodoRowItem({ todo, listId, canEdit }: { todo: TodoRow; listId: number;
 				{done && todo.claimedByName && <p className="text-xs text-muted-foreground">Done by {todo.claimedByName}</p>}
 			</div>
 			{canEdit && (
-				<Button variant="outline" size="xs" onClick={() => remove.mutate()} disabled={remove.isPending}>
-					Delete
-				</Button>
+				<>
+					<Button variant="destructive" size="xs" onClick={() => setConfirmDeleteOpen(true)} disabled={remove.isPending}>
+						Delete
+					</Button>
+					<ConfirmDialog
+						open={confirmDeleteOpen}
+						onOpenChange={setConfirmDeleteOpen}
+						title="Delete this todo?"
+						description={`"${todo.title}" will be permanently removed. This can't be undone.`}
+						confirmLabel="Delete"
+						confirmBusyLabel="Deleting…"
+						destructive
+						onConfirm={() => remove.mutateAsync()}
+					/>
+				</>
 			)}
 		</li>
 	)
@@ -127,8 +142,9 @@ function AddTodoDialog({ listId }: { listId: number }) {
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
-				<Button variant="outline" className="self-start">
-					Add ToDo
+				<Button variant="default" size="sm" className="self-end">
+					<Plus className="size-4" /> <span className="xs:hidden">Add</span>
+					<span className="hidden xs:inline">Add ToDo</span>
 				</Button>
 			</DialogTrigger>
 			<DialogContent>
