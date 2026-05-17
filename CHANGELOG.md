@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.35.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.34.0...v0.35.0) (2026-05-17)
+
+
+### Features
+
+* **migrate:** detect post-squash upgrade and link recovery docs ([a2f82f8](https://github.com/shawnphoffman/giftwrapt/commit/a2f82f83b1fc7729a597fd8cf9f941b8d6738e5f))
+
+
+### Bug Fixes
+
+* **garage:** use loopback for in-container CLI rpc_public_addr ([21e6fa2](https://github.com/shawnphoffman/giftwrapt/commit/21e6fa21370dc69a82166e4c3d5fa046327031cb))
+
 ## [0.34.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.33.0...v0.34.0) (2026-05-16)
 
 
