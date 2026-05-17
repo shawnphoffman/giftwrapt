@@ -2,7 +2,6 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { AiFeaturesCard } from '@/components/admin/ai-features-card'
 import { AiSettingsEditor } from '@/components/admin/ai-settings-editor'
-import { PhotoExtractTester } from '@/components/admin/photo-extract-tester'
 import { ClientOnly } from '@/components/utilities/client-only'
 
 export const Route = createFileRoute('/(core)/admin/ai')({
@@ -18,10 +17,6 @@ function AdminAiPage() {
 
 			<ClientOnly>
 				<AiFeaturesCard />
-			</ClientOnly>
-
-			<ClientOnly>
-				<PhotoExtractTester />
 			</ClientOnly>
 		</div>
 	)

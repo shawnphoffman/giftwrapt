@@ -56,6 +56,7 @@ import { Route as coreAdminUsersRouteImport } from './routes/(core)/admin/users'
 import { Route as coreAdminStorageRouteImport } from './routes/(core)/admin/storage'
 import { Route as coreAdminScrapingRouteImport } from './routes/(core)/admin/scraping'
 import { Route as coreAdminSchedulingRouteImport } from './routes/(core)/admin/scheduling'
+import { Route as coreAdminPhotoRouteImport } from './routes/(core)/admin/photo'
 import { Route as coreAdminEmailRouteImport } from './routes/(core)/admin/email'
 import { Route as coreAdminDebugRouteImport } from './routes/(core)/admin/debug'
 import { Route as coreAdminDataRouteImport } from './routes/(core)/admin/data'
@@ -314,6 +315,11 @@ const coreAdminSchedulingRoute = coreAdminSchedulingRouteImport.update({
   path: '/scheduling',
   getParentRoute: () => coreAdminRouteRoute,
 } as any)
+const coreAdminPhotoRoute = coreAdminPhotoRouteImport.update({
+  id: '/photo',
+  path: '/photo',
+  getParentRoute: () => coreAdminRouteRoute,
+} as any)
 const coreAdminEmailRoute = coreAdminEmailRouteImport.update({
   id: '/email',
   path: '/email',
@@ -440,6 +446,7 @@ export interface FileRoutesByFullPath {
   '/admin/data': typeof coreAdminDataRoute
   '/admin/debug': typeof coreAdminDebugRoute
   '/admin/email': typeof coreAdminEmailRoute
+  '/admin/photo': typeof coreAdminPhotoRoute
   '/admin/scheduling': typeof coreAdminSchedulingRoute
   '/admin/scraping': typeof coreAdminScrapingRoute
   '/admin/storage': typeof coreAdminStorageRoute
@@ -503,6 +510,7 @@ export interface FileRoutesByTo {
   '/admin/data': typeof coreAdminDataRoute
   '/admin/debug': typeof coreAdminDebugRoute
   '/admin/email': typeof coreAdminEmailRoute
+  '/admin/photo': typeof coreAdminPhotoRoute
   '/admin/scheduling': typeof coreAdminSchedulingRoute
   '/admin/scraping': typeof coreAdminScrapingRoute
   '/admin/storage': typeof coreAdminStorageRoute
@@ -572,6 +580,7 @@ export interface FileRoutesById {
   '/(core)/admin/data': typeof coreAdminDataRoute
   '/(core)/admin/debug': typeof coreAdminDebugRoute
   '/(core)/admin/email': typeof coreAdminEmailRoute
+  '/(core)/admin/photo': typeof coreAdminPhotoRoute
   '/(core)/admin/scheduling': typeof coreAdminSchedulingRoute
   '/(core)/admin/scraping': typeof coreAdminScrapingRoute
   '/(core)/admin/storage': typeof coreAdminStorageRoute
@@ -641,6 +650,7 @@ export interface FileRouteTypes {
     | '/admin/data'
     | '/admin/debug'
     | '/admin/email'
+    | '/admin/photo'
     | '/admin/scheduling'
     | '/admin/scraping'
     | '/admin/storage'
@@ -704,6 +714,7 @@ export interface FileRouteTypes {
     | '/admin/data'
     | '/admin/debug'
     | '/admin/email'
+    | '/admin/photo'
     | '/admin/scheduling'
     | '/admin/scraping'
     | '/admin/storage'
@@ -772,6 +783,7 @@ export interface FileRouteTypes {
     | '/(core)/admin/data'
     | '/(core)/admin/debug'
     | '/(core)/admin/email'
+    | '/(core)/admin/photo'
     | '/(core)/admin/scheduling'
     | '/(core)/admin/scraping'
     | '/(core)/admin/storage'
@@ -1174,6 +1186,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreAdminSchedulingRouteImport
       parentRoute: typeof coreAdminRouteRoute
     }
+    '/(core)/admin/photo': {
+      id: '/(core)/admin/photo'
+      path: '/photo'
+      fullPath: '/admin/photo'
+      preLoaderRoute: typeof coreAdminPhotoRouteImport
+      parentRoute: typeof coreAdminRouteRoute
+    }
     '/(core)/admin/email': {
       id: '/(core)/admin/email'
       path: '/email'
@@ -1317,6 +1336,7 @@ interface coreAdminRouteRouteChildren {
   coreAdminDataRoute: typeof coreAdminDataRoute
   coreAdminDebugRoute: typeof coreAdminDebugRoute
   coreAdminEmailRoute: typeof coreAdminEmailRoute
+  coreAdminPhotoRoute: typeof coreAdminPhotoRoute
   coreAdminSchedulingRoute: typeof coreAdminSchedulingRoute
   coreAdminScrapingRoute: typeof coreAdminScrapingRoute
   coreAdminStorageRoute: typeof coreAdminStorageRoute
@@ -1332,6 +1352,7 @@ const coreAdminRouteRouteChildren: coreAdminRouteRouteChildren = {
   coreAdminDataRoute: coreAdminDataRoute,
   coreAdminDebugRoute: coreAdminDebugRoute,
   coreAdminEmailRoute: coreAdminEmailRoute,
+  coreAdminPhotoRoute: coreAdminPhotoRoute,
   coreAdminSchedulingRoute: coreAdminSchedulingRoute,
   coreAdminScrapingRoute: coreAdminScrapingRoute,
   coreAdminStorageRoute: coreAdminStorageRoute,
