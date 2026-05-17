@@ -20,10 +20,11 @@ replication_factor = 1
 
 # RPC is how Garage nodes talk to each other AND how the CLI talks to the
 # daemon. Binding to :: listens on all interfaces inside the container.
-# rpc_public_addr is the hostname the CLI in a sibling container will use to
-# reach this daemon; "garage:3901" is the compose service name.
+# rpc_public_addr is the address the CLI uses to reach the daemon; since the
+# CLI runs in the same container (healthcheck, `garage status`), loopback is
+# correct. A multi-node setup would need a routable hostname here instead.
 rpc_bind_addr = "[::]:3901"
-rpc_public_addr = "garage:3901"
+rpc_public_addr = "127.0.0.1:3901"
 
 [s3_api]
 s3_region = "garage"
