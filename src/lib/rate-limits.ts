@@ -46,6 +46,16 @@ export const scrapeLimiter = createRateLimiter({
 	windowMs: 60_000,
 })
 
+// Barcode product lookups per user. Each lookup may call a paid
+// provider (Go-UPC) and, with the fallback enabled, also the URL
+// scrape pipeline; a tight bound here doubles as a downstream cost
+// cap. 30/min/user is comfortably above a real human scanning items.
+export const barcodeLookupLimiter = createRateLimiter({
+	name: 'barcode-lookup',
+	max: 30,
+	windowMs: 60_000,
+})
+
 // File proxy reads. Per-IP since the proxy doesn't require auth (the
 // nonce-based object keys are the access control). Generous: image
 // pages with N items will fire N requests in burst.

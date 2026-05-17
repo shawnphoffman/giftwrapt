@@ -18,6 +18,8 @@ import { decryptAppSecret, encryptAppSecret } from '@/lib/crypto/app-secret'
 import {
 	type AppSettings,
 	appSettingsSchema,
+	BARCODE_SECRET_FIELDS,
+	type BarcodeSettings,
 	DEFAULT_APP_SETTINGS,
 	loadRawSettings,
 	looksLikeEncryptedEnvelope,
@@ -85,6 +87,28 @@ function decryptOidcClientSecret(raw: unknown): unknown {
 	return out
 }
 
+/**
+ * Decrypt envelope-shaped secret fields inside the raw `barcode` JSONB
+ * row. Mirrors `decryptOidcClientSecret`: bad ciphertext blanks the
+ * field rather than failing the whole settings load.
+ */
+function decryptBarcodeSecrets(raw: unknown): unknown {
+	if (!raw || typeof raw !== 'object') return raw
+	const o = raw as Record<string, unknown>
+	const out: Record<string, unknown> = { ...o }
+	for (const field of BARCODE_SECRET_FIELDS) {
+		const value = o[field]
+		if (looksLikeEncryptedEnvelope(value)) {
+			try {
+				out[field] = decryptAppSecret(value as Parameters<typeof decryptAppSecret>[0])
+			} catch {
+				out[field] = ''
+			}
+		}
+	}
+	return out
+}
+
 export async function getAppSettings(db: Database | SchemaDatabase): Promise<AppSettings> {
 	const raw = await loadRawSettings(db)
 
@@ -108,6 +132,9 @@ export async function getAppSettings(db: Database | SchemaDatabase): Promise<App
 	}
 	if ('oidcClient' in merged) {
 		merged.oidcClient = decryptOidcClientSecret(merged.oidcClient)
+	}
+	if ('barcode' in merged) {
+		merged.barcode = decryptBarcodeSecrets(merged.barcode)
 	}
 
 	return appSettingsSchema.parse(merged)
@@ -138,6 +165,22 @@ export function encryptScrapeProviderSecrets(providers: AppSettings['scrapeProvi
  * "not configured" state) stay as empty strings; non-empty values
  * become the EncryptedEnvelope shape.
  */
+/**
+ * Encrypt the `goUpcKey` on the barcode settings blob before persisting
+ * to `app_settings.value`. Empty strings stay empty; non-empty values
+ * become envelopes.
+ */
+export function encryptBarcodeSecrets(config: BarcodeSettings): Record<string, unknown> {
+	const out: Record<string, unknown> = { ...config }
+	for (const field of BARCODE_SECRET_FIELDS) {
+		const value = (config as Record<string, unknown>)[field]
+		if (typeof value === 'string' && value.length > 0) {
+			out[field] = encryptAppSecret(value)
+		}
+	}
+	return out
+}
+
 export function encryptOidcClientSecrets(config: OidcClientConfig): Record<string, unknown> {
 	const out: Record<string, unknown> = { ...config }
 	for (const field of OIDC_CLIENT_SECRET_FIELDS) {

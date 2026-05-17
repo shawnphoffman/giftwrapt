@@ -241,6 +241,26 @@ export type MobileAppConfig = z.infer<typeof mobileAppConfigSchema>
 // scoped to the `oidcClient` settings key.
 export const OIDC_CLIENT_SECRET_FIELDS = ['clientSecret'] as const
 
+// =====================================================================
+// Barcode lookups (server-side; gates the iOS scan flow).
+// =====================================================================
+// Independent from URL scraping: single configured provider plus an
+// optional scraper-backed fallback, its own cache, its own admin page.
+// The iOS handoff is "result -> prepopulated add-item sheet", not a
+// direct items write, so no items/schema coupling lives here.
+export const barcodeSettingsSchema = z.object({
+	enabled: z.boolean(),
+	providerId: z.enum(['upcitemdb-trial', 'go-upc']),
+	// Bearer token for Go-UPC. Stored encrypted at rest; the loader
+	// decrypts envelope-shaped JSONB before this schema sees it.
+	goUpcKey: z.string().max(500),
+	// 0 disables caching entirely (every lookup re-fetches).
+	cacheTtlHours: z.number().int().min(0),
+})
+
+export type BarcodeSettings = z.infer<typeof barcodeSettingsSchema>
+export const BARCODE_SECRET_FIELDS = ['goUpcKey'] as const
+
 export const appSettingsSchema = z.object({
 	// Display title shown in the document <title>, PWA meta, OG tags, and
 	// the sidebar header. Admin-editable from /admin; defaults to
@@ -470,6 +490,12 @@ export const appSettingsSchema = z.object({
 	// binding). 12 months matches the auto-archive yearly cadence and
 	// the user's "run long" preference.
 	intelligenceStaleListInactiveMonths: z.number().int().min(1).max(120),
+	// =====================================================================
+	// Barcode lookups (POST /api/mobile/v1/products/by-barcode). Off by
+	// default - the iOS capabilities probe receives 503 until an admin
+	// opts in.
+	// =====================================================================
+	barcode: barcodeSettingsSchema,
 	// How many days of `cron_runs` history to keep. The daily verification-
 	// cleanup tick sweeps rows older than this. 90 days = roughly one
 	// quarter of operational history at five endpoints.
@@ -572,6 +598,12 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	intelligenceStaleListPastEventDays: 90,
 	intelligenceStaleListInactiveMonths: 12,
 	cronRunsRetentionDays: 90,
+	barcode: {
+		enabled: false,
+		providerId: 'upcitemdb-trial' as const,
+		goUpcKey: '',
+		cacheTtlHours: 720,
+	},
 }
 
 export type AppSettings = z.infer<typeof appSettingsSchema>

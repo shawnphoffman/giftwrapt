@@ -15,6 +15,13 @@
       "when": 1778874862515,
       "tag": "0001_robust_violations",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778990168925,
+      "tag": "0002_aromatic_wild_pack",
+      "breakpoints": true
     }
   ]
 }
