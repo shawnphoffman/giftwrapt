@@ -85,7 +85,13 @@ const securityHeaders = {
 		// short-term unblock and file a TODO to track down the source.
 		`script-src 'self' 'unsafe-inline'${vercelLiveOrigins.script}`,
 		"style-src 'self' 'unsafe-inline'",
-		"img-src 'self' data: https:",
+		// `blob:` covers `URL.createObjectURL(file)` previews for client-picked
+		// images: avatar cropper, add-item Upload Image, item-edit photo, and
+		// the /admin/photo extract tester. Chromium does NOT treat blob: as
+		// matching `'self'` for non-network schemes, so it has to be listed
+		// explicitly. Same-origin only by construction (only same-origin JS
+		// can call createObjectURL), so the attack surface is essentially zero.
+		"img-src 'self' data: blob: https:",
 		"font-src 'self' data:",
 		`connect-src 'self'${vercelLiveOrigins.connect}`,
 		`frame-src ${vercelLiveOrigins.frame}`,
