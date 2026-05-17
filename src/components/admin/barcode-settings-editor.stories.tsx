@@ -80,7 +80,7 @@ export const GoUpcEnabledWithKey: Story = {
 		docs: {
 			description: {
 				story:
-					'Paid Go-UPC provider enabled with a key set. The key is masked; Change / Clear actions are exposed inline. The Save key flow encrypts at the storage boundary.',
+					'Paid Go-UPC provider enabled with a key set. The key is masked; Change / Clear actions are exposed inline. The Save Key flow encrypts at the storage boundary.',
 			},
 		},
 	},

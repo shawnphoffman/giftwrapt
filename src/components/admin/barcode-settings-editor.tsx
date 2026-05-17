@@ -112,7 +112,7 @@ function BarcodeSettingsForm({ cfg, onChange, saving }: FormProps) {
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="barcodeEnabled" className="text-base">
-						Enable barcode lookup
+						Enable Barcode Lookup
 					</Label>
 					<p className="text-sm text-muted-foreground">
 						When off, <code>POST /api/mobile/v1/products/by-barcode</code> returns 503 and the iOS capabilities probe reports the feature
@@ -125,7 +125,7 @@ function BarcodeSettingsForm({ cfg, onChange, saving }: FormProps) {
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="barcodeProvider" className="text-base">
-						Primary provider
+						Primary Provider
 					</Label>
 					<p className="text-sm text-muted-foreground">Which provider fires first on a cache miss.</p>
 				</div>
@@ -150,7 +150,7 @@ function BarcodeSettingsForm({ cfg, onChange, saving }: FormProps) {
 			{cfg.providerId === 'go-upc' && (
 				<div className="space-y-2 rounded-md border border-border p-4">
 					<Label htmlFor="goUpcKey" className="text-base">
-						Go-UPC API key
+						Go-UPC API Key
 					</Label>
 					<p className="text-sm text-muted-foreground">Bearer token sent on every Go-UPC request. Stored encrypted at rest.</p>
 					{!editingKey && hasKey && (
@@ -176,7 +176,7 @@ function BarcodeSettingsForm({ cfg, onChange, saving }: FormProps) {
 								className="font-mono"
 							/>
 							<Button type="button" onClick={saveKey} disabled={saving || keyDraft.trim().length === 0}>
-								Save key
+								Save Key
 							</Button>
 							{hasKey && (
 								<Button type="button" variant="ghost" onClick={() => setEditingKey(false)} disabled={saving}>
@@ -192,7 +192,7 @@ function BarcodeSettingsForm({ cfg, onChange, saving }: FormProps) {
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="barcodeCacheTtl" className="text-base">
-						Cache TTL (hours)
+						Cache TTL (Hours)
 					</Label>
 					<p className="text-sm text-muted-foreground">Cached rows older than this are refreshed on the next lookup. 0 disables caching.</p>
 				</div>
@@ -240,7 +240,7 @@ function BarcodeTester() {
 		<div className="space-y-4 rounded-md border border-border p-4">
 			<div className="flex items-center gap-2">
 				<ScanBarcode className="size-5" />
-				<h3 className="text-base font-medium">Provider tester</h3>
+				<h3 className="text-base font-medium">Provider Tester</h3>
 			</div>
 			<p className="text-sm text-muted-foreground">
 				Run a single provider against a barcode. Bypasses the cache and the fallback chain so you can confirm each provider's configuration
