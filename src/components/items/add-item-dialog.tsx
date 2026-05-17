@@ -417,32 +417,6 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 							disabled={formLocked}
 							className="mt-2"
 						/>
-						{storageConfigured && (
-							<div className="mt-2 flex items-center gap-2">
-								<input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handleFilePick} />
-								<Button
-									type="button"
-									variant="outline"
-									size="sm"
-									onClick={() => fileInputRef.current?.click()}
-									disabled={formLocked}
-									className="gap-1.5"
-								>
-									<Upload className="size-4" />
-									{stagedFile ? 'Replace image' : 'Upload image'}
-								</Button>
-								{stagedFile && (
-									<>
-										{stagedPreview && <img src={stagedPreview} alt="" className="size-9 rounded border object-cover" />}
-										<span className="truncate text-xs text-muted-foreground">{stagedFile.name}</span>
-										<Button type="button" variant="outline" size="xs" onClick={clearStagedFile} disabled={formLocked} className="gap-1.5">
-											<Trash2 className="size-3" />
-											Remove
-										</Button>
-									</>
-								)}
-							</div>
-						)}
 					</div>
 
 					<div className="grid gap-2">
@@ -522,6 +496,33 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 							/>
 						</div>
 					</div>
+
+					{storageConfigured && (
+						<div className="flex items-center gap-2">
+							<input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handleFilePick} />
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={() => fileInputRef.current?.click()}
+								disabled={formLocked}
+								className="gap-1.5"
+							>
+								<Upload className="size-4" />
+								{stagedFile ? 'Replace image' : 'Upload image'}
+							</Button>
+							{stagedFile && (
+								<>
+									{stagedPreview && <img src={stagedPreview} alt="" className="size-9 rounded border object-cover" />}
+									<span className="truncate text-xs text-muted-foreground">{stagedFile.name}</span>
+									<Button type="button" variant="outline" size="xs" onClick={clearStagedFile} disabled={formLocked} className="gap-1.5">
+										<Trash2 className="size-3" />
+										Remove
+									</Button>
+								</>
+							)}
+						</div>
+					)}
 
 					{error && (
 						<Alert variant="destructive">
