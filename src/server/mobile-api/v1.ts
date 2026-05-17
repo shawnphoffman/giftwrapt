@@ -404,6 +404,7 @@ import { registerEditorRoutes } from './v1/editors'
 import { registerGroupRoutes } from './v1/groups'
 import { registerItemRoutes } from './v1/items'
 import { registerListRoutes } from './v1/lists'
+import { registerProductRoutes } from './v1/products'
 import { registerProfileRoutes } from './v1/profile'
 import { registerRelationshipRoutes } from './v1/relationships'
 import { registerUploadRoutes } from './v1/uploads'
@@ -421,5 +422,6 @@ registerProfileRoutes(v1)
 registerConfigRoutes(v1)
 registerUploadRoutes(v1)
 registerWidgetRoutes(v1)
+registerProductRoutes(v1)
 
 export { v1 }
