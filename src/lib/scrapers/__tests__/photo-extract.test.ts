@@ -127,4 +127,23 @@ describe('extractFromPhoto', () => {
 			code: 'invalid_response',
 		})
 	})
+
+	it('drops a hallucinated out-of-range ratingValue instead of failing', async () => {
+		mockAiValid = true
+		generateObjectImpl = () =>
+			Promise.resolve({
+				object: {
+					title: 'Widget',
+					// Model returned the raw N-of-5 instead of the normalized
+					// fraction. Should be dropped, not fail the extraction.
+					ratingValue: 4.2,
+					ratingCount: 1200,
+				},
+			})
+
+		const { result } = await extractFromPhoto({ bytes: PNG_BYTES, mediaType: 'image/png' })
+		expect(result.title).toBe('Widget')
+		expect(result.ratingValue).toBeUndefined()
+		expect(result.ratingCount).toBe(1200)
+	})
 })

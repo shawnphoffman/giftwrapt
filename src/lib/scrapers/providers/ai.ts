@@ -7,7 +7,7 @@ import type { AiEntry } from '@/lib/settings'
 
 import { looksLikeBlocked } from '../bot-detect'
 import { safeFetch } from '../safe-fetch'
-import { type ProviderResponse, type ScrapeContext, type ScrapeProvider, scrapeResultSchema } from '../types'
+import { coerceScrapeResult, type ProviderResponse, type ScrapeContext, type ScrapeProvider, scrapeResultModelSchema } from '../types'
 import { ScrapeProviderError } from '../types'
 
 // AI extractor provider. Does its own lightweight fetch of the URL
@@ -128,7 +128,7 @@ async function runAiProvider(ctx: ScrapeContext, providerId: string): Promise<Pr
 	try {
 		parsed = await generateObject({
 			model,
-			schema: scrapeResultSchema,
+			schema: scrapeResultModelSchema,
 			abortSignal: ctx.signal,
 			system: SYSTEM_PROMPT,
 			prompt: `URL: ${ctx.url}\n\n<USER_CONTENT>\n${truncated}\n</USER_CONTENT>`,
@@ -140,10 +140,18 @@ async function runAiProvider(ctx: ScrapeContext, providerId: string): Promise<Pr
 		throw new ScrapeProviderError('invalid_response', err instanceof Error ? err.message : String(err))
 	}
 
+	// `coerceScrapeResult` enforces the real rating bounds that the
+	// model-facing schema relaxes for Gemini compatibility (see
+	// scrapeResultModelSchema in ../types).
+	const result = coerceScrapeResult({
+		...parsed.object,
+		finalUrl: parsed.object.finalUrl ?? ctx.url,
+	})
+
 	return {
 		kind: 'structured',
 		providerId,
-		result: { ...parsed.object, finalUrl: parsed.object.finalUrl ?? ctx.url },
+		result,
 		fetchMs: Date.now() - start,
 	}
 }

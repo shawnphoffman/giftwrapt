@@ -30,6 +30,54 @@ export const scrapeResultSchema = z.object({
 
 export type ScrapeResult = z.infer<typeof scrapeResultSchema>
 
+// Model-facing variant of scrapeResultSchema. Identical in shape, but
+// without the `min`/`max`/`int` constraints on the numeric fields.
+//
+// Some structured-output APIs reject those constraints in the converted
+// JSON schema — notably Gemini (including via OpenAI-compatible base
+// URLs) returns:
+//   `output_config.format.schema: For 'number' type, properties maximum,
+//    minimum are not supported`
+//
+// when the schema includes `minimum`/`maximum` on a `number`. We send
+// the loosened version to the model and run `coerceScrapeResult` on the
+// output to enforce the real bounds (dropping out-of-range values
+// rather than failing the whole extraction over a hallucinated rating).
+export const scrapeResultModelSchema = z.object({
+	title: z.string().optional(),
+	description: z.string().optional(),
+	price: z.string().optional(),
+	currency: z.string().optional(),
+	imageUrls: z.array(z.string()).default([]),
+	siteName: z.string().optional(),
+	finalUrl: z.string().optional(),
+	ratingValue: z.number().optional(),
+	ratingCount: z.number().optional(),
+})
+
+export type ScrapeResultModel = z.infer<typeof scrapeResultModelSchema>
+
+/**
+ * Coerce a model-emitted result into the strict `scrapeResultSchema`:
+ * - `ratingValue` outside [0, 1] is dropped (the model occasionally
+ *   returns the raw N-of-5 instead of the normalized fraction; a dropped
+ *   rating is better than a failed extraction).
+ * - `ratingCount` is floored to an integer; negatives are dropped.
+ *
+ * Other fields pass through unchanged. Throws via `scrapeResultSchema.parse`
+ * if the input is fundamentally the wrong shape.
+ */
+export function coerceScrapeResult(input: ScrapeResultModel): ScrapeResult {
+	const ratingValue =
+		typeof input.ratingValue === 'number' && input.ratingValue >= 0 && input.ratingValue <= 1 ? input.ratingValue : undefined
+	const ratingCount = typeof input.ratingCount === 'number' && input.ratingCount >= 0 ? Math.floor(input.ratingCount) : undefined
+	return scrapeResultSchema.parse({
+		...input,
+		ratingValue,
+		ratingCount,
+	})
+}
+
 // ===========================================================================
 // Provider responses
 // ===========================================================================

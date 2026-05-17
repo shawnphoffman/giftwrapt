@@ -4,7 +4,7 @@ import { db } from '@/db'
 import { createAiModel } from '@/lib/ai-client'
 import { resolveAiConfig } from '@/lib/ai-config'
 
-import { ScrapeProviderError, type ScrapeResult, scrapeResultSchema } from './types'
+import { coerceScrapeResult, ScrapeProviderError, type ScrapeResult, scrapeResultModelSchema } from './types'
 
 // One-shot vision extractor. Given an image (the user's product photo),
 // returns the same ScrapeResult shape the URL scraper produces so the
@@ -58,7 +58,7 @@ export async function extractFromPhoto({ bytes, mediaType, signal }: ExtractFrom
 	try {
 		parsed = await generateObject({
 			model,
-			schema: scrapeResultSchema,
+			schema: scrapeResultModelSchema,
 			abortSignal: signal,
 			system: SYSTEM_PROMPT,
 			messages: [
@@ -81,12 +81,15 @@ export async function extractFromPhoto({ bytes, mediaType, signal }: ExtractFrom
 	// The vision pass has no concept of imageUrls / siteName / finalUrl —
 	// strip anything the model might have hallucinated so downstream
 	// consumers (apply-prefill, etc.) don't try to use a fake URL.
-	const cleaned: ScrapeResult = {
+	// `coerceScrapeResult` also enforces the real rating bounds that the
+	// model-facing schema relaxes for Gemini compatibility (see
+	// scrapeResultModelSchema in ./types).
+	const cleaned: ScrapeResult = coerceScrapeResult({
 		...parsed.object,
 		imageUrls: [],
 		siteName: undefined,
 		finalUrl: undefined,
-	}
+	})
 
 	return { result: cleaned, ms: Date.now() - start }
 }
