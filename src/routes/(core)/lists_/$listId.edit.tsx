@@ -97,6 +97,7 @@ function ListEditPage() {
 	useListSSE(list.id, 'edit')
 	const [addItemOpen, setAddItemOpen] = useState(false)
 	const [addItemGroupId, setAddItemGroupId] = useState<number | null>(null)
+	const [addItemPhotoFile, setAddItemPhotoFile] = useState<File | null>(null)
 	const [moveItem, setMoveItem] = useState<Item | null>(null)
 	useScrollToHash([list.id])
 
@@ -159,6 +160,12 @@ function ListEditPage() {
 
 	const openAddItemDialog = (groupId: number | null) => {
 		setAddItemGroupId(groupId)
+		setAddItemOpen(true)
+	}
+
+	const openAddItemFromPhoto = (file: File) => {
+		setAddItemGroupId(null)
+		setAddItemPhotoFile(file)
 		setAddItemOpen(true)
 	}
 
@@ -238,7 +245,7 @@ function ListEditPage() {
 										</DropdownMenuContent>
 									</DropdownMenu>
 								)}
-								<AddItemSplitButton listId={list.id} onAddItem={() => openAddItemDialog(null)} />
+								<AddItemSplitButton listId={list.id} onAddItem={() => openAddItemDialog(null)} onAddItemFromPhoto={openAddItemFromPhoto} />
 							</div>
 						</div>
 
@@ -260,11 +267,15 @@ function ListEditPage() {
 					open={addItemOpen}
 					onOpenChange={open => {
 						setAddItemOpen(open)
-						if (!open) setAddItemGroupId(null)
+						if (!open) {
+							setAddItemGroupId(null)
+							setAddItemPhotoFile(null)
+						}
 					}}
 					mode="create"
 					listId={list.id}
 					groupId={addItemGroupId}
+					initialPhotoFile={addItemPhotoFile}
 				/>
 			)}
 

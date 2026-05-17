@@ -1,6 +1,6 @@
 import { useForm } from '@tanstack/react-form'
 import { useQueryClient } from '@tanstack/react-query'
-import { Loader2, Sparkles, Trash2, Upload } from 'lucide-react'
+import { AlertCircle, Camera, Loader2, Sparkles, Trash2, Upload } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -24,6 +24,7 @@ import { useUpdateItem } from '@/lib/mutations/update-item'
 import { itemsKeys } from '@/lib/queries/items'
 import { applyScrapePrefill } from '@/lib/scrapers/apply-prefill'
 import { resizeImageForUpload } from '@/lib/storage/client-resize'
+import { useExtractPhoto } from '@/lib/use-extract-photo'
 import { useScrapeUrl } from '@/lib/use-scrape-url'
 import { LIMITS } from '@/lib/validation/limits'
 
@@ -35,8 +36,17 @@ type BaseProps = {
 	onOpenChange: (open: boolean) => void
 }
 
-type CreateProps = BaseProps & { mode: 'create'; listId: number; item?: never; groupId?: number | null }
-type EditProps = BaseProps & { mode: 'edit'; listId?: never; item: Item; groupId?: never }
+type CreateProps = BaseProps & {
+	mode: 'create'
+	listId: number
+	item?: never
+	groupId?: number | null
+	// When provided, opens with the photo already staged as the item
+	// image and kicks off a vision extraction to prefill title/price/notes.
+	// The staged photo uploads as the item image after createItem succeeds.
+	initialPhotoFile?: File | null
+}
+type EditProps = BaseProps & { mode: 'edit'; listId?: never; item: Item; groupId?: never; initialPhotoFile?: never }
 
 type Props = CreateProps | EditProps
 
@@ -77,6 +87,19 @@ export function ItemFormDialog(props: Props) {
 	const { state: scrapeState, start: startScrape, cancel: cancelScrape } = useScrapeUrl()
 	const lastScrapedUrlRef = useRef('')
 	const [imageCandidates, setImageCandidates] = useState<ReadonlyArray<string>>([])
+
+	// Photo upload + AI vision integration (create mode only). The chosen
+	// photo is staged in memory until `createItem` succeeds — the upload
+	// endpoint embeds itemId in the storage key, so we can't run the
+	// upload earlier. The vision extractor runs in parallel and prefills
+	// title/price/notes via the same `applyScrapePrefill` rule used by
+	// URL scrapes.
+	const { state: photoState, start: startPhotoExtract, reset: resetPhotoExtract } = useExtractPhoto()
+	const [stagedPhotoFile, setStagedPhotoFile] = useState<File | null>(null)
+	const [stagedPhotoPreview, setStagedPhotoPreview] = useState<string | null>(null)
+	// Track which file the prefill effect has already consumed so a
+	// re-render doesn't re-apply the same result and clobber edits.
+	const photoPrefillAppliedRef = useRef<File | null>(null)
 
 	const isHttpUrl = (raw: string): boolean => {
 		const trimmed = raw.trim()
@@ -185,6 +208,25 @@ export function ItemFormDialog(props: Props) {
 					return
 				}
 
+				// Upload the staged photo (if any) now that we have an itemId.
+				// A failure here doesn't roll back the item; the user can
+				// retry the upload from the edit dialog.
+				if (stagedPhotoFile) {
+					try {
+						const upload = await resizeImageForUpload(stagedPhotoFile)
+						const formData = new FormData()
+						formData.append('file', upload)
+						formData.append('itemId', String(result.item.id))
+						const uploadResult = await uploadItemImage({ data: formData })
+						if (uploadResult.kind === 'error') {
+							toast.error(`Image upload failed: ${uploadResult.message}`)
+						}
+					} catch (uploadErr) {
+						const msg = uploadErr instanceof Error ? uploadErr.message : 'unknown error'
+						toast.error(`Image upload failed: ${msg}`)
+					}
+				}
+
 				toast.success('Item added')
 				onOpenChange(false)
 				form.reset()
@@ -214,6 +256,50 @@ export function ItemFormDialog(props: Props) {
 		setImageCandidates(update.imageCandidates)
 	}, [scrapeState, form])
 
+	// Apply the vision-extracted result the same way. Pass an empty
+	// imageUrl to `applyScrapePrefill` because the staged photo already
+	// owns the item image — we don't want the helper picking up an
+	// imageUrls candidate (there won't be any, but the rule is the same).
+	useEffect(() => {
+		if (photoState.phase !== 'done') return
+		const result = photoState.result
+		if (!result) return
+		if (photoPrefillAppliedRef.current === stagedPhotoFile) return
+		photoPrefillAppliedRef.current = stagedPhotoFile
+		const values = form.state.values
+		const update = applyScrapePrefill({ title: values.title, price: values.price, notes: values.notes, imageUrl: '' }, result)
+		if (update.title !== undefined) form.setFieldValue('title', update.title)
+		if (update.price !== undefined) form.setFieldValue('price', update.price)
+		if (update.notes !== undefined) form.setFieldValue('notes', update.notes)
+	}, [photoState, form, stagedPhotoFile])
+
+	// Manage the local preview URL for the staged photo. Created when a
+	// file is staged, revoked on swap/clear so the blob memory doesn't
+	// linger.
+	useEffect(() => {
+		if (!stagedPhotoFile) {
+			setStagedPhotoPreview(null)
+			return
+		}
+		const previewUrl = URL.createObjectURL(stagedPhotoFile)
+		setStagedPhotoPreview(previewUrl)
+		return () => URL.revokeObjectURL(previewUrl)
+	}, [stagedPhotoFile])
+
+	// On open with `initialPhotoFile`, stage it and kick off extraction.
+	// Guarded against re-firing when the parent re-renders with the same
+	// file by tracking which file the effect already consumed.
+	const initialPhotoFile = !isEdit ? (props.initialPhotoFile ?? null) : null
+	const seededFromPropRef = useRef<File | null>(null)
+	useEffect(() => {
+		if (!open || !initialPhotoFile) return
+		if (seededFromPropRef.current === initialPhotoFile) return
+		seededFromPropRef.current = initialPhotoFile
+		setStagedPhotoFile(initialPhotoFile)
+		photoPrefillAppliedRef.current = null
+		void startPhotoExtract(initialPhotoFile)
+	}, [open, initialPhotoFile, startPhotoExtract])
+
 	// Tear down any in-flight scrape and reset prefill state when the dialog
 	// closes. The form itself is reset by callers post-submit; this runs
 	// regardless to clean up the side-effect of opening + closing without
@@ -227,11 +313,16 @@ export function ItemFormDialog(props: Props) {
 			return
 		}
 		cancelScrape()
+		resetPhotoExtract()
+		setStagedPhotoFile(null)
+		photoPrefillAppliedRef.current = null
+		seededFromPropRef.current = null
 		lastScrapedUrlRef.current = ''
 		setImageCandidates([])
-	}, [open, initialUrl, cancelScrape])
+	}, [open, initialUrl, cancelScrape, resetPhotoExtract])
 
-	const formLocked = submitting || scrapeState.phase === 'scraping'
+	const photoExtractInFlight = photoState.phase === 'extracting'
+	const formLocked = submitting || scrapeState.phase === 'scraping' || photoExtractInFlight
 	const scrapeInFlight = scrapeState.phase === 'scraping'
 
 	const triggerAutoScrape = (rawUrl: string) => {
@@ -269,6 +360,27 @@ export function ItemFormDialog(props: Props) {
 					}}
 					className="space-y-4"
 				>
+					{!isEdit && stagedPhotoFile && (
+						<PhotoExtractStatus
+							file={stagedPhotoFile}
+							previewUrl={stagedPhotoPreview}
+							phase={photoState.phase}
+							error={photoState.error}
+							ms={photoState.ms}
+							elapsedMs={photoState.elapsedMs}
+							onClear={() => {
+								setStagedPhotoFile(null)
+								photoPrefillAppliedRef.current = null
+								seededFromPropRef.current = null
+								resetPhotoExtract()
+							}}
+							onRetry={() => {
+								photoPrefillAppliedRef.current = null
+								void startPhotoExtract(stagedPhotoFile)
+							}}
+						/>
+					)}
+
 					<form.Field name="url">
 						{field => {
 							const urlScrapable = isHttpUrl(field.state.value) && !isSublistUrl(field.state.value)
@@ -552,5 +664,55 @@ export function ItemFormDialog(props: Props) {
 				</form>
 			</DialogContent>
 		</Dialog>
+	)
+}
+
+type PhotoExtractStatusProps = {
+	file: File
+	previewUrl: string | null
+	phase: 'idle' | 'extracting' | 'done' | 'failed'
+	error?: string
+	ms?: number
+	elapsedMs: number
+	onClear: () => void
+	onRetry: () => void
+}
+
+function PhotoExtractStatus({ file, previewUrl, phase, error, ms, elapsedMs, onClear, onRetry }: PhotoExtractStatusProps) {
+	const isExtracting = phase === 'extracting'
+	const isDone = phase === 'done'
+	const isFailed = phase === 'failed'
+
+	return (
+		<Alert variant={isFailed ? 'destructive' : 'default'} className="text-sm">
+			{isExtracting && <Loader2 className="animate-spin text-muted-foreground" />}
+			{isDone && <Camera className="text-emerald-600 dark:text-emerald-500" />}
+			{isFailed && <AlertCircle />}
+			<AlertTitle>
+				{isExtracting && `Reading photo… ${(elapsedMs / 1000).toFixed(1)}s`}
+				{isDone && (ms !== undefined ? `Photo read in ${(ms / 1000).toFixed(1)}s` : 'Photo read')}
+				{isFailed && "Couldn't read photo"}
+			</AlertTitle>
+			<AlertDescription>
+				<div className="flex items-center gap-3">
+					{previewUrl && <img src={previewUrl} alt="" className="size-12 rounded border object-cover" />}
+					<span className="truncate text-xs text-muted-foreground">{file.name}</span>
+					<div className="ml-auto flex gap-2">
+						{isFailed && (
+							<Button type="button" size="sm" variant="outline" onClick={onRetry}>
+								Try again
+							</Button>
+						)}
+						<Button type="button" size="xs" variant="outline" onClick={onClear} className="gap-1.5">
+							<Trash2 className="size-3" /> Remove
+						</Button>
+					</div>
+				</div>
+				{isFailed && error && <p className="mt-2 text-xs">{error}</p>}
+				{isDone && (
+					<p className="mt-2 text-xs text-muted-foreground">Filled in any empty fields below. Edit anything you want to change.</p>
+				)}
+			</AlertDescription>
+		</Alert>
 	)
 }

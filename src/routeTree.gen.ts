@@ -31,6 +31,7 @@ import { Route as coreAdminIndexRouteImport } from './routes/(core)/admin/index'
 import { Route as ApiWidgetsUpcomingHolidaysRouteImport } from './routes/api/widgets/upcoming-holidays'
 import { Route as ApiSseListsRouteImport } from './routes/api/sse/lists'
 import { Route as ApiScrapeStreamRouteImport } from './routes/api/scrape/stream'
+import { Route as ApiScrapePhotoRouteImport } from './routes/api/scrape/photo'
 import { Route as ApiMobileSplatRouteImport } from './routes/api/mobile/$'
 import { Route as ApiListsPublicDependentsRouteImport } from './routes/api/lists/public-dependents'
 import { Route as ApiListsPublicRouteImport } from './routes/api/lists/public'
@@ -183,6 +184,11 @@ const ApiSseListsRoute = ApiSseListsRouteImport.update({
 const ApiScrapeStreamRoute = ApiScrapeStreamRouteImport.update({
   id: '/api/scrape/stream',
   path: '/api/scrape/stream',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiScrapePhotoRoute = ApiScrapePhotoRouteImport.update({
+  id: '/api/scrape/photo',
+  path: '/api/scrape/photo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMobileSplatRoute = ApiMobileSplatRouteImport.update({
@@ -458,6 +464,7 @@ export interface FileRoutesByFullPath {
   '/api/lists/public': typeof ApiListsPublicRoute
   '/api/lists/public-dependents': typeof ApiListsPublicDependentsRoute
   '/api/mobile/$': typeof ApiMobileSplatRoute
+  '/api/scrape/photo': typeof ApiScrapePhotoRoute
   '/api/scrape/stream': typeof ApiScrapeStreamRoute
   '/api/sse/lists': typeof ApiSseListsRoute
   '/api/widgets/upcoming-holidays': typeof ApiWidgetsUpcomingHolidaysRoute
@@ -520,6 +527,7 @@ export interface FileRoutesByTo {
   '/api/lists/public': typeof ApiListsPublicRoute
   '/api/lists/public-dependents': typeof ApiListsPublicDependentsRoute
   '/api/mobile/$': typeof ApiMobileSplatRoute
+  '/api/scrape/photo': typeof ApiScrapePhotoRoute
   '/api/scrape/stream': typeof ApiScrapeStreamRoute
   '/api/sse/lists': typeof ApiSseListsRoute
   '/api/widgets/upcoming-holidays': typeof ApiWidgetsUpcomingHolidaysRoute
@@ -588,6 +596,7 @@ export interface FileRoutesById {
   '/api/lists/public': typeof ApiListsPublicRoute
   '/api/lists/public-dependents': typeof ApiListsPublicDependentsRoute
   '/api/mobile/$': typeof ApiMobileSplatRoute
+  '/api/scrape/photo': typeof ApiScrapePhotoRoute
   '/api/scrape/stream': typeof ApiScrapeStreamRoute
   '/api/sse/lists': typeof ApiSseListsRoute
   '/api/widgets/upcoming-holidays': typeof ApiWidgetsUpcomingHolidaysRoute
@@ -656,6 +665,7 @@ export interface FileRouteTypes {
     | '/api/lists/public'
     | '/api/lists/public-dependents'
     | '/api/mobile/$'
+    | '/api/scrape/photo'
     | '/api/scrape/stream'
     | '/api/sse/lists'
     | '/api/widgets/upcoming-holidays'
@@ -718,6 +728,7 @@ export interface FileRouteTypes {
     | '/api/lists/public'
     | '/api/lists/public-dependents'
     | '/api/mobile/$'
+    | '/api/scrape/photo'
     | '/api/scrape/stream'
     | '/api/sse/lists'
     | '/api/widgets/upcoming-holidays'
@@ -785,6 +796,7 @@ export interface FileRouteTypes {
     | '/api/lists/public'
     | '/api/lists/public-dependents'
     | '/api/mobile/$'
+    | '/api/scrape/photo'
     | '/api/scrape/stream'
     | '/api/sse/lists'
     | '/api/widgets/upcoming-holidays'
@@ -824,6 +836,7 @@ export interface RootRouteChildren {
   ApiListsPublicRoute: typeof ApiListsPublicRoute
   ApiListsPublicDependentsRoute: typeof ApiListsPublicDependentsRoute
   ApiMobileSplatRoute: typeof ApiMobileSplatRoute
+  ApiScrapePhotoRoute: typeof ApiScrapePhotoRoute
   ApiScrapeStreamRoute: typeof ApiScrapeStreamRoute
   ApiSseListsRoute: typeof ApiSseListsRoute
   ApiWidgetsUpcomingHolidaysRoute: typeof ApiWidgetsUpcomingHolidaysRoute
@@ -984,6 +997,13 @@ declare module '@tanstack/react-router' {
       path: '/api/scrape/stream'
       fullPath: '/api/scrape/stream'
       preLoaderRoute: typeof ApiScrapeStreamRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/scrape/photo': {
+      id: '/api/scrape/photo'
+      path: '/api/scrape/photo'
+      fullPath: '/api/scrape/photo'
+      preLoaderRoute: typeof ApiScrapePhotoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/mobile/$': {
@@ -1458,6 +1478,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiListsPublicRoute: ApiListsPublicRoute,
   ApiListsPublicDependentsRoute: ApiListsPublicDependentsRoute,
   ApiMobileSplatRoute: ApiMobileSplatRoute,
+  ApiScrapePhotoRoute: ApiScrapePhotoRoute,
   ApiScrapeStreamRoute: ApiScrapeStreamRoute,
   ApiSseListsRoute: ApiSseListsRoute,
   ApiWidgetsUpcomingHolidaysRoute: ApiWidgetsUpcomingHolidaysRoute,

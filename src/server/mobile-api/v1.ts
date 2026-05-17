@@ -16,9 +16,14 @@ import { getItemsForListEditImpl } from '@/api/_items-extra-impl'
 import { createItemImpl, CreateItemInputSchema, deleteItemImpl, updateItemImpl, UpdateItemInputSchema } from '@/api/_items-impl'
 import { getMyListsImpl, getPublicListsImpl } from '@/api/_lists-impl'
 import { db } from '@/db'
+import { env } from '@/env'
 import { auth } from '@/lib/auth'
-import { mobileSignInLimiter } from '@/lib/rate-limits'
+import { mobileSignInLimiter, scrapeLimiter } from '@/lib/rate-limits'
+import { extractFromPhoto } from '@/lib/scrapers/photo-extract'
 import { runOneShotScrape } from '@/lib/scrapers/run'
+import { ScrapeProviderError } from '@/lib/scrapers/types'
+import { UploadError } from '@/lib/storage/errors'
+import { assertImageBytes } from '@/lib/storage/image-pipeline'
 import { LIMITS } from '@/lib/validation/limits'
 
 import type { MobileAuthContext } from './auth'
@@ -387,6 +392,56 @@ v1.get('/scrape', async c => {
 		attempts: result.attempts,
 		cached: result.cached,
 	})
+})
+
+// POST /v1/scrape/photo - vision extraction from a product photo.
+// Same per-user rate limit and AI config as the web POST /api/scrape/photo;
+// the iOS share extension / camera roll picker can post a multipart
+// `file` field here and get back the same ScrapeResult shape it already
+// knows from /v1/scrape (sans imageUrls/finalUrl/siteName).
+v1.post('/scrape/photo', async c => {
+	const userId = c.get('userId')
+
+	const rateResult = scrapeLimiter.consume(`user:${userId}`)
+	if (!rateResult.allowed) {
+		return jsonError(c, 429, 'rate-limited', {
+			data: { retryAfterMs: rateResult.retryAfterMs },
+		})
+	}
+
+	let form: FormData
+	try {
+		form = await c.req.formData()
+	} catch {
+		return jsonError(c, 400, 'invalid-input', { message: 'expected multipart/form-data' })
+	}
+	const file = form.get('file')
+	if (!(file instanceof File)) return jsonError(c, 400, 'invalid-input', { message: 'missing file field' })
+	if (file.size === 0) return jsonError(c, 400, 'invalid-input', { message: 'file is empty' })
+	const maxBytes = env.STORAGE_MAX_UPLOAD_MB * 1024 * 1024
+	if (file.size > maxBytes) return jsonError(c, 413, 'too-large', { data: { maxBytes } })
+
+	let bytes: Uint8Array
+	let mediaType: string
+	try {
+		const ab = await file.arrayBuffer()
+		bytes = new Uint8Array(ab)
+		mediaType = assertImageBytes(Buffer.from(bytes))
+	} catch (err) {
+		if (err instanceof UploadError) return jsonError(c, 400, err.reason, { message: err.message })
+		return jsonError(c, 400, 'invalid-input', { message: err instanceof Error ? err.message : 'invalid image' })
+	}
+
+	try {
+		const { result, ms } = await extractFromPhoto({ bytes, mediaType, signal: c.req.raw.signal })
+		return c.json({ result, ms })
+	} catch (err) {
+		if (err instanceof ScrapeProviderError) {
+			const status = err.code === 'config_missing' ? 503 : err.code === 'timeout' ? 504 : 502
+			return jsonError(c, status, err.code, { message: err.message })
+		}
+		return jsonError(c, 500, 'unknown', { message: err instanceof Error ? err.message : 'unknown error' })
+	}
 })
 
 // =====================================================================

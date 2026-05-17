@@ -1,9 +1,10 @@
-import { Apple, ChevronDown, Link2, Plus, ShoppingBag } from 'lucide-react'
-import { useState } from 'react'
+import { Apple, Camera, ChevronDown, Link2, Plus, ShoppingBag } from 'lucide-react'
+import { useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useAppSetting } from '@/hooks/use-app-settings'
+import { useStorageStatus } from '@/hooks/use-storage-status'
 
 import { ImportDialogAmazon } from './import-dialog-amazon'
 import { ImportDialogAppleNotes } from './import-dialog-apple-notes'
@@ -12,6 +13,7 @@ import { ImportDialogUrls } from './import-dialog-urls'
 type Props = {
 	listId: number
 	onAddItem: () => void
+	onAddItemFromPhoto?: (file: File) => void
 	// Allow the route loader to pre-resolve the gate so the caret never
 	// flashes; falling back to the live setting hook lets us still react
 	// to admin toggles without a route reload.
@@ -29,10 +31,25 @@ type ImportSource = 'urls' | 'apple-notes' | 'amazon'
  * The caret is hidden when `importEnabled=false` in app settings so the
  * UI degrades gracefully to the original single-button shape.
  */
-export function AddItemSplitButton({ listId, onAddItem, importEnabledOverride }: Props) {
+export function AddItemSplitButton({ listId, onAddItem, onAddItemFromPhoto, importEnabledOverride }: Props) {
 	const liveImportEnabled = useAppSetting('importEnabled')
 	const importEnabled = importEnabledOverride ?? liveImportEnabled
+	const { configured: storageConfigured } = useStorageStatus()
 	const [openSource, setOpenSource] = useState<ImportSource | null>(null)
+	const photoInputRef = useRef<HTMLInputElement>(null)
+
+	// Photo upload depends on storage being configured (the chosen photo is
+	// saved as the item image after the create succeeds). When storage is
+	// off, hide the menu entry rather than letting the user pick a file
+	// they can't actually attach.
+	const photoEnabled = storageConfigured && typeof onAddItemFromPhoto === 'function'
+
+	const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0]
+		e.target.value = ''
+		if (!file || !onAddItemFromPhoto) return
+		onAddItemFromPhoto(file)
+	}
 
 	if (!importEnabled) {
 		return (
@@ -57,6 +74,11 @@ export function AddItemSplitButton({ listId, onAddItem, importEnabledOverride }:
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
+						{photoEnabled && (
+							<DropdownMenuItem onClick={() => photoInputRef.current?.click()}>
+								<Camera className="size-4" /> Upload Photo
+							</DropdownMenuItem>
+						)}
 						<DropdownMenuItem onClick={() => setOpenSource('urls')}>
 							<Link2 className="size-4" /> Paste URLs
 						</DropdownMenuItem>
@@ -69,6 +91,8 @@ export function AddItemSplitButton({ listId, onAddItem, importEnabledOverride }:
 					</DropdownMenuContent>
 				</DropdownMenu>
 			</div>
+
+			{photoEnabled && <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />}
 
 			<ImportDialogUrls listId={listId} open={openSource === 'urls'} onOpenChange={open => setOpenSource(open ? 'urls' : null)} />
 			<ImportDialogAppleNotes
