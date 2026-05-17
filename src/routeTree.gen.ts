@@ -58,6 +58,7 @@ import { Route as coreAdminSchedulingRouteImport } from './routes/(core)/admin/s
 import { Route as coreAdminEmailRouteImport } from './routes/(core)/admin/email'
 import { Route as coreAdminDebugRouteImport } from './routes/(core)/admin/debug'
 import { Route as coreAdminDataRouteImport } from './routes/(core)/admin/data'
+import { Route as coreAdminBarcodeRouteImport } from './routes/(core)/admin/barcode'
 import { Route as coreAdminAuthRouteImport } from './routes/(core)/admin/auth'
 import { Route as coreAdminAiRouteImport } from './routes/(core)/admin/ai'
 import { Route as authSignInTwoFactorRouteImport } from './routes/(auth)/sign-in.two-factor'
@@ -322,6 +323,11 @@ const coreAdminDataRoute = coreAdminDataRouteImport.update({
   path: '/data',
   getParentRoute: () => coreAdminRouteRoute,
 } as any)
+const coreAdminBarcodeRoute = coreAdminBarcodeRouteImport.update({
+  id: '/barcode',
+  path: '/barcode',
+  getParentRoute: () => coreAdminRouteRoute,
+} as any)
 const coreAdminAuthRoute = coreAdminAuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -424,6 +430,7 @@ export interface FileRoutesByFullPath {
   '/sign-in/two-factor': typeof authSignInTwoFactorRoute
   '/admin/ai': typeof coreAdminAiRoute
   '/admin/auth': typeof coreAdminAuthRoute
+  '/admin/barcode': typeof coreAdminBarcodeRoute
   '/admin/data': typeof coreAdminDataRoute
   '/admin/debug': typeof coreAdminDebugRoute
   '/admin/email': typeof coreAdminEmailRoute
@@ -485,6 +492,7 @@ export interface FileRoutesByTo {
   '/sign-in/two-factor': typeof authSignInTwoFactorRoute
   '/admin/ai': typeof coreAdminAiRoute
   '/admin/auth': typeof coreAdminAuthRoute
+  '/admin/barcode': typeof coreAdminBarcodeRoute
   '/admin/data': typeof coreAdminDataRoute
   '/admin/debug': typeof coreAdminDebugRoute
   '/admin/email': typeof coreAdminEmailRoute
@@ -552,6 +560,7 @@ export interface FileRoutesById {
   '/(auth)/sign-in/two-factor': typeof authSignInTwoFactorRoute
   '/(core)/admin/ai': typeof coreAdminAiRoute
   '/(core)/admin/auth': typeof coreAdminAuthRoute
+  '/(core)/admin/barcode': typeof coreAdminBarcodeRoute
   '/(core)/admin/data': typeof coreAdminDataRoute
   '/(core)/admin/debug': typeof coreAdminDebugRoute
   '/(core)/admin/email': typeof coreAdminEmailRoute
@@ -619,6 +628,7 @@ export interface FileRouteTypes {
     | '/sign-in/two-factor'
     | '/admin/ai'
     | '/admin/auth'
+    | '/admin/barcode'
     | '/admin/data'
     | '/admin/debug'
     | '/admin/email'
@@ -680,6 +690,7 @@ export interface FileRouteTypes {
     | '/sign-in/two-factor'
     | '/admin/ai'
     | '/admin/auth'
+    | '/admin/barcode'
     | '/admin/data'
     | '/admin/debug'
     | '/admin/email'
@@ -746,6 +757,7 @@ export interface FileRouteTypes {
     | '/(auth)/sign-in/two-factor'
     | '/(core)/admin/ai'
     | '/(core)/admin/auth'
+    | '/(core)/admin/barcode'
     | '/(core)/admin/data'
     | '/(core)/admin/debug'
     | '/(core)/admin/email'
@@ -1163,6 +1175,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreAdminDataRouteImport
       parentRoute: typeof coreAdminRouteRoute
     }
+    '/(core)/admin/barcode': {
+      id: '/(core)/admin/barcode'
+      path: '/barcode'
+      fullPath: '/admin/barcode'
+      preLoaderRoute: typeof coreAdminBarcodeRouteImport
+      parentRoute: typeof coreAdminRouteRoute
+    }
     '/(core)/admin/auth': {
       id: '/(core)/admin/auth'
       path: '/auth'
@@ -1274,6 +1293,7 @@ declare module '@tanstack/react-router' {
 interface coreAdminRouteRouteChildren {
   coreAdminAiRoute: typeof coreAdminAiRoute
   coreAdminAuthRoute: typeof coreAdminAuthRoute
+  coreAdminBarcodeRoute: typeof coreAdminBarcodeRoute
   coreAdminDataRoute: typeof coreAdminDataRoute
   coreAdminDebugRoute: typeof coreAdminDebugRoute
   coreAdminEmailRoute: typeof coreAdminEmailRoute
@@ -1288,6 +1308,7 @@ interface coreAdminRouteRouteChildren {
 const coreAdminRouteRouteChildren: coreAdminRouteRouteChildren = {
   coreAdminAiRoute: coreAdminAiRoute,
   coreAdminAuthRoute: coreAdminAuthRoute,
+  coreAdminBarcodeRoute: coreAdminBarcodeRoute,
   coreAdminDataRoute: coreAdminDataRoute,
   coreAdminDebugRoute: coreAdminDebugRoute,
   coreAdminEmailRoute: coreAdminEmailRoute,

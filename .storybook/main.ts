@@ -48,6 +48,7 @@ const config: StorybookConfig = {
 			'@/api/admin-email': path.join(mocksDir, 'api.ts'),
 			'@/api/admin-intelligence': path.join(mocksDir, 'api.ts'),
 			'@/api/admin-mobile-app': path.join(mocksDir, 'api.ts'),
+			'@/api/admin-barcode': path.join(mocksDir, 'api.ts'),
 			'@/api/admin-scrapes': path.join(mocksDir, 'api.ts'),
 			'@/api/admin-storage': path.join(mocksDir, 'api.ts'),
 			'@/api/backup': path.join(mocksDir, 'api.ts'),

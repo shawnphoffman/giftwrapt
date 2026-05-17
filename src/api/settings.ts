@@ -4,7 +4,7 @@ import { db } from '@/db'
 import { appSettings } from '@/db/schema'
 import { loggingMiddleware } from '@/lib/logger'
 import { type AppSettings, appSettingsSchema } from '@/lib/settings'
-import { encryptScrapeProviderSecrets, getAppSettings } from '@/lib/settings-loader'
+import { encryptBarcodeSecrets, encryptScrapeProviderSecrets, getAppSettings } from '@/lib/settings-loader'
 import { adminAuthMiddleware } from '@/middleware/auth'
 
 /**
@@ -25,7 +25,15 @@ export const fetchAppSettings = createServerFn({
 	.middleware([loggingMiddleware])
 	.handler(async (): Promise<AppSettings> => {
 		const full = await getAppSettings(db)
-		return { ...full, scrapeProviders: [] }
+		// `barcode.goUpcKey` is a decrypted secret after the loader
+		// runs; strip before returning to unauthenticated callers. The
+		// other `barcode` fields stay so clients can read capability
+		// gating from the public prefetch.
+		return {
+			...full,
+			scrapeProviders: [],
+			barcode: { ...full.barcode, goUpcKey: '' },
+		}
 	})
 
 /**
@@ -64,7 +72,12 @@ export const updateAppSettings = createServerFn({
 			// customHeaders). Encrypt them at the storage boundary so
 			// app_settings never holds plaintext credentials at rest;
 			// `getAppSettings` decrypts on read via Zod transforms.
-			const storedValue = key === 'scrapeProviders' && Array.isArray(value) ? encryptScrapeProviderSecrets(value) : value
+			let storedValue: unknown = value
+			if (key === 'scrapeProviders' && Array.isArray(value)) {
+				storedValue = encryptScrapeProviderSecrets(value)
+			} else if (key === 'barcode' && value && typeof value === 'object') {
+				storedValue = encryptBarcodeSecrets(value as Parameters<typeof encryptBarcodeSecrets>[0])
+			}
 			await db
 				.insert(appSettings)
 				.values({ key, value: storedValue })
