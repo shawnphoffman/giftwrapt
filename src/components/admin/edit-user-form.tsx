@@ -59,7 +59,7 @@ const userDetailsQueryOptions = (userId: string) => ({
 	},
 })
 
-export function EditUserForm({ userId }: { userId: string }) {
+export function EditUserForm({ userId, onSuccess }: { userId: string; onSuccess?: () => void }) {
 	const queryClient = useQueryClient()
 
 	// Fetch user details
@@ -140,6 +140,7 @@ export function EditUserForm({ userId }: { userId: string }) {
 			}
 			isLoadingRelationships={isLoadingRelationships}
 			queryClient={queryClient}
+			onSuccess={onSuccess}
 		/>
 	)
 }
@@ -155,6 +156,7 @@ function EditUserFormInner({
 	initialPermissionRows,
 	isLoadingRelationships,
 	queryClient,
+	onSuccess,
 }: {
 	user: DbUser
 	userId: string
@@ -166,10 +168,10 @@ function EditUserFormInner({
 	initialPermissionRows: Array<PermissionRow> | null
 	isLoadingRelationships: boolean
 	queryClient: ReturnType<typeof useQueryClient>
+	onSuccess?: () => void
 }) {
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
-	const [success, setSuccess] = useState(false)
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 	const { configured: storageConfigured } = useStorageStatus()
 	const navigate = useNavigate()
@@ -226,7 +228,6 @@ function EditUserFormInner({
 	const onSubmit = async (data: EditUserFormValues) => {
 		setIsLoading(true)
 		setError(null)
-		setSuccess(false)
 
 		try {
 			// Normalize partnerId (handle __none__ case)
@@ -299,13 +300,12 @@ function EditUserFormInner({
 				}
 			}
 
-			setSuccess(true)
+			toast.success(`${data.name || data.email} updated`)
 			// Invalidate queries to refresh data
 			queryClient.invalidateQueries({ queryKey: ['admin', 'user', userId] })
 			queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
 			queryClient.invalidateQueries({ queryKey: ['admin', 'guardianships', userId] })
-			// Clear success message after 5 seconds
-			setTimeout(() => setSuccess(false), 5000)
+			onSuccess?.()
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Failed to update user')
 		} finally {
@@ -668,12 +668,6 @@ function EditUserFormInner({
 				<Alert variant="destructive">
 					<AlertTitle>Error</AlertTitle>
 					<AlertDescription>{error}</AlertDescription>
-				</Alert>
-			)}
-			{success && (
-				<Alert variant="default">
-					<AlertTitle>Success</AlertTitle>
-					<AlertDescription>User updated successfully!</AlertDescription>
 				</Alert>
 			)}
 

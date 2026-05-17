@@ -123,7 +123,7 @@ function AdminUsersPage() {
 						<DialogTitle>Edit User</DialogTitle>
 					</DialogHeader>
 					<Suspense fallback={<LoadingSkeleton />}>
-						<ClientOnly>{editUserId && <EditUserForm userId={editUserId} />}</ClientOnly>
+						<ClientOnly>{editUserId && <EditUserForm userId={editUserId} onSuccess={closeEditUser} />}</ClientOnly>
 					</Suspense>
 				</DialogContent>
 			</Dialog>
