@@ -15,13 +15,14 @@ export default function ListsPage() {
 			<div className="flex flex-col flex-1 gap-6">
 				<PageHeading
 					title={
-						<span className="flex items-center gap-1">
+						<span className="flex items-center gap-1 justify-between w-full">
 							Wish Lists
 							<NoListsPopover />
 						</span>
 					}
 					icon={ListChecks}
 					color="green"
+					titleClassName="w-full"
 				/>
 				<ListsByUser />
 			</div>
