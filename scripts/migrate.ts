@@ -1,8 +1,15 @@
+import crypto from 'node:crypto'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+
 import { config } from 'dotenv'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { Pool } from 'pg'
 import pino from 'pino'
+
+type JournalEntry = { idx: number; tag: string; when: number }
+type Journal = { entries: Array<JournalEntry> }
 
 config()
 
@@ -39,17 +46,13 @@ log.info({ databaseUrl: maskedUrl }, 'connecting to database')
 const pool = new Pool({ connectionString: url })
 const db = drizzle(pool)
 
-// Pre-flight: detect the "push-poisoned DB" scenario that motivated the
-// migration-history squash. Symptom in the field: app tables exist (because a
-// prior operator ran `drizzle-kit push` against this volume) but
-// __drizzle_migrations is empty/missing. drizzle-kit migrate then tries to run
-// every migration from scratch and fails with 42P07 ("relation already
-// exists") deep inside a transaction, with a 200-line stack trace that points
-// at the table name but not at the actual cause. We abort early with a
-// readable message so the operator can fix it without spelunking.
+// Pre-flight checks. Both target failure modes that crash deep inside drizzle's
+// transactional migrator with a 200-line stack trace that points at the symptom
+// (an existing relation, an existing enum) instead of the actual cause. We
+// catch them here and exit with a readable message + exact recovery SQL.
 //
-// The check stays cheap: one query for the tracker table, one row count, one
-// for-any-app-table-exists. Skips entirely when the tracker is healthy.
+// Skips entirely when the tracker is healthy AND the current baseline's hash
+// is present. Cost: a few cheap metadata queries.
 async function preflight(): Promise<void> {
 	const client = await pool.connect()
 	try {
@@ -60,36 +63,89 @@ async function preflight(): Promise<void> {
 			) AS "exists"`
 		)
 		const hasTracker = trackerExists.rows[0]?.exists === true
-		const trackerRows = hasTracker
-			? Number((await client.query<{ c: string }>(`SELECT COUNT(*)::text AS c FROM drizzle.__drizzle_migrations`)).rows[0]?.c ?? '0')
-			: 0
-		if (hasTracker && trackerRows > 0) return
+		const trackerHashes = hasTracker
+			? (await client.query<{ hash: string }>(`SELECT hash FROM drizzle.__drizzle_migrations`)).rows.map(r => r.hash)
+			: []
+		const trackerRows = trackerHashes.length
 
-		// Check for any well-known app table. If any exist, the DB has schema
-		// state that didn't come from drizzle-kit migrate. Refuse.
-		const sentinelTables = ['users', 'lists', 'items', 'app_settings', 'dependents']
-		const appTables = await client.query<{ table_name: string }>(
-			`SELECT table_name FROM information_schema.tables
-			 WHERE table_schema = 'public' AND table_name = ANY($1::text[])`,
-			[sentinelTables]
-		)
-		if (appTables.rows.length > 0) {
+		// Case 1: "push-poisoned DB". Symptom: app tables exist (because a prior
+		// operator ran `drizzle-kit push` against this volume) but the tracker is
+		// empty/missing. drizzle-kit migrate would run every migration from
+		// scratch and fail with 42P07 ("relation already exists").
+		if (trackerRows === 0) {
+			const sentinelTables = ['users', 'lists', 'items', 'app_settings', 'dependents']
+			const appTables = await client.query<{ table_name: string }>(
+				`SELECT table_name FROM information_schema.tables
+				 WHERE table_schema = 'public' AND table_name = ANY($1::text[])`,
+				[sentinelTables]
+			)
+			if (appTables.rows.length > 0) {
+				log.fatal(
+					{
+						hasTracker,
+						trackerRows,
+						appTablesFound: appTables.rows.map(r => r.table_name),
+					},
+					'database has application tables but the drizzle migration tracker is empty or missing. ' +
+						'This usually means the DB was provisioned via `drizzle-kit push` rather than migrations. ' +
+						'Refusing to migrate (it would crash with "relation already exists"). ' +
+						'See https://giftwrapt.dev/reference/troubleshooting/#migration-fails-relation-already-exists-with-empty-tracker for recovery steps.'
+				)
+				process.exit(2)
+			}
+			return
+		}
+
+		// Case 2: post-squash upgrade. The tracker has rows, but none of them
+		// match a hash in the current journal. This means the operator upgraded
+		// across the 2026-05-15 migration squash (a813eca3); their tracker
+		// records the pre-squash migrations, but the new baseline 0000_initial
+		// is unknown to it. drizzle's high-water-mark logic would then re-run
+		// the baseline and fail with 42710 ("type X already exists").
+		//
+		// We can't auto-recover (we don't know whether their schema is actually
+		// caught up to the baseline) but we can hand them the exact SQL to fix
+		// it themselves.
+		const journal = readJournal()
+		const journalEntries = journal.entries.map(entry => {
+			const sql = readFileSync(resolve('./drizzle', `${entry.tag}.sql`), 'utf8')
+			return { tag: entry.tag, when: entry.when, hash: sha256(sql) }
+		})
+		const trackerHashSet = new Set(trackerHashes)
+		const anyMatch = journalEntries.some(e => trackerHashSet.has(e.hash))
+		if (!anyMatch) {
+			const baseline = journalEntries[0]
+			const recoverySql =
+				`BEGIN;\n` +
+				`DELETE FROM drizzle.__drizzle_migrations;\n` +
+				`INSERT INTO drizzle.__drizzle_migrations (hash, created_at) VALUES ('${baseline.hash}', ${baseline.when});\n` +
+				`COMMIT;`
 			log.fatal(
 				{
-					hasTracker,
 					trackerRows,
-					appTablesFound: appTables.rows.map(r => r.table_name),
+					expectedBaselineTag: baseline.tag,
+					expectedBaselineHash: baseline.hash,
+					recoverySql,
 				},
-				'database has application tables but the drizzle migration tracker is empty or missing. ' +
-					'This usually means the DB was provisioned via `drizzle-kit push` rather than migrations. ' +
-					'Refusing to migrate (it would crash with "relation already exists"). ' +
-					'Fix: drop and recreate the database, then restart this container so migrations run from scratch.'
+				'drizzle migration tracker has rows but none match the current journal. ' +
+					'This usually means the deployment was upgraded across the 2026-05-15 migration squash. ' +
+					'Refusing to migrate (drizzle would re-run the baseline and crash on existing types/tables). ' +
+					'Run the SQL in `recoverySql` against this database and restart the container. ' +
+					'See https://giftwrapt.dev/reference/troubleshooting/#migration-fails-type-x-already-exists for the full explanation and caveats.'
 			)
 			process.exit(2)
 		}
 	} finally {
 		client.release()
 	}
+}
+
+function readJournal(): Journal {
+	return JSON.parse(readFileSync(resolve('./drizzle/meta/_journal.json'), 'utf8'))
+}
+
+function sha256(input: string): string {
+	return crypto.createHash('sha256').update(input).digest('hex')
 }
 
 const started = Date.now()

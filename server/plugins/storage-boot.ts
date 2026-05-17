@@ -48,7 +48,9 @@ export default defineNitroPlugin(async () => {
 				endpoint: env.STORAGE_ENDPOINT,
 				bucket: env.STORAGE_BUCKET,
 			},
-			'storage.init.failed'
+			'storage.init.failed. ' +
+				"If the error is a 403, S3 credentials likely don't match the storage sidecar; " +
+				'see https://giftwrapt.dev/reference/troubleshooting/#storage-init-fails-with-s3-403'
 		)
 		throw error
 	}

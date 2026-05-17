@@ -46,7 +46,12 @@ function decryptApiKey(raw: unknown): string | undefined {
 		try {
 			return decryptAppSecret(raw)
 		} catch (err) {
-			configLog.error({ err }, 'failed to decrypt stored resend api key')
+			configLog.error(
+				{ err },
+				'failed to decrypt stored resend api key. ' +
+					'BETTER_AUTH_SECRET likely changed since the key was saved; ' +
+					'see https://giftwrapt.dev/reference/troubleshooting/#app-500s-with-zod-errors-after-better_auth_secret-changed'
+			)
 			return undefined
 		}
 	}

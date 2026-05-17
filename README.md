@@ -28,6 +28,7 @@ Everything lives at **[giftwrapt.dev](https://giftwrapt.dev)**:
 - [Hosted (Vercel + Supabase)](https://giftwrapt.dev/deploy/hosted/) - the tried-and-true managed path.
 - [Features](https://giftwrapt.dev/features/lists/) - lists, items, claims, permissions, privacy, scraping, AI suggestions.
 - [Configuration](https://giftwrapt.dev/configuration/settings/) - admin panel, env vars, storage, scraping, AI provider, cron.
+- [Troubleshooting](https://giftwrapt.dev/reference/troubleshooting/) - recovery steps for migration failures, lost `BETTER_AUTH_SECRET`, storage 403, etc.
 
 ## Quick start
 
