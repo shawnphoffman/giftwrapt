@@ -29,7 +29,7 @@ export function StorageBrowser() {
 	const [bulkDialogOpen, setBulkDialogOpen] = useState(false)
 	const [rowToDelete, setRowToDelete] = useState<StorageObjectRow | null>(null)
 
-	const prefix = filter === 'avatars' ? 'avatars/' : filter === 'items' ? 'items/' : undefined
+	const prefix = filter === 'avatars' ? 'avatars/' : filter === 'items' ? 'items/' : filter === 'purchases' ? 'purchases/' : undefined
 
 	const listQuery = useQuery({
 		queryKey: [...STORAGE_QUERY_KEY, 'list', { prefix, cursor }],

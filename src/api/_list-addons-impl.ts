@@ -9,6 +9,7 @@ import { db, type SchemaDatabase } from '@/db'
 import { listAddons, lists } from '@/db/schema'
 import type { ListAddon } from '@/db/schema/lists'
 import { canViewList } from '@/lib/permissions'
+import { LIMITS } from '@/lib/validation/limits'
 import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 
 // ===============================
@@ -48,6 +49,10 @@ export const UpdateAddonInputSchema = z.object({
 		.nullable()
 		.optional()
 		.transform(v => (v === undefined || v === null ? v : typeof v === 'number' ? v.toFixed(2) : v)),
+	// See UpdateGiftInputSchema: attachmentUrls is managed only by the
+	// dedicated upload/remove server fns; trackingNumber rides through the
+	// edit dialog like notes / totalCost.
+	trackingNumber: z.string().max(LIMITS.TRACKING_NUMBER).nullable().optional(),
 })
 
 export const ArchiveAddonInputSchema = z.object({
@@ -114,6 +119,7 @@ export async function updateListAddonImpl(args: {
 			...(data.description !== undefined ? { description: data.description } : {}),
 			...(data.notes !== undefined ? { notes: data.notes } : {}),
 			...(data.totalCost !== undefined ? { totalCost: data.totalCost } : {}),
+			...(data.trackingNumber !== undefined ? { trackingNumber: data.trackingNumber } : {}),
 		})
 		.where(eq(listAddons.id, data.addonId))
 		.returning()

@@ -115,6 +115,11 @@ export const listAddons = pgTable(
 		description: text('description').notNull(),
 		totalCost: numeric('total_cost'),
 		notes: text('notes'),
+		// Gifter-private attachments (receipt images / PDF gift receipts).
+		// App caps at LIMITS.PURCHASE_ATTACHMENTS_MAX; see giftedItems.
+		attachmentUrls: text('attachment_urls').array(),
+		// Plain-text tracking number; UI infers carrier + builds the link.
+		trackingNumber: text('tracking_number'),
 		isArchived: boolean('is_archived').default(false).notNull(),
 		...timestamps,
 	},

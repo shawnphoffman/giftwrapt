@@ -1,18 +1,20 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
-import { items, lists, users } from '@/db/schema'
+import { giftedItems, items, listAddons, lists, users } from '@/db/schema'
 import { env } from '@/env'
 import { auth } from '@/lib/auth'
 import { createLogger, loggingMiddleware } from '@/lib/logger'
 import { canEditList } from '@/lib/permissions'
 import { getStorage } from '@/lib/storage/adapter'
+import { processAttachment } from '@/lib/storage/attachment-pipeline'
 import { err, ok, UploadError, type UploadResult } from '@/lib/storage/errors'
 import { assertImageBytes, processImage } from '@/lib/storage/image-pipeline'
-import { avatarKey, itemImageKey, parseKeyFromUrl } from '@/lib/storage/keys'
+import { avatarKey, itemImageKey, parseKeyFromUrl, purchaseAttachmentKey } from '@/lib/storage/keys'
+import { LIMITS } from '@/lib/validation/limits'
 import { adminAuthMiddleware, authMiddleware } from '@/middleware/auth'
 
 const log = createLogger('api:uploads')
@@ -347,6 +349,168 @@ export const removeItemImage = createServerFn({ method: 'POST' })
 			const oldKey = parseKeyFromUrl(oldUrl, env.STORAGE_PUBLIC_URL)
 			if (oldKey) void deleteKey(oldKey)
 		}
+
+		return ok({ ok: true })
+	})
+
+// ===============================
+// Purchase attachment upload / remove
+// ===============================
+// Receipt images and PDF gift receipts attached to a purchase (claim or
+// addon). Gifter-private: the row is loaded inline and the caller must own
+// it. The attachmentUrls array is the source of truth; the dedicated
+// upload/remove server fns are the ONLY writers (the edit dialog's save
+// path never touches this column).
+
+type PurchaseRow = {
+	id: number
+	ownerId: string
+	attachmentUrls: Array<string> | null
+}
+
+async function loadPurchaseForOwner(purchaseKind: 'claim' | 'addon', purchaseId: number): Promise<PurchaseRow | null> {
+	if (purchaseKind === 'claim') {
+		const row = await db.query.giftedItems.findFirst({
+			where: eq(giftedItems.id, purchaseId),
+			columns: { id: true, gifterId: true, attachmentUrls: true },
+		})
+		if (!row) return null
+		return { id: row.id, ownerId: row.gifterId, attachmentUrls: row.attachmentUrls }
+	}
+	const row = await db.query.listAddons.findFirst({
+		where: eq(listAddons.id, purchaseId),
+		columns: { id: true, userId: true, attachmentUrls: true },
+	})
+	if (!row) return null
+	return { id: row.id, ownerId: row.userId, attachmentUrls: row.attachmentUrls }
+}
+
+export const uploadPurchaseAttachment = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator(formDataValidator)
+	.handler(async ({ context, data }): Promise<UploadResult<{ url: string }>> => {
+		const storage = getStorage()
+		if (!storage) return err('upstream', STORAGE_DISABLED_MESSAGE)
+
+		const userId = context.session.user.id
+
+		const file = data.get('file')
+		if (!(file instanceof File)) return err('bad-mime', 'missing "file" field')
+
+		const kindRaw = data.get('purchaseKind')
+		if (kindRaw !== 'claim' && kindRaw !== 'addon') return err('not-found', 'invalid purchaseKind')
+		const purchaseKind = kindRaw
+
+		const idParsed = z.coerce.number().int().positive().safeParse(data.get('purchaseId'))
+		if (!idParsed.success) return err('not-found', 'invalid purchaseId')
+		const purchaseId = idParsed.data
+
+		if (file.size > MAX_BYTES) return err('too-large', `file exceeds ${env.STORAGE_MAX_UPLOAD_MB} MB limit`)
+		if (file.size === 0) return err('bad-mime', 'file is empty')
+
+		const purchase = await loadPurchaseForOwner(purchaseKind, purchaseId)
+		if (!purchase) return err('not-found', 'purchase not found')
+		if (purchase.ownerId !== userId) return err('not-authorized', 'cannot edit this purchase')
+
+		const existingCount = (purchase.attachmentUrls ?? []).length
+		if (existingCount >= LIMITS.PURCHASE_ATTACHMENTS_MAX) {
+			return err('too-large', `max ${LIMITS.PURCHASE_ATTACHMENTS_MAX} attachments per purchase`)
+		}
+
+		let processed
+		try {
+			const raw = await readFileAsBuffer(file)
+			processed = await processAttachment(raw)
+		} catch (error) {
+			if (error instanceof UploadError) return err(error.reason, error.message)
+			log.error({ err: error, purchaseKind, purchaseId }, 'purchase.attachment.pipeline.unexpected')
+			return err('pipeline-failed', 'attachment processing failed')
+		}
+
+		const key = purchaseAttachmentKey(purchaseKind, purchase.id, processed.ext)
+		try {
+			await storage.upload(key, processed.buffer, processed.contentType)
+		} catch (error) {
+			if (error instanceof UploadError) return err(error.reason, error.message)
+			return err('upstream', 'storage upload failed')
+		}
+
+		const url = storage.getPublicUrl(key)
+
+		// Append inside a transaction with row lock so two concurrent uploads
+		// from different tabs don't overwrite each other's append. Also
+		// re-checks the cap under the lock to defend against TOCTOU between
+		// the early count check and the write.
+		type LockedRow = { attachment_urls: Array<string> | null } | undefined
+		const appendResult = await db.transaction(async tx => {
+			if (purchaseKind === 'claim') {
+				const locked = (await tx.execute(
+					sql`SELECT attachment_urls FROM gifted_items WHERE id = ${purchaseId} AND gifter_id = ${userId} FOR UPDATE`
+				)) as { rows: Array<{ attachment_urls: Array<string> | null }> }
+				const row: LockedRow = locked.rows.at(0)
+				if (!row) return { kind: 'gone' as const }
+				const current = row.attachment_urls ?? []
+				if (current.length >= LIMITS.PURCHASE_ATTACHMENTS_MAX) return { kind: 'over' as const }
+				const next = [...current, url]
+				await tx.update(giftedItems).set({ attachmentUrls: next }).where(eq(giftedItems.id, purchaseId))
+				return { kind: 'ok' as const }
+			}
+			const locked = (await tx.execute(
+				sql`SELECT attachment_urls FROM list_addons WHERE id = ${purchaseId} AND user_id = ${userId} FOR UPDATE`
+			)) as { rows: Array<{ attachment_urls: Array<string> | null }> }
+			const row: LockedRow = locked.rows.at(0)
+			if (!row) return { kind: 'gone' as const }
+			const current = row.attachment_urls ?? []
+			if (current.length >= LIMITS.PURCHASE_ATTACHMENTS_MAX) return { kind: 'over' as const }
+			const next = [...current, url]
+			await tx.update(listAddons).set({ attachmentUrls: next }).where(eq(listAddons.id, purchaseId))
+			return { kind: 'ok' as const }
+		})
+
+		if (appendResult.kind !== 'ok') {
+			// Roll the just-uploaded object back so we don't leak storage when
+			// the DB append failed.
+			void deleteKey(key)
+			if (appendResult.kind === 'gone') return err('not-found', 'purchase not found')
+			return err('too-large', `max ${LIMITS.PURCHASE_ATTACHMENTS_MAX} attachments per purchase`)
+		}
+
+		return ok({ url })
+	})
+
+const RemovePurchaseAttachmentSchema = z.object({
+	purchaseKind: z.enum(['claim', 'addon']),
+	purchaseId: z.number().int().positive(),
+	attachmentUrl: z.string().min(1),
+})
+
+export const removePurchaseAttachment = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: z.input<typeof RemovePurchaseAttachmentSchema>) => RemovePurchaseAttachmentSchema.parse(data))
+	.handler(async ({ context, data }): Promise<UploadResult<{ ok: true }>> => {
+		const userId = context.session.user.id
+
+		const purchase = await loadPurchaseForOwner(data.purchaseKind, data.purchaseId)
+		if (!purchase) return err('not-found', 'purchase not found')
+		if (purchase.ownerId !== userId) return err('not-authorized', 'cannot edit this purchase')
+
+		const current = purchase.attachmentUrls ?? []
+		const next = current.filter(u => u !== data.attachmentUrl)
+		// If the URL wasn't in the array, treat it as a no-op rather than 404;
+		// the client may have raced a concurrent remove and the end state is
+		// the same.
+		const nextOrNull = next.length === 0 ? null : next
+
+		if (data.purchaseKind === 'claim') {
+			await db.update(giftedItems).set({ attachmentUrls: nextOrNull }).where(eq(giftedItems.id, purchase.id))
+		} else {
+			await db.update(listAddons).set({ attachmentUrls: nextOrNull }).where(eq(listAddons.id, purchase.id))
+		}
+
+		// Best-effort storage cleanup; a failed delete leaves an orphan for the
+		// future storage-gc sweeper.
+		const key = parseKeyFromUrl(data.attachmentUrl, env.STORAGE_PUBLIC_URL)
+		if (key) void deleteKey(key)
 
 		return ok({ ok: true })
 	})

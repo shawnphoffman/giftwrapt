@@ -168,6 +168,9 @@ export const removeAvatar = ok
 export const uploadAvatarAsAdmin = (): Promise<{ kind: 'ok'; value: { url: string } }> =>
 	Promise.resolve({ kind: 'ok', value: { url: '' } })
 export const removeAvatarAsAdmin = ok
+export const uploadPurchaseAttachment = (): Promise<{ kind: 'ok'; value: { url: string } }> =>
+	Promise.resolve({ kind: 'ok', value: { url: '' } })
+export const removePurchaseAttachment = ok
 
 // @/api/storage-status
 export const fetchStorageStatus = (): Promise<{ configured: boolean }> => Promise.resolve({ configured: true })

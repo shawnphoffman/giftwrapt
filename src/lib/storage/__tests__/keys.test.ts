@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import { avatarKey, itemImageKey, parseAvatarKey, parseItemImageKey, parseKeyFromUrl } from '../keys'
+import {
+	avatarKey,
+	itemImageKey,
+	parseAvatarKey,
+	parseItemImageKey,
+	parseKeyFromUrl,
+	parsePurchaseAttachmentKey,
+	purchaseAttachmentKey,
+} from '../keys'
 
 describe('avatarKey', () => {
 	it('prefixes with avatars/ and includes userId + .webp', () => {
@@ -97,5 +105,40 @@ describe('parseItemImageKey', () => {
 	it('returns null for malformed item keys', () => {
 		expect(parseItemImageKey('items/42/notwebp.png')).toBeNull()
 		expect(parseItemImageKey('items/42')).toBeNull()
+	})
+})
+
+describe('purchaseAttachmentKey / parsePurchaseAttachmentKey', () => {
+	it('mints claim webp keys', () => {
+		const key = purchaseAttachmentKey('claim', 12, 'webp')
+		expect(key).toMatch(/^purchases\/claim\/12\/[0-9A-Za-z]{12}\.webp$/)
+	})
+
+	it('mints addon pdf keys', () => {
+		const key = purchaseAttachmentKey('addon', 4, 'pdf')
+		expect(key).toMatch(/^purchases\/addon\/4\/[0-9A-Za-z]{12}\.pdf$/)
+	})
+
+	it('round-trips through the parser', () => {
+		const key = purchaseAttachmentKey('claim', 99, 'webp')
+		expect(parsePurchaseAttachmentKey(key)).toEqual({ kind: 'claim', id: '99', ext: 'webp' })
+		const addonKey = purchaseAttachmentKey('addon', 7, 'pdf')
+		expect(parsePurchaseAttachmentKey(addonKey)).toEqual({ kind: 'addon', id: '7', ext: 'pdf' })
+	})
+
+	it('returns null for non-purchase prefix', () => {
+		expect(parsePurchaseAttachmentKey('avatars/abc-aaaaaaaa.webp')).toBeNull()
+		expect(parsePurchaseAttachmentKey('items/42/abc.webp')).toBeNull()
+	})
+
+	it('returns null for unsupported extensions', () => {
+		expect(parsePurchaseAttachmentKey('purchases/claim/12/abc.jpeg')).toBeNull()
+	})
+
+	it('claim and addon discriminators do not collide for the same numeric id', () => {
+		const claimKey = purchaseAttachmentKey('claim', 5, 'webp')
+		const addonKey = purchaseAttachmentKey('addon', 5, 'webp')
+		expect(parsePurchaseAttachmentKey(claimKey)?.kind).toBe('claim')
+		expect(parsePurchaseAttachmentKey(addonKey)?.kind).toBe('addon')
 	})
 })

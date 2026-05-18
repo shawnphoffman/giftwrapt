@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { Trash2 } from 'lucide-react'
+import { FileText, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
 import type { StorageObjectRow, StorageSummary } from '@/api/admin-storage'
@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 // the layout, badges, and empty/loading states without standing up a
 // QueryClient cache.
 
-export type StorageBrowserFilter = 'all' | 'avatars' | 'items' | 'orphans'
+export type StorageBrowserFilter = 'all' | 'avatars' | 'items' | 'purchases' | 'orphans'
 
 export function StorageSummaryBar({
 	summary,
@@ -66,6 +66,7 @@ export function StorageFilterPills({ active, onChange }: { active: StorageBrowse
 		{ value: 'all', label: 'All' },
 		{ value: 'avatars', label: 'Avatars' },
 		{ value: 'items', label: 'Items' },
+		{ value: 'purchases', label: 'Purchases' },
 		{ value: 'orphans', label: 'Orphans' },
 	]
 	return (
@@ -137,17 +138,30 @@ function StorageTableRow({
 	onDelete?: (row: StorageObjectRow) => void
 	onPreview?: (row: StorageObjectRow) => void
 }) {
+	const isPdf = row.key.toLowerCase().endsWith('.pdf')
 	return (
 		<TableRow>
 			<TableCell>
-				<button
-					type="button"
-					onClick={() => onPreview?.(row)}
-					className="block size-12 overflow-hidden rounded border bg-muted transition-opacity hover:opacity-80"
-					title={row.key}
-				>
-					<img src={row.url} alt={row.key} loading="lazy" className="size-full object-cover" />
-				</button>
+				{isPdf ? (
+					<a
+						href={row.url}
+						target="_blank"
+						rel="noopener noreferrer"
+						className="flex size-12 items-center justify-center rounded border bg-muted text-muted-foreground hover:text-foreground"
+						title={row.key}
+					>
+						<FileText className="size-5" />
+					</a>
+				) : (
+					<button
+						type="button"
+						onClick={() => onPreview?.(row)}
+						className="block size-12 overflow-hidden rounded border bg-muted transition-opacity hover:opacity-80"
+						title={row.key}
+					>
+						<img src={row.url} alt={row.key} loading="lazy" className="size-full object-cover" />
+					</button>
+				)}
 			</TableCell>
 			<TableCell>
 				<div className="flex flex-col gap-1">
@@ -209,6 +223,28 @@ function ConnectedCell({ row }: { row: StorageObjectRow }) {
 			>
 				{row.target.label}
 			</Link>
+		)
+	}
+	if (row.target.kind === 'purchase') {
+		if (row.target.deleted) {
+			return (
+				<span className="italic text-muted-foreground">
+					{row.target.label} <span className="not-italic text-destructive">(deleted)</span>
+				</span>
+			)
+		}
+		return (
+			<div className="flex flex-col">
+				<div className="flex items-center gap-1.5">
+					<Badge variant="outline" className="text-[10px] uppercase tracking-wide">
+						{row.target.purchaseKind}
+					</Badge>
+					<span className="truncate" title={row.target.label}>
+						{row.target.label}
+					</span>
+				</div>
+				{row.target.gifterName && <span className="truncate text-muted-foreground">by {row.target.gifterName}</span>}
+			</div>
 		)
 	}
 	if (row.target.deleted) {

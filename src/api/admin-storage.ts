@@ -3,11 +3,11 @@ import { eq, inArray, isNotNull } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
-import { items, lists, users } from '@/db/schema'
+import { giftedItems, items, listAddons, lists, users } from '@/db/schema'
 import { env } from '@/env'
 import { createLogger, loggingMiddleware } from '@/lib/logger'
 import { getStorage } from '@/lib/storage/adapter'
-import { parseAvatarKey, parseItemImageKey, parseKeyFromUrl } from '@/lib/storage/keys'
+import { parseAvatarKey, parseItemImageKey, parseKeyFromUrl, parsePurchaseAttachmentKey } from '@/lib/storage/keys'
 import { adminAuthMiddleware } from '@/middleware/auth'
 
 // Server fns powering /admin/storage. Lists every object in the configured
@@ -19,7 +19,7 @@ const log = createLogger('api.admin-storage')
 
 const StorageNotConfigured = { kind: 'error', reason: 'storage-not-configured' } as const
 
-export type StorageObjectKind = 'avatar' | 'item' | 'unknown'
+export type StorageObjectKind = 'avatar' | 'item' | 'purchase' | 'unknown'
 export type StorageObjectStatus = 'attached' | 'orphan' | 'unknown'
 
 export type StorageObjectRow = {
@@ -33,6 +33,15 @@ export type StorageObjectRow = {
 	target:
 		| { kind: 'user'; id: string; label: string }
 		| { kind: 'item'; id: number; label: string; listId: number; listName: string | null; deleted: boolean }
+		| {
+				kind: 'purchase'
+				purchaseKind: 'claim' | 'addon'
+				id: number
+				label: string
+				gifterId: string
+				gifterName: string | null
+				deleted: boolean
+		  }
 		| null
 }
 
@@ -61,6 +70,28 @@ async function buildInUseKeySet(): Promise<Set<string>> {
 		const key = parseKeyFromUrl(row.imageUrl ?? '', publicBase)
 		if (key) inUse.add(key)
 	}
+	// Purchase attachments live as URL arrays on giftedItems + listAddons.
+	// Flatten and reverse-map so admin classification treats them as attached.
+	const claimRows = await db
+		.select({ attachmentUrls: giftedItems.attachmentUrls })
+		.from(giftedItems)
+		.where(isNotNull(giftedItems.attachmentUrls))
+	for (const row of claimRows) {
+		for (const url of row.attachmentUrls ?? []) {
+			const key = parseKeyFromUrl(url, publicBase)
+			if (key) inUse.add(key)
+		}
+	}
+	const addonRows = await db
+		.select({ attachmentUrls: listAddons.attachmentUrls })
+		.from(listAddons)
+		.where(isNotNull(listAddons.attachmentUrls))
+	for (const row of addonRows) {
+		for (const url of row.attachmentUrls ?? []) {
+			const key = parseKeyFromUrl(url, publicBase)
+			if (key) inUse.add(key)
+		}
+	}
 	return inUse
 }
 
@@ -75,6 +106,15 @@ type ItemEnrichRow = {
 	ownerEmail: string
 }
 
+type PurchaseEnrichRow = {
+	id: number
+	purchaseKind: 'claim' | 'addon'
+	label: string
+	gifterId: string
+	gifterName: string | null
+	gifterEmail: string
+}
+
 async function enrichRows(
 	objects: Array<{ key: string; size: number; lastModified: Date; etag: string }>,
 	inUse: Set<string>
@@ -84,6 +124,8 @@ async function enrichRows(
 
 	const avatarUserIds = new Set<string>()
 	const itemIds = new Set<number>()
+	const claimIds = new Set<number>()
+	const addonIds = new Set<number>()
 	for (const obj of objects) {
 		const av = parseAvatarKey(obj.key)
 		if (av) {
@@ -94,6 +136,14 @@ async function enrichRows(
 		if (it) {
 			const n = Number(it.itemId)
 			if (Number.isFinite(n)) itemIds.add(n)
+			continue
+		}
+		const pur = parsePurchaseAttachmentKey(obj.key)
+		if (pur) {
+			const n = Number(pur.id)
+			if (!Number.isFinite(n)) continue
+			if (pur.kind === 'claim') claimIds.add(n)
+			else addonIds.add(n)
 		}
 	}
 
@@ -124,6 +174,59 @@ async function enrichRows(
 			.innerJoin(users, eq(users.id, lists.ownerId))
 			.where(inArray(items.id, [...itemIds]))
 		for (const r of rows) itemMap.set(r.id, r)
+	}
+
+	const claimMap = new Map<number, PurchaseEnrichRow>()
+	if (claimIds.size > 0) {
+		const rows = await db
+			.select({
+				id: giftedItems.id,
+				gifterId: giftedItems.gifterId,
+				gifterName: users.name,
+				gifterEmail: users.email,
+				itemTitle: items.title,
+			})
+			.from(giftedItems)
+			.innerJoin(items, eq(items.id, giftedItems.itemId))
+			.innerJoin(users, eq(users.id, giftedItems.gifterId))
+			.where(inArray(giftedItems.id, [...claimIds]))
+		for (const r of rows) {
+			claimMap.set(r.id, {
+				id: r.id,
+				purchaseKind: 'claim',
+				label: r.itemTitle,
+				gifterId: r.gifterId,
+				gifterName: r.gifterName,
+				gifterEmail: r.gifterEmail,
+			})
+		}
+	}
+
+	const addonMap = new Map<number, PurchaseEnrichRow>()
+	if (addonIds.size > 0) {
+		const rows = await db
+			.select({
+				id: listAddons.id,
+				gifterId: listAddons.userId,
+				gifterName: users.name,
+				gifterEmail: users.email,
+				description: listAddons.description,
+				listName: lists.name,
+			})
+			.from(listAddons)
+			.innerJoin(users, eq(users.id, listAddons.userId))
+			.innerJoin(lists, eq(lists.id, listAddons.listId))
+			.where(inArray(listAddons.id, [...addonIds]))
+		for (const r of rows) {
+			addonMap.set(r.id, {
+				id: r.id,
+				purchaseKind: 'addon',
+				label: r.description,
+				gifterId: r.gifterId,
+				gifterName: r.gifterName,
+				gifterEmail: r.gifterEmail,
+			})
+		}
 	}
 
 	const out: Array<StorageObjectRow> = []
@@ -169,6 +272,47 @@ async function enrichRows(
 						}
 					: Number.isFinite(itemId)
 						? { kind: 'item', id: itemId, label: `(item #${itemId})`, listId: -1, listName: null, deleted: true }
+						: null,
+			})
+			continue
+		}
+		const pur = parsePurchaseAttachmentKey(obj.key)
+		if (pur) {
+			const purchaseId = Number(pur.id)
+			const enriched = Number.isFinite(purchaseId)
+				? pur.kind === 'claim'
+					? claimMap.get(purchaseId)
+					: addonMap.get(purchaseId)
+				: undefined
+			const status: StorageObjectStatus = inUse.has(obj.key) ? 'attached' : 'orphan'
+			out.push({
+				key: obj.key,
+				url,
+				size: obj.size,
+				lastModified: obj.lastModified,
+				kind: 'purchase',
+				status,
+				owner: enriched ? { id: enriched.gifterId, name: enriched.gifterName, email: enriched.gifterEmail } : null,
+				target: enriched
+					? {
+							kind: 'purchase',
+							purchaseKind: pur.kind,
+							id: enriched.id,
+							label: enriched.label,
+							gifterId: enriched.gifterId,
+							gifterName: enriched.gifterName,
+							deleted: false,
+						}
+					: Number.isFinite(purchaseId)
+						? {
+								kind: 'purchase',
+								purchaseKind: pur.kind,
+								id: purchaseId,
+								label: `(purchase #${purchaseId})`,
+								gifterId: '',
+								gifterName: null,
+								deleted: true,
+							}
 						: null,
 			})
 			continue

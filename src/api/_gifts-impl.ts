@@ -13,6 +13,7 @@ import { giftedItems, itemGroups, items, lists, users } from '@/db/schema'
 import type { GiftedItem } from '@/db/schema/gifts'
 import { computeRemainingClaimableQuantity } from '@/lib/gifts'
 import { canViewList } from '@/lib/permissions'
+import { LIMITS } from '@/lib/validation/limits'
 import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 
 // ===============================
@@ -299,6 +300,10 @@ export const UpdateGiftInputSchema = z.object({
 		.nullable()
 		.optional()
 		.transform(v => (v === undefined || v === null ? v : typeof v === 'number' ? v.toFixed(2) : v)),
+	// attachmentUrls is intentionally NOT accepted here - it's managed
+	// exclusively by uploadPurchaseAttachment / removePurchaseAttachment so
+	// the array shape stays consistent with the stored bucket objects.
+	trackingNumber: z.string().max(LIMITS.TRACKING_NUMBER).nullable().optional(),
 })
 
 export type UpdateGiftResult =
@@ -344,6 +349,7 @@ export async function updateItemGiftImpl(args: {
 				quantity: data.quantity,
 				...(data.notes !== undefined ? { notes: data.notes } : {}),
 				...(data.totalCost !== undefined ? { totalCost: data.totalCost } : {}),
+				...(data.trackingNumber !== undefined ? { trackingNumber: data.trackingNumber } : {}),
 			})
 			.where(eq(giftedItems.id, gift.id))
 			.returning()

@@ -31,6 +31,10 @@ export type SummaryItem = {
 	cost: number | null
 	totalCostRaw: string | null
 	notes: string | null
+	// Gifter-private attachments (image / PDF receipts). Null when none.
+	attachmentUrls: Array<string> | null
+	// Plain-text tracking number; UI infers carrier via detectCarrier.
+	trackingNumber: string | null
 	quantity: number
 	listName: string
 	createdAt: Date
@@ -107,6 +111,8 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 				quantity: giftedItems.quantity,
 				totalCost: giftedItems.totalCost,
 				notes: giftedItems.notes,
+				attachmentUrls: giftedItems.attachmentUrls,
+				trackingNumber: giftedItems.trackingNumber,
 				createdAt: giftedItems.createdAt,
 				listName: lists.name,
 				listOwnerId: lists.ownerId,
@@ -131,6 +137,8 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 				description: listAddons.description,
 				totalCost: listAddons.totalCost,
 				notes: listAddons.notes,
+				attachmentUrls: listAddons.attachmentUrls,
+				trackingNumber: listAddons.trackingNumber,
 				createdAt: listAddons.createdAt,
 				listName: lists.name,
 				listOwnerId: lists.ownerId,
@@ -197,6 +205,8 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 				cost,
 				totalCostRaw: isCoGifter ? null : r.totalCost,
 				notes: r.notes,
+				attachmentUrls: r.attachmentUrls,
+				trackingNumber: r.trackingNumber,
 				quantity: r.quantity,
 				listName: r.listName,
 				createdAt: r.createdAt,
@@ -223,6 +233,8 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 				cost: r.totalCost ? parseFloat(r.totalCost) : null,
 				totalCostRaw: r.totalCost,
 				notes: r.notes,
+				attachmentUrls: r.attachmentUrls,
+				trackingNumber: r.trackingNumber,
 				quantity: 1,
 				listName: r.listName,
 				createdAt: r.createdAt,

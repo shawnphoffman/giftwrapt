@@ -30,6 +30,12 @@ export const LIMITS = {
 	// Bcrypt's input ceiling is 72 bytes; cap higher than that for UX
 	// but low enough to prevent DoS via pathological inputs.
 	PASSWORD: 256,
+	// Free-text tracking number on a purchase. Long enough for the
+	// 20-22 char carrier formats with margin for whitespace / pasted prefixes.
+	TRACKING_NUMBER: 64,
+	// Per-purchase cap on attachments (receipt images / PDFs). Enforced in
+	// the upload server fn (clearer error than a DB CHECK).
+	PURCHASE_ATTACHMENTS_MAX: 5,
 } as const
 
 export type LimitKey = keyof typeof LIMITS

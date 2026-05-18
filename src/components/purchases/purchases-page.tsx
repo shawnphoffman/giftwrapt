@@ -4,11 +4,14 @@ import {
 	ChevronsDownUp,
 	ChevronsUpDown,
 	ExternalLink,
+	FileText,
 	Gift,
 	Info,
 	PackagePlus,
+	Paperclip,
 	Pencil,
 	Receipt,
+	Truck,
 	Users,
 	Zap,
 } from 'lucide-react'
@@ -27,6 +30,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { detectCarrier } from '@/lib/tracking/carriers'
 
 // recharts is ~350 KB. The chart cards only render once spend data is
 // summarised, so paying that cost up front for every /purchases visit
@@ -54,6 +58,8 @@ function toEditable(item: SummaryItem): EditablePurchase | null {
 			quantity: item.quantity,
 			totalCost: item.totalCostRaw,
 			notes: item.notes,
+			trackingNumber: item.trackingNumber,
+			attachmentUrls: item.attachmentUrls,
 		}
 	}
 	if (item.type === 'addon' && item.addonId != null) {
@@ -62,6 +68,8 @@ function toEditable(item: SummaryItem): EditablePurchase | null {
 			addonId: item.addonId,
 			totalCost: item.totalCostRaw,
 			notes: item.notes,
+			trackingNumber: item.trackingNumber,
+			attachmentUrls: item.attachmentUrls,
 		}
 	}
 	return null
@@ -401,6 +409,8 @@ function PurchaseDetailRow({
 	const hasNotes = !!item.notes
 	const editable = item.isOwn && !item.isCoGifter
 	const showPartner = item.isPartnerPurchase && partner !== null
+	const attachments = item.attachmentUrls ?? []
+	const carrierMatch = item.trackingNumber ? detectCarrier(item.trackingNumber) : null
 
 	return (
 		<div className="flex items-start gap-3 px-3 py-2.5">
@@ -438,6 +448,24 @@ function PurchaseDetailRow({
 					)}
 				</div>
 				{hasNotes && <MarkdownNotes content={item.notes!} className="text-xs text-foreground/75 mt-0.5" />}
+				{item.trackingNumber && (
+					<div className="text-xs mt-0.5 flex items-center gap-1 min-w-0">
+						<Truck className="size-3 text-muted-foreground shrink-0" />
+						{carrierMatch?.trackingUrl ? (
+							<a
+								href={carrierMatch.trackingUrl}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="text-foreground underline decoration-dotted underline-offset-2 hover:text-foreground truncate"
+								onClick={e => e.stopPropagation()}
+							>
+								{item.trackingNumber} · {carrierMatch.carrierName}
+							</a>
+						) : (
+							<span className="text-foreground/80 truncate">{item.trackingNumber}</span>
+						)}
+					</div>
+				)}
 				<div className="flex items-center gap-1.5 min-w-0">
 					{showPartner && (
 						<Tooltip>
@@ -452,6 +480,7 @@ function PurchaseDetailRow({
 					<div className="text-xs text-muted-foreground truncate">{item.listName}</div>
 				</div>
 			</div>
+			{attachments.length > 0 && <AttachmentBadge urls={attachments} />}
 			{item.type === 'claim' && item.quantity > 1 && (
 				<Badge variant="secondary" className="text-xs tabular-nums shrink-0">
 					x{item.quantity}
@@ -487,6 +516,37 @@ function PurchaseDetailRow({
 				<div className="size-7 shrink-0" />
 			)}
 		</div>
+	)
+}
+
+function AttachmentBadge({ urls }: { urls: Array<string> }) {
+	const first = urls[0]
+	const isPdf = first.toLowerCase().endsWith('.pdf')
+	const extra = urls.length - 1
+	return (
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<a
+					href={first}
+					target="_blank"
+					rel="noopener noreferrer"
+					className="shrink-0 size-7 rounded border bg-muted flex items-center justify-center overflow-hidden text-muted-foreground hover:text-foreground"
+					onClick={e => e.stopPropagation()}
+					aria-label={`${urls.length} attachment${urls.length === 1 ? '' : 's'}`}
+				>
+					{isPdf ? <FileText className="size-4" /> : <img src={first} alt="receipt" className="size-full object-cover" />}
+					{extra > 0 && (
+						<span className="absolute -mt-5 -mr-5 ml-3 bg-foreground text-background text-[10px] rounded-full px-1 leading-tight pointer-events-none">
+							+{extra}
+						</span>
+					)}
+				</a>
+			</TooltipTrigger>
+			<TooltipContent>
+				<Paperclip className="size-3 inline-block mr-1" />
+				{urls.length} attachment{urls.length === 1 ? '' : 's'}
+			</TooltipContent>
+		</Tooltip>
 	)
 }
 

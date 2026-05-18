@@ -98,6 +98,63 @@ const unknownObject: StorageObjectRow = {
 	target: null,
 }
 
+const attachedPurchaseImage: StorageObjectRow = {
+	key: 'purchases/claim/12/abc123def456.webp',
+	url: placeholderImg,
+	size: 102_400,
+	lastModified: fixedDate,
+	kind: 'purchase',
+	status: 'attached',
+	owner: { id: 'user-xyz', name: 'Bea Carver', email: 'bea@example.com' },
+	target: {
+		kind: 'purchase',
+		purchaseKind: 'claim',
+		id: 12,
+		label: 'Espresso machine',
+		gifterId: 'user-xyz',
+		gifterName: 'Bea Carver',
+		deleted: false,
+	},
+}
+
+const attachedPurchasePdf: StorageObjectRow = {
+	key: 'purchases/addon/4/abcdef654321.pdf',
+	url: '#',
+	size: 64_512,
+	lastModified: fixedDate,
+	kind: 'purchase',
+	status: 'attached',
+	owner: { id: 'user-xyz', name: 'Bea Carver', email: 'bea@example.com' },
+	target: {
+		kind: 'purchase',
+		purchaseKind: 'addon',
+		id: 4,
+		label: 'Gift card',
+		gifterId: 'user-xyz',
+		gifterName: 'Bea Carver',
+		deleted: false,
+	},
+}
+
+const orphanPurchaseImage: StorageObjectRow = {
+	key: 'purchases/claim/99/orphan9876ab.webp',
+	url: placeholderImg,
+	size: 80_000,
+	lastModified: new Date(fixedDate.getTime() - 1000 * 60 * 60 * 24 * 7),
+	kind: 'purchase',
+	status: 'orphan',
+	owner: null,
+	target: {
+		kind: 'purchase',
+		purchaseKind: 'claim',
+		id: 99,
+		label: '(purchase #99)',
+		gifterId: '',
+		gifterName: null,
+		deleted: true,
+	},
+}
+
 export const Empty: Story = {
 	args: {
 		summary: { totalCount: 0, totalBytes: 0, orphanCount: 0, orphanBytes: 0, truncated: false },
@@ -118,6 +175,21 @@ export const MixedAttachedAndOrphan: Story = {
 			description: {
 				story:
 					'Typical state: a couple of healthy attached objects, an orphan avatar replaced by a newer upload, an item-image whose item row was deleted, plus a legacy unknown-prefix object.',
+			},
+		},
+	},
+}
+
+export const Purchases: Story = {
+	args: {
+		summary: { totalCount: 3, totalBytes: 246_912, orphanCount: 1, orphanBytes: 80_000, truncated: false },
+		rows: [attachedPurchaseImage, attachedPurchasePdf, orphanPurchaseImage],
+	},
+	parameters: {
+		docs: {
+			description: {
+				story:
+					'Purchase attachments: an image receipt attached to a claim, a PDF gift receipt on an addon, and an orphan whose underlying claim was deleted.',
 			},
 		},
 	},

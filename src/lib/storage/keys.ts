@@ -7,10 +7,21 @@ import { customAlphabet } from 'nanoid'
 const alphabet = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 const avatarNonce = customAlphabet(alphabet, 8)
 const itemNonce = customAlphabet(alphabet, 10)
+const purchaseNonce = customAlphabet(alphabet, 12)
 
 export const avatarKey = (userId: string): string => `avatars/${userId}-${avatarNonce()}.webp`
 
 export const itemImageKey = (itemId: number | string): string => `items/${itemId}/${itemNonce()}.webp`
+
+// Purchase attachments: one or more files (image OR PDF) per claim / addon.
+// `kind` discriminates claim-vs-addon so the same numeric id can't collide.
+// `ext` varies because PDFs are stored byte-for-byte (no transcode), while
+// images are normalized to webp by the upload pipeline.
+export type PurchaseAttachmentKind = 'claim' | 'addon'
+export type PurchaseAttachmentExt = 'webp' | 'pdf'
+
+export const purchaseAttachmentKey = (kind: PurchaseAttachmentKind, id: number | string, ext: PurchaseAttachmentExt): string =>
+	`purchases/${kind}/${id}/${purchaseNonce()}.${ext}`
 
 // Inverse of avatarKey: extract the userId from `avatars/<userId>-<nonce>.webp`.
 // Returns null for keys that don't match (other prefixes, malformed legacy keys).
@@ -28,6 +39,14 @@ export function parseItemImageKey(key: string): { itemId: string } | null {
 	const match = /^items\/([^/]+)\/[0-9A-Za-z]{1,}\.webp$/.exec(key)
 	if (!match?.[1]) return null
 	return { itemId: match[1] }
+}
+
+// Inverse of purchaseAttachmentKey. Returns the kind/id/ext discriminator,
+// or null when the key doesn't match (other prefix, malformed ext).
+export function parsePurchaseAttachmentKey(key: string): { kind: PurchaseAttachmentKind; id: string; ext: PurchaseAttachmentExt } | null {
+	const match = /^purchases\/(claim|addon)\/([^/]+)\/[0-9A-Za-z]+\.(webp|pdf)$/.exec(key)
+	if (!match) return null
+	return { kind: match[1] as PurchaseAttachmentKind, id: match[2], ext: match[3] as PurchaseAttachmentExt }
 }
 
 // Reverse mapping: given a URL the app previously handed out (either

@@ -30,6 +30,14 @@ export const giftedItems = pgTable(
 		quantity: smallint('quantity').default(1).notNull(),
 		totalCost: numeric('total_cost'),
 		notes: text('notes'),
+		// Gifter-private attachments (receipt images / PDF gift receipts).
+		// App caps the array length at LIMITS.PURCHASE_ATTACHMENTS_MAX; no DB
+		// CHECK so over-array errors stay in the upload server fn where the
+		// message is clearer.
+		attachmentUrls: text('attachment_urls').array(),
+		// Plain-text tracking number; the UI detects the carrier and renders
+		// a clickable link via `detectCarrier` in src/lib/tracking/carriers.ts.
+		trackingNumber: text('tracking_number'),
 		// Idempotency mark for the day-before reminder email fired when the
 		// parent item is in pending-deletion. Set when the reminder cron has
 		// emailed this claim's audience; null otherwise. Cleared on no

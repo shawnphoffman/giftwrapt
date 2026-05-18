@@ -17,6 +17,8 @@ function item(overrides: Partial<SummaryItem> = {}): SummaryItem {
 		cost: null,
 		totalCostRaw: null,
 		notes: null,
+		attachmentUrls: null,
+		trackingNumber: null,
 		quantity: 1,
 		listName: 'Wishlist',
 		createdAt: new Date('2026-01-01'),
