@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.35.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.34.0...v0.35.0) (2026-05-18)
+
+
+### Features
+
+* **admin:** gate barcode page on enableMobileApp setting ([bb2a607](https://github.com/shawnphoffman/giftwrapt/commit/bb2a607ed9c130a582f4b1981342d123c76ffc00))
+* **barcode:** add admin page and live probe ([32a2e97](https://github.com/shawnphoffman/giftwrapt/commit/32a2e97dbcd7431ce0d65b241d7ceb91c81320bb))
+* **barcode:** add product-lookup endpoint for mobile ([0b9a18d](https://github.com/shawnphoffman/giftwrapt/commit/0b9a18d8d7d035e90a44f5e1708c401ada6a9f0f))
+* **barcode:** add schema, settings, and provider layer ([1a2c834](https://github.com/shawnphoffman/giftwrapt/commit/1a2c834a1a2ce93ce0f60c5bc8462f786da61378))
+* **items:** add product photo upload with AI vision prefill ([aa13d16](https://github.com/shawnphoffman/giftwrapt/commit/aa13d169f9f5ad679f9f9c176048bba012d89d8e))
+* **migrate:** detect post-squash upgrade and link recovery docs ([a2f82f8](https://github.com/shawnphoffman/giftwrapt/commit/a2f82f83b1fc7729a597fd8cf9f941b8d6738e5f))
+
+
+### Bug Fixes
+
+* **admin:** toast and close edit-user dialog on save ([a74e825](https://github.com/shawnphoffman/giftwrapt/commit/a74e8251a760c156a3ded15a4ccc168cf67007f6))
+* **csp:** allow blob: in img-src for client-picked image previews ([54369c9](https://github.com/shawnphoffman/giftwrapt/commit/54369c99d0cd2cae7097e7ed2e940b32aabe916e))
+* **garage:** use loopback for in-container CLI rpc_public_addr ([21e6fa2](https://github.com/shawnphoffman/giftwrapt/commit/21e6fa21370dc69a82166e4c3d5fa046327031cb))
+* **scrapers:** make AI structured output schema Gemini-compatible ([c984b37](https://github.com/shawnphoffman/giftwrapt/commit/c984b373a432c1b85e3d29850815f3345bcecbaa))
+
 ## [0.34.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.33.0...v0.34.0) (2026-05-16)
 
 
