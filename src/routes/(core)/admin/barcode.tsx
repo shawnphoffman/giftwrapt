@@ -1,13 +1,24 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
+import { fetchAppSettings } from '@/api/settings'
 import { BarcodeSettingsEditor } from '@/components/admin/barcode-settings-editor'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ClientOnly } from '@/components/utilities/client-only'
 
-// Intentionally NOT linked from the admin sidebar (`src/components/admin/links.tsx`).
-// Reach via the direct URL `/admin/barcode` while the feature stabilizes;
-// same convention as the `/temp` pages.
+// Gated by `appSettings.enableMobileApp` — the iOS app is the only
+// consumer of the lookup endpoint (the mobile-API surface itself
+// returns 503 mobile-app-disabled when the flag is off; see
+// `src/server/mobile-api/app.ts`), so the admin page is hidden on
+// web-only deployments. The matching sidebar entry in
+// `src/components/admin/links.tsx` reads the same flag; this redirect
+// is the defense-in-depth backstop for direct-URL access.
 export const Route = createFileRoute('/(core)/admin/barcode')({
+	beforeLoad: async () => {
+		const settings = await fetchAppSettings()
+		if (!settings.enableMobileApp) {
+			throw redirect({ to: '/admin' })
+		}
+	},
 	component: AdminBarcodePage,
 })
 

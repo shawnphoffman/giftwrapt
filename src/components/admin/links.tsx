@@ -1,7 +1,8 @@
 import { Link, useLocation } from '@tanstack/react-router'
-import { Bug, CalendarClock, Database, Globe, HardDrive, Lock, Mail, ShieldCheck, Sparkles, Users } from 'lucide-react'
+import { Barcode, Bug, CalendarClock, Database, Globe, HardDrive, Lock, Mail, ShieldCheck, Sparkles, Users } from 'lucide-react'
 
 import { buttonVariants } from '@/components/ui/button'
+import { useAppSetting } from '@/hooks/use-app-settings'
 import { useStorageStatus } from '@/hooks/use-storage-status'
 import { cn } from '@/lib/utils'
 
@@ -12,6 +13,10 @@ function navLinkClass(active: boolean) {
 export default function AdminLinks() {
 	const { pathname } = useLocation()
 	const { configured: storageConfigured } = useStorageStatus()
+	// Barcode lookup is consumed exclusively by the mobile companion
+	// app. Hide the admin page when the deployment doesn't ship that
+	// feature; the page itself also redirects (see route file).
+	const mobileAppEnabled = useAppSetting('enableMobileApp')
 
 	return (
 		<>
@@ -53,6 +58,12 @@ export default function AdminLinks() {
 				<CalendarClock />
 				Scheduling
 			</Link>
+			{mobileAppEnabled && (
+				<Link to="/admin/barcode" className={navLinkClass(pathname === '/admin/barcode')}>
+					<Barcode />
+					Barcode
+				</Link>
+			)}
 			<Link to="/admin/debug" className={navLinkClass(pathname === '/admin/debug')}>
 				<Bug />
 				Debug
