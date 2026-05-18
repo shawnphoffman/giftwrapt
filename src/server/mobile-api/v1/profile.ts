@@ -3,7 +3,7 @@
 // pickers in the iOS UI.
 //
 // Password change stays web-only by product decision (see
-// `.notes/plans/2026-04-mobile-view-and-claim.md`).
+// `.notes/architecture/mobile-api.md`).
 
 import { and, asc, eq, ne, notInArray } from 'drizzle-orm'
 import type { Hono } from 'hono'

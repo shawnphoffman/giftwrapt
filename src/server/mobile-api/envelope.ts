@@ -1,5 +1,5 @@
 // Verbose mobile-API error envelope. See
-// `.notes/plans/2026-04-mobile-view-and-claim.md` (Conventions).
+// `.notes/architecture/mobile-api.md` (Wire contract).
 //
 // Wire shape (locked in):
 //   { error: { code: string, message: string, data?: object } }
