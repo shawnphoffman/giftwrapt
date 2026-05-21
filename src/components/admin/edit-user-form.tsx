@@ -10,6 +10,9 @@ import {
 	getGuardianshipsForChild,
 	getUserRelationshipsAsAdmin,
 	getUsersAsAdmin,
+	sendPasswordResetEmailAsAdmin,
+	setUserBannedAsAdmin,
+	setUserPasswordAsAdmin,
 	updateGuardianships,
 	updateUserAsAdmin,
 	upsertUserRelationshipsAsAdmin,
@@ -26,6 +29,7 @@ import { adminOpsFor, RelationLabelsSection } from '@/components/settings/relati
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DatePicker } from '@/components/ui/date-picker'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -173,6 +177,12 @@ function EditUserFormInner({
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+	const [resetEmailDialogOpen, setResetEmailDialogOpen] = useState(false)
+	const [setPasswordDialogOpen, setSetPasswordDialogOpen] = useState(false)
+	const [banDialogOpen, setBanDialogOpen] = useState(false)
+	const [newPassword, setNewPassword] = useState('')
+	const [setPasswordBusy, setSetPasswordBusy] = useState(false)
+	const [setPasswordError, setSetPasswordError] = useState<string | null>(null)
 	const { configured: storageConfigured } = useStorageStatus()
 	const navigate = useNavigate()
 	const { data: session } = useSession()
@@ -686,13 +696,22 @@ function EditUserFormInner({
 								<p className="text-xs text-muted-foreground mt-1">Account-level actions. These run independently of the form.</p>
 							</div>
 							<div className="grid gap-2">
-								<Button type="button" variant="outline" disabled>
+								<Button type="button" variant="outline" onClick={() => setResetEmailDialogOpen(true)} disabled={isLoading}>
 									Send Password Reset Email
 								</Button>
-								<Button type="button" variant="outline" disabled>
+								<Button
+									type="button"
+									variant="outline"
+									onClick={() => {
+										setNewPassword('')
+										setSetPasswordError(null)
+										setSetPasswordDialogOpen(true)
+									}}
+									disabled={isLoading}
+								>
 									Update Password
 								</Button>
-								<Button type="button" variant="outline" disabled>
+								<Button type="button" variant="outline" onClick={() => setBanDialogOpen(true)} disabled={isLoading}>
 									{user.banned ? 'Enable User Login' : 'Disable User Login'}
 								</Button>
 							</div>
@@ -790,6 +809,141 @@ function EditUserFormInner({
 						}}
 					/>
 				</div>
+			)}
+
+			{!isSelf && (
+				<>
+					<ConfirmDialog
+						open={resetEmailDialogOpen}
+						onOpenChange={setResetEmailDialogOpen}
+						title={`Send password reset email to ${user.name || user.email}?`}
+						description={
+							<>
+								We'll email <strong>{user.email}</strong> a link to reset their password. The link expires after a short window. Existing
+								sessions stay signed in until they complete the reset (better-auth then revokes them automatically).
+							</>
+						}
+						confirmLabel="Send email"
+						confirmBusyLabel="Sending..."
+						onConfirm={async () => {
+							const result = await sendPasswordResetEmailAsAdmin({ data: { userId } })
+							if (result.kind === 'error') {
+								const message = result.message ?? 'Failed to send reset email.'
+								toast.error(message)
+								throw new Error(message)
+							}
+							if (result.kind === 'skipped') {
+								toast.warning('Email is not configured on this deployment - no message was sent.')
+								return
+							}
+							toast.success(`Password reset email sent to ${user.email}`)
+						}}
+					/>
+
+					<ConfirmDialog
+						open={banDialogOpen}
+						onOpenChange={setBanDialogOpen}
+						destructive={!user.banned}
+						title={user.banned ? `Re-enable login for ${user.name || user.email}?` : `Disable login for ${user.name || user.email}?`}
+						description={
+							user.banned ? (
+								<>This user will be able to sign in again immediately.</>
+							) : (
+								<>
+									This blocks new sign-ins and revokes all active web and mobile sessions. The account itself stays intact and can be
+									re-enabled later.
+								</>
+							)
+						}
+						confirmLabel={user.banned ? 'Enable login' : 'Disable login'}
+						confirmBusyLabel={user.banned ? 'Enabling...' : 'Disabling...'}
+						onConfirm={async () => {
+							const result = await setUserBannedAsAdmin({ data: { userId, banned: !user.banned } })
+							if (result.kind === 'error') {
+								const message =
+									result.reason === 'self-target'
+										? "You can't change your own login state from here."
+										: (result.message ?? 'Failed to update login state.')
+								toast.error(message)
+								throw new Error(message)
+							}
+							toast.success(
+								user.banned ? `${user.name || user.email} can sign in again` : `${user.name || user.email} can no longer sign in`
+							)
+							await queryClient.invalidateQueries({ queryKey: ['admin', 'user', userId] })
+							await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+						}}
+					/>
+
+					<Dialog
+						open={setPasswordDialogOpen}
+						onOpenChange={open => {
+							if (!setPasswordBusy) setSetPasswordDialogOpen(open)
+						}}
+					>
+						<DialogContent className="max-w-md">
+							<DialogHeader>
+								<DialogTitle>Update password for {user.name || user.email}</DialogTitle>
+								<DialogDescription>
+									Sets a new password directly and revokes all active sessions. The user will need to sign in again with the new password.
+								</DialogDescription>
+							</DialogHeader>
+							<form
+								onSubmit={async e => {
+									e.preventDefault()
+									e.stopPropagation()
+									if (newPassword.length < 8) {
+										setSetPasswordError('Password must be at least 8 characters.')
+										return
+									}
+									setSetPasswordError(null)
+									setSetPasswordBusy(true)
+									try {
+										const result = await setUserPasswordAsAdmin({ data: { userId, newPassword } })
+										if (result.kind === 'error') {
+											const message =
+												result.reason === 'self-target'
+													? "You can't change your own password from here."
+													: (result.message ?? 'Failed to update password.')
+											setSetPasswordError(message)
+											return
+										}
+										toast.success(`Password updated for ${user.name || user.email}`)
+										setSetPasswordDialogOpen(false)
+										setNewPassword('')
+									} finally {
+										setSetPasswordBusy(false)
+									}
+								}}
+								className="grid gap-3"
+							>
+								<div className="grid gap-2">
+									<Label htmlFor="admin-set-password">New password</Label>
+									<Input
+										id="admin-set-password"
+										type="password"
+										autoComplete="new-password"
+										minLength={8}
+										value={newPassword}
+										onChange={e => setNewPassword(e.target.value)}
+										disabled={setPasswordBusy}
+										autoFocus
+									/>
+									<p className="text-xs text-muted-foreground">At least 8 characters.</p>
+									{setPasswordError && <p className="text-destructive text-sm">{setPasswordError}</p>}
+								</div>
+								<DialogFooter>
+									<Button type="button" variant="outline" onClick={() => setSetPasswordDialogOpen(false)} disabled={setPasswordBusy}>
+										Cancel
+									</Button>
+									<Button type="submit" disabled={setPasswordBusy || newPassword.length < 8}>
+										{setPasswordBusy ? 'Updating...' : 'Update password'}
+									</Button>
+								</DialogFooter>
+							</form>
+						</DialogContent>
+					</Dialog>
+				</>
 			)}
 		</form>
 	)

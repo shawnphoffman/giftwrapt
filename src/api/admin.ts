@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
+import { getRequest } from '@tanstack/react-start/server'
 import { and, asc, eq, inArray, isNotNull, isNull, ne } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
@@ -7,9 +8,10 @@ import { getPermissionsMatrixQuery } from '@/db/queries/permissions-matrix'
 import { getAllUsersQuery, getUserDetailsQuery } from '@/db/queries/users'
 import type { BirthMonth, Role } from '@/db/schema'
 import { giftedItems, guardianships, items, itemScrapes, lists, users } from '@/db/schema'
+import { auth } from '@/lib/auth'
 import { loggingMiddleware } from '@/lib/logger'
 import { applyPartnerAndAnniversary } from '@/lib/partner-update'
-import { sendTestEmail, type TestEmailKind } from '@/lib/resend'
+import { isEmailConfigured, sendTestEmail, type TestEmailKind } from '@/lib/resend'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { adminAuthMiddleware } from '@/middleware/auth'
 
@@ -276,6 +278,91 @@ export const deleteUserAsAdmin = createServerFn({ method: 'POST' })
 			input: data,
 		})
 	)
+
+// ===============================
+// Account-level admin actions: password reset email, set password, ban toggle
+// ===============================
+// These funnel into better-auth's admin plugin API via `auth.api.*`. The
+// middleware has already verified the actor is an admin; we forward the
+// inbound request headers so better-auth re-verifies the cookie when
+// gating its own admin endpoints.
+
+export type AccountActionResult =
+	| { kind: 'ok' }
+	| { kind: 'skipped'; reason: 'email-not-configured' }
+	| { kind: 'error'; reason: 'not-found' | 'self-target' | 'failed'; message?: string }
+
+export const sendPasswordResetEmailAsAdmin = createServerFn({ method: 'POST' })
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.inputValidator((data: { userId: string }) => data)
+	.handler(async ({ data: { userId } }): Promise<AccountActionResult> => {
+		const target = await db.query.users.findFirst({ where: eq(users.id, userId), columns: { email: true } })
+		if (!target?.email) return { kind: 'error', reason: 'not-found' }
+		// Bail before calling better-auth so we can surface a clear "no email
+		// configured" toast instead of pretending we sent something. The
+		// underlying `sendResetPassword` hook would otherwise log + return null.
+		if (!(await isEmailConfigured())) return { kind: 'skipped', reason: 'email-not-configured' }
+		try {
+			await auth.api.requestPasswordReset({
+				body: { email: target.email, redirectTo: '/reset-password' },
+				headers: getRequest().headers,
+			})
+			return { kind: 'ok' }
+		} catch (err) {
+			return { kind: 'error', reason: 'failed', message: err instanceof Error ? err.message : 'Failed to send' }
+		}
+	})
+
+export const setUserPasswordAsAdmin = createServerFn({ method: 'POST' })
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.inputValidator((data: { userId: string; newPassword: string }) => {
+		if (data.newPassword.length < 8) {
+			throw new Error('Password must be at least 8 characters.')
+		}
+		return data
+	})
+	.handler(async ({ context, data: { userId, newPassword } }): Promise<AccountActionResult> => {
+		if (userId === context.session.user.id) {
+			return { kind: 'error', reason: 'self-target' }
+		}
+		const target = await db.query.users.findFirst({ where: eq(users.id, userId), columns: { id: true } })
+		if (!target) return { kind: 'error', reason: 'not-found' }
+		try {
+			const headers = getRequest().headers
+			await auth.api.setUserPassword({ body: { userId, newPassword }, headers })
+			// Forcing a new password should kick existing sessions; the user
+			// signs back in with the new credential.
+			await auth.api.revokeUserSessions({ body: { userId }, headers })
+			return { kind: 'ok' }
+		} catch (err) {
+			return { kind: 'error', reason: 'failed', message: err instanceof Error ? err.message : 'Failed to update password' }
+		}
+	})
+
+export const setUserBannedAsAdmin = createServerFn({ method: 'POST' })
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.inputValidator((data: { userId: string; banned: boolean }) => data)
+	.handler(async ({ context, data: { userId, banned } }): Promise<AccountActionResult> => {
+		if (userId === context.session.user.id) {
+			return { kind: 'error', reason: 'self-target' }
+		}
+		const target = await db.query.users.findFirst({ where: eq(users.id, userId), columns: { id: true } })
+		if (!target) return { kind: 'error', reason: 'not-found' }
+		const headers = getRequest().headers
+		try {
+			if (banned) {
+				await auth.api.banUser({ body: { userId }, headers })
+				// banUser doesn't always revoke sessions; do it explicitly so a signed-in
+				// banned user can't keep operating on a live cookie.
+				await auth.api.revokeUserSessions({ body: { userId }, headers })
+			} else {
+				await auth.api.unbanUser({ body: { userId }, headers })
+			}
+			return { kind: 'ok' }
+		} catch (err) {
+			return { kind: 'error', reason: 'failed', message: err instanceof Error ? err.message : 'Failed to update ban state' }
+		}
+	})
 
 // ===============================
 // Relation labels (admin acting on behalf of a user)
