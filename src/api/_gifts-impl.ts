@@ -327,11 +327,11 @@ export async function updateItemGiftImpl(args: {
 		if (!gift) return { kind: 'error', reason: 'not-found' }
 		if (gift.gifterId !== gifterId) return { kind: 'error', reason: 'not-yours' }
 
-		const lockedRows = (await tx.execute(
-			sql`SELECT id, list_id, quantity, is_archived FROM items WHERE id = ${gift.itemId} FOR UPDATE`
-		)) as { rows: Array<unknown> }
-		const lockedItem = lockedRows.rows[0] as { id: number; list_id: number; quantity: number; is_archived: boolean } | undefined
-		if (!lockedItem || lockedItem.is_archived) return { kind: 'error', reason: 'not-found' }
+		const lockedRows = (await tx.execute(sql`SELECT id, list_id, quantity FROM items WHERE id = ${gift.itemId} FOR UPDATE`)) as {
+			rows: Array<unknown>
+		}
+		const lockedItem = lockedRows.rows[0] as { id: number; list_id: number; quantity: number } | undefined
+		if (!lockedItem) return { kind: 'error', reason: 'not-found' }
 
 		const otherClaims = await tx
 			.select({ quantity: giftedItems.quantity })
