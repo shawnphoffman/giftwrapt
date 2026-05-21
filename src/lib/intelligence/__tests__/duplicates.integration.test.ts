@@ -197,19 +197,121 @@ describe('duplicatesAnalyzer title-Jaccard pre-filter', () => {
 		})
 	})
 
-	it('heuristic-only fallback still emits for identical token sets (e.g. reordered words)', async () => {
+	it('still emits for identical token sets (e.g. reordered words) - auto-confirmed even with no model', async () => {
 		await withRollback(async tx => {
 			const user = await makeUser(tx)
 			const a = await makeList(tx, { ownerId: user.id, type: 'wishlist' })
 			const b = await makeList(tx, { ownerId: user.id, type: 'christmas' })
-			// Same token set (order differs). Token-set Jaccard = 1.0.
+			// Same token set (order differs). Jaccard = 1.0 → auto-
+			// confirms above any LLM path, model present or not.
 			await makeItem(tx, { listId: a.id, title: 'Apple AirPods Pro' })
 			await makeItem(tx, { listId: b.id, title: 'AirPods Pro Apple' })
 
 			const result = await duplicatesAnalyzer.run(buildCtx(tx, user.id))
 
 			expect(result.recs).toHaveLength(1)
-			expect(result.recs[0].body).toMatch(/very similar titles/i)
+			expect(result.recs[0].body).toMatch(/nearly identical/i)
+		})
+	})
+})
+
+describe('duplicatesAnalyzer auto-confirm', () => {
+	beforeEach(() => {
+		generateObjectMock.mockReset()
+	})
+	afterEach(() => {
+		generateObjectMock.mockReset()
+	})
+
+	it('emits a confident rec WITHOUT calling the model when titles share identical token sets', async () => {
+		await withRollback(async tx => {
+			const user = await makeUser(tx)
+			const a = await makeList(tx, { ownerId: user.id, type: 'wishlist' })
+			const b = await makeList(tx, { ownerId: user.id, type: 'christmas' })
+			// Token-set Jaccard = 1.0 (reordered words). Above the
+			// auto-confirm floor of 0.9 → no LLM call.
+			await makeItem(tx, { listId: a.id, title: 'Apple AirPods Pro' })
+			await makeItem(tx, { listId: b.id, title: 'AirPods Pro Apple' })
+
+			const result = await duplicatesAnalyzer.run(buildCtx(tx, user.id, { model: sentinelModel }))
+
+			expect(generateObjectMock).not.toHaveBeenCalled()
+			expect(result.recs).toHaveLength(1)
+			expect(result.recs[0].severity).toBe('suggest')
+			expect(result.recs[0].body).toMatch(/nearly identical/i)
+			expect(result.steps.some(s => s.name === 'duplicates:auto-confirm')).toBe(true)
+		})
+	})
+
+	it('does NOT auto-confirm borderline pairs - those still go to the LLM', async () => {
+		await withRollback(async tx => {
+			const user = await makeUser(tx)
+			const a = await makeList(tx, { ownerId: user.id, type: 'wishlist' })
+			const b = await makeList(tx, { ownerId: user.id, type: 'christmas' })
+			// {sony, xm4} vs {sony, xm4, black} → 2/3 ≈ 0.67. Above LLM
+			// floor (0.5) but below auto-confirm floor (0.9). The model
+			// is the right judge here ("black is a color spec, not a
+			// duplicate").
+			const left = await makeItem(tx, { listId: a.id, title: 'Sony XM4' })
+			const right = await makeItem(tx, { listId: b.id, title: 'Sony XM4 Black' })
+
+			generateObjectMock.mockResolvedValue({
+				object: {
+					pairs: [{ leftItemId: String(left.id), rightItemId: String(right.id), confident: false, rationale: 'color spec differs' }],
+				},
+				usage: { inputTokens: 50, outputTokens: 8, inputTokenDetails: {} },
+			})
+
+			const result = await duplicatesAnalyzer.run(buildCtx(tx, user.id, { model: sentinelModel }))
+
+			expect(generateObjectMock).toHaveBeenCalledTimes(1)
+			// LLM said not-confident → no rec emitted.
+			expect(result.recs).toHaveLength(0)
+			expect(result.steps.some(s => s.name === 'duplicates:auto-confirm')).toBe(false)
+		})
+	})
+
+	it('mixes auto-confirm and LLM passes in one run when there are pairs in both tiers', async () => {
+		await withRollback(async tx => {
+			const user = await makeUser(tx)
+			const a = await makeList(tx, { ownerId: user.id, type: 'wishlist' })
+			const b = await makeList(tx, { ownerId: user.id, type: 'christmas' })
+			// Auto-confirm pair (identical token set).
+			await makeItem(tx, { listId: a.id, title: 'PlayStation 5' })
+			await makeItem(tx, { listId: b.id, title: 'PlayStation 5' })
+			// LLM-tier pair (0.67 Jaccard).
+			const left = await makeItem(tx, { listId: a.id, title: 'Sony XM4' })
+			const right = await makeItem(tx, { listId: b.id, title: 'Sony XM4 Black' })
+
+			generateObjectMock.mockResolvedValue({
+				object: {
+					pairs: [
+						{
+							leftItemId: String(left.id),
+							rightItemId: String(right.id),
+							confident: true,
+							rationale: 'same model, color is just a variant',
+						},
+					],
+				},
+				usage: { inputTokens: 60, outputTokens: 12, inputTokenDetails: {} },
+			})
+
+			const result = await duplicatesAnalyzer.run(buildCtx(tx, user.id, { model: sentinelModel }))
+
+			// One model call, with ONLY the borderline pair (the auto-
+			// confirmed PS5 pair must not show up in the prompt).
+			expect(generateObjectMock).toHaveBeenCalledTimes(1)
+			const callArgs = generateObjectMock.mock.calls[0][0] as { messages: Array<{ role: string; content: string }> }
+			const userMsg = callArgs.messages.find(m => m.role === 'user')!
+			expect(userMsg.content).toContain('Sony XM4')
+			expect(userMsg.content).not.toContain('PlayStation 5')
+
+			// Two recs: one from auto-confirm, one from the LLM.
+			expect(result.recs).toHaveLength(2)
+			const bodies = result.recs.map(r => r.body)
+			expect(bodies.some(b => /nearly identical/i.test(b))).toBe(true)
+			expect(bodies.some(b => /same model/i.test(b))).toBe(true)
 		})
 	})
 })

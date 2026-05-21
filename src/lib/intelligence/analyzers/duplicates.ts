@@ -37,6 +37,14 @@ import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ItemRef, ListRef 
 // asking the model about. Below this threshold the two items are
 // essentially unrelated and the LLM round-trip would be wasted.
 const DUPLICATES_LLM_FLOOR = 0.5
+
+// Token-set Jaccard at or above this threshold is treated as a
+// confident duplicate without consulting the model. 0.9 means the two
+// titles share 90%+ of their tokens; pairs that score this high are
+// essentially the same product with at most one disambiguator-word
+// difference. Tighter than the LLM floor so we don't auto-confirm
+// borderline cases.
+const DUPLICATES_AUTO_CONFIRM_FLOOR = 0.9
 export const duplicatesAnalyzer: Analyzer = {
 	id: 'duplicates',
 	label: 'Duplicates',
@@ -126,27 +134,41 @@ export const duplicatesAnalyzer: Analyzer = {
 				scoredPairs.push({ pair: ordered, score })
 			}
 		}
-		// Descending similarity: the closest matches go to the model
-		// first so the candidateCap truncation drops the weakest pairs.
+		// Descending similarity: the closest matches go first.
 		scoredPairs.sort((x, y) => y.score - x.score)
-		const candidatePairs: Array<Pair> = scoredPairs.slice(0, ctx.candidateCap).map(s => s.pair)
+
+		// Auto-confirm tier: pairs at or above the high-confidence
+		// threshold bypass the model entirely. Same shape as the URL
+		// short-circuit but driven by title similarity instead of URL
+		// identity. Track keys so the LLM candidate set below doesn't
+		// re-include them.
+		const autoConfirmPairs: Array<Pair> = []
+		const autoConfirmKeys = new Set<string>()
+		for (const { pair, score } of scoredPairs) {
+			if (score < DUPLICATES_AUTO_CONFIRM_FLOOR) break
+			autoConfirmPairs.push(pair)
+			autoConfirmKeys.add(pairKey(pair[0].itemId, pair[1].itemId))
+		}
+
+		// LLM candidate set: everything else above the floor, minus
+		// auto-confirmed pairs. Truncated to candidateCap.
+		const candidatePairs: Array<Pair> = []
+		for (const { pair } of scoredPairs) {
+			if (autoConfirmKeys.has(pairKey(pair[0].itemId, pair[1].itemId))) continue
+			candidatePairs.push(pair)
+			if (candidatePairs.length >= ctx.candidateCap) break
+		}
+
 		// For the no-model fallback below, keep only the rock-solid
 		// matches (identical token sets). Widening the LLM candidate
 		// floor to 0.5 is fine because the LLM gates precision; without
 		// a model we have no such gate, so we stay strict.
 		const heuristicOnlyPairs: Array<Pair> = scoredPairs.filter(s => s.score === 1).map(s => s.pair)
 
-		// Input hash covers BOTH passes' pair sets so a change in
-		// URL-confirmed pairs invalidates the cached run just like a
-		// title-pair change does.
+		// Input hash covers every pair set so any change (URL match,
+		// auto-confirm, LLM candidate) invalidates the cached run.
 		const inputHash = sha256Hex(
-			`dupes|url:${urlConfirmedPairs
-				.map(p => `${p[0].itemId}-${p[1].itemId}`)
-				.sort()
-				.join(',')}|title:${candidatePairs
-				.map(p => `${p[0].itemId}-${p[1].itemId}`)
-				.sort()
-				.join(',')}`
+			`dupes|url:${pairSetKey(urlConfirmedPairs)}|auto:${pairSetKey(autoConfirmPairs)}|title:${pairSetKey(candidatePairs)}`
 		)
 
 		const steps: Array<AnalyzerStep> = [loadStep]
@@ -166,6 +188,23 @@ export const duplicatesAnalyzer: Analyzer = {
 		}
 		if (urlConfirmedPairs.length > 0) {
 			steps.push({ name: 'duplicates:url-short-circuit', latencyMs: 0 })
+		}
+
+		// Auto-confirmed recs (title Jaccard >= AUTO_CONFIRM_FLOOR).
+		// Title-based, not URL-based, so the rationale differs.
+		for (const pair of autoConfirmPairs) {
+			recs.push(
+				buildPairRec(
+					pair,
+					'suggest',
+					'Same item on two lists',
+					'These titles are nearly identical; this looks like the same product on two lists.',
+					ctx.subject
+				)
+			)
+		}
+		if (autoConfirmPairs.length > 0) {
+			steps.push({ name: 'duplicates:auto-confirm', latencyMs: 0 })
 		}
 
 		if (candidatePairs.length === 0) {
@@ -247,6 +286,15 @@ export const duplicatesAnalyzer: Analyzer = {
 
 		return { recs, steps, inputHash: combineHashes([inputHash]) }
 	},
+}
+
+// Stable hash-friendly serialization of a pair set. Sorts so order
+// doesn't perturb the inputHash across runs.
+function pairSetKey(pairs: ReadonlyArray<readonly [{ itemId: number }, { itemId: number }]>): string {
+	return pairs
+		.map(p => `${p[0].itemId}-${p[1].itemId}`)
+		.sort()
+		.join(',')
 }
 
 // Stable key for "have we already emitted a rec for this item pair?"
