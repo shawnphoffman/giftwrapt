@@ -1137,6 +1137,7 @@ export const adminData: AdminIntelligenceData = {
 		staleListInactiveMonths: 12,
 		dryRun: false,
 		modelOverride: null,
+		analyzerModels: {},
 		email: { enabled: false, weeklyDigestEnabled: false, testRecipient: null },
 		perAnalyzerEnabled: {
 			'primary-list': true,

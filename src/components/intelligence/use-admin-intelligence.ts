@@ -53,6 +53,7 @@ export function useAdminIntelligence() {
 			if (changes.staleListInactiveMonths !== undefined) payload.intelligenceStaleListInactiveMonths = changes.staleListInactiveMonths
 			if (changes.dryRun !== undefined) payload.intelligenceDryRun = changes.dryRun
 			if (changes.modelOverride !== undefined) payload.intelligenceModelOverride = changes.modelOverride
+			if (changes.analyzerModels !== undefined) payload.intelligenceAnalyzerModels = changes.analyzerModels
 			if (changes.perAnalyzerEnabled !== undefined) payload.intelligencePerAnalyzerEnabled = changes.perAnalyzerEnabled
 			if (changes.email) {
 				payload.intelligenceEmailEnabled = changes.email.enabled

@@ -304,6 +304,7 @@ export const getAdminIntelligenceData = createServerFn({ method: 'GET' })
 				staleListInactiveMonths: settings.intelligenceStaleListInactiveMonths,
 				dryRun: settings.intelligenceDryRun,
 				modelOverride: settings.intelligenceModelOverride,
+				analyzerModels: settings.intelligenceAnalyzerModels,
 				email: {
 					enabled: settings.intelligenceEmailEnabled,
 					weeklyDigestEnabled: settings.intelligenceEmailWeeklyDigestEnabled,

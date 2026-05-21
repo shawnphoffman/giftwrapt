@@ -78,7 +78,7 @@ export async function generateForUser(db: Database, userId: string, opts: Genera
 			}
 		}
 
-		const model = await resolveModel(db, settings)
+		const modelFactory = await resolveModelFactory(db, settings)
 		const now = new Date()
 
 		// Resolve the recipient subjects for this run: the user (always) +
@@ -112,20 +112,24 @@ export async function generateForUser(db: Database, userId: string, opts: Genera
 			let totalOut = 0
 
 			for (const pass of passes) {
-				const ctx: AnalyzerContext = {
-					db,
-					userId,
-					model,
-					settings,
-					logger: log,
-					now,
-					candidateCap: settings.intelligenceCandidateCap,
-					dryRun: settings.intelligenceDryRun,
-					dependentId: pass.dependentId,
-					subject: pass.subject,
-				}
 				for (const analyzer of ANALYZERS) {
 					if (!isAnalyzerEnabled(analyzer, settings.intelligencePerAnalyzerEnabled)) continue
+					// Per-analyzer model: each analyzer can be pinned to a
+					// cheaper model via `intelligenceAnalyzerModels`. The
+					// factory caches by model name so analyzers sharing an
+					// override don't pay multiple createAiModel calls.
+					const ctx: AnalyzerContext = {
+						db,
+						userId,
+						model: modelFactory(analyzer.id),
+						settings,
+						logger: log,
+						now,
+						candidateCap: settings.intelligenceCandidateCap,
+						dryRun: settings.intelligenceDryRun,
+						dependentId: pass.dependentId,
+						subject: pass.subject,
+					}
 					try {
 						const result = await analyzer.run(ctx)
 						// Tag the input-hash slice with the dependent scope so a
@@ -227,19 +231,40 @@ async function loadSettings(db: Database): Promise<AppSettings> {
 	}
 }
 
-async function resolveModel(db: Database, settings: AppSettings): Promise<LanguageModel | null> {
+// Returns a per-analyzer model picker. Resolves the default model name
+// from `intelligenceModelOverride ?? ai.model.value`, then layers
+// `intelligenceAnalyzerModels[analyzerId]` on top when present. Created
+// `LanguageModel` instances are cached by model name within a single
+// run so two analyzers pointing at the same override share one client.
+//
+// Returns `() => null` when no AI provider is configured, so analyzers
+// uniformly bail to their heuristic-only branches.
+export async function resolveModelFactory(db: Database, settings: AppSettings): Promise<(analyzerId: string) => LanguageModel | null> {
 	const ai = await resolveAiConfig(db)
-	if (!ai.isValid) return null
-	// `intelligenceModelOverride` swaps only the model id within the
-	// globally-configured provider. Provider/apiKey/baseUrl always come
-	// from the canonical AI config so secrets stay in one place.
-	const modelOverride = settings.intelligenceModelOverride
-	return createAiModel({
-		providerType: ai.providerType.value!,
-		apiKey: ai.apiKey.value!,
-		model: modelOverride ?? ai.model.value!,
-		baseUrl: ai.baseUrl.value,
-	})
+	if (!ai.isValid) return () => null
+
+	const defaultModelName = settings.intelligenceModelOverride ?? ai.model.value!
+	const cache = new Map<string, LanguageModel>()
+
+	function makeFor(name: string): LanguageModel {
+		const cached = cache.get(name)
+		if (cached) return cached
+		const built = createAiModel({
+			providerType: ai.providerType.value!,
+			apiKey: ai.apiKey.value!,
+			model: name,
+			baseUrl: ai.baseUrl.value,
+		})
+		cache.set(name, built)
+		return built
+	}
+
+	return analyzerId => {
+		// `Record<string, string>` lies at the type level: missing keys
+		// return undefined at runtime. Cast so we can branch correctly.
+		const perAnalyzer = (settings.intelligenceAnalyzerModels as Record<string, string | undefined>)[analyzerId]
+		return makeFor(perAnalyzer ?? defaultModelName)
+	}
 }
 
 function stepRow(runId: string, analyzerId: string, step: AnalyzerStep): NewRecommendationRunStep {

@@ -447,6 +447,14 @@ export const appSettingsSchema = z.object({
 	// only swaps the model id within that provider. Null = "use the global
 	// model name as-is."
 	intelligenceModelOverride: z.union([z.null(), z.string().min(1).max(120)]),
+	// Per-analyzer model override map: `{ "<analyzerId>": "<modelName>" }`.
+	// Takes precedence over `intelligenceModelOverride` and the global AI
+	// config's model name. Use this to point cheap analyzers (e.g.
+	// duplicates, stale-items) at a smaller model while leaving the
+	// grouping analyzer on the default. Empty map = no per-analyzer
+	// overrides. The provider/apiKey/baseUrl are still taken from the
+	// global AI config; only the model name changes.
+	intelligenceAnalyzerModels: z.record(z.string(), z.string().min(1).max(120)),
 	// Notification scaffold. Toggles wired in admin UI but no transport
 	// shipped in v1. `notifyForRun()` reads these and logs intent only.
 	intelligenceEmailEnabled: z.boolean(),
@@ -589,6 +597,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	intelligenceDryRun: false,
 	intelligencePerAnalyzerEnabled: {},
 	intelligenceModelOverride: null,
+	intelligenceAnalyzerModels: {},
 	intelligenceEmailEnabled: false,
 	intelligenceEmailWeeklyDigestEnabled: false,
 	intelligenceEmailTestRecipient: null,

@@ -253,6 +253,12 @@ export type AdminIntelligenceData = {
 		runStepsRetentionDays: number
 		dryRun: boolean
 		modelOverride?: string | null
+		// Per-analyzer model overrides. Empty by default. When an
+		// analyzer id maps to a model name here, that name wins over
+		// `modelOverride` and the global AI config's model name. Useful
+		// to keep cheap analyzers (duplicates, stale-items) on a smaller
+		// model while leaving grouping on the default.
+		analyzerModels: Record<string, string>
 		email: {
 			enabled: boolean
 			weeklyDigestEnabled: boolean
