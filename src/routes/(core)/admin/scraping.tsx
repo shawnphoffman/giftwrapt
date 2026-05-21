@@ -19,7 +19,7 @@ function AdminScrapingPage() {
 
 	return (
 		<>
-			<Card className="animate-page-in">
+			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
 					<CardTitle className="text-2xl">Scraper Settings</CardTitle>
 					<CardDescription>
@@ -32,7 +32,7 @@ function AdminScrapingPage() {
 					</ClientOnly>
 				</CardContent>
 			</Card>
-			<Card className="animate-page-in">
+			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
 					<CardTitle className="text-2xl">Bulk Import & Scrape Queue</CardTitle>
 					<CardDescription>
@@ -46,7 +46,7 @@ function AdminScrapingPage() {
 					</ClientOnly>
 				</CardContent>
 			</Card>
-			<Card className="animate-page-in">
+			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
 					<CardTitle className="text-2xl">Scrapers</CardTitle>
 					<CardDescription>
@@ -60,7 +60,7 @@ function AdminScrapingPage() {
 					</ClientOnly>
 				</CardContent>
 			</Card>
-			<Card className="animate-page-in">
+			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
 					<CardTitle className="text-2xl">Scrape History</CardTitle>
 					<CardDescription>
