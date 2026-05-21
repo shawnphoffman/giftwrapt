@@ -35,21 +35,32 @@ export type ClothingPrefsCandidate = {
 	listType: string
 }
 
-export function buildClothingPrefsPrompt(args: { candidates: ReadonlyArray<ClothingPrefsCandidate> }): string {
+// Stable instructions block. Identical across users and runs.
+export const CLOTHING_PREFS_SYSTEM = [
+	'You are a wishlist hygiene assistant. You receive items the user owns. Some are clothing/shoes/apparel/accessories; many are not.',
+	'',
+	'For each item:',
+	'- Decide if it is clothing/shoes/apparel/accessories where SIZE or COLOR matters to a gifter (e.g. shirts, pants, shoes, hats, jackets, dresses, gloves, socks; NOT books, electronics, kitchenware, candles, plants).',
+	'- If the title or notes already pins down BOTH a size AND a color the gifter would shop for, set include=false (the user already recorded the preference).',
+	'- For items you DO include, write a headline of the form `Add size and color to <title>` (or just size, or just color, depending on what is missing) and a one-sentence rationale.',
+	'- Also suggest a small slate of specific options the user might mean - common adult sizes for the garment type, popular colorways for that product. Do not invent SKU-specific options; keep them generic.',
+	'- Set hasSize=true when the title/notes already includes a size; hasColor=true when the title/notes already includes a color. If both are true, include=false.',
+	'',
+	'NEVER mention gift claims, gifters, recipients, or who has purchased anything. You do not have that information.',
+	'',
+	'Response shape: { items: [{ itemId, include, hasSize, hasColor, headline, rationale, suggestedSizes, suggestedColors }, ...] }.',
+].join('\n')
+
+// Variable suffix.
+export function buildClothingPrefsUserPrompt(args: { candidates: ReadonlyArray<ClothingPrefsCandidate> }): string {
 	const lines = args.candidates.map(c => {
 		const notes = c.notes ? c.notes.replace(/\s+/g, ' ').slice(0, 200) : ''
 		return `  itemId=${c.itemId} title="${c.title}" notes="${notes}" list="${c.listName}"`
 	})
-	return [
-		'You are a wishlist hygiene assistant. The user owns the items below. Some are clothing or shoes; many are not.',
-		'For each item: decide if it is clothing/shoes/apparel/accessories where SIZE or COLOR matters to a gifter (e.g. shirts, pants, shoes, hats, jackets, dresses, gloves, socks; NOT books, electronics, kitchenware, candles, plants).',
-		'If the title or notes already pins down BOTH the size AND a color the gifter would shop for, set include=false (the user already recorded the preference).',
-		'For items you DO include, write a headline of the form `Add size and color to <title>` (or just size, or just color, depending on what is missing) and a one-sentence rationale.',
-		'Also suggest a small slate of specific options the user might mean - common adult sizes for the garment type, popular colorways for that product. Do not invent SKU-specific options; keep them generic.',
-		'Set hasSize=true when the title/notes already includes a size; hasColor=true when the title/notes already includes a color. If both are true, include=false.',
-		'NEVER mention gift claims, gifters, recipients, or who has purchased anything. You do not have that information.',
-		'',
-		'Items:',
-		...lines,
-	].join('\n')
+	return ['Items:', ...lines].join('\n')
+}
+
+// Legacy single-string builder for backwards-compatible callers.
+export function buildClothingPrefsPrompt(args: { candidates: ReadonlyArray<ClothingPrefsCandidate> }): string {
+	return `${CLOTHING_PREFS_SYSTEM}\n\n${buildClothingPrefsUserPrompt(args)}`
 }

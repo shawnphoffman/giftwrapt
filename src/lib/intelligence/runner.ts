@@ -150,6 +150,7 @@ export async function generateForUser(db: Database, userId: string, opts: Genera
 							parsed: null,
 							tokensIn: 0,
 							tokensOut: 0,
+							cachedInputTokens: 0,
 							latencyMs: 0,
 							error: msg,
 						})
@@ -250,6 +251,7 @@ function stepRow(runId: string, analyzerId: string, step: AnalyzerStep): NewReco
 		parsed: (step.parsed as Record<string, unknown> | null) ?? null,
 		tokensIn: step.tokensIn ?? 0,
 		tokensOut: step.tokensOut ?? 0,
+		cachedInputTokens: step.cachedInputTokens ?? 0,
 		latencyMs: step.latencyMs,
 		error: step.error ?? null,
 	}

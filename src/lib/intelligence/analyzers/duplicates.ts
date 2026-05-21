@@ -1,12 +1,18 @@
-import { generateObject } from 'ai'
 import { and, eq, isNull, ne } from 'drizzle-orm'
 
 import { items, lists } from '@/db/schema'
 
+import { composeForLog, generateObjectCached } from '../ai-call'
 import type { Analyzer } from '../analyzer'
 import type { AnalyzerSubject } from '../context'
 import { combineHashes, sha256Hex } from '../hash'
-import { buildDuplicatesPrompt, type DuplicateCandidate, DUPLICATES_MAX_PAIRS, duplicatesResponseSchema } from '../prompts/duplicates'
+import {
+	buildDuplicatesUserPrompt,
+	type DuplicateCandidate,
+	DUPLICATES_MAX_PAIRS,
+	DUPLICATES_SYSTEM,
+	duplicatesResponseSchema,
+} from '../prompts/duplicates'
 import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ItemRef, ListRef } from '../types'
 
 // Heuristic pre-filter: normalize titles and surface pairs across the
@@ -110,27 +116,40 @@ export const duplicatesAnalyzer: Analyzer = {
 			return { recs, steps, inputHash: combineHashes([inputHash]) }
 		}
 
-		const prompt = buildDuplicatesPrompt({ candidatePairs: promptPairs })
+		const userPrompt = buildDuplicatesUserPrompt({ candidatePairs: promptPairs })
 		const stepStart = Date.now()
 		let parsed: unknown = null
 		let responseRaw: string | null = null
 		let error: string | null = null
 		let tokensIn = 0
 		let tokensOut = 0
+		let cachedInputTokens = 0
 		try {
-			const result = await generateObject({
+			const result = await generateObjectCached({
 				model: ctx.model,
 				schema: duplicatesResponseSchema,
-				prompt,
+				system: DUPLICATES_SYSTEM,
+				prompt: userPrompt,
 			})
 			parsed = result.object
 			responseRaw = JSON.stringify(result.object)
-			tokensIn = result.usage.inputTokens ?? 0
-			tokensOut = result.usage.outputTokens ?? 0
+			tokensIn = result.usage.inputTokens
+			tokensOut = result.usage.outputTokens
+			cachedInputTokens = result.usage.cachedInputTokens
 		} catch (err) {
 			error = err instanceof Error ? err.message : String(err)
 		}
-		steps.push({ name: 'duplicates', prompt, responseRaw, parsed, tokensIn, tokensOut, latencyMs: Date.now() - stepStart, error })
+		steps.push({
+			name: 'duplicates',
+			prompt: composeForLog(DUPLICATES_SYSTEM, userPrompt),
+			responseRaw,
+			parsed,
+			tokensIn,
+			tokensOut,
+			cachedInputTokens,
+			latencyMs: Date.now() - stepStart,
+			error,
+		})
 
 		if (error || !parsed) {
 			return { recs, steps, inputHash: combineHashes([inputHash]) }

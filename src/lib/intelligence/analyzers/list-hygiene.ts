@@ -24,7 +24,6 @@
 //      Dependent runs skip this branch — `lists.isPrimary` is per-owner,
 //      not per-(owner, dependent).
 
-import { generateObject } from 'ai'
 import { and, asc, count, desc, eq, inArray, isNull, max, ne } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
@@ -34,12 +33,14 @@ import { customHolidayLastOccurrence } from '@/lib/custom-holidays'
 import { SPOILER_PROTECTED_TYPES } from '@/lib/list-type-moves'
 import type { AppSettings } from '@/lib/settings'
 
+import { composeForLog, generateObjectCached } from '../ai-call'
 import type { Analyzer } from '../analyzer'
 import type { AnalyzerContext } from '../context'
 import { combineHashes, sha256Hex } from '../hash'
 import {
-	buildListHygieneRenamePrompt,
+	buildListHygieneRenameUserPrompt,
 	LIST_HYGIENE_RENAME_AI_CAP,
+	LIST_HYGIENE_RENAME_SYSTEM,
 	listHygieneRenameResponseSchema,
 	validateRenameResponse,
 } from '../prompts/list-hygiene-rename'
@@ -443,7 +444,7 @@ export async function chooseConvertName(args: ChooseConvertNameArgs): Promise<st
 	}
 
 	state.aiCallsUsed += 1
-	const prompt = buildListHygieneRenamePrompt({
+	const userPrompt = buildListHygieneRenameUserPrompt({
 		currentName,
 		newType: prettyListType(newType),
 		eventTitle,
@@ -455,26 +456,30 @@ export async function chooseConvertName(args: ChooseConvertNameArgs): Promise<st
 	let error: string | null = null
 	let tokensIn = 0
 	let tokensOut = 0
+	let cachedInputTokens = 0
 	try {
-		const result = await generateObject({
+		const result = await generateObjectCached({
 			model: ctx.model,
 			schema: listHygieneRenameResponseSchema,
-			prompt,
+			system: LIST_HYGIENE_RENAME_SYSTEM,
+			prompt: userPrompt,
 		})
 		parsed = result.object
 		responseRaw = JSON.stringify(result.object)
-		tokensIn = result.usage.inputTokens ?? 0
-		tokensOut = result.usage.outputTokens ?? 0
+		tokensIn = result.usage.inputTokens
+		tokensOut = result.usage.outputTokens
+		cachedInputTokens = result.usage.cachedInputTokens
 	} catch (err) {
 		error = err instanceof Error ? err.message : String(err)
 	}
 	steps.push({
 		name: 'list-hygiene-rename',
-		prompt,
+		prompt: composeForLog(LIST_HYGIENE_RENAME_SYSTEM, userPrompt),
 		responseRaw,
 		parsed,
 		tokensIn,
 		tokensOut,
+		cachedInputTokens,
 		latencyMs: Date.now() - stepStart,
 		error,
 	})

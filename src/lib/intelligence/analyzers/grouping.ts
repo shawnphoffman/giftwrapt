@@ -1,15 +1,16 @@
-import { generateObject } from 'ai'
 import { and, eq, isNull, ne } from 'drizzle-orm'
 
 import { items, lists } from '@/db/schema'
 
+import { composeForLog, generateObjectCached } from '../ai-call'
 import type { Analyzer } from '../analyzer'
 import type { AnalyzerSubject } from '../context'
 import { combineHashes, sha256Hex } from '../hash'
 import {
-	buildGroupingPrompt,
+	buildGroupingUserPrompt,
 	GROUPING_MAX_CLUSTER_SIZE,
 	GROUPING_MAX_SUGGESTIONS,
+	GROUPING_SYSTEM,
 	type GroupingClusterCandidate,
 	groupingResponseSchema,
 } from '../prompts/grouping'
@@ -108,7 +109,7 @@ export const groupingAnalyzer: Analyzer = {
 			listName: c.listName,
 			items: c.rows.map(r => ({ itemId: String(r.itemId), title: r.title })),
 		}))
-		const prompt = buildGroupingPrompt({ clusters: promptClusters })
+		const userPrompt = buildGroupingUserPrompt({ clusters: promptClusters })
 
 		const stepStart = Date.now()
 		let parsed: unknown = null
@@ -116,20 +117,33 @@ export const groupingAnalyzer: Analyzer = {
 		let error: string | null = null
 		let tokensIn = 0
 		let tokensOut = 0
+		let cachedInputTokens = 0
 		try {
-			const result = await generateObject({
+			const result = await generateObjectCached({
 				model: ctx.model,
 				schema: groupingResponseSchema,
-				prompt,
+				system: GROUPING_SYSTEM,
+				prompt: userPrompt,
 			})
 			parsed = result.object
 			responseRaw = JSON.stringify(result.object)
-			tokensIn = result.usage.inputTokens ?? 0
-			tokensOut = result.usage.outputTokens ?? 0
+			tokensIn = result.usage.inputTokens
+			tokensOut = result.usage.outputTokens
+			cachedInputTokens = result.usage.cachedInputTokens
 		} catch (err) {
 			error = err instanceof Error ? err.message : String(err)
 		}
-		steps.push({ name: 'grouping', prompt, responseRaw, parsed, tokensIn, tokensOut, latencyMs: Date.now() - stepStart, error })
+		steps.push({
+			name: 'grouping',
+			prompt: composeForLog(GROUPING_SYSTEM, userPrompt),
+			responseRaw,
+			parsed,
+			tokensIn,
+			tokensOut,
+			cachedInputTokens,
+			latencyMs: Date.now() - stepStart,
+			error,
+		})
 
 		if (error || !parsed) {
 			return { recs, steps, inputHash: combineHashes([inputHash]) }

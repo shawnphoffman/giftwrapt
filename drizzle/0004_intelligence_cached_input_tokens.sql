@@ -1,0 +1,1 @@
+ALTER TABLE "recommendation_run_steps" ADD COLUMN "cached_input_tokens" integer DEFAULT 0 NOT NULL;

@@ -1,12 +1,17 @@
-import { generateObject } from 'ai'
 import { and, eq, isNull, ne } from 'drizzle-orm'
 
 import { items, lists } from '@/db/schema'
 
+import { composeForLog, generateObjectCached } from '../ai-call'
 import type { Analyzer } from '../analyzer'
 import type { AnalyzerSubject } from '../context'
 import { combineHashes, sha256Hex } from '../hash'
-import { buildClothingPrefsPrompt, type ClothingPrefsCandidate, clothingPrefsResponseSchema } from '../prompts/clothing-prefs'
+import {
+	buildClothingPrefsUserPrompt,
+	CLOTHING_PREFS_SYSTEM,
+	type ClothingPrefsCandidate,
+	clothingPrefsResponseSchema,
+} from '../prompts/clothing-prefs'
 import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ListRef, RecSubItem } from '../types'
 
 // AI-driven: hands every active item title + notes to the model and lets
@@ -75,33 +80,37 @@ export const clothingPrefsAnalyzer: Analyzer = {
 			listType: c.listType,
 		}))
 
-		const prompt = buildClothingPrefsPrompt({ candidates: promptCandidates })
+		const userPrompt = buildClothingPrefsUserPrompt({ candidates: promptCandidates })
 		const stepStart = Date.now()
 		let parsed: unknown = null
 		let responseRaw: string | null = null
 		let error: string | null = null
 		let tokensIn = 0
 		let tokensOut = 0
+		let cachedInputTokens = 0
 		try {
-			const result = await generateObject({
+			const result = await generateObjectCached({
 				model: ctx.model,
 				schema: clothingPrefsResponseSchema,
-				prompt,
+				system: CLOTHING_PREFS_SYSTEM,
+				prompt: userPrompt,
 			})
 			parsed = result.object
 			responseRaw = JSON.stringify(result.object)
-			tokensIn = result.usage.inputTokens ?? 0
-			tokensOut = result.usage.outputTokens ?? 0
+			tokensIn = result.usage.inputTokens
+			tokensOut = result.usage.outputTokens
+			cachedInputTokens = result.usage.cachedInputTokens
 		} catch (err) {
 			error = err instanceof Error ? err.message : String(err)
 		}
 		const aiStep: AnalyzerStep = {
 			name: 'clothing-prefs',
-			prompt,
+			prompt: composeForLog(CLOTHING_PREFS_SYSTEM, userPrompt),
 			responseRaw,
 			parsed,
 			tokensIn,
 			tokensOut,
+			cachedInputTokens,
 			latencyMs: Date.now() - stepStart,
 			error,
 		}

@@ -170,6 +170,10 @@ export type AnalyzerStep = {
 	parsed?: unknown
 	tokensIn?: number
 	tokensOut?: number
+	// Of `tokensIn`, how many were billed at the cached-prefix rate.
+	// Provider-reported; 0 when the provider doesn't surface it or the
+	// prefix didn't cache (cold start, prefix changed, TTL expired).
+	cachedInputTokens?: number
 	latencyMs: number
 	error?: string | null
 }

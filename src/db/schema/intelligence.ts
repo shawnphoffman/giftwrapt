@@ -139,6 +139,11 @@ export const recommendationRunSteps = pgTable(
 		parsed: jsonb('parsed'),
 		tokensIn: integer('tokens_in').default(0).notNull(),
 		tokensOut: integer('tokens_out').default(0).notNull(),
+		// Of `tokensIn`, how many were billed at the cached-prefix rate.
+		// Provider-reported (Anthropic `cacheReadInputTokens` / OpenAI
+		// `cachedPromptTokens`); 0 on cache miss or providers that don't
+		// surface the count.
+		cachedInputTokens: integer('cached_input_tokens').default(0).notNull(),
 		latencyMs: integer('latency_ms').default(0).notNull(),
 		error: text('error'),
 		createdAt: timestamp('created_at').defaultNow().notNull(),

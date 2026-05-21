@@ -1,15 +1,16 @@
-import { generateObject } from 'ai'
 import { and, asc, desc, eq, isNull, ne, sql } from 'drizzle-orm'
 
 import { items, lists } from '@/db/schema'
 
+import { composeForLog, generateObjectCached } from '../ai-call'
 import type { Analyzer } from '../analyzer'
 import type { AnalyzerSubject } from '../context'
 import { combineHashes, sha256Hex } from '../hash'
 import {
-	buildStaleItemsPrompt,
+	buildStaleItemsUserPrompt,
 	STALE_ITEMS_MAX_LISTS,
 	STALE_ITEMS_MAX_RECS_PER_LIST,
+	STALE_ITEMS_SYSTEM,
 	type StaleItemsCandidate,
 	staleItemsResponseSchema,
 } from '../prompts/stale-items'
@@ -107,33 +108,37 @@ export const staleItemsAnalyzer: Analyzer = {
 			availability: c.availability,
 		}))
 
-		const prompt = buildStaleItemsPrompt({ candidates: promptCandidates, now: ctx.now })
+		const userPrompt = buildStaleItemsUserPrompt({ candidates: promptCandidates, now: ctx.now })
 		const stepStart = Date.now()
 		let parsed: unknown = null
 		let responseRaw: string | null = null
 		let error: string | null = null
 		let tokensIn = 0
 		let tokensOut = 0
+		let cachedInputTokens = 0
 		try {
-			const result = await generateObject({
+			const result = await generateObjectCached({
 				model: ctx.model,
 				schema: staleItemsResponseSchema,
-				prompt,
+				system: STALE_ITEMS_SYSTEM,
+				prompt: userPrompt,
 			})
 			parsed = result.object
 			responseRaw = JSON.stringify(result.object)
-			tokensIn = result.usage.inputTokens ?? 0
-			tokensOut = result.usage.outputTokens ?? 0
+			tokensIn = result.usage.inputTokens
+			tokensOut = result.usage.outputTokens
+			cachedInputTokens = result.usage.cachedInputTokens
 		} catch (err) {
 			error = err instanceof Error ? err.message : String(err)
 		}
 		steps.push({
 			name: 'stale:batched',
-			prompt,
+			prompt: composeForLog(STALE_ITEMS_SYSTEM, userPrompt),
 			responseRaw,
 			parsed,
 			tokensIn,
 			tokensOut,
+			cachedInputTokens,
 			latencyMs: Date.now() - stepStart,
 			error,
 		})

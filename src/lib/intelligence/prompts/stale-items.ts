@@ -53,7 +53,25 @@ export type StaleItemsCandidate = {
 	availability: 'available' | 'unavailable'
 }
 
-export function buildStaleItemsPrompt(args: { candidates: ReadonlyArray<StaleItemsCandidate>; now: Date }): string {
+// Stable instructions block. Identical across users and runs; pinned at
+// the top of the messages array so cache_control / automatic prefix
+// caching can amortize tokens.
+export const STALE_ITEMS_SYSTEM = [
+	"You are a wishlist hygiene assistant. You receive a user's items grouped by list. Each item has not been edited in a long time and may deserve cleanup.",
+	'',
+	'Rules:',
+	'- Be conservative. Items that are still relevant should NOT be flagged.',
+	'- Each rec must target specific items by id. Echo the item ids exactly from the input.',
+	'- Co-flag tightly related items (e.g. multiple seasonal variants of one product) as ONE rec with multiple itemIds. List unrelated stale items as SEPARATE recs.',
+	'- Respond grouped by list, echoing each listId exactly as given. Skip lists where nothing should be flagged.',
+	'- Each rec carries: include (bool), severity (info | suggest | important), a short headline, a one-sentence rationale, and the itemIds it targets.',
+	'- NEVER mention gift claims, gifters, recipients, or who has purchased anything. You do not have that information.',
+	'',
+	'Response shape: { lists: [{ listId, recs: [{ include, severity, headline, rationale, itemIds }, ...] }, ...] }.',
+].join('\n')
+
+// Variable suffix: per-list, per-item lines including age in days.
+export function buildStaleItemsUserPrompt(args: { candidates: ReadonlyArray<StaleItemsCandidate>; now: Date }): string {
 	const { candidates, now } = args
 
 	// Group by list so the prompt mirrors the response shape: easier for
@@ -74,16 +92,10 @@ export function buildStaleItemsPrompt(args: { candidates: ReadonlyArray<StaleIte
 		sections.push([`List id=${listId} name="${group.listName}" type=${group.listType}`, ...lines].join('\n'))
 	}
 
-	return [
-		'You are a wishlist hygiene assistant. The user owns the items below, grouped by list. Each item has not been edited in a long time.',
-		'Decide which (if any) deserve a "consider cleaning up" recommendation. Be conservative: items that are still relevant should NOT be flagged.',
-		'Each rec must target the specific items it describes. Echo their itemIds exactly from the input.',
-		'Co-flag tightly related items (e.g. multiple seasonal variants of the same product) as one rec with multiple itemIds. List unrelated stale items as separate recs.',
-		'Respond grouped by list, echoing each listId exactly as given. For each list, include 0+ recs (skip lists where nothing should be flagged).',
-		'For each rec respond whether to include it, the severity (info/suggest/important), a short headline, a one-sentence rationale, and the itemIds it targets.',
-		'NEVER mention gift claims, gifters, recipients, or who has purchased anything. You do not have that information.',
-		'',
-		'Lists:',
-		...sections,
-	].join('\n')
+	return ['Lists:', ...sections].join('\n')
+}
+
+// Legacy single-string builder for backwards-compatible callers.
+export function buildStaleItemsPrompt(args: { candidates: ReadonlyArray<StaleItemsCandidate>; now: Date }): string {
+	return `${STALE_ITEMS_SYSTEM}\n\n${buildStaleItemsUserPrompt(args)}`
 }

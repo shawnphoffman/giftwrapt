@@ -63,25 +63,39 @@ export type ListHygieneRenameInput = {
 	eventYear: number
 }
 
-export function buildListHygieneRenamePrompt(input: ListHygieneRenameInput): string {
+// Stable instructions. Worded so the per-call inputs (event title,
+// year, current name) live entirely in the user-prompt block, leaving
+// this block byte-identical across calls so prompt caching can hit on
+// every list-hygiene rename within the TTL.
+export const LIST_HYGIENE_RENAME_SYSTEM = [
+	"You rename gift lists. You see ONE list's current name, the type it is being converted to,",
+	'the event it is being shaped for, and the year. Return ONE concise replacement name (3-40 characters).',
+	'',
+	'Rules:',
+	'- The new name MUST mention the event title given below OR the year given below.',
+	'- If the current name carries a person\'s name (e.g. "Sam\'s Wishlist"), preserve the person\'s name and rebuild around the event (e.g. "Sam\'s Birthday 2026").',
+	'- If the current name is generic ("My List", "Wishlist", "Untitled"), produce "<EventTitle> <Year>" exactly.',
+	'- NEVER include item descriptions. You do not know what is on the list.',
+	'- NEVER include the words: gift, gifts, present, presents, claim, claimed, purchase, purchased, bought. You do not know anything about claims.',
+	'- One line only.',
+	'',
+	'Response shape: { name: string }.',
+].join('\n')
+
+// Variable suffix: the per-call inputs only.
+export function buildListHygieneRenameUserPrompt(input: ListHygieneRenameInput): string {
 	return [
-		"You rename gift lists. You see ONE list's current name, the type it is being converted to,",
-		'the event it is being shaped for, and the year. Return ONE concise replacement name (3-40 characters).',
-		'',
-		'Rules:',
-		`- The new name MUST mention the event ("${input.eventTitle}") or the year (${input.eventYear}).`,
-		'- If the current name carries a person\'s name (e.g. "Sam\'s Wishlist"), preserve the person\'s name and rebuild around the event (e.g. "Sam\'s Birthday 2026").',
-		'- If the current name is generic ("My List", "Wishlist", "Untitled"), produce "<EventTitle> <Year>" exactly.',
-		'- NEVER include item descriptions. You do not know what is on the list.',
-		'- NEVER include the words: gift, gifts, present, presents, claim, claimed, purchase, purchased, bought. You do not know anything about claims.',
-		'- One line only.',
-		'',
 		'Inputs:',
 		`Current name: ${input.currentName}`,
 		`New type: ${input.newType}`,
 		`Event: ${input.eventTitle}`,
 		`Year: ${input.eventYear}`,
 	].join('\n')
+}
+
+// Legacy single-string builder for backwards-compatible callers.
+export function buildListHygieneRenamePrompt(input: ListHygieneRenameInput): string {
+	return `${LIST_HYGIENE_RENAME_SYSTEM}\n\n${buildListHygieneRenameUserPrompt(input)}`
 }
 
 export type ValidateRenameArgs = {

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildDuplicatesPrompt, duplicatesResponseSchema } from '../prompts/duplicates'
-import { buildGroupingPrompt, groupingResponseSchema } from '../prompts/grouping'
-import { buildStaleItemsPrompt, staleItemsResponseSchema } from '../prompts/stale-items'
+import { buildDuplicatesPrompt, buildDuplicatesUserPrompt, DUPLICATES_SYSTEM, duplicatesResponseSchema } from '../prompts/duplicates'
+import { buildGroupingPrompt, buildGroupingUserPrompt, GROUPING_SYSTEM, groupingResponseSchema } from '../prompts/grouping'
+import { buildStaleItemsPrompt, buildStaleItemsUserPrompt, STALE_ITEMS_SYSTEM, staleItemsResponseSchema } from '../prompts/stale-items'
 
 describe('stale-items prompt', () => {
 	it('renders candidate ages grouped by list and never mentions claims/gifters', () => {
@@ -42,6 +42,45 @@ describe('stale-items prompt', () => {
 		expect(out).toMatch(/never mention.*claim/i)
 	})
 
+	it('separates the stable system block from the per-call user prompt', () => {
+		const now = new Date('2026-05-01T00:00:00Z')
+		const candidatesA = [
+			{
+				itemId: '1',
+				title: 'Old kettle',
+				listId: '10',
+				listName: 'My Wishlist',
+				listType: 'wishlist',
+				updatedAt: new Date('2025-01-01T00:00:00Z'),
+				availability: 'available' as const,
+			},
+		]
+		const candidatesB = [
+			{
+				itemId: '2',
+				title: 'Old mug',
+				listId: '11',
+				listName: 'Birthday',
+				listType: 'birthday',
+				updatedAt: new Date('2024-06-01T00:00:00Z'),
+				availability: 'available' as const,
+			},
+		]
+		// SYSTEM is stable: same bytes across users / runs / candidate sets.
+		// That's the property prompt caching relies on.
+		expect(STALE_ITEMS_SYSTEM).toMatch(/never mention.*claim/i)
+		expect(STALE_ITEMS_SYSTEM).toMatch(/wishlist hygiene assistant/i)
+		const userA = buildStaleItemsUserPrompt({ candidates: candidatesA, now })
+		const userB = buildStaleItemsUserPrompt({ candidates: candidatesB, now })
+		// User prompt holds only the variable content.
+		expect(userA).toContain('Old kettle')
+		expect(userA).not.toContain('Old mug')
+		expect(userB).toContain('Old mug')
+		expect(userB).not.toContain('Old kettle')
+		// Legacy concatenation still works.
+		expect(buildStaleItemsPrompt({ candidates: candidatesA, now })).toBe(`${STALE_ITEMS_SYSTEM}\n\n${userA}`)
+	})
+
 	it('parses a well-formed grouped model response', () => {
 		const result = staleItemsResponseSchema.parse({
 			lists: [
@@ -70,6 +109,24 @@ describe('duplicates prompt', () => {
 		expect(out).toContain('Sony XM4')
 		expect(out).toContain('Sony WH-1000XM4')
 		expect(out).toMatch(/never mention.*claim/i)
+	})
+
+	it('separates the stable system block from the per-call user prompt', () => {
+		expect(DUPLICATES_SYSTEM).toMatch(/never mention.*claim/i)
+		expect(DUPLICATES_SYSTEM).toMatch(/list hygiene assistant/i)
+		const user = buildDuplicatesUserPrompt({
+			candidatePairs: [
+				[
+					{ itemId: '1', title: 'Sony XM4', listId: '10', listName: 'Christmas', listType: 'christmas' },
+					{ itemId: '2', title: 'Sony WH-1000XM4', listId: '11', listName: 'Birthday', listType: 'birthday' },
+				],
+			],
+		})
+		expect(user).toContain('Sony XM4')
+		expect(user).not.toMatch(/list hygiene assistant/i)
+		expect(buildDuplicatesPrompt({ candidatePairs: [] })).toBe(
+			`${DUPLICATES_SYSTEM}\n\n${buildDuplicatesUserPrompt({ candidatePairs: [] })}`
+		)
 	})
 
 	it('parses a well-formed model response', () => {
@@ -117,6 +174,24 @@ describe('grouping prompt', () => {
 		// Decision vocabulary present.
 		expect(out).toContain('"or"')
 		expect(out).toContain('"order"')
+	})
+
+	it('separates the stable system block from the per-call user prompt', () => {
+		expect(GROUPING_SYSTEM).toMatch(/bias toward "skip"/i)
+		expect(GROUPING_SYSTEM).toMatch(/never mention.*claim/i)
+		const user = buildGroupingUserPrompt({
+			clusters: [
+				{
+					listId: '10',
+					listName: 'Birthday 2026',
+					items: [{ itemId: '1', title: 'Weber Spirit grill' }],
+				},
+			],
+		})
+		expect(user).toContain('Weber Spirit grill')
+		// The user-prompt block must NOT carry the instruction text; that's
+		// the cacheable system block's job.
+		expect(user).not.toMatch(/bias toward "skip"/i)
 	})
 
 	it('parses a well-formed grouping response', () => {
