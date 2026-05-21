@@ -16,7 +16,7 @@ function SettingsRoute() {
 				<PageHeading title="Settings" icon={Settings} color="lime" />
 				{/* CONTENT */}
 				<div className="mx-auto grid w-full max-w-6xl items-start gap-6 md:grid-cols-[180px_1fr] lg:grid-cols-[165px_1fr]">
-					<nav className="grid gap-1">
+					<nav className="grid gap-1 md:sticky md:top-2">
 						<SettingsLinks />
 					</nav>
 					{/* @container/subpage: child pages run container queries against
