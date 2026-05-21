@@ -320,17 +320,18 @@ function EditUserFormInner({
 				e.stopPropagation()
 				form.handleSubmit()
 			}}
-			className="space-y-4"
+			className="space-y-6 min-w-0"
 		>
-			{/* Avatar */}
-			<form.Subscribe selector={state => ({ name: state.values.name, image: state.values.image })}>
-				{({ name, image }) => {
+			{/* Header strip */}
+			<form.Subscribe selector={state => ({ name: state.values.name, image: state.values.image, role: state.values.role })}>
+				{({ name, image, role }) => {
 					const previewImage = image?.trim() ? image : null
+					const displayName = name || user.name || user.email || ''
 					return (
 						<div className="flex items-center gap-4 pb-4 border-b">
 							<AvatarUpload
 								image={previewImage}
-								displayName={name || user.name || user.email || ''}
+								displayName={displayName}
 								onUpload={async file => {
 									const formData = new FormData()
 									formData.append('file', file)
@@ -344,283 +345,114 @@ function EditUserFormInner({
 									await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
 								}}
 							/>
-							<div className="flex-1">
-								<p className="text-sm font-medium">Avatar</p>
-								<p className="text-xs text-muted-foreground">
-									{storageConfigured ? 'Click to upload, or paste a URL below' : 'Paste a URL below'}
-								</p>
+							<div className="flex-1 min-w-0">
+								<p className="text-lg font-medium truncate">{displayName}</p>
+								<p className="text-sm text-muted-foreground truncate">{user.email}</p>
+								<div className="mt-1.5 flex items-center gap-2 flex-wrap">
+									<span className="inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium capitalize">{role}</span>
+									{user.banned && (
+										<span className="inline-flex items-center rounded-md border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
+											Banned
+										</span>
+									)}
+								</div>
 							</div>
+							{!storageConfigured && <span className="hidden sm:inline text-xs text-muted-foreground shrink-0">Paste image URL below</span>}
 						</div>
 					)
 				}}
 			</form.Subscribe>
+			<div className="grid md:grid-cols-2 gap-6">
+				<div className="space-y-6 min-w-0">
+					<section className="rounded-lg border bg-card p-5 space-y-4">
+						<h3 className="font-medium text-lg">Profile</h3>
 
-			<form.Field name="email">
-				{field => (
-					<div className="grid gap-2">
-						<Label htmlFor={field.name}>Email</Label>
-						<Input
-							id={field.name}
-							type="email"
-							placeholder="user@example.com"
-							value={field.state.value}
-							onChange={e => field.handleChange(e.target.value)}
-							onBlur={field.handleBlur}
-							disabled={isLoading}
-							maxLength={LIMITS.EMAIL}
-						/>
-						{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
-							<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
-						)}
-					</div>
-				)}
-			</form.Field>
-
-			<form.Field name="name">
-				{field => (
-					<div className="grid gap-2">
-						<Label htmlFor={field.name}>Name</Label>
-						<Input
-							id={field.name}
-							type="text"
-							placeholder="John Doe"
-							value={field.state.value}
-							onChange={e => field.handleChange(e.target.value)}
-							onBlur={field.handleBlur}
-							disabled={isLoading}
-							maxLength={LIMITS.SHORT_NAME}
-						/>
-						{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
-							<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
-						)}
-					</div>
-				)}
-			</form.Field>
-
-			<form.Field name="image">
-				{field => (
-					<div className="grid gap-2">
-						<Label htmlFor={field.name}>Image URL</Label>
-						<Input
-							id={field.name}
-							type="text"
-							placeholder="https://example.com/avatar.jpg"
-							value={field.state.value ?? ''}
-							onChange={e => {
-								const value = e.target.value
-								// Convert empty string to null immediately
-								field.handleChange(value.trim() === '' ? undefined : value.trim())
-							}}
-							onBlur={field.handleBlur}
-							disabled={isLoading}
-							maxLength={LIMITS.URL}
-						/>
-						{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
-							<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
-						)}
-					</div>
-				)}
-			</form.Field>
-
-			<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-				<form.Field name="birthMonth">
-					{field => (
-						<div className="grid gap-2 w-full">
-							<Label htmlFor={field.name}>Birth Month</Label>
-							<Select
-								onValueChange={value => {
-									field.handleChange(value === '' ? undefined : (value as (typeof birthMonthEnumValues)[number]))
-								}}
-								value={field.state.value ?? ''}
-								disabled={isLoading}
-							>
-								<SelectTrigger id={field.name} className="w-full">
-									<SelectValue placeholder="Select month" />
-								</SelectTrigger>
-								<SelectContent>
-									{birthMonthEnumValues.map(month => (
-										<SelectItem key={month} value={month}>
-											{month.charAt(0).toUpperCase() + month.slice(1)}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-							{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
-								<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
-							)}
-						</div>
-					)}
-				</form.Field>
-
-				<form.Field name="birthDay">
-					{field => (
-						<div className="grid gap-2 w-full">
-							<Label htmlFor={field.name}>Birth Day</Label>
-							<form.Subscribe selector={state => state.values.birthMonth}>
-								{month => (
-									<BirthDaySelect
-										id={field.name}
-										month={month}
-										value={field.state.value}
-										onValueChange={day => field.handleChange(day)}
-										disabled={isLoading}
-									/>
-								)}
-							</form.Subscribe>
-							{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
-								<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
-							)}
-						</div>
-					)}
-				</form.Field>
-
-				<form.Field name="birthYear">
-					{field => (
-						<div className="grid gap-2 w-full">
-							<Label htmlFor={field.name} className="flex items-center gap-1.5">
-								Birth Year
-								<InputTooltip>
-									Optional. Used only to tailor recommendations and the user's experience. Never displayed publicly.
-								</InputTooltip>
-							</Label>
-							<Input
-								id={field.name}
-								type="number"
-								inputMode="numeric"
-								min={1900}
-								max={new Date().getFullYear()}
-								placeholder="YYYY"
-								value={field.state.value ?? ''}
-								onChange={e => {
-									const raw = e.target.value
-									if (raw === '') {
-										field.handleChange(undefined)
-										return
-									}
-									const parsed = Number.parseInt(raw, 10)
-									field.handleChange(Number.isNaN(parsed) ? undefined : parsed)
-								}}
-								onBlur={field.handleBlur}
-								disabled={isLoading}
-							/>
-							{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
-								<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
-							)}
-						</div>
-					)}
-				</form.Field>
-			</div>
-
-			<form.Field name="role">
-				{field => (
-					<div className="grid gap-2 w-full">
-						<Label htmlFor={field.name}>Role</Label>
-						<Select
-							onValueChange={value => field.handleChange(value as (typeof roleEnumValues)[number])}
-							value={field.state.value}
-							disabled={isLoading}
-						>
-							<SelectTrigger id={field.name} className="w-full">
-								<SelectValue placeholder="Select role" />
-							</SelectTrigger>
-							<SelectContent>
-								{roleEnumValues.map(role => (
-									<SelectItem key={role} value={role}>
-										{role.charAt(0).toUpperCase() + role.slice(1)}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-						<RoleLegend />
-						{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
-							<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
-						)}
-					</div>
-				)}
-			</form.Field>
-
-			<form.Subscribe selector={state => state.values.role}>
-				{role =>
-					role === 'child' && (
-						<form.Field name="guardianIds">
+						<form.Field name="email">
 							{field => (
 								<div className="grid gap-2">
-									<Label>
-										Guardians
-										<InputTooltip>
-											Guardians are responsible for a child user. They can edit the child user's lists as well as impersonate them.
-										</InputTooltip>
-									</Label>
-									<div className="border rounded-md p-4 max-h-60 overflow-y-auto space-y-2">
-										{isLoadingUsers || isLoadingGuardianships ? (
-											<div className="text-sm text-muted-foreground">Loading users...</div>
-										) : guardianOptions.length === 0 ? (
-											<div className="text-sm text-muted-foreground">No users available</div>
-										) : (
-											guardianOptions.map(guardianUser => {
-												const currentValue = field.state.value
-												const isChecked = currentValue.includes(guardianUser.id)
-												return (
-													<div key={guardianUser.id} className="flex flex-row items-center space-y-0 gap-2">
-														<Checkbox
-															id={`guardian-${guardianUser.id}`}
-															checked={isChecked}
-															onCheckedChange={checked => {
-																if (checked) {
-																	field.handleChange([...currentValue, guardianUser.id])
-																} else {
-																	field.handleChange(currentValue.filter(id => id !== guardianUser.id))
-																}
-															}}
-															disabled={isLoading}
-														/>
-														<Label htmlFor={`guardian-${guardianUser.id}`} className="font-normal cursor-pointer">
-															<UserAvatar name={guardianUser.name || guardianUser.email} image={guardianUser.image} size="small" />
-															{guardianUser.name || guardianUser.email}
-															{guardianUser.role === 'admin' && <span className="text-xs text-muted-foreground"> (Admin)</span>}
-														</Label>
-													</div>
-												)
-											})
-										)}
-									</div>
+									<Label htmlFor={field.name}>Email</Label>
+									<Input
+										id={field.name}
+										type="email"
+										placeholder="user@example.com"
+										value={field.state.value}
+										onChange={e => field.handleChange(e.target.value)}
+										onBlur={field.handleBlur}
+										disabled={isLoading}
+										maxLength={LIMITS.EMAIL}
+									/>
 									{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 										<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
 									)}
 								</div>
 							)}
 						</form.Field>
-					)
-				}
-			</form.Subscribe>
 
-			<form.Subscribe selector={state => state.values.role}>
-				{role =>
-					(role === 'user' || role === 'admin') && (
-						<>
-							<form.Field name="partnerId">
+						<form.Field name="name">
+							{field => (
+								<div className="grid gap-2">
+									<Label htmlFor={field.name}>Name</Label>
+									<Input
+										id={field.name}
+										type="text"
+										placeholder="John Doe"
+										value={field.state.value}
+										onChange={e => field.handleChange(e.target.value)}
+										onBlur={field.handleBlur}
+										disabled={isLoading}
+										maxLength={LIMITS.SHORT_NAME}
+									/>
+									{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+										<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
+									)}
+								</div>
+							)}
+						</form.Field>
+
+						<form.Field name="image">
+							{field => (
+								<div className="grid gap-2">
+									<Label htmlFor={field.name}>Image URL</Label>
+									<Input
+										id={field.name}
+										type="text"
+										placeholder="https://example.com/avatar.jpg"
+										value={field.state.value ?? ''}
+										onChange={e => {
+											const value = e.target.value
+											// Convert empty string to null immediately
+											field.handleChange(value.trim() === '' ? undefined : value.trim())
+										}}
+										onBlur={field.handleBlur}
+										disabled={isLoading}
+										maxLength={LIMITS.URL}
+									/>
+									{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+										<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
+									)}
+								</div>
+							)}
+						</form.Field>
+
+						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+							<form.Field name="birthMonth">
 								{field => (
-									<div className="grid gap-2">
-										<Label htmlFor={field.name}>Partner</Label>
+									<div className="grid gap-2 w-full">
+										<Label htmlFor={field.name}>Birth Month</Label>
 										<Select
 											onValueChange={value => {
-												field.handleChange(value === '__none__' ? undefined : value)
+												field.handleChange(value === '' ? undefined : (value as (typeof birthMonthEnumValues)[number]))
 											}}
-											value={field.state.value || '__none__'}
+											value={field.state.value ?? ''}
 											disabled={isLoading}
 										>
 											<SelectTrigger id={field.name} className="w-full">
-												<SelectValue placeholder="Select partner (optional)" />
+												<SelectValue placeholder="Select month" />
 											</SelectTrigger>
 											<SelectContent>
-												<SelectItem value="__none__">None</SelectItem>
-												{partnerOptions.map(partnerUser => (
-													<SelectItem key={partnerUser.id} value={partnerUser.id}>
-														<UserAvatar name={partnerUser.name || partnerUser.email} image={partnerUser.image} size="small" />
-														<span className="truncate">
-															{partnerUser.name || partnerUser.email}
-															{partnerUser.role === 'admin' && ' (Admin)'}
-														</span>
+												{birthMonthEnumValues.map(month => (
+													<SelectItem key={month} value={month}>
+														{month.charAt(0).toUpperCase() + month.slice(1)}
 													</SelectItem>
 												))}
 											</SelectContent>
@@ -632,37 +464,270 @@ function EditUserFormInner({
 								)}
 							</form.Field>
 
-							<form.Subscribe selector={state => state.values.partnerId}>
-								{selectedPartnerId =>
-									selectedPartnerId && selectedPartnerId !== '__none__' ? (
-										<form.Field name="partnerAnniversary">
+							<form.Field name="birthDay">
+								{field => (
+									<div className="grid gap-2 w-full">
+										<Label htmlFor={field.name}>Birth Day</Label>
+										<form.Subscribe selector={state => state.values.birthMonth}>
+											{month => (
+												<BirthDaySelect
+													id={field.name}
+													month={month}
+													value={field.state.value}
+													onValueChange={day => field.handleChange(day)}
+													disabled={isLoading}
+												/>
+											)}
+										</form.Subscribe>
+										{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+											<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
+										)}
+									</div>
+								)}
+							</form.Field>
+						</div>
+
+						<form.Field name="birthYear">
+							{field => (
+								<div className="grid gap-2 max-w-[12rem]">
+									<Label htmlFor={field.name} className="flex items-center gap-1.5">
+										Birth Year
+										<InputTooltip>
+											Optional. Used only to tailor recommendations and the user's experience. Never displayed publicly.
+										</InputTooltip>
+									</Label>
+									<Input
+										id={field.name}
+										type="number"
+										inputMode="numeric"
+										min={1900}
+										max={new Date().getFullYear()}
+										placeholder="YYYY"
+										value={field.state.value ?? ''}
+										onChange={e => {
+											const raw = e.target.value
+											if (raw === '') {
+												field.handleChange(undefined)
+												return
+											}
+											const parsed = Number.parseInt(raw, 10)
+											field.handleChange(Number.isNaN(parsed) ? undefined : parsed)
+										}}
+										onBlur={field.handleBlur}
+										disabled={isLoading}
+									/>
+									{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+										<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
+									)}
+								</div>
+							)}
+						</form.Field>
+					</section>
+
+					<section className="rounded-lg border bg-card p-5 space-y-4">
+						<form.Field name="role">
+							{field => (
+								<div className="grid gap-2 w-full">
+									<Label htmlFor={field.name}>Role</Label>
+									<Select
+										onValueChange={value => field.handleChange(value as (typeof roleEnumValues)[number])}
+										value={field.state.value}
+										disabled={isLoading}
+									>
+										<SelectTrigger id={field.name} className="w-full">
+											<SelectValue placeholder="Select role" />
+										</SelectTrigger>
+										<SelectContent>
+											{roleEnumValues.map(role => (
+												<SelectItem key={role} value={role}>
+													{role.charAt(0).toUpperCase() + role.slice(1)}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+									<RoleLegend />
+									{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+										<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
+									)}
+								</div>
+							)}
+						</form.Field>
+
+						<form.Subscribe selector={state => state.values.role}>
+							{role =>
+								role === 'child' && (
+									<form.Field name="guardianIds">
+										{field => (
+											<div className="grid gap-2">
+												<Label>
+													Guardians
+													<InputTooltip>
+														Guardians are responsible for a child user. They can edit the child user's lists as well as impersonate them.
+													</InputTooltip>
+												</Label>
+												<div className="border rounded-md p-4 max-h-60 overflow-y-auto space-y-2">
+													{isLoadingUsers || isLoadingGuardianships ? (
+														<div className="text-sm text-muted-foreground">Loading users...</div>
+													) : guardianOptions.length === 0 ? (
+														<div className="text-sm text-muted-foreground">No users available</div>
+													) : (
+														guardianOptions.map(guardianUser => {
+															const currentValue = field.state.value
+															const isChecked = currentValue.includes(guardianUser.id)
+															return (
+																<div key={guardianUser.id} className="flex flex-row items-center space-y-0 gap-2">
+																	<Checkbox
+																		id={`guardian-${guardianUser.id}`}
+																		checked={isChecked}
+																		onCheckedChange={checked => {
+																			if (checked) {
+																				field.handleChange([...currentValue, guardianUser.id])
+																			} else {
+																				field.handleChange(currentValue.filter(id => id !== guardianUser.id))
+																			}
+																		}}
+																		disabled={isLoading}
+																	/>
+																	<Label htmlFor={`guardian-${guardianUser.id}`} className="font-normal cursor-pointer">
+																		<UserAvatar name={guardianUser.name || guardianUser.email} image={guardianUser.image} size="small" />
+																		{guardianUser.name || guardianUser.email}
+																		{guardianUser.role === 'admin' && <span className="text-xs text-muted-foreground"> (Admin)</span>}
+																	</Label>
+																</div>
+															)
+														})
+													)}
+												</div>
+												{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+													<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
+												)}
+											</div>
+										)}
+									</form.Field>
+								)
+							}
+						</form.Subscribe>
+
+						<form.Subscribe selector={state => state.values.role}>
+							{role =>
+								(role === 'user' || role === 'admin') && (
+									<>
+										<form.Field name="partnerId">
 											{field => (
 												<div className="grid gap-2">
-													<Label htmlFor={field.name} className="flex items-center gap-1.5">
-														Partner Anniversary
-														<InputTooltip>Optional. Mirrored onto both partners so the date appears on either profile.</InputTooltip>
-													</Label>
-													<DatePicker
-														id={field.name}
-														value={field.state.value ?? undefined}
-														onChange={next => field.handleChange(next)}
-														onBlur={field.handleBlur}
+													<Label htmlFor={field.name}>Partner</Label>
+													<Select
+														onValueChange={value => {
+															field.handleChange(value === '__none__' ? undefined : value)
+														}}
+														value={field.state.value || '__none__'}
 														disabled={isLoading}
-														className="w-full sm:w-72"
-													/>
+													>
+														<SelectTrigger id={field.name} className="w-full">
+															<SelectValue placeholder="Select partner (optional)" />
+														</SelectTrigger>
+														<SelectContent>
+															<SelectItem value="__none__">None</SelectItem>
+															{partnerOptions.map(partnerUser => (
+																<SelectItem key={partnerUser.id} value={partnerUser.id}>
+																	<UserAvatar name={partnerUser.name || partnerUser.email} image={partnerUser.image} size="small" />
+																	<span className="truncate">
+																		{partnerUser.name || partnerUser.email}
+																		{partnerUser.role === 'admin' && ' (Admin)'}
+																	</span>
+																</SelectItem>
+															))}
+														</SelectContent>
+													</Select>
 													{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
 														<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
 													)}
 												</div>
 											)}
 										</form.Field>
-									) : null
-								}
-							</form.Subscribe>
-						</>
-					)
-				}
-			</form.Subscribe>
+
+										<form.Subscribe selector={state => state.values.partnerId}>
+											{selectedPartnerId =>
+												selectedPartnerId && selectedPartnerId !== '__none__' ? (
+													<form.Field name="partnerAnniversary">
+														{field => (
+															<div className="grid gap-2">
+																<Label htmlFor={field.name} className="flex items-center gap-1.5">
+																	Partner Anniversary
+																	<InputTooltip>Optional. Mirrored onto both partners so the date appears on either profile.</InputTooltip>
+																</Label>
+																<DatePicker
+																	id={field.name}
+																	value={field.state.value ?? undefined}
+																	onChange={next => field.handleChange(next)}
+																	onBlur={field.handleBlur}
+																	disabled={isLoading}
+																	className="w-full"
+																/>
+																{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+																	<p className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</p>
+																)}
+															</div>
+														)}
+													</form.Field>
+												) : null
+											}
+										</form.Subscribe>
+									</>
+								)
+							}
+						</form.Subscribe>
+					</section>
+
+					{!isSelf && (
+						<section className="rounded-lg border bg-card p-5 space-y-3">
+							<div>
+								<h3 className="font-medium text-lg">Actions</h3>
+								<p className="text-xs text-muted-foreground mt-1">Account-level actions. These run independently of the form.</p>
+							</div>
+							<div className="grid gap-2">
+								<Button type="button" variant="outline" disabled>
+									Send Password Reset Email
+								</Button>
+								<Button type="button" variant="outline" disabled>
+									Update Password
+								</Button>
+								<Button type="button" variant="outline" disabled>
+									{user.banned ? 'Enable User Login' : 'Disable User Login'}
+								</Button>
+							</div>
+						</section>
+					)}
+				</div>
+
+				<div className="space-y-6 min-w-0">
+					<section className="rounded-lg border bg-card p-5 space-y-3">
+						<div>
+							<h3 className="font-medium text-lg">Relationships</h3>
+							<p className="text-xs text-muted-foreground mt-1">People this user shops for on Mother’s Day and Father’s Day.</p>
+						</div>
+						<RelationLabelsSection ops={adminOpsFor(userId)} hideDependents />
+					</section>
+
+					<section className="rounded-lg border bg-card p-5 space-y-3">
+						<div>
+							<h3 className="font-medium text-lg">Permissions</h3>
+							<p className="text-xs text-muted-foreground mt-1">
+								What each person can do with <strong>{user.name || user.email}</strong>'s wish lists. Partners and guardians always have
+								full view.
+							</p>
+						</div>
+						<PermissionsEditor
+							embedded
+							rows={permissionRows}
+							isLoading={isLoadingRelationships || permissionRows === null}
+							isSaving={isLoading}
+							onChange={setPermissionRows}
+							showShareIndicator={false}
+						/>
+					</section>
+				</div>
+			</div>
 
 			{error && (
 				<Alert variant="destructive">
@@ -670,28 +735,6 @@ function EditUserFormInner({
 					<AlertDescription>{error}</AlertDescription>
 				</Alert>
 			)}
-
-			<div className="grid gap-2 pt-2 border-t">
-				<h3 className="pt-2 font-medium text-2xl">Relationships</h3>
-				<p className="text-xs text-muted-foreground">People this user shops for on Mother’s Day and Father’s Day.</p>
-				<RelationLabelsSection ops={adminOpsFor(userId)} hideDependents />
-			</div>
-
-			<div className="grid gap-2 pt-2 border-t">
-				<h3 className="pt-2 font-medium text-2xl">Permissions</h3>
-				<p className="text-xs text-muted-foreground">
-					Choose what each person can do with <strong>{user.name || user.email}</strong>'s wish lists. Partners and guardians always have
-					full view.
-				</p>
-				<PermissionsEditor
-					embedded
-					rows={permissionRows}
-					isLoading={isLoadingRelationships || permissionRows === null}
-					isSaving={isLoading}
-					onChange={setPermissionRows}
-					showShareIndicator={false}
-				/>
-			</div>
 
 			<Button type="submit" disabled={isLoading} className="w-full" variant="default">
 				{isLoading ? 'Updating user...' : 'Update User'}

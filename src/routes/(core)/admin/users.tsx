@@ -118,7 +118,7 @@ function AdminUsersPage() {
 			</Dialog>
 
 			<Dialog open={editUserId !== null} onOpenChange={open => !open && closeEditUser()}>
-				<DialogContent className="max-w-xl overflow-x-hidden">
+				<DialogContent className="max-w-xl md:max-w-6xl overflow-x-hidden">
 					<DialogHeader>
 						<DialogTitle>Edit User</DialogTitle>
 					</DialogHeader>
