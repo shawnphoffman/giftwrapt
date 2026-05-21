@@ -59,7 +59,7 @@ export function TwoFactorPanelContent(props: TwoFactorPanelContentProps) {
 	const isEnrolling = status === 'enrolling'
 	return (
 		<div className="space-y-4">
-			<TwoFactorHeader status={status} {...props} />
+			<TwoFactorHeader {...props} />
 
 			{isEnrolling && enrollment && <EnrollingView {...props} enrollment={enrollment} />}
 			{isEnabled && <EnabledExtras {...props} />}

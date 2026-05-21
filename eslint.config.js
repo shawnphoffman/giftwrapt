@@ -21,6 +21,8 @@ export default [
 			'src/components/ui/**',
 			'src/db/schema/temp/**',
 			'_NOTES_/**',
+			// Local-only personal notes; never participates in the build.
+			'.notes.local/**',
 		],
 	},
 	{
