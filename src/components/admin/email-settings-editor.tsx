@@ -48,12 +48,8 @@ export function EmailSettingsEditor() {
 				</>
 			)}
 
-			{data.isValid && (
-				<>
-					<Separator />
-					<SendTestSection />
-				</>
-			)}
+			<Separator />
+			<SendTestSection defaultRecipient={data.bccAddress.value ?? data.fromEmail.value ?? ''} />
 		</div>
 	)
 }
@@ -251,50 +247,43 @@ function StringFieldRow({
 					</Label>
 					<p className="text-sm text-muted-foreground">{description}</p>
 				</div>
-				{showCounter && <CharacterCounter value={draft} max={maxLength} />}
+				<div className="flex items-center gap-3 shrink-0">
+					{showCounter && <CharacterCounter value={draft} max={maxLength} />}
+					{!envLocked && field.source === 'db' && !dirty && (
+						<Button type="button" variant="outline" size="sm" onClick={() => onClear()} disabled={saving}>
+							Clear
+						</Button>
+					)}
+				</div>
 			</div>
-			<div className="flex items-center gap-2">
-				<Input
-					id={id}
-					type={type}
-					value={draft}
-					placeholder={placeholder}
-					disabled={envLocked || saving}
-					maxLength={maxLength}
-					onChange={e => setDraft(e.target.value)}
-					onBlur={handleCommit}
-					onKeyDown={e => {
-						if (e.key === 'Enter') e.currentTarget.blur()
-					}}
-				/>
-				{!envLocked && dirty && (
-					<Button type="button" onClick={handleCommit} disabled={saving}>
-						Save
-					</Button>
-				)}
-				{!envLocked && field.source === 'db' && !dirty && (
-					<Button type="button" variant="outline" onClick={() => onClear()} disabled={saving}>
-						Clear
-					</Button>
-				)}
-			</div>
+			<Input
+				id={id}
+				type={type}
+				value={draft}
+				placeholder={placeholder}
+				disabled={envLocked || saving}
+				maxLength={maxLength}
+				onChange={e => setDraft(e.target.value)}
+				onBlur={handleCommit}
+				onKeyDown={e => {
+					if (e.key === 'Enter') e.currentTarget.blur()
+				}}
+			/>
 			{envHint && <p className="text-xs text-muted-foreground">{envHint}</p>}
 		</div>
 	)
 }
 
-function SendTestSection() {
+function SendTestSection({ defaultRecipient }: { defaultRecipient: string }) {
 	return (
-		<section className="flex flex-col gap-3 max-w-md">
+		<section className="flex flex-col gap-6">
 			<div className="space-y-0.5">
 				<h3 className="text-lg font-medium">Send a Test Email</h3>
 				<p className="text-sm text-muted-foreground">
-					Sends to the configured BCC address, or the From address if no BCC is set. Verifies the full send path end-to-end.
+					Pre-filled with the BCC address (or the From address if no BCC is set). Edit the recipient to send to any address.
 				</p>
 			</div>
-			<div>
-				<SendTestEmailButton />
-			</div>
+			<SendTestEmailButton defaultRecipient={defaultRecipient} />
 		</section>
 	)
 }

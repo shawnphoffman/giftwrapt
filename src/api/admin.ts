@@ -9,7 +9,7 @@ import type { BirthMonth, Role } from '@/db/schema'
 import { giftedItems, guardianships, items, itemScrapes, lists, users } from '@/db/schema'
 import { loggingMiddleware } from '@/lib/logger'
 import { applyPartnerAndAnniversary } from '@/lib/partner-update'
-import { sendTestEmail } from '@/lib/resend'
+import { sendTestEmail, type TestEmailKind } from '@/lib/resend'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { adminAuthMiddleware } from '@/middleware/auth'
 
@@ -64,8 +64,9 @@ export const sendTestEmailAsAdmin = createServerFn({
 	method: 'POST',
 })
 	.middleware([adminAuthMiddleware, loggingMiddleware])
-	.handler(async () => {
-		const result = await sendTestEmail()
+	.inputValidator((data: { kind?: TestEmailKind; to?: string } | undefined) => data ?? {})
+	.handler(async ({ data }) => {
+		const result = await sendTestEmail(data.kind ?? 'test', data.to)
 		return { status: 'success', data: result }
 	})
 

@@ -375,23 +375,177 @@ export const sendPasswordResetEmail = async (params: {
 	return res
 }
 
-export const sendTestEmail = async () => {
+export const TEST_EMAIL_KINDS = [
+	{ value: 'test', label: 'Generic test email' },
+	{ value: 'new-comment', label: 'New comment notification' },
+	{ value: 'birthday', label: 'Happy birthday' },
+	{ value: 'post-birthday', label: 'Post-birthday summary' },
+	{ value: 'pre-birthday-reminder', label: 'Pre-birthday reminder' },
+	{ value: 'pre-christmas-reminder', label: 'Pre-Christmas reminder' },
+	{ value: 'pre-custom-holiday-reminder', label: 'Pre-custom-holiday reminder' },
+	{ value: 'parental-relations-reminder', label: "Mother's/Father's Day reminder" },
+	{ value: 'valentines-day-reminder', label: "Valentine's Day reminder" },
+	{ value: 'partner-anniversary-reminder', label: 'Partner anniversary reminder' },
+	{ value: 'orphan-claim', label: 'Orphan claim alert' },
+	{ value: 'orphan-claim-cleanup-reminder', label: 'Orphan claim cleanup reminder' },
+	{ value: 'post-holiday', label: 'Post-holiday summary' },
+	{ value: 'password-reset', label: 'Password reset' },
+] as const
+
+export type TestEmailKind = (typeof TEST_EMAIL_KINDS)[number]['value']
+
+const buildTestEmailPayload = async (kind: TestEmailKind): Promise<{ subject: string; react: React.ReactElement }> => {
+	switch (kind) {
+		case 'test': {
+			const { default: TestEmail } = await import('@/emails/test-email')
+			return { subject: 'Test Email', react: <TestEmail /> }
+		}
+		case 'new-comment': {
+			const { default: NewCommentEmail } = await import('@/emails/new-comment-email')
+			return {
+				subject: 'New Comment on GiftWrapt',
+				react: (
+					<NewCommentEmail
+						username="Shawn"
+						commenter="Madison"
+						comment="This is a test comment"
+						itemTitle="Test Item"
+						listId={45}
+						itemId={1199}
+					/>
+				),
+			}
+		}
+		case 'birthday': {
+			const { default: BirthdayEmail } = await import('@/emails/happy-birthday-email')
+			return { subject: '🎉 Happy Birthday, Shawn!', react: <BirthdayEmail name="Shawn" /> }
+		}
+		case 'post-birthday': {
+			const { default: PostBirthdayEmail } = await import('@/emails/post-birthday-email')
+			return {
+				subject: 'A look back at your gifts',
+				react: (
+					<PostBirthdayEmail
+						items={[
+							{ title: 'Vintage espresso machine', image_url: 'https://placehold.co/600x400', gifters: 'John & Jane' },
+							{ title: 'Cashmere scarf', image_url: 'https://placehold.co/100x200', gifters: 'John' },
+							{ title: 'Leather-bound notebook', image_url: 'https://placehold.co/400x200', gifters: 'Jane, Alex & Priya' },
+						]}
+					/>
+				),
+			}
+		}
+		case 'pre-birthday-reminder': {
+			const { default: PreBirthdayReminderEmail } = await import('@/emails/pre-birthday-reminder-email')
+			return {
+				subject: 'Your birthday is in 30 days',
+				react: <PreBirthdayReminderEmail name="Alex" leadDays={30} />,
+			}
+		}
+		case 'pre-christmas-reminder': {
+			const { default: PreChristmasReminderEmail } = await import('@/emails/pre-christmas-reminder-email')
+			return {
+				subject: 'Christmas is in 30 days',
+				react: <PreChristmasReminderEmail name="Alex" leadDays={30} />,
+			}
+		}
+		case 'pre-custom-holiday-reminder': {
+			const { default: PreCustomHolidayReminderEmail } = await import('@/emails/pre-custom-holiday-reminder-email')
+			return {
+				subject: 'Easter is in 30 days',
+				react: <PreCustomHolidayReminderEmail name="Alex" holidayName="Easter" leadDays={30} />,
+			}
+		}
+		case 'parental-relations-reminder': {
+			const { default: ParentsDayReminderEmail } = await import('@/emails/parents-day-reminder-email')
+			return {
+				subject: "Mother's Day is in 7 days",
+				react: <ParentsDayReminderEmail holidayName="Mother's Day" leadDays={7} people={[{ name: 'Mom' }, { name: 'Sandra' }]} />,
+			}
+		}
+		case 'valentines-day-reminder': {
+			const { default: ValentinesDayReminderEmail } = await import('@/emails/valentines-day-reminder-email')
+			return {
+				subject: "Valentine's Day is in 14 days",
+				react: <ValentinesDayReminderEmail name="Alex" partnerName="Casey" leadDays={14} />,
+			}
+		}
+		case 'partner-anniversary-reminder': {
+			const { default: PartnerAnniversaryReminderEmail } = await import('@/emails/partner-anniversary-reminder-email')
+			return {
+				subject: 'Your anniversary with Casey is in 7 days',
+				react: <PartnerAnniversaryReminderEmail name="Alex" partnerName="Casey" leadDays={7} />,
+			}
+		}
+		case 'orphan-claim': {
+			const { default: OrphanClaimEmail } = await import('@/emails/orphan-claim-email')
+			return {
+				subject: 'An item you claimed for Madison was removed',
+				react: (
+					<OrphanClaimEmail
+						username="Shawn"
+						itemTitle="Vintage espresso machine"
+						itemImageUrl="https://placehold.co/120x120"
+						recipientName="Madison"
+						listId={45}
+						listName="Madison's Wishlist"
+					/>
+				),
+			}
+		}
+		case 'orphan-claim-cleanup-reminder': {
+			const { default: OrphanClaimCleanupReminderEmail } = await import('@/emails/orphan-claim-cleanup-reminder-email')
+			return {
+				subject: 'Cleaning up an unanswered claim tomorrow',
+				react: (
+					<OrphanClaimCleanupReminderEmail
+						username="Shawn"
+						itemTitle="Vintage espresso machine"
+						recipientName="Madison"
+						eventLabel="Madison's birthday"
+						listId={45}
+						listName="Madison's Wishlist"
+					/>
+				),
+			}
+		}
+		case 'post-holiday': {
+			const { default: PostHolidayEmail } = await import('@/emails/post-holiday-email')
+			return {
+				subject: "A look back at your Mother's Day list",
+				react: <PostHolidayEmail holidayName="Mother's Day" listName="Mother's Day Wishes" />,
+			}
+		}
+		case 'password-reset': {
+			const { default: PasswordResetEmail } = await import('@/emails/password-reset-email')
+			return {
+				subject: 'Reset your GiftWrapt password',
+				react: <PasswordResetEmail name="Sam" resetUrl="https://giftwrapt.app/reset-password?token=preview-token" expiresInMinutes={60} />,
+			}
+		}
+	}
+}
+
+export const sendTestEmail = async (kind: TestEmailKind = 'test', recipient?: string) => {
 	const cfg = await resolveEmailConfig(db)
 	const client = buildClient(cfg)
-	if (!client || !cfg.isValid) {
-		throw new Error('Email is not configured. Set a Resend API key and from address.')
+	if (!client?.emails || !cfg.apiKey.value || !cfg.fromEmail.value) {
+		throw new Error('Email is not configured. Set a Resend API key and From Email above.')
 	}
 
-	const to = cfg.bccAddress.value || cfg.fromEmail.value!
-	emailLog.info({ kind: 'test', recipient: to }, 'sending email')
-	const { default: TestEmail } = await import('@/emails/test-email')
+	const to = recipient?.trim() || cfg.bccAddress.value || cfg.fromEmail.value
+	if (!to) {
+		throw new Error('No recipient available. Enter a test recipient address.')
+	}
+	emailLog.info({ kind: `test:${kind}`, recipient: to }, 'sending email')
+	const { subject, react } = await buildTestEmailPayload(kind)
 	const res = await client.emails.send({
 		from: getFromEmail(cfg),
 		to,
-		subject: 'Test Email',
-		react: <TestEmail />,
+		subject,
+		react,
 	})
-	logSendResult('test', to, res as SendResult)
+	logSendResult(`test:${kind}`, to, res as SendResult)
 	if (res.error) {
 		const msg = 'message' in res.error ? String(res.error.message) : 'Resend rejected the request.'
 		throw new Error(msg)
