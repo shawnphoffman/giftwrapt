@@ -94,6 +94,43 @@ export function getDomainFromUrl(url: string): string {
 	return getVendorFromUrl(url)?.name ?? ''
 }
 
+/**
+ * Returns a stable `host + path` key for two URLs to be compared as
+ * "the same product page." Strips the scheme, leading `www.`, query
+ * string, fragment, and any trailing slash. Hostname is lowercased;
+ * path is preserved case-sensitively (Amazon-style ASIN paths can be
+ * case-significant on some retailers).
+ *
+ * Returns `null` for empty/unparseable input. Two items whose URLs
+ * normalize to the same non-null string are confidently the same
+ * product page, regardless of what their titles say.
+ */
+export function normalizeProductUrl(url: string | null | undefined): string | null {
+	if (!url) return null
+	const trimmed = url.trim()
+	if (!trimmed) return null
+	let host: string | null = null
+	let path = ''
+	try {
+		const u = new URL(trimmed)
+		host = u.hostname.replace(/^www\./, '').toLowerCase()
+		path = u.pathname
+	} catch {
+		const match = trimmed.match(/^(?:https?:\/\/)?(?:www\.)?([^/?#]+)([^?#]*)/i)
+		if (!match) return null
+		host = match[1].toLowerCase()
+		path = match[2]
+	}
+	if (!host) return null
+	// Require a host that looks like a real hostname: at least one dot,
+	// only domain-legal characters. Rejects garbage like `::::` or
+	// `localhost` so two items with junk URLs don't get falsely paired.
+	if (!/^[a-z0-9.-]+\.[a-z0-9-]+$/i.test(host)) return null
+	if (path.length > 1 && path.endsWith('/')) path = path.slice(0, -1)
+	if (!path) path = '/'
+	return `${host}${path}`
+}
+
 const INTERNAL_LIST_PATH = /^\/lists\/(\d+)(?:\/|$)/
 
 /**

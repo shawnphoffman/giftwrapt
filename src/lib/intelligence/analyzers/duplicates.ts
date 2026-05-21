@@ -1,6 +1,7 @@
 import { and, eq, isNull, ne } from 'drizzle-orm'
 
 import { items, lists } from '@/db/schema'
+import { normalizeProductUrl } from '@/lib/urls'
 
 import { composeForLog, generateObjectCached } from '../ai-call'
 import type { Analyzer } from '../analyzer'
@@ -15,10 +16,17 @@ import {
 } from '../prompts/duplicates'
 import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ItemRef, ListRef } from '../types'
 
-// Heuristic pre-filter: normalize titles and surface pairs across the
-// user's active, non-giftideas lists where the normalized form matches.
-// AI confirms semantic duplicates. Items in the same list are NOT paired
-// (intentional duplicates within one list aren't actionable).
+// Two passes:
+//   1. URL short-circuit: pairs that share the same normalized product
+//      URL across DIFFERENT lists are the same product by definition.
+//      Emit those as confident recs without ever asking the model.
+//      Free precision; works even when titles diverge.
+//   2. Title heuristic: normalize titles and pair across lists. Model
+//      confirms semantic duplicates. URL-confirmed pairs are filtered
+//      out of this pass so we don't double-emit.
+//
+// Items in the same list are NOT paired in either pass (intentional
+// duplicates within one list aren't actionable).
 export const duplicatesAnalyzer: Analyzer = {
 	id: 'duplicates',
 	label: 'Duplicates',
@@ -30,6 +38,7 @@ export const duplicatesAnalyzer: Analyzer = {
 			.select({
 				itemId: items.id,
 				title: items.title,
+				url: items.url,
 				imageUrl: items.imageUrl,
 				updatedAt: items.updatedAt,
 				availability: items.availability,
@@ -55,7 +64,34 @@ export const duplicatesAnalyzer: Analyzer = {
 
 		const loadStep: AnalyzerStep = { name: 'load-items', latencyMs: Date.now() - t0 }
 
-		// Group by normalized title; emit pairs across DIFFERENT lists.
+		type Pair = [(typeof rows)[number], (typeof rows)[number]]
+
+		// Pass 1: URL-shared pairs across different lists. Confident, no
+		// model call needed. Track the pair keys we emit here so the
+		// title-heuristic pass below can skip them.
+		const urlConfirmedPairs: Array<Pair> = []
+		const urlConfirmedKeys = new Set<string>()
+		const byUrl = new Map<string, Array<(typeof rows)[number]>>()
+		for (const row of rows) {
+			const key = normalizeProductUrl(row.url)
+			if (!key) continue
+			const arr = byUrl.get(key) ?? []
+			arr.push(row)
+			byUrl.set(key, arr)
+		}
+		for (const group of byUrl.values()) {
+			if (group.length < 2) continue
+			for (let i = 0; i < group.length; i++) {
+				for (let j = i + 1; j < group.length; j++) {
+					if (group[i].listId === group[j].listId) continue
+					const ordered = group[i].itemId < group[j].itemId ? [group[i], group[j]] : [group[j], group[i]]
+					urlConfirmedPairs.push([ordered[0], ordered[1]])
+					urlConfirmedKeys.add(pairKey(ordered[0].itemId, ordered[1].itemId))
+				}
+			}
+		}
+
+		// Pass 2: title-normalize, but skip pairs already confirmed by URL.
 		const byNorm = new Map<string, Array<(typeof rows)[number]>>()
 		for (const row of rows) {
 			const key = normalize(row.title)
@@ -65,14 +101,15 @@ export const duplicatesAnalyzer: Analyzer = {
 			byNorm.set(key, arr)
 		}
 
-		type Pair = [(typeof rows)[number], (typeof rows)[number]]
 		const candidatePairs: Array<Pair> = []
 		for (const group of byNorm.values()) {
 			if (group.length < 2) continue
 			for (let i = 0; i < group.length; i++) {
 				for (let j = i + 1; j < group.length; j++) {
 					if (group[i].listId === group[j].listId) continue
-					candidatePairs.push([group[i], group[j]])
+					const ordered = group[i].itemId < group[j].itemId ? [group[i], group[j]] : [group[j], group[i]]
+					if (urlConfirmedKeys.has(pairKey(ordered[0].itemId, ordered[1].itemId))) continue
+					candidatePairs.push([ordered[0], ordered[1]])
 					if (candidatePairs.length >= ctx.candidateCap) break
 				}
 				if (candidatePairs.length >= ctx.candidateCap) break
@@ -80,19 +117,41 @@ export const duplicatesAnalyzer: Analyzer = {
 			if (candidatePairs.length >= ctx.candidateCap) break
 		}
 
+		// Input hash covers BOTH passes' pair sets so a change in
+		// URL-confirmed pairs invalidates the cached run just like a
+		// title-pair change does.
 		const inputHash = sha256Hex(
-			`dupes|${candidatePairs
+			`dupes|url:${urlConfirmedPairs
+				.map(p => `${p[0].itemId}-${p[1].itemId}`)
+				.sort()
+				.join(',')}|title:${candidatePairs
 				.map(p => `${p[0].itemId}-${p[1].itemId}`)
 				.sort()
 				.join(',')}`
 		)
 
-		if (candidatePairs.length === 0) {
-			return { recs: [], steps: [loadStep], inputHash: combineHashes([inputHash]) }
-		}
-
 		const steps: Array<AnalyzerStep> = [loadStep]
 		const recs: Array<AnalyzerRecOutput> = []
+
+		// Emit URL-confirmed recs up front. These never need the model.
+		for (const pair of urlConfirmedPairs) {
+			recs.push(
+				buildPairRec(
+					pair,
+					'suggest',
+					'Same item on two lists',
+					'Both items link to the same product page, so this is the same item appearing twice.',
+					ctx.subject
+				)
+			)
+		}
+		if (urlConfirmedPairs.length > 0) {
+			steps.push({ name: 'duplicates:url-short-circuit', latencyMs: 0 })
+		}
+
+		if (candidatePairs.length === 0) {
+			return { recs, steps, inputHash: combineHashes([inputHash]) }
+		}
 
 		const promptPairs: Array<[DuplicateCandidate, DuplicateCandidate]> = candidatePairs.map(p => [
 			{ itemId: String(p[0].itemId), title: p[0].title, listId: String(p[0].listId), listName: p[0].listName, listType: p[0].listType },
@@ -177,31 +236,30 @@ function normalize(s: string): string {
 		.trim()
 }
 
+// Stable key for "have we already emitted a rec for this item pair?"
+// `pairKey(a, b)` and `pairKey(b, a)` collapse to the same string so the
+// URL pass's dedup carries over to the title pass regardless of how the
+// rows were enumerated.
+function pairKey(a: number, b: number): string {
+	const [lo, hi] = a < b ? [a, b] : [b, a]
+	return `${lo}-${hi}`
+}
+
+type DuplicateRow = {
+	itemId: number
+	title: string
+	url: string | null
+	listId: number
+	listName: string
+	listType: string
+	listIsPrivate: boolean
+	imageUrl: string | null
+	updatedAt: Date
+	availability: 'available' | 'unavailable'
+}
+
 function buildPairRec(
-	pair: [
-		{
-			itemId: number
-			title: string
-			listId: number
-			listName: string
-			listType: string
-			listIsPrivate: boolean
-			imageUrl: string | null
-			updatedAt: Date
-			availability: 'available' | 'unavailable'
-		},
-		{
-			itemId: number
-			title: string
-			listId: number
-			listName: string
-			listType: string
-			listIsPrivate: boolean
-			imageUrl: string | null
-			updatedAt: Date
-			availability: 'available' | 'unavailable'
-		},
-	],
+	pair: [DuplicateRow, DuplicateRow],
 	severity: 'info' | 'suggest' | 'important',
 	title: string,
 	rationale: string,
