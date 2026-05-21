@@ -2,40 +2,50 @@ import { asc, eq, sql } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { dependentGuardianships, dependents, guardianships, listEditors, userRelationships, users } from '@/db/schema'
+import { userRelationLabels } from '@/db/schema/relation-labels'
 import type { PermissionsMatrixData } from '@/lib/permissions-matrix'
 
 export const getPermissionsMatrixQuery = async (): Promise<PermissionsMatrixData> => {
-	const [usersData, dependentRows, dependentGuardianshipRows, guardianshipRows, relationshipRows, listEditorRows] = await Promise.all([
-		db.query.users.findMany({
-			orderBy: [asc(users.name), asc(users.email)],
-			columns: { id: true, email: true, name: true, role: true, image: true, partnerId: true },
-		}),
-		db
-			.select({ id: dependents.id, name: dependents.name, image: dependents.image })
-			.from(dependents)
-			.where(eq(dependents.isArchived, false))
-			.orderBy(asc(dependents.name)),
-		db
-			.select({ guardianUserId: dependentGuardianships.guardianUserId, dependentId: dependentGuardianships.dependentId })
-			.from(dependentGuardianships),
-		db.select({ parentUserId: guardianships.parentUserId, childUserId: guardianships.childUserId }).from(guardianships),
-		db
-			.select({
-				ownerUserId: userRelationships.ownerUserId,
-				viewerUserId: userRelationships.viewerUserId,
-				accessLevel: userRelationships.accessLevel,
-				canEdit: userRelationships.canEdit,
-			})
-			.from(userRelationships),
-		db
-			.select({
-				ownerId: listEditors.ownerId,
-				userId: listEditors.userId,
-				count: sql<number>`count(*)::int`,
-			})
-			.from(listEditors)
-			.groupBy(listEditors.ownerId, listEditors.userId),
-	])
+	const [usersData, dependentRows, dependentGuardianshipRows, guardianshipRows, relationshipRows, listEditorRows, relationLabelRows] =
+		await Promise.all([
+			db.query.users.findMany({
+				orderBy: [asc(users.name), asc(users.email)],
+				columns: { id: true, email: true, name: true, role: true, image: true, partnerId: true },
+			}),
+			db
+				.select({ id: dependents.id, name: dependents.name, image: dependents.image })
+				.from(dependents)
+				.where(eq(dependents.isArchived, false))
+				.orderBy(asc(dependents.name)),
+			db
+				.select({ guardianUserId: dependentGuardianships.guardianUserId, dependentId: dependentGuardianships.dependentId })
+				.from(dependentGuardianships),
+			db.select({ parentUserId: guardianships.parentUserId, childUserId: guardianships.childUserId }).from(guardianships),
+			db
+				.select({
+					ownerUserId: userRelationships.ownerUserId,
+					viewerUserId: userRelationships.viewerUserId,
+					accessLevel: userRelationships.accessLevel,
+					canEdit: userRelationships.canEdit,
+				})
+				.from(userRelationships),
+			db
+				.select({
+					ownerId: listEditors.ownerId,
+					userId: listEditors.userId,
+					count: sql<number>`count(*)::int`,
+				})
+				.from(listEditors)
+				.groupBy(listEditors.ownerId, listEditors.userId),
+			db
+				.select({
+					userId: userRelationLabels.userId,
+					label: userRelationLabels.label,
+					targetUserId: userRelationLabels.targetUserId,
+					targetDependentId: userRelationLabels.targetDependentId,
+				})
+				.from(userRelationLabels),
+		])
 
 	const guardianIds = new Set(guardianshipRows.map(r => r.parentUserId))
 
@@ -65,5 +75,6 @@ export const getPermissionsMatrixQuery = async (): Promise<PermissionsMatrixData
 		guardianships: guardianshipRows,
 		relationships: relationshipRows,
 		listEditorCounts: listEditorRows,
+		relationLabels: relationLabelRows,
 	}
 }

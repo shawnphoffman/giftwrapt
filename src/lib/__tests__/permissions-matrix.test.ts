@@ -146,6 +146,62 @@ describe('classifyCell', () => {
 		expect(cell.kind).toBe('editor')
 		expect(cell.editorListCount).toBe(4)
 	})
+
+	it('annotates the cell where the viewer has tagged the owner as their mother', () => {
+		const { indices } = setup({
+			relationLabels: [{ userId: 'bob', label: 'mother', targetUserId: 'alice', targetDependentId: null }],
+		})
+		const cell = classifyCell({ viewerId: 'bob', ownerId: 'alice', ...indices })
+		expect(cell.parentLabels).toEqual(['mother'])
+	})
+
+	it('does NOT mirror a relation label back to the other cell (per-direction)', () => {
+		// Bob says Alice is his mother. The reverse cell (Alice viewing Bob's
+		// lists) carries no label - relation labels are pure annotations and
+		// do not auto-tag the inverse direction.
+		const { indices } = setup({
+			relationLabels: [{ userId: 'bob', label: 'mother', targetUserId: 'alice', targetDependentId: null }],
+		})
+		expect(classifyCell({ viewerId: 'bob', ownerId: 'alice', ...indices }).parentLabels).toEqual(['mother'])
+		expect(classifyCell({ viewerId: 'alice', ownerId: 'bob', ...indices }).parentLabels).toEqual([])
+	})
+
+	it('surfaces both mother and father labels on the same pair if both rows exist', () => {
+		const { indices } = setup({
+			relationLabels: [
+				{ userId: 'bob', label: 'mother', targetUserId: 'alice', targetDependentId: null },
+				{ userId: 'bob', label: 'father', targetUserId: 'alice', targetDependentId: null },
+			],
+		})
+		const cell = classifyCell({ viewerId: 'bob', ownerId: 'alice', ...indices })
+		expect(cell.parentLabels.sort()).toEqual(['father', 'mother'])
+	})
+
+	it('still annotates labels alongside a guardian / editor / denied / restricted cell', () => {
+		// The label is an annotation that overlays whatever the strongest
+		// access grant is; it must not be dropped by any of the early-return
+		// kinds.
+		const { indices } = setup({
+			guardianships: [{ parentUserId: 'alice', childUserId: 'kid' }],
+			relationships: [{ ownerUserId: 'alice', viewerUserId: 'carol', accessLevel: 'restricted', canEdit: false }],
+			relationLabels: [
+				{ userId: 'alice', label: 'mother', targetUserId: 'kid', targetDependentId: null },
+				{ userId: 'carol', label: 'mother', targetUserId: 'alice', targetDependentId: null },
+			],
+		})
+		expect(classifyCell({ viewerId: 'alice', ownerId: 'kid', ...indices }).parentLabels).toEqual(['mother'])
+		expect(classifyCell({ viewerId: 'carol', ownerId: 'alice', ...indices }).parentLabels).toEqual(['mother'])
+	})
+
+	it('drops relation labels on the self cell', () => {
+		// A row labeling yourself as your own mother is nonsensical and never
+		// produced by the UI; classify should defensively return an empty
+		// list anyway so the self diagonal stays clean.
+		const { indices } = setup({
+			relationLabels: [{ userId: 'alice', label: 'mother', targetUserId: 'alice', targetDependentId: null }],
+		})
+		expect(classifyCell({ viewerId: 'alice', ownerId: 'alice', ...indices }).parentLabels).toEqual([])
+	})
 })
 
 describe('classifyDependentCell', () => {
@@ -154,6 +210,7 @@ describe('classifyDependentCell', () => {
 	function relMap(entries: Array<[string, string, AccessLevel]>): Map<string, { accessLevel: AccessLevel; canEdit: boolean }> {
 		return new Map(entries.map(([owner, viewer, accessLevel]) => [ownerViewerKey(owner, viewer), { accessLevel, canEdit: false }]))
 	}
+	const noLabels = new Map<string, Array<'mother' | 'father'>>()
 
 	it('returns guardian when viewer is one of the guardians', () => {
 		const cell = classifyDependentCell({
@@ -161,6 +218,7 @@ describe('classifyDependentCell', () => {
 			dependentId: 'mochi',
 			guardianIds: ['alice', 'bob'],
 			relationships: new Map(),
+			relationLabelsByDependentPair: noLabels,
 		})
 		expect(cell.kind).toBe('guardian')
 	})
@@ -171,6 +229,7 @@ describe('classifyDependentCell', () => {
 			dependentId: 'mochi',
 			guardianIds: ['alice', 'bob'],
 			relationships: new Map(),
+			relationLabelsByDependentPair: noLabels,
 		})
 		expect(cell.kind).toBe('view')
 	})
@@ -186,6 +245,7 @@ describe('classifyDependentCell', () => {
 				['alice', 'carol', 'view'],
 				['bob', 'carol', 'none'],
 			]),
+			relationLabelsByDependentPair: noLabels,
 		})
 		expect(cell.kind).toBe('denied')
 	})
@@ -199,6 +259,7 @@ describe('classifyDependentCell', () => {
 				['alice', 'carol', 'restricted'],
 				['bob', 'carol', 'restricted'],
 			]),
+			relationLabelsByDependentPair: noLabels,
 		})
 		expect(cell.kind).toBe('restricted')
 	})
@@ -215,6 +276,7 @@ describe('classifyDependentCell', () => {
 				['alice', 'carol', 'view'],
 				['bob', 'carol', 'restricted'],
 			]),
+			relationLabelsByDependentPair: noLabels,
 		})
 		expect(cell.kind).toBe('view')
 	})
@@ -226,6 +288,7 @@ describe('classifyDependentCell', () => {
 			dependentId: 'mochi',
 			guardianIds: ['alice'],
 			relationships: new Map(),
+			relationLabelsByDependentPair: noLabels,
 		})
 		expect(cell.isPartner).toBe(false)
 	})
@@ -239,8 +302,24 @@ describe('classifyDependentCell', () => {
 			dependentId: 'mochi',
 			guardianIds: ['alice'],
 			relationships: new Map(),
+			relationLabelsByDependentPair: noLabels,
 		})
 		expect(cell.editorListCount).toBe(0)
+	})
+
+	it('surfaces relation labels keyed by viewer|dependent', () => {
+		// A user can label a dependent (e.g., "Mochi is my mother's pet, but
+		// also treated as my mother figure" - pathological but supported by
+		// the schema). The matrix should show the label on that cell.
+		const labels = new Map<string, Array<'mother' | 'father'>>([[ownerViewerKey('carol', 'mochi'), ['mother']]])
+		const cell = classifyDependentCell({
+			viewerId: 'carol',
+			dependentId: 'mochi',
+			guardianIds: ['alice', 'bob'],
+			relationships: new Map(),
+			relationLabelsByDependentPair: labels,
+		})
+		expect(cell.parentLabels).toEqual(['mother'])
 	})
 })
 
@@ -279,5 +358,40 @@ describe('buildIndices', () => {
 		const idx = buildIndices(data)
 		expect(idx.partnerOf.get('a')).toBeNull()
 		expect(idx.partnerOf.get('b')).toBe('a')
+	})
+
+	it('routes relation labels into user-pair vs dependent-pair maps by target type', () => {
+		const data: PermissionsMatrixData = {
+			users: [],
+			guardianships: [],
+			relationships: [],
+			listEditorCounts: [],
+			relationLabels: [
+				{ userId: 'bob', label: 'mother', targetUserId: 'alice', targetDependentId: null },
+				{ userId: 'bob', label: 'father', targetUserId: null, targetDependentId: 'mochi' },
+			],
+		}
+		const idx = buildIndices(data)
+		expect(idx.relationLabelsByUserPair.get(ownerViewerKey('bob', 'alice'))).toEqual(['mother'])
+		expect(idx.relationLabelsByDependentPair.get(ownerViewerKey('bob', 'mochi'))).toEqual(['father'])
+		expect(idx.relationLabelsByUserPair.get(ownerViewerKey('bob', 'mochi'))).toBeUndefined()
+		expect(idx.relationLabelsByDependentPair.get(ownerViewerKey('bob', 'alice'))).toBeUndefined()
+	})
+
+	it('dedupes duplicate relation-label rows on the same pair', () => {
+		// The DB has no unique constraint on (userId, label, target); the index
+		// stays clean even if duplicate rows slipped in.
+		const data: PermissionsMatrixData = {
+			users: [],
+			guardianships: [],
+			relationships: [],
+			listEditorCounts: [],
+			relationLabels: [
+				{ userId: 'bob', label: 'mother', targetUserId: 'alice', targetDependentId: null },
+				{ userId: 'bob', label: 'mother', targetUserId: 'alice', targetDependentId: null },
+			],
+		}
+		const idx = buildIndices(data)
+		expect(idx.relationLabelsByUserPair.get(ownerViewerKey('bob', 'alice'))).toEqual(['mother'])
 	})
 })

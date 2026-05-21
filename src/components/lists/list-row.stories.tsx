@@ -25,6 +25,7 @@ const recipientBase: MyListRowType = {
 	giftIdeasTargetDependent: null,
 	subjectDependentId: null,
 	itemCount: 12,
+	editors: [],
 }
 
 const gifterBase: GifterList = {
@@ -82,6 +83,44 @@ export const RecipientPrimary: Story = {
 
 export const RecipientPrivate: Story = {
 	args: { role: 'recipient', list: { ...recipientBase, name: 'Private list', isPrivate: true } },
+}
+
+export const RecipientSharedWithOne: Story = {
+	args: {
+		role: 'recipient',
+		list: {
+			...recipientBase,
+			name: 'Shared with one editor',
+			editors: [{ name: 'Alex', email: 'alex@example.com', image: 'https://i.pravatar.cc/128?img=12' }],
+		},
+	},
+}
+
+export const RecipientSharedWithMany: Story = {
+	args: {
+		role: 'recipient',
+		list: {
+			...recipientBase,
+			name: 'Shared with several editors',
+			editors: [
+				{ name: 'Alex', email: 'alex@example.com', image: 'https://i.pravatar.cc/128?img=12' },
+				{ name: 'Morgan', email: 'morgan@example.com', image: 'https://i.pravatar.cc/128?img=22' },
+				{ name: 'Jamie', email: 'jamie@example.com', image: null },
+			],
+		},
+	},
+}
+
+export const RecipientPrivateAndShared: Story = {
+	args: {
+		role: 'recipient',
+		list: {
+			...recipientBase,
+			name: 'Private list shared with editor',
+			isPrivate: true,
+			editors: [{ name: 'Alex', email: 'alex@example.com', image: 'https://i.pravatar.cc/128?img=12' }],
+		},
+	},
 }
 
 export const RecipientArchived: Story = {
@@ -174,15 +213,25 @@ export const RecipientVariations: Story = {
 				/>
 				<ListRow
 					role="recipient"
-					list={giftIdeas({ id: 5, name: 'Ideas for Chase (1 other editor)', giftIdeasTargetUserId: chase.id, giftIdeasTarget: chase })}
+					list={giftIdeas({
+						id: 5,
+						name: 'Ideas for Chase (1 other editor)',
+						giftIdeasTargetUserId: chase.id,
+						giftIdeasTarget: chase,
+						editors: editors.slice(0, 1),
+					})}
 					showOwner={shawn}
-					editors={editors.slice(0, 1)}
 				/>
 				<ListRow
 					role="recipient"
-					list={giftIdeas({ id: 6, name: 'Ideas for Chase (3 other editors)', giftIdeasTargetUserId: chase.id, giftIdeasTarget: chase })}
+					list={giftIdeas({
+						id: 6,
+						name: 'Ideas for Chase (3 other editors)',
+						giftIdeasTargetUserId: chase.id,
+						giftIdeasTarget: chase,
+						editors,
+					})}
 					showOwner={shawn}
-					editors={editors}
 				/>
 				<ListRow
 					role="recipient"
@@ -191,9 +240,8 @@ export const RecipientVariations: Story = {
 				/>
 				<ListRow
 					role="recipient"
-					list={{ ...recipientBase, id: 8, name: 'Shared family wishlist (non-gift-ideas, owner + editors)' }}
+					list={{ ...recipientBase, id: 8, name: 'Shared family wishlist (non-gift-ideas, owner + editors)', editors }}
 					showOwner={shawn}
-					editors={editors}
 				/>
 				<ListRow
 					role="recipient"
@@ -212,9 +260,9 @@ export const RecipientVariations: Story = {
 						id: 10,
 						name: "Peanut's Registry (dependent-subject + 2 co-guardians as editors)",
 						subjectDependentId: 'dep-peanut',
+						editors: editors.slice(0, 2),
 					}}
 					showOwner={{ kind: 'dependent', name: 'Peanut', image: null }}
-					editors={editors.slice(0, 2)}
 				/>
 			</div>
 		)

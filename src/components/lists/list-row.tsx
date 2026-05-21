@@ -1,7 +1,7 @@
 import { Slot } from '@radix-ui/react-slot'
 import { useQueryClient } from '@tanstack/react-query'
 import { Link, useRouter } from '@tanstack/react-router'
-import { Archive, ArchiveRestore, Crown, MoreHorizontal, Pencil, Star, StarOff, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, Crown, Lock, MoreHorizontal, Pencil, Star, StarOff, Trash2 } from 'lucide-react'
 import { type ReactNode, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -40,22 +40,74 @@ type GifterList = UserWithLists['lists'][number]
 
 type EditorInfo = { name: string | null; email: string; image: string | null }
 
-function HoverableAvatar({ name, image, className }: { name: string; image: string | null; className?: string }) {
+// Compact "shared with" indicator for an owner's own list: shows the first
+// editor's avatar with a "+N" count for the rest, tooltip lists everyone.
+// Mirrors the showOwner avatar group's visual treatment so the two surfaces
+// read as a family.
+// Callers gate on `editors.length > 0`, so destructuring `first` here is safe.
+function SharedWithAvatars({ editors }: { editors: Array<EditorInfo> }) {
+	const [first, ...rest] = editors
 	return (
 		<TooltipProvider delayDuration={150}>
 			<Tooltip>
 				<TooltipTrigger asChild>
-					<span className="inline-flex shrink-0">
-						<UserAvatar name={name} image={image} size="small" className={className} />
-					</span>
+					<div className="flex items-center -space-x-0.75 shrink-0">
+						<UserAvatar
+							name={first.name || first.email}
+							image={first.image}
+							size="small"
+							className="relative z-10 size-5 ring-1 ring-background border-0"
+						/>
+						{rest.length > 0 && (
+							<AvatarGroupCount className="size-5 shrink-0 rounded-full bg-muted text-muted-foreground text-[10px] font-bold leading-none flex items-center justify-center select-none ring-1">
+								+{rest.length}
+							</AvatarGroupCount>
+						)}
+					</div>
 				</TooltipTrigger>
-				<TooltipContent className="flex items-center gap-2">
-					<UserAvatar name={name} image={image} size="small" />
-					<span className="font-medium">{name}</span>
+				<TooltipContent className="flex flex-col gap-1.5">
+					<div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Shared with</div>
+					{editors.map(editor => (
+						<div key={editor.email} className="flex items-center gap-2 justify-items-start w-full">
+							<UserAvatar name={editor.name || editor.email} image={editor.image} size="small" />
+							<span className="font-medium">{editor.name || editor.email}</span>
+						</div>
+					))}
 				</TooltipContent>
 			</Tooltip>
 		</TooltipProvider>
 	)
+}
+
+// For gift-ideas lists with a defined recipient (user or dependent), the
+// row's lead icon becomes the recipient's avatar with a thick teal ring so
+// it reads as "this list is FOR this person" at a glance. Falls back to the
+// list-type icon when the recipient is free-text or the type is not gift
+// ideas.
+function GiftIdeasLeadIcon({ list }: { list: MyListRowType }) {
+	if (list.type === 'giftideas') {
+		if (list.giftIdeasTargetDependent) {
+			return (
+				<DependentAvatar
+					name={list.giftIdeasTargetDependent.name}
+					image={list.giftIdeasTargetDependent.image}
+					size="small"
+					className="size-6 shrink-0 ring-2 ring-teal-500 border-0"
+				/>
+			)
+		}
+		if (list.giftIdeasTarget) {
+			return (
+				<UserAvatar
+					name={list.giftIdeasTarget.name || list.giftIdeasTarget.email}
+					image={list.giftIdeasTarget.image}
+					size="small"
+					className="size-6 shrink-0 ring-2 ring-teal-500 border-0"
+				/>
+			)
+		}
+	}
+	return <ListTypeIcon type={list.type} className="size-6 shrink-0" />
 }
 
 // `showOwner` can describe a regular user owner OR a dependent subject.
@@ -71,7 +123,6 @@ type Props =
 			role: 'recipient'
 			list: MyListRowType
 			showOwner?: RowOwner
-			editors?: Array<EditorInfo>
 	  }
 	| { role: 'gifter'; list: GifterList }
 
@@ -84,12 +135,13 @@ function ListRowShell({ children, archived, asChild = false }: { children: React
 
 export function ListRow(props: Props) {
 	if (props.role === 'recipient') {
-		return <RecipientRow list={props.list} showOwner={props.showOwner} editors={props.editors} />
+		return <RecipientRow list={props.list} showOwner={props.showOwner} />
 	}
 	return <GifterRow list={props.list} />
 }
 
-function RecipientRow({ list, showOwner, editors }: { list: MyListRowType; showOwner?: RowOwner; editors?: Array<EditorInfo> }) {
+function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: RowOwner }) {
+	const editors = list.editors
 	const router = useRouter()
 	const queryClient = useQueryClient()
 	const { data: session } = useSession()
@@ -141,20 +193,10 @@ function RecipientRow({ list, showOwner, editors }: { list: MyListRowType; showO
 	return (
 		<>
 			<ListRowShell archived={!list.isActive}>
-				<ListTypeIcon type={list.type} className="size-6 shrink-0" />
+				<GiftIdeasLeadIcon list={list} />
 				<Link to="/lists/$listId/edit" params={{ listId: String(list.id) }} className="flex-1 font-medium leading-tight truncate">
 					{list.name}
 				</Link>
-				{list.type === 'giftideas' && list.giftIdeasTarget && (
-					<div className="h-5 flex items-center gap-1 pl-2 pr-0 leading-none font-bold uppercase text-[10px] tracking-wider text-teal-500">
-						<span>for</span>
-						<HoverableAvatar
-							name={list.giftIdeasTarget.name || list.giftIdeasTarget.email}
-							image={list.giftIdeasTarget.image}
-							className="size-5 ring-1 ring-teal-500/40"
-						/>
-					</div>
-				)}
 				{showOwner && (
 					<TooltipProvider delayDuration={150}>
 						<Tooltip>
@@ -175,7 +217,7 @@ function RecipientRow({ list, showOwner, editors }: { list: MyListRowType; showO
 											className="relative z-10 size-5 ring-1 ring-background border-0"
 										/>
 									)}
-									{editors && editors.length > 0 && (
+									{editors.length > 0 && (
 										<AvatarGroupCount className="size-5 shrink-0 rounded-full bg-muted text-muted-foreground text-[10px] font-bold leading-none flex items-center justify-center select-none ring-1">
 											+{editors.length}
 										</AvatarGroupCount>
@@ -197,7 +239,7 @@ function RecipientRow({ list, showOwner, editors }: { list: MyListRowType; showO
 										</>
 									)}
 								</div>
-								{editors?.map(editor => (
+								{editors.map(editor => (
 									<div key={editor.email} className="flex items-center gap-2 justify-items-start w-full">
 										<UserAvatar name={editor.name || editor.email} image={editor.image} size="small" />
 										<span className="font-medium">{editor.name || editor.email}</span>
@@ -207,12 +249,25 @@ function RecipientRow({ list, showOwner, editors }: { list: MyListRowType; showO
 						</Tooltip>
 					</TooltipProvider>
 				)}
+				{!showOwner && editors.length > 0 && <SharedWithAvatars editors={editors} />}
 				{list.isPrimary && <Star className="size-4 text-yellow-500 fill-yellow-500 shrink-0" />}
 				{!list.isActive && (
 					<Badge variant="outline" className="gap-1 shrink-0 text-xs text-muted-foreground">
 						<Archive className="size-3" />
 						Archived
 					</Badge>
+				)}
+				{list.isPrivate && (
+					<TooltipProvider delayDuration={150}>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<span className="inline-flex shrink-0 text-muted-foreground" aria-label="Private list">
+									<Lock className="size-3.5" />
+								</span>
+							</TooltipTrigger>
+							<TooltipContent>Private list</TooltipContent>
+						</Tooltip>
+					</TooltipProvider>
 				)}
 				<CountBadge count={list.itemCount} />
 				<DropdownMenu>

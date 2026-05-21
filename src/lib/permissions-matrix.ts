@@ -8,7 +8,7 @@
 // Partner is an annotation, not a permission, because partnership alone
 // doesn't grant view/edit beyond the public default.
 
-import type { AccessLevel } from '@/db/schema/enums'
+import type { AccessLevel, RelationLabel } from '@/db/schema/enums'
 
 export type CellKind = 'self' | 'guardian' | 'editor' | 'view' | 'denied' | 'restricted'
 
@@ -16,6 +16,10 @@ export type Cell = {
 	kind: CellKind
 	editorListCount: number
 	isPartner: boolean
+	// Pure annotation: the viewer has tagged the owner as their mother/father
+	// (or both, in pathological cases). Per-direction, mirroring the
+	// `userRelationLabels` schema; populated only on user-on-user cells.
+	parentLabels: Array<RelationLabel>
 }
 
 export type ClassifyCellArgs = {
@@ -25,40 +29,45 @@ export type ClassifyCellArgs = {
 	relationships: Map<string, { accessLevel: AccessLevel; canEdit: boolean }>
 	listEditorCounts: Map<string, number>
 	partnerOf: Map<string, string | null>
+	// Labels keyed by `${viewerId}|${ownerId}` (the userId in
+	// userRelationLabels is the labeler, targetUserId is the target).
+	relationLabelsByUserPair: Map<string, Array<RelationLabel>>
 }
 
 export const guardianKey = (parentId: string, childId: string) => `${parentId}|${childId}`
 export const ownerViewerKey = (ownerId: string, viewerId: string) => `${ownerId}|${viewerId}`
 
 export function classifyCell(args: ClassifyCellArgs): Cell {
-	const { viewerId, ownerId, guardianPairs, relationships, listEditorCounts, partnerOf } = args
+	const { viewerId, ownerId, guardianPairs, relationships, listEditorCounts, partnerOf, relationLabelsByUserPair } = args
 	const isPartner = (partnerOf.get(ownerId) ?? null) === viewerId
+	const parentLabels = relationLabelsByUserPair.get(ownerViewerKey(viewerId, ownerId)) ?? []
 
 	if (viewerId === ownerId) {
-		return { kind: 'self', editorListCount: 0, isPartner: false }
+		// Self-labels are nonsensical; ignore them defensively.
+		return { kind: 'self', editorListCount: 0, isPartner: false, parentLabels: [] }
 	}
 
 	if (guardianPairs.has(guardianKey(viewerId, ownerId))) {
-		return { kind: 'guardian', editorListCount: 0, isPartner }
+		return { kind: 'guardian', editorListCount: 0, isPartner, parentLabels }
 	}
 
 	const rel = relationships.get(ownerViewerKey(ownerId, viewerId))
 	const editorListCount = listEditorCounts.get(ownerViewerKey(ownerId, viewerId)) ?? 0
 
 	if (rel?.accessLevel === 'none') {
-		return { kind: 'denied', editorListCount, isPartner }
+		return { kind: 'denied', editorListCount, isPartner, parentLabels }
 	}
 	if (rel?.accessLevel === 'restricted') {
 		// Restricted suppresses all edit grants by design.
-		return { kind: 'restricted', editorListCount, isPartner }
+		return { kind: 'restricted', editorListCount, isPartner, parentLabels }
 	}
 	if (rel?.canEdit === true) {
-		return { kind: 'editor', editorListCount, isPartner }
+		return { kind: 'editor', editorListCount, isPartner, parentLabels }
 	}
 	if (editorListCount > 0) {
-		return { kind: 'editor', editorListCount, isPartner }
+		return { kind: 'editor', editorListCount, isPartner, parentLabels }
 	}
-	return { kind: 'view', editorListCount, isPartner }
+	return { kind: 'view', editorListCount, isPartner, parentLabels }
 }
 
 export type PermissionsMatrixUser = {
@@ -78,6 +87,13 @@ export type PermissionsMatrixDependent = {
 	guardianIds: Array<string>
 }
 
+export type PermissionsMatrixRelationLabel = {
+	userId: string
+	label: RelationLabel
+	targetUserId: string | null
+	targetDependentId: string | null
+}
+
 export type PermissionsMatrixData = {
 	users: Array<PermissionsMatrixUser>
 	// Optional for backwards-compat with mocks/fixtures written before
@@ -86,6 +102,9 @@ export type PermissionsMatrixData = {
 	guardianships: Array<{ parentUserId: string; childUserId: string }>
 	relationships: Array<{ ownerUserId: string; viewerUserId: string; accessLevel: AccessLevel; canEdit: boolean }>
 	listEditorCounts: Array<{ ownerId: string; userId: string; count: number }>
+	// Optional for backwards-compat with mocks/fixtures written before relation
+	// labels were surfaced in the matrix; the live query always populates it.
+	relationLabels?: Array<PermissionsMatrixRelationLabel>
 }
 
 export function buildIndices(data: PermissionsMatrixData) {
@@ -100,7 +119,27 @@ export function buildIndices(data: PermissionsMatrixData) {
 	}
 	const partnerOf = new Map<string, string | null>()
 	for (const u of data.users) partnerOf.set(u.id, u.partnerId)
-	return { guardianPairs, relationships, listEditorCounts, partnerOf }
+	// Labels are stored as "userId labels target as their mother/father".
+	// In matrix terms, the labeler is the VIEWER and the target is the
+	// owner (or dependent column). We key by viewer|target so cell lookup
+	// reads naturally. Same label twice is deduped; both labels on one
+	// pair (mother + father, pathological) both pass through.
+	const relationLabelsByUserPair = new Map<string, Array<RelationLabel>>()
+	const relationLabelsByDependentPair = new Map<string, Array<RelationLabel>>()
+	for (const row of data.relationLabels ?? []) {
+		if (row.targetUserId) {
+			const key = ownerViewerKey(row.userId, row.targetUserId)
+			const bucket = relationLabelsByUserPair.get(key) ?? []
+			if (!bucket.includes(row.label)) bucket.push(row.label)
+			relationLabelsByUserPair.set(key, bucket)
+		} else if (row.targetDependentId) {
+			const key = ownerViewerKey(row.userId, row.targetDependentId)
+			const bucket = relationLabelsByDependentPair.get(key) ?? []
+			if (!bucket.includes(row.label)) bucket.push(row.label)
+			relationLabelsByDependentPair.set(key, bucket)
+		}
+	}
+	return { guardianPairs, relationships, listEditorCounts, partnerOf, relationLabelsByUserPair, relationLabelsByDependentPair }
 }
 
 // Classify a cell where the OWNER is a dependent. The viewer is always a
@@ -115,25 +154,27 @@ export type ClassifyDependentCellArgs = {
 	dependentId: string
 	guardianIds: Array<string>
 	relationships: Map<string, { accessLevel: AccessLevel; canEdit: boolean }>
+	relationLabelsByDependentPair: Map<string, Array<RelationLabel>>
 }
 
 export function classifyDependentCell(args: ClassifyDependentCellArgs): Cell {
-	const { viewerId, guardianIds, relationships } = args
+	const { viewerId, dependentId, guardianIds, relationships, relationLabelsByDependentPair } = args
+	const parentLabels = relationLabelsByDependentPair.get(ownerViewerKey(viewerId, dependentId)) ?? []
 	if (guardianIds.includes(viewerId)) {
-		return { kind: 'guardian', editorListCount: 0, isPartner: false }
+		return { kind: 'guardian', editorListCount: 0, isPartner: false, parentLabels }
 	}
 	let mostPermissive: AccessLevel | null = null
 	for (const guardianId of guardianIds) {
 		const rel = relationships.get(ownerViewerKey(guardianId, viewerId))
 		if (!rel) continue
 		if (rel.accessLevel === 'none') {
-			return { kind: 'denied', editorListCount: 0, isPartner: false }
+			return { kind: 'denied', editorListCount: 0, isPartner: false, parentLabels }
 		}
 		if (rel.accessLevel === 'view') mostPermissive = 'view'
 		else if (mostPermissive !== 'view') mostPermissive = 'restricted'
 	}
 	if (mostPermissive === 'restricted') {
-		return { kind: 'restricted', editorListCount: 0, isPartner: false }
+		return { kind: 'restricted', editorListCount: 0, isPartner: false, parentLabels }
 	}
-	return { kind: 'view', editorListCount: 0, isPartner: false }
+	return { kind: 'view', editorListCount: 0, isPartner: false, parentLabels }
 }

@@ -173,7 +173,6 @@ function MyListsPage() {
 													? { kind: 'dependent', name: list.subjectDependentName, image: list.subjectDependentImage }
 													: { name: list.ownerName, email: list.ownerEmail, image: list.ownerImage }
 											}
-											editors={list.otherEditors}
 										/>
 									))}
 								</>
@@ -239,7 +238,6 @@ function MyListsPage() {
 												? { kind: 'dependent', name: list.subjectDependentName, image: list.subjectDependentImage }
 												: { name: list.ownerName, email: list.ownerEmail, image: list.ownerImage }
 										}
-										editors={list.otherEditors}
 									/>
 								))}
 							</ListsCardLists>

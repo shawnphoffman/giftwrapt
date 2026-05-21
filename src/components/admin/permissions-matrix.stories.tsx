@@ -75,6 +75,15 @@ const baseHousehold: PermissionsMatrixData = {
 		// Admin has a single list-level edit on Bob's lists, with no other grants.
 		{ ownerId: 'bob', userId: 'admin', count: 1 },
 	],
+	relationLabels: [
+		// Kiddo considers both Alice and Bob their parents. Per-direction:
+		// the reverse cells (Alice → Kid, Bob → Kid) carry no label.
+		{ userId: 'kid', label: 'mother', targetUserId: 'alice', targetDependentId: null },
+		{ userId: 'kid', label: 'father', targetUserId: 'bob', targetDependentId: null },
+		// Teen tagged Alice as their mother but never got around to tagging
+		// Bob - asymmetric one-direction example.
+		{ userId: 'teen', label: 'mother', targetUserId: 'alice', targetDependentId: null },
+	],
 }
 
 export const Household: Story = {
@@ -315,6 +324,45 @@ export const LargeOrg: Story = {
 			description: {
 				story:
 					'50 users: 1 admin, 5 partner pairs (10), 8 children with shared guardians, and 31 extended-family/non-related users. Sprinkled with edit grants, denies, and list-level editor counts. Useful for stress-testing density, scroll behavior, and how the legend reads against a dense matrix.',
+			},
+		},
+	},
+}
+
+export const RelationLabels: Story = {
+	args: {
+		data: {
+			users: [user('alice', 'Alice'), user('bob', 'Bob'), user('carol', 'Carol'), user('dave', 'Dave')],
+			dependents: [
+				// Mochi is co-managed by Alice + Bob. Carol has labeled Mochi
+				// as her mother (a pet treated as a parent figure - unusual
+				// but the schema supports it).
+				{ id: 'dep-mochi', name: 'Mochi', image: null, guardianIds: ['alice', 'bob'] },
+			],
+			guardianships: [],
+			relationships: [],
+			listEditorCounts: [],
+			relationLabels: [
+				// Symmetric: Carol and Dave each tag the other's parent role
+				// (a sibling pair with shared parents).
+				{ userId: 'carol', label: 'mother', targetUserId: 'alice', targetDependentId: null },
+				{ userId: 'carol', label: 'father', targetUserId: 'bob', targetDependentId: null },
+				{ userId: 'dave', label: 'mother', targetUserId: 'alice', targetDependentId: null },
+				{ userId: 'dave', label: 'father', targetUserId: 'bob', targetDependentId: null },
+				// Asymmetric: Bob privately tags Alice as his mother (e.g.
+				// estranged step-relationship), but Alice has never tagged
+				// Bob back. Only the (Bob, Alice) cell carries the icon.
+				{ userId: 'bob', label: 'mother', targetUserId: 'alice', targetDependentId: null },
+				// Dependent-target label: Carol labels Mochi as her mother.
+				{ userId: 'carol', label: 'mother', targetUserId: null, targetDependentId: 'dep-mochi' },
+			],
+		},
+	},
+	parameters: {
+		docs: {
+			description: {
+				story:
+					'Mother/father relation labels rendered as a violet Home icon in the bottom-left of the cell. Labels are per-direction: Carol+Dave label Alice and Bob (symmetric), but Bob also labels Alice as his mother with no reciprocal label from Alice (asymmetric). Carol can also label dependents.',
 			},
 		},
 	},

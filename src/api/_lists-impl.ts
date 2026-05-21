@@ -114,6 +114,10 @@ export type MyListRow = {
 	} | null
 	subjectDependentId: string | null
 	itemCount: number
+	// Other users who can edit this list besides the viewer. For owned lists
+	// this is everyone the owner has shared with; for `editable` rows it is
+	// every co-editor except the viewer themselves.
+	editors: Array<{ name: string | null; email: string; image: string | null }>
 }
 
 export type ChildListGroup = {
@@ -154,7 +158,6 @@ export type MyListsResult = {
 			// row instead of the guardian who created it.
 			subjectDependentName: string | null
 			subjectDependentImage: string | null
-			otherEditors: Array<{ name: string | null; email: string; image: string | null }>
 		}
 	>
 	children: Array<ChildListGroup>
@@ -590,6 +593,7 @@ export async function getMyListsImpl(userId: string, dbx: SchemaDatabase = db): 
 			giftIdeasTargetDependent: null,
 			subjectDependentId: row.subjectDependentId,
 			itemCount: row.itemCount,
+			editors: [],
 		})
 		listsByChildId.set(row.ownerId, bucket)
 	}
@@ -634,6 +638,7 @@ export async function getMyListsImpl(userId: string, dbx: SchemaDatabase = db): 
 			giftIdeasTargetDependent: null,
 			subjectDependentId: row.subjectDependentId,
 			itemCount: row.itemCount,
+			editors: [],
 		})
 		listsByDependentId.set(row.subjectDependentId, bucket)
 	}
@@ -663,8 +668,12 @@ export async function getMyListsImpl(userId: string, dbx: SchemaDatabase = db): 
 		if (row.subjectDependentId) lastGiftedByDependentId.set(row.subjectDependentId, row.lastGiftedAt)
 	}
 
-	const editableListIds = editableRows.map(r => r.id)
-	const otherEditorRows = editableListIds.length
+	// Editor lookup covers both owned lists (so /me can render "shared with"
+	// avatars on the row) and editable lists (so the editable section can
+	// render co-editors besides the viewer). The viewer is excluded so they
+	// never appear as their own co-editor.
+	const editorLookupListIds = [...ownedLists.map(l => l.id), ...editableRows.map(r => r.id)]
+	const editorRows = editorLookupListIds.length
 		? await dbx
 				.select({
 					listId: listEditors.listId,
@@ -674,14 +683,14 @@ export async function getMyListsImpl(userId: string, dbx: SchemaDatabase = db): 
 				})
 				.from(listEditors)
 				.innerJoin(users, eq(users.id, listEditors.userId))
-				.where(and(inArray(listEditors.listId, editableListIds), ne(listEditors.userId, userId)))
+				.where(and(inArray(listEditors.listId, editorLookupListIds), ne(listEditors.userId, userId)))
 				.orderBy(asc(users.name))
 		: []
-	const otherEditorsByListId = new Map<number, Array<{ name: string | null; email: string; image: string | null }>>()
-	for (const row of otherEditorRows) {
-		const bucket = otherEditorsByListId.get(row.listId) ?? []
+	const editorsByListId = new Map<number, Array<{ name: string | null; email: string; image: string | null }>>()
+	for (const row of editorRows) {
+		const bucket = editorsByListId.get(row.listId) ?? []
 		bucket.push({ name: row.name, email: row.email, image: row.image })
-		otherEditorsByListId.set(row.listId, bucket)
+		editorsByListId.set(row.listId, bucket)
 	}
 
 	const targetUserIds = Array.from(
@@ -745,6 +754,7 @@ export async function getMyListsImpl(userId: string, dbx: SchemaDatabase = db): 
 		giftIdeasTargetDependent: resolveTargetDependent(l.giftIdeasTargetDependentId),
 		subjectDependentId: l.subjectDependentId,
 		itemCount: l.itemCount,
+		editors: editorsByListId.get(l.id) ?? [],
 	})
 
 	return {
@@ -770,7 +780,7 @@ export async function getMyListsImpl(userId: string, dbx: SchemaDatabase = db): 
 			ownerImage: r.ownerImage,
 			subjectDependentName: r.subjectDependentName,
 			subjectDependentImage: r.subjectDependentImage,
-			otherEditors: otherEditorsByListId.get(r.id) ?? [],
+			editors: editorsByListId.get(r.id) ?? [],
 		})),
 		children: childListGroups,
 		dependents: dependentListGroups,

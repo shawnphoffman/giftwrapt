@@ -1,9 +1,10 @@
-import { EyeOff, Heart, Pencil, Shield, ShieldOff } from 'lucide-react'
+import { EyeOff, Heart, Home, Pencil, Shield, ShieldOff } from 'lucide-react'
 import { type ReactNode, useMemo } from 'react'
 
 import DependentAvatar from '@/components/common/dependent-avatar'
 import UserAvatar from '@/components/common/user-avatar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import type { RelationLabel } from '@/db/schema/enums'
 import {
 	buildIndices,
 	type Cell,
@@ -51,6 +52,9 @@ function CellTooltip({ cell, viewerName, ownerName }: { cell: Cell; viewerName: 
 			break
 	}
 	if (cell.isPartner) lines.push(`Partners.`)
+	for (const label of cell.parentLabels) {
+		lines.push(`${viewerName} considers ${ownerName} their ${label}.`)
+	}
 	return (
 		<div className="space-y-0.5">
 			{lines.map((line, i) => (
@@ -58,6 +62,13 @@ function CellTooltip({ cell, viewerName, ownerName }: { cell: Cell; viewerName: 
 			))}
 		</div>
 	)
+}
+
+function parentLabelAria(labels: Array<RelationLabel>): string {
+	// Capitalized for the ARIA label even though the enum is lowercase.
+	const formatted = labels.map(l => l.charAt(0).toUpperCase() + l.slice(1))
+	if (formatted.length === 1) return `${formatted[0]} relation`
+	return `${formatted.join(' + ')} relation`
 }
 
 function CellGlyph({ cell }: { cell: Cell }) {
@@ -176,6 +187,7 @@ export function PermissionsMatrixView({ data }: { data: PermissionsMatrixData })
 											relationships: indices.relationships,
 											listEditorCounts: indices.listEditorCounts,
 											partnerOf: indices.partnerOf,
+											relationLabelsByUserPair: indices.relationLabelsByUserPair,
 										})
 										return (
 											<td key={owner.id} className="p-0 border-b border-l/30">
@@ -191,6 +203,12 @@ export function PermissionsMatrixView({ data }: { data: PermissionsMatrixData })
 																</span>
 															)}
 															{cell.isPartner && <Heart className="absolute top-0.5 right-0.5 size-2.5 fill-pink-500 text-pink-500" />}
+															{cell.parentLabels.length > 0 && (
+																<Home
+																	className="absolute bottom-0.5 left-0.5 size-2.5 text-violet-500"
+																	aria-label={parentLabelAria(cell.parentLabels)}
+																/>
+															)}
 														</div>
 													</TooltipTrigger>
 													<TooltipContent side="top">
@@ -206,6 +224,7 @@ export function PermissionsMatrixView({ data }: { data: PermissionsMatrixData })
 											dependentId: dep.id,
 											guardianIds: dep.guardianIds,
 											relationships: indices.relationships,
+											relationLabelsByDependentPair: indices.relationLabelsByDependentPair,
 										})
 										return (
 											<td key={`dep-${dep.id}`} className="p-0 border-b border-l/30">
@@ -215,6 +234,12 @@ export function PermissionsMatrixView({ data }: { data: PermissionsMatrixData })
 															className={cn('relative size-12 flex items-center justify-center transition-colors', cellClasses(cell.kind))}
 														>
 															<CellGlyph cell={cell} />
+															{cell.parentLabels.length > 0 && (
+																<Home
+																	className="absolute bottom-0.5 left-0.5 size-2.5 text-violet-500"
+																	aria-label={parentLabelAria(cell.parentLabels)}
+																/>
+															)}
 														</div>
 													</TooltipTrigger>
 													<TooltipContent side="top">
@@ -250,7 +275,7 @@ function Legend() {
 				{userLevelGrants.map(it => (
 					<LegendItem key={it.kind} label={it.label} hint={it.hint}>
 						<div className={cn('flex items-center justify-center size-6 rounded-sm', cellClasses(it.kind))}>
-							<CellGlyph cell={{ kind: it.kind, editorListCount: 0, isPartner: false }} />
+							<CellGlyph cell={{ kind: it.kind, editorListCount: 0, isPartner: false, parentLabels: [] }} />
 						</div>
 					</LegendItem>
 				))}
@@ -259,6 +284,11 @@ function Legend() {
 				<LegendItem label="Partner" hint="Bidirectional partner link">
 					<div className="relative size-6 rounded-sm bg-muted">
 						<Heart className="absolute top-0.5 right-0.5 size-2.5 fill-pink-500 text-pink-500" />
+					</div>
+				</LegendItem>
+				<LegendItem label="Mother / Father" hint="Per-direction relation label">
+					<div className="relative size-6 rounded-sm bg-muted">
+						<Home className="absolute bottom-0.5 left-0.5 size-2.5 text-violet-500" />
 					</div>
 				</LegendItem>
 				<LegendItem label="+N" hint="List-level edit grants">
