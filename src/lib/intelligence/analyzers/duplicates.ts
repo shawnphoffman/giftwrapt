@@ -1,6 +1,7 @@
 import { and, eq, isNull, ne } from 'drizzle-orm'
 
 import { items, lists } from '@/db/schema'
+import { jaccard, tokenSet } from '@/lib/text-similarity'
 import { normalizeProductUrl } from '@/lib/urls'
 
 import { composeForLog, generateObjectCached } from '../ai-call'
@@ -21,12 +22,21 @@ import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ItemRef, ListRef 
 //      URL across DIFFERENT lists are the same product by definition.
 //      Emit those as confident recs without ever asking the model.
 //      Free precision; works even when titles diverge.
-//   2. Title heuristic: normalize titles and pair across lists. Model
-//      confirms semantic duplicates. URL-confirmed pairs are filtered
-//      out of this pass so we don't double-emit.
+//   2. Title heuristic: token-set Jaccard above DUPLICATES_LLM_FLOOR
+//      between titles across different lists. Replaces the old exact-
+//      normalize key so the model sees real candidates that the strict
+//      key would miss (e.g. "Lego X-Wing" vs "Lego X-Wing 75355").
+//      URL-confirmed pairs are filtered out of this pass so we don't
+//      double-emit. Candidates are sorted by descending Jaccard so the
+//      candidateCap truncation keeps the highest-confidence pairs.
 //
 // Items in the same list are NOT paired in either pass (intentional
 // duplicates within one list aren't actionable).
+
+// Minimum token-set Jaccard between two titles for them to be worth
+// asking the model about. Below this threshold the two items are
+// essentially unrelated and the LLM round-trip would be wasted.
+const DUPLICATES_LLM_FLOOR = 0.5
 export const duplicatesAnalyzer: Analyzer = {
 	id: 'duplicates',
 	label: 'Duplicates',
@@ -91,31 +101,40 @@ export const duplicatesAnalyzer: Analyzer = {
 			}
 		}
 
-		// Pass 2: title-normalize, but skip pairs already confirmed by URL.
-		const byNorm = new Map<string, Array<(typeof rows)[number]>>()
-		for (const row of rows) {
-			const key = normalize(row.title)
-			if (!key) continue
-			const arr = byNorm.get(key) ?? []
-			arr.push(row)
-			byNorm.set(key, arr)
-		}
+		// Pass 2: token-set Jaccard above DUPLICATES_LLM_FLOOR, across
+		// different lists, skipping pairs already confirmed by URL.
+		// Compute token sets once per row so the O(N^2) pair loop is
+		// just set intersections.
+		const tokens = new Map<number, Set<string>>()
+		for (const row of rows) tokens.set(row.itemId, tokenSet(row.title))
 
-		const candidatePairs: Array<Pair> = []
-		for (const group of byNorm.values()) {
-			if (group.length < 2) continue
-			for (let i = 0; i < group.length; i++) {
-				for (let j = i + 1; j < group.length; j++) {
-					if (group[i].listId === group[j].listId) continue
-					const ordered = group[i].itemId < group[j].itemId ? [group[i], group[j]] : [group[j], group[i]]
-					if (urlConfirmedKeys.has(pairKey(ordered[0].itemId, ordered[1].itemId))) continue
-					candidatePairs.push([ordered[0], ordered[1]])
-					if (candidatePairs.length >= ctx.candidateCap) break
-				}
-				if (candidatePairs.length >= ctx.candidateCap) break
+		type ScoredPair = { pair: Pair; score: number }
+		const scoredPairs: Array<ScoredPair> = []
+		for (let i = 0; i < rows.length; i++) {
+			const a = rows[i]
+			const aTokens = tokens.get(a.itemId)
+			if (!aTokens || aTokens.size === 0) continue
+			for (let j = i + 1; j < rows.length; j++) {
+				const b = rows[j]
+				if (a.listId === b.listId) continue
+				const bTokens = tokens.get(b.itemId)
+				if (!bTokens || bTokens.size === 0) continue
+				const score = jaccard(aTokens, bTokens)
+				if (score < DUPLICATES_LLM_FLOOR) continue
+				const ordered: Pair = a.itemId < b.itemId ? [a, b] : [b, a]
+				if (urlConfirmedKeys.has(pairKey(ordered[0].itemId, ordered[1].itemId))) continue
+				scoredPairs.push({ pair: ordered, score })
 			}
-			if (candidatePairs.length >= ctx.candidateCap) break
 		}
+		// Descending similarity: the closest matches go to the model
+		// first so the candidateCap truncation drops the weakest pairs.
+		scoredPairs.sort((x, y) => y.score - x.score)
+		const candidatePairs: Array<Pair> = scoredPairs.slice(0, ctx.candidateCap).map(s => s.pair)
+		// For the no-model fallback below, keep only the rock-solid
+		// matches (identical token sets). Widening the LLM candidate
+		// floor to 0.5 is fine because the LLM gates precision; without
+		// a model we have no such gate, so we stay strict.
+		const heuristicOnlyPairs: Array<Pair> = scoredPairs.filter(s => s.score === 1).map(s => s.pair)
 
 		// Input hash covers BOTH passes' pair sets so a change in
 		// URL-confirmed pairs invalidates the cached run just like a
@@ -158,10 +177,12 @@ export const duplicatesAnalyzer: Analyzer = {
 			{ itemId: String(p[1].itemId), title: p[1].title, listId: String(p[1].listId), listName: p[1].listName, listType: p[1].listType },
 		])
 
-		// Heuristic-only fallback: when no model, surface high-confidence
-		// (exact normalized match) pairs as info-level recs.
+		// Heuristic-only fallback: when no model, surface only the
+		// rock-solid (identical token set) pairs as info-level recs.
+		// The model is the precision gate; without one, we trade recall
+		// for not emitting noisy "maybe-duplicate" cards.
 		if (!ctx.model) {
-			for (const pair of candidatePairs) {
+			for (const pair of heuristicOnlyPairs) {
 				recs.push(
 					buildPairRec(
 						pair,
@@ -226,14 +247,6 @@ export const duplicatesAnalyzer: Analyzer = {
 
 		return { recs, steps, inputHash: combineHashes([inputHash]) }
 	},
-}
-
-function normalize(s: string): string {
-	return s
-		.toLowerCase()
-		.replace(/[^a-z0-9 ]+/g, ' ')
-		.replace(/\s+/g, ' ')
-		.trim()
 }
 
 // Stable key for "have we already emitted a rec for this item pair?"
