@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.36.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.35.0...v0.36.0) (2026-05-21)
+
+
+### Features
+
+* **admin/email:** pick template and recipient when sending test email ([190328d](https://github.com/shawnphoffman/giftwrapt/commit/190328d6ae964e3c4e633be1d953c73206a1bbe4))
+* **admin:** restructure edit-user modal for desktop ([82365d9](https://github.com/shawnphoffman/giftwrapt/commit/82365d9127021304f8b6f421428b3752ede6ce83))
+* **lists,admin:** row affordances and relation labels in matrix ([dfb9b26](https://github.com/shawnphoffman/giftwrapt/commit/dfb9b263d4c65eb9fad39aa0db31b8918bf115a2))
+* **purchases:** add receipt attachments and tracking numbers ([be55c14](https://github.com/shawnphoffman/giftwrapt/commit/be55c14ea6f156405a0107190966764dfa0b1ef9))
+
+
+### Bug Fixes
+
+* **build:** clear bundler warnings and give CI heap headroom ([ff6744e](https://github.com/shawnphoffman/giftwrapt/commit/ff6744e9c51346deb23a29e29fc3e7fdf36a2154))
+* **ci:** unblock typecheck, lint, and the sendTestEmail timeout ([b3d7b77](https://github.com/shawnphoffman/giftwrapt/commit/b3d7b777f3d9b58594a12d3686bb8b9d7ed47370))
+
+
+### Performance Improvements
+
+* **intelligence:** auto-confirm near-identical duplicate pairs ([10b4b0c](https://github.com/shawnphoffman/giftwrapt/commit/10b4b0ce5960df0566bffa5f988c717c3de7efd0))
+* **intelligence:** cache stable prompt prefix across analyzers ([921c6f5](https://github.com/shawnphoffman/giftwrapt/commit/921c6f567d759bfd35e6c7d8425c44d811f0a745))
+* **intelligence:** per-analyzer model override ([7f5c5e0](https://github.com/shawnphoffman/giftwrapt/commit/7f5c5e046b856750b597ed916fb6df4979cacb8d))
+* **intelligence:** short-circuit duplicates on shared product URL ([2393241](https://github.com/shawnphoffman/giftwrapt/commit/239324145e73c42b71fa33f4728812d419c5b633))
+* **intelligence:** skip AI rename when regex already rebuilt the name ([c940acb](https://github.com/shawnphoffman/giftwrapt/commit/c940acb80748b0398559e86a7e35b314c39e0aa4))
+* **intelligence:** widen duplicates pre-filter with token Jaccard ([fdbebab](https://github.com/shawnphoffman/giftwrapt/commit/fdbebab00ec52819d030909eeee3a041d475f516))
+
 ## [0.35.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.34.0...v0.35.0) (2026-05-18)
 
 
