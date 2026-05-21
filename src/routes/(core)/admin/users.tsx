@@ -37,7 +37,7 @@ function AdminUsersPage() {
 
 	return (
 		<>
-			<Card className="animate-page-in">
+			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
 					<CardTitle className="text-2xl">Impersonation</CardTitle>
 					<CardDescription>Impersonate a user to see the app as they do.</CardDescription>
@@ -51,7 +51,7 @@ function AdminUsersPage() {
 				</CardContent>
 			</Card>
 
-			<Card className="animate-page-in">
+			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
 					<div className="flex items-center justify-between gap-4">
 						<CardTitle className="text-2xl">Users</CardTitle>
@@ -68,7 +68,7 @@ function AdminUsersPage() {
 				</CardContent>
 			</Card>
 
-			<Card className="animate-page-in">
+			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
 					<div className="flex items-center justify-between gap-4">
 						<CardTitle className="text-2xl">Dependents</CardTitle>
@@ -89,7 +89,7 @@ function AdminUsersPage() {
 				</CardContent>
 			</Card>
 
-			<Card className="animate-page-in">
+			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
 					<CardTitle className="text-2xl">Permissions Matrix</CardTitle>
 					<CardDescription>
