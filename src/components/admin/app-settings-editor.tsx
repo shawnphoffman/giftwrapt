@@ -537,7 +537,7 @@ export function ParentalRelationsSettingsSection() {
 				masterKey="enableAnniversaryReminders"
 				leadDaysKey="anniversaryReminderLeadDays"
 				emailKey="enableAnniversaryReminderEmails"
-				title="Partner anniversary"
+				title="Partner Anniversary"
 				description="Reminders + the anniversary date field on profiles. Both partners are emailed; clearing the master hides the input."
 			/>
 		</div>
