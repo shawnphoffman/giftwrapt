@@ -183,10 +183,14 @@ function AuthenticatedRoutes() {
 			</Sidebar>
 			<SidebarInset>
 				{/* <header className="sticky top-0 z-10 flex items-center justify-between h-12 gap-2 shrink-0 w-full"> */}
-				{/* `pt-[env(...)]` only adds height in iOS PWA standalone mode where
-				    `apple-mobile-web-app-status-bar-style: black-translucent` lets
-				    content render under the status bar; in regular Safari/desktop
-				    the inset is 0 so this is a no-op. */}
+				{/* The safe-area-inset-top padding below only adds height in iOS PWA
+				    standalone mode where `apple-mobile-web-app-status-bar-style:
+				    black-translucent` lets content render under the status bar;
+				    in regular Safari/desktop the inset is 0 so this is a no-op.
+				    NOTE: keep this comment free of any literal `pt-env(...)`
+				    pseudo-class string — Tailwind's content scanner extracts class
+				    names from comments too, and an ellipsis inside the bracket
+				    generates an invalid CSS rule that LightningCSS warns on. */}
 				<header className=" top-0 z-10 flex items-center justify-between h-12 gap-2 shrink-0 w-full pt-[env(safe-area-inset-top)] box-content">
 					<div className="flex items-center gap-2 w-fit rounded-lg px-4">
 						<SidebarTrigger className=" -ml-1 [&_svg]:size-6! bg-background/75" />

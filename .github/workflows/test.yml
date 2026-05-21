@@ -77,7 +77,12 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build
-        run: pnpm build
+        # Vite's transform pass on the SSR + Nitro environments runs through
+        # ~8.8k modules (React Email templates, Radix, Framer Motion, the
+        # full intelligence chain). Node's default 4 GB heap is right at
+        # the edge on `ubuntu-latest`; bump headroom so a brief allocation
+        # spike doesn't OOM the runner.
+        run: NODE_OPTIONS="--max-old-space-size=6144" pnpm build
 
       - name: Assert no source maps in client bundle
         run: |

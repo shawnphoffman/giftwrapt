@@ -4,7 +4,7 @@
 // references it from inside server-fn handler bodies, which TanStack
 // Start strips on the client.
 
-import { and, eq, exists, inArray, sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db, type SchemaDatabase } from '@/db'
@@ -445,4 +445,4 @@ export async function viewerCanSeeDependent(viewerId: string, dependentId: strin
 }
 
 // Drizzle-relation helpers re-exported for tests.
-export { dependentGuardianships, dependents, exists }
+export { dependentGuardianships, dependents }
