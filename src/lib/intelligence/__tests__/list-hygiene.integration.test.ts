@@ -412,7 +412,11 @@ describe('applyRecommendationImpl branches', () => {
 		it('falls back to regex when toggle is on but no provider model is supplied', async () => {
 			await withRollback(async tx => {
 				const user = await makeUser(tx, { birthMonth: 'june', birthDay: 5 })
-				await makeList(tx, { ownerId: user.id, type: 'christmas', isPrivate: false, name: 'Christmas 2025' })
+				// Name that the regex preserves verbatim (no event token,
+				// no year). The toggle is on and we'd normally invoke the
+				// AI here, but model is null → fall back to the regex's
+				// passthrough name and record the reason.
+				await makeList(tx, { ownerId: user.id, type: 'christmas', isPrivate: false, name: "Sam's Big List" })
 
 				const result = await listHygieneAnalyzer.run(
 					buildCtx(tx, user.id, {
@@ -423,8 +427,7 @@ describe('applyRecommendationImpl branches', () => {
 				const convert = result.recs.find(r => r.kind === 'convert-public-list')
 				const apply = convert?.actions?.[0]?.apply
 				if (apply?.kind === 'convert-list') {
-					// Regex matched the year token, swapped to "Birthday 2026".
-					expect(apply.newName).toBe('Birthday 2026')
+					expect(apply.newName).toBe("Sam's Big List")
 				}
 				expect(mockedGenerateObject).not.toHaveBeenCalled()
 				expect(result.steps.some(s => s.name === 'rename-fallback-no-provider')).toBe(true)

@@ -161,6 +161,11 @@ function buildCtx(opts: Partial<AnalyzerContext> = {}): AnalyzerContext {
 	}
 }
 
+// Fresh per-call RenameState. Mutable, threaded across events in a run.
+function freshState() {
+	return { aiCallsUsed: 0, resolved: new Map<string, string>() }
+}
+
 describe('chooseConvertName', () => {
 	beforeEach(() => {
 		mockedGenerateObject.mockReset()
@@ -171,7 +176,7 @@ describe('chooseConvertName', () => {
 		const name = await chooseConvertName({
 			ctx: buildCtx({ model: sentinelModel }),
 			steps,
-			state: { aiCallsUsed: 0 },
+			state: freshState(),
 			currentName: 'Christmas 2024',
 			newType: 'birthday',
 			eventTitle: 'Birthday',
@@ -182,18 +187,39 @@ describe('chooseConvertName', () => {
 		expect(steps).toEqual([])
 	})
 
-	it('records rename-fallback-no-provider when toggle on but model is null', async () => {
+	it('skips the AI call when the regex already rebuilt the name', async () => {
+		// Regex matches "Christmas" → returns "Birthday 2026" without
+		// touching the model. The AI is reserved for the
+		// preserve-possessive case (regex passes through).
 		const steps: Array<AnalyzerStep> = []
 		const name = await chooseConvertName({
-			ctx: buildCtx({ settings: { ...DEFAULT_APP_SETTINGS, intelligenceListHygieneRenameWithAi: true }, model: null }),
+			ctx: buildCtx({ settings: { ...DEFAULT_APP_SETTINGS, intelligenceListHygieneRenameWithAi: true }, model: sentinelModel }),
 			steps,
-			state: { aiCallsUsed: 0 },
+			state: freshState(),
 			currentName: 'Christmas 2024',
 			newType: 'birthday',
 			eventTitle: 'Birthday',
 			eventYear: 2026,
 		})
 		expect(name).toBe('Birthday 2026')
+		expect(mockedGenerateObject).not.toHaveBeenCalled()
+		expect(steps.some(s => s.name === 'rename-skip-regex-matched')).toBe(true)
+	})
+
+	it('records rename-fallback-no-provider when toggle on but model is null AND regex did not match', async () => {
+		const steps: Array<AnalyzerStep> = []
+		const name = await chooseConvertName({
+			ctx: buildCtx({ settings: { ...DEFAULT_APP_SETTINGS, intelligenceListHygieneRenameWithAi: true }, model: null }),
+			steps,
+			state: freshState(),
+			// Regex passes through → we'd want the AI, but it isn't
+			// available → fall back to the (unchanged) regex name.
+			currentName: "Sam's Big List",
+			newType: 'birthday',
+			eventTitle: 'Birthday',
+			eventYear: 2026,
+		})
+		expect(name).toBe("Sam's Big List")
 		expect(mockedGenerateObject).not.toHaveBeenCalled()
 		expect(steps.some(s => s.name === 'rename-fallback-no-provider')).toBe(true)
 	})
@@ -207,7 +233,7 @@ describe('chooseConvertName', () => {
 		const name = await chooseConvertName({
 			ctx: buildCtx({ settings: { ...DEFAULT_APP_SETTINGS, intelligenceListHygieneRenameWithAi: true }, model: sentinelModel }),
 			steps,
-			state: { aiCallsUsed: 0 },
+			state: freshState(),
 			currentName: "Sam's Big List",
 			newType: 'birthday',
 			eventTitle: 'Birthday',
@@ -216,6 +242,42 @@ describe('chooseConvertName', () => {
 		expect(name).toBe("Sam's Birthday 2026")
 		expect(mockedGenerateObject).toHaveBeenCalledTimes(1)
 		expect(steps.some(s => s.name === 'list-hygiene-rename')).toBe(true)
+	})
+
+	it('memoizes a successful AI response within a run', async () => {
+		mockedGenerateObject.mockResolvedValue({
+			object: { name: "Sam's Birthday 2026" },
+			usage: { inputTokens: 50, outputTokens: 8 },
+		} as unknown as Awaited<ReturnType<typeof generateObject>>)
+		const ctx = buildCtx({ settings: { ...DEFAULT_APP_SETTINGS, intelligenceListHygieneRenameWithAi: true }, model: sentinelModel })
+		const state = freshState()
+		const steps: Array<AnalyzerStep> = []
+
+		const first = await chooseConvertName({
+			ctx,
+			steps,
+			state,
+			currentName: "Sam's Big List",
+			newType: 'birthday',
+			eventTitle: 'Birthday',
+			eventYear: 2026,
+		})
+		const second = await chooseConvertName({
+			ctx,
+			steps,
+			state,
+			currentName: "Sam's Big List",
+			newType: 'birthday',
+			eventTitle: 'Birthday',
+			eventYear: 2026,
+		})
+		expect(first).toBe("Sam's Birthday 2026")
+		expect(second).toBe("Sam's Birthday 2026")
+		// One AI call total, second resolved from memo.
+		expect(mockedGenerateObject).toHaveBeenCalledTimes(1)
+		expect(steps.filter(s => s.name === 'rename-cache-hit').length).toBe(1)
+		// The cache hit must NOT consume a slot from the per-run cap.
+		expect(state.aiCallsUsed).toBe(1)
 	})
 
 	it('falls back to regex name when the AI response fails validation', async () => {
@@ -227,13 +289,14 @@ describe('chooseConvertName', () => {
 		const name = await chooseConvertName({
 			ctx: buildCtx({ settings: { ...DEFAULT_APP_SETTINGS, intelligenceListHygieneRenameWithAi: true }, model: sentinelModel }),
 			steps,
-			state: { aiCallsUsed: 0 },
-			currentName: 'Christmas 2024',
+			state: freshState(),
+			// Regex passes through → AI is called → response fails validation.
+			currentName: "Sam's Big List",
 			newType: 'birthday',
 			eventTitle: 'Birthday',
 			eventYear: 2026,
 		})
-		expect(name).toBe('Birthday 2026') // regex fallback
+		expect(name).toBe("Sam's Big List") // regex fallback
 		expect(steps.some(s => s.name === 'rename-fallback-validation')).toBe(true)
 	})
 
@@ -243,13 +306,13 @@ describe('chooseConvertName', () => {
 		const name = await chooseConvertName({
 			ctx: buildCtx({ settings: { ...DEFAULT_APP_SETTINGS, intelligenceListHygieneRenameWithAi: true }, model: sentinelModel }),
 			steps,
-			state: { aiCallsUsed: 0 },
-			currentName: 'Christmas 2024',
+			state: freshState(),
+			currentName: "Sam's Big List",
 			newType: 'birthday',
 			eventTitle: 'Birthday',
 			eventYear: 2026,
 		})
-		expect(name).toBe('Birthday 2026')
+		expect(name).toBe("Sam's Big List")
 		// list-hygiene-rename step is logged with the error; a separate
 		// rename-fallback-error marker is also pushed.
 		const errorStep = steps.find(s => s.name === 'list-hygiene-rename')
@@ -263,14 +326,17 @@ describe('chooseConvertName', () => {
 			usage: { inputTokens: 50, outputTokens: 8 },
 		} as unknown as Awaited<ReturnType<typeof generateObject>>)
 		const ctx = buildCtx({ settings: { ...DEFAULT_APP_SETTINGS, intelligenceListHygieneRenameWithAi: true }, model: sentinelModel })
-		const state = { aiCallsUsed: 0 }
+		const state = freshState()
 		const steps: Array<AnalyzerStep> = []
+		// Distinct, regex-passthrough names so each candidate actually
+		// reaches the AI (cap is what we're testing, not the regex skip
+		// or the memo).
 		for (let i = 0; i < LIST_HYGIENE_RENAME_AI_CAP + 2; i++) {
 			await chooseConvertName({
 				ctx,
 				steps,
 				state,
-				currentName: `Christmas ${i}`,
+				currentName: `Owner${i}'s Big List`,
 				newType: 'birthday',
 				eventTitle: 'Birthday',
 				eventYear: 2026,

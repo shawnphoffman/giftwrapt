@@ -228,7 +228,7 @@ export const listHygieneAnalyzer: Analyzer = {
 		// cap defends against pathological seed states (one user with
 		// many public non-matching lists) by bounding total AI calls
 		// inside a single analyzer pass.
-		const renameState: RenameState = { aiCallsUsed: 0 }
+		const renameState: RenameState = { aiCallsUsed: 0, resolved: new Map() }
 
 		// Calendar-quiet case: the per-event branches have nothing to do
 		// but the duplicates pass and the stale-public-list pass can
@@ -405,8 +405,17 @@ export const listHygieneAnalyzer: Analyzer = {
 
 // Mutable state threaded through every branch-1 candidate in a single
 // analyzer pass. The cap counter survives across events because the
-// cap is a per-run total, not per-event.
-type RenameState = { aiCallsUsed: number }
+// cap is a per-run total, not per-event. The resolved-name memo
+// guarantees that two events nominating the same candidate list pay
+// at most one AI call between them.
+type RenameState = {
+	aiCallsUsed: number
+	resolved: Map<string, string>
+}
+
+function renameCacheKey(currentName: string, eventTitle: string, eventYear: number): string {
+	return `${currentName} ${eventTitle} ${eventYear}`
+}
 
 type ChooseConvertNameArgs = {
 	ctx: AnalyzerContext
@@ -421,14 +430,40 @@ type ChooseConvertNameArgs = {
 // Returns the proposed `newName` for a `convert-public-list` rec
 // candidate. When the AI toggle is off, returns the regex name from
 // `renameForConvert`. When the toggle is on, attempts a single AI call
-// (with per-run cap), validates the response, and falls back to the
-// regex name on any failure. The decision is recorded as a run-step so
-// admins can audit `rename-fallback-*` paths.
+// (with per-run cap + within-run memo), validates the response, and
+// falls back to the regex name on any failure. The decision is recorded
+// as a run-step so admins can audit `rename-fallback-*` and
+// `rename-skip-*` paths.
 export async function chooseConvertName(args: ChooseConvertNameArgs): Promise<string> {
 	const { ctx, steps, state, currentName, newType, eventTitle, eventYear } = args
 	const regexName = renameForConvert(currentName, eventTitle, eventYear)
 
 	if (!ctx.settings.intelligenceListHygieneRenameWithAi) return regexName
+
+	// Skip the model when the regex already rebuilt the name. The regex
+	// returns either the original name (no event-themed token / year
+	// found) or exactly `<EventTitle> <Year>`. When it's the latter,
+	// the AI would just be asked to produce what the regex already
+	// produced - it's the "generic name → canonical" case the prompt
+	// itself routes to the regex's output. The AI earns its keep only
+	// when the regex passed through (the "preserve possessive" case
+	// like "Sam's Wishlist" → "Sam's Birthday 2026"), so we gate on
+	// regexName === currentName to invoke it.
+	if (regexName !== currentName) {
+		steps.push({ name: 'rename-skip-regex-matched', latencyMs: 0 })
+		return regexName
+	}
+
+	// Within-run memo: two events nominating the same candidate list
+	// (e.g. an in-window birthday AND a custom holiday on the same
+	// person) should pay at most one AI call between them. Cache hits
+	// don't tick the cap counter since no actual call happened.
+	const cacheKey = renameCacheKey(currentName, eventTitle, eventYear)
+	const cached = state.resolved.get(cacheKey)
+	if (cached !== undefined) {
+		steps.push({ name: 'rename-cache-hit', latencyMs: 0 })
+		return cached
+	}
 
 	// Provider not configured (or otherwise unavailable): silently fall
 	// back to the regex path for this run. Telemetry records the reason
@@ -494,6 +529,9 @@ export async function chooseConvertName(args: ChooseConvertNameArgs): Promise<st
 		steps.push({ name: 'rename-fallback-validation', latencyMs: 0 })
 		return regexName
 	}
+	// Memoize the successful AI result so a second nomination for the
+	// same (currentName, eventTitle, eventYear) returns instantly.
+	state.resolved.set(cacheKey, validated)
 	return validated
 }
 
