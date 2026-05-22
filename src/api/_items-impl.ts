@@ -6,7 +6,7 @@
 // client environment, letting Rollup tree-shake this whole file out
 // of the client bundle.
 
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { type SchemaDatabase } from '@/db'
@@ -14,6 +14,7 @@ import { giftedItems, items, lists } from '@/db/schema'
 import { priorityEnumValues, statusEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { httpsUpgradeOrNull } from '@/lib/image-url'
+import { visibleItemsWhere } from '@/lib/item-visibility'
 import { dispatchOrphanClaimEmails, resolveListRecipientName } from '@/lib/orphan-claims'
 import { canEditList } from '@/lib/permissions'
 import { loadCachedScrapeRating } from '@/lib/scrapers/cache'
@@ -157,7 +158,7 @@ export async function updateItemImpl(args: {
 	// Pending-deletion items are not-found from the recipient's perspective
 	// (they "deleted" it; revealing a 200 response would tip off the spoiler).
 	const item = await dbx.query.items.findFirst({
-		where: and(eq(items.id, data.itemId), isNull(items.pendingDeletionAt)),
+		where: and(eq(items.id, data.itemId), visibleItemsWhere('editable')),
 		columns: { id: true, listId: true, vendorSource: true, imageUrl: true },
 	})
 	if (!item) return { kind: 'error', reason: 'not-found' }
@@ -261,7 +262,7 @@ export async function deleteItemImpl(args: {
 	// pending-deletion. Treat it as not-found, matching the recipient-side
 	// 404 contract for every mutation against a pending-deletion item.
 	const item = await dbx.query.items.findFirst({
-		where: and(eq(items.id, input.itemId), isNull(items.pendingDeletionAt)),
+		where: and(eq(items.id, input.itemId), visibleItemsWhere('editable')),
 		columns: { id: true, listId: true, title: true, imageUrl: true },
 	})
 	if (!item) return { kind: 'error', reason: 'not-found' }

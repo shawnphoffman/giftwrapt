@@ -11,11 +11,12 @@
 //   - `acknowledgeOrphanedClaim`: drops the caller's claim row and (if
 //     it was the last claim on the item) hard-deletes the item.
 
-import { and, eq, inArray, isNotNull } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db, type SchemaDatabase } from '@/db'
 import { giftedItems, items, lists, users } from '@/db/schema'
+import { visibleItemsWhere } from '@/lib/item-visibility'
 import { userHasStandingOnClaim } from '@/lib/orphan-claims'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { notifyListEvent } from '@/routes/api/sse/list.$listId'
@@ -89,7 +90,7 @@ export async function getOrphanedClaimsForListImpl(args: {
 			pendingDeletionAt: items.pendingDeletionAt,
 		})
 		.from(giftedItems)
-		.innerJoin(items, and(eq(items.id, giftedItems.itemId), isNotNull(items.pendingDeletionAt), eq(items.listId, listId)))
+		.innerJoin(items, and(eq(items.id, giftedItems.itemId), visibleItemsWhere('pending-deletion'), eq(items.listId, listId)))
 		.where(inArray(giftedItems.gifterId, gifterIds))
 
 	return rows
@@ -136,7 +137,7 @@ export async function getOrphanedClaimsSummaryImpl(args: {
 			itemId: items.id,
 		})
 		.from(giftedItems)
-		.innerJoin(items, and(eq(items.id, giftedItems.itemId), isNotNull(items.pendingDeletionAt)))
+		.innerJoin(items, and(eq(items.id, giftedItems.itemId), visibleItemsWhere('pending-deletion')))
 		.innerJoin(lists, eq(lists.id, items.listId))
 		.innerJoin(users, eq(users.id, lists.ownerId))
 		.where(inArray(giftedItems.gifterId, gifterIds))

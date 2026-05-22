@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, asc, count, desc, eq, gt, inArray, isNull, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, gt, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db, type SchemaDatabase } from '@/db'
@@ -20,6 +20,7 @@ import {
 import { listTypeEnumValues } from '@/db/schema/enums'
 import { resolveAiConfig } from '@/lib/ai-config'
 import { generateForUser } from '@/lib/intelligence/runner'
+import { visibleItemsWhere } from '@/lib/item-visibility'
 import { isCrossTypeMoveDestructive } from '@/lib/list-type-moves'
 import { loggingMiddleware } from '@/lib/logger'
 import { canEditList } from '@/lib/permissions'
@@ -850,7 +851,7 @@ async function applyMergeLists(
 	await tx
 		.update(items)
 		.set({ listId: survivorIdNum })
-		.where(and(inArray(items.listId, sourceIdsResolved), isNull(items.pendingDeletionAt)))
+		.where(and(inArray(items.listId, sourceIdsResolved), visibleItemsWhere('editable')))
 
 	// Step 5: re-point item groups. `items.groupId` is left as-is so the
 	// group identity (type, priority, sortOrder, members) carries through

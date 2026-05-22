@@ -1,6 +1,7 @@
 import { and, eq, isNull, ne } from 'drizzle-orm'
 
 import { items, lists } from '@/db/schema'
+import { visibleItemsWhere } from '@/lib/item-visibility'
 import { jaccard, tokenSet } from '@/lib/text-similarity'
 import { normalizeProductUrl } from '@/lib/urls'
 
@@ -74,8 +75,7 @@ export const duplicatesAnalyzer: Analyzer = {
 					eq(lists.isActive, true),
 					ne(lists.type, 'giftideas'),
 					ne(lists.type, 'todos'),
-					eq(items.isArchived, false),
-					isNull(items.pendingDeletionAt)
+					visibleItemsWhere('visible')
 				)
 			)
 			.limit(ctx.candidateCap * 4)

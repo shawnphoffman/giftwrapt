@@ -1,6 +1,7 @@
 import { and, eq, isNotNull, isNull, ne } from 'drizzle-orm'
 
 import { items, lists } from '@/db/schema'
+import { visibleItemsWhere } from '@/lib/item-visibility'
 
 import type { Analyzer } from '../analyzer'
 import type { AnalyzerSubject } from '../context'
@@ -42,8 +43,7 @@ export const missingPriceAnalyzer: Analyzer = {
 					eq(lists.isActive, true),
 					ne(lists.type, 'giftideas'),
 					ne(lists.type, 'todos'),
-					eq(items.isArchived, false),
-					isNull(items.pendingDeletionAt),
+					visibleItemsWhere('visible'),
 					isNotNull(items.url),
 					isNull(items.price)
 				)

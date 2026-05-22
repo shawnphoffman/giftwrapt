@@ -5,7 +5,7 @@
 // of the client bundle by ensuring `items.ts` only references these
 // from inside server-fn handler / inputValidator bodies.
 
-import { and, asc, count, desc, eq, inArray, isNull } from 'drizzle-orm'
+import { and, asc, count, desc, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db, type SchemaDatabase } from '@/db'
@@ -13,6 +13,7 @@ import { giftedItems, itemComments, itemGroups, items, listAddons, lists, users 
 import { availabilityEnumValues, type ListType, type Priority, priorityEnumValues } from '@/db/schema/enums'
 import type { GiftedItem } from '@/db/schema/gifts'
 import type { Item } from '@/db/schema/items'
+import { visibleItemsWhere } from '@/lib/item-visibility'
 import { isCrossTypeMoveDestructive, SPOILER_PROTECTED_TYPES } from '@/lib/list-type-moves'
 import { canEditList, canViewList, getViewerAccessLevelForList } from '@/lib/permissions'
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
@@ -214,7 +215,7 @@ async function loadAndAuthorizeItems(
 	// mutations (organize / move / etc.) treat them as not-found, matching
 	// the per-item 404 contract.
 	const rows = await db.query.items.findMany({
-		where: and(inArray(items.id, [...itemIds]), isNull(items.pendingDeletionAt)),
+		where: and(inArray(items.id, [...itemIds]), visibleItemsWhere('editable')),
 		columns: { id: true, listId: true },
 	})
 	if (rows.length !== itemIds.length) return { ok: false, reason: 'not-found' }
@@ -245,7 +246,7 @@ export async function copyItemToListImpl(args: { userId: string; input: z.infer<
 	// Pending-deletion items are invisible everywhere except the alert UI
 	// for the audience with standing on their claims; copy is not allowed.
 	const sourceItem = await db.query.items.findFirst({
-		where: and(eq(items.id, data.itemId), isNull(items.pendingDeletionAt)),
+		where: and(eq(items.id, data.itemId), visibleItemsWhere('editable')),
 	})
 	if (!sourceItem) return { kind: 'error', reason: 'not-found' }
 
@@ -299,7 +300,7 @@ export async function archiveItemImpl(args: {
 
 	// Pending-deletion items are not-found from the recipient's perspective.
 	const item = await dbx.query.items.findFirst({
-		where: and(eq(items.id, data.itemId), isNull(items.pendingDeletionAt)),
+		where: and(eq(items.id, data.itemId), visibleItemsWhere('editable')),
 		columns: { id: true, listId: true },
 	})
 	if (!item) return { kind: 'error', reason: 'not-found' }
@@ -326,7 +327,7 @@ export async function setItemAvailabilityImpl(args: {
 	const { userId, input: data, dbx = db } = args
 
 	const item = await dbx.query.items.findFirst({
-		where: and(eq(items.id, data.itemId), isNull(items.pendingDeletionAt)),
+		where: and(eq(items.id, data.itemId), visibleItemsWhere('editable')),
 		columns: { id: true, listId: true },
 	})
 	if (!item) return { kind: 'error', reason: 'not-found' }
@@ -454,10 +455,7 @@ export async function archiveListPurchasesImpl(args: {
 	const claimedRows = await dbx
 		.selectDistinct({ itemId: giftedItems.itemId })
 		.from(giftedItems)
-		.innerJoin(
-			items,
-			and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), isNull(items.pendingDeletionAt), eq(items.listId, list.id))
-		)
+		.innerJoin(items, and(eq(items.id, giftedItems.itemId), visibleItemsWhere('visible'), eq(items.listId, list.id)))
 
 	const ids = claimedRows.map(r => r.itemId)
 	const archivedAddons = await dbx
@@ -701,7 +699,7 @@ export async function getItemsForListViewImpl(args: {
 
 	const [listItemsRaw, viewGroups, groupTypes, viewerRow] = await Promise.all([
 		dbx.query.items.findMany({
-			where: and(eq(items.listId, list.id), eq(items.isArchived, false), isNull(items.pendingDeletionAt)),
+			where: and(eq(items.listId, list.id), visibleItemsWhere('visible')),
 			orderBy,
 			with: {
 				gifts: {
@@ -799,9 +797,7 @@ export async function getItemsForListEditImpl(args: {
 	// `includeArchived` (which surfaces revealed gifts in the organize
 	// view). Spoiler protection extends to that view.
 	const listItems = await dbx.query.items.findMany({
-		where: args.includeArchived
-			? and(eq(items.listId, list.id), isNull(items.pendingDeletionAt))
-			: and(eq(items.listId, list.id), eq(items.isArchived, false), isNull(items.pendingDeletionAt)),
+		where: and(eq(items.listId, list.id), visibleItemsWhere(args.includeArchived ? 'editable' : 'visible')),
 		orderBy: [desc(items.createdAt)],
 	})
 

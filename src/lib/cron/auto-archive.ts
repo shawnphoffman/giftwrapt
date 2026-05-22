@@ -6,13 +6,14 @@
 // The handler in `src/routes/api/cron/auto-archive.ts` is a thin
 // wrapper that checks the CRON_SECRET and delegates here.
 
-import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { giftedItems, items, listAddons, lists, users } from '@/db/schema'
 import type { BirthMonth } from '@/db/schema/enums'
 import { customHolidayNextOccurrence } from '@/lib/custom-holidays'
 import { endOfOccurrence, lastOccurrence } from '@/lib/holidays'
+import { visibleItemsWhere } from '@/lib/item-visibility'
 
 const MONTHS: ReadonlyArray<BirthMonth> = [
 	'january',
@@ -92,10 +93,7 @@ export async function autoArchiveImpl({
 		const claimedItemIds = await db
 			.selectDistinct({ itemId: giftedItems.itemId })
 			.from(giftedItems)
-			.innerJoin(
-				items,
-				and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), isNull(items.pendingDeletionAt), inArray(items.listId, listIds))
-			)
+			.innerJoin(items, and(eq(items.id, giftedItems.itemId), visibleItemsWhere('visible'), inArray(items.listId, listIds)))
 
 		if (claimedItemIds.length > 0) {
 			const ids = claimedItemIds.map(r => r.itemId)
@@ -128,10 +126,7 @@ export async function autoArchiveImpl({
 			const claimedItemIds = await db
 				.selectDistinct({ itemId: giftedItems.itemId })
 				.from(giftedItems)
-				.innerJoin(
-					items,
-					and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), isNull(items.pendingDeletionAt), eq(items.listId, list.id))
-				)
+				.innerJoin(items, and(eq(items.id, giftedItems.itemId), visibleItemsWhere('visible'), eq(items.listId, list.id)))
 			const ids = claimedItemIds.map(r => r.itemId)
 			if (ids.length > 0) {
 				await db.update(items).set({ isArchived: true }).where(inArray(items.id, ids))
@@ -209,10 +204,7 @@ export async function autoArchiveImpl({
 		const claimedItemIds = await db
 			.selectDistinct({ itemId: giftedItems.itemId })
 			.from(giftedItems)
-			.innerJoin(
-				items,
-				and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), isNull(items.pendingDeletionAt), eq(items.listId, list.id))
-			)
+			.innerJoin(items, and(eq(items.id, giftedItems.itemId), visibleItemsWhere('visible'), eq(items.listId, list.id)))
 
 		const ids = claimedItemIds.map(r => r.itemId)
 		if (ids.length > 0) {

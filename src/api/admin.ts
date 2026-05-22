@@ -1,6 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
-import { and, asc, eq, inArray, isNotNull, isNull, ne } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNotNull, ne } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
@@ -9,6 +9,7 @@ import { getAllUsersQuery, getUserDetailsQuery } from '@/db/queries/users'
 import type { BirthMonth, Role } from '@/db/schema'
 import { giftedItems, guardianships, items, itemScrapes, lists, users } from '@/db/schema'
 import { auth } from '@/lib/auth'
+import { visibleItemsWhere } from '@/lib/item-visibility'
 import { loggingMiddleware } from '@/lib/logger'
 import { applyPartnerAndAnniversary } from '@/lib/partner-update'
 import { isEmailConfigured, sendTestEmail, type TestEmailKind } from '@/lib/resend'
@@ -448,7 +449,7 @@ export async function bulkArchiveClaimedItemsImpl(args: { db: SchemaDatabase }):
 	const claimedItemIds = await dbx
 		.selectDistinct({ itemId: giftedItems.itemId })
 		.from(giftedItems)
-		.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), isNull(items.pendingDeletionAt)))
+		.innerJoin(items, and(eq(items.id, giftedItems.itemId), visibleItemsWhere('visible')))
 
 	if (claimedItemIds.length === 0) {
 		return { kind: 'ok', archivedCount: 0 }

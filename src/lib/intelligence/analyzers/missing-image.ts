@@ -1,6 +1,7 @@
 import { and, eq, isNull, ne, sql } from 'drizzle-orm'
 
 import { items, itemScrapes, lists } from '@/db/schema'
+import { visibleItemsWhere } from '@/lib/item-visibility'
 
 import type { Analyzer } from '../analyzer'
 import type { AnalyzerSubject } from '../context'
@@ -52,8 +53,7 @@ export const missingImageAnalyzer: Analyzer = {
 					eq(lists.isActive, true),
 					ne(lists.type, 'giftideas'),
 					ne(lists.type, 'todos'),
-					eq(items.isArchived, false),
-					isNull(items.pendingDeletionAt),
+					visibleItemsWhere('visible'),
 					isNull(items.imageUrl),
 					sql`${candidateImages} IS NOT NULL`
 				)

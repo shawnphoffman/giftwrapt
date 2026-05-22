@@ -4,12 +4,13 @@
 // via withRollback) while the email-send side-effects get vi.mock'd at
 // the resend module boundary.
 
-import { and, eq, inArray, isNull } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { giftedItems, items, lists, users } from '@/db/schema'
 import type { BirthMonth } from '@/db/schema/enums'
 import { formatGifterNames, namesForGifter, type PartneredUser } from '@/lib/gifters'
+import { visibleItemsWhere } from '@/lib/item-visibility'
 import { sendBirthdayEmail, sendPostBirthdayEmail } from '@/lib/resend'
 
 const MONTHS: ReadonlyArray<BirthMonth> = [
@@ -82,7 +83,7 @@ export async function birthdayEmailsImpl({ db, now }: Args): Promise<BirthdayEma
 					additionalGifterIds: giftedItems.additionalGifterIds,
 				})
 				.from(giftedItems)
-				.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, true), isNull(items.pendingDeletionAt)))
+				.innerJoin(items, and(eq(items.id, giftedItems.itemId), visibleItemsWhere('revealed')))
 				.innerJoin(lists, and(eq(lists.id, items.listId), eq(lists.ownerId, user.id)))
 
 			if (archivedGifts.length === 0) continue

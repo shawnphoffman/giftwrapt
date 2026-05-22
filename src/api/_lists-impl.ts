@@ -25,6 +25,7 @@ import {
 import { type BirthMonth, type GroupType, type ListType, listTypeEnumValues, type Priority } from '@/db/schema/enums'
 import type { ListAddon } from '@/db/schema/lists'
 import { computeListItemCounts } from '@/lib/gifts'
+import { visibleItemsWhere } from '@/lib/item-visibility'
 import { userHasPendingDeletionClaimOnList } from '@/lib/orphan-claims'
 import { canEditList, canViewList, getViewerAccessLevelForList } from '@/lib/permissions'
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
@@ -489,7 +490,7 @@ export async function getMyListsImpl(userId: string, dbx: SchemaDatabase = db): 
 			.from(lists)
 			// "Owned by me" excludes lists I created FOR a dependent - those
 			// belong in the dependents section below, not in my personal lists.
-			.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false), sql`${items.pendingDeletionAt} IS NULL`))
+			.leftJoin(items, and(eq(items.listId, lists.id), visibleItemsWhere('visible')))
 			.where(and(eq(lists.ownerId, userId), eq(lists.isActive, true), sql`${lists.subjectDependentId} IS NULL`))
 			.groupBy(lists.id)
 			.orderBy(desc(lists.isPrimary), asc(lists.name)),
@@ -517,7 +518,7 @@ export async function getMyListsImpl(userId: string, dbx: SchemaDatabase = db): 
 			.innerJoin(lists, and(eq(lists.id, listEditors.listId), eq(lists.isActive, true)))
 			.innerJoin(sql`users as owner`, sql`owner.id = ${lists.ownerId}`)
 			.leftJoin(sql`dependents as subject_dep`, sql`subject_dep.id = ${lists.subjectDependentId}`)
-			.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false), sql`${items.pendingDeletionAt} IS NULL`))
+			.leftJoin(items, and(eq(items.listId, lists.id), visibleItemsWhere('visible')))
 			.where(eq(listEditors.userId, userId))
 			.groupBy(lists.id, sql`owner.name`, sql`owner.email`, sql`owner.image`, sql`subject_dep.name`, sql`subject_dep.image`)
 			.orderBy(asc(lists.name)),
@@ -572,7 +573,7 @@ export async function getMyListsImpl(userId: string, dbx: SchemaDatabase = db): 
 					itemCount: count(items.id),
 				})
 				.from(lists)
-				.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false), sql`${items.pendingDeletionAt} IS NULL`))
+				.leftJoin(items, and(eq(items.listId, lists.id), visibleItemsWhere('visible')))
 				.where(and(inArray(lists.ownerId, childIds), eq(lists.isActive, true)))
 				.groupBy(lists.id)
 				.orderBy(asc(lists.name))
@@ -616,7 +617,7 @@ export async function getMyListsImpl(userId: string, dbx: SchemaDatabase = db): 
 					itemCount: count(items.id),
 				})
 				.from(lists)
-				.leftJoin(items, and(eq(items.listId, lists.id), eq(items.isArchived, false), sql`${items.pendingDeletionAt} IS NULL`))
+				.leftJoin(items, and(eq(items.listId, lists.id), visibleItemsWhere('visible')))
 				.where(and(inArray(lists.subjectDependentId, dependentIds), eq(lists.isActive, true)))
 				.groupBy(lists.id)
 				.orderBy(asc(lists.name))

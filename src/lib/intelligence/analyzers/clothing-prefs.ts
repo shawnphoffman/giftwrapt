@@ -1,6 +1,7 @@
 import { and, eq, isNull, ne } from 'drizzle-orm'
 
 import { items, lists } from '@/db/schema'
+import { visibleItemsWhere } from '@/lib/item-visibility'
 
 import { composeForLog, generateObjectCached } from '../ai-call'
 import type { Analyzer } from '../analyzer'
@@ -49,8 +50,7 @@ export const clothingPrefsAnalyzer: Analyzer = {
 					eq(lists.isActive, true),
 					ne(lists.type, 'giftideas'),
 					ne(lists.type, 'todos'),
-					eq(items.isArchived, false),
-					isNull(items.pendingDeletionAt)
+					visibleItemsWhere('visible')
 				)
 			)
 			.limit(ctx.candidateCap)

@@ -5,6 +5,7 @@ import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
 import { dependentGuardianships, dependents, giftedItems, items, listAddons, lists, users } from '@/db/schema'
 import { displayName, formatGifterNames, namesForGifter, type PartneredUser } from '@/lib/gifters'
+import { visibleItemsWhere } from '@/lib/item-visibility'
 import { loggingMiddleware } from '@/lib/logger'
 import { authMiddleware } from '@/middleware/auth'
 
@@ -144,7 +145,7 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 			subjectDependentId: lists.subjectDependentId,
 		})
 		.from(giftedItems)
-		.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, true)))
+		.innerJoin(items, and(eq(items.id, giftedItems.itemId), visibleItemsWhere('revealed')))
 		.innerJoin(lists, eq(lists.id, items.listId))
 		.where(and(eq(lists.ownerId, userId), isNull(lists.subjectDependentId)))
 		.orderBy(desc(items.updatedAt))
@@ -216,7 +217,7 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 				subjectDependentId: lists.subjectDependentId,
 			})
 			.from(giftedItems)
-			.innerJoin(items, and(eq(items.id, giftedItems.itemId), eq(items.isArchived, true), isNull(items.pendingDeletionAt)))
+			.innerJoin(items, and(eq(items.id, giftedItems.itemId), visibleItemsWhere('revealed')))
 			.innerJoin(lists, and(eq(lists.id, items.listId), inArray(lists.subjectDependentId, myDependentIds)))
 			.orderBy(desc(items.updatedAt))
 

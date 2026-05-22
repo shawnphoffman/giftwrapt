@@ -13,11 +13,12 @@
 //
 // Wired into `runBirthdayEmails` (the existing daily outbound-mail tick).
 
-import { eq, isNotNull } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { giftedItems, items, users } from '@/db/schema'
 import { customHolidayNextOccurrence } from '@/lib/custom-holidays'
+import { visibleItemsWhere } from '@/lib/item-visibility'
 import { createLogger } from '@/lib/logger'
 import { resolveListRecipientName } from '@/lib/orphan-claims'
 import { isEmailConfigured, sendOrphanClaimCleanupReminderEmail } from '@/lib/resend'
@@ -170,7 +171,7 @@ export async function orphanClaimCleanupImpl(args: { db: SchemaDatabase; now: Da
 			pendingDeletionAt: items.pendingDeletionAt,
 		})
 		.from(items)
-		.where(isNotNull(items.pendingDeletionAt))
+		.where(visibleItemsWhere('pending-deletion'))
 
 	if (orphanRows.length === 0) return { remindersSent, itemsDeleted, claimsDeleted }
 

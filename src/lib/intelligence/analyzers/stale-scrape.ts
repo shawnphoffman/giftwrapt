@@ -1,6 +1,7 @@
 import { and, eq, isNotNull, isNull, ne, sql } from 'drizzle-orm'
 
 import { items, itemScrapes, lists } from '@/db/schema'
+import { visibleItemsWhere } from '@/lib/item-visibility'
 
 import type { Analyzer } from '../analyzer'
 import type { AnalyzerSubject } from '../context'
@@ -52,8 +53,7 @@ export const staleScrapeAnalyzer: Analyzer = {
 					eq(lists.isActive, true),
 					ne(lists.type, 'giftideas'),
 					ne(lists.type, 'todos'),
-					eq(items.isArchived, false),
-					isNull(items.pendingDeletionAt),
+					visibleItemsWhere('visible'),
 					isNotNull(items.url),
 					sql`(${latestScrapeAt} IS NULL OR ${latestScrapeAt} < ${cutoff.toISOString()})`
 				)

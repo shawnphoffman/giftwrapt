@@ -7,11 +7,12 @@
 // strip the import of `_comments-impl.ts` becomes unused and Rollup
 // tree-shakes the whole file out of the client bundle.
 
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db, type SchemaDatabase } from '@/db'
 import { itemComments, items, lists, users } from '@/db/schema'
+import { visibleItemsWhere } from '@/lib/item-visibility'
 import { createLogger } from '@/lib/logger'
 import { canViewListAsAnyone } from '@/lib/permissions'
 import { sendNewCommentEmail } from '@/lib/resend'
@@ -45,7 +46,7 @@ export async function getCommentsForItemImpl(args: {
 	// orphan-alert UI is intentionally a comment-free surface, and the
 	// recipient can't see the item at all.
 	const item = await dbx.query.items.findFirst({
-		where: and(eq(items.id, itemId), isNull(items.pendingDeletionAt)),
+		where: and(eq(items.id, itemId), visibleItemsWhere('editable')),
 		columns: { id: true, listId: true },
 	})
 	if (!item) return []
@@ -101,7 +102,7 @@ export async function createItemCommentImpl(args: {
 	// (gifters with claims) interacts with it through the orphan-alert UI,
 	// which is comment-free by design.
 	const item = await dbx.query.items.findFirst({
-		where: and(eq(items.id, data.itemId), isNull(items.pendingDeletionAt)),
+		where: and(eq(items.id, data.itemId), visibleItemsWhere('editable')),
 		columns: { id: true, listId: true, title: true },
 	})
 	if (!item) return { kind: 'error', reason: 'item-not-found' }
