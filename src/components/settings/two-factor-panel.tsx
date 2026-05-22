@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
 	AlertDialog,
-	AlertDialogAction,
 	AlertDialogCancel,
 	AlertDialogContent,
 	AlertDialogDescription,
@@ -293,11 +292,13 @@ function PasswordPromptDialog({
 }) {
 	const [password, setPassword] = useState('')
 	const [submitting, setSubmitting] = useState(false)
+	const [localError, setLocalError] = useState<string | null>(null)
 
 	useEffect(() => {
 		if (!open) {
 			setPassword('')
 			setSubmitting(false)
+			setLocalError(null)
 		}
 	}, [open])
 
@@ -305,9 +306,12 @@ function PasswordPromptDialog({
 		e.preventDefault()
 		if (!password || submitting) return
 		setSubmitting(true)
+		setLocalError(null)
 		try {
 			await onConfirm(password)
 			onOpenChange(false)
+		} catch (err) {
+			setLocalError(err instanceof Error ? err.message : 'Something went wrong.')
 		} finally {
 			setSubmitting(false)
 		}
@@ -333,17 +337,18 @@ function PasswordPromptDialog({
 							autoFocus
 						/>
 					</div>
+					{localError && (
+						<Alert variant="destructive">
+							<AlertDescription>{localError}</AlertDescription>
+						</Alert>
+					)}
 					<AlertDialogFooter>
 						<AlertDialogCancel disabled={submitting} type="button">
 							Cancel
 						</AlertDialogCancel>
-						<AlertDialogAction
-							type="submit"
-							disabled={submitting || !password}
-							className={destructive ? 'bg-destructive hover:bg-destructive/90' : undefined}
-						>
+						<Button type="submit" disabled={submitting || !password} variant={destructive ? 'destructive' : 'default'}>
 							{submitting ? (confirmBusyLabel ?? 'Working…') : confirmLabel}
-						</AlertDialogAction>
+						</Button>
 					</AlertDialogFooter>
 				</form>
 			</AlertDialogContent>

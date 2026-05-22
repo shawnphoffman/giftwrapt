@@ -26,6 +26,7 @@ export default function TwoFactorSection() {
 			await fn()
 		} catch (err) {
 			setError(err instanceof Error ? err.message : `Couldn't ${action}.`)
+			throw err
 		} finally {
 			setBusy(false)
 		}
