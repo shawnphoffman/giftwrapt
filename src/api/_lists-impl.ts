@@ -36,10 +36,7 @@ import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 // Public types
 // =====================================================================
 
-export type AddonOnList = Pick<
-	ListAddon,
-	'id' | 'listId' | 'userId' | 'description' | 'totalCost' | 'notes' | 'isArchived' | 'createdAt'
-> & {
+export type AddonOnList = Pick<ListAddon, 'id' | 'listId' | 'userId' | 'description' | 'totalCost' | 'notes' | 'createdAt'> & {
 	user: {
 		id: string
 		name: string | null
@@ -376,8 +373,8 @@ export async function getListForViewingImpl(args: {
 		dbx.query.listAddons.findMany({
 			where:
 				accessLevel === 'restricted'
-					? and(eq(listAddons.listId, list.id), eq(listAddons.userId, args.userId))
-					: eq(listAddons.listId, list.id),
+					? and(eq(listAddons.listId, list.id), eq(listAddons.userId, args.userId), eq(listAddons.isArchived, false))
+					: and(eq(listAddons.listId, list.id), eq(listAddons.isArchived, false)),
 			columns: {
 				id: true,
 				listId: true,
@@ -385,7 +382,6 @@ export async function getListForViewingImpl(args: {
 				description: true,
 				totalCost: true,
 				notes: true,
-				isArchived: true,
 				createdAt: true,
 			},
 			with: {

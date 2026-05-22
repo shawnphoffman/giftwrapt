@@ -1,4 +1,5 @@
 import { useRouter } from '@tanstack/react-router'
+import { format } from 'date-fns'
 import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -19,6 +20,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useSession } from '@/lib/auth-client'
 
 import { ListAddonDialog } from './list-addon-dialog'
@@ -103,7 +105,16 @@ export function ListAddonRow({ addon, listId }: Props) {
 
 				{/* FOOTER */}
 				<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-					<UserAvatar name={name} image={addon.user.image} size="small" />
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<span className="shrink-0">
+								<UserAvatar name={name} image={addon.user.image} size="small" />
+							</span>
+						</TooltipTrigger>
+						<TooltipContent>
+							Added by {isMine ? 'you' : name} on {format(addon.createdAt, 'MMM d, yyyy')}
+						</TooltipContent>
+					</Tooltip>
 					<span>{isMine ? 'You' : name}</span>
 				</div>
 			</div>
