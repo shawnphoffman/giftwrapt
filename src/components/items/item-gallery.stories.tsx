@@ -25,28 +25,25 @@ import { ItemEditRow } from './item-edit-row'
 import ItemRow from './item-row'
 
 /**
- * Gallery story. Scrollable showcase of every common Item state (priority,
- * quantity, price, availability, images, notes, grouped, claimed, etc.) in
- * one long stack. Use the `view` control to flip every row between the
- * recipient (owner) view and the gifter (buyer) view.
+ * Gallery: every meaningful item permutation in one long scroll. Sections
+ * group rows by what's varying (priority, quantity, content, claim state,
+ * groups, etc.) so a reviewer can scan top-to-bottom and compare apples to
+ * apples. Most rows use the generic "Item" title; titles only deviate when
+ * the title itself is what the row is showing off.
+ *
+ * The `view` control flips every row between the recipient (owner) view and
+ * the gifter (buyer) view. Default is gifter so the claim affordance is
+ * visible without changing the control.
  */
 
 type View = 'recipient' | 'gifter'
 
-type Variation = {
-	key: string
-	label: string
-	// Payload each row needs, shaped for both views.
-	edit: ItemForEditing
-	viewable: ItemWithGifts
-}
-
-// Known item IDs for rows that need seeded comments. The mock
+// Stable IDs for rows that need seeded comments. The mock
 // `getCommentsForItem` reads from a registry keyed by itemId (see
 // .storybook/mocks/api.ts), so every commented row pins its id.
-const COMMENTED_ITEM_IDS = {
+const COMMENTED = {
 	single: 9001,
-	multiGifter: 9002,
+	multi: 9002,
 	grouped: 9003,
 	stressSolo: 9010,
 	stressPartial: 9011,
@@ -67,59 +64,51 @@ function makeComment(
 	return { id, itemId, comment, createdAt, updatedAt: createdAt, user }
 }
 
-__setStorybookComments(COMMENTED_ITEM_IDS.single, [
+__setStorybookComments(COMMENTED.single, [
 	makeComment(
 		1,
-		COMMENTED_ITEM_IDS.single,
+		COMMENTED.single,
 		otherGifter,
 		'Any preference on color? I see this comes in cream and slate.',
 		new Date(COMMENT_NOW.getTime() - 2 * DAY)
 	),
 	makeComment(
 		2,
-		COMMENTED_ITEM_IDS.single,
+		COMMENTED.single,
 		viewerUser,
 		"I was thinking cream, but honestly either works. Whatever's in stock.",
 		new Date(COMMENT_NOW.getTime() - 2 * DAY + 90 * 60 * 1000)
 	),
 ])
 
-__setStorybookComments(COMMENTED_ITEM_IDS.multiGifter, [
+__setStorybookComments(COMMENTED.multi, [
 	makeComment(
 		3,
-		COMMENTED_ITEM_IDS.multiGifter,
+		COMMENTED.multi,
 		thirdGifter,
 		'Happy to split the 6-pack with anyone. I can grab 2 if someone else takes 2.',
 		new Date(COMMENT_NOW.getTime() - 3 * DAY)
 	),
 	makeComment(
 		4,
-		COMMENTED_ITEM_IDS.multiGifter,
+		COMMENTED.multi,
 		fourthGifter,
 		"I'll take 2 then. Let's coordinate before the party.",
 		new Date(COMMENT_NOW.getTime() - 3 * DAY + 4 * HOUR)
 	),
-	makeComment(
-		5,
-		COMMENTED_ITEM_IDS.multiGifter,
-		otherGifter,
-		"Great, I'll cover the last 2. Done!",
-		new Date(COMMENT_NOW.getTime() - 1 * DAY)
-	),
+	makeComment(5, COMMENTED.multi, otherGifter, "Great, I'll cover the last 2. Done!", new Date(COMMENT_NOW.getTime() - 1 * DAY)),
 ])
 
-__setStorybookComments(COMMENTED_ITEM_IDS.grouped, [
+__setStorybookComments(COMMENTED.grouped, [
 	makeComment(
 		6,
-		COMMENTED_ITEM_IDS.grouped,
+		COMMENTED.grouped,
 		otherGifter,
 		'Is the v1 version okay or do you need the newer revision?',
 		new Date(COMMENT_NOW.getTime() - 6 * HOUR)
 	),
 ])
 
-// Stress-test comment threads: lots of messages from multiple users, including
-// some long/multi-paragraph bodies to pressure the layout.
 const longComment = `I was digging through the reviews on this and wanted to share a few things before anyone commits to a particular variant:
 
 1. The larger size apparently runs slightly narrow, so folks with wider feet keep mentioning they went up half a size.
@@ -128,63 +117,63 @@ const longComment = `I was digging through the reviews on this and wanted to sha
 
 Happy to dig deeper if anyone wants me to. Otherwise I'll plan to grab two unless someone speaks up.`
 
-__setStorybookComments(COMMENTED_ITEM_IDS.stressSolo, [
+__setStorybookComments(COMMENTED.stressSolo, [
 	makeComment(
 		100,
-		COMMENTED_ITEM_IDS.stressSolo,
+		COMMENTED.stressSolo,
 		otherGifter,
 		'Saw these in person last weekend, the build quality is genuinely incredible. Definitely worth the hype.',
 		new Date(COMMENT_NOW.getTime() - 5 * DAY)
 	),
-	makeComment(101, COMMENTED_ITEM_IDS.stressSolo, thirdGifter, longComment, new Date(COMMENT_NOW.getTime() - 4 * DAY - 2 * HOUR)),
+	makeComment(101, COMMENTED.stressSolo, thirdGifter, longComment, new Date(COMMENT_NOW.getTime() - 4 * DAY - 2 * HOUR)),
 	makeComment(
 		102,
-		COMMENTED_ITEM_IDS.stressSolo,
+		COMMENTED.stressSolo,
 		viewerUser,
 		'Thanks for the research! Cream it is. Really appreciate the deep dive.',
 		new Date(COMMENT_NOW.getTime() - 4 * DAY)
 	),
 	makeComment(
 		103,
-		COMMENTED_ITEM_IDS.stressSolo,
+		COMMENTED.stressSolo,
 		fourthGifter,
 		"Oh nice, I was eyeing these too. If you end up grabbing one I'd love to hear how the sizing compares to the v1.",
 		new Date(COMMENT_NOW.getTime() - 3 * DAY - 7 * HOUR)
 	),
 	makeComment(
 		104,
-		COMMENTED_ITEM_IDS.stressSolo,
+		COMMENTED.stressSolo,
 		otherGifter,
 		'Ordered! Should arrive Friday. Will report back.',
 		new Date(COMMENT_NOW.getTime() - 2 * DAY)
 	),
 ])
 
-__setStorybookComments(COMMENTED_ITEM_IDS.stressPartial, [
+__setStorybookComments(COMMENTED.stressPartial, [
 	makeComment(
 		110,
-		COMMENTED_ITEM_IDS.stressPartial,
+		COMMENTED.stressPartial,
 		thirdGifter,
 		'I can cover 3 of these, going to order this weekend unless someone has a conflict.',
 		new Date(COMMENT_NOW.getTime() - 8 * DAY)
 	),
 	makeComment(
 		111,
-		COMMENTED_ITEM_IDS.stressPartial,
+		COMMENTED.stressPartial,
 		fourthGifter,
 		"I've got 2 locked in. Let me know if anyone wants to coordinate shipping, I can consolidate at my place if that's easier.",
 		new Date(COMMENT_NOW.getTime() - 7 * DAY - 3 * HOUR)
 	),
 	makeComment(
 		112,
-		COMMENTED_ITEM_IDS.stressPartial,
+		COMMENTED.stressPartial,
 		viewerUser,
 		"Grabbed 2 as well. Happy to drop mine off at your place if that's still on the table.",
 		new Date(COMMENT_NOW.getTime() - 6 * DAY)
 	),
 	makeComment(
 		113,
-		COMMENTED_ITEM_IDS.stressPartial,
+		COMMENTED.stressPartial,
 		otherGifter,
 		`Checking in, has anyone confirmed whether the recipient prefers the assembled version or the flat-pack? I remember someone mentioning something about wanting to put them together with the kids as a project but I can't find that message now.
 
@@ -193,239 +182,192 @@ If it's the kit version those are on backorder until mid-May FYI.`,
 	),
 	makeComment(
 		114,
-		COMMENTED_ITEM_IDS.stressPartial,
+		COMMENTED.stressPartial,
 		thirdGifter,
 		'Assembled, confirmed. Got it from the original thread.',
 		new Date(COMMENT_NOW.getTime() - 5 * DAY)
 	),
 	makeComment(
 		115,
-		COMMENTED_ITEM_IDS.stressPartial,
+		COMMENTED.stressPartial,
 		fourthGifter,
 		'Perfect. Shipping labels printed. 2/12 incoming.',
 		new Date(COMMENT_NOW.getTime() - 3 * DAY)
 	),
 	makeComment(
 		116,
-		COMMENTED_ITEM_IDS.stressPartial,
+		COMMENTED.stressPartial,
 		viewerUser,
 		'Mine shipped too. Still need 5 more slots covered if anyone is lurking!',
 		new Date(COMMENT_NOW.getTime() - 2 * DAY)
 	),
 	makeComment(
 		117,
-		COMMENTED_ITEM_IDS.stressPartial,
+		COMMENTED.stressPartial,
 		otherGifter,
 		"I'll pick up the remaining 5 so we can close this out. Ordering tonight.",
 		new Date(COMMENT_NOW.getTime() - 18 * HOUR)
 	),
 ])
 
-__setStorybookComments(COMMENTED_ITEM_IDS.stressFull, [
-	makeComment(120, COMMENTED_ITEM_IDS.stressFull, otherGifter, 'Claiming 2 of these!', new Date(COMMENT_NOW.getTime() - 10 * DAY)),
+__setStorybookComments(COMMENTED.stressFull, [
+	makeComment(120, COMMENTED.stressFull, otherGifter, 'Claiming 2 of these!', new Date(COMMENT_NOW.getTime() - 10 * DAY)),
 	makeComment(
 		121,
-		COMMENTED_ITEM_IDS.stressFull,
+		COMMENTED.stressFull,
 		thirdGifter,
 		"Grabbed 2 also. Excited, they've been on my radar forever.",
 		new Date(COMMENT_NOW.getTime() - 9 * DAY - 5 * HOUR)
 	),
-	makeComment(122, COMMENTED_ITEM_IDS.stressFull, fourthGifter, '2 more from me.', new Date(COMMENT_NOW.getTime() - 9 * DAY)),
+	makeComment(122, COMMENTED.stressFull, fourthGifter, '2 more from me.', new Date(COMMENT_NOW.getTime() - 9 * DAY)),
 	makeComment(
 		123,
-		COMMENTED_ITEM_IDS.stressFull,
+		COMMENTED.stressFull,
 		viewerUser,
 		'Last 2 are mine, and that closes this one out. Will ping the group when they all arrive so we can wrap together.',
 		new Date(COMMENT_NOW.getTime() - 8 * DAY)
 	),
 	makeComment(
 		124,
-		COMMENTED_ITEM_IDS.stressFull,
+		COMMENTED.stressFull,
 		otherGifter,
 		'Mine arrived yesterday, packaging is gorgeous.',
 		new Date(COMMENT_NOW.getTime() - 2 * DAY)
 	),
 	makeComment(
 		125,
-		COMMENTED_ITEM_IDS.stressFull,
+		COMMENTED.stressFull,
 		fourthGifter,
 		"Same! Will bring mine on Saturday if that's still the plan?",
 		new Date(COMMENT_NOW.getTime() - 1 * DAY - 6 * HOUR)
 	),
-	makeComment(
-		126,
-		COMMENTED_ITEM_IDS.stressFull,
-		thirdGifter,
-		'Saturday works! See everyone then.',
-		new Date(COMMENT_NOW.getTime() - 1 * DAY)
-	),
+	makeComment(126, COMMENTED.stressFull, thirdGifter, 'Saturday works! See everyone then.', new Date(COMMENT_NOW.getTime() - 1 * DAY)),
 ])
 
-const pickOneGroup: GroupSummary = { id: 900, type: 'or', name: 'Headphones (pick one)', priority: 'high', sortOrder: null }
-const orderedGroup: GroupSummary = { id: 901, type: 'order', name: 'Coffee setup (in order)', priority: 'very-high', sortOrder: null }
-const unnamedPickOne: GroupSummary = { id: 902, type: 'or', name: null, priority: 'normal', sortOrder: null }
-const groups: Array<GroupSummary> = [pickOneGroup, orderedGroup, unnamedPickOne]
+// Generic title used for every row where the title isn't the variation.
+const GENERIC = 'Item'
+const GENERIC_URL = 'https://www.example.com/item'
+const GENERIC_PRICE = '50'
 
-function pair(edit: Partial<ItemForEditing>, extraGifts: Partial<ItemWithGifts> = {}): { edit: ItemForEditing; viewable: ItemWithGifts } {
-	const base = makeItemForEditing(edit)
+type Variation = {
+	key: string
+	label: string
+	edit: ItemForEditing
+	viewable: ItemWithGifts
+}
+
+function pair(edit: Partial<ItemForEditing>, extra: Partial<ItemWithGifts> = {}): { edit: ItemForEditing; viewable: ItemWithGifts } {
+	const base = makeItemForEditing({ title: GENERIC, url: GENERIC_URL, price: GENERIC_PRICE, ...edit })
 	return {
 		edit: base,
-		viewable: makeItemWithGifts({ ...base, gifts: [], commentCount: base.commentCount, ...extraGifts }),
+		viewable: makeItemWithGifts({ ...base, gifts: [], commentCount: base.commentCount, ...extra }),
 	}
 }
 
-const standaloneVariations: Array<Variation> = [
-	{ key: 'basic', label: 'Basic', ...pair({ title: 'Basic item', price: '25' }) },
-	{ key: 'no-price', label: 'No price, no url', ...pair({ title: 'No price, no url', price: null, url: null }) },
+// ----- Variations grouped by what they're showing off -----
+
+const prioritySection: Array<Variation> = [
+	{ key: 'priority-low', label: 'low', ...pair({ priority: 'low' }) },
+	{ key: 'priority-normal', label: 'normal (no priority tab)', ...pair({ priority: 'normal' }) },
+	{ key: 'priority-high', label: 'high', ...pair({ priority: 'high' }) },
+	{ key: 'priority-very-high', label: 'very-high', ...pair({ priority: 'very-high' }) },
+]
+
+const quantitySection: Array<Variation> = [
+	{ key: 'qty-1', label: 'quantity 1', ...pair({ quantity: 1 }) },
+	{ key: 'qty-3', label: 'quantity 3', ...pair({ quantity: 3 }) },
+	{ key: 'qty-6', label: 'quantity 6', ...pair({ quantity: 6 }) },
+	{ key: 'qty-12', label: 'quantity 12', ...pair({ quantity: 12 }) },
+	{ key: 'qty-99', label: 'quantity 99', ...pair({ quantity: 99 }) },
+]
+
+const contentSection: Array<Variation> = [
+	{ key: 'content-basic', label: 'title + url + price', ...pair({}) },
+	{ key: 'content-no-price', label: 'no price', ...pair({ price: null }) },
+	{ key: 'content-no-url', label: 'no url', ...pair({ url: null }) },
+	{ key: 'content-no-price-no-url', label: 'no price + no url', ...pair({ price: null, url: null }) },
 	{
-		key: 'priority-low',
-		label: 'Low priority',
-		...pair({ title: 'Low priority item', priority: 'low', price: '15' }),
-	},
-	{
-		key: 'priority-high',
-		label: 'High priority',
-		...pair({ title: 'High priority item', priority: 'high', price: '120' }),
-	},
-	{
-		key: 'priority-very-high',
-		label: 'Very high priority',
-		...pair({ title: 'Very high priority item', priority: 'very-high', price: '299' }),
-	},
-	{
-		key: 'quantity-small',
-		label: 'Quantity 3',
-		...pair({ title: 'Cozy wool socks', price: '18', quantity: 3 }),
-	},
-	{
-		key: 'quantity-large',
-		label: 'Quantity 12',
-		...pair({ title: 'Bulk wine glasses', price: '12 each', quantity: 12 }),
-	},
-	{
-		key: 'long-title',
-		label: 'Very long title',
+		key: 'content-long-title',
+		label: 'very long title',
 		...pair({
 			title: 'A very very very very very very very very long product title that should truncate gracefully across the row',
-			price: '50',
 		}),
 	},
 	{
-		key: 'long-url',
-		label: 'Very long URL',
+		key: 'content-long-url',
+		label: 'very long url',
 		...pair({
-			title: 'Product with a long url',
 			url: 'https://www.example-store.com/product/category/subcategory/item-id/12345678/variant-red-large-premium?utm_source=test',
-			price: '99',
 		}),
 	},
 	{
-		key: 'notes-short',
-		label: 'Notes (short)',
-		...pair({
-			title: 'Ceramic mug',
-			notes: 'Neutral colors preferred.',
-			price: '42',
-		}),
+		key: 'content-notes-short',
+		label: 'short notes',
+		...pair({ notes: 'Neutral colors preferred.' }),
 	},
 	{
-		key: 'notes-markdown',
-		label: 'Notes (markdown)',
+		key: 'content-notes-markdown',
+		label: 'markdown notes',
 		...pair({
-			title: 'Cast-iron dutch oven',
 			notes: 'Prefer **enameled**: sage or cream. Avoid red.\n\nSize 5-7qt works. See [Staub](https://www.staub.com) or Le Creuset.',
-			priority: 'high',
-			price: '250',
 		}),
 	},
 	{
-		key: 'image-square',
-		label: 'Image (square 200)',
-		...pair({ title: 'With square image', imageUrl: placeholderImages.square, price: '64' }),
+		key: 'content-comments',
+		label: 'with comments (2 users)',
+		...pair({ id: COMMENTED.single, commentCount: 2 }),
 	},
+]
+
+const imageSection: Array<Variation> = [
+	{ key: 'image-none', label: 'no image', ...pair({ imageUrl: null }) },
+	{ key: 'image-square', label: 'square 200', ...pair({ imageUrl: placeholderImages.square }) },
+	{ key: 'image-tiny', label: 'tiny 48', ...pair({ imageUrl: placeholderImages.tiny }) },
+	{ key: 'image-tall', label: 'tall 140x280', ...pair({ imageUrl: placeholderImages.tall }) },
+	{ key: 'image-wide', label: 'wide 320x120', ...pair({ imageUrl: placeholderImages.wide }) },
+	{ key: 'image-huge', label: 'huge 800x600', ...pair({ imageUrl: placeholderImages.huge }) },
 	{
-		key: 'image-tiny',
-		label: 'Image (tiny 48)',
-		...pair({ title: 'With tiny image', imageUrl: placeholderImages.tiny, price: '10' }),
-	},
-	{
-		key: 'image-tall',
-		label: 'Image (tall)',
-		...pair({ title: 'With tall image', imageUrl: placeholderImages.tall, price: '80' }),
-	},
-	{
-		key: 'image-wide',
-		label: 'Image (wide)',
-		...pair({ title: 'With wide image', imageUrl: placeholderImages.wide, price: '120' }),
-	},
-	{
-		key: 'image-huge',
-		label: 'Image (huge original)',
-		...pair({ title: 'With oversized image', imageUrl: placeholderImages.huge, price: '150' }),
-	},
-	{
-		key: 'image-notes',
-		label: 'Image + notes + high',
+		key: 'image-plus-notes',
+		label: 'image + notes',
 		...pair({
-			title: 'Image and notes together',
 			imageUrl: placeholderImages.square,
 			notes: '**Favorite option**. Holds up well in dishwasher.',
-			priority: 'high',
-			price: '85',
-		}),
-	},
-	{
-		key: 'everything',
-		label: 'Everything at once',
-		...pair({
-			title: 'Everything on one row: title, url, price, qty, notes, image, priority',
-			imageUrl: placeholderImages.square,
-			notes: 'With **notes**, a [link](https://example.com), and more.',
-			priority: 'very-high',
-			quantity: 4,
-			price: '399.99',
-		}),
-	},
-	{
-		key: 'with-comments',
-		label: 'With comments (2 users)',
-		...pair({
-			id: COMMENTED_ITEM_IDS.single,
-			title: 'Hand-thrown ceramic mug',
-			price: '42',
-			commentCount: 2,
 		}),
 	},
 ]
 
-// Variations that only make sense for the buyer view, they need pre-populated
-// gifts, so they're kept separate and only rendered in gifter mode.
-const buyerOnlyVariations: Array<Variation> = [
+const availabilitySection: Array<Variation> = [
+	{ key: 'avail-available', label: 'available', ...pair({}) },
 	{
-		key: 'claimed-by-other',
-		label: 'Claimed by another',
-		...pair(
-			{ title: 'Claimed by another gifter', price: '45' },
-			{
-				gifts: [makeGift({ quantity: 1 })],
-			}
-		),
+		key: 'avail-unavailable',
+		label: 'unavailable (with date)',
+		...pair({ availability: 'unavailable', availabilityChangedAt: new Date('2026-04-12T15:30:00Z') }),
 	},
 	{
-		key: 'claimed-by-you',
-		label: 'Claimed by you',
-		...pair(
-			{ title: 'Claimed by you', price: '45' },
-			{
-				gifts: [makeGift({ gifterId: viewerUser.id, gifter: viewerUser })],
-			}
-		),
+		key: 'avail-unavailable-no-date',
+		label: 'unavailable (no date)',
+		...pair({ availability: 'unavailable', availabilityChangedAt: null }),
+	},
+]
+
+// Claim-state variations only render in gifter view (they need pre-populated gifts).
+const claimStateSection: Array<Variation> = [
+	{ key: 'claim-none', label: 'no claims', ...pair({}) },
+	{
+		key: 'claim-other',
+		label: 'claimed by another (qty 1)',
+		...pair({}, { gifts: [makeGift({ quantity: 1 })] }),
 	},
 	{
-		key: 'partial-two-gifters',
-		label: 'Partial (2 gifters)',
+		key: 'claim-you',
+		label: 'claimed by you (qty 1)',
+		...pair({}, { gifts: [makeGift({ gifterId: viewerUser.id, gifter: viewerUser, quantity: 1 })] }),
+	},
+	{
+		key: 'claim-partial-2',
+		label: 'partial (qty 6, 2 gifters)',
 		...pair(
-			{ title: 'Wine glasses', quantity: 6, price: '12 each' },
+			{ quantity: 6 },
 			{
 				quantity: 6,
 				gifts: [makeGift({ quantity: 2 }), makeGift({ quantity: 2, gifterId: thirdGifter.id, gifter: thirdGifter })],
@@ -433,10 +375,10 @@ const buyerOnlyVariations: Array<Variation> = [
 		),
 	},
 	{
-		key: 'partial-you-plus-others',
-		label: 'Partial (you + others)',
+		key: 'claim-partial-you',
+		label: 'partial (qty 4, you + other)',
 		...pair(
-			{ title: 'Board game night starter pack', quantity: 4, price: '30 each' },
+			{ quantity: 4 },
 			{
 				quantity: 4,
 				gifts: [
@@ -447,30 +389,10 @@ const buyerOnlyVariations: Array<Variation> = [
 		),
 	},
 	{
-		key: 'fully-claimed',
-		label: 'Fully claimed (others)',
+		key: 'claim-many-gifters',
+		label: 'partial (qty 5, four gifters)',
 		...pair(
-			{ title: 'Espresso machine', price: '699', priority: 'very-high' },
-			{
-				gifts: [makeGift({ quantity: 1 })],
-			}
-		),
-	},
-	{
-		key: 'fully-claimed-by-you',
-		label: 'Fully claimed (you)',
-		...pair(
-			{ title: 'Cookbook', price: '35' },
-			{
-				gifts: [makeGift({ gifterId: viewerUser.id, gifter: viewerUser, quantity: 1 })],
-			}
-		),
-	},
-	{
-		key: 'many-gifters',
-		label: 'Many gifters',
-		...pair(
-			{ title: 'Group housewarming gift', quantity: 5, price: '200' },
+			{ quantity: 5 },
 			{
 				quantity: 5,
 				gifts: [
@@ -483,16 +405,43 @@ const buyerOnlyVariations: Array<Variation> = [
 		),
 	},
 	{
-		key: 'comments-coordination',
-		label: 'Comments (3 users coordinating)',
+		key: 'claim-full-others',
+		label: 'fully claimed (others)',
+		...pair({}, { gifts: [makeGift({ quantity: 1 })] }),
+	},
+	{
+		key: 'claim-full-you',
+		label: 'fully claimed (you)',
+		...pair({}, { gifts: [makeGift({ gifterId: viewerUser.id, gifter: viewerUser, quantity: 1 })] }),
+	},
+	{
+		key: 'claim-over',
+		label: 'over-claimed (qty 2, 3 claimed)',
 		...pair(
+			{ quantity: 2 },
 			{
-				id: COMMENTED_ITEM_IDS.multiGifter,
-				title: 'Wine glasses',
-				quantity: 6,
-				price: '12 each',
-				commentCount: 3,
-			},
+				quantity: 2,
+				gifts: [makeGift({ quantity: 2 }), makeGift({ quantity: 1, gifterId: thirdGifter.id, gifter: thirdGifter })],
+			}
+		),
+	},
+	{
+		key: 'claim-unavail-with-yours',
+		label: 'unavailable + your existing claim',
+		...pair(
+			{ availability: 'unavailable', availabilityChangedAt: new Date('2026-04-12T15:30:00Z') },
+			{
+				availability: 'unavailable',
+				availabilityChangedAt: new Date('2026-04-12T15:30:00Z'),
+				gifts: [makeGift({ gifterId: viewerUser.id, gifter: viewerUser, quantity: 1 })],
+			}
+		),
+	},
+	{
+		key: 'claim-coordination',
+		label: 'with comments (3 users coordinating)',
+		...pair(
+			{ id: COMMENTED.multi, quantity: 6, commentCount: 3 },
 			{
 				quantity: 6,
 				commentCount: 3,
@@ -506,7 +455,274 @@ const buyerOnlyVariations: Array<Variation> = [
 	},
 ]
 
-// Shared long-form content for the stress-test rows at the bottom of the gallery.
+// ----- Group fixtures -----
+// Each scenario produces matched edit/view item arrays so the same fixture
+// renders in both recipient and gifter mode.
+
+type GroupScenario = {
+	key: string
+	label: string
+	group: GroupSummary
+	edit: Array<ItemForEditing>
+	view: Array<ItemWithGifts>
+}
+
+let nextGroupId = 1000
+function makeGroup(overrides: Partial<GroupSummary> = {}): GroupSummary {
+	return { id: ++nextGroupId, type: 'or', name: 'Group', priority: 'normal', sortOrder: null, ...overrides }
+}
+
+function buildGroupItems(groupId: number, count: number, base?: Partial<ItemForEditing>): Array<ItemForEditing> {
+	return Array.from({ length: count }, (_, i) =>
+		makeItemForEditing({
+			title: `Option ${String.fromCharCode(65 + i)}`,
+			url: null,
+			price: GENERIC_PRICE,
+			groupId,
+			groupSortOrder: i,
+			...base,
+		})
+	)
+}
+
+// Pick-one (or) scenarios.
+const pickOneAllUnclaimed2 = (() => {
+	const g = makeGroup({ name: 'Pick one (2 items)' })
+	const items = buildGroupItems(g.id, 2)
+	return {
+		key: 'or-2-unclaimed',
+		label: '2 items, all unclaimed',
+		group: g,
+		edit: items,
+		view: items.map(i => makeItemWithGifts({ ...i, gifts: [] })),
+	} satisfies GroupScenario
+})()
+
+const pickOneAllUnclaimed3 = (() => {
+	const g = makeGroup({ name: 'Pick one (3 items)' })
+	const items = buildGroupItems(g.id, 3)
+	return {
+		key: 'or-3-unclaimed',
+		label: '3 items, all unclaimed',
+		group: g,
+		edit: items,
+		view: items.map(i => makeItemWithGifts({ ...i, gifts: [] })),
+	} satisfies GroupScenario
+})()
+
+const pickOneAllUnclaimed5 = (() => {
+	const g = makeGroup({ name: 'Pick one (5 items)' })
+	const items = buildGroupItems(g.id, 5)
+	return {
+		key: 'or-5-unclaimed',
+		label: '5 items, all unclaimed',
+		group: g,
+		edit: items,
+		view: items.map(i => makeItemWithGifts({ ...i, gifts: [] })),
+	} satisfies GroupScenario
+})()
+
+const pickOneOneClaimed = (() => {
+	const g = makeGroup({ name: 'Pick one (one claimed, siblings locked)' })
+	const items = buildGroupItems(g.id, 3)
+	const view = items.map((i, idx) =>
+		makeItemWithGifts({
+			...i,
+			gifts: idx === 1 ? [makeGift({ gifterId: otherGifter.id, gifter: otherGifter })] : [],
+		})
+	)
+	return { key: 'or-3-one-claimed', label: '3 items, one claimed (siblings locked)', group: g, edit: items, view } satisfies GroupScenario
+})()
+
+const pickOneYouClaimed = (() => {
+	const g = makeGroup({ name: 'Pick one (you claimed)' })
+	const items = buildGroupItems(g.id, 3)
+	const view = items.map((i, idx) =>
+		makeItemWithGifts({
+			...i,
+			gifts: idx === 0 ? [makeGift({ gifterId: viewerUser.id, gifter: viewerUser })] : [],
+		})
+	)
+	return { key: 'or-3-you-claimed', label: '3 items, you claimed (siblings locked)', group: g, edit: items, view } satisfies GroupScenario
+})()
+
+const pickOneHighPriority = (() => {
+	const g = makeGroup({ name: 'Headphones (pick one)', priority: 'high' })
+	const items = [
+		makeItemForEditing({ groupId: g.id, title: 'Sony WH-1000XM5', price: '399', imageUrl: placeholderImages.square }),
+		makeItemForEditing({ groupId: g.id, title: 'Bose QuietComfort Ultra', price: '429' }),
+		makeItemForEditing({ groupId: g.id, title: 'AirPods Max', price: '549', imageUrl: placeholderImages.squareSmall }),
+	]
+	return {
+		key: 'or-3-high-priority',
+		label: '3 items, high priority (tab on group, images vary)',
+		group: g,
+		edit: items,
+		view: items.map(i => makeItemWithGifts({ ...i, gifts: [] })),
+	} satisfies GroupScenario
+})()
+
+const pickOneUnnamed = (() => {
+	const g = makeGroup({ name: null })
+	const items = buildGroupItems(g.id, 2)
+	return {
+		key: 'or-2-unnamed',
+		label: '2 items, unnamed group',
+		group: g,
+		edit: items,
+		view: items.map(i => makeItemWithGifts({ ...i, gifts: [] })),
+	} satisfies GroupScenario
+})()
+
+const pickOneEmpty = (() => {
+	const g = makeGroup({ name: 'Pick one (empty)' })
+	return { key: 'or-empty', label: 'empty group (recipient sees placeholder, gifter view hides)', group: g, edit: [], view: [] }
+})()
+
+// Ordered scenarios.
+const orderedAllUnclaimed2 = (() => {
+	const g = makeGroup({ type: 'order', name: 'Ordered (2 steps)' })
+	const items = buildGroupItems(g.id, 2)
+	return {
+		key: 'order-2-unclaimed',
+		label: '2 steps, none claimed',
+		group: g,
+		edit: items,
+		view: items.map(i => makeItemWithGifts({ ...i, gifts: [] })),
+	} satisfies GroupScenario
+})()
+
+const orderedAllUnclaimed4 = (() => {
+	const g = makeGroup({ type: 'order', name: 'Ordered (4 steps)' })
+	const items = buildGroupItems(g.id, 4)
+	return {
+		key: 'order-4-unclaimed',
+		label: '4 steps, none claimed',
+		group: g,
+		edit: items,
+		view: items.map(i => makeItemWithGifts({ ...i, gifts: [] })),
+	} satisfies GroupScenario
+})()
+
+const orderedFirstClaimed = (() => {
+	const g = makeGroup({ type: 'order', name: 'Ordered (first claimed)' })
+	const items = buildGroupItems(g.id, 4)
+	const view = items.map((i, idx) =>
+		makeItemWithGifts({
+			...i,
+			gifts: idx === 0 ? [makeGift({ gifterId: otherGifter.id, gifter: otherGifter })] : [],
+		})
+	)
+	return {
+		key: 'order-4-first-claimed',
+		label: '4 steps, first claimed (rest locked)',
+		group: g,
+		edit: items,
+		view,
+	} satisfies GroupScenario
+})()
+
+const orderedFirstTwoClaimed = (() => {
+	const g = makeGroup({ type: 'order', name: 'Ordered (first two claimed)' })
+	const items = buildGroupItems(g.id, 4)
+	const view = items.map((i, idx) =>
+		makeItemWithGifts({
+			...i,
+			gifts:
+				idx < 2 ? [makeGift({ gifterId: idx === 0 ? otherGifter.id : thirdGifter.id, gifter: idx === 0 ? otherGifter : thirdGifter })] : [],
+		})
+	)
+	return { key: 'order-4-first-two-claimed', label: '4 steps, first two claimed', group: g, edit: items, view } satisfies GroupScenario
+})()
+
+const orderedPartialQtyStep = (() => {
+	const g = makeGroup({ type: 'order', name: 'Ordered (qty>1 partially claimed)' })
+	const items = [
+		makeItemForEditing({ groupId: g.id, title: 'Option A', quantity: 4, price: GENERIC_PRICE, url: null, groupSortOrder: 0 }),
+		makeItemForEditing({ groupId: g.id, title: 'Option B', price: GENERIC_PRICE, url: null, groupSortOrder: 1 }),
+		makeItemForEditing({ groupId: g.id, title: 'Option C', price: GENERIC_PRICE, url: null, groupSortOrder: 2 }),
+	]
+	const view: Array<ItemWithGifts> = [
+		makeItemWithGifts({ ...items[0], quantity: 4, gifts: [makeGift({ quantity: 2 })] }),
+		makeItemWithGifts({ ...items[1], gifts: [] }),
+		makeItemWithGifts({ ...items[2], gifts: [] }),
+	]
+	return {
+		key: 'order-3-first-step-partial',
+		label: '3 steps, first step half-claimed (later steps locked)',
+		group: g,
+		edit: items,
+		view,
+	} satisfies GroupScenario
+})()
+
+const orderedFullyClaimed = (() => {
+	const g = makeGroup({ type: 'order', name: 'Ordered (all claimed)' })
+	const items = buildGroupItems(g.id, 3)
+	const view = items.map((i, idx) =>
+		makeItemWithGifts({
+			...i,
+			gifts: [
+				makeGift({ gifterId: [otherGifter, thirdGifter, fourthGifter][idx].id, gifter: [otherGifter, thirdGifter, fourthGifter][idx] }),
+			],
+		})
+	)
+	return { key: 'order-3-fully-claimed', label: '3 steps, all claimed', group: g, edit: items, view } satisfies GroupScenario
+})()
+
+const orderedHighPriority = (() => {
+	const g = makeGroup({ type: 'order', name: 'Coffee setup (in order)', priority: 'very-high' })
+	const items = [
+		makeItemForEditing({ groupId: g.id, title: 'Espresso machine', price: '699', groupSortOrder: 0, imageUrl: placeholderImages.square }),
+		makeItemForEditing({
+			id: COMMENTED.grouped,
+			groupId: g.id,
+			title: 'Grinder',
+			price: '249',
+			groupSortOrder: 1,
+			commentCount: 1,
+		}),
+		makeItemForEditing({ groupId: g.id, title: 'Scale', price: '65', groupSortOrder: 2, imageUrl: placeholderImages.squareSmall }),
+	]
+	return {
+		key: 'order-3-very-high-priority',
+		label: '3 steps, very-high priority (group-level tab)',
+		group: g,
+		edit: items,
+		view: items.map(i => makeItemWithGifts({ ...i, gifts: [] })),
+	} satisfies GroupScenario
+})()
+
+const pickOneScenarios: Array<GroupScenario> = [
+	pickOneAllUnclaimed2,
+	pickOneAllUnclaimed3,
+	pickOneAllUnclaimed5,
+	pickOneOneClaimed,
+	pickOneYouClaimed,
+	pickOneHighPriority,
+	pickOneUnnamed,
+	pickOneEmpty,
+]
+
+const orderedScenarios: Array<GroupScenario> = [
+	orderedAllUnclaimed2,
+	orderedAllUnclaimed4,
+	orderedFirstClaimed,
+	orderedFirstTwoClaimed,
+	orderedPartialQtyStep,
+	orderedFullyClaimed,
+	orderedHighPriority,
+]
+
+// Pool of groups exposed to the recipient's group-edit dropdowns. Just needs
+// to be non-empty so the menu has things to render.
+const groupsForMenu: Array<GroupSummary> = [
+	makeGroup({ id: 1, name: 'Pick one', type: 'or' }),
+	makeGroup({ id: 2, name: 'Ordered', type: 'order', priority: 'high' }),
+]
+
+// ----- Stress fixtures -----
+
 const stressLongTitle =
 	'The absolutely ridiculous super-premium artisan hand-forged limited-edition collector-grade deluxe professional-series reserve-quality signature-collection flagship product (2026 edition)'
 
@@ -530,17 +746,12 @@ If the primary is sold out, [this alternate](https://example.com/alt) is close e
 
 Thanks everyone for coordinating on this! Let me know if you have questions before ordering.`
 
-const stressVariations: Array<{
-	key: string
-	label: string
-	edit: ItemForEditing
-	viewable: ItemWithGifts
-}> = [
+const stressSection: Array<Variation> = [
 	{
 		key: 'stress-solo',
-		label: 'Overload (solo, no claims)',
+		label: 'overload (solo, no claims, 5 comments)',
 		...pair({
-			id: COMMENTED_ITEM_IDS.stressSolo,
+			id: COMMENTED.stressSolo,
 			title: stressLongTitle,
 			notes: stressLongNotes,
 			url: 'https://www.example-store.com/product/category/subcategory/item-id/12345678/variant-navy-medium-premium?utm_source=gallery',
@@ -553,10 +764,10 @@ const stressVariations: Array<{
 	},
 	{
 		key: 'stress-partial',
-		label: 'Overload (qty 12, partially claimed)',
+		label: 'overload (qty 12, partial, 8 comments)',
 		...pair(
 			{
-				id: COMMENTED_ITEM_IDS.stressPartial,
+				id: COMMENTED.stressPartial,
 				title: stressLongTitle,
 				notes: stressLongNotes,
 				url: 'https://www.example-store.com/product/category/subcategory/item-id/98765/variant-forest-medium',
@@ -579,10 +790,10 @@ const stressVariations: Array<{
 	},
 	{
 		key: 'stress-full',
-		label: 'Overload (qty 8, fully claimed)',
+		label: 'overload (qty 8, fully claimed, 7 comments)',
 		...pair(
 			{
-				id: COMMENTED_ITEM_IDS.stressFull,
+				id: COMMENTED.stressFull,
 				title: stressLongTitle,
 				notes: stressLongNotes,
 				imageUrl: placeholderImages.square,
@@ -605,11 +816,13 @@ const stressVariations: Array<{
 	},
 ]
 
+// ----- Render helpers -----
+
 function SectionHeader({ title, note }: { title: string; note?: string }) {
 	return (
-		<div className="pt-2 pb-1">
+		<div className="pt-6 pb-2 border-b border-dashed border-muted-foreground/30 mb-2">
 			<h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</h3>
-			{note && <p className="text-xs text-muted-foreground/80">{note}</p>}
+			{note && <p className="text-xs text-muted-foreground/80 mt-0.5">{note}</p>}
 		</div>
 	)
 }
@@ -618,229 +831,101 @@ function RowLabel({ label }: { label: string }) {
 	return <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70 pt-3">{label}</div>
 }
 
-type GalleryArgs = { view: View }
-
-function Gallery({ view }: GalleryArgs) {
-	const pickOneItems = [
-		makeItemForEditing({ groupId: pickOneGroup.id, title: 'Sony WH-1000XM5', price: '399', imageUrl: placeholderImages.square }),
-		makeItemForEditing({ groupId: pickOneGroup.id, title: 'Bose QuietComfort Ultra', price: '429' }),
-		makeItemForEditing({ groupId: pickOneGroup.id, title: 'AirPods Max', price: '549', imageUrl: placeholderImages.squareSmall }),
-	]
-
-	const orderedItems = [
-		makeItemForEditing({
-			groupId: orderedGroup.id,
-			title: 'Espresso machine',
-			price: '699',
-			groupSortOrder: 0,
-			imageUrl: placeholderImages.square,
-		}),
-		makeItemForEditing({
-			id: COMMENTED_ITEM_IDS.grouped,
-			groupId: orderedGroup.id,
-			title: 'Grinder',
-			price: '249',
-			groupSortOrder: 1,
-			commentCount: 1,
-		}),
-		makeItemForEditing({
-			groupId: orderedGroup.id,
-			title: 'Scale',
-			price: '65',
-			groupSortOrder: 2,
-			imageUrl: placeholderImages.squareSmall,
-		}),
-	]
-
-	const unnamedItems = [
-		makeItemForEditing({ groupId: unnamedPickOne.id, title: 'Option A', price: '50' }),
-		makeItemForEditing({ groupId: unnamedPickOne.id, title: 'Option B', price: '55' }),
-	]
-
-	// Pick-one group with one option already claimed (shows "Locked" on siblings in buyer view)
-	const pickOnePartial = {
-		group: pickOneGroup,
-		items: [
-			makeItemWithGifts({
-				groupId: pickOneGroup.id,
-				title: 'Sony WH-1000XM5',
-				price: '399',
-				imageUrl: placeholderImages.square,
-				gifts: [],
-			}),
-			makeItemWithGifts({
-				groupId: pickOneGroup.id,
-				title: 'Bose QuietComfort Ultra',
-				price: '429',
-				gifts: [makeGift({ gifterId: otherGifter.id, gifter: otherGifter })],
-			}),
-			makeItemWithGifts({
-				groupId: pickOneGroup.id,
-				title: 'AirPods Max',
-				price: '549',
-				imageUrl: placeholderImages.squareSmall,
-				gifts: [],
-			}),
-		],
-	}
-
-	// Ordered group with first item claimed, second/third locked
-	const orderedPartial = {
-		group: orderedGroup,
-		items: [
-			makeItemWithGifts({
-				groupId: orderedGroup.id,
-				title: 'Espresso machine',
-				price: '699',
-				groupSortOrder: 0,
-				imageUrl: placeholderImages.square,
-				gifts: [makeGift({ gifterId: otherGifter.id, gifter: otherGifter })],
-			}),
-			makeItemWithGifts({
-				id: COMMENTED_ITEM_IDS.grouped,
-				groupId: orderedGroup.id,
-				title: 'Grinder',
-				price: '249',
-				groupSortOrder: 1,
-				commentCount: 1,
-			}),
-			makeItemWithGifts({
-				groupId: orderedGroup.id,
-				title: 'Scale',
-				price: '65',
-				groupSortOrder: 2,
-				imageUrl: placeholderImages.squareSmall,
-			}),
-		],
-	}
-
+function VariationList({ variations, view }: { variations: Array<Variation>; view: View }) {
 	return (
-		<div className="flex flex-col">
-			<SectionHeader title="Standalone items" note="Items not in any group. Show how a wide range of props render together." />
-			{standaloneVariations.map(v => (
+		<>
+			{variations.map(v => (
 				<Fragment key={v.key}>
 					<RowLabel label={v.label} />
 					{view === 'recipient' ? (
-						<ItemEditRow item={v.edit} commentCount={v.edit.commentCount} groups={groups} />
+						<ItemEditRow item={v.edit} commentCount={v.edit.commentCount} groups={groupsForMenu} />
 					) : (
 						<ItemRow item={v.viewable} />
 					)}
 				</Fragment>
 			))}
+		</>
+	)
+}
+
+function GroupList({ scenarios, view }: { scenarios: Array<GroupScenario>; view: View }) {
+	return (
+		<>
+			{scenarios.map(s => (
+				<Fragment key={s.key}>
+					<RowLabel label={s.label} />
+					{view === 'recipient' ? (
+						<GroupBlock
+							group={s.group}
+							items={s.edit}
+							groups={groupsForMenu}
+							listId={1}
+							isOwner
+							onAddItem={() => {}}
+							onDelete={() => {}}
+							onMoveItem={() => {}}
+							onReorder={() => {}}
+						/>
+					) : s.view.length === 0 ? (
+						<div className="text-xs text-muted-foreground italic">Empty groups are hidden in buyer view.</div>
+					) : (
+						<GroupViewBlock group={s.group} items={s.view} />
+					)}
+				</Fragment>
+			))}
+		</>
+	)
+}
+
+// ----- Gallery -----
+
+type GalleryArgs = { view: View }
+
+function Gallery({ view }: GalleryArgs) {
+	return (
+		<div className="flex flex-col">
+			<SectionHeader title="Priority" note="Coloured tab on the left edge of the row. Normal renders no tab." />
+			<VariationList variations={prioritySection} view={view} />
+
+			<SectionHeader title="Quantity" note="Badge variants for different total quantities. No claims; remaining equals quantity." />
+			<VariationList variations={quantitySection} view={view} />
+
+			<SectionHeader title="Content" note="Combinations of title, url, price, notes, and comments. Image is held constant." />
+			<VariationList variations={contentSection} view={view} />
+
+			<SectionHeader title="Image" note="Different image sizes plus a row that pairs image with notes." />
+			<VariationList variations={imageSection} view={view} />
+
+			<SectionHeader title="Availability" note="Available, unavailable with a marked-on date tooltip, and unavailable without one." />
+			<VariationList variations={availabilitySection} view={view} />
 
 			{view === 'gifter' && (
 				<>
-					<SectionHeader title="Claim states (gifter view only)" note="States that depend on claims." />
-					{buyerOnlyVariations.map(v => (
-						<Fragment key={v.key}>
-							<RowLabel label={v.label} />
-							<ItemRow item={v.viewable} />
-						</Fragment>
-					))}
+					<SectionHeader
+						title="Claim states (gifter only)"
+						note="States that depend on existing claims. Recipient view hides claims by design (spoiler protection)."
+					/>
+					<VariationList variations={claimStateSection} view={view} />
 				</>
-			)}
-
-			<SectionHeader title="Grouped: pick-one (or)" note="All-unclaimed state, then one claimed (locks siblings in buyer view)." />
-			<RowLabel label="Pick one, no claims yet" />
-			{view === 'recipient' ? (
-				<GroupBlock
-					group={pickOneGroup}
-					items={pickOneItems}
-					groups={groups}
-					listId={1}
-					isOwner
-					onAddItem={() => {}}
-					onDelete={() => {}}
-					onMoveItem={() => {}}
-					onReorder={() => {}}
-				/>
-			) : (
-				<GroupViewBlock group={pickOneGroup} items={pickOnePartial.items.map(i => ({ ...i, gifts: [] }))} />
-			)}
-
-			{view === 'gifter' && (
-				<>
-					<RowLabel label="Pick one, one claimed (siblings locked)" />
-					<GroupViewBlock group={pickOnePartial.group} items={pickOnePartial.items} />
-				</>
-			)}
-
-			<SectionHeader title="Grouped: ordered" note="Items claimed sequentially, later items locked until prior is filled." />
-			<RowLabel label="Ordered, no claims yet" />
-			{view === 'recipient' ? (
-				<GroupBlock
-					group={orderedGroup}
-					items={orderedItems}
-					groups={groups}
-					listId={1}
-					isOwner
-					onAddItem={() => {}}
-					onDelete={() => {}}
-					onMoveItem={() => {}}
-					onReorder={() => {}}
-				/>
-			) : (
-				<GroupViewBlock group={orderedGroup} items={orderedPartial.items.map(i => ({ ...i, gifts: [] }))} />
-			)}
-
-			{view === 'gifter' && (
-				<>
-					<RowLabel label="Ordered, first claimed (rest locked)" />
-					<GroupViewBlock group={orderedPartial.group} items={orderedPartial.items} />
-				</>
-			)}
-
-			<SectionHeader title="Edge cases" />
-			<RowLabel label="Unnamed pick-one group" />
-			{view === 'recipient' ? (
-				<GroupBlock
-					group={unnamedPickOne}
-					items={unnamedItems}
-					groups={groups}
-					listId={1}
-					isOwner
-					onAddItem={() => {}}
-					onDelete={() => {}}
-					onMoveItem={() => {}}
-					onReorder={() => {}}
-				/>
-			) : (
-				<GroupViewBlock group={unnamedPickOne} items={unnamedItems.map(i => ({ ...i, gifts: [], commentCount: 0 }))} />
-			)}
-
-			<RowLabel label="Empty pick-one group" />
-			{view === 'recipient' ? (
-				<GroupBlock
-					group={pickOneGroup}
-					items={[]}
-					groups={groups}
-					listId={1}
-					isOwner
-					onAddItem={() => {}}
-					onDelete={() => {}}
-					onMoveItem={() => {}}
-					onReorder={() => {}}
-				/>
-			) : (
-				<div className="text-xs text-muted-foreground italic">Empty groups are hidden in buyer view.</div>
 			)}
 
 			<SectionHeader
-				title="Stress tests"
-				note="Overloaded rows with every prop cranked up. Use these to spot layout breaks before they hit production."
+				title="Group: pick-one (or)"
+				note="Different sizes (2, 3, 5), claim states, priority on the group, and unnamed/empty edge cases."
 			/>
-			{stressVariations
-				.filter(v => view === 'gifter' || v.key === 'stress-solo')
-				.map(v => (
-					<Fragment key={v.key}>
-						<RowLabel label={v.label} />
-						{view === 'recipient' ? (
-							<ItemEditRow item={v.edit} commentCount={v.edit.commentCount} groups={groups} />
-						) : (
-							<ItemRow item={v.viewable} />
-						)}
-					</Fragment>
-				))}
+			<GroupList scenarios={pickOneScenarios} view={view} />
+
+			<SectionHeader
+				title="Group: ordered"
+				note="Step counts from 2-4, sequential claim states, a step with qty>1 partially claimed, and a high-priority group-level tab."
+			/>
+			<GroupList scenarios={orderedScenarios} view={view} />
+
+			<SectionHeader
+				title="Stress"
+				note="Long titles, long markdown notes, large quantities, deep comment threads. Use to spot layout breaks."
+			/>
+			<VariationList variations={stressSection.filter(v => view === 'gifter' || v.key === 'stress-solo')} view={view} />
 		</div>
 	)
 }
@@ -854,7 +939,7 @@ const meta = {
 		docs: {
 			description: {
 				component:
-					'Comprehensive showcase of item variations. Switch the view control to flip every row between the recipient (owner) view and the gifter (buyer) view.',
+					'Every meaningful item permutation grouped by what varies. Switch the view control to flip every row between the recipient (owner) view and the gifter (buyer) view. Defaults to gifter so claim affordances render without changing the control.',
 			},
 		},
 	},
@@ -867,7 +952,7 @@ const meta = {
 		},
 	},
 	args: {
-		view: 'recipient',
+		view: 'gifter',
 	},
 } satisfies Meta<typeof Gallery>
 
