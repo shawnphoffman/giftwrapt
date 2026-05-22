@@ -40,13 +40,23 @@ function MobilePasskeyPage() {
 		setIsLoading(true)
 		setError(null)
 		try {
-			const { error: passkeyError } = await authClient.signIn.passkey()
+			// Drive the post-assertion navigation from the fetch
+			// onSuccess hook so it fires inside better-auth's response
+			// chain, before `$sessionSignal` propagates and any
+			// session-aware code in the tree can SPA-navigate the iOS
+			// in-app browser to the signed-in home. The hook full-page
+			// navigates to the mobile-api callback so the freshly-set
+			// session cookie rides along; `_native-done` then 302s to
+			// the iOS custom scheme, which `ASWebAuthenticationSession`
+			// captures. `replace` keeps this page out of history.
+			const { error: passkeyError } = await authClient.signIn.passkey({
+				fetchOptions: {
+					onSuccess: () => {
+						window.location.replace(finishUrl)
+					},
+				},
+			})
 			if (passkeyError) throw new Error(passkeyError.message ?? 'sign-in failed')
-			// Full-page navigation to the mobile-api callback so the
-			// freshly-set session cookie rides along. The callback
-			// 302s to the iOS custom scheme, which
-			// `ASWebAuthenticationSession` captures.
-			window.location.assign(finishUrl)
 		} catch {
 			setError("Couldn't sign in with that passkey. Try again or close the sheet to use your password.")
 		} finally {
