@@ -1,5 +1,5 @@
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { useMemo } from 'react'
+import { type Query, useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import {
@@ -25,6 +25,15 @@ export const adminUserRunSummariesQueryOptions = {
 	queryKey: ['admin', 'intelligence', 'user-summaries'] as const,
 	queryFn: () => getAdminUserRunSummaries(),
 	staleTime: 30_000,
+	// Poll while any user has an in-flight run so the per-row "Running" badge
+	// reflects what's actually happening on the server (including runs started
+	// by another admin, the cron, or a different tab). Idle when nothing is
+	// running, so we don't burn requests on a quiet page.
+	refetchInterval: (query: Query<Array<AdminUserRunSummary>>) => {
+		const data = query.state.data
+		if (!data) return false
+		return data.some(s => s.lastRunStatus === 'running') ? 3000 : false
+	},
 }
 
 export type AdminUserRunSummaryView = Omit<AdminUserRunSummary, 'lastRunAt'> & { lastRunAt: Date | null }
@@ -75,10 +84,34 @@ export function useAdminIntelligence() {
 		mutationFn: () => adminRunForMe(),
 		onSuccess: invalidateAll,
 	})
+
+	// Track every in-flight Run click as its own entry so concurrent runs each
+	// show their own spinner. TanStack's useMutation collapses to the most
+	// recent call, which would clear earlier rows' "Running" badge even though
+	// the server runs in parallel (advisory locks are per-user).
+	const [localPendingUserIds, setLocalPendingUserIds] = useState<ReadonlySet<string>>(() => new Set())
 	const runForUserMutation = useMutation({
 		mutationFn: (userId: string) => adminRunForUser({ data: { userId } }),
-		onSuccess: invalidateAll,
 	})
+	const runForUser = (userId: string) => {
+		setLocalPendingUserIds(prev => {
+			if (prev.has(userId)) return prev
+			const next = new Set(prev)
+			next.add(userId)
+			return next
+		})
+		runForUserMutation.mutate(userId, {
+			onSettled: () => {
+				setLocalPendingUserIds(prev => {
+					if (!prev.has(userId)) return prev
+					const next = new Set(prev)
+					next.delete(userId)
+					return next
+				})
+				invalidateAll()
+			},
+		})
+	}
 	const invalidateHashMutation = useMutation({
 		mutationFn: (userId: string) => adminInvalidateInputHash({ data: { userId } }),
 		onSuccess: invalidate,
@@ -94,21 +127,32 @@ export function useAdminIntelligence() {
 		data,
 		patch: (changes: Partial<AdminIntelligenceData['settings']>) => settingsMutation.mutate(changes),
 		runForMe: () => runForMeMutation.mutate(),
-		runForUser: (userId: string) => runForUserMutation.mutate(userId),
+		runForUser,
 		invalidateHash: (userId: string) => invalidateHashMutation.mutate(userId),
 		purgeRecs: (userId: string) => purgeMutation.mutate(userId),
 		runForMePending: runForMeMutation.isPending,
-		runForUserPendingId: runForUserMutation.isPending ? runForUserMutation.variables : null,
+		// Set of users with a click currently in-flight from this tab. Combine
+		// with the server-reported `lastRunStatus === 'running'` to decide
+		// whether to show a spinner.
+		localPendingUserIds,
 	}
 }
 
-export function useAdminUserRunSummaries(): { summaries: Array<AdminUserRunSummaryView> } {
+export function useAdminUserRunSummaries(): {
+	summaries: Array<AdminUserRunSummaryView>
+	serverRunningUserIds: ReadonlySet<string>
+} {
 	const { data } = useSuspenseQuery(adminUserRunSummariesQueryOptions)
 	const summaries = useMemo<Array<AdminUserRunSummaryView>>(
 		() => data.map(s => ({ ...s, lastRunAt: s.lastRunAt ? new Date(s.lastRunAt) : null })),
 		[data]
 	)
-	return { summaries }
+	const serverRunningUserIds = useMemo<ReadonlySet<string>>(() => {
+		const s = new Set<string>()
+		for (const row of data) if (row.lastRunStatus === 'running') s.add(row.userId)
+		return s
+	}, [data])
+	return { summaries, serverRunningUserIds }
 }
 
 function adaptAdminData(raw: Awaited<ReturnType<typeof getAdminIntelligenceData>>): AdminIntelligenceData {

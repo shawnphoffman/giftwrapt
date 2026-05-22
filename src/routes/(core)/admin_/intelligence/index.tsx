@@ -22,9 +22,14 @@ export const Route = createFileRoute('/(core)/admin_/intelligence/')({
 })
 
 function IntelligenceStatsRoute() {
-	const { data, runForUser, runForUserPendingId } = useAdminIntelligence()
-	const { summaries } = useAdminUserRunSummaries()
+	const { data, runForUser, localPendingUserIds } = useAdminIntelligence()
+	const { summaries, serverRunningUserIds } = useAdminUserRunSummaries()
 	const providerMissing = isProviderMissing(data)
+
+	// Union of local in-flight clicks and server-reported running rows so a
+	// click shows a spinner immediately AND runs started elsewhere (cron,
+	// other admin tab) also surface here.
+	const runningUserIds = new Set<string>([...localPendingUserIds, ...serverRunningUserIds])
 
 	if (!data.settings.enabled) {
 		return <IntelligenceFeatureDisabledBanner />
@@ -37,7 +42,7 @@ function IntelligenceStatsRoute() {
 	return (
 		<>
 			<HealthGrid data={data} providerSummary={providerSummaryFor(data)} />
-			<ActionsCard summaries={summaries} onRunForUser={runForUser} runningUserId={runForUserPendingId} />
+			<ActionsCard summaries={summaries} onRunForUser={runForUser} runningUserIds={runningUserIds} />
 		</>
 	)
 }

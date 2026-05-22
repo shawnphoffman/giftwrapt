@@ -68,9 +68,10 @@ type Props = {
 	onInvalidateHash?: (userId: string) => void
 	onPurgeRecs?: (userId: string) => void
 	onOpenRun?: (runId: string) => void
-	// userId currently running, if any, so per-row "Run" buttons can show
-	// a spinner without stacking requests.
-	runningUserId?: string | null
+	// Users whose run is currently in flight (either a local click that
+	// hasn't resolved, or a server-side `recommendation_runs` row with
+	// `status='running'`). Per-row spinner shows when the user is in the set.
+	runningUserIds?: ReadonlySet<string>
 }
 
 export const ANALYZER_ORDER: Array<AnalyzerId> = [
@@ -94,7 +95,7 @@ export function AdminIntelligencePageContent({
 	onInvalidateHash,
 	onPurgeRecs,
 	onOpenRun,
-	runningUserId,
+	runningUserIds,
 }: Props) {
 	const [filter, setFilter] = useState<'all' | 'success' | 'skipped' | 'error'>('all')
 	const filteredRuns = data.runs.filter(r => filter === 'all' || r.status === filter)
@@ -158,7 +159,7 @@ export function AdminIntelligencePageContent({
 			{enabled && !providerMissing && (
 				<>
 					<HealthGrid data={data} providerSummary={providerSummary} />
-					<ActionsCard summaries={userSummaries} onRunForUser={onRunForUser} runningUserId={runningUserId} />
+					<ActionsCard summaries={userSummaries} onRunForUser={onRunForUser} runningUserIds={runningUserIds} />
 					<SettingsPanel data={data} patch={patch} />
 					<RunsTable
 						runs={filteredRuns}
@@ -300,11 +301,11 @@ export type AdminUserRunSummaryRow = {
 export function ActionsCard({
 	summaries,
 	onRunForUser,
-	runningUserId,
+	runningUserIds,
 }: {
 	summaries: ReadonlyArray<AdminUserRunSummaryRow>
 	onRunForUser?: (userId: string) => void
-	runningUserId?: string | null
+	runningUserIds?: ReadonlySet<string>
 }) {
 	const sorted = React.useMemo(() => sortSummaries(summaries), [summaries])
 	return (
@@ -327,7 +328,7 @@ export function ActionsCard({
 					</TableHeader>
 					<TableBody>
 						{sorted.map(row => (
-							<UserActionRow key={row.userId} row={row} onRunForUser={onRunForUser} runningUserId={runningUserId} />
+							<UserActionRow key={row.userId} row={row} onRunForUser={onRunForUser} isRunning={runningUserIds?.has(row.userId) ?? false} />
 						))}
 					</TableBody>
 				</Table>
@@ -354,13 +355,13 @@ function sortSummaries(rows: ReadonlyArray<AdminUserRunSummaryRow>): Array<Admin
 function UserActionRow({
 	row,
 	onRunForUser,
-	runningUserId,
+	isRunning,
 }: {
 	row: AdminUserRunSummaryRow
 	onRunForUser?: (userId: string) => void
-	runningUserId?: string | null
+	isRunning: boolean
 }) {
-	const pending = runningUserId === row.userId
+	const pending = isRunning
 	const initials = (row.name ?? row.email).slice(0, 2).toUpperCase()
 	return (
 		<TableRow data-intelligence="admin-actions-user-row" data-user-id={row.userId} data-is-me={row.isMe ? 'true' : 'false'}>
