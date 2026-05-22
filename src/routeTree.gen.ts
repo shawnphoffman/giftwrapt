@@ -63,8 +63,8 @@ import { Route as coreAdminDataRouteImport } from './routes/(core)/admin/data'
 import { Route as coreAdminBarcodeRouteImport } from './routes/(core)/admin/barcode'
 import { Route as coreAdminAuthRouteImport } from './routes/(core)/admin/auth'
 import { Route as coreAdminAiRouteImport } from './routes/(core)/admin/ai'
+import { Route as authSignInMobilePasskeyRouteImport } from './routes/(auth)/sign-in_.mobile-passkey'
 import { Route as authSignInTwoFactorRouteImport } from './routes/(auth)/sign-in.two-factor'
-import { Route as authSignInMobilePasskeyRouteImport } from './routes/(auth)/sign-in.mobile-passkey'
 import { Route as coreAdminIntelligenceRouteRouteImport } from './routes/(core)/admin_/intelligence/route'
 import { Route as coreAdminIntelligenceIndexRouteImport } from './routes/(core)/admin_/intelligence/index'
 import { Route as ApiSseListListIdRouteImport } from './routes/api/sse/list.$listId'
@@ -350,14 +350,14 @@ const coreAdminAiRoute = coreAdminAiRouteImport.update({
   path: '/ai',
   getParentRoute: () => coreAdminRouteRoute,
 } as any)
+const authSignInMobilePasskeyRoute = authSignInMobilePasskeyRouteImport.update({
+  id: '/(auth)/sign-in_/mobile-passkey',
+  path: '/sign-in/mobile-passkey',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const authSignInTwoFactorRoute = authSignInTwoFactorRouteImport.update({
   id: '/two-factor',
   path: '/two-factor',
-  getParentRoute: () => authSignInRoute,
-} as any)
-const authSignInMobilePasskeyRoute = authSignInMobilePasskeyRouteImport.update({
-  id: '/mobile-passkey',
-  path: '/mobile-passkey',
   getParentRoute: () => authSignInRoute,
 } as any)
 const coreAdminIntelligenceRouteRoute =
@@ -438,8 +438,8 @@ export interface FileRoutesByFullPath {
   '/api/version': typeof ApiVersionRoute
   '/': typeof coreIndexRoute
   '/admin/intelligence': typeof coreAdminIntelligenceRouteRouteWithChildren
-  '/sign-in/mobile-passkey': typeof authSignInMobilePasskeyRoute
   '/sign-in/two-factor': typeof authSignInTwoFactorRoute
+  '/sign-in/mobile-passkey': typeof authSignInMobilePasskeyRoute
   '/admin/ai': typeof coreAdminAiRoute
   '/admin/auth': typeof coreAdminAuthRoute
   '/admin/barcode': typeof coreAdminBarcodeRoute
@@ -502,8 +502,8 @@ export interface FileRoutesByTo {
   '/api/health': typeof ApiHealthRoute
   '/api/version': typeof ApiVersionRoute
   '/': typeof coreIndexRoute
-  '/sign-in/mobile-passkey': typeof authSignInMobilePasskeyRoute
   '/sign-in/two-factor': typeof authSignInTwoFactorRoute
+  '/sign-in/mobile-passkey': typeof authSignInMobilePasskeyRoute
   '/admin/ai': typeof coreAdminAiRoute
   '/admin/auth': typeof coreAdminAuthRoute
   '/admin/barcode': typeof coreAdminBarcodeRoute
@@ -572,8 +572,8 @@ export interface FileRoutesById {
   '/api/version': typeof ApiVersionRoute
   '/(core)/': typeof coreIndexRoute
   '/(core)/admin_/intelligence': typeof coreAdminIntelligenceRouteRouteWithChildren
-  '/(auth)/sign-in/mobile-passkey': typeof authSignInMobilePasskeyRoute
   '/(auth)/sign-in/two-factor': typeof authSignInTwoFactorRoute
+  '/(auth)/sign-in_/mobile-passkey': typeof authSignInMobilePasskeyRoute
   '/(core)/admin/ai': typeof coreAdminAiRoute
   '/(core)/admin/auth': typeof coreAdminAuthRoute
   '/(core)/admin/barcode': typeof coreAdminBarcodeRoute
@@ -642,8 +642,8 @@ export interface FileRouteTypes {
     | '/api/version'
     | '/'
     | '/admin/intelligence'
-    | '/sign-in/mobile-passkey'
     | '/sign-in/two-factor'
+    | '/sign-in/mobile-passkey'
     | '/admin/ai'
     | '/admin/auth'
     | '/admin/barcode'
@@ -706,8 +706,8 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/api/version'
     | '/'
-    | '/sign-in/mobile-passkey'
     | '/sign-in/two-factor'
+    | '/sign-in/mobile-passkey'
     | '/admin/ai'
     | '/admin/auth'
     | '/admin/barcode'
@@ -775,8 +775,8 @@ export interface FileRouteTypes {
     | '/api/version'
     | '/(core)/'
     | '/(core)/admin_/intelligence'
-    | '/(auth)/sign-in/mobile-passkey'
     | '/(auth)/sign-in/two-factor'
+    | '/(auth)/sign-in_/mobile-passkey'
     | '/(core)/admin/ai'
     | '/(core)/admin/auth'
     | '/(core)/admin/barcode'
@@ -838,6 +838,7 @@ export interface RootRouteChildren {
   authSignUpRoute: typeof authSignUpRoute
   ApiHealthRoute: typeof ApiHealthRoute
   ApiVersionRoute: typeof ApiVersionRoute
+  authSignInMobilePasskeyRoute: typeof authSignInMobilePasskeyRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCronAutoArchiveRoute: typeof ApiCronAutoArchiveRoute
   ApiCronBirthdayEmailsRoute: typeof ApiCronBirthdayEmailsRoute
@@ -1235,18 +1236,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreAdminAiRouteImport
       parentRoute: typeof coreAdminRouteRoute
     }
+    '/(auth)/sign-in_/mobile-passkey': {
+      id: '/(auth)/sign-in_/mobile-passkey'
+      path: '/sign-in/mobile-passkey'
+      fullPath: '/sign-in/mobile-passkey'
+      preLoaderRoute: typeof authSignInMobilePasskeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/(auth)/sign-in/two-factor': {
       id: '/(auth)/sign-in/two-factor'
       path: '/two-factor'
       fullPath: '/sign-in/two-factor'
       preLoaderRoute: typeof authSignInTwoFactorRouteImport
-      parentRoute: typeof authSignInRoute
-    }
-    '/(auth)/sign-in/mobile-passkey': {
-      id: '/(auth)/sign-in/mobile-passkey'
-      path: '/mobile-passkey'
-      fullPath: '/sign-in/mobile-passkey'
-      preLoaderRoute: typeof authSignInMobilePasskeyRouteImport
       parentRoute: typeof authSignInRoute
     }
     '/(core)/admin_/intelligence': {
@@ -1466,12 +1467,10 @@ const coreRouteRouteWithChildren = coreRouteRoute._addFileChildren(
 )
 
 interface authSignInRouteChildren {
-  authSignInMobilePasskeyRoute: typeof authSignInMobilePasskeyRoute
   authSignInTwoFactorRoute: typeof authSignInTwoFactorRoute
 }
 
 const authSignInRouteChildren: authSignInRouteChildren = {
-  authSignInMobilePasskeyRoute: authSignInMobilePasskeyRoute,
   authSignInTwoFactorRoute: authSignInTwoFactorRoute,
 }
 
@@ -1488,6 +1487,7 @@ const rootRouteChildren: RootRouteChildren = {
   authSignUpRoute: authSignUpRoute,
   ApiHealthRoute: ApiHealthRoute,
   ApiVersionRoute: ApiVersionRoute,
+  authSignInMobilePasskeyRoute: authSignInMobilePasskeyRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCronAutoArchiveRoute: ApiCronAutoArchiveRoute,
   ApiCronBirthdayEmailsRoute: ApiCronBirthdayEmailsRoute,
