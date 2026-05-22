@@ -21,7 +21,7 @@ function SettingsPage() {
 
 	return (
 		<div className="animate-page-in grid gap-6">
-			<Card>
+			<Card className="max-w-2xl">
 				<CardHeader>
 					<CardTitle className="text-2xl">Profile</CardTitle>
 					<CardDescription>Update your profile information.</CardDescription>
@@ -42,7 +42,7 @@ function SettingsPage() {
 			</Card>
 
 			{(appSettings?.enableMothersDayReminders || appSettings?.enableFathersDayReminders) && (
-				<Card>
+				<Card className="max-w-2xl">
 					<CardHeader>
 						<CardTitle className="text-2xl">Relationships</CardTitle>
 						<CardDescription>Tag the people you shop for on Mother's Day and Father's Day.</CardDescription>

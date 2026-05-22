@@ -14,7 +14,7 @@ export const Route = createFileRoute('/(core)/settings/security')({
 function SecurityPage() {
 	const passkeysEnabled = useAppSetting('enablePasskeys')
 	return (
-		<Card className="animate-page-in">
+		<Card className="animate-page-in max-w-2xl">
 			<CardHeader>
 				<CardTitle className="text-2xl">Security</CardTitle>
 				<CardDescription>Change your password and security settings.</CardDescription>

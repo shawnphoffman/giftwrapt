@@ -69,7 +69,7 @@ function DevicesPage() {
 	}
 
 	return (
-		<Card className="animate-page-in">
+		<Card className="animate-page-in max-w-2xl">
 			<CardHeader>
 				<CardTitle className="text-2xl">Devices</CardTitle>
 				<CardDescription>

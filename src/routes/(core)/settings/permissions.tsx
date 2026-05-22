@@ -73,7 +73,7 @@ function PermissionsPage() {
 	const isLoading = isLoadingUsers || isLoadingOwners || initialRows === null
 
 	return (
-		<Card className="animate-page-in">
+		<Card className="animate-page-in max-w-2xl">
 			<CardHeader>
 				<CardTitle className="text-2xl">Permissions</CardTitle>
 				<CardDescription>

@@ -40,7 +40,7 @@ function DependentsSettingsPage() {
 	})
 
 	return (
-		<Card className="animate-page-in">
+		<Card className="animate-page-in max-w-2xl">
 			<CardHeader>
 				<CardTitle className="text-2xl flex items-center gap-2">
 					<Sprout className="size-5 text-emerald-600" />
