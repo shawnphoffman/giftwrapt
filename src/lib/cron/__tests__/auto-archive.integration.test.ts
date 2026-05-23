@@ -7,12 +7,12 @@
 // can't see: that the impl actually archives the right rows, leaves
 // others alone, and respects the settings-driven delays.
 
-import { makeGiftedItem, makeItem, makeList, makeUser } from '@test/integration/factories'
+import { makeGiftedItem, makeItem, makeList, makeListAddon, makeUser } from '@test/integration/factories'
 import { withRollback } from '@test/integration/setup'
 import { eq, inArray } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
-import { customHolidays, giftedItems, items } from '@/db/schema'
+import { customHolidays, giftedItems, items, listAddons } from '@/db/schema'
 
 import { autoArchiveImpl } from '../auto-archive'
 
@@ -143,6 +143,54 @@ describe('autoArchiveImpl - birthday lists', () => {
 		})
 	})
 
+	it('archives list addons alongside items on the birthday delay day', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx, { birthMonth: 'july', birthDay: 1 })
+			const gifter = await makeUser(tx)
+			const list = await makeList(tx, { ownerId: owner.id, type: 'birthday' })
+			const claimed = await makeItem(tx, { listId: list.id })
+			await makeGiftedItem(tx, { itemId: claimed.id, gifterId: gifter.id })
+			const addon = await makeListAddon(tx, { listId: list.id, userId: gifter.id })
+
+			const result = await autoArchiveImpl({
+				db: tx,
+				now: new Date('2026-07-08T12:00:00Z'),
+				archiveDaysAfterBirthday: 7,
+				archiveDaysAfterChristmas: 30,
+				archiveDaysAfterHoliday: 30,
+			})
+
+			expect(result.birthdayArchived).toBe(1)
+			expect(result.birthdayAddonsArchived).toBe(1)
+			const [addonRow] = await tx.select().from(listAddons).where(eq(listAddons.id, addon.id))
+			expect(addonRow.isArchived).toBe(true)
+		})
+	})
+
+	it('archives list addons even when no claimed items exist on the list', async () => {
+		// An addon-only list still has to reveal on the birthday delay day,
+		// otherwise the gifter-volunteered gift never surfaces.
+		await withRollback(async tx => {
+			const owner = await makeUser(tx, { birthMonth: 'august', birthDay: 1 })
+			const gifter = await makeUser(tx)
+			const list = await makeList(tx, { ownerId: owner.id, type: 'birthday' })
+			const addon = await makeListAddon(tx, { listId: list.id, userId: gifter.id })
+
+			const result = await autoArchiveImpl({
+				db: tx,
+				now: new Date('2026-08-08T12:00:00Z'),
+				archiveDaysAfterBirthday: 7,
+				archiveDaysAfterChristmas: 30,
+				archiveDaysAfterHoliday: 30,
+			})
+
+			expect(result.birthdayArchived).toBe(0)
+			expect(result.birthdayAddonsArchived).toBe(1)
+			const [addonRow] = await tx.select().from(listAddons).where(eq(listAddons.id, addon.id))
+			expect(addonRow.isArchived).toBe(true)
+		})
+	})
+
 	it('does not affect other users on the same day', async () => {
 		await withRollback(async tx => {
 			// Both users born March 1, but only `target` should be processed
@@ -264,6 +312,29 @@ describe('autoArchiveImpl - christmas lists', () => {
 			expect(claimRows).toHaveLength(2)
 		})
 	})
+
+	it('archives list addons on christmas lists and emits a detail row when only addons exist', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx)
+			const gifter = await makeUser(tx)
+			const list = await makeList(tx, { ownerId: owner.id, type: 'christmas' })
+			const addon = await makeListAddon(tx, { listId: list.id, userId: gifter.id })
+
+			const result = await autoArchiveImpl({
+				db: tx,
+				now: new Date('2026-01-24T12:00:00Z'),
+				archiveDaysAfterBirthday: 7,
+				archiveDaysAfterChristmas: 30,
+				archiveDaysAfterHoliday: 30,
+			})
+
+			expect(result.christmasArchived).toBe(0)
+			expect(result.christmasAddonsArchived).toBe(1)
+			expect(result.christmasArchivedDetails).toEqual([{ listId: list.id, ownerId: owner.id, itemCount: 0, addonCount: 1 }])
+			const [addonRow] = await tx.select().from(listAddons).where(eq(listAddons.id, addon.id))
+			expect(addonRow.isArchived).toBe(true)
+		})
+	})
 })
 
 describe('autoArchiveImpl - holiday lists', () => {
@@ -329,6 +400,7 @@ describe('autoArchiveImpl - holiday lists', () => {
 				ownerId: owner.id,
 				holidayName: 'Easter',
 				itemCount: 1,
+				addonCount: 0,
 			})
 			const rows = await tx
 				.select()
@@ -421,6 +493,76 @@ describe('autoArchiveImpl - holiday lists', () => {
 			})
 
 			expect(result.holidayArchived).toBe(0)
+		})
+	})
+
+	it('archives list addons on holiday lists once the cutoff is reached', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx)
+			const gifter = await makeUser(tx)
+			const customHolidayId = await makeEasterCustomHoliday(tx)
+			const list = await makeList(tx, {
+				ownerId: owner.id,
+				type: 'holiday',
+				customHolidayId,
+			})
+			const claimed = await makeItem(tx, { listId: list.id })
+			await makeGiftedItem(tx, { itemId: claimed.id, gifterId: gifter.id })
+			const addon = await makeListAddon(tx, { listId: list.id, userId: gifter.id })
+
+			const result = await autoArchiveImpl({
+				db: tx,
+				now: new Date('2026-04-21T12:00:00Z'),
+				archiveDaysAfterBirthday: 7,
+				archiveDaysAfterChristmas: 30,
+				archiveDaysAfterHoliday: 14,
+			})
+
+			expect(result.holidayArchived).toBe(1)
+			expect(result.holidayAddonsArchived).toBe(1)
+			expect(result.holidayArchivedDetails[0]).toMatchObject({
+				listId: list.id,
+				ownerId: owner.id,
+				holidayName: 'Easter',
+				itemCount: 1,
+				addonCount: 1,
+			})
+			const [addonRow] = await tx.select().from(listAddons).where(eq(listAddons.id, addon.id))
+			expect(addonRow.isArchived).toBe(true)
+		})
+	})
+
+	it('archives list addons on an addon-only holiday list and still emits a detail row', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx)
+			const gifter = await makeUser(tx)
+			const customHolidayId = await makeEasterCustomHoliday(tx)
+			const list = await makeList(tx, {
+				ownerId: owner.id,
+				type: 'holiday',
+				customHolidayId,
+			})
+			const addon = await makeListAddon(tx, { listId: list.id, userId: gifter.id })
+
+			const result = await autoArchiveImpl({
+				db: tx,
+				now: new Date('2026-04-21T12:00:00Z'),
+				archiveDaysAfterBirthday: 7,
+				archiveDaysAfterChristmas: 30,
+				archiveDaysAfterHoliday: 14,
+			})
+
+			expect(result.holidayArchived).toBe(0)
+			expect(result.holidayAddonsArchived).toBe(1)
+			expect(result.holidayArchivedDetails).toHaveLength(1)
+			expect(result.holidayArchivedDetails[0]).toMatchObject({
+				listId: list.id,
+				ownerId: owner.id,
+				itemCount: 0,
+				addonCount: 1,
+			})
+			const [addonRow] = await tx.select().from(listAddons).where(eq(listAddons.id, addon.id))
+			expect(addonRow.isArchived).toBe(true)
 		})
 	})
 })

@@ -9,7 +9,7 @@ import { and, asc, count, desc, eq, inArray, isNull } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db, type SchemaDatabase } from '@/db'
-import { giftedItems, itemComments, itemGroups, items, lists, users } from '@/db/schema'
+import { giftedItems, itemComments, itemGroups, items, listAddons, lists, users } from '@/db/schema'
 import { availabilityEnumValues, type ListType, type Priority, priorityEnumValues } from '@/db/schema/enums'
 import type { GiftedItem } from '@/db/schema/gifts'
 import type { Item } from '@/db/schema/items'
@@ -64,7 +64,9 @@ export type MoveItemsResult =
 
 export type ArchiveItemsResult = { kind: 'ok'; updated: number } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
-export type ArchiveListPurchasesResult = { kind: 'ok'; updated: number } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+export type ArchiveListPurchasesResult =
+	| { kind: 'ok'; updated: number; addonsArchived: number }
+	| { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 export type DeleteItemsResult = { kind: 'ok'; deleted: number } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
@@ -437,18 +439,19 @@ export async function archiveItemsImpl(args: {
 export async function archiveListPurchasesImpl(args: {
 	userId: string
 	input: z.infer<typeof ArchiveListPurchasesInputSchema>
+	dbx?: SchemaDatabase
 }): Promise<ArchiveListPurchasesResult> {
-	const { userId, input: data } = args
+	const { userId, input: data, dbx = db } = args
 
-	const list = await db.query.lists.findFirst({
+	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, data.listId),
 		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
-	const perm = await assertCanEditItems(userId, list)
+	const perm = await assertCanEditItems(userId, list, dbx)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
-	const claimedRows = await db
+	const claimedRows = await dbx
 		.selectDistinct({ itemId: giftedItems.itemId })
 		.from(giftedItems)
 		.innerJoin(
@@ -456,14 +459,22 @@ export async function archiveListPurchasesImpl(args: {
 			and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), isNull(items.pendingDeletionAt), eq(items.listId, list.id))
 		)
 
-	if (claimedRows.length === 0) return { kind: 'ok', updated: 0 }
-
 	const ids = claimedRows.map(r => r.itemId)
-	await db.update(items).set({ isArchived: true }).where(inArray(items.id, ids))
-	for (const id of ids) {
-		notifyListEvent({ kind: 'item', listId: list.id, itemId: id })
+	const archivedAddons = await dbx
+		.update(listAddons)
+		.set({ isArchived: true })
+		.where(and(eq(listAddons.listId, list.id), eq(listAddons.isArchived, false)))
+		.returning({ id: listAddons.id })
+
+	if (ids.length === 0 && archivedAddons.length === 0) return { kind: 'ok', updated: 0, addonsArchived: 0 }
+
+	if (ids.length > 0) {
+		await dbx.update(items).set({ isArchived: true }).where(inArray(items.id, ids))
+		for (const id of ids) {
+			notifyListEvent({ kind: 'item', listId: list.id, itemId: id })
+		}
 	}
-	return { kind: 'ok', updated: ids.length }
+	return { kind: 'ok', updated: ids.length, addonsArchived: archivedAddons.length }
 }
 
 export async function deleteItemsImpl(args: { userId: string; input: z.infer<typeof DeleteItemsInputSchema> }): Promise<DeleteItemsResult> {

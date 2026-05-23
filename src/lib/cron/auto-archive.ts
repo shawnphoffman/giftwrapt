@@ -9,7 +9,7 @@
 import { and, eq, inArray, isNotNull, isNull } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
-import { giftedItems, items, lists, users } from '@/db/schema'
+import { giftedItems, items, listAddons, lists, users } from '@/db/schema'
 import type { BirthMonth } from '@/db/schema/enums'
 import { customHolidayNextOccurrence } from '@/lib/custom-holidays'
 import { endOfOccurrence, lastOccurrence } from '@/lib/holidays'
@@ -31,14 +31,19 @@ const MONTHS: ReadonlyArray<BirthMonth> = [
 
 export type AutoArchiveResult = {
 	birthdayArchived: number
+	birthdayAddonsArchived: number
 	christmasArchived: number
+	christmasAddonsArchived: number
 	holidayArchived: number
-	// One row per christmas list whose items were archived this run. Used
-	// by the email cron to pick recipients without re-running the date math.
-	christmasArchivedDetails: Array<{ listId: number; ownerId: string; itemCount: number }>
-	// One row per holiday list whose items were archived this run. Used by
-	// the email cron to pick recipients without re-running the date math.
-	holidayArchivedDetails: Array<{ listId: number; ownerId: string; holidayName: string; itemCount: number }>
+	holidayAddonsArchived: number
+	// One row per christmas list where items and/or addons were archived
+	// this run. Used by the email cron to pick recipients without
+	// re-running the date math. A list with only addons (no claimed items)
+	// still produces a detail row so the recipient gets the email.
+	christmasArchivedDetails: Array<{ listId: number; ownerId: string; itemCount: number; addonCount: number }>
+	// One row per holiday list where items and/or addons were archived this
+	// run. Same email-routing role as `christmasArchivedDetails`.
+	holidayArchivedDetails: Array<{ listId: number; ownerId: string; holidayName: string; itemCount: number; addonCount: number }>
 }
 
 type Args = {
@@ -57,8 +62,11 @@ export async function autoArchiveImpl({
 	archiveDaysAfterHoliday,
 }: Args): Promise<AutoArchiveResult> {
 	let birthdayArchived = 0
+	let birthdayAddonsArchived = 0
 	let christmasArchived = 0
+	let christmasAddonsArchived = 0
 	let holidayArchived = 0
+	let holidayAddonsArchived = 0
 	const christmasArchivedDetails: AutoArchiveResult['christmasArchivedDetails'] = []
 	const holidayArchivedDetails: AutoArchiveResult['holidayArchivedDetails'] = []
 
@@ -89,10 +97,21 @@ export async function autoArchiveImpl({
 				and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), isNull(items.pendingDeletionAt), inArray(items.listId, listIds))
 			)
 
-		if (claimedItemIds.length === 0) continue
-		const ids = claimedItemIds.map(r => r.itemId)
-		await db.update(items).set({ isArchived: true }).where(inArray(items.id, ids))
-		birthdayArchived += ids.length
+		if (claimedItemIds.length > 0) {
+			const ids = claimedItemIds.map(r => r.itemId)
+			await db.update(items).set({ isArchived: true }).where(inArray(items.id, ids))
+			birthdayArchived += ids.length
+		}
+
+		// Addons are gifter-volunteered: the trigger date passing is enough
+		// to reveal them, no claim gate. Run even when no items were
+		// archived so addon-only lists still reveal on the received page.
+		const archivedAddons = await db
+			.update(listAddons)
+			.set({ isArchived: true })
+			.where(and(inArray(listAddons.listId, listIds), eq(listAddons.isArchived, false)))
+			.returning({ id: listAddons.id })
+		birthdayAddonsArchived += archivedAddons.length
 	}
 
 	// === Christmas auto-archive ===
@@ -113,11 +132,24 @@ export async function autoArchiveImpl({
 					items,
 					and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), isNull(items.pendingDeletionAt), eq(items.listId, list.id))
 				)
-			if (claimedItemIds.length === 0) continue
 			const ids = claimedItemIds.map(r => r.itemId)
-			await db.update(items).set({ isArchived: true }).where(inArray(items.id, ids))
-			christmasArchived += ids.length
-			christmasArchivedDetails.push({ listId: list.id, ownerId: list.ownerId, itemCount: ids.length })
+			if (ids.length > 0) {
+				await db.update(items).set({ isArchived: true }).where(inArray(items.id, ids))
+				christmasArchived += ids.length
+			}
+			const archivedAddons = await db
+				.update(listAddons)
+				.set({ isArchived: true })
+				.where(and(eq(listAddons.listId, list.id), eq(listAddons.isArchived, false)))
+				.returning({ id: listAddons.id })
+			christmasAddonsArchived += archivedAddons.length
+			if (ids.length === 0 && archivedAddons.length === 0) continue
+			christmasArchivedDetails.push({
+				listId: list.id,
+				ownerId: list.ownerId,
+				itemCount: ids.length,
+				addonCount: archivedAddons.length,
+			})
 		}
 	}
 
@@ -182,20 +214,40 @@ export async function autoArchiveImpl({
 				and(eq(items.id, giftedItems.itemId), eq(items.isArchived, false), isNull(items.pendingDeletionAt), eq(items.listId, list.id))
 			)
 
-		if (claimedItemIds.length > 0) {
-			const ids = claimedItemIds.map(r => r.itemId)
+		const ids = claimedItemIds.map(r => r.itemId)
+		if (ids.length > 0) {
 			await db.update(items).set({ isArchived: true }).where(inArray(items.id, ids))
 			holidayArchived += ids.length
+		}
+
+		const archivedAddons = await db
+			.update(listAddons)
+			.set({ isArchived: true })
+			.where(and(eq(listAddons.listId, list.id), eq(listAddons.isArchived, false)))
+			.returning({ id: listAddons.id })
+		holidayAddonsArchived += archivedAddons.length
+
+		if (ids.length > 0 || archivedAddons.length > 0) {
 			holidayArchivedDetails.push({
 				listId: list.id,
 				ownerId: list.ownerId,
 				holidayName: list.customHoliday.title,
 				itemCount: ids.length,
+				addonCount: archivedAddons.length,
 			})
 		}
 
 		await db.update(lists).set({ lastHolidayArchiveAt: now }).where(eq(lists.id, list.id))
 	}
 
-	return { birthdayArchived, christmasArchived, holidayArchived, christmasArchivedDetails, holidayArchivedDetails }
+	return {
+		birthdayArchived,
+		birthdayAddonsArchived,
+		christmasArchived,
+		christmasAddonsArchived,
+		holidayArchived,
+		holidayAddonsArchived,
+		christmasArchivedDetails,
+		holidayArchivedDetails,
+	}
 }

@@ -152,10 +152,14 @@ export function ListSettingsForm({
 			toast.error("You don't have permission to archive purchases on this list.")
 			return
 		}
-		if (result.updated === 0) {
+		const total = result.updated + result.addonsArchived
+		if (total === 0) {
 			toast.info('No claimed items to archive.')
 		} else {
-			toast.success(`Archived ${result.updated} claimed ${result.updated === 1 ? 'item' : 'items'}.`)
+			const parts: Array<string> = []
+			if (result.updated > 0) parts.push(`${result.updated} claimed ${result.updated === 1 ? 'item' : 'items'}`)
+			if (result.addonsArchived > 0) parts.push(`${result.addonsArchived} add-${result.addonsArchived === 1 ? 'on' : 'ons'}`)
+			toast.success(`Archived ${parts.join(' and ')}.`)
 		}
 		await Promise.all([queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) }), router.invalidate()])
 	}
@@ -470,8 +474,8 @@ export function ListSettingsForm({
 					<div className="grid gap-2">
 						<Label>Archive claimed items</Label>
 						<p className="text-muted-foreground text-xs">
-							Mark every claimed item on this list as archived. Archived items reveal who claimed them on your Received Gifts page, so only
-							do this once you've received the gifts.
+							Mark every claimed item and gifter-volunteered add-on on this list as archived. Archived purchases reveal who claimed them on
+							your Received Gifts page, so only do this once you've received the gifts.
 						</p>
 						<Button type="button" variant="outline" onClick={() => setArchivePurchasesOpen(true)} className="w-fit">
 							<Archive className="size-4" />
@@ -484,8 +488,8 @@ export function ListSettingsForm({
 						title="Archive all purchases on this list?"
 						description={
 							<>
-								This will archive every item on this list that has been claimed. Archived items move out of the active list and the people
-								who claimed them will be revealed to you on your Received Gifts page.
+								This will archive every claimed item and every gifter-volunteered add-on on this list. Archived purchases move out of the
+								active list and the people who claimed them will be revealed to you on your Received Gifts page.
 								<br />
 								<br />
 								Only do this once you've received the gifts. This can't be undone in bulk.

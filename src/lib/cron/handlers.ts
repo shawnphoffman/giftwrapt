@@ -147,7 +147,16 @@ export async function runAutoArchive() {
 	const settings = await getAppSettings(db)
 	const now = new Date()
 
-	const { birthdayArchived, christmasArchived, holidayArchived, christmasArchivedDetails, holidayArchivedDetails } = await autoArchiveImpl({
+	const {
+		birthdayArchived,
+		birthdayAddonsArchived,
+		christmasArchived,
+		christmasAddonsArchived,
+		holidayArchived,
+		holidayAddonsArchived,
+		christmasArchivedDetails,
+		holidayArchivedDetails,
+	} = await autoArchiveImpl({
 		db,
 		now,
 		archiveDaysAfterBirthday: settings.archiveDaysAfterBirthday,
@@ -182,8 +191,11 @@ export async function runAutoArchive() {
 		{
 			endpoint: '/api/cron/auto-archive',
 			birthdayArchived,
+			birthdayAddonsArchived,
 			christmasArchived,
+			christmasAddonsArchived,
 			holidayArchived,
+			holidayAddonsArchived,
 			christmasEmailsSent,
 			holidayEmailsSent,
 			durationMs,
@@ -194,8 +206,11 @@ export async function runAutoArchive() {
 	return {
 		ok: true,
 		birthdayArchived,
+		birthdayAddonsArchived,
 		christmasArchived,
+		christmasAddonsArchived,
 		holidayArchived,
+		holidayAddonsArchived,
 		christmasEmailsSent,
 		holidayEmailsSent,
 		settings: {
