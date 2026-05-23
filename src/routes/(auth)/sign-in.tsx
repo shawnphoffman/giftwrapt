@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { sql } from 'drizzle-orm'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 import { fetchPublicOidcClientInfo } from '@/api/admin-oidc-client'
 import { SignInPageContent } from '@/components/auth/sign-in-page'
@@ -37,6 +37,15 @@ export const Route = createFileRoute('/(auth)/sign-in')({
 function SignIn() {
 	const { redirect: redirectRaw } = Route.useSearch()
 	const { data: session, isPending } = useSession()
+	// `useSession` revalidates on window focus, flipping `isPending` true on
+	// every tab-return. If we render `<Loading />` during those refetches the
+	// form unmounts and its useState-held email/password is wiped, which is
+	// hostile when someone tabs away to grab a password from 1Password. Only
+	// gate on `isPending` during the very first resolution; background
+	// refetches keep the form mounted.
+	const hasResolvedSessionRef = useRef(false)
+	if (!isPending) hasResolvedSessionRef.current = true
+	const showInitialLoading = isPending && !hasResolvedSessionRef.current
 	const passkeysEnabled = useAppSetting('enablePasskeys')
 	const { data: oidcInfo } = useQuery({
 		queryKey: ['public', 'oidc-client-info'],
@@ -108,7 +117,7 @@ function SignIn() {
 		// `callbackURL` once authenticated.
 	}
 
-	if (isPending) {
+	if (showInitialLoading) {
 		return (
 			<div
 				className="flex items-center justify-center w-full h-screen"
