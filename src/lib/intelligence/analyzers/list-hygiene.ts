@@ -7,7 +7,8 @@
 //   1. `convert-public-list` (important): subject has a public list whose
 //      type isn't in the event's match set; rename + convert to the
 //      canonical event type. Only fires when the conversion doesn't break
-//      coverage of another in-window event.
+//      coverage of another in-window event. SKIPPED for custom-holiday
+//      events — see "Custom-holiday asymmetry" below.
 //
 //   2. `make-private-list-public` (suggest): subject has a private list
 //      that already matches the event; just flip its privacy.
@@ -15,7 +16,7 @@
 //   3. `create-event-list` (suggest): subject has no list matching the
 //      event at all; scaffold a new private one (privacy is "not ready
 //      yet"; user can flip to public via branch 2 in a later run after
-//      adding items).
+//      adding items). SKIPPED for custom-holiday events — see below.
 //
 // Independent of the three above, for user-subject runs only:
 //
@@ -23,6 +24,19 @@
 //      exists but isn't primary, and some OTHER list is primary. Rotate.
 //      Dependent runs skip this branch — `lists.isPrimary` is per-owner,
 //      not per-(owner, dependent).
+//
+// Custom-holiday asymmetry: branches 1 and 3 are "cold calls" — they
+// invent an association between a user's list and an event the user has
+// never engaged with. That's appropriate for birthday (self-grounded)
+// and Christmas (~universal), but wrong for custom holidays, which are
+// arbitrary admin-curated rows that may be irrelevant to any given
+// user (e.g. "Graham Grad Party"). For custom-holiday events the
+// analyzer only flows through branches 2 and 4, both of which require
+// an existing matching list (i.e. a list the user has already bound to
+// this `customHolidayId`). Custom-holiday events still appear in the
+// in-window event set so the cross-event coverage check on branch 1
+// continues to protect a bound holiday list from being rebound away
+// for a birthday/Christmas conversion.
 
 import { and, asc, count, desc, eq, inArray, isNull, max, ne } from 'drizzle-orm'
 
@@ -289,9 +303,16 @@ export const listHygieneAnalyzer: Analyzer = {
 			// event, reshape it. Only fires when no public matching list
 			// already covers the event (otherwise we'd create two public
 			// lists for the same event).
-			if (publicNonMatching.length > 0 && publicMatching.length === 0) {
+			//
+			// Skipped for custom-holiday events: a custom holiday is an
+			// arbitrary admin-curated row, not a self-grounded or
+			// universal event, so picking a public list for it is a cold
+			// call that feels presumptuous to the user (see file header).
+			if (event.kind !== 'custom-holiday' && publicNonMatching.length > 0 && publicMatching.length === 0) {
+				// Narrowed: `event.kind` is 'birthday' | 'christmas', so the
+				// converted list is never bound to a customHolidayId.
+				const targetCustomHolidayId = null
 				for (const candidate of publicNonMatching) {
-					const targetCustomHolidayId = event.kind === 'custom-holiday' ? event.customHolidayId : null
 					const simulated = simulateAfterConvert(subjectLists, candidate.id, canonicalType, targetCustomHolidayId)
 
 					// For every OTHER in-window event, ensure coverage is
@@ -345,7 +366,12 @@ export const listHygieneAnalyzer: Analyzer = {
 			// have yielded due to cross-event coverage protection; in that
 			// case we still need to nudge the user to create a list for
 			// THIS event.
-			if (!convertRecEmitted && matchingLists.length === 0) {
+			//
+			// Skipped for custom-holiday events for the same reason as
+			// branch 1: scaffolding a list for an arbitrary admin-curated
+			// holiday is a cold call. A deployment with N custom holidays
+			// would otherwise produce N create-list nudges per user.
+			if (event.kind !== 'custom-holiday' && !convertRecEmitted && matchingLists.length === 0) {
 				recs.push(buildCreateRec({ event, canonicalType, dependentId: ctx.dependentId, subject }))
 			}
 

@@ -134,7 +134,12 @@ describe('listHygieneAnalyzer', () => {
 			})
 		})
 
-		it('rebinds a holiday list to a different custom-holiday when that event approaches', async () => {
+		it('does NOT rebind a holiday list to a different custom-holiday when that event approaches', async () => {
+			// Custom holidays are arbitrary admin-curated events; the
+			// analyzer doesn't invent or change list↔custom-holiday
+			// associations. A list bound to Easter stays bound to Easter
+			// even when Halloween is in window — only the user gets to
+			// repoint it.
 			await withRollback(async tx => {
 				const user = await makeUser(tx)
 				const easterId = '11111111-1111-1111-1111-111111111111'
@@ -144,13 +149,93 @@ describe('listHygieneAnalyzer', () => {
 				await makeList(tx, { ownerId: user.id, type: 'holiday', isPrivate: false, customHolidayId: easterId, name: 'Easter Plans' })
 
 				const result = await listHygieneAnalyzer.run(buildCtx(tx, user.id))
-				const convert = result.recs.find(r => r.kind === 'convert-public-list')
-				expect(convert).toBeDefined()
-				const apply = convert?.actions?.[0]?.apply
-				if (apply?.kind === 'convert-list') {
-					expect(apply.newType).toBe('holiday')
-					expect(apply.newCustomHolidayId).toBe(halloweenId)
-				}
+				expect(result.recs.find(r => r.kind === 'convert-public-list')).toBeUndefined()
+			})
+		})
+	})
+
+	describe('custom-holiday cold-call suppression', () => {
+		// Custom holidays only flow through branches 2 (make-public) and
+		// 4 (wrong-primary), both of which require an existing matching
+		// list. Branches 1 (convert) and 3 (create) are skipped to avoid
+		// inventing associations between users and arbitrary admin-curated
+		// holidays. See file header in analyzers/list-hygiene.ts.
+
+		it('does NOT emit convert-public-list when an unrelated public list exists and a custom holiday is in window', async () => {
+			await withRollback(async tx => {
+				// Reproduces the screenshot bug: user has a public wishlist
+				// (no event-themed name) and a custom holiday is 10 days
+				// out. Branch 1 used to pick the wishlist and propose
+				// converting it; now it should stay silent.
+				const user = await makeUser(tx, { birthMonth: null, birthDay: null })
+				const gradId = '33333333-3333-3333-3333-333333333333'
+				await tx.insert(customHolidays).values({
+					id: gradId,
+					title: 'Graham Grad Party',
+					source: 'custom',
+					customMonth: 6,
+					customDay: 1,
+				})
+				await makeList(tx, { ownerId: user.id, type: 'wishlist', isPrivate: false, name: 'Shawn Unorganized' })
+
+				const result = await listHygieneAnalyzer.run(
+					buildCtx(tx, user.id, { settings: { ...DEFAULT_APP_SETTINGS, enableChristmasLists: false } })
+				)
+				expect(result.recs.find(r => r.kind === 'convert-public-list')).toBeUndefined()
+				expect(result.recs.find(r => r.kind === 'create-event-list')).toBeUndefined()
+			})
+		})
+
+		it('does NOT emit create-event-list when the user has no list for a custom holiday in window', async () => {
+			// No matching list, no other list either. Branch 3 used to
+			// nudge "create a list for Graham Grad Party"; now silent.
+			await withRollback(async tx => {
+				const user = await makeUser(tx, { birthMonth: null, birthDay: null })
+				const gradId = '44444444-4444-4444-4444-444444444444'
+				await tx.insert(customHolidays).values({
+					id: gradId,
+					title: 'Graham Grad Party',
+					source: 'custom',
+					customMonth: 6,
+					customDay: 1,
+				})
+
+				const result = await listHygieneAnalyzer.run(
+					buildCtx(tx, user.id, { settings: { ...DEFAULT_APP_SETTINGS, enableChristmasLists: false } })
+				)
+				expect(result.recs.find(r => r.kind === 'create-event-list')).toBeUndefined()
+				expect(result.recs.find(r => r.kind === 'convert-public-list')).toBeUndefined()
+			})
+		})
+
+		it('STILL emits make-private-list-public when the user has a private list bound to the custom holiday', async () => {
+			// The user has already opted in by creating a holiday list
+			// bound to this customHolidayId. Branch 2 is a follow-up, not
+			// a cold call, so it keeps firing.
+			await withRollback(async tx => {
+				const user = await makeUser(tx, { birthMonth: null, birthDay: null })
+				const gradId = '55555555-5555-5555-5555-555555555555'
+				await tx.insert(customHolidays).values({
+					id: gradId,
+					title: 'Graham Grad Party',
+					source: 'custom',
+					customMonth: 6,
+					customDay: 1,
+				})
+				await makeList(tx, {
+					ownerId: user.id,
+					type: 'holiday',
+					isPrivate: true,
+					customHolidayId: gradId,
+					name: 'Graham Grad Party',
+				})
+
+				const result = await listHygieneAnalyzer.run(
+					buildCtx(tx, user.id, { settings: { ...DEFAULT_APP_SETTINGS, enableChristmasLists: false } })
+				)
+				const privacy = result.recs.find(r => r.kind === 'make-private-list-public')
+				expect(privacy).toBeDefined()
+				expect(privacy?.severity).toBe('suggest')
 			})
 		})
 	})
