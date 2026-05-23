@@ -11,9 +11,9 @@ import {
 	Paperclip,
 	Pencil,
 	Receipt,
+	StickyNote,
 	Truck,
 	Users,
-	Zap,
 } from 'lucide-react'
 import { Fragment, lazy, Suspense, useMemo, useState } from 'react'
 
@@ -420,7 +420,7 @@ function PurchaseDetailRow({
 				) : (
 					<PackagePlus className="size-4 text-muted-foreground" />
 				)}
-				{hasNotes && <Zap className="size-4 text-yellow-500 fill-yellow-500" />}
+				{hasNotes && <StickyNote className="size-4 text-muted-foreground" />}
 			</div>
 			<div className="flex-1 min-w-0">
 				<div className="flex items-center gap-2 min-w-0">
