@@ -7,7 +7,7 @@ import { safeRedirect } from '@/lib/safe-redirect'
 
 type Search = { redirect?: string }
 
-export const Route = createFileRoute('/(auth)/sign-in/two-factor')({
+export const Route = createFileRoute('/(auth)/sign-in_/two-factor')({
 	validateSearch: (search: Record<string, unknown>): Search => {
 		return typeof search.redirect === 'string' ? { redirect: search.redirect } : {}
 	},
