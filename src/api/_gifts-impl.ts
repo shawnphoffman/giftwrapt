@@ -5,13 +5,14 @@
 // `gifts.ts` only references these from inside server-fn handler
 // bodies, which TanStack Start strips on the client.
 
-import { and, arrayOverlaps, desc, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm'
+import { and, arrayOverlaps, desc, eq, inArray, ne, or, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db, type SchemaDatabase } from '@/db'
 import { giftedItems, itemGroups, items, lists, users } from '@/db/schema'
 import type { GiftedItem } from '@/db/schema/gifts'
 import { computeRemainingClaimableQuantity } from '@/lib/gifts'
+import { visibleItemsWhere } from '@/lib/item-visibility'
 import { canViewList } from '@/lib/permissions'
 import { LIMITS } from '@/lib/validation/limits'
 import { notifyListEvent } from '@/routes/api/sse/list.$listId'
@@ -218,7 +219,7 @@ export async function claimItemGiftImpl(args: {
 					const siblings = await tx
 						.select({ itemId: giftedItems.itemId, title: items.title })
 						.from(giftedItems)
-						.innerJoin(items, and(eq(items.id, giftedItems.itemId), isNull(items.pendingDeletionAt)))
+						.innerJoin(items, and(eq(items.id, giftedItems.itemId), visibleItemsWhere('editable')))
 						.where(and(eq(items.groupId, group.id), ne(items.id, data.itemId)))
 						.limit(1)
 
@@ -239,8 +240,7 @@ export async function claimItemGiftImpl(args: {
 						.where(
 							and(
 								eq(items.groupId, group.id),
-								eq(items.isArchived, false),
-								isNull(items.pendingDeletionAt),
+								visibleItemsWhere('visible'),
 								ne(items.id, data.itemId),
 								sql`${items.groupSortOrder} IS NOT NULL`,
 								sql`${items.groupSortOrder} < ${lockedItem.group_sort_order}`
