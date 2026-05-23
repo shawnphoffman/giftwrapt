@@ -17,6 +17,7 @@ count.txt
 .vercel
 storybook-static
 
+.agents/*
 .claude/*
 !.claude/launch.json
 
