@@ -541,9 +541,79 @@ async function applyDeleteItems(
 	if (claims.length > 0) return { ok: false, reason: 'items-have-claims' }
 
 	await tx.delete(items).where(inArray(items.id, itemIdNums))
-	await tx.update(recommendations).set({ status: 'applied' }).where(eq(recommendations.id, recId))
+
+	// stale-items emits one delete action per item when the rec covers
+	// multiple items. Applying a single delete shouldn't dismiss the whole
+	// rec; the remaining items still need review. Patch the payload in
+	// place: drop the deleted item refs and their matching delete actions.
+	// Only mark applied when nothing's left to act on.
+	await pruneDeletedItemsFromRecPayload(tx, recId, new Set(apply.itemIds))
 
 	return { ok: true, kind: 'delete-items', deletedCount: itemIdNums.length }
+}
+
+type StaleItemsPayload = {
+	relatedItems?: Array<{ id: string } & Record<string, unknown>>
+	affected?: { noun?: string; count?: number; lines?: Array<string>; [k: string]: unknown }
+	actions?: Array<{ apply?: { kind?: string; itemIds?: Array<string> } } & Record<string, unknown>>
+	[k: string]: unknown
+}
+
+async function pruneDeletedItemsFromRecPayload(tx: SchemaDatabase, recId: string, deletedIds: Set<string>): Promise<void> {
+	const row = await tx.query.recommendations.findFirst({
+		where: eq(recommendations.id, recId),
+		columns: { payload: true },
+	})
+	const payload = (row?.payload ?? {}) as StaleItemsPayload
+	const oldRelated = payload.relatedItems ?? []
+
+	const keptIndices: Array<number> = []
+	const newRelated = oldRelated.filter((it, i) => {
+		const keep = !deletedIds.has(it.id)
+		if (keep) keptIndices.push(i)
+		return keep
+	})
+
+	if (newRelated.length === oldRelated.length) {
+		// Nothing in the payload referenced the deleted items (rec didn't
+		// describe them individually). Treat as a fully-applied action.
+		await tx.update(recommendations).set({ status: 'applied' }).where(eq(recommendations.id, recId))
+		return
+	}
+
+	if (newRelated.length === 0) {
+		await tx.update(recommendations).set({ status: 'applied' }).where(eq(recommendations.id, recId))
+		return
+	}
+
+	const oldAffected = payload.affected
+	const newAffected = oldAffected
+		? {
+				...oldAffected,
+				count: newRelated.length,
+				lines:
+					Array.isArray(oldAffected.lines) && oldAffected.lines.length === oldRelated.length
+						? keptIndices.map(i => oldAffected.lines![i])
+						: oldAffected.lines,
+			}
+		: undefined
+
+	const newActions = (payload.actions ?? []).filter(a => {
+		if (a.apply?.kind !== 'delete-items') return true
+		const ids = a.apply.itemIds ?? []
+		// Drop the per-item delete row whose target item is now gone.
+		if (ids.length === 0) return true
+		return !ids.every(id => deletedIds.has(id))
+	})
+
+	const newPayload: StaleItemsPayload = {
+		...payload,
+		relatedItems: newRelated,
+		...(newAffected ? { affected: newAffected } : {}),
+		actions: newActions,
+	}
+
+	await tx.update(recommendations).set({ payload: newPayload }).where(eq(recommendations.id, recId))
 }
 
 async function applySetPrimaryList(
