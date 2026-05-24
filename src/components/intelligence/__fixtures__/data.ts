@@ -178,6 +178,57 @@ const recStaleSingle: Recommendation = {
 	relatedItems: [item('item-treats', 'Salmon treats', dependentList, 400)],
 }
 
+// stale-items can flag co-listed items as alternatives ("you have two old
+// surge protectors - pick one"); that's structurally a grouping
+// suggestion, not a cleanup. The rec carries analyzerId='stale-items' but
+// kind='group-suggestion' so the card filed under Organize, with a
+// single Group as Pick One action instead of per-item Delete rows.
+const stalePickOneSurge1 = item('item-furman-pst8', 'Furman PST-8 8 Outlet Power Station', wishlistGeneric, 864)
+const stalePickOneSurge2 = item('item-cyberpower-pack', 'CyberPower Surge Multi-Pack', wishlistGeneric, 862)
+const recStalePickOne: Recommendation = {
+	id: 'rec-3b',
+	analyzerId: 'stale-items',
+	kind: 'group-suggestion',
+	severity: 'suggest',
+	status: 'active',
+	title: 'Two surge/power protection picks',
+	body: 'You have multiple older power protection items that may be redundant - pick one.',
+	createdAt: hoursAgo(2),
+	actions: [
+		{
+			label: 'Group as Pick One',
+			description: 'Claiming one will lock the others. You can rearrange or split the group later.',
+			intent: 'do',
+			apply: {
+				kind: 'create-group',
+				listId: 'wishlist-generic',
+				groupType: 'or',
+				itemIds: ['item-furman-pst8', 'item-cyberpower-pack'],
+				priority: 'normal',
+			},
+		},
+		{
+			label: 'Open List',
+			description: 'Jump to My Wishlist to edit these items individually.',
+			intent: 'do',
+			nav: { listId: 'wishlist-generic' },
+		},
+		{
+			label: 'Keep separate',
+			description: "These aren't really alternatives. We won't suggest grouping them again.",
+			intent: 'noop',
+		},
+	],
+	dismissDescription: "Hide this recommendation. We won't suggest it again unless these items change.",
+	affected: {
+		noun: 'items',
+		count: 2,
+		lines: ['Furman PST-8 8 Outlet Power Station · on My Wishlist', 'CyberPower Surge Multi-Pack · on My Wishlist'],
+		listChips: [wishlistGeneric],
+	},
+	relatedItems: [stalePickOneSurge1, stalePickOneSurge2],
+}
+
 // ─── Organize ────────────────────────────────────────────────────────────────
 
 const recDuplicates: Recommendation = {
@@ -1019,6 +1070,7 @@ export const populatedData: IntelligencePageData = {
 		recPrimaryList,
 		recStaleItems,
 		recStaleSingle,
+		recStalePickOne,
 		recDuplicates,
 		recGroupingDestructive,
 		recGroupingTypeCrossing,

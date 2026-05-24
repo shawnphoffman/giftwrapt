@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 import type { IntelligencePageState, Recommendation, RecommendationAction, RecommendationSeverity } from './__fixtures__/types'
 import { buildFilterSections, isRecVisible, ListFilterPopover, type ListFilterSection } from './list-filter-popover'
 import { RecommendationCard } from './recommendation-card'
-import { groupKeyForAnalyzer } from './recommendation-group'
+import { groupKeyFor } from './recommendation-group'
 
 // One subsection of the "For your dependents" rollup. Each dependent the
 // guardian has active recs for becomes one of these. Rendered below the
@@ -86,8 +86,8 @@ function sortRecs(recs: Array<Recommendation>): Array<Recommendation> {
 		const sevDiff = SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity]
 		if (sevDiff !== 0) return sevDiff
 		// within a priority, fall back to a stable order so the ui doesn't churn
-		const aGroup = groupKeyForAnalyzer(a.analyzerId)
-		const bGroup = groupKeyForAnalyzer(b.analyzerId)
+		const aGroup = groupKeyFor(a)
+		const bGroup = groupKeyFor(b)
 		if (aGroup !== bGroup) return aGroup.localeCompare(bGroup)
 		return a.createdAt.getTime() - b.createdAt.getTime()
 	})

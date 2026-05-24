@@ -15,6 +15,7 @@ import {
 	staleItemsResponseSchema,
 } from '../prompts/stale-items'
 import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ItemRef, ListRef, RecommendationAction } from '../types'
+import { pickGroupPriority } from './grouping'
 
 const STALE_DAYS_THRESHOLD = 180 // 6 months
 
@@ -33,6 +34,7 @@ export const staleItemsAnalyzer: Analyzer = {
 			.select({
 				itemId: items.id,
 				title: items.title,
+				priority: items.priority,
 				updatedAt: items.updatedAt,
 				availability: items.availability,
 				imageUrl: items.imageUrl,
@@ -157,6 +159,7 @@ export const staleItemsAnalyzer: Analyzer = {
 						headline: string
 						rationale: string
 						itemIds: Array<string>
+						intent: 'pick-one' | 'cleanup'
 					}>
 				}>
 			}
@@ -181,23 +184,17 @@ export const staleItemsAnalyzer: Analyzer = {
 				const flaggedRows = ai.itemIds.map(id => candidatesById.get(id)).filter((r): r is (typeof group)[number] => r !== undefined)
 				if (flaggedRows.length === 0) continue
 				const itemRefs = itemRefsFor(flaggedRows)
-				recs.push({
-					kind: itemRefs.length === 1 ? 'old-item' : 'old-items',
-					severity: ai.severity,
-					title: ai.headline,
-					body: ai.rationale,
-					actions: buildStaleItemsActions(itemRefs, listRef),
-					dismissDescription: "Hide this recommendation. We won't suggest it again unless these items change.",
-					affected: {
-						noun: itemRefs.length === 1 ? 'item' : 'items',
-						count: itemRefs.length,
-						lines: itemRefs.map(it => `${it.title} · last edited ${daysSince(it.updatedAt, ctx.now)} days ago`),
-						listChips: [listRef],
-					},
-					relatedItems: itemRefs,
-					relatedLists: [listRef],
-					fingerprintTargets: itemRefs.map(it => it.id),
-				})
+				// 'pick-one' is only meaningful for 2+ items; clamp to
+				// 'cleanup' when the model returned pick-one with a single
+				// item (schema can't express "at least two" without
+				// blowing up structured-output compatibility).
+				const intent: 'pick-one' | 'cleanup' = ai.intent === 'pick-one' && itemRefs.length >= 2 ? 'pick-one' : 'cleanup'
+				const groupPriority = pickGroupPriority(flaggedRows.map(r => r.priority))
+				recs.push(
+					intent === 'pick-one'
+						? buildPickOneRec({ itemRefs, listRef, headline: ai.headline, rationale: ai.rationale, severity: ai.severity, groupPriority })
+						: buildCleanupRec({ itemRefs, listRef, headline: ai.headline, rationale: ai.rationale, severity: ai.severity, now: ctx.now })
+				)
 			}
 		}
 
@@ -208,6 +205,7 @@ export const staleItemsAnalyzer: Analyzer = {
 type CandidateRow = {
 	itemId: number
 	title: string
+	priority: 'very-high' | 'high' | 'normal' | 'low'
 	updatedAt: Date
 	availability: 'available' | 'unavailable'
 	imageUrl: string | null
@@ -250,12 +248,46 @@ function daysSince(date: Date, now: Date): number {
 	return Math.max(0, Math.floor((now.getTime() - date.getTime()) / 86400000))
 }
 
-// One delete row per flagged item when there are 2+. The model can co-flag
-// items as "duplicates" or "redundant" - in that case the user wants to
-// keep one, not delete all - so a bulk delete-all is the wrong default.
-// Per-item rows let the user pick which copy goes; if everything is truly
-// stale, they click each row in turn.
-function buildStaleItemsActions(itemRefs: Array<ItemRef>, listRef: ListRef): Array<RecommendationAction> {
+// Cleanup intent: items are individually stale. The model can co-flag
+// 2+ items but treats them as independently disposable - we emit one
+// delete row per item so the user can pick which copies go without
+// committing to a bulk delete. The 'pick-one' intent (alternative
+// versions of the same thing) takes the buildPickOneRec path instead.
+function buildCleanupRec({
+	itemRefs,
+	listRef,
+	headline,
+	rationale,
+	severity,
+	now,
+}: {
+	itemRefs: Array<ItemRef>
+	listRef: ListRef
+	headline: string
+	rationale: string
+	severity: 'info' | 'suggest' | 'important'
+	now: Date
+}): AnalyzerRecOutput {
+	return {
+		kind: itemRefs.length === 1 ? 'old-item' : 'old-items',
+		severity,
+		title: headline,
+		body: rationale,
+		actions: buildCleanupActions(itemRefs, listRef),
+		dismissDescription: "Hide this recommendation. We won't suggest it again unless these items change.",
+		affected: {
+			noun: itemRefs.length === 1 ? 'item' : 'items',
+			count: itemRefs.length,
+			lines: itemRefs.map(it => `${it.title} · last edited ${daysSince(it.updatedAt, now)} days ago`),
+			listChips: [listRef],
+		},
+		relatedItems: itemRefs,
+		relatedLists: [listRef],
+		fingerprintTargets: itemRefs.map(it => it.id),
+	}
+}
+
+function buildCleanupActions(itemRefs: Array<ItemRef>, listRef: ListRef): Array<RecommendationAction> {
 	const openList: RecommendationAction = {
 		label: 'Open List',
 		description: `Jump to ${listRef.name} so you can edit or remove these items one at a time.`,
@@ -291,7 +323,71 @@ function buildStaleItemsActions(itemRefs: Array<ItemRef>, listRef: ListRef): Arr
 	]
 }
 
+// Pick-one intent: the AI judged 2+ items to be alternatives the
+// recipient would only want ONE of (different versions / brands / sizes
+// of the same kind of thing). Emit the rec using the same shape as the
+// grouping analyzer (kind: 'group-suggestion', create-group 'or' apply
+// payload) so the rec card renders the same affordance and the category
+// router files it under "Organize" instead of "Cleanup". Per-item
+// deletes are dropped - if the user disagrees with the grouping
+// premise, "Keep separate" dismisses without further prompts; if they
+// want to delete one of the items they can still open the list.
+function buildPickOneRec({
+	itemRefs,
+	listRef,
+	headline,
+	rationale,
+	severity,
+	groupPriority,
+}: {
+	itemRefs: Array<ItemRef>
+	listRef: ListRef
+	headline: string
+	rationale: string
+	severity: 'info' | 'suggest' | 'important'
+	groupPriority: 'very-high' | 'high' | 'normal' | 'low'
+}): AnalyzerRecOutput {
+	const itemIds = itemRefs.map(it => it.id)
+	return {
+		kind: 'group-suggestion',
+		severity,
+		title: headline,
+		body: rationale,
+		actions: [
+			{
+				label: 'Group as Pick One',
+				description: 'Claiming one will lock the others. You can rearrange or split the group later.',
+				intent: 'do',
+				apply: { kind: 'create-group', listId: listRef.id, groupType: 'or', itemIds, priority: groupPriority },
+			},
+			{
+				label: 'Open List',
+				description: `Jump to ${listRef.name} to edit these items individually.`,
+				intent: 'do',
+				nav: { listId: listRef.id },
+			},
+			{
+				label: 'Keep separate',
+				description: "These aren't really alternatives. We won't suggest grouping them again.",
+				intent: 'noop',
+			},
+		],
+		dismissDescription: "Hide this recommendation. We won't suggest it again unless these items change.",
+		affected: {
+			noun: 'items',
+			count: itemRefs.length,
+			lines: itemRefs.map(it => `${it.title} · on ${it.listName}`),
+			listChips: [listRef],
+		},
+		relatedItems: itemRefs,
+		relatedLists: [listRef],
+		fingerprintTargets: itemIds,
+	}
+}
+
 function buildHeuristicRec({ list, items: itemRefs }: { list: ListRef; items: Array<ItemRef> }): AnalyzerRecOutput {
+	// No model available: we can't tell pick-one from cleanup, so default
+	// to cleanup (the safer framing - "old items, take a look").
 	return {
 		kind: 'old-items',
 		severity: 'info',

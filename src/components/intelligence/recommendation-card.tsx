@@ -98,6 +98,17 @@ const ANALYZER_LABEL: Record<AnalyzerId, string> = {
 	'clothing-prefs': 'Cleanup',
 }
 
+// Per-rec category resolver. Most recs are categorized purely by
+// analyzer, but some analyzers can emit recs that belong in a different
+// category - e.g. stale-items can flag co-listed items as "pick one of
+// these alternatives," which is structurally a grouping suggestion and
+// belongs under Organize, not Cleanup. Keep this in sync with
+// groupKeyForAnalyzer in recommendation-group.tsx.
+function categoryLabelFor(rec: Pick<Recommendation, 'analyzerId' | 'kind'>): string {
+	if (rec.kind === 'group-suggestion') return 'Organize'
+	return ANALYZER_LABEL[rec.analyzerId]
+}
+
 type SeverityVariant = 'outline' | 'secondary' | 'destructive' | 'amber'
 
 const SEVERITY_META: Record<
@@ -216,7 +227,7 @@ export function RecommendationCard({
 					{sev.label}
 				</Badge>
 				<span data-intelligence="card-group-label" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-					{ANALYZER_LABEL[rec.analyzerId]}
+					{categoryLabelFor(rec)}
 				</span>
 				{position && (
 					<Badge

@@ -19,6 +19,10 @@ const recsById = Object.fromEntries(populatedData.recs.map(r => [r.id, r]))
 export const PrimaryListMissing: Story = { args: { rec: recsById['rec-1'] } }
 export const StaleItemsBatch: Story = { args: { rec: recsById['rec-2'] } }
 export const StaleSingleDependent: Story = { args: { rec: recsById['rec-3'] } }
+// stale-items flagged 2 co-listed items as alternatives ("pick one").
+// Renders under Organize with a single Group as Pick One action
+// instead of per-item Delete rows.
+export const StalePickOneAsGrouping: Story = { args: { rec: recsById['rec-3b'] } }
 export const DuplicatesAcrossLists: Story = { args: { rec: recsById['rec-4'] } }
 export const GroupingMergeSafe: Story = { args: { rec: recsById['rec-5'] } }
 export const GroupingTypeCrossingDestructive: Story = { args: { rec: recsById['rec-6'] } }

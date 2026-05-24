@@ -32,6 +32,15 @@ export function groupKeyForAnalyzer(analyzerId: Recommendation['analyzerId']): R
 	return 'organize'
 }
 
+// Per-rec group resolver. Mirrors categoryLabelFor in recommendation-card.tsx:
+// most recs are bucketed by analyzer, but `kind: 'group-suggestion'` always
+// belongs under Organize even when it originated from stale-items
+// (the AI flagged co-listed items as alternatives -> "pick one" group).
+export function groupKeyFor(rec: Pick<Recommendation, 'analyzerId' | 'kind'>): RecGroupKey {
+	if (rec.kind === 'group-suggestion') return 'organize'
+	return groupKeyForAnalyzer(rec.analyzerId)
+}
+
 export function RecommendationGroup({ groupKey, recs, onAction, onDismiss }: Props) {
 	const meta = GROUP_META[groupKey]
 	const Icon = meta.icon

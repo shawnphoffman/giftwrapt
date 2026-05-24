@@ -25,6 +25,15 @@ export const staleItemsRecSchema = z.object({
 	// Co-flag tightly related items (e.g. "all three Starbucks seasonal
 	// mugs"); list them separately when they're independent concerns.
 	itemIds: z.array(z.string()),
+	// What does the user probably want to do with these items?
+	// - 'pick-one': they're alternatives (different versions/brands of the
+	//   same thing) and the recipient would only want one. The analyzer
+	//   turns this into a "Group as Pick One" action so both items stay
+	//   visible to gifters but claiming one locks the other.
+	// - 'cleanup': they're individually stale and may simply be deleted
+	//   one at a time.
+	// Single-item recs are always 'cleanup' (you can't group one item).
+	intent: z.enum(['pick-one', 'cleanup']),
 })
 
 export const staleItemsListSchema = z.object({
@@ -64,10 +73,11 @@ export const STALE_ITEMS_SYSTEM = [
 	'- Each rec must target specific items by id. Echo the item ids exactly from the input.',
 	'- Co-flag tightly related items (e.g. multiple seasonal variants of one product) as ONE rec with multiple itemIds. List unrelated stale items as SEPARATE recs.',
 	'- Respond grouped by list, echoing each listId exactly as given. Skip lists where nothing should be flagged.',
-	'- Each rec carries: include (bool), severity (info | suggest | important), a short headline, a one-sentence rationale, and the itemIds it targets.',
+	'- Each rec carries: include (bool), severity (info | suggest | important), a short headline, a one-sentence rationale, the itemIds it targets, and an intent.',
+	"- Intent: use 'pick-one' when the co-flagged items are interchangeable alternatives the recipient would only want ONE of (different versions, brands, sizes, or models of the same kind of thing). Use 'cleanup' when the items are individually stale and the recipient may simply want to remove them. Single-item recs are always 'cleanup'.",
 	'- NEVER mention gift claims, gifters, recipients, or who has purchased anything. You do not have that information.',
 	'',
-	'Response shape: { lists: [{ listId, recs: [{ include, severity, headline, rationale, itemIds }, ...] }, ...] }.',
+	'Response shape: { lists: [{ listId, recs: [{ include, severity, headline, rationale, itemIds, intent }, ...] }, ...] }.',
 ].join('\n')
 
 // Variable suffix: per-list, per-item lines including age in days.

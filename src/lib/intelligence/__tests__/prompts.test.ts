@@ -86,13 +86,53 @@ describe('stale-items prompt', () => {
 			lists: [
 				{
 					listId: '10',
-					recs: [{ include: true, severity: 'suggest', headline: 'Old', rationale: 'unused for a while', itemIds: ['100', '101'] }],
+					recs: [
+						{
+							include: true,
+							severity: 'suggest',
+							headline: 'Old',
+							rationale: 'unused for a while',
+							itemIds: ['100', '101'],
+							intent: 'cleanup',
+						},
+					],
 				},
 				{ listId: '11', recs: [] },
 			],
 		})
 		expect(result.lists).toHaveLength(2)
 		expect(result.lists[0].recs).toHaveLength(1)
+		expect(result.lists[0].recs[0].intent).toBe('cleanup')
+	})
+
+	it('accepts intent=pick-one for alternative-item recs', () => {
+		const result = staleItemsResponseSchema.parse({
+			lists: [
+				{
+					listId: '10',
+					recs: [
+						{
+							include: true,
+							severity: 'suggest',
+							headline: 'Pick one',
+							rationale: 'alternatives',
+							itemIds: ['100', '101'],
+							intent: 'pick-one',
+						},
+					],
+				},
+			],
+		})
+		expect(result.lists[0].recs[0].intent).toBe('pick-one')
+	})
+
+	it('SYSTEM prompt documents the intent field', () => {
+		// The model needs an explicit cue about when pick-one vs. cleanup
+		// applies; otherwise it'll default to cleanup and we lose the
+		// "group as alternatives" framing entirely.
+		expect(STALE_ITEMS_SYSTEM).toMatch(/intent/i)
+		expect(STALE_ITEMS_SYSTEM).toMatch(/pick-one/i)
+		expect(STALE_ITEMS_SYSTEM).toMatch(/cleanup/i)
 	})
 })
 
