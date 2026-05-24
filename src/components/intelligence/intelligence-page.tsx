@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
-import type { IntelligencePageState, Recommendation, RecommendationAction, RecommendationSeverity } from './__fixtures__/types'
+import type { IntelligencePageState, Recommendation, RecommendationAction, RecommendationSeverity, RecSubItem } from './__fixtures__/types'
 import { buildFilterSections, isRecVisible, ListFilterPopover, type ListFilterSection } from './list-filter-popover'
 import { RecommendationCard } from './recommendation-card'
 import { groupKeyFor } from './recommendation-group'
@@ -31,6 +31,12 @@ type Props = {
 	onSelectListPicker?: (rec: Recommendation, listId: string) => void
 	// Per-sub-item Skip handler for bundled recs.
 	onDismissSubItem?: (rec: Recommendation, subItemId: string) => void
+	// Per-sub-item Edit handler. When provided, the rec card renders the
+	// Edit affordance as a button that calls this; the suggestions page
+	// uses it to open the standard ItemFormDialog inline. When omitted
+	// (e.g. storybook), the rec card falls back to a target=_blank anchor
+	// at the sub-item's `nav` URL.
+	onEditSubItem?: (rec: Recommendation, subItem: RecSubItem) => void
 	// Active recs scoped to the user's dependents. Rendered as a
 	// "For your dependents" rollup below the user's own recs. Dismissed
 	// and applied per-dependent recs roll into the global disclosure
@@ -101,6 +107,7 @@ export function IntelligencePageContent({
 	onReactivate,
 	onSelectListPicker,
 	onDismissSubItem,
+	onEditSubItem,
 	dependentGroups,
 	pendingRecIds,
 }: Props) {
@@ -244,6 +251,7 @@ export function IntelligencePageContent({
 											onDismiss={onDismiss}
 											onSelectListPicker={onSelectListPicker}
 											onDismissSubItem={onDismissSubItem}
+											onEditSubItem={onEditSubItem}
 											pending={pendingRecIds?.has(rec.id) ?? false}
 										/>
 									))}
@@ -261,6 +269,7 @@ export function IntelligencePageContent({
 					onDismiss={onDismiss}
 					onSelectListPicker={onSelectListPicker}
 					onDismissSubItem={onDismissSubItem}
+					onEditSubItem={onEditSubItem}
 					pendingRecIds={pendingRecIds}
 				/>
 			)}
@@ -284,6 +293,7 @@ function DependentSections({
 	onDismiss,
 	onSelectListPicker,
 	onDismissSubItem,
+	onEditSubItem,
 	pendingRecIds,
 }: {
 	groups: ReadonlyArray<DependentRecGroup>
@@ -291,6 +301,7 @@ function DependentSections({
 	onDismiss?: (rec: Recommendation) => void
 	onSelectListPicker?: (rec: Recommendation, listId: string) => void
 	onDismissSubItem?: (rec: Recommendation, subItemId: string) => void
+	onEditSubItem?: (rec: Recommendation, subItem: RecSubItem) => void
 	pendingRecIds?: ReadonlySet<string>
 }) {
 	// Filter to active-only here so the per-dependent counts match what's
@@ -328,6 +339,7 @@ function DependentSections({
 								onDismiss={onDismiss}
 								onSelectListPicker={onSelectListPicker}
 								onDismissSubItem={onDismissSubItem}
+								onEditSubItem={onEditSubItem}
 								pending={pendingRecIds?.has(rec.id) ?? false}
 							/>
 						))}

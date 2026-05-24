@@ -32,6 +32,8 @@ import {
 	deleteItemsImpl,
 	DeleteItemsInputSchema,
 	type DeleteItemsResult,
+	getItemForEditImpl,
+	type GetItemForEditResult,
 	getItemsForListEditImpl,
 	type GetItemsForListEditResult,
 	getItemsForListViewImpl,
@@ -75,6 +77,7 @@ export type {
 	CopyItemResult,
 	DeleteGroupsResult,
 	DeleteItemsResult,
+	GetItemForEditResult,
 	GetItemsForListEditResult,
 	GetItemsForListViewResult,
 	GiftOnItem,
@@ -178,6 +181,13 @@ export const getItemsForListView = createServerFn({ method: 'GET' })
 	.handler(
 		({ context, data }): Promise<GetItemsForListViewResult> =>
 			getItemsForListViewImpl({ userId: context.session.user.id, listId: data.listId, sort: data.sort })
+	)
+
+export const getItemForEdit = createServerFn({ method: 'GET' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: { itemId: string }) => ({ itemId: data.itemId }))
+	.handler(
+		({ context, data }): Promise<GetItemForEditResult> => getItemForEditImpl({ userId: context.session.user.id, itemId: data.itemId })
 	)
 
 export const getItemsForListEdit = createServerFn({ method: 'GET' })

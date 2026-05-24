@@ -1,6 +1,6 @@
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
 import {
@@ -15,8 +15,10 @@ import {
 	reactivateRecommendation,
 	refreshMyRecommendations,
 } from '@/api/intelligence'
+import { getItemForEdit } from '@/api/items'
 import type { IntelligencePageState, Recommendation } from '@/components/intelligence/__fixtures__/types'
 import { type DependentRecGroup, IntelligencePageContent } from '@/components/intelligence/intelligence-page'
+import { ItemFormDialog } from '@/components/items/item-form-dialog'
 import { coerceLegacyAction } from '@/lib/intelligence/coerce-legacy-action'
 
 const intelligenceQueryOptions = {
@@ -33,6 +35,33 @@ export const Route = createFileRoute('/(core)/suggestions')({
 function IntelligenceRoute() {
 	const { data } = useSuspenseQuery(intelligenceQueryOptions)
 	const queryClient = useQueryClient()
+
+	// Inline-edit dialog state. Set when the user clicks Edit on a
+	// bundled-rec sub-row; cleared when the dialog closes. We fetch the
+	// item on-demand (per-click) rather than pre-loading every sub-item's
+	// list, which would be O(N lists) on first paint.
+	const [editingItemId, setEditingItemId] = useState<string | null>(null)
+	const editingItemQuery = useQuery({
+		queryKey: ['item-for-edit', editingItemId] as const,
+		queryFn: () => getItemForEdit({ data: { itemId: editingItemId! } }),
+		enabled: editingItemId !== null,
+		staleTime: 0,
+		gcTime: 0,
+	})
+	const editingItem = editingItemQuery.data?.kind === 'ok' ? editingItemQuery.data.item : null
+	const editingError = editingItemQuery.data?.kind === 'error' ? editingItemQuery.data.reason : null
+	// Surface a toast and clear state when the fetch resolves to an error
+	// (item was deleted / claimed since the rec was generated, or perms
+	// changed).
+	useEffect(() => {
+		if (!editingError) return
+		toast.error(
+			editingError === 'not-authorized'
+				? 'You no longer have permission to edit this item.'
+				: 'That item no longer exists. Refresh suggestions to see the latest.'
+		)
+		setEditingItemId(null)
+	}, [editingError])
 
 	const refreshMutation = useMutation({
 		mutationFn: () => refreshMyRecommendations({ data: undefined } as Parameters<typeof refreshMyRecommendations>[0]),
@@ -83,33 +112,52 @@ function IntelligenceRoute() {
 	}, [applyServerMutation.isPending, applyServerMutation.variables, dismissMutation.isPending, dismissMutation.variables])
 
 	return (
-		<IntelligencePageContent
-			state={state}
-			dependentGroups={dependentGroups}
-			pendingRecIds={pendingRecIds}
-			onRefresh={() => refreshMutation.mutate()}
-			onDismiss={rec => dismissMutation.mutate(rec.id)}
-			onReactivate={rec => reactivateMutation.mutate(rec.id)}
-			onAction={(rec, action) => {
-				// Navigation actions (nav) are handled in the rec card as
-				// anchor links and never reach this handler. Apply actions
-				// run a server mutation that flips the rec to applied on
-				// success. Noop actions ("Keep both", "Keep separate") are
-				// declines, so they route through dismiss. Anything else
-				// would be a bug: the user clicked a button that does
-				// nothing, so do nothing instead of silently applying.
-				if (action.apply) {
-					applyServerMutation.mutate({ id: rec.id, apply: action.apply })
-					return
-				}
-				if (action.intent === 'noop') {
-					dismissMutation.mutate(rec.id)
-					return
-				}
-			}}
-			onSelectListPicker={(rec, listId) => applyServerMutation.mutate({ id: rec.id, apply: { kind: 'set-primary-list', listId } })}
-			onDismissSubItem={(rec, subItemId) => dismissSubItemMutation.mutate({ id: rec.id, subItemId })}
-		/>
+		<>
+			<IntelligencePageContent
+				state={state}
+				dependentGroups={dependentGroups}
+				pendingRecIds={pendingRecIds}
+				onRefresh={() => refreshMutation.mutate()}
+				onDismiss={rec => dismissMutation.mutate(rec.id)}
+				onReactivate={rec => reactivateMutation.mutate(rec.id)}
+				onAction={(rec, action) => {
+					// Navigation actions (nav) are handled in the rec card as
+					// anchor links and never reach this handler. Apply actions
+					// run a server mutation that flips the rec to applied on
+					// success. Noop actions ("Keep both", "Keep separate") are
+					// declines, so they route through dismiss. Anything else
+					// would be a bug: the user clicked a button that does
+					// nothing, so do nothing instead of silently applying.
+					if (action.apply) {
+						applyServerMutation.mutate({ id: rec.id, apply: action.apply })
+						return
+					}
+					if (action.intent === 'noop') {
+						dismissMutation.mutate(rec.id)
+						return
+					}
+				}}
+				onSelectListPicker={(rec, listId) => applyServerMutation.mutate({ id: rec.id, apply: { kind: 'set-primary-list', listId } })}
+				onDismissSubItem={(rec, subItemId) => dismissSubItemMutation.mutate({ id: rec.id, subItemId })}
+				onEditSubItem={(_rec, sub) => setEditingItemId(sub.nav.itemId)}
+			/>
+			{editingItem && (
+				<ItemFormDialog
+					open
+					onOpenChange={open => {
+						if (open) return
+						setEditingItemId(null)
+						// The item save mutation only patches per-list item
+						// caches; the rec card reads from the intelligence
+						// payload, so refetch to pull in the new title /
+						// price / etc.
+						queryClient.invalidateQueries({ queryKey: intelligenceQueryOptions.queryKey })
+					}}
+					mode="edit"
+					item={editingItem}
+				/>
+			)}
+		</>
 	)
 }
 

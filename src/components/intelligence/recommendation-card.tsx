@@ -88,6 +88,11 @@ type Props = {
 	// Called when the user clicks Skip on a single sub-row inside a bundled
 	// rec. Distinct from `onDismiss`, which dismisses the entire bundle.
 	onDismissSubItem?: (rec: Recommendation, subItemId: string) => void
+	// Called when the user clicks Edit on a single sub-row. When provided,
+	// SubItemRow renders the Edit affordance as a button so the parent
+	// (the suggestions page) can open ItemFormDialog inline. When omitted,
+	// SubItemRow falls back to an `<a target="_blank">` at `sub.nav`.
+	onEditSubItem?: (rec: Recommendation, subItem: RecSubItem) => void
 	// True while an apply or dismiss mutation for this rec is in flight.
 	// We render an overlay + lock interactions so the user can't fire a
 	// second action against the same card before the first round-trips.
@@ -262,6 +267,7 @@ export function RecommendationCard({
 	onDismiss,
 	onSelectListPicker,
 	onDismissSubItem,
+	onEditSubItem,
 	pending: busy = false,
 }: Props) {
 	const sev = SEVERITY_META[rec.severity]
@@ -381,6 +387,7 @@ export function RecommendationCard({
 						bundleNav={rec.bundleNav}
 						dismissDescription={dismissDescription}
 						onDismissSubItem={subItemId => onDismissSubItem?.(rec, subItemId)}
+						onEditSubItem={onEditSubItem ? sub => onEditSubItem(rec, sub) : undefined}
 						onDismiss={handleDismissClick}
 					/>
 				)}
@@ -593,12 +600,14 @@ function SubItemsSection({
 	bundleNav,
 	dismissDescription,
 	onDismissSubItem,
+	onEditSubItem,
 	onDismiss,
 }: {
 	subItems: ReadonlyArray<RecSubItem>
 	bundleNav?: { listId: string }
 	dismissDescription: string
 	onDismissSubItem: (subItemId: string) => void
+	onEditSubItem?: (sub: RecSubItem) => void
 	onDismiss: () => void
 }) {
 	const [expanded, setExpanded] = useState(false)
@@ -619,7 +628,12 @@ function SubItemsSection({
 			/>
 			<ul data-intelligence="sub-items-list" className="divide-y divide-border/60">
 				{renderedSubItems.map(sub => (
-					<SubItemRow key={sub.id} sub={sub} onSkip={() => onDismissSubItem(sub.id)} />
+					<SubItemRow
+						key={sub.id}
+						sub={sub}
+						onSkip={() => onDismissSubItem(sub.id)}
+						onEdit={onEditSubItem ? () => onEditSubItem(sub) : undefined}
+					/>
 				))}
 				{hiddenCount > 0 && (
 					<li data-intelligence="sub-items-show-all" className="flex items-center px-3 py-2.5">
@@ -649,7 +663,19 @@ function SubItemsSection({
 	)
 }
 
-function SubItemRow({ sub, onSkip }: { sub: RecSubItem; onSkip: () => void }) {
+function SubItemRow({ sub, onSkip, onEdit }: { sub: RecSubItem; onSkip: () => void; onEdit?: () => void }) {
+	// Shared button styling for both the anchor (fallback, new tab) and
+	// the button (inline-dialog, when the parent passed onEdit).
+	const editClass = cn(
+		'inline-flex h-8 shrink-0 items-center gap-1 rounded-md px-2.5 text-sm font-medium text-white whitespace-nowrap',
+		'bg-emerald-600 ring-1 ring-emerald-500/50 shadow-sm',
+		'dark:bg-emerald-700 dark:ring-emerald-600/50',
+		'transition-all duration-150',
+		'hover:bg-emerald-500 hover:ring-emerald-400/70 hover:shadow-md hover:shadow-emerald-500/30 hover:-translate-y-px',
+		'dark:hover:bg-emerald-600 dark:hover:ring-emerald-500/70',
+		'active:translate-y-0 active:shadow-sm',
+		'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400'
+	)
 	return (
 		<li
 			data-intelligence="sub-item-row"
@@ -668,27 +694,25 @@ function SubItemRow({ sub, onSkip }: { sub: RecSubItem; onSkip: () => void }) {
 				)}
 			</div>
 			<div data-intelligence="sub-item-actions" className="flex items-center gap-2 self-start sm:self-center sm:shrink-0">
-				<a
-					data-intelligence="sub-item-edit"
-					data-action-intent="do"
-					data-action-link
-					href={navHref(sub.nav)}
-					target="_blank"
-					rel="noopener"
-					className={cn(
-						'inline-flex h-8 shrink-0 items-center gap-1 rounded-md px-2.5 text-sm font-medium text-white whitespace-nowrap',
-						'bg-emerald-600 ring-1 ring-emerald-500/50 shadow-sm',
-						'dark:bg-emerald-700 dark:ring-emerald-600/50',
-						'transition-all duration-150',
-						'hover:bg-emerald-500 hover:ring-emerald-400/70 hover:shadow-md hover:shadow-emerald-500/30 hover:-translate-y-px',
-						'dark:hover:bg-emerald-600 dark:hover:ring-emerald-500/70',
-						'active:translate-y-0 active:shadow-sm',
-						'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400'
-					)}
-				>
-					<ExternalLink className="size-3.5" />
-					Edit
-				</a>
+				{onEdit ? (
+					<button type="button" data-intelligence="sub-item-edit" data-action-intent="do" onClick={onEdit} className={editClass}>
+						<ExternalLink className="size-3.5" />
+						Edit
+					</button>
+				) : (
+					<a
+						data-intelligence="sub-item-edit"
+						data-action-intent="do"
+						data-action-link
+						href={navHref(sub.nav)}
+						target="_blank"
+						rel="noopener"
+						className={editClass}
+					>
+						<ExternalLink className="size-3.5" />
+						Edit
+					</a>
+				)}
 				<Button data-intelligence="sub-item-skip" size="sm" variant="outline" onClick={onSkip} aria-label="Skip this item">
 					<X className="size-3.5" />
 					<span className="sr-only sm:not-sr-only">Skip</span>

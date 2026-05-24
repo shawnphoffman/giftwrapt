@@ -15,7 +15,7 @@ import type { GiftedItem } from '@/db/schema/gifts'
 import type { Item } from '@/db/schema/items'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { isCrossTypeMoveDestructive, SPOILER_PROTECTED_TYPES } from '@/lib/list-type-moves'
-import { canEditList, canViewList, getViewerAccessLevelForList } from '@/lib/permissions'
+import { canEditList, canViewList, canViewListAsAnyone, getViewerAccessLevelForList } from '@/lib/permissions'
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { getVendorFromUrl } from '@/lib/urls'
@@ -338,7 +338,7 @@ export async function setItemAvailabilityImpl(args: {
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 
-	const view = await canViewList(userId, list, dbx)
+	const view = await canViewListAsAnyone(userId, list, dbx)
 	if (!view.ok) return { kind: 'error', reason: 'not-visible' }
 
 	const [updated] = await dbx
@@ -769,6 +769,33 @@ export async function getItemsForListViewImpl(args: {
 		kind: 'ok',
 		items: sortedItems.map(i => ({ ...i, commentCount: commentCountByItem.get(i.id) ?? 0 })),
 	}
+}
+
+export type GetItemForEditResult = { kind: 'ok'; item: Item } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
+
+// Single-item edit fetch. Used by the suggestions page so an Edit button
+// on a sub-row can open the standard `ItemFormDialog` inline without
+// leaving the page. Pending-deletion items are not-found (spoiler).
+export async function getItemForEditImpl(args: { userId: string; itemId: string; dbx?: SchemaDatabase }): Promise<GetItemForEditResult> {
+	const { dbx = db } = args
+	const itemId = Number(args.itemId)
+	if (!Number.isFinite(itemId)) return { kind: 'error', reason: 'not-found' }
+
+	const item = await dbx.query.items.findFirst({
+		where: and(eq(items.id, itemId), visibleItemsWhere('editable')),
+	})
+	if (!item) return { kind: 'error', reason: 'not-found' }
+
+	const list = await dbx.query.lists.findFirst({
+		where: eq(lists.id, item.listId),
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
+	})
+	if (!list) return { kind: 'error', reason: 'not-found' }
+
+	const perm = await assertCanEditItems(args.userId, list, dbx)
+	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
+
+	return { kind: 'ok', item }
 }
 
 export async function getItemsForListEditImpl(args: {
