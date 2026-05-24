@@ -139,11 +139,15 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 		</div>
 	)
 
+	// Items whose URL points to another list in this app are category
+	// pickers ("which one from this sub-list?") not giftable items - the
+	// claim happens on the linked list's items, not here.
+	const pointsToInternalList = !!internalLinkHit
 	// Mirror ClaimAction's own render decision so we can drop the wrapper
 	// row entirely (instead of leaving an empty flex container that still
 	// contributes a gap) when there's nothing to render. Unavailable items
 	// can still be edited by an existing claimer, but no new claims open.
-	const showClaimAction = !!myClaim || (!fullyClaimed && !groupLockedForViewer && !isUnavailable)
+	const showClaimAction = !pointsToInternalList && (!!myClaim || (!fullyClaimed && !groupLockedForViewer && !isUnavailable))
 
 	const hasContentRow = !!(item.notes || item.imageUrl || showClaimAction)
 

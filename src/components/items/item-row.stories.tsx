@@ -233,3 +233,25 @@ export const DateAddedLastYear: Story = {
 		docs: { description: { story: 'Dates outside the current year include the year so they read unambiguously.' } },
 	},
 }
+
+export const PointsToInternalList: Story = {
+	args: {
+		item: makeItemWithGifts({
+			title: 'Pick one from the kids list',
+			url: typeof window !== 'undefined' ? `${window.location.origin}/lists/42` : 'http://localhost:6020/lists/42',
+			price: null,
+		}),
+	},
+	parameters: {
+		docs: {
+			description: {
+				story:
+					'When the item URL points at another list in this app, the claim button is hidden - the actual gift is one of the items on the linked list.',
+			},
+		},
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement)
+		await expect(canvas.queryByRole('button', { name: /^claim$/i })).not.toBeInTheDocument()
+	},
+}
