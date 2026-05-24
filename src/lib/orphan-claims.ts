@@ -13,6 +13,7 @@ import { eq } from 'drizzle-orm'
 
 import { type SchemaDatabase } from '@/db'
 import { dependents, giftedItems, users } from '@/db/schema'
+import { fanOutToGuardians } from '@/lib/guardian-emails'
 import { createLogger } from '@/lib/logger'
 import { isEmailConfigured, sendOrphanClaimEmail } from '@/lib/resend'
 
@@ -140,6 +141,16 @@ export async function dispatchOrphanClaimEmails(args: {
 				'failed to send orphan-claim email'
 			)
 		}
+		await fanOutToGuardians(dbx, member.id, g =>
+			sendOrphanClaimEmail(g.email, {
+				username: member.name || 'there',
+				itemTitle,
+				itemImageUrl,
+				recipientName,
+				listId,
+				listName,
+			})
+		)
 	}
 }
 

@@ -12,6 +12,7 @@ import { z } from 'zod'
 
 import { db, type SchemaDatabase } from '@/db'
 import { itemComments, items, lists, users } from '@/db/schema'
+import { fanOutToGuardians } from '@/lib/guardian-emails'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { createLogger } from '@/lib/logger'
 import { canViewListAsAnyone } from '@/lib/permissions'
@@ -155,6 +156,21 @@ export async function createItemCommentImpl(args: {
 					list.id,
 					item.id
 				)
+				// Skip the commenter themselves when they're also a guardian of
+				// the list owner, otherwise the guardian gets a notification
+				// about their own comment.
+				await fanOutToGuardians(dbx, list.ownerId, async g => {
+					if (g.id === userId) return
+					await sendNewCommentEmail(
+						owner.name || 'there',
+						g.email,
+						commenter?.name || commenter?.email || 'Someone',
+						data.comment,
+						item.title,
+						list.id,
+						item.id
+					)
+				})
 			}
 		} catch (err) {
 			commentsLog.error({ err, listId: list.id, itemId: item.id }, 'failed to send comment notification email')

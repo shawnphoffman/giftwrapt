@@ -9,6 +9,7 @@ import { sql } from 'drizzle-orm'
 import { db } from '@/db'
 import { account, apikey, passkey as passkeyTable, rateLimit, session, twoFactor as twoFactorTable, users, verification } from '@/db/schema'
 import { env } from '@/env'
+import { fanOutToGuardians } from '@/lib/guardian-emails'
 import { createLogger } from '@/lib/logger'
 import { sendPasswordResetEmail } from '@/lib/resend'
 import type { OidcClientConfig } from '@/lib/settings'
@@ -155,6 +156,14 @@ const options = {
 				resetUrl: url,
 				expiresInMinutes: PASSWORD_RESET_TOKEN_TTL_MINUTES,
 			})
+			await fanOutToGuardians(db, user.id, g =>
+				sendPasswordResetEmail({
+					name: user.name,
+					recipient: g.email,
+					resetUrl: url,
+					expiresInMinutes: PASSWORD_RESET_TOKEN_TTL_MINUTES,
+				})
+			)
 		},
 		resetPasswordTokenExpiresIn: PASSWORD_RESET_TOKEN_TTL_MINUTES * 60,
 		// Revoke EVERY other access surface on a successful password

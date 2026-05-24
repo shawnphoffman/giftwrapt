@@ -17,6 +17,7 @@ import { eq, sql } from 'drizzle-orm'
 import type { SchemaDatabase } from '@/db'
 import { appSettings, type BirthMonth, birthMonthEnumValues, customHolidayReminderLogs, customHolidays, users } from '@/db/schema'
 import { customHolidayNextOccurrence, isSameUtcDay, startOfUtcDay } from '@/lib/custom-holidays'
+import { fanOutToGuardians } from '@/lib/guardian-emails'
 import { sendPreBirthdayReminderEmail, sendPreChristmasReminderEmail, sendPreCustomHolidayReminderEmail } from '@/lib/resend'
 
 export type ListOwnerRemindersResult = {
@@ -83,6 +84,7 @@ async function sendBirthdayReminders(db: SchemaDatabase, now: Date, leadDays: nu
 		} catch {
 			// per-recipient failures logged inline in resend
 		}
+		await fanOutToGuardians(db, u.id, g => sendPreBirthdayReminderEmail(g.email, { name: u.name ?? u.email, leadDays }))
 	}
 	return sent
 }
@@ -115,6 +117,7 @@ async function sendChristmasReminders(db: SchemaDatabase, now: Date, leadDays: n
 		} catch {
 			/* logged in resend */
 		}
+		await fanOutToGuardians(db, u.id, g => sendPreChristmasReminderEmail(g.email, { name: u.name ?? u.email, leadDays }))
 	}
 
 	// Mark sent for this year.
@@ -166,6 +169,13 @@ async function sendCustomHolidayReminders(db: SchemaDatabase, now: Date, leadDay
 			} catch {
 				/* logged in resend */
 			}
+			await fanOutToGuardians(db, u.id, g =>
+				sendPreCustomHolidayReminderEmail(g.email, {
+					name: u.name ?? u.email,
+					holidayName: h.title,
+					leadDays,
+				})
+			)
 		}
 
 		await db.insert(customHolidayReminderLogs).values({ customHolidayId: h.id, occurrenceYear })

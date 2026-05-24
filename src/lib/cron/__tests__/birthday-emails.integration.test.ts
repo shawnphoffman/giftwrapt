@@ -5,7 +5,7 @@
 // network requests. We assert that the right recipients were selected
 // and that the call payloads carry the expected names / item titles.
 
-import { makeGiftedItem, makeItem, makeList, makeUser } from '@test/integration/factories'
+import { makeGiftedItem, makeGuardianship, makeItem, makeList, makeUser } from '@test/integration/factories'
 import { withRollback } from '@test/integration/setup'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -62,6 +62,54 @@ describe('birthdayEmailsImpl - day-of', () => {
 			expect(sendBirthdayEmail).toHaveBeenCalledTimes(1)
 			const [name] = vi.mocked(sendBirthdayEmail).mock.calls[0]
 			expect(name).toBe('there')
+		})
+	})
+
+	it('fans the birthday email out to every guardian of a child user', async () => {
+		vi.mocked(sendBirthdayEmail).mockClear()
+		await withRollback(async tx => {
+			const child = await makeUser(tx, { name: 'Kid', birthMonth: 'april', birthDay: 30, role: 'child' })
+			const guardianA = await makeUser(tx, { name: 'GuardianA' })
+			const guardianB = await makeUser(tx, { name: 'GuardianB' })
+			await makeGuardianship(tx, { parentUserId: guardianA.id, childUserId: child.id })
+			await makeGuardianship(tx, { parentUserId: guardianB.id, childUserId: child.id })
+
+			const result = await birthdayEmailsImpl({ db: tx, now: new Date('2026-04-30T12:00:00Z') })
+			// The counter still only tracks user-targeted sends; guardian
+			// fan-out is bonus.
+			expect(result.birthdayEmails).toBe(1)
+
+			expect(sendBirthdayEmail).toHaveBeenCalledTimes(3)
+			const recipients = vi
+				.mocked(sendBirthdayEmail)
+				.mock.calls.map(([, email]) => email)
+				.sort()
+			expect(recipients).toEqual([child.email, guardianA.email, guardianB.email].sort())
+			// The email body still personalizes to the child's name, not the
+			// guardian's - guardians get a copy of the child's email.
+			for (const [name] of vi.mocked(sendBirthdayEmail).mock.calls) {
+				expect(name).toBe('Kid')
+			}
+		})
+	})
+
+	it('skips banned guardians when fanning out', async () => {
+		vi.mocked(sendBirthdayEmail).mockClear()
+		await withRollback(async tx => {
+			const child = await makeUser(tx, { name: 'Kid', birthMonth: 'april', birthDay: 30, role: 'child' })
+			const activeGuardian = await makeUser(tx, { name: 'Active' })
+			const bannedGuardian = await makeUser(tx, { name: 'Banned', banned: true })
+			await makeGuardianship(tx, { parentUserId: activeGuardian.id, childUserId: child.id })
+			await makeGuardianship(tx, { parentUserId: bannedGuardian.id, childUserId: child.id })
+
+			await birthdayEmailsImpl({ db: tx, now: new Date('2026-04-30T12:00:00Z') })
+
+			expect(sendBirthdayEmail).toHaveBeenCalledTimes(2)
+			const recipients = vi
+				.mocked(sendBirthdayEmail)
+				.mock.calls.map(([, email]) => email)
+				.sort()
+			expect(recipients).toEqual([child.email, activeGuardian.email].sort())
 		})
 	})
 

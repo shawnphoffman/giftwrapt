@@ -10,6 +10,7 @@ import type { SchemaDatabase } from '@/db'
 import { giftedItems, items, lists, users } from '@/db/schema'
 import type { BirthMonth } from '@/db/schema/enums'
 import { formatGifterNames, namesForGifter, type PartneredUser } from '@/lib/gifters'
+import { fanOutToGuardians } from '@/lib/guardian-emails'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { sendBirthdayEmail, sendPostBirthdayEmail } from '@/lib/resend'
 
@@ -59,6 +60,7 @@ export async function birthdayEmailsImpl({ db, now }: Args): Promise<BirthdayEma
 			// Caller (handler) is responsible for logging; swallow here so a
 			// single bad recipient doesn't kill the whole batch.
 		}
+		await fanOutToGuardians(db, user.id, g => sendBirthdayEmail(user.name || 'there', g.email))
 	}
 
 	// === Follow-up emails (14 days after birthday) ===
@@ -138,6 +140,7 @@ export async function birthdayEmailsImpl({ db, now }: Args): Promise<BirthdayEma
 
 			await sendPostBirthdayEmail(user.email, emailItems)
 			followUpSent += 1
+			await fanOutToGuardians(db, user.id, g => sendPostBirthdayEmail(g.email, emailItems))
 		} catch {
 			// Same per-recipient swallow as above.
 		}

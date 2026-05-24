@@ -18,6 +18,7 @@ import { eq } from 'drizzle-orm'
 import type { SchemaDatabase } from '@/db'
 import { giftedItems, items, users } from '@/db/schema'
 import { customHolidayNextOccurrence } from '@/lib/custom-holidays'
+import { fanOutToGuardians } from '@/lib/guardian-emails'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { createLogger } from '@/lib/logger'
 import { orphanClaimsCleanedUpTotal } from '@/lib/observability/metrics'
@@ -291,6 +292,17 @@ export async function orphanClaimCleanupImpl(args: { db: SchemaDatabase; now: Da
 						'orphan reminder email failed'
 					)
 				}
+				const fanned = await fanOutToGuardians(dbx, member.id, g =>
+					sendOrphanClaimCleanupReminderEmail(g.email, {
+						username: member.name || 'there',
+						itemTitle: orphan.title,
+						recipientName,
+						eventLabel,
+						listId: list.id,
+						listName: list.name,
+					})
+				)
+				if (fanned > 0) sentAny = true
 			}
 			if (sentAny) {
 				await dbx.update(giftedItems).set({ orphanReminderSentAt: new Date() }).where(eq(giftedItems.id, claim.id))

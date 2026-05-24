@@ -21,6 +21,7 @@ import type { SchemaDatabase } from '@/db'
 import { dependents, userRelationLabels, users } from '@/db/schema'
 import type { RelationLabel } from '@/db/schema/enums'
 import { isSameUtcDay } from '@/lib/custom-holidays'
+import { fanOutToGuardians } from '@/lib/guardian-emails'
 import { fathersDaySlug, getCatalogEntry, mothersDaySlug, nextOccurrence } from '@/lib/holidays'
 import { sendParentsDayReminderEmail, sendPartnerAnniversaryReminderEmail, sendValentinesDayReminderEmail } from '@/lib/resend'
 
@@ -144,13 +145,14 @@ async function sendParentLabelReminders(
 	const holidayName = entry?.name ?? catalogKey
 
 	let sent = 0
-	for (const recipient of byUserId.values()) {
+	for (const [userId, recipient] of byUserId.entries()) {
 		try {
 			await sendParentsDayReminderEmail(recipient.email, { holidayName, leadDays, people: recipient.people })
 			sent += 1
 		} catch {
 			/* logged in resend */
 		}
+		await fanOutToGuardians(db, userId, g => sendParentsDayReminderEmail(g.email, { holidayName, leadDays, people: recipient.people }))
 	}
 	return sent
 }
@@ -183,6 +185,7 @@ async function sendValentinesReminders(db: SchemaDatabase, now: Date, leadDays: 
 		} catch {
 			/* logged in resend */
 		}
+		await fanOutToGuardians(db, u.id, g => sendValentinesDayReminderEmail(g.email, { name: u.name ?? u.email, partnerName, leadDays }))
 	}
 	return sent
 }
@@ -223,6 +226,7 @@ async function sendAnniversaryReminders(db: SchemaDatabase, now: Date, leadDays:
 		} catch {
 			/* logged in resend */
 		}
+		await fanOutToGuardians(db, u.id, g => sendPartnerAnniversaryReminderEmail(g.email, { name: u.name ?? u.email, partnerName, leadDays }))
 	}
 	return sent
 }
