@@ -1,6 +1,6 @@
 'use client'
 
-import { Link, useLocation } from '@tanstack/react-router'
+import { Link, useLocation, useRouterState } from '@tanstack/react-router'
 
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
 
@@ -12,9 +12,21 @@ export default function NavBreadcrumbs() {
 	const isAdminUserEdit = location.pathname.startsWith('/admin/user/')
 	const isAdminIntelligenceSubpage = location.pathname.startsWith('/admin/intelligence/') && location.pathname !== '/admin/intelligence/'
 
-	const isBeyondEditing = location.pathname.includes('/select')
+	const isOrganizing = location.pathname.includes('/organize')
+	const isBeyondEditing = location.pathname.includes('/select') || isOrganizing
 	const isEditingList = location.pathname.includes('/edit') || isBeyondEditing
 	const isViewingList = location.pathname.includes('/lists/')
+
+	const editedListName = useRouterState({
+		select: s => {
+			if (!isBeyondEditing) return null
+			for (const m of s.matches) {
+				const data = m.loaderData as { list?: { name?: string } } | undefined
+				if (data?.list?.name) return data.list.name
+			}
+			return null
+		},
+	})
 
 	const parentCrumb = isAdminIntelligenceSubpage
 		? { href: '/admin/intelligence', label: 'Back to Intelligence' }
@@ -33,6 +45,7 @@ export default function NavBreadcrumbs() {
 					: null
 
 	if (!parentCrumb) return null
+	const editHref = location.pathname.replace('/organize', '/edit').replace('/select', '/edit')
 	return (
 		<Breadcrumb>
 			<BreadcrumbList>
@@ -57,7 +70,7 @@ export default function NavBreadcrumbs() {
 						<BreadcrumbSeparator />
 						<BreadcrumbItem>
 							<BreadcrumbLink asChild>
-								<Link to={location.pathname.replace('/select', '/edit')}>Current List</Link>
+								<Link to={editHref}>{editedListName ?? 'Current List'}</Link>
 							</BreadcrumbLink>
 						</BreadcrumbItem>
 					</>
