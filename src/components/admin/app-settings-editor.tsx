@@ -10,6 +10,7 @@ import { Switch } from '@/components/ui/switch'
 import { ListTypes } from '@/db/schema'
 import { adminAppSettingsQueryKey, notifyAppSettingsChanged, useAdminAppSettings } from '@/hooks/use-app-settings'
 import { useIsEmailConfigured } from '@/hooks/use-is-email-configured'
+import { useObservabilityStatus } from '@/hooks/use-observability-status'
 import { useStorageStatus } from '@/hooks/use-storage-status'
 import { SUPPORTED_COUNTRIES } from '@/lib/holidays-countries'
 import type { AppSettings } from '@/lib/settings'
@@ -629,6 +630,74 @@ export function AuthSettingsSection() {
 					id="enablePasskeys"
 					checked={settings.enablePasskeys}
 					onCheckedChange={checked => handleSettingChange('enablePasskeys', checked)}
+				/>
+			</div>
+		</div>
+	)
+}
+
+export function ObservabilitySettingsSection() {
+	const { settings, isLoading, handleSettingChange } = useSettingsEditor()
+	const { data: status } = useObservabilityStatus()
+
+	if (!settings) return <LoadingOrEmpty isLoading={isLoading} settings={settings} />
+
+	const sentryEnvMissing = status?.sentry.reason === 'env-missing'
+	const metricsEnvMissing = status?.metrics.reason === 'env-missing'
+
+	return (
+		<div className="space-y-6">
+			<div className="flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<Label htmlFor="enableSentry" className="text-base">
+						Enable Sentry Error Reporting
+					</Label>
+					<p className="text-sm text-muted-foreground">
+						Send unhandled errors to a Sentry-compatible backend (sentry.io, Glitchtip, or any compatible host) that you configure via{' '}
+						<code>SENTRY_DSN</code>. Events go to the backend you point at - never to a maintainer-controlled domain. See the{' '}
+						<a href="https://giftwrapt.dev/configuration/observability/" className="underline" target="_blank" rel="noreferrer">
+							Observability docs
+						</a>{' '}
+						for what gets sent.
+					</p>
+					{sentryEnvMissing && (
+						<p className="text-sm text-amber-500">
+							Set <code>SENTRY_DSN</code> in your deployment env to enable.
+						</p>
+					)}
+				</div>
+				<Switch
+					id="enableSentry"
+					checked={settings.enableSentry}
+					disabled={sentryEnvMissing}
+					onCheckedChange={checked => handleSettingChange('enableSentry', checked)}
+				/>
+			</div>
+
+			<div className="flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<Label htmlFor="enableMetrics" className="text-base">
+						Enable Prometheus Metrics Endpoint
+					</Label>
+					<p className="text-sm text-muted-foreground">
+						Expose <code>/api/metrics</code> in the Prometheus text format, gated by a bearer token from <code>METRICS_TOKEN</code>. Returns
+						404 when off (avoids endpoint-existence disclosure). See the{' '}
+						<a href="https://giftwrapt.dev/configuration/observability/" className="underline" target="_blank" rel="noreferrer">
+							Observability docs
+						</a>{' '}
+						for the exported metrics catalog and scrape config.
+					</p>
+					{metricsEnvMissing && (
+						<p className="text-sm text-amber-500">
+							Set <code>METRICS_TOKEN</code> in your deployment env to enable. Generate with <code>openssl rand -hex 32</code>.
+						</p>
+					)}
+				</div>
+				<Switch
+					id="enableMetrics"
+					checked={settings.enableMetrics}
+					disabled={metricsEnvMissing}
+					onCheckedChange={checked => handleSettingChange('enableMetrics', checked)}
 				/>
 			</div>
 		</div>

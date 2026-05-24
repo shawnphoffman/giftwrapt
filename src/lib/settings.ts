@@ -508,6 +508,17 @@ export const appSettingsSchema = z.object({
 	// cleanup tick sweeps rows older than this. 90 days = roughly one
 	// quarter of operational history at five endpoints.
 	cronRunsRetentionDays: z.number().int().min(0).max(365),
+	// =====================================================================
+	// Observability (opt-in per deployment, default off)
+	// =====================================================================
+	// Runtime kill-switches for the two observability families. Each pairs
+	// with an env var (SENTRY_DSN / METRICS_TOKEN) that owns the host /
+	// secret; both env + toggle must be true to emit. See
+	// src/lib/observability/config.ts for the per-request gate. Nothing
+	// ever flows to a maintainer-controlled domain - operators point at
+	// their own Sentry / Glitchtip / Prometheus.
+	enableSentry: z.boolean(),
+	enableMetrics: z.boolean(),
 })
 
 // 2) Default values in code (for when DB is empty or missing keys)
@@ -613,6 +624,8 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 		goUpcKey: '',
 		cacheTtlHours: 720,
 	},
+	enableSentry: false,
+	enableMetrics: false,
 }
 
 export type AppSettings = z.infer<typeof appSettingsSchema>

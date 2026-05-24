@@ -86,6 +86,17 @@ export const env = createEnv({
 		// reaching out to a bucket. Leave unset (false) for any environment
 		// that uploads real images.
 		STORAGE_SKIP_BOOT_CHECK: z.stringbool().default(false),
+		// Observability (opt-in, default off). Both families require BOTH the
+		// env (set per deploy) AND the matching app_settings toggle to emit;
+		// see src/lib/observability/config.ts. The DSN is public-by-design
+		// (Sentry's SDK ships it in client HTML) so it lives in env, not the
+		// envelope-encrypted app_settings store. METRICS_TOKEN is a real
+		// secret used to gate /api/metrics scraping.
+		SENTRY_DSN: z.url().optional(),
+		SENTRY_ENVIRONMENT: z.string().min(1).optional(),
+		SENTRY_RELEASE: z.string().min(1).optional(),
+		SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).optional(),
+		METRICS_TOKEN: z.string().min(16).optional(),
 	},
 
 	/**

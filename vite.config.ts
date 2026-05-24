@@ -66,6 +66,24 @@ const vercelLiveOrigins = isVercelPreviewBuild
 		}
 	: { script: '', connect: '', frame: "'none'" }
 
+// Sentry-compatible error reporting is opt-in (default off). When SENTRY_DSN
+// is set at build time, the browser SDK ships with the bundle and needs to
+// reach the DSN's origin (sentry.io project endpoint, a self-hosted
+// Glitchtip, an operator-run proxy, etc.). Extract origin once at config
+// time and append to connect-src only when the env var exists; without it,
+// CSP is byte-for-byte identical to today's strict default. The runtime
+// admin toggle (`enableSentry` in app_settings) can still kill emission
+// without changing CSP. See docs/configuration/observability.
+let sentryConnectOrigin = ''
+if (process.env.SENTRY_DSN) {
+	try {
+		sentryConnectOrigin = ` ${new URL(process.env.SENTRY_DSN).origin}`
+	} catch {
+		// Malformed DSN: leave connect-src untouched. The env-validation step
+		// in src/env.ts will surface the parse error at runtime.
+	}
+}
+
 const securityHeaders = {
 	// HSTS is a no-op over HTTP (browsers ignore it per RFC 6797). Useful once
 	// the deployment is fronted by HTTPS: tells browsers to refuse plaintext.
@@ -93,7 +111,7 @@ const securityHeaders = {
 		// can call createObjectURL), so the attack surface is essentially zero.
 		"img-src 'self' data: blob: https:",
 		"font-src 'self' data:",
-		`connect-src 'self'${vercelLiveOrigins.connect}`,
+		`connect-src 'self'${vercelLiveOrigins.connect}${sentryConnectOrigin}`,
 		`frame-src ${vercelLiveOrigins.frame}`,
 		"object-src 'none'",
 		"base-uri 'self'",

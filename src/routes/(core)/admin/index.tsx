@@ -6,6 +6,7 @@ import {
 	CommentsSettingsSection,
 	CoreSettingsSection,
 	GenericHolidaySettingsSection,
+	ObservabilitySettingsSection,
 	ParentalRelationsSettingsSection,
 	TodoSettingsSection,
 } from '@/components/admin/app-settings-editor'
@@ -114,6 +115,20 @@ function AdminPage() {
 				<CardContent>
 					<ClientOnly>
 						<TodoSettingsSection />
+					</ClientOnly>
+				</CardContent>
+			</Card>
+			<Card className="animate-page-in max-w-xl">
+				<CardHeader>
+					<CardTitle className="text-2xl">Observability</CardTitle>
+					<CardDescription>
+						Opt-in error reporting and metrics. Default off; both env (DSN / token) and these toggles must be set to emit. Nothing flows to
+						a maintainer-controlled domain - point each family at whichever backend you operate.
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<ClientOnly>
+						<ObservabilitySettingsSection />
 					</ClientOnly>
 				</CardContent>
 			</Card>
