@@ -1,6 +1,6 @@
 import { format, formatDistanceToNow } from 'date-fns'
 import { AlertTriangle, CheckCheck, ChevronDown, ChevronRight, Loader2, RefreshCw, RotateCcw, Sparkles } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import DependentAvatar from '@/components/common/dependent-avatar'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -50,6 +50,36 @@ const SEVERITY_DESCRIPTION: Record<RecommendationSeverity, string> = {
 	info: 'Just a heads-up. No action required.',
 }
 const SEVERITY_ORDER: Array<RecommendationSeverity> = ['important', 'suggest', 'info']
+
+// Reconcile the user's current filter selection with a new option set
+// after a refetch. An id that was in the previous option set but isn't
+// in the new selection was explicitly unchecked by the user; preserve
+// that. An id that's truly new (not in the previous option set) defaults
+// to checked, unless the user has cleared everything. Ids that no longer
+// appear in the option set are dropped. Returns the same `prev`
+// reference when nothing logically changed so React can bail out.
+export function reconcileFilterSelection(
+	prev: ReadonlySet<string>,
+	allFilterIds: ReadonlySet<string>,
+	prevAllFilterIds: ReadonlySet<string>
+): Set<string> {
+	let addedNew = false
+	const next = new Set<string>()
+	for (const id of allFilterIds) {
+		if (prev.has(id)) {
+			next.add(id)
+		} else if (!prevAllFilterIds.has(id) && prev.size > 0) {
+			next.add(id)
+			addedNew = true
+		}
+	}
+	let droppedStale = false
+	for (const id of prev) {
+		if (!allFilterIds.has(id)) droppedStale = true
+	}
+	if (!addedNew && !droppedStale && next.size === prev.size) return prev as Set<string>
+	return next
+}
 
 function sortRecs(recs: Array<Recommendation>): Array<Recommendation> {
 	return [...recs].sort((a, b) => {
@@ -126,37 +156,12 @@ export function IntelligencePageContent({
 	}, [filterSections])
 
 	const [selectedListIds, setSelectedListIds] = useState<Set<string>>(allFilterIds)
+	const prevAllFilterIdsRef = useRef(allFilterIds)
 
-	// Reconcile selection state with the latest option set. Newly surfaced
-	// ids are added to the selection (default "visible"); ids that no
-	// longer appear are dropped so the count badge can't show > 0 for
-	// invisible options.
 	useEffect(() => {
-		setSelectedListIds(prev => {
-			let changed = false
-			const next = new Set<string>()
-			for (const id of allFilterIds) {
-				if (prev.has(id)) {
-					next.add(id)
-				} else {
-					// If the previous selection had at least one entry and this
-					// id is new, default to checked. If the previous selection
-					// was empty, the user has explicitly cleared everything;
-					// don't undo that.
-					if (prev.size > 0) {
-						next.add(id)
-						changed = true
-					}
-				}
-			}
-			for (const id of prev) {
-				if (!allFilterIds.has(id)) {
-					changed = true
-				}
-			}
-			if (!changed && next.size === prev.size) return prev
-			return next
-		})
+		const prevAllIds = prevAllFilterIdsRef.current
+		prevAllFilterIdsRef.current = allFilterIds
+		setSelectedListIds(prev => reconcileFilterSelection(prev, allFilterIds, prevAllIds))
 	}, [allFilterIds])
 
 	const visibleActive = useMemo(() => active.filter(r => isRecVisible(r, selectedListIds)), [active, selectedListIds])
