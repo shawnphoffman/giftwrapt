@@ -110,7 +110,7 @@ export function ImportDialogAmazon({ listId, open, onOpenChange }: Props) {
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-2xl">
+			<DialogContent className="sm:max-w-3xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						<ShoppingBag className="size-5" /> Import from Amazon Wish List
@@ -190,7 +190,7 @@ export function ImportDialogAmazon({ listId, open, onOpenChange }: Props) {
 				)}
 
 				{step === 'preview' && (
-					<div className="flex flex-col gap-3">
+					<div className="flex min-w-0 flex-col gap-3">
 						{error && (
 							<Alert variant="destructive">
 								<AlertTitle>Error</AlertTitle>

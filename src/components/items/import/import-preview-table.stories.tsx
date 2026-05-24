@@ -60,6 +60,30 @@ export const FiveItems: Story = {
 	),
 }
 
+export const LongTitlesAndUrls: Story = {
+	render: () => (
+		<Wrapper
+			initial={[
+				{
+					title: 'Giant Slinkie Coil Spring Toys For Kids - 6" Jumbo Rainbow Slinkie for Gift, Big Novelty Spring Toy',
+					url: 'https://www.amazon.com/dp/B07H9C6PT5/?coliid=I10LCZ9UE9UNFL&colid=3EBYHP2FOCGSV&psc=1&ref_=lv_ov_lig_dp_it',
+					imageUrl: null,
+				},
+				{
+					title: 'Just Play The Original Slinky Walking Spring Toy, 2.75-inch Diameter Metal Slinky, Fidget Toys for Kids',
+					url: 'https://www.amazon.com/dp/B0DR96C5YD/?coliid=I2CCYM16ELB8J3&colid=3EBYHP2FOCGSV&psc=1&ref_=lv_ov_lig_dp_it',
+					imageUrl: null,
+				},
+				{
+					title: null,
+					url: 'https://www.amazon.com/dp/B0GGQSC7HX/?coliid=I2OEKSJHHJ12FA&colid=3EBYHP2FOCGSV&psc=1&ref_=lv_ov_lig_dp_it',
+					imageUrl: null,
+				},
+			]}
+		/>
+	),
+}
+
 export const FiftyItems: Story = {
 	render: () => (
 		<Wrapper

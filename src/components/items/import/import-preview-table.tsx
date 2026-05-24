@@ -102,7 +102,7 @@ export function ImportPreviewTable({
 	}
 
 	return (
-		<div className="flex flex-col gap-3">
+		<div className="flex min-w-0 flex-col gap-3">
 			<div className="flex items-center justify-between gap-3 text-xs">
 				<label className="flex items-center gap-2">
 					<Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label={allSelected ? 'Deselect all rows' : 'Select all rows'} />
@@ -119,12 +119,12 @@ export function ImportPreviewTable({
 				</div>
 			</div>
 
-			<ul className="flex flex-col divide-y rounded-md border max-h-[420px] overflow-y-auto">
+			<ul className="flex max-h-[420px] min-w-0 flex-col divide-y overflow-y-auto rounded-md border">
 				{drafts.map((draft, index) => {
 					const titleBlank = !draft.title || draft.title.trim().length === 0
 					const hasUrl = !!draft.url && draft.url.trim().length > 0
 					return (
-						<li key={index} className="flex items-center gap-3 p-2">
+						<li key={index} className="flex min-w-0 items-center gap-3 p-2">
 							<Checkbox checked={selected.has(index)} onCheckedChange={() => toggleOne(index)} aria-label={`Select row ${index + 1}`} />
 							<div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded border bg-muted">
 								{draft.imageUrl ? (
