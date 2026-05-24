@@ -7,8 +7,11 @@ import { ThemeProvider } from 'next-themes'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ErrorBoundary } from '@/components/utilities/error-boundary'
+import { SentryClientInit } from '@/components/utilities/sentry-client-init'
 import { appSettingsQueryOptions } from '@/hooks/use-app-settings'
+import { observabilityStatusQueryOptions } from '@/hooks/use-observability-status'
 import { storageStatusQueryOptions } from '@/hooks/use-storage-status'
+import { captureClientException } from '@/lib/observability/sentry-client'
 
 import ErrorBoundaryFallback from './-error-boundary'
 import Head from './-head'
@@ -34,6 +37,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 			const [settings] = await Promise.all([
 				context.queryClient.ensureQueryData(appSettingsQueryOptions),
 				context.queryClient.ensureQueryData(storageStatusQueryOptions),
+				context.queryClient.ensureQueryData(observabilityStatusQueryOptions),
 			])
 			return { appTitle: settings.appTitle }
 		} catch {
@@ -50,8 +54,14 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			</head>
 			<body>
 				<ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+					<SentryClientInit />
 					<TooltipProvider>
-						<ErrorBoundary fallback={(error, reset) => <ErrorBoundaryFallback error={error} reset={reset} />}>{children}</ErrorBoundary>
+						<ErrorBoundary
+							fallback={(error, reset) => <ErrorBoundaryFallback error={error} reset={reset} />}
+							onError={error => captureClientException(error)}
+						>
+							{children}
+						</ErrorBoundary>
 					</TooltipProvider>
 					<Scripts />
 					<Toaster />

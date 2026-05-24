@@ -642,8 +642,8 @@ export function ObservabilitySettingsSection() {
 
 	if (!settings) return <LoadingOrEmpty isLoading={isLoading} settings={settings} />
 
-	const sentryEnvMissing = status?.sentry.reason === 'env-missing'
-	const metricsEnvMissing = status?.metrics.reason === 'env-missing'
+	const sentryEnvMissing = status ? !status.sentry.enabled && status.sentry.reason === 'env-missing' : false
+	const metricsEnvMissing = status ? !status.metrics.enabled && status.metrics.reason === 'env-missing' : false
 
 	return (
 		<div className="space-y-6">

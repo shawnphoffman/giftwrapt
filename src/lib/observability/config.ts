@@ -16,23 +16,41 @@ import { db as defaultDb } from '@/db'
 import { env } from '@/env'
 import { getAppSettings } from '@/lib/settings-loader'
 
-export type ObservabilityFamilyStatus = {
-	enabled: boolean
-	reason?: 'env-missing' | 'admin-disabled'
-}
+type DisabledReason = 'env-missing' | 'admin-disabled'
+
+export type SentryStatus =
+	| { enabled: false; reason: DisabledReason }
+	| {
+			enabled: true
+			// The DSN is public-by-design (Sentry's SDK ships it in client
+			// HTML). Surfaced here only when enabled, so the HTML payload for
+			// disabled deployments never carries it.
+			dsn: string
+			environment?: string
+			release?: string
+			tracesSampleRate?: number
+	  }
+
+export type MetricsStatus = { enabled: false; reason: DisabledReason } | { enabled: true }
 
 async function resolveSettings(dbx: Database | SchemaDatabase | undefined) {
 	return getAppSettings(dbx ?? defaultDb)
 }
 
-export async function getSentryStatus(dbx?: Database | SchemaDatabase): Promise<ObservabilityFamilyStatus> {
+export async function getSentryStatus(dbx?: Database | SchemaDatabase): Promise<SentryStatus> {
 	if (!env.SENTRY_DSN) return { enabled: false, reason: 'env-missing' }
 	const settings = await resolveSettings(dbx)
 	if (!settings.enableSentry) return { enabled: false, reason: 'admin-disabled' }
-	return { enabled: true }
+	return {
+		enabled: true,
+		dsn: env.SENTRY_DSN,
+		environment: env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV,
+		release: env.SENTRY_RELEASE,
+		tracesSampleRate: env.SENTRY_TRACES_SAMPLE_RATE,
+	}
 }
 
-export async function getMetricsStatus(dbx?: Database | SchemaDatabase): Promise<ObservabilityFamilyStatus> {
+export async function getMetricsStatus(dbx?: Database | SchemaDatabase): Promise<MetricsStatus> {
 	if (!env.METRICS_TOKEN) return { enabled: false, reason: 'env-missing' }
 	const settings = await resolveSettings(dbx)
 	if (!settings.enableMetrics) return { enabled: false, reason: 'admin-disabled' }

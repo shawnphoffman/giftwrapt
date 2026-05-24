@@ -2,6 +2,7 @@ import { definePlugin as defineNitroPlugin } from 'nitro'
 
 import { env } from '@/env'
 import { createLogger, logger } from '@/lib/logger'
+import { captureServerException } from '@/lib/observability/sentry-server'
 
 // One-time "server ready" line + per-request access logs + uncaught error
 // capture. The ready line is the most important of the three: it closes the
@@ -55,5 +56,6 @@ export default defineNitroPlugin(nitroApp => {
 		// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Nitro types mark ctx.event optional; lint's flow analysis disagrees with tsc.
 		const path = ctx?.event?.req.url ?? 'unknown'
 		logger.error({ err, path }, 'unhandled request error')
+		void captureServerException(err, { path })
 	})
 })

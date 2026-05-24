@@ -87,7 +87,14 @@ export const loggingMiddleware = createMiddleware().server(async ({ next }) => {
 			log.debug({ durationMs: Date.now() - start }, 'server fn redirected')
 			throw err
 		}
-		log.error({ err, durationMs: Date.now() - start }, 'server fn error')
+		const durationMs = Date.now() - start
+		log.error({ err, durationMs }, 'server fn error')
+		// Server-only import; dynamic so the client bundle does not pull in
+		// @sentry/node alongside the middleware reference.
+		if (typeof window === 'undefined') {
+			const { captureServerException } = await import('@/lib/observability/sentry-server')
+			void captureServerException(err, { durationMs })
+		}
 		throw err
 	}
 })

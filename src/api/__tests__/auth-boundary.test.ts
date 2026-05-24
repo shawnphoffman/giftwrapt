@@ -23,6 +23,10 @@ const PUBLIC_ALLOW_LIST: ReadonlyMap<string, string> = new Map([
 	['settings.ts:fetchAppSettings', 'public app settings, scrapeProviders stripped'],
 	// Boolean health probe for the email integration. No PII, no DB writes.
 	['common.ts:isEmailConfigured', 'public boolean health probe'],
+	// Observability status (enabled flags + public Sentry DSN when on).
+	// Renders the admin Observability toggles AND inits the browser SDK
+	// before the user is signed in; no PII, the DSN is public-by-design.
+	['common.ts:getObservabilityStatus', 'public observability status, DSN is public-by-design'],
 	// Boolean health probe for object storage config. Driven by env, no I/O.
 	['storage-status.ts:fetchStorageStatus', 'public boolean health probe'],
 	// Public OIDC button info for the sign-in page (used before auth).
