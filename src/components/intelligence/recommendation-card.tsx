@@ -1,4 +1,18 @@
-import { AlertTriangle, ArrowRight, Check, ChevronDown, ExternalLink, Info, Lightbulb, Loader2, Package, Sparkles, X } from 'lucide-react'
+import {
+	AlertTriangle,
+	ArrowRight,
+	Check,
+	ChevronDown,
+	ExternalLink,
+	Info,
+	Lightbulb,
+	Link2,
+	Loader2,
+	Package,
+	Sparkles,
+	X,
+	Zap,
+} from 'lucide-react'
 import { useState } from 'react'
 
 import DependentAvatar from '@/components/common/dependent-avatar'
@@ -148,6 +162,85 @@ const SEVERITY_META: Record<
 
 const DEFAULT_DISMISS_DESCRIPTION = "Hide this recommendation. We won't show it again unless the underlying items or lists change."
 
+// ─── Section headers ────────────────────────────────────────────────────────
+//
+// Each subsection inside a recommendation card has a tinted header so the
+// reader can scan the structure at a glance: the AI-suggestive fuchsia/amber
+// hints at the model-authored content (the Recommendation), and the other
+// tones key sections to their role (info, references, items, actions, picker)
+// without competing with the card's title for visual priority.
+
+type SectionTone = 'ai' | 'info' | 'refs' | 'items' | 'actions' | 'picker'
+
+const SECTION_TONES: Record<
+	SectionTone,
+	{
+		icon: React.ComponentType<{ className?: string; 'aria-hidden'?: boolean }>
+		bg: string
+		text: string
+		iconClass: string
+	}
+> = {
+	ai: {
+		icon: Sparkles,
+		bg: 'bg-linear-to-r from-fuchsia-500/15 via-amber-500/10 to-transparent dark:from-fuchsia-500/25 dark:via-amber-500/15 dark:to-transparent',
+		text: 'text-fuchsia-900 dark:text-fuchsia-100',
+		iconClass: 'text-fuchsia-600 dark:text-fuchsia-400 drop-shadow-[0_0_4px_rgba(232,121,249,0.45)]',
+	},
+	info: {
+		icon: Info,
+		bg: 'bg-linear-to-r from-sky-500/12 via-sky-500/5 to-transparent dark:from-sky-500/20 dark:via-sky-500/8 dark:to-transparent',
+		text: 'text-sky-900 dark:text-sky-100',
+		iconClass: 'text-sky-600 dark:text-sky-400',
+	},
+	refs: {
+		icon: Link2,
+		bg: 'bg-linear-to-r from-violet-500/12 via-violet-500/5 to-transparent dark:from-violet-500/20 dark:via-violet-500/8 dark:to-transparent',
+		text: 'text-violet-900 dark:text-violet-100',
+		iconClass: 'text-violet-600 dark:text-violet-400',
+	},
+	items: {
+		icon: Package,
+		bg: 'bg-linear-to-r from-teal-500/12 via-teal-500/5 to-transparent dark:from-teal-500/20 dark:via-teal-500/8 dark:to-transparent',
+		text: 'text-teal-900 dark:text-teal-100',
+		iconClass: 'text-teal-600 dark:text-teal-400',
+	},
+	actions: {
+		icon: Zap,
+		bg: 'bg-linear-to-r from-emerald-500/12 via-emerald-500/5 to-transparent dark:from-emerald-500/20 dark:via-emerald-500/8 dark:to-transparent',
+		text: 'text-emerald-900 dark:text-emerald-100',
+		iconClass: 'text-emerald-600 dark:text-emerald-400',
+	},
+	picker: {
+		icon: Lightbulb,
+		bg: 'bg-linear-to-r from-amber-500/15 via-amber-500/5 to-transparent dark:from-amber-500/25 dark:via-amber-500/8 dark:to-transparent',
+		text: 'text-amber-900 dark:text-amber-100',
+		iconClass: 'text-amber-600 dark:text-amber-400',
+	},
+}
+
+function SectionHeader({
+	tone,
+	label,
+	rightSlot,
+	dataAttr,
+}: {
+	tone: SectionTone
+	label: string
+	rightSlot?: React.ReactNode
+	dataAttr: string
+}) {
+	const t = SECTION_TONES[tone]
+	const Icon = t.icon
+	return (
+		<header data-intelligence={dataAttr} className={cn('flex items-center gap-1.5 px-3 py-1.5', t.bg)}>
+			<Icon className={cn('size-3.5 shrink-0', t.iconClass)} aria-hidden />
+			<span className={cn('text-xs font-bold uppercase tracking-wider', t.text)}>{label}</span>
+			{rightSlot && <span className="ml-auto">{rightSlot}</span>}
+		</header>
+	)
+}
+
 // Anything that resolves a rec (apply, destructive, noop-as-dismiss,
 // explicit dismiss) goes through a confirmation. Navigation actions
 // (`nav`) bypass this entirely; they don't change rec status.
@@ -264,12 +357,7 @@ export function RecommendationCard({
 				</h3>
 
 				<section data-intelligence="recommendation-section" className="rounded-md border border-border bg-card/40 overflow-hidden">
-					<header
-						data-intelligence="recommendation-heading"
-						className="bg-muted/30 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-					>
-						Recommendation
-					</header>
+					<SectionHeader tone="ai" label="Recommendation" dataAttr="recommendation-heading" />
 					<div data-intelligence="recommendation-body" className="px-4 py-3">
 						<p data-intelligence="card-body-text" className="text-sm leading-relaxed">
 							{rec.body}
@@ -403,12 +491,16 @@ function AffectedPanel({ affected, relatedItems }: { affected: AffectedSummary; 
 
 	return (
 		<section data-intelligence="affected-panel" className="rounded-md border border-border bg-card/40 overflow-hidden">
-			<header data-intelligence="affected-heading" className="flex items-center justify-between gap-2 bg-muted/30 px-3 py-1.5">
-				<span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Context</span>
-				<span data-intelligence="affected-count" className="text-[11px] tabular-nums text-muted-foreground">
-					{affected.count} {affected.noun}
-				</span>
-			</header>
+			<SectionHeader
+				tone="info"
+				label="Context"
+				dataAttr="affected-heading"
+				rightSlot={
+					<span data-intelligence="affected-count" className="text-[11px] tabular-nums text-sky-700/80 dark:text-sky-300/80">
+						{affected.count} {affected.noun}
+					</span>
+				}
+			/>
 			<div data-intelligence="affected-body" className="px-3 py-2.5">
 				<ul data-intelligence="affected-lines" className="flex flex-col gap-1">
 					{affected.lines.map((line, i) => (
@@ -421,12 +513,7 @@ function AffectedPanel({ affected, relatedItems }: { affected: AffectedSummary; 
 			</div>
 			{hasReferences && (
 				<div data-intelligence="affected-references" className="border-t border-border/40">
-					<div
-						data-intelligence="affected-references-heading"
-						className="bg-muted/30 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-					>
-						References
-					</div>
+					<SectionHeader tone="refs" label="References" dataAttr="affected-references-heading" />
 					<div data-intelligence="affected-references-body" className="px-3 py-2 flex flex-wrap gap-1.5">
 						{lists.map(list => (
 							<ListReferenceLink key={`list-${list.id}`} list={list} />
@@ -520,12 +607,16 @@ function SubItemsSection({
 	const hiddenCount = subItems.length - renderedSubItems.length
 	return (
 		<section data-intelligence="sub-items-section" className="rounded-md border border-border bg-card/40 overflow-hidden">
-			<header data-intelligence="sub-items-heading" className="flex items-center justify-between gap-2 bg-muted/30 px-3 py-1.5">
-				<span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Items</span>
-				<span data-intelligence="sub-items-count" className="text-[11px] tabular-nums text-muted-foreground">
-					{subItems.length} {subItems.length === 1 ? 'item' : 'items'}
-				</span>
-			</header>
+			<SectionHeader
+				tone="items"
+				label="Items"
+				dataAttr="sub-items-heading"
+				rightSlot={
+					<span data-intelligence="sub-items-count" className="text-[11px] tabular-nums text-teal-700/80 dark:text-teal-300/80">
+						{subItems.length} {subItems.length === 1 ? 'item' : 'items'}
+					</span>
+				}
+			/>
 			<ul data-intelligence="sub-items-list" className="divide-y divide-border/60">
 				{renderedSubItems.map(sub => (
 					<SubItemRow key={sub.id} sub={sub} onSkip={() => onDismissSubItem(sub.id)} />
@@ -631,12 +722,7 @@ function ActionsSection({
 }) {
 	return (
 		<section data-intelligence="actions-section" className="rounded-md border border-border bg-card/40 overflow-hidden">
-			<header
-				data-intelligence="actions-heading"
-				className="bg-muted/30 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-			>
-				Actions
-			</header>
+			<SectionHeader tone="actions" label="Actions" dataAttr="actions-heading" />
 			<ul data-intelligence="actions-list" className="divide-y divide-border/60">
 				{actions.map((action, i) => (
 					<ActionRow key={i} action={action} onClick={() => onAction(action)} />
@@ -839,12 +925,7 @@ function ListPickerInteraction({
 
 	return (
 		<section data-intelligence="list-picker" className="rounded-md border border-border bg-card/40 overflow-hidden">
-			<header
-				data-intelligence="list-picker-heading"
-				className="bg-muted/30 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground"
-			>
-				Choose a list
-			</header>
+			<SectionHeader tone="picker" label="Choose a list" dataAttr="list-picker-heading" />
 			<div data-intelligence="list-picker-body" className="px-3 py-3 flex flex-col gap-2">
 				<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
 					<Select value={listId} onValueChange={setListId}>
