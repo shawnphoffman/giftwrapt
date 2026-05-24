@@ -212,3 +212,31 @@ export const Unavailable: Story = {
 		},
 	},
 }
+
+export const DateAddedRecent: Story = {
+	args: {
+		item: makeItem({
+			title: 'Added a few days ago',
+			createdAt: new Date('2026-03-28T00:00:00Z'),
+		}),
+	},
+	parameters: {
+		docs: {
+			description: {
+				story: 'Subtle "date added" indicator renders to the left of the overflow menu. Same-year dates show as "Mon D".',
+			},
+		},
+	},
+}
+
+export const DateAddedLastYear: Story = {
+	args: {
+		item: makeItem({
+			title: 'Added in a previous year',
+			createdAt: new Date('2025-11-04T00:00:00Z'),
+		}),
+	},
+	parameters: {
+		docs: { description: { story: 'Dates outside the current year include the year so they read unambiguously.' } },
+	},
+}

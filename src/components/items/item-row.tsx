@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils'
 import { ClaimAction } from './claim-action'
 import { type ClaimEntry, ClaimUsers } from './claim-users'
 import { CopyItemDialog } from './copy-item-dialog'
+import { DateAdded } from './date-added'
 import { useInternalListLinks } from './internal-list-links-context'
 import { ItemImage } from './item-image'
 import { PriceQuantityBadge } from './price-quantity-badge'
@@ -114,6 +115,7 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 	}))
 
 	const dimmedBadges: Array<ReactNode> = []
+	dimmedBadges.push(<DateAdded key="date" createdAt={item.createdAt} />)
 	if (item.price) {
 		dimmedBadges.push(<PriceQuantityBadge key="price" price={item.price} quantity={1} hideQuantity />)
 	}
@@ -132,7 +134,7 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 	)
 	const trailing = (
 		<div className="flex items-center gap-2 justify-end whitespace-nowrap">
-			<div className={cn('flex items-center gap-2', dimmed && 'opacity-60')}>{dimmedBadges}</div>
+			<div className={cn('flex items-center gap-1', dimmed && 'opacity-60')}>{dimmedBadges}</div>
 			{claimEntries.length > 0 && <ClaimUsers claims={claimEntries} />}
 		</div>
 	)
@@ -232,7 +234,7 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 			{hasPriorityTab && (
 				<div
 					className={cn(
-						'absolute left-0 top-0 h-[calc(100%-4px)] max-h-16 -translate-x-1/2 translate-y-[2px] w-12 rounded-md shadow-sm drop-shadow-[1px_1px_10px_rgb(0_0_0_/_0.2)] dark:drop-shadow-[1px_1px_10px_rgb(0_0_0_/_0.5)] hidden xs:flex items-center p-1 z-0',
+						'absolute left-0 top-0 h-[calc(100%-4px)] max-h-16 -translate-x-1/2 translate-y-[2px] w-12 rounded-md shadow-sm drop-shadow-[1px_1px_10px_rgb(0_0_0/0.2)] dark:drop-shadow-[1px_1px_10px_rgb(0_0_0/0.5)] hidden xs:flex items-center p-1 z-0',
 						priorityTabBgClass[item.priority]
 					)}
 					aria-hidden

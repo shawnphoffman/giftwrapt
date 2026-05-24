@@ -56,6 +56,7 @@ import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
 import { parseInternalListLink } from '@/lib/urls'
 import { cn } from '@/lib/utils'
 
+import { DateAdded } from './date-added'
 import { useInternalListLinks } from './internal-list-links-context'
 import { ItemComments } from './item-comments'
 import { ItemFormDialog } from './item-form-dialog'
@@ -305,12 +306,13 @@ export const ItemEditRow = memo(function ItemEditRow({
 				itemId={item.id}
 				commentCount={commentCount}
 				trailing={
-					item.price || item.quantity > 1 ? (
-						<div className={cn('flex items-center gap-2', dimmed && 'opacity-60')}>
-							{item.price && <PriceQuantityBadge price={item.price} quantity={1} hideQuantity />}
+					<div className={cn('flex items-center gap-2', dimmed && 'opacity-60')}>
+						<DateAdded createdAt={item.createdAt} />
+						{item.price && <PriceQuantityBadge price={item.price} quantity={1} hideQuantity />}
+						{item.quantity > 1 && (
 							<QuantityRemainingBadge variant="inline-pill" quantity={item.quantity} remaining={item.quantity} firstPerson />
-						</div>
-					) : null
+						)}
+					</div>
 				}
 			/>
 		</div>

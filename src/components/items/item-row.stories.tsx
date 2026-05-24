@@ -205,3 +205,31 @@ export const GroupedRow: Story = {
 		docs: { description: { story: 'Compact variant used when the row sits inside a GroupBlock (no outer card or priority tab).' } },
 	},
 }
+
+export const DateAddedRecent: Story = {
+	args: {
+		item: makeItemWithGifts({
+			title: 'Added a few days ago',
+			createdAt: new Date('2026-03-28T00:00:00Z'),
+		}),
+	},
+	parameters: {
+		docs: {
+			description: {
+				story: 'Subtle "date added" indicator sits to the left of the overflow menu. Same-year dates render as "Mon D".',
+			},
+		},
+	},
+}
+
+export const DateAddedLastYear: Story = {
+	args: {
+		item: makeItemWithGifts({
+			title: 'Added in a previous year',
+			createdAt: new Date('2025-11-04T00:00:00Z'),
+		}),
+	},
+	parameters: {
+		docs: { description: { story: 'Dates outside the current year include the year so they read unambiguously.' } },
+	},
+}

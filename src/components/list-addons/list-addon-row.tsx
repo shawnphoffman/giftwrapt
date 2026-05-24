@@ -8,6 +8,8 @@ import { deleteListAddon } from '@/api/list-addons'
 import type { AddonOnList } from '@/api/lists'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import UserAvatar from '@/components/common/user-avatar'
+import { DateAdded } from '@/components/items/date-added'
+import { PriceQuantityBadge } from '@/components/items/price-quantity-badge'
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -96,12 +98,7 @@ export function ListAddonRow({ addon, listId }: Props) {
 				</div>
 
 				{/* CONTENT */}
-				{(addon.totalCost || addon.notes) && (
-					<div className="flex flex-col gap-1">
-						{addon.totalCost && <span className="px-2 text-xs border rounded whitespace-nowrap bg-card w-fit">${addon.totalCost}</span>}
-						{addon.notes && <MarkdownNotes content={addon.notes} className="text-xs text-foreground/75" />}
-					</div>
-				)}
+				{addon.notes && <MarkdownNotes content={addon.notes} className="text-xs text-foreground/75" />}
 
 				{/* FOOTER */}
 				<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -116,6 +113,11 @@ export function ListAddonRow({ addon, listId }: Props) {
 						</TooltipContent>
 					</Tooltip>
 					<span>{isMine ? 'You' : name}</span>
+					<span className="flex-1" />
+					<div className="flex items-center gap-1">
+						<DateAdded createdAt={addon.createdAt} />
+						{addon.totalCost && <PriceQuantityBadge price={addon.totalCost} quantity={1} hideQuantity />}
+					</div>
 				</div>
 			</div>
 
