@@ -13,7 +13,7 @@ export default function Head(ctx: HeadCtx = {}) {
 			},
 			{
 				name: 'viewport',
-				content: 'width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover',
+				content: 'width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover, interactive-widget=resizes-content',
 			},
 			{
 				name: 'theme-color',
