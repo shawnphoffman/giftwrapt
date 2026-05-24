@@ -253,5 +253,6 @@ export const PointsToInternalList: Story = {
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement)
 		await expect(canvas.queryByRole('button', { name: /^claim$/i })).not.toBeInTheDocument()
+		await expect(canvas.queryByRole('button', { name: /item actions/i })).not.toBeInTheDocument()
 	},
 }

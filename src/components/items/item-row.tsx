@@ -163,7 +163,7 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 				)}
 				<span className="flex-1" />
 				{isSaving && <Loader2 className="size-3.5 shrink-0 text-muted-foreground animate-spin" aria-label="Saving" />}
-				{currentUserId && (
+				{currentUserId && !pointsToInternalList && (
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button variant="outline" size="icon" className="size-7 shrink-0" aria-label="Item actions">
