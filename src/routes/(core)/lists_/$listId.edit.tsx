@@ -29,6 +29,7 @@ import type { Item } from '@/db/schema/items'
 import { buildListEntries } from '@/lib/list-entries'
 import { itemsKeys, listItemsEditQueryOptions } from '@/lib/queries/items'
 import { parseInternalListLink } from '@/lib/urls'
+import { useListAutoRefresh } from '@/lib/use-list-auto-refresh'
 import { useListSSE } from '@/lib/use-list-sse'
 import { useScrollToHash } from '@/lib/use-scroll-to-hash'
 
@@ -95,6 +96,7 @@ function ListEditPage() {
 	const navigate = Route.useNavigate()
 	const queryClient = useQueryClient()
 	useListSSE(list.id, 'edit')
+	useListAutoRefresh(list.id)
 	const [addItemOpen, setAddItemOpen] = useState(false)
 	const [addItemGroupId, setAddItemGroupId] = useState<number | null>(null)
 	const [addItemPhotoFile, setAddItemPhotoFile] = useState<File | null>(null)

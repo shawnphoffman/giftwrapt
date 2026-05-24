@@ -15,6 +15,7 @@ import { TodoList } from '@/components/todos/todo-list'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useSession } from '@/lib/auth-client'
 import { listItemsViewQueryOptions } from '@/lib/queries/items'
+import { useListAutoRefresh } from '@/lib/use-list-auto-refresh'
 import { useListSSE } from '@/lib/use-list-sse'
 import { useScrollToHash } from '@/lib/use-scroll-to-hash'
 
@@ -90,6 +91,7 @@ function ListDetailPage() {
 	const { from } = Route.useSearch()
 	const { data: session } = useSession()
 	useListSSE(list.id)
+	useListAutoRefresh(list.id)
 	useScrollToHash([list.id])
 
 	// For dependent-subject lists the recipient is the dependent (pet,

@@ -42,6 +42,7 @@ import { useDeleteItems } from '@/lib/mutations/delete-items'
 import { useSetItemsPriority } from '@/lib/mutations/set-items-priority'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
 import { listItemsEditQueryOptions } from '@/lib/queries/items'
+import { useListAutoRefresh } from '@/lib/use-list-auto-refresh'
 import { useListSSE } from '@/lib/use-list-sse'
 import { cn } from '@/lib/utils'
 
@@ -69,6 +70,7 @@ export const Route = createFileRoute('/(core)/lists_/$listId/organize')({
 function OrganizePage() {
 	const { list } = Route.useLoaderData()
 	useListSSE(list.id, 'organize')
+	useListAutoRefresh(list.id)
 	const [tab, setTab] = useState<TabMode>('bulk')
 
 	return (
