@@ -13,6 +13,7 @@ import { giftedItems, itemGroups, items, lists, users } from '@/db/schema'
 import type { GiftedItem } from '@/db/schema/gifts'
 import { computeRemainingClaimableQuantity } from '@/lib/gifts'
 import { visibleItemsWhere } from '@/lib/item-visibility'
+import { claimsCreatedTotal, claimsDeletedTotal } from '@/lib/observability/metrics'
 import { canViewList } from '@/lib/permissions'
 import { LIMITS } from '@/lib/validation/limits'
 import { notifyListEvent } from '@/routes/api/sse/list.$listId'
@@ -284,6 +285,7 @@ export async function claimItemGiftImpl(args: {
 	})
 
 	if (notifyCtx.listId !== null) notifyListEvent({ kind: 'claim', listId: notifyCtx.listId })
+	if (result.kind === 'ok') claimsCreatedTotal.inc()
 	return result
 }
 
@@ -391,6 +393,7 @@ export async function unclaimItemGiftImpl(args: {
 	await dbx.delete(giftedItems).where(and(eq(giftedItems.id, data.giftId), eq(giftedItems.gifterId, gifterId)))
 
 	notifyListEvent({ kind: 'claim', listId: existing.listId })
+	claimsDeletedTotal.inc()
 	return { kind: 'ok' }
 }
 

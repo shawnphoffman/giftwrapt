@@ -15,6 +15,7 @@ import { priorityEnumValues, statusEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { httpsUpgradeOrNull } from '@/lib/image-url'
 import { visibleItemsWhere } from '@/lib/item-visibility'
+import { itemsCreatedTotal, itemsPendingDeletionTotal } from '@/lib/observability/metrics'
 import { dispatchOrphanClaimEmails, resolveListRecipientName } from '@/lib/orphan-claims'
 import { canEditList } from '@/lib/permissions'
 import { loadCachedScrapeRating } from '@/lib/scrapers/cache'
@@ -125,10 +126,12 @@ export async function createItemImpl(args: {
 	if (mirrored && mirrored !== inserted.imageUrl) {
 		const [updated] = await dbx.update(items).set({ imageUrl: mirrored }).where(eq(items.id, inserted.id)).returning()
 		notifyListEvent({ kind: 'item', listId: data.listId, itemId: updated.id, shape: 'added' })
+		itemsCreatedTotal.inc()
 		return { kind: 'ok', item: updated }
 	}
 
 	notifyListEvent({ kind: 'item', listId: data.listId, itemId: inserted.id, shape: 'added' })
+	itemsCreatedTotal.inc()
 	return { kind: 'ok', item: inserted }
 }
 
@@ -294,6 +297,7 @@ export async function deleteItemImpl(args: {
 			recipientName,
 		})
 		notifyListEvent({ kind: 'item', listId: item.listId, itemId: input.itemId, shape: 'removed' })
+		itemsPendingDeletionTotal.inc()
 		return { kind: 'ok' }
 	}
 

@@ -15,6 +15,7 @@ import type { GiftedItem } from '@/db/schema/gifts'
 import type { Item } from '@/db/schema/items'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { isCrossTypeMoveDestructive, SPOILER_PROTECTED_TYPES } from '@/lib/list-type-moves'
+import { itemsArchivedTotal, revealsTriggeredTotal } from '@/lib/observability/metrics'
 import { canEditList, canViewList, canViewListAsAnyone, getViewerAccessLevelForList } from '@/lib/permissions'
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
@@ -316,6 +317,10 @@ export async function archiveItemImpl(args: {
 
 	await dbx.update(items).set({ isArchived: data.archived }).where(eq(items.id, data.itemId))
 	notifyListEvent({ kind: 'item', listId: item.listId, itemId: data.itemId })
+	if (data.archived) {
+		itemsArchivedTotal.inc()
+		revealsTriggeredTotal.inc({ trigger: 'manual' })
+	}
 	return { kind: 'ok' }
 }
 
@@ -471,7 +476,9 @@ export async function archiveListPurchasesImpl(args: {
 		for (const id of ids) {
 			notifyListEvent({ kind: 'item', listId: list.id, itemId: id })
 		}
+		itemsArchivedTotal.inc(ids.length)
 	}
+	revealsTriggeredTotal.inc({ trigger: 'manual' })
 	return { kind: 'ok', updated: ids.length, addonsArchived: archivedAddons.length }
 }
 

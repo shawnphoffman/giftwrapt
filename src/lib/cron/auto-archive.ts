@@ -14,6 +14,7 @@ import type { BirthMonth } from '@/db/schema/enums'
 import { customHolidayNextOccurrence } from '@/lib/custom-holidays'
 import { endOfOccurrence, lastOccurrence } from '@/lib/holidays'
 import { visibleItemsWhere } from '@/lib/item-visibility'
+import { itemsArchivedTotal, revealsTriggeredTotal } from '@/lib/observability/metrics'
 
 const MONTHS: ReadonlyArray<BirthMonth> = [
 	'january',
@@ -231,6 +232,12 @@ export async function autoArchiveImpl({
 
 		await db.update(lists).set({ lastHolidayArchiveAt: now }).where(eq(lists.id, list.id))
 	}
+
+	const totalArchived = birthdayArchived + christmasArchived + holidayArchived
+	if (totalArchived > 0) itemsArchivedTotal.inc(totalArchived)
+	if (birthdayArchived > 0) revealsTriggeredTotal.inc({ trigger: 'birthday' }, birthdayArchived)
+	if (christmasArchived > 0) revealsTriggeredTotal.inc({ trigger: 'christmas' }, christmasArchived)
+	if (holidayArchived > 0) revealsTriggeredTotal.inc({ trigger: 'holiday' }, holidayArchived)
 
 	return {
 		birthdayArchived,

@@ -15,6 +15,7 @@ import { eq, lt } from 'drizzle-orm'
 import { db } from '@/db'
 import { cronRuns } from '@/db/schema'
 import { createLogger } from '@/lib/logger'
+import { cronRunDurationMs, cronRunOutcomesTotal } from '@/lib/observability/metrics'
 
 import type { CronEndpoint } from './registry'
 
@@ -52,6 +53,10 @@ export async function recordCronRun<T extends Record<string, {}> | undefined>({ 
 				.where(eq(cronRuns.id, runId))
 		}
 
+		const outcome = skipReason ? 'skipped' : 'success'
+		cronRunDurationMs.observe({ job: endpoint, outcome }, durationMs)
+		cronRunOutcomesTotal.inc({ job: endpoint, outcome })
+
 		return result
 	} catch (err) {
 		const durationMs = Date.now() - started
@@ -65,6 +70,8 @@ export async function recordCronRun<T extends Record<string, {}> | undefined>({ 
 					log.error({ updateErr: String(updateErr) }, 'failed to mark cron run errored')
 				})
 		}
+		cronRunDurationMs.observe({ job: endpoint, outcome: 'error' }, durationMs)
+		cronRunOutcomesTotal.inc({ job: endpoint, outcome: 'error' })
 		throw err
 	}
 }

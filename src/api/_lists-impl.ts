@@ -26,6 +26,7 @@ import { type BirthMonth, type GroupType, type ListType, listTypeEnumValues, typ
 import type { ListAddon } from '@/db/schema/lists'
 import { computeListItemCounts } from '@/lib/gifts'
 import { visibleItemsWhere } from '@/lib/item-visibility'
+import { listsCreatedTotal } from '@/lib/observability/metrics'
 import { userHasPendingDeletionClaimOnList } from '@/lib/orphan-claims'
 import { canEditList, canViewList, getViewerAccessLevelForList } from '@/lib/permissions'
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
@@ -1110,6 +1111,7 @@ export async function createListImpl(args: {
 		.returning({ id: lists.id, name: lists.name, type: lists.type })
 
 	notifyListEvent({ kind: 'list', listId: inserted.id, shape: 'added' })
+	listsCreatedTotal.inc({ type: inserted.type })
 	return { kind: 'ok', list: inserted }
 }
 

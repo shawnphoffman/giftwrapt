@@ -2,7 +2,22 @@ import { definePlugin as defineNitroPlugin } from 'nitro'
 
 import { env } from '@/env'
 import { createLogger, logger } from '@/lib/logger'
+import { httpRequestDurationMs, statusClassFor } from '@/lib/observability/metrics'
 import { captureServerException } from '@/lib/observability/sentry-server'
+
+// Normalize a request path into a low-cardinality route template so the
+// `route` label on http_request_duration_ms stays bounded. UUIDs and
+// numeric segments collapse to `<id>`; anything else is kept as-is.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const NUM_RE = /^\d+$/
+function normalizeRoute(path: string): string {
+	const segments = path.split('/').map(seg => {
+		if (UUID_RE.test(seg)) return '<id>'
+		if (NUM_RE.test(seg) && seg.length > 3) return '<id>'
+		return seg
+	})
+	return segments.join('/') || 'unmatched'
+}
 
 // One-time "server ready" line + per-request access logs + uncaught error
 // capture. The ready line is the most important of the three: it closes the
@@ -50,6 +65,18 @@ export default defineNitroPlugin(nitroApp => {
 		const level = path.startsWith('/api/health') ? 'debug' : status >= 500 ? 'error' : status >= 400 ? 'warn' : 'info'
 
 		accessLog[level]({ method, path, status, durationMs }, `${method} ${path} ${status} ${durationMs}ms`)
+
+		// Prometheus instrumentation. Counters increment regardless of
+		// whether /api/metrics is exposed; the route gate decides scrape
+		// visibility, not accumulation.
+		httpRequestDurationMs.observe(
+			{
+				route: normalizeRoute(path),
+				method,
+				status_class: statusClassFor(status),
+			},
+			durationMs
+		)
 	})
 
 	nitroApp.hooks.hook('error', (err, ctx) => {

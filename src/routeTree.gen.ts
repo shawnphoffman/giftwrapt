@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as coreRouteRouteImport } from './routes/(core)/route'
 import { Route as coreIndexRouteImport } from './routes/(core)/index'
 import { Route as ApiVersionRouteImport } from './routes/api/version'
+import { Route as ApiMetricsRouteImport } from './routes/api/metrics'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as coreSuggestionsRouteImport } from './routes/(core)/suggestions'
 import { Route as coreImportRouteImport } from './routes/(core)/import'
@@ -89,6 +90,11 @@ const coreIndexRoute = coreIndexRouteImport.update({
 const ApiVersionRoute = ApiVersionRouteImport.update({
   id: '/api/version',
   path: '/api/version',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMetricsRoute = ApiMetricsRouteImport.update({
+  id: '/api/metrics',
+  path: '/api/metrics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
@@ -435,6 +441,7 @@ export interface FileRoutesByFullPath {
   '/import': typeof coreImportRoute
   '/suggestions': typeof coreSuggestionsRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/metrics': typeof ApiMetricsRoute
   '/api/version': typeof ApiVersionRoute
   '/': typeof coreIndexRoute
   '/admin/intelligence': typeof coreAdminIntelligenceRouteRouteWithChildren
@@ -500,6 +507,7 @@ export interface FileRoutesByTo {
   '/import': typeof coreImportRoute
   '/suggestions': typeof coreSuggestionsRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/metrics': typeof ApiMetricsRoute
   '/api/version': typeof ApiVersionRoute
   '/': typeof coreIndexRoute
   '/sign-in/mobile-passkey': typeof authSignInMobilePasskeyRoute
@@ -569,6 +577,7 @@ export interface FileRoutesById {
   '/(core)/import': typeof coreImportRoute
   '/(core)/suggestions': typeof coreSuggestionsRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/metrics': typeof ApiMetricsRoute
   '/api/version': typeof ApiVersionRoute
   '/(core)/': typeof coreIndexRoute
   '/(core)/admin_/intelligence': typeof coreAdminIntelligenceRouteRouteWithChildren
@@ -639,6 +648,7 @@ export interface FileRouteTypes {
     | '/import'
     | '/suggestions'
     | '/api/health'
+    | '/api/metrics'
     | '/api/version'
     | '/'
     | '/admin/intelligence'
@@ -704,6 +714,7 @@ export interface FileRouteTypes {
     | '/import'
     | '/suggestions'
     | '/api/health'
+    | '/api/metrics'
     | '/api/version'
     | '/'
     | '/sign-in/mobile-passkey'
@@ -772,6 +783,7 @@ export interface FileRouteTypes {
     | '/(core)/import'
     | '/(core)/suggestions'
     | '/api/health'
+    | '/api/metrics'
     | '/api/version'
     | '/(core)/'
     | '/(core)/admin_/intelligence'
@@ -837,6 +849,7 @@ export interface RootRouteChildren {
   authSignOutRoute: typeof authSignOutRoute
   authSignUpRoute: typeof authSignUpRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  ApiMetricsRoute: typeof ApiMetricsRoute
   ApiVersionRoute: typeof ApiVersionRoute
   authSignInMobilePasskeyRoute: typeof authSignInMobilePasskeyRoute
   authSignInTwoFactorRoute: typeof authSignInTwoFactorRoute
@@ -878,6 +891,13 @@ declare module '@tanstack/react-router' {
       path: '/api/version'
       fullPath: '/api/version'
       preLoaderRoute: typeof ApiVersionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/metrics': {
+      id: '/api/metrics'
+      path: '/api/metrics'
+      fullPath: '/api/metrics'
+      preLoaderRoute: typeof ApiMetricsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/health': {
@@ -1475,6 +1495,7 @@ const rootRouteChildren: RootRouteChildren = {
   authSignOutRoute: authSignOutRoute,
   authSignUpRoute: authSignUpRoute,
   ApiHealthRoute: ApiHealthRoute,
+  ApiMetricsRoute: ApiMetricsRoute,
   ApiVersionRoute: ApiVersionRoute,
   authSignInMobilePasskeyRoute: authSignInMobilePasskeyRoute,
   authSignInTwoFactorRoute: authSignInTwoFactorRoute,

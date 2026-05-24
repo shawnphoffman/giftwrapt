@@ -1,0 +1,74 @@
+[
+	{
+		"name": "claims_created_total",
+		"help": "Gift claims created (gifter assigned to an item).",
+		"type": "counter",
+		"labels": []
+	},
+	{
+		"name": "claims_deleted_total",
+		"help": "Gift claims deleted (unclaim).",
+		"type": "counter",
+		"labels": []
+	},
+	{
+		"name": "cron_run_duration_ms",
+		"help": "Cron run duration in milliseconds, by job and resolved outcome.",
+		"type": "histogram",
+		"labels": ["job", "outcome"]
+	},
+	{
+		"name": "cron_run_outcomes_total",
+		"help": "Cron run outcomes, by job. Outcomes match cron_runs.status (success, error, skipped).",
+		"type": "counter",
+		"labels": ["job", "outcome"]
+	},
+	{
+		"name": "http_request_duration_ms",
+		"help": "HTTP request duration in milliseconds, by matched route template, method, and status class.",
+		"type": "histogram",
+		"labels": ["method", "route", "status_class"]
+	},
+	{
+		"name": "intelligence_runs_completed_total",
+		"help": "Intelligence (recommendations) cron runs completed, by outcome.",
+		"type": "counter",
+		"labels": ["outcome"]
+	},
+	{
+		"name": "items_archived_total",
+		"help": "Items archived (revealed to recipient).",
+		"type": "counter",
+		"labels": []
+	},
+	{
+		"name": "items_created_total",
+		"help": "Items created on a list.",
+		"type": "counter",
+		"labels": []
+	},
+	{
+		"name": "items_pending_deletion_total",
+		"help": "Items flipped to pending-deletion via recipient delete on a claimed item.",
+		"type": "counter",
+		"labels": []
+	},
+	{
+		"name": "lists_created_total",
+		"help": "Lists created, by type.",
+		"type": "counter",
+		"labels": ["type"]
+	},
+	{
+		"name": "orphan_claims_cleaned_up_total",
+		"help": "Orphan claims hard-deleted by the daily cleanup pass.",
+		"type": "counter",
+		"labels": []
+	},
+	{
+		"name": "reveals_triggered_total",
+		"help": "Reveals (item archive) triggered, by trigger source.",
+		"type": "counter",
+		"labels": ["trigger"]
+	}
+]

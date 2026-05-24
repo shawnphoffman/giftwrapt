@@ -20,6 +20,7 @@ import { giftedItems, items, users } from '@/db/schema'
 import { customHolidayNextOccurrence } from '@/lib/custom-holidays'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { createLogger } from '@/lib/logger'
+import { orphanClaimsCleanedUpTotal } from '@/lib/observability/metrics'
 import { resolveListRecipientName } from '@/lib/orphan-claims'
 import { isEmailConfigured, sendOrphanClaimCleanupReminderEmail } from '@/lib/resend'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
@@ -296,6 +297,8 @@ export async function orphanClaimCleanupImpl(args: { db: SchemaDatabase; now: Da
 			}
 		}
 	}
+
+	if (claimsDeleted > 0) orphanClaimsCleanedUpTotal.inc(claimsDeleted)
 
 	return { remindersSent, itemsDeleted, claimsDeleted }
 }

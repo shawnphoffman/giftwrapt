@@ -20,6 +20,7 @@ import {
 import { createAiModel } from '@/lib/ai-client'
 import { resolveAiConfig } from '@/lib/ai-config'
 import { createLogger } from '@/lib/logger'
+import { intelligenceRunsCompletedTotal } from '@/lib/observability/metrics'
 import { type AppSettings, DEFAULT_APP_SETTINGS } from '@/lib/settings'
 import { getAppSettings } from '@/lib/settings-loader'
 
@@ -50,6 +51,12 @@ export type GenerateForUserOptions = {
 // Main entry point. Same signature whether called from cron, the manual
 // server function, the run-once CLI, or a long-lived worker.
 export async function generateForUser(db: Database, userId: string, opts: GenerateForUserOptions): Promise<RunResult> {
+	const result = await generateForUserInner(db, userId, opts)
+	intelligenceRunsCompletedTotal.inc({ outcome: result.status })
+	return result
+}
+
+async function generateForUserInner(db: Database, userId: string, opts: GenerateForUserOptions): Promise<RunResult> {
 	const settings = await loadSettings(db)
 	const respectUnreadGuard = opts.respectUnreadGuard ?? opts.trigger === 'cron'
 
