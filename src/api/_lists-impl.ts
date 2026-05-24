@@ -364,7 +364,7 @@ export async function getListForViewingImpl(args: {
 
 	const accessLevel = await getViewerAccessLevelForList(args.userId, list, dbx)
 
-	const [addons, viewGroups] = await Promise.all([
+	const [rawAddons, viewGroups] = await Promise.all([
 		// Restricted viewers see ONLY their own addons - they can still
 		// volunteer extras, and need to see what they've offered, but they
 		// don't get to see other gifters' addons (same spoiler-protection
@@ -396,6 +396,11 @@ export async function getListForViewingImpl(args: {
 			columns: { id: true, type: true, name: true, priority: true, sortOrder: true },
 		}),
 	])
+
+	// What a gifter paid is their own business; strip totalCost from any
+	// addon the viewer doesn't own. The recipient sees prices via the
+	// received-gifts surface after reveal, not through this view.
+	const addons = rawAddons.map(addon => (addon.userId === args.userId ? addon : { ...addon, totalCost: null }))
 
 	return {
 		kind: 'ok',
