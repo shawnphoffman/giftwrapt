@@ -361,12 +361,16 @@ export default function ItemList({ listId, groups = [] }: Props) {
 				{entries.length === 0 ? (
 					<EmptyMessage message="No items match the current filter" className="xs:ml-6" />
 				) : (
-					<div className="flex flex-col gap-2 xs:pl-6">
+					<div className="flex flex-col gap-2">
 						{entries.map(entry =>
 							entry.kind === 'item' ? (
-								<ItemRow key={`item-${entry.item.id}`} item={entry.item} />
+								<div key={`item-${entry.item.id}`} className="xs:pl-6">
+									<ItemRow item={entry.item} />
+								</div>
 							) : (
-								<GroupViewBlock key={`group-${entry.group.id}`} group={entry.group} items={entry.items} />
+								<div key={`group-${entry.group.id}`} className="xs:pl-6">
+									<GroupViewBlock group={entry.group} items={entry.items} />
+								</div>
 							)
 						)}
 					</div>
