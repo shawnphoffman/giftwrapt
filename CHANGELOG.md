@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.38.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.37.0...v0.38.0) (2026-05-25)
+
+
+### Features
+
+* **todos:** edit todos, icon buttons, markdown notes ([1744de7](https://github.com/shawnphoffman/giftwrapt/commit/1744de7d80868432540a6d1c3c97bdbe3d0d1db1))
+* **ui:** add TapTooltip for tap-to-open on touch devices ([8104a83](https://github.com/shawnphoffman/giftwrapt/commit/8104a83539fa74336138873bba279e762ad59674))
+
+
+### Bug Fixes
+
+* **intelligence:** drop no-op wishlist convert from stale-list rec ([db84759](https://github.com/shawnphoffman/giftwrapt/commit/db847591b18d1d037fa7f6238c2543379f9868c7))
+* **items:** hide empty groups from gifter view ([6ca2fac](https://github.com/shawnphoffman/giftwrapt/commit/6ca2fac2802eac3adcfbce413da17b3a7d2c131a))
+* **scrapers:** handle Amazon twister variants and skip cart-quantity ([f3e1dee](https://github.com/shawnphoffman/giftwrapt/commit/f3e1deeb1f5965b7624d7923d7213a051da147d6))
+
 ## [0.37.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.36.0...v0.37.0) (2026-05-25)
 
 
