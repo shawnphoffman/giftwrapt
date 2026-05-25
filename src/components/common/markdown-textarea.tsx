@@ -19,6 +19,30 @@ type Action =
 export function MarkdownTextarea({ value, onChange, className, toolbarClassName, id, ...rest }: Props) {
 	const ref = React.useRef<HTMLTextAreaElement>(null)
 
+	// iOS Safari sometimes drops the input event when a selected range is
+	// deleted in a controlled textarea, leaving the highlighted text behind.
+	// Intercept beforeinput on delete and apply the edit ourselves.
+	React.useEffect(() => {
+		const el = ref.current
+		if (!el) return
+		const handler = (event: InputEvent) => {
+			if (!event.inputType.startsWith('delete')) return
+			const start = el.selectionStart
+			const end = el.selectionEnd
+			if (start === end) return
+			event.preventDefault()
+			const newValue = value.slice(0, start) + value.slice(end)
+			onChange(newValue)
+			requestAnimationFrame(() => {
+				const node = ref.current
+				if (!node) return
+				node.setSelectionRange(start, start)
+			})
+		}
+		el.addEventListener('beforeinput', handler)
+		return () => el.removeEventListener('beforeinput', handler)
+	}, [value, onChange])
+
 	const applyAction = (action: Action) => {
 		const el = ref.current
 		if (!el) return
