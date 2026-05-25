@@ -6,14 +6,14 @@
 //   - list-type isolation: items can't be created on todo lists,
 //     todos can't be moved across types via moveItemsToList.
 
-import { makeList, makeUser } from '@test/integration/factories'
+import { makeList, makeListEditor, makeUser, makeUserRelationship } from '@test/integration/factories'
 import { withRollback } from '@test/integration/setup'
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import { createItemImpl } from '@/api/_items-impl'
-import { createTodoImpl, deleteTodoImpl, toggleTodoClaimImpl, updateTodoImpl } from '@/api/_todos-impl'
-import { todoItems } from '@/db/schema'
+import { createTodoImpl, deleteTodoImpl, listTodosImpl, toggleTodoClaimImpl, updateTodoImpl } from '@/api/_todos-impl'
+import { lists, todoItems } from '@/db/schema'
 
 describe('todo API', () => {
 	it('createTodo rejects non-todo lists', async () => {
@@ -178,6 +178,96 @@ describe('todo API', () => {
 
 			const remaining = await tx.select().from(todoItems).where(eq(todoItems.id, created.todo.id))
 			expect(remaining).toHaveLength(0)
+		})
+	})
+
+	describe('listTodos read gate', () => {
+		it('returns todos for the owner on a private list', async () => {
+			await withRollback(async tx => {
+				const owner = await makeUser(tx)
+				const list = await makeList(tx, { ownerId: owner.id, type: 'todos', isPrivate: true })
+				await createTodoImpl({ db: tx, actor: { id: owner.id }, input: { listId: list.id, title: 'A' } })
+				const result = await listTodosImpl({ db: tx, actor: { id: owner.id }, input: { listId: list.id } })
+				expect(result.kind).toBe('ok')
+				if (result.kind === 'ok') expect(result.todos).toHaveLength(1)
+			})
+		})
+
+		it('returns todos for a list editor on a private list (the bug we just fixed)', async () => {
+			await withRollback(async tx => {
+				const owner = await makeUser(tx)
+				const editor = await makeUser(tx)
+				const list = await makeList(tx, { ownerId: owner.id, type: 'todos', isPrivate: true })
+				await makeListEditor(tx, { listId: list.id, userId: editor.id, ownerId: owner.id })
+				await createTodoImpl({ db: tx, actor: { id: owner.id }, input: { listId: list.id, title: 'A' } })
+				const result = await listTodosImpl({ db: tx, actor: { id: editor.id }, input: { listId: list.id } })
+				expect(result.kind).toBe('ok')
+				if (result.kind === 'ok') expect(result.todos).toHaveLength(1)
+			})
+		})
+
+		it('rejects a non-editor stranger on a private list', async () => {
+			await withRollback(async tx => {
+				const owner = await makeUser(tx)
+				const stranger = await makeUser(tx)
+				const list = await makeList(tx, { ownerId: owner.id, type: 'todos', isPrivate: true })
+				await createTodoImpl({ db: tx, actor: { id: owner.id }, input: { listId: list.id, title: 'A' } })
+				const result = await listTodosImpl({ db: tx, actor: { id: stranger.id }, input: { listId: list.id } })
+				expect(result.kind).toBe('error')
+				if (result.kind === 'error') expect(result.reason).toBe('not-authorized')
+			})
+		})
+
+		it('rejects a denied viewer even on a public list', async () => {
+			await withRollback(async tx => {
+				const owner = await makeUser(tx)
+				const denied = await makeUser(tx)
+				const list = await makeList(tx, { ownerId: owner.id, type: 'todos', isPrivate: false })
+				await makeUserRelationship(tx, { ownerUserId: owner.id, viewerUserId: denied.id, accessLevel: 'none' })
+				await createTodoImpl({ db: tx, actor: { id: owner.id }, input: { listId: list.id, title: 'A' } })
+				const result = await listTodosImpl({ db: tx, actor: { id: denied.id }, input: { listId: list.id } })
+				expect(result.kind).toBe('error')
+				if (result.kind === 'error') expect(result.reason).toBe('not-authorized')
+			})
+		})
+
+		it('rejects a denied viewer who also has a stale listEditors row', async () => {
+			// Guards against the editor fallback accidentally overriding a
+			// `denied` relationship. canEditList does not check accessLevel='none',
+			// so the order of operations in canReadTodos matters: deny via
+			// canViewList must reject before the edit fallback runs.
+			await withRollback(async tx => {
+				const owner = await makeUser(tx)
+				const viewer = await makeUser(tx)
+				const list = await makeList(tx, { ownerId: owner.id, type: 'todos', isPrivate: false })
+				await makeListEditor(tx, { listId: list.id, userId: viewer.id, ownerId: owner.id })
+				await makeUserRelationship(tx, { ownerUserId: owner.id, viewerUserId: viewer.id, accessLevel: 'none' })
+				await createTodoImpl({ db: tx, actor: { id: owner.id }, input: { listId: list.id, title: 'A' } })
+				const result = await listTodosImpl({ db: tx, actor: { id: viewer.id }, input: { listId: list.id } })
+				expect(result.kind).toBe('error')
+				if (result.kind === 'error') expect(result.reason).toBe('not-authorized')
+			})
+		})
+
+		it('rejects a non-owner viewer on an inactive list', async () => {
+			// Owners can still query their own archived lists (per logic.md
+			// "they remain queryable for received-gifts history"). Other
+			// viewers, including editors, are rejected — canEditList does not
+			// short-circuit ownership, so an editor on an inactive list does
+			// not get a backdoor through the fallback path either.
+			await withRollback(async tx => {
+				const owner = await makeUser(tx)
+				const editor = await makeUser(tx)
+				const list = await makeList(tx, { ownerId: owner.id, type: 'todos', isPrivate: true })
+				await makeListEditor(tx, { listId: list.id, userId: editor.id, ownerId: owner.id })
+				await createTodoImpl({ db: tx, actor: { id: owner.id }, input: { listId: list.id, title: 'A' } })
+				await tx.update(lists).set({ isActive: false }).where(eq(lists.id, list.id))
+				const editorResult = await listTodosImpl({ db: tx, actor: { id: editor.id }, input: { listId: list.id } })
+				expect(editorResult.kind).toBe('error')
+				if (editorResult.kind === 'error') expect(editorResult.reason).toBe('not-authorized')
+				const ownerResult = await listTodosImpl({ db: tx, actor: { id: owner.id }, input: { listId: list.id } })
+				expect(ownerResult.kind).toBe('ok')
+			})
 		})
 	})
 

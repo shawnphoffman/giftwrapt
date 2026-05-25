@@ -11,14 +11,14 @@
 //     (owner / guardian / editor via canEditList).
 //   - claim toggle: any viewer (canViewList), including the owner.
 
-import { and, eq } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 import type { SchemaDatabase } from '@/db'
-import { lists, todoItems } from '@/db/schema'
+import { lists, todoItems, users } from '@/db/schema'
 import { priorityEnumValues } from '@/db/schema/enums'
 import type { TodoItem } from '@/db/schema/todo-items'
-import { canEditList, canViewList } from '@/lib/permissions'
+import { canEditList, canViewListAsAnyone } from '@/lib/permissions'
 
 type ListForPermCheck = {
 	id: number
@@ -35,6 +35,26 @@ async function loadListForPerm(dbx: SchemaDatabase, listId: number): Promise<Lis
 		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true, type: true },
 	})
 	return row ?? null
+}
+
+// Todo-list read gate. Unlike gift lists, a todo list's read surface is
+// effectively "anyone who can edit it OR could otherwise see it." This
+// extends `canViewList` with one extra case: editors of a *private* todo
+// list (`listEditors` row) can read its rows, since they're already
+// authorized to mutate them via `canEditList`. `inactive`, `denied`, and
+// `restricted` all still reject.
+//
+// Kept local to the todo subsystem so we don't widen the semantics of the
+// shared `canViewList` for every gift-list surface (visibility there has
+// to remain strict because of claim/addon spoiler protection).
+async function canReadTodos(viewerId: string, list: ListForPermCheck, dbx: SchemaDatabase): Promise<{ ok: true } | { ok: false }> {
+	const view = await canViewListAsAnyone(viewerId, list, dbx)
+	if (view.ok) return { ok: true }
+	// Only `private` falls through to the editor check. `inactive` and
+	// `denied` are absolute rejections that must apply to todo lists too.
+	if (view.reason !== 'private') return { ok: false }
+	const edit = await canEditList(viewerId, list, dbx)
+	return edit.ok ? { ok: true } : { ok: false }
 }
 
 export const CreateTodoInputSchema = z.object({
@@ -157,7 +177,7 @@ export async function toggleTodoClaimImpl(args: {
 	if (!todo) return { kind: 'error', reason: 'not-found' }
 	const list = await loadListForPerm(dbx, todo.listId)
 	if (!list) return { kind: 'error', reason: 'not-found' }
-	const perm = await canViewList(actor.id, list, dbx)
+	const perm = await canReadTodos(actor.id, list, dbx)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	if (todo.claimedByUserId === null) {
@@ -189,4 +209,71 @@ export async function toggleTodoClaimImpl(args: {
 		.where(eq(todoItems.id, input.todoId))
 		.returning()
 	return { kind: 'ok', todo: updated }
+}
+
+export const ListTodosInputSchema = z.object({ listId: z.number().int().positive() })
+
+export type TodoRow = {
+	id: number
+	listId: number
+	title: string
+	notes: string | null
+	priority: 'low' | 'normal' | 'high' | 'very-high'
+	claimedByUserId: string | null
+	claimedAt: Date | null
+	claimedByName: string | null
+	sortOrder: number | null
+	createdAt: Date
+	updatedAt: Date
+}
+
+export type ListTodosResult = { kind: 'ok'; todos: Array<TodoRow> } | { kind: 'error'; reason: 'list-not-found' | 'not-authorized' }
+
+export async function listTodosImpl(args: {
+	db: SchemaDatabase
+	actor: { id: string }
+	input: z.output<typeof ListTodosInputSchema>
+}): Promise<ListTodosResult> {
+	const { db: dbx, actor, input } = args
+	const list = await loadListForPerm(dbx, input.listId)
+	if (!list) return { kind: 'error', reason: 'list-not-found' }
+	const perm = await canReadTodos(actor.id, list, dbx)
+	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
+
+	const rows = await dbx
+		.select({
+			id: todoItems.id,
+			listId: todoItems.listId,
+			title: todoItems.title,
+			notes: todoItems.notes,
+			priority: todoItems.priority,
+			claimedByUserId: todoItems.claimedByUserId,
+			claimedAt: todoItems.claimedAt,
+			sortOrder: todoItems.sortOrder,
+			createdAt: todoItems.createdAt,
+			updatedAt: todoItems.updatedAt,
+			claimedByName: users.name,
+			claimedByEmail: users.email,
+		})
+		.from(todoItems)
+		.leftJoin(users, eq(users.id, todoItems.claimedByUserId))
+		.where(eq(todoItems.listId, input.listId))
+		.orderBy(asc(todoItems.sortOrder), asc(todoItems.createdAt))
+
+	return {
+		kind: 'ok',
+		todos: rows.map(r => ({
+			id: r.id,
+			listId: r.listId,
+			title: r.title,
+			notes: r.notes,
+			priority: r.priority,
+			claimedByUserId: r.claimedByUserId,
+			claimedAt: r.claimedAt,
+			claimedByName: r.claimedByName ?? r.claimedByEmail ?? null,
+			sortOrder: r.sortOrder,
+			createdAt: r.createdAt,
+			updatedAt: r.updatedAt,
+		})),
+	}
 }
