@@ -128,6 +128,12 @@ describe('list-hygiene stale-public-list analyzer pass', () => {
 			const stale = result.recs.find(r => r.kind === 'stale-public-list')
 			expect(stale).toBeDefined()
 			expect(stale?.body).toContain("hasn't been touched in over a year")
+			// Already a wishlist: "Convert to wishlist" would be a no-op,
+			// so only the archive action is offered and the body must not
+			// advertise the conversion.
+			expect(stale?.actions).toHaveLength(1)
+			expect(stale?.actions?.[0]?.apply?.kind).toBe('archive-list')
+			expect(stale?.body).not.toMatch(/convert it to a plain wishlist/i)
 		})
 	})
 
@@ -249,7 +255,9 @@ describe('list-hygiene stale-public-list analyzer pass', () => {
 			const user = await makeUser(tx)
 			const list = await makeList(tx, {
 				ownerId: user.id,
-				type: 'wishlist',
+				// Christmas-typed so the convert-to-wishlist action is
+				// actually offered (wishlist-typed lists skip it).
+				type: 'christmas',
 				isPrivate: false,
 				// "Christmas" is an event token, "2024" is a year token —
 				// both stripped. "Sam's" survives the strip.

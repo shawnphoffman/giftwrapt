@@ -984,7 +984,7 @@ const recStalePublicInactive: Recommendation = {
 	severity: 'suggest',
 	status: 'active',
 	title: `"${staleInactiveWishlist.name}" looks stale`,
-	body: `"${staleInactiveWishlist.name}" hasn't been touched in over a year. Archive it if you're done, or convert it to a plain wishlist if it's still useful.`,
+	body: `"${staleInactiveWishlist.name}" hasn't been touched in over a year. Archive it if you're done.`,
 	createdAt: hoursAgo(1),
 	actions: [
 		{
@@ -992,18 +992,6 @@ const recStalePublicInactive: Recommendation = {
 			description: 'Flip the list to inactive. Items and any past gifts stay queryable; you can un-archive later.',
 			intent: 'do',
 			apply: { kind: 'archive-list', listId: staleInactiveWishlist.id },
-		},
-		{
-			label: 'Convert to wishlist',
-			description: 'Strip the event binding and rename to a plain wishlist. Useful if the list is still relevant year-round.',
-			intent: 'do',
-			apply: {
-				kind: 'convert-list',
-				listId: staleInactiveWishlist.id,
-				newType: 'wishlist',
-				newName: 'Books I Used to Want',
-				newCustomHolidayId: null,
-			},
 		},
 	],
 	affected: { noun: 'list', count: 1, lines: [staleInactiveWishlist.name], listChips: [staleInactiveWishlist] },

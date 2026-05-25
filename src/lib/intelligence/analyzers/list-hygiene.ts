@@ -1140,12 +1140,43 @@ function buildStaleListRec(args: { candidate: StaleListCandidate; subject: Subje
 	const ref = listRefFor(list, subject)
 	const daysSince = lastEventDate ? Math.floor((Date.now() - lastEventDate.getTime()) / 86_400_000) : 0
 
+	// A list that is already a wishlist has no event binding to strip, so
+	// the "Convert to wishlist" action is a no-op. Drop both the action
+	// and the matching body-copy clause for that case.
+	const isAlreadyWishlist = list.type === 'wishlist'
+	const convertTail = isAlreadyWishlist ? '' : " Archive it if you're done, or convert it to a plain wishlist if it's still useful."
+	const archiveOnlyTail = isAlreadyWishlist ? " Archive it if you're done." : ''
+
 	let body: string
 	if (reason === 'inactive') {
-		body = `"${list.name}" hasn't been touched in over a year. Archive it if you're done, or convert it to a plain wishlist if it's still useful.`
+		body = `"${list.name}" hasn't been touched in over a year.${isAlreadyWishlist ? archiveOnlyTail : convertTail}`
 	} else {
 		const inactiveTail = reason === 'both' ? " It also hasn't been touched in over a year." : ''
-		body = `Last ${eventTitle} was ${daysSince} ${daysSince === 1 ? 'day' : 'days'} ago and "${list.name}" is still active. Archive it if you're done, or convert it to a plain wishlist if it's still useful.${inactiveTail}`
+		const leadIn = `Last ${eventTitle} was ${daysSince} ${daysSince === 1 ? 'day' : 'days'} ago and "${list.name}" is still active.`
+		body = `${leadIn}${isAlreadyWishlist ? archiveOnlyTail : convertTail}${inactiveTail}`
+	}
+
+	const actions: AnalyzerRecOutput['actions'] = [
+		{
+			label: 'Archive list',
+			description: 'Flip the list to inactive. Items and any past gifts stay queryable; you can un-archive later.',
+			intent: 'do',
+			apply: { kind: 'archive-list', listId: String(list.id) },
+		},
+	]
+	if (!isAlreadyWishlist) {
+		actions.push({
+			label: 'Convert to wishlist',
+			description: 'Strip the event binding and rename to a plain wishlist. Useful if the list is still relevant year-round.',
+			intent: 'do',
+			apply: {
+				kind: 'convert-list',
+				listId: String(list.id),
+				newType: 'wishlist',
+				newName: reverseRenameToWishlist(list.name),
+				newCustomHolidayId: null,
+			},
+		})
 	}
 
 	return {
@@ -1153,26 +1184,7 @@ function buildStaleListRec(args: { candidate: StaleListCandidate; subject: Subje
 		severity: 'suggest',
 		title: `"${list.name}" looks stale`,
 		body,
-		actions: [
-			{
-				label: 'Archive list',
-				description: 'Flip the list to inactive. Items and any past gifts stay queryable; you can un-archive later.',
-				intent: 'do',
-				apply: { kind: 'archive-list', listId: String(list.id) },
-			},
-			{
-				label: 'Convert to wishlist',
-				description: 'Strip the event binding and rename to a plain wishlist. Useful if the list is still relevant year-round.',
-				intent: 'do',
-				apply: {
-					kind: 'convert-list',
-					listId: String(list.id),
-					newType: 'wishlist',
-					newName: reverseRenameToWishlist(list.name),
-					newCustomHolidayId: null,
-				},
-			},
-		],
+		actions,
 		affected: {
 			noun: 'list',
 			count: 1,
