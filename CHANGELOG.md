@@ -1,5 +1,63 @@
 # Changelog
 
+## [0.37.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.36.0...v0.37.0) (2026-05-25)
+
+
+### Features
+
+* **admin:** wire edit-user action buttons ([924f0b0](https://github.com/shawnphoffman/giftwrapt/commit/924f0b00ec67ed1956660c2d80bb967d9f28c707))
+* **backup:** include todoItems table in export and import ([9ec18ed](https://github.com/shawnphoffman/giftwrapt/commit/9ec18edcfd6e4209154ab9432ab202a0ae651bdb))
+* **email:** fan out child-account emails to guardians ([f1aa097](https://github.com/shawnphoffman/giftwrapt/commit/f1aa0974085a72af726fee29d38721cdf22aa858))
+* **email:** use admin appTitle in email subjects and bodies ([bf27e43](https://github.com/shawnphoffman/giftwrapt/commit/bf27e434488f08766f0346142c68410322f4b8e1))
+* **intelligence:** add inline Edit action to single-item stale-item recs ([d011944](https://github.com/shawnphoffman/giftwrapt/commit/d01194446fa2e11f4491eec027c3429d849293b1))
+* **intelligence:** default suggestions filter to public lists only ([337dc54](https://github.com/shawnphoffman/giftwrapt/commit/337dc5498e5107ba07a36c4dfbbe65dfc732e1f9))
+* **intelligence:** open sub-item Edit inline on suggestions page ([7240a6b](https://github.com/shawnphoffman/giftwrapt/commit/7240a6b525f6b645233ddb2d699a72e532f50ac4))
+* **intelligence:** route stale-items pick-one recs to grouping ([44beff6](https://github.com/shawnphoffman/giftwrapt/commit/44beff61432f78aef6f3283d678d7609cd089214))
+* **intelligence:** tint recommendation subsection headers ([ca0fcd8](https://github.com/shawnphoffman/giftwrapt/commit/ca0fcd8ebd2f6a436781f72e2e5eaeae305457b5))
+* **items:** show date added on item and addon rows ([e0dd380](https://github.com/shawnphoffman/giftwrapt/commit/e0dd380e70e7ef789d7037cd320bfb57538a759b))
+* **lists:** add delete control to list settings panel ([f40e859](https://github.com/shawnphoffman/giftwrapt/commit/f40e859e8fde8c243dad2dd4bbabedf1fa73249f))
+* **observability:** expose Prometheus metrics endpoint and instrument domain ([0ae1e9a](https://github.com/shawnphoffman/giftwrapt/commit/0ae1e9aaa2acf423144c9a914c3aa856562b5956))
+* **observability:** scaffold opt-in Sentry and Prometheus toggles ([f3620be](https://github.com/shawnphoffman/giftwrapt/commit/f3620be8c3919ccfd03f1342ecd5fe76d74749f6))
+* **observability:** wire Sentry server + client SDKs ([0fe0a60](https://github.com/shawnphoffman/giftwrapt/commit/0fe0a60ed92d8818c93463be3c77dc1d39a63d8b))
+* **perf:** add VITE_PERF_DEBUG nav timing instrumentation ([5dee255](https://github.com/shawnphoffman/giftwrapt/commit/5dee255c440a7d26e29d4ad761d79ecf6098c305))
+* **realtime:** backstop SSE with focus and interval refresh ([3aeefc4](https://github.com/shawnphoffman/giftwrapt/commit/3aeefc4ce812315ba01d7f4c7a850e9cd3516ca8))
+* **scrapers:** prefill notes from purchase-variant axes ([cd8724f](https://github.com/shawnphoffman/giftwrapt/commit/cd8724f3692901d0a34df5649341637ac835f22c))
+
+
+### Bug Fixes
+
+* **2fa:** keep password prompt open and surface errors on failed enable/disable ([efe65c2](https://github.com/shawnphoffman/giftwrapt/commit/efe65c294f1e5830f295e8921bcb7da9d604b8f9))
+* **admin-intelligence:** reflect all in-flight runs in the Run buttons ([a18065e](https://github.com/shawnphoffman/giftwrapt/commit/a18065e1542256c17cff81334bdd6e47254fd17a))
+* **auth:** keep sign-in form mounted across useSession refetches ([f570958](https://github.com/shawnphoffman/giftwrapt/commit/f57095807651bc7d344dd11708d4efafc249e5a9))
+* **auth:** un-nest two-factor route so the challenge actually renders ([24f4ad9](https://github.com/shawnphoffman/giftwrapt/commit/24f4ad96e65a1eeaa0ca10edbabaac2ab1469d00))
+* **breadcrumbs:** show My Lists and list name on organize page ([d7871e6](https://github.com/shawnphoffman/giftwrapt/commit/d7871e6478af59608586c18f45905629f74c2722))
+* **gifts:** allow purchase-detail edits on revealed items ([c97fba6](https://github.com/shawnphoffman/giftwrapt/commit/c97fba6ec11705947759ad093f260cb0996704e1))
+* **intelligence:** dismiss bundle sub-item after successful edit ([fbad33d](https://github.com/shawnphoffman/giftwrapt/commit/fbad33dd09f7de6e6e6109a71ca7d3d09b3ecdda))
+* **intelligence:** keep stale-items rec active when one item is deleted ([3515eb4](https://github.com/shawnphoffman/giftwrapt/commit/3515eb4a12d76638c99ce25bf0ca2b741f502eab))
+* **intelligence:** preserve suggestion filter across refetch ([5362914](https://github.com/shawnphoffman/giftwrapt/commit/53629142d5fb9f63d32d3991bfece22280d6dda3))
+* **intelligence:** stop list-hygiene cold-calling custom holidays ([2c91941](https://github.com/shawnphoffman/giftwrapt/commit/2c91941de11e18a2cd83cda6c28b38bfeb2b01cd))
+* **items:** contain Amazon import preview rows within the dialog ([aad9bca](https://github.com/shawnphoffman/giftwrapt/commit/aad9bcade268e99ea1bb305a696e07efdf16836e))
+* **items:** hide actions menu on items linking to another list ([d49d08c](https://github.com/shawnphoffman/giftwrapt/commit/d49d08ce0953b5936ee71e6bd85eb0bb5e85b679))
+* **items:** hide claim button on items linking to another list ([be03bc9](https://github.com/shawnphoffman/giftwrapt/commit/be03bc99fb1cadab33998945d19ee3702f2f8283))
+* **list-addons:** archive addons in recipient reveal flows ([014fa34](https://github.com/shawnphoffman/giftwrapt/commit/014fa344682f71a0a16afebbc68709e3ae4b3b68))
+* **list-addons:** hide archived addons and show added-on date ([4337056](https://github.com/shawnphoffman/giftwrapt/commit/43370567ee2b79862d96bb57cd24f4e39722a34e))
+* **lists:** hide off-list gift price from other gifters ([dc4b542](https://github.com/shawnphoffman/giftwrapt/commit/dc4b542c82dc44b8b2bf1b566accf194ef80a3bf))
+* **lists:** plumb canEdit through ListHeader so editors see todo affordances ([1b4ed07](https://github.com/shawnphoffman/giftwrapt/commit/1b4ed07a3395fe0c0769fc3cc358f9ad8519e52a))
+* **markdown-textarea:** delete highlighted range on iOS Safari ([3e8d173](https://github.com/shawnphoffman/giftwrapt/commit/3e8d173f72606d7b11c7681373d8fbf5fc86690c))
+* **mobile-passkey:** de-nest the route from sign-in via flat-route rename ([deb905f](https://github.com/shawnphoffman/giftwrapt/commit/deb905f80302a202a74559f371193d7ee5de62b1))
+* **mobile-passkey:** redirect to _native-done from the fetch onSuccess hook ([4b43a1c](https://github.com/shawnphoffman/giftwrapt/commit/4b43a1ca9f20ac2aaeb50865ee4c3d37b3c12c4d))
+* **purchases:** use sticky-note icon for notes indicator ([14878e0](https://github.com/shawnphoffman/giftwrapt/commit/14878e0bd019bf3c84236d443c969d665ee3abd6))
+* **seed:** write todo seed rows to todo_items instead of items ([6ce6c4b](https://github.com/shawnphoffman/giftwrapt/commit/6ce6c4b150d304ce5c580cd42998d97951bac98d))
+* **settings:** cap each sub-page card at max-w-2xl to match admin ([9d15a02](https://github.com/shawnphoffman/giftwrapt/commit/9d15a026f9cd8e02946337fccf86949e7d8bdcc8))
+* **settings:** widen settings canvas to match admin ([cfb2830](https://github.com/shawnphoffman/giftwrapt/commit/cfb2830e5c762bbf4fd6e8ec32bdd58d69587f13))
+* **todos:** allow owners and editors to read private todo lists ([0049ee7](https://github.com/shawnphoffman/giftwrapt/commit/0049ee788e42fdc3aac3017992a51a4d047a0d8b))
+* **ui:** keep dialogs above the iOS keyboard ([c8e9f71](https://github.com/shawnphoffman/giftwrapt/commit/c8e9f71bff0401cf6a831939022e335c91462b90))
+
+
+### Reverts
+
+* **mobile-passkey:** drop the fetchOptions.onSuccess redirect ([56e217a](https://github.com/shawnphoffman/giftwrapt/commit/56e217ad9cc0c13596690f78e3760f9e6fa10d25))
+
 ## [0.36.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.35.0...v0.36.0) (2026-05-21)
 
 
