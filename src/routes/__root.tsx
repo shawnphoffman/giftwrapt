@@ -7,6 +7,7 @@ import { ThemeProvider } from 'next-themes'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { ErrorBoundary } from '@/components/utilities/error-boundary'
+import { NavPerfTimer } from '@/components/utilities/nav-perf-timer'
 import { SentryClientInit } from '@/components/utilities/sentry-client-init'
 import { appSettingsQueryOptions } from '@/hooks/use-app-settings'
 import { observabilityStatusQueryOptions } from '@/hooks/use-observability-status'
@@ -55,6 +56,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			<body>
 				<ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
 					<SentryClientInit />
+					<NavPerfTimer />
 					<TooltipProvider>
 						<ErrorBoundary
 							fallback={(error, reset) => <ErrorBoundaryFallback error={error} reset={reset} />}
