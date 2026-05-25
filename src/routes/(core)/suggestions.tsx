@@ -39,8 +39,12 @@ function IntelligenceRoute() {
 	// Inline-edit dialog state. Set when the user clicks Edit on a
 	// bundled-rec sub-row; cleared when the dialog closes. We fetch the
 	// item on-demand (per-click) rather than pre-loading every sub-item's
-	// list, which would be O(N lists) on first paint.
-	const [editingItemId, setEditingItemId] = useState<string | null>(null)
+	// list, which would be O(N lists) on first paint. We track the
+	// originating rec + subItem so a successful save can dismiss the
+	// sub-row from the bundle — the rec payload is frozen at run time, so
+	// without this the card keeps showing stale "Never scraped" details.
+	const [editing, setEditing] = useState<{ itemId: string; recId: string; subItemId: string } | null>(null)
+	const editingItemId = editing?.itemId ?? null
 	const editingItemQuery = useQuery({
 		queryKey: ['item-for-edit', editingItemId] as const,
 		queryFn: () => getItemForEdit({ data: { itemId: editingItemId! } }),
@@ -60,7 +64,7 @@ function IntelligenceRoute() {
 				? 'You no longer have permission to edit this item.'
 				: 'That item no longer exists. Refresh suggestions to see the latest.'
 		)
-		setEditingItemId(null)
+		setEditing(null)
 	}, [editingError])
 
 	const refreshMutation = useMutation({
@@ -83,7 +87,18 @@ function IntelligenceRoute() {
 
 	const dismissSubItemMutation = useMutation({
 		mutationFn: (input: { id: string; subItemId: string }) => dismissRecommendationSubItem({ data: input }),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: intelligenceQueryOptions.queryKey }),
+		onSuccess: (_result, variables) => {
+			// If this was the last visible sub-item in the bundle, dismiss
+			// the rec itself so an empty card doesn't linger. The rec's
+			// payload won't refresh until the next analyzer run, so without
+			// this the user sees a header with zero rows.
+			const rec = findRecById(data, variables.id)
+			if (rec && lastVisibleSubItemWillVanish(rec, variables.subItemId)) {
+				dismissMutation.mutate(variables.id)
+				return
+			}
+			queryClient.invalidateQueries({ queryKey: intelligenceQueryOptions.queryKey })
+		},
 		onError: e => toast.error(e instanceof Error ? e.message : 'Skip failed'),
 	})
 
@@ -139,14 +154,14 @@ function IntelligenceRoute() {
 				}}
 				onSelectListPicker={(rec, listId) => applyServerMutation.mutate({ id: rec.id, apply: { kind: 'set-primary-list', listId } })}
 				onDismissSubItem={(rec, subItemId) => dismissSubItemMutation.mutate({ id: rec.id, subItemId })}
-				onEditSubItem={(_rec, sub) => setEditingItemId(sub.nav.itemId)}
+				onEditSubItem={(rec, sub) => setEditing({ itemId: sub.nav.itemId, recId: rec.id, subItemId: sub.id })}
 			/>
-			{editingItem && (
+			{editingItem && editing && (
 				<ItemFormDialog
 					open
 					onOpenChange={open => {
 						if (open) return
-						setEditingItemId(null)
+						setEditing(null)
 						// The item save mutation only patches per-list item
 						// caches; the rec card reads from the intelligence
 						// payload, so refetch to pull in the new title /
@@ -155,10 +170,34 @@ function IntelligenceRoute() {
 					}}
 					mode="edit"
 					item={editingItem}
+					onSaved={() => {
+						// Sub-item dismissal is the only way the bundle card
+						// can react to the edit; the rec's payload is frozen
+						// and will only refresh on the next analyzer run.
+						dismissSubItemMutation.mutate({ id: editing.recId, subItemId: editing.subItemId })
+					}}
 				/>
 			)}
 		</>
 	)
+}
+
+function findRecById(data: IntelligencePagePayload, id: string): IntelligenceRecRow | null {
+	const direct = data.recs.find(r => r.id === id)
+	if (direct) return direct
+	for (const group of data.byDependent) {
+		const match = group.recs.find(r => r.id === id)
+		if (match) return match
+	}
+	return null
+}
+
+function lastVisibleSubItemWillVanish(rec: IntelligenceRecRow, dismissingSubItemId: string): boolean {
+	const subItems = (rec.payload as { subItems?: ReadonlyArray<{ id: string }> } | null)?.subItems ?? []
+	if (subItems.length === 0) return false
+	const alreadyDismissed = new Set(rec.dismissedSubItemIds ?? [])
+	const remaining = subItems.filter(s => !alreadyDismissed.has(s.id) && s.id !== dismissingSubItemId)
+	return remaining.length === 0
 }
 
 function applyErrorMessage(reason: Exclude<ApplyRecommendationResult, { ok: true }>['reason']): string {

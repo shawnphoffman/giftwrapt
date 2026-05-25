@@ -46,7 +46,14 @@ type CreateProps = BaseProps & {
 	// The staged photo uploads as the item image after createItem succeeds.
 	initialPhotoFile?: File | null
 }
-type EditProps = BaseProps & { mode: 'edit'; listId?: never; item: Item; groupId?: never; initialPhotoFile?: never }
+type EditProps = BaseProps & {
+	mode: 'edit'
+	listId?: never
+	item: Item
+	groupId?: never
+	initialPhotoFile?: never
+	onSaved?: () => void
+}
 
 type Props = CreateProps | EditProps
 
@@ -174,6 +181,7 @@ export function ItemFormDialog(props: Props) {
 						return
 					}
 					toast.success('Item updated')
+					props.onSaved?.()
 				} catch (err) {
 					toast.error(err instanceof Error ? err.message : 'Failed to save item')
 				}
