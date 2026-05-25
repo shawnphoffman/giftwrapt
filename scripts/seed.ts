@@ -53,6 +53,7 @@ import {
 	listEditors,
 	lists,
 	type NewItem,
+	todoItems,
 	userRelationships,
 	users,
 } from '@/db/schema'
@@ -136,6 +137,29 @@ async function insertItems(values: Array<NewItem>): Promise<Map<string, number>>
 	return new Map(rows.map(r => [r.title, r.id]))
 }
 
+type TodoSeed = {
+	listId: number
+	title: string
+	priority?: 'low' | 'normal' | 'high' | 'very-high'
+	notes?: string
+	status?: 'complete' | 'incomplete'
+	doneByUserId?: string
+}
+
+async function insertTodos(values: Array<TodoSeed>): Promise<void> {
+	if (values.length === 0) return
+	await db.insert(todoItems).values(
+		values.map(v => ({
+			listId: v.listId,
+			title: v.title,
+			notes: v.notes ?? null,
+			priority: v.priority ?? 'normal',
+			claimedByUserId: v.status === 'complete' ? (v.doneByUserId ?? null) : null,
+			claimedAt: v.status === 'complete' ? new Date() : null,
+		}))
+	)
+}
+
 function need(map: Map<string, number>, title: string): number {
 	const id = map.get(title)
 	if (id == null) throw new Error(`Seed: missing item "${title}"`)
@@ -197,6 +221,7 @@ async function reset() {
 			"list_editors",
 			"item_comments",
 			"item_scrapes",
+			"todo_items",
 			"items",
 			"item_groups",
 			"lists",
@@ -593,31 +618,25 @@ async function main() {
 	])
 
 	// Alice's todos - mix of complete + incomplete across every priority.
-	await insertItems([
+	await insertTodos([
 		{ listId: aliceTodo, title: 'Fix the squeaky door', priority: 'high', status: 'incomplete' },
-		{ listId: aliceTodo, title: 'Clean the gutters', priority: 'normal', status: 'complete' },
+		{ listId: aliceTodo, title: 'Clean the gutters', priority: 'normal', status: 'complete', doneByUserId: aliceId },
 		{ listId: aliceTodo, title: 'Replace smoke alarm batteries', priority: 'very-high', status: 'incomplete' },
 		{ listId: aliceTodo, title: 'Touch up paint in hallway', priority: 'low', status: 'incomplete' },
-		{ listId: aliceTodo, title: 'Schedule HVAC tune-up', priority: 'normal', status: 'complete' },
+		{ listId: aliceTodo, title: 'Schedule HVAC tune-up', priority: 'normal', status: 'complete', doneByUserId: aliceId },
 		{ listId: aliceTodo, title: 'Re-caulk bathtub', priority: 'normal', status: 'incomplete' },
-		{
-			listId: aliceTodo,
-			title: 'Order replacement filter (out of stock)',
-			priority: 'low',
-			status: 'incomplete',
-			availability: 'unavailable',
-		},
-		{ listId: aliceTodo, title: 'Move pile of mail off counter', priority: 'low', status: 'complete', isArchived: true },
+		{ listId: aliceTodo, title: 'Order replacement filter (out of stock)', priority: 'low', status: 'incomplete' },
+		{ listId: aliceTodo, title: 'Move pile of mail off counter', priority: 'low', status: 'complete', doneByUserId: aliceId },
 	])
 
 	// Trip-planning todos - shows a different todos use case (sequenced prep).
-	await insertItems([
-		{ listId: aliceTripPlanning, title: 'Renew passport', priority: 'very-high', status: 'complete' },
-		{ listId: aliceTripPlanning, title: 'Book flights', priority: 'very-high', status: 'complete' },
+	await insertTodos([
+		{ listId: aliceTripPlanning, title: 'Renew passport', priority: 'very-high', status: 'complete', doneByUserId: aliceId },
+		{ listId: aliceTripPlanning, title: 'Book flights', priority: 'very-high', status: 'complete', doneByUserId: aliceId },
 		{ listId: aliceTripPlanning, title: 'Reserve hotels (Rome + Florence)', priority: 'high', status: 'incomplete' },
 		{ listId: aliceTripPlanning, title: 'Train tickets between cities', priority: 'high', status: 'incomplete' },
 		{ listId: aliceTripPlanning, title: 'Pick up Euros from the bank', priority: 'normal', status: 'incomplete' },
-		{ listId: aliceTripPlanning, title: 'Pet sitter for the cats', priority: 'high', status: 'complete' },
+		{ listId: aliceTripPlanning, title: 'Pet sitter for the cats', priority: 'high', status: 'complete', doneByUserId: aliceId },
 		{ listId: aliceTripPlanning, title: 'Try learning some Italian phrases', priority: 'low', status: 'incomplete' },
 	])
 
@@ -721,13 +740,13 @@ async function main() {
 	])
 
 	// Bob's garage projects - todos with more "stalled" energy.
-	await insertItems([
+	await insertTodos([
 		{ listId: bobGarage, title: 'Build new workbench', priority: 'high', status: 'incomplete' },
-		{ listId: bobGarage, title: 'Hang pegboard', priority: 'normal', status: 'complete' },
+		{ listId: bobGarage, title: 'Hang pegboard', priority: 'normal', status: 'complete', doneByUserId: bobId },
 		{ listId: bobGarage, title: 'Organize bolts + screws into bins', priority: 'normal', status: 'incomplete' },
 		{ listId: bobGarage, title: 'Replace garage door spring', priority: 'very-high', status: 'incomplete', notes: 'Dangerous - hire pro.' },
 		{ listId: bobGarage, title: 'Paint the floor', priority: 'low', status: 'incomplete' },
-		{ listId: bobGarage, title: 'Donate broken lawnmower', priority: 'low', status: 'complete' },
+		{ listId: bobGarage, title: 'Donate broken lawnmower', priority: 'low', status: 'complete', doneByUserId: bobId },
 	])
 
 	// Bob's private list.
@@ -932,11 +951,11 @@ async function main() {
 	])
 
 	// Eve's garden todos - mostly seasonal, some carried over from last year.
-	await insertItems([
-		{ listId: eveTodo, title: 'Prune the rose bushes', priority: 'high', status: 'complete' },
+	await insertTodos([
+		{ listId: eveTodo, title: 'Prune the rose bushes', priority: 'high', status: 'complete', doneByUserId: eveId },
 		{ listId: eveTodo, title: 'Plant tomato starts', priority: 'high', status: 'incomplete' },
 		{ listId: eveTodo, title: 'Mulch the front beds', priority: 'normal', status: 'incomplete' },
-		{ listId: eveTodo, title: 'Sharpen pruners', priority: 'low', status: 'complete' },
+		{ listId: eveTodo, title: 'Sharpen pruners', priority: 'low', status: 'complete', doneByUserId: eveId },
 		{ listId: eveTodo, title: 'Build raised bed for herbs', priority: 'normal', status: 'incomplete' },
 		{ listId: eveTodo, title: 'Repair drip irrigation timer', priority: 'high', status: 'incomplete' },
 	])
