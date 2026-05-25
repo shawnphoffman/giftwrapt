@@ -7,6 +7,7 @@
 import * as cheerio from 'cheerio/slim'
 
 import type { ScrapeResult } from '../types'
+import { parseAxes } from './axes'
 import { parseHeuristics } from './heuristics'
 import { filterAndSortImages } from './images'
 import { parseJsonLd } from './json-ld'
@@ -30,6 +31,7 @@ export function extractFromRaw(html: string, finalUrl: string): ScrapeResult {
 		parseJsonLd($, finalUrl),
 		parseMicrodata($, finalUrl),
 		parseHeuristics($, finalUrl),
+		parseAxes($, finalUrl),
 	]
 
 	const merged: ScrapeResult = { imageUrls: [], finalUrl }
@@ -45,6 +47,9 @@ export function extractFromRaw(html: string, finalUrl: string): ScrapeResult {
 			for (const url of layer.imageUrls) {
 				if (!merged.imageUrls.includes(url)) merged.imageUrls.push(url)
 			}
+		}
+		if (!merged.purchaseVariants && layer.purchaseVariants && layer.purchaseVariants.length) {
+			merged.purchaseVariants = [...layer.purchaseVariants]
 		}
 	}
 	merged.imageUrls = filterAndSortImages(merged.imageUrls)

@@ -26,6 +26,11 @@ export const scrapeResultSchema = z.object({
 	// Number of ratings/reviews behind ratingValue. Used by analyzers to
 	// avoid acting on tiny samples. Absent when the page doesn't expose it.
 	ratingCount: z.number().int().nonnegative().optional(),
+	// Names of purchase-choice axes the buyer must pick (e.g. "Color",
+	// "Size"). Just the axis names, not their values. Drives the notes
+	// prefill so the recipient is prompted to capture their choice.
+	// Optional: layers that don't surface axes leave it undefined.
+	purchaseVariants: z.array(z.string()).optional(),
 })
 
 export type ScrapeResult = z.infer<typeof scrapeResultSchema>
@@ -53,6 +58,7 @@ export const scrapeResultModelSchema = z.object({
 	finalUrl: z.string().optional(),
 	ratingValue: z.number().optional(),
 	ratingCount: z.number().optional(),
+	purchaseVariants: z.array(z.string()).optional(),
 })
 
 export type ScrapeResultModel = z.infer<typeof scrapeResultModelSchema>

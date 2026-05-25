@@ -163,3 +163,42 @@ describe('mergeWithinTier: provenance tracking', () => {
 		expect(merged.fromProvider).toBe('merged:a,b')
 	})
 })
+
+describe('mergeWithinTier: purchaseVariants handling', () => {
+	it('unions purchaseVariants across all contributors, base order first then runners-up', () => {
+		const a = contribution('a', 5, { purchaseVariants: ['Color', 'Size'] })
+		const b = contribution('b', 3, { purchaseVariants: ['Material'] })
+		const c = contribution('c', 2, { purchaseVariants: ['Style'] })
+		const merged = mergeWithinTier([a, b, c])
+		expect(merged.result.purchaseVariants).toEqual(['Color', 'Size', 'Material', 'Style'])
+	})
+
+	it('dedupes case-insensitively (first casing wins)', () => {
+		const a = contribution('a', 5, { purchaseVariants: ['Color'] })
+		const b = contribution('b', 3, { purchaseVariants: ['color', 'Size'] })
+		const merged = mergeWithinTier([a, b])
+		expect(merged.result.purchaseVariants).toEqual(['Color', 'Size'])
+	})
+
+	it('credits a runner-up in the merged: sentinel when it adds at least one new axis', () => {
+		const a = contribution('a', 5, { title: 'A', purchaseVariants: ['Color'] })
+		const b = contribution('b', 3, { purchaseVariants: ['Size'] })
+		const merged = mergeWithinTier([a, b])
+		expect(merged.result.purchaseVariants).toEqual(['Color', 'Size'])
+		expect(merged.fromProvider).toBe('merged:a,b')
+	})
+
+	it('does not credit a runner-up when its axes are already in the base', () => {
+		const a = contribution('a', 5, { title: 'A', purchaseVariants: ['Color', 'Size'] })
+		const b = contribution('b', 3, { purchaseVariants: ['color'] })
+		const merged = mergeWithinTier([a, b])
+		expect(merged.fromProvider).toBe('a')
+	})
+
+	it('handles contributors with no purchaseVariants without breaking the merge', () => {
+		const a = contribution('a', 5, { purchaseVariants: ['Color'] })
+		const b = contribution('b', 3, {})
+		const merged = mergeWithinTier([a, b])
+		expect(merged.result.purchaseVariants).toEqual(['Color'])
+	})
+})

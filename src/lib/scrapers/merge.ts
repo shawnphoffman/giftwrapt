@@ -93,6 +93,28 @@ export function mergeWithinTier(contributions: ReadonlyArray<MergeContribution>)
 
 	merged.imageUrls = filterAndSortImages(merged.imageUrls)
 
+	// purchaseVariants merges like imageUrls: union across all contributors,
+	// case-insensitive dedupe, base order preserved then runners-up in
+	// score order.
+	const variantSeen = new Set<string>()
+	for (const v of merged.purchaseVariants ?? []) variantSeen.add(v.toLowerCase())
+	for (let i = 1; i < sorted.length; i++) {
+		const fillerVariants = sorted[i].result.purchaseVariants
+		if (!fillerVariants || fillerVariants.length === 0) continue
+		let fillerContributed = false
+		for (const name of fillerVariants) {
+			const key = name.toLowerCase()
+			if (variantSeen.has(key)) continue
+			variantSeen.add(key)
+			if (!merged.purchaseVariants) merged.purchaseVariants = []
+			merged.purchaseVariants.push(name)
+			fillerContributed = true
+		}
+		if (fillerContributed) {
+			contributingIds.add(sorted[i].fromProvider)
+		}
+	}
+
 	const orderedContributors = sorted.map(c => c.fromProvider).filter(id => contributingIds.has(id))
 
 	return {
@@ -102,8 +124,13 @@ export function mergeWithinTier(contributions: ReadonlyArray<MergeContribution>)
 }
 
 function cloneResult(result: ScrapeResult): ScrapeResult {
-	// Shallow clone with a fresh imageUrls array so the merge mutates a copy.
-	return { ...result, imageUrls: [...result.imageUrls] }
+	// Shallow clone with fresh imageUrls/purchaseVariants arrays so the merge
+	// mutates copies, not the caller's arrays.
+	return {
+		...result,
+		imageUrls: [...result.imageUrls],
+		purchaseVariants: result.purchaseVariants ? [...result.purchaseVariants] : [],
+	}
 }
 
 function isFilled(value: unknown): boolean {

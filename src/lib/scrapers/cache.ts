@@ -34,6 +34,7 @@ export async function loadCachedScrape(
 			price: itemScrapes.price,
 			currency: itemScrapes.currency,
 			imageUrls: itemScrapes.imageUrls,
+			purchaseVariants: itemScrapes.purchaseVariants,
 			ratingValue: itemScrapes.ratingValue,
 			ratingCount: itemScrapes.ratingCount,
 		})
@@ -54,6 +55,7 @@ export async function loadCachedScrape(
 		finalUrl: url,
 		ratingValue: row.ratingValue ?? undefined,
 		ratingCount: row.ratingCount ?? undefined,
+		purchaseVariants: row.purchaseVariants ?? undefined,
 	}
 	return { result, fromProvider: row.scraperId }
 }
@@ -115,6 +117,7 @@ export async function persistScrapeAttempt(
 		price: record.result?.price ?? null,
 		currency: record.result?.currency ?? null,
 		imageUrls: record.result?.imageUrls ?? null,
+		purchaseVariants: record.result?.purchaseVariants ?? null,
 		ratingValue: record.result?.ratingValue ?? null,
 		ratingCount: record.result?.ratingCount ?? null,
 	})

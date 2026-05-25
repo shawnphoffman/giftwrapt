@@ -36,6 +36,13 @@
       "when": 1779375617346,
       "tag": "0004_intelligence_cached_input_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1779723572338,
+      "tag": "0005_lethal_ego",
+      "breakpoints": true
     }
   ]
 }

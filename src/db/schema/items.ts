@@ -162,6 +162,10 @@ export const itemScrapes = pgTable(
 		price: text('price'),
 		currency: text('currency'),
 		imageUrls: text('image_urls').array(),
+		// Names of purchase-choice axes the buyer must pick (e.g. "Color",
+		// "Size"). Just the axis names, not their values. Drives the notes
+		// prefill so the recipient is prompted to capture their choice.
+		purchaseVariants: text('purchase_variants').array(),
 		// Same shape as items.ratingValue / items.ratingCount. Persisted
 		// per-attempt so the cache lookup can rebuild a ScrapeResult without
 		// re-parsing the raw response.

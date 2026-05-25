@@ -26,7 +26,9 @@ export function applyScrapePrefill(current: PrefillFields, result: ScrapeResult)
 	const update: PrefillUpdate = { imageCandidates: result.imageUrls }
 	if (!current.title.trim() && result.title) update.title = result.title
 	if (!current.price.trim() && result.price) update.price = result.price
-	if (!current.notes.trim() && result.description) update.notes = result.description
+	if (!current.notes.trim() && result.purchaseVariants?.length) {
+		update.notes = result.purchaseVariants.map(a => `- ${a}: `).join('\n')
+	}
 	const firstCandidate = result.imageUrls[0]
 	if (!current.imageUrl.trim() && firstCandidate) update.imageUrl = firstCandidate
 	return update

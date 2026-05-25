@@ -11,6 +11,7 @@ const fullScrape: ScrapeResult = {
 	price: '29.99',
 	imageUrls: ['https://cdn.test/a.jpg', 'https://cdn.test/b.jpg'],
 	finalUrl: 'https://acme.test/widget',
+	purchaseVariants: ['Color', 'Size'],
 }
 
 describe('applyScrapePrefill: fill-from-empty', () => {
@@ -18,7 +19,7 @@ describe('applyScrapePrefill: fill-from-empty', () => {
 		const update = applyScrapePrefill(empty, fullScrape)
 		expect(update.title).toBe('ACME Widget')
 		expect(update.price).toBe('29.99')
-		expect(update.notes).toBe('A useful description')
+		expect(update.notes).toBe('- Color: \n- Size: ')
 		expect(update.imageUrl).toBe('https://cdn.test/a.jpg')
 		expect(update.imageCandidates).toEqual(fullScrape.imageUrls)
 	})
@@ -37,8 +38,46 @@ describe('applyScrapePrefill: fill-from-empty', () => {
 		const update = applyScrapePrefill(current, fullScrape)
 		expect(update.title).toBe('ACME Widget')
 		expect(update.price).toBe('29.99')
-		expect(update.notes).toBe('A useful description')
+		expect(update.notes).toBe('- Color: \n- Size: ')
 		expect(update.imageUrl).toBe('https://cdn.test/a.jpg')
+	})
+})
+
+describe('applyScrapePrefill: notes (purchaseVariants)', () => {
+	it('produces a markdown bullet list with trailing-space placeholders', () => {
+		const result: ScrapeResult = {
+			imageUrls: [],
+			purchaseVariants: ['Color', 'Size', 'Material'],
+		}
+		const update = applyScrapePrefill(empty, result)
+		expect(update.notes).toBe('- Color: \n- Size: \n- Material: ')
+	})
+
+	it('does not touch notes when purchaseVariants is empty', () => {
+		const result: ScrapeResult = { imageUrls: [], purchaseVariants: [] }
+		const update = applyScrapePrefill(empty, result)
+		expect(update.notes).toBeUndefined()
+	})
+
+	it('does not touch notes when purchaseVariants is missing', () => {
+		const result: ScrapeResult = { imageUrls: [] }
+		const update = applyScrapePrefill(empty, result)
+		expect(update.notes).toBeUndefined()
+	})
+
+	it('does NOT fall back to description even when description is set', () => {
+		const result: ScrapeResult = {
+			imageUrls: [],
+			description: 'Marketing copy that should not land in notes',
+		}
+		const update = applyScrapePrefill(empty, result)
+		expect(update.notes).toBeUndefined()
+	})
+
+	it('preserves existing notes content even when purchaseVariants is present', () => {
+		const current: PrefillFields = { title: '', price: '', notes: 'my own notes', imageUrl: '' }
+		const update = applyScrapePrefill(current, fullScrape)
+		expect(update.notes).toBeUndefined()
 	})
 })
 

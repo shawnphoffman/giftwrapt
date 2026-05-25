@@ -1,0 +1,1 @@
+ALTER TABLE "item_scrapes" ADD COLUMN "purchase_variants" text[];

@@ -25,6 +25,7 @@ type FakeRow = {
 	price: string | null
 	currency: string | null
 	imageUrls: Array<string> | null
+	purchaseVariants?: Array<string> | null
 }
 
 let selectRows: Array<FakeRow> = []
@@ -140,6 +141,25 @@ describe('loadCachedScrape: row reconstruction', () => {
 		expect(result?.result.currency).toBe('USD')
 		expect(result?.result.imageUrls).toEqual(['https://cdn.test/a.jpg', 'https://cdn.test/b.jpg'])
 		expect(result?.result.finalUrl).toBe('https://x.test/y')
+		expect(result?.result.purchaseVariants).toBeUndefined()
+	})
+
+	it('rehydrates purchaseVariants when the row carries them', async () => {
+		selectRows = [
+			{
+				scraperId: 'fetch-provider',
+				score: 5,
+				title: 'Widget',
+				cleanTitle: null,
+				description: null,
+				price: null,
+				currency: null,
+				imageUrls: [],
+				purchaseVariants: ['Color', 'Size'],
+			},
+		]
+		const result = await loadCachedScrape(fakeDb, 'https://x.test/y', { ttlHours: 24, minScore: 3 })
+		expect(result?.result.purchaseVariants).toEqual(['Color', 'Size'])
 	})
 
 	it('falls back to title when cleanTitle is null', async () => {
@@ -200,6 +220,7 @@ describe('persistScrapeAttempt: insert shape', () => {
 				currency: 'USD',
 				imageUrls: ['https://cdn.test/x.jpg'],
 				finalUrl: 'https://x.test/y',
+				purchaseVariants: ['Color', 'Size'],
 			},
 			rawResponse: { kind: 'html', status: 200 },
 		})
@@ -218,6 +239,7 @@ describe('persistScrapeAttempt: insert shape', () => {
 		expect(row.price).toBe('9.99')
 		expect(row.currency).toBe('USD')
 		expect(row.imageUrls).toEqual(['https://cdn.test/x.jpg'])
+		expect(row.purchaseVariants).toEqual(['Color', 'Size'])
 		// `response` is wrapped via Drizzle's sql helper; its presence (not
 		// strict equality) is what we care about here.
 		expect(row.response).toBeDefined()
@@ -268,6 +290,7 @@ describe('persistScrapeAttempt: insert shape', () => {
 		expect(row.price).toBeNull()
 		expect(row.currency).toBeNull()
 		expect(row.imageUrls).toBeNull()
+		expect(row.purchaseVariants).toBeNull()
 		expect(row.response).toBeNull()
 	})
 
