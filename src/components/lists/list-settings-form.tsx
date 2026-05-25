@@ -486,41 +486,6 @@ export function ListSettingsForm({
 				{submitting ? 'Saving…' : 'Save settings'}
 			</Button>
 
-			{isOwner && type !== 'todos' && (
-				<>
-					<Separator />
-					<div className="grid gap-2">
-						<Label>Archive claimed items</Label>
-						<p className="text-muted-foreground text-xs">
-							Mark every claimed item and gifter-volunteered add-on on this list as archived. Archived purchases reveal who claimed them on
-							your Received Gifts page, so only do this once you've received the gifts.
-						</p>
-						<Button type="button" variant="outline" onClick={() => setArchivePurchasesOpen(true)} className="w-fit">
-							<Archive className="size-4" />
-							Archive all purchases
-						</Button>
-					</div>
-					<ConfirmDialog
-						open={archivePurchasesOpen}
-						onOpenChange={setArchivePurchasesOpen}
-						title="Archive all purchases on this list?"
-						description={
-							<>
-								This will archive every claimed item and every gifter-volunteered add-on on this list. Archived purchases move out of the
-								active list and the people who claimed them will be revealed to you on your Received Gifts page.
-								<br />
-								<br />
-								Only do this once you've received the gifts. This can't be undone in bulk.
-							</>
-						}
-						confirmLabel="Archive purchases"
-						confirmBusyLabel="Archiving…"
-						destructive
-						onConfirm={handleArchivePurchases}
-					/>
-				</>
-			)}
-
 			{isOwner && (
 				<>
 					<Separator />
@@ -554,6 +519,41 @@ export function ListSettingsForm({
 						confirmBusyLabel="Deleting…"
 						destructive
 						onConfirm={handleDeleteList}
+					/>
+				</>
+			)}
+
+			{isOwner && type !== 'todos' && (
+				<>
+					<Separator />
+					<div className="grid gap-2">
+						<Label>Archive claimed items</Label>
+						<p className="text-muted-foreground text-xs">
+							Mark every claimed item and gifter-volunteered add-on on this list as archived. Archived purchases reveal who claimed them on
+							your Received Gifts page, so only do this once you've received the gifts.
+						</p>
+						<Button type="button" variant="outline" onClick={() => setArchivePurchasesOpen(true)} className="w-fit">
+							<Archive className="size-4" />
+							Archive all purchases
+						</Button>
+					</div>
+					<ConfirmDialog
+						open={archivePurchasesOpen}
+						onOpenChange={setArchivePurchasesOpen}
+						title="Archive all purchases on this list?"
+						description={
+							<>
+								This will archive every claimed item and every gifter-volunteered add-on on this list. Archived purchases move out of the
+								active list and the people who claimed them will be revealed to you on your Received Gifts page.
+								<br />
+								<br />
+								Only do this once you've received the gifts. This can't be undone in bulk.
+							</>
+						}
+						confirmLabel="Archive purchases"
+						confirmBusyLabel="Archiving…"
+						destructive
+						onConfirm={handleArchivePurchases}
 					/>
 				</>
 			)}
