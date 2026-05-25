@@ -1,7 +1,7 @@
 import { useForm } from '@tanstack/react-form'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useRouter } from '@tanstack/react-router'
-import { Archive } from 'lucide-react'
+import { useNavigate, useRouter } from '@tanstack/react-router'
+import { Archive, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -11,7 +11,7 @@ import { getMyDependents } from '@/api/dependents'
 import { archiveListPurchases } from '@/api/items'
 import { getListChangeImpactInputs } from '@/api/list-change-impact'
 import { addListEditor } from '@/api/list-editors'
-import { updateList } from '@/api/lists'
+import { deleteList, updateList } from '@/api/lists'
 import { getGiftIdeasRecipients } from '@/api/user'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import DependentAvatar from '@/components/common/dependent-avatar'
@@ -78,6 +78,7 @@ export function ListSettingsForm({
 	isOwner,
 }: Props) {
 	const router = useRouter()
+	const navigate = useNavigate()
 	const queryClient = useQueryClient()
 	const { data: session } = useSession()
 	const partnerId = isOwner ? (session?.user.partnerId ?? null) : null
@@ -145,6 +146,23 @@ export function ListSettingsForm({
 	const partnerLabel = partner ? partner.name || partner.email : 'your partner'
 
 	const [archivePurchasesOpen, setArchivePurchasesOpen] = useState(false)
+	const [deleteListOpen, setDeleteListOpen] = useState(false)
+
+	const handleDeleteList = async () => {
+		const result = await deleteList({ data: { listId } })
+		if (result.kind === 'error') {
+			toast.error(result.reason === 'not-owner' ? "You don't have permission to delete this list." : 'List not found.')
+			return
+		}
+		await queryClient.invalidateQueries({ queryKey: ['my-lists'] })
+		if (result.action === 'archived') {
+			toast.info(`"${name}" was archived instead of deleted because it has claimed items.`)
+			await router.invalidate()
+		} else {
+			toast.success(`"${name}" deleted`)
+			await navigate({ to: '/me' })
+		}
+	}
 
 	const handleArchivePurchases = async () => {
 		const result = await archiveListPurchases({ data: { listId } })
@@ -499,6 +517,43 @@ export function ListSettingsForm({
 						confirmBusyLabel="Archiving…"
 						destructive
 						onConfirm={handleArchivePurchases}
+					/>
+				</>
+			)}
+
+			{isOwner && (
+				<>
+					<Separator />
+					<div className="grid gap-2">
+						<Label>Delete list</Label>
+						<p className="text-muted-foreground text-xs">
+							Permanently remove this list and all its items. If there are claimed items, the list will be archived instead so purchase history
+							is preserved.
+						</p>
+						<Button
+							type="button"
+							variant="outline"
+							onClick={() => setDeleteListOpen(true)}
+							className="w-fit text-destructive hover:text-destructive"
+						>
+							<Trash2 className="size-4" />
+							Delete list
+						</Button>
+					</div>
+					<ConfirmDialog
+						open={deleteListOpen}
+						onOpenChange={setDeleteListOpen}
+						title={`Delete "${name}"?`}
+						description={
+							<>
+								This will permanently remove the list and all its items. If there are claimed items, the list will be archived instead.
+								Consider archiving if you might want to restore it later.
+							</>
+						}
+						confirmLabel="Delete"
+						confirmBusyLabel="Deleting…"
+						destructive
+						onConfirm={handleDeleteList}
 					/>
 				</>
 			)}
