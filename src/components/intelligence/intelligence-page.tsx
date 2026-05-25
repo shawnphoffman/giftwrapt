@@ -61,20 +61,22 @@ const SEVERITY_ORDER: Array<RecommendationSeverity> = ['important', 'suggest', '
 // after a refetch. An id that was in the previous option set but isn't
 // in the new selection was explicitly unchecked by the user; preserve
 // that. An id that's truly new (not in the previous option set) defaults
-// to checked, unless the user has cleared everything. Ids that no longer
+// to checked iff it's in `defaultSelectedIds` (Global + non-private
+// lists), unless the user has cleared everything. Ids that no longer
 // appear in the option set are dropped. Returns the same `prev`
 // reference when nothing logically changed so React can bail out.
 export function reconcileFilterSelection(
 	prev: ReadonlySet<string>,
 	allFilterIds: ReadonlySet<string>,
-	prevAllFilterIds: ReadonlySet<string>
+	prevAllFilterIds: ReadonlySet<string>,
+	defaultSelectedIds: ReadonlySet<string>
 ): Set<string> {
 	let addedNew = false
 	const next = new Set<string>()
 	for (const id of allFilterIds) {
 		if (prev.has(id)) {
 			next.add(id)
-		} else if (!prevAllFilterIds.has(id) && prev.size > 0) {
+		} else if (!prevAllFilterIds.has(id) && prev.size > 0 && defaultSelectedIds.has(id)) {
 			next.add(id)
 			addedNew = true
 		}
@@ -162,14 +164,27 @@ export function IntelligencePageContent({
 		return ids
 	}, [filterSections])
 
-	const [selectedListIds, setSelectedListIds] = useState<Set<string>>(allFilterIds)
+	// Default selection: Global pseudo-row + non-private lists. Private
+	// lists still surface in the popover but start unchecked so a viewer's
+	// gift-ideas (and any other private list) don't dominate suggestions.
+	const defaultSelectedListIds = useMemo(() => {
+		const ids = new Set<string>()
+		for (const section of filterSections) {
+			for (const opt of section.options) {
+				if (opt.listRef === null || !opt.listRef.isPrivate) ids.add(opt.listId)
+			}
+		}
+		return ids
+	}, [filterSections])
+
+	const [selectedListIds, setSelectedListIds] = useState<Set<string>>(defaultSelectedListIds)
 	const prevAllFilterIdsRef = useRef(allFilterIds)
 
 	useEffect(() => {
 		const prevAllIds = prevAllFilterIdsRef.current
 		prevAllFilterIdsRef.current = allFilterIds
-		setSelectedListIds(prev => reconcileFilterSelection(prev, allFilterIds, prevAllIds))
-	}, [allFilterIds])
+		setSelectedListIds(prev => reconcileFilterSelection(prev, allFilterIds, prevAllIds, defaultSelectedListIds))
+	}, [allFilterIds, defaultSelectedListIds])
 
 	const visibleActive = useMemo(() => active.filter(r => isRecVisible(r, selectedListIds)), [active, selectedListIds])
 	const visibleSorted = useMemo(() => sortRecs(visibleActive), [visibleActive])
