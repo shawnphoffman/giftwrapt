@@ -300,6 +300,12 @@ function buildCleanupActions(itemRefs: Array<ItemRef>, listRef: ListRef): Array<
 		return [
 			openList,
 			{
+				label: 'Edit item',
+				description: 'Refresh the details or update notes so this item stops looking stale.',
+				intent: 'do',
+				editItem: { listId: listRef.id, itemId: it.id },
+			},
+			{
 				label: 'Delete item',
 				description: 'Permanently delete this item. It has no claims, so no gifters are affected.',
 				intent: 'destructive',

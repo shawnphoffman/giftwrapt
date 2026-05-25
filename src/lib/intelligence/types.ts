@@ -115,6 +115,12 @@ export type RecommendationAction = {
 	// for navigation targets that aren't list/item URLs (e.g.
 	// '/settings/'). Distinguish with `'path' in nav`.
 	nav?: { listId: string; itemId?: string; openEdit?: boolean } | { path: string }
+	// When set, the rec card renders this action as a button that opens
+	// the item's edit dialog inline on the suggestions page. Distinct
+	// from `nav.openEdit`, which navigates away to the list. The page
+	// dismisses the rec on a successful save so the card disappears
+	// even though the rec payload is frozen at run time.
+	editItem?: { listId: string; itemId: string }
 }
 
 export type AffectedSummary = {
@@ -208,6 +214,7 @@ export const recPayloadSchema = z.object({
 						z.object({ path: z.string() }),
 					])
 					.optional(),
+				editItem: z.object({ listId: z.string(), itemId: z.string() }).optional(),
 				apply: z
 					.discriminatedUnion('kind', [
 						z.object({

@@ -37,13 +37,15 @@ function IntelligenceRoute() {
 	const queryClient = useQueryClient()
 
 	// Inline-edit dialog state. Set when the user clicks Edit on a
-	// bundled-rec sub-row; cleared when the dialog closes. We fetch the
-	// item on-demand (per-click) rather than pre-loading every sub-item's
-	// list, which would be O(N lists) on first paint. We track the
-	// originating rec + subItem so a successful save can dismiss the
-	// sub-row from the bundle — the rec payload is frozen at run time, so
-	// without this the card keeps showing stale "Never scraped" details.
-	const [editing, setEditing] = useState<{ itemId: string; recId: string; subItemId: string } | null>(null)
+	// bundled-rec sub-row OR on a single-item rec's Edit action; cleared
+	// when the dialog closes. We fetch the item on-demand (per-click)
+	// rather than pre-loading every sub-item's list, which would be O(N
+	// lists) on first paint. We track the originating rec (and subItem,
+	// for bundles) so a successful save can dismiss the relevant piece
+	// — the rec payload is frozen at run time, so without this the card
+	// keeps showing stale details. subItemId=null means single-item rec:
+	// dismiss the whole rec on save instead of just a sub-row.
+	const [editing, setEditing] = useState<{ itemId: string; recId: string; subItemId: string | null } | null>(null)
 	const editingItemId = editing?.itemId ?? null
 	const editingItemQuery = useQuery({
 		queryKey: ['item-for-edit', editingItemId] as const,
@@ -155,6 +157,7 @@ function IntelligenceRoute() {
 				onSelectListPicker={(rec, listId) => applyServerMutation.mutate({ id: rec.id, apply: { kind: 'set-primary-list', listId } })}
 				onDismissSubItem={(rec, subItemId) => dismissSubItemMutation.mutate({ id: rec.id, subItemId })}
 				onEditSubItem={(rec, sub) => setEditing({ itemId: sub.nav.itemId, recId: rec.id, subItemId: sub.id })}
+				onEditAction={(rec, target) => setEditing({ itemId: target.itemId, recId: rec.id, subItemId: null })}
 			/>
 			{editingItem && editing && (
 				<ItemFormDialog
@@ -171,10 +174,16 @@ function IntelligenceRoute() {
 					mode="edit"
 					item={editingItem}
 					onSaved={() => {
-						// Sub-item dismissal is the only way the bundle card
-						// can react to the edit; the rec's payload is frozen
-						// and will only refresh on the next analyzer run.
-						dismissSubItemMutation.mutate({ id: editing.recId, subItemId: editing.subItemId })
+						// The rec's payload is frozen and will only refresh on
+						// the next analyzer run, so dismiss the relevant piece
+						// of the card directly. Bundled recs (subItemId set)
+						// lose just the affected sub-row; single-item recs
+						// dismiss the whole card.
+						if (editing.subItemId !== null) {
+							dismissSubItemMutation.mutate({ id: editing.recId, subItemId: editing.subItemId })
+						} else {
+							dismissMutation.mutate(editing.recId)
+						}
 					}}
 				/>
 			)}

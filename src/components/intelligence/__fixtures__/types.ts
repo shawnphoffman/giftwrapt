@@ -125,6 +125,11 @@ export type RecommendationAction = {
 	// at an arbitrary absolute path (e.g. '/settings/') for navigation
 	// targets that aren't list/item URLs.
 	nav?: { listId: string; itemId?: string; openEdit?: boolean } | { path: string }
+	// When set, the rec card renders this action as a button that opens
+	// the item's edit dialog inline on the suggestions page. Distinct
+	// from `nav.openEdit`, which navigates away to the list. The page
+	// dismisses the rec on a successful save.
+	editItem?: { listId: string; itemId: string }
 }
 
 export type AffectedSummary = {

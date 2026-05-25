@@ -37,6 +37,9 @@ type Props = {
 	// (e.g. storybook), the rec card falls back to a target=_blank anchor
 	// at the sub-item's `nav` URL.
 	onEditSubItem?: (rec: Recommendation, subItem: RecSubItem) => void
+	// Called when a rec carries an `editItem` action (single-item cleanup
+	// recs). Same in-place edit affordance as bundled sub-items.
+	onEditAction?: (rec: Recommendation, target: { listId: string; itemId: string }) => void
 	// Active recs scoped to the user's dependents. Rendered as a
 	// "For your dependents" rollup below the user's own recs. Dismissed
 	// and applied per-dependent recs roll into the global disclosure
@@ -110,6 +113,7 @@ export function IntelligencePageContent({
 	onSelectListPicker,
 	onDismissSubItem,
 	onEditSubItem,
+	onEditAction,
 	dependentGroups,
 	pendingRecIds,
 }: Props) {
@@ -267,6 +271,7 @@ export function IntelligencePageContent({
 											onSelectListPicker={onSelectListPicker}
 											onDismissSubItem={onDismissSubItem}
 											onEditSubItem={onEditSubItem}
+											onEditAction={onEditAction}
 											pending={pendingRecIds?.has(rec.id) ?? false}
 										/>
 									))}
@@ -285,6 +290,7 @@ export function IntelligencePageContent({
 					onSelectListPicker={onSelectListPicker}
 					onDismissSubItem={onDismissSubItem}
 					onEditSubItem={onEditSubItem}
+					onEditAction={onEditAction}
 					pendingRecIds={pendingRecIds}
 				/>
 			)}
@@ -309,6 +315,7 @@ function DependentSections({
 	onSelectListPicker,
 	onDismissSubItem,
 	onEditSubItem,
+	onEditAction,
 	pendingRecIds,
 }: {
 	groups: ReadonlyArray<DependentRecGroup>
@@ -317,6 +324,7 @@ function DependentSections({
 	onSelectListPicker?: (rec: Recommendation, listId: string) => void
 	onDismissSubItem?: (rec: Recommendation, subItemId: string) => void
 	onEditSubItem?: (rec: Recommendation, subItem: RecSubItem) => void
+	onEditAction?: (rec: Recommendation, target: { listId: string; itemId: string }) => void
 	pendingRecIds?: ReadonlySet<string>
 }) {
 	// Filter to active-only here so the per-dependent counts match what's
@@ -355,6 +363,7 @@ function DependentSections({
 								onSelectListPicker={onSelectListPicker}
 								onDismissSubItem={onDismissSubItem}
 								onEditSubItem={onEditSubItem}
+								onEditAction={onEditAction}
 								pending={pendingRecIds?.has(rec.id) ?? false}
 							/>
 						))}

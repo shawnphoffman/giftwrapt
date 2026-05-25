@@ -93,6 +93,9 @@ type Props = {
 	// (the suggestions page) can open ItemFormDialog inline. When omitted,
 	// SubItemRow falls back to an `<a target="_blank">` at `sub.nav`.
 	onEditSubItem?: (rec: Recommendation, subItem: RecSubItem) => void
+	// Called when the user clicks an action that carries `editItem`. The
+	// page opens ItemFormDialog inline and dismisses the rec on save.
+	onEditAction?: (rec: Recommendation, target: { listId: string; itemId: string }) => void
 	// True while an apply or dismiss mutation for this rec is in flight.
 	// We render an overlay + lock interactions so the user can't fire a
 	// second action against the same card before the first round-trips.
@@ -268,6 +271,7 @@ export function RecommendationCard({
 	onSelectListPicker,
 	onDismissSubItem,
 	onEditSubItem,
+	onEditAction,
 	pending: busy = false,
 }: Props) {
 	const sev = SEVERITY_META[rec.severity]
@@ -291,6 +295,11 @@ export function RecommendationCard({
 		// anyway so future callers can't accidentally route nav through
 		// the confirm path.
 		if (action.nav) return
+		// editItem actions open the dialog inline; no confirm step.
+		if (action.editItem) {
+			onEditAction?.(rec, action.editItem)
+			return
+		}
 		setPending({ kind: 'action', action })
 	}
 	const handleDismissClick = () => setPending({ kind: 'dismiss' })
