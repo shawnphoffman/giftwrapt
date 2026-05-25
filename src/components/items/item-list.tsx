@@ -368,9 +368,7 @@ export default function ItemList({ listId, groups = [] }: Props) {
 									<ItemRow item={entry.item} />
 								</div>
 							) : (
-								<div key={`group-${entry.group.id}`} className="xs:pl-6">
-									<GroupViewBlock group={entry.group} items={entry.items} />
-								</div>
+								<GroupViewBlock key={`group-${entry.group.id}`} group={entry.group} items={entry.items} />
 							)
 						)}
 					</div>

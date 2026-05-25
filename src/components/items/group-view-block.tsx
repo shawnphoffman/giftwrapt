@@ -44,43 +44,45 @@ export function GroupViewBlock({ group, items }: Props) {
 	const hasPriorityTab = group.priority !== 'normal'
 
 	return (
-		<div className="relative">
-			{hasPriorityTab && (
-				<div
-					className={cn(
-						'absolute left-0 top-0 h-[calc(100%-4px)] max-h-16 -translate-x-1/2 translate-y-[2px] w-12 rounded-md shadow-sm drop-shadow-[1px_1px_10px_rgb(0_0_0/0.2)] dark:drop-shadow-[1px_1px_10px_rgb(0_0_0/0.5)] hidden xs:flex items-center p-1 z-0',
-						priorityTabBgClass[group.priority]
-					)}
-					aria-hidden
-				>
-					<PriorityIcon priority={group.priority} className="size-4" />
-				</div>
-			)}
-			<div className="relative z-10 flex flex-col rounded-lg overflow-hidden shadow-sm bg-card px-px">
-				<div
-					aria-hidden
-					className={cn(
-						'pointer-events-none absolute inset-0 z-20 rounded-lg ring-1 ring-inset ring-border',
-						priorityRingClass[group.priority]
-					)}
-				/>
-				<div className="flex items-center gap-2 px-2 py-1 border-b bg-accent ps-4">
-					<span className="opacity-75 flex items-center gap-2 overflow-hidden">
-						{group.name && (
-							<span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground truncate translate-y-px">
-								{group.name}
-							</span>
+		<div className="xs:pl-6">
+			<div className="relative">
+				{hasPriorityTab && (
+					<div
+						className={cn(
+							'absolute left-0 top-0 h-[calc(100%-4px)] max-h-16 -translate-x-1/2 translate-y-[2px] w-12 rounded-md shadow-sm drop-shadow-[1px_1px_10px_rgb(0_0_0/0.2)] dark:drop-shadow-[1px_1px_10px_rgb(0_0_0/0.5)] hidden xs:flex items-center p-1 z-0',
+							priorityTabBgClass[group.priority]
 						)}
-						<GroupBadge type={group.type} />
-					</span>
-				</div>
-				<div className="overflow-hidden">
-					{items.map((item, index) => (
-						<Fragment key={item.id}>
-							{index > 0 && <GroupConnector type={group.type} />}
-							<ItemRow item={item} lockReason={lockByItemId.get(item.id)} grouped />
-						</Fragment>
-					))}
+						aria-hidden
+					>
+						<PriorityIcon priority={group.priority} className="size-4" />
+					</div>
+				)}
+				<div className="relative z-10 flex flex-col rounded-lg overflow-hidden shadow-sm bg-card px-px">
+					<div
+						aria-hidden
+						className={cn(
+							'pointer-events-none absolute inset-0 z-20 rounded-lg ring-1 ring-inset ring-border',
+							priorityRingClass[group.priority]
+						)}
+					/>
+					<div className="flex items-center gap-2 px-2 py-1 border-b bg-accent ps-4">
+						<span className="opacity-75 flex items-center gap-2 overflow-hidden">
+							{group.name && (
+								<span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground truncate translate-y-px">
+									{group.name}
+								</span>
+							)}
+							<GroupBadge type={group.type} />
+						</span>
+					</div>
+					<div className="overflow-hidden">
+						{items.map((item, index) => (
+							<Fragment key={item.id}>
+								{index > 0 && <GroupConnector type={group.type} />}
+								<ItemRow item={item} lockReason={lockByItemId.get(item.id)} grouped />
+							</Fragment>
+						))}
+					</div>
 				</div>
 			</div>
 		</div>
