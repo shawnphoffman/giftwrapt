@@ -10,6 +10,7 @@ import {
 	listAddons,
 	listEditors,
 	lists,
+	todoItems,
 	userRelationships,
 	users,
 } from '@/db/schema'
@@ -27,6 +28,7 @@ export const BACKUP_TABLES = [
 	{ name: 'lists', table: lists, idSequence: 'lists_id_seq' },
 	{ name: 'itemGroups', table: itemGroups, idSequence: 'item_groups_id_seq' },
 	{ name: 'items', table: items, idSequence: 'items_id_seq' },
+	{ name: 'todoItems', table: todoItems, idSequence: 'todo_items_id_seq' },
 	{ name: 'giftedItems', table: giftedItems, idSequence: 'gifted_items_id_seq' },
 	{ name: 'itemComments', table: itemComments, idSequence: 'item_comments_id_seq' },
 	{ name: 'listAddons', table: listAddons, idSequence: 'list_addons_id_seq' },
@@ -41,6 +43,7 @@ export const BACKUP_TABLES_DELETE_ORDER = [
 	listAddons,
 	itemComments,
 	giftedItems,
+	todoItems,
 	items,
 	itemGroups,
 	lists,

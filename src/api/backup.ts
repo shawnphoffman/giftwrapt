@@ -14,6 +14,7 @@ import {
 	listAddons,
 	listEditors,
 	lists,
+	todoItems,
 	userRelationships,
 	users,
 } from '@/db/schema'
@@ -43,6 +44,7 @@ export const exportAppDataAsAdmin = createServerFn({ method: 'GET' })
 			listsRows,
 			itemGroupsRows,
 			itemsRows,
+			todoItemsRows,
 			giftedItemsRows,
 			itemCommentsRows,
 			listAddonsRows,
@@ -57,6 +59,7 @@ export const exportAppDataAsAdmin = createServerFn({ method: 'GET' })
 			db.select().from(lists),
 			db.select().from(itemGroups),
 			db.select().from(items),
+			db.select().from(todoItems),
 			db.select().from(giftedItems),
 			db.select().from(itemComments),
 			db.select().from(listAddons),
@@ -76,6 +79,7 @@ export const exportAppDataAsAdmin = createServerFn({ method: 'GET' })
 				lists: listsRows,
 				itemGroups: itemGroupsRows,
 				items: itemsRows,
+				todoItems: todoItemsRows,
 				giftedItems: giftedItemsRows,
 				itemComments: itemCommentsRows,
 				listAddons: listAddonsRows,
@@ -418,6 +422,38 @@ export const importAppDataAsAdmin = createServerFn({ method: 'POST' })
 					result.items = tables.items.length
 				}
 
+				// -------- todoItems --------
+				// Distinct from `items`: todo lists store rows in their own
+				// table with a leaner shape (title/notes/priority/claim +
+				// timestamps). A v1 import or older backup file may carry
+				// none, which the schema default ([]) handles.
+				if (tables.todoItems.length > 0) {
+					if (mode === 'wipe') {
+						await tx.insert(todoItems).values(tables.todoItems)
+					} else {
+						for (const row of tables.todoItems) {
+							await tx
+								.insert(todoItems)
+								.values(row)
+								.onConflictDoUpdate({
+									target: todoItems.id,
+									set: {
+										listId: row.listId,
+										title: row.title,
+										notes: row.notes,
+										priority: row.priority,
+										claimedByUserId: row.claimedByUserId,
+										claimedAt: row.claimedAt,
+										sortOrder: row.sortOrder,
+										createdAt: row.createdAt,
+										updatedAt: row.updatedAt,
+									},
+								})
+						}
+					}
+					result.todoItems = tables.todoItems.length
+				}
+
 				// -------- giftedItems --------
 				if (tables.giftedItems.length > 0) {
 					if (mode === 'wipe') {
@@ -570,6 +606,7 @@ async function captureFullSnapshot(): Promise<BackupFile> {
 		listsRows,
 		itemGroupsRows,
 		itemsRows,
+		todoItemsRows,
 		giftedItemsRows,
 		itemCommentsRows,
 		listAddonsRows,
@@ -584,6 +621,7 @@ async function captureFullSnapshot(): Promise<BackupFile> {
 		db.select().from(lists),
 		db.select().from(itemGroups),
 		db.select().from(items),
+		db.select().from(todoItems),
 		db.select().from(giftedItems),
 		db.select().from(itemComments),
 		db.select().from(listAddons),
@@ -602,6 +640,7 @@ async function captureFullSnapshot(): Promise<BackupFile> {
 			lists: listsRows,
 			itemGroups: itemGroupsRows,
 			items: itemsRows,
+			todoItems: todoItemsRows,
 			giftedItems: giftedItemsRows,
 			itemComments: itemCommentsRows,
 			listAddons: listAddonsRows,
@@ -621,6 +660,7 @@ function countsFromTables(tables: BackupFileTables): ImportCounts {
 		lists: tables.lists.length,
 		itemGroups: tables.itemGroups.length,
 		items: tables.items.length,
+		todoItems: tables.todoItems.length,
 		giftedItems: tables.giftedItems.length,
 		itemComments: tables.itemComments.length,
 		listAddons: tables.listAddons.length,
@@ -639,6 +679,7 @@ function emptyCounts(): ImportCounts {
 		lists: 0,
 		itemGroups: 0,
 		items: 0,
+		todoItems: 0,
 		giftedItems: 0,
 		itemComments: 0,
 		listAddons: 0,
@@ -667,6 +708,8 @@ function dbTableName(name: keyof BackupFileTables): string {
 			return 'item_groups'
 		case 'items':
 			return 'items'
+		case 'todoItems':
+			return 'todo_items'
 		case 'giftedItems':
 			return 'gifted_items'
 		case 'itemComments':

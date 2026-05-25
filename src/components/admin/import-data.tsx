@@ -22,6 +22,7 @@ const TABLE_ORDER: Array<keyof BackupFileTables> = [
 	'lists',
 	'itemGroups',
 	'items',
+	'todoItems',
 	'giftedItems',
 	'itemComments',
 	'listAddons',

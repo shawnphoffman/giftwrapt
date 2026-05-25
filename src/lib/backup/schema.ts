@@ -168,6 +168,19 @@ const listEditorRowSchema = z.object({
 	createdAt: dateField,
 })
 
+const todoItemRowSchema = z.object({
+	id: z.number().int(),
+	listId: z.number().int(),
+	title: z.string(),
+	notes: z.string().nullable(),
+	priority: z.enum(priorityEnumValues),
+	claimedByUserId: z.string().nullable(),
+	claimedAt: dateField.nullable(),
+	sortOrder: z.number().int().nullable(),
+	updatedAt: dateField,
+	createdAt: dateField,
+})
+
 export const BackupFileSchema = z.object({
 	version: z.literal(1),
 	exportedAt: z.string(),
@@ -181,6 +194,9 @@ export const BackupFileSchema = z.object({
 		lists: z.array(listRowSchema),
 		itemGroups: z.array(itemGroupRowSchema),
 		items: z.array(itemRowSchema),
+		// Defaulted so backup files written before the todoItems table
+		// existed import cleanly with an empty array.
+		todoItems: z.array(todoItemRowSchema).default([]),
 		giftedItems: z.array(giftedItemRowSchema),
 		itemComments: z.array(itemCommentRowSchema),
 		listAddons: z.array(listAddonRowSchema),
