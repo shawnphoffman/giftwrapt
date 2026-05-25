@@ -3,6 +3,7 @@ import { ScanSearch } from 'lucide-react'
 import { useState } from 'react'
 
 import { ImportSettingsForm } from '@/components/admin/import-settings-form'
+import { ScrapeStats } from '@/components/admin/scrape-stats'
 import { ScrapeProvidersList, ScraperTimingForm } from '@/components/admin/scraper-providers-form'
 import { ScrapesList } from '@/components/admin/scrapes-list'
 import { Button } from '@/components/ui/button'
@@ -57,6 +58,20 @@ function AdminScrapingPage() {
 				<CardContent>
 					<ClientOnly>
 						<ScrapeProvidersList />
+					</ClientOnly>
+				</CardContent>
+			</Card>
+			<Card className="animate-page-in">
+				<CardHeader>
+					<CardTitle className="text-2xl">Scrape Health</CardTitle>
+					<CardDescription>
+						Per-provider success rates and the top failing domains / error codes in the selected window. Successes are aggregated
+						server-side; failures are pulled raw (capped at 5,000) so the domain rollup uses real URL parsing.
+					</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<ClientOnly>
+						<ScrapeStats />
 					</ClientOnly>
 				</CardContent>
 			</Card>

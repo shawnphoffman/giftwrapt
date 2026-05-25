@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { desc, eq } from 'drizzle-orm'
+import { and, count, desc, eq, gte, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
@@ -126,4 +126,115 @@ export const getScrapeDetailAsAdmin = createServerFn({ method: 'GET' })
 		if (rows.length === 0) return { kind: 'error', reason: 'not-found' }
 		const row = rows[0]
 		return { kind: 'ok', detail: { ...row, response: row.response as ScrapeResponseJson | null } }
+	})
+
+// ─── Scrape Health stats ────────────────────────────────────────────────────
+//
+// Per-provider aggregate (cheap GROUP BY in SQL) + raw failure rows (capped)
+// for client-side hostname / error-code aggregation. We deliberately don't
+// pull successes — they outnumber failures by orders of magnitude and the
+// reporting view only cares about what went wrong. Domain extraction stays
+// in TS so we get `URL`-parser correctness (ports, IDN, query strings)
+// instead of regex-in-SQL approximations.
+
+export const SCRAPE_WINDOW_HOURS = [24, 168, 720] as const
+export type ScrapeWindowHours = (typeof SCRAPE_WINDOW_HOURS)[number]
+
+const FAILURE_FETCH_CAP = 5000
+
+export type ScrapeProviderStat = {
+	scraperId: string
+	total: number
+	okCount: number
+	failCount: number
+	avgMs: number | null
+	p95Ms: number | null
+}
+
+export type ScrapeFailureRow = {
+	url: string
+	scraperId: string
+	errorCode: string | null
+	ms: number | null
+	createdAt: Date
+}
+
+export type ScrapeStats = {
+	windowHours: ScrapeWindowHours
+	generatedAt: Date
+	totals: { total: number; ok: number; fail: number }
+	providers: Array<ScrapeProviderStat>
+	failures: Array<ScrapeFailureRow>
+	failuresTruncated: boolean
+}
+
+const ScrapeStatsInputSchema = z.object({
+	windowHours: z.union([z.literal(24), z.literal(168), z.literal(720)]),
+})
+
+export const getScrapeStatsAsAdmin = createServerFn({ method: 'GET' })
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.inputValidator((data: z.input<typeof ScrapeStatsInputSchema>) => ScrapeStatsInputSchema.parse(data))
+	.handler(async ({ data }): Promise<ScrapeStats> => {
+		const since = new Date(Date.now() - data.windowHours * 3600 * 1000)
+		const [providerRows, failureRows] = await Promise.all([
+			db
+				.select({
+					scraperId: itemScrapes.scraperId,
+					total: count(),
+					// count(*) filter (where ...) returns bigint; cast keeps it as JS number.
+					okCount: sql<number>`(count(*) filter (where ${itemScrapes.ok}))::int`,
+					failCount: sql<number>`(count(*) filter (where not ${itemScrapes.ok}))::int`,
+					// avg(int) returns numeric (driver hands back string), so cast to
+					// double precision (oid 701) which the pg driver parses as a JS
+					// number. NULL stays NULL when no rows in the group have ms set.
+					avgMs: sql<number | null>`avg(${itemScrapes.ms})::float8`,
+					p95Ms: sql<number | null>`(percentile_cont(0.95) within group (order by ${itemScrapes.ms}))::float8`,
+				})
+				.from(itemScrapes)
+				.where(gte(itemScrapes.createdAt, since))
+				.groupBy(itemScrapes.scraperId)
+				.orderBy(desc(count())),
+			db
+				.select({
+					url: itemScrapes.url,
+					scraperId: itemScrapes.scraperId,
+					errorCode: itemScrapes.errorCode,
+					ms: itemScrapes.ms,
+					createdAt: itemScrapes.createdAt,
+				})
+				.from(itemScrapes)
+				.where(and(gte(itemScrapes.createdAt, since), eq(itemScrapes.ok, false)))
+				.orderBy(desc(itemScrapes.createdAt))
+				.limit(FAILURE_FETCH_CAP + 1),
+		])
+
+		const totals = providerRows.reduce(
+			(acc, r) => {
+				acc.total += r.total
+				acc.ok += r.okCount
+				acc.fail += r.failCount
+				return acc
+			},
+			{ total: 0, ok: 0, fail: 0 }
+		)
+
+		const truncated = failureRows.length > FAILURE_FETCH_CAP
+		const failures = truncated ? failureRows.slice(0, FAILURE_FETCH_CAP) : failureRows
+
+		return {
+			windowHours: data.windowHours,
+			generatedAt: new Date(),
+			totals,
+			providers: providerRows.map(r => ({
+				scraperId: r.scraperId,
+				total: r.total,
+				okCount: r.okCount,
+				failCount: r.failCount,
+				avgMs: r.avgMs,
+				p95Ms: r.p95Ms,
+			})),
+			failures,
+			failuresTruncated: truncated,
+		}
 	})
