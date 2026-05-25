@@ -1,6 +1,6 @@
 import { format, isThisYear } from 'date-fns'
 
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { TapTooltip, TapTooltipContent, TapTooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
 type Props = {
@@ -15,8 +15,8 @@ export function DateAdded({ createdAt, className }: Props) {
 	const short = isThisYear(date) ? format(date, 'MMM d') : format(date, 'MMM d, yyyy')
 	const full = format(date, 'MMM d, yyyy')
 	return (
-		<Tooltip>
-			<TooltipTrigger asChild>
+		<TapTooltip>
+			<TapTooltipTrigger asChild>
 				<span
 					className={cn(
 						'inline-flex items-center shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium text-muted-foreground whitespace-nowrap',
@@ -25,8 +25,8 @@ export function DateAdded({ createdAt, className }: Props) {
 				>
 					{short}
 				</span>
-			</TooltipTrigger>
-			<TooltipContent>Added {full}</TooltipContent>
-		</Tooltip>
+			</TapTooltipTrigger>
+			<TapTooltipContent>Added {full}</TapTooltipContent>
+		</TapTooltip>
 	)
 }

@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import { getCronEndpointsSummaryAsAdmin, runCronAsAdmin } from '@/api/admin-cron'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { TapTooltip, TapTooltipContent, TapTooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 import type { CronEndpoint } from '@/lib/cron/registry'
 import { cn } from '@/lib/utils'
 
@@ -120,10 +120,10 @@ export function CronEndpointsPanel() {
 									</td>
 									<td className="py-3 pr-3 text-xs">
 										{entry.lastRunAt ? (
-											<Tooltip>
-												<TooltipTrigger className="text-left">{relativeOrDash(entry.lastRunAt)}</TooltipTrigger>
-												<TooltipContent>{new Date(entry.lastRunAt).toLocaleString()}</TooltipContent>
-											</Tooltip>
+											<TapTooltip>
+												<TapTooltipTrigger className="text-left">{relativeOrDash(entry.lastRunAt)}</TapTooltipTrigger>
+												<TapTooltipContent>{new Date(entry.lastRunAt).toLocaleString()}</TapTooltipContent>
+											</TapTooltip>
 										) : (
 											<span className="text-muted-foreground">never</span>
 										)}
@@ -133,10 +133,10 @@ export function CronEndpointsPanel() {
 											{entry.lastSuccessAt ? (
 												<>
 													{stale ? <AlertTriangle className="size-3" /> : <CheckCircle2 className="size-3 text-emerald-500" />}
-													<Tooltip>
-														<TooltipTrigger className="text-left">{relativeOrDash(entry.lastSuccessAt)}</TooltipTrigger>
-														<TooltipContent>{new Date(entry.lastSuccessAt).toLocaleString()}</TooltipContent>
-													</Tooltip>
+													<TapTooltip>
+														<TapTooltipTrigger className="text-left">{relativeOrDash(entry.lastSuccessAt)}</TapTooltipTrigger>
+														<TapTooltipContent>{new Date(entry.lastSuccessAt).toLocaleString()}</TapTooltipContent>
+													</TapTooltip>
 												</>
 											) : (
 												<span className="text-muted-foreground">never</span>
@@ -147,10 +147,10 @@ export function CronEndpointsPanel() {
 										{next ? (
 											<div className="flex items-center gap-1">
 												<Clock className="size-3 text-muted-foreground" />
-												<Tooltip>
-													<TooltipTrigger className="text-left text-nowrap">{relativeOrDash(next)}</TooltipTrigger>
-													<TooltipContent>{next.toLocaleString()}</TooltipContent>
-												</Tooltip>
+												<TapTooltip>
+													<TapTooltipTrigger className="text-left text-nowrap">{relativeOrDash(next)}</TapTooltipTrigger>
+													<TapTooltipContent>{next.toLocaleString()}</TapTooltipContent>
+												</TapTooltip>
 											</div>
 										) : (
 											<span className="text-muted-foreground">—</span>

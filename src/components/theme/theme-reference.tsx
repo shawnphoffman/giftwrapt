@@ -46,7 +46,7 @@ import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { TapTooltip, TapTooltipContent, TapTooltipTrigger, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 type Swatch = {
 	name: string
@@ -453,6 +453,13 @@ export default function ThemeReference() {
 						</TooltipTrigger>
 						<TooltipContent>Tooltip content, anchored above.</TooltipContent>
 					</Tooltip>
+
+					<TapTooltip>
+						<TapTooltipTrigger asChild>
+							<Button variant="outline">Hover or tap (TapTooltip)</Button>
+						</TapTooltipTrigger>
+						<TapTooltipContent>Hover on desktop, tap on touch — same dark pill, mobile-friendly.</TapTooltipContent>
+					</TapTooltip>
 
 					<Popover>
 						<PopoverTrigger asChild>

@@ -3,7 +3,7 @@ import { type ReactNode, useMemo } from 'react'
 
 import DependentAvatar from '@/components/common/dependent-avatar'
 import UserAvatar from '@/components/common/user-avatar'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { TapTooltip, TapTooltipContent, TapTooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 import type { RelationLabel } from '@/db/schema/enums'
 import {
 	buildIndices,
@@ -191,8 +191,8 @@ export function PermissionsMatrixView({ data }: { data: PermissionsMatrixData })
 										})
 										return (
 											<td key={owner.id} className="p-0 border-b border-l/30">
-												<Tooltip>
-													<TooltipTrigger asChild>
+												<TapTooltip>
+													<TapTooltipTrigger asChild>
 														<div
 															className={cn('relative size-12 flex items-center justify-center transition-colors', cellClasses(cell.kind))}
 														>
@@ -210,11 +210,11 @@ export function PermissionsMatrixView({ data }: { data: PermissionsMatrixData })
 																/>
 															)}
 														</div>
-													</TooltipTrigger>
-													<TooltipContent side="top">
+													</TapTooltipTrigger>
+													<TapTooltipContent side="top">
 														<CellTooltip cell={cell} viewerName={viewer.name || viewer.email} ownerName={owner.name || owner.email} />
-													</TooltipContent>
-												</Tooltip>
+													</TapTooltipContent>
+												</TapTooltip>
 											</td>
 										)
 									})}
@@ -228,8 +228,8 @@ export function PermissionsMatrixView({ data }: { data: PermissionsMatrixData })
 										})
 										return (
 											<td key={`dep-${dep.id}`} className="p-0 border-b border-l/30">
-												<Tooltip>
-													<TooltipTrigger asChild>
+												<TapTooltip>
+													<TapTooltipTrigger asChild>
 														<div
 															className={cn('relative size-12 flex items-center justify-center transition-colors', cellClasses(cell.kind))}
 														>
@@ -241,11 +241,11 @@ export function PermissionsMatrixView({ data }: { data: PermissionsMatrixData })
 																/>
 															)}
 														</div>
-													</TooltipTrigger>
-													<TooltipContent side="top">
+													</TapTooltipTrigger>
+													<TapTooltipContent side="top">
 														<CellTooltip cell={cell} viewerName={viewer.name || viewer.email} ownerName={dep.name} />
-													</TooltipContent>
-												</Tooltip>
+													</TapTooltipContent>
+												</TapTooltip>
 											</td>
 										)
 									})}

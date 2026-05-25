@@ -1,6 +1,6 @@
 'use client'
 
-import { Tooltip as TooltipPrimitive } from 'radix-ui'
+import { Popover as PopoverPrimitive, Tooltip as TooltipPrimitive } from 'radix-ui'
 import * as React from 'react'
 
 import { cn } from '@/lib/utils'
@@ -17,23 +17,131 @@ function TooltipTrigger({ ...props }: React.ComponentProps<typeof TooltipPrimiti
 	return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />
 }
 
+const tooltipContentClass =
+	'z-50 inline-flex w-fit max-w-xs origin-(--radix-tooltip-content-transform-origin) items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs text-background has-data-[slot=kbd]:pr-1.5 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 **:data-[slot=kbd]:relative **:data-[slot=kbd]:isolate **:data-[slot=kbd]:z-50 **:data-[slot=kbd]:rounded-sm data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0 data-[state=delayed-open]:zoom-in-95 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95'
+
+const tooltipArrowClass = 'z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px] bg-foreground fill-foreground'
+
 function TooltipContent({ className, sideOffset = 0, children, ...props }: React.ComponentProps<typeof TooltipPrimitive.Content>) {
 	return (
 		<TooltipPrimitive.Portal>
 			<TooltipPrimitive.Content
 				data-slot="tooltip-content"
 				sideOffset={sideOffset}
-				className={cn(
-					'z-50 inline-flex w-fit max-w-xs origin-(--radix-tooltip-content-transform-origin) items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs text-background has-data-[slot=kbd]:pr-1.5 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 **:data-[slot=kbd]:relative **:data-[slot=kbd]:isolate **:data-[slot=kbd]:z-50 **:data-[slot=kbd]:rounded-sm data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0 data-[state=delayed-open]:zoom-in-95 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95',
-					className
-				)}
+				className={cn(tooltipContentClass, className)}
 				{...props}
 			>
 				{children}
-				<TooltipPrimitive.Arrow className="z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px] bg-foreground fill-foreground" />
+				<TooltipPrimitive.Arrow className={tooltipArrowClass} />
 			</TooltipPrimitive.Content>
 		</TooltipPrimitive.Portal>
 	)
 }
 
-export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger }
+// TapTooltip variant: identical to Tooltip on hover-capable devices, swaps to
+// Radix Popover semantics (tap-to-open) on coarse-pointer devices so touchscreen
+// users can see the content. Use anywhere the trigger has no other primary
+// action (info icons, badges, status indicators). Don't use when the trigger is
+// itself a link/button doing real work — taps would conflict with that action.
+
+type TapMode = 'hover' | 'tap'
+const TapTooltipModeContext = React.createContext<TapMode>('hover')
+
+function useIsCoarsePointer() {
+	const [isCoarse, setIsCoarse] = React.useState(false)
+	React.useEffect(() => {
+		if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return
+		const mql = window.matchMedia('(hover: none)')
+		setIsCoarse(mql.matches)
+		const onChange = (e: MediaQueryListEvent) => setIsCoarse(e.matches)
+		mql.addEventListener('change', onChange)
+		return () => mql.removeEventListener('change', onChange)
+	}, [])
+	return isCoarse
+}
+
+type TapTooltipRootProps = {
+	children: React.ReactNode
+	open?: boolean
+	defaultOpen?: boolean
+	onOpenChange?: (open: boolean) => void
+	delayDuration?: number
+}
+
+function TapTooltip({ children, open, defaultOpen, onOpenChange, delayDuration }: TapTooltipRootProps) {
+	const isCoarse = useIsCoarsePointer()
+	const mode: TapMode = isCoarse ? 'tap' : 'hover'
+	if (mode === 'tap') {
+		return (
+			<TapTooltipModeContext.Provider value="tap">
+				<PopoverPrimitive.Root open={open} defaultOpen={defaultOpen} onOpenChange={onOpenChange} modal={false}>
+					{children}
+				</PopoverPrimitive.Root>
+			</TapTooltipModeContext.Provider>
+		)
+	}
+	return (
+		<TapTooltipModeContext.Provider value="hover">
+			<TooltipPrimitive.Root
+				open={open}
+				defaultOpen={defaultOpen}
+				onOpenChange={onOpenChange}
+				delayDuration={delayDuration}
+				data-slot="tooltip"
+			>
+				{children}
+			</TooltipPrimitive.Root>
+		</TapTooltipModeContext.Provider>
+	)
+}
+
+function TapTooltipTrigger(props: React.ComponentProps<typeof TooltipPrimitive.Trigger>) {
+	const mode = React.useContext(TapTooltipModeContext)
+	if (mode === 'tap') {
+		// PopoverPrimitive.Trigger shares the same prop shape (asChild + button props).
+		return <PopoverPrimitive.Trigger data-slot="tooltip-trigger" {...(props as React.ComponentProps<typeof PopoverPrimitive.Trigger>)} />
+	}
+	return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />
+}
+
+function TapTooltipContent({ className, sideOffset = 0, children, ...props }: React.ComponentProps<typeof TooltipPrimitive.Content>) {
+	const mode = React.useContext(TapTooltipModeContext)
+	if (mode === 'tap') {
+		const { side, align, alignOffset, avoidCollisions, collisionBoundary, collisionPadding, sticky, hideWhenDetached } = props
+		return (
+			<PopoverPrimitive.Portal>
+				<PopoverPrimitive.Content
+					data-slot="tooltip-content"
+					sideOffset={sideOffset}
+					side={side}
+					align={align}
+					alignOffset={alignOffset}
+					avoidCollisions={avoidCollisions}
+					collisionBoundary={collisionBoundary}
+					collisionPadding={collisionPadding}
+					sticky={sticky}
+					hideWhenDetached={hideWhenDetached}
+					className={cn(tooltipContentClass, className)}
+				>
+					{children}
+					<PopoverPrimitive.Arrow className={tooltipArrowClass} />
+				</PopoverPrimitive.Content>
+			</PopoverPrimitive.Portal>
+		)
+	}
+	return (
+		<TooltipPrimitive.Portal>
+			<TooltipPrimitive.Content
+				data-slot="tooltip-content"
+				sideOffset={sideOffset}
+				className={cn(tooltipContentClass, className)}
+				{...props}
+			>
+				{children}
+				<TooltipPrimitive.Arrow className={tooltipArrowClass} />
+			</TooltipPrimitive.Content>
+		</TooltipPrimitive.Portal>
+	)
+}
+
+export { TapTooltip, TapTooltipContent, TapTooltipTrigger, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger }

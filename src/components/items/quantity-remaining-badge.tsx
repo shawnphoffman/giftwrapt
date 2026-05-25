@@ -2,7 +2,7 @@ import { Lock } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { TapTooltip, TapTooltipContent, TapTooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
 const AVAILABILITY_DATE_FORMAT: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' }
@@ -171,12 +171,12 @@ export function QuantityRemainingBadge({
 
 		if (tooltip) {
 			return (
-				<Tooltip>
-					<TooltipTrigger asChild>
+				<TapTooltip>
+					<TapTooltipTrigger asChild>
 						<span className="inline-flex">{pill}</span>
-					</TooltipTrigger>
-					<TooltipContent side="top">{tooltip}</TooltipContent>
-				</Tooltip>
+					</TapTooltipTrigger>
+					<TapTooltipContent side="top">{tooltip}</TapTooltipContent>
+				</TapTooltip>
 			)
 		}
 		return pill

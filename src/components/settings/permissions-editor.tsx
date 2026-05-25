@@ -9,7 +9,7 @@ import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { TapTooltip, TapTooltipContent, TapTooltipTrigger } from '@/components/ui/tooltip'
 import type { AccessLevel } from '@/db/schema/enums'
 import { cn } from '@/lib/utils'
 
@@ -220,8 +220,8 @@ function ShareIndicator({ sharedWithMe }: { sharedWithMe: AccessTier }) {
 				? "They haven't shared their lists with you"
 				: 'They share their lists with you'
 	return (
-		<Tooltip>
-			<TooltipTrigger asChild>
+		<TapTooltip>
+			<TapTooltipTrigger asChild>
 				<span
 					aria-label={label}
 					className={cn(
@@ -231,9 +231,9 @@ function ShareIndicator({ sharedWithMe }: { sharedWithMe: AccessTier }) {
 						sharedWithMe === 'edit' && 'animate-edit-pulse'
 					)}
 				/>
-			</TooltipTrigger>
-			<TooltipContent>{label}</TooltipContent>
-		</Tooltip>
+			</TapTooltipTrigger>
+			<TapTooltipContent>{label}</TapTooltipContent>
+		</TapTooltip>
 	)
 }
 

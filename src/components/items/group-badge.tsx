@@ -1,7 +1,7 @@
 import { CircleDot, ListOrdered } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { TapTooltip, TapTooltipContent, TapTooltipTrigger } from '@/components/ui/tooltip'
 import type { GroupType } from '@/db/schema/enums'
 
 type Props = {
@@ -25,16 +25,16 @@ export function GroupBadge({ type, className }: Props) {
 	const { label, help } = GROUP_COPY[type]
 
 	return (
-		<Tooltip>
-			<TooltipTrigger asChild>
+		<TapTooltip>
+			<TapTooltipTrigger asChild>
 				<Badge variant="outline" className={className}>
 					<Icon />
 					<span className="hidden sm:inline">{label}</span>
 				</Badge>
-			</TooltipTrigger>
-			<TooltipContent className="max-w-64 text-xs leading-relaxed" side="top" align="start">
+			</TapTooltipTrigger>
+			<TapTooltipContent className="max-w-64 text-xs leading-relaxed" side="top" align="start">
 				{help}
-			</TooltipContent>
-		</Tooltip>
+			</TapTooltipContent>
+		</TapTooltip>
 	)
 }

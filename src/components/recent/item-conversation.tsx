@@ -8,7 +8,7 @@ import PriorityIcon from '@/components/common/priority-icon'
 import UrlBadge from '@/components/common/url-badge'
 import UserAvatar from '@/components/common/user-avatar'
 import { Button } from '@/components/ui/button'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { TapTooltip, TapTooltipContent, TapTooltipTrigger, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { ListType, Priority } from '@/db/schema/enums'
 import { httpsUpgrade } from '@/lib/image-url'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
@@ -96,8 +96,8 @@ export default function ItemConversation(props: ItemConversationProps) {
 				<div className="flex items-stretch gap-3 p-3 ps-4">
 					<div className="@container flex flex-col flex-1 min-w-0 gap-2 scroll-mt-24">
 						<div className="flex items-center gap-2 min-w-0 font-medium leading-tight">
-							<Tooltip>
-								<TooltipTrigger asChild>
+							<TapTooltip>
+								<TapTooltipTrigger asChild>
 									<span className="shrink-0 inline-flex">
 										{isDependentSubject ? (
 											<DependentAvatar name={ownerName} image={subjectDependentImage ?? null} size="small" className="size-7" />
@@ -105,9 +105,9 @@ export default function ItemConversation(props: ItemConversationProps) {
 											<UserAvatar name={ownerName} image={listOwnerImage} size="small" className="size-7" />
 										)}
 									</span>
-								</TooltipTrigger>
-								<TooltipContent side="top">{ownerName}</TooltipContent>
-							</Tooltip>
+								</TapTooltipTrigger>
+								<TapTooltipContent side="top">{ownerName}</TapTooltipContent>
+							</TapTooltip>
 							<span className="truncate min-w-0">{title}</span>
 							<UrlBadge url={url} />
 						</div>

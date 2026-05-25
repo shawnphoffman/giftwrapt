@@ -1,5 +1,5 @@
 import UserAvatar from '@/components/common/user-avatar'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { TapTooltip, TapTooltipContent, TapTooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
 export type ClaimUser = { id: string; name: string; image?: string | null }
@@ -15,8 +15,8 @@ export function ClaimUsers({ claims, className }: Props) {
 
 	return (
 		<TooltipProvider>
-			<Tooltip>
-				<TooltipTrigger asChild>
+			<TapTooltip>
+				<TapTooltipTrigger asChild>
 					<div className={cn('inline-flex items-center', className)}>
 						{claims.map((claim, i) => (
 							<span key={claim.user.id} className={cn('relative inline-flex', i > 0 && '-ml-2')} style={{ zIndex: claims.length - i }}>
@@ -24,8 +24,8 @@ export function ClaimUsers({ claims, className }: Props) {
 							</span>
 						))}
 					</div>
-				</TooltipTrigger>
-				<TooltipContent side="top" align="start" className="max-w-64">
+				</TapTooltipTrigger>
+				<TapTooltipContent side="top" align="start" className="max-w-64">
 					<ul className="flex flex-col gap-1.5">
 						{claims.map(claim => (
 							<li key={claim.user.id} className="flex items-center gap-2">
@@ -35,8 +35,8 @@ export function ClaimUsers({ claims, className }: Props) {
 							</li>
 						))}
 					</ul>
-				</TooltipContent>
-			</Tooltip>
+				</TapTooltipContent>
+			</TapTooltip>
 		</TooltipProvider>
 	)
 }

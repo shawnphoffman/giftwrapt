@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { TapTooltip, TapTooltipContent, TapTooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 import type { CronRun } from '@/db/schema'
 import { cronRunStatusEnumValues } from '@/db/schema'
 import { CRON_ENDPOINTS, getCronEntry } from '@/lib/cron/registry'
@@ -55,19 +55,19 @@ function SummaryCell({ run }: { run: CronRun }) {
 	if (entries.length === 0) return <span className="text-xs text-muted-foreground">ok</span>
 	return (
 		<TooltipProvider>
-			<Tooltip>
-				<TooltipTrigger asChild>
+			<TapTooltip>
+				<TapTooltipTrigger asChild>
 					<div className="text-xs font-mono line-clamp-2 max-w-md">
 						{entries
 							.slice(0, 4)
 							.map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`)
 							.join(' · ')}
 					</div>
-				</TooltipTrigger>
-				<TooltipContent className="max-w-lg">
+				</TapTooltipTrigger>
+				<TapTooltipContent className="max-w-lg">
 					<pre className="text-xs whitespace-pre-wrap break-all">{JSON.stringify(run.summary, null, 2)}</pre>
-				</TooltipContent>
-			</Tooltip>
+				</TapTooltipContent>
+			</TapTooltip>
 		</TooltipProvider>
 	)
 }
@@ -95,15 +95,15 @@ export function CronRunsTable() {
 					const d = new Date(row.original.startedAt)
 					return (
 						<TooltipProvider>
-							<Tooltip>
-								<TooltipTrigger className="text-left">
+							<TapTooltip>
+								<TapTooltipTrigger className="text-left">
 									<div className="flex flex-col">
 										<span className="text-xs font-medium">{formatDistanceToNow(d, { addSuffix: true })}</span>
 										<span className="text-xs text-muted-foreground">{format(d, 'MMM d HH:mm:ss')}</span>
 									</div>
-								</TooltipTrigger>
-								<TooltipContent>{d.toLocaleString()}</TooltipContent>
-							</Tooltip>
+								</TapTooltipTrigger>
+								<TapTooltipContent>{d.toLocaleString()}</TapTooltipContent>
+							</TapTooltip>
 						</TooltipProvider>
 					)
 				},

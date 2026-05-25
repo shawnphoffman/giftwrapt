@@ -8,7 +8,7 @@
 import { CircleHelp } from 'lucide-react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { TapTooltip, TapTooltipContent, TapTooltipTrigger } from '@/components/ui/tooltip'
 import type { ListChangeImpactWarning } from '@/lib/list-change-impact'
 
 type Props = {
@@ -22,19 +22,19 @@ export function ListChangeImpactWarnings({ warnings }: Props) {
 		<Alert>
 			<AlertTitle className="flex items-center gap-1.5">
 				<span>Heads up</span>
-				<Tooltip>
-					<TooltipTrigger asChild>
+				<TapTooltip>
+					<TapTooltipTrigger asChild>
 						<button type="button" aria-label="What does this warning mean?" className="text-muted-foreground hover:text-foreground">
 							<CircleHelp className="size-3.5" />
 						</button>
-					</TooltipTrigger>
-					<TooltipContent>
+					</TapTooltipTrigger>
+					<TapTooltipContent>
 						<p className="max-w-xs text-xs">
-							This is a non-blocking notice about how your changes interact with the calendar. You can still save — we just want you to know
+							This is a non-blocking notice about how your changes interact with the calendar. You can still save - we just want you to know
 							what auto-archive will (and won't) do after.
 						</p>
-					</TooltipContent>
-				</Tooltip>
+					</TapTooltipContent>
+				</TapTooltip>
 			</AlertTitle>
 			<AlertDescription>
 				<ul className="list-disc space-y-1 pl-5">

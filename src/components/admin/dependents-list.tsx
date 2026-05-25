@@ -7,7 +7,7 @@ import DependentAvatar from '@/components/common/dependent-avatar'
 import UserAvatar from '@/components/common/user-avatar'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { TapTooltip, TapTooltipContent, TapTooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 import type { BirthMonth } from '@/db/schema/enums'
 
 import { EditDependentDialog } from './edit-dependent-dialog'
@@ -33,10 +33,10 @@ const monthLabels: Record<BirthMonth, string> = {
 
 function Tip({ label, children }: { label: string; children: React.ReactNode }) {
 	return (
-		<Tooltip>
-			<TooltipTrigger asChild>{children}</TooltipTrigger>
-			<TooltipContent side="top">{label}</TooltipContent>
-		</Tooltip>
+		<TapTooltip>
+			<TapTooltipTrigger asChild>{children}</TapTooltipTrigger>
+			<TapTooltipContent side="top">{label}</TapTooltipContent>
+		</TapTooltip>
 	)
 }
 

@@ -29,7 +29,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { TapTooltip, TapTooltipContent, TapTooltipTrigger, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { detectCarrier } from '@/lib/tracking/carriers'
 
 // recharts is ~350 KB. The chart cards only render once spend data is
@@ -437,14 +437,14 @@ function PurchaseDetailRow({
 						</a>
 					)}
 					{item.isCoGifter && (
-						<Tooltip>
-							<TooltipTrigger asChild>
+						<TapTooltip>
+							<TapTooltipTrigger asChild>
 								<Badge variant="secondary" className="text-xs shrink-0 gap-1">
 									<Users className="size-3" /> Co-gifter
 								</Badge>
-							</TooltipTrigger>
-							<TooltipContent>Shown at $0 until per-gifter spend is captured.</TooltipContent>
-						</Tooltip>
+							</TapTooltipTrigger>
+							<TapTooltipContent>Shown at $0 until per-gifter spend is captured.</TapTooltipContent>
+						</TapTooltip>
 					)}
 				</div>
 				{hasNotes && <MarkdownNotes content={item.notes!} className="text-xs text-foreground/75 mt-0.5" />}
@@ -468,14 +468,14 @@ function PurchaseDetailRow({
 				)}
 				<div className="flex items-center gap-1.5 min-w-0">
 					{showPartner && (
-						<Tooltip>
-							<TooltipTrigger asChild>
+						<TapTooltip>
+							<TapTooltipTrigger asChild>
 								<span className="shrink-0" onClick={e => e.stopPropagation()}>
 									<UserAvatar name={partner.name} image={partner.image} size="small" />
 								</span>
-							</TooltipTrigger>
-							<TooltipContent>Claimed by your partner ({partner.name})</TooltipContent>
-						</Tooltip>
+							</TapTooltipTrigger>
+							<TapTooltipContent>Claimed by your partner ({partner.name})</TapTooltipContent>
+						</TapTooltip>
 					)}
 					<div className="text-xs text-muted-foreground truncate">{item.listName}</div>
 				</div>
@@ -591,12 +591,12 @@ function Metric({ label, value, tooltip }: { label: string; value: React.ReactNo
 			<div className="text-xs text-muted-foreground flex items-center gap-1">
 				<span>{label}</span>
 				{tooltip && (
-					<Tooltip>
-						<TooltipTrigger asChild>
+					<TapTooltip>
+						<TapTooltipTrigger asChild>
 							<Info className="size-3 text-muted-foreground cursor-help" />
-						</TooltipTrigger>
-						<TooltipContent>{tooltip}</TooltipContent>
-					</Tooltip>
+						</TapTooltipTrigger>
+						<TapTooltipContent>{tooltip}</TapTooltipContent>
+					</TapTooltip>
 				)}
 			</div>
 			<div className="min-w-0">{value}</div>

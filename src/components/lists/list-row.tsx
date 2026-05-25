@@ -31,7 +31,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { TapTooltip, TapTooltipContent, TapTooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 import type { UserWithLists } from '@/db-collections/lists'
 import { useSession } from '@/lib/auth-client'
 import { cn } from '@/lib/utils'
@@ -49,8 +49,8 @@ function SharedWithAvatars({ editors }: { editors: Array<EditorInfo> }) {
 	const [first, ...rest] = editors
 	return (
 		<TooltipProvider delayDuration={150}>
-			<Tooltip>
-				<TooltipTrigger asChild>
+			<TapTooltip>
+				<TapTooltipTrigger asChild>
 					<div className="flex items-center -space-x-0.75 shrink-0">
 						<UserAvatar
 							name={first.name || first.email}
@@ -64,8 +64,8 @@ function SharedWithAvatars({ editors }: { editors: Array<EditorInfo> }) {
 							</AvatarGroupCount>
 						)}
 					</div>
-				</TooltipTrigger>
-				<TooltipContent className="flex flex-col gap-1.5">
+				</TapTooltipTrigger>
+				<TapTooltipContent className="flex flex-col gap-1.5">
 					<div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Shared with</div>
 					{editors.map(editor => (
 						<div key={editor.email} className="flex items-center gap-2 justify-items-start w-full">
@@ -73,8 +73,8 @@ function SharedWithAvatars({ editors }: { editors: Array<EditorInfo> }) {
 							<span className="font-medium">{editor.name || editor.email}</span>
 						</div>
 					))}
-				</TooltipContent>
-			</Tooltip>
+				</TapTooltipContent>
+			</TapTooltip>
 		</TooltipProvider>
 	)
 }
@@ -199,8 +199,8 @@ function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: Ro
 				</Link>
 				{showOwner && (
 					<TooltipProvider delayDuration={150}>
-						<Tooltip>
-							<TooltipTrigger asChild>
+						<TapTooltip>
+							<TapTooltipTrigger asChild>
 								<div className="flex items-center -space-x-0.75 shrink-0">
 									{showOwner.kind === 'dependent' ? (
 										<DependentAvatar
@@ -223,8 +223,8 @@ function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: Ro
 										</AvatarGroupCount>
 									)}
 								</div>
-							</TooltipTrigger>
-							<TooltipContent className="flex flex-col gap-1.5">
+							</TapTooltipTrigger>
+							<TapTooltipContent className="flex flex-col gap-1.5">
 								<div className="flex items-center gap-2 justify-items-start w-full">
 									{showOwner.kind === 'dependent' ? (
 										<>
@@ -245,8 +245,8 @@ function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: Ro
 										<span className="font-medium">{editor.name || editor.email}</span>
 									</div>
 								))}
-							</TooltipContent>
-						</Tooltip>
+							</TapTooltipContent>
+						</TapTooltip>
 					</TooltipProvider>
 				)}
 				{!showOwner && editors.length > 0 && <SharedWithAvatars editors={editors} />}
@@ -259,14 +259,14 @@ function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: Ro
 				)}
 				{list.isPrivate && (
 					<TooltipProvider delayDuration={150}>
-						<Tooltip>
-							<TooltipTrigger asChild>
+						<TapTooltip>
+							<TapTooltipTrigger asChild>
 								<span className="inline-flex shrink-0 text-muted-foreground" aria-label="Private list">
 									<Lock className="size-3.5" />
 								</span>
-							</TooltipTrigger>
-							<TooltipContent>Private list</TooltipContent>
-						</Tooltip>
+							</TapTooltipTrigger>
+							<TapTooltipContent>Private list</TapTooltipContent>
+						</TapTooltip>
 					</TooltipProvider>
 				)}
 				<CountBadge count={list.itemCount} />

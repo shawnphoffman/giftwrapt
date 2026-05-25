@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { TapTooltip, TapTooltipContent, TapTooltipTrigger } from '@/components/ui/tooltip'
 import { useSession } from '@/lib/auth-client'
 
 import { ListAddonDialog } from './list-addon-dialog'
@@ -102,16 +102,16 @@ export function ListAddonRow({ addon, listId }: Props) {
 
 				{/* FOOTER */}
 				<div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-					<Tooltip>
-						<TooltipTrigger asChild>
+					<TapTooltip>
+						<TapTooltipTrigger asChild>
 							<span className="shrink-0">
 								<UserAvatar name={name} image={addon.user.image} size="small" />
 							</span>
-						</TooltipTrigger>
-						<TooltipContent>
+						</TapTooltipTrigger>
+						<TapTooltipContent>
 							Added by {isMine ? 'you' : name} on {format(addon.createdAt, 'MMM d, yyyy')}
-						</TooltipContent>
-					</Tooltip>
+						</TapTooltipContent>
+					</TapTooltip>
 					<span>{isMine ? 'You' : name}</span>
 					<span className="flex-1" />
 					<div className="flex items-center gap-1">

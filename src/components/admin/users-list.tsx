@@ -6,7 +6,7 @@ import { getUsersAsAdmin } from '@/api/admin'
 import UserAvatar from '@/components/common/user-avatar'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { TapTooltip, TapTooltipContent, TapTooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 import type { User } from '@/db-collections/users'
 
 import GuardianBadge from '../common/guardian-badge'
@@ -210,10 +210,10 @@ function EmailVerifiedCell({ user }: { user: User }) {
 
 function Tip({ label, children }: { label: string; children: React.ReactNode }) {
 	return (
-		<Tooltip>
-			<TooltipTrigger asChild>{children}</TooltipTrigger>
-			<TooltipContent>{label}</TooltipContent>
-		</Tooltip>
+		<TapTooltip>
+			<TapTooltipTrigger asChild>{children}</TapTooltipTrigger>
+			<TapTooltipContent>{label}</TapTooltipContent>
+		</TapTooltip>
 	)
 }
 
