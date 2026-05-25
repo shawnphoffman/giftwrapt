@@ -200,7 +200,7 @@ export default function ItemList({ listId, groups = [] }: Props) {
 	}, [items, filter, vendorFilter, activePriceRange])
 
 	const entries = useMemo(() => {
-		const base = buildListEntries({ items: filteredItems, groups })
+		const base = buildListEntries({ items: filteredItems, groups }).filter(e => e.kind !== 'group' || e.items.length > 0)
 		return [...base].sort(compareEntries(sort))
 	}, [filteredItems, groups, sort])
 
