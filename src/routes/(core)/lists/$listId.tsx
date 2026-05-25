@@ -15,7 +15,6 @@ import BackToParentList from '@/components/lists/back-to-parent-list'
 import { ListOrphanAlert } from '@/components/orphan-claims/list-orphan-alert'
 import { TodoList } from '@/components/todos/todo-list'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useSession } from '@/lib/auth-client'
 import { perfTime } from '@/lib/observability/perf'
 import { listHeaderQueryOptions } from '@/lib/queries/lists' // used by useSuspenseQuery below
 import { useListAutoRefresh } from '@/lib/use-list-auto-refresh'
@@ -108,7 +107,6 @@ function ListDetailHeaderSkeleton() {
 
 function ListDetailBody({ listId }: { listId: number }) {
 	const { data: list } = useSuspenseQuery(listHeaderQueryOptions(listId))
-	const { data: session } = useSession()
 
 	// For dependent-subject lists the recipient is the dependent (pet,
 	// baby, etc.), not the user who created the list. Swap to the
@@ -142,9 +140,11 @@ function ListDetailBody({ listId }: { listId: number }) {
 				// Todo lists have a totally different row shape (separate
 				// todoItems table, single claim field, no gift fields) so
 				// they render through their own component instead of the
-				// gift-item path. canEdit is approximated by ownership;
-				// fine-grained edit checks happen server-side per mutation.
-				<TodoList listId={list.id} canEdit={!!session && session.user.id === list.owner.id} />
+				// gift-item path. `canEdit` comes from the server-side
+				// canEditList check baked into the header payload, so an
+				// editor on someone else's list also gets the Add ToDo
+				// affordance.
+				<TodoList listId={list.id} canEdit={list.canEdit} />
 			) : (
 				<>
 					{/* ITEMS */}

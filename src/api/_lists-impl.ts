@@ -76,6 +76,12 @@ export type ListForViewing = {
 	subjectDependent: ListForViewingSubjectDependent | null
 	groups: Array<GroupSummary>
 	addons: Array<AddonOnList>
+	// True when the viewer can edit this list (owner / guardian / dependent
+	// guardian / explicit listEditors row, all with the restricted-wins
+	// rule applied). Surfaces that conditionally render edit affordances
+	// inside the gifter view (e.g. the Add ToDo button on todos lists)
+	// should read this rather than re-checking ownership client-side.
+	canEdit: boolean
 }
 
 export type GetListForViewingResult =
@@ -416,6 +422,8 @@ export async function getListForViewingImpl(args: {
 	// received-gifts surface after reveal, not through this view.
 	const addons = rawAddons.map(addon => (addon.userId === args.userId ? addon : { ...addon, totalCost: null }))
 
+	const canEdit = list.ownerId === args.userId ? true : (await canEditList(args.userId, list, dbx)).ok
+
 	return {
 		kind: 'ok',
 		list: {
@@ -438,6 +446,7 @@ export async function getListForViewingImpl(args: {
 				: null,
 			groups: viewGroups,
 			addons,
+			canEdit,
 		},
 	}
 }
@@ -515,6 +524,8 @@ export async function getListHeaderImpl(args: { userId: string; listId: string; 
 		columns: { id: true, type: true, name: true, priority: true, sortOrder: true },
 	})
 
+	const canEdit = list.ownerId === args.userId ? true : (await canEditList(args.userId, list, dbx)).ok
+
 	return {
 		kind: 'ok',
 		list: {
@@ -527,6 +538,7 @@ export async function getListHeaderImpl(args: { userId: string; listId: string; 
 				? { id: list.subjectDependent.id, name: list.subjectDependent.name, image: list.subjectDependent.image }
 				: null,
 			groups: viewGroups,
+			canEdit,
 		},
 	}
 }

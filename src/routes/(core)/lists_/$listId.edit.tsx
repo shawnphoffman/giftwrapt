@@ -216,7 +216,10 @@ function ListEditPage() {
 				{list.description && <MarkdownNotes content={list.description} className="text-muted-foreground" />}
 
 				{list.type === 'todos' ? (
-					<TodoList listId={list.id} canEdit={list.isOwner} />
+					// Reaching this route requires canEditList; any caller here
+					// is either the owner or an editor with explicit grant, so
+					// canEdit is unconditionally true.
+					<TodoList listId={list.id} canEdit />
 				) : (
 					<div className="flex flex-col gap-2">
 						<div className="flex items-center justify-end">
