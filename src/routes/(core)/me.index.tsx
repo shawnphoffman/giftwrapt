@@ -1,7 +1,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { Baby, ListOrdered, Plus, Sprout } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 
 import { type ChildListGroup, type DependentListGroup, getMyLists, type MyListRow } from '@/api/lists'
 import DependentAvatar from '@/components/common/dependent-avatar'
@@ -24,11 +24,12 @@ import { PrimaryListNudge } from '@/components/lists/primary-list-nudge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { perfTime } from '@/lib/observability/perf'
 import { useMeSSE } from '@/lib/use-me-sse'
 
 const myListsQueryOptions = {
 	queryKey: ['my-lists'] as const,
-	queryFn: () => getMyLists(),
+	queryFn: () => perfTime('loader:me getMyLists', () => getMyLists()),
 	staleTime: 60 * 1000,
 }
 
@@ -48,44 +49,23 @@ export const Route = createFileRoute('/(core)/me/')({
 	validateSearch: (search: Record<string, unknown>): MeSearch => {
 		return isHttpUrlString(search.url) ? { url: search.url } : {}
 	},
-	loader: ({ context }) => context.queryClient.ensureQueryData(myListsQueryOptions),
+	// Empty-loader pattern: no data fetching in the loader. The route swaps
+	// instantly; the dashboard mounts with a skeleton in place, then
+	// useSuspenseQuery below kicks off getMyLists which fills in when ready.
+	// Critically, we do NOT prefetch here - setupRouterSsrQueryIntegration
+	// makes the router wait for any queries the loader touches before going
+	// idle, which defeats the instant-swap goal.
 	component: MyListsPage,
-	pendingComponent: MyListsPagePending,
 })
-
-function MyListsPagePending() {
-	return (
-		<div className="wish-page">
-			<div className="flex flex-col flex-1 gap-6">
-				<PageHeading title="My Lists" icon={ListOrdered} color="red" />
-				{Array.from({ length: 3 }).map((_section, sectionIdx) => (
-					<div key={sectionIdx} className="flex flex-col gap-2">
-						<Skeleton className="h-5 w-48" />
-						<Skeleton className="h-4 w-2/3 max-w-md" />
-						<div className="flex flex-col gap-2 mt-1">
-							{Array.from({ length: 2 }).map((_row, rowIdx) => (
-								<Skeleton key={rowIdx} className="h-12 w-full" />
-							))}
-						</div>
-					</div>
-				))}
-			</div>
-		</div>
-	)
-}
 
 function MyListsPage() {
 	useMeSSE()
-	const { data } = useSuspenseQuery(myListsQueryOptions)
 	const [createOpen, setCreateOpen] = useState(false)
 	const [addItemOpen, setAddItemOpen] = useState(false)
 	const [pendingUrl, setPendingUrl] = useState<string | undefined>(undefined)
 	const hash = useLocation({ select: l => l.hash })
 	const search = Route.useSearch()
 	const navigate = useNavigate()
-
-	const editableGiftIdeas = data.editable.filter(l => l.type === 'giftideas')
-	const editableOther = data.editable.filter(l => l.type !== 'giftideas')
 
 	useEffect(() => {
 		if (search.url) {
@@ -117,7 +97,7 @@ function MyListsPage() {
 
 			<div className="wish-page">
 				<div className="flex flex-col flex-1 gap-6">
-					{/* HEADING */}
+					{/* HEADING - renders synchronously so the route swap is instant. */}
 					<PageHeading title="My Lists" icon={ListOrdered} color="red">
 						<div className="flex flex-row flex-wrap justify-end gap-0.5 items-center shrink-0">
 							<Button size="sm" onClick={() => setCreateOpen(true)}>
@@ -129,122 +109,152 @@ function MyListsPage() {
 						Mark any list as <strong>primary</strong> from its action menu. Quick-imported gift ideas land there by default.
 					</div>
 					<ListTypeLegend />
-					<PrimaryListNudge />
-
-					{/* PUBLIC LISTS */}
-					<ListSection
-						title="My Public Lists"
-						description="These are the lists that everybody can see and use for gift-giving."
-						lists={data.public}
-					/>
-
-					{/* PRIVATE LISTS */}
-					<ListSection
-						title="My Private Lists"
-						description="Nobody else can see these lists unless you explicitly make them an editor. Nice for personal shopping lists."
-						lists={data.private}
-					/>
-
-					{/* GIFT IDEAS LISTS */}
-					<ListsCard>
-						<ListsCardHeader className="flex-col items-start gap-1">
-							<ListsCardTitle>Gift Ideas for Others</ListsCardTitle>
-							<ListsCardDescription className="italic">
-								Idea lists for other people. Helpful for adding things throughout the year that you think someone might like.
-							</ListsCardDescription>
-						</ListsCardHeader>
-						<ListsCardLists>
-							{data.giftIdeas.length === 0 && editableGiftIdeas.length === 0 ? (
-								<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30 italic">
-									No lists yet.
-								</div>
-							) : (
-								<>
-									{data.giftIdeas.map(list => (
-										<ListRow key={list.id} role="recipient" list={list} />
-									))}
-									{editableGiftIdeas.map(list => (
-										<ListRow
-											key={list.id}
-											role="recipient"
-											list={list}
-											showOwner={
-												list.subjectDependentId && list.subjectDependentName
-													? { kind: 'dependent', name: list.subjectDependentName, image: list.subjectDependentImage }
-													: { name: list.ownerName, email: list.ownerEmail, image: list.ownerImage }
-											}
-										/>
-									))}
-								</>
-							)}
-						</ListsCardLists>
-					</ListsCard>
-
-					{/* CHILDREN'S LISTS */}
-					{data.children.length > 0 && (
-						<ListsCard>
-							<ListsCardHeader className="flex-col items-start gap-1">
-								<ListsCardTitle className="flex items-center gap-2">
-									<Baby className="size-5 inline" />
-									Children's Lists
-								</ListsCardTitle>
-								<ListsCardDescription className="italic">
-									Lists belonging to your child accounts. You have full edit access as their guardian.
-								</ListsCardDescription>
-							</ListsCardHeader>
-							<ListsCardLists className="gap-3">
-								{data.children.map(child => (
-									<ChildListSection key={child.childId} child={child} />
-								))}
-							</ListsCardLists>
-						</ListsCard>
-					)}
-
-					{/* DEPENDENTS' LISTS */}
-					{data.dependents.length > 0 && (
-						<ListsCard>
-							<ListsCardHeader className="flex-col items-start gap-1">
-								<ListsCardTitle className="flex items-center gap-2">
-									<Sprout className="size-5 inline" />
-									Dependents' Lists
-								</ListsCardTitle>
-								<ListsCardDescription className="italic">
-									Lists for pets, babies, or anyone else you receive gifts on behalf of.
-								</ListsCardDescription>
-							</ListsCardHeader>
-							<ListsCardLists className="gap-3">
-								{data.dependents.map(dep => (
-									<DependentListSection key={dep.dependentId} dependent={dep} />
-								))}
-							</ListsCardLists>
-						</ListsCard>
-					)}
-
-					{/* EDITABLE LISTS */}
-					{editableOther.length > 0 && (
-						<ListsCard>
-							<ListsCardHeader className="flex-col items-start gap-1">
-								<ListsCardTitle>Lists I Can Edit</ListsCardTitle>
-								<ListsCardDescription className="italic">Lists that others created and added you as an editor.</ListsCardDescription>
-							</ListsCardHeader>
-							<ListsCardLists>
-								{editableOther.map(list => (
-									<ListRow
-										key={list.id}
-										role="recipient"
-										list={list}
-										showOwner={
-											list.subjectDependentId && list.subjectDependentName
-												? { kind: 'dependent', name: list.subjectDependentName, image: list.subjectDependentImage }
-												: { name: list.ownerName, email: list.ownerEmail, image: list.ownerImage }
-										}
-									/>
-								))}
-							</ListsCardLists>
-						</ListsCard>
-					)}
+					<Suspense fallback={<MyListsPageBodySkeleton />}>
+						<MyListsPageBody />
+					</Suspense>
 				</div>
 			</div>
+		</>
+	)
+}
+
+function MyListsPageBody() {
+	const { data } = useSuspenseQuery(myListsQueryOptions)
+	const editableGiftIdeas = data.editable.filter(l => l.type === 'giftideas')
+	const editableOther = data.editable.filter(l => l.type !== 'giftideas')
+
+	return (
+		<>
+			<PrimaryListNudge />
+
+			{/* PUBLIC LISTS */}
+			<ListSection
+				title="My Public Lists"
+				description="These are the lists that everybody can see and use for gift-giving."
+				lists={data.public}
+			/>
+
+			{/* PRIVATE LISTS */}
+			<ListSection
+				title="My Private Lists"
+				description="Nobody else can see these lists unless you explicitly make them an editor. Nice for personal shopping lists."
+				lists={data.private}
+			/>
+
+			{/* GIFT IDEAS LISTS */}
+			<ListsCard>
+				<ListsCardHeader className="flex-col items-start gap-1">
+					<ListsCardTitle>Gift Ideas for Others</ListsCardTitle>
+					<ListsCardDescription className="italic">
+						Idea lists for other people. Helpful for adding things throughout the year that you think someone might like.
+					</ListsCardDescription>
+				</ListsCardHeader>
+				<ListsCardLists>
+					{data.giftIdeas.length === 0 && editableGiftIdeas.length === 0 ? (
+						<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30 italic">No lists yet.</div>
+					) : (
+						<>
+							{data.giftIdeas.map(list => (
+								<ListRow key={list.id} role="recipient" list={list} />
+							))}
+							{editableGiftIdeas.map(list => (
+								<ListRow
+									key={list.id}
+									role="recipient"
+									list={list}
+									showOwner={
+										list.subjectDependentId && list.subjectDependentName
+											? { kind: 'dependent', name: list.subjectDependentName, image: list.subjectDependentImage }
+											: { name: list.ownerName, email: list.ownerEmail, image: list.ownerImage }
+									}
+								/>
+							))}
+						</>
+					)}
+				</ListsCardLists>
+			</ListsCard>
+
+			{/* CHILDREN'S LISTS */}
+			{data.children.length > 0 && (
+				<ListsCard>
+					<ListsCardHeader className="flex-col items-start gap-1">
+						<ListsCardTitle className="flex items-center gap-2">
+							<Baby className="size-5 inline" />
+							Children's Lists
+						</ListsCardTitle>
+						<ListsCardDescription className="italic">
+							Lists belonging to your child accounts. You have full edit access as their guardian.
+						</ListsCardDescription>
+					</ListsCardHeader>
+					<ListsCardLists className="gap-3">
+						{data.children.map(child => (
+							<ChildListSection key={child.childId} child={child} />
+						))}
+					</ListsCardLists>
+				</ListsCard>
+			)}
+
+			{/* DEPENDENTS' LISTS */}
+			{data.dependents.length > 0 && (
+				<ListsCard>
+					<ListsCardHeader className="flex-col items-start gap-1">
+						<ListsCardTitle className="flex items-center gap-2">
+							<Sprout className="size-5 inline" />
+							Dependents' Lists
+						</ListsCardTitle>
+						<ListsCardDescription className="italic">
+							Lists for pets, babies, or anyone else you receive gifts on behalf of.
+						</ListsCardDescription>
+					</ListsCardHeader>
+					<ListsCardLists className="gap-3">
+						{data.dependents.map(dep => (
+							<DependentListSection key={dep.dependentId} dependent={dep} />
+						))}
+					</ListsCardLists>
+				</ListsCard>
+			)}
+
+			{/* EDITABLE LISTS */}
+			{editableOther.length > 0 && (
+				<ListsCard>
+					<ListsCardHeader className="flex-col items-start gap-1">
+						<ListsCardTitle>Lists I Can Edit</ListsCardTitle>
+						<ListsCardDescription className="italic">Lists that others created and added you as an editor.</ListsCardDescription>
+					</ListsCardHeader>
+					<ListsCardLists>
+						{editableOther.map(list => (
+							<ListRow
+								key={list.id}
+								role="recipient"
+								list={list}
+								showOwner={
+									list.subjectDependentId && list.subjectDependentName
+										? { kind: 'dependent', name: list.subjectDependentName, image: list.subjectDependentImage }
+										: { name: list.ownerName, email: list.ownerEmail, image: list.ownerImage }
+								}
+							/>
+						))}
+					</ListsCardLists>
+				</ListsCard>
+			)}
+		</>
+	)
+}
+
+function MyListsPageBodySkeleton() {
+	return (
+		<>
+			{Array.from({ length: 3 }).map((_section, sectionIdx) => (
+				<div key={sectionIdx} className="flex flex-col gap-2">
+					<Skeleton className="h-5 w-48" />
+					<Skeleton className="h-4 w-2/3 max-w-md" />
+					<div className="flex flex-col gap-2 mt-1">
+						{Array.from({ length: 2 }).map((_row, rowIdx) => (
+							<Skeleton key={rowIdx} className="h-12 w-full" />
+						))}
+					</div>
+				</div>
+			))}
 		</>
 	)
 }
