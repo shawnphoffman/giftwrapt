@@ -9,6 +9,7 @@ interface OrphanClaimCleanupReminderEmailProps {
 	eventLabel?: string
 	listId?: number
 	listName?: string
+	appTitle?: string
 }
 
 // Sent the day before auto-cleanup when an orphan-claim alert hasn't been
@@ -21,6 +22,7 @@ export function OrphanClaimCleanupReminderEmail({
 	eventLabel,
 	listId,
 	listName,
+	appTitle = 'GiftWrapt',
 }: OrphanClaimCleanupReminderEmailProps) {
 	const listUrl = listId ? `${baseUrl}/lists/${listId}` : `${baseUrl}/purchases`
 	return (
@@ -30,7 +32,7 @@ export function OrphanClaimCleanupReminderEmail({
 				<Body className="px-2 mx-auto my-auto font-sans bg-black dark`">
 					<Container className="mx-auto my-[40px] max-w-[465px] rounded border bg-white border-[#eaeaea] border-solid p-[20px]">
 						<Section className="mt-[32px]">
-							<Img src={`${baseUrl}/images/email/base-icon.webp`} width="80" height="80" alt="GiftWrapt" className="mx-auto my-0" />
+							<Img src={`${baseUrl}/images/email/base-icon.webp`} width="80" height="80" alt={appTitle} className="mx-auto my-0" />
 						</Section>
 						<Heading className="mx-0 my-[30px] p-0 text-center font-bold text-[24px] text-black">Cleaning up an unanswered claim</Heading>
 						<Text className="text-[14px] text-black leading-[24px]">
@@ -39,7 +41,7 @@ export function OrphanClaimCleanupReminderEmail({
 						<Text className="text-[14px] text-black leading-[24px]">
 							{recipientName ? <strong>{recipientName}</strong> : 'The recipient'} removed <em>{itemTitle}</em> from{' '}
 							<strong>{listName}</strong> a while back, and you haven&apos;t acknowledged it yet. Tomorrow
-							{eventLabel ? ` (${eventLabel})` : ''}, GiftWrapt will automatically clear the claim from your view to keep things tidy.
+							{eventLabel ? ` (${eventLabel})` : ''}, {appTitle} will automatically clear the claim from your view to keep things tidy.
 						</Text>
 						<Text className="text-[14px] text-black leading-[24px]">
 							If you&apos;d like to acknowledge it manually first, or just want to confirm what you bought, use the button below.

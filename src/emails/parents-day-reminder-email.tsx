@@ -6,9 +6,10 @@ interface ParentsDayReminderEmailProps {
 	holidayName: string
 	leadDays: number
 	people: Array<{ name: string }>
+	appTitle?: string
 }
 
-export default function ParentsDayReminderEmail({ holidayName, leadDays, people }: ParentsDayReminderEmailProps) {
+export default function ParentsDayReminderEmail({ holidayName, leadDays, people, appTitle = 'GiftWrapt' }: ParentsDayReminderEmailProps) {
 	const formattedNames = formatList(people.map(p => p.name))
 	return (
 		<Html>
@@ -17,7 +18,7 @@ export default function ParentsDayReminderEmail({ holidayName, leadDays, people 
 				<Body className="px-2 mx-auto my-auto font-sans bg-black dark`">
 					<Container className="mx-auto my-[40px] max-w-[465px] rounded border bg-white border-[#eaeaea] border-solid p-[20px]">
 						<Section className="mt-[32px]">
-							<Img src={`${baseUrl}/images/email/base-icon.webp`} width="80" height="80" alt="GiftWrapt" className="mx-auto my-0" />
+							<Img src={`${baseUrl}/images/email/base-icon.webp`} width="80" height="80" alt={appTitle} className="mx-auto my-0" />
 						</Section>
 						<Heading className="mx-0 my-[30px] p-0 text-center font-bold text-[24px] text-black">
 							{holidayName} is in {leadDays} days

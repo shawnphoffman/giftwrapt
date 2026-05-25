@@ -8,24 +8,25 @@ type Props = {
 	// Minutes until the link expires. Mirrors better-auth's
 	// `forgetPassword` token TTL so the email tells the truth.
 	expiresInMinutes: number
+	appTitle?: string
 }
 
-export function PasswordResetEmail({ name, resetUrl, expiresInMinutes }: Props) {
+export function PasswordResetEmail({ name, resetUrl, expiresInMinutes, appTitle = 'GiftWrapt' }: Props) {
 	const greeting = name?.trim() ? name.trim() : 'there'
 	return (
 		<Html>
 			<Head />
-			<Preview>Reset your GiftWrapt password</Preview>
+			<Preview>Reset your {appTitle} password</Preview>
 			<Tailwind>
 				<Body className="px-2 mx-auto my-auto font-sans bg-black">
 					<Container className="mx-auto my-[40px] max-w-[465px] rounded border bg-white border-[#eaeaea] border-solid p-[20px]">
 						<Section className="mt-[32px]">
-							<Img src={`${baseUrl}/images/email/base-icon.webp`} width="80" height="80" alt="GiftWrapt" className="mx-auto my-0" />
+							<Img src={`${baseUrl}/images/email/base-icon.webp`} width="80" height="80" alt={appTitle} className="mx-auto my-0" />
 						</Section>
 						<Heading className="mx-0 my-[30px] p-0 text-center font-bold text-[24px] text-black">Reset your password</Heading>
 						<Text className="text-[14px] text-black leading-[24px]">Hi {greeting},</Text>
 						<Text className="text-[14px] text-black leading-[24px]">
-							Someone (hopefully you) asked to reset the password on your GiftWrapt account. Click the button below to choose a new
+							Someone (hopefully you) asked to reset the password on your {appTitle} account. Click the button below to choose a new
 							password. The link is good for {expiresInMinutes} minutes.
 						</Text>
 						<Section className="mt-6 text-center">

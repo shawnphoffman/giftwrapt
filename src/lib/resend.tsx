@@ -3,6 +3,7 @@ import { Resend } from 'resend'
 import { type Database, db, type SchemaDatabase } from '@/db'
 import { type ResolvedEmailConfig, resolveEmailConfig } from '@/lib/email-config'
 import { createLogger } from '@/lib/logger'
+import { getAppSettings } from '@/lib/settings-loader'
 
 // Email templates are lazy-loaded inside each send fn below. Statically
 // importing them here drags `@react-email/components` (~1.4 MB) and its
@@ -79,14 +80,23 @@ export const sendNewCommentEmail = async (
 		warnNotConfigured('sendNewCommentEmail')
 		return null
 	}
+	const { appTitle } = await getAppSettings(db)
 	emailLog.info({ kind: 'new-comment', recipient, listId, itemId }, 'sending email')
 	const { default: NewCommentEmail } = await import('@/emails/new-comment-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: recipient,
-		subject: 'New Comment on GiftWrapt',
+		subject: `New Comment on ${appTitle}`,
 		react: (
-			<NewCommentEmail username={username} commenter={commenter} comment={comment} itemTitle={itemTitle} listId={listId} itemId={itemId} />
+			<NewCommentEmail
+				username={username}
+				commenter={commenter}
+				comment={comment}
+				itemTitle={itemTitle}
+				listId={listId}
+				itemId={itemId}
+				appTitle={appTitle}
+			/>
 		),
 	})
 	logSendResult('new-comment', recipient, res as SendResult)
@@ -100,13 +110,14 @@ export const sendBirthdayEmail = async (name: string, recipient: string) => {
 		warnNotConfigured('sendBirthdayEmail')
 		return null
 	}
+	const { appTitle } = await getAppSettings(db)
 	emailLog.info({ kind: 'birthday', recipient }, 'sending email')
 	const { default: BirthdayEmail } = await import('@/emails/happy-birthday-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: recipient,
 		subject: `🎉 Happy Birthday, ${name}!`,
-		react: <BirthdayEmail name={name} />,
+		react: <BirthdayEmail name={name} appTitle={appTitle} />,
 	})
 	logSendResult('birthday', recipient, res as SendResult)
 	return res
@@ -119,13 +130,14 @@ export const sendPostBirthdayEmail = async (recipient: string, items: Array<{ ti
 		warnNotConfigured('sendPostBirthdayEmail')
 		return null
 	}
+	const { appTitle } = await getAppSettings(db)
 	emailLog.info({ kind: 'post-birthday', recipient, itemCount: items.length }, 'sending email')
 	const { default: PostBirthdayEmail } = await import('@/emails/post-birthday-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: recipient,
 		subject: 'A look back at your gifts',
-		react: <PostBirthdayEmail items={items} />,
+		react: <PostBirthdayEmail items={items} appTitle={appTitle} />,
 	})
 	logSendResult('post-birthday', recipient, res as SendResult)
 	return res
@@ -141,6 +153,7 @@ export const sendParentsDayReminderEmail = async (
 		warnNotConfigured('sendParentsDayReminderEmail')
 		return null
 	}
+	const { appTitle } = await getAppSettings(db)
 	emailLog.info(
 		{ kind: 'parental-relations-reminder', recipient, holidayName: args.holidayName, count: args.people.length },
 		'sending email'
@@ -150,7 +163,7 @@ export const sendParentsDayReminderEmail = async (
 		...commonEmailProps(cfg),
 		to: recipient,
 		subject: `${args.holidayName} is in ${args.leadDays} days`,
-		react: <ParentsDayReminderEmail holidayName={args.holidayName} leadDays={args.leadDays} people={args.people} />,
+		react: <ParentsDayReminderEmail holidayName={args.holidayName} leadDays={args.leadDays} people={args.people} appTitle={appTitle} />,
 	})
 	logSendResult('parental-relations-reminder', recipient, res as SendResult)
 	return res
@@ -163,13 +176,14 @@ export const sendPreBirthdayReminderEmail = async (recipient: string, args: { na
 		warnNotConfigured('sendPreBirthdayReminderEmail')
 		return null
 	}
+	const { appTitle } = await getAppSettings(db)
 	emailLog.info({ kind: 'pre-birthday-reminder', recipient, leadDays: args.leadDays }, 'sending email')
 	const { default: PreBirthdayReminderEmail } = await import('@/emails/pre-birthday-reminder-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: recipient,
 		subject: `Your birthday is in ${args.leadDays} days`,
-		react: <PreBirthdayReminderEmail name={args.name} leadDays={args.leadDays} />,
+		react: <PreBirthdayReminderEmail name={args.name} leadDays={args.leadDays} appTitle={appTitle} />,
 	})
 	logSendResult('pre-birthday-reminder', recipient, res as SendResult)
 	return res
@@ -182,13 +196,14 @@ export const sendPreChristmasReminderEmail = async (recipient: string, args: { n
 		warnNotConfigured('sendPreChristmasReminderEmail')
 		return null
 	}
+	const { appTitle } = await getAppSettings(db)
 	emailLog.info({ kind: 'pre-christmas-reminder', recipient, leadDays: args.leadDays }, 'sending email')
 	const { default: PreChristmasReminderEmail } = await import('@/emails/pre-christmas-reminder-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: recipient,
 		subject: `Christmas is in ${args.leadDays} days`,
-		react: <PreChristmasReminderEmail name={args.name} leadDays={args.leadDays} />,
+		react: <PreChristmasReminderEmail name={args.name} leadDays={args.leadDays} appTitle={appTitle} />,
 	})
 	logSendResult('pre-christmas-reminder', recipient, res as SendResult)
 	return res
@@ -204,13 +219,14 @@ export const sendPreCustomHolidayReminderEmail = async (
 		warnNotConfigured('sendPreCustomHolidayReminderEmail')
 		return null
 	}
+	const { appTitle } = await getAppSettings(db)
 	emailLog.info({ kind: 'pre-custom-holiday-reminder', recipient, holidayName: args.holidayName, leadDays: args.leadDays }, 'sending email')
 	const { default: PreCustomHolidayReminderEmail } = await import('@/emails/pre-custom-holiday-reminder-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: recipient,
 		subject: `${args.holidayName} is in ${args.leadDays} days`,
-		react: <PreCustomHolidayReminderEmail name={args.name} holidayName={args.holidayName} leadDays={args.leadDays} />,
+		react: <PreCustomHolidayReminderEmail name={args.name} holidayName={args.holidayName} leadDays={args.leadDays} appTitle={appTitle} />,
 	})
 	logSendResult('pre-custom-holiday-reminder', recipient, res as SendResult)
 	return res
@@ -223,13 +239,14 @@ export const sendValentinesDayReminderEmail = async (recipient: string, args: { 
 		warnNotConfigured('sendValentinesDayReminderEmail')
 		return null
 	}
+	const { appTitle } = await getAppSettings(db)
 	emailLog.info({ kind: 'valentines-day-reminder', recipient, leadDays: args.leadDays }, 'sending email')
 	const { default: ValentinesDayReminderEmail } = await import('@/emails/valentines-day-reminder-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: recipient,
 		subject: `Valentine's Day is in ${args.leadDays} days`,
-		react: <ValentinesDayReminderEmail name={args.name} partnerName={args.partnerName} leadDays={args.leadDays} />,
+		react: <ValentinesDayReminderEmail name={args.name} partnerName={args.partnerName} leadDays={args.leadDays} appTitle={appTitle} />,
 	})
 	logSendResult('valentines-day-reminder', recipient, res as SendResult)
 	return res
@@ -245,13 +262,14 @@ export const sendPartnerAnniversaryReminderEmail = async (
 		warnNotConfigured('sendPartnerAnniversaryReminderEmail')
 		return null
 	}
+	const { appTitle } = await getAppSettings(db)
 	emailLog.info({ kind: 'partner-anniversary-reminder', recipient, leadDays: args.leadDays }, 'sending email')
 	const { default: PartnerAnniversaryReminderEmail } = await import('@/emails/partner-anniversary-reminder-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: recipient,
 		subject: `Your anniversary with ${args.partnerName} is in ${args.leadDays} days`,
-		react: <PartnerAnniversaryReminderEmail name={args.name} partnerName={args.partnerName} leadDays={args.leadDays} />,
+		react: <PartnerAnniversaryReminderEmail name={args.name} partnerName={args.partnerName} leadDays={args.leadDays} appTitle={appTitle} />,
 	})
 	logSendResult('partner-anniversary-reminder', recipient, res as SendResult)
 	return res
@@ -274,6 +292,7 @@ export const sendOrphanClaimEmail = async (
 		warnNotConfigured('sendOrphanClaimEmail')
 		return null
 	}
+	const { appTitle } = await getAppSettings(db)
 	emailLog.info({ kind: 'orphan-claim', recipient, listId: args.listId }, 'sending email')
 	const { default: OrphanClaimEmail } = await import('@/emails/orphan-claim-email')
 	const res = await client.emails.send({
@@ -288,6 +307,7 @@ export const sendOrphanClaimEmail = async (
 				recipientName={args.recipientName}
 				listId={args.listId}
 				listName={args.listName}
+				appTitle={appTitle}
 			/>
 		),
 	})
@@ -305,6 +325,7 @@ export const sendOrphanClaimCleanupReminderEmail = async (
 		warnNotConfigured('sendOrphanClaimCleanupReminderEmail')
 		return null
 	}
+	const { appTitle } = await getAppSettings(db)
 	emailLog.info({ kind: 'orphan-claim-cleanup-reminder', recipient, listId: args.listId }, 'sending email')
 	const { default: OrphanClaimCleanupReminderEmail } = await import('@/emails/orphan-claim-cleanup-reminder-email')
 	const res = await client.emails.send({
@@ -319,6 +340,7 @@ export const sendOrphanClaimCleanupReminderEmail = async (
 				eventLabel={args.eventLabel}
 				listId={args.listId}
 				listName={args.listName}
+				appTitle={appTitle}
 			/>
 		),
 	})
@@ -333,13 +355,14 @@ export const sendPostHolidayEmail = async (recipient: string, args: { holidayNam
 		warnNotConfigured('sendPostHolidayEmail')
 		return null
 	}
+	const { appTitle } = await getAppSettings(db)
 	emailLog.info({ kind: 'post-holiday', recipient, holidayName: args.holidayName }, 'sending email')
 	const { default: PostHolidayEmail } = await import('@/emails/post-holiday-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: recipient,
 		subject: `A look back at your ${args.holidayName} list`,
-		react: <PostHolidayEmail holidayName={args.holidayName} listName={args.listName} />,
+		react: <PostHolidayEmail holidayName={args.holidayName} listName={args.listName} appTitle={appTitle} />,
 	})
 	logSendResult('post-holiday', recipient, res as SendResult)
 	return res
@@ -363,13 +386,16 @@ export const sendPasswordResetEmail = async (params: {
 		warnNotConfigured('sendPasswordResetEmail')
 		return null
 	}
+	const { appTitle } = await getAppSettings(db)
 	emailLog.info({ kind: 'password-reset', recipient: params.recipient }, 'sending email')
 	const { default: PasswordResetEmail } = await import('@/emails/password-reset-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: params.recipient,
-		subject: 'Reset your GiftWrapt password',
-		react: <PasswordResetEmail name={params.name} resetUrl={params.resetUrl} expiresInMinutes={params.expiresInMinutes} />,
+		subject: `Reset your ${appTitle} password`,
+		react: (
+			<PasswordResetEmail name={params.name} resetUrl={params.resetUrl} expiresInMinutes={params.expiresInMinutes} appTitle={appTitle} />
+		),
 	})
 	logSendResult('password-reset', params.recipient, res as SendResult)
 	return res
@@ -394,16 +420,16 @@ export const TEST_EMAIL_KINDS = [
 
 export type TestEmailKind = (typeof TEST_EMAIL_KINDS)[number]['value']
 
-const buildTestEmailPayload = async (kind: TestEmailKind): Promise<{ subject: string; react: React.ReactElement }> => {
+const buildTestEmailPayload = async (kind: TestEmailKind, appTitle: string): Promise<{ subject: string; react: React.ReactElement }> => {
 	switch (kind) {
 		case 'test': {
 			const { default: TestEmail } = await import('@/emails/test-email')
-			return { subject: 'Test Email', react: <TestEmail /> }
+			return { subject: 'Test Email', react: <TestEmail appTitle={appTitle} /> }
 		}
 		case 'new-comment': {
 			const { default: NewCommentEmail } = await import('@/emails/new-comment-email')
 			return {
-				subject: 'New Comment on GiftWrapt',
+				subject: `New Comment on ${appTitle}`,
 				react: (
 					<NewCommentEmail
 						username="Shawn"
@@ -412,13 +438,14 @@ const buildTestEmailPayload = async (kind: TestEmailKind): Promise<{ subject: st
 						itemTitle="Test Item"
 						listId={45}
 						itemId={1199}
+						appTitle={appTitle}
 					/>
 				),
 			}
 		}
 		case 'birthday': {
 			const { default: BirthdayEmail } = await import('@/emails/happy-birthday-email')
-			return { subject: '🎉 Happy Birthday, Shawn!', react: <BirthdayEmail name="Shawn" /> }
+			return { subject: '🎉 Happy Birthday, Shawn!', react: <BirthdayEmail name="Shawn" appTitle={appTitle} /> }
 		}
 		case 'post-birthday': {
 			const { default: PostBirthdayEmail } = await import('@/emails/post-birthday-email')
@@ -431,6 +458,7 @@ const buildTestEmailPayload = async (kind: TestEmailKind): Promise<{ subject: st
 							{ title: 'Cashmere scarf', image_url: 'https://placehold.co/100x200', gifters: 'John' },
 							{ title: 'Leather-bound notebook', image_url: 'https://placehold.co/400x200', gifters: 'Jane, Alex & Priya' },
 						]}
+						appTitle={appTitle}
 					/>
 				),
 			}
@@ -439,42 +467,49 @@ const buildTestEmailPayload = async (kind: TestEmailKind): Promise<{ subject: st
 			const { default: PreBirthdayReminderEmail } = await import('@/emails/pre-birthday-reminder-email')
 			return {
 				subject: 'Your birthday is in 30 days',
-				react: <PreBirthdayReminderEmail name="Alex" leadDays={30} />,
+				react: <PreBirthdayReminderEmail name="Alex" leadDays={30} appTitle={appTitle} />,
 			}
 		}
 		case 'pre-christmas-reminder': {
 			const { default: PreChristmasReminderEmail } = await import('@/emails/pre-christmas-reminder-email')
 			return {
 				subject: 'Christmas is in 30 days',
-				react: <PreChristmasReminderEmail name="Alex" leadDays={30} />,
+				react: <PreChristmasReminderEmail name="Alex" leadDays={30} appTitle={appTitle} />,
 			}
 		}
 		case 'pre-custom-holiday-reminder': {
 			const { default: PreCustomHolidayReminderEmail } = await import('@/emails/pre-custom-holiday-reminder-email')
 			return {
 				subject: 'Easter is in 30 days',
-				react: <PreCustomHolidayReminderEmail name="Alex" holidayName="Easter" leadDays={30} />,
+				react: <PreCustomHolidayReminderEmail name="Alex" holidayName="Easter" leadDays={30} appTitle={appTitle} />,
 			}
 		}
 		case 'parental-relations-reminder': {
 			const { default: ParentsDayReminderEmail } = await import('@/emails/parents-day-reminder-email')
 			return {
 				subject: "Mother's Day is in 7 days",
-				react: <ParentsDayReminderEmail holidayName="Mother's Day" leadDays={7} people={[{ name: 'Mom' }, { name: 'Sandra' }]} />,
+				react: (
+					<ParentsDayReminderEmail
+						holidayName="Mother's Day"
+						leadDays={7}
+						people={[{ name: 'Mom' }, { name: 'Sandra' }]}
+						appTitle={appTitle}
+					/>
+				),
 			}
 		}
 		case 'valentines-day-reminder': {
 			const { default: ValentinesDayReminderEmail } = await import('@/emails/valentines-day-reminder-email')
 			return {
 				subject: "Valentine's Day is in 14 days",
-				react: <ValentinesDayReminderEmail name="Alex" partnerName="Casey" leadDays={14} />,
+				react: <ValentinesDayReminderEmail name="Alex" partnerName="Casey" leadDays={14} appTitle={appTitle} />,
 			}
 		}
 		case 'partner-anniversary-reminder': {
 			const { default: PartnerAnniversaryReminderEmail } = await import('@/emails/partner-anniversary-reminder-email')
 			return {
 				subject: 'Your anniversary with Casey is in 7 days',
-				react: <PartnerAnniversaryReminderEmail name="Alex" partnerName="Casey" leadDays={7} />,
+				react: <PartnerAnniversaryReminderEmail name="Alex" partnerName="Casey" leadDays={7} appTitle={appTitle} />,
 			}
 		}
 		case 'orphan-claim': {
@@ -489,6 +524,7 @@ const buildTestEmailPayload = async (kind: TestEmailKind): Promise<{ subject: st
 						recipientName="Madison"
 						listId={45}
 						listName="Madison's Wishlist"
+						appTitle={appTitle}
 					/>
 				),
 			}
@@ -505,6 +541,7 @@ const buildTestEmailPayload = async (kind: TestEmailKind): Promise<{ subject: st
 						eventLabel="Madison's birthday"
 						listId={45}
 						listName="Madison's Wishlist"
+						appTitle={appTitle}
 					/>
 				),
 			}
@@ -513,14 +550,21 @@ const buildTestEmailPayload = async (kind: TestEmailKind): Promise<{ subject: st
 			const { default: PostHolidayEmail } = await import('@/emails/post-holiday-email')
 			return {
 				subject: "A look back at your Mother's Day list",
-				react: <PostHolidayEmail holidayName="Mother's Day" listName="Mother's Day Wishes" />,
+				react: <PostHolidayEmail holidayName="Mother's Day" listName="Mother's Day Wishes" appTitle={appTitle} />,
 			}
 		}
 		case 'password-reset': {
 			const { default: PasswordResetEmail } = await import('@/emails/password-reset-email')
 			return {
-				subject: 'Reset your GiftWrapt password',
-				react: <PasswordResetEmail name="Sam" resetUrl="https://giftwrapt.app/reset-password?token=preview-token" expiresInMinutes={60} />,
+				subject: `Reset your ${appTitle} password`,
+				react: (
+					<PasswordResetEmail
+						name="Sam"
+						resetUrl="https://giftwrapt.app/reset-password?token=preview-token"
+						expiresInMinutes={60}
+						appTitle={appTitle}
+					/>
+				),
 			}
 		}
 	}
@@ -537,8 +581,9 @@ export const sendTestEmail = async (kind: TestEmailKind = 'test', recipient?: st
 	if (!to) {
 		throw new Error('No recipient available. Enter a test recipient address.')
 	}
+	const { appTitle } = await getAppSettings(db)
 	emailLog.info({ kind: `test:${kind}`, recipient: to }, 'sending email')
-	const { subject, react } = await buildTestEmailPayload(kind)
+	const { subject, react } = await buildTestEmailPayload(kind, appTitle)
 	const res = await client.emails.send({
 		from: getFromEmail(cfg),
 		to,

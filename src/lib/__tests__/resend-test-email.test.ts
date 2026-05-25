@@ -21,8 +21,15 @@ vi.mock('@/env', () => ({
 }))
 
 vi.mock('@/db', () => {
+	// `from()` must be both awaitable (for loadRawSettings -> getAppSettings)
+	// and chainable with `.where()` (for resolveEmailConfig). Make it a thenable
+	// with a `.where()` method.
+	const fromResult = () => {
+		const promise = Promise.resolve([] as Array<unknown>)
+		return Object.assign(promise, { where: () => Promise.resolve([] as Array<unknown>) })
+	}
 	const emptyQuery = {
-		select: () => ({ from: () => ({ where: () => Promise.resolve([]) }) }),
+		select: () => ({ from: () => fromResult() }),
 	}
 	return { db: emptyQuery }
 })

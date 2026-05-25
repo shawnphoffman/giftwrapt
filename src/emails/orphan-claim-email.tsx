@@ -9,9 +9,18 @@ interface OrphanClaimEmailProps {
 	recipientName?: string
 	listId?: number
 	listName?: string
+	appTitle?: string
 }
 
-export function OrphanClaimEmail({ username, itemTitle, itemImageUrl, recipientName, listId, listName }: OrphanClaimEmailProps) {
+export function OrphanClaimEmail({
+	username,
+	itemTitle,
+	itemImageUrl,
+	recipientName,
+	listId,
+	listName,
+	appTitle = 'GiftWrapt',
+}: OrphanClaimEmailProps) {
 	const listUrl = listId ? `${baseUrl}/lists/${listId}` : `${baseUrl}/purchases`
 	return (
 		<Html>
@@ -20,7 +29,7 @@ export function OrphanClaimEmail({ username, itemTitle, itemImageUrl, recipientN
 				<Body className="px-2 mx-auto my-auto font-sans bg-black dark`">
 					<Container className="mx-auto my-[40px] max-w-[465px] rounded border bg-white border-[#eaeaea] border-solid p-[20px]">
 						<Section className="mt-[32px]">
-							<Img src={`${baseUrl}/images/email/base-icon.webp`} width="80" height="80" alt="GiftWrapt" className="mx-auto my-0" />
+							<Img src={`${baseUrl}/images/email/base-icon.webp`} width="80" height="80" alt={appTitle} className="mx-auto my-0" />
 						</Section>
 						<Heading className="mx-0 my-[30px] p-0 text-center font-bold text-[24px] text-black">An item you claimed was removed</Heading>
 						<Text className="text-[14px] text-black leading-[24px]">
