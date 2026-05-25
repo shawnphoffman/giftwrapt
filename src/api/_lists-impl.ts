@@ -20,6 +20,7 @@ import {
 	listAddons,
 	listEditors,
 	lists,
+	todoItems,
 	users,
 } from '@/db/schema'
 import { type BirthMonth, type GroupType, type ListType, listTypeEnumValues, type Priority } from '@/db/schema/enums'
@@ -87,6 +88,17 @@ export type GetListForViewingResult =
 			listId: string
 	  }
 	| null
+
+// Lightweight payload for the loader: just enough to make a routing decision
+// (does the list exist, can the viewer see it, should we redirect to edit).
+// The fuller header + addons payloads load client-side via Suspense.
+export type ListHeader = Omit<ListForViewing, 'addons'>
+
+export type GetListAccessResult = { kind: 'ok'; listId: number } | { kind: 'redirect'; listId: string } | null
+
+export type GetListHeaderResult = { kind: 'ok'; list: ListHeader } | null
+
+export type GetListAddonsResult = { kind: 'ok'; addons: Array<AddonOnList> } | null
 
 export type ListSummary = { id: number; name: string }
 
@@ -430,6 +442,144 @@ export async function getListForViewingImpl(args: {
 	}
 }
 
+// Loader-only: cheap routing-decision payload. Resolves the owner-redirect
+// short-circuit and a view-permission check so we can `throw redirect()`
+// before any UI mounts, but defers the heavy header + addons fetches to
+// client-side Suspense for snappier route transitions.
+export async function getListAccessImpl(args: { userId: string; listId: string; dbx?: SchemaDatabase }): Promise<GetListAccessResult> {
+	const { dbx = db } = args
+	const listId = Number(args.listId)
+	if (!Number.isFinite(listId)) return null
+
+	const list = await dbx.query.lists.findFirst({
+		where: eq(lists.id, listId),
+		columns: { id: true, ownerId: true, subjectDependentId: true, isActive: true, isPrivate: true },
+	})
+	if (!list) return null
+
+	// Owner of a non-dependent list bounces to their own edit view.
+	if (list.ownerId === args.userId && !list.subjectDependentId) {
+		return { kind: 'redirect', listId: String(list.id) }
+	}
+
+	const view = await canViewList(args.userId, list, dbx)
+	if (!view.ok) {
+		if (view.reason === 'inactive' && (await userHasPendingDeletionClaimOnList(dbx, args.userId, list.id))) {
+			// fall through; the pending-deletion alert flow needs viewer
+			// access to acknowledge the orphan even on an archived list
+		} else {
+			return null
+		}
+	}
+	return { kind: 'ok', listId: list.id }
+}
+
+// Client-side after access: list row + owner + subjectDependent + groups.
+// Re-runs the access check so the endpoint stands on its own (defense in
+// depth: never trust the loader to have already gated it).
+export async function getListHeaderImpl(args: { userId: string; listId: string; dbx?: SchemaDatabase }): Promise<GetListHeaderResult> {
+	const { dbx = db } = args
+	const listId = Number(args.listId)
+	if (!Number.isFinite(listId)) return null
+
+	const list = await dbx.query.lists.findFirst({
+		where: eq(lists.id, listId),
+		columns: {
+			id: true,
+			name: true,
+			type: true,
+			description: true,
+			isActive: true,
+			isPrivate: true,
+			ownerId: true,
+			subjectDependentId: true,
+		},
+		with: {
+			owner: { columns: { id: true, name: true, email: true, image: true } },
+			subjectDependent: { columns: { id: true, name: true, image: true } },
+		},
+	})
+	if (!list?.owner) return null
+
+	const view = await canViewList(args.userId, list, dbx)
+	if (!view.ok) {
+		if (view.reason === 'inactive' && (await userHasPendingDeletionClaimOnList(dbx, args.userId, list.id))) {
+			// fall through
+		} else {
+			return null
+		}
+	}
+
+	const viewGroups = await dbx.query.itemGroups.findMany({
+		where: eq(itemGroups.listId, list.id),
+		columns: { id: true, type: true, name: true, priority: true, sortOrder: true },
+	})
+
+	return {
+		kind: 'ok',
+		list: {
+			id: list.id,
+			name: list.name,
+			type: list.type,
+			description: list.description,
+			owner: { id: list.owner.id, name: list.owner.name, email: list.owner.email, image: list.owner.image },
+			subjectDependent: list.subjectDependent
+				? { id: list.subjectDependent.id, name: list.subjectDependent.name, image: list.subjectDependent.image }
+				: null,
+			groups: viewGroups,
+		},
+	}
+}
+
+// Client-side after access: list addons only. Re-runs view + access-level
+// gates; restricted viewers see only their own addons (same rule as the
+// composite getListForViewingImpl).
+export async function getListAddonsImpl(args: { userId: string; listId: string; dbx?: SchemaDatabase }): Promise<GetListAddonsResult> {
+	const { dbx = db } = args
+	const listId = Number(args.listId)
+	if (!Number.isFinite(listId)) return null
+
+	const list = await dbx.query.lists.findFirst({
+		where: eq(lists.id, listId),
+		columns: { id: true, ownerId: true, subjectDependentId: true, isActive: true, isPrivate: true },
+	})
+	if (!list) return null
+
+	const view = await canViewList(args.userId, list, dbx)
+	if (!view.ok) {
+		if (view.reason === 'inactive' && (await userHasPendingDeletionClaimOnList(dbx, args.userId, list.id))) {
+			// fall through
+		} else {
+			return null
+		}
+	}
+
+	const accessLevel = await getViewerAccessLevelForList(args.userId, list, dbx)
+
+	const rawAddons = await dbx.query.listAddons.findMany({
+		where:
+			accessLevel === 'restricted'
+				? and(eq(listAddons.listId, list.id), eq(listAddons.userId, args.userId), eq(listAddons.isArchived, false))
+				: and(eq(listAddons.listId, list.id), eq(listAddons.isArchived, false)),
+		columns: {
+			id: true,
+			listId: true,
+			userId: true,
+			description: true,
+			totalCost: true,
+			notes: true,
+			createdAt: true,
+		},
+		with: {
+			user: { columns: { id: true, name: true, email: true, image: true } },
+		},
+		orderBy: [desc(listAddons.createdAt)],
+	})
+
+	const addons = rawAddons.map(addon => (addon.userId === args.userId ? addon : { ...addon, totalCost: null }))
+	return { kind: 'ok', addons }
+}
+
 export async function getListSummariesImpl(args: {
 	userId: string
 	input: z.infer<typeof GetListSummariesInputSchema>
@@ -452,6 +602,29 @@ export async function getListSummariesImpl(args: {
 		if (view.ok) visible.push({ id: row.id, name: row.name })
 	}
 	return { summaries: visible }
+}
+
+// Todo-typed lists keep their row count in `todo_items`, not `items`. Both
+// the gift-items left-join (used by getMyListsImpl) and the
+// `computeListItemCounts(items)` rollup (used by the public-list paths)
+// always return 0 for todos. Surfaces that display per-list counts must
+// override with this helper. `unclaimed` for a todo = `claimedByUserId IS
+// NULL`, which is the same "remaining" semantic the gifter UI uses.
+async function loadTodoCountsByListId(
+	dbx: SchemaDatabase,
+	listIds: ReadonlyArray<number>
+): Promise<Map<number, { total: number; unclaimed: number }>> {
+	if (listIds.length === 0) return new Map()
+	const rows = await dbx
+		.select({
+			listId: todoItems.listId,
+			total: count(todoItems.id),
+			unclaimed: sql<number>`count(*) filter (where ${todoItems.claimedByUserId} is null)`,
+		})
+		.from(todoItems)
+		.where(inArray(todoItems.listId, listIds))
+		.groupBy(todoItems.listId)
+	return new Map(rows.map(r => [r.listId, { total: Number(r.total), unclaimed: Number(r.unclaimed) }]))
 }
 
 export async function getMyListsImpl(userId: string, dbx: SchemaDatabase = db): Promise<MyListsResult> {
@@ -743,6 +916,22 @@ export async function getMyListsImpl(userId: string, dbx: SchemaDatabase = db): 
 		lists: listsByDependentId.get(d.dependentId) ?? [],
 	}))
 
+	const todoListIds = [
+		...ownedLists.filter(l => l.type === 'todos').map(l => l.id),
+		...editableRows.filter(r => r.type === 'todos').map(r => r.id),
+		...allChildLists.filter(r => r.type === 'todos').map(r => r.id),
+		...allDependentLists.filter(r => r.type === 'todos').map(r => r.id),
+	]
+	const todoCountByListId = await loadTodoCountsByListId(dbx, todoListIds)
+	const resolveItemCount = (type: string, listId: number, baseCount: number) =>
+		type === 'todos' ? (todoCountByListId.get(listId)?.total ?? 0) : baseCount
+	for (const bucket of listsByChildId.values()) {
+		for (const row of bucket) row.itemCount = resolveItemCount(row.type, row.id, row.itemCount)
+	}
+	for (const bucket of listsByDependentId.values()) {
+		for (const row of bucket) row.itemCount = resolveItemCount(row.type, row.id, row.itemCount)
+	}
+
 	const decorateOwned = (l: (typeof ownedLists)[number]): MyListRow => ({
 		id: l.id,
 		name: l.name,
@@ -756,7 +945,7 @@ export async function getMyListsImpl(userId: string, dbx: SchemaDatabase = db): 
 		giftIdeasTargetDependentId: l.giftIdeasTargetDependentId,
 		giftIdeasTargetDependent: resolveTargetDependent(l.giftIdeasTargetDependentId),
 		subjectDependentId: l.subjectDependentId,
-		itemCount: l.itemCount,
+		itemCount: resolveItemCount(l.type, l.id, l.itemCount),
 		editors: editorsByListId.get(l.id) ?? [],
 	})
 
@@ -777,7 +966,7 @@ export async function getMyListsImpl(userId: string, dbx: SchemaDatabase = db): 
 			giftIdeasTargetDependentId: r.giftIdeasTargetDependentId,
 			giftIdeasTargetDependent: resolveTargetDependent(r.giftIdeasTargetDependentId),
 			subjectDependentId: r.subjectDependentId,
-			itemCount: r.itemCount,
+			itemCount: resolveItemCount(r.type, r.id, r.itemCount),
 			ownerName: r.ownerName,
 			ownerEmail: r.ownerEmail,
 			ownerImage: r.ownerImage,
@@ -876,6 +1065,9 @@ export async function getPublicListsImpl(viewerUserId: string): Promise<Array<Pu
 		},
 	})
 
+	const publicTodoListIds = allUsers.flatMap(u => u.lists.filter(l => l.type === 'todos').map(l => l.id))
+	const publicTodoCountByListId = await loadTodoCountsByListId(db, publicTodoListIds)
+
 	return allUsers.map(user => {
 		const lastGiftedAt = lastGiftedByUserId.get(user.id) ?? null
 		const isRestrictedHere = restrictedOwnerIds.has(user.id)
@@ -898,7 +1090,8 @@ export async function getPublicListsImpl(viewerUserId: string): Promise<Array<Pu
 							viewerPartnerId
 						)
 					: listItems
-				const { total, unclaimed } = computeListItemCounts(visibleItems)
+				const { total, unclaimed } =
+					rest.type === 'todos' ? (publicTodoCountByListId.get(rest.id) ?? { total: 0, unclaimed: 0 }) : computeListItemCounts(visibleItems)
 				return {
 					id: rest.id,
 					name: rest.name,
@@ -994,11 +1187,15 @@ export async function getPublicDependentsImpl(viewerUserId: string): Promise<Arr
 		},
 	})
 
+	const dependentTodoListIds = dependentLists.filter(l => l.type === 'todos').map(l => l.id)
+	const dependentTodoCountByListId = await loadTodoCountsByListId(db, dependentTodoListIds)
+
 	const listsByDependentId = new Map<string, Array<PublicList>>()
 	for (const list of dependentLists) {
 		if (!list.subjectDependentId) continue
 		const visibleItems = list.items.filter(i => !i.isArchived)
-		const { total, unclaimed } = computeListItemCounts(visibleItems)
+		const { total, unclaimed } =
+			list.type === 'todos' ? (dependentTodoCountByListId.get(list.id) ?? { total: 0, unclaimed: 0 }) : computeListItemCounts(visibleItems)
 		const bucket = listsByDependentId.get(list.subjectDependentId) ?? []
 		bucket.push({
 			id: list.id,

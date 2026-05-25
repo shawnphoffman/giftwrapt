@@ -1,20 +1,21 @@
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { CircleHelp, PackagePlus } from 'lucide-react'
 import { useState } from 'react'
 
-import type { AddonOnList } from '@/api/lists'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { listAddonsQueryOptions } from '@/lib/queries/lists'
 
 import { ListAddonDialog } from './list-addon-dialog'
 import { ListAddonRow } from './list-addon-row'
 
 type Props = {
 	listId: number
-	addons: Array<AddonOnList>
 }
 
-export function ListAddonsSection({ listId, addons }: Props) {
+export function ListAddonsSection({ listId }: Props) {
 	const [createDialogOpen, setCreateDialogOpen] = useState(false)
+	const { data: addons } = useSuspenseQuery(listAddonsQueryOptions(listId))
 
 	return (
 		<div className="flex flex-col gap-3">

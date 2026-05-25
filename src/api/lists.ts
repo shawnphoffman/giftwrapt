@@ -16,10 +16,13 @@ import {
 	CreateListInputSchema,
 	type CreateListResult,
 	deleteListImpl,
+	getListAccessImpl,
+	getListAddonsImpl,
 	getListForEditingImpl,
 	type GetListForEditingResult,
 	getListForViewingImpl,
 	type GetListForViewingResult,
+	getListHeaderImpl,
 	getListSummariesImpl,
 	GetListSummariesInputSchema,
 	getMyLastHolidayCountryImpl,
@@ -43,12 +46,16 @@ export type {
 	CreateListResult,
 	DeleteListResult,
 	DependentListGroup,
+	GetListAccessResult,
+	GetListAddonsResult,
 	GetListForEditingResult,
 	GetListForViewingResult,
+	GetListHeaderResult,
 	GroupSummary,
 	ListForEditing,
 	ListForViewing,
 	ListForViewingSubjectDependent,
+	ListHeader,
 	ListSummary,
 	MyListRow,
 	MyListsResult,
@@ -67,6 +74,25 @@ export const getListForViewing = createServerFn({ method: 'GET' })
 	.handler(
 		({ context, data }): Promise<GetListForViewingResult> => getListForViewingImpl({ userId: context.session.user.id, listId: data.listId })
 	)
+
+// Loader-only gate; resolves the owner-redirect short-circuit and viewer
+// access decision so the route can `throw redirect()` or `notFound()`
+// before any UI mounts. Pairs with `getListHeader` + `getListAddons` which
+// stream client-side via Suspense.
+export const getListAccess = createServerFn({ method: 'GET' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: { listId: string }) => ({ listId: data.listId }))
+	.handler(({ context, data }) => getListAccessImpl({ userId: context.session.user.id, listId: data.listId }))
+
+export const getListHeader = createServerFn({ method: 'GET' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: { listId: string }) => ({ listId: data.listId }))
+	.handler(({ context, data }) => getListHeaderImpl({ userId: context.session.user.id, listId: data.listId }))
+
+export const getListAddons = createServerFn({ method: 'GET' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: { listId: string }) => ({ listId: data.listId }))
+	.handler(({ context, data }) => getListAddonsImpl({ userId: context.session.user.id, listId: data.listId }))
 
 export const getListSummaries = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware, loggingMiddleware])

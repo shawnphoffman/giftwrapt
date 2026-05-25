@@ -46,6 +46,20 @@ describe('dispatchListEvent', () => {
 			dispatchListEvent({ kind: 'claim', listId: 42 }, deps)
 			expect(deps.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['items', 42] })
 		})
+
+		it('invalidates only the addons query on addon events (not the route loader)', () => {
+			const deps = makeDeps('gifter')
+			dispatchListEvent({ kind: 'addon', listId: 42, addonId: 3, shape: 'added' }, deps)
+			expect(deps.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['list-detail', 42, 'addons'] })
+			expect(deps.router.invalidate).not.toHaveBeenCalled()
+		})
+
+		it('invalidates the whole list-detail subtree on list events (not the route loader)', () => {
+			const deps = makeDeps('gifter')
+			dispatchListEvent({ kind: 'list', listId: 42 }, deps)
+			expect(deps.queryClient.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['list-detail', 42] })
+			expect(deps.router.invalidate).not.toHaveBeenCalled()
+		})
 	})
 
 	describe('mode: organize', () => {

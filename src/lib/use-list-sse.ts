@@ -3,6 +3,7 @@ import { useRouter } from '@tanstack/react-router'
 import { useEffect } from 'react'
 
 import { itemsKeys } from '@/lib/queries/items'
+import { listDetailKeys } from '@/lib/queries/lists'
 import type { ListEvent } from '@/routes/api/sse/list.$listId'
 
 /**
@@ -47,9 +48,23 @@ export function dispatchListEvent(event: ListEvent, deps: DispatchDeps): void {
 			return
 		case 'addon':
 			if (mode === 'organize') return
+			// Gifter view streams addons via listAddonsQueryOptions; edit
+			// view still relies on the route loader (router.invalidate) to
+			// re-fetch its composite payload.
+			if (mode === 'gifter') {
+				queryClient.invalidateQueries({ queryKey: listDetailKeys.addons(listId) })
+				return
+			}
 			void router.invalidate()
 			return
 		case 'list':
+			// Gifter view: header streams via listHeaderQueryOptions and
+			// addons via listAddonsQueryOptions; invalidate both. Other
+			// modes still re-run their composite loader.
+			if (mode === 'gifter') {
+				queryClient.invalidateQueries({ queryKey: listDetailKeys.byList(listId) })
+				return
+			}
 			void router.invalidate()
 			return
 	}
