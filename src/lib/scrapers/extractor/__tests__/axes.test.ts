@@ -152,6 +152,57 @@ describe('parseAxes: HTML form heuristics', () => {
 		expect(out.purchaseVariants).toEqual(['Material'])
 	})
 
+	it('reads Amazon twister variation blocks via the label text', () => {
+		const html = `
+			<html><body>
+				<div id="twister">
+					<div id="variation_color_name">
+						<label class="a-form-label">Color:</label>
+						<span class="selection">White/Grey/Black</span>
+					</div>
+					<div id="variation_size_name">
+						<label class="a-form-label">Size:</label>
+					</div>
+				</div>
+			</body></html>
+		`
+		const out = parseAxes(load(html), FINAL_URL)
+		expect(out.purchaseVariants).toEqual(['Color', 'Size'])
+	})
+
+	it('falls back to the twister id slug when no a-form-label is present', () => {
+		const html = `
+			<html><body>
+				<div id="variation_pattern_name"></div>
+			</body></html>
+		`
+		const out = parseAxes(load(html), FINAL_URL)
+		expect(out.purchaseVariants).toEqual(['Pattern'])
+	})
+
+	it('skips the cart-quantity <select name="quantity">', () => {
+		const html = `
+			<html><body>
+				<label for="quantity">Quantity:</label>
+				<select id="quantity" name="quantity" aria-label="Quantity"><option>1</option></select>
+				<select aria-label="Color"></select>
+			</body></html>
+		`
+		const out = parseAxes(load(html), FINAL_URL)
+		expect(out.purchaseVariants).toEqual(['Color'])
+	})
+
+	it('strips trailing colons from labels so notes render without doubled punctuation', () => {
+		const html = `
+			<html><body>
+				<label for="color-picker">Color:</label>
+				<select id="color-picker"></select>
+			</body></html>
+		`
+		const out = parseAxes(load(html), FINAL_URL)
+		expect(out.purchaseVariants).toEqual(['Color'])
+	})
+
 	it('reads data-option-name / data-attribute-name / data-swatch-type', () => {
 		const html = `
 			<html><body>

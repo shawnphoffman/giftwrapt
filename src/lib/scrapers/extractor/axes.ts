@@ -47,10 +47,16 @@ const MAX_ARRAY = 200
 // MAX_AXES:
 //   - JSON-LD: Product.additionalProperty[].name, plus the same field on
 //     hasVariant[] and offers[].itemOffered.
-//   - HTML form heuristics: <select> + <label>/aria-label/name/id,
-//     radio groups via <fieldset><legend> or role="radiogroup"+aria-label,
-//     swatch elements via data-option-name / data-attribute-name /
-//     data-swatch-type.
+//   - HTML form heuristics: Amazon twister blocks
+//     (div[id^="variation_"][id$="_name"]), <select> + <label>/aria-label/
+//     name/id (skipping name|id="quantity", which is the cart counter, not
+//     a product variant), radio groups via <fieldset><legend> or
+//     role="radiogroup"+aria-label, swatch elements via data-option-name /
+//     data-attribute-name / data-swatch-type.
+//
+// Trailing punctuation on collected labels (e.g. "Color:") is stripped
+// before vocabulary matching so the rendered note bullet reads "- Color: "
+// and not "- Color:: ".
 //
 // Returns `{ purchaseVariants: [...] }` when at least one axis was found;
 // returns `{}` when none. (The extractor merge in index.ts treats a
@@ -65,7 +71,7 @@ export function parseAxes($: CheerioAPI, _finalUrl: string): Partial<ScrapeResul
 	const out: Array<string> = []
 	for (const raw of candidates) {
 		if (!raw) continue
-		const normalized = raw.trim()
+		const normalized = stripTrailingPunctuation(raw)
 		if (!normalized) continue
 		if (!matchesVocabulary(normalized)) continue
 		const key = normalized.toLowerCase()
@@ -159,11 +165,30 @@ function stringList(value: unknown): Array<string> {
 }
 
 function collectFromHtmlHeuristics($: CheerioAPI, out: Array<string>): void {
+	// Amazon "twister" variation blocks: `<div id="variation_color_name">` etc.
+	// Prefer the human-visible label (`<label class="a-form-label">Color:</label>`);
+	// fall back to the axis name baked into the id (`color`).
+	$('div[id^="variation_"][id$="_name"]').each((_, el) => {
+		const $el = $(el)
+		const labelText = $el.find('label.a-form-label').first().text().trim()
+		if (labelText) {
+			out.push(labelText)
+			return
+		}
+		const id = $el.attr('id') ?? ''
+		const axis = id.replace(/^variation_/, '').replace(/_name$/, '')
+		if (axis) out.push(humanizeAttr(axis))
+	})
+
 	// <select>: <label for=...> wins, then aria-label, then name/id (with
-	// underscores/dashes coerced to spaces).
+	// underscores/dashes coerced to spaces). Skip cart-quantity widgets
+	// (`<select name="quantity">` / `id="quantity"`), which are the buyer's
+	// cart count, not a product variant.
 	$('select').each((_, el) => {
 		const $el = $(el)
+		const name = $el.attr('name')?.toLowerCase()
 		const id = $el.attr('id')
+		if (name === 'quantity' || id?.toLowerCase() === 'quantity') return
 		let label: string | undefined
 		if (id) {
 			const labelText = $(`label[for="${escapeSelector(id)}"]`)
@@ -212,6 +237,10 @@ function collectFromHtmlHeuristics($: CheerioAPI, out: Array<string>): void {
 
 function humanizeAttr(value: string): string {
 	return value.replace(/[_-]+/g, ' ').trim()
+}
+
+function stripTrailingPunctuation(value: string): string {
+	return value.replace(/[\s:：\-–—]+$/u, '').trim()
 }
 
 // Cheerio attribute selectors choke on bare punctuation in the value.
