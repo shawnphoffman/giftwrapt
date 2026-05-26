@@ -325,6 +325,8 @@ export const runBarcodeProbeAsAdmin = (): Promise<{ kind: 'miss'; providerId: st
 // @/api/admin-scrapes
 export const getScrapeDetailAsAdmin = (): Promise<null> => Promise.resolve(null)
 export const listScrapesAsAdmin = emptyArray
+export const SCRAPE_WINDOW_HOURS = [24, 168, 720] as const
+export const getScrapeStatsAsAdmin = (): Promise<null> => Promise.resolve(null)
 
 // @/api/admin-storage
 export const fetchStorageBrowser = (): Promise<{ objects: Array<unknown>; summary: null }> =>
