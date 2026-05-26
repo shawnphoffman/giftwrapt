@@ -31,6 +31,7 @@ const easterEvent: InWindowEvent = {
 	kind: 'custom-holiday',
 	matchTypes: ['holiday'],
 	customHolidayId: 'easter-id',
+	recipient: { kind: 'none' },
 	occurrence: new Date('2026-04-05T00:00:00Z'),
 	occurrenceISO: '2026-04-05T00:00:00.000Z',
 	daysUntil: 20,

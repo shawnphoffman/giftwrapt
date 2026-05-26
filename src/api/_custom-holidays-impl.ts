@@ -21,13 +21,14 @@
 //     defaultListType WITHOUT clearing claims. Special-cased to bypass
 //     the standard isCrossTypeMoveDestructive rule.
 
-import { and, count, eq, inArray } from 'drizzle-orm'
+import { and, asc, count, eq, inArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import type { SchemaDatabase } from '@/db'
 import { db as defaultDb } from '@/db'
-import { customHolidays, holidayCatalog, lists } from '@/db/schema'
+import { customHolidays, dependents, holidayCatalog, lists, users } from '@/db/schema'
 import { customHolidayNextOccurrence } from '@/lib/custom-holidays'
+import { canViewerSeeCustomHolidayRecipient } from '@/lib/permissions'
 import { getAppSettings } from '@/lib/settings-loader'
 
 // Slugs from the bundled holiday catalog that we expose in the admin
@@ -50,6 +51,16 @@ const CATALOG_GIFT_GIVING_INCLUSION = new Set<string>([
 	'new-years-day',
 ])
 
+// Discriminated union for recipient assignments. Mirrors what the admin
+// form posts; both the catalog and custom add paths share this shape.
+export type CustomHolidayRecipientInput = { kind: 'none' } | { kind: 'user'; userId: string } | { kind: 'dependent'; dependentId: string }
+
+const RecipientInputSchema = z.discriminatedUnion('kind', [
+	z.object({ kind: z.literal('none') }),
+	z.object({ kind: z.literal('user'), userId: z.string().min(1) }),
+	z.object({ kind: z.literal('dependent'), dependentId: z.string().min(1) }),
+])
+
 export type AdminCustomHoliday = {
 	id: string
 	title: string
@@ -59,6 +70,10 @@ export type AdminCustomHoliday = {
 	customMonth: number | null
 	customDay: number | null
 	customYear: number | null
+	recipientUserId: string | null
+	recipientUserName: string | null
+	recipientDependentId: string | null
+	recipientDependentName: string | null
 	usageCount: number
 	nextOccurrenceIso: string | null
 	createdAt: Date
@@ -67,7 +82,28 @@ export type AdminCustomHoliday = {
 
 export async function listCustomHolidaysImpl(args: { dbx?: SchemaDatabase } = {}): Promise<Array<AdminCustomHoliday>> {
 	const dbx = args.dbx ?? defaultDb
-	const rows = await dbx.select().from(customHolidays).orderBy(customHolidays.title)
+	const rows = await dbx
+		.select({
+			id: customHolidays.id,
+			title: customHolidays.title,
+			source: customHolidays.source,
+			catalogCountry: customHolidays.catalogCountry,
+			catalogKey: customHolidays.catalogKey,
+			customMonth: customHolidays.customMonth,
+			customDay: customHolidays.customDay,
+			customYear: customHolidays.customYear,
+			recipientUserId: customHolidays.recipientUserId,
+			recipientDependentId: customHolidays.recipientDependentId,
+			iconKey: customHolidays.iconKey,
+			createdAt: customHolidays.createdAt,
+			updatedAt: customHolidays.updatedAt,
+			recipientUserName: users.name,
+			recipientDependentName: dependents.name,
+		})
+		.from(customHolidays)
+		.leftJoin(users, eq(users.id, customHolidays.recipientUserId))
+		.leftJoin(dependents, eq(dependents.id, customHolidays.recipientDependentId))
+		.orderBy(customHolidays.title)
 	if (rows.length === 0) return []
 
 	// Usage counts in one round trip.
@@ -95,6 +131,10 @@ export async function listCustomHolidaysImpl(args: { dbx?: SchemaDatabase } = {}
 			customMonth: r.customMonth,
 			customDay: r.customDay,
 			customYear: r.customYear,
+			recipientUserId: r.recipientUserId,
+			recipientUserName: r.recipientUserName,
+			recipientDependentId: r.recipientDependentId,
+			recipientDependentName: r.recipientDependentName,
 			usageCount: usageById.get(r.id) ?? 0,
 			nextOccurrenceIso: next ? next.toISOString() : null,
 			createdAt: r.createdAt,
@@ -133,11 +173,30 @@ export const AddCatalogCustomHolidayInputSchema = z.object({
 	country: z.string().min(2).max(2),
 	key: z.string().min(1).max(120),
 	title: z.string().min(1).max(120).optional(), // override; defaults to catalog name
+	recipient: RecipientInputSchema.optional(),
 })
 
 export type AddCustomHolidayResult =
 	| { kind: 'ok'; id: string }
-	| { kind: 'error'; reason: 'catalog-entry-not-found' | 'already-exists' | 'invalid-date' }
+	| { kind: 'error'; reason: 'catalog-entry-not-found' | 'already-exists' | 'invalid-date' | 'recipient-not-found' }
+
+// Resolve a recipient input into the column values, validating that the
+// referenced user / dependent exists. Returns null when the recipient is
+// invalid (caller surfaces 'recipient-not-found').
+async function resolveRecipient(
+	input: CustomHolidayRecipientInput | undefined,
+	dbx: SchemaDatabase
+): Promise<{ recipientUserId: string | null; recipientDependentId: string | null } | { error: 'recipient-not-found' }> {
+	if (!input || input.kind === 'none') return { recipientUserId: null, recipientDependentId: null }
+	if (input.kind === 'user') {
+		const row = await dbx.query.users.findFirst({ where: eq(users.id, input.userId), columns: { id: true } })
+		if (!row) return { error: 'recipient-not-found' }
+		return { recipientUserId: input.userId, recipientDependentId: null }
+	}
+	const row = await dbx.query.dependents.findFirst({ where: eq(dependents.id, input.dependentId), columns: { id: true } })
+	if (!row) return { error: 'recipient-not-found' }
+	return { recipientUserId: null, recipientDependentId: input.dependentId }
+}
 
 export async function addCatalogCustomHolidayImpl(args: {
 	input: z.output<typeof AddCatalogCustomHolidayInputSchema>
@@ -162,6 +221,9 @@ export async function addCatalogCustomHolidayImpl(args: {
 		.limit(1)
 	if (dupe.length > 0) return { kind: 'error', reason: 'already-exists' }
 
+	const recipient = await resolveRecipient(args.input.recipient, dbx)
+	if ('error' in recipient) return { kind: 'error', reason: recipient.error }
+
 	const [inserted] = await dbx
 		.insert(customHolidays)
 		.values({
@@ -169,6 +231,8 @@ export async function addCatalogCustomHolidayImpl(args: {
 			source: 'catalog',
 			catalogCountry: args.input.country,
 			catalogKey: args.input.key,
+			recipientUserId: recipient.recipientUserId,
+			recipientDependentId: recipient.recipientDependentId,
 		})
 		.returning({ id: customHolidays.id })
 	return { kind: 'ok', id: inserted.id }
@@ -180,6 +244,7 @@ export const AddCustomCustomHolidayInputSchema = z.object({
 	day: z.number().int().min(1).max(31),
 	year: z.number().int().min(1900).max(3000).nullable(),
 	repeatsAnnually: z.boolean(),
+	recipient: RecipientInputSchema.optional(),
 })
 
 export async function addCustomCustomHolidayImpl(args: {
@@ -200,6 +265,9 @@ export async function addCustomCustomHolidayImpl(args: {
 		return { kind: 'error', reason: 'invalid-date' }
 	}
 
+	const recipient = await resolveRecipient(args.input.recipient, dbx)
+	if ('error' in recipient) return { kind: 'error', reason: recipient.error }
+
 	const [inserted] = await dbx
 		.insert(customHolidays)
 		.values({
@@ -208,6 +276,8 @@ export async function addCustomCustomHolidayImpl(args: {
 			customMonth: month,
 			customDay: day,
 			customYear: effectiveYear,
+			recipientUserId: recipient.recipientUserId,
+			recipientDependentId: recipient.recipientDependentId,
 		})
 		.returning({ id: customHolidays.id })
 	return { kind: 'ok', id: inserted.id }
@@ -219,11 +289,12 @@ export const UpdateCustomHolidayInputSchema = z.object({
 	month: z.number().int().min(1).max(12).optional(),
 	day: z.number().int().min(1).max(31).optional(),
 	year: z.number().int().min(1900).max(3000).nullable().optional(),
+	recipient: RecipientInputSchema.optional(),
 })
 
 export type UpdateCustomHolidayResult =
 	| { kind: 'ok' }
-	| { kind: 'error'; reason: 'not-found' | 'invalid-date' | 'cannot-edit-catalog-date' }
+	| { kind: 'error'; reason: 'not-found' | 'invalid-date' | 'cannot-edit-catalog-date' | 'recipient-not-found' }
 
 export async function updateCustomHolidayImpl(args: {
 	input: z.output<typeof UpdateCustomHolidayInputSchema>
@@ -249,6 +320,13 @@ export async function updateCustomHolidayImpl(args: {
 		update.customMonth = month
 		update.customDay = day
 		update.customYear = year
+	}
+
+	if (args.input.recipient !== undefined) {
+		const recipient = await resolveRecipient(args.input.recipient, dbx)
+		if ('error' in recipient) return { kind: 'error', reason: recipient.error }
+		update.recipientUserId = recipient.recipientUserId
+		update.recipientDependentId = recipient.recipientDependentId
 	}
 
 	if (Object.keys(update).length === 0) return { kind: 'ok' }
@@ -305,19 +383,28 @@ export async function deleteCustomHolidayImpl(args: {
 	return { kind: 'ok', convertedListCount }
 }
 
-// Public read for the new-list dialog holiday picker. Returns every
-// customHolidays row with its next-occurrence date pre-resolved.
+// Public read for the new-list dialog holiday picker. Returns the
+// customHolidays rows the viewer is allowed to see: every broadcast row,
+// plus any recipient-bound row whose recipient the viewer can view.
+// Gating here mirrors the widget + reminder cron so a viewer never sees
+// a holiday's title in the picker that they wouldn't see surfaced
+// elsewhere.
 export type CustomHolidayForPicker = {
 	id: string
 	title: string
 	nextOccurrenceIso: string | null
 }
 
-export async function listCustomHolidaysForPickerImpl(args: { dbx?: SchemaDatabase } = {}): Promise<Array<CustomHolidayForPicker>> {
+export async function listCustomHolidaysForPickerImpl(args: {
+	viewerId: string
+	dbx?: SchemaDatabase
+}): Promise<Array<CustomHolidayForPicker>> {
 	const dbx = args.dbx ?? defaultDb
 	const rows = await dbx.select().from(customHolidays).orderBy(customHolidays.title)
 	const out: Array<CustomHolidayForPicker> = []
 	for (const r of rows) {
+		const visible = await canViewerSeeCustomHolidayRecipient(args.viewerId, r, dbx)
+		if (!visible) continue
 		const next = await customHolidayNextOccurrence(r, new Date(), dbx)
 		out.push({ id: r.id, title: r.title, nextOccurrenceIso: next ? next.toISOString() : null })
 	}
@@ -329,4 +416,32 @@ export async function listCustomHolidaysForPickerImpl(args: { dbx?: SchemaDataba
 		return a.title.localeCompare(b.title)
 	})
 	return out
+}
+
+// Admin picker for "who is this holiday for?". Returns every active user
+// (no children gate; a child user can legitimately be the recipient of
+// their own holiday, e.g. "Graham's Graduation") and every non-archived
+// dependent. Lightweight: just what the combobox needs to render.
+export type RecipientCandidate =
+	| { kind: 'user'; id: string; name: string; image: string | null }
+	| { kind: 'dependent'; id: string; name: string; image: string | null }
+
+export async function listRecipientCandidatesImpl(args: { dbx?: SchemaDatabase } = {}): Promise<Array<RecipientCandidate>> {
+	const dbx = args.dbx ?? defaultDb
+	const [userRows, dependentRows] = await Promise.all([
+		dbx
+			.select({ id: users.id, name: users.name, image: users.image })
+			.from(users)
+			.where(sql`${users.banned} = false`)
+			.orderBy(asc(users.name)),
+		dbx
+			.select({ id: dependents.id, name: dependents.name, image: dependents.image })
+			.from(dependents)
+			.where(sql`${dependents.isArchived} = false`)
+			.orderBy(asc(dependents.name)),
+	])
+	return [
+		...userRows.map(u => ({ kind: 'user' as const, id: u.id, name: u.name ?? u.id, image: u.image })),
+		...dependentRows.map(d => ({ kind: 'dependent' as const, id: d.id, name: d.name, image: d.image })),
+	]
 }

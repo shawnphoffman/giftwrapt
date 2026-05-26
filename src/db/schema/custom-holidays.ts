@@ -18,6 +18,15 @@
 //     one-time fixed date and will stop appearing in next-occurrence
 //     computations after it passes.
 //
+// Optional recipient: a row may also pin to a specific person (user XOR
+// dependent) via `recipientUserId` / `recipientDependentId`. When set,
+// the widget / reminder cron / list-hygiene scaffold-rec narrow their
+// audience to people who can view that recipient (four-axis "who can
+// shop for X" universe). Both null = broadcast holiday (Easter, Diwali,
+// etc.), the current behavior. XOR is app-layer enforced; ON DELETE SET
+// NULL means deleting the recipient degrades the row to broadcast
+// rather than cascading the holiday away.
+//
 // Title is the canonical display name shown in pickers and emails.
 // The (small) `iconKey` is reserved for future per-holiday icon
 // customization and is unused today.
@@ -25,7 +34,9 @@
 import { relations } from 'drizzle-orm'
 import { index, integer, pgEnum, pgTable, smallint, text, uuid } from 'drizzle-orm/pg-core'
 
+import { dependents } from './dependents'
 import { timestamps } from './shared'
+import { users } from './users'
 
 export const customHolidaySourceEnum = pgEnum('custom_holiday_source', ['catalog', 'custom'])
 
@@ -46,14 +57,32 @@ export const customHolidays = pgTable(
 		// Optional. When null, the holiday repeats annually; when set,
 		// it is a one-time fixed date.
 		customYear: integer('custom_year'),
+		// Optional recipient. App-layer XOR: at most one may be set. Both
+		// null = broadcast holiday. ON DELETE SET NULL degrades to
+		// broadcast if the recipient is deleted.
+		recipientUserId: text('recipient_user_id').references(() => users.id, { onDelete: 'set null' }),
+		recipientDependentId: text('recipient_dependent_id').references(() => dependents.id, { onDelete: 'set null' }),
 		// Reserved for future per-holiday icon override; unused today.
 		iconKey: text('icon_key'),
 		...timestamps,
 	},
-	table => [index('custom_holidays_source_idx').on(table.source)]
+	table => [
+		index('custom_holidays_source_idx').on(table.source),
+		index('custom_holidays_recipient_user_id_idx').on(table.recipientUserId),
+		index('custom_holidays_recipient_dependent_id_idx').on(table.recipientDependentId),
+	]
 )
 
-export const customHolidaysRelations = relations(customHolidays, () => ({}))
+export const customHolidaysRelations = relations(customHolidays, ({ one }) => ({
+	recipientUser: one(users, {
+		fields: [customHolidays.recipientUserId],
+		references: [users.id],
+	}),
+	recipientDependent: one(dependents, {
+		fields: [customHolidays.recipientDependentId],
+		references: [dependents.id],
+	}),
+}))
 
 export type CustomHoliday = typeof customHolidays.$inferSelect
 export type NewCustomHoliday = typeof customHolidays.$inferInsert

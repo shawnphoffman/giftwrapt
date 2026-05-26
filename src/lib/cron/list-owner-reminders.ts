@@ -9,8 +9,11 @@
 //     Broadcasts to every user. Idempotent via an app_settings flag
 //     keyed on the year, so cron retries the same day don't double-send.
 //   - Custom Holiday: for each customHolidays row, fires when
-//     (today + leadDays) === nextOccurrence. Broadcasts to every user.
-//     Idempotent via `custom_holiday_reminder_logs(holidayId, year)`.
+//     (today + leadDays) === nextOccurrence. Audience depends on the
+//     row's recipient: broadcast rows (no recipient) go to every user;
+//     recipient-bound rows go only to users who can view the recipient
+//     (same gate as the widget). Idempotent via
+//     `custom_holiday_reminder_logs(holidayId, year)`.
 
 import { eq, sql } from 'drizzle-orm'
 
@@ -18,6 +21,7 @@ import type { SchemaDatabase } from '@/db'
 import { appSettings, type BirthMonth, birthMonthEnumValues, customHolidayReminderLogs, customHolidays, users } from '@/db/schema'
 import { customHolidayNextOccurrence, isSameUtcDay, startOfUtcDay } from '@/lib/custom-holidays'
 import { fanOutToGuardians } from '@/lib/guardian-emails'
+import { canViewerSeeCustomHolidayRecipient } from '@/lib/permissions'
 import { sendPreBirthdayReminderEmail, sendPreChristmasReminderEmail, sendPreCustomHolidayReminderEmail } from '@/lib/resend'
 
 export type ListOwnerRemindersResult = {
@@ -153,10 +157,18 @@ async function sendCustomHolidayReminders(db: SchemaDatabase, now: Date, leadDay
 			.limit(1)
 		if (existing.length > 0) continue
 
-		const recipients = await db
+		const allRecipients = await db
 			.select({ id: users.id, email: users.email, name: users.name })
 			.from(users)
 			.where(sql`${users.banned} = false`)
+
+		// Narrow audience to users who can view the recipient. Broadcast
+		// rows (no recipient) pass through unchanged.
+		const recipients: typeof allRecipients = []
+		for (const u of allRecipients) {
+			const visible = await canViewerSeeCustomHolidayRecipient(u.id, h, db)
+			if (visible) recipients.push(u)
+		}
 
 		for (const u of recipients) {
 			try {

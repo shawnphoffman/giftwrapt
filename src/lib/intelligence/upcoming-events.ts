@@ -159,11 +159,28 @@ export async function getInWindowEventsForSubject(args: GetInWindowEventsArgs): 
 
 	// === Custom holidays ===
 	// Every active row is a candidate; gated by the tenant generic-holiday
-	// toggle. Per-(custom-holiday, occurrence) — a holiday-typed list
+	// toggle. Per-(custom-holiday, occurrence): a holiday-typed list
 	// auto-archives only when its `customHolidayId` matches.
+	//
+	// Recipient-bound rows are filtered by SUBJECT so they only enter the
+	// event set for the recipient's own run:
+	//   - recipientUserId set     -> user-subject run AND userId matches
+	//   - recipientDependentId    -> dependent-subject run AND dependentId matches
+	//   - no recipient (broadcast)-> included for every subject (cold-call
+	//     scaffold remains disabled in list-hygiene branch 3 by the
+	//     `recipient.kind === 'none'` guard)
 	if (settings.enableGenericHolidayLists) {
 		const rows = await dbx.select().from(customHolidays)
 		for (const row of rows) {
+			const recipientKind: 'none' | 'user' | 'dependent' = row.recipientUserId ? 'user' : row.recipientDependentId ? 'dependent' : 'none'
+			if (recipientKind === 'user') {
+				if (dependentId !== null) continue
+				if (row.recipientUserId !== userId) continue
+			} else if (recipientKind === 'dependent') {
+				if (dependentId === null) continue
+				if (row.recipientDependentId !== dependentId) continue
+			}
+
 			const occurrence = await customHolidayNextOccurrence(row, now, dbx)
 			if (!occurrence) continue
 			const daysUntil = Math.round((utcDayMs(occurrence) - todayUtcMs) / 86_400_000)
@@ -172,6 +189,7 @@ export async function getInWindowEventsForSubject(args: GetInWindowEventsArgs): 
 				kind: 'custom-holiday',
 				matchTypes: CUSTOM_HOLIDAY_MATCH_TYPES,
 				customHolidayId: row.id,
+				recipient: { kind: recipientKind },
 				occurrence,
 				occurrenceISO: occurrence.toISOString(),
 				daysUntil,

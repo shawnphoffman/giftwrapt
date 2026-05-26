@@ -20,7 +20,12 @@
 //                    holiday-typed list creation, so a deployment that
 //                    has turned the whole holiday concept off won't
 //                    surface admin-curated rows either.
-//      Per-user gate: none. If the admin curated it, every user sees it.
+//      Per-user gate: depends on the row's recipient. Broadcast rows
+//                    (both recipient FKs null) are universal. Rows with
+//                    `recipientUserId` or `recipientDependentId` set
+//                    pass through `canViewerSeeCustomHolidayRecipient`,
+//                    so a holiday like "Graham's Graduation" only
+//                    surfaces to users who can see Graham's lists.
 //   2. Hard-coded gift-giving holidays:
 //        - Christmas (Dec 25)
 //          Tenant:   `enableChristmasLists`
@@ -56,6 +61,7 @@ import { db } from '@/db'
 import { customHolidays, userRelationLabels, users } from '@/db/schema'
 import { customHolidayNextOccurrence, startOfUtcDay } from '@/lib/custom-holidays'
 import { fathersDaySlug, mothersDaySlug, nextOccurrence } from '@/lib/holidays'
+import { canViewerSeeCustomHolidayRecipient } from '@/lib/permissions'
 import { getAppSettings } from '@/lib/settings-loader'
 
 // =====================================================================
@@ -158,11 +164,15 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 	// 1. Admin-curated `custom_holidays`. Tenant-gated on the same flag
 	//    that gates holiday-typed list creation: if the deployment has
 	//    the whole concept turned off, an admin row left behind in the
-	//    table should not surface either. No per-user gate.
+	//    table should not surface either. Per-user gate is recipient-
+	//    aware: broadcast rows pass through, recipient-bound rows only
+	//    surface to viewers who can see the recipient.
 	// ---------------------------------------------------------------
 	if (settings.enableGenericHolidayLists) {
 		const customRows = await dbx.select().from(customHolidays)
 		for (const row of customRows) {
+			const visible = await canViewerSeeCustomHolidayRecipient(userId, row, dbx)
+			if (!visible) continue
 			const occurrence = await customHolidayNextOccurrence(row, now, dbx)
 			if (!occurrence) continue
 			candidates.push({

@@ -2,7 +2,7 @@
 // and custom flavors), update, list-with-usage-count, and delete with
 // admin-cascade conversion of dependent lists.
 
-import { makeGiftedItem, makeItem, makeList, makeUser } from '@test/integration/factories'
+import { makeDependent, makeGiftedItem, makeItem, makeList, makeUser } from '@test/integration/factories'
 import { withRollback } from '@test/integration/setup'
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
@@ -137,6 +137,133 @@ describe('custom_holidays admin path', () => {
 			const rows = await listCustomHolidaysImpl({ dbx: tx })
 			const match = rows.find(r => r.id === created.id)
 			expect(match?.usageCount).toBe(2)
+		})
+	})
+
+	it('addCustomCustomHoliday accepts a user recipient and listCustomHolidays returns the joined name', async () => {
+		await withRollback(async tx => {
+			const recipient = await makeUser(tx, { name: 'Graham' })
+			const created = await addCustomCustomHolidayImpl({
+				input: {
+					title: "Graham's Graduation",
+					month: 6,
+					day: 1,
+					year: 2026,
+					repeatsAnnually: false,
+					recipient: { kind: 'user', userId: recipient.id },
+				},
+				dbx: tx,
+			})
+			expect(created.kind).toBe('ok')
+			if (created.kind !== 'ok') return
+
+			const rows = await listCustomHolidaysImpl({ dbx: tx })
+			const match = rows.find(r => r.id === created.id)
+			expect(match?.recipientUserId).toBe(recipient.id)
+			expect(match?.recipientUserName).toBe('Graham')
+			expect(match?.recipientDependentId).toBeNull()
+		})
+	})
+
+	it('addCustomCustomHoliday accepts a dependent recipient', async () => {
+		await withRollback(async tx => {
+			const guardian = await makeUser(tx)
+			const dep = await makeDependent(tx, { createdByUserId: guardian.id, name: 'Mochi' })
+			const created = await addCustomCustomHolidayImpl({
+				input: {
+					title: "Mochi's Adoption Day",
+					month: 5,
+					day: 15,
+					year: null,
+					repeatsAnnually: true,
+					recipient: { kind: 'dependent', dependentId: dep.id },
+				},
+				dbx: tx,
+			})
+			expect(created.kind).toBe('ok')
+			if (created.kind !== 'ok') return
+
+			const rows = await listCustomHolidaysImpl({ dbx: tx })
+			const match = rows.find(r => r.id === created.id)
+			expect(match?.recipientDependentId).toBe(dep.id)
+			expect(match?.recipientDependentName).toBe('Mochi')
+			expect(match?.recipientUserId).toBeNull()
+		})
+	})
+
+	it('addCustomCustomHoliday rejects a non-existent recipient user', async () => {
+		await withRollback(async tx => {
+			const created = await addCustomCustomHolidayImpl({
+				input: {
+					title: 'Bogus',
+					month: 6,
+					day: 1,
+					year: null,
+					repeatsAnnually: true,
+					recipient: { kind: 'user', userId: 'nope-not-real' },
+				},
+				dbx: tx,
+			})
+			expect(created.kind).toBe('error')
+			if (created.kind === 'error') expect(created.reason).toBe('recipient-not-found')
+		})
+	})
+
+	it('updateCustomHoliday clears the recipient when recipient.kind = none', async () => {
+		await withRollback(async tx => {
+			const recipient = await makeUser(tx)
+			const created = await addCustomCustomHolidayImpl({
+				input: {
+					title: 'X',
+					month: 6,
+					day: 1,
+					year: null,
+					repeatsAnnually: true,
+					recipient: { kind: 'user', userId: recipient.id },
+				},
+				dbx: tx,
+			})
+			if (created.kind !== 'ok') throw new Error('setup failed')
+
+			const updated = await updateCustomHolidayImpl({
+				input: { id: created.id, recipient: { kind: 'none' } },
+				dbx: tx,
+			})
+			expect(updated.kind).toBe('ok')
+
+			const row = await tx.select().from(customHolidays).where(eq(customHolidays.id, created.id))
+			expect(row[0].recipientUserId).toBeNull()
+			expect(row[0].recipientDependentId).toBeNull()
+		})
+	})
+
+	it('updateCustomHoliday swaps a recipient from user to dependent', async () => {
+		await withRollback(async tx => {
+			const userRecipient = await makeUser(tx)
+			const guardian = await makeUser(tx)
+			const dep = await makeDependent(tx, { createdByUserId: guardian.id })
+			const created = await addCustomCustomHolidayImpl({
+				input: {
+					title: 'Y',
+					month: 7,
+					day: 1,
+					year: null,
+					repeatsAnnually: true,
+					recipient: { kind: 'user', userId: userRecipient.id },
+				},
+				dbx: tx,
+			})
+			if (created.kind !== 'ok') throw new Error('setup failed')
+
+			const updated = await updateCustomHolidayImpl({
+				input: { id: created.id, recipient: { kind: 'dependent', dependentId: dep.id } },
+				dbx: tx,
+			})
+			expect(updated.kind).toBe('ok')
+
+			const row = await tx.select().from(customHolidays).where(eq(customHolidays.id, created.id))
+			expect(row[0].recipientUserId).toBeNull()
+			expect(row[0].recipientDependentId).toBe(dep.id)
 		})
 	})
 

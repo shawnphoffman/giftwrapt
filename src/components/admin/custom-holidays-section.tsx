@@ -24,8 +24,12 @@ import {
 	deleteCustomHolidayAsAdmin,
 	listCatalogCandidatesAsAdmin,
 	listCustomHolidaysAsAdmin,
+	listRecipientCandidatesAsAdmin,
+	type RecipientCandidate,
 	updateCustomHolidayAsAdmin,
 } from '@/api/custom-holidays'
+import DependentAvatar from '@/components/common/dependent-avatar'
+import UserAvatar from '@/components/common/user-avatar'
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -62,6 +66,7 @@ const MONTHS: ReadonlyArray<{ value: string; label: string; days: number }> = [
 ]
 
 const customHolidaysQueryKey = ['admin-custom-holidays'] as const
+const recipientCandidatesQueryKey = ['admin-custom-holidays-recipients'] as const
 
 function formatNextOccurrence(iso: string | null): string {
 	if (!iso) return 'No upcoming date'
@@ -70,6 +75,93 @@ function formatNextOccurrence(iso: string | null): string {
 	} catch {
 		return iso
 	}
+}
+
+// Wire-format encoding for the recipient picker: 'none' (broadcast),
+// 'u:<userId>', or 'd:<dependentId>'. Mirrors the relation-labels
+// picker pattern so we get one consistent Select shape for "pick a
+// user or a dependent".
+type RecipientValue = 'none' | `u:${string}` | `d:${string}`
+
+function recipientValueToInput(
+	value: RecipientValue
+): { kind: 'none' } | { kind: 'user'; userId: string } | { kind: 'dependent'; dependentId: string } {
+	if (value === 'none') return { kind: 'none' }
+	if (value.startsWith('u:')) return { kind: 'user', userId: value.slice(2) }
+	return { kind: 'dependent', dependentId: value.slice(2) }
+}
+
+function recipientValueFromRow(row: AdminCustomHoliday): RecipientValue {
+	if (row.recipientUserId) return `u:${row.recipientUserId}`
+	if (row.recipientDependentId) return `d:${row.recipientDependentId}`
+	return 'none'
+}
+
+function RecipientPicker({
+	value,
+	onChange,
+	candidates,
+	disabled,
+	id,
+}: {
+	value: RecipientValue
+	onChange: (next: RecipientValue) => void
+	candidates: ReadonlyArray<RecipientCandidate>
+	disabled?: boolean
+	id?: string
+}) {
+	const users = candidates.filter(c => c.kind === 'user')
+	const dependents = candidates.filter(c => c.kind === 'dependent')
+	return (
+		<Select value={value} onValueChange={v => onChange(v as RecipientValue)} disabled={disabled}>
+			<SelectTrigger id={id} className="flex-1">
+				<SelectValue placeholder="Everyone (broadcast)" />
+			</SelectTrigger>
+			<SelectContent>
+				<SelectItem value="none">Everyone (broadcast)</SelectItem>
+				{users.length > 0 && (
+					<>
+						<div className="px-2 pt-2 text-xs font-medium text-muted-foreground">Users</div>
+						{users.map(u => (
+							<SelectItem key={`u:${u.id}`} value={`u:${u.id}`}>
+								{u.name}
+							</SelectItem>
+						))}
+					</>
+				)}
+				{dependents.length > 0 && (
+					<>
+						<div className="px-2 pt-2 text-xs font-medium text-muted-foreground">Dependents</div>
+						{dependents.map(d => (
+							<SelectItem key={`d:${d.id}`} value={`d:${d.id}`}>
+								{d.name}
+							</SelectItem>
+						))}
+					</>
+				)}
+			</SelectContent>
+		</Select>
+	)
+}
+
+function RecipientChip({ row }: { row: AdminCustomHoliday }) {
+	if (row.recipientUserId && row.recipientUserName) {
+		return (
+			<span className="inline-flex items-center gap-1">
+				<UserAvatar name={row.recipientUserName} image={null} size="small" />
+				<span>for {row.recipientUserName}</span>
+			</span>
+		)
+	}
+	if (row.recipientDependentId && row.recipientDependentName) {
+		return (
+			<span className="inline-flex items-center gap-1">
+				<DependentAvatar name={row.recipientDependentName} image={null} size="small" />
+				<span>for {row.recipientDependentName}</span>
+			</span>
+		)
+	}
+	return <span className="text-muted-foreground">Everyone</span>
 }
 
 export function CustomHolidaysSection() {
@@ -119,10 +211,20 @@ export function CustomHolidaysSection() {
 	)
 }
 
+function useRecipientCandidates(enabled: boolean) {
+	return useQuery({
+		queryKey: recipientCandidatesQueryKey,
+		queryFn: () => listRecipientCandidatesAsAdmin(),
+		enabled,
+	})
+}
+
 function CustomHolidayRow({ row }: { row: AdminCustomHoliday }) {
 	const qc = useQueryClient()
 	const [editing, setEditing] = useState(false)
 	const [title, setTitle] = useState(row.title)
+	const [editingRecipient, setEditingRecipient] = useState(false)
+	const candidatesQuery = useRecipientCandidates(editingRecipient)
 
 	const updateTitle = useMutation({
 		mutationFn: async (newTitle: string) => {
@@ -131,6 +233,18 @@ function CustomHolidayRow({ row }: { row: AdminCustomHoliday }) {
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: customHolidaysQueryKey }),
 		onError: err => toast.error(err instanceof Error ? err.message : 'Failed to update holiday'),
+	})
+
+	const updateRecipient = useMutation({
+		mutationFn: async (value: RecipientValue) => {
+			const result = await updateCustomHolidayAsAdmin({ data: { id: row.id, recipient: recipientValueToInput(value) } })
+			if (result.kind === 'error') throw new Error(result.reason)
+		},
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: customHolidaysQueryKey })
+			setEditingRecipient(false)
+		},
+		onError: err => toast.error(err instanceof Error ? err.message : 'Failed to update recipient'),
 	})
 
 	const remove = useMutation({
@@ -201,6 +315,31 @@ function CustomHolidayRow({ row }: { row: AdminCustomHoliday }) {
 					{sourceLabel} · Next: {formatNextOccurrence(row.nextOccurrenceIso)}
 					{row.usageCount > 0 && ` · Used by ${row.usageCount} list${row.usageCount === 1 ? '' : 's'}`}
 				</div>
+				<div className="mt-1 flex items-center gap-2 text-xs">
+					{editingRecipient ? (
+						<>
+							<RecipientPicker
+								value={recipientValueFromRow(row)}
+								onChange={v => updateRecipient.mutate(v)}
+								candidates={candidatesQuery.data ?? []}
+								disabled={updateRecipient.isPending}
+							/>
+							<Button
+								type="button"
+								size="xs"
+								variant="outline"
+								onClick={() => setEditingRecipient(false)}
+								disabled={updateRecipient.isPending}
+							>
+								Cancel
+							</Button>
+						</>
+					) : (
+						<button type="button" className="text-left hover:underline" onClick={() => setEditingRecipient(true)}>
+							<RecipientChip row={row} />
+						</button>
+					)}
+				</div>
 			</div>
 			<AlertDialog>
 				<AlertDialogTrigger asChild>
@@ -242,6 +381,8 @@ function compareCandidates(a: { country: string; name: string }, b: { country: s
 function AddFromCatalogDialog() {
 	const qc = useQueryClient()
 	const [open, setOpen] = useState(false)
+	const [recipient, setRecipient] = useState<RecipientValue>('none')
+	const recipientCandidatesQuery = useRecipientCandidates(open)
 
 	const candidatesQuery = useQuery({
 		queryKey: ['admin-custom-holidays-catalog-candidates'],
@@ -251,7 +392,9 @@ function AddFromCatalogDialog() {
 
 	const add = useMutation({
 		mutationFn: async (args: { country: string; key: string }) => {
-			const result = await addCatalogCustomHolidayAsAdmin({ data: args })
+			const result = await addCatalogCustomHolidayAsAdmin({
+				data: { ...args, recipient: recipientValueToInput(recipient) },
+			})
 			if (result.kind === 'error') throw new Error(result.reason)
 		},
 		onSuccess: () => {
@@ -264,7 +407,13 @@ function AddFromCatalogDialog() {
 	const candidates = [...(candidatesQuery.data ?? [])].sort(compareCandidates)
 
 	return (
-		<Dialog open={open} onOpenChange={setOpen}>
+		<Dialog
+			open={open}
+			onOpenChange={next => {
+				setOpen(next)
+				if (!next) setRecipient('none')
+			}}
+		>
 			<DialogTrigger asChild>
 				<Button variant="outline" size="sm">
 					<Plus className="size-4 mr-1" /> From Catalog
@@ -275,6 +424,17 @@ function AddFromCatalogDialog() {
 					<DialogTitle>Add Holiday From Catalog</DialogTitle>
 					<DialogDescription>Curated gift-giving holidays for the supported countries.</DialogDescription>
 				</DialogHeader>
+				<div className="flex flex-col gap-1.5">
+					<Label htmlFor="catalog-recipient">Recipient (optional)</Label>
+					<RecipientPicker
+						id="catalog-recipient"
+						value={recipient}
+						onChange={setRecipient}
+						candidates={recipientCandidatesQuery.data ?? []}
+						disabled={add.isPending}
+					/>
+					<p className="text-xs text-muted-foreground">Recipient-bound rows only surface to users who can view the recipient.</p>
+				</div>
 				<div className="flex flex-col gap-3">
 					{candidatesQuery.isLoading ? (
 						<p className="text-sm text-muted-foreground">Loading...</p>
@@ -313,6 +473,8 @@ function AddCustomDialog() {
 	const [day, setDay] = useState('')
 	const [annual, setAnnual] = useState(true)
 	const [year, setYear] = useState(String(new Date().getUTCFullYear()))
+	const [recipient, setRecipient] = useState<RecipientValue>('none')
+	const recipientCandidatesQuery = useRecipientCandidates(open)
 
 	const selectedMonth = MONTHS.find(m => m.value === month)
 	const dayOptions = selectedMonth ? Array.from({ length: selectedMonth.days }, (_, i) => String(i + 1)) : []
@@ -326,6 +488,7 @@ function AddCustomDialog() {
 					day: Number(day),
 					year: annual ? null : Number(year),
 					repeatsAnnually: annual,
+					recipient: recipientValueToInput(recipient),
 				},
 			})
 			if (result.kind === 'error') throw new Error(result.reason)
@@ -336,6 +499,7 @@ function AddCustomDialog() {
 			setDay('')
 			setAnnual(true)
 			setYear(String(new Date().getUTCFullYear()))
+			setRecipient('none')
 			setOpen(false)
 			qc.invalidateQueries({ queryKey: customHolidaysQueryKey })
 		},
@@ -409,6 +573,17 @@ function AddCustomDialog() {
 							<Input id="custom-year" type="number" min={1900} max={3000} value={year} onChange={e => setYear(e.target.value)} />
 						</div>
 					)}
+					<div className="flex flex-col gap-1.5">
+						<Label htmlFor="custom-recipient">Recipient (optional)</Label>
+						<RecipientPicker
+							id="custom-recipient"
+							value={recipient}
+							onChange={setRecipient}
+							candidates={recipientCandidatesQuery.data ?? []}
+							disabled={add.isPending}
+						/>
+						<p className="text-xs text-muted-foreground">Recipient-bound rows only surface to users who can view the recipient.</p>
+					</div>
 				</div>
 				<DialogFooter>
 					<Button variant="outline" onClick={() => setOpen(false)}>

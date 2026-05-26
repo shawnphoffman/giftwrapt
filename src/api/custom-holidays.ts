@@ -22,6 +22,8 @@ import {
 	listCatalogCandidatesImpl,
 	listCustomHolidaysForPickerImpl,
 	listCustomHolidaysImpl,
+	listRecipientCandidatesImpl,
+	type RecipientCandidate,
 	updateCustomHolidayImpl,
 	UpdateCustomHolidayInputSchema,
 	type UpdateCustomHolidayResult,
@@ -33,6 +35,7 @@ export type {
 	CatalogCandidate,
 	CustomHolidayForPicker,
 	DeleteCustomHolidayResult,
+	RecipientCandidate,
 	UpdateCustomHolidayResult,
 }
 
@@ -45,6 +48,11 @@ export const listCustomHolidaysAsAdmin = createServerFn({ method: 'GET' })
 export const listCatalogCandidatesAsAdmin = createServerFn({ method: 'GET' })
 	.middleware([adminAuthMiddleware, loggingMiddleware])
 	.handler((): Promise<Array<CatalogCandidate>> => listCatalogCandidatesImpl())
+
+// Admin: candidates for the "who is this holiday for?" picker.
+export const listRecipientCandidatesAsAdmin = createServerFn({ method: 'GET' })
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.handler((): Promise<Array<RecipientCandidate>> => listRecipientCandidatesImpl())
 
 export const addCatalogCustomHolidayAsAdmin = createServerFn({ method: 'POST' })
 	.middleware([adminAuthMiddleware, loggingMiddleware])
@@ -67,6 +75,9 @@ export const deleteCustomHolidayAsAdmin = createServerFn({ method: 'POST' })
 	.handler(({ data }) => deleteCustomHolidayImpl({ input: data }))
 
 // Public picker read. Any signed-in user. Used by the new-list dialog.
+// Gated by viewer visibility on the recipient: broadcast rows are
+// universal; recipient-bound rows only surface to viewers who can see
+// the recipient (same gate as the widget / reminder cron).
 export const listCustomHolidaysForPicker = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware, loggingMiddleware])
-	.handler((): Promise<Array<CustomHolidayForPicker>> => listCustomHolidaysForPickerImpl())
+	.handler(({ context }): Promise<Array<CustomHolidayForPicker>> => listCustomHolidaysForPickerImpl({ viewerId: context.session.user.id }))

@@ -208,6 +208,64 @@ export async function getViewerAccessLevel(
 	return rel?.accessLevel ?? 'view'
 }
 
+// True when `viewerId` is a guardian of the dependent, OR is not
+// explicitly denied by ANY guardian via a `userRelationships` row of
+// `accessLevel='none'`. Mirrors the dependent-subject branch of
+// `canViewList` so custom-holiday recipient gating uses the same
+// default-allow-unless-denied semantics as list visibility.
+async function dependentRecipientVisible(viewerId: string, dependentId: string, dbx: SchemaDatabase): Promise<boolean> {
+	const guard = await dbx.query.dependentGuardianships.findFirst({
+		where: and(eq(dependentGuardianships.guardianUserId, viewerId), eq(dependentGuardianships.dependentId, dependentId)),
+		columns: { guardianUserId: true },
+	})
+	if (guard) return true
+
+	const guardianRows = await dbx
+		.select({ guardianUserId: dependentGuardianships.guardianUserId })
+		.from(dependentGuardianships)
+		.where(eq(dependentGuardianships.dependentId, dependentId))
+	const guardianIds = guardianRows.map(g => g.guardianUserId)
+	// A dependent with no guardians is unreachable; default to false so
+	// orphan rows don't broadcast.
+	if (guardianIds.length === 0) return false
+
+	const denials = await dbx
+		.select({ accessLevel: userRelationships.accessLevel })
+		.from(userRelationships)
+		.where(and(inArray(userRelationships.ownerUserId, guardianIds), eq(userRelationships.viewerUserId, viewerId)))
+	if (denials.some(r => r.accessLevel === 'none')) return false
+	return true
+}
+
+// Recipient-aware gate for `custom_holidays` rows. Used by the widget,
+// reminder cron, list-hygiene event filter, and the picker. Mirrors the
+// four-axis "who can shop for X" universe so a recipient-bound holiday
+// only fans out to people who could see the recipient's lists.
+//   - Both nulls => broadcast (true for everyone).
+//   - `recipientUserId` set => `canViewListAsAnyone` semantics against
+//     a synthetic public-list-shaped object owned by the recipient.
+//   - `recipientDependentId` set => `dependentRecipientVisible`.
+// XOR is enforced at write time; if both are somehow set we evaluate
+// the user branch first (defensive; should never happen in prod).
+export async function canViewerSeeCustomHolidayRecipient(
+	viewerId: string,
+	holiday: { recipientUserId: string | null; recipientDependentId: string | null },
+	dbx: SchemaDatabase = defaultDb
+): Promise<boolean> {
+	if (holiday.recipientUserId) {
+		const result = await canViewListAsAnyone(
+			viewerId,
+			{ id: 0, ownerId: holiday.recipientUserId, isPrivate: false, isActive: true, subjectDependentId: null },
+			dbx
+		)
+		return result.ok
+	}
+	if (holiday.recipientDependentId) {
+		return dependentRecipientVisible(viewerId, holiday.recipientDependentId, dbx)
+	}
+	return true
+}
+
 // Like `getViewerAccessLevel`, but list-aware: dependent-subject lists
 // resolve via the dependent's guardians rather than the list's owner.
 // - Guardian of the dependent: 'owner' (full access).

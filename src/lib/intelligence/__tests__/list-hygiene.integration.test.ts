@@ -240,6 +240,57 @@ describe('listHygieneAnalyzer', () => {
 		})
 	})
 
+	describe('recipient-bound custom-holiday scaffold carve-out', () => {
+		// Broadcast custom holidays stay cold-call-safe (see prior
+		// describe). Recipient-bound custom holidays SHOULD scaffold for
+		// the recipient subject: the event-set filter in
+		// upcoming-events.ts already ensures only the recipient sees the
+		// event, so branch 3 is targeted, not blanket.
+
+		it('emits create-event-list when the run subject is the recipient and has no matching list', async () => {
+			await withRollback(async tx => {
+				const recipient = await makeUser(tx, { birthMonth: null, birthDay: null })
+				const gradId = '77777777-7777-7777-7777-777777777777'
+				await tx.insert(customHolidays).values({
+					id: gradId,
+					title: 'Graham Grad Party',
+					source: 'custom',
+					customMonth: 6,
+					customDay: 1,
+					recipientUserId: recipient.id,
+				})
+
+				const result = await listHygieneAnalyzer.run(
+					buildCtx(tx, recipient.id, { settings: { ...DEFAULT_APP_SETTINGS, enableChristmasLists: false } })
+				)
+				const create = result.recs.find(r => r.kind === 'create-event-list')
+				expect(create).toBeDefined()
+				expect(create?.title).toContain('Graham Grad Party')
+			})
+		})
+
+		it('does NOT emit create-event-list for a different user who is NOT the recipient', async () => {
+			await withRollback(async tx => {
+				const recipient = await makeUser(tx, { birthMonth: null, birthDay: null })
+				const stranger = await makeUser(tx, { birthMonth: null, birthDay: null })
+				const gradId = '88888888-8888-8888-8888-888888888888'
+				await tx.insert(customHolidays).values({
+					id: gradId,
+					title: 'Graham Grad Party',
+					source: 'custom',
+					customMonth: 6,
+					customDay: 1,
+					recipientUserId: recipient.id,
+				})
+
+				const result = await listHygieneAnalyzer.run(
+					buildCtx(tx, stranger.id, { settings: { ...DEFAULT_APP_SETTINGS, enableChristmasLists: false } })
+				)
+				expect(result.recs.find(r => r.kind === 'create-event-list')).toBeUndefined()
+			})
+		})
+	})
+
 	describe('branch 2: flip private matching list public', () => {
 		it('fires suggest rec when only a private matching list exists', async () => {
 			await withRollback(async tx => {

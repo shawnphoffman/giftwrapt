@@ -27,6 +27,12 @@ export type InWindowEvent =
 			kind: 'custom-holiday'
 			matchTypes: ReadonlyArray<ListType>
 			customHolidayId: string
+			// Discriminator that lets the list-hygiene scaffold rec opt
+			// in for recipient-bound holidays (the recipient is the run
+			// subject) while keeping broadcast holidays cold-call-safe.
+			// See `getInWindowEventsForSubject` for the filter and
+			// `list-hygiene.ts` branch 3 for the consumer.
+			recipient: { kind: 'none' } | { kind: 'user' } | { kind: 'dependent' }
 			occurrence: Date
 			occurrenceISO: string
 			daysUntil: number

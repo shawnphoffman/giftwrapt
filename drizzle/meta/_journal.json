@@ -43,6 +43,13 @@
       "when": 1779723572338,
       "tag": "0005_lethal_ego",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1779753461718,
+      "tag": "0006_abnormal_black_bolt",
+      "breakpoints": true
     }
   ]
 }

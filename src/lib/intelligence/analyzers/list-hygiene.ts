@@ -28,15 +28,24 @@
 // Custom-holiday asymmetry: branches 1 and 3 are "cold calls" — they
 // invent an association between a user's list and an event the user has
 // never engaged with. That's appropriate for birthday (self-grounded)
-// and Christmas (~universal), but wrong for custom holidays, which are
-// arbitrary admin-curated rows that may be irrelevant to any given
-// user (e.g. "Graham Grad Party"). For custom-holiday events the
-// analyzer only flows through branches 2 and 4, both of which require
-// an existing matching list (i.e. a list the user has already bound to
-// this `customHolidayId`). Custom-holiday events still appear in the
-// in-window event set so the cross-event coverage check on branch 1
-// continues to protect a bound holiday list from being rebound away
-// for a birthday/Christmas conversion.
+// and Christmas (~universal), but wrong for BROADCAST custom holidays,
+// which are arbitrary admin-curated rows that may be irrelevant to any
+// given user (e.g. a generic "Easter" the deployment celebrates).
+//
+// For broadcast custom-holiday events (no recipient) the analyzer only
+// flows through branches 2 and 4, both of which require an existing
+// matching list. They still appear in the in-window event set so the
+// cross-event coverage check on branch 1 continues to protect a bound
+// holiday list from being rebound away for a birthday/Christmas
+// conversion.
+//
+// For RECIPIENT-BOUND custom-holiday events ("Graham's Graduation"),
+// branch 3 re-engages: the event set filter in `upcoming-events.ts`
+// already ensures only the recipient subject sees the event, so
+// scaffolding a list for them is the right nudge, not a cold call.
+// Branch 1 stays disabled even for recipient-bound holidays: renaming
+// + converting an existing user-named list for a one-off event is too
+// aggressive.
 
 import { and, asc, count, desc, eq, inArray, isNull, max, ne } from 'drizzle-orm'
 
@@ -367,11 +376,14 @@ export const listHygieneAnalyzer: Analyzer = {
 			// case we still need to nudge the user to create a list for
 			// THIS event.
 			//
-			// Skipped for custom-holiday events for the same reason as
-			// branch 1: scaffolding a list for an arbitrary admin-curated
-			// holiday is a cold call. A deployment with N custom holidays
-			// would otherwise produce N create-list nudges per user.
-			if (event.kind !== 'custom-holiday' && !convertRecEmitted && matchingLists.length === 0) {
+			// Skipped for BROADCAST custom-holiday events for the same
+			// reason as branch 1: scaffolding a list for an arbitrary
+			// admin-curated holiday is a cold call. Recipient-bound
+			// custom holidays DO scaffold; the event set filter in
+			// upcoming-events.ts already restricts the audience to the
+			// recipient subject, so the nudge is targeted.
+			const isScaffoldEligible = event.kind !== 'custom-holiday' || event.recipient.kind !== 'none'
+			if (isScaffoldEligible && !convertRecEmitted && matchingLists.length === 0) {
 				recs.push(buildCreateRec({ event, canonicalType, dependentId: ctx.dependentId, subject }))
 			}
 

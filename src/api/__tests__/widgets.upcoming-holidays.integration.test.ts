@@ -11,7 +11,7 @@
 // Dedup is by UTC (month, day): custom rows beat hardcoded so an admin
 // override always wins.
 
-import { makeUser } from '@test/integration/factories'
+import { makeDependent, makeDependentGuardianship, makeUser, makeUserRelationship } from '@test/integration/factories'
 import { withRollback } from '@test/integration/setup'
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
@@ -411,6 +411,136 @@ describe('getUpcomingHolidaysImpl', () => {
 				const me = await makeUser(tx)
 				expect(await getUpcomingHolidaysImpl({ userId: me.id, limit: 0, now: NOW, dbx: tx })).toEqual([])
 				expect(await getUpcomingHolidaysImpl({ userId: me.id, limit: -1, now: NOW, dbx: tx })).toEqual([])
+			})
+		})
+	})
+
+	describe('recipient gating for custom_holidays rows', () => {
+		it('shows a recipient-bound row to the recipient themselves', async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				const recipient = await makeUser(tx)
+				const [ch] = await tx
+					.insert(customHolidays)
+					.values({
+						title: "Recipient's Day",
+						source: 'custom',
+						customMonth: 3,
+						customDay: 10,
+						customYear: null,
+						recipientUserId: recipient.id,
+					})
+					.returning()
+
+				const rows = await getUpcomingHolidaysImpl({ userId: recipient.id, now: NOW, dbx: tx })
+				expect(rows.find(r => r.id === `custom:${ch.id}`)).toBeDefined()
+			})
+		})
+
+		it('shows a recipient-bound row to a default-allow viewer', async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				const recipient = await makeUser(tx)
+				const viewer = await makeUser(tx)
+				const [ch] = await tx
+					.insert(customHolidays)
+					.values({
+						title: "Recipient's Day",
+						source: 'custom',
+						customMonth: 3,
+						customDay: 10,
+						customYear: null,
+						recipientUserId: recipient.id,
+					})
+					.returning()
+
+				const rows = await getUpcomingHolidaysImpl({ userId: viewer.id, now: NOW, dbx: tx })
+				expect(rows.find(r => r.id === `custom:${ch.id}`)).toBeDefined()
+			})
+		})
+
+		it('hides a recipient-bound row from a viewer the recipient denied', async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				const recipient = await makeUser(tx)
+				const blocked = await makeUser(tx)
+				await makeUserRelationship(tx, { ownerUserId: recipient.id, viewerUserId: blocked.id, accessLevel: 'none' })
+				const [ch] = await tx
+					.insert(customHolidays)
+					.values({
+						title: "Recipient's Day",
+						source: 'custom',
+						customMonth: 3,
+						customDay: 10,
+						customYear: null,
+						recipientUserId: recipient.id,
+					})
+					.returning()
+
+				const rows = await getUpcomingHolidaysImpl({ userId: blocked.id, limit: 10, now: NOW, dbx: tx })
+				expect(rows.find(r => r.id === `custom:${ch.id}`)).toBeUndefined()
+			})
+		})
+
+		it('shows a dependent-recipient row to a guardian of the dependent', async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				const guardian = await makeUser(tx)
+				const dep = await makeDependent(tx, { createdByUserId: guardian.id })
+				await makeDependentGuardianship(tx, { guardianUserId: guardian.id, dependentId: dep.id })
+				const [ch] = await tx
+					.insert(customHolidays)
+					.values({
+						title: "Mochi's Birthday",
+						source: 'custom',
+						customMonth: 3,
+						customDay: 10,
+						customYear: null,
+						recipientDependentId: dep.id,
+					})
+					.returning()
+
+				const rows = await getUpcomingHolidaysImpl({ userId: guardian.id, now: NOW, dbx: tx })
+				expect(rows.find(r => r.id === `custom:${ch.id}`)).toBeDefined()
+			})
+		})
+
+		it('hides a dependent-recipient row from a viewer the guardian denied', async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				const guardian = await makeUser(tx)
+				const blocked = await makeUser(tx)
+				const dep = await makeDependent(tx, { createdByUserId: guardian.id })
+				await makeDependentGuardianship(tx, { guardianUserId: guardian.id, dependentId: dep.id })
+				await makeUserRelationship(tx, { ownerUserId: guardian.id, viewerUserId: blocked.id, accessLevel: 'none' })
+				const [ch] = await tx
+					.insert(customHolidays)
+					.values({
+						title: "Mochi's Birthday",
+						source: 'custom',
+						customMonth: 3,
+						customDay: 10,
+						customYear: null,
+						recipientDependentId: dep.id,
+					})
+					.returning()
+
+				const rows = await getUpcomingHolidaysImpl({ userId: blocked.id, limit: 10, now: NOW, dbx: tx })
+				expect(rows.find(r => r.id === `custom:${ch.id}`)).toBeUndefined()
+			})
+		})
+
+		it('broadcasts a row with no recipient to every user (existing behavior)', async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				const someone = await makeUser(tx)
+				const [ch] = await tx
+					.insert(customHolidays)
+					.values({ title: 'Easter', source: 'custom', customMonth: 3, customDay: 10, customYear: null })
+					.returning()
+
+				const rows = await getUpcomingHolidaysImpl({ userId: someone.id, now: NOW, dbx: tx })
+				expect(rows.find(r => r.id === `custom:${ch.id}`)).toBeDefined()
 			})
 		})
 	})

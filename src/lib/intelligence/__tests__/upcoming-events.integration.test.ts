@@ -240,6 +240,110 @@ describe('getInWindowEventsForSubject', () => {
 			expect(events).toHaveLength(0)
 		})
 	})
+
+	describe('recipient filtering', () => {
+		it('includes a user-recipient holiday only in the recipient user-subject run', async () => {
+			await withRollback(async tx => {
+				const recipient = await makeUser(tx)
+				const other = await makeUser(tx)
+				const holidayId = '44444444-4444-4444-4444-444444444444'
+				await tx.insert(customHolidays).values({
+					id: holidayId,
+					title: "Graham's Day",
+					source: 'custom',
+					customMonth: 6,
+					customDay: 1,
+					recipientUserId: recipient.id,
+				})
+
+				const recipientEvents = await getInWindowEventsForSubject({
+					userId: recipient.id,
+					dependentId: null,
+					settings: DEFAULT_APP_SETTINGS,
+					now: NOW,
+					dbx: tx,
+				})
+				const otherEvents = await getInWindowEventsForSubject({
+					userId: other.id,
+					dependentId: null,
+					settings: DEFAULT_APP_SETTINGS,
+					now: NOW,
+					dbx: tx,
+				})
+
+				const recipientMatch = recipientEvents.find(e => e.kind === 'custom-holiday' && e.customHolidayId === holidayId)
+				expect(recipientMatch).toBeDefined()
+				expect(recipientMatch?.kind === 'custom-holiday' && recipientMatch.recipient.kind).toBe('user')
+
+				expect(otherEvents.find(e => e.kind === 'custom-holiday' && e.customHolidayId === holidayId)).toBeUndefined()
+			})
+		})
+
+		it('includes a dependent-recipient holiday only in the matching dependent-subject run', async () => {
+			await withRollback(async tx => {
+				const guardian = await makeUser(tx)
+				const [dep] = await tx.insert(dependents).values({ id: 'dep-graham', name: 'Graham', createdByUserId: guardian.id }).returning()
+				await tx.insert(dependentGuardianships).values({ guardianUserId: guardian.id, dependentId: dep.id })
+
+				const holidayId = '55555555-5555-5555-5555-555555555555'
+				await tx.insert(customHolidays).values({
+					id: holidayId,
+					title: "Graham's Day",
+					source: 'custom',
+					customMonth: 6,
+					customDay: 1,
+					recipientDependentId: dep.id,
+				})
+
+				const userEvents = await getInWindowEventsForSubject({
+					userId: guardian.id,
+					dependentId: null,
+					settings: DEFAULT_APP_SETTINGS,
+					now: NOW,
+					dbx: tx,
+				})
+				const dependentEvents = await getInWindowEventsForSubject({
+					userId: guardian.id,
+					dependentId: dep.id,
+					settings: DEFAULT_APP_SETTINGS,
+					now: NOW,
+					dbx: tx,
+				})
+
+				// Guardian's user-subject run does NOT see the dependent's holiday.
+				expect(userEvents.find(e => e.kind === 'custom-holiday' && e.customHolidayId === holidayId)).toBeUndefined()
+
+				// The dependent-subject run does.
+				const dependentMatch = dependentEvents.find(e => e.kind === 'custom-holiday' && e.customHolidayId === holidayId)
+				expect(dependentMatch).toBeDefined()
+				expect(dependentMatch?.kind === 'custom-holiday' && dependentMatch.recipient.kind).toBe('dependent')
+			})
+		})
+
+		it('still broadcasts a no-recipient holiday to every subject', async () => {
+			await withRollback(async tx => {
+				const someone = await makeUser(tx)
+				const holidayId = '66666666-6666-6666-6666-666666666666'
+				await tx.insert(customHolidays).values({
+					id: holidayId,
+					title: 'Easter',
+					source: 'custom',
+					customMonth: 6,
+					customDay: 1,
+				})
+				const events = await getInWindowEventsForSubject({
+					userId: someone.id,
+					dependentId: null,
+					settings: DEFAULT_APP_SETTINGS,
+					now: NOW,
+					dbx: tx,
+				})
+				const match = events.find(e => e.kind === 'custom-holiday' && e.customHolidayId === holidayId)
+				expect(match).toBeDefined()
+				expect(match?.kind === 'custom-holiday' && match.recipient.kind).toBe('none')
+			})
+		})
+	})
 })
 
 describe('eventIsCovered', () => {
@@ -265,6 +369,7 @@ describe('eventIsCovered', () => {
 		kind: 'custom-holiday',
 		matchTypes: ['holiday'],
 		customHolidayId: 'a',
+		recipient: { kind: 'none' },
 		occurrence: new Date('2026-06-01T00:00:00Z'),
 		occurrenceISO: '2026-06-01T00:00:00.000Z',
 		daysUntil: 10,
