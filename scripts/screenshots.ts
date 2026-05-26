@@ -34,6 +34,7 @@ import {
 	fileForRun,
 	type ManifestEntry,
 	mirrorToLatest,
+	mirrorViewportThemeFlat,
 	mirrorViewportThemeTo,
 	pruneOldRuns,
 	timestampSlug,
@@ -68,6 +69,7 @@ function defaultServerBaseUrl(): string {
 const STORAGE_STATE_PATH = resolvePath(REPO_ROOT, '.cache/screenshots/storageState.json')
 const DEFAULT_OUT = resolvePath(REPO_ROOT, 'screenshots')
 const DOCS_SCREENSHOTS_DIR = resolvePath(REPO_ROOT, '../docs/src/screenshots')
+const DOCS_ASSETS_DIR = resolvePath(REPO_ROOT, '../docs/src/assets')
 
 interface CliFlags {
 	url?: string
@@ -126,6 +128,14 @@ async function loadFixtureIds(): Promise<FixtureIds> {
 	return JSON.parse(raw) as FixtureIds
 }
 
+// `hero` is a docs-only viewport — never offered in the picker. Always
+// included alongside `basic` so default runs produce the hero captures
+// the docs site needs. An explicit `--viewports=hero` still works.
+function withHero(viewports: Array<ViewportName>): Array<ViewportName> {
+	if (!viewports.includes('basic') || viewports.includes('hero')) return viewports
+	return [...viewports, 'hero']
+}
+
 async function gatherChoices(flags: CliFlags) {
 	const allRouteSlugs = ROUTES.map(r => r.slug)
 
@@ -134,7 +144,7 @@ async function gatherChoices(flags: CliFlags) {
 			url: flags.url ?? defaultServerBaseUrl(),
 			outDir: flags.out ? resolvePath(flags.out) : DEFAULT_OUT,
 			routeSlugs: flags.routes ?? allRouteSlugs,
-			viewports: flags.viewports ?? (['basic'] as Array<ViewportName>),
+			viewports: withHero(flags.viewports ?? (['basic'] as Array<ViewportName>)),
 			themes: flags.themes ?? (['light', 'dark'] as Array<Theme>),
 		}
 	}
@@ -157,16 +167,17 @@ async function gatherChoices(flags: CliFlags) {
 
 	const outDir = flags.out ? resolvePath(flags.out) : DEFAULT_OUT
 
-	const viewports =
+	const viewports = withHero(
 		flags.viewports ??
-		(await checkbox<ViewportName>({
-			message: 'Viewports',
-			choices: [
-				{ name: 'Mobile (390x844)', value: 'mobile', checked: false },
-				{ name: 'Basic (1060x1000)', value: 'basic', checked: true },
-			],
-			required: true,
-		}))
+			(await checkbox<ViewportName>({
+				message: 'Viewports',
+				choices: [
+					{ name: 'Mobile (390x844)', value: 'mobile', checked: false },
+					{ name: 'Basic (1060x1000)', value: 'basic', checked: true },
+				],
+				required: true,
+			}))
+	)
 
 	const themes =
 		flags.themes ??
@@ -318,6 +329,16 @@ async function run(plan: RunPlan, ids: FixtureIds) {
 		}
 	} else if (plan.viewports.includes('basic')) {
 		console.log('📚 Skipping docs mirror (partial route run; docs sync only happens on full runs).')
+	}
+
+	// Hero captures land flat in docs/src/assets/ alongside other docs
+	// assets. Unconditional on any hero/dark output this run; partial
+	// runs are fine because each hero file is a standalone asset.
+	if (plan.viewports.includes('hero') && plan.themes.includes('dark')) {
+		const written = await mirrorViewportThemeFlat(plan.outDir, plan.runId, 'hero', 'dark', DOCS_ASSETS_DIR)
+		if (written.length > 0) {
+			console.log(`🎯 Mirrored ${written.length} hero screenshot(s) to ${DOCS_ASSETS_DIR}: ${written.join(', ')}`)
+		}
 	}
 
 	// Retention: keep the current run plus the `KEEP_RUNS - 1` most recent

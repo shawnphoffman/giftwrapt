@@ -85,6 +85,36 @@ export async function mirrorViewportThemeTo(
 	return count
 }
 
+// Flat-copy every PNG from a (viewport, theme) subtree into `destDir`
+// directly (no nested folders, no pre-clean). Used for the hero captures
+// that land alongside other docs assets in `docs/src/assets/` — we must
+// not wipe sibling files. Returns the list of filenames written.
+export async function mirrorViewportThemeFlat(
+	rootDir: string,
+	runId: string,
+	viewport: ViewportName,
+	theme: Theme,
+	destDir: string
+): Promise<Array<string>> {
+	const { readdir } = await import('node:fs/promises')
+	const src = join(rootDir, runId, viewport, theme)
+	let entries: Array<Dirent>
+	try {
+		entries = await readdir(src, { withFileTypes: true })
+	} catch {
+		return []
+	}
+	await mkdir(destDir, { recursive: true })
+	const written: Array<string> = []
+	for (const entry of entries) {
+		if (!entry.isFile()) continue
+		if (!entry.name.endsWith('.png')) continue
+		await copyFile(join(src, entry.name), join(destDir, entry.name))
+		written.push(entry.name)
+	}
+	return written
+}
+
 export async function writeManifest(rootDir: string, runId: string, meta: RunMeta): Promise<string> {
 	const path = join(rootDir, runId, 'manifest.json')
 	await writeFile(path, JSON.stringify(meta, null, 2) + '\n')

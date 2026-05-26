@@ -100,5 +100,6 @@ export async function captureRoute(page: Page, route: RouteDef, url: string, out
 
 	await page.waitForTimeout(100)
 
-	await page.screenshot({ path: outPath, fullPage: true, animations: 'disabled' })
+	const fullPage = route.fullPage ?? true
+	await page.screenshot({ path: outPath, fullPage, animations: 'disabled' })
 }

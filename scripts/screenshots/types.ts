@@ -1,7 +1,7 @@
 import type { Page } from 'playwright'
 
 export type Theme = 'light' | 'dark'
-export type ViewportName = 'mobile' | 'basic'
+export type ViewportName = 'mobile' | 'basic' | 'hero'
 
 export interface Viewport {
 	name: ViewportName
@@ -25,6 +25,17 @@ export const VIEWPORTS: Record<ViewportName, Viewport> = {
 		name: 'basic',
 		width: 1060,
 		height: 1000,
+		isMobile: false,
+		hasTouch: false,
+		deviceScaleFactor: 2,
+	},
+	// Fixed-size, viewport-clipped captures for the marketing docs site.
+	// Always paired with `fullPage: false` on the route so the screenshot
+	// is exactly 1060x837 at 2x density (2120x1674 px in the output PNG).
+	hero: {
+		name: 'hero',
+		width: 1060,
+		height: 837,
 		isMobile: false,
 		hasTouch: false,
 		deviceScaleFactor: 2,
@@ -90,4 +101,10 @@ export interface RouteDef {
 	viewports?: ReadonlyArray<ViewportName>
 	/** Optional theme override (defaults to all selected themes). */
 	themes?: ReadonlyArray<Theme>
+	/**
+	 * Whether to capture the full scrollable page (default true) or only
+	 * the visible viewport. Hero routes set this to false so the output
+	 * matches the viewport's exact pixel dimensions.
+	 */
+	fullPage?: boolean
 }

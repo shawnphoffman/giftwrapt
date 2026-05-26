@@ -178,4 +178,58 @@ export const ROUTES: ReadonlyArray<RouteDef> = [
 	{ slug: 'admin-intelligence-scheduling', label: 'Admin: intelligence: scheduling', path: '/admin/intelligence/scheduling' },
 	{ slug: 'admin-intelligence-notifications', label: 'Admin: intelligence: notifications', path: '/admin/intelligence/notifications' },
 	{ slug: 'admin-intelligence-history', label: 'Admin: intelligence: history', path: '/admin/intelligence/history' },
+
+	// ----------------------------------------------------------------
+	// HERO captures for the marketing docs site.
+	// Fixed-size (1060x837 @ 2x), dark-only, viewport-clipped (not
+	// full page). Mirrored flat into `docs/src/assets/` after each run.
+	// ----------------------------------------------------------------
+	{
+		slug: 'hero_all-lists',
+		label: 'Hero: All Lists',
+		path: '/',
+		viewports: ['hero'],
+		themes: ['dark'],
+		fullPage: false,
+	},
+	{
+		slug: 'hero_my-lists',
+		label: 'Hero: My Lists',
+		path: '/me',
+		viewports: ['hero'],
+		themes: ['dark'],
+		fullPage: false,
+	},
+	{
+		slug: 'hero_my-list-detail',
+		label: 'Hero: My List Detail',
+		path: ids => `/lists/${ids.lists.adminWishlist}`,
+		viewports: ['hero'],
+		themes: ['dark'],
+		fullPage: false,
+	},
+	{
+		slug: 'hero_list-detail',
+		label: 'Hero: List Detail',
+		path: ids => `/lists/${ids.lists.friendWishlist}`,
+		viewports: ['hero'],
+		themes: ['dark'],
+		fullPage: false,
+	},
+	{
+		slug: 'hero_purchases',
+		label: 'Hero: Purchases',
+		path: '/purchases',
+		viewports: ['hero'],
+		themes: ['dark'],
+		fullPage: false,
+	},
+	{
+		slug: 'hero_suggestions',
+		label: 'Hero: Suggestions',
+		path: '/suggestions',
+		viewports: ['hero'],
+		themes: ['dark'],
+		fullPage: false,
+	},
 ]
