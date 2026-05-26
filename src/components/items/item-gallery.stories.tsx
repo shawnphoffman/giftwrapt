@@ -1463,11 +1463,13 @@ function VariationList({ variations, view }: { variations: Array<Variation>; vie
 			{variations.map(v => (
 				<Fragment key={v.key}>
 					<RowLabel label={v.label} />
-					{view === 'recipient' ? (
-						<ItemEditRow item={v.edit} commentCount={v.edit.commentCount} groups={groupsForMenu} />
-					) : (
-						<ItemRow item={v.viewable} />
-					)}
+					<div className="xs:pl-6">
+						{view === 'recipient' ? (
+							<ItemEditRow item={v.edit} commentCount={v.edit.commentCount} groups={groupsForMenu} />
+						) : (
+							<ItemRow item={v.viewable} />
+						)}
+					</div>
 				</Fragment>
 			))}
 		</>
@@ -1481,17 +1483,19 @@ function GroupList({ scenarios, view }: { scenarios: Array<GroupScenario>; view:
 				<Fragment key={s.key}>
 					<RowLabel label={s.label} />
 					{view === 'recipient' ? (
-						<GroupBlock
-							group={s.group}
-							items={s.edit}
-							groups={groupsForMenu}
-							listId={1}
-							isOwner
-							onAddItem={() => {}}
-							onDelete={() => {}}
-							onMoveItem={() => {}}
-							onReorder={() => {}}
-						/>
+						<div className="xs:pl-6">
+							<GroupBlock
+								group={s.group}
+								items={s.edit}
+								groups={groupsForMenu}
+								listId={1}
+								isOwner
+								onAddItem={() => {}}
+								onDelete={() => {}}
+								onMoveItem={() => {}}
+								onReorder={() => {}}
+							/>
+						</div>
 					) : s.view.length === 0 ? (
 						<div className="text-xs text-muted-foreground italic">Empty groups are hidden in buyer view.</div>
 					) : (

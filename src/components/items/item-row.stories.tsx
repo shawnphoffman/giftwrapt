@@ -146,24 +146,31 @@ export const Unavailable: Story = {
 			availabilityChangedAt: new Date('2026-04-12T15:30:00Z'),
 		}),
 	},
+	render: args => (
+		<div className="flex flex-col gap-4">
+			<ItemRow {...args} />
+			{priorityEnumValues.map(priority => (
+				<ItemRow
+					key={priority}
+					item={makeItemWithGifts({
+						title: `Unavailable, priority: ${priority}`,
+						url: null,
+						price: '85',
+						priority,
+						availability: 'unavailable',
+						availabilityChangedAt: new Date('2026-04-12T15:30:00Z'),
+					})}
+				/>
+			))}
+		</div>
+	),
 	parameters: {
 		docs: {
 			description: {
 				story:
-					'Item flagged as no longer available (sold out, discontinued). Claim button is suppressed; the URL link still works. Hover the badge for the date the flag was set.',
+					'Item flagged as no longer available (sold out, discontinued). Claim button is suppressed; the URL link still works. Hover the badge for the date the flag was set. The priority tab and ring are dimmed across every priority level.',
 			},
 		},
-	},
-}
-
-export const SignedOutVisitor: Story = {
-	args: {
-		item: makeItemWithGifts({
-			gifts: [makeGift()],
-		}),
-	},
-	parameters: {
-		session: null,
 	},
 }
 

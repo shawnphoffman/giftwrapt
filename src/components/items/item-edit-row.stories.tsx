@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 
 import type { GroupSummary } from '@/api/lists'
+import { priorityEnumValues } from '@/db/schema/enums'
 
 import { withItemFrame } from './_stories/decorators'
 import { makeItem, placeholderImages } from './_stories/fixtures'
@@ -204,10 +205,30 @@ export const Unavailable: Story = {
 			availabilityChangedAt: new Date('2026-04-12T15:30:00Z'),
 		}),
 	},
+	render: args => (
+		<div className="flex flex-col gap-4">
+			<ItemEditRow {...args} groups={[]} />
+			{priorityEnumValues.map(priority => (
+				<ItemEditRow
+					key={priority}
+					groups={[]}
+					item={makeItem({
+						title: `Unavailable, priority: ${priority}`,
+						url: null,
+						price: '85',
+						priority,
+						availability: 'unavailable',
+						availabilityChangedAt: new Date('2026-04-12T15:30:00Z'),
+					})}
+				/>
+			))}
+		</div>
+	),
 	parameters: {
 		docs: {
 			description: {
-				story: 'Owner view of an item flagged as unavailable. The badge serves as a reminder that gifters cannot claim it.',
+				story:
+					'Owner view of an item flagged as unavailable. The badge serves as a reminder that gifters cannot claim it. The priority tab and ring are dimmed across every priority level.',
 			},
 		},
 	},

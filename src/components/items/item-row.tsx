@@ -119,22 +119,19 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 	if (item.price) {
 		dimmedBadges.push(<PriceQuantityBadge key="price" price={item.price} quantity={1} hideQuantity />)
 	}
-	dimmedBadges.push(
-		<QuantityRemainingBadge
-			key="qty"
-			variant="inline-pill"
-			quantity={item.quantity}
-			remaining={remaining}
-			claimedCount={claimedCount}
-			youClaimed={!!myClaim}
-			lockReason={groupLockedForViewer ? lockReason : undefined}
-			unavailable={isUnavailable}
-			unavailableChangedAt={item.availabilityChangedAt}
-		/>
-	)
 	const trailing = (
 		<div className="flex items-center gap-2 justify-end whitespace-nowrap">
 			<div className={cn('flex items-center gap-1', dimmed && 'opacity-60')}>{dimmedBadges}</div>
+			<QuantityRemainingBadge
+				variant="inline-pill"
+				quantity={item.quantity}
+				remaining={remaining}
+				claimedCount={claimedCount}
+				youClaimed={!!myClaim}
+				lockReason={groupLockedForViewer ? lockReason : undefined}
+				unavailable={isUnavailable}
+				unavailableChangedAt={item.availabilityChangedAt}
+			/>
 			{claimEntries.length > 0 && <ClaimUsers claims={claimEntries} />}
 		</div>
 	)
@@ -239,7 +236,8 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 				<div
 					className={cn(
 						'absolute left-0 top-0 h-[calc(100%-4px)] max-h-16 -translate-x-1/2 translate-y-[2px] w-12 rounded-md shadow-sm drop-shadow-[1px_1px_10px_rgb(0_0_0/0.2)] dark:drop-shadow-[1px_1px_10px_rgb(0_0_0/0.5)] hidden xs:flex items-center p-1 z-0',
-						priorityTabBgClass[item.priority]
+						priorityTabBgClass[item.priority],
+						isUnavailable && 'opacity-60'
 					)}
 					aria-hidden
 				>
@@ -249,7 +247,7 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 			<div
 				className={cn(
 					'relative z-10 flex items-start gap-2 p-3 ps-4 ring-1 ring-inset ring-border rounded-lg bg-card shadow-sm',
-					priorityRingClass[item.priority]
+					!isUnavailable && priorityRingClass[item.priority]
 				)}
 			>
 				{rowInner}

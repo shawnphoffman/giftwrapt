@@ -306,9 +306,11 @@ export const ItemEditRow = memo(function ItemEditRow({
 				itemId={item.id}
 				commentCount={commentCount}
 				trailing={
-					<div className={cn('flex items-center gap-2', dimmed && 'opacity-60')}>
-						<DateAdded createdAt={item.createdAt} />
-						{item.price && <PriceQuantityBadge price={item.price} quantity={1} hideQuantity />}
+					<div className="flex items-center gap-2">
+						<div className={cn('flex items-center gap-2', dimmed && 'opacity-60')}>
+							<DateAdded createdAt={item.createdAt} />
+							{item.price && <PriceQuantityBadge price={item.price} quantity={1} hideQuantity />}
+						</div>
 						{item.quantity > 1 && (
 							<QuantityRemainingBadge variant="inline-pill" quantity={item.quantity} remaining={item.quantity} firstPerson />
 						)}
@@ -328,7 +330,8 @@ export const ItemEditRow = memo(function ItemEditRow({
 						<div
 							className={cn(
 								'absolute left-0 top-0 h-[calc(100%-4px)] max-h-16 -translate-x-1/2 translate-y-[2px] w-12 rounded-md shadow-sm drop-shadow-[1px_1px_10px_rgb(0_0_0_/_0.2)] dark:drop-shadow-[1px_1px_10px_rgb(0_0_0_/_0.5)] hidden xs:flex items-center p-1 z-0',
-								priorityTabBgClass[item.priority]
+								priorityTabBgClass[item.priority],
+								isUnavailable && 'opacity-60'
 							)}
 							aria-hidden
 						>
@@ -338,7 +341,7 @@ export const ItemEditRow = memo(function ItemEditRow({
 					<div
 						className={cn(
 							'relative z-10 flex items-start gap-2 p-2 ps-4 ring-1 ring-inset ring-border rounded-lg bg-card shadow-sm',
-							priorityRingClass[item.priority]
+							!isUnavailable && priorityRingClass[item.priority]
 						)}
 					>
 						{rowInner}

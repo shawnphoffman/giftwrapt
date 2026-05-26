@@ -118,10 +118,14 @@ export function QuantityRemainingBadge({
 		if (variant === 'inline') {
 			pill = (
 				<span className={cn('inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap text-muted-foreground', className)}>
-					<span>
-						{firstPerson ? 'want' : 'wants'} {quantity}
-					</span>
-					<span aria-hidden>·</span>
+					{quantity > 1 && (
+						<>
+							<span>
+								{firstPerson ? 'want' : 'wants'} {quantity}
+							</span>
+							<span aria-hidden>·</span>
+						</>
+					)}
 					<span className="text-red-800 dark:text-red-400">unavailable</span>
 				</span>
 			)
@@ -129,27 +133,35 @@ export function QuantityRemainingBadge({
 			pill = (
 				<span
 					className={cn(
-						'inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap rounded-full border px-2 py-0.5 text-muted-foreground',
+						'inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap rounded-full border px-2 py-0.5',
+						'border-red-500/40 text-red-800 dark:text-red-400',
 						className
 					)}
 				>
-					<span>
-						{firstPerson ? 'Want' : 'Wants'} {quantity}
-					</span>
-					<span aria-hidden>·</span>
-					<span className="text-red-800 dark:text-red-400">Unavailable</span>
+					{quantity > 1 && (
+						<>
+							<span className="text-muted-foreground">
+								{firstPerson ? 'Want' : 'Wants'} {quantity}
+							</span>
+							<span aria-hidden className="text-muted-foreground">
+								·
+							</span>
+						</>
+					)}
+					<span>Unavailable</span>
 				</span>
 			)
 		} else if (variant === 'dots') {
 			pill = (
 				<span
 					className={cn(
-						'inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap text-muted-foreground',
+						'inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap',
+						'border-red-500/40 text-red-800 dark:text-red-400',
 						className
 					)}
 				>
-					<span>×{quantity}</span>
-					<span className="text-red-800 dark:text-red-400">Unavailable</span>
+					{quantity > 1 && <span className="text-muted-foreground">×{quantity}</span>}
+					<span>Unavailable</span>
 				</span>
 			)
 		} else {
@@ -162,9 +174,13 @@ export function QuantityRemainingBadge({
 						className
 					)}
 				>
-					<span className="inline-flex items-center gap-1 py-0.5 pl-2 pr-1">×{quantity}</span>
-					<span className="w-px bg-red-500/40" aria-hidden />
-					<span className="py-0.5 pl-1 pr-2">Unavailable</span>
+					{quantity > 1 && (
+						<>
+							<span className="inline-flex items-center gap-1 py-0.5 pl-2 pr-1">×{quantity}</span>
+							<span className="w-px bg-red-500/40" aria-hidden />
+						</>
+					)}
+					<span className={cn('py-0.5 pr-2', quantity > 1 ? 'pl-1' : 'pl-2')}>Unavailable</span>
 				</span>
 			)
 		}

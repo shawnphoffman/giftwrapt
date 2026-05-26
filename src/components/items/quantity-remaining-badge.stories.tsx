@@ -76,6 +76,7 @@ const STATES: Array<GalleryState> = [
 	// unavailable (toggle is gated on hasNoClaims, so remaining always equals quantity)
 	{ quantity: 1, remaining: 1, unavailable: true },
 	{ quantity: 3, remaining: 3, unavailable: true },
+	{ quantity: 3, remaining: 2, unavailable: true },
 ]
 
 function describeState(state: GalleryState): { wants: string; claimed: string; overclaimed: boolean } {
