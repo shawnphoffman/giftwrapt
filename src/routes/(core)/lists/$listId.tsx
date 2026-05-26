@@ -15,6 +15,7 @@ import BackToParentList from '@/components/lists/back-to-parent-list'
 import { ListOrphanAlert } from '@/components/orphan-claims/list-orphan-alert'
 import { TodoList } from '@/components/todos/todo-list'
 import { Skeleton } from '@/components/ui/skeleton'
+import { RouteErrorFallback } from '@/components/utilities/route-error-fallback'
 import { perfTime } from '@/lib/observability/perf'
 import { listHeaderQueryOptions } from '@/lib/queries/lists' // used by useSuspenseQuery below
 import { useListAutoRefresh } from '@/lib/use-list-auto-refresh'
@@ -24,6 +25,7 @@ import { useScrollToHash } from '@/lib/use-scroll-to-hash'
 type ListSearch = { from?: number; edit?: number }
 
 export const Route = createFileRoute('/(core)/lists/$listId')({
+	errorComponent: ({ error, reset }) => <RouteErrorFallback error={error} reset={reset} title="This list couldn't load" />,
 	validateSearch: (search: Record<string, unknown>): ListSearch => {
 		const out: ListSearch = {}
 		const fromRaw = search.from

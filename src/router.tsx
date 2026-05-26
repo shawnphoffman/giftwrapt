@@ -6,8 +6,10 @@ import { createRouter } from '@tanstack/react-router'
 import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query'
 
 import Loading from './components/loading'
+import { RouteErrorFallback } from './components/utilities/route-error-fallback'
 import * as TanstackQuery from './integrations/tanstack-query/root-provider'
 import { setupChunkReloadHandler } from './lib/chunk-reload'
+import NotFound from './routes/-not-found'
 import { routeTree } from './routeTree.gen'
 
 export const getRouter = () => {
@@ -26,6 +28,8 @@ export const getRouter = () => {
 				<Loading />
 			</div>
 		),
+		defaultErrorComponent: ({ error, reset }) => <RouteErrorFallback error={error} reset={reset} />,
+		defaultNotFoundComponent: () => <NotFound />,
 		Wrap: (props: { children: React.ReactNode }) => {
 			return <TanstackQuery.Provider {...rqContext}>{props.children}</TanstackQuery.Provider>
 		},
