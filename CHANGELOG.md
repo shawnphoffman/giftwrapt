@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.39.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.38.0...v0.39.0) (2026-05-26)
+
+
+### Features
+
+* **admin:** add scrape health stats card ([bdb047f](https://github.com/shawnphoffman/giftwrapt/commit/bdb047fe6f87bc58e2c3a356504bc42e0422bfb9))
+* **admin:** show scraper tiers and per-domain URL examples on scrape health ([3bb4958](https://github.com/shawnphoffman/giftwrapt/commit/3bb495883deaa8dc95866f10637c245c16d733ae))
+* **holidays:** optional recipient on custom holidays ([61529e4](https://github.com/shawnphoffman/giftwrapt/commit/61529e452f03dfb1408a3c0e6b14032a0d5a2eb2))
+* **recent:** support timeframe filters in recent feeds ([aedabb8](https://github.com/shawnphoffman/giftwrapt/commit/aedabb87410292f52cb21b17db31240ef85f6966))
+
 ## [0.38.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.37.0...v0.38.0) (2026-05-25)
 
 
