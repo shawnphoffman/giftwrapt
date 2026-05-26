@@ -42,6 +42,7 @@ import { sql } from 'drizzle-orm'
 
 import { db } from '@/db'
 import {
+	customHolidays,
 	dependentGuardianships,
 	dependents,
 	giftedItems,
@@ -168,13 +169,14 @@ function need(map: Map<string, number>, title: string): number {
 
 async function createList(input: {
 	name: string
-	type?: 'wishlist' | 'christmas' | 'birthday' | 'giftideas' | 'todos' | 'test'
+	type?: 'wishlist' | 'christmas' | 'birthday' | 'holiday' | 'giftideas' | 'todos' | 'test'
 	ownerId: string
 	isPrimary?: boolean
 	isPrivate?: boolean
 	description?: string
 	giftIdeasTargetUserId?: string
 	subjectDependentId?: string
+	customHolidayId?: string
 }): Promise<number> {
 	const [row] = await db
 		.insert(lists)
@@ -187,6 +189,7 @@ async function createList(input: {
 			description: input.description,
 			giftIdeasTargetUserId: input.giftIdeasTargetUserId,
 			subjectDependentId: input.subjectDependentId,
+			customHolidayId: input.customHolidayId,
 		})
 		.returning({ id: lists.id })
 	return row.id
@@ -225,6 +228,7 @@ async function reset() {
 			"items",
 			"item_groups",
 			"lists",
+			"custom_holidays",
 			"user_relationships",
 			"guardianships",
 			"dependent_guardianships",
@@ -405,6 +409,29 @@ async function main() {
 	])
 
 	// ----------------------------------------------------------------
+	// CUSTOM HOLIDAYS
+	// ----------------------------------------------------------------
+	// One annually-recurring custom holiday, pinned ~2 weeks out so the
+	// "N days" countdown badge always renders in its destructive
+	// (<31-day) state regardless of when the seed runs. Bob owns a
+	// holiday-typed list pointing at it (next section), so the badge is
+	// visible on Bob's card in the public-lists feed for everyone who
+	// can view his lists (alice / carol / eve / dave).
+	console.log('🎉 Creating custom holiday...')
+	const bobFamilyReunionHolidayId = crypto.randomUUID()
+	{
+		const target = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
+		await db.insert(customHolidays).values({
+			id: bobFamilyReunionHolidayId,
+			title: 'Family Reunion',
+			source: 'custom',
+			customMonth: target.getUTCMonth() + 1,
+			customDay: target.getUTCDate(),
+			customYear: null,
+		})
+	}
+
+	// ----------------------------------------------------------------
 	// LISTS
 	// ----------------------------------------------------------------
 	console.log('📝 Creating lists...')
@@ -469,6 +496,13 @@ async function main() {
 		name: "Bob's Private List",
 		ownerId: bobId,
 		isPrivate: true,
+	})
+	const bobFamilyReunion = await createList({
+		name: 'Family Reunion',
+		type: 'holiday',
+		ownerId: bobId,
+		customHolidayId: bobFamilyReunionHolidayId,
+		description: 'Snacks and small gifts for the weekend.',
 	})
 
 	const carolWishlist = await createList({ name: "Carol's Wishlist", ownerId: carolId, isPrimary: true })
@@ -753,6 +787,14 @@ async function main() {
 	await insertItems([
 		{ listId: bobPrivate, title: 'Surprise anniversary trip ideas', priority: 'high' },
 		{ listId: bobPrivate, title: 'Watch (waiting for a sale)', priority: 'normal', price: '450.00', currency: 'USD' },
+	])
+
+	// Bob's Family Reunion holiday list - small handful of items so the
+	// row's item count isn't 0/0 when surfacing the countdown badge.
+	await insertItems([
+		{ listId: bobFamilyReunion, title: 'Cooler full of drinks', priority: 'normal' },
+		{ listId: bobFamilyReunion, title: 'Outdoor games set', priority: 'normal', price: '45.00', currency: 'USD' },
+		{ listId: bobFamilyReunion, title: 'Group photo frame', priority: 'low' },
 	])
 
 	// ----------------------------------------------------------------

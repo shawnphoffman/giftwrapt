@@ -35,6 +35,7 @@ import { db } from '@/db'
 import type { BirthMonth } from '@/db/schema'
 import {
 	appSettings,
+	customHolidays,
 	dependentGuardianships,
 	dependents,
 	giftedItems,
@@ -172,13 +173,14 @@ async function signUp(input: {
 
 async function createList(input: {
 	name: string
-	type?: 'wishlist' | 'christmas' | 'birthday' | 'giftideas' | 'todos' | 'test'
+	type?: 'wishlist' | 'christmas' | 'birthday' | 'holiday' | 'giftideas' | 'todos' | 'test'
 	ownerId: string
 	isPrimary?: boolean
 	isPrivate?: boolean
 	description?: string
 	giftIdeasTargetUserId?: string
 	subjectDependentId?: string
+	customHolidayId?: string
 	createdAt?: Date
 }): Promise<number> {
 	const [row] = await db
@@ -192,6 +194,7 @@ async function createList(input: {
 			description: input.description,
 			giftIdeasTargetUserId: input.giftIdeasTargetUserId,
 			subjectDependentId: input.subjectDependentId,
+			customHolidayId: input.customHolidayId,
 			...(input.createdAt ? { createdAt: input.createdAt } : {}),
 		})
 		.returning({ id: lists.id })
@@ -241,6 +244,7 @@ async function reset() {
 			"items",
 			"item_groups",
 			"lists",
+			"custom_holidays",
 			"user_relation_labels",
 			"user_relationships",
 			"guardianships",
@@ -587,6 +591,25 @@ async function main() {
 		{ ownerUserId: gifterId, viewerUserId: restrictedOwnerId, accessLevel: 'view', canEdit: false },
 	])
 
+	// --------------------------------------------------------------- CUSTOM HOLIDAYS
+	// One annually-recurring custom holiday, pinned ~2 weeks out from
+	// seedTime so the holiday-typed list below renders the "N days"
+	// countdown badge in its destructive (<31-day) state in every
+	// captured screenshot, regardless of when the seed runs.
+	console.log('🎉 Creating custom holiday...')
+	const partnerFamilyReunionHolidayId = crypto.randomUUID()
+	{
+		const target = daysFromNow(14)
+		await db.insert(customHolidays).values({
+			id: partnerFamilyReunionHolidayId,
+			title: 'Family Reunion',
+			source: 'custom',
+			customMonth: target.getUTCMonth() + 1,
+			customDay: target.getUTCDate(),
+			customYear: null,
+		})
+	}
+
 	// --------------------------------------------------------------- LISTS
 	console.log('📝 Creating lists (varied types/privacies/access)...')
 
@@ -662,6 +685,14 @@ async function main() {
 		ownerId: partnerId,
 		giftIdeasTargetUserId: adminId,
 		createdAt: daysAgo(60),
+	})
+	const partnerFamilyReunion = await createList({
+		name: 'Family Reunion',
+		type: 'holiday',
+		ownerId: partnerId,
+		customHolidayId: partnerFamilyReunionHolidayId,
+		description: 'Small gifts and snacks for the weekend with the family.',
+		createdAt: daysAgo(10),
 	})
 
 	// Friend's lists - admin views as gifter (mutual edit, but we capture
@@ -1186,6 +1217,21 @@ async function main() {
 	await insertItems([
 		{ listId: partnerBirthday, title: 'Spa day gift card', priority: 'high', price: '150.00', currency: 'USD', createdAt: daysAgo(15) },
 		{ listId: partnerBirthday, title: 'Bottle of natural wine', priority: 'normal', quantity: 2, createdAt: daysAgo(12) },
+	])
+
+	// Partner's holiday list - a few items so the row's count badge
+	// renders alongside the new "N days" countdown.
+	await insertItems([
+		{ listId: partnerFamilyReunion, title: 'Cooler full of drinks', priority: 'normal', createdAt: daysAgo(8) },
+		{
+			listId: partnerFamilyReunion,
+			title: 'Outdoor games set',
+			priority: 'normal',
+			price: '45.00',
+			currency: 'USD',
+			createdAt: daysAgo(7),
+		},
+		{ listId: partnerFamilyReunion, title: 'Group photo frame', priority: 'low', createdAt: daysAgo(5) },
 	])
 
 	// Partner christmas - mix of unclaimed + already-claimed-by-friend so admin
