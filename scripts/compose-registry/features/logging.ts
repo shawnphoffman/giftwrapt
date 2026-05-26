@@ -2,9 +2,8 @@ import type { EnvExampleSection } from '../types.ts'
 
 /**
  * Client-side / logging knobs. Today this section also documents
- * `VITE_APP_TITLE` and the TanStack devtools toggle - keep them together
- * because they're all "tunables the operator may flip" rather than
- * separate features.
+ * `VITE_APP_TITLE` - keep operator-tunable knobs together rather than
+ * splitting them into separate features.
  */
 export const clientEnvSection: EnvExampleSection = {
 	id: 'client',

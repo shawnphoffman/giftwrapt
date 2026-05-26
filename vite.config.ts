@@ -1,8 +1,7 @@
-import { readFileSync, statSync } from 'node:fs'
-import { join, resolve as resolvePath } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { resolve as resolvePath } from 'node:path'
 
 import tailwindcss from '@tailwindcss/vite'
-import { devtools } from '@tanstack/devtools-vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import { nitro } from 'nitro/vite'
@@ -12,20 +11,6 @@ import { defineConfig } from 'vite'
 import viteTsConfigPaths from 'vite-tsconfig-paths'
 
 const isStorybook = process.env.STORYBOOK === 'true'
-
-// Default on in the main checkout, off in git worktrees (they multiply dev
-// servers and each devtools instance binds its own WS port).
-function shouldEnableDevtools(): boolean {
-	try {
-		// In a main checkout .git is a directory; in a worktree it's a file
-		// pointing at <common-dir>/worktrees/<name>.
-		return statSync(join(process.cwd(), '.git')).isDirectory()
-	} catch {
-		return true
-	}
-}
-
-const devtoolsEnabled = shouldEnableDevtools()
 
 // Build-time identity. Baked into the bundle once and read by the admin debug
 // page. APP_COMMIT comes from the Docker build-arg in CI; on Vercel it falls
@@ -187,7 +172,6 @@ const config = defineConfig({
 	}),
 	plugins: [
 		dbClientAlias(),
-		!isStorybook && devtoolsEnabled && devtools(),
 		!isStorybook &&
 			nitro({
 				// Registered explicitly rather than relying on server/plugins/

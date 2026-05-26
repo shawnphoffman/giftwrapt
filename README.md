@@ -30,26 +30,6 @@ Everything lives at **[giftwrapt.dev](https://giftwrapt.dev)**:
 - [Configuration](https://giftwrapt.dev/configuration/settings/) - admin panel, env vars, storage, scraping, AI provider, cron.
 - [Troubleshooting](https://giftwrapt.dev/reference/troubleshooting/) - recovery steps for migration failures, lost `BETTER_AUTH_SECRET`, storage 403, etc.
 
-## Quick start
-
-One-click deploy to Railway (web service + Postgres + 5 cron services, auto-generated secrets):
-
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/giftwrapt)
-
-Or run locally with Docker:
-
-```bash
-git clone https://github.com/shawnphoffman/giftwrapt.git
-cd giftwrapt
-cp .env.example docker/.env
-$EDITOR docker/.env    # set POSTGRES_PASSWORD, BETTER_AUTH_SECRET, BETTER_AUTH_URL, CRON_SECRET
-docker compose -f docker/compose.selfhost-garage-cron.yaml up -d
-```
-
-Open `BETTER_AUTH_URL` in a browser. The first user to sign up is auto-promoted to admin.
-
-For local hacking on the codebase, see [Local development](https://giftwrapt.dev/contributing/local-development/).
-
 ## Tech stack
 
 - [TanStack Start](https://tanstack.com/start) (React 19 + Vite + Nitro)

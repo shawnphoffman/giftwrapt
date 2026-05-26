@@ -16,7 +16,7 @@ const ANIM_OFF_CSS = `
 		transition-delay: 0s !important;
 		caret-color: transparent !important;
 	}
-	[data-sonner-toaster], [data-tanstack-devtools] { display: none !important; }
+	[data-sonner-toaster] { display: none !important; }
 `
 
 export function resolveRoutePath(route: RouteDef, ids: FixtureIds): string {
