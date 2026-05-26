@@ -492,8 +492,8 @@ export function ListSettingsForm({
 					<div className="grid gap-2">
 						<Label>Delete list</Label>
 						<p className="text-muted-foreground text-xs">
-							Permanently remove this list and all its items. If there are claimed items, the list will be archived instead so purchase history
-							is preserved.
+							Permanently remove this list and all its items. If there are claimed items, the list will be archived instead so purchase
+							history is preserved.
 						</p>
 						<Button
 							type="button"
