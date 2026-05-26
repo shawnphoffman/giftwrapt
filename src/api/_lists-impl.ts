@@ -25,6 +25,7 @@ import {
 } from '@/db/schema'
 import { type BirthMonth, type GroupType, type ListType, listTypeEnumValues, type Priority } from '@/db/schema/enums'
 import type { ListAddon } from '@/db/schema/lists'
+import { customHolidayDisplayDate } from '@/lib/custom-holidays'
 import { computeListItemCounts } from '@/lib/gifts'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { listsCreatedTotal } from '@/lib/observability/metrics'
@@ -193,6 +194,11 @@ export type PublicList = {
 	itemsRemaining: number
 	createdAt: string
 	updatedAt: string
+	// For `holiday`-typed lists, the date (ISO 8601, UTC start-of-day) of
+	// the upcoming occurrence, or the past stored date for a one-time
+	// custom holiday that has already passed. Null for non-holiday lists
+	// and for holiday lists whose customHolidayId can't be resolved.
+	holidayDate: string | null
 }
 
 export type PublicUser = {
@@ -1054,6 +1060,7 @@ export async function getPublicListsImpl(viewerUserId: string): Promise<Array<Pu
 					isPrimary: true,
 					createdAt: true,
 					updatedAt: true,
+					customHolidayId: true,
 				},
 				with: {
 					itemGroups: { columns: { id: true, type: true } },
@@ -1079,6 +1086,10 @@ export async function getPublicListsImpl(viewerUserId: string): Promise<Array<Pu
 
 	const publicTodoListIds = allUsers.flatMap(u => u.lists.filter(l => l.type === 'todos').map(l => l.id))
 	const publicTodoCountByListId = await loadTodoCountsByListId(db, publicTodoListIds)
+
+	const publicHolidayDateByListId = await resolveHolidayDatesForLists(
+		allUsers.flatMap(u => u.lists.map(l => ({ listId: l.id, customHolidayId: l.customHolidayId ?? null })))
+	)
 
 	return allUsers.map(user => {
 		const lastGiftedAt = lastGiftedByUserId.get(user.id) ?? null
@@ -1114,10 +1125,37 @@ export async function getPublicListsImpl(viewerUserId: string): Promise<Array<Pu
 					itemsRemaining: unclaimed,
 					createdAt: rest.createdAt instanceof Date ? rest.createdAt.toISOString() : rest.createdAt,
 					updatedAt: rest.updatedAt instanceof Date ? rest.updatedAt.toISOString() : rest.updatedAt,
+					holidayDate: publicHolidayDateByListId.get(rest.id) ?? null,
 				}
 			}),
 		}
 	})
+}
+
+// Batch-resolve display dates for any holiday-typed lists in the input.
+// One round-trip to `custom_holidays` plus one per catalog-source row
+// (small N in practice; the helper is idempotent so callers can pass
+// the whole list including non-holiday rows). Returns ISO 8601
+// (UTC start-of-day) strings keyed by list id.
+async function resolveHolidayDatesForLists(rows: Array<{ listId: number; customHolidayId: string | null }>): Promise<Map<number, string>> {
+	const map = new Map<number, string>()
+	const holidayRows = rows.filter((r): r is { listId: number; customHolidayId: string } => r.customHolidayId !== null)
+	if (holidayRows.length === 0) return map
+	const uniqueIds = Array.from(new Set(holidayRows.map(r => r.customHolidayId)))
+	const customHolidayRows = await db.query.customHolidays.findMany({
+		where: inArray(customHolidays.id, uniqueIds),
+	})
+	const dateByHolidayId = new Map<string, string>()
+	const now = new Date()
+	for (const row of customHolidayRows) {
+		const date = await customHolidayDisplayDate(row, now)
+		if (date) dateByHolidayId.set(row.id, date.toISOString())
+	}
+	for (const r of holidayRows) {
+		const iso = dateByHolidayId.get(r.customHolidayId)
+		if (iso) map.set(r.listId, iso)
+	}
+	return map
 }
 
 // Mirror of getPublicListsImpl for dependent recipients. Lists where
@@ -1186,6 +1224,7 @@ export async function getPublicDependentsImpl(viewerUserId: string): Promise<Arr
 			subjectDependentId: true,
 			createdAt: true,
 			updatedAt: true,
+			customHolidayId: true,
 		},
 		with: {
 			items: {
@@ -1201,6 +1240,10 @@ export async function getPublicDependentsImpl(viewerUserId: string): Promise<Arr
 
 	const dependentTodoListIds = dependentLists.filter(l => l.type === 'todos').map(l => l.id)
 	const dependentTodoCountByListId = await loadTodoCountsByListId(db, dependentTodoListIds)
+
+	const dependentHolidayDateByListId = await resolveHolidayDatesForLists(
+		dependentLists.map(l => ({ listId: l.id, customHolidayId: l.customHolidayId ?? null }))
+	)
 
 	const listsByDependentId = new Map<string, Array<PublicList>>()
 	for (const list of dependentLists) {
@@ -1219,6 +1262,7 @@ export async function getPublicDependentsImpl(viewerUserId: string): Promise<Arr
 			itemsRemaining: unclaimed,
 			createdAt: list.createdAt instanceof Date ? list.createdAt.toISOString() : list.createdAt,
 			updatedAt: list.updatedAt instanceof Date ? list.updatedAt.toISOString() : list.updatedAt,
+			holidayDate: dependentHolidayDateByListId.get(list.id) ?? null,
 		})
 		listsByDependentId.set(list.subjectDependentId, bucket)
 	}

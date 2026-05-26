@@ -118,6 +118,24 @@ export async function customHolidayLastOccurrence(
 	return new Date(Date.UTC(thisYear - 1, m - 1, d, 0, 0, 0, 0))
 }
 
+// Resolve the date to display for a holiday-typed list row. Returns the
+// next future occurrence for catalog / annually-recurring custom rows.
+// For a one-time `custom` row whose date has already passed, returns
+// that stored date (so the UI can show "May 12, 2024" instead of
+// nothing). Returns null when no date can be resolved at all.
+export async function customHolidayDisplayDate(
+	row: CustomHolidayRow,
+	now: Date = new Date(),
+	dbx: SchemaDatabase = db
+): Promise<Date | null> {
+	const next = await customHolidayNextOccurrence(row, now, dbx)
+	if (next) return next
+	if (row.source === 'custom' && row.customYear != null && row.customMonth != null && row.customDay != null) {
+		return new Date(Date.UTC(row.customYear, row.customMonth - 1, row.customDay, 0, 0, 0, 0))
+	}
+	return null
+}
+
 export function startOfUtcDay(d: Date): Date {
 	return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0, 0))
 }

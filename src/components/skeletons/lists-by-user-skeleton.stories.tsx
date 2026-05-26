@@ -25,6 +25,7 @@ const sampleUser: UserWithLists = {
 			updatedAt: '2026-01-01T00:00:00Z',
 			itemsTotal: 10,
 			itemsRemaining: 6,
+			holidayDate: null,
 		},
 	],
 }

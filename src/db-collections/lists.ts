@@ -16,6 +16,10 @@ const ListSchema = z.object({
 	updatedAt: z.string(),
 	itemsTotal: z.number(),
 	itemsRemaining: z.number(),
+	// For `holiday`-typed lists, the next upcoming occurrence (ISO 8601,
+	// UTC start-of-day) or the past stored date for a one-time custom
+	// holiday that has already passed. Null otherwise.
+	holidayDate: z.string().nullable(),
 })
 
 const UserWithListsSchema = z.object({

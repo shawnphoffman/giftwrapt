@@ -38,6 +38,7 @@ const gifterBase: GifterList = {
 	updatedAt: '2026-01-01T00:00:00Z',
 	itemsTotal: 10,
 	itemsRemaining: 6,
+	holidayDate: null,
 }
 
 const meta: Meta<ListRowProps> = {
@@ -287,6 +288,59 @@ export const GifterAllClaimed: Story = {
 
 export const GifterEmpty: Story = {
 	args: { role: 'gifter', list: { ...gifterBase, name: 'Brand new list', itemsTotal: 0, itemsRemaining: 0 } },
+}
+
+export const GifterHolidayUpcoming: Story = {
+	args: {
+		role: 'gifter',
+		list: (() => {
+			const d = new Date()
+			d.setUTCDate(d.getUTCDate() + 4)
+			return { ...gifterBase, type: 'holiday', name: "Graham's Graduation", holidayDate: d.toISOString() }
+		})(),
+	},
+	play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+		const canvas = within(canvasElement)
+		await expect(canvas.getByText(/days$/)).toBeInTheDocument()
+	},
+}
+
+export const GifterHolidayFarFuture: Story = {
+	args: {
+		role: 'gifter',
+		list: (() => {
+			const d = new Date()
+			d.setUTCDate(d.getUTCDate() + 120)
+			return { ...gifterBase, type: 'holiday', name: 'Anniversary Trip', holidayDate: d.toISOString() }
+		})(),
+	},
+	play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+		const canvas = within(canvasElement)
+		await expect(canvas.getByText(/^120 days$/)).toBeInTheDocument()
+	},
+}
+
+export const GifterHolidayToday: Story = {
+	args: {
+		role: 'gifter',
+		list: { ...gifterBase, type: 'holiday', name: 'Housewarming Tonight', holidayDate: new Date().toISOString() },
+	},
+	play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+		const canvas = within(canvasElement)
+		await expect(canvas.getByText('Today')).toBeInTheDocument()
+	},
+}
+
+export const GifterHolidayPast: Story = {
+	args: {
+		role: 'gifter',
+		list: { ...gifterBase, type: 'holiday', name: 'Last Summer BBQ', holidayDate: '2024-07-12T00:00:00Z' },
+	},
+	play: async ({ canvasElement }: { canvasElement: HTMLElement }) => {
+		const canvas = within(canvasElement)
+		// Past one-time renders as a short date including the year.
+		await expect(canvas.getByText(/Jul 12, 2024/)).toBeInTheDocument()
+	},
 }
 
 export const GifterAllTypes: Story = {

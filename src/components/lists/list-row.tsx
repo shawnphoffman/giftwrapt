@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { deleteList, type MyListRow as MyListRowType, setPrimaryList, updateList } from '@/api/lists'
 import CountBadge from '@/components/common/count-badge'
 import DependentAvatar from '@/components/common/dependent-avatar'
+import HolidayBadge from '@/components/common/holiday-badge'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import UserAvatar from '@/components/common/user-avatar'
 import {
@@ -344,7 +345,10 @@ function GifterRow({ list }: { list: GifterList }) {
 		<ListRowShell asChild>
 			<Link to="/lists/$listId" params={{ listId: String(list.id) }}>
 				<ListTypeIcon type={list.type} className="size-6 shrink-0" />
-				<div className="font-medium leading-tight flex-1 truncate">{list.name}</div>
+				<div className="flex-1 min-w-0 flex items-center gap-2">
+					<span className="font-medium leading-tight truncate">{list.name}</span>
+					<HolidayBadge date={list.holidayDate} />
+				</div>
 				{list.isPrimary && <Star className="size-4 text-yellow-500 fill-yellow-500 shrink-0" />}
 				<CountBadge count={list.itemsTotal} remaining={list.itemsRemaining} />
 			</Link>

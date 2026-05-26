@@ -24,6 +24,7 @@ const baseUser: UserWithLists = {
 			updatedAt: '2026-01-01T00:00:00Z',
 			itemsTotal: 10,
 			itemsRemaining: 6,
+			holidayDate: null,
 		},
 		{
 			id: 2,
@@ -35,6 +36,7 @@ const baseUser: UserWithLists = {
 			updatedAt: '2026-01-01T00:00:00Z',
 			itemsTotal: 18,
 			itemsRemaining: 4,
+			holidayDate: null,
 		},
 		{
 			id: 3,
@@ -46,7 +48,24 @@ const baseUser: UserWithLists = {
 			updatedAt: '2026-01-01T00:00:00Z',
 			itemsTotal: 5,
 			itemsRemaining: 5,
+			holidayDate: null,
 		},
+		(() => {
+			const d = new Date()
+			d.setUTCDate(d.getUTCDate() + 4)
+			return {
+				id: 4,
+				name: 'Graduation',
+				type: 'holiday' as const,
+				description: null,
+				isPrimary: false,
+				createdAt: '2026-01-01T00:00:00Z',
+				updatedAt: '2026-01-01T00:00:00Z',
+				itemsTotal: 3,
+				itemsRemaining: 2,
+				holidayDate: d.toISOString(),
+			}
+		})(),
 	],
 }
 

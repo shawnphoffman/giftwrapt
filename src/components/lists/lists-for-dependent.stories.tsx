@@ -23,6 +23,7 @@ const baseDependent: DependentWithLists = {
 			updatedAt: '2026-01-01T00:00:00Z',
 			itemsTotal: 4,
 			itemsRemaining: 4,
+			holidayDate: null,
 		},
 		{
 			id: 2,
@@ -34,6 +35,7 @@ const baseDependent: DependentWithLists = {
 			updatedAt: '2026-01-01T00:00:00Z',
 			itemsTotal: 6,
 			itemsRemaining: 2,
+			holidayDate: null,
 		},
 	],
 }
