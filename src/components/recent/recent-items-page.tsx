@@ -1,24 +1,32 @@
 import { Inbox } from 'lucide-react'
 
 import type { RecentItemRow } from '@/api/recent'
+import { DateRangeFilter } from '@/components/common/date-range-filter'
 import { PageHeading } from '@/components/common/page-heading'
 import ItemOverview from '@/components/recent/item-overview'
+import type { TimeframeValue } from '@/lib/timeframe'
 
 type Props = {
 	items: Array<RecentItemRow>
+	timeframe: TimeframeValue
+	onTimeframeChange: (next: TimeframeValue) => void
 }
 
-export function RecentItemsPageContent({ items }: Props) {
+export function RecentItemsPageContent({ items, timeframe, onTimeframeChange }: Props) {
 	return (
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
 				<PageHeading title="Recent Items" icon={Inbox} color="purple" />
 
-				<p className="text-sm text-muted-foreground">New items added to lists you can see in the last 60 days, newest first.</p>
+				<p className="text-sm text-muted-foreground">New items added to lists you can see, newest first.</p>
+
+				<div className="flex flex-wrap items-center justify-between gap-3">
+					<DateRangeFilter value={timeframe} onChange={onTimeframeChange} />
+				</div>
 
 				{items.length === 0 ? (
 					<div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg bg-accent/30">
-						No recent items in the last 60 days.
+						No recent items in this timeframe.
 					</div>
 				) : (
 					<div className="flex flex-col gap-2 xs:pl-6">

@@ -1,9 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
 import type { RecentItemRow } from '@/api/recent'
+import type { TimeframeValue } from '@/lib/timeframe'
 
 import { withPageContainer } from '../../../.storybook/decorators'
 import { RecentItemsPageContent } from './recent-items-page'
+
+const defaultTimeframe: TimeframeValue = { kind: 'preset', preset: '60d' }
+const noop = () => {}
 
 const now = new Date()
 const hoursAgo = (h: number) => new Date(now.getTime() - h * 60 * 60 * 1000)
@@ -117,15 +121,15 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
-	args: { items: sampleItems },
+	args: { items: sampleItems, timeframe: defaultTimeframe, onTimeframeChange: noop },
 }
 
 export const Empty: Story = {
-	args: { items: [] },
+	args: { items: [], timeframe: defaultTimeframe, onTimeframeChange: noop },
 }
 
 export const SingleItem: Story = {
-	args: { items: [sampleItems[0]] },
+	args: { items: [sampleItems[0]], timeframe: defaultTimeframe, onTimeframeChange: noop },
 }
 
 export const AllSameDay: Story = {
@@ -135,5 +139,7 @@ export const AllSameDay: Story = {
 			row({ id: 2, title: 'Wine glasses', priority: 'low', createdAt: hoursAgo(3) }),
 			row({ id: 3, title: 'Kitchen mixer', priority: 'high', createdAt: hoursAgo(5) }),
 		],
+		timeframe: defaultTimeframe,
+		onTimeframeChange: noop,
 	},
 }

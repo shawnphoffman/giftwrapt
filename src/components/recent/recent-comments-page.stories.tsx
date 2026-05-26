@@ -1,9 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 
 import type { RecentConversationComment, RecentConversationRow } from '@/api/recent'
+import type { TimeframeValue } from '@/lib/timeframe'
 
 import { withPageContainer } from '../../../.storybook/decorators'
 import { RecentCommentsPageContent } from './recent-comments-page'
+
+const defaultTimeframe: TimeframeValue = { kind: 'preset', preset: '60d' }
+const noop = () => {}
 
 const now = new Date()
 const minutesAgo = (m: number) => new Date(now.getTime() - m * 60 * 1000)
@@ -113,15 +117,15 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
-	args: { rows: sampleRows },
+	args: { rows: sampleRows, timeframe: defaultTimeframe, onTimeframeChange: noop },
 }
 
 export const Empty: Story = {
-	args: { rows: [] },
+	args: { rows: [], timeframe: defaultTimeframe, onTimeframeChange: noop },
 }
 
 export const SingleThread: Story = {
-	args: { rows: [sampleRows[0]] },
+	args: { rows: [sampleRows[0]], timeframe: defaultTimeframe, onTimeframeChange: noop },
 }
 
 export const TruncatedThread: Story = {
@@ -141,5 +145,7 @@ export const TruncatedThread: Story = {
 				createdAt: hoursAgo(2),
 			}),
 		],
+		timeframe: defaultTimeframe,
+		onTimeframeChange: noop,
 	},
 }

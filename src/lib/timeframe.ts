@@ -59,3 +59,11 @@ export function formatTimeframeLabel(value: TimeframeValue): string {
 }
 
 export const PRESET_DEFAULT: TimeframeValue = { kind: 'preset', preset: '6m' }
+
+// Stable string form for things that need a serializable key, e.g.
+// React Query keys. Two `TimeframeValue`s with the same effective
+// window resolve to the same string.
+export function serializeTimeframe(value: TimeframeValue): string {
+	if (value.kind === 'preset') return value.preset
+	return `custom:${startOfDay(value.from).toISOString()}:${endOfDay(value.to).toISOString()}`
+}

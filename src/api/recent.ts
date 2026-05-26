@@ -1,5 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, count, desc, eq, gte, inArray, max, notInArray, sql } from 'drizzle-orm'
+import { endOfDay, startOfDay } from 'date-fns'
+import { and, type AnyColumn, count, desc, eq, gte, inArray, lte, max, notInArray, type SQL, sql } from 'drizzle-orm'
+import { z } from 'zod'
 
 import { db } from '@/db'
 import { giftedItems, itemComments, itemGroups, items, lists, userRelationships, users } from '@/db/schema'
@@ -7,7 +9,27 @@ import type { ListType, Priority } from '@/db/schema/enums'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { loggingMiddleware } from '@/lib/logger'
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
+import { presetCutoff, type TimeframeValue } from '@/lib/timeframe'
 import { authMiddleware } from '@/middleware/auth'
+
+const TimeframeSchema = z.discriminatedUnion('kind', [
+	z.object({ kind: z.literal('preset'), preset: z.enum(['30d', '60d', '6m', '12m', 'all']) }),
+	z.object({ kind: z.literal('custom'), from: z.coerce.date(), to: z.coerce.date() }),
+])
+
+const RecentInputSchema = z.object({ timeframe: TimeframeSchema })
+
+// Resolves a timeframe to an SQL predicate against a created-at column.
+// `'all'` yields no predicate; presets become a lower-bound `>=`; custom
+// ranges become a `BETWEEN`-style pair using start/end-of-day, matching
+// the in-memory `matchesTimeframe` semantics.
+function createdAtWithin(column: AnyColumn, timeframe: TimeframeValue): Array<SQL> {
+	if (timeframe.kind === 'preset') {
+		const cutoff = presetCutoff(timeframe.preset)
+		return cutoff ? [gte(column, cutoff)] : []
+	}
+	return [gte(column, startOfDay(timeframe.from)), lte(column, endOfDay(timeframe.to))]
+}
 
 // Loads the partner/restricted context the recent feeds need. Cached as a
 // single helper so both feeds keep the same restricted-filter behaviour.
@@ -106,10 +128,9 @@ export type RecentItemRow = {
 
 export const getRecentItems = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware, loggingMiddleware])
-	.handler(async ({ context }): Promise<Array<RecentItemRow>> => {
+	.inputValidator((data: z.input<typeof RecentInputSchema>) => RecentInputSchema.parse(data))
+	.handler(async ({ context, data }): Promise<Array<RecentItemRow>> => {
 		const viewerId = context.session.user.id
-		const sixtyDaysAgo = new Date()
-		sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
 
 		const deniedOwners = db
 			.select({ ownerUserId: userRelationships.ownerUserId })
@@ -141,7 +162,9 @@ export const getRecentItems = createServerFn({ method: 'GET' })
 			.innerJoin(lists, and(eq(lists.id, items.listId), eq(lists.isActive, true), eq(lists.isPrivate, false)))
 			.innerJoin(users, eq(users.id, lists.ownerId))
 			.leftJoin(sql`dependents as subject_dep`, sql`subject_dep.id = ${lists.subjectDependentId}`)
-			.where(and(visibleItemsWhere('visible'), gte(items.createdAt, sixtyDaysAgo), notInArray(lists.ownerId, deniedOwners)))
+			.where(
+				and(visibleItemsWhere('visible'), ...createdAtWithin(items.createdAt, data.timeframe), notInArray(lists.ownerId, deniedOwners))
+			)
 			.orderBy(desc(items.createdAt))
 			.limit(50)
 
@@ -212,10 +235,9 @@ export type RecentConversationRow = {
 
 export const getRecentConversations = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware, loggingMiddleware])
-	.handler(async ({ context }): Promise<Array<RecentConversationRow>> => {
+	.inputValidator((data: z.input<typeof RecentInputSchema>) => RecentInputSchema.parse(data))
+	.handler(async ({ context, data }): Promise<Array<RecentConversationRow>> => {
 		const viewerId = context.session.user.id
-		const sixtyDaysAgo = new Date()
-		sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
 
 		const deniedOwners = db
 			.select({ ownerUserId: userRelationships.ownerUserId })
@@ -231,7 +253,13 @@ export const getRecentConversations = createServerFn({ method: 'GET' })
 			.from(itemComments)
 			.innerJoin(items, eq(items.id, itemComments.itemId))
 			.innerJoin(lists, and(eq(lists.id, items.listId), eq(lists.isActive, true), eq(lists.isPrivate, false)))
-			.where(and(visibleItemsWhere('visible'), gte(itemComments.createdAt, sixtyDaysAgo), notInArray(lists.ownerId, deniedOwners)))
+			.where(
+				and(
+					visibleItemsWhere('visible'),
+					...createdAtWithin(itemComments.createdAt, data.timeframe),
+					notInArray(lists.ownerId, deniedOwners)
+				)
+			)
 			.groupBy(itemComments.itemId)
 			.orderBy(desc(max(itemComments.createdAt)))
 			.limit(ITEM_LIMIT)
