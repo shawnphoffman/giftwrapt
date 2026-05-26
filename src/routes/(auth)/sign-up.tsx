@@ -88,7 +88,10 @@ function SignUp() {
 						<Label htmlFor="email">Email</Label>
 						<Input
 							id="email"
-							type="email"
+							type="text"
+							inputMode="email"
+							autoCapitalize="none"
+							spellCheck={false}
 							placeholder="you@example.com"
 							value={email}
 							onChange={e => setEmail(e.target.value)}
