@@ -2,6 +2,8 @@ import Linkify from 'linkify-react'
 import Markdown, { type Components } from 'react-markdown'
 import rehypeSanitize from 'rehype-sanitize'
 
+import { ItemImage } from '@/components/items/item-image'
+
 type Props = {
 	content: string
 }
@@ -36,6 +38,10 @@ const components: Components = {
 	h6: linkified('h6'),
 	td: linkified('td'),
 	th: linkified('th'),
+	img: ({ src, alt }) => {
+		if (typeof src !== 'string' || !src) return null
+		return <ItemImage src={src} alt={alt ?? ''} className="my-2 inline-block" />
+	},
 }
 
 export default function MarkdownRenderer({ content }: Props) {

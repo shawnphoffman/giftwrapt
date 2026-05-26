@@ -9,9 +9,10 @@ type Props = {
 	src: string
 	alt: string
 	className?: string
+	thumbClassName?: string
 }
 
-export function ItemImage({ src, alt, className }: Props) {
+export function ItemImage({ src, alt, className, thumbClassName }: Props) {
 	const [open, setOpen] = useState(false)
 	const safeSrc = httpsUpgrade(src)
 
@@ -29,7 +30,7 @@ export function ItemImage({ src, alt, className }: Props) {
 				<img
 					src={safeSrc}
 					alt={alt}
-					className="object-contain w-16 max-h-16 xs:w-24 xs:max-h-24 transition-transform group-hover:scale-105"
+					className={cn('object-contain transition-transform group-hover:scale-105', thumbClassName ?? 'w-16 max-h-16 xs:w-24 xs:max-h-24')}
 				/>
 			</button>
 

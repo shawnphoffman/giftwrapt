@@ -154,6 +154,25 @@ export const SanitizesDataUriImage: Story = {
 	},
 }
 
+export const ImageRendersAsClickableThumbnail: Story = {
+	args: {
+		content: `Here is an inline image:\n\n![Markdown logo](https://example.com/logo.svg)`,
+	},
+	play: async ({ canvasElement }) => {
+		const img = canvasElement.querySelector('img')
+		await expect(img).not.toBeNull()
+		// The renderer wraps markdown images in ItemImage's lightbox button so
+		// they share the thumbnail-then-zoom UX with item-row images.
+		const button = img?.closest('button')
+		await expect(button).not.toBeNull()
+		await expect(button?.getAttribute('aria-label')).toMatch(/view larger image of markdown logo/i)
+		// Sized to match the item-row thumbnail (w-16 mobile, w-24 at xs+).
+		await expect(img?.className).toMatch(/w-16/)
+		await expect(img?.className).toMatch(/max-h-16/)
+		await expect(img?.className).toMatch(/object-contain/)
+	},
+}
+
 export const LinkifyOnlyAcceptsHttp: Story = {
 	args: {
 		content: `Bare https URL becomes a link: https://example.com. A javascript: bare string javascript:alert('xss') must NOT become an anchor.`,
