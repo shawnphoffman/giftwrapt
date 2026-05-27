@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.40.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.39.0...v0.40.0) (2026-05-26)
+
+
+### Features
+
+* **errors:** granular route-level fallbacks and friendlier 404 ([e5f96fc](https://github.com/shawnphoffman/giftwrapt/commit/e5f96fca323b683c66fff4aa705d2d0b64338311))
+* **lists:** show countdown badge on custom-holiday list rows ([0f2f40f](https://github.com/shawnphoffman/giftwrapt/commit/0f2f40f82bab3ab84a7eac0b97dcfc2e05a82c01))
+* **notes:** render markdown images via item lightbox ([5276652](https://github.com/shawnphoffman/giftwrapt/commit/5276652c306d502f2dbbb0403012e8ae10ea3fae))
+* **screenshots:** add hero viewport for docs site marketing captures ([a9b0231](https://github.com/shawnphoffman/giftwrapt/commit/a9b023143245439da10fda871bc13872dd4a6a43))
+
+
+### Bug Fixes
+
+* **auth:** allow iOS keyboard text replacement on email inputs ([7b84200](https://github.com/shawnphoffman/giftwrapt/commit/7b84200b0f99b478eaed77fb0edb61ce81d1cf9b))
+
 ## [0.39.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.38.0...v0.39.0) (2026-05-26)
 
 
