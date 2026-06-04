@@ -30,7 +30,10 @@ export function ItemImage({ src, alt, className, thumbClassName }: Props) {
 				<img
 					src={safeSrc}
 					alt={alt}
-					className={cn('object-contain transition-transform group-hover:scale-105', thumbClassName ?? 'max-h-16 xs:max-h-24 w-fit')}
+					className={cn(
+						'object-contain transition-transform group-hover:scale-105',
+						thumbClassName ?? 'max-w-16 max-h-16 xs:max-w-24 xs:max-h-24 w-fit'
+					)}
 				/>
 			</button>
 
