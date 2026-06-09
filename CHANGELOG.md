@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.41.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.40.0...v0.41.0) (2026-06-09)
+
+
+### Features
+
+* **cron:** respect archive defer and add deferred-due reveal pass ([9eb5796](https://github.com/shawnphoffman/giftwrapt/commit/9eb579665073a1d892ddd1dccc3442dadb897352))
+* **lists:** add archive defer + last-archived columns and max-defer setting ([76003dc](https://github.com/shawnphoffman/giftwrapt/commit/76003dc95f88da26e534c785e9bbe7f77fed147c))
+* **lists:** add archive-schedule derivation helper ([3433a74](https://github.com/shawnphoffman/giftwrapt/commit/3433a742519481f9e8e157a6991527dd62dc7df4))
+* **lists:** add force-reveal, set/extend, and cancel defer server fns ([3844494](https://github.com/shawnphoffman/giftwrapt/commit/384449445f18526e766934b7cb62c2e506f7aa01))
+* **lists:** add reveal-date banners, force/extend controls, last-archived ([e70e8d3](https://github.com/shawnphoffman/giftwrapt/commit/e70e8d35af9e32df8f36fb25a95f31a2ce2d804d))
+* **lists:** expose archive banner info from list view/edit loaders ([88cbb28](https://github.com/shawnphoffman/giftwrapt/commit/88cbb280aac8e069265547f187b681044a21595e))
+
+
+### Bug Fixes
+
+* **items:** clear stale import progress alert on add-item reopen ([d901147](https://github.com/shawnphoffman/giftwrapt/commit/d901147c20e1841510edbf8818278501d7db32d0))
+* **items:** restore thumbnail max-width to fix Safari gifter view ([0fa3713](https://github.com/shawnphoffman/giftwrapt/commit/0fa371361b03af6e3b65b12cdc4508b06cd6dc8c))
+* **permissions:** enforce child-account guardrails server-side ([8697433](https://github.com/shawnphoffman/giftwrapt/commit/8697433dc925e536411754781201faaa356fbb7f))
+* **scrape:** apply AI-cleaned title to add-item form ([9e1bf46](https://github.com/shawnphoffman/giftwrapt/commit/9e1bf4604eb6fe333bbf9dad050a18207cd35aa8))
+* **scrape:** persist cleaned title so cache hits stay cleaned ([8bfc01a](https://github.com/shawnphoffman/giftwrapt/commit/8bfc01a3469d82f8d5baf0edeab2e7f0cffeaa5d))
+
 ## [0.40.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.39.0...v0.40.0) (2026-05-26)
 
 
