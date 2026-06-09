@@ -46,6 +46,7 @@ function PermissionsPage() {
 			access: toTier(user.accessLevel, user.canEdit),
 			sharedWithMe: sharedMap.get(user.id) ?? 'view',
 			cannotBeRestricted: user.cannotBeRestricted,
+			isGuardian: user.isGuardian,
 		}))
 	}, [users, owners])
 
@@ -59,7 +60,11 @@ function PermissionsPage() {
 
 			const result = await upsertUserRelationships({ data: { relationships } })
 			if (!result.success) {
-				toast.error('Some users cannot be set to restricted (partner or guardian relationships are always full view).')
+				toast.error(
+					result.reason === 'guardian-not-allowed'
+						? "You can't change permissions for your guardian. They always have full access to your lists."
+						: 'Some users cannot be set to restricted (partner or guardian relationships are always full view).'
+				)
 				return
 			}
 

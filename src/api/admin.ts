@@ -34,6 +34,20 @@ import {
 	type RemoveRelationLabelResult,
 } from './_relation-labels-impl'
 
+// Children cannot be guardians (see logic.md). The admin forms filter child
+// users out of the guardian picker, but the write endpoints have to enforce
+// it too so a direct call can't create an invalid guardianship.
+async function assertGuardiansNotChildren(parentUserIds: ReadonlyArray<string>): Promise<void> {
+	if (parentUserIds.length === 0) return
+	const parents = await db.query.users.findMany({
+		where: inArray(users.id, parentUserIds as Array<string>),
+		columns: { id: true, role: true },
+	})
+	if (parents.some(p => p.role === 'child')) {
+		throw new Error('Children cannot be guardians.')
+	}
+}
+
 //
 export const getUsersAsAdmin = createServerFn({
 	method: 'GET',
@@ -82,6 +96,8 @@ export const createGuardianships = createServerFn({
 	.handler(async ({ data }) => {
 		const { childUserId, parentUserIds } = data
 
+		await assertGuardiansNotChildren(parentUserIds)
+
 		// Create guardianship records for each parent
 		for (const parentUserId of parentUserIds) {
 			await db
@@ -105,8 +121,21 @@ export const updateUserPartner = createServerFn({
 	.handler(async ({ data }) => {
 		const { userId, partnerId } = data
 
-		// Update the user's partnerId
-		await db.update(users).set({ partnerId }).where(eq(users.id, userId))
+		// Route through the shared helper so the partnership is mirrored on
+		// both rows (the old raw one-directional write left A->B without B->A)
+		// and the child-partner guard applies here too.
+		const me = await db.query.users.findFirst({ where: eq(users.id, userId), columns: { partnerId: true } })
+		await db.transaction(async tx => {
+			const { selfUpdates } = await applyPartnerAndAnniversary(tx, {
+				userId,
+				currentPartnerId: me?.partnerId ?? null,
+				newPartnerId: partnerId,
+				newAnniversary: undefined,
+			})
+			if (Object.keys(selfUpdates).length > 0) {
+				await tx.update(users).set(selfUpdates).where(eq(users.id, userId))
+			}
+		})
 
 		return { success: true }
 	})
@@ -131,6 +160,8 @@ export const updateGuardianships = createServerFn({
 	.inputValidator((data: { childUserId: string; parentUserIds: Array<string> }) => data)
 	.handler(async ({ data }) => {
 		const { childUserId, parentUserIds } = data
+
+		await assertGuardiansNotChildren(parentUserIds)
 
 		// Delete all existing guardianships for this child
 		await db.delete(guardianships).where(eq(guardianships.childUserId, childUserId))

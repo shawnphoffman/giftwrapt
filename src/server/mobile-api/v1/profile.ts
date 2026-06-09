@@ -12,7 +12,7 @@ import { z } from 'zod'
 import { db } from '@/db'
 import type { BirthMonth } from '@/db/schema'
 import { userRelationships, users } from '@/db/schema'
-import { applyPartnerAndAnniversary } from '@/lib/partner-update'
+import { applyPartnerAndAnniversary, ChildPartnerError } from '@/lib/partner-update'
 import { LIMITS } from '@/lib/validation/limits'
 
 import type { MobileAuthContext } from '../auth'
@@ -99,18 +99,25 @@ export function registerProfileRoutes(v1: App): void {
 		const newPartnerId = parsed.data.partnerId !== undefined ? parsed.data.partnerId || null : undefined
 		const newAnniversary = parsed.data.partnerAnniversary !== undefined ? parsed.data.partnerAnniversary || null : undefined
 
-		await db.transaction(async tx => {
-			const { selfUpdates } = await applyPartnerAndAnniversary(tx, {
-				userId,
-				currentPartnerId,
-				newPartnerId,
-				newAnniversary,
+		try {
+			await db.transaction(async tx => {
+				// Children cannot have a partner (either side) - enforced inside
+				// the helper, which throws ChildPartnerError.
+				const { selfUpdates } = await applyPartnerAndAnniversary(tx, {
+					userId,
+					currentPartnerId,
+					newPartnerId,
+					newAnniversary,
+				})
+				Object.assign(updates, selfUpdates)
+				if (Object.keys(updates).length > 0) {
+					await tx.update(users).set(updates).where(eq(users.id, userId))
+				}
 			})
-			Object.assign(updates, selfUpdates)
-			if (Object.keys(updates).length > 0) {
-				await tx.update(users).set(updates).where(eq(users.id, userId))
-			}
-		})
+		} catch (err) {
+			if (err instanceof ChildPartnerError) return jsonError(c, 403, 'child-cannot-have-partner')
+			throw err
+		}
 
 		const updated = await db.query.users.findFirst({
 			where: eq(users.id, userId),

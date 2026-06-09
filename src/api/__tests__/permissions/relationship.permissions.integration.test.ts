@@ -99,6 +99,35 @@ describe('upsertUserRelationships - canEdit & listEditors interactions', () => {
 		})
 	})
 
+	// A child must not be able to change permissions toward their guardian at
+	// all - not just the restricted level. The guardian's full access is a
+	// fixed grant the child doesn't manage.
+	it.each(['none', 'view', 'edit'] as const)("rejects a child setting their guardian to '%s' (owner perspective)", async access => {
+		await withRollback(async tx => {
+			const child = await makeUser(tx, { role: 'child' })
+			const guardian = await makeUser(tx)
+			await makeGuardianship(tx, { parentUserId: guardian.id, childUserId: child.id })
+
+			const result = await upsertUserRelationshipsImpl({
+				ownerUserId: child.id,
+				input: {
+					relationships: [{ viewerUserId: guardian.id, accessLevel: access === 'edit' ? 'view' : access, canEdit: access === 'edit' }],
+				},
+				dbx: tx,
+			})
+			expect(result.success).toBe(false)
+			if (!result.success) {
+				expect(result.reason).toBe('guardian-not-allowed')
+				expect(result.viewerUserIds).toContain(guardian.id)
+			}
+			// Nothing was written.
+			const row = await tx.query.userRelationships.findFirst({
+				where: and(eq(userRelationships.ownerUserId, child.id), eq(userRelationships.viewerUserId, guardian.id)),
+			})
+			expect(row).toBeUndefined()
+		})
+	})
+
 	it("preserves canEdit when accessLevel != 'restricted'", async () => {
 		await withRollback(async tx => {
 			const owner = await makeUser(tx)
@@ -145,6 +174,25 @@ describe('upsertViewerRelationships - same restricted-not-allowed gate', () => {
 				dbx: tx,
 			})
 			expect(result.success).toBe(false)
+		})
+	})
+
+	it.each(['none', 'view'] as const)("rejects a child setting '%s' on their guardian's lists (viewer perspective)", async access => {
+		await withRollback(async tx => {
+			const child = await makeUser(tx, { role: 'child' })
+			const guardian = await makeUser(tx)
+			await makeGuardianship(tx, { parentUserId: guardian.id, childUserId: child.id })
+
+			const result = await upsertViewerRelationshipsImpl({
+				viewerUserId: child.id,
+				input: { relationships: [{ ownerUserId: guardian.id, accessLevel: access }] },
+				dbx: tx,
+			})
+			expect(result.success).toBe(false)
+			if (!result.success) {
+				expect(result.reason).toBe('guardian-not-allowed')
+				expect(result.ownerUserIds).toContain(guardian.id)
+			}
 		})
 	})
 

@@ -445,12 +445,16 @@ const SENTINEL_LIST_STATE: ListState = { privacy: 'public', active: true }
 
 export const relationshipExpectations: ReadonlyArray<Expectation> = ALL_ROLES.map<Expectation>(role => {
 	const allowed = canBeRestrictedFor(role)
+	// The guardian seed orients owner=child, viewer=guardian, so the
+	// child-can't-touch-their-guardian block fires first and is the more
+	// specific reason. The partner deny still surfaces as restricted-not-allowed.
+	const denyReason = role === 'guardian' ? 'guardian-not-allowed' : 'restricted-not-allowed'
 	return {
 		role,
 		listState: SENTINEL_LIST_STATE,
 		action: 'upsert-as-owner',
 		expected: allowed ? 'allow' : 'deny',
-		reasonOnDeny: allowed ? undefined : 'restricted-not-allowed',
+		reasonOnDeny: allowed ? undefined : denyReason,
 	}
 })
 

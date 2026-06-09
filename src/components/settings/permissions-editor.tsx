@@ -25,6 +25,10 @@ export type PermissionRow = {
 	access: AccessTier
 	sharedWithMe?: AccessTier
 	cannotBeRestricted: boolean
+	// True when the row's user is a guardian of the current user. Children
+	// cannot change permissions toward their guardian, so the whole row is
+	// locked (the server rejects the write regardless).
+	isGuardian?: boolean
 }
 
 export function toTier(accessLevel: AccessLevel, canEdit: boolean): AccessTier {
@@ -148,7 +152,8 @@ export function PermissionsEditor({
 								onValueChange={value => {
 									if (value) handleAccessChange(row.id, value as AccessTier)
 								}}
-								disabled={isSaving}
+								disabled={isSaving || row.isGuardian}
+								title={row.isGuardian ? 'Your guardian always has full access to your lists' : undefined}
 							>
 								<ToggleGroupItem
 									value="none"

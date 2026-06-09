@@ -90,6 +90,9 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 	const queryClient = useQueryClient()
 	const { data: session, refetch: refetchSession } = useSession()
 	const currentUserId = session?.user.id ?? null
+	// Children cannot have a partner (server-enforced), so the partner and
+	// anniversary fields are hidden for them entirely.
+	const isChild = session?.user.isChild ?? false
 	const anniversaryEnabled = useAppSetting('enableAnniversaryReminders')
 
 	// Fetch potential partners
@@ -376,46 +379,48 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 				)}
 			</form.Field>
 
-			<form.Field name="partnerId">
-				{field => (
-					<Field className="gap-1">
-						<FieldLabel htmlFor={field.name}>Partner</FieldLabel>
-						<FieldDescription className="text-xs leading-tight">
-							When a partner is selected, gifts are typically shown as given by both of you.
-						</FieldDescription>
-						<Select
-							onValueChange={value => {
-								field.handleChange(value === '__none__' ? undefined : value)
-							}}
-							value={field.state.value || '__none__'}
-							disabled={isLoading || isLoadingPartners}
-						>
-							<SelectTrigger id={field.name} className="w-full">
-								<SelectValue placeholder="Select partner (optional)" />
-							</SelectTrigger>
-							<SelectContent>
-								<SelectItem value="__none__">None</SelectItem>
-								{potentialPartners.map(partnerUser => {
-									const alreadyPartnered = !!partnerUser.partnerId && partnerUser.partnerId !== currentUserId
-									return (
-										<SelectItem key={partnerUser.id} value={partnerUser.id} disabled={alreadyPartnered}>
-											<span className="flex items-center gap-2">
-												<UserAvatar name={partnerUser.name || partnerUser.email} image={partnerUser.image} size="small" />
-												{partnerUser.name || partnerUser.email}
-												{partnerUser.role === 'admin' && <span className="text-xs text-muted-foreground">(Admin)</span>}
-												{alreadyPartnered && <span className="text-xs text-muted-foreground">(already partnered)</span>}
-											</span>
-										</SelectItem>
-									)
-								})}
-							</SelectContent>
-						</Select>
-						{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
-							<FieldError className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</FieldError>
-						)}
-					</Field>
-				)}
-			</form.Field>
+			{!isChild && (
+				<form.Field name="partnerId">
+					{field => (
+						<Field className="gap-1">
+							<FieldLabel htmlFor={field.name}>Partner</FieldLabel>
+							<FieldDescription className="text-xs leading-tight">
+								When a partner is selected, gifts are typically shown as given by both of you.
+							</FieldDescription>
+							<Select
+								onValueChange={value => {
+									field.handleChange(value === '__none__' ? undefined : value)
+								}}
+								value={field.state.value || '__none__'}
+								disabled={isLoading || isLoadingPartners}
+							>
+								<SelectTrigger id={field.name} className="w-full">
+									<SelectValue placeholder="Select partner (optional)" />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="__none__">None</SelectItem>
+									{potentialPartners.map(partnerUser => {
+										const alreadyPartnered = !!partnerUser.partnerId && partnerUser.partnerId !== currentUserId
+										return (
+											<SelectItem key={partnerUser.id} value={partnerUser.id} disabled={alreadyPartnered}>
+												<span className="flex items-center gap-2">
+													<UserAvatar name={partnerUser.name || partnerUser.email} image={partnerUser.image} size="small" />
+													{partnerUser.name || partnerUser.email}
+													{partnerUser.role === 'admin' && <span className="text-xs text-muted-foreground">(Admin)</span>}
+													{alreadyPartnered && <span className="text-xs text-muted-foreground">(already partnered)</span>}
+												</span>
+											</SelectItem>
+										)
+									})}
+								</SelectContent>
+							</Select>
+							{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+								<FieldError className="text-destructive text-sm">{getErrorMessage(field.state.meta.errors)}</FieldError>
+							)}
+						</Field>
+					)}
+				</form.Field>
+			)}
 
 			<form.Subscribe selector={state => state.values.partnerId}>
 				{selectedPartnerId =>

@@ -4,7 +4,7 @@ import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import { users } from '@/db/schema'
-import { applyPartnerAndAnniversary } from '@/lib/partner-update'
+import { applyPartnerAndAnniversary, ChildPartnerError } from '@/lib/partner-update'
 
 async function readPair(tx: Parameters<Parameters<typeof withRollback>[0]>[0], aId: string, bId: string) {
 	const rows = await tx.select().from(users).where(eq(users.id, aId))
@@ -32,6 +32,42 @@ describe('applyPartnerAndAnniversary', () => {
 			expect(pair.a.partnerAnniversary).toBe('2020-06-14')
 			expect(pair.b.partnerId).toBe(a.id)
 			expect(pair.b.partnerAnniversary).toBe('2020-06-14')
+		})
+	})
+
+	it('rejects setting a partner when the user is a child', async () => {
+		await withRollback(async tx => {
+			const child = await makeUser(tx, { role: 'child' })
+			const adult = await makeUser(tx)
+			await expect(
+				applyPartnerAndAnniversary(tx, { userId: child.id, currentPartnerId: null, newPartnerId: adult.id, newAnniversary: undefined })
+			).rejects.toBeInstanceOf(ChildPartnerError)
+		})
+	})
+
+	it('rejects setting a child as the new partner', async () => {
+		await withRollback(async tx => {
+			const adult = await makeUser(tx)
+			const child = await makeUser(tx, { role: 'child' })
+			await expect(
+				applyPartnerAndAnniversary(tx, { userId: adult.id, currentPartnerId: null, newPartnerId: child.id, newAnniversary: undefined })
+			).rejects.toBeInstanceOf(ChildPartnerError)
+			// No partial write: the adult's row was never touched.
+			const rows = await tx.select().from(users).where(eq(users.id, adult.id))
+			expect(rows[0]?.partnerId).toBeNull()
+		})
+	})
+
+	it('allows a child to clear their (nonexistent) partner', async () => {
+		await withRollback(async tx => {
+			const child = await makeUser(tx, { role: 'child' })
+			const { selfUpdates } = await applyPartnerAndAnniversary(tx, {
+				userId: child.id,
+				currentPartnerId: null,
+				newPartnerId: null,
+				newAnniversary: undefined,
+			})
+			expect(selfUpdates.partnerId).toBeNull()
 		})
 	})
 

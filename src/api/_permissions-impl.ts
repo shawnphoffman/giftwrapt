@@ -18,6 +18,28 @@ export type RelationshipRow = {
 	// the current user, in which case `restricted` cannot be set on the
 	// relationship (see role rules in logic.md).
 	cannotBeRestricted: boolean
+	// True iff the target user is a guardian (parent) of the current user. A
+	// child must not be able to change permissions toward their own guardian
+	// in either direction - the guardian's full access is a fixed grant, not
+	// something the child manages. The settings UI locks the whole row.
+	isGuardian: boolean
+}
+
+// Guardians (parents) of `childUserId`. Returns the subset of `candidateIds`
+// that are guardians of the child; omit `candidateIds` to get all of them.
+// Used both to flag rows for the settings UI and to reject child-initiated
+// writes against a guardian in the upsert paths below.
+async function getGuardianIdsOf(dbx: SchemaDatabase, childUserId: string, candidateIds?: ReadonlyArray<string>): Promise<Set<string>> {
+	if (candidateIds && candidateIds.length === 0) return new Set()
+	const ids = candidateIds as Array<string> | undefined
+	const rows = await dbx.query.guardianships.findMany({
+		where:
+			ids && ids.length > 0
+				? and(eq(guardianships.childUserId, childUserId), inArray(guardianships.parentUserId, ids))
+				: eq(guardianships.childUserId, childUserId),
+		columns: { parentUserId: true },
+	})
+	return new Set(rows.map(r => r.parentUserId))
 }
 
 async function getCannotBeRestrictedSet(dbx: SchemaDatabase, currentUserId: string, otherIds: ReadonlyArray<string>): Promise<Set<string>> {
@@ -72,6 +94,11 @@ export async function getUsersWithRelationshipsImpl(currentUserId: string): Prom
 		currentUserId,
 		allUsers.map(u => u.id)
 	)
+	const myGuardians = await getGuardianIdsOf(
+		db,
+		currentUserId,
+		allUsers.map(u => u.id)
+	)
 
 	return allUsers.map(user => {
 		const r = map.get(user.id)
@@ -83,6 +110,7 @@ export async function getUsersWithRelationshipsImpl(currentUserId: string): Prom
 			accessLevel: r?.accessLevel ?? 'view',
 			canEdit: r?.canEdit ?? false,
 			cannotBeRestricted: cannotBeRestricted.has(user.id),
+			isGuardian: myGuardians.has(user.id),
 		}
 	})
 }
@@ -103,6 +131,11 @@ export async function getOwnersWithRelationshipsForMeImpl(currentUserId: string)
 		currentUserId,
 		allUsers.map(u => u.id)
 	)
+	const myGuardians = await getGuardianIdsOf(
+		db,
+		currentUserId,
+		allUsers.map(u => u.id)
+	)
 
 	return allUsers.map(user => {
 		const r = map.get(user.id)
@@ -114,6 +147,7 @@ export async function getOwnersWithRelationshipsForMeImpl(currentUserId: string)
 			accessLevel: r?.accessLevel ?? 'view',
 			canEdit: r?.canEdit ?? false,
 			cannotBeRestricted: cannotBeRestricted.has(user.id),
+			isGuardian: myGuardians.has(user.id),
 		}
 	})
 }
@@ -227,6 +261,7 @@ export type UpsertUserRelationshipsInput = {
 export type UpsertUserRelationshipsResult =
 	| { success: true }
 	| { success: false; reason: 'restricted-not-allowed'; viewerUserIds: Array<string> }
+	| { success: false; reason: 'guardian-not-allowed'; viewerUserIds: Array<string> }
 
 export async function upsertUserRelationshipsImpl(args: {
 	ownerUserId: string
@@ -238,6 +273,17 @@ export async function upsertUserRelationshipsImpl(args: {
 	dbx?: SchemaDatabase
 }): Promise<UpsertUserRelationshipsResult> {
 	const { ownerUserId, input, dbx = db } = args
+
+	// A child cannot change permissions toward their own guardian. Reject any
+	// row whose viewer is a guardian of the owner before touching the DB.
+	const guardianViewers = await getGuardianIdsOf(
+		dbx,
+		ownerUserId,
+		input.relationships.map(r => r.viewerUserId)
+	)
+	if (guardianViewers.size > 0) {
+		return { success: false, reason: 'guardian-not-allowed', viewerUserIds: [...guardianViewers] }
+	}
 
 	// Reject restricted on partner/guardian pairs in either direction.
 	const restrictedTargets = input.relationships.filter(r => r.accessLevel === 'restricted').map(r => r.viewerUserId)
@@ -290,6 +336,7 @@ export type UpsertViewerRelationshipsInput = {
 export type UpsertViewerRelationshipsResult =
 	| { success: true }
 	| { success: false; reason: 'restricted-not-allowed'; ownerUserIds: Array<string> }
+	| { success: false; reason: 'guardian-not-allowed'; ownerUserIds: Array<string> }
 
 export async function upsertViewerRelationshipsImpl(args: {
 	viewerUserId: string
@@ -297,6 +344,17 @@ export async function upsertViewerRelationshipsImpl(args: {
 	dbx?: SchemaDatabase
 }): Promise<UpsertViewerRelationshipsResult> {
 	const { viewerUserId, input, dbx = db } = args
+
+	// A child cannot change permissions toward their own guardian. Reject any
+	// row whose owner is a guardian of the viewer before touching the DB.
+	const guardianOwners = await getGuardianIdsOf(
+		dbx,
+		viewerUserId,
+		input.relationships.map(r => r.ownerUserId)
+	)
+	if (guardianOwners.size > 0) {
+		return { success: false, reason: 'guardian-not-allowed', ownerUserIds: [...guardianOwners] }
+	}
 
 	const restrictedTargets = input.relationships.filter(r => r.accessLevel === 'restricted').map(r => r.ownerUserId)
 	if (restrictedTargets.length > 0) {

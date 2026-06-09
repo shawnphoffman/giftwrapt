@@ -134,6 +134,10 @@ export const updateUserProfile = createServerFn({
 		const newPartnerId = data.partnerId !== undefined ? data.partnerId || null : undefined
 		const newAnniversary = data.partnerAnniversary !== undefined ? data.partnerAnniversary || null : undefined
 
+		// The child-cannot-have-a-partner rule (either side) is enforced
+		// centrally in `applyPartnerAndAnniversary`, which throws
+		// `ChildPartnerError`; it surfaces to the profile form as a toast.
+
 		const result = await db.transaction(async tx => {
 			const { selfUpdates } = await applyPartnerAndAnniversary(tx, {
 				userId,

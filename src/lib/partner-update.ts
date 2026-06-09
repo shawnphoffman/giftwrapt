@@ -25,6 +25,17 @@ export type PartnerUpdateResult = {
 	selfUpdates: { partnerId?: string | null; partnerAnniversary?: string | null }
 }
 
+// Thrown when a partner write would put a child account on either side of a
+// partnership. Centralizing the throw here means every partner-write surface
+// (self profile edit, mobile PATCH /me, admin edit) inherits the guard; call
+// sites that want a friendlier response can catch this specifically.
+export class ChildPartnerError extends Error {
+	constructor() {
+		super('Child accounts cannot have a partner.')
+		this.name = 'ChildPartnerError'
+	}
+}
+
 // Mutates rows for the old partner (if any), the new partner's prior
 // partner (if any), the new partner (if any), and returns the columns
 // the caller should write to the user's OWN row.
@@ -41,16 +52,29 @@ export async function applyPartnerAndAnniversary(tx: Tx, input: PartnerUpdateInp
 
 	if (newPartnerId !== undefined) {
 		selfUpdates.partnerId = newPartnerId
+
+		// Children cannot be partners on EITHER side (see logic.md). Validate
+		// up front, before any mutation, so a rejected call leaves no partial
+		// state. The fetched `partnerId` is reused below to steal the new
+		// partner from a third user without a second query.
+		let newPartnerExistingPartnerId: string | null = null
+		if (newPartnerId) {
+			const [self, newPartner] = await Promise.all([
+				tx.query.users.findFirst({ where: eq(users.id, userId), columns: { role: true } }),
+				tx.query.users.findFirst({ where: eq(users.id, newPartnerId), columns: { role: true, partnerId: true } }),
+			])
+			if (self?.role === 'child' || newPartner?.role === 'child') {
+				throw new ChildPartnerError()
+			}
+			newPartnerExistingPartnerId = newPartner?.partnerId ?? null
+		}
+
 		if (currentPartnerId && currentPartnerId !== newPartnerId) {
 			await tx.update(users).set({ partnerId: null, partnerAnniversary: null }).where(eq(users.id, currentPartnerId))
 		}
 		if (newPartnerId) {
-			const newPartner = await tx.query.users.findFirst({
-				where: eq(users.id, newPartnerId),
-				columns: { partnerId: true },
-			})
-			if (newPartner?.partnerId && newPartner.partnerId !== userId) {
-				await tx.update(users).set({ partnerId: null, partnerAnniversary: null }).where(eq(users.id, newPartner.partnerId))
+			if (newPartnerExistingPartnerId && newPartnerExistingPartnerId !== userId) {
+				await tx.update(users).set({ partnerId: null, partnerAnniversary: null }).where(eq(users.id, newPartnerExistingPartnerId))
 			}
 			await tx.update(users).set({ partnerId: userId }).where(eq(users.id, newPartnerId))
 		}
