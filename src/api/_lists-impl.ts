@@ -25,6 +25,8 @@ import {
 } from '@/db/schema'
 import { type BirthMonth, type GroupType, type ListType, listTypeEnumValues, type Priority } from '@/db/schema/enums'
 import type { ListAddon } from '@/db/schema/lists'
+import type { ArchiveBannerInfo } from '@/lib/archive-schedule-loader'
+import { loadArchiveBannerInfo } from '@/lib/archive-schedule-loader'
 import { customHolidayDisplayDate } from '@/lib/custom-holidays'
 import { computeListItemCounts } from '@/lib/gifts'
 import { visibleItemsWhere } from '@/lib/item-visibility'
@@ -83,6 +85,8 @@ export type ListForViewing = {
 	// inside the gifter view (e.g. the Add ToDo button on todos lists)
 	// should read this rather than re-checking ownership client-side.
 	canEdit: boolean
+	// Reveal-timing info for the gifting banner ("purchases revealed on X").
+	archiveInfo: ArchiveBannerInfo
 }
 
 export type GetListForViewingResult =
@@ -273,6 +277,9 @@ export type ListForEditing = {
 		image: string | null
 	}
 	subjectDependent: ListForViewingSubjectDependent | null
+	// Reveal-timing info for the edit-view banner: force-reveal CTA,
+	// extend/cancel controls, and the "last archived" display.
+	archiveInfo: ArchiveBannerInfo
 }
 
 export type GetListForEditingResult = { kind: 'ok'; list: ListForEditing } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
@@ -430,6 +437,8 @@ export async function getListForViewingImpl(args: {
 
 	const canEdit = list.ownerId === args.userId ? true : (await canEditList(args.userId, list, dbx)).ok
 
+	const archiveInfo = await loadArchiveBannerInfo(list.id, dbx)
+
 	return {
 		kind: 'ok',
 		list: {
@@ -453,6 +462,7 @@ export async function getListForViewingImpl(args: {
 			groups: viewGroups,
 			addons,
 			canEdit,
+			archiveInfo,
 		},
 	}
 }
@@ -532,6 +542,8 @@ export async function getListHeaderImpl(args: { userId: string; listId: string; 
 
 	const canEdit = list.ownerId === args.userId ? true : (await canEditList(args.userId, list, dbx)).ok
 
+	const archiveInfo = await loadArchiveBannerInfo(list.id, dbx)
+
 	return {
 		kind: 'ok',
 		list: {
@@ -545,6 +557,7 @@ export async function getListHeaderImpl(args: { userId: string; listId: string; 
 				: null,
 			groups: viewGroups,
 			canEdit,
+			archiveInfo,
 		},
 	}
 }
@@ -1597,6 +1610,8 @@ export async function getListForEditingImpl(args: {
 		columns: { id: true, type: true, name: true, priority: true, sortOrder: true },
 	})
 
+	const archiveInfo = await loadArchiveBannerInfo(list.id, dbx)
+
 	return {
 		kind: 'ok',
 		list: {
@@ -1613,6 +1628,7 @@ export async function getListForEditingImpl(args: {
 			customHolidayId: list.customHolidayId,
 			groups,
 			isOwner,
+			archiveInfo,
 			owner: {
 				id: list.owner.id,
 				name: list.owner.name,
