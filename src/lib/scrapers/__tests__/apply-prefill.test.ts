@@ -133,6 +133,41 @@ describe('applyScrapePrefill: image candidates', () => {
 	})
 })
 
+describe('applyScrapePrefill: upgrade an already-applied field (lastApplied)', () => {
+	// Mirrors the real scrape sequence: `result_ready` fills the raw title,
+	// then `result_updated` carries the AI-cleaned title. The field is no
+	// longer empty, so only the lastApplied gate lets the cleaned value land.
+	it('upgrades the title when the field still holds the previously-applied raw value', () => {
+		const raw: ScrapeResult = { title: 'Amazon.com: ACME Widget | Free Shipping', imageUrls: [] }
+		const cleaned: ScrapeResult = { title: 'ACME Widget', imageUrls: [] }
+
+		const first = applyScrapePrefill(empty, raw)
+		expect(first.title).toBe('Amazon.com: ACME Widget | Free Shipping')
+
+		const populated: PrefillFields = { ...empty, title: first.title ?? '' }
+		const second = applyScrapePrefill(populated, cleaned, { title: first.title })
+		expect(second.title).toBe('ACME Widget')
+	})
+
+	it('preserves a user edit even when a refined scrape value arrives', () => {
+		const raw: ScrapeResult = { title: 'Amazon.com: ACME Widget', imageUrls: [] }
+		const cleaned: ScrapeResult = { title: 'ACME Widget', imageUrls: [] }
+
+		const first = applyScrapePrefill(empty, raw)
+		// User retitles the item after the first fill.
+		const edited: PrefillFields = { ...empty, title: 'My own name' }
+		const second = applyScrapePrefill(edited, cleaned, { title: first.title })
+		expect(second.title).toBeUndefined()
+	})
+
+	it('does not re-emit when the refined value equals the current value', () => {
+		const cleaned: ScrapeResult = { title: 'ACME Widget', imageUrls: [] }
+		const populated: PrefillFields = { ...empty, title: 'ACME Widget' }
+		const update = applyScrapePrefill(populated, cleaned, { title: 'ACME Widget' })
+		expect(update.title).toBeUndefined()
+	})
+})
+
 describe('applyScrapePrefill: idempotence', () => {
 	it('re-running with the same inputs yields equivalent output', () => {
 		const first = applyScrapePrefill(empty, fullScrape)

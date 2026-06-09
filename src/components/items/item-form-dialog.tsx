@@ -94,6 +94,10 @@ export function ItemFormDialog(props: Props) {
 	const { state: scrapeState, start: startScrape, cancel: cancelScrape } = useScrapeUrl()
 	const lastScrapedUrlRef = useRef('')
 	const [imageCandidates, setImageCandidates] = useState<ReadonlyArray<string>>([])
+	// Tracks the exact field values the scrape itself last wrote, so a later
+	// scrape event (e.g. the AI-cleaned title in `result_updated`) can upgrade
+	// a field it filled one event earlier without clobbering a user edit.
+	const lastScrapeAppliedRef = useRef<Partial<{ title: string; price: string; notes: string; imageUrl: string }>>({})
 
 	// Photo upload + AI vision integration (create mode only). The chosen
 	// photo is staged in memory until `createItem` succeeds — the upload
@@ -256,11 +260,28 @@ export function ItemFormDialog(props: Props) {
 		const result = scrapeState.result
 		if (!result) return
 		const values = form.state.values
-		const update = applyScrapePrefill({ title: values.title, price: values.price, notes: values.notes, imageUrl: values.imageUrl }, result)
-		if (update.title !== undefined) form.setFieldValue('title', update.title)
-		if (update.price !== undefined) form.setFieldValue('price', update.price)
-		if (update.notes !== undefined) form.setFieldValue('notes', update.notes)
-		if (update.imageUrl !== undefined) form.setFieldValue('imageUrl', update.imageUrl)
+		const applied = lastScrapeAppliedRef.current
+		const update = applyScrapePrefill(
+			{ title: values.title, price: values.price, notes: values.notes, imageUrl: values.imageUrl },
+			result,
+			applied
+		)
+		if (update.title !== undefined) {
+			form.setFieldValue('title', update.title)
+			applied.title = update.title
+		}
+		if (update.price !== undefined) {
+			form.setFieldValue('price', update.price)
+			applied.price = update.price
+		}
+		if (update.notes !== undefined) {
+			form.setFieldValue('notes', update.notes)
+			applied.notes = update.notes
+		}
+		if (update.imageUrl !== undefined) {
+			form.setFieldValue('imageUrl', update.imageUrl)
+			applied.imageUrl = update.imageUrl
+		}
 		setImageCandidates(update.imageCandidates)
 	}, [scrapeState, form])
 
@@ -326,6 +347,7 @@ export function ItemFormDialog(props: Props) {
 		photoPrefillAppliedRef.current = null
 		seededFromPropRef.current = null
 		lastScrapedUrlRef.current = ''
+		lastScrapeAppliedRef.current = {}
 		setImageCandidates([])
 	}, [open, initialUrl, cancelScrape, resetPhotoExtract])
 
