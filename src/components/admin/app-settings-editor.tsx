@@ -252,6 +252,16 @@ export function GenericHolidaySettingsSection() {
 				/>
 			</div>
 
+			<div className="flex items-center justify-between gap-4">
+				<DaysSetting
+					id="maxArchiveDeferDays"
+					label="Max Archive Extension"
+					description="Maximum number of days past a list's event date that an editor, guardian, or partner may defer the auto-archive/reveal. Caps the extension date picker."
+					value={settings.maxArchiveDeferDays}
+					onCommit={value => handleSettingChange('maxArchiveDeferDays', value)}
+				/>
+			</div>
+
 			{emailConfigured && (
 				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableGenericHolidayLists ? '' : 'opacity-50'}`}>
 					<div className="space-y-0.5">

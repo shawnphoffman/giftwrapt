@@ -45,6 +45,21 @@ export const lists = pgTable(
 		// change so a repurposed list never inherits stale archive
 		// bookkeeping.
 		lastHolidayArchiveAt: timestamp('last_holiday_archive_at'),
+		// Absolute override for when this list's claimed gifts auto-reveal.
+		// Set by edit-access holders via the extension control; the
+		// auto-archive cron skips a list while this is in the future and the
+		// deferred-due pass reveals + clears it once it elapses. Wins over the
+		// derived default (eventDate + archiveDaysAfter*) even if an admin
+		// later changes the archive-days settings. Null = use the derived
+		// default. See .notes/logic.md "Auto-archive deferral & last-archived".
+		archiveDeferUntil: timestamp('archive_defer_until'),
+		// Stamped every time this list's claimed items + addons are actually
+		// revealed (auto-archive cron, the deferred-due pass, or the manual
+		// force-reveal). Display-only ("last archived" in list settings);
+		// distinct from `lastHolidayArchiveAt`, which is holiday-occurrence
+		// idempotency bookkeeping. Backfilled from `lastHolidayArchiveAt` for
+		// holiday lists in migration.
+		lastArchivedAt: timestamp('last_archived_at'),
 		// Points at an admin-curated row in `custom_holidays`, which itself
 		// contains the catalog reference or fully custom date logic. Only
 		// populated for type === 'holiday'.

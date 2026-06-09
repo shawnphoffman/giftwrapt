@@ -289,6 +289,11 @@ export const appSettingsSchema = z.object({
 	// Diwali) archive against the end of the festival; single-day
 	// holidays archive against the holiday date itself.
 	archiveDaysAfterHoliday: z.number().int().positive(),
+	// Maximum number of days past a list's event date that an edit-access
+	// holder may defer (extend) the auto-archive/reveal. Caps the extension
+	// date picker. 90 keeps annual events from deferring across the next
+	// occurrence's cycle.
+	maxArchiveDeferDays: z.number().int().positive(),
 	// Whether birthday emails (day-of + follow-up) are sent.
 	enableBirthdayEmails: z.boolean(),
 	// Whether Christmas emails are sent.
@@ -532,6 +537,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	archiveDaysAfterBirthday: 14,
 	archiveDaysAfterChristmas: 14,
 	archiveDaysAfterHoliday: 14,
+	maxArchiveDeferDays: 90,
 	enableBirthdayEmails: false,
 	enableChristmasEmails: false,
 	enableGenericHolidayEmails: false,
