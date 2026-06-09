@@ -90,7 +90,7 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 	// re-scrapes via the icon button bypass this and always force.
 	const lastScrapedUrlRef = useRef('')
 
-	const { state: scrapeState, start: startScrape, cancel: cancelScrape } = useScrapeUrl()
+	const { state: scrapeState, start: startScrape, cancel: cancelScrape, reset: resetScrape } = useScrapeUrl()
 
 	const { data: myLists } = useQuery({
 		queryKey: ['my-lists-for-import'],
@@ -133,9 +133,12 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 			setStagedPreview(null)
 			setError(null)
 			lastScrapedUrlRef.current = ''
-			cancelScrape()
+			// Full reset (not cancel): clears a completed "Imported in N.Ns"
+			// alert so it doesn't linger when the dialog is reopened for the
+			// next item.
+			resetScrape()
 		}
-	}, [open, cancelScrape])
+	}, [open, resetScrape])
 
 	// Prefill URL + auto-scrape when the dialog opens with an initialUrl
 	// (e.g. share-target via /me?url=...). Mirrors handleUrlBlur but fires

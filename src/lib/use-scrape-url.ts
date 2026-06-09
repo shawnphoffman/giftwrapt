@@ -79,6 +79,7 @@ export function useScrapeUrl(): {
 	state: ScrapeUiState
 	start: (url: string, opts?: StartOptions) => void
 	cancel: () => void
+	reset: () => void
 } {
 	const [state, setState] = useState<ScrapeUiState>(initialState)
 	const sourceRef = useRef<EventSource | null>(null)
@@ -111,6 +112,14 @@ export function useScrapeUrl(): {
 			if (prev.phase === 'done' || prev.phase === 'failed' || prev.phase === 'idle') return prev
 			return { ...prev, phase: 'failed', reason: 'stream-closed' }
 		})
+	}, [closeSource])
+
+	// Full reset back to idle. Unlike `cancel`, this also clears a completed
+	// (`done`/`failed`) session so a stale "Imported in N.Ns" alert doesn't
+	// linger when a host (e.g. the add-item dialog) is reused for a new item.
+	const reset = useCallback(() => {
+		closeSource()
+		setState(initialState)
 	}, [closeSource])
 
 	const start = useCallback(
@@ -173,7 +182,7 @@ export function useScrapeUrl(): {
 		}
 	}, [closeSource])
 
-	return { state, start, cancel }
+	return { state, start, cancel, reset }
 }
 
 // ===========================================================================
