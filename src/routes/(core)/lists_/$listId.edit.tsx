@@ -18,7 +18,7 @@ import { ItemEditRow } from '@/components/items/item-edit-row'
 import { ItemFormDialog } from '@/components/items/item-form-dialog'
 import { ItemListSkeleton } from '@/components/items/item-list-skeleton'
 import { MoveItemDialog } from '@/components/items/move-item-dialog'
-import { ArchiveManagerBanner } from '@/components/lists/archive-manager-banner'
+import { ArchiveManagerBadge } from '@/components/lists/archive-manager-badge'
 import BackToParentList from '@/components/lists/back-to-parent-list'
 import { ListSettingsSheet } from '@/components/lists/list-settings-sheet'
 import { TodoList } from '@/components/todos/todo-list'
@@ -198,6 +198,11 @@ function ListEditPage() {
 						) : null}
 						<ListTypeTile type={list.type} />
 						<h1 className="truncate flex-1">{list.name}</h1>
+						<ArchiveManagerBadge
+							listId={list.id}
+							archiveInfo={list.archiveInfo}
+							recipientName={list.subjectDependent ? list.subjectDependent.name : list.owner.name || list.owner.email}
+						/>
 						<ListSettingsSheet
 							listId={list.id}
 							name={list.name}
@@ -216,11 +221,6 @@ function ListEditPage() {
 						/>
 					</div>
 				</div>
-				<ArchiveManagerBanner
-					listId={list.id}
-					archiveInfo={list.archiveInfo}
-					recipientName={list.subjectDependent ? list.subjectDependent.name : list.owner.name || list.owner.email}
-				/>
 				{list.description && <MarkdownNotes content={list.description} className="text-muted-foreground" />}
 
 				{list.type === 'todos' ? (

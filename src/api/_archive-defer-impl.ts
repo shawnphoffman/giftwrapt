@@ -12,8 +12,10 @@
 //   - cancel defer: always allowed for edit-access holders.
 
 import { eq } from 'drizzle-orm'
-import { z } from 'zod'
+import type { z } from 'zod'
 
+import type { CancelArchiveDeferInputSchema, ForceArchiveListInputSchema, SetArchiveDeferInputSchema } from '@/api/_archive-defer-schemas'
+import { type CancelArchiveDeferResult, type ForceArchiveListResult, type SetArchiveDeferResult } from '@/api/_archive-defer-schemas'
 import { archiveListPurchasesImpl } from '@/api/_items-extra-impl'
 import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
@@ -24,20 +26,6 @@ import { maybeSendListRevealEmail } from '@/lib/cron/reveal-emails'
 import { getCustomHoliday } from '@/lib/custom-holidays'
 import { canEditList } from '@/lib/permissions'
 import { getAppSettings } from '@/lib/settings-loader'
-
-export const ForceArchiveListInputSchema = z.object({ listId: z.number().int() })
-export const SetArchiveDeferInputSchema = z.object({ listId: z.number().int(), deferUntil: z.coerce.date() })
-export const CancelArchiveDeferInputSchema = z.object({ listId: z.number().int() })
-
-export type ForceArchiveListResult =
-	| { kind: 'ok'; updated: number; addonsArchived: number; emailSent: boolean }
-	| { kind: 'error'; reason: 'not-found' | 'not-authorized' | 'not-applicable' | 'too-early' | 'deferred' }
-
-export type SetArchiveDeferResult =
-	| { kind: 'ok'; deferUntil: string }
-	| { kind: 'error'; reason: 'not-found' | 'not-authorized' | 'not-applicable' | 'too-early' | 'must-be-later' | 'exceeds-max' }
-
-export type CancelArchiveDeferResult = { kind: 'ok' } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }
 
 type ScheduleContext = {
 	list: {

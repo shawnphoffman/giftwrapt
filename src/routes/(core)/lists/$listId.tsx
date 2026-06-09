@@ -11,7 +11,7 @@ import ItemList from '@/components/items/item-list'
 import { ItemListSkeleton } from '@/components/items/item-list-skeleton'
 import { ListAddonsSection } from '@/components/list-addons/list-addons-section'
 import { ListAddonsSectionSkeleton } from '@/components/list-addons/list-addons-section-skeleton'
-import { ArchiveRevealBanner } from '@/components/lists/archive-reveal-banner'
+import { ArchiveRevealBadge } from '@/components/lists/archive-reveal-badge'
 import BackToParentList from '@/components/lists/back-to-parent-list'
 import { ListOrphanAlert } from '@/components/orphan-claims/list-orphan-alert'
 import { TodoList } from '@/components/todos/todo-list'
@@ -134,10 +134,10 @@ function ListDetailBody({ listId }: { listId: number }) {
 						)}
 					</div>
 					<ListTypeTile type={list.type} />
-					<h1 className="truncate">{list.name}</h1>
+					<h1 className="truncate min-w-0">{list.name}</h1>
+					<ArchiveRevealBadge archiveInfo={list.archiveInfo} recipientName={recipientName} />
 				</div>
 			</div>
-			<ArchiveRevealBanner archiveInfo={list.archiveInfo} recipientName={recipientName} />
 			{list.description && <MarkdownNotes content={list.description} className="text-muted-foreground" />}
 			{list.type !== 'todos' && <ListOrphanAlert listId={list.id} />}
 			{list.type === 'todos' ? (

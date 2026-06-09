@@ -5,17 +5,15 @@
 import { createServerFn } from '@tanstack/react-start'
 import type { z } from 'zod'
 
+import { cancelArchiveDeferImpl, forceArchiveListImpl, setArchiveDeferImpl } from '@/api/_archive-defer-impl'
 import {
-	cancelArchiveDeferImpl,
 	CancelArchiveDeferInputSchema,
 	type CancelArchiveDeferResult,
-	forceArchiveListImpl,
 	ForceArchiveListInputSchema,
 	type ForceArchiveListResult,
-	setArchiveDeferImpl,
 	SetArchiveDeferInputSchema,
 	type SetArchiveDeferResult,
-} from '@/api/_archive-defer-impl'
+} from '@/api/_archive-defer-schemas'
 import { loggingMiddleware } from '@/lib/logger'
 import { authMiddleware } from '@/middleware/auth'
 
