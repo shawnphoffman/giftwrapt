@@ -1,4 +1,3 @@
-import { CalendarClock } from 'lucide-react'
 import { useState } from 'react'
 
 import { badgeVariants } from '@/components/ui/badge'
@@ -28,16 +27,15 @@ export function ArchiveRevealBadge({ archiveInfo, recipientName }: { archiveInfo
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger
-				className={cn(badgeVariants({ variant: 'secondary' }), 'h-6 shrink-0 cursor-pointer gap-1')}
+				className={cn(badgeVariants({ variant: 'secondary' }), 'h-7 shrink-0 cursor-pointer hover:bg-secondary/80')}
 				title={`Gifts reveal on ${longDate}`}
 				aria-label={`Gifts reveal on ${longDate}. Tap for details.`}
 			>
-				<CalendarClock className="size-3.5" />
-				<span>{shortDate}</span>
+				<span>Revealing: {shortDate}</span>
 			</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Gifts reveal on {longDate}</DialogTitle>
+					<DialogTitle className="pr-10">Gifts reveal on {longDate}</DialogTitle>
 					<DialogDescription>How claim visibility works on this list.</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-3 text-sm text-muted-foreground">

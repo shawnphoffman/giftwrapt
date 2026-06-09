@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
-import { CalendarClock, Clock, Send } from 'lucide-react'
+import { Clock, Send } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -137,16 +137,18 @@ export function ArchiveManagerBadge({
 			}}
 		>
 			<DialogTrigger
-				className={cn(badgeVariants({ variant: extended ? 'default' : 'secondary' }), 'h-6 shrink-0 cursor-pointer gap-1')}
+				className={cn(badgeVariants({ variant: 'secondary' }), 'h-7 shrink-0 cursor-pointer hover:bg-secondary/80')}
 				title={`Gifts reveal on ${longDate}${extended ? ' (extended)' : ''}`}
 				aria-label={`Gifts reveal on ${longDate}. Tap to manage.`}
 			>
-				<CalendarClock className="size-3.5" />
-				<span>{shortDate}</span>
+				<span>
+					Revealing: {shortDate}
+					{extended ? ' (extended)' : ''}
+				</span>
 			</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>
+					<DialogTitle className="pr-10">
 						Gifts reveal on {longDate}
 						{extended && <span className="text-muted-foreground text-sm font-normal"> (extended)</span>}
 					</DialogTitle>
