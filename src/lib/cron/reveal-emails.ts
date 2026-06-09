@@ -111,7 +111,7 @@ async function revealedGiftsForList(db: SchemaDatabase, listId: number): Promise
  * sent. Safe to call after the list's items + addons have been archived.
  */
 export async function maybeSendListRevealEmail(db: SchemaDatabase, list: RevealEmailList, settings: RevealEmailSettings): Promise<boolean> {
-	if (!(await isEmailConfigured())) return false
+	if (!(await isEmailConfigured(db))) return false
 
 	const owner = await db.query.users.findFirst({ where: eq(users.id, list.ownerId), columns: { id: true, email: true } })
 	if (!owner) return false
