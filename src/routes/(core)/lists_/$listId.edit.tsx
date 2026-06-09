@@ -18,6 +18,7 @@ import { ItemEditRow } from '@/components/items/item-edit-row'
 import { ItemFormDialog } from '@/components/items/item-form-dialog'
 import { ItemListSkeleton } from '@/components/items/item-list-skeleton'
 import { MoveItemDialog } from '@/components/items/move-item-dialog'
+import { ArchiveManagerBanner } from '@/components/lists/archive-manager-banner'
 import BackToParentList from '@/components/lists/back-to-parent-list'
 import { ListSettingsSheet } from '@/components/lists/list-settings-sheet'
 import { TodoList } from '@/components/todos/todo-list'
@@ -209,10 +210,17 @@ function ListEditPage() {
 							editors={editors}
 							addableUsers={addableUsers}
 							isOwner={list.isOwner}
+							archiveApplies={list.archiveInfo.applies}
+							lastArchivedAt={list.archiveInfo.lastArchivedAt}
 							defaultOpen={initialSettingsOpen}
 						/>
 					</div>
 				</div>
+				<ArchiveManagerBanner
+					listId={list.id}
+					archiveInfo={list.archiveInfo}
+					recipientName={list.subjectDependent ? list.subjectDependent.name : list.owner.name || list.owner.email}
+				/>
 				{list.description && <MarkdownNotes content={list.description} className="text-muted-foreground" />}
 
 				{list.type === 'todos' ? (

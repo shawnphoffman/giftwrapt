@@ -63,6 +63,11 @@ type Props = {
 	customHolidayId: string | null
 	editorUserIds: Array<string>
 	isOwner: boolean
+	// True when this list auto-archives. When true the contextual reveal
+	// controls on the edit-view banner own the reveal flow, so the manual
+	// "Archive all purchases" button below is retired.
+	archiveApplies: boolean
+	lastArchivedAt: string | null
 }
 
 export function ListSettingsForm({
@@ -76,6 +81,8 @@ export function ListSettingsForm({
 	customHolidayId,
 	editorUserIds,
 	isOwner,
+	archiveApplies,
+	lastArchivedAt,
 }: Props) {
 	const router = useRouter()
 	const navigate = useNavigate()
@@ -523,7 +530,21 @@ export function ListSettingsForm({
 				</>
 			)}
 
-			{isOwner && type !== 'todos' && (
+			{isOwner && type !== 'todos' && archiveApplies && (
+				<>
+					<Separator />
+					<div className="grid gap-1">
+						<Label>Last archived</Label>
+						<p className="text-muted-foreground text-xs">
+							{lastArchivedAt
+								? `Claimed gifts on this list were last revealed on ${new Date(lastArchivedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}.`
+								: 'Claimed gifts on this list have never been revealed yet.'}
+						</p>
+					</div>
+				</>
+			)}
+
+			{isOwner && type !== 'todos' && !archiveApplies && (
 				<>
 					<Separator />
 					<div className="grid gap-2">

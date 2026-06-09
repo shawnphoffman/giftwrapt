@@ -49,6 +49,8 @@ export const Wishlist: Story = {
 
 		editorUserIds: [],
 		isOwner: true,
+		archiveApplies: false,
+		lastArchivedAt: null,
 	},
 }
 
@@ -68,6 +70,8 @@ export const Holiday: Story = {
 
 		editorUserIds: [],
 		isOwner: true,
+		archiveApplies: false,
+		lastArchivedAt: null,
 	},
 }
 
@@ -86,5 +90,7 @@ export const HolidayUK: Story = {
 
 		editorUserIds: [],
 		isOwner: true,
+		archiveApplies: false,
+		lastArchivedAt: null,
 	},
 }

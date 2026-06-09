@@ -21,6 +21,11 @@ type Props = {
 	editors: Array<EditorOnList>
 	addableUsers: Array<AddableEditorUser>
 	isOwner: boolean
+	// True when this list auto-archives (drives whether the contextual
+	// reveal controls own the reveal flow, retiring the manual button).
+	archiveApplies: boolean
+	// ISO timestamp of the most recent reveal, or null if never.
+	lastArchivedAt: string | null
 	defaultOpen?: boolean
 }
 
@@ -36,6 +41,8 @@ export function ListSettingsSheet({
 	editors,
 	addableUsers,
 	isOwner,
+	archiveApplies,
+	lastArchivedAt,
 	defaultOpen = false,
 }: Props) {
 	const [open, setOpen] = useState(defaultOpen)
@@ -64,6 +71,8 @@ export function ListSettingsSheet({
 						customHolidayId={customHolidayId}
 						editorUserIds={editors.map(e => e.userId)}
 						isOwner={isOwner}
+						archiveApplies={archiveApplies}
+						lastArchivedAt={lastArchivedAt}
 					/>
 					{isOwner && (
 						<>
