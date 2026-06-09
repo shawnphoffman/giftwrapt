@@ -198,11 +198,6 @@ function ListEditPage() {
 						) : null}
 						<ListTypeTile type={list.type} />
 						<h1 className="truncate flex-1">{list.name}</h1>
-						<ArchiveManagerBadge
-							listId={list.id}
-							archiveInfo={list.archiveInfo}
-							recipientName={list.subjectDependent ? list.subjectDependent.name : list.owner.name || list.owner.email}
-						/>
 						<ListSettingsSheet
 							listId={list.id}
 							name={list.name}
@@ -230,7 +225,12 @@ function ListEditPage() {
 					<TodoList listId={list.id} canEdit />
 				) : (
 					<div className="flex flex-col gap-2">
-						<div className="flex items-center justify-end">
+						<div className="flex items-center justify-end gap-2">
+							<ArchiveManagerBadge
+								listId={list.id}
+								archiveInfo={list.archiveInfo}
+								recipientName={list.subjectDependent ? list.subjectDependent.name : list.owner.name || list.owner.email}
+							/>
 							<div className="flex gap-2">
 								{list.isOwner && (
 									<Button size="sm" variant="outline" asChild>

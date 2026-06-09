@@ -1,6 +1,6 @@
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query'
 import { ArrowDown, ArrowUp, ArrowUpDown, Check, DollarSign, Filter } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { type ReactNode, useMemo, useState } from 'react'
 
 import type { ItemWithGifts } from '@/api/items'
 import { getListSummaries, type GroupSummary, type ListSummary } from '@/api/lists'
@@ -29,6 +29,9 @@ import { VendorFilterDropdown, type VendorOption } from './vendor-filter-dropdow
 type Props = {
 	listId: number
 	groups?: Array<GroupSummary>
+	// Rendered inline with the right-aligned filter controls (just before
+	// them). Used for the reveal-date badge.
+	filterBarLeading?: ReactNode
 }
 
 type FilterValue = 'all' | 'unpurchased' | 'purchased'
@@ -104,7 +107,7 @@ function sortIsDescending(sort: SortValue): boolean {
 	return sort === 'priority-desc' || sort === 'date-desc'
 }
 
-export default function ItemList({ listId, groups = [] }: Props) {
+export default function ItemList({ listId, groups = [], filterBarLeading }: Props) {
 	const { data: items } = useSuspenseQuery(listItemsViewQueryOptions(listId))
 	const [filter, setFilter] = useState<FilterValue>('all')
 	const [vendorFilter, setVendorFilter] = useState<ReadonlySet<string>>(() => new Set())
@@ -236,6 +239,7 @@ export default function ItemList({ listId, groups = [] }: Props) {
 		<InternalListLinksProvider value={internalListLinks}>
 			<div className="flex flex-col gap-3">
 				<div className="flex flex-row items-center justify-end gap-1 flex-wrap">
+					{filterBarLeading}
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button

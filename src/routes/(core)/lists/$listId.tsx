@@ -134,8 +134,7 @@ function ListDetailBody({ listId }: { listId: number }) {
 						)}
 					</div>
 					<ListTypeTile type={list.type} />
-					<h1 className="truncate min-w-0">{list.name}</h1>
-					<ArchiveRevealBadge archiveInfo={list.archiveInfo} recipientName={recipientName} />
+					<h1 className="truncate">{list.name}</h1>
 				</div>
 			</div>
 			{list.description && <MarkdownNotes content={list.description} className="text-muted-foreground" />}
@@ -153,7 +152,11 @@ function ListDetailBody({ listId }: { listId: number }) {
 				<>
 					{/* ITEMS */}
 					<Suspense fallback={<ItemListSkeleton />}>
-						<ItemList listId={list.id} groups={list.groups} />
+						<ItemList
+							listId={list.id}
+							groups={list.groups}
+							filterBarLeading={<ArchiveRevealBadge archiveInfo={list.archiveInfo} recipientName={recipientName} />}
+						/>
 					</Suspense>
 					{/* OFF-LIST GIFTS */}
 					<Suspense fallback={<ListAddonsSectionSkeleton />}>
