@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, isNotNull, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, isNotNull, isNull, sql } from 'drizzle-orm'
 
 import type { Database, SchemaDatabase } from '@/db'
 import { itemScrapes } from '@/db/schema'
@@ -123,6 +123,31 @@ export async function persistScrapeAttempt(
 	})
 }
 
+// Back-writes the AI-cleaned title onto the persisted attempt row(s) for a
+// URL. Attempt rows are inserted during the scrape (raw `title` only); the
+// title-cleanup post-pass runs afterward on the winner, so its output has to
+// be stitched back in here. We match the winning provider's row(s) by their
+// raw title and only touch rows that don't already carry a `cleanTitle`,
+// scoped to the recent past so a shared title on an old row (scraped while
+// the toggle was off) is never retroactively rewritten. With the column set,
+// `loadCachedScrape` returns `cleanTitle ?? title`, so a re-scrape within the
+// cache TTL serves the cleaned title instead of re-running the LLM.
+export async function backfillCleanTitle(db: Database, params: { url: string; originalTitle: string; cleanTitle: string }): Promise<void> {
+	const since = new Date(Date.now() - 60 * 60 * 1000)
+	await db
+		.update(itemScrapes)
+		.set({ cleanTitle: params.cleanTitle })
+		.where(
+			and(
+				eq(itemScrapes.url, params.url),
+				eq(itemScrapes.ok, true),
+				eq(itemScrapes.title, params.originalTitle),
+				isNull(itemScrapes.cleanTitle),
+				gte(itemScrapes.createdAt, since)
+			)
+		)
+}
+
 // Convenience wrapper: build the orchestrator deps that point at this DB,
 // pre-wiring extraction + scoring + cache + persistence + the AI title
 // post-pass (which is itself toggle-gated, so it's a no-op when off).
@@ -138,7 +163,14 @@ export function buildDbBackedDeps(db: Database, options: { ttlHours: number; min
 		persistAttempt: (record: Parameters<typeof persistScrapeAttempt>[1]) => persistScrapeAttempt(db, { ...record, userId: options.userId }),
 		postProcessResult: async (result: ScrapeResult, ctx: { url: string; fromProvider: string }) => {
 			const outcome = await maybeCleanTitle(db, result, { url: ctx.url })
-			if (outcome.cleaned && outcome.cleaned !== result.title) {
+			if (outcome.cleaned && result.title && outcome.cleaned !== result.title) {
+				// Persist the cleaned title so cache hits (and the admin scrapes
+				// view) reflect it; best-effort, never block the live result on it.
+				try {
+					await backfillCleanTitle(db, { url: ctx.url, originalTitle: result.title, cleanTitle: outcome.cleaned })
+				} catch {
+					// Swallow: the in-memory result is already corrected for this run.
+				}
 				return { ...result, title: outcome.cleaned }
 			}
 			return result
