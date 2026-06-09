@@ -6,7 +6,7 @@
 // The handler in `src/routes/api/cron/auto-archive.ts` is a thin
 // wrapper that checks the CRON_SECRET and delegates here.
 
-import { and, eq, inArray, isNotNull } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, isNull, lte } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { giftedItems, items, listAddons, lists, users } from '@/db/schema'
@@ -46,6 +46,13 @@ export type AutoArchiveResult = {
 	// One row per holiday list where items and/or addons were archived this
 	// run. Same email-routing role as `christmasArchivedDetails`.
 	holidayArchivedDetails: Array<{ listId: number; ownerId: string; holidayName: string; itemCount: number; addonCount: number }>
+	deferredArchived: number
+	deferredAddonsArchived: number
+	// One row per list revealed by the deferred-due pass (an explicit defer
+	// elapsed). The handler sends the matching per-type reveal email for each
+	// via `maybeSendListRevealEmail`. Carries the list type + customHolidayId
+	// so the handler picks the right email family without re-querying.
+	deferredDueDetails: Array<{ listId: number; ownerId: string; name: string; type: string; customHolidayId: string | null }>
 }
 
 type Args = {
@@ -71,6 +78,67 @@ export async function autoArchiveImpl({
 	let holidayAddonsArchived = 0
 	const christmasArchivedDetails: AutoArchiveResult['christmasArchivedDetails'] = []
 	const holidayArchivedDetails: AutoArchiveResult['holidayArchivedDetails'] = []
+	let deferredArchived = 0
+	let deferredAddonsArchived = 0
+	const deferredDueDetails: AutoArchiveResult['deferredDueDetails'] = []
+
+	// === Deferred-due pass ===
+	// Lists whose explicit archive deferral (`archiveDeferUntil`) has elapsed.
+	// A deferred list is skipped by every normal pass below while the defer is
+	// in the future, so without this pass it would be stranded (the reverse
+	// date-matching never revisits its event date). Processed FIRST so that,
+	// for holiday lists, setting `lastHolidayArchiveAt` here makes the normal
+	// holiday pass (which matches on a date range, not an exact day) skip the
+	// same list later in this run.
+	const dueLists = await db.query.lists.findMany({
+		where: and(
+			eq(lists.isActive, true),
+			isNull(lists.subjectDependentId),
+			isNotNull(lists.archiveDeferUntil),
+			lte(lists.archiveDeferUntil, now),
+			inArray(lists.type, ['birthday', 'wishlist', 'christmas', 'holiday'])
+		),
+		columns: { id: true, ownerId: true, name: true, type: true, customHolidayId: true },
+	})
+	for (const list of dueLists) {
+		const claimedItemIds = await db
+			.selectDistinct({ itemId: giftedItems.itemId })
+			.from(giftedItems)
+			.innerJoin(items, and(eq(items.id, giftedItems.itemId), visibleItemsWhere('visible'), eq(items.listId, list.id)))
+		const ids = claimedItemIds.map(r => r.itemId)
+		let archivedAny = false
+		if (ids.length > 0) {
+			await db.update(items).set({ isArchived: true }).where(inArray(items.id, ids))
+			deferredArchived += ids.length
+			archivedAny = true
+		}
+		const archivedAddons = await db
+			.update(listAddons)
+			.set({ isArchived: true })
+			.where(and(eq(listAddons.listId, list.id), eq(listAddons.isArchived, false)))
+			.returning({ id: listAddons.id })
+		deferredAddonsArchived += archivedAddons.length
+		if (archivedAddons.length > 0) archivedAny = true
+
+		// Clear the consumed defer so the next annual cycle starts clean. Stamp
+		// last-archived only when something was actually revealed; for holiday
+		// lists always stamp the per-occurrence idempotency mark so the normal
+		// holiday pass skips this list later in the same run.
+		const listUpdate: { archiveDeferUntil: null; lastArchivedAt?: Date; lastHolidayArchiveAt?: Date } = { archiveDeferUntil: null }
+		if (archivedAny) listUpdate.lastArchivedAt = now
+		if (list.type === 'holiday') listUpdate.lastHolidayArchiveAt = now
+		await db.update(lists).set(listUpdate).where(eq(lists.id, list.id))
+
+		if (archivedAny) {
+			deferredDueDetails.push({
+				listId: list.id,
+				ownerId: list.ownerId,
+				name: list.name,
+				type: list.type,
+				customHolidayId: list.customHolidayId,
+			})
+		}
+	}
 
 	// === Birthday auto-archive ===
 	const birthdayDate = new Date(now)
@@ -84,33 +152,42 @@ export async function autoArchiveImpl({
 	})
 
 	for (const user of birthdayUsers) {
+		// Per-list (not one bulk update across the user's lists) so each list
+		// can be individually skipped when deferred and stamped with
+		// last-archived.
 		const userLists = await db.query.lists.findMany({
 			where: and(eq(lists.ownerId, user.id), eq(lists.isActive, true), inArray(lists.type, ['birthday', 'wishlist'])),
-			columns: { id: true },
+			columns: { id: true, archiveDeferUntil: true },
 		})
-		if (userLists.length === 0) continue
 
-		const listIds = userLists.map(l => l.id)
-		const claimedItemIds = await db
-			.selectDistinct({ itemId: giftedItems.itemId })
-			.from(giftedItems)
-			.innerJoin(items, and(eq(items.id, giftedItems.itemId), visibleItemsWhere('visible'), inArray(items.listId, listIds)))
+		for (const list of userLists) {
+			if (list.archiveDeferUntil && list.archiveDeferUntil.getTime() > now.getTime()) continue
 
-		if (claimedItemIds.length > 0) {
+			const claimedItemIds = await db
+				.selectDistinct({ itemId: giftedItems.itemId })
+				.from(giftedItems)
+				.innerJoin(items, and(eq(items.id, giftedItems.itemId), visibleItemsWhere('visible'), eq(items.listId, list.id)))
 			const ids = claimedItemIds.map(r => r.itemId)
-			await db.update(items).set({ isArchived: true }).where(inArray(items.id, ids))
-			birthdayArchived += ids.length
-		}
+			let archivedAny = false
+			if (ids.length > 0) {
+				await db.update(items).set({ isArchived: true }).where(inArray(items.id, ids))
+				birthdayArchived += ids.length
+				archivedAny = true
+			}
 
-		// Addons are gifter-volunteered: the trigger date passing is enough
-		// to reveal them, no claim gate. Run even when no items were
-		// archived so addon-only lists still reveal on the received page.
-		const archivedAddons = await db
-			.update(listAddons)
-			.set({ isArchived: true })
-			.where(and(inArray(listAddons.listId, listIds), eq(listAddons.isArchived, false)))
-			.returning({ id: listAddons.id })
-		birthdayAddonsArchived += archivedAddons.length
+			// Addons are gifter-volunteered: the trigger date passing is enough
+			// to reveal them, no claim gate. Run even when no items were
+			// archived so addon-only lists still reveal on the received page.
+			const archivedAddons = await db
+				.update(listAddons)
+				.set({ isArchived: true })
+				.where(and(eq(listAddons.listId, list.id), eq(listAddons.isArchived, false)))
+				.returning({ id: listAddons.id })
+			birthdayAddonsArchived += archivedAddons.length
+			if (archivedAddons.length > 0) archivedAny = true
+
+			if (archivedAny) await db.update(lists).set({ lastArchivedAt: now }).where(eq(lists.id, list.id))
+		}
 	}
 
 	// === Christmas auto-archive ===
@@ -121,9 +198,11 @@ export async function autoArchiveImpl({
 	if (daysSinceChristmas === archiveDaysAfterChristmas) {
 		const christmasLists = await db.query.lists.findMany({
 			where: and(eq(lists.type, 'christmas'), eq(lists.isActive, true)),
-			columns: { id: true, ownerId: true },
+			columns: { id: true, ownerId: true, archiveDeferUntil: true },
 		})
 		for (const list of christmasLists) {
+			// Deferred lists are revealed later by the deferred-due pass.
+			if (list.archiveDeferUntil && list.archiveDeferUntil.getTime() > now.getTime()) continue
 			const claimedItemIds = await db
 				.selectDistinct({ itemId: giftedItems.itemId })
 				.from(giftedItems)
@@ -140,6 +219,7 @@ export async function autoArchiveImpl({
 				.returning({ id: listAddons.id })
 			christmasAddonsArchived += archivedAddons.length
 			if (ids.length === 0 && archivedAddons.length === 0) continue
+			await db.update(lists).set({ lastArchivedAt: now }).where(eq(lists.id, list.id))
 			christmasArchivedDetails.push({
 				listId: list.id,
 				ownerId: list.ownerId,
@@ -161,6 +241,7 @@ export async function autoArchiveImpl({
 			ownerId: true,
 			customHolidayId: true,
 			lastHolidayArchiveAt: true,
+			archiveDeferUntil: true,
 		},
 		with: {
 			customHoliday: true,
@@ -172,6 +253,8 @@ export async function autoArchiveImpl({
 		let occurrenceEnd: Date | null = null
 
 		if (!list.customHoliday) continue
+		// Deferred lists are revealed later by the deferred-due pass.
+		if (list.archiveDeferUntil && list.archiveDeferUntil.getTime() > now.getTime()) continue
 
 		// For catalog-source rows, lastOccurrence still applies (rules
 		// have a duration). For custom rows, the "occurrence" is a single
@@ -220,7 +303,8 @@ export async function autoArchiveImpl({
 			.returning({ id: listAddons.id })
 		holidayAddonsArchived += archivedAddons.length
 
-		if (ids.length > 0 || archivedAddons.length > 0) {
+		const archivedAny = ids.length > 0 || archivedAddons.length > 0
+		if (archivedAny) {
 			holidayArchivedDetails.push({
 				listId: list.id,
 				ownerId: list.ownerId,
@@ -230,14 +314,17 @@ export async function autoArchiveImpl({
 			})
 		}
 
-		await db.update(lists).set({ lastHolidayArchiveAt: now }).where(eq(lists.id, list.id))
+		const holidayUpdate: { lastHolidayArchiveAt: Date; lastArchivedAt?: Date } = { lastHolidayArchiveAt: now }
+		if (archivedAny) holidayUpdate.lastArchivedAt = now
+		await db.update(lists).set(holidayUpdate).where(eq(lists.id, list.id))
 	}
 
-	const totalArchived = birthdayArchived + christmasArchived + holidayArchived
+	const totalArchived = birthdayArchived + christmasArchived + holidayArchived + deferredArchived
 	if (totalArchived > 0) itemsArchivedTotal.inc(totalArchived)
 	if (birthdayArchived > 0) revealsTriggeredTotal.inc({ trigger: 'birthday' }, birthdayArchived)
 	if (christmasArchived > 0) revealsTriggeredTotal.inc({ trigger: 'christmas' }, christmasArchived)
 	if (holidayArchived > 0) revealsTriggeredTotal.inc({ trigger: 'holiday' }, holidayArchived)
+	if (deferredArchived > 0) revealsTriggeredTotal.inc({ trigger: 'deferred' }, deferredArchived)
 
 	return {
 		birthdayArchived,
@@ -248,5 +335,8 @@ export async function autoArchiveImpl({
 		holidayAddonsArchived,
 		christmasArchivedDetails,
 		holidayArchivedDetails,
+		deferredArchived,
+		deferredAddonsArchived,
+		deferredDueDetails,
 	}
 }

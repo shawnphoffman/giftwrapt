@@ -18,6 +18,7 @@ import { orphanClaimCleanupImpl } from '@/lib/cron/orphan-claim-cleanup'
 import { sweepCronRuns } from '@/lib/cron/record-run'
 import type { CronEndpoint } from '@/lib/cron/registry'
 import { relationshipRemindersImpl } from '@/lib/cron/relationship-reminders'
+import { maybeSendListRevealEmail } from '@/lib/cron/reveal-emails'
 import { processOnce } from '@/lib/import/scrape-queue/runner'
 import { generateForUser } from '@/lib/intelligence/runner'
 import { createLogger } from '@/lib/logger'
@@ -156,6 +157,9 @@ export async function runAutoArchive() {
 		holidayAddonsArchived,
 		christmasArchivedDetails,
 		holidayArchivedDetails,
+		deferredArchived,
+		deferredAddonsArchived,
+		deferredDueDetails,
 	} = await autoArchiveImpl({
 		db,
 		now,
@@ -186,6 +190,25 @@ export async function runAutoArchive() {
 		}
 	}
 
+	// Deferred-due reveals fire the per-type reveal email (post-birthday for
+	// birthday/wishlist, post-holiday for christmas/holiday), each gated by its
+	// own global toggle inside `maybeSendListRevealEmail`. The normal birthday
+	// follow-up email keys off birthday+N and won't fire on the defer-elapse
+	// day, so this is the only reveal notice a deferred birthday list gets.
+	let deferredEmailsSent = 0
+	for (const detail of deferredDueDetails) {
+		try {
+			const sent = await maybeSendListRevealEmail(
+				db,
+				{ id: detail.listId, ownerId: detail.ownerId, name: detail.name, type: detail.type, customHolidayId: detail.customHolidayId },
+				settings
+			)
+			if (sent) deferredEmailsSent += 1
+		} catch (err) {
+			log.warn({ err: err instanceof Error ? err.message : String(err) }, 'deferred-due reveal email failed')
+		}
+	}
+
 	const durationMs = Date.now() - started
 	log.info(
 		{
@@ -196,8 +219,11 @@ export async function runAutoArchive() {
 			christmasAddonsArchived,
 			holidayArchived,
 			holidayAddonsArchived,
+			deferredArchived,
+			deferredAddonsArchived,
 			christmasEmailsSent,
 			holidayEmailsSent,
+			deferredEmailsSent,
 			durationMs,
 		},
 		'cron run complete'
@@ -211,8 +237,11 @@ export async function runAutoArchive() {
 		christmasAddonsArchived,
 		holidayArchived,
 		holidayAddonsArchived,
+		deferredArchived,
+		deferredAddonsArchived,
 		christmasEmailsSent,
 		holidayEmailsSent,
+		deferredEmailsSent,
 		settings: {
 			archiveDaysAfterBirthday: settings.archiveDaysAfterBirthday,
 			archiveDaysAfterChristmas: settings.archiveDaysAfterChristmas,

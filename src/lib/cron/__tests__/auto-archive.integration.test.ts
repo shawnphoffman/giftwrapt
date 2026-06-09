@@ -12,7 +12,7 @@ import { withRollback } from '@test/integration/setup'
 import { eq, inArray } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
-import { customHolidays, giftedItems, items, listAddons } from '@/db/schema'
+import { customHolidays, giftedItems, items, listAddons, lists } from '@/db/schema'
 
 import { autoArchiveImpl } from '../auto-archive'
 
@@ -563,6 +563,124 @@ describe('autoArchiveImpl - holiday lists', () => {
 			})
 			const [addonRow] = await tx.select().from(listAddons).where(eq(listAddons.id, addon.id))
 			expect(addonRow.isArchived).toBe(true)
+		})
+	})
+})
+
+describe('autoArchiveImpl - archive deferral', () => {
+	it('skips a birthday list whose defer is still in the future, leaving it un-archived', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx, { birthMonth: 'march', birthDay: 1 })
+			const gifter = await makeUser(tx)
+			const list = await makeList(tx, { ownerId: owner.id, type: 'birthday', archiveDeferUntil: new Date('2026-04-01T12:00:00Z') })
+			const claimed = await makeItem(tx, { listId: list.id })
+			await makeGiftedItem(tx, { itemId: claimed.id, gifterId: gifter.id })
+
+			const result = await autoArchiveImpl({
+				db: tx,
+				now: new Date('2026-03-08T12:00:00Z'),
+				archiveDaysAfterBirthday: 7,
+				archiveDaysAfterChristmas: 30,
+				archiveDaysAfterHoliday: 30,
+			})
+
+			expect(result.birthdayArchived).toBe(0)
+			const [row] = await tx.select({ isArchived: items.isArchived }).from(items).where(eq(items.id, claimed.id))
+			expect(row.isArchived).toBe(false)
+		})
+	})
+
+	it('deferred-due pass reveals the list, clears the defer, and stamps lastArchivedAt', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx, { birthMonth: 'march', birthDay: 1 })
+			const gifter = await makeUser(tx)
+			const now = new Date('2026-04-02T12:00:00Z')
+			const list = await makeList(tx, { ownerId: owner.id, type: 'birthday', archiveDeferUntil: new Date('2026-04-01T12:00:00Z') })
+			const claimed = await makeItem(tx, { listId: list.id })
+			const addon = await makeListAddon(tx, { listId: list.id, userId: gifter.id })
+			await makeGiftedItem(tx, { itemId: claimed.id, gifterId: gifter.id })
+
+			const result = await autoArchiveImpl({
+				db: tx,
+				now,
+				archiveDaysAfterBirthday: 7,
+				archiveDaysAfterChristmas: 30,
+				archiveDaysAfterHoliday: 30,
+			})
+
+			expect(result.deferredArchived).toBe(1)
+			expect(result.deferredAddonsArchived).toBe(1)
+			expect(result.deferredDueDetails).toHaveLength(1)
+			expect(result.deferredDueDetails[0]).toMatchObject({ listId: list.id, ownerId: owner.id, type: 'birthday' })
+
+			const [itemRow] = await tx.select({ isArchived: items.isArchived }).from(items).where(eq(items.id, claimed.id))
+			expect(itemRow.isArchived).toBe(true)
+			const [addonRow] = await tx.select({ isArchived: listAddons.isArchived }).from(listAddons).where(eq(listAddons.id, addon.id))
+			expect(addonRow.isArchived).toBe(true)
+
+			const [listRow] = await tx
+				.select({ defer: lists.archiveDeferUntil, last: lists.lastArchivedAt })
+				.from(lists)
+				.where(eq(lists.id, list.id))
+			expect(listRow.defer).toBeNull()
+			expect(listRow.last).not.toBeNull()
+		})
+	})
+
+	it('normal birthday reveal stamps lastArchivedAt', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx, { birthMonth: 'march', birthDay: 1 })
+			const gifter = await makeUser(tx)
+			const list = await makeList(tx, { ownerId: owner.id, type: 'birthday' })
+			const claimed = await makeItem(tx, { listId: list.id })
+			await makeGiftedItem(tx, { itemId: claimed.id, gifterId: gifter.id })
+
+			await autoArchiveImpl({
+				db: tx,
+				now: new Date('2026-03-08T12:00:00Z'),
+				archiveDaysAfterBirthday: 7,
+				archiveDaysAfterChristmas: 30,
+				archiveDaysAfterHoliday: 30,
+			})
+
+			const [listRow] = await tx.select({ last: lists.lastArchivedAt }).from(lists).where(eq(lists.id, list.id))
+			expect(listRow.last).not.toBeNull()
+		})
+	})
+
+	it('a deferred holiday list is handled once: deferred-due reveals it and the normal holiday pass skips it', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx)
+			const gifter = await makeUser(tx)
+			const holidayId = await makeEasterCustomHoliday(tx)
+			const now = new Date('2026-05-01T12:00:00Z')
+			const list = await makeList(tx, {
+				ownerId: owner.id,
+				type: 'holiday',
+				customHolidayId: holidayId,
+				archiveDeferUntil: new Date('2026-04-30T12:00:00Z'),
+			})
+			const claimed = await makeItem(tx, { listId: list.id })
+			await makeGiftedItem(tx, { itemId: claimed.id, gifterId: gifter.id })
+
+			const result = await autoArchiveImpl({
+				db: tx,
+				now,
+				archiveDaysAfterBirthday: 7,
+				archiveDaysAfterChristmas: 30,
+				archiveDaysAfterHoliday: 14,
+			})
+
+			// Revealed exactly once via the deferred-due pass, not the normal pass.
+			expect(result.deferredArchived).toBe(1)
+			expect(result.holidayArchived).toBe(0)
+			const [listRow] = await tx
+				.select({ defer: lists.archiveDeferUntil, last: lists.lastArchivedAt, holiday: lists.lastHolidayArchiveAt })
+				.from(lists)
+				.where(eq(lists.id, list.id))
+			expect(listRow.defer).toBeNull()
+			expect(listRow.last).not.toBeNull()
+			expect(listRow.holiday).not.toBeNull()
 		})
 	})
 })

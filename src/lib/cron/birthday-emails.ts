@@ -4,12 +4,12 @@
 // via withRollback) while the email-send side-effects get vi.mock'd at
 // the resend module boundary.
 
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { giftedItems, items, lists, users } from '@/db/schema'
 import type { BirthMonth } from '@/db/schema/enums'
-import { formatGifterNames, namesForGifter, type PartneredUser } from '@/lib/gifters'
+import { buildPostBirthdayEmailItems } from '@/lib/cron/reveal-emails'
 import { fanOutToGuardians } from '@/lib/guardian-emails'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { sendBirthdayEmail, sendPostBirthdayEmail } from '@/lib/resend'
@@ -90,53 +90,8 @@ export async function birthdayEmailsImpl({ db, now }: Args): Promise<BirthdayEma
 
 			if (archivedGifts.length === 0) continue
 
-			const gifterIds = new Set<string>()
-			for (const gift of archivedGifts) {
-				gifterIds.add(gift.gifterId)
-				for (const id of gift.additionalGifterIds ?? []) gifterIds.add(id)
-			}
-			const lookup = new Map<string, PartneredUser>()
-			if (gifterIds.size > 0) {
-				const rows = await db
-					.select({ id: users.id, name: users.name, email: users.email, partnerId: users.partnerId })
-					.from(users)
-					.where(inArray(users.id, Array.from(gifterIds)))
-				for (const r of rows) lookup.set(r.id, r)
-			}
-			const partnerIds = new Set<string>()
-			for (const u of lookup.values()) {
-				if (u.partnerId && !lookup.has(u.partnerId)) partnerIds.add(u.partnerId)
-			}
-			if (partnerIds.size > 0) {
-				const rows = await db
-					.select({ id: users.id, name: users.name, email: users.email, partnerId: users.partnerId })
-					.from(users)
-					.where(inArray(users.id, Array.from(partnerIds)))
-				for (const r of rows) lookup.set(r.id, r)
-			}
-
-			const itemMap = new Map<string, { title: string; image_url: string; names: Array<string> }>()
-			for (const gift of archivedGifts) {
-				const key = gift.itemTitle
-				if (!itemMap.has(key)) {
-					itemMap.set(key, {
-						title: gift.itemTitle,
-						image_url: gift.itemImageUrl || 'https://placehold.co/80x80?text=Gift',
-						names: [],
-					})
-				}
-				const bucket = itemMap.get(key)!
-				for (const name of namesForGifter(gift.gifterId, lookup)) bucket.names.push(name)
-				for (const id of gift.additionalGifterIds ?? []) {
-					for (const name of namesForGifter(id, lookup)) bucket.names.push(name)
-				}
-			}
-
-			const emailItems = Array.from(itemMap.values()).map(i => ({
-				title: i.title,
-				image_url: i.image_url,
-				gifters: formatGifterNames(i.names),
-			}))
+			const emailItems = await buildPostBirthdayEmailItems(db, archivedGifts)
+			if (emailItems.length === 0) continue
 
 			await sendPostBirthdayEmail(user.email, emailItems)
 			followUpSent += 1

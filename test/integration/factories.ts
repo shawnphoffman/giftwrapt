@@ -79,6 +79,8 @@ export async function makeList(tx: Tx, overrides: Partial<typeof lists.$inferIns
 			giftIdeasTargetDependentId: overrides.giftIdeasTargetDependentId ?? null,
 			customHolidayId: overrides.customHolidayId ?? null,
 			lastHolidayArchiveAt: overrides.lastHolidayArchiveAt ?? null,
+			archiveDeferUntil: overrides.archiveDeferUntil ?? null,
+			lastArchivedAt: overrides.lastArchivedAt ?? null,
 			// Honor explicit createdAt/updatedAt so tests can fabricate old
 			// rows (e.g. the list-hygiene duplicate-clusters predicate keys
 			// off `createdAt` + `updatedAt`). Drizzle's $onUpdate trigger
