@@ -389,7 +389,7 @@ export function buildScraperLookups(scrapeProviders: ReadonlyArray<ScrapeProvide
 			const ids = rawId.slice('merged:'.length).split(',').filter(Boolean)
 			return `${ids.map(id => namesById.get(id) ?? id).join(' + ')} (merged)`
 		}
-		if (rawId === FETCH_PROVIDER_ID) return 'fetch-provider'
+		if (rawId === FETCH_PROVIDER_ID) return 'Built-in'
 		return namesById.get(rawId) ?? rawId
 	}
 

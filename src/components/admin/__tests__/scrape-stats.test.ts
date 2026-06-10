@@ -107,7 +107,7 @@ describe('buildScraperLookups', () => {
 	it('treats the built-in fetch-provider as implicit tier 0', () => {
 		const { tierFor, labelFor, currentScraperIds } = buildScraperLookups(entries)
 		expect(tierFor('fetch-provider')).toBe(0)
-		expect(labelFor('fetch-provider')).toBe('fetch-provider')
+		expect(labelFor('fetch-provider')).toBe('Built-in')
 		expect(currentScraperIds.has('fetch-provider')).toBe(true)
 	})
 

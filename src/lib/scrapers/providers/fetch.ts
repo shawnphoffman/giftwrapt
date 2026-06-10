@@ -25,6 +25,7 @@ const PROVIDER_ID = 'fetch-provider'
 // whether to keep trying other providers.
 export const fetchProvider: ScrapeProvider = {
 	id: PROVIDER_ID,
+	name: 'Built-in',
 	kind: 'html',
 	// Tier 0: always runs first, alone. Reserved for the always-on free
 	// fetcher; admin-configurable entries occupy tiers 1-5.
