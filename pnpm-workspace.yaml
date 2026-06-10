@@ -1,0 +1,4 @@
+packages:
+  - '.'
+minimumReleaseAge: 10080 # 7 days; delay installs so a compromised/malicious release has time to be caught and unpublished before we pull it
+trustPolicy: no-downgrade # fail installs if a package's npm trust level (trusted-publisher > provenance > none) weakens between versions; add trustPolicyExclude entries if a legit dep trips this
