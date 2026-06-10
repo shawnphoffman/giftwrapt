@@ -151,10 +151,11 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 				// Apply the default access this user gets to everyone else's
 				// lists. 'view' is the system default (no rows needed); for
 				// 'restricted' / 'none' we write one viewer-direction override
-				// row per existing user. Partners and guardians are excluded:
-				// they always have full view and the server rejects restricting
-				// them (and rejects a child touching a guardian relationship at
-				// all), so writing those rows would either be a no-op or fail.
+				// row per existing user. Partners and guardians are excluded
+				// because they always resolve to full view: a 'none' row would be
+				// dead data (the resolver short-circuits those pairs to 'view'),
+				// and a 'restricted' row is rejected outright as a data invariant
+				// (restricted-not-allowed), which would fail the whole batch.
 				if (userId && data.defaultAccess !== 'view') {
 					const excludedOwnerIds = new Set<string>([...(data.partnerId ? [data.partnerId] : []), ...(data.guardianIds ?? [])])
 					const owners = allUsers.filter(u => u.id !== userId && !excludedOwnerIds.has(u.id))
