@@ -26,6 +26,13 @@ function displayName(id: string, names: Record<string, string>): string {
 }
 
 export function ScrapeProgressAlert({ state, url, onCancel, onRetry, className }: Props): React.ReactElement | null {
+	// Hooks must run on every render. This component returns early for the
+	// idle/failed/done phases, and a live scrape transitions through those on
+	// the same mounted instance, so the lookup hook has to be called above
+	// every early return (rules-of-hooks). It's cheap and only consumed by the
+	// in-progress/partial render path below.
+	const tierByProviderId = useTierLookup(state.tiers)
+
 	if (state.phase === 'idle') return null
 
 	const hostname = url ? safeHostname(url) : null
@@ -65,7 +72,6 @@ export function ScrapeProgressAlert({ state, url, onCancel, onRetry, className }
 	// counting (a queued tier may still run); `skipped` does not (its tier
 	// was bypassed and will never fire).
 	const stillRunning = state.providers.filter(p => p.status === 'pending' || p.status === 'in_progress').length
-	const tierByProviderId = useTierLookup(state.tiers)
 
 	return (
 		<Alert variant="default" className={cn('text-sm', className)}>

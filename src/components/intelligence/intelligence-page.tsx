@@ -104,7 +104,23 @@ function sortRecs(recs: Array<Recommendation>): Array<Recommendation> {
 	})
 }
 
-export function IntelligencePageContent({
+export function IntelligencePageContent(props: Props) {
+	// The disabled state renders a standalone card with no hooks. Keep that
+	// guard in this thin wrapper and delegate every other state to the inner
+	// component, so the inner component's hooks always run unconditionally
+	// (rules-of-hooks: a hook below an early return is a latent crash).
+	if (props.state.kind === 'disabled') {
+		return (
+			<div data-intelligence="page" data-page-state="disabled" className="wish-page">
+				<Header showRefresh={false} />
+				<DisabledState reason={props.state.reason} />
+			</div>
+		)
+	}
+	return <IntelligencePageLoaded {...props} state={props.state} />
+}
+
+function IntelligencePageLoaded({
 	state,
 	onRefresh,
 	onAction,
@@ -116,16 +132,7 @@ export function IntelligencePageContent({
 	onEditAction,
 	dependentGroups,
 	pendingRecIds,
-}: Props) {
-	if (state.kind === 'disabled') {
-		return (
-			<div data-intelligence="page" data-page-state="disabled" className="wish-page">
-				<Header showRefresh={false} />
-				<DisabledState reason={state.reason} />
-			</div>
-		)
-	}
-
+}: Omit<Props, 'state'> & { state: Exclude<IntelligencePageState, { kind: 'disabled' }> }) {
 	const data = state.data
 	const generating = state.kind === 'generating'
 	const errorMessage = state.kind === 'error' ? state.message : null
