@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { type BirthMonth, birthMonthEnumValues } from '@/db/schema/enums'
+import { useCurrentYear } from '@/hooks/use-current-year'
 
 import { BirthDaySelect } from '../common/birth-day-select'
 import DependentAvatar from '../common/dependent-avatar'
@@ -75,6 +76,7 @@ export function EditDependentDialog({
 	// dialog opens with a (possibly different) dependent so stale edits from
 	// a previous open don't leak in.
 	const [name, setName] = useState(dependent.name)
+	const currentYear = useCurrentYear()
 	const [birthMonth, setBirthMonth] = useState<BirthMonth | ''>(dependent.birthMonth ?? '')
 	const [birthDay, setBirthDay] = useState<number | undefined>(dependent.birthDay ?? undefined)
 	const [birthYear, setBirthYear] = useState<string>(dependent.birthYear ? String(dependent.birthYear) : '')
@@ -221,7 +223,7 @@ export function EditDependentDialog({
 								value={birthYear}
 								onChange={e => setBirthYear(e.target.value)}
 								min={1900}
-								max={new Date().getFullYear()}
+								max={currentYear}
 								disabled={saveMutation.isPending}
 							/>
 						</div>

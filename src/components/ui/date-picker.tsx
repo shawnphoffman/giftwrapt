@@ -84,6 +84,10 @@ export function DatePicker({
 	// parent pushes an externally-set complete date.
 	const [draft, setDraft] = React.useState<string>(value ?? '')
 	const [open, setOpen] = React.useState(false)
+	// "Today" for the calendar's default month when nothing is selected.
+	// Computed once on mount (lazy initializer) so it stays out of the render
+	// body and can't trip a hydration mismatch.
+	const [today] = React.useState(() => new Date())
 
 	React.useEffect(() => {
 		setDraft(value ?? '')
@@ -144,7 +148,7 @@ export function DatePicker({
 					<Calendar
 						mode="single"
 						selected={selectedDate}
-						defaultMonth={selectedDate ?? new Date()}
+						defaultMonth={selectedDate ?? today}
 						onSelect={day => {
 							if (!day) return
 							const iso = isoFromDate(day)

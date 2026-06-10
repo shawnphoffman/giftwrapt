@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { birthMonthEnumValues, roleEnumValues } from '@/db/schema/enums'
 import { UserSchema } from '@/db/schema/users'
 import type { User } from '@/db-collections/users'
+import { useCurrentYear } from '@/hooks/use-current-year'
 import { authClient } from '@/lib/auth-client'
 import { LIMITS } from '@/lib/validation/limits'
 
@@ -44,6 +45,7 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 	const [success, setSuccess] = useState(false)
+	const currentYear = useCurrentYear()
 	const queryClient = useQueryClient()
 
 	const form = useForm({
@@ -318,7 +320,7 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 								type="number"
 								inputMode="numeric"
 								min={1900}
-								max={new Date().getFullYear()}
+								max={currentYear}
 								placeholder="YYYY"
 								value={field.state.value ?? ''}
 								onChange={e => {

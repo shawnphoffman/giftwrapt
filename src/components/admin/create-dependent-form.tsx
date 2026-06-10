@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { type BirthMonth, birthMonthEnumValues } from '@/db/schema/enums'
+import { useCurrentYear } from '@/hooks/use-current-year'
 
 import { BirthDaySelect } from '../common/birth-day-select'
 
@@ -48,6 +49,7 @@ export function CreateDependentForm({ onCreated }: { onCreated?: () => void }) {
 	const guardians: Array<AdminUser> = (usersQuery.data ?? []).filter(u => u.role !== 'child')
 
 	const [name, setName] = useState('')
+	const currentYear = useCurrentYear()
 	const [birthMonth, setBirthMonth] = useState<BirthMonth | ''>('')
 	const [birthDay, setBirthDay] = useState<number | undefined>(undefined)
 	const [birthYear, setBirthYear] = useState('')
@@ -126,14 +128,7 @@ export function CreateDependentForm({ onCreated }: { onCreated?: () => void }) {
 				</div>
 				<div className="space-y-1">
 					<Label htmlFor="dep-year">Year</Label>
-					<Input
-						id="dep-year"
-						type="number"
-						value={birthYear}
-						onChange={e => setBirthYear(e.target.value)}
-						min={1900}
-						max={new Date().getFullYear()}
-					/>
+					<Input id="dep-year" type="number" value={birthYear} onChange={e => setBirthYear(e.target.value)} min={1900} max={currentYear} />
 				</div>
 			</div>
 

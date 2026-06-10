@@ -38,6 +38,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { birthMonthEnumValues, roleEnumValues } from '@/db/schema/enums'
 import { type User as DbUser, UserSchema } from '@/db/schema/users'
 import type { User } from '@/db-collections/users'
+import { useCurrentYear } from '@/hooks/use-current-year'
 import { useStorageStatus } from '@/hooks/use-storage-status'
 import { useSession } from '@/lib/auth-client'
 import { LIMITS } from '@/lib/validation/limits'
@@ -210,6 +211,7 @@ function EditUserFormInner({
 }) {
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+	const currentYear = useCurrentYear()
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 	const [resetEmailDialogOpen, setResetEmailDialogOpen] = useState(false)
 	const [setPasswordDialogOpen, setSetPasswordDialogOpen] = useState(false)
@@ -589,7 +591,7 @@ function EditUserFormInner({
 										type="number"
 										inputMode="numeric"
 										min={1900}
-										max={new Date().getFullYear()}
+										max={currentYear}
 										placeholder="YYYY"
 										value={field.state.value ?? ''}
 										onChange={e => {
