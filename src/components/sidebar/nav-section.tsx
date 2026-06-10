@@ -21,6 +21,7 @@ export type NavItem = {
 	url: string
 	icon?: React.ElementType
 	hoverColor?: string
+	className?: string
 	mask?: string
 	activeOptions?: React.ComponentProps<typeof Link>['activeOptions']
 	activePaths?: Array<string>
@@ -64,7 +65,7 @@ export default function NavSection({ title, items, className }: Props) {
 			<SidebarGroupContent>
 				<SidebarMenu>
 					{items.map(item => (
-						<NavItem key={item.name} item={item} />
+						<NavItem key={item.name} item={item} className={item.className} />
 					))}
 				</SidebarMenu>
 			</SidebarGroupContent>
