@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.42.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.41.0...v0.42.0) (2026-06-10)
+
+
+### Features
+
+* **admin:** control new user's default and per-user list access ([a284111](https://github.com/shawnphoffman/giftwrapt/commit/a28411194eb9c3371f3da2632bd78016bca8ee37))
+
+
+### Bug Fixes
+
+* **admin:** lock guardian rows from server flag, cover viewer bypass ([38875c3](https://github.com/shawnphoffman/giftwrapt/commit/38875c34286c3e1468945f48e18435d632040571))
+
 ## [0.41.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.40.0...v0.41.0) (2026-06-09)
 
 
