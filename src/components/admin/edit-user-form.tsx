@@ -152,6 +152,7 @@ export function EditUserForm({ userId, onSuccess }: { userId: string; onSuccess?
 							image: r.image,
 							access: toTier(r.accessLevel, r.canEdit),
 							cannotBeRestricted: r.cannotBeRestricted,
+							isGuardian: r.isGuardian,
 						}))
 					: null
 			}

@@ -242,6 +242,50 @@ describe('upsertViewerRelationships - same restricted-not-allowed gate', () => {
 		})
 	})
 
+	// Mirror of the owner-perspective admin bypass: an admin editing a child's
+	// "what they can see of others" can submit a guardian-owner row. The
+	// actor-only guardian guard is skipped via actingAsAdmin; the restricted
+	// data invariant below still holds.
+	it.each(['none', 'view'] as const)(
+		"lets an admin set a child's view of their guardian's lists to '%s' (actingAsAdmin bypasses the guard)",
+		async access => {
+			await withRollback(async tx => {
+				const child = await makeUser(tx, { role: 'child' })
+				const guardian = await makeUser(tx)
+				await makeGuardianship(tx, { parentUserId: guardian.id, childUserId: child.id })
+
+				const result = await upsertViewerRelationshipsImpl({
+					viewerUserId: child.id,
+					input: { relationships: [{ ownerUserId: guardian.id, accessLevel: access }] },
+					dbx: tx,
+					actingAsAdmin: true,
+				})
+				expect(result.success).toBe(true)
+				const row = await tx.query.userRelationships.findFirst({
+					where: and(eq(userRelationships.ownerUserId, guardian.id), eq(userRelationships.viewerUserId, child.id)),
+				})
+				expect(row?.accessLevel).toBe(access)
+			})
+		}
+	)
+
+	it('still rejects restricting a guardian even with actingAsAdmin (viewer perspective)', async () => {
+		await withRollback(async tx => {
+			const child = await makeUser(tx, { role: 'child' })
+			const guardian = await makeUser(tx)
+			await makeGuardianship(tx, { parentUserId: guardian.id, childUserId: child.id })
+
+			const result = await upsertViewerRelationshipsImpl({
+				viewerUserId: child.id,
+				input: { relationships: [{ ownerUserId: guardian.id, accessLevel: 'restricted' }] },
+				dbx: tx,
+				actingAsAdmin: true,
+			})
+			expect(result.success).toBe(false)
+			if (!result.success) expect(result.reason).toBe('restricted-not-allowed')
+		})
+	})
+
 	it('does not let the viewer self-grant canEdit (input schema has no canEdit field)', async () => {
 		await withRollback(async tx => {
 			const me = await makeUser(tx)
