@@ -105,7 +105,8 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 		// is the dependent, not me.
 		const ownerExclude = or(ne(lists.ownerId, userId), sql`${lists.subjectDependentId} IS NOT NULL`)
 
-		const claimRows = await db
+		// Independent queries; built lazily and run together below.
+		const claimRowsQuery = db
 			.select({
 				giftId: giftedItems.id,
 				gifterId: giftedItems.gifterId,
@@ -134,7 +135,7 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 			.leftJoin(sql`dependents as dep`, sql`dep.id = ${lists.subjectDependentId}`)
 			.where(and(claimGifterFilter, ownerExclude))
 
-		const addonRows = await db
+		const addonRowsQuery = db
 			.select({
 				addonId: listAddons.id,
 				gifterId: listAddons.userId,
@@ -158,6 +159,8 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 			.innerJoin(sql`users as owner`, sql`owner.id = ${lists.ownerId}`)
 			.leftJoin(sql`dependents as dep`, sql`dep.id = ${lists.subjectDependentId}`)
 			.where(and(inAddonGifters, ownerExclude))
+
+		const [claimRows, addonRows] = await Promise.all([claimRowsQuery, addonRowsQuery])
 
 		// Recipient name resolution: when the list is FOR a dependent, the
 		// "recipient" UI surfaces use the dependent's name/avatar instead

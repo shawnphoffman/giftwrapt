@@ -137,6 +137,8 @@ export const getRecentItems = createServerFn({ method: 'GET' })
 			.from(userRelationships)
 			.where(and(eq(userRelationships.viewerUserId, viewerId), eq(userRelationships.accessLevel, 'none')))
 
+		// Independent of the item query below; kick it off in parallel.
+		const restrictedCtxPromise = loadRestrictedContext(viewerId)
 		const rawRows = await db
 			.select({
 				id: items.id,
@@ -168,8 +170,7 @@ export const getRecentItems = createServerFn({ method: 'GET' })
 			.orderBy(desc(items.createdAt))
 			.limit(50)
 
-		const restrictedCtx = await loadRestrictedContext(viewerId)
-		const rows = await dropItemsHiddenFromRestricted(rawRows, viewerId, restrictedCtx)
+		const rows = await dropItemsHiddenFromRestricted(rawRows, viewerId, await restrictedCtxPromise)
 
 		const itemIds = rows.map(r => r.id)
 		const counts =
@@ -268,6 +269,8 @@ export const getRecentConversations = createServerFn({ method: 'GET' })
 
 		const itemIds = activeItems.map(r => r.itemId)
 
+		// Independent of the item query below; kick it off in parallel.
+		const restrictedCtxPromise = loadRestrictedContext(viewerId)
 		const itemRowsRaw = await db
 			.select({
 				id: items.id,
@@ -293,8 +296,7 @@ export const getRecentConversations = createServerFn({ method: 'GET' })
 			.leftJoin(sql`dependents as subject_dep`, sql`subject_dep.id = ${lists.subjectDependentId}`)
 			.where(inArray(items.id, itemIds))
 
-		const restrictedCtx = await loadRestrictedContext(viewerId)
-		const itemRows = await dropItemsHiddenFromRestricted(itemRowsRaw, viewerId, restrictedCtx)
+		const itemRows = await dropItemsHiddenFromRestricted(itemRowsRaw, viewerId, await restrictedCtxPromise)
 
 		const itemMap = new Map(itemRows.map(r => [r.id, r]))
 

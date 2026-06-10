@@ -300,15 +300,16 @@ export async function reorderGroupItemsImpl(args: {
 
 export async function getGroupsForListImpl(args: { listId: number }): Promise<Array<GroupWithItems>> {
 	const { listId } = args
-	const groups = await db.query.itemGroups.findMany({
-		where: eq(itemGroups.listId, listId),
-	})
-
-	const allItems = await db.query.items.findMany({
-		where: and(eq(items.listId, listId), visibleItemsWhere('visible')),
-		columns: { id: true, groupId: true, groupSortOrder: true },
-		orderBy: [asc(items.groupSortOrder), asc(items.id)],
-	})
+	const [groups, allItems] = await Promise.all([
+		db.query.itemGroups.findMany({
+			where: eq(itemGroups.listId, listId),
+		}),
+		db.query.items.findMany({
+			where: and(eq(items.listId, listId), visibleItemsWhere('visible')),
+			columns: { id: true, groupId: true, groupSortOrder: true },
+			orderBy: [asc(items.groupSortOrder), asc(items.id)],
+		}),
+	])
 
 	return groups.map(g => ({
 		id: g.id,

@@ -1098,11 +1098,10 @@ export async function getPublicListsImpl(viewerUserId: string): Promise<Array<Pu
 	})
 
 	const publicTodoListIds = allUsers.flatMap(u => u.lists.filter(l => l.type === 'todos').map(l => l.id))
-	const publicTodoCountByListId = await loadTodoCountsByListId(db, publicTodoListIds)
-
-	const publicHolidayDateByListId = await resolveHolidayDatesForLists(
-		allUsers.flatMap(u => u.lists.map(l => ({ listId: l.id, customHolidayId: l.customHolidayId ?? null })))
-	)
+	const [publicTodoCountByListId, publicHolidayDateByListId] = await Promise.all([
+		loadTodoCountsByListId(db, publicTodoListIds),
+		resolveHolidayDatesForLists(allUsers.flatMap(u => u.lists.map(l => ({ listId: l.id, customHolidayId: l.customHolidayId ?? null })))),
+	])
 
 	return allUsers.map(user => {
 		const lastGiftedAt = lastGiftedByUserId.get(user.id) ?? null
@@ -1252,11 +1251,10 @@ export async function getPublicDependentsImpl(viewerUserId: string): Promise<Arr
 	})
 
 	const dependentTodoListIds = dependentLists.filter(l => l.type === 'todos').map(l => l.id)
-	const dependentTodoCountByListId = await loadTodoCountsByListId(db, dependentTodoListIds)
-
-	const dependentHolidayDateByListId = await resolveHolidayDatesForLists(
-		dependentLists.map(l => ({ listId: l.id, customHolidayId: l.customHolidayId ?? null }))
-	)
+	const [dependentTodoCountByListId, dependentHolidayDateByListId] = await Promise.all([
+		loadTodoCountsByListId(db, dependentTodoListIds),
+		resolveHolidayDatesForLists(dependentLists.map(l => ({ listId: l.id, customHolidayId: l.customHolidayId ?? null }))),
+	])
 
 	const listsByDependentId = new Map<string, Array<PublicList>>()
 	for (const list of dependentLists) {

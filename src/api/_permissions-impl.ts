@@ -79,26 +79,22 @@ async function getCannotBeRestrictedSet(dbx: SchemaDatabase, currentUserId: stri
 }
 
 export async function getUsersWithRelationshipsImpl(currentUserId: string): Promise<Array<RelationshipRow>> {
-	const allUsers = await db.query.users.findMany({
-		where: (us, { ne }) => ne(us.id, currentUserId),
-		orderBy: [asc(users.name), asc(users.email)],
-	})
-
-	const relationships = await db.query.userRelationships.findMany({
-		where: (rel, { eq }) => eq(rel.ownerUserId, currentUserId),
-	})
+	const [allUsers, relationships] = await Promise.all([
+		db.query.users.findMany({
+			where: (us, { ne }) => ne(us.id, currentUserId),
+			orderBy: [asc(users.name), asc(users.email)],
+		}),
+		db.query.userRelationships.findMany({
+			where: (rel, { eq }) => eq(rel.ownerUserId, currentUserId),
+		}),
+	])
 
 	const map = new Map(relationships.map(rel => [rel.viewerUserId, rel]))
-	const cannotBeRestricted = await getCannotBeRestrictedSet(
-		db,
-		currentUserId,
-		allUsers.map(u => u.id)
-	)
-	const myGuardians = await getGuardianIdsOf(
-		db,
-		currentUserId,
-		allUsers.map(u => u.id)
-	)
+	const userIds = allUsers.map(u => u.id)
+	const [cannotBeRestricted, myGuardians] = await Promise.all([
+		getCannotBeRestrictedSet(db, currentUserId, userIds),
+		getGuardianIdsOf(db, currentUserId, userIds),
+	])
 
 	return allUsers.map(user => {
 		const r = map.get(user.id)
@@ -116,26 +112,22 @@ export async function getUsersWithRelationshipsImpl(currentUserId: string): Prom
 }
 
 export async function getOwnersWithRelationshipsForMeImpl(currentUserId: string): Promise<Array<RelationshipRow>> {
-	const allUsers = await db.query.users.findMany({
-		where: (us, { ne }) => ne(us.id, currentUserId),
-		orderBy: [asc(users.name), asc(users.email)],
-	})
-
-	const relationships = await db.query.userRelationships.findMany({
-		where: (rel, { eq }) => eq(rel.viewerUserId, currentUserId),
-	})
+	const [allUsers, relationships] = await Promise.all([
+		db.query.users.findMany({
+			where: (us, { ne }) => ne(us.id, currentUserId),
+			orderBy: [asc(users.name), asc(users.email)],
+		}),
+		db.query.userRelationships.findMany({
+			where: (rel, { eq }) => eq(rel.viewerUserId, currentUserId),
+		}),
+	])
 
 	const map = new Map(relationships.map(rel => [rel.ownerUserId, rel]))
-	const cannotBeRestricted = await getCannotBeRestrictedSet(
-		db,
-		currentUserId,
-		allUsers.map(u => u.id)
-	)
-	const myGuardians = await getGuardianIdsOf(
-		db,
-		currentUserId,
-		allUsers.map(u => u.id)
-	)
+	const userIds = allUsers.map(u => u.id)
+	const [cannotBeRestricted, myGuardians] = await Promise.all([
+		getCannotBeRestrictedSet(db, currentUserId, userIds),
+		getGuardianIdsOf(db, currentUserId, userIds),
+	])
 
 	return allUsers.map(user => {
 		const r = map.get(user.id)
