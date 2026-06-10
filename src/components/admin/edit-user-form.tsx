@@ -8,6 +8,7 @@ import type { z } from 'zod'
 import {
 	deleteUserAsAdmin,
 	getGuardianshipsForChild,
+	getOwnerRelationshipsForUserAsAdmin,
 	getUserRelationshipsAsAdmin,
 	getUsersAsAdmin,
 	sendPasswordResetEmailAsAdmin,
@@ -16,6 +17,7 @@ import {
 	updateGuardianships,
 	updateUserAsAdmin,
 	upsertUserRelationshipsAsAdmin,
+	upsertViewerRelationshipsAsAdmin,
 } from '@/api/admin'
 import { removeAvatarAsAdmin, uploadAvatarAsAdmin } from '@/api/uploads'
 import { RoleLegend } from '@/components/admin/role-legend'
@@ -100,6 +102,17 @@ export function EditUserForm({ userId, onSuccess }: { userId: string; onSuccess?
 		refetchOnMount: 'always',
 	})
 
+	// Reverse direction: what THIS user can see of everyone else's lists.
+	// Same shape, but the edited user is the viewer, so each row's owner is
+	// the other person. Saved in the same master submit via
+	// upsertViewerRelationshipsAsAdmin.
+	const { data: ownerRelationships, isLoading: isLoadingOwnerRelationships } = useQuery({
+		queryKey: ['admin', 'viewer-permissions', userId],
+		queryFn: () => getOwnerRelationshipsForUserAsAdmin({ data: { userId } }),
+		staleTime: 10 * 60 * 1000,
+		refetchOnMount: 'always',
+	})
+
 	// Filter out child users from guardian options (only users and admins can be guardians)
 	const guardianOptions = allUsers.filter(u => u.role !== 'child' && u.id !== userId)
 
@@ -143,6 +156,22 @@ export function EditUserForm({ userId, onSuccess }: { userId: string; onSuccess?
 					: null
 			}
 			isLoadingRelationships={isLoadingRelationships}
+			initialViewerPermissionRows={
+				ownerRelationships
+					? ownerRelationships.map(r => ({
+							id: r.id,
+							email: r.email,
+							name: r.name,
+							image: r.image,
+							// Viewer direction never exposes 'edit' - force canEdit false
+							// so the tier is only none / restricted / view.
+							access: toTier(r.accessLevel, false),
+							cannotBeRestricted: r.cannotBeRestricted,
+							isGuardian: r.isGuardian,
+						}))
+					: null
+			}
+			isLoadingOwnerRelationships={isLoadingOwnerRelationships}
 			queryClient={queryClient}
 			onSuccess={onSuccess}
 		/>
@@ -159,6 +188,8 @@ function EditUserFormInner({
 	partnerOptions,
 	initialPermissionRows,
 	isLoadingRelationships,
+	initialViewerPermissionRows,
+	isLoadingOwnerRelationships,
 	queryClient,
 	onSuccess,
 }: {
@@ -171,6 +202,8 @@ function EditUserFormInner({
 	partnerOptions: Array<User>
 	initialPermissionRows: Array<PermissionRow> | null
 	isLoadingRelationships: boolean
+	initialViewerPermissionRows: Array<PermissionRow> | null
+	isLoadingOwnerRelationships: boolean
 	queryClient: ReturnType<typeof useQueryClient>
 	onSuccess?: () => void
 }) {
@@ -196,6 +229,12 @@ function EditUserFormInner({
 	useEffect(() => {
 		if (initialPermissionRows) setPermissionRows(initialPermissionRows)
 	}, [initialPermissionRows])
+
+	// Mirror for the reverse direction (what this user can see of others).
+	const [viewerPermissionRows, setViewerPermissionRows] = useState<Array<PermissionRow> | null>(initialViewerPermissionRows)
+	useEffect(() => {
+		if (initialViewerPermissionRows) setViewerPermissionRows(initialViewerPermissionRows)
+	}, [initialViewerPermissionRows])
 
 	const form = useForm({
 		defaultValues: {
@@ -297,7 +336,11 @@ function EditUserFormInner({
 						},
 					})
 					if (!result.success) {
-						setError('Some users cannot be set to restricted (partner or guardian relationships are always full view).')
+						setError(
+							result.reason === 'guardian-not-allowed'
+								? "A guardian always has full access to their child's lists, so it can't be changed here."
+								: 'Some users cannot be set to restricted (partner or guardian relationships are always full view).'
+						)
 						setIsLoading(false)
 						return
 					}
@@ -305,6 +348,40 @@ function EditUserFormInner({
 				} catch (permError) {
 					console.error('Failed to update permissions:', permError)
 					setError('User updated but failed to update permissions. Please try again.')
+					setIsLoading(false)
+					return
+				}
+			}
+
+			// Persist reverse-direction permissions (what this user can see of
+			// others). Viewer rows only carry accessLevel - the owner controls
+			// any edit grant, so we never send canEdit here.
+			if (viewerPermissionRows) {
+				try {
+					const result = await upsertViewerRelationshipsAsAdmin({
+						data: {
+							userId,
+							input: {
+								relationships: viewerPermissionRows.map(row => ({
+									ownerUserId: row.id,
+									accessLevel: fromTier(row.access).accessLevel,
+								})),
+							},
+						},
+					})
+					if (!result.success) {
+						setError(
+							result.reason === 'guardian-not-allowed'
+								? "This user's guardian always has full access, so it can't be changed here."
+								: 'Some lists cannot be set to restricted (partner or guardian relationships are always full view).'
+						)
+						setIsLoading(false)
+						return
+					}
+					queryClient.invalidateQueries({ queryKey: ['admin', 'viewer-permissions', userId] })
+				} catch (permError) {
+					console.error('Failed to update viewer permissions:', permError)
+					setError('User updated but failed to update list-access permissions. Please try again.')
 					setIsLoading(false)
 					return
 				}
@@ -736,14 +813,43 @@ function EditUserFormInner({
 								full view.
 							</p>
 						</div>
-						<PermissionsEditor
-							embedded
-							rows={permissionRows}
-							isLoading={isLoadingRelationships || permissionRows === null}
-							isSaving={isLoading}
-							onChange={setPermissionRows}
-							showShareIndicator={false}
-						/>
+						<form.Subscribe selector={state => state.values.guardianIds}>
+							{guardianIds => (
+								<PermissionsEditor
+									embedded
+									rows={permissionRows}
+									isLoading={isLoadingRelationships || permissionRows === null}
+									isSaving={isLoading}
+									onChange={setPermissionRows}
+									showShareIndicator={false}
+									lockedUserIds={new Set(guardianIds)}
+								/>
+							)}
+						</form.Subscribe>
+					</section>
+
+					<section className="rounded-lg border bg-card p-5 space-y-3">
+						<div>
+							<h3 className="font-medium text-lg">List access</h3>
+							<p className="text-xs text-muted-foreground mt-1">
+								What <strong>{user.name || user.email}</strong> can see of other people's wish lists. Partners and guardians always have
+								full view.
+							</p>
+						</div>
+						<form.Subscribe selector={state => state.values.guardianIds}>
+							{guardianIds => (
+								<PermissionsEditor
+									embedded
+									hideEditTier
+									rows={viewerPermissionRows}
+									isLoading={isLoadingOwnerRelationships || viewerPermissionRows === null}
+									isSaving={isLoading}
+									onChange={setViewerPermissionRows}
+									showShareIndicator={false}
+									lockedUserIds={new Set(guardianIds)}
+								/>
+							)}
+						</form.Subscribe>
 					</section>
 				</div>
 			</div>

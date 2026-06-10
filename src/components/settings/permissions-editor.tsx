@@ -69,6 +69,16 @@ type Props = {
 	// User" action saves everything (user info, guardianships, permissions).
 	embedded?: boolean
 	onChange?: (rows: Array<PermissionRow>) => void
+	// When true, hide the "Edit" tier. Used for the viewer-direction editor
+	// (what a user can see of OTHERS' lists), where granting yourself edit
+	// access to someone else's list isn't a thing - the viewer upsert path
+	// only ever writes accessLevel (none / restricted / view).
+	hideEditTier?: boolean
+	// User ids whose row should be locked regardless of the persisted
+	// `isGuardian` flag. The admin Edit User dialog drives this from the live
+	// guardian picker so checking/unchecking a guardian locks/unlocks that
+	// person's toggles immediately, before the form is even saved.
+	lockedUserIds?: ReadonlySet<string>
 }
 
 export function PermissionsEditor({
@@ -80,6 +90,8 @@ export function PermissionsEditor({
 	emptyLabel,
 	embedded = false,
 	onChange,
+	hideEditTier = false,
+	lockedUserIds,
 }: Props) {
 	const [rows, setRows] = useState<Array<PermissionRow>>([])
 	const [dirty, setDirty] = useState(false)
@@ -152,8 +164,12 @@ export function PermissionsEditor({
 								onValueChange={value => {
 									if (value) handleAccessChange(row.id, value as AccessTier)
 								}}
-								disabled={isSaving || row.isGuardian}
-								title={row.isGuardian ? 'Your guardian always has full access to your lists' : undefined}
+								disabled={isSaving || row.isGuardian || (lockedUserIds?.has(row.id) ?? false)}
+								title={
+									row.isGuardian || lockedUserIds?.has(row.id)
+										? 'Guardians always have full access; remove them as a guardian to change this'
+										: undefined
+								}
 							>
 								<ToggleGroupItem
 									value="none"
@@ -178,13 +194,15 @@ export function PermissionsEditor({
 								>
 									View
 								</ToggleGroupItem>
-								<ToggleGroupItem
-									value="edit"
-									aria-label="Edit access"
-									className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
-								>
-									Edit
-								</ToggleGroupItem>
+								{!hideEditTier && (
+									<ToggleGroupItem
+										value="edit"
+										aria-label="Edit access"
+										className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
+									>
+										Edit
+									</ToggleGroupItem>
+								)}
 							</ToggleGroup>
 						</div>
 					</div>

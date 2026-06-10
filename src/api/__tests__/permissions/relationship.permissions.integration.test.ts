@@ -128,6 +128,52 @@ describe('upsertUserRelationships - canEdit & listEditors interactions', () => {
 		})
 	})
 
+	// Regression: an admin editing a child submits EVERY permission row,
+	// guardians included. The actor-only guardian guard must not reject that
+	// write (the admin isn't the child). `actingAsAdmin` bypasses it while the
+	// restricted-on-guardian invariant below stays enforced.
+	it.each(['none', 'view', 'edit'] as const)(
+		"lets an admin set a guardian row to '%s' (actingAsAdmin bypasses the guard)",
+		async access => {
+			await withRollback(async tx => {
+				const child = await makeUser(tx, { role: 'child' })
+				const guardian = await makeUser(tx)
+				await makeGuardianship(tx, { parentUserId: guardian.id, childUserId: child.id })
+
+				const result = await upsertUserRelationshipsImpl({
+					ownerUserId: child.id,
+					input: {
+						relationships: [{ viewerUserId: guardian.id, accessLevel: access === 'edit' ? 'view' : access, canEdit: access === 'edit' }],
+					},
+					dbx: tx,
+					actingAsAdmin: true,
+				})
+				expect(result.success).toBe(true)
+				const row = await tx.query.userRelationships.findFirst({
+					where: and(eq(userRelationships.ownerUserId, child.id), eq(userRelationships.viewerUserId, guardian.id)),
+				})
+				expect(row?.accessLevel).toBe(access === 'edit' ? 'view' : access)
+			})
+		}
+	)
+
+	it('still rejects restricting a guardian even with actingAsAdmin (data invariant, not actor guard)', async () => {
+		await withRollback(async tx => {
+			const child = await makeUser(tx, { role: 'child' })
+			const guardian = await makeUser(tx)
+			await makeGuardianship(tx, { parentUserId: guardian.id, childUserId: child.id })
+
+			const result = await upsertUserRelationshipsImpl({
+				ownerUserId: child.id,
+				input: { relationships: [{ viewerUserId: guardian.id, accessLevel: 'restricted', canEdit: false }] },
+				dbx: tx,
+				actingAsAdmin: true,
+			})
+			expect(result.success).toBe(false)
+			if (!result.success) expect(result.reason).toBe('restricted-not-allowed')
+		})
+	})
+
 	it("preserves canEdit when accessLevel != 'restricted'", async () => {
 		await withRollback(async tx => {
 			const owner = await makeUser(tx)

@@ -271,18 +271,28 @@ export async function upsertUserRelationshipsImpl(args: {
 	// against the open savepoint (pglite is single-connection). Production
 	// callers omit it and get the singleton.
 	dbx?: SchemaDatabase
+	// When the actor is an admin acting on behalf of `ownerUserId` (not the
+	// owner themselves), skip the actor-only guardian guard below. The guard
+	// exists to stop a CHILD from editing permissions toward their own
+	// guardian; an admin editing a child legitimately submits every row,
+	// guardians included. The restricted-on-guardian/partner invariant still
+	// applies - that's a data-integrity rule, not an actor permission.
+	actingAsAdmin?: boolean
 }): Promise<UpsertUserRelationshipsResult> {
-	const { ownerUserId, input, dbx = db } = args
+	const { ownerUserId, input, dbx = db, actingAsAdmin = false } = args
 
 	// A child cannot change permissions toward their own guardian. Reject any
 	// row whose viewer is a guardian of the owner before touching the DB.
-	const guardianViewers = await getGuardianIdsOf(
-		dbx,
-		ownerUserId,
-		input.relationships.map(r => r.viewerUserId)
-	)
-	if (guardianViewers.size > 0) {
-		return { success: false, reason: 'guardian-not-allowed', viewerUserIds: [...guardianViewers] }
+	// Bypassed for admins (see `actingAsAdmin`).
+	if (!actingAsAdmin) {
+		const guardianViewers = await getGuardianIdsOf(
+			dbx,
+			ownerUserId,
+			input.relationships.map(r => r.viewerUserId)
+		)
+		if (guardianViewers.size > 0) {
+			return { success: false, reason: 'guardian-not-allowed', viewerUserIds: [...guardianViewers] }
+		}
 	}
 
 	// Reject restricted on partner/guardian pairs in either direction.
@@ -342,18 +352,25 @@ export async function upsertViewerRelationshipsImpl(args: {
 	viewerUserId: string
 	input: UpsertViewerRelationshipsInput
 	dbx?: SchemaDatabase
+	// See `upsertUserRelationshipsImpl`. Admins editing a user submit every
+	// row, so the actor-only guardian guard is skipped for them; the
+	// restricted-on-guardian/partner invariant still applies.
+	actingAsAdmin?: boolean
 }): Promise<UpsertViewerRelationshipsResult> {
-	const { viewerUserId, input, dbx = db } = args
+	const { viewerUserId, input, dbx = db, actingAsAdmin = false } = args
 
 	// A child cannot change permissions toward their own guardian. Reject any
 	// row whose owner is a guardian of the viewer before touching the DB.
-	const guardianOwners = await getGuardianIdsOf(
-		dbx,
-		viewerUserId,
-		input.relationships.map(r => r.ownerUserId)
-	)
-	if (guardianOwners.size > 0) {
-		return { success: false, reason: 'guardian-not-allowed', ownerUserIds: [...guardianOwners] }
+	// Bypassed for admins (see `actingAsAdmin`).
+	if (!actingAsAdmin) {
+		const guardianOwners = await getGuardianIdsOf(
+			dbx,
+			viewerUserId,
+			input.relationships.map(r => r.ownerUserId)
+		)
+		if (guardianOwners.size > 0) {
+			return { success: false, reason: 'guardian-not-allowed', ownerUserIds: [...guardianOwners] }
+		}
 	}
 
 	const restrictedTargets = input.relationships.filter(r => r.accessLevel === 'restricted').map(r => r.ownerUserId)

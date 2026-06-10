@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import type { z } from 'zod'
 
-import { createGuardianships, getUsersAsAdmin, updateUserPartner } from '@/api/admin'
+import { createGuardianships, getUsersAsAdmin, updateUserPartner, upsertViewerRelationshipsAsAdmin } from '@/api/admin'
 import { RoleLegend } from '@/components/admin/role-legend'
 import { BirthDaySelect } from '@/components/common/birth-day-select'
 import InputTooltip from '@/components/common/input-tooltip'
@@ -21,7 +21,13 @@ import { LIMITS } from '@/lib/validation/limits'
 import UserAvatar from '../common/user-avatar'
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
 
-type CreateUserFormValues = z.infer<typeof UserSchema>
+// The new user's default access to every EXISTING user's lists. Viewer
+// direction: 'view' is the system default (authenticated users see public
+// lists), so it's a no-op; 'restricted' / 'none' write override rows. No
+// 'edit' tier - you don't grant a fresh user edit access to everyone.
+type DefaultAccess = 'view' | 'restricted' | 'none'
+
+type CreateUserFormValues = z.infer<typeof UserSchema> & { defaultAccess: DefaultAccess }
 
 // Helper to extract error messages from TanStack Form errors (which can be objects or strings)
 function getErrorMessage(errors: Array<unknown>): string {
@@ -50,9 +56,12 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 			birthYear: undefined as number | undefined,
 			guardianIds: [] as Array<string>,
 			partnerId: undefined as string | undefined,
+			defaultAccess: 'view' as DefaultAccess,
 		},
 		onSubmit: async ({ value }) => {
-			// Validate with Zod before submitting
+			// Validate with Zod before submitting. UserSchema strips the extra
+			// `defaultAccess` key, so validate the user fields and carry the
+			// raw value (with defaultAccess intact) into onSubmit.
 			const result = UserSchema.safeParse(value)
 			if (!result.success) {
 				setError(result.error.issues.map((e: { message: string }) => e.message).join(', '))
@@ -136,6 +145,43 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 						setError('User created but failed to update partner record. Please update manually.')
 						setIsLoading(false)
 						return
+					}
+				}
+
+				// Apply the default access this user gets to everyone else's
+				// lists. 'view' is the system default (no rows needed); for
+				// 'restricted' / 'none' we write one viewer-direction override
+				// row per existing user. Partners and guardians are excluded:
+				// they always have full view and the server rejects restricting
+				// them (and rejects a child touching a guardian relationship at
+				// all), so writing those rows would either be a no-op or fail.
+				if (userId && data.defaultAccess !== 'view') {
+					const excludedOwnerIds = new Set<string>([...(data.partnerId ? [data.partnerId] : []), ...(data.guardianIds ?? [])])
+					const owners = allUsers.filter(u => u.id !== userId && !excludedOwnerIds.has(u.id))
+					if (owners.length > 0) {
+						try {
+							const accessResult = await upsertViewerRelationshipsAsAdmin({
+								data: {
+									userId,
+									input: {
+										relationships: owners.map(owner => ({
+											ownerUserId: owner.id,
+											accessLevel: data.defaultAccess,
+										})),
+									},
+								},
+							})
+							if (!accessResult.success) {
+								setError('User created but failed to apply default list access. Please set it manually in the edit dialog.')
+								setIsLoading(false)
+								return
+							}
+						} catch (accessError) {
+							console.error('Failed to apply default access:', accessError)
+							setError('User created but failed to apply default list access. Please set it manually in the edit dialog.')
+							setIsLoading(false)
+							return
+						}
 					}
 				}
 
@@ -416,6 +462,32 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 					)
 				}
 			</form.Subscribe>
+
+			<form.Field name="defaultAccess">
+				{field => (
+					<div className="grid gap-2">
+						<Label htmlFor={field.name} className="flex items-center gap-1.5">
+							Default access to other users' lists
+							<InputTooltip>
+								Sets what this new user can see of everyone else's lists. <strong>View</strong> is the default (they can see others' public
+								lists). <strong>Restricted</strong> lets them view and claim but hides others' purchases. <strong>None</strong> hides
+								everyone else's lists entirely. Partners and guardians always keep full view. You can fine-tune this per person later from
+								the edit dialog.
+							</InputTooltip>
+						</Label>
+						<Select onValueChange={value => field.handleChange(value as DefaultAccess)} value={field.state.value} disabled={isLoading}>
+							<SelectTrigger id={field.name} className="w-full">
+								<SelectValue placeholder="Select default access" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="view">View (default)</SelectItem>
+								<SelectItem value="restricted">Restricted</SelectItem>
+								<SelectItem value="none">None</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
+				)}
+			</form.Field>
 
 			{error && (
 				<Alert variant="destructive">

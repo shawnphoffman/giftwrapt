@@ -91,3 +91,40 @@ function EmbeddedHarness() {
 export const EmbeddedInAdminForm: StoryObj = {
 	render: () => <EmbeddedHarness />,
 }
+
+// Admin Edit User dialog driving the guardian lock live: toggling a person's
+// "Guardian" checkbox locks/unlocks their access toggles via `lockedUserIds`,
+// mirroring how the form feeds the picker's current value in.
+function GuardianLockHarness() {
+	const [rows, setRows] = useState<Array<PermissionRow>>(SAMPLE_ROWS)
+	const [guardianIds, setGuardianIds] = useState<Array<string>>(['u1'])
+	return (
+		<div className="space-y-3">
+			<div className="flex flex-wrap gap-3 rounded-md border p-3 text-sm">
+				{SAMPLE_ROWS.map(r => (
+					<label key={r.id} className="flex items-center gap-1.5">
+						<input
+							type="checkbox"
+							checked={guardianIds.includes(r.id)}
+							onChange={e => setGuardianIds(prev => (e.target.checked ? [...prev, r.id] : prev.filter(id => id !== r.id)))}
+						/>
+						Guardian: {r.name}
+					</label>
+				))}
+			</div>
+			<PermissionsEditor
+				embedded
+				rows={rows}
+				isLoading={false}
+				isSaving={false}
+				onChange={setRows}
+				showShareIndicator={false}
+				lockedUserIds={new Set(guardianIds)}
+			/>
+		</div>
+	)
+}
+
+export const GuardianLockedRows: StoryObj = {
+	render: () => <GuardianLockHarness />,
+}

@@ -17,11 +17,15 @@ import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { adminAuthMiddleware } from '@/middleware/auth'
 
 import {
+	getOwnersWithRelationshipsForMeImpl,
 	getUsersWithRelationshipsImpl,
 	type RelationshipRow,
 	upsertUserRelationshipsImpl,
 	type UpsertUserRelationshipsInput,
 	type UpsertUserRelationshipsResult,
+	upsertViewerRelationshipsImpl,
+	type UpsertViewerRelationshipsInput,
+	type UpsertViewerRelationshipsResult,
 } from './_permissions-impl'
 import {
 	addRelationLabelImpl,
@@ -447,7 +451,28 @@ export const upsertUserRelationshipsAsAdmin = createServerFn({ method: 'POST' })
 	.middleware([adminAuthMiddleware, loggingMiddleware])
 	.inputValidator((data: { userId: string; input: UpsertUserRelationshipsInput }) => data)
 	.handler(
-		({ data }): Promise<UpsertUserRelationshipsResult> => upsertUserRelationshipsImpl({ ownerUserId: data.userId, input: data.input })
+		({ data }): Promise<UpsertUserRelationshipsResult> =>
+			upsertUserRelationshipsImpl({ ownerUserId: data.userId, input: data.input, actingAsAdmin: true })
+	)
+
+// The reverse direction: the edited user is the VIEWER, and we're granting /
+// restricting what THEY can see of every other user's lists. Mirrors the
+// self-service `getOwnersWithRelationshipsForMe` / `upsertViewerRelationships`
+// pair, with the actor (admin) acting on behalf of the edited user. Used by the
+// admin Edit User dialog's "what this user can see of others" editor and by the
+// Create User form's default-access bulk write.
+
+export const getOwnerRelationshipsForUserAsAdmin = createServerFn({ method: 'GET' })
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.inputValidator((data: { userId: string }) => data)
+	.handler(({ data }): Promise<Array<RelationshipRow>> => getOwnersWithRelationshipsForMeImpl(data.userId))
+
+export const upsertViewerRelationshipsAsAdmin = createServerFn({ method: 'POST' })
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.inputValidator((data: { userId: string; input: UpsertViewerRelationshipsInput }) => data)
+	.handler(
+		({ data }): Promise<UpsertViewerRelationshipsResult> =>
+			upsertViewerRelationshipsImpl({ viewerUserId: data.userId, input: data.input, actingAsAdmin: true })
 	)
 
 // Candidate people for an admin-driven relation-labels picker. Mirrors
