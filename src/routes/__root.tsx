@@ -23,9 +23,9 @@ interface RouterContext {
 }
 
 export const Route = createRootRouteWithContext<RouterContext>()({
-	head: Head,
-	notFoundComponent: NotFound,
-	shellComponent: RootDocument,
+	// `loader` must precede `head`: TanStack Router's type inference flows
+	// from earlier properties to later ones, and `head` (Head) consumes the
+	// loader's returned `appTitle`. Ordering head first breaks that inference.
 	loader: async ({ context }) => {
 		// Prefetch app settings + storage status on server; both hydrate to
 		// client. Run in parallel since neither depends on the other.
@@ -45,6 +45,9 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 			return { appTitle: 'GiftWrapt' }
 		}
 	},
+	head: Head,
+	notFoundComponent: NotFound,
+	shellComponent: RootDocument,
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {

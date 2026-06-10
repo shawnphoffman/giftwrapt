@@ -16,11 +16,6 @@ const checkEmailEnabled = createServerFn({ method: 'GET' }).handler(async () => 
 })
 
 export const Route = createFileRoute('/(auth)/forgot-password')({
-	loader: async () => {
-		const { enabled } = await checkEmailEnabled()
-		return { emailEnabled: enabled }
-	},
-	component: ForgotPassword,
 	beforeLoad: async ({ context }) => {
 		// If the user already has a session, send them home. This page
 		// is only useful while signed-out. Mirrors the sign-in pattern of
@@ -28,6 +23,11 @@ export const Route = createFileRoute('/(auth)/forgot-password')({
 		const session = context as { session?: { user?: unknown } } | undefined
 		if (session?.session?.user) throw redirect({ to: '/' })
 	},
+	loader: async () => {
+		const { enabled } = await checkEmailEnabled()
+		return { emailEnabled: enabled }
+	},
+	component: ForgotPassword,
 })
 
 function ForgotPassword() {
