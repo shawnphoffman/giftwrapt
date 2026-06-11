@@ -55,6 +55,9 @@ export const claimItemGift = ok
 export const updateItemGift = ok
 export const unclaimItemGift = ok
 export const updateCoGifters = ok
+export const getAddableCoGifters = emptyArray
+export const setContributionSplit = ok
+export const getContributionSplit = (): Promise<null> => Promise.resolve(null)
 
 // @/api/comments
 // Stories can seed comments per itemId via __setStorybookComments(itemId, [...]).
