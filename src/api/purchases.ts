@@ -3,6 +3,7 @@ import { and, arrayOverlaps, eq, ne, or, sql } from 'drizzle-orm'
 
 import { db } from '@/db'
 import { giftedItems, items, listAddons, lists, users } from '@/db/schema'
+import { evenUnitShare, unitCount } from '@/lib/contributions'
 import { loggingMiddleware } from '@/lib/logger'
 import { authMiddleware } from '@/middleware/auth'
 
@@ -23,8 +24,8 @@ export type SummaryItem = {
 	// avatar on the row.
 	isPartnerPurchase: boolean
 	// True when the current user (or their partner) is only a co-gifter on this
-	// claim, never the primary. Co-gifter claims are shown with $0 until we
-	// build UI to capture per-gifter spend.
+	// claim, never the primary. Co-gifter claims now carry this unit's even
+	// share of the total, the same share the primary unit sees.
 	isCoGifter: boolean
 	title: string
 	itemUrl: string | null
@@ -189,9 +190,10 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 			const isPrimary = gifterIds.includes(r.gifterId)
 			const isCoGifter = !isPrimary
 			const isOwn = r.gifterId === userId
-			// Co-gifter spend is unknown per gifter today; zero it out so totals
-			// and averages don't double-count the primary's total.
-			const cost = isCoGifter ? 0 : r.totalCost ? parseFloat(r.totalCost) : null
+			// Each gifter unit's even share of the claim total: total / (1 primary +
+			// N co-gifter units), with the rounding remainder on the primary unit.
+			// Null when no valid cost was recorded.
+			const cost = evenUnitShare(r.totalCost, unitCount(r.additionalGifterIds), isPrimary)
 			const recipient = resolveRecipient(r)
 			return {
 				type: 'claim',

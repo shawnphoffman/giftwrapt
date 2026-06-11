@@ -443,7 +443,7 @@ function PurchaseDetailRow({
 									<Users className="size-3" /> Co-gifter
 								</Badge>
 							</TapTooltipTrigger>
-							<TapTooltipContent>Shown at $0 until per-gifter spend is captured.</TapTooltipContent>
+							<TapTooltipContent>Your even share of this co-gifted purchase.</TapTooltipContent>
 						</TapTooltip>
 					)}
 				</div>

@@ -75,18 +75,18 @@ describe('groupByPerson', () => {
 		expect(groups.map(g => g.name).sort()).toEqual(['Alice', 'Bob'])
 	})
 
-	it('counts co-gifter claims but leaves totals unchanged (cost is zero)', () => {
-		// Co-gifter claims are surfaced with cost=0 until per-gifter spend exists.
-		// They should count toward claimCount but not inflate totals.
+	it('sums every claim cost including co-gifter shares', () => {
+		// Co-gifters now carry their even share of the total (not $0), so a
+		// co-gifter claim contributes to both claimCount and the totals.
 		const groups = groupByPerson([
-			item({ ownerId: 'sam', ownerName: 'Sam', ownerEmail: 'sam@x', cost: 100 }),
-			item({ ownerId: 'sam', ownerName: 'Sam', ownerEmail: 'sam@x', isOwn: false, isCoGifter: true, cost: 0 }),
+			item({ ownerId: 'sam', ownerName: 'Sam', ownerEmail: 'sam@x', cost: 55 }),
+			item({ ownerId: 'sam', ownerName: 'Sam', ownerEmail: 'sam@x', isOwn: false, isCoGifter: true, cost: 55 }),
 		])
 		expect(groups).toHaveLength(1)
 		expect(groups[0]).toMatchObject({
 			claimCount: 2,
-			giftsTotal: 100,
-			totalSpent: 100,
+			giftsTotal: 110,
+			totalSpent: 110,
 		})
 	})
 

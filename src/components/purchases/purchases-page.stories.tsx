@@ -183,7 +183,7 @@ const coGifterItems: Array<SummaryItem> = [
 		title: 'Espresso machine',
 		isOwn: false,
 		isCoGifter: true,
-		cost: 0,
+		cost: 55,
 		totalCostRaw: null,
 		listName: 'Wedding',
 		createdAt: daysAgo(20),
