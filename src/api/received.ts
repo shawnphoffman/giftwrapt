@@ -4,7 +4,8 @@ import { and, desc, eq, inArray, isNull } from 'drizzle-orm'
 import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
 import { dependentGuardianships, dependents, giftedItems, items, listAddons, lists, users } from '@/db/schema'
-import { displayName, formatGifterNames, namesForGifter, type PartneredUser } from '@/lib/gifters'
+import { buildGifterUnits, type GifterUnit, type GifterUserMeta } from '@/lib/gifter-units'
+import { namesForGifter } from '@/lib/gifters'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { loggingMiddleware } from '@/lib/logger'
 import { authMiddleware } from '@/middleware/auth'
@@ -17,15 +18,9 @@ import { authMiddleware } from '@/middleware/auth'
 // Each gifter is shown alongside their partner when one is set, matching
 // the settings page promise that gifts credit both partners.
 
-// A gifter household: solo gifter, or a primary + partner pair. The pair
-// label uses `formatGifterNames`, e.g. "Alice & Bob". The viewer's own
-// partner is intentionally NOT paired with the viewer (the viewer is not a
-// gifter); they show as a solo unit when they are the gifter.
-export type GifterUnit = {
-	key: string
-	label: string
-	members: Array<{ id: string; name: string; image: string | null }>
-}
+// Re-exported from the shared resolver so existing importers keep their
+// `@/api/received` import path.
+export type { GifterUnit }
 
 export type ReceivedGiftRow = {
 	type: 'item'
@@ -75,55 +70,9 @@ export type ReceivedGiftsResult = {
 	dependents: Array<DependentReceivedSection>
 }
 
-type GifterUserMeta = PartneredUser & { image: string | null }
-
-// Resolve the gifter ids on a single claim/addon into deduped household
-// units. Viewer's own partner is forced solo (we never pair a gifter with
-// the viewer, since the viewer isn't a gifter).
-function buildGifterUnits(
-	primaryId: string,
-	additionalIds: Array<string> | null,
-	viewerId: string,
-	lookup: ReadonlyMap<string, GifterUserMeta>
-): Array<GifterUnit> {
-	const ids = new Set<string>([primaryId, ...(additionalIds ?? [])])
-	const units = new Map<string, GifterUnit>()
-
-	for (const id of ids) {
-		const user = lookup.get(id)
-		if (!user) continue
-
-		// Symmetric partner check: viewer's partner is whoever has the viewer
-		// as their partnerId, or whoever is named in the viewer's partnerId.
-		const viewer = lookup.get(viewerId)
-		const isViewerPartner = user.partnerId === viewerId || (viewer?.partnerId !== null && viewer?.partnerId === user.id)
-
-		const partner = !isViewerPartner && user.partnerId ? lookup.get(user.partnerId) : undefined
-
-		if (partner) {
-			const sorted = [user, partner].sort((a, b) => (a.id! < b.id! ? -1 : 1))
-			const key = `pair:${sorted[0].id}:${sorted[1].id}`
-			if (!units.has(key)) {
-				units.set(key, {
-					key,
-					label: formatGifterNames(sorted.map(displayName)),
-					members: sorted.map(u => ({ id: u.id!, name: displayName(u), image: u.image })),
-				})
-			}
-		} else {
-			const key = `solo:${user.id}`
-			if (!units.has(key)) {
-				units.set(key, {
-					key,
-					label: displayName(user),
-					members: [{ id: user.id!, name: displayName(user), image: user.image }],
-				})
-			}
-		}
-	}
-
-	return Array.from(units.values())
-}
+// `buildGifterUnits` + `GifterUserMeta` moved to `@/lib/gifter-units` (shared
+// with the item gifting view and the purchases split). The received page passes
+// `userId` as the recipient, since here the viewer IS the recipient.
 
 export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaDatabase }): Promise<ReceivedGiftsResult> {
 	const { userId, dbx = db } = args
