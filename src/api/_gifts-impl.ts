@@ -313,6 +313,18 @@ export type UpdateGiftResult =
 	| { kind: 'error'; reason: 'not-found' | 'not-yours' }
 	| { kind: 'error'; reason: 'over-claim'; remaining: number }
 
+// True when `actorId` is the claim's primary gifter or that gifter's partner
+// (either partnership direction). Partners share a gifter unit, so a partner may
+// edit a claim's metadata (cost / notes / quantity). Unclaim stays primary-only.
+async function isPrimaryOrPartner(actorId: string, primaryId: string, dbx: SchemaDatabase): Promise<boolean> {
+	if (actorId === primaryId) return true
+	const [actor, primary] = await Promise.all([
+		dbx.query.users.findFirst({ where: eq(users.id, actorId), columns: { partnerId: true } }),
+		dbx.query.users.findFirst({ where: eq(users.id, primaryId), columns: { partnerId: true } }),
+	])
+	return actor?.partnerId === primaryId || primary?.partnerId === actorId
+}
+
 export async function updateItemGiftImpl(args: {
 	gifterId: string
 	input: z.infer<typeof UpdateGiftInputSchema>
@@ -327,7 +339,9 @@ export async function updateItemGiftImpl(args: {
 			columns: { id: true, itemId: true, gifterId: true },
 		})
 		if (!gift) return { kind: 'error', reason: 'not-found' }
-		if (gift.gifterId !== gifterId) return { kind: 'error', reason: 'not-yours' }
+		// The primary gifter OR their partner may edit the claim's metadata (they
+		// share a gifter unit). Unclaim stays primary-only.
+		if (!(await isPrimaryOrPartner(gifterId, gift.gifterId, tx))) return { kind: 'error', reason: 'not-yours' }
 
 		const lockedRows = (await tx.execute(sql`SELECT id, list_id, quantity FROM items WHERE id = ${gift.itemId} FOR UPDATE`)) as {
 			rows: Array<unknown>

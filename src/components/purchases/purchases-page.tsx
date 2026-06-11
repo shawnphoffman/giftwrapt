@@ -407,7 +407,7 @@ function PurchaseDetailRow({
 	onEdit: () => void
 }) {
 	const hasNotes = !!item.notes
-	const editable = item.isOwn && !item.isCoGifter
+	const editable = (item.isOwn || item.isPartnerPurchase) && !item.isCoGifter
 	const showPartner = item.isPartnerPurchase && partner !== null
 	const attachments = item.attachmentUrls ?? []
 	const carrierMatch = item.trackingNumber ? detectCarrier(item.trackingNumber) : null
