@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { evenUnitShare, parseTotalCost, unitCount } from '../contributions'
+import { evenUnitShare, parseTotalCost, unitContribution, unitCount } from '../contributions'
 
 describe('parseTotalCost', () => {
 	it('parses valid non-negative amounts', () => {
@@ -72,5 +72,57 @@ describe('evenUnitShare', () => {
 
 	it('returns null for a non-positive unit count', () => {
 		expect(evenUnitShare('110', 0, true)).toBeNull()
+	})
+})
+
+describe('unitContribution', () => {
+	const base = { additionalGifterIds: ['co'], viewerGifterIds: ['primary'] as Array<string> }
+
+	it('falls back to the even split when there are no custom rows', () => {
+		// $110, primary + 1 co-gifter -> even $55.
+		expect(unitContribution({ ...base, totalCost: '110', isPrimaryUnit: true, customRows: [] })).toBe(55)
+		expect(unitContribution({ ...base, totalCost: '110', isPrimaryUnit: false, viewerGifterIds: ['co'], customRows: [] })).toBe(55)
+	})
+
+	it('gives the primary unit the residual under a custom split', () => {
+		// $110 total, co-gifter pledged $40 -> primary covers $70.
+		const customRows = [{ userId: 'co', amount: '40.00' }]
+		expect(unitContribution({ ...base, totalCost: '110', isPrimaryUnit: true, customRows })).toBe(70)
+	})
+
+	it("gives a co-gifter unit its own stored amount (matched via the viewer's partner id)", () => {
+		const customRows = [{ userId: 'co', amount: '40.00' }]
+		// Viewer is the co-gifter's partner; the stored anchor is 'co'.
+		expect(
+			unitContribution({
+				totalCost: '110',
+				additionalGifterIds: ['co'],
+				isPrimaryUnit: false,
+				viewerGifterIds: ['someone', 'co'],
+				customRows,
+			})
+		).toBe(40)
+	})
+
+	it('clamps the primary residual at 0 when co-gifters are over-pledged', () => {
+		const customRows = [{ userId: 'co', amount: '80.00' }]
+		expect(unitContribution({ ...base, totalCost: '50', isPrimaryUnit: true, customRows })).toBe(0)
+	})
+
+	it('returns 0 for a co-gifter unit not present in the custom rows', () => {
+		const customRows = [{ userId: 'co', amount: '40.00' }]
+		expect(
+			unitContribution({
+				totalCost: '110',
+				additionalGifterIds: ['co', 'other'],
+				isPrimaryUnit: false,
+				viewerGifterIds: ['other'],
+				customRows,
+			})
+		).toBe(0)
+	})
+
+	it('returns null when there is no valid cost', () => {
+		expect(unitContribution({ ...base, totalCost: null, isPrimaryUnit: true, customRows: [{ userId: 'co', amount: '40' }] })).toBeNull()
 	})
 })

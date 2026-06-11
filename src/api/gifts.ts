@@ -20,6 +20,9 @@ import {
 	type ClaimGiftResult,
 	claimItemGiftImpl,
 	getAddableCoGiftersImpl,
+	setContributionSplitImpl,
+	SetContributionSplitInputSchema,
+	type SetContributionSplitResult,
 	UnclaimGiftInputSchema,
 	type UnclaimGiftResult,
 	unclaimItemGiftImpl,
@@ -31,7 +34,14 @@ import {
 	updateItemGiftImpl,
 } from './_gifts-impl'
 
-export type { AddableCoGifter, ClaimGiftResult, UnclaimGiftResult, UpdateCoGiftersResult, UpdateGiftResult } from './_gifts-impl'
+export type {
+	AddableCoGifter,
+	ClaimGiftResult,
+	SetContributionSplitResult,
+	UnclaimGiftResult,
+	UpdateCoGiftersResult,
+	UpdateGiftResult,
+} from './_gifts-impl'
 
 export const claimItemGift = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, rateLimit(claimLimiter), loggingMiddleware])
@@ -59,4 +69,11 @@ export const getAddableCoGifters = createServerFn({ method: 'GET' })
 	.handler(
 		({ context, data }): Promise<Array<AddableCoGifter>> =>
 			getAddableCoGiftersImpl({ callerId: context.session.user.id, giftId: data.giftId })
+	)
+
+export const setContributionSplit = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: z.input<typeof SetContributionSplitInputSchema>) => SetContributionSplitInputSchema.parse(data))
+	.handler(
+		({ context, data }): Promise<SetContributionSplitResult> => setContributionSplitImpl({ actorId: context.session.user.id, input: data })
 	)

@@ -9,8 +9,9 @@ import { and, arrayOverlaps, asc, desc, eq, inArray, ne, notInArray, or, sql } f
 import { z } from 'zod'
 
 import { db, type SchemaDatabase } from '@/db'
-import { giftedItems, itemGroups, items, lists, users } from '@/db/schema'
+import { giftContributions, giftedItems, itemGroups, items, lists, users } from '@/db/schema'
 import type { GiftedItem } from '@/db/schema/gifts'
+import { parseTotalCost } from '@/lib/contributions'
 import { computeRemainingClaimableQuantity } from '@/lib/gifts'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { claimsCreatedTotal, claimsDeletedTotal } from '@/lib/observability/metrics'
@@ -336,7 +337,7 @@ export async function updateItemGiftImpl(args: {
 	const result: UpdateGiftResult = await dbx.transaction(async (tx): Promise<UpdateGiftResult> => {
 		const gift = await tx.query.giftedItems.findFirst({
 			where: eq(giftedItems.id, data.giftId),
-			columns: { id: true, itemId: true, gifterId: true },
+			columns: { id: true, itemId: true, gifterId: true, totalCost: true },
 		})
 		if (!gift) return { kind: 'error', reason: 'not-found' }
 		// The primary gifter OR their partner may edit the claim's metadata (they
@@ -369,6 +370,11 @@ export async function updateItemGiftImpl(args: {
 			})
 			.where(eq(giftedItems.id, gift.id))
 			.returning()
+
+		// Reset-to-even: a totalCost change invalidates any custom split.
+		if (data.totalCost !== undefined && data.totalCost !== gift.totalCost) {
+			await clearContributionsForGift(gift.id, tx)
+		}
 
 		notifyCtx.listId = lockedItem.list_id
 		return { kind: 'ok', gift: updated }
@@ -514,5 +520,71 @@ export async function updateCoGiftersImpl(args: {
 		.where(eq(giftedItems.id, data.giftId))
 		.returning({ additionalGifterIds: giftedItems.additionalGifterIds })
 
+	// Reset-to-even: the participant set changed, so drop any custom split.
+	await clearContributionsForGift(data.giftId, dbx)
+
 	return { kind: 'ok', additionalGifterIds: updated.additionalGifterIds }
+}
+
+// ===============================
+// CONTRIBUTION SPLIT (custom per-gifter amounts)
+// ===============================
+
+// Delete a claim's custom split rows, reverting it to the even split. Called on
+// any structural change (totalCost or the participant set) - reset-to-even.
+async function clearContributionsForGift(giftId: number, dbx: SchemaDatabase): Promise<void> {
+	await dbx.delete(giftContributions).where(eq(giftContributions.giftId, giftId))
+}
+
+export const SetContributionSplitInputSchema = z.object({
+	giftId: z.number().int().positive(),
+	// Co-gifter amounts; the primary's share is the residual. An empty array
+	// clears the custom split (revert to even).
+	coGifters: z.array(z.object({ userId: z.string(), amount: z.string().regex(/^\d+(\.\d{1,2})?$/) })).max(20),
+})
+
+export type SetContributionSplitResult =
+	| { kind: 'ok' }
+	| { kind: 'error'; reason: 'not-found' | 'not-yours' | 'no-cost' | 'invalid-gifter' | 'exceeds-total' }
+
+// Set (or clear) the custom split on a claim. Only the primary gifter or their
+// partner may set it (shared gifter unit). Stores co-gifter amounts only; the
+// primary's share is the residual. Rejects amounts that sum past the total, or
+// targets that aren't co-gifters on the claim.
+export async function setContributionSplitImpl(args: {
+	actorId: string
+	input: z.infer<typeof SetContributionSplitInputSchema>
+	dbx?: SchemaDatabase
+}): Promise<SetContributionSplitResult> {
+	const { actorId, input, dbx = db } = args
+	return dbx.transaction(async (tx): Promise<SetContributionSplitResult> => {
+		const gift = await tx.query.giftedItems.findFirst({
+			where: eq(giftedItems.id, input.giftId),
+			columns: { id: true, gifterId: true, totalCost: true, additionalGifterIds: true },
+		})
+		if (!gift) return { kind: 'error', reason: 'not-found' }
+		if (!(await isPrimaryOrPartner(actorId, gift.gifterId, tx))) return { kind: 'error', reason: 'not-yours' }
+
+		const total = parseTotalCost(gift.totalCost)
+		if (total === null) return { kind: 'error', reason: 'no-cost' }
+
+		if (input.coGifters.length === 0) {
+			await clearContributionsForGift(gift.id, tx)
+			return { kind: 'ok' }
+		}
+
+		const coGifterSet = new Set(gift.additionalGifterIds ?? [])
+		const seen = new Set<string>()
+		for (const c of input.coGifters) {
+			if (!coGifterSet.has(c.userId) || seen.has(c.userId)) return { kind: 'error', reason: 'invalid-gifter' }
+			seen.add(c.userId)
+		}
+
+		const sum = input.coGifters.reduce((s, c) => s + Number(c.amount), 0)
+		if (sum > total + 1e-9) return { kind: 'error', reason: 'exceeds-total' }
+
+		await clearContributionsForGift(gift.id, tx)
+		await tx.insert(giftContributions).values(input.coGifters.map(c => ({ giftId: gift.id, userId: c.userId, amount: c.amount })))
+		return { kind: 'ok' }
+	})
 }

@@ -1,9 +1,9 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, arrayOverlaps, eq, ne, or, sql } from 'drizzle-orm'
+import { and, arrayOverlaps, eq, inArray, ne, or, sql } from 'drizzle-orm'
 
 import { db } from '@/db'
-import { giftedItems, items, listAddons, lists, users } from '@/db/schema'
-import { evenUnitShare, unitCount } from '@/lib/contributions'
+import { giftContributions, giftedItems, items, listAddons, lists, users } from '@/db/schema'
+import { unitContribution } from '@/lib/contributions'
 import { loggingMiddleware } from '@/lib/logger'
 import { authMiddleware } from '@/middleware/auth'
 
@@ -186,14 +186,35 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 			}
 		}
 
+		// Custom split overrides for these claims (absent = even split).
+		const claimGiftIds = claimRows.map(r => r.giftId)
+		const contribRows =
+			claimGiftIds.length > 0
+				? await db
+						.select({ giftId: giftContributions.giftId, userId: giftContributions.userId, amount: giftContributions.amount })
+						.from(giftContributions)
+						.where(inArray(giftContributions.giftId, claimGiftIds))
+				: []
+		const contribByGift = new Map<number, Array<{ userId: string; amount: string }>>()
+		for (const c of contribRows) {
+			const bucket = contribByGift.get(c.giftId) ?? []
+			bucket.push({ userId: c.userId, amount: c.amount })
+			contribByGift.set(c.giftId, bucket)
+		}
+
 		const claims: Array<SummaryItem> = claimRows.map(r => {
 			const isPrimary = gifterIds.includes(r.gifterId)
 			const isCoGifter = !isPrimary
 			const isOwn = r.gifterId === userId
-			// Each gifter unit's even share of the claim total: total / (1 primary +
-			// N co-gifter units), with the rounding remainder on the primary unit.
-			// Null when no valid cost was recorded.
-			const cost = evenUnitShare(r.totalCost, unitCount(r.additionalGifterIds), isPrimary)
+			// This gifter unit's contribution: a custom split when one is stored on
+			// the claim, otherwise the even split. Null when no valid cost exists.
+			const cost = unitContribution({
+				totalCost: r.totalCost,
+				additionalGifterIds: r.additionalGifterIds,
+				isPrimaryUnit: isPrimary,
+				viewerGifterIds: gifterIds,
+				customRows: contribByGift.get(r.giftId) ?? [],
+			})
 			const recipient = resolveRecipient(r)
 			return {
 				type: 'claim',

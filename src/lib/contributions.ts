@@ -46,3 +46,33 @@ export function evenUnitShare(totalCost: string | null | undefined, units: numbe
 	const cents = isPrimaryUnit ? base + remainder : base
 	return cents / 100
 }
+
+function round2(n: number): number {
+	return Math.round(n * 100) / 100
+}
+
+// One gifter unit's contribution to a claim, honoring a CUSTOM split when one is
+// stored and falling back to the even split otherwise. `customRows` are the
+// claim's stored co-gifter overrides ([] means even). `viewerGifterIds` is the
+// [viewer, partner] pair used to find the viewer unit's own co-gifter amount.
+// The primary unit's share is the residual (total - sum of co-gifter amounts),
+// clamped at 0 so an over-pledged split never goes negative.
+export function unitContribution(args: {
+	totalCost: string | null | undefined
+	additionalGifterIds: ReadonlyArray<string> | null | undefined
+	isPrimaryUnit: boolean
+	viewerGifterIds: ReadonlyArray<string>
+	customRows: ReadonlyArray<{ userId: string; amount: string }>
+}): number | null {
+	const total = parseTotalCost(args.totalCost)
+	if (total === null) return null
+	if (args.customRows.length === 0) {
+		return evenUnitShare(args.totalCost, unitCount(args.additionalGifterIds), args.isPrimaryUnit)
+	}
+	if (args.isPrimaryUnit) {
+		const sumCustom = args.customRows.reduce((s, r) => s + (parseTotalCost(r.amount) ?? 0), 0)
+		return Math.max(0, round2(total - sumCustom))
+	}
+	const mine = args.customRows.find(r => args.viewerGifterIds.includes(r.userId))
+	return mine ? (parseTotalCost(mine.amount) ?? 0) : 0
+}
