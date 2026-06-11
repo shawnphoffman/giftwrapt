@@ -7,7 +7,7 @@
 // client.
 
 import { createServerFn } from '@tanstack/react-start'
-import type { z } from 'zod'
+import { z } from 'zod'
 
 import { loggingMiddleware } from '@/lib/logger'
 import { claimLimiter } from '@/lib/rate-limits'
@@ -15,9 +15,11 @@ import { authMiddleware } from '@/middleware/auth'
 import { rateLimit } from '@/middleware/rate-limit'
 
 import {
+	type AddableCoGifter,
 	ClaimGiftInputSchema,
 	type ClaimGiftResult,
 	claimItemGiftImpl,
+	getAddableCoGiftersImpl,
 	UnclaimGiftInputSchema,
 	type UnclaimGiftResult,
 	unclaimItemGiftImpl,
@@ -29,7 +31,7 @@ import {
 	updateItemGiftImpl,
 } from './_gifts-impl'
 
-export type { ClaimGiftResult, UnclaimGiftResult, UpdateCoGiftersResult, UpdateGiftResult } from './_gifts-impl'
+export type { AddableCoGifter, ClaimGiftResult, UnclaimGiftResult, UpdateCoGiftersResult, UpdateGiftResult } from './_gifts-impl'
 
 export const claimItemGift = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, rateLimit(claimLimiter), loggingMiddleware])
@@ -50,3 +52,11 @@ export const updateCoGifters = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof UpdateCoGiftersInputSchema>) => UpdateCoGiftersInputSchema.parse(data))
 	.handler(({ context, data }): Promise<UpdateCoGiftersResult> => updateCoGiftersImpl({ gifterId: context.session.user.id, input: data }))
+
+export const getAddableCoGifters = createServerFn({ method: 'GET' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: { giftId: number }) => z.object({ giftId: z.number().int().positive() }).parse(data))
+	.handler(
+		({ context, data }): Promise<Array<AddableCoGifter>> =>
+			getAddableCoGiftersImpl({ callerId: context.session.user.id, giftId: data.giftId })
+	)

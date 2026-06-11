@@ -6,9 +6,8 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
-import { claimItemGift, unclaimItemGift, updateCoGifters, updateItemGift } from '@/api/gifts'
+import { claimItemGift, getAddableCoGifters, unclaimItemGift, updateCoGifters, updateItemGift } from '@/api/gifts'
 import type { GiftOnItem } from '@/api/lists'
-import { getPotentialPartners } from '@/api/user'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -104,11 +103,12 @@ export function ClaimGiftDialog(props: Props) {
 	const [coGifterSaving, setCoGifterSaving] = useState(false)
 	const [unclaimConfirmOpen, setUnclaimConfirmOpen] = useState(false)
 
+	const editGiftId = props.mode === 'edit' ? props.gift.id : null
 	const { data: allUsers } = useQuery({
-		queryKey: ['potential-partners'],
-		queryFn: () => getPotentialPartners(),
+		queryKey: ['addable-co-gifters', editGiftId],
+		queryFn: () => getAddableCoGifters({ data: { giftId: editGiftId! } }),
 		enabled: open && isEdit,
-		staleTime: 10 * 60 * 1000,
+		staleTime: 5 * 60 * 1000,
 	})
 
 	async function handleUnclaim() {
@@ -451,28 +451,36 @@ function CoGiftersSection({ giftId, coGifterIds, setCoGifterIds, allUsers, savin
 
 	const handleAdd = async () => {
 		if (!selectedUser) return
+		const prev = coGifterIds
 		const newIds = [...coGifterIds, selectedUser]
 		setCoGifterIds(newIds)
 		setSelectedUser('')
-		await saveCoGifters(newIds)
+		if (!(await saveCoGifters(newIds))) setCoGifterIds(prev)
 	}
 
 	const handleRemove = async (userId: string) => {
+		const prev = coGifterIds
 		const newIds = coGifterIds.filter(id => id !== userId)
 		setCoGifterIds(newIds)
-		await saveCoGifters(newIds)
+		if (!(await saveCoGifters(newIds))) setCoGifterIds(prev)
 	}
 
-	const saveCoGifters = async (ids: Array<string>) => {
+	const saveCoGifters = async (ids: Array<string>): Promise<boolean> => {
 		setSaving(true)
 		try {
 			const result = await updateCoGifters({ data: { giftId, additionalGifterIds: ids } })
 			if (result.kind === 'ok') {
 				toast.success('Co-gifters updated')
 				onSaved()
+				return true
 			}
+			toast.error(
+				result.reason === 'not-allowed' ? "You can't add the recipient or your partner as a co-gifter." : 'Failed to update co-gifters.'
+			)
+			return false
 		} catch {
 			toast.error('Failed to update co-gifters')
+			return false
 		} finally {
 			setSaving(false)
 		}

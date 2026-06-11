@@ -5,7 +5,7 @@
 // `gifts.ts` only references these from inside server-fn handler
 // bodies, which TanStack Start strips on the client.
 
-import { and, arrayOverlaps, desc, eq, inArray, ne, or, sql } from 'drizzle-orm'
+import { and, arrayOverlaps, asc, desc, eq, inArray, ne, notInArray, or, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db, type SchemaDatabase } from '@/db'
@@ -408,7 +408,68 @@ export const UpdateCoGiftersInputSchema = z.object({
 
 export type UpdateCoGiftersResult =
 	| { kind: 'ok'; additionalGifterIds: Array<string> | null }
-	| { kind: 'error'; reason: 'not-found' | 'not-yours' }
+	| { kind: 'error'; reason: 'not-found' | 'not-yours' | 'not-allowed' }
+
+export type AddableCoGifter = { id: string; name: string | null; email: string }
+
+// The set of user ids that may never be a co-gifter on a claim: the primary
+// themselves, the primary's partner (already part of the primary's gifter unit,
+// either partnership direction), and the recipient (the list owner; skipped for
+// dependent-subject lists, where the recipient is a dependent, not a user). The
+// recipient rule is spoiler-critical - a recipient co-gifter would see a claim
+// on their own list and skim a phantom slice of the even-split denominator.
+async function blockedCoGifterIds(
+	primaryId: string,
+	itemId: number,
+	candidateIds: ReadonlyArray<string>,
+	dbx: SchemaDatabase
+): Promise<Set<string>> {
+	const blocked = new Set<string>([primaryId])
+
+	const item = await dbx.query.items.findFirst({ where: eq(items.id, itemId), columns: { listId: true } })
+	const list = item
+		? await dbx.query.lists.findFirst({ where: eq(lists.id, item.listId), columns: { ownerId: true, subjectDependentId: true } })
+		: null
+	if (list && !list.subjectDependentId) blocked.add(list.ownerId)
+
+	const primary = await dbx.query.users.findFirst({ where: eq(users.id, primaryId), columns: { partnerId: true } })
+	if (primary?.partnerId) blocked.add(primary.partnerId)
+
+	// Symmetric partner: a candidate who names the primary as their partner.
+	if (candidateIds.length > 0) {
+		const rows = await dbx
+			.select({ id: users.id, partnerId: users.partnerId })
+			.from(users)
+			.where(inArray(users.id, candidateIds as Array<string>))
+		for (const r of rows) if (r.partnerId === primaryId) blocked.add(r.id)
+	}
+	return blocked
+}
+
+// Users the caller may add as co-gifters on their own claim: every non-child
+// user except the caller, the caller's partner, the recipient, and anyone
+// already on the claim. Returns [] when the caller isn't the primary gifter.
+export async function getAddableCoGiftersImpl(args: {
+	callerId: string
+	giftId: number
+	dbx?: SchemaDatabase
+}): Promise<Array<AddableCoGifter>> {
+	const { callerId, giftId, dbx = db } = args
+	const gift = await dbx.query.giftedItems.findFirst({
+		where: eq(giftedItems.id, giftId),
+		columns: { id: true, gifterId: true, itemId: true, additionalGifterIds: true },
+	})
+	if (!gift || gift.gifterId !== callerId) return []
+
+	const blocked = await blockedCoGifterIds(callerId, gift.itemId, [], dbx)
+	for (const id of gift.additionalGifterIds ?? []) blocked.add(id)
+
+	return dbx
+		.select({ id: users.id, name: users.name, email: users.email })
+		.from(users)
+		.where(and(ne(users.role, 'child'), notInArray(users.id, Array.from(blocked))))
+		.orderBy(asc(users.name), asc(users.email))
+}
 
 export async function updateCoGiftersImpl(args: {
 	gifterId: string
@@ -419,10 +480,17 @@ export async function updateCoGiftersImpl(args: {
 
 	const gift = await dbx.query.giftedItems.findFirst({
 		where: eq(giftedItems.id, data.giftId),
-		columns: { id: true, gifterId: true },
+		columns: { id: true, gifterId: true, itemId: true },
 	})
 	if (!gift) return { kind: 'error', reason: 'not-found' }
 	if (gift.gifterId !== gifterId) return { kind: 'error', reason: 'not-yours' }
+
+	// D6 guard: reject the recipient, the primary's own partner, and the primary
+	// themselves as co-gifters (enforced server-side, not just in the picker).
+	if (data.additionalGifterIds.length > 0) {
+		const blocked = await blockedCoGifterIds(gifterId, gift.itemId, data.additionalGifterIds, dbx)
+		if (data.additionalGifterIds.some(id => blocked.has(id))) return { kind: 'error', reason: 'not-allowed' }
+	}
 
 	const ids = data.additionalGifterIds.length > 0 ? data.additionalGifterIds : null
 
