@@ -13,6 +13,7 @@ import { giftedItems, itemComments, itemGroups, items, listAddons, lists, users 
 import { availabilityEnumValues, type ListType, type Priority, priorityEnumValues } from '@/db/schema/enums'
 import type { GiftedItem } from '@/db/schema/gifts'
 import type { Item } from '@/db/schema/items'
+import { buildGifterUnits, type GifterUnit, type GifterUserMeta } from '@/lib/gifter-units'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { isCrossTypeMoveDestructive, SPOILER_PROTECTED_TYPES } from '@/lib/list-type-moves'
 import { itemsArchivedTotal, revealsTriggeredTotal } from '@/lib/observability/metrics'
@@ -43,6 +44,10 @@ export type GiftOnItem = Pick<
 		email: string
 		image: string | null
 	}
+	// Resolved gifter units (primary + co-gifters, partner-paired, recipient
+	// excluded) for the avatar stack on the gifting view. Restricted viewers get
+	// a single solo unit for the primary gifter only.
+	units: Array<GifterUnit>
 }
 
 export type ItemWithGifts = Item & {
@@ -669,6 +674,69 @@ export async function deleteGroupsImpl(args: {
 	return { kind: 'ok', deletedGroups: data.groupIds.length, deletedItems: itemIds.length }
 }
 
+// Resolve each claim's gifter units for the gifting-view avatar stack. Mirrors
+// the received-gifts two-pass lookup (users, then their partners). Restricted
+// viewers get a single solo unit for the primary gifter only - no co-gifters and
+// no partner pairing - so no outsider identity is ever resolved into the payload.
+async function resolveGiftUnitsByGiftId(
+	itemsWithGifts: ReadonlyArray<{
+		gifts: ReadonlyArray<{
+			id: number
+			gifterId: string
+			additionalGifterIds: Array<string> | null
+			gifter: { id: string; name: string | null; email: string; image: string | null }
+		}>
+	}>,
+	recipientId: string | null,
+	restricted: boolean,
+	dbx: SchemaDatabase
+): Promise<Map<number, Array<GifterUnit>>> {
+	const out = new Map<number, Array<GifterUnit>>()
+
+	if (restricted) {
+		for (const item of itemsWithGifts) {
+			for (const g of item.gifts) {
+				const label = g.gifter.name || g.gifter.email
+				out.set(g.id, [{ key: `solo:${g.gifter.id}`, label, members: [{ id: g.gifter.id, name: label, image: g.gifter.image }] }])
+			}
+		}
+		return out
+	}
+
+	const ids = new Set<string>()
+	if (recipientId) ids.add(recipientId)
+	for (const item of itemsWithGifts) {
+		for (const g of item.gifts) {
+			ids.add(g.gifterId)
+			for (const cg of g.additionalGifterIds ?? []) ids.add(cg)
+		}
+	}
+
+	const lookup = new Map<string, GifterUserMeta>()
+	const loadUsers = async (userIds: Array<string>) => {
+		if (userIds.length === 0) return
+		const rows = await dbx
+			.select({ id: users.id, name: users.name, email: users.email, image: users.image, partnerId: users.partnerId })
+			.from(users)
+			.where(inArray(users.id, userIds))
+		for (const r of rows) lookup.set(r.id, r)
+	}
+	await loadUsers(Array.from(ids))
+	// Second pass: partners referenced by the first pass that aren't loaded yet.
+	const partnerIds = new Set<string>()
+	for (const u of lookup.values()) {
+		if (u.partnerId && !lookup.has(u.partnerId)) partnerIds.add(u.partnerId)
+	}
+	await loadUsers(Array.from(partnerIds))
+
+	for (const item of itemsWithGifts) {
+		for (const g of item.gifts) {
+			out.set(g.id, buildGifterUnits(g.gifterId, g.additionalGifterIds, recipientId, lookup))
+		}
+	}
+	return out
+}
+
 export async function getItemsForListViewImpl(args: {
 	userId: string
 	listId: string
@@ -772,9 +840,16 @@ export async function getItemsForListViewImpl(args: {
 		})
 	}
 
+	const recipientId = list.subjectDependentId ? null : list.ownerId
+	const unitsByGiftId = await resolveGiftUnitsByGiftId(listItems, recipientId, accessLevel === 'restricted', dbx)
+
 	return {
 		kind: 'ok',
-		items: sortedItems.map(i => ({ ...i, commentCount: commentCountByItem.get(i.id) ?? 0 })),
+		items: sortedItems.map(i => ({
+			...i,
+			gifts: i.gifts.map(g => ({ ...g, units: unitsByGiftId.get(g.id) ?? [] })),
+			commentCount: commentCountByItem.get(i.id) ?? 0,
+		})),
 	}
 }
 

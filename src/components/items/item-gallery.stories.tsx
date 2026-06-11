@@ -682,6 +682,23 @@ const claimStateSection: Array<Variation> = [
 						gifterId: otherGifter.id,
 						gifter: otherGifter,
 						additionalGifterIds: [thirdGifter.id, fourthGifter.id],
+						units: [
+							{
+								key: `solo:${otherGifter.id}`,
+								label: otherGifter.name,
+								members: [{ id: otherGifter.id, name: otherGifter.name, image: otherGifter.image }],
+							},
+							{
+								key: `solo:${thirdGifter.id}`,
+								label: thirdGifter.name,
+								members: [{ id: thirdGifter.id, name: thirdGifter.name, image: thirdGifter.image }],
+							},
+							{
+								key: `solo:${fourthGifter.id}`,
+								label: fourthGifter.name,
+								members: [{ id: fourthGifter.id, name: fourthGifter.name, image: fourthGifter.image }],
+							},
+						],
 					}),
 				],
 			}

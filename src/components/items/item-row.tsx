@@ -109,10 +109,20 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 	const internalListSummary = internalLinkHit ? internalListLinks.get(internalLinkHit.listId) : undefined
 	const hasPriorityTab = !grouped && item.priority !== 'normal'
 
-	const claimEntries: Array<ClaimEntry> = item.gifts.map(g => ({
-		user: { id: g.gifter.id, name: g.gifter.name || g.gifter.email, image: g.gifter.image },
-		quantity: g.quantity,
-	}))
+	// One avatar per participant across all claims: primary gifters, co-gifters,
+	// and their partners (gifter units), deduped by user id. Restricted viewers
+	// only ever get the primary gifter's solo unit from the server.
+	const claimEntries: Array<ClaimEntry> = []
+	const seenClaimMembers = new Set<string>()
+	for (const g of item.gifts) {
+		for (const unit of g.units) {
+			for (const member of unit.members) {
+				if (seenClaimMembers.has(member.id)) continue
+				seenClaimMembers.add(member.id)
+				claimEntries.push({ user: { id: member.id, name: member.name, image: member.image }, quantity: g.quantity })
+			}
+		}
+	}
 
 	const dimmedBadges: Array<ReactNode> = []
 	dimmedBadges.push(<DateAdded key="date" createdAt={item.createdAt} />)

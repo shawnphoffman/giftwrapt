@@ -96,7 +96,7 @@ export function makeItemForEditing(overrides: Partial<ItemForEditing> = {}): Ite
 
 let nextGiftId = 5000
 export function makeGift(overrides: Partial<GiftOnItem> = {}): GiftOnItem {
-	return {
+	const base = {
 		id: ++nextGiftId,
 		itemId: 1,
 		gifterId: otherGifter.id,
@@ -107,5 +107,14 @@ export function makeGift(overrides: Partial<GiftOnItem> = {}): GiftOnItem {
 		createdAt: NOW,
 		gifter: otherGifter,
 		...overrides,
+	}
+	// Default to a solo unit for whoever the (possibly overridden) gifter is, so
+	// most fixtures don't have to spell out `units`. Co-gifter stories override.
+	const g = base.gifter
+	return {
+		...base,
+		units: overrides.units ?? [
+			{ key: `solo:${g.id}`, label: g.name ?? g.email, members: [{ id: g.id, name: g.name ?? g.email, image: g.image }] },
+		],
 	}
 }
