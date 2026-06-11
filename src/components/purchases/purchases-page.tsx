@@ -3,6 +3,7 @@ import {
 	ChevronDown,
 	ChevronsDownUp,
 	ChevronsUpDown,
+	DollarSign,
 	ExternalLink,
 	FileText,
 	Gift,
@@ -11,7 +12,6 @@ import {
 	Paperclip,
 	Pencil,
 	Receipt,
-	SplitSquareHorizontal,
 	StickyNote,
 	Truck,
 	Users,
@@ -514,7 +514,7 @@ function PurchaseDetailRow({
 					}}
 					aria-label="Edit the split"
 				>
-					<SplitSquareHorizontal className="size-4" />
+					<DollarSign className="size-4" />
 				</Button>
 			)}
 			{editable ? (
