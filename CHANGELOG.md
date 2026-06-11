@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.43.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.42.0...v0.43.0) (2026-06-11)
+
+
+### Features
+
+* **backup:** include gift_contributions in admin backup/restore ([6888959](https://github.com/shawnphoffman/giftwrapt/commit/688895911b8ad2e32c91708493e7409ce84fc5f5))
+* **db:** add gift_contributions table for custom split overrides ([057c17f](https://github.com/shawnphoffman/giftwrapt/commit/057c17fbd30bf5f4a9f4ef3570e927fdf435fa55))
+* **gifts:** allow a partner to edit a claim's cost ([7d9cffc](https://github.com/shawnphoffman/giftwrapt/commit/7d9cffcd5ea434ed8528f94364830d5e6fa0d44b))
+* **gifts:** block the recipient and partner as co-gifters ([e33e05e](https://github.com/shawnphoffman/giftwrapt/commit/e33e05edf66643d0b50bf54319687825a0a40791))
+* **purchases:** add the residual split editor ([9e52afa](https://github.com/shawnphoffman/giftwrapt/commit/9e52afa1d6907447f15b0e6def05c6e0b0f4a59f))
+* **purchases:** show each gifter's even share of a co-gifted claim ([1358097](https://github.com/shawnphoffman/giftwrapt/commit/13580979f66e3ab5b0c6b6b81f4616624fad7042))
+* **purchases:** support custom per-gifter contribution splits ([eb7cee2](https://github.com/shawnphoffman/giftwrapt/commit/eb7cee22796d90aeed837faf529c396419ab4c23))
+
+
+### Bug Fixes
+
+* **items:** show co-gifter avatars in the gifting view ([5c536fa](https://github.com/shawnphoffman/giftwrapt/commit/5c536fa7b043f0b9dbae7bace657d36162e32143))
+
 ## [0.42.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.41.0...v0.42.0) (2026-06-10)
 
 
