@@ -27,6 +27,9 @@ export type SummaryItem = {
 	// claim, never the primary. Co-gifter claims now carry this unit's even
 	// share of the total, the same share the primary unit sees.
 	isCoGifter: boolean
+	// True when the claim has at least one co-gifter, so an editable row can
+	// offer the split editor.
+	hasCoGifters: boolean
 	title: string
 	itemUrl: string | null
 	cost: number | null
@@ -223,6 +226,7 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 				isOwn,
 				isPartnerPurchase: !isOwn && !isCoGifter && myPartnerId !== null && r.gifterId === myPartnerId,
 				isCoGifter,
+				hasCoGifters: (r.additionalGifterIds?.length ?? 0) > 0,
 				title: r.itemTitle,
 				itemUrl: r.itemUrl,
 				cost,
@@ -251,6 +255,7 @@ export const getPurchaseSummary = createServerFn({ method: 'GET' })
 				isOwn: r.gifterId === userId,
 				isPartnerPurchase: r.gifterId !== userId && myPartnerId !== null && r.gifterId === myPartnerId,
 				isCoGifter: false,
+				hasCoGifters: false,
 				title: r.description,
 				itemUrl: null,
 				cost: r.totalCost ? parseFloat(r.totalCost) : null,

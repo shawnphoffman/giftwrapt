@@ -11,6 +11,7 @@ import {
 	Paperclip,
 	Pencil,
 	Receipt,
+	SplitSquareHorizontal,
 	StickyNote,
 	Truck,
 	Users,
@@ -23,6 +24,7 @@ import { MarkdownNotes } from '@/components/common/markdown-notes'
 import { PageHeading } from '@/components/common/page-heading'
 import UserAvatar from '@/components/common/user-avatar'
 import { PurchasesOrphanSummary } from '@/components/orphan-claims/purchases-orphan-summary'
+import { ContributionSplitDialog } from '@/components/purchases/contribution-split-dialog'
 import { type EditablePurchase, PurchaseEditDialog } from '@/components/purchases/purchase-edit-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -411,6 +413,8 @@ function PurchaseDetailRow({
 	const showPartner = item.isPartnerPurchase && partner !== null
 	const attachments = item.attachmentUrls ?? []
 	const carrierMatch = item.trackingNumber ? detectCarrier(item.trackingNumber) : null
+	const canSplit = editable && item.type === 'claim' && item.giftId != null && item.hasCoGifters
+	const [splitOpen, setSplitOpen] = useState(false)
 
 	return (
 		<div className="flex items-start gap-3 px-3 py-2.5">
@@ -499,6 +503,20 @@ function PurchaseDetailRow({
 			<Badge variant="outline" className="text-xs tabular-nums shrink-0">
 				{format(new Date(item.createdAt), 'MMM d')}
 			</Badge>
+			{canSplit && (
+				<Button
+					variant="outline"
+					size="icon"
+					className="size-7 shrink-0 text-muted-foreground hover:text-foreground"
+					onClick={e => {
+						e.stopPropagation()
+						setSplitOpen(true)
+					}}
+					aria-label="Edit the split"
+				>
+					<SplitSquareHorizontal className="size-4" />
+				</Button>
+			)}
 			{editable ? (
 				<Button
 					variant="outline"
@@ -514,6 +532,9 @@ function PurchaseDetailRow({
 				</Button>
 			) : (
 				<div className="size-7 shrink-0" />
+			)}
+			{canSplit && item.giftId != null && (
+				<ContributionSplitDialog open={splitOpen} onOpenChange={setSplitOpen} giftId={item.giftId} itemTitle={item.title} />
 			)}
 		</div>
 	)

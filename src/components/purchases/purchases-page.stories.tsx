@@ -25,6 +25,7 @@ function item(overrides: Partial<SummaryItem>): SummaryItem {
 		isOwn: true,
 		isPartnerPurchase: false,
 		isCoGifter: false,
+		hasCoGifters: false,
 		title: 'Untitled',
 		itemUrl: null,
 		cost: null,

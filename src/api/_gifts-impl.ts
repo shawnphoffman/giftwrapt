@@ -11,7 +11,7 @@ import { z } from 'zod'
 import { db, type SchemaDatabase } from '@/db'
 import { giftContributions, giftedItems, itemGroups, items, lists, users } from '@/db/schema'
 import type { GiftedItem } from '@/db/schema/gifts'
-import { parseTotalCost } from '@/lib/contributions'
+import { evenUnitShare, parseTotalCost, unitCount } from '@/lib/contributions'
 import { computeRemainingClaimableQuantity } from '@/lib/gifts'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { claimsCreatedTotal, claimsDeletedTotal } from '@/lib/observability/metrics'
@@ -587,4 +587,50 @@ export async function setContributionSplitImpl(args: {
 		await tx.insert(giftContributions).values(input.coGifters.map(c => ({ giftId: gift.id, userId: c.userId, amount: c.amount })))
 		return { kind: 'ok' }
 	})
+}
+
+export type ContributionSplitView = {
+	totalCost: string | null
+	coGifters: Array<{ id: string; name: string | null; email: string; amount: string }>
+}
+
+// The current split for the editor: each co-gifter with their stored amount, or
+// the even-split default when none is stored. Returns null when the caller may
+// not edit it (not the primary gifter or their partner) or the claim is gone.
+export async function getContributionSplitImpl(args: {
+	callerId: string
+	giftId: number
+	dbx?: SchemaDatabase
+}): Promise<ContributionSplitView | null> {
+	const { callerId, giftId, dbx = db } = args
+	const gift = await dbx.query.giftedItems.findFirst({
+		where: eq(giftedItems.id, giftId),
+		columns: { id: true, gifterId: true, totalCost: true, additionalGifterIds: true },
+	})
+	if (!gift) return null
+	if (!(await isPrimaryOrPartner(callerId, gift.gifterId, dbx))) return null
+
+	const coGifterIds = gift.additionalGifterIds ?? []
+	if (coGifterIds.length === 0) return { totalCost: gift.totalCost, coGifters: [] }
+
+	const [userRows, contribRows] = await Promise.all([
+		dbx.select({ id: users.id, name: users.name, email: users.email }).from(users).where(inArray(users.id, coGifterIds)),
+		dbx
+			.select({ userId: giftContributions.userId, amount: giftContributions.amount })
+			.from(giftContributions)
+			.where(eq(giftContributions.giftId, giftId)),
+	])
+	const userById = new Map(userRows.map(u => [u.id, u]))
+	const customByUser = new Map(contribRows.map(c => [c.userId, c.amount]))
+	const evenShare = evenUnitShare(gift.totalCost, unitCount(coGifterIds), false)
+	const evenStr = evenShare != null ? evenShare.toFixed(2) : '0.00'
+
+	const coGifters = coGifterIds
+		.map(id => {
+			const u = userById.get(id)
+			return u ? { id, name: u.name, email: u.email, amount: customByUser.get(id) ?? evenStr } : null
+		})
+		.filter((x): x is { id: string; name: string | null; email: string; amount: string } => x !== null)
+
+	return { totalCost: gift.totalCost, coGifters }
 }

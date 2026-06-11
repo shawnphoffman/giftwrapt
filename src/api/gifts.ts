@@ -19,7 +19,9 @@ import {
 	ClaimGiftInputSchema,
 	type ClaimGiftResult,
 	claimItemGiftImpl,
+	type ContributionSplitView,
 	getAddableCoGiftersImpl,
+	getContributionSplitImpl,
 	setContributionSplitImpl,
 	SetContributionSplitInputSchema,
 	type SetContributionSplitResult,
@@ -37,6 +39,7 @@ import {
 export type {
 	AddableCoGifter,
 	ClaimGiftResult,
+	ContributionSplitView,
 	SetContributionSplitResult,
 	UnclaimGiftResult,
 	UpdateCoGiftersResult,
@@ -76,4 +79,12 @@ export const setContributionSplit = createServerFn({ method: 'POST' })
 	.inputValidator((data: z.input<typeof SetContributionSplitInputSchema>) => SetContributionSplitInputSchema.parse(data))
 	.handler(
 		({ context, data }): Promise<SetContributionSplitResult> => setContributionSplitImpl({ actorId: context.session.user.id, input: data })
+	)
+
+export const getContributionSplit = createServerFn({ method: 'GET' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: { giftId: number }) => z.object({ giftId: z.number().int().positive() }).parse(data))
+	.handler(
+		({ context, data }): Promise<ContributionSplitView | null> =>
+			getContributionSplitImpl({ callerId: context.session.user.id, giftId: data.giftId })
 	)
