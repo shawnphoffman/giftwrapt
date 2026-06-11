@@ -6,6 +6,7 @@ import {
 	appSettings,
 	dependentGuardianships,
 	dependents,
+	giftContributions,
 	giftedItems,
 	guardianships,
 	itemComments,
@@ -46,6 +47,7 @@ export const exportAppDataAsAdmin = createServerFn({ method: 'GET' })
 			itemsRows,
 			todoItemsRows,
 			giftedItemsRows,
+			giftContributionsRows,
 			itemCommentsRows,
 			listAddonsRows,
 			listEditorsRows,
@@ -61,6 +63,7 @@ export const exportAppDataAsAdmin = createServerFn({ method: 'GET' })
 			db.select().from(items),
 			db.select().from(todoItems),
 			db.select().from(giftedItems),
+			db.select().from(giftContributions),
 			db.select().from(itemComments),
 			db.select().from(listAddons),
 			db.select().from(listEditors),
@@ -81,6 +84,7 @@ export const exportAppDataAsAdmin = createServerFn({ method: 'GET' })
 				items: itemsRows,
 				todoItems: todoItemsRows,
 				giftedItems: giftedItemsRows,
+				giftContributions: giftContributionsRows,
 				itemComments: itemCommentsRows,
 				listAddons: listAddonsRows,
 				listEditors: listEditorsRows,
@@ -481,6 +485,33 @@ export const importAppDataAsAdmin = createServerFn({ method: 'POST' })
 					result.giftedItems = tables.giftedItems.length
 				}
 
+				// -------- giftContributions --------
+				// Custom per-gifter split overrides on a claim. FK to
+				// gifted_items + users; a wipe cascade-deletes these, so they
+				// must be re-inserted here or splits silently revert to even.
+				if (tables.giftContributions.length > 0) {
+					if (mode === 'wipe') {
+						await tx.insert(giftContributions).values(tables.giftContributions)
+					} else {
+						for (const row of tables.giftContributions) {
+							await tx
+								.insert(giftContributions)
+								.values(row)
+								.onConflictDoUpdate({
+									target: giftContributions.id,
+									set: {
+										giftId: row.giftId,
+										userId: row.userId,
+										amount: row.amount,
+										createdAt: row.createdAt,
+										updatedAt: row.updatedAt,
+									},
+								})
+						}
+					}
+					result.giftContributions = tables.giftContributions.length
+				}
+
 				// -------- itemComments --------
 				if (tables.itemComments.length > 0) {
 					if (mode === 'wipe') {
@@ -608,6 +639,7 @@ async function captureFullSnapshot(): Promise<BackupFile> {
 		itemsRows,
 		todoItemsRows,
 		giftedItemsRows,
+		giftContributionsRows,
 		itemCommentsRows,
 		listAddonsRows,
 		listEditorsRows,
@@ -623,6 +655,7 @@ async function captureFullSnapshot(): Promise<BackupFile> {
 		db.select().from(items),
 		db.select().from(todoItems),
 		db.select().from(giftedItems),
+		db.select().from(giftContributions),
 		db.select().from(itemComments),
 		db.select().from(listAddons),
 		db.select().from(listEditors),
@@ -642,6 +675,7 @@ async function captureFullSnapshot(): Promise<BackupFile> {
 			items: itemsRows,
 			todoItems: todoItemsRows,
 			giftedItems: giftedItemsRows,
+			giftContributions: giftContributionsRows,
 			itemComments: itemCommentsRows,
 			listAddons: listAddonsRows,
 			listEditors: listEditorsRows,
@@ -662,6 +696,7 @@ function countsFromTables(tables: BackupFileTables): ImportCounts {
 		items: tables.items.length,
 		todoItems: tables.todoItems.length,
 		giftedItems: tables.giftedItems.length,
+		giftContributions: tables.giftContributions.length,
 		itemComments: tables.itemComments.length,
 		listAddons: tables.listAddons.length,
 		listEditors: tables.listEditors.length,
@@ -681,6 +716,7 @@ function emptyCounts(): ImportCounts {
 		items: 0,
 		todoItems: 0,
 		giftedItems: 0,
+		giftContributions: 0,
 		itemComments: 0,
 		listAddons: 0,
 		listEditors: 0,
@@ -712,6 +748,8 @@ function dbTableName(name: keyof BackupFileTables): string {
 			return 'todo_items'
 		case 'giftedItems':
 			return 'gifted_items'
+		case 'giftContributions':
+			return 'gift_contributions'
 		case 'itemComments':
 			return 'item_comments'
 		case 'listAddons':

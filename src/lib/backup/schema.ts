@@ -138,6 +138,15 @@ const giftedItemRowSchema = z.object({
 	createdAt: dateField,
 })
 
+const giftContributionRowSchema = z.object({
+	id: z.number().int(),
+	giftId: z.number().int(),
+	userId: z.string(),
+	amount: z.string(),
+	updatedAt: dateField,
+	createdAt: dateField,
+})
+
 const itemCommentRowSchema = z.object({
 	id: z.number().int(),
 	itemId: z.number().int(),
@@ -198,6 +207,9 @@ export const BackupFileSchema = z.object({
 		// existed import cleanly with an empty array.
 		todoItems: z.array(todoItemRowSchema).default([]),
 		giftedItems: z.array(giftedItemRowSchema),
+		// Defaulted so backup files written before the giftContributions
+		// table existed import cleanly with an empty array.
+		giftContributions: z.array(giftContributionRowSchema).default([]),
 		itemComments: z.array(itemCommentRowSchema),
 		listAddons: z.array(listAddonRowSchema),
 		listEditors: z.array(listEditorRowSchema),
