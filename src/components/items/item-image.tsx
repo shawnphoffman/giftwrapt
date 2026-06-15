@@ -27,12 +27,19 @@ export function ItemImage({ src, alt, className, thumbClassName }: Props) {
 				)}
 				aria-label={`View larger image of ${alt}`}
 			>
+				{/*
+				 * Do NOT add `w-fit` (width: fit-content) here. Safari resolves
+				 * fit-content on a replaced <img> to the full intrinsic width and
+				 * ignores max-height, so tall images overflow the thumbnail box.
+				 * Plain max-w/max-h with auto width clamps both dimensions in every
+				 * browser and still shrinks to the image's natural width.
+				 */}
 				<img
 					src={safeSrc}
 					alt={alt}
 					className={cn(
 						'object-contain transition-transform group-hover:scale-105',
-						thumbClassName ?? 'max-w-16 max-h-16 xs:max-w-24 xs:max-h-24 w-fit'
+						thumbClassName ?? 'max-w-16 max-h-16 xs:max-w-24 xs:max-h-24'
 					)}
 				/>
 			</button>
