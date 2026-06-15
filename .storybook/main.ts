@@ -64,6 +64,7 @@ const config: StorybookConfig = {
 			'@/api/settings': path.join(mocksDir, 'api.ts'),
 			'@/api/import': path.join(mocksDir, 'api.ts'),
 			'@/api/orphan-claims': path.join(mocksDir, 'api.ts'),
+			'@/api/scraper': path.join(mocksDir, 'api.ts'),
 			'@/lib/auth-client': path.join(mocksDir, 'auth-client.ts'),
 			'@/env': path.join(mocksDir, 'env.ts'),
 			// Re-exports `@tanstack/start-server-core`, which has a dynamic

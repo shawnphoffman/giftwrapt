@@ -166,8 +166,8 @@ export const ImageRendersAsClickableThumbnail: Story = {
 		const button = img?.closest('button')
 		await expect(button).not.toBeNull()
 		await expect(button?.getAttribute('aria-label')).toMatch(/view larger image of markdown logo/i)
-		// Sized to match the item-row thumbnail (max-h-16 mobile, max-h-24 at xs+, intrinsic width).
-		await expect(img?.className).toMatch(/w-fit/)
+		// Sized to match the item-row thumbnail (max-w/max-h-16 mobile, -24 at xs+, auto width).
+		await expect(img?.className).toMatch(/max-w-16/)
 		await expect(img?.className).toMatch(/max-h-16/)
 		await expect(img?.className).toMatch(/object-contain/)
 	},

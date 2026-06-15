@@ -65,6 +65,18 @@ export default defineConfig({
 						configDir: path.join(here, '.storybook'),
 					}),
 				],
+				// playwright-core ships a lazily-loaded bidiOverCdp module with a
+				// top-level `require("chromium-bidi/...")`. chromium-bidi isn't
+				// installed (Playwright only loads that file for the BiDi
+				// transport), so on a cold cache Vite's dep optimizer tries to
+				// pre-bundle playwright-core and esbuild aborts the whole run on
+				// the unresolved require. CI always has a cold optimizer cache,
+				// so it failed there while a warm local .vite cache hid it.
+				// playwright-core is a Node-side browser-provider dep and never
+				// belongs in the browser bundle, so exclude it from optimization.
+				optimizeDeps: {
+					exclude: ['playwright-core'],
+				},
 				test: {
 					name: 'storybook',
 					browser: {

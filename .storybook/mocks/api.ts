@@ -378,6 +378,12 @@ export const getOrphanedClaimsForList = (): Promise<Array<OrphanedClaimRow>> => 
 export const getOrphanedClaimsSummary = (): Promise<Array<OrphanedClaimSummaryRow>> => Promise.resolve([])
 export const acknowledgeOrphanedClaim = (): Promise<AcknowledgeOrphanedClaimResult> => Promise.resolve({ kind: 'ok', itemDeleted: true })
 
+// @/api/scraper
+export type CachedScrapeImagesResult = { kind: 'ok'; imageUrls: ReadonlyArray<string> } | { kind: 'miss' }
+export const getCachedScrapeImages = (): Promise<CachedScrapeImagesResult> => Promise.resolve({ kind: 'miss' })
+export const scrapeUrl = (): Promise<{ kind: 'error'; reason: string; attempts: number }> =>
+	Promise.resolve({ kind: 'error', reason: 'storybook-stub', attempts: 0 })
+
 // @/api/import
 export type ItemDraft = {
 	title?: string | null
