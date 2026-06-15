@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { z } from 'zod'
 
 import { createItem } from '@/api/items'
+import { getCachedScrapeImages } from '@/api/scraper'
 import { removeItemImage, uploadItemImage } from '@/api/uploads'
 import { MarkdownTextarea } from '@/components/common/markdown-textarea'
 import PriorityIcon from '@/components/common/priority-icon'
@@ -98,6 +99,9 @@ export function ItemFormDialog(props: Props) {
 	// scrape event (e.g. the AI-cleaned title in `result_updated`) can upgrade
 	// a field it filled one event earlier without clobbering a user edit.
 	const lastScrapeAppliedRef = useRef<Partial<{ title: string; price: string; notes: string; imageUrl: string }>>({})
+	// Tracks the URL the on-open cache seed already ran for, so the effect
+	// fires once per open and re-seeds when the dialog is reopened.
+	const cacheSeededForUrlRef = useRef<string | null>(null)
 
 	// Photo upload + AI vision integration (create mode only). The chosen
 	// photo is staged in memory until `createItem` succeeds — the upload
@@ -348,8 +352,36 @@ export function ItemFormDialog(props: Props) {
 		seededFromPropRef.current = null
 		lastScrapedUrlRef.current = ''
 		lastScrapeAppliedRef.current = {}
+		cacheSeededForUrlRef.current = null
 		setImageCandidates([])
 	}, [open, initialUrl, cancelScrape, resetPhotoExtract])
+
+	// On open in edit mode with an existing URL, do a cache-only lookup for the
+	// images that URL was originally scraped with and seed the picker on a hit.
+	// This is a pure DB read (no fetch, no orchestrator), so re-picking from the
+	// original candidates costs nothing; a real re-scrape stays behind the
+	// Sparkles button. The functional setState guards against clobbering fresher
+	// candidates if the user triggers a scrape before this resolves, and the
+	// `cancelled` flag drops a late response after the dialog closes.
+	useEffect(() => {
+		if (!open || !isEdit) return
+		const url = (initialUrl ?? '').trim()
+		if (!url) return
+		if (cacheSeededForUrlRef.current === url) return
+		cacheSeededForUrlRef.current = url
+		let cancelled = false
+		void getCachedScrapeImages({ data: { url } })
+			.then(res => {
+				if (cancelled || res.kind !== 'ok' || res.imageUrls.length === 0) return
+				setImageCandidates(prev => (prev.length > 0 ? prev : res.imageUrls))
+			})
+			.catch(() => {
+				// Best-effort: a failed cache lookup just leaves the picker as-is.
+			})
+		return () => {
+			cancelled = true
+		}
+	}, [open, isEdit, initialUrl])
 
 	const photoExtractInFlight = photoState.phase === 'extracting'
 	const formLocked = submitting || scrapeState.phase === 'scraping' || photoExtractInFlight
