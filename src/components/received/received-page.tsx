@@ -1,5 +1,5 @@
 import { format } from 'date-fns'
-import { ChevronDown, ChevronsDownUp, ChevronsUpDown, Gift, PackageOpen, PackagePlus } from 'lucide-react'
+import { ChevronDown, ChevronsDownUp, ChevronsUpDown, ExternalLink, Gift, PackageOpen, PackagePlus } from 'lucide-react'
 import { Fragment, useMemo, useState } from 'react'
 
 import type { GifterUnit, ReceivedGiftsResult } from '@/api/received'
@@ -247,6 +247,17 @@ function ReceivedDetailRow({ row }: { row: ReceivedRow }) {
 			<div className="flex-1 min-w-0">
 				<div className="flex items-center gap-2 min-w-0">
 					<span className="text-sm font-medium truncate">{row.type === 'item' ? row.itemTitle : row.description}</span>
+					{row.type === 'item' && row.itemUrl && (
+						<a
+							href={row.itemUrl}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="text-muted-foreground hover:text-foreground shrink-0"
+							aria-label="Open original product link"
+						>
+							<ExternalLink className="size-3.5" />
+						</a>
+					)}
 				</div>
 				<div className="text-xs text-muted-foreground truncate">{row.listName}</div>
 			</div>

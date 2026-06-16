@@ -14,6 +14,7 @@ function gift(overrides: Partial<ReceivedGiftRow> = {}): ReceivedGiftRow {
 		itemId: 1,
 		itemTitle: 'A thing',
 		itemImageUrl: null,
+		itemUrl: null,
 		itemPrice: null,
 		listId: 1,
 		listName: 'Wishlist',

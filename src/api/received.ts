@@ -27,6 +27,7 @@ export type ReceivedGiftRow = {
 	itemId: number
 	itemTitle: string
 	itemImageUrl: string | null
+	itemUrl: string | null
 	itemPrice: string | null
 	listId: number
 	listName: string
@@ -84,6 +85,7 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 			itemId: items.id,
 			itemTitle: items.title,
 			itemImageUrl: items.imageUrl,
+			itemUrl: items.url,
 			itemPrice: items.price,
 			listId: lists.id,
 			listName: lists.name,
@@ -127,6 +129,7 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 		itemId: number
 		itemTitle: string
 		itemImageUrl: string | null
+		itemUrl: string | null
 		itemPrice: string | null
 		listId: number
 		listName: string
@@ -156,6 +159,7 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 				itemId: items.id,
 				itemTitle: items.title,
 				itemImageUrl: items.imageUrl,
+				itemUrl: items.url,
 				itemPrice: items.price,
 				listId: lists.id,
 				listName: lists.name,
@@ -243,6 +247,7 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 		itemId: r.itemId,
 		itemTitle: r.itemTitle,
 		itemImageUrl: r.itemImageUrl,
+		itemUrl: r.itemUrl,
 		itemPrice: r.itemPrice,
 		listId: r.listId,
 		listName: r.listName,
@@ -283,6 +288,7 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 			itemId: r.itemId,
 			itemTitle: r.itemTitle,
 			itemImageUrl: r.itemImageUrl,
+			itemUrl: r.itemUrl,
 			itemPrice: r.itemPrice,
 			listId: r.listId,
 			listName: r.listName,
