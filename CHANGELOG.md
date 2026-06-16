@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.44.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.43.0...v0.44.0) (2026-06-16)
+
+
+### Features
+
+* **items:** reuse cached scrape images when editing an item ([9ddabb3](https://github.com/shawnphoffman/giftwrapt/commit/9ddabb3c6e44cef2505f4e9a2ceba1698d7b8c0c))
+* **received:** link gift items to their product URL ([3e23db0](https://github.com/shawnphoffman/giftwrapt/commit/3e23db0cb338735f745c49fe5672a6d575e7fb08))
+
+
+### Bug Fixes
+
+* **items:** contain tall thumbnails in Safari by dropping w-fit ([b4d906a](https://github.com/shawnphoffman/giftwrapt/commit/b4d906ae9f2b6f33aaa44a3b1d108c45bf84ec81))
+* **storybook:** unbreak the storybook vitest project in CI ([e10a9d4](https://github.com/shawnphoffman/giftwrapt/commit/e10a9d48c7838df6eaef0a01706a429d728c819b))
+
 ## [0.43.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.42.0...v0.43.0) (2026-06-11)
 
 
