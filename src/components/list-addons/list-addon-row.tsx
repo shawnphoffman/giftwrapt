@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { format } from 'date-fns'
 import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
@@ -24,6 +25,7 @@ import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { TapTooltip, TapTooltipContent, TapTooltipTrigger } from '@/components/ui/tooltip'
 import { useSession } from '@/lib/auth-client'
+import { applyListEventLocally } from '@/lib/list-events'
 
 import { ListAddonDialog } from './list-addon-dialog'
 
@@ -34,6 +36,7 @@ type Props = {
 
 export function ListAddonRow({ addon, listId }: Props) {
 	const router = useRouter()
+	const queryClient = useQueryClient()
 	const { data: session } = useSession()
 	const currentUserId = session?.user.id
 	const isMine = addon.userId === currentUserId
@@ -61,7 +64,9 @@ export function ListAddonRow({ addon, listId }: Props) {
 			}
 			toast.success('Off-list gift removed')
 			setDeleteDialogOpen(false)
-			await router.invalidate()
+			// Refresh the actor's own surfaces immediately (gifter list view reads
+			// addons via React Query; SSE doesn't reach it on Vercel).
+			applyListEventLocally({ kind: 'addon', listId, addonId: addon.id }, { queryClient, router })
 		} catch (err) {
 			toast.error(err instanceof Error ? err.message : 'Failed to delete')
 		} finally {

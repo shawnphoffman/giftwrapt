@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { httpsUpgrade } from '@/lib/image-url'
-import { itemsKeys } from '@/lib/queries/items'
+import { applyListEventLocally } from '@/lib/list-events'
 import { LIMITS } from '@/lib/validation/limits'
 
 import { QuantityRemainingBadge } from './quantity-remaining-badge'
@@ -126,10 +126,11 @@ export function ClaimGiftDialog(props: Props) {
 			throw new Error(result.reason)
 		}
 		toast.success('Claim removed')
+		// Refresh the claimant's own surfaces immediately. SSE only reaches
+		// observers sharing the server process (not Vercel), so the actor's
+		// view must invalidate locally - otherwise it's stale until reload.
+		applyListEventLocally({ kind: 'claim', listId }, { queryClient, router })
 		onOpenChange(false)
-		// SSE-driven refresh covers observers (per-list channel) and the
-		// claimant's own list view. Home-page badges for the claimant pick
-		// up on next visit via React Query's staleTime + refetchOnMount.
 	}
 
 	// In edit mode, allow at least the existing claim's current quantity even
@@ -239,11 +240,10 @@ export function ClaimGiftDialog(props: Props) {
 					props.onClaimed?.()
 				}
 
+				// Refresh the claimant's own surfaces immediately (see handleUnclaim).
+				applyListEventLocally({ kind: 'claim', listId }, { queryClient, router })
 				onOpenChange(false)
 				form.reset()
-				// SSE-driven refresh covers observers and the claimant's own
-				// list view. Home-page badges for the claimant pick up on
-				// next visit via React Query's staleTime + refetchOnMount.
 			} catch (err) {
 				setError(err instanceof Error ? err.message : 'Failed to save claim')
 			} finally {
@@ -384,8 +384,7 @@ export function ClaimGiftDialog(props: Props) {
 							saving={coGifterSaving}
 							setSaving={setCoGifterSaving}
 							onSaved={() => {
-								router.invalidate()
-								queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })
+								applyListEventLocally({ kind: 'claim', listId }, { queryClient, router })
 							}}
 						/>
 					)}

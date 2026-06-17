@@ -1,4 +1,5 @@
 import { useForm } from '@tanstack/react-form'
+import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { DollarSign } from 'lucide-react'
 import { useState } from 'react'
@@ -13,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { applyListEventLocally } from '@/lib/list-events'
 import { LIMITS } from '@/lib/validation/limits'
 
 type BaseProps = {
@@ -52,6 +54,7 @@ export function ListAddonDialog(props: Props) {
 	const { open, onOpenChange, listId } = props
 	const isEdit = props.mode === 'edit'
 	const router = useRouter()
+	const queryClient = useQueryClient()
 	const [submitting, setSubmitting] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 
@@ -124,9 +127,13 @@ export function ListAddonDialog(props: Props) {
 					toast.success('Off-list gift added')
 				}
 
+				// Refresh the actor's own surfaces immediately. The gifter list view
+				// renders addons via listAddonsQueryOptions (React Query), which
+				// router.invalidate alone wouldn't touch; SSE only reaches it on a
+				// shared-process host, not Vercel.
+				applyListEventLocally({ kind: 'addon', listId, addonId: isEdit ? props.addon.id : 0 }, { queryClient, router })
 				onOpenChange(false)
 				form.reset()
-				await router.invalidate()
 			} catch (err) {
 				setError(err instanceof Error ? err.message : 'Failed to save')
 			} finally {
