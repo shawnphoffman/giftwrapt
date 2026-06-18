@@ -94,6 +94,10 @@ export const updateUserPassword = ok
 
 // @/api/lists
 export const getListForViewing = () => Promise.resolve({ kind: 'ok' as const, list: null })
+export const getListAccess = (): Promise<{ kind: 'ok'; access: null }> => Promise.resolve({ kind: 'ok', access: null })
+export const getListHeader = (): Promise<null> => Promise.resolve(null)
+export const getListAddons = (): Promise<{ addons: Array<unknown> }> => Promise.resolve({ addons: [] })
+export const getPublicDependents = emptyArray
 export const getMyLists = () => Promise.resolve({ lists: [], childGroups: [] })
 export const createList = (): Promise<{ kind: 'ok'; list: { id: number; name: string; type: string } }> =>
 	Promise.resolve({ kind: 'ok', list: { id: 1, name: 'New list', type: 'wishlist' } })
