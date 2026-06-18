@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.44.1](https://github.com/shawnphoffman/giftwrapt/compare/v0.44.0...v0.44.1) (2026-06-18)
+
+
+### Bug Fixes
+
+* **gifts:** reflect own claims and addons without a full page reload ([77df1ac](https://github.com/shawnphoffman/giftwrapt/commit/77df1acd4a95dfbcaf2f9ff1f8632a803dce6d5c))
+* **storybook:** add missing @/api/lists mock exports ([f0aba41](https://github.com/shawnphoffman/giftwrapt/commit/f0aba41808a5eb25983d51a64cba06b3e18f2c32))
+
 ## [0.44.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.43.0...v0.44.0) (2026-06-16)
 
 
