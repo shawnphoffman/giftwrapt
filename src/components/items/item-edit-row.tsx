@@ -1,12 +1,15 @@
 import { useIsMutating } from '@tanstack/react-query'
 import { useLocation } from '@tanstack/react-router'
 import {
+	ArrowBigDown,
+	ArrowBigUp,
 	ArrowDown,
 	ArrowRightLeft,
 	ArrowUp,
 	Group,
 	ListOrdered,
 	Loader2,
+	Minus,
 	MoreHorizontal,
 	PackageCheck,
 	PackageX,
@@ -14,6 +17,7 @@ import {
 	Shuffle,
 	Trash2,
 	Ungroup,
+	Zap,
 } from 'lucide-react'
 import { memo, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
@@ -45,13 +49,14 @@ import {
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import type { GroupType } from '@/db/schema/enums'
+import type { GroupType, Priority } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { useSession } from '@/lib/auth-client'
 import { useAssignItemsToGroup } from '@/lib/mutations/assign-items-to-group'
 import { useCreateGroupAndAssignItems } from '@/lib/mutations/create-group-and-assign'
 import { useDeleteItem } from '@/lib/mutations/delete-item'
 import { useToggleItemAvailability } from '@/lib/mutations/toggle-item-availability'
+import { useUpdateItem } from '@/lib/mutations/update-item'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
 import { parseInternalListLink } from '@/lib/urls'
 import { cn } from '@/lib/utils'
@@ -63,6 +68,16 @@ import { ItemFormDialog } from './item-form-dialog'
 import { ItemImage } from './item-image'
 import { PriceQuantityBadge } from './price-quantity-badge'
 import { QuantityRemainingBadge } from './quantity-remaining-badge'
+
+// Highest-to-lowest so the inline row reads left-to-right like the priority
+// scale. Icons/colors mirror PriorityIcon; 'normal' has no PriorityIcon glyph,
+// so it gets a neutral dash to stay visible in the icon picker.
+const PRIORITY_OPTIONS: ReadonlyArray<{ value: Priority; label: string; icon: typeof Zap; colorClass: string }> = [
+	{ value: 'very-high', label: 'Very high', icon: Zap, colorClass: 'text-yellow-500' },
+	{ value: 'high', label: 'High', icon: ArrowBigUp, colorClass: 'text-orange-500' },
+	{ value: 'normal', label: 'Normal', icon: Minus, colorClass: 'text-muted-foreground' },
+	{ value: 'low', label: 'Low', icon: ArrowBigDown, colorClass: 'text-blue-500' },
+]
 
 type Props = {
 	item: Item
@@ -107,6 +122,7 @@ export const ItemEditRow = memo(function ItemEditRow({
 		}
 	}, [editFromSearch, item.id])
 	const toggleAvailability = useToggleItemAvailability()
+	const updateItem = useUpdateItem()
 	const assignGroup = useAssignItemsToGroup()
 	const createGroupAndAssign = useCreateGroupAndAssignItems()
 	const deleteOne = useDeleteItem()
@@ -143,6 +159,16 @@ export const ItemEditRow = memo(function ItemEditRow({
 			toast.success(`${type === 'or' ? '"Pick one"' : '"Ordered"'} group created`)
 		} else {
 			toast.error('Failed to create group')
+		}
+	}
+
+	const handleSetPriority = async (priority: Priority) => {
+		if (priority === item.priority) return
+		const result = await updateItem.mutateAsync({ listId: item.listId, itemId: item.id, priority })
+		if (result.kind === 'ok') {
+			toast.success('Priority updated')
+		} else {
+			toast.error('Failed to update priority')
 		}
 	}
 
@@ -251,6 +277,35 @@ export const ItemEditRow = memo(function ItemEditRow({
 								</>
 							)}
 						</DropdownMenuItem>
+						{!grouped && (
+							<>
+								<DropdownMenuSeparator />
+								<div className="flex items-center justify-center gap-1 px-1 py-1">
+									{PRIORITY_OPTIONS.map(option => {
+										const OptionIcon = option.icon
+										const selected = item.priority === option.value
+										return (
+											<button
+												key={option.value}
+												type="button"
+												onClick={() => handleSetPriority(option.value)}
+												title={option.label}
+												aria-label={`Set priority: ${option.label}`}
+												aria-pressed={selected}
+												className={cn(
+													'flex size-7 items-center justify-center rounded-sm transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-hidden',
+													selected
+														? cn('bg-accent ring-1 ring-inset', priorityRingClass[option.value] || 'ring-border')
+														: 'opacity-60 hover:opacity-100'
+												)}
+											>
+												<OptionIcon className={cn('size-4', option.colorClass)} />
+											</button>
+										)
+									})}
+								</div>
+							</>
+						)}
 						<DropdownMenuSeparator />
 						<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteDialogOpen(true)}>
 							<Trash2 className="size-4" /> Delete
