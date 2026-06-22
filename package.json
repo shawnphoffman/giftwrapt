@@ -1,6 +1,6 @@
 {
 	"name": "giftwrapt",
-	"version": "0.44.1",
+	"version": "0.44.2",
 	"private": true,
 	"description": "Self-hostable wish list app for families and small groups.",
 	"license": "AGPL-3.0-only",
