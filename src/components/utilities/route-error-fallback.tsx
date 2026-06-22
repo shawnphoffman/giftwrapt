@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router'
 
 import { Button } from '@/components/ui/button'
+import { ChunkReloadFallback, useChunkReloadRecovery } from '@/components/utilities/chunk-reload-fallback'
 import { formatErrorForUser } from '@/lib/format-error'
 
 interface RouteErrorFallbackProps {
@@ -11,6 +12,11 @@ interface RouteErrorFallbackProps {
 }
 
 export function RouteErrorFallback({ error, reset, title, className }: RouteErrorFallbackProps) {
+	const recovering = useChunkReloadRecovery(error)
+	if (recovering) {
+		return <ChunkReloadFallback className={className ?? 'flex flex-col items-center justify-center min-h-[400px] gap-4 p-4 w-full'} />
+	}
+
 	const formatted = formatErrorForUser(error)
 	const heading = title ?? formatted.title
 

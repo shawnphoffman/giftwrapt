@@ -1,3 +1,4 @@
+import { ChunkReloadFallback, useChunkReloadRecovery } from '@/components/utilities/chunk-reload-fallback'
 import { formatErrorForUser } from '@/lib/format-error'
 
 interface ErrorBoundaryFallbackProps {
@@ -6,6 +7,9 @@ interface ErrorBoundaryFallbackProps {
 }
 
 export default function ErrorBoundaryFallback({ error, reset }: ErrorBoundaryFallbackProps) {
+	const recovering = useChunkReloadRecovery(error)
+	if (recovering) return <ChunkReloadFallback />
+
 	const formatted = formatErrorForUser(error)
 	return (
 		<div className="flex flex-col items-center justify-center min-h-screen p-4">
