@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.45.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.44.2...v0.45.0) (2026-06-22)
+
+
+### Features
+
+* **items:** add inline priority picker to item action menu ([2ca4b6f](https://github.com/shawnphoffman/giftwrapt/commit/2ca4b6fdcb3ece6b5ed8e2151060f53ae1f73fd2))
+
+
+### Bug Fixes
+
+* recover from stale chunks without flashing the error page ([36ad655](https://github.com/shawnphoffman/giftwrapt/commit/36ad655bc98479af94b39d4d2566becc4d6a3aa3))
+
 ## [0.44.2](https://github.com/shawnphoffman/giftwrapt/compare/v0.44.1...v0.44.2) (2026-06-22)
 
 
