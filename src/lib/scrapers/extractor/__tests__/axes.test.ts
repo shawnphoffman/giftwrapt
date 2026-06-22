@@ -9,18 +9,15 @@ function load(html: string) {
 	return cheerio.load(html)
 }
 
-describe('parseAxes: JSON-LD additionalProperty', () => {
-	it('reads additionalProperty[].name directly off the Product node', () => {
+describe('parseAxes: JSON-LD variant signals', () => {
+	it('reads ProductGroup.variesBy[] as the explicit axis list', () => {
 		const html = `
 			<html><head><script type="application/ld+json">
 				${JSON.stringify({
 					'@context': 'https://schema.org',
-					'@type': 'Product',
+					'@type': 'ProductGroup',
 					name: 'Widget',
-					additionalProperty: [
-						{ '@type': 'PropertyValue', name: 'Color' },
-						{ '@type': 'PropertyValue', name: 'Size' },
-					],
+					variesBy: ['Color', 'Size'],
 				})}
 			</script></head><body></body></html>
 		`
@@ -28,19 +25,40 @@ describe('parseAxes: JSON-LD additionalProperty', () => {
 		expect(out.purchaseVariants).toEqual(['Color', 'Size'])
 	})
 
-	it('reads additionalProperty off hasVariant[]', () => {
+	it('humanizes variesBy entries that are schema.org URLs or fragments', () => {
 		const html = `
 			<html><head><script type="application/ld+json">
 				${JSON.stringify({
 					'@context': 'https://schema.org',
-					'@type': 'Product',
+					'@type': 'ProductGroup',
+					variesBy: ['https://schema.org/color', '#size'],
+				})}
+			</script></head><body></body></html>
+		`
+		const out = parseAxes(load(html), FINAL_URL)
+		expect(out.purchaseVariants).toEqual(['Color', 'Size'])
+	})
+
+	it('infers an axis from a property whose value varies across hasVariant[]', () => {
+		const html = `
+			<html><head><script type="application/ld+json">
+				${JSON.stringify({
+					'@context': 'https://schema.org',
+					'@type': 'ProductGroup',
 					name: 'Widget',
 					hasVariant: [
 						{
 							'@type': 'Product',
 							additionalProperty: [
-								{ '@type': 'PropertyValue', name: 'Material' },
-								{ '@type': 'PropertyValue', name: 'Finish' },
+								{ '@type': 'PropertyValue', name: 'Color', value: 'Red' },
+								{ '@type': 'PropertyValue', name: 'Material', value: 'Cotton' },
+							],
+						},
+						{
+							'@type': 'Product',
+							additionalProperty: [
+								{ '@type': 'PropertyValue', name: 'Color', value: 'Blue' },
+								{ '@type': 'PropertyValue', name: 'Material', value: 'Cotton' },
 							],
 						},
 					],
@@ -48,10 +66,11 @@ describe('parseAxes: JSON-LD additionalProperty', () => {
 			</script></head><body></body></html>
 		`
 		const out = parseAxes(load(html), FINAL_URL)
-		expect(out.purchaseVariants).toEqual(['Material', 'Finish'])
+		// Color varies (Red/Blue) → axis; Material is constant (Cotton) → spec.
+		expect(out.purchaseVariants).toEqual(['Color'])
 	})
 
-	it('reads additionalProperty off offers[].itemOffered', () => {
+	it('infers an axis from a property whose value varies across offers[].itemOffered', () => {
 		const html = `
 			<html><head><script type="application/ld+json">
 				${JSON.stringify({
@@ -61,34 +80,56 @@ describe('parseAxes: JSON-LD additionalProperty', () => {
 					offers: [
 						{
 							'@type': 'Offer',
-							itemOffered: {
-								'@type': 'Product',
-								additionalProperty: [{ '@type': 'PropertyValue', name: 'Pattern' }],
-							},
+							itemOffered: { '@type': 'Product', additionalProperty: [{ '@type': 'PropertyValue', name: 'Size', value: 'S' }] },
+						},
+						{
+							'@type': 'Offer',
+							itemOffered: { '@type': 'Product', additionalProperty: [{ '@type': 'PropertyValue', name: 'Size', value: 'M' }] },
 						},
 					],
 				})}
 			</script></head><body></body></html>
 		`
 		const out = parseAxes(load(html), FINAL_URL)
-		expect(out.purchaseVariants).toEqual(['Pattern'])
+		expect(out.purchaseVariants).toEqual(['Size'])
 	})
 
-	it('ignores entries missing a name', () => {
+	it('ignores top-level Product.additionalProperty (a spec bag, not buyer choices)', () => {
 		const html = `
 			<html><head><script type="application/ld+json">
 				${JSON.stringify({
 					'@context': 'https://schema.org',
 					'@type': 'Product',
+					name: 'Chainsaw',
 					additionalProperty: [
-						{ '@type': 'PropertyValue', value: 'no name here' },
-						{ '@type': 'PropertyValue', name: 'Color' },
+						{ '@type': 'PropertyValue', name: 'Bar Length (inches)', value: '20' },
+						{ '@type': 'PropertyValue', name: 'Package Quantity', value: '1' },
+						{ '@type': 'PropertyValue', name: 'Color', value: 'Green' },
 					],
 				})}
 			</script></head><body></body></html>
 		`
 		const out = parseAxes(load(html), FINAL_URL)
-		expect(out.purchaseVariants).toEqual(['Color'])
+		expect(out).toEqual({})
+	})
+
+	it('does not treat a single non-varying variant property as an axis', () => {
+		const html = `
+			<html><head><script type="application/ld+json">
+				${JSON.stringify({
+					'@context': 'https://schema.org',
+					'@type': 'ProductGroup',
+					hasVariant: [
+						{
+							'@type': 'Product',
+							additionalProperty: [{ '@type': 'PropertyValue', name: 'Material', value: 'Steel' }],
+						},
+					],
+				})}
+			</script></head><body></body></html>
+		`
+		const out = parseAxes(load(html), FINAL_URL)
+		expect(out).toEqual({})
 	})
 })
 
@@ -228,17 +269,8 @@ describe('parseAxes: filtering and shaping', () => {
 			<html><head><script type="application/ld+json">
 				${JSON.stringify({
 					'@context': 'https://schema.org',
-					'@type': 'Product',
-					additionalProperty: [
-						{ '@type': 'PropertyValue', name: 'Color' },
-						{ '@type': 'PropertyValue', name: 'Size' },
-						{ '@type': 'PropertyValue', name: 'Material' },
-						{ '@type': 'PropertyValue', name: 'Style' },
-						{ '@type': 'PropertyValue', name: 'Pattern' },
-						{ '@type': 'PropertyValue', name: 'Finish' },
-						{ '@type': 'PropertyValue', name: 'Length' },
-						{ '@type': 'PropertyValue', name: 'Width' },
-					],
+					'@type': 'ProductGroup',
+					variesBy: ['Color', 'Size', 'Material', 'Style', 'Pattern', 'Finish', 'Fit', 'Scent'],
 				})}
 			</script></head><body></body></html>
 		`
@@ -252,16 +284,42 @@ describe('parseAxes: filtering and shaping', () => {
 			<html><head><script type="application/ld+json">
 				${JSON.stringify({
 					'@context': 'https://schema.org',
-					'@type': 'Product',
-					additionalProperty: [
-						{ '@type': 'PropertyValue', name: 'Subscription frequency' },
-						{ '@type': 'PropertyValue', name: 'Email me about restock' },
-						{ '@type': 'PropertyValue', name: 'Color' },
+					'@type': 'ProductGroup',
+					variesBy: ['Subscription frequency', 'Email me about restock', 'Color'],
+				})}
+			</script></head><body></body></html>
+		`
+		const out = parseAxes(load(html), FINAL_URL)
+		expect(out.purchaseVariants).toEqual(['Color'])
+	})
+
+	it('filters dimensional / packaging spec words even when they vary across variants', () => {
+		const html = `
+			<html><head><script type="application/ld+json">
+				${JSON.stringify({
+					'@context': 'https://schema.org',
+					'@type': 'ProductGroup',
+					hasVariant: [
+						{
+							'@type': 'Product',
+							additionalProperty: [
+								{ name: 'Bar Length (inches)', value: '16' },
+								{ name: 'Color', value: 'Green' },
+							],
+						},
+						{
+							'@type': 'Product',
+							additionalProperty: [
+								{ name: 'Bar Length (inches)', value: '20' },
+								{ name: 'Color', value: 'Orange' },
+							],
+						},
 					],
 				})}
 			</script></head><body></body></html>
 		`
 		const out = parseAxes(load(html), FINAL_URL)
+		// Both vary, but "Bar Length (inches)" is off-vocabulary; only Color survives.
 		expect(out.purchaseVariants).toEqual(['Color'])
 	})
 
@@ -270,12 +328,8 @@ describe('parseAxes: filtering and shaping', () => {
 			<html><head><script type="application/ld+json">
 				${JSON.stringify({
 					'@context': 'https://schema.org',
-					'@type': 'Product',
-					additionalProperty: [
-						{ '@type': 'PropertyValue', name: 'Color' },
-						{ '@type': 'PropertyValue', name: 'color' },
-						{ '@type': 'PropertyValue', name: 'COLOR' },
-					],
+					'@type': 'ProductGroup',
+					variesBy: ['Color', 'color', 'COLOR'],
 				})}
 			</script></head><body></body></html>
 		`
@@ -288,8 +342,8 @@ describe('parseAxes: filtering and shaping', () => {
 			<html><head><script type="application/ld+json">
 				${JSON.stringify({
 					'@context': 'https://schema.org',
-					'@type': 'Product',
-					additionalProperty: [{ '@type': 'PropertyValue', name: 'Color' }],
+					'@type': 'ProductGroup',
+					variesBy: ['Color'],
 				})}
 			</script></head><body>
 				<select aria-label="Size"></select>

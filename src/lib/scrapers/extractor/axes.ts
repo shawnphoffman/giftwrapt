@@ -6,6 +6,15 @@ import type { ScrapeResult } from '../types'
 // contain at least one of these words (case-insensitive substring match) to
 // survive filtering. Anything else (e.g. "Email me about restock",
 // "Subscription frequency") is dropped.
+//
+// Pure dimensional / packaging words (length, width, height, depth, weight,
+// quantity, pack, bundle) are deliberately absent: they're spec-sheet words,
+// not buyer choices. Their presence is what let rows like "Bar Length
+// (inches)" and "Package Quantity" leak into the notes prefill from a
+// retailer's spec table. The words kept here (capacity, configuration,
+// model, edition, format) are dual-use but only reach the filter via genuine
+// variant signals now (form controls or value-varying variant data), where
+// they're legitimate axes (storage capacity, console edition, book format).
 const VOCABULARY = [
 	'size',
 	'color',
@@ -14,10 +23,6 @@ const VOCABULARY = [
 	'style',
 	'flavor',
 	'flavour',
-	'length',
-	'width',
-	'height',
-	'depth',
 	'pattern',
 	'finish',
 	'option',
@@ -29,9 +34,6 @@ const VOCABULARY = [
 	'model',
 	'edition',
 	'format',
-	'quantity',
-	'pack',
-	'bundle',
 ] as const
 
 const MAX_AXES = 6
@@ -45,8 +47,16 @@ const MAX_ARRAY = 200
 // "Color", "Size"). Two signal sources, unioned and deduped case-
 // insensitively (first casing seen, Title-Cased for output), capped at
 // MAX_AXES:
-//   - JSON-LD: Product.additionalProperty[].name, plus the same field on
-//     hasVariant[] and offers[].itemOffered.
+//   - JSON-LD: the canonical variant signals only. ProductGroup.variesBy[]
+//     (the axis names a group varies by) and value-varying properties across
+//     hasVariant[] / offers[].itemOffered - a property is an axis only when
+//     its value actually differs across two or more variants/offers. We do
+//     NOT read top-level Product.additionalProperty: that's schema.org's
+//     generic spec bag (dimensions, weights, package info), not a set of
+//     buyer choices, and treating it as axes is what leaked spec rows like
+//     "Bar Length (inches)" into the notes prefill. The value-variance rule
+//     keeps a real axis ("Color": Red/Blue) and drops a constant spec
+//     ("Weight": 5 lb) even when both ride along inside variant data.
 //   - HTML form heuristics: Amazon twister blocks
 //     (div[id^="variation_"][id$="_name"]), <select> + <label>/aria-label/
 //     name/id (skipping name|id="quantity", which is the cart counter, not
@@ -110,38 +120,77 @@ function collectFromJsonLd($: CheerioAPI, out: Array<string>): void {
 			// Some retailers ship invalid JSON-LD; ignore and move on.
 		}
 	})
+
+	// Pass 1: ProductGroup.variesBy is the explicit, canonical axis list.
 	for (const product of products) {
-		collectAdditionalPropertyNames(product['additionalProperty'], out)
-		const variants = product['hasVariant']
-		const variantList = Array.isArray(variants) ? variants : variants ? [variants] : []
-		for (const v of variantList) {
-			if (v && typeof v === 'object') {
-				collectAdditionalPropertyNames((v as Record<string, unknown>)['additionalProperty'], out)
-			}
+		collectVariesBy(product['variesBy'], out)
+	}
+
+	// Pass 2: infer axes from variant/offer data. Tally each property's
+	// distinct values across every variant + offered item, then keep only the
+	// names whose value actually varies (size >= 2) - those are the choices a
+	// buyer makes; a property with one constant value is a spec, not an axis.
+	const valuesByName = new Map<string, { display: string; values: Set<string> }>()
+	for (const product of products) {
+		for (const node of variantNodesOf(product)) {
+			tallyVariantProperties(node['additionalProperty'], valuesByName)
 		}
-		const offers = product['offers']
-		const offerList = Array.isArray(offers) ? offers : offers ? [offers] : []
-		for (const o of offerList) {
-			if (o && typeof o === 'object') {
-				const itemOffered = (o as Record<string, unknown>)['itemOffered']
-				const itemOfferedList = Array.isArray(itemOffered) ? itemOffered : itemOffered ? [itemOffered] : []
-				for (const i of itemOfferedList) {
-					if (i && typeof i === 'object') {
-						collectAdditionalPropertyNames((i as Record<string, unknown>)['additionalProperty'], out)
-					}
-				}
-			}
-		}
+	}
+	for (const { display, values } of valuesByName.values()) {
+		if (values.size >= 2) out.push(display)
 	}
 }
 
-function collectAdditionalPropertyNames(node: unknown, out: Array<string>): void {
+// Every Product node reachable as a variant or offered item of `product`.
+function variantNodesOf(product: Record<string, unknown>): Array<Record<string, unknown>> {
+	const nodes: Array<Record<string, unknown>> = []
+	const variants = product['hasVariant']
+	for (const v of Array.isArray(variants) ? variants : variants ? [variants] : []) {
+		if (v && typeof v === 'object') nodes.push(v as Record<string, unknown>)
+	}
+	const offers = product['offers']
+	for (const o of Array.isArray(offers) ? offers : offers ? [offers] : []) {
+		if (!o || typeof o !== 'object') continue
+		const itemOffered = (o as Record<string, unknown>)['itemOffered']
+		for (const i of Array.isArray(itemOffered) ? itemOffered : itemOffered ? [itemOffered] : []) {
+			if (i && typeof i === 'object') nodes.push(i as Record<string, unknown>)
+		}
+	}
+	return nodes
+}
+
+// Record each PropertyValue's value under its (case-insensitive) name so the
+// caller can tell axes (multiple distinct values) from specs (one value).
+// Entries without a usable value can't prove variance, so they're skipped.
+function tallyVariantProperties(node: unknown, into: Map<string, { display: string; values: Set<string> }>): void {
 	if (!node) return
-	const list = Array.isArray(node) ? node : [node]
-	for (const entry of list) {
+	for (const entry of Array.isArray(node) ? node : [node]) {
 		if (!entry || typeof entry !== 'object') continue
-		const name = (entry as Record<string, unknown>)['name']
-		if (typeof name === 'string' && name.trim()) out.push(name.trim())
+		const rec = entry as Record<string, unknown>
+		const name = typeof rec['name'] === 'string' ? rec['name'].trim() : ''
+		if (!name) continue
+		const rawValue = rec['value']
+		const value = typeof rawValue === 'string' ? rawValue.trim() : typeof rawValue === 'number' ? String(rawValue) : ''
+		if (!value) continue
+		const key = name.toLowerCase()
+		const existing = into.get(key)
+		if (existing) existing.values.add(value.toLowerCase())
+		else into.set(key, { display: name, values: new Set([value.toLowerCase()]) })
+	}
+}
+
+// ProductGroup.variesBy: a string or array of strings naming the axes. Values
+// may be bare names ("color"), schema.org URLs, or "#"-fragments; take the
+// trailing token so the vocabulary filter and title-casing see a clean name.
+function collectVariesBy(node: unknown, out: Array<string>): void {
+	if (!node) return
+	for (const entry of Array.isArray(node) ? node : [node]) {
+		if (typeof entry !== 'string') continue
+		const trimmed = entry.trim()
+		if (!trimmed) continue
+		const token = trimmed.split(/[#/]/).filter(Boolean).pop() ?? trimmed
+		const name = humanizeAttr(token)
+		if (name) out.push(name)
 	}
 }
 
@@ -154,7 +203,7 @@ function walk(node: unknown, products: Array<Record<string, unknown>>, depth: nu
 	}
 	const obj = node as Record<string, unknown>
 	const types = stringList(obj['@type'])
-	if (types.includes('Product')) products.push(obj)
+	if (types.includes('Product') || types.includes('ProductGroup')) products.push(obj)
 	for (const value of Object.values(obj)) walk(value, products, depth + 1)
 }
 
