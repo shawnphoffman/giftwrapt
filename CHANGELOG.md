@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.44.2](https://github.com/shawnphoffman/giftwrapt/compare/v0.44.1...v0.44.2) (2026-06-22)
+
+
+### Bug Fixes
+
+* **admin,ui:** stabilize current-date values out of render ([86377bb](https://github.com/shawnphoffman/giftwrapt/commit/86377bb926e6802296cccd2491f41ccb38fe78c8))
+* **intelligence,scrape:** call hooks unconditionally to prevent crash ([bf59d9a](https://github.com/shawnphoffman/giftwrapt/commit/bf59d9acdaeee7a52fc71971f6a3aa0c71988d02))
+* **intelligence:** refresh recs on interval regardless of engagement ([71a7f92](https://github.com/shawnphoffman/giftwrapt/commit/71a7f92b8f23d30b183268139d9a23f1b20097b5))
+* **routes:** order route properties so type inference flows ([c8662e5](https://github.com/shawnphoffman/giftwrapt/commit/c8662e5f025b5d26b4a2aec6679e2e102ca58e59))
+* **scrape:** derive purchase axes from variant signals, not spec bags ([41ecec7](https://github.com/shawnphoffman/giftwrapt/commit/41ecec7b6128ce9ca16936efa52b533afedc4c4d))
+
+
+### Performance Improvements
+
+* **api:** parallelize independent sequential DB reads in hot paths ([85b3276](https://github.com/shawnphoffman/giftwrapt/commit/85b3276b0cf115d21b5ddc04a44f3bff6ad27ad7))
+
 ## [0.44.1](https://github.com/shawnphoffman/giftwrapt/compare/v0.44.0...v0.44.1) (2026-06-18)
 
 
