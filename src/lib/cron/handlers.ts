@@ -4,11 +4,11 @@
 // handler is wrapped by `recordCronRun()` at the call site, so they
 // just return their result shape (with optional `skipped: <reason>`).
 
-import { and, eq, isNull, lt, notExists, or, sql } from 'drizzle-orm'
+import { eq, lt } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
-import { lists, recommendationRuns, recommendationRunSteps, recommendations, users } from '@/db/schema'
+import { lists, recommendationRunSteps, recommendations, users } from '@/db/schema'
 import type { AutoArchiveResult } from '@/lib/cron/auto-archive'
 import { autoArchiveImpl } from '@/lib/cron/auto-archive'
 import { birthdayEmailsImpl } from '@/lib/cron/birthday-emails'
@@ -20,6 +20,7 @@ import type { CronEndpoint } from '@/lib/cron/registry'
 import { relationshipRemindersImpl } from '@/lib/cron/relationship-reminders'
 import { maybeSendListRevealEmail } from '@/lib/cron/reveal-emails'
 import { processOnce } from '@/lib/import/scrape-queue/runner'
+import { selectOverdueUsers } from '@/lib/intelligence/overdue'
 import { generateForUser } from '@/lib/intelligence/runner'
 import { createLogger } from '@/lib/logger'
 import { isEmailConfigured, sendPostHolidayEmail } from '@/lib/resend'
@@ -44,38 +45,6 @@ async function runWithConcurrency<TItem, TResult>(
 		})
 	)
 	return results
-}
-
-async function selectOverdueUsers(refreshIntervalDays: number, limit: number): Promise<{ ids: Array<string>; totalOverdue: number }> {
-	const cutoff = new Date(Date.now() - refreshIntervalDays * 86400000)
-
-	const hasActiveRecs = db
-		.select({ userId: recommendations.userId })
-		.from(recommendations)
-		.where(and(eq(recommendations.userId, users.id), eq(recommendations.status, 'active')))
-
-	const lastSuccess = db
-		.select({
-			userId: recommendationRuns.userId,
-			finishedAt: sql<Date | null>`max(${recommendationRuns.finishedAt})`.as('finished_at'),
-		})
-		.from(recommendationRuns)
-		.where(eq(recommendationRuns.status, 'success'))
-		.groupBy(recommendationRuns.userId)
-		.as('last_success')
-
-	const rows = await db
-		.select({
-			id: users.id,
-			total: sql<number>`count(*) over()`.mapWith(Number),
-		})
-		.from(users)
-		.leftJoin(lastSuccess, eq(lastSuccess.userId, users.id))
-		.where(and(eq(users.banned, false), notExists(hasActiveRecs), or(isNull(lastSuccess.finishedAt), lt(lastSuccess.finishedAt, cutoff))))
-		.orderBy(sql`${lastSuccess.finishedAt} asc nulls first`)
-		.limit(limit)
-
-	return { ids: rows.map(r => r.id), totalOverdue: rows[0]?.total ?? 0 }
 }
 
 async function runIntelligenceRetentionSweep(args: { recDays: number; stepDays: number }) {

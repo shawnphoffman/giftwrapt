@@ -71,6 +71,43 @@ describe('generateForUser - skip states', () => {
 	})
 })
 
+describe('cron refresh is engagement-independent', () => {
+	it('regenerates for a user who still has active (unread) recs from a prior batch', async () => {
+		// Pre-change the cron skipped any user with an active rec
+		// ('unread-recs-exist'). Now refresh cadence is driven purely by the
+		// interval, so a user who never engages still gets fresh recs.
+		await withRollback(async tx => {
+			const user = await makeUser(tx)
+			const list = await makeList(tx, { ownerId: user.id, type: 'wishlist', isPrimary: false })
+			await makeItem(tx, { listId: list.id })
+
+			await setIntelligenceEnabled(tx, true)
+			await configureAi(tx)
+
+			const priorBatchId = '00000000-0000-0000-0000-000000000001'
+			await tx.insert(recommendations).values({
+				userId: user.id,
+				batchId: priorBatchId,
+				analyzerId: 'primary-list',
+				kind: 'no-primary',
+				fingerprint: 'seed-fingerprint',
+				title: 'unread rec from a prior batch',
+				body: 'should not block the next cron refresh',
+				payload: {},
+			})
+
+			const result = await generateForUser(tx as unknown as Database, user.id, { trigger: 'cron' })
+			expect(result.status).toBe('success')
+
+			// persistBatch replaces the user's prior rows, so nothing from the
+			// seeded batch survives - no duplication, no pile-up.
+			const rows = await tx.select().from(recommendations).where(eq(recommendations.userId, user.id))
+			expect(rows.length).toBeGreaterThan(0)
+			expect(rows.every(r => r.batchId !== priorBatchId)).toBe(true)
+		})
+	})
+})
+
 describe('fingerprint stickiness (carrying dismissals across regenerations)', () => {
 	it('produces stable fingerprints regardless of target order', () => {
 		// Sanity guard: persistBatch in the runner relies on this.

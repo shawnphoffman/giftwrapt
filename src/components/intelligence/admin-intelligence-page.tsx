@@ -514,7 +514,6 @@ export function HealthGrid({ data, providerSummary }: { data: AdminIntelligenceD
 					<CardContent>
 						<div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
 							<QueueStat icon={TimerReset} label="Overdue" value={health.queue.overdue} />
-							<QueueStat icon={Hash} label="Gated by unread" value={health.queue.gatedByUnreadRecs} />
 							<QueueStat icon={Lock} label="Lock held" value={health.queue.lockHeld} />
 						</div>
 					</CardContent>

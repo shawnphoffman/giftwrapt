@@ -21,6 +21,18 @@ import type { CronEndpoint } from './registry'
 
 const log = createLogger('cron:record-run')
 
+// A handler records a run-level "skipped" by returning a `skipped: <reason>`
+// STRING (e.g. `skipped: 'disabled'`). The reason MUST be a string: a numeric
+// `skipped` is a per-user count inside a success summary (the intelligence
+// handler returns `skipped: 0` for "0 users skipped"), not a skip sentinel,
+// so it must not flip the run to skipped. Treating the numeric count as a
+// reason is why intelligence cron runs never recorded a success.
+export function skipReasonFromResult(result: unknown): string | null {
+	if (!result || typeof result !== 'object' || !('skipped' in result)) return null
+	const raw = (result as Record<string, unknown>).skipped
+	return typeof raw === 'string' ? raw : null
+}
+
 type RecordCronRunOptions<T> = {
 	endpoint: CronEndpoint
 	run: () => Promise<T>
@@ -35,10 +47,7 @@ export async function recordCronRun<T extends Record<string, {}> | undefined>({ 
 		const result = await run()
 		const durationMs = Date.now() - started
 
-		// Heuristic: any handler that wants to record "skipped" returns a
-		// `skipped: <reason>` field. All five existing routes already follow
-		// this convention.
-		const skipReason = result && typeof result === 'object' && 'skipped' in result ? String(result.skipped) : null
+		const skipReason = skipReasonFromResult(result)
 
 		if (runId) {
 			await db

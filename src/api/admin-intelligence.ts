@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { db } from '@/db'
 import { recommendationRuns, recommendationRunSteps, recommendations, users } from '@/db/schema'
 import { resolveAiConfig } from '@/lib/ai-config'
+import { countOverdueUsers } from '@/lib/intelligence/overdue'
 import { ANALYZERS, getAnalyzer } from '@/lib/intelligence/registry'
 import { generateForUser } from '@/lib/intelligence/runner'
 import { loggingMiddleware } from '@/lib/logger'
@@ -202,7 +203,7 @@ export const getAdminIntelligenceData = createServerFn({ method: 'GET' })
 	.handler(async () => {
 		const settings = await getAppSettings(db)
 		const ai = await resolveAiConfig(db)
-		const [analyzerStats, last24h, last7d, dailySeries, totalActiveRow, recentRuns, queueRow] = await Promise.all([
+		const [analyzerStats, last24h, last7d, dailySeries, totalActiveRow, recentRuns, overdueCount] = await Promise.all([
 			loadAnalyzerStats(settings.intelligencePerAnalyzerEnabled),
 			loadStatusBucket(24),
 			loadStatusBucket(7 * 24),
@@ -229,7 +230,7 @@ export const getAdminIntelligenceData = createServerFn({ method: 'GET' })
 				.leftJoin(users, eq(users.id, recommendationRuns.userId))
 				.orderBy(desc(recommendationRuns.startedAt))
 				.limit(50),
-			db.select({ overdue: count() }).from(users).where(eq(users.banned, false)),
+			countOverdueUsers(settings.intelligenceRefreshIntervalDays),
 		])
 
 		// Per-run rec counts grouped by analyzer. Joined to the same set of
@@ -320,7 +321,7 @@ export const getAdminIntelligenceData = createServerFn({ method: 'GET' })
 				dailyTokensIn: today?.tokensIn ?? 0,
 				dailyTokensOut: today?.tokensOut ?? 0,
 				dailyEstimatedCostUsd: today?.costUsd ?? 0,
-				queue: { overdue: queueRow[0].overdue, gatedByUnreadRecs: 0, lockHeld: 0 },
+				queue: { overdue: overdueCount, lockHeld: 0 },
 				provider: ai.isValid
 					? {
 							// FieldSource ('env' | 'db' | 'default' | 'missing') maps to the
@@ -372,7 +373,7 @@ export const adminRunForUser = createServerFn({ method: 'POST' })
 	.middleware([adminAuthMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof userIdSchema>) => userIdSchema.parse(data))
 	.handler(async ({ data }) => {
-		return await generateForUser(db, data.userId, { trigger: 'manual', respectUnreadGuard: false })
+		return await generateForUser(db, data.userId, { trigger: 'manual' })
 	})
 
 // "Run for me now" - resolves the admin's user id from the session. The
@@ -382,7 +383,7 @@ export const adminRunForUser = createServerFn({ method: 'POST' })
 export const adminRunForMe = createServerFn({ method: 'POST' })
 	.middleware([adminAuthMiddleware, loggingMiddleware])
 	.handler(async ({ context }) => {
-		return await generateForUser(db, context.session.user.id, { trigger: 'manual', respectUnreadGuard: false })
+		return await generateForUser(db, context.session.user.id, { trigger: 'manual' })
 	})
 
 export const adminInvalidateInputHash = createServerFn({ method: 'POST' })

@@ -298,7 +298,7 @@ export type AdminIntelligenceData = {
 		dailyTokensIn: number
 		dailyTokensOut: number
 		dailyEstimatedCostUsd: number
-		queue: { overdue: number; gatedByUnreadRecs: number; lockHeld: number }
+		queue: { overdue: number; lockHeld: number }
 		provider: {
 			source: 'env' | 'db' | 'override' | 'none'
 			provider?: string | null

@@ -59,7 +59,7 @@ async function main() {
 				const i = cursor++
 				const userId = userIds[i]
 				try {
-					const result = await generateForUser(db, userId, { trigger, respectUnreadGuard: trigger === 'cron' })
+					const result = await generateForUser(db, userId, { trigger })
 					summary.processed++
 					if (result.status === 'success') summary.success++
 					else if (result.status === 'skipped') summary.skipped++

@@ -1205,7 +1205,7 @@ export const adminData: AdminIntelligenceData = {
 		dailyTokensIn: 78500,
 		dailyTokensOut: 14200,
 		dailyEstimatedCostUsd: 0.42,
-		queue: { overdue: 6, gatedByUnreadRecs: 11, lockHeld: 0 },
+		queue: { overdue: 6, lockHeld: 0 },
 		provider: { source: 'db', provider: 'anthropic', model: 'claude-sonnet-4-6' },
 	},
 	runs: [

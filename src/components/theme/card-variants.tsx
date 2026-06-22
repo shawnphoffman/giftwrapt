@@ -63,7 +63,7 @@ const CARD_VARIANTS: Array<CardVariant> = [
 					<CardDescription>Eligible users for this run</CardDescription>
 				</CardHeader>
 				<CardContent>
-					<p className="text-sm text-muted-foreground">42 users overdue for a refresh, 6 gated by unread recs.</p>
+					<p className="text-sm text-muted-foreground">42 users overdue for a refresh.</p>
 				</CardContent>
 			</Card>
 		),

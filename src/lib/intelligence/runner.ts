@@ -1,5 +1,5 @@
 import { type LanguageModel } from 'ai'
-import { and, count, eq, inArray, sql } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 
 import type { Database } from '@/db'
 import {
@@ -43,9 +43,6 @@ export type RunResult =
 
 export type GenerateForUserOptions = {
 	trigger: RunTrigger
-	// When false (cron), runs are skipped if the user has any active recs
-	// from a prior batch. Manual triggers ignore this guard.
-	respectUnreadGuard?: boolean
 }
 
 // Main entry point. Same signature whether called from cron, the manual
@@ -58,7 +55,6 @@ export async function generateForUser(db: Database, userId: string, opts: Genera
 
 async function generateForUserInner(db: Database, userId: string, opts: GenerateForUserOptions): Promise<RunResult> {
 	const settings = await loadSettings(db)
-	const respectUnreadGuard = opts.respectUnreadGuard ?? opts.trigger === 'cron'
 
 	const pre = await checkPreconditions({ db, settings })
 	if (pre.skipReason) {
@@ -74,17 +70,6 @@ async function generateForUserInner(db: Database, userId: string, opts: Generate
 	}
 
 	try {
-		// Skip-if-unread guard (cron only).
-		if (respectUnreadGuard) {
-			const [{ value: unread }] = await db
-				.select({ value: count() })
-				.from(recommendations)
-				.where(and(eq(recommendations.userId, userId), eq(recommendations.status, 'active')))
-			if (unread > 0) {
-				return { status: 'skipped', runId: null, reason: 'unread-recs-exist' }
-			}
-		}
-
 		const modelFactory = await resolveModelFactory(db, settings)
 		const now = new Date()
 

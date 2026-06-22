@@ -247,7 +247,7 @@ export const refreshMyRecommendations = createServerFn({ method: 'POST' })
 			return { status: 'skipped' as const, reason: 'cooldown' }
 		}
 
-		return await generateForUser(db, userId, { trigger: 'manual', respectUnreadGuard: false })
+		return await generateForUser(db, userId, { trigger: 'manual' })
 	})
 
 // ─── Mutate: dismiss / un-dismiss ───────────────────────────────────────────
