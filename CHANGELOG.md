@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.46.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.45.0...v0.46.0) (2026-06-23)
+
+
+### Features
+
+* **intelligence:** add operator digest email ([589458b](https://github.com/shawnphoffman/giftwrapt/commit/589458bbe2d3328900e7e63b54b732dcefa0d682))
+
 ## [0.45.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.44.2...v0.45.0) (2026-06-22)
 
 
