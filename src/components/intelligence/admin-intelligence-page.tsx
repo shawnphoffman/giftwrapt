@@ -916,16 +916,18 @@ export function ToggleRow({
 	checked,
 	onChange,
 	compact,
+	disabled,
 }: {
 	label: string
 	checked: boolean
 	onChange: (v: boolean) => void
 	compact?: boolean
+	disabled?: boolean
 }) {
 	return (
 		<div className={cn('flex items-center justify-between gap-3', compact && 'rounded-md border border-border px-3 py-1.5')}>
 			<Label className={cn('text-sm', compact && 'capitalize')}>{label}</Label>
-			<Switch checked={checked} onCheckedChange={onChange} />
+			<Switch checked={checked} onCheckedChange={onChange} disabled={disabled} />
 		</div>
 	)
 }
@@ -936,12 +938,14 @@ export function TextInputOnBlur({
 	className,
 	type = 'text',
 	placeholder,
+	disabled,
 }: {
 	value: string
 	onCommit: (v: string) => void
 	className?: string
 	type?: string
 	placeholder?: string
+	disabled?: boolean
 }) {
 	const [draft, setDraft] = useState(value)
 	useEffect(() => {
@@ -955,6 +959,7 @@ export function TextInputOnBlur({
 			className={className}
 			type={type}
 			placeholder={placeholder}
+			disabled={disabled}
 			value={draft}
 			onChange={e => setDraft(e.target.value)}
 			onBlur={commit}

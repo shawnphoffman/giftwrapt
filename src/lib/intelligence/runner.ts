@@ -27,7 +27,6 @@ import { getAppSettings } from '@/lib/settings-loader'
 import type { AnalyzerContext, AnalyzerSubject } from './context'
 import { fingerprintFor } from './fingerprint'
 import { combineHashes } from './hash'
-import { notifyForRun } from './notify'
 import { checkPreconditions } from './preconditions'
 import { ANALYZERS, isAnalyzerEnabled } from './registry'
 import { type AnalyzerRecOutput, type AnalyzerStep, recPayloadSchema } from './types'
@@ -196,7 +195,6 @@ async function generateForUserInner(db: Database, userId: string, opts: Generate
 				})
 				.where(eq(recommendationRuns.id, run.id))
 
-			notifyForRun({ settings, run: { userId, runId: run.id, status: 'success', recCount } })
 			return { status: 'success', runId: run.id, recCount }
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : String(err)

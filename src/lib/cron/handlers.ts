@@ -20,6 +20,7 @@ import type { CronEndpoint } from '@/lib/cron/registry'
 import { relationshipRemindersImpl } from '@/lib/cron/relationship-reminders'
 import { maybeSendListRevealEmail } from '@/lib/cron/reveal-emails'
 import { processOnce } from '@/lib/import/scrape-queue/runner'
+import { maybeSendOperatorDigest } from '@/lib/intelligence/operator-digest'
 import { selectOverdueUsers } from '@/lib/intelligence/overdue'
 import { generateForUser } from '@/lib/intelligence/runner'
 import { createLogger } from '@/lib/logger'
@@ -379,6 +380,17 @@ export async function runIntelligenceRecommendations(): Promise<Record<string, {
 		}
 	}
 
+	// Operator Digest post-step. Placed before the retention sweep so a sweep
+	// failure can't starve it, and wrapped so a digest failure never flips this
+	// run to error (it's a side-channel). Self-guards on the refresh interval,
+	// so most daily ticks no-op here. See operator-digest.ts.
+	let digest: Awaited<ReturnType<typeof maybeSendOperatorDigest>> = { sent: false, reason: 'not-attempted' }
+	try {
+		digest = await maybeSendOperatorDigest(settings, db)
+	} catch (err) {
+		log.warn({ err: err instanceof Error ? err.message : String(err) }, 'operator digest send failed')
+	}
+
 	const retention = await runIntelligenceRetentionSweep({
 		recDays: settings.intelligenceStaleRecRetentionDays,
 		stepDays: settings.intelligenceRunStepsRetentionDays,
@@ -396,6 +408,7 @@ export async function runIntelligenceRecommendations(): Promise<Record<string, {
 		failed,
 		remaining,
 		retention,
+		digest,
 		durationMs: Date.now() - started,
 	}
 	log.info({ endpoint: '/api/cron/intelligence-recommendations', ...summary }, 'cron run complete')

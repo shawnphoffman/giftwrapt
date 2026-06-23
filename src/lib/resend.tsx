@@ -2,6 +2,7 @@ import { Resend } from 'resend'
 
 import { type Database, db, type SchemaDatabase } from '@/db'
 import { type ResolvedEmailConfig, resolveEmailConfig } from '@/lib/email-config'
+import type { OperatorDigestData } from '@/lib/intelligence/operator-digest'
 import { createLogger } from '@/lib/logger'
 import { getAppSettings } from '@/lib/settings-loader'
 
@@ -401,6 +402,32 @@ export const sendPasswordResetEmail = async (params: {
 	return res
 }
 
+// Operator Digest. Unlike the per-recipient sends above, this fans out to a
+// set of admins via BCC (so their addresses aren't exposed to each other);
+// `to` is the from-address. The caller passes the subject (computed from the
+// digest status) to avoid a static import cycle with the digest module.
+export const sendOperatorDigestEmail = async (recipients: Array<string>, data: OperatorDigestData, subject: string) => {
+	const cfg = await resolveEmailConfig(db)
+	const client = buildClient(cfg)
+	if (!client || !cfg.isValid) {
+		warnNotConfigured('sendOperatorDigestEmail')
+		return null
+	}
+	if (recipients.length === 0) return null
+	const { appTitle } = await getAppSettings(db)
+	emailLog.info({ kind: 'intelligence-operator-digest', recipientCount: recipients.length }, 'sending email')
+	const { default: IntelligenceOperatorDigestEmail } = await import('@/emails/intelligence-operator-digest')
+	const res = await client.emails.send({
+		from: getFromEmail(cfg),
+		to: cfg.fromEmail.value!,
+		bcc: recipients,
+		subject,
+		react: <IntelligenceOperatorDigestEmail data={data} appTitle={appTitle} />,
+	})
+	logSendResult('intelligence-operator-digest', `${recipients.length} admin(s)`, res as SendResult)
+	return res
+}
+
 export const TEST_EMAIL_KINDS = [
 	{ value: 'test', label: 'Generic test email' },
 	{ value: 'new-comment', label: 'New comment notification' },
@@ -416,6 +443,7 @@ export const TEST_EMAIL_KINDS = [
 	{ value: 'orphan-claim-cleanup-reminder', label: 'Orphan claim cleanup reminder' },
 	{ value: 'post-holiday', label: 'Post-holiday summary' },
 	{ value: 'password-reset', label: 'Password reset' },
+	{ value: 'intelligence-operator-digest', label: 'Intelligence operator digest' },
 ] as const
 
 export type TestEmailKind = (typeof TEST_EMAIL_KINDS)[number]['value']
@@ -566,6 +594,17 @@ const buildTestEmailPayload = async (kind: TestEmailKind, appTitle: string): Pro
 					/>
 				),
 			}
+		}
+		case 'intelligence-operator-digest': {
+			// "Send test now": build the REAL digest over a trailing
+			// refresh-interval window and send to the test recipient. Dynamic
+			// import breaks the static cycle with @/lib/resend.
+			const [{ default: IntelligenceOperatorDigestEmail }, { buildOperatorDigest, digestWindow, operatorDigestSubject }] =
+				await Promise.all([import('@/emails/intelligence-operator-digest'), import('@/lib/intelligence/operator-digest')])
+			const settings = await getAppSettings(db)
+			const now = new Date()
+			const data = await buildOperatorDigest(digestWindow(null, settings.intelligenceRefreshIntervalDays, now))
+			return { subject: operatorDigestSubject(data), react: <IntelligenceOperatorDigestEmail data={data} appTitle={appTitle} /> }
 		}
 	}
 }

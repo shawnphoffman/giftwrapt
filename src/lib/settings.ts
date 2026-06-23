@@ -460,8 +460,13 @@ export const appSettingsSchema = z.object({
 	// overrides. The provider/apiKey/baseUrl are still taken from the
 	// global AI config; only the model name changes.
 	intelligenceAnalyzerModels: z.record(z.string(), z.string().min(1).max(120)),
-	// Notification scaffold. Toggles wired in admin UI but no transport
-	// shipped in v1. `notifyForRun()` reads these and logs intent only.
+	// Operator Digest email gates. `intelligenceEmailEnabled` is the master
+	// kill switch for all intelligence email; `intelligenceEmailWeeklyDigestEnabled`
+	// gates the operator digest specifically (both must be true, under
+	// `intelligenceEnabled`). `intelligenceEmailTestRecipient`, when set,
+	// redirects the scheduled send to that address only and is the target of
+	// the "Send test now" button. Cadence/guard live in
+	// src/lib/intelligence/operator-digest.ts (interval = refresh interval).
 	intelligenceEmailEnabled: z.boolean(),
 	intelligenceEmailWeeklyDigestEnabled: z.boolean(),
 	intelligenceEmailTestRecipient: z.union([z.null(), z.email()]),

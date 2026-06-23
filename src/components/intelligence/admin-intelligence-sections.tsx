@@ -1,9 +1,14 @@
-import { ArrowUpRight, Beaker, CalendarCheck2, CalendarClock, Cpu, Database, Mail, Sparkles } from 'lucide-react'
+import { ArrowUpRight, Beaker, CalendarCheck2, CalendarClock, Cpu, Database, Mail, Send, Sparkles } from 'lucide-react'
+import { useState } from 'react'
+import { toast } from 'sonner'
 
+import { sendTestEmailAsAdmin } from '@/api/admin'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { useIsEmailConfigured } from '@/hooks/use-is-email-configured'
 
 import type { AdminIntelligenceData } from './__fixtures__/types'
 import { ANALYZER_META, ANALYZER_ORDER, AnalyzerBadges, NumberRow, TextInputOnBlur, ToggleRow } from './admin-intelligence-page'
@@ -273,6 +278,24 @@ export function IntelligenceSchedulingCard({ data, patch }: { data: AdminIntelli
 
 export function IntelligenceNotificationsCard({ data, patch }: { data: AdminIntelligenceData; patch: Patch }) {
 	const s = data.settings
+	const { data: emailConfigured } = useIsEmailConfigured()
+	// Treat only an explicit `false` as not-configured so controls aren't
+	// disabled during the initial query load.
+	const notConfigured = emailConfigured === false
+	const [sending, setSending] = useState(false)
+
+	const handleSendTest = async () => {
+		setSending(true)
+		try {
+			await sendTestEmailAsAdmin({ data: { kind: 'intelligence-operator-digest', to: s.email.testRecipient ?? undefined } })
+			toast.success('Test digest sent')
+		} catch (err) {
+			toast.error(err instanceof Error ? err.message : 'Failed to send test digest')
+		} finally {
+			setSending(false)
+		}
+	}
+
 	return (
 		<Card data-intelligence="admin-settings-notifications">
 			<CardHeader>
@@ -280,33 +303,66 @@ export function IntelligenceNotificationsCard({ data, patch }: { data: AdminInte
 					<Mail className="size-6 text-muted-foreground" />
 					Notifications
 				</CardTitle>
-				<CardDescription>Email digest scaffolding. Delivery is not yet wired up.</CardDescription>
+				<CardDescription>Email the deployment&rsquo;s admins a periodic digest of system-wide intelligence activity.</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-6">
-				<Alert>
-					<AlertTitle>Delivery not yet implemented</AlertTitle>
-					<AlertDescription>
-						Toggles below are wired into settings but no email is sent. A future PR will hook up transport.
-					</AlertDescription>
-				</Alert>
+				{notConfigured && (
+					<Alert>
+						<AlertTitle>Email isn&rsquo;t configured</AlertTitle>
+						<AlertDescription className="flex flex-col gap-2">
+							<span>
+								Digest delivery needs a Resend API key and From address. Configure email first; these controls unlock once it&rsquo;s set.
+							</span>
+							<a
+								data-intelligence="admin-notifications-email-config-link"
+								className="inline-flex items-center gap-1 self-start rounded-md border border-border bg-muted/40 px-2.5 py-1 text-xs font-medium hover:bg-muted/60"
+								href="/admin/email"
+							>
+								Configure email
+								<ArrowUpRight className="size-3.5" />
+							</a>
+						</AlertDescription>
+					</Alert>
+				)}
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
-					<ToggleRow label="Email Enabled" checked={s.email.enabled} onChange={v => patch({ email: { ...s.email, enabled: v } })} />
 					<ToggleRow
-						label="Weekly Digest"
+						label="Email Enabled"
+						checked={s.email.enabled}
+						onChange={v => patch({ email: { ...s.email, enabled: v } })}
+						disabled={notConfigured}
+					/>
+					<ToggleRow
+						label="Digest"
 						checked={s.email.weeklyDigestEnabled}
 						onChange={v => patch({ email: { ...s.email, weeklyDigestEnabled: v } })}
+						disabled={notConfigured || !s.email.enabled}
 					/>
 					<div className="md:col-span-2">
 						<Label className="text-xs text-muted-foreground">Test Recipient</Label>
-						<TextInputOnBlur
-							className="mt-1"
-							type="email"
-							placeholder="Optional"
-							value={s.email.testRecipient ?? ''}
-							onCommit={v => patch({ email: { ...s.email, testRecipient: v || null } })}
-						/>
+						<div className="mt-1 flex gap-2">
+							<TextInputOnBlur
+								className="flex-1"
+								type="email"
+								placeholder="Optional"
+								value={s.email.testRecipient ?? ''}
+								onCommit={v => patch({ email: { ...s.email, testRecipient: v || null } })}
+								disabled={notConfigured}
+							/>
+							<Button variant="outline" className="gap-2 whitespace-nowrap" disabled={notConfigured || sending} onClick={handleSendTest}>
+								<Send className="size-4" />
+								{sending ? 'Sending…' : 'Send test now'}
+							</Button>
+						</div>
+						<p className="mt-1 text-xs text-muted-foreground">
+							Sends the live digest to this address now (or your BCC/From if blank), bypassing the schedule and toggles. Scheduled sends go
+							to all admins; set this to redirect them to one address.
+						</p>
 					</div>
 				</div>
+				<p className="text-xs text-muted-foreground">
+					Runs with the intelligence cron; cadence follows the refresh interval ({s.refreshIntervalDays} day
+					{s.refreshIntervalDays === 1 ? '' : 's'}).
+				</p>
 			</CardContent>
 		</Card>
 	)
