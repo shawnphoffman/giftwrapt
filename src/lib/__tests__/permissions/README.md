@@ -22,7 +22,7 @@ copying them into the integration project would risk drift.
 
 ## Adding new permission rules
 
-When a rule lands in `.notes/logic.md`:
+When a rule lands in `docs/logic.md`:
 
 1. If the rule introduces a new role or list sub-state, extend the unions
    in `_matrix-types.ts`. Both sides import from here, so the type system

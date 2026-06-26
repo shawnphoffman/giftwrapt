@@ -1,6 +1,6 @@
 // End-to-end integration test for mobile apiKey revocation.
 //
-// Covers `.notes/security/pre-release-smoke.md` §6: the operator-visible
+// Covers `docs/security/pre-release-smoke.md` §6: the operator-visible
 // "revoke this device from /settings/devices" path. If revocation
 // silently leaves the apiKey live, a lost / stolen device's key works
 // until it expires - that's the audit risk this test guards.

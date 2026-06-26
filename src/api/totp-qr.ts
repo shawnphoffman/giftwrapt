@@ -8,7 +8,7 @@ import { authMiddleware } from '@/middleware/auth'
 // (not in the client bundle) so the `qrcode` library - which uses
 // `Function(...)` internally - never reaches the browser. Lets us
 // drop `'unsafe-eval'` from the production CSP. See
-// `.notes/security/2026-05-checklist-audit.md` §34.
+// `docs/security/2026-05-checklist-audit.md` §34.
 
 export const totpQrInputSchema = z.object({
 	totpURI: z.string().startsWith('otpauth://').max(2048),

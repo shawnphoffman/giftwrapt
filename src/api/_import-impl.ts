@@ -4,7 +4,7 @@
 // other side of the planned split (Session C). All three shapes
 // converge on the same `ItemDraft[]` payload that this impl consumes.
 //
-// Logic-doc rules this impl honors (see `.notes/logic.md` § Items):
+// Logic-doc rules this impl honors (see `docs/logic.md` § Items):
 //   - never insert with `isArchived=true`
 //   - never insert with `availability='unavailable'`
 //   - vendor is derived from URL via the same rule chain `createItemImpl`

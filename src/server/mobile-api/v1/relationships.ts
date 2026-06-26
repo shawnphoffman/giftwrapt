@@ -1,5 +1,5 @@
 // User relationships - the privacy controls behind axes 1 and 2 from
-// `.notes/logic.md`. "Viewers" lists are people who can see MY lists;
+// `docs/logic.md`. "Viewers" lists are people who can see MY lists;
 // "owners" lists are people whose lists I can see. Both directions
 // support an explicit deny ("hide my lists from this user" / "hide
 // their lists from me").

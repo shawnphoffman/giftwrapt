@@ -1,5 +1,5 @@
 // End-to-end integration test for the TOTP enable -> disable -> re-enable
-// cycle. Covers `.notes/security/pre-release-smoke.md` §4.
+// cycle. Covers `docs/security/pre-release-smoke.md` §4.
 //
 // Three checks:
 //   1. After disable, the next sign-in returns an apiKey directly (no

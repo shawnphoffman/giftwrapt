@@ -156,7 +156,7 @@ describe('deleteItem on a claimed item flips pending-deletion', () => {
 	// The recipient never sees claims (spoiler protection); deleting a
 	// claimed item from the recipient side flips `items.pendingDeletionAt`
 	// rather than hard-deleting, so gifters get the orphan-claim alert and
-	// the existing claims survive until they acknowledge. See `.notes/logic.md`
+	// the existing claims survive until they acknowledge. See `docs/logic.md`
 	// "Pending-deletion" for the full lifecycle.
 	it('returns ok and preserves the item + giftedItems rows', async () => {
 		await withRollback(async tx => {

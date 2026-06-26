@@ -33,7 +33,7 @@ import { items } from '@/db/schema'
  *   still have live claims. Used only by the orphan-alert and the
  *   orphan-cleanup cron.
  *
- * See .notes/logic.md (Items section) for the invariants these enforce.
+ * See docs/logic.md (Items section) for the invariants these enforce.
  */
 export type ItemVisibility = 'visible' | 'editable' | 'revealed' | 'pending-deletion'
 

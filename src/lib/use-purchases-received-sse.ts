@@ -11,7 +11,7 @@ type DispatchDeps = {
  * Pure dispatcher for `/purchases/received`. Loader-driven page; refresh
  * via `router.invalidate()`.
  *
- * Cares about `claim` and `addon`. Per .notes/logic.md the received-gifts
+ * Cares about `claim` and `addon`. Per docs/logic.md the received-gifts
  * query only surfaces items where `items.isArchived = true` (the recipient
  * has revealed them), so most claim events are no-ops in the rendered
  * data - the refetch is cheap and keeps the page consistent. The reveal

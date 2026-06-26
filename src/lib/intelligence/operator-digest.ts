@@ -2,7 +2,7 @@
 //
 // A periodic email to deployment admins summarizing system-wide
 // Intelligence activity. v1 is operator-facing only (a per-user "User
-// Digest" is a future followup). See .notes/architecture/intelligence.md
+// Digest" is a future followup). See docs/architecture/intelligence.md
 // → "Operator Digest (email)" for the design.
 //
 // Trigger: piggybacks on the intelligence cron — `maybeSendOperatorDigest`

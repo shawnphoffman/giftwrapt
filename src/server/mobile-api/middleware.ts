@@ -1,5 +1,5 @@
 // Cross-cutting Hono middleware for the mobile API. See
-// `.notes/architecture/mobile-api.md` (Wire contract).
+// `docs/architecture/mobile-api.md` (Wire contract).
 //
 // Owns:
 //   - X-Min-Client-Version response header (kill switch for old iOS

@@ -3,7 +3,7 @@
 // it. All three are edit-access gated (`canEditList`) and operate on the
 // "open cycle" computed by `computeArchiveSchedule`.
 //
-// Window rules (see .notes/logic.md "Auto-archive deferral & last-archived"):
+// Window rules (see docs/logic.md "Auto-archive deferral & last-archived"):
 //   - force-reveal: only in the post-event, pre-reveal gap, and only when no
 //     defer is active (an active defer must be cancelled first - two clicks).
 //   - set/extend defer: only once the event has passed (binds the defer to

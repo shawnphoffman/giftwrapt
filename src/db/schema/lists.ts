@@ -51,7 +51,7 @@ export const lists = pgTable(
 		// deferred-due pass reveals + clears it once it elapses. Wins over the
 		// derived default (eventDate + archiveDaysAfter*) even if an admin
 		// later changes the archive-days settings. Null = use the derived
-		// default. See .notes/logic.md "Auto-archive deferral & last-archived".
+		// default. See docs/logic.md "Auto-archive deferral & last-archived".
 		archiveDeferUntil: timestamp('archive_defer_until'),
 		// Stamped every time this list's claimed items + addons are actually
 		// revealed (auto-archive cron, the deferred-due pass, or the manual

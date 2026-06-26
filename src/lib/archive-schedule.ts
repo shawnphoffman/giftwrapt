@@ -12,7 +12,7 @@
 //   - holiday: `archiveDaysAfterHoliday` days after the custom holiday's
 //     occurrence end (UTC, via the same catalog/custom helpers the cron uses).
 //
-// See .notes/logic.md "Auto-archive deferral & last-archived".
+// See docs/logic.md "Auto-archive deferral & last-archived".
 
 import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'

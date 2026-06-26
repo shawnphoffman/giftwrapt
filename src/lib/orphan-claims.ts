@@ -2,8 +2,8 @@
 //
 // When a recipient deletes an item that has active claims (one or more
 // `giftedItems` rows), the item moves to a "pending-deletion" state instead
-// of hard-deleting (see [.notes/logic.md](../../.notes/logic.md) and
-// [.notes/plans/2026-04-recipient-deletes-claimed-item.md](../../.notes/plans/2026-04-recipient-deletes-claimed-item.md)).
+// of hard-deleting (see [docs/logic.md](docs/logic.md) and
+// [docs/logic.md](docs/logic.md)).
 // The audience that needs to know about each surviving claim is the
 // primary gifter and their partner (per the read-time `gifterIds` array
 // the rest of the codebase uses for credit). Co-gifters are intentionally

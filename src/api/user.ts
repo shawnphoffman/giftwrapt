@@ -186,7 +186,7 @@ export { updateProfileInputSchema as UpdateProfileInputSchema }
 //
 // The reset-password flow has equivalent wiring in `@/lib/auth`
 // (`emailAndPassword.revokeSessionsOnPasswordReset` and `onPasswordReset`).
-// See `.notes/security/2026-05-checklist-audit.md` §47 follow-up.
+// See `docs/security/2026-05-checklist-audit.md` §47 follow-up.
 export const updateUserPassword = createServerFn({
 	method: 'POST',
 })

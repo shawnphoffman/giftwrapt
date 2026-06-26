@@ -1,5 +1,5 @@
 // Verbose mobile-API error envelope. See
-// `.notes/architecture/mobile-api.md` (Wire contract).
+// `docs/architecture/mobile-api.md` (Wire contract).
 //
 // Wire shape (locked in):
 //   { error: { code: string, message: string, data?: object } }

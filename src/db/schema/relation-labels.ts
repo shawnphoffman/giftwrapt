@@ -1,6 +1,6 @@
 // User-declared relation labels (e.g. "this user is my mother").
 //
-// Why this exists: the four-axes model in `.notes/logic.md` covers
+// Why this exists: the four-axes model in `docs/logic.md` covers
 // guardianship, partnership, and dependent-guardianship but doesn't
 // represent parenthood in the gift-giving sense (my mom, my dad). For
 // occasion-driven flows (Mother's Day, Father's Day) we need a way for

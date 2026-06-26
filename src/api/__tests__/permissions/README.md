@@ -4,7 +4,7 @@ This directory exhaustively tests the permissions matrix:
 **every role × every resource × every action × every relevant state**.
 
 Each per-resource file iterates a slice of the central `_expectations.ts`
-table with `it.each`, so adding a rule to `.notes/logic.md` mostly means
+table with `it.each`, so adding a rule to `docs/logic.md` mostly means
 appending to that table.
 
 ## File map
@@ -48,7 +48,7 @@ pnpm test:integration src/api/__tests__/permissions/list.permissions.integration
 ## Linking back to logic.md
 
 The helper-level expectations capture the **enforcement** behaviour:
-what `canViewList` / `canEditList` return today. Some of `.notes/logic.md`'s
+what `canViewList` / `canEditList` return today. Some of `docs/logic.md`'s
 rules describe **higher-level** behaviour layered on top by impls
 (e.g., "guardians can view private lists" is enforced by `getListForEditingImpl`,
 not by `canViewList` itself). When that gap matters for a test, the

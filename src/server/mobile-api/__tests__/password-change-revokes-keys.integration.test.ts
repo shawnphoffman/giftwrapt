@@ -11,7 +11,7 @@
 //      `onPasswordReset` callback that calls `revokeAllDevicesImpl`).
 //
 // Both paths must leave existing mobile apiKeys unusable after
-// completion. See `.notes/security/2026-05-checklist-audit.md` §47
+// completion. See `docs/security/2026-05-checklist-audit.md` §47
 // follow-up.
 
 import { eq } from 'drizzle-orm'

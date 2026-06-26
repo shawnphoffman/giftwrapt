@@ -13,7 +13,7 @@ import type { ListEvent } from '@/routes/api/sse/list.$listId'
  *   five kinds.
  * - `edit`: the owner's edit view at `/lists_/$listId/edit`. Spoiler
  *   protection: claim events are intentionally ignored - the owner cannot
- *   see claims (per .notes/logic.md), so refetching would either flicker
+ *   see claims (per docs/logic.md), so refetching would either flicker
  *   counts the owner shouldn't react to or leak claim presence via timing.
  * - `organize`: the owner's reorder/grouping view. Cares about item shape
  *   and list metadata only; comments and addons are not rendered there.

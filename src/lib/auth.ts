@@ -181,7 +181,7 @@ const options = {
 		//    those manually. iOS catches the next 401 as the sign-out
 		//    signal (matches the documented `revokeAllDevicesImpl`
 		//    contract).
-		// See `.notes/security/2026-05-checklist-audit.md` §47 follow-up.
+		// See `docs/security/2026-05-checklist-audit.md` §47 follow-up.
 		revokeSessionsOnPasswordReset: true,
 		onPasswordReset: async ({ user }) => {
 			const { revokeAllDevicesImpl } = await import('@/server/mobile-api/devices')

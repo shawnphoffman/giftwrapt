@@ -8,7 +8,7 @@
 //
 // The expectations recorded here are the **today** behaviour of the
 // canonical permission helpers (`canViewList`, `canEditList`) plus
-// any inline checks already enforced in the impls. When `.notes/logic.md`
+// any inline checks already enforced in the impls. When `docs/logic.md`
 // adds a new rule, the table here must change to match. That's the
 // load-bearing assertion the suite exists to make.
 

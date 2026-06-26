@@ -6,7 +6,7 @@
 //
 // Birthday/wishlist reuse the post-birthday gifter-summary email (the same
 // one the daily birthday-emails cron sends on birthday+N); christmas and
-// generic holidays reuse the post-holiday template. See .notes/logic.md
+// generic holidays reuse the post-holiday template. See docs/logic.md
 // "Auto-archive deferral & last-archived".
 
 import { and, eq, inArray } from 'drizzle-orm'

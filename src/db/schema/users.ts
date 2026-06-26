@@ -32,7 +32,7 @@ export const users = pgTable(
 		// Optional anniversary date for the current partnership. Kept in
 		// sync bidirectionally with the partner's row by `updateUserProfile`,
 		// and cleared when the partnership is dissolved. See
-		// `.notes/logic.md#roles--relationships`.
+		// `docs/logic.md#roles--relationships`.
 		partnerAnniversary: date('partner_anniversary', { mode: 'string' }),
 		// Set by better-auth's two-factor plugin once a user finishes
 		// TOTP enrollment. Read by the sign-in flow to know whether to

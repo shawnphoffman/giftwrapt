@@ -5,7 +5,7 @@
 
 /**
  * The nine actor types the system distinguishes today. Captured from
- * `.notes/logic.md` and the inline checks in `src/lib/permissions.ts`,
+ * `docs/logic.md` and the inline checks in `src/lib/permissions.ts`,
  * `src/api/_lists-impl.ts`, and friends.
  *
  * - `owner`: the list owner themselves.

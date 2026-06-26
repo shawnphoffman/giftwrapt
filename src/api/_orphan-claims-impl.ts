@@ -1,7 +1,7 @@
 // Server-only impl for the orphan-claim alert surfaces. An orphan claim
 // is a `giftedItems` row whose parent item is in pending-deletion (the
 // recipient deleted the item via `deleteItem`; see
-// [.notes/plans/2026-04-recipient-deletes-claimed-item.md](../../.notes/plans/2026-04-recipient-deletes-claimed-item.md)).
+// [docs/logic.md](docs/logic.md)).
 //
 // Three surface points:
 //   - `getOrphanedClaimsForList`: powers the beefy alert above the

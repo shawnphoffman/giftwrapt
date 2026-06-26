@@ -842,7 +842,7 @@ async function applyCreateList(
 // along implicitly. Source lists are force-archived (isActive=false),
 // not hard-deleted, because pending-deletion items stay on the source
 // list for the orphan-alert flow. See
-// .notes/plans/2026-05-merge-duplicate-event-lists.md for the spec.
+// docs/architecture/intelligence.md for the spec.
 async function applyMergeLists(
 	tx: SchemaDatabase,
 	userId: string,

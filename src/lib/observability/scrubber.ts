@@ -10,7 +10,7 @@
 // backend. Recipients never see Sentry events (it's a server + browser
 // SDK for the deployment, not a recipient-visible surface), so the
 // "never leak claim presence to recipients" invariant in
-// .notes/logic.md is upheld at the UI layer where it already lives.
+// docs/logic.md is upheld at the UI layer where it already lives.
 
 import type { ErrorEvent, EventHint } from '@sentry/node'
 
