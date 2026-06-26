@@ -3,7 +3,7 @@ import type { Page } from 'playwright'
 import type { RouteDef } from './types'
 
 // `/lists/$id` redirects the OWNER to `/lists/$id/edit` (per
-// `.notes/logic.md`'s recipient-identity rule). For admin-owned lists
+// `docs/logic.md`'s recipient-identity rule). For admin-owned lists
 // the view and edit URLs render the same screen, so we capture only
 // the canonical entry point per list and skip the duplicate.
 //

@@ -1,6 +1,6 @@
 /**
  * Types for the compose/env registry. See ./README.md (or the plan file at
- * `.notes/plans/`) for the rationale.
+ * `docs/plans/`) for the rationale.
  *
  * The registry models each "feature" (a sidecar, an env-gated capability) as
  * a self-contained module that exports its YAML service block(s), the top-

@@ -2,7 +2,7 @@
  * One-shot Intelligence runner. Generates recommendations for a single
  * user (or every user) and exits. Useful for local debugging and as the
  * building block for any external trigger (Shape B/C in the deployment
- * docs - see `.notes/plans/2026-05-intelligence-recommendations.md`).
+ * docs - see `docs/plans/2026-05-intelligence-recommendations.md`).
  *
  * Usage:
  *

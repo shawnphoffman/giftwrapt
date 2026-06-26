@@ -41,7 +41,7 @@ if (process.env.VERCEL) {
 // have no third-party origin to apply integrity hashes to on production
 // or self-host builds, and Vercel rotates its preview script per deploy
 // so a stable integrity hash isn't available even when it IS loaded.
-// See `.notes/security/2026-05-checklist-audit.md` item 46.
+// See `docs/security/2026-05-checklist-audit.md` item 46.
 const isVercelPreviewBuild = process.env.VERCEL_ENV === 'preview'
 const vercelLiveOrigins = isVercelPreviewBuild
 	? {

@@ -27,7 +27,7 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # Warn-only for now (see .notes/security/2026-05-checklist-audit.md
+      # Warn-only for now (see docs/security/2026-05-checklist-audit.md
       # items 17 and 33). Surfaces high/critical CVEs in CI logs without
       # blocking merges; promote to required once we've seen the steady
       # state and added any necessary `pnpm.overrides`.
@@ -51,7 +51,7 @@ jobs:
         run: pnpm test:integration
 
   # Production build + source-map leak guard (see
-  # .notes/security/2026-05-checklist-audit.md item 44). Vite's default
+  # docs/security/2026-05-checklist-audit.md item 44). Vite's default
   # `build.sourcemap` is `false`, but a future config tweak (or a transitive
   # plugin) could flip it on and ship maps to the client unnoticed. Required
   # check - if this fails, either remove the map-emitting setting or
@@ -94,7 +94,7 @@ jobs:
           fi
           echo "OK: no .map files in client bundle"
 
-  # Warn-only semgrep scan (see .notes/security/2026-05-checklist-audit.md
+  # Warn-only semgrep scan (see docs/security/2026-05-checklist-audit.md
   # item 33). Runs in parallel with `test` so PR feedback isn't slowed.
   # Promote to required after we've triaged the OWASP ruleset's hits.
   security:
