@@ -17,16 +17,21 @@ count.txt
 .vercel
 storybook-static
 
-.agents/*
-.claude/*
-!.claude/launch.json
 
 # Screenshot generator artifacts
 /screenshots/
 .cache/screenshots/
 scripts/screenshots/.fixture-ids.json
-.cursor/plans/
-.notes.local/
+
+# AGENTS
+# core/docs is a symlink into the parent repo's agents/core (workspace-owned docs).
+# No trailing slash so the symlink (a file) is matched, not just a real directory.
+/docs
+.agents/*
+.claude/*
 CLAUDE.local.md
+CLAUDE.md
+
 # TEMPORARY
 .notes/
+.notes.local/
