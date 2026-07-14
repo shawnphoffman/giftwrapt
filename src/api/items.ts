@@ -13,6 +13,7 @@ import { db } from '@/db'
 import { loggingMiddleware } from '@/lib/logger'
 import { authMiddleware } from '@/middleware/auth'
 
+import { searchMyItemsImpl, type SearchMyItemsResult } from './_item-search-impl'
 import {
 	archiveItemImpl,
 	ArchiveItemInputSchema,
@@ -70,6 +71,7 @@ import {
 	type UpdateItemResult,
 } from './_items-impl'
 
+export type { MyItemSearchRow, SearchMyItemsResult } from './_item-search-impl'
 export type {
 	ArchiveItemResult,
 	ArchiveItemsResult,
@@ -182,6 +184,10 @@ export const getItemsForListView = createServerFn({ method: 'GET' })
 		({ context, data }): Promise<GetItemsForListViewResult> =>
 			getItemsForListViewImpl({ userId: context.session.user.id, listId: data.listId, sort: data.sort })
 	)
+
+export const searchMyItems = createServerFn({ method: 'GET' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.handler(({ context }): Promise<SearchMyItemsResult> => searchMyItemsImpl(context.session.user.id))
 
 export const getItemForEdit = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware, loggingMiddleware])

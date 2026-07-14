@@ -38,6 +38,7 @@ export const moveItemsToList = (): Promise<{ kind: 'ok'; moved: number; claimsCl
 export const copyItemToList = ok
 export const getItemsForListView = (): Promise<{ kind: 'ok'; items: Array<unknown> }> => Promise.resolve({ kind: 'ok', items: [] })
 export const getItemsForListEdit = (): Promise<{ kind: 'ok'; items: Array<unknown> }> => Promise.resolve({ kind: 'ok', items: [] })
+export const searchMyItems = (): Promise<{ items: Array<unknown> }> => Promise.resolve({ items: [] })
 export const archiveListPurchases = (): Promise<{ kind: 'ok'; archived: number }> => Promise.resolve({ kind: 'ok', archived: 0 })
 
 // @/api/groups

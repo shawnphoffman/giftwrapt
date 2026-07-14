@@ -17,10 +17,15 @@ import { itemsKeys } from '@/lib/queries/items'
 type Props = {
 	open: boolean
 	onOpenChange: (open: boolean) => void
-	item: Item
+	// Only the fields the move flow reads. Callers with a full `Item` still
+	// satisfy this; the item-search dialog passes just these three.
+	item: Pick<Item, 'id' | 'listId' | 'title'>
+	// Optional hook fired after a successful move, so surfaces that keep their
+	// own item cache (e.g. the item-search dialog) can refetch.
+	onMoved?: () => void
 }
 
-export function MoveItemDialog({ open, onOpenChange, item }: Props) {
+export function MoveItemDialog({ open, onOpenChange, item, onMoved }: Props) {
 	const router = useRouter()
 	const queryClient = useQueryClient()
 	const [selectedListId, setSelectedListId] = useState<string>('')
@@ -63,6 +68,7 @@ export function MoveItemDialog({ open, onOpenChange, item }: Props) {
 				queryClient.invalidateQueries({ queryKey: itemsKeys.byList(item.listId) }),
 				queryClient.invalidateQueries({ queryKey: itemsKeys.byList(targetId) }),
 			])
+			onMoved?.()
 		} catch (err) {
 			setError(err instanceof Error ? err.message : 'Failed to move item')
 		} finally {

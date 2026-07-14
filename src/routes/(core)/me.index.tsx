@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, useLocation, useNavigate } from '@tanstack/react-router'
-import { Baby, ListOrdered, Plus, Sprout } from 'lucide-react'
+import { Baby, ListOrdered, Plus, Search, Sprout } from 'lucide-react'
 import { Suspense, useEffect, useState } from 'react'
 
 import { type ChildListGroup, type DependentListGroup, getMyLists, type MyListRow } from '@/api/lists'
@@ -9,6 +9,7 @@ import ListTypeIcon from '@/components/common/list-type-icon'
 import { PageHeading } from '@/components/common/page-heading'
 import UserAvatar from '@/components/common/user-avatar'
 import { AddItemDialog } from '@/components/items/add-item-dialog'
+import { ItemSearchDialog } from '@/components/items/item-search-dialog'
 import { CreateListDialog } from '@/components/lists/create-list-dialog'
 import { ListRow } from '@/components/lists/list-row'
 import { ListTypeLegend } from '@/components/lists/list-type-legend'
@@ -62,6 +63,7 @@ function MyListsPage() {
 	useMeSSE()
 	const [createOpen, setCreateOpen] = useState(false)
 	const [addItemOpen, setAddItemOpen] = useState(false)
+	const [searchOpen, setSearchOpen] = useState(false)
 	const [pendingUrl, setPendingUrl] = useState<string | undefined>(undefined)
 	const hash = useLocation({ select: l => l.hash })
 	const search = Route.useSearch()
@@ -80,12 +82,16 @@ function MyListsPage() {
 		} else if (hash === 'add-item') {
 			setAddItemOpen(true)
 			navigate({ to: '/me', hash: '', replace: true })
+		} else if (hash === 'search') {
+			setSearchOpen(true)
+			navigate({ to: '/me', hash: '', replace: true })
 		}
 	}, [hash, search.url, navigate])
 
 	return (
 		<>
 			<CreateListDialog open={createOpen} onOpenChange={setCreateOpen} />
+			<ItemSearchDialog open={searchOpen} onOpenChange={setSearchOpen} />
 			<AddItemDialog
 				open={addItemOpen}
 				onOpenChange={next => {
@@ -99,7 +105,10 @@ function MyListsPage() {
 				<div className="flex flex-col flex-1 gap-6">
 					{/* HEADING - renders synchronously so the route swap is instant. */}
 					<PageHeading title="My Lists" icon={ListOrdered} color="red">
-						<div className="flex flex-row flex-wrap justify-end gap-0.5 items-center shrink-0">
+						<div className="flex flex-row flex-wrap justify-end gap-1 items-center shrink-0">
+							<Button size="sm" variant="outline" onClick={() => setSearchOpen(true)}>
+								<Search className="size-4" /> Search items
+							</Button>
 							<Button size="sm" onClick={() => setCreateOpen(true)}>
 								<Plus className="size-4" /> New list
 							</Button>
