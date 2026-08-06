@@ -47,7 +47,7 @@ async function loadAnalyzerStats(perAnalyzerEnabled: Record<string, boolean>): P
 	const statsMap = new Map(stepRows.map(r => [r.analyzer, r]))
 	const recsMap = new Map(recCounts.map(r => [r.analyzerId, r.n]))
 
-	return ANALYZERS.map(a => {
+	const rows = ANALYZERS.map(a => {
 		const s = statsMap.get(a.id)
 		return {
 			id: a.id,
@@ -59,6 +59,23 @@ async function loadAnalyzerStats(perAnalyzerEnabled: Record<string, boolean>): P
 			activeRecs: recsMap.get(a.id) ?? 0,
 		}
 	})
+
+	// The enrichment pre-step isn't a registry analyzer (it emits facets,
+	// not recs) but it IS where most steady-state model spend lives, so it
+	// gets a stats row too. Enabled mirrors the runner's gate: any facet
+	// consumer on, minus the explicit 'enrichment' kill switch.
+	const enrichmentStep = statsMap.get('enrichment')
+	const facetConsumersOn = rows.some(r => (r.id === 'clothing-prefs' || r.id === 'duplicates') && r.enabled)
+	rows.push({
+		id: 'enrichment',
+		label: 'Item enrichment',
+		enabled: facetConsumersOn && perAnalyzerEnabled['enrichment'] !== false,
+		avgDurationMs: enrichmentStep?.avgLatency ? Math.round(enrichmentStep.avgLatency) : 0,
+		avgTokensIn: enrichmentStep?.n ? Math.round(enrichmentStep.totalIn / enrichmentStep.n) : 0,
+		avgTokensOut: enrichmentStep?.n ? Math.round(enrichmentStep.totalOut / enrichmentStep.n) : 0,
+		activeRecs: 0,
+	})
+	return rows
 }
 
 type StatusBucket = { success: number; skipped: Record<string, number>; error: number }

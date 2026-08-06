@@ -83,6 +83,49 @@ describe('resolveModelFactory', () => {
 		expect(factory.modelNameFor('enrichment')).toBe('claude-global-override')
 	})
 
+	it('defaults enrichment to the cheap tier on anthropic when no override expresses a preference', async () => {
+		mockedResolve.mockResolvedValue(aiConfigOk())
+		mockedCreate.mockImplementation(args => ({ modelId: args.model }) as unknown as ReturnType<typeof createAiModel>)
+
+		const factory = await resolveModelFactory(fakeDb, DEFAULT_APP_SETTINGS)
+		// Enrichment is classification-shaped, so the reasonable default is
+		// the provider's cheap tier - not the admin's flagship model.
+		expect(factory.modelNameFor('enrichment')).toBe('claude-haiku-4-5')
+		expect((factory.modelFor('enrichment') as { modelId: string }).modelId).toBe('claude-haiku-4-5')
+		// Registry analyzers keep the configured default.
+		expect(factory.modelNameFor('duplicates')).toBe('claude-default')
+	})
+
+	it('any explicit override beats the enrichment cheap default; non-anthropic providers never get it', async () => {
+		mockedResolve.mockResolvedValue(aiConfigOk())
+		mockedCreate.mockImplementation(args => ({ modelId: args.model }) as unknown as ReturnType<typeof createAiModel>)
+
+		// Per-analyzer override wins.
+		const perAnalyzer = await resolveModelFactory(fakeDb, {
+			...DEFAULT_APP_SETTINGS,
+			intelligenceAnalyzerModels: { enrichment: 'claude-picked-by-admin' },
+		})
+		expect(perAnalyzer.modelNameFor('enrichment')).toBe('claude-picked-by-admin')
+
+		// Intelligence-wide override wins too: the admin expressed a
+		// preference, so we stop being clever.
+		const globalOverride = await resolveModelFactory(fakeDb, {
+			...DEFAULT_APP_SETTINGS,
+			intelligenceModelOverride: 'claude-intelligence-wide',
+		})
+		expect(globalOverride.modelNameFor('enrichment')).toBe('claude-intelligence-wide')
+
+		// openai-compatible endpoints serve arbitrary model lists; assuming a
+		// cheap model id exists there would break local runtimes.
+		mockedResolve.mockResolvedValue({
+			...aiConfigOk(),
+			providerType: { source: 'env' as const, value: 'openai-compatible' as const },
+			baseUrl: { source: 'env' as const, value: 'http://localhost:11434/v1' },
+		})
+		const compat = await resolveModelFactory(fakeDb, DEFAULT_APP_SETTINGS)
+		expect(compat.modelNameFor('enrichment')).toBe('claude-default')
+	})
+
 	it('caches model instances by name so analyzers sharing an override share one client', async () => {
 		mockedResolve.mockResolvedValue(aiConfigOk())
 		mockedCreate.mockImplementation(args => ({ modelId: args.model }) as unknown as ReturnType<typeof createAiModel>)

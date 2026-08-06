@@ -126,9 +126,17 @@ async function generateForUserInner(db: Database, userId: string, opts: Generate
 			// stored rows. Failure here degrades gracefully: analyzers fall
 			// back to whatever facet rows already exist.
 			const enrichmentModel = modelFor('enrichment')
-			const wantsEnrichment = ANALYZERS.some(
-				a => (a.id === 'clothing-prefs' || a.id === 'duplicates') && isAnalyzerEnabled(a, settings.intelligencePerAnalyzerEnabled)
-			)
+			// Runs when any facet-consuming analyzer is enabled, unless the
+			// admin explicitly disabled the 'enrichment' pseudo-analyzer via
+			// intelligencePerAnalyzerEnabled (an escape hatch, not a row in
+			// the registry — analyzers then degrade to whatever facet rows
+			// already exist).
+			const enrichmentKilled = (settings.intelligencePerAnalyzerEnabled as Record<string, boolean | undefined>)['enrichment'] === false
+			const wantsEnrichment =
+				!enrichmentKilled &&
+				ANALYZERS.some(
+					a => (a.id === 'clothing-prefs' || a.id === 'duplicates') && isAnalyzerEnabled(a, settings.intelligencePerAnalyzerEnabled)
+				)
 			if (enrichmentModel && wantsEnrichment) {
 				const enrichmentModelName = modelNameFor('enrichment')
 				try {
@@ -290,6 +298,15 @@ export type ModelFactory = {
 	modelNameFor: (analyzerId: string) => string | null
 }
 
+// Cheap-tier default per provider for classification-shaped work. Only
+// the 'anthropic' provider type is mapped: it always talks to the real
+// Anthropic API (createAiModel ignores baseUrl for it), so the Haiku
+// alias is guaranteed valid. 'openai' and 'openai-compatible' can point
+// at gateways/local runtimes where we can't assume any model id exists.
+const CHEAP_MODEL_BY_PROVIDER: Partial<Record<string, string>> = {
+	anthropic: 'claude-haiku-4-5',
+}
+
 export async function resolveModelFactory(db: Database, settings: AppSettings): Promise<ModelFactory> {
 	const ai = await resolveAiConfig(db)
 	if (!ai.isValid) return { modelFor: () => null, modelNameFor: () => null }
@@ -314,7 +331,20 @@ export async function resolveModelFactory(db: Database, settings: AppSettings): 
 		// `Record<string, string>` lies at the type level: missing keys
 		// return undefined at runtime. Cast so we can branch correctly.
 		const perAnalyzer = (settings.intelligenceAnalyzerModels as Record<string, string | undefined>)[analyzerId]
-		return perAnalyzer ?? defaultModelName
+		if (perAnalyzer) return perAnalyzer
+		// Reasonable-default: enrichment is high-volume, classification-
+		// shaped extraction that doesn't need the flagship model, so when
+		// the admin hasn't expressed ANY model preference for intelligence
+		// (no per-analyzer override, no intelligence-wide override), pick
+		// the provider's cheap tier automatically. Only providers where a
+		// known-good cheap model id is guaranteed to exist are mapped;
+		// openai-compatible endpoints serve arbitrary model lists, so they
+		// stay on the admin's configured model.
+		if (analyzerId === 'enrichment' && settings.intelligenceModelOverride === null) {
+			const cheap = CHEAP_MODEL_BY_PROVIDER[ai.providerType.value!]
+			if (cheap) return cheap
+		}
+		return defaultModelName
 	}
 
 	return {

@@ -459,6 +459,15 @@ export const appSettingsSchema = z.object({
 	// grouping analyzer on the default. Empty map = no per-analyzer
 	// overrides. The provider/apiKey/baseUrl are still taken from the
 	// global AI config; only the model name changes.
+	//
+	// The batched facet-extraction pre-step resolves under the pseudo-
+	// analyzer id 'enrichment'. When neither it nor
+	// `intelligenceModelOverride` is set, enrichment DEFAULTS to the
+	// provider's cheap tier where one is known to exist (anthropic ->
+	// claude-haiku-4-5); set `{ "enrichment": "<model>" }` to override.
+	// `intelligencePerAnalyzerEnabled["enrichment"] = false` disables the
+	// pre-step entirely (facet-driven analyzers then run on whatever
+	// analysis rows already exist).
 	intelligenceAnalyzerModels: z.record(z.string(), z.string().min(1).max(120)),
 	// Operator Digest email gates. `intelligenceEmailEnabled` is the master
 	// kill switch for all intelligence email; `intelligenceEmailWeeklyDigestEnabled`
