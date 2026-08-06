@@ -38,4 +38,14 @@ export type AnalyzerContext = {
 	// resolves this once when constructing the context: 'You' for the
 	// user pass, the dependent's name+image for a dependent pass.
 	subject: AnalyzerSubject
+	// Input hash this analyzer+scope produced on the last successful run,
+	// or null when there is no prior run / the prior generation is too old
+	// to keep reusing (see the carry bound in runner.ts). AI analyzers
+	// compare their freshly computed hash against this BEFORE calling the
+	// model; on a match they return `{ unchanged: true }` and the runner
+	// keeps the scope's existing recs instead of regenerating. Ignored in
+	// dry-run so admins always get realistic step logs. Optional so test
+	// harnesses that build partial contexts keep working; absent means
+	// "no prior run".
+	priorInputHash?: string | null
 }

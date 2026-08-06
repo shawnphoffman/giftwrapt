@@ -1,5 +1,5 @@
 import { type LanguageModel } from 'ai'
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, eq, inArray, or, sql } from 'drizzle-orm'
 
 import type { Database } from '@/db'
 import {
@@ -25,6 +25,7 @@ import { type AppSettings, DEFAULT_APP_SETTINGS } from '@/lib/settings'
 import { getAppSettings } from '@/lib/settings-loader'
 
 import type { AnalyzerContext, AnalyzerSubject } from './context'
+import { runEnrichment } from './enrichment'
 import { fingerprintFor } from './fingerprint'
 import { combineHashes } from './hash'
 import { checkPreconditions } from './preconditions'
@@ -69,8 +70,21 @@ async function generateForUserInner(db: Database, userId: string, opts: Generate
 	}
 
 	try {
-		const modelFactory = await resolveModelFactory(db, settings)
+		const { modelFor, modelNameFor } = await resolveModelFactory(db, settings)
 		const now = new Date()
+
+		// Prior per-scope input hashes from the last successful run, used to
+		// let analyzers skip their model call when their candidate slice is
+		// byte-identical. Carry-forward is bounded: once a scope's recs are
+		// older than the retention sweep would tolerate, force a fresh pass.
+		// The bound sits one refresh interval BELOW the rec retention window
+		// so carried rows are always regenerated before the sweep (which
+		// deletes recs by createdAt) could delete them out from under the
+		// user.
+		const lastSuccess = await getLastSuccessRun(db, userId)
+		const carryMaxDays = Math.max(1, settings.intelligenceStaleRecRetentionDays - settings.intelligenceRefreshIntervalDays)
+		const carryCutoffMs = now.getTime() - carryMaxDays * 86400000
+		const priorScopeHashes = lastSuccess?.analyzerInputHashes ?? {}
 
 		// Resolve the recipient subjects for this run: the user (always) +
 		// every dependent the user guardians who has at least one active
@@ -99,12 +113,55 @@ async function generateForUserInner(db: Database, userId: string, opts: Generate
 			const allOutputs: Array<AnalyzerRecOutput & { analyzerId: string; dependentId: string | null }> = []
 			const allSteps: Array<NewRecommendationRunStep> = []
 			const inputHashSlices: Array<string | null> = []
+			const carriedScopes: Array<CarriedScope> = []
+			const newScopeHashes: Record<string, { hash: string; generatedAt: string }> = {}
 			let totalIn = 0
 			let totalOut = 0
+			let costMicroUsd = 0
+
+			// Enrichment pre-step: make sure per-item facets (category,
+			// clothing flags, canonical name) are current BEFORE analyzers
+			// read them. Facet extraction is the only model spend for
+			// unchanged items' stable questions — analyzers consume the
+			// stored rows. Failure here degrades gracefully: analyzers fall
+			// back to whatever facet rows already exist.
+			const enrichmentModel = modelFor('enrichment')
+			const wantsEnrichment = ANALYZERS.some(
+				a => (a.id === 'clothing-prefs' || a.id === 'duplicates') && isAnalyzerEnabled(a, settings.intelligencePerAnalyzerEnabled)
+			)
+			if (enrichmentModel && wantsEnrichment) {
+				const enrichmentModelName = modelNameFor('enrichment')
+				try {
+					const enrichment = await runEnrichment({
+						db,
+						userId,
+						model: enrichmentModel,
+						modelName: enrichmentModelName,
+						logger: log,
+						now,
+					})
+					for (const step of enrichment.steps) {
+						totalIn += step.tokensIn ?? 0
+						totalOut += step.tokensOut ?? 0
+						costMicroUsd += estimateStepCostMicroUsd(enrichmentModelName, step)
+						allSteps.push(stepRow(run.id, 'enrichment', step, enrichmentModelName))
+					}
+				} catch (err) {
+					const msg = err instanceof Error ? err.message : String(err)
+					allSteps.push(errorStepRow(run.id, 'enrichment', msg))
+					log.warn({ userId, err: msg }, 'enrichment threw; analyzers use existing facets')
+				}
+			}
 
 			for (const pass of passes) {
 				for (const analyzer of ANALYZERS) {
 					if (!isAnalyzerEnabled(analyzer, settings.intelligencePerAnalyzerEnabled)) continue
+					const scopeKey = `${pass.dependentId ?? 'self'}:${analyzer.id}`
+					// Record index access lies at the type level: missing keys
+					// return undefined at runtime. Cast so we branch correctly.
+					const prior = priorScopeHashes[scopeKey] as { hash: string; generatedAt: string } | undefined
+					const priorFresh = prior && Date.parse(prior.generatedAt) >= carryCutoffMs ? prior : null
+					const analyzerModelName = modelNameFor(analyzer.id)
 					// Per-analyzer model: each analyzer can be pinned to a
 					// cheaper model via `intelligenceAnalyzerModels`. The
 					// factory caches by model name so analyzers sharing an
@@ -112,7 +169,7 @@ async function generateForUserInner(db: Database, userId: string, opts: Generate
 					const ctx: AnalyzerContext = {
 						db,
 						userId,
-						model: modelFactory(analyzer.id),
+						model: modelFor(analyzer.id),
 						settings,
 						logger: log,
 						now,
@@ -120,58 +177,50 @@ async function generateForUserInner(db: Database, userId: string, opts: Generate
 						dryRun: settings.intelligenceDryRun,
 						dependentId: pass.dependentId,
 						subject: pass.subject,
+						priorInputHash: priorFresh?.hash ?? null,
 					}
 					try {
 						const result = await analyzer.run(ctx)
 						// Tag the input-hash slice with the dependent scope so a
 						// rec set that's identical "shape" but different scope
-						// doesn't collide on the unchanged-input guard.
+						// doesn't collide on the combined hash.
 						inputHashSlices.push(result.inputHash ? `${pass.dependentId ?? 'self'}:${result.inputHash}` : result.inputHash)
+						if (result.unchanged && result.inputHash) {
+							// Inputs identical to the prior generation: keep the
+							// scope's existing rec rows and copy the prior
+							// generatedAt forward so the carry bound still
+							// measures from the last REAL generation.
+							carriedScopes.push({ analyzerId: analyzer.id, dependentId: pass.dependentId })
+							newScopeHashes[scopeKey] = priorFresh ?? { hash: result.inputHash, generatedAt: now.toISOString() }
+						} else if (result.inputHash) {
+							newScopeHashes[scopeKey] = { hash: result.inputHash, generatedAt: now.toISOString() }
+						}
 						for (const rec of result.recs) {
 							allOutputs.push({ ...rec, analyzerId: analyzer.id, dependentId: pass.dependentId })
 						}
 						for (const step of result.steps) {
 							totalIn += step.tokensIn ?? 0
 							totalOut += step.tokensOut ?? 0
-							allSteps.push(stepRow(run.id, analyzer.id, step))
+							costMicroUsd += estimateStepCostMicroUsd(analyzerModelName, step)
+							allSteps.push(stepRow(run.id, analyzer.id, step, analyzerModelName))
 						}
 					} catch (err) {
 						const msg = err instanceof Error ? err.message : String(err)
-						allSteps.push({
-							runId: run.id,
-							analyzer: analyzer.id,
-							prompt: null,
-							responseRaw: null,
-							parsed: null,
-							tokensIn: 0,
-							tokensOut: 0,
-							cachedInputTokens: 0,
-							latencyMs: 0,
-							error: msg,
-						})
+						allSteps.push(errorStepRow(run.id, analyzer.id, msg))
 						log.warn({ analyzer: analyzer.id, dependentId: pass.dependentId, err: msg }, 'analyzer threw; continuing')
 					}
 				}
 			}
 
-			// Idempotent skip: when cron triggers and the input hash matches the
-			// last successful run AND we're inside the refresh window, skip.
 			const combinedHash = combineHashes(inputHashSlices)
-			if (opts.trigger === 'cron' && combinedHash) {
-				const lastSuccess = await getLastSuccessHash(db, userId)
-				if (lastSuccess?.inputHash === combinedHash && lastSuccess.finishedAt) {
-					const ageDays = (Date.now() - lastSuccess.finishedAt.getTime()) / 86400000
-					if (ageDays < settings.intelligenceRefreshIntervalDays) {
-						await db
-							.update(recommendationRuns)
-							.set({ status: 'skipped', skipReason: 'unchanged-input', finishedAt: new Date() })
-							.where(eq(recommendationRuns.id, run.id))
-						return { status: 'skipped', runId: run.id, reason: 'unchanged-input' }
-					}
-				}
+			if (carriedScopes.length > 0) {
+				log.info(
+					{ userId, carried: carriedScopes.map(s => `${s.dependentId ?? 'self'}:${s.analyzerId}`) },
+					'scopes carried forward unchanged'
+				)
 			}
 
-			const recCount = await persistBatch(db, userId, run.id, allOutputs, settings.intelligenceDryRun)
+			const recCount = await persistBatch(db, userId, run.id, allOutputs, settings.intelligenceDryRun, carriedScopes)
 
 			if (allSteps.length > 0) {
 				await db.insert(recommendationRunSteps).values(allSteps)
@@ -181,17 +230,20 @@ async function generateForUserInner(db: Database, userId: string, opts: Generate
 			// rather than throwing, so one bad analyzer doesn't poison the
 			// rest. The run-level status stays binary (the run *completed*).
 			// Admins read partial failures via the per-step ok/error/noop
-			// breakdown surfaced in the runs table and the debug panel.
-			const cost = estimateCostMicroUsd(totalIn, totalOut)
+			// breakdown surfaced in the runs table and the debug panel. A run
+			// where every scope carried forward unchanged is still a success:
+			// it verified the current rec set is up to date, at near-zero
+			// token cost (visible as tokensIn/Out = 0).
 			await db
 				.update(recommendationRuns)
 				.set({
 					status: 'success',
 					finishedAt: new Date(),
 					inputHash: combinedHash,
+					analyzerInputHashes: newScopeHashes,
 					tokensIn: totalIn,
 					tokensOut: totalOut,
-					estimatedCostMicroUsd: cost,
+					estimatedCostMicroUsd: Math.round(costMicroUsd),
 				})
 				.where(eq(recommendationRuns.id, run.id))
 
@@ -221,17 +273,26 @@ async function loadSettings(db: Database): Promise<AppSettings> {
 	}
 }
 
-// Returns a per-analyzer model picker. Resolves the default model name
+// Returns per-analyzer model pickers. Resolves the default model name
 // from `intelligenceModelOverride ?? ai.model.value`, then layers
-// `intelligenceAnalyzerModels[analyzerId]` on top when present. Created
-// `LanguageModel` instances are cached by model name within a single
-// run so two analyzers pointing at the same override share one client.
+// `intelligenceAnalyzerModels[analyzerId]` on top when present (the
+// enrichment pre-step resolves under the pseudo-analyzer id
+// 'enrichment', so admins can pin it to a cheaper model the same way).
+// Created `LanguageModel` instances are cached by model name within a
+// single run so two analyzers pointing at the same override don't pay
+// multiple createAiModel calls.
 //
-// Returns `() => null` when no AI provider is configured, so analyzers
-// uniformly bail to their heuristic-only branches.
-export async function resolveModelFactory(db: Database, settings: AppSettings): Promise<(analyzerId: string) => LanguageModel | null> {
+// `modelFor` returns null (and `modelNameFor` null) when no AI provider
+// is configured, so analyzers uniformly bail to their heuristic-only
+// branches.
+export type ModelFactory = {
+	modelFor: (analyzerId: string) => LanguageModel | null
+	modelNameFor: (analyzerId: string) => string | null
+}
+
+export async function resolveModelFactory(db: Database, settings: AppSettings): Promise<ModelFactory> {
 	const ai = await resolveAiConfig(db)
-	if (!ai.isValid) return () => null
+	if (!ai.isValid) return { modelFor: () => null, modelNameFor: () => null }
 
 	const defaultModelName = settings.intelligenceModelOverride ?? ai.model.value!
 	const cache = new Map<string, LanguageModel>()
@@ -249,21 +310,31 @@ export async function resolveModelFactory(db: Database, settings: AppSettings): 
 		return built
 	}
 
-	return analyzerId => {
+	function nameFor(analyzerId: string): string {
 		// `Record<string, string>` lies at the type level: missing keys
 		// return undefined at runtime. Cast so we can branch correctly.
 		const perAnalyzer = (settings.intelligenceAnalyzerModels as Record<string, string | undefined>)[analyzerId]
-		return makeFor(perAnalyzer ?? defaultModelName)
+		return perAnalyzer ?? defaultModelName
+	}
+
+	return {
+		modelFor: analyzerId => makeFor(nameFor(analyzerId)),
+		modelNameFor: nameFor,
 	}
 }
 
-function stepRow(runId: string, analyzerId: string, step: AnalyzerStep): NewRecommendationRunStep {
+type CarriedScope = { analyzerId: string; dependentId: string | null }
+
+function stepRow(runId: string, analyzerId: string, step: AnalyzerStep, model: string | null): NewRecommendationRunStep {
 	return {
 		runId,
 		analyzer: analyzerId,
 		prompt: step.prompt ?? null,
 		responseRaw: step.responseRaw ?? null,
 		parsed: (step.parsed as Record<string, unknown> | null) ?? null,
+		// Only attribute a model to steps that actually consumed tokens;
+		// load/sweep bookkeeping steps stay model-less.
+		model: (step.tokensIn ?? 0) > 0 || (step.tokensOut ?? 0) > 0 ? model : null,
 		tokensIn: step.tokensIn ?? 0,
 		tokensOut: step.tokensOut ?? 0,
 		cachedInputTokens: step.cachedInputTokens ?? 0,
@@ -272,9 +343,36 @@ function stepRow(runId: string, analyzerId: string, step: AnalyzerStep): NewReco
 	}
 }
 
-async function getLastSuccessHash(db: Database, userId: string): Promise<{ inputHash: string | null; finishedAt: Date | null } | null> {
+function errorStepRow(runId: string, analyzerId: string, error: string): NewRecommendationRunStep {
+	return {
+		runId,
+		analyzer: analyzerId,
+		prompt: null,
+		responseRaw: null,
+		parsed: null,
+		model: null,
+		tokensIn: 0,
+		tokensOut: 0,
+		cachedInputTokens: 0,
+		latencyMs: 0,
+		error,
+	}
+}
+
+async function getLastSuccessRun(
+	db: Database,
+	userId: string
+): Promise<{
+	inputHash: string | null
+	finishedAt: Date | null
+	analyzerInputHashes: Record<string, { hash: string; generatedAt: string }> | null
+} | null> {
 	const rows = await db
-		.select({ inputHash: recommendationRuns.inputHash, finishedAt: recommendationRuns.finishedAt })
+		.select({
+			inputHash: recommendationRuns.inputHash,
+			finishedAt: recommendationRuns.finishedAt,
+			analyzerInputHashes: recommendationRuns.analyzerInputHashes,
+		})
 		.from(recommendationRuns)
 		.where(and(eq(recommendationRuns.userId, userId), eq(recommendationRuns.status, 'success')))
 		.orderBy(sql`started_at desc`)
@@ -287,7 +385,8 @@ async function persistBatch(
 	userId: string,
 	batchId: string,
 	outputs: Array<AnalyzerRecOutput & { analyzerId: string; dependentId: string | null }>,
-	dryRun: boolean
+	dryRun: boolean,
+	carriedScopes: Array<CarriedScope>
 ): Promise<number> {
 	if (dryRun) return outputs.length
 
@@ -337,25 +436,44 @@ async function persistBatch(
 		}
 	})
 
-	// Compute the (fingerprint, subItemId) pairs that the new bundle set
-	// will claim. Anything in `recommendation_sub_item_dismissals` for this
-	// user whose pair is NOT in this set is now stale (the item left the
-	// candidate set: was fixed, deleted, archived) and should be pruned so
-	// the dismissals table doesn't accumulate forever.
-	const liveDismissalKeys = new Set<string>()
-	for (const o of fps) {
-		if (!o.subItems) continue
-		for (const sub of o.subItems) liveDismissalKeys.add(`${o.fingerprint}:${sub.id}`)
-	}
-
-	// Replace prior batch in a single transaction. Covers both the user's
-	// own recs and any per-dependent recs in one shot so the suggestions
-	// page never sees a half-rotated batch. The sub-item dismissals table
-	// is pruned in the same transaction so a partial-failure can't leave
-	// dangling rows.
+	// Rotate the batch in a single transaction. Scopes that carried forward
+	// unchanged keep their existing rows (original batchId and createdAt —
+	// honest provenance for the admin history view); everything else is
+	// deleted and replaced so the suggestions page never sees a
+	// half-rotated batch. The sub-item dismissals table is pruned in the
+	// same transaction so a partial failure can't leave dangling rows.
 	return await db.transaction(async tx => {
-		await tx.delete(recommendations).where(eq(recommendations.userId, userId))
+		const carriedConds = carriedScopes.map(s =>
+			and(
+				eq(recommendations.analyzerId, s.analyzerId),
+				s.dependentId === null ? sql`${recommendations.dependentId} is null` : eq(recommendations.dependentId, s.dependentId)
+			)
+		)
+		await tx
+			.delete(recommendations)
+			.where(
+				carriedConds.length === 0
+					? eq(recommendations.userId, userId)
+					: and(eq(recommendations.userId, userId), sql`not (${or(...carriedConds)})`)
+			)
 		if (inserts.length > 0) await tx.insert(recommendations).values(inserts)
+
+		// Compute the (fingerprint, subItemId) pairs the CURRENT rec set
+		// (fresh inserts + carried rows) claims, from the persisted
+		// payloads. Anything in `recommendation_sub_item_dismissals` for
+		// this user outside this set is now stale (the item left the
+		// candidate set: was fixed, deleted, archived) and is pruned so the
+		// dismissals table doesn't accumulate forever.
+		const liveRows = await tx
+			.select({ fingerprint: recommendations.fingerprint, payload: recommendations.payload })
+			.from(recommendations)
+			.where(eq(recommendations.userId, userId))
+		const liveDismissalKeys = new Set<string>()
+		for (const row of liveRows) {
+			const subItems = (row.payload as { subItems?: Array<{ id: string }> }).subItems
+			if (!Array.isArray(subItems)) continue
+			for (const sub of subItems) liveDismissalKeys.add(`${row.fingerprint}:${sub.id}`)
+		}
 
 		const existingDismissals = await tx
 			.select({
@@ -448,13 +566,34 @@ function payloadFor(o: AnalyzerRecOutput): Record<string, unknown> {
 	return candidate
 }
 
-// Anthropic input/output token estimate. Production should use real
-// per-model rates (resolved from ai-config) but this is good enough
-// for the admin "cost / day" rollup until billing accuracy matters.
-function estimateCostMicroUsd(tokensIn: number, tokensOut: number): number {
-	// Sonnet-ish ballpark: $3/MTok in, $15/MTok out. Storing micro-USD
-	// (USD * 1_000_000) avoids float drift on the integer column.
-	const inCost = (tokensIn / 1_000_000) * 3
-	const outCost = (tokensOut / 1_000_000) * 15
-	return Math.round((inCost + outCost) * 1_000_000)
+// Per-step cost estimate keyed off the model name that actually ran the
+// step. Cached input tokens bill at roughly a tenth of the input rate on
+// providers that support prefix caching, so they're discounted here too.
+// The rate table matches on model-name substrings so it works across the
+// provider-configurable model ids; unknown names fall back to a
+// Sonnet-ish ballpark. Still an estimate — good enough for the admin
+// "cost / day" rollup, not a billing source of truth.
+const MODEL_RATES: Array<{ match: RegExp; inPerMTok: number; outPerMTok: number }> = [
+	{ match: /haiku/i, inPerMTok: 1, outPerMTok: 5 },
+	{ match: /sonnet/i, inPerMTok: 3, outPerMTok: 15 },
+	{ match: /opus/i, inPerMTok: 5, outPerMTok: 25 },
+]
+const FALLBACK_RATE = { inPerMTok: 3, outPerMTok: 15 }
+const CACHED_READ_MULTIPLIER = 0.1
+
+export function estimateStepCostMicroUsd(
+	model: string | null,
+	step: Pick<AnalyzerStep, 'tokensIn' | 'tokensOut' | 'cachedInputTokens'>
+): number {
+	const tokensIn = step.tokensIn ?? 0
+	const tokensOut = step.tokensOut ?? 0
+	// Clamp: provider-reported cached counts are a subset of tokensIn, but
+	// don't let a misreporting provider drive the estimate negative.
+	const cachedIn = Math.min(step.cachedInputTokens ?? 0, tokensIn)
+	const rate = (model && MODEL_RATES.find(r => r.match.test(model))) || FALLBACK_RATE
+	const inCost = ((tokensIn - cachedIn) / 1_000_000) * rate.inPerMTok
+	const cachedCost = (cachedIn / 1_000_000) * rate.inPerMTok * CACHED_READ_MULTIPLIER
+	const outCost = (tokensOut / 1_000_000) * rate.outPerMTok
+	// Micro-USD (USD * 1_000_000) avoids float drift on the integer column.
+	return (inCost + cachedCost + outCost) * 1_000_000
 }

@@ -1,6 +1,7 @@
-import { and, eq, isNull, ne } from 'drizzle-orm'
+import { and, eq, inArray, isNull, ne } from 'drizzle-orm'
 
-import { items, lists } from '@/db/schema'
+import type { Database } from '@/db'
+import { intelligenceVerdicts, items, lists } from '@/db/schema'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 
 import { composeForLog, generateObjectCached } from '../ai-call'
@@ -78,36 +79,75 @@ export const groupingAnalyzer: Analyzer = {
 			if (clusters.length >= ctx.candidateCap) break
 		}
 
-		const inputHash = sha256Hex(
-			`grouping|${clusters
-				.map(c =>
-					c.rows
-						.map(r => r.itemId)
-						.sort()
-						.join('-')
-				)
-				.sort()
-				.join(',')}`
-		)
+		// Titles participate in the hash (not just ids) because the cached
+		// verdicts and the model's judgment are functions of the text.
+		const finalInputHash = combineHashes([
+			sha256Hex(
+				`grouping|${clusters
+					.map(c =>
+						c.rows
+							.map(r => `${r.itemId}:${normalizeTitle(r.title)}`)
+							.sort()
+							.join('-')
+					)
+					.sort()
+					.join(',')}`
+			),
+		])
+
+		// Skip-before-call: identical cluster slate to the prior successful
+		// run — bail before any model work; the runner keeps this scope's
+		// existing recs.
+		if (!ctx.dryRun && ctx.priorInputHash != null && ctx.priorInputHash === finalInputHash) {
+			return { recs: [], steps: [loadStep], inputHash: finalInputHash, unchanged: true }
+		}
 
 		if (clusters.length === 0) {
-			return { recs: [], steps: [loadStep], inputHash: combineHashes([inputHash]) }
+			return { recs: [], steps: [loadStep], inputHash: finalInputHash }
 		}
 
 		const steps: Array<AnalyzerStep> = [loadStep]
 		const recs: Array<AnalyzerRecOutput> = []
 
+		// Verdict cache: clusters whose member titles were already judged
+		// keep their stored decision; only unseen clusters go to the model.
+		const cacheStart = Date.now()
+		const keyed = clusters.map(c => ({ cluster: c, key: clusterVerdictKey(c.rows.map(r => r.title)) }))
+		const cachedVerdicts = await loadClusterVerdicts(
+			ctx.db,
+			ctx.userId,
+			keyed.map(k => k.key)
+		)
+		const misses: Array<(typeof keyed)[number]> = []
+		for (const entry of keyed) {
+			const verdict = cachedVerdicts.get(entry.key)
+			if (!verdict) {
+				misses.push(entry)
+				continue
+			}
+			if (verdict.decision === 'skip') continue
+			const orderedRows = mapTitlesToRows(verdict.orderedTitles, entry.cluster.rows)
+			if (!orderedRows || orderedRows.length < 2) continue
+			recs.push(buildGroupRec(orderedRows, entry.cluster.listId, entry.cluster.listName, verdict.decision, verdict.rationale, ctx.subject))
+		}
+		steps.push({
+			name: 'grouping:verdict-cache',
+			parsed: { clusters: keyed.length, hits: keyed.length - misses.length, misses: misses.length },
+			latencyMs: Date.now() - cacheStart,
+		})
+
 		// Heuristic alone is too noisy: shared tokens / brand prefixes flag
 		// plenty of pairs that aren't truly grouping candidates. Without a
-		// model to confirm, we don't surface anything to the user.
-		if (!ctx.model) {
-			return { recs, steps, inputHash: combineHashes([inputHash]) }
+		// model to confirm, we only surface what the verdict cache already
+		// confirmed.
+		if (!ctx.model || misses.length === 0) {
+			return { recs: recs.slice(0, GROUPING_MAX_SUGGESTIONS), steps, inputHash: finalInputHash }
 		}
 
-		const promptClusters: Array<GroupingClusterCandidate> = clusters.map(c => ({
-			listId: String(c.listId),
-			listName: c.listName,
-			items: c.rows.map(r => ({ itemId: String(r.itemId), title: r.title })),
+		const promptClusters: Array<GroupingClusterCandidate> = misses.map(m => ({
+			listId: String(m.cluster.listId),
+			listName: m.cluster.listName,
+			items: m.cluster.rows.map(r => ({ itemId: String(r.itemId), title: r.title })),
 		}))
 		const userPrompt = buildGroupingUserPrompt({ clusters: promptClusters })
 
@@ -146,32 +186,150 @@ export const groupingAnalyzer: Analyzer = {
 		})
 
 		if (error || !parsed) {
-			return { recs, steps, inputHash: combineHashes([inputHash]) }
+			return { recs: recs.slice(0, GROUPING_MAX_SUGGESTIONS), steps, inputHash: finalInputHash }
 		}
 
+		// Consume the full parsed list for the verdict cache (so a big
+		// response still memoizes every judgment), but bound how many fresh
+		// group recs one run can add.
 		const aiGroups = (
 			parsed as { groups: Array<{ clusterIndex: number; decision: 'or' | 'order' | 'skip'; itemIds: Array<string>; rationale: string }> }
-		).groups.slice(0, GROUPING_MAX_SUGGESTIONS)
+		).groups
+		const echoedIndexes = new Set<number>()
+		const verdictsToStore: Array<{ key: string; verdict: ClusterVerdict }> = []
+		let freshRecs = 0
 
 		for (const group of aiGroups) {
-			if (group.decision === 'skip') continue
-			if (group.itemIds.length < 2) continue
 			const idx = group.clusterIndex - 1
-			if (idx < 0 || idx >= clusters.length) continue
-			const cluster = clusters[idx]
+			if (idx < 0 || idx >= misses.length) continue
+			echoedIndexes.add(idx)
+			const { cluster, key } = misses[idx]
 			const allowedIds = new Set(cluster.rows.map(r => String(r.itemId)))
-			if (!group.itemIds.every(id => allowedIds.has(id))) continue
+			const validMembers = group.decision !== 'skip' && group.itemIds.length >= 2 && group.itemIds.every(id => allowedIds.has(id))
+			if (!validMembers) {
+				verdictsToStore.push({ key, verdict: { decision: 'skip', orderedTitles: [], rationale: '' } })
+				continue
+			}
 			const orderedRows: Array<Row> = []
 			for (const id of group.itemIds) {
 				const row = cluster.rows.find(r => String(r.itemId) === id)
 				if (row) orderedRows.push(row)
 			}
-			if (orderedRows.length < 2) continue
-			recs.push(buildGroupRec(orderedRows, cluster.listId, cluster.listName, group.decision, group.rationale, ctx.subject))
+			if (orderedRows.length < 2) {
+				verdictsToStore.push({ key, verdict: { decision: 'skip', orderedTitles: [], rationale: '' } })
+				continue
+			}
+			verdictsToStore.push({
+				key,
+				verdict: { decision: group.decision as 'or' | 'order', orderedTitles: orderedRows.map(r => r.title), rationale: group.rationale },
+			})
+			if (freshRecs < GROUPING_MAX_SUGGESTIONS) {
+				recs.push(
+					buildGroupRec(orderedRows, cluster.listId, cluster.listName, group.decision as 'or' | 'order', group.rationale, ctx.subject)
+				)
+				freshRecs++
+			}
 		}
 
-		return { recs, steps, inputHash: combineHashes([inputHash]) }
+		// Clusters the model didn't echo back get a negative verdict so we
+		// don't re-ask about the same titles forever. A title edit changes
+		// the key, so a wrongly-negative verdict heals on the next edit or
+		// when the row ages out of retention.
+		for (let i = 0; i < misses.length; i++) {
+			if (echoedIndexes.has(i)) continue
+			verdictsToStore.push({ key: misses[i].key, verdict: { decision: 'skip', orderedTitles: [], rationale: '' } })
+		}
+		if (!ctx.dryRun && verdictsToStore.length > 0) {
+			await storeClusterVerdicts(ctx.db, ctx.userId, verdictsToStore, modelNameOf(ctx.model))
+		}
+
+		return { recs: recs.slice(0, GROUPING_MAX_SUGGESTIONS), steps, inputHash: finalInputHash }
 	},
+}
+
+// ─── Verdict cache helpers ──────────────────────────────────────────────────
+
+const CLUSTER_VERDICT_KIND = 'grouping-cluster'
+
+type ClusterVerdict = { decision: 'or' | 'order' | 'skip'; orderedTitles: Array<string>; rationale: string }
+
+export function normalizeTitle(title: string): string {
+	return title.trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+// Key is a function of the member titles only: the judgment ("are these
+// alternates / a sequence / unrelated?") doesn't depend on ids or list
+// names, so it survives item re-creation and list moves.
+export function clusterVerdictKey(titles: ReadonlyArray<string>): string {
+	return sha256Hex(`group-cluster|${titles.map(normalizeTitle).sort().join('|')}`)
+}
+
+async function loadClusterVerdicts(db: Database, userId: string, keys: Array<string>): Promise<Map<string, ClusterVerdict>> {
+	if (keys.length === 0) return new Map()
+	const rows = await db
+		.select({ key: intelligenceVerdicts.key, verdict: intelligenceVerdicts.verdict })
+		.from(intelligenceVerdicts)
+		.where(
+			and(
+				eq(intelligenceVerdicts.userId, userId),
+				eq(intelligenceVerdicts.kind, CLUSTER_VERDICT_KIND),
+				inArray(intelligenceVerdicts.key, keys)
+			)
+		)
+	const map = new Map<string, ClusterVerdict>()
+	for (const row of rows) {
+		const v = row.verdict as Partial<ClusterVerdict>
+		if (v.decision === 'or' || v.decision === 'order' || v.decision === 'skip') {
+			map.set(row.key, {
+				decision: v.decision,
+				orderedTitles: Array.isArray(v.orderedTitles) ? v.orderedTitles : [],
+				rationale: typeof v.rationale === 'string' ? v.rationale : '',
+			})
+		}
+	}
+	return map
+}
+
+async function storeClusterVerdicts(
+	db: Database,
+	userId: string,
+	entries: Array<{ key: string; verdict: ClusterVerdict }>,
+	model: string | null
+): Promise<void> {
+	for (const entry of entries) {
+		await db
+			.insert(intelligenceVerdicts)
+			.values({ userId, kind: CLUSTER_VERDICT_KIND, key: entry.key, verdict: entry.verdict, model })
+			.onConflictDoNothing()
+	}
+}
+
+// Resolve a cached verdict's ordered member titles back onto the current
+// cluster rows. Bails (returns null) when any title is missing or
+// ambiguous (duplicate titles in the cluster) — the cluster then falls
+// through as a miss on the next run rather than emitting a wrong group.
+function mapTitlesToRows<TRow extends { title: string }>(titles: ReadonlyArray<string>, rows: ReadonlyArray<TRow>): Array<TRow> | null {
+	const byTitle = new Map<string, Array<TRow>>()
+	for (const row of rows) {
+		const key = normalizeTitle(row.title)
+		const arr = byTitle.get(key) ?? []
+		arr.push(row)
+		byTitle.set(key, arr)
+	}
+	const out: Array<TRow> = []
+	for (const title of titles) {
+		const matches = byTitle.get(normalizeTitle(title))
+		if (!matches || matches.length !== 1) return null
+		out.push(matches[0])
+	}
+	return out
+}
+
+export function modelNameOf(model: unknown): string | null {
+	if (model && typeof model === 'object' && 'modelId' in model && typeof (model as { modelId: unknown }).modelId === 'string') {
+		return (model as { modelId: string }).modelId
+	}
+	return null
 }
 
 // Stopwords are intentionally narrow - articles, prepositions, copulas.

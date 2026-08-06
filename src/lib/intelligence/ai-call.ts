@@ -8,6 +8,13 @@ import type { z } from 'zod'
 // the cached rate. OpenAI's automatic prefix caching kicks in for free
 // on the same shape; openai-compatible providers ignore the hint.
 //
+// CAVEAT: providers enforce a minimum cacheable prefix length (Anthropic:
+// 1024 tokens on Sonnet-class models; more on some others). Our analyzer
+// system blocks are a few hundred tokens, so in practice the hint is a
+// silent no-op — expect `cachedInputTokens` to read 0 — unless a prompt
+// grows past the threshold. Real savings come from not making the call
+// at all (per-scope skip gate + enrichment store), not from caching.
+//
 // Why messages-based input: `generateObject({ system, prompt })` flattens
 // to a system message but the AI SDK has no way to attach providerOptions
 // to it. Using explicit messages lets us hang the cache_control hint on

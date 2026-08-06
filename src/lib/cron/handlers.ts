@@ -8,7 +8,7 @@ import { eq, lt } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
-import { lists, recommendationRunSteps, recommendations, users } from '@/db/schema'
+import { intelligenceVerdicts, lists, recommendationRunSteps, recommendations, users } from '@/db/schema'
 import type { AutoArchiveResult } from '@/lib/cron/auto-archive'
 import { autoArchiveImpl } from '@/lib/cron/auto-archive'
 import { birthdayEmailsImpl } from '@/lib/cron/birthday-emails'
@@ -48,15 +48,26 @@ async function runWithConcurrency<TItem, TResult>(
 	return results
 }
 
+// Memoized model judgments (duplicate-pair / grouping-cluster verdicts)
+// are pruned on a fixed window: long enough that steady-state runs almost
+// always hit, short enough that a wrong negative verdict eventually
+// re-judges even if the titles never change.
+const VERDICT_RETENTION_DAYS = 90
+
 async function runIntelligenceRetentionSweep(args: { recDays: number; stepDays: number }) {
 	const recCutoff = new Date(Date.now() - args.recDays * 86400000)
 	const stepCutoff = new Date(Date.now() - args.stepDays * 86400000)
+	const verdictCutoff = new Date(Date.now() - VERDICT_RETENTION_DAYS * 86400000)
 	const recRows = await db.delete(recommendations).where(lt(recommendations.createdAt, recCutoff)).returning({ id: recommendations.id })
 	const stepRows = await db
 		.delete(recommendationRunSteps)
 		.where(lt(recommendationRunSteps.createdAt, stepCutoff))
 		.returning({ id: recommendationRunSteps.id })
-	return { recsDeleted: recRows.length, stepsDeleted: stepRows.length }
+	const verdictRows = await db
+		.delete(intelligenceVerdicts)
+		.where(lt(intelligenceVerdicts.createdAt, verdictCutoff))
+		.returning({ key: intelligenceVerdicts.key })
+	return { recsDeleted: recRows.length, stepsDeleted: stepRows.length, verdictsDeleted: verdictRows.length }
 }
 
 // Looks up each owner's email and list name and fires

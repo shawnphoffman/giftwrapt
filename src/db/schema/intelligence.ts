@@ -101,9 +101,19 @@ export const recommendationRuns = pgTable(
 		skipReason: text('skip_reason'),
 		// Captured error message when status === 'error'.
 		error: text('error'),
-		// Combined hash of all enabled-analyzer input slices. Used to skip
-		// regeneration when nothing has changed since the last successful run.
+		// Combined hash of all enabled-analyzer input slices. Kept for admin
+		// visibility; the per-scope gating below is what actually short-
+		// circuits work.
 		inputHash: text('input_hash'),
+		// Per-analyzer, per-scope input hashes from this run:
+		// `{ "<dependentId|self>:<analyzerId>": { hash, generatedAt } }`.
+		// The runner passes the matching hash into the next run's analyzer
+		// context so an analyzer whose candidate slice is byte-identical can
+		// skip its model call entirely and keep its prior recs. `generatedAt`
+		// is when the scope's recs were last ACTUALLY regenerated (carried
+		// scopes copy it forward unchanged) so the runner can bound how long
+		// AI-authored copy is reused before forcing a fresh pass.
+		analyzerInputHashes: jsonb('analyzer_input_hashes').$type<Record<string, { hash: string; generatedAt: string }>>(),
 		// Token totals across all analyzers for quick admin rollups.
 		tokensIn: integer('tokens_in').default(0).notNull(),
 		tokensOut: integer('tokens_out').default(0).notNull(),
@@ -137,6 +147,11 @@ export const recommendationRunSteps = pgTable(
 		responseRaw: text('response_raw'),
 		// Zod-parsed structured output, or the validation error.
 		parsed: jsonb('parsed'),
+		// Model name this step ran against (per-analyzer overrides mean
+		// steps within one run can use different models). Null for
+		// heuristic-only steps and rows written before this column existed.
+		// Drives the per-model cost estimate on the run.
+		model: text('model'),
 		tokensIn: integer('tokens_in').default(0).notNull(),
 		tokensOut: integer('tokens_out').default(0).notNull(),
 		// Of `tokensIn`, how many were billed at the cached-prefix rate.

@@ -4,8 +4,9 @@ import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import type { Database } from '@/db'
-import { appSettings, recommendationRuns, recommendations } from '@/db/schema'
+import { appSettings, itemAiAnalysis, recommendationRuns, recommendations } from '@/db/schema'
 
+import { ANALYSIS_VERSION, contentHashFor } from '../enrichment'
 import { fingerprintFor } from '../fingerprint'
 import { generateForUser } from '../runner'
 
@@ -196,6 +197,96 @@ describe('integration sanity - tables exist + runner does not crash on cold DB',
 			const runs = await tx.select().from(recommendationRuns).where(eq(recommendationRuns.userId, user.id))
 			expect(recs).toEqual([])
 			expect(runs).toEqual([])
+		})
+	})
+})
+
+describe('per-scope carry-forward (skip-before-call)', () => {
+	// Uses clothing-prefs as the gated analyzer: it is facet-driven (no
+	// model call), so the whole flow runs against the sham AI config with
+	// zero network attempts — the seeded analysis row keeps the enrichment
+	// sweep quiet, and the single item produces no candidates for the
+	// other AI analyzers.
+	it("keeps a scope's rec rows untouched when inputs are unchanged, and copies generatedAt forward", async () => {
+		await withRollback(async tx => {
+			const user = await makeUser(tx)
+			const list = await makeList(tx, { ownerId: user.id, type: 'wishlist', isPrimary: true })
+			const hoodie = await makeItem(tx, { listId: list.id, title: 'Cozy Hoodie' })
+			await tx.insert(itemAiAnalysis).values({
+				itemId: hoodie.id,
+				contentHash: contentHashFor(hoodie.title, hoodie.notes, hoodie.url),
+				analysisVersion: ANALYSIS_VERSION,
+				category: 'clothing',
+				isClothing: true,
+				hasSize: false,
+				hasColor: false,
+				sizingRationale: 'Size still needed.',
+			})
+
+			await setIntelligenceEnabled(tx, true)
+			await configureAi(tx)
+
+			const first = await generateForUser(tx as unknown as Database, user.id, { trigger: 'manual' })
+			expect(first.status).toBe('success')
+
+			const recsAfterFirst = await tx.select().from(recommendations).where(eq(recommendations.userId, user.id))
+			const clothingRec = recsAfterFirst.find(r => r.analyzerId === 'clothing-prefs')
+			expect(clothingRec).toBeDefined()
+
+			const runsAfterFirst = await tx.select().from(recommendationRuns).where(eq(recommendationRuns.userId, user.id))
+			const run1 = runsAfterFirst.find(r => r.status === 'success')!
+			const scope1 = run1.analyzerInputHashes?.['self:clothing-prefs']
+			expect(scope1?.hash).toBeTruthy()
+
+			const second = await generateForUser(tx as unknown as Database, user.id, { trigger: 'manual' })
+			expect(second.status).toBe('success')
+
+			// The clothing-prefs scope carried: the SAME row survives (same
+			// id, same batchId) instead of being deleted and re-inserted.
+			const recsAfterSecond = await tx.select().from(recommendations).where(eq(recommendations.userId, user.id))
+			const clothingRec2 = recsAfterSecond.find(r => r.analyzerId === 'clothing-prefs')
+			expect(clothingRec2?.id).toBe(clothingRec!.id)
+			expect(clothingRec2?.batchId).toBe(clothingRec!.batchId)
+
+			// The new run's scope entry copies the ORIGINAL generatedAt
+			// forward so the carry bound measures from the last real
+			// generation, not the last verify.
+			const runsAfterSecond = await tx.select().from(recommendationRuns).where(eq(recommendationRuns.userId, user.id))
+			const run2 = runsAfterSecond.filter(r => r.status === 'success').find(r => r.id !== run1.id)!
+			const scope2 = run2.analyzerInputHashes?.['self:clothing-prefs']
+			expect(scope2?.hash).toBe(scope1!.hash)
+			expect(scope2?.generatedAt).toBe(scope1!.generatedAt)
+		})
+	})
+
+	it('a dismissed rec in a carried scope stays dismissed', async () => {
+		await withRollback(async tx => {
+			const user = await makeUser(tx)
+			const list = await makeList(tx, { ownerId: user.id, type: 'wishlist', isPrimary: true })
+			const hoodie = await makeItem(tx, { listId: list.id, title: 'Cozy Hoodie' })
+			await tx.insert(itemAiAnalysis).values({
+				itemId: hoodie.id,
+				contentHash: contentHashFor(hoodie.title, hoodie.notes, hoodie.url),
+				analysisVersion: ANALYSIS_VERSION,
+				category: 'clothing',
+				isClothing: true,
+				hasSize: false,
+				hasColor: false,
+			})
+
+			await setIntelligenceEnabled(tx, true)
+			await configureAi(tx)
+
+			await generateForUser(tx as unknown as Database, user.id, { trigger: 'manual' })
+			const recs = await tx.select().from(recommendations).where(eq(recommendations.userId, user.id))
+			const clothingRec = recs.find(r => r.analyzerId === 'clothing-prefs')!
+			await tx.update(recommendations).set({ status: 'dismissed', dismissedAt: new Date() }).where(eq(recommendations.id, clothingRec.id))
+
+			await generateForUser(tx as unknown as Database, user.id, { trigger: 'manual' })
+			const after = await tx.select().from(recommendations).where(eq(recommendations.userId, user.id))
+			const carried = after.find(r => r.analyzerId === 'clothing-prefs')!
+			expect(carried.id).toBe(clothingRec.id)
+			expect(carried.status).toBe('dismissed')
 		})
 	})
 })

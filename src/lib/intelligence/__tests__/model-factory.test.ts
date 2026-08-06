@@ -36,15 +36,16 @@ function aiConfigOk() {
 }
 
 describe('resolveModelFactory', () => {
-	it('returns () => null when no AI provider is configured', async () => {
+	it('returns null pickers when no AI provider is configured', async () => {
 		mockedResolve.mockResolvedValue({
 			...aiConfigOk(),
 			isValid: false,
 		})
 
 		const factory = await resolveModelFactory(fakeDb, DEFAULT_APP_SETTINGS)
-		expect(factory('duplicates')).toBeNull()
-		expect(factory('stale-items')).toBeNull()
+		expect(factory.modelFor('duplicates')).toBeNull()
+		expect(factory.modelFor('stale-items')).toBeNull()
+		expect(factory.modelNameFor('duplicates')).toBeNull()
 		expect(mockedCreate).not.toHaveBeenCalled()
 	})
 
@@ -53,8 +54,9 @@ describe('resolveModelFactory', () => {
 		mockedCreate.mockImplementation(args => ({ modelId: args.model }) as unknown as ReturnType<typeof createAiModel>)
 
 		const factory = await resolveModelFactory(fakeDb, DEFAULT_APP_SETTINGS)
-		const m = factory('duplicates')
+		const m = factory.modelFor('duplicates')
 		expect((m as { modelId: string }).modelId).toBe('claude-default')
+		expect(factory.modelNameFor('duplicates')).toBe('claude-default')
 	})
 
 	it('falls back through the override hierarchy: per-analyzer beats global beats default', async () => {
@@ -71,10 +73,14 @@ describe('resolveModelFactory', () => {
 		})
 
 		// Per-analyzer override wins for duplicates and stale-items.
-		expect((factory('duplicates') as { modelId: string }).modelId).toBe('claude-haiku-cheap')
-		expect((factory('stale-items') as { modelId: string }).modelId).toBe('claude-haiku-cheap')
+		expect((factory.modelFor('duplicates') as { modelId: string }).modelId).toBe('claude-haiku-cheap')
+		expect((factory.modelFor('stale-items') as { modelId: string }).modelId).toBe('claude-haiku-cheap')
 		// Not overridden → falls back to the global override.
-		expect((factory('grouping') as { modelId: string }).modelId).toBe('claude-global-override')
+		expect((factory.modelFor('grouping') as { modelId: string }).modelId).toBe('claude-global-override')
+		// Name resolution mirrors instance resolution (drives per-step
+		// cost attribution and the 'enrichment' pseudo-analyzer).
+		expect(factory.modelNameFor('duplicates')).toBe('claude-haiku-cheap')
+		expect(factory.modelNameFor('enrichment')).toBe('claude-global-override')
 	})
 
 	it('caches model instances by name so analyzers sharing an override share one client', async () => {
@@ -90,9 +96,9 @@ describe('resolveModelFactory', () => {
 			},
 		})
 
-		const a = factory('duplicates')
-		const b = factory('stale-items')
-		const c = factory('grouping')
+		const a = factory.modelFor('duplicates')
+		const b = factory.modelFor('stale-items')
+		const c = factory.modelFor('grouping')
 
 		// Two distinct names → two createAiModel calls. Repeated lookups
 		// for the same name must return the SAME instance from cache.
@@ -101,7 +107,7 @@ describe('resolveModelFactory', () => {
 		expect(c).not.toBe(a)
 
 		// Asking again doesn't re-create.
-		factory('duplicates')
+		factory.modelFor('duplicates')
 		expect(mockedCreate).toHaveBeenCalledTimes(2)
 	})
 })

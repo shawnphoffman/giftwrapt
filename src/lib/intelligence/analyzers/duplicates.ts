@@ -1,6 +1,7 @@
-import { and, eq, isNull, ne } from 'drizzle-orm'
+import { and, eq, inArray, isNull, ne } from 'drizzle-orm'
 
-import { items, lists } from '@/db/schema'
+import type { Database } from '@/db'
+import { intelligenceVerdicts, itemAiAnalysis, items, lists } from '@/db/schema'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { jaccard, tokenSet } from '@/lib/text-similarity'
 import { normalizeProductUrl } from '@/lib/urls'
@@ -17,6 +18,7 @@ import {
 	duplicatesResponseSchema,
 } from '../prompts/duplicates'
 import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ItemRef, ListRef } from '../types'
+import { modelNameOf, normalizeTitle } from './grouping'
 
 // Two passes:
 //   1. URL short-circuit: pairs that share the same normalized product
@@ -65,9 +67,11 @@ export const duplicatesAnalyzer: Analyzer = {
 				listName: lists.name,
 				listType: lists.type,
 				listIsPrivate: lists.isPrivate,
+				canonicalName: itemAiAnalysis.canonicalName,
 			})
 			.from(items)
 			.innerJoin(lists, eq(items.listId, lists.id))
+			.leftJoin(itemAiAnalysis, eq(itemAiAnalysis.itemId, items.id))
 			.where(
 				and(
 					eq(lists.ownerId, ctx.userId),
@@ -109,6 +113,35 @@ export const duplicatesAnalyzer: Analyzer = {
 			}
 		}
 
+		// Pass 1b: canonical-name pass. The enrichment step normalizes each
+		// item to a canonical product identity ("nike air zoom pegasus 40")
+		// precisely so this comparison is a string equality instead of a
+		// model call. Same-canonical items on DIFFERENT lists are confident
+		// duplicates. Skips pairs the URL pass already claimed.
+		const canonConfirmedPairs: Array<Pair> = []
+		const canonConfirmedKeys = new Set<string>()
+		const byCanon = new Map<string, Array<(typeof rows)[number]>>()
+		for (const row of rows) {
+			const canon = row.canonicalName?.trim()
+			if (!canon || canon.length < 3) continue
+			const arr = byCanon.get(canon) ?? []
+			arr.push(row)
+			byCanon.set(canon, arr)
+		}
+		for (const group of byCanon.values()) {
+			if (group.length < 2) continue
+			for (let i = 0; i < group.length; i++) {
+				for (let j = i + 1; j < group.length; j++) {
+					if (group[i].listId === group[j].listId) continue
+					const ordered = group[i].itemId < group[j].itemId ? [group[i], group[j]] : [group[j], group[i]]
+					const key = pairKey(ordered[0].itemId, ordered[1].itemId)
+					if (urlConfirmedKeys.has(key)) continue
+					canonConfirmedPairs.push([ordered[0], ordered[1]])
+					canonConfirmedKeys.add(key)
+				}
+			}
+		}
+
 		// Pass 2: token-set Jaccard above DUPLICATES_LLM_FLOOR, across
 		// different lists, skipping pairs already confirmed by URL.
 		// Compute token sets once per row so the O(N^2) pair loop is
@@ -130,7 +163,8 @@ export const duplicatesAnalyzer: Analyzer = {
 				const score = jaccard(aTokens, bTokens)
 				if (score < DUPLICATES_LLM_FLOOR) continue
 				const ordered: Pair = a.itemId < b.itemId ? [a, b] : [b, a]
-				if (urlConfirmedKeys.has(pairKey(ordered[0].itemId, ordered[1].itemId))) continue
+				const orderedKey = pairKey(ordered[0].itemId, ordered[1].itemId)
+				if (urlConfirmedKeys.has(orderedKey) || canonConfirmedKeys.has(orderedKey)) continue
 				scoredPairs.push({ pair: ordered, score })
 			}
 		}
@@ -159,17 +193,26 @@ export const duplicatesAnalyzer: Analyzer = {
 			if (candidatePairs.length >= ctx.candidateCap) break
 		}
 
-		// For the no-model fallback below, keep only the rock-solid
-		// matches (identical token sets). Widening the LLM candidate
-		// floor to 0.5 is fine because the LLM gates precision; without
-		// a model we have no such gate, so we stay strict.
-		const heuristicOnlyPairs: Array<Pair> = scoredPairs.filter(s => s.score === 1).map(s => s.pair)
+		// Input hash covers every pair set so any change (URL match, canon
+		// match, auto-confirm, LLM candidate) invalidates the carried recs.
+		// LLM candidates hash by TITLE, not id: the model's judgment (and
+		// the verdict-cache key) is a function of the text, so a title edit
+		// must invalidate even when the pair's item ids are unchanged.
+		const finalInputHash = combineHashes([
+			sha256Hex(
+				`dupes|url:${pairSetKey(urlConfirmedPairs)}|canon:${pairSetKey(canonConfirmedPairs)}|auto:${pairSetKey(autoConfirmPairs)}|title:${candidatePairs
+					.map(p => pairVerdictKey(p[0].title, p[1].title))
+					.sort()
+					.join(',')}`
+			),
+		])
 
-		// Input hash covers every pair set so any change (URL match,
-		// auto-confirm, LLM candidate) invalidates the cached run.
-		const inputHash = sha256Hex(
-			`dupes|url:${pairSetKey(urlConfirmedPairs)}|auto:${pairSetKey(autoConfirmPairs)}|title:${pairSetKey(candidatePairs)}`
-		)
+		// Skip-before-call: identical pair slate to the prior successful
+		// run — bail before any model work; the runner keeps this scope's
+		// existing recs.
+		if (!ctx.dryRun && ctx.priorInputHash != null && ctx.priorInputHash === finalInputHash) {
+			return { recs: [], steps: [loadStep], inputHash: finalInputHash, unchanged: true }
+		}
 
 		const steps: Array<AnalyzerStep> = [loadStep]
 		const recs: Array<AnalyzerRecOutput> = []
@@ -190,6 +233,23 @@ export const duplicatesAnalyzer: Analyzer = {
 			steps.push({ name: 'duplicates:url-short-circuit', latencyMs: 0 })
 		}
 
+		// Canonical-name recs: same product identity per the enrichment
+		// pass, no model call needed.
+		for (const pair of canonConfirmedPairs) {
+			recs.push(
+				buildPairRec(
+					pair,
+					'suggest',
+					'Same item on two lists',
+					'Both items describe the same product, so this looks like the same item appearing twice.',
+					ctx.subject
+				)
+			)
+		}
+		if (canonConfirmedPairs.length > 0) {
+			steps.push({ name: 'duplicates:canonical-name', latencyMs: 0 })
+		}
+
 		// Auto-confirmed recs (title Jaccard >= AUTO_CONFIRM_FLOOR).
 		// Title-based, not URL-based, so the rationale differs.
 		for (const pair of autoConfirmPairs) {
@@ -208,32 +268,47 @@ export const duplicatesAnalyzer: Analyzer = {
 		}
 
 		if (candidatePairs.length === 0) {
-			return { recs, steps, inputHash: combineHashes([inputHash]) }
+			return { recs, steps, inputHash: finalInputHash }
 		}
 
-		const promptPairs: Array<[DuplicateCandidate, DuplicateCandidate]> = candidatePairs.map(p => [
+		// Verdict cache: a pair judgment is a pure function of the two
+		// titles, so it's memoized per user. Only never-seen pairs go to
+		// the model; a title edit changes the key and re-judges naturally.
+		const cacheStart = Date.now()
+		const keyedPairs = candidatePairs.map(pair => ({ pair, key: pairVerdictKey(pair[0].title, pair[1].title) }))
+		const cachedVerdicts = await loadPairVerdicts(
+			ctx.db,
+			ctx.userId,
+			keyedPairs.map(k => k.key)
+		)
+		const misses: Array<(typeof keyedPairs)[number]> = []
+		for (const entry of keyedPairs) {
+			const verdict = cachedVerdicts.get(entry.key)
+			if (!verdict) {
+				misses.push(entry)
+				continue
+			}
+			if (verdict.matched && verdict.confident) {
+				recs.push(buildPairRec(entry.pair, 'suggest', 'Same item on two lists', verdict.rationale, ctx.subject))
+			}
+		}
+		steps.push({
+			name: 'duplicates:verdict-cache',
+			parsed: { pairs: keyedPairs.length, hits: keyedPairs.length - misses.length, misses: misses.length },
+			latencyMs: Date.now() - cacheStart,
+		})
+
+		// Without a model the URL / canonical-name / auto-confirm tiers and
+		// any cached verdicts above are the whole answer — the borderline
+		// pairs stay unjudged rather than emitting noisy "maybe" cards.
+		if (!ctx.model || misses.length === 0) {
+			return { recs, steps, inputHash: finalInputHash }
+		}
+
+		const promptPairs: Array<[DuplicateCandidate, DuplicateCandidate]> = misses.map(({ pair: p }) => [
 			{ itemId: String(p[0].itemId), title: p[0].title, listId: String(p[0].listId), listName: p[0].listName, listType: p[0].listType },
 			{ itemId: String(p[1].itemId), title: p[1].title, listId: String(p[1].listId), listName: p[1].listName, listType: p[1].listType },
 		])
-
-		// Heuristic-only fallback: when no model, surface only the
-		// rock-solid (identical token set) pairs as info-level recs.
-		// The model is the precision gate; without one, we trade recall
-		// for not emitting noisy "maybe-duplicate" cards.
-		if (!ctx.model) {
-			for (const pair of heuristicOnlyPairs) {
-				recs.push(
-					buildPairRec(
-						pair,
-						'info',
-						'Possible duplicate across lists',
-						'These items have very similar titles and live on different lists.',
-						ctx.subject
-					)
-				)
-			}
-			return { recs, steps, inputHash: combineHashes([inputHash]) }
-		}
 
 		const userPrompt = buildDuplicatesUserPrompt({ candidatePairs: promptPairs })
 		const stepStart = Date.now()
@@ -271,21 +346,94 @@ export const duplicatesAnalyzer: Analyzer = {
 		})
 
 		if (error || !parsed) {
-			return { recs, steps, inputHash: combineHashes([inputHash]) }
+			return { recs, steps, inputHash: finalInputHash }
 		}
 
-		const aiPairs = (
-			parsed as { pairs: Array<{ leftItemId: string; rightItemId: string; confident: boolean; rationale: string }> }
-		).pairs.slice(0, DUPLICATES_MAX_PAIRS)
+		// Consume the full parsed list for the verdict cache (every
+		// judgment is worth memoizing) but bound how many fresh dup recs a
+		// single run can add.
+		const aiPairs = (parsed as { pairs: Array<{ leftItemId: string; rightItemId: string; confident: boolean; rationale: string }> }).pairs
+		const echoedKeys = new Set<string>()
+		const verdictsToStore: Array<{ key: string; verdict: PairVerdict }> = []
+		let freshRecs = 0
 		for (const aiPair of aiPairs) {
-			if (!aiPair.confident) continue
-			const dbPair = candidatePairs.find(p => String(p[0].itemId) === aiPair.leftItemId && String(p[1].itemId) === aiPair.rightItemId)
-			if (!dbPair) continue
-			recs.push(buildPairRec(dbPair, 'suggest', `Same item on two lists`, aiPair.rationale, ctx.subject))
+			const entry = misses.find(m => String(m.pair[0].itemId) === aiPair.leftItemId && String(m.pair[1].itemId) === aiPair.rightItemId)
+			if (!entry) continue
+			echoedKeys.add(entry.key)
+			verdictsToStore.push({ key: entry.key, verdict: { matched: true, confident: aiPair.confident, rationale: aiPair.rationale } })
+			if (aiPair.confident && freshRecs < DUPLICATES_MAX_PAIRS) {
+				recs.push(buildPairRec(entry.pair, 'suggest', `Same item on two lists`, aiPair.rationale, ctx.subject))
+				freshRecs++
+			}
+		}
+		// Pairs the model didn't echo back get a negative verdict so we
+		// don't re-ask about the same titles forever. A title edit changes
+		// the key; retention ages the row out regardless.
+		for (const entry of misses) {
+			if (!echoedKeys.has(entry.key)) {
+				verdictsToStore.push({ key: entry.key, verdict: { matched: false, confident: false, rationale: '' } })
+			}
+		}
+		if (!ctx.dryRun && verdictsToStore.length > 0) {
+			await storePairVerdicts(ctx.db, ctx.userId, verdictsToStore, modelNameOf(ctx.model))
 		}
 
-		return { recs, steps, inputHash: combineHashes([inputHash]) }
+		return { recs, steps, inputHash: finalInputHash }
 	},
+}
+
+// ─── Verdict cache helpers ──────────────────────────────────────────────────
+
+const PAIR_VERDICT_KIND = 'duplicate-pair'
+
+type PairVerdict = { matched: boolean; confident: boolean; rationale: string }
+
+// Order-insensitive key over the two normalized titles. Deliberately
+// excludes ids and list names: "is X the same product as Y" doesn't
+// depend on where the items live.
+export function pairVerdictKey(titleA: string, titleB: string): string {
+	const [lo, hi] = [normalizeTitle(titleA), normalizeTitle(titleB)].sort()
+	return sha256Hex(`dup-pair|${lo}|${hi}`)
+}
+
+async function loadPairVerdicts(db: Database, userId: string, keys: Array<string>): Promise<Map<string, PairVerdict>> {
+	if (keys.length === 0) return new Map()
+	const rows = await db
+		.select({ key: intelligenceVerdicts.key, verdict: intelligenceVerdicts.verdict })
+		.from(intelligenceVerdicts)
+		.where(
+			and(
+				eq(intelligenceVerdicts.userId, userId),
+				eq(intelligenceVerdicts.kind, PAIR_VERDICT_KIND),
+				inArray(intelligenceVerdicts.key, keys)
+			)
+		)
+	const map = new Map<string, PairVerdict>()
+	for (const row of rows) {
+		const v = row.verdict as Partial<PairVerdict>
+		if (typeof v.matched === 'boolean') {
+			map.set(row.key, {
+				matched: v.matched,
+				confident: v.confident === true,
+				rationale: typeof v.rationale === 'string' ? v.rationale : '',
+			})
+		}
+	}
+	return map
+}
+
+async function storePairVerdicts(
+	db: Database,
+	userId: string,
+	entries: Array<{ key: string; verdict: PairVerdict }>,
+	model: string | null
+): Promise<void> {
+	for (const entry of entries) {
+		await db
+			.insert(intelligenceVerdicts)
+			.values({ userId, kind: PAIR_VERDICT_KIND, key: entry.key, verdict: entry.verdict, model })
+			.onConflictDoNothing()
+	}
 }
 
 // Stable hash-friendly serialization of a pair set. Sorts so order

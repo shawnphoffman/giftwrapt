@@ -1,11 +1,13 @@
 import { makeItem, makeList, makeUser } from '@test/integration/factories'
 import { withRollback } from '@test/integration/setup'
 import type * as AiModule from 'ai'
+import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { intelligenceVerdicts, itemAiAnalysis, items } from '@/db/schema'
 import { DEFAULT_APP_SETTINGS } from '@/lib/settings'
 
-import { duplicatesAnalyzer } from '../analyzers/duplicates'
+import { duplicatesAnalyzer, pairVerdictKey } from '../analyzers/duplicates'
 import type { AnalyzerContext } from '../context'
 
 // Used by the LLM-path tests to assert exactly which pairs reached the
@@ -312,6 +314,139 @@ describe('duplicatesAnalyzer auto-confirm', () => {
 			const bodies = result.recs.map(r => r.body)
 			expect(bodies.some(b => /nearly identical/i.test(b))).toBe(true)
 			expect(bodies.some(b => /same model/i.test(b))).toBe(true)
+		})
+	})
+})
+
+describe('duplicatesAnalyzer canonical-name tier', () => {
+	it('confirms duplicates via matching canonical names without a model, even when titles diverge', async () => {
+		await withRollback(async tx => {
+			const user = await makeUser(tx)
+			const a = await makeList(tx, { ownerId: user.id, type: 'wishlist', name: 'Wishlist' })
+			const b = await makeList(tx, { ownerId: user.id, type: 'christmas', name: 'Christmas' })
+			// Titles are dissimilar enough that the Jaccard floor would never
+			// pair them — only the enrichment-derived canonical name links them.
+			const left = await makeItem(tx, { listId: a.id, title: 'Pegasus 40 running shoes' })
+			const right = await makeItem(tx, { listId: b.id, title: 'Nike Air Zoom (blue, size 11)' })
+			await tx.insert(itemAiAnalysis).values([
+				{ itemId: left.id, contentHash: 'h1', analysisVersion: 1, canonicalName: 'nike air zoom pegasus 40' },
+				{ itemId: right.id, contentHash: 'h2', analysisVersion: 1, canonicalName: 'nike air zoom pegasus 40' },
+			])
+
+			const result = await duplicatesAnalyzer.run(buildCtx(tx, user.id))
+
+			expect(result.recs).toHaveLength(1)
+			expect(result.recs[0].body).toMatch(/same product/i)
+			expect(result.steps.some(s => s.name === 'duplicates:canonical-name')).toBe(true)
+			expect(generateObjectMock).not.toHaveBeenCalled()
+		})
+	})
+})
+
+describe('duplicatesAnalyzer verdict cache', () => {
+	it('serves cached pair verdicts without calling the model', async () => {
+		await withRollback(async tx => {
+			const user = await makeUser(tx)
+			const a = await makeList(tx, { ownerId: user.id, type: 'wishlist' })
+			const b = await makeList(tx, { ownerId: user.id, type: 'christmas' })
+			await makeItem(tx, { listId: a.id, title: 'Lego X-Wing Starfighter' })
+			await makeItem(tx, { listId: b.id, title: 'Lego X-Wing Starfighter 75355' })
+			await tx.insert(intelligenceVerdicts).values({
+				userId: user.id,
+				kind: 'duplicate-pair',
+				key: pairVerdictKey('Lego X-Wing Starfighter', 'Lego X-Wing Starfighter 75355'),
+				verdict: { matched: true, confident: true, rationale: 'Same set, one title includes the set number.' },
+			})
+
+			const result = await duplicatesAnalyzer.run(buildCtx(tx, user.id, { model: sentinelModel }))
+
+			expect(generateObjectMock).not.toHaveBeenCalled()
+			expect(result.recs).toHaveLength(1)
+			expect(result.recs[0].body).toMatch(/set number/i)
+			const cacheStep = result.steps.find(s => s.name === 'duplicates:verdict-cache')
+			expect(cacheStep?.parsed).toMatchObject({ hits: 1, misses: 0 })
+		})
+	})
+
+	it('cached negative verdicts suppress the model call and the rec', async () => {
+		await withRollback(async tx => {
+			const user = await makeUser(tx)
+			const a = await makeList(tx, { ownerId: user.id, type: 'wishlist' })
+			const b = await makeList(tx, { ownerId: user.id, type: 'christmas' })
+			await makeItem(tx, { listId: a.id, title: 'Kindle Paperwhite 16GB' })
+			await makeItem(tx, { listId: b.id, title: 'Kindle Paperwhite 32GB' })
+			await tx.insert(intelligenceVerdicts).values({
+				userId: user.id,
+				kind: 'duplicate-pair',
+				key: pairVerdictKey('Kindle Paperwhite 16GB', 'Kindle Paperwhite 32GB'),
+				verdict: { matched: false, confident: false, rationale: '' },
+			})
+
+			const result = await duplicatesAnalyzer.run(buildCtx(tx, user.id, { model: sentinelModel }))
+
+			expect(generateObjectMock).not.toHaveBeenCalled()
+			expect(result.recs).toHaveLength(0)
+		})
+	})
+
+	it('stores verdicts for judged and unechoed pairs after a model call', async () => {
+		await withRollback(async tx => {
+			const user = await makeUser(tx)
+			const a = await makeList(tx, { ownerId: user.id, type: 'wishlist' })
+			const b = await makeList(tx, { ownerId: user.id, type: 'christmas' })
+			const left = await makeItem(tx, { listId: a.id, title: 'Lego X-Wing Starfighter' })
+			const right = await makeItem(tx, { listId: b.id, title: 'Lego X-Wing Starfighter 75355' })
+			generateObjectMock.mockResolvedValueOnce({
+				object: {
+					pairs: [{ leftItemId: String(left.id), rightItemId: String(right.id), confident: true, rationale: 'Same set.' }],
+				},
+				usage: { inputTokens: 40, outputTokens: 10, inputTokenDetails: {} },
+			})
+
+			const first = await duplicatesAnalyzer.run(buildCtx(tx, user.id, { model: sentinelModel }))
+			expect(generateObjectMock).toHaveBeenCalledTimes(1)
+			expect(first.recs).toHaveLength(1)
+
+			const stored = await tx.select().from(intelligenceVerdicts)
+			expect(stored).toHaveLength(1)
+			expect(stored[0].verdict).toMatchObject({ matched: true, confident: true })
+
+			// Second run: same pair now hits the cache — no model call. (The
+			// runner would normally skip via priorInputHash before even
+			// getting here; the cache covers slates that changed elsewhere.)
+			const second = await duplicatesAnalyzer.run(buildCtx(tx, user.id, { model: sentinelModel }))
+			expect(generateObjectMock).toHaveBeenCalledTimes(1)
+			expect(second.recs).toHaveLength(1)
+		})
+	})
+})
+
+describe('duplicatesAnalyzer skip-before-call gate', () => {
+	it('returns unchanged=true and skips all work when priorInputHash matches', async () => {
+		await withRollback(async tx => {
+			const user = await makeUser(tx)
+			const a = await makeList(tx, { ownerId: user.id, type: 'wishlist' })
+			const b = await makeList(tx, { ownerId: user.id, type: 'christmas' })
+			await makeItem(tx, { listId: a.id, title: 'Lego X-Wing Starfighter' })
+			await makeItem(tx, { listId: b.id, title: 'Lego X-Wing Starfighter 75355' })
+			generateObjectMock.mockResolvedValue({
+				object: { pairs: [] },
+				usage: { inputTokens: 40, outputTokens: 10, inputTokenDetails: {} },
+			})
+
+			const first = await duplicatesAnalyzer.run(buildCtx(tx, user.id, { model: sentinelModel }))
+			expect(first.unchanged).toBeUndefined()
+			const callsAfterFirst = generateObjectMock.mock.calls.length
+
+			const second = await duplicatesAnalyzer.run(buildCtx(tx, user.id, { model: sentinelModel, priorInputHash: first.inputHash }))
+			expect(second.unchanged).toBe(true)
+			expect(second.recs).toHaveLength(0)
+			expect(generateObjectMock.mock.calls.length).toBe(callsAfterFirst)
+
+			// A title edit breaks the carry: hash covers titles, not just ids.
+			await tx.update(items).set({ title: 'Lego X-Wing Starfighter (UCS)' }).where(eq(items.listId, a.id))
+			const third = await duplicatesAnalyzer.run(buildCtx(tx, user.id, { model: sentinelModel, priorInputHash: first.inputHash }))
+			expect(third.unchanged).toBeUndefined()
 		})
 	})
 })

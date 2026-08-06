@@ -26,10 +26,13 @@ export type DuplicateCandidate = {
 	listType: string
 }
 
-// Stable instructions that never vary across users or runs. Kept long
-// enough to clear the Anthropic 1024-token cache threshold and pinned
-// at the top of the messages array so prompt caching wins on every
-// subsequent call within the TTL window.
+// Stable instructions that never vary across users or runs, pinned at
+// the top of the messages array. NOTE: this block is a few hundred
+// tokens — well below Anthropic's minimum cacheable prefix (1024 tokens
+// on Sonnet-class models) — so the cache_control hint in ai-call.ts is
+// effectively a no-op here today. Kept split (system vs user) anyway:
+// it costs nothing, providers with lower thresholds benefit, and the
+// stable/variable separation is what makes the split correct.
 export const DUPLICATES_SYSTEM = [
 	'You are a list hygiene assistant. You receive PAIRS of items the user owns whose titles look similar, and decide which are SEMANTICALLY the same product.',
 	'',

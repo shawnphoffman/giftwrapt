@@ -61,15 +61,24 @@ export const staleItemsAnalyzer: Analyzer = {
 			.limit(ctx.candidateCap)
 
 		const loadStep: AnalyzerStep = { name: 'load-candidates', latencyMs: Date.now() - t0 }
-		const inputHash = sha256Hex(
-			`stale|${candidates
-				.map(c => `${c.itemId}:${c.updatedAt.toISOString()}`)
-				.sort()
-				.join(',')}`
-		)
+		const finalInputHash = combineHashes([
+			sha256Hex(
+				`stale|${candidates
+					.map(c => `${c.itemId}:${c.updatedAt.toISOString()}`)
+					.sort()
+					.join(',')}`
+			),
+		])
+
+		// Skip-before-call: an identical candidate slice means the model
+		// would see the exact same prompt as last run. Bail before any
+		// model work; the runner keeps this scope's existing recs.
+		if (!ctx.dryRun && ctx.priorInputHash != null && ctx.priorInputHash === finalInputHash) {
+			return { recs: [], steps: [loadStep], inputHash: finalInputHash, unchanged: true }
+		}
 
 		if (candidates.length === 0) {
-			return { recs: [], steps: [loadStep], inputHash: combineHashes([inputHash]) }
+			return { recs: [], steps: [loadStep], inputHash: finalInputHash }
 		}
 
 		// Group candidates by list. The AI sees a single batched prompt
@@ -97,7 +106,7 @@ export const staleItemsAnalyzer: Analyzer = {
 				const itemRefs = itemRefsFor(group)
 				recs.push(buildHeuristicRec({ list: listRef, items: itemRefs }))
 			}
-			return { recs, steps, inputHash: combineHashes([inputHash]) }
+			return { recs, steps, inputHash: finalInputHash }
 		}
 
 		const promptCandidates: Array<StaleItemsCandidate> = candidates.map(c => ({
@@ -146,7 +155,7 @@ export const staleItemsAnalyzer: Analyzer = {
 		})
 
 		if (error || !parsed) {
-			return { recs, steps, inputHash: combineHashes([inputHash]) }
+			return { recs, steps, inputHash: finalInputHash }
 		}
 
 		const aiLists = (
@@ -198,7 +207,7 @@ export const staleItemsAnalyzer: Analyzer = {
 			}
 		}
 
-		return { recs, steps, inputHash: combineHashes([inputHash]) }
+		return { recs, steps, inputHash: finalInputHash }
 	},
 }
 

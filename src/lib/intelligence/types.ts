@@ -191,6 +191,11 @@ export type AnalyzerResult = {
 	// Returning `null` means "this analyzer didn't read enough to invalidate
 	// based on input changes" (e.g. an analyzer that only checks a flag).
 	inputHash: string | null
+	// True when the analyzer detected its inputs are byte-identical to the
+	// prior successful run (ctx.priorInputHash matched) and bailed before
+	// doing any model work. `recs` is empty in that case; the runner keeps
+	// the scope's existing recommendation rows instead of replacing them.
+	unchanged?: boolean
 }
 
 // ─── Recommendation payload (jsonb on the row) ──────────────────────────────
