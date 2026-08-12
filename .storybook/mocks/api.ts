@@ -11,6 +11,7 @@
  * exist here. The stubs no-op; stories should not trigger server actions.
  */
 
+import { MAX_ITEM_SEARCH_RESULTS, MIN_ITEM_SEARCH_QUERY_LENGTH, tokenizeItemSearchQuery } from '@/lib/item-search'
 import { DEFAULT_APP_SETTINGS } from '@/lib/settings'
 
 type OkResult = { kind: 'ok' }
@@ -38,7 +39,52 @@ export const moveItemsToList = (): Promise<{ kind: 'ok'; moved: number; claimsCl
 export const copyItemToList = ok
 export const getItemsForListView = (): Promise<{ kind: 'ok'; items: Array<unknown> }> => Promise.resolve({ kind: 'ok', items: [] })
 export const getItemsForListEdit = (): Promise<{ kind: 'ok'; items: Array<unknown> }> => Promise.resolve({ kind: 'ok', items: [] })
-export const searchMyItems = (): Promise<{ items: Array<unknown> }> => Promise.resolve({ items: [] })
+// Stories seed the item-search dataset via __setStorybookMyItemSearchRows([...]).
+// Shape matches `MyItemSearchRow`; unset means "no items on my lists". The real
+// searchMyItems matches / ranks / caps in SQL; this stub does the same job over
+// the seeded rows so stories exercise the dialog's states.
+type StorybookMyItemSearchRow = {
+	itemId: number
+	title: string
+	notes: string | null
+	url: string | null
+	imageUrl: string | null
+	price: string | null
+	currency: string | null
+	listId: number
+	listName: string
+	listType: string
+	listIsPrivate: boolean
+}
+let storybookMyItemSearchRows: Array<StorybookMyItemSearchRow> = []
+export function __setStorybookMyItemSearchRows(rows: Array<StorybookMyItemSearchRow>) {
+	storybookMyItemSearchRows = rows
+}
+export const searchMyItems = ({ data }: { data: { query: string } }): Promise<unknown> => {
+	const tokens = tokenizeItemSearchQuery(data.query)
+	if (tokens.length === 0) return Promise.resolve({ kind: 'query-too-short', minLength: MIN_ITEM_SEARCH_QUERY_LENGTH })
+
+	const whole = data.query.trim().toLowerCase()
+	const matches = storybookMyItemSearchRows
+		.filter(row => {
+			const haystacks = [row.title.toLowerCase(), row.listName.toLowerCase(), row.notes?.toLowerCase() ?? '']
+			return tokens.every(token => haystacks.some(haystack => haystack.includes(token.toLowerCase())))
+		})
+		.map(row => {
+			const title = row.title.toLowerCase()
+			const listName = row.listName.toLowerCase()
+			const rank = title.startsWith(whole) ? 0 : title.includes(whole) ? 1 : listName.includes(whole) ? 2 : 3
+			return { row, rank }
+		})
+		.sort((a, b) => a.rank - b.rank)
+
+	return Promise.resolve({
+		kind: 'ok',
+		items: matches.slice(0, MAX_ITEM_SEARCH_RESULTS).map(m => m.row),
+		totalMatches: matches.length,
+		hasAnyItems: storybookMyItemSearchRows.length > 0,
+	})
+}
 export const archiveListPurchases = (): Promise<{ kind: 'ok'; archived: number }> => Promise.resolve({ kind: 'ok', archived: 0 })
 
 // @/api/groups

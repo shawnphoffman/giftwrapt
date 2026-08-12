@@ -1,6 +1,6 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
-import { ArrowRight, PackageSearch } from 'lucide-react'
+import { ArrowRight, PackageSearch, Search } from 'lucide-react'
 import { useState } from 'react'
 
 import { type MyItemSearchRow, searchMyItems } from '@/api/items'
@@ -8,12 +8,20 @@ import ListTypeIcon from '@/components/common/list-type-icon'
 import { MoveItemDialog } from '@/components/items/move-item-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
+import { Command, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { httpsUpgrade } from '@/lib/image-url'
+import { MIN_ITEM_SEARCH_QUERY_LENGTH } from '@/lib/item-search'
+import { useDebouncedValue } from '@/lib/use-debounced-value'
 
-const searchQueryKey = ['my-item-search'] as const
+// Prefix key: `MoveItemDialog` invalidates on this, which covers every
+// per-query entry below it.
+const searchQueryKeyPrefix = ['my-item-search'] as const
+
+// Long enough that a normal typing burst is one request, short enough that
+// results feel like they're keeping up.
+const DEBOUNCE_MS = 200
 
 type Props = {
 	open: boolean
@@ -24,18 +32,37 @@ export function ItemSearchDialog({ open, onOpenChange }: Props) {
 	const navigate = useNavigate()
 	const queryClient = useQueryClient()
 	const [movingItem, setMovingItem] = useState<MyItemSearchRow | null>(null)
+	const [query, setQuery] = useState('')
 
-	const { data, isLoading } = useQuery({
-		queryKey: searchQueryKey,
-		queryFn: () => searchMyItems(),
-		enabled: open,
+	// The input is controlled so keystrokes paint immediately; only the settled
+	// value drives a request.
+	const debouncedQuery = useDebouncedValue(query, DEBOUNCE_MS)
+	const trimmedQuery = debouncedQuery.trim()
+	const hasQuery = trimmedQuery.length >= MIN_ITEM_SEARCH_QUERY_LENGTH
+
+	// Matching, ranking, and the result cap all live in `searchMyItemsImpl`; we
+	// render exactly what comes back. Nothing is requested until the query
+	// clears the minimum length.
+	const { data, isPending } = useQuery({
+		queryKey: [...searchQueryKeyPrefix, trimmedQuery],
+		queryFn: () => searchMyItems({ data: { query: trimmedQuery } }),
+		enabled: open && hasQuery,
 		staleTime: 30 * 1000,
+		// Keep the last query's rows on screen while the next one is in flight so
+		// the list doesn't flash empty mid-typing.
+		placeholderData: keepPreviousData,
 	})
 
-	const rows = data?.items ?? []
+	const result = data?.kind === 'ok' ? data : null
+	const rows = result?.items ?? []
+
+	const handleOpenChange = (next: boolean) => {
+		if (!next) setQuery('')
+		onOpenChange(next)
+	}
 
 	const openList = (listId: number) => {
-		onOpenChange(false)
+		handleOpenChange(false)
 		navigate({ to: '/lists/$listId', params: { listId: String(listId) } })
 	}
 
@@ -43,27 +70,34 @@ export function ItemSearchDialog({ open, onOpenChange }: Props) {
 		// Close the search dialog and hand off to the move dialog so the two
 		// don't fight over focus / outside-click. The move dialog invalidates
 		// the search query on success, so reopening search shows the new list.
-		onOpenChange(false)
+		handleOpenChange(false)
 		setMovingItem(row)
 	}
 
 	return (
 		<>
-			<Dialog open={open} onOpenChange={onOpenChange}>
+			<Dialog open={open} onOpenChange={handleOpenChange}>
 				<DialogContent className="gap-4 p-0 sm:max-w-2xl" showCloseButton={false}>
 					<DialogHeader className="px-6 pt-6">
 						<DialogTitle>Search my items</DialogTitle>
-						<DialogDescription>Fuzzy-search across every item on the lists you own.</DialogDescription>
+						<DialogDescription>Search across every item on the lists you own.</DialogDescription>
 					</DialogHeader>
 
 					<Command
-						// We supply pre-ordered rows and let cmdk do the fuzzy filtering
-						// over each item's title / list name / notes.
+						// `shouldFilter={false}`: the server already matched, ranked, and
+						// capped, so cmdk only handles keyboard navigation over the
+						// (small) rendered set.
+						shouldFilter={false}
 						className="rounded-none border-t bg-transparent"
 					>
-						<CommandInput placeholder="Search items by name, list, or notes…" autoFocus />
+						<CommandInput placeholder="Search items by name, list, or notes…" value={query} onValueChange={setQuery} autoFocus />
 						<CommandList className="max-h-[min(60svh,32rem)]">
-							{isLoading ? (
+							{!hasQuery ? (
+								<div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground">
+									<Search className="size-6 opacity-60" />
+									<p>Type at least {MIN_ITEM_SEARCH_QUERY_LENGTH} characters to search.</p>
+								</div>
+							) : isPending || !result ? (
 								<div className="space-y-2 p-3">
 									{Array.from({ length: 5 }).map((_, i) => (
 										<div key={i} className="flex items-center gap-3">
@@ -75,21 +109,25 @@ export function ItemSearchDialog({ open, onOpenChange }: Props) {
 										</div>
 									))}
 								</div>
-							) : rows.length === 0 ? (
+							) : !result.hasAnyItems ? (
 								<div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground">
 									<PackageSearch className="size-6 opacity-60" />
 									<p>You don't have any items on your own lists yet.</p>
 								</div>
+							) : rows.length === 0 ? (
+								<div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground">
+									<PackageSearch className="size-6 opacity-60" />
+									<p>No items match your search.</p>
+								</div>
 							) : (
 								<>
-									<CommandEmpty>No items match your search.</CommandEmpty>
 									<div className="p-1">
 										{rows.map(row => (
 											<CommandItem
 												key={row.itemId}
-												// Unique per item (id disambiguates duplicate titles) while
-												// still exposing the searchable text to cmdk's fuzzy filter.
-												value={`${row.title} · ${row.listName} · ${row.notes ?? ''} · #${row.itemId}`}
+												// Unique per item; cmdk isn't filtering on this value
+												// (see `shouldFilter={false}`), it only needs identity.
+												value={String(row.itemId)}
 												onSelect={() => openList(row.listId)}
 												className="gap-3 py-2"
 											>
@@ -143,6 +181,11 @@ export function ItemSearchDialog({ open, onOpenChange }: Props) {
 											</CommandItem>
 										))}
 									</div>
+									{result.totalMatches > rows.length && (
+										<p className="px-3 pb-3 text-center text-xs text-muted-foreground">
+											Showing the closest {rows.length} of {result.totalMatches} matches. Keep typing to narrow it down.
+										</p>
+									)}
 								</>
 							)}
 						</CommandList>
@@ -159,7 +202,7 @@ export function ItemSearchDialog({ open, onOpenChange }: Props) {
 					item={{ id: movingItem.itemId, listId: movingItem.listId, title: movingItem.title }}
 					onMoved={() => {
 						setMovingItem(null)
-						void queryClient.invalidateQueries({ queryKey: searchQueryKey })
+						void queryClient.invalidateQueries({ queryKey: searchQueryKeyPrefix })
 					}}
 				/>
 			)}

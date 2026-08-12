@@ -187,7 +187,8 @@ export const getItemsForListView = createServerFn({ method: 'GET' })
 
 export const searchMyItems = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware, loggingMiddleware])
-	.handler(({ context }): Promise<SearchMyItemsResult> => searchMyItemsImpl(context.session.user.id))
+	.inputValidator((data: { query: string }) => ({ query: data.query }))
+	.handler(({ context, data }): Promise<SearchMyItemsResult> => searchMyItemsImpl({ userId: context.session.user.id, query: data.query }))
 
 export const getItemForEdit = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware, loggingMiddleware])
