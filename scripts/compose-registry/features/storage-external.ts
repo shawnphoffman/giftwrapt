@@ -13,7 +13,7 @@ export const storageEnvSection: EnvExampleSection = {
 # -----------------------------------------------------------------------------
 # GiftWrapt speaks S3. Any S3-compatible bucket works: Garage (bundled in the
 # Docker Compose stack as an optional sidecar), AWS S3, Cloudflare R2,
-# Supabase Storage's S3 API, etc. See docs/storage.md for recipes.
+# Supabase Storage's S3 API, etc. See https://giftwrapt.dev/configuration/storage/ for recipes.
 #
 # When INIT_GARAGE=true (the self-host compose default), the app's entrypoint
 # bootstraps the Garage sidecar on first boot via its admin HTTP API: layout

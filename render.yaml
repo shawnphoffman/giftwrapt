@@ -23,7 +23,7 @@ services:
         sync: false
       # Storage is optional; the app boots without it and disables uploads.
       # Add Cloudflare R2, AWS S3, or any other S3-compatible bucket after
-      # the first deploy. See docs/storage.md.
+      # the first deploy. See https://giftwrapt.dev/configuration/storage/.
       - key: STORAGE_ENDPOINT
         sync: false
       - key: STORAGE_REGION

@@ -4,7 +4,7 @@
 # Fronts the app with Traefik on :80. App ports are closed; ingress is via the proxy. Set TRAEFIK_HOST in .env.
 #
 # Quick start:
-#   1. cp env.example docker/.env
+#   1. cp .env.example docker/.env
 #   2. Edit docker/.env - at minimum set POSTGRES_PASSWORD, BETTER_AUTH_SECRET,
 #      and BETTER_AUTH_URL (the public URL you'll reach the app from).
 #   3. Set GARAGE_RPC_SECRET and GARAGE_ADMIN_TOKEN (see .env.example).

@@ -116,7 +116,7 @@ function targetFor(backend: Backend, shape: Shape): ComposeTarget {
 # ${shapeIncludes[shape]}
 #
 # Quick start:
-#   1. cp env.example docker/.env
+#   1. cp .env.example docker/.env
 #   2. Edit docker/.env - at minimum set POSTGRES_PASSWORD, BETTER_AUTH_SECRET,
 #      and BETTER_AUTH_URL (the public URL you'll reach the app from).
 ${backendStorageQuickStart(backend)}

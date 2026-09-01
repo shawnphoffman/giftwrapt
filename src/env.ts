@@ -47,7 +47,7 @@ export const env = createEnv({
 		// browserless/flaresolverr entry exists yet AND the env var is set,
 		// `src/db/bootstrap.ts` inserts a corresponding entry. After that
 		// the admin owns the configuration and these env vars are unused.
-		// See _NOTES_/scraping/browserless-plan.md for the self-host stack.
+		// See https://giftwrapt.dev/configuration/scraping/ for the self-host stack.
 		BROWSERLESS_URL: z.url().optional(),
 		FLARESOLVERR_URL: z.url().optional(),
 		BROWSER_TOKEN: z.string().min(1).optional(),

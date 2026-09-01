@@ -5,12 +5,16 @@
  * flow that would only assign 'user' (or 'admin' via the first-admin bootstrap
  * hook in src/lib/auth.ts, which only fires when no admin exists).
  *
- * Intended for use inside a deployed container when you're locked out:
+ * Intended for use inside a deployed container when you're locked out.
+ * The runtime image ships the bundled CLI, not pnpm or node_modules, so
+ * invoke the built script directly (see scripts/build-cli.mjs):
  *
- *   docker exec -it <container> pnpm admin:create \
+ *   docker exec -it <container> node .output/scripts/admin-create.mjs \
  *     --email=you@example.com \
  *     --password='correct horse battery staple' \
  *     --name='Your Name'
+ *
+ * From a source checkout, `pnpm admin:create` with the same flags works.
  *
  * Deliberately has NO env guard (unlike db:seed) - the authentication barrier
  * is "you have shell access to the container." Using it from outside a

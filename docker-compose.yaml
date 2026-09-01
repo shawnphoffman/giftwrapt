@@ -17,14 +17,14 @@ name: 'giftwrapt-dev'
 # Optional: a mock OIDC provider for smoke-testing the iOS sign-in flow.
 # Stack with any storage backend you're already running:
 #   docker compose --profile mock-oidc up -d
-# See docs/oidc-smoke-test.md for the full setup recipe.
+# See https://giftwrapt.dev/configuration/auth/ for the full setup recipe.
 #
 # Then:
 #   pnpm dev                       # run the app
 #   docker compose --profile <p> down       # stop (keeps data)
 #   docker compose --profile <p> down -v    # stop and nuke DB + storage
 #
-# Point your local .env.local at the matching backend (see docs/storage.md
+# Point your local .env.local at the matching backend (see https://giftwrapt.dev/configuration/storage/
 # for full env recipes). Garage example:
 #   DATABASE_URL=postgresql://postgres:password@localhost:54321/giftwrapt
 #   STORAGE_ENDPOINT=http://localhost:3900
@@ -113,7 +113,7 @@ services:
   # running. Stateless, no UI clutter; the "log in" page is just a
   # click-through "pick a user" form. Discovery doc lives at
   #   http://localhost:8080/default/.well-known/openid-configuration
-  # See `docs/oidc-smoke-test.md` for the full setup recipe.
+  # See https://giftwrapt.dev/configuration/auth/ for the full setup recipe.
   #
   #   docker compose --profile mock-oidc up -d
   mock-oidc:

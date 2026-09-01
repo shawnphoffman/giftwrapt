@@ -5,7 +5,11 @@
  * someone forgot their password and you (an operator with shell access) need
  * to let them back in without going through email flow.
  *
- *   docker exec -it <container> pnpm admin:reset-password \
+ * The runtime image ships the bundled CLI, not pnpm, so invoke the built
+ * script directly (from a source checkout, `pnpm admin:reset-password`
+ * with the same flags works):
+ *
+ *   docker exec -it <container> node .output/scripts/admin-reset-password.mjs \
  *     --email=you@example.com \
  *     --password='new password here'
  *
