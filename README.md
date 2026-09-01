@@ -47,12 +47,12 @@ Releases are cut by [release-please](https://github.com/googleapis/release-pleas
 
 ## AI Contribution Disclosure
 
-![Level 4-5](https://badgen.net/badge/AI%20Assistance/Level%204--5?color=orange)
+![Level 4-5](https://badgen.net/badge/AI%20Assistance/Level%204-5?color=orange)
 
 > [!NOTE]
 > This project lives somewhere between [Level 4 and Level 5 AI assistance](https://www.visidata.org/blog/2026/ai/), sliding around depending on what corner of the codebase you're poking at. Claude Code wrote a lot of the docs, tests, and scaffolding, plus a healthy chunk of app code. The spicier bits (data model, access-control rules, auth, scraping pipeline, deploy story) are mostly hand-written, with AI riding shotgun as a rubber duck and reviewer.
 >
-> I'm a software engineer with 10+ years of experience and I've read every line. I understand how it all fits together. That said: it's pre-1.0, I'm one person, and some things almost certainly slipped past me. Before I cut a 1.0 there'll be a proper full pass, security review, and peer feedback. Until then, treat it like the lovingly-assembled family project that it is - kick the tires, file issues, don't run it on a nuclear reactor.
+> I'm a software engineer with 10+ years of experience and I understand how it all fits together. That said, I'm one person, and some things almost certainly slipped past me. Treat this like the lovingly-assembled family project that it is - kick the tires, file issues, don't run it on a nuclear reactor.
 
 ## License
 
