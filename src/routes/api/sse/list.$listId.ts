@@ -1,7 +1,11 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { eq } from 'drizzle-orm'
 
+import { db } from '@/db'
+import { lists } from '@/db/schema'
 import { auth } from '@/lib/auth'
 import { createLogger } from '@/lib/logger'
+import { canViewListAsAnyone } from '@/lib/permissions'
 
 const sseLog = createLogger('sse:list')
 
@@ -80,6 +84,24 @@ export const Route = createFileRoute('/api/sse/list/$listId')({
 				const listId = Number(params.listId)
 				if (!Number.isFinite(listId)) {
 					return new Response('Invalid list ID', { status: 400 })
+				}
+
+				// Authorization, not just authentication: events carry only ids
+				// and kinds, but a subscription on someone else's private list
+				// would still leak activity timing (including claim activity on
+				// a spoiler-protected surface). Same predicate as the list-view
+				// read path; 404 for both missing and not-visible so ids can't
+				// be probed. See sec-review S3.
+				const list = await db.query.lists.findFirst({
+					where: eq(lists.id, listId),
+					columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
+				})
+				if (!list) {
+					return new Response('Not found', { status: 404 })
+				}
+				const view = await canViewListAsAnyone(session.user.id, list)
+				if (!view.ok) {
+					return new Response('Not found', { status: 404 })
 				}
 
 				const { readable, writable } = new TransformStream<Uint8Array>()
