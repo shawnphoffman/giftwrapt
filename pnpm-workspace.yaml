@@ -2,3 +2,4 @@ packages:
   - '.'
 minimumReleaseAge: 10080 # 7 days; delay installs so a compromised/malicious release has time to be caught and unpublished before we pull it
 trustPolicy: no-downgrade # fail installs if a package's npm trust level (trusted-publisher > provenance > none) weakens between versions; add trustPolicyExclude entries if a legit dep trips this
+blockExoticSubdeps: true # refuse transitive deps resolved from git/http/other non-registry sources; a direct dep can still be exotic, but a compromised package can't quietly pull one in (pnpm >= 10.26)
