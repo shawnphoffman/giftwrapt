@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.46.0...v1.0.0) (2026-09-01)
+
+
+### Miscellaneous Chores
+
+* release 1.0.0 ([f2faacc](https://github.com/shawnphoffman/giftwrapt/commit/f2faacc3283c130611874acb8768ce259e972d5f))
+
 ## [0.46.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.45.0...v0.46.0) (2026-09-01)
 
 
