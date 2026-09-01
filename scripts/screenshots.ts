@@ -231,6 +231,12 @@ async function run(plan: RunPlan, ids: FixtureIds) {
 			const viewport = VIEWPORTS[viewportName]
 			for (const theme of plan.themes) {
 				const filteredRoutes = selectedRoutes.filter(r => {
+					// `hero` is opt-in only. A route with no `viewports` matches
+					// every viewport, so without this the whole route table gets
+					// captured at hero size and `mirrorViewportThemeFlat` dumps
+					// all of it into the docs site's marketing assets folder
+					// alongside the six real hero images.
+					if (viewportName === 'hero' && !r.viewports?.includes('hero')) return false
 					if (r.viewports && !r.viewports.includes(viewportName)) return false
 					if (r.themes && !r.themes.includes(theme)) return false
 					return true
