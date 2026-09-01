@@ -1,0 +1,284 @@
+// Server-only purchase-summary implementation. Lives in a separate file
+// from `purchases.ts` following the `_<name>-impl.ts` convention so the
+// impl takes an injectable `dbx` handle and integration tests can run it
+// inside `withRollback`. `purchases.ts` only references this from inside
+// its server-fn handler body, which TanStack Start strips on the client.
+
+import { and, arrayOverlaps, eq, inArray, ne, or, sql } from 'drizzle-orm'
+
+import { db, type SchemaDatabase } from '@/db'
+import { giftContributions, giftedItems, items, listAddons, lists, users } from '@/db/schema'
+import { unitContribution } from '@/lib/contributions'
+
+// ===============================
+// READ - purchase summary (spending per person)
+// ===============================
+// Returns a flat list of items (claims + addons) by the current user and
+// their partner (if any), with owner metadata. Grouping, timeframe
+// filtering, and metrics are computed client-side for responsiveness.
+
+export type SummaryItem = {
+	type: 'claim' | 'addon'
+	giftId: number | null
+	addonId: number | null
+	isOwn: boolean
+	// True when this purchase was made by the current user's partner (primary
+	// gifter is the partner, not a co-gifter). Used to surface a partner
+	// avatar on the row.
+	isPartnerPurchase: boolean
+	// True when the current user (or their partner) is only a co-gifter on this
+	// claim, never the primary. Co-gifter claims now carry this unit's even
+	// share of the total, the same share the primary unit sees.
+	isCoGifter: boolean
+	// True when the claim has at least one co-gifter, so an editable row can
+	// offer the split editor.
+	hasCoGifters: boolean
+	title: string
+	itemUrl: string | null
+	cost: number | null
+	totalCostRaw: string | null
+	notes: string | null
+	// Gifter-private attachments (image / PDF receipts). Null when none.
+	attachmentUrls: Array<string> | null
+	// Plain-text tracking number; UI infers carrier via detectCarrier.
+	trackingNumber: string | null
+	quantity: number
+	listName: string
+	createdAt: Date
+	// Recipient identity. For most lists this is the list owner; for
+	// dependent-subject lists it's the dependent. `recipientKind` lets
+	// the UI tell them apart (e.g. swap the avatar fallback) and
+	// `subjectDependentId` is non-null only when the recipient is a
+	// dependent.
+	recipientKind: 'user' | 'dependent'
+	subjectDependentId: string | null
+	ownerId: string
+	ownerName: string | null
+	ownerEmail: string
+	ownerImage: string | null
+}
+
+export type PurchaseSummary = {
+	items: Array<SummaryItem>
+	partner: { name: string; image: string | null } | null
+}
+
+// `dbx` accepts either the singleton `db` or a transaction handle so
+// integration tests can run inside `withRollback` without deadlocking
+// against the open savepoint (pglite is single-connection).
+export async function getPurchaseSummaryImpl(userId: string, dbx: SchemaDatabase = db): Promise<PurchaseSummary> {
+	const currentUser = await dbx.query.users.findFirst({
+		where: eq(users.id, userId),
+		columns: { partnerId: true },
+	})
+	const myPartnerId = currentUser?.partnerId ?? null
+
+	const partnerUser = myPartnerId
+		? await dbx.query.users.findFirst({
+				where: eq(users.id, myPartnerId),
+				columns: { name: true, email: true, image: true },
+			})
+		: null
+	const partner = partnerUser ? { name: partnerUser.name || partnerUser.email, image: partnerUser.image } : null
+
+	const gifterIds = [userId]
+	if (myPartnerId) gifterIds.push(myPartnerId)
+
+	const inGifters =
+		gifterIds.length === 1
+			? eq(giftedItems.gifterId, userId)
+			: sql`${giftedItems.gifterId} IN (${sql.join(
+					gifterIds.map(id => sql`${id}`),
+					sql`, `
+				)})`
+	const inAddonGifters =
+		gifterIds.length === 1
+			? eq(listAddons.userId, userId)
+			: sql`${listAddons.userId} IN (${sql.join(
+					gifterIds.map(id => sql`${id}`),
+					sql`, `
+				)})`
+	// Either the current user (or their partner) is the primary gifter, or
+	// they appear in additionalGifterIds (co-gifter).
+	const claimGifterFilter = or(inGifters, arrayOverlaps(giftedItems.additionalGifterIds, gifterIds))
+
+	// Exclude claims on lists I own personally (gift to myself, dropped),
+	// but KEEP claims on lists I created FOR a dependent - the recipient
+	// is the dependent, not me.
+	const ownerExclude = or(ne(lists.ownerId, userId), sql`${lists.subjectDependentId} IS NOT NULL`)
+
+	// Independent queries; built lazily and run together below.
+	const claimRowsQuery = dbx
+		.select({
+			giftId: giftedItems.id,
+			gifterId: giftedItems.gifterId,
+			additionalGifterIds: giftedItems.additionalGifterIds,
+			itemTitle: items.title,
+			itemUrl: items.url,
+			quantity: giftedItems.quantity,
+			totalCost: giftedItems.totalCost,
+			notes: giftedItems.notes,
+			attachmentUrls: giftedItems.attachmentUrls,
+			trackingNumber: giftedItems.trackingNumber,
+			createdAt: giftedItems.createdAt,
+			listName: lists.name,
+			listOwnerId: lists.ownerId,
+			listOwnerName: sql<string | null>`owner.name`,
+			listOwnerEmail: sql<string>`owner.email`,
+			listOwnerImage: sql<string | null>`owner.image`,
+			subjectDependentId: lists.subjectDependentId,
+			dependentName: sql<string | null>`dep.name`,
+			dependentImage: sql<string | null>`dep.image`,
+		})
+		.from(giftedItems)
+		.innerJoin(items, eq(items.id, giftedItems.itemId))
+		.innerJoin(lists, eq(lists.id, items.listId))
+		.innerJoin(sql`users as owner`, sql`owner.id = ${lists.ownerId}`)
+		.leftJoin(sql`dependents as dep`, sql`dep.id = ${lists.subjectDependentId}`)
+		.where(and(claimGifterFilter, ownerExclude))
+
+	const addonRowsQuery = dbx
+		.select({
+			addonId: listAddons.id,
+			gifterId: listAddons.userId,
+			description: listAddons.description,
+			totalCost: listAddons.totalCost,
+			notes: listAddons.notes,
+			attachmentUrls: listAddons.attachmentUrls,
+			trackingNumber: listAddons.trackingNumber,
+			createdAt: listAddons.createdAt,
+			listName: lists.name,
+			listOwnerId: lists.ownerId,
+			listOwnerName: sql<string | null>`owner.name`,
+			listOwnerEmail: sql<string>`owner.email`,
+			listOwnerImage: sql<string | null>`owner.image`,
+			subjectDependentId: lists.subjectDependentId,
+			dependentName: sql<string | null>`dep.name`,
+			dependentImage: sql<string | null>`dep.image`,
+		})
+		.from(listAddons)
+		.innerJoin(lists, eq(lists.id, listAddons.listId))
+		.innerJoin(sql`users as owner`, sql`owner.id = ${lists.ownerId}`)
+		.leftJoin(sql`dependents as dep`, sql`dep.id = ${lists.subjectDependentId}`)
+		.where(and(inAddonGifters, ownerExclude))
+
+	const [claimRows, addonRows] = await Promise.all([claimRowsQuery, addonRowsQuery])
+
+	// Recipient name resolution: when the list is FOR a dependent, the
+	// "recipient" UI surfaces use the dependent's name/avatar instead
+	// of the (guardian) owner's. The owner-side fields are still populated
+	// (raw owner identity is sometimes useful for debugging / admin views).
+	function resolveRecipient<
+		T extends {
+			subjectDependentId: string | null
+			listOwnerName: string | null
+			listOwnerEmail: string
+			listOwnerImage: string | null
+			dependentName: string | null
+			dependentImage: string | null
+		},
+	>(r: T): { recipientKind: 'user' | 'dependent'; ownerName: string | null; ownerEmail: string; ownerImage: string | null } {
+		if (r.subjectDependentId) {
+			return {
+				recipientKind: 'dependent',
+				ownerName: r.dependentName,
+				ownerEmail: '',
+				ownerImage: r.dependentImage,
+			}
+		}
+		return {
+			recipientKind: 'user',
+			ownerName: r.listOwnerName,
+			ownerEmail: r.listOwnerEmail,
+			ownerImage: r.listOwnerImage,
+		}
+	}
+
+	// Custom split overrides for these claims (absent = even split).
+	const claimGiftIds = claimRows.map(r => r.giftId)
+	const contribRows =
+		claimGiftIds.length > 0
+			? await dbx
+					.select({ giftId: giftContributions.giftId, userId: giftContributions.userId, amount: giftContributions.amount })
+					.from(giftContributions)
+					.where(inArray(giftContributions.giftId, claimGiftIds))
+			: []
+	const contribByGift = new Map<number, Array<{ userId: string; amount: string }>>()
+	for (const c of contribRows) {
+		const bucket = contribByGift.get(c.giftId) ?? []
+		bucket.push({ userId: c.userId, amount: c.amount })
+		contribByGift.set(c.giftId, bucket)
+	}
+
+	const claims: Array<SummaryItem> = claimRows.map(r => {
+		const isPrimary = gifterIds.includes(r.gifterId)
+		const isCoGifter = !isPrimary
+		const isOwn = r.gifterId === userId
+		// This gifter unit's contribution: a custom split when one is stored on
+		// the claim, otherwise the even split. Null when no valid cost exists.
+		const cost = unitContribution({
+			totalCost: r.totalCost,
+			additionalGifterIds: r.additionalGifterIds,
+			isPrimaryUnit: isPrimary,
+			viewerGifterIds: gifterIds,
+			customRows: contribByGift.get(r.giftId) ?? [],
+		})
+		const recipient = resolveRecipient(r)
+		return {
+			type: 'claim',
+			giftId: r.giftId,
+			addonId: null,
+			isOwn,
+			isPartnerPurchase: !isOwn && !isCoGifter && myPartnerId !== null && r.gifterId === myPartnerId,
+			isCoGifter,
+			hasCoGifters: (r.additionalGifterIds?.length ?? 0) > 0,
+			title: r.itemTitle,
+			itemUrl: r.itemUrl,
+			cost,
+			totalCostRaw: isCoGifter ? null : r.totalCost,
+			notes: r.notes,
+			attachmentUrls: r.attachmentUrls,
+			trackingNumber: r.trackingNumber,
+			quantity: r.quantity,
+			listName: r.listName,
+			createdAt: r.createdAt,
+			recipientKind: recipient.recipientKind,
+			subjectDependentId: r.subjectDependentId,
+			ownerId: r.listOwnerId,
+			ownerName: recipient.ownerName,
+			ownerEmail: recipient.ownerEmail,
+			ownerImage: recipient.ownerImage,
+		}
+	})
+
+	const addons: Array<SummaryItem> = addonRows.map(r => {
+		const recipient = resolveRecipient(r)
+		return {
+			type: 'addon',
+			giftId: null,
+			addonId: r.addonId,
+			isOwn: r.gifterId === userId,
+			isPartnerPurchase: r.gifterId !== userId && myPartnerId !== null && r.gifterId === myPartnerId,
+			isCoGifter: false,
+			hasCoGifters: false,
+			title: r.description,
+			itemUrl: null,
+			cost: r.totalCost ? parseFloat(r.totalCost) : null,
+			totalCostRaw: r.totalCost,
+			notes: r.notes,
+			attachmentUrls: r.attachmentUrls,
+			trackingNumber: r.trackingNumber,
+			quantity: 1,
+			listName: r.listName,
+			createdAt: r.createdAt,
+			recipientKind: recipient.recipientKind,
+			subjectDependentId: r.subjectDependentId,
+			ownerId: r.listOwnerId,
+			ownerName: recipient.ownerName,
+			ownerEmail: recipient.ownerEmail,
+			ownerImage: recipient.ownerImage,
+		}
+	})
+
+	return { items: [...claims, ...addons], partner }
+}
