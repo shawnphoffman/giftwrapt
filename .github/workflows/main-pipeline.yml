@@ -33,6 +33,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Warn-only, same posture as the PR workflow: surfaces high/critical
+      # CVEs in the log without blocking the release.
+      - name: Audit dependencies (warn-only)
+        run: pnpm audit --prod --audit-level=high
+        continue-on-error: true
+
       - name: Check drizzle journal invariants
         run: pnpm db:check
 
@@ -86,6 +92,41 @@ jobs:
             exit 1
           fi
           echo "OK: no .map files in client bundle"
+
+  # Warn-only semgrep scan. Mirrors the job in test.yml, which only fires on
+  # pull requests and pushes to `next`; under the commit-directly-to-main
+  # convention that workflow never runs, so without this the scan never ran
+  # at all. Not in release-please's `needs`, so a finding reports without
+  # blocking the release. Promote to required once the ruleset is triaged.
+  security:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.12'
+
+      - name: Install semgrep
+        run: pip install semgrep
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run semgrep
+        run: pnpm security
 
   release-please:
     needs: [test, build]
