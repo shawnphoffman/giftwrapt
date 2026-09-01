@@ -5,107 +5,17 @@ import { toast } from 'sonner'
 import { testAiConnectionAsAdmin } from '@/api/admin-ai'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { CharacterCounter } from '@/components/ui/character-counter'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { type AiConfigResponse, useAiConfig, useAiConfigMutation } from '@/hooks/use-ai-config'
+import { useAiModels } from '@/hooks/use-ai-models'
+import { CUSTOM_PROVIDER_ID, findProviderMatch, type Provider, PROVIDERS } from '@/lib/ai-provider-catalog'
 import { DEFAULT_MAX_OUTPUT_TOKENS, type ProviderType } from '@/lib/ai-types'
 import { LIMITS } from '@/lib/validation/limits'
 
-// Each entry maps a friendly name to a (providerType, baseUrl) pair plus a
-// curated model list. Adding an entry surfaces it in the provider dropdown.
-type Provider = {
-	id: string
-	name: string
-	providerType: ProviderType
-	baseUrl: string // empty string for openai/anthropic (SDK default)
-	models: ReadonlyArray<string>
-}
-
-const CUSTOM_PROVIDER_ID = 'custom'
-const CUSTOM_MODEL_VALUE = '__custom__'
-
-const PROVIDERS: ReadonlyArray<Provider> = [
-	{
-		id: 'openai',
-		name: 'OpenAI',
-		providerType: 'openai',
-		baseUrl: '',
-		models: ['gpt-5', 'gpt-5-mini', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4o', 'gpt-4o-mini', 'o4-mini', 'o3', 'o3-mini'],
-	},
-	{
-		id: 'anthropic',
-		name: 'Anthropic',
-		providerType: 'anthropic',
-		baseUrl: '',
-		models: ['claude-opus-4-7', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'],
-	},
-	{
-		id: 'openrouter',
-		name: 'OpenRouter',
-		providerType: 'openai-compatible',
-		baseUrl: 'https://openrouter.ai/api/v1',
-		models: [
-			'openai/gpt-4o-mini',
-			'anthropic/claude-3.5-sonnet',
-			'meta-llama/llama-3.3-70b-instruct',
-			'google/gemini-2.0-flash-exp:free',
-			'deepseek/deepseek-chat',
-		],
-	},
-	{
-		id: 'groq',
-		name: 'Groq',
-		providerType: 'openai-compatible',
-		baseUrl: 'https://api.groq.com/openai/v1',
-		models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'],
-	},
-	{
-		id: 'together',
-		name: 'Together AI',
-		providerType: 'openai-compatible',
-		baseUrl: 'https://api.together.xyz/v1',
-		models: ['meta-llama/Llama-3.3-70B-Instruct-Turbo', 'Qwen/Qwen2.5-72B-Instruct-Turbo'],
-	},
-	{
-		id: 'mistral',
-		name: 'Mistral',
-		providerType: 'openai-compatible',
-		baseUrl: 'https://api.mistral.ai/v1',
-		models: ['mistral-large-latest', 'mistral-small-latest', 'codestral-latest'],
-	},
-	{
-		id: 'deepseek',
-		name: 'DeepSeek',
-		providerType: 'openai-compatible',
-		baseUrl: 'https://api.deepseek.com/v1',
-		models: ['deepseek-chat', 'deepseek-reasoner'],
-	},
-	{
-		id: 'ollama',
-		name: 'Ollama (localhost)',
-		providerType: 'openai-compatible',
-		baseUrl: 'http://localhost:11434/v1',
-		models: [],
-	},
-	{
-		id: 'lmstudio',
-		name: 'LM Studio (localhost)',
-		providerType: 'openai-compatible',
-		baseUrl: 'http://localhost:1234/v1',
-		models: [],
-	},
-]
-
-function findProviderMatch(providerType: ProviderType | undefined, baseUrl: string | undefined): Provider | undefined {
-	if (!providerType) return undefined
-	if (providerType === 'openai') return PROVIDERS.find(p => p.providerType === 'openai')
-	if (providerType === 'anthropic') return PROVIDERS.find(p => p.providerType === 'anthropic')
-	if (!baseUrl) return undefined
-	return PROVIDERS.find(p => p.providerType === 'openai-compatible' && p.baseUrl === baseUrl)
-}
+import { ModelPicker, type ModelPickerStatus } from './model-picker'
 
 export function AiSettingsEditor() {
 	const { data, isLoading } = useAiConfig()
@@ -130,8 +40,8 @@ function Form({ config, saving, mutate }: FormProps) {
 	// fields they didn't touch).
 	const [providerId, setProviderId] = useState<string>(() => initialProviderId(config))
 	const [customBaseUrl, setCustomBaseUrl] = useState<string>(() => initialCustomBaseUrl(config))
-	const [modelSelect, setModelSelect] = useState<string>(() => initialModelSelect(config))
-	const [customModel, setCustomModel] = useState<string>(() => initialCustomModel(config))
+	const [model, setModel] = useState<string>(() => initialModel(config))
+	const [awaitingLiveDefault, setAwaitingLiveDefault] = useState(false)
 	const [apiKeyMode, setApiKeyMode] = useState<'display' | 'edit'>(config.apiKey.source === 'missing' ? 'edit' : 'display')
 	const [apiKeyDraft, setApiKeyDraft] = useState<string>('')
 	const [maxTokensDraft, setMaxTokensDraft] = useState<string>(() => String(config.maxOutputTokens.value))
@@ -139,8 +49,7 @@ function Form({ config, saving, mutate }: FormProps) {
 	useEffect(() => {
 		setProviderId(initialProviderId(config))
 		setCustomBaseUrl(initialCustomBaseUrl(config))
-		setModelSelect(initialModelSelect(config))
-		setCustomModel(initialCustomModel(config))
+		setModel(initialModel(config))
 		setApiKeyMode(config.apiKey.source === 'missing' ? 'edit' : 'display')
 		setApiKeyDraft('')
 		setMaxTokensDraft(String(config.maxOutputTokens.value))
@@ -152,9 +61,8 @@ function Form({ config, saving, mutate }: FormProps) {
 	const showsBaseUrl = effectiveProviderType === 'openai-compatible'
 	const effectiveBaseUrl = isCustomProvider ? customBaseUrl.trim() : (provider?.baseUrl ?? '')
 
-	const modelOptions = useMemo<ReadonlyArray<string>>(() => provider?.models ?? [], [provider])
-	const isCustomModel = modelSelect === CUSTOM_MODEL_VALUE || modelOptions.length === 0
-	const effectiveModel = isCustomModel ? customModel.trim() : modelSelect
+	const fallbackModels = useMemo<ReadonlyArray<string>>(() => provider?.models ?? [], [provider])
+	const effectiveModel = model.trim()
 
 	const maxTokensParsed = Number.parseInt(maxTokensDraft, 10)
 	const maxTokensValid = Number.isInteger(maxTokensParsed) && maxTokensParsed >= 1 && maxTokensParsed <= 64_000
@@ -179,16 +87,58 @@ function Form({ config, saving, mutate }: FormProps) {
 	const apiKeyAvailable = apiKeyDraft.length > 0 || config.apiKey.source !== 'missing'
 	const canTest = baseUrlReady && effectiveModel.length > 0 && apiKeyAvailable && maxTokensValid
 
+	// Live model catalogue for whatever provider the form currently points at.
+	// Auto-fetches only against saved credentials; the refresh button can carry
+	// an unsaved key so a new provider can be explored before anything is saved.
+	const {
+		result: modelsResult,
+		isLoading: modelsLoading,
+		refresh: refreshModels,
+	} = useAiModels({
+		providerType: effectiveProviderType,
+		baseUrl: showsBaseUrl ? effectiveBaseUrl : '',
+		enabled: !isCustomProvider && baseUrlReady && config.apiKey.source !== 'missing',
+	})
+
+	const liveModels = modelsResult?.ok ? modelsResult.models : []
+	const providerName = isCustomProvider ? 'this endpoint' : (provider?.name ?? 'this endpoint')
+	const modelsStatus: ModelPickerStatus = modelsLoading
+		? { kind: 'loading' }
+		: modelsResult?.ok
+			? { kind: 'live', count: modelsResult.models.length, fetchedAt: modelsResult.fetchedAt }
+			: modelsResult
+				? { kind: 'error', error: modelsResult.error }
+				: { kind: 'idle' }
+
+	// After a provider switch the curated first model is only a placeholder:
+	// once that provider's live catalogue lands, take its newest model instead.
+	useEffect(() => {
+		if (!awaitingLiveDefault) return
+		if (modelsLoading) return
+		if (liveModels.length > 0) setModel(liveModels[0].id)
+		setAwaitingLiveDefault(false)
+	}, [awaitingLiveDefault, modelsLoading, liveModels])
+
+	const handleRefreshModels = () => {
+		void refreshModels({
+			apiKey: apiKeyDraft.length > 0 ? apiKeyDraft : undefined,
+			baseUrl: showsBaseUrl ? effectiveBaseUrl : undefined,
+		})
+	}
+
 	const handleProviderChange = (id: string) => {
 		setProviderId(id)
+		// Model ids don't carry across providers, so start from the new
+		// provider's first known model (or empty, for endpoints we can't guess).
 		const next = id === CUSTOM_PROVIDER_ID ? undefined : PROVIDERS.find(p => p.id === id)
-		const nextModels = next?.models ?? []
-		if (nextModels.length > 0) {
-			setModelSelect(nextModels[0])
-			setCustomModel('')
-		} else {
-			setModelSelect(CUSTOM_MODEL_VALUE)
-		}
+		setModel(next?.models[0] ?? '')
+		setAwaitingLiveDefault(id !== CUSTOM_PROVIDER_ID)
+	}
+
+	const handleModelChange = (next: string) => {
+		setModel(next)
+		// An explicit pick outranks the pending live default.
+		setAwaitingLiveDefault(false)
 	}
 
 	const handleSave = async () => {
@@ -369,40 +319,24 @@ function Form({ config, saving, mutate }: FormProps) {
 								Model
 							</Label>
 							<p className="text-sm text-muted-foreground">
-								{modelOptions.length > 0
-									? 'Pick from common models for this provider, or choose Custom.'
-									: 'Enter a model identifier supported by this provider.'}
+								Pick a model this provider currently offers, or type any identifier it accepts.
 							</p>
 						</div>
-						{modelOptions.length > 0 && (
-							<Select value={modelSelect} onValueChange={setModelSelect} disabled={modelLocked || saving}>
-								<SelectTrigger id="aiModel" className="w-full">
-									<SelectValue placeholder="Select a model" />
-								</SelectTrigger>
-								<SelectContent>
-									{modelOptions.map(m => (
-										<SelectItem key={m} value={m}>
-											{m}
-										</SelectItem>
-									))}
-									<SelectItem value={CUSTOM_MODEL_VALUE}>Custom…</SelectItem>
-								</SelectContent>
-							</Select>
-						)}
-						{isCustomModel && (
-							<>
-								<Input
-									id={modelOptions.length > 0 ? 'aiModelCustom' : 'aiModel'}
-									type="text"
-									value={customModel}
-									placeholder={modelOptions.length === 0 ? 'e.g. llama3.1:8b' : 'Enter custom model name'}
-									disabled={modelLocked || saving}
-									maxLength={LIMITS.SHORT_NAME}
-									onChange={e => setCustomModel(e.target.value)}
-								/>
-								<CharacterCounter value={customModel} max={LIMITS.SHORT_NAME} className="self-end" />
-							</>
-						)}
+						<ModelPicker
+							// Remounting on a provider switch closes the popover and clears
+							// its search, so a stale catalogue is never left on screen.
+							key={providerId}
+							id="aiModel"
+							value={model}
+							onChange={handleModelChange}
+							models={liveModels}
+							fallbackModels={fallbackModels}
+							providerName={providerName}
+							status={modelsStatus}
+							onRefresh={handleRefreshModels}
+							catalogue={!isCustomProvider}
+							disabled={modelLocked || saving}
+						/>
 						{modelLocked && <p className="text-xs text-muted-foreground">Set by AI_MODEL. Unset to edit here.</p>}
 					</div>
 
@@ -571,17 +505,9 @@ function initialCustomBaseUrl(config: AiConfigResponse): string {
 	return config.baseUrl.value ?? ''
 }
 
-function initialModelSelect(config: AiConfigResponse): string {
+// The saved model wins outright, whatever the curated list says about it.
+function initialModel(config: AiConfigResponse): string {
+	if (config.model.value) return config.model.value
 	const match = findProviderMatch(config.providerType.value, config.baseUrl.value) ?? PROVIDERS[0]
-	const models = match.models
-	if (config.model.value && models.includes(config.model.value)) return config.model.value
-	if (config.model.value && !models.includes(config.model.value)) return CUSTOM_MODEL_VALUE
-	if (models.length === 0) return CUSTOM_MODEL_VALUE
-	return models[0]
-}
-
-function initialCustomModel(config: AiConfigResponse): string {
-	const match = findProviderMatch(config.providerType.value, config.baseUrl.value) ?? PROVIDERS[0]
-	if (config.model.value && !match.models.includes(config.model.value)) return config.model.value
-	return ''
+	return match.models[0] ?? ''
 }

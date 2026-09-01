@@ -10,3 +10,8 @@ export const PROVIDER_TYPES: ReadonlyArray<ProviderType> = ['openai', 'openai-co
 export const DEFAULT_MAX_OUTPUT_TOKENS = 4096
 
 export type FieldSource = 'env' | 'db' | 'default' | 'missing'
+
+// One entry in a provider's live model catalogue. `label` is the provider's
+// own display name when it publishes one (Anthropic, OpenRouter); the id is
+// always what gets saved as the model setting.
+export type ProviderModel = { id: string; label?: string }

@@ -7,6 +7,7 @@ import { db } from '@/db'
 import { appSettings } from '@/db/schema'
 import { createAiModel } from '@/lib/ai-client'
 import { AI_SETTING_KEYS, type AiSettingKey, envLockedFlags, resolveAiConfig } from '@/lib/ai-config'
+import { type ListModelsResult, listProviderModels } from '@/lib/ai-models'
 import { DEFAULT_MAX_OUTPUT_TOKENS, type FieldSource, PROVIDER_TYPES, type ProviderType } from '@/lib/ai-types'
 import { encryptAppSecret } from '@/lib/crypto/app-secret'
 import { createLogger } from '@/lib/logger'
@@ -177,4 +178,35 @@ export const testAiConnectionAsAdmin = createServerFn({ method: 'POST' })
 			adminAiLog.warn({ err }, 'ai connection test failed')
 			return { ok: false, error: msg }
 		}
+	})
+
+const listModelsInputSchema = z
+	.object({
+		// Same draft-override contract as the connection test: anything omitted
+		// falls back to the saved (env or db) value.
+		providerType: providerTypeSchema.optional(),
+		baseUrl: z.url().max(LIMITS.URL).optional(),
+		apiKey: z.string().min(1).max(LIMITS.SECRET).optional(),
+		refresh: z.boolean().optional(),
+	})
+	.strict()
+
+export type ListAiModelsResult = ListModelsResult
+
+export const listAiModelsAsAdmin = createServerFn({ method: 'POST' })
+	.middleware([adminAuthMiddleware])
+	.inputValidator((data: z.infer<typeof listModelsInputSchema>) => listModelsInputSchema.parse(data))
+	.handler(async ({ data }): Promise<ListAiModelsResult> => {
+		const cfg = await resolveAiConfig(db)
+		const providerType = data.providerType ?? cfg.providerType.value
+		const baseUrl = data.baseUrl ?? cfg.baseUrl.value
+		const apiKey = data.apiKey ?? cfg.apiKey.value
+
+		if (!providerType) return { ok: false, error: 'Provider type is required.' }
+		if (!apiKey) return { ok: false, error: 'An API key is required to list models.' }
+		if (providerType === 'openai-compatible' && !baseUrl) {
+			return { ok: false, error: 'Base URL is required for OpenAI-compatible providers.' }
+		}
+
+		return await listProviderModels({ providerType, apiKey, baseUrl, refresh: data.refresh ?? false })
 	})
