@@ -64,9 +64,9 @@ async function getMe(apiKey: string): Promise<Response> {
 }
 
 describe('mobile apiKey revocation', () => {
-	beforeEach(() => {
+	beforeEach(async () => {
 		testEmail = `revoke-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.local`
-		mobileSignInLimiter._resetForTesting()
+		await mobileSignInLimiter._resetForTesting()
 	})
 
 	afterEach(async () => {

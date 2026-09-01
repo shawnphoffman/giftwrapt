@@ -67,11 +67,11 @@ async function postSignIn(body: unknown, headers: HeadersInit = {}): Promise<Res
 }
 
 describe('mobile sign-in flow', () => {
-	beforeEach(() => {
+	beforeEach(async () => {
 		testEmail = `signin-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.local`
 		// The in-memory IP-keyed limiter is shared across tests; reset so a
 		// previous test's burst doesn't 429 the next one.
-		mobileSignInLimiter._resetForTesting()
+		await mobileSignInLimiter._resetForTesting()
 	})
 
 	afterEach(async () => {

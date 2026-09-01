@@ -83,9 +83,9 @@ async function getMe(apiKey: string): Promise<Response> {
 }
 
 describe('password change auto-revokes mobile apiKeys', () => {
-	beforeEach(() => {
+	beforeEach(async () => {
 		testEmail = `pwd-revoke-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.local`
-		mobileSignInLimiter._resetForTesting()
+		await mobileSignInLimiter._resetForTesting()
 	})
 
 	afterEach(async () => {

@@ -12,6 +12,7 @@
 import type { Context, MiddlewareHandler, Next } from 'hono'
 
 import { type RateLimiter, rateLimitKeyForRequest } from '@/lib/rate-limit'
+import type { AsyncRateLimiter } from '@/lib/rate-limit-db'
 
 import { jsonError } from './envelope'
 
@@ -46,12 +47,16 @@ export const minClientVersionHeader: MiddlewareHandler = async (c: Context, next
  *
  * Keys per authenticated user when `c.var.userId` is set (after the
  * apiKey middleware), otherwise per client IP.
+ *
+ * Accepts either limiter flavor: the in-memory one (`consume` returns a
+ * result) or the DB-backed one used for credential endpoints (`consume`
+ * returns a promise). Awaiting covers both.
  */
-export function rateLimit(limiter: RateLimiter): MiddlewareHandler {
+export function rateLimit(limiter: RateLimiter | AsyncRateLimiter): MiddlewareHandler {
 	return async (c: Context, next: Next) => {
 		const userId = c.get('userId') as string | undefined
 		const key = rateLimitKeyForRequest(c.req.raw, userId)
-		const result = limiter.consume(key)
+		const result = await limiter.consume(key)
 		if (!result.allowed) {
 			const retryAfterSeconds = Math.max(1, Math.ceil(result.retryAfterMs / 1000))
 			const res = jsonError(c, 429, 'rate-limited', { data: { retryAfterSeconds } })

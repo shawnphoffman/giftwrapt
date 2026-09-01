@@ -159,9 +159,9 @@ async function postTotpVerify(body: unknown): Promise<Response> {
 }
 
 describe('mobile sign-in: TOTP fork', () => {
-	beforeEach(() => {
+	beforeEach(async () => {
 		testEmail = `totp-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.local`
-		mobileSignInLimiter._resetForTesting()
+		await mobileSignInLimiter._resetForTesting()
 	})
 
 	afterEach(async () => {
@@ -255,8 +255,8 @@ describe('mobile sign-in: TOTP fork', () => {
 })
 
 describe('mobile auth capabilities probe', () => {
-	beforeEach(() => {
-		mobileSignInLimiter._resetForTesting()
+	beforeEach(async () => {
+		await mobileSignInLimiter._resetForTesting()
 	})
 
 	it('returns the documented capabilities envelope', async () => {

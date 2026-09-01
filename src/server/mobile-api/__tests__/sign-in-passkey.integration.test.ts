@@ -67,7 +67,7 @@ async function postPasskeyFinish(body: unknown): Promise<Response> {
 
 describe('mobile sign-in: passkey (browser flow)', () => {
 	beforeEach(async () => {
-		mobileSignInLimiter._resetForTesting()
+		await mobileSignInLimiter._resetForTesting()
 		await enableMobileApp(true)
 		// Start each test with a known-empty whitelist so the
 		// schema-level default (`['wishlists://oauth']`) doesn't bleed

@@ -97,7 +97,7 @@ async function postOidcFinish(body: unknown): Promise<Response> {
 
 describe('mobile sign-in: OIDC', () => {
 	beforeEach(async () => {
-		mobileSignInLimiter._resetForTesting()
+		await mobileSignInLimiter._resetForTesting()
 		await enableMobileApp(true)
 		// OIDC tests want a known whitelist; the schema default
 		// `['wishlists://oauth']` already matches REDIRECT_URI, but

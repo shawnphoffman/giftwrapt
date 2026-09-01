@@ -5,6 +5,7 @@
 // declaration so the limits are easy to find, audit, and adjust.
 
 import { createRateLimiter } from './rate-limit'
+import { createDbRateLimiter } from './rate-limit-db'
 
 // Comment writes per user. Posting a comment is cheap server-side but
 // triggers an outbound transactional email per recipient (when
@@ -69,7 +70,16 @@ export const fileProxyLimiter = createRateLimiter({
 // session exists. 10/min/IP keeps brute-force unattractive while
 // still letting a user with a fat-fingered password retry comfortably.
 // See `src/server/mobile-api/v1.ts` (`POST /v1/sign-in`).
-export const mobileSignInLimiter = createRateLimiter({
+//
+// DB-backed, unlike every limiter above: this one guards credentials, and
+// `POST /v1/sign-in` validates them by calling `auth.api.signInEmail()`
+// programmatically, which bypasses better-auth's own (database-backed)
+// HTTP rate limiter. An in-memory counter would reset on every cold start
+// and be per-instance on a scaled deploy, which is exactly the budget a
+// brute-force wants. The limiters above shape cost rather than guard
+// secrets, so per-instance counting remains acceptable for them.
+// See sec-review S1.
+export const mobileSignInLimiter = createDbRateLimiter({
 	name: 'mobile-sign-in',
 	max: 10,
 	windowMs: 60_000,

@@ -134,9 +134,9 @@ async function postSignIn(): Promise<Response> {
 }
 
 describe('mobile 2FA lifecycle: enable -> disable -> re-enable', () => {
-	beforeEach(() => {
+	beforeEach(async () => {
 		testEmail = `totp-lifecycle-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@test.local`
-		mobileSignInLimiter._resetForTesting()
+		await mobileSignInLimiter._resetForTesting()
 	})
 
 	afterEach(async () => {
