@@ -825,19 +825,7 @@ export function SettingsPanel({
 					</div>
 				</SettingsSection>
 
-				<SettingsSection
-					id="notifications"
-					icon={Mail}
-					title="Notifications"
-					summary={s.email.enabled ? 'email on' : 'email off'}
-					badge="scaffold only"
-				>
-					<Alert>
-						<AlertTitle>Delivery not yet implemented</AlertTitle>
-						<AlertDescription>
-							Toggles below are wired into settings but no email is sent. A future PR will hook up transport.
-						</AlertDescription>
-					</Alert>
+				<SettingsSection id="notifications" icon={Mail} title="Notifications" summary={s.email.enabled ? 'email on' : 'email off'}>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
 						<ToggleRow label="Email enabled" checked={s.email.enabled} onChange={v => patch({ email: { ...s.email, enabled: v } })} />
 						<ToggleRow
