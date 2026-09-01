@@ -1451,7 +1451,11 @@ export async function updateListImpl(args: {
 	}
 
 	const nextType = data.type ?? list.type
-	if (data.type === 'giftideas') {
+	// Keyed on the RESULTING type, not the payload's: an update that omits
+	// `type` but sets `isPrivate: false` on an existing giftideas list
+	// would otherwise persist a public gift-ideas list, breaking the
+	// always-private spoiler invariant in docs/logic.md.
+	if (nextType === 'giftideas') {
 		updates.isPrivate = true
 	}
 	if (data.type !== undefined && data.type !== 'giftideas') {
