@@ -71,6 +71,20 @@
       "when": 1786024608897,
       "tag": "0009_complete_rumiko_fujikawa",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788278213956,
+      "tag": "0010_simple_shatterstar",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788278439617,
+      "tag": "0011_flawless_ken_ellis",
+      "breakpoints": true
     }
   ]
 }

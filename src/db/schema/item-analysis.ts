@@ -1,7 +1,6 @@
 import { boolean, index, integer, jsonb, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core'
 
 import { items } from './items'
-import { timestamps } from './shared'
 import { users } from './users'
 
 // =====================================================================
@@ -57,7 +56,17 @@ export const itemAiAnalysis = pgTable(
 		canonicalName: text('canonical_name'),
 		// Open-ended bag for facets added later without a migration.
 		attributes: jsonb('attributes').$type<Record<string, unknown>>(),
-		...timestamps,
+		// Timezone-aware on purpose, NOT the shared `timestamps` helper:
+		// the enrichment sweep compares `items.modifiedAt` (timestamptz)
+		// against `updatedAt` in SQL (src/lib/intelligence/enrichment.ts).
+		// A naive timestamp on this side makes Postgres cast through the
+		// session time zone, silently breaking the re-select on any
+		// non-UTC deployment.
+		updatedAt: timestamp('updated_at', { withTimezone: true })
+			.defaultNow()
+			.$onUpdate(() => /* @__PURE__ */ new Date())
+			.notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 	},
 	table => [
 		// Supports the duplicates analyzer's canonical-name tier lookups.
