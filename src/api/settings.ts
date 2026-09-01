@@ -3,18 +3,20 @@ import { createServerFn } from '@tanstack/react-start'
 import { db } from '@/db'
 import { appSettings } from '@/db/schema'
 import { loggingMiddleware } from '@/lib/logger'
-import { type AppSettings, appSettingsSchema } from '@/lib/settings'
+import { type AppSettings, appSettingsSchema, toPublicAppSettings } from '@/lib/settings'
 import { encryptBarcodeSecrets, encryptScrapeProviderSecrets, getAppSettings } from '@/lib/settings-loader'
 import { adminAuthMiddleware } from '@/middleware/auth'
 
 /**
  * Public, unauthenticated read of app settings.
  *
- * Strips `scrapeProviders` because those entries carry decrypted secret
- * fields (token / apiKey / customHeaders) after `getAppSettings` runs its
- * envelope-decrypt pass. The root route prefetches this on every request,
- * including for unauthenticated visitors, so any field returned here is
- * effectively world-readable. See sec-review C1.
+ * Everything returned here is effectively world-readable: the root route
+ * prefetches this on every request, including for unauthenticated
+ * visitors. `getAppSettings` decrypts secret fields on read, so the
+ * response goes through `toPublicAppSettings`, which blanks every
+ * decrypted secret family (scrape providers, barcode key, OIDC client
+ * secret). Add new secret-bearing settings to that projection, never
+ * here. See sec-review C1.
  *
  * Admin UI that needs the full provider list (with secrets) calls
  * `fetchAppSettingsAsAdmin` instead.
@@ -25,15 +27,7 @@ export const fetchAppSettings = createServerFn({
 	.middleware([loggingMiddleware])
 	.handler(async (): Promise<AppSettings> => {
 		const full = await getAppSettings(db)
-		// `barcode.goUpcKey` is a decrypted secret after the loader
-		// runs; strip before returning to unauthenticated callers. The
-		// other `barcode` fields stay so clients can read capability
-		// gating from the public prefetch.
-		return {
-			...full,
-			scrapeProviders: [],
-			barcode: { ...full.barcode, goUpcKey: '' },
-		}
+		return toPublicAppSettings(full)
 	})
 
 /**

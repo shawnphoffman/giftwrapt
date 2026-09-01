@@ -667,6 +667,23 @@ export function looksLikeEncryptedEnvelope(value: unknown): boolean {
 	return v.v === 1 && typeof v.iv === 'string' && typeof v.tag === 'string' && typeof v.data === 'string'
 }
 
+// Public-safe projection of a fully-loaded (decrypted) AppSettings
+// object. The unauthenticated `fetchAppSettings` server fn returns this
+// on every request, so anything it leaves in place is world-readable.
+// Every family the loader decrypts on read (SCRAPE_PROVIDER_SECRET_FIELDS,
+// BARCODE_SECRET_FIELDS, OIDC_CLIENT_SECRET_FIELDS) must be stripped or
+// blanked here; a regression test walks the output for secret-shaped keys
+// so a new secret field added to the schema fails loudly instead of
+// leaking by default.
+export function toPublicAppSettings(full: AppSettings): AppSettings {
+	return {
+		...full,
+		scrapeProviders: [],
+		barcode: { ...full.barcode, goUpcKey: '' },
+		oidcClient: { ...full.oidcClient, clientSecret: '' },
+	}
+}
+
 // Admin-gated list types. `wishlist` and `giftideas` are always available
 // (the former is the universal default, the latter has its own role gate).
 // Returns true when the type is admin-disabled. Lives here (alongside
