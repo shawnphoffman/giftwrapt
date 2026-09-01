@@ -423,8 +423,11 @@ export const appSettingsSchema = z.object({
 	// Top-level on/off. When false, cron skips all users and the user-facing
 	// page renders a "feature disabled" state.
 	intelligenceEnabled: z.boolean(),
-	// Cron regenerates recs when the user's last successful run finished
-	// at least this many days ago AND no active recs are still un-reviewed.
+	// Cron regenerates recs when the user's last successful run finished at
+	// least this many days ago. Engagement-independent: unread active recs
+	// do NOT defer the refresh (the old `unread-recs-exist` guard is gone;
+	// `persistBatch` replaces the batch and carries dismissed/applied
+	// status forward by fingerprint, so re-running never piles them up).
 	intelligenceRefreshIntervalDays: z.number().int().min(1).max(90),
 	// Manual-refresh rate limit per user (minutes between manual triggers).
 	intelligenceManualRefreshCooldownMinutes: z.number().int().min(1).max(1440),
