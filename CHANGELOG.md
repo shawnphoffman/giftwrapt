@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.46.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.45.0...v0.46.0) (2026-09-01)
+
+
+### Features
+
+* **intelligence:** add operator digest email ([589458b](https://github.com/shawnphoffman/giftwrapt/commit/589458bbe2d3328900e7e63b54b732dcefa0d682))
+* **intelligence:** add skip gates, facet store, and verdict caches ([5c0ab9a](https://github.com/shawnphoffman/giftwrapt/commit/5c0ab9a522852a46b7693eec8fe562eb3a314ff1))
+* **intelligence:** make the cost fixes work without config ([3f52fbd](https://github.com/shawnphoffman/giftwrapt/commit/3f52fbd98dc6d8e3a1b950404883536a19289e4d))
+* **items:** add cross-list item search on My Lists ([053cbfd](https://github.com/shawnphoffman/giftwrapt/commit/053cbfd55557eef5b2e70f1bca9ce47f47c206d5))
+* **security:** back the mobile sign-in rate limiter with the database ([fbf51cd](https://github.com/shawnphoffman/giftwrapt/commit/fbf51cd9237102f4d4dabf5a92951fd7eeaad9cb))
+
+
+### Bug Fixes
+
+* **admin:** drop the stale scaffold notice from intelligence notifications ([20d4ee4](https://github.com/shawnphoffman/giftwrapt/commit/20d4ee46e03da126f3d4ad656824b2a57f2c150a))
+* **intelligence:** compare enrichment timestamps in the same time zone ([80743f4](https://github.com/shawnphoffman/giftwrapt/commit/80743f42712e3c64eb151cb5617525d516e76c48))
+* **items:** make item search server-side and gate it at 3 characters ([68950b3](https://github.com/shawnphoffman/giftwrapt/commit/68950b3dc147389f5cc3e4bee1c55adf5261ea2a))
+* **lists:** keep gift-ideas lists private when an update omits the type ([9b9d979](https://github.com/shawnphoffman/giftwrapt/commit/9b9d97965c3b1b8b67b3cf958339306262faa03e))
+* **screenshots:** make the hero viewport opt-in ([1af2d76](https://github.com/shawnphoffman/giftwrapt/commit/1af2d7662abcfaa0ad57963f4b913f17c8ccf895))
+* **settings:** stop leaking the OIDC client secret to unauthenticated callers ([c3ea6f3](https://github.com/shawnphoffman/giftwrapt/commit/c3ea6f3230ba16e7e28ace4b2241c2688423c7a1))
+* **sse:** gate per-list subscriptions on list visibility ([6443009](https://github.com/shawnphoffman/giftwrapt/commit/644300901f28206ac1a32754bf1e6cb5bf871b78))
+
 ## [0.45.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.44.2...v0.45.0) (2026-06-22)
 
 
