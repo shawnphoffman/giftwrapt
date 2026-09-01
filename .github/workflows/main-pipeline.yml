@@ -36,14 +36,59 @@ jobs:
       - name: Check drizzle journal invariants
         run: pnpm db:check
 
+      - name: Check schema source matches committed migrations
+        run: pnpm db:check-drift
+
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Run tests
         run: pnpm test
 
+      - name: Run integration tests
+        run: pnpm test:integration
+
+      # The only check that catches a missing `.storybook/mocks/api.ts`
+      # export: `pnpm test`'s Storybook project uses Vite's lenient dev
+      # transform (a missing name resolves to `undefined`), while the real
+      # Rollup build fails the same way Vercel does. This exact gap shipped
+      # the broken 0.44.0 deploy; gate main on it.
+      - name: Build Storybook (strict mock-export guard)
+        run: pnpm build-storybook
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: NODE_OPTIONS="--max-old-space-size=6144" pnpm build
+
+      - name: Assert no source maps in client bundle
+        run: |
+          maps=$(find .output/public dist -name '*.map' 2>/dev/null || true)
+          if [ -n "$maps" ]; then
+            echo "::error::Source maps found in deployable output:"
+            echo "$maps"
+            exit 1
+          fi
+          echo "OK: no .map files in client bundle"
+
   release-please:
-    needs: test
+    needs: [test, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
