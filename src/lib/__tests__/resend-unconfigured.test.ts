@@ -25,14 +25,21 @@ vi.mock('@/db', () => {
 	return { db: emptyQuery }
 })
 
-describe('resend module with email fully unconfigured', () => {
+// `vi.resetModules()` runs before each test, so every case below pays a
+// full cold import of `@/lib/resend` (React Email templates, pino, the
+// crypto helper). That is comfortably under the default 5s timeout on an
+// idle machine but not when the unit and storybook projects saturate the
+// CPU, which made this file the flakiest in the suite. The timeout is per
+// test and only consumed on a hang, so a generous suite-wide value costs
+// nothing on the happy path.
+describe('resend module with email fully unconfigured', { timeout: 20_000 }, () => {
 	beforeEach(() => {
 		vi.resetModules()
 	})
 
 	it('imports without throwing', async () => {
 		await expect(import('@/lib/resend')).resolves.toBeDefined()
-	}, 20_000)
+	})
 
 	it('reports email as not configured', async () => {
 		const { isEmailConfigured } = await import('@/lib/resend')

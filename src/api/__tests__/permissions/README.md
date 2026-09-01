@@ -14,12 +14,16 @@ appending to that table.
 | `_seeds.ts`                                    | Per-role scenario fixtures (owner / guardian / partner / list-editor / user-edit / denied / default / child-role)                                             |
 | `_expectations.ts`                             | The matrix tables, one slice per resource                                                                                                                     |
 | `list.permissions.integration.test.ts`         | `canViewList`, `canViewListAsAnyone`, `canEditList` against every (role, listState) pair. Canonical template; copy this when filling out the other resources. |
-| `item.permissions.integration.test.ts`         | Item-level actions (view, create, update, archive, delete). **Stub** until logic.md adds rules.                                                               |
-| `claim.permissions.integration.test.ts`        | `claimItemGiftImpl`, `unclaimItemGiftImpl`, `updateCoGiftersImpl`. **Stub.**                                                                                  |
-| `comment.permissions.integration.test.ts`      | Comment view/create/update/delete. **Stub.**                                                                                                                  |
-| `list-editor.permissions.integration.test.ts`  | Adding / removing list editors (who can grant access). **Stub.**                                                                                              |
-| `list-addon.permissions.integration.test.ts`   | Off-list addon CRUD by gifters. **Stub.**                                                                                                                     |
-| `relationship.permissions.integration.test.ts` | Owner / viewer relationship upserts (canView / canEdit grants). **Stub.**                                                                                     |
+| `item.permissions.integration.test.ts`         | Item-level actions (view, create, update, archive, delete).                                                                                                   |
+| `claim.permissions.integration.test.ts`        | `claimItemGiftImpl`, `unclaimItemGiftImpl`, `updateCoGiftersImpl`, self-claim gate.                                                                           |
+| `comment.permissions.integration.test.ts`      | Comment view/create/update/delete.                                                                                                                            |
+| `list-editor.permissions.integration.test.ts`  | Adding / removing list editors (who can grant access), child + restricted rejections.                                                                         |
+| `list-addon.permissions.integration.test.ts`   | Off-list addon CRUD by gifters.                                                                                                                               |
+| `relationship.permissions.integration.test.ts` | Owner / viewer relationship upserts, restricted-wins, `actingAsAdmin` boundaries.                                                                             |
+
+All of the above are populated; none are stubs. Add a row to `_expectations.ts`
+rather than a bare `it()` when the new case is a (role, state) cell, so the
+matrix self-check keeps covering it.
 
 ## Running
 
