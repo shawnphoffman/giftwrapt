@@ -16,7 +16,7 @@ const checkEmailEnabled = createServerFn({ method: 'GET' }).handler(async () => 
 })
 
 export const Route = createFileRoute('/(auth)/forgot-password')({
-	beforeLoad: async ({ context }) => {
+	beforeLoad: ({ context }) => {
 		// If the user already has a session, send them home. This page
 		// is only useful while signed-out. Mirrors the sign-in pattern of
 		// not gawking at auth pages once authenticated.

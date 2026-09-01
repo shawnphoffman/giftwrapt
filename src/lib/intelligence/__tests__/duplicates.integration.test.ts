@@ -312,8 +312,8 @@ describe('duplicatesAnalyzer auto-confirm', () => {
 			// Two recs: one from auto-confirm, one from the LLM.
 			expect(result.recs).toHaveLength(2)
 			const bodies = result.recs.map(r => r.body)
-			expect(bodies.some(b => /nearly identical/i.test(b))).toBe(true)
-			expect(bodies.some(b => /same model/i.test(b))).toBe(true)
+			expect(bodies.some(body => /nearly identical/i.test(body))).toBe(true)
+			expect(bodies.some(body => /same model/i.test(body))).toBe(true)
 		})
 	})
 })

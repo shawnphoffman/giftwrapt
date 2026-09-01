@@ -85,7 +85,7 @@ export async function getUsersWithRelationshipsImpl(currentUserId: string): Prom
 			orderBy: [asc(users.name), asc(users.email)],
 		}),
 		db.query.userRelationships.findMany({
-			where: (rel, { eq }) => eq(rel.ownerUserId, currentUserId),
+			where: (rel, ops) => ops.eq(rel.ownerUserId, currentUserId),
 		}),
 	])
 
@@ -118,7 +118,7 @@ export async function getOwnersWithRelationshipsForMeImpl(currentUserId: string)
 			orderBy: [asc(users.name), asc(users.email)],
 		}),
 		db.query.userRelationships.findMany({
-			where: (rel, { eq }) => eq(rel.viewerUserId, currentUserId),
+			where: (rel, ops) => ops.eq(rel.viewerUserId, currentUserId),
 		}),
 	])
 
@@ -184,7 +184,7 @@ export type MyPersonRow = {
 // callers pass the imported singleton.
 export async function getMyPeopleImpl(dbx: SchemaDatabase, currentUserId: string): Promise<Array<MyPersonRow>> {
 	const me = await dbx.query.users.findFirst({
-		where: (us, { eq }) => eq(us.id, currentUserId),
+		where: (us, ops) => ops.eq(us.id, currentUserId),
 		columns: { partnerId: true },
 	})
 	const myPartnerId = me?.partnerId ?? null
@@ -196,13 +196,13 @@ export async function getMyPeopleImpl(dbx: SchemaDatabase, currentUserId: string
 
 	// Rows where I'm the owner -> their access to MY list.
 	const asViewerRels = await dbx.query.userRelationships.findMany({
-		where: (rel, { eq }) => eq(rel.ownerUserId, currentUserId),
+		where: (rel, ops) => ops.eq(rel.ownerUserId, currentUserId),
 	})
 	const viewerMap = new Map(asViewerRels.map(rel => [rel.viewerUserId, rel]))
 
 	// Rows where I'm the viewer -> my access to THEIR list.
 	const asOwnerRels = await dbx.query.userRelationships.findMany({
-		where: (rel, { eq }) => eq(rel.viewerUserId, currentUserId),
+		where: (rel, ops) => ops.eq(rel.viewerUserId, currentUserId),
 	})
 	const ownerMap = new Map(asOwnerRels.map(rel => [rel.ownerUserId, rel]))
 

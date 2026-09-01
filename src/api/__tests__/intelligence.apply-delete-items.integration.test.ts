@@ -12,9 +12,9 @@ type Tx = Parameters<Parameters<typeof withRollback>[0]>[0]
 
 async function makeStaleRec(tx: Tx, args: { userId: string; listId: number; itemRefs: Array<{ id: string; title: string }> }) {
 	const payload = {
-		relatedItems: args.itemRefs.map(it => ({
-			id: it.id,
-			title: it.title,
+		relatedItems: args.itemRefs.map(ref => ({
+			id: ref.id,
+			title: ref.title,
 			listId: String(args.listId),
 			listName: 'L',
 			imageUrl: null,
@@ -24,13 +24,13 @@ async function makeStaleRec(tx: Tx, args: { userId: string; listId: number; item
 		affected: {
 			noun: 'items',
 			count: args.itemRefs.length,
-			lines: args.itemRefs.map(it => `${it.title} · last edited 600 days ago`),
+			lines: args.itemRefs.map(ref => `${ref.title} · last edited 600 days ago`),
 		},
-		actions: args.itemRefs.map(it => ({
+		actions: args.itemRefs.map(ref => ({
 			label: 'Delete',
-			description: `Delete "${it.title}".`,
+			description: `Delete "${ref.title}".`,
 			intent: 'destructive',
-			apply: { kind: 'delete-items', listId: String(args.listId), itemIds: [it.id] },
+			apply: { kind: 'delete-items', listId: String(args.listId), itemIds: [ref.id] },
 		})),
 	}
 	const [row] = await tx

@@ -331,7 +331,7 @@ export function EditDependentDialog({
 					</AlertDialogContent>
 				</AlertDialog>
 
-				<AlertDialog open={pendingGuardianRemoval !== null} onOpenChange={open => !open && setPendingGuardianRemoval(null)}>
+				<AlertDialog open={pendingGuardianRemoval !== null} onOpenChange={next => !next && setPendingGuardianRemoval(null)}>
 					<AlertDialogContent>
 						<AlertDialogHeader>
 							<AlertDialogTitle>Remove Guardian?</AlertDialogTitle>

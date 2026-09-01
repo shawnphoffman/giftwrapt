@@ -44,4 +44,19 @@ export default [
 			'import/consistent-type-specifier-style': 'off',
 		},
 	},
+	{
+		// Test doubles have to match the shape of what they replace, and a
+		// lot of what we mock is promise-returning: `generateObject`, a
+		// provider's `lookup`, `dns.lookup`, the AI SDK's `doGenerate`. Those
+		// mocks are `async` to satisfy the signature, not because they await
+		// anything, and `require-await` only reads the function body so it
+		// can't tell the difference. Rewriting them as `() => Promise.resolve(...)`
+		// would satisfy the rule and read worse. The rule flags style, not
+		// missing awaits - `no-floating-promises` and `await-thenable` catch
+		// those, and both stay on here.
+		files: ['**/__tests__/**/*.{ts,tsx}', '**/*.{test,spec}.{ts,tsx}', 'test/**/*.{ts,tsx}'],
+		rules: {
+			'@typescript-eslint/require-await': 'off',
+		},
+	},
 ]

@@ -51,7 +51,7 @@ describe('bulkCreateItemsImpl - happy path', () => {
 			}
 
 			// Vendor was derived for known-vendor URLs.
-			const amazon = rows.find(r => r.url?.includes('amazon.com'))
+			const amazon = rows.find(row => row.url?.includes('amazon.com'))
 			expect(amazon?.vendorId).not.toBeNull()
 			expect(amazon?.vendorSource).toBe('rule')
 
@@ -59,7 +59,7 @@ describe('bulkCreateItemsImpl - happy path', () => {
 			expect(amazon?.title).toBe('amazon.com')
 
 			// Items without URLs do not get scrape jobs.
-			const titleOnly = rows.find(r => r.title === 'Plain title item')
+			const titleOnly = rows.find(row => row.title === 'Plain title item')
 			expect(titleOnly?.url).toBeNull()
 			const titleOnlyJobs = await tx.select().from(itemScrapeJobs).where(eq(itemScrapeJobs.itemId, titleOnly!.id))
 			expect(titleOnlyJobs).toHaveLength(0)
@@ -92,8 +92,8 @@ describe('bulkCreateItemsImpl - happy path', () => {
 			if (r.kind !== 'ok') return
 
 			const rows = await tx.select().from(items).where(eq(items.listId, list.id))
-			const a = rows.find(r => r.title === 'A')
-			const b = rows.find(r => r.title === 'B')
+			const a = rows.find(row => row.title === 'A')
+			const b = rows.find(row => row.title === 'B')
 			expect(a?.priority).toBe('high')
 			expect(a?.quantity).toBe(5)
 			expect(b?.priority).toBe('normal')
