@@ -3,3 +3,23 @@ packages:
 minimumReleaseAge: 10080 # 7 days; delay installs so a compromised/malicious release has time to be caught and unpublished before we pull it
 trustPolicy: no-downgrade # fail installs if a package's npm trust level (trusted-publisher > provenance > none) weakens between versions; add trustPolicyExclude entries if a legit dep trips this
 blockExoticSubdeps: true # refuse transitive deps resolved from git/http/other non-registry sources; a direct dep can still be exotic, but a compromised package can't quietly pull one in (pnpm >= 10.26)
+trustPolicyExclude:
+  # chokidar 4.0.2 and 4.0.3 shipped without the provenance attestation
+  # earlier versions had, which trips no-downgrade. It arrives transitively
+  # (react-email depends on it directly; unstorage takes it as an optional
+  # peer), it is already in the lockfile, and the trust check re-runs over
+  # the whole tree on every resolution. Without this exclusion NO dependency
+  # can be added, removed, or updated at all.
+  #
+  # Not a takeover. Upstream paulmillr/chokidar#1440: the maintainer
+  # confirms both were published by hand after a CI publishing failure, and
+  # a co-maintainer confirms the contents are understood. The issue is
+  # closed. Corroborating: 4.0.2 and 4.0.3 carry the same npm signing key
+  # (SHA256:jl3bwswu80PjjokCgh0o2w5c2U4LhQAE57gj9cz1kzA), were published two
+  # days apart, and differ by 156 bytes across the same 12 files.
+  #
+  # The upstream fix is chokidar 5.0.0, which restores provenance; the
+  # maintainer declined to backport a 4.0.4. We can't take 5 yet because
+  # react-email pins chokidar 4 as a direct dependency. Drop this entry once
+  # react-email moves to ^5, and prefer that over keeping the exclusion.
+  - chokidar
