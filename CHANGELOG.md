@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.0.0...v1.1.0) (2026-09-02)
+
+
+### Features
+
+* **admin:** list AI models live from the configured provider ([2f4f8a8](https://github.com/shawnphoffman/giftwrapt/commit/2f4f8a82a245b8ab1010644bcf5023a7e0f74e0d))
+
 ## [1.0.0](https://github.com/shawnphoffman/giftwrapt/compare/v0.46.0...v1.0.0) (2026-09-01)
 
 
