@@ -89,6 +89,16 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 	// re-fire on every focus change while the URL is unchanged. Manual
 	// re-scrapes via the icon button bypass this and always force.
 	const lastScrapedUrlRef = useRef('')
+	// Tracks the exact field values the scrape itself last wrote, so a later
+	// scrape event (e.g. the AI-cleaned title in `result_updated`) can upgrade
+	// a field it filled one event earlier without clobbering a user edit.
+	const lastScrapeAppliedRef = useRef<Partial<{ title: string; price: string; notes: string; imageUrl: string }>>({})
+	// Latest field values, mirrored each render so the prefill effect can read
+	// them without listing them as dependencies. If the effect re-ran on every
+	// field change, clearing a prefilled field would immediately re-trigger the
+	// "fill if empty" rule and put the scraped value straight back.
+	const fieldsRef = useRef({ title, price, notes, imageUrl })
+	fieldsRef.current = { title, price, notes, imageUrl }
 
 	const { state: scrapeState, start: startScrape, cancel: cancelScrape, reset: resetScrape } = useScrapeUrl()
 
@@ -133,6 +143,7 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 			setStagedPreview(null)
 			setError(null)
 			lastScrapedUrlRef.current = ''
+			lastScrapeAppliedRef.current = {}
 			// Full reset (not cancel): clears a completed "Imported in N.Ns"
 			// alert so it doesn't linger when the dialog is reopened for the
 			// next item.
@@ -169,9 +180,11 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 
 	// Prefill empty (or untouched) fields when a scrape result arrives. Runs
 	// for both `partial` (a winner is in but parallels still racing) and
-	// `done` (final winner). Re-runs harmlessly if `result_updated` swaps
-	// the result later, since fields that already hold user input are skipped
-	// because of the empty-value check.
+	// `done` (final winner). Re-runs if `result_updated` swaps the result
+	// later; fields the user has edited are skipped because they no longer
+	// match what the scrape last wrote. Deliberately keyed on scrape events
+	// only (not field values): the user clearing a field must not count as
+	// "empty, fill it again".
 	useEffect(() => {
 		if (scrapeState.phase !== 'partial' && scrapeState.phase !== 'done') return
 		const result = scrapeState.result
@@ -179,13 +192,26 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 		// Shared "fill if empty" rule (see applyScrapePrefill). Same call
 		// handles both the auto-scrape on URL blur and a manual re-scrape
 		// via the Sparkles button.
-		const update = applyScrapePrefill({ title, price, notes, imageUrl }, result)
-		if (update.title !== undefined) setTitle(update.title)
-		if (update.price !== undefined) setPrice(update.price)
-		if (update.notes !== undefined) setNotes(update.notes)
-		if (update.imageUrl !== undefined) setImageUrl(update.imageUrl)
+		const applied = lastScrapeAppliedRef.current
+		const update = applyScrapePrefill(fieldsRef.current, result, applied)
+		if (update.title !== undefined) {
+			setTitle(update.title)
+			applied.title = update.title
+		}
+		if (update.price !== undefined) {
+			setPrice(update.price)
+			applied.price = update.price
+		}
+		if (update.notes !== undefined) {
+			setNotes(update.notes)
+			applied.notes = update.notes
+		}
+		if (update.imageUrl !== undefined) {
+			setImageUrl(update.imageUrl)
+			applied.imageUrl = update.imageUrl
+		}
 		setImageCandidates(update.imageCandidates)
-	}, [scrapeState, imageUrl, title, price, notes])
+	}, [scrapeState])
 
 	const formLocked = saving || scrapeState.phase === 'scraping'
 	const scrapeInFlight = scrapeState.phase === 'scraping'
