@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/shawnphoffman/giftwrapt/compare/v1.1.0...v1.1.1) (2026-09-03)
+
+
+### Bug Fixes
+
+* **items:** stop add-item scrape prefill refilling cleared fields ([2352b91](https://github.com/shawnphoffman/giftwrapt/commit/2352b91ee7abe3ce6b9416aa26265c6a556f01a5))
+
 ## [1.1.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.0.0...v1.1.0) (2026-09-02)
 
 
