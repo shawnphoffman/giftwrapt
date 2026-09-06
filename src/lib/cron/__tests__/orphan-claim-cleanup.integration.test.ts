@@ -212,3 +212,21 @@ describe('orphanClaimCleanupImpl - cleanup pass', () => {
 		})
 	})
 })
+
+describe('orphanClaimCleanupImpl - reminder pass never targets the recipient', () => {
+	it('sends the reminder to the partner-gifter only, never to the list owner they bought for', async () => {
+		vi.mocked(sendOrphanClaimCleanupReminderEmail).mockClear()
+		await withRollback(async tx => {
+			const owner = await makeUser(tx, { name: 'Madison', email: 'madison@test.local' })
+			const partner = await makeUser(tx, { name: 'Shawn', email: 'shawn@test.local', partnerId: owner.id })
+			const list = await makeList(tx, { ownerId: owner.id, type: 'christmas' })
+			const item = await makeItem(tx, { listId: list.id, title: 'Espresso', pendingDeletionAt: PENDING_RECENT })
+			await makeGiftedItem(tx, { itemId: item.id, gifterId: partner.id })
+
+			const result = await orphanClaimCleanupImpl({ db: tx, now: new Date('2026-12-24T12:00:00Z') })
+			expect(result.remindersSent).toBe(1)
+			const recipients = vi.mocked(sendOrphanClaimCleanupReminderEmail).mock.calls.map(c => c[0])
+			expect(recipients).toEqual(['shawn@test.local'])
+		})
+	})
+})

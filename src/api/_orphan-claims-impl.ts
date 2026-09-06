@@ -17,7 +17,7 @@ import { z } from 'zod'
 import { db, type SchemaDatabase } from '@/db'
 import { giftedItems, items, lists, users } from '@/db/schema'
 import { visibleItemsWhere } from '@/lib/item-visibility'
-import { userHasStandingOnClaim } from '@/lib/orphan-claims'
+import { isListRecipient, userHasStandingOnClaim } from '@/lib/orphan-claims'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 
@@ -32,6 +32,11 @@ export const AcknowledgeOrphanedClaimInputSchema = z.object({
 // One row per pending-deletion item the caller (or their partner) has a
 // claim on. The order is deletion-time ascending so older orphans
 // surface first in the alert.
+//
+// Spoiler guard: the list's recipient never sees orphan rows on their
+// own list, even ones credited to their partner (see `isListRecipient`
+// in lib/orphan-claims). Otherwise deleting an item would tell them
+// their partner had bought it.
 export type OrphanedClaimRow = {
 	giftId: number
 	itemId: number
@@ -66,6 +71,12 @@ export async function getOrphanedClaimsForListImpl(args: {
 	dbx?: SchemaDatabase
 }): Promise<Array<OrphanedClaimRow>> {
 	const { userId, listId, dbx = db } = args
+
+	const list = await dbx.query.lists.findFirst({
+		where: eq(lists.id, listId),
+		columns: { ownerId: true, subjectDependentId: true },
+	})
+	if (!list || isListRecipient(list, userId)) return []
 
 	const me = await dbx.query.users.findFirst({
 		where: eq(users.id, userId),
@@ -168,6 +179,9 @@ export async function getOrphanedClaimsSummaryImpl(args: {
 	}
 
 	for (const r of rows) {
+		// Same spoiler guard as the per-list alert: the recipient never
+		// sees orphans on their own list (their partner's claims included).
+		if (isListRecipient({ ownerId: r.listOwnerId, subjectDependentId: r.subjectDependentId }, userId)) continue
 		const recipientKind: 'user' | 'dependent' = r.subjectDependentId ? 'dependent' : 'user'
 		const recipientName =
 			recipientKind === 'dependent' && r.subjectDependentId
@@ -206,14 +220,24 @@ export async function acknowledgeOrphanedClaimImpl(args: {
 	})
 	if (!claim) return { kind: 'error', reason: 'not-found' }
 
-	const hasStanding = await userHasStandingOnClaim(dbx, userId, claim)
-	if (!hasStanding) return { kind: 'error', reason: 'not-yours' }
-
 	const item = await dbx.query.items.findFirst({
 		where: eq(items.id, claim.itemId),
 		columns: { id: true, listId: true, imageUrl: true, pendingDeletionAt: true },
 	})
 	if (!item) return { kind: 'error', reason: 'not-found' }
+
+	const list = await dbx.query.lists.findFirst({
+		where: eq(lists.id, item.listId),
+		columns: { ownerId: true, subjectDependentId: true },
+	})
+	if (!list) return { kind: 'error', reason: 'not-found' }
+
+	// Standing is checked before the pending-deletion state so a
+	// recipient probing their own list's claim ids learns nothing
+	// beyond "not yours".
+	const hasStanding = await userHasStandingOnClaim(dbx, userId, claim, list)
+	if (!hasStanding) return { kind: 'error', reason: 'not-yours' }
+
 	if (item.pendingDeletionAt === null) return { kind: 'error', reason: 'not-pending-deletion' }
 
 	const result = await dbx.transaction(async tx => {

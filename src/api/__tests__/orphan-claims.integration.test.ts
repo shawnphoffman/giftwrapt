@@ -280,3 +280,70 @@ describe('acknowledgeOrphanedClaimImpl', () => {
 		})
 	})
 })
+
+// Spoiler guard: the list's recipient never sees (or can act on) orphan
+// claims on their own list, even when the claim is credited to their
+// partner. Without this, deleting an item would reveal that the partner
+// had bought it.
+describe('recipient never sees orphan claims on their own list', () => {
+	it('getOrphanedClaimsForListImpl returns nothing to the owner for a partner-claimed item on their list', async () => {
+		await withRollback(async tx => {
+			const partner = await makeUser(tx)
+			const owner = await makeUser(tx, { partnerId: partner.id })
+			const list = await makeList(tx, { ownerId: owner.id })
+			const item = await makePendingItem(tx, { listId: list.id, title: 'Secret gift' })
+			await makeGiftedItem(tx, { itemId: item.id, gifterId: partner.id })
+
+			expect(await getOrphanedClaimsForListImpl({ userId: owner.id, listId: list.id, dbx: tx })).toHaveLength(0)
+			// The partner (the actual gifter) still sees it.
+			expect(await getOrphanedClaimsForListImpl({ userId: partner.id, listId: list.id, dbx: tx })).toHaveLength(1)
+		})
+	})
+
+	it('getOrphanedClaimsSummaryImpl omits the owner-recipient list but keeps other lists', async () => {
+		await withRollback(async tx => {
+			const partner = await makeUser(tx)
+			const owner = await makeUser(tx, { partnerId: partner.id })
+			const friend = await makeUser(tx, { name: 'Friend' })
+			const ownList = await makeList(tx, { ownerId: owner.id, name: 'Mine' })
+			const friendList = await makeList(tx, { ownerId: friend.id, name: 'Friend list' })
+			const secret = await makePendingItem(tx, { listId: ownList.id })
+			const shared = await makePendingItem(tx, { listId: friendList.id })
+			await makeGiftedItem(tx, { itemId: secret.id, gifterId: partner.id })
+			await makeGiftedItem(tx, { itemId: shared.id, gifterId: partner.id })
+
+			const rows = await getOrphanedClaimsSummaryImpl({ userId: owner.id, dbx: tx })
+			expect(rows.map(r => r.listId)).toEqual([friendList.id])
+		})
+	})
+
+	it('acknowledgeOrphanedClaimImpl rejects the owner acking their partner’s claim on their own list', async () => {
+		await withRollback(async tx => {
+			const partner = await makeUser(tx)
+			const owner = await makeUser(tx, { partnerId: partner.id })
+			const list = await makeList(tx, { ownerId: owner.id })
+			const item = await makePendingItem(tx, { listId: list.id })
+			const claim = await makeGiftedItem(tx, { itemId: item.id, gifterId: partner.id })
+
+			const result = await acknowledgeOrphanedClaimImpl({ userId: owner.id, input: { giftId: claim.id }, dbx: tx })
+			expect(result).toEqual({ kind: 'error', reason: 'not-yours' })
+			expect(await tx.select().from(giftedItems).where(eq(giftedItems.id, claim.id))).toHaveLength(1)
+		})
+	})
+
+	it('still surfaces partner claims to the guardian on a dependent-subject list', async () => {
+		await withRollback(async tx => {
+			const partner = await makeUser(tx)
+			const guardian = await makeUser(tx, { partnerId: partner.id })
+			const dep = await makeDependent(tx, { createdByUserId: guardian.id, name: 'Buddy' })
+			await makeDependentGuardianship(tx, { guardianUserId: guardian.id, dependentId: dep.id })
+			const list = await makeList(tx, { ownerId: guardian.id, subjectDependentId: dep.id })
+			const item = await makePendingItem(tx, { listId: list.id })
+			await makeGiftedItem(tx, { itemId: item.id, gifterId: partner.id })
+
+			const rows = await getOrphanedClaimsForListImpl({ userId: guardian.id, listId: list.id, dbx: tx })
+			expect(rows).toHaveLength(1)
+			expect(rows[0].isPartnerPurchase).toBe(true)
+		})
+	})
+})

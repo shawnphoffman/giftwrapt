@@ -8,11 +8,22 @@
 // primary gifter and their partner (per the read-time `gifterIds` array
 // the rest of the codebase uses for credit). Co-gifters are intentionally
 // silent.
+//
+// Spoiler-critical invariant: the list's RECIPIENT is never part of the
+// audience, even when they are the gifter's partner. A partner buying a
+// gift FOR their partner (a claim on the partner's own list) is the
+// common case, and telling the recipient "an item you claimed was
+// removed" would reveal that their partner had bought it. Every audience
+// / standing / visibility helper in this module threads the list through
+// `isListRecipient` for that reason. The rule mirrors
+// `blockedCoGifterIds` in `_gifts-impl.ts`: for a user-subject list the
+// recipient is the owner; dependent-subject lists have a non-user
+// recipient, so nobody is excluded.
 
 import { eq } from 'drizzle-orm'
 
 import { type SchemaDatabase } from '@/db'
-import { dependents, giftedItems, users } from '@/db/schema'
+import { dependents, giftedItems, lists, users } from '@/db/schema'
 import { fanOutToGuardians } from '@/lib/guardian-emails'
 import { createLogger } from '@/lib/logger'
 import { isEmailConfigured, sendOrphanClaimEmail } from '@/lib/resend'
@@ -25,11 +36,30 @@ type AudienceUser = {
 	email: string
 }
 
+// The subset of a list row needed to decide who its recipient is.
+export type OrphanListRecipientInfo = {
+	ownerId: string
+	subjectDependentId: string | null
+}
+
+// True when `userId` is the person the list's gifts are FOR. For a
+// user-subject list that's the owner. Dependent-subject lists are for a
+// pet/baby/etc., so no user is the recipient (the owner is a guardian
+// who shops for the dependent like everyone else).
+export function isListRecipient(list: OrphanListRecipientInfo, userId: string): boolean {
+	return !list.subjectDependentId && list.ownerId === userId
+}
+
 // Returns the unique people who should hear about this claim becoming
 // orphaned: the primary gifter, plus their partner (if any). Co-gifters
 // are deliberately excluded - they're informational passengers on the
-// claim, not its owners. Order is stable (gifter first, then partner).
-export async function resolveOrphanClaimAudience(dbx: SchemaDatabase, gifterId: string): Promise<Array<AudienceUser>> {
+// claim, not its owners. The list's recipient is always excluded (see
+// module header). Order is stable (gifter first, then partner).
+export async function resolveOrphanClaimAudience(
+	dbx: SchemaDatabase,
+	gifterId: string,
+	list: OrphanListRecipientInfo
+): Promise<Array<AudienceUser>> {
 	const gifter = await dbx.query.users.findFirst({
 		where: eq(users.id, gifterId),
 		columns: { id: true, name: true, email: true, partnerId: true },
@@ -45,13 +75,17 @@ export async function resolveOrphanClaimAudience(dbx: SchemaDatabase, gifterId: 
 			audience.push({ id: partner.id, name: partner.name, email: partner.email })
 		}
 	}
-	return audience
+	return audience.filter(u => !isListRecipient(list, u.id))
 }
 
 // Returns the union of audiences across every claim on the item, deduped
 // by user id. Used by the deleteItem trigger so we send one email per
 // unique audience member regardless of how many claims they're on.
-export async function resolveOrphanItemAudience(dbx: SchemaDatabase, itemId: number): Promise<Array<AudienceUser>> {
+export async function resolveOrphanItemAudience(
+	dbx: SchemaDatabase,
+	itemId: number,
+	list: OrphanListRecipientInfo
+): Promise<Array<AudienceUser>> {
 	const claims = await dbx.query.giftedItems.findMany({
 		where: eq(giftedItems.itemId, itemId),
 		columns: { gifterId: true },
@@ -59,7 +93,7 @@ export async function resolveOrphanItemAudience(dbx: SchemaDatabase, itemId: num
 	const seen = new Set<string>()
 	const out: Array<AudienceUser> = []
 	for (const claim of claims) {
-		const audience = await resolveOrphanClaimAudience(dbx, claim.gifterId)
+		const audience = await resolveOrphanClaimAudience(dbx, claim.gifterId, list)
 		for (const u of audience) {
 			if (seen.has(u.id)) continue
 			seen.add(u.id)
@@ -71,12 +105,15 @@ export async function resolveOrphanItemAudience(dbx: SchemaDatabase, itemId: num
 
 // Returns true if `userId` (or their partner) has standing on the
 // claim's audience. Used to authorize ack and to gate visibility of the
-// pending-deletion item in the per-list alert.
+// pending-deletion item in the per-list alert. The list's recipient
+// never has standing, even via their partner's claim.
 export async function userHasStandingOnClaim(
 	dbx: SchemaDatabase,
 	userId: string,
-	claim: { gifterId: string; additionalGifterIds: Array<string> | null }
+	claim: { gifterId: string; additionalGifterIds: Array<string> | null },
+	list: OrphanListRecipientInfo
 ): Promise<boolean> {
+	if (isListRecipient(list, userId)) return false
 	if (claim.gifterId === userId) return true
 	const me = await dbx.query.users.findFirst({
 		where: eq(users.id, userId),
@@ -118,13 +155,14 @@ export async function dispatchOrphanClaimEmails(args: {
 	itemId: number
 	itemTitle: string
 	itemImageUrl: string | null
-	listId: number
-	listName: string
+	list: OrphanListRecipientInfo & { id: number; name: string }
 	recipientName: string
 }): Promise<void> {
-	const { dbx, itemId, itemTitle, itemImageUrl, listId, listName, recipientName } = args
+	const { dbx, itemId, itemTitle, itemImageUrl, list, recipientName } = args
+	const listId = list.id
+	const listName = list.name
 	if (!(await isEmailConfigured(dbx))) return
-	const audience = await resolveOrphanItemAudience(dbx, itemId)
+	const audience = await resolveOrphanItemAudience(dbx, itemId, list)
 	for (const member of audience) {
 		try {
 			await sendOrphanClaimEmail(member.email, {
@@ -141,15 +179,21 @@ export async function dispatchOrphanClaimEmails(args: {
 				'failed to send orphan-claim email'
 			)
 		}
-		await fanOutToGuardians(dbx, member.id, g =>
-			sendOrphanClaimEmail(g.email, {
-				username: member.name || 'there',
-				itemTitle,
-				itemImageUrl,
-				recipientName,
-				listId,
-				listName,
-			})
+		// A guardian of the gifter could be the recipient (a child buying
+		// for their parent); never copy them on it.
+		await fanOutToGuardians(
+			dbx,
+			member.id,
+			g =>
+				sendOrphanClaimEmail(g.email, {
+					username: member.name || 'there',
+					itemTitle,
+					itemImageUrl,
+					recipientName,
+					listId,
+					listName,
+				}),
+			{ skip: g => isListRecipient(list, g.id) }
 		)
 	}
 }
@@ -157,6 +201,8 @@ export async function dispatchOrphanClaimEmails(args: {
 // Returns true if the user (or their partner) has any active
 // pending-deletion claim on the given list. Used to allow the gifter to
 // navigate to a now-archived list whose orphan they need to resolve.
+// The list's recipient never qualifies: their partner's claims on their
+// own list are not theirs to see.
 //
 // Partnership is stored on a single nullable `partnerId` column but
 // treated symmetrically by gift-credit code (see logic.md "Partnership
@@ -164,6 +210,12 @@ export async function dispatchOrphanClaimEmails(args: {
 // sides: either the viewer declared a partner, or some other user
 // declared the viewer as their partner.
 export async function userHasPendingDeletionClaimOnList(dbx: SchemaDatabase, userId: string, listId: number): Promise<boolean> {
+	const list = await dbx.query.lists.findFirst({
+		where: eq(lists.id, listId),
+		columns: { ownerId: true, subjectDependentId: true },
+	})
+	if (!list) return false
+	if (isListRecipient(list, userId)) return false
 	const [me, inverse] = await Promise.all([
 		dbx.query.users.findFirst({
 			where: eq(users.id, userId),

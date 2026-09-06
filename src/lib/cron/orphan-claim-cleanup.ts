@@ -22,7 +22,7 @@ import { fanOutToGuardians } from '@/lib/guardian-emails'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { createLogger } from '@/lib/logger'
 import { orphanClaimsCleanedUpTotal } from '@/lib/observability/metrics'
-import { resolveListRecipientName } from '@/lib/orphan-claims'
+import { isListRecipient, resolveListRecipientName, resolveOrphanClaimAudience } from '@/lib/orphan-claims'
 import { isEmailConfigured, sendOrphanClaimCleanupReminderEmail } from '@/lib/resend'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 
@@ -125,28 +125,6 @@ const MONTH_TO_IDX: Record<string, number> = {
 	october: 9,
 	november: 10,
 	december: 11,
-}
-
-// Returns the unique audience for a single claim: primary gifter and
-// their partner. Co-gifters are silent in the orphan flow.
-async function audienceForClaim(
-	dbx: SchemaDatabase,
-	claim: { gifterId: string }
-): Promise<Array<{ id: string; name: string | null; email: string }>> {
-	const gifter = await dbx.query.users.findFirst({
-		where: eq(users.id, claim.gifterId),
-		columns: { id: true, name: true, email: true, partnerId: true },
-	})
-	if (!gifter) return []
-	const out = [{ id: gifter.id, name: gifter.name, email: gifter.email }]
-	if (gifter.partnerId && gifter.partnerId !== gifter.id) {
-		const partner = await dbx.query.users.findFirst({
-			where: eq(users.id, gifter.partnerId),
-			columns: { id: true, name: true, email: true },
-		})
-		if (partner) out.push({ id: partner.id, name: partner.name, email: partner.email })
-	}
-	return out
 }
 
 export type OrphanClaimCleanupResult = {
@@ -272,7 +250,9 @@ export async function orphanClaimCleanupImpl(args: { db: SchemaDatabase; now: Da
 		const recipientName = await resolveListRecipientName(dbx, list)
 		for (const claim of claims) {
 			if (claim.orphanReminderSentAt) continue
-			const audience = await audienceForClaim(dbx, claim)
+			// Primary gifter + partner, minus the list's recipient (the
+			// shared helper enforces the spoiler guard; see lib/orphan-claims).
+			const audience = await resolveOrphanClaimAudience(dbx, claim.gifterId, list)
 			let sentAny = false
 			for (const member of audience) {
 				try {
@@ -292,15 +272,19 @@ export async function orphanClaimCleanupImpl(args: { db: SchemaDatabase; now: Da
 						'orphan reminder email failed'
 					)
 				}
-				const fanned = await fanOutToGuardians(dbx, member.id, g =>
-					sendOrphanClaimCleanupReminderEmail(g.email, {
-						username: member.name || 'there',
-						itemTitle: orphan.title,
-						recipientName,
-						eventLabel,
-						listId: list.id,
-						listName: list.name,
-					})
+				const fanned = await fanOutToGuardians(
+					dbx,
+					member.id,
+					g =>
+						sendOrphanClaimCleanupReminderEmail(g.email, {
+							username: member.name || 'there',
+							itemTitle: orphan.title,
+							recipientName,
+							eventLabel,
+							listId: list.id,
+							listName: list.name,
+						}),
+					{ skip: g => isListRecipient(list, g.id) }
 				)
 				if (fanned > 0) sentAny = true
 			}

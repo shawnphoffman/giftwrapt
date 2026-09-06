@@ -32,14 +32,20 @@ export async function getGuardianRecipients(db: SchemaDatabase, childUserId: str
 // Returns the number of guardians the send was attempted for (regardless
 // of provider-level success), matching the per-user counter semantics at
 // existing callsites.
+//
+// `opts.skip` lets a callsite drop specific guardians from the fan-out
+// (e.g. a guardian who is the recipient of the gift the email is about).
+// Skipped guardians are not counted as attempted.
 export async function fanOutToGuardians(
 	db: SchemaDatabase,
 	childUserId: string,
-	sendFn: (recipient: GuardianRecipient) => Promise<unknown>
+	sendFn: (recipient: GuardianRecipient) => Promise<unknown>,
+	opts: { skip?: (recipient: GuardianRecipient) => boolean } = {}
 ): Promise<number> {
 	const guardians = await getGuardianRecipients(db, childUserId)
 	let attempted = 0
 	for (const guardian of guardians) {
+		if (opts.skip?.(guardian)) continue
 		attempted += 1
 		try {
 			await sendFn(guardian)

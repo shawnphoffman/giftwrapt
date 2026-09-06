@@ -292,8 +292,7 @@ export async function deleteItemImpl(args: {
 			itemId: item.id,
 			itemTitle: item.title,
 			itemImageUrl: item.imageUrl,
-			listId: list.id,
-			listName: list.name,
+			list,
 			recipientName,
 		})
 		notifyListEvent({ kind: 'item', listId: item.listId, itemId: input.itemId, shape: 'removed' })
