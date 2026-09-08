@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/shawnphoffman/giftwrapt/compare/v1.1.1...v1.1.2) (2026-09-08)
+
+
+### Bug Fixes
+
+* **orphan-claims:** never email the recipient about a partner's claim ([99fbb57](https://github.com/shawnphoffman/giftwrapt/commit/99fbb57051149c2461f592d574d182ae4ab8692e))
+
 ## [1.1.1](https://github.com/shawnphoffman/giftwrapt/compare/v1.1.0...v1.1.1) (2026-09-03)
 
 
