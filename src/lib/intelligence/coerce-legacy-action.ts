@@ -8,9 +8,12 @@ import type { RecommendationAction } from '@/components/intelligence/__fixtures_
 //    existed). Coerce to `{ path: '/settings/' }`.
 // 2. Recs with `href: '/lists/...'` and no `nav`. Parse the href into
 //    `{ listId, itemId? }`.
-// 3. Recs with `intent: 'do'` and neither `href` nor `apply`. Derive `nav`
-//    from the rec's list context so the action renders as a link instead
-//    of falling through to the confirm-dialog path.
+// 3. Recs with `intent: 'do'` and none of `href`, `apply`, or `editItem`.
+//    Derive `nav` from the rec's list context so the action renders as a
+//    link instead of falling through to the confirm-dialog path. `editItem`
+//    is a canonical shape (the card opens the item's edit dialog inline), so
+//    it must not be coerced into a nav link or the card would render it as
+//    an external link and never reach the dialog.
 //
 // Pure helper so it can be unit-tested independently of the route.
 export function coerceLegacyAction(rawAction: RecommendationAction, fallbackListId: string | null): RecommendationAction {
@@ -18,7 +21,7 @@ export function coerceLegacyAction(rawAction: RecommendationAction, fallbackList
 	if (a.nav && 'listId' in a.nav && a.nav.listId === 'settings') {
 		return { ...a, nav: { path: '/settings/' } }
 	}
-	if (a.nav || a.apply) return rawAction
+	if (a.nav || a.apply || a.editItem) return rawAction
 	if (a.href) {
 		const m = /^\/lists\/([^#]+)(?:#item-(.+))?$/.exec(a.href)
 		if (m) {

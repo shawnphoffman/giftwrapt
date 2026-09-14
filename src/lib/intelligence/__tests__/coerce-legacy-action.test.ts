@@ -71,6 +71,18 @@ describe('coerceLegacyAction', () => {
 		expect(result.nav).toEqual({ listId: 'list-from-context' })
 	})
 
+	it('leaves editItem-actions untouched instead of coercing them into a nav link', () => {
+		const action: RecommendationAction = {
+			label: 'Edit item',
+			description: 'Refresh the details.',
+			intent: 'do',
+			editItem: { listId: 'list-1', itemId: 'item-9' },
+		}
+		const result = coerceLegacyAction(action, 'list-1')
+		expect(result).toBe(action)
+		expect(result.nav).toBeUndefined()
+	})
+
 	it('leaves apply-actions untouched', () => {
 		const action: RecommendationAction = {
 			label: 'Set primary',
