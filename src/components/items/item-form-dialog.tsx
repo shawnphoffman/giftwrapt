@@ -25,6 +25,7 @@ import { useUpdateItem } from '@/lib/mutations/update-item'
 import { itemsKeys } from '@/lib/queries/items'
 import { applyScrapePrefill } from '@/lib/scrapers/apply-prefill'
 import { resizeImageForUpload } from '@/lib/storage/client-resize'
+import { normalizeHttpUrl } from '@/lib/urls'
 import { useExtractPhoto } from '@/lib/use-extract-photo'
 import { useScrapeUrl } from '@/lib/use-scrape-url'
 import { LIMITS } from '@/lib/validation/limits'
@@ -116,16 +117,9 @@ export function ItemFormDialog(props: Props) {
 	// re-render doesn't re-apply the same result and clobber edits.
 	const photoPrefillAppliedRef = useRef<File | null>(null)
 
-	const isHttpUrl = (raw: string): boolean => {
-		const trimmed = raw.trim()
-		if (!trimmed) return false
-		try {
-			const parsed = new URL(trimmed)
-			return parsed.protocol === 'http:' || parsed.protocol === 'https:'
-		} catch {
-			return false
-		}
-	}
+	// Scheme-less input (`www.amazon.com/...`) is the common paste shape, so
+	// the gate coerces rather than rejects. See normalizeHttpUrl.
+	const isHttpUrl = (raw: string): boolean => normalizeHttpUrl(raw) !== null
 
 	// Items whose URL points back into our own /lists/:id route are
 	// "sublist" links, not external products. Skip scraping them.
@@ -164,7 +158,7 @@ export function ItemFormDialog(props: Props) {
 				// onMutate, then writes the server's canonical row on success or
 				// rolls back on error. A spinner on the row signals the in-flight
 				// state via useIsMutating in ItemEditRow / ItemRow.
-				const trimmedUrl = parsed.data.url?.trim() || null
+				const trimmedUrl = normalizeHttpUrl(parsed.data.url) ?? (parsed.data.url?.trim() || null)
 				const trimmedPrice = parsed.data.price?.trim() || null
 				const trimmedNotes = parsed.data.notes?.trim() || null
 				const trimmedImageUrl = parsed.data.imageUrl?.trim() || null
@@ -203,7 +197,7 @@ export function ItemFormDialog(props: Props) {
 					data: {
 						listId: props.listId,
 						title: parsed.data.title,
-						url: parsed.data.url?.trim() || undefined,
+						url: normalizeHttpUrl(parsed.data.url) ?? (parsed.data.url?.trim() || undefined),
 						price: parsed.data.price?.trim() || undefined,
 						notes: parsed.data.notes?.trim() || undefined,
 						priority: parsed.data.priority,
@@ -388,22 +382,25 @@ export function ItemFormDialog(props: Props) {
 	const scrapeInFlight = scrapeState.phase === 'scraping'
 
 	const triggerAutoScrape = (rawUrl: string) => {
-		const trimmed = rawUrl.trim()
-		if (!isHttpUrl(trimmed)) return
-		if (isSublistUrl(trimmed)) return
-		if (trimmed === lastScrapedUrlRef.current) return
-		lastScrapedUrlRef.current = trimmed
-		startScrape(trimmed)
+		const normalized = normalizeHttpUrl(rawUrl)
+		if (!normalized) return
+		if (isSublistUrl(normalized)) return
+		// Write the coerced form back so the saved item URL carries a scheme.
+		if (normalized !== rawUrl) form.setFieldValue('url', normalized)
+		if (normalized === lastScrapedUrlRef.current) return
+		lastScrapedUrlRef.current = normalized
+		startScrape(normalized)
 	}
 
 	const triggerManualScrape = (rawUrl: string) => {
-		const trimmed = rawUrl.trim()
-		if (!isHttpUrl(trimmed)) return
-		if (isSublistUrl(trimmed)) return
+		const normalized = normalizeHttpUrl(rawUrl)
+		if (!normalized) return
+		if (isSublistUrl(normalized)) return
+		if (normalized !== rawUrl) form.setFieldValue('url', normalized)
 		// Manual button always forces a fresh scrape so users can re-run after
 		// editing the URL or just to bypass the cache.
-		lastScrapedUrlRef.current = trimmed
-		startScrape(trimmed, { force: true, ...(isEdit ? { itemId: props.item.id } : {}) })
+		lastScrapedUrlRef.current = normalized
+		startScrape(normalized, { force: true, ...(isEdit ? { itemId: props.item.id } : {}) })
 	}
 
 	return (

@@ -94,6 +94,50 @@ export function getDomainFromUrl(url: string): string {
 	return getVendorFromUrl(url)?.name ?? ''
 }
 
+// Bare host (+ optional port) followed by end-of-string or a path/query/
+// fragment separator. Requires at least one dot so `localhost`, `foo`, or
+// a stray word never get promoted to a URL.
+const BARE_HOST_URL = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+(?::\d{1,5})?(?:[/?#]|$)/i
+
+/**
+ * Coerces user-typed input into an absolute http(s) URL, or returns
+ * `null` when it can't be one.
+ *
+ *   - `https://example.com/x` -> returned trimmed, unchanged
+ *   - `www.example.com/x`     -> `https://www.example.com/x`
+ *   - `mailto:x`, `localhost:3000`, `not a url` -> `null`
+ *
+ * Pasted product links very often arrive without a scheme (the address
+ * bar hides it, and many apps strip it on copy). Every consumer that
+ * scrapes or stores an item URL should run input through this first so
+ * the scheme-less form scrapes and saves as a real link instead of being
+ * silently treated as "not a URL".
+ */
+export function normalizeHttpUrl(raw: string | null | undefined): string | null {
+	if (!raw) return null
+	const trimmed = raw.trim()
+	if (!trimmed) return null
+	// Anything with an explicit scheme is accepted only if it's http(s).
+	// A scheme here is dot-free so `host.tld:8443/...` still reads as a
+	// bare host with a port rather than as an unknown scheme.
+	if (/^[a-z][a-z0-9+-]*:/i.test(trimmed)) {
+		try {
+			const parsed = new URL(trimmed)
+			return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? trimmed : null
+		} catch {
+			return null
+		}
+	}
+	const candidate = trimmed.startsWith('//') ? `https:${trimmed}` : `https://${trimmed}`
+	if (!BARE_HOST_URL.test(trimmed.replace(/^\/\//, ''))) return null
+	try {
+		new URL(candidate)
+		return candidate
+	} catch {
+		return null
+	}
+}
+
 /**
  * Returns a stable `host + path` key for two URLs to be compared as
  * "the same product page." Strips the scheme, leading `www.`, query

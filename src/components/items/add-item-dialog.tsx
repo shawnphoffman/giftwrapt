@@ -24,6 +24,7 @@ import { useStorageStatus } from '@/hooks/use-storage-status'
 import { itemsKeys } from '@/lib/queries/items'
 import { applyScrapePrefill } from '@/lib/scrapers/apply-prefill'
 import { resizeImageForUpload } from '@/lib/storage/client-resize'
+import { normalizeHttpUrl } from '@/lib/urls'
 import { useScrapeUrl } from '@/lib/use-scrape-url'
 
 import { ImagePicker } from './image-picker'
@@ -216,41 +217,35 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 	const formLocked = saving || scrapeState.phase === 'scraping'
 	const scrapeInFlight = scrapeState.phase === 'scraping'
 
-	const isHttpUrl = (raw: string): boolean => {
-		const trimmed = raw.trim()
-		if (!trimmed) return false
-		try {
-			const parsed = new URL(trimmed)
-			return parsed.protocol === 'http:' || parsed.protocol === 'https:'
-		} catch {
-			return false
-		}
-	}
-
-	const urlScrapable = isHttpUrl(url)
+	// Scheme-less input (`www.amazon.com/...`) is the common paste shape, so
+	// the gate coerces rather than rejects. The scrape handlers write the
+	// coerced form back into the field so what gets saved is a real link.
+	const urlScrapable = normalizeHttpUrl(url) !== null
 
 	const handleUrlBlur = () => {
-		const trimmed = url.trim()
-		if (!isHttpUrl(trimmed)) return
-		if (trimmed === lastScrapedUrlRef.current) return
-		lastScrapedUrlRef.current = trimmed
-		startScrape(trimmed)
+		const normalized = normalizeHttpUrl(url)
+		if (!normalized) return
+		if (normalized !== url) setUrl(normalized)
+		if (normalized === lastScrapedUrlRef.current) return
+		lastScrapedUrlRef.current = normalized
+		startScrape(normalized)
 	}
 
 	const handleScrapeButton = () => {
-		const trimmed = url.trim()
-		if (!isHttpUrl(trimmed)) return
+		const normalized = normalizeHttpUrl(url)
+		if (!normalized) return
+		if (normalized !== url) setUrl(normalized)
 		// Manual button always forces a fresh scrape so users can re-run after
 		// editing the URL or just to bypass the cache.
-		lastScrapedUrlRef.current = trimmed
-		startScrape(trimmed, { force: true })
+		lastScrapedUrlRef.current = normalized
+		startScrape(normalized, { force: true })
 	}
 
 	const handleScrapeRetry = () => {
-		const trimmed = url.trim()
-		if (!trimmed) return
-		lastScrapedUrlRef.current = trimmed
-		startScrape(trimmed, { force: true })
+		const normalized = normalizeHttpUrl(url) ?? url.trim()
+		if (!normalized) return
+		lastScrapedUrlRef.current = normalized
+		startScrape(normalized, { force: true })
 	}
 
 	const handleSave = async () => {
@@ -270,7 +265,7 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 				data: {
 					listId,
 					title: title.trim(),
-					url: url.trim() || undefined,
+					url: (normalizeHttpUrl(url) ?? url.trim()) || undefined,
 					price: price.trim() || undefined,
 					priority,
 					quantity: qty,

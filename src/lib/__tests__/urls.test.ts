@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { normalizeProductUrl } from '../urls'
+import { normalizeHttpUrl, normalizeProductUrl } from '../urls'
 
 describe('normalizeProductUrl', () => {
 	it('returns null for empty / nullish inputs', () => {
@@ -44,5 +44,39 @@ describe('normalizeProductUrl', () => {
 		expect(normalizeProductUrl('shop.example.org/item/123')).toBe('shop.example.org/item/123')
 		// Garbage in => null out (no host parseable at all).
 		expect(normalizeProductUrl('::::')).toBeNull()
+	})
+})
+
+describe('normalizeHttpUrl', () => {
+	it('returns null for empty / nullish inputs', () => {
+		expect(normalizeHttpUrl(null)).toBeNull()
+		expect(normalizeHttpUrl(undefined)).toBeNull()
+		expect(normalizeHttpUrl('')).toBeNull()
+		expect(normalizeHttpUrl('   ')).toBeNull()
+	})
+
+	it('passes absolute http(s) URLs through trimmed and otherwise untouched', () => {
+		expect(normalizeHttpUrl('https://www.amazon.com/gp/product/B0B51JBD7S')).toBe('https://www.amazon.com/gp/product/B0B51JBD7S')
+		expect(normalizeHttpUrl('  http://example.com/x?a=1#f  ')).toBe('http://example.com/x?a=1#f')
+	})
+
+	it('prepends https:// to scheme-less host paths', () => {
+		expect(normalizeHttpUrl('www.amazon.com/gp/product/B0B51JBD7S')).toBe('https://www.amazon.com/gp/product/B0B51JBD7S')
+		expect(normalizeHttpUrl('amazon.com')).toBe('https://amazon.com')
+		expect(normalizeHttpUrl('a.co/d/abc123')).toBe('https://a.co/d/abc123')
+		expect(normalizeHttpUrl('shop.example.co.uk:8443/p?x=1')).toBe('https://shop.example.co.uk:8443/p?x=1')
+		expect(normalizeHttpUrl('//cdn.example.com/x')).toBe('https://cdn.example.com/x')
+	})
+
+	it('rejects non-http schemes and things that are not hostnames', () => {
+		expect(normalizeHttpUrl('mailto:someone@example.com')).toBeNull()
+		expect(normalizeHttpUrl('javascript:alert(1)')).toBeNull()
+		expect(normalizeHttpUrl('ftp://example.com/x')).toBeNull()
+		expect(normalizeHttpUrl('localhost:3000/x')).toBeNull()
+		expect(normalizeHttpUrl('localhost')).toBeNull()
+		expect(normalizeHttpUrl('AirPods Pro')).toBeNull()
+		expect(normalizeHttpUrl('not a url')).toBeNull()
+		expect(normalizeHttpUrl('foo')).toBeNull()
+		expect(normalizeHttpUrl('-bad.com')).toBeNull()
 	})
 })
