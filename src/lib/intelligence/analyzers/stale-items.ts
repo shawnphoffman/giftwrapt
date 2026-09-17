@@ -301,7 +301,10 @@ function buildCleanupActions(itemRefs: Array<ItemRef>, listRef: ListRef): Array<
 		label: 'Open List',
 		description: `Jump to ${listRef.name} so you can edit or remove these items one at a time.`,
 		intent: 'do',
-		nav: { listId: listRef.id },
+		// Land on the first flagged item rather than the top of the list so
+		// the user doesn't have to hunt for it (single-item recs land on the
+		// item itself).
+		nav: { listId: listRef.id, itemId: itemRefs[0].id },
 	}
 
 	if (itemRefs.length === 1) {
@@ -379,7 +382,7 @@ function buildPickOneRec({
 				label: 'Open List',
 				description: `Jump to ${listRef.name} to edit these items individually.`,
 				intent: 'do',
-				nav: { listId: listRef.id },
+				nav: { listId: listRef.id, itemId: itemRefs[0].id },
 			},
 			{
 				label: 'Keep separate',
@@ -413,7 +416,7 @@ function buildHeuristicRec({ list, items: itemRefs }: { list: ListRef; items: Ar
 				label: 'Open List',
 				description: `Jump to ${list.name} to review.`,
 				intent: 'do',
-				nav: { listId: list.id },
+				nav: { listId: list.id, itemId: itemRefs[0].id },
 			},
 		],
 		affected: {
