@@ -195,4 +195,42 @@ describe('birthdayEmailsImpl - follow-up (14 days after birthday)', () => {
 			expect(items[0].gifters).toContain('Partner')
 		})
 	})
+
+	it("does not name the recipient when the gifter is the recipient's partner", async () => {
+		// Kate buys Jeff a birthday present. Jeff's summary must say
+		// "From: Kate", not "From: Kate & Jeff" - he didn't gift himself.
+		vi.mocked(sendPostBirthdayEmail).mockClear()
+		await withRollback(async tx => {
+			const jeff = await makeUser(tx, { name: 'Jeff', birthMonth: 'april', birthDay: 16 })
+			const kate = await makeUser(tx, { name: 'Kate', partnerId: jeff.id })
+
+			const list = await makeList(tx, { ownerId: jeff.id, type: 'birthday' })
+			const item = await makeItem(tx, { listId: list.id, title: 'Hydro Flask', isArchived: true })
+			await makeGiftedItem(tx, { itemId: item.id, gifterId: kate.id })
+
+			await birthdayEmailsImpl({ db: tx, now: new Date('2026-04-30T12:00:00Z') })
+			expect(sendPostBirthdayEmail).toHaveBeenCalledTimes(1)
+			const [, items] = vi.mocked(sendPostBirthdayEmail).mock.calls[0]
+			expect(items[0].gifters).toBe('Kate')
+		})
+	})
+
+	it('does not name the recipient when only the recipient side names the partnership', async () => {
+		// Partnership is a single nullable column (logic.md). Jeff naming Kate
+		// as his partner, with Kate's row unset, must still keep Jeff out.
+		vi.mocked(sendPostBirthdayEmail).mockClear()
+		await withRollback(async tx => {
+			const kate = await makeUser(tx, { name: 'Kate' })
+			const jeff = await makeUser(tx, { name: 'Jeff', birthMonth: 'april', birthDay: 16, partnerId: kate.id })
+
+			const list = await makeList(tx, { ownerId: jeff.id, type: 'birthday' })
+			const item = await makeItem(tx, { listId: list.id, title: 'Hydro Flask', isArchived: true })
+			await makeGiftedItem(tx, { itemId: item.id, gifterId: kate.id })
+
+			await birthdayEmailsImpl({ db: tx, now: new Date('2026-04-30T12:00:00Z') })
+			expect(sendPostBirthdayEmail).toHaveBeenCalledTimes(1)
+			const [, items] = vi.mocked(sendPostBirthdayEmail).mock.calls[0]
+			expect(items[0].gifters).toBe('Kate')
+		})
+	})
 })

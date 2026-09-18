@@ -233,11 +233,13 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 		for (const r of rows) userLookup.set(r.id, r)
 	}
 
+	// Same recipient exclusion as `buildGifterUnits` below: the viewer is the
+	// recipient, so a gift from their partner is credited to the partner alone.
 	function collectNames(primaryId: string, additionalIds: Array<string> | null): Array<string> {
 		const out: Array<string> = []
-		for (const name of namesForGifter(primaryId, userLookup)) out.push(name)
+		for (const name of namesForGifter(primaryId, userLookup, userId)) out.push(name)
 		for (const id of additionalIds ?? []) {
-			for (const name of namesForGifter(id, userLookup)) out.push(name)
+			for (const name of namesForGifter(id, userLookup, userId)) out.push(name)
 		}
 		return out
 	}

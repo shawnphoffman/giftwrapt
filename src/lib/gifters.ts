@@ -5,7 +5,8 @@
 // purchase-summary grouping so partner + co-gifter attribution reads
 // consistently: "Alice", "Alice & Bob", "Alice, Bob & Carol". Deduplicates
 // while preserving order so a claim whose primary gifter also appears as a
-// co-gifter won't repeat the name.
+// co-gifter won't repeat the name. The recipient of a gift is never named
+// as a co-giver of it; see `namesForGifter` and `buildGifterUnits`.
 
 export type PartneredUser = {
 	id?: string
@@ -36,11 +37,22 @@ export function formatGifterNames(names: ReadonlyArray<string>): string {
 // Expand a single gifter id into their display name plus their partner's
 // display name (when the partner is resolvable). Unknown ids return [] so
 // the caller can concat safely.
-export function namesForGifter(id: string, lookup: ReadonlyMap<string, PartneredUser>): Array<string> {
+//
+// `recipientId` is the person receiving the gift and must never be named as
+// a co-giver of their own gift: when the gifter's partner IS the recipient,
+// the gifter is named solo ("Kate", not "Kate & Jeff" on Jeff's own
+// birthday). The check is symmetric, matching `buildGifterUnits`: either the
+// gifter names the recipient as partner, or the recipient names the gifter.
+// Callers must load the recipient into `lookup` for the second direction to
+// resolve.
+export function namesForGifter(id: string, lookup: ReadonlyMap<string, PartneredUser>, recipientId: string | null = null): Array<string> {
 	const user = lookup.get(id)
 	if (!user) return []
 	const out = [displayName(user)]
-	if (user.partnerId) {
+	const recipient = recipientId ? lookup.get(recipientId) : undefined
+	const partnerIsRecipient =
+		recipientId !== null && (user.partnerId === recipientId || (recipient?.partnerId != null && recipient.partnerId === id))
+	if (user.partnerId && !partnerIsRecipient) {
 		const partner = lookup.get(user.partnerId)
 		if (partner) out.push(displayName(partner))
 	}

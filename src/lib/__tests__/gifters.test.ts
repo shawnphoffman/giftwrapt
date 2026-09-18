@@ -85,4 +85,41 @@ describe('namesForGifter', () => {
 		])
 		expect(namesForGifter('u1', lookup)).toEqual(['alice@example.com', 'bob@example.com'])
 	})
+
+	it('drops the partner when the partner is the recipient (gifter names the link)', () => {
+		// Kate (partnered to Jeff) gifts Jeff. Jeff must not read as a co-giver
+		// of his own birthday present.
+		const lookup = buildLookup([
+			{ id: 'kate', name: 'Kate', email: 'k@example.com', partnerId: 'jeff' },
+			{ id: 'jeff', name: 'Jeff', email: 'j@example.com', partnerId: null },
+		])
+		expect(namesForGifter('kate', lookup, 'jeff')).toEqual(['Kate'])
+	})
+
+	it('drops the partner when the partner is the recipient (only the recipient names the link)', () => {
+		// Partnership is a single nullable column; the recipient side alone
+		// naming the gifter is enough to exclude them.
+		const lookup = buildLookup([
+			{ id: 'kate', name: 'Kate', email: 'k@example.com', partnerId: null },
+			{ id: 'jeff', name: 'Jeff', email: 'j@example.com', partnerId: 'kate' },
+		])
+		expect(namesForGifter('kate', lookup, 'jeff')).toEqual(['Kate'])
+	})
+
+	it('keeps the partner when the recipient is someone else', () => {
+		const lookup = buildLookup([
+			{ id: 'kate', name: 'Kate', email: 'k@example.com', partnerId: 'jeff' },
+			{ id: 'jeff', name: 'Jeff', email: 'j@example.com', partnerId: 'kate' },
+			{ id: 'mom', name: 'Mom', email: 'm@example.com', partnerId: null },
+		])
+		expect(namesForGifter('kate', lookup, 'mom')).toEqual(['Kate', 'Jeff'])
+	})
+
+	it('keeps the partner when no recipient is given', () => {
+		const lookup = buildLookup([
+			{ id: 'kate', name: 'Kate', email: 'k@example.com', partnerId: 'jeff' },
+			{ id: 'jeff', name: 'Jeff', email: 'j@example.com', partnerId: 'kate' },
+		])
+		expect(namesForGifter('kate', lookup)).toEqual(['Kate', 'Jeff'])
+	})
 })

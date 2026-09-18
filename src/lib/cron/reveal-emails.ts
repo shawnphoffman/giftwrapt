@@ -45,13 +45,19 @@ export type PostBirthdayEmailItem = { title: string; image_url: string; gifters:
 // {title, image_url, gifters} rows the post-birthday email template wants,
 // crediting both partners and co-gifters via the gifter-name lookup. Shared
 // with birthdayEmailsImpl so the per-user and per-list paths stay identical.
+//
+// `recipientId` is the list owner the email is about. It is loaded into the
+// lookup so `namesForGifter` can keep the recipient out of their own gift's
+// attribution (a gift from the recipient's partner reads "Kate", never
+// "Kate & Jeff" in Jeff's own summary).
 export async function buildPostBirthdayEmailItems(
 	db: SchemaDatabase,
-	gifts: ReadonlyArray<ArchivedGiftRow>
+	gifts: ReadonlyArray<ArchivedGiftRow>,
+	recipientId: string
 ): Promise<Array<PostBirthdayEmailItem>> {
 	if (gifts.length === 0) return []
 
-	const gifterIds = new Set<string>()
+	const gifterIds = new Set<string>([recipientId])
 	for (const gift of gifts) {
 		gifterIds.add(gift.gifterId)
 		for (const id of gift.additionalGifterIds ?? []) gifterIds.add(id)
@@ -84,9 +90,9 @@ export async function buildPostBirthdayEmailItems(
 			itemMap.set(key, { title: gift.itemTitle, image_url: gift.itemImageUrl || 'https://placehold.co/80x80?text=Gift', names: [] })
 		}
 		const bucket = itemMap.get(key)!
-		for (const name of namesForGifter(gift.gifterId, lookup)) bucket.names.push(name)
+		for (const name of namesForGifter(gift.gifterId, lookup, recipientId)) bucket.names.push(name)
 		for (const id of gift.additionalGifterIds ?? []) {
-			for (const name of namesForGifter(id, lookup)) bucket.names.push(name)
+			for (const name of namesForGifter(id, lookup, recipientId)) bucket.names.push(name)
 		}
 	}
 
@@ -119,7 +125,7 @@ export async function maybeSendListRevealEmail(db: SchemaDatabase, list: RevealE
 	if (list.type === 'birthday' || list.type === 'wishlist') {
 		if (!settings.enableBirthdayEmails) return false
 		const gifts = await revealedGiftsForList(db, list.id)
-		const emailItems = await buildPostBirthdayEmailItems(db, gifts)
+		const emailItems = await buildPostBirthdayEmailItems(db, gifts, owner.id)
 		if (emailItems.length === 0) return false
 		await sendPostBirthdayEmail(owner.email, emailItems)
 		await fanOutToGuardians(db, owner.id, g => sendPostBirthdayEmail(g.email, emailItems))

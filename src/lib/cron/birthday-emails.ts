@@ -90,7 +90,7 @@ export async function birthdayEmailsImpl({ db, now }: Args): Promise<BirthdayEma
 
 			if (archivedGifts.length === 0) continue
 
-			const emailItems = await buildPostBirthdayEmailItems(db, archivedGifts)
+			const emailItems = await buildPostBirthdayEmailItems(db, archivedGifts, user.id)
 			if (emailItems.length === 0) continue
 
 			await sendPostBirthdayEmail(user.email, emailItems)
