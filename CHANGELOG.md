@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.2.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.1.1...v1.2.0) (2026-09-18)
+
+
+### Features
+
+* **intelligence:** scroll Open List to the flagged item for stale-item recs ([a854f5e](https://github.com/shawnphoffman/giftwrapt/commit/a854f5e2264a9f696a12203e86c180825b50332b))
+
+
+### Bug Fixes
+
+* **emails:** stop naming the recipient as a co-giver in the post-birthday summary ([009ad3d](https://github.com/shawnphoffman/giftwrapt/commit/009ad3d9625e46675aefcc7bb1b80cb7b88ea847))
+* **intelligence:** keep editItem actions from being coerced into nav links ([dc522c4](https://github.com/shawnphoffman/giftwrapt/commit/dc522c4b599636c02de522836808fd36f7125956))
+* **items:** scrape and save scheme-less URLs in the item dialogs ([e7c3a97](https://github.com/shawnphoffman/giftwrapt/commit/e7c3a971c5fad8ddcc451d9e4753c58851cb569e))
+* **orphan-claims:** never email the recipient about a partner's claim ([99fbb57](https://github.com/shawnphoffman/giftwrapt/commit/99fbb57051149c2461f592d574d182ae4ab8692e))
+
 ## [1.1.1](https://github.com/shawnphoffman/giftwrapt/compare/v1.1.0...v1.1.1) (2026-09-03)
 
 
