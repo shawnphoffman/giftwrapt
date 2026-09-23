@@ -1174,15 +1174,15 @@ async function resolveHolidayDatesForLists(rows: Array<{ listId: number; customH
 // `subjectDependentId IS NOT NULL` are grouped by their subject so that
 // a dependent appears as a single feed entry, not under each guardian
 // who happened to author one of their lists.
-export async function getPublicDependentsImpl(viewerUserId: string): Promise<Array<PublicDependent>> {
-	const me = await db.query.users.findFirst({
+export async function getPublicDependentsImpl(viewerUserId: string, dbx: SchemaDatabase = db): Promise<Array<PublicDependent>> {
+	const me = await dbx.query.users.findFirst({
 		where: eq(users.id, viewerUserId),
 		columns: { partnerId: true },
 	})
 	const gifterIds: Array<string> = me?.partnerId ? [viewerUserId, me.partnerId] : [viewerUserId]
 
 	// "Last gifted" per dependent (any list with that subjectDependentId).
-	const lastGiftedRows = await db
+	const lastGiftedRows = await dbx
 		.select({
 			subjectDependentId: lists.subjectDependentId,
 			lastGiftedAt: max(giftedItems.createdAt),
@@ -1197,7 +1197,7 @@ export async function getPublicDependentsImpl(viewerUserId: string): Promise<Arr
 		if (row.subjectDependentId) lastGiftedByDependentId.set(row.subjectDependentId, row.lastGiftedAt)
 	}
 
-	const allDependents = await db.query.dependents.findMany({
+	const allDependents = await dbx.query.dependents.findMany({
 		where: eq(dependents.isArchived, false),
 		columns: {
 			id: true,
@@ -1217,7 +1217,7 @@ export async function getPublicDependentsImpl(viewerUserId: string): Promise<Arr
 	if (allDependents.length === 0) return []
 
 	const dependentIds = allDependents.map(d => d.id)
-	const dependentLists = await db.query.lists.findMany({
+	const dependentLists = await dbx.query.lists.findMany({
 		where: (l, { and: a, eq: e, ne: n, isNotNull: nn, inArray: ia }) =>
 			a(
 				e(l.isPrivate, false),
@@ -1233,6 +1233,7 @@ export async function getPublicDependentsImpl(viewerUserId: string): Promise<Arr
 			type: true,
 			description: true,
 			isPrimary: true,
+			ownerId: true,
 			subjectDependentId: true,
 			createdAt: true,
 			updatedAt: true,
@@ -1252,14 +1253,39 @@ export async function getPublicDependentsImpl(viewerUserId: string): Promise<Arr
 
 	const dependentTodoListIds = dependentLists.filter(l => l.type === 'todos').map(l => l.id)
 	const [dependentTodoCountByListId, dependentHolidayDateByListId] = await Promise.all([
-		loadTodoCountsByListId(db, dependentTodoListIds),
+		loadTodoCountsByListId(dbx, dependentTodoListIds),
 		resolveHolidayDatesForLists(dependentLists.map(l => ({ listId: l.id, customHolidayId: l.customHolidayId ?? null }))),
 	])
+
+	// Resolve the viewer's access per dependent with the same resolver the
+	// list view uses: an explicit `none` from any guardian drops the
+	// dependent from the feed entirely (canViewList would deny every list),
+	// and `restricted` runs the item filter so counts don't reveal hidden
+	// items. Every dependent list resolves the same way, so any one list's
+	// owner is enough for the no-guardian fallback.
+	const ownerIdByDependentId = new Map<string, string>()
+	for (const list of dependentLists) {
+		if (list.subjectDependentId && !ownerIdByDependentId.has(list.subjectDependentId)) {
+			ownerIdByDependentId.set(list.subjectDependentId, list.ownerId)
+		}
+	}
+	const accessLevelByDependentId = new Map(
+		await Promise.all(
+			Array.from(ownerIdByDependentId, async ([subjectDependentId, ownerId]) => {
+				const level = await getViewerAccessLevelForList(viewerUserId, { ownerId, subjectDependentId }, dbx)
+				return [subjectDependentId, level] as const
+			})
+		)
+	)
 
 	const listsByDependentId = new Map<string, Array<PublicList>>()
 	for (const list of dependentLists) {
 		if (!list.subjectDependentId) continue
-		const visibleItems = list.items.filter(i => !i.isArchived)
+		const accessLevel = accessLevelByDependentId.get(list.subjectDependentId)
+		if (accessLevel === 'none') continue
+		const liveItems = list.items.filter(i => !i.isArchived)
+		const visibleItems =
+			accessLevel === 'restricted' ? filterItemsForRestricted(liveItems, list.itemGroups, viewerUserId, me?.partnerId ?? null) : liveItems
 		const { total, unclaimed } =
 			list.type === 'todos' ? (dependentTodoCountByListId.get(list.id) ?? { total: 0, unclaimed: 0 }) : computeListItemCounts(visibleItems)
 		const bucket = listsByDependentId.get(list.subjectDependentId) ?? []
