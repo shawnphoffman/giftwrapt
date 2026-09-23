@@ -27,7 +27,7 @@ import { withRollback } from '@test/integration/setup'
 import { and, eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
-import { getItemsForListViewImpl } from '@/api/_items-extra-impl'
+import { copyItemToListImpl, getItemsForListViewImpl } from '@/api/_items-extra-impl'
 import { createListAddonImpl } from '@/api/_list-addons-impl'
 import { addListEditorImpl } from '@/api/_list-editors-impl'
 import { getListForEditingImpl, getListForViewingImpl } from '@/api/_lists-impl'
@@ -205,6 +205,52 @@ describe('getItemsForListView e2e for restricted viewers', () => {
 			if (result.kind !== 'ok') throw new Error('expected ok')
 			expect(result.items).toHaveLength(1)
 			expect(result.items[0].gifts).toHaveLength(1)
+		})
+	})
+})
+
+describe('copyItemToList respects what the viewer can see', () => {
+	it('rejects a restricted viewer copying an item hidden by an outsider claim', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx)
+			const viewer = await makeUser(tx)
+			const stranger = await makeUser(tx)
+			await makeUserRelationship(tx, { ownerUserId: owner.id, viewerUserId: viewer.id, accessLevel: 'restricted' })
+			const source = await makeList(tx, { ownerId: owner.id })
+			const target = await makeList(tx, { ownerId: viewer.id })
+			const hidden = await makeItem(tx, { listId: source.id, title: 'stranger' })
+			await makeGiftedItem(tx, { itemId: hidden.id, gifterId: stranger.id })
+
+			const result = await copyItemToListImpl({ userId: viewer.id, input: { itemId: hidden.id, targetListId: target.id }, dbx: tx })
+			expect(result).toEqual({ kind: 'error', reason: 'source-not-visible' })
+		})
+	})
+
+	it('lets a restricted viewer copy an item they can see', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx)
+			const viewer = await makeUser(tx)
+			await makeUserRelationship(tx, { ownerUserId: owner.id, viewerUserId: viewer.id, accessLevel: 'restricted' })
+			const source = await makeList(tx, { ownerId: owner.id })
+			const target = await makeList(tx, { ownerId: viewer.id })
+			const item = await makeItem(tx, { listId: source.id, title: 'unclaimed' })
+
+			const result = await copyItemToListImpl({ userId: viewer.id, input: { itemId: item.id, targetListId: target.id }, dbx: tx })
+			if (result.kind !== 'ok') throw new Error(`expected ok, got ${result.reason}`)
+			expect(result.item.listId).toBe(target.id)
+		})
+	})
+
+	it('rejects copying an archived (revealed) item, which the list view never shows', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx)
+			const viewer = await makeUser(tx)
+			const source = await makeList(tx, { ownerId: owner.id })
+			const target = await makeList(tx, { ownerId: viewer.id })
+			const archived = await makeItem(tx, { listId: source.id, title: 'received', isArchived: true })
+
+			const result = await copyItemToListImpl({ userId: viewer.id, input: { itemId: archived.id, targetListId: target.id }, dbx: tx })
+			expect(result).toEqual({ kind: 'error', reason: 'not-found' })
 		})
 	})
 })

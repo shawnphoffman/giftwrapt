@@ -13,15 +13,15 @@ import { items } from '@/db/schema'
  * - 'visible'           archived=false AND pending-deletion IS NULL.
  *   The default viewer-facing predicate: hides revealed gifts AND
  *   pending-deletion items. Used by list-detail / recent feed /
- *   analyzers / auto-archive candidates / public lists.
+ *   analyzers / auto-archive candidates / public lists / the
+ *   copyItemToList source (a viewer copies only what they can see).
  *
  * - 'editable'          pending-deletion IS NULL ONLY.
  *   IMPORTANT: this DOES include archived (revealed) rows. The name
  *   reflects intent ("the recipient can still touch this row") not the
  *   archive state. Used by recipient-side mutations that must 404 on
- *   pending-deletion (updateItem, deleteItem, copyItemToList,
- *   archiveItem, setItemAvailability), the organize view's
- *   includeArchived branch, the merge-lists item re-point, and the
+ *   pending-deletion (updateItem, deleteItem, archiveItem,
+ *   setItemAvailability), the organize view's includeArchived branch, the merge-lists item re-point, and the
  *   `or`-group sibling claim-gate.
  *
  * - 'revealed'          archived=true AND pending-deletion IS NULL.

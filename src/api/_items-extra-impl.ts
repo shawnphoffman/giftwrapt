@@ -246,37 +246,62 @@ async function loadAndAuthorizeItems(
 // Impls
 // ===============================
 
-export async function copyItemToListImpl(args: { userId: string; input: z.infer<typeof CopyItemInputSchema> }): Promise<CopyItemResult> {
-	const { userId, input: data } = args
+export async function copyItemToListImpl(args: {
+	userId: string
+	input: z.infer<typeof CopyItemInputSchema>
+	dbx?: SchemaDatabase
+}): Promise<CopyItemResult> {
+	const { userId, input: data, dbx = db } = args
 
-	// Pending-deletion items are invisible everywhere except the alert UI
-	// for the audience with standing on their claims; copy is not allowed.
-	const sourceItem = await db.query.items.findFirst({
-		where: and(eq(items.id, data.itemId), visibleItemsWhere('editable')),
+	// The source must be an item the viewer can see on the list view:
+	// 'visible' (not archived, not pending-deletion) plus the restricted
+	// filter below. Anything looser lets a viewer read a hidden item by
+	// guessing its id and copying it onto their own list.
+	const sourceItem = await dbx.query.items.findFirst({
+		where: and(eq(items.id, data.itemId), visibleItemsWhere('visible')),
 	})
 	if (!sourceItem) return { kind: 'error', reason: 'not-found' }
 
-	const sourceList = await db.query.lists.findFirst({
+	const sourceList = await dbx.query.lists.findFirst({
 		where: eq(lists.id, sourceItem.listId),
 		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!sourceList) return { kind: 'error', reason: 'not-found' }
 
-	const view = await canViewList(userId, sourceList)
+	const view = await canViewList(userId, sourceList, dbx)
 	if (!view.ok) return { kind: 'error', reason: 'source-not-visible' }
 
-	const targetList = await db.query.lists.findFirst({
+	if ((await getViewerAccessLevelForList(userId, sourceList, dbx)) === 'restricted') {
+		// The filter's group rules need every item and claim on the list,
+		// not just the source item, so load the same set the list view does.
+		const [listItems, groupTypes, viewerRow] = await Promise.all([
+			dbx.query.items.findMany({
+				where: and(eq(items.listId, sourceList.id), visibleItemsWhere('visible')),
+				columns: { id: true, quantity: true, groupId: true, groupSortOrder: true },
+				with: { gifts: { columns: { gifterId: true, additionalGifterIds: true, quantity: true } } },
+			}),
+			dbx.query.itemGroups.findMany({
+				where: eq(itemGroups.listId, sourceList.id),
+				columns: { id: true, type: true },
+			}),
+			dbx.query.users.findFirst({ where: eq(users.id, userId), columns: { partnerId: true } }),
+		])
+		const visible = filterItemsForRestricted(listItems, groupTypes, userId, viewerRow?.partnerId ?? null)
+		if (!visible.some(i => i.id === sourceItem.id)) return { kind: 'error', reason: 'source-not-visible' }
+	}
+
+	const targetList = await dbx.query.lists.findFirst({
 		where: eq(lists.id, data.targetListId),
 		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!targetList) return { kind: 'error', reason: 'not-found' }
 
-	const perm = await assertCanEditItems(userId, targetList)
+	const perm = await assertCanEditItems(userId, targetList, dbx)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	const vendor = sourceItem.url ? getVendorFromUrl(sourceItem.url) : null
 
-	const [inserted] = await db
+	const [inserted] = await dbx
 		.insert(items)
 		.values({
 			listId: data.targetListId,
