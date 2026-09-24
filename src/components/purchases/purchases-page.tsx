@@ -598,9 +598,11 @@ function MetricsGroup({
 function PersonCell({ group }: { group: PersonGroup | null }) {
 	if (!group) return <span className="text-sm text-muted-foreground">-</span>
 	return (
-		<div className="flex items-center gap-2 min-w-0">
-			<UserAvatar name={group.name} image={group.image} size="small" />
-			<span className="truncate text-sm font-medium">{group.name}</span>
+		<div className="flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
+			<div className="flex items-center gap-2 min-w-0">
+				<UserAvatar name={group.name} image={group.image} size="small" />
+				<span className="truncate text-sm font-medium">{group.name}</span>
+			</div>
 			<MoneyChip amount={group.totalSpent} variant="total" />
 		</div>
 	)
