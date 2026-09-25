@@ -6,7 +6,7 @@
 //
 // `today` is the device's local calendar date. It decides which
 // holidays have passed and anchors `daysUntil`; without it the server
-// falls back to the UTC date.
+// falls back to the deployment date (`appSettings.timeZone`).
 //
 // The wire shape is shared with the web db-collection
 // (`upcomingHolidaysCollection`) so iOS and the web widget surface read

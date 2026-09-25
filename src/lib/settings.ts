@@ -13,6 +13,7 @@ import { z } from 'zod'
 import type { Database, SchemaDatabase } from '@/db'
 import { appSettings } from '@/db/schema'
 import type { ListType } from '@/db/schema/enums'
+import { DEFAULT_TIME_ZONE, isValidTimeZone } from '@/lib/calendar-day'
 
 // 1) Shape of settings used across the app.
 // Defaults live in DEFAULT_APP_SETTINGS below, NOT on the schema fields:
@@ -338,6 +339,12 @@ export const appSettingsSchema = z.object({
 	// occurrences table). Valentine's and Anniversary are country-
 	// independent.
 	relationshipRemindersCountry: z.string().min(2).max(2),
+	// IANA time zone the deployment's calendar runs on. Decides which
+	// date "today" is for every scheduled job (auto-archive, birthday
+	// emails, reminders, orphan cleanup, intelligence) and for the
+	// archive-schedule banner. Crons fire at fixed UTC times, so pick a
+	// schedule that lands after local midnight. See `lib/calendar-day.ts`.
+	timeZone: z.string().refine(isValidTimeZone, 'Unknown time zone'),
 	// When true, item save (create/update) will fetch any non-storage
 	// imageUrl, run it through the image pipeline, and persist the
 	// resulting storage URL instead of the original. Best-effort: a
@@ -579,6 +586,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	anniversaryReminderLeadDays: 30,
 	enableAnniversaryReminderEmails: false,
 	relationshipRemindersCountry: 'US',
+	timeZone: DEFAULT_TIME_ZONE,
 	mirrorExternalImagesOnSave: false,
 	enableMobileApp: false,
 	enablePasskeys: false,

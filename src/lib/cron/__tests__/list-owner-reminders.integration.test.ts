@@ -116,3 +116,19 @@ describe('listOwnerRemindersImpl custom-holiday recipient gating', () => {
 		})
 	})
 })
+
+describe('listOwnerRemindersImpl - deployment time zone', () => {
+	it('counts the lead days from the date in the deployment zone', async () => {
+		vi.mocked(sendPreCustomHolidayReminderEmail).mockClear()
+		await withRollback(async tx => {
+			await makeUser(tx, { name: 'A' })
+			await tx.insert(customHolidays).values({ title: 'Founders Day', source: 'custom', customMonth: 6, customDay: 1, customYear: null })
+
+			// May 25, 6 PM in Los Angeles (7 days before Jun 1); May 26 in UTC.
+			const now = new Date('2026-05-26T01:00:00Z')
+			expect((await listOwnerRemindersImpl({ db: tx, now, settings: REMINDER_SETTINGS })).customHolidayReminders).toBe(0)
+			const la = await listOwnerRemindersImpl({ db: tx, now, settings: { ...REMINDER_SETTINGS, timeZone: 'America/Los_Angeles' } })
+			expect(la.customHolidayReminders).toBe(1)
+		})
+	})
+})

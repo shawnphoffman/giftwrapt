@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { updateAppSettings } from '@/api/settings'
+import { TimeZonePicker } from '@/components/admin/time-zone-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -110,6 +111,19 @@ export function CoreSettingsSection() {
 						})}
 					</SelectContent>
 				</Select>
+			</div>
+
+			<div className="flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<Label htmlFor="timeZone" className="text-base">
+						Time Zone
+					</Label>
+					<p className="text-sm text-muted-foreground">
+						Decides when each day starts for birthdays, holidays, reminders, and auto-archive. Schedule the daily jobs to run after midnight
+						here.
+					</p>
+				</div>
+				<TimeZonePicker id="timeZone" value={settings.timeZone} onChange={value => handleSettingChange('timeZone', value)} />
 			</div>
 
 			<div className="flex items-center justify-between gap-4">

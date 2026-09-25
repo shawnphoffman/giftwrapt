@@ -19,7 +19,8 @@ const UpcomingHolidayRowSchema = z.object({
 export type UpcomingHolidayRow = z.infer<typeof UpcomingHolidayRowSchema>
 
 // The browser's local calendar date. On the server (SSR) there is no
-// viewer date, so the param is omitted and the route falls back to UTC.
+// viewer date, so the param is omitted and the route falls back to the
+// deployment date.
 const localToday = (): string | null => {
 	if (typeof window === 'undefined') return null
 	const d = new Date()

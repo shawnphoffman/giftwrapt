@@ -234,3 +234,29 @@ describe('birthdayEmailsImpl - follow-up (14 days after birthday)', () => {
 		})
 	})
 })
+
+describe('birthdayEmailsImpl - deployment time zone', () => {
+	it('uses the date in the deployment zone, not the UTC date', async () => {
+		vi.mocked(sendBirthdayEmail).mockClear()
+		await withRollback(async tx => {
+			await makeUser(tx, { name: 'Alice', birthMonth: 'april', birthDay: 30 })
+			// Apr 30, 7 PM in Los Angeles; already May 1 in UTC.
+			const now = new Date('2026-05-01T02:00:00Z')
+
+			expect((await birthdayEmailsImpl({ db: tx, now })).birthdayEmails).toBe(0)
+			expect((await birthdayEmailsImpl({ db: tx, now, timeZone: 'America/Los_Angeles' })).birthdayEmails).toBe(1)
+		})
+	})
+
+	it('reaches the birthday early for a zone east of UTC', async () => {
+		vi.mocked(sendBirthdayEmail).mockClear()
+		await withRollback(async tx => {
+			await makeUser(tx, { name: 'Alice', birthMonth: 'april', birthDay: 30 })
+			// Apr 30, 5 AM in Tokyo; still Apr 29 in UTC.
+			const now = new Date('2026-04-29T20:00:00Z')
+
+			expect((await birthdayEmailsImpl({ db: tx, now })).birthdayEmails).toBe(0)
+			expect((await birthdayEmailsImpl({ db: tx, now, timeZone: 'Asia/Tokyo' })).birthdayEmails).toBe(1)
+		})
+	})
+})

@@ -13,14 +13,28 @@ import type { ArchiveBannerInfo } from '@/lib/archive-schedule-loader'
 import { itemsKeys } from '@/lib/queries/items'
 import { cn } from '@/lib/utils'
 
-const DAY_MS = 86_400_000
-
-function formatLong(iso: string): string {
-	return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+// Event and default reveal dates are calendar dates sent as UTC midnight of
+// the date, so they format in UTC; a defer is a real instant and formats in
+// the viewer's zone.
+function formatLong(iso: string, calendar: boolean): string {
+	return new Date(iso).toLocaleDateString('en-US', {
+		month: 'long',
+		day: 'numeric',
+		year: 'numeric',
+		timeZone: calendar ? 'UTC' : undefined,
+	})
 }
 
-function formatShort(iso: string): string {
-	return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+function formatShort(iso: string, calendar: boolean): string {
+	return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: calendar ? 'UTC' : undefined })
+}
+
+// A preset extension: the end of the viewer's day `days` after the current
+// reveal date, matching the custom picker's `T23:59:59` local deadline.
+function endOfDayAfter(iso: string, calendar: boolean, days: number): Date {
+	const d = new Date(iso)
+	const [y, m, day] = calendar ? [d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()] : [d.getFullYear(), d.getMonth(), d.getDate()]
+	return new Date(y, m, day + days, 23, 59, 59)
 }
 
 const DEFER_ERROR_COPY: Record<string, string> = {
@@ -58,9 +72,9 @@ export function ArchiveManagerBadge({
 	if (!archiveInfo.applies || !archiveInfo.effectiveArchiveDate) return null
 
 	const effective = archiveInfo.effectiveArchiveDate
-	const longDate = formatLong(effective)
-	const shortDate = formatShort(effective)
 	const extended = archiveInfo.deferUntil != null
+	const longDate = formatLong(effective, !extended)
+	const shortDate = formatShort(effective, !extended)
 
 	function reset() {
 		setMode('menu')
@@ -93,7 +107,7 @@ export function ArchiveManagerBadge({
 		try {
 			const res = await setArchiveDefer({ data: { listId, deferUntil: target } })
 			if (res.kind === 'ok') {
-				toast.success('Reveal extended', { description: `Now reveals on ${formatLong(res.deferUntil)}.` })
+				toast.success('Reveal extended', { description: `Now reveals on ${formatLong(res.deferUntil, false)}.` })
 				setOpen(false)
 				reset()
 				await refresh()
@@ -218,7 +232,7 @@ export function ArchiveManagerBadge({
 									variant="outline"
 									size="sm"
 									disabled={busy}
-									onClick={() => applyDefer(new Date(new Date(effective).getTime() + p.days * DAY_MS))}
+									onClick={() => applyDefer(endOfDayAfter(effective, !extended, p.days))}
 								>
 									{p.label}
 								</Button>

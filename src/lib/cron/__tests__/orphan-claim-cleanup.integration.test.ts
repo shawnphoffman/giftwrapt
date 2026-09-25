@@ -230,3 +230,23 @@ describe('orphanClaimCleanupImpl - reminder pass never targets the recipient', (
 		})
 	})
 })
+
+describe('orphanClaimCleanupImpl - deployment time zone', () => {
+	it('decides the day before Christmas in the deployment zone', async () => {
+		vi.mocked(sendOrphanClaimCleanupReminderEmail).mockClear()
+		await withRollback(async tx => {
+			const owner = await makeUser(tx)
+			const gifter = await makeUser(tx, { email: 'tz@test.local' })
+			const list = await makeList(tx, { ownerId: owner.id, type: 'christmas' })
+			const item = await makeItem(tx, { listId: list.id, pendingDeletionAt: PENDING_RECENT })
+			await makeGiftedItem(tx, { itemId: item.id, gifterId: gifter.id })
+
+			// Dec 23, 7 PM in Los Angeles; Dec 24 in UTC.
+			const now = new Date('2026-12-24T03:00:00Z')
+			const la = await orphanClaimCleanupImpl({ db: tx, now, timeZone: 'America/Los_Angeles' })
+			expect(la.remindersSent).toBe(0)
+			const utcRun = await orphanClaimCleanupImpl({ db: tx, now })
+			expect(utcRun.remindersSent).toBe(1)
+		})
+	})
+})

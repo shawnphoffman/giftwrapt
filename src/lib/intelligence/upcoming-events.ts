@@ -27,6 +27,7 @@ import { eq } from 'drizzle-orm'
 import type { SchemaDatabase } from '@/db'
 import { customHolidays, dependents, users } from '@/db/schema'
 import { birthMonthEnumValues, type ListType } from '@/db/schema/enums'
+import { calendarDayInZone } from '@/lib/calendar-day'
 import { customHolidayNextOccurrence, startOfUtcDay } from '@/lib/custom-holidays'
 import type { AppSettings } from '@/lib/settings'
 
@@ -93,7 +94,9 @@ const CHRISTMAS_MATCH_TYPES: ReadonlyArray<ListType> = ['christmas']
 const CUSTOM_HOLIDAY_MATCH_TYPES: ReadonlyArray<ListType> = ['holiday']
 
 export async function getInWindowEventsForSubject(args: GetInWindowEventsArgs): Promise<Array<InWindowEvent>> {
-	const { userId, dependentId, settings, now = new Date(), dbx } = args
+	const { userId, dependentId, settings, now: instant = new Date(), dbx } = args
+	// Date math below is UTC-calendar; anchor it on the deployment's date.
+	const now = calendarDayInZone(instant, settings.timeZone)
 	const windowDays = settings.intelligenceUpcomingWindowDays
 	const minDays = settings.intelligenceMinDaysBeforeEventForRecs
 	if (windowDays < minDays) return []

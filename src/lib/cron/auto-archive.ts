@@ -11,6 +11,7 @@ import { and, eq, inArray, isNotNull, isNull, lte } from 'drizzle-orm'
 import type { SchemaDatabase } from '@/db'
 import { giftedItems, items, listAddons, lists, users } from '@/db/schema'
 import type { BirthMonth } from '@/db/schema/enums'
+import { addCalendarDays, calendarDayInZone } from '@/lib/calendar-day'
 import { customHolidayNextOccurrence } from '@/lib/custom-holidays'
 import { endOfOccurrence, lastOccurrence } from '@/lib/holidays'
 import { visibleItemsWhere } from '@/lib/item-visibility'
@@ -61,6 +62,10 @@ type Args = {
 	archiveDaysAfterBirthday: number
 	archiveDaysAfterChristmas: number
 	archiveDaysAfterHoliday: number
+	// Deployment time zone (`appSettings.timeZone`); decides which date
+	// "today" is for the birthday / Christmas / holiday passes. Defaults
+	// to UTC. The deferred-due pass compares instants and ignores it.
+	timeZone?: string
 }
 
 export async function autoArchiveImpl({
@@ -69,7 +74,11 @@ export async function autoArchiveImpl({
 	archiveDaysAfterBirthday,
 	archiveDaysAfterChristmas,
 	archiveDaysAfterHoliday,
+	timeZone,
 }: Args): Promise<AutoArchiveResult> {
+	// Calendar passes below compare against the deployment's date (UTC
+	// midnight of it); defer checks and timestamps keep the real `now`.
+	const today = calendarDayInZone(now, timeZone)
 	let birthdayArchived = 0
 	let birthdayAddonsArchived = 0
 	let christmasArchived = 0
@@ -141,10 +150,9 @@ export async function autoArchiveImpl({
 	}
 
 	// === Birthday auto-archive ===
-	const birthdayDate = new Date(now)
-	birthdayDate.setDate(birthdayDate.getDate() - archiveDaysAfterBirthday)
-	const bMonth = MONTHS[birthdayDate.getMonth()]
-	const bDay = birthdayDate.getDate()
+	const birthdayDate = addCalendarDays(today, -archiveDaysAfterBirthday)
+	const bMonth = MONTHS[birthdayDate.getUTCMonth()]
+	const bDay = birthdayDate.getUTCDate()
 
 	const birthdayUsers = await db.query.users.findMany({
 		where: and(eq(users.birthMonth, bMonth), eq(users.birthDay, bDay)),
@@ -191,9 +199,9 @@ export async function autoArchiveImpl({
 	}
 
 	// === Christmas auto-archive ===
-	const christmasDate = new Date(now.getFullYear(), 11, 25)
-	if (now < christmasDate) christmasDate.setFullYear(christmasDate.getFullYear() - 1)
-	const daysSinceChristmas = Math.floor((now.getTime() - christmasDate.getTime()) / (1000 * 60 * 60 * 24))
+	let christmasDate = new Date(Date.UTC(today.getUTCFullYear(), 11, 25))
+	if (today < christmasDate) christmasDate = new Date(Date.UTC(today.getUTCFullYear() - 1, 11, 25))
+	const daysSinceChristmas = Math.round((today.getTime() - christmasDate.getTime()) / (1000 * 60 * 60 * 24))
 
 	if (daysSinceChristmas === archiveDaysAfterChristmas) {
 		const christmasLists = await db.query.lists.findMany({
@@ -260,18 +268,18 @@ export async function autoArchiveImpl({
 		// have a duration). For custom rows, the "occurrence" is a single
 		// day equal to (year, month, day).
 		if (list.customHoliday.source === 'catalog' && list.customHoliday.catalogCountry && list.customHoliday.catalogKey) {
-			occurrenceStart = await lastOccurrence(list.customHoliday.catalogCountry, list.customHoliday.catalogKey, now, db)
+			occurrenceStart = await lastOccurrence(list.customHoliday.catalogCountry, list.customHoliday.catalogKey, today, db)
 			if (occurrenceStart) {
 				occurrenceEnd = await endOfOccurrence(list.customHoliday.catalogCountry, list.customHoliday.catalogKey, occurrenceStart, db)
 			}
 		} else if (list.customHoliday.source === 'custom') {
 			// Custom date: use the most recent past occurrence (or skip if
 			// all are in the future).
-			const next = await customHolidayNextOccurrence(list.customHoliday, now, db)
+			const next = await customHolidayNextOccurrence(list.customHoliday, today, db)
 			// "Last" = the most recent past occurrence. If next-occurrence
 			// is today or earlier, that's it. Otherwise back-roll one year
 			// for annual recurrence.
-			if (next && next.getTime() <= now.getTime()) {
+			if (next && next.getTime() <= today.getTime()) {
 				occurrenceStart = next
 			} else if (next && list.customHoliday.customYear === null) {
 				// Annual: previous year's occurrence.
@@ -282,8 +290,11 @@ export async function autoArchiveImpl({
 
 		if (!occurrenceStart || !occurrenceEnd) continue
 		const cutoff = new Date(occurrenceEnd.getTime() + archiveDaysAfterHoliday * 24 * 60 * 60 * 1000)
-		if (now.getTime() < cutoff.getTime()) continue
-		if (list.lastHolidayArchiveAt && list.lastHolidayArchiveAt.getTime() >= occurrenceStart.getTime()) continue
+		if (today.getTime() < cutoff.getTime()) continue
+		// The stamp is an instant; compare its calendar date so a run just
+		// after local midnight east of UTC (still the previous UTC date)
+		// counts as having archived this occurrence.
+		if (list.lastHolidayArchiveAt && calendarDayInZone(list.lastHolidayArchiveAt, timeZone).getTime() >= occurrenceStart.getTime()) continue
 
 		const claimedItemIds = await db
 			.selectDistinct({ itemId: giftedItems.itemId })

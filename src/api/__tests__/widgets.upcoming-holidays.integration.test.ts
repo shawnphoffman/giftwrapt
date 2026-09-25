@@ -429,13 +429,24 @@ describe('getUpcomingHolidaysImpl', () => {
 			})
 		})
 
-		it('falls back to the UTC date when `today` is absent', async () => {
+		it('falls back to the UTC date when `today` is absent and no time zone is set', async () => {
 			await withRollback(async tx => {
 				await seedRelationshipCatalog(tx)
 				const me = await makeUser(tx)
 
 				const rows = await getUpcomingHolidaysImpl({ userId: me.id, now: LA_XMAS_EVENING, dbx: tx })
 				expect(rows.find(r => r.id === 'christmas')).toMatchObject({ occurrenceStart: '2027-12-25T00:00:00.000Z', daysUntil: 364 })
+			})
+		})
+
+		it("falls back to the deployment's time zone when `today` is absent", async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				await setSetting(tx, 'timeZone', 'America/Los_Angeles')
+				const me = await makeUser(tx)
+
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, now: LA_XMAS_EVENING, dbx: tx })
+				expect(rows.find(r => r.id === 'christmas')).toMatchObject({ occurrenceStart: '2026-12-25T00:00:00.000Z', daysUntil: 0 })
 			})
 		})
 
@@ -530,6 +541,7 @@ describe('getUpcomingHolidaysImpl', () => {
 			expect(resolveViewerDayMs('2027-02-30', new Date('2027-03-01T12:00:00Z'))).toBe(Date.UTC(2027, 2, 1))
 			expect(resolveViewerDayMs('2026-12-24', LA_XMAS_EVENING)).toBe(utcDay)
 			expect(resolveViewerDayMs('2026-12-28', LA_XMAS_EVENING)).toBe(utcDay)
+			expect(resolveViewerDayMs('garbage', LA_XMAS_EVENING, 'America/Los_Angeles')).toBe(Date.UTC(2026, 11, 25))
 		})
 	})
 

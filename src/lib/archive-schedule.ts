@@ -7,16 +7,22 @@
 //
 // Mirrors the per-type occurrence math in src/lib/cron/auto-archive.ts:
 //   - birthday / wishlist: archived `archiveDaysAfterBirthday` days after the
-//     owner's birthday (local-time month/day, matching the cron's matcher).
-//   - christmas: `archiveDaysAfterChristmas` days after Dec 25 (local).
+//     owner's birthday.
+//   - christmas: `archiveDaysAfterChristmas` days after Dec 25.
 //   - holiday: `archiveDaysAfterHoliday` days after the custom holiday's
-//     occurrence end (UTC, via the same catalog/custom helpers the cron uses).
+//     occurrence end (via the same catalog/custom helpers the cron uses).
+//
+// Event and default reveal dates are calendar dates (UTC midnight of the
+// date, see lib/calendar-day.ts) compared against the deployment's date
+// in `settings.timeZone`, the same "today" the cron uses. The defer
+// (`archiveDeferUntil`) is a real instant and is compared against `now`.
 //
 // See docs/logic.md "Auto-archive deferral & last-archived".
 
 import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
 import type { BirthMonth } from '@/db/schema/enums'
+import { calendarDayInZone } from '@/lib/calendar-day'
 import type { CustomHolidayRow } from '@/lib/custom-holidays'
 import { customHolidayLastOccurrence, customHolidayNextOccurrence } from '@/lib/custom-holidays'
 import { endOfOccurrence } from '@/lib/holidays'
@@ -62,6 +68,8 @@ export type ArchiveDaysSettings = {
 	archiveDaysAfterBirthday: number
 	archiveDaysAfterChristmas: number
 	archiveDaysAfterHoliday: number
+	// Deployment time zone; decides which date "today" is. Defaults to UTC.
+	timeZone?: string
 }
 
 export type ArchiveSchedule = {
@@ -99,15 +107,15 @@ const NOT_APPLICABLE: ArchiveSchedule = {
 	lastArchivedAt: null,
 }
 
-function annualOccurrences(now: Date, makeDate: (year: number) => Date): OccurrencePair {
-	const thisYear = makeDate(now.getFullYear())
-	if (now.getTime() >= thisYear.getTime()) {
+function annualOccurrences(today: Date, makeDate: (year: number) => Date): OccurrencePair {
+	const thisYear = makeDate(today.getUTCFullYear())
+	if (today.getTime() >= thisYear.getTime()) {
 		return {
 			last: { start: thisYear, end: thisYear },
-			next: { start: makeDate(now.getFullYear() + 1), end: makeDate(now.getFullYear() + 1) },
+			next: { start: makeDate(today.getUTCFullYear() + 1), end: makeDate(today.getUTCFullYear() + 1) },
 		}
 	}
-	const prev = makeDate(now.getFullYear() - 1)
+	const prev = makeDate(today.getUTCFullYear() - 1)
 	return { last: { start: prev, end: prev }, next: { start: thisYear, end: thisYear } }
 }
 
@@ -142,6 +150,8 @@ export async function computeArchiveSchedule(
 ): Promise<ArchiveSchedule> {
 	if (!input.isActive || input.subjectDependentId) return NOT_APPLICABLE
 
+	const today = calendarDayInZone(now, settings.timeZone)
+
 	let archiveDays: number
 	let occurrences: OccurrencePair
 
@@ -149,14 +159,14 @@ export async function computeArchiveSchedule(
 		if (input.ownerBirthMonth == null || input.ownerBirthDay == null) return NOT_APPLICABLE
 		const monthIndex = MONTH_INDEX[input.ownerBirthMonth]
 		archiveDays = settings.archiveDaysAfterBirthday
-		occurrences = annualOccurrences(now, year => new Date(year, monthIndex, input.ownerBirthDay!))
+		occurrences = annualOccurrences(today, year => new Date(Date.UTC(year, monthIndex, input.ownerBirthDay!)))
 	} else if (input.type === 'christmas') {
 		archiveDays = settings.archiveDaysAfterChristmas
-		occurrences = annualOccurrences(now, year => new Date(year, 11, 25))
+		occurrences = annualOccurrences(today, year => new Date(Date.UTC(year, 11, 25)))
 	} else if (input.type === 'holiday') {
 		if (!input.customHolidayId || !input.customHoliday) return NOT_APPLICABLE
 		archiveDays = settings.archiveDaysAfterHoliday
-		occurrences = await holidayOccurrences(input.customHoliday, now, dbx)
+		occurrences = await holidayOccurrences(input.customHoliday, today, dbx)
 	} else {
 		// giftideas, todos, test - never auto-archive.
 		return NOT_APPLICABLE
@@ -169,9 +179,11 @@ export async function computeArchiveSchedule(
 	if (occurrences.last) {
 		const defaultArchiveDate = addDays(occurrences.last.end, archiveDays)
 		const effectiveArchiveDate = defer ?? defaultArchiveDate
-		if (now.getTime() < effectiveArchiveDate.getTime()) {
+		// A defer is an instant; the default reveal date is a calendar date.
+		const cycleOpen = defer ? now.getTime() < defer.getTime() : today.getTime() < defaultArchiveDate.getTime()
+		if (cycleOpen) {
 			const deferActive = defer != null && defer.getTime() > now.getTime()
-			const eventHasPassed = now.getTime() >= occurrences.last.start.getTime()
+			const eventHasPassed = today.getTime() >= occurrences.last.start.getTime()
 			return {
 				applies: true,
 				eventDate: occurrences.last.start,

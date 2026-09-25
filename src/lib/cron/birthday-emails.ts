@@ -9,6 +9,7 @@ import { and, eq } from 'drizzle-orm'
 import type { SchemaDatabase } from '@/db'
 import { giftedItems, items, lists, users } from '@/db/schema'
 import type { BirthMonth } from '@/db/schema/enums'
+import { addCalendarDays, calendarDayInZone } from '@/lib/calendar-day'
 import { buildPostBirthdayEmailItems } from '@/lib/cron/reveal-emails'
 import { fanOutToGuardians } from '@/lib/guardian-emails'
 import { visibleItemsWhere } from '@/lib/item-visibility'
@@ -39,11 +40,15 @@ export type BirthdayEmailsResult = {
 type Args = {
 	db: SchemaDatabase
 	now: Date
+	// Deployment time zone (`appSettings.timeZone`); decides which date
+	// "today" is. Defaults to UTC.
+	timeZone?: string
 }
 
-export async function birthdayEmailsImpl({ db, now }: Args): Promise<BirthdayEmailsResult> {
-	const todayMonth = MONTHS[now.getMonth()]
-	const todayDay = now.getDate()
+export async function birthdayEmailsImpl({ db, now, timeZone }: Args): Promise<BirthdayEmailsResult> {
+	const today = calendarDayInZone(now, timeZone)
+	const todayMonth = MONTHS[today.getUTCMonth()]
+	const todayDay = today.getUTCDate()
 
 	// === Day-of birthday emails ===
 	const birthdayUsers = await db.query.users.findMany({
@@ -64,10 +69,9 @@ export async function birthdayEmailsImpl({ db, now }: Args): Promise<BirthdayEma
 	}
 
 	// === Follow-up emails (14 days after birthday) ===
-	const followUpDate = new Date(now)
-	followUpDate.setDate(followUpDate.getDate() - FOLLOW_UP_DAYS)
-	const followUpMonth = MONTHS[followUpDate.getMonth()]
-	const followUpDay = followUpDate.getDate()
+	const followUpDate = addCalendarDays(today, -FOLLOW_UP_DAYS)
+	const followUpMonth = MONTHS[followUpDate.getUTCMonth()]
+	const followUpDay = followUpDate.getUTCDate()
 
 	const followUpUsers = await db.query.users.findMany({
 		where: and(eq(users.birthMonth, followUpMonth), eq(users.birthDay, followUpDay), eq(users.banned, false)),

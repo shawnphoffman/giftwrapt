@@ -19,6 +19,7 @@ import { eq, sql } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { appSettings, type BirthMonth, birthMonthEnumValues, customHolidayReminderLogs, customHolidays, users } from '@/db/schema'
+import { calendarDayInZone } from '@/lib/calendar-day'
 import { customHolidayNextOccurrence, isSameUtcDay, startOfUtcDay } from '@/lib/custom-holidays'
 import { fanOutToGuardians } from '@/lib/guardian-emails'
 import { canViewerSeeCustomHolidayRecipient } from '@/lib/permissions'
@@ -43,10 +44,15 @@ type Args = {
 		enableGenericHolidayLists: boolean
 		enableHolidayReminderEmails: boolean
 		holidayReminderLeadDays: number
+		// Deployment time zone; decides which date "today" is. Defaults to UTC.
+		timeZone?: string
 	}
 }
 
 export async function listOwnerRemindersImpl({ db, now, settings }: Args): Promise<ListOwnerRemindersResult> {
+	// The senders below do UTC-calendar math, so hand them the deployment's
+	// date (as UTC midnight) rather than the raw instant.
+	const today = calendarDayInZone(now, settings.timeZone)
 	const out: ListOwnerRemindersResult = {
 		birthdayReminders: 0,
 		christmasReminders: 0,
@@ -54,15 +60,15 @@ export async function listOwnerRemindersImpl({ db, now, settings }: Args): Promi
 	}
 
 	if (settings.enableBirthdayLists && settings.enableBirthdayReminderEmails) {
-		out.birthdayReminders = await sendBirthdayReminders(db, now, settings.birthdayReminderLeadDays)
+		out.birthdayReminders = await sendBirthdayReminders(db, today, settings.birthdayReminderLeadDays)
 	}
 
 	if (settings.enableChristmasLists && settings.enableChristmasReminderEmails) {
-		out.christmasReminders = await sendChristmasReminders(db, now, settings.christmasReminderLeadDays)
+		out.christmasReminders = await sendChristmasReminders(db, today, settings.christmasReminderLeadDays)
 	}
 
 	if (settings.enableGenericHolidayLists && settings.enableHolidayReminderEmails) {
-		out.customHolidayReminders = await sendCustomHolidayReminders(db, now, settings.holidayReminderLeadDays)
+		out.customHolidayReminders = await sendCustomHolidayReminders(db, today, settings.holidayReminderLeadDays)
 	}
 
 	return out

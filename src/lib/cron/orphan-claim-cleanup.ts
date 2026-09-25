@@ -17,6 +17,7 @@ import { eq } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { giftedItems, items, users } from '@/db/schema'
+import { calendarDayInZone } from '@/lib/calendar-day'
 import { customHolidayNextOccurrence } from '@/lib/custom-holidays'
 import { fanOutToGuardians } from '@/lib/guardian-emails'
 import { visibleItemsWhere } from '@/lib/item-visibility'
@@ -133,8 +134,13 @@ export type OrphanClaimCleanupResult = {
 	claimsDeleted: number
 }
 
-export async function orphanClaimCleanupImpl(args: { db: SchemaDatabase; now: Date }): Promise<OrphanClaimCleanupResult> {
-	const { db: dbx, now } = args
+export async function orphanClaimCleanupImpl(args: {
+	db: SchemaDatabase
+	now: Date
+	// Deployment time zone; decides which date "today" is. Defaults to UTC.
+	timeZone?: string
+}): Promise<OrphanClaimCleanupResult> {
+	const { db: dbx, now, timeZone } = args
 	let remindersSent = 0
 	let itemsDeleted = 0
 	let claimsDeleted = 0
@@ -177,7 +183,7 @@ export async function orphanClaimCleanupImpl(args: { db: SchemaDatabase; now: Da
 	const listById = new Map<number, ListWithType>()
 	for (const l of listRows) listById.set(l.id, l)
 
-	const today = startOfUtcDay(now)
+	const today = calendarDayInZone(now, timeZone)
 	const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000)
 
 	const emailConfigured = await isEmailConfigured()
@@ -195,10 +201,13 @@ export async function orphanClaimCleanupImpl(args: { db: SchemaDatabase; now: Da
 		let cleanupDate: Date | null = null
 		let eventLabel = ''
 		if (list.type === 'wishlist') {
-			cleanupDate = new Date(orphan.pendingDeletionAt.getTime() + WISHLIST_CLEANUP_OFFSET_DAYS * 24 * 60 * 60 * 1000)
+			cleanupDate = calendarDayInZone(
+				new Date(orphan.pendingDeletionAt.getTime() + WISHLIST_CLEANUP_OFFSET_DAYS * 24 * 60 * 60 * 1000),
+				timeZone
+			)
 			eventLabel = '14 days after deletion'
 		} else {
-			const eventDate = await resolveListEventDate(dbx, list, now)
+			const eventDate = await resolveListEventDate(dbx, list, today)
 			if (eventDate) {
 				cleanupDate = startOfUtcDay(eventDate)
 				if (list.type === 'christmas') eventLabel = 'Christmas'

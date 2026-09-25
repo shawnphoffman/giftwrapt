@@ -5,12 +5,20 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import type { ArchiveBannerInfo } from '@/lib/archive-schedule-loader'
 import { cn } from '@/lib/utils'
 
-function formatLong(iso: string): string {
-	return new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+// Event and default reveal dates are calendar dates sent as UTC midnight of
+// the date, so they format in UTC; a defer is a real instant and formats in
+// the viewer's zone.
+function formatLong(iso: string, calendar: boolean): string {
+	return new Date(iso).toLocaleDateString('en-US', {
+		month: 'long',
+		day: 'numeric',
+		year: 'numeric',
+		timeZone: calendar ? 'UTC' : undefined,
+	})
 }
 
-function formatShort(iso: string): string {
-	return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+function formatShort(iso: string, calendar: boolean): string {
+	return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: calendar ? 'UTC' : undefined })
 }
 
 // Gifting-view badge: a compact, tappable chip that sits inline with the list
@@ -20,9 +28,9 @@ export function ArchiveRevealBadge({ archiveInfo, recipientName }: { archiveInfo
 	const [open, setOpen] = useState(false)
 	if (!archiveInfo.applies || !archiveInfo.effectiveArchiveDate) return null
 
-	const longDate = formatLong(archiveInfo.effectiveArchiveDate)
-	const shortDate = formatShort(archiveInfo.effectiveArchiveDate)
 	const extended = archiveInfo.deferUntil != null
+	const longDate = formatLong(archiveInfo.effectiveArchiveDate, !extended)
+	const shortDate = formatShort(archiveInfo.effectiveArchiveDate, !extended)
 
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>

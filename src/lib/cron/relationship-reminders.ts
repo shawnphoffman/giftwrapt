@@ -20,6 +20,7 @@ import { eq, inArray, sql } from 'drizzle-orm'
 import type { SchemaDatabase } from '@/db'
 import { dependents, userRelationLabels, users } from '@/db/schema'
 import type { RelationLabel } from '@/db/schema/enums'
+import { calendarDayInZone } from '@/lib/calendar-day'
 import { isSameUtcDay } from '@/lib/custom-holidays'
 import { fanOutToGuardians } from '@/lib/guardian-emails'
 import { fathersDaySlug, getCatalogEntry, mothersDaySlug, nextOccurrence } from '@/lib/holidays'
@@ -49,10 +50,15 @@ type Args = {
 		enableAnniversaryReminders: boolean
 		anniversaryReminderLeadDays: number
 		enableAnniversaryReminderEmails: boolean
+		// Deployment time zone; decides which date "today" is. Defaults to UTC.
+		timeZone?: string
 	}
 }
 
-export async function relationshipRemindersImpl({ db, now, settings }: Args): Promise<RelationshipRemindersResult> {
+export async function relationshipRemindersImpl({ db, now: instant, settings }: Args): Promise<RelationshipRemindersResult> {
+	// Every sender below does UTC-calendar math on `now`, so it gets the
+	// deployment's date (as UTC midnight) rather than the raw instant.
+	const now = calendarDayInZone(instant, settings.timeZone)
 	const out: RelationshipRemindersResult = {
 		mothersDayReminders: 0,
 		fathersDayReminders: 0,

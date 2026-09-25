@@ -684,3 +684,77 @@ describe('autoArchiveImpl - archive deferral', () => {
 		})
 	})
 })
+
+describe('autoArchiveImpl - deployment time zone', () => {
+	const DELAYS = { archiveDaysAfterBirthday: 7, archiveDaysAfterChristmas: 30, archiveDaysAfterHoliday: 14 }
+
+	it('matches the birthday offset against the date in the deployment zone', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx, { birthMonth: 'march', birthDay: 1 })
+			const gifter = await makeUser(tx)
+			const list = await makeList(tx, { ownerId: owner.id, type: 'birthday' })
+			const item = await makeItem(tx, { listId: list.id })
+			await makeGiftedItem(tx, { itemId: item.id, gifterId: gifter.id })
+
+			// Mar 8, 6 PM in Los Angeles (7 days after Mar 1); Mar 9 in UTC.
+			const now = new Date('2026-03-09T02:00:00Z')
+			expect((await autoArchiveImpl({ db: tx, now, ...DELAYS })).birthdayArchived).toBe(0)
+			expect((await autoArchiveImpl({ db: tx, now, ...DELAYS, timeZone: 'America/Los_Angeles' })).birthdayArchived).toBe(1)
+		})
+	})
+
+	it('counts days since Christmas in the deployment zone', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx)
+			const gifter = await makeUser(tx)
+			const list = await makeList(tx, { ownerId: owner.id, type: 'christmas' })
+			const item = await makeItem(tx, { listId: list.id })
+			await makeGiftedItem(tx, { itemId: item.id, gifterId: gifter.id })
+
+			// Jan 24, 7 PM in Los Angeles (30 days after Dec 25); Jan 25 in UTC.
+			const now = new Date('2026-01-25T03:00:00Z')
+			expect((await autoArchiveImpl({ db: tx, now, ...DELAYS })).christmasArchived).toBe(0)
+			expect((await autoArchiveImpl({ db: tx, now, ...DELAYS, timeZone: 'America/Los_Angeles' })).christmasArchived).toBe(1)
+		})
+	})
+
+	it('holds a holiday list until the cutoff date arrives in the deployment zone', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx)
+			const gifter = await makeUser(tx)
+			const customHolidayId = await makeEasterCustomHoliday(tx)
+			const list = await makeList(tx, { ownerId: owner.id, type: 'holiday', customHolidayId })
+			const item = await makeItem(tx, { listId: list.id })
+			await makeGiftedItem(tx, { itemId: item.id, gifterId: gifter.id })
+
+			// Cutoff is Apr 20 (Easter ends Apr 6, plus 14). Apr 19, 8 PM in Los Angeles is Apr 20 in UTC.
+			const now = new Date('2026-04-20T03:00:00Z')
+			expect((await autoArchiveImpl({ db: tx, now, ...DELAYS, timeZone: 'America/Los_Angeles' })).holidayArchived).toBe(0)
+			expect((await autoArchiveImpl({ db: tx, now, ...DELAYS })).holidayArchived).toBe(1)
+		})
+	})
+
+	it('does not re-archive a holiday occurrence on a later run the same local day east of UTC', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx)
+			const gifter = await makeUser(tx)
+			const [holiday] = await tx
+				.insert(customHolidays)
+				.values({ title: 'Founders Day', source: 'custom', customMonth: 3, customDay: 10, customYear: null })
+				.returning({ id: customHolidays.id })
+			const list = await makeList(tx, { ownerId: owner.id, type: 'holiday', customHolidayId: holiday.id })
+			const first = await makeItem(tx, { listId: list.id })
+			await makeGiftedItem(tx, { itemId: first.id, gifterId: gifter.id })
+
+			// Mar 10, 5 AM in Tokyo, still Mar 9 in UTC: the stamp lands before
+			// the occurrence's UTC-midnight anchor.
+			const zeroDelay = { ...DELAYS, archiveDaysAfterHoliday: 0, timeZone: 'Asia/Tokyo' }
+			expect((await autoArchiveImpl({ db: tx, now: new Date('2026-03-09T20:00:00Z'), ...zeroDelay })).holidayArchived).toBe(1)
+
+			// A claim made later that day must wait for the next occurrence.
+			const second = await makeItem(tx, { listId: list.id })
+			await makeGiftedItem(tx, { itemId: second.id, gifterId: gifter.id })
+			expect((await autoArchiveImpl({ db: tx, now: new Date('2026-03-09T22:00:00Z'), ...zeroDelay })).holidayArchived).toBe(0)
+		})
+	})
+})

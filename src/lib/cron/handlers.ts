@@ -147,6 +147,7 @@ export async function runAutoArchive() {
 		archiveDaysAfterBirthday: settings.archiveDaysAfterBirthday,
 		archiveDaysAfterChristmas: settings.archiveDaysAfterChristmas,
 		archiveDaysAfterHoliday: settings.archiveDaysAfterHoliday,
+		timeZone: settings.timeZone,
 	})
 
 	// Post-archive email sends. Inline here so the cron run sees them as
@@ -248,7 +249,7 @@ export async function runBirthdayEmails(): Promise<Record<string, {}>> {
 		claimsDeleted: 0,
 	}
 	try {
-		orphanClaimCleanup = await orphanClaimCleanupImpl({ db, now })
+		orphanClaimCleanup = await orphanClaimCleanupImpl({ db, now, timeZone: settings.timeZone })
 	} catch (err) {
 		log.warn({ err: err instanceof Error ? err.message : String(err) }, 'orphan-claim-cleanup batch failed')
 	}
@@ -267,7 +268,7 @@ export async function runBirthdayEmails(): Promise<Record<string, {}>> {
 	// the broadcast pre-event list-owner reminders, and the four-family
 	// relationship reminders. Each branch is feature-gated independently.
 	if (settings.enableBirthdayEmails) {
-		const result = await birthdayEmailsImpl({ db, now })
+		const result = await birthdayEmailsImpl({ db, now, timeZone: settings.timeZone })
 		birthdayEmails = result.birthdayEmails
 		followUpEmails = result.followUpEmails
 	}

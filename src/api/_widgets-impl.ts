@@ -52,8 +52,8 @@
 // the countdown depend on the viewer's local date, which the server
 // can't know. Clients pass it as `today` (YYYY-MM-DD). Every date is
 // then compared as a calendar date anchored at UTC midnight of that
-// day. Without `today` (or with an implausible one) the UTC date is
-// used.
+// day. Without `today` (or with an implausible one) the deployment's
+// date (`appSettings.timeZone`) is used.
 //
 // Dedup: holidays that resolve to the same UTC (month, day) are
 // collapsed; admin-curated rows win over hardcoded ones so a
@@ -66,6 +66,7 @@ import { and, eq } from 'drizzle-orm'
 import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
 import { customHolidays, userRelationLabels, users } from '@/db/schema'
+import { calendarDayInZone } from '@/lib/calendar-day'
 import { customHolidayNextOccurrence, startOfUtcDay } from '@/lib/custom-holidays'
 import { fathersDaySlug, mothersDaySlug, nextOccurrence } from '@/lib/holidays'
 import { canViewerSeeCustomHolidayRecipient } from '@/lib/permissions'
@@ -98,7 +99,7 @@ export type UpcomingHolidayRow = {
 	// (Christmas is `YYYY-12-25T00:00:00Z`). Read it as a date, not an
 	// instant.
 	occurrenceStart: string
-	// Whole-day count from the viewer's `today` (UTC date when absent)
+	// Whole-day count from the viewer's `today` (deployment date when absent)
 	// to `occurrenceStart`. Always >= 0; the server filters past
 	// occurrences before sending.
 	daysUntil: number
@@ -115,7 +116,7 @@ export type GetUpcomingHolidaysArgs = {
 	horizonDays?: number
 	// The viewer's local calendar date, `YYYY-MM-DD`. Accepted only
 	// within one day of the UTC date (UTC-12 .. UTC+14); anything else
-	// falls back to the UTC date.
+	// falls back to the deployment's date.
 	today?: string
 	now?: Date
 	dbx?: SchemaDatabase
@@ -129,21 +130,21 @@ function utcDayMs(d: Date): number {
 	return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
 }
 
-// UTC-midnight ms of the viewer's calendar day. Falls back to the UTC
-// date when `today` is missing, malformed, or more than a day away from
-// it (no real time zone is further off, so it's a bad device clock or a
-// bad caller, and the UTC date is the better guess).
-export function resolveViewerDayMs(today: string | undefined, now: Date): number {
-	const utcToday = utcDayMs(now)
-	if (!today) return utcToday
+// UTC-midnight ms of the viewer's calendar day. Falls back to the
+// deployment's date (`fallbackTimeZone`) when `today` is missing,
+// malformed, or more than a day from the UTC date (no real time zone is
+// further off, so it's a bad device clock or a bad caller).
+export function resolveViewerDayMs(today: string | undefined, now: Date, fallbackTimeZone?: string): number {
+	const fallback = calendarDayInZone(now, fallbackTimeZone).getTime()
+	if (!today) return fallback
 	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(today)
-	if (!match) return utcToday
+	if (!match) return fallback
 	const [y, m, d] = [Number(match[1]), Number(match[2]), Number(match[3])]
 	const ms = Date.UTC(y, m - 1, d)
 	const parsed = new Date(ms)
 	// Rejects roll-overs like 2026-02-30.
-	if (parsed.getUTCFullYear() !== y || parsed.getUTCMonth() !== m - 1 || parsed.getUTCDate() !== d) return utcToday
-	if (Math.abs(ms - utcToday) > DAY_MS) return utcToday
+	if (parsed.getUTCFullYear() !== y || parsed.getUTCMonth() !== m - 1 || parsed.getUTCDate() !== d) return fallback
+	if (Math.abs(ms - utcDayMs(now)) > DAY_MS) return fallback
 	return ms
 }
 
@@ -177,7 +178,7 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 
 	const settings = await getAppSettings(dbx)
 	const country = settings.relationshipRemindersCountry
-	const todayUtcMs = resolveViewerDayMs(today, now)
+	const todayUtcMs = resolveViewerDayMs(today, now, settings.timeZone)
 	const horizonMs = todayUtcMs + horizonDays * DAY_MS
 	// Every resolver below compares against this, not `now`, so rollover
 	// to next year happens at the viewer's midnight, not UTC's.
