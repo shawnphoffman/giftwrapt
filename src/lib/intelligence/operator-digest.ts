@@ -244,19 +244,42 @@ export async function maybeSendOperatorDigest(
 		return { sent: false, reason: 'too-soon' }
 	}
 
-	// Recipient resolution: Test Recipient override → only there; otherwise all
-	// admins (BCC'd by the send fn so addresses aren't exposed to each other).
-	let recipients: Array<string>
-	if (settings.intelligenceEmailTestRecipient) {
-		recipients = [settings.intelligenceEmailTestRecipient]
-	} else {
-		const adminRows = await dbx.select({ email: users.email }).from(users).where(eq(users.role, 'admin'))
-		recipients = adminRows.map(r => r.email).filter(Boolean)
-	}
+	const recipients = await resolveDigestRecipients(settings, dbx)
 	if (recipients.length === 0) return { sent: false, reason: 'no-recipients' }
 
 	const data = await buildOperatorDigest(digestWindow(lastSentAt, intervalDays, now), dbx)
 	await sendOperatorDigestEmail(recipients, data, operatorDigestSubject(data))
 	await writeLastSentAt(dbx, now)
 	return { sent: true, recipients: recipients.length }
+}
+
+// Who the digest goes to. The recipient override (stored as
+// `intelligenceEmailTestRecipient`) wins outright; otherwise every admin's
+// account email. The deployment's From address is never a recipient: it is
+// often a send-only address with no mailbox, so mail to it bounces.
+export async function resolveDigestRecipients(settings: AppSettings, dbx: SchemaDatabase = db): Promise<Array<string>> {
+	if (settings.intelligenceEmailTestRecipient) return [settings.intelligenceEmailTestRecipient]
+	return listAdminEmails(dbx)
+}
+
+export async function listAdminEmails(dbx: SchemaDatabase = db): Promise<Array<string>> {
+	const adminRows = await dbx.select({ email: users.email }).from(users).where(eq(users.role, 'admin'))
+	return adminRows.map(r => r.email).filter(Boolean)
+}
+
+// Manual "Send now" from the admin Notifications card: same recipients and
+// content as a scheduled send over a trailing refresh-interval window, but
+// ignores the toggles and interval guard and does not stamp last-sent, so
+// the schedule is unaffected.
+export async function sendOperatorDigestNow(
+	settings: AppSettings,
+	dbx: SchemaDatabase = db,
+	now: Date = new Date()
+): Promise<Array<string>> {
+	if (!(await isEmailConfigured(dbx))) throw new Error('Email is not configured. Set a Resend API key and From Email first.')
+	const recipients = await resolveDigestRecipients(settings, dbx)
+	if (recipients.length === 0) throw new Error('No recipients: there are no admin users and no recipient override is set.')
+	const data = await buildOperatorDigest(digestWindow(null, settings.intelligenceRefreshIntervalDays, now), dbx)
+	await sendOperatorDigestEmail(recipients, data, operatorDigestSubject(data))
+	return recipients
 }

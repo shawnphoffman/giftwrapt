@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { db } from '@/db'
 import { recommendationRuns, recommendationRunSteps, recommendations, users } from '@/db/schema'
 import { resolveAiConfig } from '@/lib/ai-config'
+import { listAdminEmails, sendOperatorDigestNow } from '@/lib/intelligence/operator-digest'
 import { countOverdueUsers } from '@/lib/intelligence/overdue'
 import { ANALYZERS, getAnalyzer } from '@/lib/intelligence/registry'
 import { generateForUser } from '@/lib/intelligence/runner'
@@ -327,6 +328,7 @@ export const getAdminIntelligenceData = createServerFn({ method: 'GET' })
 					enabled: settings.intelligenceEmailEnabled,
 					weeklyDigestEnabled: settings.intelligenceEmailWeeklyDigestEnabled,
 					testRecipient: settings.intelligenceEmailTestRecipient,
+					adminEmails: await listAdminEmails(),
 				},
 				perAnalyzerEnabled: settings.intelligencePerAnalyzerEnabled,
 			},
@@ -385,6 +387,16 @@ export const getAdminIntelligenceData = createServerFn({ method: 'GET' })
 // that server fn directly with the intelligence-namespaced keys.
 
 const userIdSchema = z.object({ userId: z.string().min(1) })
+
+// Send the operator digest right away to the same recipients the schedule
+// uses. Returns who it went to so the UI can confirm.
+export const adminSendOperatorDigestNow = createServerFn({ method: 'POST' })
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.handler(async () => {
+		const settings = await getAppSettings(db)
+		const recipients = await sendOperatorDigestNow(settings)
+		return { recipients }
+	})
 
 export const adminRunForUser = createServerFn({ method: 'POST' })
 	.middleware([adminAuthMiddleware, loggingMiddleware])

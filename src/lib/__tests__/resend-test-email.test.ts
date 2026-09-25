@@ -41,6 +41,9 @@ vi.mock('@/db', () => {
 vi.mock('@/emails/test-email', () => ({
 	default: () => null,
 }))
+vi.mock('@/emails/intelligence-operator-digest', () => ({
+	default: () => null,
+}))
 
 const sendMock = vi.fn()
 vi.mock('resend', () => ({
@@ -66,18 +69,49 @@ describe('sendTestEmail error propagation', () => {
 			error: { message: 'API key is invalid', name: 'validation_error', statusCode: 401 },
 		})
 		const { sendTestEmail } = await import('@/lib/resend')
-		await expect(sendTestEmail()).rejects.toThrow('API key is invalid')
+		await expect(sendTestEmail('test', 'qa@example.com')).rejects.toThrow('API key is invalid')
 	})
 
 	it('throws a generic message when the error has no message field', async () => {
 		sendMock.mockResolvedValue({ data: null, error: { statusCode: 500 } })
 		const { sendTestEmail } = await import('@/lib/resend')
-		await expect(sendTestEmail()).rejects.toThrow(/resend rejected/i)
+		await expect(sendTestEmail('test', 'qa@example.com')).rejects.toThrow(/resend rejected/i)
 	})
 
 	it('resolves normally when send returns { data }', async () => {
 		sendMock.mockResolvedValue({ data: { id: 'email-123' }, error: null })
 		const { sendTestEmail } = await import('@/lib/resend')
-		await expect(sendTestEmail()).resolves.toMatchObject({ data: { id: 'email-123' } })
+		await expect(sendTestEmail('test', 'qa@example.com')).resolves.toMatchObject({ data: { id: 'email-123' } })
+	})
+})
+
+describe('never sends to the From address', () => {
+	beforeEach(() => {
+		sendMock.mockReset()
+		sendMock.mockResolvedValue({ data: { id: 'email-123' }, error: null })
+	})
+
+	it('sendTestEmail throws instead of falling back to From when no recipient or BCC is set', async () => {
+		const { sendTestEmail } = await import('@/lib/resend')
+		await expect(sendTestEmail()).rejects.toThrow(/no recipient/i)
+		expect(sendMock).not.toHaveBeenCalled()
+	})
+
+	it('sendOperatorDigestEmail sends one email per recipient, addressed to that recipient', async () => {
+		const { sendOperatorDigestEmail } = await import('@/lib/resend')
+		await sendOperatorDigestEmail(['a@example.com', 'b@example.com'], {} as never, 'subject')
+		expect(sendMock).toHaveBeenCalledTimes(2)
+		const payloads = sendMock.mock.calls.map(c => c[0])
+		expect(payloads.map(p => p.to)).toEqual(['a@example.com', 'b@example.com'])
+		for (const p of payloads) {
+			expect(p.bcc).toBeUndefined()
+			expect(JSON.stringify([p.to, p.cc, p.bcc])).not.toContain('from@example.com')
+		}
+	})
+
+	it('sendOperatorDigestEmail throws when every send fails', async () => {
+		sendMock.mockResolvedValue({ data: null, error: { message: 'bounced' } })
+		const { sendOperatorDigestEmail } = await import('@/lib/resend')
+		await expect(sendOperatorDigestEmail(['a@example.com'], {} as never, 'subject')).rejects.toThrow('bounced')
 	})
 })

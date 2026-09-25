@@ -834,11 +834,11 @@ export function SettingsPanel({
 							onChange={v => patch({ email: { ...s.email, weeklyDigestEnabled: v } })}
 						/>
 						<div className="md:col-span-2">
-							<Label className="text-xs text-muted-foreground">Test recipient (admin only)</Label>
+							<Label className="text-xs text-muted-foreground">Recipient override</Label>
 							<TextInputOnBlur
 								className="mt-1"
 								type="email"
-								placeholder="optional"
+								placeholder="Leave blank to send to all admins"
 								value={s.email.testRecipient ?? ''}
 								onCommit={v => patch({ email: { ...s.email, testRecipient: v || null } })}
 							/>

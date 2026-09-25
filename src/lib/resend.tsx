@@ -402,10 +402,13 @@ export const sendPasswordResetEmail = async (params: {
 	return res
 }
 
-// Operator Digest. Unlike the per-recipient sends above, this fans out to a
-// set of admins via BCC (so their addresses aren't exposed to each other);
-// `to` is the from-address. The caller passes the subject (computed from the
-// digest status) to avoid a static import cycle with the digest module.
+// Operator Digest. Sends one email per recipient with that recipient in
+// `to`, so admins' addresses aren't exposed to each other. Never addressed
+// to the From address (often a send-only address with no mailbox, so it
+// bounces), and the deployment BCC is not added. Throws when every send
+// fails so the cron caller logs it and doesn't stamp last-sent. The caller
+// passes the subject (computed from the digest status) to avoid a static
+// import cycle with the digest module.
 export const sendOperatorDigestEmail = async (recipients: Array<string>, data: OperatorDigestData, subject: string) => {
 	const cfg = await resolveEmailConfig(db)
 	const client = buildClient(cfg)
@@ -417,15 +420,23 @@ export const sendOperatorDigestEmail = async (recipients: Array<string>, data: O
 	const { appTitle } = await getAppSettings(db)
 	emailLog.info({ kind: 'intelligence-operator-digest', recipientCount: recipients.length }, 'sending email')
 	const { default: IntelligenceOperatorDigestEmail } = await import('@/emails/intelligence-operator-digest')
-	const res = await client.emails.send({
-		from: getFromEmail(cfg),
-		to: cfg.fromEmail.value!,
-		bcc: recipients,
-		subject,
-		react: <IntelligenceOperatorDigestEmail data={data} appTitle={appTitle} />,
-	})
-	logSendResult('intelligence-operator-digest', `${recipients.length} admin(s)`, res as SendResult)
-	return res
+	const results: Array<SendResult> = []
+	for (const to of recipients) {
+		const res = await client.emails.send({
+			from: getFromEmail(cfg),
+			to,
+			subject,
+			react: <IntelligenceOperatorDigestEmail data={data} appTitle={appTitle} />,
+		})
+		logSendResult('intelligence-operator-digest', to, res as SendResult)
+		results.push(res as SendResult)
+	}
+	if (results.every(r => r?.error)) {
+		const err = results[0]?.error
+		const msg = err && typeof err === 'object' && 'message' in err ? String(err.message) : 'Resend rejected the request.'
+		throw new Error(msg)
+	}
+	return results
 }
 
 export const TEST_EMAIL_KINDS = [
@@ -616,7 +627,8 @@ export const sendTestEmail = async (kind: TestEmailKind = 'test', recipient?: st
 		throw new Error('Email is not configured. Set a Resend API key and From Email above.')
 	}
 
-	const to = recipient?.trim() || cfg.bccAddress.value || cfg.fromEmail.value
+	// Never fall back to the From address: it is often send-only, so mail to it bounces.
+	const to = recipient?.trim() || cfg.bccAddress.value
 	if (!to) {
 		throw new Error('No recipient available. Enter a test recipient address.')
 	}

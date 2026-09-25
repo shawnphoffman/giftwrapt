@@ -267,7 +267,11 @@ export type AdminIntelligenceData = {
 		email: {
 			enabled: boolean
 			weeklyDigestEnabled: boolean
+			// Recipient override. When set, the digest goes only here instead
+			// of to the admins. (Setting key predates the rename.)
 			testRecipient?: string | null
+			// Every admin's account email; the default digest recipients.
+			adminEmails?: Array<string>
 		}
 		perAnalyzerEnabled: Record<AnalyzerId, boolean>
 		// list-hygiene analyzer: how many days BEFORE an event qualifies as

@@ -2,7 +2,7 @@ import { ArrowUpRight, Beaker, CalendarCheck2, CalendarClock, Cpu, Database, Mai
 import { useState } from 'react'
 import { toast } from 'sonner'
 
-import { sendTestEmailAsAdmin } from '@/api/admin'
+import { adminSendOperatorDigestNow } from '@/api/admin-intelligence'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -284,13 +284,17 @@ export function IntelligenceNotificationsCard({ data, patch }: { data: AdminInte
 	const notConfigured = emailConfigured === false
 	const [sending, setSending] = useState(false)
 
-	const handleSendTest = async () => {
+	const override = s.email.testRecipient ?? null
+	const adminEmails = s.email.adminEmails ?? []
+	const recipients = override ? [override] : adminEmails
+
+	const handleSendNow = async () => {
 		setSending(true)
 		try {
-			await sendTestEmailAsAdmin({ data: { kind: 'intelligence-operator-digest', to: s.email.testRecipient ?? undefined } })
-			toast.success('Test digest sent')
+			const res = await adminSendOperatorDigestNow()
+			toast.success(`Digest sent to ${res.recipients.join(', ')}`)
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Failed to send test digest')
+			toast.error(err instanceof Error ? err.message : 'Failed to send digest')
 		} finally {
 			setSending(false)
 		}
@@ -338,30 +342,45 @@ export function IntelligenceNotificationsCard({ data, patch }: { data: AdminInte
 						disabled={notConfigured || !s.email.enabled}
 					/>
 					<div className="md:col-span-2">
-						<Label className="text-xs text-muted-foreground">Test Recipient</Label>
-						<div className="mt-1 flex gap-2">
-							<TextInputOnBlur
-								className="flex-1"
-								type="email"
-								placeholder="Optional"
-								value={s.email.testRecipient ?? ''}
-								onCommit={v => patch({ email: { ...s.email, testRecipient: v || null } })}
-								disabled={notConfigured}
-							/>
-							<Button variant="outline" className="gap-2 whitespace-nowrap" disabled={notConfigured || sending} onClick={handleSendTest}>
-								<Send className="size-4" />
-								{sending ? 'Sending…' : 'Send test now'}
-							</Button>
-						</div>
+						<Label className="text-xs text-muted-foreground">Recipient override</Label>
+						<TextInputOnBlur
+							className="mt-1"
+							type="email"
+							placeholder="Leave blank to send to all admins"
+							value={override ?? ''}
+							onCommit={v => patch({ email: { ...s.email, testRecipient: v || null } })}
+							disabled={notConfigured}
+						/>
 						<p className="mt-1 text-xs text-muted-foreground">
-							Sends the live digest to this address now (or your BCC/From if blank), bypassing the schedule and toggles. Scheduled sends go
-							to all admins; set this to redirect them to one address.
+							When set, every digest (scheduled or sent now) goes only to this address instead of the admins.
 						</p>
+					</div>
+					<div className="md:col-span-2 flex flex-col gap-2 rounded-md border border-border bg-muted/30 p-3 sm:flex-row sm:items-center sm:justify-between">
+						<div className="min-w-0 text-sm" data-intelligence="admin-notifications-recipients">
+							{recipients.length > 0 ? (
+								<>
+									<span className="text-muted-foreground">{override ? 'Digests go only to ' : 'Digests go to all admins: '}</span>
+									<span className="font-medium break-words">{recipients.join(', ')}</span>
+								</>
+							) : (
+								<span className="font-medium text-destructive">No admin users, so nothing will send. Set a recipient override.</span>
+							)}
+						</div>
+						<Button
+							variant="outline"
+							className="gap-2 whitespace-nowrap self-start sm:self-auto"
+							disabled={notConfigured || sending || recipients.length === 0}
+							onClick={handleSendNow}
+						>
+							<Send className="size-4" />
+							{sending ? 'Sending…' : 'Send now'}
+						</Button>
 					</div>
 				</div>
 				<p className="text-xs text-muted-foreground">
 					Runs with the intelligence cron; cadence follows the refresh interval ({s.refreshIntervalDays} day
-					{s.refreshIntervalDays === 1 ? '' : 's'}).
+					{s.refreshIntervalDays === 1 ? '' : 's'}). Send now delivers the current digest immediately, even with the toggles off, without
+					changing the schedule.
 				</p>
 			</CardContent>
 		</Card>

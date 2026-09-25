@@ -345,11 +345,21 @@ export const dismissRecommendation = ok
 export const getMyRecommendations = emptyArray
 export const requestRecommendationsRefresh = ok
 
+// @/api/common
+export const isEmailConfigured = (): Promise<boolean> => Promise.resolve(true)
+export const getObservabilityStatus = () =>
+	Promise.resolve({
+		sentry: { enabled: false as const, reason: 'env-missing' as const },
+		metrics: { enabled: false as const, reason: 'env-missing' as const },
+	})
+
 // @/api/admin-intelligence
 export const adminInvalidateInputHash = ok
 export const adminPurgeRecsForUser = ok
 export const adminRunForMe = ok
 export const adminRunForUser = ok
+export const adminSendOperatorDigestNow = (): Promise<{ recipients: Array<string> }> =>
+	Promise.resolve({ recipients: ['admin@example.com'] })
 export const getAdminIntelligenceData = (): Promise<null> => Promise.resolve(null)
 export const getAdminUserRunSummaries = emptyArray
 
