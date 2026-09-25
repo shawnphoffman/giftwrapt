@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.3.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.2.0...v1.3.0) (2026-09-25)
+
+
+### Features
+
+* **cron:** move email crons later and warn when they run late locally ([d9ca9f0](https://github.com/shawnphoffman/giftwrapt/commit/d9ca9f0e987a6312c7664ba9ca542494be5e2619))
+* **settings:** add a deployment time zone for calendar-day logic ([dfd0970](https://github.com/shawnphoffman/giftwrapt/commit/dfd097015ddac955c55e7fa39155271975126918))
+
+
+### Bug Fixes
+
+* **intelligence:** stop sending the operator digest to the From address ([ad17ba5](https://github.com/shawnphoffman/giftwrapt/commit/ad17ba5631bd2488e5f7497d26079ba89957f68a))
+* **items:** block copying items hidden from the viewer ([fcb9cab](https://github.com/shawnphoffman/giftwrapt/commit/fcb9cab89f4542fb7ec31439faaa4c3178a87c31))
+* **lists:** apply guardian denials and restricted filter to dependents feed ([fb8c33b](https://github.com/shawnphoffman/giftwrapt/commit/fb8c33b0bf0e9e759a50817b4d9fe5706a64c847))
+* **purchases:** stop long recipient names colliding in charts ([5211b29](https://github.com/shawnphoffman/giftwrapt/commit/5211b291ecb2be376f9ede36d464a5327f5277d3))
+* **widgets:** compute upcoming holidays from the viewer's local day ([e4b2476](https://github.com/shawnphoffman/giftwrapt/commit/e4b24767472634a761ade437ade8d6951a3a1a61))
+
 ## [1.2.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.1.1...v1.2.0) (2026-09-18)
 
 
