@@ -2,7 +2,11 @@
 // rows; the existing birthday widget reads from `/v1/lists/public` and
 // computes its own countdowns.
 //
-//   GET /v1/widgets/upcoming-holidays?limit=3
+//   GET /v1/widgets/upcoming-holidays?limit=3&today=2026-12-25
+//
+// `today` is the device's local calendar date. It decides which
+// holidays have passed and anchors `daysUntil`; without it the server
+// falls back to the UTC date.
 //
 // The wire shape is shared with the web db-collection
 // (`upcomingHolidaysCollection`) so iOS and the web widget surface read
@@ -25,7 +29,8 @@ export function registerWidgetRoutes(v1: App): void {
 		const userId = c.get('userId')
 		const limitRaw = Number(c.req.query('limit') ?? '3')
 		const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(50, Math.trunc(limitRaw))) : 3
-		const rows = await getUpcomingHolidaysImpl({ userId, limit })
+		const today = c.req.query('today') ?? undefined
+		const rows = await getUpcomingHolidaysImpl({ userId, limit, today })
 		return c.json({ rows, nextCursor: null })
 	})
 }

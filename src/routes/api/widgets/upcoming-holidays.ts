@@ -10,7 +10,8 @@ import { auth } from '@/lib/auth'
 // admin-curated `custom_holidays`, the hard-coded gift-giving holidays
 // (Christmas, Valentine's, Mother's Day, Father's Day), and the user's
 // `partnerAnniversary` when set. Callers can override `limit` (max 50)
-// or narrow the lookahead with `horizonDays` (max 366).
+// or narrow the lookahead with `horizonDays` (max 366), and should pass
+// their local calendar date as `today` (YYYY-MM-DD).
 export const Route = createFileRoute('/api/widgets/upcoming-holidays')({
 	server: {
 		handlers: {
@@ -24,7 +25,8 @@ export const Route = createFileRoute('/api/widgets/upcoming-holidays')({
 				const limit = Number.isFinite(limitRaw) ? Math.max(1, Math.min(50, Math.trunc(limitRaw))) : 3
 				const horizonRaw = url.searchParams.get('horizonDays')
 				const horizonDays = horizonRaw == null ? undefined : Math.max(0, Math.min(366, Math.trunc(Number(horizonRaw))))
-				const rows = await getUpcomingHolidaysImpl({ userId: session.user.id, limit, horizonDays })
+				const today = url.searchParams.get('today') ?? undefined
+				const rows = await getUpcomingHolidaysImpl({ userId: session.user.id, limit, horizonDays, today })
 				return json(rows)
 			},
 		},

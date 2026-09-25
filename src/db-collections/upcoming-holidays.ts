@@ -18,6 +18,14 @@ const UpcomingHolidayRowSchema = z.object({
 
 export type UpcomingHolidayRow = z.infer<typeof UpcomingHolidayRowSchema>
 
+// The browser's local calendar date. On the server (SSR) there is no
+// viewer date, so the param is omitted and the route falls back to UTC.
+const localToday = (): string | null => {
+	if (typeof window === 'undefined') return null
+	const d = new Date()
+	return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 const getApiUrl = (path: string): string => {
 	if (typeof window !== 'undefined') return path
 	const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3002'
@@ -30,7 +38,8 @@ export const upcomingHolidaysCollection = createCollection(
 		queryFn: async () => {
 			// Debug surface wants every candidate the server would consider,
 			// not just the top 3. iOS uses the default limit (3) directly.
-			const url = getApiUrl('/api/widgets/upcoming-holidays?limit=50')
+			const today = localToday()
+			const url = getApiUrl(`/api/widgets/upcoming-holidays?limit=50${today ? `&today=${today}` : ''}`)
 			const response = await fetch(url)
 			if (!response.ok) {
 				throw new Error('Failed to fetch upcoming holidays')

@@ -48,6 +48,13 @@
 // `_lists-impl.ts`, so the widget never surfaces something the email
 // cron or the list-create flow has already been told to suppress.
 //
+// Viewer's day: holidays are calendar dates, so "has it passed?" and
+// the countdown depend on the viewer's local date, which the server
+// can't know. Clients pass it as `today` (YYYY-MM-DD). Every date is
+// then compared as a calendar date anchored at UTC midnight of that
+// day. Without `today` (or with an implausible one) the UTC date is
+// used.
+//
 // Dedup: holidays that resolve to the same UTC (month, day) are
 // collapsed; admin-curated rows win over hardcoded ones so a
 // per-deployment override (different title, etc.) replaces the default.
@@ -87,10 +94,13 @@ export type UpcomingHolidayRow = {
 	source: UpcomingHolidaySource
 	// Human-readable holiday name as it should appear in widget rows.
 	title: string
-	// ISO 8601 timestamp at the start of the holiday's UTC-anchored day.
+	// ISO 8601 timestamp at UTC midnight of the holiday's calendar date
+	// (Christmas is `YYYY-12-25T00:00:00Z`). Read it as a date, not an
+	// instant.
 	occurrenceStart: string
-	// Whole-day count from "today" (UTC) to `occurrenceStart`. Always
-	// >= 0; the server filters past occurrences before sending.
+	// Whole-day count from the viewer's `today` (UTC date when absent)
+	// to `occurrenceStart`. Always >= 0; the server filters past
+	// occurrences before sending.
 	daysUntil: number
 }
 
@@ -103,15 +113,38 @@ export type GetUpcomingHolidaysArgs = {
 	// annually-recurring rows always have a future occurrence to land
 	// on. The web debug surface tightens this via the horizon slider.
 	horizonDays?: number
+	// The viewer's local calendar date, `YYYY-MM-DD`. Accepted only
+	// within one day of the UTC date (UTC-12 .. UTC+14); anything else
+	// falls back to the UTC date.
+	today?: string
 	now?: Date
 	dbx?: SchemaDatabase
 }
 
 const DEFAULT_LIMIT = 3
 const DEFAULT_HORIZON_DAYS = 366
+const DAY_MS = 86_400_000
 
 function utcDayMs(d: Date): number {
 	return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+}
+
+// UTC-midnight ms of the viewer's calendar day. Falls back to the UTC
+// date when `today` is missing, malformed, or more than a day away from
+// it (no real time zone is further off, so it's a bad device clock or a
+// bad caller, and the UTC date is the better guess).
+export function resolveViewerDayMs(today: string | undefined, now: Date): number {
+	const utcToday = utcDayMs(now)
+	if (!today) return utcToday
+	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(today)
+	if (!match) return utcToday
+	const [y, m, d] = [Number(match[1]), Number(match[2]), Number(match[3])]
+	const ms = Date.UTC(y, m - 1, d)
+	const parsed = new Date(ms)
+	// Rejects roll-overs like 2026-02-30.
+	if (parsed.getUTCFullYear() !== y || parsed.getUTCMonth() !== m - 1 || parsed.getUTCDate() !== d) return utcToday
+	if (Math.abs(ms - utcToday) > DAY_MS) return utcToday
+	return ms
 }
 
 // Resolves the next occurrence (>= today UTC) of a fixed (month, day),
@@ -138,14 +171,17 @@ type Candidate = {
 }
 
 export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Promise<Array<UpcomingHolidayRow>> {
-	const { userId, limit = DEFAULT_LIMIT, horizonDays = DEFAULT_HORIZON_DAYS, now = new Date(), dbx = db } = args
+	const { userId, limit = DEFAULT_LIMIT, horizonDays = DEFAULT_HORIZON_DAYS, today, now = new Date(), dbx = db } = args
 
 	if (limit <= 0 || horizonDays < 0) return []
 
 	const settings = await getAppSettings(dbx)
 	const country = settings.relationshipRemindersCountry
-	const todayUtcMs = utcDayMs(now)
-	const horizonMs = todayUtcMs + horizonDays * 86_400_000
+	const todayUtcMs = resolveViewerDayMs(today, now)
+	const horizonMs = todayUtcMs + horizonDays * DAY_MS
+	// Every resolver below compares against this, not `now`, so rollover
+	// to next year happens at the viewer's midnight, not UTC's.
+	const viewerDay = new Date(todayUtcMs)
 
 	// Load the signed-in user's state once and derive every per-user
 	// gate from it. Mirrors `relationshipRemindersImpl` so the widget
@@ -173,7 +209,7 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 		for (const row of customRows) {
 			const visible = await canViewerSeeCustomHolidayRecipient(userId, row, dbx)
 			if (!visible) continue
-			const occurrence = await customHolidayNextOccurrence(row, now, dbx)
+			const occurrence = await customHolidayNextOccurrence(row, viewerDay, dbx)
 			if (!occurrence) continue
 			candidates.push({
 				id: `custom:${row.id}`,
@@ -197,7 +233,7 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 			id: 'christmas',
 			source: 'christmas',
 			title: 'Christmas',
-			occurrence: nextAnnualDate(12, 25, now),
+			occurrence: nextAnnualDate(12, 25, viewerDay),
 			priority: 1,
 		})
 	}
@@ -207,13 +243,13 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 			id: 'valentines',
 			source: 'valentines',
 			title: "Valentine's Day",
-			occurrence: nextAnnualDate(2, 14, now),
+			occurrence: nextAnnualDate(2, 14, viewerDay),
 			priority: 1,
 		})
 	}
 
 	if (settings.enableMothersDayReminders && hasMotherLabel) {
-		const mothersDay = await nextOccurrence(country, mothersDaySlug(country), now, dbx)
+		const mothersDay = await nextOccurrence(country, mothersDaySlug(country), viewerDay, dbx)
 		if (mothersDay) {
 			candidates.push({
 				id: `mothers-day:${country}`,
@@ -226,7 +262,7 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 	}
 
 	if (settings.enableFathersDayReminders && hasFatherLabel) {
-		const fathersDay = await nextOccurrence(country, fathersDaySlug(country), now, dbx)
+		const fathersDay = await nextOccurrence(country, fathersDaySlug(country), viewerDay, dbx)
 		if (fathersDay) {
 			candidates.push({
 				id: `fathers-day:${country}`,
@@ -253,7 +289,7 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 				id: `anniversary:${userId}`,
 				source: 'anniversary',
 				title: 'Anniversary',
-				occurrence: nextAnnualDate(mm, dd, now),
+				occurrence: nextAnnualDate(mm, dd, viewerDay),
 				priority: 1,
 			})
 		}
@@ -285,7 +321,7 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 
 	return merged.slice(0, limit).map(c => {
 		const occurrenceMs = utcDayMs(c.occurrence)
-		const daysUntil = Math.round((occurrenceMs - todayUtcMs) / 86_400_000)
+		const daysUntil = Math.round((occurrenceMs - todayUtcMs) / DAY_MS)
 		return {
 			id: c.id,
 			source: c.source,

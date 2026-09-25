@@ -15,6 +15,7 @@ export type { UpcomingHolidayRow, UpcomingHolidaySource } from './_widgets-impl'
 const GetUpcomingHolidaysInputSchema = z.object({
 	limit: z.number().int().min(1).max(50).default(3),
 	horizonDays: z.number().int().min(0).max(366).optional(),
+	today: z.string().optional(),
 })
 
 export const getUpcomingHolidays = createServerFn({ method: 'GET' })
@@ -22,5 +23,5 @@ export const getUpcomingHolidays = createServerFn({ method: 'GET' })
 	.inputValidator((data: z.input<typeof GetUpcomingHolidaysInputSchema>) => GetUpcomingHolidaysInputSchema.parse(data))
 	.handler(
 		({ context, data }): Promise<Array<UpcomingHolidayRow>> =>
-			getUpcomingHolidaysImpl({ userId: context.session.user.id, limit: data.limit, horizonDays: data.horizonDays })
+			getUpcomingHolidaysImpl({ userId: context.session.user.id, limit: data.limit, horizonDays: data.horizonDays, today: data.today })
 	)

@@ -16,7 +16,7 @@ import { withRollback } from '@test/integration/setup'
 import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
-import { getUpcomingHolidaysImpl } from '@/api/_widgets-impl'
+import { getUpcomingHolidaysImpl, resolveViewerDayMs } from '@/api/_widgets-impl'
 import { appSettings, customHolidays, holidayCatalog, userRelationLabels, users } from '@/db/schema'
 
 // Pin "now" to a moment well before Mother's Day / Father's Day in the
@@ -412,6 +412,124 @@ describe('getUpcomingHolidaysImpl', () => {
 				expect(await getUpcomingHolidaysImpl({ userId: me.id, limit: 0, now: NOW, dbx: tx })).toEqual([])
 				expect(await getUpcomingHolidaysImpl({ userId: me.id, limit: -1, now: NOW, dbx: tx })).toEqual([])
 			})
+		})
+	})
+
+	describe("viewer's local day (`today`)", () => {
+		// Dec 25, 6 PM in Los Angeles; already Dec 26 in UTC.
+		const LA_XMAS_EVENING = new Date('2026-12-26T02:00:00Z')
+
+		it('keeps a holiday that is still today for a viewer west of UTC', async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				const me = await makeUser(tx)
+
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, today: '2026-12-25', now: LA_XMAS_EVENING, dbx: tx })
+				expect(rows.find(r => r.id === 'christmas')).toMatchObject({ occurrenceStart: '2026-12-25T00:00:00.000Z', daysUntil: 0 })
+			})
+		})
+
+		it('falls back to the UTC date when `today` is absent', async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				const me = await makeUser(tx)
+
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, now: LA_XMAS_EVENING, dbx: tx })
+				expect(rows.find(r => r.id === 'christmas')).toMatchObject({ occurrenceStart: '2027-12-25T00:00:00.000Z', daysUntil: 364 })
+			})
+		})
+
+		it('drops a holiday that has passed for a viewer east of UTC, even while it is still that day in UTC', async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				const me = await makeUser(tx)
+
+				// Dec 26, 5 AM in Tokyo; still Dec 25 in UTC.
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, today: '2026-12-26', now: new Date('2026-12-25T20:00:00Z'), dbx: tx })
+				expect(rows.find(r => r.id === 'christmas')).toMatchObject({ occurrenceStart: '2027-12-25T00:00:00.000Z', daysUntil: 364 })
+			})
+		})
+
+		it('counts daysUntil from the viewer day', async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				const me = await makeUser(tx)
+
+				// Christmas morning in Tokyo; Dec 24 in UTC.
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, today: '2026-12-25', now: new Date('2026-12-24T20:00:00Z'), dbx: tx })
+				expect(rows.find(r => r.id === 'christmas')?.daysUntil).toBe(0)
+			})
+		})
+
+		it('applies the viewer day to catalog, custom, and anniversary occurrences', async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				await enableAllTenantGates(tx)
+				const partner = await makeUser(tx)
+				const me = await makeUser(tx, { partnerId: partner.id })
+				const mom = await makeUser(tx)
+				await tx.insert(userRelationLabels).values({ userId: me.id, label: 'mother', targetUserId: mom.id })
+				await tx.update(users).set({ partnerAnniversary: '2018-04-20' }).where(eq(users.id, me.id))
+				const [ch] = await tx
+					.insert(customHolidays)
+					.values({ title: 'Founders Day', source: 'custom', customMonth: 3, customDay: 10, customYear: 2026 })
+					.returning()
+
+				// Each check is the evening of the holiday in Los Angeles (2 AM UTC the next day).
+				// US Mother's Day 2026 is May 10.
+				const mothers = await getUpcomingHolidaysImpl({
+					userId: me.id,
+					limit: 10,
+					today: '2026-05-10',
+					now: new Date('2026-05-11T02:00:00Z'),
+					dbx: tx,
+				})
+				expect(mothers.find(r => r.id === 'mothers-day:US')).toMatchObject({ occurrenceStart: '2026-05-10T00:00:00.000Z', daysUntil: 0 })
+
+				const anniv = await getUpcomingHolidaysImpl({
+					userId: me.id,
+					limit: 10,
+					today: '2026-04-20',
+					now: new Date('2026-04-21T02:00:00Z'),
+					dbx: tx,
+				})
+				expect(anniv.find(r => r.id === `anniversary:${me.id}`)).toMatchObject({
+					occurrenceStart: '2026-04-20T00:00:00.000Z',
+					daysUntil: 0,
+				})
+
+				const custom = await getUpcomingHolidaysImpl({
+					userId: me.id,
+					limit: 10,
+					today: '2026-03-10',
+					now: new Date('2026-03-11T02:00:00Z'),
+					dbx: tx,
+				})
+				expect(custom.find(r => r.id === `custom:${ch.id}`)).toMatchObject({ occurrenceStart: '2026-03-10T00:00:00.000Z', daysUntil: 0 })
+			})
+		})
+
+		it('measures the horizon from the viewer day', async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				const me = await makeUser(tx)
+				// NOW is Mar 1 in UTC; the viewer is already on Mar 2, so Christmas is 298 days out.
+				const within = await getUpcomingHolidaysImpl({ userId: me.id, horizonDays: 298, today: '2026-03-02', now: NOW, dbx: tx })
+				expect(within.map(r => r.id)).toEqual(['christmas'])
+				expect(await getUpcomingHolidaysImpl({ userId: me.id, horizonDays: 297, today: '2026-03-02', now: NOW, dbx: tx })).toEqual([])
+			})
+		})
+
+		it('falls back to the UTC date for a malformed, impossible, or out-of-range `today`', () => {
+			const utcDay = Date.UTC(2026, 11, 26)
+			expect(resolveViewerDayMs('2026-12-25', LA_XMAS_EVENING)).toBe(Date.UTC(2026, 11, 25))
+			expect(resolveViewerDayMs('2026-12-27', LA_XMAS_EVENING)).toBe(Date.UTC(2026, 11, 27))
+			expect(resolveViewerDayMs(undefined, LA_XMAS_EVENING)).toBe(utcDay)
+			expect(resolveViewerDayMs('garbage', LA_XMAS_EVENING)).toBe(utcDay)
+			expect(resolveViewerDayMs('2026-2-3', LA_XMAS_EVENING)).toBe(utcDay)
+			expect(resolveViewerDayMs('2027-02-30', new Date('2027-03-01T12:00:00Z'))).toBe(Date.UTC(2027, 2, 1))
+			expect(resolveViewerDayMs('2026-12-24', LA_XMAS_EVENING)).toBe(utcDay)
+			expect(resolveViewerDayMs('2026-12-28', LA_XMAS_EVENING)).toBe(utcDay)
 		})
 	})
 
