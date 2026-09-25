@@ -13,7 +13,9 @@ import { cn } from '@/lib/utils'
 
 function nextFireFromSchedule(schedule: string): Date | null {
 	try {
-		return CronExpressionParser.parse(schedule).next().toDate()
+		// Registry schedules are UTC; without `tz` the parser reads them in
+		// the browser's zone and the estimate is off by the UTC offset.
+		return CronExpressionParser.parse(schedule, { tz: 'UTC' }).next().toDate()
 	} catch {
 		return null
 	}
@@ -115,7 +117,7 @@ export function CronEndpointsPanel() {
 									<td className="py-3 pr-3">
 										<div className="flex flex-col">
 											<code className="text-xs text-nowrap">{entry.schedule}</code>
-											<span className="text-xs text-muted-foreground">{entry.cadence}</span>
+											<span className="text-xs text-muted-foreground">{entry.cadence}, UTC</span>
 										</div>
 									</td>
 									<td className="py-3 pr-3 text-xs">

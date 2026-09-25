@@ -10,6 +10,12 @@
 // may run jobs at higher cadences (the runners themselves are designed
 // for it), so treat these strings as the documented default, not a
 // hard cap.
+//
+// `dateSensitive` jobs decide which date it is from the deployment time
+// zone when they run, and send user-facing email for that date. Their
+// defaults (14:00 / 15:00 UTC) land in the morning across the Americas
+// and in the afternoon in Europe; `/admin/scheduling` warns when the
+// default lands late at night in the configured zone.
 
 export type CronEndpoint = (typeof cronRegistry)[number]['path']
 
@@ -18,15 +24,17 @@ export const cronRegistry = [
 		path: '/api/cron/auto-archive',
 		label: 'Auto-archive',
 		description: 'Archives claimed items past birthday/Christmas reveal date.',
-		schedule: '0 6 * * *',
+		schedule: '0 14 * * *',
 		cadence: 'Daily',
+		dateSensitive: true,
 	},
 	{
 		path: '/api/cron/birthday-emails',
 		label: 'Birthday emails',
 		description: 'Day-of greetings + 14-day post-birthday gift summaries.',
-		schedule: '0 7 * * *',
+		schedule: '0 15 * * *',
 		cadence: 'Daily',
+		dateSensitive: true,
 	},
 	{
 		path: '/api/cron/cleanup-verification',

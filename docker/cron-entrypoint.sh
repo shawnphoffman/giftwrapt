@@ -31,13 +31,17 @@ fi
 APP_URL="${CRON_APP_URL:-http://app:3001}"
 
 mkdir -p /etc/crontabs
+# Times are in the sidecar's TZ (default UTC). auto-archive and
+# birthday-emails send email for "today" in the deployment time zone,
+# so keep them in that zone's morning: 14:00 / 15:00 UTC is 7-8 AM
+# Pacific. If you set TZ to your local zone, change them to local times.
 cat > /etc/crontabs/root <<EOF
 # Generated $(date -u +%FT%TZ) by docker/cron-entrypoint.sh
 0 3 * * * curl -fsSL -H "Authorization: Bearer ${CRON_SECRET}" ${APP_URL}/api/cron/cleanup-verification > /proc/1/fd/1 2>&1
 0 4 * * * curl -fsSL -H "Authorization: Bearer ${CRON_SECRET}" ${APP_URL}/api/cron/intelligence-recommendations > /proc/1/fd/1 2>&1
 0 5 * * * curl -fsSL -H "Authorization: Bearer ${CRON_SECRET}" ${APP_URL}/api/cron/item-scrape-queue > /proc/1/fd/1 2>&1
-0 6 * * * curl -fsSL -H "Authorization: Bearer ${CRON_SECRET}" ${APP_URL}/api/cron/auto-archive > /proc/1/fd/1 2>&1
-0 7 * * * curl -fsSL -H "Authorization: Bearer ${CRON_SECRET}" ${APP_URL}/api/cron/birthday-emails > /proc/1/fd/1 2>&1
+0 14 * * * curl -fsSL -H "Authorization: Bearer ${CRON_SECRET}" ${APP_URL}/api/cron/auto-archive > /proc/1/fd/1 2>&1
+0 15 * * * curl -fsSL -H "Authorization: Bearer ${CRON_SECRET}" ${APP_URL}/api/cron/birthday-emails > /proc/1/fd/1 2>&1
 EOF
 
 echo "cron sidecar ready: APP_URL=${APP_URL} TZ=${TZ:-UTC}"

@@ -118,7 +118,7 @@ services:
     runtime: image
     image:
       url: curlimages/curl:8.20.0
-    schedule: '0 6 * * *'
+    schedule: '0 14 * * *'
     startCommand: 'curl -fsSL --retry 3 -H "Authorization: Bearer $CRON_SECRET" $BETTER_AUTH_URL/api/cron/auto-archive'
     envVars:
       - key: CRON_SECRET
@@ -137,7 +137,7 @@ services:
     runtime: image
     image:
       url: curlimages/curl:8.20.0
-    schedule: '0 7 * * *'
+    schedule: '0 15 * * *'
     startCommand: 'curl -fsSL --retry 3 -H "Authorization: Bearer $CRON_SECRET" $BETTER_AUTH_URL/api/cron/birthday-emails'
     envVars:
       - key: CRON_SECRET
