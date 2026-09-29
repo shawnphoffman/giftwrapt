@@ -32,7 +32,7 @@ export function GiftIdeasOnList({ listId, recipientName }: { listId: number; rec
 	return <GiftIdeasSection listId={listId} recipientName={recipientName} sources={sources} />
 }
 
-export function GiftIdeasSection({ listId, recipientName, sources }: SectionProps) {
+function GiftIdeasSection({ listId, recipientName, sources }: SectionProps) {
 	const [claiming, setClaiming] = useState<ItemWithGifts | null>(null)
 	const nonEmpty = sources.filter(s => s.items.length > 0)
 	if (nonEmpty.length === 0) return null
@@ -112,7 +112,7 @@ function GiftIdeasSourceGroup({ source, onClaim }: { source: GiftIdeasSource; on
 // Prefill for the claim dialog. Item prices are free-form ("$28", "12 each"),
 // so only a clean amount carries into Total cost; notes are trimmed to the
 // addon limit (the dialog shows exactly what will be saved).
-export function ideaToAddonValues(item: ItemWithGifts): ListAddonInitialValues {
+function ideaToAddonValues(item: ItemWithGifts): ListAddonInitialValues {
 	const amount = item.price ? Number.parseFloat(item.price.replace(/[^0-9.]/g, '')) : Number.NaN
 	return {
 		description: item.title.slice(0, LIMITS.SHORT_TEXT),

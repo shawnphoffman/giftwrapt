@@ -87,6 +87,14 @@ function recipientListAcceptsIdeas(list: ListRow, userId: string): boolean {
 	return true
 }
 
+// What the copy transaction hands back: the result, plus what to clean up and
+// notify about once it has committed.
+type CopyOutcome = { result: CopyGiftIdeaResult; removed: { ideaListId: number; ideaImageUrl: string | null } | null }
+
+function copyFailed(reason: Extract<CopyGiftIdeaResult, { kind: 'error' }>['reason']): CopyOutcome {
+	return { result: { kind: 'error', reason }, removed: null }
+}
+
 const priorityRank: Record<Priority, number> = { 'very-high': 4, high: 3, normal: 2, low: 1 }
 
 const listColumns = { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true, type: true } as const
@@ -169,43 +177,38 @@ export async function copyGiftIdeaToAddonImpl(args: {
 }): Promise<CopyGiftIdeaResult> {
 	const { userId, input, dbx = db } = args
 	const { ideaItemId, ...addonInput } = input
-	type Removed = { ideaListId: number; ideaImageUrl: string | null }
-	const fail = (reason: Extract<CopyGiftIdeaResult, { kind: 'error' }>['reason']) => ({
-		result: { kind: 'error', reason } as CopyGiftIdeaResult,
-		removed: null,
-	})
 
-	const { result, removed } = await dbx.transaction(async (tx): Promise<{ result: CopyGiftIdeaResult; removed: Removed | null }> => {
+	const { result, removed } = await dbx.transaction(async (tx): Promise<CopyOutcome> => {
 		// Lock the idea so two gifters claiming it at once serialize; the loser
 		// finds it gone and gets 'idea-not-found'.
 		const locked = (await tx.execute(sql`SELECT id FROM items WHERE id = ${ideaItemId} FOR UPDATE`)) as { rows: Array<unknown> }
-		if (locked.rows.length === 0) return fail('idea-not-found')
+		if (locked.rows.length === 0) return copyFailed('idea-not-found')
 
 		const idea = await tx.query.items.findFirst({
 			where: and(eq(items.id, ideaItemId), visibleItemsWhere('visible')),
 			columns: { id: true, listId: true, imageUrl: true },
 		})
-		if (!idea) return fail('idea-not-found')
+		if (!idea) return copyFailed('idea-not-found')
 
 		const ideasList = await tx.query.lists.findFirst({
 			where: eq(lists.id, idea.listId),
 			columns: { ...listColumns, giftIdeasTargetUserId: true, giftIdeasTargetDependentId: true },
 		})
-		if (!ideasList || ideasList.type !== 'giftideas' || !ideasList.isActive) return fail('idea-not-found')
+		if (!ideasList || ideasList.type !== 'giftideas' || !ideasList.isActive) return copyFailed('idea-not-found')
 
 		const recipientList = await tx.query.lists.findFirst({ where: eq(lists.id, addonInput.listId), columns: listColumns })
-		if (!recipientList) return fail('list-not-found')
-		if (!targetsRecipient(ideasList, recipientList)) return fail('idea-not-found')
+		if (!recipientList) return copyFailed('list-not-found')
+		if (!targetsRecipient(ideasList, recipientList)) return copyFailed('idea-not-found')
 
-		if (!(await canUseIdeasList(userId, ideasList, tx))) return fail('not-allowed')
+		if (!(await canUseIdeasList(userId, ideasList, tx))) return copyFailed('not-allowed')
 
 		// A claimed idea would hit the pending-deletion orphan flow on delete.
 		const claimCount = await tx.$count(giftedItems, eq(giftedItems.itemId, idea.id))
-		if (claimCount > 0) return fail('idea-already-used')
+		if (claimCount > 0) return copyFailed('idea-already-used')
 
 		// Normal addon rules apply (own-list guard, canViewList, image mirroring).
 		const created = await createListAddonImpl({ userId, input: addonInput, dbx: tx })
-		if (created.kind === 'error') return fail(created.reason)
+		if (created.kind === 'error') return copyFailed(created.reason)
 
 		// Keep the idea's scraped data: detach the scrape rows so the URL-keyed
 		// cache still offers its images, instead of cascading them away.
