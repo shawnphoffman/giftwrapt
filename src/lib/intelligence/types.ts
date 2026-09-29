@@ -39,6 +39,13 @@ export type RecommendationApply =
 			priority: 'very-high' | 'high' | 'normal' | 'low'
 	  }
 	| {
+			// Append ungrouped items to an existing group on the same list.
+			kind: 'add-to-group'
+			listId: string
+			groupId: string
+			itemIds: Array<string>
+	  }
+	| {
 			kind: 'delete-items'
 			listId: string
 			itemIds: Array<string>

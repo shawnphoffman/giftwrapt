@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, asc, count, desc, eq, gt, inArray, sql } from 'drizzle-orm'
+import { and, asc, count, desc, eq, gt, inArray, max, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db, type SchemaDatabase } from '@/db'
@@ -321,6 +321,13 @@ const createGroupApplySchema = z.object({
 	priority: z.enum(['very-high', 'high', 'normal', 'low']),
 })
 
+const addToGroupApplySchema = z.object({
+	kind: z.literal('add-to-group'),
+	listId: z.string(),
+	groupId: z.string(),
+	itemIds: z.array(z.string()).min(1),
+})
+
 const deleteItemsApplySchema = z.object({
 	kind: z.literal('delete-items'),
 	listId: z.string(),
@@ -371,6 +378,7 @@ const applyInputSchema = z.object({
 	id: z.uuid(),
 	apply: z.discriminatedUnion('kind', [
 		createGroupApplySchema,
+		addToGroupApplySchema,
 		deleteItemsApplySchema,
 		setPrimaryListApplySchema,
 		convertListApplySchema,
@@ -383,6 +391,7 @@ const applyInputSchema = z.object({
 
 export type ApplyRecommendationResult =
 	| { ok: true; kind: 'create-group'; groupId: string }
+	| { ok: true; kind: 'add-to-group'; groupId: string }
 	| { ok: true; kind: 'delete-items'; deletedCount: number }
 	| { ok: true; kind: 'set-primary-list'; primaryListId: string }
 	| { ok: true; kind: 'convert-list'; listId: string }
@@ -430,6 +439,8 @@ export async function applyRecommendationImpl(
 	switch (input.apply.kind) {
 		case 'create-group':
 			return await applyCreateGroup(tx, userId, input.id, input.apply)
+		case 'add-to-group':
+			return await applyAddToGroup(tx, userId, input.id, input.apply)
 		case 'delete-items':
 			return await applyDeleteItems(tx, userId, input.id, input.apply)
 		case 'set-primary-list':
@@ -503,6 +514,74 @@ async function applyCreateGroup(
 
 	await tx.update(recommendations).set({ status: 'applied' }).where(eq(recommendations.id, recId))
 	return { ok: true, kind: 'create-group', groupId: String(newGroupId) }
+}
+
+// Appends ungrouped items to an existing group, after its current
+// members. Same item preconditions as create-group. Claims on the group
+// are deliberately not consulted: the recipient can't see them, and
+// joining an "or" group whose sibling is claimed is exactly what the
+// recipient asked for (they wanted one of these).
+async function applyAddToGroup(
+	tx: SchemaDatabase,
+	userId: string,
+	recId: string,
+	apply: z.infer<typeof addToGroupApplySchema>
+): Promise<ApplyRecommendationResult> {
+	const listIdNum = Number.parseInt(apply.listId, 10)
+	const groupIdNum = Number.parseInt(apply.groupId, 10)
+	const itemIdNums = apply.itemIds.map(id => Number.parseInt(id, 10))
+	if (!Number.isFinite(listIdNum) || !Number.isFinite(groupIdNum) || itemIdNums.some(n => !Number.isFinite(n))) {
+		return { ok: false, reason: 'items-changed' }
+	}
+
+	const list = await tx.query.lists.findFirst({
+		where: eq(lists.id, listIdNum),
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
+	})
+	if (!list) return { ok: false, reason: 'list-not-found' }
+	if (list.ownerId !== userId) {
+		const editGate = await canEditList(userId, list, tx)
+		if (!editGate.ok) return { ok: false, reason: 'cannot-edit' }
+	}
+
+	const group = await tx.query.itemGroups.findFirst({
+		where: and(eq(itemGroups.id, groupIdNum), eq(itemGroups.listId, listIdNum)),
+		columns: { id: true },
+	})
+	if (!group) return { ok: false, reason: 'items-changed' }
+
+	const itemRows = await tx
+		.select({
+			id: items.id,
+			groupId: items.groupId,
+			listId: items.listId,
+			isArchived: items.isArchived,
+			pendingDeletionAt: items.pendingDeletionAt,
+		})
+		.from(items)
+		.where(inArray(items.id, itemIdNums))
+	if (itemRows.length !== itemIdNums.length) return { ok: false, reason: 'items-changed' }
+	for (const row of itemRows) {
+		if (row.listId !== listIdNum) return { ok: false, reason: 'items-changed' }
+		if (row.isArchived) return { ok: false, reason: 'items-changed' }
+		if (row.pendingDeletionAt !== null) return { ok: false, reason: 'items-changed' }
+		if (row.groupId !== null) return { ok: false, reason: 'items-changed' }
+	}
+
+	const [{ maxOrder }] = await tx
+		.select({ maxOrder: max(items.groupSortOrder) })
+		.from(items)
+		.where(eq(items.groupId, groupIdNum))
+	const start = (maxOrder ?? -1) + 1
+	for (let i = 0; i < itemIdNums.length; i++) {
+		await tx
+			.update(items)
+			.set({ groupId: groupIdNum, groupSortOrder: start + i })
+			.where(eq(items.id, itemIdNums[i]))
+	}
+
+	await tx.update(recommendations).set({ status: 'applied' }).where(eq(recommendations.id, recId))
+	return { ok: true, kind: 'add-to-group', groupId: String(groupIdNum) }
 }
 
 // Hard-deletes items the rec flagged. Refuses if any item has gained a

@@ -48,7 +48,7 @@ async function runWithConcurrency<TItem, TResult>(
 	return results
 }
 
-// Memoized model judgments (duplicate-pair / grouping-cluster verdicts)
+// Memoized model judgments (duplicate-pair / grouping-list verdicts)
 // are pruned on a fixed window: long enough that steady-state runs almost
 // always hit, short enough that a wrong negative verdict eventually
 // re-judges even if the titles never change.

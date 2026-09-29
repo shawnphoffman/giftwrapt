@@ -1,28 +1,70 @@
 import { and, eq, inArray, isNull, ne } from 'drizzle-orm'
 
 import type { Database } from '@/db'
-import { intelligenceVerdicts, items, lists } from '@/db/schema'
+import { intelligenceVerdicts, itemGroups, items, lists, recommendations } from '@/db/schema'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 
 import { composeForLog, generateObjectCached } from '../ai-call'
 import type { Analyzer } from '../analyzer'
 import type { AnalyzerSubject } from '../context'
+import { fingerprintFor } from '../fingerprint'
 import { combineHashes, sha256Hex } from '../hash'
 import {
 	buildGroupingUserPrompt,
 	GROUPING_MAX_CLUSTER_SIZE,
+	GROUPING_MAX_LIST_ITEMS,
 	GROUPING_MAX_SUGGESTIONS,
 	GROUPING_SYSTEM,
-	type GroupingClusterCandidate,
+	type GroupingListCandidate,
 	groupingResponseSchema,
 } from '../prompts/grouping'
 import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ItemRef, ListRef } from '../types'
 
-// Detect candidate "or" / "order" item groups on the user's lists.
-// Heuristic clusters items by shared tokens + brand-prefix sequences, then
-// the model decides whether each cluster is a real group. The model
-// never sees claim data, and the analyzer never modifies state - it just
-// emits suggestions that the user can apply via the rec card.
+// Safety bound on rows loaded per scope; far above any real user.
+const MAX_ROWS = 5000
+// Lists judged by the model concurrently.
+const MODEL_CONCURRENCY = 3
+
+type GroupDecision = 'or' | 'order'
+
+type Row = {
+	itemId: number
+	title: string
+	priority: 'very-high' | 'high' | 'normal' | 'low'
+	imageUrl: string | null
+	updatedAt: Date
+	availability: 'available' | 'unavailable'
+	groupId: number | null
+	groupSortOrder: number | null
+	groupType: GroupDecision | null
+	listId: number
+	listName: string
+	listType: string
+	listIsPrivate: boolean
+}
+
+type ExistingGroup = { id: number; type: GroupDecision; members: Array<Row> }
+
+type ListCandidate = {
+	listId: number
+	listName: string
+	// Ungrouped items sent to the model (all of them, or the heuristic's
+	// picks when the list is longer than GROUPING_MAX_LIST_ITEMS).
+	items: Array<Row>
+	groups: Array<ExistingGroup>
+	key: string
+}
+
+type ResolvedSuggestion =
+	| { action: 'new'; groupType: GroupDecision; rows: Array<Row>; rationale: string }
+	| { action: 'add'; group: ExistingGroup; rows: Array<Row>; rationale: string }
+
+// Detect "or" / "order" item groups on the user's lists, and ungrouped
+// items that belong in an existing group. Each list goes to the model
+// whole (existing groups + ungrouped items), because lexical clustering
+// misses most real groups ("PS5" + "PS5 Controllers", three differently
+// named bikes). The model never sees claim data, and the analyzer never
+// modifies state - it just emits suggestions the user can apply.
 export const groupingAnalyzer: Analyzer = {
 	id: 'grouping',
 	label: 'Grouping',
@@ -30,7 +72,7 @@ export const groupingAnalyzer: Analyzer = {
 	async run(ctx): Promise<AnalyzerResult> {
 		const t0 = Date.now()
 
-		const rows = await ctx.db
+		const rows: Array<Row> = await ctx.db
 			.select({
 				itemId: items.id,
 				title: items.title,
@@ -38,6 +80,9 @@ export const groupingAnalyzer: Analyzer = {
 				imageUrl: items.imageUrl,
 				updatedAt: items.updatedAt,
 				availability: items.availability,
+				groupId: items.groupId,
+				groupSortOrder: items.groupSortOrder,
+				groupType: itemGroups.type,
 				listId: lists.id,
 				listName: lists.name,
 				listType: lists.type,
@@ -45,6 +90,7 @@ export const groupingAnalyzer: Analyzer = {
 			})
 			.from(items)
 			.innerJoin(lists, eq(items.listId, lists.id))
+			.leftJoin(itemGroups, eq(items.groupId, itemGroups.id))
 			.where(
 				and(
 					eq(lists.ownerId, ctx.userId),
@@ -52,219 +98,305 @@ export const groupingAnalyzer: Analyzer = {
 					eq(lists.isActive, true),
 					ne(lists.type, 'giftideas'),
 					ne(lists.type, 'todos'),
-					visibleItemsWhere('visible'),
-					isNull(items.groupId)
+					visibleItemsWhere('visible')
 				)
 			)
-			.limit(ctx.candidateCap * 6)
+			.orderBy(items.id)
+			.limit(MAX_ROWS)
 
 		const loadStep: AnalyzerStep = { name: 'load-items', latencyMs: Date.now() - t0 }
 
-		type Row = (typeof rows)[number]
-		const byList = new Map<number, Array<Row>>()
-		for (const row of rows) {
-			const arr = byList.get(row.listId) ?? []
-			arr.push(row)
-			byList.set(row.listId, arr)
-		}
+		const candidates = buildListCandidates(rows)
 
-		const clusters: Array<{ rows: Array<Row>; listId: number; listName: string }> = []
-		for (const [listId, listRows] of byList) {
-			if (listRows.length < 2) continue
-			const listName = listRows[0].listName
-			for (const cluster of buildClustersForList(listRows)) {
-				clusters.push({ rows: cluster, listId, listName })
-				if (clusters.length >= ctx.candidateCap) break
-			}
-			if (clusters.length >= ctx.candidateCap) break
-		}
-
-		// Titles participate in the hash (not just ids) because the cached
-		// verdicts and the model's judgment are functions of the text.
+		// Item ids participate (not just the title-only verdict keys)
+		// because the emitted recs reference ids.
 		const finalInputHash = combineHashes([
 			sha256Hex(
-				`grouping|${clusters
-					.map(c =>
-						c.rows
-							.map(r => `${r.itemId}:${normalizeTitle(r.title)}`)
-							.sort()
-							.join('-')
-					)
+				`grouping-list|${candidates
+					.map(c => `${c.key}:${c.items.map(r => r.itemId).join('-')}`)
 					.sort()
 					.join(',')}`
 			),
 		])
 
-		// Skip-before-call: identical cluster slate to the prior successful
-		// run — bail before any model work; the runner keeps this scope's
-		// existing recs.
+		// Skip-before-call: identical candidate slate to the prior
+		// successful run - bail before any model work; the runner keeps
+		// this scope's existing recs.
 		if (!ctx.dryRun && ctx.priorInputHash != null && ctx.priorInputHash === finalInputHash) {
 			return { recs: [], steps: [loadStep], inputHash: finalInputHash, unchanged: true }
 		}
 
-		if (clusters.length === 0) {
+		if (candidates.length === 0) {
 			return { recs: [], steps: [loadStep], inputHash: finalInputHash }
 		}
 
 		const steps: Array<AnalyzerStep> = [loadStep]
-		const recs: Array<AnalyzerRecOutput> = []
+		const resolved: Array<{ candidate: ListCandidate; suggestions: Array<ResolvedSuggestion> }> = []
 
-		// Verdict cache: clusters whose member titles were already judged
-		// keep their stored decision; only unseen clusters go to the model.
+		// Verdict cache: lists whose exact contents were already judged
+		// replay the stored suggestions; only changed lists go to the model.
 		const cacheStart = Date.now()
-		const keyed = clusters.map(c => ({ cluster: c, key: clusterVerdictKey(c.rows.map(r => r.title)) }))
-		const cachedVerdicts = await loadClusterVerdicts(
+		const cachedVerdicts = await loadListVerdicts(
 			ctx.db,
 			ctx.userId,
-			keyed.map(k => k.key)
+			candidates.map(c => c.key)
 		)
-		const misses: Array<(typeof keyed)[number]> = []
-		for (const entry of keyed) {
-			const verdict = cachedVerdicts.get(entry.key)
-			if (!verdict) {
-				misses.push(entry)
-				continue
-			}
-			if (verdict.decision === 'skip') continue
-			const orderedRows = mapTitlesToRows(verdict.orderedTitles, entry.cluster.rows)
-			if (!orderedRows || orderedRows.length < 2) continue
-			recs.push(buildGroupRec(orderedRows, entry.cluster.listId, entry.cluster.listName, verdict.decision, verdict.rationale, ctx.subject))
+		const misses: Array<ListCandidate> = []
+		for (const candidate of candidates) {
+			const verdict = cachedVerdicts.get(candidate.key)
+			const suggestions = verdict ? resolveStoredVerdict(verdict, candidate) : null
+			if (suggestions) resolved.push({ candidate, suggestions })
+			else misses.push(candidate)
 		}
 		steps.push({
 			name: 'grouping:verdict-cache',
-			parsed: { clusters: keyed.length, hits: keyed.length - misses.length, misses: misses.length },
+			parsed: { lists: candidates.length, hits: candidates.length - misses.length, misses: misses.length },
 			latencyMs: Date.now() - cacheStart,
 		})
 
-		// Heuristic alone is too noisy: shared tokens / brand prefixes flag
-		// plenty of pairs that aren't truly grouping candidates. Without a
-		// model to confirm, we only surface what the verdict cache already
-		// confirmed.
-		if (!ctx.model || misses.length === 0) {
-			return { recs: recs.slice(0, GROUPING_MAX_SUGGESTIONS), steps, inputHash: finalInputHash }
-		}
-
-		const promptClusters: Array<GroupingClusterCandidate> = misses.map(m => ({
-			listId: String(m.cluster.listId),
-			listName: m.cluster.listName,
-			items: m.cluster.rows.map(r => ({ itemId: String(r.itemId), title: r.title })),
-		}))
-		const userPrompt = buildGroupingUserPrompt({ clusters: promptClusters })
-
-		const stepStart = Date.now()
-		let parsed: unknown = null
-		let responseRaw: string | null = null
-		let error: string | null = null
-		let tokensIn = 0
-		let tokensOut = 0
-		let cachedInputTokens = 0
-		try {
-			const result = await generateObjectCached({
-				model: ctx.model,
-				schema: groupingResponseSchema,
-				system: GROUPING_SYSTEM,
-				prompt: userPrompt,
-			})
-			parsed = result.object
-			responseRaw = JSON.stringify(result.object)
-			tokensIn = result.usage.inputTokens
-			tokensOut = result.usage.outputTokens
-			cachedInputTokens = result.usage.cachedInputTokens
-		} catch (err) {
-			error = err instanceof Error ? err.message : String(err)
-		}
-		steps.push({
-			name: 'grouping',
-			prompt: composeForLog(GROUPING_SYSTEM, userPrompt),
-			responseRaw,
-			parsed,
-			tokensIn,
-			tokensOut,
-			cachedInputTokens,
-			latencyMs: Date.now() - stepStart,
-			error,
-		})
-
-		if (error || !parsed) {
-			return { recs: recs.slice(0, GROUPING_MAX_SUGGESTIONS), steps, inputHash: finalInputHash }
-		}
-
-		// Consume the full parsed list for the verdict cache (so a big
-		// response still memoizes every judgment), but bound how many fresh
-		// group recs one run can add.
-		const aiGroups = (
-			parsed as { groups: Array<{ clusterIndex: number; decision: 'or' | 'order' | 'skip'; itemIds: Array<string>; rationale: string }> }
-		).groups
-		const echoedIndexes = new Set<number>()
-		const verdictsToStore: Array<{ key: string; verdict: ClusterVerdict }> = []
-		let freshRecs = 0
-
-		for (const group of aiGroups) {
-			const idx = group.clusterIndex - 1
-			if (idx < 0 || idx >= misses.length) continue
-			echoedIndexes.add(idx)
-			const { cluster, key } = misses[idx]
-			const allowedIds = new Set(cluster.rows.map(r => String(r.itemId)))
-			const validMembers = group.decision !== 'skip' && group.itemIds.length >= 2 && group.itemIds.every(id => allowedIds.has(id))
-			if (!validMembers) {
-				verdictsToStore.push({ key, verdict: { decision: 'skip', orderedTitles: [], rationale: '' } })
-				continue
+		// Heuristic alone is too noisy to surface without a model to
+		// confirm, so with no model only cached verdicts produce recs.
+		const model = ctx.model
+		if (model) {
+			const toAsk = misses.slice(0, ctx.candidateCap)
+			const verdictsToStore: Array<{ key: string; verdict: ListVerdict }> = []
+			for (let i = 0; i < toAsk.length; i += MODEL_CONCURRENCY) {
+				const batch = toAsk.slice(i, i + MODEL_CONCURRENCY)
+				const results = await Promise.all(batch.map(candidate => judgeList(model, candidate)))
+				for (let j = 0; j < batch.length; j++) {
+					const { step, suggestions } = results[j]
+					steps.push(step)
+					if (!suggestions) continue
+					resolved.push({ candidate: batch[j], suggestions })
+					verdictsToStore.push({ key: batch[j].key, verdict: toStoredVerdict(suggestions) })
+				}
 			}
-			const orderedRows: Array<Row> = []
-			for (const id of group.itemIds) {
-				const row = cluster.rows.find(r => String(r.itemId) === id)
-				if (row) orderedRows.push(row)
-			}
-			if (orderedRows.length < 2) {
-				verdictsToStore.push({ key, verdict: { decision: 'skip', orderedTitles: [], rationale: '' } })
-				continue
-			}
-			verdictsToStore.push({
-				key,
-				verdict: { decision: group.decision as 'or' | 'order', orderedTitles: orderedRows.map(r => r.title), rationale: group.rationale },
-			})
-			if (freshRecs < GROUPING_MAX_SUGGESTIONS) {
-				recs.push(
-					buildGroupRec(orderedRows, cluster.listId, cluster.listName, group.decision as 'or' | 'order', group.rationale, ctx.subject)
-				)
-				freshRecs++
+			if (!ctx.dryRun && verdictsToStore.length > 0) {
+				await storeListVerdicts(ctx.db, ctx.userId, verdictsToStore, modelNameOf(model))
 			}
 		}
 
-		// Clusters the model didn't echo back get a negative verdict so we
-		// don't re-ask about the same titles forever. A title edit changes
-		// the key, so a wrongly-negative verdict heals on the next edit or
-		// when the row ages out of retention.
-		for (let i = 0; i < misses.length; i++) {
-			if (echoedIndexes.has(i)) continue
-			verdictsToStore.push({ key: misses[i].key, verdict: { decision: 'skip', orderedTitles: [], rationale: '' } })
-		}
-		if (!ctx.dryRun && verdictsToStore.length > 0) {
-			await storeClusterVerdicts(ctx.db, ctx.userId, verdictsToStore, modelNameOf(ctx.model))
-		}
-
-		return { recs: recs.slice(0, GROUPING_MAX_SUGGESTIONS), steps, inputHash: finalInputHash }
+		const allRecs = resolved.flatMap(({ candidate, suggestions }) =>
+			suggestions.map(s =>
+				s.action === 'new'
+					? buildGroupRec(s.rows, candidate.listId, candidate.listName, s.groupType, s.rationale, ctx.subject)
+					: buildAddToGroupRec(s.rows, s.group, candidate.listId, candidate.listName, s.rationale, ctx.subject)
+			)
+		)
+		return { recs: await capFreshRecs(ctx.db, ctx.userId, ctx.dependentId, allRecs), steps, inputHash: finalInputHash }
 	},
+}
+
+// ─── Candidate building ─────────────────────────────────────────────────────
+
+function buildListCandidates(rows: ReadonlyArray<Row>): Array<ListCandidate> {
+	const byList = new Map<number, Array<Row>>()
+	for (const row of rows) {
+		const arr = byList.get(row.listId) ?? []
+		arr.push(row)
+		byList.set(row.listId, arr)
+	}
+
+	const candidates: Array<ListCandidate> = []
+	for (const [listId, listRows] of byList) {
+		const ungrouped = listRows.filter(r => r.groupId === null)
+		const groupsById = new Map<number, ExistingGroup>()
+		for (const row of listRows) {
+			if (row.groupId === null || row.groupType === null) continue
+			const group = groupsById.get(row.groupId) ?? { id: row.groupId, type: row.groupType, members: [] }
+			group.members.push(row)
+			groupsById.set(row.groupId, group)
+		}
+		const groups = [...groupsById.values()].sort((a, b) => a.id - b.id)
+		for (const group of groups) {
+			group.members.sort(
+				(a, b) => (a.groupSortOrder ?? Number.MAX_SAFE_INTEGER) - (b.groupSortOrder ?? Number.MAX_SAFE_INTEGER) || a.itemId - b.itemId
+			)
+		}
+
+		let candidateItems = ungrouped
+		if (ungrouped.length > GROUPING_MAX_LIST_ITEMS) {
+			// Too long to send whole: fall back to the lexical heuristic to
+			// pick the items most likely to group.
+			const clustered = new Set(buildClustersForList(ungrouped).flatMap(c => c.map(r => r.itemId)))
+			candidateItems = ungrouped.filter(r => clustered.has(r.itemId)).slice(0, GROUPING_MAX_LIST_ITEMS)
+		}
+		if (candidateItems.length === 0) continue
+		if (candidateItems.length < 2 && groups.length === 0) continue
+
+		candidates.push({
+			listId,
+			listName: listRows[0].listName,
+			items: candidateItems,
+			groups,
+			key: listVerdictKey(candidateItems, groups),
+		})
+	}
+	return candidates
+}
+
+// ─── Model call + response validation ───────────────────────────────────────
+
+async function judgeList(
+	model: NonNullable<Parameters<Analyzer['run']>[0]['model']>,
+	candidate: ListCandidate
+): Promise<{ step: AnalyzerStep; suggestions: Array<ResolvedSuggestion> | null }> {
+	const promptList: GroupingListCandidate = {
+		listName: candidate.listName,
+		groups: candidate.groups.map(g => ({ groupId: String(g.id), type: g.type, titles: g.members.map(m => m.title) })),
+		items: candidate.items.map(r => ({ itemId: String(r.itemId), title: r.title })),
+	}
+	const userPrompt = buildGroupingUserPrompt(promptList)
+	const start = Date.now()
+	try {
+		const result = await generateObjectCached({ model, schema: groupingResponseSchema, system: GROUPING_SYSTEM, prompt: userPrompt })
+		return {
+			step: {
+				name: 'grouping',
+				prompt: composeForLog(GROUPING_SYSTEM, userPrompt),
+				responseRaw: JSON.stringify(result.object),
+				parsed: result.object,
+				tokensIn: result.usage.inputTokens,
+				tokensOut: result.usage.outputTokens,
+				cachedInputTokens: result.usage.cachedInputTokens,
+				latencyMs: Date.now() - start,
+				error: null,
+			},
+			suggestions: validateSuggestions(result.object.suggestions, candidate),
+		}
+	} catch (err) {
+		return {
+			step: {
+				name: 'grouping',
+				prompt: composeForLog(GROUPING_SYSTEM, userPrompt),
+				responseRaw: null,
+				parsed: null,
+				latencyMs: Date.now() - start,
+				error: err instanceof Error ? err.message : String(err),
+			},
+			suggestions: null,
+		}
+	}
+}
+
+// Drops anything malformed: unknown ids, items already used by an earlier
+// suggestion, "new" groups under two items, "add" to a group not on this
+// list. An "add" takes the existing group's real type, whatever the model
+// echoed.
+export function validateSuggestions(
+	raw: ReadonlyArray<{
+		action: 'new' | 'add'
+		groupType: GroupDecision
+		groupId: string
+		itemIds: ReadonlyArray<string>
+		rationale: string
+	}>,
+	candidate: Pick<ListCandidate, 'items' | 'groups'>
+): Array<ResolvedSuggestion> {
+	const byId = new Map(candidate.items.map(r => [String(r.itemId), r]))
+	const used = new Set<string>()
+	const out: Array<ResolvedSuggestion> = []
+	for (const s of raw) {
+		const rows: Array<Row> = []
+		for (const id of s.itemIds) {
+			const row = byId.get(id)
+			if (!row || used.has(id) || rows.includes(row)) continue
+			rows.push(row)
+		}
+		if (s.action === 'new') {
+			if (rows.length < 2) continue
+			out.push({ action: 'new', groupType: s.groupType, rows, rationale: s.rationale })
+		} else {
+			const group = candidate.groups.find(g => String(g.id) === s.groupId)
+			if (!group || rows.length === 0) continue
+			out.push({ action: 'add', group, rows, rationale: s.rationale })
+		}
+		for (const row of rows) used.add(String(row.itemId))
+	}
+	return out
 }
 
 // ─── Verdict cache helpers ──────────────────────────────────────────────────
 
-const CLUSTER_VERDICT_KIND = 'grouping-cluster'
+const LIST_VERDICT_KIND = 'grouping-list'
 
-type ClusterVerdict = { decision: 'or' | 'order' | 'skip'; orderedTitles: Array<string>; rationale: string }
+type StoredSuggestion = {
+	action: 'new' | 'add'
+	groupType: GroupDecision
+	groupId: number | null
+	items: Array<{ id: number; title: string }>
+	rationale: string
+}
+type ListVerdict = { suggestions: Array<StoredSuggestion> }
 
 export function normalizeTitle(title: string): string {
 	return title.trim().toLowerCase().replace(/\s+/g, ' ')
 }
 
-// Key is a function of the member titles only: the judgment ("are these
-// alternates / a sequence / unrelated?") doesn't depend on ids or list
-// names, so it survives item re-creation and list moves.
-export function clusterVerdictKey(titles: ReadonlyArray<string>): string {
-	return sha256Hex(`group-cluster|${titles.map(normalizeTitle).sort().join('|')}`)
+// Key is a function of the list's ungrouped titles plus its existing
+// groups (ids, types, ordered member titles): the judgment depends on
+// that text only, so it survives item re-creation for ungrouped items.
+// Any edit, add, or removal re-keys the list and re-asks the model.
+export function listVerdictKey(
+	ungrouped: ReadonlyArray<{ title: string }>,
+	groups: ReadonlyArray<{ id: number; type: GroupDecision; members: ReadonlyArray<{ title: string }> }>
+): string {
+	const groupPart = groups.map(g => `${g.id}:${g.type}:${g.members.map(m => normalizeTitle(m.title)).join('>')}`).join('|')
+	const itemPart = ungrouped
+		.map(r => normalizeTitle(r.title))
+		.sort()
+		.join('|')
+	return sha256Hex(`group-list|${groupPart}||${itemPart}`)
 }
 
-async function loadClusterVerdicts(db: Database, userId: string, keys: Array<string>): Promise<Map<string, ClusterVerdict>> {
+function toStoredVerdict(suggestions: ReadonlyArray<ResolvedSuggestion>): ListVerdict {
+	return {
+		suggestions: suggestions.map(s => ({
+			action: s.action,
+			groupType: s.action === 'new' ? s.groupType : s.group.type,
+			groupId: s.action === 'add' ? s.group.id : null,
+			items: s.rows.map(r => ({ id: r.itemId, title: r.title })),
+			rationale: s.rationale,
+		})),
+	}
+}
+
+// Replay a stored verdict onto the list's current rows. Items resolve by
+// id when the id still carries the same title, else by a unique title
+// match (the item was re-created). Returns null when anything can't be
+// resolved, so the list falls through to a fresh model call.
+function resolveStoredVerdict(verdict: ListVerdict, candidate: ListCandidate): Array<ResolvedSuggestion> | null {
+	const byId = new Map(candidate.items.map(r => [r.itemId, r]))
+	const byTitle = new Map<string, Array<Row>>()
+	for (const row of candidate.items) {
+		const key = normalizeTitle(row.title)
+		byTitle.set(key, [...(byTitle.get(key) ?? []), row])
+	}
+	const out: Array<ResolvedSuggestion> = []
+	for (const s of verdict.suggestions) {
+		const rows: Array<Row> = []
+		for (const item of s.items) {
+			const idHit = byId.get(item.id)
+			if (idHit && normalizeTitle(idHit.title) === normalizeTitle(item.title)) {
+				rows.push(idHit)
+				continue
+			}
+			const titleHits = byTitle.get(normalizeTitle(item.title)) ?? []
+			if (titleHits.length !== 1) return null
+			rows.push(titleHits[0])
+		}
+		if (s.action === 'new') {
+			out.push({ action: 'new', groupType: s.groupType, rows, rationale: s.rationale })
+		} else {
+			const group = candidate.groups.find(g => g.id === s.groupId)
+			if (!group) return null
+			out.push({ action: 'add', group, rows, rationale: s.rationale })
+		}
+	}
+	return out
+}
+
+async function loadListVerdicts(db: Database, userId: string, keys: Array<string>): Promise<Map<string, ListVerdict>> {
 	if (keys.length === 0) return new Map()
 	const rows = await db
 		.select({ key: intelligenceVerdicts.key, verdict: intelligenceVerdicts.verdict })
@@ -272,55 +404,64 @@ async function loadClusterVerdicts(db: Database, userId: string, keys: Array<str
 		.where(
 			and(
 				eq(intelligenceVerdicts.userId, userId),
-				eq(intelligenceVerdicts.kind, CLUSTER_VERDICT_KIND),
+				eq(intelligenceVerdicts.kind, LIST_VERDICT_KIND),
 				inArray(intelligenceVerdicts.key, keys)
 			)
 		)
-	const map = new Map<string, ClusterVerdict>()
+	const map = new Map<string, ListVerdict>()
 	for (const row of rows) {
-		const v = row.verdict as Partial<ClusterVerdict>
-		if (v.decision === 'or' || v.decision === 'order' || v.decision === 'skip') {
-			map.set(row.key, {
-				decision: v.decision,
-				orderedTitles: Array.isArray(v.orderedTitles) ? v.orderedTitles : [],
-				rationale: typeof v.rationale === 'string' ? v.rationale : '',
-			})
-		}
+		const v = row.verdict as Partial<ListVerdict>
+		if (Array.isArray(v.suggestions)) map.set(row.key, { suggestions: v.suggestions })
 	}
 	return map
 }
 
-async function storeClusterVerdicts(
+async function storeListVerdicts(
 	db: Database,
 	userId: string,
-	entries: Array<{ key: string; verdict: ClusterVerdict }>,
+	entries: Array<{ key: string; verdict: ListVerdict }>,
 	model: string | null
 ): Promise<void> {
 	for (const entry of entries) {
 		await db
 			.insert(intelligenceVerdicts)
-			.values({ userId, kind: CLUSTER_VERDICT_KIND, key: entry.key, verdict: entry.verdict, model })
+			.values({ userId, kind: LIST_VERDICT_KIND, key: entry.key, verdict: entry.verdict, model })
 			.onConflictDoNothing()
 	}
 }
 
-// Resolve a cached verdict's ordered member titles back onto the current
-// cluster rows. Bails (returns null) when any title is missing or
-// ambiguous (duplicate titles in the cluster) — the cluster then falls
-// through as a miss on the next run rather than emitting a wrong group.
-function mapTitlesToRows<TRow extends { title: string }>(titles: ReadonlyArray<string>, rows: ReadonlyArray<TRow>): Array<TRow> | null {
-	const byTitle = new Map<string, Array<TRow>>()
-	for (const row of rows) {
-		const key = normalizeTitle(row.title)
-		const arr = byTitle.get(key) ?? []
-		arr.push(row)
-		byTitle.set(key, arr)
-	}
-	const out: Array<TRow> = []
-	for (const title of titles) {
-		const matches = byTitle.get(normalizeTitle(title))
-		if (!matches || matches.length !== 1) return null
-		out.push(matches[0])
+// Bound how many suggestions the user sees per run, counting only ones
+// they haven't already acted on. Dismissed / applied recs are still
+// emitted (the runner carries their status forward by fingerprint and
+// they stay hidden), so dropping them here would forget the dismissal
+// and resurface them next run.
+async function capFreshRecs(
+	db: Database,
+	userId: string,
+	dependentId: string | null,
+	recs: ReadonlyArray<AnalyzerRecOutput>
+): Promise<Array<AnalyzerRecOutput>> {
+	if (recs.length === 0) return []
+	const prior = await db
+		.select({ fingerprint: recommendations.fingerprint })
+		.from(recommendations)
+		.where(
+			and(
+				eq(recommendations.userId, userId),
+				eq(recommendations.analyzerId, 'grouping'),
+				inArray(recommendations.status, ['dismissed', 'applied'])
+			)
+		)
+	const resolvedFps = new Set(prior.map(p => p.fingerprint))
+	const out: Array<AnalyzerRecOutput> = []
+	let fresh = 0
+	for (const rec of recs) {
+		const fp = fingerprintFor({ analyzerId: 'grouping', kind: rec.kind, fingerprintTargets: rec.fingerprintTargets, dependentId })
+		if (resolvedFps.has(fp)) out.push(rec)
+		else if (fresh < GROUPING_MAX_SUGGESTIONS) {
+			out.push(rec)
+			fresh++
+		}
 	}
 	return out
 }
@@ -458,39 +599,35 @@ export function pickGroupPriority(
 	return best
 }
 
-function buildGroupRec<
-	TRow extends {
-		itemId: number
-		title: string
-		priority: 'very-high' | 'high' | 'normal' | 'low'
-		imageUrl: string | null
-		updatedAt: Date
-		availability: 'available' | 'unavailable'
-		listId: number
-		listName: string
-		listType: string
-		listIsPrivate: boolean
-	},
->(
-	rows: ReadonlyArray<TRow>,
-	listId: number,
-	listName: string,
-	decision: 'or' | 'order',
-	rationale: string,
-	subject: AnalyzerSubject
-): AnalyzerRecOutput {
+type RecRow = {
+	itemId: number
+	title: string
+	priority: 'very-high' | 'high' | 'normal' | 'low'
+	imageUrl: string | null
+	updatedAt: Date
+	availability: 'available' | 'unavailable'
+	listId: number
+	listName: string
+	listType: string
+	listIsPrivate: boolean
+}
+
+function listRefFor(row: RecRow, listId: number, listName: string, subject: AnalyzerSubject): ListRef {
 	const listSubject: ListRef['subject'] =
 		subject.kind === 'dependent'
 			? { kind: 'dependent', name: subject.name, image: subject.image }
 			: { kind: 'user', name: subject.name, image: subject.image }
-	const listRef: ListRef = {
+	return {
 		id: String(listId),
 		name: listName,
-		type: rows[0].listType as ListRef['type'],
-		isPrivate: rows[0].listIsPrivate,
+		type: row.listType as ListRef['type'],
+		isPrivate: row.listIsPrivate,
 		subject: listSubject,
 	}
-	const itemRefs: Array<ItemRef> = rows.map(r => ({
+}
+
+function itemRefFor(r: RecRow): ItemRef {
+	return {
 		id: String(r.itemId),
 		title: r.title,
 		listId: String(r.listId),
@@ -498,7 +635,19 @@ function buildGroupRec<
 		imageUrl: r.imageUrl,
 		updatedAt: r.updatedAt,
 		availability: r.availability,
-	}))
+	}
+}
+
+function buildGroupRec(
+	rows: ReadonlyArray<RecRow>,
+	listId: number,
+	listName: string,
+	decision: 'or' | 'order',
+	rationale: string,
+	subject: AnalyzerSubject
+): AnalyzerRecOutput {
+	const listRef = listRefFor(rows[0], listId, listName, subject)
+	const itemRefs: Array<ItemRef> = rows.map(itemRefFor)
 	const priority = pickGroupPriority(rows.map(r => r.priority))
 	const itemIds = rows.map(r => String(r.itemId))
 
@@ -538,5 +687,52 @@ function buildGroupRec<
 		// Sort the targets so order doesn't change the fingerprint - the
 		// helper sorts before hashing too, but mirroring duplicates.ts.
 		fingerprintTargets: itemIds,
+	}
+}
+
+function buildAddToGroupRec(
+	rows: ReadonlyArray<RecRow>,
+	group: { id: number; type: 'or' | 'order'; members: ReadonlyArray<RecRow> },
+	listId: number,
+	listName: string,
+	rationale: string,
+	subject: AnalyzerSubject
+): AnalyzerRecOutput {
+	const listRef = listRefFor(rows[0], listId, listName, subject)
+	const itemIds = rows.map(r => String(r.itemId))
+	const isOr = group.type === 'or'
+	const noun = rows.length === 1 ? 'this' : 'these'
+
+	return {
+		kind: 'group-suggestion',
+		severity: 'suggest',
+		title: isOr ? `Add ${noun} to a "pick one" group` : `Add ${noun} to an ordered group`,
+		body: rationale,
+		actions: [
+			{
+				label: 'Add to Group',
+				description: isOr
+					? 'Claiming any item in the group locks the others. You can rearrange or split the group later.'
+					: 'These go after the items already in the group. You can rearrange or split the group later.',
+				intent: 'do',
+				apply: { kind: 'add-to-group', listId: String(listId), groupId: String(group.id), itemIds },
+			},
+			{
+				label: 'Keep separate',
+				description: "These don't belong in that group. We won't suggest adding them again.",
+				intent: 'noop',
+			},
+		],
+		affected: {
+			noun: 'items',
+			count: rows.length,
+			lines: [...rows.map(r => `${r.title} · add to group`), ...group.members.map(m => `${m.title} · already in group`)],
+			listChips: [listRef],
+		},
+		relatedItems: [...rows, ...group.members].map(itemRefFor),
+		relatedLists: [listRef],
+		// The group id participates so "add X to group A" and a later "add
+		// X to group B" never share a dismissal.
+		fingerprintTargets: [`group:${group.id}`, ...itemIds],
 	}
 }

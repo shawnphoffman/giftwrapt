@@ -229,3 +229,95 @@ describe('applyRecommendationImpl - create-group', () => {
 		})
 	})
 })
+
+describe('applyRecommendationImpl - add-to-group', () => {
+	async function makeGroupWith(tx: Parameters<Parameters<typeof withRollback>[0]>[0], listId: number, titles: Array<string>) {
+		const [group] = await tx.insert(itemGroups).values({ listId, type: 'order' }).returning()
+		for (let i = 0; i < titles.length; i++) {
+			const item = await makeItem(tx, { listId, title: titles[i] })
+			await tx.update(items).set({ groupId: group.id, groupSortOrder: i }).where(eq(items.id, item.id))
+		}
+		return group
+	}
+
+	it('appends the items after the current members and marks the rec applied', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx)
+			const list = await makeList(tx, { ownerId: owner.id })
+			const group = await makeGroupWith(tx, list.id, ['U7 Pro access point', 'PoE+ adapter'])
+			const cover = await makeItem(tx, { listId: list.id, title: 'U7 cover' })
+			const mount = await makeItem(tx, { listId: list.id, title: 'U7 wall mount' })
+			const rec = await makeGroupRec(tx, { userId: owner.id })
+
+			const result = await applyRecommendationImpl(tx, owner.id, {
+				id: rec.id,
+				apply: { kind: 'add-to-group', listId: String(list.id), groupId: String(group.id), itemIds: [String(cover.id), String(mount.id)] },
+			})
+			expect(result).toEqual({ ok: true, kind: 'add-to-group', groupId: String(group.id) })
+
+			const rows = await tx
+				.select({ id: items.id, groupId: items.groupId, groupSortOrder: items.groupSortOrder })
+				.from(items)
+				.where(inArray(items.id, [cover.id, mount.id]))
+			const byId = new Map(rows.map(r => [r.id, r]))
+			expect(byId.get(cover.id)).toMatchObject({ groupId: group.id, groupSortOrder: 2 })
+			expect(byId.get(mount.id)).toMatchObject({ groupId: group.id, groupSortOrder: 3 })
+
+			const recAfter = await tx.query.recommendations.findFirst({ where: eq(recommendations.id, rec.id) })
+			expect(recAfter?.status).toBe('applied')
+		})
+	})
+
+	it('refuses items that joined another group since the rec was made', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx)
+			const list = await makeList(tx, { ownerId: owner.id })
+			const group = await makeGroupWith(tx, list.id, ['A', 'B'])
+			const other = await makeGroupWith(tx, list.id, ['C'])
+			const [moved] = await tx.select().from(items).where(eq(items.groupId, other.id))
+			const rec = await makeGroupRec(tx, { userId: owner.id })
+
+			const result = await applyRecommendationImpl(tx, owner.id, {
+				id: rec.id,
+				apply: { kind: 'add-to-group', listId: String(list.id), groupId: String(group.id), itemIds: [String(moved.id)] },
+			})
+			expect(result).toEqual({ ok: false, reason: 'items-changed' })
+			const recAfter = await tx.query.recommendations.findFirst({ where: eq(recommendations.id, rec.id) })
+			expect(recAfter?.status).toBe('active')
+		})
+	})
+
+	it('refuses a group that lives on a different list', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx)
+			const list = await makeList(tx, { ownerId: owner.id })
+			const otherList = await makeList(tx, { ownerId: owner.id })
+			const foreignGroup = await makeGroupWith(tx, otherList.id, ['A', 'B'])
+			const item = await makeItem(tx, { listId: list.id, title: 'C' })
+			const rec = await makeGroupRec(tx, { userId: owner.id })
+
+			const result = await applyRecommendationImpl(tx, owner.id, {
+				id: rec.id,
+				apply: { kind: 'add-to-group', listId: String(list.id), groupId: String(foreignGroup.id), itemIds: [String(item.id)] },
+			})
+			expect(result).toEqual({ ok: false, reason: 'items-changed' })
+		})
+	})
+
+	it('refuses a user who cannot edit the list', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx)
+			const stranger = await makeUser(tx)
+			const list = await makeList(tx, { ownerId: owner.id })
+			const group = await makeGroupWith(tx, list.id, ['A', 'B'])
+			const item = await makeItem(tx, { listId: list.id, title: 'C' })
+			const rec = await makeGroupRec(tx, { userId: stranger.id })
+
+			const result = await applyRecommendationImpl(tx, stranger.id, {
+				id: rec.id,
+				apply: { kind: 'add-to-group', listId: String(list.id), groupId: String(group.id), itemIds: [String(item.id)] },
+			})
+			expect(result).toEqual({ ok: false, reason: 'cannot-edit' })
+		})
+	})
+})

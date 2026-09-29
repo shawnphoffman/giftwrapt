@@ -87,8 +87,12 @@ export type NewItemAiAnalysis = typeof itemAiAnalysis.$inferInsert
 //
 //   kind 'duplicate-pair':   key = hash of the two normalized titles;
 //                            verdict = { matched, confident, rationale }
-//   kind 'grouping-cluster': key = hash of sorted member titles;
-//                            verdict = { decision, orderedTitles, rationale }
+//   kind 'grouping-list':    key = hash of one list's ungrouped titles plus
+//                            its existing groups (ids, types, member titles);
+//                            verdict = { suggestions: [{ action, groupType,
+//                            groupId, items: [{ id, title }], rationale }] }
+//   ('grouping-cluster' rows from the old per-cluster grouping prompt are
+//   no longer read and age out.)
 //
 // Rows are per-user (titles are user content; no cross-user reuse) and
 // swept after VERDICT_RETENTION_DAYS by the intelligence retention sweep.

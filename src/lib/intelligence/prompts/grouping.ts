@@ -1,65 +1,84 @@
 import { z } from 'zod'
 
 // NOTE: keep these schemas shape-only - OpenAI's structured-output
-// validator rejects `maxItems` on arrays and `min`/`max` on strings.
-// Bound the response with the prompt + a post-parse slice in the analyzer.
+// validator rejects `maxItems` on arrays and `min`/`max` on strings, and
+// wants every field required. Bound and validate the response in the
+// analyzer instead.
 export const groupingSuggestionSchema = z.object({
-	clusterIndex: z.number(),
-	decision: z.enum(['or', 'order', 'skip']),
+	action: z.enum(['new', 'add']),
+	groupType: z.enum(['or', 'order']),
+	// Existing group id for "add"; empty string for "new".
+	groupId: z.string(),
 	itemIds: z.array(z.string()),
 	rationale: z.string(),
 })
 
 export const groupingResponseSchema = z.object({
-	groups: z.array(groupingSuggestionSchema),
+	suggestions: z.array(groupingSuggestionSchema),
 })
 
 export type GroupingResponse = z.infer<typeof groupingResponseSchema>
 
-export const GROUPING_MAX_SUGGESTIONS = 4
+// Fresh (not-yet-dismissed) group recs one run can surface.
+export const GROUPING_MAX_SUGGESTIONS = 6
+// Ungrouped items one list sends to the model. Longer lists fall back to
+// the lexical clustering heuristic to pick which items to send.
+export const GROUPING_MAX_LIST_ITEMS = 150
+// Cluster size cap for that fallback heuristic.
 export const GROUPING_MAX_CLUSTER_SIZE = 6
 
-export type GroupingClusterCandidate = {
-	listId: string
+export type GroupingListCandidate = {
 	listName: string
+	groups: ReadonlyArray<{ groupId: string; type: 'or' | 'order'; titles: ReadonlyArray<string> }>
 	items: ReadonlyArray<{ itemId: string; title: string }>
 }
 
 // Stable instructions block. Identical across users and runs.
 export const GROUPING_SYSTEM = [
-	"You are a wishlist hygiene assistant. You receive CLUSTERS of items from a user's lists that COULD potentially form a group. For each cluster, decide:",
+	"You are a wishlist hygiene assistant. You receive ONE of a user's lists: its existing item groups and its ungrouped items. Find ungrouped items that belong together.",
 	'',
-	'- "or": the user almost certainly wants ONLY ONE of these. Alternates of the same need - different brands of the same product, different styles or colors of the same garment, two competing models of the same gadget.',
+	'There are two kinds of group:',
+	'- "or": the user almost certainly wants ONLY ONE of these. Alternates of the same need - different brands of the same product, different styles or colors of the same garment, competing models of the same gadget.',
 	'- "order": the user wants these in sequence. One item is a prerequisite or accessory for another - a console before its controllers, a camera body before lenses, a printer before its consumables.',
-	'- "skip": the items are NOT a meaningful group. Distinct needs that happen to share a category go here. ALWAYS prefer "skip" if you are not confident.',
 	'',
-	'Bias toward "skip". Grouping locks claim semantics: claiming one "or" item locks the others, and "order" forces a purchase sequence. Wrong groups frustrate the recipient and the gifter, so only flag groups when the same person owning all of these items at once would feel redundant ("or") or pointless without the prerequisite ("order").',
+	'You can suggest:',
+	'- "new": a new group of two or more ungrouped items.',
+	'- "add": adding one or more ungrouped items to an EXISTING group, when they are clearly more of the same (another alternate for an "or" group, or a later step for an "order" group).',
+	'',
+	'Rules:',
+	'- Include EVERY ungrouped item that belongs in a group, not just the closest pair. A group can have any number of items.',
+	'- A list can hold several separate groups. Return each one as its own suggestion.',
+	'- Each item can appear in at most one suggestion.',
+	'- Only "add" to an "order" group when the new items come after all of its current items.',
+	'- Items that merely share a category, brand, material, or theme are NOT a group when they fill different needs (a sweater and joggers, a sun hat and sunscreen, two different national park shirts the user could want both of). Only group items when owning all of them at once would feel redundant ("or") or pointless without the prerequisite ("order").',
+	'- Grouping locks claim semantics: claiming one "or" item locks the others, and "order" forces a purchase sequence. A wrong group frustrates the recipient and the gifter, so leave an item out when you are not confident. Returning no suggestions is fine.',
 	'',
 	'For each suggestion, return:',
-	'- clusterIndex: the 1-based number from the cluster list.',
-	'- decision: "or", "order", or "skip".',
-	'- itemIds: the subset of item ids you want to include in the group. For "order", list them in the order they should be PURCHASED (prerequisite first). Omit ids that should not be part of the group. For "skip", return an empty array.',
-	'- rationale: one sentence explaining your decision in plain language. Do not reference the cluster index or item ids in the rationale.',
+	'- action: "new" or "add".',
+	'- groupType: "or" or "order". For "add", the existing group\'s type.',
+	'- groupId: for "add", the existing group\'s id. For "new", an empty string.',
+	'- itemIds: the ungrouped item ids to group. For a new "order" group, list them in the order they should be PURCHASED (prerequisite first). For "add" to an "order" group, in the order they come after the existing items.',
+	'- rationale: one sentence explaining the grouping in plain language. Do not reference ids.',
 	'',
 	'NEVER mention gift claims, gifters, or who has purchased anything. You do not have that information.',
 	'',
-	'Response shape: { groups: [{ clusterIndex, decision, itemIds, rationale }, ...] }.',
+	'Response shape: { suggestions: [{ action, groupType, groupId, itemIds, rationale }, ...] }.',
 ].join('\n')
 
-// Variable suffix: the actual clusters.
-export function buildGroupingUserPrompt(args: { clusters: ReadonlyArray<GroupingClusterCandidate> }): string {
-	const clusterLines: Array<string> = []
-	args.clusters.forEach((cluster, clusterIdx) => {
-		clusterLines.push(`${clusterIdx + 1}. List "${cluster.listName}":`)
-		cluster.items.forEach((item, itemIdx) => {
-			clusterLines.push(`    ${clusterIdx + 1}.${itemIdx + 1} "${item.title}" (id=${item.itemId})`)
-		})
-	})
-
-	return ['Clusters:', ...clusterLines].join('\n')
+// Variable suffix: the one list being judged.
+export function buildGroupingUserPrompt(list: GroupingListCandidate): string {
+	const lines: Array<string> = [`List "${list.listName}"`, '', 'Existing groups:']
+	if (list.groups.length === 0) lines.push('    (none)')
+	for (const group of list.groups) {
+		const label = group.type === 'or' ? 'pick one' : 'in order'
+		lines.push(`    group id=${group.groupId} (${group.type}, ${label}): ${group.titles.map(t => `"${t}"`).join('; ')}`)
+	}
+	lines.push('', 'Ungrouped items:')
+	for (const item of list.items) lines.push(`    - "${item.title}" (id=${item.itemId})`)
+	return lines.join('\n')
 }
 
-// Legacy single-string builder for backwards-compatible callers.
-export function buildGroupingPrompt(args: { clusters: ReadonlyArray<GroupingClusterCandidate> }): string {
-	return `${GROUPING_SYSTEM}\n\n${buildGroupingUserPrompt(args)}`
+// Single-string builder for callers that don't split system / user.
+export function buildGroupingPrompt(list: GroupingListCandidate): string {
+	return `${GROUPING_SYSTEM}\n\n${buildGroupingUserPrompt(list)}`
 }

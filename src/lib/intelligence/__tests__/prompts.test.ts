@@ -178,72 +178,55 @@ describe('duplicates prompt', () => {
 })
 
 describe('grouping prompt', () => {
-	it('renders clusters with item ids, biases toward skip, and never mentions claims/gifters', () => {
-		const out = buildGroupingPrompt({
-			clusters: [
-				{
-					listId: '10',
-					listName: 'Birthday 2026',
-					items: [
-						{ itemId: '1', title: 'Weber Spirit grill' },
-						{ itemId: '2', title: 'Traeger Pro 575 grill' },
-					],
-				},
-				{
-					listId: '10',
-					listName: 'Birthday 2026',
-					items: [
-						{ itemId: '3', title: 'PlayStation 5' },
-						{ itemId: '4', title: 'PS5 DualSense controller (white)' },
-						{ itemId: '5', title: 'PS5 DualSense controller (red)' },
-					],
-				},
-			],
-		})
-		expect(out).toContain('Weber Spirit grill')
-		expect(out).toContain('Traeger Pro 575 grill')
-		expect(out).toContain('PlayStation 5')
-		expect(out).toContain('id=1')
-		expect(out).toContain('id=5')
-		// Numbered cluster headers so the response can reference clusterIndex.
-		expect(out).toContain('1. List "Birthday 2026":')
-		expect(out).toContain('2. List "Birthday 2026":')
-		// Bias toward "skip" + the protective instruction.
-		expect(out).toMatch(/bias toward "skip"/i)
+	const list = {
+		listName: 'Birthday 2026',
+		groups: [{ groupId: '7', type: 'or' as const, titles: ['Weber Spirit grill', 'Traeger Pro 575 grill'] }],
+		items: [
+			{ itemId: '1', title: 'Napoleon Rogue grill' },
+			{ itemId: '3', title: 'PlayStation 5' },
+			{ itemId: '4', title: 'PS5 DualSense controller (white)' },
+		],
+	}
+
+	it('renders the list with existing groups and ungrouped item ids, and never mentions claims/gifters', () => {
+		const out = buildGroupingPrompt(list)
+		expect(out).toContain('List "Birthday 2026"')
+		expect(out).toContain('group id=7 (or, pick one): "Weber Spirit grill"; "Traeger Pro 575 grill"')
+		expect(out).toContain('"Napoleon Rogue grill" (id=1)')
+		expect(out).toContain('"PS5 DualSense controller (white)" (id=4)')
+		// Whole-group and multi-group instructions: the old prompt made
+		// one decision per heuristic cluster and topped out at pairs.
+		expect(out).toMatch(/include every ungrouped item that belongs/i)
+		expect(out).toMatch(/several separate groups/i)
 		expect(out).toMatch(/never mention.*claim/i)
-		// Decision vocabulary present.
 		expect(out).toContain('"or"')
 		expect(out).toContain('"order"')
+		expect(out).toContain('"add"')
+	})
+
+	it('marks a list with no groups explicitly', () => {
+		const out = buildGroupingUserPrompt({ ...list, groups: [] })
+		expect(out).toContain('Existing groups:\n    (none)')
 	})
 
 	it('separates the stable system block from the per-call user prompt', () => {
-		expect(GROUPING_SYSTEM).toMatch(/bias toward "skip"/i)
 		expect(GROUPING_SYSTEM).toMatch(/never mention.*claim/i)
-		const user = buildGroupingUserPrompt({
-			clusters: [
-				{
-					listId: '10',
-					listName: 'Birthday 2026',
-					items: [{ itemId: '1', title: 'Weber Spirit grill' }],
-				},
-			],
-		})
-		expect(user).toContain('Weber Spirit grill')
+		const user = buildGroupingUserPrompt(list)
+		expect(user).toContain('Napoleon Rogue grill')
 		// The user-prompt block must NOT carry the instruction text; that's
 		// the cacheable system block's job.
-		expect(user).not.toMatch(/bias toward "skip"/i)
+		expect(user).not.toMatch(/never mention/i)
 	})
 
 	it('parses a well-formed grouping response', () => {
 		const result = groupingResponseSchema.parse({
-			groups: [
-				{ clusterIndex: 1, decision: 'or', itemIds: ['1', '2'], rationale: 'two grills serving the same purpose' },
-				{ clusterIndex: 2, decision: 'order', itemIds: ['3', '4', '5'], rationale: 'console first, then accessories' },
-				{ clusterIndex: 3, decision: 'skip', itemIds: [], rationale: 'unrelated' },
+			suggestions: [
+				{ action: 'add', groupType: 'or', groupId: '7', itemIds: ['1'], rationale: 'another grill for the same need' },
+				{ action: 'new', groupType: 'order', groupId: '', itemIds: ['3', '4'], rationale: 'console first, then a controller' },
 			],
 		})
-		expect(result.groups).toHaveLength(3)
-		expect(result.groups[0].decision).toBe('or')
-		expect(result.groups[1].itemIds).toEqual(['3', '4', '5'])
+		expect(result.suggestions).toHaveLength(2)
+		expect(result.suggestions[0].action).toBe('add')
+		expect(result.suggestions[1].itemIds).toEqual(['3', '4'])
 	})
 })
