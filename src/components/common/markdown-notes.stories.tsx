@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, within } from 'storybook/test'
+import { expect, waitFor, within } from 'storybook/test'
 
 import { MarkdownNotes } from './markdown-notes'
 
@@ -20,6 +20,18 @@ const meta = {
 
 export default meta
 type Story = StoryObj<typeof meta>
+
+// MarkdownRenderer is React.lazy, and until its chunk loads the Suspense
+// fallback shows the raw text. Checks run against the fallback fail (the
+// image story, under full-suite load) or pass without testing anything (every
+// "no <script>/<iframe>" check), so each play waits for the real render.
+async function waitForRenderer(canvasElement: HTMLElement) {
+	await waitFor(() => {
+		const root = canvasElement.querySelector('.prose')
+		expect(root).not.toBeNull()
+		expect(root!.querySelector(':scope > .whitespace-pre-wrap')).toBeNull()
+	})
+}
 
 export const PlainText: Story = {
 	args: { content: 'Any neutral color works, cream, sage, or stone preferred over bright glazes.' },
@@ -57,6 +69,7 @@ export const SanitizesScriptTag: Story = {
 		content: `Safe text before. <script>alert('xss')</script> Safe text after.`,
 	},
 	play: async ({ canvasElement }) => {
+		await waitForRenderer(canvasElement)
 		const canvas = within(canvasElement)
 		await expect(canvas.getByText(/Safe text before/i)).toBeInTheDocument()
 		await expect(canvasElement.querySelector('script')).toBeNull()
@@ -68,6 +81,7 @@ export const SanitizesJavascriptLinkHref: Story = {
 		content: `Click [me](javascript:alert('xss')) to test.`,
 	},
 	play: async ({ canvasElement }) => {
+		await waitForRenderer(canvasElement)
 		for (const a of canvasElement.querySelectorAll('a')) {
 			const href = a.getAttribute('href') ?? ''
 			await expect(href.toLowerCase().startsWith('javascript:')).toBe(false)
@@ -80,6 +94,7 @@ export const SanitizesJavascriptImageSrc: Story = {
 		content: `Image: ![alt](javascript:alert('xss'))`,
 	},
 	play: async ({ canvasElement }) => {
+		await waitForRenderer(canvasElement)
 		for (const img of canvasElement.querySelectorAll('img')) {
 			const src = img.getAttribute('src') ?? ''
 			await expect(src.toLowerCase().startsWith('javascript:')).toBe(false)
@@ -92,6 +107,7 @@ export const SanitizesInlineEventHandler: Story = {
 		content: `Inline event handler: <img src="x" onerror="alert('xss')" /> should be stripped.`,
 	},
 	play: async ({ canvasElement }) => {
+		await waitForRenderer(canvasElement)
 		for (const el of canvasElement.querySelectorAll('*')) {
 			for (const attr of Array.from(el.attributes)) {
 				await expect(attr.name.toLowerCase().startsWith('on')).toBe(false)
@@ -105,6 +121,7 @@ export const SanitizesIframe: Story = {
 		content: `An iframe: <iframe src="https://evil.example.com"></iframe> should not render.`,
 	},
 	play: async ({ canvasElement }) => {
+		await waitForRenderer(canvasElement)
 		await expect(canvasElement.querySelector('iframe')).toBeNull()
 	},
 }
@@ -114,6 +131,7 @@ export const SanitizesStyleTag: Story = {
 		content: `A style tag: <style>body { display: none }</style> should not render.`,
 	},
 	play: async ({ canvasElement }) => {
+		await waitForRenderer(canvasElement)
 		await expect(canvasElement.querySelector('style')).toBeNull()
 	},
 }
@@ -123,6 +141,7 @@ export const SanitizesSvgWithOnload: Story = {
 		content: `SVG with onload: <svg onload="alert('xss')"><circle r="10" /></svg>`,
 	},
 	play: async ({ canvasElement }) => {
+		await waitForRenderer(canvasElement)
 		const svg = canvasElement.querySelector('svg')
 		if (svg) {
 			await expect(svg.getAttribute('onload')).toBeNull()
@@ -135,6 +154,7 @@ export const SanitizesRawHtmlAnchorWithJavascript: Story = {
 		content: `Raw HTML link: <a href="javascript:alert('xss')">click</a>.`,
 	},
 	play: async ({ canvasElement }) => {
+		await waitForRenderer(canvasElement)
 		for (const a of canvasElement.querySelectorAll('a')) {
 			const href = a.getAttribute('href') ?? ''
 			await expect(href.toLowerCase().startsWith('javascript:')).toBe(false)
@@ -147,6 +167,7 @@ export const SanitizesDataUriImage: Story = {
 		content: `Image with data URI: ![bad](data:text/html;base64,PHNjcmlwdD5hbGVydCgneHNzJyk8L3NjcmlwdD4=)`,
 	},
 	play: async ({ canvasElement }) => {
+		await waitForRenderer(canvasElement)
 		for (const img of canvasElement.querySelectorAll('img')) {
 			const src = img.getAttribute('src') ?? ''
 			await expect(src.toLowerCase().startsWith('data:text/html')).toBe(false)
@@ -159,6 +180,7 @@ export const ImageRendersAsClickableThumbnail: Story = {
 		content: `Here is an inline image:\n\n![Markdown logo](https://example.com/logo.svg)`,
 	},
 	play: async ({ canvasElement }) => {
+		await waitForRenderer(canvasElement)
 		const img = canvasElement.querySelector('img')
 		await expect(img).not.toBeNull()
 		// The renderer wraps markdown images in ItemImage's lightbox button so
@@ -178,6 +200,7 @@ export const LinkifyOnlyAcceptsHttp: Story = {
 		content: `Bare https URL becomes a link: https://example.com. A javascript: bare string javascript:alert('xss') must NOT become an anchor.`,
 	},
 	play: async ({ canvasElement }) => {
+		await waitForRenderer(canvasElement)
 		// linkify-react only autolinks http(s); the javascript: bare string
 		// must remain plain text, not turn into an anchor.
 		for (const a of canvasElement.querySelectorAll('a')) {
