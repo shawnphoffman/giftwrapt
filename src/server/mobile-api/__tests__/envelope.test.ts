@@ -19,13 +19,13 @@ describe('buildError', () => {
 	})
 
 	it('omits data when not provided', () => {
-		const env = buildError('over-claim')
+		const env = buildError('rate-limited')
 		expect(env.error.data).toBeUndefined()
 	})
 
 	it('includes data when provided', () => {
-		const env = buildError('over-claim', { data: { remaining: 2 } })
-		expect(env.error.data).toEqual({ remaining: 2 })
+		const env = buildError('rate-limited', { data: { retryAfterSeconds: 2 } })
+		expect(env.error.data).toEqual({ retryAfterSeconds: 2 })
 	})
 
 	it('falls back to a generic message for unknown codes', () => {
@@ -43,13 +43,13 @@ describe('buildError', () => {
 describe('jsonError', () => {
 	it('returns a JSON Response with the right status and verbose envelope', async () => {
 		const app = new Hono()
-		app.get('/x', c => jsonError(c, 409, 'over-claim', { data: { remaining: 1 } }))
+		app.get('/x', c => jsonError(c, 429, 'rate-limited', { data: { retryAfterSeconds: 1 } }))
 
 		const res = await app.fetch(new Request('http://t/x'))
-		expect(res.status).toBe(409)
+		expect(res.status).toBe(429)
 		expect(res.headers.get('content-type')).toMatch(/application\/json/)
-		const body = (await res.json()) as { error: { code: string; message: string; data?: { remaining: number } } }
-		expect(body.error.code).toBe('over-claim')
-		expect(body.error.data?.remaining).toBe(1)
+		const body = (await res.json()) as { error: { code: string; message: string; data?: { retryAfterSeconds: number } } }
+		expect(body.error.code).toBe('rate-limited')
+		expect(body.error.data?.retryAfterSeconds).toBe(1)
 	})
 })
