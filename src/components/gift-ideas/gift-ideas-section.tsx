@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { CircleHelp } from 'lucide-react'
 import { useState } from 'react'
@@ -23,12 +23,12 @@ type SectionProps = {
 	sources: Array<GiftIdeasSource>
 }
 
-// Fetches and renders the section. Renders nothing while loading, on error,
-// or when there are no ideas: most viewers have no ideas list for the
-// recipient, so a skeleton would flash and collapse on nearly every visit.
+// Fetches and renders the section; mount it inside a `<Suspense fallback={null}>`.
+// Renders nothing when there are no ideas: most viewers have no ideas list for
+// the recipient, so there is no skeleton or empty state to flash.
 export function GiftIdeasOnList({ listId, recipientName }: { listId: number; recipientName: string }) {
-	const { data: sources } = useQuery(listGiftIdeasQueryOptions(listId))
-	if (!sources || sources.length === 0) return null
+	const { data: sources } = useSuspenseQuery(listGiftIdeasQueryOptions(listId))
+	if (sources.length === 0) return null
 	return <GiftIdeasSection listId={listId} recipientName={recipientName} sources={sources} />
 }
 

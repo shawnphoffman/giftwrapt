@@ -43,14 +43,20 @@ export function listAddonsQueryOptions(listId: number) {
 	})
 }
 
-// The viewer's gift ideas for this list's recipient (plan 18b). Empty for
-// nearly everyone, so callers render nothing while it loads.
+// The viewer's gift ideas for this list's recipient (plan 18b). Read with a
+// suspense query so the section is server-rendered with the page (no pop-in
+// or layout shift). A failure degrades to "no ideas" rather than throwing,
+// so this optional section can never break the list page.
 export function listGiftIdeasQueryOptions(listId: number) {
 	return queryOptions<Array<GiftIdeasSource>>({
 		queryKey: listDetailKeys.giftIdeas(listId),
 		queryFn: async () => {
-			const result = await getGiftIdeasForList({ data: { listId } })
-			return result.sources
+			try {
+				const result = await getGiftIdeasForList({ data: { listId } })
+				return result.sources
+			} catch {
+				return []
+			}
 		},
 		staleTime: STALE_TIME,
 		gcTime: GC_TIME,

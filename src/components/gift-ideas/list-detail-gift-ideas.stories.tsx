@@ -185,7 +185,9 @@ function ListDetailPreview({ recipient = { kind: 'user', name: 'Linda' } }: Prev
 				<ItemList listId={LIST_ID} />
 			</Suspense>
 
-			<GiftIdeasOnList listId={LIST_ID} recipientName={recipient.name} />
+			<Suspense fallback={null}>
+				<GiftIdeasOnList listId={LIST_ID} recipientName={recipient.name} />
+			</Suspense>
 
 			<Suspense fallback={<ListAddonsSectionSkeleton />}>
 				<ListAddonsSection listId={LIST_ID} />

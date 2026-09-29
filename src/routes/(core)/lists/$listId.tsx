@@ -160,7 +160,9 @@ function ListDetailBody({ listId }: { listId: number }) {
 						/>
 					</Suspense>
 					{/* GIFT IDEAS: the viewer's ideas for this recipient (renders nothing without any) */}
-					<GiftIdeasOnList listId={list.id} recipientName={recipientName} />
+					<Suspense fallback={null}>
+						<GiftIdeasOnList listId={list.id} recipientName={recipientName} />
+					</Suspense>
 					{/* OFF-LIST GIFTS */}
 					<Suspense fallback={<ListAddonsSectionSkeleton />}>
 						<ListAddonsSection listId={list.id} />
