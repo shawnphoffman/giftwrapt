@@ -36,7 +36,11 @@ import { authMiddleware } from '@/middleware/auth'
 
 const checkSession = createServerFn({ method: 'GET' }).handler(async () => {
 	const session = await auth.api.getSession({ headers: getRequestHeaders() })
-	return session ? { authed: true as const } : { authed: false as const }
+	if (!session) return { authed: false as const }
+	// Just what the sidebar footer shows, so SSR renders the signed-in user
+	// instead of a skeleton (useSession never has data on the server).
+	const { name, email, image } = session.user
+	return { authed: true as const, user: { name, email, image: image ?? null } }
 })
 
 export const Route = createFileRoute('/(core)')({
@@ -55,6 +59,7 @@ export const Route = createFileRoute('/(core)')({
 				search: target && target !== '/' ? { redirect: target } : {},
 			})
 		}
+		return { sessionUser: r.user }
 	},
 	server: {
 		middleware: [authMiddleware],
@@ -144,6 +149,7 @@ const feeds: Array<NavItem> = [
 
 function AuthenticatedRoutes() {
 	const appTitle = useAppSetting('appTitle')
+	const { sessionUser } = Route.useRouteContext()
 	useVersionCheck()
 	// Hide Suggestions in the sidebar when the user has no active recs (or
 	// the feature is off). Cheap COUNT query, refetched on the same cadence
@@ -180,7 +186,7 @@ function AuthenticatedRoutes() {
 				</SidebarContent>
 				<SidebarFooter>
 					<Suspense fallback={<Skeleton className="h-8 w-full" />}>
-						<NavUser />
+						<NavUser initialUser={sessionUser} />
 					</Suspense>
 				</SidebarFooter>
 			</Sidebar>
