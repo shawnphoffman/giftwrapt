@@ -19,11 +19,20 @@ const TABLE_ORDER: Array<keyof BackupFileTables> = [
 	'appSettings',
 	'userRelationships',
 	'guardianships',
+	'dependents',
+	'dependentGuardianships',
+	'userRelationLabels',
+	'customHolidays',
+	'customHolidayReminderLogs',
+	'recommendations',
+	'recommendationSubItemDismissals',
 	'lists',
 	'itemGroups',
 	'items',
+	'itemScrapeJobs',
 	'todoItems',
 	'giftedItems',
+	'giftContributions',
 	'itemComments',
 	'listAddons',
 	'listEditors',
@@ -41,7 +50,7 @@ export default function ImportData() {
 
 	const counts = useMemo(() => {
 		if (!parsed) return null
-		return TABLE_ORDER.map(name => ({ name, count: parsed.tables[name].length }))
+		return TABLE_ORDER.map(name => ({ name, count: parsed.tables[name]?.length ?? 0 }))
 	}, [parsed])
 
 	const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
