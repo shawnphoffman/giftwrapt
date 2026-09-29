@@ -473,11 +473,11 @@ async function persistBatch(
 	// half-rotated batch. The sub-item dismissals table is pruned in the
 	// same transaction so a partial failure can't leave dangling rows.
 	return await db.transaction(async tx => {
+		// `is not distinct from`, not `=`: a self row's dependent_id is NULL,
+		// and `NULL = 'dep'` is NULL, which makes `not (...)` NULL and keeps
+		// the stale self row alive whenever a dependent scope carried.
 		const carriedConds = carriedScopes.map(s =>
-			and(
-				eq(recommendations.analyzerId, s.analyzerId),
-				s.dependentId === null ? sql`${recommendations.dependentId} is null` : eq(recommendations.dependentId, s.dependentId)
-			)
+			and(eq(recommendations.analyzerId, s.analyzerId), sql`${recommendations.dependentId} is not distinct from ${s.dependentId}`)
 		)
 		await tx
 			.delete(recommendations)

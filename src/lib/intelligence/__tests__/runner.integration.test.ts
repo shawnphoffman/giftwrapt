@@ -289,4 +289,51 @@ describe('per-scope carry-forward (skip-before-call)', () => {
 			expect(carried.status).toBe('dismissed')
 		})
 	})
+
+	it("a carried dependent scope does not keep the self scope's stale rows alive", async () => {
+		// Regression: the rotate-delete excluded carried scopes with
+		// `not (analyzer = X and dependent_id = Y)`. For self rows
+		// dependent_id is NULL, so that evaluated to NULL and the stale
+		// self rows survived next to the fresh inserts (duplicate cards).
+		await withRollback(async tx => {
+			const guardian = await makeUser(tx)
+			const dep = await makeDependent(tx, { createdByUserId: guardian.id, name: 'Pippa' })
+			await makeDependentGuardianship(tx, { guardianUserId: guardian.id, dependentId: dep.id })
+
+			const seedClothing = async (listId: number, title: string) => {
+				const item = await makeItem(tx, { listId, title })
+				await tx.insert(itemAiAnalysis).values({
+					itemId: item.id,
+					contentHash: contentHashFor(item.title, item.notes, item.url),
+					analysisVersion: ANALYSIS_VERSION,
+					category: 'clothing',
+					isClothing: true,
+					hasSize: false,
+					hasColor: false,
+				})
+			}
+			const ownList = await makeList(tx, { ownerId: guardian.id, type: 'wishlist', isPrimary: true })
+			await seedClothing(ownList.id, 'Cozy Hoodie')
+			const depList = await makeList(tx, { ownerId: guardian.id, subjectDependentId: dep.id, type: 'wishlist' })
+			await seedClothing(depList.id, 'Rain Jacket')
+
+			await setIntelligenceEnabled(tx, true)
+			await configureAi(tx)
+
+			await generateForUser(tx as unknown as Database, guardian.id, { trigger: 'manual' })
+
+			// Change only the self scope's inputs; the dependent scope carries.
+			await seedClothing(ownList.id, 'Wool Beanie')
+			const second = await generateForUser(tx as unknown as Database, guardian.id, { trigger: 'manual' })
+			expect(second.status).toBe('success')
+
+			const after = await tx.select().from(recommendations).where(eq(recommendations.userId, guardian.id))
+			const selfClothing = after.filter(r => r.analyzerId === 'clothing-prefs' && r.dependentId === null)
+			const depClothing = after.filter(r => r.analyzerId === 'clothing-prefs' && r.dependentId === dep.id)
+			expect(depClothing.length).toBeGreaterThan(0)
+			expect(selfClothing.length).toBeGreaterThan(0)
+			expect(new Set(selfClothing.map(r => r.batchId)).size).toBe(1)
+			expect(new Set(after.map(r => r.fingerprint)).size).toBe(after.length)
+		})
+	})
 })
