@@ -72,6 +72,23 @@ export const PickWithKeyboard: Story = {
 	},
 }
 
+export const PickMidText: Story = {
+	args: { initial: 'ask  today' },
+	play: async ({ canvasElement }) => {
+		const body = within(canvasElement.ownerDocument.body)
+		const textarea = within(canvasElement).getByRole<HTMLTextAreaElement>('combobox')
+		// Caret between the two spaces, then mention someone there.
+		await userEvent.type(textarea, '@sa', { initialSelectionStart: 4, initialSelectionEnd: 4 })
+		await waitFor(() => expect(body.getByRole('option', { name: /Sam Sibling/ })).toBeInTheDocument())
+		await userEvent.keyboard('{Enter}')
+		await expect(textarea.value).toBe('ask @Sam Sibling  today')
+		// The caret lands after the inserted mention, not at the end.
+		await expect(textarea.selectionStart).toBe('ask @Sam Sibling '.length)
+		await userEvent.keyboard('now')
+		await expect(textarea.value).toBe('ask @Sam Sibling now today')
+	},
+}
+
 export const PickWithMouse: Story = {
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement)

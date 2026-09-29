@@ -8,7 +8,7 @@
 // Focus never leaves the textarea: arrow keys, Enter/Tab and Escape are
 // handled in its onKeyDown.
 
-import { type ComponentProps, type KeyboardEvent, useId, useMemo, useRef, useState } from 'react'
+import { type ComponentProps, type KeyboardEvent, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import UserAvatar from '@/components/common/user-avatar'
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
@@ -73,6 +73,24 @@ export function MentionTextarea({
 	const [highlight, setHighlight] = useState(0)
 	// Escape hides the list until the query changes.
 	const [dismissedQuery, setDismissedQuery] = useState<string | null>(null)
+	// Caret to place after a pick, once the picked value has rendered.
+	// Setting it before then is undone when React writes the new value
+	// (which moves the caret to the end). A layout effect runs in the same
+	// commit, before the next keystroke; the old requestAnimationFrame could
+	// fire after a fast typist had already typed a few characters and yank
+	// the caret back to the end of the mention.
+	const pendingCaret = useRef<{ value: string; pos: number } | null>(null)
+
+	useLayoutEffect(() => {
+		const el = ref.current
+		const pending = pendingCaret.current
+		// Wait for the render that carries the picked value; the parent may
+		// commit it after this component's own re-render.
+		if (!el || !pending || el.value !== pending.value) return
+		pendingCaret.current = null
+		el.focus()
+		el.setSelectionRange(pending.pos, pending.pos)
+	})
 
 	const matches = useMemo(() => (active && candidates ? filterMentionCandidates(candidates, active.query) : []), [active, candidates])
 	const open = active !== null && dismissedQuery !== `${active.start}:${active.query}` && (candidates === undefined || matches.length > 0)
@@ -101,11 +119,7 @@ export function MentionTextarea({
 		onValueChange(next)
 		if (!mentions.some(m => m.userId === c.id)) onMentionsChange([...mentions, { userId: c.id, name }])
 		setActive(null)
-		const pos = active.start + inserted.length
-		requestAnimationFrame(() => {
-			el.focus()
-			el.setSelectionRange(pos, pos)
-		})
+		pendingCaret.current = { value: next, pos: active.start + inserted.length }
 	}
 
 	const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
