@@ -1,24 +1,13 @@
-// User relationships - the privacy controls behind axes 1 and 2 from
-// `docs/logic.md`. "Viewers" lists are people who can see MY lists;
-// "owners" lists are people whose lists I can see. Both directions
-// support an explicit deny ("hide my lists from this user" / "hide
-// their lists from me").
+// User relationships - read-only person directory for MCP. The
+// privacy controls behind axes 1 and 2 from `docs/logic.md` are
+// managed on the web only.
 
 import type { Hono } from 'hono'
-import { z } from 'zod'
 
-import {
-	accessLevelEnumValues,
-	getMyPeopleImpl,
-	getOwnersWithRelationshipsForMeImpl,
-	getUsersWithRelationshipsImpl,
-	upsertUserRelationshipsImpl,
-	upsertViewerRelationshipsImpl,
-} from '@/api/_permissions-impl'
+import { getMyPeopleImpl } from '@/api/_permissions-impl'
 import { db } from '@/db'
 
 import type { MobileAuthContext } from '../auth'
-import { jsonError } from '../envelope'
 
 type App = Hono<MobileAuthContext>
 
@@ -33,72 +22,5 @@ export function registerRelationshipRoutes(v1: App): void {
 		const currentUserId = c.get('userId')
 		const people = await getMyPeopleImpl(db, currentUserId)
 		return c.json({ people })
-	})
-
-	v1.get('/me/relationships/viewers', async c => {
-		const currentUserId = c.get('userId')
-		const relationships = await getUsersWithRelationshipsImpl(currentUserId)
-		return c.json({ relationships })
-	})
-
-	v1.get('/me/relationships/owners', async c => {
-		const currentUserId = c.get('userId')
-		const relationships = await getOwnersWithRelationshipsForMeImpl(currentUserId)
-		return c.json({ relationships })
-	})
-
-	v1.post('/me/relationships/viewers', async c => {
-		const ownerUserId = c.get('userId')
-		let body: unknown
-		try {
-			body = await c.req.json()
-		} catch {
-			return jsonError(c, 400, 'invalid-json')
-		}
-		const schema = z.object({
-			relationships: z
-				.array(
-					z.object({
-						viewerUserId: z.string().min(1),
-						accessLevel: z.enum(accessLevelEnumValues),
-						canEdit: z.boolean(),
-					})
-				)
-				.max(500),
-		})
-		const parsed = schema.safeParse(body)
-		if (!parsed.success) return jsonError(c, 400, 'invalid-input', { data: { issues: parsed.error.issues } })
-		const result = await upsertUserRelationshipsImpl({ ownerUserId, input: parsed.data })
-		if (!result.success) {
-			return jsonError(c, 400, result.reason, { data: { viewerUserIds: result.viewerUserIds } })
-		}
-		return c.json({ ok: true, count: parsed.data.relationships.length })
-	})
-
-	v1.post('/me/relationships/owners', async c => {
-		const viewerUserId = c.get('userId')
-		let body: unknown
-		try {
-			body = await c.req.json()
-		} catch {
-			return jsonError(c, 400, 'invalid-json')
-		}
-		const schema = z.object({
-			relationships: z
-				.array(
-					z.object({
-						ownerUserId: z.string().min(1),
-						accessLevel: z.enum(accessLevelEnumValues),
-					})
-				)
-				.max(500),
-		})
-		const parsed = schema.safeParse(body)
-		if (!parsed.success) return jsonError(c, 400, 'invalid-input', { data: { issues: parsed.error.issues } })
-		const result = await upsertViewerRelationshipsImpl({ viewerUserId, input: parsed.data })
-		if (!result.success) {
-			return jsonError(c, 400, result.reason, { data: { ownerUserIds: result.ownerUserIds } })
-		}
-		return c.json({ ok: true, count: parsed.data.relationships.length })
 	})
 }

@@ -9,9 +9,7 @@
 //   1. Mint a key via sign-in, hit a protected endpoint with it -> 200.
 //   2. Revoke the device via `DELETE /v1/me/devices/:keyId`.
 //   3. Same protected endpoint with the same key -> 401 / unauthorized.
-//   4. Two keys minted, `DELETE /v1/me/devices/all` (revoke-all) revokes
-//      both, including the caller's own key (the documented behavior:
-//      iOS sees the next 401 as the global sign-out signal).
+//   4. Revoking another user's device fails and leaves their key live.
 
 import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -102,33 +100,6 @@ describe('mobile apiKey revocation', () => {
 		expect(afterRes.status).toBe(401)
 		const afterBody = (await afterRes.json()) as { error: { code: string } }
 		expect(afterBody.error.code).toBe('unauthorized')
-	})
-
-	it('revoke-all invalidates every key including the caller', async () => {
-		await enableMobileApp(true)
-		await signUpFreshUser(testEmail)
-		const { apiKey: keyA } = await signInForKey('iPhone A')
-		const { apiKey: keyB } = await signInForKey('iPhone B')
-
-		// Both keys work pre-revoke.
-		expect((await getMe(keyA)).status).toBe(200)
-		expect((await getMe(keyB)).status).toBe(200)
-
-		// "Sign out everywhere": DELETE /v1/me/devices (no path param).
-		const revokeAllRes = await mobileApp.fetch(
-			new Request('http://t/api/mobile/v1/me/devices', {
-				method: 'DELETE',
-				headers: { authorization: `Bearer ${keyA}` },
-			})
-		)
-		// Status may be 200 (handler returns the success body before the
-		// caller's own key is checked again) or 401 (caller's own key was
-		// among the revoked rows, depending on order of operations).
-		// Either way, BOTH keys must be dead after the call.
-		expect([200, 401]).toContain(revokeAllRes.status)
-
-		expect((await getMe(keyA)).status).toBe(401)
-		expect((await getMe(keyB)).status).toBe(401)
 	})
 
 	it('revoking another user’s device fails (not-yours / 404)', async () => {

@@ -1,17 +1,16 @@
-// Profile - the authenticated user's own data, plus the user-picker
-// reads that fuel the partner / co-gifter / gift-ideas-recipient
-// pickers in the iOS UI.
+// Profile - the authenticated user's own data (read + partial update),
+// consumed by MCP.
 //
 // Password change stays web-only by product decision (see
 // `docs/architecture/mobile-api.md`).
 
-import { and, asc, eq, ne, notInArray } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import type { Hono } from 'hono'
 import { z } from 'zod'
 
 import { db } from '@/db'
 import type { BirthMonth } from '@/db/schema'
-import { userRelationships, users } from '@/db/schema'
+import { users } from '@/db/schema'
 import { applyPartnerAndAnniversary, ChildPartnerError } from '@/lib/partner-update'
 import { LIMITS } from '@/lib/validation/limits'
 
@@ -135,35 +134,5 @@ export function registerProfileRoutes(v1: App): void {
 			},
 		})
 		return c.json({ user: updated })
-	})
-
-	// GET /v1/users/potential-partners - drives the partner picker AND
-	// the co-gifter picker (the web reuses this query for both).
-	v1.get('/users/potential-partners', async c => {
-		const currentUserId = c.get('userId')
-		const rows = await db.query.users.findMany({
-			where: and(ne(users.id, currentUserId), ne(users.role, 'child')),
-			orderBy: [asc(users.name), asc(users.email)],
-			columns: { id: true, name: true, email: true, image: true, role: true, partnerId: true },
-		})
-		return c.json({ users: rows })
-	})
-
-	// GET /v1/users/gift-ideas-recipients - for guardians choosing the
-	// child a gift-ideas list belongs to.
-	v1.get('/users/gift-ideas-recipients', async c => {
-		const currentUserId = c.get('userId')
-		const blockers = await db
-			.select({ ownerUserId: userRelationships.ownerUserId })
-			.from(userRelationships)
-			.where(and(eq(userRelationships.viewerUserId, currentUserId), eq(userRelationships.accessLevel, 'none')))
-		const blockedOwnerIds = blockers.map(b => b.ownerUserId)
-
-		const recipients = await db.query.users.findMany({
-			where: and(ne(users.id, currentUserId), blockedOwnerIds.length > 0 ? notInArray(users.id, blockedOwnerIds) : undefined),
-			orderBy: [asc(users.name), asc(users.email)],
-			columns: { id: true, name: true, email: true, image: true, role: true },
-		})
-		return c.json({ users: recipients })
 	})
 }

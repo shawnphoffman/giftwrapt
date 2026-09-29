@@ -17,9 +17,9 @@ function AdminPhotoPage() {
 			<CardHeader>
 				<CardTitle className="text-2xl">Photo Extraction</CardTitle>
 				<CardDescription>
-					AI vision extractor behind <code>POST /api/scrape/photo</code> (web) and <code>POST /api/mobile/v1/scrape/photo</code> (iOS). The
-					add-item Upload Photo flow uses the same endpoint to prefill a draft; this page lets admins verify the configured AI model can
-					actually return a ScrapeResult from a photo before the feature is exposed to users.
+					AI vision extractor behind <code>POST /api/scrape/photo</code>. The add-item Upload Photo flow uses the same endpoint to prefill a
+					draft; this page lets admins verify the configured AI model can actually return a ScrapeResult from a photo before the feature is
+					exposed to users.
 				</CardDescription>
 			</CardHeader>
 			<CardContent>

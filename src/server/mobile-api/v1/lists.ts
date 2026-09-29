@@ -5,8 +5,6 @@
 //   PATCH  /v1/lists/:listId               update
 //   DELETE /v1/lists/:listId               delete (or force-archive when claims exist)
 //   POST   /v1/lists/:listId/set-primary   toggle primary
-//   GET    /v1/lists/:listId/edit          editor metadata + groups
-//   GET    /v1/list-summaries?ids=1,2,3    bulk id->name lookup with privacy
 
 import type { Hono } from 'hono'
 
@@ -14,9 +12,6 @@ import {
 	createListImpl,
 	CreateListInputSchema,
 	deleteListImpl,
-	getListForEditingImpl,
-	getListSummariesImpl,
-	GetListSummariesInputSchema,
 	setPrimaryListImpl,
 	SetPrimaryListInputSchema,
 	updateListImpl,
@@ -105,31 +100,5 @@ export function registerListRoutes(v1: App): void {
 			return jsonError(c, status, result.reason)
 		}
 		return c.json({ ok: true })
-	})
-
-	v1.get('/lists/:listId/edit', async c => {
-		const userId = c.get('userId')
-		const listId = c.req.param('listId')
-		const result = await getListForEditingImpl({ userId, listId })
-		if (result.kind === 'error') {
-			const status = result.reason === 'not-found' ? 404 : 403
-			return jsonError(c, status, result.reason)
-		}
-		return c.json({ list: result.list })
-	})
-
-	v1.get('/list-summaries', async c => {
-		const userId = c.get('userId')
-		const idsParam = c.req.query('ids') ?? ''
-		const idList = idsParam
-			.split(',')
-			.map(s => Number(s.trim()))
-			.filter(n => Number.isFinite(n) && n > 0)
-		const parsed = GetListSummariesInputSchema.safeParse({ listIds: idList })
-		if (!parsed.success) {
-			return jsonError(c, 400, 'invalid-input', { data: { issues: parsed.error.issues } })
-		}
-		const result = await getListSummariesImpl({ userId, input: parsed.data })
-		return c.json(result)
 	})
 }

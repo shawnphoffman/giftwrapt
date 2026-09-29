@@ -16,21 +16,16 @@ import { getItemsForListEditImpl } from '@/api/_items-extra-impl'
 import { createItemImpl, CreateItemInputSchema, deleteItemImpl, updateItemImpl, UpdateItemInputSchema } from '@/api/_items-impl'
 import { getMyListsImpl, getPublicListsImpl } from '@/api/_lists-impl'
 import { db } from '@/db'
-import { env } from '@/env'
 import { auth } from '@/lib/auth'
-import { mobileSignInLimiter, scrapeLimiter } from '@/lib/rate-limits'
-import { extractFromPhoto } from '@/lib/scrapers/photo-extract'
+import { mobileSignInLimiter } from '@/lib/rate-limits'
 import { runOneShotScrape } from '@/lib/scrapers/run'
-import { ScrapeProviderError } from '@/lib/scrapers/types'
-import { UploadError } from '@/lib/storage/errors'
-import { assertImageBytes } from '@/lib/storage/image-pipeline'
 import { LIMITS } from '@/lib/validation/limits'
 
 import type { MobileAuthContext } from './auth'
 import { requireMobileApiKey } from './auth'
 import { createPending } from './auth-pending'
 import { mergeSetCookiesToCookieHeader } from './cookies'
-import { listDevicesForUserImpl, revokeAllDevicesImpl, revokeDeviceImpl } from './devices'
+import { listDevicesForUserImpl, revokeDeviceImpl } from './devices'
 import { jsonError } from './envelope'
 import { rateLimit } from './middleware'
 import { registerAuthRoutes } from './v1/auth'
@@ -241,15 +236,6 @@ v1.delete('/me/devices/:keyId', async c => {
 	return c.json({ ok: true })
 })
 
-// DELETE /v1/me/devices - "log out everywhere": revoke all of this
-// user's apiKeys, INCLUDING the calling device. iOS catches the next
-// 401 as the signout signal.
-v1.delete('/me/devices', async c => {
-	const userId = c.get('userId')
-	const result = await revokeAllDevicesImpl(userId)
-	return c.json(result)
-})
-
 // GET /v1/lists - the authenticated user's lists.
 v1.get('/lists', async c => {
 	const userId = c.get('userId')
@@ -394,56 +380,6 @@ v1.get('/scrape', async c => {
 	})
 })
 
-// POST /v1/scrape/photo - vision extraction from a product photo.
-// Same per-user rate limit and AI config as the web POST /api/scrape/photo;
-// the iOS share extension / camera roll picker can post a multipart
-// `file` field here and get back the same ScrapeResult shape it already
-// knows from /v1/scrape (sans imageUrls/finalUrl/siteName).
-v1.post('/scrape/photo', async c => {
-	const userId = c.get('userId')
-
-	const rateResult = scrapeLimiter.consume(`user:${userId}`)
-	if (!rateResult.allowed) {
-		return jsonError(c, 429, 'rate-limited', {
-			data: { retryAfterMs: rateResult.retryAfterMs },
-		})
-	}
-
-	let form: FormData
-	try {
-		form = await c.req.formData()
-	} catch {
-		return jsonError(c, 400, 'invalid-input', { message: 'expected multipart/form-data' })
-	}
-	const file = form.get('file')
-	if (!(file instanceof File)) return jsonError(c, 400, 'invalid-input', { message: 'missing file field' })
-	if (file.size === 0) return jsonError(c, 400, 'invalid-input', { message: 'file is empty' })
-	const maxBytes = env.STORAGE_MAX_UPLOAD_MB * 1024 * 1024
-	if (file.size > maxBytes) return jsonError(c, 413, 'too-large', { data: { maxBytes } })
-
-	let bytes: Uint8Array
-	let mediaType: string
-	try {
-		const ab = await file.arrayBuffer()
-		bytes = new Uint8Array(ab)
-		mediaType = assertImageBytes(Buffer.from(bytes))
-	} catch (err) {
-		if (err instanceof UploadError) return jsonError(c, 400, err.reason, { message: err.message })
-		return jsonError(c, 400, 'invalid-input', { message: err instanceof Error ? err.message : 'invalid image' })
-	}
-
-	try {
-		const { result, ms } = await extractFromPhoto({ bytes, mediaType, signal: c.req.raw.signal })
-		return c.json({ result, ms })
-	} catch (err) {
-		if (err instanceof ScrapeProviderError) {
-			const status = err.code === 'config_missing' ? 503 : err.code === 'timeout' ? 504 : 502
-			return jsonError(c, status, err.code, { message: err.message })
-		}
-		return jsonError(c, 500, 'unknown', { message: err instanceof Error ? err.message : 'unknown error' })
-	}
-})
-
 // =====================================================================
 // Routes split by resource. Each module exports a `register*Routes`
 // fn that attaches its handlers to the shared `v1` Hono instance.
@@ -451,31 +387,23 @@ v1.post('/scrape/photo', async c => {
 // related modules for readability.
 // =====================================================================
 
-import { registerAddonRoutes } from './v1/addons'
 import { registerClaimRoutes } from './v1/claims'
-import { registerCommentRoutes } from './v1/comments'
 import { registerConfigRoutes } from './v1/config'
-import { registerEditorRoutes } from './v1/editors'
 import { registerGroupRoutes } from './v1/groups'
 import { registerItemRoutes } from './v1/items'
 import { registerListRoutes } from './v1/lists'
 import { registerProductRoutes } from './v1/products'
 import { registerProfileRoutes } from './v1/profile'
 import { registerRelationshipRoutes } from './v1/relationships'
-import { registerUploadRoutes } from './v1/uploads'
 import { registerWidgetRoutes } from './v1/widgets'
 
 registerClaimRoutes(v1)
 registerListRoutes(v1)
 registerItemRoutes(v1)
 registerGroupRoutes(v1)
-registerAddonRoutes(v1)
-registerCommentRoutes(v1)
-registerEditorRoutes(v1)
 registerRelationshipRoutes(v1)
 registerProfileRoutes(v1)
 registerConfigRoutes(v1)
-registerUploadRoutes(v1)
 registerWidgetRoutes(v1)
 registerProductRoutes(v1)
 
