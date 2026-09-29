@@ -1,5 +1,36 @@
 # Changelog
 
+## [1.3.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.2.0...v1.3.0) (2026-09-29)
+
+
+### Features
+
+* **changelog:** add in-app What's New page linked from the sidebar ([9dffbfb](https://github.com/shawnphoffman/giftwrapt/commit/9dffbfb0885e55d0c46d7ecd748f9ec7b4937464))
+* **comments:** add [@mentions](https://github.com/mentions) with email notifications ([5160a07](https://github.com/shawnphoffman/giftwrapt/commit/5160a07f80211b897adc42fab3cb0f193760c5ef))
+* **cron:** move email crons later and warn when they run late locally ([d9ca9f0](https://github.com/shawnphoffman/giftwrapt/commit/d9ca9f0e987a6312c7664ba9ca542494be5e2619))
+* **gift-ideas:** show gift ideas on a recipient's list ([08913e6](https://github.com/shawnphoffman/giftwrapt/commit/08913e6c46d9f8379bda0732c31662010eb4d8a8))
+* **intelligence:** judge whole lists for grouping and suggest group additions ([81d4cbc](https://github.com/shawnphoffman/giftwrapt/commit/81d4cbc804b4edac262a2b8dfae4649ecf6e255e))
+* **list-addons:** add url and image to off-list gifts ([4819e1b](https://github.com/shawnphoffman/giftwrapt/commit/4819e1bbd51befbd597dcbed3cc3b28e60069d88))
+* **settings:** add a deployment time zone for calendar-day logic ([dfd0970](https://github.com/shawnphoffman/giftwrapt/commit/dfd097015ddac955c55e7fa39155271975126918))
+* **sidebar:** move What's New link to a full-row button atop the nav group ([b1f1529](https://github.com/shawnphoffman/giftwrapt/commit/b1f15295b4f23ca1f5657bbf7aecaef1ea37b80f))
+* **sidebar:** render the signed-in user in the footer on the server ([b71062e](https://github.com/shawnphoffman/giftwrapt/commit/b71062eb98d8825c2296b2091f477edc48cfb0c4))
+
+
+### Bug Fixes
+
+* **auth:** make useSession hydration-safe ([12a279b](https://github.com/shawnphoffman/giftwrapt/commit/12a279b2559f7b5c6f00a32621740313666d2cae))
+* **backup:** restore every column and table the admin backup dropped ([e0d1568](https://github.com/shawnphoffman/giftwrapt/commit/e0d156847377698960cafec08d32e518299e1507))
+* **changelog:** unwrap inline links in What's New entries ([900c9f8](https://github.com/shawnphoffman/giftwrapt/commit/900c9f8c22495d63da1c46f197a3ea48c3a887ab))
+* **comments:** place the mention caret in the same commit as the pick ([30c66c8](https://github.com/shawnphoffman/giftwrapt/commit/30c66c801961c4f3eda0bcae3107197fec116b59))
+* **gift-ideas:** load ideas with the rest of the list page ([4865c78](https://github.com/shawnphoffman/giftwrapt/commit/4865c7835da315c05d8a9dd0e675f841d363a313))
+* **intelligence:** stop carried dependent scopes keeping stale self recs ([e6fa512](https://github.com/shawnphoffman/giftwrapt/commit/e6fa512811338543b23e5676c61a5e64d95cdc1d))
+* **intelligence:** stop sending the operator digest to the From address ([ad17ba5](https://github.com/shawnphoffman/giftwrapt/commit/ad17ba5631bd2488e5f7497d26079ba89957f68a))
+* **items:** block copying items hidden from the viewer ([fcb9cab](https://github.com/shawnphoffman/giftwrapt/commit/fcb9cab89f4542fb7ec31439faaa4c3178a87c31))
+* **lists:** apply guardian denials and restricted filter to dependents feed ([fb8c33b](https://github.com/shawnphoffman/giftwrapt/commit/fb8c33b0bf0e9e759a50817b4d9fe5706a64c847))
+* **purchases:** stop long recipient names colliding in charts ([5211b29](https://github.com/shawnphoffman/giftwrapt/commit/5211b291ecb2be376f9ede36d464a5327f5277d3))
+* **scripts:** let admin-reset-password set a password for users with none ([231ce22](https://github.com/shawnphoffman/giftwrapt/commit/231ce22f5edaab37bceebd2a431fabf91d16c1f5))
+* **widgets:** compute upcoming holidays from the viewer's local day ([e4b2476](https://github.com/shawnphoffman/giftwrapt/commit/e4b24767472634a761ade437ade8d6951a3a1a61))
+
 ## [1.2.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.1.1...v1.2.0) (2026-09-18)
 
 
