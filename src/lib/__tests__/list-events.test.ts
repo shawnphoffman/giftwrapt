@@ -65,6 +65,12 @@ describe('applyListEventLocally', () => {
 			expect(invalidatedKeys(deps)).toContainEqual(['list-detail', 42, 'addons'])
 			expect(deps.router.invalidate).toHaveBeenCalled()
 		})
+
+		it('invalidates the gift ideas query, so a claimed idea drops out of the section', () => {
+			const deps = makeDeps()
+			applyListEventLocally({ kind: 'addon', listId: 42, addonId: 3 }, deps)
+			expect(invalidatedKeys(deps)).toContainEqual(['list-detail', 42, 'gift-ideas'])
+		})
 	})
 
 	describe('list', () => {

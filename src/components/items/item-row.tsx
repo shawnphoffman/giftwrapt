@@ -1,5 +1,5 @@
 import { useIsMutating } from '@tanstack/react-query'
-import { Copy, Loader2, MoreHorizontal, PackageCheck, PackageX } from 'lucide-react'
+import { Copy, Gift, Loader2, MoreHorizontal, PackageCheck, PackageX } from 'lucide-react'
 import { memo, type ReactNode, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -45,9 +45,16 @@ type Props = {
 	 * indicator for the whole group.
 	 */
 	grouped?: boolean
+	/**
+	 * Renders the row as a gift idea on a recipient's list (an item from a
+	 * gift-ideas list the viewer owns or edits): no overflow menu, no
+	 * comments, and Claim calls `onClaim` (which copies the idea into an
+	 * off-list gift) instead of opening the claim dialog.
+	 */
+	giftIdea?: { onClaim: () => void }
 }
 
-function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
+function ItemRowImpl({ item, lockReason, grouped = false, giftIdea }: Props) {
 	const { data: session } = useSession()
 	const currentUserId = session?.user.id
 	const toggleAvailability = useToggleItemAvailability()
@@ -170,7 +177,7 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 				)}
 				<span className="flex-1" />
 				{isSaving && <Loader2 className="size-3.5 shrink-0 text-muted-foreground animate-spin" aria-label="Saving" />}
-				{currentUserId && !pointsToInternalList && (
+				{currentUserId && !pointsToInternalList && !giftIdea && (
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button variant="outline" size="icon" className="size-7 shrink-0" aria-label="Item actions">
@@ -210,20 +217,27 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 							{item.imageUrl && <ItemImage src={item.imageUrl} alt={item.title} className={cn(dimmed && 'opacity-60')} />}
 							{showClaimAction && (
 								<div className="mt-auto">
-									<ClaimAction
-										itemId={item.id}
-										listId={item.listId}
-										itemTitle={item.title}
-										itemImageUrl={item.imageUrl}
-										itemQuantity={item.quantity}
-										remaining={remaining}
-										remainingForEdit={remainingForEdit}
-										myClaim={myClaim}
-										locked={groupLockedForViewer}
-										claimedCount={claimedCount}
-										unavailable={isUnavailable}
-										unavailableChangedAt={item.availabilityChangedAt}
-									/>
+									{giftIdea ? (
+										<Button size="sm" variant="outline" className="h-7" onClick={giftIdea.onClaim}>
+											<Gift className="size-3.5 transition-colors group-hover/button:text-green-500" />
+											Claim
+										</Button>
+									) : (
+										<ClaimAction
+											itemId={item.id}
+											listId={item.listId}
+											itemTitle={item.title}
+											itemImageUrl={item.imageUrl}
+											itemQuantity={item.quantity}
+											remaining={remaining}
+											remainingForEdit={remainingForEdit}
+											myClaim={myClaim}
+											locked={groupLockedForViewer}
+											claimedCount={claimedCount}
+											unavailable={isUnavailable}
+											unavailableChangedAt={item.availabilityChangedAt}
+										/>
+									)}
 								</div>
 							)}
 						</div>
@@ -231,8 +245,12 @@ function ItemRowImpl({ item, lockReason, grouped = false }: Props) {
 				</div>
 			)}
 
-			{/* COMMENTS */}
-			<ItemComments itemId={item.id} commentCount={item.commentCount} trailing={trailing} />
+			{/* COMMENTS (gift ideas show only the badges) */}
+			{giftIdea ? (
+				<div className="flex justify-end">{trailing}</div>
+			) : (
+				<ItemComments itemId={item.id} commentCount={item.commentCount} trailing={trailing} />
+			)}
 
 			<CopyItemDialog open={copyOpen} onOpenChange={setCopyOpen} itemId={item.id} itemTitle={item.title} />
 		</div>

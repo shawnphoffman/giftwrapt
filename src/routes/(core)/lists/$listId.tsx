@@ -7,6 +7,7 @@ import DependentAvatar from '@/components/common/dependent-avatar'
 import ListTypeTile from '@/components/common/list-type-tile'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import UserAvatar from '@/components/common/user-avatar'
+import { GiftIdeasOnList } from '@/components/gift-ideas/gift-ideas-section'
 import ItemList from '@/components/items/item-list'
 import { ItemListSkeleton } from '@/components/items/item-list-skeleton'
 import { ListAddonsSection } from '@/components/list-addons/list-addons-section'
@@ -158,6 +159,8 @@ function ListDetailBody({ listId }: { listId: number }) {
 							filterBarLeading={<ArchiveRevealBadge archiveInfo={list.archiveInfo} recipientName={recipientName} />}
 						/>
 					</Suspense>
+					{/* GIFT IDEAS: the viewer's ideas for this recipient (renders nothing without any) */}
+					<GiftIdeasOnList listId={list.id} recipientName={recipientName} />
 					{/* OFF-LIST GIFTS */}
 					<Suspense fallback={<ListAddonsSectionSkeleton />}>
 						<ListAddonsSection listId={list.id} />

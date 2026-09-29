@@ -67,6 +67,8 @@ export function applyListEventLocally(event: ListEvent, deps: LocalEventDeps): v
 			return
 		case 'addon':
 			queryClient.invalidateQueries({ queryKey: listDetailKeys.addons(listId) })
+			// A claimed gift idea becomes an addon; drop it from the ideas section.
+			queryClient.invalidateQueries({ queryKey: listDetailKeys.giftIdeas(listId) })
 			// edit view (composite loader) + /purchases/received are loader-driven.
 			void router?.invalidate()
 			return

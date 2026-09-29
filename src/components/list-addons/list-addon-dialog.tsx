@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
+import { copyGiftIdeaToAddon } from '@/api/gift-ideas'
 import { createListAddon, updateListAddon } from '@/api/list-addons'
 import type { AddonOnList } from '@/api/lists'
 import { getCachedScrapeImages } from '@/api/scraper'
@@ -46,8 +47,12 @@ type CreateProps = BaseProps & {
 	// auto-scrapes on open or first blur, but its cached scrape images are
 	// offered in the picker.
 	initialValues?: ListAddonInitialValues
+	// Claiming a gift idea: submitting copies the idea into this off-list gift
+	// and deletes the idea (server-side, one transaction). Pair with
+	// `initialValues` prefilled from the idea.
+	fromIdea?: { ideaItemId: number }
 }
-type EditProps = BaseProps & { mode: 'edit'; addon: AddonOnList; initialValues?: never }
+type EditProps = BaseProps & { mode: 'edit'; addon: AddonOnList; initialValues?: never; fromIdea?: never }
 
 type Props = CreateProps | EditProps
 
@@ -78,6 +83,7 @@ function getErrorMessage(errors: Array<unknown>): string {
 export function ListAddonDialog(props: Props) {
 	const { open, onOpenChange, listId } = props
 	const isEdit = props.mode === 'edit'
+	const fromIdea = props.mode === 'edit' ? undefined : props.fromIdea
 	const router = useRouter()
 	const queryClient = useQueryClient()
 	const [submitting, setSubmitting] = useState(false)
@@ -152,19 +158,30 @@ export function ListAddonDialog(props: Props) {
 
 					toast.success('Off-list gift updated')
 				} else {
-					const result = await createListAddon({
-						data: {
-							listId,
-							description: parsed.data.description.trim(),
-							notes: notes ?? undefined,
-							totalCost: totalCost ?? undefined,
-							url: url ?? undefined,
-							imageUrl: imageUrl ?? undefined,
-						},
-					})
+					const data = {
+						listId,
+						description: parsed.data.description.trim(),
+						notes: notes ?? undefined,
+						totalCost: totalCost ?? undefined,
+						url: url ?? undefined,
+						imageUrl: imageUrl ?? undefined,
+					}
+					const result = fromIdea
+						? await copyGiftIdeaToAddon({ data: { ...data, ideaItemId: fromIdea.ideaItemId } })
+						: await createListAddon({ data })
 
 					if (result.kind === 'error') {
 						switch (result.reason) {
+							case 'idea-not-found':
+							case 'idea-already-used':
+								// Someone else got to it first. Close and refresh so it drops out.
+								toast.error('This idea was already used.')
+								applyListEventLocally({ kind: 'addon', listId, addonId: 0 }, { queryClient, router })
+								onOpenChange(false)
+								break
+							case 'not-allowed':
+								setError('You can no longer edit that gift-ideas list.')
+								break
 							case 'not-visible':
 								setError('You no longer have access to this list.')
 								break
@@ -178,7 +195,7 @@ export function ListAddonDialog(props: Props) {
 						return
 					}
 
-					toast.success('Off-list gift added')
+					toast.success(fromIdea ? 'Idea claimed' : 'Off-list gift added')
 				}
 
 				// Refresh the actor's own surfaces immediately. The gifter list view
@@ -278,11 +295,13 @@ export function ListAddonDialog(props: Props) {
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-h-[85vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>{isEdit ? 'Edit off-list gift' : 'Add off-list gift'}</DialogTitle>
+					<DialogTitle>{isEdit ? 'Edit off-list gift' : fromIdea ? 'Claim idea' : 'Add off-list gift'}</DialogTitle>
 					<DialogDescription>
 						{isEdit
 							? 'Update the details of your off-list gift. The list owner won’t see this.'
-							: "Record something you're gifting that isn't on the list. The list owner won't see this, just other viewers."}
+							: fromIdea
+								? "Claiming adds this to Off-List Gifts on this list so other gifters know you've got it, and removes it from your ideas. The list owner won't see it."
+								: "Record something you're gifting that isn't on the list. The list owner won't see this, just other viewers."}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -461,7 +480,7 @@ export function ListAddonDialog(props: Props) {
 							Cancel
 						</Button>
 						<Button type="submit" disabled={submitting}>
-							{submitting ? 'Saving…' : isEdit ? 'Save' : 'Add'}
+							{submitting ? 'Saving…' : isEdit ? 'Save' : fromIdea ? 'Claim' : 'Add'}
 						</Button>
 					</DialogFooter>
 				</form>

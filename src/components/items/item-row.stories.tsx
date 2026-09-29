@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
-import { expect, userEvent, waitFor, within } from 'storybook/test'
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 
 import { priorityEnumValues } from '@/db/schema/enums'
 
@@ -261,5 +261,39 @@ export const PointsToInternalList: Story = {
 		const canvas = within(canvasElement)
 		await expect(canvas.queryByRole('button', { name: /^claim$/i })).not.toBeInTheDocument()
 		await expect(canvas.queryByRole('button', { name: /item actions/i })).not.toBeInTheDocument()
+	},
+}
+
+// Gift-idea variant: an item from the viewer's gift-ideas list, shown on the
+// recipient's list. No overflow menu, no comments; Claim calls `onClaim`.
+export const AsGiftIdea: Story = {
+	args: {
+		item: makeItemWithGifts({
+			title: 'Pottery wheel class for two',
+			url: null,
+			vendorId: null,
+			price: '140',
+			notes: 'Saturday sessions only.',
+			commentCount: 3,
+		}),
+		giftIdea: { onClaim: fn() },
+	},
+	play: async ({ canvasElement, args }) => {
+		const canvas = within(canvasElement)
+		await expect(canvas.queryByRole('button', { name: 'Item actions' })).not.toBeInTheDocument()
+		await expect(canvas.queryByText(/comment/i)).not.toBeInTheDocument()
+		await userEvent.click(canvas.getByRole('button', { name: /claim/i }))
+		await expect(args.giftIdea?.onClaim).toHaveBeenCalledTimes(1)
+	},
+}
+
+export const AsUnavailableGiftIdea: Story = {
+	args: {
+		item: makeItemWithGifts({ title: 'Discontinued Hario kettle', availability: 'unavailable', price: '95' }),
+		giftIdea: { onClaim: fn() },
+	},
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement)
+		await expect(canvas.queryByRole('button', { name: /claim/i })).not.toBeInTheDocument()
 	},
 }

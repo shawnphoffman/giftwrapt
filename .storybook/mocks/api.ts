@@ -218,6 +218,17 @@ export const getPurchaseSummary = (): Promise<{ items: Array<unknown>; partner: 
 
 // @/api/list-addons
 export const createListAddon = ok
+
+// @/api/gift-ideas
+export type GiftIdeasSource = {
+	list: { id: number; name: string }
+	owner: { id: string; name: string | null; email: string; image: string | null }
+	viewerIsOwner: boolean
+	items: Array<unknown>
+}
+export const getGiftIdeasForList = (): Promise<{ kind: 'ok'; sources: Array<GiftIdeasSource> }> =>
+	Promise.resolve({ kind: 'ok', sources: [] })
+export const copyGiftIdeaToAddon = ok
 export const updateListAddon = ok
 export const archiveListAddon = ok
 export const deleteListAddon = ok

@@ -1,5 +1,6 @@
 import { queryOptions } from '@tanstack/react-query'
 
+import { getGiftIdeasForList, type GiftIdeasSource } from '@/api/gift-ideas'
 import { type AddonOnList, getListAddons, getListHeader, type ListHeader } from '@/api/lists'
 
 // staleTime: 0 to match the items / list-detail policy. SSE-driven
@@ -13,6 +14,7 @@ export const listDetailKeys = {
 	byList: (listId: number) => [...listDetailKeys.all, listId] as const,
 	header: (listId: number) => [...listDetailKeys.byList(listId), 'header'] as const,
 	addons: (listId: number) => [...listDetailKeys.byList(listId), 'addons'] as const,
+	giftIdeas: (listId: number) => [...listDetailKeys.byList(listId), 'gift-ideas'] as const,
 }
 
 export function listHeaderQueryOptions(listId: number) {
@@ -35,6 +37,20 @@ export function listAddonsQueryOptions(listId: number) {
 			const result = await getListAddons({ data: { listId: String(listId) } })
 			if (!result) return []
 			return result.addons
+		},
+		staleTime: STALE_TIME,
+		gcTime: GC_TIME,
+	})
+}
+
+// The viewer's gift ideas for this list's recipient (plan 18b). Empty for
+// nearly everyone, so callers render nothing while it loads.
+export function listGiftIdeasQueryOptions(listId: number) {
+	return queryOptions<Array<GiftIdeasSource>>({
+		queryKey: listDetailKeys.giftIdeas(listId),
+		queryFn: async () => {
+			const result = await getGiftIdeasForList({ data: { listId } })
+			return result.sources
 		},
 		staleTime: STALE_TIME,
 		gcTime: GC_TIME,
