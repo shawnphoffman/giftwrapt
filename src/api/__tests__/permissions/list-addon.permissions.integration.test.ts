@@ -1,7 +1,9 @@
 // List-addon (off-list gift) permissions matrix.
 //
 // Surfaces covered:
-//   - createListAddonImpl      (canViewList-gated; owner blocked with 'cannot-add-to-own-list')
+//   - createListAddonImpl      (canViewList-gated; owner blocked with 'cannot-add-to-own-list',
+//                               except on dependent-subject lists: see
+//                               dependent-subject-gifting.permissions.integration.test.ts)
 //   - updateListAddonImpl      (author-only)
 //   - archiveListAddonImpl     (author-only)
 //   - deleteListAddonImpl      (author-only, hard delete)

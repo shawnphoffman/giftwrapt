@@ -62,6 +62,8 @@ function addon(overrides: Partial<ReceivedAddonRow>): ReceivedAddonRow {
 		addonId: 1,
 		description: 'Side gift',
 		totalCost: null,
+		url: null,
+		imageUrl: null,
 		listId: 1,
 		listName: 'Wishlist',
 		gifterNames: [],
@@ -150,6 +152,8 @@ const richSelfAddons: Array<ReceivedAddonRow> = [
 	addon({
 		addonId: 22,
 		description: 'Bouquet of flowers',
+		url: 'https://www.bloomnation.com/florist/corner-florist/bouquet-sunrise',
+		imageUrl: 'https://placehold.co/200x200/png?text=Square',
 		listId: 200,
 		listName: 'Birthday',
 		gifterUnits: [diana],

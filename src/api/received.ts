@@ -49,6 +49,8 @@ export type ReceivedAddonRow = {
 	addonId: number
 	description: string
 	totalCost: string | null
+	url: string | null
+	imageUrl: string | null
 	listId: number
 	listName: string
 	gifterNames: Array<string>
@@ -106,6 +108,8 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 			addonId: listAddons.id,
 			description: listAddons.description,
 			totalCost: listAddons.totalCost,
+			url: listAddons.url,
+			imageUrl: listAddons.imageUrl,
 			listId: lists.id,
 			listName: lists.name,
 			gifterId: listAddons.userId,
@@ -143,6 +147,8 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 		addonId: number
 		description: string
 		totalCost: string | null
+		url: string | null
+		imageUrl: string | null
 		listId: number
 		listName: string
 		gifterId: string
@@ -179,6 +185,8 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 				addonId: listAddons.id,
 				description: listAddons.description,
 				totalCost: listAddons.totalCost,
+				url: listAddons.url,
+				imageUrl: listAddons.imageUrl,
 				listId: lists.id,
 				listName: lists.name,
 				gifterId: listAddons.userId,
@@ -267,6 +275,8 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 		addonId: r.addonId,
 		description: r.description,
 		totalCost: r.totalCost,
+		url: r.url,
+		imageUrl: r.imageUrl,
 		listId: r.listId,
 		listName: r.listName,
 		gifterNames: collectNames(r.gifterId, null),
@@ -312,6 +322,8 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 			addonId: r.addonId,
 			description: r.description,
 			totalCost: r.totalCost,
+			url: r.url,
+			imageUrl: r.imageUrl,
 			listId: r.listId,
 			listName: r.listName,
 			gifterNames: collectNames(r.gifterId, null),

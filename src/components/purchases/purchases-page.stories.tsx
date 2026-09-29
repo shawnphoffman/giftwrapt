@@ -128,6 +128,7 @@ const samItems: Array<SummaryItem> = [
 		giftId: null,
 		addonId: 41,
 		title: 'Flowers',
+		itemUrl: 'https://www.bloomnation.com/florist/corner-florist/bouquet-sunrise',
 		cost: 24,
 		totalCostRaw: '24.00',
 		notes: 'Picked up at the corner florist.',

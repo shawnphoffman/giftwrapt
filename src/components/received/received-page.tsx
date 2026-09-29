@@ -236,20 +236,20 @@ export function ReceivedPageContent({ data }: Props) {
 }
 
 function ReceivedDetailRow({ row }: { row: ReceivedRow }) {
+	const imageUrl = row.type === 'item' ? row.itemImageUrl : row.imageUrl
+	const linkUrl = row.type === 'item' ? row.itemUrl : row.url
 	return (
 		<div className="flex items-start gap-3 px-3 py-2.5">
 			<div className="flex flex-col items-center gap-2 shrink-0 mt-0.5">
 				{row.type === 'item' ? <Gift className="size-4 text-muted-foreground" /> : <PackagePlus className="size-4 text-muted-foreground" />}
 			</div>
-			{row.type === 'item' && row.itemImageUrl ? (
-				<img src={httpsUpgrade(row.itemImageUrl)} alt="" className="size-10 object-contain rounded shrink-0" />
-			) : null}
+			{imageUrl ? <img src={httpsUpgrade(imageUrl)} alt="" className="size-10 object-contain rounded shrink-0" /> : null}
 			<div className="flex-1 min-w-0">
 				<div className="flex items-center gap-2 min-w-0">
 					<span className="text-sm font-medium truncate">{row.type === 'item' ? row.itemTitle : row.description}</span>
-					{row.type === 'item' && row.itemUrl && (
+					{linkUrl && (
 						<a
-							href={row.itemUrl}
+							href={linkUrl}
 							target="_blank"
 							rel="noopener noreferrer"
 							className="text-muted-foreground hover:text-foreground shrink-0"

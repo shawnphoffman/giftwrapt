@@ -163,6 +163,9 @@ const listAddonRowSchema = z.object({
 	description: z.string(),
 	totalCost: z.string().nullable(),
 	notes: z.string().nullable(),
+	// Optional so backups taken before these columns existed still restore.
+	url: z.string().nullable().optional(),
+	imageUrl: z.string().nullable().optional(),
 	isArchived: z.boolean(),
 	updatedAt: dateField,
 	createdAt: dateField,

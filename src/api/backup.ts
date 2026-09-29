@@ -553,6 +553,8 @@ export const importAppDataAsAdmin = createServerFn({ method: 'POST' })
 										description: row.description,
 										totalCost: row.totalCost,
 										notes: row.notes,
+										url: row.url ?? null,
+										imageUrl: row.imageUrl ?? null,
 										isArchived: row.isArchived,
 										createdAt: row.createdAt,
 										updatedAt: row.updatedAt,

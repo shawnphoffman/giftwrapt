@@ -92,6 +92,14 @@ async function buildInUseKeySet(): Promise<Set<string>> {
 			if (key) inUse.add(key)
 		}
 	}
+	// Addon product images. Key shape varies (mirrored under
+	// `purchases/addon/<id>/`, or an `items/<id>/` key carried over from a
+	// gift idea), so match on the referenced URL, never on the prefix.
+	const addonImageRows = await db.select({ imageUrl: listAddons.imageUrl }).from(listAddons).where(isNotNull(listAddons.imageUrl))
+	for (const row of addonImageRows) {
+		const key = parseKeyFromUrl(row.imageUrl ?? '', publicBase)
+		if (key) inUse.add(key)
+	}
 	return inUse
 }
 

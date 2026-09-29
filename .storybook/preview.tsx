@@ -9,8 +9,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MotionProvider } from '@/components/motion-provider'
 import { TooltipProvider } from '@/components/ui/tooltip'
 
+import { __setStorybookCachedScrapeImages } from './mocks/api'
 import { __setStorybookSession } from './mocks/auth-client'
 import { MockRouterProvider } from './mocks/router'
+import { __setStorybookScrape } from './mocks/use-scrape-url'
 
 const queryClient = new QueryClient({
 	defaultOptions: {
@@ -20,6 +22,8 @@ const queryClient = new QueryClient({
 
 const withProviders: Decorator = (Story, ctx) => {
 	__setStorybookSession(ctx.parameters.session ?? null)
+	__setStorybookScrape(ctx.parameters.scrape)
+	__setStorybookCachedScrapeImages(ctx.parameters.cachedScrapeImages)
 	return (
 		<QueryClientProvider client={queryClient}>
 			<MockRouterProvider>

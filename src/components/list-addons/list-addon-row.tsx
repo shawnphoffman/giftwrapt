@@ -8,8 +8,10 @@ import { toast } from 'sonner'
 import { deleteListAddon } from '@/api/list-addons'
 import type { AddonOnList } from '@/api/lists'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
+import UrlBadge from '@/components/common/url-badge'
 import UserAvatar from '@/components/common/user-avatar'
 import { DateAdded } from '@/components/items/date-added'
+import { ItemImage } from '@/components/items/item-image'
 import { PriceQuantityBadge } from '@/components/items/price-quantity-badge'
 import {
 	AlertDialog,
@@ -80,6 +82,7 @@ export function ListAddonRow({ addon, listId }: Props) {
 				{/* HEADER */}
 				<div className="flex items-center gap-2 font-medium leading-tight">
 					<span className="truncate min-w-0">{addon.description}</span>
+					<UrlBadge url={addon.url} />
 					<span className="flex-1" />
 					{isMine && (
 						<DropdownMenu>
@@ -102,8 +105,15 @@ export function ListAddonRow({ addon, listId }: Props) {
 					)}
 				</div>
 
-				{/* CONTENT */}
-				{addon.notes && <MarkdownNotes content={addon.notes} className="text-xs text-foreground/75" />}
+				{/* CONTENT (image sits right of the notes, like ItemRow) */}
+				{(addon.notes || addon.imageUrl) && (
+					<div className="flex flex-row gap-3">
+						<div className="flex-1 min-w-0">
+							{addon.notes && <MarkdownNotes content={addon.notes} className="text-xs text-foreground/75" />}
+						</div>
+						{addon.imageUrl && <ItemImage src={addon.imageUrl} alt={addon.description} className="shrink-0" />}
+					</div>
+				)}
 
 				{/* FOOTER */}
 				<div className="flex items-center gap-1.5 text-xs text-muted-foreground">

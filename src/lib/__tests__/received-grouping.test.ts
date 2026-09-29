@@ -35,6 +35,8 @@ function addon(overrides: Partial<ReceivedAddonRow> = {}): ReceivedAddonRow {
 		addonId: 1,
 		description: 'A side gift',
 		totalCost: null,
+		url: null,
+		imageUrl: null,
 		listId: 1,
 		listName: 'Wishlist',
 		gifterNames: [],

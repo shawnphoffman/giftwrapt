@@ -449,7 +449,14 @@ export const acknowledgeOrphanedClaim = (): Promise<AcknowledgeOrphanedClaimResu
 
 // @/api/scraper
 export type CachedScrapeImagesResult = { kind: 'ok'; imageUrls: ReadonlyArray<string> } | { kind: 'miss' }
-export const getCachedScrapeImages = (): Promise<CachedScrapeImagesResult> => Promise.resolve({ kind: 'miss' })
+// Stories seed cached scrape images via the `cachedScrapeImages` parameter
+// (see `.storybook/preview.tsx`); default is a cache miss.
+let cachedScrapeImages: ReadonlyArray<string> = []
+export function __setStorybookCachedScrapeImages(urls: ReadonlyArray<string> | undefined) {
+	cachedScrapeImages = urls ?? []
+}
+export const getCachedScrapeImages = (): Promise<CachedScrapeImagesResult> =>
+	Promise.resolve(cachedScrapeImages.length > 0 ? { kind: 'ok', imageUrls: cachedScrapeImages } : { kind: 'miss' })
 export const scrapeUrl = (): Promise<{ kind: 'error'; reason: string; attempts: number }> =>
 	Promise.resolve({ kind: 'error', reason: 'storybook-stub', attempts: 0 })
 

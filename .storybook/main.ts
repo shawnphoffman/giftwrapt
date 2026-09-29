@@ -67,6 +67,7 @@ const config: StorybookConfig = {
 			'@/api/orphan-claims': path.join(mocksDir, 'api.ts'),
 			'@/api/scraper': path.join(mocksDir, 'api.ts'),
 			'@/lib/auth-client': path.join(mocksDir, 'auth-client.ts'),
+			'@/lib/use-scrape-url': path.join(mocksDir, 'use-scrape-url.ts'),
 			'@/env': path.join(mocksDir, 'env.ts'),
 			// Re-exports `@tanstack/start-server-core`, which has a dynamic
 			// `import("#tanstack-router-entry")` that only resolves when the

@@ -208,6 +208,8 @@ export async function makeListAddon(
 			description: overrides.description ?? `Addon ${nextId()}`,
 			totalCost: overrides.totalCost ?? null,
 			notes: overrides.notes ?? null,
+			url: overrides.url ?? null,
+			imageUrl: overrides.imageUrl ?? null,
 			isArchived: overrides.isArchived ?? false,
 		})
 		.returning()

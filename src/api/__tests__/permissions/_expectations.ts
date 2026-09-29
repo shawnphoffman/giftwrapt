@@ -386,6 +386,9 @@ assertNoDuplicateExpectations(listEditorExpectations)
 // ---------------------------------------------------------------------------
 // - create-addon: gifter-volunteered extras. Owner can NOT addon to their
 //   own list ('cannot-add-to-own-list'); everyone else uses canViewList.
+//   Dependent-subject lists carve the owner out (same as the self-claim
+//   gate); the matrix has no dependent dimension, so that rule lives in
+//   dependent-subject-gifting.permissions.integration.test.ts.
 //   Restricted viewers CAN create addons (logic.md: restricted viewers
 //   still see their own addons and may create new ones).
 //

@@ -130,6 +130,11 @@ export const listAddons = pgTable(
 		description: text('description').notNull(),
 		totalCost: numeric('total_cost'),
 		notes: text('notes'),
+		// Optional product link + image, entered like an item's (scrape on
+		// URL blur, pick from scraped images) or carried over from a gift
+		// idea. No price column: totalCost is what was actually paid.
+		url: text('url'),
+		imageUrl: text('image_url'),
 		// Gifter-private attachments (receipt images / PDF gift receipts).
 		// App caps at LIMITS.PURCHASE_ATTACHMENTS_MAX; see giftedItems.
 		attachmentUrls: text('attachment_urls').array(),

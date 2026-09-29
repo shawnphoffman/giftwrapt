@@ -28,6 +28,8 @@ function makeAddon(overrides: Partial<AddonOnList> = {}): AddonOnList {
 		description: 'A surprise off-list gift',
 		totalCost: null,
 		notes: null,
+		url: null,
+		imageUrl: null,
 		createdAt: NOW,
 		user: otherGifter,
 		...overrides,
@@ -92,5 +94,58 @@ export const DateAddedLastYear: Story = {
 	},
 	parameters: {
 		docs: { description: { story: 'Dates outside the current year include the year so they read unambiguously.' } },
+	},
+}
+
+export const WithUrl: Story = {
+	args: {
+		addon: makeAddon({
+			description: 'Olive wood salad servers',
+			url: 'https://www.etsy.com/listing/1566789/olive-wood-salad-servers',
+		}),
+		listId: 1,
+	},
+}
+
+export const WithImage: Story = {
+	args: {
+		addon: makeAddon({ description: 'Salmon treats', imageUrl: 'https://placehold.co/200x200/png?text=Square' }),
+		listId: 1,
+	},
+}
+
+export const WithUrlImageAndNotes: Story = {
+	args: {
+		addon: makeAddon({
+			userId: viewerUser.id,
+			user: viewerUser,
+			description: 'Framed watercolor of the lake house dock at sunset',
+			totalCost: '85.00',
+			notes: 'Commissioned from the photo Dad took last summer. **Ships the 12th.**',
+			url: 'https://www.etsy.com/listing/1567234901/custom-watercolor-house-portrait',
+			imageUrl: 'https://placehold.co/320x120/png?text=Wide',
+		}),
+		listId: 1,
+	},
+}
+
+export const LongDescriptionAndUrl: Story = {
+	args: {
+		addon: makeAddon({
+			description: 'A very very very very long off-list gift description that has to truncate before it pushes the badges off the row',
+			url: 'https://www.some-extremely-long-retailer-domain-name.example.com/products/category/subcategory/item?variant=12345&utm_source=newsletter',
+			imageUrl: 'https://placehold.co/140x280/png?text=Tall',
+		}),
+		listId: 1,
+	},
+	parameters: {
+		docs: { description: { story: 'Long text truncates; the URL collapses to its domain badge.' } },
+	},
+}
+
+export const BrokenImage: Story = {
+	args: {
+		addon: makeAddon({ description: 'Image that fails to load', imageUrl: 'https://example.invalid/missing.png' }),
+		listId: 1,
 	},
 }

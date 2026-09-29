@@ -42,7 +42,10 @@ import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 // Public types
 // =====================================================================
 
-export type AddonOnList = Pick<ListAddon, 'id' | 'listId' | 'userId' | 'description' | 'totalCost' | 'notes' | 'createdAt'> & {
+export type AddonOnList = Pick<
+	ListAddon,
+	'id' | 'listId' | 'userId' | 'description' | 'totalCost' | 'notes' | 'url' | 'imageUrl' | 'createdAt'
+> & {
 	user: {
 		id: string
 		name: string | null
@@ -415,6 +418,8 @@ export async function getListForViewingImpl(args: {
 				description: true,
 				totalCost: true,
 				notes: true,
+				url: true,
+				imageUrl: true,
 				createdAt: true,
 			},
 			with: {
@@ -599,6 +604,8 @@ export async function getListAddonsImpl(args: { userId: string; listId: string; 
 			description: true,
 			totalCost: true,
 			notes: true,
+			url: true,
+			imageUrl: true,
 			createdAt: true,
 		},
 		with: {
