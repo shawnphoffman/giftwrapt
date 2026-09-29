@@ -7,6 +7,7 @@ import ListTypeIcon from '@/components/common/list-type-icon'
 import PriorityIcon from '@/components/common/priority-icon'
 import UrlBadge from '@/components/common/url-badge'
 import UserAvatar from '@/components/common/user-avatar'
+import { CommentBody } from '@/components/items/comment-body'
 import { Button } from '@/components/ui/button'
 import { TapTooltip, TapTooltipContent, TapTooltipTrigger, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { ListType, Priority } from '@/db/schema/enums'
@@ -189,7 +190,9 @@ export default function ItemConversation(props: ItemConversationProps) {
 													{formatDistanceToNow(new Date(c.createdAt), { addSuffix: true })}
 												</span>
 											</div>
-											<div className="text-sm text-foreground/85 whitespace-pre-wrap line-clamp-3">{c.comment}</div>
+											<div className="text-sm text-foreground/85 whitespace-pre-wrap line-clamp-3">
+												<CommentBody text={c.comment} />
+											</div>
 										</div>
 									</div>
 								)

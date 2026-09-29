@@ -12,7 +12,15 @@ import { z } from 'zod'
 
 import { db, type SchemaDatabase } from '@/db'
 import { itemComments, items, lists, users } from '@/db/schema'
-import { fanOutToGuardians } from '@/lib/guardian-emails'
+import { extractMentionUserIds, mentionsToPlainText, rewriteMentions } from '@/lib/comment-mentions'
+import {
+	listMentionableUsers,
+	type MentionableUser,
+	mentionDisplayName,
+	refreshMentionNames,
+	resolveMentionableUsers,
+} from '@/lib/comment-mentions-server'
+import { getGuardianRecipients } from '@/lib/guardian-emails'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { createLogger } from '@/lib/logger'
 import { canViewListAsAnyone } from '@/lib/permissions'
@@ -69,14 +77,159 @@ export async function getCommentsForItemImpl(args: {
 		},
 	})
 
-	return rows.map(r => ({
-		id: r.id,
-		itemId: r.itemId,
-		comment: r.comment,
-		createdAt: r.createdAt,
-		updatedAt: r.updatedAt,
-		user: r.user,
-	}))
+	return refreshMentionNames(
+		dbx,
+		rows.map(r => ({
+			id: r.id,
+			itemId: r.itemId,
+			comment: r.comment,
+			createdAt: r.createdAt,
+			updatedAt: r.updatedAt,
+			user: r.user,
+		}))
+	)
+}
+
+type ListForComments = { id: number; ownerId: string; subjectDependentId: string | null; isPrivate: boolean; isActive: boolean }
+
+// Resolves the item + list behind a comment write and gates on
+// visibility. Pending-deletion items are excluded (see the comment in
+// createItemCommentImpl).
+async function loadCommentTarget(
+	dbx: SchemaDatabase,
+	userId: string,
+	itemId: number
+): Promise<
+	| { kind: 'ok'; item: { id: number; listId: number; title: string }; list: ListForComments }
+	| { kind: 'error'; reason: 'item-not-found' | 'not-visible' }
+> {
+	const item = await dbx.query.items.findFirst({
+		where: and(eq(items.id, itemId), visibleItemsWhere('editable')),
+		columns: { id: true, listId: true, title: true },
+	})
+	if (!item) return { kind: 'error', reason: 'item-not-found' }
+
+	const list = await dbx.query.lists.findFirst({
+		where: eq(lists.id, item.listId),
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
+	})
+	if (!list) return { kind: 'error', reason: 'item-not-found' }
+
+	const view = await canViewListAsAnyone(userId, list, dbx)
+	if (!view.ok) return { kind: 'error', reason: 'not-visible' }
+	return { kind: 'ok', item, list }
+}
+
+// Validates the @mention tokens in `text` against who can see the list.
+// Valid mentions get the user's current name; anything else (unknown id,
+// banned, can't see the list) is demoted to plain `@Name` text so the
+// stored comment never claims a mention that won't notify anyone.
+async function sanitizeCommentMentions(
+	dbx: SchemaDatabase,
+	list: ListForComments,
+	text: string
+): Promise<{ text: string; mentioned: Map<string, MentionableUser> }> {
+	const mentioned = await resolveMentionableUsers(dbx, list, extractMentionUserIds(text))
+	const clean = rewriteMentions(text, id => {
+		const u = mentioned.get(id)
+		return u ? mentionDisplayName(u) : null
+	})
+	return { text: clean, mentioned }
+}
+
+// People who can be @mentioned on an item: everyone who can read its
+// comments, minus the viewer. Conversation participants and the list
+// owner sort first since they're the likeliest targets, then by name.
+export async function getMentionableUsersForItemImpl(args: {
+	userId: string
+	itemId: number
+	dbx?: SchemaDatabase
+}): Promise<Array<MentionableUser>> {
+	const { userId, itemId, dbx = db } = args
+
+	const target = await loadCommentTarget(dbx, userId, itemId)
+	if (target.kind === 'error') return []
+
+	const [people, participants] = await Promise.all([
+		listMentionableUsers(dbx, target.list),
+		dbx.selectDistinct({ userId: itemComments.userId }).from(itemComments).where(eq(itemComments.itemId, itemId)),
+	])
+	const priority = new Set([target.list.ownerId, ...participants.map(p => p.userId)])
+	return people
+		.filter(p => p.id !== userId)
+		.sort((a, b) => {
+			const pa = priority.has(a.id) ? 0 : 1
+			const pb = priority.has(b.id) ? 0 : 1
+			if (pa !== pb) return pa - pb
+			return mentionDisplayName(a).localeCompare(mentionDisplayName(b))
+		})
+}
+
+type CommentEmail = { userId: string; email: string; username: string; mentioned: boolean }
+
+// Builds and sends the comment notification emails. Recipients:
+//   - each newly @mentioned user, plus their guardians who can also see
+//     the list (the guardian fan-out rule in `guardian-emails.ts`);
+//   - when `notifyOwner`, the list owner and the owner's guardians.
+// One email per person: the commenter is never emailed, and someone who
+// is both mentioned and the owner gets the "mentioned you" version.
+async function sendCommentEmails(args: {
+	dbx: SchemaDatabase
+	list: ListForComments
+	item: { id: number; title: string }
+	commenterId: string
+	commentText: string
+	mentioned: ReadonlyArray<MentionableUser>
+	notifyOwner: boolean
+}): Promise<void> {
+	const { dbx, list, item, commenterId, commentText, mentioned, notifyOwner } = args
+
+	const recipients = new Map<string, CommentEmail>()
+	const add = (r: CommentEmail) => {
+		if (r.userId === commenterId || recipients.has(r.userId)) return
+		recipients.set(r.userId, r)
+	}
+
+	for (const m of mentioned) {
+		const username = m.name || 'there'
+		add({ userId: m.id, email: m.email, username, mentioned: true })
+		const guardians = await getGuardianRecipients(dbx, m.id)
+		for (const g of guardians) {
+			const view = await canViewListAsAnyone(g.id, list, dbx)
+			if (view.ok) add({ userId: g.id, email: g.email, username, mentioned: true })
+		}
+	}
+
+	if (notifyOwner) {
+		const owner = await dbx.query.users.findFirst({
+			where: eq(users.id, list.ownerId),
+			columns: { id: true, name: true, email: true },
+		})
+		if (owner) {
+			const username = owner.name || 'there'
+			add({ userId: owner.id, email: owner.email, username, mentioned: false })
+			for (const g of await getGuardianRecipients(dbx, list.ownerId)) {
+				add({ userId: g.id, email: g.email, username, mentioned: false })
+			}
+		}
+	}
+
+	if (recipients.size === 0) return
+
+	const commenter = await dbx.query.users.findFirst({
+		where: eq(users.id, commenterId),
+		columns: { name: true, email: true },
+	})
+	const commenterName = commenter?.name || commenter?.email || 'Someone'
+	const plain = mentionsToPlainText(commentText)
+
+	for (const r of recipients.values()) {
+		try {
+			await sendNewCommentEmail(r.username, r.email, commenterName, plain, item.title, list.id, item.id, { mentioned: r.mentioned })
+		} catch (err) {
+			commentsLog.error({ err, listId: list.id, itemId: item.id, recipientId: r.userId }, 'failed to send comment notification email')
+		}
+	}
 }
 
 export const CreateCommentInputSchema = z.object({
@@ -102,27 +255,18 @@ export async function createItemCommentImpl(args: {
 	// invisible to its recipient and the only audience that can see it
 	// (gifters with claims) interacts with it through the orphan-alert UI,
 	// which is comment-free by design.
-	const item = await dbx.query.items.findFirst({
-		where: and(eq(items.id, data.itemId), visibleItemsWhere('editable')),
-		columns: { id: true, listId: true, title: true },
-	})
-	if (!item) return { kind: 'error', reason: 'item-not-found' }
+	const target = await loadCommentTarget(dbx, userId, data.itemId)
+	if (target.kind === 'error') return target
+	const { item, list } = target
 
-	const list = await dbx.query.lists.findFirst({
-		where: eq(lists.id, item.listId),
-		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
-	})
-	if (!list) return { kind: 'error', reason: 'item-not-found' }
-
-	const view = await canViewListAsAnyone(userId, list, dbx)
-	if (!view.ok) return { kind: 'error', reason: 'not-visible' }
+	const { text, mentioned } = await sanitizeCommentMentions(dbx, list, data.comment)
 
 	const [inserted] = await dbx
 		.insert(itemComments)
 		.values({
 			itemId: data.itemId,
 			userId,
-			comment: data.comment,
+			comment: text,
 		})
 		.returning()
 
@@ -140,38 +284,19 @@ export async function createItemCommentImpl(args: {
 		user: commenter!,
 	}
 
-	if (list.ownerId !== userId && settings.enableCommentEmails) {
+	if (settings.enableCommentEmails) {
 		try {
-			const owner = await dbx.query.users.findFirst({
-				where: eq(users.id, list.ownerId),
-				columns: { name: true, email: true },
+			await sendCommentEmails({
+				dbx,
+				list,
+				item,
+				commenterId: userId,
+				commentText: text,
+				mentioned: [...mentioned.values()],
+				// The owner (and their guardians) hear about other people's
+				// comments, never their own.
+				notifyOwner: list.ownerId !== userId,
 			})
-			if (owner) {
-				await sendNewCommentEmail(
-					owner.name || 'there',
-					owner.email,
-					commenter?.name || commenter?.email || 'Someone',
-					data.comment,
-					item.title,
-					list.id,
-					item.id
-				)
-				// Skip the commenter themselves when they're also a guardian of
-				// the list owner, otherwise the guardian gets a notification
-				// about their own comment.
-				await fanOutToGuardians(dbx, list.ownerId, async g => {
-					if (g.id === userId) return
-					await sendNewCommentEmail(
-						owner.name || 'there',
-						g.email,
-						commenter?.name || commenter?.email || 'Someone',
-						data.comment,
-						item.title,
-						list.id,
-						item.id
-					)
-				})
-			}
 		} catch (err) {
 			commentsLog.error({ err, listId: list.id, itemId: item.id }, 'failed to send comment notification email')
 		}
@@ -197,12 +322,37 @@ export async function updateItemCommentImpl(args: {
 
 	const existing = await dbx.query.itemComments.findFirst({
 		where: eq(itemComments.id, data.commentId),
-		columns: { id: true, userId: true, itemId: true },
+		columns: { id: true, userId: true, itemId: true, comment: true },
 	})
 	if (!existing) return { kind: 'error', reason: 'not-found' }
 	if (existing.userId !== userId) return { kind: 'error', reason: 'not-yours' }
 
-	await dbx.update(itemComments).set({ comment: data.comment }).where(eq(itemComments.id, data.commentId))
+	// Mentions are validated against the list the author can still see. If
+	// they've lost access (or the item is pending deletion) the edit still
+	// saves, but every mention is demoted to plain text and nobody is
+	// emailed.
+	const target = await loadCommentTarget(dbx, userId, existing.itemId)
+	const { text, mentioned } =
+		target.kind === 'ok'
+			? await sanitizeCommentMentions(dbx, target.list, data.comment)
+			: { text: mentionsToPlainText(data.comment), mentioned: new Map<string, MentionableUser>() }
+	await dbx.update(itemComments).set({ comment: text }).where(eq(itemComments.id, data.commentId))
+
+	// Edits only notify people who weren't already mentioned; the owner
+	// heard about this comment when it was first posted.
+	const previouslyMentioned = new Set(extractMentionUserIds(existing.comment))
+	const added = [...mentioned.values()].filter(u => !previouslyMentioned.has(u.id))
+	if (target.kind === 'ok' && added.length > 0) {
+		const { item, list } = target
+		const settings = await getAppSettings(dbx)
+		if (settings.enableCommentEmails) {
+			try {
+				await sendCommentEmails({ dbx, list, item, commenterId: userId, commentText: text, mentioned: added, notifyOwner: false })
+			} catch (err) {
+				commentsLog.error({ err, listId: list.id, itemId: item.id }, 'failed to send comment notification email')
+			}
+		}
+	}
 
 	const item = await dbx.query.items.findFirst({
 		where: eq(items.id, existing.itemId),

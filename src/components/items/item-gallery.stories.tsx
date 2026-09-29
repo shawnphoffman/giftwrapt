@@ -5,7 +5,7 @@ import { Fragment } from 'react'
 // `@/api/comments` (see .storybook/mocks/api.ts). TypeScript resolves the path
 // to the real API module, so we opt out of the missing-export check.
 // @ts-expect-error - storybook-only mock export
-import { __setStorybookComments } from '@/api/comments'
+import { __setStorybookComments, __setStorybookMentionables } from '@/api/comments'
 import type { GroupSummary, ItemForEditing, ItemWithGifts } from '@/api/lists'
 
 import { withGalleryFrame } from './_stories/decorators'
@@ -97,11 +97,13 @@ __setStorybookComments(COMMENTED.wineGlasses, [
 		4,
 		COMMENTED.wineGlasses,
 		fourthGifter,
-		"I'll take 2 then. Let's coordinate before the party.",
+		"@[Sam Sibling](friend-3) I'll take 2 then. Let's coordinate before the party.",
 		new Date(COMMENT_NOW.getTime() - 3 * DAY + 4 * HOUR)
 	),
 	makeComment(5, COMMENTED.wineGlasses, otherGifter, "Great, I'll cover the last 2. Done!", new Date(COMMENT_NOW.getTime() - 1 * DAY)),
 ])
+// Typing @ in this thread's composer opens the mention typeahead.
+__setStorybookMentionables(COMMENTED.wineGlasses, [thirdGifter, fourthGifter, otherGifter])
 
 __setStorybookComments(COMMENTED.grinder, [
 	makeComment(

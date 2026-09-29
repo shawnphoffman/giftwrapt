@@ -5,7 +5,15 @@ import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { type KeyboardEvent, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
-import { type CommentWithUser, createItemComment, deleteItemComment, getCommentsForItem, updateItemComment } from '@/api/comments'
+import {
+	type CommentWithUser,
+	createItemComment,
+	deleteItemComment,
+	getCommentsForItem,
+	getMentionableUsersForItem,
+	type MentionableUser,
+	updateItemComment,
+} from '@/api/comments'
 import UserAvatar from '@/components/common/user-avatar'
 import {
 	AlertDialog,
@@ -18,10 +26,13 @@ import {
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
 import { useSession } from '@/lib/auth-client'
+import { decodeMentionDraft, encodeMentionDraft, type MentionRef } from '@/lib/comment-mentions'
 import { cn } from '@/lib/utils'
 import { LIMITS } from '@/lib/validation/limits'
+
+import { CommentBody } from './comment-body'
+import { MentionTextarea } from './mention-textarea'
 
 type Props = {
 	itemId: number
@@ -30,6 +41,19 @@ type Props = {
 
 function isSubmitShortcut(e: KeyboardEvent) {
 	return (e.metaKey || e.ctrlKey) && e.key === 'Enter'
+}
+
+// Candidates for the @mention typeahead, fetched the first time a
+// composer on this item opens a mention query.
+function useMentionCandidates(itemId: number) {
+	const [wanted, setWanted] = useState(false)
+	const { data } = useQuery({
+		queryKey: ['item-comment-mentionables', itemId],
+		queryFn: () => getMentionableUsersForItem({ data: { itemId } }),
+		enabled: wanted,
+		staleTime: 60_000,
+	})
+	return { candidates: data, requestCandidates: () => setWanted(true) }
 }
 
 export default function ItemCommentsPanel({ itemId, onCountChange }: Props) {
@@ -45,7 +69,9 @@ export default function ItemCommentsPanel({ itemId, onCountChange }: Props) {
 	})
 
 	const [newComment, setNewComment] = useState('')
+	const [newMentions, setNewMentions] = useState<Array<MentionRef>>([])
 	const [submitting, setSubmitting] = useState(false)
+	const { candidates, requestCandidates } = useMentionCandidates(itemId)
 
 	useEffect(() => {
 		if (comments && onCountChange) onCountChange(comments.length)
@@ -55,9 +81,11 @@ export default function ItemCommentsPanel({ itemId, onCountChange }: Props) {
 		if (!newComment.trim()) return
 		setSubmitting(true)
 		try {
-			const result = await createItemComment({ data: { itemId, comment: newComment.trim() } })
+			const comment = encodeMentionDraft(newComment.trim(), newMentions)
+			const result = await createItemComment({ data: { itemId, comment } })
 			if (result.kind === 'ok') {
 				setNewComment('')
+				setNewMentions([])
 				await refetch()
 				queryClient.invalidateQueries({ queryKey: ['recent', 'conversations'] })
 				toast.success('Comment added')
@@ -83,17 +111,28 @@ export default function ItemCommentsPanel({ itemId, onCountChange }: Props) {
 						exit={{ opacity: 0, y: -4 }}
 						transition={{ duration, ease: 'easeOut' }}
 					>
-						<CommentRow comment={c} currentUserId={currentUserId} onDeleted={refetch} />
+						<CommentRow
+							comment={c}
+							currentUserId={currentUserId}
+							onDeleted={refetch}
+							candidates={candidates}
+							onMentionIntent={requestCandidates}
+						/>
 					</motion.div>
 				))}
 			</AnimatePresence>
 
 			<div className="flex gap-2">
-				<Textarea
-					placeholder="Write a comment (visible to everyone, including the recipient)..."
+				<MentionTextarea
+					placeholder="Write a comment (visible to everyone, including the recipient). Type @ to mention someone..."
+					aria-label="Write a comment"
 					rows={2}
 					value={newComment}
-					onChange={e => setNewComment(e.target.value)}
+					onValueChange={setNewComment}
+					mentions={newMentions}
+					onMentionsChange={setNewMentions}
+					candidates={candidates}
+					onMentionIntent={requestCandidates}
 					onKeyDown={e => {
 						if (isSubmitShortcut(e)) {
 							e.preventDefault()
@@ -116,13 +155,18 @@ function CommentRow({
 	comment,
 	currentUserId,
 	onDeleted,
+	candidates,
+	onMentionIntent,
 }: {
 	comment: CommentWithUser
 	currentUserId: string | undefined
 	onDeleted: () => void
+	candidates: Array<MentionableUser> | undefined
+	onMentionIntent: () => void
 }) {
 	const [editing, setEditing] = useState(false)
-	const [editText, setEditText] = useState(comment.comment)
+	const [editText, setEditText] = useState('')
+	const [editMentions, setEditMentions] = useState<Array<MentionRef>>([])
 	const [saving, setSaving] = useState(false)
 	const [deleteOpen, setDeleteOpen] = useState(false)
 	const prefersReducedMotion = useReducedMotion()
@@ -135,7 +179,9 @@ function CommentRow({
 		if (!editText.trim()) return
 		setSaving(true)
 		try {
-			const result = await updateItemComment({ data: { commentId: comment.id, comment: editText.trim() } })
+			const result = await updateItemComment({
+				data: { commentId: comment.id, comment: encodeMentionDraft(editText.trim(), editMentions) },
+			})
 			if (result.kind === 'ok') {
 				setEditing(false)
 				onDeleted()
@@ -146,6 +192,15 @@ function CommentRow({
 		} finally {
 			setSaving(false)
 		}
+	}
+
+	// Seed the editor from the stored text each time so an edit started
+	// after a refetch reflects the latest version (and current names).
+	const startEditing = () => {
+		const { draft, mentions } = decodeMentionDraft(comment.comment)
+		setEditText(draft)
+		setEditMentions(mentions)
+		setEditing(true)
 	}
 
 	const handleDelete = async () => {
@@ -178,9 +233,14 @@ function CommentRow({
 								transition={{ duration }}
 								className="flex gap-1 mt-1"
 							>
-								<Textarea
+								<MentionTextarea
+									aria-label="Edit comment"
 									value={editText}
-									onChange={e => setEditText(e.target.value)}
+									onValueChange={setEditText}
+									mentions={editMentions}
+									onMentionsChange={setEditMentions}
+									candidates={candidates}
+									onMentionIntent={onMentionIntent}
 									onKeyDown={e => {
 										if (isSubmitShortcut(e)) {
 											e.preventDefault()
@@ -210,14 +270,14 @@ function CommentRow({
 								transition={{ duration }}
 								className="text-foreground/80 whitespace-pre-wrap"
 							>
-								{comment.comment}
+								<CommentBody text={comment.comment} currentUserId={currentUserId} />
 							</motion.p>
 						)}
 					</AnimatePresence>
 				</div>
 				{isOwn && !editing && (
 					<div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-						<Button variant="outline" size="icon" className="size-6" onClick={() => setEditing(true)} aria-label="Edit comment">
+						<Button variant="outline" size="icon" className="size-6" onClick={startEditing} aria-label="Edit comment">
 							<Pencil className="size-3" />
 						</Button>
 						<Button variant="outline" size="icon" className="size-6" onClick={() => setDeleteOpen(true)} aria-label="Delete comment">

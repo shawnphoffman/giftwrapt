@@ -9,6 +9,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import type { z } from 'zod'
 
+import type { MentionableUser } from '@/lib/comment-mentions-server'
 import { loggingMiddleware } from '@/lib/logger'
 import { commentLimiter } from '@/lib/rate-limits'
 import { authMiddleware } from '@/middleware/auth'
@@ -23,18 +24,30 @@ import {
 	type DeleteCommentResult,
 	deleteItemCommentImpl,
 	getCommentsForItemImpl,
+	getMentionableUsersForItemImpl,
 	UpdateCommentInputSchema,
 	type UpdateCommentResult,
 	updateItemCommentImpl,
 } from './_comments-impl'
 
 export type { CommentWithUser, CreateCommentResult, DeleteCommentResult, UpdateCommentResult } from './_comments-impl'
+export type { MentionableUser } from '@/lib/comment-mentions-server'
 
 export const getCommentsForItem = createServerFn({ method: 'GET' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: { itemId: number }) => ({ itemId: data.itemId }))
 	.handler(
 		({ context, data }): Promise<Array<CommentWithUser>> => getCommentsForItemImpl({ userId: context.session.user.id, itemId: data.itemId })
+	)
+
+// Typeahead source for @mentions: everyone who can read this item's
+// comments, minus the viewer.
+export const getMentionableUsersForItem = createServerFn({ method: 'GET' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: { itemId: number }) => ({ itemId: data.itemId }))
+	.handler(
+		({ context, data }): Promise<Array<MentionableUser>> =>
+			getMentionableUsersForItemImpl({ userId: context.session.user.id, itemId: data.itemId })
 	)
 
 export const createItemComment = createServerFn({ method: 'POST' })

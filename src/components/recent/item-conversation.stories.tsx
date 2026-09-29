@@ -50,6 +50,19 @@ type Story = StoryObj<typeof meta>
 
 export const Default: Story = { args: base, decorators: [withItemFrame] }
 
+// Mention tokens render as highlighted names.
+export const WithMentions: Story = {
+	args: {
+		...base,
+		comments: [
+			{ id: 1, comment: '@[Aunt Jo](jo-1) did you already grab this one?', createdAt: hoursAgo(1), user: mom },
+			{ id: 2, comment: 'Not yet! @[Mom](mom-1) want to split it?', createdAt: hoursAgo(2), user: auntJo },
+		],
+		commentCount: 2,
+	},
+	decorators: [withItemFrame],
+}
+
 export const SingleComment: Story = {
 	args: {
 		...base,

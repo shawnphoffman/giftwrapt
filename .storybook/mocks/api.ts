@@ -123,6 +123,14 @@ export function __setStorybookComments(itemId: number, comments: Array<Storybook
 }
 export const getCommentsForItem = ({ data }: { data: { itemId: number } }): Promise<Array<StorybookComment>> =>
 	Promise.resolve(storybookCommentsByItem.get(data.itemId) ?? [])
+// Stories can seed the @mention typeahead via __setStorybookMentionables(itemId, [...]).
+type StorybookMentionable = { id: string; name: string | null; email: string; image: string | null }
+const storybookMentionablesByItem = new Map<number, Array<StorybookMentionable>>()
+export function __setStorybookMentionables(itemId: number, people: Array<StorybookMentionable>) {
+	storybookMentionablesByItem.set(itemId, people)
+}
+export const getMentionableUsersForItem = ({ data }: { data: { itemId: number } }): Promise<Array<StorybookMentionable>> =>
+	Promise.resolve(storybookMentionablesByItem.get(data.itemId) ?? [])
 export const createItemComment = ok
 export const updateItemComment = ok
 export const deleteItemComment = ok

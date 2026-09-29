@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { db } from '@/db'
 import { giftedItems, itemComments, itemGroups, items, lists, userRelationships, users } from '@/db/schema'
 import type { ListType, Priority } from '@/db/schema/enums'
+import { refreshMentionNames } from '@/lib/comment-mentions-server'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { loggingMiddleware } from '@/lib/logger'
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
@@ -339,7 +340,7 @@ export const getRecentConversations = createServerFn({ method: 'GET' })
 		const commenterMap = new Map(commenters.map(c => [c.id, c]))
 
 		const commentsByItem = new Map<number, Array<RecentConversationComment>>()
-		for (const row of commentRows.rows) {
+		for (const row of await refreshMentionNames(db, commentRows.rows)) {
 			const list = commentsByItem.get(row.item_id) ?? []
 			list.push({
 				id: row.id,

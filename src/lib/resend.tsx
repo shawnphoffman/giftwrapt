@@ -73,7 +73,8 @@ export const sendNewCommentEmail = async (
 	comment: string,
 	itemTitle: string,
 	listId: number,
-	itemId: number
+	itemId: number,
+	opts: { mentioned?: boolean } = {}
 ) => {
 	const cfg = await resolveEmailConfig(db)
 	const client = buildClient(cfg)
@@ -97,6 +98,7 @@ export const sendNewCommentEmail = async (
 				listId={listId}
 				itemId={itemId}
 				appTitle={appTitle}
+				mentioned={opts.mentioned}
 			/>
 		),
 	})

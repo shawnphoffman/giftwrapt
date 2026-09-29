@@ -10,9 +10,21 @@ interface TestEmailProps {
 	itemId?: number
 	comment?: string
 	appTitle?: string
+	// True when the recipient was @mentioned rather than being the item's
+	// owner (or the owner's guardian); only the lead-in sentence changes.
+	mentioned?: boolean
 }
 
-export function TestEmail({ username, commenter, listId, itemId, comment, itemTitle, appTitle = 'GiftWrapt' }: TestEmailProps) {
+export function TestEmail({
+	username,
+	commenter,
+	listId,
+	itemId,
+	comment,
+	itemTitle,
+	appTitle = 'GiftWrapt',
+	mentioned = false,
+}: TestEmailProps) {
 	const itemUrl = `${baseUrl}/lists/${listId}#item-${itemId}`
 	return (
 		<Html>
@@ -32,7 +44,8 @@ export function TestEmail({ username, commenter, listId, itemId, comment, itemTi
 							Hello <strong>{username}</strong>,
 						</Text>
 						<Text className="text-[14px] text-black leading-[24px]">
-							<strong>{commenter}</strong> has left a comment on one of your items (
+							<strong>{commenter}</strong> {mentioned ? 'mentioned you in a comment on an item' : 'has left a comment on one of your items'}{' '}
+							(
 							<a className="italic" href={itemUrl}>
 								{itemTitle}
 							</a>
