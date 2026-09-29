@@ -73,6 +73,16 @@ describe('parseChangelog', () => {
 		expect(releases[2].sections.map(s => s.kind)).toEqual(['breaking', 'features'])
 	})
 
+	it('unwraps the GitHub user links release-please adds for @words', () => {
+		const [release] = parseChangelog(`## [1.3.0](https://github.com/o/r/compare/v1.2.0...v1.3.0) (2026-09-29)
+
+### Features
+
+* **comments:** add [@mentions](https://github.com/mentions) with email notifications ([5160a07](https://github.com/o/r/commit/5160a07))
+`)
+		expect(release.sections[0].entries).toEqual([{ area: 'Comments', text: 'Add @mentions with email notifications' }])
+	})
+
 	it('parses the real CHANGELOG without leaking raw markdown', () => {
 		const real = parseChangelog(readFileSync(resolve(__dirname, '../../../CHANGELOG.md'), 'utf8'))
 		expect(real.length).toBeGreaterThan(10)

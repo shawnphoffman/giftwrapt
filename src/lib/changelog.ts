@@ -50,6 +50,10 @@ const ENTRY = /^\* (?:\*\*([^*]+):\*\* )?(.+)$/
 const COMMIT_REF = /\s*\(\[[0-9a-f]{7,40}\]\([^)]*\)\)(?:,\s*closes\s.*)?$/
 // Inline issue / PR refs like " ([#62](url))".
 const ISSUE_REF = /\s*\(\[#\d+\]\([^)]*\)\)/g
+// Any other inline link, unwrapped to its text. release-please links
+// `@word` in a commit subject to that GitHub user, so "add @mentions"
+// arrives as "add [@mentions](https://github.com/mentions)".
+const INLINE_LINK = /\[([^\]]+)\]\(https?:[^)]*\)/g
 
 export function humanizeScope(scope: string): string {
 	const key = scope.trim().toLowerCase()
@@ -59,7 +63,7 @@ export function humanizeScope(scope: string): string {
 }
 
 function cleanText(raw: string): string {
-	const text = raw.replace(COMMIT_REF, '').replace(ISSUE_REF, '').trim()
+	const text = raw.replace(COMMIT_REF, '').replace(ISSUE_REF, '').replace(INLINE_LINK, '$1').trim()
 	return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
