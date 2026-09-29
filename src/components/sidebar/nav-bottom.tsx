@@ -1,11 +1,12 @@
 import { Settings } from 'lucide-react'
 
-import { SidebarGroup, SidebarGroupContent, SidebarMenu } from '@/components/ui/sidebar'
+import { SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuItem } from '@/components/ui/sidebar'
 
 import { ThemeSwitcher } from '../ui/theme-switcher'
 import AdminIntelligenceNavLink from './nav-admin-intelligence-link'
 import AdminNavLink from './nav-admin-link'
 import { NavItem } from './nav-section'
+import NavVersionLink from './nav-version-link'
 import StopImpersonationLink from './stop-impersonation-link'
 
 export default function NavBottom() {
@@ -13,6 +14,9 @@ export default function NavBottom() {
 		<SidebarGroup className="mt-auto">
 			<SidebarGroupContent>
 				<SidebarMenu>
+					<SidebarMenuItem className="group-data-[collapsible=icon]:hidden">
+						<NavVersionLink />
+					</SidebarMenuItem>
 					<StopImpersonationLink />
 					<AdminIntelligenceNavLink />
 					<AdminNavLink />

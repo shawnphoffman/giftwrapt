@@ -12,7 +12,6 @@ import NavBreadcrumbs from '@/components/sidebar/nav-breadcrumbs'
 import type { NavItem } from '@/components/sidebar/nav-section'
 import NavSection from '@/components/sidebar/nav-section'
 import { NavUser } from '@/components/sidebar/nav-user'
-import NavVersionLink from '@/components/sidebar/nav-version-link'
 import {
 	Sidebar,
 	SidebarContent,
@@ -183,7 +182,6 @@ function AuthenticatedRoutes() {
 					<Suspense fallback={<Skeleton className="h-8 w-full" />}>
 						<NavUser />
 					</Suspense>
-					<NavVersionLink />
 				</SidebarFooter>
 			</Sidebar>
 			<SidebarInset>
