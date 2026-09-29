@@ -16,6 +16,7 @@ import { Route as ApiMetricsRouteImport } from './routes/api/metrics'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as coreSuggestionsRouteImport } from './routes/(core)/suggestions'
 import { Route as coreImportRouteImport } from './routes/(core)/import'
+import { Route as coreChangelogRouteImport } from './routes/(core)/changelog'
 import { Route as authSignUpRouteImport } from './routes/(auth)/sign-up'
 import { Route as authSignOutRouteImport } from './routes/(auth)/sign-out'
 import { Route as authSignInRouteImport } from './routes/(auth)/sign-in'
@@ -110,6 +111,11 @@ const coreSuggestionsRoute = coreSuggestionsRouteImport.update({
 const coreImportRoute = coreImportRouteImport.update({
   id: '/import',
   path: '/import',
+  getParentRoute: () => coreRouteRoute,
+} as any)
+const coreChangelogRoute = coreChangelogRouteImport.update({
+  id: '/changelog',
+  path: '/changelog',
   getParentRoute: () => coreRouteRoute,
 } as any)
 const authSignUpRoute = authSignUpRouteImport.update({
@@ -438,6 +444,7 @@ export interface FileRoutesByFullPath {
   '/sign-in': typeof authSignInRoute
   '/sign-out': typeof authSignOutRoute
   '/sign-up': typeof authSignUpRoute
+  '/changelog': typeof coreChangelogRoute
   '/import': typeof coreImportRoute
   '/suggestions': typeof coreSuggestionsRoute
   '/api/health': typeof ApiHealthRoute
@@ -504,6 +511,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof authSignInRoute
   '/sign-out': typeof authSignOutRoute
   '/sign-up': typeof authSignUpRoute
+  '/changelog': typeof coreChangelogRoute
   '/import': typeof coreImportRoute
   '/suggestions': typeof coreSuggestionsRoute
   '/api/health': typeof ApiHealthRoute
@@ -574,6 +582,7 @@ export interface FileRoutesById {
   '/(auth)/sign-in': typeof authSignInRoute
   '/(auth)/sign-out': typeof authSignOutRoute
   '/(auth)/sign-up': typeof authSignUpRoute
+  '/(core)/changelog': typeof coreChangelogRoute
   '/(core)/import': typeof coreImportRoute
   '/(core)/suggestions': typeof coreSuggestionsRoute
   '/api/health': typeof ApiHealthRoute
@@ -645,6 +654,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-out'
     | '/sign-up'
+    | '/changelog'
     | '/import'
     | '/suggestions'
     | '/api/health'
@@ -711,6 +721,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/sign-out'
     | '/sign-up'
+    | '/changelog'
     | '/import'
     | '/suggestions'
     | '/api/health'
@@ -780,6 +791,7 @@ export interface FileRouteTypes {
     | '/(auth)/sign-in'
     | '/(auth)/sign-out'
     | '/(auth)/sign-up'
+    | '/(core)/changelog'
     | '/(core)/import'
     | '/(core)/suggestions'
     | '/api/health'
@@ -919,6 +931,13 @@ declare module '@tanstack/react-router' {
       path: '/import'
       fullPath: '/import'
       preLoaderRoute: typeof coreImportRouteImport
+      parentRoute: typeof coreRouteRoute
+    }
+    '/(core)/changelog': {
+      id: '/(core)/changelog'
+      path: '/changelog'
+      fullPath: '/changelog'
+      preLoaderRoute: typeof coreChangelogRouteImport
       parentRoute: typeof coreRouteRoute
     }
     '/(auth)/sign-up': {
@@ -1449,6 +1468,7 @@ interface coreRouteRouteChildren {
   coreAdminRouteRoute: typeof coreAdminRouteRouteWithChildren
   coreSettingsRouteRoute: typeof coreSettingsRouteRouteWithChildren
   coreTempRouteRoute: typeof coreTempRouteRouteWithChildren
+  coreChangelogRoute: typeof coreChangelogRoute
   coreImportRoute: typeof coreImportRoute
   coreSuggestionsRoute: typeof coreSuggestionsRoute
   coreIndexRoute: typeof coreIndexRoute
@@ -1468,6 +1488,7 @@ const coreRouteRouteChildren: coreRouteRouteChildren = {
   coreAdminRouteRoute: coreAdminRouteRouteWithChildren,
   coreSettingsRouteRoute: coreSettingsRouteRouteWithChildren,
   coreTempRouteRoute: coreTempRouteRouteWithChildren,
+  coreChangelogRoute: coreChangelogRoute,
   coreImportRoute: coreImportRoute,
   coreSuggestionsRoute: coreSuggestionsRoute,
   coreIndexRoute: coreIndexRoute,
