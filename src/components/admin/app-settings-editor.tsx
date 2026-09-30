@@ -498,7 +498,7 @@ export function ParentalRelationsSettingsSection() {
 						Country for Mother's / Father's Day
 					</Label>
 					<p className="text-sm text-muted-foreground">
-						Used to work out the dates for Mother's Day and Father's Day, which vary by country. Defaults to US.
+						Used to work out the dates for Mother's Day, Father's Day, and Valentine's Day, which vary by country. Defaults to US.
 					</p>
 				</div>
 				<Select
@@ -553,7 +553,7 @@ export function ParentalRelationsSettingsSection() {
 				leadDaysKey="valentinesDayReminderLeadDays"
 				emailKey="enableValentinesDayReminderEmails"
 				title="Valentine's Day"
-				description="Reminders for users with a partner, sent before Feb 14"
+				description="Reminders for users with a partner, sent before Valentine's Day in the country above"
 			/>
 			<ReminderFamilyBlock
 				settings={settings}

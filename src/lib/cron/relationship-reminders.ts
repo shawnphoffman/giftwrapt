@@ -5,7 +5,9 @@
 //     occurrence of Mother's Day in `relationshipRemindersCountry`, AND
 //     the user has at least one `userRelationLabels.label='mother'` row.
 //   - Father's Day: same pattern, `label='father'`.
-//   - Valentine's Day: Feb 14 globally; fires for users with
+//   - Valentine's Day: next occurrence of the country's Valentine's
+//     holiday (`valentinesSlug`, e.g. June 12 in Brazil), falling back
+//     to Feb 14 when the catalog has no entry; fires for users with
 //     `partnerId IS NOT NULL`.
 //   - Anniversary: fires for each user whose `partnerAnniversary` date
 //     (month/day) is exactly leadDays away. Both partners get the email
@@ -23,7 +25,7 @@ import type { RelationLabel } from '@/db/schema/enums'
 import { calendarDayInZone } from '@/lib/calendar-day'
 import { isSameUtcDay } from '@/lib/custom-holidays'
 import { fanOutToGuardians } from '@/lib/guardian-emails'
-import { fathersDaySlug, getCatalogEntry, mothersDaySlug, nextOccurrence } from '@/lib/holidays'
+import { fathersDaySlug, getCatalogEntry, mothersDaySlug, nextOccurrence, valentinesSlug } from '@/lib/holidays'
 import { sendParentsDayReminderEmail, sendPartnerAnniversaryReminderEmail, sendValentinesDayReminderEmail } from '@/lib/resend'
 
 export type RelationshipRemindersResult = {
@@ -87,7 +89,12 @@ export async function relationshipRemindersImpl({ db, now: instant, settings }: 
 		)
 	}
 	if (settings.enableValentinesDayReminders && settings.enableValentinesDayReminderEmails) {
-		out.valentinesDayReminders = await sendValentinesReminders(db, now, settings.valentinesDayReminderLeadDays)
+		out.valentinesDayReminders = await sendValentinesReminders(
+			db,
+			now,
+			settings.valentinesDayReminderLeadDays,
+			settings.relationshipRemindersCountry
+		)
 	}
 	if (settings.enableAnniversaryReminders && settings.enableAnniversaryReminderEmails) {
 		out.anniversaryReminders = await sendAnniversaryReminders(db, now, settings.anniversaryReminderLeadDays)
@@ -163,10 +170,11 @@ async function sendParentLabelReminders(
 	return sent
 }
 
-async function sendValentinesReminders(db: SchemaDatabase, now: Date, leadDays: number): Promise<number> {
+async function sendValentinesReminders(db: SchemaDatabase, now: Date, leadDays: number, country: string): Promise<number> {
 	const target = new Date(now)
 	target.setUTCDate(target.getUTCDate() + leadDays)
-	const isValentines = target.getUTCMonth() === 1 && target.getUTCDate() === 14
+	const occurrence = await nextOccurrence(country, valentinesSlug(country), now, db)
+	const isValentines = occurrence ? isSameUtcDay(occurrence, target) : target.getUTCMonth() === 1 && target.getUTCDate() === 14
 	if (!isValentines) return 0
 
 	const rows = await db

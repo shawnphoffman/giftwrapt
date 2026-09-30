@@ -68,7 +68,7 @@ import { db } from '@/db'
 import { customHolidays, userRelationLabels, users } from '@/db/schema'
 import { calendarDayInZone } from '@/lib/calendar-day'
 import { customHolidayNextOccurrence, startOfUtcDay } from '@/lib/custom-holidays'
-import { fathersDaySlug, mothersDaySlug, nextOccurrence } from '@/lib/holidays'
+import { fathersDaySlug, mothersDaySlug, nextOccurrence, valentinesSlug } from '@/lib/holidays'
 import { canViewerSeeCustomHolidayRecipient } from '@/lib/permissions'
 import { getAppSettings } from '@/lib/settings-loader'
 
@@ -89,7 +89,7 @@ export type UpcomingHolidayRow = {
 	//   'christmas'             - hardcoded Dec 25
 	//   'mothers-day:{cc}'      - hardcoded Mother's Day in `cc` country
 	//   'fathers-day:{cc}'      - hardcoded Father's Day in `cc` country
-	//   'valentines'            - hardcoded Feb 14
+	//   'valentines'            - Valentine's in the reminders country (Feb 14 fallback)
 	//   'anniversary:{userId}'  - the signed-in user's partner anniversary
 	id: string
 	source: UpcomingHolidaySource
@@ -240,11 +240,12 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 	}
 
 	if (settings.enableValentinesDayReminders && isPartnered) {
+		const valentines = (await nextOccurrence(country, valentinesSlug(country), viewerDay, dbx)) ?? nextAnnualDate(2, 14, viewerDay)
 		candidates.push({
 			id: 'valentines',
 			source: 'valentines',
 			title: "Valentine's Day",
-			occurrence: nextAnnualDate(2, 14, viewerDay),
+			occurrence: valentines,
 			priority: 1,
 		})
 	}

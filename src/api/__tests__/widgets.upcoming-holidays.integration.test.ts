@@ -156,6 +156,23 @@ describe('getUpcomingHolidaysImpl', () => {
 			})
 		})
 
+		it("uses the reminders country's Valentine's date (Brazil: June 12)", async () => {
+			await withRollback(async tx => {
+				await seedRelationshipCatalog(tx)
+				await tx
+					.insert(holidayCatalog)
+					.values({ country: 'BR', slug: 'namorados', name: 'Dia dos Namorados', rule: '06-12', isEnabled: true })
+					.onConflictDoNothing()
+				await enableAllTenantGates(tx)
+				await setSetting(tx, 'relationshipRemindersCountry', 'BR')
+				const partner = await makeUser(tx)
+				const me = await makeUser(tx, { partnerId: partner.id })
+
+				const rows = await getUpcomingHolidaysImpl({ userId: me.id, limit: 10, now: NOW, dbx: tx })
+				expect(rows.find(r => r.id === 'valentines')?.occurrenceStart).toBe('2026-06-12T00:00:00.000Z')
+			})
+		})
+
 		it("omits Valentine's Day when the user is unpartnered", async () => {
 			await withRollback(async tx => {
 				await seedRelationshipCatalog(tx)
