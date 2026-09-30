@@ -45,14 +45,17 @@ describe('autoArchiveImpl - birthday lists', () => {
 
 			expect(result.birthdayArchived).toBe(1)
 			const after = await tx
-				.select({ id: items.id, isArchived: items.isArchived })
+				.select({ id: items.id, isArchived: items.isArchived, archivedAt: items.archivedAt })
 				.from(items)
 				.where(inArray(items.id, [claimed.id, unclaimed.id]))
-			const byId = new Map(after.map(r => [r.id, r.isArchived]))
-			expect(byId.get(claimed.id)).toBe(true)
+			const byId = new Map(after.map(r => [r.id, r]))
+			expect(byId.get(claimed.id)?.isArchived).toBe(true)
+			// The reveal is stamped with the run's clock.
+			expect(byId.get(claimed.id)?.archivedAt?.toISOString()).toBe('2026-03-08T12:00:00.000Z')
 			// Unclaimed items stay un-archived: archiving them would surface a
 			// "your gift was given" empty state to the recipient.
-			expect(byId.get(unclaimed.id)).toBe(false)
+			expect(byId.get(unclaimed.id)?.isArchived).toBe(false)
+			expect(byId.get(unclaimed.id)?.archivedAt).toBeNull()
 		})
 	})
 
@@ -330,7 +333,9 @@ describe('autoArchiveImpl - christmas lists', () => {
 
 			expect(result.christmasArchived).toBe(0)
 			expect(result.christmasAddonsArchived).toBe(1)
-			expect(result.christmasArchivedDetails).toEqual([{ listId: list.id, ownerId: owner.id, itemCount: 0, addonCount: 1 }])
+			expect(result.revealed).toEqual([
+				expect.objectContaining({ listId: list.id, ownerId: owner.id, family: 'christmas', itemIds: [], addonIds: [addon.id] }),
+			])
 			const [addonRow] = await tx.select().from(listAddons).where(eq(listAddons.id, addon.id))
 			expect(addonRow.isArchived).toBe(true)
 		})
@@ -363,7 +368,7 @@ describe('autoArchiveImpl - holiday lists', () => {
 			})
 
 			expect(result.holidayArchived).toBe(0)
-			expect(result.holidayArchivedDetails).toEqual([])
+			expect(result.revealed).toEqual([])
 			const [row] = await tx.select().from(items).where(eq(items.id, item.id))
 			expect(row.isArchived).toBe(false)
 		})
@@ -394,14 +399,15 @@ describe('autoArchiveImpl - holiday lists', () => {
 			})
 
 			expect(result.holidayArchived).toBe(1)
-			expect(result.holidayArchivedDetails).toHaveLength(1)
-			expect(result.holidayArchivedDetails[0]).toMatchObject({
+			expect(result.revealed).toHaveLength(1)
+			expect(result.revealed[0]).toMatchObject({
 				listId: list.id,
 				ownerId: owner.id,
-				holidayName: 'Easter',
-				itemCount: 1,
-				addonCount: 0,
+				family: 'holiday',
+				occasion: 'Easter',
+				addonIds: [],
 			})
+			expect(result.revealed[0].itemIds).toHaveLength(1)
 			const rows = await tx
 				.select()
 				.from(items)
@@ -520,12 +526,12 @@ describe('autoArchiveImpl - holiday lists', () => {
 
 			expect(result.holidayArchived).toBe(1)
 			expect(result.holidayAddonsArchived).toBe(1)
-			expect(result.holidayArchivedDetails[0]).toMatchObject({
+			expect(result.revealed[0]).toMatchObject({
 				listId: list.id,
 				ownerId: owner.id,
-				holidayName: 'Easter',
-				itemCount: 1,
-				addonCount: 1,
+				occasion: 'Easter',
+				itemIds: [expect.any(Number)],
+				addonIds: [expect.any(Number)],
 			})
 			const [addonRow] = await tx.select().from(listAddons).where(eq(listAddons.id, addon.id))
 			expect(addonRow.isArchived).toBe(true)
@@ -554,12 +560,12 @@ describe('autoArchiveImpl - holiday lists', () => {
 
 			expect(result.holidayArchived).toBe(0)
 			expect(result.holidayAddonsArchived).toBe(1)
-			expect(result.holidayArchivedDetails).toHaveLength(1)
-			expect(result.holidayArchivedDetails[0]).toMatchObject({
+			expect(result.revealed).toHaveLength(1)
+			expect(result.revealed[0]).toMatchObject({
 				listId: list.id,
 				ownerId: owner.id,
-				itemCount: 0,
-				addonCount: 1,
+				itemIds: [],
+				addonIds: [addon.id],
 			})
 			const [addonRow] = await tx.select().from(listAddons).where(eq(listAddons.id, addon.id))
 			expect(addonRow.isArchived).toBe(true)
@@ -610,8 +616,14 @@ describe('autoArchiveImpl - archive deferral', () => {
 
 			expect(result.deferredArchived).toBe(1)
 			expect(result.deferredAddonsArchived).toBe(1)
-			expect(result.deferredDueDetails).toHaveLength(1)
-			expect(result.deferredDueDetails[0]).toMatchObject({ listId: list.id, ownerId: owner.id, type: 'birthday' })
+			expect(result.revealed).toHaveLength(1)
+			expect(result.revealed[0]).toMatchObject({
+				listId: list.id,
+				ownerId: owner.id,
+				family: 'birthday',
+				itemIds: [claimed.id],
+				addonIds: [addon.id],
+			})
 
 			const [itemRow] = await tx.select({ isArchived: items.isArchived }).from(items).where(eq(items.id, claimed.id))
 			expect(itemRow.isArchived).toBe(true)

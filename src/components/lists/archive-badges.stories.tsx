@@ -23,6 +23,7 @@ const inGap: ArchiveBannerInfo = {
 	eventHasPassed: true,
 	inForceWindow: true,
 	lastArchivedAt: null,
+	notApplicableReason: null,
 }
 
 const extended: ArchiveBannerInfo = {

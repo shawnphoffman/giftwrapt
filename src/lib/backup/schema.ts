@@ -146,6 +146,7 @@ const itemRowSchema = z.object({
 	ratingCount: z.number().int().nullable().optional(),
 	priority: z.enum(priorityEnumValues),
 	isArchived: z.boolean(),
+	archivedAt: dateField.nullable().optional(),
 	pendingDeletionAt: dateField.nullable().optional(),
 	quantity: z.number().int(),
 	groupSortOrder: z.number().int().nullable(),

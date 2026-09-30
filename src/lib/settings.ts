@@ -295,11 +295,12 @@ export const appSettingsSchema = z.object({
 	// date picker. 90 keeps annual events from deferring across the next
 	// occurrence's cycle.
 	maxArchiveDeferDays: z.number().int().positive(),
-	// Whether birthday emails (day-of + follow-up) are sent.
+	// Whether birthday emails are sent: the day-of greeting and the reveal
+	// email for birthday/wishlist lists.
 	enableBirthdayEmails: z.boolean(),
-	// Whether Christmas emails are sent.
+	// Whether the reveal email is sent for Christmas lists.
 	enableChristmasEmails: z.boolean(),
-	// Whether generic post-holiday emails are sent on auto-archive.
+	// Whether the reveal email is sent for holiday lists.
 	enableGenericHolidayEmails: z.boolean(),
 	// Whether users can post comments on items.
 	enableComments: z.boolean(),

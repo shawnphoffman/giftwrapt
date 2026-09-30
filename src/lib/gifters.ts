@@ -1,7 +1,7 @@
 // ===============================
 // Gifter name formatting
 // ===============================
-// Shared between the received-gifts UI, the post-birthday email, and the
+// Shared between the received-gifts UI, the reveal email, and the
 // purchase-summary grouping so partner + co-gifter attribution reads
 // consistently: "Alice", "Alice & Bob", "Alice, Bob & Carol". Deduplicates
 // while preserving order so a claim whose primary gifter also appears as a

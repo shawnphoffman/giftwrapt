@@ -7,13 +7,11 @@
 import { and, eq } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
-import { giftedItems, items, lists, users } from '@/db/schema'
+import { users } from '@/db/schema'
 import type { BirthMonth } from '@/db/schema/enums'
-import { addCalendarDays, calendarDayInZone } from '@/lib/calendar-day'
-import { buildPostBirthdayEmailItems } from '@/lib/cron/reveal-emails'
+import { calendarDayInZone } from '@/lib/calendar-day'
 import { fanOutToGuardians } from '@/lib/guardian-emails'
-import { visibleItemsWhere } from '@/lib/item-visibility'
-import { sendBirthdayEmail, sendPostBirthdayEmail } from '@/lib/resend'
+import { sendBirthdayEmail } from '@/lib/resend'
 
 const MONTHS: ReadonlyArray<BirthMonth> = [
 	'january',
@@ -30,11 +28,8 @@ const MONTHS: ReadonlyArray<BirthMonth> = [
 	'december',
 ]
 
-const FOLLOW_UP_DAYS = 14
-
 export type BirthdayEmailsResult = {
 	birthdayEmails: number
-	followUpEmails: number
 }
 
 type Args = {
@@ -68,42 +63,5 @@ export async function birthdayEmailsImpl({ db, now, timeZone }: Args): Promise<B
 		await fanOutToGuardians(db, user.id, g => sendBirthdayEmail(user.name || 'there', g.email))
 	}
 
-	// === Follow-up emails (14 days after birthday) ===
-	const followUpDate = addCalendarDays(today, -FOLLOW_UP_DAYS)
-	const followUpMonth = MONTHS[followUpDate.getUTCMonth()]
-	const followUpDay = followUpDate.getUTCDate()
-
-	const followUpUsers = await db.query.users.findMany({
-		where: and(eq(users.birthMonth, followUpMonth), eq(users.birthDay, followUpDay), eq(users.banned, false)),
-		columns: { id: true, name: true, email: true },
-	})
-
-	let followUpSent = 0
-	for (const user of followUpUsers) {
-		try {
-			const archivedGifts = await db
-				.select({
-					itemTitle: items.title,
-					itemImageUrl: items.imageUrl,
-					gifterId: giftedItems.gifterId,
-					additionalGifterIds: giftedItems.additionalGifterIds,
-				})
-				.from(giftedItems)
-				.innerJoin(items, and(eq(items.id, giftedItems.itemId), visibleItemsWhere('revealed')))
-				.innerJoin(lists, and(eq(lists.id, items.listId), eq(lists.ownerId, user.id)))
-
-			if (archivedGifts.length === 0) continue
-
-			const emailItems = await buildPostBirthdayEmailItems(db, archivedGifts, user.id)
-			if (emailItems.length === 0) continue
-
-			await sendPostBirthdayEmail(user.email, emailItems)
-			followUpSent += 1
-			await fanOutToGuardians(db, user.id, g => sendPostBirthdayEmail(g.email, emailItems))
-		} catch {
-			// Same per-recipient swallow as above.
-		}
-	}
-
-	return { birthdayEmails: birthdaySent, followUpEmails: followUpSent }
+	return { birthdayEmails: birthdaySent }
 }

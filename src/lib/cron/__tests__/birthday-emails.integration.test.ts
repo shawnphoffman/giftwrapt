@@ -1,11 +1,13 @@
-// Integration coverage for the birthday-emails cron impl.
+// Integration coverage for the birthday-emails cron impl (the day-of
+// greeting; the gift summary is the reveal email, covered in
+// reveal-emails.integration.test.ts).
 //
 // The Resend send functions are vi.mock'd at the module boundary so the
 // impl runs end-to-end against the seeded DB but doesn't actually queue
 // network requests. We assert that the right recipients were selected
-// and that the call payloads carry the expected names / item titles.
+// and that the call payloads carry the expected names.
 
-import { makeGiftedItem, makeGuardianship, makeItem, makeList, makeUser } from '@test/integration/factories'
+import { makeGuardianship, makeUser } from '@test/integration/factories'
 import { withRollback } from '@test/integration/setup'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -13,13 +15,12 @@ import { birthdayEmailsImpl } from '../birthday-emails'
 
 vi.mock('@/lib/resend', () => ({
 	sendBirthdayEmail: vi.fn((_name: string, _to: string) => Promise.resolve(null)),
-	sendPostBirthdayEmail: vi.fn((_to: string, _items: ReadonlyArray<unknown>) => Promise.resolve(null)),
 	// isEmailConfigured isn't called by the impl (the route handler
 	// short-circuits on it), but mock it for completeness.
 	isEmailConfigured: vi.fn(() => Promise.resolve(true)),
 }))
 
-const { sendBirthdayEmail, sendPostBirthdayEmail } = await import('@/lib/resend')
+const { sendBirthdayEmail } = await import('@/lib/resend')
 
 describe('birthdayEmailsImpl - day-of', () => {
 	it('sends a birthday email to every non-banned user whose birthday is today', async () => {
@@ -126,111 +127,6 @@ describe('birthdayEmailsImpl - day-of', () => {
 			const result = await birthdayEmailsImpl({ db: tx, now: new Date('2026-04-30T12:00:00Z') })
 			expect(result.birthdayEmails).toBe(1)
 			expect(sendBirthdayEmail).toHaveBeenCalledTimes(2)
-		})
-	})
-})
-
-describe('birthdayEmailsImpl - follow-up (14 days after birthday)', () => {
-	it('sends a follow-up email summarising archived gifted items', async () => {
-		vi.mocked(sendPostBirthdayEmail).mockClear()
-		await withRollback(async tx => {
-			// Recipient was born 14 days before "today" => qualifies for follow-up.
-			const recipient = await makeUser(tx, { name: 'R', birthMonth: 'april', birthDay: 16 })
-			const gifter = await makeUser(tx, { name: 'Gifter' })
-
-			const list = await makeList(tx, { ownerId: recipient.id, type: 'birthday' })
-			// Only ARCHIVED items show up in the summary.
-			const revealed = await makeItem(tx, { listId: list.id, title: 'Telescope', isArchived: true })
-			const stillSecret = await makeItem(tx, { listId: list.id, title: 'Diary', isArchived: false })
-			await makeGiftedItem(tx, { itemId: revealed.id, gifterId: gifter.id })
-			await makeGiftedItem(tx, { itemId: stillSecret.id, gifterId: gifter.id })
-
-			const result = await birthdayEmailsImpl({ db: tx, now: new Date('2026-04-30T12:00:00Z') })
-			expect(result.followUpEmails).toBe(1)
-			expect(sendPostBirthdayEmail).toHaveBeenCalledTimes(1)
-
-			const [to, items] = vi.mocked(sendPostBirthdayEmail).mock.calls[0]
-			expect(to).toBe(recipient.email)
-			expect(items).toHaveLength(1)
-			expect(items[0]).toMatchObject({ title: 'Telescope' })
-			expect(items[0].gifters).toContain('Gifter')
-		})
-	})
-
-	it('does not send a follow-up when the user has no archived gifted items', async () => {
-		vi.mocked(sendPostBirthdayEmail).mockClear()
-		await withRollback(async tx => {
-			const recipient = await makeUser(tx, { birthMonth: 'april', birthDay: 16 })
-			const list = await makeList(tx, { ownerId: recipient.id, type: 'birthday' })
-			// Items, but none archived.
-			await makeItem(tx, { listId: list.id, isArchived: false })
-
-			const result = await birthdayEmailsImpl({ db: tx, now: new Date('2026-04-30T12:00:00Z') })
-			expect(result.followUpEmails).toBe(0)
-			expect(sendPostBirthdayEmail).not.toHaveBeenCalled()
-		})
-	})
-
-	it('credits the partner of the gifter alongside the gifter', async () => {
-		// Mirrors the partner-aware credit predicate from purchases.ts §logic.md.
-		vi.mocked(sendPostBirthdayEmail).mockClear()
-		await withRollback(async tx => {
-			const recipient = await makeUser(tx, { birthMonth: 'april', birthDay: 16 })
-			const partnerOfGifter = await makeUser(tx, { name: 'Partner' })
-			const gifter = await makeUser(tx, { name: 'Gifter', partnerId: partnerOfGifter.id })
-			// `namesForGifter` walks the lookup map and pulls in
-			// `gifter.partnerId` once it sees it on the gifter row, so the
-			// one-directional partnerId set above is sufficient.
-
-			const list = await makeList(tx, { ownerId: recipient.id, type: 'birthday' })
-			const item = await makeItem(tx, { listId: list.id, title: 'Hammock', isArchived: true })
-			await makeGiftedItem(tx, { itemId: item.id, gifterId: gifter.id })
-
-			await birthdayEmailsImpl({ db: tx, now: new Date('2026-04-30T12:00:00Z') })
-			expect(sendPostBirthdayEmail).toHaveBeenCalledTimes(1)
-			const [, items] = vi.mocked(sendPostBirthdayEmail).mock.calls[0]
-			// Gifter is named directly. Partner is reachable via the gifter's
-			// partnerId; the gifters helper should pull them in.
-			expect(items[0].gifters).toContain('Gifter')
-			expect(items[0].gifters).toContain('Partner')
-		})
-	})
-
-	it("does not name the recipient when the gifter is the recipient's partner", async () => {
-		// Kate buys Jeff a birthday present. Jeff's summary must say
-		// "From: Kate", not "From: Kate & Jeff" - he didn't gift himself.
-		vi.mocked(sendPostBirthdayEmail).mockClear()
-		await withRollback(async tx => {
-			const jeff = await makeUser(tx, { name: 'Jeff', birthMonth: 'april', birthDay: 16 })
-			const kate = await makeUser(tx, { name: 'Kate', partnerId: jeff.id })
-
-			const list = await makeList(tx, { ownerId: jeff.id, type: 'birthday' })
-			const item = await makeItem(tx, { listId: list.id, title: 'Hydro Flask', isArchived: true })
-			await makeGiftedItem(tx, { itemId: item.id, gifterId: kate.id })
-
-			await birthdayEmailsImpl({ db: tx, now: new Date('2026-04-30T12:00:00Z') })
-			expect(sendPostBirthdayEmail).toHaveBeenCalledTimes(1)
-			const [, items] = vi.mocked(sendPostBirthdayEmail).mock.calls[0]
-			expect(items[0].gifters).toBe('Kate')
-		})
-	})
-
-	it('does not name the recipient when only the recipient side names the partnership', async () => {
-		// Partnership is a single nullable column (logic.md). Jeff naming Kate
-		// as his partner, with Kate's row unset, must still keep Jeff out.
-		vi.mocked(sendPostBirthdayEmail).mockClear()
-		await withRollback(async tx => {
-			const kate = await makeUser(tx, { name: 'Kate' })
-			const jeff = await makeUser(tx, { name: 'Jeff', birthMonth: 'april', birthDay: 16, partnerId: kate.id })
-
-			const list = await makeList(tx, { ownerId: jeff.id, type: 'birthday' })
-			const item = await makeItem(tx, { listId: list.id, title: 'Hydro Flask', isArchived: true })
-			await makeGiftedItem(tx, { itemId: item.id, gifterId: kate.id })
-
-			await birthdayEmailsImpl({ db: tx, now: new Date('2026-04-30T12:00:00Z') })
-			expect(sendPostBirthdayEmail).toHaveBeenCalledTimes(1)
-			const [, items] = vi.mocked(sendPostBirthdayEmail).mock.calls[0]
-			expect(items[0].gifters).toBe('Kate')
 		})
 	})
 })

@@ -512,7 +512,7 @@ export async function bulkArchiveClaimedItemsImpl(args: { db: SchemaDatabase }):
 	}
 
 	const ids = claimedItemIds.map(r => r.itemId)
-	await dbx.update(items).set({ isArchived: true }).where(inArray(items.id, ids))
+	await dbx.update(items).set({ isArchived: true, archivedAt: new Date() }).where(inArray(items.id, ids))
 
 	return { kind: 'ok', archivedCount: ids.length }
 }

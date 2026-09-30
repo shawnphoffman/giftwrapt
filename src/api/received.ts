@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
-import { and, desc, eq, inArray, isNull } from 'drizzle-orm'
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
@@ -17,6 +17,11 @@ import { authMiddleware } from '@/middleware/auth'
 // This surfaces gifter info that was hidden during spoiler protection.
 // Each gifter is shown alongside their partner when one is set, matching
 // the settings page promise that gifts credit both partners.
+
+// When the item was revealed. Rows revealed before items.archived_at existed
+// and missed the backfill fall back to updated_at (a timestamp without time
+// zone holding UTC, hence the AT TIME ZONE to compare like with like).
+const revealedAt = sql<Date>`coalesce(${items.archivedAt}, ${items.updatedAt} at time zone 'UTC')`.mapWith(items.archivedAt)
 
 // Re-exported from the shared resolver so existing importers keep their
 // `@/api/received` import path.
@@ -94,14 +99,14 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 			gifterId: giftedItems.gifterId,
 			additionalGifterIds: giftedItems.additionalGifterIds,
 			quantity: giftedItems.quantity,
-			archivedAt: items.updatedAt,
+			archivedAt: revealedAt,
 			subjectDependentId: lists.subjectDependentId,
 		})
 		.from(giftedItems)
 		.innerJoin(items, and(eq(items.id, giftedItems.itemId), visibleItemsWhere('revealed')))
 		.innerJoin(lists, eq(lists.id, items.listId))
 		.where(and(eq(lists.ownerId, userId), isNull(lists.subjectDependentId)))
-		.orderBy(desc(items.updatedAt))
+		.orderBy(desc(revealedAt))
 
 	const addonRows = await dbx
 		.select({
@@ -172,13 +177,13 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 				gifterId: giftedItems.gifterId,
 				additionalGifterIds: giftedItems.additionalGifterIds,
 				quantity: giftedItems.quantity,
-				archivedAt: items.updatedAt,
+				archivedAt: revealedAt,
 				subjectDependentId: lists.subjectDependentId,
 			})
 			.from(giftedItems)
 			.innerJoin(items, and(eq(items.id, giftedItems.itemId), visibleItemsWhere('revealed')))
 			.innerJoin(lists, and(eq(lists.id, items.listId), inArray(lists.subjectDependentId, myDependentIds)))
-			.orderBy(desc(items.updatedAt))
+			.orderBy(desc(revealedAt))
 
 		dependentAddonRows = await dbx
 			.select({

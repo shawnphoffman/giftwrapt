@@ -64,6 +64,7 @@ export function makeItem(overrides: Partial<Item> = {}): Item {
 		ratingCount: null,
 		priority: 'normal',
 		isArchived: false,
+		archivedAt: null,
 		pendingDeletionAt: null,
 		quantity: 1,
 		groupSortOrder: null,

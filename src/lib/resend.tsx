@@ -1,6 +1,7 @@
 import { Resend } from 'resend'
 
 import { type Database, db, type SchemaDatabase } from '@/db'
+import type { RevealSummarySection } from '@/emails/reveal-summary-email'
 import { type ResolvedEmailConfig, resolveEmailConfig } from '@/lib/email-config'
 import type { OperatorDigestData } from '@/lib/intelligence/operator-digest'
 import { createLogger } from '@/lib/logger'
@@ -126,23 +127,30 @@ export const sendBirthdayEmail = async (name: string, recipient: string) => {
 	return res
 }
 
-export const sendPostBirthdayEmail = async (recipient: string, items: Array<{ title: string; image_url: string; gifters: string }>) => {
+// The reveal email: sent when a list's gifts are revealed, listing exactly
+// what that reveal uncovered. One sender for every occasion; the caller
+// (`sendRevealEmails`) picks the subject and intro.
+export const sendRevealSummaryEmail = async (
+	recipient: string,
+	args: { subject: string; intro?: string; sections: Array<RevealSummarySection> }
+) => {
 	const cfg = await resolveEmailConfig(db)
 	const client = buildClient(cfg)
 	if (!client || !cfg.isValid) {
-		warnNotConfigured('sendPostBirthdayEmail')
+		warnNotConfigured('sendRevealSummaryEmail')
 		return null
 	}
 	const { appTitle } = await getAppSettings(db)
-	emailLog.info({ kind: 'post-birthday', recipient, itemCount: items.length }, 'sending email')
-	const { default: PostBirthdayEmail } = await import('@/emails/post-birthday-email')
+	const itemCount = args.sections.reduce((n, section) => n + section.items.length, 0)
+	emailLog.info({ kind: 'reveal-summary', recipient, listCount: args.sections.length, itemCount }, 'sending email')
+	const { default: RevealSummaryEmail } = await import('@/emails/reveal-summary-email')
 	const res = await client.emails.send({
 		...commonEmailProps(cfg),
 		to: recipient,
-		subject: 'A look back at your gifts',
-		react: <PostBirthdayEmail items={items} appTitle={appTitle} />,
+		subject: args.subject,
+		react: <RevealSummaryEmail intro={args.intro} sections={args.sections} appTitle={appTitle} />,
 	})
-	logSendResult('post-birthday', recipient, res as SendResult)
+	logSendResult('reveal-summary', recipient, res as SendResult)
 	return res
 }
 
@@ -351,26 +359,6 @@ export const sendOrphanClaimCleanupReminderEmail = async (
 	return res
 }
 
-export const sendPostHolidayEmail = async (recipient: string, args: { holidayName: string; listName: string }) => {
-	const cfg = await resolveEmailConfig(db)
-	const client = buildClient(cfg)
-	if (!client || !cfg.isValid) {
-		warnNotConfigured('sendPostHolidayEmail')
-		return null
-	}
-	const { appTitle } = await getAppSettings(db)
-	emailLog.info({ kind: 'post-holiday', recipient, holidayName: args.holidayName }, 'sending email')
-	const { default: PostHolidayEmail } = await import('@/emails/post-holiday-email')
-	const res = await client.emails.send({
-		...commonEmailProps(cfg),
-		to: recipient,
-		subject: `A look back at your ${args.holidayName} list`,
-		react: <PostHolidayEmail holidayName={args.holidayName} listName={args.listName} appTitle={appTitle} />,
-	})
-	logSendResult('post-holiday', recipient, res as SendResult)
-	return res
-}
-
 // Sends the better-auth password-reset link. Wired into
 // `emailAndPassword.sendResetPassword` in src/lib/auth.ts. Returns
 // `null` (and logs a warning) if email isn't configured so the
@@ -445,7 +433,7 @@ export const TEST_EMAIL_KINDS = [
 	{ value: 'test', label: 'Generic test email' },
 	{ value: 'new-comment', label: 'New comment notification' },
 	{ value: 'birthday', label: 'Happy birthday' },
-	{ value: 'post-birthday', label: 'Post-birthday summary' },
+	{ value: 'post-birthday', label: 'Gift reveal summary (birthday)' },
 	{ value: 'pre-birthday-reminder', label: 'Pre-birthday reminder' },
 	{ value: 'pre-christmas-reminder', label: 'Pre-Christmas reminder' },
 	{ value: 'pre-custom-holiday-reminder', label: 'Pre-custom-holiday reminder' },
@@ -454,7 +442,7 @@ export const TEST_EMAIL_KINDS = [
 	{ value: 'partner-anniversary-reminder', label: 'Partner anniversary reminder' },
 	{ value: 'orphan-claim', label: 'Orphan claim alert' },
 	{ value: 'orphan-claim-cleanup-reminder', label: 'Orphan claim cleanup reminder' },
-	{ value: 'post-holiday', label: 'Post-holiday summary' },
+	{ value: 'post-holiday', label: 'Gift reveal summary (holiday)' },
 	{ value: 'password-reset', label: 'Password reset' },
 	{ value: 'intelligence-operator-digest', label: 'Intelligence operator digest' },
 ] as const
@@ -489,15 +477,26 @@ const buildTestEmailPayload = async (kind: TestEmailKind, appTitle: string): Pro
 			return { subject: '🎉 Happy Birthday, Shawn!', react: <BirthdayEmail name="Shawn" appTitle={appTitle} /> }
 		}
 		case 'post-birthday': {
-			const { default: PostBirthdayEmail } = await import('@/emails/post-birthday-email')
+			const { default: RevealSummaryEmail } = await import('@/emails/reveal-summary-email')
 			return {
 				subject: 'A look back at your gifts',
 				react: (
-					<PostBirthdayEmail
-						items={[
-							{ title: 'Vintage espresso machine', image_url: 'https://placehold.co/600x400', gifters: 'John & Jane' },
-							{ title: 'Cashmere scarf', image_url: 'https://placehold.co/100x200', gifters: 'John' },
-							{ title: 'Leather-bound notebook', image_url: 'https://placehold.co/400x200', gifters: 'Jane, Alex & Priya' },
+					<RevealSummaryEmail
+						intro="We hope you had a wonderful birthday."
+						sections={[
+							{
+								listName: 'Birthday Wishes',
+								items: [
+									{ title: 'Vintage espresso machine', image_url: 'https://placehold.co/600x400', gifters: 'John & Jane' },
+									{ title: 'Cashmere scarf', image_url: 'https://placehold.co/100x200', gifters: 'John' },
+									{
+										title: 'Homemade jam',
+										image_url: 'https://placehold.co/80x80?text=Gift',
+										gifters: 'Jane, Alex & Priya',
+										offList: true,
+									},
+								],
+							},
 						]}
 						appTitle={appTitle}
 					/>
@@ -588,10 +587,24 @@ const buildTestEmailPayload = async (kind: TestEmailKind, appTitle: string): Pro
 			}
 		}
 		case 'post-holiday': {
-			const { default: PostHolidayEmail } = await import('@/emails/post-holiday-email')
+			const { default: RevealSummaryEmail } = await import('@/emails/reveal-summary-email')
 			return {
-				subject: "A look back at your Mother's Day list",
-				react: <PostHolidayEmail holidayName="Mother's Day" listName="Mother's Day Wishes" appTitle={appTitle} />,
+				subject: "A look back at your Mother's Day gifts",
+				react: (
+					<RevealSummaryEmail
+						intro="We hope your Mother's Day was wonderful."
+						sections={[
+							{
+								listName: "Mother's Day Wishes",
+								items: [
+									{ title: 'Ceramic planter', image_url: 'https://placehold.co/600x400', gifters: 'Alex' },
+									{ title: 'Flowers', image_url: 'https://placehold.co/80x80?text=Gift', gifters: 'Priya', offList: true },
+								],
+							},
+						]}
+						appTitle={appTitle}
+					/>
+				),
 			}
 		}
 		case 'password-reset': {

@@ -184,7 +184,7 @@ export function ChristmasSettingsSection() {
 						<Label htmlFor="enableChristmasEmails" className="text-base">
 							Enable Christmas Emails
 						</Label>
-						<p className="text-sm text-muted-foreground">Send Christmas-related emails to users</p>
+						<p className="text-sm text-muted-foreground">Email owners who gave them what when Christmas gifts are revealed</p>
 					</div>
 					<Switch
 						id="enableChristmasEmails"
@@ -282,7 +282,7 @@ export function GenericHolidaySettingsSection() {
 						<Label htmlFor="enableGenericHolidayEmails" className="text-base">
 							Enable Holiday Emails
 						</Label>
-						<p className="text-sm text-muted-foreground">Send a generic post-holiday email when items are auto-archived on holiday lists</p>
+						<p className="text-sm text-muted-foreground">Email owners who gave them what when gifts on a holiday list are revealed</p>
 					</div>
 					<Switch
 						id="enableGenericHolidayEmails"
@@ -356,7 +356,7 @@ export function BirthdaySettingsSection() {
 				<DaysSetting
 					id="archiveDaysAfterBirthday"
 					label="Archive After Birthday"
-					description="Days after a birthday to automatically archive claimed items on birthday/wishlist lists"
+					description="Days after a birthday to reveal claimed gifts on birthday/wishlist lists (and send the gift summary email)"
 					value={settings.archiveDaysAfterBirthday}
 					disabled={!settings.enableBirthdayLists}
 					onCommit={value => handleSettingChange('archiveDaysAfterBirthday', value)}
@@ -369,7 +369,9 @@ export function BirthdaySettingsSection() {
 						<Label htmlFor="enableBirthdayEmails" className="text-base">
 							Enable Birthday Emails
 						</Label>
-						<p className="text-sm text-muted-foreground">Send day-of birthday greetings and the post-birthday gift summary</p>
+						<p className="text-sm text-muted-foreground">
+							Send day-of birthday greetings, and email who gave what when birthday gifts are revealed
+						</p>
 					</div>
 					<Switch
 						id="enableBirthdayEmails"

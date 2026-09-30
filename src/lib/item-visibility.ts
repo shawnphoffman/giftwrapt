@@ -26,7 +26,7 @@ import { items } from '@/db/schema'
  *
  * - 'revealed'          archived=true AND pending-deletion IS NULL.
  *   Only items the recipient has revealed. Used by the received-gifts
- *   query and the post-birthday gifter summary.
+ *   query.
  *
  * - 'pending-deletion'  pending-deletion IS NOT NULL.
  *   The orphan-claim surface set: items the recipient deleted that

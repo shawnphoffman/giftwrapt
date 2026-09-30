@@ -23,6 +23,11 @@ export type ArchiveBannerInfo = {
 	eventHasPassed: boolean
 	inForceWindow: boolean
 	lastArchivedAt: string | null
+	// Why a list that would otherwise auto-reveal doesn't. Only set for the
+	// one case the UI can help with: a birthday/wishlist list whose owner has
+	// no birthday, which drives the "add your birthday" banner. Null for
+	// every other not-applicable list and whenever `applies` is true.
+	notApplicableReason: 'owner-no-birthday' | null
 }
 
 const NOT_APPLICABLE: ArchiveBannerInfo = {
@@ -34,6 +39,7 @@ const NOT_APPLICABLE: ArchiveBannerInfo = {
 	eventHasPassed: false,
 	inForceWindow: false,
 	lastArchivedAt: null,
+	notApplicableReason: null,
 }
 
 const iso = (d: Date | null): string | null => (d ? d.toISOString() : null)
@@ -80,6 +86,13 @@ export async function loadArchiveBannerInfo(listId: number, dbx: SchemaDatabase 
 		dbx
 	)
 
+	const ownerHasNoBirthday =
+		!schedule.applies &&
+		list.isActive &&
+		!list.subjectDependentId &&
+		(list.type === 'birthday' || list.type === 'wishlist') &&
+		(!owner.birthMonth || !owner.birthDay)
+
 	return {
 		applies: schedule.applies,
 		eventDate: iso(schedule.eventDate),
@@ -89,5 +102,6 @@ export async function loadArchiveBannerInfo(listId: number, dbx: SchemaDatabase 
 		eventHasPassed: schedule.eventHasPassed,
 		inForceWindow: schedule.inForceWindow,
 		lastArchivedAt: iso(schedule.lastArchivedAt),
+		notApplicableReason: ownerHasNoBirthday ? 'owner-no-birthday' : null,
 	}
 }

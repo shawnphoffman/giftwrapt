@@ -4,12 +4,10 @@
 // handler is wrapped by `recordCronRun()` at the call site, so they
 // just return their result shape (with optional `skipped: <reason>`).
 
-import { eq, lt } from 'drizzle-orm'
+import { lt } from 'drizzle-orm'
 
-import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
-import { intelligenceVerdicts, lists, recommendationRunSteps, recommendations, users } from '@/db/schema'
-import type { AutoArchiveResult } from '@/lib/cron/auto-archive'
+import { intelligenceVerdicts, recommendationRunSteps, recommendations } from '@/db/schema'
 import { autoArchiveImpl } from '@/lib/cron/auto-archive'
 import { birthdayEmailsImpl } from '@/lib/cron/birthday-emails'
 import { cleanupVerificationImpl } from '@/lib/cron/cleanup-verification'
@@ -18,13 +16,13 @@ import { orphanClaimCleanupImpl } from '@/lib/cron/orphan-claim-cleanup'
 import { sweepCronRuns } from '@/lib/cron/record-run'
 import type { CronEndpoint } from '@/lib/cron/registry'
 import { relationshipRemindersImpl } from '@/lib/cron/relationship-reminders'
-import { maybeSendListRevealEmail } from '@/lib/cron/reveal-emails'
+import { sendRevealEmails } from '@/lib/cron/reveal-emails'
 import { processOnce } from '@/lib/import/scrape-queue/runner'
 import { maybeSendOperatorDigest } from '@/lib/intelligence/operator-digest'
 import { selectOverdueUsers } from '@/lib/intelligence/overdue'
 import { generateForUser } from '@/lib/intelligence/runner'
 import { createLogger } from '@/lib/logger'
-import { isEmailConfigured, sendPostHolidayEmail } from '@/lib/resend'
+import { isEmailConfigured } from '@/lib/resend'
 import { getAppSettings } from '@/lib/settings-loader'
 
 const log = createLogger('cron:handlers')
@@ -70,60 +68,6 @@ async function runIntelligenceRetentionSweep(args: { recDays: number; stepDays: 
 	return { recsDeleted: recRows.length, stepsDeleted: stepRows.length, verdictsDeleted: verdictRows.length }
 }
 
-// Looks up each owner's email and list name and fires
-// `sendPostHolidayEmail` with `holidayName: 'Christmas'`. Mirrors the
-// generic-holiday email path; broken out so the gates can fire
-// independently per setting.
-async function sendChristmasEmails(dbx: SchemaDatabase, details: AutoArchiveResult['christmasArchivedDetails']): Promise<number> {
-	if (details.length === 0) return 0
-	if (!(await isEmailConfigured())) return 0
-	let sent = 0
-	for (const d of details) {
-		const owner = await dbx.query.users.findFirst({
-			where: eq(users.id, d.ownerId),
-			columns: { id: true, email: true },
-		})
-		if (!owner) continue
-		const list = await dbx.query.lists.findFirst({
-			where: eq(lists.id, d.listId),
-			columns: { name: true },
-		})
-		if (!list) continue
-		await sendPostHolidayEmail(owner.email, { holidayName: 'Christmas', listName: list.name })
-		sent += 1
-	}
-	return sent
-}
-
-// Looks up each owner's email and the matching catalog name for the
-// holiday, then fires `sendPostHolidayEmail`. Returns the count of
-// successfully-attempted sends (doesn't distinguish failures since
-// resend logs them inline).
-async function sendGenericHolidayEmails(dbx: SchemaDatabase, details: AutoArchiveResult['holidayArchivedDetails']): Promise<number> {
-	if (details.length === 0) return 0
-	if (!(await isEmailConfigured())) return 0
-	let sent = 0
-	// Resolve the list name + owner email per detail row. Could be done
-	// with a single IN query, but keeping it per-row keeps a failed
-	// lookup from blocking the rest. The detail set is bounded by the
-	// number of holiday lists archived in a single cron run.
-	for (const d of details) {
-		const owner = await dbx.query.users.findFirst({
-			where: eq(users.id, d.ownerId),
-			columns: { id: true, email: true },
-		})
-		if (!owner) continue
-		const list = await dbx.query.lists.findFirst({
-			where: eq(lists.id, d.listId),
-			columns: { name: true },
-		})
-		if (!list) continue
-		await sendPostHolidayEmail(owner.email, { holidayName: d.holidayName, listName: list.name })
-		sent += 1
-	}
-	return sent
-}
-
 export async function runAutoArchive() {
 	const started = Date.now()
 	const settings = await getAppSettings(db)
@@ -136,11 +80,9 @@ export async function runAutoArchive() {
 		christmasAddonsArchived,
 		holidayArchived,
 		holidayAddonsArchived,
-		christmasArchivedDetails,
-		holidayArchivedDetails,
 		deferredArchived,
 		deferredAddonsArchived,
-		deferredDueDetails,
+		revealed,
 	} = await autoArchiveImpl({
 		db,
 		now,
@@ -150,45 +92,15 @@ export async function runAutoArchive() {
 		timeZone: settings.timeZone,
 	})
 
-	// Post-archive email sends. Inline here so the cron run sees them as
-	// one operation; each send is fire-and-forget per owner (failures
-	// don't block the archive). Christmas and generic-holiday gates fire
-	// independently.
-	let christmasEmailsSent = 0
-	if (settings.enableChristmasEmails && christmasArchivedDetails.length > 0) {
-		try {
-			christmasEmailsSent = await sendChristmasEmails(db, christmasArchivedDetails)
-		} catch (err) {
-			log.warn({ err: err instanceof Error ? err.message : String(err) }, 'post-christmas email batch failed')
-		}
-	}
-
-	let holidayEmailsSent = 0
-	if (settings.enableGenericHolidayEmails && holidayArchivedDetails.length > 0) {
-		try {
-			holidayEmailsSent = await sendGenericHolidayEmails(db, holidayArchivedDetails)
-		} catch (err) {
-			log.warn({ err: err instanceof Error ? err.message : String(err) }, 'post-holiday email batch failed')
-		}
-	}
-
-	// Deferred-due reveals fire the per-type reveal email (post-birthday for
-	// birthday/wishlist, post-holiday for christmas/holiday), each gated by its
-	// own global toggle inside `maybeSendListRevealEmail`. The normal birthday
-	// follow-up email keys off birthday+N and won't fire on the defer-elapse
-	// day, so this is the only reveal notice a deferred birthday list gets.
-	let deferredEmailsSent = 0
-	for (const detail of deferredDueDetails) {
-		try {
-			const sent = await maybeSendListRevealEmail(
-				db,
-				{ id: detail.listId, ownerId: detail.ownerId, name: detail.name, type: detail.type, customHolidayId: detail.customHolidayId },
-				settings
-			)
-			if (sent) deferredEmailsSent += 1
-		} catch (err) {
-			log.warn({ err: err instanceof Error ? err.message : String(err) }, 'deferred-due reveal email failed')
-		}
+	// The reveal email: one per owner, listing exactly what this run revealed
+	// across all four passes. Each list's section is gated by its own per-type
+	// toggle inside `sendRevealEmails`; a send failure never blocks the
+	// archive, which has already happened.
+	let revealEmailsSent = 0
+	try {
+		revealEmailsSent = await sendRevealEmails(db, revealed, settings)
+	} catch (err) {
+		log.warn({ err: err instanceof Error ? err.message : String(err) }, 'reveal email batch failed')
 	}
 
 	const durationMs = Date.now() - started
@@ -203,9 +115,7 @@ export async function runAutoArchive() {
 			holidayAddonsArchived,
 			deferredArchived,
 			deferredAddonsArchived,
-			christmasEmailsSent,
-			holidayEmailsSent,
-			deferredEmailsSent,
+			revealEmailsSent,
 			durationMs,
 		},
 		'cron run complete'
@@ -221,9 +131,7 @@ export async function runAutoArchive() {
 		holidayAddonsArchived,
 		deferredArchived,
 		deferredAddonsArchived,
-		christmasEmailsSent,
-		holidayEmailsSent,
-		deferredEmailsSent,
+		revealEmailsSent,
 		settings: {
 			archiveDaysAfterBirthday: settings.archiveDaysAfterBirthday,
 			archiveDaysAfterChristmas: settings.archiveDaysAfterChristmas,
@@ -261,16 +169,14 @@ export async function runBirthdayEmails(): Promise<Record<string, {}>> {
 	}
 
 	let birthdayEmails = 0
-	let followUpEmails = 0
 
 	// The cron's name is "birthday-emails" but we use it as the daily
-	// outbound-mail tick: birthday + post-birthday from `enableBirthdayEmails`,
+	// outbound-mail tick: the day-of birthday greeting from `enableBirthdayEmails`,
 	// the broadcast pre-event list-owner reminders, and the four-family
 	// relationship reminders. Each branch is feature-gated independently.
 	if (settings.enableBirthdayEmails) {
 		const result = await birthdayEmailsImpl({ db, now, timeZone: settings.timeZone })
 		birthdayEmails = result.birthdayEmails
-		followUpEmails = result.followUpEmails
 	}
 
 	let listOwnerReminders: { birthdayReminders: number; christmasReminders: number; customHolidayReminders: number } = {
@@ -301,7 +207,6 @@ export async function runBirthdayEmails(): Promise<Record<string, {}>> {
 		{
 			endpoint: '/api/cron/birthday-emails',
 			birthdayEmails,
-			followUpEmails,
 			listOwnerReminders,
 			relationshipReminders,
 			orphanClaimCleanup,
@@ -319,21 +224,13 @@ export async function runBirthdayEmails(): Promise<Record<string, {}>> {
 		relationshipReminders.anniversaryReminders
 	const totalOrphan = orphanClaimCleanup.remindersSent + orphanClaimCleanup.itemsDeleted
 
-	if (
-		birthdayEmails === 0 &&
-		followUpEmails === 0 &&
-		totalListOwner === 0 &&
-		totalRelationship === 0 &&
-		totalOrphan === 0 &&
-		!settings.enableBirthdayEmails
-	) {
+	if (birthdayEmails === 0 && totalListOwner === 0 && totalRelationship === 0 && totalOrphan === 0 && !settings.enableBirthdayEmails) {
 		return { ok: true, skipped: 'disabled', date: now.toISOString() }
 	}
 
 	return {
 		ok: true,
 		birthdayEmails,
-		followUpEmails,
 		listOwnerReminders,
 		relationshipReminders,
 		orphanClaimCleanup,

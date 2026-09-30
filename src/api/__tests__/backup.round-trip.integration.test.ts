@@ -263,6 +263,7 @@ async function seedEveryColumn(tx: SchemaDatabase) {
 		ratingCount: 42,
 		priority: 'very-high',
 		isArchived: true,
+		archivedAt: T3,
 		pendingDeletionAt: T2,
 		quantity: 3,
 		groupSortOrder: 2,

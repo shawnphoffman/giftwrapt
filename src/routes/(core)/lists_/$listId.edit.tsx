@@ -18,6 +18,7 @@ import { ItemEditRow } from '@/components/items/item-edit-row'
 import { ItemFormDialog } from '@/components/items/item-form-dialog'
 import { ItemListSkeleton } from '@/components/items/item-list-skeleton'
 import { MoveItemDialog } from '@/components/items/move-item-dialog'
+import { AddBirthdayBanner } from '@/components/lists/add-birthday-banner'
 import { ArchiveManagerBadge } from '@/components/lists/archive-manager-badge'
 import BackToParentList from '@/components/lists/back-to-parent-list'
 import { ListSettingsSheet } from '@/components/lists/list-settings-sheet'
@@ -217,6 +218,7 @@ function ListEditPage() {
 					</div>
 				</div>
 				{list.description && <MarkdownNotes content={list.description} className="text-muted-foreground" />}
+				{list.isOwner && list.archiveInfo.notApplicableReason === 'owner-no-birthday' && <AddBirthdayBanner />}
 
 				{list.type === 'todos' ? (
 					// Reaching this route requires canEditList; any caller here

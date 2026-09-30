@@ -9,7 +9,7 @@ import { and, asc, count, desc, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db, type SchemaDatabase } from '@/db'
-import { giftedItems, itemComments, itemGroups, items, listAddons, lists, users } from '@/db/schema'
+import { giftedItems, itemComments, itemGroups, items, lists, users } from '@/db/schema'
 import { availabilityEnumValues, type ListType, type Priority, priorityEnumValues } from '@/db/schema/enums'
 import type { GiftedItem } from '@/db/schema/gifts'
 import type { Item } from '@/db/schema/items'
@@ -19,6 +19,7 @@ import { isCrossTypeMoveDestructive, SPOILER_PROTECTED_TYPES } from '@/lib/list-
 import { itemsArchivedTotal, revealsTriggeredTotal } from '@/lib/observability/metrics'
 import { canEditList, canViewList, canViewListAsAnyone, getViewerAccessLevelForList } from '@/lib/permissions'
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
+import { type RevealedPurchases, revealListPurchases } from '@/lib/reveal'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { getVendorFromUrl } from '@/lib/urls'
 import { notifyListEvent } from '@/routes/api/sse/list.$listId'
@@ -345,7 +346,10 @@ export async function archiveItemImpl(args: {
 	const perm = await assertCanEditItems(userId, list, dbx)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
-	await dbx.update(items).set({ isArchived: data.archived }).where(eq(items.id, data.itemId))
+	await dbx
+		.update(items)
+		.set({ isArchived: data.archived, archivedAt: data.archived ? new Date() : null })
+		.where(eq(items.id, data.itemId))
 	notifyListEvent({ kind: 'item', listId: item.listId, itemId: data.itemId })
 	if (data.archived) {
 		itemsArchivedTotal.inc()
@@ -464,7 +468,7 @@ export async function archiveItemsImpl(args: {
 
 	await db
 		.update(items)
-		.set({ isArchived: data.archived })
+		.set({ isArchived: data.archived, archivedAt: data.archived ? new Date() : null })
 		.where(inArray(items.id, [...data.itemIds]))
 	for (const row of loaded.rows) {
 		notifyListEvent({ kind: 'item', listId: row.listId, itemId: row.id })
@@ -472,44 +476,48 @@ export async function archiveItemsImpl(args: {
 	return { kind: 'ok', updated: data.itemIds.length }
 }
 
-export async function archiveListPurchasesImpl(args: {
+// Reveal a list's claimed items + addons on behalf of an edit-access holder,
+// with the live-update notifications and metrics a user-driven reveal needs.
+// Returns exactly what was revealed so a caller can email it
+// (`forceArchiveListImpl`); `archiveListPurchasesImpl` sends nothing.
+export async function revealListForEditor(args: {
 	userId: string
-	input: z.infer<typeof ArchiveListPurchasesInputSchema>
+	listId: number
 	dbx?: SchemaDatabase
-}): Promise<ArchiveListPurchasesResult> {
-	const { userId, input: data, dbx = db } = args
+	now?: Date
+}): Promise<{ kind: 'ok'; revealed: RevealedPurchases } | { kind: 'error'; reason: 'not-found' | 'not-authorized' }> {
+	const { userId, listId, dbx = db, now = new Date() } = args
 
 	const list = await dbx.query.lists.findFirst({
-		where: eq(lists.id, data.listId),
+		where: eq(lists.id, listId),
 		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 	const perm = await assertCanEditItems(userId, list, dbx)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
-	const claimedRows = await dbx
-		.selectDistinct({ itemId: giftedItems.itemId })
-		.from(giftedItems)
-		.innerJoin(items, and(eq(items.id, giftedItems.itemId), visibleItemsWhere('visible'), eq(items.listId, list.id)))
+	const revealed = await revealListPurchases(dbx, list.id, now)
+	if (revealed.itemIds.length === 0 && revealed.addonIds.length === 0) return { kind: 'ok', revealed }
 
-	const ids = claimedRows.map(r => r.itemId)
-	const archivedAddons = await dbx
-		.update(listAddons)
-		.set({ isArchived: true })
-		.where(and(eq(listAddons.listId, list.id), eq(listAddons.isArchived, false)))
-		.returning({ id: listAddons.id })
-
-	if (ids.length === 0 && archivedAddons.length === 0) return { kind: 'ok', updated: 0, addonsArchived: 0 }
-
-	if (ids.length > 0) {
-		await dbx.update(items).set({ isArchived: true }).where(inArray(items.id, ids))
-		for (const id of ids) {
-			notifyListEvent({ kind: 'item', listId: list.id, itemId: id })
-		}
-		itemsArchivedTotal.inc(ids.length)
+	for (const id of revealed.itemIds) {
+		notifyListEvent({ kind: 'item', listId: list.id, itemId: id })
 	}
+	if (revealed.itemIds.length > 0) itemsArchivedTotal.inc(revealed.itemIds.length)
 	revealsTriggeredTotal.inc({ trigger: 'manual' })
-	return { kind: 'ok', updated: ids.length, addonsArchived: archivedAddons.length }
+	return { kind: 'ok', revealed }
+}
+
+// The manual "Archive all purchases" button. The owner is revealing their
+// own list, so no reveal email is sent.
+export async function archiveListPurchasesImpl(args: {
+	userId: string
+	input: z.infer<typeof ArchiveListPurchasesInputSchema>
+	dbx?: SchemaDatabase
+	now?: Date
+}): Promise<ArchiveListPurchasesResult> {
+	const result = await revealListForEditor({ userId: args.userId, listId: args.input.listId, dbx: args.dbx, now: args.now })
+	if (result.kind === 'error') return result
+	return { kind: 'ok', updated: result.revealed.itemIds.length, addonsArchived: result.revealed.addonIds.length }
 }
 
 export async function deleteItemsImpl(args: { userId: string; input: z.infer<typeof DeleteItemsInputSchema> }): Promise<DeleteItemsResult> {

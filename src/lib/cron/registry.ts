@@ -23,7 +23,7 @@ export const cronRegistry = [
 	{
 		path: '/api/cron/auto-archive',
 		label: 'Auto-archive',
-		description: 'Archives claimed items past birthday/Christmas reveal date.',
+		description: 'Reveals claimed gifts past their birthday/Christmas/holiday reveal date and emails each owner who gave what.',
 		schedule: '0 14 * * *',
 		cadence: 'Daily',
 		dateSensitive: true,
@@ -31,7 +31,7 @@ export const cronRegistry = [
 	{
 		path: '/api/cron/birthday-emails',
 		label: 'Birthday emails',
-		description: 'Day-of greetings + 14-day post-birthday gift summaries.',
+		description: 'Day-of birthday greetings, pre-event reminders, and orphan-claim cleanup.',
 		schedule: '0 15 * * *',
 		cadence: 'Daily',
 		dateSensitive: true,

@@ -16,15 +16,16 @@ import type { z } from 'zod'
 
 import type { CancelArchiveDeferInputSchema, ForceArchiveListInputSchema, SetArchiveDeferInputSchema } from '@/api/_archive-defer-schemas'
 import { type CancelArchiveDeferResult, type ForceArchiveListResult, type SetArchiveDeferResult } from '@/api/_archive-defer-schemas'
-import { archiveListPurchasesImpl } from '@/api/_items-extra-impl'
+import { revealListForEditor } from '@/api/_items-extra-impl'
 import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
 import { lists, users } from '@/db/schema'
 import type { ArchiveSchedule } from '@/lib/archive-schedule'
 import { computeArchiveSchedule, maxDeferDate } from '@/lib/archive-schedule'
-import { maybeSendListRevealEmail } from '@/lib/cron/reveal-emails'
+import { sendRevealEmails } from '@/lib/cron/reveal-emails'
 import { getCustomHoliday } from '@/lib/custom-holidays'
 import { canEditList } from '@/lib/permissions'
+import { revealFamilyForList } from '@/lib/reveal'
 import { getAppSettings } from '@/lib/settings-loader'
 
 type ScheduleContext = {
@@ -126,18 +127,31 @@ export async function forceArchiveListImpl(args: {
 	if (schedule.deferUntil) return { kind: 'error', reason: 'deferred' }
 	if (!schedule.eventHasPassed) return { kind: 'error', reason: 'too-early' }
 
-	const revealed = await archiveListPurchasesImpl({ userId, input: { listId: input.listId }, dbx })
-	if (revealed.kind === 'error') return { kind: 'error', reason: 'not-authorized' }
+	const result = await revealListForEditor({ userId, listId: input.listId, dbx, now })
+	if (result.kind === 'error') return { kind: 'error', reason: 'not-authorized' }
 
-	await dbx.update(lists).set({ lastArchivedAt: now }).where(eq(lists.id, input.listId))
+	// The reveal email lists exactly what this reveal uncovered. Sent here
+	// (unlike the manual "Archive all purchases" button) because it is the
+	// only reveal notice a force-revealed or previously deferred list gets.
+	const family = await revealFamilyForList(dbx, list)
+	const emailsSent = family
+		? await sendRevealEmails(
+				dbx,
+				[
+					{
+						listId: list.id,
+						ownerId: list.ownerId,
+						listName: list.name,
+						subjectDependentId: list.subjectDependentId,
+						...family,
+						...result.revealed,
+					},
+				],
+				settings
+			)
+		: 0
 
-	const emailSent = await maybeSendListRevealEmail(
-		dbx,
-		{ id: list.id, ownerId: list.ownerId, name: list.name, type: list.type, customHolidayId: list.customHolidayId },
-		settings
-	)
-
-	return { kind: 'ok', updated: revealed.updated, addonsArchived: revealed.addonsArchived, emailSent }
+	return { kind: 'ok', updated: result.revealed.itemIds.length, addonsArchived: result.revealed.addonIds.length, emailSent: emailsSent > 0 }
 }
 
 export async function setArchiveDeferImpl(args: {

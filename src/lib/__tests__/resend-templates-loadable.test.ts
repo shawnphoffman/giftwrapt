@@ -14,11 +14,10 @@ const TEMPLATE_PATHS = [
 	'@/emails/parents-day-reminder-email',
 	'@/emails/partner-anniversary-reminder-email',
 	'@/emails/password-reset-email',
-	'@/emails/post-birthday-email',
-	'@/emails/post-holiday-email',
 	'@/emails/pre-birthday-reminder-email',
 	'@/emails/pre-christmas-reminder-email',
 	'@/emails/pre-custom-holiday-reminder-email',
+	'@/emails/reveal-summary-email',
 	'@/emails/test-email',
 	'@/emails/valentines-day-reminder-email',
 ] as const

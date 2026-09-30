@@ -45,6 +45,14 @@ export const items = pgTable(
 		ratingCount: integer('rating_count'),
 		priority: priorityEnum('priority').default('normal').notNull(),
 		isArchived: boolean('is_archived').default(false).notNull(),
+		// When the item was last revealed (isArchived flipped to true).
+		// Stamped by every reveal path (auto-archive cron passes, manual
+		// archive, archive-all-purchases, admin bulk archive) and cleared on
+		// unarchive. The "revealed on" date for the received-gifts page. Null
+		// on an archived row means "revealed before this column existed" and
+		// not backfilled (a one-off prod backfill stamped those from
+		// updated_at when migration 0013 shipped).
+		archivedAt: timestamp('archived_at', { withTimezone: true }),
 		// Set when a recipient deletes an item that has active claims. The
 		// item is invisible to the recipient and to non-claimers; only the
 		// gifter+partner audience for each surviving claim sees it (in the

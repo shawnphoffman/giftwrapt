@@ -538,6 +538,7 @@ export async function restoreBackupTablesImpl(args: {
 							ratingCount: row.ratingCount ?? null,
 							priority: row.priority,
 							isArchived: row.isArchived,
+							archivedAt: row.archivedAt ?? null,
 							pendingDeletionAt: row.pendingDeletionAt ?? null,
 							quantity: row.quantity,
 							groupSortOrder: row.groupSortOrder,
