@@ -119,8 +119,8 @@ export function CoreSettingsSection() {
 						Time Zone
 					</Label>
 					<p className="text-sm text-muted-foreground">
-						Decides when each day starts for birthdays, holidays, reminders, and auto-archive. Schedule the daily jobs to run after midnight
-						here.
+						Sets when each day starts for birthdays, holidays, reminders, and auto-archive. Schedule the daily jobs to run after midnight in
+						this time zone.
 					</p>
 				</div>
 				<TimeZonePicker id="timeZone" value={settings.timeZone} onChange={value => handleSettingChange('timeZone', value)} />
@@ -259,7 +259,7 @@ export function GenericHolidaySettingsSection() {
 				<DaysSetting
 					id="archiveDaysAfterHoliday"
 					label="Archive After Holiday"
-					description="Days after a holiday's end date to automatically archive claimed items on holiday-typed lists. Multi-day holidays archive against the end of the festival."
+					description="How many days after a holiday ends to automatically archive claimed items on holiday lists. For multi-day holidays, this counts from the last day."
 					value={settings.archiveDaysAfterHoliday}
 					disabled={!settings.enableGenericHolidayLists}
 					onCommit={value => handleSettingChange('archiveDaysAfterHoliday', value)}
@@ -270,7 +270,7 @@ export function GenericHolidaySettingsSection() {
 				<DaysSetting
 					id="maxArchiveDeferDays"
 					label="Max Archive Extension"
-					description="Maximum number of days past a list's event date that an editor, guardian, or partner may defer the auto-archive/reveal. Caps the extension date picker."
+					description="How many days past a list's event date an editor, guardian, or partner can push back the automatic archive and reveal. This also limits the dates offered in the extension picker."
 					value={settings.maxArchiveDeferDays}
 					onCommit={value => handleSettingChange('maxArchiveDeferDays', value)}
 				/>
@@ -299,9 +299,7 @@ export function GenericHolidaySettingsSection() {
 						<Label htmlFor="enableHolidayReminderEmails" className="text-base">
 							Send Pre-Holiday Reminder Emails
 						</Label>
-						<p className="text-sm text-muted-foreground">
-							Broadcast a reminder N days before each custom holiday, prompting users to make a list
-						</p>
+						<p className="text-sm text-muted-foreground">Email every user N days before each custom holiday so they can make a list</p>
 					</div>
 					<Switch
 						id="enableHolidayReminderEmails"
@@ -356,7 +354,7 @@ export function BirthdaySettingsSection() {
 				<DaysSetting
 					id="archiveDaysAfterBirthday"
 					label="Archive After Birthday"
-					description="Days after a birthday to reveal claimed gifts on birthday/wishlist lists (and send the gift summary email)"
+					description="Days after a birthday to reveal claimed gifts on birthday lists and wishlists, and send the gift summary email"
 					value={settings.archiveDaysAfterBirthday}
 					disabled={!settings.enableBirthdayLists}
 					onCommit={value => handleSettingChange('archiveDaysAfterBirthday', value)}
@@ -472,7 +470,7 @@ function ReminderFamilyBlock({
 						<Label htmlFor={emailKey as string} className="text-base">
 							Send {title} Reminder Emails
 						</Label>
-						<p className="text-sm text-muted-foreground">Email the reminder when the lead-time window matches</p>
+						<p className="text-sm text-muted-foreground">Email the reminder on the day set by the lead time</p>
 					</div>
 					<Switch
 						id={emailKey as string}
@@ -500,7 +498,7 @@ export function ParentalRelationsSettingsSection() {
 						Country for Mother's / Father's Day
 					</Label>
 					<p className="text-sm text-muted-foreground">
-						Used to resolve Mother's and Father's Day dates (which vary by country). Defaults to US.
+						Used to work out the dates for Mother's Day and Father's Day, which vary by country. Defaults to US.
 					</p>
 				</div>
 				<Select
@@ -535,7 +533,7 @@ export function ParentalRelationsSettingsSection() {
 				leadDaysKey="mothersDayReminderLeadDays"
 				emailKey="enableMothersDayReminderEmails"
 				title="Mother's Day"
-				description="Reminders + parent-label tagging (mothers) for the people you shop for"
+				description="Reminders, plus the option to mark people you shop for as a mother"
 			/>
 			<ReminderFamilyBlock
 				settings={settings}
@@ -545,7 +543,7 @@ export function ParentalRelationsSettingsSection() {
 				leadDaysKey="fathersDayReminderLeadDays"
 				emailKey="enableFathersDayReminderEmails"
 				title="Father's Day"
-				description="Reminders + parent-label tagging (fathers) for the people you shop for"
+				description="Reminders, plus the option to mark people you shop for as a father"
 			/>
 			<ReminderFamilyBlock
 				settings={settings}
@@ -555,7 +553,7 @@ export function ParentalRelationsSettingsSection() {
 				leadDaysKey="valentinesDayReminderLeadDays"
 				emailKey="enableValentinesDayReminderEmails"
 				title="Valentine's Day"
-				description="Reminders for users with a partner (Feb 14 globally)"
+				description="Reminders for users with a partner, sent before Feb 14"
 			/>
 			<ReminderFamilyBlock
 				settings={settings}
@@ -565,7 +563,7 @@ export function ParentalRelationsSettingsSection() {
 				leadDaysKey="anniversaryReminderLeadDays"
 				emailKey="enableAnniversaryReminderEmails"
 				title="Partner Anniversary"
-				description="Reminders + the anniversary date field on profiles. Both partners are emailed; clearing the master hides the input."
+				description="Reminders, plus the anniversary date field on profiles. Both partners get the email. Turning this off hides the field."
 			/>
 		</div>
 	)
@@ -648,8 +646,8 @@ export function AuthSettingsSection() {
 						Enable Passkeys
 					</Label>
 					<p className="text-sm text-muted-foreground">
-						Let signed-in users register WebAuthn passkeys (Touch ID, Face ID, hardware keys) and use them as a sign-in option. HTTPS
-						deployment is required.
+						Let signed-in users register WebAuthn passkeys (Touch ID, Face ID, hardware keys) and use them to sign in. Your site must be
+						served over HTTPS.
 					</p>
 				</div>
 				<Switch
@@ -679,8 +677,8 @@ export function ObservabilitySettingsSection() {
 						Enable Sentry Error Reporting
 					</Label>
 					<p className="text-sm text-muted-foreground">
-						Send unhandled errors to a Sentry-compatible backend (sentry.io, Glitchtip, or any compatible host) that you configure via{' '}
-						<code>SENTRY_DSN</code>. Events go to the backend you point at - never to a maintainer-controlled domain. See the{' '}
+						Send unhandled errors to a Sentry-compatible service you choose (sentry.io, GlitchTip, or any compatible host), set with{' '}
+						<code>SENTRY_DSN</code>. Errors only go to that service. See the{' '}
 						<a href="https://giftwrapt.dev/configuration/observability/" className="underline" target="_blank" rel="noreferrer">
 							Observability docs
 						</a>{' '}
@@ -688,7 +686,7 @@ export function ObservabilitySettingsSection() {
 					</p>
 					{sentryEnvMissing && (
 						<p className="text-sm text-amber-500">
-							Set <code>SENTRY_DSN</code> in your deployment env to enable.
+							Set <code>SENTRY_DSN</code> in your deployment's environment to turn this on.
 						</p>
 					)}
 				</div>
@@ -706,16 +704,17 @@ export function ObservabilitySettingsSection() {
 						Enable Prometheus Metrics Endpoint
 					</Label>
 					<p className="text-sm text-muted-foreground">
-						Expose <code>/api/metrics</code> in the Prometheus text format, gated by a bearer token from <code>METRICS_TOKEN</code>. Returns
-						404 when off (avoids endpoint-existence disclosure). See the{' '}
+						Serve Prometheus metrics at <code>/api/metrics</code>, protected by the bearer token in <code>METRICS_TOKEN</code>. While this
+						is off, the endpoint returns 404 so it doesn't reveal that it exists. See the{' '}
 						<a href="https://giftwrapt.dev/configuration/observability/" className="underline" target="_blank" rel="noreferrer">
 							Observability docs
 						</a>{' '}
-						for the exported metrics catalog and scrape config.
+						for the list of metrics and an example scrape config.
 					</p>
 					{metricsEnvMissing && (
 						<p className="text-sm text-amber-500">
-							Set <code>METRICS_TOKEN</code> in your deployment env to enable. Generate with <code>openssl rand -hex 32</code>.
+							Set <code>METRICS_TOKEN</code> in your deployment's environment to turn this on. You can generate a token with{' '}
+							<code>openssl rand -hex 32</code>.
 						</p>
 					)}
 				</div>
@@ -743,8 +742,8 @@ export function StorageMirrorSection() {
 					Mirror External Images to Storage on Save
 				</Label>
 				<p className="text-sm text-muted-foreground">
-					When saving an item, fetch any external image URL and copy it into your bucket. Best-effort: fetch failures keep the original URL.
-					Requires storage to be configured. Existing items are not backfilled.
+					When an item is saved, download any external image and copy it into your storage bucket. If the download fails, the item keeps the
+					original URL. Requires storage to be configured. Existing items aren't updated.
 				</p>
 			</div>
 			<Switch

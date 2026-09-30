@@ -14,16 +14,16 @@ export function RoleLegend() {
 			</CollapsibleTrigger>
 			<CollapsibleContent className="text-xs text-muted-foreground pt-2 space-y-2">
 				<div>
-					<span className="font-semibold text-foreground">User</span> &mdash; the default. Has lists, can claim gifts on others' lists,
-					manages their own profile.
+					<span className="font-semibold text-foreground">User:</span> the default role. Has their own lists, can claim gifts on others'
+					lists, and manages their own profile.
 				</div>
 				<div>
-					<span className="font-semibold text-foreground">Admin</span> &mdash; everything a User can do, plus access to this admin area:
-					create users and dependents, change permissions, impersonate, run the import / export tools.
+					<span className="font-semibold text-foreground">Admin:</span> everything a User can do, plus access to this admin area. Admins can
+					create users and dependents, change permissions, impersonate other users, and run the import and export tools.
 				</div>
 				<div>
-					<span className="font-semibold text-foreground">Child</span> &mdash; a user-controlled account managed by one or more guardians.
-					They can own lists but can't claim gifts on others' lists, can't be a partner, and can't be a guardian themselves.
+					<span className="font-semibold text-foreground">Child:</span> an account the child signs in to themselves, managed by one or more
+					guardians. They can own lists but can't claim gifts on others' lists, can't be a partner, and can't be a guardian themselves.
 				</div>
 			</CollapsibleContent>
 		</Collapsible>

@@ -18,9 +18,10 @@ export function CronDeploymentBanner() {
 			<AlertTitle>Schedules Are Managed in vercel.json</AlertTitle>
 			<AlertDescription>
 				This deployment is on Vercel, where cron schedules are read from <code>vercel.json</code> at deploy time and cannot be edited from
-				the dashboard. To change a schedule, update the file and redeploy. Hobby tier supports daily-only schedules; Pro unlocks any cron
-				expression. Tuning knobs (concurrency, users-per-tick, retention windows) under General / AI / Scraping settings still apply
-				normally and can be edited live. The "Run now" button below works regardless and is the easiest way to verify each route is healthy.
+				the dashboard. To change a schedule, update the file and redeploy. The Hobby plan only supports daily schedules, while Pro allows
+				any cron expression. Job settings like concurrency, users per run, and retention periods on the General, AI, and Scraping pages
+				still apply and can be changed at any time. The "Run now" button below always works and is the easiest way to check that each route
+				is healthy.
 			</AlertDescription>
 		</Alert>
 	)

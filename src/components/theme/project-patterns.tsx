@@ -469,7 +469,7 @@ export default function ProjectPatterns() {
 			{/* GRADIENTS */}
 			<Section
 				title="Brand gradients"
-				description="Surface treatments for cards, hero metrics, the AI brand, and progress bars. The -t accent wash on Card is automatic - everything else is opt-in."
+				description="Surface treatments for cards, hero metrics, the AI brand, and progress bars. Card gets the -t accent wash automatically. Everything else is opt-in."
 			>
 				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
 					{GRADIENTS.map(g => (
@@ -600,7 +600,7 @@ export default function ProjectPatterns() {
 			{/* CUSTOM BADGES */}
 			<Section
 				title="Custom badges"
-				description="Pill-shaped status atoms used in lists, items, and headers. Each carries its own semantic tone - don't recolor inline; reuse the component."
+				description="Pill-shaped status badges used in lists, items, and headers. Each has its own semantic color, so reuse the component instead of recoloring it inline."
 			>
 				<div className="flex flex-col gap-4">
 					<div className="flex flex-wrap items-center gap-3">

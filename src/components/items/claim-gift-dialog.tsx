@@ -226,7 +226,7 @@ export function ClaimGiftDialog(props: Props) {
 								setError(
 									result.blockingItemTitle
 										? `Claim "${result.blockingItemTitle}" first. This group has a required order.`
-										: 'This group has a required order; claim earlier items first.'
+										: 'This group has a required order. Claim the earlier items first.'
 								)
 								break
 							case 'unavailable':

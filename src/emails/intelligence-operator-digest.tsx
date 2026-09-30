@@ -94,7 +94,7 @@ export default function IntelligenceOperatorDigestEmail({ data, appTitle = 'Gift
 								{data.flaggedUsers.map(u => (
 									<Text key={u.userId} className={cell}>
 										{u.name ? `${u.name} · ` : ''}
-										{u.email} — {u.errors} error{u.errors === 1 ? '' : 's'}, {u.skips} skip{u.skips === 1 ? '' : 's'}
+										{u.email}: {u.errors} error{u.errors === 1 ? '' : 's'}, {u.skips} skip{u.skips === 1 ? '' : 's'}
 									</Text>
 								))}
 							</Section>
@@ -102,8 +102,8 @@ export default function IntelligenceOperatorDigestEmail({ data, appTitle = 'Gift
 
 						<Hr className="my-[16px] border-[#eaeaea]" />
 						<Text className={muted}>
-							Health, coverage, cost, and dismissals reflect this period. Outstanding recommendations and applied totals are a current
-							snapshot. Sent to deployment admins; manage in Admin → Intelligence → Notifications.
+							Health, coverage, cost, and dismissals cover this period. Outstanding recommendations and applied totals are as of right now.
+							This email goes to the site's admins. You can change it under Admin → Intelligence → Notifications.
 						</Text>
 					</Container>
 				</Body>

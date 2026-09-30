@@ -2204,7 +2204,7 @@ async function main() {
 			status: 'active',
 			severity: 'important',
 			title: 'Reshape "Birthday Wishlist" for Birthday',
-			body: 'Your Birthday is in 14 days and the most-attention-getting list "Birthday Wishlist" isn\'t shaped for it. Convert it to a birthday list and rename it to "Birthday 2026" so gifts auto-reveal on the right day.',
+			body: 'Your Birthday is in 14 days, and "Birthday Wishlist", the list gifters are most likely to see, isn\'t set up for it. Convert it to a birthday list and rename it to "Birthday 2026" so gifts auto-reveal on the right day.',
 			payload: {
 				actions: [
 					{

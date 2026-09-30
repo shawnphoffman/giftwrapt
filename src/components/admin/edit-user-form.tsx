@@ -744,7 +744,7 @@ function EditUserFormInner({
 															<div className="grid gap-2">
 																<Label htmlFor={field.name} className="flex items-center gap-1.5">
 																	Partner Anniversary
-																	<InputTooltip>Optional. Mirrored onto both partners so the date appears on either profile.</InputTooltip>
+																	<InputTooltip>Optional. Saved to both partners so the date shows on either profile.</InputTooltip>
 																</Label>
 																<DatePicker
 																	id={field.name}
@@ -773,7 +773,9 @@ function EditUserFormInner({
 						<section className="rounded-lg border bg-card p-5 space-y-3">
 							<div>
 								<h3 className="font-medium text-lg">Actions</h3>
-								<p className="text-xs text-muted-foreground mt-1">Account-level actions. These run independently of the form.</p>
+								<p className="text-xs text-muted-foreground mt-1">
+									Actions on the account itself. These take effect right away, separately from saving the form.
+								</p>
 							</div>
 							<div className="grid gap-2">
 								<Button type="button" variant="outline" onClick={() => setResetEmailDialogOpen(true)} disabled={isLoading}>
@@ -928,8 +930,8 @@ function EditUserFormInner({
 						title={`Send password reset email to ${user.name || user.email}?`}
 						description={
 							<>
-								We'll email <strong>{user.email}</strong> a link to reset their password. The link expires after a short window. Existing
-								sessions stay signed in until they complete the reset (better-auth then revokes them automatically).
+								We'll email <strong>{user.email}</strong> a link to reset their password. The link expires after a short time. They stay
+								signed in on existing sessions until they finish the reset, which then signs those sessions out automatically.
 							</>
 						}
 						confirmLabel="Send email"
@@ -942,7 +944,7 @@ function EditUserFormInner({
 								throw new Error(message)
 							}
 							if (result.kind === 'skipped') {
-								toast.warning('Email is not configured on this deployment - no message was sent.')
+								toast.warning("Email isn't set up on this deployment, so no message was sent.")
 								return
 							}
 							toast.success(`Password reset email sent to ${user.email}`)

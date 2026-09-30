@@ -24,7 +24,7 @@ function AdminScrapingPage() {
 				<CardHeader>
 					<CardTitle className="text-2xl">Scraper Settings</CardTitle>
 					<CardDescription>
-						Timing budgets and the URL-cache TTL that govern every scrape attempt. AI-specific toggles live under <em>AI</em>.
+						Time limits for every scrape, and how long results stay cached by URL. AI-specific settings are under <em>AI</em>.
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -37,8 +37,8 @@ function AdminScrapingPage() {
 				<CardHeader>
 					<CardTitle className="text-2xl">Bulk Import & Scrape Queue</CardTitle>
 					<CardDescription>
-						Foundation flags for the bulk-import flow on the list-edit page. The scrape queue is a background cron-tick runner that fills in
-						URL metadata after items are created.
+						Settings for bulk import on the list edit page. The scrape queue is a background cron job that fills in details from each item's
+						URL after the items are created.
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -51,8 +51,7 @@ function AdminScrapingPage() {
 				<CardHeader>
 					<CardTitle className="text-2xl">Scrapers</CardTitle>
 					<CardDescription>
-						Configure the providers in the URL-import pipeline. The built-in fetch provider is always on; everything else is configured
-						below.
+						Set up the providers used to import items from URLs. The built-in fetch provider is always on. Configure any others below.
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -65,8 +64,8 @@ function AdminScrapingPage() {
 				<CardHeader>
 					<CardTitle className="text-2xl">Scrape Health</CardTitle>
 					<CardDescription>
-						Per-provider success rates and the top failing domains / error codes in the selected window. Successes are aggregated
-						server-side; failures are pulled raw (capped at 5,000) so the domain rollup uses real URL parsing.
+						Success rates for each provider, plus the domains and error codes that fail most often in the selected time range. Successes are
+						counted on the server. Failures are loaded individually (up to 5,000) so they can be grouped by domain from their actual URLs.
 					</CardDescription>
 				</CardHeader>
 				<CardContent>

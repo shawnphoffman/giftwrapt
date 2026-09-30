@@ -106,7 +106,7 @@ export const primaryListAnalyzer: Analyzer = {
 					kind: 'no-primary',
 					severity: 'important',
 					title: 'Pick a primary list',
-					body: `You have ${eligible.length} active list${eligible.length === 1 ? '' : 's'} but none are marked primary. Your primary list is the one shoppers see first - choosing one helps gifters know where to focus.`,
+					body: `You have ${eligible.length} active list${eligible.length === 1 ? '' : 's'} but none are marked primary. Your primary list is the one shoppers see first, so picking one helps gifters know where to look.`,
 					interaction: {
 						kind: 'list-picker',
 						saveLabel: 'Save as primary',

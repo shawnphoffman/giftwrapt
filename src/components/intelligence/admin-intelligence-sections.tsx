@@ -20,7 +20,7 @@ export function IntelligenceFeatureDisabledBanner() {
 		<Alert>
 			<AlertTitle>Intelligence is disabled</AlertTitle>
 			<AlertDescription className="flex flex-col gap-2">
-				<span>All recommendation generation is paused. Users do not see the Intelligence page; manual refresh is blocked.</span>
+				<span>All recommendation generation is paused. Users can&apos;t see the Intelligence page, and manual refreshes are blocked.</span>
 				<a
 					data-intelligence="admin-intelligence-disabled-link"
 					className="inline-flex items-center gap-1 self-start rounded-md border border-border bg-muted/40 px-2.5 py-1 text-xs font-medium hover:bg-muted/60"
@@ -52,14 +52,13 @@ export function IntelligenceGeneralSettingsCard({ data, patch }: { data: AdminIn
 						<h3 className="text-lg font-semibold">Inputs &amp; Dry Run</h3>
 					</div>
 					<p className="text-xs text-muted-foreground">
-						The candidate cap bounds how many items each analyzer feeds into the model. Smaller caps mean cheaper / faster runs but
-						potentially missed recommendations. Dry run leaves the model calls + step rows in place but skips writing recommendations to the
-						database.
+						The candidate cap limits how many items each analyzer sends to the model. A smaller cap makes runs cheaper and faster, but some
+						recommendations may be missed. Dry run still calls the model and records each step, but doesn&apos;t save any recommendations.
 					</p>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
 							label="Candidate cap per analyzer"
-							hint="Hard limit on items / pairs sent to the model in a single run."
+							hint="The most items (or item pairs) sent to the model in a single run."
 							value={s.candidateCap}
 							onChange={v => patch({ candidateCap: v })}
 						/>
@@ -73,7 +72,8 @@ export function IntelligenceGeneralSettingsCard({ data, patch }: { data: AdminIn
 						<h3 className="text-lg font-semibold">Retention</h3>
 					</div>
 					<p className="text-xs text-muted-foreground">
-						Old, dismissed/applied recommendations and old run-step debug rows are pruned on this schedule.
+						Dismissed and applied recommendations, and the debug records for each run, are deleted once they&apos;re older than these
+						limits.
 					</p>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
@@ -84,7 +84,7 @@ export function IntelligenceGeneralSettingsCard({ data, patch }: { data: AdminIn
 						/>
 						<NumberRow
 							label="Run-step retention (days)"
-							hint="Per-step debug rows (prompt / response / parsed) older than this are deleted."
+							hint="Debug records for each run step (prompt, response, and parsed output) older than this are deleted."
 							value={s.runStepsRetentionDays}
 							onChange={v => patch({ runStepsRetentionDays: v })}
 						/>
@@ -97,19 +97,20 @@ export function IntelligenceGeneralSettingsCard({ data, patch }: { data: AdminIn
 						<h3 className="text-lg font-semibold">List Hygiene</h3>
 					</div>
 					<p className="text-xs text-muted-foreground">
-						The list-hygiene analyzer surfaces calendar-aware nudges (convert / make public / create / set primary) for upcoming birthdays,
-						Christmas, and admin-curated holidays. These knobs bound when the analyzer fires per event.
+						The list hygiene analyzer suggests list changes ahead of upcoming birthdays, Christmas, and the holidays you&apos;ve set up,
+						such as converting a list, making it public, creating one, or setting a primary list. These settings control when those
+						suggestions start and stop for each event.
 					</p>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
 							label="Upcoming-event window (days)"
-							hint="Event must be within this many days of today to drive a rec. 45 = start nudging six weeks before."
+							hint="Suggestions start once an event is this many days away. For example, 45 starts about six weeks ahead."
 							value={s.upcomingWindowDays}
 							onChange={v => patch({ upcomingWindowDays: v })}
 						/>
 						<NumberRow
 							label="Minimum days before event (days)"
-							hint="Stop firing convert/create/privacy recs once the event is this close. 1 = analyzer goes quiet on the day-of."
+							hint="Suggestions to convert, create, or change privacy stop once the event is this close. With 1, they stop on the day of the event."
 							value={s.minDaysBeforeEventForRecs}
 							onChange={v => patch({ minDaysBeforeEventForRecs: v })}
 						/>
@@ -118,9 +119,10 @@ export function IntelligenceGeneralSettingsCard({ data, patch }: { data: AdminIn
 						<div className="flex flex-col gap-0.5">
 							<Label className="text-lg">AI-assisted rename on Convert</Label>
 							<span className="text-xs text-muted-foreground">
-								When on, the Convert action proposes the new list name via the same AI provider as the other analyzers. The prompt sees only
-								the current name, target type, event title, and year — never item content or claim data. Falls back to the deterministic
-								regex when the AI is unavailable or the response fails validation. Capped at 5 calls per run.
+								When this is on, the Convert action asks the AI provider (the same one the other analyzers use) to suggest the new list
+								name. The model only sees the current name, the new list type, the event title, and the year. It never sees items or claims.
+								If the AI is unavailable or its answer can&apos;t be used, the name comes from the built-in rules instead. Limited to 5
+								calls per run.
 							</span>
 						</div>
 						<Switch
@@ -130,20 +132,20 @@ export function IntelligenceGeneralSettingsCard({ data, patch }: { data: AdminIn
 						/>
 					</div>
 					<p className="text-xs text-muted-foreground">
-						Stale-public-list pass: flags old public lists for archive (reversible) or conversion to a plain wishlist. Spoiler-safe by
-						construction — the candidate query never reads claim data or recipient-controlled archive state. Increasing these knobs biases
-						toward letting lists run long (the spoiler-safety preference).
+						Old public lists can also be flagged for archiving (which can be undone) or for conversion to a plain wishlist. This check never
+						looks at claims or at what a recipient has archived, so it can&apos;t spoil a surprise. Higher values leave lists alone for
+						longer, which is the safer choice for avoiding spoilers.
 					</p>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
 							label="Days past event before flagged stale"
-							hint="Event-bound lists (christmas/birthday/holiday) only fire after the relevant event is at least this many days in the past. 90 = roughly a quarter past Christmas before suggesting archive."
+							hint="Christmas, birthday, and holiday lists are only flagged once their event is at least this many days in the past. For example, 90 waits about three months after Christmas before suggesting an archive."
 							value={s.staleListPastEventDays}
 							onChange={v => patch({ staleListPastEventDays: v })}
 						/>
 						<NumberRow
 							label="Months of inactivity before flagged stale"
-							hint="Both lists.updatedAt AND max(items.updatedAt) must be older than this. Applies to all eligible types, including wishlists. 12 months matches the auto-archive yearly cadence."
+							hint="A list is flagged only when neither the list nor any of its items has been edited in this long. Applies to every eligible list type, including wishlists. 12 months matches the yearly auto-archive cycle."
 							value={s.staleListInactiveMonths}
 							onChange={v => patch({ staleListInactiveMonths: v })}
 						/>
@@ -164,8 +166,8 @@ export function IntelligenceAnalyzersCard({ data, patch }: { data: AdminIntellig
 					Analyzers
 				</CardTitle>
 				<CardDescription>
-					{ANALYZER_ORDER.filter(id => s.perAnalyzerEnabled[id]).length} of {ANALYZER_ORDER.length} enabled. Each analyzer runs in sequence
-					per user; errors in one don&apos;t block the others.
+					{ANALYZER_ORDER.filter(id => s.perAnalyzerEnabled[id]).length} of {ANALYZER_ORDER.length} enabled. For each user, the analyzers
+					run one after another, and an error in one doesn&apos;t stop the rest.
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-6">
@@ -228,8 +230,8 @@ export function IntelligenceSchedulingCard({ data, patch }: { data: AdminIntelli
 						<h3 className="text-lg font-semibold">Schedule &amp; Triggers</h3>
 					</div>
 					<p className="text-xs text-muted-foreground">
-						Recommendations regenerate on a per-user cron and on manual &quot;Run for me now&quot; clicks. Each user is eligible no more
-						often than the cron interval; manual runs are gated by the cooldown to prevent stacking.
+						Recommendations are regenerated for each user on a schedule, and whenever someone clicks &quot;Run for me now&quot;. The
+						schedule runs at most once per refresh interval for each user, and manual runs wait out the cooldown so they don&apos;t pile up.
 					</p>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
@@ -253,8 +255,8 @@ export function IntelligenceSchedulingCard({ data, patch }: { data: AdminIntelli
 						<h3 className="text-lg font-semibold">Cron Workers</h3>
 					</div>
 					<p className="text-xs text-muted-foreground">
-						Advanced. Controls how many users the cron processes per invocation and how many run in parallel. Raise these only after
-						confirming provider quota; rate-limit errors will show up as step errors on individual runs.
+						Advanced. These control how many users each cron run processes, and how many it handles at once. Only raise them if your AI
+						provider&apos;s quota can handle it. Rate-limit errors show up as step errors on individual runs.
 					</p>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
@@ -265,7 +267,7 @@ export function IntelligenceSchedulingCard({ data, patch }: { data: AdminIntelli
 						/>
 						<NumberRow
 							label="Users per Cron Invocation"
-							hint="Maximum users the cron will pick up before yielding."
+							hint="The most users a single cron run will process before it stops."
 							value={s.usersPerInvocation}
 							onChange={v => patch({ usersPerInvocation: v })}
 						/>
@@ -314,9 +316,7 @@ export function IntelligenceNotificationsCard({ data, patch }: { data: AdminInte
 					<Alert>
 						<AlertTitle>Email isn&rsquo;t configured</AlertTitle>
 						<AlertDescription className="flex flex-col gap-2">
-							<span>
-								Digest delivery needs a Resend API key and From address. Configure email first; these controls unlock once it&rsquo;s set.
-							</span>
+							<span>Sending the digest needs a Resend API key and a From address. Set up email first, and these controls will unlock.</span>
 							<a
 								data-intelligence="admin-notifications-email-config-link"
 								className="inline-flex items-center gap-1 self-start rounded-md border border-border bg-muted/40 px-2.5 py-1 text-xs font-medium hover:bg-muted/60"
@@ -378,9 +378,9 @@ export function IntelligenceNotificationsCard({ data, patch }: { data: AdminInte
 					</div>
 				</div>
 				<p className="text-xs text-muted-foreground">
-					Runs with the intelligence cron; cadence follows the refresh interval ({s.refreshIntervalDays} day
-					{s.refreshIntervalDays === 1 ? '' : 's'}). Send now delivers the current digest immediately, even with the toggles off, without
-					changing the schedule.
+					The digest goes out with the intelligence cron, once every refresh interval ({s.refreshIntervalDays} day
+					{s.refreshIntervalDays === 1 ? '' : 's'}). Send now delivers the current digest right away, even when the toggles are off, and
+					doesn&apos;t change the schedule.
 				</p>
 			</CardContent>
 		</Card>

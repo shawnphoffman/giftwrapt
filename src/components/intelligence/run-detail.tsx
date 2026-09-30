@@ -66,7 +66,7 @@ export function RunDetailContent({ data, onBack, onRerunDryRun, onRerunPersist }
 									</span>
 								</div>
 								{input.items.length === 0 && input.lists.length === 0 && (
-									<div className="text-xs text-muted-foreground italic">Heuristic only - no candidate set sent.</div>
+									<div className="text-xs text-muted-foreground italic">Heuristic only. No candidates were sent to the model.</div>
 								)}
 								{input.items.length > 0 && (
 									<ul className="text-xs flex flex-col gap-0.5">

@@ -144,7 +144,9 @@ export function AdminIntelligencePageContent({
 				<Alert data-intelligence="admin-intelligence-disabled-banner">
 					<AlertTitle>Intelligence is disabled</AlertTitle>
 					<AlertDescription className="flex flex-col gap-2">
-						<span>All recommendation generation is paused. Users do not see the Intelligence page; manual refresh is blocked.</span>
+						<span>
+							All recommendation generation is paused. Users can&apos;t see the Intelligence page, and manual refreshes are blocked.
+						</span>
 						<a
 							className="inline-flex items-center gap-1 self-start rounded-md border border-border bg-muted/40 px-2.5 py-1 text-xs font-medium hover:bg-muted/60"
 							href="/admin/ai"
@@ -313,7 +315,7 @@ export function ActionsCard({
 			<CardHeader>
 				<CardTitle className="text-2xl">Actions</CardTitle>
 				<CardDescription>
-					Trigger a manual run for any user. Last run + active rec count below help find who&apos;s overdue.
+					Start a manual run for any user. The last run time and active recommendation count help you spot who&apos;s overdue.
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
@@ -584,7 +586,7 @@ export const ANALYZER_META: Record<
 	'list-hygiene': {
 		label: 'List Hygiene',
 		description:
-			"Calendar-aware nudges to reshape lists for upcoming auto-archive events (birthdays, Christmas, custom holidays). Suggests convert / make-public / create / set-primary, depending on the user's current lists.",
+			"Suggests list changes ahead of upcoming birthdays, Christmas, and custom holidays, such as converting a list, making it public, creating one, or setting a primary list, depending on the user's current lists.",
 		example:
 			'Your birthday is in 14 days and your only public list is a Christmas list. Convert it to a birthday list and rename it so gifts auto-reveal on the right day.',
 		kind: 'heuristic',
@@ -592,7 +594,7 @@ export const ANALYZER_META: Record<
 	},
 	'relation-labels': {
 		label: 'Relation Labels',
-		description: "Nudges users to declare mother / father relationships when Mother's/Father's Day approaches.",
+		description: "Reminds users to tag their mother or father when Mother's Day or Father's Day is coming up.",
 		example: "Mother's Day is in 7 days. Tag a parent so the system can remind you and shape your gift-tracking.",
 		kind: 'heuristic',
 		triggers: ['cron', 'manual'],
@@ -645,7 +647,7 @@ export const ANALYZER_META: Record<
 	'clothing-prefs': {
 		label: 'Clothing Size & Color',
 		description: 'Asks the model to flag clothing items missing a size or color and suggest common options.',
-		example: '"Levis 511 jeans" has no size noted - common adult sizes are 30x32, 32x32, 34x32. Add yours.',
+		example: '"Levis 511 jeans" has no size noted. Common adult sizes are 30x32, 32x32, and 34x32. Add yours.',
 		kind: 'ai',
 		triggers: ['cron', 'manual'],
 	},
@@ -675,8 +677,8 @@ export function SettingsPanel({
 					defaultOpen
 				>
 					<p className="text-xs text-muted-foreground">
-						Recommendations regenerate on a per-user cron and on manual &quot;Run for me now&quot; clicks. Each user is eligible no more
-						often than the cron interval; manual runs are gated by the cooldown to prevent stacking.
+						Recommendations are regenerated for each user on a schedule, and whenever someone clicks &quot;Run for me now&quot;. The
+						schedule runs at most once per refresh interval for each user, and manual runs wait out the cooldown so they don&apos;t pile up.
 					</p>
 					<div className="grid grid-cols-1 xl:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
@@ -702,8 +704,8 @@ export function SettingsPanel({
 					defaultOpen
 				>
 					<p className="text-xs text-muted-foreground">
-						Each analyzer runs in sequence per user. Errors in one don&apos;t block the others; partial failures show under each run&apos;s
-						status in the table below.
+						For each user, the analyzers run one after another, and an error in one doesn&apos;t stop the rest. Partial failures show up in
+						each run&apos;s status in the table below.
 					</p>
 					<div className="flex flex-col gap-2">
 						{ANALYZER_ORDER.map(id => {
@@ -743,8 +745,8 @@ export function SettingsPanel({
 					summary={`${audienceCount} eligible user${audienceCount === 1 ? '' : 's'}`}
 				>
 					<p className="text-xs text-muted-foreground">
-						Today the cron processes every non-banned user. Per-cohort enablement isn&apos;t supported yet; if you need to scope rollout,
-						disable individual analyzers above or turn the whole feature off.
+						The cron currently processes every user who isn&apos;t banned. You can&apos;t yet turn it on for only some users, so to limit
+						the rollout, disable individual analyzers above or turn the whole feature off.
 					</p>
 					<div className="rounded-md border border-border bg-muted/10 px-3 py-2 text-xs">
 						<div className="text-muted-foreground">Eligible users</div>
@@ -759,14 +761,13 @@ export function SettingsPanel({
 					summary={s.dryRun ? `cap ${s.candidateCap} · dry run on` : `cap ${s.candidateCap} · persisting`}
 				>
 					<p className="text-xs text-muted-foreground">
-						The candidate cap bounds how many items each analyzer feeds into the model. Smaller caps mean cheaper / faster runs but
-						potentially missed recommendations. Dry run leaves the model calls + step rows in place but skips writing recommendations to the
-						database.
+						The candidate cap limits how many items each analyzer sends to the model. A smaller cap makes runs cheaper and faster, but some
+						recommendations may be missed. Dry run still calls the model and records each step, but doesn&apos;t save any recommendations.
 					</p>
 					<div className="grid grid-cols-1 xl:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
 							label="Candidate cap per analyzer"
-							hint="Hard limit on items / pairs sent to the model in a single run."
+							hint="The most items (or item pairs) sent to the model in a single run."
 							value={s.candidateCap}
 							onChange={v => patch({ candidateCap: v })}
 						/>
@@ -781,8 +782,8 @@ export function SettingsPanel({
 					summary={`${s.concurrency}× concurrency · ${s.usersPerInvocation} users / invocation`}
 				>
 					<p className="text-xs text-muted-foreground">
-						Advanced. Controls how many users the cron processes per invocation and how many run in parallel. Raise these only after
-						confirming provider quota; rate-limit errors will show up as step errors on individual runs.
+						Advanced. These control how many users each cron run processes, and how many it handles at once. Only raise them if your AI
+						provider&apos;s quota can handle it. Rate-limit errors show up as step errors on individual runs.
 					</p>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
@@ -793,7 +794,7 @@ export function SettingsPanel({
 						/>
 						<NumberRow
 							label="Users per cron invocation"
-							hint="Maximum users the cron will pick up before yielding."
+							hint="The most users a single cron run will process before it stops."
 							value={s.usersPerInvocation}
 							onChange={v => patch({ usersPerInvocation: v })}
 						/>
@@ -807,7 +808,8 @@ export function SettingsPanel({
 					summary={`recommendations ${s.staleRecRetentionDays}d · run steps ${s.runStepsRetentionDays}d`}
 				>
 					<p className="text-xs text-muted-foreground">
-						Old, dismissed/applied recommendations and old run-step debug rows are pruned on this schedule.
+						Dismissed and applied recommendations, and the debug records for each run, are deleted once they&apos;re older than these
+						limits.
 					</p>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
@@ -818,7 +820,7 @@ export function SettingsPanel({
 						/>
 						<NumberRow
 							label="Run-step retention (days)"
-							hint="Per-step debug rows (prompt / response / parsed) older than this are deleted."
+							hint="Debug records for each run step (prompt, response, and parsed output) older than this are deleted."
 							value={s.runStepsRetentionDays}
 							onChange={v => patch({ runStepsRetentionDays: v })}
 						/>

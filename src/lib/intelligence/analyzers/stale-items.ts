@@ -410,7 +410,7 @@ function buildHeuristicRec({ list, items: itemRefs }: { list: ListRef; items: Ar
 		kind: 'old-items',
 		severity: 'info',
 		title: `Old items on ${list.name}`,
-		body: `${itemRefs.length} items here haven't been edited in over six months. Worth a glance.`,
+		body: `${itemRefs.length} items here haven't been edited in over six months. They might be worth a quick look.`,
 		actions: [
 			{
 				label: 'Open List',

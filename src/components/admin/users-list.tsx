@@ -222,7 +222,7 @@ function roleTooltip(role: string): string {
 		case 'admin':
 			return 'Admin: full access to /admin and every user account'
 		case 'child':
-			return 'Child: managed by a guardian; cannot create gift-ideas lists'
+			return "Child: managed by a guardian and can't create gift-ideas lists"
 		case 'user':
 			return 'Standard user'
 		default:

@@ -43,26 +43,26 @@ const ENTRIES: ReadonlyArray<LegendEntry> = [
 		type: 'wishlist',
 		label: 'Wishlist',
 		overview:
-			'A rolling list with no event date. Items stay until you remove them. Can be public (anyone can shop from it) or private (only editors you add).',
+			'A rolling list with no event of its own. Items stay until you remove them. Can be public (anyone can shop from it) or private (only editors you add).',
 		emails:
-			'No event-driven emails. New comments on your items send a notification email if comment emails are enabled and the comment is from someone other than you.',
+			'When claimed gifts are revealed after your birthday, you get an email showing who gave you what. If comment emails are turned on, you also get an email when someone else comments on one of your items.',
 		autoArchive:
-			'No event-anchored archive. You reveal a gift to yourself by archiving the item from the received-gifts page when you have it in hand.',
+			'Claimed items are archived automatically a configurable number of days after your birthday, which reveals who gave them. If you haven’t set a birthday, nothing is archived automatically.',
 		onDelete:
-			'Removing an unclaimed item is an immediate delete. If a gifter (or their partner) had already claimed the item, the gifter is alerted; if they don’t acknowledge within 14 days, the orphaned claim is automatically cleaned up.',
+			'Removing an unclaimed item deletes it right away. If a gifter (or their partner) already claimed it, the gifter gets an alert. If they don’t acknowledge it within 14 days, their claim is cleaned up automatically.',
 		isEnabled: () => true,
 	},
 	{
 		type: 'birthday',
 		label: 'Birthday',
 		overview:
-			'A list anchored to your birthday (or a dependent’s, when the list is for one). Drives the recipient-specific reminder cadence and the post-event lifecycle.',
+			'A list tied to your birthday (or a dependent’s, when the list is for one). That date decides when reminders go out and what happens after the day.',
 		emails:
-			'A pre-birthday reminder goes out to potential gifters a configurable number of days before. After the birthday, you get a recap email summarising what you received.',
+			'A pre-birthday reminder goes out to potential gifters a configurable number of days before. When claimed gifts are revealed, you get an email showing who gave you what.',
 		autoArchive:
-			'Claimed items auto-archive (revealing the gifters to you) on a configurable offset after your birthday. Unclaimed items stay live for next year.',
+			'Claimed items are archived automatically a configurable number of days after your birthday, which reveals who gave them. Unclaimed items stay on the list for next year.',
 		onDelete:
-			'Same orphan-alert flow as a wishlist. Unanswered orphans are automatically cleaned up on your birthday so the gifter’s view is tidy by the event date.',
+			'Same as a wishlist: if you delete an item someone claimed, the gifter gets an alert. Any alerts they haven’t answered are cleaned up on your birthday, so their view is tidy by then.',
 		isEnabled: s => s.enableBirthdayLists,
 	},
 	{
@@ -70,42 +70,41 @@ const ENTRIES: ReadonlyArray<LegendEntry> = [
 		label: 'Christmas',
 		overview: 'A list anchored to December 25. Public or private at your choice.',
 		emails:
-			'A pre-Christmas reminder broadcasts to every active user a configurable number of days before. After Christmas, list owners receive a recap email.',
+			'A reminder goes out to every active user a configurable number of days before Christmas. When claimed gifts are revealed, list owners get an email showing who gave what.',
 		autoArchive:
-			'Claimed items auto-archive a configurable number of days after Christmas. Unclaimed items stay live and are usually rolled into next year.',
+			'Claimed items are archived automatically a configurable number of days after Christmas. Unclaimed items stay on the list and usually carry over to next year.',
 		onDelete:
-			'Orphan-alert flow on per-item deletes (gifter is told, can acknowledge). Unanswered orphans are cleaned up on Christmas day.',
+			'If you delete an item someone claimed, the gifter is told and can acknowledge it. Any alerts they haven’t answered are cleaned up on Christmas Day.',
 		isEnabled: s => s.enableChristmasLists,
 	},
 	{
 		type: 'holiday',
 		label: 'Holiday',
-		overview:
-			'A list anchored to a specific holiday curated by the admin (e.g. Easter, Diwali). The chosen holiday’s next occurrence drives every date in the lifecycle below.',
+		overview: 'A list tied to a holiday your admin has set up, such as Easter or Diwali. The holiday’s next date sets all the dates below.',
 		emails:
-			'A pre-holiday reminder broadcasts a configurable number of days before the resolved holiday date. List owners receive a recap email after the holiday passes.',
-		autoArchive: 'Claimed items auto-archive a configurable number of days after the holiday’s resolved date.',
-		onDelete: 'Orphan-alert flow on per-item deletes. Unanswered orphans are cleaned up on the holiday date.',
+			'A reminder goes out a configurable number of days before the holiday. When claimed gifts are revealed, list owners get an email showing who gave what.',
+		autoArchive: 'Claimed items are archived automatically a configurable number of days after the holiday.',
+		onDelete: 'If you delete an item someone claimed, the gifter is told. Any alerts they haven’t answered are cleaned up on the holiday.',
 		isEnabled: s => s.enableGenericHolidayLists,
 	},
 	{
 		type: 'giftideas',
 		label: 'Gift Ideas',
 		overview:
-			'Always private. A scratchpad for ideas you have for someone else (a user or a dependent), never visible to that person. No event date.',
-		emails: 'None. Gift ideas live entirely on your side; no notifications fire.',
-		autoArchive: 'None. Gift-ideas items don’t flow through the claim or reveal lifecycle.',
-		onDelete: 'Items hard-delete immediately. There’s no claim flow on a gift-ideas list, so the orphan-alert path doesn’t apply.',
+			'Always private. A place to jot down gift ideas for someone else (a user or a dependent). That person never sees it. No event date.',
+		emails: 'None. Gift ideas stay entirely on your side, and no notifications are sent.',
+		autoArchive: 'None. Gift ideas aren’t claimed or revealed like items on other lists.',
+		onDelete: 'Items are deleted right away. Nobody claims items on a gift ideas list, so there are no gifter alerts.',
 		isEnabled: () => true,
 	},
 	{
 		type: 'todos',
 		label: 'Todos',
 		overview:
-			'A separate row shape from gift items: no price, quantity, image, vendor, or claims. "Claiming" a todo marks it done. Anyone with view access can toggle.',
-		emails: 'None. Todos are status-tracking, not gifting, so no reminder, recap, or comment emails fire.',
-		autoArchive: 'None. Todos use a single done/not-done flag; there is no spoiler-protection reveal step.',
-		onDelete: 'Items hard-delete immediately. There’s no spoiler protection, so there is nothing to orphan.',
+			'Todos are simpler than gift items, with no price, quantity, image, vendor, or claims. "Claiming" a todo marks it done, and anyone who can view the list can check it off.',
+		emails: 'None. Todos track tasks, not gifts, so no reminder, recap, or comment emails are sent.',
+		autoArchive: 'None. A todo is simply done or not done, so there’s no reveal step.',
+		onDelete: 'Items are deleted right away. Nothing is hidden from anyone, so there are no gifter alerts to clean up.',
 		isEnabled: s => s.enableTodoLists,
 	},
 ]
@@ -134,7 +133,7 @@ export function ListTypeLegend({ className }: { className?: string }) {
 				<DialogHeader>
 					<DialogTitle>List types</DialogTitle>
 					<DialogDescription>
-						Each list type carries its own rules, emails, and auto-archive behavior. Disabled types on this deployment are hidden.
+						Each list type has its own rules, emails, and auto-archive behavior. Types that are turned off on this site aren&apos;t shown.
 					</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col divide-y divide-border">

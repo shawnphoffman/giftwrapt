@@ -89,9 +89,9 @@ export function MobileAppEditor() {
 					rows={3}
 				/>
 				<p className="text-xs text-muted-foreground">
-					One URI per line. Required for passkey AND OIDC sign-in from the iOS app — leave empty to disable both on mobile. The iOS app uses{' '}
-					<code className="font-mono">wishlists://oauth</code> by default; remove this entry only if you&apos;re running a forked build with
-					a different URL scheme.
+					One URI per line. Passkey and OIDC sign-in from the iOS app both need this. Leave it empty to turn both off on mobile. The iOS app
+					uses <code className="font-mono">wishlists://oauth</code> by default. Only remove this entry if you&apos;re running a forked build
+					with a different URL scheme.
 				</p>
 			</div>
 

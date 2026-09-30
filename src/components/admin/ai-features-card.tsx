@@ -88,12 +88,12 @@ export function AiFeaturesCard() {
 					<div className="space-y-1">
 						<h3 className="text-base font-medium">Scraping</h3>
 						<p className="text-sm text-muted-foreground">
-							Optional AI title-cleanup post-pass. Runs after the winning provider returns; uses the AI provider configured above. The AI
-							scraper itself is configured under{' '}
+							An optional AI step that tidies up item titles after a scrape. It runs once the winning provider returns a result, using the
+							AI provider configured above. The AI scraper itself is set up under{' '}
 							<a className="underline" href="/admin/scraping">
 								/admin/scraping
 							</a>{' '}
-							as a typed entry alongside the rest of the providers.
+							alongside the other providers.
 						</p>
 					</div>
 					<div className="flex items-center justify-between gap-4">
@@ -120,9 +120,9 @@ export function AiFeaturesCard() {
 					<div className="space-y-1">
 						<h3 className="text-base font-medium">Intelligence</h3>
 						<p className="text-sm text-muted-foreground">
-							Per-user AI recommendations: stale items, duplicates, grouping suggestions, and primary-list nudges. When on, cron generates
-							recs and users see the Intelligence page; manual refresh is unlocked. When off, all generation is paused. Configure analyzers,
-							scheduling, and history under{' '}
+							AI recommendations for each user, like stale items, duplicates, grouping suggestions, and primary-list nudges. When on, a
+							scheduled job generates recommendations, users see the Intelligence page, and they can refresh it manually. When off, no
+							recommendations are generated. Configure analyzers, scheduling, and history under{' '}
 							<a className="underline" href="/admin/intelligence">
 								/admin/intelligence
 							</a>

@@ -240,7 +240,7 @@ function applyErrorMessage(reason: Exclude<ApplyRecommendationResult, { ok: true
 		case 'child-cannot-create-gift-ideas':
 			return "Children can't create gift-ideas lists."
 		case 'no-change':
-			return 'Nothing to change — the list is already in the requested shape.'
+			return 'Nothing to change. The list is already set up that way.'
 		case 'merge-cluster-mismatch':
 			return 'These lists changed since the suggestion was made. Refresh to see the latest.'
 		case 'merge-cross-type-destructive':

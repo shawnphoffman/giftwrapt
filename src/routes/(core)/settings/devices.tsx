@@ -73,7 +73,7 @@ function DevicesPage() {
 			<CardHeader>
 				<CardTitle className="text-2xl">Devices</CardTitle>
 				<CardDescription>
-					Mint a per-device API key for the mobile companion app. Each device gets its own key so you can revoke a lost phone without
+					Create an API key for each device that uses the mobile app. Each device gets its own key, so you can revoke a lost phone without
 					signing out everywhere else.
 				</CardDescription>
 			</CardHeader>

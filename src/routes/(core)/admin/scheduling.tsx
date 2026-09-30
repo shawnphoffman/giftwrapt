@@ -36,8 +36,8 @@ function AdminSchedulingPage() {
 				<CardHeader>
 					<CardTitle className="text-2xl">Run History</CardTitle>
 					<CardDescription>
-						Every invocation writes a row here. History is kept for the configured retention window (default 90 days) and pruned daily by
-						the verification-cleanup tick.
+						Every run is logged here. History is kept for the retention period you set (90 days by default) and cleaned up daily by the
+						verification-cleanup job.
 					</CardDescription>
 				</CardHeader>
 				<CardContent>

@@ -258,7 +258,7 @@ export const duplicatesAnalyzer: Analyzer = {
 					pair,
 					'suggest',
 					'Same item on two lists',
-					'These titles are nearly identical; this looks like the same product on two lists.',
+					'These titles are nearly identical, so this looks like the same product on two lists.',
 					ctx.subject
 				)
 			)

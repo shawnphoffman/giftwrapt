@@ -41,7 +41,7 @@ export function ScrapeProgressAlert({ state, url, onCancel, onRetry, className }
 		return (
 			<Alert variant="destructive" className={cn('text-sm', className)}>
 				<AlertCircle />
-				<AlertTitle>Couldn&apos;t import - please fill in details</AlertTitle>
+				<AlertTitle>Couldn&apos;t import. Please fill in the details.</AlertTitle>
 				<AlertDescription>
 					{describeFailure(state)}
 					{onRetry && (

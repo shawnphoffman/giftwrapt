@@ -83,8 +83,8 @@ function AdminPage() {
 						<div className="space-y-0.5">
 							<h3 className="text-base font-medium">Available Holidays</h3>
 							<p className="text-sm text-muted-foreground">
-								The set of holidays users can pick when creating a holiday-typed list. Add from the bundled gift-giving catalog or define
-								your own. Deleting an in-use holiday converts its lists to the default list type without clearing claims.
+								The holidays users can pick from when creating a holiday list. Add one from the built-in gift-giving catalog or create your
+								own. Deleting a holiday that's in use switches its lists to the default list type and keeps their claims.
 							</p>
 						</div>
 						<ClientOnly>
@@ -97,8 +97,8 @@ function AdminPage() {
 				<CardHeader>
 					<CardTitle className="text-2xl">Relationship Reminders</CardTitle>
 					<CardDescription>
-						Cross-person reminders for Mother's Day, Father's Day, Valentine's Day, and partner anniversaries. Each family has its own
-						master, lead-time, and email toggle; the masters also gate the related profile inputs (parent labels, anniversary date).
+						Reminders for Mother's Day, Father's Day, Valentine's Day, and partner anniversaries. Each one has its own on/off switch, lead
+						time, and email setting. Turning one off also hides its related profile field (parent labels or anniversary date).
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -122,8 +122,8 @@ function AdminPage() {
 				<CardHeader>
 					<CardTitle className="text-2xl">Observability</CardTitle>
 					<CardDescription>
-						Opt-in error reporting and metrics. Default off; both env (DSN / token) and these toggles must be set to emit. Nothing flows to
-						a maintainer-controlled domain - point each family at whichever backend you operate.
+						Optional error reporting and metrics, off by default. Each one needs its environment variable (DSN or token) set and its toggle
+						turned on. Data only goes to the backends you configure.
 					</CardDescription>
 				</CardHeader>
 				<CardContent>

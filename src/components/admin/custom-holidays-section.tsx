@@ -85,7 +85,7 @@ function formatNextOccurrence(iso: string | null): string {
 type RecipientValue = 'none' | `u:${string}` | `d:${string}`
 
 const RECIPIENT_HELP_TEXT =
-	'Leave as Everyone for shared holidays like Easter. Pick a person for a one-off like a graduation; only people who can see their lists will see it.'
+	"Leave as Everyone for shared holidays like Easter. Pick a person for a one-off like a graduation. Only people who can see that person's lists will see it."
 
 function recipientValueToInput(
 	value: RecipientValue
@@ -192,7 +192,7 @@ export function CustomHolidaysSection() {
 	if (!enabled) {
 		return (
 			<div className="text-sm text-muted-foreground">
-				Holiday lists are disabled for this deployment. Turn on <span className="font-medium">Enable Holiday Lists</span> above to curate
+				Holiday lists are disabled for this deployment. Turn on <span className="font-medium">Enable Holiday Lists</span> above to manage
 				custom holidays.
 			</div>
 		)
@@ -210,7 +210,7 @@ export function CustomHolidaysSection() {
 			{query.isLoading ? (
 				<div className="text-sm text-muted-foreground">Loading...</div>
 			) : rows.length === 0 ? (
-				<div className="text-sm text-muted-foreground">No custom holidays yet. Add one to enable holiday-typed lists.</div>
+				<div className="text-sm text-muted-foreground">No custom holidays yet. Add one so users can create holiday lists.</div>
 			) : (
 				<ul className="flex flex-col gap-2">
 					{rows.map(row => (

@@ -124,7 +124,7 @@ function buildBundles(rows: ReadonlyArray<CandidateRow>, subject: AnalyzerSubjec
 			body:
 				count === 1
 					? "This clothing item doesn't have a size or color pinned down. Gifters can guess wrong without one."
-					: "These clothing items don't have a size or color pinned down. Gifters can guess wrong without one - the model's per-item notes are below.",
+					: "These clothing items don't have a size or color pinned down. Gifters can guess wrong without one. There's a note on each item below.",
 			actions: [],
 			dismissDescription: "Hide this suggestion for this list. We won't surface it again unless something changes about these items.",
 			affected: {

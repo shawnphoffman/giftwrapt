@@ -130,7 +130,7 @@ export function OidcClientEditor() {
 					<Field
 						id="oidc-issuer"
 						label="Issuer URL"
-						hint="Discovery document base; better-auth fetches /.well-known/openid-configuration from here."
+						hint="The base URL for discovery. The app loads /.well-known/openid-configuration from here."
 					>
 						<Input
 							id="oidc-issuer"
@@ -155,7 +155,11 @@ export function OidcClientEditor() {
 							<Field id="oidc-jwks" label="JWKS URL">
 								<Input id="oidc-jwks" value={form.jwksUrl} onChange={e => set('jwksUrl', e.target.value)} />
 							</Field>
-							<Field id="oidc-logout" label="Logout URL" hint="Used to single-sign-out at the IdP after local logout. Optional.">
+							<Field
+								id="oidc-logout"
+								label="Logout URL"
+								hint="Optional. When someone logs out here, they're also signed out of the identity provider."
+							>
 								<Input id="oidc-logout" value={form.logoutUrl} onChange={e => set('logoutUrl', e.target.value)} />
 							</Field>
 						</div>
@@ -170,7 +174,7 @@ export function OidcClientEditor() {
 						label="Client Secret"
 						hint={
 							form.hasClientSecret
-								? 'A secret is stored. Type a new value to replace it; leave empty to keep the current one.'
+								? 'A secret is stored. Type a new value to replace it, or leave it empty to keep the current one.'
 								: 'Type the client secret your IdP issued for this app.'
 						}
 					>

@@ -84,7 +84,7 @@ export function ScraperTimingFormView({ settings, disabled, onChange }: ScraperP
 				label="Per-Provider Timeout"
 				suffix="s"
 				multiplier={1000}
-				hint="Maximum time any one provider has to return before the orchestrator gives up on it and tries the next one."
+				hint="How long a single provider gets to respond before the scraper gives up on it and tries the next one."
 				value={settings.scrapeProviderTimeoutMs}
 				disabled={inputDisabled}
 				onCommit={value => onChange('scrapeProviderTimeoutMs', value)}
@@ -94,7 +94,7 @@ export function ScraperTimingFormView({ settings, disabled, onChange }: ScraperP
 				label="Overall Scrape Budget"
 				suffix="s"
 				multiplier={1000}
-				hint="Hard upper bound on a single scrape including parallel providers. Anything still running at this point is cancelled."
+				hint="The longest a single scrape can take, including providers running in parallel. Anything still running at that point is cancelled."
 				value={settings.scrapeOverallTimeoutMs}
 				disabled={inputDisabled}
 				onCommit={value => onChange('scrapeOverallTimeoutMs', value)}
@@ -102,7 +102,7 @@ export function ScraperTimingFormView({ settings, disabled, onChange }: ScraperP
 			<NumberRow
 				id="scrapeQualityThreshold"
 				label="Quality Threshold"
-				hint="Score above which the chain stops trying further providers. Lower = more permissive, higher = more thorough but slower."
+				hint="Once a result scores above this, no more providers are tried. A lower value accepts results sooner. A higher value is more thorough but slower."
 				value={settings.scrapeQualityThreshold}
 				disabled={inputDisabled}
 				onCommit={value => onChange('scrapeQualityThreshold', value)}
@@ -111,7 +111,7 @@ export function ScraperTimingFormView({ settings, disabled, onChange }: ScraperP
 				id="scrapeCacheTtlHours"
 				label="Cache TTL"
 				suffix="hours"
-				hint="How long a successful scrape stays fresh in the URL-based dedup cache. Set to 0 to disable caching."
+				hint="How long a successful scrape is reused for the same URL. Set to 0 to turn off caching."
 				value={settings.scrapeCacheTtlHours}
 				disabled={inputDisabled}
 				min={0}
@@ -218,8 +218,8 @@ function ScrapeProvidersSection({
 			<div className="flex flex-col gap-3 @md/scraper-form:flex-row @md/scraper-form:items-end @md/scraper-form:justify-between @md/scraper-form:gap-4">
 				<div className="space-y-0.5">
 					<p className="text-sm text-muted-foreground">
-						Each entry runs only when configured and enabled. Tier 1 entries fire in parallel; the chain advances to tier 2 only if tier
-						1&apos;s merged result falls below the quality threshold, and so on. Pick a tier to move an entry between tiers.
+						Each entry only runs when it&apos;s configured and enabled. Tier 1 entries run in parallel. Tier 2 only runs if tier 1&apos;s
+						combined result falls below the quality threshold, and so on. Pick a tier to move an entry between tiers.
 					</p>
 				</div>
 				<DropdownMenu>
@@ -256,7 +256,7 @@ function ScrapeProvidersSection({
 			</div>
 
 			{sortedEntries.length === 0 ? (
-				<p className="text-sm text-muted-foreground italic">No scrapers configured. Click &quot;Add scraper&quot; to wire one up.</p>
+				<p className="text-sm text-muted-foreground italic">No scrapers configured. Click &quot;Add scraper&quot; to set one up.</p>
 			) : (
 				<div className="space-y-3">
 					{sortedEntries.map((entry, index) => {
@@ -673,8 +673,8 @@ function BrowserbaseFetchFields({
 				/>
 			</div>
 			<p className="text-xs text-muted-foreground">
-				Uses Browserbase&apos;s Fetch API for fast rendered HTML. Best for static-ish pages where JS execution helps but extraction
-				doesn&apos;t need an LLM.
+				Uses Browserbase&apos;s Fetch API for fast rendered HTML. Best for mostly static pages that benefit from running JavaScript but
+				don&apos;t need an LLM to extract the details.
 			</p>
 		</>
 	)
@@ -725,8 +725,8 @@ function BrowserbaseStagehandFields({
 					onChange={e => setDraft(prev => ({ ...prev, modelName: e.target.value || undefined }))}
 				/>
 				<p className="text-xs text-muted-foreground mt-1">
-					Override the LLM model used by Stagehand&apos;s extract(). Leave blank to inherit from the app&apos;s AI config (provider + model
-					+ key).
+					Override the LLM model used by Stagehand&apos;s extract(). Leave blank to use the app&apos;s AI settings (provider, model, and
+					key).
 				</p>
 			</div>
 			<div className="space-y-1">
@@ -746,12 +746,12 @@ function BrowserbaseStagehandFields({
 					onChange={e => setDraft(prev => ({ ...prev, instruction: e.target.value || undefined }))}
 				/>
 				<p className="text-xs text-muted-foreground mt-1">
-					Free-form natural-language hint for the extractor. Leave blank for the default product-page instruction.
+					Optional instructions for the extractor, in plain language. Leave blank to use the default product-page instructions.
 				</p>
 			</div>
 			<p className="text-xs text-muted-foreground">
-				Drives a real Browserbase session and uses Stagehand&apos;s extract() to produce a structured ScrapeResult. Slower and LLM-billable;
-				runs in parallel with the rest of the chain.
+				Drives a real Browserbase session and uses Stagehand&apos;s extract() to produce a structured ScrapeResult. It&apos;s slower, each
+				run is billed as an LLM call, and it runs in parallel with the rest of the chain.
 			</p>
 		</>
 	)
@@ -787,10 +787,10 @@ function GiftWraptScraperFields({
 						<a href="https://github.com/shawnphoffman/giftwrapt-scraper" target="_blank" rel="noreferrer noopener" className="underline">
 							giftwrapt-scraper
 						</a>{' '}
-						facade.
+						service.
 					</p>
 				) : (
-					<p className="text-xs text-muted-foreground mt-1">Base URL of your deployed giftwrapt-scraper facade.</p>
+					<p className="text-xs text-muted-foreground mt-1">Base URL of your deployed giftwrapt-scraper service.</p>
 				)}
 			</div>
 			<SecretInput
@@ -840,7 +840,7 @@ function ScrapflyFields({
 				<SwitchRow
 					id={`scrapfly-asp-${draft.id}`}
 					label="Anti-Scraping Protection"
-					hint="Sends asp=true. Bypasses most bot walls; costs more credits per call."
+					hint="Sends asp=true. Gets through most bot protection, but costs more credits per call."
 					checked={draft.asp}
 					disabled={disabled}
 					onChange={value => setDraft(prev => ({ ...prev, asp: value }))}
@@ -848,7 +848,7 @@ function ScrapflyFields({
 				<SwitchRow
 					id={`scrapfly-renderjs-${draft.id}`}
 					label="Render JavaScript"
-					hint="Sends render_js=true to drive a headless browser. Slower and significantly more credits per call."
+					hint="Sends render_js=true to render the page in a headless browser. Slower, and uses significantly more credits per call."
 					checked={draft.renderJs}
 					disabled={disabled}
 					onChange={value => setDraft(prev => ({ ...prev, renderJs: value }))}
@@ -862,7 +862,8 @@ function AiFields({ draft: _draft }: { draft: AiEntry }) {
 	return (
 		<p className="text-xs text-muted-foreground">
 			Uses the AI provider configured under <code className="font-mono">/admin/ai-settings</code> (provider type, model, API key). Each
-			scrape fires its own fetch + LLM call; costs money per scrape. Best at higher tiers as a fallback when cheaper providers fall through.
+			scrape makes its own fetch and LLM call, so every scrape costs money. Works best in a higher tier, as a fallback when cheaper
+			providers come up short.
 		</p>
 	)
 }
@@ -920,7 +921,7 @@ function CustomHttpFields({
 				</div>
 				<p className="text-xs text-muted-foreground">
 					Sent on every request to this scraper. One <code className="font-mono">Header-Name: value</code> per line. Blank lines and{' '}
-					<code className="font-mono">#</code>-prefixed comments are ignored. Encrypted at rest (often carries bearer tokens).
+					<code className="font-mono">#</code>-prefixed comments are ignored. Encrypted at rest, since headers often carry bearer tokens.
 				</p>
 				<Textarea
 					id={`custom-headers-${draft.id}`}
@@ -1009,8 +1010,8 @@ function ResponseKindHelp({ kind }: { kind: 'html' | 'json' }) {
 	if (kind === 'html') {
 		return (
 			<p className="text-xs text-muted-foreground mt-1">
-				Return the raw HTML body of the page (a <code className="font-mono">text/html</code> response). The orchestrator runs the same OG /
-				JSON-LD / microdata extractor it uses for the built-in fetcher.
+				Return the raw HTML body of the page (a <code className="font-mono">text/html</code> response). The scraper runs the same OpenGraph,
+				JSON-LD, and microdata extraction it uses for the built-in fetcher.
 			</p>
 		)
 	}
@@ -1021,9 +1022,9 @@ function ResponseKindHelp({ kind }: { kind: 'html' | 'json' }) {
 	return (
 		<div className="space-y-1 mt-1">
 			<p className="text-xs text-muted-foreground">
-				Return JSON with the <code className="font-mono">ScrapeResult</code> shape. Unknown fields are ignored; missing fields are treated
-				as &quot;not provided.&quot; All fields are optional; a response with at least <code className="font-mono">title</code> or{' '}
-				<code className="font-mono">imageUrls[0]</code> typically scores well enough to win.
+				Return JSON with the <code className="font-mono">ScrapeResult</code> shape. Unknown fields are ignored, and missing fields are
+				treated as &quot;not provided.&quot; Every field is optional. A response with at least <code className="font-mono">title</code> or{' '}
+				<code className="font-mono">imageUrls[0]</code> usually scores well enough to win.
 			</p>
 			<details className="group rounded-md border bg-muted/30">
 				<summary className="cursor-pointer select-none list-none px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5">
@@ -1118,8 +1119,8 @@ function TimeoutOverrideRow({
 				<span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground">s</span>
 			</div>
 			<p className="text-xs text-muted-foreground">
-				Leave blank to use the global per-provider timeout above. Set a longer value for slow scrapers (Stagehand, AI) without bumping every
-				other provider&apos;s budget.
+				Leave blank to use the global per-provider timeout above. Set a longer value for slow scrapers (Stagehand, AI) without raising the
+				timeout for every other provider.
 			</p>
 		</div>
 	)

@@ -187,7 +187,7 @@ function ScrapeDetailDialog({
 			<DialogContent className="sm:max-w-[95vw] max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>Scrape Attempt {openId !== null && <span className="font-mono text-base">#{openId}</span>}</DialogTitle>
-					<DialogDescription>Persisted row from item_scrapes. Use this to debug provider responses.</DialogDescription>
+					<DialogDescription>The saved record from the item_scrapes table. Use it to debug provider responses.</DialogDescription>
 				</DialogHeader>
 
 				{detailQuery.isLoading && <div className="text-sm text-muted-foreground">Loading…</div>}

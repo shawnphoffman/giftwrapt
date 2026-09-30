@@ -458,7 +458,7 @@ export default function ThemeReference() {
 						<TapTooltipTrigger asChild>
 							<Button variant="outline">Hover or tap (TapTooltip)</Button>
 						</TapTooltipTrigger>
-						<TapTooltipContent>Hover on desktop, tap on touch — same dark pill, mobile-friendly.</TapTooltipContent>
+						<TapTooltipContent>Hover on desktop or tap on touch. It&apos;s the same dark pill and works on mobile.</TapTooltipContent>
 					</TapTooltip>
 
 					<Popover>

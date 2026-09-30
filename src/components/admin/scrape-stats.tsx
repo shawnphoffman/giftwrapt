@@ -124,7 +124,7 @@ export function ScrapeStatsView({ windowHours, onWindowChange, isLoading, stats,
 			{isLoading && <div className="text-sm text-muted-foreground">Loading stats…</div>}
 
 			{stats && currentTotals.total === 0 && (
-				<div className="text-sm text-muted-foreground italic">No scrape attempts from currently-configured providers in this window.</div>
+				<div className="text-sm text-muted-foreground italic">No scrape attempts from your current providers in this time range.</div>
 			)}
 
 			{stats && currentTotals.total > 0 && (

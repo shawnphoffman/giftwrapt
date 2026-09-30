@@ -147,7 +147,7 @@ export function RunDebugPanel({ state }: Props) {
 				{recs.length === 0 ? (
 					<p data-intelligence="admin-run-debug-no-recs" className="text-xs text-muted-foreground">
 						No recommendations were persisted for this run. Check the steps above to see what each analyzer returned. Analyzers can run
-						successfully and still produce no recs (e.g. nothing stale, no duplicates found).
+						successfully and still produce no recommendations (for example, when nothing is stale and there are no duplicates).
 					</p>
 				) : (
 					<div className="flex flex-col gap-2">

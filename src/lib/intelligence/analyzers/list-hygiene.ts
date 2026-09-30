@@ -619,7 +619,7 @@ function buildConvertRec(args: {
 	const subjectIsYou = subject.kind === 'user'
 	const owner = subjectIsYou ? 'Your' : `${subject.name}'s`
 	const renameCopy = newName === list.name ? '' : ` and rename it to "${newName}"`
-	const body = `${owner} ${event.eventTitle} is in ${event.daysUntil} ${event.daysUntil === 1 ? 'day' : 'days'} and the most-attention-getting list "${list.name}" isn't shaped for it. Convert it to a ${prettyListType(newType)} list${renameCopy} so gifts auto-reveal on the right day.`
+	const body = `${owner} ${event.eventTitle} is in ${event.daysUntil} ${event.daysUntil === 1 ? 'day' : 'days'}, and "${list.name}", the list gifters are most likely to see, isn't set up for it. Convert it to a ${prettyListType(newType)} list${renameCopy} so gifts auto-reveal on the right day.`
 	return {
 		kind: 'convert-public-list',
 		severity: 'important',
@@ -659,7 +659,7 @@ function buildPrivacyRec(args: { event: InWindowEvent; list: ListRow; subject: S
 		kind: 'make-private-list-public',
 		severity: 'suggest',
 		title: `Make "${list.name}" public for ${event.eventTitle}`,
-		body: `${owner} ${event.eventTitle} is in ${event.daysUntil} ${event.daysUntil === 1 ? 'day' : 'days'}. "${list.name}" is set up for the event but it's private — gifters can't see it. Making it public lets people shop from it.`,
+		body: `${owner} ${event.eventTitle} is in ${event.daysUntil} ${event.daysUntil === 1 ? 'day' : 'days'}. "${list.name}" is set up for the event, but it's private, so gifters can't see it. Making it public lets people shop from it.`,
 		actions: [
 			{
 				label: 'Make public',
@@ -698,7 +698,7 @@ function buildCreateRec(args: {
 		kind: 'create-event-list',
 		severity: 'suggest',
 		title: `Create a ${prettyListType(canonicalType)} list for ${event.eventTitle}`,
-		body: `${owner} ${event.eventTitle} is in ${event.daysUntil} ${event.daysUntil === 1 ? 'day' : 'days'}, and there's no list set up to auto-reveal gifts on that day. Want to scaffold one?`,
+		body: `${owner} ${event.eventTitle} is in ${event.daysUntil} ${event.daysUntil === 1 ? 'day' : 'days'}, and there's no list set up to auto-reveal gifts on that day. Want to create one?`,
 		actions: [
 			{
 				label: `Create "${name}"`,
@@ -731,7 +731,7 @@ function buildSetPrimaryRec(args: { event: InWindowEvent; list: ListRow; subject
 		actions: [
 			{
 				label: 'Set as primary',
-				description: 'Promotes this list to primary; the current primary is demoted.',
+				description: 'Makes this your primary list. Your current primary goes back to being a regular list.',
 				intent: 'do',
 				apply: {
 					kind: 'set-primary-list',
@@ -877,7 +877,7 @@ function buildMergeRec(args: { cluster: DuplicateCluster; subject: SubjectListSu
 	const sourceCountWord = sources.length === 1 ? '1 older list' : `${sources.length} older lists`
 	const olderText = sources.length === 1 ? "the older one hasn't" : "the older ones haven't"
 	const title = `Merge ${sourceCountWord} into "${survivor.name}"`
-	const body = `You have ${all.length} active ${prettyListType(type)} lists. "${survivor.name}" was created most recently; ${olderText} been touched in over a year. Merging moves items into the newer list and archives the older one${sources.length === 1 ? '' : 's'}.`
+	const body = `You have ${all.length} active ${prettyListType(type)} lists. "${survivor.name}" is the newest, and ${olderText} been touched in over a year. Merging moves items into the newer list and archives the older one${sources.length === 1 ? '' : 's'}.`
 	return {
 		kind: 'duplicate-event-lists',
 		severity: 'suggest',
@@ -887,7 +887,7 @@ function buildMergeRec(args: { cluster: DuplicateCluster; subject: SubjectListSu
 			{
 				label: 'Merge into newest',
 				description:
-					'Moves items, item groups, and list addons onto the newer list. Older lists are archived (reversible), not deleted; existing claims follow the items.',
+					'Moves items, item groups, and list addons onto the newer list, and existing claims move with their items. The older lists are archived, not deleted, so you can bring them back.',
 				intent: 'do',
 				apply: {
 					kind: 'merge-lists',
@@ -1171,7 +1171,7 @@ function buildStaleListRec(args: { candidate: StaleListCandidate; subject: Subje
 	const actions: AnalyzerRecOutput['actions'] = [
 		{
 			label: 'Archive list',
-			description: 'Flip the list to inactive. Items and any past gifts stay queryable; you can un-archive later.',
+			description: 'Marks the list inactive. Its items and past gifts are kept, and you can unarchive it later.',
 			intent: 'do',
 			apply: { kind: 'archive-list', listId: String(list.id) },
 		},
@@ -1179,7 +1179,7 @@ function buildStaleListRec(args: { candidate: StaleListCandidate; subject: Subje
 	if (!isAlreadyWishlist) {
 		actions.push({
 			label: 'Convert to wishlist',
-			description: 'Strip the event binding and rename to a plain wishlist. Useful if the list is still relevant year-round.',
+			description: "Turns it into a plain wishlist that isn't tied to an event. Handy if the list is still useful year-round.",
 			intent: 'do',
 			apply: {
 				kind: 'convert-list',

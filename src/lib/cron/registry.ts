@@ -23,7 +23,8 @@ export const cronRegistry = [
 	{
 		path: '/api/cron/auto-archive',
 		label: 'Auto-archive',
-		description: 'Reveals claimed gifts past their birthday/Christmas/holiday reveal date and emails each owner who gave what.',
+		description:
+			'Reveals claimed gifts once their birthday, Christmas, or holiday reveal date has passed, then emails each list owner to tell them who gave what.',
 		schedule: '0 14 * * *',
 		cadence: 'Daily',
 		dateSensitive: true,
@@ -31,7 +32,7 @@ export const cronRegistry = [
 	{
 		path: '/api/cron/birthday-emails',
 		label: 'Birthday emails',
-		description: 'Day-of birthday greetings, pre-event reminders, and orphan-claim cleanup.',
+		description: 'Sends birthday greetings on the day and reminders ahead of upcoming events, and cleans up claims left on deleted items.',
 		schedule: '0 15 * * *',
 		cadence: 'Daily',
 		dateSensitive: true,
@@ -39,21 +40,21 @@ export const cronRegistry = [
 	{
 		path: '/api/cron/cleanup-verification',
 		label: 'Verification cleanup',
-		description: 'Deletes expired better-auth verification rows; sweeps cron_runs retention.',
+		description: 'Deletes expired sign-in verification tokens and clears out old job run history.',
 		schedule: '0 3 * * *',
 		cadence: 'Daily',
 	},
 	{
 		path: '/api/cron/intelligence-recommendations',
 		label: 'Intelligence recommendations',
-		description: 'Runs the per-user analyzer pipeline; persists recommendations + run rows.',
+		description: 'Runs the analyzers for each user and saves the recommendations they produce, along with a record of each run.',
 		schedule: '0 4 * * *',
 		cadence: 'Daily',
 	},
 	{
 		path: '/api/cron/item-scrape-queue',
 		label: 'Item scrape queue',
-		description: 'Drains pending item_scrape_jobs rows.',
+		description: 'Works through items that are waiting to have their product details fetched.',
 		schedule: '0 5 * * *',
 		cadence: 'Daily',
 	},

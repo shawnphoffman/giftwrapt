@@ -177,7 +177,7 @@ export function ArchiveManagerBadge({
 								<strong className="text-foreground">Extend</strong> pushes the reveal later, handy when the event is close to another
 								occasion.
 							</p>
-							<p>An active extension blocks &ldquo;Reveal now&rdquo; on purpose, cancel it first to reveal early.</p>
+							<p>An active extension blocks &ldquo;Reveal now&rdquo; on purpose. Cancel the extension first if you want to reveal early.</p>
 						</div>
 						<div className="flex flex-wrap gap-2">
 							{archiveInfo.inForceWindow && (
@@ -221,8 +221,8 @@ export function ArchiveManagerBadge({
 				{mode === 'extend' && (
 					<div className="flex flex-col gap-4">
 						<p className="text-sm text-muted-foreground">
-							Delay when claimed gifts become visible to {recipientName}, useful when the event is close to another occasion (e.g. a
-							graduation just before a birthday). Currently reveals on {longDate}.
+							Delay when claimed gifts become visible to {recipientName}. This is useful when the event is close to another occasion (for
+							example, a graduation just before a birthday). Currently reveals on {longDate}.
 						</p>
 						<div className="flex flex-wrap gap-2">
 							{presets.map(p => (

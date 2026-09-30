@@ -83,7 +83,7 @@ const recPrimaryList: Recommendation = {
 	severity: 'important',
 	status: 'active',
 	title: 'Pick a primary list',
-	body: 'You have 4 active lists but none are marked primary. Your primary list is the one shoppers see first - choosing one helps gifters know where to focus.',
+	body: 'You have 4 active lists but none are marked primary. Your primary list is the one shoppers see first, so picking one helps gifters know where to look.',
 	createdAt: hoursAgo(2),
 	interaction: {
 		kind: 'list-picker',
@@ -412,7 +412,7 @@ const recClothingBundleWithSkipped: Recommendation = {
 	severity: 'suggest',
 	status: 'active',
 	title: 'Pin down sizing on items on Christmas 2026',
-	body: "These clothing items don't have a size or color pinned down. Gifters can guess wrong without one - the model's per-item notes are below.",
+	body: "These clothing items don't have a size or color pinned down. Gifters can guess wrong without one. There's a note on each item below.",
 	createdAt: hoursAgo(2),
 	subItems: [
 		{
@@ -566,7 +566,7 @@ const recConvertPublicForBirthday: Recommendation = {
 	severity: 'important',
 	status: 'active',
 	title: 'Reshape "Christmas 2025" for Birthday',
-	body: 'Your Birthday is in 14 days and the most-attention-getting list "Christmas 2025" isn\'t shaped for it. Convert it to a birthday list and rename it to "Birthday 2026" so gifts auto-reveal on the right day.',
+	body: 'Your Birthday is in 14 days, and "Christmas 2025", the list gifters are most likely to see, isn\'t set up for it. Convert it to a birthday list and rename it to "Birthday 2026" so gifts auto-reveal on the right day.',
 	createdAt: hoursAgo(3),
 	actions: [
 		{
@@ -594,7 +594,7 @@ const recConvertPublicForChristmas: Recommendation = {
 	severity: 'important',
 	status: 'active',
 	title: 'Reshape "My Wishlist" for Christmas',
-	body: 'Your Christmas is in 24 days and the most-attention-getting list "My Wishlist" isn\'t shaped for it. Convert it to a Christmas list and rename it to "Christmas 2026" so gifts auto-reveal on the right day.',
+	body: 'Your Christmas is in 24 days, and "My Wishlist", the list gifters are most likely to see, isn\'t set up for it. Convert it to a Christmas list and rename it to "Christmas 2026" so gifts auto-reveal on the right day.',
 	createdAt: hoursAgo(3),
 	actions: [
 		{
@@ -622,7 +622,7 @@ const recConvertHolidayRebind: Recommendation = {
 	severity: 'important',
 	status: 'active',
 	title: 'Reshape "Easter Plans" for Halloween',
-	body: 'Your Halloween is in 30 days and the most-attention-getting list "Easter Plans" is bound to last year\'s Easter. Re-bind it to Halloween and rename it to "Halloween 2026" so gifts auto-reveal on the right day.',
+	body: 'Your Halloween is in 30 days, and "Easter Plans", the list gifters are most likely to see, is still tied to last year\'s Easter. Switch it to Halloween and rename it to "Halloween 2026" so gifts auto-reveal on the right day.',
 	createdAt: hoursAgo(4),
 	actions: [
 		{
@@ -651,7 +651,7 @@ const recMakePrivateListPublic: Recommendation = {
 	severity: 'suggest',
 	status: 'active',
 	title: 'Make "Birthday 2026" public for Birthday',
-	body: 'Your Birthday is in 14 days. "Birthday 2026" is set up for the event but it\'s private — gifters can\'t see it. Making it public lets people shop from it.',
+	body: 'Your Birthday is in 14 days. "Birthday 2026" is set up for the event, but it\'s private, so gifters can\'t see it. Making it public lets people shop from it.',
 	createdAt: hoursAgo(2),
 	actions: [
 		{
@@ -673,7 +673,7 @@ const recCreateEventList: Recommendation = {
 	severity: 'suggest',
 	status: 'active',
 	title: 'Create a birthday list for Birthday',
-	body: "Your Birthday is in 14 days, and there's no list set up to auto-reveal gifts on that day. Want to scaffold one?",
+	body: "Your Birthday is in 14 days, and there's no list set up to auto-reveal gifts on that day. Want to create one?",
 	createdAt: hoursAgo(1),
 	actions: [
 		{
@@ -699,7 +699,7 @@ const recCreateEventListDependent: Recommendation = {
 	severity: 'suggest',
 	status: 'active',
 	title: 'Create a birthday list for Birthday',
-	body: "Mochi's Birthday is in 7 days, and there's no list set up to auto-reveal gifts on that day. Want to scaffold one?",
+	body: "Mochi's Birthday is in 7 days, and there's no list set up to auto-reveal gifts on that day. Want to create one?",
 	createdAt: hoursAgo(1),
 	actions: [
 		{
@@ -732,7 +732,7 @@ const recWrongPrimaryForEvent: Recommendation = {
 	actions: [
 		{
 			label: 'Set as primary',
-			description: 'Promotes this list to primary; the current primary is demoted.',
+			description: 'Makes this your primary list. Your current primary goes back to being a regular list.',
 			intent: 'do',
 			apply: { kind: 'set-primary-list', listId: targetBirthdayList.id },
 		},
@@ -773,13 +773,13 @@ const recMergeTwoWishlists: Recommendation = {
 	severity: 'suggest',
 	status: 'active',
 	title: 'Merge 1 older list into "New Wishlist"',
-	body: 'You have 2 active wishlists. "New Wishlist" was created most recently; the older one hasn\'t been touched in over a year. Merging moves items into the newer list and archives the older one.',
+	body: 'You have 2 active wishlists. "New Wishlist" is the newest, and the older one hasn\'t been touched in over a year. Merging moves items into the newer list and archives the older one.',
 	createdAt: hoursAgo(1),
 	actions: [
 		{
 			label: 'Merge into newest',
 			description:
-				'Moves items, item groups, and list addons onto the newer list. Older lists are archived (reversible), not deleted; existing claims follow the items.',
+				'Moves items, item groups, and list addons onto the newer list, and existing claims move with their items. The older lists are archived, not deleted, so you can bring them back.',
 			intent: 'do',
 			apply: {
 				kind: 'merge-lists',
@@ -804,13 +804,13 @@ const recMergeThreeWishlists: Recommendation = {
 	severity: 'suggest',
 	status: 'active',
 	title: 'Merge 2 older lists into "New Wishlist"',
-	body: 'You have 3 active wishlists. "New Wishlist" was created most recently; the older ones haven\'t been touched in over a year. Merging moves items into the newer list and archives the older ones.',
+	body: 'You have 3 active wishlists. "New Wishlist" is the newest, and the older ones haven\'t been touched in over a year. Merging moves items into the newer list and archives the older ones.',
 	createdAt: hoursAgo(1),
 	actions: [
 		{
 			label: 'Merge into newest',
 			description:
-				'Moves items, item groups, and list addons onto the newer list. Older lists are archived (reversible), not deleted; existing claims follow the items.',
+				'Moves items, item groups, and list addons onto the newer list, and existing claims move with their items. The older lists are archived, not deleted, so you can bring them back.',
 			intent: 'do',
 			apply: {
 				kind: 'merge-lists',
@@ -850,13 +850,13 @@ const recMergeHolidayCluster: Recommendation = {
 	severity: 'suggest',
 	status: 'active',
 	title: 'Merge 1 older list into "Easter 2026"',
-	body: 'You have 2 active holiday lists. "Easter 2026" was created most recently; the older one hasn\'t been touched in over a year. Merging moves items into the newer list and archives the older one.',
+	body: 'You have 2 active holiday lists. "Easter 2026" is the newest, and the older one hasn\'t been touched in over a year. Merging moves items into the newer list and archives the older one.',
 	createdAt: hoursAgo(1),
 	actions: [
 		{
 			label: 'Merge into newest',
 			description:
-				'Moves items, item groups, and list addons onto the newer list. Older lists are archived (reversible), not deleted; existing claims follow the items.',
+				'Moves items, item groups, and list addons onto the newer list, and existing claims move with their items. The older lists are archived, not deleted, so you can bring them back.',
 			intent: 'do',
 			apply: {
 				kind: 'merge-lists',
@@ -894,7 +894,7 @@ const recConvertPublicForBirthdayAiNamed: Recommendation = {
 	severity: 'important',
 	status: 'active',
 	title: `Reshape "${aiNameCandidateList.name}" for Birthday`,
-	body: `Your Birthday is in 14 days and the most-attention-getting list "${aiNameCandidateList.name}" isn't shaped for it. Convert it to a birthday list and rename it to "Sam's Birthday 2026" so gifts auto-reveal on the right day.`,
+	body: `Your Birthday is in 14 days, and "${aiNameCandidateList.name}", the list gifters are most likely to see, isn't set up for it. Convert it to a birthday list and rename it to "Sam's Birthday 2026" so gifts auto-reveal on the right day.`,
 	createdAt: hoursAgo(2),
 	actions: [
 		{
@@ -951,13 +951,13 @@ const recStalePublicEventPassed: Recommendation = {
 	actions: [
 		{
 			label: 'Archive list',
-			description: 'Flip the list to inactive. Items and any past gifts stay queryable; you can un-archive later.',
+			description: 'Marks the list inactive. Its items and past gifts are kept, and you can unarchive it later.',
 			intent: 'do',
 			apply: { kind: 'archive-list', listId: stalePublicChristmasList.id },
 		},
 		{
 			label: 'Convert to wishlist',
-			description: 'Strip the event binding and rename to a plain wishlist. Useful if the list is still relevant year-round.',
+			description: "Turns it into a plain wishlist that isn't tied to an event. Handy if the list is still useful year-round.",
 			intent: 'do',
 			apply: {
 				kind: 'convert-list',
@@ -989,7 +989,7 @@ const recStalePublicInactive: Recommendation = {
 	actions: [
 		{
 			label: 'Archive list',
-			description: 'Flip the list to inactive. Items and any past gifts stay queryable; you can un-archive later.',
+			description: 'Marks the list inactive. Its items and past gifts are kept, and you can unarchive it later.',
 			intent: 'do',
 			apply: { kind: 'archive-list', listId: staleInactiveWishlist.id },
 		},
@@ -1010,13 +1010,13 @@ const recStalePublicBoth: Recommendation = {
 	actions: [
 		{
 			label: 'Archive list',
-			description: 'Flip the list to inactive. Items and any past gifts stay queryable; you can un-archive later.',
+			description: 'Marks the list inactive. Its items and past gifts are kept, and you can unarchive it later.',
 			intent: 'do',
 			apply: { kind: 'archive-list', listId: staleBothList.id },
 		},
 		{
 			label: 'Convert to wishlist',
-			description: 'Strip the event binding and rename to a plain wishlist. Useful if the list is still relevant year-round.',
+			description: "Turns it into a plain wishlist that isn't tied to an event. Handy if the list is still useful year-round.",
 			intent: 'do',
 			apply: {
 				kind: 'convert-list',

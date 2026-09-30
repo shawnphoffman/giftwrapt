@@ -53,8 +53,8 @@ export function StorageSummaryBar({
 			</div>
 			{summary?.truncated && (
 				<p className="text-xs text-amber-600 dark:text-amber-400">
-					Bucket scan stopped at the {summary.totalCount.toLocaleString()}-object cap; counts above don't include the rest. Bulk-delete is
-					disabled while truncated.
+					The bucket scan stopped at the {summary.totalCount.toLocaleString()}-object limit, so the counts above don't include everything.
+					Bulk delete is turned off while the scan is incomplete.
 				</p>
 			)}
 		</div>

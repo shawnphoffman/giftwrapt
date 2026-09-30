@@ -81,8 +81,8 @@ export function ImportSettingsForm() {
 						Enable Bulk Import
 					</Label>
 					<p className="text-sm text-muted-foreground">
-						Master switch for the bulk-import flow on the list-edit page. While off, the parse + bulk-create server functions reject and the
-						scrape-queue cron tick exits without claiming jobs.
+						Turns bulk import on the list edit page on or off. While it's off, bulk import requests are rejected and the scrape queue job
+						exits without picking up any work.
 					</p>
 				</div>
 				<Switch
@@ -96,7 +96,7 @@ export function ImportSettingsForm() {
 			<NumberField
 				id="scrapeQueueUsersPerInvocation"
 				label="Users per Cron Invocation"
-				hint="How many distinct users a single scrape-queue cron tick processes before bailing for the next tick."
+				hint="How many different users one run of the scrape queue job handles before leaving the rest for the next run."
 				value={settings.scrapeQueueUsersPerInvocation}
 				min={1}
 				max={500}
@@ -106,7 +106,7 @@ export function ImportSettingsForm() {
 			<NumberField
 				id="scrapeQueueConcurrency"
 				label="Per-User Concurrency"
-				hint="Max parallel jobs PER USER inside one cron tick. Doubles as the LIMIT on the per-user pull."
+				hint="The most jobs that run at once for a single user in one run. This is also how many jobs are picked up for each user per run."
 				value={settings.scrapeQueueConcurrency}
 				min={1}
 				max={20}
@@ -116,7 +116,7 @@ export function ImportSettingsForm() {
 			<NumberField
 				id="scrapeQueueMaxAttempts"
 				label="Max Attempts per Job"
-				hint="Number of attempts before a job flips to failed. Failed jobs are retained for diagnostics."
+				hint="How many times a job is tried before it's marked as failed. Failed jobs are kept so you can look into them."
 				value={settings.scrapeQueueMaxAttempts}
 				min={1}
 				max={10}

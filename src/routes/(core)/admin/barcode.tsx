@@ -28,8 +28,8 @@ function AdminBarcodePage() {
 			<CardHeader>
 				<CardTitle className="text-2xl">Barcode Lookup</CardTitle>
 				<CardDescription>
-					Pluggable provider layer behind <code>POST /api/mobile/v1/products/by-barcode</code>. iOS uses the result to prepopulate an
-					add-item sheet; the endpoint never writes items itself.
+					Choose the providers behind <code>POST /api/mobile/v1/products/by-barcode</code>. The iOS app uses the result to prefill its
+					add-item sheet. The endpoint never creates items itself.
 				</CardDescription>
 			</CardHeader>
 			<CardContent>

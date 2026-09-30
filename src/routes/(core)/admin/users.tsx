@@ -78,7 +78,7 @@ function AdminUsersPage() {
 						</Button>
 					</div>
 					<CardDescription>
-						Non-user gift recipients (pets, babies, anyone managed by another user). Click a row to edit; their guardians manage the lists
+						Non-user gift recipients (pets, babies, anyone managed by another user). Click a row to edit. Their guardians manage the lists
 						themselves.
 					</CardDescription>
 				</CardHeader>
@@ -93,8 +93,8 @@ function AdminUsersPage() {
 				<CardHeader>
 					<CardTitle className="text-2xl">Permissions Matrix</CardTitle>
 					<CardDescription>
-						Who can view or edit whose lists. Read each row as: this viewer's access to the column owner's lists. Dependents appear as
-						columns only (they're always recipients, never viewers).
+						Who can view or edit whose lists. Each row shows what that person can do with the lists of the person in each column. Dependents
+						only appear as columns, since they're always recipients and never viewers.
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -133,7 +133,7 @@ function AdminUsersPage() {
 					<DialogHeader>
 						<DialogTitle>Add Dependent</DialogTitle>
 						<DialogDescription>
-							Pick at least one guardian; they'll see the dependent on /me, /received, and the create-list picker.
+							Pick at least one guardian. Guardians see the dependent on /me and /received, and can pick them when creating a list.
 						</DialogDescription>
 					</DialogHeader>
 					<ClientOnly>

@@ -158,7 +158,7 @@ export default function ImportData() {
 								<div className="space-y-0.5">
 									<div className="text-sm font-medium">Merge by ID</div>
 									<div className="text-xs text-muted-foreground">
-										Upsert each row by primary key. Existing rows get updated with the values from the backup. Nothing is deleted.
+										Insert each row from the backup, or update it if a row with the same primary key already exists. Nothing is deleted.
 									</div>
 								</div>
 							</label>
@@ -167,8 +167,8 @@ export default function ImportData() {
 								<div className="space-y-0.5">
 									<div className="text-sm font-medium">Wipe and Restore</div>
 									<div className="text-xs text-muted-foreground">
-										Delete all existing app data (including every user and all sessions), then insert rows from the backup. You will be
-										signed out and will need to re-authenticate.
+										Delete all existing app data (including every user and all sessions), then insert rows from the backup. You'll be signed
+										out and will need to sign in again.
 									</div>
 								</div>
 							</label>

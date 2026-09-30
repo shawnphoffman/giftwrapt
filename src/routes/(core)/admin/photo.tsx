@@ -17,9 +17,9 @@ function AdminPhotoPage() {
 			<CardHeader>
 				<CardTitle className="text-2xl">Photo Extraction</CardTitle>
 				<CardDescription>
-					AI vision extractor behind <code>POST /api/scrape/photo</code>. The add-item Upload Photo flow uses the same endpoint to prefill a
-					draft; this page lets admins verify the configured AI model can actually return a ScrapeResult from a photo before the feature is
-					exposed to users.
+					The AI vision extractor behind <code>POST /api/scrape/photo</code>. The Upload Photo option when adding an item uses the same
+					endpoint to prefill a draft. Use this page to check that your AI model can actually return a ScrapeResult from a photo before you
+					offer the feature to users.
 				</CardDescription>
 			</CardHeader>
 			<CardContent>

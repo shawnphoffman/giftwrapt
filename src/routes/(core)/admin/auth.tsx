@@ -32,8 +32,8 @@ function AdminAuthPage() {
 				<CardHeader>
 					<CardTitle className="text-2xl">OIDC Sign-In</CardTitle>
 					<CardDescription>
-						Let users sign in with an external OpenID Connect provider. Single provider per deployment; changes take effect after a server
-						restart. iOS sign-in additionally requires at least one mobile redirect URI above.
+						Let users sign in with an external OpenID Connect provider. Each deployment supports one provider, and changes take effect after
+						a server restart. Signing in from the iOS app also needs at least one mobile redirect URI above.
 					</CardDescription>
 				</CardHeader>
 				<CardContent>

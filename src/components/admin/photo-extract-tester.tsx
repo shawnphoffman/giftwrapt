@@ -47,8 +47,8 @@ export function PhotoExtractTester() {
 			<CardHeader>
 				<CardTitle className="text-2xl">Photo Extraction Tester</CardTitle>
 				<CardDescription>
-					Upload a product photo to verify the configured AI model can extract a ScrapeResult. Same endpoint the add-item Upload Photo flow
-					uses. Counts against your per-user rate limit.
+					Upload a product photo to check that your AI model can extract a ScrapeResult. This uses the same endpoint as the Upload Photo
+					option when adding an item, and counts against your per-user rate limit.
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-3">

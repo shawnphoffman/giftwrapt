@@ -198,7 +198,7 @@ export function operatorDigestStatus(data: OperatorDigestData): { tone: 'error' 
 }
 
 export function operatorDigestSubject(data: OperatorDigestData): string {
-	return `Intelligence digest — ${operatorDigestStatus(data).label}`
+	return `Intelligence digest: ${operatorDigestStatus(data).label}`
 }
 
 // Compute the window for a scheduled send: since the last successful send,

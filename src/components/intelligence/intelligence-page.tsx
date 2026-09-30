@@ -54,7 +54,7 @@ type Props = {
 const SEVERITY_RANK: Record<RecommendationSeverity, number> = { important: 0, suggest: 1, info: 2 }
 const SEVERITY_LABEL: Record<RecommendationSeverity, string> = { important: 'Important', suggest: 'Suggested', info: 'For your info' }
 const SEVERITY_DESCRIPTION: Record<RecommendationSeverity, string> = {
-	important: 'Worth handling soon - these affect how others see your lists.',
+	important: 'Worth handling soon. These affect how others see your lists.',
 	suggest: 'Optional polish. Apply if you agree, dismiss if not.',
 	info: 'Just a heads-up. No action required.',
 }
@@ -308,7 +308,7 @@ function IntelligencePageLoaded({
 				<div data-intelligence="page-summary" className="mt-6 text-xs text-muted-foreground">
 					{applied.length > 0 && <span>{applied.length} applied · </span>}
 					{dismissed.length > 0 && <span>{dismissed.length} dismissed. </span>}
-					Dismissed items stay hidden across regenerations until the underlying targets change, or until you bring one back.
+					Dismissed items stay hidden, even when suggestions refresh, until the items they&apos;re about change or you bring one back.
 				</div>
 			)}
 		</div>
@@ -483,7 +483,7 @@ function Header({
 				Suggestions
 			</h1>
 			<p data-intelligence="page-tagline" className="text-sm text-muted-foreground">
-				These personalized recommendations updated periodically so make sure to check back regularly.
+				These personalized recommendations update periodically, so check back regularly.
 			</p>
 			{(lastRunAt || showRefresh) && (
 				<div data-intelligence="page-meta-row" className="flex items-center justify-between gap-3 flex-wrap">

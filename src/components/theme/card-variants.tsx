@@ -608,7 +608,7 @@ export default function CardVariants() {
 									{v.seenIn.map(s => (
 										<li key={s.where} className="text-[11px] leading-snug">
 											<code className="font-mono text-[10px] text-foreground/80">{s.where}</code>
-											<span className="text-muted-foreground"> &mdash; {s.what}</span>
+											<span className="text-muted-foreground">: {s.what}</span>
 										</li>
 									))}
 								</ul>

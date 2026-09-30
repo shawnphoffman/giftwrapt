@@ -278,7 +278,7 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 				if (result.reason === 'not-authorized') {
 					setError('No permission to add to that list.')
 				} else if (result.reason === 'todo-list-rejects-items') {
-					setError("This is a to-do list; it doesn't accept gift items. Add a to-do from the list page instead.")
+					setError("This is a to-do list, so it doesn't accept gift items. Add a to-do from the list page instead.")
 				} else {
 					setError('List not found.')
 				}

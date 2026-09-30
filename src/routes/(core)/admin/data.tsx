@@ -39,8 +39,8 @@ function AdminDataPage() {
 				<CardHeader>
 					<CardTitle className="text-2xl">Purge All Data</CardTitle>
 					<CardDescription>
-						Permanently delete every list, item, claim, comment, addon, and editor record. Users, guardianships, and partner links are
-						preserved. Cannot be undone.
+						Permanently delete every list, item, claim, comment, addon, and editor record. Users, guardianships, and partner links are kept.
+						This can't be undone.
 					</CardDescription>
 				</CardHeader>
 				<CardContent>

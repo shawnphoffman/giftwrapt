@@ -40,7 +40,7 @@ function statusToCopy(status: number): FormattedError {
 	if (status >= 500) {
 		return {
 			title: 'Something went wrong on our end',
-			body: "We hit an unexpected error. It's been logged; try again in a moment.",
+			body: 'We hit an unexpected error and logged it. Try again in a moment.',
 			status,
 		}
 	}

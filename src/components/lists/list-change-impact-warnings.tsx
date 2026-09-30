@@ -30,8 +30,8 @@ export function ListChangeImpactWarnings({ warnings }: Props) {
 					</TapTooltipTrigger>
 					<TapTooltipContent>
 						<p className="max-w-xs text-xs">
-							This is a non-blocking notice about how your changes interact with the calendar. You can still save - we just want you to know
-							what auto-archive will (and won't) do after.
+							This won&apos;t stop you from saving. It just lets you know what auto-archive will (and won&apos;t) do once your changes are
+							saved.
 						</p>
 					</TapTooltipContent>
 				</TapTooltip>
@@ -42,7 +42,7 @@ export function ListChangeImpactWarnings({ warnings }: Props) {
 						<li key={`${w.kind}-${i}`}>{w.text}</li>
 					))}
 				</ul>
-				<p className="text-muted-foreground mt-2 text-xs">These are notices, not blockers — Save is still enabled.</p>
+				<p className="text-muted-foreground mt-2 text-xs">These are just notices. You can still save.</p>
 			</AlertDescription>
 		</Alert>
 	)

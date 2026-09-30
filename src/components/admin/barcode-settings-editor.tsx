@@ -115,8 +115,7 @@ function BarcodeSettingsForm({ cfg, onChange, saving }: FormProps) {
 						Enable Barcode Lookup
 					</Label>
 					<p className="text-sm text-muted-foreground">
-						When off, <code>POST /api/mobile/v1/products/by-barcode</code> returns 503 and the iOS capabilities probe reports the feature
-						unavailable.
+						When off, <code>POST /api/mobile/v1/products/by-barcode</code> returns 503 and the iOS app treats the feature as unavailable.
 					</p>
 				</div>
 				<Switch id="barcodeEnabled" checked={cfg.enabled} onCheckedChange={value => onChange({ enabled: value })} disabled={saving} />
@@ -185,7 +184,7 @@ function BarcodeSettingsForm({ cfg, onChange, saving }: FormProps) {
 							)}
 						</div>
 					)}
-					{!hasKey && <p className="text-sm text-amber-500">No key set; lookups will return 503 until one is provided.</p>}
+					{!hasKey && <p className="text-sm text-amber-500">No key set. Lookups will return 503 until you add one.</p>}
 				</div>
 			)}
 
@@ -194,7 +193,9 @@ function BarcodeSettingsForm({ cfg, onChange, saving }: FormProps) {
 					<Label htmlFor="barcodeCacheTtl" className="text-base">
 						Cache TTL (Hours)
 					</Label>
-					<p className="text-sm text-muted-foreground">Cached rows older than this are refreshed on the next lookup. 0 disables caching.</p>
+					<p className="text-sm text-muted-foreground">
+						Cached results older than this are refreshed on the next lookup. Set to 0 to turn off caching.
+					</p>
 				</div>
 				<Input
 					id="barcodeCacheTtl"
@@ -243,8 +244,8 @@ function BarcodeTester() {
 				<h3 className="text-base font-medium">Provider Tester</h3>
 			</div>
 			<p className="text-sm text-muted-foreground">
-				Run a single provider against a barcode. Bypasses the cache and the fallback chain so you can confirm each provider's configuration
-				in isolation.
+				Run a single provider against a barcode. This skips the cache and the fallback providers, so you can check each provider's setup on
+				its own.
 			</p>
 			<div className="grid gap-3 sm:grid-cols-[200px_1fr_auto]">
 				<Select value={providerId} onValueChange={v => setProviderId(v as typeof providerId)} disabled={running}>

@@ -25,7 +25,7 @@ function CellTooltip({ cell, viewerName, ownerName }: { cell: Cell; viewerName: 
 			break
 		case 'guardian':
 			lines.push(`${viewerName} is a guardian of ${ownerName}.`)
-			lines.push(`Full view + edit on all of ${ownerName}'s lists.`)
+			lines.push(`Can view and edit all of ${ownerName}'s lists.`)
 			break
 		case 'editor':
 			lines.push(`${viewerName} can edit ${ownerName}'s lists.`)
@@ -39,7 +39,7 @@ function CellTooltip({ cell, viewerName, ownerName }: { cell: Cell; viewerName: 
 			lines.push(`${ownerName} has explicitly denied ${viewerName} from viewing their lists.`)
 			break
 		case 'restricted':
-			lines.push(`${ownerName} has restricted ${viewerName}'s view: visible items only, no addons, no edits.`)
+			lines.push(`${ownerName} has restricted ${viewerName} to visible items only, with no addons and no edits.`)
 			if (cell.editorListCount > 0) {
 				lines.push(`(${cell.editorListCount} stale list-level edit grant${cell.editorListCount === 1 ? '' : 's'} ignored.)`)
 			}
@@ -263,11 +263,11 @@ export function PermissionsMatrixView({ data }: { data: PermissionsMatrixData })
 
 function Legend() {
 	const userLevelGrants: Array<{ kind: CellKind; label: string; hint: string }> = [
-		{ kind: 'guardian', label: 'Guardian', hint: 'Full view + edit on child user' },
+		{ kind: 'guardian', label: 'Guardian', hint: 'Full view and edit access to a child user' },
 		{ kind: 'editor', label: 'Editor', hint: 'User-level edit grant' },
-		{ kind: 'view', label: 'View', hint: 'Default: public + active lists' },
-		{ kind: 'restricted', label: 'Restricted', hint: 'Can claim, but unclaimed items only; no addons' },
-		{ kind: 'denied', label: 'Denied', hint: 'Owner blocked viewer' },
+		{ kind: 'view', label: 'View', hint: 'Default: public, active lists' },
+		{ kind: 'restricted', label: 'Restricted', hint: 'Can claim, but only sees unclaimed items and no addons' },
+		{ kind: 'denied', label: 'Denied', hint: 'Owner has blocked this viewer' },
 	]
 	return (
 		<div className="space-y-3 text-xs text-muted-foreground">

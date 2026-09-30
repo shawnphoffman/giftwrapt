@@ -167,7 +167,7 @@ export function PermissionsEditor({
 								disabled={isSaving || row.isGuardian || (lockedUserIds?.has(row.id) ?? false)}
 								title={
 									row.isGuardian || lockedUserIds?.has(row.id)
-										? 'Guardians always have full access; remove them as a guardian to change this'
+										? 'Guardians always have full access. Remove them as a guardian to change this.'
 										: undefined
 								}
 							>
