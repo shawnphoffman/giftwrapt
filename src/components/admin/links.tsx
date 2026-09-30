@@ -1,5 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router'
-import { Barcode, Bug, CalendarClock, Database, Globe, HardDrive, Lock, Mail, ShieldCheck, Sparkles, Users } from 'lucide-react'
+import { Barcode, Bug, CalendarClock, Database, Globe, HardDrive, Lock, Mail, Plug, ShieldCheck, Sparkles, Users } from 'lucide-react'
 
 import { buttonVariants } from '@/components/ui/button'
 import { useAppSetting } from '@/hooks/use-app-settings'
@@ -17,6 +17,9 @@ export default function AdminLinks() {
 	// app. Hide the admin page when the deployment doesn't ship that
 	// feature; the page itself also redirects (see route file).
 	const mobileAppEnabled = useAppSetting('enableMobileApp')
+	// Same pattern for the MCP server: hidden until an admin turns it on;
+	// the route file redirects as the backstop.
+	const mcpEnabled = useAppSetting('enableMcp')
 
 	return (
 		<>
@@ -62,6 +65,12 @@ export default function AdminLinks() {
 				<Link to="/admin/barcode" className={navLinkClass(pathname === '/admin/barcode')}>
 					<Barcode />
 					Barcode
+				</Link>
+			)}
+			{mcpEnabled && (
+				<Link to="/admin/mcp" className={navLinkClass(pathname === '/admin/mcp')}>
+					<Plug />
+					MCP
 				</Link>
 			)}
 			<Link to="/admin/debug" className={navLinkClass(pathname === '/admin/debug')}>

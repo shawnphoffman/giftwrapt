@@ -1,5 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router'
-import { LogOut, type LucideIcon, ShieldCheck, Smartphone, Sprout, UserCircle, UserCog } from 'lucide-react'
+import { LogOut, type LucideIcon, Plug, ShieldCheck, Smartphone, Sprout, UserCircle, UserCog } from 'lucide-react'
 
 import { buttonVariants } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -17,11 +17,13 @@ function NavIcon({ icon: Icon, active }: { icon: LucideIcon; active: boolean }) 
 export default function SettingsLinks() {
 	const { pathname } = useLocation()
 	const mobileAppEnabled = useAppSetting('enableMobileApp')
+	const mcpEnabled = useAppSetting('enableMcp')
 
 	const isProfile = pathname === '/settings'
 	const isSecurity = pathname === '/settings/security'
 	const isPermissions = pathname === '/settings/permissions'
 	const isDevices = pathname === '/settings/devices'
+	const isConnectedApps = pathname === '/settings/connected-apps'
 	const isDependents = pathname.startsWith('/settings/dependents')
 
 	return (
@@ -46,6 +48,12 @@ export default function SettingsLinks() {
 				<Link to="/settings/devices" className={navLinkClass(isDevices)}>
 					<NavIcon icon={Smartphone} active={isDevices} />
 					Devices
+				</Link>
+			)}
+			{mcpEnabled && (
+				<Link to="/settings/connected-apps" className={navLinkClass(isConnectedApps)}>
+					<NavIcon icon={Plug} active={isConnectedApps} />
+					Connected Apps
 				</Link>
 			)}
 			<Separator className="my-1" />

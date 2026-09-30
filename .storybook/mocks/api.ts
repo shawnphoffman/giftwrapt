@@ -401,6 +401,17 @@ export const updateOidcClientConfigAsAdmin = ok
 export const fetchMobileAppConfigAsAdmin = (): Promise<null> => Promise.resolve(null)
 export const updateMobileAppConfigAsAdmin = ok
 
+// @/api/admin-mcp
+export const listOauthClientsAsAdmin = emptyArray
+export const listOauthGrantsAsAdmin = emptyArray
+export const revokeOauthGrantAsAdmin = ok
+export const setOauthClientDisabledAsAdmin = ok
+export const deleteOauthClientAsAdmin = ok
+
+// @/api/mcp-grants
+export const listMyConnectedApps = emptyArray
+export const revokeMyConnectedApp = ok
+
 // @/api/mcp-oauth
 export const fetchOAuthClientInfo = (): Promise<{ enabled: boolean; client: null }> => Promise.resolve({ enabled: true, client: null })
 

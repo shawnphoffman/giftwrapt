@@ -52,6 +52,7 @@ import { Route as coreSettingsSecurityRouteImport } from './routes/(core)/settin
 import { Route as coreSettingsPermissionsRouteImport } from './routes/(core)/settings/permissions'
 import { Route as coreSettingsDevicesRouteImport } from './routes/(core)/settings/devices'
 import { Route as coreSettingsDependentsRouteImport } from './routes/(core)/settings/dependents'
+import { Route as coreSettingsConnectedAppsRouteImport } from './routes/(core)/settings/connected-apps'
 import { Route as coreRecentItemsRouteImport } from './routes/(core)/recent.items'
 import { Route as coreRecentCommentsRouteImport } from './routes/(core)/recent.comments'
 import { Route as corePurchasesReceivedRouteImport } from './routes/(core)/purchases.received'
@@ -62,6 +63,7 @@ import { Route as coreAdminStorageRouteImport } from './routes/(core)/admin/stor
 import { Route as coreAdminScrapingRouteImport } from './routes/(core)/admin/scraping'
 import { Route as coreAdminSchedulingRouteImport } from './routes/(core)/admin/scheduling'
 import { Route as coreAdminPhotoRouteImport } from './routes/(core)/admin/photo'
+import { Route as coreAdminMcpRouteImport } from './routes/(core)/admin/mcp'
 import { Route as coreAdminEmailRouteImport } from './routes/(core)/admin/email'
 import { Route as coreAdminDebugRouteImport } from './routes/(core)/admin/debug'
 import { Route as coreAdminDataRouteImport } from './routes/(core)/admin/data'
@@ -304,6 +306,12 @@ const coreSettingsDependentsRoute = coreSettingsDependentsRouteImport.update({
   path: '/dependents',
   getParentRoute: () => coreSettingsRouteRoute,
 } as any)
+const coreSettingsConnectedAppsRoute =
+  coreSettingsConnectedAppsRouteImport.update({
+    id: '/connected-apps',
+    path: '/connected-apps',
+    getParentRoute: () => coreSettingsRouteRoute,
+  } as any)
 const coreRecentItemsRoute = coreRecentItemsRouteImport.update({
   id: '/recent/items',
   path: '/recent/items',
@@ -352,6 +360,11 @@ const coreAdminSchedulingRoute = coreAdminSchedulingRouteImport.update({
 const coreAdminPhotoRoute = coreAdminPhotoRouteImport.update({
   id: '/photo',
   path: '/photo',
+  getParentRoute: () => coreAdminRouteRoute,
+} as any)
+const coreAdminMcpRoute = coreAdminMcpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
   getParentRoute: () => coreAdminRouteRoute,
 } as any)
 const coreAdminEmailRoute = coreAdminEmailRouteImport.update({
@@ -490,6 +503,7 @@ export interface FileRoutesByFullPath {
   '/admin/data': typeof coreAdminDataRoute
   '/admin/debug': typeof coreAdminDebugRoute
   '/admin/email': typeof coreAdminEmailRoute
+  '/admin/mcp': typeof coreAdminMcpRoute
   '/admin/photo': typeof coreAdminPhotoRoute
   '/admin/scheduling': typeof coreAdminSchedulingRoute
   '/admin/scraping': typeof coreAdminScrapingRoute
@@ -500,6 +514,7 @@ export interface FileRoutesByFullPath {
   '/purchases/received': typeof corePurchasesReceivedRoute
   '/recent/comments': typeof coreRecentCommentsRoute
   '/recent/items': typeof coreRecentItemsRoute
+  '/settings/connected-apps': typeof coreSettingsConnectedAppsRoute
   '/settings/dependents': typeof coreSettingsDependentsRoute
   '/settings/devices': typeof coreSettingsDevicesRoute
   '/settings/permissions': typeof coreSettingsPermissionsRoute
@@ -560,6 +575,7 @@ export interface FileRoutesByTo {
   '/admin/data': typeof coreAdminDataRoute
   '/admin/debug': typeof coreAdminDebugRoute
   '/admin/email': typeof coreAdminEmailRoute
+  '/admin/mcp': typeof coreAdminMcpRoute
   '/admin/photo': typeof coreAdminPhotoRoute
   '/admin/scheduling': typeof coreAdminSchedulingRoute
   '/admin/scraping': typeof coreAdminScrapingRoute
@@ -570,6 +586,7 @@ export interface FileRoutesByTo {
   '/purchases/received': typeof corePurchasesReceivedRoute
   '/recent/comments': typeof coreRecentCommentsRoute
   '/recent/items': typeof coreRecentItemsRoute
+  '/settings/connected-apps': typeof coreSettingsConnectedAppsRoute
   '/settings/dependents': typeof coreSettingsDependentsRoute
   '/settings/devices': typeof coreSettingsDevicesRoute
   '/settings/permissions': typeof coreSettingsPermissionsRoute
@@ -636,6 +653,7 @@ export interface FileRoutesById {
   '/(core)/admin/data': typeof coreAdminDataRoute
   '/(core)/admin/debug': typeof coreAdminDebugRoute
   '/(core)/admin/email': typeof coreAdminEmailRoute
+  '/(core)/admin/mcp': typeof coreAdminMcpRoute
   '/(core)/admin/photo': typeof coreAdminPhotoRoute
   '/(core)/admin/scheduling': typeof coreAdminSchedulingRoute
   '/(core)/admin/scraping': typeof coreAdminScrapingRoute
@@ -646,6 +664,7 @@ export interface FileRoutesById {
   '/(core)/purchases/received': typeof corePurchasesReceivedRoute
   '/(core)/recent/comments': typeof coreRecentCommentsRoute
   '/(core)/recent/items': typeof coreRecentItemsRoute
+  '/(core)/settings/connected-apps': typeof coreSettingsConnectedAppsRoute
   '/(core)/settings/dependents': typeof coreSettingsDependentsRoute
   '/(core)/settings/devices': typeof coreSettingsDevicesRoute
   '/(core)/settings/permissions': typeof coreSettingsPermissionsRoute
@@ -712,6 +731,7 @@ export interface FileRouteTypes {
     | '/admin/data'
     | '/admin/debug'
     | '/admin/email'
+    | '/admin/mcp'
     | '/admin/photo'
     | '/admin/scheduling'
     | '/admin/scraping'
@@ -722,6 +742,7 @@ export interface FileRouteTypes {
     | '/purchases/received'
     | '/recent/comments'
     | '/recent/items'
+    | '/settings/connected-apps'
     | '/settings/dependents'
     | '/settings/devices'
     | '/settings/permissions'
@@ -782,6 +803,7 @@ export interface FileRouteTypes {
     | '/admin/data'
     | '/admin/debug'
     | '/admin/email'
+    | '/admin/mcp'
     | '/admin/photo'
     | '/admin/scheduling'
     | '/admin/scraping'
@@ -792,6 +814,7 @@ export interface FileRouteTypes {
     | '/purchases/received'
     | '/recent/comments'
     | '/recent/items'
+    | '/settings/connected-apps'
     | '/settings/dependents'
     | '/settings/devices'
     | '/settings/permissions'
@@ -857,6 +880,7 @@ export interface FileRouteTypes {
     | '/(core)/admin/data'
     | '/(core)/admin/debug'
     | '/(core)/admin/email'
+    | '/(core)/admin/mcp'
     | '/(core)/admin/photo'
     | '/(core)/admin/scheduling'
     | '/(core)/admin/scraping'
@@ -867,6 +891,7 @@ export interface FileRouteTypes {
     | '/(core)/purchases/received'
     | '/(core)/recent/comments'
     | '/(core)/recent/items'
+    | '/(core)/settings/connected-apps'
     | '/(core)/settings/dependents'
     | '/(core)/settings/devices'
     | '/(core)/settings/permissions'
@@ -1240,6 +1265,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreSettingsDependentsRouteImport
       parentRoute: typeof coreSettingsRouteRoute
     }
+    '/(core)/settings/connected-apps': {
+      id: '/(core)/settings/connected-apps'
+      path: '/connected-apps'
+      fullPath: '/settings/connected-apps'
+      preLoaderRoute: typeof coreSettingsConnectedAppsRouteImport
+      parentRoute: typeof coreSettingsRouteRoute
+    }
     '/(core)/recent/items': {
       id: '/(core)/recent/items'
       path: '/recent/items'
@@ -1308,6 +1340,13 @@ declare module '@tanstack/react-router' {
       path: '/photo'
       fullPath: '/admin/photo'
       preLoaderRoute: typeof coreAdminPhotoRouteImport
+      parentRoute: typeof coreAdminRouteRoute
+    }
+    '/(core)/admin/mcp': {
+      id: '/(core)/admin/mcp'
+      path: '/mcp'
+      fullPath: '/admin/mcp'
+      preLoaderRoute: typeof coreAdminMcpRouteImport
       parentRoute: typeof coreAdminRouteRoute
     }
     '/(core)/admin/email': {
@@ -1460,6 +1499,7 @@ interface coreAdminRouteRouteChildren {
   coreAdminDataRoute: typeof coreAdminDataRoute
   coreAdminDebugRoute: typeof coreAdminDebugRoute
   coreAdminEmailRoute: typeof coreAdminEmailRoute
+  coreAdminMcpRoute: typeof coreAdminMcpRoute
   coreAdminPhotoRoute: typeof coreAdminPhotoRoute
   coreAdminSchedulingRoute: typeof coreAdminSchedulingRoute
   coreAdminScrapingRoute: typeof coreAdminScrapingRoute
@@ -1476,6 +1516,7 @@ const coreAdminRouteRouteChildren: coreAdminRouteRouteChildren = {
   coreAdminDataRoute: coreAdminDataRoute,
   coreAdminDebugRoute: coreAdminDebugRoute,
   coreAdminEmailRoute: coreAdminEmailRoute,
+  coreAdminMcpRoute: coreAdminMcpRoute,
   coreAdminPhotoRoute: coreAdminPhotoRoute,
   coreAdminSchedulingRoute: coreAdminSchedulingRoute,
   coreAdminScrapingRoute: coreAdminScrapingRoute,
@@ -1490,6 +1531,7 @@ const coreAdminRouteRouteWithChildren = coreAdminRouteRoute._addFileChildren(
 )
 
 interface coreSettingsRouteRouteChildren {
+  coreSettingsConnectedAppsRoute: typeof coreSettingsConnectedAppsRoute
   coreSettingsDependentsRoute: typeof coreSettingsDependentsRoute
   coreSettingsDevicesRoute: typeof coreSettingsDevicesRoute
   coreSettingsPermissionsRoute: typeof coreSettingsPermissionsRoute
@@ -1498,6 +1540,7 @@ interface coreSettingsRouteRouteChildren {
 }
 
 const coreSettingsRouteRouteChildren: coreSettingsRouteRouteChildren = {
+  coreSettingsConnectedAppsRoute: coreSettingsConnectedAppsRoute,
   coreSettingsDependentsRoute: coreSettingsDependentsRoute,
   coreSettingsDevicesRoute: coreSettingsDevicesRoute,
   coreSettingsPermissionsRoute: coreSettingsPermissionsRoute,
