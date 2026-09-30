@@ -12,8 +12,9 @@
 //   - better-auth setting Set-Cookie on `signInEmail` responses
 //   - our parser reconstructing a `cookie:` request header
 //   - better-auth's `getSession` accepting that header
-//   - `enableSessionForAPIKeys: true` letting `createApiKey` see the
-//     session
+//   - `createApiKey` resolving the caller from that cookie session (it
+//     does not depend on `enableSessionForAPIKeys`, which is off; see
+//     apikey-no-session.integration.test.ts)
 // If any of those break, this test catches it before iOS would.
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'

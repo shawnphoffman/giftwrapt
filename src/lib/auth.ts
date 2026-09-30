@@ -259,7 +259,16 @@ const options = {
 		tanstackStartCookies(),
 		admin(),
 		apiKey({
-			enableSessionForAPIKeys: true,
+			// Off on purpose. When true, the plugin's before-hook turns any
+			// request carrying an `x-api-key` header into a full session, so a
+			// mobile device key would authenticate every web server fn and
+			// the `/api/sse`, `/api/scrape`, `/api/lists/public*`, and
+			// `/api/widgets` routes, bypassing the `enableMobileApp` kill
+			// switch. Nothing sends that header: the mobile gateway resolves
+			// the user from `verifyApiKey` (src/server/mobile-api/auth.ts) and
+			// sign-in mints keys under the cookie session it just created.
+			// Regression test: apikey-no-session.integration.test.ts.
+			enableSessionForAPIKeys: false,
 			rateLimit: {
 				enabled: true,
 				maxRequests: 300,
