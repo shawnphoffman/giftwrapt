@@ -18,22 +18,31 @@ function TwoFactorChallenge() {
 	const { redirect } = Route.useSearch()
 	const [mode, setMode] = useState<TwoFactorMode>('totp')
 
-	const goPostAuth = () => {
+	const goPostAuth = (data?: unknown) => {
+		// Mid MCP OAuth flow, better-auth's `mcp()` plugin replays the
+		// pending authorize request inside the verify response and answers
+		// `{ redirect: true, url }` (the consent page). Follow it directly;
+		// see the same handling in sign-in.tsx.
+		const hook = data as { redirect?: boolean; url?: string } | null | undefined
+		if (hook?.redirect === true && typeof hook.url === 'string' && hook.url.length > 0) {
+			window.location.assign(hook.url)
+			return
+		}
 		// Hard reload so the new session cookie is committed before
 		// the next render, matching the sign-in route's strategy.
 		window.location.assign(safeRedirect(redirect))
 	}
 
 	const handleTotp = async (code: string, trustDevice: boolean) => {
-		const { error } = await authClient.twoFactor.verifyTotp({ code, trustDevice })
+		const { data, error } = await authClient.twoFactor.verifyTotp({ code, trustDevice })
 		if (error) throw new Error(error.message ?? 'invalid')
-		goPostAuth()
+		goPostAuth(data)
 	}
 
 	const handleBackup = async (code: string) => {
-		const { error } = await authClient.twoFactor.verifyBackupCode({ code })
+		const { data, error } = await authClient.twoFactor.verifyBackupCode({ code })
 		if (error) throw new Error(error.message ?? 'invalid')
-		goPostAuth()
+		goPostAuth(data)
 	}
 
 	return (

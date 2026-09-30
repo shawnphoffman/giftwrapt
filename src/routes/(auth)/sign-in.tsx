@@ -11,6 +11,7 @@ import { db } from '@/db'
 import { users } from '@/db/schema'
 import { useAppSetting } from '@/hooks/use-app-settings'
 import { authClient, useSession } from '@/lib/auth-client'
+import { passThroughSearch, resolvePostAuthRedirect } from '@/lib/oauth-relay'
 import { safeRedirect } from '@/lib/safe-redirect'
 
 const checkNeedsBootstrap = createServerFn({ method: 'GET' }).handler(async () => {
@@ -21,12 +22,13 @@ const checkNeedsBootstrap = createServerFn({ method: 'GET' }).handler(async () =
 	return { needsBootstrap: (rows[0]?.c ?? 0) === 0 }
 })
 
-type SignInSearch = { redirect?: string }
-
 export const Route = createFileRoute('/(auth)/sign-in')({
-	validateSearch: (search: Record<string, unknown>): SignInSearch => {
-		return typeof search.redirect === 'string' ? { redirect: search.redirect } : {}
-	},
+	// The MCP OAuth flow lands here as `/sign-in?<authorize query>`
+	// (better-auth's `mcp()` plugin redirects unauthenticated authorize
+	// requests to the login page with the original query). The search is
+	// kept verbatim and folded into the post-auth target when read; folding
+	// it here made the router redirect to itself forever (see oauth-relay.ts).
+	validateSearch: passThroughSearch,
 	component: SignIn,
 	beforeLoad: async () => {
 		const { needsBootstrap } = await checkNeedsBootstrap()
@@ -35,7 +37,8 @@ export const Route = createFileRoute('/(auth)/sign-in')({
 })
 
 function SignIn() {
-	const { redirect: redirectRaw } = Route.useSearch()
+	const search = Route.useSearch()
+	const redirectRaw = resolvePostAuthRedirect(search)
 	const { data: session, isPending } = useSession()
 	// `useSession` revalidates on window focus, flipping `isPending` true on
 	// every tab-return. If we render `<Loading />` during those refetches the
@@ -70,6 +73,20 @@ function SignIn() {
 		}
 	}, [session, isPending, redirectRaw])
 
+	// When a sign-in happens mid OAuth flow, the `mcp()` plugin's after-hook
+	// replays the pending authorize request inside the sign-in response and
+	// answers with `{ redirect: true, url }` pointing at the consent page.
+	// Follow it directly instead of racing better-auth's client redirect
+	// plugin against `goPostAuth`, which would otherwise strand the flow at `/`.
+	const followHookRedirect = (data: unknown): boolean => {
+		const hook = data as { redirect?: boolean; url?: string } | null
+		if (hook?.redirect === true && typeof hook.url === 'string' && hook.url.length > 0) {
+			window.location.assign(hook.url)
+			return true
+		}
+		return false
+	}
+
 	const handleSignIn = async (email: string, password: string) => {
 		// Generic error to avoid user enumeration. Better-auth's per-case
 		// messages ("user not found" vs "invalid credentials") leak whether
@@ -77,6 +94,7 @@ function SignIn() {
 		// here; the actual error is in the server logs. See sec-review M5.
 		const { data, error: signInError } = await authClient.signIn.email({ email, password })
 		if (signInError) throw new Error('sign-in failed')
+		if (followHookRedirect(data)) return
 
 		// 2FA hand-off: when the user has TOTP enrolled, better-auth's
 		// twoFactor plugin replaces the post-sign-in session with a
@@ -97,8 +115,9 @@ function SignIn() {
 	}
 
 	const handlePasskeySignIn = async () => {
-		const { error: passkeyError } = await authClient.signIn.passkey()
+		const { data, error: passkeyError } = await authClient.signIn.passkey()
 		if (passkeyError) throw new Error('passkey sign-in failed')
+		if (followHookRedirect(data)) return
 		goPostAuth()
 	}
 

@@ -2,15 +2,28 @@ import { passkey } from '@better-auth/passkey'
 import type { BetterAuthOptions } from 'better-auth'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { admin, apiKey, customSession, genericOAuth, twoFactor } from 'better-auth/plugins'
+import { admin, apiKey, customSession, genericOAuth, mcp, twoFactor } from 'better-auth/plugins'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { sql } from 'drizzle-orm'
 
 import { db } from '@/db'
-import { account, apikey, passkey as passkeyTable, rateLimit, session, twoFactor as twoFactorTable, users, verification } from '@/db/schema'
+import {
+	account,
+	apikey,
+	oauthAccessToken,
+	oauthApplication,
+	oauthConsent,
+	passkey as passkeyTable,
+	rateLimit,
+	session,
+	twoFactor as twoFactorTable,
+	users,
+	verification,
+} from '@/db/schema'
 import { env } from '@/env'
 import { fanOutToGuardians } from '@/lib/guardian-emails'
 import { createLogger } from '@/lib/logger'
+import { MCP_ACCESS_TOKEN_TTL_SECONDS, MCP_CONSENT_PAGE_PATH, MCP_ENDPOINT_PATH, MCP_REFRESH_TOKEN_TTL_SECONDS } from '@/lib/mcp-config'
 import { sendPasswordResetEmail } from '@/lib/resend'
 import type { OidcClientConfig } from '@/lib/settings'
 import { getAppSettings } from '@/lib/settings-loader'
@@ -35,6 +48,9 @@ const authLog = createLogger('auth')
 // Refuse to start instead of silently shipping a misconfigured
 // production. See sec-review M1.
 const baseUrl = env.BETTER_AUTH_URL || ''
+// The origin better-auth advertises as the OAuth issuer for MCP clients.
+// Must match what the browser and the client see; see `mcp()` below.
+const authOrigin = new URL(env.BETTER_AUTH_URL || 'http://localhost:3001').origin
 if (env.INSECURE_COOKIES && baseUrl.startsWith('https://')) {
 	throw new Error(
 		`INSECURE_COOKIES=true is set but BETTER_AUTH_URL is HTTPS (${baseUrl}). Drop one of them; the Secure flag must be on for HTTPS deployments.`
@@ -136,6 +152,9 @@ const options = {
 			apikey: apikey,
 			twoFactor: twoFactorTable,
 			passkey: passkeyTable,
+			oauthApplication,
+			oauthAccessToken,
+			oauthConsent,
 		},
 	}),
 	emailAndPassword: {
@@ -211,6 +230,14 @@ const options = {
 		// all. The `rateLimit` table is provisioned in
 		// `src/db/schema/auth.ts`.
 		storage: 'database',
+		// The `mcp()` plugin declares no rules of its own, so its endpoints
+		// would get the generic 100 per 10s budget. Registration is
+		// unauthenticated row creation and the token endpoint is the code /
+		// refresh brute-force surface, so both get tight, DB-backed caps.
+		customRules: {
+			'/mcp/register': { window: 60, max: 5 },
+			'/mcp/token': { window: 60, max: 20 },
+		},
 	},
 	// First-admin bootstrap: if no admin exists yet, the next signup becomes one.
 	// Covers the fresh-deploy case (empty DB) and also the recovery case where
@@ -300,6 +327,26 @@ const options = {
 		// stored a fully-configured provider; otherwise the array is
 		// empty and the plugin contributes nothing.
 		...buildGenericOAuthPlugins(oidcClientConfig),
+		// OAuth 2.1 authorization server for MCP clients (Claude, Cursor,
+		// ChatGPT, ...). Dynamic client registration, PKCE (S256 only),
+		// consent, and opaque access / refresh tokens that `/api/mcp`
+		// verifies. Every route this adds is gated by the `enableMcp`
+		// setting in `src/server/mcp/oauth-gateway.ts`, which also forces
+		// `prompt=consent` on authorize: the plugin skips consent otherwise.
+		// The issuer is the bare origin (better-auth derives it from
+		// `baseURL`), which is what root `/.well-known/*` discovery needs.
+		mcp({
+			loginPage: '/sign-in',
+			resource: `${authOrigin}${MCP_ENDPOINT_PATH}`,
+			oidcConfig: {
+				loginPage: '/sign-in',
+				consentPage: MCP_CONSENT_PAGE_PATH,
+				requirePKCE: true,
+				allowPlainCodeChallengeMethod: false,
+				accessTokenExpiresIn: MCP_ACCESS_TOKEN_TTL_SECONDS,
+				refreshTokenExpiresIn: MCP_REFRESH_TOKEN_TTL_SECONDS,
+			},
+		}),
 	],
 	user: {
 		modelName: 'user',

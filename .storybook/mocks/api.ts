@@ -401,6 +401,9 @@ export const updateOidcClientConfigAsAdmin = ok
 export const fetchMobileAppConfigAsAdmin = (): Promise<null> => Promise.resolve(null)
 export const updateMobileAppConfigAsAdmin = ok
 
+// @/api/mcp-oauth
+export const fetchOAuthClientInfo = (): Promise<{ enabled: boolean; client: null }> => Promise.resolve({ enabled: true, client: null })
+
 // @/api/admin-barcode
 export const runBarcodeProbeAsAdmin = (): Promise<{ kind: 'miss'; providerId: string; gtin14: string }> =>
 	Promise.resolve({ kind: 'miss', providerId: 'upcitemdb-trial', gtin14: '00000000000000' })

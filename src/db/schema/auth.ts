@@ -174,3 +174,69 @@ export const accountRelations = relations(account, ({ one }) => ({
 		references: [users.id],
 	}),
 }))
+
+// Better-auth `mcp()` plugin store (built on its OIDC provider). Core is
+// the OAuth 2.1 authorization server for MCP clients (Claude, Cursor,
+// ChatGPT, ...): they register themselves here, the user consents, and
+// the resulting tokens authenticate `/api/mcp`. Field names mirror
+// better-auth/plugins/oidc-provider/schema; `authenticationScheme` is an
+// extra the plugin's register endpoint writes but its schema omits.
+// Tokens are stored plaintext by the plugin, which is one reason every
+// table here is excluded from backups (`src/lib/backup/tables.ts`).
+export const oauthApplication = pgTable(
+	'oauth_application',
+	{
+		id: text('id').primaryKey(),
+		name: text('name').notNull(),
+		icon: text('icon'),
+		metadata: text('metadata'),
+		clientId: text('client_id').notNull().unique(),
+		clientSecret: text('client_secret'),
+		redirectUrls: text('redirect_urls').notNull(),
+		type: text('type').notNull(),
+		authenticationScheme: text('authentication_scheme'),
+		disabled: boolean('disabled').notNull().default(false),
+		userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
+		...timestamps,
+	},
+	table => [index('oauth_application_userId_idx').on(table.userId)]
+)
+
+export const oauthAccessToken = pgTable(
+	'oauth_access_token',
+	{
+		id: text('id').primaryKey(),
+		accessToken: text('access_token').notNull().unique(),
+		refreshToken: text('refresh_token').unique(),
+		accessTokenExpiresAt: timestamp('access_token_expires_at').notNull(),
+		refreshTokenExpiresAt: timestamp('refresh_token_expires_at'),
+		clientId: text('client_id')
+			.notNull()
+			.references(() => oauthApplication.clientId, { onDelete: 'cascade' }),
+		userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
+		scopes: text('scopes').notNull(),
+		...timestamps,
+	},
+	table => [
+		index('oauth_access_token_clientId_idx').on(table.clientId),
+		index('oauth_access_token_userId_idx').on(table.userId),
+		index('oauth_access_token_refreshTokenExpiresAt_idx').on(table.refreshTokenExpiresAt), // For cleanup queries
+	]
+)
+
+export const oauthConsent = pgTable(
+	'oauth_consent',
+	{
+		id: text('id').primaryKey(),
+		clientId: text('client_id')
+			.notNull()
+			.references(() => oauthApplication.clientId, { onDelete: 'cascade' }),
+		userId: text('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		scopes: text('scopes').notNull(),
+		consentGiven: boolean('consent_given').notNull().default(false),
+		...timestamps,
+	},
+	table => [index('oauth_consent_clientId_idx').on(table.clientId), index('oauth_consent_userId_idx').on(table.userId)]
+)

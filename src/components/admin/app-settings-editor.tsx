@@ -132,7 +132,7 @@ export function CoreSettingsSection() {
 						Enable API & API Keys
 					</Label>
 					<p className="text-sm text-muted-foreground">
-						Let users issue per-device API keys from their settings. Powers the iOS companion app and the MCP server.
+						Let users issue per-device API keys from their settings. Powers the iOS companion app.
 					</p>
 				</div>
 				<Switch
@@ -140,6 +140,19 @@ export function CoreSettingsSection() {
 					checked={settings.enableMobileApp}
 					onCheckedChange={checked => handleSettingChange('enableMobileApp', checked)}
 				/>
+			</div>
+
+			<div className="flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<Label htmlFor="enableMcp" className="text-base">
+						Enable MCP Server
+					</Label>
+					<p className="text-sm text-muted-foreground">
+						Let users connect AI assistants (Claude, Cursor, ChatGPT) to their account through OAuth. Turns on the MCP endpoint, the consent
+						page, Admin → MCP, and Settings → Connected Apps. Turning it off disconnects every assistant immediately.
+					</p>
+				</div>
+				<Switch id="enableMcp" checked={settings.enableMcp} onCheckedChange={checked => handleSettingChange('enableMcp', checked)} />
 			</div>
 		</div>
 	)

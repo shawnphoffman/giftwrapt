@@ -356,6 +356,12 @@ export const appSettingsSchema = z.object({
 	// per-device API keys for the mobile companion app. Off by default
 	// so the surface stays hidden until an admin opts in.
 	enableMobileApp: z.boolean(),
+	// When true, core acts as an OAuth server for MCP clients and serves
+	// `/api/mcp`, the OAuth discovery documents, the consent page, the
+	// `/admin/mcp` page, and `/settings/connected-apps`. Off by default;
+	// while off none of those routes respond and no token works, so the
+	// rest of the app is unaffected (see `docs/architecture/mcp.md`).
+	enableMcp: z.boolean(),
 	// When true, the security page shows a passkeys panel and the
 	// sign-in page surfaces a "Sign in with a passkey" button. The
 	// underlying better-auth endpoints stay live regardless; this
@@ -590,6 +596,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	timeZone: DEFAULT_TIME_ZONE,
 	mirrorExternalImagesOnSave: false,
 	enableMobileApp: false,
+	enableMcp: false,
 	enablePasskeys: false,
 	oidcClient: {
 		enabled: false,

@@ -14,6 +14,8 @@ import { Route as coreIndexRouteImport } from './routes/(core)/index'
 import { Route as ApiVersionRouteImport } from './routes/api/version'
 import { Route as ApiMetricsRouteImport } from './routes/api/metrics'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as DotwellKnownOpenidConfigurationRouteImport } from './routes/[.]well-known/openid-configuration'
+import { Route as DotwellKnownOauthAuthorizationServerRouteImport } from './routes/[.]well-known/oauth-authorization-server'
 import { Route as coreSuggestionsRouteImport } from './routes/(core)/suggestions'
 import { Route as coreImportRouteImport } from './routes/(core)/import'
 import { Route as coreChangelogRouteImport } from './routes/(core)/changelog'
@@ -44,6 +46,7 @@ import { Route as ApiCronCleanupVerificationRouteImport } from './routes/api/cro
 import { Route as ApiCronBirthdayEmailsRouteImport } from './routes/api/cron/birthday-emails'
 import { Route as ApiCronAutoArchiveRouteImport } from './routes/api/cron/auto-archive'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as DotwellKnownOauthProtectedResourceSplatRouteImport } from './routes/[.]well-known/oauth-protected-resource.$'
 import { Route as coreTempBirthdaysRouteImport } from './routes/(core)/temp/birthdays'
 import { Route as coreSettingsSecurityRouteImport } from './routes/(core)/settings/security'
 import { Route as coreSettingsPermissionsRouteImport } from './routes/(core)/settings/permissions'
@@ -67,6 +70,7 @@ import { Route as coreAdminAuthRouteImport } from './routes/(core)/admin/auth'
 import { Route as coreAdminAiRouteImport } from './routes/(core)/admin/ai'
 import { Route as authSignInTwoFactorRouteImport } from './routes/(auth)/sign-in_.two-factor'
 import { Route as authSignInMobilePasskeyRouteImport } from './routes/(auth)/sign-in_.mobile-passkey'
+import { Route as authOauthConsentRouteImport } from './routes/(auth)/oauth.consent'
 import { Route as coreAdminIntelligenceRouteRouteImport } from './routes/(core)/admin_/intelligence/route'
 import { Route as coreAdminIntelligenceIndexRouteImport } from './routes/(core)/admin_/intelligence/index'
 import { Route as ApiSseListListIdRouteImport } from './routes/api/sse/list.$listId'
@@ -103,6 +107,18 @@ const ApiHealthRoute = ApiHealthRouteImport.update({
   path: '/api/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DotwellKnownOpenidConfigurationRoute =
+  DotwellKnownOpenidConfigurationRouteImport.update({
+    id: '/.well-known/openid-configuration',
+    path: '/.well-known/openid-configuration',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const DotwellKnownOauthAuthorizationServerRoute =
+  DotwellKnownOauthAuthorizationServerRouteImport.update({
+    id: '/.well-known/oauth-authorization-server',
+    path: '/.well-known/oauth-authorization-server',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const coreSuggestionsRoute = coreSuggestionsRouteImport.update({
   id: '/suggestions',
   path: '/suggestions',
@@ -257,6 +273,12 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DotwellKnownOauthProtectedResourceSplatRoute =
+  DotwellKnownOauthProtectedResourceSplatRouteImport.update({
+    id: '/.well-known/oauth-protected-resource/$',
+    path: '/.well-known/oauth-protected-resource/$',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const coreTempBirthdaysRoute = coreTempBirthdaysRouteImport.update({
   id: '/birthdays',
   path: '/birthdays',
@@ -372,6 +394,11 @@ const authSignInMobilePasskeyRoute = authSignInMobilePasskeyRouteImport.update({
   path: '/sign-in/mobile-passkey',
   getParentRoute: () => rootRouteImport,
 } as any)
+const authOauthConsentRoute = authOauthConsentRouteImport.update({
+  id: '/(auth)/oauth/consent',
+  path: '/oauth/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const coreAdminIntelligenceRouteRoute =
   coreAdminIntelligenceRouteRouteImport.update({
     id: '/admin_/intelligence',
@@ -447,11 +474,14 @@ export interface FileRoutesByFullPath {
   '/changelog': typeof coreChangelogRoute
   '/import': typeof coreImportRoute
   '/suggestions': typeof coreSuggestionsRoute
+  '/.well-known/oauth-authorization-server': typeof DotwellKnownOauthAuthorizationServerRoute
+  '/.well-known/openid-configuration': typeof DotwellKnownOpenidConfigurationRoute
   '/api/health': typeof ApiHealthRoute
   '/api/metrics': typeof ApiMetricsRoute
   '/api/version': typeof ApiVersionRoute
   '/': typeof coreIndexRoute
   '/admin/intelligence': typeof coreAdminIntelligenceRouteRouteWithChildren
+  '/oauth/consent': typeof authOauthConsentRoute
   '/sign-in/mobile-passkey': typeof authSignInMobilePasskeyRoute
   '/sign-in/two-factor': typeof authSignInTwoFactorRoute
   '/admin/ai': typeof coreAdminAiRoute
@@ -475,6 +505,7 @@ export interface FileRoutesByFullPath {
   '/settings/permissions': typeof coreSettingsPermissionsRoute
   '/settings/security': typeof coreSettingsSecurityRoute
   '/temp/birthdays': typeof coreTempBirthdaysRoute
+  '/.well-known/oauth-protected-resource/$': typeof DotwellKnownOauthProtectedResourceSplatRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
@@ -514,10 +545,13 @@ export interface FileRoutesByTo {
   '/changelog': typeof coreChangelogRoute
   '/import': typeof coreImportRoute
   '/suggestions': typeof coreSuggestionsRoute
+  '/.well-known/oauth-authorization-server': typeof DotwellKnownOauthAuthorizationServerRoute
+  '/.well-known/openid-configuration': typeof DotwellKnownOpenidConfigurationRoute
   '/api/health': typeof ApiHealthRoute
   '/api/metrics': typeof ApiMetricsRoute
   '/api/version': typeof ApiVersionRoute
   '/': typeof coreIndexRoute
+  '/oauth/consent': typeof authOauthConsentRoute
   '/sign-in/mobile-passkey': typeof authSignInMobilePasskeyRoute
   '/sign-in/two-factor': typeof authSignInTwoFactorRoute
   '/admin/ai': typeof coreAdminAiRoute
@@ -541,6 +575,7 @@ export interface FileRoutesByTo {
   '/settings/permissions': typeof coreSettingsPermissionsRoute
   '/settings/security': typeof coreSettingsSecurityRoute
   '/temp/birthdays': typeof coreTempBirthdaysRoute
+  '/.well-known/oauth-protected-resource/$': typeof DotwellKnownOauthProtectedResourceSplatRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
@@ -585,11 +620,14 @@ export interface FileRoutesById {
   '/(core)/changelog': typeof coreChangelogRoute
   '/(core)/import': typeof coreImportRoute
   '/(core)/suggestions': typeof coreSuggestionsRoute
+  '/.well-known/oauth-authorization-server': typeof DotwellKnownOauthAuthorizationServerRoute
+  '/.well-known/openid-configuration': typeof DotwellKnownOpenidConfigurationRoute
   '/api/health': typeof ApiHealthRoute
   '/api/metrics': typeof ApiMetricsRoute
   '/api/version': typeof ApiVersionRoute
   '/(core)/': typeof coreIndexRoute
   '/(core)/admin_/intelligence': typeof coreAdminIntelligenceRouteRouteWithChildren
+  '/(auth)/oauth/consent': typeof authOauthConsentRoute
   '/(auth)/sign-in_/mobile-passkey': typeof authSignInMobilePasskeyRoute
   '/(auth)/sign-in_/two-factor': typeof authSignInTwoFactorRoute
   '/(core)/admin/ai': typeof coreAdminAiRoute
@@ -613,6 +651,7 @@ export interface FileRoutesById {
   '/(core)/settings/permissions': typeof coreSettingsPermissionsRoute
   '/(core)/settings/security': typeof coreSettingsSecurityRoute
   '/(core)/temp/birthdays': typeof coreTempBirthdaysRoute
+  '/.well-known/oauth-protected-resource/$': typeof DotwellKnownOauthProtectedResourceSplatRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/cron/auto-archive': typeof ApiCronAutoArchiveRoute
   '/api/cron/birthday-emails': typeof ApiCronBirthdayEmailsRoute
@@ -657,11 +696,14 @@ export interface FileRouteTypes {
     | '/changelog'
     | '/import'
     | '/suggestions'
+    | '/.well-known/oauth-authorization-server'
+    | '/.well-known/openid-configuration'
     | '/api/health'
     | '/api/metrics'
     | '/api/version'
     | '/'
     | '/admin/intelligence'
+    | '/oauth/consent'
     | '/sign-in/mobile-passkey'
     | '/sign-in/two-factor'
     | '/admin/ai'
@@ -685,6 +727,7 @@ export interface FileRouteTypes {
     | '/settings/permissions'
     | '/settings/security'
     | '/temp/birthdays'
+    | '/.well-known/oauth-protected-resource/$'
     | '/api/auth/$'
     | '/api/cron/auto-archive'
     | '/api/cron/birthday-emails'
@@ -724,10 +767,13 @@ export interface FileRouteTypes {
     | '/changelog'
     | '/import'
     | '/suggestions'
+    | '/.well-known/oauth-authorization-server'
+    | '/.well-known/openid-configuration'
     | '/api/health'
     | '/api/metrics'
     | '/api/version'
     | '/'
+    | '/oauth/consent'
     | '/sign-in/mobile-passkey'
     | '/sign-in/two-factor'
     | '/admin/ai'
@@ -751,6 +797,7 @@ export interface FileRouteTypes {
     | '/settings/permissions'
     | '/settings/security'
     | '/temp/birthdays'
+    | '/.well-known/oauth-protected-resource/$'
     | '/api/auth/$'
     | '/api/cron/auto-archive'
     | '/api/cron/birthday-emails'
@@ -794,11 +841,14 @@ export interface FileRouteTypes {
     | '/(core)/changelog'
     | '/(core)/import'
     | '/(core)/suggestions'
+    | '/.well-known/oauth-authorization-server'
+    | '/.well-known/openid-configuration'
     | '/api/health'
     | '/api/metrics'
     | '/api/version'
     | '/(core)/'
     | '/(core)/admin_/intelligence'
+    | '/(auth)/oauth/consent'
     | '/(auth)/sign-in_/mobile-passkey'
     | '/(auth)/sign-in_/two-factor'
     | '/(core)/admin/ai'
@@ -822,6 +872,7 @@ export interface FileRouteTypes {
     | '/(core)/settings/permissions'
     | '/(core)/settings/security'
     | '/(core)/temp/birthdays'
+    | '/.well-known/oauth-protected-resource/$'
     | '/api/auth/$'
     | '/api/cron/auto-archive'
     | '/api/cron/birthday-emails'
@@ -860,11 +911,15 @@ export interface RootRouteChildren {
   authSignInRoute: typeof authSignInRoute
   authSignOutRoute: typeof authSignOutRoute
   authSignUpRoute: typeof authSignUpRoute
+  DotwellKnownOauthAuthorizationServerRoute: typeof DotwellKnownOauthAuthorizationServerRoute
+  DotwellKnownOpenidConfigurationRoute: typeof DotwellKnownOpenidConfigurationRoute
   ApiHealthRoute: typeof ApiHealthRoute
   ApiMetricsRoute: typeof ApiMetricsRoute
   ApiVersionRoute: typeof ApiVersionRoute
+  authOauthConsentRoute: typeof authOauthConsentRoute
   authSignInMobilePasskeyRoute: typeof authSignInMobilePasskeyRoute
   authSignInTwoFactorRoute: typeof authSignInTwoFactorRoute
+  DotwellKnownOauthProtectedResourceSplatRoute: typeof DotwellKnownOauthProtectedResourceSplatRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCronAutoArchiveRoute: typeof ApiCronAutoArchiveRoute
   ApiCronBirthdayEmailsRoute: typeof ApiCronBirthdayEmailsRoute
@@ -917,6 +972,20 @@ declare module '@tanstack/react-router' {
       path: '/api/health'
       fullPath: '/api/health'
       preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/openid-configuration': {
+      id: '/.well-known/openid-configuration'
+      path: '/.well-known/openid-configuration'
+      fullPath: '/.well-known/openid-configuration'
+      preLoaderRoute: typeof DotwellKnownOpenidConfigurationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/oauth-authorization-server': {
+      id: '/.well-known/oauth-authorization-server'
+      path: '/.well-known/oauth-authorization-server'
+      fullPath: '/.well-known/oauth-authorization-server'
+      preLoaderRoute: typeof DotwellKnownOauthAuthorizationServerRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(core)/suggestions': {
@@ -1129,6 +1198,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.well-known/oauth-protected-resource/$': {
+      id: '/.well-known/oauth-protected-resource/$'
+      path: '/.well-known/oauth-protected-resource/$'
+      fullPath: '/.well-known/oauth-protected-resource/$'
+      preLoaderRoute: typeof DotwellKnownOauthProtectedResourceSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/(core)/temp/birthdays': {
       id: '/(core)/temp/birthdays'
       path: '/birthdays'
@@ -1288,6 +1364,13 @@ declare module '@tanstack/react-router' {
       path: '/sign-in/mobile-passkey'
       fullPath: '/sign-in/mobile-passkey'
       preLoaderRoute: typeof authSignInMobilePasskeyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/(auth)/oauth/consent': {
+      id: '/(auth)/oauth/consent'
+      path: '/oauth/consent'
+      fullPath: '/oauth/consent'
+      preLoaderRoute: typeof authOauthConsentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/(core)/admin_/intelligence': {
@@ -1515,11 +1598,17 @@ const rootRouteChildren: RootRouteChildren = {
   authSignInRoute: authSignInRoute,
   authSignOutRoute: authSignOutRoute,
   authSignUpRoute: authSignUpRoute,
+  DotwellKnownOauthAuthorizationServerRoute:
+    DotwellKnownOauthAuthorizationServerRoute,
+  DotwellKnownOpenidConfigurationRoute: DotwellKnownOpenidConfigurationRoute,
   ApiHealthRoute: ApiHealthRoute,
   ApiMetricsRoute: ApiMetricsRoute,
   ApiVersionRoute: ApiVersionRoute,
+  authOauthConsentRoute: authOauthConsentRoute,
   authSignInMobilePasskeyRoute: authSignInMobilePasskeyRoute,
   authSignInTwoFactorRoute: authSignInTwoFactorRoute,
+  DotwellKnownOauthProtectedResourceSplatRoute:
+    DotwellKnownOauthProtectedResourceSplatRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCronAutoArchiveRoute: ApiCronAutoArchiveRoute,
   ApiCronBirthdayEmailsRoute: ApiCronBirthdayEmailsRoute,

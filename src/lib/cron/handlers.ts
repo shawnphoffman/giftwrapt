@@ -10,6 +10,7 @@ import { db } from '@/db'
 import { intelligenceVerdicts, recommendationRunSteps, recommendations } from '@/db/schema'
 import { autoArchiveImpl } from '@/lib/cron/auto-archive'
 import { birthdayEmailsImpl } from '@/lib/cron/birthday-emails'
+import { cleanupOauthImpl } from '@/lib/cron/cleanup-oauth'
 import { cleanupVerificationImpl } from '@/lib/cron/cleanup-verification'
 import { listOwnerRemindersImpl } from '@/lib/cron/list-owner-reminders'
 import { orphanClaimCleanupImpl } from '@/lib/cron/orphan-claim-cleanup'
@@ -241,12 +242,16 @@ export async function runBirthdayEmails(): Promise<Record<string, {}>> {
 export async function runCleanupVerification() {
 	const started = Date.now()
 	const settings = await getAppSettings(db)
-	const { deleted } = await cleanupVerificationImpl({ db, now: new Date() })
+	const now = new Date()
+	const { deleted } = await cleanupVerificationImpl({ db, now })
 	const cronRunsSweep = await sweepCronRuns({ retentionDays: settings.cronRunsRetentionDays })
+	// Expired MCP OAuth tokens and never-used client registrations. A
+	// no-op on deployments with `enableMcp` off (the tables stay empty).
+	const oauthSweep = await cleanupOauthImpl({ db, now })
 	const durationMs = Date.now() - started
-	log.info({ endpoint: '/api/cron/cleanup-verification', deleted, cronRunsSweep, durationMs }, 'cleanup complete')
+	log.info({ endpoint: '/api/cron/cleanup-verification', deleted, cronRunsSweep, oauthSweep, durationMs }, 'cleanup complete')
 
-	return { ok: true, deleted, cronRunsSweep, durationMs }
+	return { ok: true, deleted, cronRunsSweep, oauthSweep, durationMs }
 }
 
 export async function runIntelligenceRecommendations(): Promise<Record<string, {}>> {
