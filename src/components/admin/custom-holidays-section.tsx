@@ -13,7 +13,7 @@
 // _custom-holidays-impl.ts).
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, Users } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
 
@@ -41,6 +41,7 @@ import {
 	AlertDialogTitle,
 	AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
@@ -83,6 +84,9 @@ function formatNextOccurrence(iso: string | null): string {
 // user or a dependent".
 type RecipientValue = 'none' | `u:${string}` | `d:${string}`
 
+const RECIPIENT_HELP_TEXT =
+	'Leave as Everyone for shared holidays like Easter. Pick a person for a one-off like a graduation; only people who can see their lists will see it.'
+
 function recipientValueToInput(
 	value: RecipientValue
 ): { kind: 'none' } | { kind: 'user'; userId: string } | { kind: 'dependent'; dependentId: string } {
@@ -114,17 +118,23 @@ function RecipientPicker({
 	const dependents = candidates.filter(c => c.kind === 'dependent')
 	return (
 		<Select value={value} onValueChange={v => onChange(v as RecipientValue)} disabled={disabled}>
-			<SelectTrigger id={id} className="flex-1">
-				<SelectValue placeholder="Everyone (broadcast)" />
+			<SelectTrigger id={id} className="w-full flex-1">
+				<SelectValue placeholder="Everyone" />
 			</SelectTrigger>
 			<SelectContent>
-				<SelectItem value="none">Everyone (broadcast)</SelectItem>
+				<SelectItem value="none">
+					<span className="flex size-6 items-center justify-center rounded-full bg-muted-foreground">
+						<Users className="size-3.5 text-background" />
+					</span>
+					<span className="truncate">Everyone</span>
+				</SelectItem>
 				{users.length > 0 && (
 					<>
 						<div className="px-2 pt-2 text-xs font-medium text-muted-foreground">Users</div>
 						{users.map(u => (
 							<SelectItem key={`u:${u.id}`} value={`u:${u.id}`}>
-								{u.name}
+								<UserAvatar name={u.name} image={u.image} size="small" />
+								<span className="truncate">{u.name}</span>
 							</SelectItem>
 						))}
 					</>
@@ -134,7 +144,8 @@ function RecipientPicker({
 						<div className="px-2 pt-2 text-xs font-medium text-muted-foreground">Dependents</div>
 						{dependents.map(d => (
 							<SelectItem key={`d:${d.id}`} value={`d:${d.id}`}>
-								{d.name}
+								<DependentAvatar name={d.name} image={d.image} size="small" />
+								<span className="truncate">{d.name}</span>
 							</SelectItem>
 						))}
 					</>
@@ -425,7 +436,7 @@ function AddFromCatalogDialog() {
 					<DialogDescription>Curated gift-giving holidays for the supported countries.</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="catalog-recipient">Recipient (optional)</Label>
+					<Label htmlFor="catalog-recipient">Recipient</Label>
 					<RecipientPicker
 						id="catalog-recipient"
 						value={recipient}
@@ -433,7 +444,7 @@ function AddFromCatalogDialog() {
 						candidates={recipientCandidatesQuery.data ?? []}
 						disabled={add.isPending}
 					/>
-					<p className="text-xs text-muted-foreground">Recipient-bound rows only surface to users who can view the recipient.</p>
+					<p className="text-xs text-muted-foreground">{RECIPIENT_HELP_TEXT}</p>
 				</div>
 				<div className="flex flex-col gap-3">
 					{candidatesQuery.isLoading ? (
@@ -444,8 +455,11 @@ function AddFromCatalogDialog() {
 						<ul className="flex flex-col gap-1 max-h-96 overflow-auto">
 							{candidates.map(c => (
 								<li key={`${c.country}:${c.key}`} className="flex items-center justify-between gap-2 rounded border border-border p-2">
-									<span>
-										<span className="font-mono text-xs text-muted-foreground">{c.country}</span> - {c.name}
+									<span className="flex min-w-0 items-center gap-2">
+										<Badge variant="outline" className="w-9 font-mono text-muted-foreground">
+											{c.country}
+										</Badge>
+										<span className="truncate">{c.name}</span>
 									</span>
 									<Button size="sm" onClick={() => add.mutate({ country: c.country, key: c.key })} disabled={add.isPending}>
 										Add
@@ -574,7 +588,7 @@ function AddCustomDialog() {
 						</div>
 					)}
 					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="custom-recipient">Recipient (optional)</Label>
+						<Label htmlFor="custom-recipient">Recipient</Label>
 						<RecipientPicker
 							id="custom-recipient"
 							value={recipient}
@@ -582,7 +596,7 @@ function AddCustomDialog() {
 							candidates={recipientCandidatesQuery.data ?? []}
 							disabled={add.isPending}
 						/>
-						<p className="text-xs text-muted-foreground">Recipient-bound rows only surface to users who can view the recipient.</p>
+						<p className="text-xs text-muted-foreground">{RECIPIENT_HELP_TEXT}</p>
 					</div>
 				</div>
 				<DialogFooter>
