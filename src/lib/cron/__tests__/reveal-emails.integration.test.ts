@@ -7,7 +7,16 @@
 // from the previous December, because the old summary selected every
 // revealed gift on every list with no link to the reveal that triggered it.
 
-import { makeGiftedItem, makeGuardianship, makeItem, makeList, makeListAddon, makeUser } from '@test/integration/factories'
+import {
+	makeDependent,
+	makeDependentGuardianship,
+	makeGiftedItem,
+	makeGuardianship,
+	makeItem,
+	makeList,
+	makeListAddon,
+	makeUser,
+} from '@test/integration/factories'
 import { withRollback } from '@test/integration/setup'
 import { eq } from 'drizzle-orm'
 import { describe, expect, it, vi } from 'vitest'
@@ -26,6 +35,13 @@ type RevealEmail = { subject: string; intro?: string; sections: Array<RevealSumm
 vi.mock('@/lib/resend', () => ({
 	sendRevealSummaryEmail: vi.fn((_to: string, _email: RevealEmail) => Promise.resolve(null)),
 	isEmailConfigured: vi.fn(() => Promise.resolve(true)),
+}))
+
+// Image probing is network I/O; stand in for it with a rule: URLs containing
+// "gone" fail, everything else loads.
+vi.mock('@/lib/email-images', () => ({
+	resolveEmailImages: (urls: ReadonlyArray<string | null | undefined>) =>
+		Promise.resolve(new Map(urls.filter((u): u is string => !!u).map(u => [u, u.includes('gone') ? null : u]))),
 }))
 
 const { sendRevealSummaryEmail } = await import('@/lib/resend')
@@ -157,7 +173,7 @@ describe('reveal email - content is exactly what the reveal uncovered', () => {
 			expect(emails).toHaveLength(1)
 			expect(emails[0].email.sections.map(s => s.listName).sort()).toEqual(['Birthday', 'Wishlist'])
 			expect(titles(emails[0].email).sort()).toEqual(['Hammock', 'Telescope'])
-			expect(emails[0].email.intro).toBe('We hope you had a wonderful birthday.')
+			expect(emails[0].email.intro).toBe("We hope you had a wonderful birthday. Here's who gave you what.")
 		})
 	})
 
@@ -175,8 +191,132 @@ describe('reveal email - content is exactly what the reveal uncovered', () => {
 			expect((await runCron(tx, new Date('2026-01-08T12:00:00Z'))).sent).toBe(1)
 			const [{ email }] = sentEmails()
 			expect(email.subject).toBe('A look back at your Christmas gifts')
-			expect(email.intro).toBe('We hope your Christmas was wonderful.')
+			expect(email.intro).toBe("We hope your Christmas was wonderful. Here's who gave you what.")
 			expect(titles(email)).toEqual(['Slippers', 'Fudge'])
+		})
+	})
+})
+
+describe('reveal email - images', () => {
+	it('sends null for missing or unloadable images so the template shows the placeholder', async () => {
+		vi.mocked(sendRevealSummaryEmail).mockClear()
+		await withRollback(async tx => {
+			const owner = await makeUser(tx, { birthMonth: 'march', birthDay: 1 })
+			const gifter = await makeUser(tx)
+			const list = await makeList(tx, { ownerId: owner.id, type: 'birthday' })
+			const noImage = await makeItem(tx, { listId: list.id, title: 'No image', imageUrl: null })
+			const ok = await makeItem(tx, { listId: list.id, title: 'Loads', imageUrl: 'https://vendor.test/ok.jpg' })
+			const broken = await makeItem(tx, { listId: list.id, title: 'Broken', imageUrl: 'https://vendor.test/gone.jpg' })
+			for (const item of [noImage, ok, broken]) await makeGiftedItem(tx, { itemId: item.id, gifterId: gifter.id })
+			await makeListAddon(tx, { listId: list.id, userId: gifter.id, description: 'Jam', imageUrl: 'https://vendor.test/gone.png' })
+
+			await runCron(tx, MARCH_8)
+			const rows = sentEmails()[0].email.sections[0].items
+			expect(rows.map(r => [r.title, r.image_url])).toEqual([
+				['No image', null],
+				['Loads', 'https://vendor.test/ok.jpg'],
+				['Broken', null],
+				['Jam', null],
+			])
+		})
+	})
+})
+
+describe('reveal email - lists for a dependent', () => {
+	it("reveals on the dependent's birthday and emails every guardian, naming the dependent", async () => {
+		vi.mocked(sendRevealSummaryEmail).mockClear()
+		await withRollback(async tx => {
+			// Guardian A's birthday is today's trigger date too, which must not
+			// matter: the list follows Fido's birthday (March 1), not A's.
+			const guardianA = await makeUser(tx, { name: 'A', birthMonth: 'march', birthDay: 1 })
+			const guardianB = await makeUser(tx, { name: 'B' })
+			const fido = await makeDependent(tx, { name: 'Fido', birthMonth: 'march', birthDay: 1, createdByUserId: guardianA.id })
+			await makeDependentGuardianship(tx, { guardianUserId: guardianA.id, dependentId: fido.id })
+			await makeDependentGuardianship(tx, { guardianUserId: guardianB.id, dependentId: fido.id })
+			const gifter = await makeUser(tx, { name: 'Gifter' })
+			const list = await makeList(tx, { ownerId: guardianA.id, type: 'birthday', subjectDependentId: fido.id, name: "Fido's Birthday" })
+			const item = await makeItem(tx, { listId: list.id, title: 'Chew toy' })
+			await makeGiftedItem(tx, { itemId: item.id, gifterId: gifter.id })
+			// Guardian A is a gifter too: on a dependent's list the owner is not
+			// the recipient, so A is credited by name.
+			const bed = await makeItem(tx, { listId: list.id, title: 'Dog bed' })
+			await makeGiftedItem(tx, { itemId: bed.id, gifterId: guardianA.id })
+
+			const { result, sent } = await runCron(tx, MARCH_8)
+			expect(result.revealed).toHaveLength(1)
+			expect(result.revealed[0]).toMatchObject({ listId: list.id, subjectDependentId: fido.id, family: 'birthday' })
+			expect(sent).toBe(2)
+			const emails = sentEmails()
+			expect(emails.map(e => e.to).sort()).toEqual([guardianA.email, guardianB.email].sort())
+			for (const { email } of emails) {
+				expect(email.subject).toBe("A look back at Fido's gifts")
+				expect(email.intro).toBe("We hope Fido had a wonderful birthday. Here's who gave Fido what.")
+				expect(email.sections[0].items.map(i => [i.title, i.gifters])).toEqual([
+					['Chew toy', 'Gifter'],
+					['Dog bed', 'A'],
+				])
+			}
+		})
+	})
+
+	it("does not reveal a dependent's list on a guardian's birthday", async () => {
+		vi.mocked(sendRevealSummaryEmail).mockClear()
+		await withRollback(async tx => {
+			const guardian = await makeUser(tx, { birthMonth: 'march', birthDay: 1 })
+			const fido = await makeDependent(tx, { name: 'Fido', birthMonth: 'october', birthDay: 20, createdByUserId: guardian.id })
+			await makeDependentGuardianship(tx, { guardianUserId: guardian.id, dependentId: fido.id })
+			const gifter = await makeUser(tx)
+			const list = await makeList(tx, { ownerId: guardian.id, type: 'birthday', subjectDependentId: fido.id })
+			const item = await makeItem(tx, { listId: list.id })
+			await makeGiftedItem(tx, { itemId: item.id, gifterId: gifter.id })
+
+			const { result, sent } = await runCron(tx, MARCH_8)
+			expect(result.revealed).toEqual([])
+			expect(sent).toBe(0)
+			const [row] = await tx.select({ isArchived: items.isArchived }).from(items).where(eq(items.id, item.id))
+			expect(row.isArchived).toBe(false)
+		})
+	})
+
+	it("reveals a dependent's Christmas list with everyone else's", async () => {
+		vi.mocked(sendRevealSummaryEmail).mockClear()
+		await withRollback(async tx => {
+			const guardian = await makeUser(tx, { name: 'G' })
+			const fido = await makeDependent(tx, { name: 'Fido', createdByUserId: guardian.id })
+			await makeDependentGuardianship(tx, { guardianUserId: guardian.id, dependentId: fido.id })
+			const gifter = await makeUser(tx, { name: 'Gifter' })
+			const list = await makeList(tx, { ownerId: guardian.id, type: 'christmas', subjectDependentId: fido.id })
+			const item = await makeItem(tx, { listId: list.id, title: 'Antlers' })
+			await makeGiftedItem(tx, { itemId: item.id, gifterId: gifter.id })
+
+			expect((await runCron(tx, new Date('2026-01-08T12:00:00Z'))).sent).toBe(1)
+			const [{ to, email }] = sentEmails()
+			expect(to).toBe(guardian.email)
+			expect(email.subject).toBe("A look back at Fido's Christmas gifts")
+			expect(email.intro).toBe("We hope Fido's Christmas was wonderful. Here's who gave Fido what.")
+			expect(titles(email)).toEqual(['Antlers'])
+		})
+	})
+
+	it("a guardian's own list and a dependent's list revealed together make one email", async () => {
+		vi.mocked(sendRevealSummaryEmail).mockClear()
+		await withRollback(async tx => {
+			const guardian = await makeUser(tx, { name: 'G', birthMonth: 'march', birthDay: 1 })
+			const fido = await makeDependent(tx, { name: 'Fido', birthMonth: 'march', birthDay: 1, createdByUserId: guardian.id })
+			await makeDependentGuardianship(tx, { guardianUserId: guardian.id, dependentId: fido.id })
+			const gifter = await makeUser(tx, { name: 'Gifter' })
+			const own = await makeList(tx, { ownerId: guardian.id, type: 'birthday', name: 'Mine' })
+			const fidos = await makeList(tx, { ownerId: guardian.id, type: 'birthday', subjectDependentId: fido.id, name: "Fido's" })
+			const a = await makeItem(tx, { listId: own.id, title: 'Telescope' })
+			const b = await makeItem(tx, { listId: fidos.id, title: 'Chew toy' })
+			await makeGiftedItem(tx, { itemId: a.id, gifterId: gifter.id })
+			await makeGiftedItem(tx, { itemId: b.id, gifterId: gifter.id })
+
+			expect((await runCron(tx, MARCH_8)).sent).toBe(1)
+			const [{ email }] = sentEmails()
+			expect(email.subject).toBe('A look back at your gifts')
+			expect(email.intro).toBe("Here's who gave what.")
+			expect(email.sections.map(s => s.listName).sort()).toEqual(["Fido's", 'Mine'])
 		})
 	})
 })

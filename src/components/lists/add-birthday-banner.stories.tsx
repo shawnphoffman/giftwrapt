@@ -11,4 +11,10 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const Default: Story = {}
+// The owner's own birthday or wishlist list; their profile has no birthday.
+export const Owner: Story = {}
+
+// A list made for a dependent (pet, baby) with no birthday set.
+export const Dependent: Story = {
+	args: { dependentName: 'Fido' },
+}

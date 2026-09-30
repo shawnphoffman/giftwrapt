@@ -132,7 +132,7 @@ export const sendBirthdayEmail = async (name: string, recipient: string) => {
 // (`sendRevealEmails`) picks the subject and intro.
 export const sendRevealSummaryEmail = async (
 	recipient: string,
-	args: { subject: string; intro?: string; sections: Array<RevealSummarySection> }
+	args: { subject: string; intro: string; sections: Array<RevealSummarySection> }
 ) => {
 	const cfg = await resolveEmailConfig(db)
 	const client = buildClient(cfg)
@@ -482,19 +482,14 @@ const buildTestEmailPayload = async (kind: TestEmailKind, appTitle: string): Pro
 				subject: 'A look back at your gifts',
 				react: (
 					<RevealSummaryEmail
-						intro="We hope you had a wonderful birthday."
+						intro="We hope you had a wonderful birthday. Here's who gave you what."
 						sections={[
 							{
 								listName: 'Birthday Wishes',
 								items: [
 									{ title: 'Vintage espresso machine', image_url: 'https://placehold.co/600x400', gifters: 'John & Jane' },
 									{ title: 'Cashmere scarf', image_url: 'https://placehold.co/100x200', gifters: 'John' },
-									{
-										title: 'Homemade jam',
-										image_url: 'https://placehold.co/80x80?text=Gift',
-										gifters: 'Jane, Alex & Priya',
-										offList: true,
-									},
+									{ title: 'Homemade jam', image_url: null, gifters: 'Jane, Alex & Priya', offList: true },
 								],
 							},
 						]}
@@ -592,13 +587,13 @@ const buildTestEmailPayload = async (kind: TestEmailKind, appTitle: string): Pro
 				subject: "A look back at your Mother's Day gifts",
 				react: (
 					<RevealSummaryEmail
-						intro="We hope your Mother's Day was wonderful."
+						intro="We hope your Mother's Day was wonderful. Here's who gave you what."
 						sections={[
 							{
 								listName: "Mother's Day Wishes",
 								items: [
 									{ title: 'Ceramic planter', image_url: 'https://placehold.co/600x400', gifters: 'Alex' },
-									{ title: 'Flowers', image_url: 'https://placehold.co/80x80?text=Gift', gifters: 'Priya', offList: true },
+									{ title: 'Flowers', image_url: null, gifters: 'Priya', offList: true },
 								],
 							},
 						]}

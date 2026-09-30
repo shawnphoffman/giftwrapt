@@ -54,13 +54,15 @@ type OccurrencePair = { last: Occurrence | null; next: Occurrence | null }
 export type ArchiveScheduleInput = {
 	type: string
 	isActive: boolean
-	subjectDependentId: string | null
 	archiveDeferUntil: Date | null
 	lastArchivedAt: Date | null
 	customHolidayId: string | null
 	customHoliday: CustomHolidayRow | null
-	ownerBirthMonth: BirthMonth | null
-	ownerBirthDay: number | null
+	// The birthday that birthday/wishlist lists reveal after: the owner's, or
+	// the dependent's for a list made for a dependent (never a guardian's).
+	// See `loadRecipientBirthday`.
+	recipientBirthMonth: BirthMonth | null
+	recipientBirthDay: number | null
 }
 
 // The per-type archive offsets, read from app settings by the caller.
@@ -74,8 +76,8 @@ export type ArchiveDaysSettings = {
 
 export type ArchiveSchedule = {
 	// False when the list type never auto-archives (giftideas/todos), the
-	// list is inactive, it's a dependent-subject list, a holiday list with no
-	// holiday selected, or a birthday/wishlist whose owner has no birthday set.
+	// list is inactive, a holiday list has no holiday selected, or a
+	// birthday/wishlist's recipient (owner or dependent) has no birthday set.
 	applies: boolean
 	// The relevant occurrence's event date: the open cycle's event if we're
 	// between the event and its reveal, otherwise the next upcoming event.
@@ -148,7 +150,7 @@ export async function computeArchiveSchedule(
 	now: Date = new Date(),
 	dbx: SchemaDatabase = db
 ): Promise<ArchiveSchedule> {
-	if (!input.isActive || input.subjectDependentId) return NOT_APPLICABLE
+	if (!input.isActive) return NOT_APPLICABLE
 
 	const today = calendarDayInZone(now, settings.timeZone)
 
@@ -156,10 +158,10 @@ export async function computeArchiveSchedule(
 	let occurrences: OccurrencePair
 
 	if (input.type === 'birthday' || input.type === 'wishlist') {
-		if (input.ownerBirthMonth == null || input.ownerBirthDay == null) return NOT_APPLICABLE
-		const monthIndex = MONTH_INDEX[input.ownerBirthMonth]
+		if (input.recipientBirthMonth == null || input.recipientBirthDay == null) return NOT_APPLICABLE
+		const monthIndex = MONTH_INDEX[input.recipientBirthMonth]
 		archiveDays = settings.archiveDaysAfterBirthday
-		occurrences = annualOccurrences(today, year => new Date(Date.UTC(year, monthIndex, input.ownerBirthDay!)))
+		occurrences = annualOccurrences(today, year => new Date(Date.UTC(year, monthIndex, input.recipientBirthDay!)))
 	} else if (input.type === 'christmas') {
 		archiveDays = settings.archiveDaysAfterChristmas
 		occurrences = annualOccurrences(today, year => new Date(Date.UTC(year, 11, 25)))

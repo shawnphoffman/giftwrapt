@@ -4,7 +4,10 @@ const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3002'
 
 export interface RevealSummaryItem {
 	title: string
-	image_url: string
+	// Null when the item has no image, or its image can't be loaded from a
+	// mail client (see src/lib/email-images.ts); the row shows the gift
+	// placeholder graphic instead.
+	image_url: string | null
 	// Pre-formatted (e.g. "Alice & Bob" or "Alice, Bob & Carol") so partner
 	// and co-gifter attribution stays consistent with the received gifts
 	// page. See src/lib/gifters.ts#formatGifterNames.
@@ -19,13 +22,15 @@ export interface RevealSummarySection {
 }
 
 interface RevealSummaryEmailProps {
-	// Occasion-specific opening line (e.g. "We hope your Christmas was
-	// wonderful."). Omitted when one email covers more than one occasion.
-	intro?: string
+	// Opening line, e.g. "We hope your Christmas was wonderful. Here's who
+	// gave you what."
+	intro: string
 	// One section per list revealed in this run.
 	sections: Array<RevealSummarySection>
 	appTitle?: string
 }
+
+const placeholderImage = `${baseUrl}/images/email/gift.png`
 
 // The "here's who gave you what" email sent when a list's gifts are
 // revealed. One template for every occasion (birthday, Christmas, custom
@@ -42,7 +47,7 @@ export default function RevealSummaryEmail({ intro, sections, appTitle = 'GiftWr
 							<Img src={`${baseUrl}/images/email/base-icon.webp`} width="80" height="80" alt={appTitle} className="mx-auto my-0" />
 						</Section>
 						<Heading className="mx-0 my-[20px] p-0 font-bold text-[24px] text-black text-center">A look back...</Heading>
-						<Text className="text-base text-center">{intro ? `${intro} ` : ''}Here&apos;s who gave you what.</Text>
+						<Text className="text-base text-center">{intro}</Text>
 						{sections.map((section, sectionIndex) => (
 							<Section key={sectionIndex}>
 								<Text className="mt-[24px] mb-[4px] text-sm font-bold uppercase tracking-wide text-[#666666]">{section.listName}</Text>
@@ -51,7 +56,7 @@ export default function RevealSummaryEmail({ intro, sections, appTitle = 'GiftWr
 									<Section key={index}>
 										<Row className="flex flex-row items-center justify-center w-full">
 											<Column className="w-20 px-2">
-												<Img src={item.image_url} width="80" height="80" alt="" className="mx-auto my-0" />
+												<Img src={item.image_url || placeholderImage} width="80" height="80" alt="" className="mx-auto my-0" />
 											</Column>
 											<Column className="gap-2">
 												<Text className="my-0 text-base font-bold leading-tight">{item.title}</Text>
@@ -78,7 +83,7 @@ export default function RevealSummaryEmail({ intro, sections, appTitle = 'GiftWr
 }
 
 RevealSummaryEmail.PreviewProps = {
-	intro: 'We hope you had a wonderful birthday.',
+	intro: "We hope you had a wonderful birthday. Here's who gave you what.",
 	sections: [
 		{
 			listName: 'Birthday 2026',
@@ -88,14 +93,14 @@ RevealSummaryEmail.PreviewProps = {
 					image_url: 'https://placehold.co/600x400',
 					gifters: 'John & Jane',
 				},
-				{ title: 'Item 2', image_url: 'https://placehold.co/100x200', gifters: 'John' },
+				{ title: 'Item 2', image_url: null, gifters: 'John' },
 			],
 		},
 		{
 			listName: 'Wishlist',
 			items: [
 				{ title: 'Item 3', image_url: 'https://placehold.co/400x200', gifters: 'Jane, Alex & Priya' },
-				{ title: 'Homemade jam', image_url: 'https://placehold.co/80x80?text=Gift', gifters: 'Priya', offList: true },
+				{ title: 'Homemade jam', image_url: null, gifters: 'Priya', offList: true },
 			],
 		},
 	],

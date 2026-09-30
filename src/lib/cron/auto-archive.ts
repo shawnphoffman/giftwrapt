@@ -6,10 +6,10 @@
 // The handler in `src/routes/api/cron/auto-archive.ts` is a thin
 // wrapper that checks the CRON_SECRET and delegates here.
 
-import { and, eq, inArray, isNotNull, isNull, lte } from 'drizzle-orm'
+import { and, eq, inArray, isNotNull, isNull, lte, type SQL } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
-import { lists, users } from '@/db/schema'
+import { dependents, lists, users } from '@/db/schema'
 import type { BirthMonth } from '@/db/schema/enums'
 import { addCalendarDays, calendarDayInZone } from '@/lib/calendar-day'
 import { customHolidayNextOccurrence } from '@/lib/custom-holidays'
@@ -92,12 +92,11 @@ export async function autoArchiveImpl({
 	const dueLists = await db.query.lists.findMany({
 		where: and(
 			eq(lists.isActive, true),
-			isNull(lists.subjectDependentId),
 			isNotNull(lists.archiveDeferUntil),
 			lte(lists.archiveDeferUntil, now),
 			inArray(lists.type, ['birthday', 'wishlist', 'christmas', 'holiday'])
 		),
-		columns: { id: true, ownerId: true, name: true, type: true, customHolidayId: true },
+		columns: { id: true, ownerId: true, name: true, type: true, subjectDependentId: true, customHolidayId: true },
 	})
 	for (const list of dueLists) {
 		const purchases = await revealListPurchases(db, list.id, now)
@@ -113,30 +112,34 @@ export async function autoArchiveImpl({
 
 		const family = await revealFamilyForList(db, list)
 		if (family && (purchases.itemIds.length > 0 || purchases.addonIds.length > 0)) {
-			revealed.push({ listId: list.id, ownerId: list.ownerId, listName: list.name, subjectDependentId: null, ...family, ...purchases })
+			revealed.push({
+				listId: list.id,
+				ownerId: list.ownerId,
+				listName: list.name,
+				subjectDependentId: list.subjectDependentId,
+				...family,
+				...purchases,
+			})
 		}
 	}
 
 	// === Birthday auto-archive ===
+	// A birthday/wishlist list reveals after its recipient's birthday: the
+	// owner's for their own lists, the dependent's for a list made for a
+	// dependent. A guardian's birthday never reveals a dependent's list.
 	const birthdayDate = addCalendarDays(today, -archiveDaysAfterBirthday)
 	const bMonth = MONTHS[birthdayDate.getUTCMonth()]
 	const bDay = birthdayDate.getUTCDate()
 
-	const birthdayUsers = await db.query.users.findMany({
-		where: and(eq(users.birthMonth, bMonth), eq(users.birthDay, bDay)),
-		columns: { id: true },
-	})
-
-	for (const user of birthdayUsers) {
-		// Per-list (not one bulk update across the user's lists) so each list
-		// can be individually skipped when deferred and stamped with
-		// last-archived.
-		const userLists = await db.query.lists.findMany({
-			where: and(eq(lists.ownerId, user.id), eq(lists.isActive, true), inArray(lists.type, ['birthday', 'wishlist'])),
-			columns: { id: true, name: true, subjectDependentId: true, archiveDeferUntil: true },
+	// Per-list (not one bulk update across a recipient's lists) so each list
+	// can be individually skipped when deferred and stamped with
+	// last-archived.
+	const revealBirthdayLists = async (where: SQL) => {
+		const birthdayLists = await db.query.lists.findMany({
+			where: and(where, eq(lists.isActive, true), inArray(lists.type, ['birthday', 'wishlist'])),
+			columns: { id: true, ownerId: true, name: true, subjectDependentId: true, archiveDeferUntil: true },
 		})
-
-		for (const list of userLists) {
+		for (const list of birthdayLists) {
 			if (list.archiveDeferUntil && list.archiveDeferUntil.getTime() > now.getTime()) continue
 
 			const purchases = await revealListPurchases(db, list.id, now)
@@ -145,7 +148,7 @@ export async function autoArchiveImpl({
 			if (purchases.itemIds.length === 0 && purchases.addonIds.length === 0) continue
 			revealed.push({
 				listId: list.id,
-				ownerId: user.id,
+				ownerId: list.ownerId,
 				listName: list.name,
 				subjectDependentId: list.subjectDependentId,
 				family: 'birthday',
@@ -153,6 +156,22 @@ export async function autoArchiveImpl({
 				...purchases,
 			})
 		}
+	}
+
+	const birthdayUsers = await db.query.users.findMany({
+		where: and(eq(users.birthMonth, bMonth), eq(users.birthDay, bDay)),
+		columns: { id: true },
+	})
+	for (const user of birthdayUsers) {
+		await revealBirthdayLists(and(eq(lists.ownerId, user.id), isNull(lists.subjectDependentId))!)
+	}
+
+	const birthdayDependents = await db.query.dependents.findMany({
+		where: and(eq(dependents.birthMonth, bMonth), eq(dependents.birthDay, bDay), eq(dependents.isArchived, false)),
+		columns: { id: true },
+	})
+	for (const dependent of birthdayDependents) {
+		await revealBirthdayLists(eq(lists.subjectDependentId, dependent.id))
 	}
 
 	// === Christmas auto-archive ===

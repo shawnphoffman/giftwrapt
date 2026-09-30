@@ -60,7 +60,11 @@ describe('resend module with email fully unconfigured', { timeout: 20_000 }, () 
 
 	it('no-ops sendRevealSummaryEmail and returns null', async () => {
 		const { sendRevealSummaryEmail } = await import('@/lib/resend')
-		const result = await sendRevealSummaryEmail('alice@example.com', { subject: 'A look back at your gifts', sections: [] })
+		const result = await sendRevealSummaryEmail('alice@example.com', {
+			subject: 'A look back at your gifts',
+			intro: "Here's who gave what.",
+			sections: [],
+		})
 		expect(result).toBeNull()
 	})
 

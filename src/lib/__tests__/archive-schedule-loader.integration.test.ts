@@ -1,4 +1,4 @@
-import { makeList, makeUser } from '@test/integration/factories'
+import { makeDependent, makeList, makeUser } from '@test/integration/factories'
 import { withRollback } from '@test/integration/setup'
 import { describe, expect, it } from 'vitest'
 
@@ -46,6 +46,27 @@ describe('loadArchiveBannerInfo', () => {
 			// An inactive list never auto-reveals, birthday or not.
 			const inactive = await makeList(tx, { ownerId: owner.id, type: 'birthday', isActive: false })
 			expect((await loadArchiveBannerInfo(inactive.id, tx, now)).notApplicableReason).toBeNull()
+		})
+	})
+
+	it("uses the dependent's birthday for a list made for a dependent", async () => {
+		await withRollback(async tx => {
+			// The guardian's own birthday (March 1) must not drive the dependent's list.
+			const guardian = await makeUser(tx, { birthMonth: 'march', birthDay: 1 })
+			const now = new Date('2026-03-08T12:00:00Z')
+
+			const noBirthday = await makeDependent(tx, { createdByUserId: guardian.id })
+			const unscheduled = await makeList(tx, { ownerId: guardian.id, type: 'birthday', subjectDependentId: noBirthday.id })
+			const unscheduledInfo = await loadArchiveBannerInfo(unscheduled.id, tx, now)
+			expect(unscheduledInfo.applies).toBe(false)
+			expect(unscheduledInfo.notApplicableReason).toBe('dependent-no-birthday')
+
+			const fido = await makeDependent(tx, { birthMonth: 'october', birthDay: 20, createdByUserId: guardian.id })
+			const scheduled = await makeList(tx, { ownerId: guardian.id, type: 'wishlist', subjectDependentId: fido.id })
+			const scheduledInfo = await loadArchiveBannerInfo(scheduled.id, tx, now)
+			expect(scheduledInfo.applies).toBe(true)
+			expect(scheduledInfo.eventDate).toBe('2026-10-20T00:00:00.000Z')
+			expect(scheduledInfo.notApplicableReason).toBeNull()
 		})
 	})
 })

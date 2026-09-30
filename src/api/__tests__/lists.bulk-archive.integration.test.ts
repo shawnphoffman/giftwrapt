@@ -1,10 +1,10 @@
-import { makeGiftedItem, makeItem, makeList, makeUser } from '@test/integration/factories'
+import { makeGiftedItem, makeItem, makeList, makeListAddon, makeUser } from '@test/integration/factories'
 import { withRollback } from '@test/integration/setup'
 import { eq, inArray } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import { bulkArchiveClaimedItemsImpl } from '@/api/admin'
-import { items } from '@/db/schema'
+import { items, listAddons, lists } from '@/db/schema'
 
 describe('bulkArchiveClaimedItemsImpl', () => {
 	it('archives only non-archived items that have at least one claim', async () => {
@@ -29,7 +29,7 @@ describe('bulkArchiveClaimedItemsImpl', () => {
 			const unclaimed2 = await makeItem(tx, { listId: listB.id })
 
 			const result = await bulkArchiveClaimedItemsImpl({ db: tx })
-			expect(result).toEqual({ kind: 'ok', archivedCount: 2 })
+			expect(result).toEqual({ kind: 'ok', archivedCount: 2, addonsArchivedCount: 0, listCount: 2 })
 
 			const updated = await tx
 				.select({ id: items.id, isArchived: items.isArchived })
@@ -52,7 +52,7 @@ describe('bulkArchiveClaimedItemsImpl', () => {
 			const item = await makeItem(tx, { listId: list.id })
 
 			const result = await bulkArchiveClaimedItemsImpl({ db: tx })
-			expect(result).toEqual({ kind: 'ok', archivedCount: 0 })
+			expect(result).toEqual({ kind: 'ok', archivedCount: 0, addonsArchivedCount: 0, listCount: 0 })
 
 			const after = await tx.select().from(items).where(eq(items.id, item.id))
 			expect(after[0].isArchived).toBe(false)
@@ -68,7 +68,26 @@ describe('bulkArchiveClaimedItemsImpl', () => {
 			await makeGiftedItem(tx, { itemId: item.id, gifterId: gifter.id })
 
 			const result = await bulkArchiveClaimedItemsImpl({ db: tx })
-			expect(result).toEqual({ kind: 'ok', archivedCount: 0 })
+			expect(result).toEqual({ kind: 'ok', archivedCount: 0, addonsArchivedCount: 0, listCount: 0 })
+		})
+	})
+
+	it('reveals off-list gifts too and stamps the list like any other reveal', async () => {
+		await withRollback(async tx => {
+			const owner = await makeUser(tx)
+			const gifter = await makeUser(tx)
+			// Addon-only list: nothing claimed, but the off-list gift is still hidden.
+			const list = await makeList(tx, { ownerId: owner.id })
+			const addon = await makeListAddon(tx, { listId: list.id, userId: gifter.id })
+			const now = new Date('2026-03-08T12:00:00Z')
+
+			const result = await bulkArchiveClaimedItemsImpl({ db: tx, now })
+			expect(result).toEqual({ kind: 'ok', archivedCount: 0, addonsArchivedCount: 1, listCount: 1 })
+
+			const [addonRow] = await tx.select({ isArchived: listAddons.isArchived }).from(listAddons).where(eq(listAddons.id, addon.id))
+			expect(addonRow.isArchived).toBe(true)
+			const [listRow] = await tx.select({ lastArchivedAt: lists.lastArchivedAt }).from(lists).where(eq(lists.id, list.id))
+			expect(listRow.lastArchivedAt?.toISOString()).toBe(now.toISOString())
 		})
 	})
 })

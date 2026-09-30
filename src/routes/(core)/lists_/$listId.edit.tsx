@@ -219,6 +219,9 @@ function ListEditPage() {
 				</div>
 				{list.description && <MarkdownNotes content={list.description} className="text-muted-foreground" />}
 				{list.isOwner && list.archiveInfo.notApplicableReason === 'owner-no-birthday' && <AddBirthdayBanner />}
+				{list.archiveInfo.notApplicableReason === 'dependent-no-birthday' && list.subjectDependent && (
+					<AddBirthdayBanner dependentName={list.subjectDependent.name} />
+				)}
 
 				{list.type === 'todos' ? (
 					// Reaching this route requires canEditList; any caller here

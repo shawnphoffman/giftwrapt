@@ -19,9 +19,10 @@ import { type CancelArchiveDeferResult, type ForceArchiveListResult, type SetArc
 import { revealListForEditor } from '@/api/_items-extra-impl'
 import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
-import { lists, users } from '@/db/schema'
+import { lists } from '@/db/schema'
 import type { ArchiveSchedule } from '@/lib/archive-schedule'
 import { computeArchiveSchedule, maxDeferDate } from '@/lib/archive-schedule'
+import { loadRecipientBirthday } from '@/lib/archive-schedule-loader'
 import { sendRevealEmails } from '@/lib/cron/reveal-emails'
 import { getCustomHoliday } from '@/lib/custom-holidays'
 import { canEditList } from '@/lib/permissions'
@@ -74,7 +75,7 @@ async function loadScheduleContext(
 		if (!perm.ok) return { error: 'not-authorized' }
 	}
 
-	const [owner] = await dbx.select({ birthMonth: users.birthMonth, birthDay: users.birthDay }).from(users).where(eq(users.id, list.ownerId))
+	const recipientBirthday = await loadRecipientBirthday(list, dbx)
 	const customHoliday = list.customHolidayId ? await getCustomHoliday(list.customHolidayId, dbx) : null
 
 	const settings = await getAppSettings(dbx)
@@ -82,13 +83,12 @@ async function loadScheduleContext(
 		{
 			type: list.type,
 			isActive: list.isActive,
-			subjectDependentId: list.subjectDependentId,
 			archiveDeferUntil: list.archiveDeferUntil,
 			lastArchivedAt: list.lastArchivedAt,
 			customHolidayId: list.customHolidayId,
 			customHoliday,
-			ownerBirthMonth: owner.birthMonth ?? null,
-			ownerBirthDay: owner.birthDay ?? null,
+			recipientBirthMonth: recipientBirthday.birthMonth,
+			recipientBirthDay: recipientBirthday.birthDay,
 		},
 		settings,
 		now,

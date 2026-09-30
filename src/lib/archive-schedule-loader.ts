@@ -7,7 +7,8 @@ import { eq } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
-import { lists, users } from '@/db/schema'
+import { dependents, lists, users } from '@/db/schema'
+import type { BirthMonth } from '@/db/schema/enums'
 import { computeArchiveSchedule } from '@/lib/archive-schedule'
 import { getCustomHoliday } from '@/lib/custom-holidays'
 import { getAppSettings } from '@/lib/settings-loader'
@@ -24,10 +25,33 @@ export type ArchiveBannerInfo = {
 	inForceWindow: boolean
 	lastArchivedAt: string | null
 	// Why a list that would otherwise auto-reveal doesn't. Only set for the
-	// one case the UI can help with: a birthday/wishlist list whose owner has
-	// no birthday, which drives the "add your birthday" banner. Null for
-	// every other not-applicable list and whenever `applies` is true.
-	notApplicableReason: 'owner-no-birthday' | null
+	// cases the UI can help with: a birthday/wishlist list whose recipient
+	// (the owner, or the dependent it is for) has no birthday, which drives
+	// the "add a birthday" banner. Null for every other not-applicable list
+	// and whenever `applies` is true.
+	notApplicableReason: 'owner-no-birthday' | 'dependent-no-birthday' | null
+}
+
+export type RecipientBirthday = { birthMonth: BirthMonth | null; birthDay: number | null }
+
+/**
+ * The birthday a birthday/wishlist list reveals after: the dependent's for
+ * a list made for a dependent, otherwise the owner's. A guardian's own
+ * birthday never drives a dependent's list.
+ */
+export async function loadRecipientBirthday(
+	list: { ownerId: string; subjectDependentId: string | null },
+	dbx: SchemaDatabase = db
+): Promise<RecipientBirthday> {
+	if (list.subjectDependentId) {
+		const dep = await dbx.query.dependents.findFirst({
+			where: eq(dependents.id, list.subjectDependentId),
+			columns: { birthMonth: true, birthDay: true },
+		})
+		return { birthMonth: dep?.birthMonth ?? null, birthDay: dep?.birthDay ?? null }
+	}
+	const owner = await dbx.query.users.findFirst({ where: eq(users.id, list.ownerId), columns: { birthMonth: true, birthDay: true } })
+	return { birthMonth: owner?.birthMonth ?? null, birthDay: owner?.birthDay ?? null }
 }
 
 const NOT_APPLICABLE: ArchiveBannerInfo = {
@@ -65,7 +89,7 @@ export async function loadArchiveBannerInfo(listId: number, dbx: SchemaDatabase 
 	})
 	if (!list) return NOT_APPLICABLE
 
-	const [owner] = await dbx.select({ birthMonth: users.birthMonth, birthDay: users.birthDay }).from(users).where(eq(users.id, list.ownerId))
+	const recipientBirthday = await loadRecipientBirthday(list, dbx)
 	const customHoliday = list.customHolidayId ? await getCustomHoliday(list.customHolidayId, dbx) : null
 	const settings = await getAppSettings(dbx)
 
@@ -73,25 +97,23 @@ export async function loadArchiveBannerInfo(listId: number, dbx: SchemaDatabase 
 		{
 			type: list.type,
 			isActive: list.isActive,
-			subjectDependentId: list.subjectDependentId,
 			archiveDeferUntil: list.archiveDeferUntil,
 			lastArchivedAt: list.lastArchivedAt,
 			customHolidayId: list.customHolidayId,
 			customHoliday,
-			ownerBirthMonth: owner.birthMonth ?? null,
-			ownerBirthDay: owner.birthDay ?? null,
+			recipientBirthMonth: recipientBirthday.birthMonth,
+			recipientBirthDay: recipientBirthday.birthDay,
 		},
 		settings,
 		now,
 		dbx
 	)
 
-	const ownerHasNoBirthday =
+	const recipientHasNoBirthday =
 		!schedule.applies &&
 		list.isActive &&
-		!list.subjectDependentId &&
 		(list.type === 'birthday' || list.type === 'wishlist') &&
-		(!owner.birthMonth || !owner.birthDay)
+		(!recipientBirthday.birthMonth || !recipientBirthday.birthDay)
 
 	return {
 		applies: schedule.applies,
@@ -102,6 +124,6 @@ export async function loadArchiveBannerInfo(listId: number, dbx: SchemaDatabase 
 		eventHasPassed: schedule.eventHasPassed,
 		inForceWindow: schedule.inForceWindow,
 		lastArchivedAt: iso(schedule.lastArchivedAt),
-		notApplicableReason: ownerHasNoBirthday ? 'owner-no-birthday' : null,
+		notApplicableReason: recipientHasNoBirthday ? (list.subjectDependentId ? 'dependent-no-birthday' : 'owner-no-birthday') : null,
 	}
 }

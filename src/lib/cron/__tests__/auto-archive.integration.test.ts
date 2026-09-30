@@ -7,7 +7,7 @@
 // can't see: that the impl actually archives the right rows, leaves
 // others alone, and respects the settings-driven delays.
 
-import { makeGiftedItem, makeItem, makeList, makeListAddon, makeUser } from '@test/integration/factories'
+import { makeDependent, makeGiftedItem, makeItem, makeList, makeListAddon, makeUser } from '@test/integration/factories'
 import { withRollback } from '@test/integration/setup'
 import { eq, inArray } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
@@ -636,6 +636,35 @@ describe('autoArchiveImpl - archive deferral', () => {
 				.where(eq(lists.id, list.id))
 			expect(listRow.defer).toBeNull()
 			expect(listRow.last).not.toBeNull()
+		})
+	})
+
+	it("deferred-due pass also reveals a dependent's list", async () => {
+		await withRollback(async tx => {
+			const guardian = await makeUser(tx)
+			const fido = await makeDependent(tx, { name: 'Fido', birthMonth: 'march', birthDay: 1, createdByUserId: guardian.id })
+			const gifter = await makeUser(tx)
+			const list = await makeList(tx, {
+				ownerId: guardian.id,
+				type: 'birthday',
+				subjectDependentId: fido.id,
+				archiveDeferUntil: new Date('2026-04-01T12:00:00Z'),
+			})
+			const claimed = await makeItem(tx, { listId: list.id })
+			await makeGiftedItem(tx, { itemId: claimed.id, gifterId: gifter.id })
+
+			const result = await autoArchiveImpl({
+				db: tx,
+				now: new Date('2026-04-02T12:00:00Z'),
+				archiveDaysAfterBirthday: 7,
+				archiveDaysAfterChristmas: 30,
+				archiveDaysAfterHoliday: 30,
+			})
+
+			expect(result.deferredArchived).toBe(1)
+			expect(result.revealed[0]).toMatchObject({ listId: list.id, subjectDependentId: fido.id, itemIds: [claimed.id] })
+			const [listRow] = await tx.select({ defer: lists.archiveDeferUntil }).from(lists).where(eq(lists.id, list.id))
+			expect(listRow.defer).toBeNull()
 		})
 	})
 

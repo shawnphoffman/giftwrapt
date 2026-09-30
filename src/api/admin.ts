@@ -7,12 +7,13 @@ import { db } from '@/db'
 import { getPermissionsMatrixQuery } from '@/db/queries/permissions-matrix'
 import { getAllUsersQuery, getUserDetailsQuery } from '@/db/queries/users'
 import type { BirthMonth, Role } from '@/db/schema'
-import { giftedItems, guardianships, items, itemScrapes, lists, users } from '@/db/schema'
+import { giftedItems, guardianships, items, itemScrapes, listAddons, lists, users } from '@/db/schema'
 import { auth } from '@/lib/auth'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { loggingMiddleware } from '@/lib/logger'
 import { applyPartnerAndAnniversary } from '@/lib/partner-update'
 import { isEmailConfigured, sendTestEmail, type TestEmailKind } from '@/lib/resend'
+import { revealListPurchases } from '@/lib/reveal'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { adminAuthMiddleware } from '@/middleware/auth'
 
@@ -497,24 +498,29 @@ export const getRelationLabelCandidatesForUserAsAdmin = createServerFn({ method:
 // Spec §2.3 trigger 1: "admins can archive all currently-claimed-but-
 // not-archived items (cleanup)."
 
-export type BulkArchiveResult = { kind: 'ok'; archivedCount: number }
+export type BulkArchiveResult = { kind: 'ok'; archivedCount: number; addonsArchivedCount: number; listCount: number }
 
-export async function bulkArchiveClaimedItemsImpl(args: { db: SchemaDatabase }): Promise<BulkArchiveResult> {
-	const { db: dbx } = args
-	// Find all non-archived items that have at least one claim.
-	const claimedItemIds = await dbx
-		.selectDistinct({ itemId: giftedItems.itemId })
+// Reveals every list that still has claimed items or off-list gifts hidden,
+// through the same primitive as the cron, so addons flip and
+// `lastArchivedAt` is stamped like any other reveal. No reveal email: this is
+// an operator cleanup, not an occasion.
+export async function bulkArchiveClaimedItemsImpl(args: { db: SchemaDatabase; now?: Date }): Promise<BulkArchiveResult> {
+	const { db: dbx, now = new Date() } = args
+	const claimedListRows = await dbx
+		.selectDistinct({ listId: items.listId })
 		.from(giftedItems)
 		.innerJoin(items, and(eq(items.id, giftedItems.itemId), visibleItemsWhere('visible')))
+	const addonListRows = await dbx.selectDistinct({ listId: listAddons.listId }).from(listAddons).where(eq(listAddons.isArchived, false))
+	const listIds = Array.from(new Set([...claimedListRows, ...addonListRows].map(r => r.listId))).sort((a, b) => a - b)
 
-	if (claimedItemIds.length === 0) {
-		return { kind: 'ok', archivedCount: 0 }
+	let archivedCount = 0
+	let addonsArchivedCount = 0
+	for (const listId of listIds) {
+		const revealed = await revealListPurchases(dbx, listId, now)
+		archivedCount += revealed.itemIds.length
+		addonsArchivedCount += revealed.addonIds.length
 	}
-
-	const ids = claimedItemIds.map(r => r.itemId)
-	await dbx.update(items).set({ isArchived: true, archivedAt: new Date() }).where(inArray(items.id, ids))
-
-	return { kind: 'ok', archivedCount: ids.length }
+	return { kind: 'ok', archivedCount, addonsArchivedCount, listCount: listIds.length }
 }
 
 export const bulkArchiveClaimedItems = createServerFn({ method: 'POST' })

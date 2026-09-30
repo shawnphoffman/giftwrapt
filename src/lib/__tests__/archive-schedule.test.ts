@@ -13,13 +13,12 @@ function baseInput(overrides: Partial<ArchiveScheduleInput> = {}): ArchiveSchedu
 	return {
 		type: 'birthday',
 		isActive: true,
-		subjectDependentId: null,
 		archiveDeferUntil: null,
 		lastArchivedAt: null,
 		customHolidayId: null,
 		customHoliday: null,
-		ownerBirthMonth: 'june',
-		ownerBirthDay: 15,
+		recipientBirthMonth: 'june',
+		recipientBirthDay: 15,
 		...overrides,
 	}
 }
@@ -40,19 +39,14 @@ describe('computeArchiveSchedule - applicability', () => {
 		expect(s.applies).toBe(false)
 	})
 
-	it('does not apply to dependent-subject lists', async () => {
-		const s = await computeArchiveSchedule(baseInput({ subjectDependentId: 'dep_1' }), SETTINGS, new Date('2026-06-09T12:00:00'))
-		expect(s.applies).toBe(false)
-	})
-
 	it('does not apply to a holiday list with no holiday selected', async () => {
 		const s = await computeArchiveSchedule(baseInput({ type: 'holiday', customHolidayId: null }), SETTINGS, new Date('2026-06-09T12:00:00'))
 		expect(s.applies).toBe(false)
 	})
 
-	it('does not apply to a birthday/wishlist whose owner has no birthday', async () => {
+	it('does not apply to a birthday/wishlist whose recipient has no birthday', async () => {
 		const s = await computeArchiveSchedule(
-			baseInput({ ownerBirthMonth: null, ownerBirthDay: null }),
+			baseInput({ recipientBirthMonth: null, recipientBirthDay: null }),
 			SETTINGS,
 			new Date('2026-06-09T12:00:00')
 		)
