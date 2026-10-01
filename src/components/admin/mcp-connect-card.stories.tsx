@@ -12,7 +12,7 @@ const meta = {
 	title: 'Admin/McpConnectCard',
 	component: McpConnectCard,
 	parameters: { layout: 'padded' },
-	args: { origin: ORIGIN },
+	args: { origin: ORIGIN, appTitle: 'The Smith Family' },
 } satisfies Meta<typeof McpConnectCard>
 
 export default meta

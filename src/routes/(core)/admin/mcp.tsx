@@ -19,6 +19,7 @@ import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ClientOnly } from '@/components/utilities/client-only'
+import { useAppSetting } from '@/hooks/use-app-settings'
 import { buildMcpConnectInfo } from '@/lib/mcp-connect'
 
 // Gated by `appSettings.enableMcp`, the same way /admin/barcode is gated
@@ -75,6 +76,7 @@ function AdminMcpPage() {
 }
 
 function ConnectSection() {
+	const appTitle = useAppSetting('appTitle')
 	const origin = window.location.origin
 	const info = buildMcpConnectInfo(origin)
 	const [status, setStatus] = useState<Record<string, DiscoveryStatus>>({})
@@ -97,7 +99,7 @@ function ConnectSection() {
 		// The discovery list is a pure function of the origin.
 	}, [origin])
 
-	return <McpConnectCard origin={origin} discoveryStatus={status} />
+	return <McpConnectCard origin={origin} appTitle={appTitle} discoveryStatus={status} />
 }
 
 function ClientsSection() {

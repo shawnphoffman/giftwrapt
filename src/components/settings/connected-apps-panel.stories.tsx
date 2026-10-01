@@ -33,7 +33,7 @@ const meta = {
 	title: 'Settings/ConnectedAppsPanel',
 	component: ConnectedAppsPanel,
 	parameters: { layout: 'padded' },
-	args: { apps, origin: 'https://gifts.example.com', onDisconnect: () => {} },
+	args: { apps, origin: 'https://gifts.example.com', appTitle: 'The Smith Family', onDisconnect: () => {} },
 	decorators: [
 		Story => (
 			<div className="max-w-2xl">

@@ -1,14 +1,17 @@
 import { CheckCircle2, CircleDashed, XCircle } from 'lucide-react'
 
 import { CopyButton } from '@/components/common/copy-button'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { buildMcpConnectInfo, buildMcpSnippets } from '@/lib/mcp-connect'
+import { buildClaudeConnectLink, buildMcpConnectInfo, buildMcpSnippets } from '@/lib/mcp-connect'
 
 export type DiscoveryStatus = 'checking' | 'ok' | 'unreachable'
 
 export type McpConnectCardProps = {
 	/** Deployment origin, e.g. https://gifts.example.com */
 	origin: string
+	/** The deployment's title, used as the connector name in the Add to Claude link. */
+	appTitle?: string
 	/** Live reachability of each discovery URL, keyed by URL. */
 	discoveryStatus?: Record<string, DiscoveryStatus>
 	docsHref?: string
@@ -22,11 +25,13 @@ export type McpConnectCardProps = {
  */
 export function McpConnectCard({
 	origin,
+	appTitle,
 	discoveryStatus = {},
 	docsHref = 'https://giftwrapt.dev/features/ai-assistants/',
 }: McpConnectCardProps) {
 	const info = buildMcpConnectInfo(origin)
 	const snippets = buildMcpSnippets(info.endpointUrl)
+	const claudeLink = buildClaudeConnectLink(info.endpointUrl, appTitle)
 	return (
 		<Card className="animate-page-in max-w-2xl">
 			<CardHeader>
@@ -46,6 +51,22 @@ export function McpConnectCard({
 					<div className="flex items-center gap-2">
 						<code className="flex-1 truncate rounded bg-muted px-3 py-2 font-mono text-sm">{info.endpointUrl}</code>
 						<CopyButton value={info.endpointUrl} label="Copy server URL" />
+					</div>
+				</div>
+
+				<div className="space-y-2">
+					<div className="text-sm font-medium">Add to Claude</div>
+					<p className="text-xs text-muted-foreground">
+						Opens Claude with this deployment's name and server URL filled in. Users get the same button under Settings, Connected Apps;
+						copy the link to send it to someone.
+					</p>
+					<div className="flex items-center gap-2">
+						<Button asChild size="sm">
+							<a href={claudeLink} target="_blank" rel="noreferrer">
+								Add to Claude
+							</a>
+						</Button>
+						<CopyButton value={claudeLink} label="Copy Add to Claude link" />
 					</div>
 				</div>
 

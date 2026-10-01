@@ -22,6 +22,29 @@ export function buildMcpConnectInfo(origin: string): McpConnectInfo {
 	}
 }
 
+const CLAUDE_ADD_CONNECTOR_URL = 'https://claude.ai/customize/connectors'
+const DEFAULT_CONNECTOR_NAME = 'GiftWrapt'
+
+/** The name a connector for this deployment shows under in the client: the instance title, or the product name when there is none. */
+export function mcpConnectorName(appTitle: string | null | undefined): string {
+	return appTitle?.trim() || DEFAULT_CONNECTOR_NAME
+}
+
+/**
+ * A link that opens Claude's "Add custom connector" dialog with this
+ * deployment's name and server URL prefilled, so a user confirms instead
+ * of finding the settings page and pasting. Claude shows that the values
+ * came from an external link and adds nothing until the user confirms.
+ * Format per https://claude.com/docs/connectors/building/directory-vs-custom.
+ * Values are percent-encoded (not form-encoded): a `+` for a space is not
+ * guaranteed to be read back as a space.
+ */
+export function buildClaudeConnectLink(endpointUrl: string, appTitle?: string | null): string {
+	const name = encodeURIComponent(mcpConnectorName(appTitle))
+	const url = encodeURIComponent(endpointUrl)
+	return `${CLAUDE_ADD_CONNECTOR_URL}?modal=add-custom-connector&connectorName=${name}&connectorUrl=${url}`
+}
+
 export type McpClientSnippet = { id: string; title: string; description: string; code: string; language: 'bash' | 'json' | 'text' }
 
 export function buildMcpSnippets(endpointUrl: string): Array<McpClientSnippet> {
@@ -29,7 +52,7 @@ export function buildMcpSnippets(endpointUrl: string): Array<McpClientSnippet> {
 		{
 			id: 'claude-ai',
 			title: 'Claude.ai (web, desktop, mobile)',
-			description: 'Settings, Connectors, Add custom connector. Paste the server URL and sign in when asked.',
+			description: 'Use the Add to Claude button above, or go to Settings, Connectors, Add custom connector and paste the server URL.',
 			code: endpointUrl,
 			language: 'text',
 		},

@@ -11,6 +11,7 @@ import { ConnectedAppsPanel } from '@/components/settings/connected-apps-panel'
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ClientOnly } from '@/components/utilities/client-only'
+import { useAppSetting } from '@/hooks/use-app-settings'
 
 // Gated by `appSettings.enableMcp`, mirroring /settings/devices and
 // `enableMobileApp`: the sidebar entry hides, and this redirect covers a
@@ -47,6 +48,7 @@ function ConnectedAppsPage() {
 }
 
 function Panel() {
+	const appTitle = useAppSetting('appTitle')
 	const queryClient = useQueryClient()
 	const { data: apps, isLoading } = useQuery({ queryKey: appsKey, queryFn: () => listMyConnectedApps(), staleTime: 15 * 1000 })
 	const [target, setTarget] = useState<ConnectedAppRow | null>(null)
@@ -67,6 +69,7 @@ function Panel() {
 			<ConnectedAppsPanel
 				apps={apps}
 				origin={window.location.origin}
+				appTitle={appTitle}
 				busyClientId={disconnect.isPending ? (target?.clientId ?? null) : null}
 				onDisconnect={app => setTarget(app)}
 			/>

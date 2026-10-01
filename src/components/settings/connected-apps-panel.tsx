@@ -4,11 +4,13 @@ import type { ConnectedAppRow } from '@/api/_mcp-admin-impl'
 import { CopyButton } from '@/components/common/copy-button'
 import { Button } from '@/components/ui/button'
 import { formatRelative } from '@/lib/format-relative'
-import { buildMcpConnectInfo } from '@/lib/mcp-connect'
+import { buildClaudeConnectLink, buildMcpConnectInfo } from '@/lib/mcp-connect'
 
 export type ConnectedAppsPanelProps = {
 	apps: Array<ConnectedAppRow>
 	origin: string
+	/** The deployment's title, used as the connector name in the Add to Claude link. */
+	appTitle?: string
 	onDisconnect: (app: ConnectedAppRow) => void
 	busyClientId?: string | null
 	docsHref?: string
@@ -21,17 +23,27 @@ export type ConnectedAppsPanelProps = {
 export function ConnectedAppsPanel({
 	apps,
 	origin,
+	appTitle,
 	onDisconnect,
 	busyClientId = null,
 	docsHref = 'https://giftwrapt.dev/features/ai-assistants/',
 }: ConnectedAppsPanelProps) {
 	const info = buildMcpConnectInfo(origin)
+	const claudeLink = buildClaudeConnectLink(info.endpointUrl, appTitle)
 	return (
 		<div className="space-y-6">
 			<div className="space-y-2">
 				<div className="text-sm font-medium">Connect a New Assistant</div>
 				<p className="text-sm text-muted-foreground">
-					Paste this server URL into Claude, Cursor, ChatGPT, or any MCP client, then sign in and approve it when asked.{' '}
+					Using Claude? One button opens Claude with everything filled in. Confirm there, then sign in and approve it here.
+				</p>
+				<Button asChild>
+					<a href={claudeLink} target="_blank" rel="noreferrer">
+						Add to Claude
+					</a>
+				</Button>
+				<p className="pt-2 text-sm text-muted-foreground">
+					For Cursor, ChatGPT, or any other MCP client, paste this server URL, then sign in and approve it when asked.{' '}
 					<a href={docsHref} className="underline underline-offset-2" target="_blank" rel="noreferrer">
 						Step-by-step guide
 					</a>
