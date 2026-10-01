@@ -5,13 +5,14 @@ import { z } from 'zod'
 import { getGroupsForListImpl } from '@/api/_groups-impl'
 import { getItemsForListEditImpl } from '@/api/_items-extra-impl'
 import { getMyListsImpl, type MyListRow } from '@/api/_lists-impl'
-import { availabilityEnumValues, groupTypeEnumValues, lists, listTypeEnumValues, priorityEnumValues } from '@/db/schema'
+import { groupTypeEnumValues, lists, listTypeEnumValues, priorityEnumValues } from '@/db/schema'
 import { loadArchiveBannerInfo } from '@/lib/archive-schedule-loader'
 
 import type { ToolContext } from '../context'
 import { toolError, toolOk } from '../errors'
-import { formatPrice, lines, plural } from '../format'
+import { lines, plural } from '../format'
 import { defineTool } from '../server'
+import { itemLine, itemSchema, toItemShape } from '../shapes'
 
 const listRoleSchema = z.enum(['owner', 'editor', 'guardian', 'dependent-guardian'])
 
@@ -30,25 +31,6 @@ export const myListSchema = z.object({
 	forPerson: personRefSchema.nullable().describe('Whose gifts this list is for when it is not my own'),
 	giftIdeasTarget: personRefSchema.nullable().describe('For giftideas lists: who the ideas are for'),
 	editors: z.array(z.string()),
-})
-
-export const itemSchema = z.object({
-	id: z.number(),
-	title: z.string(),
-	url: z.string().nullable(),
-	price: z.string().nullable(),
-	priceFormatted: z.string().nullable(),
-	currency: z.string().nullable(),
-	priority: z.enum(priorityEnumValues),
-	quantity: z.number(),
-	availability: z.enum(availabilityEnumValues),
-	notes: z.string().nullable(),
-	imageUrl: z.string().nullable(),
-	groupId: z.number().nullable(),
-	isArchived: z.boolean().describe('true once the recipient has revealed (received) it'),
-	commentCount: z.number(),
-	createdAt: z.string(),
-	updatedAt: z.string(),
 })
 
 export const groupSchema = z.object({
@@ -187,24 +169,7 @@ export function registerListTools(server: McpServer, ctx: ToolContext): void {
 			if (!header) return toolError('not-found')
 			const [groups, archive] = await Promise.all([getGroupsForListImpl({ listId }), loadArchiveBannerInfo(listId, dbx, now)])
 
-			const items = result.items.map(i => ({
-				id: i.id,
-				title: i.title,
-				url: i.url,
-				price: i.price,
-				priceFormatted: formatPrice(i.price, i.currency),
-				currency: i.currency,
-				priority: i.priority,
-				quantity: i.quantity,
-				availability: i.availability,
-				notes: i.notes,
-				imageUrl: i.imageUrl,
-				groupId: i.groupId,
-				isArchived: i.isArchived,
-				commentCount: i.commentCount,
-				createdAt: i.createdAt.toISOString(),
-				updatedAt: i.updatedAt.toISOString(),
-			}))
+			const items = result.items.map(i => toItemShape(i, i.commentCount))
 			const structured = {
 				list: header,
 				items,
@@ -219,17 +184,7 @@ export function registerListTools(server: McpServer, ctx: ToolContext): void {
 			const text = lines(
 				[
 					`List #${header.id} "${header.name}" (${header.type}${header.isPrimary ? ', primary' : ''}${header.isPrivate ? ', private' : ''}): ${plural(items.length, 'item')}, ${plural(groups.length, 'group')}.`,
-					...items.map(i => {
-						const bits = [
-							i.priceFormatted,
-							i.priority !== 'normal' ? i.priority : '',
-							i.quantity > 1 ? `qty ${i.quantity}` : '',
-							i.availability === 'unavailable' ? 'unavailable' : '',
-							i.groupId ? `group ${i.groupId}` : '',
-							i.isArchived ? 'received' : '',
-						].filter(Boolean)
-						return `#${i.id} ${i.title}${bits.length ? ` (${bits.join(', ')})` : ''}`
-					}),
+					...items.map(itemLine),
 					archive.applies && archive.effectiveArchiveDate
 						? `Claimed gifts reveal to the recipient on ${archive.effectiveArchiveDate.slice(0, 10)}.`
 						: '',

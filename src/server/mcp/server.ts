@@ -14,6 +14,9 @@ import { mcpToolCallsTotal, mcpToolDurationMs } from '@/lib/observability/metric
 
 import type { ToolContext } from './context'
 import { toolError } from './errors'
+import { registerGroupTools } from './tools/groups'
+import { registerItemTools } from './tools/items'
+import { registerListMutationTools } from './tools/list-mutations'
 import { registerListTools } from './tools/lists'
 import { registerMeTools } from './tools/me'
 import { registerPeopleTools } from './tools/people'
@@ -78,6 +81,9 @@ export function createMcpServer(ctx: ToolContext): McpServer {
 	const server = new McpServer({ name: MCP_SERVER_NAME, version: BUILD_INFO.version }, { instructions: INSTRUCTIONS })
 	registerMeTools(server, ctx)
 	registerListTools(server, ctx)
+	registerListMutationTools(server, ctx)
+	registerItemTools(server, ctx)
+	registerGroupTools(server, ctx)
 	registerPeopleTools(server, ctx)
 	return server
 }

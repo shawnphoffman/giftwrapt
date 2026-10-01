@@ -181,7 +181,23 @@ describe('/api/mcp endpoint', () => {
 			result: { tools: Array<{ name: string; annotations?: Record<string, unknown>; outputSchema?: unknown; description?: string }> }
 		}
 		const names = listBody.result.tools.map(t => t.name).sort()
-		expect(names).toEqual(['get_list', 'get_me', 'list_my_lists', 'list_people'])
+		for (const expected of [
+			'get_me',
+			'list_my_lists',
+			'get_list',
+			'list_people',
+			'add_item',
+			'add_items',
+			'update_item',
+			'delete_item',
+			'create_list',
+			'create_item_group',
+			'search_my_items',
+			'preview_url',
+			'lookup_barcode',
+		]) {
+			expect(names, expected).toContain(expected)
+		}
 		for (const tool of listBody.result.tools) {
 			expect(tool.description, tool.name).toBeTruthy()
 			expect(tool.annotations, tool.name).toBeTruthy()
