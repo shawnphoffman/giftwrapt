@@ -36,6 +36,20 @@ const MESSAGES: Partial<Record<string, string>> = {
 	'invalid-barcode': 'That barcode is not a valid GTIN.',
 	'provider-unavailable': 'The barcode provider is unavailable right now.',
 	'barcode-disabled': 'Barcode lookup is turned off on this deployment.',
+	'item-not-found': 'Item not found.',
+	'not-yours': 'That is not your claim or gift.',
+	'cannot-claim-own-list': 'You cannot claim items on your own list.',
+	'cannot-add-to-own-list': 'You cannot add an off-list gift to your own list.',
+	'group-already-claimed': 'Another item in this pick-one group is already claimed, so this one is locked.',
+	'group-out-of-order': 'Items in this group must be claimed in order; an earlier one is still open.',
+	unavailable: 'This item is marked unavailable and cannot be claimed.',
+	'over-claim': 'Not that many are left to claim.',
+	'idea-not-found': 'That gift idea no longer exists.',
+	'idea-already-used': 'That gift idea has already been used.',
+	'no-cost': 'Set a total cost on the claim before splitting it.',
+	'invalid-gifter': 'Every split entry must be a co-gifter on the claim.',
+	'exceeds-total': 'The split adds up to more than the total cost.',
+	'comments-disabled': 'Comments are turned off on this deployment.',
 }
 
 export type ToolErrorShape = { error: { code: string; message: string; details?: Record<string, unknown> } }

@@ -14,12 +14,14 @@ import { mcpToolCallsTotal, mcpToolDurationMs } from '@/lib/observability/metric
 
 import type { ToolContext } from './context'
 import { toolError } from './errors'
+import { registerCommentTools } from './tools/comments'
 import { registerGroupTools } from './tools/groups'
 import { registerItemTools } from './tools/items'
 import { registerListMutationTools } from './tools/list-mutations'
 import { registerListTools } from './tools/lists'
 import { registerMeTools } from './tools/me'
 import { registerPeopleTools } from './tools/people'
+import { registerShoppingTools } from './tools/shopping'
 
 export const MCP_SERVER_NAME = 'giftwrapt'
 
@@ -85,5 +87,7 @@ export function createMcpServer(ctx: ToolContext): McpServer {
 	registerItemTools(server, ctx)
 	registerGroupTools(server, ctx)
 	registerPeopleTools(server, ctx)
+	registerShoppingTools(server, ctx)
+	registerCommentTools(server, ctx)
 	return server
 }
