@@ -1,7 +1,7 @@
 # =============================================================================
-# Self-Hosted (Garage backend, full (cron + profile-gated MCP))
+# Self-Hosted (Garage backend, full (cron))
 # =============================================================================
-# Includes the cron sidecar always-on AND the MCP sidecar profile-gated. Pass `--profile mcp` to bring MCP up.
+# Includes the cron sidecar always-on. The MCP server is built into the app (enable it from Admin, General), so this shape no longer carries a sidecar for it.
 #
 # Quick start:
 #   1. cp .env.example docker/.env
@@ -83,31 +83,6 @@ services:
     volumes:
       - ./cron-entrypoint.sh:/cron-entrypoint.sh:ro
     command: ['sh', '/cron-entrypoint.sh']
-    depends_on:
-      app:
-        condition: service_started
-    restart: unless-stopped
-
-  # Model Context Protocol sidecar (opt-in via `--profile mcp`). Lets you
-  # interact with your wishlist via Claude Desktop / Code / Web. Talks to
-  # the app over the compose network using a giftwrapt apiKey (mint one
-  # at /settings/devices). The image is published from the
-  # shawnphoffman/giftwrapt-mcp repo. The service stays defined in
-  # *-full.yaml so you can enable it on demand without editing the file.
-  mcp:
-    image: ${MCP_IMAGE:-ghcr.io/shawnphoffman/giftwrapt-mcp:latest}
-    profiles: ['mcp']
-    environment:
-      GIFTWRAPT_BASE_URL: http://app:3001
-      # Single-tenant pin: leave unset for multi-user pass-through (each
-      # client sends its own Bearer header). See the giftwrapt-mcp README.
-      GIFTWRAPT_API_KEY: ${GIFTWRAPT_MCP_API_KEY:-}
-      # Shared-secret port gate; only meaningful when GIFTWRAPT_API_KEY is set.
-      MCP_BEARER_TOKEN: ${MCP_BEARER_TOKEN:-}
-      MCP_PORT: 8787
-      MCP_LOG_LEVEL: ${MCP_LOG_LEVEL:-info}
-    ports:
-      - '${MCP_PORT:-8787}:8787'
     depends_on:
       app:
         condition: service_started

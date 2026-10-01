@@ -24,7 +24,7 @@ Built for the kind of household that has:
 Everything lives at **[giftwrapt.dev](https://giftwrapt.dev)**:
 
 - [Getting started](https://giftwrapt.dev/overview/getting-started/) - the five-minute version.
-- [Self-hosting with Docker](https://giftwrapt.dev/deploy/self-hosting/) - the base stack plus opt-in addons (storage, cron, email, AI, MCP).
+- [Self-hosting with Docker](https://giftwrapt.dev/deploy/self-hosting/) - the base stack plus opt-in addons (storage, cron, email, AI).
 - [Hosted (Vercel + Supabase)](https://giftwrapt.dev/deploy/hosted/) - the tried-and-true managed path.
 - [Features](https://giftwrapt.dev/features/lists/) - lists, items, claims, permissions, privacy, scraping, AI suggestions.
 - [Configuration](https://giftwrapt.dev/configuration/settings/) - admin panel, env vars, storage, scraping, AI provider, cron.

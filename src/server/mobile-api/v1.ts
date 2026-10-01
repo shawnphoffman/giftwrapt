@@ -12,8 +12,7 @@
 import { Hono } from 'hono'
 import { z } from 'zod'
 
-import { getItemsForListEditImpl } from '@/api/_items-extra-impl'
-import { createItemImpl, CreateItemInputSchema, deleteItemImpl, updateItemImpl, UpdateItemInputSchema } from '@/api/_items-impl'
+import { createItemImpl, CreateItemInputSchema } from '@/api/_items-impl'
 import { getMyListsImpl, getPublicListsImpl } from '@/api/_lists-impl'
 import { db } from '@/db'
 import { auth } from '@/lib/auth'
@@ -253,74 +252,6 @@ v1.get('/lists/public', async c => {
 	return c.json({ users, nextCursor: null })
 })
 
-// GET /v1/lists/:listId/items - items in a specific list (editor view),
-// with optional archived inclusion. Distinct from
-// `/v1/lists/:listId/view-items` (gifter view, includes claims).
-v1.get('/lists/:listId/items', async c => {
-	const userId = c.get('userId')
-	const listId = c.req.param('listId')
-	const includeArchived = c.req.query('includeArchived') === 'true'
-
-	const result = await getItemsForListEditImpl({ userId, listId, includeArchived })
-	if (result.kind === 'error') {
-		const status = result.reason === 'not-found' ? 404 : 403
-		return jsonError(c, status, result.reason)
-	}
-	return c.json({ items: result.items })
-})
-
-// PATCH /v1/items/:itemId - partial update of an item.
-v1.patch('/items/:itemId', async c => {
-	const userId = c.get('userId')
-	const itemIdParam = Number(c.req.param('itemId'))
-	if (!Number.isFinite(itemIdParam) || itemIdParam <= 0) {
-		return jsonError(c, 400, 'invalid-id')
-	}
-	let body: unknown
-	try {
-		body = await c.req.json()
-	} catch {
-		return jsonError(c, 400, 'invalid-json')
-	}
-	const parsed = UpdateItemInputSchema.safeParse({
-		...(body as object),
-		itemId: itemIdParam,
-	})
-	if (!parsed.success) {
-		return jsonError(c, 400, 'invalid-input', { data: { issues: parsed.error.issues } })
-	}
-
-	const result = await updateItemImpl({
-		db,
-		actor: { id: userId },
-		input: parsed.data,
-	})
-	if (result.kind === 'error') {
-		const status = result.reason === 'not-found' ? 404 : 403
-		return jsonError(c, status, result.reason)
-	}
-	return c.json({ item: result.item })
-})
-
-// DELETE /v1/items/:itemId - hard delete an item.
-v1.delete('/items/:itemId', async c => {
-	const userId = c.get('userId')
-	const itemIdParam = Number(c.req.param('itemId'))
-	if (!Number.isFinite(itemIdParam) || itemIdParam <= 0) {
-		return jsonError(c, 400, 'invalid-id')
-	}
-	const result = await deleteItemImpl({
-		db,
-		actor: { id: userId },
-		input: { itemId: itemIdParam },
-	})
-	if (result.kind === 'error') {
-		const status = result.reason === 'not-found' ? 404 : 403
-		return jsonError(c, status, result.reason)
-	}
-	return c.json({ ok: true })
-})
-
 // POST /v1/items - create a new item.
 v1.post('/items', async c => {
 	const userId = c.get('userId')
@@ -387,22 +318,10 @@ v1.get('/scrape', async c => {
 // related modules for readability.
 // =====================================================================
 
-import { registerClaimRoutes } from './v1/claims'
 import { registerConfigRoutes } from './v1/config'
-import { registerGroupRoutes } from './v1/groups'
-import { registerItemRoutes } from './v1/items'
-import { registerListRoutes } from './v1/lists'
 import { registerProductRoutes } from './v1/products'
-import { registerProfileRoutes } from './v1/profile'
-import { registerRelationshipRoutes } from './v1/relationships'
 import { registerWidgetRoutes } from './v1/widgets'
 
-registerClaimRoutes(v1)
-registerListRoutes(v1)
-registerItemRoutes(v1)
-registerGroupRoutes(v1)
-registerRelationshipRoutes(v1)
-registerProfileRoutes(v1)
 registerConfigRoutes(v1)
 registerWidgetRoutes(v1)
 registerProductRoutes(v1)

@@ -57,7 +57,7 @@ describe('mobile app routing', () => {
 		expect(body.error.code).toBe('unauthorized')
 	})
 
-	it.each(['/api/mobile/v1/me/profile', '/api/mobile/v1/me/people', '/api/mobile/v1/me/gifts'])(
+	it.each(['/api/mobile/v1/lists', '/api/mobile/v1/lists/public', '/api/mobile/v1/widgets/upcoming-holidays'])(
 		'returns 401 + verbose envelope for %s without bearer (route is registered + apiKey-gated)',
 		async path => {
 			const res = await mobileApp.fetch(new Request(`http://t${path}`))

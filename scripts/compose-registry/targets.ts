@@ -7,7 +7,6 @@ import { emailEnvSection } from './features/email.ts'
 import { envExampleHeader } from './features/env-header.ts'
 import { bundledGarageEnvSection, garageFeature } from './features/garage.ts'
 import { clientEnvSection, imageOverrideEnvSection } from './features/logging.ts'
-import { mcpEnvSection, mcpFeature } from './features/mcp.ts'
 import { databaseEnvSection, postgresFeature } from './features/postgres.ts'
 import { rustfsFeature } from './features/rustfs.ts'
 // Scraper feature is wired but intentionally not included in any current
@@ -37,7 +36,8 @@ type Backend = 'garage' | 'rustfs'
  *
  *   minimal  - just core
  *   cron     - + cron sidecar
- *   full     - + cron (always-on) + MCP (profile-gated; opt in with `--profile mcp`)
+ *   full     - + cron (always-on). Kept as a shape name for compatibility; the MCP
+ *              sidecar it used to carry is retired (the MCP server is built into the app).
  *   traefik  - + Traefik reverse-proxy; app ports closed, routed via labels
  *
  * Scraper is a feature module ready to go but not currently included in
@@ -48,7 +48,7 @@ type Shape = 'minimal' | 'cron' | 'full' | 'traefik'
 const shapeOptionals: Record<Shape, ReadonlyArray<(backend: Backend) => ComposeFeature>> = {
 	minimal: [],
 	cron: [backend => cronFeature(backend)],
-	full: [backend => cronFeature(backend), () => mcpFeature],
+	full: [backend => cronFeature(backend)],
 	traefik: [() => traefikFeature],
 }
 
@@ -67,7 +67,7 @@ const backendLabel: Record<Backend, string> = {
 const shapeLabel: Record<Shape, string> = {
 	minimal: 'bare minimum (app + DB + storage)',
 	cron: 'with cron sidecar',
-	full: 'full (cron + profile-gated MCP)',
+	full: 'full (cron)',
 	traefik: 'with Traefik reverse-proxy',
 }
 
@@ -79,9 +79,9 @@ const shapeFilenamePart: Record<Shape, string> = {
 }
 
 const shapeIncludes: Record<Shape, string> = {
-	minimal: 'No optional sidecars - add an MCP or cron block manually if you need one, or grab a richer shape.',
+	minimal: 'No optional sidecars - add a cron block manually if you need one, or grab a richer shape.',
 	cron: 'Includes the cron sidecar that hits /api/cron/* on a daily schedule.',
-	full: 'Includes the cron sidecar always-on AND the MCP sidecar profile-gated. Pass `--profile mcp` to bring MCP up.',
+	full: 'Includes the cron sidecar always-on. The MCP server is built into the app (enable it from Admin, General), so this shape no longer carries a sidecar for it.',
 	traefik: 'Fronts the app with Traefik on :80. App ports are closed; ingress is via the proxy. Set TRAEFIK_HOST in .env.',
 }
 
@@ -154,7 +154,6 @@ export const targets: ReadonlyArray<Target> = [
 			cronEnvSection,
 			imageOverrideEnvSection,
 			clientEnvSection,
-			mcpEnvSection,
 			// scraperEnvSection, // re-enable when a shape ships with scraper
 			traefikEnvSection,
 			storageEnvSection,
