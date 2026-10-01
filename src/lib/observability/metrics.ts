@@ -63,6 +63,24 @@ export const itemsPendingDeletionTotal = unlabeledCounter(
 
 // `type` is already in scope at the createList call site (it's an input
 // arg), so the label costs nothing extra.
+// MCP tool calls, by tool name and outcome. Tool names are the fixed set
+// registered in src/server/mcp/server.ts; `outcome` is ok / error
+// (domain refusal returned to the model) / failed (handler threw).
+export const mcpToolCallsTotal = new Counter({
+	name: 'mcp_tool_calls_total',
+	help: 'MCP tool calls, by tool and outcome.',
+	labelNames: ['tool', 'outcome'] as const,
+	registers: [registry],
+})
+
+export const mcpToolDurationMs = new Histogram({
+	name: 'mcp_tool_duration_ms',
+	help: 'MCP tool call duration in milliseconds, by tool.',
+	labelNames: ['tool'] as const,
+	buckets: [10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10_000, 30_000],
+	registers: [registry],
+})
+
 export const listsCreatedTotal = new Counter({
 	name: 'lists_created_total',
 	help: 'Lists created, by type.',

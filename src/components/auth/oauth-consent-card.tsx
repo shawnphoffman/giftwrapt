@@ -25,7 +25,12 @@ export type OAuthConsentCardProps = {
 	accountEmail?: string | null
 	/** Error from a failed accept / deny call, if any. */
 	error?: string | null
-	onDecision?: (accept: boolean) => Promise<void>
+	/**
+	 * Records the decision. Resolves `true` when the browser is being handed
+	 * to the client's redirect URI (the buttons then stay disabled until the
+	 * page unloads), `false` when the call failed and the user may retry.
+	 */
+	onDecision?: (accept: boolean) => Promise<boolean>
 	signInHref?: string
 }
 
@@ -54,10 +59,14 @@ export function OAuthConsentCard({
 	const decide = async (accept: boolean) => {
 		if (!onDecision) return
 		setSubmitting(accept ? 'accept' : 'deny')
+		let handedOff = false
 		try {
-			await onDecision(accept)
+			handedOff = await onDecision(accept)
 		} finally {
-			setSubmitting(null)
+			// A successful decision ends in `window.location.assign`, which
+			// resolves long before the navigation lands. Re-enabling the
+			// buttons in that gap invites a second click on a spent code.
+			if (!handedOff) setSubmitting(null)
 		}
 	}
 

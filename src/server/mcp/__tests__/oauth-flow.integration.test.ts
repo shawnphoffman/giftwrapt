@@ -108,7 +108,14 @@ async function token(body: Record<string, string>): Promise<Response> {
 	)
 }
 
-type TokenResponse = { access_token: string; refresh_token: string; expires_in: number; token_type: string }
+type TokenResponse = {
+	access_token: string
+	refresh_token: string
+	expires_in: number
+	token_type: string
+	scope: string
+	id_token?: string
+}
 
 /** Runs authorize → consent → token and returns the token response. */
 async function obtainTokens(): Promise<TokenResponse> {
@@ -131,7 +138,12 @@ async function obtainTokens(): Promise<TokenResponse> {
 		code_verifier: verifier,
 	})
 	expect(tokenRes.status).toBe(200)
-	return (await tokenRes.json()) as TokenResponse
+	const tokens = (await tokenRes.json()) as TokenResponse
+	// The client asked for `openid`; the gateway narrows the grant so the
+	// plugin never mints its unverifiable ID token (see MCP_SCOPES).
+	expect(tokens.scope).toBe('profile email offline_access')
+	expect(tokens.id_token).toBeUndefined()
+	return tokens
 }
 
 describe('MCP OAuth flow', () => {

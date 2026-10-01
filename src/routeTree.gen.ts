@@ -13,6 +13,7 @@ import { Route as coreRouteRouteImport } from './routes/(core)/route'
 import { Route as coreIndexRouteImport } from './routes/(core)/index'
 import { Route as ApiVersionRouteImport } from './routes/api/version'
 import { Route as ApiMetricsRouteImport } from './routes/api/metrics'
+import { Route as ApiMcpRouteImport } from './routes/api/mcp'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as DotwellKnownOpenidConfigurationRouteImport } from './routes/[.]well-known/openid-configuration'
 import { Route as DotwellKnownOauthAuthorizationServerRouteImport } from './routes/[.]well-known/oauth-authorization-server'
@@ -102,6 +103,11 @@ const ApiVersionRoute = ApiVersionRouteImport.update({
 const ApiMetricsRoute = ApiMetricsRouteImport.update({
   id: '/api/metrics',
   path: '/api/metrics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMcpRoute = ApiMcpRouteImport.update({
+  id: '/api/mcp',
+  path: '/api/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
@@ -490,6 +496,7 @@ export interface FileRoutesByFullPath {
   '/.well-known/oauth-authorization-server': typeof DotwellKnownOauthAuthorizationServerRoute
   '/.well-known/openid-configuration': typeof DotwellKnownOpenidConfigurationRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/mcp': typeof ApiMcpRoute
   '/api/metrics': typeof ApiMetricsRoute
   '/api/version': typeof ApiVersionRoute
   '/': typeof coreIndexRoute
@@ -563,6 +570,7 @@ export interface FileRoutesByTo {
   '/.well-known/oauth-authorization-server': typeof DotwellKnownOauthAuthorizationServerRoute
   '/.well-known/openid-configuration': typeof DotwellKnownOpenidConfigurationRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/mcp': typeof ApiMcpRoute
   '/api/metrics': typeof ApiMetricsRoute
   '/api/version': typeof ApiVersionRoute
   '/': typeof coreIndexRoute
@@ -640,6 +648,7 @@ export interface FileRoutesById {
   '/.well-known/oauth-authorization-server': typeof DotwellKnownOauthAuthorizationServerRoute
   '/.well-known/openid-configuration': typeof DotwellKnownOpenidConfigurationRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/mcp': typeof ApiMcpRoute
   '/api/metrics': typeof ApiMetricsRoute
   '/api/version': typeof ApiVersionRoute
   '/(core)/': typeof coreIndexRoute
@@ -718,6 +727,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-authorization-server'
     | '/.well-known/openid-configuration'
     | '/api/health'
+    | '/api/mcp'
     | '/api/metrics'
     | '/api/version'
     | '/'
@@ -791,6 +801,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-authorization-server'
     | '/.well-known/openid-configuration'
     | '/api/health'
+    | '/api/mcp'
     | '/api/metrics'
     | '/api/version'
     | '/'
@@ -867,6 +878,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-authorization-server'
     | '/.well-known/openid-configuration'
     | '/api/health'
+    | '/api/mcp'
     | '/api/metrics'
     | '/api/version'
     | '/(core)/'
@@ -939,6 +951,7 @@ export interface RootRouteChildren {
   DotwellKnownOauthAuthorizationServerRoute: typeof DotwellKnownOauthAuthorizationServerRoute
   DotwellKnownOpenidConfigurationRoute: typeof DotwellKnownOpenidConfigurationRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  ApiMcpRoute: typeof ApiMcpRoute
   ApiMetricsRoute: typeof ApiMetricsRoute
   ApiVersionRoute: typeof ApiVersionRoute
   authOauthConsentRoute: typeof authOauthConsentRoute
@@ -990,6 +1003,13 @@ declare module '@tanstack/react-router' {
       path: '/api/metrics'
       fullPath: '/api/metrics'
       preLoaderRoute: typeof ApiMetricsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/mcp': {
+      id: '/api/mcp'
+      path: '/api/mcp'
+      fullPath: '/api/mcp'
+      preLoaderRoute: typeof ApiMcpRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/health': {
@@ -1645,6 +1665,7 @@ const rootRouteChildren: RootRouteChildren = {
     DotwellKnownOauthAuthorizationServerRoute,
   DotwellKnownOpenidConfigurationRoute: DotwellKnownOpenidConfigurationRoute,
   ApiHealthRoute: ApiHealthRoute,
+  ApiMcpRoute: ApiMcpRoute,
   ApiMetricsRoute: ApiMetricsRoute,
   ApiVersionRoute: ApiVersionRoute,
   authOauthConsentRoute: authOauthConsentRoute,

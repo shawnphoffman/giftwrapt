@@ -56,7 +56,7 @@ function OAuthConsentPage() {
 	else if (info && info.enabled && !info.client) state = 'expired'
 	else if (!sessionPending && !infoPending && info) state = 'ready'
 
-	const onDecision = async (accept: boolean) => {
+	const onDecision = async (accept: boolean): Promise<boolean> => {
 		setError(null)
 		const { data, error: err } = await authClient.$fetch<{ redirectURI: string }>('/oauth2/consent', {
 			method: 'POST',
@@ -65,12 +65,13 @@ function OAuthConsentPage() {
 		const redirectURI = (data as { redirectURI?: string } | null)?.redirectURI
 		if (err || !redirectURI) {
 			setError(accept ? "Couldn't complete the connection. Start again from your AI assistant." : "Couldn't record the decision.")
-			return
+			return false
 		}
 		if (!accept) setDecided('declined')
 		// Hand the browser to the client's redirect URI (often a custom
 		// scheme or localhost) with the code or the access_denied error.
 		window.location.assign(redirectURI)
+		return true
 	}
 
 	return (

@@ -23,7 +23,13 @@ import {
 import { env } from '@/env'
 import { fanOutToGuardians } from '@/lib/guardian-emails'
 import { createLogger } from '@/lib/logger'
-import { MCP_ACCESS_TOKEN_TTL_SECONDS, MCP_CONSENT_PAGE_PATH, MCP_ENDPOINT_PATH, MCP_REFRESH_TOKEN_TTL_SECONDS } from '@/lib/mcp-config'
+import {
+	MCP_ACCESS_TOKEN_TTL_SECONDS,
+	MCP_CONSENT_PAGE_PATH,
+	MCP_DEFAULT_SCOPE,
+	MCP_ENDPOINT_PATH,
+	MCP_REFRESH_TOKEN_TTL_SECONDS,
+} from '@/lib/mcp-config'
 import { sendPasswordResetEmail } from '@/lib/resend'
 import type { OidcClientConfig } from '@/lib/settings'
 import { getAppSettings } from '@/lib/settings-loader'
@@ -343,6 +349,9 @@ const options = {
 				consentPage: MCP_CONSENT_PAGE_PATH,
 				requirePKCE: true,
 				allowPlainCodeChallengeMethod: false,
+				// No `openid`: see MCP_SCOPES. The gateway strips it from
+				// requests; this covers requests that send no scope at all.
+				defaultScope: MCP_DEFAULT_SCOPE,
 				accessTokenExpiresIn: MCP_ACCESS_TOKEN_TTL_SECONDS,
 				refreshTokenExpiresIn: MCP_REFRESH_TOKEN_TTL_SECONDS,
 			},

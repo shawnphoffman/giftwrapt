@@ -60,6 +60,18 @@
 		"labels": ["type"]
 	},
 	{
+		"name": "mcp_tool_calls_total",
+		"help": "MCP tool calls, by tool and outcome.",
+		"type": "counter",
+		"labels": ["outcome", "tool"]
+	},
+	{
+		"name": "mcp_tool_duration_ms",
+		"help": "MCP tool call duration in milliseconds, by tool.",
+		"type": "histogram",
+		"labels": ["tool"]
+	},
+	{
 		"name": "orphan_claims_cleaned_up_total",
 		"help": "Orphan claims hard-deleted by the daily cleanup pass.",
 		"type": "counter",

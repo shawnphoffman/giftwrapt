@@ -53,12 +53,20 @@ describe('MCP disabled by default', () => {
 		expect(asBody.token_endpoint).toBe(`${BASE}/api/auth/mcp/token`)
 		expect(asBody.registration_endpoint).toBe(`${BASE}/api/auth/mcp/register`)
 		expect(asBody.code_challenge_methods_supported).toEqual(['S256'])
+		// Plain OAuth 2.1: no `openid`, and none of the OpenID endpoints the
+		// plugin advertises but never serves.
+		expect(asBody.scopes_supported).toEqual(['profile', 'email', 'offline_access'])
+		expect(asBody).not.toHaveProperty('jwks_uri')
+		expect(asBody).not.toHaveProperty('userinfo_endpoint')
+		expect(asBody).not.toHaveProperty('id_token_signing_alg_values_supported')
 
 		const pr = await handleDiscovery('protected-resource')
 		expect(pr.status).toBe(200)
-		const prBody = (await pr.json()) as { resource: string; authorization_servers: Array<string> }
+		const prBody = (await pr.json()) as { resource: string; authorization_servers: Array<string>; scopes_supported: Array<string> }
 		expect(prBody.resource).toBe(`${BASE}/api/mcp`)
 		expect(prBody.authorization_servers).toEqual([BASE])
+		expect(prBody.scopes_supported).toEqual(['profile', 'email', 'offline_access'])
+		expect(prBody).not.toHaveProperty('jwks_uri')
 	})
 
 	it('plugin routes 404 while off; unrelated auth routes are untouched', async () => {

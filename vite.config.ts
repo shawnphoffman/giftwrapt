@@ -184,6 +184,14 @@ const config = defineConfig({
 				// Dockerfile note about the self-contained .output bundle).
 				// traceDeps forces the include even if static analysis misses it.
 				traceDeps: ['sharp'],
+				// The MCP endpoint runs tools that may scrape a URL. Give it
+				// more than the default function budget on Vercel; scrape-backed
+				// tools also carry their own abort budget (src/server/mcp).
+				vercel: {
+					functionRules: {
+						'/api/mcp': { maxDuration: 120 },
+					},
+				},
 				routeRules: {
 					'/**': { headers: securityHeaders },
 				},

@@ -20,7 +20,9 @@ const meta = {
 		state: 'ready',
 		clientName: 'Claude',
 		accountEmail: 'shawn@example.com',
-		onDecision: async () => {},
+		// `false` keeps the buttons usable in the story; the real page
+		// returns `true` and leaves them disabled while the browser navigates.
+		onDecision: (): Promise<boolean> => Promise.resolve(false),
 	},
 } satisfies Meta<typeof OAuthConsentCard>
 
@@ -56,4 +58,15 @@ export const Declined: Story = {
 
 export const WithError: Story = {
 	args: { error: 'Something went wrong talking to the server. Try again.' },
+}
+
+export const HandingOff: Story = {
+	args: { onDecision: () => new Promise(() => {}) },
+	parameters: {
+		docs: {
+			description: {
+				story: 'After Allow the buttons stay disabled while the browser follows the client redirect; click Allow to see it.',
+			},
+		},
+	},
 }
