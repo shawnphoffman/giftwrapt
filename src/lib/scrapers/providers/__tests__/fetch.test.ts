@@ -116,6 +116,44 @@ describe('fetchProvider: success path', () => {
 	})
 })
 
+describe('fetchProvider: Amazon user-agent order', () => {
+	const AMAZON_URL = 'https://www.amazon.com/dp/B08996MT43'
+
+	it('tries the browser UA first on Amazon (crawler UAs get no price)', async () => {
+		queueResponse({ status: 200, body: '<html><head><title>Product</title></head><body>full page</body></html>' })
+		const result = await fetchProvider.fetch(makeCtx(AMAZON_URL))
+		if (result.kind !== 'html') throw new Error('expected html')
+		expect(result.headers['x-fetch-ua']).toBe('browser')
+	})
+
+	it('falls back to the crawler UA when Amazon serves the browser UA a captcha', async () => {
+		queueResponse({
+			status: 200,
+			body: '<html><head><title>Amazon.com</title></head><body><!-- To discuss automated access to Amazon data please contact api-services-support@amazon.com. --><form action="/errors/validateCaptcha"></form></body></html>',
+		})
+		queueResponse({ status: 200, body: '<html><head><title>Product</title></head><body>crawler page</body></html>' })
+		const result = await fetchProvider.fetch(makeCtx(AMAZON_URL))
+		if (result.kind !== 'html') throw new Error('expected html')
+		expect(result.headers['x-fetch-ua']).toBe('facebook')
+		expect(result.html).toContain('crawler page')
+	})
+
+	it('falls back to the crawler UA when Amazon 503s the browser UA', async () => {
+		queueResponse({ status: 503 })
+		queueResponse({ status: 200, body: '<html><body>crawler page</body></html>' })
+		const result = await fetchProvider.fetch(makeCtx(AMAZON_URL))
+		if (result.kind !== 'html') throw new Error('expected html')
+		expect(result.headers['x-fetch-ua']).toBe('facebook')
+	})
+
+	it('keeps the crawler-first order everywhere else', async () => {
+		queueResponse({ status: 200, body: '<html><body>ok</body></html>' })
+		const result = await fetchProvider.fetch(makeCtx('https://www.example.test/amazon.com/dp/X'))
+		if (result.kind !== 'html') throw new Error('expected html')
+		expect(result.headers['x-fetch-ua']).toBe('facebook')
+	})
+})
+
 describe('fetchProvider: failure modes', () => {
 	it('throws bot_block when every UA receives 403/429/503', async () => {
 		queueResponse({ status: 403 })

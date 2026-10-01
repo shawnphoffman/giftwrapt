@@ -1,3 +1,5 @@
+import { amazonImageId } from './amazon'
+
 // Image candidate filtering and ordering. The extractor preserves source-
 // priority order (OG → JSON-LD → microdata → heuristic) when merging image
 // URL lists, so this layer only has to drop obvious junk and break ties
@@ -52,6 +54,7 @@ export function filterAndSortImages(urls: ReadonlyArray<string>): Array<string> 
 		const url = raw.trim()
 		if (!url) continue
 		if (seen.has(url)) continue
+		if (isInlineOrScriptUrl(url)) continue
 		if (looksLikeTrackingPixel(url)) continue
 		if (isNonProduct(url)) continue
 		if (!hasUsableExtension(url)) continue
@@ -59,6 +62,13 @@ export function filterAndSortImages(urls: ReadonlyArray<string>): Array<string> 
 		surviving.push(url)
 	}
 	return collapseSizeVariants(surviving)
+}
+
+// `data:` placeholders (lazy-load 1x1 GIFs), `blob:` and `javascript:` URLs
+// are never a usable product image, and a 1x1 GIF slipping through as the
+// first candidate is exactly what the form would pre-select.
+function isInlineOrScriptUrl(url: string): boolean {
+	return /^(?:data|blob|javascript):/i.test(url)
 }
 
 export function looksLikeTrackingPixel(url: string): boolean {
@@ -84,8 +94,15 @@ function hasOneByOneDims(url: string): boolean {
 	}
 }
 
+// Amazon's image CDNs serve product photos under /images/I/ and site chrome
+// (warranty icons, store banners, badges) under /images/G/. Video
+// thumbnails are product-image ids with a play-button overlay modifier.
+const AMAZON_IMAGE_HOST_RX = /^(?:m\.media-amazon\.com|images-(?:na|eu|fe)\.ssl-images-amazon\.com)\//i
+const AMAZON_NON_PRODUCT_RX = /^[^/]+\/images\/G\/|PKplay/i
+
 function isNonProduct(url: string): boolean {
 	const path = pathOf(url)
+	if (AMAZON_IMAGE_HOST_RX.test(path) && AMAZON_NON_PRODUCT_RX.test(path)) return true
 	return NON_PRODUCT_PATH_HINTS.some(rx => rx.test(path))
 }
 
@@ -134,6 +151,11 @@ function collapseSizeVariants(urls: ReadonlyArray<string>): Array<string> {
 }
 
 function canonicalKey(url: string): string {
+	// Amazon serves one asset under many size/crop/overlay modifiers (the
+	// share card, the 1500px original, 40-300px thumbnails). They are all
+	// the same photo, and source order already puts the best one first.
+	const amazonId = amazonImageId(url)
+	if (amazonId) return `amazon-image:${amazonId}`
 	try {
 		const u = new URL(url)
 		// Strip the size hints from the path (e.g. _large, @2x) and from common

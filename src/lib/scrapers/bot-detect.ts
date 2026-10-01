@@ -13,6 +13,10 @@ const BOT_WALL_PATTERNS: Array<RegExp> = [
 	/Checking your browser before/i,
 	/Access denied\s*\|/i,
 	/Are you a robot\?/i,
+	// Amazon's captcha interstitial. Served with a 200 to browser user
+	// agents it doesn't trust; the fetch provider falls back to the next UA.
+	/\/errors\/validateCaptcha/i,
+	/api-services-support@amazon\.com/i,
 ]
 
 const LOGIN_WALL_PATTERNS: Array<RegExp> = [

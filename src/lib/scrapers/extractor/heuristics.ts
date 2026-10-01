@@ -40,7 +40,10 @@ export function parseHeuristics($: CheerioAPI, finalUrl: string): Partial<Scrape
 	// leak obvious 1x1 pixels into the candidate list when nothing else has.
 	const images: Array<string> = []
 	$('img').each((_, el) => {
-		const src = $(el).attr('src') ?? $(el).attr('data-src')
+		// Lazy-loaders put a `data:` placeholder in `src` and the real URL in
+		// `data-src`; prefer the real one.
+		const rawSrc = $(el).attr('src')
+		const src = rawSrc && !/^data:/i.test(rawSrc.trim()) ? rawSrc : ($(el).attr('data-src') ?? rawSrc)
 		if (!src || !src.trim()) return
 		const width = Number($(el).attr('width'))
 		const height = Number($(el).attr('height'))
@@ -219,7 +222,7 @@ function findVisiblePrice($: CheerioAPI): { price?: string; currency?: string } 
 
 const NUMBER_RE = /\d{1,3}(?:[,.\s]\d{3})*(?:[.,]\d{1,2})?/
 
-function parsePriceText(text: string): { price?: string; currency?: string } | null {
+export function parsePriceText(text: string): { price?: string; currency?: string } | null {
 	const trimmed = text.trim()
 	if (!trimmed) return null
 

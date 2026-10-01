@@ -1,4 +1,5 @@
 import { looksLikeBlocked } from '../bot-detect'
+import { isAmazonUrl } from '../extractor/amazon'
 import { safeFetch } from '../safe-fetch'
 import type { ProviderResponse, ScrapeContext, ScrapeProvider } from '../types'
 import { ScrapeProviderError } from '../types'
@@ -9,9 +10,23 @@ const USER_AGENTS: ReadonlyArray<{ id: string; value: string }> = [
 	{ id: 'googlebot', value: 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' },
 	{
 		id: 'browser',
-		value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36',
+		value: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
 	},
 ]
+
+// Amazon answers crawler UAs with a stripped page: title, og tags, and the
+// product photo are there, but the price block is empty. A browser UA gets
+// the full page. If Amazon distrusts the browser UA it serves a captcha
+// (caught by `looksLikeBlocked`) or a 503, and we fall back to the crawler
+// order, so the worst case is today's result plus one extra request.
+const BROWSER_FIRST: ReadonlyArray<{ id: string; value: string }> = [
+	USER_AGENTS.find(u => u.id === 'browser')!,
+	...USER_AGENTS.filter(u => u.id !== 'browser'),
+]
+
+function userAgentsFor(url: string): ReadonlyArray<{ id: string; value: string }> {
+	return isAmazonUrl(url) ? BROWSER_FIRST : USER_AGENTS
+}
 
 const MAX_BODY_BYTES = 5 * 1024 * 1024 // 5 MB
 const MAX_REDIRECTS = 5
@@ -19,8 +34,8 @@ const MAX_REDIRECTS = 5
 const PROVIDER_ID = 'fetch-provider'
 
 // Built-in HTTP fetcher. Always-on, no env required. Tries the UAs above in
-// order; returns the first 2xx response that doesn't look like a CF/login
-// wall. Falls through (`bot_block`) when every UA is blocked, but bubbles
+// order (browser first on Amazon, see BROWSER_FIRST); returns the first 2xx
+// response that doesn't look like a CF/login wall. Falls through (`bot_block`) when every UA is blocked, but bubbles
 // 4xx/5xx and network errors directly so the orchestrator can decide
 // whether to keep trying other providers.
 export const fetchProvider: ScrapeProvider = {
@@ -39,7 +54,7 @@ async function runFetchProvider(ctx: ScrapeContext): Promise<ProviderResponse> {
 	let lastBlockReason: 'bot_block' | null = null
 	let lastHttpStatus = 0
 
-	for (const ua of USER_AGENTS) {
+	for (const ua of userAgentsFor(ctx.url)) {
 		if (ctx.signal.aborted) {
 			throw new ScrapeProviderError('timeout', 'aborted before next UA attempt')
 		}

@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
+import { isAmazonUrl } from '../amazon'
 import { extractFromRaw } from '../index'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -129,6 +130,102 @@ describe('extractFromRaw: Amazon-style markup', () => {
 	})
 })
 
+describe('extractFromRaw: Amazon product pages', () => {
+	const AMAZON_URL = 'https://www.amazon.com/dp/B08996MT43'
+
+	it('reads the price to pay, not the struck-out list price', () => {
+		const result = extractFromRaw(fixture('amazon-product.html'), AMAZON_URL)
+		expect(result.price).toBe('79.99')
+		expect(result.currency).toBe('USD')
+	})
+
+	it('uses #productTitle instead of the "Amazon.com:"-prefixed <title>', () => {
+		const result = extractFromRaw(fixture('amazon-product.html'), AMAZON_URL)
+		expect(result.title).toBe('AMAGABELI GARDEN & HOME 31in Large Firewood Rack')
+	})
+
+	it('puts the hi-res hero first, then full-size gallery photos, and drops junk', () => {
+		const result = extractFromRaw(fixture('amazon-product.html'), AMAZON_URL)
+		expect(result.imageUrls.slice(0, 3)).toEqual([
+			'https://m.media-amazon.com/images/I/816A65vK6cL._AC_SL1500_.jpg',
+			'https://m.media-amazon.com/images/I/51O4p1hbPeL._AC_SL1500_.jpg',
+			'https://m.media-amazon.com/images/I/411t+mlB3qL._AC_SL1500_.jpg',
+		])
+		// The hero's own gallery thumbnail is not repeated, the video
+		// thumbnail is skipped, and neither the data: placeholder nor the
+		// /images/G/ site graphic survives.
+		expect(result.imageUrls.filter(u => u.includes('816A65vK6cL._AC_SL1500_'))).toHaveLength(1)
+		expect(result.imageUrls.some(u => u.includes('PKplay'))).toBe(false)
+		expect(result.imageUrls.some(u => u.startsWith('data:'))).toBe(false)
+		expect(result.imageUrls.some(u => u.includes('/images/G/'))).toBe(false)
+	})
+
+	it('still reads the rating through the generic Amazon heuristics', () => {
+		const result = extractFromRaw(fixture('amazon-product.html'), AMAZON_URL)
+		expect(result.ratingValue).toBeCloseTo(0.96, 5)
+		expect(result.ratingCount).toBe(1013)
+	})
+
+	it('folds the og:image share card into the hero on the crawler page, with no price', () => {
+		const result = extractFromRaw(fixture('amazon-crawler.html'), AMAZON_URL)
+		expect(result.price).toBeUndefined()
+		expect(result.title).toBe('AMAGABELI GARDEN & HOME 31in Large Firewood Rack')
+		// The share card and the 300px src are the same asset as the hero,
+		// so only the hero survives.
+		expect(result.imageUrls).toEqual([
+			'https://m.media-amazon.com/images/I/816A65vK6cL._AC_SL1500_.jpg',
+			'https://m.media-amazon.com/images/I/51O4p1hbPeL._AC_SL1500_.jpg',
+		])
+	})
+
+	it('keeps the share card when it is the only copy of the photo', () => {
+		const html = fixture('amazon-crawler.html').replace(/<img[\s\S]*?id="landingImage"\s*\/>/, '')
+		const result = extractFromRaw(html, AMAZON_URL)
+		expect(result.imageUrls[0]).toContain('816A65vK6cL.jpg_BO30')
+	})
+
+	it('falls back to the largest data-a-dynamic-image entry without data-old-hires', () => {
+		const html = `<html><body><img id="landingImage" data-a-dynamic-image='{"https://m.media-amazon.com/images/I/abc._AC_SX355_.jpg":[334,355],"https://m.media-amazon.com/images/I/abc._AC_SX679_.jpg":[640,679]}' /></body></html>`
+		const result = extractFromRaw(html, AMAZON_URL)
+		expect(result.imageUrls[0]).toBe('https://m.media-amazon.com/images/I/abc._AC_SX679_.jpg')
+	})
+
+	it('falls back to the hidden price inputs when the price block is absent', () => {
+		const html = `<html><body><input id="priceSymbol" value="$" /><input id="priceValue" value="24.50" /></body></html>`
+		const result = extractFromRaw(html, AMAZON_URL)
+		expect(result.price).toBe('24.50')
+		expect(result.currency).toBe('USD')
+	})
+
+	it('ignores Amazon markup on other hosts', () => {
+		const result = extractFromRaw(fixture('amazon-product.html'), FINAL_URL)
+		expect(result.title).toMatch(/^Amazon\.com: /)
+		expect(result.imageUrls[0]).not.toBe('https://m.media-amazon.com/images/I/816A65vK6cL._AC_SL1500_.jpg')
+	})
+})
+
+describe('isAmazonUrl', () => {
+	it('matches Amazon storefronts and short links', () => {
+		for (const url of [
+			'https://www.amazon.com/dp/B08996MT43',
+			'https://amazon.com/gp/product/B08996MT43',
+			'https://smile.amazon.co.uk/dp/X',
+			'https://www.amazon.co.jp/dp/X',
+			'https://www.amazon.com.au/dp/X',
+			'https://a.co/d/0aLV6U0p',
+			'https://amzn.to/3abc',
+		]) {
+			expect(isAmazonUrl(url), url).toBe(true)
+		}
+	})
+
+	it('rejects lookalikes and non-URLs', () => {
+		for (const url of ['https://notamazon.com/x', 'https://amazon.com.evil.test/x', 'https://www.example.test/amazon.com', 'not a url']) {
+			expect(isAmazonUrl(url), url).toBe(false)
+		}
+	})
+})
+
 describe('extractFromRaw: heuristics fallback', () => {
 	it('falls back to <title> + meta description and skips 1x1 tracking pixels', () => {
 		const result = extractFromRaw(fixture('heuristics-only.html'), FINAL_URL)
@@ -137,6 +234,12 @@ describe('extractFromRaw: heuristics fallback', () => {
 		// Tracker (1x1) is dropped; main + data-src secondary survive, both
 		// resolved against FINAL_URL.
 		expect(result.imageUrls).toEqual(['https://www.example.test/imgs/main.jpg', 'https://www.example.test/imgs/secondary.jpg'])
+	})
+
+	it('prefers data-src over a data: lazy-load placeholder in src', () => {
+		const html = `<html><body><img src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" data-src="/imgs/real.jpg" /></body></html>`
+		const result = extractFromRaw(html, FINAL_URL)
+		expect(result.imageUrls).toEqual(['https://www.example.test/imgs/real.jpg'])
 	})
 
 	it('returns no images when only tracking pixels are present', () => {

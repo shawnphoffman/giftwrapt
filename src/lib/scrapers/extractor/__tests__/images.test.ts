@@ -57,6 +57,43 @@ describe('filterAndSortImages: filtering', () => {
 		expect(survivors).toEqual(['https://cdn.example.test/products/widget.jpg', 'https://cdn.example.test/products/widget-back.png'])
 	})
 
+	it('drops data:, blob:, and javascript: URLs', () => {
+		const survivors = filterAndSortImages([
+			'data:image/jpeg;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7',
+			'blob:https://www.example.test/1234',
+			'javascript:void(0)',
+			'https://cdn.example.test/products/widget.jpg',
+		])
+		expect(survivors).toEqual(['https://cdn.example.test/products/widget.jpg'])
+	})
+
+	it('drops Amazon /images/G/ site graphics but keeps /images/I/ product photos', () => {
+		const survivors = filterAndSortImages([
+			'https://m.media-amazon.com/images/G/01/product_insurance/images/warranty-short-bullet-point-coverage._CB630304460_.png',
+			'https://images-na.ssl-images-amazon.com/images/G/01/consumerelectronics/banner.jpg',
+			'https://m.media-amazon.com/images/I/816A65vK6cL._AC_SL1500_.jpg',
+			'https://cdn.example.test/images/G/not-amazon.jpg',
+		])
+		expect(survivors).toEqual([
+			'https://m.media-amazon.com/images/I/816A65vK6cL._AC_SL1500_.jpg',
+			'https://cdn.example.test/images/G/not-amazon.jpg',
+		])
+	})
+
+	it('collapses Amazon size and overlay variants of one asset to the first seen', () => {
+		const survivors = filterAndSortImages([
+			'https://m.media-amazon.com/images/I/816A65vK6cL._AC_SL1500_.jpg',
+			'https://m.media-amazon.com/images/I/816A65vK6cL.jpg_BO30,255,255,255_UF800,800_SR1910,1000,0,C_QL100_.jpg',
+			'https://m.media-amazon.com/images/I/816A65vK6cL._AC_US100_.jpg',
+			'https://m.media-amazon.com/images/I/51O4p1hbPeL._AC_US100_.jpg',
+			'https://m.media-amazon.com/images/I/91WLxeTraCL.SS125_PKplay-button-mb-image-grid-small_.jpg',
+		])
+		expect(survivors).toEqual([
+			'https://m.media-amazon.com/images/I/816A65vK6cL._AC_SL1500_.jpg',
+			'https://m.media-amazon.com/images/I/51O4p1hbPeL._AC_US100_.jpg',
+		])
+	})
+
 	it('preserves source order for non-variants', () => {
 		const survivors = filterAndSortImages(['https://a.test/1.jpg', 'https://a.test/2.jpg', 'https://a.test/3.jpg'])
 		expect(survivors).toEqual(['https://a.test/1.jpg', 'https://a.test/2.jpg', 'https://a.test/3.jpg'])

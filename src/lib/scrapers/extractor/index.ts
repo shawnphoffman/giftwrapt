@@ -7,6 +7,7 @@
 import * as cheerio from 'cheerio/slim'
 
 import type { ScrapeResult } from '../types'
+import { parseAmazon } from './amazon'
 import { parseAxes } from './axes'
 import { parseHeuristics } from './heuristics'
 import { filterAndSortImages } from './images'
@@ -20,6 +21,8 @@ import { parseOpenGraph } from './open-graph'
 // concatenated in priority order and de-duplicated.
 //
 // Priority order (highest to lowest):
+//   0. Retailer layers (Amazon only today): price and the real product
+//      photo, which the generic layers miss or rank below a share card
 //   1. Open Graph + Twitter Card
 //   2. JSON-LD (Schema.org Product)
 //   3. Microdata (Schema.org Product)
@@ -27,6 +30,7 @@ import { parseOpenGraph } from './open-graph'
 export function extractFromRaw(html: string, finalUrl: string): ScrapeResult {
 	const $ = cheerio.load(html)
 	const layers: Array<Partial<ScrapeResult>> = [
+		parseAmazon($, finalUrl),
 		parseOpenGraph($, finalUrl),
 		parseJsonLd($, finalUrl),
 		parseMicrodata($, finalUrl),
