@@ -18,7 +18,7 @@ vi.mock('@/env', () => ({
 
 import type { StorageAdapter } from '../adapter'
 import { _setStorageForTesting } from '../adapter'
-import { mirrorRemoteImageToStorage } from '../mirror'
+import { mirrorRemoteImage, mirrorRemoteImageToStorage } from '../mirror'
 
 type FakeStorage = StorageAdapter & {
 	uploads: Array<{ key: string; buffer: Buffer; contentType: string }>
@@ -210,5 +210,48 @@ describe('mirrorRemoteImageToStorage', () => {
 
 		expect(result).toBeNull()
 		expect(storage.uploads).toHaveLength(0)
+	})
+
+	it('resolves protocol-relative URLs against https', async () => {
+		const png = await makeTinyPng()
+		const storage = makeFakeStorage()
+		_setStorageForTesting(storage)
+		const fetchMock = vi.fn((_url: URL) => Promise.resolve(new Response(new Uint8Array(png), { status: 200 })))
+		vi.stubGlobal('fetch', fetchMock)
+
+		const result = await mirrorRemoteImageToStorage('//1.1.1.1/cool.png', 7)
+
+		expect(result).toMatch(/^https:\/\/cdn\.test\/items\/7\//)
+		expect(String(fetchMock.mock.calls[0][0])).toBe('https://1.1.1.1/cool.png')
+	})
+
+	it('stores base64 image data URLs without fetching', async () => {
+		const png = await makeTinyPng()
+		const storage = makeFakeStorage()
+		_setStorageForTesting(storage)
+		const fetchMock = vi.fn()
+		vi.stubGlobal('fetch', fetchMock)
+
+		const result = await mirrorRemoteImageToStorage(`data:image/png;base64,${png.toString('base64')}`, 9)
+
+		expect(result).toMatch(/^https:\/\/cdn\.test\/items\/9\//)
+		expect(storage.uploads).toHaveLength(1)
+		expect(fetchMock).not.toHaveBeenCalled()
+	})
+
+	it('reports the failure reason and status', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(() => Promise.resolve(new Response('not found', { status: 404 })))
+		)
+		expect(await mirrorRemoteImage('https://1.1.1.1/missing.png', { kind: 'item', id: 1 })).toEqual({
+			kind: 'failed',
+			reason: 'bad-status',
+			status: 404,
+		})
+		expect(await mirrorRemoteImage('https://cdn.test/items/1/abcdef0123.webp', { kind: 'item', id: 1 })).toEqual({
+			kind: 'skipped',
+			reason: 'already-stored',
+		})
 	})
 })
