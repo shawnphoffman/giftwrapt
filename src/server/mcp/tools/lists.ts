@@ -52,6 +52,9 @@ export const getListOutput = {
 		isActive: z.boolean(),
 		ownerId: z.string(),
 		subjectDependentId: z.string().nullable(),
+		giftIdeasFor: personRefSchema
+			.nullable()
+			.describe('For giftideas lists: who the ideas are for. They did not ask for these items and cannot see this list.'),
 	}),
 	items: z.array(itemSchema),
 	groups: z.array(groupSchema),
@@ -121,7 +124,11 @@ export function registerListTools(server: McpServer, ctx: ToolContext): void {
 			const text = rows.length
 				? lines(
 						rows.map(r => {
-							const who = r.forPerson ? ` for ${r.forPerson.name ?? 'someone'}` : ''
+							const who = r.forPerson
+								? ` for ${r.forPerson.name ?? 'someone'}`
+								: r.type === 'giftideas'
+									? `, your private ideas${r.giftIdeasTarget ? ` for ${r.giftIdeasTarget.name ?? 'someone'}` : ''}, not their list`
+									: ''
 							const flags = [r.isPrimary ? 'primary' : '', r.isPrivate ? 'private' : '', r.isActive ? '' : 'archived']
 								.filter(Boolean)
 								.join(', ')
@@ -137,7 +144,7 @@ export function registerListTools(server: McpServer, ctx: ToolContext): void {
 		name: 'get_list',
 		title: 'Get List',
 		description:
-			'A list the user owns or can edit, with its items, item groups, and reveal schedule. Owner view: claims are never included, so never guess whether something was bought. Use get_wishlist for other people’s lists.',
+			'A list the user owns or can edit, with its items, item groups, and reveal schedule. Owner view: claims are never included, so never guess whether something was bought. A giftideas list holds the user’s private ideas for someone else, not things that person asked for. Use get_wishlist for other people’s lists.',
 		inputSchema: {
 			list_id: z.number().int().positive(),
 			include_archived: z.boolean().optional().describe('Also return items already revealed/received (default false)'),
@@ -165,13 +172,26 @@ export function registerListTools(server: McpServer, ctx: ToolContext): void {
 					ownerId: true,
 					subjectDependentId: true,
 				},
+				with: {
+					giftIdeasTarget: { columns: { id: true, name: true, email: true } },
+					giftIdeasTargetDependent: { columns: { id: true, name: true } },
+				},
 			})
 			if (!header) return toolError('not-found')
+			const { giftIdeasTarget, giftIdeasTargetDependent, ...listHeader } = header
+			const giftIdeasFor =
+				header.type !== 'giftideas'
+					? null
+					: giftIdeasTarget
+						? { kind: 'user' as const, id: giftIdeasTarget.id, name: giftIdeasTarget.name ?? giftIdeasTarget.email }
+						: giftIdeasTargetDependent
+							? { kind: 'dependent' as const, id: giftIdeasTargetDependent.id, name: giftIdeasTargetDependent.name }
+							: null
 			const [groups, archive] = await Promise.all([getGroupsForListImpl({ listId }), loadArchiveBannerInfo(listId, dbx, now)])
 
 			const items = result.items.map(i => toItemShape(i, i.commentCount))
 			const structured = {
-				list: header,
+				list: { ...listHeader, giftIdeasFor },
 				items,
 				groups: groups.map(g => ({ id: g.id, type: g.type, name: g.name, priority: g.priority, itemIds: g.itemIds })),
 				reveal: {
@@ -184,6 +204,9 @@ export function registerListTools(server: McpServer, ctx: ToolContext): void {
 			const text = lines(
 				[
 					`List #${header.id} "${header.name}" (${header.type}${header.isPrimary ? ', primary' : ''}${header.isPrivate ? ', private' : ''}): ${plural(items.length, 'item')}, ${plural(groups.length, 'group')}.`,
+					header.type === 'giftideas'
+						? `These are your private gift ideas${giftIdeasFor?.name ? ` for ${giftIdeasFor.name}` : ''}, not things ${giftIdeasFor?.name ?? 'they'} asked for. ${giftIdeasFor?.name ?? 'They'} cannot see this list.`
+						: '',
 					...items.map(itemLine),
 					archive.applies && archive.effectiveArchiveDate
 						? `Claimed gifts reveal to the recipient on ${archive.effectiveArchiveDate.slice(0, 10)}.`

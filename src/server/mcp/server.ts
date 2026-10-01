@@ -34,6 +34,7 @@ const INSTRUCTIONS = [
 	'Two views exist and must never be mixed:',
 	'- Owner view (list_my_lists, get_list): the user’s own lists and lists they can edit. Never shows who claimed a gift, so surprises stay surprises. Do not speculate about claims on these lists.',
 	'- Gifter view (get_wishlist): other people’s lists, including claims, so the user can shop without duplicating gifts.',
+	'Gift ideas (giftideas lists, and myGiftIdeas in get_wishlist) are the user’s own private notes about someone. The person did not ask for them and cannot see them. Never describe a gift idea as on someone’s list, as something they want or asked for, or mix ideas in with their list items; always present them separately as the user’s ideas.',
 	'Start with get_me to learn who the user is, then list_people to see who they can shop for.',
 	'Ids are stable: use the numeric list and item ids the tools return.',
 ].join('\n')

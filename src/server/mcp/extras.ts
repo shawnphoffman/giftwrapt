@@ -83,7 +83,7 @@ export function registerPrompts(server: McpServer): void {
 						text: lines([
 							`Help me plan gifts for ${person}${budget ? ` with a budget of ${budget}` : ''}.`,
 							'Use list_people to find them, then get_wishlist for their list. Skip anything already fully claimed, respect pick-one and in-order groups, and note what I have already planned.',
-							'Suggest two or three items to claim, then ask before calling claim_item. Mention my own gift ideas for them if there are any.',
+							'Suggest two or three items to claim, then ask before calling claim_item. If I have my own gift ideas for them, mention those separately and label them as my ideas; never present them as things on their list.',
 						]),
 					},
 				},

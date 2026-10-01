@@ -45,6 +45,10 @@ function code(res: ToolResult): string | undefined {
 	return (res.structuredContent as { error?: { code: string } } | undefined)?.error?.code
 }
 
+function text(res: ToolResult): string {
+	return res.content.map(c => (c.type === 'text' ? c.text : '')).join('\n')
+}
+
 async function setComments(enabled: boolean): Promise<void> {
 	await db
 		.insert(appSettings)
@@ -168,6 +172,29 @@ describe('MCP shopping tools', () => {
 			const ideasOut = (wishlist.structuredContent as { myGiftIdeas: Array<{ listId: number; ideas: Array<{ id: number }> }> }).myGiftIdeas
 			expect(ideasOut[0]?.listId).toBe(ideas.id)
 			expect(ideasOut[0]?.ideas[0]?.id).toBe(idea.id)
+
+			// The user's private ideas must never read as part of the recipient's list.
+			const wishData = wishlist.structuredContent as {
+				items: Array<{ id: number; source: string }>
+				myGiftIdeas: Array<{ ideas: Array<{ source: string }> }>
+			}
+			expect(wishData.items.map(i => i.id)).toEqual([item.id])
+			expect(wishData.items.every(i => i.source === 'their-list')).toBe(true)
+			expect(wishData.myGiftIdeas[0]?.ideas[0]?.source).toBe('my-private-idea')
+			const wishText = text(wishlist)
+			const ideasAt = wishText.indexOf('NOT on their list')
+			expect(ideasAt).toBeGreaterThan(wishText.indexOf('Camera'))
+			expect(wishText.indexOf('Tripod')).toBeGreaterThan(ideasAt)
+
+			const ideasList = await call(client, 'get_list', { list_id: ideas.id })
+			expect((ideasList.structuredContent as { list: { giftIdeasFor: { id: string } | null } }).list.giftIdeasFor?.id).toBe(friend.id)
+			expect(text(ideasList)).toContain('private gift ideas for Recipient, not things Recipient asked for')
+			expect(text(await call(client, 'list_my_lists'))).toContain('your private ideas for Recipient, not their list')
+
+			const searched = await call(client, 'search_my_items', { query: 'tripod' })
+			const hit = (searched.structuredContent as { items: Array<{ id: number; isGiftIdea: boolean }> }).items[0]
+			expect(hit).toMatchObject({ id: idea.id, isGiftIdea: true })
+			expect(text(searched)).toContain('your private gift idea for someone else')
 
 			const addon = await call(client, 'add_off_list_gift', { list_id: list.id, description: 'Lens cloth', total_cost: '4.00' })
 			expect(addon.isError).toBeFalsy()

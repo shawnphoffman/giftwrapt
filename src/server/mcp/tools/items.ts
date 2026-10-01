@@ -8,7 +8,7 @@ import { archiveItemsImpl, moveItemsToListImpl, setItemAvailabilityImpl } from '
 import { createItemImpl, deleteItemImpl, updateItemImpl } from '@/api/_items-impl'
 import { getMyListsImpl } from '@/api/_lists-impl'
 import { lookupProductByBarcodeImpl } from '@/api/_products-impl'
-import { availabilityEnumValues, giftedItems, priorityEnumValues } from '@/db/schema'
+import { availabilityEnumValues, giftedItems, listTypeEnumValues, priorityEnumValues } from '@/db/schema'
 import { barcodeLookupLimiter, scrapeLimiter } from '@/lib/rate-limits'
 import { runOneShotScrape } from '@/lib/scrapers/run'
 import type { ScrapeResult } from '@/lib/scrapers/types'
@@ -316,7 +316,8 @@ export function registerItemTools(server: McpServer, ctx: ToolContext): void {
 	defineTool(server, ctx, {
 		name: 'search_my_items',
 		title: 'Search My Items',
-		description: 'Find items across every list the user owns by words in the title or notes.',
+		description:
+			'Find items across every list the user owns by words in the title or notes. Results from gift-ideas lists (isGiftIdea true) are the user’s private ideas for someone else, not things the user or that person asked for.',
 		inputSchema: { query: z.string().min(1).max(200) },
 		outputSchema: {
 			items: z.array(
@@ -325,6 +326,8 @@ export function registerItemTools(server: McpServer, ctx: ToolContext): void {
 					title: z.string(),
 					listId: z.number(),
 					listName: z.string(),
+					listType: z.enum(listTypeEnumValues),
+					isGiftIdea: z.boolean().describe('From a gift-ideas list: the user’s private idea for someone else, not a wish'),
 					url: z.string().nullable(),
 					price: z.string().nullable(),
 					currency: z.string().nullable(),
@@ -341,12 +344,20 @@ export function registerItemTools(server: McpServer, ctx: ToolContext): void {
 				title: i.title,
 				listId: i.listId,
 				listName: i.listName,
+				listType: i.listType,
+				isGiftIdea: i.listType === 'giftideas',
 				url: i.url,
 				price: i.price,
 				currency: i.currency,
 			}))
 			const text = items.length
-				? lines([`${result.totalMatches} matches.`, ...items.map(i => `#${i.id} ${i.title} (list #${i.listId} "${i.listName}")`)])
+				? lines([
+						`${result.totalMatches} matches.`,
+						...items.map(
+							i =>
+								`#${i.id} ${i.title} (list #${i.listId} "${i.listName}"${i.isGiftIdea ? ', your private gift idea for someone else' : ''})`
+						),
+					])
 				: 'No items match.'
 			return toolOk(text, { items, totalMatches: result.totalMatches })
 		},

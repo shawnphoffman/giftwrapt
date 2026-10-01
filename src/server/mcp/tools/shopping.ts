@@ -45,6 +45,7 @@ const claimSchema = z.object({
 
 const wishlistItemSchema = z.object({
 	id: z.number(),
+	source: z.literal('their-list').describe('The recipient put this on their own list'),
 	title: z.string(),
 	url: z.string().nullable(),
 	price: z.string().nullable(),
@@ -118,7 +119,7 @@ export function registerShoppingTools(server: McpServer, ctx: ToolContext): void
 		name: 'get_wishlist',
 		title: 'Get Someone’s Wishlist',
 		description:
-			'Everything needed to shop for another person: their list items with what is already claimed and how many remain, pick-one / in-order group rules, off-list gifts other gifters are bringing, and the user’s own gift ideas for this person. Give list_id, or person_id to use that person’s primary list. Never works on the user’s own lists (use get_list).',
+			'Everything needed to shop for another person: their list items with what is already claimed and how many remain, pick-one / in-order group rules, off-list gifts other gifters are bringing, and, kept separate, the user’s own private gift ideas for this person. Only `items` are things the person asked for; `myGiftIdeas` are the user’s notes that the person never sees, so never present them as on the person’s list. Give list_id, or person_id to use that person’s primary list. Never works on the user’s own lists (use get_list).',
 		inputSchema: {
 			list_id: z.number().int().positive().optional(),
 			person_id: z.string().optional().describe('A user or dependent id from list_people'),
@@ -133,24 +134,29 @@ export function registerShoppingTools(server: McpServer, ctx: ToolContext): void
 				canEdit: z.boolean(),
 				revealDate: z.string().nullable().describe('When the recipient gets to see who gave what'),
 			}),
-			items: z.array(wishlistItemSchema),
+			items: z.array(wishlistItemSchema).describe('What the recipient put on this list. The only things they asked for.'),
 			groups: z.array(z.object({ id: z.number(), type: z.string(), name: z.string().nullable(), itemIds: z.array(z.number()) })),
 			offListGifts: z.array(addonSchema),
-			myGiftIdeas: z.array(
-				z.object({
-					listId: z.number(),
-					listName: z.string(),
-					ideas: z.array(
-						z.object({
-							id: z.number(),
-							title: z.string(),
-							url: z.string().nullable(),
-							price: z.string().nullable(),
-							notes: z.string().nullable(),
-						})
-					),
-				})
-			),
+			myGiftIdeas: z
+				.array(
+					z.object({
+						listId: z.number(),
+						listName: z.string(),
+						ideas: z.array(
+							z.object({
+								id: z.number(),
+								source: z.literal('my-private-idea').describe('The user’s own idea; NOT on the recipient’s list'),
+								title: z.string(),
+								url: z.string().nullable(),
+								price: z.string().nullable(),
+								notes: z.string().nullable(),
+							})
+						),
+					})
+				)
+				.describe(
+					'The user’s private gift-ideas lists for this person. NOT part of the recipient’s list: they did not ask for these and cannot see them. Never mix these in with items or describe them as something the recipient wants.'
+				),
 		},
 		annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
 		handler: async (args, toolCtx) => {
@@ -176,6 +182,7 @@ export function registerShoppingTools(server: McpServer, ctx: ToolContext): void
 
 			const itemsOut = viewed.items.map(i => ({
 				id: i.id,
+				source: 'their-list' as const,
 				title: i.title,
 				url: i.url,
 				price: i.price,
@@ -208,7 +215,14 @@ export function registerShoppingTools(server: McpServer, ctx: ToolContext): void
 			const myGiftIdeas = ideas.sources.map(s => ({
 				listId: s.list.id,
 				listName: s.list.name,
-				ideas: s.items.map(i => ({ id: i.id, title: i.title, url: i.url, price: i.price, notes: i.notes })),
+				ideas: s.items.map(i => ({
+					id: i.id,
+					source: 'my-private-idea' as const,
+					title: i.title,
+					url: i.url,
+					price: i.price,
+					notes: i.notes,
+				})),
 			}))
 
 			const recipient = list.subjectDependent
@@ -259,7 +273,7 @@ export function registerShoppingTools(server: McpServer, ctx: ToolContext): void
 						? `Off-list gifts: ${structured.offListGifts.map(a => `${a.description} (${a.byMe ? 'you' : (a.gifterName ?? 'someone')})`).join('; ')}.`
 						: '',
 					myGiftIdeas.length
-						? `Your gift ideas for them: ${myGiftIdeas.flatMap(s => s.ideas.map(i => `#${i.id} ${i.title}`)).join('; ')}.`
+						? `Separately, your own private gift ideas for ${recipient.name} (NOT on their list; they did not ask for these and cannot see them): ${myGiftIdeas.flatMap(s => s.ideas.map(i => `idea #${i.id} ${i.title}`)).join('; ')}.`
 						: '',
 					structured.list.revealDate ? `They learn who gave what on ${structured.list.revealDate.slice(0, 10)}.` : '',
 				].filter(Boolean)
