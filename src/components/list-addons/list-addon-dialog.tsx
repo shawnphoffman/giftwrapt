@@ -11,6 +11,7 @@ import { createListAddon, updateListAddon } from '@/api/list-addons'
 import type { AddonOnList } from '@/api/lists'
 import { getCachedScrapeImages } from '@/api/scraper'
 import { MarkdownTextarea } from '@/components/common/markdown-textarea'
+import { RemoteImage } from '@/components/common/remote-image'
 import { ImagePicker } from '@/components/items/image-picker'
 import { ScrapeProgressAlert } from '@/components/items/scrape-progress-alert'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -19,7 +20,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group'
 import { Label } from '@/components/ui/label'
-import { httpsUpgrade } from '@/lib/image-url'
 import { applyListEventLocally } from '@/lib/list-events'
 import { applyScrapePrefill } from '@/lib/scrapers/apply-prefill'
 import { normalizeHttpUrl } from '@/lib/urls'
@@ -434,7 +434,7 @@ export function ListAddonDialog(props: Props) {
 									<Label htmlFor={field.name}>Image (optional)</Label>
 									{currentUrl && (
 										<div className="flex items-center gap-3">
-											<img src={httpsUpgrade(currentUrl)} alt="" className="size-16 rounded border object-cover" />
+											<RemoteImage src={currentUrl} alt="" className="size-16 rounded border object-cover" />
 											<Button
 												type="button"
 												variant="outline"

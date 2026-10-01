@@ -5,12 +5,12 @@ import { ArrowRight, MessageSquare } from 'lucide-react'
 import DependentAvatar from '@/components/common/dependent-avatar'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import PriorityIcon from '@/components/common/priority-icon'
+import { RemoteImage } from '@/components/common/remote-image'
 import UrlBadge from '@/components/common/url-badge'
 import UserAvatar from '@/components/common/user-avatar'
 import { Button } from '@/components/ui/button'
 import { TapTooltip, TapTooltipContent, TapTooltipTrigger, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { ListType, Priority } from '@/db/schema/enums'
-import { httpsUpgrade } from '@/lib/image-url'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
 import { cn } from '@/lib/utils'
 
@@ -116,7 +116,7 @@ export default function ItemOverview(props: ItemOverviewProps) {
 
 				{imageUrl && (
 					<div className="shrink-0 self-stretch overflow-hidden rounded-md ring-1 ring-inset ring-border bg-muted/40">
-						<img src={httpsUpgrade(imageUrl)} alt={title} className="h-full w-16 xs:w-24 object-cover" />
+						<RemoteImage src={imageUrl} alt={title} className="h-full w-16 xs:w-24 object-cover" />
 					</div>
 				)}
 

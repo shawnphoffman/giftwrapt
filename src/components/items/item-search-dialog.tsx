@@ -5,13 +5,13 @@ import { useState } from 'react'
 
 import { type MyItemSearchRow, searchMyItems } from '@/api/items'
 import ListTypeIcon from '@/components/common/list-type-icon'
+import { RemoteImage } from '@/components/common/remote-image'
 import { MoveItemDialog } from '@/components/items/move-item-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Command, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import { httpsUpgrade } from '@/lib/image-url'
 import { MIN_ITEM_SEARCH_QUERY_LENGTH } from '@/lib/item-search'
 import { useDebouncedValue } from '@/lib/use-debounced-value'
 
@@ -132,8 +132,8 @@ export function ItemSearchDialog({ open, onOpenChange }: Props) {
 												className="gap-3 py-2"
 											>
 												{row.imageUrl ? (
-													<img
-														src={httpsUpgrade(row.imageUrl)}
+													<RemoteImage
+														src={row.imageUrl}
 														alt=""
 														className="size-10 shrink-0 rounded-md object-cover ring-1 ring-inset ring-border"
 													/>

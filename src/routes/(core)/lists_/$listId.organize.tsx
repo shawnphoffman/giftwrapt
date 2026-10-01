@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { type ItemForEditing, setGroupsPriority } from '@/api/items'
 import { getListForEditing, type GroupSummary, type ListForEditing } from '@/api/lists'
 import PriorityIcon from '@/components/common/priority-icon'
+import { RemoteImage } from '@/components/common/remote-image'
 import { BulkMoveItemsDialog } from '@/components/items/bulk-move-dialog'
 import { GroupBadge } from '@/components/items/group-badge'
 import { ItemListSkeleton } from '@/components/items/item-list-skeleton'
@@ -34,7 +35,6 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { type Priority, priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
-import { httpsUpgrade } from '@/lib/image-url'
 import { buildListEntries } from '@/lib/list-entries'
 import { useAssignItemsToGroup } from '@/lib/mutations/assign-items-to-group'
 import { useDeleteGroups } from '@/lib/mutations/delete-groups'
@@ -475,7 +475,7 @@ function OrganizeItemRow({ item, selected, onToggle }: { item: Item; selected: b
 				</div>
 				{item.imageUrl && (
 					<div className="size-10 shrink-0 rounded bg-background/60 overflow-hidden flex items-center justify-center">
-						<img src={httpsUpgrade(item.imageUrl)} alt="" className="object-contain size-full" />
+						<RemoteImage src={item.imageUrl} alt="" className="object-contain size-full" />
 					</div>
 				)}
 			</label>
@@ -523,7 +523,7 @@ function OrganizeGroupBlock({
 							</div>
 							{item.imageUrl && (
 								<div className="size-10 shrink-0 rounded bg-background/60 overflow-hidden flex items-center justify-center">
-									<img src={httpsUpgrade(item.imageUrl)} alt="" className="object-contain size-full" />
+									<RemoteImage src={item.imageUrl} alt="" className="object-contain size-full" />
 								</div>
 							)}
 						</li>

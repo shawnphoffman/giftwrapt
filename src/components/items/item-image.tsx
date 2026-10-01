@@ -1,8 +1,8 @@
 import { XIcon } from 'lucide-react'
 import { useState } from 'react'
 
+import { ImageFallbackTile, useImageFallback } from '@/components/common/remote-image'
 import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog'
-import { httpsUpgrade } from '@/lib/image-url'
 import { cn } from '@/lib/utils'
 
 type Props = {
@@ -10,11 +10,24 @@ type Props = {
 	alt: string
 	className?: string
 	thumbClassName?: string
+	// Size of the placeholder shown when the image fails to load. The thumb
+	// is sized by max-w/max-h, which would collapse an empty tile.
+	fallbackClassName?: string
 }
 
-export function ItemImage({ src, alt, className, thumbClassName }: Props) {
+export function ItemImage({ src, alt, className, thumbClassName, fallbackClassName }: Props) {
 	const [open, setOpen] = useState(false)
-	const safeSrc = httpsUpgrade(src)
+	const image = useImageFallback(src)
+
+	// Nothing to zoom into, so no button and no dialog.
+	if (image.failed) {
+		return (
+			<ImageFallbackTile
+				label={alt}
+				className={cn('rounded-md ring-1 ring-inset ring-border', fallbackClassName ?? 'size-16 xs:size-24', className)}
+			/>
+		)
+	}
 
 	return (
 		<>
@@ -35,8 +48,10 @@ export function ItemImage({ src, alt, className, thumbClassName }: Props) {
 				 * browser and still shrinks to the image's natural width.
 				 */}
 				<img
-					src={safeSrc}
+					ref={image.ref}
+					src={image.src}
 					alt={alt}
+					onError={image.onError}
 					className={cn(
 						'object-contain transition-transform group-hover:scale-105',
 						thumbClassName ?? 'max-w-16 max-h-16 xs:max-w-24 xs:max-h-24'
@@ -50,7 +65,7 @@ export function ItemImage({ src, alt, className, thumbClassName }: Props) {
 					showCloseButton={false}
 				>
 					<DialogTitle className="sr-only">{alt}</DialogTitle>
-					<img src={safeSrc} alt={alt} className="w-full h-auto max-h-[80vh] object-contain rounded-md" />
+					<img src={image.src} alt={alt} className="w-full h-auto max-h-[80vh] object-contain rounded-md" />
 					<DialogClose
 						aria-label="Close"
 						className="absolute top-3 right-3 inline-flex size-8 items-center justify-center rounded-full bg-black/50 text-white shadow-sm ring-1 ring-white/20 backdrop-blur-sm outline-none transition hover:bg-black/70 focus-visible:ring-2 focus-visible:ring-white"

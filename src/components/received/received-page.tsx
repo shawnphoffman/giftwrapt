@@ -5,6 +5,7 @@ import { Fragment, useMemo, useState } from 'react'
 import type { GifterUnit, ReceivedGiftsResult } from '@/api/received'
 import { DateRangeFilter } from '@/components/common/date-range-filter'
 import { PageHeading } from '@/components/common/page-heading'
+import { RemoteImage } from '@/components/common/remote-image'
 import UserAvatar from '@/components/common/user-avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -12,7 +13,6 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { httpsUpgrade } from '@/lib/image-url'
 import { groupByGifterUnit, type ReceivedRow } from '@/lib/received-grouping'
 import { matchesTimeframe, type TimeframeValue } from '@/lib/timeframe'
 
@@ -243,7 +243,7 @@ function ReceivedDetailRow({ row }: { row: ReceivedRow }) {
 			<div className="flex flex-col items-center gap-2 shrink-0 mt-0.5">
 				{row.type === 'item' ? <Gift className="size-4 text-muted-foreground" /> : <PackagePlus className="size-4 text-muted-foreground" />}
 			</div>
-			{imageUrl ? <img src={httpsUpgrade(imageUrl)} alt="" className="size-10 object-contain rounded shrink-0" /> : null}
+			{imageUrl ? <RemoteImage src={imageUrl} alt="" className="size-10 object-contain rounded shrink-0" /> : null}
 			<div className="flex-1 min-w-0">
 				<div className="flex items-center gap-2 min-w-0">
 					<span className="text-sm font-medium truncate">{row.type === 'item' ? row.itemTitle : row.description}</span>

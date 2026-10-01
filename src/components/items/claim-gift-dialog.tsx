@@ -9,6 +9,7 @@ import { z } from 'zod'
 import { claimItemGift, getAddableCoGifters, unclaimItemGift, updateCoGifters, updateItemGift } from '@/api/gifts'
 import type { GiftOnItem } from '@/api/lists'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
+import { RemoteImage } from '@/components/common/remote-image'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -17,7 +18,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { httpsUpgrade } from '@/lib/image-url'
 import { applyListEventLocally } from '@/lib/list-events'
 import { LIMITS } from '@/lib/validation/limits'
 
@@ -268,8 +268,8 @@ export function ClaimGiftDialog(props: Props) {
 							</DialogDescription>
 						</div>
 						{itemImageUrl && (
-							<img
-								src={httpsUpgrade(itemImageUrl)}
+							<RemoteImage
+								src={itemImageUrl}
 								alt=""
 								className="size-14 shrink-0 rounded-md object-contain ring-1 ring-inset ring-border bg-muted/40"
 							/>

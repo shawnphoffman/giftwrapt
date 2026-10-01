@@ -25,10 +25,10 @@ import { toast } from 'sonner'
 import { reorderListEntries } from '@/api/items'
 import type { GroupSummary } from '@/api/lists'
 import PriorityIcon from '@/components/common/priority-icon'
+import { RemoteImage } from '@/components/common/remote-image'
 import { SegmentedToggle } from '@/components/common/segmented-toggle'
 import type { Priority } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
-import { httpsUpgrade } from '@/lib/image-url'
 import { priorityRingClass } from '@/lib/priority-classes'
 import { itemsKeys } from '@/lib/queries/items'
 import { cn } from '@/lib/utils'
@@ -548,7 +548,7 @@ function EntryRow({
 			<span className="text-sm font-medium leading-tight truncate flex-1">{item.title}</span>
 			{item.imageUrl && (
 				<div className="size-7 shrink-0 rounded bg-background/60 overflow-hidden flex items-center justify-center">
-					<img src={httpsUpgrade(item.imageUrl)} alt="" className="object-contain size-full" />
+					<RemoteImage src={item.imageUrl} alt="" className="object-contain size-full" />
 				</div>
 			)}
 			{isSelected && <Check className="size-4 text-primary shrink-0" />}

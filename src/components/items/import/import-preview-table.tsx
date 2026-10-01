@@ -2,11 +2,11 @@ import { ImageOff, Sparkles, Trash2 } from 'lucide-react'
 import { useMemo } from 'react'
 
 import type { ItemDraft } from '@/api/import'
+import { RemoteImage } from '@/components/common/remote-image'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
-import { httpsUpgrade } from '@/lib/image-url'
 
 type Props = {
 	drafts: ReadonlyArray<ItemDraft>
@@ -128,7 +128,7 @@ export function ImportPreviewTable({
 							<Checkbox checked={selected.has(index)} onCheckedChange={() => toggleOne(index)} aria-label={`Select row ${index + 1}`} />
 							<div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded border bg-muted">
 								{draft.imageUrl ? (
-									<img src={httpsUpgrade(draft.imageUrl)} alt="" className="size-full object-cover" />
+									<RemoteImage src={draft.imageUrl} alt="" className="size-full object-cover" />
 								) : (
 									<ImageOff className="size-4 text-muted-foreground" aria-hidden />
 								)}
