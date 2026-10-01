@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.4.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.3.0...v1.4.0) (2026-10-01)
+
+
+### Features
+
+* **admin:** add MCP client and connected-apps screens behind enableMcp ([4baccbb](https://github.com/shawnphoffman/giftwrapt/commit/4baccbbbbaa000cbf9499a6c58183983cc9ab667))
+* **admin:** polish custom holiday recipient picker and catalog rows ([db135c6](https://github.com/shawnphoffman/giftwrapt/commit/db135c6e4bb7b9d5b1a4fdbb7629ad766da2abae))
+* **auth:** add OAuth 2.1 foundation for MCP clients behind enableMcp ([b18961f](https://github.com/shawnphoffman/giftwrapt/commit/b18961febc49c51fc00726b924c5b6eb67942069))
+* **mcp:** add gifter-side shopping and comment tools ([40584d5](https://github.com/shawnphoffman/giftwrapt/commit/40584d5b623dd2c5146b6f950e0d5f21cd4e5c72))
+* **mcp:** add occasions, received gifts, suggestions, dependents, resources, prompts ([b481985](https://github.com/shawnphoffman/giftwrapt/commit/b481985ffa9328e2ae4f66d1561335919dda0683))
+* **mcp:** add owner-side write tools ([5b40eff](https://github.com/shawnphoffman/giftwrapt/commit/5b40eff2b59352a19b86bf71e8639f2f06240691))
+* **mcp:** add the /api/mcp endpoint with the first read tools ([5b3e9d0](https://github.com/shawnphoffman/giftwrapt/commit/5b3e9d02b9ac1552b260f60cc30837e65223b8c9))
+* **reveal:** dependents' birthdays, admin bulk reveal, mail-safe images ([8100c1d](https://github.com/shawnphoffman/giftwrapt/commit/8100c1d498f7dc3ea2fd67f68c89387d62b16029))
+
+
+### Bug Fixes
+
+* **auth:** stop mobile apiKeys from minting web sessions ([2b8c826](https://github.com/shawnphoffman/giftwrapt/commit/2b8c826c687657a2a053796ec104c174a415b5de))
+* **email:** send the gift summary from the reveal itself ([f94ab6b](https://github.com/shawnphoffman/giftwrapt/commit/f94ab6be84633aafdca5e716a242d0bf246914b9))
+* **reminders:** use the per-country Valentine's date ([59b90fa](https://github.com/shawnphoffman/giftwrapt/commit/59b90fa7f2326d3f79728e1d1190f67f5e318494))
+* **ui:** clean up help copy ([a20c2da](https://github.com/shawnphoffman/giftwrapt/commit/a20c2dadde74b3f7f4300d32865fd46ecff38020))
+
 ## [1.3.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.2.0...v1.3.0) (2026-09-29)
 
 
