@@ -254,4 +254,21 @@ describe('mirrorRemoteImageToStorage', () => {
 			reason: 'already-stored',
 		})
 	})
+
+	it('mirrors a GIF as webp', async () => {
+		const gif = await sharp({ create: { width: 1, height: 1, channels: 3, background: { r: 0, g: 0, b: 255 } } })
+			.gif()
+			.toBuffer()
+		const storage = makeFakeStorage()
+		_setStorageForTesting(storage)
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(() => Promise.resolve(new Response(new Uint8Array(gif), { status: 200, headers: { 'content-type': 'image/gif' } })))
+		)
+
+		const result = await mirrorRemoteImageToStorage('https://1.1.1.1/anim.gif', 5)
+
+		expect(result).toMatch(/^https:\/\/cdn\.test\/items\/5\//)
+		expect(storage.uploads[0].buffer.toString('ascii', 8, 12)).toBe('WEBP')
+	})
 })

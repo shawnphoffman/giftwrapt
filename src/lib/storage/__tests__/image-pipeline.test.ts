@@ -1,7 +1,8 @@
+import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
 
 import { UploadError } from '../errors'
-import { assertImageBytes, detectImageMime } from '../image-pipeline'
+import { assertImageBytes, detectImageMime, processImage } from '../image-pipeline'
 
 // Hand-rolled signature fixtures. We don't ship these as files; we
 // just need the first ~12 bytes to be right. Padding the rest with
@@ -91,6 +92,11 @@ describe('assertImageBytes', () => {
 		expect(assertImageBytes(FIXTURES.jpeg)).toBe('image/jpeg')
 	})
 
+	it('accepts GIF', () => {
+		expect(assertImageBytes(FIXTURES.gif87a)).toBe('image/gif')
+		expect(assertImageBytes(FIXTURES.gif89a)).toBe('image/gif')
+	})
+
 	it('throws UploadError(bad-mime) for unrecognized bytes', () => {
 		expect(() => assertImageBytes(Buffer.from('bogus'))).toThrow(UploadError)
 		try {
@@ -102,5 +108,38 @@ describe('assertImageBytes', () => {
 
 	it('throws UploadError(bad-mime) on a polyglot zip', () => {
 		expect(() => assertImageBytes(withPad([0x50, 0x4b, 0x03, 0x04]))).toThrow(UploadError)
+	})
+})
+
+describe('processImage', () => {
+	it('transcodes a GIF to webp', async () => {
+		const gif = await sharp({ create: { width: 4, height: 2, channels: 3, background: { r: 0, g: 128, b: 0 } } })
+			.gif()
+			.toBuffer()
+		expect(assertImageBytes(gif)).toBe('image/gif')
+
+		const out = await processImage(gif, 'item')
+
+		expect(out.contentType).toBe('image/webp')
+		expect(out.buffer.toString('ascii', 8, 12)).toBe('WEBP')
+		expect([out.width, out.height]).toEqual([4, 2])
+	})
+
+	it('keeps only the first frame of an animated GIF', async () => {
+		const frame = (r: number) =>
+			sharp({ create: { width: 2, height: 2, channels: 3, background: { r, g: 0, b: 0 } } })
+				.raw()
+				.toBuffer()
+		// Two 2x2 frames stacked vertically, written as a 2-page GIF.
+		const stacked = Buffer.concat([await frame(255), await frame(0)])
+		const animated = await sharp(stacked, { raw: { width: 2, height: 4, channels: 3, pageHeight: 2 } })
+			.gif()
+			.toBuffer()
+		expect((await sharp(animated, { animated: true }).metadata()).pages).toBe(2)
+
+		const out = await processImage(animated, 'item')
+
+		expect([out.width, out.height]).toEqual([2, 2])
+		expect((await sharp(out.buffer).metadata()).pages ?? 1).toBe(1)
 	})
 })

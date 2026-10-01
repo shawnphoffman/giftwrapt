@@ -19,7 +19,9 @@ export interface ProcessedImage {
 // camera. See sec-review H4.
 export const SHARP_PIXEL_LIMIT = 50_000_000
 
-const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'image/avif'])
+// GIF is accepted like any raster: processImage transcodes to webp, and an
+// animated GIF keeps only its first frame (fine for a product thumbnail).
+const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif', 'image/avif'])
 
 // Magic-byte detection for the image formats we accept. We can't trust
 // the client-supplied `file.type` (the browser fills it from the file
