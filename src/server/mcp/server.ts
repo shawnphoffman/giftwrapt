@@ -14,12 +14,16 @@ import { mcpToolCallsTotal, mcpToolDurationMs } from '@/lib/observability/metric
 
 import type { ToolContext } from './context'
 import { toolError } from './errors'
+import { registerPrompts, registerResources } from './extras'
 import { registerCommentTools } from './tools/comments'
+import { registerDependentTools } from './tools/dependents'
 import { registerGroupTools } from './tools/groups'
+import { registerIntelligenceTools } from './tools/intelligence'
 import { registerItemTools } from './tools/items'
 import { registerListMutationTools } from './tools/list-mutations'
 import { registerListTools } from './tools/lists'
 import { registerMeTools } from './tools/me'
+import { registerOccasionTools } from './tools/occasions'
 import { registerPeopleTools } from './tools/people'
 import { registerShoppingTools } from './tools/shopping'
 
@@ -49,6 +53,26 @@ export function defineTool<TIn extends ZodRawShape, TOut extends ZodRawShape>(
 	ctx: ToolContext,
 	spec: ToolSpec<TIn, TOut>
 ): void {
+	const wrapped = async (args: z.infer<z.ZodObject<TIn>>): Promise<CallToolResult> => {
+		const started = Date.now()
+		let outcome: 'ok' | 'error' | 'failed' = 'ok'
+		try {
+			const result = await spec.handler(args, ctx)
+			if (result.isError) outcome = 'error'
+			return result
+		} catch (err) {
+			outcome = 'failed'
+			ctx.log.error({ err, tool: spec.name, userId: ctx.actor.userId, clientId: ctx.actor.clientId }, 'mcp tool threw')
+			return toolError('internal-error')
+		} finally {
+			const ms = Date.now() - started
+			mcpToolCallsTotal.inc({ tool: spec.name, outcome })
+			mcpToolDurationMs.observe({ tool: spec.name }, ms)
+			ctx.log.info({ tool: spec.name, outcome, ms, clientId: ctx.actor.clientId }, 'mcp tool call')
+		}
+	}
+	ctx.tools ??= new Map()
+	ctx.tools.set(spec.name, wrapped as (args: Record<string, unknown>) => Promise<CallToolResult>)
 	server.registerTool(
 		spec.name,
 		{
@@ -58,24 +82,7 @@ export function defineTool<TIn extends ZodRawShape, TOut extends ZodRawShape>(
 			outputSchema: spec.outputSchema,
 			annotations: { ...spec.annotations, openWorldHint: false },
 		},
-		(async (args: z.infer<z.ZodObject<TIn>>): Promise<CallToolResult> => {
-			const started = Date.now()
-			let outcome: 'ok' | 'error' | 'failed' = 'ok'
-			try {
-				const result = await spec.handler(args, ctx)
-				if (result.isError) outcome = 'error'
-				return result
-			} catch (err) {
-				outcome = 'failed'
-				ctx.log.error({ err, tool: spec.name, userId: ctx.actor.userId, clientId: ctx.actor.clientId }, 'mcp tool threw')
-				return toolError('internal-error')
-			} finally {
-				const ms = Date.now() - started
-				mcpToolCallsTotal.inc({ tool: spec.name, outcome })
-				mcpToolDurationMs.observe({ tool: spec.name }, ms)
-				ctx.log.info({ tool: spec.name, outcome, ms, clientId: ctx.actor.clientId }, 'mcp tool call')
-			}
-		}) as never
+		wrapped as never
 	)
 }
 
@@ -89,5 +96,10 @@ export function createMcpServer(ctx: ToolContext): McpServer {
 	registerPeopleTools(server, ctx)
 	registerShoppingTools(server, ctx)
 	registerCommentTools(server, ctx)
+	registerOccasionTools(server, ctx)
+	registerIntelligenceTools(server, ctx)
+	registerDependentTools(server, ctx)
+	registerResources(server, ctx)
+	registerPrompts(server)
 	return server
 }

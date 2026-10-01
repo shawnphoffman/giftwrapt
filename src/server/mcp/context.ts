@@ -1,3 +1,4 @@
+import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import type { Logger } from 'pino'
 
 import type { SchemaDatabase } from '@/db'
@@ -20,4 +21,6 @@ export type ToolContext = {
 	dbx: SchemaDatabase
 	log: Logger
 	now: Date
+	/** Registered tool handlers by name, so resources can reuse them. Filled by `defineTool`. */
+	tools?: Map<string, (args: Record<string, unknown>) => Promise<CallToolResult>>
 }
