@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.5.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.4.0...v1.5.0) (2026-10-02)
+
+
+### Features
+
+* **admin:** flag scrape providers that never or mostly fail ([228d15c](https://github.com/shawnphoffman/giftwrapt/commit/228d15c07d32eac6efbd78975ab7157b5fdadfd3))
+* **items:** show a placeholder when an item image fails to load ([9c6d7c0](https://github.com/shawnphoffman/giftwrapt/commit/9c6d7c02852751abaf265eed8911a2b7a2ede62d))
+* **mcp:** add an Add to Claude button that prefills the connector dialog ([b4b64e1](https://github.com/shawnphoffman/giftwrapt/commit/b4b64e1283cf1a70b88eae7b4fa15c9edecd370f))
+* **scrapers:** merge results across tiers and persist the final result ([0da6da8](https://github.com/shawnphoffman/giftwrapt/commit/0da6da8bbbccbe47afce23804d8207f90df11a91))
+* **scrapers:** report dead product links instead of prefilling the homepage ([9d8d5a6](https://github.com/shawnphoffman/giftwrapt/commit/9d8d5a6d36f75d718a1c2875676bf1097e1e58d0))
+* **scrapers:** weight price and photos, keep going until both found ([3b3a4ee](https://github.com/shawnphoffman/giftwrapt/commit/3b3a4eeb5cedd80723e706e6ef271c70d507bf0f))
+
+
+### Bug Fixes
+
+* **admin:** label the built-in fetcher "Built-in" in Recent Scrapes ([0b7ac54](https://github.com/shawnphoffman/giftwrapt/commit/0b7ac543875bfa2710bec3dabb355beb54e30997))
+* **mcp:** keep private gift ideas separate from people's list items ([78b722f](https://github.com/shawnphoffman/giftwrapt/commit/78b722f05386e2f0e860aeb956fc22198d6bacb3))
+* **mobile-api:** give scrape failure codes their own messages ([6d2dbf8](https://github.com/shawnphoffman/giftwrapt/commit/6d2dbf867f046522e724b94e0dd217d2a776b72c))
+* **scrapers:** extract Amazon price and full-size photos ([4fe83fe](https://github.com/shawnphoffman/giftwrapt/commit/4fe83fef2ba360c81ee307c998c1b37dbf4c97d3))
+* **scrapers:** list only guard rejections and cap merged images ([dc94ba4](https://github.com/shawnphoffman/giftwrapt/commit/dc94ba4af73475cc1ae1cfdd1cd30d17f186662b))
+* **scrapers:** rank photos first and stop reading other products' prices ([f66c22d](https://github.com/shawnphoffman/giftwrapt/commit/f66c22d652905600599759aa18e9e4a8c9ca9811))
+* **storage:** accept GIF images ([84ccb8b](https://github.com/shawnphoffman/giftwrapt/commit/84ccb8bb7c6ac314c7d42093ad95235772f72364))
+* **storage:** mirror protocol-relative and data: image URLs ([18bb312](https://github.com/shawnphoffman/giftwrapt/commit/18bb3128dddb4003bba337f7c04fed492be91def))
+
 ## [1.4.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.3.0...v1.4.0) (2026-10-01)
 
 
