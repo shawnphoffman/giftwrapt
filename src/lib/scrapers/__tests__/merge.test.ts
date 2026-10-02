@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { mergeWithinTier } from '../merge'
+import { MAX_MERGED_IMAGES, mergeWithinTier } from '../merge'
 import type { MergeContribution, ScrapeResult } from '../types'
 
 function contribution(fromProvider: string, score: number, result: Partial<ScrapeResult>): MergeContribution {
@@ -200,5 +200,18 @@ describe('mergeWithinTier: purchaseVariants handling', () => {
 		const b = contribution('b', 3, {})
 		const merged = mergeWithinTier([a, b])
 		expect(merged.result.purchaseVariants).toEqual(['Color'])
+	})
+})
+
+describe('mergeWithinTier: image cap', () => {
+	it('keeps the best-ranked images up to the cap, base images first', () => {
+		const base = Array.from({ length: 8 }, (_, i) => `https://cdn.test/base-${i}.jpg`)
+		const filler = Array.from({ length: 20 }, (_, i) => `https://cdn.test/filler-${i}.jpg`)
+		const merged = mergeWithinTier([
+			{ result: { title: 'A', imageUrls: base }, fromProvider: 'a', score: 9 },
+			{ result: { title: 'A', imageUrls: filler }, fromProvider: 'b', score: 6 },
+		])
+		expect(merged.result.imageUrls).toHaveLength(MAX_MERGED_IMAGES)
+		expect(merged.result.imageUrls.slice(0, 8)).toEqual(base)
 	})
 })

@@ -255,6 +255,9 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 			const verdict = sameProduct(base.result, s.result)
 			if (verdict.ok) {
 				accepted.push(s)
+				// Accepted against the current base: forget any verdict from
+				// an earlier base so it isn't reported as rejected.
+				rejectionReasons.delete(s.fromProvider)
 			} else {
 				rejectionReasons.set(s.fromProvider, verdict.reason)
 				log.info(
@@ -375,9 +378,12 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 					finalResult: final.result,
 					scoreParts: deps.explainScore?.(beforePost.result, beforePost.scoreContext).parts,
 					contributors: beforePost.contributors,
+					// Only results the consistency guard kept out. A result that
+					// passed the guard but filled no gap is simply absent from
+					// `contributors`; it was not rejected.
 					rejected: successes
-						.filter(s => !beforePost.contributors.includes(s.fromProvider))
-						.map(s => ({ providerId: s.fromProvider, reason: rejectionReasons.get(s.fromProvider) ?? 'not-merged' })),
+						.filter(s => !beforePost.contributors.includes(s.fromProvider) && rejectionReasons.has(s.fromProvider))
+						.map(s => ({ providerId: s.fromProvider, reason: rejectionReasons.get(s.fromProvider)! })),
 				})
 			} catch (err) {
 				log.warn({ err }, 'persisting the final result failed; the live result is unaffected')

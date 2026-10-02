@@ -28,6 +28,9 @@ const SCALAR_FIELDS = ['title', 'description', 'price', 'currency', 'siteName', 
 // or rating count).
 const NUMERIC_FIELDS = ['ratingValue', 'ratingCount'] as const
 
+// Cap on the merged image list (the add form's candidate picker).
+export const MAX_MERGED_IMAGES = 12
+
 export function mergeWithinTier(contributions: ReadonlyArray<MergeContribution>): MergedResult {
 	if (contributions.length === 0) {
 		// Caller shouldn't call us here; produce a sane empty result so
@@ -91,7 +94,10 @@ export function mergeWithinTier(contributions: ReadonlyArray<MergeContribution>)
 		}
 	}
 
-	merged.imageUrls = filterAndSortImages(merged.imageUrls)
+	// Pooling images across every contributor can run to dozens of
+	// candidates (five providers on one page gave 34, logos included). Keep
+	// the best-ranked few: the base's images lead, so they survive the cap.
+	merged.imageUrls = filterAndSortImages(merged.imageUrls).slice(0, MAX_MERGED_IMAGES)
 
 	// purchaseVariants merges like imageUrls: union across all contributors,
 	// case-insensitive dedupe, base order preserved then runners-up in

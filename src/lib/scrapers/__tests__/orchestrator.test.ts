@@ -692,6 +692,18 @@ describe('orchestrate: running merge across tiers', () => {
 		expect(finals[0].rejected).toEqual([{ providerId: 't2', reason: 'title-mismatch' }])
 	})
 
+	it('does not report a same-product result that added nothing as rejected', async () => {
+		const t0 = makeProvider({ id: 't0', tier: 0, produces: structured('t0', { title: 'ACME Widget 2-pack', imageUrls: [photo] }) })
+		const t2 = makeProvider({ id: 't2', tier: 2, produces: structured('t2', { title: 'ACME Widget 2-pack', imageUrls: [photo] }) })
+		const finals: Array<Parameters<NonNullable<OrchestratorDeps['persistFinal']>>[0]> = []
+		await orchestrate(
+			{ url: 'https://example.test/x' },
+			makeDeps({ providers: [t0, t2], scoreFn, qualityThreshold: 8, persistFinal: rec => (finals.push(rec), Promise.resolve()) })
+		)
+		expect(finals[0].contributors).toEqual(['t0'])
+		expect(finals[0].rejected).toEqual([])
+	})
+
 	it('merges a parallel racer into the tier result', async () => {
 		const t1 = makeProvider({ id: 't1', tier: 1, produces: structured('t1', { title: 'ACME Widget 2-pack', imageUrls: [photo] }) })
 		const racer = makeRacer({ id: 'racer', produces: structured('racer', { title: 'ACME Widget 2-pack', price: '29.99', imageUrls: [] }) })
