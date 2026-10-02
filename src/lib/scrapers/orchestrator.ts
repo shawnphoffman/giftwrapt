@@ -1,7 +1,7 @@
 import { createLogger } from '@/lib/logger'
 
 import { isDeadLinkRedirect } from './dead-link'
-import { mergeWithinTier } from './merge'
+import { mergeContributions } from './merge'
 import { isSameProduct } from './same-product'
 import type {
 	MergeContribution,
@@ -35,7 +35,7 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 	const perProviderTimeoutMs = deps.perProviderTimeoutMs ?? DEFAULT_PER_PROVIDER_TIMEOUT_MS
 	const overallTimeoutMs = deps.overallTimeoutMs ?? DEFAULT_OVERALL_TIMEOUT_MS
 	const qualityThreshold = deps.qualityThreshold ?? DEFAULT_QUALITY_THRESHOLD
-	const mergeFn = deps.mergeFn ?? mergeWithinTier
+	const mergeFn = deps.mergeFn ?? mergeContributions
 	const sameProduct = deps.sameProduct ?? isSameProduct
 	const startedAt = Date.now()
 
@@ -51,9 +51,8 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 	const candidates = await selectProviders(deps.providers, options.providerOverride)
 
 	// Split into tiered providers (run in tier loop) and parallel racers
-	// (always run alongside the tier loop regardless of threshold). The
-	// `tier` field is undefined only for ai-provider in commit A; commit B
-	// removes the parallel-racer mode entirely.
+	// (providers with no tier, which run alongside the tier loop regardless
+	// of threshold). No shipped provider type uses racer mode today.
 	const tieredProviders: Array<ScrapeProvider> = candidates.filter(p => typeof p.tier === 'number')
 	const parallelRacers: Array<ScrapeProvider> = candidates.filter(p => typeof p.tier !== 'number')
 
@@ -129,7 +128,7 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 	const deadLinkRef = { seen: false }
 
 	// Each provider's success captures both its result and the score
-	// context (so a tier merge can re-score with a representative html
+	// context (so the running merge can re-score with a representative html
 	// body and status). Failures push attempts but produce no
 	// MergeContribution.
 	type ProviderRunResult =

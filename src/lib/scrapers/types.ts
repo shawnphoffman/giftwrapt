@@ -167,8 +167,8 @@ export type ScrapeProvider = {
 	// admin-configurable. When `tier` is undefined, the provider runs as a
 	// "parallel racer" alongside the tier loop and always contributes its
 	// result regardless of whether the tier loop already cleared the
-	// threshold. Used by `ai-provider` in commit A; in commit B `ai-provider`
-	// becomes a regular tiered entry and parallel-racer mode goes away.
+	// threshold. No shipped provider type uses racer mode today; AI and
+	// Stagehand are regular tiered entries.
 	readonly tier?: number
 	// Optional per-provider override for the orchestrator's per-attempt
 	// timeout. Undefined means the orchestrator falls back to its
@@ -203,11 +203,12 @@ export type StreamEvent =
 	| {
 			type: 'plan'
 			// Provider ids grouped by tier. The orchestrator runs each tier's
-			// providers in parallel, then merges results, then advances to the
-			// next tier only if the merge fell below qualityThreshold.
+			// providers in parallel, folds the results into one running merge
+			// across all tiers, and advances to the next tier only while that
+			// merge is below qualityThreshold.
 			tiers: Array<{ tier: number; providerIds: Array<string> }>
-			// Always-on parallel racers (currently just `ai-provider` in
-			// commit A; empty in commit B once it migrates).
+			// Providers with no tier, run alongside the tier loop. Empty for
+			// every shipped provider type.
 			parallelRacers: Array<string>
 			// Human-friendly label per provider id. Clients fall back to the id
 			// when a name isn't supplied. Custom-http entries always include
@@ -333,7 +334,7 @@ export type OrchestratorDeps = {
 	postProcessResult?: (result: ScrapeResult, ctx: { url: string; fromProvider: string }) => Promise<ScrapeResult>
 	// Optional merge function used to combine succeeded results into a
 	// single fill-the-gaps result. The orchestrator keeps one running merge
-	// across every tier and racer. Defaults to the shipped `mergeWithinTier`
+	// across every tier and racer. Defaults to the shipped `mergeContributions`
 	// from `lib/scrapers/merge.ts`; tests inject their own to assert
 	// behavior in isolation.
 	mergeFn?: (contributions: Array<MergeContribution>) => MergedResult
@@ -364,8 +365,8 @@ export type FinalScrapeRecord = {
 }
 
 // Inputs to `mergeFn`. Each contribution is one provider's successful
-// attempt within a tier; the orchestrator hands them in score-descending
-// order so the merge function can use index 0 as the base.
+// attempt (from any tier or racer) that passed the consistency guard;
+// the merge function sorts by score and uses the highest as the base.
 export type MergeContribution = {
 	result: ScrapeResult
 	fromProvider: string

@@ -1,5 +1,7 @@
-// Fill-the-gaps merge of multiple per-provider ScrapeResult contributions
-// from one tier of the orchestrator. The highest-scoring contribution
+// Fill-the-gaps merge of per-provider ScrapeResult contributions. The
+// orchestrator keeps one running merge of every successful attempt across
+// all tiers and racers (after its consistency guard), and re-merges with
+// this whenever a new attempt succeeds. The highest-scoring contribution
 // becomes the "base" and any field it leaves empty is filled from
 // runners-up in score-descending order (first non-empty wins).
 //
@@ -31,7 +33,7 @@ const NUMERIC_FIELDS = ['ratingValue', 'ratingCount'] as const
 // Cap on the merged image list (the add form's candidate picker).
 export const MAX_MERGED_IMAGES = 12
 
-export function mergeWithinTier(contributions: ReadonlyArray<MergeContribution>): MergedResult {
+export function mergeContributions(contributions: ReadonlyArray<MergeContribution>): MergedResult {
 	if (contributions.length === 0) {
 		// Caller shouldn't call us here; produce a sane empty result so
 		// nothing crashes if they do.
