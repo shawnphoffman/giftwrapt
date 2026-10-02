@@ -8,7 +8,7 @@ import { and, arrayOverlaps, asc, desc, eq, inArray, ne, notInArray, or, sql } f
 import { z } from 'zod'
 
 import { db, type SchemaDatabase } from '@/db'
-import { giftContributions, giftedItems, itemGroups, items, lists, users } from '@/db/schema'
+import { giftContributions, giftedItems, items, lists, users } from '@/db/schema'
 import type { GiftedItem } from '@/db/schema/gifts'
 import { evenUnitShare, parseTotalCost, unitCount } from '@/lib/contributions'
 import { computeRemainingClaimableQuantity } from '@/lib/gifts'
@@ -207,10 +207,17 @@ export async function claimItemGiftImpl(args: {
 		if (!view.ok) return { kind: 'error', reason: 'not-visible' }
 
 		if (lockedItem.group_id !== null) {
-			const group = await tx.query.itemGroups.findFirst({
-				where: eq(itemGroups.id, lockedItem.group_id),
-				columns: { id: true, type: true },
-			})
+			// Lock the group row too. The item lock only serializes claims on
+			// THIS item; two claims on different items of the same 'or' group
+			// would otherwise both read "no sibling claimed" and both insert.
+			// Holding the group lock makes every claim in the group take turns,
+			// and each sibling read below then sees the previous claim committed.
+			// Lock order is always item then group, so this cannot deadlock.
+			// Covered by gifts.claim-race.pg.test.ts (`pnpm test:pg`).
+			const lockedGroups = (await tx.execute(sql`SELECT id, type FROM item_groups WHERE id = ${lockedItem.group_id} FOR UPDATE`)) as {
+				rows: Array<{ id: number; type: 'or' | 'order' }>
+			}
+			const group = lockedGroups.rows.at(0)
 
 			if (group) {
 				if (group.type === 'or') {

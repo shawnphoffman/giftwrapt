@@ -26,6 +26,7 @@
 		"serve": "vite preview",
 		"test": "vitest run --project unit --project storybook",
 		"test:integration": "vitest run --project integration",
+		"test:pg": "vitest run --project pg",
 		"test:all": "vitest run",
 		"lint": "eslint",
 		"format": "prettier",

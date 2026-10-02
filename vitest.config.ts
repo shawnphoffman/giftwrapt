@@ -24,7 +24,7 @@ export default defineConfig({
 					name: 'unit',
 					environment: 'node',
 					include: ['src/**/*.{test,spec}.{ts,tsx}'],
-					exclude: ['**/node_modules/**', '**/dist/**', '.claude/**', 'src/**/*.integration.test.ts'],
+					exclude: ['**/node_modules/**', '**/dist/**', '.claude/**', 'src/**/*.integration.test.ts', 'src/**/*.pg.test.ts'],
 					// @t3-oss/env-core validates env at module load. Some unit tests
 					// transitively import modules that touch `@/env`; supplying
 					// synthetic values here keeps validation from blowing up
@@ -54,6 +54,27 @@ export default defineConfig({
 						BETTER_AUTH_SECRET: 'integration-test-secret',
 						// CRON_SECRET requires >=32 chars per env.ts validator.
 						CRON_SECRET: 'integration-test-cron-secret-padding-x',
+						LOG_LEVEL: 'silent',
+					},
+				},
+			},
+			{
+				// Real-Postgres tests for behavior PGlite cannot stage: two
+				// transactions contending on row locks need two connections.
+				// Local-only (`pnpm test:pg`), not part of `pnpm test`,
+				// `test:integration`, or CI. Each file skips itself unless
+				// TEST_PG_URL points at a server it may create throwaway
+				// databases on (the docker-compose postgres works).
+				extends: true,
+				test: {
+					name: 'pg',
+					environment: 'node',
+					include: ['src/**/__tests__/**/*.pg.test.ts'],
+					testTimeout: 60_000,
+					hookTimeout: 120_000,
+					env: {
+						DATABASE_URL: 'postgres://test/test',
+						BETTER_AUTH_SECRET: 'pg-test-secret',
 						LOG_LEVEL: 'silent',
 					},
 				},
