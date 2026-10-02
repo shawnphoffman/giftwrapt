@@ -3,10 +3,11 @@
 // `mcp()` plugin (never the session cookie), and the whole surface goes
 // dark when the `enableMcp` setting is off.
 //
-// Top-level imports stay client-safe: `routeTree.gen.ts` imports this
-// file, and the Hono app pulls in better-auth, drizzle, and the MCP SDK,
-// so it is loaded lazily inside the handlers exactly like
-// `src/routes/api/mobile/$.ts`.
+// The Hono app pulls in better-auth, drizzle, and the MCP SDK, so it is
+// loaded lazily inside the handlers exactly like
+// `src/routes/api/mobile/$.ts`: the SDK only loads when an assistant
+// connects, not on every server cold start. (The client bundle is not the
+// concern; TanStack Start strips server handlers from it.)
 
 import { createFileRoute } from '@tanstack/react-router'
 

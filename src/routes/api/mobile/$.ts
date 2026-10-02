@@ -3,12 +3,13 @@
 // its own auth middleware, separate from the web's TanStack server-fn
 // stack).
 //
-// This file's top-level imports are intentionally minimal and
-// client-safe: `routeTree.gen.ts` imports it, so anything pulled in here
-// ships to the browser. The Hono app itself - including the better-auth
-// import chain and every server-only impl - is loaded via dynamic
-// `import()` inside the handler bodies, which Vite emits as separate
-// chunks that are never fetched by the client.
+// The Hono app - including the better-auth import chain and every
+// server-only impl - is loaded via dynamic `import()` inside the handler
+// bodies so it lands in its own server chunk and loads on the first mobile
+// request rather than on every server cold start. This is not what keeps it
+// out of the browser: TanStack Start strips `server.handlers` from the
+// client build, and the SSE routes import db and auth statically without
+// any of it reaching the client bundle (verified against `.output/public`).
 //
 // Versioning lives inside the Hono app (`app.route('/v1', v1)`), not in
 // this file's URL. The mobile app pins to a major version; new versions
