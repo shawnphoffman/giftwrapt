@@ -47,6 +47,11 @@ const DEFAULT_MESSAGES: Partial<Record<string, string>> = {
 	'not-owner': 'Only the owner can do that.',
 	'child-cannot-create-gift-ideas': 'Children can’t create gift-ideas lists.',
 	'invalid-type': 'Invalid list type.',
+	// Scrape failures (`GET /v1/scrape`, 502 with `data.attempts`).
+	'dead-link': 'This link is no longer valid.',
+	'all-providers-failed': 'The page could not be read.',
+	timeout: 'Reading the page took too long.',
+	'no-providers-available': 'No scraper is configured on this server.',
 	'internal-error': 'Something went wrong.',
 }
 

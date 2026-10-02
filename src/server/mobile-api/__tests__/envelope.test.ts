@@ -38,6 +38,13 @@ describe('buildError', () => {
 		const env = buildError('not-found', { message: 'Custom copy.' })
 		expect(env.error.message).toBe('Custom copy.')
 	})
+
+	it('gives every scrape failure code its own message', () => {
+		expect(buildError('dead-link').error.message).toBe('This link is no longer valid.')
+		for (const code of ['all-providers-failed', 'timeout', 'no-providers-available']) {
+			expect(buildError(code).error.message, code).not.toBe('Request failed.')
+		}
+	})
 })
 
 describe('jsonError', () => {
