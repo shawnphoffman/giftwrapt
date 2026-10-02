@@ -6,7 +6,7 @@ vi.mock('@/env', () => ({
 
 import type { Database } from '@/db'
 
-import { buildResponseJson, loadCachedScrape, persistScrapeAttempt } from '../cache'
+import { buildResponseJson, loadCachedScrape, persistFinalScrape, persistScrapeAttempt } from '../cache'
 
 // ---------------------------------------------------------------------------
 // Mock database
@@ -330,5 +330,47 @@ describe('buildResponseJson', () => {
 
 	it('still records the breakdown when there is no raw response', () => {
 		expect(buildResponseJson(undefined, parts)).toEqual({ scoreParts: parts })
+	})
+})
+
+describe('persistFinalScrape', () => {
+	const base = {
+		url: 'https://x.test/y',
+		fromProvider: 'merged:fetch-provider,browserbase-fetch:abc',
+		score: 9,
+		ms: 3200,
+		contributors: ['fetch-provider', 'browserbase-fetch:abc'],
+		rejected: [{ providerId: 'ai:xyz', reason: 'title-mismatch' }],
+	}
+
+	it('writes a final row with the merged fields and the cleaned title split out', async () => {
+		await persistFinalScrape(fakeDb, {
+			...base,
+			itemId: 3,
+			userId: 'u1',
+			result: { title: 'Amazon.com: ACME Widget', price: '29.99', currency: 'USD', imageUrls: ['https://cdn.test/a.jpg'] },
+			finalResult: { title: 'ACME Widget', price: '29.99', currency: 'USD', imageUrls: ['https://cdn.test/a.jpg'] },
+		})
+		const row = insertCalls[0]
+		expect(row).toMatchObject({
+			itemId: 3,
+			userId: 'u1',
+			scraperId: 'merged:fetch-provider,browserbase-fetch:abc',
+			ok: true,
+			isFinal: true,
+			score: 9,
+			ms: 3200,
+			title: 'Amazon.com: ACME Widget',
+			cleanTitle: 'ACME Widget',
+			price: '29.99',
+			imageUrls: ['https://cdn.test/a.jpg'],
+		})
+		expect(row.response).toBeDefined()
+	})
+
+	it('leaves cleanTitle null when the post-pass kept the title', async () => {
+		const result = { title: 'ACME Widget', imageUrls: [] }
+		await persistFinalScrape(fakeDb, { ...base, result, finalResult: result })
+		expect(insertCalls[0].cleanTitle).toBeNull()
 	})
 })

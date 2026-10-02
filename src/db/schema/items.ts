@@ -179,6 +179,13 @@ export const itemScrapes = pgTable(
 		// re-parsing the raw response.
 		ratingValue: real('rating_value'),
 		ratingCount: integer('rating_count'),
+		// True for the one row per scrape run that holds the orchestrator's
+		// final merged result (every tier and racer that passed the
+		// consistency guard, after the title post-pass). All other rows are
+		// per-provider attempts. The URL cache prefers final rows; provider
+		// health stats skip them. `scraperId` is the merge label, e.g.
+		// `merged:fetch-provider,browserbase-fetch:abc`.
+		isFinal: boolean('is_final').default(false).notNull(),
 		...timestamps,
 	},
 	table => [

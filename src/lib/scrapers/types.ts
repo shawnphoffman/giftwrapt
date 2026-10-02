@@ -322,11 +322,36 @@ export type OrchestratorDeps = {
 	// for the AI title-cleanup pass; failures are swallowed so a flaky LLM
 	// can't blow up an otherwise-successful scrape.
 	postProcessResult?: (result: ScrapeResult, ctx: { url: string; fromProvider: string }) => Promise<ScrapeResult>
-	// Optional merge function used to combine multiple succeeded results
-	// within a tier into a single fill-the-gaps result. Defaults to the
-	// shipped `mergeWithinTier` from `lib/scrapers/merge.ts`; tests inject
-	// their own to assert behavior in isolation.
+	// Optional merge function used to combine succeeded results into a
+	// single fill-the-gaps result. The orchestrator keeps one running merge
+	// across every tier and racer. Defaults to the shipped `mergeWithinTier`
+	// from `lib/scrapers/merge.ts`; tests inject their own to assert
+	// behavior in isolation.
 	mergeFn?: (contributions: Array<MergeContribution>) => MergedResult
+	// Optional consistency guard: may `candidate` fill gaps in a merge whose
+	// base is `base`? Defaults to `isSameProduct` from
+	// `lib/scrapers/same-product.ts`.
+	sameProduct?: (base: ScrapeResult, candidate: ScrapeResult) => { ok: true } | { ok: false; reason: string }
+	// Optional persistence hook for the final merged result, called once per
+	// non-cached successful run after the post-pass. `result` is the merge
+	// before the post-pass, `finalResult` after it (e.g. with a cleaned
+	// title). The cache reads these rows.
+	persistFinal?: (record: FinalScrapeRecord) => Promise<void>
+}
+
+export type FinalScrapeRecord = {
+	itemId?: number
+	url: string
+	fromProvider: string
+	score: number
+	ms: number
+	result: ScrapeResult
+	finalResult: ScrapeResult
+	scoreParts?: ScoreBreakdown['parts']
+	// Providers whose results joined the merge, in score order.
+	contributors: Array<string>
+	// Successful providers the consistency guard kept out of the merge.
+	rejected: Array<{ providerId: string; reason: string }>
 }
 
 // Inputs to `mergeFn`. Each contribution is one provider's successful

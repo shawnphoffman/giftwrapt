@@ -20,6 +20,8 @@ export type ScrapeListRow = {
 	url: string
 	scraperId: string
 	ok: boolean
+	// The run's final merged result rather than one provider's attempt.
+	isFinal: boolean
 	score: number | null
 	ms: number | null
 	errorCode: string | null
@@ -46,6 +48,7 @@ export const listScrapesAsAdmin = createServerFn({ method: 'GET' })
 				url: itemScrapes.url,
 				scraperId: itemScrapes.scraperId,
 				ok: itemScrapes.ok,
+				isFinal: itemScrapes.isFinal,
 				score: itemScrapes.score,
 				ms: itemScrapes.ms,
 				errorCode: itemScrapes.errorCode,
@@ -98,6 +101,7 @@ export const getScrapeDetailAsAdmin = createServerFn({ method: 'GET' })
 				url: itemScrapes.url,
 				scraperId: itemScrapes.scraperId,
 				ok: itemScrapes.ok,
+				isFinal: itemScrapes.isFinal,
 				score: itemScrapes.score,
 				ms: itemScrapes.ms,
 				errorCode: itemScrapes.errorCode,
@@ -192,7 +196,8 @@ export const getScrapeStatsAsAdmin = createServerFn({ method: 'GET' })
 					p95Ms: sql<number | null>`(percentile_cont(0.95) within group (order by ${itemScrapes.ms}))::float8`,
 				})
 				.from(itemScrapes)
-				.where(gte(itemScrapes.createdAt, since))
+				// Final rows are a run's merged result, not a provider attempt.
+				.where(and(gte(itemScrapes.createdAt, since), eq(itemScrapes.isFinal, false)))
 				.groupBy(itemScrapes.scraperId)
 				.orderBy(desc(count())),
 			db

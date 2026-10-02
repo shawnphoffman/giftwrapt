@@ -106,6 +106,13 @@
       "when": 1790810952977,
       "tag": "0014_graceful_ironclad",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1790902425598,
+      "tag": "0015_gray_exiles",
+      "breakpoints": true
     }
   ]
 }

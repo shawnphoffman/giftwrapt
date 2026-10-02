@@ -628,3 +628,128 @@ describe('orchestrate: timeout', () => {
 		if (result.kind === 'error') expect(result.reason).toBe('timeout')
 	})
 })
+
+// ---------------------------------------------------------------------------
+// Cross-tier merge (plan 21d)
+// ---------------------------------------------------------------------------
+
+describe('orchestrate: running merge across tiers', () => {
+	const photo = 'https://cdn.example.test/hero.jpg'
+	// Mirrors the real weights closely enough: title + price + photo clears 8.
+	const scoreFn = (r: ScrapeResult) => (r.title ? 2 : 0) + (r.price ? 3 : 0) + (r.imageUrls.length > 0 ? 3 : 0)
+
+	it("keeps tier 0's photo when a later tier supplies the price", async () => {
+		const t0 = makeProvider({ id: 't0', tier: 0, produces: structured('t0', { title: 'ACME Widget 2-pack', imageUrls: [photo] }) })
+		const t2 = makeProvider({
+			id: 't2',
+			tier: 2,
+			produces: structured('t2', { title: 'ACME Widget 2-pack', price: '29.99', imageUrls: ['https://cdn.example.test/other.jpg'] }),
+		})
+		const result = await orchestrate({ url: 'https://example.test/x' }, makeDeps({ providers: [t0, t2], scoreFn, qualityThreshold: 8 }))
+		if (result.kind !== 'ok') throw new Error('expected ok')
+		expect(result.result.price).toBe('29.99')
+		// t2 scored higher (8 vs 5), so it is the base and its photo leads;
+		// t0's photo is still in the pool.
+		expect(result.result.imageUrls).toEqual(['https://cdn.example.test/other.jpg', photo])
+		expect(result.fromProvider).toBe('merged:t2,t0')
+	})
+
+	it('fills the price from a lower-scoring later tier', async () => {
+		const t0 = makeProvider({ id: 't0', tier: 0, produces: structured('t0', { title: 'ACME Widget 2-pack', imageUrls: [photo] }) })
+		const t2 = makeProvider({
+			id: 't2',
+			tier: 2,
+			produces: structured('t2', { title: 'ACME Widget 2-pack', price: '29.99', imageUrls: [] }),
+		})
+		const { events, emit } = recordEmitter()
+		const result = await orchestrate(
+			{ url: 'https://example.test/x' },
+			makeDeps({ providers: [t0, t2], scoreFn, qualityThreshold: 8, emit })
+		)
+		if (result.kind !== 'ok') throw new Error('expected ok')
+		expect(result.result).toMatchObject({ title: 'ACME Widget 2-pack', price: '29.99', imageUrls: [photo] })
+		const tier2 = events.find(e => e.type === 'tier_completed' && e.tier === 2)
+		expect(tier2).toMatchObject({ mergedScore: 8, contributors: ['t2'], cleared: true })
+	})
+
+	it('keeps a different product out of the merge and records why', async () => {
+		const t0 = makeProvider({ id: 't0', tier: 0, produces: structured('t0', { title: 'ACME Widget 2-pack', imageUrls: [photo] }) })
+		const t2 = makeProvider({
+			id: 't2',
+			tier: 2,
+			produces: structured('t2', { title: 'Bread Pot Sourdough Baker', price: '149.95', imageUrls: [] }),
+		})
+		const finals: Array<Parameters<NonNullable<OrchestratorDeps['persistFinal']>>[0]> = []
+		const result = await orchestrate(
+			{ url: 'https://example.test/x' },
+			makeDeps({ providers: [t0, t2], scoreFn, qualityThreshold: 8, persistFinal: rec => (finals.push(rec), Promise.resolve()) })
+		)
+		if (result.kind !== 'ok') throw new Error('expected ok')
+		expect(result.result.price).toBeUndefined()
+		expect(result.fromProvider).toBe('t0')
+		expect(finals).toHaveLength(1)
+		expect(finals[0].contributors).toEqual(['t0'])
+		expect(finals[0].rejected).toEqual([{ providerId: 't2', reason: 'title-mismatch' }])
+	})
+
+	it('merges a parallel racer into the tier result', async () => {
+		const t1 = makeProvider({ id: 't1', tier: 1, produces: structured('t1', { title: 'ACME Widget 2-pack', imageUrls: [photo] }) })
+		const racer = makeRacer({ id: 'racer', produces: structured('racer', { title: 'ACME Widget 2-pack', price: '29.99', imageUrls: [] }) })
+		const result = await orchestrate({ url: 'https://example.test/x' }, makeDeps({ providers: [t1, racer], scoreFn, qualityThreshold: 8 }))
+		if (result.kind !== 'ok') throw new Error('expected ok')
+		expect(result.result).toMatchObject({ price: '29.99', imageUrls: [photo] })
+	})
+})
+
+describe('orchestrate: persistFinal', () => {
+	it('persists the merge once, with the post-pass result alongside the pre-pass one', async () => {
+		const p = makeProvider({ id: 'p', tier: 1, produces: structured('p', { title: 'Amazon.com: ACME Widget', imageUrls: [] }) })
+		const finals: Array<Parameters<NonNullable<OrchestratorDeps['persistFinal']>>[0]> = []
+		await orchestrate(
+			{ url: 'https://example.test/x', itemId: 7 },
+			makeDeps({
+				providers: [p],
+				explainScore: () => ({ total: 5, parts: [{ signal: 'title', points: 2 }] }),
+				postProcessResult: r => Promise.resolve({ ...r, title: 'ACME Widget' }),
+				persistFinal: rec => (finals.push(rec), Promise.resolve()),
+			})
+		)
+		expect(finals).toHaveLength(1)
+		expect(finals[0]).toMatchObject({
+			itemId: 7,
+			url: 'https://example.test/x',
+			fromProvider: 'p',
+			score: 5,
+			contributors: ['p'],
+			rejected: [],
+			scoreParts: [{ signal: 'title', points: 2 }],
+		})
+		expect(finals[0].result.title).toBe('Amazon.com: ACME Widget')
+		expect(finals[0].finalResult.title).toBe('ACME Widget')
+	})
+
+	it('does not persist a final row on a cache hit or when every provider fails', async () => {
+		const persistFinal = vi.fn(() => Promise.resolve())
+		await orchestrate(
+			{ url: 'https://example.test/x' },
+			makeDeps({
+				providers: [makeProvider({ id: 'p', tier: 1 })],
+				loadCache: () => Promise.resolve({ result: { title: 'cached', imageUrls: [] }, fromProvider: 'p' }),
+				persistFinal,
+			})
+		)
+		await orchestrate(
+			{ url: 'https://example.test/x' },
+			makeDeps({ providers: [makeProvider({ id: 'bad', tier: 1, produces: new ScrapeProviderError('timeout') })], persistFinal })
+		)
+		expect(persistFinal).not.toHaveBeenCalled()
+	})
+
+	it('still returns the result when persisting the final row throws', async () => {
+		const result = await orchestrate(
+			{ url: 'https://example.test/x' },
+			makeDeps({ providers: [makeProvider({ id: 'p', tier: 1 })], persistFinal: () => Promise.reject(new Error('db down')) })
+		)
+		expect(result.kind).toBe('ok')
+	})
+})

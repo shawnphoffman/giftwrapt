@@ -7,13 +7,16 @@ import { extractFromRaw } from './extractor'
 import { maybeCleanTitle } from './post-passes/clean-title'
 import type { ScoreBreakdown } from './score'
 import { CACHE_MIN_SCORE, scoreBreakdown, scoreScrape } from './score'
-import type { ScrapeResult } from './types'
+import type { FinalScrapeRecord, ScrapeResult } from './types'
 
-// URL-based dedup against `itemScrapes`. Returns the best-scoring successful
-// scrape of the same URL within `ttlHours` at or above `minScore`, newest
-// first on ties. Best rather than newest: once the orchestrator falls
-// through tiers, the last attempt to finish is often a weaker one (a later
-// tier that hit a captcha), and it must not hide the attempt that won.
+// URL-based dedup against `itemScrapes`. Returns the final merged row of the
+// best recent run of the same URL within `ttlHours` at or above `minScore`.
+// Final rows (`isFinal`) hold the whole run's merge, so they win over any
+// single attempt; attempt rows are only a fallback for runs persisted before
+// final rows existed. Within each kind, best score first, then newest: once
+// the orchestrator falls through tiers, the last attempt to finish is often
+// a weaker one (a later tier that hit a captcha), and it must not hide the
+// one that won.
 //
 // Storage is jsonb (`response` column). When we wrote the row, the
 // orchestrator persisted the structured ScrapeResult under the providerId
@@ -46,7 +49,7 @@ export async function loadCachedScrape(
 		.where(
 			and(eq(itemScrapes.url, url), eq(itemScrapes.ok, true), gte(itemScrapes.createdAt, since), gte(itemScrapes.score, options.minScore))
 		)
-		.orderBy(desc(itemScrapes.score), desc(itemScrapes.createdAt))
+		.orderBy(desc(itemScrapes.isFinal), desc(itemScrapes.score), desc(itemScrapes.createdAt))
 		.limit(1)
 	if (rows.length === 0) return null
 	const row = rows[0]
@@ -156,6 +159,43 @@ export async function backfillCleanTitle(db: Database, params: { url: string; or
 		)
 }
 
+// Persists the orchestrator's final merged result as its own row, flagged
+// `isFinal`. `title` keeps the merged title and `cleanTitle` the post-pass
+// title when it differs, mirroring how attempt rows store a cleaned title.
+// The response jsonb records which providers joined the merge and which the
+// consistency guard kept out, for /admin/scrapes.
+export async function persistFinalScrape(db: Database, record: FinalScrapeRecord & { userId?: string }): Promise<void> {
+	const { result, finalResult } = record
+	const cleanTitle = finalResult.title && finalResult.title !== result.title ? finalResult.title : null
+	const response = {
+		kind: 'final',
+		contributors: record.contributors,
+		rejected: record.rejected,
+		...(record.scoreParts ? { scoreParts: record.scoreParts } : {}),
+	}
+	await db.insert(itemScrapes).values({
+		itemId: record.itemId ?? null,
+		userId: record.userId ?? null,
+		url: record.url,
+		scraperId: record.fromProvider,
+		ok: true,
+		isFinal: true,
+		score: record.score,
+		ms: record.ms,
+		errorCode: null,
+		response: sql`${JSON.stringify(response)}::jsonb`,
+		title: result.title ?? null,
+		cleanTitle,
+		description: finalResult.description ?? null,
+		price: finalResult.price ?? null,
+		currency: finalResult.currency ?? null,
+		imageUrls: finalResult.imageUrls,
+		purchaseVariants: finalResult.purchaseVariants ?? null,
+		ratingValue: finalResult.ratingValue ?? null,
+		ratingCount: finalResult.ratingCount ?? null,
+	})
+}
+
 // Convenience wrapper: build the orchestrator deps that point at this DB,
 // pre-wiring extraction + scoring + cache + persistence + the AI title
 // post-pass (which is itself toggle-gated, so it's a no-op when off).
@@ -171,6 +211,7 @@ export function buildDbBackedDeps(db: Database, options: { ttlHours: number; min
 		explainScore: scoreBreakdown,
 		loadCache: (url: string) => loadCachedScrape(db, url, cacheOptions),
 		persistAttempt: (record: Parameters<typeof persistScrapeAttempt>[1]) => persistScrapeAttempt(db, { ...record, userId: options.userId }),
+		persistFinal: (record: FinalScrapeRecord) => persistFinalScrape(db, { ...record, userId: options.userId }),
 		postProcessResult: async (result: ScrapeResult, ctx: { url: string; fromProvider: string }) => {
 			const outcome = await maybeCleanTitle(db, result, { url: ctx.url })
 			if (outcome.cleaned && result.title && outcome.cleaned !== result.title) {

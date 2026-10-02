@@ -130,7 +130,14 @@ function ScrapeRow({ row, labelFor, onInspect }: { row: ScrapeListRow; labelFor:
 					</a>
 				</div>
 			</TableCell>
-			<TableCell className="font-mono text-xs">{providerLabel}</TableCell>
+			<TableCell className="font-mono text-xs">
+				{row.isFinal && (
+					<Badge variant="outline" className="mr-1.5 text-[10px] font-sans" title="The run's final merged result">
+						Result
+					</Badge>
+				)}
+				{providerLabel}
+			</TableCell>
 			<TableCell className="whitespace-nowrap text-xs">
 				{outcome}
 				{typeof row.ms === 'number' && <span className="ml-2 text-muted-foreground">{formatDurationMs(row.ms)}</span>}

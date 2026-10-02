@@ -1,6 +1,7 @@
 import { createLogger } from '@/lib/logger'
 
 import { mergeWithinTier } from './merge'
+import { isSameProduct } from './same-product'
 import type {
 	MergeContribution,
 	OrchestrateOptions,
@@ -34,6 +35,8 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 	const overallTimeoutMs = deps.overallTimeoutMs ?? DEFAULT_OVERALL_TIMEOUT_MS
 	const qualityThreshold = deps.qualityThreshold ?? DEFAULT_QUALITY_THRESHOLD
 	const mergeFn = deps.mergeFn ?? mergeWithinTier
+	const sameProduct = deps.sameProduct ?? isSameProduct
+	const startedAt = Date.now()
 
 	if (!isValidScrapeUrl(options.url)) {
 		emit({ type: 'error', reason: 'invalid-url' })
@@ -100,8 +103,24 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 	}
 
 	const attempts: Array<ScrapeAttempt> = []
-	type Winner = { result: ScrapeResult; fromProvider: string; score: number; scoreContext: { html?: string; status?: number } }
+	type ScoreContext = { html?: string; status?: number }
+	type Winner = {
+		result: ScrapeResult
+		fromProvider: string
+		score: number
+		scoreContext: ScoreContext
+		contributors: Array<string>
+	}
 	const winnerRef: { current: Winner | null } = { current: null }
+	// Every successful attempt so far, across all tiers and racers. The
+	// winner is always a merge of these, never a single tier's result, so
+	// falling through to a later tier never throws away an earlier tier's
+	// data (tier 0's photos survive a tier-2 win on price).
+	type Success = MergeContribution & { scoreContext: ScoreContext }
+	const successes: Array<Success> = []
+	// Latest consistency-guard verdict per provider that was kept out of a
+	// merge. Read at the end for every success the winner doesn't include.
+	const rejectionReasons = new Map<string, string>()
 
 	// Each provider's success captures both its result and the score
 	// context (so a tier merge can re-score with a representative html
@@ -194,26 +213,68 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 			emit({ type: 'result_ready', result: candidate.result, fromProvider: candidate.fromProvider, cached: false })
 			return
 		}
-		if (candidate.score > current.score) {
-			winnerRef.current = candidate
-			emit({ type: 'result_updated', result: candidate.result, fromProvider: candidate.fromProvider })
+		// The running merge only gains contributions, so an equal score
+		// usually means more data (another photo, a filled field). A lower
+		// score means a new, higher-ranked base dropped something the old
+		// merge had; keep the old one.
+		if (candidate.score < current.score) return
+		if (candidate.fromProvider === current.fromProvider && JSON.stringify(candidate.result) === JSON.stringify(current.result)) return
+		winnerRef.current = candidate
+		emit({ type: 'result_updated', result: candidate.result, fromProvider: candidate.fromProvider })
+	}
+
+	// Rebuilds the running merge from every success so far and offers it as
+	// the winner. The base is the highest-scoring result (first on ties);
+	// the rest fill its gaps only if the consistency guard says they
+	// describe the same product.
+	const remerge = (): void => {
+		if (successes.length === 0) return
+		const sorted = [...successes].sort((a, b) => b.score - a.score)
+		const base = sorted[0]
+		const accepted: Array<Success> = [base]
+		for (const s of sorted.slice(1)) {
+			const verdict = sameProduct(base.result, s.result)
+			if (verdict.ok) {
+				accepted.push(s)
+			} else {
+				rejectionReasons.set(s.fromProvider, verdict.reason)
+				log.info(
+					{ base: base.fromProvider, provider: s.fromProvider, reason: verdict.reason },
+					'consistency guard kept a result out of the merge'
+				)
+			}
 		}
+		const merged = mergeFn(accepted.map(s => ({ result: s.result, fromProvider: s.fromProvider, score: s.score })))
+		const scoreContext = pickBestScoreContext(accepted)
+		considerWinner({
+			result: merged.result,
+			fromProvider: merged.fromProvider,
+			score: deps.scoreFn(merged.result, scoreContext),
+			scoreContext,
+			contributors: mergedFromProviderToContributors(merged.fromProvider),
+		})
+	}
+
+	const recordSuccess = (res: Extract<ProviderRunResult, { ok: true }>): void => {
+		successes.push({ result: res.result, fromProvider: res.providerId, score: res.score, scoreContext: res.scoreContext })
 	}
 
 	// Kick off the always-on parallel racers concurrently with the tier
 	// loop. They keep firing regardless of whether tier 1 wins; their
-	// results compete with the tier-loop winner via `considerWinner`.
+	// results join the running merge like any tier's.
 	const racerPromises = parallelRacers.map(p =>
 		runProvider(p).then(res => {
 			if (res.ok) {
-				considerWinner({ result: res.result, fromProvider: res.providerId, score: res.score, scoreContext: res.scoreContext })
+				recordSuccess(res)
+				remerge()
 			}
 		})
 	)
 
 	// Tier loop. Each tier fires all its providers in parallel, waits for
-	// settle, merges the successes, re-scores the merge, and only advances
-	// to the next tier when the merged score is below qualityThreshold.
+	// settle, folds the successes into the running merge, re-scores it, and
+	// only advances to the next tier when the merged score is below
+	// qualityThreshold.
 	const reachedTiers = new Set<number>()
 	try {
 		for (const tier of tierOrder) {
@@ -224,42 +285,29 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 			reachedTiers.add(tier)
 
 			const settled = await Promise.allSettled(tierProviders.map(runProvider))
-			const successes: Array<MergeContribution & { scoreContext: { html?: string; status?: number } }> = []
+			let tierSucceeded = false
 			for (const s of settled) {
-				if (s.status !== 'fulfilled') continue
-				const r = s.value
-				if (!r.ok) continue
-				successes.push({
-					result: r.result,
-					fromProvider: r.providerId,
-					score: r.score,
-					scoreContext: r.scoreContext,
-				})
+				if (s.status !== 'fulfilled' || !s.value.ok) continue
+				recordSuccess(s.value)
+				tierSucceeded = true
 			}
 
-			if (successes.length === 0) {
+			if (!tierSucceeded) {
 				emit({ type: 'tier_completed', tier, mergedScore: null, contributors: [], cleared: false })
 				continue
 			}
 
-			// Merge succeeded contributions, then re-score the merged
-			// result. Use the highest-scoring contributor's score context
-			// for the re-score (best signal for the bot-block penalty).
-			const merged = mergeFn(successes.map(s => ({ result: s.result, fromProvider: s.fromProvider, score: s.score })))
-			const scoreContext = pickBestScoreContext(successes)
-			const mergedScore = deps.scoreFn(merged.result, scoreContext)
-
-			const contributorIds = mergedFromProviderToContributors(merged.fromProvider)
-			const cleared = mergedScore >= qualityThreshold
-
-			considerWinner({
-				result: merged.result,
-				fromProvider: merged.fromProvider,
-				score: mergedScore,
-				scoreContext,
+			remerge()
+			const winner = winnerRef.current!
+			const tierIds = new Set(tierProviders.map(p => p.id))
+			const cleared = winner.score >= qualityThreshold
+			emit({
+				type: 'tier_completed',
+				tier,
+				mergedScore: winner.score,
+				contributors: winner.contributors.filter(id => tierIds.has(id)),
+				cleared,
 			})
-
-			emit({ type: 'tier_completed', tier, mergedScore, contributors: contributorIds, cleared })
 
 			if (cleared) break
 		}
@@ -295,6 +343,26 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 
 	const final = winnerRef.current
 	if (final) {
+		if (deps.persistFinal && beforePost) {
+			try {
+				await deps.persistFinal({
+					itemId: options.itemId,
+					url: options.url,
+					fromProvider: beforePost.fromProvider,
+					score: beforePost.score,
+					ms: Date.now() - startedAt,
+					result: beforePost.result,
+					finalResult: final.result,
+					scoreParts: deps.explainScore?.(beforePost.result, beforePost.scoreContext).parts,
+					contributors: beforePost.contributors,
+					rejected: successes
+						.filter(s => !beforePost.contributors.includes(s.fromProvider))
+						.map(s => ({ providerId: s.fromProvider, reason: rejectionReasons.get(s.fromProvider) ?? 'not-merged' })),
+				})
+			} catch (err) {
+				log.warn({ err }, 'persisting the final result failed; the live result is unaffected')
+			}
+		}
 		emit({ type: 'done', attempts })
 		return {
 			kind: 'ok',
