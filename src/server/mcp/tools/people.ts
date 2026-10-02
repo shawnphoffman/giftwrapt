@@ -8,6 +8,9 @@ import type { ToolContext } from '../context'
 import { toolOk } from '../errors'
 import { birthdayString, daysUntilBirthday, lines, plural } from '../format'
 import { defineTool } from '../server'
+import { pageInput, pageLine, pageSchema, paginate } from '../shapes'
+
+const PEOPLE_PAGE = 100
 
 const publicListSchema = z.object({
 	id: z.number(),
@@ -53,10 +56,10 @@ export function registerPeopleTools(server: McpServer, ctx: ToolContext): void {
 		title: 'People I Can Shop For',
 		description:
 			'Everyone whose lists the user can see and shop from: family, friends, children, and dependents (pets, babies), each with their birthday and their visible lists. Use a person’s primary list id or a list id with get_wishlist to shop. Optional query filters by name or email.',
-		inputSchema: { query: z.string().max(100).optional() },
-		outputSchema: { people: z.array(personSchema) },
+		inputSchema: { query: z.string().max(100).optional(), ...pageInput(PEOPLE_PAGE) },
+		outputSchema: { people: z.array(personSchema), page: pageSchema },
 		annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
-		handler: async ({ query }, { actor, dbx, now }) => {
+		handler: async ({ query, limit, offset }, { actor, dbx, now }) => {
 			const [publicUsers, publicDependents, myPeople, myLists] = await Promise.all([
 				getPublicListsImpl(actor.userId),
 				getPublicDependentsImpl(actor.userId, dbx),
@@ -113,23 +116,27 @@ export function registerPeopleTools(server: McpServer, ctx: ToolContext): void {
 				return (a.name ?? '').localeCompare(b.name ?? '')
 			})
 
-			const text = filtered.length
+			const { rows: shown, page } = paginate(filtered, { limit, offset }, PEOPLE_PAGE)
+			const text = shown.length
 				? lines(
-						filtered.map(p => {
-							const tags = [p.isPartner ? 'partner' : '', p.isChild ? 'child' : '', p.kind === 'dependent' ? 'dependent' : ''].filter(
-								Boolean
-							)
-							const bday = p.daysUntilBirthday !== null ? `birthday in ${plural(p.daysUntilBirthday, 'day')}` : 'no birthday'
-							const listsText = p.lists.length
-								? p.lists.map(l => `#${l.id} "${l.name}" (${l.itemsRemaining}/${l.itemsTotal} open)`).join('; ')
-								: 'no visible lists'
-							return `${p.name ?? p.email ?? 'Unnamed'} (id ${p.id}) [${p.kind}${tags.length ? `, ${tags.join(', ')}` : ''}] ${bday}. Lists: ${listsText}`
-						})
+						[
+							...shown.map(p => {
+								const tags = [p.isPartner ? 'partner' : '', p.isChild ? 'child' : '', p.kind === 'dependent' ? 'dependent' : ''].filter(
+									Boolean
+								)
+								const bday = p.daysUntilBirthday !== null ? `birthday in ${plural(p.daysUntilBirthday, 'day')}` : 'no birthday'
+								const listsText = p.lists.length
+									? p.lists.map(l => `#${l.id} "${l.name}" (${l.itemsRemaining}/${l.itemsTotal} open)`).join('; ')
+									: 'no visible lists'
+								return `${p.name ?? p.email ?? 'Unnamed'} (id ${p.id}) [${p.kind}${tags.length ? `, ${tags.join(', ')}` : ''}] ${bday}. Lists: ${listsText}`
+							}),
+							pageLine(page, 'people'),
+						].filter(Boolean)
 					)
 				: q
 					? `Nobody matches "${query}".`
 					: 'Nobody has shared a list with you yet.'
-			return toolOk(text, { people: filtered })
+			return toolOk(text, { people: shown, page })
 		},
 	})
 }

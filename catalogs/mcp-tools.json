@@ -128,6 +128,14 @@
 		"readsTheWeb": false
 	},
 	{
+		"name": "get_gift_context",
+		"title": "Plan a Gift for Someone",
+		"description": "Everything needed to decide what to give one person, in one call: every list of theirs the user can see (items with what is claimed and what remains, group rules, off-list gifts), the user’s own private gift ideas for them, what the user already gave or is giving them with what it cost, their birthday and the holidays coming up, and what their lists are mostly about. Start here when the user asks what to get someone. Only `lists[].items` are things the person asked for; `myGiftIdeas` are the user’s private notes that the person never sees, so present them separately and never as on the person’s list. Give person_id from list_people.",
+		"access": "read",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
 		"name": "get_list",
 		"title": "Get List",
 		"description": "A list the user owns or can edit, with its items, item groups, and reveal schedule. Owner view: claims are never included, so never guess whether something was bought. A giftideas list holds the user’s private ideas for someone else, not things that person asked for. Use get_wishlist for other people’s lists.",
@@ -146,7 +154,7 @@
 	{
 		"name": "get_wishlist",
 		"title": "Get Someone’s Wishlist",
-		"description": "Everything needed to shop for another person: their list items with what is already claimed and how many remain, pick-one / in-order group rules, off-list gifts other gifters are bringing, and, kept separate, the user’s own private gift ideas for this person. Only `items` are things the person asked for; `myGiftIdeas` are the user’s notes that the person never sees, so never present them as on the person’s list. Give list_id, or person_id to use that person’s primary list. Never works on the user’s own lists (use get_list).",
+		"description": "One list belonging to another person, in the gifter view: its items with what is already claimed and how many remain, pick-one / in-order group rules, off-list gifts other gifters are bringing, and, kept separate, the user’s own private gift ideas for this person. Only `items` are things the person asked for; `myGiftIdeas` are the user’s notes that the person never sees, so never present them as on the person’s list. Give list_id, or person_id to use that person’s primary list. To plan a gift for someone across all their lists, use get_gift_context instead. Never works on the user’s own lists (use get_list).",
 		"access": "read",
 		"destructive": false,
 		"readsTheWeb": false
@@ -186,7 +194,7 @@
 	{
 		"name": "list_received_gifts",
 		"title": "Gifts I Received",
-		"description": "Gifts that have been revealed to the user (and to dependents they manage): what was given and by whom. Only revealed gifts appear; unrevealed claims stay hidden.",
+		"description": "Gifts that have been revealed to the user (and to dependents they manage): what was given and by whom, newest first. Only revealed gifts appear; unrevealed claims stay hidden.",
 		"access": "read",
 		"destructive": false,
 		"readsTheWeb": false

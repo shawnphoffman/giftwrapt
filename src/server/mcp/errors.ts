@@ -1,6 +1,7 @@
 // Tool results. Every tool returns a short text summary for the model plus
 // `structuredContent` for clients that read it. Domain refusals come back
-// as `isError: true` with a stable `code` so the model can explain them;
+// as `isError: true` with a stable `code` in the text and in `_meta`, so
+// the model can explain them and a client can branch on them;
 // the vocabulary mirrors the mobile API's error envelope.
 
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
@@ -53,16 +54,30 @@ const MESSAGES: Partial<Record<string, string>> = {
 	'comments-disabled': 'Comments are turned off on this deployment.',
 }
 
-export type ToolErrorShape = { error: { code: string; message: string; details?: Record<string, unknown> } }
+export type ToolErrorInfo = { code: string; message: string; details?: Record<string, unknown> }
+
+// Where the machine-readable error rides on a result. It cannot go in
+// `structuredContent`: SDK clients validate that against the tool's output
+// schema even when `isError` is set, so an error object there turns every
+// domain refusal into a protocol error (-32602) for any client that has
+// listed the tools. `_meta` is the spec's slot for out-of-schema data.
+export const TOOL_ERROR_META_KEY = 'giftwrapt/error'
 
 export function toolError(code: string, message?: string, details?: Record<string, unknown>): CallToolResult {
 	const text = message ?? MESSAGES[code] ?? 'Something went wrong.'
-	const structured: ToolErrorShape = { error: { code, message: text, ...(details ? { details } : {}) } }
+	const info: ToolErrorInfo = { code, message: text, ...(details ? { details } : {}) }
 	return {
 		isError: true,
 		content: [{ type: 'text', text: `Error (${code}): ${text}` }],
-		structuredContent: structured,
+		_meta: { [TOOL_ERROR_META_KEY]: info },
 	}
+}
+
+/** The error a tool result carries, or null when it succeeded. */
+export function toolErrorInfo(result: { isError?: boolean; _meta?: Record<string, unknown> }): ToolErrorInfo | null {
+	if (!result.isError) return null
+	const info = result._meta?.[TOOL_ERROR_META_KEY] as ToolErrorInfo | undefined
+	return info ?? { code: 'internal-error', message: 'Something went wrong.' }
 }
 
 export function toolOk<T extends Record<string, unknown>>(text: string, structured: T): CallToolResult {

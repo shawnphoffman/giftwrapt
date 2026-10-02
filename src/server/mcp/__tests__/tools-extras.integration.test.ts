@@ -14,9 +14,14 @@ import { getAppSettings } from '@/lib/settings-loader'
 
 import type { McpActor, ToolContext } from '../context'
 import { createMcpServer } from '../server'
-import { setMcpEnabled } from './helpers'
+import { errorCode, setMcpEnabled } from './helpers'
 
-type ToolResult = { isError?: boolean; content: Array<{ type: string; text?: string }>; structuredContent?: Record<string, unknown> }
+type ToolResult = {
+	isError?: boolean
+	_meta?: Record<string, unknown>
+	content: Array<{ type: string; text?: string }>
+	structuredContent?: Record<string, unknown>
+}
 
 async function connect(userId: string, isAdmin = false): Promise<{ client: Client; close: () => Promise<void> }> {
 	const actor: McpActor = { userId, isAdmin, clientId: 'cid-test', tokenId: 'tok-test', scopes: ['openid'] }
@@ -41,7 +46,7 @@ async function call(client: Client, name: string, args: Record<string, unknown> 
 }
 
 function code(res: ToolResult): string | undefined {
-	return (res.structuredContent as { error?: { code: string } } | undefined)?.error?.code
+	return errorCode(res)
 }
 
 async function setSetting(key: string, value: unknown): Promise<void> {
@@ -243,7 +248,7 @@ describe('MCP occasions, suggestions, dependents, resources, prompts', () => {
 			const text = (prompt.messages[0].content as { text: string }).text
 			expect(text).toContain('Mom')
 			expect(text).toContain('under 50')
-			expect(text).toContain('get_wishlist')
+			expect(text).toContain('get_gift_context')
 		} finally {
 			await plain.close()
 		}

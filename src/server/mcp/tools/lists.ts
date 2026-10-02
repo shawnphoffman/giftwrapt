@@ -12,7 +12,7 @@ import type { ToolContext } from '../context'
 import { toolError, toolOk } from '../errors'
 import { lines, plural } from '../format'
 import { defineTool } from '../server'
-import { groupLine, itemLine, itemSchema, toItemShape } from '../shapes'
+import { atDetail, detailInput, groupLine, itemLine, itemSchema, pageInput, pageLine, pageSchema, paginate, toItemShape } from '../shapes'
 
 const listRoleSchema = z.enum(['owner', 'editor', 'guardian', 'dependent-guardian'])
 
@@ -41,6 +41,8 @@ export const groupSchema = z.object({
 	itemIds: z.array(z.number()),
 })
 
+const LIST_PAGE = 100
+
 export const getListOutput = {
 	list: z.object({
 		id: z.number(),
@@ -57,6 +59,7 @@ export const getListOutput = {
 			.describe('For giftideas lists: who the ideas are for. They did not ask for these items and cannot see this list.'),
 	}),
 	items: z.array(itemSchema),
+	page: pageSchema,
 	groups: z.array(groupSchema),
 	reveal: z.object({
 		applies: z.boolean(),
@@ -148,10 +151,12 @@ export function registerListTools(server: McpServer, ctx: ToolContext): void {
 		inputSchema: {
 			list_id: z.number().int().positive(),
 			include_archived: z.boolean().optional().describe('Also return items already revealed/received (default false)'),
+			...pageInput(LIST_PAGE),
+			...detailInput,
 		},
 		outputSchema: getListOutput,
 		annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
-		handler: async ({ list_id: listId, include_archived: includeArchived }, { actor, dbx, now }) => {
+		handler: async ({ list_id: listId, include_archived: includeArchived, limit, offset, detail }, { actor, dbx, now }) => {
 			const result = await getItemsForListEditImpl({
 				userId: actor.userId,
 				listId: String(listId),
@@ -189,10 +194,12 @@ export function registerListTools(server: McpServer, ctx: ToolContext): void {
 							: null
 			const [groups, archive] = await Promise.all([getGroupsForListImpl({ listId }), loadArchiveBannerInfo(listId, dbx, now)])
 
-			const items = result.items.map(i => toItemShape(i, i.commentCount))
+			const { rows, page } = paginate(result.items, { limit, offset }, LIST_PAGE)
+			const items = rows.map(i => atDetail(toItemShape(i, i.commentCount), detail))
 			const structured = {
 				list: { ...listHeader, giftIdeasFor },
 				items,
+				page,
 				groups: groups.map(g => ({ id: g.id, type: g.type, name: g.name, priority: g.priority, itemIds: g.itemIds })),
 				reveal: {
 					applies: archive.applies,
@@ -203,11 +210,12 @@ export function registerListTools(server: McpServer, ctx: ToolContext): void {
 			}
 			const text = lines(
 				[
-					`List #${header.id} "${header.name}" (${header.type}${header.isPrimary ? ', primary' : ''}${header.isPrivate ? ', private' : ''}): ${plural(items.length, 'item')}, ${plural(groups.length, 'group')}.`,
+					`List #${header.id} "${header.name}" (${header.type}${header.isPrimary ? ', primary' : ''}${header.isPrivate ? ', private' : ''}): ${plural(page.total, 'item')}, ${plural(groups.length, 'group')}.`,
 					header.type === 'giftideas'
 						? `These are your private gift ideas${giftIdeasFor?.name ? ` for ${giftIdeasFor.name}` : ''}, not things ${giftIdeasFor?.name ?? 'they'} asked for. ${giftIdeasFor?.name ?? 'They'} cannot see this list.`
 						: '',
 					...items.map(itemLine),
+					pageLine(page, 'items'),
 					...structured.groups.map(groupLine),
 					archive.applies && archive.effectiveArchiveDate
 						? `Claimed gifts reveal to the recipient on ${archive.effectiveArchiveDate.slice(0, 10)}.`

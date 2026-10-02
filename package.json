@@ -52,6 +52,7 @@
 		"admin:reset-password": "tsx scripts/admin-reset-password.ts",
 		"holidays:generate": "tsx scripts/precompute-holidays.ts",
 		"metrics:catalog": "tsx scripts/dump-metrics-catalog.ts",
+		"mcp:eval": "vitest run --project integration src/server/mcp/__tests__/evals.integration.test.ts",
 		"docs:catalogs": "UPDATE_CATALOGS=1 vitest run --project integration src/server/mcp/__tests__/catalog.integration.test.ts",
 		"intelligence:run-once": "tsx scripts/intelligence-run-once.ts",
 		"intelligence:worker": "tsx scripts/intelligence-worker.ts",

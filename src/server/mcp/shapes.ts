@@ -78,3 +78,62 @@ const GROUP_RULE: Record<string, string> = { or: 'pick one', order: 'buy in orde
 export function groupLine(g: { id: number; type: string; name: string | null; itemIds: Array<number> }): string {
 	return `Group #${g.id}${g.name ? ` "${g.name}"` : ''} (${GROUP_RULE[g.type] ?? g.type}): ${g.itemIds.length ? g.itemIds.map(id => `#${id}`).join(', ') : 'empty'}`
 }
+
+// ─── Bounded results ────────────────────────────────────────────────────────
+//
+// No tool returns an unbounded list. Each takes `limit` / `offset` and
+// reports what it left out, so the model knows to page or narrow. The
+// transport is stateless, so paging is by offset, not a server cursor.
+
+export const MAX_PAGE = 200
+
+export function pageInput(defaultLimit: number) {
+	return {
+		limit: z.number().int().min(1).max(MAX_PAGE).optional().describe(`How many to return (default ${defaultLimit}, max ${MAX_PAGE})`),
+		offset: z.number().int().min(0).optional().describe('Skip this many first, to page through a long result'),
+	}
+}
+
+export const pageSchema = z.object({
+	total: z.number().describe('How many there are in all'),
+	returned: z.number(),
+	offset: z.number(),
+	truncated: z.boolean().describe('true when more remain; call again with a higher offset'),
+})
+
+export type Page = z.infer<typeof pageSchema>
+
+export function paginate<T>(
+	rows: Array<T>,
+	args: { limit?: number; offset?: number },
+	defaultLimit: number
+): { rows: Array<T>; page: Page } {
+	const offset = args.offset ?? 0
+	const limit = args.limit ?? defaultLimit
+	const slice = rows.slice(offset, offset + limit)
+	return { rows: slice, page: { total: rows.length, returned: slice.length, offset, truncated: offset + slice.length < rows.length } }
+}
+
+/** The line that tells the model a result was cut short, or '' when it was not. */
+export function pageLine(page: Page, noun: string): string {
+	if (!page.truncated) return ''
+	return `Showing ${page.returned} of ${page.total} ${noun} (from ${page.offset + 1}). Call again with offset ${page.offset + page.returned} for more.`
+}
+
+// `summary` (the default) keeps results small: long notes are clipped and
+// image URLs dropped. `full` returns everything.
+export const detailInput = {
+	detail: z.enum(['summary', 'full']).optional().describe('summary (default): notes clipped, no image URLs. full: everything.'),
+}
+
+export function clipNotes(notes: string | null): string | null {
+	if (!notes) return notes
+	const flat = notes.replace(/\s+/gu, ' ').trim()
+	return flat.length > NOTES_MAX ? `${flat.slice(0, NOTES_MAX)}…` : flat
+}
+
+/** Applies the `detail` level to anything shaped like an item. */
+export function atDetail<T extends { notes: string | null; imageUrl: string | null }>(item: T, detail: 'summary' | 'full' | undefined): T {
+	if (detail === 'full') return item
+	return { ...item, notes: clipNotes(item.notes), imageUrl: null }
+}

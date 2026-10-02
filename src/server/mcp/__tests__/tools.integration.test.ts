@@ -14,9 +14,14 @@ import { getAppSettings } from '@/lib/settings-loader'
 
 import type { McpActor, ToolContext } from '../context'
 import { createMcpServer } from '../server'
-import { setMcpEnabled } from './helpers'
+import { errorCode, setMcpEnabled } from './helpers'
 
-type ToolResult = { isError?: boolean; content: Array<{ type: string; text?: string }>; structuredContent?: Record<string, unknown> }
+type ToolResult = {
+	isError?: boolean
+	_meta?: Record<string, unknown>
+	content: Array<{ type: string; text?: string }>
+	structuredContent?: Record<string, unknown>
+}
 
 async function connect(userId: string): Promise<{ client: Client; close: () => Promise<void> }> {
 	const actor: McpActor = { userId, isAdmin: false, clientId: 'cid-test', tokenId: 'tok-test', scopes: ['openid'] }
@@ -106,9 +111,9 @@ describe('MCP tools', () => {
 		try {
 			const res = await callTool(client, 'get_list', { list_id: theirs.id })
 			expect(res.isError).toBe(true)
-			expect((res.structuredContent as { error: { code: string } }).error.code).toBe('not-authorized')
+			expect(errorCode(res)).toBe('not-authorized')
 			const missing = await callTool(client, 'get_list', { list_id: 999999 })
-			expect((missing.structuredContent as { error: { code: string } }).error.code).toBe('not-found')
+			expect(errorCode(missing)).toBe('not-found')
 		} finally {
 			await close()
 		}

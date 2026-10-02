@@ -26,7 +26,7 @@ import { getAppSettings } from '@/lib/settings-loader'
 
 import type { McpActor, ToolContext } from '../context'
 import { createMcpServer } from '../server'
-import { setMcpEnabled } from './helpers'
+import { errorCode, setMcpEnabled } from './helpers'
 
 type ToolResult = { isError?: boolean; content: Array<{ type: string; text?: string }>; structuredContent?: Record<string, unknown> }
 
@@ -88,6 +88,7 @@ const SKIPS: Record<string, Skip> = {
 	// Another gifter's claim or off-list gift cannot be changed by the user,
 	// so its id is noise.
 	get_wishlist: (path, node) => (/\.claims\[\d+\]$/u.test(path) || /^offListGifts\[\d+\]$/u.test(path)) && node.byMe === false,
+	get_gift_context: (path, node) => (/\.claims\[\d+\]$/u.test(path) || /\.offListGifts\[\d+\]$/u.test(path)) && node.byMe === false,
 	// The list id is what follow-up calls take; the person refs are labels.
 	list_my_lists: path => /\.(?:forPerson|giftIdeasTarget)$/u.test(path),
 	get_list: path => path === 'list.giftIdeasFor',
@@ -128,6 +129,27 @@ describe('MCP tool text and annotations', () => {
 				expect(tool.annotations?.openWorldHint, tool.name).toBe(OPEN_WORLD.has(tool.name))
 			}
 			for (const name of OPEN_WORLD) expect(tools.map(t => t.name)).toContain(name)
+		} finally {
+			await close()
+		}
+	})
+
+	it('a domain refusal is a readable tool error for a client that has listed the tools', async () => {
+		// An SDK client validates `structuredContent` against the tool's
+		// output schema once it knows the schema, even on error results. The
+		// error must therefore not ride in `structuredContent`.
+		const me = await makeUser(db, { name: 'Refused' })
+		createdUserIds.push(me.id)
+		const { client, close } = await connect(me.id)
+		try {
+			await client.listTools()
+			const res = (await client.callTool({ name: 'get_list', arguments: { list_id: 999_999_999 } })) as ToolResult & {
+				_meta?: Record<string, unknown>
+			}
+			expect(res.isError).toBe(true)
+			expect(res.structuredContent).toBeUndefined()
+			expect(textOf(res)).toMatch(/^Error \(/u)
+			expect(errorCode(res)).toBeTruthy()
 		} finally {
 			await close()
 		}
@@ -189,6 +211,7 @@ describe('MCP tool text and annotations', () => {
 			get_list: { list_id: mine.id },
 			list_people: {},
 			get_wishlist: { list_id: theirs.id },
+			get_gift_context: { person_id: friend.id },
 			list_my_gifts: {},
 			search_my_items: { query: 'Kettle' },
 			list_comments: { item_id: scarf.id },

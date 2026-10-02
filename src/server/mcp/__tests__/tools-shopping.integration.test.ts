@@ -15,9 +15,14 @@ import { getAppSettings } from '@/lib/settings-loader'
 
 import type { McpActor, ToolContext } from '../context'
 import { createMcpServer } from '../server'
-import { setMcpEnabled } from './helpers'
+import { errorCode, setMcpEnabled } from './helpers'
 
-type ToolResult = { isError?: boolean; content: Array<{ type: string; text?: string }>; structuredContent?: Record<string, unknown> }
+type ToolResult = {
+	isError?: boolean
+	_meta?: Record<string, unknown>
+	content: Array<{ type: string; text?: string }>
+	structuredContent?: Record<string, unknown>
+}
 
 async function connect(userId: string): Promise<{ client: Client; close: () => Promise<void> }> {
 	const actor: McpActor = { userId, isAdmin: false, clientId: 'cid-test', tokenId: 'tok-test', scopes: ['openid'] }
@@ -42,7 +47,7 @@ async function call(client: Client, name: string, args: Record<string, unknown> 
 }
 
 function code(res: ToolResult): string | undefined {
-	return (res.structuredContent as { error?: { code: string } } | undefined)?.error?.code
+	return errorCode(res)
 }
 
 function text(res: ToolResult): string {

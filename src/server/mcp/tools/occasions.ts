@@ -10,6 +10,7 @@ import type { ToolContext } from '../context'
 import { toolOk } from '../errors'
 import { birthdayString, daysUntilBirthday, lines, plural } from '../format'
 import { defineTool } from '../server'
+import { pageInput, pageLine, pageSchema, paginate } from '../shapes'
 
 const personRef = z.object({ kind: z.enum(['user', 'dependent']), id: z.string(), name: z.string().nullable() })
 
@@ -24,6 +25,7 @@ const occasionSchema = z.object({
 })
 
 const YEAR_MS = 365 * 24 * 60 * 60 * 1000
+const RECEIVED_PAGE = 100
 
 export function registerOccasionTools(server: McpServer, ctx: ToolContext): void {
 	defineTool(server, ctx, {
@@ -125,8 +127,8 @@ export function registerOccasionTools(server: McpServer, ctx: ToolContext): void
 		name: 'list_received_gifts',
 		title: 'Gifts I Received',
 		description:
-			'Gifts that have been revealed to the user (and to dependents they manage): what was given and by whom. Only revealed gifts appear; unrevealed claims stay hidden.',
-		inputSchema: {},
+			'Gifts that have been revealed to the user (and to dependents they manage): what was given and by whom, newest first. Only revealed gifts appear; unrevealed claims stay hidden.',
+		inputSchema: { ...pageInput(RECEIVED_PAGE) },
 		outputSchema: {
 			gifts: z.array(
 				z.object({
@@ -140,9 +142,10 @@ export function registerOccasionTools(server: McpServer, ctx: ToolContext): void
 					recipient: z.object({ kind: z.enum(['self', 'dependent']), id: z.string(), name: z.string().nullable() }),
 				})
 			),
+			page: pageSchema,
 		},
 		annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
-		handler: async (_args, { actor, dbx }) => {
+		handler: async (args, { actor, dbx }) => {
 			const result = await getReceivedGiftsImpl({ userId: actor.userId, dbx })
 			const rows: Array<{
 				kind: 'item' | 'off-list'
@@ -203,15 +206,19 @@ export function registerOccasionTools(server: McpServer, ctx: ToolContext): void
 					})
 			}
 			rows.sort((a, b) => b.revealedAt.localeCompare(a.revealedAt))
+			const { rows: shown, page } = paginate(rows, args, RECEIVED_PAGE)
 			const text = rows.length
 				? lines(
-						rows.map(
-							r =>
-								`${r.revealedAt.slice(0, 10)}: ${r.title} from ${r.from.join(' & ') || 'someone'}${r.recipient.kind === 'dependent' ? ` (for ${r.recipient.name})` : ''} [${r.listName}]`
-						)
+						[
+							...shown.map(
+								r =>
+									`${r.revealedAt.slice(0, 10)}: ${r.title} from ${r.from.join(' & ') || 'someone'}${r.recipient.kind === 'dependent' ? ` (for ${r.recipient.name})` : ''} [${r.listName}]`
+							),
+							pageLine(page, 'gifts'),
+						].filter(Boolean)
 					)
 				: 'No revealed gifts yet.'
-			return toolOk(text, { gifts: rows })
+			return toolOk(text, { gifts: shown, page })
 		},
 	})
 }

@@ -9,6 +9,8 @@ import { db } from '@/db'
 import { appSettings, oauthAccessToken, oauthApplication } from '@/db/schema'
 import { MCP_ACCESS_TOKEN_TTL_SECONDS, MCP_REFRESH_TOKEN_TTL_SECONDS } from '@/lib/mcp-config'
 
+import { toolErrorInfo } from '../errors'
+
 let seq = 0
 function nextId(prefix: string): string {
 	seq += 1
@@ -85,4 +87,9 @@ export function mcpRequest(body: string, token: string | null, extraHeaders: Rec
 		},
 		body,
 	})
+}
+
+/** The stable error code a tool result carries, or undefined when it succeeded. */
+export function errorCode(res: { isError?: boolean; _meta?: Record<string, unknown> }): string | undefined {
+	return toolErrorInfo(res)?.code
 }

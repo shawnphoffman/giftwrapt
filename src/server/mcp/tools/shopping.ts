@@ -7,7 +7,14 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 
-import { copyGiftIdeaToAddonImpl, getGiftIdeasForListImpl } from '@/api/_gift-ideas-impl'
+import {
+	getGiftContextImpl,
+	getWishlistViewImpl,
+	type GiftIdeasSource,
+	type WishlistItem,
+	type WishlistView,
+} from '@/api/_gift-context-impl'
+import { copyGiftIdeaToAddonImpl } from '@/api/_gift-ideas-impl'
 import {
 	claimItemGiftImpl,
 	setContributionSplitImpl,
@@ -15,18 +22,16 @@ import {
 	updateCoGiftersImpl,
 	updateItemGiftImpl,
 } from '@/api/_gifts-impl'
-import { getItemsForListViewImpl } from '@/api/_items-extra-impl'
 import { createListAddonImpl, deleteListAddonImpl, updateListAddonImpl } from '@/api/_list-addons-impl'
-import { getListForViewingImpl, getPublicDependentsImpl, getPublicListsImpl } from '@/api/_lists-impl'
+import { getPublicDependentsImpl, getPublicListsImpl } from '@/api/_lists-impl'
 import { getPurchaseSummaryImpl } from '@/api/_purchases-impl'
-import { giftedItems, items, type ListAddon, users } from '@/db/schema'
-import { computeRemainingClaimableQuantity } from '@/lib/gifts'
+import { giftedItems, items, type ListAddon } from '@/db/schema'
 
 import type { ToolContext } from '../context'
 import { toolError, toolOk } from '../errors'
-import { formatPrice, lines, plural } from '../format'
+import { birthdayString, daysUntilBirthday, formatPrice, lines, plural } from '../format'
 import { defineTool } from '../server'
-import { groupLine, linkAndNotes } from '../shapes'
+import { atDetail, detailInput, groupLine, linkAndNotes, MAX_PAGE, type Page, pageInput, pageLine, pageSchema, paginate } from '../shapes'
 
 const money = z
 	.string()
@@ -99,11 +104,6 @@ function toAddonShape(a: AddonLike, viewerId: string, gifterName: string | null)
 	}
 }
 
-async function partnerIdOf(userId: string, ctx: ToolContext): Promise<string | null> {
-	const me = await ctx.dbx.query.users.findFirst({ where: eq(users.id, userId), columns: { partnerId: true } })
-	return me?.partnerId ?? null
-}
-
 /** The list to shop from for a person: their primary list, else their first visible one. */
 async function resolveListForPerson(personId: string, ctx: ToolContext): Promise<number | null> {
 	const [usersList, dependents] = await Promise.all([
@@ -115,49 +115,116 @@ async function resolveListForPerson(personId: string, ctx: ToolContext): Promise
 	return (person.lists.find(l => l.isPrimary) ?? person.lists[0]).id
 }
 
+const WISHLIST_PAGE = 100
+const GIFTS_PAGE = 100
+const CONTEXT_PAGE = 50
+
+const wishlistListSchema = z.object({
+	id: z.number(),
+	name: z.string(),
+	type: z.string(),
+	description: z.string().nullable(),
+	recipient: z.object({ kind: z.enum(['user', 'dependent']), id: z.string(), name: z.string().nullable() }),
+	canEdit: z.boolean(),
+	revealDate: z.string().nullable().describe('When the recipient gets to see who gave what'),
+})
+
+const wishlistGroupSchema = z.object({ id: z.number(), type: z.string(), name: z.string().nullable(), itemIds: z.array(z.number()) })
+
+const myGiftIdeasSchema = z
+	.array(
+		z.object({
+			listId: z.number(),
+			listName: z.string(),
+			ideas: z.array(
+				z.object({
+					id: z.number(),
+					source: z.literal('my-private-idea').describe('The user’s own idea; NOT on the recipient’s list'),
+					title: z.string(),
+					url: z.string().nullable(),
+					price: z.string().nullable(),
+					notes: z.string().nullable(),
+				})
+			),
+		})
+	)
+	.describe(
+		'The user’s private gift-ideas lists for this person. NOT part of the recipient’s list: they did not ask for these and cannot see them. Never mix these in with items or describe them as something the recipient wants.'
+	)
+
+type WishlistItemOut = z.infer<typeof wishlistItemSchema>
+
+function toWishlistItem(i: WishlistItem, detail: 'summary' | 'full' | undefined): WishlistItemOut {
+	return atDetail({ ...i, source: 'their-list' as const, priceFormatted: formatPrice(i.price, i.currency) }, detail)
+}
+
+function toIdeas(sources: Array<GiftIdeasSource>): z.infer<typeof myGiftIdeasSchema> {
+	return sources.map(s => ({ ...s, ideas: s.ideas.map(i => ({ ...i, source: 'my-private-idea' as const })) }))
+}
+
+// Only the user's own claims carry a gift id: those are the ones they can
+// update or release.
+function claimedBy(c: { byMe: boolean; giftId: number; gifterNames: Array<string> }): string {
+	return c.byMe ? `you (gift #${c.giftId})` : c.gifterNames.join(' & ')
+}
+
+/** The text block for one list in the gifter view: header, items, groups, off-list gifts. */
+function wishlistLines(
+	view: Pick<WishlistView, 'list' | 'groups' | 'offListGifts'>,
+	items: Array<WishlistItemOut>,
+	page: Page
+): Array<string> {
+	const { list } = view
+	return [
+		`"${list.name}" for ${list.recipient.name} (${list.recipient.kind} id ${list.recipient.id}; list #${list.id}, ${list.type}): ${plural(page.total, 'item')}.`,
+		...items.map(i => {
+			const claimText = i.claims.length
+				? i.remaining === 0
+					? `fully claimed by ${i.claims.map(claimedBy).join(', ')}`
+					: `${i.remaining} of ${i.quantity} left; claimed by ${i.claims.map(claimedBy).join(', ')}`
+				: i.quantity > 1
+					? `${i.quantity} wanted, none claimed`
+					: 'unclaimed'
+			const bits = [
+				i.priceFormatted,
+				i.priority !== 'normal' ? i.priority : '',
+				i.availability === 'unavailable' ? 'unavailable' : '',
+				i.groupId ? `group ${i.groupId}` : '',
+			].filter(Boolean)
+			return `#${i.id} ${i.title}${bits.length ? ` (${bits.join(', ')})` : ''}: ${claimText}.${linkAndNotes(i.url, i.notes)}`
+		}),
+		pageLine(page, 'items'),
+		...view.groups.map(groupLine),
+		view.offListGifts.length
+			? `Off-list gifts: ${view.offListGifts.map(a => `${a.byMe ? `#${a.id} ` : ''}${a.description} (${a.byMe ? 'you' : (a.gifterName ?? 'someone')})`).join('; ')}.`
+			: '',
+	].filter(Boolean)
+}
+
+function ideasLine(ideas: z.infer<typeof myGiftIdeasSchema>, recipientName: string | null): string {
+	if (!ideas.some(s => s.ideas.length)) return ''
+	return `Separately, your own private gift ideas for ${recipientName ?? 'them'} (NOT on their list; they did not ask for these and cannot see them): ${ideas.flatMap(s => s.ideas.map(i => `idea #${i.id} ${i.title}`)).join('; ')}.`
+}
+
 export function registerShoppingTools(server: McpServer, ctx: ToolContext): void {
 	defineTool(server, ctx, {
 		name: 'get_wishlist',
 		title: 'Get Someone’s Wishlist',
 		description:
-			'Everything needed to shop for another person: their list items with what is already claimed and how many remain, pick-one / in-order group rules, off-list gifts other gifters are bringing, and, kept separate, the user’s own private gift ideas for this person. Only `items` are things the person asked for; `myGiftIdeas` are the user’s notes that the person never sees, so never present them as on the person’s list. Give list_id, or person_id to use that person’s primary list. Never works on the user’s own lists (use get_list).',
+			'One list belonging to another person, in the gifter view: its items with what is already claimed and how many remain, pick-one / in-order group rules, off-list gifts other gifters are bringing, and, kept separate, the user’s own private gift ideas for this person. Only `items` are things the person asked for; `myGiftIdeas` are the user’s notes that the person never sees, so never present them as on the person’s list. Give list_id, or person_id to use that person’s primary list. To plan a gift for someone across all their lists, use get_gift_context instead. Never works on the user’s own lists (use get_list).',
 		inputSchema: {
 			list_id: z.number().int().positive().optional(),
 			person_id: z.string().optional().describe('A user or dependent id from list_people'),
+			...pageInput(WISHLIST_PAGE),
+			...detailInput,
 		},
 		outputSchema: {
-			list: z.object({
-				id: z.number(),
-				name: z.string(),
-				type: z.string(),
-				description: z.string().nullable(),
-				recipient: z.object({ kind: z.enum(['user', 'dependent']), id: z.string(), name: z.string().nullable() }),
-				canEdit: z.boolean(),
-				revealDate: z.string().nullable().describe('When the recipient gets to see who gave what'),
-			}),
+			list: wishlistListSchema,
 			items: z.array(wishlistItemSchema).describe('What the recipient put on this list. The only things they asked for.'),
-			groups: z.array(z.object({ id: z.number(), type: z.string(), name: z.string().nullable(), itemIds: z.array(z.number()) })),
+			page: pageSchema,
+			groups: z.array(wishlistGroupSchema),
 			offListGifts: z.array(addonSchema),
-			myGiftIdeas: z
-				.array(
-					z.object({
-						listId: z.number(),
-						listName: z.string(),
-						ideas: z.array(
-							z.object({
-								id: z.number(),
-								source: z.literal('my-private-idea').describe('The user’s own idea; NOT on the recipient’s list'),
-								title: z.string(),
-								url: z.string().nullable(),
-								price: z.string().nullable(),
-								notes: z.string().nullable(),
-							})
-						),
-					})
-				)
-				.describe(
-					'The user’s private gift-ideas lists for this person. NOT part of the recipient’s list: they did not ask for these and cannot see them. Never mix these in with items or describe them as something the recipient wants.'
-				),
+			myGiftIdeas: myGiftIdeasSchema,
 		},
 		annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
 		handler: async (args, toolCtx) => {
@@ -168,123 +235,150 @@ export function registerShoppingTools(server: McpServer, ctx: ToolContext): void
 					? toolError('not-found', 'No visible list for that person.')
 					: toolError('invalid-input', 'Give list_id or person_id.')
 
-			const header = await getListForViewingImpl({ userId: toolCtx.actor.userId, listId: String(listId), dbx: toolCtx.dbx })
-			if (!header) return toolError('not-found')
-			if (header.kind === 'redirect') return toolError('is-owner')
-			const list = header.list
+			const result = await getWishlistViewImpl({ userId: toolCtx.actor.userId, listId, dbx: toolCtx.dbx })
+			if (result.kind === 'error') return toolError(result.reason)
+			const { view } = result
 
-			const viewed = await getItemsForListViewImpl({ userId: toolCtx.actor.userId, listId: String(listId), dbx: toolCtx.dbx })
-			if (viewed.kind === 'error') return toolError(viewed.reason === 'not-visible' ? 'not-found' : viewed.reason)
+			const { rows, page } = paginate(view.items, args, WISHLIST_PAGE)
+			const items = rows.map(i => toWishlistItem(i, args.detail))
+			const myGiftIdeas = toIdeas(view.myGiftIdeas)
+			const recipientName = view.list.recipient.name
 
-			const partnerId = await partnerIdOf(toolCtx.actor.userId, toolCtx)
-			const mine = new Set([toolCtx.actor.userId, ...(partnerId ? [partnerId] : [])])
-			const isMine = (gifterId: string, coGifters: Array<string> | null): boolean =>
-				mine.has(gifterId) || (coGifters ?? []).some(id => mine.has(id))
-
-			const itemsOut = viewed.items.map(i => ({
-				id: i.id,
-				source: 'their-list' as const,
-				title: i.title,
-				url: i.url,
-				price: i.price,
-				priceFormatted: formatPrice(i.price, i.currency),
-				currency: i.currency,
-				priority: i.priority,
-				quantity: i.quantity,
-				remaining: computeRemainingClaimableQuantity(i.quantity, i.gifts),
-				availability: i.availability,
-				notes: i.notes,
-				imageUrl: i.imageUrl,
-				groupId: i.groupId,
-				commentCount: i.commentCount,
-				claims: i.gifts.map(g => {
-					const byMe = isMine(g.gifterId, g.additionalGifterIds)
-					return {
-						giftId: g.id,
-						itemId: g.itemId,
-						quantity: g.quantity,
-						byMe,
-						gifterNames: g.units.map(u => u.label),
-						coGifterIds: g.additionalGifterIds ?? [],
-						totalCost: byMe ? g.totalCost : null,
-						notes: byMe ? g.notes : null,
-					}
-				}),
-			}))
-
-			const ideas = await getGiftIdeasForListImpl({ userId: toolCtx.actor.userId, listId, dbx: toolCtx.dbx })
-			const myGiftIdeas = ideas.sources.map(s => ({
-				listId: s.list.id,
-				listName: s.list.name,
-				ideas: s.items.map(i => ({
-					id: i.id,
-					source: 'my-private-idea' as const,
-					title: i.title,
-					url: i.url,
-					price: i.price,
-					notes: i.notes,
-				})),
-			}))
-
-			const recipient = list.subjectDependent
-				? { kind: 'dependent' as const, id: list.subjectDependent.id, name: list.subjectDependent.name }
-				: { kind: 'user' as const, id: list.owner.id, name: list.owner.name ?? list.owner.email }
-
-			const structured = {
-				list: {
-					id: list.id,
-					name: list.name,
-					type: list.type,
-					description: list.description,
-					recipient,
-					canEdit: list.canEdit,
-					revealDate: list.archiveInfo.effectiveArchiveDate,
-				},
-				items: itemsOut,
-				groups: list.groups.map(g => ({
-					id: g.id,
-					type: g.type,
-					name: g.name,
-					itemIds: itemsOut.filter(i => i.groupId === g.id).map(i => i.id),
-				})),
-				offListGifts: list.addons.map(a => toAddonShape(a, toolCtx.actor.userId, a.user.name ?? a.user.email)),
-				myGiftIdeas,
-			}
-
-			// Only the user's own claims carry a gift id: those are the ones they can
-			// update or release.
-			const claimedBy = (c: { byMe: boolean; giftId: number; gifterNames: Array<string> }): string =>
-				c.byMe ? `you (gift #${c.giftId})` : c.gifterNames.join(' & ')
 			const text = lines(
 				[
-					`"${list.name}" for ${recipient.name} (${recipient.kind} id ${recipient.id}; list #${list.id}, ${list.type}): ${plural(itemsOut.length, 'item')}.`,
-					...itemsOut.map(i => {
-						const claimText = i.claims.length
-							? i.remaining === 0
-								? `fully claimed by ${i.claims.map(claimedBy).join(', ')}`
-								: `${i.remaining} of ${i.quantity} left; claimed by ${i.claims.map(claimedBy).join(', ')}`
-							: i.quantity > 1
-								? `${i.quantity} wanted, none claimed`
-								: 'unclaimed'
-						const bits = [
-							i.priceFormatted,
-							i.priority !== 'normal' ? i.priority : '',
-							i.availability === 'unavailable' ? 'unavailable' : '',
-							i.groupId ? `group ${i.groupId}` : '',
-						].filter(Boolean)
-						return `#${i.id} ${i.title}${bits.length ? ` (${bits.join(', ')})` : ''}: ${claimText}.${linkAndNotes(i.url, i.notes)}`
-					}),
-					...structured.groups.map(groupLine),
-					structured.offListGifts.length
-						? `Off-list gifts: ${structured.offListGifts.map(a => `${a.byMe ? `#${a.id} ` : ''}${a.description} (${a.byMe ? 'you' : (a.gifterName ?? 'someone')})`).join('; ')}.`
-						: '',
-					myGiftIdeas.length
-						? `Separately, your own private gift ideas for ${recipient.name} (NOT on their list; they did not ask for these and cannot see them): ${myGiftIdeas.flatMap(s => s.ideas.map(i => `idea #${i.id} ${i.title}`)).join('; ')}.`
-						: '',
-					structured.list.revealDate ? `They learn who gave what on ${structured.list.revealDate.slice(0, 10)}.` : '',
+					...wishlistLines(view, items, page),
+					ideasLine(myGiftIdeas, recipientName),
+					view.list.revealDate ? `They learn who gave what on ${view.list.revealDate.slice(0, 10)}.` : '',
 				].filter(Boolean)
 			)
-			return toolOk(text, structured)
+			return toolOk(text, { list: view.list, items, page, groups: view.groups, offListGifts: view.offListGifts, myGiftIdeas })
+		},
+	})
+
+	defineTool(server, ctx, {
+		name: 'get_gift_context',
+		title: 'Plan a Gift for Someone',
+		description:
+			'Everything needed to decide what to give one person, in one call: every list of theirs the user can see (items with what is claimed and what remains, group rules, off-list gifts), the user’s own private gift ideas for them, what the user already gave or is giving them with what it cost, their birthday and the holidays coming up, and what their lists are mostly about. Start here when the user asks what to get someone. Only `lists[].items` are things the person asked for; `myGiftIdeas` are the user’s private notes that the person never sees, so present them separately and never as on the person’s list. Give person_id from list_people.',
+		inputSchema: {
+			person_id: z.string().describe('A user or dependent id from list_people'),
+			limit: z
+				.number()
+				.int()
+				.min(1)
+				.max(MAX_PAGE)
+				.optional()
+				.describe(`Items to return per list (default ${CONTEXT_PAGE}, max ${MAX_PAGE}); use get_wishlist to page one list`),
+			...detailInput,
+		},
+		outputSchema: {
+			person: z.object({
+				kind: z.enum(['user', 'dependent']),
+				id: z.string(),
+				name: z.string().nullable(),
+				birthday: z.string().nullable().describe('--MM-DD'),
+				daysUntilBirthday: z.number().nullable(),
+			}),
+			lists: z.array(
+				z.object({
+					list: wishlistListSchema,
+					items: z.array(wishlistItemSchema).describe('What the recipient put on this list. The only things they asked for.'),
+					page: pageSchema,
+					groups: z.array(wishlistGroupSchema),
+					offListGifts: z.array(addonSchema),
+				})
+			),
+			myGiftIdeas: myGiftIdeasSchema,
+			myPastGifts: z
+				.array(
+					z.object({
+						kind: z.enum(['claim', 'addon']),
+						id: z.number(),
+						title: z.string(),
+						listName: z.string(),
+						cost: z.number().nullable(),
+						byPartner: z.boolean(),
+						asCoGifter: z.boolean(),
+						createdAt: z.string(),
+					})
+				)
+				.describe('What the user or their partner already gave or is giving this person, newest first'),
+			spend: z.object({ giftCount: z.number(), allTime: z.number(), last12Months: z.number() }),
+			upcomingHolidays: z.array(
+				z.object({ kind: z.string(), title: z.string(), date: z.string().nullable(), daysUntil: z.number().nullable() })
+			),
+			interests: z
+				.array(z.object({ category: z.string(), count: z.number() }))
+				.describe('What their visible items are mostly about. Empty when the deployment has not analysed them.'),
+		},
+		annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+		handler: async (args, toolCtx) => {
+			const result = await getGiftContextImpl({
+				userId: toolCtx.actor.userId,
+				personId: args.person_id,
+				now: toolCtx.now,
+				dbx: toolCtx.dbx,
+			})
+			if (result.kind === 'error')
+				return result.reason === 'is-owner'
+					? toolError('is-owner', 'That is the user themselves. Use list_my_lists and get_list for their own lists.')
+					: toolError('not-found', 'Nobody with that id shares a list with the user. Use list_people.')
+			const c = result.context
+
+			const person = {
+				kind: c.person.kind,
+				id: c.person.id,
+				name: c.person.name,
+				birthday: birthdayString(c.person.birthMonth, c.person.birthDay, null),
+				daysUntilBirthday: daysUntilBirthday(c.person.birthMonth, c.person.birthDay, toolCtx.now),
+			}
+			const listsOut = c.lists.map(view => {
+				const { rows, page } = paginate(view.items, { limit: args.limit }, CONTEXT_PAGE)
+				return { view, items: rows.map(i => toWishlistItem(i, args.detail)), page }
+			})
+			const myGiftIdeas = toIdeas(c.myGiftIdeas)
+			const name = person.name ?? 'them'
+
+			const text = lines(
+				[
+					`${name} (${person.kind} id ${person.id})${person.daysUntilBirthday !== null ? `: birthday in ${plural(person.daysUntilBirthday, 'day')}` : ': no birthday on file'}.`,
+					c.upcomingHolidays.length
+						? `Coming up: ${c.upcomingHolidays.map(h => `${h.title} in ${plural(h.daysUntil ?? 0, 'day')}`).join('; ')}.`
+						: '',
+					listsOut.length ? '' : `${name} has no list you can see.`,
+					...listsOut.flatMap(l => wishlistLines(l.view, l.items, l.page)),
+					c.interests.length
+						? `Their lists are mostly: ${c.interests
+								.slice(0, 5)
+								.map(i => `${i.category} (${i.count})`)
+								.join(', ')}.`
+						: '',
+					ideasLine(myGiftIdeas, name),
+					c.myPastGifts.length
+						? `You have given or planned ${plural(c.spend.giftCount, 'gift')} for ${name} (${c.spend.allTime.toFixed(2)} in all, ${c.spend.last12Months.toFixed(2)} in the last 12 months): ${c.myPastGifts
+								.slice(0, 15)
+								.map(
+									g => `${g.kind === 'claim' ? 'gift' : 'off-list'} #${g.id} ${g.title}${g.cost !== null ? ` (${g.cost.toFixed(2)})` : ''}`
+								)
+								.join('; ')}${c.myPastGifts.length > 15 ? '; and more' : ''}.`
+						: `You have not given or planned anything for ${name} yet.`,
+				].filter(Boolean)
+			)
+			return toolOk(text, {
+				person,
+				lists: listsOut.map(l => ({
+					list: l.view.list,
+					items: l.items,
+					page: l.page,
+					groups: l.view.groups,
+					offListGifts: l.view.offListGifts,
+				})),
+				myGiftIdeas,
+				myPastGifts: c.myPastGifts,
+				spend: c.spend,
+				upcomingHolidays: c.upcomingHolidays,
+				interests: c.interests,
+			})
 		},
 	})
 
@@ -560,6 +654,7 @@ export function registerShoppingTools(server: McpServer, ctx: ToolContext): void
 		inputSchema: {
 			recipient_id: z.string().optional(),
 			list_type: z.string().optional(),
+			...pageInput(GIFTS_PAGE),
 		},
 		outputSchema: {
 			gifts: z.array(
@@ -579,11 +674,14 @@ export function registerShoppingTools(server: McpServer, ctx: ToolContext): void
 					createdAt: z.string(),
 				})
 			),
-			totals: z.object({
-				count: z.number(),
-				cost: z.number(),
-				byRecipient: z.array(z.object({ id: z.string(), name: z.string().nullable(), count: z.number(), cost: z.number() })),
-			}),
+			page: pageSchema,
+			totals: z
+				.object({
+					count: z.number(),
+					cost: z.number(),
+					byRecipient: z.array(z.object({ id: z.string(), name: z.string().nullable(), count: z.number(), cost: z.number() })),
+				})
+				.describe('Totals cover every matching gift, not only the page returned'),
 		},
 		annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
 		handler: async (args, { actor, dbx }) => {
@@ -623,17 +721,21 @@ export function registerShoppingTools(server: McpServer, ctx: ToolContext): void
 				cost: Math.round(gifts.reduce((s, g) => s + (g.cost ?? 0), 0) * 100) / 100,
 				byRecipient: [...byRecipient.values()].map(e => ({ ...e, cost: Math.round(e.cost * 100) / 100 })),
 			}
+			const { rows: shown, page } = paginate(gifts, args, GIFTS_PAGE)
 			const text = gifts.length
-				? lines([
-						`${plural(gifts.length, 'gift')} totalling ${totals.cost.toFixed(2)}.`,
-						...totals.byRecipient.map(r => `${r.name ?? r.id}: ${plural(r.count, 'gift')}, ${r.cost.toFixed(2)}`),
-						...gifts.map(
-							g =>
-								`${g.kind === 'claim' ? 'gift' : 'off-list'} #${g.id} ${g.title} for ${g.recipient.name}${g.cost !== null ? ` (${g.cost.toFixed(2)})` : ''}${g.byPartner ? ' [partner]' : ''}${g.asCoGifter ? ' [co-gifter]' : ''}`
-						),
-					])
+				? lines(
+						[
+							`${plural(gifts.length, 'gift')} totalling ${totals.cost.toFixed(2)}.`,
+							...totals.byRecipient.map(r => `${r.name ?? r.id}: ${plural(r.count, 'gift')}, ${r.cost.toFixed(2)}`),
+							...shown.map(
+								g =>
+									`${g.kind === 'claim' ? 'gift' : 'off-list'} #${g.id} ${g.title} for ${g.recipient.name}${g.cost !== null ? ` (${g.cost.toFixed(2)})` : ''}${g.byPartner ? ' [partner]' : ''}${g.asCoGifter ? ' [co-gifter]' : ''}`
+							),
+							pageLine(page, 'gifts'),
+						].filter(Boolean)
+					)
 				: 'Nothing claimed yet.'
-			return toolOk(text, { gifts, totals })
+			return toolOk(text, { gifts: shown, page, totals })
 		},
 	})
 }

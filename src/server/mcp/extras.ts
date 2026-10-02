@@ -9,6 +9,7 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import { z } from 'zod'
 
 import type { ToolContext } from './context'
+import { toolErrorInfo } from './errors'
 
 async function readVia(ctx: ToolContext, tool: string, args: Record<string, unknown>): Promise<CallToolResult> {
 	const handler = ctx.tools?.get(tool)
@@ -18,7 +19,7 @@ async function readVia(ctx: ToolContext, tool: string, args: Record<string, unkn
 
 function jsonResource(uri: string, result: CallToolResult) {
 	if (result.isError) {
-		const err = (result.structuredContent as { error?: { code: string; message: string } } | undefined)?.error
+		const err = toolErrorInfo(result)
 		throw new Error(err ? `${err.code}: ${err.message}` : 'resource unavailable')
 	}
 	return { contents: [{ uri, mimeType: 'application/json', text: JSON.stringify(result.structuredContent ?? {}, null, 2) }] }
@@ -82,7 +83,7 @@ export function registerPrompts(server: McpServer): void {
 						type: 'text',
 						text: lines([
 							`Help me plan gifts for ${person}${budget ? ` with a budget of ${budget}` : ''}.`,
-							'Use list_people to find them, then get_wishlist for their list. Skip anything already fully claimed, respect pick-one and in-order groups, and note what I have already planned.',
+							'Use list_people to find them, then get_gift_context with their id: it returns every list of theirs I can see, what is already claimed, what I have given them before, and what is coming up. Skip anything already fully claimed, respect pick-one and in-order groups, and note what I have already planned.',
 							'Suggest two or three items to claim, then ask before calling claim_item. If I have my own gift ideas for them, mention those separately and label them as my ideas; never present them as things on their list.',
 						]),
 					},
@@ -130,7 +131,7 @@ export function registerPrompts(server: McpServer): void {
 						type: 'text',
 						text: lines([
 							`What gift occasions are coming up in the next ${days ?? '60'} days?`,
-							'Use list_upcoming_occasions, then for each person with nothing planned yet, look at their wishlist with get_wishlist and suggest one thing I could claim.',
+							'Use list_upcoming_occasions, then for each person with nothing planned yet, call get_gift_context with their id and suggest one thing I could claim.',
 						]),
 					},
 				},
