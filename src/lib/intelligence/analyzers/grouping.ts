@@ -162,7 +162,7 @@ export const groupingAnalyzer: Analyzer = {
 			const verdictsToStore: Array<{ key: string; verdict: ListVerdict }> = []
 			for (let i = 0; i < toAsk.length; i += MODEL_CONCURRENCY) {
 				const batch = toAsk.slice(i, i + MODEL_CONCURRENCY)
-				const results = await Promise.all(batch.map(candidate => judgeList(model, candidate)))
+				const results = await Promise.all(batch.map(candidate => judgeList(model, { db: ctx.db, userId: ctx.userId }, candidate)))
 				for (let j = 0; j < batch.length; j++) {
 					const { step, suggestions } = results[j]
 					steps.push(step)
@@ -239,6 +239,7 @@ function buildListCandidates(rows: ReadonlyArray<Row>): Array<ListCandidate> {
 
 async function judgeList(
 	model: NonNullable<Parameters<Analyzer['run']>[0]['model']>,
+	scope: { db: Database; userId: string },
 	candidate: ListCandidate
 ): Promise<{ step: AnalyzerStep; suggestions: Array<ResolvedSuggestion> | null }> {
 	const promptList: GroupingListCandidate = {
@@ -249,7 +250,14 @@ async function judgeList(
 	const userPrompt = buildGroupingUserPrompt(promptList)
 	const start = Date.now()
 	try {
-		const result = await generateObjectCached({ model, schema: groupingResponseSchema, system: GROUPING_SYSTEM, prompt: userPrompt })
+		const result = await generateObjectCached({
+			model,
+			userId: scope.userId,
+			db: scope.db,
+			schema: groupingResponseSchema,
+			system: GROUPING_SYSTEM,
+			prompt: userPrompt,
+		})
 		return {
 			step: {
 				name: 'grouping',

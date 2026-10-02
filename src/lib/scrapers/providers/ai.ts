@@ -1,6 +1,5 @@
-import { generateObject } from 'ai'
-
 import { db } from '@/db'
+import { aiGenerateObject } from '@/lib/ai-call'
 import { createAiModel } from '@/lib/ai-client'
 import { resolveAiConfig } from '@/lib/ai-config'
 import type { AiEntry } from '@/lib/settings'
@@ -126,13 +125,18 @@ async function runAiProvider(ctx: ScrapeContext, providerId: string): Promise<Pr
 
 	let parsed
 	try {
-		parsed = await generateObject({
-			model,
-			schema: scrapeResultModelSchema,
-			abortSignal: ctx.signal,
-			system: SYSTEM_PROMPT,
-			prompt: `URL: ${ctx.url}\n\n<USER_CONTENT>\n${truncated}\n</USER_CONTENT>`,
-		})
+		parsed = await aiGenerateObject(
+			// No user on the ledger row: the scrape context does not carry one.
+			{ feature: 'scrape-provider' },
+			{
+				model,
+				schema: scrapeResultModelSchema,
+				abortSignal: ctx.signal,
+				maxOutputTokens: aiConfig.maxOutputTokens.value,
+				system: SYSTEM_PROMPT,
+				prompt: `URL: ${ctx.url}\n\n<USER_CONTENT>\n${truncated}\n</USER_CONTENT>`,
+			}
+		)
 	} catch (err) {
 		if (err instanceof Error && (err.name === 'AbortError' || /aborted|timeout/i.test(err.message))) {
 			throw new ScrapeProviderError('timeout', err.message)

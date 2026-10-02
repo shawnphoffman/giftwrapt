@@ -102,6 +102,7 @@ export const BACKUP_EXCLUDED_TABLES: Record<string, string> = {
 	oauth_access_token: AUTH_STATE,
 	oauth_consent: AUTH_STATE,
 	rate_limit_buckets: 'Ephemeral fixed-window limiter counters.',
+	ai_usage: 'Operator-facing AI call ledger (tokens and estimated cost). Swept after aiUsageRetentionDays.',
 	cron_runs: 'Operator-facing cron run history. Nothing reads it to decide what to do.',
 	product_lookups: 'Barcode lookup cache, refetched on miss.',
 	item_scrapes: 'Scrape history and URL dedup cache (large raw responses). The scraped fields already live on items.',

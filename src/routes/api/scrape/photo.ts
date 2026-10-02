@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { env } from '@/env'
+import { AiBudgetExceededError } from '@/lib/ai-call'
 import { auth } from '@/lib/auth'
 import { createLogger } from '@/lib/logger'
 import { rateLimitKeyForRequest } from '@/lib/rate-limit'
@@ -78,12 +79,14 @@ export const Route = createFileRoute('/api/scrape/photo')({
 						bytes,
 						mediaType,
 						signal: request.signal,
+						userId: session.user.id,
 					})
 					return new Response(JSON.stringify({ result, ms }), {
 						status: 200,
 						headers: { 'content-type': 'application/json' },
 					})
 				} catch (err) {
+					if (err instanceof AiBudgetExceededError) return jsonError(429, err.code, err.message)
 					if (err instanceof ScrapeProviderError) {
 						const status = err.code === 'config_missing' ? 503 : err.code === 'timeout' ? 504 : 502
 						return jsonError(status, err.code, err.message)

@@ -1,5 +1,8 @@
-import { generateObject, type LanguageModel } from 'ai'
+import type { LanguageModel } from 'ai'
 import type { z } from 'zod'
+
+import type { SchemaDatabase } from '@/db'
+import { aiGenerateObject } from '@/lib/ai-call'
 
 // Centralized `generateObject` wrapper that splits each analyzer prompt
 // into a STABLE system block + a VARIABLE user prompt. The system block
@@ -20,15 +23,20 @@ import type { z } from 'zod'
 // to it. Using explicit messages lets us hang the cache_control hint on
 // the right block without affecting non-Anthropic providers.
 //
-// Returns the same shape as `generateObject` plus a normalized
-// `cachedInputTokens` field for observability. We pull it from the SDK's
-// already-normalized `usage.inputTokenDetails.cacheReadTokens`.
+// Returns the object plus normalized usage (including `cachedInputTokens`).
+// The call itself goes through `aiGenerateObject` in src/lib/ai-call.ts,
+// which writes the usage ledger row.
 
 export type GenerateObjectCachedArgs<TSchema extends z.ZodType> = {
 	model: LanguageModel
 	schema: TSchema
 	system: string
 	prompt: string
+	// Who the run is for, recorded on the usage ledger row.
+	userId?: string | null
+	// The run's database handle, so the ledger write joins the caller's
+	// transaction instead of opening a second connection.
+	db?: SchemaDatabase
 }
 
 export type GenerateObjectCachedResult<T> = {
@@ -45,33 +53,28 @@ export async function generateObjectCached<TSchema extends z.ZodType>(
 ): Promise<GenerateObjectCachedResult<z.infer<TSchema>>> {
 	const { model, schema, system, prompt } = args
 
-	const result = await generateObject({
-		model,
-		schema,
-		messages: [
-			{
-				role: 'system',
-				content: system,
-				providerOptions: {
-					anthropic: { cacheControl: { type: 'ephemeral' } },
+	// No `maxOutputTokens` here on purpose: analyzers return one structured
+	// object per batch, and a cap that truncates it yields invalid JSON and a
+	// failed step. Batch size and `intelligenceCandidateCap` bound the output.
+	const result = await aiGenerateObject(
+		{ feature: 'intelligence', userId: args.userId ?? null, db: args.db },
+		{
+			model,
+			schema,
+			messages: [
+				{
+					role: 'system',
+					content: system,
+					providerOptions: {
+						anthropic: { cacheControl: { type: 'ephemeral' } },
+					},
 				},
-			},
-			{ role: 'user', content: prompt },
-		],
-	})
+				{ role: 'user', content: prompt },
+			],
+		}
+	)
 
-	// `inputTokenDetails` is guaranteed by the AI SDK at runtime, but the
-	// optional chain keeps tests that mock generateObject with a partial
-	// `usage` shape from blowing up on a missing nested field.
-	const details = (result.usage as { inputTokenDetails?: { cacheReadTokens?: number } }).inputTokenDetails
-	return {
-		object: result.object as z.infer<TSchema>,
-		usage: {
-			inputTokens: result.usage.inputTokens ?? 0,
-			outputTokens: result.usage.outputTokens ?? 0,
-			cachedInputTokens: details?.cacheReadTokens ?? 0,
-		},
-	}
+	return { object: result.object, usage: result.usage }
 }
 
 // Convenience for analyzers that want to persist the full composed

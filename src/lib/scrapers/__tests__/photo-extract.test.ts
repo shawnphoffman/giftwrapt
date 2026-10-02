@@ -45,6 +45,10 @@ vi.mock('ai', () => ({
 
 vi.mock('@/db', () => ({ db: {} }))
 
+vi.mock('@/lib/settings-loader', () => ({
+	getAppSettings: () => Promise.resolve({ aiPhotoExtractEnabled: true, aiMonthlyCostCeilingUsd: null }),
+}))
+
 import { extractFromPhoto } from '../photo-extract'
 import { ScrapeProviderError } from '../types'
 

@@ -1,8 +1,8 @@
-import { generateObject } from 'ai'
-
 import { db } from '@/db'
+import { AiBudgetExceededError, aiGenerateObject } from '@/lib/ai-call'
 import { createAiModel } from '@/lib/ai-client'
 import { resolveAiConfig } from '@/lib/ai-config'
+import { getAppSettings } from '@/lib/settings-loader'
 
 import { coerceScrapeResult, ScrapeProviderError, type ScrapeResult, scrapeResultModelSchema } from './types'
 
@@ -33,6 +33,8 @@ export type ExtractFromPhotoArgs = {
 	bytes: Uint8Array
 	mediaType: string
 	signal?: AbortSignal
+	// Who uploaded the photo, for the usage ledger.
+	userId?: string | null
 }
 
 export type ExtractFromPhotoResult = {
@@ -40,7 +42,11 @@ export type ExtractFromPhotoResult = {
 	ms: number
 }
 
-export async function extractFromPhoto({ bytes, mediaType, signal }: ExtractFromPhotoArgs): Promise<ExtractFromPhotoResult> {
+export async function extractFromPhoto({ bytes, mediaType, signal, userId }: ExtractFromPhotoArgs): Promise<ExtractFromPhotoResult> {
+	const settings = await getAppSettings(db)
+	if (!settings.aiPhotoExtractEnabled) {
+		throw new ScrapeProviderError('config_missing', 'Photo to item is turned off on this deployment')
+	}
 	const aiConfig = await resolveAiConfig(db)
 	if (!aiConfig.isValid) {
 		throw new ScrapeProviderError('config_missing', 'AI provider not configured')
@@ -56,22 +62,27 @@ export async function extractFromPhoto({ bytes, mediaType, signal }: ExtractFrom
 	const start = Date.now()
 	let parsed
 	try {
-		parsed = await generateObject({
-			model,
-			schema: scrapeResultModelSchema,
-			abortSignal: signal,
-			system: SYSTEM_PROMPT,
-			messages: [
-				{
-					role: 'user',
-					content: [
-						{ type: 'text', text: USER_PROMPT },
-						{ type: 'image', image: bytes, mediaType },
-					],
-				},
-			],
-		})
+		parsed = await aiGenerateObject(
+			{ feature: 'photo-extract', userId },
+			{
+				model,
+				schema: scrapeResultModelSchema,
+				abortSignal: signal,
+				maxOutputTokens: aiConfig.maxOutputTokens.value,
+				system: SYSTEM_PROMPT,
+				messages: [
+					{
+						role: 'user',
+						content: [
+							{ type: 'text', text: USER_PROMPT },
+							{ type: 'image', image: bytes, mediaType },
+						],
+					},
+				],
+			}
+		)
 	} catch (err) {
+		if (err instanceof AiBudgetExceededError) throw err
 		if (err instanceof Error && (err.name === 'AbortError' || /aborted|timeout/i.test(err.message))) {
 			throw new ScrapeProviderError('timeout', err.message)
 		}

@@ -384,6 +384,9 @@ export const getAdminUserRunSummaries = emptyArray
 
 // @/api/admin-ai
 export const testAiConnectionAsAdmin = ok
+export const fetchAiUsageAsAdmin = (): Promise<null> => Promise.resolve(null)
+export const fetchAiConfigAsAdmin = (): Promise<null> => Promise.resolve(null)
+export const updateAiConfigAsAdmin = ok
 
 // @/api/admin-cron
 export const getCronEndpointsSummaryAsAdmin = (): Promise<{ endpoints: Array<unknown> }> => Promise.resolve({ endpoints: [] })

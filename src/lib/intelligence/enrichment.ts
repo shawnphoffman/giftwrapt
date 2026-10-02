@@ -140,6 +140,8 @@ export async function runEnrichment(args: {
 		try {
 			const result = await generateObjectCached({
 				model,
+				userId,
+				db,
 				schema: enrichmentResponseSchema,
 				system: ENRICHMENT_SYSTEM,
 				prompt: userPrompt,

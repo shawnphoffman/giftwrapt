@@ -213,7 +213,7 @@ export function buildDbBackedDeps(db: Database, options: { ttlHours: number; min
 		persistAttempt: (record: Parameters<typeof persistScrapeAttempt>[1]) => persistScrapeAttempt(db, { ...record, userId: options.userId }),
 		persistFinal: (record: FinalScrapeRecord) => persistFinalScrape(db, { ...record, userId: options.userId }),
 		postProcessResult: async (result: ScrapeResult, ctx: { url: string; fromProvider: string }) => {
-			const outcome = await maybeCleanTitle(db, result, { url: ctx.url })
+			const outcome = await maybeCleanTitle(db, result, { url: ctx.url, userId: options.userId })
 			if (outcome.cleaned && result.title && outcome.cleaned !== result.title) {
 				// Persist the cleaned title so cache hits (and the admin scrapes
 				// view) reflect it; best-effort, never block the live result on it.

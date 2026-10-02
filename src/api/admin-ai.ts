@@ -1,14 +1,15 @@
 import { createServerFn } from '@tanstack/react-start'
-import { generateText } from 'ai'
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
 import { appSettings } from '@/db/schema'
+import { aiGenerateText } from '@/lib/ai-call'
 import { createAiModel } from '@/lib/ai-client'
 import { AI_SETTING_KEYS, type AiSettingKey, envLockedFlags, resolveAiConfig } from '@/lib/ai-config'
 import { type ListModelsResult, listProviderModels } from '@/lib/ai-models'
 import { DEFAULT_MAX_OUTPUT_TOKENS, type FieldSource, PROVIDER_TYPES, type ProviderType } from '@/lib/ai-types'
+import { type AiUsageSummary, getAiUsageSummary } from '@/lib/ai-usage'
 import { encryptAppSecret } from '@/lib/crypto/app-secret'
 import { createLogger } from '@/lib/logger'
 import { LIMITS } from '@/lib/validation/limits'
@@ -150,7 +151,7 @@ export type TestAiConnectionResult = { ok: true; latencyMs: number } | { ok: fal
 export const testAiConnectionAsAdmin = createServerFn({ method: 'POST' })
 	.middleware([adminAuthMiddleware])
 	.inputValidator((data: z.infer<typeof testInputSchema>) => testInputSchema.parse(data))
-	.handler(async ({ data }): Promise<TestAiConnectionResult> => {
+	.handler(async ({ data, context }): Promise<TestAiConnectionResult> => {
 		const cfg = await resolveAiConfig(db)
 		const providerType = data.providerType ?? cfg.providerType.value
 		const baseUrl = data.baseUrl ?? cfg.baseUrl.value
@@ -167,11 +168,10 @@ export const testAiConnectionAsAdmin = createServerFn({ method: 'POST' })
 
 		const started = Date.now()
 		try {
-			await generateText({
-				model: createAiModel({ providerType, apiKey, baseUrl, model }),
-				prompt: 'ping',
-				maxOutputTokens,
-			})
+			await aiGenerateText(
+				{ feature: 'admin-test', userId: context.session.user.id, bypassBudget: true },
+				{ model: createAiModel({ providerType, apiKey, baseUrl, model }), prompt: 'ping', maxOutputTokens }
+			)
 			return { ok: true, latencyMs: Date.now() - started }
 		} catch (err) {
 			const msg = err instanceof Error ? err.message : 'Failed to reach AI provider.'
@@ -210,3 +210,9 @@ export const listAiModelsAsAdmin = createServerFn({ method: 'POST' })
 
 		return await listProviderModels({ providerType, apiKey, baseUrl, refresh: data.refresh ?? false })
 	})
+
+// Last 30 days of the AI usage ledger, per feature, plus the month-to-date
+// estimated spend the monthly ceiling is compared against.
+export const fetchAiUsageAsAdmin = createServerFn({ method: 'GET' })
+	.middleware([adminAuthMiddleware])
+	.handler(async (): Promise<AiUsageSummary> => getAiUsageSummary({ db, now: new Date() }))

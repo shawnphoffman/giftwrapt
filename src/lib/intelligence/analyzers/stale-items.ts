@@ -130,6 +130,8 @@ export const staleItemsAnalyzer: Analyzer = {
 		try {
 			const result = await generateObjectCached({
 				model: ctx.model,
+				userId: ctx.userId,
+				db: ctx.db,
 				schema: staleItemsResponseSchema,
 				system: STALE_ITEMS_SYSTEM,
 				prompt: userPrompt,

@@ -544,6 +544,18 @@ export const appSettingsSchema = z.object({
 	// cleanup tick sweeps rows older than this. 90 days = roughly one
 	// quarter of operational history at five endpoints.
 	cronRunsRetentionDays: z.number().int().min(0).max(365),
+	// How long rows in the AI usage ledger (`ai_usage`) are kept. Swept by
+	// the daily cleanup cron.
+	aiUsageRetentionDays: z.number().int().min(1).max(730),
+	// Optional ceiling on estimated AI spend per calendar month (UTC), in
+	// US dollars. Null means no ceiling. Once the month's ledger total
+	// reaches it, model calls are refused until the next month (the admin
+	// connection test is exempt). Enforced in src/lib/ai-call.ts.
+	aiMonthlyCostCeilingUsd: z.union([z.null(), z.number().min(0).max(100_000)]),
+	// Photo to item: a vision call that fills in an item from an uploaded
+	// photo. On by default so deployments that already had AI configured
+	// keep the behavior they had before the toggle existed.
+	aiPhotoExtractEnabled: z.boolean(),
 	// =====================================================================
 	// Observability (opt-in per deployment, default off)
 	// =====================================================================
@@ -657,6 +669,9 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	intelligenceStaleListPastEventDays: 90,
 	intelligenceStaleListInactiveMonths: 12,
 	cronRunsRetentionDays: 90,
+	aiUsageRetentionDays: 90,
+	aiMonthlyCostCeilingUsd: null,
+	aiPhotoExtractEnabled: true,
 	barcode: {
 		enabled: false,
 		providerId: 'upcitemdb-trial' as const,

@@ -1,0 +1,97 @@
+// The registry of AI features: what each one is, which setting turns it
+// on, and exactly what it sends to the AI provider. Browser-safe.
+//
+// This is the single source for the admin AI page's toggles and their
+// "what is sent" disclosure. A new AI feature adds an entry here in the
+// same change that adds its model call; `ai-features.test.ts` fails when
+// an AI toggle in the settings schema has no entry, and when a feature
+// label used on the usage ledger has no entry.
+//
+// Write `sent` and `neverSent` from what the code does, not from intent.
+// If a prompt changes, this changes with it.
+
+import type { AppSettings } from '@/lib/settings'
+
+type BooleanSettingKey = { [K in keyof AppSettings]: AppSettings[K] extends boolean ? K : never }[keyof AppSettings]
+
+export type AiFeatureInfo = {
+	// Matches the `feature` label on `ai_usage` rows (AiFeature in ai-call.ts).
+	id: string
+	label: string
+	description: string
+	// The app setting that turns the feature on. Null when it is switched
+	// somewhere else (see `managedAt`).
+	settingKey: BooleanSettingKey | null
+	// Where the feature is configured in more depth, or switched when
+	// `settingKey` is null.
+	managedAt?: { href: string; label: string }
+	sent: ReadonlyArray<string>
+	neverSent: ReadonlyArray<string>
+}
+
+const NOTHING_ABOUT_PEOPLE = 'Anything about your users, their lists, or their gifts'
+
+export const AI_FEATURE_REGISTRY: ReadonlyArray<AiFeatureInfo> = [
+	{
+		id: 'scrape-provider',
+		label: 'AI Scraper',
+		description: 'Reads a product page with the AI model when it is one of the configured scrape providers.',
+		settingKey: null,
+		managedAt: { href: '/admin/scraping', label: 'Scraping' },
+		sent: ['The product page URL being added', 'The text and markup of that page, with scripts and styles removed (up to 32 KB)'],
+		neverSent: [NOTHING_ABOUT_PEOPLE],
+	},
+	{
+		id: 'clean-title',
+		label: 'Clean Imported Titles',
+		description: 'A small pass after a scrape that strips retailer noise from the title.',
+		settingKey: 'scrapeAiCleanTitlesEnabled',
+		sent: ['The scraped title', 'The product page URL', 'The store name, when known'],
+		neverSent: [NOTHING_ABOUT_PEOPLE],
+	},
+	{
+		id: 'photo-extract',
+		label: 'Photo to Item',
+		description: 'Fills in a new item from a photo the user uploads.',
+		settingKey: 'aiPhotoExtractEnabled',
+		sent: ['The uploaded photo'],
+		neverSent: [NOTHING_ABOUT_PEOPLE],
+	},
+	{
+		id: 'intelligence',
+		label: 'Suggestions',
+		description:
+			'Scheduled suggestions for each user about their own lists: stale items, duplicates, grouping, and set-up nudges. Users see the Suggestions page and can refresh it.',
+		settingKey: 'intelligenceEnabled',
+		managedAt: { href: '/admin/intelligence', label: 'Intelligence' },
+		sent: [
+			'Titles and notes of the items on the user’s own lists',
+			'The names and types of those lists, and when each item was last changed',
+			'Whether an item is marked unavailable, and the item groups already on the list',
+		],
+		neverSent: [
+			'Claims: who is giving what, costs, and gift notes',
+			'Gift-ideas lists (private notes about other people)',
+			'Items already revealed or deleted',
+			'Profile details: names, email addresses, and birthdays (a name typed into a list name or an item is sent as written)',
+		],
+	},
+]
+
+// Features on the ledger that are not user-facing toggles.
+export const AI_LEDGER_ONLY_FEATURES: Readonly<Partial<Record<string, string>>> = {
+	'admin-test': 'Connection Test',
+}
+
+// Settings that match the AI-toggle naming but are not a feature of their
+// own, with the reason.
+export const AI_NON_FEATURE_SETTINGS: Readonly<Record<string, string>> = {
+	scrapeAiProviderEnabled: 'Legacy toggle, migrated into a scrapeProviders entry at bootstrap; the scrape-provider entry covers it.',
+	intelligenceEmailEnabled: 'Gates the operator digest email, which makes no model call.',
+	intelligenceEmailWeeklyDigestEnabled: 'Gates the operator digest email, which makes no model call.',
+	intelligenceListHygieneRenameWithAi: 'A sub-option of Suggestions, configured on the Intelligence page.',
+}
+
+export function aiFeatureLabel(id: string): string {
+	return AI_FEATURE_REGISTRY.find(f => f.id === id)?.label ?? AI_LEDGER_ONLY_FEATURES[id] ?? id
+}

@@ -533,6 +533,8 @@ export async function chooseConvertName(args: ChooseConvertNameArgs): Promise<st
 	try {
 		const result = await generateObjectCached({
 			model: ctx.model,
+			userId: ctx.userId,
+			db: ctx.db,
 			schema: listHygieneRenameResponseSchema,
 			system: LIST_HYGIENE_RENAME_SYSTEM,
 			prompt: userPrompt,

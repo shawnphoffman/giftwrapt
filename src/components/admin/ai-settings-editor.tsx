@@ -369,7 +369,8 @@ function Form({ config, saving, mutate }: FormProps) {
 								Max Output Tokens
 							</Label>
 							<p className="text-sm text-muted-foreground">
-								Caps the response length for connection tests and any AI features. Reasoning models need at least a few hundred.
+								Caps the response length for connection tests, scraping, title clean-up, and photo to item. Reasoning models need at least a
+								few hundred. Suggestions are bounded by batch size instead, because a cut-off response there is unusable.
 							</p>
 						</div>
 						<Input

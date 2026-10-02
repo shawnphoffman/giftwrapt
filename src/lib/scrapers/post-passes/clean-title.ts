@@ -1,6 +1,5 @@
-import { generateText } from 'ai'
-
 import type { Database } from '@/db'
+import { aiGenerateText } from '@/lib/ai-call'
 import { createAiModel } from '@/lib/ai-client'
 import { resolveAiConfig } from '@/lib/ai-config'
 import { getAppSettings } from '@/lib/settings-loader'
@@ -32,6 +31,8 @@ export type CleanTitleOptions = {
 	url?: string
 	vendorId?: string | null
 	signal?: AbortSignal
+	// Who triggered the scrape, for the usage ledger.
+	userId?: string | null
 }
 
 export type CleanTitleOutcome = {
@@ -70,12 +71,16 @@ export async function maybeCleanTitle(db: Database, result: ScrapeResult, option
 	if (options.vendorId) promptParts.push(`Vendor: ${options.vendorId}`)
 
 	try {
-		const { text } = await generateText({
-			model,
-			abortSignal: options.signal,
-			system: SYSTEM_PROMPT,
-			prompt: promptParts.join('\n'),
-		})
+		const { text } = await aiGenerateText(
+			{ feature: 'clean-title', userId: options.userId, db },
+			{
+				model,
+				abortSignal: options.signal,
+				maxOutputTokens: aiConfig.maxOutputTokens.value,
+				system: SYSTEM_PROMPT,
+				prompt: promptParts.join('\n'),
+			}
+		)
 		const cleaned = text.trim().replace(/^["'`]|["'`]$/g, '')
 		if (!cleaned) return { skipped: 'no_title' }
 		return { cleaned }

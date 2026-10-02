@@ -321,6 +321,8 @@ export const duplicatesAnalyzer: Analyzer = {
 		try {
 			const result = await generateObjectCached({
 				model: ctx.model,
+				userId: ctx.userId,
+				db: ctx.db,
 				schema: duplicatesResponseSchema,
 				system: DUPLICATES_SYSTEM,
 				prompt: userPrompt,
