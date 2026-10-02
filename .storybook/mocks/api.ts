@@ -413,7 +413,33 @@ export const deleteOauthClientAsAdmin = ok
 
 // @/api/gift-suggestions
 export const getGiftSuggestions = (): Promise<{ kind: 'ok'; recipientName: string; suggestions: Array<unknown> }> =>
-	Promise.resolve({ kind: 'ok', recipientName: 'Sam', suggestions: [] })
+	Promise.resolve({
+		kind: 'ok',
+		recipientName: 'Linda',
+		suggestions: [
+			{
+				title: 'Enameled Cast Iron Braiser',
+				details:
+					'A wide, shallow lidded pan around 3.5 quarts, the natural companion to a Dutch oven. Look for a light interior enamel so browning is easy to see, and a lid that is oven-safe to at least 450 degrees.',
+				reason: 'She asked for a Dutch oven, so cookware in the same style should suit her kitchen.',
+				priceBand: '100-250',
+			},
+			{
+				title: 'Bypass Pruning Shears',
+				details:
+					'Hand pruners with a hardened steel bypass blade and a replaceable spring, sized for a medium hand. A model that can be taken apart for sharpening will last for years of hydrangea trimming.',
+				reason: 'There is a hydrangea for the side yard on her list.',
+				priceBand: '25-50',
+			},
+			{
+				title: 'Clip-On Reading Light',
+				details:
+					'A small rechargeable light with a warm, dimmable setting and a padded clip that will not mark an e-reader cover. Amber modes are easier on the eyes at night.',
+				reason: 'She wants an e-reader, and this goes with it.',
+				priceBand: 'under-25',
+			},
+		],
+	})
 export const saveGiftSuggestion = ok
 export const getListInterests = (): Promise<{ interests: Array<unknown>; analysedItems: number }> =>
 	Promise.resolve({ interests: [], analysedItems: 0 })
