@@ -147,7 +147,7 @@ export type NewItemComment = typeof itemComments.$inferInsert
 // the user saves the form, or stay orphaned for diagnostics / cleanup.
 //
 // userId records the signed-in user that triggered the scrape (null for
-// future system-driven cron scrapes). The /admin/scrapes page joins this
+// future system-driven cron scrapes). The admin Scrape History joins this
 // to surface "who scraped this URL" alongside the response.
 export const itemScrapes = pgTable(
 	'item_scrapes',

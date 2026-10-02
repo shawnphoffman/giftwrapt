@@ -191,7 +191,13 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 				score,
 				ms,
 				result,
-				rawResponse: response.kind === 'html' ? { kind: 'html', status: response.status, finalUrl: response.finalUrl } : response.result,
+				// For HTML providers: status, where the request landed, and the
+				// provider's diagnostic headers (`x-fetch-ua` says which user
+				// agent got through, `x-fetch-via` which entry fetched it).
+				rawResponse:
+					response.kind === 'html'
+						? { kind: 'html', status: response.status, finalUrl: response.finalUrl, headers: response.headers }
+						: response.result,
 				scoreParts,
 			})
 			return { ok: true, result, score, scoreContext, providerId: provider.id }

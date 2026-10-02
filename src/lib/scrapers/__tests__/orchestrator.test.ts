@@ -792,3 +792,24 @@ describe('orchestrate: dead links', () => {
 		expect(result.kind).toBe('ok')
 	})
 })
+
+describe('orchestrate: attempt diagnostics', () => {
+	it("persists an HTML provider's status, final URL, and diagnostic headers", async () => {
+		const produces: ProviderResponse = {
+			kind: 'html',
+			providerId: 'p',
+			html: '<html></html>',
+			finalUrl: 'https://example.test/final',
+			status: 200,
+			headers: { 'x-fetch-ua': 'browser' },
+			fetchMs: 1,
+		}
+		const p = makeProvider({ id: 'p', tier: 1, produces })
+		const raws: Array<unknown> = []
+		await orchestrate(
+			{ url: 'https://example.test/x' },
+			makeDeps({ providers: [p], persistAttempt: rec => (raws.push(rec.rawResponse), Promise.resolve()) })
+		)
+		expect(raws).toEqual([{ kind: 'html', status: 200, finalUrl: 'https://example.test/final', headers: { 'x-fetch-ua': 'browser' } }])
+	})
+})

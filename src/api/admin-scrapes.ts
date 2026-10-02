@@ -7,7 +7,8 @@ import { items, itemScrapes, lists, users } from '@/db/schema'
 import { loggingMiddleware } from '@/lib/logger'
 import { adminAuthMiddleware } from '@/middleware/auth'
 
-// Server fns powering /admin/scrapes, a debugging view for inspecting
+// Server fns powering the Scrape History and Scrape Health cards on
+// /admin/scraping, a debugging view for inspecting
 // every scrape attempt's persisted row. Useful when the streaming UX
 // reports a green provider but the form prefill came up empty: load the
 // detail, look at the raw `response` jsonb + the per-column extracted

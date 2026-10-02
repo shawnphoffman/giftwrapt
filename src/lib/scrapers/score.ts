@@ -45,7 +45,7 @@ export function scoreScrape(result: ScrapeResult, ctx: { html?: string; status?:
 }
 
 // The same score, itemized per signal. Persisted with each attempt so
-// /admin/scrapes can show why a result scored what it did.
+// the admin Scrape History can show why a result scored what it did.
 export function scoreBreakdown(result: ScrapeResult, ctx: { html?: string; status?: number } = {}): ScoreBreakdown {
 	const parts: ScoreBreakdown['parts'] = []
 	const add = (signal: ScoreSignal) => parts.push({ signal, points: SCORE_POINTS[signal] })

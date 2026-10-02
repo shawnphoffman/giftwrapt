@@ -304,7 +304,7 @@ export type OrchestratorDeps = {
 	// to decide fall-through. Implemented in commit 3.
 	scoreFn: (result: ScrapeResult, ctx: { html?: string; status?: number }) => number
 	// Optional per-signal itemization of the same score, persisted with each
-	// successful attempt so /admin/scrapes can show why it scored what it did.
+	// successful attempt so the admin Scrape History can show why it scored what it did.
 	explainScore?: (result: ScrapeResult, ctx: { html?: string; status?: number }) => ScoreBreakdown
 	// Optional cache lookup. Returning a hit short-circuits the chain.
 	loadCache?: (url: string) => Promise<{ result: ScrapeResult; fromProvider: string } | null>

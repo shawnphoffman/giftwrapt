@@ -163,7 +163,7 @@ export async function backfillCleanTitle(db: Database, params: { url: string; or
 // `isFinal`. `title` keeps the merged title and `cleanTitle` the post-pass
 // title when it differs, mirroring how attempt rows store a cleaned title.
 // The response jsonb records which providers joined the merge and which the
-// consistency guard kept out, for /admin/scrapes.
+// consistency guard kept out, for the admin Scrape History.
 export async function persistFinalScrape(db: Database, record: FinalScrapeRecord & { userId?: string }): Promise<void> {
 	const { result, finalResult } = record
 	const cleanTitle = finalResult.title && finalResult.title !== result.title ? finalResult.title : null
@@ -201,7 +201,7 @@ export async function persistFinalScrape(db: Database, record: FinalScrapeRecord
 // post-pass (which is itself toggle-gated, so it's a no-op when off).
 //
 // `userId` is the signed-in user that triggered the scrape; it's stamped
-// onto every persisted attempt row so the admin /admin/scrapes page can
+// onto every persisted attempt row so the admin Scrape History can
 // surface "who scraped this URL." Pass `undefined` for system-driven runs.
 export function buildDbBackedDeps(db: Database, options: { ttlHours: number; minScore?: number; userId?: string }) {
 	const cacheOptions = { ttlHours: options.ttlHours, minScore: options.minScore ?? CACHE_MIN_SCORE }
@@ -230,7 +230,7 @@ export function buildDbBackedDeps(db: Database, options: { ttlHours: number; min
 }
 
 // What lands in the `response` jsonb: the provider's raw response, plus the
-// score breakdown under `scoreParts` (shown as-is in the /admin/scrapes
+// score breakdown under `scoreParts` (shown as-is in the Scrape History
 // drawer), so no column is needed for it. A non-object raw response is
 // dropped when there are parts to attach; providers only ever send objects.
 export function buildResponseJson(rawResponse: unknown, scoreParts: ScoreBreakdown['parts'] | undefined): unknown {

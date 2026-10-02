@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useAdminAppSettings } from '@/hooks/use-app-settings'
 import { cn } from '@/lib/utils'
 
-// /admin/scrapes lives here. Loads the most recent N attempt rows from
+// The Scrape History card on /admin/scraping lives here. Loads the most recent N attempt rows from
 // itemScrapes joined to items / lists / users; clicking the eye icon on a
 // row opens a dialog with the full detail (raw response jsonb + every
 // extracted column).
