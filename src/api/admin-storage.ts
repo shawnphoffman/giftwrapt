@@ -7,7 +7,7 @@ import { giftedItems, items, listAddons, lists, purchaseAttachments, users } fro
 import { env } from '@/env'
 import { createLogger, loggingMiddleware } from '@/lib/logger'
 import { getStorage } from '@/lib/storage/adapter'
-import { parseAvatarKey, parseItemImageKey, parseKeyFromUrl, parsePurchaseAttachmentKey } from '@/lib/storage/keys'
+import { isReceiptKey, parseAvatarKey, parseItemImageKey, parseKeyFromUrl, parsePurchaseAttachmentKey } from '@/lib/storage/keys'
 import { adminAuthMiddleware } from '@/middleware/auth'
 
 // Server fns powering /admin/storage. Lists every object in the configured
@@ -24,7 +24,9 @@ export type StorageObjectStatus = 'attached' | 'orphan' | 'unknown'
 
 export type StorageObjectRow = {
 	key: string
-	url: string
+	// Null for receipts: admins can see they exist (key, owner, size) but
+	// never preview or open them, so no URL to the bytes leaves the server.
+	url: string | null
 	size: number
 	lastModified: Date
 	kind: StorageObjectKind
@@ -243,7 +245,7 @@ async function enrichRows(
 
 	const out: Array<StorageObjectRow> = []
 	for (const obj of objects) {
-		const url = storage.getPublicUrl(obj.key)
+		const url = isReceiptKey(obj.key) ? null : storage.getPublicUrl(obj.key)
 		const av = parseAvatarKey(obj.key)
 		if (av) {
 			const owner = userMap.get(av.userId) ?? null

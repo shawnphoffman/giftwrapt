@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router'
-import { FileText, Trash2 } from 'lucide-react'
+import { FileText, Lock, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
 import type { StorageObjectRow, StorageSummary } from '@/api/admin-storage'
@@ -120,7 +120,7 @@ export function StorageTable({ rows, onDelete }: { rows: Array<StorageObjectRow>
 			<Dialog open={previewRow !== null} onOpenChange={open => !open && setPreviewRow(null)}>
 				<DialogContent className="sm:max-w-3xl">
 					<DialogTitle className="font-mono text-xs break-all">{previewRow?.key}</DialogTitle>
-					{previewRow && (
+					{previewRow?.url && (
 						<img src={previewRow.url} alt={previewRow.key} className="max-h-[70vh] w-full rounded border bg-muted object-contain" />
 					)}
 				</DialogContent>
@@ -142,7 +142,15 @@ function StorageTableRow({
 	return (
 		<TableRow>
 			<TableCell>
-				{isPdf ? (
+				{row.url === null ? (
+					<div
+						className="flex size-12 items-center justify-center rounded border bg-muted text-muted-foreground"
+						title={`${row.key} (private receipt, not viewable by admins)`}
+						aria-label="Private receipt"
+					>
+						<Lock className="size-5" />
+					</div>
+				) : isPdf ? (
 					<a
 						href={row.url}
 						target="_blank"

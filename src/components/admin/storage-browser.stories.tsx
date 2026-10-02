@@ -155,6 +155,44 @@ const orphanPurchaseImage: StorageObjectRow = {
 	},
 }
 
+const privateReceiptImage: StorageObjectRow = {
+	key: 'purchases/receipts/claim/12/q8Zt3LmP0aXy.webp',
+	url: null,
+	size: 92_160,
+	lastModified: fixedDate,
+	kind: 'purchase',
+	status: 'attached',
+	owner: { id: 'user-xyz', name: 'Bea Carver', email: 'bea@example.com' },
+	target: {
+		kind: 'purchase',
+		purchaseKind: 'claim',
+		id: 12,
+		label: 'Espresso machine',
+		gifterId: 'user-xyz',
+		gifterName: 'Bea Carver',
+		deleted: false,
+	},
+}
+
+const privateReceiptPdf: StorageObjectRow = {
+	key: 'purchases/receipts/addon/4/Hn2Kd7Rw1sTv.pdf',
+	url: null,
+	size: 64_512,
+	lastModified: fixedDate,
+	kind: 'purchase',
+	status: 'attached',
+	owner: { id: 'user-xyz', name: 'Bea Carver', email: 'bea@example.com' },
+	target: {
+		kind: 'purchase',
+		purchaseKind: 'addon',
+		id: 4,
+		label: 'Gift card',
+		gifterId: 'user-xyz',
+		gifterName: 'Bea Carver',
+		deleted: false,
+	},
+}
+
 export const Empty: Story = {
 	args: {
 		summary: { totalCount: 0, totalBytes: 0, orphanCount: 0, orphanBytes: 0, truncated: false },
@@ -190,6 +228,21 @@ export const Purchases: Story = {
 			description: {
 				story:
 					'Purchase attachments: an image receipt attached to a claim, a PDF gift receipt on an addon, and an orphan whose underlying claim was deleted.',
+			},
+		},
+	},
+}
+
+export const PrivateReceipts: Story = {
+	args: {
+		summary: { totalCount: 2, totalBytes: 156_672, orphanCount: 0, orphanBytes: 0, truncated: false },
+		rows: [privateReceiptImage, privateReceiptPdf],
+	},
+	parameters: {
+		docs: {
+			description: {
+				story:
+					'Receipts stored privately under purchases/receipts/. Admins see that they exist (key, purchase, owner, size) and can delete orphans, but get a lock tile instead of a preview or link.',
 			},
 		},
 	},
