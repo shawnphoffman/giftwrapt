@@ -25,7 +25,7 @@ const baseLog = createLogger('scrape-orchestrator')
 // more than 10s and were timing out on otherwise-healthy fetches.
 const DEFAULT_PER_PROVIDER_TIMEOUT_MS = 20_000
 const DEFAULT_OVERALL_TIMEOUT_MS = 45_000
-const DEFAULT_QUALITY_THRESHOLD = 3
+const DEFAULT_QUALITY_THRESHOLD = 8
 
 export async function orchestrate(options: OrchestrateOptions, deps: OrchestratorDeps): Promise<OrchestrateResult> {
 	const log = baseLog.child({ url: options.url, itemId: options.itemId ?? null })
@@ -151,6 +151,7 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 			const attempt: ScrapeAttempt = { providerId: provider.id, ok: true, score, ms }
 			attempts.push(attempt)
 			emit({ type: 'attempt_completed', providerId: provider.id, score, ms })
+			const scoreParts = deps.explainScore?.(result, scoreContext).parts
 			await deps.persistAttempt?.({
 				itemId: options.itemId,
 				url: options.url,
@@ -160,6 +161,7 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 				ms,
 				result,
 				rawResponse: response.kind === 'html' ? { kind: 'html', status: response.status, finalUrl: response.finalUrl } : response.result,
+				scoreParts,
 			})
 			return { ok: true, result, score, scoreContext, providerId: provider.id }
 		} catch (err) {

@@ -5,11 +5,15 @@ import { itemScrapes } from '@/db/schema'
 
 import { extractFromRaw } from './extractor'
 import { maybeCleanTitle } from './post-passes/clean-title'
-import { scoreScrape } from './score'
+import type { ScoreBreakdown } from './score'
+import { CACHE_MIN_SCORE, scoreBreakdown, scoreScrape } from './score'
 import type { ScrapeResult } from './types'
 
-// URL-based dedup against `itemScrapes`. Returns the most recent successful
-// scrape of the same URL within `ttlHours`, scored above `minScore`.
+// URL-based dedup against `itemScrapes`. Returns the best-scoring successful
+// scrape of the same URL within `ttlHours` at or above `minScore`, newest
+// first on ties. Best rather than newest: once the orchestrator falls
+// through tiers, the last attempt to finish is often a weaker one (a later
+// tier that hit a captcha), and it must not hide the attempt that won.
 //
 // Storage is jsonb (`response` column). When we wrote the row, the
 // orchestrator persisted the structured ScrapeResult under the providerId
@@ -39,8 +43,10 @@ export async function loadCachedScrape(
 			ratingCount: itemScrapes.ratingCount,
 		})
 		.from(itemScrapes)
-		.where(and(eq(itemScrapes.url, url), eq(itemScrapes.ok, true), gte(itemScrapes.createdAt, since)))
-		.orderBy(desc(itemScrapes.createdAt))
+		.where(
+			and(eq(itemScrapes.url, url), eq(itemScrapes.ok, true), gte(itemScrapes.createdAt, since), gte(itemScrapes.score, options.minScore))
+		)
+		.orderBy(desc(itemScrapes.score), desc(itemScrapes.createdAt))
 		.limit(1)
 	if (rows.length === 0) return null
 	const row = rows[0]
@@ -100,8 +106,10 @@ export async function persistScrapeAttempt(
 		errorCode?: string
 		result?: ScrapeResult
 		rawResponse?: unknown
+		scoreParts?: ScoreBreakdown['parts']
 	}
 ): Promise<void> {
+	const response = buildResponseJson(record.rawResponse, record.scoreParts)
 	await db.insert(itemScrapes).values({
 		itemId: record.itemId ?? null,
 		userId: record.userId ?? null,
@@ -111,7 +119,7 @@ export async function persistScrapeAttempt(
 		score: record.score,
 		ms: record.ms,
 		errorCode: record.errorCode ?? null,
-		response: record.rawResponse ? sql`${JSON.stringify(record.rawResponse)}::jsonb` : null,
+		response: response ? sql`${JSON.stringify(response)}::jsonb` : null,
 		title: record.result?.title ?? null,
 		description: record.result?.description ?? null,
 		price: record.result?.price ?? null,
@@ -155,11 +163,13 @@ export async function backfillCleanTitle(db: Database, params: { url: string; or
 // `userId` is the signed-in user that triggered the scrape; it's stamped
 // onto every persisted attempt row so the admin /admin/scrapes page can
 // surface "who scraped this URL." Pass `undefined` for system-driven runs.
-export function buildDbBackedDeps(db: Database, options: { ttlHours: number; minScore: number; userId?: string }) {
+export function buildDbBackedDeps(db: Database, options: { ttlHours: number; minScore?: number; userId?: string }) {
+	const cacheOptions = { ttlHours: options.ttlHours, minScore: options.minScore ?? CACHE_MIN_SCORE }
 	return {
 		extractFromRaw,
 		scoreFn: scoreScrape,
-		loadCache: (url: string) => loadCachedScrape(db, url, options),
+		explainScore: scoreBreakdown,
+		loadCache: (url: string) => loadCachedScrape(db, url, cacheOptions),
 		persistAttempt: (record: Parameters<typeof persistScrapeAttempt>[1]) => persistScrapeAttempt(db, { ...record, userId: options.userId }),
 		postProcessResult: async (result: ScrapeResult, ctx: { url: string; fromProvider: string }) => {
 			const outcome = await maybeCleanTitle(db, result, { url: ctx.url })
@@ -176,4 +186,17 @@ export function buildDbBackedDeps(db: Database, options: { ttlHours: number; min
 			return result
 		},
 	}
+}
+
+// What lands in the `response` jsonb: the provider's raw response, plus the
+// score breakdown under `scoreParts` (shown as-is in the /admin/scrapes
+// drawer), so no column is needed for it. A non-object raw response is
+// dropped when there are parts to attach; providers only ever send objects.
+export function buildResponseJson(rawResponse: unknown, scoreParts: ScoreBreakdown['parts'] | undefined): unknown {
+	if (!scoreParts) return rawResponse
+	return { ...(isPlainObject(rawResponse) ? rawResponse : {}), scoreParts }
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

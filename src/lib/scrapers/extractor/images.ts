@@ -71,6 +71,55 @@ function isInlineOrScriptUrl(url: string): boolean {
 	return /^(?:data|blob|javascript):/i.test(url)
 }
 
+// Quality class of an image candidate, used by scoring. URL-only: we never
+// download the image to measure it.
+//   - photo: a real product photo
+//   - share-card: Amazon's social-share composite (the product padded onto a
+//     wide banner, sometimes with a promo badge)
+//   - thumbnail: declared or URL-hinted at 160px or smaller
+export type ImageClass = 'photo' | 'share-card' | 'thumbnail'
+
+const THUMBNAIL_MAX_PX = 160
+const AMAZON_SHARE_CARD_RX = /socialshare|_SR1910,1000|_BO\d+,255,255,255_/i
+// Amazon size modifiers: _US100_, _SX300_, _SY679_, _SS40_, _SL1500_, _UL320_.
+const AMAZON_SIZE_RX = /_(?:US|SX|SY|SS|SL|UL)(\d{2,4})_/gi
+const QUERY_WIDTH_RX = /[?&](?:w|width)=(\d{1,5})(?:&|$)/i
+// Shopify-style `_100x100.jpg` / `_120x.jpg` suffixes.
+const DIMENSION_SUFFIX_RX = /_(\d{2,4})x(\d{0,4})(?:@\dx)?\.[a-z0-9]+(?:\?|$)/i
+
+export function classifyImageUrl(url: string): ImageClass {
+	if (amazonImageId(url)) {
+		if (AMAZON_SHARE_CARD_RX.test(url)) return 'share-card'
+		const sizes = [...url.matchAll(AMAZON_SIZE_RX)].map(m => Number(m[1]))
+		if (sizes.length > 0 && Math.max(...sizes) <= THUMBNAIL_MAX_PX) return 'thumbnail'
+		return 'photo'
+	}
+	const queryWidth = QUERY_WIDTH_RX.exec(url)
+	if (queryWidth && Number(queryWidth[1]) <= THUMBNAIL_MAX_PX) return 'thumbnail'
+	const suffix = DIMENSION_SUFFIX_RX.exec(url)
+	if (suffix) {
+		const dims = [suffix[1], suffix[2]].filter(Boolean).map(Number)
+		if (dims.length > 0 && Math.max(...dims) <= THUMBNAIL_MAX_PX) return 'thumbnail'
+	}
+	return 'photo'
+}
+
+const CLASS_RANK: Record<ImageClass, number> = { photo: 3, 'share-card': 2, thumbnail: 1 }
+
+// Best class among usable candidates (trackers and inline URLs skipped), or
+// undefined when there is no usable image at all.
+export function bestImageClass(urls: ReadonlyArray<string>): ImageClass | undefined {
+	let best: ImageClass | undefined
+	for (const raw of urls) {
+		const url = raw.trim()
+		if (!url || isInlineOrScriptUrl(url) || looksLikeTrackingPixel(url)) continue
+		const cls = classifyImageUrl(url)
+		if (!best || CLASS_RANK[cls] > CLASS_RANK[best]) best = cls
+		if (best === 'photo') break
+	}
+	return best
+}
+
 export function looksLikeTrackingPixel(url: string): boolean {
 	const lower = url.toLowerCase()
 	if (TRACKER_HOSTS.some(t => lower.includes(t))) return true

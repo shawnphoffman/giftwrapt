@@ -5,6 +5,7 @@ import { db } from '@/db'
 import { loggingMiddleware } from '@/lib/logger'
 import { loadCachedScrape } from '@/lib/scrapers/cache'
 import { runOneShotScrape } from '@/lib/scrapers/run'
+import { CACHE_MIN_SCORE } from '@/lib/scrapers/score'
 import type { OrchestrateResult, ScrapeAttempt, ScrapeResult } from '@/lib/scrapers/types'
 import { getAppSettings } from '@/lib/settings-loader'
 import { authMiddleware } from '@/middleware/auth'
@@ -70,7 +71,7 @@ export const getCachedScrapeImages = createServerFn({ method: 'POST' })
 		const settings = await getAppSettings(db)
 		const cached = await loadCachedScrape(db, data.url, {
 			ttlHours: settings.scrapeCacheTtlHours,
-			minScore: settings.scrapeQualityThreshold,
+			minScore: CACHE_MIN_SCORE,
 		})
 		if (!cached) return { kind: 'miss' }
 		return { kind: 'ok', imageUrls: cached.result.imageUrls }

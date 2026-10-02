@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { QUALITY_THRESHOLD, scoreScrape } from '../score'
+import { CACHE_MIN_SCORE, QUALITY_THRESHOLD, scoreBreakdown, scoreScrape } from '../score'
 import type { ScrapeResult } from '../types'
 
 const empty: ScrapeResult = { imageUrls: [] }
@@ -29,9 +29,34 @@ describe('scoreScrape: title rule', () => {
 })
 
 describe('scoreScrape: image rule', () => {
-	it('awards +2 when at least one image is present and not a tracker', () => {
+	it('awards +3 for a real product photo', () => {
 		const score = scoreScrape({ imageUrls: ['https://cdn.example.test/widget.jpg'] })
-		expect(score).toBe(2)
+		expect(score).toBe(3)
+	})
+
+	it('awards +1 when the only photo is an Amazon share card', () => {
+		const shareCard =
+			'https://m.media-amazon.com/images/I/816A65vK6cL.jpg_BO30,255,255,255_UF800,800_SR860,800,1,L_SR1910,1000,0,R_PI2026-pbdd-socialshare-awareness-en-US-d-nondeal,TopLeft,0,0_QL100_.jpg'
+		expect(scoreScrape({ imageUrls: [shareCard] })).toBe(1)
+	})
+
+	it('awards 0 when every image is a thumbnail', () => {
+		expect(scoreScrape({ imageUrls: ['https://m.media-amazon.com/images/I/41-BcmX4J7L._AC_US40_.jpg'] })).toBe(0)
+		expect(scoreScrape({ imageUrls: ['https://cdn.example.test/widget.jpg?w=100'] })).toBe(0)
+	})
+
+	it('uses the best image, not the first', () => {
+		const score = scoreScrape({
+			imageUrls: [
+				'https://m.media-amazon.com/images/I/41-BcmX4J7L._AC_US40_.jpg',
+				'https://m.media-amazon.com/images/I/816A65vK6cL._AC_SL1500_.jpg',
+			],
+		})
+		expect(score).toBe(3)
+	})
+
+	it('ignores data: placeholders', () => {
+		expect(scoreScrape({ imageUrls: ['data:image/gif;base64,R0lGODlhAQABAAAAACw='] })).toBe(0)
 	})
 
 	it('awards 0 when imageUrls is empty', () => {
@@ -45,8 +70,8 @@ describe('scoreScrape: image rule', () => {
 })
 
 describe('scoreScrape: price + description rules', () => {
-	it('+1 for a non-empty price', () => {
-		expect(scoreScrape({ ...empty, price: '9.99' })).toBe(1)
+	it('+3 for a non-empty price', () => {
+		expect(scoreScrape({ ...empty, price: '9.99' })).toBe(3)
 		expect(scoreScrape({ ...empty, price: '   ' })).toBe(0)
 	})
 
@@ -116,11 +141,62 @@ describe('scoreScrape: combined cases', () => {
 		}
 		const score = scoreScrape(result)
 		expect(score).toBeGreaterThanOrEqual(QUALITY_THRESHOLD)
-		expect(score).toBe(6)
+		expect(score).toBe(9)
 	})
 
 	it('scores a sparse result below the threshold', () => {
 		const result: ScrapeResult = { title: 'A title only', imageUrls: [] }
 		expect(scoreScrape(result)).toBeLessThan(QUALITY_THRESHOLD)
+	})
+})
+
+describe('scoreScrape: stop rule (price and a real photo are required)', () => {
+	const title = 'ACME Widget 2-pack'
+	const description = 'A pack of two ACME widgets, suitable for all occasions.'
+	const photo = 'https://cdn.example.test/widget.jpg'
+	const shareCard = 'https://m.media-amazon.com/images/I/816A65vK6cL.jpg_BO30,255,255,255_UF800,800_SR1910,1000,0,C_QL100_.jpg'
+
+	it('clears with a title, price, and real photo', () => {
+		expect(scoreScrape({ title, price: '29.99', imageUrls: [photo] })).toBe(QUALITY_THRESHOLD)
+	})
+
+	it('falls through without a price, even with a photo and description', () => {
+		expect(scoreScrape({ title, description, imageUrls: [photo] })).toBeLessThan(QUALITY_THRESHOLD)
+	})
+
+	it('falls through without a real photo, even with a price, share card, and description', () => {
+		expect(scoreScrape({ title, description, price: '29.99', imageUrls: [shareCard] })).toBeLessThan(QUALITY_THRESHOLD)
+	})
+
+	it('still caches a title plus a real photo, or a title plus a price', () => {
+		expect(scoreScrape({ title, imageUrls: [photo] })).toBeGreaterThanOrEqual(CACHE_MIN_SCORE)
+		expect(scoreScrape({ title, price: '29.99', imageUrls: [] })).toBeGreaterThanOrEqual(CACHE_MIN_SCORE)
+		expect(scoreScrape({ title, imageUrls: [shareCard] })).toBeLessThan(CACHE_MIN_SCORE)
+	})
+})
+
+describe('scoreBreakdown', () => {
+	it('itemizes every signal and sums to the score', () => {
+		const result: ScrapeResult = {
+			title: 'A real product page',
+			price: '9.99',
+			imageUrls: ['https://cdn.example.test/widget.jpg'],
+			description: 'A useful and very specifically described product description.',
+		}
+		const html = '<html><head><title>Just a moment...</title></head><body>cf-browser-verification</body></html>'
+		const breakdown = scoreBreakdown(result, { html })
+		expect(breakdown.parts).toEqual([
+			{ signal: 'title', points: 2 },
+			{ signal: 'price', points: 3 },
+			{ signal: 'photo', points: 3 },
+			{ signal: 'description', points: 1 },
+			{ signal: 'botWall', points: -3 },
+		])
+		expect(breakdown.total).toBe(6)
+		expect(scoreScrape(result, { html })).toBe(breakdown.total)
+	})
+
+	it('returns no parts for an empty result', () => {
+		expect(scoreBreakdown(empty)).toEqual({ total: 0, parts: [] })
 	})
 })

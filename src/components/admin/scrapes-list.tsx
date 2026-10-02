@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { CheckCircle2, ExternalLink, Eye, XCircle } from 'lucide-react'
 import { useState } from 'react'
 
-import { getScrapeDetailAsAdmin, listScrapesAsAdmin, type ScrapeListRow } from '@/api/admin-scrapes'
+import { getScrapeDetailAsAdmin, listScrapesAsAdmin, type ScrapeListRow, type ScrapeResponseJson } from '@/api/admin-scrapes'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -180,6 +180,7 @@ function ScrapeDetailDialog({
 	})
 
 	const detail = detailQuery.data?.kind === 'ok' ? detailQuery.data.detail : null
+	const scoreParts = detail ? readScoreParts(detail.response) : null
 	const providerLabel = detail ? labelFor(detail.scraperId) : ''
 
 	return (
@@ -220,6 +221,11 @@ function ScrapeDetailDialog({
 								{typeof detail.score === 'number' && <span className="ml-2 text-xs text-muted-foreground">score {detail.score}</span>}
 								{typeof detail.ms === 'number' && <span className="ml-2 text-xs text-muted-foreground">{formatDurationMs(detail.ms)}</span>}
 							</DetailField>
+							{scoreParts && (
+								<DetailField label="Score">
+									<ScoreBreakdownLine parts={scoreParts} total={detail.score} />
+								</DetailField>
+							)}
 							<DetailField label="Triggered by">
 								{detail.userName || detail.userEmail ? (
 									<>
@@ -290,6 +296,50 @@ function ScrapeDetailDialog({
 				)}
 			</DialogContent>
 		</Dialog>
+	)
+}
+
+// Per-signal score itemization the orchestrator stores in the response
+// jsonb (`scoreParts`). Rows persisted before it existed have none, and the
+// drawer just omits the line. Labels mirror SCORE_POINTS in
+// src/lib/scrapers/score.ts (not imported: that module is server-side).
+const SCORE_SIGNAL_LABELS: Record<string, string> = {
+	title: 'title',
+	price: 'price',
+	photo: 'product photo',
+	shareCard: 'share card only',
+	description: 'description',
+	botWall: 'bot wall',
+	errorTitle: 'error-page title',
+}
+
+type ScorePart = { signal: string; points: number }
+
+function readScoreParts(response: ScrapeResponseJson | null): Array<ScorePart> | null {
+	if (!response || typeof response !== 'object' || Array.isArray(response)) return null
+	const raw = response.scoreParts
+	if (!Array.isArray(raw)) return null
+	const parts: Array<ScorePart> = []
+	for (const p of raw) {
+		if (p && typeof p === 'object' && !Array.isArray(p) && typeof p.signal === 'string' && typeof p.points === 'number') {
+			parts.push({ signal: p.signal, points: p.points })
+		}
+	}
+	return parts
+}
+
+function ScoreBreakdownLine({ parts, total }: { parts: Array<ScorePart>; total: number | null }) {
+	if (parts.length === 0) return <span className="text-xs text-muted-foreground">no signals ({total ?? 0})</span>
+	return (
+		<span className="text-xs font-mono">
+			{parts.map((p, i) => (
+				<span key={p.signal} className={cn(p.points < 0 && 'text-destructive')}>
+					{i > 0 && <span className="text-muted-foreground"> · </span>}
+					{SCORE_SIGNAL_LABELS[p.signal] ?? p.signal} {p.points > 0 ? `+${p.points}` : p.points}
+				</span>
+			))}
+			{typeof total === 'number' && <span className="text-muted-foreground"> = {total}</span>}
+		</span>
 	)
 }
 

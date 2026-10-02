@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { filterAndSortImages, looksLikeTrackingPixel } from '../images'
+import { bestImageClass, classifyImageUrl, filterAndSortImages, looksLikeTrackingPixel } from '../images'
 
 describe('looksLikeTrackingPixel', () => {
 	it('catches well-known tracker hostnames', () => {
@@ -136,5 +136,39 @@ describe('filterAndSortImages: size-variant collapse', () => {
 			'https://cdn.example.test/products/widget-back.jpg',
 		])
 		expect(survivors).toEqual(['https://cdn.example.test/products/widget-front.jpg', 'https://cdn.example.test/products/widget-back.jpg'])
+	})
+})
+
+describe('classifyImageUrl', () => {
+	it('classifies Amazon share cards, thumbnails, and full-size photos', () => {
+		expect(
+			classifyImageUrl(
+				'https://m.media-amazon.com/images/I/816A65vK6cL.jpg_BO30,255,255,255_UF800,800_SR860,800,1,L_SR1910,1000,0,R_PI2026-pbdd-socialshare-awareness-en-US-d-nondeal,TopLeft,0,0_QL100_.jpg'
+			)
+		).toBe('share-card')
+		expect(classifyImageUrl('https://m.media-amazon.com/images/I/41-BcmX4J7L._AC_US40_.jpg')).toBe('thumbnail')
+		expect(classifyImageUrl('https://m.media-amazon.com/images/I/41GMRVNSxsL._AC_US100_.jpg')).toBe('thumbnail')
+		expect(classifyImageUrl('https://m.media-amazon.com/images/I/816A65vK6cL._AC_SX300_SY300_QL70_ML2_.jpg')).toBe('photo')
+		expect(classifyImageUrl('https://m.media-amazon.com/images/I/816A65vK6cL._AC_SL1500_.jpg')).toBe('photo')
+		expect(classifyImageUrl('https://m.media-amazon.com/images/I/31sR9FweQ1L.jpg')).toBe('photo')
+	})
+
+	it('classifies small generic images by width hints', () => {
+		expect(classifyImageUrl('https://cdn.example.test/p/widget.jpg?w=100')).toBe('thumbnail')
+		expect(classifyImageUrl('https://cdn.example.test/p/widget.jpg?w=800')).toBe('photo')
+		expect(classifyImageUrl('https://shop.example.test/cdn/shop/files/widget_100x100.jpg?v=1')).toBe('thumbnail')
+		expect(classifyImageUrl('https://shop.example.test/cdn/shop/files/widget_1200x.jpg?v=1')).toBe('photo')
+		expect(classifyImageUrl('https://cdn.example.test/p/widget.jpg')).toBe('photo')
+	})
+})
+
+describe('bestImageClass', () => {
+	it('returns the best usable class, skipping trackers and inline URLs', () => {
+		expect(bestImageClass([])).toBeUndefined()
+		expect(bestImageClass(['data:image/gif;base64,R0lGODlhAQABAAAAACw=', 'https://doubleclick.net/p.gif'])).toBeUndefined()
+		expect(bestImageClass(['https://m.media-amazon.com/images/I/41-BcmX4J7L._AC_US40_.jpg'])).toBe('thumbnail')
+		expect(bestImageClass(['https://m.media-amazon.com/images/I/41-BcmX4J7L._AC_US40_.jpg', 'https://cdn.example.test/p/widget.jpg'])).toBe(
+			'photo'
+		)
 	})
 })

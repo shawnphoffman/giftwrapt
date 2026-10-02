@@ -6,7 +6,7 @@ vi.mock('@/env', () => ({
 
 import type { Database } from '@/db'
 
-import { loadCachedScrape, persistScrapeAttempt } from '../cache'
+import { buildResponseJson, loadCachedScrape, persistScrapeAttempt } from '../cache'
 
 // ---------------------------------------------------------------------------
 // Mock database
@@ -304,5 +304,31 @@ describe('persistScrapeAttempt: insert shape', () => {
 			result: { title: 'Hello', imageUrls: [] },
 		})
 		expect(insertCalls[0].response).toBeNull()
+	})
+})
+
+describe('buildResponseJson', () => {
+	const parts = [
+		{ signal: 'title' as const, points: 2 },
+		{ signal: 'price' as const, points: 3 },
+	]
+
+	it('returns the raw response untouched when there is no breakdown', () => {
+		const raw = { kind: 'html', status: 200 }
+		expect(buildResponseJson(raw, undefined)).toBe(raw)
+		expect(buildResponseJson(undefined, undefined)).toBeUndefined()
+	})
+
+	it('attaches scoreParts alongside the raw response fields', () => {
+		expect(buildResponseJson({ kind: 'html', status: 200, finalUrl: 'https://x.test/y' }, parts)).toEqual({
+			kind: 'html',
+			status: 200,
+			finalUrl: 'https://x.test/y',
+			scoreParts: parts,
+		})
+	})
+
+	it('still records the breakdown when there is no raw response', () => {
+		expect(buildResponseJson(undefined, parts)).toEqual({ scoreParts: parts })
 	})
 })

@@ -624,7 +624,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	// Overall budget for a single scrape (covers the entire chain +
 	// any parallel racers). Bumped from 20s for the same reason.
 	scrapeOverallTimeoutMs: 45_000,
-	scrapeQualityThreshold: 3,
+	scrapeQualityThreshold: 8,
 	scrapeCacheTtlHours: 24,
 	scrapeAiProviderEnabled: false,
 	scrapeAiCleanTitlesEnabled: false,

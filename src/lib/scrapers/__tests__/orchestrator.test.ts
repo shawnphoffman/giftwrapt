@@ -522,6 +522,25 @@ describe('orchestrate: streaming events', () => {
 })
 
 describe('orchestrate: persistence', () => {
+	it('passes the explainScore breakdown to persistAttempt on success only', async () => {
+		const ok = makeProvider({ id: 'ok', tier: 1, produces: htmlResponse('ok') })
+		const bad = makeProvider({ id: 'bad', tier: 1, produces: new ScrapeProviderError('timeout') })
+		const persisted: Array<{ providerId: string; scoreParts?: unknown }> = []
+		await orchestrate(
+			{ url: 'https://example.test/x' },
+			makeDeps({
+				providers: [ok, bad],
+				explainScore: () => ({ total: 5, parts: [{ signal: 'title', points: 2 }] }),
+				persistAttempt: rec => {
+					persisted.push({ providerId: rec.providerId, scoreParts: rec.scoreParts })
+					return Promise.resolve()
+				},
+			})
+		)
+		expect(persisted.find(p => p.providerId === 'ok')?.scoreParts).toEqual([{ signal: 'title', points: 2 }])
+		expect(persisted.find(p => p.providerId === 'bad')?.scoreParts).toBeUndefined()
+	})
+
 	it('calls persistAttempt for each provider attempt (success + failure)', async () => {
 		const ok = makeProvider({ id: 'ok', tier: 1, produces: htmlResponse('ok') })
 		const bad = makeProvider({ id: 'bad', tier: 1, produces: new ScrapeProviderError('timeout') })

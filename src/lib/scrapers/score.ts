@@ -1,11 +1,36 @@
 import { looksLikeBlocked } from './bot-detect'
-import { looksLikeTrackingPixel } from './extractor/images'
+import { bestImageClass } from './extractor/images'
 import type { ScrapeResult } from './types'
 
-// Threshold the orchestrator uses to short-circuit the sequential chain.
-// Anything at or above this score is "good enough" to stop trying further
-// providers. Tunable later via appSettings if it proves too lenient/strict.
-export const QUALITY_THRESHOLD = 3
+// Score that ends the tier chain: a meaningful title (2), a price (3), and a
+// real product photo (3). Anything short of that keeps going to the next
+// tier when one is configured, so price and photo are effectively required.
+// The admin setting `scrapeQualityThreshold` overrides it; keep the default
+// in src/lib/settings.ts and the orchestrator fallback in sync.
+export const QUALITY_THRESHOLD = 8
+
+// Minimum score for a persisted attempt to be reused from the URL cache.
+// Deliberately separate from QUALITY_THRESHOLD: a page that never shows a
+// price can't reach 8, but a title plus a real photo (5) or a title plus a
+// price (5) is still worth reusing instead of re-running every paid tier.
+export const CACHE_MIN_SCORE = 5
+
+export const SCORE_POINTS = {
+	title: 2,
+	price: 3,
+	photo: 3,
+	shareCard: 1,
+	description: 1,
+	botWall: -3,
+	errorTitle: -3,
+} as const
+
+export type ScoreSignal = keyof typeof SCORE_POINTS
+
+export type ScoreBreakdown = {
+	total: number
+	parts: Array<{ signal: ScoreSignal; points: number }>
+}
 
 // Returns a score for a scrape result. Higher is better. Inputs:
 //   - result: the structured fields the extractor / structured-provider produced
@@ -16,21 +41,32 @@ export const QUALITY_THRESHOLD = 3
 // Used by the orchestrator both to decide whether to fall through to the next
 // provider in the chain and to pick a final winner across all attempts.
 export function scoreScrape(result: ScrapeResult, ctx: { html?: string; status?: number } = {}): number {
-	let score = 0
+	return scoreBreakdown(result, ctx).total
+}
 
-	if (hasMeaningfulTitle(result, ctx)) score += 2
+// The same score, itemized per signal. Persisted with each attempt so
+// /admin/scrapes can show why a result scored what it did.
+export function scoreBreakdown(result: ScrapeResult, ctx: { html?: string; status?: number } = {}): ScoreBreakdown {
+	const parts: ScoreBreakdown['parts'] = []
+	const add = (signal: ScoreSignal) => parts.push({ signal, points: SCORE_POINTS[signal] })
 
-	if (hasReasonableImage(result)) score += 2
+	if (hasMeaningfulTitle(result, ctx)) add('title')
 
-	if (result.price && result.price.trim()) score += 1
+	if (result.price && result.price.trim()) add('price')
 
-	if (result.description && result.description.trim().length >= 30) score += 1
+	// A real product photo earns full credit; a social-share card (the
+	// product padded onto a banner) earns a little; thumbnails earn nothing.
+	const imageClass = bestImageClass(result.imageUrls)
+	if (imageClass === 'photo') add('photo')
+	else if (imageClass === 'share-card') add('shareCard')
 
-	if (ctx.html && looksLikeBlocked(ctx.html)) score -= 3
+	if (result.description && result.description.trim().length >= 30) add('description')
 
-	if (result.title && looksLikeErrorTitle(result.title)) score -= 3
+	if (ctx.html && looksLikeBlocked(ctx.html)) add('botWall')
 
-	return score
+	if (result.title && looksLikeErrorTitle(result.title)) add('errorTitle')
+
+	return { total: parts.reduce((sum, p) => sum + p.points, 0), parts }
 }
 
 function hasMeaningfulTitle(result: ScrapeResult, ctx: { html?: string }): boolean {
@@ -75,12 +111,4 @@ function looksLikeErrorTitle(title: string): boolean {
 	const t = title.trim()
 	if (!t) return false
 	return ERROR_TITLE_PATTERNS.some(re => re.test(t))
-}
-
-function hasReasonableImage(result: ScrapeResult): boolean {
-	if (result.imageUrls.length === 0) return false
-	for (const url of result.imageUrls) {
-		if (url && !looksLikeTrackingPixel(url)) return true
-	}
-	return false
 }

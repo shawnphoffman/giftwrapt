@@ -37,7 +37,7 @@ type DefaultSettings = {
 const defaultSettings: DefaultSettings = {
 	scrapeProviderTimeoutMs: 10_000,
 	scrapeOverallTimeoutMs: 20_000,
-	scrapeQualityThreshold: 3,
+	scrapeQualityThreshold: 8,
 	scrapeCacheTtlHours: 24,
 	scrapeProviders: [],
 }

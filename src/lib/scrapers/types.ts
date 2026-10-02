@@ -1,6 +1,8 @@
 import type { Logger } from 'pino'
 import { z } from 'zod'
 
+import type { ScoreBreakdown } from './score'
+
 // ===========================================================================
 // Scrape result (the user-visible structured data)
 // ===========================================================================
@@ -292,6 +294,9 @@ export type OrchestratorDeps = {
 	// Returns a number; the orchestrator compares against `qualityThreshold`
 	// to decide fall-through. Implemented in commit 3.
 	scoreFn: (result: ScrapeResult, ctx: { html?: string; status?: number }) => number
+	// Optional per-signal itemization of the same score, persisted with each
+	// successful attempt so /admin/scrapes can show why it scored what it did.
+	explainScore?: (result: ScrapeResult, ctx: { html?: string; status?: number }) => ScoreBreakdown
 	// Optional cache lookup. Returning a hit short-circuits the chain.
 	loadCache?: (url: string) => Promise<{ result: ScrapeResult; fromProvider: string } | null>
 	// Optional persistence hook for each attempt + final winner.
@@ -306,6 +311,7 @@ export type OrchestratorDeps = {
 		errorMessage?: string
 		result?: ScrapeResult
 		rawResponse?: unknown
+		scoreParts?: ScoreBreakdown['parts']
 	}) => Promise<void>
 	emit?: OrchestrateEmitter
 	perProviderTimeoutMs?: number

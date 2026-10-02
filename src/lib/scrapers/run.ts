@@ -46,7 +46,6 @@ export async function runOneShotScrape(args: {
 		{
 			...buildDbBackedDeps(db, {
 				ttlHours: settings.scrapeCacheTtlHours,
-				minScore: settings.scrapeQualityThreshold,
 				userId: args.userId,
 			}),
 			providers: [fetchProvider, ...configuredProviders],

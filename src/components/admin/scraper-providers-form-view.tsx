@@ -102,7 +102,7 @@ export function ScraperTimingFormView({ settings, disabled, onChange }: ScraperP
 			<NumberRow
 				id="scrapeQualityThreshold"
 				label="Quality Threshold"
-				hint="Once a result scores above this, no more providers are tried. A lower value accepts results sooner. A higher value is more thorough but slower."
+				hint="Once a result reaches this score, no more providers are tried. Title is worth 2, price 3, a real product photo 3 (a share card 1), and a description 1. The default of 8 keeps going until a result has a title, price, and photo. A lower value accepts results sooner and spends less on paid providers."
 				value={settings.scrapeQualityThreshold}
 				disabled={inputDisabled}
 				onCommit={value => onChange('scrapeQualityThreshold', value)}

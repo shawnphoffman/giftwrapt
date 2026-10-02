@@ -100,7 +100,6 @@ export const Route = createFileRoute('/api/scrape/stream')({
 							{
 								...buildDbBackedDeps(db, {
 									ttlHours: settings.scrapeCacheTtlHours,
-									minScore: settings.scrapeQualityThreshold,
 									userId: session.user.id,
 								}),
 								providers: [fetchProvider, ...configuredProviders],
