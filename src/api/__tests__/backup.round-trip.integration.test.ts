@@ -28,6 +28,7 @@ import {
 	listAddons,
 	listEditors,
 	lists,
+	purchaseAttachments,
 	recommendations,
 	recommendationSubItemDismissals,
 	todoItems,
@@ -115,6 +116,12 @@ function perturbValue(column: Column, value: unknown): unknown {
 // guards: new columns are almost always nullable. NOT NULL scalars change
 // value. Primary keys and NOT NULL FKs stay put so rows still line up and
 // FKs still resolve; those few columns are the merge test's blind spot.
+// So are the columns below: a CHECK requires exactly one of them, so nulling
+// both can never be restored over.
+const KEPT_DURING_PERTURB: Partial<Record<string, ReadonlyArray<string>>> = {
+	purchaseAttachments: ['giftId', 'addonId'],
+}
+
 function perturbTables(tables: BackupFileTables): BackupFileTables {
 	const out: Record<string, unknown> = { ...tables }
 	for (const { name, table } of BACKUP_TABLES) {
@@ -124,7 +131,7 @@ function perturbTables(tables: BackupFileTables): BackupFileTables {
 		out[name] = rows.map(row => {
 			const next = { ...row }
 			for (const { key, column, isPrimary, isForeign } of info) {
-				if (isPrimary || !(key in row)) continue
+				if (isPrimary || !(key in row) || KEPT_DURING_PERTURB[name]?.includes(key)) continue
 				if (!column.notNull) next[key] = null
 				else if (!isForeign) next[key] = perturbValue(column, row[key])
 			}
@@ -324,6 +331,25 @@ async function seedEveryColumn(tx: SchemaDatabase) {
 		...stamps,
 	})
 	await tx.insert(listEditors).values({ id: 1401, listId: 601, userId: 'bk_partner', ownerId: 'bk_owner', ...stamps })
+	// Two rows: a receipt belongs to exactly one of a claim or an addon.
+	await tx.insert(purchaseAttachments).values([
+		{
+			id: 'bkReceiptClaim0000001',
+			giftId: 1001,
+			addonId: null,
+			storageKey: 'purchases/receipts/claim/1001/aaaaaaaaaaaa.pdf',
+			contentType: 'application/pdf',
+			...stamps,
+		},
+		{
+			id: 'bkReceiptAddon0000001',
+			giftId: null,
+			addonId: 1301,
+			storageKey: 'purchases/receipts/addon/1301/bbbbbbbbbbbb.webp',
+			contentType: 'image/webp',
+			...stamps,
+		},
+	])
 }
 
 function expectEveryColumnPopulated(snapshot: BackupFile) {

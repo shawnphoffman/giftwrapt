@@ -37,6 +37,7 @@ import { Route as ApiWidgetsUpcomingHolidaysRouteImport } from './routes/api/wid
 import { Route as ApiSseListsRouteImport } from './routes/api/sse/lists'
 import { Route as ApiScrapeStreamRouteImport } from './routes/api/scrape/stream'
 import { Route as ApiScrapePhotoRouteImport } from './routes/api/scrape/photo'
+import { Route as ApiReceiptsFileRouteImport } from './routes/api/receipts/$file'
 import { Route as ApiMobileSplatRouteImport } from './routes/api/mobile/$'
 import { Route as ApiListsPublicDependentsRouteImport } from './routes/api/lists/public-dependents'
 import { Route as ApiListsPublicRouteImport } from './routes/api/lists/public'
@@ -226,6 +227,11 @@ const ApiScrapeStreamRoute = ApiScrapeStreamRouteImport.update({
 const ApiScrapePhotoRoute = ApiScrapePhotoRouteImport.update({
   id: '/api/scrape/photo',
   path: '/api/scrape/photo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiReceiptsFileRoute = ApiReceiptsFileRouteImport.update({
+  id: '/api/receipts/$file',
+  path: '/api/receipts/$file',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMobileSplatRoute = ApiMobileSplatRouteImport.update({
@@ -538,6 +544,7 @@ export interface FileRoutesByFullPath {
   '/api/lists/public': typeof ApiListsPublicRoute
   '/api/lists/public-dependents': typeof ApiListsPublicDependentsRoute
   '/api/mobile/$': typeof ApiMobileSplatRoute
+  '/api/receipts/$file': typeof ApiReceiptsFileRoute
   '/api/scrape/photo': typeof ApiScrapePhotoRoute
   '/api/scrape/stream': typeof ApiScrapeStreamRoute
   '/api/sse/lists': typeof ApiSseListsRoute
@@ -611,6 +618,7 @@ export interface FileRoutesByTo {
   '/api/lists/public': typeof ApiListsPublicRoute
   '/api/lists/public-dependents': typeof ApiListsPublicDependentsRoute
   '/api/mobile/$': typeof ApiMobileSplatRoute
+  '/api/receipts/$file': typeof ApiReceiptsFileRoute
   '/api/scrape/photo': typeof ApiScrapePhotoRoute
   '/api/scrape/stream': typeof ApiScrapeStreamRoute
   '/api/sse/lists': typeof ApiSseListsRoute
@@ -690,6 +698,7 @@ export interface FileRoutesById {
   '/api/lists/public': typeof ApiListsPublicRoute
   '/api/lists/public-dependents': typeof ApiListsPublicDependentsRoute
   '/api/mobile/$': typeof ApiMobileSplatRoute
+  '/api/receipts/$file': typeof ApiReceiptsFileRoute
   '/api/scrape/photo': typeof ApiScrapePhotoRoute
   '/api/scrape/stream': typeof ApiScrapeStreamRoute
   '/api/sse/lists': typeof ApiSseListsRoute
@@ -769,6 +778,7 @@ export interface FileRouteTypes {
     | '/api/lists/public'
     | '/api/lists/public-dependents'
     | '/api/mobile/$'
+    | '/api/receipts/$file'
     | '/api/scrape/photo'
     | '/api/scrape/stream'
     | '/api/sse/lists'
@@ -842,6 +852,7 @@ export interface FileRouteTypes {
     | '/api/lists/public'
     | '/api/lists/public-dependents'
     | '/api/mobile/$'
+    | '/api/receipts/$file'
     | '/api/scrape/photo'
     | '/api/scrape/stream'
     | '/api/sse/lists'
@@ -920,6 +931,7 @@ export interface FileRouteTypes {
     | '/api/lists/public'
     | '/api/lists/public-dependents'
     | '/api/mobile/$'
+    | '/api/receipts/$file'
     | '/api/scrape/photo'
     | '/api/scrape/stream'
     | '/api/sse/lists'
@@ -968,6 +980,7 @@ export interface RootRouteChildren {
   ApiListsPublicRoute: typeof ApiListsPublicRoute
   ApiListsPublicDependentsRoute: typeof ApiListsPublicDependentsRoute
   ApiMobileSplatRoute: typeof ApiMobileSplatRoute
+  ApiReceiptsFileRoute: typeof ApiReceiptsFileRoute
   ApiScrapePhotoRoute: typeof ApiScrapePhotoRoute
   ApiScrapeStreamRoute: typeof ApiScrapeStreamRoute
   ApiSseListsRoute: typeof ApiSseListsRoute
@@ -1171,6 +1184,13 @@ declare module '@tanstack/react-router' {
       path: '/api/scrape/photo'
       fullPath: '/api/scrape/photo'
       preLoaderRoute: typeof ApiScrapePhotoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/receipts/$file': {
+      id: '/api/receipts/$file'
+      path: '/api/receipts/$file'
+      fullPath: '/api/receipts/$file'
+      preLoaderRoute: typeof ApiReceiptsFileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/mobile/$': {
@@ -1684,6 +1704,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiListsPublicRoute: ApiListsPublicRoute,
   ApiListsPublicDependentsRoute: ApiListsPublicDependentsRoute,
   ApiMobileSplatRoute: ApiMobileSplatRoute,
+  ApiReceiptsFileRoute: ApiReceiptsFileRoute,
   ApiScrapePhotoRoute: ApiScrapePhotoRoute,
   ApiScrapeStreamRoute: ApiScrapeStreamRoute,
   ApiSseListsRoute: ApiSseListsRoute,

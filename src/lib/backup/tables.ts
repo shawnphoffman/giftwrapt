@@ -14,6 +14,7 @@ import {
 	listAddons,
 	listEditors,
 	lists,
+	purchaseAttachments,
 	recommendations,
 	recommendationSubItemDismissals,
 	todoItems,
@@ -47,6 +48,7 @@ export const BACKUP_TABLES = [
 	{ name: 'itemComments', table: itemComments, idSequence: 'item_comments_id_seq' },
 	{ name: 'listAddons', table: listAddons, idSequence: 'list_addons_id_seq' },
 	{ name: 'listEditors', table: listEditors, idSequence: 'list_editors_id_seq' },
+	{ name: 'purchaseAttachments', table: purchaseAttachments, idSequence: null },
 ] as const
 
 export type BackupTableName = (typeof BACKUP_TABLES)[number]['name']
@@ -56,6 +58,7 @@ export type BackupTableName = (typeof BACKUP_TABLES)[number]['name']
 // listed: they're cleared separately, and only when the backup file
 // carries the table (see restoreBackupTablesImpl).
 export const BACKUP_TABLES_DELETE_ORDER = [
+	purchaseAttachments,
 	listEditors,
 	listAddons,
 	itemComments,

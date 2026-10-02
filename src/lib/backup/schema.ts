@@ -180,6 +180,16 @@ const giftContributionRowSchema = z.object({
 	createdAt: dateField,
 })
 
+const purchaseAttachmentRowSchema = z.object({
+	id: z.string(),
+	giftId: z.number().int().nullable(),
+	addonId: z.number().int().nullable(),
+	storageKey: z.string(),
+	contentType: z.string(),
+	updatedAt: dateField,
+	createdAt: dateField,
+})
+
 const itemCommentRowSchema = z.object({
 	id: z.number().int(),
 	itemId: z.number().int(),
@@ -341,6 +351,7 @@ export const BACKUP_ROW_SCHEMAS = {
 	itemComments: itemCommentRowSchema,
 	listAddons: listAddonRowSchema,
 	listEditors: listEditorRowSchema,
+	purchaseAttachments: purchaseAttachmentRowSchema,
 } as const
 
 export const BackupFileSchema = z.object({
@@ -383,6 +394,10 @@ export const BackupFileSchema = z.object({
 		itemComments: z.array(itemCommentRowSchema),
 		listAddons: z.array(listAddonRowSchema),
 		listEditors: z.array(listEditorRowSchema),
+		// Receipt id -> storage key. Defaulted so backups written before the
+		// table existed import; the rows cascade off claims and addons, so a
+		// wipe clears them either way.
+		purchaseAttachments: z.array(purchaseAttachmentRowSchema).default([]),
 	}),
 })
 

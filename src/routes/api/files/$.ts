@@ -7,6 +7,7 @@ import { rateLimitKeyForRequest } from '@/lib/rate-limit'
 import { fileProxyLimiter } from '@/lib/rate-limits'
 import { getStorage } from '@/lib/storage/adapter'
 import { UploadError } from '@/lib/storage/errors'
+import { isReceiptKey } from '@/lib/storage/keys'
 
 const log = createLogger('api:files')
 
@@ -37,6 +38,12 @@ export const Route = createFileRoute('/api/files/$')({
 				const key = params._splat ?? ''
 				if (!key) {
 					return new Response('missing key', { status: 400 })
+				}
+				// Receipts are private to the gifter's unit and only ever served
+				// by the authenticated /api/receipts route. Same 404 as a missing
+				// object so the prefix gives nothing away.
+				if (isReceiptKey(key)) {
+					return new Response('not found', { status: 404 })
 				}
 
 				// Per-IP rate limit. The proxy is unauthenticated (object keys

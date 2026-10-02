@@ -1,6 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getRequestHeaders } from '@tanstack/react-start/server'
-import { eq, sql } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
@@ -9,13 +9,16 @@ import { env } from '@/env'
 import { auth } from '@/lib/auth'
 import { createLogger, loggingMiddleware } from '@/lib/logger'
 import { canEditListAsAnyone } from '@/lib/permissions'
+import { parseReceiptUrl } from '@/lib/receipts'
 import { getStorage } from '@/lib/storage/adapter'
 import { processAttachment } from '@/lib/storage/attachment-pipeline'
 import { err, ok, UploadError, type UploadResult } from '@/lib/storage/errors'
 import { assertImageBytes, processImage } from '@/lib/storage/image-pipeline'
-import { avatarKey, itemImageKey, parseKeyFromUrl, purchaseAttachmentKey } from '@/lib/storage/keys'
+import { avatarKey, itemImageKey, parseKeyFromUrl, receiptKey } from '@/lib/storage/keys'
 import { LIMITS } from '@/lib/validation/limits'
 import { adminAuthMiddleware, authMiddleware } from '@/middleware/auth'
+
+import { attachReceiptImpl, detachReceiptImpl } from './_receipts-impl'
 
 const log = createLogger('api:uploads')
 
@@ -423,7 +426,7 @@ export const uploadPurchaseAttachment = createServerFn({ method: 'POST' })
 			return err('pipeline-failed', 'attachment processing failed')
 		}
 
-		const key = purchaseAttachmentKey(purchaseKind, purchase.id, processed.ext)
+		const key = receiptKey(purchaseKind, purchase.id, processed.ext)
 		try {
 			await storage.upload(key, processed.buffer, processed.contentType)
 		} catch (error) {
@@ -431,36 +434,15 @@ export const uploadPurchaseAttachment = createServerFn({ method: 'POST' })
 			return err('upstream', 'storage upload failed')
 		}
 
-		const url = storage.getPublicUrl(key)
-
-		// Append inside a transaction with row lock so two concurrent uploads
-		// from different tabs don't overwrite each other's append. Also
-		// re-checks the cap under the lock to defend against TOCTOU between
-		// the early count check and the write.
-		type LockedRow = { attachment_urls: Array<string> | null } | undefined
-		const appendResult = await db.transaction(async tx => {
-			if (purchaseKind === 'claim') {
-				const locked = (await tx.execute(
-					sql`SELECT attachment_urls FROM gifted_items WHERE id = ${purchaseId} AND gifter_id = ${userId} FOR UPDATE`
-				)) as { rows: Array<{ attachment_urls: Array<string> | null }> }
-				const row: LockedRow = locked.rows.at(0)
-				if (!row) return { kind: 'gone' as const }
-				const current = row.attachment_urls ?? []
-				if (current.length >= LIMITS.PURCHASE_ATTACHMENTS_MAX) return { kind: 'over' as const }
-				const next = [...current, url]
-				await tx.update(giftedItems).set({ attachmentUrls: next }).where(eq(giftedItems.id, purchaseId))
-				return { kind: 'ok' as const }
-			}
-			const locked = (await tx.execute(
-				sql`SELECT attachment_urls FROM list_addons WHERE id = ${purchaseId} AND user_id = ${userId} FOR UPDATE`
-			)) as { rows: Array<{ attachment_urls: Array<string> | null }> }
-			const row: LockedRow = locked.rows.at(0)
-			if (!row) return { kind: 'gone' as const }
-			const current = row.attachment_urls ?? []
-			if (current.length >= LIMITS.PURCHASE_ATTACHMENTS_MAX) return { kind: 'over' as const }
-			const next = [...current, url]
-			await tx.update(listAddons).set({ attachmentUrls: next }).where(eq(listAddons.id, purchaseId))
-			return { kind: 'ok' as const }
+		// The client gets `/api/receipts/<id>.<ext>`, never a storage URL: the
+		// key stays server-side so a public bucket cannot expose the receipt.
+		const appendResult = await attachReceiptImpl({
+			userId,
+			purchaseKind,
+			purchaseId,
+			storageKey: key,
+			contentType: processed.contentType,
+			ext: processed.ext,
 		})
 
 		if (appendResult.kind !== 'ok') {
@@ -471,6 +453,7 @@ export const uploadPurchaseAttachment = createServerFn({ method: 'POST' })
 			return err('too-large', `max ${LIMITS.PURCHASE_ATTACHMENTS_MAX} attachments per purchase`)
 		}
 
+		const url = appendResult.url
 		return ok({ url })
 	})
 
@@ -504,8 +487,12 @@ export const removePurchaseAttachment = createServerFn({ method: 'POST' })
 		}
 
 		// Best-effort storage cleanup; a failed delete leaves an orphan for the
-		// future storage-gc sweeper.
-		const key = parseKeyFromUrl(data.attachmentUrl, env.STORAGE_PUBLIC_URL)
+		// future storage-gc sweeper. Receipts resolve their key through the
+		// purchase_attachments row; legacy attachments still carry a storage URL.
+		const receipt = parseReceiptUrl(data.attachmentUrl)
+		const key = receipt
+			? ((await detachReceiptImpl({ receiptId: receipt.id, purchaseKind: data.purchaseKind, purchaseId: purchase.id }))?.storageKey ?? null)
+			: parseKeyFromUrl(data.attachmentUrl, env.STORAGE_PUBLIC_URL)
 		if (key) void deleteKey(key)
 
 		return ok({ ok: true })

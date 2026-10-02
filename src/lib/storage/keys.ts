@@ -20,8 +20,25 @@ export const itemImageKey = (itemId: number | string): string => `items/${itemId
 export type PurchaseAttachmentKind = 'claim' | 'addon'
 export type PurchaseAttachmentExt = 'webp' | 'pdf'
 
+// Mirrored off-list-gift product images, which are shown to every viewer of
+// the list and so are fine to serve publicly. Receipts used this shape too
+// until they moved to `receiptKey`; any still here are legacy until
+// scripts/migrate-receipts-private.ts moves them.
 export const purchaseAttachmentKey = (kind: PurchaseAttachmentKind, id: number | string, ext: PurchaseAttachmentExt): string =>
 	`purchases/${kind}/${id}/${purchaseNonce()}.${ext}`
+
+// Receipts: private to the gifter's unit. The key is recorded only in
+// `purchase_attachments` and never handed to a client; the app serves the
+// bytes through the authenticated `/api/receipts/<id>.<ext>` route, and the
+// `/api/files` proxy refuses this prefix.
+export const RECEIPT_KEY_PREFIX = 'purchases/receipts/'
+
+export const receiptKey = (kind: PurchaseAttachmentKind, id: number | string, ext: PurchaseAttachmentExt): string =>
+	`${RECEIPT_KEY_PREFIX}${kind}/${id}/${purchaseNonce()}.${ext}`
+
+export function isReceiptKey(key: string): boolean {
+	return key.startsWith(RECEIPT_KEY_PREFIX)
+}
 
 // Inverse of avatarKey: extract the userId from `avatars/<userId>-<nonce>.webp`.
 // Returns null for keys that don't match (other prefixes, malformed legacy keys).
@@ -41,10 +58,10 @@ export function parseItemImageKey(key: string): { itemId: string } | null {
 	return { itemId: match[1] }
 }
 
-// Inverse of purchaseAttachmentKey. Returns the kind/id/ext discriminator,
-// or null when the key doesn't match (other prefix, malformed ext).
+// Inverse of purchaseAttachmentKey and receiptKey. Returns the kind/id/ext
+// discriminator, or null when the key doesn't match (other prefix, malformed ext).
 export function parsePurchaseAttachmentKey(key: string): { kind: PurchaseAttachmentKind; id: string; ext: PurchaseAttachmentExt } | null {
-	const match = /^purchases\/(claim|addon)\/([^/]+)\/[0-9A-Za-z]+\.(webp|pdf)$/.exec(key)
+	const match = /^purchases\/(?:receipts\/)?(claim|addon)\/([^/]+)\/[0-9A-Za-z]+\.(webp|pdf)$/.exec(key)
 	if (!match) return null
 	return { kind: match[1] as PurchaseAttachmentKind, id: match[2], ext: match[3] as PurchaseAttachmentExt }
 }

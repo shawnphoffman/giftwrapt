@@ -3,7 +3,7 @@ import { eq, inArray, isNotNull } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { db } from '@/db'
-import { giftedItems, items, listAddons, lists, users } from '@/db/schema'
+import { giftedItems, items, listAddons, lists, purchaseAttachments, users } from '@/db/schema'
 import { env } from '@/env'
 import { createLogger, loggingMiddleware } from '@/lib/logger'
 import { getStorage } from '@/lib/storage/adapter'
@@ -92,6 +92,10 @@ async function buildInUseKeySet(): Promise<Set<string>> {
 			if (key) inUse.add(key)
 		}
 	}
+	// Receipts reference their storage key directly; the URL on the purchase
+	// is an opaque /api/receipts/<id> that parseKeyFromUrl cannot map.
+	const receiptRows = await db.select({ storageKey: purchaseAttachments.storageKey }).from(purchaseAttachments)
+	for (const row of receiptRows) inUse.add(row.storageKey)
 	// Addon product images. Key shape varies (mirrored under
 	// `purchases/addon/<id>/`, or an `items/<id>/` key carried over from a
 	// gift idea), so match on the referenced URL, never on the prefix.

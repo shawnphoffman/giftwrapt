@@ -25,6 +25,7 @@ import {
 	listAddons,
 	listEditors,
 	lists,
+	purchaseAttachments,
 	recommendations,
 	recommendationSubItemDismissals,
 	todoItems,
@@ -68,6 +69,7 @@ export async function captureFullSnapshot(dbx: SchemaDatabase = db): Promise<Bac
 		itemCommentsRows,
 		listAddonsRows,
 		listEditorsRows,
+		purchaseAttachmentsRows,
 	] = await Promise.all([
 		dbx.select().from(users),
 		dbx.select().from(appSettings),
@@ -90,6 +92,7 @@ export async function captureFullSnapshot(dbx: SchemaDatabase = db): Promise<Bac
 		dbx.select().from(itemComments),
 		dbx.select().from(listAddons),
 		dbx.select().from(listEditors),
+		dbx.select().from(purchaseAttachments),
 	])
 
 	return {
@@ -117,6 +120,7 @@ export async function captureFullSnapshot(dbx: SchemaDatabase = db): Promise<Bac
 			itemComments: itemCommentsRows,
 			listAddons: listAddonsRows,
 			listEditors: listEditorsRows,
+			purchaseAttachments: purchaseAttachmentsRows,
 		},
 	}
 }
@@ -751,6 +755,32 @@ export async function restoreBackupTablesImpl(args: {
 			}
 		}
 		result.listEditors = tables.listEditors.length
+	}
+
+	// -------- purchaseAttachments --------
+	// After giftedItems and listAddons, which these rows reference.
+	if (tables.purchaseAttachments.length > 0) {
+		if (mode === 'wipe') {
+			await tx.insert(purchaseAttachments).values(tables.purchaseAttachments)
+		} else {
+			for (const row of tables.purchaseAttachments) {
+				await tx
+					.insert(purchaseAttachments)
+					.values(row)
+					.onConflictDoUpdate({
+						target: purchaseAttachments.id,
+						set: {
+							giftId: row.giftId ?? null,
+							addonId: row.addonId ?? null,
+							storageKey: row.storageKey,
+							contentType: row.contentType,
+							createdAt: row.createdAt,
+							updatedAt: row.updatedAt,
+						},
+					})
+			}
+		}
+		result.purchaseAttachments = tables.purchaseAttachments.length
 	}
 
 	// -------- users pass 2: set partnerId where non-null --------
