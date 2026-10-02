@@ -61,7 +61,16 @@ export function filterAndSortImages(urls: ReadonlyArray<string>): Array<string> 
 		seen.add(url)
 		surviving.push(url)
 	}
-	return collapseSizeVariants(surviving)
+	return rankByClass(collapseSizeVariants(surviving))
+}
+
+// Real photos first, then share cards, then thumbnails. Stable, so source
+// order (Amazon hero, OG, JSON-LD, microdata, heuristics) breaks ties.
+function rankByClass(urls: Array<string>): Array<string> {
+	return urls
+		.map((url, i) => ({ url, i, rank: CLASS_RANK[classifyImageUrl(url)] }))
+		.sort((a, b) => b.rank - a.rank || a.i - b.i)
+		.map(x => x.url)
 }
 
 // `data:` placeholders (lazy-load 1x1 GIFs), `blob:` and `javascript:` URLs
@@ -177,26 +186,46 @@ function pathOf(url: string): string {
 }
 
 // If two URLs are clearly variants of the same asset (e.g. /img/foo.jpg vs
-// /img/foo_large.jpg, or differ only by a `?w=NNN` query param), keep the
-// "bigger" one and drop the other. Within true-duplicates, source order
-// wins, so the higher-priority parser's URL stays.
+// /img/foo_large.jpg, a Shopify /files/foo_1200x1600.jpg vs
+// /files/foo_36x47.jpg, or URLs that differ only by a `?w=NNN` query param),
+// keep the "bigger" one and drop the other. The kept URL takes the slot of
+// the first variant seen, so source order still decides placement.
 function collapseSizeVariants(urls: ReadonlyArray<string>): Array<string> {
-	type Slot = { key: string; chosen: string; chosenScore: number }
+	type Slot = { key: string; chosen: string }
 	const slots: Array<Slot> = []
 	for (const url of urls) {
 		const key = canonicalKey(url)
-		const score = sizeScore(url)
 		const existing = slots.find(s => s.key === key)
 		if (!existing) {
-			slots.push({ key, chosen: url, chosenScore: score })
+			slots.push({ key, chosen: url })
 			continue
 		}
-		if (score > existing.chosenScore) {
-			existing.chosen = url
-			existing.chosenScore = score
-		}
+		if (isBiggerVariant(url, existing.chosen)) existing.chosen = url
 	}
 	return slots.map(s => s.chosen)
+}
+
+// Is `candidate` a bigger rendition of the same asset than `current`?
+//   - Two Shopify-style `_WxH` suffixes: the larger dimension wins.
+//   - One suffixed, one not: the unsuffixed original wins (Shopify serves the
+//     full upload when no size is requested).
+//   - Otherwise the URL size hints decide (`_large`, `@2x`, `?w=`), as before.
+// Amazon variants never replace each other: source order already puts the
+// best one first.
+function isBiggerVariant(candidate: string, current: string): boolean {
+	if (amazonImageId(candidate)) return false
+	const a = dimensionSuffixMax(candidate)
+	const b = dimensionSuffixMax(current)
+	if (a !== undefined && b !== undefined) return a > b
+	if (a !== undefined || b !== undefined) return a === undefined
+	return sizeScore(candidate) > sizeScore(current)
+}
+
+function dimensionSuffixMax(url: string): number | undefined {
+	const m = DIMENSION_SUFFIX_RX.exec(url)
+	if (!m) return undefined
+	const dims = [m[1], m[2]].filter(Boolean).map(Number)
+	return dims.length > 0 ? Math.max(...dims) : undefined
 }
 
 function canonicalKey(url: string): string {
@@ -212,6 +241,7 @@ function canonicalKey(url: string): string {
 		const path = u.pathname
 			.replace(/[._-](?:large|xl|xxl|hires|hi-res|original|full|orig)(\.[a-z0-9]+)$/i, '$1')
 			.replace(/@2x(\.[a-z0-9]+)$/i, '$1')
+			.replace(/_\d{2,4}x\d{0,4}(?:@\dx)?(\.[a-z0-9]+)$/i, '$1')
 		return u.hostname + path
 	} catch {
 		return url

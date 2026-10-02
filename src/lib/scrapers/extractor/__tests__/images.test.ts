@@ -172,3 +172,31 @@ describe('bestImageClass', () => {
 		)
 	})
 })
+
+describe('filterAndSortImages: Shopify size variants', () => {
+	const base = 'https://shop.example.test/cdn/shop/files/HAT-01'
+	it('keeps the largest suffixed rendition in the first variant slot', () => {
+		expect(
+			filterAndSortImages([
+				`${base}_1024x1024.jpg?v=1`,
+				`${base}_1200x1600.jpg?v=1`,
+				`${base}_36x47.jpg?v=1`,
+				'https://shop.example.test/cdn/shop/files/HAT-02_525x700.jpg?v=2',
+			])
+		).toEqual([`${base}_1200x1600.jpg?v=1`, 'https://shop.example.test/cdn/shop/files/HAT-02_525x700.jpg?v=2'])
+	})
+
+	it('prefers the unsuffixed original over any sized rendition', () => {
+		expect(filterAndSortImages([`${base}_1200x1200.png?v=1`, `${base}.png?v=1`])).toEqual([`${base}.png?v=1`])
+	})
+})
+
+describe('filterAndSortImages: ranking by class', () => {
+	it('puts real photos first, then share cards, then thumbnails, keeping source order within a class', () => {
+		const shareCard = 'https://m.media-amazon.com/images/I/AAA.jpg_BO30,255,255,255_UF800,800_SR1910,1000,0,C_QL100_.jpg'
+		const thumb = 'https://cdn.example.test/swatch.png?w=96'
+		const photoA = 'https://cdn.example.test/a.jpg'
+		const photoB = 'https://cdn.example.test/b.jpg'
+		expect(filterAndSortImages([thumb, shareCard, photoA, photoB])).toEqual([photoA, photoB, shareCard, thumb])
+	})
+})

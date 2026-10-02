@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 import { isAmazonUrl } from '../amazon'
-import { extractFromRaw } from '../index'
+import { extractFromRaw, tidyPrice } from '../index'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const fixture = (name: string): string => readFileSync(join(here, '..', '__fixtures__', name), 'utf8')
@@ -35,7 +35,8 @@ describe('extractFromRaw: JSON-LD product', () => {
 		const result = extractFromRaw(fixture('json-ld-product.html'), FINAL_URL)
 		expect(result.title).toBe('JSON-LD Widget')
 		expect(result.description).toBe('A widget described via JSON-LD.')
-		expect(result.price).toBe('49.5')
+		// JSON-LD `49.5` is padded to two decimals for the form.
+		expect(result.price).toBe('49.50')
 		expect(result.currency).toBe('USD')
 		expect(result.imageUrls).toEqual(['https://cdn.example.test/json-ld-1.jpg', 'https://cdn.example.test/json-ld-2.jpg'])
 	})
@@ -298,5 +299,65 @@ describe('extractFromRaw: defensive handling', () => {
 		const result = extractFromRaw('', FINAL_URL)
 		expect(result.imageUrls).toEqual([])
 		expect(result.title).toBeUndefined()
+	})
+})
+
+describe('extractFromRaw: price source', () => {
+	it('prefers the JSON-LD offer over a stale og:price, with currency from the same layer', () => {
+		const html = `<html><head>
+			<meta property="og:price:amount" content="90" />
+			<meta property="og:price:currency" content="CAD" />
+			<script type="application/ld+json">${JSON.stringify({
+				'@context': 'https://schema.org',
+				'@type': 'Product',
+				name: 'Barbie Signature Stevie Nicks',
+				offers: { '@type': 'Offer', price: '59.40', priceCurrency: 'USD' },
+			})}</script>
+		</head><body></body></html>`
+		const result = extractFromRaw(html, FINAL_URL)
+		expect(result.price).toBe('59.40')
+		expect(result.currency).toBe('USD')
+	})
+
+	it('falls back to another layer for currency when the price layer has none', () => {
+		const html = `<html><head>
+			<meta property="og:price:currency" content="EUR" />
+			<script type="application/ld+json">${JSON.stringify({ '@type': 'Product', name: 'Widget', offers: { price: 12 } })}</script>
+		</head><body></body></html>`
+		const result = extractFromRaw(html, FINAL_URL)
+		expect(result.price).toBe('12')
+		expect(result.currency).toBe('EUR')
+	})
+
+	it('ignores prices inside collection grids and product cards', () => {
+		const html = `<html><head><title>Official Store | Cookware</title></head><body class="template-index">
+			<div class="collection__grid-loop featured__collection-carousel">
+				<div class="product-index" data-price="14995"><div class="price price--listing">$149.95</div></div>
+			</div>
+			<div class="product-recommendations"><span class="price">$12.00</span></div>
+		</body></html>`
+		expect(extractFromRaw(html, FINAL_URL).price).toBeUndefined()
+	})
+
+	it('still reads the main product price outside those containers', () => {
+		const html = `<html><body>
+			<div class="product__info-container"><div class="price price--large"><span class="price-item">$85.00</span></div></div>
+			<div class="related-products"><span class="price">$12.00</span></div>
+		</body></html>`
+		expect(extractFromRaw(html, FINAL_URL).price).toBe('85.00')
+	})
+})
+
+describe('tidyPrice', () => {
+	it('drops thousands separators and pads a single decimal', () => {
+		expect(tidyPrice('2,100.00')).toBe('2100.00')
+		expect(tidyPrice('169.0')).toBe('169.00')
+		expect(tidyPrice('24.5')).toBe('24.50')
+	})
+
+	it('never rounds or touches anything else', () => {
+		expect(tidyPrice('55')).toBe('55')
+		expect(tidyPrice('19.999')).toBe('19.999')
+		expect(tidyPrice('29,99')).toBe('29,99')
 	})
 })

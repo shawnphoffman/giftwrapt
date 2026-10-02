@@ -199,9 +199,35 @@ const PRICE_SELECTORS = [
 	'[class~="price"]',
 ]
 
+// Containers that hold *other* products: collection grids, product cards,
+// "related" / "you may also like" rails. A price inside one belongs to a
+// different product (often in cents, in a `data-price` attribute), which is
+// exactly what a product URL that redirected to the homepage serves.
+// Matched against the class and id tokens of the element and its ancestors
+// (body and html excluded: themes put the page template there).
+const LISTING_CONTEXT_RX =
+	/(?:^|[-_])(?:collection|grid-loop|price--listing|product-?cards?|card-?product|product-?grid|product-?list(?:ing)?|recommend(?:ed|ations)?|related|upsells?|cross-?sells?|recently-?viewed|you-?may-?also-?like|complementary)(?:$|[-_])/i
+
+function isInListingContext($: CheerioAPI, el: Parameters<CheerioAPI>[0]): boolean {
+	const nodes = [
+		$(el),
+		...$(el)
+			.parents()
+			.not('body, html')
+			.toArray()
+			.map(p => $(p)),
+	]
+	for (const node of nodes) {
+		const tokens = `${node.attr('class') ?? ''} ${node.attr('id') ?? ''}`.split(/\s+/).filter(Boolean)
+		if (tokens.some(t => LISTING_CONTEXT_RX.test(t))) return true
+	}
+	return false
+}
+
 function findVisiblePrice($: CheerioAPI): { price?: string; currency?: string } {
 	for (const sel of PRICE_SELECTORS) {
 		for (const el of $(sel).toArray()) {
+			if (isInListingContext($, el)) continue
 			const node = $(el)
 			const candidates: Array<string | undefined> = [
 				node.attr('content'),
