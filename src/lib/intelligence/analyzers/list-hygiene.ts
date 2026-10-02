@@ -535,6 +535,7 @@ export async function chooseConvertName(args: ChooseConvertNameArgs): Promise<st
 			model: ctx.model,
 			userId: ctx.userId,
 			db: ctx.db,
+			source: ctx.source,
 			schema: listHygieneRenameResponseSchema,
 			system: LIST_HYGIENE_RENAME_SYSTEM,
 			prompt: userPrompt,

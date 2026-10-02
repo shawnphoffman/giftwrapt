@@ -17,6 +17,7 @@ import {
 	recommendationSubItemDismissals,
 	users,
 } from '@/db/schema'
+import type { AiCallSource } from '@/lib/ai-call'
 import { createAiModel } from '@/lib/ai-client'
 import { resolveAiConfig } from '@/lib/ai-config'
 import { estimateStepCostMicroUsd } from '@/lib/ai-cost'
@@ -44,6 +45,9 @@ export type RunResult =
 
 export type GenerateForUserOptions = {
 	trigger: RunTrigger
+	// Where the run was started from, for the AI usage ledger. Defaults to
+	// 'cron' for cron-triggered runs and 'web' for manual ones.
+	source?: AiCallSource
 }
 
 // Main entry point. Same signature whether called from cron, the manual
@@ -55,6 +59,7 @@ export async function generateForUser(db: Database, userId: string, opts: Genera
 }
 
 async function generateForUserInner(db: Database, userId: string, opts: GenerateForUserOptions): Promise<RunResult> {
+	const source: AiCallSource = opts.source ?? (opts.trigger === 'cron' ? 'cron' : 'web')
 	const settings = await loadSettings(db)
 
 	const pre = await checkPreconditions({ db, settings })
@@ -148,6 +153,7 @@ async function generateForUserInner(db: Database, userId: string, opts: Generate
 						modelName: enrichmentModelName,
 						logger: log,
 						now,
+						source,
 					})
 					for (const step of enrichment.steps) {
 						totalIn += step.tokensIn ?? 0
@@ -187,6 +193,7 @@ async function generateForUserInner(db: Database, userId: string, opts: Generate
 						dependentId: pass.dependentId,
 						subject: pass.subject,
 						priorInputHash: priorFresh?.hash ?? null,
+						source,
 					}
 					try {
 						const result = await analyzer.run(ctx)

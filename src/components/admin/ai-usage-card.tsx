@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { ChevronRight } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -6,11 +7,12 @@ import { fetchAiUsageAsAdmin } from '@/api/admin-ai'
 import { updateAppSettings } from '@/api/settings'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { adminAppSettingsQueryKey, notifyAppSettingsChanged, useAdminAppSettings } from '@/hooks/use-app-settings'
-import { aiFeatureLabel } from '@/lib/ai-features'
+import { aiFeatureLabel, aiSourceLabel } from '@/lib/ai-features'
 import type { AiUsageSummary } from '@/lib/ai-usage'
 import type { AppSettings } from '@/lib/settings'
 
@@ -71,6 +73,72 @@ export function AiUsageTable({ summary }: { summary: AiUsageSummary }) {
 	)
 }
 
+const when = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+
+// Where calls came from, and the latest calls with who they were for.
+export function AiUsageDetails({ summary }: { summary: AiUsageSummary }) {
+	if (summary.recent.length === 0) return null
+	return (
+		<Collapsible>
+			<CollapsibleTrigger className="group flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:underline">
+				<ChevronRight className="size-4 transition-transform group-data-[state=open]:rotate-90" aria-hidden />
+				Where calls came from, and recent calls
+			</CollapsibleTrigger>
+			<CollapsibleContent>
+				<div className="mt-3 flex flex-col gap-4">
+					<div className="overflow-x-auto">
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead>Started From</TableHead>
+									<TableHead className="text-right">Calls</TableHead>
+									<TableHead className="text-right">Est. Cost</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{summary.sources.map(s => (
+									<TableRow key={s.source ?? 'unknown'}>
+										<TableCell>{aiSourceLabel(s.source)}</TableCell>
+										<TableCell className="text-right tabular-nums">{count.format(s.calls)}</TableCell>
+										<TableCell className="text-right tabular-nums">{formatCost(s.estimatedCostMicroUsd)}</TableCell>
+									</TableRow>
+								))}
+							</TableBody>
+						</Table>
+					</div>
+					<div className="overflow-x-auto">
+						<Table>
+							<TableHeader>
+								<TableRow>
+									<TableHead>When</TableHead>
+									<TableHead>Feature</TableHead>
+									<TableHead>Started From</TableHead>
+									<TableHead>For</TableHead>
+									<TableHead className="text-right">Est. Cost</TableHead>
+								</TableRow>
+							</TableHeader>
+							<TableBody>
+								{summary.recent.map(r => (
+									<TableRow key={r.id}>
+										<TableCell className="whitespace-nowrap">{when.format(new Date(r.createdAt))}</TableCell>
+										<TableCell>
+											{aiFeatureLabel(r.feature)}
+											{r.outcome === 'error' && <span className="text-destructive"> (failed)</span>}
+										</TableCell>
+										<TableCell>{aiSourceLabel(r.source)}</TableCell>
+										<TableCell>{r.userName ?? 'No user'}</TableCell>
+										<TableCell className="text-right tabular-nums">{formatCost(r.estimatedCostMicroUsd)}</TableCell>
+									</TableRow>
+								))}
+							</TableBody>
+						</Table>
+					</div>
+				</div>
+			</CollapsibleContent>
+		</Collapsible>
+	)
+}
+
 // Empty string means "no ceiling". Anything else must be a non-negative amount.
 function parseCeiling(draft: string): { ok: true; value: number | null } | { ok: false } {
 	const trimmed = draft.trim()
@@ -118,7 +186,14 @@ export function AiUsageCard() {
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-6">
-				{isLoading || !summary ? <p className="text-sm text-muted-foreground">Loading…</p> : <AiUsageTable summary={summary} />}
+				{isLoading || !summary ? (
+					<p className="text-sm text-muted-foreground">Loading…</p>
+				) : (
+					<>
+						<AiUsageTable summary={summary} />
+						<AiUsageDetails summary={summary} />
+					</>
+				)}
 
 				<div className="flex flex-col gap-2">
 					<div className="space-y-0.5">

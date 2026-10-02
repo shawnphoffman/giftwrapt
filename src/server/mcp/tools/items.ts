@@ -76,7 +76,7 @@ async function scrape(url: string, ctx: ToolContext): Promise<ScrapeOutcome> {
 	if (!isHttpUrl(url)) return { kind: 'error', reason: 'invalid-url' }
 	const limit = scrapeLimiter.consume(`user:${ctx.actor.userId}`)
 	if (!limit.allowed) return { kind: 'error', reason: 'rate-limited' }
-	const outcome = await runOneShotScrape({ url, userId: ctx.actor.userId, signal: AbortSignal.timeout(SCRAPE_BUDGET_MS) })
+	const outcome = await runOneShotScrape({ url, userId: ctx.actor.userId, source: 'mcp', signal: AbortSignal.timeout(SCRAPE_BUDGET_MS) })
 	if (outcome.kind === 'error') return { kind: 'error', reason: outcome.reason }
 	return { kind: 'ok', result: outcome.result, provider: outcome.fromProvider, cached: outcome.cached }
 }

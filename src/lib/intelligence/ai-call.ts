@@ -2,7 +2,7 @@ import type { LanguageModel } from 'ai'
 import type { z } from 'zod'
 
 import type { SchemaDatabase } from '@/db'
-import { aiGenerateObject } from '@/lib/ai-call'
+import { type AiCallSource, aiGenerateObject } from '@/lib/ai-call'
 
 // Centralized `generateObject` wrapper that splits each analyzer prompt
 // into a STABLE system block + a VARIABLE user prompt. The system block
@@ -37,6 +37,8 @@ export type GenerateObjectCachedArgs<TSchema extends z.ZodType> = {
 	// The run's database handle, so the ledger write joins the caller's
 	// transaction instead of opening a second connection.
 	db?: SchemaDatabase
+	// How the run was triggered (cron, a user's manual refresh, the CLI).
+	source?: AiCallSource
 }
 
 export type GenerateObjectCachedResult<T> = {
@@ -57,7 +59,7 @@ export async function generateObjectCached<TSchema extends z.ZodType>(
 	// object per batch, and a cap that truncates it yields invalid JSON and a
 	// failed step. Batch size and `intelligenceCandidateCap` bound the output.
 	const result = await aiGenerateObject(
-		{ feature: 'intelligence', userId: args.userId ?? null, db: args.db },
+		{ feature: 'intelligence', userId: args.userId ?? null, db: args.db, source: args.source },
 		{
 			model,
 			schema,

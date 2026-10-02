@@ -3,6 +3,7 @@ import { and, eq, gt, inArray, isNotNull, isNull, lt, ne, or } from 'drizzle-orm
 
 import type { Database } from '@/db'
 import { itemAiAnalysis, items, lists, type NewItemAiAnalysis } from '@/db/schema'
+import type { AiCallSource } from '@/lib/ai-call'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 
 import { composeForLog, generateObjectCached } from './ai-call'
@@ -62,6 +63,7 @@ export async function runEnrichment(args: {
 	modelName: string | null
 	logger: { warn: (...a: Array<unknown>) => void }
 	now: Date
+	source?: AiCallSource
 }): Promise<EnrichmentRunResult> {
 	const { db, userId, model, now } = args
 	const t0 = Date.now()
@@ -142,6 +144,7 @@ export async function runEnrichment(args: {
 				model,
 				userId,
 				db,
+				source: args.source,
 				schema: enrichmentResponseSchema,
 				system: ENRICHMENT_SYSTEM,
 				prompt: userPrompt,

@@ -273,7 +273,7 @@ async function processJob(db: Database, settings: AppSettings, job: ClaimedJob):
 	const userIdForScrape = job.userId ?? 'system'
 	let result: OrchestrateResult
 	try {
-		result = await runOneShotScrape({ url: job.url, userId: userIdForScrape, itemId: job.itemId })
+		result = await runOneShotScrape({ url: job.url, userId: userIdForScrape, source: 'import', itemId: job.itemId })
 	} catch (err) {
 		const msg = err instanceof Error ? err.message : String(err)
 		return await markFailure(db, settings, job, msg)

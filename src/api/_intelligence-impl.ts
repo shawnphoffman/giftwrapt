@@ -9,6 +9,7 @@ import { and, asc, desc, eq, gt, sql } from 'drizzle-orm'
 
 import { db, type SchemaDatabase } from '@/db'
 import { dependentGuardianships, dependents, recommendationRuns, recommendations, recommendationSubItemDismissals } from '@/db/schema'
+import type { AiCallSource } from '@/lib/ai-call'
 import { resolveAiConfig } from '@/lib/ai-config'
 import { generateForUser } from '@/lib/intelligence/runner'
 import { getAppSettings } from '@/lib/settings-loader'
@@ -176,7 +177,7 @@ export async function getMyRecommendationsImpl(userId: string, dbx: SchemaDataba
 
 // Manual refresh with the per-user cooldown. Shared by the server fn and the
 // MCP `refresh_recommendations` tool.
-export async function refreshMyRecommendationsImpl(userId: string, dbx: SchemaDatabase = db) {
+export async function refreshMyRecommendationsImpl(userId: string, dbx: SchemaDatabase = db, source: AiCallSource = 'web') {
 	const settings = await getAppSettings(dbx)
 
 	// Per-user cooldown enforced here so the caller gets a clear "try again
@@ -192,7 +193,7 @@ export async function refreshMyRecommendationsImpl(userId: string, dbx: SchemaDa
 		return { status: 'skipped' as const, reason: 'cooldown' }
 	}
 
-	return await generateForUser(db, userId, { trigger: 'manual' })
+	return await generateForUser(db, userId, { trigger: 'manual', source })
 }
 
 export async function dismissRecommendationImpl(userId: string, id: string, dbx: SchemaDatabase = db): Promise<{ ok: boolean }> {

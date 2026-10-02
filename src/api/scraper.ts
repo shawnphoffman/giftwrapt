@@ -45,6 +45,7 @@ export const scrapeUrl = createServerFn({ method: 'POST' })
 		const orchestrateResult = await runOneShotScrape({
 			url: data.url,
 			userId: context.session.user.id,
+			source: 'web',
 			itemId: data.itemId,
 			force: data.force,
 			providerOverride: data.providerOverride,

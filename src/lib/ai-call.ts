@@ -33,8 +33,14 @@ const log = createLogger('ai-call')
 export const AI_FEATURES = ['scrape-provider', 'clean-title', 'photo-extract', 'intelligence', 'admin-test'] as const
 export type AiFeature = (typeof AI_FEATURES)[number]
 
+// Where a call was started from. 'web' is the app's own UI; 'import' is
+// the background scrape queue that fills in imported items.
+export const AI_CALL_SOURCES = ['web', 'mcp', 'mobile', 'import', 'cron', 'admin', 'cli'] as const
+export type AiCallSource = (typeof AI_CALL_SOURCES)[number]
+
 export type AiCallMeta = {
 	feature: AiFeature
+	source?: AiCallSource
 	// Who the call is for. Omit for calls with no user in scope.
 	userId?: string | null
 	// The caller's database handle. Pass it whenever the caller is (or may
@@ -131,6 +137,7 @@ async function recordAiUsage(args: {
 				feature: args.meta.feature,
 				model: args.model,
 				userId: args.meta.userId ?? null,
+				source: args.meta.source ?? null,
 				tokensIn: args.usage.inputTokens,
 				tokensOut: args.usage.outputTokens,
 				cachedInputTokens: args.usage.cachedInputTokens,

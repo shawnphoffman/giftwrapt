@@ -1,6 +1,7 @@
 import type { LanguageModel } from 'ai'
 
 import type { Database } from '@/db'
+import type { AiCallSource } from '@/lib/ai-call'
 import type { AppSettings } from '@/lib/settings'
 
 // Subject the current pass is generating recs for. When `kind: 'user'` the
@@ -48,4 +49,7 @@ export type AnalyzerContext = {
 	// harnesses that build partial contexts keep working; absent means
 	// "no prior run".
 	priorInputHash?: string | null
+	// How this run was triggered, for the AI usage ledger. Optional so test
+	// harnesses that build partial contexts keep working.
+	source?: AiCallSource
 }

@@ -96,11 +96,14 @@ export const Route = createFileRoute('/api/scrape/stream')({
 								providerOverride,
 								acceptLanguage,
 								signal: request.signal,
+								userId: session.user.id,
+								source: 'web',
 							},
 							{
 								...buildDbBackedDeps(db, {
 									ttlHours: settings.scrapeCacheTtlHours,
 									userId: session.user.id,
+									source: 'web',
 								}),
 								providers: [fetchProvider, ...configuredProviders],
 								perProviderTimeoutMs: settings.scrapeProviderTimeoutMs,

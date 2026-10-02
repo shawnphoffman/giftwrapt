@@ -294,6 +294,7 @@ v1.get('/scrape', async c => {
 	const result = await runOneShotScrape({
 		url,
 		userId,
+		source: 'mobile',
 		force,
 		acceptLanguage,
 		signal: c.req.raw.signal,

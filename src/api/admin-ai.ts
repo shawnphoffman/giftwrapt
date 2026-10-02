@@ -169,7 +169,7 @@ export const testAiConnectionAsAdmin = createServerFn({ method: 'POST' })
 		const started = Date.now()
 		try {
 			await aiGenerateText(
-				{ feature: 'admin-test', userId: context.session.user.id, bypassBudget: true },
+				{ feature: 'admin-test', userId: context.session.user.id, source: 'admin', bypassBudget: true },
 				{ model: createAiModel({ providerType, apiKey, baseUrl, model }), prompt: 'ping', maxOutputTokens }
 			)
 			return { ok: true, latencyMs: Date.now() - started }

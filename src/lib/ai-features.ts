@@ -95,3 +95,44 @@ export const AI_NON_FEATURE_SETTINGS: Readonly<Record<string, string>> = {
 export function aiFeatureLabel(id: string): string {
 	return AI_FEATURE_REGISTRY.find(f => f.id === id)?.label ?? AI_LEDGER_ONLY_FEATURES[id] ?? id
 }
+
+// How a call's `source` reads on the admin usage card.
+const AI_SOURCE_LABELS: Readonly<Partial<Record<string, string>>> = {
+	web: 'Web App',
+	mcp: 'AI Assistant (MCP)',
+	mobile: 'Mobile App',
+	import: 'Import Queue',
+	cron: 'Scheduled Job',
+	admin: 'Admin',
+	cli: 'Command Line',
+}
+
+export function aiSourceLabel(source: string | null): string {
+	if (source === null) return 'Unknown'
+	return AI_SOURCE_LABELS[source] ?? source
+}
+
+// The shape written to catalogs/ai-features.json by `pnpm docs:catalogs`. The docs site renders its "What Each
+// Feature Sends" table from that file, so the public page cannot drift
+// from this registry.
+export type AiFeatureCatalogEntry = {
+	id: string
+	label: string
+	description: string
+	settingKey: string | null
+	managedAt: string | null
+	sent: ReadonlyArray<string>
+	neverSent: ReadonlyArray<string>
+}
+
+export function buildAiFeaturesCatalog(): Array<AiFeatureCatalogEntry> {
+	return AI_FEATURE_REGISTRY.map(f => ({
+		id: f.id,
+		label: f.label,
+		description: f.description,
+		settingKey: f.settingKey,
+		managedAt: f.managedAt?.label ?? null,
+		sent: f.sent,
+		neverSent: f.neverSent,
+	}))
+}

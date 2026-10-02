@@ -21,11 +21,14 @@ import { buildDbBackedDeps } from './cache'
 import { orchestrate } from './orchestrator'
 import { fetchProvider } from './providers/fetch'
 import { loadConfiguredProviders } from './providers/load-configured'
-import type { OrchestrateResult } from './types'
+import type { OrchestrateResult, ScrapeSource } from './types'
 
 export async function runOneShotScrape(args: {
 	url: string
+	// 'system' for runs with no user (the import queue on an ownerless job).
 	userId: string
+	// Where the scrape was started from, for the AI usage ledger.
+	source?: ScrapeSource
 	itemId?: number
 	force?: boolean
 	providerOverride?: Array<string>
@@ -33,6 +36,8 @@ export async function runOneShotScrape(args: {
 	signal?: AbortSignal
 }): Promise<OrchestrateResult> {
 	const [settings, configuredProviders] = await Promise.all([getAppSettings(db), loadConfiguredProviders()])
+	// The ledger's user column is a foreign key; 'system' is not a user.
+	const ledgerUserId = args.userId === 'system' ? undefined : args.userId
 
 	const result = await orchestrate(
 		{
@@ -42,11 +47,14 @@ export async function runOneShotScrape(args: {
 			providerOverride: args.providerOverride,
 			acceptLanguage: args.acceptLanguage,
 			signal: args.signal,
+			userId: ledgerUserId,
+			source: args.source,
 		},
 		{
 			...buildDbBackedDeps(db, {
 				ttlHours: settings.scrapeCacheTtlHours,
 				userId: args.userId,
+				source: args.source,
 			}),
 			providers: [fetchProvider, ...configuredProviders],
 			perProviderTimeoutMs: settings.scrapeProviderTimeoutMs,

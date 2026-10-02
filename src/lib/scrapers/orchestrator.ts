@@ -156,6 +156,8 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 			logger: log.child({ provider: provider.id }),
 			perAttemptTimeoutMs: attemptTimeoutMs,
 			acceptLanguage: options.acceptLanguage,
+			userId: options.userId,
+			source: options.source,
 		}
 
 		try {

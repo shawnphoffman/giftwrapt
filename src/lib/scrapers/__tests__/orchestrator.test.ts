@@ -825,3 +825,18 @@ describe('orchestrate: attempt diagnostics', () => {
 		expect(raws).toEqual([{ kind: 'html', status: 200, finalUrl: 'https://example.test/final', headers: { 'x-fetch-ua': 'browser' } }])
 	})
 })
+
+describe('orchestrate: attribution', () => {
+	it('hands the user and the source to each provider on the scrape context', async () => {
+		const seen: Array<{ userId?: string; source?: string }> = []
+		const p: ScrapeProvider = {
+			...makeProvider({ id: 'p' }),
+			fetch: ctx => {
+				seen.push({ userId: ctx.userId, source: ctx.source })
+				return Promise.resolve(htmlResponse('p'))
+			},
+		}
+		await orchestrate({ url: 'https://example.test/x', userId: 'user-1', source: 'mcp' }, makeDeps({ providers: [p] }))
+		expect(seen).toEqual([{ userId: 'user-1', source: 'mcp' }])
+	})
+})

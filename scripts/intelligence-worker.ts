@@ -93,7 +93,7 @@ async function tick() {
 	console.log(`processing ${userIds.length} users`)
 	const results = await runWithConcurrency(userIds, settings.intelligenceConcurrency, async userId => {
 		try {
-			return await generateForUser(db, userId, { trigger: 'cron' })
+			return await generateForUser(db, userId, { trigger: 'cron', source: 'cli' })
 		} catch (err) {
 			return { status: 'error' as const, runId: null, error: err instanceof Error ? err.message : String(err) }
 		}

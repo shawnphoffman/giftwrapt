@@ -59,7 +59,7 @@ async function main() {
 				const i = cursor++
 				const userId = userIds[i]
 				try {
-					const result = await generateForUser(db, userId, { trigger })
+					const result = await generateForUser(db, userId, { trigger, source: 'cli' })
 					summary.processed++
 					if (result.status === 'success') summary.success++
 					else if (result.status === 'skipped') summary.skipped++

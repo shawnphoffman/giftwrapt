@@ -167,7 +167,7 @@ export function registerIntelligenceTools(server: McpServer, ctx: ToolContext): 
 			if (!settings.intelligenceEnabled) return toolError('feature-disabled', 'Suggestions are turned off on this deployment.')
 			const limit = intelligenceRefreshLimiter.consume(`user:${actor.userId}`)
 			if (!limit.allowed) return toolError('rate-limited')
-			const result = await refreshMyRecommendationsImpl(actor.userId, dbx)
+			const result = await refreshMyRecommendationsImpl(actor.userId, dbx, 'mcp')
 			const status = String(result.status)
 			const reason = 'reason' in result && typeof result.reason === 'string' ? result.reason : null
 			return toolOk(status === 'skipped' ? `Refresh skipped (${reason ?? 'unknown'}).` : `Refresh ${status}.`, { status, reason })

@@ -1,0 +1,338 @@
+[
+	{
+		"name": "add_comment",
+		"title": "Add Item Comment",
+		"description": "Post a comment on an item the user can see. Mention someone with @[Their Name](userId). The list owner and anyone mentioned may be emailed.",
+		"access": "write",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "add_item",
+		"title": "Add Item",
+		"description": "Add one item to a list the user owns or can edit (defaults to their primary list). Give a title, a product URL, or both. With a URL the page is read to fill in the title, price, and image unless enrich is false; pass your own values to override what the page says.",
+		"access": "write",
+		"destructive": false,
+		"readsTheWeb": true
+	},
+	{
+		"name": "add_items",
+		"title": "Add Many Items",
+		"description": "Add several items at once (a brain dump or a pasted list). Each needs a title or a URL. URLs are enriched in the background by the import queue rather than while you wait. Requires the deployment’s import feature.",
+		"access": "write",
+		"destructive": false,
+		"readsTheWeb": true
+	},
+	{
+		"name": "add_off_list_gift",
+		"title": "Add an Off-List Gift",
+		"description": "Record something the user is giving that is not on the recipient’s list, so other gifters see it and the recipient learns of it at reveal time. Only on other people’s lists.",
+		"access": "write",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "apply_recommendation",
+		"title": "Apply a Suggestion",
+		"description": "Run one of a suggestion’s applicable actions (by its index from list_recommendations). Actions marked destructive should be confirmed with the user first.",
+		"access": "write",
+		"destructive": true,
+		"readsTheWeb": false
+	},
+	{
+		"name": "archive_items",
+		"title": "Mark Items Received",
+		"description": "Archive items on the user’s own list to mark them received. This REVEALS who gave each gift to the user, so only do it after the occasion, when they ask. Pass archived false to undo.",
+		"access": "write",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "assign_items_to_group",
+		"title": "Assign Items to Group",
+		"description": "Put items into a group (all must be on the group’s list), or pass group_id null to take them out of any group.",
+		"access": "write",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "claim_item",
+		"title": "Claim an Item",
+		"description": "Reserve an item on someone else’s list as a gift the user will give, so other gifters see it is taken. Optional cost and private notes; co_gifter_ids share the gift (and the credit) with other users. Respects pick-one and in-order groups and remaining quantity.",
+		"access": "write",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "create_dependent",
+		"title": "Create Dependent",
+		"description": "Add a dependent (a pet, a baby, anyone without their own account) that the user and any extra guardians will manage lists for. Admin only on this deployment, matching the web.",
+		"access": "write",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "create_item_group",
+		"title": "Create Item Group",
+		"description": "Group items on one of the user’s lists. An \"or\" group means pick one of these (once any is claimed the rest lock); an \"order\" group means buy them in sequence. Items in a group share the group’s priority. Optionally add items right away.",
+		"access": "write",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "create_list",
+		"title": "Create List",
+		"description": "Create a list for the user (or for a dependent they manage). Gift-ideas lists are always private and may target the person the ideas are for. Holiday lists need a custom_holiday_id from this deployment. Ask before creating if the user already has a list of that type.",
+		"access": "write",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "delete_item",
+		"title": "Delete Item",
+		"description": "Remove an item from one of the user’s lists. If a gifter had already claimed it, the item quietly enters a pending-deletion state and the gifter is alerted; the user never sees that difference. Confirm with the user first.",
+		"access": "write",
+		"destructive": true,
+		"readsTheWeb": false
+	},
+	{
+		"name": "delete_item_group",
+		"title": "Delete Item Group",
+		"description": "Remove a group. Its items stay on the list, ungrouped.",
+		"access": "write",
+		"destructive": true,
+		"readsTheWeb": false
+	},
+	{
+		"name": "delete_list",
+		"title": "Delete List",
+		"description": "Delete a list the user owns. If any item on it has already been claimed by a gifter, the list is archived instead of deleted so gift history survives; the result says which happened. Confirm with the user first.",
+		"access": "write",
+		"destructive": true,
+		"readsTheWeb": false
+	},
+	{
+		"name": "delete_off_list_gift",
+		"title": "Delete an Off-List Gift",
+		"description": "Remove one of the user’s off-list gifts.",
+		"access": "write",
+		"destructive": true,
+		"readsTheWeb": false
+	},
+	{
+		"name": "dismiss_recommendation",
+		"title": "Dismiss a Suggestion",
+		"description": "Hide a suggestion (it stays hidden across regenerations). Pass undo true to bring a dismissed one back.",
+		"access": "write",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "get_list",
+		"title": "Get List",
+		"description": "A list the user owns or can edit, with its items, item groups, and reveal schedule. Owner view: claims are never included, so never guess whether something was bought. A giftideas list holds the user’s private ideas for someone else, not things that person asked for. Use get_wishlist for other people’s lists.",
+		"access": "read",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "get_me",
+		"title": "Who Am I",
+		"description": "The signed-in user: profile, partner, children and dependents they manage, their primary list, and which features this deployment has turned on. Call this first.",
+		"access": "read",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "get_wishlist",
+		"title": "Get Someone’s Wishlist",
+		"description": "Everything needed to shop for another person: their list items with what is already claimed and how many remain, pick-one / in-order group rules, off-list gifts other gifters are bringing, and, kept separate, the user’s own private gift ideas for this person. Only `items` are things the person asked for; `myGiftIdeas` are the user’s notes that the person never sees, so never present them as on the person’s list. Give list_id, or person_id to use that person’s primary list. Never works on the user’s own lists (use get_list).",
+		"access": "read",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "list_comments",
+		"title": "List Item Comments",
+		"description": "The conversation on an item the user can see (questions about sizes, coordination between gifters). Only available when the deployment has comments turned on.",
+		"access": "read",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "list_my_gifts",
+		"title": "My Gifts",
+		"description": "Everything the user (or their partner) is giving: claims and off-list gifts across every list, with costs and totals per recipient. Filter by recipient_id (user or dependent) or by list type. Costs are this household’s share.",
+		"access": "read",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "list_my_lists",
+		"title": "My Lists",
+		"description": "Every list the user can edit: their own (wishlists, birthday, Christmas, holiday, gift-ideas), lists shared with them as an editor, and lists belonging to children or dependents they manage. Owner view: never includes claims.",
+		"access": "read",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "list_people",
+		"title": "People I Can Shop For",
+		"description": "Everyone whose lists the user can see and shop from: family, friends, children, and dependents (pets, babies), each with their birthday and their visible lists. Use a person’s primary list id or a list id with get_wishlist to shop. Optional query filters by name or email.",
+		"access": "read",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "list_received_gifts",
+		"title": "Gifts I Received",
+		"description": "Gifts that have been revealed to the user (and to dependents they manage): what was given and by whom. Only revealed gifts appear; unrevealed claims stay hidden.",
+		"access": "read",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "list_recommendations",
+		"title": "List Suggestions",
+		"description": "GiftWrapt’s own suggestions for the user’s lists (stale items, duplicates, grouping, missing prices, set-up nudges), with the actions each one offers. Pass include_resolved to also see dismissed and applied ones. Requires the deployment’s intelligence feature.",
+		"access": "read",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "list_upcoming_occasions",
+		"title": "Upcoming Occasions",
+		"description": "Birthdays of everyone the user can shop for (including children and dependents), plus the holidays this deployment celebrates and the user’s anniversary, within the next N days, each with whether the user has already planned a gift. Sorted soonest first.",
+		"access": "read",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "lookup_barcode",
+		"title": "Look Up a Barcode",
+		"description": "Identify a product from a UPC / EAN barcode number. Returns candidate titles, brands, images, and product URLs to feed into add_item.",
+		"access": "read",
+		"destructive": false,
+		"readsTheWeb": true
+	},
+	{
+		"name": "move_items",
+		"title": "Move Items",
+		"description": "Move items to another list the user can edit. Moving between lists of different types (for example wishlist to gift-ideas) clears any claims gifters had made, so confirm with the user first.",
+		"access": "write",
+		"destructive": true,
+		"readsTheWeb": false
+	},
+	{
+		"name": "preview_url",
+		"title": "Preview a Product URL",
+		"description": "Read a product page and return its title, price, images, and the choices a buyer must make, without adding anything. Useful before add_item or to check a price.",
+		"access": "read",
+		"destructive": false,
+		"readsTheWeb": true
+	},
+	{
+		"name": "refresh_recommendations",
+		"title": "Refresh Suggestions",
+		"description": "Regenerate the user’s suggestions now instead of waiting for the nightly run. Subject to a per-user cooldown; may take a while and may call an AI provider.",
+		"access": "write",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "search_my_items",
+		"title": "Search My Items",
+		"description": "Find items across every list the user owns by words in the title or notes. Results from gift-ideas lists (isGiftIdea true) are the user’s private ideas for someone else, not things the user or that person asked for.",
+		"access": "read",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "set_claim_split",
+		"title": "Split a Claim’s Cost",
+		"description": "Set how much each co-gifter owes on one of the user’s claims; the user’s own share is the remainder. Pass an empty list to go back to an even split. The claim needs a total cost first.",
+		"access": "write",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "set_item_availability",
+		"title": "Set Item Availability",
+		"description": "Mark an item unavailable (sold out, discontinued) so gifters skip it, or available again.",
+		"access": "write",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "set_primary_list",
+		"title": "Set Primary List",
+		"description": "Mark one of the user’s lists as their primary list (the default for add_item and the one others see first). Gift-ideas lists cannot be primary.",
+		"access": "write",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "unclaim_item",
+		"title": "Unclaim an Item",
+		"description": "Release one of the user’s claims so others can give the item. Permanent: the claim and its notes are deleted. Confirm with the user first.",
+		"access": "write",
+		"destructive": true,
+		"readsTheWeb": false
+	},
+	{
+		"name": "update_claim",
+		"title": "Update a Claim",
+		"description": "Change the quantity, cost, notes, tracking number, or co-gifters on one of the user’s claims (their partner’s too). co_gifter_ids REPLACES the whole set; pass [] to clear. The partner is already credited automatically and need not be listed.",
+		"access": "write",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "update_dependent",
+		"title": "Update Dependent",
+		"description": "Rename a dependent or set their birthday. Admin only on this deployment, matching the web.",
+		"access": "write",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "update_item",
+		"title": "Update Item",
+		"description": "Change an item’s title, URL, price, notes, priority, quantity, or image. Pass null to clear a nullable field. Only fields you pass change.",
+		"access": "write",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "update_item_group",
+		"title": "Update Item Group",
+		"description": "Change a group’s type, name, or priority. An \"or\" group means pick one of these (once any is claimed the rest lock); an \"order\" group means buy them in sequence. Items in a group share the group’s priority.",
+		"access": "write",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "update_list",
+		"title": "Update List",
+		"description": "Rename, describe, re-type, archive (is_active false), or change the privacy of a list the user owns or can edit. Changing a list to or from giftideas clears its target; todo lists cannot change type.",
+		"access": "write",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "update_off_list_gift",
+		"title": "Update an Off-List Gift",
+		"description": "Edit the description, cost, notes, tracking number, or URL of one of the user’s off-list gifts.",
+		"access": "write",
+		"destructive": false,
+		"readsTheWeb": false
+	},
+	{
+		"name": "use_gift_idea",
+		"title": "Use a Gift Idea",
+		"description": "Turn one of the user’s gift ideas for a person into an off-list gift on that person’s list (the idea is removed from the ideas list). Ideas come from get_wishlist’s myGiftIdeas.",
+		"access": "write",
+		"destructive": true,
+		"readsTheWeb": false
+	}
+]

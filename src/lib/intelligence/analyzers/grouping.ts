@@ -2,6 +2,7 @@ import { and, eq, inArray, isNull, ne } from 'drizzle-orm'
 
 import type { Database } from '@/db'
 import { intelligenceVerdicts, itemGroups, items, lists, recommendations } from '@/db/schema'
+import type { AiCallSource } from '@/lib/ai-call'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 
 import { composeForLog, generateObjectCached } from '../ai-call'
@@ -162,7 +163,9 @@ export const groupingAnalyzer: Analyzer = {
 			const verdictsToStore: Array<{ key: string; verdict: ListVerdict }> = []
 			for (let i = 0; i < toAsk.length; i += MODEL_CONCURRENCY) {
 				const batch = toAsk.slice(i, i + MODEL_CONCURRENCY)
-				const results = await Promise.all(batch.map(candidate => judgeList(model, { db: ctx.db, userId: ctx.userId }, candidate)))
+				const results = await Promise.all(
+					batch.map(candidate => judgeList(model, { db: ctx.db, userId: ctx.userId, source: ctx.source }, candidate))
+				)
 				for (let j = 0; j < batch.length; j++) {
 					const { step, suggestions } = results[j]
 					steps.push(step)
@@ -239,7 +242,7 @@ function buildListCandidates(rows: ReadonlyArray<Row>): Array<ListCandidate> {
 
 async function judgeList(
 	model: NonNullable<Parameters<Analyzer['run']>[0]['model']>,
-	scope: { db: Database; userId: string },
+	scope: { db: Database; userId: string; source?: AiCallSource },
 	candidate: ListCandidate
 ): Promise<{ step: AnalyzerStep; suggestions: Array<ResolvedSuggestion> | null }> {
 	const promptList: GroupingListCandidate = {
@@ -254,6 +257,7 @@ async function judgeList(
 			model,
 			userId: scope.userId,
 			db: scope.db,
+			source: scope.source,
 			schema: groupingResponseSchema,
 			system: GROUPING_SYSTEM,
 			prompt: userPrompt,

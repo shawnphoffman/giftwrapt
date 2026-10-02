@@ -323,6 +323,7 @@ export const duplicatesAnalyzer: Analyzer = {
 				model: ctx.model,
 				userId: ctx.userId,
 				db: ctx.db,
+				source: ctx.source,
 				schema: duplicatesResponseSchema,
 				system: DUPLICATES_SYSTEM,
 				prompt: userPrompt,

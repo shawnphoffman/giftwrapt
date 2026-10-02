@@ -1,0 +1,62 @@
+[
+	{
+		"id": "scrape-provider",
+		"label": "AI Scraper",
+		"description": "Reads a product page with the AI model when it is one of the configured scrape providers.",
+		"settingKey": null,
+		"managedAt": "Scraping",
+		"sent": [
+			"The product page URL being added",
+			"The text and markup of that page, with scripts and styles removed (up to 32 KB)"
+		],
+		"neverSent": [
+			"Anything about your users, their lists, or their gifts"
+		]
+	},
+	{
+		"id": "clean-title",
+		"label": "Clean Imported Titles",
+		"description": "A small pass after a scrape that strips retailer noise from the title.",
+		"settingKey": "scrapeAiCleanTitlesEnabled",
+		"managedAt": null,
+		"sent": [
+			"The scraped title",
+			"The product page URL",
+			"The store name, when known"
+		],
+		"neverSent": [
+			"Anything about your users, their lists, or their gifts"
+		]
+	},
+	{
+		"id": "photo-extract",
+		"label": "Photo to Item",
+		"description": "Fills in a new item from a photo the user uploads.",
+		"settingKey": "aiPhotoExtractEnabled",
+		"managedAt": null,
+		"sent": [
+			"The uploaded photo"
+		],
+		"neverSent": [
+			"Anything about your users, their lists, or their gifts"
+		]
+	},
+	{
+		"id": "intelligence",
+		"label": "Suggestions",
+		"description": "Scheduled suggestions for each user about their own lists: stale items, duplicates, grouping, and set-up nudges. Users see the Suggestions page and can refresh it.",
+		"settingKey": "intelligenceEnabled",
+		"managedAt": "Intelligence",
+		"sent": [
+			"Titles and notes of the items on the user’s own lists",
+			"The names and types of those lists, and when each item was last changed",
+			"Whether an item is marked unavailable, and the item groups already on the list"
+		],
+		"neverSent": [
+			"Claims: who is giving what, costs, and gift notes",
+			"Gift-ideas lists (private notes about other people)",
+			"Items already revealed or deleted",
+			"Profile details: names, email addresses, and birthdays (a name typed into a list name or an item is sent as written)"
+		]
+	}
+]

@@ -132,6 +132,7 @@ export const staleItemsAnalyzer: Analyzer = {
 				model: ctx.model,
 				userId: ctx.userId,
 				db: ctx.db,
+				source: ctx.source,
 				schema: staleItemsResponseSchema,
 				system: STALE_ITEMS_SYSTEM,
 				prompt: userPrompt,

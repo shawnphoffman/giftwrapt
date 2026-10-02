@@ -149,7 +149,14 @@ export type ScrapeContext = {
 	perAttemptTimeoutMs: number
 	// Optional headers the orchestrator passes through (e.g. user Accept-Language).
 	acceptLanguage?: string
+	// Who started the scrape and from where. Only the AI provider reads
+	// these, to label its row on the AI usage ledger.
+	userId?: string
+	source?: ScrapeSource
 }
+
+// Where a scrape was started from; a subset of AiCallSource.
+export type ScrapeSource = 'web' | 'mcp' | 'mobile' | 'import' | 'admin'
 
 export type ScrapeProvider = {
 	readonly id: string
@@ -277,6 +284,10 @@ export type OrchestrateOptions = {
 	// When this fires the overall budget aborts immediately and the
 	// orchestrator returns with `reason: 'timeout'`.
 	signal?: AbortSignal
+	// Who started the scrape and from where, handed to providers on the
+	// scrape context. Omit `userId` for system-driven runs.
+	userId?: string
+	source?: ScrapeSource
 }
 
 export type OrchestrateResult =

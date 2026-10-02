@@ -7,7 +7,7 @@ import { extractFromRaw } from './extractor'
 import { maybeCleanTitle } from './post-passes/clean-title'
 import type { ScoreBreakdown } from './score'
 import { CACHE_MIN_SCORE, scoreBreakdown, scoreScrape } from './score'
-import type { FinalScrapeRecord, ScrapeResult } from './types'
+import type { FinalScrapeRecord, ScrapeResult, ScrapeSource } from './types'
 
 // URL-based dedup against `itemScrapes`. Returns the final merged row of the
 // best recent run of the same URL within `ttlHours` at or above `minScore`.
@@ -203,7 +203,7 @@ export async function persistFinalScrape(db: Database, record: FinalScrapeRecord
 // `userId` is the signed-in user that triggered the scrape; it's stamped
 // onto every persisted attempt row so the admin Scrape History can
 // surface "who scraped this URL." Pass `undefined` for system-driven runs.
-export function buildDbBackedDeps(db: Database, options: { ttlHours: number; minScore?: number; userId?: string }) {
+export function buildDbBackedDeps(db: Database, options: { ttlHours: number; minScore?: number; userId?: string; source?: ScrapeSource }) {
 	const cacheOptions = { ttlHours: options.ttlHours, minScore: options.minScore ?? CACHE_MIN_SCORE }
 	return {
 		extractFromRaw,
@@ -213,7 +213,7 @@ export function buildDbBackedDeps(db: Database, options: { ttlHours: number; min
 		persistAttempt: (record: Parameters<typeof persistScrapeAttempt>[1]) => persistScrapeAttempt(db, { ...record, userId: options.userId }),
 		persistFinal: (record: FinalScrapeRecord) => persistFinalScrape(db, { ...record, userId: options.userId }),
 		postProcessResult: async (result: ScrapeResult, ctx: { url: string; fromProvider: string }) => {
-			const outcome = await maybeCleanTitle(db, result, { url: ctx.url, userId: options.userId })
+			const outcome = await maybeCleanTitle(db, result, { url: ctx.url, userId: options.userId, source: options.source })
 			if (outcome.cleaned && result.title && outcome.cleaned !== result.title) {
 				// Persist the cleaned title so cache hits (and the admin scrapes
 				// view) reflect it; best-effort, never block the live result on it.

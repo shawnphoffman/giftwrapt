@@ -63,7 +63,7 @@ export async function extractFromPhoto({ bytes, mediaType, signal, userId }: Ext
 	let parsed
 	try {
 		parsed = await aiGenerateObject(
-			{ feature: 'photo-extract', userId },
+			{ feature: 'photo-extract', userId, source: 'web' },
 			{
 				model,
 				schema: scrapeResultModelSchema,

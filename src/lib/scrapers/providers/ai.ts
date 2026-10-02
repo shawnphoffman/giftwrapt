@@ -126,8 +126,7 @@ async function runAiProvider(ctx: ScrapeContext, providerId: string): Promise<Pr
 	let parsed
 	try {
 		parsed = await aiGenerateObject(
-			// No user on the ledger row: the scrape context does not carry one.
-			{ feature: 'scrape-provider' },
+			{ feature: 'scrape-provider', userId: ctx.userId, source: ctx.source },
 			{
 				model,
 				schema: scrapeResultModelSchema,

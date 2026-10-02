@@ -4,7 +4,7 @@ import { createAiModel } from '@/lib/ai-client'
 import { resolveAiConfig } from '@/lib/ai-config'
 import { getAppSettings } from '@/lib/settings-loader'
 
-import type { ScrapeResult } from '../types'
+import type { ScrapeResult, ScrapeSource } from '../types'
 
 // Post-pass that runs after the orchestrator picks a winning result. Asks
 // the configured LLM to normalise the title, stripping retailer noise, brand
@@ -31,8 +31,9 @@ export type CleanTitleOptions = {
 	url?: string
 	vendorId?: string | null
 	signal?: AbortSignal
-	// Who triggered the scrape, for the usage ledger.
+	// Who triggered the scrape and from where, for the usage ledger.
 	userId?: string | null
+	source?: ScrapeSource
 }
 
 export type CleanTitleOutcome = {
@@ -72,7 +73,7 @@ export async function maybeCleanTitle(db: Database, result: ScrapeResult, option
 
 	try {
 		const { text } = await aiGenerateText(
-			{ feature: 'clean-title', userId: options.userId, db },
+			{ feature: 'clean-title', userId: options.userId, source: options.source, db },
 			{
 				model,
 				abortSignal: options.signal,

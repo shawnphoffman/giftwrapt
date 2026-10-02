@@ -99,7 +99,7 @@ describe('AI usage ledger', () => {
 		createdUserIds.push(user.id)
 		const captured: Captured = {}
 		const result = await aiGenerateObject(
-			{ feature: 'admin-test', userId: user.id },
+			{ feature: 'admin-test', userId: user.id, source: 'admin' },
 			{
 				model: mockModel(JSON.stringify({ answer: 'yes' }), captured),
 				schema: z.object({ answer: z.string() }),
@@ -115,6 +115,7 @@ describe('AI usage ledger', () => {
 		expect(row).toMatchObject({
 			model: 'claude-haiku-4-5',
 			userId: user.id,
+			source: 'admin',
 			tokensIn: 1000,
 			tokensOut: 200,
 			cachedInputTokens: 100,
@@ -144,17 +145,21 @@ describe('AI usage ledger', () => {
 		await setSetting('scrapeAiCleanTitlesEnabled', true)
 		const cleanCaptured: Captured = {}
 		currentModel = mockModel('Clean Widget', cleanCaptured)
-		const cleaned = await maybeCleanTitle(db, { title: 'Amazon.com: Widget (Renewed)', imageUrls: [] }, { userId: user.id })
+		const cleaned = await maybeCleanTitle(
+			db,
+			{ title: 'Amazon.com: Widget (Renewed)', imageUrls: [] },
+			{ userId: user.id, source: 'mobile' }
+		)
 		expect(cleaned.cleaned).toBe('Clean Widget')
 		expect(cleanCaptured.maxOutputTokens).toBe(777)
-		expect(await rowsFor('clean-title')).toMatchObject([{ userId: user.id, outcome: 'ok' }])
+		expect(await rowsFor('clean-title')).toMatchObject([{ userId: user.id, source: 'mobile', outcome: 'ok' }])
 
 		const photoCaptured: Captured = {}
 		currentModel = mockModel(JSON.stringify({ title: 'Photo Widget', imageUrls: [] }), photoCaptured)
 		const photo = await extractFromPhoto({ bytes: new Uint8Array([1, 2, 3]), mediaType: 'image/png', userId: user.id })
 		expect(photo.result.title).toBe('Photo Widget')
 		expect(photoCaptured.maxOutputTokens).toBe(777)
-		expect(await rowsFor('photo-extract')).toMatchObject([{ userId: user.id, outcome: 'ok' }])
+		expect(await rowsFor('photo-extract')).toMatchObject([{ userId: user.id, source: 'web', outcome: 'ok' }])
 
 		const scrapeCaptured: Captured = {}
 		currentModel = mockModel(JSON.stringify({ title: 'Scraped Widget', imageUrls: [] }), scrapeCaptured)
@@ -164,10 +169,13 @@ describe('AI usage ledger', () => {
 			signal: new AbortController().signal,
 			logger: silentLogger(),
 			perAttemptTimeoutMs: 5000,
+			userId: user.id,
+			source: 'mcp',
 		})
 		expect(response.kind).toBe('structured')
 		expect(scrapeCaptured.maxOutputTokens).toBe(777)
-		expect(await rowsFor('scrape-provider')).toMatchObject([{ userId: null, outcome: 'ok' }])
+		// The AI scraper row says who started the scrape and from where.
+		expect(await rowsFor('scrape-provider')).toMatchObject([{ userId: user.id, source: 'mcp', outcome: 'ok' }])
 
 		// Intelligence deliberately sends no output cap (see intelligence/ai-call.ts).
 		const intelCaptured: Captured = {}
@@ -177,9 +185,10 @@ describe('AI usage ledger', () => {
 			system: 'sys',
 			prompt: 'p',
 			userId: user.id,
+			source: 'cron',
 		})
 		expect(intelCaptured.maxOutputTokens).toBeUndefined()
-		expect(await rowsFor('intelligence')).toMatchObject([{ userId: user.id, outcome: 'ok' }])
+		expect(await rowsFor('intelligence')).toMatchObject([{ userId: user.id, source: 'cron', outcome: 'ok' }])
 	})
 
 	it('refuses calls once the monthly ceiling is reached, except the admin connection test', async () => {
@@ -217,10 +226,14 @@ describe('AI usage ledger', () => {
 	})
 
 	it('summarises the last 30 days per feature with a month-to-date total', async () => {
+		const who = await makeUser(db, { name: 'Usage Person' })
+		createdUserIds.push(who.id)
 		const now = new Date('2026-10-15T12:00:00Z')
 		await db.insert(aiUsage).values([
 			{
 				feature: 'intelligence',
+				source: 'cron',
+				userId: who.id,
 				outcome: 'ok',
 				tokensIn: 100,
 				tokensOut: 10,
@@ -244,6 +257,17 @@ describe('AI usage ledger', () => {
 			{ feature: 'clean-title', calls: 1, errors: 0, tokensIn: 5, tokensOut: 1, estimatedCostMicroUsd: 20 },
 		])
 		expect(summary.total).toEqual({ calls: 3, errors: 1, tokensIn: 105, tokensOut: 11, estimatedCostMicroUsd: 520 })
+		expect(summary.sources).toEqual([
+			{ source: null, calls: 2, estimatedCostMicroUsd: 20 },
+			{ source: 'cron', calls: 1, estimatedCostMicroUsd: 500 },
+		])
+		// Newest first, with the user's name and the source; rows with no user stay.
+		expect(summary.recent.map(r => [r.feature, r.source, r.userName])).toEqual([
+			['intelligence', null, null],
+			['intelligence', 'cron', 'Usage Person'],
+			['clean-title', null, null],
+			['clean-title', null, null],
+		])
 		// Only October rows count toward the month.
 		expect(summary.monthToDateCostMicroUsd).toBe(500)
 	})

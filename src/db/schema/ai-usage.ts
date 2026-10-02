@@ -34,6 +34,10 @@ export const aiUsage = pgTable(
 		// Estimate in micro-USD (USD * 1_000_000); see src/lib/ai-cost.ts.
 		estimatedCostMicroUsd: integer('estimated_cost_micro_usd').default(0).notNull(),
 		latencyMs: integer('latency_ms').default(0).notNull(),
+		// Where the call was started from: 'web', 'mcp', 'mobile', 'import',
+		// 'cron', 'admin', or 'cli' (AiCallSource in src/lib/ai-call.ts). Null
+		// on rows written before the column existed.
+		source: text('source'),
 		// 'ok' | 'error'. A failed call still gets a row (zero tokens) so
 		// the admin view can show error rates per feature.
 		outcome: text('outcome').notNull(),
