@@ -81,7 +81,9 @@ export function defineTool<TIn extends ZodRawShape, TOut extends ZodRawShape>(
 			description: spec.description,
 			inputSchema: spec.inputSchema,
 			outputSchema: spec.outputSchema,
-			annotations: { ...spec.annotations, openWorldHint: false },
+			// Closed world unless the tool says it reads the open web (scrapes,
+			// barcode providers).
+			annotations: { openWorldHint: false, ...spec.annotations },
 		},
 		wrapped as never
 	)

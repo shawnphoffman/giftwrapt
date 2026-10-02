@@ -12,7 +12,7 @@ import type { ToolContext } from '../context'
 import { toolError, toolOk } from '../errors'
 import { lines, plural } from '../format'
 import { defineTool } from '../server'
-import { itemLine, itemSchema, toItemShape } from '../shapes'
+import { groupLine, itemLine, itemSchema, toItemShape } from '../shapes'
 
 const listRoleSchema = z.enum(['owner', 'editor', 'guardian', 'dependent-guardian'])
 
@@ -208,6 +208,7 @@ export function registerListTools(server: McpServer, ctx: ToolContext): void {
 						? `These are your private gift ideas${giftIdeasFor?.name ? ` for ${giftIdeasFor.name}` : ''}, not things ${giftIdeasFor?.name ?? 'they'} asked for. ${giftIdeasFor?.name ?? 'They'} cannot see this list.`
 						: '',
 					...items.map(itemLine),
+					...structured.groups.map(groupLine),
 					archive.applies && archive.effectiveArchiveDate
 						? `Claimed gifts reveal to the recipient on ${archive.effectiveArchiveDate.slice(0, 10)}.`
 						: '',

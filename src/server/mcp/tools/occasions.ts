@@ -113,7 +113,7 @@ export function registerOccasionTools(server: McpServer, ctx: ToolContext): void
 				? lines(
 						occasions.map(
 							o =>
-								`${o.date} (in ${plural(o.daysUntil, 'day')}): ${o.title}${o.person ? ` [${o.giftsAlreadyPlanned ? `${plural(o.giftsAlreadyPlanned, 'gift')} planned` : 'nothing planned yet'}${o.primaryListId ? `, list #${o.primaryListId}` : ''}]` : ''}`
+								`${o.date} (in ${plural(o.daysUntil, 'day')}): ${o.title}${o.person ? ` [${o.person.kind} id ${o.person.id}, ${o.giftsAlreadyPlanned ? `${plural(o.giftsAlreadyPlanned, 'gift')} planned` : 'nothing planned yet'}${o.primaryListId ? `, list #${o.primaryListId}` : ''}]` : ''}`
 						)
 					)
 				: `Nothing in the next ${plural(horizon, 'day')}.`

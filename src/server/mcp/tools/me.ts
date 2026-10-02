@@ -132,10 +132,14 @@ export function registerMeTools(server: McpServer, ctx: ToolContext): void {
 
 			const text = lines(
 				[
-					`You are ${me.name ?? me.email} (${me.email})${me.role === 'admin' ? ', an admin' : ''}.`,
-					partner ? `Partner: ${partner.name ?? partner.email}.` : 'No partner set.',
-					structured.children.length ? `Children you manage: ${structured.children.map(c => c.name ?? c.email).join(', ')}.` : '',
-					structured.dependents.length ? `Dependents you manage: ${structured.dependents.map(d => d.name).join(', ')}.` : '',
+					`You are ${me.name ?? me.email} (${me.email}, id ${me.id})${me.role === 'admin' ? ', an admin' : ''}.`,
+					partner ? `Partner: ${partner.name ?? partner.email} (id ${partner.id}).` : 'No partner set.',
+					structured.children.length
+						? `Children you manage: ${structured.children.map(c => `${c.name ?? c.email} (id ${c.id})`).join(', ')}.`
+						: '',
+					structured.dependents.length
+						? `Dependents you manage: ${structured.dependents.map(d => `${d.name} (id ${d.id})`).join(', ')}.`
+						: '',
 					primary
 						? `Primary list: "${primary.name}" (id ${primary.id}, ${primary.type}).`
 						: `No primary list. You own ${plural(owned.length, 'list')}.`,

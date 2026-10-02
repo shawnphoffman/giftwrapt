@@ -123,7 +123,7 @@ export function registerPeopleTools(server: McpServer, ctx: ToolContext): void {
 							const listsText = p.lists.length
 								? p.lists.map(l => `#${l.id} "${l.name}" (${l.itemsRemaining}/${l.itemsTotal} open)`).join('; ')
 								: 'no visible lists'
-							return `${p.name ?? p.email ?? p.id} [${p.kind}${tags.length ? `, ${tags.join(', ')}` : ''}] ${bday}. Lists: ${listsText}`
+							return `${p.name ?? p.email ?? 'Unnamed'} (id ${p.id}) [${p.kind}${tags.length ? `, ${tags.join(', ')}` : ''}] ${bday}. Lists: ${listsText}`
 						})
 					)
 				: q

@@ -61,5 +61,20 @@ export function itemLine(i: ItemShape): string {
 		i.groupId ? `group ${i.groupId}` : '',
 		i.isArchived ? 'received' : '',
 	].filter(Boolean)
-	return `#${i.id} ${i.title}${bits.length ? ` (${bits.join(', ')})` : ''}`
+	return `#${i.id} ${i.title}${bits.length ? ` (${bits.join(', ')})` : ''}${linkAndNotes(i.url, i.notes)}`
+}
+
+const NOTES_MAX = 200
+
+/** The link and (clipped) notes suffix shared by owner-view and gifter-view item lines. */
+export function linkAndNotes(url: string | null, notes: string | null): string {
+	const note = notes?.replace(/\s+/gu, ' ').trim()
+	const clipped = note && note.length > NOTES_MAX ? `${note.slice(0, NOTES_MAX)}…` : note
+	return `${url ? ` ${url}` : ' [no link]'}${clipped ? ` Notes: ${clipped}` : ''}`
+}
+
+const GROUP_RULE: Record<string, string> = { or: 'pick one', order: 'buy in order' }
+
+export function groupLine(g: { id: number; type: string; name: string | null; itemIds: Array<number> }): string {
+	return `Group #${g.id}${g.name ? ` "${g.name}"` : ''} (${GROUP_RULE[g.type] ?? g.type}): ${g.itemIds.length ? g.itemIds.map(id => `#${id}`).join(', ') : 'empty'}`
 }

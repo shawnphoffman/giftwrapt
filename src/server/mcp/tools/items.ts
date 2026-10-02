@@ -103,7 +103,7 @@ export function registerItemTools(server: McpServer, ctx: ToolContext): void {
 			enrich: z.boolean().optional().describe('Read the URL to fill missing fields (default true)'),
 		},
 		outputSchema: { item: itemSchema, enriched: z.boolean(), scrape: scrapeSchema.nullable() },
-		annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+		annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
 		handler: async (args, toolCtx) => {
 			const listId = args.list_id ?? (await resolvePrimaryListId(toolCtx))
 			if (!listId) return toolError('no-primary-list')
@@ -161,7 +161,7 @@ export function registerItemTools(server: McpServer, ctx: ToolContext): void {
 			items: z.array(z.object(draftFields)).min(1).max(50),
 		},
 		outputSchema: { items: z.array(itemSchema), enqueued: z.number().describe('URLs queued for background enrichment') },
-		annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
+		annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
 		handler: async (args, toolCtx) => {
 			const listId = args.list_id ?? (await resolvePrimaryListId(toolCtx))
 			if (!listId) return toolError('no-primary-list')
@@ -370,7 +370,7 @@ export function registerItemTools(server: McpServer, ctx: ToolContext): void {
 			'Read a product page and return its title, price, images, and the choices a buyer must make, without adding anything. Useful before add_item or to check a price.',
 		inputSchema: { url: z.string().max(2000) },
 		outputSchema: { preview: scrapeSchema },
-		annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+		annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
 		handler: async (args, toolCtx) => {
 			const s = await scrape(args.url.trim(), toolCtx)
 			if (s.kind === 'error') return toolError(s.reason)
@@ -407,7 +407,7 @@ export function registerItemTools(server: McpServer, ctx: ToolContext): void {
 				})
 			),
 		},
-		annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+		annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
 		handler: async (args, toolCtx) => {
 			const limit = barcodeLookupLimiter.consume(`user:${toolCtx.actor.userId}`)
 			if (!limit.allowed) return toolError('rate-limited')

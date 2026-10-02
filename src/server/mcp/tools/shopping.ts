@@ -26,6 +26,7 @@ import type { ToolContext } from '../context'
 import { toolError, toolOk } from '../errors'
 import { formatPrice, lines, plural } from '../format'
 import { defineTool } from '../server'
+import { groupLine, linkAndNotes } from '../shapes'
 
 const money = z
 	.string()
@@ -250,14 +251,18 @@ export function registerShoppingTools(server: McpServer, ctx: ToolContext): void
 				myGiftIdeas,
 			}
 
+			// Only the user's own claims carry a gift id: those are the ones they can
+			// update or release.
+			const claimedBy = (c: { byMe: boolean; giftId: number; gifterNames: Array<string> }): string =>
+				c.byMe ? `you (gift #${c.giftId})` : c.gifterNames.join(' & ')
 			const text = lines(
 				[
-					`"${list.name}" for ${recipient.name} (list #${list.id}, ${list.type}): ${plural(itemsOut.length, 'item')}.`,
+					`"${list.name}" for ${recipient.name} (${recipient.kind} id ${recipient.id}; list #${list.id}, ${list.type}): ${plural(itemsOut.length, 'item')}.`,
 					...itemsOut.map(i => {
 						const claimText = i.claims.length
 							? i.remaining === 0
-								? `fully claimed by ${i.claims.map(c => (c.byMe ? 'you' : c.gifterNames.join(' & '))).join(', ')}`
-								: `${i.remaining} of ${i.quantity} left; claimed by ${i.claims.map(c => (c.byMe ? 'you' : c.gifterNames.join(' & '))).join(', ')}`
+								? `fully claimed by ${i.claims.map(claimedBy).join(', ')}`
+								: `${i.remaining} of ${i.quantity} left; claimed by ${i.claims.map(claimedBy).join(', ')}`
 							: i.quantity > 1
 								? `${i.quantity} wanted, none claimed`
 								: 'unclaimed'
@@ -267,10 +272,11 @@ export function registerShoppingTools(server: McpServer, ctx: ToolContext): void
 							i.availability === 'unavailable' ? 'unavailable' : '',
 							i.groupId ? `group ${i.groupId}` : '',
 						].filter(Boolean)
-						return `#${i.id} ${i.title}${bits.length ? ` (${bits.join(', ')})` : ''}: ${claimText}`
+						return `#${i.id} ${i.title}${bits.length ? ` (${bits.join(', ')})` : ''}: ${claimText}.${linkAndNotes(i.url, i.notes)}`
 					}),
+					...structured.groups.map(groupLine),
 					structured.offListGifts.length
-						? `Off-list gifts: ${structured.offListGifts.map(a => `${a.description} (${a.byMe ? 'you' : (a.gifterName ?? 'someone')})`).join('; ')}.`
+						? `Off-list gifts: ${structured.offListGifts.map(a => `${a.byMe ? `#${a.id} ` : ''}${a.description} (${a.byMe ? 'you' : (a.gifterName ?? 'someone')})`).join('; ')}.`
 						: '',
 					myGiftIdeas.length
 						? `Separately, your own private gift ideas for ${recipient.name} (NOT on their list; they did not ask for these and cannot see them): ${myGiftIdeas.flatMap(s => s.ideas.map(i => `idea #${i.id} ${i.title}`)).join('; ')}.`
