@@ -3,10 +3,11 @@ import { createMiddleware } from '@tanstack/react-start'
 import { deleteCookie } from '@tanstack/react-start/server'
 import { eq } from 'drizzle-orm'
 
-import { db } from '@/db'
+import { db, type SchemaDatabase } from '@/db'
 import { users } from '@/db/schema'
 import { createLogger } from '@/lib/logger'
 import { runWithRequest, setRequestUser } from '@/lib/request-context'
+import { isUserBanned } from '@/lib/user-ban'
 
 import { auth } from '../lib/auth'
 
@@ -61,21 +62,36 @@ function buildSignInSearch(request: Request): { redirect?: string } {
 // cookieCache trusts the encrypted cookie for its full maxAge (24h) without
 // hitting the DB, so this middleware is the actual "user still exists / is
 // still a real account" check. Cold starts revalidate naturally.
+//
+// The same read also enforces bans. better-auth's admin plugin deletes a
+// banned user's sessions and blocks new sign-ins, but cookieCache keeps
+// serving the existing cookie for up to its maxAge. Checking `banned` on the
+// row this middleware already reads costs no extra query, and the 10-minute
+// cache bounds how long a ban takes to bite.
 const LIVE_USER_TTL_MS = 10 * 60 * 1000
 const liveUserCache = new Map<string, number>()
+
+export type LiveUserStatus = 'live' | 'missing' | 'banned'
+
+export async function checkLiveUser(userId: string, dbx: SchemaDatabase = db, now: Date = new Date()): Promise<LiveUserStatus> {
+	const row = await dbx.query.users.findFirst({
+		where: eq(users.id, userId),
+		columns: { id: true, banned: true, banExpires: true },
+	})
+	if (!row) return 'missing'
+	if (isUserBanned(row, now)) return 'banned'
+	return 'live'
+}
 
 async function requireLiveUser(userId: string, request: Request): Promise<void> {
 	const now = Date.now()
 	const cached = liveUserCache.get(userId)
 	if (cached && cached > now) return
 
-	const row = await db.query.users.findFirst({
-		where: eq(users.id, userId),
-		columns: { id: true },
-	})
-	if (!row) {
+	const status = await checkLiveUser(userId)
+	if (status !== 'live') {
 		liveUserCache.delete(userId)
-		mwLog.warn({ userId }, 'session user no longer exists, clearing cookies')
+		mwLog.warn({ userId, status }, 'session user is no longer live, clearing cookies')
 		clearAuthCookies()
 		throw redirect({ to: '/sign-in', search: buildSignInSearch(request) })
 	}

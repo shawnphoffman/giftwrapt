@@ -19,6 +19,7 @@ import type { Context, MiddlewareHandler } from 'hono'
 import { db } from '@/db'
 import { users } from '@/db/schema'
 import { auth } from '@/lib/auth'
+import { isUserBanned } from '@/lib/user-ban'
 
 import { jsonError } from './envelope'
 
@@ -51,8 +52,15 @@ export const requireMobileApiKey: MiddlewareHandler<MobileAuthContext> = async (
 	}
 
 	const userId = result.key.userId
-	const rows = await db.select({ role: users.role }).from(users).where(eq(users.id, userId)).limit(1)
-	if (rows.length === 0) {
+	// Same row read as before, now also carrying the ban columns: better-auth's
+	// verifyApiKey never looks at bans and banning does not delete keys, so
+	// without this a banned user's devices keep working indefinitely.
+	const rows = await db
+		.select({ role: users.role, banned: users.banned, banExpires: users.banExpires })
+		.from(users)
+		.where(eq(users.id, userId))
+		.limit(1)
+	if (rows.length === 0 || isUserBanned(rows[0])) {
 		return jsonError(c, 401, 'unauthorized')
 	}
 	const role = rows[0].role

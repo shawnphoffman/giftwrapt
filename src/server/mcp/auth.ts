@@ -10,6 +10,7 @@ import { and, eq, lt, sql } from 'drizzle-orm'
 
 import { db, type SchemaDatabase } from '@/db'
 import { oauthAccessToken, oauthApplication, users } from '@/db/schema'
+import { isUserBanned } from '@/lib/user-ban'
 
 import type { McpActor } from './context'
 
@@ -63,7 +64,7 @@ export async function resolveMcpActor(headers: Headers, dbx: SchemaDatabase = db
 		columns: { id: true, role: true, banned: true, banExpires: true },
 	})
 	if (!user) return { ok: false, reason: 'user-not-found' }
-	if (user.banned && (!user.banExpires || user.banExpires.getTime() > now.getTime())) return { ok: false, reason: 'banned' }
+	if (isUserBanned(user, now)) return { ok: false, reason: 'banned' }
 	// Settled in plan 20 (F8): a child account cannot drive an AI assistant.
 	if (user.role === 'child') return { ok: false, reason: 'child-not-allowed' }
 
