@@ -238,6 +238,24 @@ export const FailedTimeout: Story = {
 	},
 }
 
+export const FailedDeadLink: Story = {
+	args: {
+		url,
+		state: {
+			providerNames: {},
+			phase: 'failed',
+			providers: [{ providerId: 'fetch-provider', status: 'failed', errorCode: 'dead_link', ms: 640 }],
+			tiers: [
+				{ tier: 0, providerIds: ['fetch-provider'], status: 'done' },
+				{ tier: 2, providerIds: ['browserbase-fetch'], status: 'skipped' },
+			],
+			elapsedMs: 640,
+			reason: 'dead-link',
+		},
+		onRetry: () => undefined,
+	},
+}
+
 export const Idle: Story = {
 	args: {
 		state: {

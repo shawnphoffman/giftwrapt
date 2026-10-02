@@ -125,6 +125,8 @@ export type ScrapeErrorCode =
 	| 'timeout'
 	| 'invalid_response'
 	| 'config_missing'
+	// The page redirected to the store's homepage: the product is gone.
+	| 'dead_link'
 	| 'unknown'
 
 export class ScrapeProviderError extends Error {
@@ -240,9 +242,10 @@ export type StreamEvent =
 	| {
 			type: 'tier_skipped'
 			tier: number
-			// Always 'previous_tier_won' today; left as a discriminator for
+			// 'previous_tier_won', or 'dead_link' when an earlier tier found the
+			// link redirects to the store's homepage. Left as a discriminator for
 			// future reasons (e.g. 'no_providers_available', 'aborted').
-			reason: 'previous_tier_won'
+			reason: 'previous_tier_won' | 'dead_link'
 	  }
 	| { type: 'result_ready'; result: ScrapeResult; fromProvider: string; cached: boolean }
 	| { type: 'result_updated'; result: ScrapeResult; fromProvider: string }
@@ -255,7 +258,13 @@ export type OrchestrateEmitter = (event: StreamEvent) => void
 // Orchestrator IO
 // ===========================================================================
 
-export type OrchestrateErrorReason = 'all-providers-failed' | 'invalid-url' | 'not-authorized' | 'timeout' | 'no-providers-available'
+export type OrchestrateErrorReason =
+	| 'all-providers-failed'
+	| 'invalid-url'
+	| 'not-authorized'
+	| 'timeout'
+	| 'no-providers-available'
+	| 'dead-link'
 
 export type OrchestrateOptions = {
 	url: string

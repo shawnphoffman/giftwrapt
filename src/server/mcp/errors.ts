@@ -32,6 +32,7 @@ const MESSAGES: Partial<Record<string, string>> = {
 	'query-too-short': 'The search query is too short.',
 	'all-providers-failed': 'The page could not be read. Add the item by title instead.',
 	'no-providers-available': 'No scrape provider is configured on this deployment.',
+	'dead-link': 'This link is no longer valid. Add the item by title instead.',
 	timeout: 'Reading the page took too long. Add the item by title instead.',
 	'invalid-barcode': 'That barcode is not a valid GTIN.',
 	'provider-unavailable': 'The barcode provider is unavailable right now.',

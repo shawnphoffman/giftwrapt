@@ -280,7 +280,9 @@ async function processJob(db: Database, settings: AppSettings, job: ClaimedJob):
 	}
 
 	if (result.kind !== 'ok') {
-		return await markFailure(db, settings, job, `scrape error: ${result.reason}`)
+		// A dead link won't come back on retry: fail it now instead of
+		// backing off through scrapeQueueMaxAttempts.
+		return await markFailure(db, settings, job, `scrape error: ${result.reason}`, { permanent: result.reason === 'dead-link' })
 	}
 
 	try {
@@ -297,9 +299,15 @@ async function processJob(db: Database, settings: AppSettings, job: ClaimedJob):
 	return 'success'
 }
 
-async function markFailure(db: Database, settings: AppSettings, job: ClaimedJob, errorMessage: string): Promise<JobOutcome> {
+async function markFailure(
+	db: Database,
+	settings: AppSettings,
+	job: ClaimedJob,
+	errorMessage: string,
+	options: { permanent?: boolean } = {}
+): Promise<JobOutcome> {
 	const newAttempts = job.attempts + 1
-	if (newAttempts >= settings.scrapeQueueMaxAttempts) {
+	if (options.permanent || newAttempts >= settings.scrapeQueueMaxAttempts) {
 		await db
 			.update(itemScrapeJobs)
 			.set({

@@ -753,3 +753,42 @@ describe('orchestrate: persistFinal', () => {
 		expect(result.kind).toBe('ok')
 	})
 })
+
+describe('orchestrate: dead links', () => {
+	const homepage = (id: string): ProviderResponse => ({
+		kind: 'html',
+		providerId: id,
+		html: '<html></html>',
+		finalUrl: 'https://shop.example.test/',
+		status: 200,
+		headers: {},
+		fetchMs: 1,
+	})
+
+	it('ends as dead-link and skips later tiers when the product redirected to the homepage', async () => {
+		const t0 = makeProvider({ id: 't0', tier: 0, produces: homepage('t0') })
+		const t2Fetch = vi.fn()
+		const t2: ScrapeProvider = { ...makeProvider({ id: 't2', tier: 2 }), fetch: t2Fetch }
+		const { events, emit } = recordEmitter()
+		const persisted: Array<{ providerId: string; ok: boolean; errorCode?: string }> = []
+		const result = await orchestrate(
+			{ url: 'https://shop.example.test/products/gone' },
+			makeDeps({
+				providers: [t0, t2],
+				emit,
+				persistAttempt: rec => (persisted.push({ providerId: rec.providerId, ok: rec.ok, errorCode: rec.errorCode }), Promise.resolve()),
+			})
+		)
+		expect(result).toMatchObject({ kind: 'error', reason: 'dead-link' })
+		expect(t2Fetch).not.toHaveBeenCalled()
+		expect(persisted).toEqual([{ providerId: 't0', ok: false, errorCode: 'dead_link' }])
+		expect(events).toContainEqual({ type: 'tier_skipped', tier: 2, reason: 'dead_link' })
+		expect(events.at(-1)).toEqual({ type: 'error', reason: 'dead-link' })
+	})
+
+	it('treats a homepage URL that was requested as a normal page', async () => {
+		const t0 = makeProvider({ id: 't0', tier: 0, produces: homepage('t0') })
+		const result = await orchestrate({ url: 'https://shop.example.test/' }, makeDeps({ providers: [t0] }))
+		expect(result.kind).toBe('ok')
+	})
+})

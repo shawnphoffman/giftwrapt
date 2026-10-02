@@ -1,5 +1,6 @@
 import { createLogger } from '@/lib/logger'
 
+import { isDeadLinkRedirect } from './dead-link'
 import { mergeWithinTier } from './merge'
 import { isSameProduct } from './same-product'
 import type {
@@ -121,6 +122,11 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 	// Latest consistency-guard verdict per provider that was kept out of a
 	// merge. Read at the end for every success the winner doesn't include.
 	const rejectionReasons = new Map<string, string>()
+	// Set when any attempt landed on the store's homepage instead of the
+	// requested product page. Stops the tier chain (every tier would follow
+	// the same redirect) and, if nothing else succeeded, ends the run as
+	// `dead-link`.
+	const deadLinkRef = { seen: false }
 
 	// Each provider's success captures both its result and the score
 	// context (so a tier merge can re-score with a representative html
@@ -157,6 +163,12 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 			const response = await provider.fetch(ctx)
 			const ms = Date.now() - start
 			const { result, score, scoreContext } = evaluateResponse(response, deps)
+			// Where the request actually landed: the HTTP response's final URL
+			// for HTML providers, whatever a structured provider reports.
+			const landedUrl = response.kind === 'html' ? response.finalUrl : result.finalUrl
+			if (isDeadLinkRedirect(options.url, landedUrl)) {
+				throw new ScrapeProviderError('dead_link', `redirected to ${landedUrl}`)
+			}
 			// Minimum-signal gate: a "successful" attempt must produce at
 			// least a non-empty title. Without that, downstream UX has
 			// nothing meaningful to show. A fetch that returns an empty
@@ -186,6 +198,7 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 		} catch (err) {
 			const ms = Date.now() - start
 			const { code, message } = classifyError(err)
+			if (code === 'dead_link') deadLinkRef.seen = true
 			const attempt: ScrapeAttempt = { providerId: provider.id, ok: false, score: null, ms, errorCode: code, errorMessage: message }
 			attempts.push(attempt)
 			emit({ type: 'attempt_failed', providerId: provider.id, errorCode: code, errorMessage: message, ms })
@@ -294,6 +307,7 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 
 			if (!tierSucceeded) {
 				emit({ type: 'tier_completed', tier, mergedScore: null, contributors: [], cleared: false })
+				if (deadLinkRef.seen) break
 				continue
 			}
 
@@ -315,7 +329,7 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 		// Emit tier_skipped for any tier we never reached.
 		for (const tier of tierOrder) {
 			if (!reachedTiers.has(tier)) {
-				emit({ type: 'tier_skipped', tier, reason: 'previous_tier_won' })
+				emit({ type: 'tier_skipped', tier, reason: deadLinkRef.seen && !winnerRef.current ? 'dead_link' : 'previous_tier_won' })
 			}
 		}
 
@@ -371,6 +385,11 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 			attempts,
 			cached: false,
 		}
+	}
+
+	if (deadLinkRef.seen) {
+		emit({ type: 'error', reason: 'dead-link' })
+		return { kind: 'error', reason: 'dead-link', attempts }
 	}
 
 	if (overallController.signal.aborted) {

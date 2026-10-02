@@ -224,6 +224,27 @@ describe('processForUser - failure path', () => {
 		})
 	})
 
+	it('fails a dead link immediately instead of retrying', async () => {
+		await withRollback(async tx => {
+			const user = await makeUser(tx)
+			const list = await makeList(tx, { ownerId: user.id })
+			const [item] = await tx.insert(items).values({ listId: list.id, title: 'untitled', url: 'https://x.test/products/gone' }).returning()
+			await setImportEnabled(tx, true)
+			await setMaxAttempts(tx, 5)
+			await tx.insert(itemScrapeJobs).values({ itemId: item.id, userId: user.id, url: 'https://x.test/products/gone' })
+
+			scrapeMock.mockResolvedValueOnce({ kind: 'error', reason: 'dead-link', attempts: [] })
+
+			const r = await processForUser(tx as unknown as Database, user.id, { trigger: 'manual' })
+			if (r.status === 'success') expect(r.failed).toBe(1)
+
+			const job = await tx.query.itemScrapeJobs.findFirst({ where: eq(itemScrapeJobs.itemId, item.id) })
+			expect(job?.status).toBe('failed')
+			expect(job?.attempts).toBe(1)
+			expect(job?.lastError).toContain('dead-link')
+		})
+	})
+
 	it('respects the per-tick concurrency limit', async () => {
 		await withRollback(async tx => {
 			const user = await makeUser(tx)

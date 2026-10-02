@@ -32,7 +32,7 @@ export type ScrapeUrlOk = {
 
 export type ScrapeUrlErr = {
 	kind: 'error'
-	reason: 'all-providers-failed' | 'invalid-url' | 'not-authorized' | 'timeout' | 'no-providers-available' | 'scrape-failed'
+	reason: 'all-providers-failed' | 'invalid-url' | 'not-authorized' | 'timeout' | 'no-providers-available' | 'dead-link' | 'scrape-failed'
 	attempts?: Array<ScrapeAttempt>
 }
 

@@ -44,7 +44,7 @@ export function ScrapeProgressAlert({ state, url, onCancel, onRetry, className }
 				<AlertTitle>Couldn&apos;t import. Please fill in the details.</AlertTitle>
 				<AlertDescription>
 					{describeFailure(state)}
-					{onRetry && (
+					{onRetry && state.reason !== 'dead-link' && (
 						<div className="mt-2">
 							<Button type="button" size="sm" variant="outline" onClick={onRetry}>
 								Try Again
@@ -238,6 +238,7 @@ function describeFailure(state: ScrapeUiState): string {
 		'not-authorized': 'You are not signed in.',
 		timeout: 'The scrape timed out.',
 		'no-providers-available': 'No scrapers are configured for this deployment.',
+		'dead-link': 'This link is no longer valid.',
 		'stream-closed': 'The connection closed unexpectedly.',
 	}
 	return state.reason ? (map[state.reason] ?? `Scrape failed (${state.reason}).`) : 'Scrape failed.'
