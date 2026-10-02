@@ -10,10 +10,12 @@ const sseLog = createLogger('sse:any-list')
 // ===============================
 // SSE endpoint - any list changed
 // ===============================
-// Fires whenever notifyListChange is called for any listId. The home page
-// ("lists for everyone else") subscribes here so the unclaimed/total badges
-// stay live when anyone claims or unclaims anywhere, without needing one
-// EventSource per visible list.
+// Fires whenever notifyListEvent is called for any listId the viewer can
+// see or edit. The home page ("lists for everyone else") subscribes here so
+// the unclaimed/total badges stay live when anyone claims or unclaims
+// anywhere, without needing one EventSource per visible list. Each event is
+// checked against the viewer at send time, and the list's recipient never
+// gets `claim` or `addon` events (see src/lib/list-event-audience.ts).
 
 export const Route = createFileRoute('/api/sse/lists')({
 	server: {
@@ -26,7 +28,7 @@ export const Route = createFileRoute('/api/sse/lists')({
 
 				const { readable, writable } = new TransformStream<Uint8Array>()
 				const writer = writable.getWriter()
-				registerAnyListWriter(writer)
+				registerAnyListWriter(writer, session.user.id)
 
 				sseLog.debug({ userId: session.user.id }, 'sse any-list client connected')
 

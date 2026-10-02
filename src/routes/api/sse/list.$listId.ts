@@ -4,8 +4,16 @@ import { eq } from 'drizzle-orm'
 import { db } from '@/db'
 import { lists } from '@/db/schema'
 import { auth } from '@/lib/auth'
+import {
+	createListAudienceResolver,
+	type ListAudienceDecision,
+	type ListEvent,
+	resolveListAudience,
+	shouldDeliverListEvent,
+} from '@/lib/list-event-audience'
 import { createLogger } from '@/lib/logger'
-import { canViewListAsAnyone } from '@/lib/permissions'
+
+export type { ListEvent } from '@/lib/list-event-audience'
 
 const sseLog = createLogger('sse:list')
 
@@ -15,30 +23,27 @@ const sseLog = createLogger('sse:list')
 // Lightweight SSE: clients connect, we keep a set of connected
 // writers keyed by listId. When a mutation happens (claim, comment,
 // item change), the server function calls `notifyListEvent(event)`
-// which writes to all connected streams for that list.
+// which writes to every connected stream allowed to see it.
 //
 // This is NOT a DB-level change listener (no Supabase Realtime).
 // It's a simple "push invalidation" from our own server functions.
+//
+// Delivery is filtered per subscriber (see src/lib/list-event-audience.ts):
+// a subscriber must be able to view or edit the list, and the list's
+// recipient never receives `claim` or `addon` events.
 
 type Writer = WritableStreamDefaultWriter<Uint8Array>
 
-// Typed event taxonomy. Clients switch on `kind` and invalidate only the
-// affected query. Payload carries no row data, only ids — restricted-viewer
-// filtering still applies on the resulting refetch.
-export type ListEvent =
-	| { kind: 'claim'; listId: number }
-	| { kind: 'item'; listId: number; itemId: number; shape?: 'added' | 'removed' }
-	| { kind: 'comment'; listId: number; itemId: number; shape?: 'added' | 'removed' }
-	| { kind: 'addon'; listId: number; addonId: number; shape?: 'added' | 'removed' }
-	| { kind: 'list'; listId: number; shape?: 'added' | 'removed' | 'archived' }
-
 // Per-list subscribers - used by viewers of a specific list-detail page.
-const listWriters = new Map<number, Set<Writer>>()
+// The audience decision is taken once, at subscribe time.
+const listWriters = new Map<number, Map<Writer, ListAudienceDecision>>()
 // Any-list subscribers - used by the home page, where a change to ANY list
 // affects the "unclaimed / total" badges and needs to invalidate the grouped
 // public-lists query. One stream is cheaper than N per-list streams when a
-// page renders many users' lists.
-const anyListWriters = new Set<Writer>()
+// page renders many users' lists. Keyed to the viewer so each event can be
+// checked against the list it is about.
+const anyListWriters = new Map<Writer, { viewerId: string }>()
+const anyListAudience = createListAudienceResolver()
 
 function writeAll(writers: Iterable<Writer>, message: Uint8Array, onFailed: (w: Writer) => void) {
 	for (const writer of writers) {
@@ -60,12 +65,34 @@ export function notifyListEvent(event: ListEvent) {
 
 	sseLog.debug({ kind: event.kind, listId, perListSubs: perList?.size ?? 0, anyListSubs: anyListWriters.size }, 'broadcasting list event')
 
-	if (perList) writeAll(perList, message, w => perList.delete(w))
-	writeAll(anyListWriters, message, w => anyListWriters.delete(w))
+	if (perList) {
+		const allowed = [...perList].filter(([, decision]) => shouldDeliverListEvent(event, decision)).map(([w]) => w)
+		writeAll(allowed, message, w => perList.delete(w))
+	}
+	if (anyListWriters.size > 0) {
+		void deliverToAnyList(event, message).catch(err => sseLog.warn({ err, listId }, 'any-list delivery failed'))
+	}
 }
 
-export function registerAnyListWriter(writer: Writer) {
-	anyListWriters.add(writer)
+// Async because each subscriber is checked against the list; callers fire
+// and forget, so a slow permission lookup never holds up a mutation.
+async function deliverToAnyList(event: ListEvent, message: Uint8Array) {
+	const byViewer = new Map<string, Array<Writer>>()
+	for (const [writer, { viewerId }] of anyListWriters) {
+		const group = byViewer.get(viewerId)
+		if (group) group.push(writer)
+		else byViewer.set(viewerId, [writer])
+	}
+	const decisions = await anyListAudience.resolveMany(byViewer.keys(), event.listId)
+	for (const [viewerId, writers] of byViewer) {
+		const decision = decisions.get(viewerId)
+		if (!decision || !shouldDeliverListEvent(event, decision)) continue
+		writeAll(writers, message, w => anyListWriters.delete(w))
+	}
+}
+
+export function registerAnyListWriter(writer: Writer, viewerId: string) {
+	anyListWriters.set(writer, { viewerId })
 }
 
 export function unregisterAnyListWriter(writer: Writer) {
@@ -89,9 +116,9 @@ export const Route = createFileRoute('/api/sse/list/$listId')({
 				// Authorization, not just authentication: events carry only ids
 				// and kinds, but a subscription on someone else's private list
 				// would still leak activity timing (including claim activity on
-				// a spoiler-protected surface). Same predicate as the list-view
-				// read path; 404 for both missing and not-visible so ids can't
-				// be probed. See sec-review S3.
+				// a spoiler-protected surface). Same predicates as the list's
+				// read paths (gifter view or edit view); 404 for both missing and
+				// not-visible so ids can't be probed. See sec-review S3.
 				const list = await db.query.lists.findFirst({
 					where: eq(lists.id, listId),
 					columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
@@ -99,8 +126,8 @@ export const Route = createFileRoute('/api/sse/list/$listId')({
 				if (!list) {
 					return new Response('Not found', { status: 404 })
 				}
-				const view = await canViewListAsAnyone(session.user.id, list)
-				if (!view.ok) {
+				const decision = await resolveListAudience(session.user.id, list)
+				if (!decision.canSubscribe) {
 					return new Response('Not found', { status: 404 })
 				}
 
@@ -109,9 +136,9 @@ export const Route = createFileRoute('/api/sse/list/$listId')({
 
 				// Register this writer.
 				if (!listWriters.has(listId)) {
-					listWriters.set(listId, new Set())
+					listWriters.set(listId, new Map())
 				}
-				listWriters.get(listId)!.add(writer)
+				listWriters.get(listId)!.set(writer, decision)
 
 				sseLog.debug({ listId, userId: session.user.id }, 'sse client connected')
 
