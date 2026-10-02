@@ -84,7 +84,7 @@ export const AI_FEATURE_REGISTRY: ReadonlyArray<AiFeatureInfo> = [
 		id: 'gift-suggestions',
 		label: 'Gift Suggestions',
 		description:
-			'Adds a Help Me Choose panel to other people’s lists: Pick for Me ranks what is still open (no AI), and Need Ideas? suggests new gift ideas based on that person’s lists. The AI runs only when a user asks, and never for a child account. Off hides the whole panel.',
+			'Adds a Need Ideas? button to other people’s lists. It asks for a budget, then shows the best of what is still open on the list (no AI) and new gift ideas based on that person’s lists (AI). The AI runs only when a user asks, and never for a child account. Off removes the button.',
 		settingKey: 'aiGiftSuggestionsEnabled',
 		sent: [
 			'The first name of the person the gift is for',
