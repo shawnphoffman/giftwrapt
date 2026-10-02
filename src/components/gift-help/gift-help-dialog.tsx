@@ -354,7 +354,7 @@ export function GiftHelpButton({
 			<Button
 				variant="outline"
 				size="xs"
-				className="h-7 border-fuchsia-500/30 bg-linear-to-r from-amber-500/10 via-pink-500/10 to-fuchsia-500/10 text-xs text-fuchsia-700 hover:from-amber-500/20 hover:via-pink-500/20 hover:to-fuchsia-500/20 hover:text-fuchsia-700 dark:text-fuchsia-300 dark:hover:text-fuchsia-200"
+				className="h-7 border-transparent bg-linear-to-r from-amber-500/15 via-pink-500/15 to-fuchsia-500/15 text-xs text-fuchsia-700 shadow-none hover:from-amber-500/25 hover:via-pink-500/25 hover:to-fuchsia-500/25 hover:text-fuchsia-700 dark:from-amber-500/20 dark:via-pink-500/20 dark:to-fuchsia-500/20 dark:text-fuchsia-300 dark:hover:text-fuchsia-200"
 				onClick={() => setOpen(true)}
 			>
 				Need ideas?
