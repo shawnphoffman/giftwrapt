@@ -405,13 +405,16 @@ export function buildScraperLookups(scrapeProviders: ReadonlyArray<ScrapeProvide
 
 	const currentScraperIds = new Set<string>([FETCH_PROVIDER_ID, ...namesById.keys()])
 
+	// Admin-assigned name per provider id; the always-on fetch provider is
+	// "Built-in". Ids no longer configured fall back to the raw id.
+	const nameFor = (id: string): string => (id === FETCH_PROVIDER_ID ? 'Built-in' : (namesById.get(id) ?? id))
+
 	const labelFor = (rawId: string): string => {
 		if (rawId.startsWith('merged:')) {
 			const ids = rawId.slice('merged:'.length).split(',').filter(Boolean)
-			return `${ids.map(id => namesById.get(id) ?? id).join(' + ')} (merged)`
+			return `${ids.map(nameFor).join(' + ')} (merged)`
 		}
-		if (rawId === FETCH_PROVIDER_ID) return 'Built-in'
-		return namesById.get(rawId) ?? rawId
+		return nameFor(rawId)
 	}
 
 	const tierFor = (rawId: string): number | null => {

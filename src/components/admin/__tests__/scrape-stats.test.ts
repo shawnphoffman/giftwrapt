@@ -129,4 +129,9 @@ describe('buildScraperLookups', () => {
 		expect(tierFor('merged:browserless:bl-1,scrapfly:sf-1')).toBe(1)
 		expect(labelFor('merged:browserless:bl-1,scrapfly:sf-1')).toBe('Browserless Primary + ScrapFly (merged)')
 	})
+
+	it('labels the built-in fetch-provider inside a merged id too', () => {
+		const { labelFor } = buildScraperLookups(entries)
+		expect(labelFor('merged:scrapfly:sf-1,fetch-provider')).toBe('ScrapFly + Built-in (merged)')
+	})
 })

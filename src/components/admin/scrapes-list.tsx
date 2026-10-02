@@ -10,6 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useAdminAppSettings } from '@/hooks/use-app-settings'
 import { cn } from '@/lib/utils'
 
+import { buildScraperLookups } from './scrape-stats'
+
 // The Scrape History card on /admin/scraping lives here. Loads the most recent N attempt rows from
 // itemScrapes joined to items / lists / users; clicking the eye icon on a
 // row opens a dialog with the full detail (raw response jsonb + every
@@ -29,28 +31,11 @@ export function ScrapesList() {
 	const settingsQuery = useAdminAppSettings()
 	const [openId, setOpenId] = useState<number | null>(null)
 
-	// Map every configured provider entry's runtime id (`${type}:${id}`) to
-	// its admin-assigned name so the table renders friendly labels instead
-	// of opaque ids. Legacy rows persisted under the old singleton ids
-	// (e.g. `browserless-provider`) won't have a match and fall back to
-	// rendering the raw id, which is fine.
-	//
-	// Multi-provider merged winners come back as `merged:a,b,c` from the
-	// orchestrator. We resolve each segment to its name and join them so
-	// the column reads "Browserless + My Amazon scraper (merged)".
-	const customNamesById = new Map<string, string>()
-	for (const entry of settingsQuery.data?.scrapeProviders ?? []) {
-		customNamesById.set(`${entry.type}:${entry.id}`, entry.name)
-	}
-
-	const labelForScraperId = (rawId: string): string => {
-		if (rawId.startsWith('merged:')) {
-			const ids = rawId.slice('merged:'.length).split(',').filter(Boolean)
-			const names = ids.map(id => customNamesById.get(id) ?? id)
-			return `${names.join(' + ')} (merged)`
-		}
-		return customNamesById.get(rawId) ?? rawId
-	}
+	// Same provider labels as the Scrape Health card: admin-assigned names,
+	// "Built-in" for the always-on fetch provider, and merged results
+	// (`merged:a,b,c`) as "Built-in + My Amazon scraper (merged)". Ids no
+	// longer configured render raw.
+	const { labelFor: labelForScraperId } = buildScraperLookups(settingsQuery.data?.scrapeProviders ?? [])
 
 	if (scrapesQuery.isLoading) {
 		return <div className="text-sm text-muted-foreground">Loading scrapes…</div>
