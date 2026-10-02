@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildGiftSuggestionsUserPrompt, MAX_PROMPT_ITEMS, sanitizeSuggestions, searchUrlFor } from '../prompt'
+import { buildGiftSuggestionsUserPrompt, MAX_PROMPT_ITEMS, sanitizeSuggestions } from '../prompt'
 
 describe('buildGiftSuggestionsUserPrompt', () => {
 	it('marks each item open or claimed and says nothing else about claims', () => {
@@ -47,14 +47,32 @@ describe('buildGiftSuggestionsUserPrompt', () => {
 })
 
 describe('sanitizeSuggestions', () => {
-	const s = (title: string, reason = 'Because of their list.') => ({ title, reason, priceBand: 'unknown' as const })
+	const s = (title: string, reason = 'Because of their list.', details = 'Look for a sturdy one.') => ({
+		title,
+		details,
+		reason,
+		priceBand: 'unknown' as const,
+	})
 
-	it('strips links the model made up', () => {
+	it('strips links the model made up, from every field', () => {
 		const out = sanitizeSuggestions(
-			[s('Pour Over Kettle https://shop.example.com/kettle', 'See www.example.com/deal for more, they like coffee.')],
+			[
+				s(
+					'Pour Over Kettle https://shop.example.com/kettle',
+					'See www.example.com/deal for more, they like coffee.',
+					'A gooseneck spout gives control. Buy at kettles.com today.'
+				),
+			],
 			[]
 		)
-		expect(out).toEqual([{ title: 'Pour Over Kettle', reason: 'See for more, they like coffee.', priceBand: 'unknown' }])
+		expect(out).toEqual([
+			{
+				title: 'Pour Over Kettle',
+				details: 'A gooseneck spout gives control. Buy at today.',
+				reason: 'See for more, they like coffee.',
+				priceBand: 'unknown',
+			},
+		])
 	})
 
 	it('drops anything already on the lists, already an idea, or already given', () => {
@@ -72,11 +90,5 @@ describe('sanitizeSuggestions', () => {
 		)
 		expect(out).toHaveLength(8)
 		expect(out.filter(o => /hiking socks/iu.test(o.title))).toHaveLength(1)
-	})
-})
-
-describe('searchUrlFor', () => {
-	it('builds a web search for the title', () => {
-		expect(searchUrlFor('Pour Over Kettle & Stand')).toBe('https://www.google.com/search?q=Pour%20Over%20Kettle%20%26%20Stand')
 	})
 })

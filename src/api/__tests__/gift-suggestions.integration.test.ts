@@ -35,7 +35,10 @@ import { _resetAiBudgetCacheForTesting } from '@/lib/ai-call'
 
 type Captured = { prompt: string }
 
-function mockModel(suggestions: Array<{ title: string; reason: string; priceBand: string }>, captured: Captured): MockLanguageModelV3 {
+function mockModel(
+	suggestions: Array<{ title: string; details: string; reason: string; priceBand: string }>,
+	captured: Captured
+): MockLanguageModelV3 {
 	return new MockLanguageModelV3({
 		modelId: 'claude-haiku-4-5',
 		doGenerate: async args => {
@@ -61,9 +64,19 @@ const createdUserIds: Array<string> = []
 const now = new Date('2026-10-02T12:00:00Z')
 
 const SUGGESTIONS = [
-	{ title: 'Wool Hiking Socks', reason: 'They asked for a scarf and gloves.', priceBand: 'under-25' },
-	{ title: 'Merino Scarf', reason: 'A copy of what is on the list.', priceBand: '25-50' },
-	{ title: 'Trail Guide Book https://books.example.com/x', reason: 'They like the outdoors.', priceBand: 'under-25' },
+	{
+		title: 'Wool Hiking Socks',
+		details: 'Look for a merino blend with a cushioned sole. See socks.example.com for one.',
+		reason: 'They asked for a scarf and gloves.',
+		priceBand: 'under-25',
+	},
+	{ title: 'Merino Scarf', details: 'A copy.', reason: 'A copy of what is on the list.', priceBand: '25-50' },
+	{
+		title: 'Trail Guide Book https://books.example.com/x',
+		details: 'A regional guide small enough for a jacket pocket.',
+		reason: 'They like the outdoors.',
+		priceBand: 'under-25',
+	},
 ]
 
 describe('gift suggestions', () => {
@@ -120,11 +133,15 @@ describe('gift suggestions', () => {
 			expect(captured.prompt, secret).not.toContain(secret)
 		}
 
-		// What the user gets: the copy of a list item is dropped, the invented
-		// link is stripped, and each idea has a search link we built.
+		// What the user gets: the copy of a list item is dropped and the
+		// invented links are stripped.
 		expect(result.recipientName).toBe('Sam')
 		expect(result.suggestions.map(s => s.title)).toEqual(['Wool Hiking Socks', 'Trail Guide Book'])
-		expect(result.suggestions[1].searchUrl).toBe('https://www.google.com/search?q=Trail%20Guide%20Book')
+		// Each idea carries enough detail to research on its own, and no link
+		// of any kind: the app points at no store and no search provider.
+		expect(result.suggestions[0].details).toBe('Look for a merino blend with a cushioned sole. See for one.')
+		expect(JSON.stringify(result.suggestions)).not.toMatch(/https?:|www\.|\.com/u)
+		expect(Object.keys(result.suggestions[0]).sort()).toEqual(['details', 'priceBand', 'reason', 'title'])
 
 		// One ledger row, labelled, for the asking user.
 		const rows = await db.select().from(aiUsage).where(eq(aiUsage.feature, 'gift-suggestions'))
@@ -151,6 +168,12 @@ describe('gift suggestions', () => {
 
 		await setSetting('aiGiftSuggestionsEnabled', false)
 		expect(await getGiftSuggestionsImpl({ actor: { id: me.id, isChild: false }, input, now })).toEqual({
+			kind: 'error',
+			reason: 'feature-disabled',
+		})
+
+		// Saving is behind the same flag: off means no part of the feature is reachable.
+		expect(await saveGiftSuggestionImpl({ actor: { id: me.id, isChild: false }, input: { listId: list.id, title: 'X' } })).toEqual({
 			kind: 'error',
 			reason: 'feature-disabled',
 		})

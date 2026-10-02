@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { Check, ExternalLink, Lightbulb, Sparkles, Wand2 } from 'lucide-react'
+import { Check, Lightbulb, Sparkles, Wand2 } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -187,20 +187,15 @@ export function GiftHelpPanelView({
 								const band = PRICE_BAND_LABEL[s.priceBand]
 								return (
 									<li key={s.title} className="flex flex-wrap items-start gap-x-3 gap-y-2 rounded-md border px-3 py-2">
-										<div className="min-w-40 flex-1">
+										<div className="w-full sm:w-auto sm:min-w-40 sm:flex-1">
 											<div className="font-medium">
 												{s.title}
 												{band && <span className="text-sm font-normal text-muted-foreground"> · {band}</span>}
 											</div>
+											<p className="text-sm">{s.details}</p>
 											<p className="text-sm text-muted-foreground">{s.reason}</p>
 										</div>
 										<div className="ml-auto flex items-center gap-2">
-											<Button asChild variant="ghost" size="sm">
-												<a href={s.searchUrl} target="_blank" rel="noreferrer noopener">
-													<ExternalLink className="size-4" />
-													Search
-												</a>
-											</Button>
 											<Button
 												type="button"
 												variant="outline"
@@ -218,8 +213,9 @@ export function GiftHelpPanelView({
 						</ul>
 					)}
 					<p className="text-xs text-muted-foreground">
-						These come from an AI model, so check them before you buy. It was shown what is on {recipientName}’s lists and whether each
-						thing is already claimed, never who claimed it. A saved idea goes to your private gift ideas, which {recipientName} cannot see.
+						These come from an AI model and are ideas to research, not product recommendations: it does not know what is in stock or what
+						things cost today. It was shown what is on {recipientName}’s lists and whether each thing is already claimed, never who claimed
+						it. A saved idea goes to your private gift ideas, which {recipientName} cannot see.
 					</p>
 				</div>
 			)}
@@ -269,7 +265,10 @@ export function GiftHelpOnList({
 	})
 
 	const save = useMutation({
-		mutationFn: (s: SuggestedGift) => saveGiftSuggestion({ data: { listId, title: s.title, notes: s.reason } }),
+		// The saved idea keeps what to look for and why, so it still makes
+		// sense weeks later on the gift-ideas list.
+		mutationFn: (s: SuggestedGift) =>
+			saveGiftSuggestion({ data: { listId, title: s.title, notes: [s.details, s.reason].filter(Boolean).join('\n\n') } }),
 		onSuccess: (result, s) => {
 			if (result.kind !== 'ok') {
 				toast.error('Could not save that idea')

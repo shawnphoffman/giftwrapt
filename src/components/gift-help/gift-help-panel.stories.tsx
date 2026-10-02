@@ -23,21 +23,24 @@ const pickItem = (id: number, title: string, price: string | null, priority: Pic
 const suggestions = [
 	{
 		title: 'Wool Hiking Socks',
+		details:
+			'Look for a merino blend with a cushioned sole and a mid-calf height, which suits both boots and everyday shoes. A two or three pair set in muted colours is easy to get right; check the size range against their shoe size.',
 		reason: 'The list has a scarf and gloves, so warm outdoor layers look welcome.',
 		priceBand: 'under-25' as const,
-		searchUrl: 'https://www.google.com/search?q=Wool%20Hiking%20Socks',
 	},
 	{
 		title: 'Insulated Travel Mug',
+		details:
+			'A double-wall stainless steel mug around 12 to 16 ounces that fits a car cup holder. A leak-proof lid that comes apart for cleaning matters more than the brand.',
 		reason: 'Several items are for walks and day trips.',
 		priceBand: '25-50' as const,
-		searchUrl: 'https://www.google.com/search?q=Insulated%20Travel%20Mug',
 	},
 	{
 		title: 'Pocket Field Guide to Local Birds',
+		details:
+			'Pick a guide for their own region, small enough for a jacket pocket, with illustrations or photos grouped by habitat. A laminated fold-out version is a lighter alternative for walks.',
 		reason: 'They asked for a trail map and binoculars.',
 		priceBand: 'unknown' as const,
-		searchUrl: 'https://www.google.com/search?q=Pocket%20Field%20Guide',
 	},
 ]
 

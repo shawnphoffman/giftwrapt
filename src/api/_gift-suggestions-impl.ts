@@ -26,7 +26,6 @@ import {
 	type GiftSuggestion,
 	giftSuggestionsResponseSchema,
 	sanitizeSuggestions,
-	searchUrlFor,
 } from '@/lib/gift-suggestions/prompt'
 import { createLogger } from '@/lib/logger'
 import { getAppSettings } from '@/lib/settings-loader'
@@ -39,7 +38,7 @@ export const GiftSuggestionsInputSchema = z.object({
 	occasion: z.string().trim().max(80).optional(),
 })
 
-export type SuggestedGift = GiftSuggestion & { searchUrl: string }
+export type SuggestedGift = GiftSuggestion
 
 export type GiftSuggestionsResult =
 	| { kind: 'ok'; recipientName: string; suggestions: Array<SuggestedGift> }
@@ -164,19 +163,19 @@ export async function getGiftSuggestionsImpl(args: {
 	}
 
 	const known = [...allItems.map(i => i.title), ...myIdeas, ...myPastGifts]
-	const suggestions = sanitizeSuggestions(raw, known).map(s => ({ ...s, searchUrl: searchUrlFor(s.title) }))
+	const suggestions = sanitizeSuggestions(raw, known)
 	return { kind: 'ok', recipientName: firstName(c.person.name), suggestions }
 }
 
 export const SaveGiftSuggestionInputSchema = z.object({
 	listId: z.number().int().positive(),
 	title: z.string().trim().min(1).max(200),
-	notes: z.string().trim().max(500).optional(),
+	notes: z.string().trim().max(1000).optional(),
 })
 
 export type SaveGiftSuggestionResult =
 	| { kind: 'ok'; ideasListId: number; itemId: number; createdList: boolean }
-	| { kind: 'error'; reason: 'not-found' | 'is-owner' | 'child-not-allowed' | 'not-allowed' }
+	| { kind: 'error'; reason: 'feature-disabled' | 'not-found' | 'is-owner' | 'child-not-allowed' | 'not-allowed' }
 
 /**
  * Save a suggestion as one of the viewer's private gift ideas for the
@@ -190,6 +189,10 @@ export async function saveGiftSuggestionImpl(args: {
 	dbx?: SchemaDatabase
 }): Promise<SaveGiftSuggestionResult> {
 	const { actor, input, dbx = db } = args
+	// The whole feature sits behind the one admin flag, saving included, so
+	// turning it off leaves no part of it reachable.
+	const settings = await getAppSettings(dbx)
+	if (!settings.aiGiftSuggestionsEnabled) return { kind: 'error', reason: 'feature-disabled' }
 	if (actor.isChild) return { kind: 'error', reason: 'child-not-allowed' }
 
 	const view = await getWishlistViewImpl({ userId: actor.id, listId: input.listId, dbx })
