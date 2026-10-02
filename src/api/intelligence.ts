@@ -19,7 +19,7 @@ import { listTypeEnumValues } from '@/db/schema/enums'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { isCrossTypeMoveDestructive } from '@/lib/list-type-moves'
 import { loggingMiddleware } from '@/lib/logger'
-import { canEditList } from '@/lib/permissions'
+import { canEditListAsAnyone } from '@/lib/permissions'
 import { intelligenceRefreshLimiter } from '@/lib/rate-limits'
 import { isListTypeDisabled } from '@/lib/settings'
 // `getAppSettings` is imported lazily inside every call site below so the
@@ -280,13 +280,8 @@ async function applyCreateGroup(
 	})
 	if (!list) return { ok: false, reason: 'list-not-found' }
 
-	// Owner short-circuit mirrors `assertCanEditItems` in src/api/_items-impl.ts;
-	// canEditList itself doesn't grant the owner because it's only ever called
-	// behind an owner-fast-path elsewhere in the codebase.
-	if (list.ownerId !== userId) {
-		const editGate = await canEditList(userId, list, tx)
-		if (!editGate.ok) return { ok: false, reason: 'cannot-edit' }
-	}
+	const editGate = await canEditListAsAnyone(userId, list, tx)
+	if (!editGate.ok) return { ok: false, reason: 'cannot-edit' }
 
 	const itemRows = await tx
 		.select({
@@ -343,10 +338,8 @@ async function applyAddToGroup(
 		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { ok: false, reason: 'list-not-found' }
-	if (list.ownerId !== userId) {
-		const editGate = await canEditList(userId, list, tx)
-		if (!editGate.ok) return { ok: false, reason: 'cannot-edit' }
-	}
+	const editGate = await canEditListAsAnyone(userId, list, tx)
+	if (!editGate.ok) return { ok: false, reason: 'cannot-edit' }
 
 	const group = await tx.query.itemGroups.findFirst({
 		where: and(eq(itemGroups.id, groupIdNum), eq(itemGroups.listId, listIdNum)),
@@ -409,10 +402,8 @@ async function applyDeleteItems(
 	})
 	if (!list) return { ok: false, reason: 'list-not-found' }
 
-	if (list.ownerId !== userId) {
-		const editGate = await canEditList(userId, list, tx)
-		if (!editGate.ok) return { ok: false, reason: 'cannot-edit' }
-	}
+	const editGate = await canEditListAsAnyone(userId, list, tx)
+	if (!editGate.ok) return { ok: false, reason: 'cannot-edit' }
 
 	const itemRows = await tx.select({ id: items.id, listId: items.listId }).from(items).where(inArray(items.id, itemIdNums))
 	if (itemRows.length !== itemIdNums.length) return { ok: false, reason: 'items-changed' }
@@ -555,10 +546,8 @@ async function applyConvertList(
 	})
 	if (!list) return { ok: false, reason: 'list-not-found' }
 	if (!list.isActive) return { ok: false, reason: 'list-not-found' }
-	if (list.ownerId !== userId) {
-		const editGate = await canEditList(userId, list, tx)
-		if (!editGate.ok) return { ok: false, reason: 'cannot-edit' }
-	}
+	const editGate = await canEditListAsAnyone(userId, list, tx)
+	if (!editGate.ok) return { ok: false, reason: 'cannot-edit' }
 
 	// No-op convert: rec is stale but harmless. Mark applied so the user
 	// doesn't see it again.
@@ -629,10 +618,8 @@ async function applyChangeListPrivacy(
 	})
 	if (!list) return { ok: false, reason: 'list-not-found' }
 	if (!list.isActive) return { ok: false, reason: 'list-not-found' }
-	if (list.ownerId !== userId) {
-		const editGate = await canEditList(userId, list, tx)
-		if (!editGate.ok) return { ok: false, reason: 'cannot-edit' }
-	}
+	const editGate = await canEditListAsAnyone(userId, list, tx)
+	if (!editGate.ok) return { ok: false, reason: 'cannot-edit' }
 
 	// giftideas is force-private; can't flip public via this path.
 	if (list.type === 'giftideas') return { ok: false, reason: 'invalid-list-type' }
@@ -764,10 +751,8 @@ async function applyMergeLists(
 	const survivor = clusterRows.find(l => l.id === survivorIdNum)
 	if (!survivor) return { ok: false, reason: 'list-not-found' }
 	if (!survivor.isActive) return { ok: false, reason: 'list-not-found' }
-	if (survivor.ownerId !== userId) {
-		const editGate = await canEditList(userId, survivor, tx)
-		if (!editGate.ok) return { ok: false, reason: 'cannot-edit' }
-	}
+	const editGate = await canEditListAsAnyone(userId, survivor, tx)
+	if (!editGate.ok) return { ok: false, reason: 'cannot-edit' }
 
 	const sources = clusterRows.filter(l => l.id !== survivorIdNum)
 	for (const src of sources) {
@@ -783,10 +768,8 @@ async function applyMergeLists(
 		if (survivor.type === 'holiday' && src.customHolidayId !== survivor.customHolidayId) {
 			return { ok: false, reason: 'merge-cluster-mismatch' }
 		}
-		if (src.ownerId !== userId) {
-			const editGate = await canEditList(userId, src, tx)
-			if (!editGate.ok) return { ok: false, reason: 'cannot-edit' }
-		}
+		const srcEditGate = await canEditListAsAnyone(userId, src, tx)
+		if (!srcEditGate.ok) return { ok: false, reason: 'cannot-edit' }
 		// Defense-in-depth assertion: the rec only ever proposes same-type or
 		// matching-customHolidayId merges, so this MUST be false. If it ever
 		// returns true the rec generator drifted and we abort rather than
@@ -871,10 +854,8 @@ async function applyArchiveList(
 		await tx.update(recommendations).set({ status: 'applied' }).where(eq(recommendations.id, recId))
 		return { ok: true, kind: 'archive-list', listId: String(listIdNum) }
 	}
-	if (list.ownerId !== userId) {
-		const editGate = await canEditList(userId, list, tx)
-		if (!editGate.ok) return { ok: false, reason: 'cannot-edit' }
-	}
+	const editGate = await canEditListAsAnyone(userId, list, tx)
+	if (!editGate.ok) return { ok: false, reason: 'cannot-edit' }
 
 	await tx.update(lists).set({ isActive: false }).where(eq(lists.id, listIdNum))
 	await tx.update(recommendations).set({ status: 'applied' }).where(eq(recommendations.id, recId))

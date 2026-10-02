@@ -18,7 +18,7 @@ import type { SchemaDatabase } from '@/db'
 import { lists, todoItems, users } from '@/db/schema'
 import { priorityEnumValues } from '@/db/schema/enums'
 import type { TodoItem } from '@/db/schema/todo-items'
-import { canEditList, canViewListAsAnyone } from '@/lib/permissions'
+import { canEditList, canEditListAsAnyone, canViewListAsAnyone } from '@/lib/permissions'
 
 type ListForPermCheck = {
 	id: number
@@ -77,10 +77,8 @@ export async function createTodoImpl(args: {
 	const list = await loadListForPerm(dbx, input.listId)
 	if (!list) return { kind: 'error', reason: 'list-not-found' }
 	if (list.type !== 'todos') return { kind: 'error', reason: 'not-a-todo-list' }
-	if (list.ownerId !== actor.id) {
-		const perm = await canEditList(actor.id, list, dbx)
-		if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
-	}
+	const perm = await canEditListAsAnyone(actor.id, list, dbx)
+	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	const [inserted] = await dbx
 		.insert(todoItems)
@@ -115,10 +113,8 @@ export async function updateTodoImpl(args: {
 	if (!todo) return { kind: 'error', reason: 'not-found' }
 	const list = await loadListForPerm(dbx, todo.listId)
 	if (!list) return { kind: 'error', reason: 'not-found' }
-	if (list.ownerId !== actor.id) {
-		const perm = await canEditList(actor.id, list, dbx)
-		if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
-	}
+	const perm = await canEditListAsAnyone(actor.id, list, dbx)
+	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	const update: Partial<typeof todoItems.$inferInsert> = {}
 	if (input.title !== undefined) update.title = input.title
@@ -146,10 +142,8 @@ export async function deleteTodoImpl(args: {
 	if (!todo) return { kind: 'error', reason: 'not-found' }
 	const list = await loadListForPerm(dbx, todo.listId)
 	if (!list) return { kind: 'error', reason: 'not-found' }
-	if (list.ownerId !== actor.id) {
-		const perm = await canEditList(actor.id, list, dbx)
-		if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
-	}
+	const perm = await canEditListAsAnyone(actor.id, list, dbx)
+	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 	await dbx.delete(todoItems).where(eq(todoItems.id, input.todoId))
 	return { kind: 'ok' }
 }

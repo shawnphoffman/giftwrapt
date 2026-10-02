@@ -33,7 +33,7 @@ import { visibleItemsWhere } from '@/lib/item-visibility'
 import { notifyListEvent } from '@/lib/list-event-bus'
 import { listsCreatedTotal } from '@/lib/observability/metrics'
 import { userHasPendingDeletionClaimOnList } from '@/lib/orphan-claims'
-import { canEditList, canViewList, getViewerAccessLevelForList } from '@/lib/permissions'
+import { canEditListAsAnyone, canViewList, getViewerAccessLevelForList } from '@/lib/permissions'
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
 import { isListTypeDisabled } from '@/lib/settings'
 import { getAppSettings } from '@/lib/settings-loader'
@@ -440,7 +440,7 @@ export async function getListForViewingImpl(args: {
 	// received-gifts surface after reveal, not through this view.
 	const addons = rawAddons.map(addon => (addon.userId === args.userId ? addon : { ...addon, totalCost: null }))
 
-	const canEdit = list.ownerId === args.userId ? true : (await canEditList(args.userId, list, dbx)).ok
+	const canEdit = (await canEditListAsAnyone(args.userId, list, dbx)).ok
 
 	const archiveInfo = await loadArchiveBannerInfo(list.id, dbx)
 
@@ -545,7 +545,7 @@ export async function getListHeaderImpl(args: { userId: string; listId: string; 
 		columns: { id: true, type: true, name: true, priority: true, sortOrder: true },
 	})
 
-	const canEdit = list.ownerId === args.userId ? true : (await canEditList(args.userId, list, dbx)).ok
+	const canEdit = (await canEditListAsAnyone(args.userId, list, dbx)).ok
 
 	const archiveInfo = await loadArchiveBannerInfo(list.id, dbx)
 
@@ -1432,10 +1432,8 @@ export async function updateListImpl(args: {
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 	const isOwner = list.ownerId === actor.id
-	if (!isOwner) {
-		const edit = await canEditList(actor.id, list)
-		if (!edit.ok) return { kind: 'error', reason: 'not-authorized' }
-	}
+	const edit = await canEditListAsAnyone(actor.id, list)
+	if (!edit.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	if (data.type === 'giftideas' && actor.isChild) {
 		return { kind: 'error', reason: 'child-cannot-create-gift-ideas' }
@@ -1635,10 +1633,8 @@ export async function getListForEditingImpl(args: {
 
 	const isOwner = list.ownerId === args.userId
 
-	if (!isOwner) {
-		const edit = await canEditList(args.userId, list, dbx)
-		if (!edit.ok) return { kind: 'error', reason: 'not-authorized' }
-	}
+	const edit = await canEditListAsAnyone(args.userId, list, dbx)
+	if (!edit.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	const groups = await dbx.query.itemGroups.findMany({
 		where: eq(itemGroups.listId, list.id),

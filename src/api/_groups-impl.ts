@@ -13,7 +13,7 @@ import { type GroupType, groupTypeEnumValues, type ListType, type Priority, prio
 import type { ItemGroup } from '@/db/schema/items'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { notifyListEvent } from '@/lib/list-event-bus'
-import { canEditList } from '@/lib/permissions'
+import { canEditListAsAnyone } from '@/lib/permissions'
 
 // ===============================
 // Public types
@@ -96,10 +96,8 @@ async function loadListForEdit(
 		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { ok: false, reason: 'not-found' }
-	if (list.ownerId !== userId) {
-		const edit = await canEditList(userId, list)
-		if (!edit.ok) return { ok: false, reason: 'not-authorized' }
-	}
+	const edit = await canEditListAsAnyone(userId, list)
+	if (!edit.ok) return { ok: false, reason: 'not-authorized' }
 	return { ok: true, list }
 }
 

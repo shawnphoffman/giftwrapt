@@ -15,7 +15,7 @@ import type { Priority } from '@/db/schema/enums'
 import type { ListAddon } from '@/db/schema/lists'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { notifyListEvent } from '@/lib/list-event-bus'
-import { canEditList, canViewList } from '@/lib/permissions'
+import { canEditListAsAnyone, canViewList } from '@/lib/permissions'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 
 import type { ItemWithGifts } from './_items-extra-impl'
@@ -61,11 +61,10 @@ type ListRow = {
 // Helpers
 // ===============================
 
-// Owner, or anyone `canEditList` admits (which has no owner short-circuit of
-// its own). One predicate gates both seeing and copying ideas.
+// Owner, or anyone `canEditList` admits. One predicate gates both seeing and
+// copying ideas.
 async function canUseIdeasList(userId: string, ideasList: ListRow, dbx: SchemaDatabase): Promise<boolean> {
-	if (ideasList.ownerId === userId) return true
-	return (await canEditList(userId, ideasList, dbx)).ok
+	return (await canEditListAsAnyone(userId, ideasList, dbx)).ok
 }
 
 // A gift-ideas list applies to a recipient list when its target is the

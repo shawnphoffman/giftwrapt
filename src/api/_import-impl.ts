@@ -22,7 +22,7 @@ import { priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { httpsUpgradeOrNull } from '@/lib/image-url'
 import { enqueueScrapeJob } from '@/lib/import/scrape-queue/runner'
-import { canEditList } from '@/lib/permissions'
+import { canEditListAsAnyone } from '@/lib/permissions'
 import { getAppSettings } from '@/lib/settings-loader'
 import { getVendorFromUrl } from '@/lib/urls'
 
@@ -83,10 +83,8 @@ export async function bulkCreateItemsImpl(args: {
 	})
 	if (!list) return { kind: 'error', reason: 'list-not-found' }
 
-	if (list.ownerId !== userId) {
-		const edit = await canEditList(userId, list, dbx)
-		if (!edit.ok) return { kind: 'error', reason: 'not-authorized' }
-	}
+	const edit = await canEditListAsAnyone(userId, list, dbx)
+	if (!edit.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	const inserted = await dbx.transaction(async tx => {
 		const rows: Array<Item> = []

@@ -8,7 +8,7 @@ import { giftedItems, items, listAddons, lists, users } from '@/db/schema'
 import { env } from '@/env'
 import { auth } from '@/lib/auth'
 import { createLogger, loggingMiddleware } from '@/lib/logger'
-import { canEditList } from '@/lib/permissions'
+import { canEditListAsAnyone } from '@/lib/permissions'
 import { getStorage } from '@/lib/storage/adapter'
 import { processAttachment } from '@/lib/storage/attachment-pipeline'
 import { err, ok, UploadError, type UploadResult } from '@/lib/storage/errors'
@@ -231,15 +231,11 @@ export const removeAvatarAsAdmin = createServerFn({ method: 'POST' })
 // Item image upload
 // ===============================
 
-// Permission check mirrors src/api/items.ts. Kept local here to avoid a
-// cross-module helper; the `canEditList` primitive already covers the hard
-// case (list-level editor grants).
+// Same gate as item create/update: the owner, or anyone canEditList admits.
 type ListForPermCheck = { id: number; ownerId: string; subjectDependentId: string | null; isPrivate: boolean; isActive: boolean }
 
 async function canUserEditItemsOn(userId: string, list: ListForPermCheck): Promise<boolean> {
-	if (list.ownerId === userId) return true
-	const edit = await canEditList(userId, list)
-	return edit.ok
+	return (await canEditListAsAnyone(userId, list)).ok
 }
 
 // Same FormData rationale as uploadAvatar. `itemId` is a form field; File

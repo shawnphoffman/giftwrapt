@@ -25,7 +25,7 @@ import { computeArchiveSchedule, maxDeferDate } from '@/lib/archive-schedule'
 import { loadRecipientBirthday } from '@/lib/archive-schedule-loader'
 import { sendRevealEmails } from '@/lib/cron/reveal-emails'
 import { getCustomHoliday } from '@/lib/custom-holidays'
-import { canEditList } from '@/lib/permissions'
+import { canEditListAsAnyone } from '@/lib/permissions'
 import { revealFamilyForList } from '@/lib/reveal'
 import { getAppSettings } from '@/lib/settings-loader'
 
@@ -68,12 +68,8 @@ async function loadScheduleContext(
 	})
 	if (!list) return { error: 'not-found' }
 
-	// Owner always edits their own list; otherwise fall back to the
-	// guardian/editor grants. Mirrors `assertCanEditItems`.
-	if (list.ownerId !== userId) {
-		const perm = await canEditList(userId, list, dbx)
-		if (!perm.ok) return { error: 'not-authorized' }
-	}
+	const perm = await canEditListAsAnyone(userId, list, dbx)
+	if (!perm.ok) return { error: 'not-authorized' }
 
 	const recipientBirthday = await loadRecipientBirthday(list, dbx)
 	const customHoliday = list.customHolidayId ? await getCustomHoliday(list.customHolidayId, dbx) : null
