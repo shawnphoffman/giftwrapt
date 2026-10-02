@@ -16,15 +16,16 @@ import { computeRemainingClaimableQuantity } from '@/lib/gifts'
 import { listItemsViewQueryOptions } from '@/lib/queries/items'
 import { listDetailKeys } from '@/lib/queries/lists'
 
-// Help for a gifter looking at someone else's list (plan 25):
+// Help for a gifter looking at someone else's list (plan 25). The whole
+// panel is behind the admin's `aiGiftSuggestionsEnabled` flag: with it
+// off, nothing here renders and the list page looks as it always did.
 //
 // - "Mostly about": what the list leans toward, from stored facets.
 // - Pick for Me: the best few things still open, ranked in the browser
-//   from the items the page already has. No AI.
-// - Need Ideas?: AI suggestions for things NOT on the list. Only shown
-//   when the admin has turned gift suggestions on, and never to a child.
-//   A suggestion is kept only if the viewer saves it to their own private
-//   gift ideas.
+//   from the items the page already has. No AI call.
+// - Need Ideas?: AI suggestions for things NOT on the list. Never shown
+//   to a child, who gets the rest of the panel. A suggestion is kept only
+//   if the viewer saves it to their own private gift ideas.
 
 const PRICE_BAND_LABEL: Record<PriceBand, string | null> = {
 	'under-25': 'Under $25',
@@ -88,7 +89,8 @@ export type GiftHelpPanelViewProps = {
 	// null until Pick for Me has been pressed.
 	picks: Array<Pick> | null
 	onPick: () => void
-	// False hides Need Ideas entirely (feature off, or a child account).
+	// False hides Need Ideas (a child account). The panel itself only
+	// renders when the feature flag is on.
 	suggestionsAvailable: boolean
 	suggestions: SuggestionsState
 	onAskIdeas: () => void
@@ -242,7 +244,7 @@ export function GiftHelpOnList({
 	const { data: interestData } = useQuery({
 		queryKey: ['list-interests', listId],
 		queryFn: () => getListInterests({ data: { listId } }),
-		enabled: intelligenceEnabled,
+		enabled: suggestionsEnabled && intelligenceEnabled,
 		staleTime: 5 * 60_000,
 	})
 
@@ -252,7 +254,8 @@ export function GiftHelpOnList({
 	const [savedTitles, setSavedTitles] = useState<ReadonlySet<string>>(() => new Set())
 
 	const pickItems = useMemo(() => items.map(toPickItem), [items])
-	const suggestionsAvailable = suggestionsEnabled && session?.user.isChild !== true
+	// A child sees the panel (Pick for Me) but never the AI button.
+	const suggestionsAvailable = session?.user.isChild !== true
 
 	const ask = useMutation({
 		mutationFn: () => getGiftSuggestions({ data: { listId, budget: parseBudget(budget) ?? undefined } }),
@@ -281,6 +284,8 @@ export function GiftHelpOnList({
 		onError: () => toast.error('Could not save that idea'),
 	})
 
+	// One flag for the whole panel. Off means the list page is unchanged.
+	if (!suggestionsEnabled) return null
 	// Nothing to offer: no items to pick from and no AI to ask.
 	if (items.length === 0 && !suggestionsAvailable) return null
 

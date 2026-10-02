@@ -45,10 +45,10 @@ const suggestions = [
 ]
 
 /**
- * The "Help Me Choose" panel a gifter sees on someone else's list. Pick
- * for Me ranks what is still open and needs no AI. Need Ideas? only
- * appears when the admin has turned gift suggestions on, and never for a
- * child account.
+ * The "Help Me Choose" panel a gifter sees on someone else's list. The
+ * whole panel only renders when the admin has turned gift suggestions on.
+ * Pick for Me ranks what is still open and makes no AI call; Need Ideas?
+ * is hidden for a child account.
  */
 const meta = {
 	title: 'Gift Help/GiftHelpPanel',
@@ -92,9 +92,9 @@ export const WithInterests: Story = {
 	},
 }
 
-export const SuggestionsOff: Story = {
+export const ChildAccount: Story = {
 	args: { suggestionsAvailable: false },
-	parameters: { docs: { description: { story: 'Gift suggestions turned off, or a child account: only Pick for Me is offered.' } } },
+	parameters: { docs: { description: { story: 'A child account: only Pick for Me is offered.' } } },
 }
 
 export const Picks: Story = {

@@ -244,7 +244,9 @@ export async function getListInterestsImpl(args: { userId: string; listId: numbe
 	const { userId, listId, dbx = db } = args
 	const none: ListInterests = { interests: [], analysedItems: 0 }
 	const settings = await getAppSettings(dbx)
-	if (!settings.intelligenceEnabled) return none
+	// Part of the Help Me Choose panel, so it follows the panel's flag as
+	// well as Intelligence (which produced the facets it reads).
+	if (!settings.aiGiftSuggestionsEnabled || !settings.intelligenceEnabled) return none
 	const view = await getWishlistViewImpl({ userId, listId, dbx })
 	if (view.kind === 'error') return none
 	const itemIds = view.view.items.map(i => i.id)

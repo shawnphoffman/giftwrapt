@@ -263,6 +263,10 @@ describe('gift suggestions', () => {
 		expect(await getListInterestsImpl({ userId: me.id, listId: list.id })).toEqual({ interests: [], analysedItems: 0 })
 
 		await setSetting('intelligenceEnabled', true)
+		// It is part of the panel, so the panel's flag switches it off too.
+		await setSetting('aiGiftSuggestionsEnabled', false)
+		expect(await getListInterestsImpl({ userId: me.id, listId: list.id })).toEqual({ interests: [], analysedItems: 0 })
+		await setSetting('aiGiftSuggestionsEnabled', true)
 		// One facet row so far (the scarf): not enough to say anything.
 		expect(await getListInterestsImpl({ userId: me.id, listId: list.id })).toEqual({ interests: [], analysedItems: 1 })
 
