@@ -1,5 +1,9 @@
 import { Body, Container, Head, Heading, Html, Img, Link, Section, Tailwind, Text } from 'react-email'
 
+import type { ReminderPickGroup } from '@/lib/cron/reminder-picks'
+
+import { ReminderPicks } from './reminder-picks'
+
 const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3002'
 
 interface ValentinesDayReminderEmailProps {
@@ -7,6 +11,9 @@ interface ValentinesDayReminderEmailProps {
 	partnerName: string
 	leadDays: number
 	appTitle?: string
+	// Things still open on the lists of the people this reminder is about,
+	// as the reader sees them. Only ever set on the reader's own copy.
+	picks?: ReadonlyArray<ReminderPickGroup>
 }
 
 export default function ValentinesDayReminderEmail({
@@ -14,6 +21,7 @@ export default function ValentinesDayReminderEmail({
 	partnerName,
 	leadDays,
 	appTitle = 'GiftWrapt',
+	picks,
 }: ValentinesDayReminderEmailProps) {
 	return (
 		<Html>
@@ -29,6 +37,7 @@ export default function ValentinesDayReminderEmail({
 							{name}, Valentine's Day is coming up. Check what {partnerName} has on their list at <Link href={`${baseUrl}`}>All Lists</Link>
 							.
 						</Text>
+						<ReminderPicks picks={picks} />
 					</Container>
 				</Body>
 			</Tailwind>

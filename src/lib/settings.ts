@@ -560,6 +560,16 @@ export const appSettingsSchema = z.object({
 	// can see. Off by default; it sends other people's list items to the AI
 	// provider. What exactly is sent is spelled out in src/lib/ai-features.ts.
 	aiGiftSuggestionsEnabled: z.boolean(),
+	// Paste Text: an import source that turns pasted free text into item
+	// drafts. Off by default. Only the pasted text is sent.
+	aiPasteToItemsEnabled: z.boolean(),
+	// Thank-you note drafts on the received-gifts page. Off by default.
+	// Only first names and the titles of already-revealed gifts are sent.
+	aiThankYouDraftsEnabled: z.boolean(),
+	// Relationship reminder emails (Mother's / Father's Day, Valentine's,
+	// anniversary) include up to three things still open on the person's
+	// lists. Plain ranking, no AI. Off by default.
+	enableReminderPicks: z.boolean(),
 	// =====================================================================
 	// Observability (opt-in per deployment, default off)
 	// =====================================================================
@@ -677,6 +687,9 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	aiMonthlyCostCeilingUsd: null,
 	aiPhotoExtractEnabled: true,
 	aiGiftSuggestionsEnabled: false,
+	aiPasteToItemsEnabled: false,
+	aiThankYouDraftsEnabled: false,
+	enableReminderPicks: false,
 	barcode: {
 		enabled: false,
 		providerId: 'upcitemdb-trial' as const,

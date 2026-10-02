@@ -578,6 +578,23 @@ export function ParentalRelationsSettingsSection() {
 				title="Partner Anniversary"
 				description="Reminders, plus the anniversary date field on profiles. Both partners get the email. Turning this off hides the field."
 			/>
+			<div className="flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<Label htmlFor="enableReminderPicks" className="text-base">
+						Include Gift Picks
+					</Label>
+					<p className="text-sm text-muted-foreground">
+						Add up to three things still open on the person’s lists to each reminder above. Picked by priority, with no AI. Only the person
+						the reminder is addressed to sees them.
+					</p>
+				</div>
+				<Switch
+					id="enableReminderPicks"
+					checked={settings.enableReminderPicks}
+					disabled={!emailConfigured}
+					onCheckedChange={checked => handleSettingChange('enableReminderPicks', checked)}
+				/>
+			</div>
 		</div>
 	)
 }

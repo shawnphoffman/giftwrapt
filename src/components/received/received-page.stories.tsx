@@ -240,3 +240,6 @@ export const SelfOnly: Story = { args: { data: dataSelfOnly } }
 export const SinglePairGifter: Story = { args: { data: dataSingleGifter } }
 export const ViewerPartnerSolo: Story = { args: { data: dataPartnerSolo } }
 export const Empty: Story = { args: { data: dataEmpty } }
+
+/** With thank-you drafts turned on: each giver's expanded section ends with a "Draft a Thank-You" button. */
+export const WithThankYouDrafts: Story = { args: { data: dataMultiple, onDraftThankYou: () => {} } }

@@ -64,6 +64,7 @@ const wishlistItemSchema = z.object({
 	notes: z.string().nullable(),
 	imageUrl: z.string().nullable(),
 	groupId: z.number().nullable(),
+	groupSortOrder: z.number().nullable().describe('Position inside an in-order group; claim the lowest open one first'),
 	commentCount: z.number(),
 	claims: z.array(claimSchema),
 })

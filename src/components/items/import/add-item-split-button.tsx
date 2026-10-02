@@ -1,4 +1,4 @@
-import { Apple, Camera, ChevronDown, Link2, Plus, ShoppingBag } from 'lucide-react'
+import { Apple, Camera, ChevronDown, Link2, Plus, ShoppingBag, Sparkles } from 'lucide-react'
 import { useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,7 @@ import { useStorageStatus } from '@/hooks/use-storage-status'
 
 import { ImportDialogAmazon } from './import-dialog-amazon'
 import { ImportDialogAppleNotes } from './import-dialog-apple-notes'
+import { ImportDialogText } from './import-dialog-text'
 import { ImportDialogUrls } from './import-dialog-urls'
 
 type Props = {
@@ -20,13 +21,14 @@ type Props = {
 	importEnabledOverride?: boolean
 }
 
-type ImportSource = 'urls' | 'apple-notes' | 'amazon'
+type ImportSource = 'urls' | 'apple-notes' | 'amazon' | 'text'
 
 /**
  * Split-button affordance on the list-edit toolbar. The primary face
  * preserves the one-click "Add item" flow into the existing
  * `ItemFormDialog`. The caret trigger opens a dropdown of bulk-import
- * sources (paste URLs, Apple Notes, Amazon Wish List).
+ * sources (paste URLs, Apple Notes, Amazon Wish List, and, when the
+ * admin has turned it on, AI Paste Text).
  *
  * The caret is hidden when `importEnabled=false` in app settings so the
  * UI degrades gracefully to the original single-button shape.
@@ -34,6 +36,8 @@ type ImportSource = 'urls' | 'apple-notes' | 'amazon'
 export function AddItemSplitButton({ listId, onAddItem, onAddItemFromPhoto, importEnabledOverride }: Props) {
 	const liveImportEnabled = useAppSetting('importEnabled')
 	const importEnabled = importEnabledOverride ?? liveImportEnabled
+	// The AI import source; off unless the admin turned it on.
+	const pasteTextEnabled = useAppSetting('aiPasteToItemsEnabled')
 	const { configured: storageConfigured } = useStorageStatus()
 	const [openSource, setOpenSource] = useState<ImportSource | null>(null)
 	const photoInputRef = useRef<HTMLInputElement>(null)
@@ -82,6 +86,11 @@ export function AddItemSplitButton({ listId, onAddItem, onAddItemFromPhoto, impo
 						<DropdownMenuItem onClick={() => setOpenSource('urls')}>
 							<Link2 className="size-4" /> Paste URLs
 						</DropdownMenuItem>
+						{pasteTextEnabled && (
+							<DropdownMenuItem onClick={() => setOpenSource('text')}>
+								<Sparkles className="size-4" /> Paste Text
+							</DropdownMenuItem>
+						)}
 						<DropdownMenuItem onClick={() => setOpenSource('apple-notes')}>
 							<Apple className="size-4" /> Apple Notes
 						</DropdownMenuItem>
@@ -95,6 +104,9 @@ export function AddItemSplitButton({ listId, onAddItem, onAddItemFromPhoto, impo
 			{photoEnabled && <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoChange} />}
 
 			<ImportDialogUrls listId={listId} open={openSource === 'urls'} onOpenChange={open => setOpenSource(open ? 'urls' : null)} />
+			{pasteTextEnabled && (
+				<ImportDialogText listId={listId} open={openSource === 'text'} onOpenChange={open => setOpenSource(open ? 'text' : null)} />
+			)}
 			<ImportDialogAppleNotes
 				listId={listId}
 				open={openSource === 'apple-notes'}

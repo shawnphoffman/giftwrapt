@@ -58,7 +58,7 @@ export const BulkCreateItemsInputSchema = z.object({
 
 export type BulkCreateItemsResult =
 	| { kind: 'ok'; items: Array<Item>; enqueued: number }
-	| { kind: 'error'; reason: 'list-not-found' | 'not-authorized' | 'feature-disabled' }
+	| { kind: 'error'; reason: 'list-not-found' | 'not-authorized' | 'feature-disabled' | 'todo-list-rejects-items' }
 
 // ---------------------------------------------------------------------------
 // Impl
@@ -79,9 +79,12 @@ export async function bulkCreateItemsImpl(args: {
 
 	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, input.listId),
-		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
+		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true, type: true },
 	})
 	if (!list) return { kind: 'error', reason: 'list-not-found' }
+	// Same gate as `createItemImpl`: todo lists keep their rows in
+	// `todo_items`, and a gift item on one would be invisible and orphaned.
+	if (list.type === 'todos') return { kind: 'error', reason: 'todo-list-rejects-items' }
 
 	const edit = await canEditListAsAnyone(userId, list, dbx)
 	if (!edit.ok) return { kind: 'error', reason: 'not-authorized' }

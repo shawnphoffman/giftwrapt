@@ -58,6 +58,29 @@ export const AI_FEATURE_REGISTRY: ReadonlyArray<AiFeatureInfo> = [
 		neverSent: [NOTHING_ABOUT_PEOPLE],
 	},
 	{
+		id: 'paste-to-items',
+		label: 'Paste Text to Items',
+		description:
+			'An import option that turns pasted text (a notes-app list, a forwarded message) into items. The user reviews the result before anything is added.',
+		settingKey: 'aiPasteToItemsEnabled',
+		sent: ['The text the user pasted (up to 8,000 characters)'],
+		neverSent: [NOTHING_ABOUT_PEOPLE],
+	},
+	{
+		id: 'thank-you-draft',
+		label: 'Thank-You Note Drafts',
+		description:
+			'A “Draft a Thank-You” button on the Received page. It writes a short note the user can edit and copy. Nothing is sent to anyone by the app.',
+		settingKey: 'aiThankYouDraftsEnabled',
+		sent: [
+			'The first name of the user writing the note',
+			'The first names of the people who gave the gifts',
+			'The titles of the gifts, which have already been revealed to that user',
+			'The name of the pet or baby, when the gifts were for a dependent',
+		],
+		neverSent: ['What anything cost, and gift notes', 'Gifts that have not been revealed yet', 'Last names and email addresses'],
+	},
+	{
 		id: 'gift-suggestions',
 		label: 'Gift Suggestions',
 		description:

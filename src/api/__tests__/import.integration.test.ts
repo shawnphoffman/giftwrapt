@@ -188,3 +188,21 @@ describe('bulkCreateItemsImpl - input validation', () => {
 		expect(r.success).toBe(false)
 	})
 })
+
+describe('bulkCreateItemsImpl - todo lists', () => {
+	it('refuses a todo list, the same gate single item creation has', async () => {
+		await withRollback(async tx => {
+			const user = await makeUser(tx)
+			const list = await makeList(tx, { ownerId: user.id, type: 'todos' })
+			await setImportEnabled(tx, true)
+
+			const r = await bulkCreateItemsImpl({
+				db: tx as any,
+				actor: { id: user.id },
+				input: { listId: list.id, items: [{ title: 'Not a todo' }] },
+			})
+			expect(r).toEqual({ kind: 'error', reason: 'todo-list-rejects-items' })
+			expect(await tx.select().from(items).where(eq(items.listId, list.id))).toEqual([])
+		})
+	})
+})

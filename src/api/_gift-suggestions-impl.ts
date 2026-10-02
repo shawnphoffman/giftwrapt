@@ -19,6 +19,7 @@ import { type BirthMonth, birthMonthEnumValues, itemAiAnalysis, lists } from '@/
 import { AiBudgetExceededError, aiGenerateObject } from '@/lib/ai-call'
 import { createAiModel } from '@/lib/ai-client'
 import { resolveAiConfig } from '@/lib/ai-config'
+import { safeFirstName } from '@/lib/first-name'
 import {
 	buildGiftSuggestionsUserPrompt,
 	GIFT_SUGGESTIONS_SYSTEM,
@@ -55,8 +56,9 @@ export type GiftSuggestionsResult =
 				| 'rate-limited'
 	  }
 
+// Never an email: a user with no name set displays as their address.
 function firstName(name: string | null): string {
-	return (name ?? '').trim().split(/\s+/u)[0] || 'them'
+	return safeFirstName(name, 'them')
 }
 
 function daysUntil(month: BirthMonth | null, day: number | null, now: Date): number | null {

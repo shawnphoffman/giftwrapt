@@ -1,5 +1,5 @@
 import { format } from 'date-fns'
-import { ChevronDown, ChevronsDownUp, ChevronsUpDown, ExternalLink, Gift, PackageOpen, PackagePlus } from 'lucide-react'
+import { ChevronDown, ChevronsDownUp, ChevronsUpDown, ExternalLink, Gift, PackageOpen, PackagePlus, PenLine } from 'lucide-react'
 import { Fragment, useMemo, useState } from 'react'
 
 import type { GifterUnit, ReceivedGiftsResult } from '@/api/received'
@@ -13,16 +13,19 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { groupByGifterUnit, type ReceivedRow } from '@/lib/received-grouping'
+import { type GifterUnitGroup, groupByGifterUnit, type ReceivedRow } from '@/lib/received-grouping'
 import { matchesTimeframe, type TimeframeValue } from '@/lib/timeframe'
 
 type Props = {
 	data: ReceivedGiftsResult
+	// When set, each giver's section gets a "Draft a Thank-You" button.
+	// The route passes it only when the admin has turned the feature on.
+	onDraftThankYou?: (group: GifterUnitGroup) => void
 }
 
 const SELF_RECIPIENT_KEY = '__self__'
 
-export function ReceivedPageContent({ data }: Props) {
+export function ReceivedPageContent({ data, onDraftThankYou }: Props) {
 	// Flatten everything into one stream the client filters by recipient.
 	const { selfRows, dependentRows } = useMemo(() => {
 		const self: Array<ReceivedRow> = [...data.gifts, ...data.addons]
@@ -191,6 +194,19 @@ export function ReceivedPageContent({ data }: Props) {
 																			{g.rows.map((row, i) => (
 																				<ReceivedDetailRow key={`${g.key}-${i}`} row={row} />
 																			))}
+																			{onDraftThankYou && (
+																				<div className="flex justify-end px-3 py-2">
+																					<Button
+																						type="button"
+																						variant="outline"
+																						size="sm"
+																						tabIndex={isOpen ? 0 : -1}
+																						onClick={() => onDraftThankYou(g)}
+																					>
+																						<PenLine className="size-4" /> Draft a Thank-You
+																					</Button>
+																				</div>
+																			)}
 																		</div>
 																	</div>
 																</div>

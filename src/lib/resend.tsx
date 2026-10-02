@@ -2,6 +2,7 @@ import { Resend } from 'resend'
 
 import { type Database, db, type SchemaDatabase } from '@/db'
 import type { RevealSummarySection } from '@/emails/reveal-summary-email'
+import type { ReminderPickGroup } from '@/lib/cron/reminder-picks'
 import { type ResolvedEmailConfig, resolveEmailConfig } from '@/lib/email-config'
 import type { OperatorDigestData } from '@/lib/intelligence/operator-digest'
 import { createLogger } from '@/lib/logger'
@@ -156,7 +157,7 @@ export const sendRevealSummaryEmail = async (
 
 export const sendParentsDayReminderEmail = async (
 	recipient: string,
-	args: { holidayName: string; leadDays: number; people: Array<{ name: string }> }
+	args: { holidayName: string; leadDays: number; people: Array<{ name: string }>; picks?: ReadonlyArray<ReminderPickGroup> }
 ) => {
 	const cfg = await resolveEmailConfig(db)
 	const client = buildClient(cfg)
@@ -174,7 +175,15 @@ export const sendParentsDayReminderEmail = async (
 		...commonEmailProps(cfg),
 		to: recipient,
 		subject: `${args.holidayName} is in ${args.leadDays} days`,
-		react: <ParentsDayReminderEmail holidayName={args.holidayName} leadDays={args.leadDays} people={args.people} appTitle={appTitle} />,
+		react: (
+			<ParentsDayReminderEmail
+				holidayName={args.holidayName}
+				leadDays={args.leadDays}
+				people={args.people}
+				appTitle={appTitle}
+				picks={args.picks}
+			/>
+		),
 	})
 	logSendResult('parental-relations-reminder', recipient, res as SendResult)
 	return res
@@ -243,7 +252,10 @@ export const sendPreCustomHolidayReminderEmail = async (
 	return res
 }
 
-export const sendValentinesDayReminderEmail = async (recipient: string, args: { name: string; partnerName: string; leadDays: number }) => {
+export const sendValentinesDayReminderEmail = async (
+	recipient: string,
+	args: { name: string; partnerName: string; leadDays: number; picks?: ReadonlyArray<ReminderPickGroup> }
+) => {
 	const cfg = await resolveEmailConfig(db)
 	const client = buildClient(cfg)
 	if (!client || !cfg.isValid) {
@@ -257,7 +269,15 @@ export const sendValentinesDayReminderEmail = async (recipient: string, args: { 
 		...commonEmailProps(cfg),
 		to: recipient,
 		subject: `Valentine's Day is in ${args.leadDays} days`,
-		react: <ValentinesDayReminderEmail name={args.name} partnerName={args.partnerName} leadDays={args.leadDays} appTitle={appTitle} />,
+		react: (
+			<ValentinesDayReminderEmail
+				name={args.name}
+				partnerName={args.partnerName}
+				leadDays={args.leadDays}
+				appTitle={appTitle}
+				picks={args.picks}
+			/>
+		),
 	})
 	logSendResult('valentines-day-reminder', recipient, res as SendResult)
 	return res
@@ -265,7 +285,7 @@ export const sendValentinesDayReminderEmail = async (recipient: string, args: { 
 
 export const sendPartnerAnniversaryReminderEmail = async (
 	recipient: string,
-	args: { name: string; partnerName: string; leadDays: number }
+	args: { name: string; partnerName: string; leadDays: number; picks?: ReadonlyArray<ReminderPickGroup> }
 ) => {
 	const cfg = await resolveEmailConfig(db)
 	const client = buildClient(cfg)
@@ -280,7 +300,15 @@ export const sendPartnerAnniversaryReminderEmail = async (
 		...commonEmailProps(cfg),
 		to: recipient,
 		subject: `Your anniversary with ${args.partnerName} is in ${args.leadDays} days`,
-		react: <PartnerAnniversaryReminderEmail name={args.name} partnerName={args.partnerName} leadDays={args.leadDays} appTitle={appTitle} />,
+		react: (
+			<PartnerAnniversaryReminderEmail
+				name={args.name}
+				partnerName={args.partnerName}
+				leadDays={args.leadDays}
+				appTitle={appTitle}
+				picks={args.picks}
+			/>
+		),
 	})
 	logSendResult('partner-anniversary-reminder', recipient, res as SendResult)
 	return res

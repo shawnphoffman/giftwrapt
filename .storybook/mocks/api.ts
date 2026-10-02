@@ -451,6 +451,10 @@ export const importAppDataAsAdmin = ok
 // @/api/received
 // (only types are imported, but keep this section as a marker)
 
+// @/api/thank-you
+export const draftThankYou = (): Promise<{ kind: 'ok'; note: string }> =>
+	Promise.resolve({ kind: 'ok', note: 'Dear Kate, thank you so much for the scarf.\n\nSam' })
+
 // @/api/orphan-claims
 // Stories that need rows visible should prime the React Query cache with
 // `client.setQueryData(['orphan-claims', 'list', listId], rows)` etc.
@@ -510,3 +514,12 @@ export type ItemDraft = {
 export const bulkCreateItems = (): Promise<{ kind: 'ok'; items: Array<unknown>; enqueued: number }> =>
 	Promise.resolve({ kind: 'ok', items: [], enqueued: 0 })
 export const fetchImportSource = (): Promise<{ kind: 'ok'; drafts: Array<ItemDraft> }> => Promise.resolve({ kind: 'ok', drafts: [] })
+export const extractItemsFromText = (): Promise<{ kind: 'ok'; items: Array<ItemDraft> }> =>
+	Promise.resolve({
+		kind: 'ok',
+		items: [
+			{ title: 'Blue Enamel Mug', url: 'https://shop.example.com/mug', price: null, notes: 'the big one' },
+			{ title: 'Wool Socks', url: null, price: '$18', notes: 'size M' },
+			{ title: 'Trail Map Poster', url: null, price: null, notes: null },
+		],
+	})

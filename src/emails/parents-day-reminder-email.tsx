@@ -1,5 +1,9 @@
 import { Body, Container, Head, Heading, Html, Img, Link, Section, Tailwind, Text } from 'react-email'
 
+import type { ReminderPickGroup } from '@/lib/cron/reminder-picks'
+
+import { ReminderPicks } from './reminder-picks'
+
 const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3002'
 
 interface ParentsDayReminderEmailProps {
@@ -7,9 +11,18 @@ interface ParentsDayReminderEmailProps {
 	leadDays: number
 	people: Array<{ name: string }>
 	appTitle?: string
+	// Things still open on the lists of the people this reminder is about,
+	// as the reader sees them. Only ever set on the reader's own copy.
+	picks?: ReadonlyArray<ReminderPickGroup>
 }
 
-export default function ParentsDayReminderEmail({ holidayName, leadDays, people, appTitle = 'GiftWrapt' }: ParentsDayReminderEmailProps) {
+export default function ParentsDayReminderEmail({
+	holidayName,
+	leadDays,
+	people,
+	appTitle = 'GiftWrapt',
+	picks,
+}: ParentsDayReminderEmailProps) {
 	const formattedNames = formatList(people.map(p => p.name))
 	return (
 		<Html>
@@ -27,6 +40,7 @@ export default function ParentsDayReminderEmail({ holidayName, leadDays, people,
 							You’ve tagged {formattedNames} for {holidayName}. Take a peek at their <Link href={`${baseUrl}/lists`}>lists</Link> if you’re
 							still looking for something.
 						</Text>
+						<ReminderPicks picks={picks} />
 					</Container>
 				</Body>
 			</Tailwind>

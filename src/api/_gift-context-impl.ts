@@ -53,6 +53,8 @@ export type WishlistItem = {
 	notes: string | null
 	imageUrl: string | null
 	groupId: number | null
+	// Position inside an in-order group; null outside one.
+	groupSortOrder: number | null
 	commentCount: number
 	claims: Array<WishlistClaim>
 }
@@ -128,6 +130,7 @@ export async function getWishlistViewImpl(args: { userId: string; listId: number
 		notes: i.notes,
 		imageUrl: i.imageUrl,
 		groupId: i.groupId,
+		groupSortOrder: i.groupSortOrder,
 		commentCount: i.commentCount,
 		claims: i.gifts.map(g => {
 			const byMe = isMine(g.gifterId, g.additionalGifterIds)

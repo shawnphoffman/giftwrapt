@@ -62,6 +62,7 @@ const config: StorybookConfig = {
 			'@/api/permissions': path.join(mocksDir, 'api.ts'),
 			'@/api/recent': path.join(mocksDir, 'api.ts'),
 			'@/api/received': path.join(mocksDir, 'api.ts'),
+			'@/api/thank-you': path.join(mocksDir, 'api.ts'),
 			'@/api/relation-labels': path.join(mocksDir, 'api.ts'),
 			'@/api/oidc': path.join(mocksDir, 'api.ts'),
 			'@/api/settings': path.join(mocksDir, 'api.ts'),

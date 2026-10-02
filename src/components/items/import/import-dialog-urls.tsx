@@ -147,8 +147,9 @@ export function ImportDialogUrls({ listId, open, onOpenChange }: Props) {
 	)
 }
 
-function reasonToMessage(reason: 'list-not-found' | 'not-authorized' | 'feature-disabled'): string {
+function reasonToMessage(reason: 'list-not-found' | 'not-authorized' | 'feature-disabled' | 'todo-list-rejects-items'): string {
 	if (reason === 'list-not-found') return 'List not found.'
 	if (reason === 'not-authorized') return 'You do not have permission to add to this list.'
+	if (reason === 'todo-list-rejects-items') return 'Todo lists do not take gift items.'
 	return 'Importing is currently disabled. Ask your admin to turn it on.'
 }

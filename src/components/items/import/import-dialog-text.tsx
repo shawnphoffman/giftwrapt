@@ -1,15 +1,15 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { Apple } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Sparkles } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
-import { bulkCreateItems, type ItemDraft } from '@/api/import'
+import { bulkCreateItems, extractItemsFromText, type ExtractItemsFromTextResult, type ItemDraft } from '@/api/import'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { parseAppleNotes } from '@/lib/import/parsers/apple-notes'
+import { MAX_PASTE_CHARS } from '@/lib/paste-items/prompt'
 import { itemsKeys } from '@/lib/queries/items'
 
 import { ImportPreviewTable } from './import-preview-table'
@@ -22,61 +22,69 @@ type Props = {
 
 type Step = 'input' | 'preview'
 
+type ExtractError = Extract<ExtractItemsFromTextResult, { kind: 'error' }>['reason']
+
+const EXTRACT_ERRORS: Record<ExtractError, string> = {
+	'feature-disabled': 'Paste Text is turned off. Ask your admin to turn it on.',
+	'not-configured': 'Paste Text is not set up on this site yet.',
+	'ai-budget-exceeded': 'AI features are paused for this month. Add the items by hand, or paste links with Paste URLs.',
+	'ai-failed': 'Could not read that text just now. Try again.',
+	'rate-limited': 'That is a lot of requests. Try again in a minute.',
+}
+
 /**
- * Two-step Apple Notes import dialog.
- *
- * Apple Notes pastes carry both `text/plain` and `text/html` on the
- * clipboard. We capture the HTML on paste so bullet structure +
- * <a href> URLs survive into the parser; if the clipboard didn't
- * carry HTML (rare; e.g. paste from a different app), we fall back to
- * the textarea's plain value. The same `parseAppleNotes` parser handles
- * both shapes via a leading-`<` heuristic.
+ * Two-step "Paste Text" import: the user pastes any free text (a
+ * notes-app list, a message from a relative), one AI call turns it into
+ * drafts, and the same preview table as the other import sources lets
+ * them fix or drop rows before anything is created. Only shown when the
+ * admin has turned `aiPasteToItemsEnabled` on.
  */
-export function ImportDialogAppleNotes({ listId, open, onOpenChange }: Props) {
+export function ImportDialogText({ listId, open, onOpenChange }: Props) {
 	const queryClient = useQueryClient()
 	const [step, setStep] = useState<Step>('input')
 	const [textValue, setTextValue] = useState('')
-	// `htmlValue` wins over the textarea content if it's set; this lets us
-	// keep <a href> intact while still showing the user the plain-text
-	// version they recognize.
-	const [htmlValue, setHtmlValue] = useState<string | null>(null)
 	const [drafts, setDrafts] = useState<Array<ItemDraft>>([])
 	const [selected, setSelected] = useState<Set<number>>(new Set())
+	const [reading, setReading] = useState(false)
 	const [submitting, setSubmitting] = useState(false)
 	const [error, setError] = useState<string | null>(null)
-	const textareaRef = useRef<HTMLTextAreaElement>(null)
 
 	useEffect(() => {
 		if (!open) {
 			setStep('input')
 			setTextValue('')
-			setHtmlValue(null)
 			setDrafts([])
 			setSelected(new Set())
+			setReading(false)
 			setSubmitting(false)
 			setError(null)
 		}
 	}, [open])
 
-	const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-		const html = e.clipboardData.getData('text/html')
-		if (html && html.length > 0) {
-			setHtmlValue(html)
-			// Don't preventDefault; let the textarea show the plain-text
-			// version so the user can still see what they pasted.
-		} else {
-			// Plain paste: clear any stale HTML from a previous paste.
-			setHtmlValue(null)
+	const trimmed = textValue.trim()
+	const tooLong = trimmed.length > MAX_PASTE_CHARS
+
+	const read = async () => {
+		setReading(true)
+		setError(null)
+		try {
+			const result = await extractItemsFromText({ data: { text: trimmed } })
+			if (result.kind === 'error') {
+				setError(EXTRACT_ERRORS[result.reason])
+				return
+			}
+			if (result.items.length === 0) {
+				setError('Could not find anything to add in that text.')
+				return
+			}
+			setDrafts(result.items)
+			setSelected(new Set())
+			setStep('preview')
+		} catch {
+			setError('Could not read that text just now. Try again.')
+		} finally {
+			setReading(false)
 		}
-	}
-
-	const previewCount = useMemo(() => parseAppleNotes(htmlValue ?? textValue).length, [htmlValue, textValue])
-
-	const goToPreview = () => {
-		const parsed = parseAppleNotes(htmlValue ?? textValue)
-		setDrafts(parsed)
-		setSelected(new Set())
-		setStep('preview')
 	}
 
 	const submit = async () => {
@@ -104,35 +112,30 @@ export function ImportDialogAppleNotes({ listId, open, onOpenChange }: Props) {
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						<Apple className="size-5" /> Import from Apple Notes
+						<Sparkles className="size-5" /> Paste Text
 					</DialogTitle>
 					<DialogDescription>
-						Paste a checklist or bulleted list from Apple Notes. Bullet glyphs are stripped automatically; URLs become item links.
+						Paste a list from your notes, a message, or anything else. An AI model picks out the items, and you check them before anything
+						is added. Only the text you paste is sent to it.
 					</DialogDescription>
 				</DialogHeader>
 
 				{step === 'input' ? (
 					<div className="flex flex-col gap-3">
 						<div className="grid gap-2">
-							<Label htmlFor="import-apple-textarea">Paste from Apple Notes</Label>
+							<Label htmlFor="import-text-textarea">Text</Label>
 							<Textarea
-								ref={textareaRef}
-								id="import-apple-textarea"
+								id="import-text-textarea"
 								rows={10}
 								value={textValue}
-								onChange={e => {
-									setTextValue(e.target.value)
-									// Hand-edits invalidate any captured HTML; otherwise typing
-									// would have no effect on the preview count.
-									if (htmlValue !== null) setHtmlValue(null)
-								}}
-								onPaste={handlePaste}
-								placeholder={'• Bluetooth headphones\n• Coffee grinder https://example.com/grinder\n• ...'}
+								onChange={e => setTextValue(e.target.value)}
+								placeholder={'Things I would love this year:\n- the blue enamel mug, big size\n- wool socks, size M\n...'}
+								disabled={reading}
 								autoFocus
 							/>
-							<div className="text-xs text-muted-foreground">
-								{previewCount} item{previewCount === 1 ? '' : 's'} detected.
-								{htmlValue ? ' (rich-text paste detected)' : ''}
+							<div className={tooLong ? 'text-xs text-destructive' : 'text-xs text-muted-foreground'}>
+								{trimmed.length.toLocaleString()} of {MAX_PASTE_CHARS.toLocaleString()} characters
+								{tooLong ? '. Paste a shorter piece.' : ''}
 							</div>
 						</div>
 						{error && (
@@ -145,8 +148,8 @@ export function ImportDialogAppleNotes({ listId, open, onOpenChange }: Props) {
 							<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
 								Cancel
 							</Button>
-							<Button type="button" onClick={goToPreview} disabled={previewCount === 0}>
-								Preview {previewCount} Item{previewCount === 1 ? '' : 's'}
+							<Button type="button" onClick={read} disabled={trimmed.length === 0 || tooLong || reading}>
+								{reading ? 'Reading…' : 'Find Items'}
 							</Button>
 						</DialogFooter>
 					</div>

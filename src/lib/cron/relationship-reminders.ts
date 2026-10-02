@@ -26,7 +26,27 @@ import { calendarDayInZone } from '@/lib/calendar-day'
 import { isSameUtcDay } from '@/lib/custom-holidays'
 import { fanOutToGuardians } from '@/lib/guardian-emails'
 import { fathersDaySlug, getCatalogEntry, mothersDaySlug, nextOccurrence, valentinesSlug } from '@/lib/holidays'
+import { createLogger } from '@/lib/logger'
 import { sendParentsDayReminderEmail, sendPartnerAnniversaryReminderEmail, sendValentinesDayReminderEmail } from '@/lib/resend'
+
+import { loadReminderPicks, type ReminderPerson } from './reminder-picks'
+
+const log = createLogger('cron:relationship-reminders')
+
+// Picks for the reader's own copy of a reminder. Guardian copies (the
+// `fanOutToGuardians` calls below) never get them: a child's guardian is
+// often the very person the reminder is about, and picks are built from
+// that person's list in the gifter view. A failure here must not cost
+// the reader their reminder, so it degrades to "no picks".
+async function picksFor(db: SchemaDatabase, viewerId: string, people: ReadonlyArray<ReminderPerson>) {
+	try {
+		const picks = await loadReminderPicks({ db, viewerId, people })
+		return picks.length ? picks : undefined
+	} catch (err) {
+		log.warn({ err: err instanceof Error ? err.message : String(err) }, 'reminder picks failed; sending without them')
+		return undefined
+	}
+}
 
 export type RelationshipRemindersResult = {
 	mothersDayReminders: number
@@ -54,6 +74,10 @@ type Args = {
 		enableAnniversaryReminderEmails: boolean
 		// Deployment time zone; decides which date "today" is. Defaults to UTC.
 		timeZone?: string
+		// Add up to three still-open picks from the person's lists to the
+		// reader's own copy of each reminder. Optional so existing callers
+		// keep working; absent means off.
+		enableReminderPicks?: boolean
 	}
 }
 
@@ -61,6 +85,7 @@ export async function relationshipRemindersImpl({ db, now: instant, settings }: 
 	// Every sender below does UTC-calendar math on `now`, so it gets the
 	// deployment's date (as UTC midnight) rather than the raw instant.
 	const now = calendarDayInZone(instant, settings.timeZone)
+	const withPicks = settings.enableReminderPicks === true
 	const out: RelationshipRemindersResult = {
 		mothersDayReminders: 0,
 		fathersDayReminders: 0,
@@ -75,7 +100,8 @@ export async function relationshipRemindersImpl({ db, now: instant, settings }: 
 			'mother',
 			mothersDaySlug(settings.relationshipRemindersCountry),
 			settings.mothersDayReminderLeadDays,
-			settings.relationshipRemindersCountry
+			settings.relationshipRemindersCountry,
+			withPicks
 		)
 	}
 	if (settings.enableFathersDayReminders && settings.enableFathersDayReminderEmails) {
@@ -85,7 +111,8 @@ export async function relationshipRemindersImpl({ db, now: instant, settings }: 
 			'father',
 			fathersDaySlug(settings.relationshipRemindersCountry),
 			settings.fathersDayReminderLeadDays,
-			settings.relationshipRemindersCountry
+			settings.relationshipRemindersCountry,
+			withPicks
 		)
 	}
 	if (settings.enableValentinesDayReminders && settings.enableValentinesDayReminderEmails) {
@@ -93,11 +120,12 @@ export async function relationshipRemindersImpl({ db, now: instant, settings }: 
 			db,
 			now,
 			settings.valentinesDayReminderLeadDays,
-			settings.relationshipRemindersCountry
+			settings.relationshipRemindersCountry,
+			withPicks
 		)
 	}
 	if (settings.enableAnniversaryReminders && settings.enableAnniversaryReminderEmails) {
-		out.anniversaryReminders = await sendAnniversaryReminders(db, now, settings.anniversaryReminderLeadDays)
+		out.anniversaryReminders = await sendAnniversaryReminders(db, now, settings.anniversaryReminderLeadDays, withPicks)
 	}
 
 	return out
@@ -109,7 +137,8 @@ async function sendParentLabelReminders(
 	label: RelationLabel,
 	catalogKey: string,
 	leadDays: number,
-	country: string
+	country: string,
+	withPicks: boolean
 ): Promise<number> {
 	const target = new Date(now)
 	target.setUTCDate(target.getUTCDate() + leadDays)
@@ -140,7 +169,7 @@ async function sendParentLabelReminders(
 	const userNameById = new Map(targetUsers.map(u => [u.id, u.name ?? u.email]))
 	const depNameById = new Map(targetDeps.map(d => [d.id, d.name]))
 
-	type Recipient = { email: string; people: Array<{ name: string }> }
+	type Recipient = { email: string; people: Array<{ name: string }>; targets: Array<ReminderPerson> }
 	const byUserId = new Map<string, Recipient>()
 	for (const row of rows) {
 		const name = row.targetUserId
@@ -149,8 +178,11 @@ async function sendParentLabelReminders(
 				? depNameById.get(row.targetDependentId)
 				: undefined
 		if (!name) continue
-		const existing = byUserId.get(row.userId) ?? { email: row.userEmail, people: [] }
+		const existing = byUserId.get(row.userId) ?? { email: row.userEmail, people: [], targets: [] }
 		existing.people.push({ name })
+		existing.targets.push(
+			row.targetUserId ? { kind: 'user', id: row.targetUserId, name } : { kind: 'dependent', id: row.targetDependentId ?? '', name }
+		)
 		byUserId.set(row.userId, existing)
 	}
 
@@ -160,7 +192,8 @@ async function sendParentLabelReminders(
 	let sent = 0
 	for (const [userId, recipient] of byUserId.entries()) {
 		try {
-			await sendParentsDayReminderEmail(recipient.email, { holidayName, leadDays, people: recipient.people })
+			const picks = withPicks ? await picksFor(db, userId, recipient.targets) : undefined
+			await sendParentsDayReminderEmail(recipient.email, { holidayName, leadDays, people: recipient.people, picks })
 			sent += 1
 		} catch {
 			/* logged in resend */
@@ -170,7 +203,13 @@ async function sendParentLabelReminders(
 	return sent
 }
 
-async function sendValentinesReminders(db: SchemaDatabase, now: Date, leadDays: number, country: string): Promise<number> {
+async function sendValentinesReminders(
+	db: SchemaDatabase,
+	now: Date,
+	leadDays: number,
+	country: string,
+	withPicks: boolean
+): Promise<number> {
 	const target = new Date(now)
 	target.setUTCDate(target.getUTCDate() + leadDays)
 	const occurrence = await nextOccurrence(country, valentinesSlug(country), now, db)
@@ -194,7 +233,8 @@ async function sendValentinesReminders(db: SchemaDatabase, now: Date, leadDays: 
 		const partnerName = u.partnerId ? partnerNameById.get(u.partnerId) : undefined
 		if (!partnerName) continue
 		try {
-			await sendValentinesDayReminderEmail(u.email, { name: u.name ?? u.email, partnerName, leadDays })
+			const picks = withPicks && u.partnerId ? await picksFor(db, u.id, [{ kind: 'user', id: u.partnerId, name: partnerName }]) : undefined
+			await sendValentinesDayReminderEmail(u.email, { name: u.name ?? u.email, partnerName, leadDays, picks })
 			sent += 1
 		} catch {
 			/* logged in resend */
@@ -204,7 +244,7 @@ async function sendValentinesReminders(db: SchemaDatabase, now: Date, leadDays: 
 	return sent
 }
 
-async function sendAnniversaryReminders(db: SchemaDatabase, now: Date, leadDays: number): Promise<number> {
+async function sendAnniversaryReminders(db: SchemaDatabase, now: Date, leadDays: number, withPicks: boolean): Promise<number> {
 	const target = new Date(now)
 	target.setUTCDate(target.getUTCDate() + leadDays)
 	const month = target.getUTCMonth() + 1 // 1-12
@@ -235,7 +275,8 @@ async function sendAnniversaryReminders(db: SchemaDatabase, now: Date, leadDays:
 		const partnerName = u.partnerId ? partnerNameById.get(u.partnerId) : undefined
 		if (!partnerName) continue
 		try {
-			await sendPartnerAnniversaryReminderEmail(u.email, { name: u.name ?? u.email, partnerName, leadDays })
+			const picks = withPicks && u.partnerId ? await picksFor(db, u.id, [{ kind: 'user', id: u.partnerId, name: partnerName }]) : undefined
+			await sendPartnerAnniversaryReminderEmail(u.email, { name: u.name ?? u.email, partnerName, leadDays, picks })
 			sent += 1
 		} catch {
 			/* logged in resend */

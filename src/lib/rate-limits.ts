@@ -60,6 +60,14 @@ export const giftSuggestionsLimiter = createRateLimiter({
 	windowMs: 60 * 60_000,
 })
 
+// Thank-you note drafts per user. One model call each; 20 an hour covers
+// writing a note per giver after a birthday or Christmas.
+export const thankYouDraftLimiter = createRateLimiter({
+	name: 'thank-you-draft',
+	max: 20,
+	windowMs: 60 * 60_000,
+})
+
 export const barcodeLookupLimiter = createRateLimiter({
 	name: 'barcode-lookup',
 	max: 30,

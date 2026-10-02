@@ -9,11 +9,14 @@ import { z } from 'zod'
 import { db } from '@/db'
 import { fetchAmazonWishlist, type FetchAmazonWishlistResult } from '@/lib/import/parsers/amazon-wishlist-fetch'
 import { loggingMiddleware } from '@/lib/logger'
+import { scrapeLimiter } from '@/lib/rate-limits'
 import { authMiddleware } from '@/middleware/auth'
 
 import { bulkCreateItemsImpl, BulkCreateItemsInputSchema, type BulkCreateItemsResult } from './_import-impl'
+import { extractItemsFromTextImpl, ExtractItemsFromTextInputSchema, type ExtractItemsFromTextResult } from './_paste-items-impl'
 
 export type { BulkCreateItemsResult, ItemDraft } from './_import-impl'
+export type { ExtractItemsFromTextResult } from './_paste-items-impl'
 export type { FetchAmazonWishlistResult } from '@/lib/import/parsers/amazon-wishlist-fetch'
 
 export const bulkCreateItems = createServerFn({ method: 'POST' })
@@ -36,3 +39,15 @@ export const fetchImportSource = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.input<typeof FetchImportSourceInputSchema>) => FetchImportSourceInputSchema.parse(data))
 	.handler(({ data }): Promise<FetchAmazonWishlistResult> => fetchAmazonWishlist(data.url))
+
+// "Paste Text": one AI call that turns free text into drafts for the
+// preview table. Shares the scrape limiter, like the photo flow, so the
+// per-user ceiling on paid model calls stays one number.
+export const extractItemsFromText = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: z.input<typeof ExtractItemsFromTextInputSchema>) => ExtractItemsFromTextInputSchema.parse(data))
+	.handler(async ({ context, data }): Promise<ExtractItemsFromTextResult> => {
+		const limit = scrapeLimiter.consume(`user:${context.session.user.id}`)
+		if (!limit.allowed) return { kind: 'error', reason: 'rate-limited' }
+		return extractItemsFromTextImpl({ actor: { id: context.session.user.id }, input: data })
+	})
