@@ -411,6 +411,13 @@ export const revokeOauthGrantAsAdmin = ok
 export const setOauthClientDisabledAsAdmin = ok
 export const deleteOauthClientAsAdmin = ok
 
+// @/api/gift-suggestions
+export const getGiftSuggestions = (): Promise<{ kind: 'ok'; recipientName: string; suggestions: Array<unknown> }> =>
+	Promise.resolve({ kind: 'ok', recipientName: 'Sam', suggestions: [] })
+export const saveGiftSuggestion = ok
+export const getListInterests = (): Promise<{ interests: Array<unknown>; analysedItems: number }> =>
+	Promise.resolve({ interests: [], analysedItems: 0 })
+
 // @/api/mcp-grants
 export const listMyConnectedApps = emptyArray
 export const revokeMyConnectedApp = ok

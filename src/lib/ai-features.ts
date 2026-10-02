@@ -58,6 +58,27 @@ export const AI_FEATURE_REGISTRY: ReadonlyArray<AiFeatureInfo> = [
 		neverSent: [NOTHING_ABOUT_PEOPLE],
 	},
 	{
+		id: 'gift-suggestions',
+		label: 'Gift Suggestions',
+		description:
+			'A “Need ideas?” button when a user is looking at someone else’s list. It suggests new gift ideas based on that person’s lists. Runs only when a user asks. Child accounts cannot use it.',
+		settingKey: 'aiGiftSuggestionsEnabled',
+		sent: [
+			'The first name of the person the gift is for',
+			'Titles, prices, priorities, and categories of the items on that person’s lists that the user asking can already see',
+			'For each of those items, whether it is already claimed (yes or no only)',
+			'The asking user’s own private gift ideas for that person, and the titles of gifts they already gave them',
+			'The occasion and the budget, when given',
+		],
+		neverSent: [
+			'Who claimed anything, what anyone paid, and claim notes',
+			'Item notes, links, and images',
+			'Items the asking user cannot see, including anything hidden from a restricted viewer',
+			'Other people’s gift ideas, off-list gifts, and comments',
+			'Last names, email addresses, and birth dates',
+		],
+	},
+	{
 		id: 'intelligence',
 		label: 'Suggestions',
 		description:

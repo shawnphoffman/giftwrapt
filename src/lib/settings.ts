@@ -556,6 +556,10 @@ export const appSettingsSchema = z.object({
 	// photo. On by default so deployments that already had AI configured
 	// keep the behavior they had before the toggle existed.
 	aiPhotoExtractEnabled: z.boolean(),
+	// Gift suggestions: a gifter asks for ideas for someone whose list they
+	// can see. Off by default; it sends other people's list items to the AI
+	// provider. What exactly is sent is spelled out in src/lib/ai-features.ts.
+	aiGiftSuggestionsEnabled: z.boolean(),
 	// =====================================================================
 	// Observability (opt-in per deployment, default off)
 	// =====================================================================
@@ -672,6 +676,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	aiUsageRetentionDays: 90,
 	aiMonthlyCostCeilingUsd: null,
 	aiPhotoExtractEnabled: true,
+	aiGiftSuggestionsEnabled: false,
 	barcode: {
 		enabled: false,
 		providerId: 'upcitemdb-trial' as const,

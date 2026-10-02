@@ -37,6 +37,7 @@ const config: StorybookConfig = {
 			'@/api/purchases': path.join(mocksDir, 'api.ts'),
 			'@/api/list-addons': path.join(mocksDir, 'api.ts'),
 			'@/api/gift-ideas': path.join(mocksDir, 'api.ts'),
+			'@/api/gift-suggestions': path.join(mocksDir, 'api.ts'),
 			'@/api/list-change-impact': path.join(mocksDir, 'api.ts'),
 			'@/api/list-editors': path.join(mocksDir, 'api.ts'),
 			'@/api/uploads': path.join(mocksDir, 'api.ts'),

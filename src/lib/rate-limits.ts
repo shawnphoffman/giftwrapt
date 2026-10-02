@@ -51,6 +51,15 @@ export const scrapeLimiter = createRateLimiter({
 // provider (Go-UPC) and, with the fallback enabled, also the URL
 // scrape pipeline; a tight bound here doubles as a downstream cost
 // cap. 30/min/user is comfortably above a real human scanning items.
+// Gift suggestions per user. Each request is one model call over another
+// person's lists; 10 an hour covers browsing a few people before a
+// holiday without letting a stuck client run up a bill.
+export const giftSuggestionsLimiter = createRateLimiter({
+	name: 'gift-suggestions',
+	max: 10,
+	windowMs: 60 * 60_000,
+})
+
 export const barcodeLookupLimiter = createRateLimiter({
 	name: 'barcode-lookup',
 	max: 30,

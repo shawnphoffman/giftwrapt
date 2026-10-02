@@ -30,7 +30,7 @@ import { getAppSettings } from '@/lib/settings-loader'
 
 const log = createLogger('ai-call')
 
-export const AI_FEATURES = ['scrape-provider', 'clean-title', 'photo-extract', 'intelligence', 'admin-test'] as const
+export const AI_FEATURES = ['scrape-provider', 'clean-title', 'photo-extract', 'intelligence', 'gift-suggestions', 'admin-test'] as const
 export type AiFeature = (typeof AI_FEATURES)[number]
 
 // Where a call was started from. 'web' is the app's own UI; 'import' is

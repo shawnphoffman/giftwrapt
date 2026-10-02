@@ -7,6 +7,7 @@ import DependentAvatar from '@/components/common/dependent-avatar'
 import ListTypeTile from '@/components/common/list-type-tile'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import UserAvatar from '@/components/common/user-avatar'
+import { GiftHelpOnList } from '@/components/gift-help/gift-help-panel'
 import { GiftIdeasOnList } from '@/components/gift-ideas/gift-ideas-section'
 import ItemList from '@/components/items/item-list'
 import { ItemListSkeleton } from '@/components/items/item-list-skeleton'
@@ -158,6 +159,10 @@ function ListDetailBody({ listId }: { listId: number }) {
 							groups={list.groups}
 							filterBarLeading={<ArchiveRevealBadge archiveInfo={list.archiveInfo} recipientName={recipientName} />}
 						/>
+					</Suspense>
+					{/* HELP CHOOSING: pick from the list, or ask for ideas that are not on it */}
+					<Suspense fallback={null}>
+						<GiftHelpOnList listId={list.id} groups={list.groups} recipientName={recipientName} />
 					</Suspense>
 					{/* GIFT IDEAS: the viewer's ideas for this recipient (renders nothing without any) */}
 					<Suspense fallback={null}>
