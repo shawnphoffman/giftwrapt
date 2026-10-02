@@ -7,7 +7,7 @@
 import { and, count, countDistinct, desc, eq, gt, max, sql } from 'drizzle-orm'
 
 import { db, type SchemaDatabase } from '@/db'
-import { oauthAccessToken, oauthApplication, oauthConsent, users } from '@/db/schema'
+import { type McpAccessLevel, mcpClientAccess, oauthAccessToken, oauthApplication, oauthConsent, users } from '@/db/schema'
 
 export type OauthClientRow = {
 	id: string
@@ -30,6 +30,8 @@ export type OauthGrantRow = {
 	userName: string | null
 	userEmail: string | null
 	scopes: string
+	/** What the user lets this assistant do; 'write' when they never chose. */
+	access: McpAccessLevel
 	createdAt: string
 	lastUsedAt: string
 	accessTokenExpiresAt: string
@@ -45,6 +47,8 @@ export type ConnectedAppRow = {
 	activeTokens: number
 	/** When the longest-lived refresh token runs out; null means already expired. */
 	expiresAt: string | null
+	/** 'read': the assistant can only look things up. 'write': it can also make changes. */
+	access: McpAccessLevel
 }
 
 function iso(value: Date | string | null | undefined): string | null {
@@ -101,10 +105,15 @@ export async function listOauthGrantsImpl(
 			lastUsedAt: oauthAccessToken.updatedAt,
 			accessTokenExpiresAt: oauthAccessToken.accessTokenExpiresAt,
 			refreshTokenExpiresAt: oauthAccessToken.refreshTokenExpiresAt,
+			access: mcpClientAccess.access,
 		})
 		.from(oauthAccessToken)
 		.innerJoin(oauthApplication, eq(oauthApplication.clientId, oauthAccessToken.clientId))
 		.leftJoin(users, eq(users.id, oauthAccessToken.userId))
+		.leftJoin(
+			mcpClientAccess,
+			and(eq(mcpClientAccess.userId, oauthAccessToken.userId), eq(mcpClientAccess.clientId, oauthAccessToken.clientId))
+		)
 		.where(where)
 		.orderBy(desc(oauthAccessToken.updatedAt))
 	return rows.map(r => ({
@@ -115,6 +124,7 @@ export async function listOauthGrantsImpl(
 		userName: r.userName,
 		userEmail: r.userEmail,
 		scopes: r.scopes,
+		access: r.access ?? 'write',
 		createdAt: iso(r.createdAt) ?? new Date(0).toISOString(),
 		lastUsedAt: iso(r.lastUsedAt) ?? new Date(0).toISOString(),
 		accessTokenExpiresAt: iso(r.accessTokenExpiresAt) ?? new Date(0).toISOString(),
@@ -173,11 +183,16 @@ export async function listMyConnectedAppsImpl(
 			lastUsedAt: max(oauthAccessToken.updatedAt),
 			activeTokens: count(sql`CASE WHEN ${oauthAccessToken.refreshTokenExpiresAt} > ${now} THEN 1 END`),
 			expiresAt: max(oauthAccessToken.refreshTokenExpiresAt),
+			access: mcpClientAccess.access,
 		})
 		.from(oauthAccessToken)
 		.innerJoin(oauthApplication, eq(oauthApplication.clientId, oauthAccessToken.clientId))
+		.leftJoin(
+			mcpClientAccess,
+			and(eq(mcpClientAccess.userId, oauthAccessToken.userId), eq(mcpClientAccess.clientId, oauthAccessToken.clientId))
+		)
 		.where(eq(oauthAccessToken.userId, args.userId))
-		.groupBy(oauthApplication.clientId, oauthApplication.name, oauthApplication.icon)
+		.groupBy(oauthApplication.clientId, oauthApplication.name, oauthApplication.icon, mcpClientAccess.access)
 		.orderBy(desc(max(oauthAccessToken.updatedAt)))
 	return rows
 		.map(r => ({
@@ -188,6 +203,7 @@ export async function listMyConnectedAppsImpl(
 			lastUsedAt: iso(r.lastUsedAt),
 			activeTokens: Number(r.activeTokens),
 			expiresAt: r.expiresAt && r.expiresAt > now ? iso(r.expiresAt) : null,
+			access: r.access ?? 'write',
 		}))
 		.filter(r => r.activeTokens > 0)
 }
@@ -202,5 +218,33 @@ export async function revokeMyConnectedAppImpl(
 		.where(and(eq(oauthAccessToken.userId, args.userId), eq(oauthAccessToken.clientId, args.clientId)))
 		.returning({ id: oauthAccessToken.id })
 	await dbx.delete(oauthConsent).where(and(eq(oauthConsent.userId, args.userId), eq(oauthConsent.clientId, args.clientId)))
+	// The access choice goes with the connection; reconnecting asks again.
+	await dbx.delete(mcpClientAccess).where(and(eq(mcpClientAccess.userId, args.userId), eq(mcpClientAccess.clientId, args.clientId)))
 	return tokens.length > 0 ? { ok: true } : { ok: false, reason: 'not-found' }
+}
+
+export type SetAccessResult = { ok: true } | { ok: false; reason: 'not-found' }
+
+/**
+ * Record what a user lets an assistant do. Called from the consent page
+ * (before the grant exists) and from Connected Apps (to change it later).
+ * Takes effect on the assistant's next request: the guard reads this row
+ * every time. The client must be a registered, enabled one.
+ */
+export async function setMcpClientAccessImpl(
+	args: { userId: string; clientId: string; access: McpAccessLevel; now?: Date },
+	dbx: SchemaDatabase = db
+): Promise<SetAccessResult> {
+	const client = await dbx
+		.select({ id: oauthApplication.id })
+		.from(oauthApplication)
+		.where(and(eq(oauthApplication.clientId, args.clientId), eq(oauthApplication.disabled, false)))
+		.limit(1)
+	if (client.length === 0) return { ok: false, reason: 'not-found' }
+	const now = args.now ?? new Date()
+	await dbx
+		.insert(mcpClientAccess)
+		.values({ userId: args.userId, clientId: args.clientId, access: args.access, updatedAt: now })
+		.onConflictDoUpdate({ target: [mcpClientAccess.userId, mcpClientAccess.clientId], set: { access: args.access, updatedAt: now } })
+	return { ok: true }
 }

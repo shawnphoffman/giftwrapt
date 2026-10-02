@@ -12,6 +12,12 @@ export type McpActor = {
 	clientId: string
 	tokenId: string
 	scopes: Array<string>
+	/**
+	 * False when the user connected this assistant read-only. Only tools
+	 * that change nothing are registered for it. Optional so test harnesses
+	 * can build an actor without it; absent means full access.
+	 */
+	canWrite?: boolean
 }
 
 /** Per-request context threaded into every tool handler. */

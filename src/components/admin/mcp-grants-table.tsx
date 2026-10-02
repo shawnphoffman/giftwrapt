@@ -49,6 +49,7 @@ export function McpGrantsTable({ grants, onRevoke, busyGrantId = null }: McpGran
 						<TableRow>
 							<TableHead>User</TableHead>
 							<TableHead>Client</TableHead>
+							<TableHead>Access</TableHead>
 							<TableHead>Last Used</TableHead>
 							<TableHead>Expires</TableHead>
 							<TableHead className="w-0" />
@@ -65,6 +66,7 @@ export function McpGrantsTable({ grants, onRevoke, busyGrantId = null }: McpGran
 										<div className="text-xs text-muted-foreground">{grant.userEmail ?? grant.userId ?? ''}</div>
 									</TableCell>
 									<TableCell>{grant.clientName || 'Unnamed client'}</TableCell>
+									<TableCell className="text-muted-foreground">{grant.access === 'read' ? 'Read only' : 'Full'}</TableCell>
 									<TableCell className="text-muted-foreground">{formatRelative(grant.lastUsedAt)}</TableCell>
 									<TableCell className={soon ? 'text-amber-600' : 'text-muted-foreground'}>
 										{formatRelative(grant.refreshTokenExpiresAt)}

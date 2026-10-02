@@ -22,6 +22,7 @@ const grants: Array<OauthGrantRow> = [
 		lastUsedAt: at(-5 * 60 * 1000),
 		accessTokenExpiresAt: at(50 * 60 * 1000),
 		refreshTokenExpiresAt: at(20 * DAY),
+		access: 'write',
 	},
 	{
 		id: 't2',
@@ -35,6 +36,7 @@ const grants: Array<OauthGrantRow> = [
 		lastUsedAt: at(-6 * DAY),
 		accessTokenExpiresAt: at(-6 * DAY + HOUR),
 		refreshTokenExpiresAt: at(2 * DAY),
+		access: 'read',
 	},
 ]
 

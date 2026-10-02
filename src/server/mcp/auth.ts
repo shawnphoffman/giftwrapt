@@ -9,7 +9,7 @@
 import { and, eq, lt, sql } from 'drizzle-orm'
 
 import { db, type SchemaDatabase } from '@/db'
-import { oauthAccessToken, oauthApplication, users } from '@/db/schema'
+import { mcpClientAccess, oauthAccessToken, oauthApplication, users } from '@/db/schema'
 import { isUserBanned } from '@/lib/user-ban'
 
 import type { McpActor } from './context'
@@ -68,6 +68,15 @@ export async function resolveMcpActor(headers: Headers, dbx: SchemaDatabase = db
 	// Settled in plan 20 (F8): a child account cannot drive an AI assistant.
 	if (user.role === 'child') return { ok: false, reason: 'child-not-allowed' }
 
+	// Read-only when the user chose it for this assistant. No row means the
+	// grant predates the choice, which is full access.
+	const access = await dbx
+		.select({ access: mcpClientAccess.access })
+		.from(mcpClientAccess)
+		.where(and(eq(mcpClientAccess.userId, user.id), eq(mcpClientAccess.clientId, row.clientId)))
+		.limit(1)
+	const canWrite = access.at(0)?.access !== 'read'
+
 	// `updatedAt` doubles as "last used" on the admin and connected-apps
 	// screens. Touch it at most once a minute so a chatty client doesn't
 	// turn every tool call into a write.
@@ -88,6 +97,7 @@ export async function resolveMcpActor(headers: Headers, dbx: SchemaDatabase = db
 			clientId: row.clientId,
 			tokenId: row.tokenId,
 			scopes: row.scopes.split(' ').filter(Boolean),
+			canWrite,
 		},
 	}
 }

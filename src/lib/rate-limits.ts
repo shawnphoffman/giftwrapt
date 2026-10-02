@@ -51,16 +51,6 @@ export const scrapeLimiter = createRateLimiter({
 // provider (Go-UPC) and, with the fallback enabled, also the URL
 // scrape pipeline; a tight bound here doubles as a downstream cost
 // cap. 30/min/user is comfortably above a real human scanning items.
-// MCP tool calls per user across every connected AI client. Cost
-// shaping only (each call is a DB round-trip or a scrape); the security
-// controls are the OAuth token and the enableMcp switch. Scrape-backed
-// tools also consume `scrapeLimiter` so they can't sidestep the web cap.
-export const mcpLimiter = createRateLimiter({
-	name: 'mcp',
-	max: 120,
-	windowMs: 60_000,
-})
-
 export const barcodeLookupLimiter = createRateLimiter({
 	name: 'barcode-lookup',
 	max: 30,
@@ -92,5 +82,20 @@ export const fileProxyLimiter = createRateLimiter({
 export const mobileSignInLimiter = createDbRateLimiter({
 	name: 'mobile-sign-in',
 	max: 10,
+	windowMs: 60_000,
+})
+
+// MCP tool calls per user across every connected AI client. Cost shaping
+// (each call is a DB round-trip or a scrape); the security controls are
+// the OAuth token and the enableMcp switch. Database-backed so the
+// per-user budget is one budget: on a serverless deploy every instance
+// would otherwise hand out its own 120, and an assistant fanning out
+// tool calls lands on many instances at once. One upsert per call is
+// cheap next to the call itself. Scrape-backed tools also consume
+// `scrapeLimiter` (in-memory, shared with the web routes) so they cannot
+// sidestep the web cap.
+export const mcpLimiter = createDbRateLimiter({
+	name: 'mcp',
+	max: 120,
 	windowMs: 60_000,
 })

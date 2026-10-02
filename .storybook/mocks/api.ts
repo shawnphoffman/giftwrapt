@@ -414,6 +414,7 @@ export const deleteOauthClientAsAdmin = ok
 // @/api/mcp-grants
 export const listMyConnectedApps = emptyArray
 export const revokeMyConnectedApp = ok
+export const setMyConnectedAppAccess = ok
 
 // @/api/mcp-oauth
 export const fetchOAuthClientInfo = (): Promise<{ enabled: boolean; client: null }> => Promise.resolve({ enabled: true, client: null })

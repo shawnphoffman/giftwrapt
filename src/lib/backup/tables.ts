@@ -104,6 +104,7 @@ export const BACKUP_EXCLUDED_TABLES: Record<string, string> = {
 	oauth_application: AUTH_STATE,
 	oauth_access_token: AUTH_STATE,
 	oauth_consent: AUTH_STATE,
+	mcp_client_access: 'Per-assistant access level; meaningless without the OAuth client rows, which are not backed up.',
 	rate_limit_buckets: 'Ephemeral fixed-window limiter counters.',
 	ai_usage: 'Operator-facing AI call ledger (tokens and estimated cost). Swept after aiUsageRetentionDays.',
 	cron_runs: 'Operator-facing cron run history. Nothing reads it to decide what to do.',

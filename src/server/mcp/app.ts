@@ -84,7 +84,7 @@ mcpApp.post('/', async c => {
 	const auth = await resolveMcpActor(c.req.raw.headers, db, now)
 	if (!auth.ok) return unauthorized(auth.reason)
 
-	const limit = mcpLimiter.consume(`user:${auth.actor.userId}`)
+	const limit = await mcpLimiter.consume(`user:${auth.actor.userId}`)
 	if (!limit.allowed) {
 		const retryAfter = Math.max(1, Math.ceil(limit.retryAfterMs / 1000))
 		return rpcError(429, -32000, 'Too many requests', { 'Retry-After': String(retryAfter) })

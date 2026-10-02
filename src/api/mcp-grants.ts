@@ -5,7 +5,14 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 
-import { type ConnectedAppRow, listMyConnectedAppsImpl, revokeMyConnectedAppImpl, type RevokeResult } from '@/api/_mcp-admin-impl'
+import {
+	type ConnectedAppRow,
+	listMyConnectedAppsImpl,
+	revokeMyConnectedAppImpl,
+	type RevokeResult,
+	type SetAccessResult,
+	setMcpClientAccessImpl,
+} from '@/api/_mcp-admin-impl'
 import { db } from '@/db'
 import { loggingMiddleware } from '@/lib/logger'
 import { getAppSettings } from '@/lib/settings-loader'
@@ -32,4 +39,17 @@ export const revokeMyConnectedApp = createServerFn({ method: 'POST' })
 	.handler(async ({ context, data }): Promise<RevokeResult> => {
 		await ensureMcpEnabled()
 		return revokeMyConnectedAppImpl({ userId: context.session.user.id, clientId: data.clientId })
+	})
+
+const accessInput = z.object({ clientId: z.string().min(1).max(LIMITS.SHORT_ID), access: z.enum(['read', 'write']) })
+
+// What the signed-in user lets one assistant do: look things up only, or
+// also make changes. Called by the consent page just before approving,
+// and by Connected Apps to change it afterwards.
+export const setMyConnectedAppAccess = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: z.infer<typeof accessInput>) => accessInput.parse(data))
+	.handler(async ({ context, data }): Promise<SetAccessResult> => {
+		await ensureMcpEnabled()
+		return setMcpClientAccessImpl({ userId: context.session.user.id, clientId: data.clientId, access: data.access })
 	})

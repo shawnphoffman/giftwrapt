@@ -9,9 +9,10 @@ import {
 	listOauthGrantsImpl,
 	revokeMyConnectedAppImpl,
 	revokeOauthGrantImpl,
+	setMcpClientAccessImpl,
 	setOauthClientDisabledImpl,
 } from '@/api/_mcp-admin-impl'
-import { oauthAccessToken, oauthApplication, oauthConsent } from '@/db/schema'
+import { mcpClientAccess, oauthAccessToken, oauthApplication, oauthConsent } from '@/db/schema'
 
 const DAY = 24 * 60 * 60 * 1000
 
@@ -86,10 +87,26 @@ describe('MCP admin and connected-apps impls', () => {
 			// Connected apps for Alice: one row per client.
 			const apps = await listMyConnectedAppsImpl({ userId: alice.id, now }, tx)
 			expect(apps.map(a => a.clientId).sort()).toEqual(['cid-claude', 'cid-cursor'])
+
+			// Access level: full until the user says otherwise, per user and client.
+			expect(apps.every(a => a.access === 'write')).toBe(true)
+			expect(await setMcpClientAccessImpl({ userId: alice.id, clientId: 'cid-claude', access: 'read', now }, tx)).toEqual({ ok: true })
+			const afterChoice = await listMyConnectedAppsImpl({ userId: alice.id, now }, tx)
+			expect(afterChoice.find(a => a.clientId === 'cid-claude')!.access).toBe('read')
+			expect(afterChoice.find(a => a.clientId === 'cid-cursor')!.access).toBe('write')
+			const adminView = await listOauthGrantsImpl({ now }, tx)
+			expect(adminView.find(g => g.id === 'alice-claude')!.access).toBe('read')
+			expect(adminView.find(g => g.id === 'alice-cursor')!.access).toBe('write')
+			expect(await setMcpClientAccessImpl({ userId: alice.id, clientId: 'cid-nobody', access: 'read', now }, tx)).toEqual({
+				ok: false,
+				reason: 'not-found',
+			})
 			expect(await revokeMyConnectedAppImpl({ userId: alice.id, clientId: 'cid-claude' }, tx)).toEqual({ ok: true })
 			expect((await listMyConnectedAppsImpl({ userId: alice.id, now }, tx)).map(a => a.clientId)).toEqual(['cid-cursor'])
 			const consents = await tx.select({ id: oauthConsent.id }).from(oauthConsent)
 			expect(consents).toHaveLength(0)
+			// Disconnecting forgets the access choice, so reconnecting asks again.
+			expect(await tx.select({ clientId: mcpClientAccess.clientId }).from(mcpClientAccess)).toEqual([])
 			expect(await revokeMyConnectedAppImpl({ userId: alice.id, clientId: 'cid-claude' }, tx)).toEqual({ ok: false, reason: 'not-found' })
 
 			// Disabling a client drops its remaining tokens; deleting it cascades.

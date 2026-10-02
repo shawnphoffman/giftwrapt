@@ -3,6 +3,7 @@ import { Bot, Unplug } from 'lucide-react'
 import type { ConnectedAppRow } from '@/api/_mcp-admin-impl'
 import { CopyButton } from '@/components/common/copy-button'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatRelative } from '@/lib/format-relative'
 import { buildClaudeConnectLink, buildMcpConnectInfo } from '@/lib/mcp-connect'
 
@@ -12,6 +13,8 @@ export type ConnectedAppsPanelProps = {
 	/** The deployment's title, used as the connector name in the Add to Claude link. */
 	appTitle?: string
 	onDisconnect: (app: ConnectedAppRow) => void
+	/** Switch an assistant between read-only and full access. */
+	onAccessChange: (app: ConnectedAppRow, access: ConnectedAppRow['access']) => void
 	busyClientId?: string | null
 	docsHref?: string
 }
@@ -25,6 +28,7 @@ export function ConnectedAppsPanel({
 	origin,
 	appTitle,
 	onDisconnect,
+	onAccessChange,
 	busyClientId = null,
 	docsHref = 'https://giftwrapt.dev/features/ai-assistants/',
 }: ConnectedAppsPanelProps) {
@@ -64,11 +68,11 @@ export function ConnectedAppsPanel({
 				) : (
 					<ul className="space-y-2">
 						{apps.map(app => (
-							<li key={app.clientId} className="flex items-center gap-4 rounded-lg border bg-card px-4 py-3">
+							<li key={app.clientId} className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border bg-card px-4 py-3">
 								<div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
 									<Bot className="size-5" />
 								</div>
-								<div className="min-w-0 flex-1">
+								<div className="min-w-40 flex-1">
 									<div className="truncate font-medium">{app.clientName || 'Unnamed assistant'}</div>
 									<div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
 										<span>Connected {formatRelative(app.connectedAt)}</span>
@@ -76,16 +80,32 @@ export function ConnectedAppsPanel({
 										{app.expiresAt ? <span>Signs out {formatRelative(app.expiresAt)} unless used</span> : null}
 									</div>
 								</div>
-								<Button
-									variant="outline"
-									size="sm"
-									disabled={busyClientId === app.clientId}
-									onClick={() => onDisconnect(app)}
-									aria-label={`Disconnect ${app.clientName || 'assistant'}`}
-									className="text-muted-foreground hover:text-destructive"
-								>
-									<Unplug className="size-4" />
-								</Button>
+								{/* Wraps under the details on a narrow screen instead of squeezing them. */}
+								<div className="ml-auto flex items-center gap-2">
+									<Select
+										value={app.access}
+										disabled={busyClientId === app.clientId}
+										onValueChange={value => onAccessChange(app, value as ConnectedAppRow['access'])}
+									>
+										<SelectTrigger size="sm" className="w-auto shrink-0" aria-label={`What ${app.clientName || 'this assistant'} may do`}>
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="write">Can Make Changes</SelectItem>
+											<SelectItem value="read">Read Only</SelectItem>
+										</SelectContent>
+									</Select>
+									<Button
+										variant="outline"
+										size="sm"
+										disabled={busyClientId === app.clientId}
+										onClick={() => onDisconnect(app)}
+										aria-label={`Disconnect ${app.clientName || 'assistant'}`}
+										className="text-muted-foreground hover:text-destructive"
+									>
+										<Unplug className="size-4" />
+									</Button>
+								</div>
 							</li>
 						))}
 					</ul>

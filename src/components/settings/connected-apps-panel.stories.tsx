@@ -17,6 +17,7 @@ const apps: Array<ConnectedAppRow> = [
 		lastUsedAt: at(-30 * 60 * 1000),
 		activeTokens: 2,
 		expiresAt: at(18 * DAY),
+		access: 'write',
 	},
 	{
 		clientId: 'cid_cursor',
@@ -26,6 +27,7 @@ const apps: Array<ConnectedAppRow> = [
 		lastUsedAt: null,
 		activeTokens: 1,
 		expiresAt: at(28 * DAY),
+		access: 'read',
 	},
 ]
 
@@ -33,7 +35,7 @@ const meta = {
 	title: 'Settings/ConnectedAppsPanel',
 	component: ConnectedAppsPanel,
 	parameters: { layout: 'padded' },
-	args: { apps, origin: 'https://gifts.example.com', appTitle: 'The Smith Family', onDisconnect: () => {} },
+	args: { apps, origin: 'https://gifts.example.com', appTitle: 'The Smith Family', onDisconnect: () => {}, onAccessChange: () => {} },
 	decorators: [
 		Story => (
 			<div className="max-w-2xl">

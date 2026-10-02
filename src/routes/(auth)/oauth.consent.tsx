@@ -2,8 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 
+import { setMyConnectedAppAccess } from '@/api/mcp-grants'
 import { fetchOAuthClientInfo } from '@/api/mcp-oauth'
-import { OAuthConsentCard, type OAuthConsentState } from '@/components/auth/oauth-consent-card'
+import { type ConsentAccess, OAuthConsentCard, type OAuthConsentState } from '@/components/auth/oauth-consent-card'
 import { authClient, useSession } from '@/lib/auth-client'
 
 // The better-auth `mcp()` plugin redirects here with
@@ -56,8 +57,21 @@ function OAuthConsentPage() {
 	else if (info && info.enabled && !info.client) state = 'expired'
 	else if (!sessionPending && !infoPending && info) state = 'ready'
 
-	const onDecision = async (accept: boolean): Promise<boolean> => {
+	const onDecision = async (accept: boolean, access: ConsentAccess): Promise<boolean> => {
 		setError(null)
+		// Record what the assistant may do before the grant exists, so its
+		// first request is already held to the choice. If this fails the
+		// connection is not approved: a read-only choice must never fall
+		// through to full access.
+		if (accept && clientId) {
+			try {
+				const saved = await setMyConnectedAppAccess({ data: { clientId, access } })
+				if (!saved.ok) throw new Error(saved.reason)
+			} catch {
+				setError("Couldn't save your choice. Start again from your AI assistant.")
+				return false
+			}
+		}
 		const { data, error: err } = await authClient.$fetch<{ redirectURI: string }>('/oauth2/consent', {
 			method: 'POST',
 			body: { accept, consent_code: consentCode },

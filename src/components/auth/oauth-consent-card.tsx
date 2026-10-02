@@ -4,6 +4,8 @@ import { useState } from 'react'
 import Loading from '@/components/loading'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 
 export type OAuthConsentState =
 	// Waiting on the client lookup.
@@ -30,14 +32,29 @@ export type OAuthConsentCardProps = {
 	 * to the client's redirect URI (the buttons then stay disabled until the
 	 * page unloads), `false` when the call failed and the user may retry.
 	 */
-	onDecision?: (accept: boolean) => Promise<boolean>
+	onDecision?: (accept: boolean, access: ConsentAccess) => Promise<boolean>
 	signInHref?: string
 }
 
-const ACCESS_POINTS = [
-	'See and edit your lists and items',
-	'See lists shared with you and claim gifts on them',
-	'Act as you, with exactly the access you have, but never as an admin',
+/** What the user lets the assistant do. Matches `McpAccessLevel`. */
+export type ConsentAccess = 'read' | 'write'
+
+const ACCESS_POINTS: Record<ConsentAccess, Array<string>> = {
+	write: [
+		'See and edit your lists and items',
+		'See lists shared with you and claim gifts on them',
+		'Act as you, with exactly the access you have, but never as an admin',
+	],
+	read: [
+		'See your lists and items, but not change them',
+		'See lists shared with you, including what is already claimed, but not claim anything',
+		'See what you see, and nothing an admin sees',
+	],
+}
+
+const ACCESS_CHOICES: Array<{ value: ConsentAccess; label: string; hint: string }> = [
+	{ value: 'write', label: 'Read and Make Changes', hint: 'It can add items, claim gifts, and edit lists when you ask.' },
+	{ value: 'read', label: 'Read Only', hint: 'It can answer questions but cannot change anything.' },
 ]
 
 /**
@@ -54,6 +71,7 @@ export function OAuthConsentCard({
 	signInHref = '/sign-in',
 }: OAuthConsentCardProps) {
 	const [submitting, setSubmitting] = useState<'accept' | 'deny' | null>(null)
+	const [access, setAccess] = useState<ConsentAccess>('write')
 	const name = clientName?.trim() || 'An AI assistant'
 
 	const decide = async (accept: boolean) => {
@@ -61,7 +79,7 @@ export function OAuthConsentCard({
 		setSubmitting(accept ? 'accept' : 'deny')
 		let handedOff = false
 		try {
-			handedOff = await onDecision(accept)
+			handedOff = await onDecision(accept, access)
 		} finally {
 			// A successful decision ends in `window.location.assign`, which
 			// resolves long before the navigation lands. Re-enabling the
@@ -92,9 +110,30 @@ export function OAuthConsentCard({
 					) : null}
 					{state === 'ready' ? (
 						<>
+							<RadioGroup
+								value={access}
+								onValueChange={value => setAccess(value as ConsentAccess)}
+								disabled={submitting !== null}
+								aria-label="What this assistant may do"
+								className="gap-2"
+							>
+								{ACCESS_CHOICES.map(choice => (
+									<Label
+										key={choice.value}
+										htmlFor={`consent-access-${choice.value}`}
+										className="flex cursor-pointer items-start gap-3 rounded-md border p-3 font-normal has-data-checked:border-primary"
+									>
+										<RadioGroupItem id={`consent-access-${choice.value}`} value={choice.value} className="mt-0.5" />
+										<span className="space-y-0.5">
+											<span className="block text-sm font-medium">{choice.label}</span>
+											<span className="block text-xs text-muted-foreground">{choice.hint}</span>
+										</span>
+									</Label>
+								))}
+							</RadioGroup>
 							<p className="text-sm text-muted-foreground">If you allow this, {name} will be able to:</p>
 							<ul className="space-y-2 text-sm">
-								{ACCESS_POINTS.map(point => (
+								{ACCESS_POINTS[access].map(point => (
 									<li key={point} className="flex gap-2">
 										<ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
 										<span>{point}</span>
@@ -102,8 +141,8 @@ export function OAuthConsentCard({
 								))}
 							</ul>
 							<p className="text-xs text-muted-foreground">
-								You will be asked again the next time this assistant reconnects. You can disconnect it at any time from Settings → Connected
-								Apps.
+								You will be asked again the next time this assistant reconnects. You can change this choice or disconnect it at any time
+								from Settings → Connected Apps.
 							</p>
 						</>
 					) : null}

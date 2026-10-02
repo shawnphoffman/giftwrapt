@@ -134,6 +134,13 @@
       "when": 1790985904053,
       "tag": "0018_ai_usage_source",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1790985934703,
+      "tag": "0019_mcp_client_access",
+      "breakpoints": true
     }
   ]
 }

@@ -6,9 +6,11 @@ import { eq } from 'drizzle-orm'
 import type { Logger } from 'pino'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { setMcpClientAccessImpl } from '@/api/_mcp-admin-impl'
 import { db } from '@/db'
-import { users } from '@/db/schema'
+import { lists, oauthApplication, users } from '@/db/schema'
 import type * as loggerModule from '@/lib/logger'
+import { createDbRateLimiter } from '@/lib/rate-limit-db'
 import { mcpLimiter } from '@/lib/rate-limits'
 
 import { mcpApp } from '../app'
@@ -47,7 +49,7 @@ async function call(body: string, bearer: string | null, headers: Record<string,
 
 describe('/api/mcp endpoint', () => {
 	beforeEach(async () => {
-		mcpLimiter._resetForTesting()
+		await mcpLimiter._resetForTesting()
 		await setMcpEnabled(true)
 		const user = await makeUser(db, { name: 'Endpoint User' })
 		userId = user.id
@@ -243,5 +245,59 @@ describe('/api/mcp endpoint', () => {
 		for (let i = 0; i < 121; i++) last = await call(rpc('initialize', INITIALIZE_PARAMS, i + 1), token)
 		expect(last!.status).toBe(429)
 		expect(last!.headers.get('retry-after')).toBeTruthy()
+	})
+
+	it('a read-only connection lists only lookup tools and cannot be made to write', async () => {
+		const listNames = async (): Promise<Array<string>> => {
+			const res = await call(rpc('tools/list', {}, 2), token)
+			const body = (await res.json()) as { result: { tools: Array<{ name: string; annotations?: { readOnlyHint?: boolean } }> } }
+			return body.result.tools.map(t => t.name)
+		}
+		// No access row: a grant from before the choice existed has full access.
+		expect(await listNames()).toContain('add_item')
+
+		const [app] = await db.select({ clientId: oauthApplication.clientId }).from(oauthApplication).limit(1)
+		expect(await setMcpClientAccessImpl({ userId, clientId: app.clientId, access: 'read' })).toEqual({ ok: true })
+
+		const names = await listNames()
+		expect(names).toContain('get_me')
+		expect(names).toContain('get_gift_context')
+		for (const write of ['add_item', 'claim_item', 'delete_list', 'update_item', 'refresh_recommendations'])
+			expect(names, write).not.toContain(write)
+
+		// The instructions tell the model why, and where the user can change it.
+		const init = await call(rpc('initialize', INITIALIZE_PARAMS, 3), token)
+		const initBody = (await init.json()) as { result: { instructions: string } }
+		expect(initBody.result.instructions).toMatch(/read-only/u)
+
+		// Forcing a write tool by name fails; nothing is created.
+		const forced = await call(rpc('tools/call', { name: 'create_list', arguments: { name: 'Sneaky', type: 'wishlist' } }, 4), token)
+		const forcedBody = (await forced.json()) as { error?: { message: string }; result?: { isError?: boolean } }
+		expect(forcedBody.error ?? forcedBody.result?.isError).toBeTruthy()
+		expect(await db.select({ id: lists.id }).from(lists).where(eq(lists.ownerId, userId))).toEqual([])
+
+		// A read tool still works, and switching back restores everything at once.
+		const me = await call(rpc('tools/call', { name: 'get_me', arguments: {} }, 5), token)
+		expect(((await me.json()) as { result: { isError?: boolean } }).result.isError).toBeFalsy()
+		await setMcpClientAccessImpl({ userId, clientId: app.clientId, access: 'write' })
+		expect(await listNames()).toContain('add_item')
+	})
+
+	it('the per-user budget is shared across instances, not per process', async () => {
+		// Two limiter objects stand in for two app instances. Both count
+		// against the same stored bucket, so together they allow `max`, not
+		// `max` each.
+		const instanceA = createDbRateLimiter({ name: 'mcp-shared-test', max: 4, windowMs: 60_000 })
+		const instanceB = createDbRateLimiter({ name: 'mcp-shared-test', max: 4, windowMs: 60_000 })
+		await instanceA._resetForTesting()
+		try {
+			const results: Array<boolean> = []
+			for (let i = 0; i < 6; i++) results.push((await (i % 2 ? instanceB : instanceA).consume('user:u1')).allowed)
+			expect(results).toEqual([true, true, true, true, false, false])
+			// A different user has their own budget.
+			expect((await instanceB.consume('user:u2')).allowed).toBe(true)
+		} finally {
+			await instanceA._resetForTesting()
+		}
 	})
 })

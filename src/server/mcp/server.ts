@@ -40,6 +40,9 @@ const INSTRUCTIONS = [
 	'Ids are stable: use the numeric list and item ids the tools return.',
 ].join('\n')
 
+const READ_ONLY_INSTRUCTIONS =
+	'This connection is read-only: the user chose not to let this assistant change anything, so only lookup tools are available. If the user asks for a change, tell them they can switch this assistant to full access in GiftWrapt under Settings, Connected Apps.'
+
 export type ToolSpec<TIn extends ZodRawShape, TOut extends ZodRawShape> = {
 	name: string
 	title: string
@@ -73,6 +76,10 @@ export function defineTool<TIn extends ZodRawShape, TOut extends ZodRawShape>(
 			ctx.log.info({ tool: spec.name, outcome, ms, clientId: ctx.actor.clientId }, 'mcp tool call')
 		}
 	}
+	// A read-only connection never sees a tool that changes something: the
+	// model cannot call what is not registered, and a client that forces
+	// the call gets the SDK's unknown-tool error.
+	if (ctx.actor.canWrite === false && !spec.annotations.readOnlyHint) return
 	ctx.tools ??= new Map()
 	ctx.tools.set(spec.name, wrapped as (args: Record<string, unknown>) => Promise<CallToolResult>)
 	server.registerTool(
@@ -91,7 +98,8 @@ export function defineTool<TIn extends ZodRawShape, TOut extends ZodRawShape>(
 }
 
 export function createMcpServer(ctx: ToolContext): McpServer {
-	const server = new McpServer({ name: MCP_SERVER_NAME, version: BUILD_INFO.version }, { instructions: INSTRUCTIONS })
+	const instructions = ctx.actor.canWrite === false ? `${INSTRUCTIONS}\n${READ_ONLY_INSTRUCTIONS}` : INSTRUCTIONS
+	const server = new McpServer({ name: MCP_SERVER_NAME, version: BUILD_INFO.version }, { instructions })
 	registerMeTools(server, ctx)
 	registerListTools(server, ctx)
 	registerListMutationTools(server, ctx)

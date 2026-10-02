@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import type { ConnectedAppRow } from '@/api/_mcp-admin-impl'
-import { listMyConnectedApps, revokeMyConnectedApp } from '@/api/mcp-grants'
+import { listMyConnectedApps, revokeMyConnectedApp, setMyConnectedAppAccess } from '@/api/mcp-grants'
 import { fetchAppSettings } from '@/api/settings'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { ConnectedAppsPanel } from '@/components/settings/connected-apps-panel'
@@ -34,8 +34,8 @@ function ConnectedAppsPage() {
 			<CardHeader>
 				<CardTitle className="text-2xl">Connected Apps</CardTitle>
 				<CardDescription>
-					AI assistants you have connected to your account. Each one acts as you, with the access you have, and can be disconnected here at
-					any time.
+					AI assistants you have connected to your account. Each one acts as you, with the access you have. You can make one read-only or
+					disconnect it here at any time.
 				</CardDescription>
 			</CardHeader>
 			<CardContent>
@@ -63,6 +63,14 @@ function Panel() {
 		},
 	})
 
+	const changeAccess = useMutation({
+		mutationFn: (vars: { app: ConnectedAppRow; access: ConnectedAppRow['access'] }) =>
+			setMyConnectedAppAccess({ data: { clientId: vars.app.clientId, access: vars.access } }),
+		onSuccess: (_result, vars) => toast.success(vars.access === 'read' ? 'Assistant is now read-only' : 'Assistant can now make changes'),
+		onError: err => toast.error(err instanceof Error ? err.message : 'Could not change access'),
+		onSettled: () => queryClient.invalidateQueries({ queryKey: appsKey }),
+	})
+
 	if (isLoading || !apps) return <LoadingSkeleton />
 	return (
 		<>
@@ -70,8 +78,11 @@ function Panel() {
 				apps={apps}
 				origin={window.location.origin}
 				appTitle={appTitle}
-				busyClientId={disconnect.isPending ? (target?.clientId ?? null) : null}
+				busyClientId={
+					disconnect.isPending ? (target?.clientId ?? null) : changeAccess.isPending ? changeAccess.variables.app.clientId : null
+				}
 				onDisconnect={app => setTarget(app)}
+				onAccessChange={(app, access) => changeAccess.mutate({ app, access })}
 			/>
 			<ConfirmDialog
 				open={target !== null}
