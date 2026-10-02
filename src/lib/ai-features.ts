@@ -84,14 +84,15 @@ export const AI_FEATURE_REGISTRY: ReadonlyArray<AiFeatureInfo> = [
 		id: 'gift-suggestions',
 		label: 'Gift Suggestions',
 		description:
-			'Adds a Need Ideas? button to other people’s lists. It asks for a budget, then shows the best of what is still open on the list (no AI) and new gift ideas based on that person’s lists (AI). The AI runs only when a user asks, and never for a child account. Off removes the button.',
+			'Adds a Need ideas? button to other people’s lists. It asks for a budget, then shows the best of what is still open on the list (no AI) and new gift ideas based on that person’s lists (AI). The AI runs only when a user asks, and never for a child account. Off removes the button.',
 		settingKey: 'aiGiftSuggestionsEnabled',
 		sent: [
 			'The first name of the person the gift is for',
 			'Titles, prices, priorities, and categories of the items on that person’s lists that the user asking can already see',
 			'For each of those items, whether it is already claimed (yes or no only)',
 			'The asking user’s own private gift ideas for that person, and the titles of gifts they already gave them',
-			'The occasion and the budget, when given',
+			'The occasion, taken from the type of list being viewed (a Christmas list, a birthday list, a holiday list)',
+			'The budget, when the user gives one',
 		],
 		neverSent: [
 			'Who claimed anything, what anyone paid, and claim notes',

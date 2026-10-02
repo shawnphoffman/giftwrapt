@@ -15,7 +15,7 @@ import { getGiftContextImpl, getWishlistViewImpl } from '@/api/_gift-context-imp
 import { createItemImpl } from '@/api/_items-impl'
 import { createListImpl } from '@/api/_lists-impl'
 import { db, type SchemaDatabase } from '@/db'
-import { type BirthMonth, birthMonthEnumValues, itemAiAnalysis, lists } from '@/db/schema'
+import { type BirthMonth, birthMonthEnumValues, customHolidays, itemAiAnalysis, lists } from '@/db/schema'
 import { AiBudgetExceededError, aiGenerateObject } from '@/lib/ai-call'
 import { createAiModel } from '@/lib/ai-client'
 import { resolveAiConfig } from '@/lib/ai-config'
@@ -35,7 +35,6 @@ const log = createLogger('gift-suggestions')
 export const GiftSuggestionsInputSchema = z.object({
 	listId: z.number().int().positive(),
 	budget: z.number().positive().max(100_000).optional(),
-	occasion: z.string().trim().max(80).optional(),
 })
 
 export type SuggestedGift = GiftSuggestion
@@ -71,6 +70,30 @@ function daysUntil(month: BirthMonth | null, day: number | null, now: Date): num
 }
 
 const BIRTHDAY_SOON_DAYS = 60
+
+// The occasion comes from the list the user is standing on, never from a
+// question: a Christmas list means Christmas, a birthday list a birthday,
+// a holiday list its holiday. A plain wishlist has no occasion of its own,
+// so it only counts as a birthday gift when the birthday is close.
+async function occasionForList(args: {
+	listId: number
+	listType: string
+	birthdayIn: number | null
+	dbx: SchemaDatabase
+}): Promise<string | null> {
+	if (args.listType === 'christmas') return 'Christmas'
+	if (args.listType === 'birthday') return 'birthday'
+	if (args.listType === 'holiday') {
+		const rows = await args.dbx
+			.select({ title: customHolidays.title })
+			.from(lists)
+			.innerJoin(customHolidays, eq(customHolidays.id, lists.customHolidayId))
+			.where(eq(lists.id, args.listId))
+			.limit(1)
+		return rows.at(0)?.title ?? null
+	}
+	return args.birthdayIn !== null && args.birthdayIn <= BIRTHDAY_SOON_DAYS ? 'birthday' : null
+}
 
 export async function getGiftSuggestionsImpl(args: {
 	actor: { id: string; isChild: boolean }
@@ -114,8 +137,7 @@ export async function getGiftSuggestionsImpl(args: {
 	const categoryOf = new Map(facets.map(f => [f.itemId, f.category]))
 
 	const birthdayIn = daysUntil(c.person.birthMonth, c.person.birthDay, now)
-	const occasion =
-		input.occasion || (birthdayIn !== null && birthdayIn <= BIRTHDAY_SOON_DAYS ? 'birthday' : (c.upcomingHolidays.at(0)?.title ?? null))
+	const occasion = await occasionForList({ listId: input.listId, listType: view.view.list.type, birthdayIn, dbx })
 
 	const myIdeas = c.myGiftIdeas.flatMap(s => s.ideas.map(i => i.title))
 	const myPastGifts = c.myPastGifts.map(g => g.title)

@@ -9,7 +9,7 @@ import { and, eq, inArray } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { db } from '@/db'
-import { aiUsage, appSettings, itemAiAnalysis, items, lists, users } from '@/db/schema'
+import { aiUsage, appSettings, customHolidays, itemAiAnalysis, items, lists, users } from '@/db/schema'
 
 let currentModel: MockLanguageModelV3
 let aiValid = true
@@ -146,6 +146,43 @@ describe('gift suggestions', () => {
 		// One ledger row, labelled, for the asking user.
 		const rows = await db.select().from(aiUsage).where(eq(aiUsage.feature, 'gift-suggestions'))
 		expect(rows).toMatchObject([{ userId: me.id, source: 'web', outcome: 'ok' }])
+	})
+
+	it('takes the occasion from the type of list, not from the user', async () => {
+		const { me, sam } = await seed()
+		const captured: Captured = { prompt: '' }
+		currentModel = mockModel(SUGGESTIONS, captured)
+		const ask = async (listId: number) => {
+			await getGiftSuggestionsImpl({ actor: { id: me.id, isChild: false }, input: { listId }, now })
+			return captured.prompt
+		}
+
+		const christmas = await makeList(db, { ownerId: sam.id, name: 'Sam Xmas', type: 'christmas' })
+		await makeItem(db, { listId: christmas.id, title: 'Slippers' })
+		expect(await ask(christmas.id)).toContain('Occasion: Christmas')
+
+		const birthday = await makeList(db, { ownerId: sam.id, name: 'Sam Bday', type: 'birthday' })
+		await makeItem(db, { listId: birthday.id, title: 'Cake Stand' })
+		expect(await ask(birthday.id)).toContain('Occasion: birthday')
+
+		const [holiday] = await db
+			.insert(customHolidays)
+			.values({ title: 'Graduation', source: 'custom', customMonth: 6, customDay: 1 })
+			.returning()
+		const holidayList = await makeList(db, { ownerId: sam.id, name: 'Sam Grad', type: 'holiday', customHolidayId: holiday.id })
+		await makeItem(db, { listId: holidayList.id, title: 'Pen' })
+		try {
+			expect(await ask(holidayList.id)).toContain('Occasion: Graduation')
+		} finally {
+			await db.delete(customHolidays).where(eq(customHolidays.id, holiday.id))
+		}
+
+		// A plain wishlist has no occasion unless the birthday is close.
+		const wishlist = await makeList(db, { ownerId: sam.id, name: 'Sam Anytime' })
+		await makeItem(db, { listId: wishlist.id, title: 'Notebook' })
+		expect(await ask(wishlist.id)).toContain('Occasion: none given')
+		await db.update(users).set({ birthMonth: 'october', birthDay: 20 }).where(eq(users.id, sam.id))
+		expect(await ask(wishlist.id)).toContain('Occasion: birthday')
 	})
 
 	it('is off by default, needs a provider, and refuses a child', async () => {

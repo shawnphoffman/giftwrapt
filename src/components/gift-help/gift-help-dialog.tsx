@@ -19,7 +19,8 @@ import { listDetailKeys } from '@/lib/queries/lists'
 
 // Help for a gifter looking at someone else's list (plan 25). A "Need
 // Ideas?" button in the list's filter row opens a dialog that first asks
-// for a budget and an occasion, then shows two kinds of answer:
+// for a budget, then shows two kinds of answer (the occasion is taken
+// from the type of list, so there is nothing to ask):
 //
 // - From their list: the best few things still open, ranked in the
 //   browser from the items the page already has. No AI call.
@@ -97,12 +98,10 @@ export type GiftHelpDialogViewProps = {
 	onOpenChange: (open: boolean) => void
 	recipientName: string
 	interests: Array<{ category: string; count: number }>
-	// 'form' asks for the budget and occasion; 'results' shows the answers.
+	// 'form' asks for the budget; 'results' shows the answers.
 	step: 'form' | 'results'
 	budget: string
 	onBudgetChange: (value: string) => void
-	occasion: string
-	onOccasionChange: (value: string) => void
 	onSubmit: () => void
 	onBack: () => void
 	picks: Array<Pick>
@@ -125,8 +124,6 @@ export function GiftHelpDialogView({
 	step,
 	budget,
 	onBudgetChange,
-	occasion,
-	onOccasionChange,
 	onSubmit,
 	onBack,
 	picks,
@@ -161,31 +158,20 @@ export function GiftHelpDialogView({
 							onSubmit()
 						}}
 					>
-						<div className="grid gap-4 sm:grid-cols-2">
-							<div className="grid gap-2">
-								<Label htmlFor="gift-help-budget">Budget (Optional)</Label>
-								<Input
-									id="gift-help-budget"
-									type="number"
-									inputMode="decimal"
-									min={0}
-									step="1"
-									placeholder="Any amount"
-									value={budget}
-									onChange={e => onBudgetChange(e.target.value)}
-									autoFocus
-								/>
-							</div>
-							<div className="grid gap-2">
-								<Label htmlFor="gift-help-occasion">Occasion (Optional)</Label>
-								<Input
-									id="gift-help-occasion"
-									maxLength={80}
-									placeholder="Birthday, Christmas, just because"
-									value={occasion}
-									onChange={e => onOccasionChange(e.target.value)}
-								/>
-							</div>
+						<div className="grid gap-2">
+							<Label htmlFor="gift-help-budget">Budget (Optional)</Label>
+							<Input
+								id="gift-help-budget"
+								type="number"
+								inputMode="decimal"
+								min={0}
+								step="1"
+								placeholder="Any amount"
+								value={budget}
+								onChange={e => onBudgetChange(e.target.value)}
+								className="sm:w-48"
+								autoFocus
+							/>
 						</div>
 						{suggestionsAvailable && (
 							<p className="text-xs text-muted-foreground">
@@ -314,7 +300,6 @@ export function GiftHelpButton({
 	const [open, setOpen] = useState(false)
 	const [step, setStep] = useState<'form' | 'results'>('form')
 	const [budget, setBudget] = useState('')
-	const [occasion, setOccasion] = useState('')
 	const [picks, setPicks] = useState<Array<Pick>>([])
 	const [suggestions, setSuggestions] = useState<SuggestionsState>({ phase: 'idle' })
 	const [savedTitles, setSavedTitles] = useState<ReadonlySet<string>>(() => new Set())
@@ -331,8 +316,7 @@ export function GiftHelpButton({
 	const suggestionsAvailable = session?.user.isChild !== true
 
 	const ask = useMutation({
-		mutationFn: () =>
-			getGiftSuggestions({ data: { listId, budget: parseBudget(budget) ?? undefined, occasion: occasion.trim() || undefined } }),
+		mutationFn: () => getGiftSuggestions({ data: { listId, budget: parseBudget(budget) ?? undefined } }),
 		onMutate: () => setSuggestions({ phase: 'loading' }),
 		onSuccess: result => {
 			if (result.kind === 'ok') setSuggestions({ phase: 'done', suggestions: result.suggestions })
@@ -365,9 +349,15 @@ export function GiftHelpButton({
 
 	return (
 		<>
-			<Button variant="outline" size="xs" className="h-7 text-xs" onClick={() => setOpen(true)}>
-				<Sparkles className="size-3.5" />
-				Need Ideas?
+			{/* The amber / pink / fuchsia wash is the app's AI accent (see the
+			    Intelligence nav link), so the button reads as AI without an icon. */}
+			<Button
+				variant="outline"
+				size="xs"
+				className="h-7 border-fuchsia-500/30 bg-linear-to-r from-amber-500/10 via-pink-500/10 to-fuchsia-500/10 text-xs text-fuchsia-700 hover:from-amber-500/20 hover:via-pink-500/20 hover:to-fuchsia-500/20 hover:text-fuchsia-700 dark:text-fuchsia-300 dark:hover:text-fuchsia-200"
+				onClick={() => setOpen(true)}
+			>
+				Need ideas?
 			</Button>
 			<GiftHelpDialogView
 				open={open}
@@ -381,8 +371,6 @@ export function GiftHelpButton({
 				step={step}
 				budget={budget}
 				onBudgetChange={setBudget}
-				occasion={occasion}
-				onOccasionChange={setOccasion}
 				onSubmit={() => {
 					setPicks(rankPicks(pickItems, groups, { budget: parseBudget(budget) }))
 					setStep('results')
