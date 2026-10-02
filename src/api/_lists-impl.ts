@@ -30,13 +30,13 @@ import { loadArchiveBannerInfo } from '@/lib/archive-schedule-loader'
 import { customHolidayDisplayDate } from '@/lib/custom-holidays'
 import { computeListItemCounts } from '@/lib/gifts'
 import { visibleItemsWhere } from '@/lib/item-visibility'
+import { notifyListEvent } from '@/lib/list-event-bus'
 import { listsCreatedTotal } from '@/lib/observability/metrics'
 import { userHasPendingDeletionClaimOnList } from '@/lib/orphan-claims'
 import { canEditList, canViewList, getViewerAccessLevelForList } from '@/lib/permissions'
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
 import { isListTypeDisabled } from '@/lib/settings'
 import { getAppSettings } from '@/lib/settings-loader'
-import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 
 // =====================================================================
 // Public types

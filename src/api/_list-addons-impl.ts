@@ -9,12 +9,12 @@ import { db, type SchemaDatabase } from '@/db'
 import { listAddons, lists } from '@/db/schema'
 import type { ListAddon } from '@/db/schema/lists'
 import { httpsUpgradeOrNull } from '@/lib/image-url'
+import { notifyListEvent } from '@/lib/list-event-bus'
 import { canViewList } from '@/lib/permissions'
 import { getAppSettings } from '@/lib/settings-loader'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { mirrorRemoteImageForAddon } from '@/lib/storage/mirror'
 import { LIMITS } from '@/lib/validation/limits'
-import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 
 // ===============================
 // Public types

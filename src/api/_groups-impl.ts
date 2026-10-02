@@ -12,8 +12,8 @@ import { giftedItems, itemComments, itemGroups, items, lists } from '@/db/schema
 import { type GroupType, groupTypeEnumValues, type ListType, type Priority, priorityEnumValues } from '@/db/schema/enums'
 import type { ItemGroup } from '@/db/schema/items'
 import { visibleItemsWhere } from '@/lib/item-visibility'
+import { notifyListEvent } from '@/lib/list-event-bus'
 import { canEditList } from '@/lib/permissions'
-import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 
 // ===============================
 // Public types

@@ -15,7 +15,7 @@ vi.mock('@/lib/scrapers/run', () => ({
 
 // Stub the SSE notifier to avoid pulling in the full route module (which
 // imports from server-only paths in some bundler contexts).
-vi.mock('@/routes/api/sse/list.$listId', () => ({
+vi.mock('@/lib/list-event-bus', () => ({
 	notifyListEvent: vi.fn(),
 }))
 

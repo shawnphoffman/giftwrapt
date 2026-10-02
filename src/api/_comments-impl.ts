@@ -22,11 +22,11 @@ import {
 } from '@/lib/comment-mentions-server'
 import { getGuardianRecipients } from '@/lib/guardian-emails'
 import { visibleItemsWhere } from '@/lib/item-visibility'
+import { notifyListEvent } from '@/lib/list-event-bus'
 import { createLogger } from '@/lib/logger'
 import { canViewListAsAnyone } from '@/lib/permissions'
 import { sendNewCommentEmail } from '@/lib/resend'
 import { getAppSettings } from '@/lib/settings-loader'
-import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 
 const commentsLog = createLogger('api:comments')
 

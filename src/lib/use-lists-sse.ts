@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 
-import type { ListEvent } from '@/routes/api/sse/list.$listId'
+import type { ListEvent } from '@/lib/list-event-audience'
 
 /**
  * Subscribes to the "any list changed" SSE channel and invalidates the

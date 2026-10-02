@@ -1,7 +1,7 @@
 import { useRouter } from '@tanstack/react-router'
 import { useEffect } from 'react'
 
-import type { ListEvent } from '@/routes/api/sse/list.$listId'
+import type { ListEvent } from '@/lib/list-event-audience'
 
 type DispatchDeps = {
 	router: { invalidate: () => void | Promise<unknown> }

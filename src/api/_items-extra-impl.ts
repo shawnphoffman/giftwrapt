@@ -15,6 +15,7 @@ import type { GiftedItem } from '@/db/schema/gifts'
 import type { Item } from '@/db/schema/items'
 import { buildGifterUnits, type GifterUnit, type GifterUserMeta } from '@/lib/gifter-units'
 import { visibleItemsWhere } from '@/lib/item-visibility'
+import { notifyListEvent } from '@/lib/list-event-bus'
 import { isCrossTypeMoveDestructive, SPOILER_PROTECTED_TYPES } from '@/lib/list-type-moves'
 import { itemsArchivedTotal, revealsTriggeredTotal } from '@/lib/observability/metrics'
 import { canEditListAsAnyone, canViewList, canViewListAsAnyone, getViewerAccessLevelForList } from '@/lib/permissions'
@@ -22,7 +23,6 @@ import { filterItemsForRestricted } from '@/lib/restricted-filter'
 import { type RevealedPurchases, revealListPurchases } from '@/lib/reveal'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { getVendorFromUrl } from '@/lib/urls'
-import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 
 // Re-exported for callers that already import from this module (mirrors
 // the previous local definition). The predicate itself lives in

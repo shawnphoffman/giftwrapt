@@ -2,9 +2,9 @@ import { type QueryClient, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
 import { useEffect } from 'react'
 
+import type { ListEvent } from '@/lib/list-event-audience'
 import { itemsKeys } from '@/lib/queries/items'
 import { listDetailKeys } from '@/lib/queries/lists'
-import type { ListEvent } from '@/routes/api/sse/list.$listId'
 
 /**
  * Per-list SSE subscriber, parameterized by which surface is mounting it.

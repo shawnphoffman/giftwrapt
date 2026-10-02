@@ -1,9 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 import { auth } from '@/lib/auth'
+import { addAnyListSubscriber, removeAnyListSubscriber } from '@/lib/list-event-bus'
 import { createLogger } from '@/lib/logger'
-
-import { registerAnyListWriter, unregisterAnyListWriter } from './list.$listId'
 
 const sseLog = createLogger('sse:any-list')
 
@@ -28,7 +27,7 @@ export const Route = createFileRoute('/api/sse/lists')({
 
 				const { readable, writable } = new TransformStream<Uint8Array>()
 				const writer = writable.getWriter()
-				registerAnyListWriter(writer, session.user.id)
+				addAnyListSubscriber(writer, session.user.id)
 
 				sseLog.debug({ userId: session.user.id }, 'sse any-list client connected')
 
@@ -47,7 +46,7 @@ export const Route = createFileRoute('/api/sse/lists')({
 				request.signal.addEventListener('abort', () => {
 					sseLog.debug({ userId: session.user.id }, 'sse any-list client disconnected')
 					clearInterval(keepalive)
-					unregisterAnyListWriter(writer)
+					removeAnyListSubscriber(writer)
 					writer.close().catch(() => {})
 				})
 

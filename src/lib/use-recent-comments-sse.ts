@@ -1,7 +1,7 @@
 import { type QueryClient, useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 
-import type { ListEvent } from '@/routes/api/sse/list.$listId'
+import type { ListEvent } from '@/lib/list-event-audience'
 
 type DispatchDeps = {
 	queryClient: Pick<QueryClient, 'invalidateQueries'>

@@ -1,7 +1,6 @@
 // Server-only gift / claim implementations. Lives in a separate file
-// from `gifts.ts` so the static import chain into
-// `@/routes/api/sse/list.$listId` -> `@/lib/auth` (top-level
-// `env.TRUSTED_ORIGINS` access) never leaks into the client bundle.
+// from `gifts.ts` so its server-only import chain (the db, the permission
+// predicates, the list-event bus) never leaks into the client bundle.
 // `gifts.ts` only references these from inside server-fn handler
 // bodies, which TanStack Start strips on the client.
 
@@ -14,10 +13,10 @@ import type { GiftedItem } from '@/db/schema/gifts'
 import { evenUnitShare, parseTotalCost, unitCount } from '@/lib/contributions'
 import { computeRemainingClaimableQuantity } from '@/lib/gifts'
 import { visibleItemsWhere } from '@/lib/item-visibility'
+import { notifyListEvent } from '@/lib/list-event-bus'
 import { claimsCreatedTotal, claimsDeletedTotal } from '@/lib/observability/metrics'
 import { canViewList } from '@/lib/permissions'
 import { LIMITS } from '@/lib/validation/limits'
-import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 
 // ===============================
 // READ - my outgoing gifts (claims)

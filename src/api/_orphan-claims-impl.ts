@@ -17,9 +17,9 @@ import { z } from 'zod'
 import { db, type SchemaDatabase } from '@/db'
 import { giftedItems, items, lists, users } from '@/db/schema'
 import { visibleItemsWhere } from '@/lib/item-visibility'
+import { notifyListEvent } from '@/lib/list-event-bus'
 import { isListRecipient, userHasStandingOnClaim } from '@/lib/orphan-claims'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
-import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 
 export const GetOrphanedClaimsForListInputSchema = z.object({
 	listId: z.number().int().positive(),

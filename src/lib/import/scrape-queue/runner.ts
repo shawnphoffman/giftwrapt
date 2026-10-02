@@ -30,6 +30,7 @@ import { and, desc, eq, inArray, lte, sql } from 'drizzle-orm'
 import type { Database, SchemaDatabase } from '@/db'
 import { items, itemScrapeJobs, itemScrapeQueueLockKeySql, type NewItemScrapeJob } from '@/db/schema'
 import { httpsUpgradeOrNull } from '@/lib/image-url'
+import { notifyListEvent } from '@/lib/list-event-bus'
 import { createLogger } from '@/lib/logger'
 import { runOneShotScrape } from '@/lib/scrapers/run'
 import type { OrchestrateResult, ScrapeResult } from '@/lib/scrapers/types'
@@ -37,7 +38,6 @@ import { type AppSettings, DEFAULT_APP_SETTINGS } from '@/lib/settings'
 import { getAppSettings } from '@/lib/settings-loader'
 import { mirrorRemoteImageToStorage } from '@/lib/storage/mirror'
 import { getVendorFromUrl } from '@/lib/urls'
-import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 
 const log = createLogger('scrape-queue-runner')
 

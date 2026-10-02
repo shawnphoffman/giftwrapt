@@ -1,8 +1,8 @@
 import type { QueryClient } from '@tanstack/react-query'
 
+import type { ListEvent } from '@/lib/list-event-audience'
 import { itemsKeys } from '@/lib/queries/items'
 import { listDetailKeys } from '@/lib/queries/lists'
-import type { ListEvent } from '@/routes/api/sse/list.$listId'
 
 type LocalEventDeps = {
 	queryClient: Pick<QueryClient, 'invalidateQueries'>
@@ -15,7 +15,7 @@ type LocalEventDeps = {
  * immediately after the acting user's own mutation succeeds.
  *
  * Why this exists: real-time cross-client updates ride the in-memory SSE
- * broadcast in `src/routes/api/sse/list.$listId.ts`. That broadcast only
+ * broadcast in `src/lib/list-event-bus.ts`. That broadcast only
  * reaches clients sharing the mutating server's process - true on a
  * long-running host (Docker/Railway/Render), but NOT on Vercel, where each
  * function invocation is its own isolate and the mutation never reaches the

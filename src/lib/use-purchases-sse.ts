@@ -5,7 +5,7 @@ type DispatchDeps = {
 	router: { invalidate: () => void | Promise<unknown> }
 }
 
-import type { ListEvent } from '@/routes/api/sse/list.$listId'
+import type { ListEvent } from '@/lib/list-event-audience'
 
 /**
  * Pure dispatcher for `/purchases`. The page is route-loader-driven (not a

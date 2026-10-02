@@ -15,6 +15,7 @@ import { priorityEnumValues, statusEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { httpsUpgradeOrNull } from '@/lib/image-url'
 import { visibleItemsWhere } from '@/lib/item-visibility'
+import { notifyListEvent } from '@/lib/list-event-bus'
 import { itemsCreatedTotal, itemsPendingDeletionTotal } from '@/lib/observability/metrics'
 import { dispatchOrphanClaimEmails, resolveListRecipientName } from '@/lib/orphan-claims'
 import { canEditListAsAnyone } from '@/lib/permissions'
@@ -23,7 +24,6 @@ import { getAppSettings } from '@/lib/settings-loader'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { mirrorRemoteImageToStorage } from '@/lib/storage/mirror'
 import { getVendorFromUrl } from '@/lib/urls'
-import { notifyListEvent } from '@/routes/api/sse/list.$listId'
 
 async function maybeMirrorImageForItem(
 	dbx: SchemaDatabase,

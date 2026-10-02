@@ -1,7 +1,7 @@
 // Server-fn surface for gift / claim operations. Implementations live
-// in `_gifts-impl.ts` so the static import chain into
-// `@/routes/api/sse/list.$listId` -> `@/lib/auth` (which evaluates
-// env at the top level) never reaches the client bundle. This file
+// in `_gifts-impl.ts` so their server-only import chain (the db, the
+// permission predicates, the list-event bus) never reaches the client
+// bundle. This file
 // only references impls / schemas from inside `.handler()` and
 // `.inputValidator()` callbacks, which TanStack Start strips on the
 // client.
