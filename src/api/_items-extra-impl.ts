@@ -17,7 +17,7 @@ import { buildGifterUnits, type GifterUnit, type GifterUserMeta } from '@/lib/gi
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { isCrossTypeMoveDestructive, SPOILER_PROTECTED_TYPES } from '@/lib/list-type-moves'
 import { itemsArchivedTotal, revealsTriggeredTotal } from '@/lib/observability/metrics'
-import { canEditList, canViewList, canViewListAsAnyone, getViewerAccessLevelForList } from '@/lib/permissions'
+import { canEditListAsAnyone, canViewList, canViewListAsAnyone, getViewerAccessLevelForList } from '@/lib/permissions'
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
 import { type RevealedPurchases, revealListPurchases } from '@/lib/reveal'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
@@ -198,17 +198,6 @@ export const DeleteGroupsInputSchema = z.object({
 
 type ListForPermCheck = { id: number; ownerId: string; subjectDependentId: string | null; isPrivate: boolean; isActive: boolean }
 
-async function assertCanEditItems(
-	userId: string,
-	list: ListForPermCheck,
-	dbx: SchemaDatabase = db
-): Promise<{ ok: true } | { ok: false; reason: 'not-authorized' }> {
-	if (list.ownerId === userId) return { ok: true }
-	const edit = await canEditList(userId, list, dbx)
-	if (!edit.ok) return { ok: false, reason: 'not-authorized' }
-	return { ok: true }
-}
-
 type ItemRow = { id: number; listId: number }
 
 async function loadAndAuthorizeItems(
@@ -236,7 +225,7 @@ async function loadAndAuthorizeItems(
 
 	const map = new Map<number, ListForPermCheck & { type: ListType }>()
 	for (const l of listRows) {
-		const perm = await assertCanEditItems(userId, l)
+		const perm = await canEditListAsAnyone(userId, l)
 		if (!perm.ok) return { ok: false, reason: 'not-authorized' }
 		map.set(l.id, l)
 	}
@@ -297,7 +286,7 @@ export async function copyItemToListImpl(args: {
 	})
 	if (!targetList) return { kind: 'error', reason: 'not-found' }
 
-	const perm = await assertCanEditItems(userId, targetList, dbx)
+	const perm = await canEditListAsAnyone(userId, targetList, dbx)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	const vendor = sourceItem.url ? getVendorFromUrl(sourceItem.url) : null
@@ -343,7 +332,7 @@ export async function archiveItemImpl(args: {
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 
-	const perm = await assertCanEditItems(userId, list, dbx)
+	const perm = await canEditListAsAnyone(userId, list, dbx)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	await dbx
@@ -400,7 +389,7 @@ export async function moveItemsToListImpl(args: { userId: string; input: z.infer
 		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true, type: true },
 	})
 	if (!targetList) return { kind: 'error', reason: 'not-found' }
-	const targetPerm = await assertCanEditItems(userId, targetList)
+	const targetPerm = await canEditListAsAnyone(userId, targetList)
 	if (!targetPerm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	// Todo lists are isolated: an item from a todo list can't move to a
@@ -493,7 +482,7 @@ export async function revealListForEditor(args: {
 		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
-	const perm = await assertCanEditItems(userId, list, dbx)
+	const perm = await canEditListAsAnyone(userId, list, dbx)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	const revealed = await revealListPurchases(dbx, list.id, now)
@@ -567,7 +556,7 @@ export async function reorderItemsImpl(args: {
 		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
-	const perm = await assertCanEditItems(userId, list)
+	const perm = await canEditListAsAnyone(userId, list)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	const ids = data.updates.map(u => u.itemId)
@@ -601,7 +590,7 @@ export async function reorderListEntriesImpl(args: {
 		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
-	const perm = await assertCanEditItems(userId, list)
+	const perm = await canEditListAsAnyone(userId, list)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	if (data.items.length > 0) {
@@ -661,7 +650,7 @@ export async function setGroupsPriorityImpl(args: {
 		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
-	const perm = await assertCanEditItems(userId, list)
+	const perm = await canEditListAsAnyone(userId, list)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	await db.update(itemGroups).set({ priority: data.priority }).where(inArray(itemGroups.id, data.groupIds))
@@ -688,7 +677,7 @@ export async function deleteGroupsImpl(args: {
 		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
-	const perm = await assertCanEditItems(userId, list)
+	const perm = await canEditListAsAnyone(userId, list)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	const itemRows = await db.query.items.findMany({
@@ -907,7 +896,7 @@ export async function getItemForEditImpl(args: { userId: string; itemId: string;
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 
-	const perm = await assertCanEditItems(args.userId, list, dbx)
+	const perm = await canEditListAsAnyone(args.userId, list, dbx)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	return { kind: 'ok', item }
@@ -929,11 +918,8 @@ export async function getItemsForListEditImpl(args: {
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 
-	const isOwner = list.ownerId === args.userId
-	if (!isOwner) {
-		const edit = await canEditList(args.userId, list, dbx)
-		if (!edit.ok) return { kind: 'error', reason: 'not-authorized' }
-	}
+	const edit = await canEditListAsAnyone(args.userId, list, dbx)
+	if (!edit.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	// Pending-deletion items are invisible to the recipient even with
 	// `includeArchived` (which surfaces revealed gifts in the organize

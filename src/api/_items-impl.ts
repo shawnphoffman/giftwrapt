@@ -17,26 +17,13 @@ import { httpsUpgradeOrNull } from '@/lib/image-url'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 import { itemsCreatedTotal, itemsPendingDeletionTotal } from '@/lib/observability/metrics'
 import { dispatchOrphanClaimEmails, resolveListRecipientName } from '@/lib/orphan-claims'
-import { canEditList } from '@/lib/permissions'
+import { canEditListAsAnyone } from '@/lib/permissions'
 import { loadCachedScrapeRating } from '@/lib/scrapers/cache'
 import { getAppSettings } from '@/lib/settings-loader'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { mirrorRemoteImageToStorage } from '@/lib/storage/mirror'
 import { getVendorFromUrl } from '@/lib/urls'
 import { notifyListEvent } from '@/routes/api/sse/list.$listId'
-
-type ListForPermCheck = { id: number; ownerId: string; subjectDependentId: string | null; isPrivate: boolean; isActive: boolean }
-
-async function assertCanEditItems(
-	userId: string,
-	list: ListForPermCheck,
-	dbx: SchemaDatabase
-): Promise<{ ok: true } | { ok: false; reason: 'not-authorized' }> {
-	if (list.ownerId === userId) return { ok: true }
-	const edit = await canEditList(userId, list, dbx)
-	if (!edit.ok) return { ok: false, reason: 'not-authorized' }
-	return { ok: true }
-}
 
 async function maybeMirrorImageForItem(
 	dbx: SchemaDatabase,
@@ -82,7 +69,7 @@ export async function createItemImpl(args: {
 	if (!list) return { kind: 'error', reason: 'list-not-found' }
 	if (list.type === 'todos') return { kind: 'error', reason: 'todo-list-rejects-items' }
 
-	const perm = await assertCanEditItems(userId, list, dbx)
+	const perm = await canEditListAsAnyone(userId, list, dbx)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	const url = data.url ?? null
@@ -172,7 +159,7 @@ export async function updateItemImpl(args: {
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 
-	const perm = await assertCanEditItems(userId, list, dbx)
+	const perm = await canEditListAsAnyone(userId, list, dbx)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	// Mirror an external imageUrl into our bucket before writing, so
@@ -276,7 +263,7 @@ export async function deleteItemImpl(args: {
 	})
 	if (!list) return { kind: 'error', reason: 'not-found' }
 
-	const perm = await assertCanEditItems(userId, list, dbx)
+	const perm = await canEditListAsAnyone(userId, list, dbx)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	// If any active claims exist on the item, this becomes a pending-deletion

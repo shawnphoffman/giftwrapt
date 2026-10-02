@@ -160,6 +160,18 @@ export async function canEditList(
 	return { ok: false, reason: 'not-editor' }
 }
 
+// Owner-aware shortcut around canEditList, the edit-side twin of
+// canViewListAsAnyone. Use it wherever the owner and any permitted editor
+// may both act, rather than open-coding `ownerId === userId || canEditList`.
+export async function canEditListAsAnyone(
+	userId: string,
+	list: ListForVisibilityCheck,
+	dbx: SchemaDatabase = defaultDb
+): Promise<CanEditListResult> {
+	if (list.ownerId === userId) return { ok: true }
+	return canEditList(userId, list, dbx)
+}
+
 // ===============================
 // getViewerAccessLevel
 // ===============================
