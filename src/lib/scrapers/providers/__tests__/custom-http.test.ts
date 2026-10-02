@@ -134,10 +134,24 @@ describe('createCustomHttpProvider: json mode', () => {
 		await expect(provider.fetch(makeCtx('https://target.test/x'))).rejects.toMatchObject({ code: 'invalid_response' })
 	})
 
-	it('throws invalid_response when the JSON does not match the ScrapeResult shape', async () => {
+	it('throws invalid_response naming the bad fields when the JSON does not match the ScrapeResult shape', async () => {
 		queue.push({ status: 200, body: JSON.stringify({ title: 99, imageUrls: 'not-an-array' }), contentType: 'application/json' })
 		const provider = createCustomHttpProvider(jsonEntry)
-		await expect(provider.fetch(makeCtx('https://target.test/x'))).rejects.toMatchObject({ code: 'invalid_response' })
+		const err = await provider.fetch(makeCtx('https://target.test/x')).catch((e: unknown) => e)
+		expect(err).toMatchObject({ code: 'invalid_response' })
+		expect((err as Error).message).toMatch(/title: .*imageUrls: /)
+	})
+
+	it('throws invalid_response listing the received keys when the JSON is in some other shape', async () => {
+		queue.push({
+			status: 200,
+			body: JSON.stringify({ meta: { title: 'Amazon.com' }, og: {}, images: [] }),
+			contentType: 'application/json',
+		})
+		const provider = createCustomHttpProvider(jsonEntry)
+		const err = await provider.fetch(makeCtx('https://target.test/x')).catch((e: unknown) => e)
+		expect(err).toMatchObject({ code: 'invalid_response' })
+		expect((err as Error).message).toContain('got: meta, og, images')
 	})
 })
 

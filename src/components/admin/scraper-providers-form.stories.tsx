@@ -235,3 +235,36 @@ export const NearLimits: Story = {
 		},
 	},
 }
+
+export const UnhealthyProviders: Story = {
+	args: {
+		settings: {
+			...defaultSettings,
+			scrapeProviders: [
+				{
+					type: 'custom-http',
+					id: 'shawn',
+					name: 'Shawn API',
+					enabled: true,
+					tier: 1,
+					endpoint: 'https://api.example.test/open-graph/scrape',
+					responseKind: 'json',
+				},
+				{ type: 'scrapfly', id: 'sf-1', name: 'ScrapFly', enabled: true, tier: 2, apiKey: 'xxx', asp: true, renderJs: true },
+				{ type: 'ai', id: 'ai-1', name: 'AI Last Ditch Attempt', enabled: true, tier: 3 },
+			],
+		},
+		health: new Map([
+			['custom-http:shawn', { status: 'dead', total: 170, okCount: 0, failRate: 1, topErrorCode: 'timeout' }],
+			['scrapfly:sf-1', { status: 'failing', total: 30, okCount: 14, failRate: 16 / 30, topErrorCode: 'bot_block' }],
+		]),
+	},
+	parameters: {
+		docs: {
+			description: {
+				story:
+					'Enabled entries that never or mostly fail over the last 30 days get a warning badge next to their name; hover it for the counts and the most common error. Healthy entries, and entries with fewer than 10 attempts, get none.',
+			},
+		},
+	},
+}

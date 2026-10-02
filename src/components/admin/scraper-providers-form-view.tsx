@@ -36,6 +36,9 @@ import type {
 } from '@/lib/settings'
 import { LIMITS } from '@/lib/validation/limits'
 
+import type { ProviderHealth } from './provider-health'
+import { ProviderHealthBadge } from './provider-health-badge'
+
 // Presentational form for scraper-related app settings: timeouts, cache TTL,
 // quality threshold, and the discriminated `scrapeProviders` array. Pure
 // props in, per-key callback out so it can render in Storybook without
@@ -64,12 +67,17 @@ export type ScraperProvidersFormChangeKey =
 	| 'scrapeCacheTtlHours'
 	| 'scrapeProviders'
 
-export function ScraperProvidersFormView({ settings, disabled, onChange }: ScraperProvidersFormViewProps) {
+export function ScraperProvidersFormView({
+	settings,
+	disabled,
+	onChange,
+	health,
+}: ScraperProvidersFormViewProps & { health?: ReadonlyMap<string, ProviderHealth> }) {
 	return (
 		<div className="@container/scraper-form space-y-6">
 			<ScraperTimingFormView settings={settings} disabled={disabled} onChange={onChange} />
 			<Separator />
-			<ScrapeProvidersListView settings={settings} disabled={disabled} onChange={onChange} />
+			<ScrapeProvidersListView settings={settings} disabled={disabled} onChange={onChange} health={health} />
 		</div>
 	)
 }
@@ -121,7 +129,16 @@ export function ScraperTimingFormView({ settings, disabled, onChange }: ScraperP
 	)
 }
 
-export function ScrapeProvidersListView({ settings, disabled, onChange }: ScraperProvidersFormViewProps) {
+export function ScrapeProvidersListView({
+	settings,
+	disabled,
+	onChange,
+	health,
+}: ScraperProvidersFormViewProps & {
+	// 30-day provider health keyed by scraperId (`<type>:<entry id>`);
+	// unhealthy enabled entries show a warning badge on their card.
+	health?: ReadonlyMap<string, ProviderHealth>
+}) {
 	const inputDisabled = disabled === true
 
 	return (
@@ -130,6 +147,7 @@ export function ScrapeProvidersListView({ settings, disabled, onChange }: Scrape
 				entries={settings.scrapeProviders}
 				disabled={inputDisabled}
 				onChange={next => onChange('scrapeProviders', next)}
+				health={health}
 			/>
 		</div>
 	)
@@ -189,10 +207,12 @@ function ScrapeProvidersSection({
 	entries,
 	disabled,
 	onChange,
+	health,
 }: {
 	entries: ReadonlyArray<ScrapeProviderEntry>
 	disabled: boolean
 	onChange: (next: Array<ScrapeProviderEntry>) => void
+	health?: ReadonlyMap<string, ProviderHealth>
 }) {
 	// Sort by tier for display; same-tier entries fire in parallel so order
 	// among them has no runtime effect. Stable sort preserves the
@@ -267,6 +287,7 @@ function ScrapeProvidersSection({
 								{showDivider && <TierDivider tier={entry.tier} />}
 								<EntryCard
 									entry={entry}
+									health={entry.enabled ? health?.get(`${entry.type}:${entry.id}`) : undefined}
 									disabled={disabled}
 									onSave={next => handleReplace(entry.id, next)}
 									onRemove={() => handleRemove(entry.id)}
@@ -355,11 +376,13 @@ function makeEntryId(): string {
 
 function EntryCard({
 	entry,
+	health,
 	disabled,
 	onSave,
 	onRemove,
 }: {
 	entry: ScrapeProviderEntry
+	health?: ProviderHealth
 	disabled: boolean
 	onSave: (next: ScrapeProviderEntry) => void
 	onRemove: () => void
@@ -405,6 +428,9 @@ function EntryCard({
 						<span className="truncate text-sm font-medium">{displayName}</span>
 					</button>
 				</CollapsibleTrigger>
+				{health && (
+					<ProviderHealthBadge health={health} windowLabel="in the last 30 days" labelClassName="hidden @md/scraper-form:inline" />
+				)}
 				<Switch
 					id={`scraper-enabled-${entry.id}`}
 					checked={draft.enabled}

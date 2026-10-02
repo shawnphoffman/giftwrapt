@@ -20,6 +20,9 @@ import { useAdminAppSettings } from '@/hooks/use-app-settings'
 import type { ScrapeProviderEntry } from '@/lib/settings'
 import { cn } from '@/lib/utils'
 
+import { buildProviderHealth, type ProviderHealth } from './provider-health'
+import { ProviderHealthBadge } from './provider-health-badge'
+
 // Aggregations for the admin Scrape Health card. Per-provider stats come
 // straight from a SQL GROUP BY (cheap; one row per provider). Domain and
 // errorCode rollups are computed in TS from a capped failure feed so we get
@@ -30,6 +33,13 @@ const WINDOW_OPTIONS = [
 	{ value: '168', label: '7d' },
 	{ value: '720', label: '30d' },
 ] as const
+
+// Completes "0 of 48 attempts succeeded ..." in the health badge tooltip.
+const WINDOW_PHRASES: Record<ScrapeWindowHours, string> = {
+	24: 'in the last 24 hours',
+	168: 'in the last 7 days',
+	720: 'in the last 30 days',
+}
 
 const TOP_N = 15
 const URL_SAMPLES_PER_DOMAIN = 50
@@ -96,6 +106,8 @@ export function ScrapeStatsView({ windowHours, onWindowChange, isLoading, stats,
 		[currentProviders]
 	)
 	const aggregates = useMemo(() => computeFailureAggregates(currentFailures), [currentFailures])
+	const health = useMemo(() => buildProviderHealth(currentProviders, currentFailures), [currentProviders, currentFailures])
+	const windowLabel = WINDOW_PHRASES[windowHours]
 
 	return (
 		<div className="space-y-4">
@@ -129,7 +141,7 @@ export function ScrapeStatsView({ windowHours, onWindowChange, isLoading, stats,
 
 			{stats && currentTotals.total > 0 && (
 				<>
-					<ProviderTable rows={currentProviders} labelFor={labelFor} tierFor={tierFor} />
+					<ProviderTable rows={currentProviders} labelFor={labelFor} tierFor={tierFor} health={health} windowLabel={windowLabel} />
 					<div className="grid gap-4 @lg/admin-content:grid-cols-2">
 						<DomainTable rows={aggregates.domains} totalFailures={currentTotals.fail} />
 						<ErrorCodeTable rows={aggregates.errorCodes} totalFailures={currentTotals.fail} />
@@ -144,10 +156,14 @@ function ProviderTable({
 	rows,
 	labelFor,
 	tierFor,
+	health,
+	windowLabel,
 }: {
 	rows: Array<ScrapeProviderStat>
 	labelFor: (id: string) => string
 	tierFor: (id: string) => number | null
+	health: ReadonlyMap<string, ProviderHealth>
+	windowLabel: string
 }) {
 	if (rows.length === 0) return null
 	const sorted = [...rows].sort((a, b) => {
@@ -178,7 +194,12 @@ function ProviderTable({
 							return (
 								<TableRow key={r.scraperId}>
 									<TableCell className="tabular-nums text-muted-foreground">{formatTier(tier)}</TableCell>
-									<TableCell className="font-mono text-xs">{labelFor(r.scraperId)}</TableCell>
+									<TableCell className="font-mono text-xs">
+										<span className="inline-flex items-center gap-1.5">
+											{labelFor(r.scraperId)}
+											{health.get(r.scraperId) && <ProviderHealthBadge health={health.get(r.scraperId)!} windowLabel={windowLabel} />}
+										</span>
+									</TableCell>
 									<TableCell className="text-right tabular-nums">{r.total.toLocaleString()}</TableCell>
 									<TableCell className="text-right tabular-nums">{r.failCount.toLocaleString()}</TableCell>
 									<TableCell className={cn('text-right tabular-nums', failRateClass(failRate))}>{failRate.toFixed(1)}%</TableCell>
@@ -396,9 +417,9 @@ export function buildScraperLookups(scrapeProviders: ReadonlyArray<ScrapeProvide
 	const tierFor = (rawId: string): number | null => {
 		if (rawId.startsWith('merged:')) {
 			const ids = rawId.slice('merged:'.length).split(',').filter(Boolean)
-			// Within-tier merger: every contributor shares a tier. Pick the
-			// first known one and fall back to null when none of the
-			// contributors are configured anymore.
+			// Merged rows are a run's final result and the stats query skips
+			// them, but older merged rows may still appear: pick the first
+			// known contributor's tier, or null when none are configured.
 			for (const id of ids) {
 				const t = tiersById.get(id)
 				if (t !== undefined) return t

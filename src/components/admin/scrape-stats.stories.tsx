@@ -158,3 +158,35 @@ export const OnlyHistoricalScrapers: Story = {
 		},
 	},
 }
+
+export const DeadProvider: Story = {
+	args: {
+		scrapeProviders: [
+			...providers,
+			{
+				type: 'custom-http',
+				id: 'shawn',
+				name: 'Shawn API',
+				enabled: true,
+				tier: 1,
+				endpoint: 'https://api.example.test/scrape',
+				responseKind: 'json',
+			},
+		],
+		stats: {
+			...stats,
+			providers: [...stats.providers, { scraperId: 'custom-http:shawn', total: 48, okCount: 0, failCount: 48, avgMs: 20000, p95Ms: 20000 }],
+			failures: [
+				...stats.failures,
+				...Array.from({ length: 12 }, (_, i) => failure(`https://www.amazon.com/dp/B0${i}`, 'custom-http:shawn', 'timeout', i + 1)),
+			],
+		},
+	},
+	parameters: {
+		docs: {
+			description: {
+				story: 'A provider with 10+ attempts and no successes gets a "Never succeeds" badge; one failing half or more gets "Failing N%".',
+			},
+		},
+	},
+}

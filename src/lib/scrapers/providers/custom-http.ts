@@ -155,7 +155,23 @@ async function readJsonResponse(
 	}
 	const parsed = scrapeResultSchema.safeParse(payload)
 	if (!parsed.success) {
-		throw new ScrapeProviderError('invalid_response', `${entryName} JSON did not match ScrapeResult shape`)
+		// Name the offending fields so the admin can fix their service from
+		// the attempt's error message alone.
+		const issues = parsed.error.issues
+			.slice(0, 3)
+			.map(i => `${i.path.join('.') || '(root)'}: ${i.message}`)
+			.join('; ')
+		throw new ScrapeProviderError('invalid_response', `${entryName} JSON did not match the ScrapeResult shape (${issues})`)
+	}
+	// Unknown keys are dropped by the schema, so a response in some other
+	// shape (e.g. `{ meta, og, images }`) "parses" to an empty result. Say so
+	// instead of letting it fail later as a missing title.
+	if (!hasAnyResultField(parsed.data)) {
+		const keys = isPlainObject(payload) ? Object.keys(payload).slice(0, 8).join(', ') || 'none' : typeof payload
+		throw new ScrapeProviderError(
+			'invalid_response',
+			`${entryName} JSON has none of the ScrapeResult fields (got: ${keys}; expected title, price, imageUrls, ...)`
+		)
 	}
 	const result: ScrapeResult = { ...parsed.data, finalUrl: parsed.data.finalUrl ?? ctx.url }
 	return {
@@ -197,4 +213,12 @@ async function readBoundedText(response: Response, capBytes: number): Promise<st
 		offset += c.length
 	}
 	return new TextDecoder('utf-8', { fatal: false }).decode(out)
+}
+
+function hasAnyResultField(result: ScrapeResult): boolean {
+	return Boolean(result.title?.trim() || result.description?.trim() || result.price?.trim() || result.imageUrls.length > 0)
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

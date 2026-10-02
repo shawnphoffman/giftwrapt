@@ -1,10 +1,13 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { toast } from 'sonner'
 
+import { getScrapeStatsAsAdmin } from '@/api/admin-scrapes'
 import { updateAppSettings } from '@/api/settings'
 import { adminAppSettingsQueryKey, notifyAppSettingsChanged, useAdminAppSettings } from '@/hooks/use-app-settings'
 import type { AppSettings } from '@/lib/settings'
 
+import { buildProviderHealth } from './provider-health'
 import {
 	ScrapeProvidersListView,
 	type ScraperProvidersFormChangeKey,
@@ -96,6 +99,15 @@ export function ScraperTimingForm() {
 export function ScrapeProvidersList() {
 	const { data: settings, isLoading } = useAdminAppSettings()
 	const mutation = useScraperProvidersMutation()
+	// Same query (and cache entry) as the Scrape Health card's 30-day view.
+	const statsQuery = useQuery({
+		queryKey: ['admin', 'scrape-stats', 720],
+		queryFn: () => getScrapeStatsAsAdmin({ data: { windowHours: 720 } }),
+	})
+	const health = useMemo(
+		() => (statsQuery.data ? buildProviderHealth(statsQuery.data.providers, statsQuery.data.failures) : undefined),
+		[statsQuery.data]
+	)
 
 	if (isLoading) {
 		return <div className="text-sm text-muted-foreground">Loading scrapers…</div>
@@ -107,6 +119,7 @@ export function ScrapeProvidersList() {
 	return (
 		<ScrapeProvidersListView
 			settings={settings}
+			health={health}
 			disabled={mutation.isPending}
 			onChange={<TKey extends ScraperProvidersFormChangeKey>(key: TKey, value: AppSettings[TKey]) =>
 				mutation.mutate({ [key]: value } as Partial<AppSettings>)
