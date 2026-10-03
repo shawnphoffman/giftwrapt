@@ -62,11 +62,12 @@ async function tinyJpeg(): Promise<Buffer> {
 
 function multipart(bytes: Buffer | string, type = 'image/jpeg'): FormData {
 	const form = new FormData()
-	form.append('file', new File([bytes], 'photo.jpg', { type }))
+	const part = typeof bytes === 'string' ? bytes : new Uint8Array(bytes)
+	form.append('file', new File([part], 'photo.jpg', { type }))
 	return form
 }
 
-function post(path: string, body?: FormData): Promise<Response> {
+async function post(path: string, body?: FormData): Promise<Response> {
 	return mobileApp.fetch(
 		new Request(`http://t/api/mobile/v1${path}`, {
 			method: 'POST',
