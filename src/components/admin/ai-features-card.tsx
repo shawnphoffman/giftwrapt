@@ -62,7 +62,7 @@ function AiDataDisclosure({ feature }: { feature: AiFeatureInfo }) {
 				What is sent to the AI provider
 			</CollapsibleTrigger>
 			<CollapsibleContent>
-				<div className="mt-2 grid gap-3 rounded-md border p-3 text-sm sm:grid-cols-2">
+				<div className="mt-2 space-y-3 rounded-md border p-3 text-sm">
 					<div className="space-y-1">
 						<p className="font-medium">Sent</p>
 						<ul className="list-disc space-y-1 pl-4 text-muted-foreground">
@@ -72,7 +72,7 @@ function AiDataDisclosure({ feature }: { feature: AiFeatureInfo }) {
 						</ul>
 					</div>
 					<div className="space-y-1">
-						<p className="font-medium">Never sent</p>
+						<p className="font-medium">Never Sent</p>
 						<ul className="list-disc space-y-1 pl-4 text-muted-foreground">
 							{feature.neverSent.map(line => (
 								<li key={line}>{line}</li>
