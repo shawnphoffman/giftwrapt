@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { formatDistanceToNow } from 'date-fns'
 import { Pencil, Trash2 } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
-import { type KeyboardEvent, useEffect, useState } from 'react'
+import { type KeyboardEvent, useEffect, useId, useState } from 'react'
 import { toast } from 'sonner'
 
 import {
@@ -72,6 +72,7 @@ export default function ItemCommentsPanel({ itemId, onCountChange }: Props) {
 	const [newMentions, setNewMentions] = useState<Array<MentionRef>>([])
 	const [submitting, setSubmitting] = useState(false)
 	const { candidates, requestCandidates } = useMentionCandidates(itemId)
+	const hintId = useId()
 
 	useEffect(() => {
 		if (comments && onCountChange) onCountChange(comments.length)
@@ -123,9 +124,13 @@ export default function ItemCommentsPanel({ itemId, onCountChange }: Props) {
 			</AnimatePresence>
 
 			<div className="flex gap-2">
+				{/* Keep the placeholder to one line. Safari's field-sizing ignores
+				    the placeholder, so a wrapping one overflows the textarea (and the
+				    card) on narrow screens. The visibility warning lives below. */}
 				<MentionTextarea
-					placeholder="Write a comment (visible to everyone, including the recipient). Type @ to mention someone..."
+					placeholder="Write a comment..."
 					aria-label="Write a comment"
+					aria-describedby={hintId}
 					rows={2}
 					value={newComment}
 					onValueChange={setNewComment}
@@ -147,6 +152,9 @@ export default function ItemCommentsPanel({ itemId, onCountChange }: Props) {
 					{submitting ? '...' : 'Post'}
 				</Button>
 			</div>
+			<p id={hintId} className="text-xs text-muted-foreground">
+				Visible to everyone, including the recipient. Type @ to mention someone.
+			</p>
 		</div>
 	)
 }
