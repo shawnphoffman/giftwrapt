@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.7.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.6.0...v1.7.0) (2026-10-03)
+
+
+### Features
+
+* **gift-help:** add an admin-configured Search link to each idea ([8986702](https://github.com/shawnphoffman/giftwrapt/commit/89867026be5fae4b0e59446e2350e03d9f0850da))
+* **gift-help:** focus the dialog on AI ideas and add off-list gifts ([0957e8e](https://github.com/shawnphoffman/giftwrapt/commit/0957e8ef6ab5435212a40375c60bea6607cb342b))
+* **mobile-api:** add photo lookup and item photo upload for iOS ([d8537ad](https://github.com/shawnphoffman/giftwrapt/commit/d8537adb4b5c58077814b692f88191977849dc6d))
+
+
+### Bug Fixes
+
+* **ai:** bump @ai-sdk/anthropic so Claude 5 models get structured output ([89c31bd](https://github.com/shawnphoffman/giftwrapt/commit/89c31bdf62066b0aafe4e3da6e9f308ff7a01176))
+* **comments:** keep the composer placeholder to one line for Safari ([6b0766f](https://github.com/shawnphoffman/giftwrapt/commit/6b0766fd98f742ae0b6697b3eab86d28beed29ca))
+* **comments:** stop the comment panel clipping its composer on mobile ([9d2562c](https://github.com/shawnphoffman/giftwrapt/commit/9d2562caeec3db67e3beebef74c903fb7bbe2e8f))
+
 ## [1.6.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.5.0...v1.6.0) (2026-10-03)
 
 
