@@ -162,7 +162,7 @@ function ListDetailBody({ listId }: { listId: number }) {
 									<ArchiveRevealBadge archiveInfo={list.archiveInfo} recipientName={recipientName} />
 									{/* NEED IDEAS? (renders nothing unless the admin turned gift suggestions on) */}
 									<Suspense fallback={null}>
-										<GiftHelpButton listId={list.id} groups={list.groups} recipientName={recipientName} />
+										<GiftHelpButton listId={list.id} recipientName={recipientName} />
 									</Suspense>
 								</>
 							}

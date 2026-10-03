@@ -15,7 +15,6 @@ import { ItemListSkeleton } from '@/components/items/item-list-skeleton'
 import { ListAddonsSection } from '@/components/list-addons/list-addons-section'
 import { ListAddonsSectionSkeleton } from '@/components/list-addons/list-addons-section-skeleton'
 import { appSettingsQueryKey } from '@/hooks/use-app-settings'
-import type { PickItem } from '@/lib/gift-picks'
 import { itemsKeys } from '@/lib/queries/items'
 import { listDetailKeys } from '@/lib/queries/lists'
 import { DEFAULT_APP_SETTINGS } from '@/lib/settings'
@@ -25,36 +24,16 @@ import { GiftHelpButton, GiftHelpDialogView } from './gift-help-dialog'
 /**
  * Gift help for someone shopping from another person's list: a "Need
  * Ideas?" button in the list's filter row opens a dialog that asks for a
- * budget, then shows the best open items from the list
- * and, from an AI model, ideas that are not on it. The button only
- * renders when the admin has turned Gift Suggestions on.
+ * budget, then shows ideas from an AI model that are not already on the
+ * list. Each idea can be saved to the viewer's private Gift Ideas or added
+ * to the list as an off-list gift. The button only renders when the admin
+ * has turned Gift Suggestions on, and never for a child account.
  *
  * The "On the Page" stories are the real list view with seeded data; the
  * rest are the dialog on its own in each state.
  */
 
 // ─── The dialog on its own ──────────────────────────────────────────────────
-
-const pickItem = (id: number, title: string, price: string | null, priority: PickItem['priority'] = 'normal'): PickItem => ({
-	id,
-	title,
-	price,
-	currency: 'USD',
-	priority,
-	quantity: 1,
-	claimedQuantity: 0,
-	availability: 'available',
-	groupId: null,
-	groupSortOrder: null,
-	url: null,
-	imageUrl: null,
-})
-
-const picks = [
-	{ item: pickItem(2, 'Kindle Paperwhite Signature Edition', '$189.99', 'high'), reasons: ['High priority', 'Nobody has claimed it'] },
-	{ item: pickItem(3, 'Endless Summer hydrangea', '$45'), reasons: ['Nobody has claimed it'] },
-	{ item: { ...pickItem(4, 'Enamel Mugs', null), quantity: 4, claimedQuantity: 1 }, reasons: ['3 of 4 left'] },
-]
 
 const suggestions = [
 	{
@@ -87,13 +66,13 @@ const meta = {
 		onBudgetChange: fn(),
 		onSubmit: fn(),
 		onBack: fn(),
-		picks,
-		onPickSelected: fn(),
-		suggestionsAvailable: true,
 		suggestions: { phase: 'idle' },
 		savedTitles: new Set<string>(),
 		savingTitle: null,
 		onSaveIdea: fn(),
+		addedTitles: new Set<string>(),
+		addingTitle: null,
+		onAddOffList: fn(),
 	},
 } satisfies Meta<typeof GiftHelpDialogView>
 
@@ -112,23 +91,33 @@ export const QuestionsWithInterests: Story = {
 	},
 }
 
-/** Step two while the AI ideas are still coming: the picks from the list show at once. */
-export const Thinking: Story = { args: { step: 'results', budget: '200', suggestions: { phase: 'loading' } } }
-
-export const Results: Story = {
-	args: { step: 'results', budget: '200', suggestions: { phase: 'done', suggestions }, savedTitles: new Set(['Bypass Pruning Shears']) },
+/** Step two while the model works: placeholder cards and a status line that moves on every few seconds. */
+export const Thinking: Story = {
+	args: { step: 'results', budget: '200', suggestions: { phase: 'loading' } },
+	play: async ({ canvasElement }) => {
+		const screen = within(canvasElement.ownerDocument.body)
+		await expect(await screen.findByRole('status')).toHaveTextContent('Reading their list…')
+	},
 }
 
-export const NothingOpenOnTheList: Story = {
-	args: { step: 'results', budget: '10', picks: [], suggestions: { phase: 'done', suggestions } },
+export const Results: Story = { args: { step: 'results', budget: '200', suggestions: { phase: 'done', suggestions } } }
+
+/** One idea saved to Gift Ideas, the other added to the list as an off-list gift. */
+export const ResultsActedOn: Story = {
+	args: {
+		step: 'results',
+		budget: '200',
+		suggestions: { phase: 'done', suggestions },
+		savedTitles: new Set(['Bypass Pruning Shears']),
+		addedTitles: new Set(['Enameled Cast Iron Braiser']),
+	},
 }
+
+export const NoNewIdeas: Story = { args: { step: 'results', budget: '10', suggestions: { phase: 'done', suggestions: [] } } }
 
 export const IdeasFailed: Story = {
 	args: { step: 'results', suggestions: { phase: 'error', message: 'Gift suggestions are paused for this month.' } },
 }
-
-/** A child account: the picks from the list, and no AI section at all. */
-export const ChildAccount: Story = { args: { step: 'results', suggestionsAvailable: false } }
 
 // ─── On the page ────────────────────────────────────────────────────────────
 
@@ -243,7 +232,7 @@ function ListDetailPreview() {
 					listId={LIST_ID}
 					filterBarLeading={
 						<Suspense fallback={null}>
-							<GiftHelpButton listId={LIST_ID} groups={[]} recipientName="Linda" />
+							<GiftHelpButton listId={LIST_ID} recipientName="Linda" />
 						</Suspense>
 					}
 				/>
@@ -277,7 +266,7 @@ export const OnThePageFlagOff: Story = {
 	},
 }
 
-/** The whole flow: open from the filter row, give a budget, and read both kinds of result. */
+/** The whole flow: open from the filter row, give a budget, and read the AI ideas. */
 export const OnThePageFullFlow: Story = {
 	decorators: [withPageFrame, seeded(true)],
 	render: () => <ListDetailPreview />,
@@ -288,12 +277,11 @@ export const OnThePageFullFlow: Story = {
 		await userEvent.click(await canvas.findByRole('button', { name: /Need ideas/u }))
 		await userEvent.type(await screen.findByLabelText('Budget (Optional)'), '200')
 		await userEvent.click(screen.getByRole('button', { name: /Find Ideas/u }))
-		// From the list: the Dutch oven is claimed and over budget, so it is not offered.
-		await waitFor(() => expect(screen.getByText('From Linda’s List')).toBeInTheDocument())
-		const dialog = within(screen.getByRole('dialog'))
-		await expect(dialog.getByText('Kindle Paperwhite Signature Edition')).toBeInTheDocument()
-		await expect(dialog.queryByText(/Dutch oven, 5\.5 qt/u)).toBeNull()
-		// Not on the list: the stubbed AI ideas.
+		const dialog = within(await screen.findByRole('dialog'))
+		// The stubbed AI ideas, each with both actions; no list picks and no section headers.
 		await waitFor(() => expect(dialog.getByText('Enameled Cast Iron Braiser')).toBeInTheDocument())
+		await expect(dialog.queryByText(/Linda’s List/u)).toBeNull()
+		await expect(dialog.getAllByRole('button', { name: 'Add as Off-List Gift' }).length).toBeGreaterThan(0)
+		await expect(dialog.getAllByRole('button', { name: 'Save to Gift Ideas' }).length).toBeGreaterThan(0)
 	},
 }

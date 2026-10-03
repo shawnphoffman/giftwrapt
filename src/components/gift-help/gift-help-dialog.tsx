@@ -1,32 +1,29 @@
-import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
-import { Check, Lightbulb, Sparkles } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useRouter } from '@tanstack/react-router'
+import { Check, Lightbulb, PackagePlus, Sparkles } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { getGiftSuggestions, getListInterests, saveGiftSuggestion, type SuggestedGift } from '@/api/gift-suggestions'
-import type { ItemWithGifts } from '@/api/lists'
+import { createListAddon } from '@/api/list-addons'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useAppSetting } from '@/hooks/use-app-settings'
 import { useSession } from '@/lib/auth-client'
-import { type Pick, type PickGroup, type PickItem, rankPicks } from '@/lib/gift-picks'
 import type { PriceBand } from '@/lib/gift-suggestions/prompt'
-import { computeRemainingClaimableQuantity } from '@/lib/gifts'
-import { listItemsViewQueryOptions } from '@/lib/queries/items'
+import { applyListEventLocally } from '@/lib/list-events'
 import { listDetailKeys } from '@/lib/queries/lists'
 
 // Help for a gifter looking at someone else's list (plan 25). A "Need
 // Ideas?" button in the list's filter row opens a dialog that first asks
-// for a budget, then shows two kinds of answer (the occasion is taken
-// from the type of list, so there is nothing to ask):
-//
-// - From their list: the best few things still open, ranked in the
-//   browser from the items the page already has. No AI call.
-// - Not on their list: AI suggestions. Never offered to a child, who
-//   still gets the picks. A suggestion is kept only if the viewer saves
-//   it to their own private gift ideas.
+// for a budget, then shows AI ideas that are not already on their list
+// (the occasion is taken from the type of list, so there is nothing to
+// ask). Never offered to a child. A suggestion is kept only if the viewer
+// acts on it: saved to their own private gift ideas, or added to this list
+// as an off-list gift they are giving.
 //
 // The button, and so the whole feature, is behind the admin's
 // `aiGiftSuggestionsEnabled` flag. With it off nothing renders and the
@@ -57,34 +54,47 @@ export function categoryLabel(slug: string): string {
 		.join(' & ')
 }
 
-export function toPickItem(item: ItemWithGifts): PickItem {
-	const remaining = computeRemainingClaimableQuantity(item.quantity, item.gifts)
-	return {
-		id: item.id,
-		title: item.title,
-		price: item.price,
-		currency: item.currency,
-		priority: item.priority,
-		quantity: item.quantity,
-		claimedQuantity: item.quantity - remaining,
-		availability: item.availability,
-		groupId: item.groupId,
-		groupSortOrder: item.groupSortOrder,
-		url: item.url,
-		imageUrl: item.imageUrl,
-	}
-}
-
-// Same rule as the item row's price badge: a bare number gets a dollar
-// sign, anything else is shown as the recipient typed it.
-function displayPrice(price: string): string {
-	const trimmed = price.trim()
-	return /^\d+(\.\d+)?$/u.test(trimmed) ? `$${trimmed}` : trimmed
-}
-
 function parseBudget(draft: string): number | null {
 	const n = Number.parseFloat(draft)
 	return Number.isFinite(n) && n > 0 ? n : null
+}
+
+// Shown while the model works, which can take most of a minute. The
+// placeholder cards and the moving status line make it read as busy rather
+// than stuck. The line advances and then holds on the last step; it does not
+// pretend to know how far along the call is.
+const THINKING_STEPS = [
+	'Reading their list…',
+	'Thinking of ideas…',
+	'Leaving out what is already on their list…',
+	'Writing up what to look for…',
+]
+const THINKING_STEP_MS = 4000
+
+export function ThinkingOfIdeas() {
+	const [step, setStep] = useState(0)
+	useEffect(() => {
+		const timer = setInterval(() => setStep(n => Math.min(n + 1, THINKING_STEPS.length - 1)), THINKING_STEP_MS)
+		return () => clearInterval(timer)
+	}, [])
+	return (
+		<div role="status" aria-live="polite" className="flex flex-col gap-3">
+			<p className="flex items-center gap-2 text-sm text-muted-foreground">
+				<Sparkles className="size-4 text-fuchsia-500 motion-safe:animate-pulse dark:text-fuchsia-300" aria-hidden />
+				<span key={step} className="motion-safe:animate-in motion-safe:fade-in">
+					{THINKING_STEPS[step]}
+				</span>
+			</p>
+			{[0, 1, 2].map(n => (
+				<div key={n} className="flex flex-col gap-2 rounded-md border px-4 py-3" aria-hidden>
+					<Skeleton className="h-4 w-2/5" />
+					<Skeleton className="h-3 w-full" />
+					<Skeleton className="h-3 w-4/5" />
+				</div>
+			))}
+			<p className="text-xs text-muted-foreground">This usually takes under a minute.</p>
+		</div>
+	)
 }
 
 export type SuggestionsState =
@@ -104,16 +114,13 @@ export type GiftHelpDialogViewProps = {
 	onBudgetChange: (value: string) => void
 	onSubmit: () => void
 	onBack: () => void
-	picks: Array<Pick>
-	// Called when a pick is chosen, so the dialog can close and the page
-	// can scroll to that item.
-	onPickSelected: () => void
-	// False for a child account: only the picks from the list are shown.
-	suggestionsAvailable: boolean
 	suggestions: SuggestionsState
 	savedTitles: ReadonlySet<string>
 	savingTitle: string | null
 	onSaveIdea: (suggestion: SuggestedGift) => void
+	addedTitles: ReadonlySet<string>
+	addingTitle: string | null
+	onAddOffList: (suggestion: SuggestedGift) => void
 }
 
 export function GiftHelpDialogView({
@@ -126,27 +133,25 @@ export function GiftHelpDialogView({
 	onBudgetChange,
 	onSubmit,
 	onBack,
-	picks,
-	onPickSelected,
-	suggestionsAvailable,
 	suggestions,
 	savedTitles,
 	savingTitle,
 	onSaveIdea,
+	addedTitles,
+	addingTitle,
+	onAddOffList,
 }: GiftHelpDialogViewProps) {
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-xl">
+			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
-					<DialogTitle className="flex items-center gap-2">
+					<DialogTitle className="flex items-center gap-2 pr-8">
 						<Sparkles className="size-5" /> Gift Ideas for {recipientName}
 					</DialogTitle>
 					<DialogDescription>
 						{interests.length > 0
 							? `Their list is mostly ${interests.map(i => categoryLabel(i.category)).join(', ')}.`
-							: suggestionsAvailable
-								? 'The best of what is still open on their list, plus new ideas that are not on it.'
-								: 'The best of what is still open on their list.'}
+							: 'New ideas that are not already on their list.'}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -173,12 +178,10 @@ export function GiftHelpDialogView({
 								autoFocus
 							/>
 						</div>
-						{suggestionsAvailable && (
-							<p className="text-xs text-muted-foreground">
-								New ideas come from an AI model. It is shown what is on {recipientName}’s lists and whether each thing is already claimed,
-								never who claimed it.
-							</p>
-						)}
+						<p className="text-xs text-muted-foreground">
+							Ideas come from an AI model. It is shown what is on {recipientName}’s lists and whether each thing is already claimed, never
+							who claimed it.
+						</p>
 						<DialogFooter>
 							<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
 								Cancel
@@ -190,79 +193,64 @@ export function GiftHelpDialogView({
 					</form>
 				) : (
 					<>
-						<div className="-mx-1 flex max-h-[60vh] flex-col gap-5 overflow-y-auto px-1">
-							<section className="flex flex-col gap-2">
-								<h3 className="text-sm font-medium">From {recipientName}’s List</h3>
-								{picks.length === 0 ? (
-									<p className="text-sm text-muted-foreground">
-										Nothing on this list is open{budget ? ' within that budget' : ''} right now.
-									</p>
+						<div className="-mx-1 flex max-h-[65vh] flex-col gap-3 overflow-y-auto px-1">
+							{suggestions.phase === 'loading' && <ThinkingOfIdeas />}
+							{suggestions.phase === 'error' && <p className="text-sm text-destructive">{suggestions.message}</p>}
+							{suggestions.phase === 'done' &&
+								(suggestions.suggestions.length === 0 ? (
+									<p className="text-sm text-muted-foreground">No new ideas this time. Try a different budget.</p>
 								) : (
-									<ul className="flex flex-col gap-2">
-										{picks.map(pick => (
-											<li key={pick.item.id} className="rounded-md border px-3 py-2">
-												<a
-													href={`#item-${pick.item.id}`}
-													onClick={onPickSelected}
-													className="font-medium underline-offset-4 hover:underline"
-												>
-													{pick.item.title}
-												</a>
-												{pick.item.price && <span className="text-sm text-muted-foreground"> · {displayPrice(pick.item.price)}</span>}
-												<p className="text-xs text-muted-foreground">{pick.reasons.join(' · ')}</p>
-											</li>
-										))}
-									</ul>
-								)}
-							</section>
-
-							{suggestionsAvailable && (
-								<section className="flex flex-col gap-2">
-									<h3 className="text-sm font-medium">Not on Their List</h3>
-									{suggestions.phase === 'loading' && <p className="text-sm text-muted-foreground">Thinking of ideas…</p>}
-									{suggestions.phase === 'error' && <p className="text-sm text-destructive">{suggestions.message}</p>}
-									{suggestions.phase === 'done' &&
-										(suggestions.suggestions.length === 0 ? (
-											<p className="text-sm text-muted-foreground">No new ideas this time. Try a different budget.</p>
-										) : (
-											<>
-												<ul className="flex flex-col gap-2">
-													{suggestions.suggestions.map(s => {
-														const saved = savedTitles.has(s.title)
-														const band = PRICE_BAND_LABEL[s.priceBand]
-														return (
-															<li key={s.title} className="flex flex-col gap-2 rounded-md border px-3 py-2">
-																<div>
-																	<div className="font-medium">
-																		{s.title}
-																		{band && <span className="text-sm font-normal text-muted-foreground"> · {band}</span>}
-																	</div>
-																	<p className="text-sm">{s.details}</p>
-																	<p className="text-sm text-muted-foreground">{s.reason}</p>
-																</div>
-																<Button
-																	type="button"
-																	variant="outline"
-																	size="sm"
-																	className="self-end"
-																	disabled={saved || savingTitle === s.title}
-																	onClick={() => onSaveIdea(s)}
-																>
-																	{saved ? <Check className="size-4" /> : <Lightbulb className="size-4" />}
-																	{saved ? 'Saved' : 'Save Idea'}
-																</Button>
-															</li>
-														)
-													})}
-												</ul>
-												<p className="text-xs text-muted-foreground">
-													These are ideas to research, not product recommendations: the AI does not know what is in stock or what things
-													cost today. A saved idea goes to your private gift ideas, which {recipientName} cannot see.
-												</p>
-											</>
-										))}
-								</section>
-							)}
+									<>
+										<ul className="flex flex-col gap-3">
+											{suggestions.suggestions.map(s => {
+												const saved = savedTitles.has(s.title)
+												const added = addedTitles.has(s.title)
+												const band = PRICE_BAND_LABEL[s.priceBand]
+												return (
+													<li key={s.title} className="flex flex-col gap-3 rounded-md border px-4 py-3">
+														<div className="flex flex-col gap-1">
+															<div className="font-medium">
+																{s.title}
+																{band && <span className="text-sm font-normal text-muted-foreground"> · {band}</span>}
+															</div>
+															<p className="text-sm">{s.details}</p>
+															<p className="text-sm text-muted-foreground">{s.reason}</p>
+														</div>
+														<div className="flex flex-wrap justify-end gap-2">
+															<Button
+																type="button"
+																variant="outline"
+																size="sm"
+																disabled={added || addingTitle === s.title}
+																onClick={() => onAddOffList(s)}
+															>
+																{/* Same icon and color as the Off-List Gifts section. */}
+																{added ? <Check className="size-4 text-orange-500" /> : <PackagePlus className="size-4 text-orange-500" />}
+																{added ? 'Added as Off-List Gift' : 'Add as Off-List Gift'}
+															</Button>
+															<Button
+																type="button"
+																variant="outline"
+																size="sm"
+																disabled={saved || savingTitle === s.title}
+																onClick={() => onSaveIdea(s)}
+															>
+																{/* Same icon and color as gift-ideas lists. */}
+																{saved ? <Check className="size-4 text-teal-500" /> : <Lightbulb className="size-4 text-teal-500" />}
+																{saved ? 'Saved to Gift Ideas' : 'Save to Gift Ideas'}
+															</Button>
+														</div>
+													</li>
+												)
+											})}
+										</ul>
+										<p className="text-xs text-muted-foreground">
+											These are ideas to research, not product recommendations: the AI does not know what is in stock or what things cost
+											today. Gift Ideas are private to you. An off-list gift tells other gifters you are giving it; {recipientName} sees it
+											only after the reveal.
+										</p>
+									</>
+								))}
 						</div>
 						<DialogFooter>
 							<Button type="button" variant="outline" onClick={onBack}>
@@ -279,20 +267,10 @@ export function GiftHelpDialogView({
 	)
 }
 
-// The filter-row button plus its dialog. Mount inside a
-// `<Suspense fallback={null}>`; it reads the same items query the list
-// itself uses, so it adds no item fetch.
-export function GiftHelpButton({
-	listId,
-	groups,
-	recipientName,
-}: {
-	listId: number
-	groups: ReadonlyArray<PickGroup>
-	recipientName: string
-}) {
+// The filter-row button plus its dialog.
+export function GiftHelpButton({ listId, recipientName }: { listId: number; recipientName: string }) {
 	const queryClient = useQueryClient()
-	const { data: items } = useSuspenseQuery(listItemsViewQueryOptions(listId))
+	const router = useRouter()
 	const { data: session } = useSession()
 	const suggestionsEnabled = useAppSetting('aiGiftSuggestionsEnabled')
 	const intelligenceEnabled = useAppSetting('intelligenceEnabled')
@@ -300,9 +278,9 @@ export function GiftHelpButton({
 	const [open, setOpen] = useState(false)
 	const [step, setStep] = useState<'form' | 'results'>('form')
 	const [budget, setBudget] = useState('')
-	const [picks, setPicks] = useState<Array<Pick>>([])
 	const [suggestions, setSuggestions] = useState<SuggestionsState>({ phase: 'idle' })
 	const [savedTitles, setSavedTitles] = useState<ReadonlySet<string>>(() => new Set())
+	const [addedTitles, setAddedTitles] = useState<ReadonlySet<string>>(() => new Set())
 
 	const { data: interestData } = useQuery({
 		queryKey: ['list-interests', listId],
@@ -310,10 +288,6 @@ export function GiftHelpButton({
 		enabled: suggestionsEnabled && intelligenceEnabled && open,
 		staleTime: 5 * 60_000,
 	})
-
-	const pickItems = useMemo(() => items.map(toPickItem), [items])
-	// A child gets the picks from the list but never the AI ideas.
-	const suggestionsAvailable = session?.user.isChild !== true
 
 	const ask = useMutation({
 		mutationFn: () => getGiftSuggestions({ data: { listId, budget: parseBudget(budget) ?? undefined } }),
@@ -342,10 +316,30 @@ export function GiftHelpButton({
 		onError: () => toast.error('Could not save that idea'),
 	})
 
+	// An off-list gift is a gift the viewer is giving, so it goes on this
+	// list through the normal create path (own-list and visibility rules
+	// apply there). Only what to look for goes in its notes; the AI's
+	// reasoning about the recipient stays out of what other gifters read.
+	const addOffList = useMutation({
+		mutationFn: (s: SuggestedGift) =>
+			createListAddon({ data: { listId, description: s.title.slice(0, 500), notes: s.details.slice(0, 2000) } }),
+		onSuccess: (result, s) => {
+			if (result.kind !== 'ok') {
+				toast.error('Could not add that off-list gift')
+				return
+			}
+			setAddedTitles(prev => new Set(prev).add(s.title))
+			toast.success('Off-list gift added')
+			applyListEventLocally({ kind: 'addon', listId, addonId: 0 }, { queryClient, router })
+		},
+		onError: () => toast.error('Could not add that off-list gift'),
+	})
+
 	// One flag for the whole feature. Off means the list page is unchanged.
 	if (!suggestionsEnabled) return null
-	// Nothing to offer: no items to pick from and no AI to ask.
-	if (items.length === 0 && !suggestionsAvailable) return null
+	// The dialog is AI ideas only, which a child never gets, so a child sees
+	// no button at all.
+	if (session?.user.isChild === true) return null
 
 	return (
 		<>
@@ -372,21 +366,17 @@ export function GiftHelpButton({
 				budget={budget}
 				onBudgetChange={setBudget}
 				onSubmit={() => {
-					setPicks(rankPicks(pickItems, groups, { budget: parseBudget(budget) }))
 					setStep('results')
-					if (suggestionsAvailable) ask.mutate()
+					ask.mutate()
 				}}
 				onBack={() => setStep('form')}
-				picks={picks}
-				onPickSelected={() => {
-					setOpen(false)
-					setStep('form')
-				}}
-				suggestionsAvailable={suggestionsAvailable}
 				suggestions={suggestions}
 				savedTitles={savedTitles}
 				savingTitle={save.isPending ? save.variables.title : null}
 				onSaveIdea={s => save.mutate(s)}
+				addedTitles={addedTitles}
+				addingTitle={addOffList.isPending ? addOffList.variables.title : null}
+				onAddOffList={s => addOffList.mutate(s)}
 			/>
 		</>
 	)
