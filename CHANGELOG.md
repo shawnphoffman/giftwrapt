@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.6.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.5.0...v1.6.0) (2026-10-03)
+
+
+### Features
+
+* **admin:** list private receipts in storage without preview or link ([c030161](https://github.com/shawnphoffman/giftwrapt/commit/c03016104438b221b95a5919624cad29ac2399da))
+* **ai:** add Paste Text import, picks in reminder emails, and thank-you drafts ([0a73da0](https://github.com/shawnphoffman/giftwrapt/commit/0a73da0452474284af10e1782553991761ade114))
+* **ai:** add usage ledger, monthly ceiling, and per-feature data disclosure ([14fe91e](https://github.com/shawnphoffman/giftwrapt/commit/14fe91e8a9ec81071224d38a6e29eb7aadda2d2c))
+* **ai:** record who started each AI call and from where; generate docs catalogs ([7884d18](https://github.com/shawnphoffman/giftwrapt/commit/7884d1880c6ae6e5497d81d93dcb868390e6be37))
+* **gift-help:** add Pick for Me and AI gift suggestions on other people's lists ([574a586](https://github.com/shawnphoffman/giftwrapt/commit/574a5868e6212a24a1d018d6c168f1e0a14ec9cb))
+* **gift-help:** move gift help into a dialog opened from the filter row ([1991169](https://github.com/shawnphoffman/giftwrapt/commit/19911690c43c6bb4966633ebe8d0eaa423aa7c67))
+* **gift-help:** return detailed text ideas with no search link ([66adfbe](https://github.com/shawnphoffman/giftwrapt/commit/66adfbe06b700a3caf072c46fcf933f09276d111))
+* **gift-help:** take the occasion from the list type; restyle the Need ideas? button ([b155511](https://github.com/shawnphoffman/giftwrapt/commit/b155511abc30df548d1cc83ab1dde1040a373135))
+* **mcp:** add get_gift_context, bounded results, and an eval harness ([74bc912](https://github.com/shawnphoffman/giftwrapt/commit/74bc9121b10eb54a064fdbafe3ca02e53e9178bc))
+* **mcp:** add read-only connections and a shared rate limit ([fb86680](https://github.com/shawnphoffman/giftwrapt/commit/fb8668098bc4a4880d4d9d72464c8add66106ca8))
+* **receipts:** serve receipts privately through an authorized route ([80c6bd1](https://github.com/shawnphoffman/giftwrapt/commit/80c6bd1c9bd07fcbb61dc667d82f75e336c7380c))
+
+
+### Bug Fixes
+
+* **auth:** enforce bans on web cookies and mobile api keys ([3805dbe](https://github.com/shawnphoffman/giftwrapt/commit/3805dbe9583dba1e42c6a4d09f5a255310f3a9c2))
+* **gift-help:** put the whole Help Me Choose panel behind the suggestions flag ([7b6bbec](https://github.com/shawnphoffman/giftwrapt/commit/7b6bbec5b18502e0c200c68c9e2a0e83125c0194))
+* **gifts:** lock the item group so two 'pick one' claims cannot both win ([294524b](https://github.com/shawnphoffman/giftwrapt/commit/294524b688ad037c220574e7cb7dfa4719e6a3eb))
+* **mcp:** mark web-reaching tools open world and put ids in tool text ([2fa0706](https://github.com/shawnphoffman/giftwrapt/commit/2fa0706d5bf4c314d3782075c23140a069cdc264))
+* **sse:** stop list events leaking claims to the recipient ([c8a3366](https://github.com/shawnphoffman/giftwrapt/commit/c8a336612fdb1a49d90ef06480aa503e3df16182))
+
 ## [1.5.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.4.0...v1.5.0) (2026-10-02)
 
 
