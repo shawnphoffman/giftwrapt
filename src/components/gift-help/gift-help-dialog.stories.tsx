@@ -73,6 +73,7 @@ const meta = {
 		addedTitles: new Set<string>(),
 		addingTitle: null,
 		onAddOffList: fn(),
+		searchUrlTemplate: null,
 	},
 } satisfies Meta<typeof GiftHelpDialogView>
 
@@ -110,6 +111,22 @@ export const ResultsActedOn: Story = {
 		suggestions: { phase: 'done', suggestions },
 		savedTitles: new Set(['Bypass Pruning Shears']),
 		addedTitles: new Set(['Enameled Cast Iron Braiser']),
+	},
+}
+
+/** The admin set a search link: each idea links to that page with its title filled in. */
+export const ResultsWithSearchLink: Story = {
+	args: {
+		step: 'results',
+		budget: '200',
+		suggestions: { phase: 'done', suggestions },
+		searchUrlTemplate: 'https://www.google.com/search?q={query}',
+	},
+	play: async ({ canvasElement }) => {
+		const screen = within(canvasElement.ownerDocument.body)
+		const links = await screen.findAllByRole('link', { name: 'Search' })
+		await expect(links[0]).toHaveAttribute('href', 'https://www.google.com/search?q=Enameled%20Cast%20Iron%20Braiser')
+		await expect(links[0]).toHaveAttribute('target', '_blank')
 	},
 }
 

@@ -14,6 +14,7 @@ import type { Database, SchemaDatabase } from '@/db'
 import { appSettings } from '@/db/schema'
 import type { ListType } from '@/db/schema/enums'
 import { DEFAULT_TIME_ZONE, isValidTimeZone } from '@/lib/calendar-day'
+import { isValidSearchUrlTemplate } from '@/lib/gift-suggestions/search-url'
 
 // 1) Shape of settings used across the app.
 // Defaults live in DEFAULT_APP_SETTINGS below, NOT on the schema fields:
@@ -560,6 +561,14 @@ export const appSettingsSchema = z.object({
 	// can see. Off by default; it sends other people's list items to the AI
 	// provider. What exactly is sent is spelled out in src/lib/ai-features.ts.
 	aiGiftSuggestionsEnabled: z.boolean(),
+	// Optional "Search" link on each gift suggestion: a URL with `{query}`
+	// where the idea's title goes. The admin types any search or store page;
+	// the app picks no provider. Null means no link. http(s) only. See
+	// src/lib/gift-suggestions/search-url.ts.
+	giftSuggestionsSearchUrl: z.union([
+		z.null(),
+		z.string().refine(isValidSearchUrlTemplate, 'Enter an http(s) URL that contains {query}, or leave it empty.'),
+	]),
 	// Paste Text: an import source that turns pasted free text into item
 	// drafts. Off by default. Only the pasted text is sent.
 	aiPasteToItemsEnabled: z.boolean(),
@@ -687,6 +696,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	aiMonthlyCostCeilingUsd: null,
 	aiPhotoExtractEnabled: true,
 	aiGiftSuggestionsEnabled: false,
+	giftSuggestionsSearchUrl: null,
 	aiPasteToItemsEnabled: false,
 	aiThankYouDraftsEnabled: false,
 	enableReminderPicks: false,

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
-import { Check, Lightbulb, PackagePlus, Sparkles } from 'lucide-react'
+import { Check, ExternalLink, Lightbulb, PackagePlus, Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useAppSetting } from '@/hooks/use-app-settings'
 import { useSession } from '@/lib/auth-client'
 import type { PriceBand } from '@/lib/gift-suggestions/prompt'
+import { buildSearchUrl } from '@/lib/gift-suggestions/search-url'
 import { applyListEventLocally } from '@/lib/list-events'
 import { listDetailKeys } from '@/lib/queries/lists'
 
@@ -121,6 +122,8 @@ export type GiftHelpDialogViewProps = {
 	addedTitles: ReadonlySet<string>
 	addingTitle: string | null
 	onAddOffList: (suggestion: SuggestedGift) => void
+	// The admin's search URL template; null means no Search link.
+	searchUrlTemplate: string | null
 }
 
 export function GiftHelpDialogView({
@@ -140,6 +143,7 @@ export function GiftHelpDialogView({
 	addedTitles,
 	addingTitle,
 	onAddOffList,
+	searchUrlTemplate,
 }: GiftHelpDialogViewProps) {
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -206,6 +210,7 @@ export function GiftHelpDialogView({
 												const saved = savedTitles.has(s.title)
 												const added = addedTitles.has(s.title)
 												const band = PRICE_BAND_LABEL[s.priceBand]
+												const searchUrl = buildSearchUrl(searchUrlTemplate, s.title)
 												return (
 													<li key={s.title} className="flex flex-col gap-3 rounded-md border px-4 py-3">
 														<div className="flex flex-col gap-1">
@@ -216,7 +221,15 @@ export function GiftHelpDialogView({
 															<p className="text-sm">{s.details}</p>
 															<p className="text-sm text-muted-foreground">{s.reason}</p>
 														</div>
-														<div className="flex flex-wrap justify-end gap-2">
+														<div className="flex flex-wrap items-center justify-end gap-2">
+															{searchUrl && (
+																<Button asChild variant="ghost" size="sm" className="mr-auto">
+																	<a href={searchUrl} target="_blank" rel="noopener noreferrer">
+																		<ExternalLink className="size-4" />
+																		Search
+																	</a>
+																</Button>
+															)}
 															<Button
 																type="button"
 																variant="outline"
@@ -274,6 +287,7 @@ export function GiftHelpButton({ listId, recipientName }: { listId: number; reci
 	const { data: session } = useSession()
 	const suggestionsEnabled = useAppSetting('aiGiftSuggestionsEnabled')
 	const intelligenceEnabled = useAppSetting('intelligenceEnabled')
+	const searchUrlTemplate = useAppSetting('giftSuggestionsSearchUrl')
 
 	const [open, setOpen] = useState(false)
 	const [step, setStep] = useState<'form' | 'results'>('form')
@@ -377,6 +391,7 @@ export function GiftHelpButton({ listId, recipientName }: { listId: number; reci
 				addedTitles={addedTitles}
 				addingTitle={addOffList.isPending ? addOffList.variables.title : null}
 				onAddOffList={s => addOffList.mutate(s)}
+				searchUrlTemplate={searchUrlTemplate}
 			/>
 		</>
 	)

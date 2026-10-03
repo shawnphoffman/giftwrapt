@@ -16,6 +16,7 @@ const meta = {
 		aiAvailable: true,
 		pending: false,
 		onToggle: fn(),
+		searchUrl: { value: null, pending: false, onSave: fn() },
 	},
 } satisfies Meta<typeof AiFeaturesCardView>
 
@@ -27,4 +28,9 @@ export const Default: Story = {}
 export const NoProvider: Story = {
 	args: { aiAvailable: false },
 	parameters: { docs: { description: { story: 'Switches are disabled until an AI provider is configured.' } } },
+}
+
+/** Gift Suggestions with a search link set: every idea gets a Search link to that page. */
+export const WithSearchLink: Story = {
+	args: { searchUrl: { value: 'https://www.google.com/search?q={query}', pending: false, onSave: fn() } },
 }
