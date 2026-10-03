@@ -11,7 +11,7 @@ export const Route = createFileRoute('/(core)/admin/ai')({
 
 function AdminAiPage() {
 	return (
-		<div className="flex flex-col gap-6 max-w-xl animate-page-in">
+		<div className="flex flex-col gap-6 max-w-2xl animate-page-in">
 			<ClientOnly>
 				<AiSettingsEditor />
 			</ClientOnly>
