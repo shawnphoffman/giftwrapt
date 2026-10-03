@@ -1,6 +1,6 @@
 import { MessageSquare } from 'lucide-react'
-import { motion, useReducedMotion } from 'motion/react'
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { useReducedMotion } from 'motion/react'
+import { lazy, Suspense, useLayoutEffect, useRef, useState } from 'react'
 
 import { cn } from '@/lib/utils'
 
@@ -20,25 +20,48 @@ type Props = {
 export function ItemComments({ itemId, commentCount = 0, trailing }: Props) {
 	const [expanded, setExpanded] = useState(commentCount > 0)
 	const [mounted, setMounted] = useState(commentCount > 0)
+	// The grid row is 1fr only after the panel has rendered at 0fr, so an
+	// expand transitions instead of jumping open.
+	const [open, setOpen] = useState(commentCount > 0)
+	// Clip only while closed or moving. Once open the overflow is visible so
+	// the textarea's focus ring isn't cut off.
+	const [settled, setSettled] = useState(commentCount > 0)
 	const [liveCount, setLiveCount] = useState(commentCount)
 	const displayCount = liveCount
 	const prefersReducedMotion = useReducedMotion()
-	const duration = prefersReducedMotion ? 0 : 0.18
+	const gridRef = useRef<HTMLDivElement>(null)
 
-	// Mount immediately on expand; on collapse, the motion.div animates to
-	// height: 0 and onAnimationComplete fires the unmount. Going through
-	// AnimatePresence + exit dropped the close animation when Suspense was
-	// inside the motion.div.
-	useEffect(() => {
-		if (expanded) setMounted(true)
-	}, [expanded])
+	// The height comes from a CSS grid row (0fr -> 1fr), never a measured
+	// pixel value. The panel's content arrives late (lazy chunk, comments
+	// query, and a field-sizing textarea that grows), and a height animated to
+	// a measurement taken before that left the composer clipped on mobile.
+	// A panel that starts expanded renders open with no animation.
+	useLayoutEffect(() => {
+		if (!mounted || !expanded || open) return
+		// Commit the 0fr style before flipping to 1fr so the change transitions.
+		void gridRef.current?.offsetHeight
+		setOpen(true)
+		if (prefersReducedMotion) setSettled(true)
+	}, [mounted, expanded, open, prefersReducedMotion])
+
+	const toggle = () => {
+		if (expanded) {
+			setExpanded(false)
+			setOpen(false)
+			setSettled(false)
+			if (prefersReducedMotion) setMounted(false)
+		} else {
+			setExpanded(true)
+			setMounted(true)
+		}
+	}
 
 	return (
 		<div className="@container flex flex-col gap-2">
 			<div className="flex flex-col-reverse gap-2 @md:flex-row @md:items-center">
 				<button
 					type="button"
-					onClick={() => setExpanded(!expanded)}
+					onClick={toggle}
 					className={cn(
 						'flex items-center gap-1.5 text-xs w-fit',
 						displayCount > 0
@@ -53,19 +76,25 @@ export function ItemComments({ itemId, commentCount = 0, trailing }: Props) {
 			</div>
 
 			{mounted && (
-				<motion.div
-					initial={{ height: 0, opacity: 0 }}
-					animate={{ height: expanded ? 'auto' : 0, opacity: expanded ? 1 : 0 }}
-					transition={{ duration, ease: 'easeOut' }}
-					onAnimationComplete={() => {
-						if (!expanded) setMounted(false)
+				<div
+					ref={gridRef}
+					className={cn(
+						'grid transition-[grid-template-rows,opacity] duration-200 ease-out motion-reduce:transition-none',
+						open ? 'opacity-100' : 'opacity-0'
+					)}
+					style={{ gridTemplateRows: open ? '1fr' : '0fr' }}
+					onTransitionEnd={e => {
+						if (e.target !== e.currentTarget || e.propertyName !== 'grid-template-rows') return
+						if (open) setSettled(true)
+						else setMounted(false)
 					}}
-					className="overflow-hidden"
 				>
-					<Suspense fallback={null}>
-						<ItemCommentsPanel itemId={itemId} onCountChange={setLiveCount} />
-					</Suspense>
-				</motion.div>
+					<div className={cn('min-h-0', !settled && 'overflow-hidden')}>
+						<Suspense fallback={null}>
+							<ItemCommentsPanel itemId={itemId} onCountChange={setLiveCount} />
+						</Suspense>
+					</div>
+				</div>
 			)}
 		</div>
 	)
