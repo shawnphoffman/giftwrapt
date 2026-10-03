@@ -52,7 +52,7 @@ export const AI_FEATURE_REGISTRY: ReadonlyArray<AiFeatureInfo> = [
 	{
 		id: 'photo-extract',
 		label: 'Photo to Item',
-		description: 'Fills in a new item from a photo the user uploads.',
+		description: 'Fills in a new item from a photo the user uploads, on the web or in the iOS app.',
 		settingKey: 'aiPhotoExtractEnabled',
 		sent: ['The uploaded photo'],
 		neverSent: [NOTHING_ABOUT_PEOPLE],

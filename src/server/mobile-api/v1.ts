@@ -320,11 +320,13 @@ v1.get('/scrape', async c => {
 // =====================================================================
 
 import { registerConfigRoutes } from './v1/config'
+import { registerPhotoRoutes } from './v1/photos'
 import { registerProductRoutes } from './v1/products'
 import { registerWidgetRoutes } from './v1/widgets'
 
 registerConfigRoutes(v1)
 registerWidgetRoutes(v1)
 registerProductRoutes(v1)
+registerPhotoRoutes(v1)
 
 export { v1 }

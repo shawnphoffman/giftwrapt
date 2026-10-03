@@ -1,5 +1,5 @@
 import { db } from '@/db'
-import { AiBudgetExceededError, aiGenerateObject } from '@/lib/ai-call'
+import { AiBudgetExceededError, type AiCallSource, aiGenerateObject } from '@/lib/ai-call'
 import { createAiModel } from '@/lib/ai-client'
 import { resolveAiConfig } from '@/lib/ai-config'
 import { getAppSettings } from '@/lib/settings-loader'
@@ -35,6 +35,8 @@ export type ExtractFromPhotoArgs = {
 	signal?: AbortSignal
 	// Who uploaded the photo, for the usage ledger.
 	userId?: string | null
+	// Which surface asked, for the usage ledger. Defaults to the web app.
+	source?: AiCallSource
 }
 
 export type ExtractFromPhotoResult = {
@@ -42,7 +44,13 @@ export type ExtractFromPhotoResult = {
 	ms: number
 }
 
-export async function extractFromPhoto({ bytes, mediaType, signal, userId }: ExtractFromPhotoArgs): Promise<ExtractFromPhotoResult> {
+export async function extractFromPhoto({
+	bytes,
+	mediaType,
+	signal,
+	userId,
+	source = 'web',
+}: ExtractFromPhotoArgs): Promise<ExtractFromPhotoResult> {
 	const settings = await getAppSettings(db)
 	if (!settings.aiPhotoExtractEnabled) {
 		throw new ScrapeProviderError('config_missing', 'Photo to item is turned off on this deployment')
@@ -63,7 +71,7 @@ export async function extractFromPhoto({ bytes, mediaType, signal, userId }: Ext
 	let parsed
 	try {
 		parsed = await aiGenerateObject(
-			{ feature: 'photo-extract', userId, source: 'web' },
+			{ feature: 'photo-extract', userId, source },
 			{
 				model,
 				schema: scrapeResultModelSchema,

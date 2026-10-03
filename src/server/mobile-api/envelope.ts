@@ -52,6 +52,14 @@ const DEFAULT_MESSAGES: Partial<Record<string, string>> = {
 	'all-providers-failed': 'The page could not be read.',
 	timeout: 'Reading the page took too long.',
 	'no-providers-available': 'No scraper is configured on this server.',
+	// Photo routes (`POST /v1/products/by-photo`, `POST /v1/items/:itemId/image`).
+	'invalid-image': 'That file is not a supported image.',
+	'too-large': 'The photo is too large.',
+	'photo-to-item-disabled': 'Photo to Item is turned off on this server.',
+	'ai-budget-exceeded': 'The AI budget for this month has been reached.',
+	'extract-failed': 'The photo could not be read.',
+	'uploads-disabled': 'Photo uploads are not configured on this server.',
+	'storage-failed': 'The photo could not be stored.',
 	'internal-error': 'Something went wrong.',
 }
 

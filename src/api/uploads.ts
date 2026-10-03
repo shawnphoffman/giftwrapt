@@ -14,10 +14,11 @@ import { getStorage } from '@/lib/storage/adapter'
 import { processAttachment } from '@/lib/storage/attachment-pipeline'
 import { err, ok, UploadError, type UploadResult } from '@/lib/storage/errors'
 import { assertImageBytes, processImage } from '@/lib/storage/image-pipeline'
-import { avatarKey, itemImageKey, parseKeyFromUrl, receiptKey } from '@/lib/storage/keys'
+import { avatarKey, parseKeyFromUrl, receiptKey } from '@/lib/storage/keys'
 import { LIMITS } from '@/lib/validation/limits'
 import { adminAuthMiddleware, authMiddleware } from '@/middleware/auth'
 
+import { uploadItemImageImpl } from './_item-image-impl'
 import { attachReceiptImpl, detachReceiptImpl } from './_receipts-impl'
 
 const log = createLogger('api:uploads')
@@ -242,77 +243,30 @@ async function canUserEditItemsOn(userId: string, list: ListForPermCheck): Promi
 }
 
 // Same FormData rationale as uploadAvatar. `itemId` is a form field; File
-// under the `file` field; we parse and validate inline.
+// under the `file` field; we parse and validate inline. The rest is shared
+// with the mobile API (see _item-image-impl.ts).
 
 export const uploadItemImage = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator(formDataValidator)
 	.handler(async ({ context, data }): Promise<UploadResult<{ url: string }>> => {
-		const storage = getStorage()
-		if (!storage) return err('upstream', STORAGE_DISABLED_MESSAGE)
-
-		const userId = context.session.user.id
+		if (!getStorage()) return err('upstream', STORAGE_DISABLED_MESSAGE)
 
 		const file = data.get('file')
 		if (!(file instanceof File)) return err('bad-mime', 'missing "file" field')
 
-		const itemIdRaw = data.get('itemId')
-		const itemIdParsed = z.coerce.number().int().positive().safeParse(itemIdRaw)
+		const itemIdParsed = z.coerce.number().int().positive().safeParse(data.get('itemId'))
 		if (!itemIdParsed.success) return err('not-found', 'invalid itemId')
-		const itemId = itemIdParsed.data
 
 		if (file.size > MAX_BYTES) return err('too-large', `file exceeds ${env.STORAGE_MAX_UPLOAD_MB} MB limit`)
 		if (file.size === 0) return err('bad-mime', 'file is empty')
 
-		const item = await db.query.items.findFirst({
-			where: eq(items.id, itemId),
-			columns: { id: true, listId: true, imageUrl: true },
+		return uploadItemImageImpl({
+			db,
+			userId: context.session.user.id,
+			itemId: itemIdParsed.data,
+			bytes: await readFileAsBuffer(file),
 		})
-		if (!item) return err('not-found', 'item not found')
-
-		const list = await db.query.lists.findFirst({
-			where: eq(lists.id, item.listId),
-			columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
-		})
-		if (!list) return err('not-found', 'list not found')
-
-		if (!(await canUserEditItemsOn(userId, list))) {
-			return err('not-authorized', 'cannot edit items on this list')
-		}
-
-		const oldUrl = item.imageUrl
-
-		let buffer: Buffer
-		try {
-			const raw = await readFileAsBuffer(file)
-			assertImageBytes(raw)
-			const processed = await processImage(raw, 'item')
-			buffer = processed.buffer
-		} catch (error) {
-			if (error instanceof UploadError) return err(error.reason, error.message)
-			log.error({ err: error, itemId: item.id }, 'item.pipeline.unexpected')
-			return err('pipeline-failed', 'image processing failed')
-		}
-
-		const key = itemImageKey(item.id)
-		try {
-			await storage.upload(key, buffer, 'image/webp')
-		} catch (error) {
-			if (error instanceof UploadError) return err(error.reason, error.message)
-			return err('upstream', 'storage upload failed')
-		}
-
-		const url = storage.getPublicUrl(key)
-		// Don't bump modifiedAt: per items.ts convention, that field tracks
-		// title/url/notes changes only.
-		await db.update(items).set({ imageUrl: url }).where(eq(items.id, item.id))
-
-		if (oldUrl) {
-			const oldKey = parseKeyFromUrl(oldUrl, env.STORAGE_PUBLIC_URL)
-			if (oldKey) void deleteKey(oldKey)
-		}
-
-		return ok({ url })
 	})
 
 const RemoveItemImageSchema = z.object({

@@ -5,7 +5,9 @@
 import type { Hono } from 'hono'
 
 import { db } from '@/db'
+import { resolveAiConfig } from '@/lib/ai-config'
 import { getAppSettings } from '@/lib/settings-loader'
+import { isStorageConfigured } from '@/lib/storage/adapter'
 
 import type { MobileAuthContext } from '../auth'
 
@@ -20,6 +22,10 @@ export function registerConfigRoutes(v1: App): void {
 	// `AppSettingsResponse` decodes `{ settings: AppSettings }`.
 	v1.get('/app-settings', async c => {
 		const settings = await getAppSettings(db)
+		// Photo to Item needs both the admin toggle and a working AI
+		// provider; report the combined state so iOS doesn't offer a
+		// lookup that will only 503.
+		const photoToItemEnabled = settings.aiPhotoExtractEnabled && (await resolveAiConfig(db)).isValid
 		return c.json({
 			settings: {
 				appTitle: settings.appTitle,
@@ -35,6 +41,10 @@ export function registerConfigRoutes(v1: App): void {
 				enableValentinesDayReminders: settings.enableValentinesDayReminders,
 				enableAnniversaryReminders: settings.enableAnniversaryReminders,
 				defaultListType: settings.defaultListType,
+				// `POST /v1/products/by-photo` will run.
+				photoToItemEnabled,
+				// `POST /v1/items/:itemId/image` can store a photo.
+				itemPhotoUploadsEnabled: isStorageConfigured(),
 			},
 		})
 	})
