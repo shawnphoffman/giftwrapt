@@ -1,15 +1,15 @@
 // Server-only. Do not import from client/route components.
 //
-// Thin client over the giftwrapt-scraper Hono facade
-// (https://github.com/shawnphoffman/giftwrapt-scraper). The facade itself
-// chains browserless → flaresolverr → byparr → scrapfly with bot-block
-// detection, so we treat it as a black box: POST {endpoint}/fetch with a
-// token header and a {url} body, get back rendered HTML.
+// Thin client over the GiftWrapt Scraper gateway
+// (https://github.com/shawnphoffman/giftwrapt-scraper). The gateway chains
+// its configured rendering providers with challenge-page detection, so we
+// treat it as a black box: POST {endpoint}/fetch with a token header and a
+// {url} body, get back rendered HTML.
 //
 // Each entry of type `giftwrapt-scraper` in `appSettings.scrapeProviders`
 // becomes its own provider in the orchestrator chain. Lets self-hosters
-// stand up one shared facade and point multiple giftwrapt deployments at
-// it (or run several facades in different regions).
+// stand up one shared gateway and point multiple giftwrapt deployments at
+// it (or run several gateways in different regions).
 
 import type { GiftWraptScraperEntry } from '@/lib/settings'
 
@@ -19,6 +19,13 @@ import { ScrapeProviderError } from '../types'
 
 const PROVIDER_TYPE = 'giftwrapt-scraper'
 const MAX_BODY_BYTES = 5 * 1024 * 1024
+
+// How much of our per-attempt budget we hand the gateway as its own
+// per-attempt timeout. Leaving headroom means the gateway's first rung
+// gives up and reports a clean `timeout` before our AbortController
+// fires, so the attempt is recorded as a timeout rather than an abort.
+const GATEWAY_TIMEOUT_HEADROOM_MS = 2_000
+const GATEWAY_TIMEOUT_FLOOR_MS = 1_000
 
 // Mapping from the facade's wire-level error codes to our internal
 // ScrapeErrorCode enum. The codes that don't appear here are mapped
@@ -77,6 +84,7 @@ async function runGiftWraptScraperProvider(
 
 	const start = Date.now()
 	const fetchUrl = new URL('/fetch', entry.endpoint).toString()
+	const timeoutMs = Math.max(GATEWAY_TIMEOUT_FLOOR_MS, ctx.perAttemptTimeoutMs - GATEWAY_TIMEOUT_HEADROOM_MS)
 
 	let response: Response
 	try {
@@ -88,7 +96,7 @@ async function runGiftWraptScraperProvider(
 				'Content-Type': 'application/json',
 				accept: 'application/json',
 			},
-			body: JSON.stringify({ url: ctx.url }),
+			body: JSON.stringify({ url: ctx.url, timeoutMs }),
 		})
 	} catch (err) {
 		if (err instanceof Error && (err.name === 'AbortError' || /aborted|timeout/i.test(err.message))) {

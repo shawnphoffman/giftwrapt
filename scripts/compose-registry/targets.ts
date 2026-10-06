@@ -9,11 +9,7 @@ import { bundledGarageEnvSection, garageFeature } from './features/garage.ts'
 import { clientEnvSection, imageOverrideEnvSection } from './features/logging.ts'
 import { databaseEnvSection, postgresFeature } from './features/postgres.ts'
 import { rustfsFeature } from './features/rustfs.ts'
-// Scraper feature is wired but intentionally not included in any current
-// shape or surfaced in `.env.example`. Re-import `scraperEnvSection` and
-// add it to the env-target sections array (plus `scraperFeature` to a
-// compose target's `features`) when we're ready to ship a scraper variant.
-// import { scraperEnvSection } from './features/scraper.ts'
+import { scraperEnvSection, scraperFeature } from './features/scraper.ts'
 import { storageEnvSection } from './features/storage-external.ts'
 import { traefikEnvSection, traefikFeature } from './features/traefik.ts'
 import type { ComposeFeature, ComposeTarget, Target } from './types.ts'
@@ -36,19 +32,17 @@ type Backend = 'garage' | 'rustfs'
  *
  *   minimal  - just core
  *   cron     - + cron sidecar
- *   full     - + cron (always-on). Kept as a shape name for compatibility; the MCP
- *              sidecar it used to carry is retired (the MCP server is built into the app).
+ *   full     - + cron + the scraper gateway (headless engine + gateway). The MCP
+ *              sidecar this shape used to carry is retired (the MCP server is
+ *              built into the app).
  *   traefik  - + Traefik reverse-proxy; app ports closed, routed via labels
- *
- * Scraper is a feature module ready to go but not currently included in
- * any shape - add it to `shapeOptionals` when ready.
  */
 type Shape = 'minimal' | 'cron' | 'full' | 'traefik'
 
 const shapeOptionals: Record<Shape, ReadonlyArray<(backend: Backend) => ComposeFeature>> = {
 	minimal: [],
 	cron: [backend => cronFeature(backend)],
-	full: [backend => cronFeature(backend)],
+	full: [backend => cronFeature(backend), () => scraperFeature],
 	traefik: [() => traefikFeature],
 }
 
@@ -59,6 +53,13 @@ const shapeProxied: Record<Shape, boolean> = {
 	traefik: true,
 }
 
+const shapeScraper: Record<Shape, boolean> = {
+	minimal: false,
+	cron: false,
+	full: true,
+	traefik: false,
+}
+
 const backendLabel: Record<Backend, string> = {
 	garage: 'Garage',
 	rustfs: 'RustFS',
@@ -67,7 +68,7 @@ const backendLabel: Record<Backend, string> = {
 const shapeLabel: Record<Shape, string> = {
 	minimal: 'bare minimum (app + DB + storage)',
 	cron: 'with cron sidecar',
-	full: 'full (cron)',
+	full: 'full (cron + scraper gateway)',
 	traefik: 'with Traefik reverse-proxy',
 }
 
@@ -81,7 +82,7 @@ const shapeFilenamePart: Record<Shape, string> = {
 const shapeIncludes: Record<Shape, string> = {
 	minimal: 'No optional sidecars - add a cron block manually if you need one, or grab a richer shape.',
 	cron: 'Includes the cron sidecar that hits /api/cron/* on a daily schedule.',
-	full: 'Includes the cron sidecar always-on. The MCP server is built into the app (enable it from Admin, General), so this shape no longer carries a sidecar for it.',
+	full: 'Includes the cron sidecar plus the scraper gateway (headless Chromium + gateway) for product pages the plain fetch cannot render. Set BROWSER_TOKEN in .env; the app seeds the provider entry on first boot. Budget about 1 GB of RAM for the headless engine. The MCP server is built into the app (enable it from Admin, General).',
 	traefik: 'Fronts the app with Traefik on :80. App ports are closed; ingress is via the proxy. Set TRAEFIK_HOST in .env.',
 }
 
@@ -104,7 +105,7 @@ function targetFor(backend: Backend, shape: Shape): ComposeTarget {
 	const fileName = `compose.selfhost-${backend}-${shapeFilenamePart[shape]}.yaml`
 	const storageFeature = backend === 'garage' ? garageFeature : rustfsFeature
 	const features: Array<ComposeFeature> = [
-		appFeature({ backend, proxied: shapeProxied[shape] }),
+		appFeature({ backend, proxied: shapeProxied[shape], scraper: shapeScraper[shape] }),
 		postgresFeature,
 		...shapeOptionals[shape].map(f => f(backend)),
 		storageFeature,
@@ -154,7 +155,7 @@ export const targets: ReadonlyArray<Target> = [
 			cronEnvSection,
 			imageOverrideEnvSection,
 			clientEnvSection,
-			// scraperEnvSection, // re-enable when a shape ships with scraper
+			scraperEnvSection,
 			traefikEnvSection,
 			storageEnvSection,
 			bundledGarageEnvSection,

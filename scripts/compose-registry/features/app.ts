@@ -11,28 +11,59 @@ type AppOptions = {
 	 * second ingress path.
 	 */
 	proxied?: boolean
+	/**
+	 * When true, the app is told where the bundled scraper gateway lives
+	 * (`SCRAPER_URL`, defaulting to the compose service name). Used by the
+	 * shapes that include `scraperFeature`; the app seeds a provider entry
+	 * from it on first boot.
+	 */
+	scraper?: boolean
 }
 
 /**
- * The `app` service block. Varies along two axes:
+ * The `app` service block. Varies along three axes:
  *
  *   - storage backend (garage / rustfs) drives the bootstrap INIT_* env
  *     var and the depends_on storage service.
  *   - proxied (true / false) decides whether the app exposes a host port
  *     directly or whether Traefik fronts it via labels.
+ *   - scraper (true / false) adds the SCRAPER_URL env pointing at the
+ *     bundled gateway.
  *
  * The two storage variants still carry slightly different surrounding
  * comments inherited from the original hand-written files; preserved
  * here until a follow-up unifies them.
  */
 export function appFeature(opts: AppVariant | AppOptions): ComposeFeature {
-	const o = typeof opts === 'string' ? { backend: opts, proxied: false } : { proxied: false, ...opts }
+	const o = typeof opts === 'string' ? { backend: opts, proxied: false, scraper: false } : { proxied: false, scraper: false, ...opts }
 	const base = o.backend === 'garage' ? garageAppBody : rustfsAppBody
-	const body = o.proxied ? applyProxy(base) : base
+	const withScraper = o.scraper ? applyScraperEnv(base) : base
+	const body = o.proxied ? applyProxy(withScraper) : withScraper
 	return {
-		id: `app-${o.backend}${o.proxied ? '-proxied' : ''}`,
+		id: `app-${o.backend}${o.proxied ? '-proxied' : ''}${o.scraper ? '-scraper' : ''}`,
 		services: [{ name: 'app', body }],
 	}
+}
+
+/**
+ * Add the scraper-gateway env to the app body, right after LOG_PRETTY so
+ * the env block keeps its logging / integration / storage-bootstrap order.
+ * A string transform for the same reason as applyProxy: one app body per
+ * storage backend, with the optional axes layered on.
+ */
+function applyScraperEnv(body: string): string {
+	const marker = /^( {6}LOG_PRETTY: \$\{LOG_PRETTY:-false\}\n)/m
+	if (!marker.test(body)) {
+		throw new Error('applyScraperEnv: LOG_PRETTY line not found in app body; the regex needs updating to match the current shape.')
+	}
+	return body.replace(
+		marker,
+		`$1      # Bundled scraper gateway (see the scraper service below). On first
+      # boot the app seeds a "GiftWrapt Scraper" provider entry from this URL
+      # and BROWSER_TOKEN; afterwards Admin > Scraping owns the entry.
+      SCRAPER_URL: \${SCRAPER_URL:-http://scraper:8080}
+`
+	)
 }
 
 /**

@@ -114,8 +114,24 @@ describe('giftwraptScraperProvider: success path', () => {
 		expect(lastFetchInit?.method).toBe('POST')
 		expect(lastFetchInit?.url).toBe('https://browser-services.test/fetch')
 		expect(lastFetchInit?.headers['X-Browser-Token']).toBe('wls-token-123')
-		const body = JSON.parse(lastFetchInit?.body ?? '{}') as { url: string }
+		const body = JSON.parse(lastFetchInit?.body ?? '{}') as { url: string; timeoutMs: number }
 		expect(body.url).toBe('https://example.test/x')
+	})
+
+	it('hands the gateway a per-attempt timeout below our own so it can report a clean timeout', async () => {
+		queue.push({ httpStatus: 200, payload: { html: '<html>ok</html>', status: 200 } })
+		await makeProvider().fetch(makeCtx('https://example.test/x'))
+		const body = JSON.parse(lastFetchInit?.body ?? '{}') as { timeoutMs: number }
+		// makeCtx uses perAttemptTimeoutMs: 5000; the client leaves 2s of headroom.
+		expect(body.timeoutMs).toBe(3000)
+	})
+
+	it('never sends a gateway timeout below the 1s floor', async () => {
+		queue.push({ httpStatus: 200, payload: { html: '<html>ok</html>', status: 200 } })
+		const ctx = { ...makeCtx('https://example.test/x'), perAttemptTimeoutMs: 1500 }
+		await makeProvider().fetch(ctx)
+		const body = JSON.parse(lastFetchInit?.body ?? '{}') as { timeoutMs: number }
+		expect(body.timeoutMs).toBe(1000)
 	})
 
 	it('falls back to ctx.url when finalUrl is missing in the payload', async () => {
