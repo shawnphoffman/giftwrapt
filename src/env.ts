@@ -40,14 +40,19 @@ export const env = createEnv({
 		// Compared against the `Authorization: Bearer ...` header in
 		// `src/routes/api/cron/_auth.ts` with a timing-safe comparison.
 		CRON_SECRET: z.string().min(32).optional(),
-		// URL scraping (legacy first-boot seeds). Scrape providers are now
-		// configured under /admin/scraping and stored in app_settings; these
-		// env vars exist as a one-shot seed for self-hosters upgrading from
-		// the env-only setup. On the first boot after upgrading, if no
-		// browserless/flaresolverr entry exists yet AND the env var is set,
-		// `src/db/bootstrap.ts` inserts a corresponding entry. After that
-		// the admin owns the configuration and these env vars are unused.
+		// URL scraping (first-boot seeds). Scrape providers are configured
+		// under /admin/scraping and stored in app_settings; these env vars
+		// exist as a one-shot seed. On the first boot, if no entry of the
+		// matching type exists yet AND the env var is set, `src/db/bootstrap.ts`
+		// inserts a corresponding entry. After that the admin owns the
+		// configuration and these env vars are unused.
+		//
+		// SCRAPER_URL + BROWSER_TOKEN seed a "GiftWrapt Scraper" gateway entry
+		// (the *-full compose shapes set SCRAPER_URL to the bundled service).
+		// BROWSERLESS_URL / FLARESOLVERR_URL are the legacy direct-provider
+		// seeds for self-hosters upgrading from the env-only setup.
 		// See https://giftwrapt.dev/configuration/scraping/ for the self-host stack.
+		SCRAPER_URL: z.url().optional(),
 		BROWSERLESS_URL: z.url().optional(),
 		FLARESOLVERR_URL: z.url().optional(),
 		BROWSER_TOKEN: z.string().min(1).optional(),

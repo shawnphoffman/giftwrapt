@@ -1,18 +1,20 @@
 // Server-only. Do not import from client/route components.
 //
-// One-shot bootstrap step: seed the new `scrapeProviders` array from legacy
-// env vars (BROWSERLESS_URL, BROWSER_TOKEN, FLARESOLVERR_URL) and from the
-// pre-tier `scrapeAiProviderEnabled` toggle, when no entry of the target
-// type already exists. Lets self-hosters who configured those env vars +
-// the AI toggle upgrade without manually re-entering them in
-// /admin/scraping.
+// One-shot bootstrap step: seed the `scrapeProviders` array from env vars
+// (SCRAPER_URL + BROWSER_TOKEN for the GiftWrapt Scraper gateway, the
+// legacy BROWSERLESS_URL / BROWSER_TOKEN / FLARESOLVERR_URL direct
+// providers) and from the pre-tier `scrapeAiProviderEnabled` toggle, when
+// no entry of the target type already exists. Lets the bundled compose
+// shapes come up with a working gateway entry and no admin clicks, and
+// lets self-hosters who configured the legacy env vars + the AI toggle
+// upgrade without manually re-entering them in /admin/scraping.
 //
 // Idempotent: re-running is a no-op once an entry of the target type
 // exists, regardless of its URL/token. The admin can subsequently edit or
 // disable the seeded entry; we won't ever overwrite their changes.
 //
-// Called once per server boot from src/db/index.ts; safe to call multiple
-// times since each invocation re-checks the current state.
+// Called once per server boot from the provider loader; safe to call
+// multiple times since each invocation re-checks the current state.
 
 import { db } from '@/db'
 import { appSettings } from '@/db/schema'
@@ -29,6 +31,7 @@ export async function seedScrapeProvidersFromEnv(): Promise<void> {
 	if (didRun) return
 	didRun = true
 
+	const scraperUrl = env.SCRAPER_URL
 	const browserlessUrl = env.BROWSERLESS_URL
 	const flaresolverrUrl = env.FLARESOLVERR_URL
 
@@ -56,6 +59,26 @@ export async function seedScrapeProvidersFromEnv(): Promise<void> {
 		})
 		added = true
 		bootstrapLog.info('seeded ai provider entry from legacy scrapeAiProviderEnabled toggle')
+	}
+
+	// The GiftWrapt Scraper gateway. The bundled *-full compose shapes set
+	// SCRAPER_URL to the sidecar and share BROWSER_TOKEN with it, so a fresh
+	// stack gets a working tier-1 entry without visiting the admin UI. Both
+	// values are required: the gateway refuses unauthenticated calls.
+	if (scraperUrl && env.BROWSER_TOKEN && !seeded.some(e => e.type === 'giftwrapt-scraper')) {
+		seeded.push({
+			id: 'giftwrapt-scraper-env-seed',
+			type: 'giftwrapt-scraper',
+			name: 'GiftWrapt Scraper',
+			enabled: true,
+			tier: 1,
+			endpoint: scraperUrl,
+			token: env.BROWSER_TOKEN,
+		})
+		added = true
+		bootstrapLog.info({ url: scraperUrl }, 'seeded giftwrapt-scraper provider from env')
+	} else if (scraperUrl && !env.BROWSER_TOKEN) {
+		bootstrapLog.warn('SCRAPER_URL is set but BROWSER_TOKEN is not; skipping giftwrapt-scraper seed')
 	}
 
 	if (browserlessUrl && !seeded.some(e => e.type === 'browserless')) {

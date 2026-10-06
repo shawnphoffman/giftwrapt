@@ -801,7 +801,7 @@ function GiftWraptScraperFields({
 				<Input
 					id={`wls-endpoint-${draft.id}`}
 					type="url"
-					placeholder="https://browser-services.local"
+					placeholder="http://scraper:8080"
 					value={draft.endpoint}
 					disabled={disabled}
 					maxLength={LIMITS.URL}

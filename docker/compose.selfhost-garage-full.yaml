@@ -1,7 +1,7 @@
 # =============================================================================
-# Self-Hosted (Garage backend, full (cron))
+# Self-Hosted (Garage backend, full (cron + scraper gateway))
 # =============================================================================
-# Includes the cron sidecar always-on. The MCP server is built into the app (enable it from Admin, General), so this shape no longer carries a sidecar for it.
+# Includes the cron sidecar plus the scraper gateway (headless Chromium + gateway) for product pages the plain fetch cannot render. Set BROWSER_TOKEN in .env; the app seeds the provider entry on first boot. Budget about 1 GB of RAM for the headless engine. The MCP server is built into the app (enable it from Admin, General).
 #
 # Quick start:
 #   1. cp .env.example docker/.env
@@ -27,6 +27,10 @@ services:
       # human-readable output even in prod (otherwise NDJSON is emitted).
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOG_PRETTY: ${LOG_PRETTY:-false}
+      # Bundled scraper gateway (see the scraper service below). On first
+      # boot the app seeds a "GiftWrapt Scraper" provider entry from this URL
+      # and BROWSER_TOKEN; afterwards Admin > Scraping owns the entry.
+      SCRAPER_URL: ${SCRAPER_URL:-http://scraper:8080}
       # When the bundled Garage sidecar is part of the stack, the app
       # entrypoint bootstraps it via Garage's admin HTTP API (layout assign,
       # bucket create, key import, permission grant) before running DB
@@ -86,6 +90,52 @@ services:
     depends_on:
       app:
         condition: service_started
+    restart: unless-stopped
+
+  # Headless Chromium engine. Drives the scraper gateway; not reached directly
+  # by the app. Set BROWSER_TOKEN in .env to a long random string; the gateway
+  # service below shares it. Budget roughly 1 GB of RAM for this container.
+  browserless:
+    image: ghcr.io/browserless/chromium:v2.55.3
+    environment:
+      TOKEN: ${BROWSER_TOKEN}
+      CONCURRENT: ${BROWSERLESS_CONCURRENT:-3}
+      QUEUED: ${BROWSERLESS_QUEUED:-6}
+      TIMEOUT: ${BROWSERLESS_TIMEOUT:-60000}
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -fsS -o /dev/null "http://localhost:3000/pressure?token=$$TOKEN" || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+  # Scraper gateway. Renders pages the app's plain fetch can't (client-side
+  # rendering, interstitials). The app reaches it at http://scraper:8080 via
+  # SCRAPER_URL and seeds a "GiftWrapt Scraper" provider entry on first boot;
+  # after that, manage it under Admin > Scraping.
+  scraper:
+    image: ${SCRAPER_IMAGE:-ghcr.io/shawnphoffman/giftwrapt-scraper:latest}
+    depends_on:
+      browserless:
+        condition: service_healthy
+    environment:
+      BROWSERLESS_URL: http://browserless:3000
+      # BROWSER_TOKEN is the secret shared with the headless engine above.
+      # BROWSER_TOKENS is the list of tokens the gateway accepts from
+      # callers; a single-token deployment reuses the same value.
+      BROWSER_TOKEN: ${BROWSER_TOKEN}
+      BROWSER_TOKENS: ${BROWSER_TOKENS:-${BROWSER_TOKEN}}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      MAX_RESPONSE_BYTES: ${MAX_RESPONSE_BYTES:-5242880}
+      PER_HOST_CONCURRENCY: ${PER_HOST_CONCURRENCY:-2}
+      RESPECT_ROBOTS: ${RESPECT_ROBOTS:-0}
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:8080/health || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     restart: unless-stopped
 
   garage:
