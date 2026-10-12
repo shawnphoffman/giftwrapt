@@ -31,7 +31,7 @@ export function isEmbeddedUserAgent(userAgent: string | null | undefined): boole
  * - `reauth`: the web landed on an auth page; the app should run the
  *   handoff again and land on `to`.
  * - `save`: open the native Save flow (the sidebar's Add Item action).
- * - `openExternal`: present the URL outside the web view (Safari sheet).
+ * - `openExternal`: open the URL in the device's default browser.
  * - `error`: an error boundary rendered. The app replaces the web's
  *   fallback with its own card and recovers by reloading through the
  *   handoff, so the web view never sits on a broken page.
