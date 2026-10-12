@@ -36,6 +36,13 @@ export type MobilePendingPayload =
 	// iOS picks up the envelope via `/v1/auth/{oidc,passkey}/finish`.
 	// Single-use; `consumePending` burns the row.
 	| { kind: 'browser-result'; flow: 'oidc' | 'passkey'; envelope: Record<string, unknown> }
+	// Web handoff (plan 28): written by `POST /v1/web-session` under a
+	// live device key, consumed by the `mobile-web-handoff` better-auth
+	// plugin, which mints a one-day cookie session for the iOS web view.
+	// `apiKeyId` lets the consumer re-check that the key still exists
+	// and is enabled; `to` is the same-origin path to land on, already
+	// passed through `safeRedirect`. 60-second TTL at the mint site.
+	| { kind: 'web-handoff'; userId: string; apiKeyId: string; to: string }
 
 type PendingKind = MobilePendingPayload['kind']
 

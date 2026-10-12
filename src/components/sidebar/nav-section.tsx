@@ -26,6 +26,10 @@ export type NavItem = {
 	activeOptions?: React.ComponentProps<typeof Link>['activeOptions']
 	activePaths?: Array<string>
 	activeMatch?: (pathname: string) => boolean
+	// Intercept the click. Call `preventDefault` to keep the router from
+	// navigating (the Link honors `defaultPrevented`); used by the iOS web
+	// tab to hand an action to the native app instead of the web.
+	onClick?: (event: React.MouseEvent<HTMLAnchorElement>) => void
 }
 
 export const NavItem = ({ item, className }: { item: NavItem; className?: string }) => {
@@ -46,6 +50,7 @@ export const NavItem = ({ item, className }: { item: NavItem; className?: string
 					className="group/link"
 					mask={item.mask ? { to: item.mask } : undefined}
 					activeOptions={item.activeOptions ? item.activeOptions : undefined}
+					onClick={item.onClick}
 					{...(forceActive && { 'data-status': 'active', 'aria-current': 'page' })}
 				>
 					{Icon && <Icon className={cn(item.hoverColor, 'transition-colors duration-50 ease-linear')} />}

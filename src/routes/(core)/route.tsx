@@ -30,8 +30,11 @@ import { ErrorBoundary } from '@/components/utilities/error-boundary'
 import { NavigationEvents } from '@/components/utilities/navigation-events'
 import { RouteErrorFallback } from '@/components/utilities/route-error-fallback'
 import { useAppSetting } from '@/hooks/use-app-settings'
+import { useEmbedded } from '@/hooks/use-embedded'
 import { auth } from '@/lib/auth'
+import { postToNativeBridge } from '@/lib/embedded'
 import { useVersionCheck } from '@/lib/use-version-check'
+import { cn } from '@/lib/utils'
 import { authMiddleware } from '@/middleware/auth'
 
 const checkSession = createServerFn({ method: 'GET' }).handler(async () => {
@@ -109,17 +112,29 @@ const purchases: Array<NavItem> = [
 	},
 ]
 
-const actions: Array<NavItem> = [
-	{
-		name: 'Add Item',
-		url: '/me#add-item',
-		mask: '/me',
-		icon: SquarePlus,
-		hoverColor: 'group-hover/link:text-blue-500 group-data-[status=active]/link:text-blue-500',
-		activeOptions: {
-			exact: true,
-		},
+const addItemAction: NavItem = {
+	name: 'Add Item',
+	url: '/me#add-item',
+	mask: '/me',
+	icon: SquarePlus,
+	hoverColor: 'group-hover/link:text-blue-500 group-data-[status=active]/link:text-blue-500',
+	activeOptions: {
+		exact: true,
 	},
+}
+
+// Inside the iOS web tab the sidebar's Add Item hands off to the native
+// Save flow (camera, barcode, share-sheet paste) over the bridge. The web
+// dialog stays reachable from the list page itself, so nothing is lost.
+const addItemActionEmbedded: NavItem = {
+	...addItemAction,
+	onClick: event => {
+		if (postToNativeBridge({ type: 'save' })) event.preventDefault()
+	},
+}
+
+const actions: Array<NavItem> = [
+	addItemAction,
 	{
 		name: 'Create List',
 		url: '/me#new',
@@ -160,6 +175,11 @@ function AuthenticatedRoutes() {
 		staleTime: 30_000,
 	})
 	const main = useMemo(() => (recCount && recCount.count > 0 ? [suggestionsNav, ...mainBase] : mainBase), [recCount])
+	// Embedded shell (iOS web tab, plan 28): Add Item goes native and the
+	// page gets bottom safe-area padding so the home indicator never covers
+	// content. The head already sets `viewport-fit=cover`.
+	const embedded = useEmbedded()
+	const actionItems = useMemo(() => (embedded ? [addItemActionEmbedded, ...actions.slice(1)] : actions), [embedded])
 	return (
 		<SidebarProvider>
 			<Sidebar variant="inset" collapsible="icon">
@@ -179,7 +199,7 @@ function AuthenticatedRoutes() {
 				</SidebarHeader>
 				<SidebarContent>
 					<NavSection title="Lists" items={main} />
-					<NavSection title="Actions" items={actions} />
+					<NavSection title="Actions" items={actionItems} />
 					<NavSection title="Purchases" items={purchases} />
 					<NavSection title="Recent" items={feeds} />
 					<NavBottom />
@@ -208,7 +228,7 @@ function AuthenticatedRoutes() {
 						</div>
 					</div>
 				</header>
-				<div className="flex flex-col items-center flex-1 gap-4 px-0 py-2 sm:px-2">
+				<div className={cn('flex flex-col items-center flex-1 gap-4 px-0 py-2 sm:px-2', embedded && 'pb-[env(safe-area-inset-bottom)]')}>
 					<ErrorBoundary fallback={(error, reset) => <RouteErrorFallback error={error} reset={reset} />}>
 						<Suspense
 							fallback={

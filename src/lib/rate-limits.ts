@@ -102,6 +102,17 @@ export const mobileSignInLimiter = createDbRateLimiter({
 	windowMs: 60_000,
 })
 
+// Web handoff tokens per device (`POST /v1/web-session`, plan 28). The
+// endpoint is apiKey-authenticated, so this shapes cost (one verification
+// row per call) rather than guarding a secret; the in-memory flavor is
+// enough. A real client mints one token per cold launch, per re-auth,
+// and at most one per 12 hours while foregrounded, so 10/min is generous.
+export const webHandoffLimiter = createRateLimiter({
+	name: 'web-handoff',
+	max: 10,
+	windowMs: 60_000,
+})
+
 // MCP tool calls per user across every connected AI client. Cost shaping
 // (each call is a DB round-trip or a scrape); the security controls are
 // the OAuth token and the enableMcp switch. Database-backed so the

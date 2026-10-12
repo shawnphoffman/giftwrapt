@@ -507,7 +507,8 @@ async function mintEnvelopeFromSessionCookie(
 	})
 }
 
-function makeAbsoluteServerUrl(pathAndQuery: string): string {
+/** Resolve a server-relative path against `BETTER_AUTH_URL` so iOS never builds web URLs itself. */
+export function makeAbsoluteServerUrl(pathAndQuery: string): string {
 	const base = env.BETTER_AUTH_URL ?? 'http://localhost:3001'
 	return new URL(pathAndQuery.replace(/^\/+/u, ''), base.endsWith('/') ? base : `${base}/`).toString()
 }

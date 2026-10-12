@@ -2,11 +2,13 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Image } from '@unpic/react'
 import { useState } from 'react'
 
+import { EmbeddedReconnect } from '@/components/auth/embedded-reconnect'
 import { Button } from '@/components/ui/button'
 import { GradientBackground } from '@/components/ui/gradient-background'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PasswordInput } from '@/components/ui/password-input'
+import { useEmbedded } from '@/hooks/use-embedded'
 import logo from '@/images/logo.webp'
 import { authClient } from '@/lib/auth-client'
 
@@ -21,6 +23,15 @@ function SignUp() {
 	const [name, setName] = useState('')
 	const [isLoading, setIsLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+	const embedded = useEmbedded()
+
+	// No account creation inside the iOS app (App Review 5.1.1(v): an app
+	// that offers sign-up must offer deletion, and deletion is admin-only).
+	// The app also cancels full navigations to this path; this covers an
+	// in-app router transition, which the web view cannot intercept.
+	if (embedded) {
+		return <EmbeddedReconnect to="/" />
+	}
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault()

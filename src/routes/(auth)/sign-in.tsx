@@ -5,11 +5,13 @@ import { sql } from 'drizzle-orm'
 import { useEffect, useRef } from 'react'
 
 import { fetchPublicOidcClientInfo } from '@/api/admin-oidc-client'
+import { EmbeddedReconnect } from '@/components/auth/embedded-reconnect'
 import { SignInPageContent } from '@/components/auth/sign-in-page'
 import Loading from '@/components/loading'
 import { db } from '@/db'
 import { users } from '@/db/schema'
 import { useAppSetting } from '@/hooks/use-app-settings'
+import { useEmbedded } from '@/hooks/use-embedded'
 import { authClient, useSession } from '@/lib/auth-client'
 import { passThroughSearch, resolvePostAuthRedirect } from '@/lib/oauth-relay'
 import { safeRedirect } from '@/lib/safe-redirect'
@@ -39,6 +41,7 @@ export const Route = createFileRoute('/(auth)/sign-in')({
 function SignIn() {
 	const search = Route.useSearch()
 	const redirectRaw = resolvePostAuthRedirect(search)
+	const embedded = useEmbedded()
 	const { data: session, isPending } = useSession()
 	// `useSession` revalidates on window focus, flipping `isPending` true on
 	// every tab-return. If we render `<Loading />` during those refetches the
@@ -150,6 +153,12 @@ function SignIn() {
 	// Don't render form if already authenticated (redirect will happen)
 	if (session?.user) {
 		return null
+	}
+
+	// Inside the iOS web tab there is no form: the app signs in by handoff
+	// and re-runs it when the web lands here (plan 28).
+	if (embedded) {
+		return <EmbeddedReconnect to={safeRedirect(redirectRaw)} />
 	}
 
 	return (

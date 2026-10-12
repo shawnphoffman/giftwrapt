@@ -21,6 +21,7 @@ import {
 	verification,
 } from '@/db/schema'
 import { env } from '@/env'
+import { MOBILE_WEB_HANDOFF_PATH, mobileWebHandoff } from '@/lib/auth-plugins/mobile-web-handoff'
 import { fanOutToGuardians } from '@/lib/guardian-emails'
 import { createLogger } from '@/lib/logger'
 import {
@@ -243,6 +244,9 @@ const options = {
 		customRules: {
 			'/mcp/register': { window: 60, max: 5 },
 			'/mcp/token': { window: 60, max: 20 },
+			// The web handoff consumes single-use tokens; a burst here is
+			// someone guessing. The mint side has its own per-key limiter.
+			[MOBILE_WEB_HANDOFF_PATH]: { window: 60, max: 10 },
 		},
 	},
 	// First-admin bootstrap: if no admin exists yet, the next signup becomes one.
@@ -333,6 +337,11 @@ const options = {
 		// stored a fully-configured provider; otherwise the array is
 		// empty and the plugin contributes nothing.
 		...buildGenericOAuthPlugins(oidcClientConfig),
+		// The iOS web tab's sign-in handoff (plan 28). One POST endpoint
+		// that turns a single-use token minted under a device apiKey into
+		// a one-day cookie session. The only place a key's standing ever
+		// reaches the cookie surface; see the plugin file for the checks.
+		mobileWebHandoff(),
 		// OAuth 2.1 authorization server for MCP clients (Claude, Cursor,
 		// ChatGPT, ...). Dynamic client registration, PKCE (S256 only),
 		// consent, and opaque access / refresh tokens that `/api/mcp`

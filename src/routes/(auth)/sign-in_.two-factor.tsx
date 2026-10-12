@@ -1,7 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 
+import { EmbeddedReconnect } from '@/components/auth/embedded-reconnect'
 import { TwoFactorChallengePageContent, type TwoFactorMode } from '@/components/auth/two-factor-challenge-page'
+import { useEmbedded } from '@/hooks/use-embedded'
 import { authClient } from '@/lib/auth-client'
 import { safeRedirect } from '@/lib/safe-redirect'
 
@@ -17,6 +19,12 @@ export const Route = createFileRoute('/(auth)/sign-in_/two-factor')({
 function TwoFactorChallenge() {
 	const { redirect } = Route.useSearch()
 	const [mode, setMode] = useState<TwoFactorMode>('totp')
+	const embedded = useEmbedded()
+
+	// A handoff session carries the device key's standing and skips TOTP
+	// (the key is the second factor); the web view never shows this
+	// challenge. Landing here means the handoff needs re-running.
+	if (embedded) return <EmbeddedReconnect to={safeRedirect(redirect)} />
 
 	const goPostAuth = (data?: unknown) => {
 		// Mid MCP OAuth flow, better-auth's `mcp()` plugin replays the

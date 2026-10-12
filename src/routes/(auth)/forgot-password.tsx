@@ -1,7 +1,9 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 
+import { EmbeddedReconnect } from '@/components/auth/embedded-reconnect'
 import { ForgotPasswordPageContent } from '@/components/auth/forgot-password-page'
+import { useEmbedded } from '@/hooks/use-embedded'
 import { authClient, useSession } from '@/lib/auth-client'
 import { isEmailConfigured } from '@/lib/resend'
 
@@ -33,8 +35,12 @@ export const Route = createFileRoute('/(auth)/forgot-password')({
 function ForgotPassword() {
 	const { emailEnabled } = Route.useLoaderData()
 	const { data: session } = useSession()
+	const embedded = useEmbedded()
 
 	if (session?.user) return null
+	// Password recovery is a browser affair; the iOS web tab signs in by
+	// handoff and never shows an auth form (plan 28).
+	if (embedded) return <EmbeddedReconnect to="/" />
 
 	const handleSubmit = async (email: string) => {
 		// Better-auth's `forgetPassword` always returns ok regardless of

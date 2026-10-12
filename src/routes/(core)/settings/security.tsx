@@ -6,13 +6,18 @@ import TwoFactorSection from '@/components/settings/two-factor-section'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { useAppSetting } from '@/hooks/use-app-settings'
+import { useEmbedded } from '@/hooks/use-embedded'
 
 export const Route = createFileRoute('/(core)/settings/security')({
 	component: SecurityPage,
 })
 
 function SecurityPage() {
-	const passkeysEnabled = useAppSetting('enablePasskeys')
+	// Passkeys cannot be registered or used inside the iOS web tab (no
+	// per-host associated domain in a tenant-agnostic WKWebView), so the
+	// section is hidden there (plan 28). Password and TOTP still work.
+	const embedded = useEmbedded()
+	const passkeysEnabled = useAppSetting('enablePasskeys') && !embedded
 	return (
 		<Card className="animate-page-in max-w-2xl">
 			<CardHeader>

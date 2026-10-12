@@ -4,6 +4,7 @@ import { LogOut, type LucideIcon, Plug, ShieldCheck, Smartphone, Sprout, UserCir
 import { buttonVariants } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useAppSetting } from '@/hooks/use-app-settings'
+import { useEmbedded } from '@/hooks/use-embedded'
 import { cn } from '@/lib/utils'
 
 function navLinkClass(active: boolean) {
@@ -18,6 +19,9 @@ export default function SettingsLinks() {
 	const { pathname } = useLocation()
 	const mobileAppEnabled = useAppSetting('enableMobileApp')
 	const mcpEnabled = useAppSetting('enableMcp')
+	// Inside the iOS web tab the native Settings tab owns sign-out: it ends
+	// the server session and clears the web view's data store (plan 28).
+	const embedded = useEmbedded()
 
 	const isProfile = pathname === '/settings'
 	const isSecurity = pathname === '/settings/security'
@@ -56,11 +60,15 @@ export default function SettingsLinks() {
 					Connected Apps
 				</Link>
 			)}
-			<Separator className="my-1" />
-			<Link to="/sign-out" className={navLinkClass(false)}>
-				<LogOut className="size-4" />
-				Logout
-			</Link>
+			{!embedded && (
+				<>
+					<Separator className="my-1" />
+					<Link to="/sign-out" className={navLinkClass(false)}>
+						<LogOut className="size-4" />
+						Logout
+					</Link>
+				</>
+			)}
 		</>
 	)
 }
