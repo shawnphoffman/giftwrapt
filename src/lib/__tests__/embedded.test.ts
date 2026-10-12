@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { EMBEDDED_UA_MARKER, isEmbeddedUserAgent, NATIVE_BRIDGE_NAME, postToNativeBridge } from '../embedded'
+import { EMBEDDED_UA_MARKER, isEmbeddedClient, isEmbeddedUserAgent, NATIVE_BRIDGE_NAME, postToNativeBridge } from '../embedded'
 
 describe('isEmbeddedUserAgent', () => {
 	it('matches the iOS web view marker anywhere in the string', () => {
@@ -25,6 +25,23 @@ describe('isEmbeddedUserAgent', () => {
 
 	it('is case-sensitive so a lookalike product name does not flip the shell', () => {
 		expect(isEmbeddedUserAgent('giftwrapt-ios/1.0')).toBe(false)
+	})
+})
+
+describe('isEmbeddedClient', () => {
+	afterEach(() => {
+		vi.unstubAllGlobals()
+	})
+
+	it('is false with no navigator (SSR)', () => {
+		expect(isEmbeddedClient()).toBe(false)
+	})
+
+	it('reads navigator.userAgent in the browser', () => {
+		vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (iPhone) GiftWrapt-iOS/1.2' })
+		expect(isEmbeddedClient()).toBe(true)
+		vi.stubGlobal('navigator', { userAgent: 'Mozilla/5.0 (iPhone) Safari/604.1' })
+		expect(isEmbeddedClient()).toBe(false)
 	})
 })
 

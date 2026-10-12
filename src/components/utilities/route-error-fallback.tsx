@@ -1,7 +1,9 @@
 import { Link } from '@tanstack/react-router'
+import { useEffect } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { ChunkReloadFallback, useChunkReloadRecovery } from '@/components/utilities/chunk-reload-fallback'
+import { isEmbeddedClient, postToNativeBridge } from '@/lib/embedded'
 import { formatErrorForUser } from '@/lib/format-error'
 
 interface RouteErrorFallbackProps {
@@ -13,12 +15,16 @@ interface RouteErrorFallbackProps {
 
 export function RouteErrorFallback({ error, reset, title, className }: RouteErrorFallbackProps) {
 	const recovering = useChunkReloadRecovery(error)
+	const formatted = formatErrorForUser(error)
+	const heading = title ?? formatted.title
+	// Inside the iOS web tab the app shows its own card for this and
+	// recovers through the handoff; the fallback below is still rendered
+	// underneath for the moment the bridge takes to answer. A chunk reload
+	// is recovering on its own, so it is not reported.
+	useReportToNativeBridge(recovering ? null : formatted.body)
 	if (recovering) {
 		return <ChunkReloadFallback className={className ?? 'flex flex-col items-center justify-center min-h-[400px] gap-4 p-4 w-full'} />
 	}
-
-	const formatted = formatErrorForUser(error)
-	const heading = title ?? formatted.title
 
 	return (
 		<div className={className ?? 'flex flex-col items-center justify-center min-h-[400px] p-4 w-full'}>
@@ -46,4 +52,15 @@ export function RouteErrorFallback({ error, reset, title, className }: RouteErro
 			</div>
 		</div>
 	)
+}
+
+/**
+ * Tell the iOS app (plan 28) that an error boundary rendered, once per
+ * message. No-op in a browser and during SSR.
+ */
+export function useReportToNativeBridge(message: string | null): void {
+	useEffect(() => {
+		if (message === null || !isEmbeddedClient()) return
+		postToNativeBridge({ type: 'error', message })
+	}, [message])
 }

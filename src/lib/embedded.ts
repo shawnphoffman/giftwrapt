@@ -32,8 +32,26 @@ export function isEmbeddedUserAgent(userAgent: string | null | undefined): boole
  *   handoff again and land on `to`.
  * - `save`: open the native Save flow (the sidebar's Add Item action).
  * - `openExternal`: present the URL outside the web view (Safari sheet).
+ * - `error`: an error boundary rendered. The app replaces the web's
+ *   fallback with its own card and recovers by reloading through the
+ *   handoff, so the web view never sits on a broken page.
  */
-export type NativeBridgeMessage = { type: 'reauth'; to: string } | { type: 'save' } | { type: 'openExternal'; url: string }
+export type NativeBridgeMessage =
+	| { type: 'reauth'; to: string }
+	| { type: 'save' }
+	| { type: 'openExternal'; url: string }
+	| { type: 'error'; message: string }
+
+/**
+ * Client-side check for the embedded shell, for code that runs outside
+ * the router (error boundaries). Server rendering and plain browsers get
+ * `false`; the root loader's flag (`useEmbedded`) is the source of truth
+ * for everything that renders.
+ */
+export function isEmbeddedClient(): boolean {
+	if (typeof navigator === 'undefined') return false
+	return isEmbeddedUserAgent(navigator.userAgent)
+}
 
 type WebKitBridgeWindow = Window & {
 	webkit?: { messageHandlers?: Record<string, { postMessage: (message: unknown) => void } | undefined> }

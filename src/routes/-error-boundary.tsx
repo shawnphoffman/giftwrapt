@@ -1,4 +1,5 @@
 import { ChunkReloadFallback, useChunkReloadRecovery } from '@/components/utilities/chunk-reload-fallback'
+import { useReportToNativeBridge } from '@/components/utilities/route-error-fallback'
 import { formatErrorForUser } from '@/lib/format-error'
 
 interface ErrorBoundaryFallbackProps {
@@ -8,9 +9,11 @@ interface ErrorBoundaryFallbackProps {
 
 export default function ErrorBoundaryFallback({ error, reset }: ErrorBoundaryFallbackProps) {
 	const recovering = useChunkReloadRecovery(error)
+	const formatted = formatErrorForUser(error)
+	// The iOS web tab replaces this page with a native card (plan 28).
+	useReportToNativeBridge(recovering ? null : formatted.body)
 	if (recovering) return <ChunkReloadFallback />
 
-	const formatted = formatErrorForUser(error)
 	return (
 		<div className="flex flex-col items-center justify-center min-h-screen p-4">
 			<div className="max-w-md space-y-4 text-center">
