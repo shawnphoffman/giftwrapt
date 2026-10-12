@@ -2,10 +2,12 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { ResetPasswordPageContent } from '@/components/auth/reset-password-page'
 import { authClient } from '@/lib/auth-client'
+import { pageHead } from '@/routes/-head'
 
 type ResetSearch = { token?: string }
 
 export const Route = createFileRoute('/(auth)/reset-password')({
+	head: pageHead('Reset Password'),
 	validateSearch: (search: Record<string, unknown>): ResetSearch => {
 		// Better-auth appends `?token=…&error=…` when redirecting from
 		// the reset-password verification endpoint. We only care about

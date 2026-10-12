@@ -2,6 +2,38 @@ interface HeadCtx {
 	loaderData?: { appTitle?: string }
 }
 
+const DEV_SUFFIX = process.env.NODE_ENV === 'production' ? '' : ' | Dev'
+
+/** "<tenant title> - <page>", the document title every page carries. */
+export function pageTitle(appTitle: string, page: string): string {
+	return `${appTitle} - ${page}${DEV_SUFFIX}`
+}
+
+type PageHeadCtx<T> = {
+	matches: ReadonlyArray<{ loaderData?: unknown }>
+	loaderData?: T
+}
+
+type PageHeadResult = { meta: Array<{ title: string }> }
+
+/**
+ * A route `head` that titles the page "<tenant title> - <page>". The tenant
+ * title comes from the root loader (`matches[0]`), so every route shares one
+ * source. `page` is a string or a function of the route's own loader data
+ * (a list page uses the list name). The deepest route's title wins, so a
+ * layout route can set a section title and children refine it. The iOS web
+ * tab shows the part after the tenant prefix in its native bar.
+ */
+export function pageHead(page: string): (ctx: PageHeadCtx<unknown>) => PageHeadResult
+export function pageHead<T>(page: (loaderData: T | undefined) => string): (ctx: PageHeadCtx<T>) => PageHeadResult
+export function pageHead<T>(page: string | ((loaderData: T | undefined) => string)) {
+	return (ctx: PageHeadCtx<T>): PageHeadResult => {
+		const root = ctx.matches[0]?.loaderData as { appTitle?: string } | undefined
+		const name = typeof page === 'function' ? page(ctx.loaderData) : page
+		return { meta: [{ title: pageTitle(root?.appTitle ?? 'GiftWrapt', name) }] }
+	}
+}
+
 export default function Head(ctx: HeadCtx = {}) {
 	const isDeployed = process.env.NODE_ENV === 'production'
 	const appTitle = ctx.loaderData?.appTitle ?? 'GiftWrapt'

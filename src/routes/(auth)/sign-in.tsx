@@ -15,6 +15,7 @@ import { useEmbedded } from '@/hooks/use-embedded'
 import { authClient, useSession } from '@/lib/auth-client'
 import { passThroughSearch, resolvePostAuthRedirect } from '@/lib/oauth-relay'
 import { safeRedirect } from '@/lib/safe-redirect'
+import { pageHead } from '@/routes/-head'
 
 const checkNeedsBootstrap = createServerFn({ method: 'GET' }).handler(async () => {
 	const rows = await db
@@ -25,6 +26,7 @@ const checkNeedsBootstrap = createServerFn({ method: 'GET' }).handler(async () =
 })
 
 export const Route = createFileRoute('/(auth)/sign-in')({
+	head: pageHead('Sign In'),
 	// The MCP OAuth flow lands here as `/sign-in?<authorize query>`
 	// (better-auth's `mcp()` plugin redirects unauthenticated authorize
 	// requests to the login page with the original query). The search is

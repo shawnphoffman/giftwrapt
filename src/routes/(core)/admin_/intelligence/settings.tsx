@@ -3,8 +3,10 @@ import { createFileRoute } from '@tanstack/react-router'
 import { ProviderMissingBanner } from '@/components/intelligence/admin-intelligence-page'
 import { IntelligenceFeatureDisabledBanner, IntelligenceGeneralSettingsCard } from '@/components/intelligence/admin-intelligence-sections'
 import { adminIntelligenceQueryOptions, isProviderMissing, useAdminIntelligence } from '@/components/intelligence/use-admin-intelligence'
+import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/admin_/intelligence/settings')({
+	head: pageHead('Intelligence Settings'),
 	loader: ({ context }) => context.queryClient.ensureQueryData(adminIntelligenceQueryOptions),
 	component: IntelligenceSettingsRoute,
 })

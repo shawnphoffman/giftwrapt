@@ -7,8 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator'
 import { useAppSetting } from '@/hooks/use-app-settings'
 import { useEmbedded } from '@/hooks/use-embedded'
+import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/settings/security')({
+	head: pageHead('Security'),
 	component: SecurityPage,
 })
 

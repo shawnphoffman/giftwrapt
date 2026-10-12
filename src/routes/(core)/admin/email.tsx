@@ -3,8 +3,10 @@ import { createFileRoute } from '@tanstack/react-router'
 import { EmailSettingsEditor } from '@/components/admin/email-settings-editor'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ClientOnly } from '@/components/utilities/client-only'
+import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/admin/email')({
+	head: pageHead('Email'),
 	component: AdminEmailPage,
 })
 

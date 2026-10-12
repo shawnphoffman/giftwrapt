@@ -25,8 +25,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { LIMITS } from '@/lib/validation/limits'
+import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/settings/devices')({
+	head: pageHead('Devices'),
 	beforeLoad: async () => {
 		const settings = await fetchAppSettings()
 		if (!settings.enableMobileApp) {

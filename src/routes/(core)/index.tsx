@@ -4,8 +4,10 @@ import { ListChecks } from 'lucide-react'
 import { PageHeading } from '@/components/common/page-heading'
 import { ListsByUser } from '@/components/lists/lists-by-user'
 import { NoListsPopover } from '@/components/lists/no-lists-popover'
+import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/')({
+	head: pageHead('All Lists'),
 	component: ListsPage,
 })
 

@@ -20,6 +20,7 @@ import type { IntelligencePageState, Recommendation } from '@/components/intelli
 import { type DependentRecGroup, IntelligencePageContent } from '@/components/intelligence/intelligence-page'
 import { ItemFormDialog } from '@/components/items/item-form-dialog'
 import { coerceLegacyAction } from '@/lib/intelligence/coerce-legacy-action'
+import { pageHead } from '@/routes/-head'
 
 const intelligenceQueryOptions = {
 	queryKey: ['intelligence', 'me'] as const,
@@ -28,6 +29,7 @@ const intelligenceQueryOptions = {
 }
 
 export const Route = createFileRoute('/(core)/suggestions')({
+	head: pageHead('Suggestions'),
 	loader: ({ context }) => context.queryClient.ensureQueryData(intelligenceQueryOptions),
 	component: IntelligenceRoute,
 })

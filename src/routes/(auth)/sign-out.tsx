@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react'
 
 import { SignOutPageContent } from '@/components/auth/sign-out-page'
 import { signOut } from '@/lib/auth-client'
+import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(auth)/sign-out')({
+	head: pageHead('Sign Out'),
 	component: SignOut,
 })
 

@@ -3,6 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { ChangelogPageContent } from '@/components/changelog/changelog-page'
 import { BUILD_INFO } from '@/lib/build-info'
 import { parseChangelog } from '@/lib/changelog'
+import { pageHead } from '@/routes/-head'
 
 import changelogMarkdown from '../../../CHANGELOG.md?raw'
 
@@ -11,6 +12,7 @@ import changelogMarkdown from '../../../CHANGELOG.md?raw'
 const releases = parseChangelog(changelogMarkdown)
 
 export const Route = createFileRoute('/(core)/changelog')({
+	head: pageHead("What's New"),
 	component: ChangelogRoute,
 })
 

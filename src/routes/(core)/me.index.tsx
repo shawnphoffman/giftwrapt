@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { perfTime } from '@/lib/observability/perf'
 import { useMeSSE } from '@/lib/use-me-sse'
+import { pageHead } from '@/routes/-head'
 
 const myListsQueryOptions = {
 	queryKey: ['my-lists'] as const,
@@ -47,6 +48,7 @@ const isHttpUrlString = (raw: unknown): raw is string => {
 }
 
 export const Route = createFileRoute('/(core)/me/')({
+	head: pageHead('My Lists'),
 	validateSearch: (search: Record<string, unknown>): MeSearch => {
 		return isHttpUrlString(search.url) ? { url: search.url } : {}
 	},

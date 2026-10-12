@@ -6,8 +6,10 @@ import { OidcClientEditor } from '@/components/admin/oidc-client-editor'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { ClientOnly } from '@/components/utilities/client-only'
+import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/admin/auth')({
+	head: pageHead('Authentication'),
 	component: AdminAuthPage,
 })
 

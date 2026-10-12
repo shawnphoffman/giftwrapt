@@ -5,8 +5,10 @@ import { CronEndpointsPanel } from '@/components/admin/cron-endpoints-panel'
 import { CronRunsTable } from '@/components/admin/cron-runs-table'
 import { CronTimeZoneBanner } from '@/components/admin/cron-time-zone-banner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/admin/scheduling')({
+	head: pageHead('Scheduling'),
 	component: AdminSchedulingPage,
 })
 

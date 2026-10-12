@@ -108,7 +108,7 @@ export type GetListForViewingResult =
 // The fuller header + addons payloads load client-side via Suspense.
 export type ListHeader = Omit<ListForViewing, 'addons'>
 
-export type GetListAccessResult = { kind: 'ok'; listId: number } | { kind: 'redirect'; listId: string } | null
+export type GetListAccessResult = { kind: 'ok'; listId: number; name: string } | { kind: 'redirect'; listId: string } | null
 
 export type GetListHeaderResult = { kind: 'ok'; list: ListHeader } | null
 
@@ -483,7 +483,7 @@ export async function getListAccessImpl(args: { userId: string; listId: string; 
 
 	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, listId),
-		columns: { id: true, ownerId: true, subjectDependentId: true, isActive: true, isPrivate: true },
+		columns: { id: true, name: true, ownerId: true, subjectDependentId: true, isActive: true, isPrivate: true },
 	})
 	if (!list) return null
 
@@ -501,7 +501,7 @@ export async function getListAccessImpl(args: { userId: string; listId: string; 
 			return null
 		}
 	}
-	return { kind: 'ok', listId: list.id }
+	return { kind: 'ok', listId: list.id, name: list.name }
 }
 
 // Client-side after access: list row + owner + subjectDependent + groups.

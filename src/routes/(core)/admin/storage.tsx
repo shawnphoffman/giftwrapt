@@ -6,8 +6,10 @@ import { StorageDisabledBanner } from '@/components/common/storage-disabled-bann
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ClientOnly } from '@/components/utilities/client-only'
 import { useStorageStatus } from '@/hooks/use-storage-status'
+import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/admin/storage')({
+	head: pageHead('Storage'),
 	component: AdminStoragePage,
 })
 

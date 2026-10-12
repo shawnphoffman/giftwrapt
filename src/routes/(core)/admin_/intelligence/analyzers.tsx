@@ -3,8 +3,10 @@ import { createFileRoute } from '@tanstack/react-router'
 import { ProviderMissingBanner } from '@/components/intelligence/admin-intelligence-page'
 import { IntelligenceAnalyzersCard, IntelligenceFeatureDisabledBanner } from '@/components/intelligence/admin-intelligence-sections'
 import { adminIntelligenceQueryOptions, isProviderMissing, useAdminIntelligence } from '@/components/intelligence/use-admin-intelligence'
+import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/admin_/intelligence/analyzers')({
+	head: pageHead('Intelligence Analyzers'),
 	loader: ({ context }) => context.queryClient.ensureQueryData(adminIntelligenceQueryOptions),
 	component: IntelligenceAnalyzersRoute,
 })

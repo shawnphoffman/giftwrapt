@@ -6,6 +6,7 @@ import { ForgotPasswordPageContent } from '@/components/auth/forgot-password-pag
 import { useEmbedded } from '@/hooks/use-embedded'
 import { authClient, useSession } from '@/lib/auth-client'
 import { isEmailConfigured } from '@/lib/resend'
+import { pageHead } from '@/routes/-head'
 
 // Server-side gate: tell the page whether the operator has wired up
 // Resend so the form can render an explanatory disabled state instead
@@ -18,6 +19,7 @@ const checkEmailEnabled = createServerFn({ method: 'GET' }).handler(async () => 
 })
 
 export const Route = createFileRoute('/(auth)/forgot-password')({
+	head: pageHead('Forgot Password'),
 	beforeLoad: ({ context }) => {
 		// If the user already has a session, send them home. This page
 		// is only useful while signed-out. Mirrors the sign-in pattern of

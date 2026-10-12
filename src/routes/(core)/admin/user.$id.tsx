@@ -4,8 +4,10 @@ import { Suspense } from 'react'
 import { EditUserForm } from '@/components/admin/edit-user-form'
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/admin/user/$id')({
+	head: pageHead('Edit User'),
 	component: UserDetailsPage,
 })
 

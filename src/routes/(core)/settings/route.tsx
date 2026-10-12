@@ -3,8 +3,10 @@ import { Settings } from 'lucide-react'
 
 import { PageHeading } from '@/components/common/page-heading'
 import SettingsLinks from '@/components/settings/links'
+import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/settings')({
+	head: pageHead('Settings'),
 	component: SettingsRoute,
 })
 

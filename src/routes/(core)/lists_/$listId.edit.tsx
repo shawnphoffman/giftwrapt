@@ -34,6 +34,7 @@ import { parseInternalListLink } from '@/lib/urls'
 import { useListAutoRefresh } from '@/lib/use-list-auto-refresh'
 import { useListSSE } from '@/lib/use-list-sse'
 import { useScrollToHash } from '@/lib/use-scroll-to-hash'
+import { pageHead } from '@/routes/-head'
 
 type EditSearch = { from?: number; settings?: boolean; edit?: number }
 
@@ -66,6 +67,7 @@ export const Route = createFileRoute('/(core)/lists_/$listId/edit')({
 
 		return { list: listResult.list, editors, addableUsers }
 	},
+	head: pageHead<{ list: { name: string } }>(d => d?.list.name ?? 'Edit List'),
 	component: ListEditPage,
 	pendingComponent: ListEditPagePending,
 })

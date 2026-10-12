@@ -4,8 +4,10 @@ import { AiFeaturesCard } from '@/components/admin/ai-features-card'
 import { AiSettingsEditor } from '@/components/admin/ai-settings-editor'
 import { AiUsageCard } from '@/components/admin/ai-usage-card'
 import { ClientOnly } from '@/components/utilities/client-only'
+import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/admin/ai')({
+	head: pageHead('AI'),
 	component: AdminAiPage,
 })
 

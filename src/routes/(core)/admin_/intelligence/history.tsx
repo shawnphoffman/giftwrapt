@@ -8,8 +8,10 @@ import { IntelligenceFeatureDisabledBanner } from '@/components/intelligence/adm
 import { RunDebugPanel } from '@/components/intelligence/run-debug-panel'
 import { adminIntelligenceQueryOptions, isProviderMissing, useAdminIntelligence } from '@/components/intelligence/use-admin-intelligence'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/admin_/intelligence/history')({
+	head: pageHead('Intelligence History'),
 	loader: ({ context }) => context.queryClient.ensureQueryData(adminIntelligenceQueryOptions),
 	component: IntelligenceHistoryRoute,
 })

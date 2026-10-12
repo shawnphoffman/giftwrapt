@@ -19,7 +19,7 @@ describe('getListAccessImpl', () => {
 			const list = await makeList(tx, { ownerId: owner.id, isPrivate: false })
 
 			const result = await getListAccessImpl({ userId: viewer.id, listId: String(list.id), dbx: tx })
-			expect(result).toEqual({ kind: 'ok', listId: list.id })
+			expect(result).toEqual({ kind: 'ok', listId: list.id, name: list.name })
 		})
 	})
 

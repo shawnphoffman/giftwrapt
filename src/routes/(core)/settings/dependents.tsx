@@ -9,8 +9,10 @@ import DependentAvatar from '@/components/common/dependent-avatar'
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { BirthMonth } from '@/db/schema/enums'
+import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/settings/dependents')({
+	head: pageHead('Dependents'),
 	component: DependentsSettingsPage,
 })
 

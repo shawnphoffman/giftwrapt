@@ -8,8 +8,10 @@ import { ThankYouDraftDialog, type ThankYouDraftState } from '@/components/recei
 import { useAppSetting } from '@/hooks/use-app-settings'
 import type { GifterUnitGroup } from '@/lib/received-grouping'
 import { usePurchasesReceivedSSE } from '@/lib/use-purchases-received-sse'
+import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/purchases/received')({
+	head: pageHead('Received'),
 	loader: () => getReceivedGifts(),
 	component: ReceivedPage,
 })

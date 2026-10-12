@@ -5,8 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAdminAppSettings } from '@/hooks/use-app-settings'
 import { useSession } from '@/lib/auth-client'
 import { BUILD_INFO } from '@/lib/build-info'
+import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/admin/debug')({
+	head: pageHead('Debug'),
 	component: AdminDebugPage,
 })
 

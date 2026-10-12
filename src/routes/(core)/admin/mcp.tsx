@@ -21,11 +21,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ClientOnly } from '@/components/utilities/client-only'
 import { useAppSetting } from '@/hooks/use-app-settings'
 import { buildMcpConnectInfo } from '@/lib/mcp-connect'
+import { pageHead } from '@/routes/-head'
 
 // Gated by `appSettings.enableMcp`, the same way /admin/barcode is gated
 // by `enableMobileApp`: the sidebar entry in `admin/links.tsx` reads the
 // flag, and this redirect is the backstop for direct-URL access.
 export const Route = createFileRoute('/(core)/admin/mcp')({
+	head: pageHead('AI Assistants'),
 	beforeLoad: async () => {
 		const settings = await fetchAppSettings()
 		if (!settings.enableMcp) {

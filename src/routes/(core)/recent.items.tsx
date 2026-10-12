@@ -6,6 +6,7 @@ import { getRecentItems } from '@/api/recent'
 import { RecentItemsPageContent } from '@/components/recent/recent-items-page'
 import { serializeTimeframe, type TimeframeValue } from '@/lib/timeframe'
 import { useRecentItemsSSE } from '@/lib/use-recent-items-sse'
+import { pageHead } from '@/routes/-head'
 
 const DEFAULT_TIMEFRAME: TimeframeValue = { kind: 'preset', preset: '60d' }
 
@@ -18,6 +19,7 @@ function recentItemsQueryOptions(timeframe: TimeframeValue) {
 }
 
 export const Route = createFileRoute('/(core)/recent/items')({
+	head: pageHead('Recent Items'),
 	loader: ({ context }) => context.queryClient.ensureQueryData(recentItemsQueryOptions(DEFAULT_TIMEFRAME)),
 	component: RecentItemsPage,
 })

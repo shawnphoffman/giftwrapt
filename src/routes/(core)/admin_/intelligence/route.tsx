@@ -6,8 +6,10 @@ import { adminIntelligenceQueryOptions } from '@/components/intelligence/use-adm
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { adminAuthMiddleware } from '@/middleware/auth'
+import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/admin_/intelligence')({
+	head: pageHead('Intelligence'),
 	loader: ({ context }) => context.queryClient.ensureQueryData(adminIntelligenceQueryOptions),
 	component: AdminIntelligenceLayout,
 	server: {

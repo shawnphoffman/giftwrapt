@@ -4,6 +4,7 @@ import { fetchAppSettings } from '@/api/settings'
 import { BarcodeSettingsEditor } from '@/components/admin/barcode-settings-editor'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ClientOnly } from '@/components/utilities/client-only'
+import { pageHead } from '@/routes/-head'
 
 // Gated by `appSettings.enableMobileApp` — the iOS app is the only
 // consumer of the lookup endpoint (the mobile-API surface itself
@@ -13,6 +14,7 @@ import { ClientOnly } from '@/components/utilities/client-only'
 // `src/components/admin/links.tsx` reads the same flag; this redirect
 // is the defense-in-depth backstop for direct-URL access.
 export const Route = createFileRoute('/(core)/admin/barcode')({
+	head: pageHead('Barcode Lookup'),
 	beforeLoad: async () => {
 		const settings = await fetchAppSettings()
 		if (!settings.enableMobileApp) {

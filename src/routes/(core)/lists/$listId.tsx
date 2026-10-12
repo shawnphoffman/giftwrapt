@@ -24,6 +24,7 @@ import { listHeaderQueryOptions } from '@/lib/queries/lists' // used by useSuspe
 import { useListAutoRefresh } from '@/lib/use-list-auto-refresh'
 import { useListSSE } from '@/lib/use-list-sse'
 import { useScrollToHash } from '@/lib/use-scroll-to-hash'
+import { pageHead } from '@/routes/-head'
 
 type ListSearch = { from?: number; edit?: number }
 
@@ -69,8 +70,9 @@ export const Route = createFileRoute('/(core)/lists/$listId')({
 			})
 		}
 
-		return { listId: access.listId }
+		return { listId: access.listId, listName: access.name }
 	},
+	head: pageHead<{ listName: string }>(d => d?.listName ?? 'List'),
 	component: ListDetailPage,
 })
 

@@ -4,8 +4,10 @@ import { Lock } from 'lucide-react'
 import AdminLinks from '@/components/admin/links'
 import { PageHeading } from '@/components/common/page-heading'
 import { adminAuthMiddleware } from '@/middleware/auth'
+import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/admin')({
+	head: pageHead('Admin'),
 	component: AdminRoutes,
 	server: {
 		middleware: [adminAuthMiddleware],

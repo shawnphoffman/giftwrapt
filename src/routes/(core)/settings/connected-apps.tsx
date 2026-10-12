@@ -12,11 +12,13 @@ import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ClientOnly } from '@/components/utilities/client-only'
 import { useAppSetting } from '@/hooks/use-app-settings'
+import { pageHead } from '@/routes/-head'
 
 // Gated by `appSettings.enableMcp`, mirroring /settings/devices and
 // `enableMobileApp`: the sidebar entry hides, and this redirect covers a
 // direct URL.
 export const Route = createFileRoute('/(core)/settings/connected-apps')({
+	head: pageHead('Connected Apps'),
 	beforeLoad: async () => {
 		const settings = await fetchAppSettings()
 		if (!settings.enableMcp) {

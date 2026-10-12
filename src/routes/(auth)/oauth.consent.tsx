@@ -6,6 +6,7 @@ import { setMyConnectedAppAccess } from '@/api/mcp-grants'
 import { fetchOAuthClientInfo } from '@/api/mcp-oauth'
 import { type ConsentAccess, OAuthConsentCard, type OAuthConsentState } from '@/components/auth/oauth-consent-card'
 import { authClient, useSession } from '@/lib/auth-client'
+import { pageHead } from '@/routes/-head'
 
 // The better-auth `mcp()` plugin redirects here with
 // `?consent_code=&client_id=&scope=` after a signed-in user starts
@@ -17,6 +18,7 @@ import { authClient, useSession } from '@/lib/auth-client'
 type Search = { consent_code?: string; client_id?: string; scope?: string }
 
 export const Route = createFileRoute('/(auth)/oauth/consent')({
+	head: pageHead('Connect an App'),
 	validateSearch: (search: Record<string, unknown>): Search => {
 		const out: Search = {}
 		if (typeof search.consent_code === 'string') out.consent_code = search.consent_code

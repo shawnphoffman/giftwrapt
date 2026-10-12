@@ -45,6 +45,7 @@ import { listItemsEditQueryOptions } from '@/lib/queries/items'
 import { useListAutoRefresh } from '@/lib/use-list-auto-refresh'
 import { useListSSE } from '@/lib/use-list-sse'
 import { cn } from '@/lib/utils'
+import { pageHead } from '@/routes/-head'
 
 type TabMode = 'bulk' | 'reorder'
 
@@ -64,6 +65,7 @@ export const Route = createFileRoute('/(core)/lists_/$listId/organize')({
 		if (result.kind === 'error') throw notFound()
 		return { list: result.list }
 	},
+	head: pageHead<{ list: { name: string } }>(d => (d ? `Organize ${d.list.name}` : 'Organize')),
 	component: OrganizePage,
 })
 

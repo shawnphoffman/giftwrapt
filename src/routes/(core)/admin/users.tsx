@@ -14,6 +14,7 @@ import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { pageHead } from '@/routes/-head'
 
 const searchSchema = z.object({
 	// When set, opens the user-edit dialog over the list. Bookmarkable; the
@@ -22,6 +23,7 @@ const searchSchema = z.object({
 })
 
 export const Route = createFileRoute('/(core)/admin/users')({
+	head: pageHead('Users'),
 	component: AdminUsersPage,
 	validateSearch: searchSchema,
 })
