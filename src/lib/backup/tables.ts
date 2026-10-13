@@ -107,6 +107,9 @@ export const BACKUP_EXCLUDED_TABLES: Record<string, string> = {
 	mcp_client_access: 'Per-assistant access level; meaningless without the OAuth client rows, which are not backed up.',
 	rate_limit_buckets: 'Ephemeral fixed-window limiter counters.',
 	ai_usage: 'Operator-facing AI call ledger (tokens and estimated cost). Swept after aiUsageRetentionDays.',
+	gift_suggestion_sets:
+		'A user’s last AI gift ideas for one person, regenerated on request. What they did with an idea survives as Gift Ideas items and off-list gifts. Swept after giftSuggestionRetentionDays.',
+	gift_suggestions: 'Rows of gift_suggestion_sets.',
 	cron_runs: 'Operator-facing cron run history. Nothing reads it to decide what to do.',
 	product_lookups: 'Barcode lookup cache, refetched on miss.',
 	item_scrapes: 'Scrape history and URL dedup cache (large raw responses). The scraped fields already live on items.',

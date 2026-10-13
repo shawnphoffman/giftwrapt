@@ -94,7 +94,13 @@ function clean(text: string, max: number): string {
 	return out.length > max ? `${out.slice(0, max - 1).trimEnd()}…` : out
 }
 
-function norm(text: string): string {
+/**
+ * The matching form of a suggestion title: lower case, letters and digits
+ * only, single spaces. Used to drop repeats here and, stored as
+ * `gift_suggestions.title_key`, to recognise the same idea across
+ * regenerations (Saved / Added marks, plan 29b feedback).
+ */
+export function suggestionTitleKey(text: string): string {
 	return text
 		.toLowerCase()
 		.replace(/[^a-z0-9 ]+/gu, ' ')
@@ -110,12 +116,12 @@ function norm(text: string): string {
  * the list capped.
  */
 export function sanitizeSuggestions(raw: Array<GiftSuggestion>, known: Array<string>): Array<GiftSuggestion> {
-	const taken = known.map(norm).filter(k => k.length >= 3)
+	const taken = known.map(suggestionTitleKey).filter(k => k.length >= 3)
 	const seen = new Set<string>()
 	const out: Array<GiftSuggestion> = []
 	for (const s of raw) {
 		const title = clean(s.title, 80)
-		const key = norm(title)
+		const key = suggestionTitleKey(title)
 		if (key.length < 3 || seen.has(key)) continue
 		if (taken.some(k => k === key || k.includes(key) || key.includes(k))) continue
 		seen.add(key)

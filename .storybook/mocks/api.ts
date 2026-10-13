@@ -441,6 +441,9 @@ export const getGiftSuggestions = (): Promise<{ kind: 'ok'; recipientName: strin
 		],
 	})
 export const saveGiftSuggestion = ok
+// No stored answer, so the page stories start from the budget form.
+export const getLatestGiftSuggestionSet = (): Promise<{ kind: 'ok'; recipientName: string; set: null }> =>
+	Promise.resolve({ kind: 'ok', recipientName: 'Linda', set: null })
 export const getListInterests = (): Promise<{ interests: Array<unknown>; analysedItems: number }> =>
 	Promise.resolve({ interests: [], analysedItems: 0 })
 

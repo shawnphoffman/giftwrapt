@@ -569,6 +569,10 @@ export const appSettingsSchema = z.object({
 		z.null(),
 		z.string().refine(isValidSearchUrlTemplate, 'Enter an http(s) URL that contains {query}, or leave it empty.'),
 	]),
+	// How long a user's last set of gift suggestions (`gift_suggestion_sets`)
+	// is kept so reopening the dialog shows it again. Swept by the daily
+	// cleanup cron.
+	giftSuggestionRetentionDays: z.number().int().min(1).max(730),
 	// Paste Text: an import source that turns pasted free text into item
 	// drafts. Off by default. Only the pasted text is sent.
 	aiPasteToItemsEnabled: z.boolean(),
@@ -697,6 +701,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	aiPhotoExtractEnabled: true,
 	aiGiftSuggestionsEnabled: false,
 	giftSuggestionsSearchUrl: null,
+	giftSuggestionRetentionDays: 90,
 	aiPasteToItemsEnabled: false,
 	aiThankYouDraftsEnabled: false,
 	enableReminderPicks: false,

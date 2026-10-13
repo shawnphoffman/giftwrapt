@@ -4,6 +4,7 @@ import { Suspense } from 'react'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 
 import type { GiftIdeasSource } from '@/api/gift-ideas'
+import type { LatestGiftSuggestionSetResult } from '@/api/gift-suggestions'
 import type { AddonOnList, ItemWithGifts } from '@/api/lists'
 import ListTypeTile from '@/components/common/list-type-tile'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
@@ -26,8 +27,10 @@ import { GiftHelpButton, GiftHelpDialogView } from './gift-help-dialog'
  * Ideas?" button in the list's filter row opens a dialog that asks for a
  * budget, then shows ideas from an AI model that are not already on the
  * list. Each idea can be saved to the viewer's private Gift Ideas or added
- * to the list as an off-list gift. The button only renders when the admin
- * has turned Gift Suggestions on, and never for a child account.
+ * to the list as an off-list gift. The last answer is kept for the viewer:
+ * reopening shows it with a "New Ideas" button instead of asking again. The
+ * button only renders when the admin has turned Gift Suggestions on, and
+ * never for a child account.
  *
  * The "On the Page" stories are the real list view with seeded data; the
  * rest are the dialog on its own in each state.
@@ -101,14 +104,14 @@ export const Thinking: Story = {
 	},
 }
 
-export const Results: Story = { args: { step: 'results', budget: '200', suggestions: { phase: 'done', suggestions } } }
+export const Results: Story = { args: { step: 'results', budget: '200', suggestions: { phase: 'done', suggestions, set: null } } }
 
 /** One idea saved to Gift Ideas, the other added to the list as an off-list gift. */
 export const ResultsActedOn: Story = {
 	args: {
 		step: 'results',
 		budget: '200',
-		suggestions: { phase: 'done', suggestions },
+		suggestions: { phase: 'done', suggestions, set: null },
 		savedTitles: new Set(['Bypass Pruning Shears']),
 		addedTitles: new Set(['Enameled Cast Iron Braiser']),
 	},
@@ -119,7 +122,7 @@ export const ResultsWithSearchLink: Story = {
 	args: {
 		step: 'results',
 		budget: '200',
-		suggestions: { phase: 'done', suggestions },
+		suggestions: { phase: 'done', suggestions, set: null },
 		searchUrlTemplate: 'https://www.google.com/search?q={query}',
 	},
 	play: async ({ canvasElement }) => {
@@ -130,7 +133,30 @@ export const ResultsWithSearchLink: Story = {
 	},
 }
 
-export const NoNewIdeas: Story = { args: { step: 'results', budget: '10', suggestions: { phase: 'done', suggestions: [] } } }
+export const NoNewIdeas: Story = { args: { step: 'results', budget: '10', suggestions: { phase: 'done', suggestions: [], set: null } } }
+
+const THREE_DAYS_AGO = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+const storedSet = { id: 7, createdAt: THREE_DAYS_AGO, listId: 42, occasion: 'Christmas', budget: 200 }
+
+/** Reopened later: the last answer with a caption saying when and for what it was made. */
+export const StoredResults: Story = {
+	args: { step: 'results', budget: '200', suggestions: { phase: 'done', suggestions, set: storedSet } },
+	play: async ({ canvasElement }) => {
+		const screen = within(canvasElement.ownerDocument.body)
+		await expect(await screen.findByText('Ideas from 3 days ago, for Christmas, up to $200.')).toBeInTheDocument()
+		await expect(screen.getByRole('button', { name: 'New Ideas' })).toBeEnabled()
+	},
+}
+
+/** Looking for the stored answer right after opening. */
+export const Checking: Story = {
+	args: { step: 'results', suggestions: { phase: 'checking' } },
+	play: async ({ canvasElement }) => {
+		const screen = within(canvasElement.ownerDocument.body)
+		await expect(await screen.findByRole('status', { name: 'Loading your last ideas' })).toBeInTheDocument()
+		await expect(screen.getByRole('button', { name: 'New Ideas' })).toBeDisabled()
+	},
+}
 
 export const IdeasFailed: Story = {
 	args: { step: 'results', suggestions: { phase: 'error', message: 'Gift suggestions are paused for this month.' } },
@@ -203,7 +229,14 @@ const addons: Array<AddonOnList> = [
 	},
 ]
 
-function seeded(flagOn: boolean): Decorator {
+// A stored answer from an earlier visit, as the server would return it.
+const storedAnswer: LatestGiftSuggestionSetResult = {
+	kind: 'ok',
+	recipientName: 'Linda',
+	set: { ...storedSet, suggestions, savedTitles: ['Bypass Pruning Shears'], addedTitles: [] },
+}
+
+function seeded(flagOn: boolean, stored?: LatestGiftSuggestionSetResult): Decorator {
 	return Story => {
 		const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } })
 		const pinned = { refetchOnMount: false, refetchOnWindowFocus: false, refetchOnReconnect: false } as const
@@ -214,6 +247,10 @@ function seeded(flagOn: boolean): Decorator {
 		client.setQueryData(listDetailKeys.addons(LIST_ID), addons)
 		client.setQueryData(listDetailKeys.giftIdeas(LIST_ID), [myIdeas])
 		client.setQueryData(appSettingsQueryKey, { ...DEFAULT_APP_SETTINGS, aiGiftSuggestionsEnabled: flagOn })
+		if (stored) {
+			client.setQueryDefaults(['gift-suggestion-set', LIST_ID], pinned)
+			client.setQueryData(['gift-suggestion-set', LIST_ID], stored)
+		}
 		return (
 			<QueryClientProvider client={client}>
 				<Story />
@@ -280,6 +317,24 @@ export const OnThePageFlagOff: Story = {
 		const canvas = within(canvasElement)
 		await waitFor(() => expect(canvas.getByText('Linen apron, natural')).toBeInTheDocument())
 		await expect(canvas.queryByRole('button', { name: /Need ideas/u })).toBeNull()
+	},
+}
+
+/** Opened again later: the stored answer shows at once, with the idea already saved marked, and New Ideas leads back to the budget. */
+export const OnThePageStoredIdeas: Story = {
+	decorators: [withPageFrame, seeded(true, storedAnswer)],
+	render: () => <ListDetailPreview />,
+	play: async ({ canvasElement }) => {
+		const canvas = within(canvasElement)
+		const screen = within(canvasElement.ownerDocument.body)
+		await userEvent.click(await canvas.findByRole('button', { name: /Need ideas/u }))
+		const dialog = within(await screen.findByRole('dialog'))
+		await expect(await dialog.findByText('Ideas from 3 days ago, for Christmas, up to $200.')).toBeInTheDocument()
+		await expect(dialog.getByText('Enameled Cast Iron Braiser')).toBeInTheDocument()
+		await expect(dialog.getByRole('button', { name: 'Saved to Gift Ideas' })).toBeDisabled()
+		await expect(dialog.queryByLabelText('Budget (Optional)')).toBeNull()
+		await userEvent.click(dialog.getByRole('button', { name: 'New Ideas' }))
+		await expect(await screen.findByLabelText('Budget (Optional)')).toBeInTheDocument()
 	},
 }
 

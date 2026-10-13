@@ -10,16 +10,27 @@ import { authMiddleware } from '@/middleware/auth'
 
 import {
 	getGiftSuggestionsImpl,
+	getLatestGiftSuggestionSetImpl,
 	getListInterestsImpl,
 	GiftSuggestionsInputSchema,
 	type GiftSuggestionsResult,
+	LatestGiftSuggestionSetInputSchema,
+	type LatestGiftSuggestionSetResult,
 	type ListInterests,
 	saveGiftSuggestionImpl,
 	SaveGiftSuggestionInputSchema,
 	type SaveGiftSuggestionResult,
 } from './_gift-suggestions-impl'
 
-export type { GiftSuggestionsResult, ListInterests, SaveGiftSuggestionResult, SuggestedGift } from './_gift-suggestions-impl'
+export type {
+	GiftSuggestionsResult,
+	LatestGiftSuggestionSet,
+	LatestGiftSuggestionSetResult,
+	ListInterests,
+	SaveGiftSuggestionResult,
+	StoredSuggestionSetMeta,
+	SuggestedGift,
+} from './_gift-suggestions-impl'
 
 export const getGiftSuggestions = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])
@@ -33,6 +44,15 @@ export const getGiftSuggestions = createServerFn({ method: 'POST' })
 			now: new Date(),
 		})
 	})
+
+// The stored answer, free to read: no model call, so no limiter.
+export const getLatestGiftSuggestionSet = createServerFn({ method: 'GET' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: z.input<typeof LatestGiftSuggestionSetInputSchema>) => LatestGiftSuggestionSetInputSchema.parse(data))
+	.handler(
+		({ context, data }): Promise<LatestGiftSuggestionSetResult> =>
+			getLatestGiftSuggestionSetImpl({ actor: { id: context.session.user.id, isChild: context.session.user.isChild }, input: data })
+	)
 
 export const saveGiftSuggestion = createServerFn({ method: 'POST' })
 	.middleware([authMiddleware, loggingMiddleware])

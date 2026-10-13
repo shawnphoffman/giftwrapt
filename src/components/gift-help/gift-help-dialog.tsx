@@ -4,7 +4,15 @@ import { Check, ExternalLink, Lightbulb, PackagePlus, Sparkles } from 'lucide-re
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
-import { getGiftSuggestions, getListInterests, saveGiftSuggestion, type SuggestedGift } from '@/api/gift-suggestions'
+import {
+	getGiftSuggestions,
+	getLatestGiftSuggestionSet,
+	getListInterests,
+	type LatestGiftSuggestionSetResult,
+	saveGiftSuggestion,
+	type StoredSuggestionSetMeta,
+	type SuggestedGift,
+} from '@/api/gift-suggestions'
 import { createListAddon } from '@/api/list-addons'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -13,6 +21,7 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAppSetting } from '@/hooks/use-app-settings'
 import { useSession } from '@/lib/auth-client'
+import { formatRelative } from '@/lib/format-relative'
 import type { PriceBand } from '@/lib/gift-suggestions/prompt'
 import { buildSearchUrl } from '@/lib/gift-suggestions/search-url'
 import { applyListEventLocally } from '@/lib/list-events'
@@ -22,7 +31,9 @@ import { listDetailKeys } from '@/lib/queries/lists'
 // Ideas?" button in the list's filter row opens a dialog that first asks
 // for a budget, then shows AI ideas that are not already on their list
 // (the occasion is taken from the type of list, so there is nothing to
-// ask). Never offered to a child. A suggestion is kept only if the viewer
+// ask). Never offered to a child. The last answer is kept for the viewer
+// (plan 29a): reopening shows it again with a "New Ideas" button instead of
+// asking the model, and an idea reaches anyone else only when the viewer
 // acts on it: saved to their own private gift ideas, or added to this list
 // as an off-list gift they are giving.
 //
@@ -100,9 +111,38 @@ export function ThinkingOfIdeas() {
 
 export type SuggestionsState =
 	| { phase: 'idle' }
+	// Looking for the viewer's last answer before deciding which step to show.
+	| { phase: 'checking' }
 	| { phase: 'loading' }
-	| { phase: 'done'; suggestions: Array<SuggestedGift> }
+	// `set` is the stored answer this came from; null in stories that show
+	// results on their own.
+	| { phase: 'done'; suggestions: Array<SuggestedGift>; set: StoredSuggestionSetMeta | null }
 	| { phase: 'error'; message: string }
+
+// Placeholder cards while the stored answer loads: quick, so no status line.
+function CheckingForIdeas() {
+	return (
+		<div role="status" aria-label="Loading your last ideas" className="flex flex-col gap-3">
+			{[0, 1, 2].map(n => (
+				<div key={n} className="flex flex-col gap-2 rounded-md border px-4 py-3" aria-hidden>
+					<Skeleton className="h-4 w-2/5" />
+					<Skeleton className="h-3 w-full" />
+					<Skeleton className="h-3 w-4/5" />
+				</div>
+			))}
+		</div>
+	)
+}
+
+// "Ideas from 3 days ago, for Christmas, up to $50." The occasion and
+// budget are the ones the set was made with, which may not match the list
+// the viewer is on now.
+export function storedSetCaption(set: StoredSuggestionSetMeta, now: number = Date.now()): string {
+	const parts = [`Ideas from ${formatRelative(set.createdAt, now)}`]
+	if (set.occasion) parts.push(`for ${set.occasion}`)
+	if (set.budget !== null) parts.push(`up to $${set.budget}`)
+	return `${parts.join(', ')}.`
+}
 
 export type GiftHelpDialogViewProps = {
 	open: boolean
@@ -198,6 +238,7 @@ export function GiftHelpDialogView({
 				) : (
 					<>
 						<div className="-mx-1 flex max-h-[65vh] flex-col gap-3 overflow-y-auto px-1">
+							{suggestions.phase === 'checking' && <CheckingForIdeas />}
 							{suggestions.phase === 'loading' && <ThinkingOfIdeas />}
 							{suggestions.phase === 'error' && <p className="text-sm text-destructive">{suggestions.message}</p>}
 							{suggestions.phase === 'done' &&
@@ -205,6 +246,7 @@ export function GiftHelpDialogView({
 									<p className="text-sm text-muted-foreground">No new ideas this time. Try a different budget.</p>
 								) : (
 									<>
+										{suggestions.set && <p className="text-xs text-muted-foreground">{storedSetCaption(suggestions.set)}</p>}
 										<ul className="flex flex-col gap-3">
 											{suggestions.suggestions.map(s => {
 												const saved = savedTitles.has(s.title)
@@ -266,8 +308,8 @@ export function GiftHelpDialogView({
 								))}
 						</div>
 						<DialogFooter>
-							<Button type="button" variant="outline" onClick={onBack}>
-								Change Budget
+							<Button type="button" variant="outline" onClick={onBack} disabled={suggestions.phase === 'checking'}>
+								New Ideas
 							</Button>
 							<Button type="button" onClick={() => onOpenChange(false)}>
 								Done
@@ -285,6 +327,7 @@ export function GiftHelpButton({ listId, recipientName }: { listId: number; reci
 	const queryClient = useQueryClient()
 	const router = useRouter()
 	const { data: session } = useSession()
+	const isChild = session?.user.isChild === true
 	const suggestionsEnabled = useAppSetting('aiGiftSuggestionsEnabled')
 	const intelligenceEnabled = useAppSetting('intelligenceEnabled')
 	const searchUrlTemplate = useAppSetting('giftSuggestionsSearchUrl')
@@ -303,12 +346,66 @@ export function GiftHelpButton({ listId, recipientName }: { listId: number; reci
 		staleTime: 5 * 60_000,
 	})
 
+	// The viewer's last answer for this person. Read on open, free of charge;
+	// kept fresh here after asking, saving, and adding so a reopen within the
+	// stale window shows what the viewer last saw.
+	const latestKey = ['gift-suggestion-set', listId] as const
+	const latest = useQuery({
+		queryKey: latestKey,
+		queryFn: () => getLatestGiftSuggestionSet({ data: { listId } }),
+		enabled: suggestionsEnabled && !isChild && open,
+		staleTime: 5 * 60_000,
+	})
+
+	// Decide the first step from the stored answer: results when there is
+	// one, the budget form when there is none. Runs only while nothing else
+	// has happened in this opening (idle or still checking).
+	useEffect(() => {
+		if (!open) return
+		if (suggestions.phase !== 'idle' && suggestions.phase !== 'checking') return
+		if (latest.isPending) {
+			if (suggestions.phase !== 'checking') {
+				setSuggestions({ phase: 'checking' })
+				setStep('results')
+			}
+			return
+		}
+		const set = latest.data?.kind === 'ok' ? latest.data.set : null
+		if (set) {
+			const { suggestions: stored, savedTitles: saved, addedTitles: added, ...meta } = set
+			setSuggestions({ phase: 'done', suggestions: stored, set: meta })
+			setSavedTitles(new Set(saved))
+			setAddedTitles(new Set(added))
+			setStep('results')
+		} else if (suggestions.phase !== 'idle') {
+			setSuggestions({ phase: 'idle' })
+			setStep('form')
+		} else {
+			setStep('form')
+		}
+	}, [open, latest.isPending, latest.data, suggestions.phase])
+
+	const markInCache = (field: 'savedTitles' | 'addedTitles', title: string) =>
+		queryClient.setQueryData<LatestGiftSuggestionSetResult>(latestKey, prev =>
+			prev?.kind === 'ok' && prev.set ? { ...prev, set: { ...prev.set, [field]: [...prev.set[field], title] } } : prev
+		)
+
 	const ask = useMutation({
 		mutationFn: () => getGiftSuggestions({ data: { listId, budget: parseBudget(budget) ?? undefined } }),
 		onMutate: () => setSuggestions({ phase: 'loading' }),
 		onSuccess: result => {
-			if (result.kind === 'ok') setSuggestions({ phase: 'done', suggestions: result.suggestions })
-			else setSuggestions({ phase: 'error', message: SUGGESTION_ERRORS[result.reason] ?? 'Could not get ideas for this list.' })
+			if (result.kind === 'ok') {
+				setSuggestions({ phase: 'done', suggestions: result.suggestions, set: result.set })
+				// A fresh set never repeats what the viewer saved or added, so the
+				// marks start empty.
+				setSavedTitles(new Set())
+				setAddedTitles(new Set())
+				queryClient.setQueryData<LatestGiftSuggestionSetResult>(latestKey, {
+					kind: 'ok',
+					recipientName: result.recipientName,
+					set: { ...result.set, suggestions: result.suggestions, savedTitles: [], addedTitles: [] },
+				})
+			} else setSuggestions({ phase: 'error', message: SUGGESTION_ERRORS[result.reason] ?? 'Could not get ideas for this list.' })
 		},
 		onError: () => setSuggestions({ phase: 'error', message: 'Could not come up with ideas just now. Try again.' }),
 	})
@@ -324,6 +421,7 @@ export function GiftHelpButton({ listId, recipientName }: { listId: number; reci
 				return
 			}
 			setSavedTitles(prev => new Set(prev).add(s.title))
+			markInCache('savedTitles', s.title)
 			toast.success(result.createdList ? `Saved to a new private ideas list for ${recipientName}` : 'Saved to your gift ideas')
 			queryClient.invalidateQueries({ queryKey: listDetailKeys.giftIdeas(listId) })
 		},
@@ -343,6 +441,7 @@ export function GiftHelpButton({ listId, recipientName }: { listId: number; reci
 				return
 			}
 			setAddedTitles(prev => new Set(prev).add(s.title))
+			markInCache('addedTitles', s.title)
 			toast.success('Off-list gift added')
 			applyListEventLocally({ kind: 'addon', listId, addonId: 0 }, { queryClient, router })
 		},
@@ -353,7 +452,7 @@ export function GiftHelpButton({ listId, recipientName }: { listId: number; reci
 	if (!suggestionsEnabled) return null
 	// The dialog is AI ideas only, which a child never gets, so a child sees
 	// no button at all.
-	if (session?.user.isChild === true) return null
+	if (isChild) return null
 
 	return (
 		<>
@@ -371,8 +470,12 @@ export function GiftHelpButton({ listId, recipientName }: { listId: number; reci
 				open={open}
 				onOpenChange={next => {
 					setOpen(next)
-					// Reopening starts from the questions again, with the last answers kept.
-					if (!next) setStep('form')
+					// Closing forgets the in-dialog state; reopening starts from the
+					// stored answer again (kept fresh above), with the budget kept.
+					if (!next) {
+						setStep('form')
+						setSuggestions({ phase: 'idle' })
+					}
 				}}
 				recipientName={recipientName}
 				interests={interestData?.interests ?? []}

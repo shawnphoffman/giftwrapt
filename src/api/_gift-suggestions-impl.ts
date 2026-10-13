@@ -2,11 +2,13 @@
 // (plan 25): gift suggestions, saving one as a private idea, and the
 // "about their list" interests summary.
 //
-// All three read through the gifter-view impls, so the restricted-viewer
+// All of them read through the gifter-view impls, so the restricted-viewer
 // filter and the owner redirect apply before anything reaches a prompt.
-// Nothing here is ever stored where the recipient can read it: a
-// suggestion only persists when the viewer saves it to their own
-// gift-ideas list, which is private by construction.
+// Nothing here is ever stored where the recipient can read it. The last
+// answer is kept for the asker alone (plan 29a, `gift_suggestion_sets`) so
+// reopening the dialog does not ask the model again; an idea reaches
+// anyone else only when the viewer saves it to their own gift-ideas list
+// (private by construction) or adds it as an off-list gift.
 
 import { and, eq, inArray } from 'drizzle-orm'
 import { z } from 'zod'
@@ -26,7 +28,14 @@ import {
 	type GiftSuggestion,
 	giftSuggestionsResponseSchema,
 	sanitizeSuggestions,
+	suggestionTitleKey,
 } from '@/lib/gift-suggestions/prompt'
+import {
+	loadLatestGiftSuggestionSet,
+	replaceGiftSuggestionSet,
+	type StoredSuggestionSetMeta,
+	type SuggestionRecipient,
+} from '@/lib/gift-suggestions/sets'
 import { createLogger } from '@/lib/logger'
 import { getAppSettings } from '@/lib/settings-loader'
 
@@ -39,8 +48,10 @@ export const GiftSuggestionsInputSchema = z.object({
 
 export type SuggestedGift = GiftSuggestion
 
+export type { StoredSuggestionSetMeta } from '@/lib/gift-suggestions/sets'
+
 export type GiftSuggestionsResult =
-	| { kind: 'ok'; recipientName: string; suggestions: Array<SuggestedGift> }
+	| { kind: 'ok'; recipientName: string; suggestions: Array<SuggestedGift>; set: StoredSuggestionSetMeta }
 	| {
 			kind: 'error'
 			reason:
@@ -186,7 +197,72 @@ export async function getGiftSuggestionsImpl(args: {
 
 	const known = [...allItems.map(i => i.title), ...myIdeas, ...myPastGifts]
 	const suggestions = sanitizeSuggestions(raw, known)
-	return { kind: 'ok', recipientName: firstName(c.person.name), suggestions }
+	// Keep the answer for the asker, replacing their previous set for this
+	// person, so the dialog can show it again without another model call.
+	const { suggestions: stored, ...set } = await replaceGiftSuggestionSet(dbx, {
+		userId: actor.id,
+		recipient: { kind: recipient.kind, id: recipient.id },
+		listId: input.listId,
+		occasion,
+		budget: input.budget ?? null,
+		suggestions,
+		now,
+	})
+	return { kind: 'ok', recipientName: firstName(c.person.name), suggestions: stored, set }
+}
+
+export const LatestGiftSuggestionSetInputSchema = z.object({ listId: z.number().int().positive() })
+
+export type LatestGiftSuggestionSet = StoredSuggestionSetMeta & {
+	suggestions: Array<SuggestedGift>
+	// Titles in the set the asker has already saved as a gift idea for this
+	// person, or already added to this list as an off-list gift.
+	savedTitles: Array<string>
+	addedTitles: Array<string>
+}
+
+export type LatestGiftSuggestionSetResult =
+	| { kind: 'ok'; recipientName: string; set: LatestGiftSuggestionSet | null }
+	| { kind: 'error'; reason: 'feature-disabled' | 'child-not-allowed' | 'not-found' | 'is-owner' }
+
+/**
+ * The asker's last set of ideas for the person this list is for, with the
+ * Saved / Added marks derived from what they have since done with it. Reads
+ * through the gifter view, so the same refusals apply as for asking; the
+ * recipient (owner redirect) and anyone who cannot see the list get nothing.
+ * Free to call: no model, no rate limit.
+ */
+export async function getLatestGiftSuggestionSetImpl(args: {
+	actor: { id: string; isChild: boolean }
+	input: z.infer<typeof LatestGiftSuggestionSetInputSchema>
+	dbx?: SchemaDatabase
+}): Promise<LatestGiftSuggestionSetResult> {
+	const { actor, input, dbx = db } = args
+	const settings = await getAppSettings(dbx)
+	if (!settings.aiGiftSuggestionsEnabled) return { kind: 'error', reason: 'feature-disabled' }
+	if (actor.isChild) return { kind: 'error', reason: 'child-not-allowed' }
+
+	const view = await getWishlistViewImpl({ userId: actor.id, listId: input.listId, dbx })
+	if (view.kind === 'error') return { kind: 'error', reason: view.reason }
+	const recipient: SuggestionRecipient = { kind: view.view.list.recipient.kind, id: view.view.list.recipient.id }
+	const recipientName = firstName(view.view.list.recipient.name)
+
+	const stored = await loadLatestGiftSuggestionSet(dbx, { userId: actor.id, recipient })
+	if (!stored) return { kind: 'ok', recipientName, set: null }
+
+	const ideaKeys = new Set(view.view.myGiftIdeas.flatMap(s => s.ideas.map(i => suggestionTitleKey(i.title))))
+	const addonKeys = new Set(view.view.offListGifts.filter(a => a.byMe).map(a => suggestionTitleKey(a.description)))
+	const { suggestions, ...meta } = stored
+	return {
+		kind: 'ok',
+		recipientName,
+		set: {
+			...meta,
+			suggestions,
+			savedTitles: suggestions.filter(s => ideaKeys.has(suggestionTitleKey(s.title))).map(s => s.title),
+			addedTitles: suggestions.filter(s => addonKeys.has(suggestionTitleKey(s.title))).map(s => s.title),
+		},
+	}
 }
 
 export const SaveGiftSuggestionInputSchema = z.object({

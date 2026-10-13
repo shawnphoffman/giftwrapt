@@ -19,6 +19,7 @@ import { sweepCronRuns } from '@/lib/cron/record-run'
 import type { CronEndpoint } from '@/lib/cron/registry'
 import { relationshipRemindersImpl } from '@/lib/cron/relationship-reminders'
 import { sendRevealEmails } from '@/lib/cron/reveal-emails'
+import { sweepGiftSuggestionSets } from '@/lib/gift-suggestions/sets'
 import { processOnce } from '@/lib/import/scrape-queue/runner'
 import { maybeSendOperatorDigest } from '@/lib/intelligence/operator-digest'
 import { selectOverdueUsers } from '@/lib/intelligence/overdue'
@@ -250,10 +251,14 @@ export async function runCleanupVerification() {
 	// no-op on deployments with `enableMcp` off (the tables stay empty).
 	const oauthSweep = await cleanupOauthImpl({ db, now })
 	const aiUsageSweep = await sweepAiUsage({ db, now, retentionDays: settings.aiUsageRetentionDays })
+	const giftSuggestionSweep = await sweepGiftSuggestionSets({ db, now, retentionDays: settings.giftSuggestionRetentionDays })
 	const durationMs = Date.now() - started
-	log.info({ endpoint: '/api/cron/cleanup-verification', deleted, cronRunsSweep, oauthSweep, aiUsageSweep, durationMs }, 'cleanup complete')
+	log.info(
+		{ endpoint: '/api/cron/cleanup-verification', deleted, cronRunsSweep, oauthSweep, aiUsageSweep, giftSuggestionSweep, durationMs },
+		'cleanup complete'
+	)
 
-	return { ok: true, deleted, cronRunsSweep, oauthSweep, aiUsageSweep, durationMs }
+	return { ok: true, deleted, cronRunsSweep, oauthSweep, aiUsageSweep, giftSuggestionSweep, durationMs }
 }
 
 export async function runIntelligenceRecommendations(): Promise<Record<string, {}>> {

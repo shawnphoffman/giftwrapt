@@ -1,15 +1,36 @@
 // Gifter-facing AI help: the suggestions prompt never carries claim detail,
 // the feature is off by default and refused for children, a restricted
-// viewer's prompt only holds what they can see, and a saved idea lands on
-// the viewer's own private list.
+// viewer's prompt only holds what they can see, a saved idea lands on the
+// viewer's own private list, and the last answer is kept for the asker
+// alone (plan 29a).
 
-import { makeGiftedItem, makeItem, makeList, makeListAddon, makeUser, makeUserRelationship } from '@test/integration/factories'
+import {
+	makeDependent,
+	makeDependentGuardianship,
+	makeGiftedItem,
+	makeItem,
+	makeList,
+	makeListAddon,
+	makeUser,
+	makeUserRelationship,
+} from '@test/integration/factories'
 import { MockLanguageModelV3 } from 'ai/test'
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq, inArray } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { db } from '@/db'
-import { aiUsage, appSettings, customHolidays, itemAiAnalysis, items, lists, users } from '@/db/schema'
+import {
+	aiUsage,
+	appSettings,
+	customHolidays,
+	dependents,
+	giftSuggestions,
+	giftSuggestionSets,
+	itemAiAnalysis,
+	items,
+	lists,
+	users,
+} from '@/db/schema'
 
 let currentModel: MockLanguageModelV3
 let aiValid = true
@@ -30,8 +51,14 @@ vi.mock('@/lib/ai-config', async () => ({
 vi.mock('@/lib/ai-client', () => ({ createAiModel: () => currentModel }))
 
 import { getGiftIdeasForListImpl } from '@/api/_gift-ideas-impl'
-import { getGiftSuggestionsImpl, getListInterestsImpl, saveGiftSuggestionImpl } from '@/api/_gift-suggestions-impl'
+import {
+	getGiftSuggestionsImpl,
+	getLatestGiftSuggestionSetImpl,
+	getListInterestsImpl,
+	saveGiftSuggestionImpl,
+} from '@/api/_gift-suggestions-impl'
 import { _resetAiBudgetCacheForTesting } from '@/lib/ai-call'
+import { sweepGiftSuggestionSets } from '@/lib/gift-suggestions/sets'
 
 type Captured = { prompt: string }
 
@@ -293,6 +320,150 @@ describe('gift suggestions', () => {
 			kind: 'error',
 			reason: 'is-owner',
 		})
+	})
+
+	it('keeps the answer for the asker and replaces it on the next ask', async () => {
+		const { me, sam, list } = await seed()
+		const captured: Captured = { prompt: '' }
+		currentModel = mockModel(SUGGESTIONS, captured)
+		const actor = { id: me.id, isChild: false }
+
+		const first = await getGiftSuggestionsImpl({ actor, input: { listId: list.id, budget: 50 }, now })
+		expect(first.kind).toBe('ok')
+		if (first.kind !== 'ok') return
+		expect(first.set).toMatchObject({ listId: list.id, occasion: null, budget: 50, createdAt: now.toISOString() })
+
+		// One set for (asker, Sam), holding the sanitized rows in order.
+		const sets = await db.select().from(giftSuggestionSets).where(eq(giftSuggestionSets.userId, me.id))
+		expect(sets).toHaveLength(1)
+		expect(sets[0]).toMatchObject({ id: first.set.id, recipientUserId: sam.id, recipientDependentId: null })
+		const rows = await db
+			.select()
+			.from(giftSuggestions)
+			.where(eq(giftSuggestions.setId, first.set.id))
+			.orderBy(asc(giftSuggestions.position))
+		expect(rows.map(r => [r.position, r.title, r.titleKey, r.priceBand])).toEqual([
+			[0, 'Wool Hiking Socks', 'wool hiking socks', 'under-25'],
+			[1, 'Trail Guide Book', 'trail guide book', 'under-25'],
+		])
+		// Links were stripped before storing, same as before showing.
+		expect(JSON.stringify(rows)).not.toMatch(/https?:|www\.|\.com/u)
+
+		// Reading it back needs no model call and shows the same ideas.
+		const latest = await getLatestGiftSuggestionSetImpl({ actor, input: { listId: list.id } })
+		expect(latest).toEqual({
+			kind: 'ok',
+			recipientName: 'Sam',
+			set: { ...first.set, suggestions: first.suggestions, savedTitles: [], addedTitles: [] },
+		})
+		expect(await db.select().from(aiUsage)).toHaveLength(1)
+
+		// Asking again replaces the set; the old rows cascade away.
+		const later = new Date(now.getTime() + 60_000)
+		const second = await getGiftSuggestionsImpl({ actor, input: { listId: list.id }, now: later })
+		expect(second.kind).toBe('ok')
+		if (second.kind !== 'ok') return
+		expect(second.set.id).not.toBe(first.set.id)
+		expect(second.set).toMatchObject({ budget: null, createdAt: later.toISOString() })
+		const after = await db.select({ id: giftSuggestionSets.id }).from(giftSuggestionSets).where(eq(giftSuggestionSets.userId, me.id))
+		expect(after).toEqual([{ id: second.set.id }])
+		expect(await db.select().from(giftSuggestions).where(eq(giftSuggestions.setId, first.set.id))).toEqual([])
+	})
+
+	it('only the asker can read their stored answer', async () => {
+		const { me, sam, zeb, list } = await seed()
+		const captured: Captured = { prompt: '' }
+		currentModel = mockModel(SUGGESTIONS, captured)
+		const stored = await getGiftSuggestionsImpl({ actor: { id: me.id, isChild: false }, input: { listId: list.id }, now })
+		expect(stored.kind).toBe('ok')
+
+		// Another gifter looking at the same list has no set of their own.
+		expect(await getLatestGiftSuggestionSetImpl({ actor: { id: zeb.id, isChild: false }, input: { listId: list.id } })).toEqual({
+			kind: 'ok',
+			recipientName: 'Sam',
+			set: null,
+		})
+		// The recipient is redirected like everywhere in the gifter view.
+		expect(await getLatestGiftSuggestionSetImpl({ actor: { id: sam.id, isChild: false }, input: { listId: list.id } })).toEqual({
+			kind: 'error',
+			reason: 'is-owner',
+		})
+		// Someone Sam has shut out cannot even tell whether a set exists.
+		await makeUserRelationship(db, { ownerUserId: sam.id, viewerUserId: zeb.id, accessLevel: 'none' })
+		expect(await getLatestGiftSuggestionSetImpl({ actor: { id: zeb.id, isChild: false }, input: { listId: list.id } })).toEqual({
+			kind: 'error',
+			reason: 'not-found',
+		})
+		// A child, and the flag off, are refused the same way as asking.
+		expect(await getLatestGiftSuggestionSetImpl({ actor: { id: me.id, isChild: true }, input: { listId: list.id } })).toEqual({
+			kind: 'error',
+			reason: 'child-not-allowed',
+		})
+		await setSetting('aiGiftSuggestionsEnabled', false)
+		expect(await getLatestGiftSuggestionSetImpl({ actor: { id: me.id, isChild: false }, input: { listId: list.id } })).toEqual({
+			kind: 'error',
+			reason: 'feature-disabled',
+		})
+	})
+
+	it('marks ideas the asker has since saved or added, and keys a dependent’s set to the dependent', async () => {
+		const { me, sam, list } = await seed()
+		const captured: Captured = { prompt: '' }
+		currentModel = mockModel(SUGGESTIONS, captured)
+		const actor = { id: me.id, isChild: false }
+		const stored = await getGiftSuggestionsImpl({ actor, input: { listId: list.id }, now })
+		expect(stored.kind).toBe('ok')
+
+		await saveGiftSuggestionImpl({ actor, input: { listId: list.id, title: 'Wool Hiking Socks' } })
+		// An off-list gift matches by the title key, so case and punctuation do not matter.
+		await makeListAddon(db, { listId: list.id, userId: me.id, description: 'trail guide book!' })
+		const latest = await getLatestGiftSuggestionSetImpl({ actor, input: { listId: list.id } })
+		expect(latest.kind).toBe('ok')
+		if (latest.kind !== 'ok' || !latest.set) return
+		expect(latest.set.savedTitles).toEqual(['Wool Hiking Socks'])
+		expect(latest.set.addedTitles).toEqual(['Trail Guide Book'])
+
+		// A list made for a dependent stores the set against the dependent.
+		const fido = await makeDependent(db, { name: 'Fido', createdByUserId: sam.id })
+		await makeDependentGuardianship(db, { guardianUserId: sam.id, dependentId: fido.id })
+		try {
+			const fidoList = await makeList(db, { ownerId: sam.id, name: 'Fido Wishes', subjectDependentId: fido.id })
+			await makeItem(db, { listId: fidoList.id, title: 'Squeaky Ball' })
+			const forFido = await getGiftSuggestionsImpl({ actor, input: { listId: fidoList.id }, now })
+			expect(forFido.kind).toBe('ok')
+			if (forFido.kind !== 'ok') return
+			const [set] = await db.select().from(giftSuggestionSets).where(eq(giftSuggestionSets.id, forFido.set.id))
+			expect(set).toMatchObject({ userId: me.id, recipientUserId: null, recipientDependentId: fido.id })
+			// Sam's own set is untouched; each recipient has their own.
+			const mine = await db.select({ id: giftSuggestionSets.id }).from(giftSuggestionSets).where(eq(giftSuggestionSets.userId, me.id))
+			expect(mine).toHaveLength(2)
+			const back = await getLatestGiftSuggestionSetImpl({ actor, input: { listId: fidoList.id } })
+			expect(back).toMatchObject({ kind: 'ok', recipientName: 'Fido', set: { id: forFido.set.id } })
+		} finally {
+			await db.delete(dependents).where(eq(dependents.id, fido.id))
+		}
+	})
+
+	it('the cleanup sweep drops sets past the retention window', async () => {
+		const { me, sam, zeb, list } = await seed()
+		const captured: Captured = { prompt: '' }
+		currentModel = mockModel(SUGGESTIONS, captured)
+		const fresh = await getGiftSuggestionsImpl({ actor: { id: me.id, isChild: false }, input: { listId: list.id }, now })
+		expect(fresh.kind).toBe('ok')
+		if (fresh.kind !== 'ok') return
+		const [old] = await db
+			.insert(giftSuggestionSets)
+			.values({ userId: me.id, recipientUserId: zeb.id, createdAt: new Date(now.getTime() - 91 * 86_400_000) })
+			.returning()
+		await db
+			.insert(giftSuggestions)
+			.values({ setId: old.id, position: 0, title: 'Old', titleKey: 'old', details: '', reason: '', priceBand: 'unknown' })
+
+		expect(await sweepGiftSuggestionSets({ db, now, retentionDays: 90 })).toEqual({ deleted: 1 })
+		const left = await db.select({ id: giftSuggestionSets.id }).from(giftSuggestionSets).where(eq(giftSuggestionSets.userId, me.id))
+		expect(left).toEqual([{ id: fresh.set.id }])
+		expect(await db.select().from(giftSuggestions).where(eq(giftSuggestions.setId, old.id))).toEqual([])
+		void sam
 	})
 
 	it('list interests need Intelligence on and at least three analysed items', async () => {
