@@ -142,7 +142,9 @@ export async function getGiftSuggestionsImpl(args: {
 	if (context.kind === 'error') return { kind: 'error', reason: context.reason }
 	const c = context.context
 
-	const allItems = c.lists.flatMap(l => l.items)
+	// Unavailable items are not wants any more; the context files them under
+	// "no longer on their list".
+	const allItems = c.lists.flatMap(l => l.items).filter(i => i.availability !== 'unavailable')
 	const facets = allItems.length
 		? await dbx
 				.select({ itemId: itemAiAnalysis.itemId, category: itemAiAnalysis.category })
@@ -161,9 +163,12 @@ export async function getGiftSuggestionsImpl(args: {
 
 	const myIdeas = c.myGiftIdeas.flatMap(s => s.ideas.map(i => i.title))
 	const myPastGifts = c.myPastGifts.map(g => g.title)
-	// What this person already has comes from every gifter's marks (on the
-	// context); what to leave out for this shopper comes from their own.
-	const alreadyHas = c.alreadyHas.map(a => a.title)
+	// What this person already has and no longer lists comes from the
+	// context (received gifts, every gifter's marks, their own unavailable
+	// and hidden items); what to leave out for this shopper comes from their
+	// own marks.
+	const alreadyHas = c.alreadyHas.map(a => ({ title: a.title, when: a.when }))
+	const noLongerListed = c.noLongerListed
 	const declined = (await loadOwnSuggestionFeedback(dbx, { userId: actor.id, recipient: { kind: recipient.kind, id: recipient.id } }))
 		.filter(f => f.verdict === 'not-for-me')
 		.map(f => f.title)
@@ -181,6 +186,7 @@ export async function getGiftSuggestionsImpl(args: {
 		myIdeas,
 		myPastGifts,
 		alreadyHas,
+		noLongerListed,
 		declined,
 		occasion,
 		budget: input.budget ?? null,
@@ -214,7 +220,14 @@ export async function getGiftSuggestionsImpl(args: {
 
 	// A repeat of anything they have or the shopper turned down is dropped
 	// even if the model ignored the instruction.
-	const known = [...allItems.map(i => i.title), ...myIdeas, ...myPastGifts, ...alreadyHas, ...declined]
+	const known = [
+		...allItems.map(i => i.title),
+		...myIdeas,
+		...myPastGifts,
+		...alreadyHas.map(a => a.title),
+		...noLongerListed.map(d => d.title),
+		...declined,
+	]
 	const suggestions = sanitizeSuggestions(raw, known)
 	// Keep the answer for the asker, replacing their previous set for this
 	// person, so the dialog can show it again without another model call.

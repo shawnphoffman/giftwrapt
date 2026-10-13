@@ -35,24 +35,39 @@ export type GiftSuggestionsPromptInput = {
 	myIdeas: Array<string>
 	// Titles of gifts the viewer already gave or is giving them.
 	myPastGifts: Array<string>
-	// Things the person already has: titles any gifter marked "They have it"
-	// (plan 29b). Never who marked them.
-	alreadyHas: Array<string>
+	// Things the person already has: gifts revealed on lists the viewer can
+	// see (with the month) and titles any gifter marked "They have it".
+	// Never who gave or marked them (plans 29b, 29c).
+	alreadyHas: Array<{ title: string; when: string | null }>
+	// Things that were wanted but no longer are: marked unavailable, or
+	// revealed with nobody giving it (plan 29c). The weakest signal.
+	noLongerListed: Array<{ title: string; reason: 'unavailable' | 'removed'; when: string | null }>
 	// Ideas this viewer marked as not for them (plan 29b). Theirs alone.
 	declined: Array<string>
 	occasion: string | null
 	budget: number | null
 }
 
-export const MAX_PROMPT_ITEMS = 60
+// The profile is capped as a whole and filled in order of strength, so what
+// they want now is never crowded out by history.
+export const MAX_PROMPT_LINES = 60
+export const MAX_PROMPT_ITEMS = 40
+export const MAX_ALREADY_HAS_LINES = 30
+export const MAX_NO_LONGER_LISTED_LINES = 15
 const MAX_SUGGESTIONS = 8
 
 export const GIFT_SUGGESTIONS_SYSTEM = [
-	'You help someone choose a gift for a person they know. You are given what that person put on their own wish lists, each marked open or claimed, what they already have, the shopper’s own ideas and what the shopper already gave them, and ideas the shopper has turned down.',
+	'You help someone choose a gift for a person they know. You are given a profile of that person: what they put on their own wish lists, each marked open or claimed; what they already have; what they no longer list; the shopper’s own ideas and what the shopper already gave them; and ideas the shopper has turned down.',
 	'',
-	'Suggest 5 to 8 NEW gift ideas that are NOT already on the lists, not something they already have, not among the shopper’s ideas, not something the shopper already gave, and not something the shopper turned down. Use the lists as evidence of taste: what they are into, the brands and price levels they pick, gaps a thoughtful gift could fill. A claimed item tells you about their taste too, but someone else is already giving it, so never suggest it or a near copy of it.',
+	'Suggest 5 to 8 NEW gift ideas that are NOT already on the lists, not something they already have, not something they no longer list, not among the shopper’s ideas, not something the shopper already gave, and not something the shopper turned down.',
 	'',
-	'What they already have is also evidence of taste: never suggest it or a near copy, but a complement, an accessory, or the next step in that interest can be a good idea. The shopper’s own ideas and past gifts show what the shopper thinks fits this person; favour more of that kind without repeating them. Ideas the shopper turned down are off the table, including close variants.',
+	'How to weigh the profile, strongest first:',
+	'- Open items on their lists are the strongest evidence of current taste: what they are into, the brands and price levels they pick, gaps a thoughtful gift could fill.',
+	'- A claimed item tells you about their taste too, but someone else is already giving it, so never suggest it or a near copy.',
+	'- What they already have is evidence of taste as well: never suggest it or a near copy, but a complement, an accessory, or the next step in that interest can be a good idea. Something received long ago counts less than something recent.',
+	'- The shopper’s own ideas and past gifts show what the shopper thinks fits this person; favour more of that kind without repeating them.',
+	'- What they no longer list is the weakest evidence. They may have bought it themselves or lost interest; do not suggest the same thing, and do not read much else into it.',
+	'- Ideas the shopper turned down are off the table, including close variants.',
 	'',
 	'Rules:',
 	'- title: a concrete thing someone could look for and buy, 2 to 8 words. No store names, no URLs, no prices.',
@@ -67,7 +82,13 @@ export const GIFT_SUGGESTIONS_SYSTEM = [
 ].join('\n')
 
 export function buildGiftSuggestionsUserPrompt(input: GiftSuggestionsPromptInput): string {
-	const items = input.items.slice(0, MAX_PROMPT_ITEMS)
+	// Open items ahead of claimed ones, then the caps: items first, history
+	// only into whatever room is left.
+	const items = [...input.items].sort((a, b) => Number(a.claimed) - Number(b.claimed)).slice(0, MAX_PROMPT_ITEMS)
+	let room = MAX_PROMPT_LINES - items.length
+	const alreadyHas = input.alreadyHas.slice(0, Math.max(0, Math.min(MAX_ALREADY_HAS_LINES, room)))
+	room -= alreadyHas.length
+	const noLongerListed = input.noLongerListed.slice(0, Math.max(0, Math.min(MAX_NO_LONGER_LISTED_LINES, room)))
 	const lines = [
 		`Gift for: ${input.recipientFirstName}${input.recipientKind === 'dependent' ? ' (a pet, baby, or other dependent; the list was made on their behalf)' : ''}`,
 		`Occasion: ${input.occasion ?? 'none given'}`,
@@ -88,7 +109,14 @@ export function buildGiftSuggestionsUserPrompt(input: GiftSuggestionsPromptInput
 		'',
 		`The shopper’s own ideas so far: ${input.myIdeas.length ? input.myIdeas.join('; ') : 'none'}`,
 		`Already given or planned by the shopper: ${input.myPastGifts.length ? input.myPastGifts.join('; ') : 'nothing'}`,
-		`They already have: ${input.alreadyHas.length ? input.alreadyHas.join('; ') : 'nothing known'}`,
+		`They already have: ${alreadyHas.length ? alreadyHas.map(a => `${a.title}${a.when ? ` (received ${a.when})` : ''}`).join('; ') : 'nothing known'}`,
+		`No longer on their list: ${
+			noLongerListed.length
+				? noLongerListed
+						.map(d => `${d.title} (${d.reason === 'unavailable' ? 'unavailable' : `removed${d.when ? ` ${d.when}` : ''}`})`)
+						.join('; ')
+				: 'nothing'
+		}`,
 		`The shopper is not interested in: ${input.declined.length ? input.declined.join('; ') : 'nothing in particular'}`,
 	]
 	return lines.join('\n')

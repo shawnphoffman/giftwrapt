@@ -260,7 +260,7 @@ export function registerShoppingTools(server: McpServer, ctx: ToolContext): void
 		name: 'get_gift_context',
 		title: 'Plan a Gift for Someone',
 		description:
-			'Everything needed to decide what to give one person, in one call: every list of theirs the user can see (items with what is claimed and what remains, group rules, off-list gifts), the user’s own private gift ideas for them, what the user already gave or is giving them with what it cost, things they already have, their birthday and the holidays coming up, and what their lists are mostly about. Start here when the user asks what to get someone. Only `lists[].items` are things the person asked for; `myGiftIdeas` are the user’s private notes that the person never sees, so present them separately and never as on the person’s list. Give person_id from list_people.',
+			'Everything needed to decide what to give one person, in one call: every list of theirs the user can see (items with what is claimed and what remains, group rules, off-list gifts), the user’s own private gift ideas for them, what the user already gave or is giving them with what it cost, things they already have and things they no longer list, their birthday and the holidays coming up, and what their lists are mostly about. Start here when the user asks what to get someone. Only `lists[].items` are things the person asked for; `myGiftIdeas` are the user’s private notes that the person never sees, so present them separately and never as on the person’s list. Give person_id from list_people.',
 		inputSchema: {
 			person_id: z.string().describe('A user or dependent id from list_people'),
 			limit: z
@@ -312,8 +312,13 @@ export function registerShoppingTools(server: McpServer, ctx: ToolContext): void
 				.array(z.object({ category: z.string(), count: z.number() }))
 				.describe('What their visible items are mostly about. Empty when the deployment has not analysed them.'),
 			alreadyHas: z
-				.array(z.object({ title: z.string(), source: z.enum(['marked']) }))
-				.describe('Things this person already has, as marked by gifters. Never suggest these or near copies.'),
+				.array(z.object({ title: z.string(), source: z.enum(['received', 'marked']), when: z.string().nullable().describe('YYYY-MM') }))
+				.describe(
+					'Things this person already has: gifts revealed in the last two years on lists the user can see, and things gifters marked as owned. Never suggest these or near copies.'
+				),
+			noLongerListed: z
+				.array(z.object({ title: z.string(), reason: z.enum(['unavailable', 'removed']), when: z.string().nullable().describe('YYYY-MM') }))
+				.describe('Things they wanted but no longer list. The weakest hint; do not suggest the same thing.'),
 		},
 		annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
 		handler: async (args, toolCtx) => {
@@ -358,7 +363,12 @@ export function registerShoppingTools(server: McpServer, ctx: ToolContext): void
 								.join(', ')}.`
 						: '',
 					ideasLine(myGiftIdeas, name),
-					c.alreadyHas.length ? `${name} already has (marked by gifters): ${c.alreadyHas.map(a => a.title).join('; ')}.` : '',
+					c.alreadyHas.length
+						? `${name} already has: ${c.alreadyHas.map(a => `${a.title}${a.when ? ` (received ${a.when})` : ' (marked by a gifter)'}`).join('; ')}.`
+						: '',
+					c.noLongerListed.length
+						? `No longer on ${name}’s list: ${c.noLongerListed.map(d => `${d.title} (${d.reason}${d.when ? ` ${d.when}` : ''})`).join('; ')}.`
+						: '',
 					c.myPastGifts.length
 						? `You have given or planned ${plural(c.spend.giftCount, 'gift')} for ${name} (${c.spend.allTime.toFixed(2)} in all, ${c.spend.last12Months.toFixed(2)} in the last 12 months): ${c.myPastGifts
 								.slice(0, 15)
@@ -384,6 +394,7 @@ export function registerShoppingTools(server: McpServer, ctx: ToolContext): void
 				upcomingHolidays: c.upcomingHolidays,
 				interests: c.interests,
 				alreadyHas: c.alreadyHas,
+				noLongerListed: c.noLongerListed,
 			})
 		},
 	})

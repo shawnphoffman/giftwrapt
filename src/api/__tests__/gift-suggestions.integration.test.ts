@@ -470,6 +470,122 @@ describe('gift suggestions', () => {
 		void sam
 	})
 
+	it('builds a profile: open, claimed, received, removed, unavailable, archived addon, and marked, with no gifter detail', async () => {
+		const { me, sam, zeb, list } = await seed()
+		const captured: Captured = { prompt: '' }
+		currentModel = mockModel(SUGGESTIONS, captured)
+		const asMe = { id: me.id, isChild: false }
+		const month = (d: Date) => d.toISOString().slice(0, 7)
+		const lastYear = new Date('2025-12-20T12:00:00Z')
+		const threeYearsAgo = new Date('2023-06-01T12:00:00Z')
+
+		// Received: revealed with a claim by someone else. Removed: revealed with no claim.
+		const robe = await makeItem(db, {
+			listId: list.id,
+			title: 'Bath Robe',
+			isArchived: true,
+			archivedAt: lastYear,
+			notes: 'PRIVATE-ROBE-NOTE',
+		})
+		await makeGiftedItem(db, { itemId: robe.id, gifterId: zeb.id, totalCost: '77.77', notes: 'SECRET-ROBE-CLAIM' })
+		await makeItem(db, { listId: list.id, title: 'Desk Lamp', isArchived: true, archivedAt: new Date('2025-06-01T12:00:00Z') })
+		// Older than the window: out.
+		const old = await makeItem(db, { listId: list.id, title: 'Ancient Clock', isArchived: true, archivedAt: threeYearsAgo })
+		await makeGiftedItem(db, { itemId: old.id, gifterId: zeb.id })
+		// Unavailable: still on the list, but not a want. Pending deletion: nowhere.
+		await makeItem(db, { listId: list.id, title: 'Sold Out Puzzle', availability: 'unavailable' })
+		const gone = await makeItem(db, {
+			listId: list.id,
+			title: 'Deleted Drone',
+			isArchived: true,
+			archivedAt: lastYear,
+			pendingDeletionAt: now,
+		})
+		await makeGiftedItem(db, { itemId: gone.id, gifterId: zeb.id })
+		// An archived off-list gift from another gifter, and a mark.
+		await makeListAddon(db, {
+			listId: list.id,
+			userId: zeb.id,
+			description: 'Cookbook Stand',
+			isArchived: true,
+			totalCost: '55.55',
+			notes: 'SECRET-ADDON-NOTE',
+		})
+		await setGiftSuggestionFeedbackImpl({
+			actor: { id: zeb.id, isChild: false },
+			input: { listId: list.id, title: 'Air Fryer', verdict: 'has-it' },
+			now,
+		})
+
+		const result = await getGiftSuggestionsImpl({ actor: asMe, input: { listId: list.id }, now })
+		expect(result.kind).toBe('ok')
+		const p = captured.prompt
+		expect(p).toContain('[open] Merino Scarf')
+		expect(p).toContain('[claimed] Leather Gloves')
+		expect(p).toContain(`They already have: Cookbook Stand (received ${month(now)}); Bath Robe (received ${month(lastYear)}); Air Fryer`)
+		expect(p).toContain('No longer on their list: Sold Out Puzzle (unavailable); Desk Lamp (removed 2025-06)')
+		for (const absent of ['Ancient Clock', 'Deleted Drone', '[open] Sold Out Puzzle', 'Zebulon', '77.77', '55.55', 'SECRET', 'PRIVATE']) {
+			expect(p, absent).not.toContain(absent)
+		}
+		// Received dates are months only.
+		expect(p).not.toMatch(/received \d{4}-\d{2}-\d{2}/u)
+
+		// The context carries the same roles for MCP, with sources and no gifter.
+		const context = await getGiftContextImpl({ userId: me.id, personId: sam.id, now })
+		expect(context.kind).toBe('ok')
+		if (context.kind !== 'ok') return
+		expect(context.context.alreadyHas).toEqual([
+			{ title: 'Cookbook Stand', source: 'received', when: month(now) },
+			{ title: 'Bath Robe', source: 'received', when: month(lastYear) },
+			{ title: 'Air Fryer', source: 'marked', when: null },
+		])
+		expect(context.context.noLongerListed).toEqual([
+			{ title: 'Sold Out Puzzle', reason: 'unavailable', when: null },
+			{ title: 'Desk Lamp', reason: 'removed', when: '2025-06' },
+		])
+
+		// A model answer repeating a received or removed title is dropped.
+		currentModel = mockModel(
+			[
+				...SUGGESTIONS,
+				{ title: 'Bath robe', details: 'd', reason: 'r', priceBand: 'unknown' },
+				{ title: 'desk lamp', details: 'd', reason: 'r', priceBand: 'unknown' },
+			],
+			captured
+		)
+		const again = await getGiftSuggestionsImpl({ actor: asMe, input: { listId: list.id }, now })
+		if (again.kind === 'ok') expect(again.suggestions.map(s => s.title)).toEqual(['Wool Hiking Socks', 'Trail Guide Book'])
+	})
+
+	it('history follows the asker’s visibility: the restricted filter, own addons only, and no hidden lists', async () => {
+		const { me, sam, zeb, list } = await seed()
+		const captured: Captured = { prompt: '' }
+		currentModel = mockModel(SUGGESTIONS, captured)
+		const lastYear = new Date('2025-12-20T12:00:00Z')
+		const robe = await makeItem(db, { listId: list.id, title: 'Bath Robe', isArchived: true, archivedAt: lastYear })
+		await makeGiftedItem(db, { itemId: robe.id, gifterId: zeb.id })
+		const mug = await makeItem(db, { listId: list.id, title: 'Camping Mug', isArchived: true, archivedAt: lastYear })
+		await makeGiftedItem(db, { itemId: mug.id, gifterId: me.id })
+		await makeListAddon(db, { listId: list.id, userId: zeb.id, description: 'Cookbook Stand', isArchived: true })
+		await makeListAddon(db, { listId: list.id, userId: me.id, description: 'Tea Towels', isArchived: true })
+
+		// Restricted: only the gift I gave and my own addon.
+		await makeUserRelationship(db, { ownerUserId: sam.id, viewerUserId: me.id, accessLevel: 'restricted' })
+		await getGiftSuggestionsImpl({ actor: { id: me.id, isChild: false }, input: { listId: list.id }, now })
+		expect(captured.prompt).toContain('They already have: Tea Towels (received')
+		expect(captured.prompt).toContain('Camping Mug (received 2025-12)')
+		expect(captured.prompt).not.toContain('Bath Robe')
+		expect(captured.prompt).not.toContain('Cookbook Stand')
+
+		// A private list nobody shared: its history is nowhere, even for a full viewer.
+		const secret = await makeList(db, { ownerId: sam.id, name: 'Sam Secret', isPrivate: true })
+		const watch = await makeItem(db, { listId: secret.id, title: 'Gold Watch', isArchived: true, archivedAt: lastYear })
+		await makeGiftedItem(db, { itemId: watch.id, gifterId: me.id })
+		await getGiftSuggestionsImpl({ actor: { id: zeb.id, isChild: false }, input: { listId: list.id }, now })
+		expect(captured.prompt).toContain('Bath Robe (received 2025-12)')
+		expect(captured.prompt).not.toContain('Gold Watch')
+	})
+
 	it('“They have it” reaches every gifter’s prompt, a thumbs down only the marker’s, and neither says who', async () => {
 		const { me, sam, zeb, list } = await seed()
 		const captured: Captured = { prompt: '' }
@@ -513,7 +629,7 @@ describe('gift suggestions', () => {
 		// The gift context (and so the MCP tool) carries the owned titles, never the marker.
 		const context = await getGiftContextImpl({ userId: me.id, personId: sam.id, now })
 		expect(context.kind).toBe('ok')
-		if (context.kind === 'ok') expect(context.context.alreadyHas).toEqual([{ title: 'Air Fryer', source: 'marked' }])
+		if (context.kind === 'ok') expect(context.context.alreadyHas).toEqual([{ title: 'Air Fryer', source: 'marked', when: null }])
 	})
 
 	it('marks are by title, survive regeneration, can be undone, and follow the asking gate', async () => {

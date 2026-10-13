@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildGiftSuggestionsUserPrompt, MAX_PROMPT_ITEMS, sanitizeSuggestions } from '../prompt'
+import {
+	buildGiftSuggestionsUserPrompt,
+	MAX_ALREADY_HAS_LINES,
+	MAX_NO_LONGER_LISTED_LINES,
+	MAX_PROMPT_ITEMS,
+	MAX_PROMPT_LINES,
+	sanitizeSuggestions,
+} from '../prompt'
 
 describe('buildGiftSuggestionsUserPrompt', () => {
 	it('marks each item open or claimed and says nothing else about claims', () => {
@@ -13,7 +20,14 @@ describe('buildGiftSuggestionsUserPrompt', () => {
 			],
 			myIdeas: ['Bird Feeder'],
 			myPastGifts: ['Tea Sampler'],
-			alreadyHas: ['Air Fryer'],
+			alreadyHas: [
+				{ title: 'Air Fryer', when: '2025-12' },
+				{ title: 'Blender', when: null },
+			],
+			noLongerListed: [
+				{ title: 'Old Lamp', reason: 'unavailable', when: null },
+				{ title: 'Kettle', reason: 'removed', when: '2025-06' },
+			],
 			declined: ['Novelty Socks'],
 			occasion: 'birthday',
 			budget: 50,
@@ -24,8 +38,11 @@ describe('buildGiftSuggestionsUserPrompt', () => {
 		expect(prompt).toContain('Budget: up to 50')
 		expect(prompt).toContain('The shopper’s own ideas so far: Bird Feeder')
 		expect(prompt).toContain('Already given or planned by the shopper: Tea Sampler')
-		expect(prompt).toContain('They already have: Air Fryer')
+		expect(prompt).toContain('They already have: Air Fryer (received 2025-12); Blender')
+		expect(prompt).toContain('No longer on their list: Old Lamp (unavailable); Kettle (removed 2025-06)')
 		expect(prompt).toContain('The shopper is not interested in: Novelty Socks')
+		// Open items are listed ahead of claimed ones.
+		expect(prompt.indexOf('[open] Trail Map')).toBeLessThan(prompt.indexOf('[claimed] Merino Scarf'))
 	})
 
 	it('caps how many items it sends', () => {
@@ -43,6 +60,7 @@ describe('buildGiftSuggestionsUserPrompt', () => {
 			myIdeas: [],
 			myPastGifts: [],
 			alreadyHas: [],
+			noLongerListed: [],
 			declined: [],
 			occasion: null,
 			budget: null,
@@ -50,7 +68,30 @@ describe('buildGiftSuggestionsUserPrompt', () => {
 		expect(prompt.match(/^- \[open\]/gmu)).toHaveLength(MAX_PROMPT_ITEMS)
 		expect(prompt).toContain('Occasion: none given')
 		expect(prompt).toContain('They already have: nothing known')
+		expect(prompt).toContain('No longer on their list: nothing')
 		expect(prompt).toContain('The shopper is not interested in: nothing in particular')
+	})
+
+	it('fills the profile strongest role first and drops history when room runs out', () => {
+		const many = (n: number, prefix: string) => Array.from({ length: n }, (_, i) => `${prefix} ${i}`)
+		const prompt = buildGiftSuggestionsUserPrompt({
+			recipientFirstName: 'Sam',
+			recipientKind: 'user',
+			items: many(MAX_PROMPT_ITEMS + 5, 'Want').map(title => ({ title, price: null, priority: 'normal', category: null, claimed: false })),
+			myIdeas: [],
+			myPastGifts: [],
+			alreadyHas: many(MAX_ALREADY_HAS_LINES + 5, 'Has').map(title => ({ title, when: null })),
+			noLongerListed: many(MAX_NO_LONGER_LISTED_LINES + 5, 'Gone').map(title => ({ title, reason: 'removed' as const, when: null })),
+			declined: [],
+			occasion: null,
+			budget: null,
+		})
+		const hasLine = prompt.split('\n').find(l => l.startsWith('They already have:'))!
+		const goneLine = prompt.split('\n').find(l => l.startsWith('No longer on their list:'))!
+		expect(prompt.match(/^- \[open\]/gmu)).toHaveLength(MAX_PROMPT_ITEMS)
+		// 60 lines in all: 40 items, then 20 of the owned titles, then nothing left for history.
+		expect(hasLine.split('; ')).toHaveLength(MAX_PROMPT_LINES - MAX_PROMPT_ITEMS)
+		expect(goneLine).toBe('No longer on their list: nothing')
 	})
 })
 

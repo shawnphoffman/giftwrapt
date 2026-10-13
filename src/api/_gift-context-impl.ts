@@ -16,7 +16,7 @@
 // always null here. Gift ideas are the viewer's private notes; keep them
 // separate from the person's own items wherever this is rendered.
 
-import { eq, inArray } from 'drizzle-orm'
+import { and, eq, gt, inArray, isNull, or } from 'drizzle-orm'
 
 import { getGiftIdeasForListImpl } from '@/api/_gift-ideas-impl'
 import { getItemsForListViewImpl } from '@/api/_items-extra-impl'
@@ -24,9 +24,12 @@ import { getListForViewingImpl, getPublicDependentsImpl, getPublicListsImpl } fr
 import { getPurchaseSummaryImpl } from '@/api/_purchases-impl'
 import { getUpcomingHolidaysImpl } from '@/api/_widgets-impl'
 import { db, type SchemaDatabase } from '@/db'
-import { type BirthMonth, itemAiAnalysis, users } from '@/db/schema'
+import { type BirthMonth, itemAiAnalysis, itemGroups, items, listAddons, lists, users } from '@/db/schema'
 import { loadAlreadyHasTitles } from '@/lib/gift-suggestions/feedback'
 import { computeRemainingClaimableQuantity } from '@/lib/gifts'
+import { visibleItemsWhere } from '@/lib/item-visibility'
+import { getViewerAccessLevelForList } from '@/lib/permissions'
+import { filterItemsForRestricted } from '@/lib/restricted-filter'
 
 export type WishlistClaim = {
 	giftId: number
@@ -228,10 +231,108 @@ export type GiftContext = {
 	// What their visible items are mostly about, from stored enrichment
 	// facets. Empty when Intelligence enrichment has not run.
 	interests: Array<{ category: string; count: number }>
-	// Things this person already has, as far as the app knows. Today: titles
-	// any gifter marked "They have it" on an AI idea (plan 29b). Never who
-	// marked them. Plan 29c adds received gifts here.
-	alreadyHas: Array<{ title: string; source: 'marked' }>
+	// Things this person already has, as far as the app knows: gifts revealed
+	// on lists the viewer can see within the last two years (items with a
+	// claim, and off-list gifts), newest first, then titles any gifter marked
+	// "They have it" on an AI idea. `when` is the month it was revealed.
+	// Never who gave or marked anything (plans 29b, 29c).
+	alreadyHas: Array<GiftContextOwned>
+	// Things that were wanted but no longer are: items they marked
+	// unavailable, and revealed items nobody gave (they hid it themselves).
+	// The weakest evidence of taste; never a reason to suggest the same.
+	noLongerListed: Array<GiftContextDropped>
+}
+
+export type GiftContextOwned = { title: string; source: 'received' | 'marked'; when: string | null }
+export type GiftContextDropped = { title: string; reason: 'unavailable' | 'removed'; when: string | null }
+
+const HISTORY_YEARS = 2
+const MAX_ALREADY_HAS = 30
+const MAX_NO_LONGER_LISTED = 15
+
+function monthOf(d: Date | null): string | null {
+	return d ? d.toISOString().slice(0, 7) : null
+}
+
+/**
+ * What the viewer may know about this person's past on the given lists:
+ * revealed gifts (received) and revealed items nobody gave (removed), both
+ * within the history window, plus archived off-list gifts. Revealed items
+ * pass through the restricted-viewer filter with their claim rows exactly
+ * as visible items do, so a restricted viewer never learns of an
+ * outsider's gift; a restricted viewer sees only their own addons, as on
+ * the list. The claim rows are used only for that split and filter: nothing
+ * about them leaves this function. Pending-deletion rows never appear
+ * (the 'revealed' predicate excludes them).
+ */
+async function loadRevealedHistory(args: {
+	userId: string
+	listIds: Array<number>
+	now: Date
+	dbx: SchemaDatabase
+}): Promise<{ received: Array<{ title: string; at: Date }>; removed: Array<{ title: string; at: Date }> }> {
+	const { userId, listIds, now, dbx } = args
+	if (listIds.length === 0) return { received: [], removed: [] }
+	const cutoff = new Date(now.getTime() - HISTORY_YEARS * 365 * 86_400_000)
+	const [listRows, revealed, groups, addons, viewer] = await Promise.all([
+		dbx.query.lists.findMany({ where: inArray(lists.id, listIds), columns: { id: true, ownerId: true, subjectDependentId: true } }),
+		dbx.query.items.findMany({
+			where: and(
+				inArray(items.listId, listIds),
+				visibleItemsWhere('revealed'),
+				// Rows revealed before archivedAt existed date by updatedAt, as on
+				// the received-gifts page.
+				or(gt(items.archivedAt, cutoff), and(isNull(items.archivedAt), gt(items.updatedAt, cutoff)))
+			),
+			columns: {
+				id: true,
+				listId: true,
+				title: true,
+				quantity: true,
+				groupId: true,
+				groupSortOrder: true,
+				archivedAt: true,
+				updatedAt: true,
+			},
+			with: { gifts: { columns: { gifterId: true, additionalGifterIds: true, quantity: true } } },
+		}),
+		dbx.query.itemGroups.findMany({ where: inArray(itemGroups.listId, listIds), columns: { id: true, listId: true, type: true } }),
+		dbx
+			.select({
+				listId: listAddons.listId,
+				userId: listAddons.userId,
+				description: listAddons.description,
+				createdAt: listAddons.createdAt,
+			})
+			.from(listAddons)
+			.where(and(inArray(listAddons.listId, listIds), eq(listAddons.isArchived, true), gt(listAddons.createdAt, cutoff))),
+		dbx.query.users.findFirst({ where: eq(users.id, userId), columns: { partnerId: true } }),
+	])
+
+	const received: Array<{ title: string; at: Date }> = []
+	const removed: Array<{ title: string; at: Date }> = []
+	for (const list of listRows) {
+		const restricted = (await getViewerAccessLevelForList(userId, list, dbx)) === 'restricted'
+		const own = revealed.filter(i => i.listId === list.id)
+		const visible = restricted
+			? filterItemsForRestricted(
+					own,
+					groups.filter(g => g.listId === list.id),
+					userId,
+					viewer?.partnerId ?? null
+				)
+			: own
+		for (const i of visible) {
+			;(i.gifts.length > 0 ? received : removed).push({ title: i.title, at: i.archivedAt ?? i.updatedAt })
+		}
+		for (const a of addons) {
+			if (a.listId !== list.id) continue
+			if (restricted && a.userId !== userId) continue
+			received.push({ title: a.description, at: a.createdAt })
+		}
+	}
+	const newestFirst = (a: { at: Date }, b: { at: Date }) => b.at.getTime() - a.at.getTime()
+	return { received: received.sort(newestFirst), removed: removed.sort(newestFirst) }
 }
 
 export type GiftContextResult = { kind: 'ok'; context: GiftContext } | { kind: 'error'; reason: 'not-found' | 'is-owner' }
@@ -273,12 +374,25 @@ export async function getGiftContextImpl(args: {
 		for (const source of myGiftIdeas) ideasByList.set(source.listId, source)
 	}
 
-	const [purchases, holidays, markedTitles] = await Promise.all([
+	const [purchases, holidays, markedTitles, history] = await Promise.all([
 		getPurchaseSummaryImpl(userId, dbx),
 		getUpcomingHolidaysImpl({ userId, limit: 10, horizonDays: HOLIDAY_HORIZON_DAYS, now, dbx }),
 		loadAlreadyHasTitles(dbx, { kind: person.kind, id: person.id }),
+		loadRevealedHistory({ userId, listIds: lists.map(l => l.list.id), now, dbx }),
 	])
-	const alreadyHas = markedTitles.map(title => ({ title, source: 'marked' as const }))
+	const alreadyHas: Array<GiftContextOwned> = [
+		...history.received.slice(0, MAX_ALREADY_HAS).map(r => ({ title: r.title, source: 'received' as const, when: monthOf(r.at) })),
+		...markedTitles.map(title => ({ title, source: 'marked' as const, when: null })),
+	]
+	// Unavailable items are still on the list, so they come first; then what
+	// they hid without anyone giving it, newest first.
+	const noLongerListed: Array<GiftContextDropped> = [
+		...lists
+			.flatMap(l => l.items)
+			.filter(i => i.availability === 'unavailable')
+			.map(i => ({ title: i.title, reason: 'unavailable' as const, when: null })),
+		...history.removed.map(r => ({ title: r.title, reason: 'removed' as const, when: monthOf(r.at) })),
+	].slice(0, MAX_NO_LONGER_LISTED)
 	const forPerson = purchases.items.filter(p => (p.recipientKind === 'dependent' ? p.subjectDependentId : p.ownerId) === personId)
 	const myPastGifts: Array<GiftContextPastGift> = forPerson
 		.map(p => ({
@@ -321,6 +435,16 @@ export async function getGiftContextImpl(args: {
 
 	return {
 		kind: 'ok',
-		context: { person, lists, myGiftIdeas: [...ideasByList.values()], myPastGifts, spend, upcomingHolidays, interests, alreadyHas },
+		context: {
+			person,
+			lists,
+			myGiftIdeas: [...ideasByList.values()],
+			myPastGifts,
+			spend,
+			upcomingHolidays,
+			interests,
+			alreadyHas,
+			noLongerListed,
+		},
 	}
 }
