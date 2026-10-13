@@ -154,16 +154,40 @@ export function suggestionTitleKey(text: string): string {
  */
 export function sanitizeSuggestions(raw: Array<GiftSuggestion>, known: Array<string>): Array<GiftSuggestion> {
 	const taken = known.map(suggestionTitleKey).filter(k => k.length >= 3)
-	const seen = new Set<string>()
+	const seen: Array<string> = []
 	const out: Array<GiftSuggestion> = []
 	for (const s of raw) {
 		const title = clean(s.title, 80)
 		const key = suggestionTitleKey(title)
-		if (key.length < 3 || seen.has(key)) continue
-		if (taken.some(k => k === key || k.includes(key) || key.includes(k))) continue
-		seen.add(key)
+		if (key.length < 3 || seen.some(k => k === key || titlesOverlap(k, key))) continue
+		if (taken.some(k => k === key || k.includes(key) || key.includes(k) || titlesOverlap(k, key))) continue
+		seen.push(key)
 		out.push({ title, details: clean(s.details, 500), reason: clean(s.reason, 220), priceBand: s.priceBand })
 		if (out.length >= MAX_SUGGESTIONS) break
 	}
 	return out
+}
+
+// Words that say nothing about what a thing is, so two titles are not
+// "the same idea" for sharing them.
+const FILLER_WORDS = new Set(['a', 'an', 'and', 'the', 'for', 'of', 'with', 'in', 'on', 'to', 'or', 'set', 'kit', 'pack'])
+
+function significantWords(key: string): Set<string> {
+	return new Set(key.split(' ').filter(w => w.length >= 3 && !FILLER_WORDS.has(w)))
+}
+
+/**
+ * Whether two title keys name the same idea in different words: "espresso
+ * puck screen set" against "espresso puck screen and dosing funnel". True
+ * when three quarters of the shorter title's significant words appear in
+ * the other, and both have at least two such words (one shared word, like
+ * "camera", is not a copy). Containment is handled by the caller.
+ */
+export function titlesOverlap(a: string, b: string): boolean {
+	const wa = significantWords(a)
+	const wb = significantWords(b)
+	if (wa.size < 2 || wb.size < 2) return false
+	let shared = 0
+	for (const w of wa) if (wb.has(w)) shared++
+	return shared / Math.min(wa.size, wb.size) >= 0.75
 }

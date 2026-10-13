@@ -7,6 +7,7 @@ import {
 	MAX_PROMPT_ITEMS,
 	MAX_PROMPT_LINES,
 	sanitizeSuggestions,
+	titlesOverlap,
 } from '../prompt'
 
 describe('buildGiftSuggestionsUserPrompt', () => {
@@ -95,6 +96,17 @@ describe('buildGiftSuggestionsUserPrompt', () => {
 	})
 })
 
+describe('titlesOverlap', () => {
+	it('needs most of the shorter title’s real words, and at least two of them', () => {
+		expect(titlesOverlap('espresso puck screen set', 'espresso puck screen and dosing funnel')).toBe(true)
+		expect(titlesOverlap('band saw blade variety pack', 'band saw blade assortment')).toBe(true)
+		expect(titlesOverlap('trail map', 'trail guide book')).toBe(false)
+		expect(titlesOverlap('camera sling bag', 'camera lens cleaning kit')).toBe(false)
+		// A single significant word never counts as a copy.
+		expect(titlesOverlap('gift card', 'card game set')).toBe(false)
+	})
+})
+
 describe('sanitizeSuggestions', () => {
 	const s = (title: string, reason = 'Because of their list.', details = 'Look for a sturdy one.') => ({
 		title,
@@ -132,9 +144,46 @@ describe('sanitizeSuggestions', () => {
 		expect(out.map(o => o.title)).toEqual(['Hiking Socks'])
 	})
 
+	it('drops a near copy of something known, in different words', () => {
+		// Seen on hoffstuff.com: the shopper marked the first as owned, the model offered the second.
+		const out = sanitizeSuggestions(
+			[
+				s('Espresso Puck Screen and Dosing Funnel'),
+				s('Band Saw Blade Assortment'),
+				s('Camera Sling Bag'),
+				s('Merino Wool Travel Neck Gaiter'),
+			],
+			['Espresso Puck Screen Set', 'Band Saw Blade Variety Pack', 'Camera Lens Cleaning Kit', 'Merino Scarf']
+		)
+		// One shared word (camera, merino) is not a copy; most of the words is.
+		expect(out.map(o => o.title)).toEqual(['Camera Sling Bag', 'Merino Wool Travel Neck Gaiter'])
+	})
+
+	it('collapses near copies inside one answer too', () => {
+		const out = sanitizeSuggestions([s('Japanese Pull Saw'), s('Japanese Pull Saw for Woodworking'), s('Pull Saw Blade')], [])
+		expect(out.map(o => o.title)).toEqual(['Japanese Pull Saw', 'Pull Saw Blade'])
+	})
+
 	it('removes duplicates and caps the list at eight', () => {
 		const out = sanitizeSuggestions(
-			[s('Hiking Socks'), s('hiking socks!'), ...Array.from({ length: 12 }, (_, n) => s(`Idea Number ${n}`))],
+			[
+				s('Hiking Socks'),
+				s('hiking socks!'),
+				...[
+					'Trail Map',
+					'Pour Over Kettle',
+					'Bird Feeder',
+					'Camping Hammock',
+					'Chef Knife',
+					'Fountain Pen',
+					'Yoga Mat',
+					'Puzzle Book',
+					'Garden Trowel',
+					'Wool Beanie',
+					'Desk Lamp',
+					'Tea Sampler',
+				].map(t => s(t)),
+			],
 			[]
 		)
 		expect(out).toHaveLength(8)
