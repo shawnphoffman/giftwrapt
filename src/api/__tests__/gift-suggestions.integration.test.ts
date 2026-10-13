@@ -522,7 +522,9 @@ describe('gift suggestions', () => {
 		const p = captured.prompt
 		expect(p).toContain('[open] Merino Scarf')
 		expect(p).toContain('[claimed] Leather Gloves')
-		expect(p).toContain(`They already have: Cookbook Stand (received ${month(now)}); Bath Robe (received ${month(lastYear)}); Air Fryer`)
+		expect(p).toContain(
+			`They already have: Cookbook Stand (received ${month(now)}); Bath Robe (received ${month(lastYear)}); Air Fryer (marked by a gifter)`
+		)
 		expect(p).toContain('No longer on their list: Sold Out Puzzle (unavailable); Desk Lamp (removed 2025-06)')
 		for (const absent of ['Ancient Clock', 'Deleted Drone', '[open] Sold Out Puzzle', 'Zebulon', '77.77', '55.55', 'SECRET', 'PRIVATE']) {
 			expect(p, absent).not.toContain(absent)
@@ -610,7 +612,7 @@ describe('gift suggestions', () => {
 		// Jordan's prompt: the owned title and their own veto, nothing about Zeb.
 		const mine = await getGiftSuggestionsImpl({ actor: asMe, input: { listId: list.id }, now })
 		expect(mine.kind).toBe('ok')
-		expect(captured.prompt).toContain('They already have: Air Fryer')
+		expect(captured.prompt).toContain('They already have: Air Fryer (marked by a gifter)')
 		expect(captured.prompt).toContain('The shopper is not interested in: Wool Hiking Socks')
 		expect(captured.prompt).not.toContain('Zebulon')
 		// The vetoed socks are dropped from the answer even though the model returned them.

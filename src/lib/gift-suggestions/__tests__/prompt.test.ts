@@ -22,8 +22,8 @@ describe('buildGiftSuggestionsUserPrompt', () => {
 			myIdeas: ['Bird Feeder'],
 			myPastGifts: ['Tea Sampler'],
 			alreadyHas: [
-				{ title: 'Air Fryer', when: '2025-12' },
-				{ title: 'Blender', when: null },
+				{ title: 'Air Fryer', source: 'received', when: '2025-12' },
+				{ title: 'Blender', source: 'marked', when: null },
 			],
 			noLongerListed: [
 				{ title: 'Old Lamp', reason: 'unavailable', when: null },
@@ -39,7 +39,7 @@ describe('buildGiftSuggestionsUserPrompt', () => {
 		expect(prompt).toContain('Budget: up to 50')
 		expect(prompt).toContain('The shopper’s own ideas so far: Bird Feeder')
 		expect(prompt).toContain('Already given or planned by the shopper: Tea Sampler')
-		expect(prompt).toContain('They already have: Air Fryer (received 2025-12); Blender')
+		expect(prompt).toContain('They already have: Air Fryer (received 2025-12); Blender (marked by a gifter)')
 		expect(prompt).toContain('No longer on their list: Old Lamp (unavailable); Kettle (removed 2025-06)')
 		expect(prompt).toContain('The shopper is not interested in: Novelty Socks')
 		// Open items are listed ahead of claimed ones.
@@ -81,7 +81,7 @@ describe('buildGiftSuggestionsUserPrompt', () => {
 			items: many(MAX_PROMPT_ITEMS + 5, 'Want').map(title => ({ title, price: null, priority: 'normal', category: null, claimed: false })),
 			myIdeas: [],
 			myPastGifts: [],
-			alreadyHas: many(MAX_ALREADY_HAS_LINES + 5, 'Has').map(title => ({ title, when: null })),
+			alreadyHas: many(MAX_ALREADY_HAS_LINES + 5, 'Has').map(title => ({ title, source: 'marked' as const, when: null })),
 			noLongerListed: many(MAX_NO_LONGER_LISTED_LINES + 5, 'Gone').map(title => ({ title, reason: 'removed' as const, when: null })),
 			declined: [],
 			occasion: null,

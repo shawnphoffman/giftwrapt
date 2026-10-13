@@ -167,7 +167,7 @@ export async function getGiftSuggestionsImpl(args: {
 	// context (received gifts, every gifter's marks, their own unavailable
 	// and hidden items); what to leave out for this shopper comes from their
 	// own marks.
-	const alreadyHas = c.alreadyHas.map(a => ({ title: a.title, when: a.when }))
+	const alreadyHas = c.alreadyHas.map(a => ({ title: a.title, source: a.source, when: a.when }))
 	const noLongerListed = c.noLongerListed
 	const declined = (await loadOwnSuggestionFeedback(dbx, { userId: actor.id, recipient: { kind: recipient.kind, id: recipient.id } }))
 		.filter(f => f.verdict === 'not-for-me')

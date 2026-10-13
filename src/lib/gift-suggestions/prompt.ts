@@ -38,7 +38,7 @@ export type GiftSuggestionsPromptInput = {
 	// Things the person already has: gifts revealed on lists the viewer can
 	// see (with the month) and titles any gifter marked "They have it".
 	// Never who gave or marked them (plans 29b, 29c).
-	alreadyHas: Array<{ title: string; when: string | null }>
+	alreadyHas: Array<{ title: string; source: 'received' | 'marked'; when: string | null }>
 	// Things that were wanted but no longer are: marked unavailable, or
 	// revealed with nobody giving it (plan 29c). The weakest signal.
 	noLongerListed: Array<{ title: string; reason: 'unavailable' | 'removed'; when: string | null }>
@@ -109,7 +109,13 @@ export function buildGiftSuggestionsUserPrompt(input: GiftSuggestionsPromptInput
 		'',
 		`The shopper’s own ideas so far: ${input.myIdeas.length ? input.myIdeas.join('; ') : 'none'}`,
 		`Already given or planned by the shopper: ${input.myPastGifts.length ? input.myPastGifts.join('; ') : 'nothing'}`,
-		`They already have: ${alreadyHas.length ? alreadyHas.map(a => `${a.title}${a.when ? ` (received ${a.when})` : ''}`).join('; ') : 'nothing known'}`,
+		`They already have: ${
+			alreadyHas.length
+				? alreadyHas
+						.map(a => `${a.title} (${a.source === 'marked' ? 'marked by a gifter' : `received${a.when ? ` ${a.when}` : ''}`})`)
+						.join('; ')
+				: 'nothing known'
+		}`,
 		`No longer on their list: ${
 			noLongerListed.length
 				? noLongerListed
