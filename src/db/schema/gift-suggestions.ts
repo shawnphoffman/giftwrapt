@@ -1,4 +1,4 @@
-import { doublePrecision, index, integer, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core'
+import { doublePrecision, index, integer, pgEnum, pgTable, serial, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
 
 import { dependents } from './dependents'
 import { lists } from './lists'
@@ -68,3 +68,51 @@ export const giftSuggestions = pgTable(
 
 export type GiftSuggestionSetRow = typeof giftSuggestionSets.$inferSelect
 export type GiftSuggestionRow = typeof giftSuggestions.$inferSelect
+
+// =====================================================================
+// GIFT SUGGESTION FEEDBACK ("They have it", thumbs down)
+// =====================================================================
+//
+// Plan 29b. What a gifter said about an idea, keyed by the idea's title key
+// rather than a suggestion row id so it survives regeneration and the
+// retention sweep, the way recommendation dismissals survive by
+// fingerprint. One row per (marker, recipient, title): marking again
+// replaces the verdict.
+//
+// `has-it` is a fact about the recipient and is read for every gifter of
+// that person (it keeps the idea out of everyone's future sets; nothing is
+// shown to other gifters). `not-for-me` is the marker's taste and is read
+// for the marker only. The recipient never sees either. A user decision, so
+// it is backed up.
+
+export const giftSuggestionVerdictValues = ['has-it', 'not-for-me'] as const
+export type GiftSuggestionVerdict = (typeof giftSuggestionVerdictValues)[number]
+export const giftSuggestionVerdictEnum = pgEnum('gift_suggestion_verdict', giftSuggestionVerdictValues)
+
+export const giftSuggestionFeedback = pgTable(
+	'gift_suggestion_feedback',
+	{
+		id: serial('id').primaryKey(),
+		// Who marked it.
+		userId: text('user_id')
+			.notNull()
+			.references(() => users.id, { onDelete: 'cascade' }),
+		recipientUserId: text('recipient_user_id').references(() => users.id, { onDelete: 'cascade' }),
+		recipientDependentId: text('recipient_dependent_id').references(() => dependents.id, { onDelete: 'cascade' }),
+		titleKey: text('title_key').notNull(),
+		// The title as the marker saw it, for display and for the prompt.
+		title: text('title').notNull(),
+		verdict: giftSuggestionVerdictEnum('verdict').notNull(),
+		createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+	},
+	table => [
+		// One verdict per marker, recipient, and title. Nulls are distinct, so
+		// the two recipient shapes each get their own unique index.
+		uniqueIndex('gift_suggestion_feedback_user_recipient_user_title_idx').on(table.userId, table.recipientUserId, table.titleKey),
+		uniqueIndex('gift_suggestion_feedback_user_recipient_dependent_title_idx').on(table.userId, table.recipientDependentId, table.titleKey),
+		index('gift_suggestion_feedback_recipient_user_verdict_idx').on(table.recipientUserId, table.verdict),
+		index('gift_suggestion_feedback_recipient_dependent_verdict_idx').on(table.recipientDependentId, table.verdict),
+	]
+)
+
+export type GiftSuggestionFeedbackRow = typeof giftSuggestionFeedback.$inferSelect

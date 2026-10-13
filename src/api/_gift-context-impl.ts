@@ -25,6 +25,7 @@ import { getPurchaseSummaryImpl } from '@/api/_purchases-impl'
 import { getUpcomingHolidaysImpl } from '@/api/_widgets-impl'
 import { db, type SchemaDatabase } from '@/db'
 import { type BirthMonth, itemAiAnalysis, users } from '@/db/schema'
+import { loadAlreadyHasTitles } from '@/lib/gift-suggestions/feedback'
 import { computeRemainingClaimableQuantity } from '@/lib/gifts'
 
 export type WishlistClaim = {
@@ -227,6 +228,10 @@ export type GiftContext = {
 	// What their visible items are mostly about, from stored enrichment
 	// facets. Empty when Intelligence enrichment has not run.
 	interests: Array<{ category: string; count: number }>
+	// Things this person already has, as far as the app knows. Today: titles
+	// any gifter marked "They have it" on an AI idea (plan 29b). Never who
+	// marked them. Plan 29c adds received gifts here.
+	alreadyHas: Array<{ title: string; source: 'marked' }>
 }
 
 export type GiftContextResult = { kind: 'ok'; context: GiftContext } | { kind: 'error'; reason: 'not-found' | 'is-owner' }
@@ -268,10 +273,12 @@ export async function getGiftContextImpl(args: {
 		for (const source of myGiftIdeas) ideasByList.set(source.listId, source)
 	}
 
-	const [purchases, holidays] = await Promise.all([
+	const [purchases, holidays, markedTitles] = await Promise.all([
 		getPurchaseSummaryImpl(userId, dbx),
 		getUpcomingHolidaysImpl({ userId, limit: 10, horizonDays: HOLIDAY_HORIZON_DAYS, now, dbx }),
+		loadAlreadyHasTitles(dbx, { kind: person.kind, id: person.id }),
 	])
+	const alreadyHas = markedTitles.map(title => ({ title, source: 'marked' as const }))
 	const forPerson = purchases.items.filter(p => (p.recipientKind === 'dependent' ? p.subjectDependentId : p.ownerId) === personId)
 	const myPastGifts: Array<GiftContextPastGift> = forPerson
 		.map(p => ({
@@ -314,6 +321,6 @@ export async function getGiftContextImpl(args: {
 
 	return {
 		kind: 'ok',
-		context: { person, lists, myGiftIdeas: [...ideasByList.values()], myPastGifts, spend, upcomingHolidays, interests },
+		context: { person, lists, myGiftIdeas: [...ideasByList.values()], myPastGifts, spend, upcomingHolidays, interests, alreadyHas },
 	}
 }

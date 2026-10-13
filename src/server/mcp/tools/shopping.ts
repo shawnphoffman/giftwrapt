@@ -260,7 +260,7 @@ export function registerShoppingTools(server: McpServer, ctx: ToolContext): void
 		name: 'get_gift_context',
 		title: 'Plan a Gift for Someone',
 		description:
-			'Everything needed to decide what to give one person, in one call: every list of theirs the user can see (items with what is claimed and what remains, group rules, off-list gifts), the user’s own private gift ideas for them, what the user already gave or is giving them with what it cost, their birthday and the holidays coming up, and what their lists are mostly about. Start here when the user asks what to get someone. Only `lists[].items` are things the person asked for; `myGiftIdeas` are the user’s private notes that the person never sees, so present them separately and never as on the person’s list. Give person_id from list_people.',
+			'Everything needed to decide what to give one person, in one call: every list of theirs the user can see (items with what is claimed and what remains, group rules, off-list gifts), the user’s own private gift ideas for them, what the user already gave or is giving them with what it cost, things they already have, their birthday and the holidays coming up, and what their lists are mostly about. Start here when the user asks what to get someone. Only `lists[].items` are things the person asked for; `myGiftIdeas` are the user’s private notes that the person never sees, so present them separately and never as on the person’s list. Give person_id from list_people.',
 		inputSchema: {
 			person_id: z.string().describe('A user or dependent id from list_people'),
 			limit: z
@@ -311,6 +311,9 @@ export function registerShoppingTools(server: McpServer, ctx: ToolContext): void
 			interests: z
 				.array(z.object({ category: z.string(), count: z.number() }))
 				.describe('What their visible items are mostly about. Empty when the deployment has not analysed them.'),
+			alreadyHas: z
+				.array(z.object({ title: z.string(), source: z.enum(['marked']) }))
+				.describe('Things this person already has, as marked by gifters. Never suggest these or near copies.'),
 		},
 		annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
 		handler: async (args, toolCtx) => {
@@ -355,6 +358,7 @@ export function registerShoppingTools(server: McpServer, ctx: ToolContext): void
 								.join(', ')}.`
 						: '',
 					ideasLine(myGiftIdeas, name),
+					c.alreadyHas.length ? `${name} already has (marked by gifters): ${c.alreadyHas.map(a => a.title).join('; ')}.` : '',
 					c.myPastGifts.length
 						? `You have given or planned ${plural(c.spend.giftCount, 'gift')} for ${name} (${c.spend.allTime.toFixed(2)} in all, ${c.spend.last12Months.toFixed(2)} in the last 12 months): ${c.myPastGifts
 								.slice(0, 15)
@@ -379,6 +383,7 @@ export function registerShoppingTools(server: McpServer, ctx: ToolContext): void
 				spend: c.spend,
 				upcomingHolidays: c.upcomingHolidays,
 				interests: c.interests,
+				alreadyHas: c.alreadyHas,
 			})
 		},
 	})

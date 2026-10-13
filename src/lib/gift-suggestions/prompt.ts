@@ -35,6 +35,11 @@ export type GiftSuggestionsPromptInput = {
 	myIdeas: Array<string>
 	// Titles of gifts the viewer already gave or is giving them.
 	myPastGifts: Array<string>
+	// Things the person already has: titles any gifter marked "They have it"
+	// (plan 29b). Never who marked them.
+	alreadyHas: Array<string>
+	// Ideas this viewer marked as not for them (plan 29b). Theirs alone.
+	declined: Array<string>
 	occasion: string | null
 	budget: number | null
 }
@@ -43,9 +48,11 @@ export const MAX_PROMPT_ITEMS = 60
 const MAX_SUGGESTIONS = 8
 
 export const GIFT_SUGGESTIONS_SYSTEM = [
-	'You help someone choose a gift for a person they know. You are given what that person put on their own wish lists, each marked open or claimed, plus the shopper’s own ideas and what the shopper already gave them.',
+	'You help someone choose a gift for a person they know. You are given what that person put on their own wish lists, each marked open or claimed, what they already have, the shopper’s own ideas and what the shopper already gave them, and ideas the shopper has turned down.',
 	'',
-	'Suggest 5 to 8 NEW gift ideas that are NOT already on the lists, not among the shopper’s ideas, and not something the shopper already gave. Use the lists as evidence of taste: what they are into, the brands and price levels they pick, gaps a thoughtful gift could fill. A claimed item tells you about their taste too, but someone else is already giving it, so never suggest it or a near copy of it.',
+	'Suggest 5 to 8 NEW gift ideas that are NOT already on the lists, not something they already have, not among the shopper’s ideas, not something the shopper already gave, and not something the shopper turned down. Use the lists as evidence of taste: what they are into, the brands and price levels they pick, gaps a thoughtful gift could fill. A claimed item tells you about their taste too, but someone else is already giving it, so never suggest it or a near copy of it.',
+	'',
+	'What they already have is also evidence of taste: never suggest it or a near copy, but a complement, an accessory, or the next step in that interest can be a good idea. The shopper’s own ideas and past gifts show what the shopper thinks fits this person; favour more of that kind without repeating them. Ideas the shopper turned down are off the table, including close variants.',
 	'',
 	'Rules:',
 	'- title: a concrete thing someone could look for and buy, 2 to 8 words. No store names, no URLs, no prices.',
@@ -81,6 +88,8 @@ export function buildGiftSuggestionsUserPrompt(input: GiftSuggestionsPromptInput
 		'',
 		`The shopper’s own ideas so far: ${input.myIdeas.length ? input.myIdeas.join('; ') : 'none'}`,
 		`Already given or planned by the shopper: ${input.myPastGifts.length ? input.myPastGifts.join('; ') : 'nothing'}`,
+		`They already have: ${input.alreadyHas.length ? input.alreadyHas.join('; ') : 'nothing known'}`,
+		`The shopper is not interested in: ${input.declined.length ? input.declined.join('; ') : 'nothing in particular'}`,
 	]
 	return lines.join('\n')
 }

@@ -24,6 +24,7 @@ import {
 	appSettings,
 	customHolidays,
 	dependents,
+	giftSuggestionFeedback,
 	giftSuggestions,
 	giftSuggestionSets,
 	itemAiAnalysis,
@@ -50,12 +51,15 @@ vi.mock('@/lib/ai-config', async () => ({
 
 vi.mock('@/lib/ai-client', () => ({ createAiModel: () => currentModel }))
 
+import { getGiftContextImpl } from '@/api/_gift-context-impl'
 import { getGiftIdeasForListImpl } from '@/api/_gift-ideas-impl'
 import {
+	clearGiftSuggestionFeedbackImpl,
 	getGiftSuggestionsImpl,
 	getLatestGiftSuggestionSetImpl,
 	getListInterestsImpl,
 	saveGiftSuggestionImpl,
+	setGiftSuggestionFeedbackImpl,
 } from '@/api/_gift-suggestions-impl'
 import { _resetAiBudgetCacheForTesting } from '@/lib/ai-call'
 import { sweepGiftSuggestionSets } from '@/lib/gift-suggestions/sets'
@@ -354,7 +358,7 @@ describe('gift suggestions', () => {
 		expect(latest).toEqual({
 			kind: 'ok',
 			recipientName: 'Sam',
-			set: { ...first.set, suggestions: first.suggestions, savedTitles: [], addedTitles: [] },
+			set: { ...first.set, suggestions: first.suggestions, savedTitles: [], addedTitles: [], feedback: [] },
 		})
 		expect(await db.select().from(aiUsage)).toHaveLength(1)
 
@@ -464,6 +468,139 @@ describe('gift suggestions', () => {
 		expect(left).toEqual([{ id: fresh.set.id }])
 		expect(await db.select().from(giftSuggestions).where(eq(giftSuggestions.setId, old.id))).toEqual([])
 		void sam
+	})
+
+	it('“They have it” reaches every gifter’s prompt, a thumbs down only the marker’s, and neither says who', async () => {
+		const { me, sam, zeb, list } = await seed()
+		const captured: Captured = { prompt: '' }
+		currentModel = mockModel(SUGGESTIONS, captured)
+		const asMe = { id: me.id, isChild: false }
+		const asZeb = { id: zeb.id, isChild: false }
+
+		// Zeb marks the air fryer as owned; Jordan turns down the socks.
+		expect(
+			await setGiftSuggestionFeedbackImpl({ actor: asZeb, input: { listId: list.id, title: 'Air Fryer', verdict: 'has-it' }, now })
+		).toEqual({
+			kind: 'ok',
+		})
+		expect(
+			await setGiftSuggestionFeedbackImpl({
+				actor: asMe,
+				input: { listId: list.id, title: 'Wool Hiking Socks', verdict: 'not-for-me' },
+				now,
+			})
+		).toEqual({ kind: 'ok' })
+
+		// Jordan's prompt: the owned title and their own veto, nothing about Zeb.
+		const mine = await getGiftSuggestionsImpl({ actor: asMe, input: { listId: list.id }, now })
+		expect(mine.kind).toBe('ok')
+		expect(captured.prompt).toContain('They already have: Air Fryer')
+		expect(captured.prompt).toContain('The shopper is not interested in: Wool Hiking Socks')
+		expect(captured.prompt).not.toContain('Zebulon')
+		// The vetoed socks are dropped from the answer even though the model returned them.
+		if (mine.kind === 'ok') expect(mine.suggestions.map(s => s.title)).toEqual(['Trail Guide Book'])
+
+		// Zeb's prompt: the same owned title, and no sign of Jordan's veto.
+		await getGiftSuggestionsImpl({ actor: asZeb, input: { listId: list.id }, now })
+		expect(captured.prompt).toContain('They already have: Air Fryer')
+		expect(captured.prompt).toContain('The shopper is not interested in: nothing in particular')
+
+		// Something marked as owned is dropped from the answer too.
+		currentModel = mockModel([...SUGGESTIONS, { title: 'Air fryer', details: 'd', reason: 'r', priceBand: 'unknown' }], captured)
+		const again = await getGiftSuggestionsImpl({ actor: asZeb, input: { listId: list.id }, now })
+		if (again.kind === 'ok') expect(again.suggestions.map(s => s.title)).toEqual(['Wool Hiking Socks', 'Trail Guide Book'])
+
+		// The gift context (and so the MCP tool) carries the owned titles, never the marker.
+		const context = await getGiftContextImpl({ userId: me.id, personId: sam.id, now })
+		expect(context.kind).toBe('ok')
+		if (context.kind === 'ok') expect(context.context.alreadyHas).toEqual([{ title: 'Air Fryer', source: 'marked' }])
+	})
+
+	it('marks are by title, survive regeneration, can be undone, and follow the asking gate', async () => {
+		const { me, sam, zeb, list } = await seed()
+		const captured: Captured = { prompt: '' }
+		currentModel = mockModel(SUGGESTIONS, captured)
+		const asMe = { id: me.id, isChild: false }
+
+		const first = await getGiftSuggestionsImpl({ actor: asMe, input: { listId: list.id }, now })
+		expect(first.kind).toBe('ok')
+		await setGiftSuggestionFeedbackImpl({ actor: asMe, input: { listId: list.id, title: 'Wool Hiking Socks', verdict: 'has-it' }, now })
+		// Marking again replaces the verdict rather than adding a row.
+		await setGiftSuggestionFeedbackImpl({
+			actor: asMe,
+			input: { listId: list.id, title: 'wool hiking socks!', verdict: 'not-for-me' },
+			now,
+		})
+		const rows = await db.select().from(giftSuggestionFeedback).where(eq(giftSuggestionFeedback.userId, me.id))
+		expect(rows).toHaveLength(1)
+		expect(rows[0]).toMatchObject({
+			recipientUserId: sam.id,
+			titleKey: 'wool hiking socks',
+			title: 'wool hiking socks!',
+			verdict: 'not-for-me',
+		})
+
+		// The stored set reports the asker's own verdict on the matching title.
+		const latest = await getLatestGiftSuggestionSetImpl({ actor: asMe, input: { listId: list.id } })
+		expect(latest.kind).toBe('ok')
+		if (latest.kind === 'ok') expect(latest.set?.feedback).toEqual([{ title: 'Wool Hiking Socks', verdict: 'not-for-me' }])
+
+		// Regenerating drops the title and leaves the mark in place.
+		const second = await getGiftSuggestionsImpl({ actor: asMe, input: { listId: list.id }, now: new Date(now.getTime() + 60_000) })
+		if (second.kind === 'ok') expect(second.suggestions.map(s => s.title)).toEqual(['Trail Guide Book'])
+		expect(await db.select().from(giftSuggestionFeedback).where(eq(giftSuggestionFeedback.userId, me.id))).toHaveLength(1)
+
+		// Undo removes it; undoing again is still ok.
+		expect(await clearGiftSuggestionFeedbackImpl({ actor: asMe, input: { listId: list.id, title: 'Wool Hiking Socks' } })).toEqual({
+			kind: 'ok',
+		})
+		expect(await clearGiftSuggestionFeedbackImpl({ actor: asMe, input: { listId: list.id, title: 'Wool Hiking Socks' } })).toEqual({
+			kind: 'ok',
+		})
+		expect(await db.select().from(giftSuggestionFeedback).where(eq(giftSuggestionFeedback.userId, me.id))).toEqual([])
+
+		// The same gate as asking: the recipient, someone shut out, a child, and the flag off.
+		const input = { listId: list.id, title: 'X', verdict: 'has-it' as const }
+		expect(await setGiftSuggestionFeedbackImpl({ actor: { id: sam.id, isChild: false }, input, now })).toEqual({
+			kind: 'error',
+			reason: 'is-owner',
+		})
+		await makeUserRelationship(db, { ownerUserId: sam.id, viewerUserId: zeb.id, accessLevel: 'none' })
+		expect(await setGiftSuggestionFeedbackImpl({ actor: { id: zeb.id, isChild: false }, input, now })).toEqual({
+			kind: 'error',
+			reason: 'not-found',
+		})
+		expect(await setGiftSuggestionFeedbackImpl({ actor: { id: me.id, isChild: true }, input, now })).toEqual({
+			kind: 'error',
+			reason: 'child-not-allowed',
+		})
+		await setSetting('aiGiftSuggestionsEnabled', false)
+		expect(await setGiftSuggestionFeedbackImpl({ actor: asMe, input, now })).toEqual({ kind: 'error', reason: 'feature-disabled' })
+		expect(await clearGiftSuggestionFeedbackImpl({ actor: asMe, input: { listId: list.id, title: 'X' } })).toEqual({
+			kind: 'error',
+			reason: 'feature-disabled',
+		})
+		expect(await db.select().from(giftSuggestionFeedback)).toEqual([])
+	})
+
+	it('deleting the marker or the recipient removes their marks', async () => {
+		const { me, sam, list } = await seed()
+		const asMe = { id: me.id, isChild: false }
+		await setGiftSuggestionFeedbackImpl({ actor: asMe, input: { listId: list.id, title: 'Air Fryer', verdict: 'has-it' }, now })
+		const fido = await makeDependent(db, { name: 'Fido', createdByUserId: sam.id })
+		await makeDependentGuardianship(db, { guardianUserId: sam.id, dependentId: fido.id })
+		const fidoList = await makeList(db, { ownerId: sam.id, name: 'Fido Wishes', subjectDependentId: fido.id })
+		await setGiftSuggestionFeedbackImpl({ actor: asMe, input: { listId: fidoList.id, title: 'Squeaky Ball', verdict: 'has-it' }, now })
+		expect(await db.select({ dep: giftSuggestionFeedback.recipientDependentId }).from(giftSuggestionFeedback)).toEqual([
+			{ dep: null },
+			{ dep: fido.id },
+		])
+
+		await db.delete(dependents).where(eq(dependents.id, fido.id))
+		expect(await db.select().from(giftSuggestionFeedback)).toHaveLength(1)
+		await db.delete(users).where(eq(users.id, sam.id))
+		createdUserIds.splice(createdUserIds.indexOf(sam.id), 1)
+		expect(await db.select().from(giftSuggestionFeedback)).toEqual([])
 	})
 
 	it('list interests need Intelligence on and at least three analysed items', async () => {

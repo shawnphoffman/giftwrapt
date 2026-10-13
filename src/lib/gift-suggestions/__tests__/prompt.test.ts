@@ -13,6 +13,8 @@ describe('buildGiftSuggestionsUserPrompt', () => {
 			],
 			myIdeas: ['Bird Feeder'],
 			myPastGifts: ['Tea Sampler'],
+			alreadyHas: ['Air Fryer'],
+			declined: ['Novelty Socks'],
 			occasion: 'birthday',
 			budget: 50,
 		})
@@ -22,6 +24,8 @@ describe('buildGiftSuggestionsUserPrompt', () => {
 		expect(prompt).toContain('Budget: up to 50')
 		expect(prompt).toContain('The shopper’s own ideas so far: Bird Feeder')
 		expect(prompt).toContain('Already given or planned by the shopper: Tea Sampler')
+		expect(prompt).toContain('They already have: Air Fryer')
+		expect(prompt).toContain('The shopper is not interested in: Novelty Socks')
 	})
 
 	it('caps how many items it sends', () => {
@@ -38,11 +42,15 @@ describe('buildGiftSuggestionsUserPrompt', () => {
 			items,
 			myIdeas: [],
 			myPastGifts: [],
+			alreadyHas: [],
+			declined: [],
 			occasion: null,
 			budget: null,
 		})
 		expect(prompt.match(/^- \[open\]/gmu)).toHaveLength(MAX_PROMPT_ITEMS)
 		expect(prompt).toContain('Occasion: none given')
+		expect(prompt).toContain('They already have: nothing known')
+		expect(prompt).toContain('The shopper is not interested in: nothing in particular')
 	})
 })
 

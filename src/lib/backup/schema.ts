@@ -12,6 +12,7 @@ import {
 	roleEnumValues,
 	statusEnumValues,
 } from '@/db/schema/enums'
+import { giftSuggestionVerdictValues } from '@/db/schema/gift-suggestions'
 import type { Recommendation } from '@/db/schema/intelligence'
 import type { ItemScrapeJob } from '@/db/schema/items'
 
@@ -310,6 +311,19 @@ const recommendationSubItemDismissalRowSchema = z.object({
 	dismissedAt: dateField,
 })
 
+// "They have it" / thumbs down on AI gift ideas (plan 29b). A user
+// decision keyed by title, so it is worth carrying across a restore.
+const giftSuggestionFeedbackRowSchema = z.object({
+	id: z.number().int(),
+	userId: z.string(),
+	recipientUserId: z.string().nullable(),
+	recipientDependentId: z.string().nullable(),
+	titleKey: z.string(),
+	title: z.string(),
+	verdict: z.enum(giftSuggestionVerdictValues),
+	createdAt: dateField,
+})
+
 const itemScrapeJobStatusValues = ['pending', 'running', 'success', 'failed'] as const satisfies ReadonlyArray<ItemScrapeJob['status']>
 
 // Queued enrichment for bulk-imported items. Without it a restore strands
@@ -337,6 +351,7 @@ export const BACKUP_ROW_SCHEMAS = {
 	dependents: dependentRowSchema,
 	dependentGuardianships: dependentGuardianshipRowSchema,
 	userRelationLabels: userRelationLabelRowSchema,
+	giftSuggestionFeedback: giftSuggestionFeedbackRowSchema,
 	customHolidays: customHolidayRowSchema,
 	customHolidayReminderLogs: customHolidayReminderLogRowSchema,
 	recommendations: recommendationRowSchema,
@@ -367,6 +382,8 @@ export const BackupFileSchema = z.object({
 		// Defaulted: relation labels cascade off users, so a wipe clears
 		// them whether or not the file carries any.
 		userRelationLabels: z.array(userRelationLabelRowSchema).default([]),
+		// Defaulted: feedback cascades off users and dependents.
+		giftSuggestionFeedback: z.array(giftSuggestionFeedbackRowSchema).default([]),
 		// Deliberately NOT defaulted. Custom holidays don't cascade off
 		// users, so a wipe only clears them when the file carries the key;
 		// restoring a file written before they were backed up keeps the

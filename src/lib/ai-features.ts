@@ -93,6 +93,8 @@ export const AI_FEATURE_REGISTRY: ReadonlyArray<AiFeatureInfo> = [
 			'The asking user’s own private gift ideas for that person, and the titles of gifts they already gave them',
 			'The occasion, taken from the type of list being viewed (a Christmas list, a birthday list, a holiday list)',
 			'The budget, when the user gives one',
+			'Titles any gifter marked as something that person already has',
+			'Titles the asking user marked as not for them',
 		],
 		neverSent: [
 			'Who claimed anything, what anyone paid, and claim notes',

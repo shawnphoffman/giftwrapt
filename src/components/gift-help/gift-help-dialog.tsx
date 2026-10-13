@@ -1,17 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
-import { Check, ExternalLink, Lightbulb, PackagePlus, Sparkles } from 'lucide-react'
+import { Check, ExternalLink, Lightbulb, PackageCheck, PackagePlus, Sparkles, ThumbsDown } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import {
+	clearGiftSuggestionFeedback,
 	getGiftSuggestions,
 	getLatestGiftSuggestionSet,
 	getListInterests,
+	type LatestGiftSuggestionSet,
 	type LatestGiftSuggestionSetResult,
 	saveGiftSuggestion,
+	setGiftSuggestionFeedback,
 	type StoredSuggestionSetMeta,
 	type SuggestedGift,
+	type SuggestionVerdict,
 } from '@/api/gift-suggestions'
 import { createListAddon } from '@/api/list-addons'
 import { Button } from '@/components/ui/button'
@@ -35,7 +39,10 @@ import { listDetailKeys } from '@/lib/queries/lists'
 // (plan 29a): reopening shows it again with a "New Ideas" button instead of
 // asking the model, and an idea reaches anyone else only when the viewer
 // acts on it: saved to their own private gift ideas, or added to this list
-// as an off-list gift they are giving.
+// as an off-list gift they are giving. Two marks tune future answers (plan
+// 29b): "They have it" keeps the idea out of every gifter's ideas for this
+// person, a thumbs down only out of the viewer's own. The recipient never
+// sees either.
 //
 // The button, and so the whole feature, is behind the admin's
 // `aiGiftSuggestionsEnabled` flag. With it off nothing renders and the
@@ -162,6 +169,11 @@ export type GiftHelpDialogViewProps = {
 	addedTitles: ReadonlySet<string>
 	addingTitle: string | null
 	onAddOffList: (suggestion: SuggestedGift) => void
+	// The viewer's own marks, by title. A marked idea collapses to one line with Undo.
+	verdicts: ReadonlyMap<string, SuggestionVerdict>
+	markingTitle: string | null
+	onMark: (suggestion: SuggestedGift, verdict: SuggestionVerdict) => void
+	onUnmark: (suggestion: SuggestedGift) => void
 	// The admin's search URL template; null means no Search link.
 	searchUrlTemplate: string | null
 }
@@ -183,6 +195,10 @@ export function GiftHelpDialogView({
 	addedTitles,
 	addingTitle,
 	onAddOffList,
+	verdicts,
+	markingTitle,
+	onMark,
+	onUnmark,
 	searchUrlTemplate,
 }: GiftHelpDialogViewProps) {
 	return (
@@ -253,6 +269,26 @@ export function GiftHelpDialogView({
 												const added = addedTitles.has(s.title)
 												const band = PRICE_BAND_LABEL[s.priceBand]
 												const searchUrl = buildSearchUrl(searchUrlTemplate, s.title)
+												const verdict = verdicts.get(s.title)
+												const marking = markingTitle === s.title
+												if (verdict) {
+													return (
+														<li
+															key={s.title}
+															className="flex items-center justify-between gap-3 rounded-md border border-dashed px-4 py-2 text-sm text-muted-foreground"
+														>
+															<span className="min-w-0 truncate line-through">{s.title}</span>
+															<span className="flex shrink-0 items-center gap-2">
+																<span className="text-xs">
+																	{verdict === 'has-it' ? `${recipientName} already has this` : 'Not for them'}
+																</span>
+																<Button type="button" variant="ghost" size="sm" disabled={marking} onClick={() => onUnmark(s)}>
+																	Undo
+																</Button>
+															</span>
+														</li>
+													)
+												}
 												return (
 													<li key={s.title} className="flex flex-col gap-3 rounded-md border px-4 py-3">
 														<div className="flex flex-col gap-1">
@@ -272,6 +308,29 @@ export function GiftHelpDialogView({
 																	</a>
 																</Button>
 															)}
+															<Button
+																type="button"
+																variant="ghost"
+																size="sm"
+																disabled={marking}
+																title={`${recipientName} already has this`}
+																aria-label={`They have it: ${s.title}`}
+																onClick={() => onMark(s, 'has-it')}
+															>
+																<PackageCheck className="size-4" />
+																<span className="sr-only sm:not-sr-only">They have it</span>
+															</Button>
+															<Button
+																type="button"
+																variant="ghost"
+																size="sm"
+																disabled={marking}
+																title="Not for them"
+																aria-label={`Not for them: ${s.title}`}
+																onClick={() => onMark(s, 'not-for-me')}
+															>
+																<ThumbsDown className="size-4" />
+															</Button>
 															<Button
 																type="button"
 																variant="outline"
@@ -302,7 +361,8 @@ export function GiftHelpDialogView({
 										<p className="text-xs text-muted-foreground">
 											These are ideas to research, not product recommendations: the AI does not know what is in stock or what things cost
 											today. Gift Ideas are private to you. An off-list gift tells other gifters you are giving it; {recipientName} sees it
-											only after the reveal.
+											only after the reveal. “They have it” keeps an idea out of everyone’s future ideas for {recipientName}; a thumbs down
+											only out of yours. {recipientName} never sees either.
 										</p>
 									</>
 								))}
@@ -338,6 +398,7 @@ export function GiftHelpButton({ listId, recipientName }: { listId: number; reci
 	const [suggestions, setSuggestions] = useState<SuggestionsState>({ phase: 'idle' })
 	const [savedTitles, setSavedTitles] = useState<ReadonlySet<string>>(() => new Set())
 	const [addedTitles, setAddedTitles] = useState<ReadonlySet<string>>(() => new Set())
+	const [verdicts, setVerdicts] = useState<ReadonlyMap<string, SuggestionVerdict>>(() => new Map())
 
 	const { data: interestData } = useQuery({
 		queryKey: ['list-interests', listId],
@@ -372,10 +433,11 @@ export function GiftHelpButton({ listId, recipientName }: { listId: number; reci
 		}
 		const set = latest.data?.kind === 'ok' ? latest.data.set : null
 		if (set) {
-			const { suggestions: stored, savedTitles: saved, addedTitles: added, ...meta } = set
+			const { suggestions: stored, savedTitles: saved, addedTitles: added, feedback, ...meta } = set
 			setSuggestions({ phase: 'done', suggestions: stored, set: meta })
 			setSavedTitles(new Set(saved))
 			setAddedTitles(new Set(added))
+			setVerdicts(new Map(feedback.map(f => [f.title, f.verdict])))
 			setStep('results')
 		} else if (suggestions.phase !== 'idle') {
 			setSuggestions({ phase: 'idle' })
@@ -385,10 +447,12 @@ export function GiftHelpButton({ listId, recipientName }: { listId: number; reci
 		}
 	}, [open, latest.isPending, latest.data, suggestions.phase])
 
-	const markInCache = (field: 'savedTitles' | 'addedTitles', title: string) =>
+	const patchCachedSet = (patch: (set: LatestGiftSuggestionSet) => LatestGiftSuggestionSet) =>
 		queryClient.setQueryData<LatestGiftSuggestionSetResult>(latestKey, prev =>
-			prev?.kind === 'ok' && prev.set ? { ...prev, set: { ...prev.set, [field]: [...prev.set[field], title] } } : prev
+			prev?.kind === 'ok' && prev.set ? { ...prev, set: patch(prev.set) } : prev
 		)
+	const markInCache = (field: 'savedTitles' | 'addedTitles', title: string) =>
+		patchCachedSet(set => ({ ...set, [field]: [...set[field], title] }))
 
 	const ask = useMutation({
 		mutationFn: () => getGiftSuggestions({ data: { listId, budget: parseBudget(budget) ?? undefined } }),
@@ -396,14 +460,15 @@ export function GiftHelpButton({ listId, recipientName }: { listId: number; reci
 		onSuccess: result => {
 			if (result.kind === 'ok') {
 				setSuggestions({ phase: 'done', suggestions: result.suggestions, set: result.set })
-				// A fresh set never repeats what the viewer saved or added, so the
-				// marks start empty.
+				// A fresh set never repeats what the viewer saved, added, or marked,
+				// so the marks start empty.
 				setSavedTitles(new Set())
 				setAddedTitles(new Set())
+				setVerdicts(new Map())
 				queryClient.setQueryData<LatestGiftSuggestionSetResult>(latestKey, {
 					kind: 'ok',
 					recipientName: result.recipientName,
-					set: { ...result.set, suggestions: result.suggestions, savedTitles: [], addedTitles: [] },
+					set: { ...result.set, suggestions: result.suggestions, savedTitles: [], addedTitles: [], feedback: [] },
 				})
 			} else setSuggestions({ phase: 'error', message: SUGGESTION_ERRORS[result.reason] ?? 'Could not get ideas for this list.' })
 		},
@@ -446,6 +511,39 @@ export function GiftHelpButton({ listId, recipientName }: { listId: number; reci
 			applyListEventLocally({ kind: 'addon', listId, addonId: 0 }, { queryClient, router })
 		},
 		onError: () => toast.error('Could not add that off-list gift'),
+	})
+
+	// A mark is stored by title, so it outlives this set; the card collapses
+	// to one line with Undo. "They have it" is shared with every gifter of
+	// this person, a thumbs down stays with the viewer.
+	const mark = useMutation({
+		mutationFn: ({ s, verdict }: { s: SuggestedGift; verdict: SuggestionVerdict }) =>
+			setGiftSuggestionFeedback({ data: { listId, title: s.title, verdict } }),
+		onSuccess: (result, { s, verdict }) => {
+			if (result.kind !== 'ok') {
+				toast.error('Could not save that')
+				return
+			}
+			setVerdicts(prev => new Map(prev).set(s.title, verdict))
+			patchCachedSet(set => ({ ...set, feedback: [...set.feedback.filter(f => f.title !== s.title), { title: s.title, verdict }] }))
+		},
+		onError: () => toast.error('Could not save that'),
+	})
+	const unmark = useMutation({
+		mutationFn: (s: SuggestedGift) => clearGiftSuggestionFeedback({ data: { listId, title: s.title } }),
+		onSuccess: (result, s) => {
+			if (result.kind !== 'ok') {
+				toast.error('Could not undo that')
+				return
+			}
+			setVerdicts(prev => {
+				const next = new Map(prev)
+				next.delete(s.title)
+				return next
+			})
+			patchCachedSet(set => ({ ...set, feedback: set.feedback.filter(f => f.title !== s.title) }))
+		},
+		onError: () => toast.error('Could not undo that'),
 	})
 
 	// One flag for the whole feature. Off means the list page is unchanged.
@@ -494,6 +592,10 @@ export function GiftHelpButton({ listId, recipientName }: { listId: number; reci
 				addedTitles={addedTitles}
 				addingTitle={addOffList.isPending ? addOffList.variables.title : null}
 				onAddOffList={s => addOffList.mutate(s)}
+				verdicts={verdicts}
+				markingTitle={mark.isPending ? mark.variables.s.title : unmark.isPending ? unmark.variables.title : null}
+				onMark={(s, verdict) => mark.mutate({ s, verdict })}
+				onUnmark={s => unmark.mutate(s)}
 				searchUrlTemplate={searchUrlTemplate}
 			/>
 		</>

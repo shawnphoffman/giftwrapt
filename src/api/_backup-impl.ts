@@ -17,6 +17,7 @@ import {
 	dependents,
 	giftContributions,
 	giftedItems,
+	giftSuggestionFeedback,
 	guardianships,
 	itemComments,
 	itemGroups,
@@ -55,6 +56,7 @@ export async function captureFullSnapshot(dbx: SchemaDatabase = db): Promise<Bac
 		dependentsRows,
 		dependentGuardianshipsRows,
 		userRelationLabelsRows,
+		giftSuggestionFeedbackRows,
 		customHolidaysRows,
 		customHolidayReminderLogsRows,
 		recommendationsRows,
@@ -78,6 +80,7 @@ export async function captureFullSnapshot(dbx: SchemaDatabase = db): Promise<Bac
 		dbx.select().from(dependents),
 		dbx.select().from(dependentGuardianships),
 		dbx.select().from(userRelationLabels),
+		dbx.select().from(giftSuggestionFeedback),
 		dbx.select().from(customHolidays),
 		dbx.select().from(customHolidayReminderLogs),
 		dbx.select().from(recommendations),
@@ -106,6 +109,7 @@ export async function captureFullSnapshot(dbx: SchemaDatabase = db): Promise<Bac
 			dependents: dependentsRows,
 			dependentGuardianships: dependentGuardianshipsRows,
 			userRelationLabels: userRelationLabelsRows,
+			giftSuggestionFeedback: giftSuggestionFeedbackRows,
 			customHolidays: customHolidaysRows,
 			customHolidayReminderLogs: customHolidayReminderLogsRows,
 			recommendations: recommendationsRows as BackupFile['tables']['recommendations'],
@@ -328,6 +332,34 @@ export async function restoreBackupTablesImpl(args: {
 			}
 		}
 		result.userRelationLabels = tables.userRelationLabels.length
+	}
+
+	// -------- giftSuggestionFeedback --------
+	// "They have it" / thumbs down marks on AI gift ideas. They cascade off
+	// users and dependents, so a wipe clears them.
+	if (tables.giftSuggestionFeedback.length > 0) {
+		if (mode === 'wipe') {
+			await tx.insert(giftSuggestionFeedback).values(tables.giftSuggestionFeedback)
+		} else {
+			for (const row of tables.giftSuggestionFeedback) {
+				await tx
+					.insert(giftSuggestionFeedback)
+					.values(row)
+					.onConflictDoUpdate({
+						target: giftSuggestionFeedback.id,
+						set: {
+							userId: row.userId,
+							recipientUserId: row.recipientUserId,
+							recipientDependentId: row.recipientDependentId,
+							titleKey: row.titleKey,
+							title: row.title,
+							verdict: row.verdict,
+							createdAt: row.createdAt,
+						},
+					})
+			}
+		}
+		result.giftSuggestionFeedback = tables.giftSuggestionFeedback.length
 	}
 
 	// -------- customHolidays --------

@@ -17,11 +17,20 @@ import { getGiftContextImpl, getWishlistViewImpl } from '@/api/_gift-context-imp
 import { createItemImpl } from '@/api/_items-impl'
 import { createListImpl } from '@/api/_lists-impl'
 import { db, type SchemaDatabase } from '@/db'
-import { type BirthMonth, birthMonthEnumValues, customHolidays, itemAiAnalysis, lists } from '@/db/schema'
+import {
+	type BirthMonth,
+	birthMonthEnumValues,
+	customHolidays,
+	type GiftSuggestionVerdict,
+	giftSuggestionVerdictValues,
+	itemAiAnalysis,
+	lists,
+} from '@/db/schema'
 import { AiBudgetExceededError, aiGenerateObject } from '@/lib/ai-call'
 import { createAiModel } from '@/lib/ai-client'
 import { resolveAiConfig } from '@/lib/ai-config'
 import { safeFirstName } from '@/lib/first-name'
+import { clearGiftSuggestionFeedback, loadOwnSuggestionFeedback, setGiftSuggestionFeedback } from '@/lib/gift-suggestions/feedback'
 import {
 	buildGiftSuggestionsUserPrompt,
 	GIFT_SUGGESTIONS_SYSTEM,
@@ -152,6 +161,12 @@ export async function getGiftSuggestionsImpl(args: {
 
 	const myIdeas = c.myGiftIdeas.flatMap(s => s.ideas.map(i => i.title))
 	const myPastGifts = c.myPastGifts.map(g => g.title)
+	// What this person already has comes from every gifter's marks (on the
+	// context); what to leave out for this shopper comes from their own.
+	const alreadyHas = c.alreadyHas.map(a => a.title)
+	const declined = (await loadOwnSuggestionFeedback(dbx, { userId: actor.id, recipient: { kind: recipient.kind, id: recipient.id } }))
+		.filter(f => f.verdict === 'not-for-me')
+		.map(f => f.title)
 	const userPrompt = buildGiftSuggestionsUserPrompt({
 		recipientFirstName: firstName(c.person.name),
 		recipientKind: c.person.kind,
@@ -165,6 +180,8 @@ export async function getGiftSuggestionsImpl(args: {
 		})),
 		myIdeas,
 		myPastGifts,
+		alreadyHas,
+		declined,
 		occasion,
 		budget: input.budget ?? null,
 	})
@@ -195,7 +212,9 @@ export async function getGiftSuggestionsImpl(args: {
 		return { kind: 'error', reason: 'ai-failed' }
 	}
 
-	const known = [...allItems.map(i => i.title), ...myIdeas, ...myPastGifts]
+	// A repeat of anything they have or the shopper turned down is dropped
+	// even if the model ignored the instruction.
+	const known = [...allItems.map(i => i.title), ...myIdeas, ...myPastGifts, ...alreadyHas, ...declined]
 	const suggestions = sanitizeSuggestions(raw, known)
 	// Keep the answer for the asker, replacing their previous set for this
 	// person, so the dialog can show it again without another model call.
@@ -213,12 +232,16 @@ export async function getGiftSuggestionsImpl(args: {
 
 export const LatestGiftSuggestionSetInputSchema = z.object({ listId: z.number().int().positive() })
 
+export type SuggestionVerdict = GiftSuggestionVerdict
+
 export type LatestGiftSuggestionSet = StoredSuggestionSetMeta & {
 	suggestions: Array<SuggestedGift>
 	// Titles in the set the asker has already saved as a gift idea for this
 	// person, or already added to this list as an off-list gift.
 	savedTitles: Array<string>
 	addedTitles: Array<string>
+	// The asker's own marks on titles in the set. Never anyone else's.
+	feedback: Array<{ title: string; verdict: SuggestionVerdict }>
 }
 
 export type LatestGiftSuggestionSetResult =
@@ -252,6 +275,7 @@ export async function getLatestGiftSuggestionSetImpl(args: {
 
 	const ideaKeys = new Set(view.view.myGiftIdeas.flatMap(s => s.ideas.map(i => suggestionTitleKey(i.title))))
 	const addonKeys = new Set(view.view.offListGifts.filter(a => a.byMe).map(a => suggestionTitleKey(a.description)))
+	const own = new Map((await loadOwnSuggestionFeedback(dbx, { userId: actor.id, recipient })).map(f => [f.titleKey, f.verdict]))
 	const { suggestions, ...meta } = stored
 	return {
 		kind: 'ok',
@@ -261,8 +285,74 @@ export async function getLatestGiftSuggestionSetImpl(args: {
 			suggestions,
 			savedTitles: suggestions.filter(s => ideaKeys.has(suggestionTitleKey(s.title))).map(s => s.title),
 			addedTitles: suggestions.filter(s => addonKeys.has(suggestionTitleKey(s.title))).map(s => s.title),
+			feedback: suggestions.flatMap(s => {
+				const verdict = own.get(suggestionTitleKey(s.title))
+				return verdict ? [{ title: s.title, verdict }] : []
+			}),
 		},
 	}
+}
+
+export const GiftSuggestionFeedbackInputSchema = z.object({
+	listId: z.number().int().positive(),
+	title: z.string().trim().min(1).max(200),
+	verdict: z.enum(giftSuggestionVerdictValues),
+})
+
+export const ClearGiftSuggestionFeedbackInputSchema = z.object({
+	listId: z.number().int().positive(),
+	title: z.string().trim().min(1).max(200),
+})
+
+export type GiftSuggestionFeedbackResult =
+	| { kind: 'ok' }
+	| { kind: 'error'; reason: 'feature-disabled' | 'child-not-allowed' | 'not-found' | 'is-owner' }
+
+async function feedbackRecipient(args: {
+	actor: { id: string; isChild: boolean }
+	listId: number
+	dbx: SchemaDatabase
+}): Promise<
+	| { kind: 'ok'; recipient: SuggestionRecipient }
+	| { kind: 'error'; reason: 'feature-disabled' | 'child-not-allowed' | 'not-found' | 'is-owner' }
+> {
+	const settings = await getAppSettings(args.dbx)
+	if (!settings.aiGiftSuggestionsEnabled) return { kind: 'error', reason: 'feature-disabled' }
+	if (args.actor.isChild) return { kind: 'error', reason: 'child-not-allowed' }
+	const view = await getWishlistViewImpl({ userId: args.actor.id, listId: args.listId, dbx: args.dbx })
+	if (view.kind === 'error') return { kind: 'error', reason: view.reason }
+	return { kind: 'ok', recipient: { kind: view.view.list.recipient.kind, id: view.view.list.recipient.id } }
+}
+
+/**
+ * "They have it" or thumbs down on an idea for the person this list is for.
+ * Same gate as asking: the flag, no children, the owner redirect, and list
+ * visibility. Marking again replaces the earlier verdict.
+ */
+export async function setGiftSuggestionFeedbackImpl(args: {
+	actor: { id: string; isChild: boolean }
+	input: z.infer<typeof GiftSuggestionFeedbackInputSchema>
+	now: Date
+	dbx?: SchemaDatabase
+}): Promise<GiftSuggestionFeedbackResult> {
+	const { actor, input, now, dbx = db } = args
+	const gate = await feedbackRecipient({ actor, listId: input.listId, dbx })
+	if (gate.kind === 'error') return gate
+	await setGiftSuggestionFeedback(dbx, { userId: actor.id, recipient: gate.recipient, title: input.title, verdict: input.verdict, now })
+	return { kind: 'ok' }
+}
+
+/** Undo a mark. Clearing a title that was never marked is still ok. */
+export async function clearGiftSuggestionFeedbackImpl(args: {
+	actor: { id: string; isChild: boolean }
+	input: z.infer<typeof ClearGiftSuggestionFeedbackInputSchema>
+	dbx?: SchemaDatabase
+}): Promise<GiftSuggestionFeedbackResult> {
+	const { actor, input, dbx = db } = args
+	const gate = await feedbackRecipient({ actor, listId: input.listId, dbx })
+	if (gate.kind === 'error') return gate
+	await clearGiftSuggestionFeedback(dbx, { userId: actor.id, recipient: gate.recipient, title: input.title })
+	return { kind: 'ok' }
 }
 
 export const SaveGiftSuggestionInputSchema = z.object({

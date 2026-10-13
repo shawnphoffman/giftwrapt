@@ -20,6 +20,7 @@ import {
 	dependents,
 	giftContributions,
 	giftedItems,
+	giftSuggestionFeedback,
 	guardianships,
 	itemComments,
 	itemGroups,
@@ -232,6 +233,26 @@ async function seedEveryColumn(tx: SchemaDatabase) {
 		dismissedAt: T2,
 	})
 	await tx.insert(recommendationSubItemDismissals).values({ userId: 'bk_owner', fingerprint: 'fp-1', subItemId: '801', dismissedAt: T3 })
+	await tx.insert(giftSuggestionFeedback).values({
+		id: 1901,
+		userId: 'bk_owner',
+		recipientUserId: 'bk_partner',
+		recipientDependentId: null,
+		titleKey: 'air fryer',
+		title: 'Air Fryer',
+		verdict: 'has-it',
+		createdAt: T1,
+	})
+	await tx.insert(giftSuggestionFeedback).values({
+		id: 1902,
+		userId: 'bk_owner',
+		recipientUserId: null,
+		recipientDependentId: 'bk_dep',
+		titleKey: 'squeaky ball',
+		title: 'Squeaky Ball',
+		verdict: 'not-for-me',
+		createdAt: T2,
+	})
 	await tx.insert(lists).values({
 		id: 601,
 		name: 'Everything list',
@@ -441,6 +462,7 @@ describe('backup round-trip', () => {
 				'userRelationLabels',
 				'recommendations',
 				'recommendationSubItemDismissals',
+				'giftSuggestionFeedback',
 				'itemScrapeJobs',
 			]) {
 				delete legacy.tables[name]

@@ -9,9 +9,13 @@ import { giftSuggestionsLimiter } from '@/lib/rate-limits'
 import { authMiddleware } from '@/middleware/auth'
 
 import {
+	clearGiftSuggestionFeedbackImpl,
+	ClearGiftSuggestionFeedbackInputSchema,
 	getGiftSuggestionsImpl,
 	getLatestGiftSuggestionSetImpl,
 	getListInterestsImpl,
+	GiftSuggestionFeedbackInputSchema,
+	type GiftSuggestionFeedbackResult,
 	GiftSuggestionsInputSchema,
 	type GiftSuggestionsResult,
 	LatestGiftSuggestionSetInputSchema,
@@ -20,9 +24,11 @@ import {
 	saveGiftSuggestionImpl,
 	SaveGiftSuggestionInputSchema,
 	type SaveGiftSuggestionResult,
+	setGiftSuggestionFeedbackImpl,
 } from './_gift-suggestions-impl'
 
 export type {
+	GiftSuggestionFeedbackResult,
 	GiftSuggestionsResult,
 	LatestGiftSuggestionSet,
 	LatestGiftSuggestionSetResult,
@@ -30,6 +36,7 @@ export type {
 	SaveGiftSuggestionResult,
 	StoredSuggestionSetMeta,
 	SuggestedGift,
+	SuggestionVerdict,
 } from './_gift-suggestions-impl'
 
 export const getGiftSuggestions = createServerFn({ method: 'POST' })
@@ -60,6 +67,26 @@ export const saveGiftSuggestion = createServerFn({ method: 'POST' })
 	.handler(
 		({ context, data }): Promise<SaveGiftSuggestionResult> =>
 			saveGiftSuggestionImpl({ actor: { id: context.session.user.id, isChild: context.session.user.isChild }, input: data })
+	)
+
+export const setGiftSuggestionFeedback = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: z.input<typeof GiftSuggestionFeedbackInputSchema>) => GiftSuggestionFeedbackInputSchema.parse(data))
+	.handler(
+		({ context, data }): Promise<GiftSuggestionFeedbackResult> =>
+			setGiftSuggestionFeedbackImpl({
+				actor: { id: context.session.user.id, isChild: context.session.user.isChild },
+				input: data,
+				now: new Date(),
+			})
+	)
+
+export const clearGiftSuggestionFeedback = createServerFn({ method: 'POST' })
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: z.input<typeof ClearGiftSuggestionFeedbackInputSchema>) => ClearGiftSuggestionFeedbackInputSchema.parse(data))
+	.handler(
+		({ context, data }): Promise<GiftSuggestionFeedbackResult> =>
+			clearGiftSuggestionFeedbackImpl({ actor: { id: context.session.user.id, isChild: context.session.user.isChild }, input: data })
 	)
 
 const ListInterestsInputSchema = z.object({ listId: z.number().int().positive() })

@@ -76,6 +76,10 @@ const meta = {
 		addedTitles: new Set<string>(),
 		addingTitle: null,
 		onAddOffList: fn(),
+		verdicts: new Map<string, 'has-it' | 'not-for-me'>(),
+		markingTitle: null,
+		onMark: fn(),
+		onUnmark: fn(),
 		searchUrlTemplate: null,
 	},
 } satisfies Meta<typeof GiftHelpDialogView>
@@ -114,6 +118,24 @@ export const ResultsActedOn: Story = {
 		suggestions: { phase: 'done', suggestions, set: null },
 		savedTitles: new Set(['Bypass Pruning Shears']),
 		addedTitles: new Set(['Enameled Cast Iron Braiser']),
+	},
+}
+
+/** One idea marked as something Linda already has, collapsed to a line with Undo; the other still open with both marks offered. */
+export const ResultsMarked: Story = {
+	args: {
+		step: 'results',
+		budget: '200',
+		suggestions: { phase: 'done', suggestions, set: null },
+		verdicts: new Map([['Enameled Cast Iron Braiser', 'has-it' as const]]),
+	},
+	play: async ({ canvasElement }) => {
+		const screen = within(canvasElement.ownerDocument.body)
+		await expect(await screen.findByText('Linda already has this')).toBeInTheDocument()
+		await expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled()
+		await expect(screen.getByRole('button', { name: 'They have it: Bypass Pruning Shears' })).toBeEnabled()
+		await expect(screen.getByRole('button', { name: 'Not for them: Bypass Pruning Shears' })).toBeEnabled()
+		await expect(screen.queryByRole('button', { name: 'They have it: Enameled Cast Iron Braiser' })).toBeNull()
 	},
 }
 
@@ -233,7 +255,7 @@ const addons: Array<AddonOnList> = [
 const storedAnswer: LatestGiftSuggestionSetResult = {
 	kind: 'ok',
 	recipientName: 'Linda',
-	set: { ...storedSet, suggestions, savedTitles: ['Bypass Pruning Shears'], addedTitles: [] },
+	set: { ...storedSet, suggestions, savedTitles: ['Bypass Pruning Shears'], addedTitles: [], feedback: [] },
 }
 
 function seeded(flagOn: boolean, stored?: LatestGiftSuggestionSetResult): Decorator {
