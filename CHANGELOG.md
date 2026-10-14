@@ -1,5 +1,30 @@
 # Changelog
 
+## [1.8.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.7.0...v1.8.0) (2026-10-14)
+
+
+### Features
+
+* **admin:** add a Reveals page to reveal one list's hidden gifts now ([24ff05b](https://github.com/shawnphoffman/giftwrapt/commit/24ff05bf2622264c3431459b50f1060adba00faa))
+* **admin:** add a Send Test Error button for Sentry ([67c1e11](https://github.com/shawnphoffman/giftwrapt/commit/67c1e11e9e14f61962ac09cd50e10d81dd098112))
+* **auth:** add the iOS web tab sign-in handoff and embedded shell ([e1cdeb7](https://github.com/shawnphoffman/giftwrapt/commit/e1cdeb7d8fc5837e421f3b7b62ca54ccab0eda64))
+* **embedded:** report error boundaries to the iOS web tab ([98689cc](https://github.com/shawnphoffman/giftwrapt/commit/98689cc2b877b9b4c020fbe7b052ed4cce6c195f))
+* **gift-suggestions:** add they-have-it and thumbs-down marks on ideas ([6a5fb0a](https://github.com/shawnphoffman/giftwrapt/commit/6a5fb0a041f6232b50e922aabcb8226de512b98d))
+* **gift-suggestions:** build the prompt as a profile with received and dropped items ([48dd123](https://github.com/shawnphoffman/giftwrapt/commit/48dd123d543762f2d7abda13be7c50078cbe71d2))
+* **gift-suggestions:** keep the last Need ideas? answer per asker ([4cfb3e7](https://github.com/shawnphoffman/giftwrapt/commit/4cfb3e76c70e1806b75b0467e48250106334697a))
+* **gift-suggestions:** tag each already-have line with its source ([160cd1b](https://github.com/shawnphoffman/giftwrapt/commit/160cd1b50c0c84122d8ff3c302169fa05b23e807))
+* **routes:** title every page "&lt;tenant title&gt; - &lt;page&gt;" ([e0177ce](https://github.com/shawnphoffman/giftwrapt/commit/e0177ceb72590abbac2d2dc6b8399aa9b8475648))
+* **selfhost:** bundle the scraper gateway in the full compose shapes ([b28b655](https://github.com/shawnphoffman/giftwrapt/commit/b28b655cc7ffe71c030b6c913fe2987de066bbd9))
+
+
+### Bug Fixes
+
+* **gift-suggestions:** drop near copies that share most of their words ([e94afc7](https://github.com/shawnphoffman/giftwrapt/commit/e94afc7bcbb13c2593787726c336268bee56f5a9))
+* **lists:** only describe reveal controls that apply to the list ([512fb06](https://github.com/shawnphoffman/giftwrapt/commit/512fb060bae9002b04e7b8bc0276969d5a1cd7a5))
+* **observability:** capture server errors in Sentry from every bundle ([9461da7](https://github.com/shawnphoffman/giftwrapt/commit/9461da77459faf5c100106845898187687e1c13e))
+* **observability:** default the Sentry release to the build commit ([795929d](https://github.com/shawnphoffman/giftwrapt/commit/795929dbace1f8e6e447a014935dd20a2fc153b7))
+* **security:** build the CSP at server start instead of build time ([a396095](https://github.com/shawnphoffman/giftwrapt/commit/a396095dbdd7ba2b08ea4551f4c190fd2fe6ac1a))
+
 ## [1.7.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.6.0...v1.7.0) (2026-10-03)
 
 
