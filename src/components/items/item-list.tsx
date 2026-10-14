@@ -238,8 +238,13 @@ export default function ItemList({ listId, groups = [], filterBarLeading }: Prop
 	return (
 		<InternalListLinksProvider value={internalListLinks}>
 			<div className="flex flex-col gap-3">
-				<div className="flex flex-row items-center justify-end gap-1 flex-wrap">
-					{filterBarLeading}
+				{/* Phones: the leading badges and buttons get a full-width line, then
+				    the filters sit in an even two-column grid (an odd one out spans
+				    both) so they line up instead of wrapping raggedly. The leading
+				    cell is always child 1, so an odd filter count ends on an even
+				    child. From sm up: one right-aligned row. */}
+				<div className="grid grid-cols-2 gap-1 sm:flex sm:flex-row sm:flex-wrap sm:items-center sm:justify-end [&>:last-child:nth-child(even)]:col-span-2">
+					<div className="col-span-full flex flex-wrap items-center justify-end gap-1 empty:hidden sm:contents">{filterBarLeading}</div>
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<Button
@@ -275,7 +280,7 @@ export default function ItemList({ listId, groups = [], filterBarLeading }: Prop
 						<DropdownMenuTrigger asChild>
 							<Button
 								variant="outline"
-								size="sm"
+								size="xs"
 								className={cn('h-7 text-xs text-muted-foreground', pricePreset !== 'all' && 'text-foreground')}
 							>
 								<DollarSign className="size-3.5" />

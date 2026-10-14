@@ -167,7 +167,11 @@ code {
 	h4 {
 		@apply text-xl font-semibold tracking-tight scroll-m-20 lg:text-2xl;
 	}
-	button[data-slot='button'] {
+	/* Every Button is semibold. Keyed on the class only Button carries, not
+	   data-slot="button": a Button used as a menu, popover, or dialog trigger
+	   (asChild) gets the trigger's data-slot instead, and a link Button is an
+	   <a>, so the old button[data-slot='button'] selector left both at 500. */
+	.group\/button {
 		@apply font-semibold!;
 	}
 	/* ul {
