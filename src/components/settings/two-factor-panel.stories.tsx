@@ -60,7 +60,7 @@ export const Enrolling: Story = {
 		// The server-rendered SVG is delivered as a `data:image/svg+xml;utf8,…`
 		// payload on an <img> tag. If this assertion ever flips to `data:image/png`
 		// we've regressed back to client-side `qrcode.toDataURL`, which would
-		// require `'unsafe-eval'` in the CSP again. See `vite.config.ts`.
+		// require `'unsafe-eval'` in the CSP again. See `src/lib/csp.ts`.
 		const img = await canvas.findByAltText('TOTP QR code')
 		await expect(img).toBeInTheDocument()
 		await expect(img.getAttribute('src')).toMatch(/^data:image\/svg\+xml;utf8,/)

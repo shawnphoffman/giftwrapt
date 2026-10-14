@@ -33,76 +33,18 @@ if (process.env.VERCEL) {
 	process.env.VITE_VERCEL_PROJECT_PRODUCTION_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? ''
 }
 
-// The Vercel preview overlay (live-comments / toolbar) is the only
-// third-party script we ever load, and Vercel only injects it on preview
-// deploys - never on production, never on self-host. Allowlist its origins
-// in CSP only when we're actually building a preview; everyone else gets
-// the tighter `'self'`-only posture. SRI is moot for the same reason: we
-// have no third-party origin to apply integrity hashes to on production
-// or self-host builds, and Vercel rotates its preview script per deploy
-// so a stable integrity hash isn't available even when it IS loaded.
-// See `docs/security/2026-05-checklist-audit.md` item 46.
-const isVercelPreviewBuild = process.env.VERCEL_ENV === 'preview'
-const vercelLiveOrigins = isVercelPreviewBuild
-	? {
-			script: ' https://vercel.live',
-			connect: ' https://vercel.live wss://ws-us3.pusher.com',
-			frame: 'https://vercel.live',
-		}
-	: { script: '', connect: '', frame: "'none'" }
-
-// Sentry-compatible error reporting is opt-in (default off). When SENTRY_DSN
-// is set at build time, the browser SDK ships with the bundle and needs to
-// reach the DSN's origin (sentry.io project endpoint, a self-hosted
-// Glitchtip, an operator-run proxy, etc.). Extract origin once at config
-// time and append to connect-src only when the env var exists; without it,
-// CSP is byte-for-byte identical to today's strict default. The runtime
-// admin toggle (`enableSentry` in app_settings) can still kill emission
-// without changing CSP. See docs/configuration/observability.
-let sentryConnectOrigin = ''
-if (process.env.SENTRY_DSN) {
-	try {
-		sentryConnectOrigin = ` ${new URL(process.env.SENTRY_DSN).origin}`
-	} catch {
-		// Malformed DSN: leave connect-src untouched. The env-validation step
-		// in src/env.ts will surface the parse error at runtime.
-	}
-}
-
+// Content-Security-Policy is NOT set here: it depends on the runtime env
+// (SENTRY_DSN, VERCEL_ENV), so server/plugins/security-headers.ts builds it at
+// server start from src/lib/csp.ts. A prebuilt image would otherwise keep
+// whatever env it was built with.
 const securityHeaders = {
 	// HSTS is a no-op over HTTP (browsers ignore it per RFC 6797). Useful once
 	// the deployment is fronted by HTTPS: tells browsers to refuse plaintext.
 	'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-	// No upgrade-insecure-requests: it rewrites every http:// subresource to
-	// https:// even when the page itself is served over http, which breaks
-	// IP:port/LAN self-hosts. If you front the app with HTTPS, add it via the
-	// reverse proxy (or add it back here) and everything still works.
-	'Content-Security-Policy': [
-		"default-src 'self'",
-		// `'unsafe-eval'` was previously needed by the `qrcode` client lib
-		// loaded on /settings/security for 2FA enrollment. QR rendering moved
-		// server-side (see `src/api/totp-qr.ts`) so the dep no longer reaches
-		// the client bundle. If a future TanStack/wasm dep reintroduces
-		// `Function()`/`eval()` in the bundle and the app stalls with a CSP
-		// error in the browser console, re-add `'unsafe-eval'` here as a
-		// short-term unblock and file a TODO to track down the source.
-		`script-src 'self' 'unsafe-inline'${vercelLiveOrigins.script}`,
-		"style-src 'self' 'unsafe-inline'",
-		// `blob:` covers `URL.createObjectURL(file)` previews for client-picked
-		// images: avatar cropper, add-item Upload Image, item-edit photo, and
-		// the /admin/photo extract tester. Chromium does NOT treat blob: as
-		// matching `'self'` for non-network schemes, so it has to be listed
-		// explicitly. Same-origin only by construction (only same-origin JS
-		// can call createObjectURL), so the attack surface is essentially zero.
-		"img-src 'self' data: blob: https:",
-		"font-src 'self' data:",
-		`connect-src 'self'${vercelLiveOrigins.connect}${sentryConnectOrigin}`,
-		`frame-src ${vercelLiveOrigins.frame}`,
-		"object-src 'none'",
-		"base-uri 'self'",
-		"form-action 'self'",
-		"frame-ancestors 'none'",
-	].join('; '),
+	// No upgrade-insecure-requests (here or in the CSP): it rewrites every
+	// http:// subresource to https:// even when the page itself is served over
+	// http, which breaks IP:port/LAN self-hosts. If you front the app with
+	// HTTPS, add it via the reverse proxy and everything still works.
 }
 
 // Custom plugin: redirect `@/db` to a throwing client stub when bundling
@@ -177,7 +119,12 @@ const config = defineConfig({
 				// Registered explicitly rather than relying on server/plugins/
 				// auto-discovery, which depends on Nitro's srcDir and isn't
 				// guaranteed when Nitro is used as a Vite plugin.
-				plugins: ['./server/plugins/sentry.ts', './server/plugins/logging.ts', './server/plugins/storage-boot.ts'],
+				plugins: [
+					'./server/plugins/sentry.ts',
+					'./server/plugins/logging.ts',
+					'./server/plugins/storage-boot.ts',
+					'./server/plugins/security-headers.ts',
+				],
 				// Sharp is a native CJS addon. Nitro's default node_modules
 				// tracing copies it into .output/server/node_modules/sharp at
 				// build time, which is what the runtime image relies on (see
