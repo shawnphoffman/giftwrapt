@@ -14,6 +14,7 @@
 import type { Database, SchemaDatabase } from '@/db'
 import { db as defaultDb } from '@/db'
 import { env } from '@/env'
+import { BUILD_INFO } from '@/lib/build-info'
 import { getAppSettings } from '@/lib/settings-loader'
 
 type DisabledReason = 'env-missing' | 'admin-disabled'
@@ -33,6 +34,15 @@ export type SentryStatus =
 
 export type MetricsStatus = { enabled: false; reason: DisabledReason } | { enabled: true }
 
+// Release tag for server and browser events. SENTRY_RELEASE wins when set;
+// otherwise the commit baked into the build (APP_COMMIT on Docker,
+// VERCEL_GIT_COMMIT_SHA on Vercel, see vite.config.ts), so events carry a
+// release with no extra operator setup. Undefined only for builds made
+// outside git with no APP_COMMIT.
+export function resolveSentryRelease(): string | undefined {
+	return env.SENTRY_RELEASE ?? (BUILD_INFO.commit || undefined)
+}
+
 async function resolveSettings(dbx: Database | SchemaDatabase | undefined) {
 	return getAppSettings(dbx ?? defaultDb)
 }
@@ -45,7 +55,7 @@ export async function getSentryStatus(dbx?: Database | SchemaDatabase): Promise<
 		enabled: true,
 		dsn: env.SENTRY_DSN,
 		environment: env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV,
-		release: env.SENTRY_RELEASE,
+		release: resolveSentryRelease(),
 		tracesSampleRate: env.SENTRY_TRACES_SAMPLE_RATE,
 	}
 }

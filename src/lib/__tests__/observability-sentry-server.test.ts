@@ -22,7 +22,7 @@ vi.mock('@sentry/node', () => ({
 	flush: mocks.flush,
 }))
 
-vi.mock('@/lib/observability/config', () => ({ getSentryStatus: mocks.getSentryStatus }))
+vi.mock('@/lib/observability/config', () => ({ getSentryStatus: mocks.getSentryStatus, resolveSentryRelease: () => 'abc1234' }))
 
 type BeforeSend = (event: ErrorEvent, hint: EventHint) => Promise<ErrorEvent | null>
 
@@ -71,6 +71,7 @@ describe('with SENTRY_DSN', () => {
 		const err = new Error('boom')
 		await captureServerException(err, { path: '/x' })
 		expect(mocks.init).toHaveBeenCalledTimes(1)
+		expect(mocks.init).toHaveBeenCalledWith(expect.objectContaining({ release: 'abc1234' }))
 		expect(mocks.captureException).toHaveBeenCalledWith(err, { extra: { path: '/x' } })
 		expect(mocks.flush).toHaveBeenCalledTimes(1)
 	})

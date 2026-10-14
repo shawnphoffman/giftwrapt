@@ -19,7 +19,7 @@
 import * as Sentry from '@sentry/node'
 
 import { env } from '@/env'
-import { getSentryStatus } from '@/lib/observability/config'
+import { getSentryStatus, resolveSentryRelease } from '@/lib/observability/config'
 import { scrubEvent } from '@/lib/observability/scrubber'
 
 // Serverless hosts (Vercel) can freeze the function as soon as the response
@@ -54,7 +54,7 @@ export function initSentryServer(): void {
 	Sentry.init({
 		dsn: env.SENTRY_DSN,
 		environment: env.SENTRY_ENVIRONMENT ?? process.env.NODE_ENV ?? 'development',
-		release: env.SENTRY_RELEASE,
+		release: resolveSentryRelease(),
 		tracesSampleRate: env.SENTRY_TRACES_SAMPLE_RATE ?? 0,
 		sendDefaultPii: false,
 		beforeSend,
