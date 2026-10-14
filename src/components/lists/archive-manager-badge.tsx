@@ -72,6 +72,7 @@ export function ArchiveManagerBadge({
 	if (!archiveInfo.applies || !archiveInfo.effectiveArchiveDate) return null
 
 	const effective = archiveInfo.effectiveArchiveDate
+	const eventDate = archiveInfo.eventDate
 	const extended = archiveInfo.deferUntil != null
 	const longDate = formatLong(effective, !extended)
 	const shortDate = formatShort(effective, !extended)
@@ -172,12 +173,21 @@ export function ArchiveManagerBadge({
 				{mode === 'menu' && (
 					<div className="flex flex-col gap-3">
 						<div className="flex flex-col gap-1 text-sm text-muted-foreground">
-							<p>
-								<strong className="text-foreground">Reveal now</strong> releases everything immediately (only once the event has passed).{' '}
-								<strong className="text-foreground">Extend</strong> pushes the reveal later, handy when the event is close to another
-								occasion.
-							</p>
-							<p>An active extension blocks &ldquo;Reveal now&rdquo; on purpose. Cancel the extension first if you want to reveal early.</p>
+							{archiveInfo.eventHasPassed ? (
+								<p>
+									<strong className="text-foreground">Reveal now</strong> releases everything immediately.{' '}
+									<strong className="text-foreground">Extend</strong> pushes the reveal later, handy when the event is close to another
+									occasion.
+								</p>
+							) : (
+								<p>
+									{eventDate ? `After ${formatLong(eventDate, true)}` : 'Once the event has passed'}, you can reveal early or push the
+									reveal later.
+								</p>
+							)}
+							{extended && (
+								<p>This extension blocks &ldquo;Reveal now&rdquo; on purpose. Cancel the extension first if you want to reveal early.</p>
+							)}
 						</div>
 						<div className="flex flex-wrap gap-2">
 							{archiveInfo.inForceWindow && (
