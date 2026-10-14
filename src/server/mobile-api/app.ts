@@ -30,11 +30,15 @@
 import { Hono } from 'hono'
 
 import { db } from '@/db'
+import { createLogger } from '@/lib/logger'
+import { captureServerException } from '@/lib/observability/sentry-server'
 import { getAppSettings } from '@/lib/settings-loader'
 
 import { jsonError } from './envelope'
 import { minClientVersionHeader } from './middleware'
 import { v1 } from './v1'
+
+const log = createLogger('mobile-api')
 
 export const mobileApp = new Hono().basePath('/api/mobile')
 
@@ -60,9 +64,11 @@ mobileApp.route('/v1', v1)
 
 mobileApp.notFound(c => jsonError(c, 404, 'not-found'))
 
-mobileApp.onError((_err, c) => {
-	// Don't leak stack traces or internal details to mobile clients.
-	// Real diagnostic info goes to server logs via the existing pino
-	// pipeline (any thrown error bubbles to Nitro's logger).
+mobileApp.onError(async (err, c) => {
+	// Don't leak stack traces or internal details to mobile clients. Hono
+	// stops the error here (it never reaches Nitro's error hook), so log
+	// and report it before answering.
+	log.error({ err, path: c.req.path }, 'mobile api request failed')
+	await captureServerException(err, { path: c.req.path, source: 'mobile-api' })
 	return jsonError(c, 500, 'internal-error')
 })

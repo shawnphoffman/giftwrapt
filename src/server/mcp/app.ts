@@ -16,6 +16,7 @@ import { db } from '@/db'
 import { env } from '@/env'
 import { createLogger } from '@/lib/logger'
 import { MCP_ENDPOINT_PATH } from '@/lib/mcp-config'
+import { captureServerException } from '@/lib/observability/sentry-server'
 import { mcpLimiter } from '@/lib/rate-limits'
 import { getAppSettings } from '@/lib/settings-loader'
 
@@ -124,7 +125,8 @@ mcpApp.delete('/', () => rpcError(405, -32000, 'Method not allowed', { Allow: 'P
 
 mcpApp.notFound(() => rpcError(404, -32000, 'Not found'))
 
-mcpApp.onError((err, c) => {
+mcpApp.onError(async (err, c) => {
 	log.error({ err, path: c.req.path }, 'mcp request failed')
+	await captureServerException(err, { path: c.req.path, source: 'mcp' })
 	return rpcError(500, -32603, 'Internal error')
 })

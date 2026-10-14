@@ -62,8 +62,10 @@ export const logger: Logger = prettyEnabled
 export const createLogger = (scope: string, bindings: Record<string, unknown> = {}): Logger => logger.child({ scope, ...bindings })
 
 // TanStack middleware that wraps every server function invocation with a
-// scoped child logger, entry/exit debug lines, and error capture. Errors are
-// logged then rethrown so normal control flow is preserved.
+// scoped child logger, entry/exit debug lines, and error logging. Errors are
+// logged then rethrown so normal control flow is preserved. Sentry capture
+// is not done here: the global errorCaptureMiddleware (src/start.ts) covers
+// every server fn, including the ones that don't list this middleware.
 //
 // Usage:
 //   .middleware([authMiddleware, loggingMiddleware])
@@ -89,12 +91,6 @@ export const loggingMiddleware = createMiddleware().server(async ({ next }) => {
 		}
 		const durationMs = Date.now() - start
 		log.error({ err, durationMs }, 'server fn error')
-		// Server-only import; dynamic so the client bundle does not pull in
-		// @sentry/node alongside the middleware reference.
-		if (typeof window === 'undefined') {
-			const { captureServerException } = await import('@/lib/observability/sentry-server')
-			void captureServerException(err, { durationMs })
-		}
 		throw err
 	}
 })

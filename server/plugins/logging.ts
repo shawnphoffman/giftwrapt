@@ -83,6 +83,9 @@ export default defineNitroPlugin(nitroApp => {
 		// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- Nitro types mark ctx.event optional; lint's flow analysis disagrees with tsc.
 		const path = ctx?.event?.req.url ?? 'unknown'
 		logger.error({ err, path }, 'unhandled request error')
-		void captureServerException(err, { path })
+		// Returned, not voided: Nitro hands the hook's promise to
+		// req.waitUntil, which keeps a serverless function alive until the
+		// event has been flushed.
+		return captureServerException(err, { path })
 	})
 })
