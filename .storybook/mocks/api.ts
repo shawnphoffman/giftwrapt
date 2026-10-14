@@ -291,6 +291,7 @@ export const updateUserPartner = ok
 export const createGuardianships = ok
 export const removeGuardianshipsForChild = ok
 export const sendTestEmailAsAdmin = ok
+export const sendSentryTestErrorAsAdmin = ok
 
 // @/api/dependents
 export type DependentSummary = {

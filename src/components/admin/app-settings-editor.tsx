@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { updateAppSettings } from '@/api/settings'
+import { SendSentryTestErrorButton } from '@/components/admin/send-sentry-test-error'
 import { TimeZonePicker } from '@/components/admin/time-zone-picker'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -697,6 +698,9 @@ export function ObservabilitySettingsSection() {
 	if (!settings) return <LoadingOrEmpty isLoading={isLoading} settings={settings} />
 
 	const sentryEnvMissing = status ? !status.sentry.enabled && status.sentry.reason === 'env-missing' : false
+	// Follows the live toggle rather than status.sentry.enabled, which is only
+	// refetched on page load.
+	const canSendSentryTest = status !== undefined && !sentryEnvMissing && settings.enableSentry
 	const metricsEnvMissing = status ? !status.metrics.enabled && status.metrics.reason === 'env-missing' : false
 
 	return (
@@ -718,6 +722,11 @@ export function ObservabilitySettingsSection() {
 						<p className="text-sm text-amber-500">
 							Set <code>SENTRY_DSN</code> in your deployment's environment to turn this on.
 						</p>
+					)}
+					{canSendSentryTest && (
+						<div className="pt-2">
+							<SendSentryTestErrorButton />
+						</div>
 					)}
 				</div>
 				<Switch

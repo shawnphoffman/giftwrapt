@@ -92,6 +92,25 @@ export const sendTestEmailAsAdmin = createServerFn({
 		return { status: 'success', data: result }
 	})
 
+// Fails on purpose so an operator can confirm SENTRY_DSN end to end. The
+// error takes the same path as a real server fn failure (the global
+// errorCaptureMiddleware), so a test that lands proves production errors
+// will too.
+export class SentryTestError extends Error {
+	constructor() {
+		super(`Sentry test error from admin settings (${new Date().toISOString()})`)
+		this.name = 'SentryTestError'
+	}
+}
+
+export const sendSentryTestErrorAsAdmin = createServerFn({
+	method: 'POST',
+})
+	.middleware([adminAuthMiddleware, loggingMiddleware])
+	.handler((): Promise<never> => {
+		throw new SentryTestError()
+	})
+
 //
 export const createGuardianships = createServerFn({
 	method: 'POST',
