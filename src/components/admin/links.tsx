@@ -1,5 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router'
-import { Barcode, Bug, CalendarClock, Database, Globe, HardDrive, Lock, Mail, Plug, ShieldCheck, Sparkles, Users } from 'lucide-react'
+import { Barcode, Bug, CalendarClock, Database, Eye, Globe, HardDrive, Lock, Mail, Plug, ShieldCheck, Sparkles, Users } from 'lucide-react'
 
 import { buttonVariants } from '@/components/ui/button'
 import { useAppSetting } from '@/hooks/use-app-settings'
@@ -56,6 +56,10 @@ export default function AdminLinks() {
 			<Link to="/admin/data" className={navLinkClass(pathname === '/admin/data')}>
 				<Database />
 				Import / Export
+			</Link>
+			<Link to="/admin/reveals" className={navLinkClass(pathname === '/admin/reveals')}>
+				<Eye />
+				Reveals
 			</Link>
 			<Link to="/admin/scheduling" className={navLinkClass(pathname === '/admin/scheduling')}>
 				<CalendarClock />

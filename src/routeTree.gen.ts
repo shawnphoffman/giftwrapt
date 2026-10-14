@@ -64,6 +64,7 @@ import { Route as coreAdminUsersRouteImport } from './routes/(core)/admin/users'
 import { Route as coreAdminStorageRouteImport } from './routes/(core)/admin/storage'
 import { Route as coreAdminScrapingRouteImport } from './routes/(core)/admin/scraping'
 import { Route as coreAdminSchedulingRouteImport } from './routes/(core)/admin/scheduling'
+import { Route as coreAdminRevealsRouteImport } from './routes/(core)/admin/reveals'
 import { Route as coreAdminPhotoRouteImport } from './routes/(core)/admin/photo'
 import { Route as coreAdminMcpRouteImport } from './routes/(core)/admin/mcp'
 import { Route as coreAdminEmailRouteImport } from './routes/(core)/admin/email'
@@ -369,6 +370,11 @@ const coreAdminSchedulingRoute = coreAdminSchedulingRouteImport.update({
   path: '/scheduling',
   getParentRoute: () => coreAdminRouteRoute,
 } as any)
+const coreAdminRevealsRoute = coreAdminRevealsRouteImport.update({
+  id: '/reveals',
+  path: '/reveals',
+  getParentRoute: () => coreAdminRouteRoute,
+} as any)
 const coreAdminPhotoRoute = coreAdminPhotoRouteImport.update({
   id: '/photo',
   path: '/photo',
@@ -518,6 +524,7 @@ export interface FileRoutesByFullPath {
   '/admin/email': typeof coreAdminEmailRoute
   '/admin/mcp': typeof coreAdminMcpRoute
   '/admin/photo': typeof coreAdminPhotoRoute
+  '/admin/reveals': typeof coreAdminRevealsRoute
   '/admin/scheduling': typeof coreAdminSchedulingRoute
   '/admin/scraping': typeof coreAdminScrapingRoute
   '/admin/storage': typeof coreAdminStorageRoute
@@ -592,6 +599,7 @@ export interface FileRoutesByTo {
   '/admin/email': typeof coreAdminEmailRoute
   '/admin/mcp': typeof coreAdminMcpRoute
   '/admin/photo': typeof coreAdminPhotoRoute
+  '/admin/reveals': typeof coreAdminRevealsRoute
   '/admin/scheduling': typeof coreAdminSchedulingRoute
   '/admin/scraping': typeof coreAdminScrapingRoute
   '/admin/storage': typeof coreAdminStorageRoute
@@ -672,6 +680,7 @@ export interface FileRoutesById {
   '/(core)/admin/email': typeof coreAdminEmailRoute
   '/(core)/admin/mcp': typeof coreAdminMcpRoute
   '/(core)/admin/photo': typeof coreAdminPhotoRoute
+  '/(core)/admin/reveals': typeof coreAdminRevealsRoute
   '/(core)/admin/scheduling': typeof coreAdminSchedulingRoute
   '/(core)/admin/scraping': typeof coreAdminScrapingRoute
   '/(core)/admin/storage': typeof coreAdminStorageRoute
@@ -752,6 +761,7 @@ export interface FileRouteTypes {
     | '/admin/email'
     | '/admin/mcp'
     | '/admin/photo'
+    | '/admin/reveals'
     | '/admin/scheduling'
     | '/admin/scraping'
     | '/admin/storage'
@@ -826,6 +836,7 @@ export interface FileRouteTypes {
     | '/admin/email'
     | '/admin/mcp'
     | '/admin/photo'
+    | '/admin/reveals'
     | '/admin/scheduling'
     | '/admin/scraping'
     | '/admin/storage'
@@ -905,6 +916,7 @@ export interface FileRouteTypes {
     | '/(core)/admin/email'
     | '/(core)/admin/mcp'
     | '/(core)/admin/photo'
+    | '/(core)/admin/reveals'
     | '/(core)/admin/scheduling'
     | '/(core)/admin/scraping'
     | '/(core)/admin/storage'
@@ -1375,6 +1387,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreAdminSchedulingRouteImport
       parentRoute: typeof coreAdminRouteRoute
     }
+    '/(core)/admin/reveals': {
+      id: '/(core)/admin/reveals'
+      path: '/reveals'
+      fullPath: '/admin/reveals'
+      preLoaderRoute: typeof coreAdminRevealsRouteImport
+      parentRoute: typeof coreAdminRouteRoute
+    }
     '/(core)/admin/photo': {
       id: '/(core)/admin/photo'
       path: '/photo'
@@ -1541,6 +1560,7 @@ interface coreAdminRouteRouteChildren {
   coreAdminEmailRoute: typeof coreAdminEmailRoute
   coreAdminMcpRoute: typeof coreAdminMcpRoute
   coreAdminPhotoRoute: typeof coreAdminPhotoRoute
+  coreAdminRevealsRoute: typeof coreAdminRevealsRoute
   coreAdminSchedulingRoute: typeof coreAdminSchedulingRoute
   coreAdminScrapingRoute: typeof coreAdminScrapingRoute
   coreAdminStorageRoute: typeof coreAdminStorageRoute
@@ -1558,6 +1578,7 @@ const coreAdminRouteRouteChildren: coreAdminRouteRouteChildren = {
   coreAdminEmailRoute: coreAdminEmailRoute,
   coreAdminMcpRoute: coreAdminMcpRoute,
   coreAdminPhotoRoute: coreAdminPhotoRoute,
+  coreAdminRevealsRoute: coreAdminRevealsRoute,
   coreAdminSchedulingRoute: coreAdminSchedulingRoute,
   coreAdminScrapingRoute: coreAdminScrapingRoute,
   coreAdminStorageRoute: coreAdminStorageRoute,
