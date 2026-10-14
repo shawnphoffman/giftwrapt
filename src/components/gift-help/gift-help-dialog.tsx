@@ -275,14 +275,14 @@ export function GiftHelpDialogView({
 													return (
 														<li
 															key={s.title}
-															className="flex items-center justify-between gap-3 rounded-md border border-dashed px-4 py-2 text-sm text-muted-foreground"
+															className="flex flex-col gap-2 rounded-md border border-dashed px-4 py-2 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:gap-3"
 														>
 															<span className="min-w-0 truncate line-through">{s.title}</span>
-															<span className="flex shrink-0 items-center gap-2">
+															<span className="flex shrink-0 items-center justify-between gap-2">
 																<span className="text-xs">
 																	{verdict === 'has-it' ? `${recipientName} already has this` : 'Not for them'}
 																</span>
-																<Button type="button" variant="ghost" size="sm" disabled={marking} onClick={() => onUnmark(s)}>
+																<Button type="button" variant="outline" size="sm" disabled={marking} onClick={() => onUnmark(s)}>
 																	Undo
 																</Button>
 															</span>
@@ -299,9 +299,13 @@ export function GiftHelpDialogView({
 															<p className="text-sm">{s.details}</p>
 															<p className="text-sm text-muted-foreground">{s.reason}</p>
 														</div>
-														<div className="flex flex-wrap items-center justify-end gap-2">
+														{/* Phones: the save actions full width on top, the two marks side by
+														    side under them (stacked when too narrow to fit both), at the
+														    default button height. From sm up: two rows, Search and the marks
+														    over the save actions, since five labeled buttons never fit one. */}
+														<div className="grid grid-cols-[repeat(auto-fit,minmax(7rem,1fr))] gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end">
 															{searchUrl && (
-																<Button asChild variant="ghost" size="sm" className="mr-auto">
+																<Button asChild variant="outline" className="col-span-full max-sm:order-5 sm:mr-auto">
 																	<a href={searchUrl} target="_blank" rel="noopener noreferrer">
 																		<ExternalLink className="size-4" />
 																		Search
@@ -310,31 +314,33 @@ export function GiftHelpDialogView({
 															)}
 															<Button
 																type="button"
-																variant="ghost"
-																size="sm"
+																variant="outline"
+																className="max-sm:order-3"
 																disabled={marking}
 																title={`${recipientName} already has this`}
 																aria-label={`They have it: ${s.title}`}
 																onClick={() => onMark(s, 'has-it')}
 															>
 																<PackageCheck className="size-4" />
-																<span className="sr-only sm:not-sr-only">They have it</span>
+																They have it
 															</Button>
 															<Button
 																type="button"
-																variant="ghost"
-																size="sm"
+																variant="outline"
+																className="max-sm:order-4"
 																disabled={marking}
 																title="Not for them"
 																aria-label={`Not for them: ${s.title}`}
 																onClick={() => onMark(s, 'not-for-me')}
 															>
 																<ThumbsDown className="size-4" />
+																Not for them
 															</Button>
+															<div className="hidden sm:block sm:basis-full" aria-hidden />
 															<Button
 																type="button"
 																variant="outline"
-																size="sm"
+																className="col-span-full max-sm:order-2"
 																disabled={added || addingTitle === s.title}
 																onClick={() => onAddOffList(s)}
 															>
@@ -345,7 +351,7 @@ export function GiftHelpDialogView({
 															<Button
 																type="button"
 																variant="outline"
-																size="sm"
+																className="col-span-full max-sm:order-1"
 																disabled={saved || savingTitle === s.title}
 																onClick={() => onSaveIdea(s)}
 															>
