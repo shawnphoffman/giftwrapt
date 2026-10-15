@@ -3,7 +3,18 @@ import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
-function Slider({ className, defaultValue, value, min = 0, max = 100, ...props }: React.ComponentProps<typeof SliderPrimitive.Root>) {
+function Slider({
+	className,
+	defaultValue,
+	value,
+	min = 0,
+	max = 100,
+	thumbProps,
+	...props
+}: React.ComponentProps<typeof SliderPrimitive.Root> & {
+	/** Spread onto every thumb, which is the element with role="slider" (its label and value text go here). */
+	thumbProps?: React.ComponentProps<typeof SliderPrimitive.Thumb>
+}) {
 	const _values = React.useMemo(
 		() => (Array.isArray(value) ? value : Array.isArray(defaultValue) ? defaultValue : [min, max]),
 		[value, defaultValue, min, max]
@@ -35,6 +46,7 @@ function Slider({ className, defaultValue, value, min = 0, max = 100, ...props }
 				<SliderPrimitive.Thumb
 					data-slot="slider-thumb"
 					key={index}
+					{...thumbProps}
 					className="block size-4 shrink-0 rounded-full border border-primary bg-white shadow-sm ring-ring/50 transition-[color,box-shadow] select-none hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
 				/>
 			))}

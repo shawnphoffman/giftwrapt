@@ -1,5 +1,5 @@
 import { Link, useLocation } from '@tanstack/react-router'
-import { LogOut, type LucideIcon, Plug, ShieldCheck, Smartphone, Sprout, UserCircle, UserCog } from 'lucide-react'
+import { ALargeSmall, LogOut, type LucideIcon, Plug, ShieldCheck, Smartphone, Sprout, UserCircle, UserCog } from 'lucide-react'
 
 import { buttonVariants } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -29,6 +29,7 @@ export default function SettingsLinks() {
 	const isDevices = pathname === '/settings/devices'
 	const isConnectedApps = pathname === '/settings/connected-apps'
 	const isDependents = pathname.startsWith('/settings/dependents')
+	const isAppearance = pathname === '/settings/appearance'
 
 	return (
 		<>
@@ -47,6 +48,10 @@ export default function SettingsLinks() {
 			<Link to="/settings/dependents" className={navLinkClass(isDependents)}>
 				<NavIcon icon={Sprout} active={isDependents} />
 				Dependents
+			</Link>
+			<Link to="/settings/appearance" className={navLinkClass(isAppearance)}>
+				<NavIcon icon={ALargeSmall} active={isAppearance} />
+				Appearance
 			</Link>
 			{mobileAppEnabled && (
 				<Link to="/settings/devices" className={navLinkClass(isDevices)}>

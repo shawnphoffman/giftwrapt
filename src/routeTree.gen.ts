@@ -55,6 +55,7 @@ import { Route as coreSettingsPermissionsRouteImport } from './routes/(core)/set
 import { Route as coreSettingsDevicesRouteImport } from './routes/(core)/settings/devices'
 import { Route as coreSettingsDependentsRouteImport } from './routes/(core)/settings/dependents'
 import { Route as coreSettingsConnectedAppsRouteImport } from './routes/(core)/settings/connected-apps'
+import { Route as coreSettingsAppearanceRouteImport } from './routes/(core)/settings/appearance'
 import { Route as coreRecentItemsRouteImport } from './routes/(core)/recent.items'
 import { Route as coreRecentCommentsRouteImport } from './routes/(core)/recent.comments'
 import { Route as corePurchasesReceivedRouteImport } from './routes/(core)/purchases.received'
@@ -325,6 +326,11 @@ const coreSettingsConnectedAppsRoute =
     path: '/connected-apps',
     getParentRoute: () => coreSettingsRouteRoute,
   } as any)
+const coreSettingsAppearanceRoute = coreSettingsAppearanceRouteImport.update({
+  id: '/appearance',
+  path: '/appearance',
+  getParentRoute: () => coreSettingsRouteRoute,
+} as any)
 const coreRecentItemsRoute = coreRecentItemsRouteImport.update({
   id: '/recent/items',
   path: '/recent/items',
@@ -534,6 +540,7 @@ export interface FileRoutesByFullPath {
   '/purchases/received': typeof corePurchasesReceivedRoute
   '/recent/comments': typeof coreRecentCommentsRoute
   '/recent/items': typeof coreRecentItemsRoute
+  '/settings/appearance': typeof coreSettingsAppearanceRoute
   '/settings/connected-apps': typeof coreSettingsConnectedAppsRoute
   '/settings/dependents': typeof coreSettingsDependentsRoute
   '/settings/devices': typeof coreSettingsDevicesRoute
@@ -609,6 +616,7 @@ export interface FileRoutesByTo {
   '/purchases/received': typeof corePurchasesReceivedRoute
   '/recent/comments': typeof coreRecentCommentsRoute
   '/recent/items': typeof coreRecentItemsRoute
+  '/settings/appearance': typeof coreSettingsAppearanceRoute
   '/settings/connected-apps': typeof coreSettingsConnectedAppsRoute
   '/settings/dependents': typeof coreSettingsDependentsRoute
   '/settings/devices': typeof coreSettingsDevicesRoute
@@ -690,6 +698,7 @@ export interface FileRoutesById {
   '/(core)/purchases/received': typeof corePurchasesReceivedRoute
   '/(core)/recent/comments': typeof coreRecentCommentsRoute
   '/(core)/recent/items': typeof coreRecentItemsRoute
+  '/(core)/settings/appearance': typeof coreSettingsAppearanceRoute
   '/(core)/settings/connected-apps': typeof coreSettingsConnectedAppsRoute
   '/(core)/settings/dependents': typeof coreSettingsDependentsRoute
   '/(core)/settings/devices': typeof coreSettingsDevicesRoute
@@ -771,6 +780,7 @@ export interface FileRouteTypes {
     | '/purchases/received'
     | '/recent/comments'
     | '/recent/items'
+    | '/settings/appearance'
     | '/settings/connected-apps'
     | '/settings/dependents'
     | '/settings/devices'
@@ -846,6 +856,7 @@ export interface FileRouteTypes {
     | '/purchases/received'
     | '/recent/comments'
     | '/recent/items'
+    | '/settings/appearance'
     | '/settings/connected-apps'
     | '/settings/dependents'
     | '/settings/devices'
@@ -926,6 +937,7 @@ export interface FileRouteTypes {
     | '/(core)/purchases/received'
     | '/(core)/recent/comments'
     | '/(core)/recent/items'
+    | '/(core)/settings/appearance'
     | '/(core)/settings/connected-apps'
     | '/(core)/settings/dependents'
     | '/(core)/settings/devices'
@@ -1324,6 +1336,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof coreSettingsConnectedAppsRouteImport
       parentRoute: typeof coreSettingsRouteRoute
     }
+    '/(core)/settings/appearance': {
+      id: '/(core)/settings/appearance'
+      path: '/appearance'
+      fullPath: '/settings/appearance'
+      preLoaderRoute: typeof coreSettingsAppearanceRouteImport
+      parentRoute: typeof coreSettingsRouteRoute
+    }
     '/(core)/recent/items': {
       id: '/(core)/recent/items'
       path: '/recent/items'
@@ -1592,6 +1611,7 @@ const coreAdminRouteRouteWithChildren = coreAdminRouteRoute._addFileChildren(
 )
 
 interface coreSettingsRouteRouteChildren {
+  coreSettingsAppearanceRoute: typeof coreSettingsAppearanceRoute
   coreSettingsConnectedAppsRoute: typeof coreSettingsConnectedAppsRoute
   coreSettingsDependentsRoute: typeof coreSettingsDependentsRoute
   coreSettingsDevicesRoute: typeof coreSettingsDevicesRoute
@@ -1601,6 +1621,7 @@ interface coreSettingsRouteRouteChildren {
 }
 
 const coreSettingsRouteRouteChildren: coreSettingsRouteRouteChildren = {
+  coreSettingsAppearanceRoute: coreSettingsAppearanceRoute,
   coreSettingsConnectedAppsRoute: coreSettingsConnectedAppsRoute,
   coreSettingsDependentsRoute: coreSettingsDependentsRoute,
   coreSettingsDevicesRoute: coreSettingsDevicesRoute,

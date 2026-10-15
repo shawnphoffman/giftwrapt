@@ -73,6 +73,7 @@ export const ROUTES: ReadonlyArray<RouteDef> = [
 	{ slug: 'settings-permissions', label: 'Settings (Permissions)', path: '/settings/permissions' },
 	{ slug: 'settings-devices', label: 'Settings (Devices)', path: '/settings/devices' },
 	{ slug: 'settings-dependents', label: 'Settings (Dependents)', path: '/settings/dependents' },
+	{ slug: 'settings-appearance', label: 'Settings (Appearance)', path: '/settings/appearance' },
 
 	{ slug: 'my-purchases', label: 'My Purchases', path: '/purchases' },
 	{ slug: 'my-received', label: 'My Received', path: '/purchases/received' },

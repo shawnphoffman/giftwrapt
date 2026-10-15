@@ -1,9 +1,9 @@
 import '../styles.css'
 
 import type { QueryClient } from '@tanstack/react-query'
-import { createRootRouteWithContext, HeadContent, Scripts } from '@tanstack/react-router'
+import { createRootRouteWithContext, HeadContent, Scripts, useRouterState } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
-import { getRequestHeaders } from '@tanstack/react-start/server'
+import { getCookie, getRequestHeaders } from '@tanstack/react-start/server'
 import { ThemeProvider } from 'next-themes'
 
 import { Toaster } from '@/components/ui/sonner'
@@ -16,6 +16,7 @@ import { observabilityStatusQueryOptions } from '@/hooks/use-observability-statu
 import { storageStatusQueryOptions } from '@/hooks/use-storage-status'
 import { isEmbeddedUserAgent } from '@/lib/embedded'
 import { captureClientException } from '@/lib/observability/sentry-client'
+import { readTextSizeCookie, resolveTextSize, TEXT_SIZE_COOKIE, type TextSize, textSizeStyle } from '@/lib/text-size'
 
 import ErrorBoundaryFallback from './-error-boundary'
 import Head from './-head'
@@ -30,16 +31,24 @@ interface RouterContext {
 // `navigator.userAgent`. Both sides agree, so there is no hydration drift.
 // Read in the root loader so every route (auth pages included) sees the
 // same answer via `useEmbedded()`. See src/lib/embedded.ts.
-const readEmbedded = createServerFn({ method: 'GET' }).handler(() => {
-	return { embedded: isEmbeddedUserAgent(getRequestHeaders().get('user-agent')) }
+//
+// The text size (plan 30c) comes the same way: the `gw-text-size` cookie on
+// the server, `document.cookie` on the client, so the shell can put it on
+// <html> during SSR and the first paint is already at the chosen size.
+const readShellRequest = createServerFn({ method: 'GET' }).handler(() => {
+	return {
+		embedded: isEmbeddedUserAgent(getRequestHeaders().get('user-agent')),
+		textSizeCookie: getCookie(TEXT_SIZE_COOKIE) ?? null,
+	}
 })
 
-async function detectEmbedded(): Promise<boolean> {
+async function detectShell(): Promise<{ embedded: boolean; textSize: TextSize }> {
 	if (typeof window === 'undefined') {
-		const { embedded } = await readEmbedded()
-		return embedded
+		const { embedded, textSizeCookie } = await readShellRequest()
+		return { embedded, textSize: resolveTextSize({ cookie: textSizeCookie, embedded }) }
 	}
-	return isEmbeddedUserAgent(window.navigator.userAgent)
+	const embedded = isEmbeddedUserAgent(window.navigator.userAgent)
+	return { embedded, textSize: resolveTextSize({ cookie: readTextSizeCookie(document.cookie), embedded }) }
 }
 
 export const Route = createRootRouteWithContext<RouterContext>()({
@@ -47,7 +56,7 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 	// from earlier properties to later ones, and `head` (Head) consumes the
 	// loader's returned `appTitle`. Ordering head first breaks that inference.
 	loader: async ({ context }) => {
-		const embedded = await detectEmbedded()
+		const { embedded, textSize } = await detectShell()
 		// Prefetch app settings + storage status on server; both hydrate to
 		// client. Run in parallel since neither depends on the other.
 		// Wrapped in try-catch so a transient DB hiccup (cold-start pool
@@ -61,9 +70,9 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 				context.queryClient.ensureQueryData(storageStatusQueryOptions),
 				context.queryClient.ensureQueryData(observabilityStatusQueryOptions),
 			])
-			return { appTitle: settings.appTitle, embedded }
+			return { appTitle: settings.appTitle, embedded, textSize }
 		} catch {
-			return { appTitle: 'GiftWrapt', embedded }
+			return { appTitle: 'GiftWrapt', embedded, textSize }
 		}
 	},
 	head: Head,
@@ -72,8 +81,13 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+	// Router state rather than useLoaderData: the shell also renders when the
+	// root loader has not produced data (an error), and then stays at 100%.
+	const textSize = useRouterState({
+		select: st => (st.matches.find(m => m.routeId === '__root__')?.loaderData as { textSize?: TextSize } | undefined)?.textSize,
+	})
 	return (
-		<html lang="en" className="dark" suppressHydrationWarning>
+		<html lang="en" className="dark" style={textSize ? textSizeStyle(textSize) : undefined} suppressHydrationWarning>
 			<head>
 				<HeadContent />
 			</head>
