@@ -86,10 +86,10 @@ export function ListFilterPopover({ sections, selected, onChange, iconOnly = fal
 				<Button
 					data-intelligence="list-filter-trigger"
 					data-filter-active={!allChecked ? 'true' : 'false'}
-					size="sm"
+					size={iconOnly ? 'icon-sm' : 'sm'}
 					variant="outline"
 					aria-label={iconOnly ? 'Filter suggestions by list' : undefined}
-					className={iconOnly ? 'relative px-2' : 'relative'}
+					className="relative"
 				>
 					<Filter className="size-4" />
 					{!iconOnly && <span>Filter</span>}

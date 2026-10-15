@@ -232,7 +232,7 @@ function ListEditPage() {
 					<TodoList listId={list.id} canEdit />
 				) : (
 					<div className="flex flex-col gap-2">
-						<div className="flex items-center justify-end gap-2">
+						<div className="flex flex-wrap items-center justify-end gap-2">
 							<ArchiveManagerBadge
 								listId={list.id}
 								archiveInfo={list.archiveInfo}

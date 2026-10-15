@@ -336,6 +336,7 @@ export function ListAddonDialog(props: Props) {
 										<InputGroupAddon align="inline-end">
 											<InputGroupButton
 												type="button"
+												size="icon-xs"
 												aria-label={scrapeInFlight ? 'Importing from URL…' : 'Import details from URL'}
 												title={scrapeInFlight ? 'Importing from URL…' : 'Import details from URL'}
 												disabled={!urlScrapable || scrapeInFlight || submitting}

@@ -410,7 +410,7 @@ function EditUserFormInner({
 				e.stopPropagation()
 				form.handleSubmit()
 			}}
-			className="space-y-6 min-w-0"
+			className="@container space-y-6 min-w-0"
 		>
 			{/* Header strip */}
 			<form.Subscribe selector={state => ({ name: state.values.name, image: state.values.image, role: state.values.role })}>
@@ -452,9 +452,9 @@ function EditUserFormInner({
 					)
 				}}
 			</form.Subscribe>
-			<div className="grid md:grid-cols-2 gap-6">
+			<div className="grid @3xl:grid-cols-2 gap-6">
 				<div className="space-y-6 min-w-0">
-					<section className="rounded-lg border bg-card p-5 space-y-4">
+					<section className="@container rounded-lg border bg-card p-5 space-y-4">
 						<h3 className="font-medium text-lg">Profile</h3>
 
 						<form.Field name="email">
@@ -524,7 +524,7 @@ function EditUserFormInner({
 							)}
 						</form.Field>
 
-						<div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+						<div className="grid grid-cols-1 @xs:grid-cols-2 gap-4">
 							<form.Field name="birthMonth">
 								{field => (
 									<div className="grid gap-2 w-full">

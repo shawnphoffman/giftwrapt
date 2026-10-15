@@ -438,15 +438,7 @@ function EntryCard({
 					onCheckedChange={(checked: boolean) => setDraft(prev => ({ ...prev, enabled: checked }))}
 					aria-label={draft.enabled ? `Disable ${displayName}` : `Enable ${displayName}`}
 				/>
-				<Button
-					type="button"
-					variant="outline"
-					size="icon"
-					className="h-8 w-8"
-					disabled={disabled}
-					onClick={onRemove}
-					aria-label={`Remove ${displayName}`}
-				>
+				<Button type="button" variant="outline" size="icon-sm" disabled={disabled} onClick={onRemove} aria-label={`Remove ${displayName}`}>
 					<Trash2 className="size-4 text-muted-foreground" />
 				</Button>
 			</div>

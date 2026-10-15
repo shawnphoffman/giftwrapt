@@ -16,15 +16,12 @@ export function ThemeSwitcher({ className }: { className?: string }) {
 		setMounted(true)
 	}, [])
 
-	const buttonClasses = cn(
-		'size-8 mx-auto group-data-[collapsible=icon]:size-10 transition-[width,height] duration-200 ease-linear',
-		className
-	)
+	const buttonClasses = cn('mx-auto group-data-[collapsible=icon]:size-10 transition-[width,height] duration-200 ease-linear', className)
 	const iconClasses = 'size-4 group-data-[collapsible=icon]:size-6 transition-[width,height] duration-200 ease-linear'
 
 	if (!mounted) {
 		return (
-			<Button variant="outline" size="icon" className={buttonClasses} disabled={true} aria-label="Toggle theme" suppressHydrationWarning>
+			<Button variant="outline" size="icon-sm" className={buttonClasses} disabled={true} aria-label="Toggle theme" suppressHydrationWarning>
 				<Moon className={iconClasses} />
 			</Button>
 		)
@@ -35,7 +32,7 @@ export function ThemeSwitcher({ className }: { className?: string }) {
 	return (
 		<Button
 			variant="outline"
-			size="icon"
+			size="icon-sm"
 			className={buttonClasses}
 			onClick={() => setTheme(isDark ? 'light' : 'dark')}
 			aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}

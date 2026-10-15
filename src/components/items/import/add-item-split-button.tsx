@@ -73,7 +73,7 @@ export function AddItemSplitButton({ listId, onAddItem, onAddItemFromPhoto, impo
 				</Button>
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-						<Button size="sm" aria-label="Import items" className="rounded-l-none px-1.5 focus-visible:z-10">
+						<Button size="icon-sm" aria-label="Import items" className="rounded-l-none focus-visible:z-10">
 							<ChevronDown className="size-4" />
 						</Button>
 					</DropdownMenuTrigger>

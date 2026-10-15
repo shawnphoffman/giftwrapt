@@ -30,15 +30,21 @@ export function StorageSummaryBar({
 	return (
 		<div className="flex flex-col gap-2 rounded-md border bg-muted/30 px-4 py-3">
 			<div className="flex flex-wrap items-end justify-between gap-3">
-				<dl className="grid grid-cols-3 gap-x-6 gap-y-1 text-sm">
-					<dt className="text-xs uppercase tracking-wide text-muted-foreground">Objects</dt>
-					<dt className="text-xs uppercase tracking-wide text-muted-foreground">Size</dt>
-					<dt className="text-xs uppercase tracking-wide text-muted-foreground">Orphans</dt>
-					<dd className="font-mono tabular-nums">{loading ? '…' : (summary?.totalCount.toLocaleString() ?? '–')}</dd>
-					<dd className="font-mono tabular-nums">{loading ? '…' : summary ? formatBytes(summary.totalBytes) : '–'}</dd>
-					<dd className="font-mono tabular-nums">
-						{loading ? '…' : summary ? `${summary.orphanCount.toLocaleString()} (${formatBytes(summary.orphanBytes)})` : '–'}
-					</dd>
+				<dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+					<div className="space-y-1">
+						<dt className="text-xs uppercase tracking-wide text-muted-foreground">Objects</dt>
+						<dd className="font-mono tabular-nums">{loading ? '…' : (summary?.totalCount.toLocaleString() ?? '–')}</dd>
+					</div>
+					<div className="space-y-1">
+						<dt className="text-xs uppercase tracking-wide text-muted-foreground">Size</dt>
+						<dd className="font-mono tabular-nums">{loading ? '…' : summary ? formatBytes(summary.totalBytes) : '–'}</dd>
+					</div>
+					<div className="space-y-1">
+						<dt className="text-xs uppercase tracking-wide text-muted-foreground">Orphans</dt>
+						<dd className="font-mono tabular-nums">
+							{loading ? '…' : summary ? `${summary.orphanCount.toLocaleString()} (${formatBytes(summary.orphanBytes)})` : '–'}
+						</dd>
+					</div>
 				</dl>
 				<Button
 					type="button"
