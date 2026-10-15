@@ -67,8 +67,11 @@ export default function BirthdayBadge({ birthMonth, birthDay }: BirthdayBadgePro
 
 	const plural = new Intl.PluralRules().select(countdown)
 
+	// Inside a person card header (@container/person) the two badges stack instead
+	// of running past the edge once the header is narrow, which happens on phones
+	// with the text size turned up. They never wrap.
 	return (
-		<div className="flex flex-row items-center gap-1">
+		<div className="flex flex-row items-center gap-1 @max-[16.5rem]/person:flex-col @max-[16.5rem]/person:items-end">
 			<Badge variant="outline">{birthdayText}</Badge>
 			{countdown < 31 && (
 				<Badge variant="destructive" className="whitespace-nowrap">

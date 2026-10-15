@@ -467,8 +467,8 @@ function Header({
 	onSelectedListIdsChange?: (next: Set<string>) => void
 }) {
 	return (
-		<div data-intelligence="page-header" className="flex flex-col gap-3 mb-6">
-			<h1 data-intelligence="page-title" className="flex flex-row items-center gap-3">
+		<div data-intelligence="page-header" className="@container/heading flex flex-col gap-3 mb-6">
+			<h1 data-intelligence="page-title" className="flex flex-row items-center gap-3 @max-[17.5rem]/heading:text-3xl">
 				<span
 					data-intelligence="page-header-icon"
 					className={cn(

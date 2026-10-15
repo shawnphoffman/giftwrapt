@@ -25,6 +25,13 @@ export type SignInPageContentProps = {
 	oidcButtonText?: string
 }
 
+// "Sign in with X" as "Use X", for the narrow card (a phone with the text size
+// turned up). A label that does not follow the pattern is kept as is.
+function shortSignInLabel(label: string): string {
+	const match = /^Sign in with (.+)$/i.exec(label)
+	return match ? `Use ${match[1]}` : label
+}
+
 const GENERIC_SIGN_IN_ERROR = 'Invalid email or password.'
 
 export function SignInPageContent({
@@ -91,7 +98,7 @@ export function SignInPageContent({
 			</div>
 			<Image src={logo} alt="GiftWrapt" width={160} height={160} className="w-24 sm:w-40" />
 
-			<div className="w-full max-w-md space-y-4 rounded-lg border bg-background/80 p-6 shadow-lg backdrop-blur">
+			<div className="@container/card w-full max-w-md space-y-4 rounded-lg border bg-background/80 p-6 shadow-lg backdrop-blur">
 				<div className="text-center">
 					<h1 className="text-3xl font-bold">Sign in</h1>
 					<p className="mt-2 text-muted-foreground">Enter your credentials to access your account</p>
@@ -118,11 +125,11 @@ export function SignInPageContent({
 					</div>
 
 					<div className="space-y-2">
-						<div className="flex items-baseline justify-between">
+						<div className="flex items-baseline justify-between gap-2">
 							<Label htmlFor="password">Password</Label>
 							{forgotPasswordHref && (
 								<a href={forgotPasswordHref} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4">
-									Forgot password?
+									<SignInLabel long="Forgot password?" short="Forgot?" />
 								</a>
 							)}
 						</div>
@@ -151,16 +158,35 @@ export function SignInPageContent({
 					{onSignInWithPasskey && (
 						<Button type="button" variant="outline" className="w-full" disabled={showLoading} onClick={handlePasskey}>
 							<KeyRound className="size-4" />
-							{passkeyLoading ? 'Authenticating…' : 'Sign in with a passkey'}
+							{passkeyLoading ? 'Authenticating…' : <SignInLabel long="Sign in with a passkey" short="Use a passkey" />}
 						</Button>
 					)}
 					{onSignInWithOidc && (
 						<Button type="button" variant="outline" className="w-full" disabled={showLoading} onClick={handleOidc}>
-							{oidcLoading ? 'Redirecting…' : (oidcButtonText ?? 'Sign in with OpenID')}
+							{oidcLoading ? (
+								'Redirecting…'
+							) : (
+								<SignInLabel
+									long={oidcButtonText ?? 'Sign in with OpenID'}
+									short={shortSignInLabel(oidcButtonText ?? 'Sign in with OpenID')}
+								/>
+							)}
 						</Button>
 					)}
 				</form>
 			</div>
 		</div>
+	)
+}
+
+// The short label replaces the long one only when the card is narrower than the
+// long labels need (10.5rem, so it follows the text size).
+function SignInLabel({ long, short }: { long: string; short: string }) {
+	if (long === short) return <>{long}</>
+	return (
+		<>
+			<span className="@max-[10.5rem]/card:hidden">{long}</span>
+			<span className="hidden @max-[10.5rem]/card:inline">{short}</span>
+		</>
 	)
 }

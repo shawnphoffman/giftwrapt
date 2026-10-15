@@ -72,7 +72,7 @@ export function ItemComments({ itemId, commentCount = 0, trailing }: Props) {
 					<MessageSquare className="size-3.5" />
 					{displayCount > 0 ? `${displayCount} comment${displayCount !== 1 ? 's' : ''}` : 'Add comment'}
 				</button>
-				{trailing && <div className="@md:ml-auto self-end">{trailing}</div>}
+				{trailing && <div className="@md:ml-auto self-end min-w-0 max-w-full">{trailing}</div>}
 			</div>
 
 			{mounted && (

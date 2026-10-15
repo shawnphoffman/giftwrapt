@@ -469,8 +469,9 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 						/>
 					</div>
 
-					<div className="grid gap-2">
+					<div className="@container/priority grid gap-2">
 						<Label id="add-item-priority-label">Priority</Label>
+						{/* One row of four, or two by two once the field is too narrow for "Normal" (a phone with the text size turned up). */}
 						<ToggleGroup
 							type="single"
 							variant="outline"
@@ -480,14 +481,14 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 							}}
 							disabled={formLocked}
 							aria-labelledby="add-item-priority-label"
-							className="grid w-full grid-cols-4 sm:flex sm:w-fit"
+							className="grid w-full grid-cols-4 sm:flex sm:w-fit @max-[12.5rem]/priority:grid-cols-2 @max-[12.5rem]/priority:gap-1"
 						>
 							{[...priorityEnumValues].reverse().map(p => (
 								<ToggleGroupItem
 									key={p}
 									value={p}
 									aria-label={PriorityLabels[p]}
-									className="min-w-0 px-1.5 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
+									className="min-w-0 px-1.5 @max-[12.5rem]/priority:rounded-md! @max-[12.5rem]/priority:border! data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
 								>
 									{p !== 'normal' && <PriorityIcon priority={p} />}
 									<span className={p === 'normal' ? undefined : 'hidden sm:inline'}>{PriorityLabels[p]}</span>

@@ -38,8 +38,10 @@ export function PageHeading({ title, icon: Icon, color, iconBgClassName, iconRin
 	const bgClass = iconBgClassName ?? palette?.bg ?? ''
 	const ringClass = iconRingClassName ?? palette?.ring ?? ''
 	return (
-		<div className={cn('flex flex-row items-center justify-between gap-3 flex-wrap', className)}>
-			<h1 className={cn('flex flex-row items-center gap-3', titleClassName)}>
+		<div className={cn('@container/heading flex flex-row items-center justify-between gap-3 flex-wrap', className)}>
+			{/* One size smaller once the row is narrower than the longest titles need,
+			    which happens at phone widths when the text size is turned up. */}
+			<h1 className={cn('flex flex-row items-center gap-3 @max-[17.5rem]/heading:text-3xl', titleClassName)}>
 				<span className={cn('flex size-10 shrink-0 items-center justify-center rounded-xl shadow-sm', bgClass, ringClass)}>
 					<Icon className="size-7 shrink-0 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.4)]" />
 				</span>

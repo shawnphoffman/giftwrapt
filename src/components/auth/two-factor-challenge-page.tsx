@@ -11,6 +11,14 @@ import { Label } from '@/components/ui/label'
 import logo from '@/images/logo.webp'
 
 const TOTP_LENGTH = 6
+// The code always fits inside the card. In one row it needs 20rem (six 3rem
+// boxes and two separators), or 17rem with 2.5rem boxes; below that it becomes
+// two rows of three separate boxes, which is what phones get. The queries are in
+// rem, so they also follow the text size.
+const OTP_CONTAINER =
+	'justify-center my-6 @max-[17rem]/card:mx-auto @max-[17rem]/card:grid @max-[17rem]/card:w-fit @max-[17rem]/card:grid-cols-3 @max-[17rem]/card:gap-2 @max-[17rem]/card:[&_[data-slot=input-otp-group]]:contents @max-[17rem]/card:[&_[data-slot=input-otp-separator]]:hidden'
+const OTP_SLOT =
+	'size-12 text-lg @max-[20rem]/card:size-10 @max-[20rem]/card:text-base @max-[17rem]/card:rounded-md @max-[17rem]/card:border'
 const GENERIC_ERROR = "That code didn't work. Try again."
 
 export type TwoFactorMode = 'totp' | 'backup'
@@ -83,9 +91,9 @@ export function TwoFactorChallengePageContent({
 			</div>
 			<Image src={logo} alt="GiftWrapt" width={160} height={160} className="w-24 sm:w-40" />
 
-			<div className="w-full max-w-md space-y-4 rounded-lg border bg-background/80 p-6 shadow-lg backdrop-blur">
+			<div className="@container/card w-full max-w-md space-y-4 rounded-lg border bg-background/80 p-6 shadow-lg backdrop-blur">
 				<div className="text-center">
-					<h1 className="text-3xl font-bold">Two-factor authentication</h1>
+					<h1 className="text-3xl font-bold @max-[12.5rem]/card:text-2xl @max-[10.5rem]/card:text-xl">Two-factor authentication</h1>
 					<p className="mt-2 text-muted-foreground">
 						{mode === 'totp'
 							? 'Enter the 6-digit code from your authenticator app to finish signing in.'
@@ -107,21 +115,21 @@ export function TwoFactorChallengePageContent({
 							autoComplete="one-time-code"
 							disabled={showLoading}
 							autoFocus
-							containerClassName="justify-center my-6"
+							containerClassName={OTP_CONTAINER}
 						>
 							<InputOTPGroup>
-								<InputOTPSlot index={0} className="size-12 text-lg" />
-								<InputOTPSlot index={1} className="size-12 text-lg" />
+								<InputOTPSlot index={0} className={OTP_SLOT} />
+								<InputOTPSlot index={1} className={OTP_SLOT} />
 							</InputOTPGroup>
 							<InputOTPSeparator />
 							<InputOTPGroup>
-								<InputOTPSlot index={2} className="size-12 text-lg" />
-								<InputOTPSlot index={3} className="size-12 text-lg" />
+								<InputOTPSlot index={2} className={OTP_SLOT} />
+								<InputOTPSlot index={3} className={OTP_SLOT} />
 							</InputOTPGroup>
 							<InputOTPSeparator />
 							<InputOTPGroup>
-								<InputOTPSlot index={4} className="size-12 text-lg" />
-								<InputOTPSlot index={5} className="size-12 text-lg" />
+								<InputOTPSlot index={4} className={OTP_SLOT} />
+								<InputOTPSlot index={5} className={OTP_SLOT} />
 							</InputOTPGroup>
 						</InputOTP>
 					) : (

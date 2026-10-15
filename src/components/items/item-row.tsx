@@ -136,20 +136,25 @@ function ItemRowImpl({ item, lockReason, grouped = false, giftIdea }: Props) {
 	if (item.price) {
 		dimmedBadges.push(<PriceQuantityBadge key="price" price={item.price} quantity={1} hideQuantity />)
 	}
+	// The badges never wrap. When they outgrow the row (a phone with the text size
+	// turned up) the strip scrolls sideways, anchored to its end so the claim
+	// state stays in view; -m-1 p-1 leaves room for focus rings.
 	const trailing = (
-		<div className="flex items-center gap-2 justify-end whitespace-nowrap">
-			<div className={cn('flex items-center gap-1', dimmed && 'opacity-60')}>{dimmedBadges}</div>
-			<QuantityRemainingBadge
-				variant="inline-pill"
-				quantity={item.quantity}
-				remaining={remaining}
-				claimedCount={claimedCount}
-				youClaimed={!!myClaim}
-				lockReason={groupLockedForViewer ? lockReason : undefined}
-				unavailable={isUnavailable}
-				unavailableChangedAt={item.availabilityChangedAt}
-			/>
-			{claimEntries.length > 0 && <ClaimUsers claims={claimEntries} />}
+		<div className="-m-1 flex min-w-0 flex-row-reverse overflow-x-auto p-1 [scrollbar-width:none]">
+			<div className="flex items-center gap-2 justify-end whitespace-nowrap">
+				<div className={cn('flex items-center gap-1', dimmed && 'opacity-60')}>{dimmedBadges}</div>
+				<QuantityRemainingBadge
+					variant="inline-pill"
+					quantity={item.quantity}
+					remaining={remaining}
+					claimedCount={claimedCount}
+					youClaimed={!!myClaim}
+					lockReason={groupLockedForViewer ? lockReason : undefined}
+					unavailable={isUnavailable}
+					unavailableChangedAt={item.availabilityChangedAt}
+				/>
+				{claimEntries.length > 0 && <ClaimUsers claims={claimEntries} />}
+			</div>
 		</div>
 	)
 

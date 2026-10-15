@@ -8,7 +8,7 @@ import BirthdayBadge from '../common/birthday-badge'
 export default function ListsForDependent({ dependent }: { dependent: DependentWithLists }) {
 	return (
 		<Card key={dependent.id} className="group/user-card py-4 gap-2 flex flex-col overflow-visible relative hover:z-10">
-			<CardHeader className="px-4 flex items-center gap-3">
+			<CardHeader className="@container/person px-4 flex items-center gap-3">
 				<DependentAvatar
 					name={dependent.name}
 					image={dependent.image}
