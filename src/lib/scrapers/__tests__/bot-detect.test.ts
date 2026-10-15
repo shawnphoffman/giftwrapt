@@ -29,6 +29,13 @@ describe('looksLikeBlocked', () => {
 		expect(looksLikeBlocked(html)).toBe(true)
 	})
 
+	it('flags the BLOCKED_EDGE block page at its real size', () => {
+		// The live page carries a ~10KB inline logo; the fixture stubs it out.
+		const html = fixture('edge-blocked-access-denied.html').replace('base64,iVBORw0KGgo=', `base64,${'A'.repeat(9800)}`)
+		expect(html.length).toBeGreaterThan(11_000)
+		expect(looksLikeBlocked(html)).toBe(true)
+	})
+
 	it('flags a Cloudflare challenge', () => {
 		expect(looksLikeBlocked('<html><head><title>Just a moment...</title></head><body>cf-browser-verification</body></html>')).toBe(true)
 	})

@@ -17,6 +17,9 @@ const BOT_WALL_PATTERNS: Array<RegExp> = [
 	// URL sits between the title and the reference, so allow a long gap.
 	/<title>Access Denied<\/title>[\s\S]{0,2000}Reference\s+#\d+\.[0-9a-f]+\./i,
 	/errors\.edgesuite\.net\//i,
+	// Edge block page served by some retailer CDNs (seen on hoka.com):
+	// "Error reference: <code>BLOCKED_EDGE</code>".
+	/Error reference:\s*(?:<[^>]*>\s*)*BLOCKED_EDGE/i,
 	/Are you a robot\?/i,
 	// Amazon's captcha interstitial. Served with a 200 to browser user
 	// agents it doesn't trust; the fetch provider falls back to the next UA.
