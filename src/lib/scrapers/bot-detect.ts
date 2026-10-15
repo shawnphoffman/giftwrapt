@@ -12,6 +12,11 @@ const BOT_WALL_PATTERNS: Array<RegExp> = [
 	/Please verify you are a human/i,
 	/Checking your browser before/i,
 	/Access denied\s*\|/i,
+	// Akamai's edge "Access Denied" page: a ~350 byte body with
+	// "Reference #18.<hex>..." and an errors.edgesuite.net link. The request
+	// URL sits between the title and the reference, so allow a long gap.
+	/<title>Access Denied<\/title>[\s\S]{0,2000}Reference\s+#\d+\.[0-9a-f]+\./i,
+	/errors\.edgesuite\.net\//i,
 	/Are you a robot\?/i,
 	// Amazon's captcha interstitial. Served with a 200 to browser user
 	// agents it doesn't trust; the fetch provider falls back to the next UA.
