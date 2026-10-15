@@ -317,7 +317,19 @@ export function measurePage(args: { buttonSizes: Record<string, ButtonSizeSpec>;
 			if (skip) continue
 			const fontPx = parseFloat(getComputedStyle(node.parentElement!).fontSize)
 			range.selectNodeContents(node)
-			for (const r of Array.from(range.getClientRects())) {
+			let rects = Array.from(range.getClientRects())
+			// Under `pre-wrap` the space at a soft line break hangs past the
+			// box by design and is never drawn. When the whole node pokes out
+			// sideways, re-measure word by word so only ink counts.
+			if (rects.some(r => r.width > 0 && (r.right - right > 1 || left - r.left > 1))) {
+				rects = []
+				for (const word of (node.textContent ?? '').matchAll(/\S+/g)) {
+					range.setStart(node, word.index)
+					range.setEnd(node, word.index + word[0].length)
+					rects.push(...Array.from(range.getClientRects()))
+				}
+			}
+			for (const r of rects) {
 				if (r.width === 0) continue
 				overX = Math.max(overX, r.right - right, left - r.left)
 				// A line box's height is the font's content area, about 1.2em,

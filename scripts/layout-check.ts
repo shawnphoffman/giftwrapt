@@ -214,6 +214,21 @@ async function waitForQuietDom(page: Page, quietMs: number, timeoutMs = 15_000):
 	)
 }
 
+/**
+ * Resolve once the client has the signed-in user's session. SSR renders the
+ * session as pending, so the admin nav, "You", and "Edit claim" appear only
+ * after better-auth's `useSession` fetch returns, which can be seconds on a
+ * busy dev server with no DOM change in between to hold the quiet-DOM wait.
+ * Measuring before it lands made a page shorter in one run than the next.
+ * Start this before navigating so the response cannot be missed.
+ */
+function waitForSession(page: Page): Promise<void> {
+	return page
+		.waitForResponse(res => new URL(res.url()).pathname === '/api/auth/get-session' && res.ok(), { timeout: 30_000 })
+		.then(() => page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))))
+		.then(() => undefined)
+}
+
 async function checkWidth(
 	browser: Browser,
 	baseUrl: string,
@@ -271,7 +286,12 @@ async function checkWidth(
 				for (let attempt = 0; attempt < 2; attempt++) {
 					page = await context.newPage()
 					try {
+						const session = useAuth ? waitForSession(page) : null
+						// Awaited below; this only keeps a prep failure from also
+						// surfacing as an unhandled rejection.
+						session?.catch(() => undefined)
 						await prepareRoute(page, hydratedRoute, url)
+						if (session) await session
 						await page.addStyleTag({ content: FLAG_CSS })
 						await waitForQuietDom(page, 1000)
 						prepError = null
