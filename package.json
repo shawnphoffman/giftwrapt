@@ -48,6 +48,7 @@
 		"db:seed": "tsx --env-file=.env.local scripts/seed.ts",
 		"db:reset": "tsx --env-file=.env.local scripts/db-reset.ts && pnpm db:migrate && pnpm db:seed",
 		"screenshots": "tsx scripts/screenshots.ts",
+		"layout:check": "tsx scripts/layout-check.ts",
 		"admin:create": "tsx scripts/admin-create.ts",
 		"admin:reset-password": "tsx scripts/admin-reset-password.ts",
 		"holidays:generate": "tsx scripts/precompute-holidays.ts",

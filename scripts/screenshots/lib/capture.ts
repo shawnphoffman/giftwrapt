@@ -36,6 +36,18 @@ async function pageLooksLikeServerError(page: Page, status: number | null): Prom
 }
 
 export async function captureRoute(page: Page, route: RouteDef, url: string, outPath: string): Promise<void> {
+	await prepareRoute(page, route, url)
+
+	const fullPage = route.fullPage ?? true
+	await page.screenshot({ path: outPath, fullPage, animations: 'disabled' })
+}
+
+/**
+ * Navigate to the route and leave it settled: hydrated, animations off,
+ * prep step run, lazy images loaded, scrolled to the top. Shared with the
+ * layout check, which measures the page instead of capturing it.
+ */
+export async function prepareRoute(page: Page, route: RouteDef, url: string): Promise<void> {
 	let response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30_000 })
 	let status = response?.status() ?? null
 
@@ -99,7 +111,4 @@ export async function captureRoute(page: Page, route: RouteDef, url: string, out
 		})
 
 	await page.waitForTimeout(100)
-
-	const fullPage = route.fullPage ?? true
-	await page.screenshot({ path: outPath, fullPage, animations: 'disabled' })
 }
