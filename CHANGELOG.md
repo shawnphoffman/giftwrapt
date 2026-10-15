@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.9.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.8.0...v1.9.0) (2026-10-15)
+
+
+### Features
+
+* **settings:** add a text size slider on a new Appearance page ([19fd749](https://github.com/shawnphoffman/giftwrapt/commit/19fd749ee3d3c49d88a11ec956bd3955c3043559))
+
+
+### Bug Fixes
+
+* **gift-help:** give the idea marks labeled, full-size buttons ([41128a0](https://github.com/shawnphoffman/giftwrapt/commit/41128a0de3af1f4a4b2cb4fb1e9989e12c2470fd))
+* **scripts:** make the layout check wait for the session ([ec0867f](https://github.com/shawnphoffman/giftwrapt/commit/ec0867fdb59835d512e8bea20ef97509f28f27aa))
+* **ui:** fix layouts the layout check found at the default text size ([7ad4ed8](https://github.com/shawnphoffman/giftwrapt/commit/7ad4ed8a0ba9755cfee6c95ac338984d9d57e152))
+* **ui:** keep layouts intact at larger text sizes ([fb17dcb](https://github.com/shawnphoffman/giftwrapt/commit/fb17dcb288436d98832fef2bd72c014ec19b7472))
+* **ui:** make every button semibold and line up the list filter row ([dac5d35](https://github.com/shawnphoffman/giftwrapt/commit/dac5d350ef6409189dee73c0724e694b9ca57e25))
+
 ## [1.8.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.7.0...v1.8.0) (2026-10-14)
 
 
