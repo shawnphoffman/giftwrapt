@@ -98,7 +98,7 @@ function DependentRow({ dependent }: { dependent: AdminDependent }) {
 					<div className="flex-1 min-w-0">
 						<div className="flex items-center gap-2">
 							<span className="font-medium text-sm truncate">{dependent.name}</span>
-							{dependent.isArchived && <span className="text-[10px] uppercase tracking-wide text-muted-foreground italic">archived</span>}
+							{dependent.isArchived && <span className="text-3xs uppercase tracking-wide text-muted-foreground italic">archived</span>}
 						</div>
 						<div className="text-xs text-muted-foreground">Dependent</div>
 					</div>

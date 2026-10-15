@@ -493,10 +493,7 @@ function Header({
 					{showRefresh && (
 						<div data-intelligence="page-refresh-block" className="flex items-center gap-2">
 							{cooldownActive && nextEligibleRefreshAt && (
-								<span
-									data-intelligence="page-cooldown-note"
-									className="hidden sm:inline text-[11px] text-muted-foreground whitespace-nowrap"
-								>
+								<span data-intelligence="page-cooldown-note" className="hidden sm:inline text-2xs text-muted-foreground whitespace-nowrap">
 									Available again {format(nextEligibleRefreshAt, 'p')}
 								</span>
 							)}

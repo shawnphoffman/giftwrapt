@@ -264,12 +264,12 @@ export function QuantityRemainingBadge({
 				>
 					{showLock && <Lock className="size-3" aria-hidden />}
 					<span>×{quantity}</span>
-					<span className={cn('inline-flex items-center', claimedCount > 6 ? 'gap-[2px]' : 'gap-[3px]')} aria-hidden>
+					<span className={cn('inline-flex items-center', claimedCount > 6 ? 'gap-0.5' : 'gap-0.75')} aria-hidden>
 						{Array.from({ length: claimedCount }).map((_, i) => {
 							const isOver = i >= quantity
 							const tone = isOver ? 'bg-yellow-500 dark:bg-yellow-400' : 'bg-muted-foreground/50'
 							if (claimedCount > 6) {
-								return <span key={i} className={cn('h-1.5 w-[3px] rounded-full', tone)} />
+								return <span key={i} className={cn('h-1.5 w-0.75 rounded-full', tone)} />
 							}
 							return <span key={i} className={cn('size-1.5 rounded-full', tone)} />
 						})}
@@ -399,7 +399,7 @@ export function QuantityRemainingBadge({
 			>
 				{lockedByOthers && <Lock className="size-3" aria-hidden />}
 				<span className={cn(success ? undefined : fullyClaimed ? undefined : 'text-foreground')}>×{quantity}</span>
-				<span className={cn('inline-flex items-center', quantity > 6 ? 'gap-[2px]' : 'gap-[3px]')} aria-hidden>
+				<span className={cn('inline-flex items-center', quantity > 6 ? 'gap-0.5' : 'gap-0.75')} aria-hidden>
 					{Array.from({ length: quantity }).map((_, i) => {
 						const filled = i < claimed
 						const base = success
@@ -414,7 +414,7 @@ export function QuantityRemainingBadge({
 						if (quantity > 6) {
 							// Compact mode: each pip is a half-width capsule (~half a circle)
 							// so long quantities still fit inside the badge.
-							return <span key={i} className={cn('h-1.5 w-[3px] rounded-full', base)} />
+							return <span key={i} className={cn('h-1.5 w-0.75 rounded-full', base)} />
 						}
 						return <span key={i} className={cn('size-1.5 rounded-full', base)} />
 					})}

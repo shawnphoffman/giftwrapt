@@ -60,7 +60,7 @@ function SharedWithAvatars({ editors }: { editors: Array<EditorInfo> }) {
 							className="relative z-10 size-5 ring-1 ring-background border-0"
 						/>
 						{rest.length > 0 && (
-							<AvatarGroupCount className="size-5 shrink-0 rounded-full bg-muted text-muted-foreground text-[10px] font-bold leading-none flex items-center justify-center select-none ring-1">
+							<AvatarGroupCount className="size-5 shrink-0 rounded-full bg-muted text-muted-foreground text-3xs font-bold leading-none flex items-center justify-center select-none ring-1">
 								+{rest.length}
 							</AvatarGroupCount>
 						)}
@@ -219,7 +219,7 @@ function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: Ro
 										/>
 									)}
 									{editors.length > 0 && (
-										<AvatarGroupCount className="size-5 shrink-0 rounded-full bg-muted text-muted-foreground text-[10px] font-bold leading-none flex items-center justify-center select-none ring-1">
+										<AvatarGroupCount className="size-5 shrink-0 rounded-full bg-muted text-muted-foreground text-3xs font-bold leading-none flex items-center justify-center select-none ring-1">
 											+{editors.length}
 										</AvatarGroupCount>
 									)}

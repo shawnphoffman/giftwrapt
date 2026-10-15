@@ -74,7 +74,7 @@ function parentLabelAria(labels: Array<RelationLabel>): string {
 function CellGlyph({ cell }: { cell: Cell }) {
 	switch (cell.kind) {
 		case 'self':
-			return <span className="text-[10px] font-semibold text-muted-foreground">self</span>
+			return <span className="text-3xs font-semibold text-muted-foreground">self</span>
 		case 'guardian':
 			return <Shield className="size-4" />
 		case 'editor':
@@ -111,7 +111,7 @@ function HeaderUserCell({ user, axis }: { user: HeaderUser; axis: 'col' | 'row' 
 		return (
 			<div className="flex flex-col items-center gap-1 px-1 py-2 w-12">
 				<UserAvatar name={display} image={user.image} size="small" />
-				<div className="text-[10px] leading-tight font-medium text-center truncate w-full" title={display}>
+				<div className="text-3xs leading-tight font-medium text-center truncate w-full" title={display}>
 					{user.name?.split(' ')[0] || user.email.split('@')[0]}
 				</div>
 			</div>
@@ -122,7 +122,7 @@ function HeaderUserCell({ user, axis }: { user: HeaderUser; axis: 'col' | 'row' 
 			<UserAvatar name={display} image={user.image} size="small" />
 			<div className="flex flex-col min-w-0">
 				<span className="text-xs font-medium truncate">{user.name || 'No name'}</span>
-				<span className="hidden sm:block text-[10px] text-muted-foreground truncate">{user.email}</span>
+				<span className="hidden sm:block text-3xs text-muted-foreground truncate">{user.email}</span>
 			</div>
 		</div>
 	)
@@ -132,7 +132,7 @@ function HeaderDependentCell({ name, image }: { name: string; image: string | nu
 	return (
 		<div className="flex flex-col items-center gap-1 px-1 py-2 w-12">
 			<DependentAvatar name={name} image={image} size="small" />
-			<div className="text-[10px] leading-tight font-medium text-center truncate w-fit flex items-center gap-0.5" title={name}>
+			<div className="text-3xs leading-tight font-medium text-center truncate w-fit flex items-center gap-0.5" title={name}>
 				{name.split(' ')[0]}
 			</div>
 		</div>
@@ -156,7 +156,7 @@ export function PermissionsMatrixView({ data }: { data: PermissionsMatrixData })
 						<thead>
 							<tr>
 								<th className="sticky left-0 top-0 z-30 bg-card border-b border-r p-2 text-left">
-									<div className="flex flex-col text-[10px] leading-tight text-muted-foreground">
+									<div className="flex flex-col text-3xs leading-tight text-muted-foreground">
 										<span className="font-semibold">List owner →</span>
 										<span className="font-semibold">Viewer ↓</span>
 									</div>
@@ -198,7 +198,7 @@ export function PermissionsMatrixView({ data }: { data: PermissionsMatrixData })
 														>
 															<CellGlyph cell={cell} />
 															{cell.editorListCount > 0 && cell.kind !== 'self' && (
-																<span className="absolute bottom-0.5 right-1 text-[9px] font-semibold text-sky-700 dark:text-sky-400">
+																<span className="absolute bottom-0.5 right-1 text-4xs font-semibold text-sky-700 dark:text-sky-400">
 																	+{cell.editorListCount}
 																</span>
 															)}
@@ -292,7 +292,7 @@ function Legend() {
 					</div>
 				</LegendItem>
 				<LegendItem label="+N" hint="List-level edit grants">
-					<div className="flex items-center justify-center size-6 rounded-sm bg-sky-500/15 text-sky-700 dark:text-sky-400 text-[9px] font-semibold">
+					<div className="flex items-center justify-center size-6 rounded-sm bg-sky-500/15 text-sky-700 dark:text-sky-400 text-4xs font-semibold">
 						+N
 					</div>
 				</LegendItem>
@@ -304,7 +304,7 @@ function Legend() {
 function LegendSection({ title, children }: { title: string; children: ReactNode }) {
 	return (
 		<div className="space-y-1.5">
-			<div className="text-[10px] uppercase tracking-wide font-medium text-muted-foreground">{title}</div>
+			<div className="text-3xs uppercase tracking-wide font-medium text-muted-foreground">{title}</div>
 			<div className="flex flex-wrap items-center gap-x-4 gap-y-2">{children}</div>
 		</div>
 	)

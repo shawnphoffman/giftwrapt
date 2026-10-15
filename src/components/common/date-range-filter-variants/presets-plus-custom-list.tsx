@@ -26,7 +26,7 @@ export function PresetsPlusCustomList({ value, onChange }: Props) {
 	return (
 		<div className="flex items-center gap-2">
 			<Select value={selectValue} onValueChange={handleSelect}>
-				<SelectTrigger className="w-[200px]">
+				<SelectTrigger className="w-50">
 					<SelectValue>{formatTimeframeLabel(value)}</SelectValue>
 				</SelectTrigger>
 				<SelectContent>

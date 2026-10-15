@@ -38,7 +38,7 @@ function AdminIntelligenceLayout() {
 					iconRingClassName="ring-1 ring-fuchsia-400/40 dark:ring-fuchsia-600/40"
 					titleClassName="bg-gradient-to-br from-amber-500 via-pink-500 to-fuchsia-600 bg-clip-text text-transparent dark:from-amber-400 dark:via-pink-400 dark:to-fuchsia-400"
 				/>
-				<div className="mx-auto grid w-full max-w-8xl items-start gap-6 md:grid-cols-[180px_1fr] lg:grid-cols-[180px_1fr]">
+				<div className="mx-auto grid w-full max-w-8xl items-start gap-6 md:grid-cols-[11.25rem_1fr] lg:grid-cols-[11.25rem_1fr]">
 					<nav className="grid gap-1 md:sticky md:top-2">
 						{TABS.map(t => {
 							const active = t.exact ? pathname === t.to : pathname === t.to || pathname.startsWith(`${t.to}/`)

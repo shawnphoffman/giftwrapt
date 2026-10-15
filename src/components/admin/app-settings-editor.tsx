@@ -94,7 +94,7 @@ export function CoreSettingsSection() {
 					value={settings.defaultListType}
 					onValueChange={value => handleSettingChange('defaultListType', value as AppSettings['defaultListType'])}
 				>
-					<SelectTrigger id="defaultListType" className="w-[140px]">
+					<SelectTrigger id="defaultListType" className="w-35">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
@@ -519,7 +519,7 @@ export function ParentalRelationsSettingsSection() {
 					value={settings.relationshipRemindersCountry}
 					onValueChange={value => handleSettingChange('relationshipRemindersCountry', value)}
 				>
-					<SelectTrigger id="relationshipRemindersCountry" className="w-[200px]">
+					<SelectTrigger id="relationshipRemindersCountry" className="w-50">
 						<SelectValue />
 					</SelectTrigger>
 					{/*

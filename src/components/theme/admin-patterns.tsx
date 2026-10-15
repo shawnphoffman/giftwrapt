@@ -42,8 +42,8 @@ function PatternLabel({ name, source, note }: { name: string; source?: string; n
 	return (
 		<div className="flex flex-col gap-0.5">
 			<span className="text-xs font-medium">{name}</span>
-			{source && <code className="text-[10px] font-mono text-muted-foreground leading-tight">{source}</code>}
-			{note && <p className="text-[11px] text-muted-foreground leading-tight">{note}</p>}
+			{source && <code className="text-3xs font-mono text-muted-foreground leading-tight">{source}</code>}
+			{note && <p className="text-2xs text-muted-foreground leading-tight">{note}</p>}
 		</div>
 	)
 }
@@ -203,7 +203,7 @@ function FormRowsBlock() {
 						<p className="text-sm text-muted-foreground">Which provider fires first on a cache miss.</p>
 					</div>
 					<Select defaultValue="upcitemdb-trial">
-						<SelectTrigger id="patterns-select" className="w-[220px]">
+						<SelectTrigger id="patterns-select" className="w-55">
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
@@ -216,7 +216,7 @@ function FormRowsBlock() {
 
 			<PatternBlock
 				name="Number Input Row"
-				source="control width capped at w-[120px]"
+				source="control width capped at w-30"
 				note="Numeric fields use a narrow input so the row reads like a stat, not a sentence."
 			>
 				<div className="flex items-center justify-between gap-4 rounded-md border border-border p-4">
@@ -226,7 +226,7 @@ function FormRowsBlock() {
 						</Label>
 						<p className="text-sm text-muted-foreground">Cached rows older than this are refreshed on the next lookup.</p>
 					</div>
-					<Input id="patterns-number" type="number" min={0} defaultValue={720} className="w-[120px]" />
+					<Input id="patterns-number" type="number" min={0} defaultValue={720} className="w-30" />
 				</div>
 			</PatternBlock>
 
@@ -770,11 +770,11 @@ function PageShellBlock() {
 
 			<PatternBlock
 				name="Two-Column Sidebar + Content"
-				source="grid grid-cols-[180px_1fr] md:grid-cols-[165px_1fr]"
+				source="grid grid-cols-[11.25rem_1fr] md:grid-cols-[10.3125rem_1fr]"
 				note="Admin and settings routes both use this. The sidebar holds nav links; the content area opens a container query (@container/admin-content) so child grids can adapt."
 			>
 				<div className="overflow-hidden rounded-md border">
-					<div className="grid grid-cols-[120px_1fr]">
+					<div className="grid grid-cols-[7.5rem_1fr]">
 						<aside className="border-r bg-muted/30 p-3 text-xs">
 							<div className="font-semibold">Admin</div>
 							<ul className="mt-2 space-y-1 text-muted-foreground">

@@ -105,13 +105,13 @@ export function StorageTable({ rows, onDelete }: { rows: Array<StorageObjectRow>
 				<Table>
 					<TableHeader>
 						<TableRow>
-							<TableHead className="w-[68px]">Preview</TableHead>
+							<TableHead className="w-17">Preview</TableHead>
 							<TableHead>Kind</TableHead>
 							<TableHead>Connected</TableHead>
 							<TableHead>Owner</TableHead>
 							<TableHead className="whitespace-nowrap">Uploaded</TableHead>
 							<TableHead className="whitespace-nowrap text-right">Size</TableHead>
-							<TableHead className="w-[60px] text-right">
+							<TableHead className="w-15 text-right">
 								<span className="sr-only">Actions</span>
 							</TableHead>
 						</TableRow>
@@ -250,7 +250,7 @@ function ConnectedCell({ row }: { row: StorageObjectRow }) {
 		return (
 			<div className="flex flex-col">
 				<div className="flex items-center gap-1.5">
-					<Badge variant="outline" className="text-[10px] uppercase tracking-wide">
+					<Badge variant="outline" className="text-3xs uppercase tracking-wide">
 						{row.target.purchaseKind}
 					</Badge>
 					<span className="truncate" title={row.target.label}>

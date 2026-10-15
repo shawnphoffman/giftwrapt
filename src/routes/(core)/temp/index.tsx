@@ -170,7 +170,7 @@ function HolidayWidgetFrame({
 	isLoading: boolean
 }) {
 	const frameClass =
-		'mx-auto w-[320px] rounded-3xl border bg-gradient-to-b from-rose-50 to-amber-50 dark:from-rose-950 dark:to-amber-950 p-5 shadow-sm'
+		'mx-auto w-80 rounded-3xl border bg-gradient-to-b from-rose-50 to-amber-50 dark:from-rose-950 dark:to-amber-950 p-5 shadow-sm'
 	if (isLoading) {
 		return (
 			<div className={frameClass}>

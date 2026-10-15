@@ -119,7 +119,7 @@ export function ImportPreviewTable({
 				</div>
 			</div>
 
-			<ul className="flex max-h-[420px] min-w-0 flex-col divide-y overflow-y-auto rounded-md border">
+			<ul className="flex max-h-105 min-w-0 flex-col divide-y overflow-y-auto rounded-md border">
 				{drafts.map((draft, index) => {
 					const titleBlank = !draft.title || draft.title.trim().length === 0
 					const hasUrl = !!draft.url && draft.url.trim().length > 0

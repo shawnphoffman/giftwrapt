@@ -81,7 +81,7 @@ function DialogIconSwatch({ label, icon: Icon, bg, ring }: Swatch) {
 	return (
 		<div className="flex items-center gap-2 rounded-md border border-border bg-muted/10 p-3">
 			<span className={cn('flex size-7 shrink-0 items-center justify-center rounded-md shadow-sm ring-1', bg, ring)}>
-				<Icon className="size-[21px] shrink-0 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.4)]" />
+				<Icon className="size-5.25 shrink-0 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.4)]" />
 			</span>
 			<span className="text-xs font-medium leading-tight">{label}</span>
 		</div>
@@ -103,7 +103,7 @@ export const PageIcons: Story = {
 }
 
 /**
- * Compact dialog title icons (size-7 bg, size-[21px] glyph - 75%) used inside
+ * Compact dialog title icons (size-7 bg, size-5.25 glyph - 75%) used inside
  * `<DialogTitle>`. The color matches the sidebar entry that triggers the dialog.
  */
 export const DialogIcons: Story = {

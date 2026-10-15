@@ -141,7 +141,7 @@ function DeviceRow({ keyRow, onRevoke }: { keyRow: MobileApiKeySummary; onRevoke
 				<div className="flex items-center gap-2">
 					<span className="font-medium truncate">{keyRow.name ?? 'Unnamed device'}</span>
 					{keyRow.start && (
-						<code className="hidden sm:inline-block rounded bg-muted px-1.5 py-0.5 text-[11px] font-mono text-muted-foreground">
+						<code className="hidden sm:inline-block rounded bg-muted px-1.5 py-0.5 text-2xs font-mono text-muted-foreground">
 							{keyRow.start}…
 						</code>
 					)}

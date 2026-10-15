@@ -103,7 +103,7 @@ export function ReceivedPageContent({ data, onDraftThankYou }: Props) {
 									<>
 										<span className="text-sm text-muted-foreground">Recipient:</span>
 										<Select value={recipientKey} onValueChange={setRecipientKey}>
-											<SelectTrigger className="w-[180px]">
+											<SelectTrigger className="w-45">
 												<SelectValue />
 											</SelectTrigger>
 											<SelectContent>

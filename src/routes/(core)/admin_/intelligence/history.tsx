@@ -80,7 +80,7 @@ function IntelligenceHistoryRoute() {
 				>
 					<SheetHeader className="border-b border-border">
 						<SheetTitle>Run debug</SheetTitle>
-						<SheetDescription className="font-mono text-[11px] truncate">{openRunId ?? ''}</SheetDescription>
+						<SheetDescription className="font-mono text-2xs truncate">{openRunId ?? ''}</SheetDescription>
 					</SheetHeader>
 					<RunDebugPanel state={debugState} />
 				</SheetContent>

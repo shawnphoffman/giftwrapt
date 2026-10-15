@@ -81,7 +81,7 @@ export function RunDetailContent({ data, onBack, onRerunDryRun, onRerunPersist }
 								{input.lists.length > 0 && (
 									<div className="mt-2 flex flex-wrap gap-1">
 										{input.lists.map(l => (
-											<Badge key={l.id} variant="outline" className="text-[10px]">
+											<Badge key={l.id} variant="outline" className="text-3xs">
 												{l.name}
 											</Badge>
 										))}
@@ -113,13 +113,13 @@ export function RunDetailContent({ data, onBack, onRerunDryRun, onRerunPersist }
 								{step.prompt && (
 									<details className="text-xs">
 										<summary className="cursor-pointer text-muted-foreground">Prompt</summary>
-										<pre className="mt-2 max-h-64 overflow-auto rounded bg-muted/40 p-3 text-[11px] whitespace-pre-wrap">{step.prompt}</pre>
+										<pre className="mt-2 max-h-64 overflow-auto rounded bg-muted/40 p-3 text-2xs whitespace-pre-wrap">{step.prompt}</pre>
 									</details>
 								)}
 								{step.responseRaw && (
 									<details className="text-xs">
 										<summary className="cursor-pointer text-muted-foreground">Raw response</summary>
-										<pre className="mt-2 max-h-64 overflow-auto rounded bg-muted/40 p-3 text-[11px] whitespace-pre-wrap">
+										<pre className="mt-2 max-h-64 overflow-auto rounded bg-muted/40 p-3 text-2xs whitespace-pre-wrap">
 											{step.responseRaw}
 										</pre>
 									</details>
@@ -127,7 +127,7 @@ export function RunDetailContent({ data, onBack, onRerunDryRun, onRerunPersist }
 								{step.parsed != null && (
 									<details className="text-xs">
 										<summary className="cursor-pointer text-muted-foreground">Parsed</summary>
-										<pre className="mt-2 max-h-64 overflow-auto rounded bg-muted/40 p-3 text-[11px] whitespace-pre-wrap">
+										<pre className="mt-2 max-h-64 overflow-auto rounded bg-muted/40 p-3 text-2xs whitespace-pre-wrap">
 											{JSON.stringify(step.parsed, null, 2)}
 										</pre>
 									</details>

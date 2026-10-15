@@ -98,7 +98,7 @@ export function ListFilterPopover({ sections, selected, onChange, iconOnly = fal
 							data-intelligence="list-filter-count"
 							variant="secondary"
 							className={cn(
-								'absolute -top-1 -right-1 size-4 min-w-0 rounded-full px-0 text-[10px] tabular-nums leading-none',
+								'absolute -top-1 -right-1 size-4 min-w-0 rounded-full px-0 text-3xs tabular-nums leading-none',
 								'bg-fuchsia-500 text-white ring-1 ring-background'
 							)}
 						>
@@ -109,7 +109,7 @@ export function ListFilterPopover({ sections, selected, onChange, iconOnly = fal
 			</PopoverTrigger>
 			<PopoverContent data-intelligence="list-filter-popover" className="w-80 p-0" align="end">
 				<div className="flex items-center justify-between gap-2 border-b border-border/60 px-3 py-2">
-					<span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Filter by list</span>
+					<span className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">Filter by list</span>
 					<div className="flex items-center gap-1">
 						<button
 							type="button"
@@ -138,7 +138,7 @@ export function ListFilterPopover({ sections, selected, onChange, iconOnly = fal
 							{sectionIdx > 0 && <Separator className="my-1" />}
 							<div data-intelligence="list-filter-section-header" className="flex items-center gap-2 px-3 py-1.5">
 								{section.dependent && <DependentAvatar name={section.dependent.name} image={section.dependent.image} size="small" />}
-								<span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{section.label}</span>
+								<span className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">{section.label}</span>
 							</div>
 							{section.options.map(opt => {
 								const isGlobal = opt.listId === GLOBAL_FILTER_ID

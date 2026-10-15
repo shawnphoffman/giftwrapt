@@ -75,7 +75,7 @@ export function RunsActivityChart({ data }: { data: Array<DailySeriesPoint> }) {
 						<Bar dataKey="runsError" stackId="r" fill="url(#fillRunsError)" radius={[4, 4, 0, 0]} />
 					</BarChart>
 				</ChartContainer>
-				<div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+				<div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-2xs text-muted-foreground">
 					<LegendDot color={RUNS_COLORS.success} label="Success" />
 					<LegendDot color={RUNS_COLORS.skipped} label="Skipped" />
 					<LegendDot color={RUNS_COLORS.error} label="Error" />
@@ -124,7 +124,7 @@ export function TokenUsageChart({ data }: { data: Array<DailySeriesPoint> }) {
 						<Area type="monotone" dataKey="tokensOut" stackId="t" stroke="var(--color-tokensOut)" fill="url(#fillOut)" strokeWidth={2} />
 					</AreaChart>
 				</ChartContainer>
-				<div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+				<div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-2xs text-muted-foreground">
 					<LegendDot color={TOKENS_COLORS.in} label="Input" />
 					<LegendDot color={TOKENS_COLORS.out} label="Output" />
 				</div>

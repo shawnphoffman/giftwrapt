@@ -28,7 +28,7 @@ export function ProviderHealthBadge({
 			title={detail}
 			aria-label={`${label}. ${detail}`}
 			className={cn(
-				'gap-1 text-[10px] font-sans shrink-0',
+				'gap-1 text-3xs font-sans shrink-0',
 				health.status === 'dead' ? 'border-destructive/50 text-destructive' : 'border-amber-500/50 text-amber-700 dark:text-amber-400',
 				className
 			)}

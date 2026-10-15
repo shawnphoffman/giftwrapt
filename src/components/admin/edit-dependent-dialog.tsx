@@ -166,7 +166,7 @@ export function EditDependentDialog({
 					<DialogTitle className="flex items-center gap-3">
 						<DependentAvatar name={dependent.name} image={dependent.image} size="medium" />
 						<span>Edit {dependent.name}</span>
-						{dependent.isArchived && <span className="text-[10px] uppercase tracking-wide text-muted-foreground italic">archived</span>}
+						{dependent.isArchived && <span className="text-3xs uppercase tracking-wide text-muted-foreground italic">archived</span>}
 					</DialogTitle>
 				</DialogHeader>
 

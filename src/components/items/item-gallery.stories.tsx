@@ -1473,7 +1473,7 @@ function SectionHeader({ title, note }: { title: string; note?: string }) {
 }
 
 function RowLabel({ label }: { label: string }) {
-	return <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70 pt-3">{label}</div>
+	return <div className="text-3xs uppercase tracking-wider text-muted-foreground/70 pt-3">{label}</div>
 }
 
 function VariationList({ variations, view }: { variations: Array<Variation>; view: View }) {

@@ -23,11 +23,11 @@ export function RouteErrorFallback({ error, reset, title, className }: RouteErro
 	// is recovering on its own, so it is not reported.
 	useReportToNativeBridge(recovering ? null : formatted.body)
 	if (recovering) {
-		return <ChunkReloadFallback className={className ?? 'flex flex-col items-center justify-center min-h-[400px] gap-4 p-4 w-full'} />
+		return <ChunkReloadFallback className={className ?? 'flex flex-col items-center justify-center min-h-100 gap-4 p-4 w-full'} />
 	}
 
 	return (
-		<div className={className ?? 'flex flex-col items-center justify-center min-h-[400px] p-4 w-full'}>
+		<div className={className ?? 'flex flex-col items-center justify-center min-h-100 p-4 w-full'}>
 			<div className="max-w-md space-y-4 text-center">
 				<h2 className="text-lg font-semibold text-destructive">{heading}</h2>
 				<p className="text-sm text-muted-foreground">{formatted.body}</p>

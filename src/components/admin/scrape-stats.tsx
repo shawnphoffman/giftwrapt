@@ -292,7 +292,7 @@ function DomainTable({ rows, totalFailures }: { rows: Array<DomainAggregateRow>;
 function DomainUrlsDialog({ row, onClose }: { row: DomainAggregateRow | null; onClose: () => void }) {
 	return (
 		<Dialog open={row !== null} onOpenChange={open => !open && onClose()}>
-			<DialogContent className="sm:max-w-[640px] max-h-[80vh] overflow-y-auto">
+			<DialogContent className="sm:max-w-160 max-h-[80vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle className="font-mono text-base">{row?.domain ?? ''}</DialogTitle>
 					<DialogDescription>

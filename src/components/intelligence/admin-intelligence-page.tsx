@@ -213,27 +213,27 @@ export function ProviderMissingBanner() {
 function AnalyzerBadge({ tone, children }: { tone: 'kind-heuristic' | 'kind-ai' | 'trigger' | 'status'; children: React.ReactNode }) {
 	if (tone === 'kind-ai') {
 		return (
-			<span className="inline-flex items-center rounded-md bg-linear-to-br from-amber-500 via-pink-500 to-fuchsia-600 px-1.5 py-0.5 text-[10px] font-medium text-white shadow-sm dark:from-amber-700 dark:via-pink-700 dark:to-fuchsia-800">
+			<span className="inline-flex items-center rounded-md bg-linear-to-br from-amber-500 via-pink-500 to-fuchsia-600 px-1.5 py-0.5 text-3xs font-medium text-white shadow-sm dark:from-amber-700 dark:via-pink-700 dark:to-fuchsia-800">
 				{children}
 			</span>
 		)
 	}
 	if (tone === 'kind-heuristic') {
 		return (
-			<Badge variant="secondary" className="text-[10px]">
+			<Badge variant="secondary" className="text-3xs">
 				{children}
 			</Badge>
 		)
 	}
 	if (tone === 'status') {
 		return (
-			<Badge variant="outline" className="text-[10px] border-amber-500/40 text-amber-600 dark:text-amber-400">
+			<Badge variant="outline" className="text-3xs border-amber-500/40 text-amber-600 dark:text-amber-400">
 				{children}
 			</Badge>
 		)
 	}
 	return (
-		<Badge variant="outline" className="text-[10px]">
+		<Badge variant="outline" className="text-3xs">
 			{children}
 		</Badge>
 	)
@@ -371,23 +371,23 @@ function UserActionRow({
 				<div className="flex items-center gap-2 min-w-0">
 					<Avatar className="size-7 shrink-0">
 						{row.image && <AvatarImage src={row.image} alt={row.name ?? row.email} />}
-						<AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
+						<AvatarFallback className="text-3xs">{initials}</AvatarFallback>
 					</Avatar>
 					<div className="flex flex-col min-w-0">
 						<span className="text-sm font-medium truncate flex items-center gap-1.5">
 							{row.name ?? row.email}
 							{row.isMe && (
-								<Badge variant="secondary" className="text-[10px]">
+								<Badge variant="secondary" className="text-3xs">
 									you
 								</Badge>
 							)}
 							{row.role !== 'user' && (
-								<Badge variant="outline" className="text-[10px]">
+								<Badge variant="outline" className="text-3xs">
 									{row.role}
 								</Badge>
 							)}
 						</span>
-						<span className="text-[11px] text-muted-foreground truncate">{row.email}</span>
+						<span className="text-2xs text-muted-foreground truncate">{row.email}</span>
 					</div>
 				</div>
 			</TableCell>
@@ -428,11 +428,11 @@ function LastRunCell({ row }: { row: AdminUserRunSummaryRow }) {
 			</span>
 			<span className="flex items-center gap-1.5">
 				{row.lastRunStatus && (
-					<Badge variant={variant} className="text-[10px]">
+					<Badge variant={variant} className="text-3xs">
 						{row.lastRunStatus}
 					</Badge>
 				)}
-				{row.lastRunSkipReason && <span className="text-[10px] text-muted-foreground font-mono">{row.lastRunSkipReason}</span>}
+				{row.lastRunSkipReason && <span className="text-3xs text-muted-foreground font-mono">{row.lastRunSkipReason}</span>}
 			</span>
 		</div>
 	)
@@ -881,12 +881,12 @@ export function SettingsSection({
 						<div className="flex items-center gap-2 flex-wrap">
 							<span className="text-sm font-semibold">{title}</span>
 							{badge && (
-								<Badge variant="outline" className="text-[10px]">
+								<Badge variant="outline" className="text-3xs">
 									{badge}
 								</Badge>
 							)}
 						</div>
-						<span className="text-[11px] text-muted-foreground truncate">{summary}</span>
+						<span className="text-2xs text-muted-foreground truncate">{summary}</span>
 					</div>
 				</div>
 				<ChevronDown className="size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180 shrink-0" />
@@ -1005,7 +1005,7 @@ export function NumberRow({
 					}
 				}}
 			/>
-			{hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
+			{hint && <p className="text-2xs text-muted-foreground">{hint}</p>}
 		</div>
 	)
 }
@@ -1159,7 +1159,7 @@ function StepBreakdown({ counts }: { counts?: AdminRunRow['stepCounts'] }) {
 	if (counts.error > 0) segments.push({ label: 'err', n: counts.error, tone: 'err' })
 	if (counts.noop > 0) segments.push({ label: 'noop', n: counts.noop, tone: 'noop' })
 	return (
-		<div data-intelligence="admin-runs-step-breakdown" className="flex items-center gap-1 text-[10px] tabular-nums">
+		<div data-intelligence="admin-runs-step-breakdown" className="flex items-center gap-1 text-3xs tabular-nums">
 			{segments.map((s, i) => (
 				<span key={s.label} className="inline-flex items-center gap-1">
 					<span

@@ -10,11 +10,11 @@ const SECTION_GAP = 'flex flex-col gap-3'
 function CodeSnippet({ snippet }: { snippet: string }) {
 	return (
 		<details className="group/code rounded-md ring-1 ring-foreground/10 bg-background/60 overflow-hidden">
-			<summary className="cursor-pointer select-none list-none flex items-center gap-1.5 px-2 py-1.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground hover:text-foreground">
+			<summary className="cursor-pointer select-none list-none flex items-center gap-1.5 px-2 py-1.5 text-3xs font-mono uppercase tracking-wider text-muted-foreground hover:text-foreground">
 				<ChevronRight className="size-3 transition-transform group-open/code:rotate-90" />
 				Show code
 			</summary>
-			<pre className="text-[11px] font-mono leading-snug p-2 pt-0 overflow-x-auto whitespace-pre">{snippet}</pre>
+			<pre className="text-2xs font-mono leading-snug p-2 pt-0 overflow-x-auto whitespace-pre">{snippet}</pre>
 		</details>
 	)
 }
@@ -267,7 +267,7 @@ const OUTLIERS: Array<Outlier> = [
   <div className={cn('absolute inset-y-0 left-0 w-1', sev.bar)} aria-hidden />
   <div className="flex items-center gap-2 border-b border-border/60 bg-muted/30 px-4 py-2 pl-5">
     <Badge variant={sev.badgeVariant}>{sev.label}</Badge>
-    <span className="text-[11px] uppercase tracking-wide text-muted-foreground">{groupLabel}</span>
+    <span className="text-2xs uppercase tracking-wide text-muted-foreground">{groupLabel}</span>
   </div>
   <div className="px-4 py-4 pl-5 flex flex-col gap-4">
     <h3 className="text-2xl md:text-3xl lg:text-4xl font-bold">{title}</h3>
@@ -280,16 +280,16 @@ const OUTLIERS: Array<Outlier> = [
 			<Card className="relative overflow-hidden p-0 gap-0">
 				<div className="absolute inset-y-0 left-0 w-1 bg-amber-500" aria-hidden />
 				<div className="flex items-center gap-2 border-b border-border/60 bg-muted/30 px-4 py-2 pl-5">
-					<Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-300 uppercase text-[10px] tracking-wide">
+					<Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-300 uppercase text-3xs tracking-wide">
 						<Sparkles className="size-3" />
 						Suggest
 					</Badge>
-					<span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Stale items</span>
+					<span className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">Stale items</span>
 				</div>
 				<div className="px-4 py-4 pl-5 flex flex-col gap-4">
 					<h3 className="text-xl font-bold leading-tight tracking-tight">Three items have been sitting on Christmas for months</h3>
 					<section className="rounded-md border border-border bg-card/40 overflow-hidden">
-						<header className="bg-muted/30 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+						<header className="bg-muted/30 px-3 py-1.5 text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
 							Recommendation
 						</header>
 						<div className="px-4 py-3 text-sm leading-relaxed">Trim them or move them to a wishlist so the list reads fresh.</div>
@@ -590,7 +590,7 @@ export default function CardVariants() {
 						<div key={v.id} data-card-variant={v.id} className="flex flex-col gap-2 rounded-lg border border-border/60 bg-muted/10 p-3">
 							<div className="flex items-baseline justify-between gap-2">
 								<h3 className="text-sm font-semibold">{v.name}</h3>
-								<code className="text-[10px] font-mono text-muted-foreground">data-card-variant=&quot;{v.id}&quot;</code>
+								<code className="text-3xs font-mono text-muted-foreground">data-card-variant=&quot;{v.id}&quot;</code>
 							</div>
 							<p className="text-xs text-muted-foreground leading-relaxed">
 								<span className="font-medium text-foreground/80">When:</span> {v.when}
@@ -603,11 +603,11 @@ export default function CardVariants() {
 							<div className="pt-1">{v.render()}</div>
 							<CodeSnippet snippet={v.snippet} />
 							<div className="rounded-md bg-background/40 ring-1 ring-foreground/10 p-2 flex flex-col gap-1.5">
-								<span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Where you'll see it</span>
+								<span className="text-3xs font-mono uppercase tracking-wider text-muted-foreground">Where you'll see it</span>
 								<ul className="flex flex-col gap-1">
 									{v.seenIn.map(s => (
-										<li key={s.where} className="text-[11px] leading-snug">
-											<code className="font-mono text-[10px] text-foreground/80">{s.where}</code>
+										<li key={s.where} className="text-2xs leading-snug">
+											<code className="font-mono text-3xs text-foreground/80">{s.where}</code>
 											<span className="text-muted-foreground">: {s.what}</span>
 										</li>
 									))}
@@ -631,7 +631,7 @@ export default function CardVariants() {
 								<h3 className="text-sm font-semibold">{o.name}</h3>
 								<div className="flex flex-wrap gap-x-3 gap-y-0.5">
 									{o.files.map(f => (
-										<code key={f} className="text-[10px] font-mono text-muted-foreground">
+										<code key={f} className="text-3xs font-mono text-muted-foreground">
 											{f}
 										</code>
 									))}

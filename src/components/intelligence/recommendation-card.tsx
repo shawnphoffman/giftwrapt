@@ -329,19 +329,19 @@ export function RecommendationCard({
 				<Badge
 					data-intelligence="card-severity-badge"
 					variant={sev.badgeVariant === 'amber' ? 'outline' : sev.badgeVariant}
-					className={cn('uppercase text-[10px] tracking-wide', sev.badgeClass)}
+					className={cn('uppercase text-3xs tracking-wide', sev.badgeClass)}
 				>
 					<SevIcon className="size-3" />
 					{sev.label}
 				</Badge>
-				<span data-intelligence="card-group-label" className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+				<span data-intelligence="card-group-label" className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
 					{categoryLabelFor(rec)}
 				</span>
 				{position && (
 					<Badge
 						data-intelligence="card-position-badge"
 						variant="outline"
-						className="ml-auto tabular-nums font-mono text-[10px] gap-0.5 bg-background/50"
+						className="ml-auto tabular-nums font-mono text-3xs gap-0.5 bg-background/50"
 						title={`Recommendation ${position.index} of ${position.total}`}
 					>
 						<span className="font-bold">{position.index}</span>
@@ -512,7 +512,7 @@ function AffectedPanel({ affected, relatedItems }: { affected: AffectedSummary; 
 				label="Context"
 				dataAttr="affected-heading"
 				rightSlot={
-					<span data-intelligence="affected-count" className="text-[11px] tabular-nums text-sky-700/80 dark:text-sky-300/80">
+					<span data-intelligence="affected-count" className="text-2xs tabular-nums text-sky-700/80 dark:text-sky-300/80">
 						{affected.count} {affected.noun}
 					</span>
 				}
@@ -630,7 +630,7 @@ function SubItemsSection({
 				label="Items"
 				dataAttr="sub-items-heading"
 				rightSlot={
-					<span data-intelligence="sub-items-count" className="text-[11px] tabular-nums text-teal-700/80 dark:text-teal-300/80">
+					<span data-intelligence="sub-items-count" className="text-2xs tabular-nums text-teal-700/80 dark:text-teal-300/80">
 						{subItems.length} {subItems.length === 1 ? 'item' : 'items'}
 					</span>
 				}

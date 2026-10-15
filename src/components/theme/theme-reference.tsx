@@ -96,9 +96,9 @@ function SwatchCard({ swatch }: { swatch: Swatch }) {
 				className={`${swatch.bg} ${swatch.fg ?? ''} ${swatch.border ? 'border' : ''} flex items-end justify-between h-20 px-3 pb-2 rounded-md shadow-xs`}
 			>
 				{swatch.fg && <span className="text-xs font-medium">Aa</span>}
-				<span className="text-[10px] font-mono opacity-60">{swatch.name}</span>
+				<span className="text-3xs font-mono opacity-60">{swatch.name}</span>
 			</div>
-			<code className="text-[11px] text-muted-foreground font-mono">{swatch.bg.replace('bg-', '--color-')}</code>
+			<code className="text-2xs text-muted-foreground font-mono">{swatch.bg.replace('bg-', '--color-')}</code>
 		</div>
 	)
 }

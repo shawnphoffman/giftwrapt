@@ -557,7 +557,7 @@ function AttachmentBadge({ urls }: { urls: Array<string> }) {
 				>
 					{isPdf ? <FileText className="size-4" /> : <img src={first} alt="receipt" className="size-full object-cover" />}
 					{extra > 0 && (
-						<span className="absolute -mt-5 -mr-5 ml-3 bg-foreground text-background text-[10px] rounded-full px-1 leading-tight pointer-events-none">
+						<span className="absolute -mt-5 -mr-5 ml-3 bg-foreground text-background text-3xs rounded-full px-1 leading-tight pointer-events-none">
 							+{extra}
 						</span>
 					)}

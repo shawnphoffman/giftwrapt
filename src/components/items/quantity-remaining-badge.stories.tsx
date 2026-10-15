@@ -91,7 +91,7 @@ function describeState(state: GalleryState): { wants: string; claimed: string; o
 
 function GalleryRender() {
 	const [hoveredRow, setHoveredRow] = useState<number | null>(null)
-	const headerCell = 'h-8 text-[10px] uppercase tracking-wide text-muted-foreground font-medium border-b px-3 flex items-center'
+	const headerCell = 'h-8 text-3xs uppercase tracking-wide text-muted-foreground font-medium border-b px-3 flex items-center'
 	return (
 		<div className="overflow-x-auto max-w-full">
 			<div className="grid grid-cols-[repeat(5,auto)_repeat(4,auto)] text-sm w-max">

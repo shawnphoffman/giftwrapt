@@ -256,7 +256,7 @@ function ThresholdControl({
 
 function WidgetFrame({ rows }: { rows: Array<WidgetRow> }) {
 	const frameClass =
-		'mx-auto w-[320px] rounded-3xl border bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-950 p-5 shadow-sm'
+		'mx-auto w-80 rounded-3xl border bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-950 p-5 shadow-sm'
 	if (rows.length === 0) {
 		return (
 			<div className={frameClass}>

@@ -133,7 +133,7 @@ function BarcodeSettingsForm({ cfg, onChange, saving }: FormProps) {
 					onValueChange={value => onChange({ providerId: value as BarcodeSettings['providerId'] })}
 					disabled={saving}
 				>
-					<SelectTrigger id="barcodeProvider" className="w-[220px]">
+					<SelectTrigger id="barcodeProvider" className="w-55">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
@@ -206,7 +206,7 @@ function BarcodeSettingsForm({ cfg, onChange, saving }: FormProps) {
 						const n = Number(e.target.value)
 						if (Number.isFinite(n) && n >= 0) onChange({ cacheTtlHours: Math.floor(n) })
 					}}
-					className="w-[120px]"
+					className="w-30"
 					disabled={saving}
 				/>
 			</div>
@@ -247,7 +247,7 @@ function BarcodeTester() {
 				Run a single provider against a barcode. This skips the cache and the fallback providers, so you can check each provider's setup on
 				its own.
 			</p>
-			<div className="grid gap-3 sm:grid-cols-[200px_1fr_auto]">
+			<div className="grid gap-3 sm:grid-cols-[12.5rem_1fr_auto]">
 				<Select value={providerId} onValueChange={v => setProviderId(v as typeof providerId)} disabled={running}>
 					<SelectTrigger>
 						<SelectValue />

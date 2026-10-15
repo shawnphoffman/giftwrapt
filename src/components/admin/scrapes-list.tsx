@@ -23,8 +23,8 @@ import { buildScraperLookups } from './scrape-stats'
 // `group-hover/row:bg-muted/40` rule keeps the row's hover bg consistent
 // across the sticky and non-sticky cells. A right border separates the
 // pinned column from the scrolling content visually.
-const STICKY_INSPECT_HEAD = 'sticky left-0 z-20 w-[52px] bg-card border-r'
-const STICKY_INSPECT_CELL = 'sticky left-0 z-10 w-[52px] bg-card border-r text-right group-hover/row:bg-muted/40'
+const STICKY_INSPECT_HEAD = 'sticky left-0 z-20 w-13 bg-card border-r'
+const STICKY_INSPECT_CELL = 'sticky left-0 z-10 w-13 bg-card border-r text-right group-hover/row:bg-muted/40'
 
 export function ScrapesList() {
 	const scrapesQuery = useQuery({ queryKey: ['admin', 'scrapes'], queryFn: () => listScrapesAsAdmin() })
@@ -102,7 +102,7 @@ function ScrapeRow({ row, labelFor, onInspect }: { row: ScrapeListRow; labelFor:
 				{/* Constrain via an inner block, since `max-w-*` on a <td> alone is
 				    ignored by the auto table layout; this gives the truncate
 				    something to bite against. */}
-				<div className="w-[260px] max-w-[40vw]">
+				<div className="w-65 max-w-[40vw]">
 					<a
 						href={row.url}
 						target="_blank"
@@ -117,7 +117,7 @@ function ScrapeRow({ row, labelFor, onInspect }: { row: ScrapeListRow; labelFor:
 			</TableCell>
 			<TableCell className="font-mono text-xs">
 				{row.isFinal && (
-					<Badge variant="outline" className="mr-1.5 text-[10px] font-sans" title="The run's final merged result">
+					<Badge variant="outline" className="mr-1.5 text-3xs font-sans" title="The run's final merged result">
 						Result
 					</Badge>
 				)}
@@ -136,7 +136,7 @@ function ScrapeRow({ row, labelFor, onInspect }: { row: ScrapeListRow; labelFor:
 						{row.listName && <span className="text-muted-foreground truncate">{row.listName}</span>}
 					</div>
 				) : (
-					<Badge variant="outline" className="text-[10px]">
+					<Badge variant="outline" className="text-3xs">
 						standalone
 					</Badge>
 				)}

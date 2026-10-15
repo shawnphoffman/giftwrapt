@@ -46,7 +46,7 @@ export function McpClientsTable({ clients, onToggleDisabled, onDelete, busyClien
 									<span className="font-medium">{client.name || 'Unnamed client'}</span>
 									{client.disabled ? <Badge variant="secondary">Disabled</Badge> : null}
 								</div>
-								<code className="font-mono text-[11px] text-muted-foreground">{client.clientId.slice(0, 12)}…</code>
+								<code className="font-mono text-2xs text-muted-foreground">{client.clientId.slice(0, 12)}…</code>
 							</TableCell>
 							<TableCell className="text-right tabular-nums">{client.activeUsers}</TableCell>
 							<TableCell className="text-right tabular-nums">{client.activeGrants}</TableCell>

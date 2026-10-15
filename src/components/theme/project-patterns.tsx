@@ -66,7 +66,7 @@ function Tile({ label, code, children }: { label: string; code?: string; childre
 			<div className="rounded-lg overflow-hidden ring-1 ring-foreground/10 bg-card">{children}</div>
 			<div className="flex flex-col gap-0.5">
 				<span className="text-xs font-medium">{label}</span>
-				{code && <code className="text-[10px] text-muted-foreground font-mono leading-tight">{code}</code>}
+				{code && <code className="text-3xs text-muted-foreground font-mono leading-tight">{code}</code>}
 			</div>
 		</div>
 	)
@@ -235,7 +235,7 @@ function DialogIconSwatch({ label, icon: Icon, bg, ring }: { label: string; icon
 	return (
 		<div className="flex items-center gap-2 rounded-md border border-border bg-muted/10 p-3">
 			<span className={cn('flex size-7 shrink-0 items-center justify-center rounded-md shadow-sm ring-1', bg, ring)}>
-				<Icon className="size-[21px] shrink-0 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.4)]" />
+				<Icon className="size-5.25 shrink-0 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.4)]" />
 			</span>
 			<span className="text-xs font-medium leading-tight">{label}</span>
 		</div>
@@ -442,7 +442,7 @@ export default function ProjectPatterns() {
 								style={{ backgroundColor: cssVar(t.hue, t.solidShade) }}
 							>
 								<span className="text-xs font-semibold drop-shadow-[0_1px_1px_rgba(0,0,0,0.35)]">{t.name}</span>
-								<code className="text-[10px] font-mono opacity-80">
+								<code className="text-3xs font-mono opacity-80">
 									{t.hue}-{t.solidShade}
 								</code>
 							</div>
@@ -454,11 +454,11 @@ export default function ProjectPatterns() {
 								}}
 							>
 								<span className="text-xs font-medium">soft variant</span>
-								<code className="text-[10px] font-mono opacity-70 ml-2">
+								<code className="text-3xs font-mono opacity-70 ml-2">
 									{t.hue}-{t.softShade}/12
 								</code>
 							</div>
-							<div className="px-3 py-2 text-[11px] text-muted-foreground leading-tight">{t.role}</div>
+							<div className="px-3 py-2 text-2xs text-muted-foreground leading-tight">{t.role}</div>
 						</div>
 					))}
 				</div>
@@ -475,7 +475,7 @@ export default function ProjectPatterns() {
 					{GRADIENTS.map(g => (
 						<Tile key={g.name} label={g.name} code={g.code}>
 							<div aria-hidden className="h-24 bg-card" style={gradientStyle(g)} />
-							<div className="px-3 py-2 text-[11px] text-muted-foreground leading-tight border-t border-foreground/10">{g.role}</div>
+							<div className="px-3 py-2 text-2xs text-muted-foreground leading-tight border-t border-foreground/10">{g.role}</div>
 						</Tile>
 					))}
 				</div>
@@ -492,7 +492,7 @@ export default function ProjectPatterns() {
 					{AVATAR_COLORS.map(c => (
 						<div key={c} className="flex flex-col items-center gap-1">
 							<div className={cn('size-10 rounded-full ring-1 ring-foreground/10', c)} aria-hidden />
-							<code className="text-[9px] text-muted-foreground font-mono truncate max-w-full">{c.split(' ')[0].replace('bg-', '')}</code>
+							<code className="text-4xs text-muted-foreground font-mono truncate max-w-full">{c.split(' ')[0].replace('bg-', '')}</code>
 						</div>
 					))}
 				</div>
@@ -510,7 +510,7 @@ export default function ProjectPatterns() {
 					{(['small', 'medium', 'large', 'huge'] as const).map(size => (
 						<div key={size} className="flex flex-col items-center gap-1">
 							<UserAvatar name="Reference Avatar" size={size} />
-							<code className="text-[10px] text-muted-foreground font-mono">{size}</code>
+							<code className="text-3xs text-muted-foreground font-mono">{size}</code>
 						</div>
 					))}
 				</div>
@@ -527,7 +527,7 @@ export default function ProjectPatterns() {
 							{LIST_TYPES.map(t => (
 								<div key={t} className="flex flex-col items-center gap-1">
 									<ListTypeIcon type={t} className="size-6" />
-									<code className="text-[10px] text-muted-foreground font-mono">{t}</code>
+									<code className="text-3xs text-muted-foreground font-mono">{t}</code>
 								</div>
 							))}
 						</div>
@@ -538,7 +538,7 @@ export default function ProjectPatterns() {
 							{PRIORITIES.map(p => (
 								<div key={p} className="flex flex-col items-center gap-1">
 									<PriorityIcon priority={p} />
-									<code className="text-[10px] text-muted-foreground font-mono">{p}</code>
+									<code className="text-3xs text-muted-foreground font-mono">{p}</code>
 								</div>
 							))}
 						</div>
@@ -588,7 +588,7 @@ export default function ProjectPatterns() {
 							<span className="text-muted-foreground">AI / intelligence</span>
 						</div>
 					</div>
-					<p className="text-[11px] text-muted-foreground pt-1">
+					<p className="text-2xs text-muted-foreground pt-1">
 						Used in permissions matrix, list rows, list-editors picker, and the Intelligence surface. Tones map to the semantic palette
 						above: emerald=guardian, sky=editor, amber=restricted, red=denied, pink=partner, yellow=ownership.
 					</p>
@@ -673,27 +673,27 @@ export default function ProjectPatterns() {
 							<div className="flex flex-wrap items-center gap-3">
 								<div className="flex flex-col items-start gap-1">
 									<QuantityRemainingBadge quantity={5} remaining={3} variant={variant} />
-									<span className="text-[10px] text-muted-foreground">partial</span>
+									<span className="text-3xs text-muted-foreground">partial</span>
 								</div>
 								<div className="flex flex-col items-start gap-1">
 									<QuantityRemainingBadge quantity={5} remaining={0} variant={variant} />
-									<span className="text-[10px] text-muted-foreground">all claimed by others</span>
+									<span className="text-3xs text-muted-foreground">all claimed by others</span>
 								</div>
 								<div className="flex flex-col items-start gap-1">
 									<QuantityRemainingBadge quantity={5} remaining={0} youClaimed variant={variant} />
-									<span className="text-[10px] text-muted-foreground">you fully claimed</span>
+									<span className="text-3xs text-muted-foreground">you fully claimed</span>
 								</div>
 								<div className="flex flex-col items-start gap-1">
 									<QuantityRemainingBadge quantity={3} remaining={0} claimedCount={5} variant={variant} />
-									<span className="text-[10px] text-muted-foreground">over-claimed</span>
+									<span className="text-3xs text-muted-foreground">over-claimed</span>
 								</div>
 								<div className="flex flex-col items-start gap-1">
 									<QuantityRemainingBadge quantity={2} remaining={2} unavailable variant={variant} />
-									<span className="text-[10px] text-muted-foreground">unavailable</span>
+									<span className="text-3xs text-muted-foreground">unavailable</span>
 								</div>
 								<div className="flex flex-col items-start gap-1">
 									<QuantityRemainingBadge quantity={4} remaining={4} lockReason="order" variant={variant} />
-									<span className="text-[10px] text-muted-foreground">group-locked</span>
+									<span className="text-3xs text-muted-foreground">group-locked</span>
 								</div>
 							</div>
 						</div>
@@ -791,7 +791,7 @@ export default function ProjectPatterns() {
 						<div key={v.id} data-card-variant={v.id} className="flex flex-col gap-2 rounded-lg border border-border/60 bg-muted/10 p-3">
 							<div className="flex items-baseline justify-between gap-2">
 								<h3 className="text-sm font-semibold">{v.name}</h3>
-								<code className="text-[10px] font-mono text-muted-foreground">data-card-variant=&quot;{v.id}&quot;</code>
+								<code className="text-3xs font-mono text-muted-foreground">data-card-variant=&quot;{v.id}&quot;</code>
 							</div>
 							<p className="text-xs text-muted-foreground leading-relaxed">
 								<span className="font-medium text-foreground/80">When:</span> {v.when}
@@ -802,7 +802,7 @@ export default function ProjectPatterns() {
 								</p>
 							)}
 							<div className="pt-1">{v.render()}</div>
-							<pre className="text-[11px] font-mono leading-snug rounded-md bg-background/60 ring-1 ring-foreground/10 p-2 overflow-x-auto whitespace-pre">
+							<pre className="text-2xs font-mono leading-snug rounded-md bg-background/60 ring-1 ring-foreground/10 p-2 overflow-x-auto whitespace-pre">
 								{v.snippet}
 							</pre>
 						</div>
@@ -933,7 +933,7 @@ export default function ProjectPatterns() {
 					<div>
 						<h3 className="text-base font-semibold tracking-tight">Dialog title icons</h3>
 						<p className="text-xs text-muted-foreground">
-							Compact variant (size-7 bg, size-[21px] glyph - 75%) used inside dialog titles. The color matches the sidebar entry that
+							Compact variant (size-7 bg, size-5.25 glyph - 75%) used inside dialog titles. The color matches the sidebar entry that
 							triggers the dialog.
 						</p>
 					</div>
@@ -967,7 +967,7 @@ export default function ProjectPatterns() {
 					<div className="rounded-xl bg-card shadow-sm ring-1 ring-foreground/10 overflow-hidden">
 						<div className="flex items-center gap-2 border-b border-border/60 bg-muted/30 px-4 py-2 pl-5">
 							<span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Recommendation</span>
-							<span className="ml-auto text-[11px] text-muted-foreground">just now</span>
+							<span className="ml-auto text-2xs text-muted-foreground">just now</span>
 						</div>
 						<div className="px-4 py-3 text-sm">
 							<p className="font-medium">Set a primary list</p>

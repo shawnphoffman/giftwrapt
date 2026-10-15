@@ -119,7 +119,7 @@ function ProviderRow({ progress, label, tier }: { progress: ProviderProgress; la
 		<li className={cn('flex items-center gap-2', muted && 'opacity-60')}>
 			<Icon className={cn('size-3.5 shrink-0', ICON_TONE[progress.status])} />
 			{typeof tier === 'number' && (
-				<Badge variant="outline" className="h-4 gap-1 px-1.5 py-0 text-[10px] font-normal text-muted-foreground" title={`Tier ${tier}`}>
+				<Badge variant="outline" className="h-4 gap-1 px-1.5 py-0 text-3xs font-normal text-muted-foreground" title={`Tier ${tier}`}>
 					<Layers2 className="size-2.5" aria-hidden="true" />
 					{tier}
 					<span className="sr-only">Tier {tier}</span>
@@ -127,10 +127,7 @@ function ProviderRow({ progress, label, tier }: { progress: ProviderProgress; la
 			)}
 			<span className={cn('font-mono', muted && 'line-through')}>{label}</span>
 			{badge && (
-				<Badge
-					variant={BADGE_VARIANT[progress.status]}
-					className={cn('h-4 px-1.5 py-0 text-[10px] font-normal', BADGE_TONE[progress.status])}
-				>
+				<Badge variant={BADGE_VARIANT[progress.status]} className={cn('h-4 px-1.5 py-0 text-3xs font-normal', BADGE_TONE[progress.status])}>
 					{badge}
 				</Badge>
 			)}
@@ -142,13 +139,13 @@ function ProviderRow({ progress, label, tier }: { progress: ProviderProgress; la
 
 // Two-segment pill mirroring `<PriceQuantityBadge>`: score on the left,
 // elapsed time on the right, separated by a 1px divider. Sized to match
-// the surrounding status badge (h-4, text-[10px]). Tones match the existing
+// the surrounding status badge (h-4, text-3xs). Tones match the existing
 // status palette so a green left half reads as "good score" and a sky right
 // half as "informational metric".
 function ScoreTimingPill({ score, ms }: { score: number; ms: number }) {
 	return (
 		<span
-			className="inline-flex h-4 items-stretch overflow-hidden rounded-full border text-[10px] font-medium whitespace-nowrap"
+			className="inline-flex h-4 items-stretch overflow-hidden rounded-full border text-3xs font-medium whitespace-nowrap"
 			title={`Score ${score}, ${formatDurationMs(ms)}`}
 		>
 			<span className="inline-flex items-center bg-emerald-100 px-1.5 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">

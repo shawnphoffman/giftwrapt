@@ -183,7 +183,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
 						<span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-yellow-500 dark:bg-yellow-600 ring-1 ring-yellow-400/40 dark:ring-yellow-600/40 shadow-sm">
-							<ListPlus className="size-[21px] shrink-0 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.4)]" />
+							<ListPlus className="size-5.25 shrink-0 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.4)]" />
 						</span>
 						Create a list
 					</DialogTitle>

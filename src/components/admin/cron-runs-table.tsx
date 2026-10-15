@@ -116,7 +116,7 @@ export function CronRunsTable() {
 					return (
 						<div className="flex flex-col">
 							<span className="text-xs font-medium">{entry?.label ?? row.original.endpoint}</span>
-							<code className="text-[10px] text-muted-foreground">{row.original.endpoint}</code>
+							<code className="text-3xs text-muted-foreground">{row.original.endpoint}</code>
 						</div>
 					)
 				},
@@ -164,7 +164,7 @@ export function CronRunsTable() {
 						setPagination(p => ({ ...p, pageIndex: 0 }))
 					}}
 				>
-					<SelectTrigger className="w-[260px]">
+					<SelectTrigger className="w-65">
 						<SelectValue placeholder="Endpoint" />
 					</SelectTrigger>
 					<SelectContent>
@@ -183,7 +183,7 @@ export function CronRunsTable() {
 						setPagination(p => ({ ...p, pageIndex: 0 }))
 					}}
 				>
-					<SelectTrigger className="w-[160px]">
+					<SelectTrigger className="w-40">
 						<SelectValue placeholder="Status" />
 					</SelectTrigger>
 					<SelectContent>
@@ -195,7 +195,7 @@ export function CronRunsTable() {
 					</SelectContent>
 				</Select>
 				<Select value={String(pagination.pageSize)} onValueChange={v => setPagination(() => ({ pageIndex: 0, pageSize: Number(v) }))}>
-					<SelectTrigger className="w-[110px]">
+					<SelectTrigger className="w-27.5">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>

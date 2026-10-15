@@ -160,9 +160,9 @@ function EnrollingView({
 			</Alert>
 
 			<div className="flex flex-col gap-3 rounded-md border p-3 sm:flex-row sm:items-start">
-				<div className="flex size-[240px] shrink-0 items-center justify-center rounded bg-white">
+				<div className="flex size-60 shrink-0 items-center justify-center rounded bg-white">
 					{qrDataUrl ? (
-						<img src={qrDataUrl} alt="TOTP QR code" className="size-[240px]" />
+						<img src={qrDataUrl} alt="TOTP QR code" className="size-60" />
 					) : (
 						<span className="text-xs text-muted-foreground">Generating QR…</span>
 					)}

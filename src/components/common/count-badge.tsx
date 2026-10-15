@@ -24,7 +24,7 @@ export default function CountBadge({ count, remaining }: CountBadgeProps) {
 			variant="outline"
 			className={cn(baseClass, 'items-center', allClaimed && 'text-muted-foreground bg-muted/50 border-border/50 opacity-60')}
 		>
-			<span className="text-[9px] leading-none text-muted-foreground self-start">{remaining}</span>
+			<span className="text-4xs leading-none text-muted-foreground self-start">{remaining}</span>
 			<span className="self-start text-xs leading-none text-muted-foreground/50">/</span>
 			<span className="leading-none">{count}</span>
 		</Badge>

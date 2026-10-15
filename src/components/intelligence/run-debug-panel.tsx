@@ -172,7 +172,7 @@ function StepCard({ step }: { step: RunDebugStep }) {
 						{step.analyzerLabel}
 						{step.error ? <Badge variant="destructive">error</Badge> : <Badge variant="secondary">ok</Badge>}
 					</span>
-					<span className="text-[11px] font-normal text-muted-foreground tabular-nums">
+					<span className="text-2xs font-normal text-muted-foreground tabular-nums">
 						{step.latencyMs}ms
 						{(step.tokensIn > 0 || step.tokensOut > 0) && ` · ${step.tokensIn} in / ${step.tokensOut} out`}
 					</span>
@@ -182,7 +182,7 @@ function StepCard({ step }: { step: RunDebugStep }) {
 				<CardContent className="flex flex-col gap-2">
 					{step.error && <div className="text-xs text-destructive font-mono whitespace-pre-wrap">{step.error}</div>}
 					{isHeuristic && (
-						<div className="text-[11px] text-muted-foreground italic">
+						<div className="text-2xs text-muted-foreground italic">
 							Heuristic-only step, no model call. Latency above is the analyzer&apos;s own logic.
 						</div>
 					)}
@@ -201,10 +201,10 @@ function RecCard({ rec }: { rec: RunDebugRec }) {
 			<CardHeader>
 				<CardTitle className="flex flex-col gap-1.5">
 					<span className="flex items-center gap-1.5 flex-wrap">
-						<Badge variant="outline" className="text-[10px]">
+						<Badge variant="outline" className="text-3xs">
 							{rec.analyzerLabel}
 						</Badge>
-						<Badge variant="outline" className="text-[10px]">
+						<Badge variant="outline" className="text-3xs">
 							{rec.kind}
 						</Badge>
 						<RecStatusBadge status={rec.status} />
@@ -216,7 +216,7 @@ function RecCard({ rec }: { rec: RunDebugRec }) {
 			<CardContent className="flex flex-col gap-1.5">
 				<div className="text-xs text-muted-foreground whitespace-pre-wrap">{rec.body}</div>
 				{rec.payloadJson && <DebugBlock label="Payload" body={prettyJson(rec.payloadJson)} />}
-				<div className="text-[10px] text-muted-foreground font-mono">fp: {rec.fingerprint}</div>
+				<div className="text-3xs text-muted-foreground font-mono">fp: {rec.fingerprint}</div>
 			</CardContent>
 		</Card>
 	)
@@ -226,7 +226,7 @@ function DebugBlock({ label, body }: { label: string; body: string }) {
 	return (
 		<details className="text-xs">
 			<summary className="cursor-pointer text-muted-foreground select-none">{label}</summary>
-			<pre className="mt-1.5 max-h-72 overflow-auto rounded bg-muted/50 p-2 text-[11px] whitespace-pre-wrap wrap-break-word">{body}</pre>
+			<pre className="mt-1.5 max-h-72 overflow-auto rounded bg-muted/50 p-2 text-2xs whitespace-pre-wrap wrap-break-word">{body}</pre>
 		</details>
 	)
 }
@@ -234,7 +234,7 @@ function DebugBlock({ label, body }: { label: string; body: string }) {
 function MiniStat({ label, value }: { label: string; value: string }) {
 	return (
 		<div className="rounded-md border border-border bg-muted/20 px-2 py-1.5">
-			<div className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</div>
+			<div className="text-3xs uppercase tracking-wide text-muted-foreground">{label}</div>
 			<div className="text-sm font-semibold tabular-nums">{value}</div>
 		</div>
 	)
@@ -250,18 +250,18 @@ function StatusBadge({ status }: { status: RunDebugRun['status'] }) {
 function RecStatusBadge({ status }: { status: RunDebugRec['status'] }) {
 	if (status === 'active')
 		return (
-			<Badge variant="secondary" className="text-[10px]">
+			<Badge variant="secondary" className="text-3xs">
 				active
 			</Badge>
 		)
 	if (status === 'dismissed')
 		return (
-			<Badge variant="outline" className="text-[10px]">
+			<Badge variant="outline" className="text-3xs">
 				dismissed
 			</Badge>
 		)
 	return (
-		<Badge variant="outline" className="text-[10px]">
+		<Badge variant="outline" className="text-3xs">
 			applied
 		</Badge>
 	)
@@ -270,7 +270,7 @@ function RecStatusBadge({ status }: { status: RunDebugRec['status'] }) {
 function RecSeverityBadge({ severity }: { severity: RunDebugRec['severity'] }) {
 	const variant = severity === 'important' ? 'destructive' : 'outline'
 	return (
-		<Badge variant={variant} className="text-[10px]">
+		<Badge variant={variant} className="text-3xs">
 			{severity}
 		</Badge>
 	)
@@ -287,7 +287,7 @@ function StepBreakdownInline({ steps }: { steps: Array<RunDebugStep> }) {
 	}
 	if (ok + err + noop === 0) return null
 	return (
-		<div className="flex items-center gap-2 text-[11px] tabular-nums">
+		<div className="flex items-center gap-2 text-2xs tabular-nums">
 			{ok > 0 && <span className="text-emerald-600 dark:text-emerald-400">{ok} ok</span>}
 			{err > 0 && <span className="text-destructive">{err} err</span>}
 			{noop > 0 && <span className="text-muted-foreground">{noop} noop</span>}

@@ -60,7 +60,7 @@ function QueryErrorResetBoundary({ children }: { children: React.ReactNode }) {
 				}
 
 				return (
-					<div className="flex flex-col items-center justify-center min-h-[400px] p-4">
+					<div className="flex flex-col items-center justify-center min-h-100 p-4">
 						<div className="max-w-md space-y-4">
 							<div className="text-center">
 								<h2 className="text-lg font-semibold text-destructive mb-2">Query Error</h2>

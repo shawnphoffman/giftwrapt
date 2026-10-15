@@ -192,9 +192,7 @@ export function IntelligenceAnalyzersCard({ data, patch }: { data: AdminIntellig
 									data-intelligence="admin-analyzer-example"
 									className="rounded-md border border-border/60 bg-background/50 px-2.5 py-1.5"
 								>
-									<div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-0.5">
-										Example recommendation
-									</div>
+									<div className="text-3xs font-semibold uppercase tracking-wide text-muted-foreground mb-0.5">Example recommendation</div>
 									<p className="text-xs italic text-foreground/80">{meta.example}</p>
 								</div>
 							</div>

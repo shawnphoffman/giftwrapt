@@ -38,19 +38,12 @@ export function TimeZonePicker({ id, value, onChange }: { id?: string; value: st
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
-				<Button
-					id={id}
-					type="button"
-					variant="outline"
-					role="combobox"
-					aria-expanded={open}
-					className="w-[240px] justify-between font-normal"
-				>
+				<Button id={id} type="button" variant="outline" role="combobox" aria-expanded={open} className="w-60 justify-between font-normal">
 					<span className="truncate">{value}</span>
 					<ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
 				</Button>
 			</PopoverTrigger>
-			<PopoverContent className="w-[280px] p-0" align="end">
+			<PopoverContent className="w-70 p-0" align="end">
 				<Command>
 					<CommandInput placeholder="Search time zones…" />
 					<CommandList>

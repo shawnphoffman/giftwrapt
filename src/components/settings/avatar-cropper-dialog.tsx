@@ -222,7 +222,7 @@ export function AvatarCropperDialog({ open, onOpenChange, imageSrc, fileName, on
 				<div className="flex flex-col items-center gap-4">
 					<div
 						ref={viewportRef}
-						className="relative aspect-square w-full max-w-[320px] overflow-hidden rounded-md bg-muted touch-none select-none cursor-grab active:cursor-grabbing"
+						className="relative aspect-square w-full max-w-80 overflow-hidden rounded-md bg-muted touch-none select-none cursor-grab active:cursor-grabbing"
 						onPointerDown={onPointerDown}
 						onPointerMove={onPointerMove}
 						onPointerUp={endDrag}
@@ -267,7 +267,7 @@ export function AvatarCropperDialog({ open, onOpenChange, imageSrc, fileName, on
 						/>
 					</div>
 
-					<div className="flex w-full max-w-[320px] items-center gap-3">
+					<div className="flex w-full max-w-80 items-center gap-3">
 						<button
 							type="button"
 							aria-label="Zoom out"

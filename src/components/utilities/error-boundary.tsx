@@ -47,7 +47,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 			}
 
 			return (
-				<div className="flex flex-col items-center justify-center min-h-[400px] p-4">
+				<div className="flex flex-col items-center justify-center min-h-100 p-4">
 					<Alert variant="destructive" className="max-w-md">
 						<AlertTriangle className="h-4 w-4" />
 						<AlertTitle>Something went wrong</AlertTitle>

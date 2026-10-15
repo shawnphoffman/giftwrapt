@@ -920,7 +920,7 @@ function CustomHttpFields({
 					disabled={disabled}
 					onValueChange={(v: string) => setDraft(prev => ({ ...prev, responseKind: v as 'html' | 'json' }))}
 				>
-					<SelectTrigger id={`custom-kind-${draft.id}`} className="w-full sm:w-[280px]">
+					<SelectTrigger id={`custom-kind-${draft.id}`} className="w-full sm:w-70">
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
