@@ -77,8 +77,7 @@ export function GroupBlock({ group, items, groups, listId, isOwner, onAddItem, o
 					{isOwner && (
 						<Button
 							variant="outline"
-							size="icon"
-							className="size-7"
+							size="icon-xs"
 							onClick={() => onAddItem(group.id)}
 							title="Add item to this group"
 							aria-label="Add item to this group"
@@ -89,7 +88,7 @@ export function GroupBlock({ group, items, groups, listId, isOwner, onAddItem, o
 					{isOwner && (
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
-								<Button variant="outline" size="icon" className="size-7" title="Group actions" aria-label="Group actions">
+								<Button variant="outline" size="icon-xs" title="Group actions" aria-label="Group actions">
 									<MoreHorizontal className="size-4" />
 								</Button>
 							</DropdownMenuTrigger>

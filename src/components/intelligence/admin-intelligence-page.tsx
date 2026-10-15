@@ -1106,23 +1106,23 @@ export function RunsTable({
 										<TableCell className="text-right">
 											<div onClick={e => e.stopPropagation()} className="flex justify-end">
 												<div className="hidden lg:flex gap-1.5">
-													<Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => onOpenRun?.(run.id)}>
+													<Button size="xs" variant="outline" onClick={() => onOpenRun?.(run.id)}>
 														Inspect
 													</Button>
-													<Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => onRunForUser?.(run.userId)}>
+													<Button size="xs" variant="outline" onClick={() => onRunForUser?.(run.userId)}>
 														Re-run
 													</Button>
-													<Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => onInvalidateHash?.(run.userId)}>
+													<Button size="xs" variant="outline" onClick={() => onInvalidateHash?.(run.userId)}>
 														Invalidate
 													</Button>
-													<Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => onPurgeRecs?.(run.userId)}>
+													<Button size="xs" variant="outline" onClick={() => onPurgeRecs?.(run.userId)}>
 														Purge
 													</Button>
 												</div>
 												<div className="lg:hidden">
 													<DropdownMenu>
 														<DropdownMenuTrigger asChild>
-															<Button size="sm" variant="outline" className="h-7 w-7 p-0" aria-label="Run actions">
+															<Button size="icon-xs" variant="outline" aria-label="Run actions">
 																<MoreHorizontal className="size-4" />
 															</Button>
 														</DropdownMenuTrigger>

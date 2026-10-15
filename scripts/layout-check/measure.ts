@@ -60,11 +60,11 @@ export interface ButtonSizeSpec {
 
 export const BUTTON_SIZES: Record<string, ButtonSizeSpec> = {
 	default: { h: 2.25, px: 0.625, pxIcon: 0.5, tokens: ['h-9', 'px-2.5'] },
-	xs: { h: 1.5, px: 0.5, pxIcon: 0.375, tokens: ['h-6', 'px-2', 'text-xs'] },
+	xs: { h: 1.75, px: 0.5, pxIcon: 0.375, tokens: ['h-7', 'px-2', 'text-xs'] },
 	sm: { h: 2, px: 0.625, pxIcon: 0.375, tokens: ['h-8', 'px-2.5'] },
 	lg: { h: 2.5, px: 0.625, pxIcon: 0.5, tokens: ['h-10', 'px-2.5'] },
 	icon: { h: 2.25, w: 2.25, px: 0, pxIcon: 0, tokens: ['size-9'] },
-	'icon-xs': { h: 1.5, w: 1.5, px: 0, pxIcon: 0, tokens: ['size-6'] },
+	'icon-xs': { h: 1.75, w: 1.75, px: 0, pxIcon: 0, tokens: ['size-7'] },
 	'icon-sm': { h: 2, w: 2, px: 0, pxIcon: 0, tokens: ['size-8'] },
 	'icon-lg': { h: 2.5, w: 2.5, px: 0, pxIcon: 0, tokens: ['size-10'] },
 }

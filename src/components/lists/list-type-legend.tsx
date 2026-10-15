@@ -120,11 +120,7 @@ export function ListTypeLegend({ className }: { className?: string }) {
 	return (
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
-				<Button
-					variant="outline"
-					size="sm"
-					className={cn('h-7 -mt-2 self-start text-xs text-muted-foreground hover:text-foreground', className)}
-				>
+				<Button variant="outline" size="xs" className={cn('-mt-2 self-start text-muted-foreground hover:text-foreground', className)}>
 					<Info className="size-3.5" />
 					What do the list types mean?
 				</Button>

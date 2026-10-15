@@ -271,8 +271,7 @@ function DomainTable({ rows, totalFailures }: { rows: Array<DomainAggregateRow>;
 										<Button
 											type="button"
 											variant="ghost"
-											size="icon"
-											className="size-7"
+											size="icon-xs"
 											aria-label={`Show example failing URLs for ${r.domain}`}
 											onClick={() => setOpenDomain(r)}
 										>

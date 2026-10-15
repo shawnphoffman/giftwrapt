@@ -30,7 +30,7 @@ export function ClaimCelebration({ onComplete }: Props) {
 
 	return (
 		<div className="relative inline-flex items-center">
-			<Button size="sm" variant="default" className="h-7 pointer-events-none" aria-live="polite">
+			<Button size="xs" variant="default" className="text-sm pointer-events-none" aria-live="polite">
 				<span className="relative inline-flex size-3.5 items-center justify-center">
 					<motion.span
 						initial={reduced ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.6 }}

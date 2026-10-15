@@ -273,7 +273,7 @@ function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: Ro
 				<CountBadge count={list.itemCount} />
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-						<Button variant="outline" size="icon" className="size-7 shrink-0" aria-label="List actions">
+						<Button variant="outline" size="icon-xs" className="shrink-0" aria-label="List actions">
 							<MoreHorizontal className="size-4" />
 						</Button>
 					</DropdownMenuTrigger>

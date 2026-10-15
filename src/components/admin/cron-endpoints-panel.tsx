@@ -52,14 +52,7 @@ function RunNowButton({ endpoint, label }: { endpoint: CronEndpoint; label: stri
 	})
 
 	return (
-		<Button
-			size="sm"
-			variant="outline"
-			className="h-7 px-2 text-xs"
-			disabled={mutation.isPending}
-			onClick={() => mutation.mutate()}
-			aria-label={`Run ${label} now`}
-		>
+		<Button size="xs" variant="outline" disabled={mutation.isPending} onClick={() => mutation.mutate()} aria-label={`Run ${label} now`}>
 			{mutation.isPending ? <Loader2 className="size-3 animate-spin" /> : <Play className="size-3" />}
 			Run now
 		</Button>

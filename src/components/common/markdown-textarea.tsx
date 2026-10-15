@@ -136,8 +136,8 @@ function ToolbarButton({ label, icon, onClick }: { label: string; icon: React.Re
 		<Button
 			type="button"
 			variant="outline"
-			size="icon"
-			className="size-7 text-muted-foreground hover:text-foreground"
+			size="icon-xs"
+			className="text-muted-foreground hover:text-foreground"
 			onClick={onClick}
 			title={label}
 			aria-label={label}

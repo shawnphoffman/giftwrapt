@@ -75,7 +75,7 @@ export function ClaimAction({
 				{celebrating ? (
 					<ClaimCelebration onComplete={() => setCelebrating(false)} />
 				) : (
-					<Button size="sm" variant="outline" className="h-7 text-foreground" onClick={() => setEditOpen(true)} title="Edit your claim">
+					<Button size="xs" variant="outline" className="text-sm text-foreground" onClick={() => setEditOpen(true)} title="Edit your claim">
 						<Pencil className="size-3.5" />
 						Edit claim
 					</Button>
@@ -105,7 +105,7 @@ export function ClaimAction({
 
 	return (
 		<>
-			<Button size="sm" variant="outline" className="h-7" onClick={() => setCreateOpen(true)}>
+			<Button size="xs" variant="outline" className="text-sm" onClick={() => setCreateOpen(true)}>
 				<Gift className="size-3.5 transition-colors group-hover/button:text-green-500" />
 				Claim
 			</Button>

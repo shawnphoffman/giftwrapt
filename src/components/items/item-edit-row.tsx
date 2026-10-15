@@ -224,7 +224,7 @@ export const ItemEditRow = memo(function ItemEditRow({
 				)}
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-						<Button variant="outline" size="icon" className="size-7 shrink-0" aria-label="Item actions">
+						<Button variant="outline" size="icon-xs" className="shrink-0" aria-label="Item actions">
 							<MoreHorizontal className="size-5" />
 						</Button>
 					</DropdownMenuTrigger>
@@ -329,26 +329,10 @@ export const ItemEditRow = memo(function ItemEditRow({
 					{item.imageUrl && <ItemImage src={item.imageUrl} alt={item.title} className={cn(dimmed && 'opacity-60')} />}
 					{(onMoveUp || onMoveDown) && (
 						<div className="flex flex-col shrink-0">
-							<Button
-								variant="outline"
-								size="icon"
-								className="size-7"
-								onClick={onMoveUp}
-								disabled={!onMoveUp}
-								title="Move up"
-								aria-label="Move up"
-							>
+							<Button variant="outline" size="icon-xs" onClick={onMoveUp} disabled={!onMoveUp} title="Move up" aria-label="Move up">
 								<ArrowUp className="size-4" />
 							</Button>
-							<Button
-								variant="outline"
-								size="icon"
-								className="size-7"
-								onClick={onMoveDown}
-								disabled={!onMoveDown}
-								title="Move down"
-								aria-label="Move down"
-							>
+							<Button variant="outline" size="icon-xs" onClick={onMoveDown} disabled={!onMoveDown} title="Move down" aria-label="Move down">
 								<ArrowDown className="size-4" />
 							</Button>
 						</div>

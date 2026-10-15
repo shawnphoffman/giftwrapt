@@ -180,7 +180,7 @@ function ItemRowImpl({ item, lockReason, grouped = false, giftIdea }: Props) {
 				{currentUserId && !pointsToInternalList && !giftIdea && (
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
-							<Button variant="outline" size="icon" className="size-7 shrink-0" aria-label="Item actions">
+							<Button variant="outline" size="icon-xs" className="shrink-0" aria-label="Item actions">
 								<MoreHorizontal className="size-5" />
 							</Button>
 						</DropdownMenuTrigger>
@@ -218,7 +218,7 @@ function ItemRowImpl({ item, lockReason, grouped = false, giftIdea }: Props) {
 							{showClaimAction && (
 								<div className="mt-auto">
 									{giftIdea ? (
-										<Button size="sm" variant="outline" className="h-7" onClick={giftIdea.onClaim}>
+										<Button size="xs" variant="outline" className="text-sm" onClick={giftIdea.onClaim}>
 											<Gift className="size-3.5 transition-colors group-hover/button:text-green-500" />
 											Claim
 										</Button>

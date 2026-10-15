@@ -506,8 +506,8 @@ function PurchaseDetailRow({
 			{canSplit && (
 				<Button
 					variant="outline"
-					size="icon"
-					className="size-7 shrink-0 text-muted-foreground hover:text-foreground"
+					size="icon-xs"
+					className="shrink-0 text-muted-foreground hover:text-foreground"
 					onClick={e => {
 						e.stopPropagation()
 						setSplitOpen(true)
@@ -520,8 +520,8 @@ function PurchaseDetailRow({
 			{editable ? (
 				<Button
 					variant="outline"
-					size="icon"
-					className="size-7 shrink-0 text-muted-foreground hover:text-foreground"
+					size="icon-xs"
+					className="shrink-0 text-muted-foreground hover:text-foreground"
 					onClick={e => {
 						e.stopPropagation()
 						onEdit()

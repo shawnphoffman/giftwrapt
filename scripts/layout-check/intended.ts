@@ -19,14 +19,7 @@ interface IntendedEntry {
 	text: RegExp
 }
 
-export const INTENDED: ReadonlyArray<IntendedEntry> = [
-	{
-		reason: 'The markdown toolbar buttons are compact (28px) on purpose',
-		kind: 'button-variant',
-		overrides: 'size-7 text-muted-foreground',
-		text: /^\[(Bold|Italic|Link|List)\]/,
-	},
-]
+export const INTENDED: ReadonlyArray<IntendedEntry> = []
 
 export function intendedReason(finding: Finding): string | null {
 	for (const entry of INTENDED) {
