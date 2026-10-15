@@ -36,6 +36,25 @@ describe('looksLikeBlocked', () => {
 		expect(looksLikeBlocked(html)).toBe(true)
 	})
 
+	it('flags the DataDome interstitial and captcha pages', () => {
+		expect(looksLikeBlocked(fixture('datadome-interstitial.html'))).toBe(true)
+		expect(looksLikeBlocked(fixture('datadome-captcha.html'))).toBe(true)
+	})
+
+	it('flags a DataDome page by its inline config alone', () => {
+		// The raw form the live page serves (the fixture is Prettier-formatted).
+		const html =
+			"<html><head><title>shop.example.com</title></head><body><script data-cfasync=\"false\">var dd={'rt':'c','cid':'x==','host':'geo.captcha-delivery.com'}</script></body></html>"
+		expect(looksLikeBlocked(html)).toBe(true)
+	})
+
+	it('does not flag a real page from a DataDome-protected store', () => {
+		const html =
+			'<html><head><title>Thermal Top | Shop</title><script src="https://js.datadome.co/tags.js" async></script></head>' +
+			'<body><h1>Thermal Top</h1><script>window.__STATE__={"datadome":{"challengeActive":false},"DATADOME_JS_KEY":"ABC123"}</script></body></html>'
+		expect(looksLikeBlocked(html)).toBe(false)
+	})
+
 	it('flags a Cloudflare challenge', () => {
 		expect(looksLikeBlocked('<html><head><title>Just a moment...</title></head><body>cf-browser-verification</body></html>')).toBe(true)
 	})

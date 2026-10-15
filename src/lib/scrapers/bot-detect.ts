@@ -21,6 +21,11 @@ const BOT_WALL_PATTERNS: Array<RegExp> = [
 	// "Error reference: <code>BLOCKED_EDGE</code>".
 	/Error reference:\s*(?:<[^>]*>\s*)*BLOCKED_EDGE/i,
 	/Are you a robot\?/i,
+	// DataDome's interstitial and captcha pages: a ~2KB body titled with the
+	// bare hostname that loads its check from captcha-delivery.com. Real pages
+	// on DataDome-protected stores load a different tag script, never these.
+	/(?:ct|geo)\.captcha-delivery\.com\/(?:[ic]\.js|interstitial\/|captcha\/)/i,
+	/var\s+dd\s*=\s*\{\s*['"]?rt['"]?\s*:\s*['"][ic]['"]/i,
 	// Amazon's captcha interstitial. Served with a 200 to browser user
 	// agents it doesn't trust; the fetch provider falls back to the next UA.
 	/\/errors\/validateCaptcha/i,
