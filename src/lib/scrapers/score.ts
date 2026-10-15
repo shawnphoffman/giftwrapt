@@ -94,7 +94,11 @@ function hasMeaningfulTitle(result: ScrapeResult, ctx: { html?: string }): boole
 }
 
 const ERROR_TITLE_PATTERNS: ReadonlyArray<RegExp> = [
-	/^\s*\d{3}\b/, // "404", "404 - X", "404: ..."
+	// A leading HTTP error status: "404", "404 - X", "404: ...", "403 Forbidden".
+	// Only 4xx/5xx, and only bare, before a separator, or before status
+	// wording, so product titles that start with a number ("100% Cotton
+	// Sweater", "250 GSM Shorts", "500 Piece Puzzle") keep their title credit.
+	/^\s*[45]\d\d(?:\s*$|\s*[-:|.–—]|\s+(?:error|not found|forbidden|gone|unauthori[sz]ed|bad request|bad gateway|too many requests|service unavailable|internal server error|gateway time-?out|page)\b)/i,
 	/\bpage not found\b/i,
 	/\bnot found\b.*\b(?:error|page)?\b/i,
 	/\b(?:404|403|500|502|503)\b.*\b(?:error|not found|forbidden|unavailable|service)\b/i,

@@ -101,6 +101,32 @@ describe('scoreScrape: error-title penalty', () => {
 		expect(scoreScrape({ ...empty, title: '404 - Page Not Found' })).toBeLessThan(0)
 	})
 
+	it.each([
+		'404',
+		'404 Not Found',
+		'404: Not Found',
+		'403 Forbidden Traffic',
+		'403 error - No treats beyond this point',
+		'410 Gone',
+		'429 Too Many Requests',
+		'500: Internal Error',
+		'500 Internal Server Error',
+		'503 Service Unavailable',
+	])('penalises the status title %j', title => {
+		expect(scoreBreakdown({ ...empty, title }).parts).toEqual([{ signal: 'errorTitle', points: -3 }])
+	})
+
+	it.each([
+		'100% Cotton Teddie Sweater For Women | Factory',
+		"250 GSM 'Jet Black' Mesh Shorts",
+		'400 Thread Count Sateen Sheet Set',
+		'500 Piece Jigsaw Puzzle',
+		"501® Original Fit Men's Jeans",
+		'1000 Piece Puzzle',
+	])('keeps title credit for the product title %j', title => {
+		expect(scoreBreakdown({ ...empty, title }).parts).toEqual([{ signal: 'title', points: 2 }])
+	})
+
 	it('catches Cloudflare interstitial title "Just a moment..."', () => {
 		expect(scoreScrape({ ...empty, title: 'Just a moment...' })).toBeLessThan(0)
 	})
