@@ -5,6 +5,8 @@
 
 # Documentation
 *.md
+# The in-app What's New page imports it with ?raw at build time.
+!CHANGELOG.md
 README.md
 CODE_REVIEW.md
 DEVELOPMENT.md
