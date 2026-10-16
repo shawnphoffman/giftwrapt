@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.9.1](https://github.com/shawnphoffman/giftwrapt/compare/v1.9.0...v1.9.1) (2026-10-16)
+
+
+### Bug Fixes
+
+* **scrapers:** detect DataDome interstitial and captcha pages ([3d27e71](https://github.com/shawnphoffman/giftwrapt/commit/3d27e71819e4d74ab751544d01e1a417cd9709ad))
+* **scrapers:** detect the Akamai edge Access Denied page ([133e3b9](https://github.com/shawnphoffman/giftwrapt/commit/133e3b95b06cbc1438ff7599e6478650cc18aa38))
+* **scrapers:** detect the BLOCKED_EDGE block page ([5aabc0d](https://github.com/shawnphoffman/giftwrapt/commit/5aabc0d8b69c4a7aca983eb02a948bb53ab918ae))
+* **scrapers:** keep title credit for titles that start with a number ([40b1d42](https://github.com/shawnphoffman/giftwrapt/commit/40b1d4245732d93b46138c944f9b31bfb7d2cdc4))
+
 ## [1.9.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.8.0...v1.9.0) (2026-10-15)
 
 
