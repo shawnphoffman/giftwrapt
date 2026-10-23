@@ -56,7 +56,7 @@ export function PhotoExtractTester() {
 				<div className="flex items-center gap-2">
 					<Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={state.phase === 'extracting'}>
 						<Camera className="size-4" />
-						{file ? 'Pick another photo' : 'Pick a photo'}
+						{file ? 'Pick Another Photo' : 'Pick a Photo'}
 					</Button>
 					{file && (
 						<Button type="button" variant="outline" onClick={handleClear} disabled={state.phase === 'extracting'}>

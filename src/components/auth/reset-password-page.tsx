@@ -67,7 +67,7 @@ export function ResetPasswordPageContent({
 
 			<div className="w-full max-w-md space-y-4 rounded-lg border bg-background/80 p-6 shadow-lg backdrop-blur">
 				<div className="text-center">
-					<h1 className="text-3xl font-bold">Set a new password</h1>
+					<h1 className="text-3xl font-bold">Set a New Password</h1>
 					<p className="mt-2 text-muted-foreground">
 						{submitted ? 'Your password has been updated. You can sign in with it now.' : 'Choose a new password for your account.'}
 					</p>
@@ -88,7 +88,7 @@ export function ResetPasswordPageContent({
 						{error && <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">{error}</div>}
 
 						<div className="space-y-2">
-							<Label htmlFor="new-password">New password</Label>
+							<Label htmlFor="new-password">New Password</Label>
 							<PasswordInput
 								id="new-password"
 								placeholder="••••••••"
@@ -102,7 +102,7 @@ export function ResetPasswordPageContent({
 						</div>
 
 						<div className="space-y-2">
-							<Label htmlFor="confirm-password">Confirm new password</Label>
+							<Label htmlFor="confirm-password">Confirm New Password</Label>
 							<PasswordInput
 								id="confirm-password"
 								placeholder="••••••••"
@@ -116,7 +116,7 @@ export function ResetPasswordPageContent({
 						</div>
 
 						<Button type="submit" className="w-full" disabled={showLoading || !tokenPresent}>
-							{showLoading ? 'Saving…' : 'Set new password'}
+							{showLoading ? 'Saving…' : 'Set New Password'}
 						</Button>
 					</form>
 				)}

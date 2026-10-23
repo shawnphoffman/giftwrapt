@@ -73,11 +73,11 @@ export function GroupEditDialog({ open, onOpenChange, group, listId }: Props) {
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
-					<DialogTitle>Edit group</DialogTitle>
+					<DialogTitle>Edit Group</DialogTitle>
 				</DialogHeader>
 				<div className="grid gap-3">
 					<div className="grid gap-1.5">
-						<Label htmlFor={`group-name-${group.id}`}>Name (optional)</Label>
+						<Label htmlFor={`group-name-${group.id}`}>Name (Optional)</Label>
 						<Input
 							id={`group-name-${group.id}`}
 							name="group-name"

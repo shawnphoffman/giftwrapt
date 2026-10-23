@@ -138,9 +138,9 @@ export function ArchiveManagerBadge({
 	}
 
 	const presets = [
-		{ label: '+1 week', days: 7 },
-		{ label: '+2 weeks', days: 14 },
-		{ label: '+1 month', days: 30 },
+		{ label: '+1 Week', days: 7 },
+		{ label: '+2 Weeks', days: 14 },
+		{ label: '+1 Month', days: 30 },
 	]
 
 	return (
@@ -164,7 +164,7 @@ export function ArchiveManagerBadge({
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle className="pr-10">
-						Gifts reveal on {longDate}
+						Gifts Reveal on {longDate}
 						{extended && <span className="text-muted-foreground text-sm font-normal"> (extended)</span>}
 					</DialogTitle>
 					<DialogDescription>Claimed gifts stay hidden from {recipientName} until then, then reveal automatically.</DialogDescription>
@@ -193,18 +193,18 @@ export function ArchiveManagerBadge({
 							{archiveInfo.inForceWindow && (
 								<Button type="button" size="sm" onClick={() => setMode('confirmForce')}>
 									<Send className="size-4" />
-									Reveal now
+									Reveal Now
 								</Button>
 							)}
 							{archiveInfo.eventHasPassed && (
 								<Button type="button" size="sm" variant="outline" onClick={() => setMode('extend')}>
 									<Clock className="size-4" />
-									{extended ? 'Extend further' : 'Extend reveal'}
+									{extended ? 'Extend Further' : 'Extend Reveal'}
 								</Button>
 							)}
 							{extended && (
 								<Button type="button" size="sm" variant="ghost" disabled={busy} onClick={handleCancel}>
-									Cancel extension
+									Cancel Extension
 								</Button>
 							)}
 						</div>
@@ -222,7 +222,7 @@ export function ArchiveManagerBadge({
 								Back
 							</Button>
 							<Button type="button" size="sm" disabled={busy} onClick={handleForce}>
-								{busy ? 'Revealing…' : 'Confirm reveal'}
+								{busy ? 'Revealing…' : 'Confirm Reveal'}
 							</Button>
 						</div>
 					</div>
@@ -262,7 +262,7 @@ export function ArchiveManagerBadge({
 								disabled={busy || !customDate}
 								onClick={() => customDate && applyDefer(new Date(`${customDate}T23:59:59`))}
 							>
-								Extend to date
+								Extend to Date
 							</Button>
 						</div>
 					</div>

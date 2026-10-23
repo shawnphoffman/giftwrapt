@@ -298,7 +298,7 @@ const CARD_VARIANTS: Array<CardVariant> = [
 		render: () => (
 			<Card size="sm">
 				<CardHeader>
-					<CardTitle>Active recs</CardTitle>
+					<CardTitle>Active Recs</CardTitle>
 					<CardDescription>across 4 analyzers</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -419,7 +419,7 @@ export default function ProjectPatterns() {
 	return (
 		<div className="flex flex-col gap-10">
 			<header className="flex flex-col gap-1">
-				<h2 className="text-2xl font-semibold tracking-tight">Project patterns</h2>
+				<h2 className="text-2xl font-semibold tracking-tight">Project Patterns</h2>
 				<p className="text-sm text-muted-foreground">
 					Project-specific styled primitives that recur across surfaces. Pairs with{' '}
 					<a className="text-primary hover:underline underline-offset-4" href="?path=/story/utilities-theme-theme-reference--default">
@@ -846,7 +846,7 @@ export default function ProjectPatterns() {
 						<CardHeader>
 							<CardTitle className="flex items-center gap-2">
 								<PackagePlus className="size-5" />
-								Off-list
+								Off-List
 							</CardTitle>
 							<CardDescription className="text-foreground/50">Volunteer addons</CardDescription>
 						</CardHeader>
@@ -858,7 +858,7 @@ export default function ProjectPatterns() {
 
 				<div className="flex flex-col gap-3">
 					<div>
-						<h3 className="text-base font-semibold tracking-tight">Page heading icons</h3>
+						<h3 className="text-base font-semibold tracking-tight">Page Heading Icons</h3>
 						<p className="text-xs text-muted-foreground">
 							Colored bg square (size-10) with white glyph at 75% (size-7). Drives the &lt;PageHeading&gt; component shared across every
 							top-level page.
@@ -931,7 +931,7 @@ export default function ProjectPatterns() {
 
 				<div className="flex flex-col gap-3">
 					<div>
-						<h3 className="text-base font-semibold tracking-tight">Dialog title icons</h3>
+						<h3 className="text-base font-semibold tracking-tight">Dialog Title Icons</h3>
 						<p className="text-xs text-muted-foreground">
 							Compact variant (size-7 bg, size-5.25 glyph - 75%) used inside dialog titles. The color matches the sidebar entry that
 							triggers the dialog.
@@ -939,13 +939,13 @@ export default function ProjectPatterns() {
 					</div>
 					<div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
 						<DialogIconSwatch
-							label="Add an item"
+							label="Add an Item"
 							icon={SquarePlus}
 							bg="bg-blue-500 dark:bg-blue-600"
 							ring="ring-blue-400/40 dark:ring-blue-600/40"
 						/>
 						<DialogIconSwatch
-							label="Create a new list"
+							label="Create a New List"
 							icon={ListPlus}
 							bg="bg-yellow-500 dark:bg-yellow-600"
 							ring="ring-yellow-400/40 dark:ring-yellow-600/40"
@@ -958,7 +958,7 @@ export default function ProjectPatterns() {
 						<List className="size-4" />
 					</div>
 					<div>
-						<h3 className="text-base font-semibold">Section header</h3>
+						<h3 className="text-base font-semibold">Section Header</h3>
 						<p className="text-xs text-muted-foreground">Used in recommendation groups. Muted icon chip + title + meta line.</p>
 					</div>
 				</div>

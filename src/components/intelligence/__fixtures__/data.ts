@@ -626,7 +626,7 @@ const recConvertHolidayRebind: Recommendation = {
 	createdAt: hoursAgo(4),
 	actions: [
 		{
-			label: 'Re-Bind to Halloween',
+			label: 'Re-bind to Halloween',
 			description: 'Change the holiday this list is bound to and rename it. Items and existing claims stay put.',
 			intent: 'do',
 			apply: {
@@ -777,7 +777,7 @@ const recMergeTwoWishlists: Recommendation = {
 	createdAt: hoursAgo(1),
 	actions: [
 		{
-			label: 'Merge into Newest',
+			label: 'Merge Into Newest',
 			description:
 				'Moves items, item groups, and list addons onto the newer list, and existing claims move with their items. The older lists are archived, not deleted, so you can bring them back.',
 			intent: 'do',
@@ -808,7 +808,7 @@ const recMergeThreeWishlists: Recommendation = {
 	createdAt: hoursAgo(1),
 	actions: [
 		{
-			label: 'Merge into Newest',
+			label: 'Merge Into Newest',
 			description:
 				'Moves items, item groups, and list addons onto the newer list, and existing claims move with their items. The older lists are archived, not deleted, so you can bring them back.',
 			intent: 'do',
@@ -854,7 +854,7 @@ const recMergeHolidayCluster: Recommendation = {
 	createdAt: hoursAgo(1),
 	actions: [
 		{
-			label: 'Merge into Newest',
+			label: 'Merge Into Newest',
 			description:
 				'Moves items, item groups, and list addons onto the newer list, and existing claims move with their items. The older lists are archived, not deleted, so you can bring them back.',
 			intent: 'do',

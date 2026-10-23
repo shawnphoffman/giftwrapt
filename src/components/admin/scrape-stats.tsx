@@ -182,7 +182,7 @@ function ProviderTable({
 							<TableHead>Provider</TableHead>
 							<TableHead className="text-right">Total</TableHead>
 							<TableHead className="text-right">Failed</TableHead>
-							<TableHead className="text-right">Fail rate</TableHead>
+							<TableHead className="text-right">Fail Rate</TableHead>
 							<TableHead className="text-right">Avg ms</TableHead>
 							<TableHead className="text-right">p95 ms</TableHead>
 						</TableRow>
@@ -241,7 +241,7 @@ function DomainTable({ rows, totalFailures }: { rows: Array<DomainAggregateRow>;
 							<TableRow>
 								<TableHead>Domain</TableHead>
 								<TableHead className="text-right">Failures</TableHead>
-								<TableHead>Top error</TableHead>
+								<TableHead>Top Error</TableHead>
 								<TableHead className="w-8" />
 							</TableRow>
 						</TableHeader>

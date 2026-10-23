@@ -57,7 +57,7 @@ export function ForgotPasswordPageContent({
 
 			<div className="w-full max-w-md space-y-4 rounded-lg border bg-background/80 p-6 shadow-lg backdrop-blur">
 				<div className="text-center">
-					<h1 className="text-3xl font-bold">Reset your password</h1>
+					<h1 className="text-3xl font-bold">Reset Your Password</h1>
 					<p className="mt-2 text-muted-foreground">
 						{submitted
 							? 'If an account exists for that address, we just sent a reset link to it.'

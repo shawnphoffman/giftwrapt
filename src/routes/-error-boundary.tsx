@@ -22,7 +22,7 @@ export default function ErrorBoundaryFallback({ error, reset }: ErrorBoundaryFal
 				<p className="text-muted-foreground">{formatted.body}</p>
 				<div className="flex gap-2 justify-center">
 					<Button type="button" onClick={reset}>
-						Try again
+						Try Again
 					</Button>
 					<Button
 						type="button"
@@ -31,7 +31,7 @@ export default function ErrorBoundaryFallback({ error, reset }: ErrorBoundaryFal
 							window.location.href = '/'
 						}}
 					>
-						Go home
+						Go Home
 					</Button>
 				</div>
 			</div>

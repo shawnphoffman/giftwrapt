@@ -55,7 +55,7 @@ export function IntelligenceGeneralSettingsCard({ data, patch }: { data: AdminIn
 					</p>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
-							label="Candidate cap per analyzer"
+							label="Candidate Cap per Analyzer"
 							hint="The most items (or item pairs) sent to the model in a single run."
 							value={s.candidateCap}
 							onChange={v => patch({ candidateCap: v })}
@@ -75,13 +75,13 @@ export function IntelligenceGeneralSettingsCard({ data, patch }: { data: AdminIn
 					</p>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
-							label="Stale recommendation retention (days)"
+							label="Stale Recommendation Retention (Days)"
 							hint="Dismissed and applied recommendations older than this are deleted."
 							value={s.staleRecRetentionDays}
 							onChange={v => patch({ staleRecRetentionDays: v })}
 						/>
 						<NumberRow
-							label="Run-step retention (days)"
+							label="Run-Step Retention (Days)"
 							hint="Debug records for each run step (prompt, response, and parsed output) older than this are deleted."
 							value={s.runStepsRetentionDays}
 							onChange={v => patch({ runStepsRetentionDays: v })}
@@ -101,13 +101,13 @@ export function IntelligenceGeneralSettingsCard({ data, patch }: { data: AdminIn
 					</p>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
-							label="Upcoming-event window (days)"
+							label="Upcoming-Event Window (Days)"
 							hint="Suggestions start once an event is this many days away. For example, 45 starts about six weeks ahead."
 							value={s.upcomingWindowDays}
 							onChange={v => patch({ upcomingWindowDays: v })}
 						/>
 						<NumberRow
-							label="Minimum days before event (days)"
+							label="Minimum Days Before Event (Days)"
 							hint="Suggestions to convert, create, or change privacy stop once the event is this close. With 1, they stop on the day of the event."
 							value={s.minDaysBeforeEventForRecs}
 							onChange={v => patch({ minDaysBeforeEventForRecs: v })}
@@ -115,7 +115,7 @@ export function IntelligenceGeneralSettingsCard({ data, patch }: { data: AdminIn
 					</div>
 					<div className="flex items-center justify-between gap-3 rounded-md border border-border px-3 py-2">
 						<div className="flex flex-col gap-0.5">
-							<Label className="text-lg">AI-assisted rename on Convert</Label>
+							<Label className="text-lg">AI-Assisted Rename on Convert</Label>
 							<span className="text-xs text-muted-foreground">
 								When this is on, the Convert action asks the AI provider (the same one the other analyzers use) to suggest the new list
 								name. The model only sees the current name, the new list type, the event title, and the year. It never sees items or claims.
@@ -136,13 +136,13 @@ export function IntelligenceGeneralSettingsCard({ data, patch }: { data: AdminIn
 					</p>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
-							label="Days past event before flagged stale"
+							label="Days Past Event Before Flagged Stale"
 							hint="Christmas, birthday, and holiday lists are only flagged once their event is at least this many days in the past. For example, 90 waits about three months after Christmas before suggesting an archive."
 							value={s.staleListPastEventDays}
 							onChange={v => patch({ staleListPastEventDays: v })}
 						/>
 						<NumberRow
-							label="Months of inactivity before flagged stale"
+							label="Months of Inactivity Before Flagged Stale"
 							hint="A list is flagged only when neither the list nor any of its items has been edited in this long. Applies to every eligible list type, including wishlists. 12 months matches the yearly auto-archive cycle."
 							value={s.staleListInactiveMonths}
 							onChange={v => patch({ staleListInactiveMonths: v })}
@@ -231,13 +231,13 @@ export function IntelligenceSchedulingCard({ data, patch }: { data: AdminIntelli
 					</p>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
-							label="Cron Refresh Interval (days)"
+							label="Cron Refresh Interval (Days)"
 							hint="How often the cron will regenerate recommendations for each user."
 							value={s.refreshIntervalDays}
 							onChange={v => patch({ refreshIntervalDays: v })}
 						/>
 						<NumberRow
-							label="Manual Refresh Cooldown (minutes)"
+							label="Manual Refresh Cooldown (Minutes)"
 							hint="Minimum gap between manual runs for the same user."
 							value={s.manualRefreshCooldownMinutes}
 							onChange={v => patch({ manualRefreshCooldownMinutes: v })}
@@ -336,7 +336,7 @@ export function IntelligenceNotificationsCard({ data, patch }: { data: AdminInte
 						disabled={notConfigured || !s.email.enabled}
 					/>
 					<div className="md:col-span-2">
-						<Label className="text-xs text-muted-foreground">Recipient override</Label>
+						<Label className="text-xs text-muted-foreground">Recipient Override</Label>
 						<TextInputOnBlur
 							className="mt-1"
 							type="email"
@@ -367,7 +367,7 @@ export function IntelligenceNotificationsCard({ data, patch }: { data: AdminInte
 							onClick={handleSendNow}
 						>
 							<Send className="size-4" />
-							{sending ? 'Sending…' : 'Send now'}
+							{sending ? 'Sending…' : 'Send Now'}
 						</Button>
 					</div>
 				</div>

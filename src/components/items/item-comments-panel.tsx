@@ -298,7 +298,7 @@ function CommentRow({
 			<AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Delete comment?</AlertDialogTitle>
+						<AlertDialogTitle>Delete Comment?</AlertDialogTitle>
 						<AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>

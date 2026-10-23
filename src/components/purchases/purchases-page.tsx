@@ -347,13 +347,13 @@ export function PurchasesPageContent({ items, partner }: Props) {
 
 								<MetricsGroup title="Averages">
 									<Metric label="Per Item" value={<MoneyChip amount={metrics.perItem} variant="total" />} />
-									<Metric label="Per Item (excl. $0)" value={<MoneyChip amount={metrics.perItemExclZero} variant="total" />} />
+									<Metric label="Per Item (Excl. $0)" value={<MoneyChip amount={metrics.perItemExclZero} variant="total" />} />
 									<Metric
 										label="Items/Person"
 										value={<span className="text-base font-semibold tabular-nums">{metrics.itemsPerPerson.toFixed(1)}</span>}
 									/>
 									<Metric
-										label="Items/Person (excl. $0)"
+										label="Items/Person (Excl. $0)"
 										value={<span className="text-base font-semibold tabular-nums">{metrics.itemsPerPersonExclZero.toFixed(1)}</span>}
 									/>
 								</MetricsGroup>

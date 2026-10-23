@@ -133,7 +133,7 @@ export function CreateDependentForm({ onCreated }: { onCreated?: () => void }) {
 			</div>
 
 			<div className="space-y-2">
-				<Label>Guardians (required)</Label>
+				<Label>Guardians (Required)</Label>
 				<div className="text-xs text-muted-foreground -mt-1">Users who manage this dependent.</div>
 				<div className="flex flex-wrap gap-2">
 					{selectedGuardians.map(g => (
@@ -172,7 +172,7 @@ export function CreateDependentForm({ onCreated }: { onCreated?: () => void }) {
 			</div>
 
 			<Button type="submit" disabled={!canSubmit}>
-				<Plus className="size-4" /> {mutation.isPending ? 'Adding...' : 'Add dependent'}
+				<Plus className="size-4" /> {mutation.isPending ? 'Adding...' : 'Add Dependent'}
 			</Button>
 		</form>
 	)

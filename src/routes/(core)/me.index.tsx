@@ -109,10 +109,10 @@ function MyListsPage() {
 					<PageHeading title="My Lists" icon={ListOrdered} color="red">
 						<div className="flex flex-row flex-wrap justify-end gap-1 items-center shrink-0">
 							<Button size="sm" variant="outline" onClick={() => setSearchOpen(true)}>
-								<Search className="size-4" /> Search items
+								<Search className="size-4" /> Search Items
 							</Button>
 							<Button size="sm" onClick={() => setCreateOpen(true)}>
-								<Plus className="size-4" /> New list
+								<Plus className="size-4" /> New List
 							</Button>
 						</div>
 					</PageHeading>

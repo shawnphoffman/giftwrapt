@@ -338,7 +338,7 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 						<span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-blue-500 dark:bg-blue-600 ring-1 ring-blue-400/40 dark:ring-blue-600/40 shadow-sm">
 							<SquarePlus className="size-5.25 shrink-0 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.4)]" />
 						</span>
-						Add an item
+						Add an Item
 					</DialogTitle>
 					<DialogDescription>Pick a list and fill in the details. You'll be taken to the list after saving.</DialogDescription>
 				</DialogHeader>
@@ -535,7 +535,7 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 								className="gap-1.5"
 							>
 								<Upload className="size-4" />
-								{stagedFile ? 'Replace image' : 'Upload image'}
+								{stagedFile ? 'Replace Image' : 'Upload Image'}
 							</Button>
 							{stagedFile && (
 								<>

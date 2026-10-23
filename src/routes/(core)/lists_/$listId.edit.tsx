@@ -257,10 +257,10 @@ function ListEditPage() {
 										</DropdownMenuTrigger>
 										<DropdownMenuContent align="end">
 											<DropdownMenuItem onClick={() => handleCreateGroup('or')}>
-												<Shuffle className="size-4" /> Pick one
+												<Shuffle className="size-4" /> Pick One
 											</DropdownMenuItem>
 											<DropdownMenuItem onClick={() => handleCreateGroup('order')}>
-												<ListOrdered className="size-4" /> In order
+												<ListOrdered className="size-4" /> In Order
 											</DropdownMenuItem>
 										</DropdownMenuContent>
 									</DropdownMenu>

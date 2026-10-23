@@ -96,9 +96,9 @@ export function RunDebugPanel({ state }: Props) {
 					{run.durationMs != null && ` · ${run.durationMs}ms`}
 				</div>
 				<div className="grid grid-cols-3 gap-2 mt-2">
-					<MiniStat label="Tokens in" value={run.tokensIn.toString()} />
-					<MiniStat label="Tokens out" value={run.tokensOut.toString()} />
-					<MiniStat label="Est. cost" value={`$${run.estimatedCostUsd.toFixed(4)}`} />
+					<MiniStat label="Tokens In" value={run.tokensIn.toString()} />
+					<MiniStat label="Tokens Out" value={run.tokensOut.toString()} />
+					<MiniStat label="Est. Cost" value={`$${run.estimatedCostUsd.toFixed(4)}`} />
 				</div>
 				{run.skipReason && (
 					<div className="text-xs text-muted-foreground mt-1">
@@ -121,7 +121,7 @@ export function RunDebugPanel({ state }: Props) {
 			<section className="flex flex-col gap-2">
 				<div className="flex items-baseline justify-between gap-2 flex-wrap">
 					<h3 className="text-sm font-semibold">
-						Analyzer steps <span className="text-muted-foreground font-normal">({steps.length})</span>
+						Analyzer Steps <span className="text-muted-foreground font-normal">({steps.length})</span>
 					</h3>
 					<StepBreakdownInline steps={steps} />
 				</div>
@@ -142,7 +142,7 @@ export function RunDebugPanel({ state }: Props) {
 
 			<section className="flex flex-col gap-2">
 				<h3 className="text-sm font-semibold">
-					Resulting recommendations <span className="text-muted-foreground font-normal">({recs.length})</span>
+					Resulting Recommendations <span className="text-muted-foreground font-normal">({recs.length})</span>
 				</h3>
 				{recs.length === 0 ? (
 					<p data-intelligence="admin-run-debug-no-recs" className="text-xs text-muted-foreground">
@@ -187,7 +187,7 @@ function StepCard({ step }: { step: RunDebugStep }) {
 						</div>
 					)}
 					{step.prompt && <DebugBlock label="Prompt" body={step.prompt} />}
-					{step.responseRaw && <DebugBlock label="Raw response" body={step.responseRaw} />}
+					{step.responseRaw && <DebugBlock label="Raw Response" body={step.responseRaw} />}
 					{step.parsedJson && <DebugBlock label="Parsed" body={prettyJson(step.parsedJson)} />}
 				</CardContent>
 			)}

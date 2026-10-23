@@ -470,7 +470,7 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 				{field => (
 					<div className="grid gap-2">
 						<Label htmlFor={field.name} className="flex items-center gap-1.5">
-							Default access to other users' lists
+							Default Access to Other Users' Lists
 							<InputTooltip>
 								Sets what this new user can see of everyone else's lists. <strong>View</strong> is the default (they can see others' public
 								lists). <strong>Restricted</strong> lets them view and claim but hides others' purchases. <strong>None</strong> hides
@@ -506,7 +506,7 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 			)}
 
 			<Button type="submit" disabled={isLoading} className="w-full" variant="default">
-				{isLoading ? 'Creating user...' : 'Create User'}
+				{isLoading ? 'Creating User...' : 'Create User'}
 			</Button>
 		</form>
 	)

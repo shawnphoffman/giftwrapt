@@ -100,7 +100,7 @@ export function SignInPageContent({
 
 			<div className="@container/card w-full max-w-md space-y-4 rounded-lg border bg-background/80 p-6 shadow-lg backdrop-blur">
 				<div className="text-center">
-					<h1 className="text-3xl font-bold">Sign in</h1>
+					<h1 className="text-3xl font-bold">Sign In</h1>
 					<p className="mt-2 text-muted-foreground">Enter your credentials to access your account</p>
 				</div>
 
@@ -145,7 +145,7 @@ export function SignInPageContent({
 					</div>
 
 					<Button type="submit" className="w-full" disabled={showLoading}>
-						{showLoading && !passkeyLoading ? 'Signing in...' : 'Sign in'}
+						{showLoading && !passkeyLoading ? 'Signing In...' : 'Sign In'}
 					</Button>
 
 					{(onSignInWithPasskey || onSignInWithOidc) && (

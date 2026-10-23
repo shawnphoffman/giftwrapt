@@ -218,7 +218,7 @@ function ScrapeDetailDialog({
 									<ScoreBreakdownLine parts={scoreParts} total={detail.score} />
 								</DetailField>
 							)}
-							<DetailField label="Triggered by">
+							<DetailField label="Triggered By">
 								{detail.userName || detail.userEmail ? (
 									<>
 										{detail.userName ?? ''}
@@ -246,11 +246,11 @@ function ScrapeDetailDialog({
 							detail.price ||
 							(detail.imageUrls && detail.imageUrls.length > 0)) && (
 							<div className="rounded-md border p-3 space-y-1.5">
-								<h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Extracted columns</h4>
+								<h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Extracted Columns</h4>
 								<DetailGrid>
 									{detail.title && <DetailField label="Title">{detail.title}</DetailField>}
 									{detail.cleanTitle && detail.cleanTitle !== detail.title && (
-										<DetailField label="Cleaned title">{detail.cleanTitle}</DetailField>
+										<DetailField label="Cleaned Title">{detail.cleanTitle}</DetailField>
 									)}
 									{detail.price && (
 										<DetailField label="Price">
@@ -275,7 +275,7 @@ function ScrapeDetailDialog({
 						)}
 
 						<div className="space-y-1.5">
-							<h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Raw response</h4>
+							<h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Raw Response</h4>
 							<pre className="text-xs bg-muted/50 rounded-md p-2 overflow-x-auto font-mono leading-snug max-h-[40vh] overflow-y-auto">
 								{detail.response === null ? (
 									<span className="text-muted-foreground italic">(none stored)</span>

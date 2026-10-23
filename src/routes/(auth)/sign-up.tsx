@@ -76,7 +76,7 @@ function SignUp() {
 
 			<div className="w-full max-w-md space-y-4 rounded-lg border bg-background/80 p-6 shadow-lg backdrop-blur">
 				<div className="text-center">
-					<h1 className="text-3xl font-bold">Create an account</h1>
+					<h1 className="text-3xl font-bold">Create an Account</h1>
 					<p className="mt-2 text-muted-foreground">Enter your information to get started</p>
 				</div>
 
@@ -130,7 +130,7 @@ function SignUp() {
 					</div>
 
 					<Button type="submit" className="w-full" disabled={isLoading}>
-						{isLoading ? 'Creating account...' : 'Sign up'}
+						{isLoading ? 'Creating Account...' : 'Sign Up'}
 					</Button>
 				</form>
 

@@ -893,7 +893,7 @@ function buildMergeRec(args: { cluster: DuplicateCluster; subject: SubjectListSu
 		body,
 		actions: [
 			{
-				label: 'Merge into Newest',
+				label: 'Merge Into Newest',
 				description:
 					'Moves items, item groups, and list addons onto the newer list, and existing claims move with their items. The older lists are archived, not deleted, so you can bring them back.',
 				intent: 'do',

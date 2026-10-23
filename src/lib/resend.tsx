@@ -458,21 +458,21 @@ export const sendOperatorDigestEmail = async (recipients: Array<string>, data: O
 }
 
 export const TEST_EMAIL_KINDS = [
-	{ value: 'test', label: 'Generic test email' },
-	{ value: 'new-comment', label: 'New comment notification' },
-	{ value: 'birthday', label: 'Happy birthday' },
-	{ value: 'post-birthday', label: 'Gift reveal summary (birthday)' },
-	{ value: 'pre-birthday-reminder', label: 'Pre-birthday reminder' },
-	{ value: 'pre-christmas-reminder', label: 'Pre-Christmas reminder' },
-	{ value: 'pre-custom-holiday-reminder', label: 'Pre-custom-holiday reminder' },
-	{ value: 'parental-relations-reminder', label: "Mother's/Father's Day reminder" },
-	{ value: 'valentines-day-reminder', label: "Valentine's Day reminder" },
-	{ value: 'partner-anniversary-reminder', label: 'Partner anniversary reminder' },
-	{ value: 'orphan-claim', label: 'Orphan claim alert' },
-	{ value: 'orphan-claim-cleanup-reminder', label: 'Orphan claim cleanup reminder' },
-	{ value: 'post-holiday', label: 'Gift reveal summary (holiday)' },
-	{ value: 'password-reset', label: 'Password reset' },
-	{ value: 'intelligence-operator-digest', label: 'Intelligence operator digest' },
+	{ value: 'test', label: 'Generic Test Email' },
+	{ value: 'new-comment', label: 'New Comment Notification' },
+	{ value: 'birthday', label: 'Happy Birthday' },
+	{ value: 'post-birthday', label: 'Gift Reveal Summary (Birthday)' },
+	{ value: 'pre-birthday-reminder', label: 'Pre-birthday Reminder' },
+	{ value: 'pre-christmas-reminder', label: 'Pre-Christmas Reminder' },
+	{ value: 'pre-custom-holiday-reminder', label: 'Pre-custom-holiday Reminder' },
+	{ value: 'parental-relations-reminder', label: "Mother's/Father's Day Reminder" },
+	{ value: 'valentines-day-reminder', label: "Valentine's Day Reminder" },
+	{ value: 'partner-anniversary-reminder', label: 'Partner Anniversary Reminder' },
+	{ value: 'orphan-claim', label: 'Orphan Claim Alert' },
+	{ value: 'orphan-claim-cleanup-reminder', label: 'Orphan Claim Cleanup Reminder' },
+	{ value: 'post-holiday', label: 'Gift Reveal Summary (Holiday)' },
+	{ value: 'password-reset', label: 'Password Reset' },
+	{ value: 'intelligence-operator-digest', label: 'Intelligence Operator Digest' },
 ] as const
 
 export type TestEmailKind = (typeof TEST_EMAIL_KINDS)[number]['value']

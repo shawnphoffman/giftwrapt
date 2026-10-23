@@ -230,9 +230,9 @@ export const ClaimOpensPrefilledDialog: Story = {
 		const row = (await canvas.findByText('Pottery wheel class for two at Clay Studio on 4th')).closest('[id^="item-"]') as HTMLElement
 		await userEvent.click(within(row).getByRole('button', { name: /claim/i }))
 		const body = within(document.body)
-		await waitFor(() => expect(body.getByText('Claim idea')).toBeInTheDocument())
-		await expect(body.getByLabelText('What is it?')).toHaveValue('Pottery wheel class for two at Clay Studio on 4th')
-		await expect(body.getByLabelText('Total cost (optional)')).toHaveValue(140)
+		await waitFor(() => expect(body.getByText('Claim Idea')).toBeInTheDocument())
+		await expect(body.getByLabelText('What Is It?')).toHaveValue('Pottery wheel class for two at Clay Studio on 4th')
+		await expect(body.getByLabelText('Total Cost (Optional)')).toHaveValue(140)
 		await expect(body.getByRole('button', { name: 'Claim' })).toBeInTheDocument()
 	},
 }

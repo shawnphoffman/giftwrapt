@@ -24,8 +24,8 @@ export const Default: Story = {
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement)
 		expect(canvas.getByText('Your version')).toBeInTheDocument()
-		await userEvent.click(canvas.getByRole('button', { name: /older releases/ }))
-		expect(canvas.queryByRole('button', { name: /older releases/ })).not.toBeInTheDocument()
+		await userEvent.click(canvas.getByRole('button', { name: /older releases/i }))
+		expect(canvas.queryByRole('button', { name: /older releases/i })).not.toBeInTheDocument()
 	},
 }
 

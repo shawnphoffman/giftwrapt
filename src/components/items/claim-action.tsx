@@ -77,7 +77,7 @@ export function ClaimAction({
 				) : (
 					<Button size="xs" variant="outline" className="text-sm text-foreground" onClick={() => setEditOpen(true)} title="Edit your claim">
 						<Pencil className="size-3.5" />
-						Edit claim
+						Edit Claim
 					</Button>
 				)}
 				{editOpen && (

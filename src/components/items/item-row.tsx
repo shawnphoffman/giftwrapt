@@ -191,7 +191,7 @@ function ItemRowImpl({ item, lockReason, grouped = false, giftIdea }: Props) {
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
 							<DropdownMenuItem onClick={() => setCopyOpen(true)}>
-								<Copy className="size-4" /> Copy to your list
+								<Copy className="size-4" /> Copy to Your List
 							</DropdownMenuItem>
 							{canToggleAvailability && (
 								<DropdownMenuItem onClick={handleToggleAvailability} disabled={toggleAvailability.isPending}>

@@ -79,7 +79,7 @@ function IntelligenceHistoryRoute() {
 					className="w-full sm:max-w-2xl data-[side=right]:sm:max-w-2xl flex flex-col gap-0 p-0"
 				>
 					<SheetHeader className="border-b border-border">
-						<SheetTitle>Run debug</SheetTitle>
+						<SheetTitle>Run Debug</SheetTitle>
 						<SheetDescription className="font-mono text-2xs truncate">{openRunId ?? ''}</SheetDescription>
 					</SheetHeader>
 					<RunDebugPanel state={debugState} />

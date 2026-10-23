@@ -342,7 +342,7 @@ function DependentSections({
 	return (
 		<section data-intelligence="page-dependents" className="mt-10 flex flex-col gap-6">
 			<header data-intelligence="page-dependents-header" className="flex flex-col gap-1">
-				<h2 className="text-base font-semibold">For your dependents</h2>
+				<h2 className="text-base font-semibold">For Your Dependents</h2>
 				<p className="text-xs text-muted-foreground">
 					Suggestions about lists you manage on someone else&apos;s behalf. They behave just like your own.
 				</p>
@@ -437,7 +437,7 @@ function DismissedRow({ rec, onReactivate }: { rec: Recommendation; onReactivate
 				disabled={!onReactivate}
 			>
 				<RotateCcw className="size-3.5" />
-				Bring back
+				Bring Back
 			</Button>
 		</li>
 	)

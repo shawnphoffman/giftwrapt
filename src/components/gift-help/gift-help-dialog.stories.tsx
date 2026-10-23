@@ -325,7 +325,7 @@ function ListDetailPreview() {
 	)
 }
 
-/** Gift Suggestions on: a "Need ideas?" button joins the filter row. Press it to walk through the dialog. */
+/** Gift Suggestions on: a "Need Ideas?" button joins the filter row. Press it to walk through the dialog. */
 export const OnThePage: Story = {
 	decorators: [withPageFrame, seeded(true)],
 	render: () => <ListDetailPreview />,
@@ -338,7 +338,7 @@ export const OnThePageFlagOff: Story = {
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement)
 		await waitFor(() => expect(canvas.getByText('Linen apron, natural')).toBeInTheDocument())
-		await expect(canvas.queryByRole('button', { name: /Need ideas/u })).toBeNull()
+		await expect(canvas.queryByRole('button', { name: /Need Ideas/u })).toBeNull()
 	},
 }
 
@@ -349,7 +349,7 @@ export const OnThePageStoredIdeas: Story = {
 	play: async ({ canvasElement }) => {
 		const canvas = within(canvasElement)
 		const screen = within(canvasElement.ownerDocument.body)
-		await userEvent.click(await canvas.findByRole('button', { name: /Need ideas/u }))
+		await userEvent.click(await canvas.findByRole('button', { name: /Need Ideas/u }))
 		const dialog = within(await screen.findByRole('dialog'))
 		await expect(await dialog.findByText('Ideas from 3 days ago, for Christmas, up to $200.')).toBeInTheDocument()
 		await expect(dialog.getByText('Enameled Cast Iron Braiser')).toBeInTheDocument()
@@ -368,7 +368,7 @@ export const OnThePageFullFlow: Story = {
 		const canvas = within(canvasElement)
 		// The dialog renders in a portal, so query the whole document for it.
 		const screen = within(canvasElement.ownerDocument.body)
-		await userEvent.click(await canvas.findByRole('button', { name: /Need ideas/u }))
+		await userEvent.click(await canvas.findByRole('button', { name: /Need Ideas/u }))
 		await userEvent.type(await screen.findByLabelText('Budget (Optional)'), '200')
 		await userEvent.click(screen.getByRole('button', { name: /Find Ideas/u }))
 		const dialog = within(await screen.findByRole('dialog'))

@@ -198,7 +198,7 @@ const ADD_OPTION_GROUPS: Array<{ label: string; options: Array<AddOption> }> = [
 		label: 'Other',
 		options: [
 			{ type: 'custom-http', label: 'Custom HTTP', hint: 'Bring your own scraper service' },
-			{ type: 'ai', label: 'AI extraction', hint: 'LLM extracts from any HTML; uses /admin/ai-settings creds' },
+			{ type: 'ai', label: 'AI Extraction', hint: 'LLM extracts from any HTML; uses /admin/ai-settings creds' },
 		],
 	},
 ]
@@ -605,7 +605,7 @@ function BrowserlessFields({
 			</div>
 			<SecretInput
 				id={`browserless-token-${draft.id}`}
-				label="Token (optional)"
+				label="Token (Optional)"
 				value={draft.token ?? ''}
 				disabled={disabled}
 				onChange={value => setDraft(prev => ({ ...prev, token: value || undefined }))}
@@ -732,7 +732,7 @@ function BrowserbaseStagehandFields({
 			</div>
 			<div className="space-y-1">
 				<Label htmlFor={`bb-stage-model-${draft.id}`} className="text-base">
-					Model Name (optional)
+					Model Name (Optional)
 				</Label>
 				<Input
 					id={`bb-stage-model-${draft.id}`}
@@ -750,7 +750,7 @@ function BrowserbaseStagehandFields({
 			<div className="space-y-1">
 				<div className="flex items-baseline justify-between gap-2">
 					<Label htmlFor={`bb-stage-instr-${draft.id}`} className="text-base">
-						Extraction Instruction (optional)
+						Extraction Instruction (Optional)
 					</Label>
 					<CharacterCounter value={draft.instruction ?? ''} max={LIMITS.MEDIUM_TEXT} />
 				</div>
@@ -1111,7 +1111,7 @@ function TimeoutOverrideRow({
 	return (
 		<div className="space-y-1.5">
 			<Label htmlFor={id} className="text-base">
-				Timeout Override (optional)
+				Timeout Override (Optional)
 			</Label>
 			<div className="relative w-full sm:max-w-xs">
 				<Input

@@ -188,10 +188,10 @@ export default function ThemeReference() {
 			{/* TYPOGRAPHY */}
 			<Section title="Typography" description="Global h1-h4 styles come from styles.css base layer.">
 				<div className="flex flex-col gap-2">
-					<h1>Heading 1, the big one</h1>
-					<h2>Heading 2, section title</h2>
-					<h3>Heading 3, subsection</h3>
-					<h4>Heading 4, grouping</h4>
+					<h1>Heading 1, the Big One</h1>
+					<h2>Heading 2, Section Title</h2>
+					<h3>Heading 3, Subsection</h3>
+					<h4>Heading 4, Grouping</h4>
 					<p className="text-base">Body text. The quick brown fox jumps over the lazy dog.</p>
 					<p className="text-sm text-muted-foreground">Muted body. Secondary commentary, hints, helper copy.</p>
 					<p className="text-xs text-muted-foreground">Extra small muted text, used for timestamps and microcopy.</p>
@@ -216,7 +216,7 @@ export default function ThemeReference() {
 								onClick={() => toast.success('default')}
 								aria-label={size === 'icon' ? 'default' : undefined}
 							>
-								{size === 'icon' ? <Star /> : 'default'}
+								{size === 'icon' ? <Star /> : 'Default'}
 							</Button>
 							<Button
 								size={size}
@@ -224,7 +224,7 @@ export default function ThemeReference() {
 								onClick={() => toast.success('secondary')}
 								aria-label={size === 'icon' ? 'secondary' : undefined}
 							>
-								{size === 'icon' ? <Star /> : 'secondary'}
+								{size === 'icon' ? <Star /> : 'Secondary'}
 							</Button>
 							<Button
 								size={size}
@@ -232,7 +232,7 @@ export default function ThemeReference() {
 								onClick={() => toast.success('outline')}
 								aria-label={size === 'icon' ? 'outline' : undefined}
 							>
-								{size === 'icon' ? <Star /> : 'outline'}
+								{size === 'icon' ? <Star /> : 'Outline'}
 							</Button>
 							<Button
 								size={size}
@@ -240,7 +240,7 @@ export default function ThemeReference() {
 								onClick={() => toast.success('ghost')}
 								aria-label={size === 'icon' ? 'ghost' : undefined}
 							>
-								{size === 'icon' ? <Star /> : 'ghost'}
+								{size === 'icon' ? <Star /> : 'Ghost'}
 							</Button>
 							<Button
 								size={size}
@@ -248,24 +248,24 @@ export default function ThemeReference() {
 								onClick={() => toast.error('destructive')}
 								aria-label={size === 'icon' ? 'destructive' : undefined}
 							>
-								{size === 'icon' ? <Star /> : 'destructive'}
+								{size === 'icon' ? <Star /> : 'Destructive'}
 							</Button>
 							<Button size={size} variant="link" onClick={() => toast('link')} aria-label={size === 'icon' ? 'link' : undefined}>
-								{size === 'icon' ? <Star /> : 'link'}
+								{size === 'icon' ? <Star /> : 'Link'}
 							</Button>
 						</div>
 					))}
 					<div className="flex flex-row flex-wrap items-center gap-2">
 						<code className="text-xs text-muted-foreground w-20 font-mono">disabled</code>
-						<Button disabled>default</Button>
+						<Button disabled>Default</Button>
 						<Button disabled variant="outline">
-							secondary
+							Secondary
 						</Button>
 						<Button disabled variant="outline">
-							outline
+							Outline
 						</Button>
 						<Button disabled variant="destructive">
-							destructive
+							Destructive
 						</Button>
 					</div>
 					<div className="flex flex-row flex-wrap items-center gap-2">
@@ -294,15 +294,15 @@ export default function ThemeReference() {
 			<Section title="Form controls" description="Default, focused, invalid, and disabled states.">
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 					<div className="flex flex-col gap-2">
-						<Label htmlFor={id('input-default')}>Input (default)</Label>
+						<Label htmlFor={id('input-default')}>Input (Default)</Label>
 						<Input id={id('input-default')} placeholder="Type something" />
 					</div>
 					<div className="flex flex-col gap-2">
-						<Label htmlFor={id('input-invalid')}>Input (invalid)</Label>
+						<Label htmlFor={id('input-invalid')}>Input (Invalid)</Label>
 						<Input id={id('input-invalid')} aria-invalid defaultValue="bad value" />
 					</div>
 					<div className="flex flex-col gap-2">
-						<Label htmlFor={id('input-disabled')}>Input (disabled)</Label>
+						<Label htmlFor={id('input-disabled')}>Input (Disabled)</Label>
 						<Input id={id('input-disabled')} disabled placeholder="Disabled" />
 					</div>
 					<div className="flex flex-col gap-2">
@@ -358,7 +358,7 @@ export default function ThemeReference() {
 					</div>
 
 					<div className="flex flex-col gap-3">
-						<Label>Radio group</Label>
+						<Label>Radio Group</Label>
 						<RadioGroup defaultValue="a">
 							<label className="flex items-center gap-2 text-sm">
 								<RadioGroupItem value="a" /> Option A
@@ -456,7 +456,7 @@ export default function ThemeReference() {
 
 					<TapTooltip>
 						<TapTooltipTrigger asChild>
-							<Button variant="outline">Hover or tap (TapTooltip)</Button>
+							<Button variant="outline">Hover or Tap (TapTooltip)</Button>
 						</TapTooltipTrigger>
 						<TapTooltipContent>Hover on desktop or tap on touch. It&apos;s the same dark pill and works on mobile.</TapTooltipContent>
 					</TapTooltip>
@@ -501,7 +501,7 @@ export default function ThemeReference() {
 						</DialogTrigger>
 						<DialogContent>
 							<DialogHeader>
-								<DialogTitle>Dialog title</DialogTitle>
+								<DialogTitle>Dialog Title</DialogTitle>
 								<DialogDescription>Dialog copy. Used for modal interactions that interrupt the current flow.</DialogDescription>
 							</DialogHeader>
 							<FieldGroup>
@@ -523,7 +523,7 @@ export default function ThemeReference() {
 						</AlertDialogTrigger>
 						<AlertDialogContent>
 							<AlertDialogHeader>
-								<AlertDialogTitle>Are you sure?</AlertDialogTitle>
+								<AlertDialogTitle>Are You Sure?</AlertDialogTitle>
 								<AlertDialogDescription>This action can't be undone.</AlertDialogDescription>
 							</AlertDialogHeader>
 							<AlertDialogFooter>
@@ -556,7 +556,7 @@ export default function ThemeReference() {
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<Card>
 						<CardHeader>
-							<CardTitle>Full composition</CardTitle>
+							<CardTitle>Full Composition</CardTitle>
 							<CardDescription>Header, title, description, content, and footer.</CardDescription>
 						</CardHeader>
 						<CardContent className="text-sm text-muted-foreground">
@@ -573,7 +573,7 @@ export default function ThemeReference() {
 
 					<Card>
 						<CardHeader>
-							<CardTitle>Header with action</CardTitle>
+							<CardTitle>Header With Action</CardTitle>
 							<CardDescription>CardAction slots to the right of the title.</CardDescription>
 							<CardAction>
 								<DropdownMenu>
@@ -595,7 +595,7 @@ export default function ThemeReference() {
 
 					<Card>
 						<CardHeader className="border-b">
-							<CardTitle>Bordered header</CardTitle>
+							<CardTitle>Bordered Header</CardTitle>
 							<CardDescription>Add `border-b` to CardHeader for a divider.</CardDescription>
 						</CardHeader>
 						<CardContent className="text-sm text-muted-foreground">
@@ -626,7 +626,7 @@ export default function ThemeReference() {
 
 					<Card className="bg-muted/40">
 						<CardHeader>
-							<CardTitle>Muted background</CardTitle>
+							<CardTitle>Muted Background</CardTitle>
 							<CardDescription>Overriding `bg-card` to compare layering against neighbors.</CardDescription>
 						</CardHeader>
 						<CardContent className="text-sm text-muted-foreground">
@@ -641,7 +641,7 @@ export default function ThemeReference() {
 							className="h-32 w-full object-cover"
 						/>
 						<CardHeader>
-							<CardTitle>Media card</CardTitle>
+							<CardTitle>Media Card</CardTitle>
 							<CardDescription>Image as the first child auto-removes the top padding.</CardDescription>
 						</CardHeader>
 						<CardContent className="text-sm text-muted-foreground">Pair with CardFooter for a media + meta layout.</CardContent>
@@ -649,7 +649,7 @@ export default function ThemeReference() {
 
 					<Card>
 						<CardHeader>
-							<CardTitle>Stat card</CardTitle>
+							<CardTitle>Stat Card</CardTitle>
 							<CardDescription>Emphasis on a single value.</CardDescription>
 						</CardHeader>
 						<CardContent>

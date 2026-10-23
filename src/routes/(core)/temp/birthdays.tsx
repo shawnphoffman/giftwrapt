@@ -117,7 +117,7 @@ function BirthdaysWidgetPageInner() {
 				<CardContent className="flex flex-col gap-6">
 					<div className="grid gap-4 md:grid-cols-2">
 						<ThresholdControl
-							label="Horizon (days)"
+							label="Horizon (Days)"
 							help="Hide people whose birthday is further out than this. The web home page surfaces ~30 days as a soft callout."
 							value={horizon}
 							min={7}
@@ -125,7 +125,7 @@ function BirthdaysWidgetPageInner() {
 							onChange={setHorizon}
 						/>
 						<ThresholdControl
-							label="Stale threshold (days)"
+							label="Stale Threshold (Days)"
 							help="Show the warning indicator when lastGiftedAt is older than this (or null)."
 							value={threshold}
 							min={7}

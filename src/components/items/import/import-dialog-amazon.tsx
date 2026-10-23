@@ -113,7 +113,7 @@ export function ImportDialogAmazon({ listId, open, onOpenChange }: Props) {
 			<DialogContent className="sm:max-w-3xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						<ShoppingBag className="size-5" /> Import from Amazon Wish List
+						<ShoppingBag className="size-5" /> Import From Amazon Wish List
 					</DialogTitle>
 					<DialogDescription>
 						Paste your wish list URL. If Amazon blocks the fetch, we'll ask you to paste the page's HTML instead.
@@ -146,7 +146,7 @@ export function ImportDialogAmazon({ listId, open, onOpenChange }: Props) {
 							</Button>
 							<Button type="button" onClick={fetchAndParse} disabled={fetching || url.trim().length === 0}>
 								{fetching ? <Loader2 className="size-4 animate-spin" /> : null}
-								{fetching ? 'Fetching...' : 'Fetch wish list'}
+								{fetching ? 'Fetching...' : 'Fetch Wish List'}
 							</Button>
 						</DialogFooter>
 					</div>
@@ -162,7 +162,7 @@ export function ImportDialogAmazon({ listId, open, onOpenChange }: Props) {
 							</AlertDescription>
 						</Alert>
 						<div className="grid gap-2">
-							<Label htmlFor="import-amazon-html">Wish list HTML</Label>
+							<Label htmlFor="import-amazon-html">Wish List HTML</Label>
 							<Textarea
 								id="import-amazon-html"
 								rows={8}

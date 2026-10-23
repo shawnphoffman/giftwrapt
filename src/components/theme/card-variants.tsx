@@ -88,7 +88,7 @@ const CARD_VARIANTS: Array<CardVariant> = [
 		render: () => (
 			<Card size="sm">
 				<CardHeader>
-					<CardTitle>Active recs</CardTitle>
+					<CardTitle>Active Recs</CardTitle>
 					<CardDescription>across 4 analyzers</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -405,7 +405,7 @@ function ListsCardList(props) {
 				</Card>
 				<Card>
 					<CardHeader>
-						<CardTitle>Sibling section</CardTitle>
+						<CardTitle>Sibling Section</CardTitle>
 						<CardDescription>Adding another section is just another Card.</CardDescription>
 					</CardHeader>
 					<CardContent className="text-sm text-muted-foreground">No nesting required.</CardContent>
@@ -525,7 +525,7 @@ function ListsCardList(props) {
 		render: () => (
 			<Card>
 				<CardHeader>
-					<CardTitle>Header with action</CardTitle>
+					<CardTitle>Header With Action</CardTitle>
 					<CardDescription>CardAction slots to the right of the title.</CardDescription>
 					<div data-slot="card-action" className="col-start-2 row-span-2 row-start-1 self-start justify-self-end">
 						<button
@@ -574,7 +574,7 @@ export default function CardVariants() {
 	return (
 		<div className="flex flex-col gap-10">
 			<header className="flex flex-col gap-1">
-				<h2 className="text-2xl font-semibold tracking-tight">Card variants</h2>
+				<h2 className="text-2xl font-semibold tracking-tight">Card Variants</h2>
 				<p className="text-sm text-muted-foreground">
 					Six canonical Card shapes plus the ones that wander off the path. Pick a canonical variant before reaching for the primitive.
 					Outliers are documented so you can tell when a deviation is intentional vs. drift.
@@ -653,7 +653,7 @@ export default function CardVariants() {
 			>
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 					<div className="flex flex-col gap-2 rounded-lg border border-border/60 bg-muted/10 p-3">
-						<h3 className="text-sm font-semibold">Bordered header / footer</h3>
+						<h3 className="text-sm font-semibold">Bordered Header / Footer</h3>
 						<p className="text-xs text-muted-foreground leading-relaxed">
 							Add <code className="font-mono">border-b</code> to <code className="font-mono">CardHeader</code> or{' '}
 							<code className="font-mono">border-t</code> to <code className="font-mono">CardFooter</code> to get a divider plus matching pb
@@ -661,14 +661,14 @@ export default function CardVariants() {
 						</p>
 						<Card>
 							<CardHeader className="border-b">
-								<CardTitle>Bordered header</CardTitle>
+								<CardTitle>Bordered Header</CardTitle>
 								<CardDescription>Divider sits flush under the title.</CardDescription>
 							</CardHeader>
 							<CardContent className="text-sm text-muted-foreground py-3">Body content here.</CardContent>
 						</Card>
 					</div>
 					<div className="flex flex-col gap-2 rounded-lg border border-border/60 bg-muted/10 p-3">
-						<h3 className="text-sm font-semibold">Media first child</h3>
+						<h3 className="text-sm font-semibold">Media First Child</h3>
 						<p className="text-xs text-muted-foreground leading-relaxed">
 							Card has <code className="font-mono">has-[&gt;img:first-child]:pt-0</code> and{' '}
 							<code className="font-mono">*:[img:first-child]:rounded-t-xl</code>, so an <code className="font-mono">&lt;img&gt;</code> as
@@ -678,7 +678,7 @@ export default function CardVariants() {
 							<div aria-hidden className="h-24 w-full bg-gradient-to-br from-cyan-400 via-sky-400 to-blue-500" />
 							<CardHeader>
 								<CardTitle className="flex items-center gap-2">
-									<Gift className="size-5" /> Media card
+									<Gift className="size-5" /> Media Card
 								</CardTitle>
 								<CardDescription>Image as first child.</CardDescription>
 							</CardHeader>

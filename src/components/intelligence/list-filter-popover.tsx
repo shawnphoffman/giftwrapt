@@ -198,7 +198,7 @@ export function buildFilterSections(
 	if (anyGlobal) {
 		sections.push({
 			key: 'global',
-			label: 'Global suggestions',
+			label: 'Global Suggestions',
 			options: [{ listId: GLOBAL_FILTER_ID, listRef: null }],
 		})
 	}
@@ -222,7 +222,7 @@ export function buildFilterSections(
 	if (userLists.size > 0) {
 		sections.push({
 			key: 'user',
-			label: 'Your lists',
+			label: 'Your Lists',
 			options: [...userLists.values()].sort((a, b) => a.name.localeCompare(b.name)).map(listRef => ({ listId: listRef.id, listRef })),
 		})
 	}

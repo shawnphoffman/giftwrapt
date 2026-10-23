@@ -63,7 +63,7 @@ export default function PurgeData() {
 					</AlertDialogHeader>
 					<div className="space-y-2">
 						<Label htmlFor="purge-confirm">
-							Type <span className="font-mono font-semibold">{CONFIRM_PHRASE}</span> to confirm
+							Type <span className="font-mono font-semibold">{CONFIRM_PHRASE}</span> to Confirm
 						</Label>
 						<Input
 							id="purge-confirm"

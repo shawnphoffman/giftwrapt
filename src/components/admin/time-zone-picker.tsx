@@ -49,13 +49,13 @@ export function TimeZonePicker({ id, value, onChange }: { id?: string; value: st
 					<CommandList>
 						<CommandEmpty>No time zones match.</CommandEmpty>
 						{suggested && suggested !== value && (
-							<CommandGroup heading="This browser">
+							<CommandGroup heading="This Browser">
 								<CommandItem value={`browser ${suggested}`} onSelect={() => select(suggested)}>
 									{suggested}
 								</CommandItem>
 							</CommandGroup>
 						)}
-						<CommandGroup heading="All time zones">
+						<CommandGroup heading="All Time Zones">
 							{options.map(zone => (
 								<CommandItem key={zone} value={zone} onSelect={() => select(zone)} className="gap-2">
 									<CheckIcon className={cn('size-4 shrink-0', zone === value ? 'opacity-100' : 'opacity-0')} />

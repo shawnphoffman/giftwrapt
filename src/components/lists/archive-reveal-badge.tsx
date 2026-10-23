@@ -43,7 +43,7 @@ export function ArchiveRevealBadge({ archiveInfo, recipientName }: { archiveInfo
 			</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle className="pr-10">Gifts reveal on {longDate}</DialogTitle>
+					<DialogTitle className="pr-10">Gifts Reveal on {longDate}</DialogTitle>
 					<DialogDescription>How claim visibility works on this list.</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-3 text-sm text-muted-foreground">

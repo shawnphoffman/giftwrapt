@@ -313,7 +313,7 @@ function BulkActionsTab({ list, items }: { list: ListForEditing; items: Array<It
 								</Button>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end">
-								<DropdownMenuLabel>Assign to group</DropdownMenuLabel>
+								<DropdownMenuLabel>Assign to Group</DropdownMenuLabel>
 								{list.groups.map(g => (
 									<DropdownMenuItem key={g.id} onClick={() => runAssignGroup(g.id)}>
 										<GroupBadge type={g.type} className="text-xs" />
@@ -321,7 +321,7 @@ function BulkActionsTab({ list, items }: { list: ListForEditing; items: Array<It
 									</DropdownMenuItem>
 								))}
 								<DropdownMenuSeparator />
-								<DropdownMenuItem onClick={() => runAssignGroup(null)}>Remove from group</DropdownMenuItem>
+								<DropdownMenuItem onClick={() => runAssignGroup(null)}>Remove From Group</DropdownMenuItem>
 							</DropdownMenuContent>
 						</DropdownMenu>
 					)}
@@ -333,7 +333,7 @@ function BulkActionsTab({ list, items }: { list: ListForEditing; items: Array<It
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
-							<DropdownMenuLabel>Set priority</DropdownMenuLabel>
+							<DropdownMenuLabel>Set Priority</DropdownMenuLabel>
 							{[...priorityEnumValues].reverse().map(p => (
 								<DropdownMenuItem key={p} onClick={() => runPriority(p)}>
 									<PriorityIcon priority={p} className="size-4" />
@@ -385,7 +385,7 @@ function BulkActionsTab({ list, items }: { list: ListForEditing; items: Array<It
 				<AlertDialogContent>
 					<AlertDialogHeader>
 						<AlertDialogTitle>
-							Delete {selectedList.length} item{selectedList.length === 1 ? '' : 's'}
+							Delete {selectedList.length} Item{selectedList.length === 1 ? '' : 's'}
 							{selectedGroups.size > 0 && ` and ${selectedGroups.size} group${selectedGroups.size === 1 ? '' : 's'}`}?
 						</AlertDialogTitle>
 						<AlertDialogDescription>

@@ -122,12 +122,12 @@ export function ListTypeLegend({ className }: { className?: string }) {
 			<DialogTrigger asChild>
 				<Button variant="outline" size="xs" className={cn('-mt-2 self-start text-muted-foreground hover:text-foreground', className)}>
 					<Info className="size-3.5" />
-					What do the list types mean?
+					What Do the List Types Mean?
 				</Button>
 			</DialogTrigger>
 			<DialogContent className="sm:max-w-2xl lg:max-w-3xl">
 				<DialogHeader>
-					<DialogTitle>List types</DialogTitle>
+					<DialogTitle>List Types</DialogTitle>
 					<DialogDescription>
 						Each list type has its own rules, emails, and auto-archive behavior. Types that are turned off on this site aren&apos;t shown.
 					</DialogDescription>

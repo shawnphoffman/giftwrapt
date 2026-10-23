@@ -11,11 +11,11 @@ type Props = {
 
 const GROUP_COPY: Record<GroupType, { label: string; help: string }> = {
 	or: {
-		label: 'Pick one',
+		label: 'Pick One',
 		help: 'The recipient wants one item from this group, not all. Once someone claims an item here, the others are considered fulfilled.',
 	},
 	order: {
-		label: 'In order',
+		label: 'In Order',
 		help: 'Items in this group should be claimed in the order shown, top first. Useful when one item depends on another (e.g. a console before its controllers).',
 	},
 }

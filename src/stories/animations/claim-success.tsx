@@ -61,7 +61,7 @@ export function ClaimButton({ stage, className }: Props) {
 					<motion.span key="settled" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={fade}>
 						<Button size="sm" variant="outline" className="h-8 text-foreground pointer-events-none">
 							<Pencil className="size-3.5" />
-							Edit claim
+							Edit Claim
 						</Button>
 					</motion.span>
 				)}

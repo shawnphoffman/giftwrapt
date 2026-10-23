@@ -92,12 +92,12 @@ export const CreateScrapeFillsDescriptionAndImage: Story = {
 	},
 	play: async () => {
 		const body = within(document.body)
-		await userEvent.type(body.getByLabelText('URL (optional)'), 'https://www.etsy.com/listing/1566789/olive-wood-salad-servers')
+		await userEvent.type(body.getByLabelText('URL (Optional)'), 'https://www.etsy.com/listing/1566789/olive-wood-salad-servers')
 		await userEvent.tab()
-		await waitFor(() => expect(body.getByLabelText('What is it?')).toHaveValue('Olive Wood Salad Servers, Set of 2'))
+		await waitFor(() => expect(body.getByLabelText('What Is It?')).toHaveValue('Olive Wood Salad Servers, Set of 2'))
 		await expect(body.getByRole('radiogroup', { name: 'Product image' })).toBeInTheDocument()
-		await expect(body.getByLabelText('Total cost (optional)')).toHaveValue(null)
-		await expect(body.getByLabelText('Notes (optional)')).toHaveValue('')
+		await expect(body.getByLabelText('Total Cost (Optional)')).toHaveValue(null)
+		await expect(body.getByLabelText('Notes (Optional)')).toHaveValue('')
 	},
 }
 
@@ -105,11 +105,11 @@ export const CreateScrapeKeepsTypedDescription: Story = {
 	parameters: { scrape: { onStart: scrapeDone } },
 	play: async () => {
 		const body = within(document.body)
-		await userEvent.type(body.getByLabelText('What is it?'), 'Salad servers for Linda')
-		await userEvent.type(body.getByLabelText('URL (optional)'), 'https://www.etsy.com/listing/1566789/olive-wood-salad-servers')
+		await userEvent.type(body.getByLabelText('What Is It?'), 'Salad servers for Linda')
+		await userEvent.type(body.getByLabelText('URL (Optional)'), 'https://www.etsy.com/listing/1566789/olive-wood-salad-servers')
 		await userEvent.tab()
 		await waitFor(() => expect(body.getByRole('radiogroup', { name: 'Product image' })).toBeInTheDocument())
-		await expect(body.getByLabelText('What is it?')).toHaveValue('Salad servers for Linda')
+		await expect(body.getByLabelText('What Is It?')).toHaveValue('Salad servers for Linda')
 	},
 }
 
@@ -152,10 +152,10 @@ export const CreatePrefilledSkipsScrape: Story = {
 	},
 	play: async () => {
 		const body = within(document.body)
-		await userEvent.click(body.getByLabelText('URL (optional)'))
+		await userEvent.click(body.getByLabelText('URL (Optional)'))
 		await userEvent.tab()
 		await waitFor(() => expect(body.getByRole('radiogroup', { name: 'Product image' })).toBeInTheDocument())
-		await expect(body.getByLabelText('What is it?')).toHaveValue('Framed watercolor of the lake house dock at sunset')
-		await expect(body.getByLabelText('Total cost (optional)')).toHaveValue(85)
+		await expect(body.getByLabelText('What Is It?')).toHaveValue('Framed watercolor of the lake house dock at sunset')
+		await expect(body.getByLabelText('Total Cost (Optional)')).toHaveValue(85)
 	},
 }

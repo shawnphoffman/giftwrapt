@@ -58,7 +58,7 @@ function AdminUsersPage() {
 					<div className="flex items-center justify-between gap-4">
 						<CardTitle className="text-2xl">Users</CardTitle>
 						<Button onClick={() => setAddUserOpen(true)} size="sm">
-							<Plus className="size-4" /> Add user
+							<Plus className="size-4" /> Add User
 						</Button>
 					</div>
 					<CardDescription>Manage users and their permissions.</CardDescription>

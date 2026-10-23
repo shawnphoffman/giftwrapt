@@ -122,7 +122,7 @@ export default function ImportData() {
 				<input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={handleFileChange} />
 				<Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={submitting} className="gap-2">
 					<Upload />
-					{fileName ? 'Choose a different file' : 'Choose backup file'}
+					{fileName ? 'Choose a Different File' : 'Choose Backup File'}
 				</Button>
 				{fileName && <span className="ml-3 text-sm text-muted-foreground">{fileName}</span>}
 			</div>
@@ -178,7 +178,7 @@ export default function ImportData() {
 					{mode === 'wipe' && (
 						<div className="space-y-2">
 							<Label htmlFor="wipe-confirm">
-								Type <span className="font-mono font-semibold">{WIPE_CONFIRM_PHRASE}</span> to confirm
+								Type <span className="font-mono font-semibold">{WIPE_CONFIRM_PHRASE}</span> to Confirm
 							</Label>
 							<Input
 								id="wipe-confirm"
@@ -191,7 +191,7 @@ export default function ImportData() {
 					)}
 
 					<Button type="button" onClick={handleSubmit} disabled={!canSubmit} variant={mode === 'wipe' ? 'destructive' : 'default'}>
-						{submitting ? 'Importing...' : mode === 'wipe' ? 'Wipe and restore' : 'Merge import'}
+						{submitting ? 'Importing...' : mode === 'wipe' ? 'Wipe and Restore' : 'Merge Import'}
 					</Button>
 				</>
 			)}

@@ -185,7 +185,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 						<span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-yellow-500 dark:bg-yellow-600 ring-1 ring-yellow-400/40 dark:ring-yellow-600/40 shadow-sm">
 							<ListPlus className="size-5.25 shrink-0 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.4)]" />
 						</span>
-						Create a list
+						Create a List
 					</DialogTitle>
 					<DialogDescription>Choose a name and type for your list. You can change these later.</DialogDescription>
 				</DialogHeader>
@@ -265,7 +265,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 							<form.Field name="subjectDependentId">
 								{field => (
 									<div className="grid gap-2">
-										<Label htmlFor={field.name}>List is for (optional)</Label>
+										<Label htmlFor={field.name}>List Is For (Optional)</Label>
 										<Select
 											value={field.state.value || 'me'}
 											onValueChange={v => field.handleChange(v === 'me' ? '' : v)}
@@ -319,7 +319,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 
 					{isGiftIdeas && (
 						<div className="grid gap-2">
-							<Label>Gift ideas for (optional)</Label>
+							<Label>Gift Ideas For (Optional)</Label>
 							<form.Field name="giftIdeasTargetUserId">
 								{userField => (
 									<form.Field name="giftIdeasTargetDependentId">
@@ -382,7 +382,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 						{field => (
 							<div className="flex items-center justify-between gap-3">
 								<Label htmlFor={field.name} className="font-normal">
-									Private list {isGiftIdeas && '(always private for Gift Ideas)'}
+									Private List {isGiftIdeas && '(Always Private for Gift Ideas)'}
 								</Label>
 								<Switch
 									id={field.name}
@@ -411,7 +411,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 											/>
 											<div className="grid gap-1">
 												<Label htmlFor={field.name} className="font-normal">
-													Add {partnerLabel} as an editor
+													Add {partnerLabel} as an Editor
 												</Label>
 												<p className="text-muted-foreground text-xs">
 													They'll be able to manage items on this list. You can change this anytime in list settings.
@@ -427,7 +427,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 					<form.Field name="description">
 						{field => (
 							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Description (optional)</Label>
+								<Label htmlFor={field.name}>Description (Optional)</Label>
 								<MarkdownTextarea
 									id={field.name}
 									placeholder="A short description of this list"
@@ -454,7 +454,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 							Cancel
 						</Button>
 						<Button type="submit" disabled={submitting}>
-							{submitting ? 'Creating…' : 'Create list'}
+							{submitting ? 'Creating…' : 'Create List'}
 						</Button>
 					</DialogFooter>
 				</form>

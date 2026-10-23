@@ -134,7 +134,7 @@ export function ContributionSplitDialog({ open, onOpenChange, giftId, itemTitle 
 
 				<DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-between">
 					<Button type="button" variant="outline" onClick={() => save([])} disabled={saving}>
-						Reset to even
+						Reset to Even
 					</Button>
 					<div className="flex gap-2 sm:justify-end">
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>

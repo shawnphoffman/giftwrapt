@@ -215,7 +215,7 @@ export function AvatarCropperDialog({ open, onOpenChange, imageSrc, fileName, on
 		>
 			<DialogContent className="max-w-md">
 				<DialogHeader>
-					<DialogTitle>Crop avatar</DialogTitle>
+					<DialogTitle>Crop Avatar</DialogTitle>
 					<DialogDescription>Drag to position, scroll or use the slider to zoom. The circle previews the final shape.</DialogDescription>
 				</DialogHeader>
 

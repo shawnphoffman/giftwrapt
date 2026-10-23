@@ -80,7 +80,7 @@ export default function HiddenPurchases() {
 						<TableHead>List</TableHead>
 						<TableHead>Hidden</TableHead>
 						<TableHead>Reveals</TableHead>
-						<TableHead>Last revealed</TableHead>
+						<TableHead>Last Revealed</TableHead>
 						<TableHead />
 					</TableRow>
 				</TableHeader>
@@ -108,7 +108,7 @@ export default function HiddenPurchases() {
 									}}
 								>
 									<Send className="size-4" />
-									Reveal now
+									Reveal Now
 								</Button>
 							</TableCell>
 						</TableRow>
@@ -124,7 +124,7 @@ export default function HiddenPurchases() {
 			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Reveal gifts on {target?.listName}?</AlertDialogTitle>
+						<AlertDialogTitle>Reveal Gifts on {target?.listName}?</AlertDialogTitle>
 						<AlertDialogDescription>
 							Every claimed item and off-list gift still hidden on this list becomes visible to {target?.recipientName} on their Received
 							Gifts page, along with who gave it. Use this for gifts that were already given, such as purchases logged after the fact. This
@@ -133,7 +133,7 @@ export default function HiddenPurchases() {
 					</AlertDialogHeader>
 					<div className="flex items-center gap-2">
 						<Checkbox id="reveal-send-email" checked={sendEmail} onCheckedChange={v => setSendEmail(v === true)} />
-						<Label htmlFor="reveal-send-email">Send the reveal email (if that occasion&apos;s emails are on)</Label>
+						<Label htmlFor="reveal-send-email">Send the Reveal Email (If That Occasion&apos;s Emails Are On)</Label>
 					</div>
 					<AlertDialogFooter>
 						<AlertDialogCancel disabled={mutation.isPending}>Cancel</AlertDialogCancel>

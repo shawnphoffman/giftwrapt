@@ -79,7 +79,7 @@ export function ItemSearchDialog({ open, onOpenChange }: Props) {
 			<Dialog open={open} onOpenChange={handleOpenChange}>
 				<DialogContent className="gap-4 p-0 sm:max-w-2xl" showCloseButton={false}>
 					<DialogHeader className="px-6 pt-6">
-						<DialogTitle>Search my items</DialogTitle>
+						<DialogTitle>Search My Items</DialogTitle>
 						<DialogDescription>Search across every item on the lists you own.</DialogDescription>
 					</DialogHeader>
 

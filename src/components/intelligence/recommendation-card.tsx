@@ -944,7 +944,7 @@ function ListPickerInteraction({
 
 	return (
 		<section data-intelligence="list-picker" className="rounded-md border border-border bg-card/40 overflow-hidden">
-			<SectionHeader tone="picker" label="Choose a list" dataAttr="list-picker-heading" />
+			<SectionHeader tone="picker" label="Choose a List" dataAttr="list-picker-heading" />
 			<div data-intelligence="list-picker-body" className="px-3 py-3 flex flex-col gap-2">
 				<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
 					<Select value={listId} onValueChange={setListId}>

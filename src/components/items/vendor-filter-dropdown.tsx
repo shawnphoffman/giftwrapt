@@ -72,7 +72,7 @@ export function VendorFilterDropdown({ options, selected, onToggle, onClear }: P
 				<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Vendor</DropdownMenuLabel>
 				<DropdownMenuItem onClick={onClear} onSelect={e => e.preventDefault()}>
 					<Check className={cn('size-4', selected.size > 0 && 'opacity-0')} />
-					All vendors
+					All Vendors
 					<CountBadge count={totalCount} />
 				</DropdownMenuItem>
 				{knownOptions.length > 0 && <DropdownMenuSeparator />}

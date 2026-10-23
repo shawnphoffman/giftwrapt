@@ -130,14 +130,14 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>
-						Move {itemIds.length} item{itemIds.length === 1 ? '' : 's'}
+						Move {itemIds.length} Item{itemIds.length === 1 ? '' : 's'}
 					</DialogTitle>
 					<DialogDescription>Choose a destination list. Claims may be cleared if list types differ.</DialogDescription>
 				</DialogHeader>
 
 				<div className="space-y-4">
 					<div className="grid gap-2">
-						<Label htmlFor="bulk-move-target">Destination list</Label>
+						<Label htmlFor="bulk-move-target">Destination List</Label>
 						<Select value={selectedListId} onValueChange={setSelectedListId} disabled={submitting}>
 							<SelectTrigger id="bulk-move-target">
 								<SelectValue placeholder="Select a list" />
@@ -196,7 +196,7 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 					{creatingNew && (
 						<div className="grid gap-3 p-3 border rounded-md bg-muted/30">
 							<div className="grid gap-2">
-								<Label htmlFor="new-list-name">New list name</Label>
+								<Label htmlFor="new-list-name">New List Name</Label>
 								<Input
 									id="new-list-name"
 									value={newListName}
@@ -240,7 +240,7 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 						/>
 						<div className="grid gap-1">
 							<Label htmlFor="purge-comments" className="font-normal">
-								Delete comments on moved items
+								Delete Comments on Moved Items
 							</Label>
 							<p className="text-xs text-muted-foreground">Recommended. Comments typically belong to the original list's context.</p>
 						</div>

@@ -445,7 +445,7 @@ export function ItemFormDialog(props: Props) {
 							const urlScrapable = isHttpUrl(field.state.value) && !isSublistUrl(field.state.value)
 							return (
 								<div className="grid gap-2">
-									<Label htmlFor={field.name}>URL (optional)</Label>
+									<Label htmlFor={field.name}>URL (Optional)</Label>
 									<InputGroup>
 										<InputGroupInput
 											id={field.name}
@@ -517,7 +517,7 @@ export function ItemFormDialog(props: Props) {
 						<form.Field name="price">
 							{field => (
 								<div className="grid gap-2">
-									<Label htmlFor={field.name}>Price (optional)</Label>
+									<Label htmlFor={field.name}>Price (Optional)</Label>
 									<Input
 										id={field.name}
 										placeholder="29.99"
@@ -586,7 +586,7 @@ export function ItemFormDialog(props: Props) {
 					<form.Field name="notes">
 						{field => (
 							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Notes (optional)</Label>
+								<Label htmlFor={field.name}>Notes (Optional)</Label>
 								<MarkdownTextarea
 									id={field.name}
 									placeholder="Color preferences, size, model, etc."
@@ -649,7 +649,7 @@ export function ItemFormDialog(props: Props) {
 
 							return (
 								<div className="grid gap-2">
-									<Label htmlFor={field.name}>Image (optional)</Label>
+									<Label htmlFor={field.name}>Image (Optional)</Label>
 									{/* Preview current image if any */}
 									{currentUrl && (
 										<div className="flex items-center gap-3">
@@ -719,7 +719,7 @@ export function ItemFormDialog(props: Props) {
 							Cancel
 						</Button>
 						<Button type="submit" disabled={submitting}>
-							{submitting ? 'Saving…' : isEdit ? 'Save' : 'Add item'}
+							{submitting ? 'Saving…' : isEdit ? 'Save' : 'Add Item'}
 						</Button>
 					</DialogFooter>
 				</form>
@@ -761,7 +761,7 @@ function PhotoExtractStatus({ file, previewUrl, phase, error, ms, elapsedMs, onC
 					<div className="ml-auto flex gap-2">
 						{isFailed && (
 							<Button type="button" size="sm" variant="outline" onClick={onRetry}>
-								Try again
+								Try Again
 							</Button>
 						)}
 						<Button type="button" size="sm" variant="outline" onClick={onClear} className="gap-1.5">

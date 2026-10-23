@@ -147,7 +147,7 @@ export function ReceivedPageContent({ data, onDraftThankYou }: Props) {
 											<TableRow>
 												<TableHead className="pl-3">Gifter</TableHead>
 												<TableHead className="text-right">Gifts</TableHead>
-												<TableHead className="text-right">Off-list</TableHead>
+												<TableHead className="text-right">Off-List</TableHead>
 												<TableHead className="text-right">Total</TableHead>
 												<TableHead className="w-8 pr-3"></TableHead>
 											</TableRow>
@@ -236,7 +236,7 @@ export function ReceivedPageContent({ data, onDraftThankYou }: Props) {
 										gradient="bg-gradient-to-br from-pink-400/40 via-rose-400/30 to-orange-400/40"
 									/>
 									<MetricCard
-										label="Off-list"
+										label="Off-List"
 										value={metrics.totalAddons}
 										icon={<PackagePlus className="size-6" />}
 										gradient="bg-gradient-to-br from-violet-400/40 via-purple-400/30 to-fuchsia-500/40"

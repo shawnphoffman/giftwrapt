@@ -259,7 +259,7 @@ export function ClaimGiftDialog(props: Props) {
 					<div className="flex items-start gap-3">
 						<div className="flex-1 min-w-0 flex flex-col gap-2">
 							<DialogTitle className="text-base line-clamp-3 leading-snug">
-								{isEdit ? 'Edit your claim on' : 'Claim'} “{itemTitle}”
+								{isEdit ? 'Edit Your Claim on' : 'Claim'} “{itemTitle}”
 							</DialogTitle>
 							<DialogDescription>
 								{isEdit
@@ -329,7 +329,7 @@ export function ClaimGiftDialog(props: Props) {
 					<form.Field name="totalCost">
 						{field => (
 							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Total cost (optional)</Label>
+								<Label htmlFor={field.name}>Total Cost (Optional)</Label>
 								<div className="relative">
 									<DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
 									<Input
@@ -356,7 +356,7 @@ export function ClaimGiftDialog(props: Props) {
 					<form.Field name="notes">
 						{field => (
 							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Notes (optional)</Label>
+								<Label htmlFor={field.name}>Notes (Optional)</Label>
 								<Textarea
 									id={field.name}
 									placeholder="e.g. already ordered, arriving Friday"
@@ -418,7 +418,7 @@ export function ClaimGiftDialog(props: Props) {
 					onOpenChange={setUnclaimConfirmOpen}
 					title={<>Remove your claim on “{itemTitle}”?</>}
 					description="Your claim will be deleted and the slot will open back up. You can always claim again later if you change your mind."
-					confirmLabel="Yes, unclaim"
+					confirmLabel="Yes, Unclaim"
 					confirmBusyLabel="Removing…"
 					destructive
 					onConfirm={handleUnclaim}
@@ -488,7 +488,7 @@ function CoGiftersSection({ giftId, coGifterIds, setCoGifterIds, allUsers, savin
 	return (
 		<div className="grid gap-2 border-t pt-4">
 			<Label className="flex items-center gap-1.5">
-				<UserPlus className="size-4" /> Co-gifters (optional)
+				<UserPlus className="size-4" /> Co-gifters (Optional)
 			</Label>
 			<p className="text-xs text-muted-foreground">Add people who are splitting this gift with you.</p>
 

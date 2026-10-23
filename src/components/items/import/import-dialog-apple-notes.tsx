@@ -104,7 +104,7 @@ export function ImportDialogAppleNotes({ listId, open, onOpenChange }: Props) {
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						<Apple className="size-5" /> Import from Apple Notes
+						<Apple className="size-5" /> Import From Apple Notes
 					</DialogTitle>
 					<DialogDescription>
 						Paste a checklist or bulleted list from Apple Notes. Bullet glyphs are stripped automatically; URLs become item links.
@@ -114,7 +114,7 @@ export function ImportDialogAppleNotes({ listId, open, onOpenChange }: Props) {
 				{step === 'input' ? (
 					<div className="flex flex-col gap-3">
 						<div className="grid gap-2">
-							<Label htmlFor="import-apple-textarea">Paste from Apple Notes</Label>
+							<Label htmlFor="import-apple-textarea">Paste From Apple Notes</Label>
 							<Textarea
 								ref={textareaRef}
 								id="import-apple-textarea"

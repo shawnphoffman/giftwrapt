@@ -97,7 +97,7 @@ export function ChangelogPageContent({ releases, currentVersion }: Props) {
 
 				{hiddenCount > 0 && (
 					<Button variant="outline" className="self-center" onClick={() => setShowAll(true)}>
-						Show {hiddenCount} older releases
+						Show {hiddenCount} Older Releases
 					</Button>
 				)}
 			</div>

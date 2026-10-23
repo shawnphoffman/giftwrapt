@@ -132,7 +132,7 @@ export function StorageBrowser() {
 						? 'Loading…'
 						: `This will permanently delete ${dryRunCount} object${dryRunCount === 1 ? '' : 's'} from the bucket. This cannot be undone.`
 				}
-				confirmLabel="Delete orphans"
+				confirmLabel="Delete Orphans"
 				confirmBusyLabel="Deleting…"
 				onConfirm={async () => {
 					const result = await deleteOrphansAsAdmin({ data: {} })

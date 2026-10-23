@@ -40,7 +40,7 @@ export function RouteErrorFallback({ error, reset, title, className }: RouteErro
 				<div className="flex gap-2 justify-center">
 					{reset ? (
 						<Button onClick={reset} size="sm">
-							Try again
+							Try Again
 						</Button>
 					) : null}
 					<Button asChild variant="outline" size="sm">

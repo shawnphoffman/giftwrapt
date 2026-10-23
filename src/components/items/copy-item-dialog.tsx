@@ -106,7 +106,7 @@ export function CopyItemDialog({ open, onOpenChange, itemId, itemTitle }: Props)
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Copy to your list</DialogTitle>
+					<DialogTitle>Copy to Your List</DialogTitle>
 					<DialogDescription>
 						Pick a list to copy <span className="font-medium">{itemTitle}</span> into. The original is left untouched.
 					</DialogDescription>

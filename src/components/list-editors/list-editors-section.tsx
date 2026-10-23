@@ -90,7 +90,7 @@ export function ListEditorsSection({ listId, editors, addableUsers }: Props) {
 			{/* Inline add row */}
 			<div className="flex flex-col gap-2">
 				<Label htmlFor="add-editor-select" className="text-sm font-medium">
-					Add an editor
+					Add an Editor
 				</Label>
 				{addableUsers.length === 0 ? (
 					<p className="text-sm text-muted-foreground">No other users are available to add.</p>
@@ -162,7 +162,7 @@ export function ListEditorsSection({ listId, editors, addableUsers }: Props) {
 			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Remove editor?</AlertDialogTitle>
+						<AlertDialogTitle>Remove Editor?</AlertDialogTitle>
 						<AlertDialogDescription>
 							{removeTarget?.user.name || removeTarget?.user.email} will no longer be able to edit this list.
 						</AlertDialogDescription>
@@ -170,7 +170,7 @@ export function ListEditorsSection({ listId, editors, addableUsers }: Props) {
 					<AlertDialogFooter>
 						<AlertDialogCancel disabled={removing}>Cancel</AlertDialogCancel>
 						<AlertDialogAction onClick={handleRemove} disabled={removing}>
-							{removing ? 'Removing…' : 'Yes, remove'}
+							{removing ? 'Removing…' : 'Yes, Remove'}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

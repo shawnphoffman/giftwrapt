@@ -95,7 +95,7 @@ export function MoveItemDialog({ open, onOpenChange, item, onMoved }: Props) {
 
 				<div className="space-y-4">
 					<div className="grid gap-2">
-						<Label htmlFor="move-target">Destination list</Label>
+						<Label htmlFor="move-target">Destination List</Label>
 						{!hasOptions ? (
 							<p className="text-sm text-muted-foreground">No other lists available to move to.</p>
 						) : (
@@ -159,7 +159,7 @@ export function MoveItemDialog({ open, onOpenChange, item, onMoved }: Props) {
 						/>
 						<div className="grid gap-1">
 							<Label htmlFor="purge-comments-single" className="font-normal">
-								Delete comments on this item
+								Delete Comments on This Item
 							</Label>
 							<p className="text-xs text-muted-foreground">Recommended. Comments usually belong to the original list's context.</p>
 						</div>

@@ -502,7 +502,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 								if (pending) await onSubmit(pending)
 							}}
 						>
-							{pendingPartnerChange?.partnerId ? 'Change partner' : 'Remove partner'}
+							{pendingPartnerChange?.partnerId ? 'Change Partner' : 'Remove Partner'}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
@@ -523,7 +523,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 						<div className="space-y-5">
 							{editorChangePrompt.toAdd.length > 0 && (
 								<section className="space-y-2">
-									<h3 className="text-sm font-medium">Add {editorChangePrompt.nextPartnerLabel ?? 'partner'} as an editor on:</h3>
+									<h3 className="text-sm font-medium">Add {editorChangePrompt.nextPartnerLabel ?? 'Partner'} as an Editor On:</h3>
 									<ul className="space-y-1.5">
 										{editorChangePrompt.toAdd.map(list => {
 											const id = `add-${list.id}`
@@ -552,7 +552,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 							{editorChangePrompt.toRemove.length > 0 && (
 								<section className="space-y-2">
 									<h3 className="text-sm font-medium">
-										Remove {editorChangePrompt.prevPartnerLabel ?? 'former partner'} as an editor from:
+										Remove {editorChangePrompt.prevPartnerLabel ?? 'Former Partner'} as an Editor From:
 									</h3>
 									<ul className="space-y-1.5">
 										{editorChangePrompt.toRemove.map(list => {
@@ -586,7 +586,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 							Skip
 						</Button>
 						<Button type="button" onClick={applyEditorChanges} disabled={applyingEditorChanges}>
-							{applyingEditorChanges ? 'Updating…' : 'Apply changes'}
+							{applyingEditorChanges ? 'Updating…' : 'Apply Changes'}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

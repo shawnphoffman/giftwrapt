@@ -73,7 +73,7 @@ import { QuantityRemainingBadge } from './quantity-remaining-badge'
 // scale. Icons/colors mirror PriorityIcon; 'normal' has no PriorityIcon glyph,
 // so it gets a neutral dash to stay visible in the icon picker.
 const PRIORITY_OPTIONS: ReadonlyArray<{ value: Priority; label: string; icon: typeof Zap; colorClass: string }> = [
-	{ value: 'very-high', label: 'Very high', icon: Zap, colorClass: 'text-yellow-500' },
+	{ value: 'very-high', label: 'Very High', icon: Zap, colorClass: 'text-yellow-500' },
 	{ value: 'high', label: 'High', icon: ArrowBigUp, colorClass: 'text-orange-500' },
 	{ value: 'normal', label: 'Normal', icon: Minus, colorClass: 'text-muted-foreground' },
 	{ value: 'low', label: 'Low', icon: ArrowBigDown, colorClass: 'text-blue-500' },
@@ -243,10 +243,10 @@ export const ItemEditRow = memo(function ItemEditRow({
 							</DropdownMenuSubTrigger>
 							<DropdownMenuSubContent>
 								<DropdownMenuItem onClick={() => handleCreateGroupWithItem('or')}>
-									<Shuffle className="size-4" /> New "Pick one" group
+									<Shuffle className="size-4" /> New "Pick One" Group
 								</DropdownMenuItem>
 								<DropdownMenuItem onClick={() => handleCreateGroupWithItem('order')}>
-									<ListOrdered className="size-4" /> New "In order" group
+									<ListOrdered className="size-4" /> New "In Order" Group
 								</DropdownMenuItem>
 								{otherGroups.length > 0 && <DropdownMenuSeparator />}
 								{otherGroups.map(g => {
@@ -261,7 +261,7 @@ export const ItemEditRow = memo(function ItemEditRow({
 								{hasCurrentGroup && <DropdownMenuSeparator />}
 								{hasCurrentGroup && (
 									<DropdownMenuItem onClick={() => handleAssignGroup(null)}>
-										<Ungroup className="size-4" /> Remove from group
+										<Ungroup className="size-4" /> Remove From Group
 									</DropdownMenuItem>
 								)}
 							</DropdownMenuSubContent>

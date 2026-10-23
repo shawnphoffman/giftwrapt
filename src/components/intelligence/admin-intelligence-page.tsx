@@ -320,8 +320,8 @@ export function ActionsCard({
 					<TableHeader>
 						<TableRow>
 							<TableHead>User</TableHead>
-							<TableHead className="hidden md:table-cell">Last run</TableHead>
-							<TableHead className="text-right">Recs (active / dismissed / applied)</TableHead>
+							<TableHead className="hidden md:table-cell">Last Run</TableHead>
+							<TableHead className="text-right">Recs (Active / Dismissed / Applied)</TableHead>
 							<TableHead className="text-right">Run</TableHead>
 						</TableRow>
 					</TableHeader>
@@ -513,7 +513,7 @@ export function HealthGrid({ data, providerSummary }: { data: AdminIntelligenceD
 					<CardContent>
 						<div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
 							<QueueStat icon={TimerReset} label="Overdue" value={health.queue.overdue} />
-							<QueueStat icon={Lock} label="Lock held" value={health.queue.lockHeld} />
+							<QueueStat icon={Lock} label="Lock Held" value={health.queue.lockHeld} />
 						</div>
 					</CardContent>
 				</Card>
@@ -679,13 +679,13 @@ export function SettingsPanel({
 					</p>
 					<div className="grid grid-cols-1 xl:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
-							label="Cron refresh interval (days)"
+							label="Cron Refresh Interval (Days)"
 							hint="How often the cron will regenerate recommendations for each user."
 							value={s.refreshIntervalDays}
 							onChange={v => patch({ refreshIntervalDays: v })}
 						/>
 						<NumberRow
-							label="Manual refresh cooldown (min)"
+							label="Manual Refresh Cooldown (Min)"
 							hint="Minimum gap between manual runs for the same user."
 							value={s.manualRefreshCooldownMinutes}
 							onChange={v => patch({ manualRefreshCooldownMinutes: v })}
@@ -763,12 +763,12 @@ export function SettingsPanel({
 					</p>
 					<div className="grid grid-cols-1 xl:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
-							label="Candidate cap per analyzer"
+							label="Candidate Cap per Analyzer"
 							hint="The most items (or item pairs) sent to the model in a single run."
 							value={s.candidateCap}
 							onChange={v => patch({ candidateCap: v })}
 						/>
-						<ToggleRow label="Dry run (don't persist recommendations)" checked={s.dryRun} onChange={v => patch({ dryRun: v })} />
+						<ToggleRow label="Dry Run (Don't Persist Recommendations)" checked={s.dryRun} onChange={v => patch({ dryRun: v })} />
 					</div>
 				</SettingsSection>
 
@@ -784,13 +784,13 @@ export function SettingsPanel({
 					</p>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
-							label="Cron concurrency"
+							label="Cron Concurrency"
 							hint="Number of users processed in parallel inside one invocation."
 							value={s.concurrency}
 							onChange={v => patch({ concurrency: v })}
 						/>
 						<NumberRow
-							label="Users per cron invocation"
+							label="Users per Cron Invocation"
 							hint="The most users a single cron run will process before it stops."
 							value={s.usersPerInvocation}
 							onChange={v => patch({ usersPerInvocation: v })}
@@ -810,13 +810,13 @@ export function SettingsPanel({
 					</p>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
-							label="Stale recommendation retention (days)"
+							label="Stale Recommendation Retention (Days)"
 							hint="Dismissed and applied recommendations older than this are deleted."
 							value={s.staleRecRetentionDays}
 							onChange={v => patch({ staleRecRetentionDays: v })}
 						/>
 						<NumberRow
-							label="Run-step retention (days)"
+							label="Run-Step Retention (Days)"
 							hint="Debug records for each run step (prompt, response, and parsed output) older than this are deleted."
 							value={s.runStepsRetentionDays}
 							onChange={v => patch({ runStepsRetentionDays: v })}
@@ -826,14 +826,14 @@ export function SettingsPanel({
 
 				<SettingsSection id="notifications" icon={Mail} title="Notifications" summary={s.email.enabled ? 'email on' : 'email off'}>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
-						<ToggleRow label="Email enabled" checked={s.email.enabled} onChange={v => patch({ email: { ...s.email, enabled: v } })} />
+						<ToggleRow label="Email Enabled" checked={s.email.enabled} onChange={v => patch({ email: { ...s.email, enabled: v } })} />
 						<ToggleRow
-							label="Weekly digest"
+							label="Weekly Digest"
 							checked={s.email.weeklyDigestEnabled}
 							onChange={v => patch({ email: { ...s.email, weeklyDigestEnabled: v } })}
 						/>
 						<div className="md:col-span-2">
-							<Label className="text-xs text-muted-foreground">Recipient override</Label>
+							<Label className="text-xs text-muted-foreground">Recipient Override</Label>
 							<TextInputOnBlur
 								className="mt-1"
 								type="email"
@@ -1063,7 +1063,7 @@ export function RunsTable({
 									<TableHead>Started</TableHead>
 									<TableHead>Duration</TableHead>
 									<TableHead>Recommendations</TableHead>
-									<TableHead>Tokens (out / in)</TableHead>
+									<TableHead>Tokens (Out / In)</TableHead>
 									<TableHead className="text-right">Actions</TableHead>
 								</TableRow>
 							</TableHeader>

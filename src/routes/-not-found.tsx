@@ -22,7 +22,7 @@ export default function NotFound() {
 					<span className="text-6xl font-extrabold tracking-tight text-destructive select-none">404</span>
 				</div>
 				<div className="space-y-2">
-					<h1 className="text-2xl font-bold">Not on the list</h1>
+					<h1 className="text-2xl font-bold">Not on the List</h1>
 					<p className="text-muted-foreground">{quip}</p>
 				</div>
 				<div className="flex gap-2 justify-center">

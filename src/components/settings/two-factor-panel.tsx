@@ -209,7 +209,7 @@ function EnrollingView({
 				</div>
 				<div className="flex gap-2">
 					<Button type="submit" disabled={submitting || busy || code.length !== TOTP_CODE_LENGTH}>
-						{submitting ? 'Verifying…' : 'Verify and turn on'}
+						{submitting ? 'Verifying…' : 'Verify and Turn On'}
 					</Button>
 					<Button type="button" variant="outline" onClick={onCancelEnrollment} disabled={submitting || busy}>
 						Cancel
@@ -260,7 +260,7 @@ function EnabledExtras({ onRegenerateBackupCodes, busy }: TwoFactorPanelContentP
 						/>
 					</div>
 					<Button type="submit" variant="outline" disabled={regenerating || busy || !regenPassword}>
-						{regenerating ? 'Generating…' : 'Regenerate codes'}
+						{regenerating ? 'Generating…' : 'Regenerate Codes'}
 					</Button>
 				</div>
 			</form>

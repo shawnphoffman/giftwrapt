@@ -327,7 +327,7 @@ export function ListSettingsForm({
 						const recipientLabel = recipient ? recipient.name || recipient.email : 'this person'
 						return (
 							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Gift ideas for (optional)</Label>
+								<Label htmlFor={field.name}>Gift Ideas For (Optional)</Label>
 								<Select
 									value={field.state.value || NO_RECIPIENT}
 									onValueChange={v => field.handleChange(v === NO_RECIPIENT ? '' : v)}
@@ -365,7 +365,7 @@ export function ListSettingsForm({
 				<form.Field name="subjectDependentId">
 					{field => (
 						<div className="grid gap-2">
-							<Label htmlFor={field.name}>List is for (optional)</Label>
+							<Label htmlFor={field.name}>List Is For (Optional)</Label>
 							<Select value={field.state.value || 'me'} onValueChange={v => field.handleChange(v === 'me' ? '' : v)} disabled={submitting}>
 								<SelectTrigger id={field.name}>
 									<SelectValue />
@@ -427,7 +427,7 @@ export function ListSettingsForm({
 							disabled={submitting || isGiftIdeas}
 						/>
 						<Label htmlFor={field.name} className="font-normal">
-							Private list {isGiftIdeas && '(always private for Gift Ideas)'}
+							Private List {isGiftIdeas && '(Always Private for Gift Ideas)'}
 						</Label>
 					</div>
 				)}
@@ -451,7 +451,7 @@ export function ListSettingsForm({
 									/>
 									<div className="grid gap-1">
 										<Label htmlFor={field.name} className="font-normal">
-											Add {partnerLabel} as an editor
+											Add {partnerLabel} as an Editor
 										</Label>
 										<p className="text-muted-foreground text-xs">
 											You're making this list public. Add your partner so they can manage items too. You can always change this later.
@@ -467,7 +467,7 @@ export function ListSettingsForm({
 			<form.Field name="description">
 				{field => (
 					<div className="grid gap-2">
-						<Label htmlFor={field.name}>Description (optional)</Label>
+						<Label htmlFor={field.name}>Description (Optional)</Label>
 						<MarkdownTextarea
 							id={field.name}
 							rows={2}
@@ -490,14 +490,14 @@ export function ListSettingsForm({
 			<ListChangeImpactWarnings warnings={changeImpact.warnings} />
 
 			<Button type="submit" disabled={submitting}>
-				{submitting ? 'Saving…' : 'Save settings'}
+				{submitting ? 'Saving…' : 'Save Settings'}
 			</Button>
 
 			{isOwner && (
 				<>
 					<Separator />
 					<div className="grid gap-2">
-						<Label>Delete list</Label>
+						<Label>Delete List</Label>
 						<p className="text-muted-foreground text-xs">
 							Permanently remove this list and all its items. If there are claimed items, the list will be archived instead so purchase
 							history is preserved.
@@ -509,7 +509,7 @@ export function ListSettingsForm({
 							className="w-fit text-destructive hover:text-destructive"
 						>
 							<Trash2 className="size-4" />
-							Delete list
+							Delete List
 						</Button>
 					</div>
 					<ConfirmDialog
@@ -534,7 +534,7 @@ export function ListSettingsForm({
 				<>
 					<Separator />
 					<div className="grid gap-1">
-						<Label>Last archived</Label>
+						<Label>Last Archived</Label>
 						<p className="text-muted-foreground text-xs">
 							{lastArchivedAt
 								? `Claimed gifts on this list were last revealed on ${new Date(lastArchivedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}.`
@@ -548,14 +548,14 @@ export function ListSettingsForm({
 				<>
 					<Separator />
 					<div className="grid gap-2">
-						<Label>Archive claimed items</Label>
+						<Label>Archive Claimed Items</Label>
 						<p className="text-muted-foreground text-xs">
 							Mark every claimed item and gifter-volunteered add-on on this list as archived. Archived purchases reveal who claimed them on
 							your Received Gifts page, so only do this once you've received the gifts.
 						</p>
 						<Button type="button" variant="outline" onClick={() => setArchivePurchasesOpen(true)} className="w-fit">
 							<Archive className="size-4" />
-							Archive all purchases
+							Archive All Purchases
 						</Button>
 					</div>
 					<ConfirmDialog
@@ -571,7 +571,7 @@ export function ListSettingsForm({
 								Only do this once you've received the gifts. This can't be undone in bulk.
 							</>
 						}
-						confirmLabel="Archive purchases"
+						confirmLabel="Archive Purchases"
 						confirmBusyLabel="Archiving…"
 						destructive
 						onConfirm={handleArchivePurchases}

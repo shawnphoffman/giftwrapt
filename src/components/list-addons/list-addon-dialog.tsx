@@ -295,7 +295,7 @@ export function ListAddonDialog(props: Props) {
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-h-[85vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>{isEdit ? 'Edit off-list gift' : fromIdea ? 'Claim idea' : 'Add off-list gift'}</DialogTitle>
+					<DialogTitle>{isEdit ? 'Edit Off-List Gift' : fromIdea ? 'Claim Idea' : 'Add Off-List Gift'}</DialogTitle>
 					<DialogDescription>
 						{isEdit
 							? 'Update the details of your off-list gift. The list owner won’t see this.'
@@ -318,7 +318,7 @@ export function ListAddonDialog(props: Props) {
 							const urlScrapable = normalizeHttpUrl(field.state.value) !== null
 							return (
 								<div className="grid gap-2">
-									<Label htmlFor={field.name}>URL (optional)</Label>
+									<Label htmlFor={field.name}>URL (Optional)</Label>
 									<InputGroup>
 										<InputGroupInput
 											id={field.name}
@@ -361,7 +361,7 @@ export function ListAddonDialog(props: Props) {
 					<form.Field name="description">
 						{field => (
 							<div className="grid gap-2">
-								<Label htmlFor={field.name}>What is it?</Label>
+								<Label htmlFor={field.name}>What Is It?</Label>
 								<Input
 									id={field.name}
 									type="text"
@@ -382,7 +382,7 @@ export function ListAddonDialog(props: Props) {
 					<form.Field name="totalCost">
 						{field => (
 							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Total cost (optional)</Label>
+								<Label htmlFor={field.name}>Total Cost (Optional)</Label>
 								<div className="relative">
 									<DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
 									<Input
@@ -409,7 +409,7 @@ export function ListAddonDialog(props: Props) {
 					<form.Field name="notes">
 						{field => (
 							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Notes (optional)</Label>
+								<Label htmlFor={field.name}>Notes (Optional)</Label>
 								<MarkdownTextarea
 									id={field.name}
 									placeholder="e.g. already ordered, arrives Friday"
@@ -432,7 +432,7 @@ export function ListAddonDialog(props: Props) {
 							const currentUrl = field.state.value.trim() || null
 							return (
 								<div className="grid gap-2">
-									<Label htmlFor={field.name}>Image (optional)</Label>
+									<Label htmlFor={field.name}>Image (Optional)</Label>
 									{currentUrl && (
 										<div className="flex items-center gap-3">
 											<RemoteImage src={currentUrl} alt="" className="size-16 rounded border object-cover" />

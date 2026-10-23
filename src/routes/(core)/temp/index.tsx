@@ -76,7 +76,7 @@ function HolidaysWidgetPageInner() {
 				</CardHeader>
 				<CardContent className="flex flex-col gap-6">
 					<HorizonControl
-						label="Horizon (days)"
+						label="Horizon (Days)"
 						help="Hide holidays further out than this. The iOS widget config exposes the same horizon as a 30 / 60 / 90 / 180 / 365 picker."
 						value={horizon}
 						min={7}

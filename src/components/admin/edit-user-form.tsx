@@ -835,7 +835,7 @@ function EditUserFormInner({
 
 					<section className="rounded-lg border bg-card p-5 space-y-3">
 						<div>
-							<h3 className="font-medium text-lg">List access</h3>
+							<h3 className="font-medium text-lg">List Access</h3>
 							<p className="text-xs text-muted-foreground mt-1">
 								What <strong>{user.name || user.email}</strong> can see of other people's wish lists. Partners and guardians always have
 								full view.
@@ -867,7 +867,7 @@ function EditUserFormInner({
 			)}
 
 			<Button type="submit" disabled={isLoading} className="w-full" variant="default">
-				{isLoading ? 'Updating user...' : 'Update User'}
+				{isLoading ? 'Updating User...' : 'Update User'}
 			</Button>
 
 			{!isSelf && (
@@ -934,7 +934,7 @@ function EditUserFormInner({
 								signed in on existing sessions until they finish the reset, which then signs those sessions out automatically.
 							</>
 						}
-						confirmLabel="Send email"
+						confirmLabel="Send Email"
 						confirmBusyLabel="Sending..."
 						onConfirm={async () => {
 							const result = await sendPasswordResetEmailAsAdmin({ data: { userId } })
@@ -994,7 +994,7 @@ function EditUserFormInner({
 					>
 						<DialogContent className="max-w-md">
 							<DialogHeader>
-								<DialogTitle>Update password for {user.name || user.email}</DialogTitle>
+								<DialogTitle>Update Password for {user.name || user.email}</DialogTitle>
 								<DialogDescription>
 									Sets a new password directly and revokes all active sessions. The user will need to sign in again with the new password.
 								</DialogDescription>
@@ -1029,7 +1029,7 @@ function EditUserFormInner({
 								className="grid gap-3"
 							>
 								<div className="grid gap-2">
-									<Label htmlFor="admin-set-password">New password</Label>
+									<Label htmlFor="admin-set-password">New Password</Label>
 									<Input
 										id="admin-set-password"
 										type="password"
@@ -1048,7 +1048,7 @@ function EditUserFormInner({
 										Cancel
 									</Button>
 									<Button type="submit" disabled={setPasswordBusy || newPassword.length < 8}>
-										{setPasswordBusy ? 'Updating...' : 'Update password'}
+										{setPasswordBusy ? 'Updating...' : 'Update Password'}
 									</Button>
 								</DialogFooter>
 							</form>

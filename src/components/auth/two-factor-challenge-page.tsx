@@ -93,7 +93,7 @@ export function TwoFactorChallengePageContent({
 
 			<div className="@container/card w-full max-w-md space-y-4 rounded-lg border bg-background/80 p-6 shadow-lg backdrop-blur">
 				<div className="text-center">
-					<h1 className="text-3xl font-bold @max-[12.5rem]/card:text-2xl @max-[10.5rem]/card:text-xl">Two-factor authentication</h1>
+					<h1 className="text-3xl font-bold @max-[12.5rem]/card:text-2xl @max-[10.5rem]/card:text-xl">Two-Factor Authentication</h1>
 					<p className="mt-2 text-muted-foreground">
 						{mode === 'totp'
 							? 'Enter the 6-digit code from your authenticator app to finish signing in.'
@@ -134,7 +134,7 @@ export function TwoFactorChallengePageContent({
 						</InputOTP>
 					) : (
 						<div className="space-y-2">
-							<Label htmlFor="2fa-code">Backup code</Label>
+							<Label htmlFor="2fa-code">Backup Code</Label>
 							<Input
 								id="2fa-code"
 								value={code}
@@ -154,7 +154,7 @@ export function TwoFactorChallengePageContent({
 						<div className="flex items-center gap-2">
 							<Checkbox id="trust-device" checked={trustDevice} onCheckedChange={v => setTrustDevice(v === true)} disabled={showLoading} />
 							<Label htmlFor="trust-device" className="font-normal text-sm">
-								Trust this device for 60 days
+								Trust This Device for 60 Days
 							</Label>
 						</div>
 					)}

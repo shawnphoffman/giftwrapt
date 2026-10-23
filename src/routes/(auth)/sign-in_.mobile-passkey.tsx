@@ -69,7 +69,7 @@ function MobilePasskeyPage() {
 					<GradientBackground />
 				</div>
 				<div className="bg-background/80 w-full max-w-md space-y-3 rounded-xl p-6 text-center shadow-md backdrop-blur">
-					<h1 className="text-lg font-semibold">Sign-in link expired</h1>
+					<h1 className="text-lg font-semibold">Sign-In Link Expired</h1>
 					<p className="text-muted-foreground text-sm">Reopen the GiftWrapt iOS app and tap the passkey button again.</p>
 				</div>
 			</div>
@@ -83,11 +83,11 @@ function MobilePasskeyPage() {
 			</div>
 			<div className="bg-background/80 w-full max-w-md space-y-4 rounded-xl p-6 shadow-md backdrop-blur">
 				<div className="space-y-1">
-					<h1 className="text-lg font-semibold">Sign in with a passkey</h1>
+					<h1 className="text-lg font-semibold">Sign In With a Passkey</h1>
 					<p className="text-muted-foreground text-sm">Confirm with Face ID or Touch ID to finish signing in.</p>
 				</div>
 				<Button type="button" className="w-full" disabled={isLoading} onClick={handlePasskey}>
-					{isLoading ? 'Authenticating…' : 'Use a passkey'}
+					{isLoading ? 'Authenticating…' : 'Use a Passkey'}
 				</Button>
 				{error && <p className="text-sm text-red-500">{error}</p>}
 			</div>

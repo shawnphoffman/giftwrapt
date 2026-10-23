@@ -27,12 +27,12 @@ import { adminAppSettingsQueryKey, notifyAppSettingsChanged, useAdminAppSettings
 import type { AppSettings, BarcodeSettings } from '@/lib/settings'
 
 const BARCODE_PROVIDERS: Array<{ id: BarcodeSettings['providerId']; label: string }> = [
-	{ id: 'upcitemdb-trial', label: 'UPCitemdb (trial, free)' },
-	{ id: 'go-upc', label: 'Go-UPC (paid)' },
+	{ id: 'upcitemdb-trial', label: 'UPCitemdb (Trial, Free)' },
+	{ id: 'go-upc', label: 'Go-UPC (Paid)' },
 ]
 
 const TESTER_PROVIDERS: Array<{ id: 'upcitemdb-trial' | 'go-upc'; label: string }> = [
-	{ id: 'upcitemdb-trial', label: 'UPCitemdb (trial)' },
+	{ id: 'upcitemdb-trial', label: 'UPCitemdb (Trial)' },
 	{ id: 'go-upc', label: 'Go-UPC' },
 ]
 

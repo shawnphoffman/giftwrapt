@@ -49,12 +49,12 @@ export function RunDetailContent({ data, onBack, onRerunDryRun, onRerunPersist }
 					value={run.status}
 					variant={run.status === 'error' ? 'destructive' : run.status === 'success' ? 'secondary' : 'outline'}
 				/>
-				<Stat label="Tokens (in / out)" value={`${run.tokensIn ?? 0} / ${run.tokensOut ?? 0}`} />
-				<Stat label="Est. cost" value={run.estimatedCostUsd ? `$${run.estimatedCostUsd.toFixed(4)}` : '-'} />
+				<Stat label="Tokens (In / Out)" value={`${run.tokensIn ?? 0} / ${run.tokensOut ?? 0}`} />
+				<Stat label="Est. Cost" value={run.estimatedCostUsd ? `$${run.estimatedCostUsd.toFixed(4)}` : '-'} />
 			</section>
 
 			<section className="flex flex-col gap-3">
-				<h2 className="text-base font-semibold">Inputs sent to each analyzer</h2>
+				<h2 className="text-base font-semibold">Inputs Sent to Each Analyzer</h2>
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 					{data.candidateInputs.map(input => (
 						<Card key={input.analyzerId}>
@@ -94,7 +94,7 @@ export function RunDetailContent({ data, onBack, onRerunDryRun, onRerunPersist }
 			</section>
 
 			<section className="flex flex-col gap-3">
-				<h2 className="text-base font-semibold">Per-analyzer steps</h2>
+				<h2 className="text-base font-semibold">Per-Analyzer Steps</h2>
 				<div className="flex flex-col gap-3">
 					{data.steps.map(step => (
 						<Card key={step.analyzerId}>
@@ -139,7 +139,7 @@ export function RunDetailContent({ data, onBack, onRerunDryRun, onRerunPersist }
 			</section>
 
 			<section className="flex flex-col gap-3">
-				<h2 className="text-base font-semibold">Resulting recommendations</h2>
+				<h2 className="text-base font-semibold">Resulting Recommendations</h2>
 				<div className="flex flex-col gap-2.5">
 					{data.resultingRecs.map(rec => (
 						<RecommendationCard key={rec.id} rec={rec} />
@@ -150,7 +150,7 @@ export function RunDetailContent({ data, onBack, onRerunDryRun, onRerunPersist }
 			<Separator />
 
 			<section className="flex flex-col gap-3">
-				<h2 className="text-base font-semibold">Diff vs prior batch</h2>
+				<h2 className="text-base font-semibold">Diff vs Prior Batch</h2>
 				<Card>
 					<CardContent className="p-3">
 						<ul className="flex flex-col gap-1.5">

@@ -56,7 +56,7 @@ export function ListSettingsSheet({
 			</SheetTrigger>
 			<SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
 				<SheetHeader>
-					<SheetTitle>List settings</SheetTitle>
+					<SheetTitle>List Settings</SheetTitle>
 					<SheetDescription>Manage this list's details and editors.</SheetDescription>
 				</SheetHeader>
 				<div className="flex flex-col gap-6 px-4 pb-6">

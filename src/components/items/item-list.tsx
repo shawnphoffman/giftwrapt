@@ -283,7 +283,7 @@ export default function ItemList({ listId, groups = [], filterBarLeading }: Prop
 							<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Price</DropdownMenuLabel>
 							<DropdownMenuItem onClick={() => setPricePreset('all')}>
 								<Check className={cn('size-4', pricePreset !== 'all' && 'opacity-0')} />
-								Any price
+								Any Price
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
 							{pricePresets.map(p => (
@@ -336,7 +336,7 @@ export default function ItemList({ listId, groups = [], filterBarLeading }: Prop
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
-							<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Sort by priority</DropdownMenuLabel>
+							<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Sort by Priority</DropdownMenuLabel>
 							<DropdownMenuItem onClick={() => setSort('priority-desc')}>
 								<Check className={cn('size-4', sort !== 'priority-desc' && 'opacity-0')} />
 								High to Low
@@ -346,14 +346,14 @@ export default function ItemList({ listId, groups = [], filterBarLeading }: Prop
 								Low to High
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
-							<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Sort by date</DropdownMenuLabel>
+							<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Sort by Date</DropdownMenuLabel>
 							<DropdownMenuItem onClick={() => setSort('date-desc')}>
 								<Check className={cn('size-4', sort !== 'date-desc' && 'opacity-0')} />
-								Newest first
+								Newest First
 							</DropdownMenuItem>
 							<DropdownMenuItem onClick={() => setSort('date-asc')}>
 								<Check className={cn('size-4', sort !== 'date-asc' && 'opacity-0')} />
-								Oldest first
+								Oldest First
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>

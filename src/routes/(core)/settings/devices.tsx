@@ -106,7 +106,7 @@ function DevicesPage() {
 			<AlertDialog open={revokeTarget !== null} onOpenChange={open => !open && setRevokeTarget(null)}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Revoke this device key?</AlertDialogTitle>
+						<AlertDialogTitle>Revoke This Device Key?</AlertDialogTitle>
 						<AlertDialogDescription>
 							{revokeTarget?.name ?? 'This device'} will be signed out of the mobile app immediately and will need a new key to sign back
 							in.
@@ -225,7 +225,7 @@ function CreateKeyDialog({
 							Cancel
 						</Button>
 						<Button type="submit" disabled={!canSubmit}>
-							{mutation.isPending ? 'Creating...' : 'Create key'}
+							{mutation.isPending ? 'Creating...' : 'Create Key'}
 						</Button>
 					</DialogFooter>
 				</form>

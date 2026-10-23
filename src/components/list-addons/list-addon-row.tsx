@@ -143,13 +143,13 @@ export function ListAddonRow({ addon, listId }: Props) {
 			<AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Delete this off-list gift?</AlertDialogTitle>
+						<AlertDialogTitle>Delete This Off-List Gift?</AlertDialogTitle>
 						<AlertDialogDescription>This will permanently remove the entry.</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
 						<AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
 						<AlertDialogAction onClick={handleDelete} disabled={deleting}>
-							{deleting ? 'Deleting…' : 'Yes, delete'}
+							{deleting ? 'Deleting…' : 'Yes, Delete'}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
