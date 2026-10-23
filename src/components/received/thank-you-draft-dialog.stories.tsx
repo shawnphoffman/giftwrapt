@@ -5,7 +5,8 @@ import { ThankYouDraftDialog } from './thank-you-draft-dialog'
 
 /**
  * The thank-you draft opened from a giver's section on the Received page.
- * The note is editable and can only be copied; nothing is sent from here.
+ * The note is editable and can be copied or opened in the user's email app;
+ * nothing is sent from here.
  */
 const meta = {
 	title: 'Received/ThankYouDraftDialog',
@@ -15,6 +16,8 @@ const meta = {
 		open: true,
 		onOpenChange: fn(),
 		giverLabel: 'Kate & Jeff',
+		giverEmails: ['kate@example.com', 'jeff@example.com'],
+		giftCount: 2,
 		state: {
 			phase: 'ready',
 			note: 'Dear Kate and Jeff,\n\nThank you so much for the merino scarf and the trail map poster. The scarf is exactly the kind I wanted, and the poster already has a spot picked out on the wall.\n\nWith love,\nSam',

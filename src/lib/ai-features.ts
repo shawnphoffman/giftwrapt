@@ -70,7 +70,7 @@ export const AI_FEATURE_REGISTRY: ReadonlyArray<AiFeatureInfo> = [
 		id: 'thank-you-draft',
 		label: 'Thank-You Note Drafts',
 		description:
-			'A “Draft a Thank-You” button on the Received page. It writes a short note the user can edit and copy. Nothing is sent to anyone by the app.',
+			'A “Draft a Thank-You” button on the Received page. It writes a short note the user can edit, copy, or open in their own email app. Nothing is sent to anyone by the app.',
 		settingKey: 'aiThankYouDraftsEnabled',
 		sent: [
 			'The first name of the user writing the note',

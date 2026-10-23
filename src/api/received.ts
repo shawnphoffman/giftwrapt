@@ -76,6 +76,9 @@ export type ReceivedGiftsResult = {
 	gifts: Array<ReceivedGiftRow>
 	addons: Array<ReceivedAddonRow>
 	dependents: Array<DependentReceivedSection>
+	// Email address for every user who appears in a gifter unit above, keyed
+	// by user id. Feeds the thank-you dialog's "Draft Email" mailto link.
+	gifterEmails: Record<string, string>
 }
 
 // `buildGifterUnits` + `GifterUserMeta` moved to `@/lib/gifter-units` (shared
@@ -344,7 +347,17 @@ export async function getReceivedGiftsImpl(args: { userId: string; dbx?: SchemaD
 	// an empty "Mochi" header.
 	const dependentsResult = Array.from(dependentSections.values()).filter(s => s.gifts.length > 0 || s.addons.length > 0)
 
-	return { gifts, addons, dependents: dependentsResult }
+	const gifterEmails: Record<string, string> = {}
+	for (const row of [...gifts, ...addons, ...dependentsResult.flatMap(section => [...section.gifts, ...section.addons])]) {
+		for (const unit of row.gifterUnits) {
+			for (const member of unit.members) {
+				const email = userLookup.get(member.id)?.email
+				if (email) gifterEmails[member.id] = email
+			}
+		}
+	}
+
+	return { gifts, addons, dependents: dependentsResult, gifterEmails }
 }
 
 export const getReceivedGifts = createServerFn({ method: 'GET' })

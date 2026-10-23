@@ -197,12 +197,14 @@ const dataMultiple: ReceivedGiftsResult = {
 			addons: [],
 		},
 	],
+	gifterEmails: {},
 }
 
 const dataSelfOnly: ReceivedGiftsResult = {
 	gifts: richSelfGifts,
 	addons: richSelfAddons,
 	dependents: [],
+	gifterEmails: {},
 }
 
 const dataSingleGifter: ReceivedGiftsResult = {
@@ -212,6 +214,7 @@ const dataSingleGifter: ReceivedGiftsResult = {
 	],
 	addons: [],
 	dependents: [],
+	gifterEmails: {},
 }
 
 const dataPartnerSolo: ReceivedGiftsResult = {
@@ -221,9 +224,10 @@ const dataPartnerSolo: ReceivedGiftsResult = {
 	],
 	addons: [],
 	dependents: [],
+	gifterEmails: {},
 }
 
-const dataEmpty: ReceivedGiftsResult = { gifts: [], addons: [], dependents: [] }
+const dataEmpty: ReceivedGiftsResult = { gifts: [], addons: [], dependents: [], gifterEmails: {} }
 
 const meta = {
 	title: 'Pages/Received',

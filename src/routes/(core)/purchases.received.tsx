@@ -72,6 +72,8 @@ function ReceivedPage() {
 					open
 					onOpenChange={open => !open && setTarget(null)}
 					giverLabel={target.label}
+					giverEmails={target.members.flatMap(m => data.gifterEmails[m.id] ?? [])}
+					giftCount={Math.min(target.rows.length, MAX_GIFTS_PER_NOTE)}
 					state={state}
 					onNoteChange={note => setState({ phase: 'ready', note })}
 					onRetry={() => void draft(target)}
