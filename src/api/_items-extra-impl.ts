@@ -20,7 +20,7 @@ import { isCrossTypeMoveDestructive, SPOILER_PROTECTED_TYPES } from '@/lib/list-
 import { itemsArchivedTotal, revealsTriggeredTotal } from '@/lib/observability/metrics'
 import { canEditListAsAnyone, canViewList, canViewListAsAnyone, getViewerAccessLevelForList } from '@/lib/permissions'
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
-import { type RevealedPurchases, revealListPurchases } from '@/lib/reveal'
+import { archivePickOneSiblings, type RevealedPurchases, revealListPurchases } from '@/lib/reveal'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { getVendorFromUrl } from '@/lib/urls'
 
@@ -335,11 +335,16 @@ export async function archiveItemImpl(args: {
 	const perm = await canEditListAsAnyone(userId, list, dbx)
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
-	await dbx
-		.update(items)
-		.set({ isArchived: data.archived, archivedAt: data.archived ? new Date() : null })
-		.where(eq(items.id, data.itemId))
+	const now = new Date()
+	const siblings = await dbx.transaction(async tx => {
+		await tx
+			.update(items)
+			.set({ isArchived: data.archived, archivedAt: data.archived ? now : null })
+			.where(eq(items.id, data.itemId))
+		return data.archived ? archivePickOneSiblings(tx, [data.itemId], now) : []
+	})
 	notifyListEvent({ kind: 'item', listId: item.listId, itemId: data.itemId })
+	for (const s of siblings) notifyListEvent({ kind: 'item', listId: s.listId, itemId: s.id })
 	if (data.archived) {
 		itemsArchivedTotal.inc()
 		revealsTriggeredTotal.inc({ trigger: 'manual' })
@@ -455,11 +460,15 @@ export async function archiveItemsImpl(args: {
 	const loaded = await loadAndAuthorizeItems(userId, data.itemIds)
 	if (!loaded.ok) return { kind: 'error', reason: loaded.reason }
 
-	await db
-		.update(items)
-		.set({ isArchived: data.archived, archivedAt: data.archived ? new Date() : null })
-		.where(inArray(items.id, [...data.itemIds]))
-	for (const row of loaded.rows) {
+	const now = new Date()
+	const siblings = await db.transaction(async tx => {
+		await tx
+			.update(items)
+			.set({ isArchived: data.archived, archivedAt: data.archived ? now : null })
+			.where(inArray(items.id, [...data.itemIds]))
+		return data.archived ? archivePickOneSiblings(tx, [...data.itemIds], now) : []
+	})
+	for (const row of [...loaded.rows, ...siblings]) {
 		notifyListEvent({ kind: 'item', listId: row.listId, itemId: row.id })
 	}
 	return { kind: 'ok', updated: data.itemIds.length }

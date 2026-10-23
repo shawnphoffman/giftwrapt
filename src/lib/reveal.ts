@@ -9,10 +9,10 @@
 // No email imports here: the cron impl and the API impls import this module
 // and must stay loadable without the mail stack.
 
-import { and, eq, exists, sql } from 'drizzle-orm'
+import { and, eq, exists, inArray, isNotNull, sql } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
-import { customHolidays, giftedItems, items, listAddons, lists } from '@/db/schema'
+import { customHolidays, giftedItems, itemGroups, items, listAddons, lists } from '@/db/schema'
 import { visibleItemsWhere } from '@/lib/item-visibility'
 
 export type RevealedPurchases = { itemIds: Array<number>; addonIds: Array<number> }
@@ -71,8 +71,54 @@ export async function revealListPurchases(db: SchemaDatabase, listId: number, no
 		if (revealedItems.length > 0 || revealedAddons.length > 0) {
 			await tx.update(lists).set({ lastArchivedAt: now }).where(eq(lists.id, listId))
 		}
-		return { itemIds: revealedItems.map(r => r.id), addonIds: revealedAddons.map(r => r.id) }
+		const itemIds = revealedItems.map(r => r.id)
+		// Siblings are not purchases: they stay out of the returned ids, so the
+		// reveal email never lists them.
+		await archivePickOneSiblings(tx, itemIds, now)
+		return { itemIds, addonIds: revealedAddons.map(r => r.id) }
 	})
+}
+
+/**
+ * Once an 'or' ("pick one") group's pick is revealed, archive the group's
+ * other visible items: the recipient asked for one and has it. Runs for the
+ * groups of `archivedItemIds` (items just archived), and only when the group
+ * has a revealed claim and no hidden one. A sibling with a hidden claim keeps
+ * the whole group as is, so archiving never reveals that claim. Returns the
+ * archived siblings for the caller's live-update notifications.
+ */
+export async function archivePickOneSiblings(
+	db: SchemaDatabase,
+	archivedItemIds: Array<number>,
+	now: Date
+): Promise<Array<{ id: number; listId: number }>> {
+	if (archivedItemIds.length === 0) return []
+
+	const touched = await db
+		.selectDistinct({ groupId: items.groupId })
+		.from(items)
+		.innerJoin(itemGroups, and(eq(itemGroups.id, items.groupId), eq(itemGroups.type, 'or')))
+		.where(and(inArray(items.id, archivedItemIds), isNotNull(items.groupId)))
+	const groupIds = touched.map(r => r.groupId).filter((id): id is number => id !== null)
+	if (groupIds.length === 0) return []
+
+	const claimedGroups = (mode: 'revealed' | 'visible') =>
+		db
+			.selectDistinct({ groupId: items.groupId })
+			.from(items)
+			.innerJoin(giftedItems, eq(giftedItems.itemId, items.id))
+			.where(and(inArray(items.groupId, groupIds), visibleItemsWhere(mode)))
+	const revealed = await claimedGroups('revealed')
+	const hidden = await claimedGroups('visible')
+	const hiddenIds = new Set(hidden.map(r => r.groupId))
+	const targetIds = revealed.map(r => r.groupId).filter((id): id is number => id !== null && !hiddenIds.has(id))
+	if (targetIds.length === 0) return []
+
+	return db
+		.update(items)
+		.set({ isArchived: true, archivedAt: now })
+		.where(and(inArray(items.groupId, targetIds), visibleItemsWhere('visible')))
+		.returning({ id: items.id, listId: items.listId })
 }
 
 /**
