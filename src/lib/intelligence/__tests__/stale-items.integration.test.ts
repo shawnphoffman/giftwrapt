@@ -229,8 +229,8 @@ describe('staleItemsAnalyzer intent branching (LLM path)', () => {
 				groupType: 'or',
 				itemIds: [String(surge1.id), String(surge2.id)],
 			})
-			// "Keep separate" lets the user dismiss the grouping framing.
-			expect(rec.actions?.some(a => a.label === 'Keep separate' && a.intent === 'noop')).toBe(true)
+			// "Keep Separate" lets the user dismiss the grouping framing.
+			expect(rec.actions?.some(a => a.label === 'Keep Separate' && a.intent === 'noop')).toBe(true)
 		})
 	})
 

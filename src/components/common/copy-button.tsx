@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 type Props = {
 	value: string
 	label?: string
-	size?: 'sm' | 'icon'
+	size?: 'default' | 'sm' | 'icon'
 }
 
 /** Copies `value` to the clipboard and flashes a check mark. */
@@ -26,7 +26,7 @@ export function CopyButton({ value, label = 'Copy', size = 'icon' }: Props) {
 	return (
 		<Button type="button" variant="outline" size={size} onClick={handleCopy} aria-label={label} className="shrink-0">
 			{copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-			{size === 'sm' ? <span>{copied ? 'Copied' : label}</span> : null}
+			{size !== 'icon' ? <span>{copied ? 'Copied' : label}</span> : null}
 		</Button>
 	)
 }

@@ -541,8 +541,8 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 								<>
 									{stagedPreview && <img src={stagedPreview} alt="" className="size-9 rounded border object-cover" />}
 									<span className="truncate text-xs text-muted-foreground">{stagedFile.name}</span>
-									<Button type="button" variant="outline" size="xs" onClick={clearStagedFile} disabled={formLocked} className="gap-1.5">
-										<Trash2 className="size-3" />
+									<Button type="button" variant="outline" size="sm" onClick={clearStagedFile} disabled={formLocked} className="gap-1.5">
+										<Trash2 className="size-4" />
 										Remove
 									</Button>
 								</>

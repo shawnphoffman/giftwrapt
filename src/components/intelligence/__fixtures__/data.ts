@@ -87,7 +87,7 @@ const recPrimaryList: Recommendation = {
 	createdAt: hoursAgo(2),
 	interaction: {
 		kind: 'list-picker',
-		saveLabel: 'Save as primary',
+		saveLabel: 'Save as Primary',
 		eligibleLists: [wishlistGeneric, wishlistChristmas, birthdayList, tinyList],
 	},
 }
@@ -157,13 +157,13 @@ const recStaleSingle: Recommendation = {
 	createdAt: hoursAgo(2),
 	actions: [
 		{
-			label: 'Open item',
+			label: 'Open Item',
 			description: 'Jump to the item editor on Mochi Wishlist.',
 			intent: 'do',
 			nav: { listId: 'dependent-list', itemId: 'item-treats' },
 		},
 		{
-			label: 'Delete item',
+			label: 'Delete Item',
 			description: 'Permanently delete this item. It has no claims, so no gifters are affected.',
 			intent: 'destructive',
 			confirmCopy: 'Permanently delete "Salmon treats" from Mochi Wishlist?',
@@ -214,7 +214,7 @@ const recStalePickOne: Recommendation = {
 			nav: { listId: 'wishlist-generic' },
 		},
 		{
-			label: 'Keep separate',
+			label: 'Keep Separate',
 			description: "These aren't really alternatives. We won't suggest grouping them again.",
 			intent: 'noop',
 		},
@@ -254,7 +254,7 @@ const recDuplicates: Recommendation = {
 			nav: { listId: 'birthday-list', itemId: 'item-dupe2' },
 		},
 		{
-			label: 'Keep both',
+			label: 'Keep Both',
 			description: "These are actually different items. We won't flag this pair again.",
 			intent: 'noop',
 		},
@@ -279,7 +279,7 @@ const recGroupingDestructive: Recommendation = {
 	createdAt: hoursAgo(2),
 	actions: [
 		{
-			label: 'Merge lists',
+			label: 'Merge Lists',
 			description:
 				'Move both items from Random Stuff to My Wishlist and delete Random Stuff. Both are wishlists, so any claims are preserved.',
 			intent: 'destructive',
@@ -287,7 +287,7 @@ const recGroupingDestructive: Recommendation = {
 				'Move both items from "Random Stuff" into "My Wishlist" and delete "Random Stuff"? Both lists are wishlists, so claims are preserved.',
 		},
 		{
-			label: 'Keep separate',
+			label: 'Keep Separate',
 			description: "Leave both lists as they are. We won't suggest merging this pair again.",
 			intent: 'noop',
 		},
@@ -312,12 +312,12 @@ const recGroupingTypeCrossing: Recommendation = {
 	createdAt: hoursAgo(2),
 	actions: [
 		{
-			label: 'Propose a split',
+			label: 'Propose a Split',
 			description: "Ask AI to draft list names and which items go where. You'll see the proposal and approve it before anything moves.",
 			intent: 'ai',
 		},
 		{
-			label: 'Leave as is',
+			label: 'Leave as Is',
 			description: "Keep My Wishlist as one list. We won't suggest splitting it again until it changes.",
 			intent: 'noop',
 		},
@@ -348,7 +348,7 @@ const recGroupingDependent: Recommendation = {
 			nav: { listId: 'dependent-list' },
 		},
 		{
-			label: 'Suggest items',
+			label: 'Suggest Items',
 			description: "Ask AI to draft a few ideas based on the existing item and Mochi's name. You'll review before adding.",
 			intent: 'ai',
 		},
@@ -487,7 +487,7 @@ const recRelationLabels: Recommendation = {
 	createdAt: hoursAgo(2),
 	actions: [
 		{
-			label: 'Open settings',
+			label: 'Open Settings',
 			description: 'Add the people you shop for in your profile.',
 			intent: 'do',
 			nav: { path: '/settings/' },
@@ -570,7 +570,7 @@ const recConvertPublicForBirthday: Recommendation = {
 	createdAt: hoursAgo(3),
 	actions: [
 		{
-			label: 'Convert to birthday',
+			label: 'Convert to Birthday',
 			description: "Change the list's type and rename it. Items and existing claims stay put.",
 			intent: 'do',
 			apply: {
@@ -626,7 +626,7 @@ const recConvertHolidayRebind: Recommendation = {
 	createdAt: hoursAgo(4),
 	actions: [
 		{
-			label: 'Re-bind to Halloween',
+			label: 'Re-Bind to Halloween',
 			description: 'Change the holiday this list is bound to and rename it. Items and existing claims stay put.',
 			intent: 'do',
 			apply: {
@@ -655,7 +655,7 @@ const recMakePrivateListPublic: Recommendation = {
 	createdAt: hoursAgo(2),
 	actions: [
 		{
-			label: 'Make public',
+			label: 'Make Public',
 			description: 'Flip the list to public so gifters can find it.',
 			intent: 'do',
 			apply: { kind: 'change-list-privacy', listId: privateBirthdayList.id, isPrivate: false },
@@ -731,7 +731,7 @@ const recWrongPrimaryForEvent: Recommendation = {
 	createdAt: hoursAgo(1),
 	actions: [
 		{
-			label: 'Set as primary',
+			label: 'Set as Primary',
 			description: 'Makes this your primary list. Your current primary goes back to being a regular list.',
 			intent: 'do',
 			apply: { kind: 'set-primary-list', listId: targetBirthdayList.id },
@@ -777,7 +777,7 @@ const recMergeTwoWishlists: Recommendation = {
 	createdAt: hoursAgo(1),
 	actions: [
 		{
-			label: 'Merge into newest',
+			label: 'Merge into Newest',
 			description:
 				'Moves items, item groups, and list addons onto the newer list, and existing claims move with their items. The older lists are archived, not deleted, so you can bring them back.',
 			intent: 'do',
@@ -808,7 +808,7 @@ const recMergeThreeWishlists: Recommendation = {
 	createdAt: hoursAgo(1),
 	actions: [
 		{
-			label: 'Merge into newest',
+			label: 'Merge into Newest',
 			description:
 				'Moves items, item groups, and list addons onto the newer list, and existing claims move with their items. The older lists are archived, not deleted, so you can bring them back.',
 			intent: 'do',
@@ -854,7 +854,7 @@ const recMergeHolidayCluster: Recommendation = {
 	createdAt: hoursAgo(1),
 	actions: [
 		{
-			label: 'Merge into newest',
+			label: 'Merge into Newest',
 			description:
 				'Moves items, item groups, and list addons onto the newer list, and existing claims move with their items. The older lists are archived, not deleted, so you can bring them back.',
 			intent: 'do',
@@ -898,7 +898,7 @@ const recConvertPublicForBirthdayAiNamed: Recommendation = {
 	createdAt: hoursAgo(2),
 	actions: [
 		{
-			label: 'Convert to birthday',
+			label: 'Convert to Birthday',
 			description: "Change the list's type and rename it. Items and existing claims stay put.",
 			intent: 'do',
 			apply: {
@@ -950,13 +950,13 @@ const recStalePublicEventPassed: Recommendation = {
 	createdAt: hoursAgo(1),
 	actions: [
 		{
-			label: 'Archive list',
+			label: 'Archive List',
 			description: 'Marks the list inactive. Its items and past gifts are kept, and you can unarchive it later.',
 			intent: 'do',
 			apply: { kind: 'archive-list', listId: stalePublicChristmasList.id },
 		},
 		{
-			label: 'Convert to wishlist',
+			label: 'Convert to Wishlist',
 			description: "Turns it into a plain wishlist that isn't tied to an event. Handy if the list is still useful year-round.",
 			intent: 'do',
 			apply: {
@@ -988,7 +988,7 @@ const recStalePublicInactive: Recommendation = {
 	createdAt: hoursAgo(1),
 	actions: [
 		{
-			label: 'Archive list',
+			label: 'Archive List',
 			description: 'Marks the list inactive. Its items and past gifts are kept, and you can unarchive it later.',
 			intent: 'do',
 			apply: { kind: 'archive-list', listId: staleInactiveWishlist.id },
@@ -1009,13 +1009,13 @@ const recStalePublicBoth: Recommendation = {
 	createdAt: hoursAgo(1),
 	actions: [
 		{
-			label: 'Archive list',
+			label: 'Archive List',
 			description: 'Marks the list inactive. Its items and past gifts are kept, and you can unarchive it later.',
 			intent: 'do',
 			apply: { kind: 'archive-list', listId: staleBothList.id },
 		},
 		{
-			label: 'Convert to wishlist',
+			label: 'Convert to Wishlist',
 			description: "Turns it into a plain wishlist that isn't tied to an event. Handy if the list is still useful year-round.",
 			intent: 'do',
 			apply: {
@@ -1195,8 +1195,8 @@ export const adminData: AdminIntelligenceData = {
 	health: {
 		totalActiveRecs: 142,
 		analyzers: [
-			{ id: 'primary-list', label: 'Primary list', enabled: true, avgDurationMs: 12, avgTokensIn: 0, avgTokensOut: 0, activeRecs: 8 },
-			{ id: 'stale-items', label: 'Stale items', enabled: true, avgDurationMs: 1850, avgTokensIn: 1400, avgTokensOut: 320, activeRecs: 64 },
+			{ id: 'primary-list', label: 'Primary List', enabled: true, avgDurationMs: 12, avgTokensIn: 0, avgTokensOut: 0, activeRecs: 8 },
+			{ id: 'stale-items', label: 'Stale Items', enabled: true, avgDurationMs: 1850, avgTokensIn: 1400, avgTokensOut: 320, activeRecs: 64 },
 			{ id: 'duplicates', label: 'Duplicates', enabled: true, avgDurationMs: 2100, avgTokensIn: 1700, avgTokensOut: 280, activeRecs: 41 },
 			{ id: 'grouping', label: 'Grouping', enabled: true, avgDurationMs: 1620, avgTokensIn: 1100, avgTokensOut: 250, activeRecs: 29 },
 		],

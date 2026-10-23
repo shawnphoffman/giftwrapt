@@ -157,7 +157,7 @@ function tenantAllowsCanonicalType(
 
 export const listHygieneAnalyzer: Analyzer = {
 	id: 'list-hygiene',
-	label: 'List hygiene',
+	label: 'List Hygiene',
 	enabledByDefault: true,
 	async run(ctx): Promise<AnalyzerResult> {
 		const t0 = Date.now()
@@ -452,7 +452,7 @@ type RenameState = {
 }
 
 function renameCacheKey(currentName: string, eventTitle: string, eventYear: number): string {
-	return `${currentName} ${eventTitle} ${eventYear}`
+	return `${currentName}\u0000${eventTitle}\u0000${eventYear}`
 }
 
 type ChooseConvertNameArgs = {
@@ -630,7 +630,7 @@ function buildConvertRec(args: {
 		body,
 		actions: [
 			{
-				label: `Convert to ${prettyListType(newType)}`,
+				label: `Convert to ${titleListType(newType)}`,
 				description: `Change the list's type${renameCopy ? ' and rename it' : ''}. Items and existing claims stay put.`,
 				intent: 'do',
 				apply: {
@@ -665,7 +665,7 @@ function buildPrivacyRec(args: { event: InWindowEvent; list: ListRow; subject: S
 		body: `${owner} ${event.eventTitle} is in ${event.daysUntil} ${event.daysUntil === 1 ? 'day' : 'days'}. "${list.name}" is set up for the event, but it's private, so gifters can't see it. Making it public lets people shop from it.`,
 		actions: [
 			{
-				label: 'Make public',
+				label: 'Make Public',
 				description: 'Flip the list to public so gifters can find it.',
 				intent: 'do',
 				apply: {
@@ -733,7 +733,7 @@ function buildSetPrimaryRec(args: { event: InWindowEvent; list: ListRow; subject
 		body: `Your ${event.eventTitle} is in ${event.daysUntil} ${event.daysUntil === 1 ? 'day' : 'days'} but "${list.name}" isn't your primary list. Making it primary means new items default into it.`,
 		actions: [
 			{
-				label: 'Set as primary',
+				label: 'Set as Primary',
 				description: 'Makes this your primary list. Your current primary goes back to being a regular list.',
 				intent: 'do',
 				apply: {
@@ -770,6 +770,11 @@ function prettyListType(type: ListType): string {
 		case 'test':
 			return 'test'
 	}
+}
+
+// Button labels use Title Case; prose keeps `prettyListType`'s sentence casing.
+function titleListType(type: ListType): string {
+	return prettyListType(type).replace(/\b\w/g, c => c.toUpperCase())
 }
 
 // ─── Duplicate clustering ───────────────────────────────────────────────────
@@ -888,7 +893,7 @@ function buildMergeRec(args: { cluster: DuplicateCluster; subject: SubjectListSu
 		body,
 		actions: [
 			{
-				label: 'Merge into newest',
+				label: 'Merge into Newest',
 				description:
 					'Moves items, item groups, and list addons onto the newer list, and existing claims move with their items. The older lists are archived, not deleted, so you can bring them back.',
 				intent: 'do',
@@ -1173,7 +1178,7 @@ function buildStaleListRec(args: { candidate: StaleListCandidate; subject: Subje
 
 	const actions: AnalyzerRecOutput['actions'] = [
 		{
-			label: 'Archive list',
+			label: 'Archive List',
 			description: 'Marks the list inactive. Its items and past gifts are kept, and you can unarchive it later.',
 			intent: 'do',
 			apply: { kind: 'archive-list', listId: String(list.id) },
@@ -1181,7 +1186,7 @@ function buildStaleListRec(args: { candidate: StaleListCandidate; subject: Subje
 	]
 	if (!isAlreadyWishlist) {
 		actions.push({
-			label: 'Convert to wishlist',
+			label: 'Convert to Wishlist',
 			description: "Turns it into a plain wishlist that isn't tied to an event. Handy if the list is still useful year-round.",
 			intent: 'do',
 			apply: {

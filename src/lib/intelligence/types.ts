@@ -102,7 +102,7 @@ export type RecommendationApply =
 			// and any past claims stay queryable and the owner can flip
 			// the list back on later via the edit-list dialog. Used by
 			// the stale-public-list rec when the owner picks "Archive
-			// list" over "Convert to wishlist".
+			// list" over "Convert to Wishlist".
 			kind: 'archive-list'
 			listId: string
 	  }

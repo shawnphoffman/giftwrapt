@@ -683,7 +683,7 @@ function buildGroupRec(
 				apply: { kind: 'create-group', listId: String(listId), groupType: decision, itemIds, priority },
 			},
 			{
-				label: 'Keep separate',
+				label: 'Keep Separate',
 				description: "These aren't really a set. We won't suggest grouping them again.",
 				intent: 'noop',
 			},
@@ -730,7 +730,7 @@ function buildAddToGroupRec(
 				apply: { kind: 'add-to-group', listId: String(listId), groupId: String(group.id), itemIds },
 			},
 			{
-				label: 'Keep separate',
+				label: 'Keep Separate',
 				description: "These don't belong in that group. We won't suggest adding them again.",
 				intent: 'noop',
 			},

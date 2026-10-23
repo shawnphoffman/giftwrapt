@@ -95,7 +95,7 @@ export function ThankYouDraftDialog({ open, onOpenChange, giverLabel, giverEmail
 					<Button type="button" variant="outline" onClick={onRetry} disabled={state.phase === 'loading'}>
 						<RotateCw className="size-4" /> {state.phase === 'error' ? 'Try Again' : 'New Draft'}
 					</Button>
-					{state.phase === 'ready' && <CopyButton value={state.note} label="Copy Note" size="sm" />}
+					{state.phase === 'ready' && <CopyButton value={state.note} label="Copy Note" size="default" />}
 					{state.phase === 'ready' && (
 						<Button asChild>
 							<a href={thankYouMailto(giverEmails, subject, state.note)}>

@@ -454,7 +454,7 @@ function RecommendationConfirmDialog({
 	onConfirm: () => void
 }) {
 	const action = pending?.kind === 'action' ? pending.action : null
-	// Noop intent (e.g. "Keep both" / "Keep separate") is treated as an
+	// Noop intent (e.g. "Keep Both" / "Keep Separate") is treated as an
 	// explicit dismiss in the route handler, so the dialog mirrors that.
 	const isDismissLike = pending?.kind === 'dismiss' || action?.intent === 'noop'
 	const isDestructive = action?.intent === 'destructive'
@@ -673,18 +673,6 @@ function SubItemsSection({
 }
 
 function SubItemRow({ sub, onSkip, onEdit }: { sub: RecSubItem; onSkip: () => void; onEdit?: () => void }) {
-	// Shared button styling for both the anchor (fallback, new tab) and
-	// the button (inline-dialog, when the parent passed onEdit).
-	const editClass = cn(
-		'inline-flex h-8 shrink-0 items-center gap-1 rounded-md px-2.5 text-sm font-medium text-white whitespace-nowrap',
-		'bg-emerald-600 ring-1 ring-emerald-500/50 shadow-sm',
-		'dark:bg-emerald-700 dark:ring-emerald-600/50',
-		'transition-all duration-150',
-		'hover:bg-emerald-500 hover:ring-emerald-400/70 hover:shadow-md hover:shadow-emerald-500/30 hover:-translate-y-px',
-		'dark:hover:bg-emerald-600 dark:hover:ring-emerald-500/70',
-		'active:translate-y-0 active:shadow-sm',
-		'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400'
-	)
 	return (
 		<li
 			data-intelligence="sub-item-row"
@@ -704,23 +692,31 @@ function SubItemRow({ sub, onSkip, onEdit }: { sub: RecSubItem; onSkip: () => vo
 			</div>
 			<div data-intelligence="sub-item-actions" className="flex items-center gap-2 self-start sm:self-center sm:shrink-0">
 				{onEdit ? (
-					<button type="button" data-intelligence="sub-item-edit" data-action-intent="do" onClick={onEdit} className={editClass}>
-						<ExternalLink className="size-3.5" />
-						Edit
-					</button>
-				) : (
-					<a
+					<Button
+						type="button"
+						size="sm"
 						data-intelligence="sub-item-edit"
 						data-action-intent="do"
-						data-action-link
-						href={navHref(sub.nav)}
-						target="_blank"
-						rel="noopener"
-						className={editClass}
+						onClick={onEdit}
+						className={DO_BTN_CLASSES}
 					>
 						<ExternalLink className="size-3.5" />
 						Edit
-					</a>
+					</Button>
+				) : (
+					<Button asChild size="sm" className={DO_BTN_CLASSES}>
+						<a
+							data-intelligence="sub-item-edit"
+							data-action-intent="do"
+							data-action-link
+							href={navHref(sub.nav)}
+							target="_blank"
+							rel="noopener"
+						>
+							<ExternalLink className="size-3.5" />
+							Edit
+						</a>
+					</Button>
 				)}
 				<Button data-intelligence="sub-item-skip" size="sm" variant="outline" onClick={onSkip} aria-label="Skip this item">
 					<X className="size-3.5" />
@@ -824,68 +820,58 @@ function ActionButton({ action, onClick }: { action: RecommendationAction; onCli
 
 function LinkButton({ label, href, intent }: { label: string; href: string; intent: ActionIntent }) {
 	return (
-		<a
-			data-intelligence="action-button"
-			data-action-intent={intent}
-			data-action-link
-			href={href}
-			target="_blank"
-			rel="noopener"
-			className={cn(
-				ACTION_BTN_BASE,
-				'bg-emerald-600 ring-1 ring-emerald-500/50 shadow-sm',
-				'dark:bg-emerald-700 dark:ring-emerald-600/50',
-				'transition-all duration-150',
-				'hover:bg-emerald-500 hover:ring-emerald-400/70 hover:shadow-md hover:shadow-emerald-500/30 hover:-translate-y-px',
-				'dark:hover:bg-emerald-600 dark:hover:ring-emerald-500/70',
-				'active:translate-y-0 active:shadow-sm',
-				'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400'
-			)}
-		>
-			<ExternalLink className="size-3.5" />
-			{label}
-		</a>
+		<Button asChild size="sm" className={cn(ACTION_BTN_PLACEMENT, DO_BTN_CLASSES)}>
+			<a data-intelligence="action-button" data-action-intent={intent} data-action-link href={href} target="_blank" rel="noopener">
+				<ExternalLink className="size-3.5" />
+				{label}
+			</a>
+		</Button>
 	)
 }
 
-// Visually match shadcn `Button size="sm"`: h-8 gap-1 px-2.5 text-sm font-medium rounded-md.
-const ACTION_BTN_BASE =
-	'inline-flex h-8 shrink-0 items-center gap-1 self-start sm:self-center rounded-md px-2.5 text-sm font-medium text-white whitespace-nowrap'
+const ACTION_BTN_PLACEMENT = 'self-start sm:self-center'
+
+// The card's call-to-action colors, layered on `Button size="sm"`. Button
+// clips its fill to the padding box inside a transparent border; clip to the
+// border box so the fill meets the ring.
+const DO_BTN_CLASSES = cn(
+	'bg-clip-border text-white',
+	'bg-emerald-600 ring-1 ring-emerald-500/50 shadow-sm',
+	'dark:bg-emerald-700 dark:ring-emerald-600/50',
+	'transition-all duration-150',
+	'hover:bg-emerald-500 hover:ring-emerald-400/70 hover:shadow-md hover:shadow-emerald-500/30 hover:-translate-y-px',
+	'dark:hover:bg-emerald-600 dark:hover:ring-emerald-500/70',
+	'active:translate-y-0 active:shadow-sm',
+	'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400'
+)
 
 function DoButton({ label, onClick }: { label: string; onClick: () => void }) {
 	return (
-		<button
+		<Button
 			type="button"
+			size="sm"
 			data-intelligence="action-button"
 			data-action-intent="do"
 			onClick={onClick}
-			className={cn(
-				ACTION_BTN_BASE,
-				'bg-emerald-600 ring-1 ring-emerald-500/50 shadow-sm',
-				'dark:bg-emerald-700 dark:ring-emerald-600/50',
-				'transition-all duration-150',
-				'hover:bg-emerald-500 hover:ring-emerald-400/70 hover:shadow-md hover:shadow-emerald-500/30 hover:-translate-y-px',
-				'dark:hover:bg-emerald-600 dark:hover:ring-emerald-500/70',
-				'active:translate-y-0 active:shadow-sm',
-				'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400'
-			)}
+			className={cn(ACTION_BTN_PLACEMENT, DO_BTN_CLASSES)}
 		>
 			<ArrowRight className="size-3.5" />
 			{label}
-		</button>
+		</Button>
 	)
 }
 
 function AiButton({ label, onClick }: { label: string; onClick: () => void }) {
 	return (
-		<button
+		<Button
 			type="button"
+			size="sm"
 			data-intelligence="action-button"
 			data-action-intent="ai"
 			onClick={onClick}
 			className={cn(
-				'group/ai-btn relative',
-				ACTION_BTN_BASE,
+				'group/ai-btn relative bg-clip-border text-white',
+				ACTION_BTN_PLACEMENT,
 				'bg-linear-to-br from-amber-500 via-pink-500 to-fuchsia-600',
 				'dark:from-amber-700 dark:via-pink-700 dark:to-fuchsia-800',
 				'shadow-sm ring-1 ring-fuchsia-400/40 dark:ring-fuchsia-600/40',
@@ -904,7 +890,7 @@ function AiButton({ label, onClick }: { label: string; onClick: () => void }) {
 				)}
 			/>
 			{label}
-		</button>
+		</Button>
 	)
 }
 
@@ -962,7 +948,7 @@ function ListPickerInteraction({
 			<div data-intelligence="list-picker-body" className="px-3 py-3 flex flex-col gap-2">
 				<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
 					<Select value={listId} onValueChange={setListId}>
-						<SelectTrigger data-intelligence="list-picker-trigger" className="w-full sm:w-[18rem]">
+						<SelectTrigger size="sm" data-intelligence="list-picker-trigger" className="w-full sm:w-[18rem]">
 							<SelectValue placeholder="Select a list…" />
 						</SelectTrigger>
 						<SelectContent>
@@ -974,27 +960,18 @@ function ListPickerInteraction({
 							))}
 						</SelectContent>
 					</Select>
-					<button
+					<Button
 						type="button"
+						size="sm"
 						data-intelligence="list-picker-save"
 						data-action-intent="do"
 						disabled={!selected}
 						onClick={() => selected && onSave(selected.id)}
-						className={cn(
-							'inline-flex h-8 shrink-0 items-center gap-1 rounded-md px-2.5 text-sm font-medium text-white whitespace-nowrap',
-							'bg-emerald-600 ring-1 ring-emerald-500/50 shadow-sm',
-							'dark:bg-emerald-700 dark:ring-emerald-600/50',
-							'transition-all duration-150',
-							'hover:bg-emerald-500 hover:ring-emerald-400/70 hover:shadow-md hover:shadow-emerald-500/30 hover:-translate-y-px',
-							'dark:hover:bg-emerald-600 dark:hover:ring-emerald-500/70',
-							'active:translate-y-0 active:shadow-sm',
-							'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400',
-							'disabled:opacity-50 disabled:pointer-events-none'
-						)}
+						className={DO_BTN_CLASSES}
 					>
 						<ArrowRight className="size-3.5" />
 						{saveLabel}
-					</button>
+					</Button>
 				</div>
 				{selected && (
 					<p data-intelligence="list-picker-preview" className="text-xs text-muted-foreground">

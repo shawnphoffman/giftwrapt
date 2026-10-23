@@ -59,8 +59,8 @@ export function PhotoExtractTester() {
 						{file ? 'Pick another photo' : 'Pick a photo'}
 					</Button>
 					{file && (
-						<Button type="button" variant="outline" size="sm" onClick={handleClear} disabled={state.phase === 'extracting'}>
-							<Trash2 className="size-3" /> Clear
+						<Button type="button" variant="outline" onClick={handleClear} disabled={state.phase === 'extracting'}>
+							<Trash2 className="size-4" /> Clear
 						</Button>
 					)}
 				</div>

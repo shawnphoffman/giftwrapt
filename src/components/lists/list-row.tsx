@@ -291,7 +291,7 @@ function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: Ro
 									</>
 								) : (
 									<>
-										<Star className="size-4" /> Set as primary
+										<Star className="size-4" /> Set as Primary
 									</>
 								)}
 							</DropdownMenuItem>

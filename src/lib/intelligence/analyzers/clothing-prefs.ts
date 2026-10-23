@@ -18,7 +18,7 @@ import type { AnalyzerRecOutput, AnalyzerResult, AnalyzerStep, ListRef, RecSubIt
 // a later run.
 export const clothingPrefsAnalyzer: Analyzer = {
 	id: 'clothing-prefs',
-	label: 'Clothing size & color',
+	label: 'Clothing Size & Color',
 	enabledByDefault: true,
 	async run(ctx): Promise<AnalyzerResult> {
 		const t0 = Date.now()

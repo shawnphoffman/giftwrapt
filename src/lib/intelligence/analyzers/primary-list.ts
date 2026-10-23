@@ -21,7 +21,7 @@ import { eventIsCovered, getInWindowEventsForSubject } from '../upcoming-events'
 // guard.
 export const primaryListAnalyzer: Analyzer = {
 	id: 'primary-list',
-	label: 'Primary list',
+	label: 'Primary List',
 	enabledByDefault: true,
 	async run(ctx): Promise<AnalyzerResult> {
 		const t0 = Date.now()
@@ -109,7 +109,7 @@ export const primaryListAnalyzer: Analyzer = {
 					body: `You have ${eligible.length} active list${eligible.length === 1 ? '' : 's'} but none are marked primary. Your primary list is the one shoppers see first, so picking one helps gifters know where to look.`,
 					interaction: {
 						kind: 'list-picker',
-						saveLabel: 'Save as primary',
+						saveLabel: 'Save as Primary',
 						eligibleLists: eligibleRefs,
 					},
 					affected: undefined,

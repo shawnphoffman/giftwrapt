@@ -24,7 +24,7 @@ const FATHERS_DAY_KEY = 'fathers-day'
 
 export const relationLabelsAnalyzer: Analyzer = {
 	id: 'relation-labels',
-	label: 'People I shop for',
+	label: 'People I Shop For',
 	enabledByDefault: true,
 	async run(ctx): Promise<AnalyzerResult> {
 		const t0 = Date.now()
@@ -113,7 +113,7 @@ export const relationLabelsAnalyzer: Analyzer = {
 					interaction: { kind: 'standard' },
 					actions: [
 						{
-							label: 'Open settings',
+							label: 'Open Settings',
 							description: 'Add the people you shop for in your profile.',
 							intent: 'do',
 							nav: { path: '/settings/' },

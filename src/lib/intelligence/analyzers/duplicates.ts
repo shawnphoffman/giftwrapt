@@ -532,7 +532,7 @@ function buildPairRec(
 				intent: 'do',
 				nav: { listId: String(b.listId), itemId: String(b.itemId) },
 			},
-			{ label: 'Keep both', description: "These are actually different items. We won't flag this pair again.", intent: 'noop' },
+			{ label: 'Keep Both', description: "These are actually different items. We won't flag this pair again.", intent: 'noop' },
 		],
 		affected: {
 			noun: 'items',

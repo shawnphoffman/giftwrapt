@@ -61,7 +61,7 @@ export function McpConnectCard({
 						copy the link to send it to someone.
 					</p>
 					<div className="flex items-center gap-2">
-						<Button asChild size="sm">
+						<Button asChild>
 							<a href={claudeLink} target="_blank" rel="noreferrer">
 								Add to Claude
 							</a>

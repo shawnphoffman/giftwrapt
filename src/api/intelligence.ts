@@ -830,7 +830,7 @@ async function applyMergeLists(
 // Flips a list to inactive. Reversible — items, addons, and any past
 // claims stay queryable; the owner can un-archive later via the edit
 // dialog. Used by the stale-public-list rec when the owner picks
-// "Archive list" over "Convert to wishlist". The rec generation pass
+// "Archive List" over "Convert to Wishlist". The rec generation pass
 // keys staleness off `lists.updatedAt` + `MAX(items.updatedAt)` only,
 // never `giftedItems` — so there's no claim-existence read on either
 // side of the flow.

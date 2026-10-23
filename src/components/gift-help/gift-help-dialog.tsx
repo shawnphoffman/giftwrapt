@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
-import { Check, ExternalLink, Lightbulb, PackageCheck, PackagePlus, Sparkles, ThumbsDown } from 'lucide-react'
+import { Check, ExternalLink, Lightbulb, PackagePlus, Sparkles, ThumbsDown, ThumbsUp } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -30,6 +30,7 @@ import type { PriceBand } from '@/lib/gift-suggestions/prompt'
 import { buildSearchUrl } from '@/lib/gift-suggestions/search-url'
 import { applyListEventLocally } from '@/lib/list-events'
 import { listDetailKeys } from '@/lib/queries/lists'
+import { cn } from '@/lib/utils'
 
 // Help for a gifter looking at someone else's list (plan 25). A "Need
 // Ideas?" button in the list's filter row opens a dialog that first asks
@@ -40,7 +41,7 @@ import { listDetailKeys } from '@/lib/queries/lists'
 // asking the model, and an idea reaches anyone else only when the viewer
 // acts on it: saved to their own private gift ideas, or added to this list
 // as an off-list gift they are giving. Two marks tune future answers (plan
-// 29b): "They have it" keeps the idea out of every gifter's ideas for this
+// 29b): "They Have It" keeps the idea out of every gifter's ideas for this
 // person, a thumbs down only out of the viewer's own. The recipient never
 // sees either.
 //
@@ -299,66 +300,68 @@ export function GiftHelpDialogView({
 															<p className="text-sm">{s.details}</p>
 															<p className="text-sm text-muted-foreground">{s.reason}</p>
 														</div>
-														{/* Phones: the save actions full width on top, the two marks side by
-														    side under them (stacked when too narrow to fit both), at the
-														    default button height. From sm up: two rows, Search and the marks
-														    over the save actions, since five labeled buttons never fit one. */}
-														<div className="grid grid-cols-[repeat(auto-fit,minmax(7rem,1fr))] gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end">
-															{searchUrl && (
-																<Button asChild variant="outline" className="col-span-full max-sm:order-5 sm:mr-auto">
-																	<a href={searchUrl} target="_blank" rel="noopener noreferrer">
-																		<ExternalLink className="size-4" />
-																		Search
-																	</a>
+														{/* Two aligned grids at the default button height: the save actions as an
+														    equal pair (stacked on phones), then Search and the two marks in equal
+														    columns (Search full width on phones). */}
+														<div className="flex flex-col gap-2">
+															<div className="grid gap-2 sm:grid-cols-2">
+																<Button
+																	type="button"
+																	variant="outline"
+																	disabled={saved || savingTitle === s.title}
+																	onClick={() => onSaveIdea(s)}
+																>
+																	{/* Same icon and color as gift-ideas lists. */}
+																	{saved ? <Check className="size-4 text-teal-500" /> : <Lightbulb className="size-4 text-teal-500" />}
+																	{saved ? 'Saved to Gift Ideas' : 'Save to Gift Ideas'}
 																</Button>
-															)}
-															<Button
-																type="button"
-																variant="outline"
-																className="max-sm:order-3"
-																disabled={marking}
-																title={`${recipientName} already has this`}
-																aria-label={`They have it: ${s.title}`}
-																onClick={() => onMark(s, 'has-it')}
-															>
-																<PackageCheck className="size-4" />
-																They have it
-															</Button>
-															<Button
-																type="button"
-																variant="outline"
-																className="max-sm:order-4"
-																disabled={marking}
-																title="Not for them"
-																aria-label={`Not for them: ${s.title}`}
-																onClick={() => onMark(s, 'not-for-me')}
-															>
-																<ThumbsDown className="size-4" />
-																Not for them
-															</Button>
-															<div className="hidden sm:block sm:basis-full" aria-hidden />
-															<Button
-																type="button"
-																variant="outline"
-																className="col-span-full max-sm:order-2"
-																disabled={added || addingTitle === s.title}
-																onClick={() => onAddOffList(s)}
-															>
-																{/* Same icon and color as the Off-List Gifts section. */}
-																{added ? <Check className="size-4 text-orange-500" /> : <PackagePlus className="size-4 text-orange-500" />}
-																{added ? 'Added as Off-List Gift' : 'Add as Off-List Gift'}
-															</Button>
-															<Button
-																type="button"
-																variant="outline"
-																className="col-span-full max-sm:order-1"
-																disabled={saved || savingTitle === s.title}
-																onClick={() => onSaveIdea(s)}
-															>
-																{/* Same icon and color as gift-ideas lists. */}
-																{saved ? <Check className="size-4 text-teal-500" /> : <Lightbulb className="size-4 text-teal-500" />}
-																{saved ? 'Saved to Gift Ideas' : 'Save to Gift Ideas'}
-															</Button>
+																<Button
+																	type="button"
+																	variant="outline"
+																	disabled={added || addingTitle === s.title}
+																	onClick={() => onAddOffList(s)}
+																>
+																	{/* Same icon and color as the Off-List Gifts section. */}
+																	{added ? (
+																		<Check className="size-4 text-orange-500" />
+																	) : (
+																		<PackagePlus className="size-4 text-orange-500" />
+																	)}
+																	{added ? 'Added as Off-List Gift' : 'Add as Off-List Gift'}
+																</Button>
+															</div>
+															<div className={cn('grid grid-cols-2 gap-2', searchUrl && 'sm:grid-cols-3')}>
+																{searchUrl && (
+																	<Button asChild variant="outline" className="max-sm:col-span-2">
+																		<a href={searchUrl} target="_blank" rel="noopener noreferrer">
+																			<ExternalLink className="size-4" />
+																			Search
+																		</a>
+																	</Button>
+																)}
+																<Button
+																	type="button"
+																	variant="outline"
+																	disabled={marking}
+																	title={`${recipientName} already has this`}
+																	aria-label={`They Have It: ${s.title}`}
+																	onClick={() => onMark(s, 'has-it')}
+																>
+																	<ThumbsUp className="size-4" />
+																	They Have It
+																</Button>
+																<Button
+																	type="button"
+																	variant="outline"
+																	disabled={marking}
+																	title="Not for them"
+																	aria-label={`Not for Them: ${s.title}`}
+																	onClick={() => onMark(s, 'not-for-me')}
+																>
+																	<ThumbsDown className="size-4" />
+																	Not for Them
+																</Button>
+															</div>
 														</div>
 													</li>
 												)
@@ -367,7 +370,7 @@ export function GiftHelpDialogView({
 										<p className="text-xs text-muted-foreground">
 											These are ideas to research, not product recommendations: the AI does not know what is in stock or what things cost
 											today. Gift Ideas are private to you. An off-list gift tells other gifters you are giving it; {recipientName} sees it
-											only after the reveal. “They have it” keeps an idea out of everyone’s future ideas for {recipientName}; a thumbs down
+											only after the reveal. “They Have It” keeps an idea out of everyone’s future ideas for {recipientName}; a thumbs down
 											only out of yours. {recipientName} never sees either.
 										</p>
 									</>
@@ -520,7 +523,7 @@ export function GiftHelpButton({ listId, recipientName }: { listId: number; reci
 	})
 
 	// A mark is stored by title, so it outlives this set; the card collapses
-	// to one line with Undo. "They have it" is shared with every gifter of
+	// to one line with Undo. "They Have It" is shared with every gifter of
 	// this person, a thumbs down stays with the viewer.
 	const mark = useMutation({
 		mutationFn: ({ s, verdict }: { s: SuggestedGift; verdict: SuggestionVerdict }) =>

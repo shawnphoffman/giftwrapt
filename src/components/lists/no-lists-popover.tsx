@@ -62,8 +62,8 @@ function NoListsPopoverContent() {
 				<Button
 					type="button"
 					variant="outline"
-					size="icon"
-					className="size-8 text-muted-foreground hover:text-foreground"
+					size="icon-sm"
+					className="text-muted-foreground hover:text-foreground"
 					aria-label={`${empty.length} ${empty.length === 1 ? 'person has' : 'people have'} no lists`}
 				>
 					<Info className="size-4" />

@@ -143,7 +143,7 @@ function IntelligenceRoute() {
 					// Navigation actions (nav) are handled in the rec card as
 					// anchor links and never reach this handler. Apply actions
 					// run a server mutation that flips the rec to applied on
-					// success. Noop actions ("Keep both", "Keep separate") are
+					// success. Noop actions ("Keep Both", "Keep Separate") are
 					// declines, so they route through dismiss. Anything else
 					// would be a bug: the user clicked a button that does
 					// nothing, so do nothing instead of silently applying.

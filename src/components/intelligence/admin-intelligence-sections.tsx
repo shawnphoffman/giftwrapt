@@ -21,14 +21,12 @@ export function IntelligenceFeatureDisabledBanner() {
 			<AlertTitle>Intelligence is disabled</AlertTitle>
 			<AlertDescription className="flex flex-col gap-2">
 				<span>All recommendation generation is paused. Users can&apos;t see the Intelligence page, and manual refreshes are blocked.</span>
-				<a
-					data-intelligence="admin-intelligence-disabled-link"
-					className="inline-flex items-center gap-1 self-start rounded-md border border-border bg-muted/40 px-2.5 py-1 text-xs font-medium hover:bg-muted/60"
-					href="/admin/ai"
-				>
-					Enable on AI settings
-					<ArrowUpRight className="size-3.5" />
-				</a>
+				<Button asChild variant="outline" size="xs" className="self-start">
+					<a data-intelligence="admin-intelligence-disabled-link" href="/admin/ai">
+						Enable on AI Settings
+						<ArrowUpRight className="size-3.5" />
+					</a>
+				</Button>
 			</AlertDescription>
 		</Alert>
 	)
@@ -315,14 +313,12 @@ export function IntelligenceNotificationsCard({ data, patch }: { data: AdminInte
 						<AlertTitle>Email isn&rsquo;t configured</AlertTitle>
 						<AlertDescription className="flex flex-col gap-2">
 							<span>Sending the digest needs a Resend API key and a From address. Set up email first, and these controls will unlock.</span>
-							<a
-								data-intelligence="admin-notifications-email-config-link"
-								className="inline-flex items-center gap-1 self-start rounded-md border border-border bg-muted/40 px-2.5 py-1 text-xs font-medium hover:bg-muted/60"
-								href="/admin/email"
-							>
-								Configure email
-								<ArrowUpRight className="size-3.5" />
-							</a>
+							<Button asChild variant="outline" size="xs" className="self-start">
+								<a data-intelligence="admin-notifications-email-config-link" href="/admin/email">
+									Configure Email
+									<ArrowUpRight className="size-3.5" />
+								</a>
+							</Button>
 						</AlertDescription>
 					</Alert>
 				)}

@@ -407,7 +407,7 @@ export function ItemFormDialog(props: Props) {
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-h-[85vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>{isEdit ? 'Edit item' : 'Add item'}</DialogTitle>
+					<DialogTitle>{isEdit ? 'Edit Item' : 'Add Item'}</DialogTitle>
 					<DialogDescription>{isEdit ? 'Update the details for this item.' : 'Add a new item to your list.'}</DialogDescription>
 				</DialogHeader>
 
@@ -764,8 +764,8 @@ function PhotoExtractStatus({ file, previewUrl, phase, error, ms, elapsedMs, onC
 								Try again
 							</Button>
 						)}
-						<Button type="button" size="xs" variant="outline" onClick={onClear} className="gap-1.5">
-							<Trash2 className="size-3" /> Remove
+						<Button type="button" size="sm" variant="outline" onClick={onClear} className="gap-1.5">
+							<Trash2 className="size-4" /> Remove
 						</Button>
 					</div>
 				</div>

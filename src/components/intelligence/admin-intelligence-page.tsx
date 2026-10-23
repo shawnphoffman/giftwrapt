@@ -147,13 +147,12 @@ export function AdminIntelligencePageContent({
 						<span>
 							All recommendation generation is paused. Users can&apos;t see the Intelligence page, and manual refreshes are blocked.
 						</span>
-						<a
-							className="inline-flex items-center gap-1 self-start rounded-md border border-border bg-muted/40 px-2.5 py-1 text-xs font-medium hover:bg-muted/60"
-							href="/admin/ai"
-						>
-							Enable on AI settings
-							<ArrowUpRight className="size-3.5" />
-						</a>
+						<Button asChild variant="outline" size="xs" className="self-start">
+							<a href="/admin/ai">
+								Enable on AI Settings
+								<ArrowUpRight className="size-3.5" />
+							</a>
+						</Button>
 					</AlertDescription>
 				</Alert>
 			)}
@@ -197,14 +196,12 @@ export function ProviderMissingBanner() {
 					Intelligence needs an AI provider before it can generate recommendations. Configure one (Anthropic, OpenAI, or a custom
 					OpenAI-compatible endpoint) on the AI settings page.
 				</span>
-				<a
-					data-intelligence="admin-no-provider-link"
-					className="inline-flex items-center gap-1 self-start rounded-md border border-destructive/40 bg-destructive/10 px-2.5 py-1 text-xs font-medium hover:bg-destructive/20"
-					href={AI_SETTINGS_HREF}
-				>
-					Open AI settings
-					<ArrowUpRight className="size-3.5" />
-				</a>
+				<Button asChild variant="destructive" size="xs" className="self-start">
+					<a data-intelligence="admin-no-provider-link" href={AI_SETTINGS_HREF}>
+						Open AI Settings
+						<ArrowUpRight className="size-3.5" />
+					</a>
+				</Button>
 			</AlertDescription>
 		</Alert>
 	)

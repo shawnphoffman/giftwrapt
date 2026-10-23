@@ -133,9 +133,9 @@ export const ResultsMarked: Story = {
 		const screen = within(canvasElement.ownerDocument.body)
 		await expect(await screen.findByText('Linda already has this')).toBeInTheDocument()
 		await expect(screen.getByRole('button', { name: 'Undo' })).toBeEnabled()
-		await expect(screen.getByRole('button', { name: 'They have it: Bypass Pruning Shears' })).toBeEnabled()
-		await expect(screen.getByRole('button', { name: 'Not for them: Bypass Pruning Shears' })).toBeEnabled()
-		await expect(screen.queryByRole('button', { name: 'They have it: Enameled Cast Iron Braiser' })).toBeNull()
+		await expect(screen.getByRole('button', { name: 'They Have It: Bypass Pruning Shears' })).toBeEnabled()
+		await expect(screen.getByRole('button', { name: 'Not for Them: Bypass Pruning Shears' })).toBeEnabled()
+		await expect(screen.queryByRole('button', { name: 'They Have It: Enameled Cast Iron Braiser' })).toBeNull()
 	},
 }
 

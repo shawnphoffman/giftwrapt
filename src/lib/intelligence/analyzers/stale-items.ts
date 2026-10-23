@@ -25,7 +25,7 @@ const STALE_DAYS_THRESHOLD = 180 // 6 months
 // claim data.
 export const staleItemsAnalyzer: Analyzer = {
 	id: 'stale-items',
-	label: 'Stale items',
+	label: 'Stale Items',
 	enabledByDefault: true,
 	async run(ctx): Promise<AnalyzerResult> {
 		const t0 = Date.now()
@@ -315,13 +315,13 @@ function buildCleanupActions(itemRefs: Array<ItemRef>, listRef: ListRef): Array<
 		return [
 			openList,
 			{
-				label: 'Edit item',
+				label: 'Edit Item',
 				description: 'Refresh the details or update notes so this item stops looking stale.',
 				intent: 'do',
 				editItem: { listId: listRef.id, itemId: it.id },
 			},
 			{
-				label: 'Delete item',
+				label: 'Delete Item',
 				description: 'Permanently delete this item. It has no claims, so no gifters are affected.',
 				intent: 'destructive',
 				confirmCopy: `Permanently delete "${it.title}" from ${listRef.name}? This cannot be undone.`,
@@ -388,7 +388,7 @@ function buildPickOneRec({
 				nav: { listId: listRef.id, itemId: itemRefs[0].id },
 			},
 			{
-				label: 'Keep separate',
+				label: 'Keep Separate',
 				description: "These aren't really alternatives. We won't suggest grouping them again.",
 				intent: 'noop',
 			},
