@@ -20,7 +20,7 @@ import { isCrossTypeMoveDestructive, SPOILER_PROTECTED_TYPES } from '@/lib/list-
 import { itemsArchivedTotal, revealsTriggeredTotal } from '@/lib/observability/metrics'
 import { canEditListAsAnyone, canViewList, canViewListAsAnyone, getViewerAccessLevelForList } from '@/lib/permissions'
 import { filterItemsForRestricted } from '@/lib/restricted-filter'
-import { archivePickOneSiblings, type RevealedPurchases, revealListPurchases } from '@/lib/reveal'
+import { type RevealedPurchases, revealListPurchases, type TidiedGroups, tidyGroupsAfterArchive } from '@/lib/reveal'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { getVendorFromUrl } from '@/lib/urls'
 
@@ -336,15 +336,15 @@ export async function archiveItemImpl(args: {
 	if (!perm.ok) return { kind: 'error', reason: 'not-authorized' }
 
 	const now = new Date()
-	const siblings = await dbx.transaction(async tx => {
+	const tidied = await dbx.transaction(async tx => {
 		await tx
 			.update(items)
 			.set({ isArchived: data.archived, archivedAt: data.archived ? now : null })
 			.where(eq(items.id, data.itemId))
-		return data.archived ? archivePickOneSiblings(tx, [data.itemId], now) : []
+		return data.archived ? tidyGroupsAfterArchive(tx, [data.itemId], now) : null
 	})
 	notifyListEvent({ kind: 'item', listId: item.listId, itemId: data.itemId })
-	for (const s of siblings) notifyListEvent({ kind: 'item', listId: s.listId, itemId: s.id })
+	notifyTidiedGroups(tidied)
 	if (data.archived) {
 		itemsArchivedTotal.inc()
 		revealsTriggeredTotal.inc({ trigger: 'manual' })
@@ -461,17 +461,25 @@ export async function archiveItemsImpl(args: {
 	if (!loaded.ok) return { kind: 'error', reason: loaded.reason }
 
 	const now = new Date()
-	const siblings = await db.transaction(async tx => {
+	const tidied = await db.transaction(async tx => {
 		await tx
 			.update(items)
 			.set({ isArchived: data.archived, archivedAt: data.archived ? now : null })
 			.where(inArray(items.id, [...data.itemIds]))
-		return data.archived ? archivePickOneSiblings(tx, [...data.itemIds], now) : []
+		return data.archived ? tidyGroupsAfterArchive(tx, [...data.itemIds], now) : null
 	})
-	for (const row of [...loaded.rows, ...siblings]) {
+	for (const row of loaded.rows) {
 		notifyListEvent({ kind: 'item', listId: row.listId, itemId: row.id })
 	}
+	notifyTidiedGroups(tidied)
 	return { kind: 'ok', updated: data.itemIds.length }
+}
+
+function notifyTidiedGroups(tidied: TidiedGroups | null) {
+	if (!tidied) return
+	for (const s of tidied.siblings) notifyListEvent({ kind: 'item', listId: s.listId, itemId: s.id })
+	// Group-shape changes use itemId -1, as in _groups-impl.ts.
+	for (const g of tidied.deletedGroups) notifyListEvent({ kind: 'item', listId: g.listId, itemId: -1 })
 }
 
 // Reveal a list's claimed items + addons on behalf of an edit-access holder,
