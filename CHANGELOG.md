@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.10.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.9.1...v1.10.0) (2026-10-24)
+
+
+### Features
+
+* **received:** open thank-you drafts in the user's email app ([f91b9ac](https://github.com/shawnphoffman/giftwrapt/commit/f91b9ac719502f70dd53dc2fdde3e03ba966e2dc))
+
+
+### Bug Fixes
+
+* **items:** archive the rest of a pick-one group when its pick is revealed ([0c9ef7c](https://github.com/shawnphoffman/giftwrapt/commit/0c9ef7cf4ca6e73ce5624b3fae3f2ded81e46bfc))
+* **items:** delete groups an archive leaves empty ([91162d3](https://github.com/shawnphoffman/giftwrapt/commit/91162d39692c874078d3c28c8730ee16ad679727))
+* **ui:** align button sizes and title case action labels ([aa4c762](https://github.com/shawnphoffman/giftwrapt/commit/aa4c762241e9f999b3c7d9a35eeb71abb5bebd2a))
+* **ui:** title case buttons, titles, and form labels ([c798ba0](https://github.com/shawnphoffman/giftwrapt/commit/c798ba090225f42482bd9f2c62780f220771fca4))
+
 ## [1.9.1](https://github.com/shawnphoffman/giftwrapt/compare/v1.9.0...v1.9.1) (2026-10-16)
 
 
