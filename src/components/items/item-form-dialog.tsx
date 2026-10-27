@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
+import { MOBILE_DIALOG_QUERY, useMobileDialogViewport } from '@/hooks/use-mobile-dialog-viewport'
 import { useStorageStatus } from '@/hooks/use-storage-status'
 import { useUpdateItem } from '@/lib/mutations/update-item'
 import { itemsKeys } from '@/lib/queries/items'
@@ -79,6 +80,8 @@ const schema = z.object({
 export function ItemFormDialog(props: Props) {
 	const { open, onOpenChange } = props
 	const isEdit = props.mode === 'edit'
+	const dialogRef = useMobileDialogViewport(open)
+	const initialFocusRef = useRef<HTMLInputElement>(null)
 	const queryClient = useQueryClient()
 	const updateMutation = useUpdateItem()
 	const [submitting, setSubmitting] = useState(false)
@@ -405,8 +408,16 @@ export function ItemFormDialog(props: Props) {
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-h-[85vh] overflow-y-auto">
-				<DialogHeader>
+			<DialogContent
+				ref={dialogRef}
+				className="flex max-h-[85svh] flex-col overflow-hidden max-sm:top-[var(--dialog-viewport-top,0px)] max-sm:left-0 max-sm:h-[var(--dialog-viewport-height,100dvh)] max-sm:max-h-none max-sm:max-w-none max-sm:translate-none max-sm:rounded-none max-sm:pt-[max(1.5rem,env(safe-area-inset-top))] max-sm:pb-[max(1.5rem,env(safe-area-inset-bottom))] max-sm:data-open:zoom-in-100 max-sm:data-closed:zoom-out-100 max-sm:[&>[data-slot=dialog-close]]:top-[max(1rem,env(safe-area-inset-top))]"
+				onOpenAutoFocus={event => {
+					event.preventDefault()
+					const target = window.matchMedia(MOBILE_DIALOG_QUERY).matches ? event.currentTarget : initialFocusRef.current
+					if (target instanceof HTMLElement) target.focus({ preventScroll: true })
+				}}
+			>
+				<DialogHeader className="shrink-0 pr-10">
 					<DialogTitle>{isEdit ? 'Edit Item' : 'Add Item'}</DialogTitle>
 					<DialogDescription>{isEdit ? 'Update the details for this item.' : 'Add a new item to your list.'}</DialogDescription>
 				</DialogHeader>
@@ -417,304 +428,305 @@ export function ItemFormDialog(props: Props) {
 						e.stopPropagation()
 						form.handleSubmit()
 					}}
-					className="space-y-4"
+					className="flex min-h-0 flex-1 flex-col gap-4"
 				>
-					{!isEdit && stagedPhotoFile && (
-						<PhotoExtractStatus
-							file={stagedPhotoFile}
-							previewUrl={stagedPhotoPreview}
-							phase={photoState.phase}
-							error={photoState.error}
-							ms={photoState.ms}
-							elapsedMs={photoState.elapsedMs}
-							onClear={() => {
-								setStagedPhotoFile(null)
-								photoPrefillAppliedRef.current = null
-								seededFromPropRef.current = null
-								resetPhotoExtract()
-							}}
-							onRetry={() => {
-								photoPrefillAppliedRef.current = null
-								void startPhotoExtract(stagedPhotoFile)
-							}}
-						/>
-					)}
-
-					<form.Field name="url">
-						{field => {
-							const urlScrapable = isHttpUrl(field.state.value) && !isSublistUrl(field.state.value)
-							return (
-								<div className="grid gap-2">
-									<Label htmlFor={field.name}>URL (Optional)</Label>
-									<InputGroup>
-										<InputGroupInput
-											id={field.name}
-											type="url"
-											placeholder="https://..."
-											value={field.state.value}
-											onChange={e => field.handleChange(e.target.value)}
-											onBlur={() => {
-												field.handleBlur()
-												triggerAutoScrape(field.state.value)
-											}}
-											disabled={submitting || scrapeInFlight}
-											autoFocus={!isEdit}
-											maxLength={LIMITS.URL}
-										/>
-										<InputGroupAddon align="inline-end">
-											<InputGroupButton
-												type="button"
-												size="icon-xs"
-												aria-label={scrapeInFlight ? 'Importing from URL…' : 'Import details from URL'}
-												title={scrapeInFlight ? 'Importing from URL…' : 'Import details from URL'}
-												disabled={!urlScrapable || scrapeInFlight || submitting}
-												onClick={() => triggerManualScrape(field.state.value)}
-											>
-												{scrapeInFlight ? <Loader2 className="animate-spin" /> : <Sparkles />}
-											</InputGroupButton>
-										</InputGroupAddon>
-									</InputGroup>
-									<ScrapeProgressAlert
-										state={scrapeState}
-										url={field.state.value}
-										onCancel={cancelScrape}
-										onRetry={() => triggerManualScrape(field.state.value)}
-										className="mt-1"
-									/>
-								</div>
-							)
-						}}
-					</form.Field>
-
-					<form.Field name="title">
-						{field => (
-							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Title</Label>
-								<Input
-									id={field.name}
-									name="item-title"
-									placeholder="e.g. AirPods Pro"
-									value={field.state.value}
-									onChange={e => field.handleChange(e.target.value)}
-									onBlur={field.handleBlur}
-									disabled={formLocked}
-									autoFocus={isEdit}
-									autoComplete="off"
-									data-1p-ignore
-									data-lpignore="true"
-									maxLength={LIMITS.ITEM_TITLE}
-								/>
-								{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
-									<p className="text-destructive text-sm">
-										{field.state.meta.errors.map(e => (typeof e === 'string' ? e : String(e))).join(', ')}
-									</p>
-								)}
-							</div>
+					<div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain p-1 -m-1">
+						{!isEdit && stagedPhotoFile && (
+							<PhotoExtractStatus
+								file={stagedPhotoFile}
+								previewUrl={stagedPhotoPreview}
+								phase={photoState.phase}
+								error={photoState.error}
+								ms={photoState.ms}
+								elapsedMs={photoState.elapsedMs}
+								onClear={() => {
+									setStagedPhotoFile(null)
+									photoPrefillAppliedRef.current = null
+									seededFromPropRef.current = null
+									resetPhotoExtract()
+								}}
+								onRetry={() => {
+									photoPrefillAppliedRef.current = null
+									void startPhotoExtract(stagedPhotoFile)
+								}}
+							/>
 						)}
-					</form.Field>
 
-					<div className="grid grid-cols-2 gap-4">
-						<form.Field name="price">
+						<form.Field name="url">
+							{field => {
+								const urlScrapable = isHttpUrl(field.state.value) && !isSublistUrl(field.state.value)
+								return (
+									<div className="grid gap-2">
+										<Label htmlFor={field.name}>URL (Optional)</Label>
+										<InputGroup>
+											<InputGroupInput
+												id={field.name}
+												type="url"
+												placeholder="https://..."
+												value={field.state.value}
+												onChange={e => field.handleChange(e.target.value)}
+												onBlur={() => {
+													field.handleBlur()
+													triggerAutoScrape(field.state.value)
+												}}
+												disabled={submitting || scrapeInFlight}
+												ref={!isEdit ? initialFocusRef : undefined}
+												maxLength={LIMITS.URL}
+											/>
+											<InputGroupAddon align="inline-end">
+												<InputGroupButton
+													type="button"
+													size="icon-xs"
+													aria-label={scrapeInFlight ? 'Importing from URL…' : 'Import details from URL'}
+													title={scrapeInFlight ? 'Importing from URL…' : 'Import details from URL'}
+													disabled={!urlScrapable || scrapeInFlight || submitting}
+													onClick={() => triggerManualScrape(field.state.value)}
+												>
+													{scrapeInFlight ? <Loader2 className="animate-spin" /> : <Sparkles />}
+												</InputGroupButton>
+											</InputGroupAddon>
+										</InputGroup>
+										<ScrapeProgressAlert
+											state={scrapeState}
+											url={field.state.value}
+											onCancel={cancelScrape}
+											onRetry={() => triggerManualScrape(field.state.value)}
+											className="mt-1"
+										/>
+									</div>
+								)
+							}}
+						</form.Field>
+
+						<form.Field name="title">
 							{field => (
 								<div className="grid gap-2">
-									<Label htmlFor={field.name}>Price (Optional)</Label>
+									<Label htmlFor={field.name}>Title</Label>
 									<Input
 										id={field.name}
-										placeholder="29.99"
-										inputMode="decimal"
+										name="item-title"
+										placeholder="e.g. AirPods Pro"
 										value={field.state.value}
 										onChange={e => field.handleChange(e.target.value)}
 										onBlur={field.handleBlur}
 										disabled={formLocked}
-										maxLength={LIMITS.PRICE}
+										ref={isEdit ? initialFocusRef : undefined}
+										autoComplete="off"
+										data-1p-ignore
+										data-lpignore="true"
+										maxLength={LIMITS.ITEM_TITLE}
 									/>
-								</div>
-							)}
-						</form.Field>
-
-						<form.Field name="quantity">
-							{field => (
-								<div className="grid gap-2">
-									<Label htmlFor={field.name}>Quantity</Label>
-									<Input
-										id={field.name}
-										type="number"
-										min={1}
-										max={999}
-										value={field.state.value}
-										onChange={e => field.handleChange(e.target.value)}
-										onBlur={field.handleBlur}
-										disabled={submitting}
-									/>
-								</div>
-							)}
-						</form.Field>
-					</div>
-
-					<form.Field name="priority">
-						{field => (
-							<div className="@container/priority grid gap-2">
-								<Label id={`${field.name}-label`}>Priority</Label>
-								{/* One row of four, or two by two once the field is too narrow for "Normal" (a phone with the text size turned up). */}
-								<ToggleGroup
-									type="single"
-									variant="outline"
-									value={field.state.value}
-									onValueChange={v => {
-										if (v) field.handleChange(v as typeof field.state.value)
-									}}
-									disabled={submitting}
-									aria-labelledby={`${field.name}-label`}
-									className="grid w-full grid-cols-4 sm:flex sm:w-fit @max-[12.5rem]/priority:grid-cols-2 @max-[12.5rem]/priority:gap-1"
-								>
-									{[...priorityEnumValues].reverse().map(p => (
-										<ToggleGroupItem
-											key={p}
-											value={p}
-											aria-label={PriorityLabels[p] ?? p}
-											className="min-w-0 px-1.5 @max-[12.5rem]/priority:rounded-md! @max-[12.5rem]/priority:border! data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
-										>
-											{p !== 'normal' && <PriorityIcon priority={p} />}
-											<span className={p === 'normal' ? undefined : 'hidden sm:inline'}>{PriorityLabels[p] ?? p}</span>
-										</ToggleGroupItem>
-									))}
-								</ToggleGroup>
-							</div>
-						)}
-					</form.Field>
-
-					<form.Field name="notes">
-						{field => (
-							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Notes (Optional)</Label>
-								<MarkdownTextarea
-									id={field.name}
-									placeholder="Color preferences, size, model, etc."
-									rows={3}
-									value={field.state.value}
-									onChange={v => field.handleChange(v)}
-									onBlur={field.handleBlur}
-									disabled={formLocked}
-									maxLength={LIMITS.LONG_TEXT}
-								/>
-							</div>
-						)}
-					</form.Field>
-
-					<form.Field name="imageUrl">
-						{field => {
-							const currentUrl = field.state.value.trim() || null
-
-							const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-								const file = e.target.files?.[0]
-								e.target.value = ''
-								if (!file || !isEdit) return
-								setUploadingImage(true)
-								try {
-									// Pre-shrink on the client so the request body fits comfortably
-									// under the function-runtime limit (Vercel ~4.5 MB on Node, 1 MB
-									// on edge). Server still re-processes via Sharp.
-									const upload = await resizeImageForUpload(file)
-									const formData = new FormData()
-									formData.append('file', upload)
-									formData.append('itemId', String(props.item.id))
-									const result = await uploadItemImage({ data: formData })
-									if (result.kind === 'error') {
-										toast.error(`Image upload failed: ${result.message}`)
-										return
-									}
-									field.handleChange(result.value.url)
-									toast.success('Image uploaded')
-								} catch (err) {
-									const msg = err instanceof Error ? err.message : 'unknown error'
-									toast.error(`Image upload failed: ${msg}`)
-								} finally {
-									setUploadingImage(false)
-								}
-							}
-
-							const handleRemove = async () => {
-								if (!isEdit || !storageConfigured) {
-									field.handleChange('')
-									return
-								}
-								const result = await removeItemImage({ data: { itemId: props.item.id } })
-								if (result.kind === 'error') {
-									toast.error(`Remove failed: ${result.message}`)
-									return
-								}
-								field.handleChange('')
-								toast.success('Image removed')
-							}
-
-							return (
-								<div className="grid gap-2">
-									<Label htmlFor={field.name}>Image (Optional)</Label>
-									{/* Preview current image if any */}
-									{currentUrl && (
-										<div className="flex items-center gap-3">
-											<RemoteImage src={currentUrl} alt="" className="size-16 rounded border object-cover" />
-											<Button
-												type="button"
-												variant="outline"
-												size="sm"
-												onClick={handleRemove}
-												disabled={submitting || uploadingImage}
-												className="gap-1.5"
-											>
-												<Trash2 className="size-3" />
-												Remove
-											</Button>
-										</div>
+									{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
+										<p className="text-destructive text-sm">
+											{field.state.meta.errors.map(e => (typeof e === 'string' ? e : String(e))).join(', ')}
+										</p>
 									)}
-									<ImagePicker
-										images={imageCandidates}
-										value={field.state.value}
-										onChange={url => field.handleChange(url)}
-										disabled={formLocked || uploadingImage}
-									/>
-									<div className="flex gap-2">
+								</div>
+							)}
+						</form.Field>
+
+						<div className="grid grid-cols-2 gap-4">
+							<form.Field name="price">
+								{field => (
+									<div className="grid gap-2">
+										<Label htmlFor={field.name}>Price (Optional)</Label>
 										<Input
 											id={field.name}
-											placeholder={showUploadButton ? 'https://... or upload below' : 'https://...'}
+											placeholder="29.99"
+											inputMode="decimal"
 											value={field.state.value}
 											onChange={e => field.handleChange(e.target.value)}
 											onBlur={field.handleBlur}
-											disabled={submitting || uploadingImage}
-											maxLength={LIMITS.URL}
+											disabled={formLocked}
+											maxLength={LIMITS.PRICE}
 										/>
-										{showUploadButton && (
-											<>
-												<input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handleFileChange} />
+									</div>
+								)}
+							</form.Field>
+
+							<form.Field name="quantity">
+								{field => (
+									<div className="grid gap-2">
+										<Label htmlFor={field.name}>Quantity</Label>
+										<Input
+											id={field.name}
+											type="number"
+											min={1}
+											max={999}
+											value={field.state.value}
+											onChange={e => field.handleChange(e.target.value)}
+											onBlur={field.handleBlur}
+											disabled={submitting}
+										/>
+									</div>
+								)}
+							</form.Field>
+						</div>
+
+						<form.Field name="priority">
+							{field => (
+								<div className="@container/priority grid gap-2">
+									<Label id={`${field.name}-label`}>Priority</Label>
+									{/* One row of four, or two by two once the field is too narrow for "Normal" (a phone with the text size turned up). */}
+									<ToggleGroup
+										type="single"
+										variant="outline"
+										value={field.state.value}
+										onValueChange={v => {
+											if (v) field.handleChange(v as typeof field.state.value)
+										}}
+										disabled={submitting}
+										aria-labelledby={`${field.name}-label`}
+										className="grid w-full grid-cols-4 sm:flex sm:w-fit @max-[12.5rem]/priority:grid-cols-2 @max-[12.5rem]/priority:gap-1"
+									>
+										{[...priorityEnumValues].reverse().map(p => (
+											<ToggleGroupItem
+												key={p}
+												value={p}
+												aria-label={PriorityLabels[p] ?? p}
+												className="min-w-0 px-1.5 @max-[12.5rem]/priority:rounded-md! @max-[12.5rem]/priority:border! data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
+											>
+												{p !== 'normal' && <PriorityIcon priority={p} />}
+												<span className={p === 'normal' ? undefined : 'hidden sm:inline'}>{PriorityLabels[p] ?? p}</span>
+											</ToggleGroupItem>
+										))}
+									</ToggleGroup>
+								</div>
+							)}
+						</form.Field>
+
+						<form.Field name="notes">
+							{field => (
+								<div className="grid gap-2">
+									<Label htmlFor={field.name}>Notes (Optional)</Label>
+									<MarkdownTextarea
+										id={field.name}
+										placeholder="Color preferences, size, model, etc."
+										rows={3}
+										value={field.state.value}
+										onChange={v => field.handleChange(v)}
+										onBlur={field.handleBlur}
+										disabled={formLocked}
+										maxLength={LIMITS.LONG_TEXT}
+									/>
+								</div>
+							)}
+						</form.Field>
+
+						<form.Field name="imageUrl">
+							{field => {
+								const currentUrl = field.state.value.trim() || null
+
+								const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+									const file = e.target.files?.[0]
+									e.target.value = ''
+									if (!file || !isEdit) return
+									setUploadingImage(true)
+									try {
+										// Pre-shrink on the client so the request body fits comfortably
+										// under the function-runtime limit (Vercel ~4.5 MB on Node, 1 MB
+										// on edge). Server still re-processes via Sharp.
+										const upload = await resizeImageForUpload(file)
+										const formData = new FormData()
+										formData.append('file', upload)
+										formData.append('itemId', String(props.item.id))
+										const result = await uploadItemImage({ data: formData })
+										if (result.kind === 'error') {
+											toast.error(`Image upload failed: ${result.message}`)
+											return
+										}
+										field.handleChange(result.value.url)
+										toast.success('Image uploaded')
+									} catch (err) {
+										const msg = err instanceof Error ? err.message : 'unknown error'
+										toast.error(`Image upload failed: ${msg}`)
+									} finally {
+										setUploadingImage(false)
+									}
+								}
+
+								const handleRemove = async () => {
+									if (!isEdit || !storageConfigured) {
+										field.handleChange('')
+										return
+									}
+									const result = await removeItemImage({ data: { itemId: props.item.id } })
+									if (result.kind === 'error') {
+										toast.error(`Remove failed: ${result.message}`)
+										return
+									}
+									field.handleChange('')
+									toast.success('Image removed')
+								}
+
+								return (
+									<div className="grid gap-2">
+										<Label htmlFor={field.name}>Image (Optional)</Label>
+										{/* Preview current image if any */}
+										{currentUrl && (
+											<div className="flex items-center gap-3">
+												<RemoteImage src={currentUrl} alt="" className="size-16 rounded border object-cover" />
 												<Button
 													type="button"
 													variant="outline"
-													onClick={() => fileInputRef.current?.click()}
+													size="sm"
+													onClick={handleRemove}
 													disabled={submitting || uploadingImage}
-													className="shrink-0 gap-1.5"
+													className="gap-1.5"
 												>
-													{uploadingImage ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-													Upload
+													<Trash2 className="size-3" />
+													Remove
 												</Button>
-											</>
+											</div>
+										)}
+										<ImagePicker
+											images={imageCandidates}
+											value={field.state.value}
+											onChange={url => field.handleChange(url)}
+											disabled={formLocked || uploadingImage}
+										/>
+										<div className="flex gap-2">
+											<Input
+												id={field.name}
+												placeholder={showUploadButton ? 'https://... or upload below' : 'https://...'}
+												value={field.state.value}
+												onChange={e => field.handleChange(e.target.value)}
+												onBlur={field.handleBlur}
+												disabled={submitting || uploadingImage}
+												maxLength={LIMITS.URL}
+											/>
+											{showUploadButton && (
+												<>
+													<input type="file" className="hidden" ref={fileInputRef} accept="image/*" onChange={handleFileChange} />
+													<Button
+														type="button"
+														variant="outline"
+														onClick={() => fileInputRef.current?.click()}
+														disabled={submitting || uploadingImage}
+														className="shrink-0 gap-1.5"
+													>
+														{uploadingImage ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+														Upload
+													</Button>
+												</>
+											)}
+										</div>
+										{!isEdit && storageConfigured && (
+											<p className="text-muted-foreground text-xs">You can upload a file after the item is created.</p>
 										)}
 									</div>
-									{!isEdit && storageConfigured && (
-										<p className="text-muted-foreground text-xs">You can upload a file after the item is created.</p>
-									)}
-								</div>
-							)
-						}}
-					</form.Field>
+								)
+							}}
+						</form.Field>
 
-					{error && (
-						<Alert variant="destructive">
-							<AlertTitle>{isEdit ? "Couldn't update item" : "Couldn't add item"}</AlertTitle>
-							<AlertDescription>{error}</AlertDescription>
-						</Alert>
-					)}
-
-					<DialogFooter>
+						{error && (
+							<Alert variant="destructive">
+								<AlertTitle>{isEdit ? "Couldn't update item" : "Couldn't add item"}</AlertTitle>
+								<AlertDescription>{error}</AlertDescription>
+							</Alert>
+						)}
+					</div>
+					<DialogFooter className="shrink-0">
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
 							Cancel
 						</Button>
