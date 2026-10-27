@@ -275,7 +275,9 @@ function BulkActionsTab({ list, items }: { list: ListForEditing; items: Array<It
 
 	return (
 		<>
-			<div className="flex flex-col gap-2 p-2 border rounded-md sticky top-2 z-10 bg-background/95 backdrop-blur sm:flex-row sm:items-center sm:flex-wrap">
+			{/* z-20: rows below are `relative z-10`, and the later ones in the DOM
+			    would otherwise paint over the bar once it sticks. */}
+			<div className="flex flex-col gap-2 p-2 border rounded-md sticky top-2 z-20 bg-background/95 backdrop-blur sm:flex-row sm:items-center sm:flex-wrap">
 				<label className="flex items-center gap-2 min-w-0 cursor-pointer select-none">
 					<Checkbox
 						checked={selectAllState}
