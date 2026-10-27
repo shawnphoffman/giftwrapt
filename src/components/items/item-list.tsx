@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import type { Priority } from '@/db/schema/enums'
-import { buildListEntries, type ListEntry } from '@/lib/list-entries'
+import { buildListEntries, compareWithinPriority, type ListEntry } from '@/lib/list-entries'
 import { listItemsViewQueryOptions } from '@/lib/queries/items'
 import { getVendorFromUrl, isKnownVendor, parseInternalListLink, vendorIdToName } from '@/lib/urls'
 import { cn } from '@/lib/utils'
@@ -94,7 +94,7 @@ function compareEntries(sort: SortValue) {
 			const diff = priorityRank[b.priority] - priorityRank[a.priority]
 			const signed = sort === 'priority-desc' ? diff : -diff
 			if (signed !== 0) return signed
-			return a.id - b.id
+			return compareWithinPriority(a, b)
 		}
 		const aMs = entryDateMs(a)
 		const bMs = entryDateMs(b)
