@@ -107,6 +107,10 @@ export const ItemEditRow = memo(function ItemEditRow({
 	const isAdmin = session?.user.isAdmin
 	const [editOpen, setEditOpen] = useState(false)
 	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+	// Controlled so the inline priority buttons (plain buttons, not menu
+	// items) can close it. Left open, the row jumps to its new priority
+	// slot, the menu follows it off-screen, and its modal lock freezes the page.
+	const [menuOpen, setMenuOpen] = useState(false)
 
 	// Suggestion deep-links land on the list with `?edit=ITEM_ID` and pop
 	// open the matching item's edit dialog on first mount. Tracked in a ref
@@ -222,7 +226,7 @@ export const ItemEditRow = memo(function ItemEditRow({
 						unavailableChangedAt={item.availabilityChangedAt}
 					/>
 				)}
-				<DropdownMenu>
+				<DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
 					<DropdownMenuTrigger asChild>
 						<Button variant="outline" size="icon-xs" className="shrink-0" aria-label="Item actions">
 							<MoreHorizontal className="size-5" />
@@ -288,7 +292,10 @@ export const ItemEditRow = memo(function ItemEditRow({
 											<button
 												key={option.value}
 												type="button"
-												onClick={() => handleSetPriority(option.value)}
+												onClick={() => {
+													setMenuOpen(false)
+													void handleSetPriority(option.value)
+												}}
 												title={option.label}
 												aria-label={`Set priority: ${option.label}`}
 												aria-pressed={selected}
