@@ -336,10 +336,26 @@ export const ItemEditRow = memo(function ItemEditRow({
 					{item.imageUrl && <ItemImage src={item.imageUrl} alt={item.title} className={cn(dimmed && 'opacity-60')} />}
 					{(onMoveUp || onMoveDown) && (
 						<div className="flex flex-col shrink-0">
-							<Button variant="outline" size="icon-xs" onClick={onMoveUp} disabled={!onMoveUp} title="Move up" aria-label="Move up">
+							<Button
+								variant="outline"
+								size="icon-xs"
+								className="rounded-b-none"
+								onClick={onMoveUp}
+								disabled={!onMoveUp}
+								title="Move up"
+								aria-label="Move up"
+							>
 								<ArrowUp className="size-4" />
 							</Button>
-							<Button variant="outline" size="icon-xs" onClick={onMoveDown} disabled={!onMoveDown} title="Move down" aria-label="Move down">
+							<Button
+								variant="outline"
+								size="icon-xs"
+								className="-mt-px rounded-t-none"
+								onClick={onMoveDown}
+								disabled={!onMoveDown}
+								title="Move down"
+								aria-label="Move down"
+							>
 								<ArrowDown className="size-4" />
 							</Button>
 						</div>
