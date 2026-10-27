@@ -36,7 +36,9 @@ type Props = {
 export function GroupBlock({ group, items, groups, listId, isOwner, onAddItem, onDelete, onMoveItem, onReorder }: Props) {
 	const [editOpen, setEditOpen] = useState(false)
 	const [moveOpen, setMoveOpen] = useState(false)
-	const showReorder = isOwner && group.type === 'order' && items.length > 1
+	// Both group types reorder: "in order" for the claim sequence, "pick one"
+	// so the recipient can put the one they want most on top.
+	const showReorder = isOwner && items.length > 1
 
 	const hasPriorityTab = group.priority !== 'normal'
 
