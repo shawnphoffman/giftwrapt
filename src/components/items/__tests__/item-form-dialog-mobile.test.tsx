@@ -31,7 +31,7 @@ describe('ItemFormDialog initial focus', () => {
 		render(<ItemFormDialog mode="edit" item={makeItem({ url: null })} open onOpenChange={() => {}} />)
 		const dialog = await screen.findByRole('dialog')
 		await waitFor(() => expect(document.activeElement).toBe(dialog))
-		expect(dialog.style.getPropertyValue('--dialog-viewport-height')).toBe(`${window.innerHeight}px`)
+		expect(dialog.style.top).toBe('')
 		expect(screen.getByLabelText('Title').hasAttribute('autofocus')).toBe(false)
 	})
 
@@ -39,6 +39,6 @@ describe('ItemFormDialog initial focus', () => {
 		vi.stubGlobal('matchMedia', () => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
 		render(<ItemFormDialog mode="edit" item={makeItem({ url: null })} open onOpenChange={() => {}} />)
 		await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText('Title')))
-		expect(screen.getByRole('dialog').style.getPropertyValue('--dialog-viewport-height')).toBe('')
+		expect(screen.getByRole('dialog').style.getPropertyValue('--keyboard-inset')).toBe('')
 	})
 })

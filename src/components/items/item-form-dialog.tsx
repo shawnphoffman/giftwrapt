@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
-import { MOBILE_DIALOG_QUERY, useMobileDialogViewport } from '@/hooks/use-mobile-dialog-viewport'
+import { MOBILE_DIALOG_QUERY, useKeyboardInset } from '@/hooks/use-keyboard-inset'
 import { useStorageStatus } from '@/hooks/use-storage-status'
 import { useUpdateItem } from '@/lib/mutations/update-item'
 import { itemsKeys } from '@/lib/queries/items'
@@ -80,7 +80,7 @@ const schema = z.object({
 export function ItemFormDialog(props: Props) {
 	const { open, onOpenChange } = props
 	const isEdit = props.mode === 'edit'
-	const dialogRef = useMobileDialogViewport(open)
+	const dialogRef = useKeyboardInset(open)
 	const initialFocusRef = useRef<HTMLInputElement>(null)
 	const queryClient = useQueryClient()
 	const updateMutation = useUpdateItem()
@@ -410,7 +410,7 @@ export function ItemFormDialog(props: Props) {
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent
 				ref={dialogRef}
-				className="flex max-h-[85svh] flex-col overflow-hidden max-sm:top-[var(--dialog-viewport-top,0px)] max-sm:left-0 max-sm:h-[var(--dialog-viewport-height,100dvh)] max-sm:max-h-none max-sm:max-w-none max-sm:translate-none max-sm:rounded-none max-sm:pt-[max(1.5rem,env(safe-area-inset-top))] max-sm:pb-[max(1.5rem,env(safe-area-inset-bottom))] max-sm:data-open:zoom-in-100 max-sm:data-closed:zoom-out-100 max-sm:[&>[data-slot=dialog-close]]:top-[max(1rem,env(safe-area-inset-top))]"
+				className="flex max-h-[85svh] flex-col overflow-hidden max-sm:inset-0 max-sm:h-full max-sm:max-h-none max-sm:max-w-none max-sm:translate-none max-sm:overflow-y-auto max-sm:overscroll-contain max-sm:rounded-none max-sm:pt-[max(1.5rem,env(safe-area-inset-top))] max-sm:pb-[calc(max(1.5rem,env(safe-area-inset-bottom))+var(--keyboard-inset,0px))] max-sm:data-open:zoom-in-100 max-sm:data-closed:zoom-out-100 max-sm:[&>[data-slot=dialog-close]]:top-[max(1rem,env(safe-area-inset-top))]"
 				onOpenAutoFocus={event => {
 					event.preventDefault()
 					const target = window.matchMedia(MOBILE_DIALOG_QUERY).matches ? event.currentTarget : initialFocusRef.current
@@ -428,9 +428,9 @@ export function ItemFormDialog(props: Props) {
 						e.stopPropagation()
 						form.handleSubmit()
 					}}
-					className="flex min-h-0 flex-1 flex-col gap-4"
+					className="flex min-h-0 flex-1 flex-col gap-4 max-sm:flex-none"
 				>
-					<div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain p-1 -m-1">
+					<div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain p-1 -m-1 max-sm:flex-none max-sm:overflow-visible">
 						{!isEdit && stagedPhotoFile && (
 							<PhotoExtractStatus
 								file={stagedPhotoFile}
