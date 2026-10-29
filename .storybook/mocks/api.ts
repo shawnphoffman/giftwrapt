@@ -461,6 +461,7 @@ export const fetchOAuthClientInfo = (): Promise<{ enabled: boolean; client: null
 // @/api/admin-barcode
 export const runBarcodeProbeAsAdmin = (): Promise<{ kind: 'miss'; providerId: string; gtin14: string }> =>
 	Promise.resolve({ kind: 'miss', providerId: 'upcitemdb-trial', gtin14: '00000000000000' })
+export const listBarcodeLookupsAsAdmin = emptyArray
 
 // @/api/admin-scrapes
 export const getScrapeDetailAsAdmin = (): Promise<null> => Promise.resolve(null)

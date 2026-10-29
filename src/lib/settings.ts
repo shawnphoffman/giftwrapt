@@ -541,6 +541,9 @@ export const appSettingsSchema = z.object({
 	// opts in.
 	// =====================================================================
 	barcode: barcodeSettingsSchema,
+	// How long rows in the barcode Lookup History log
+	// (`barcode_lookup_history`) are kept. Swept by the daily cleanup cron.
+	barcodeLookupHistoryRetentionDays: z.number().int().min(1).max(730),
 	// How many days of `cron_runs` history to keep. The daily verification-
 	// cleanup tick sweeps rows older than this. 90 days = roughly one
 	// quarter of operational history at five endpoints.
@@ -696,6 +699,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	intelligenceStaleListPastEventDays: 90,
 	intelligenceStaleListInactiveMonths: 12,
 	cronRunsRetentionDays: 90,
+	barcodeLookupHistoryRetentionDays: 90,
 	aiUsageRetentionDays: 90,
 	aiMonthlyCostCeilingUsd: null,
 	aiPhotoExtractEnabled: true,

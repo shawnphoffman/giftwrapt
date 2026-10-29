@@ -7,7 +7,7 @@
 // orchestrator, no scrape cache, no items writes. The iOS handoff is
 // "result → prepopulated add-item sheet"; this endpoint never persists
 // into `items`, `itemScrapes`, or any other domain table beyond its
-// own `product_lookups` cache.
+// own `product_lookups` cache and `barcode_lookup_history` log.
 //
 // Flow (locked in):
 //   1. enabled → otherwise 503 barcode-disabled (so the iOS
@@ -18,15 +18,20 @@
 //   5. on success, upsert cache + return.
 //   6. on null → 404 not-found.
 //   7. on throw → 503 provider-unavailable.
+//   Every outcome from step 2 on also writes a `barcode_lookup_history`
+//   row for the admin Lookup History card.
 
 import { and, eq, gte, sql } from 'drizzle-orm'
 
 import type { Database, SchemaDatabase } from '@/db'
-import { type BarcodeCacheCandidate, productLookups } from '@/db/schema'
+import { type BarcodeCacheCandidate, barcodeLookupHistory, productLookups } from '@/db/schema'
 import { loadConfiguredBarcodeProvider } from '@/lib/barcode-providers/load-configured'
 import type { BarcodeProvider, BarcodeProviderId, ProviderResult } from '@/lib/barcode-providers/types'
 import { normalizeGtin } from '@/lib/barcodes/gtin'
+import { createLogger } from '@/lib/logger'
 import { type AppSettings } from '@/lib/settings'
+
+const log = createLogger('barcode-lookup')
 
 export type LookupProductByBarcodeResult =
 	| {
@@ -47,13 +52,23 @@ interface LookupArgs {
 	rawCode: string
 	settings: AppSettings
 	signal?: AbortSignal
+	// Who scanned, for the Lookup History row. Null in tests and scripts.
+	userId?: string
+}
+
+// What a lookup produced, plus the history-only detail the wire result
+// doesn't carry: which provider missed or threw, and what it threw.
+interface LookupOutcome {
+	result: LookupProductByBarcodeResult
+	providerId?: string
+	errorMessage?: string
 }
 
 // In-process request coalescing. Concurrent callers for the same GTIN
 // in the same Node process await the same promise so we don't fire N
 // provider calls for one barcode burst. Cross-process duplicates are
 // tolerated; the cache upsert is idempotent.
-const inflight = new Map<string, Promise<LookupProductByBarcodeResult>>()
+const inflight = new Map<string, Promise<LookupOutcome>>()
 
 function toCandidates(rs: Array<ProviderResult>): Array<BarcodeCacheCandidate> {
 	return rs.map(r => {
@@ -67,89 +82,133 @@ function toCandidates(rs: Array<ProviderResult>): Array<BarcodeCacheCandidate> {
 }
 
 export async function lookupProductByBarcodeImpl(args: LookupArgs): Promise<LookupProductByBarcodeResult> {
-	const { db, rawCode, settings, signal } = args
+	const { db, rawCode, settings, signal, userId } = args
 
 	if (!settings.barcode.enabled) {
 		return { kind: 'error', reason: 'barcode-disabled' }
 	}
 
+	const startedAt = Date.now()
 	const normalized = normalizeGtin(rawCode)
 	if (!normalized.ok) {
+		await recordLookup(db, { userId, rawCode, gtin14: null, outcome: { result: { kind: 'error', reason: 'invalid-code' } }, startedAt })
 		return { kind: 'error', reason: 'invalid-code' }
 	}
 	const gtin14 = normalized.gtin14
 
-	const existing = inflight.get(gtin14)
-	if (existing) return existing
+	let promise = inflight.get(gtin14)
+	if (!promise) {
+		promise = runLookup(db, gtin14, settings, signal).finally(() => {
+			inflight.delete(gtin14)
+		})
+		inflight.set(gtin14, promise)
+	}
+	const outcome = await promise
+	// Coalesced callers each get their own history row: every scan is an
+	// event, even when two of them shared one provider call.
+	await recordLookup(db, { userId, rawCode, gtin14, outcome, startedAt })
+	return outcome.result
+}
 
-	const promise = (async (): Promise<LookupProductByBarcodeResult> => {
-		const ttlHours = settings.barcode.cacheTtlHours
-		if (ttlHours > 0) {
-			const freshCutoff = new Date(Date.now() - ttlHours * 60 * 60 * 1000)
-			const cached = await db
-				.select()
-				.from(productLookups)
-				.where(and(eq(productLookups.code, gtin14), gte(productLookups.updatedAt, freshCutoff)))
-				.limit(1)
-			if (cached.length > 0) {
-				const hit = cached[0]
-				return {
+async function runLookup(
+	db: Database | SchemaDatabase,
+	gtin14: string,
+	settings: AppSettings,
+	signal: AbortSignal | undefined
+): Promise<LookupOutcome> {
+	const ttlHours = settings.barcode.cacheTtlHours
+	if (ttlHours > 0) {
+		const freshCutoff = new Date(Date.now() - ttlHours * 60 * 60 * 1000)
+		const cached = await db
+			.select()
+			.from(productLookups)
+			.where(and(eq(productLookups.code, gtin14), gte(productLookups.updatedAt, freshCutoff)))
+			.limit(1)
+		if (cached.length > 0) {
+			const hit = cached[0]
+			return {
+				result: {
 					kind: 'ok',
 					gtin14,
 					providerId: hit.providerId,
 					source: 'cache',
 					cached: true,
 					results: hit.results,
-				}
+				},
 			}
 		}
+	}
 
-		const provider = await loadConfiguredBarcodeProvider()
-		if (!provider) {
-			return { kind: 'error', reason: 'provider-unavailable' }
-		}
+	const provider = await loadConfiguredBarcodeProvider()
+	if (!provider) {
+		return { result: { kind: 'error', reason: 'provider-unavailable' } }
+	}
 
-		let providerOutput: Array<ProviderResult> | null
-		try {
-			providerOutput = await provider.lookup(gtin14, signal ?? new AbortController().signal)
-		} catch {
-			return { kind: 'error', reason: 'provider-unavailable' }
+	let providerOutput: Array<ProviderResult> | null
+	try {
+		providerOutput = await provider.lookup(gtin14, signal ?? new AbortController().signal)
+	} catch (err) {
+		return {
+			result: { kind: 'error', reason: 'provider-unavailable' },
+			providerId: provider.id,
+			errorMessage: err instanceof Error ? err.message : String(err),
 		}
-		if (providerOutput === null) {
-			return { kind: 'error', reason: 'not-found' }
-		}
+	}
+	if (providerOutput === null) {
+		return { result: { kind: 'error', reason: 'not-found' }, providerId: provider.id }
+	}
 
-		const candidates = toCandidates(providerOutput)
-		await db
-			.insert(productLookups)
-			.values({
-				code: gtin14,
+	const candidates = toCandidates(providerOutput)
+	await db
+		.insert(productLookups)
+		.values({
+			code: gtin14,
+			providerId: provider.id,
+			results: candidates,
+		})
+		.onConflictDoUpdate({
+			target: productLookups.code,
+			set: {
 				providerId: provider.id,
 				results: candidates,
-			})
-			.onConflictDoUpdate({
-				target: productLookups.code,
-				set: {
-					providerId: provider.id,
-					results: candidates,
-					updatedAt: sql`now()`,
-				},
-			})
+				updatedAt: sql`now()`,
+			},
+		})
 
-		return {
+	return {
+		result: {
 			kind: 'ok',
 			gtin14,
 			providerId: provider.id,
 			source: 'provider',
 			cached: false,
 			results: candidates,
-		}
-	})().finally(() => {
-		inflight.delete(gtin14)
-	})
+		},
+	}
+}
 
-	inflight.set(gtin14, promise)
-	return promise
+// Writes the Lookup History row. Diagnostics only: a failed insert is
+// logged and swallowed so it never costs the caller their lookup.
+async function recordLookup(
+	db: Database | SchemaDatabase,
+	args: { userId?: string; rawCode: string; gtin14: string | null; outcome: LookupOutcome; startedAt: number }
+): Promise<void> {
+	const { result } = args.outcome
+	try {
+		await db.insert(barcodeLookupHistory).values({
+			userId: args.userId ?? null,
+			rawCode: args.rawCode,
+			gtin14: args.gtin14,
+			outcome: result.kind === 'ok' ? 'ok' : result.reason,
+			source: result.kind === 'ok' ? result.source : null,
+			providerId: result.kind === 'ok' ? result.providerId : (args.outcome.providerId ?? null),
+			results: result.kind === 'ok' ? result.results : null,
+			errorMessage: args.outcome.errorMessage ?? null,
+			ms: Date.now() - args.startedAt,
+		})
+	} catch (err) {
+		log.warn({ err, gtin14: args.gtin14 }, 'failed to record barcode lookup history')
+	}
 }
 
 // =====================================================================

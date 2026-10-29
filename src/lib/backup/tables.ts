@@ -115,6 +115,7 @@ export const BACKUP_EXCLUDED_TABLES: Record<string, string> = {
 	gift_suggestions: 'Rows of gift_suggestion_sets.',
 	cron_runs: 'Operator-facing cron run history. Nothing reads it to decide what to do.',
 	product_lookups: 'Barcode lookup cache, refetched on miss.',
+	barcode_lookup_history: 'Operator-facing barcode lookup log. Swept after barcodeLookupHistoryRetentionDays.',
 	item_scrapes: 'Scrape history and URL dedup cache (large raw responses). The scraped fields already live on items.',
 	holiday_catalog: 'Reference data written only by seedHolidayCatalogIfEmpty; custom_holidays point at it by (country, key) text, not FK.',
 	item_ai_analysis: REGENERATED,

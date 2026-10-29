@@ -8,13 +8,15 @@
 // in-process inflight Map persists across tests in this file, so each
 // test uses a distinct GTIN to keep them isolated.
 
+import { makeUser } from '@test/integration/factories'
 import { withRollback } from '@test/integration/setup'
-import { eq } from 'drizzle-orm'
+import { asc, eq } from 'drizzle-orm'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { lookupProductByBarcodeImpl, runBarcodeProviderProbeImpl } from '@/api/_products-impl'
-import { productLookups } from '@/db/schema'
+import { barcodeLookupHistory, productLookups } from '@/db/schema'
 import type { BarcodeProvider, ProviderResult } from '@/lib/barcode-providers/types'
+import { sweepBarcodeLookupHistory } from '@/lib/barcodes/history'
 import { type AppSettings, DEFAULT_APP_SETTINGS } from '@/lib/settings'
 
 const loadConfiguredBarcodeProvider = vi.fn<() => Promise<BarcodeProvider | null>>()
@@ -229,6 +231,73 @@ describe('lookupProductByBarcodeImpl', () => {
 			})
 			expect(result.kind).toBe('ok')
 			if (result.kind === 'ok') expect(result.source).toBe('provider')
+		})
+	})
+})
+
+describe('barcode lookup history', () => {
+	it('writes nothing when the feature is off', async () => {
+		await withRollback(async tx => {
+			await lookupProductByBarcodeImpl({
+				db: tx,
+				rawCode: GTIN_BOOK_RAW,
+				settings: { ...DEFAULT_APP_SETTINGS, barcode: { ...DEFAULT_APP_SETTINGS.barcode, enabled: false } },
+			})
+			expect(await tx.select().from(barcodeLookupHistory)).toHaveLength(0)
+		})
+	})
+
+	it('records one row per lookup with the outcome, provider, and scanner', async () => {
+		await withRollback(async tx => {
+			const user = await makeUser(tx)
+			loadConfiguredBarcodeProvider.mockResolvedValue(fakeProvider({ id: 'go-upc', results: [{ title: 'Hitchhiker', brand: 'Pan' }] }))
+
+			await lookupProductByBarcodeImpl({ db: tx, rawCode: GTIN_BOOK_RAW, settings: settings(), userId: user.id })
+			await lookupProductByBarcodeImpl({ db: tx, rawCode: GTIN_BOOK_RAW, settings: settings(), userId: user.id })
+			await lookupProductByBarcodeImpl({ db: tx, rawCode: '012993441013', settings: settings(), userId: user.id })
+
+			const rows = await tx.select().from(barcodeLookupHistory).orderBy(asc(barcodeLookupHistory.id))
+			expect(rows).toHaveLength(3)
+			expect(rows[0]).toMatchObject({
+				userId: user.id,
+				rawCode: GTIN_BOOK_RAW,
+				gtin14: GTIN_BOOK_NORM,
+				outcome: 'ok',
+				source: 'provider',
+				providerId: 'go-upc',
+				results: [{ title: 'Hitchhiker', brand: 'Pan' }],
+			})
+			expect(typeof rows[0].ms).toBe('number')
+			expect(rows[1]).toMatchObject({ outcome: 'ok', source: 'cache', providerId: 'go-upc' })
+			expect(rows[2]).toMatchObject({ rawCode: '012993441013', gtin14: null, outcome: 'invalid-code', providerId: null })
+		})
+	})
+
+	it('records the provider on a miss and its message on a throw', async () => {
+		await withRollback(async tx => {
+			loadConfiguredBarcodeProvider.mockResolvedValueOnce(fakeProvider({ results: null }))
+			await lookupProductByBarcodeImpl({ db: tx, rawCode: '0123456789012', settings: settings() })
+			loadConfiguredBarcodeProvider.mockResolvedValueOnce(fakeProvider({ throws: new Error('quota exceeded') }))
+			await lookupProductByBarcodeImpl({ db: tx, rawCode: '0123456789012', settings: settings() })
+
+			const rows = await tx.select().from(barcodeLookupHistory).orderBy(asc(barcodeLookupHistory.id))
+			expect(rows).toHaveLength(2)
+			expect(rows[0]).toMatchObject({ outcome: 'not-found', source: null, providerId: 'upcitemdb-trial', results: null, userId: null })
+			expect(rows[1]).toMatchObject({ outcome: 'provider-unavailable', providerId: 'upcitemdb-trial', errorMessage: 'quota exceeded' })
+		})
+	})
+
+	it('sweeps rows older than the retention window', async () => {
+		await withRollback(async tx => {
+			const now = new Date('2026-10-29T12:00:00Z')
+			const day = 86_400_000
+			await tx.insert(barcodeLookupHistory).values([
+				{ rawCode: 'old', outcome: 'invalid-code', createdAt: new Date(now.getTime() - 91 * day) },
+				{ rawCode: 'recent', outcome: 'invalid-code', createdAt: new Date(now.getTime() - 89 * day) },
+			])
+			expect(await sweepBarcodeLookupHistory({ db: tx, now, retentionDays: 90 })).toEqual({ deleted: 1 })
+			const left = await tx.select().from(barcodeLookupHistory)
+			expect(left.map(r => r.rawCode)).toEqual(['recent'])
 		})
 	})
 })

@@ -9,6 +9,7 @@ import { lt } from 'drizzle-orm'
 import { db } from '@/db'
 import { intelligenceVerdicts, recommendationRunSteps, recommendations } from '@/db/schema'
 import { sweepAiUsage } from '@/lib/ai-usage'
+import { sweepBarcodeLookupHistory } from '@/lib/barcodes/history'
 import { autoArchiveImpl } from '@/lib/cron/auto-archive'
 import { birthdayEmailsImpl } from '@/lib/cron/birthday-emails'
 import { cleanupOauthImpl } from '@/lib/cron/cleanup-oauth'
@@ -252,13 +253,23 @@ export async function runCleanupVerification() {
 	const oauthSweep = await cleanupOauthImpl({ db, now })
 	const aiUsageSweep = await sweepAiUsage({ db, now, retentionDays: settings.aiUsageRetentionDays })
 	const giftSuggestionSweep = await sweepGiftSuggestionSets({ db, now, retentionDays: settings.giftSuggestionRetentionDays })
+	const barcodeHistorySweep = await sweepBarcodeLookupHistory({ db, now, retentionDays: settings.barcodeLookupHistoryRetentionDays })
 	const durationMs = Date.now() - started
 	log.info(
-		{ endpoint: '/api/cron/cleanup-verification', deleted, cronRunsSweep, oauthSweep, aiUsageSweep, giftSuggestionSweep, durationMs },
+		{
+			endpoint: '/api/cron/cleanup-verification',
+			deleted,
+			cronRunsSweep,
+			oauthSweep,
+			aiUsageSweep,
+			giftSuggestionSweep,
+			barcodeHistorySweep,
+			durationMs,
+		},
 		'cleanup complete'
 	)
 
-	return { ok: true, deleted, cronRunsSweep, oauthSweep, aiUsageSweep, giftSuggestionSweep, durationMs }
+	return { ok: true, deleted, cronRunsSweep, oauthSweep, aiUsageSweep, giftSuggestionSweep, barcodeHistorySweep, durationMs }
 }
 
 export async function runIntelligenceRecommendations(): Promise<Record<string, {}>> {

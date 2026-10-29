@@ -23,8 +23,8 @@ import { buildScraperLookups } from './scrape-stats'
 // `group-hover/row:bg-muted/40` rule keeps the row's hover bg consistent
 // across the sticky and non-sticky cells. A right border separates the
 // pinned column from the scrolling content visually.
-const STICKY_INSPECT_HEAD = 'sticky left-0 z-20 w-13 bg-card border-r'
-const STICKY_INSPECT_CELL = 'sticky left-0 z-10 w-13 bg-card border-r text-right group-hover/row:bg-muted/40'
+export const STICKY_INSPECT_HEAD = 'sticky left-0 z-20 w-13 bg-card border-r'
+export const STICKY_INSPECT_CELL = 'sticky left-0 z-10 w-13 bg-card border-r text-right group-hover/row:bg-muted/40'
 
 export function ScrapesList() {
 	const scrapesQuery = useQuery({ queryKey: ['admin', 'scrapes'], queryFn: () => listScrapesAsAdmin() })
@@ -335,7 +335,7 @@ function ScoreBreakdownLine({ parts, total }: { parts: Array<ScorePart>; total: 
 	)
 }
 
-function DetailGrid({ children }: { children: React.ReactNode }) {
+export function DetailGrid({ children }: { children: React.ReactNode }) {
 	return (
 		<dl className="grid grid-cols-1 gap-2 @md/admin-content:grid-cols-[max-content_1fr] @md/admin-content:gap-x-4 @md/admin-content:gap-y-1.5">
 			{children}
@@ -343,7 +343,7 @@ function DetailGrid({ children }: { children: React.ReactNode }) {
 	)
 }
 
-function DetailField({ label, children }: { label: string; children: React.ReactNode }) {
+export function DetailField({ label, children }: { label: string; children: React.ReactNode }) {
 	return (
 		<>
 			<dt className="text-xs uppercase tracking-wide text-muted-foreground @md/admin-content:text-right">{label}</dt>
@@ -362,7 +362,7 @@ function shortenUrl(raw: string): string {
 	}
 }
 
-function formatDateTime(d: Date): string {
+export function formatDateTime(d: Date): string {
 	const date = typeof d === 'string' ? new Date(d) : d
 	return date.toLocaleString(undefined, {
 		year: 'numeric',
@@ -377,7 +377,7 @@ function formatDateTime(d: Date): string {
 // Compact form for the table column: relative ("5m ago") for the last
 // day, short absolute ("Apr 26, 7:48 PM") for older rows. Full ISO-ish
 // form is supplied via the cell's title attribute when you hover.
-function formatWhen(d: Date): string {
+export function formatWhen(d: Date): string {
 	const date = typeof d === 'string' ? new Date(d) : d
 	const ageSec = (Date.now() - date.getTime()) / 1000
 	if (ageSec < 60) return `${Math.max(1, Math.floor(ageSec))}s ago`
@@ -391,7 +391,7 @@ function formatWhen(d: Date): string {
 	})
 }
 
-function formatDurationMs(ms: number): string {
+export function formatDurationMs(ms: number): string {
 	if (ms < 1000) return `${ms}ms`
 	const s = ms / 1000
 	if (s < 10) return `${s.toFixed(1)}s`
