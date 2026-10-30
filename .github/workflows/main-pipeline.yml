@@ -16,7 +16,11 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # Pinned rather than ubuntu-latest: Playwright only installs Chromium on
+    # images it knows, and ubuntu-latest moving to 26.04 under Playwright 1.59
+    # failed this job, which skips release-please on main. Move the pin
+    # deliberately, after checking the Playwright version supports the image.
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
