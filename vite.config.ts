@@ -131,6 +131,14 @@ const config = defineConfig({
 				// Dockerfile note about the self-contained .output bundle).
 				// traceDeps forces the include even if static analysis misses it.
 				traceDeps: ['sharp'],
+				// The `vercel` preset inlines node_modules, so Stagehand's
+				// `playwright-core` lands in this bundle (the `ssr.external`
+				// above only covers the SSR environment). playwright-core
+				// >= 1.64 does `import("kerberos")` for proxy auth, an optional
+				// native dep we never install; left unresolved it fails the build.
+				rollupConfig: {
+					external: ['kerberos'],
+				},
 				routeRules: {
 					'/**': { headers: securityHeaders },
 				},
