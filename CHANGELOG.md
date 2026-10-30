@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.11.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.10.0...v1.11.0) (2026-10-30)
+
+
+### Features
+
+* **admin:** show barcode lookup history on the barcode page ([193c53f](https://github.com/shawnphoffman/giftwrapt/commit/193c53f70e8a09d77fd1c1e3fc89752b1bece68b))
+
+
+### Bug Fixes
+
+* **build:** externalize kerberos in the Nitro server bundle ([c8830ee](https://github.com/shawnphoffman/giftwrapt/commit/c8830eefba433021c40bed8ee37d98ae28fbb7ff))
+* **items:** allow reordering items in pick-one groups ([f2a5eb8](https://github.com/shawnphoffman/giftwrapt/commit/f2a5eb8202d2492bf6a3d092e85a27c31926e3b0))
+* **items:** close the item menu after a quick priority change ([b848e74](https://github.com/shawnphoffman/giftwrapt/commit/b848e74e57ee481c34b7c7e380579feb3712be87))
+* **items:** follow the saved reorder within each priority ([2a7c355](https://github.com/shawnphoffman/giftwrapt/commit/2a7c35567ce549b3330260743346c52a11580bba))
+* **items:** join the move up and down arrows into one control ([4d2959b](https://github.com/shawnphoffman/giftwrapt/commit/4d2959b66d9ba42ed135aa83ab63e529b8768a9e))
+* **items:** stabilize mobile item dialogs around the keyboard ([a8bd9f5](https://github.com/shawnphoffman/giftwrapt/commit/a8bd9f57cf3ed74e8d603c23073037dfa557abc1))
+* **items:** stop the mobile item dialog chasing the keyboard on iOS ([9714271](https://github.com/shawnphoffman/giftwrapt/commit/9714271b8f0b4fdba2ac97cafd5b9cf09b362234))
+* **organize:** keep the bulk-action bar above the list rows ([0a46bd2](https://github.com/shawnphoffman/giftwrapt/commit/0a46bd23ceea8c3e790f4df802ce329811acce0c))
+
 ## [1.10.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.9.1...v1.10.0) (2026-10-24)
 
 
