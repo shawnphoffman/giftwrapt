@@ -370,6 +370,12 @@ export const appSettingsSchema = z.object({
 	// non-HTTPS LAN deploy (where WebAuthn won't work anyway) doesn't
 	// confuse users with a broken affordance.
 	enablePasskeys: z.boolean(),
+	// When true, anyone who can reach the deployment can create an account.
+	// When false, POST /api/auth/sign-up/email is refused and /sign-up redirects
+	// to sign-in, unless the deployment has no admin yet (see
+	// src/lib/sign-up-gate.ts). Admins and CLI scripts can always create users;
+	// OIDC has its own `autoRegister` switch.
+	enableSignUps: z.boolean(),
 	// OIDC sign-in (single external provider per deployment). Managed
 	// from /admin/auth; takes effect after a server restart because
 	// better-auth's `genericOAuth` plugin loads its provider list at
@@ -640,6 +646,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	enableMobileApp: false,
 	enableMcp: false,
 	enablePasskeys: false,
+	enableSignUps: true,
 	oidcClient: {
 		enabled: false,
 		issuerUrl: '',

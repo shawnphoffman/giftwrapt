@@ -5,6 +5,7 @@ import { appSettings } from '@/db/schema'
 import { loggingMiddleware } from '@/lib/logger'
 import { type AppSettings, appSettingsSchema, toPublicAppSettings } from '@/lib/settings'
 import { encryptBarcodeSecrets, encryptScrapeProviderSecrets, getAppSettings } from '@/lib/settings-loader'
+import { isSignUpOpen } from '@/lib/sign-up-gate'
 import { adminAuthMiddleware } from '@/middleware/auth'
 
 /**
@@ -28,6 +29,15 @@ export const fetchAppSettings = createServerFn({
 	.handler(async (): Promise<AppSettings> => {
 		const full = await getAppSettings(db)
 		return toPublicAppSettings(full)
+	})
+
+/** Whether a visitor may create their own account. Public, like the read above. */
+export const fetchSignUpOpen = createServerFn({
+	method: 'GET',
+})
+	.middleware([loggingMiddleware])
+	.handler(async (): Promise<{ open: boolean }> => {
+		return { open: await isSignUpOpen() }
 	})
 
 /**

@@ -21,6 +21,8 @@ const PUBLIC_ALLOW_LIST: ReadonlyMap<string, string> = new Map([
 	// Public app settings prefetched on every request including signed-out;
 	// `scrapeProviders` is stripped before serialization (see settings.ts).
 	['settings.ts:fetchAppSettings', 'public app settings, scrapeProviders stripped'],
+	// A boolean for signed-out visitors on /sign-up. No PII, no DB writes.
+	['settings.ts:fetchSignUpOpen', 'public boolean, signed-out visitors need it on /sign-up'],
 	// Boolean health probe for the email integration. No PII, no DB writes.
 	['common.ts:isEmailConfigured', 'public boolean health probe'],
 	// Observability status (enabled flags + public Sentry DSN when on).

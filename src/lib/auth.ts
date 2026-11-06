@@ -2,6 +2,7 @@ import { passkey } from '@better-auth/passkey'
 import type { BetterAuthOptions } from 'better-auth'
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { APIError, createAuthMiddleware } from 'better-auth/api'
 import { admin, apiKey, customSession, genericOAuth, mcp, twoFactor } from 'better-auth/plugins'
 import { tanstackStartCookies } from 'better-auth/tanstack-start'
 import { sql } from 'drizzle-orm'
@@ -34,6 +35,7 @@ import {
 import { sendPasswordResetEmail } from '@/lib/resend'
 import type { OidcClientConfig } from '@/lib/settings'
 import { getAppSettings } from '@/lib/settings-loader'
+import { isSignUpOpen } from '@/lib/sign-up-gate'
 
 // Password-reset tokens issued by better-auth's `forgetPassword` API are
 // good for this many minutes. Used both as the better-auth option and
@@ -248,6 +250,18 @@ const options = {
 			// someone guessing. The mint side has its own per-key limiter.
 			[MOBILE_WEB_HANDOFF_PATH]: { window: 60, max: 10 },
 		},
+	},
+	// The `enableSignUps` admin setting. Runs on the endpoint rather than the URL,
+	// so no spelling of the path gets around it. Only HTTP requests carry
+	// `ctx.request`: CLI scripts calling `auth.api.signUpEmail` directly still
+	// work, as does an admin's /admin/create-user.
+	hooks: {
+		before: createAuthMiddleware(async ctx => {
+			if (ctx.path !== '/sign-up/email' || !ctx.request) return
+			if (!(await isSignUpOpen())) {
+				throw new APIError('FORBIDDEN', { message: 'Sign-ups are closed on this server.' })
+			}
+		}),
 	},
 	// First-admin bootstrap: if no admin exists yet, the next signup becomes one.
 	// Covers the fresh-deploy case (empty DB) and also the recovery case where

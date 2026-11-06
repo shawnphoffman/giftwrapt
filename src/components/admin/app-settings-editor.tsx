@@ -673,6 +673,23 @@ export function AuthSettingsSection() {
 		<div className="space-y-6">
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
+					<Label htmlFor="enableSignUps" className="text-base">
+						Allow Sign-Ups
+					</Label>
+					<p className="text-sm text-muted-foreground">
+						Let anyone who can reach this site create an account. Turn this off to add people yourself from Admin → Users. OIDC has its own
+						auto-register setting.
+					</p>
+				</div>
+				<Switch
+					id="enableSignUps"
+					checked={settings.enableSignUps}
+					onCheckedChange={checked => handleSettingChange('enableSignUps', checked)}
+				/>
+			</div>
+
+			<div className="flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
 					<Label htmlFor="enablePasskeys" className="text-base">
 						Enable Passkeys
 					</Label>

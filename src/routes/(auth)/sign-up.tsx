@@ -1,7 +1,8 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import { Image } from '@unpic/react'
 import { useState } from 'react'
 
+import { fetchSignUpOpen } from '@/api/settings'
 import { EmbeddedReconnect } from '@/components/auth/embedded-reconnect'
 import { Button } from '@/components/ui/button'
 import { GradientBackground } from '@/components/ui/gradient-background'
@@ -16,6 +17,10 @@ import { pageHead } from '@/routes/-head'
 export const Route = createFileRoute('/(auth)/sign-up')({
 	head: pageHead('Create Account'),
 	component: SignUp,
+	beforeLoad: async () => {
+		const { open } = await fetchSignUpOpen()
+		if (!open) throw redirect({ to: '/sign-in' })
+	},
 })
 
 function SignUp() {
