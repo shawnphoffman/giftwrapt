@@ -45,6 +45,11 @@ const securityHeaders = {
 	// http:// subresource to https:// even when the page itself is served over
 	// http, which breaks IP:port/LAN self-hosts. If you front the app with
 	// HTTPS, add it via the reverse proxy and everything still works.
+	'X-Content-Type-Options': 'nosniff',
+	// Reset, invite, and handoff URLs carry tokens: other sites get the origin only.
+	'Referrer-Policy': 'strict-origin-when-cross-origin',
+	// The web app uses none of these. File inputs that open the camera aren't affected.
+	'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
 }
 
 // Custom plugin: redirect `@/db` to a throwing client stub when bundling

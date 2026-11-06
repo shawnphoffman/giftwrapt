@@ -10,7 +10,7 @@ export const Route = createFileRoute('/api/lists/public')({
 			GET: async ({ request }) => {
 				const session = await auth.api.getSession({ headers: request.headers })
 				if (!session?.user.id) {
-					throw new Error('Unauthorized')
+					return json({ error: 'Unauthorized' }, { status: 401 })
 				}
 				const users = await getPublicListsImpl(session.user.id)
 				return json(users)

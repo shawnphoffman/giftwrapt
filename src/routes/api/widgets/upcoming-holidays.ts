@@ -18,7 +18,7 @@ export const Route = createFileRoute('/api/widgets/upcoming-holidays')({
 			GET: async ({ request }) => {
 				const session = await auth.api.getSession({ headers: request.headers })
 				if (!session?.user.id) {
-					throw new Error('Unauthorized')
+					return json({ error: 'Unauthorized' }, { status: 401 })
 				}
 				const url = new URL(request.url)
 				const limitRaw = Number(url.searchParams.get('limit') ?? '3')
