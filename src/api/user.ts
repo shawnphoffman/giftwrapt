@@ -153,14 +153,15 @@ export const updateUserProfile = createServerFn({
 			throw new Error('Failed to update user')
 		}
 
+		// The partner fields were written above and aren't accepted here. This
+		// call also rewrites the session cookie from the updated row, which is how
+		// the session picks up the new partner.
 		await auth.api.updateUser({
 			body: {
 				name: data.name,
 				...(data.birthDay !== undefined && { birthDay: data.birthDay ?? null }),
 				...(data.birthMonth !== undefined && { birthMonth: data.birthMonth || null }),
 				...(data.birthYear !== undefined && { birthYear: data.birthYear ?? null }),
-				...(newPartnerId !== undefined && { partnerId: newPartnerId }),
-				...(updateData.partnerAnniversary !== undefined && { partnerAnniversary: updateData.partnerAnniversary }),
 			},
 			headers: getRequestHeaders(),
 		})

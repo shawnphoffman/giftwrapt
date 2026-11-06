@@ -397,15 +397,17 @@ const options = {
 				required: false,
 				input: true,
 			},
+			// Server-owned: written only by applyPartnerAndAnniversary, which
+			// enforces the child rule and keeps both partners' rows in step.
 			partnerId: {
 				type: 'string',
 				required: false,
-				input: true,
+				input: false,
 			},
 			partnerAnniversary: {
 				type: 'string',
 				required: false,
-				input: true,
+				input: false,
 			},
 		},
 	},
@@ -473,15 +475,17 @@ export const auth = betterAuth({
 				required: false,
 				input: true,
 			},
+			// Server-owned: written only by applyPartnerAndAnniversary, which
+			// enforces the child rule and keeps both partners' rows in step.
 			partnerId: {
 				type: 'string',
 				required: false,
-				input: true,
+				input: false,
 			},
 			partnerAnniversary: {
 				type: 'string',
 				required: false,
-				input: true,
+				input: false,
 			},
 		},
 	},
