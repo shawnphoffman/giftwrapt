@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.12.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.11.0...v1.12.0) (2026-11-06)
+
+
+### Features
+
+* **auth:** add an admin setting to close public sign-ups ([2d5374b](https://github.com/shawnphoffman/giftwrapt/commit/2d5374b1957a6322359a6b312423404e74748bd7))
+
+
+### Bug Fixes
+
+* **auth:** refuse partner fields on better-auth endpoints ([af227a5](https://github.com/shawnphoffman/giftwrapt/commit/af227a5c041bbd2fe033510b479f3eb1ab021331))
+* **security:** add browser headers and return 401s from feeds ([5961a4b](https://github.com/shawnphoffman/giftwrapt/commit/5961a4b738edd52d0b4aa33b45f0cb4c5e7f1ce0))
+
 ## [1.11.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.10.0...v1.11.0) (2026-10-30)
 
 
