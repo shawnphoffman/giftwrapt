@@ -510,6 +510,7 @@ describe('gift suggestions', () => {
 			isArchived: true,
 			totalCost: '55.55',
 			notes: 'SECRET-ADDON-NOTE',
+			createdAt: now,
 		})
 		await setGiftSuggestionFeedbackImpl({
 			actor: { id: zeb.id, isChild: false },

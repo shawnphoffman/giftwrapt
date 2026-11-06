@@ -211,6 +211,7 @@ export async function makeListAddon(
 			url: overrides.url ?? null,
 			imageUrl: overrides.imageUrl ?? null,
 			isArchived: overrides.isArchived ?? false,
+			...(overrides.createdAt && { createdAt: overrides.createdAt }),
 		})
 		.returning()
 	return row
