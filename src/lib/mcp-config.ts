@@ -30,5 +30,5 @@ export const MCP_SCOPES = ['profile', 'email', 'offline_access'] as const
 /** `MCP_SCOPES` as the space-separated form the plugin and the token response use. */
 export const MCP_DEFAULT_SCOPE = MCP_SCOPES.join(' ')
 
-/** Registered OAuth clients that have never been used are swept after this many days. */
+/** Registered OAuth clients no user ever approved on the consent screen are swept after this many days. */
 export const MCP_IDLE_CLIENT_DAYS = 30

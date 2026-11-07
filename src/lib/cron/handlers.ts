@@ -248,8 +248,8 @@ export async function runCleanupVerification() {
 	const now = new Date()
 	const { deleted } = await cleanupVerificationImpl({ db, now })
 	const cronRunsSweep = await sweepCronRuns({ retentionDays: settings.cronRunsRetentionDays })
-	// Expired MCP OAuth tokens and never-used client registrations. A
-	// no-op on deployments with `enableMcp` off (the tables stay empty).
+	// Expired MCP OAuth tokens and client registrations no user ever
+	// approved. A no-op on deployments with `enableMcp` off.
 	const oauthSweep = await cleanupOauthImpl({ db, now })
 	const aiUsageSweep = await sweepAiUsage({ db, now, retentionDays: settings.aiUsageRetentionDays })
 	const giftSuggestionSweep = await sweepGiftSuggestionSets({ db, now, retentionDays: settings.giftSuggestionRetentionDays })

@@ -18,9 +18,16 @@ type Args = {
 // - Tokens whose refresh window has closed (or that never had one and
 //   whose access window has closed) can never be used again.
 // - Dynamic client registration is unauthenticated, so every client
-//   install and every probe leaves an `oauth_application` row. Rows older
-//   than `idleClientDays` with no surviving token are dropped; consents
-//   cascade with them. Real clients re-register on their next connect.
+//   install and every probe leaves an `oauth_application` row. A row is
+//   swept once it is `idleClientDays` old if no user ever approved it on
+//   the consent screen (`firstApprovedAt` is null; setMcpClientAccessImpl
+//   sets it) and it holds no token. Approved registrations are kept for
+//   good: Claude Code, claude.ai, Cursor, and Codex reuse the client_id
+//   they registered indefinitely, and until 2026-11-07 the sweep dropped
+//   any registration with no surviving token, which turned every later
+//   connect into `invalid_client` at the authorize step (better-auth then
+//   bounces the browser to `/` with no explanation). Consents and tokens
+//   cannot stand in for the mark: both are deleted on disconnect.
 export async function cleanupOauthImpl({ db, now, idleClientDays = MCP_IDLE_CLIENT_DAYS }: Args): Promise<CleanupOauthResult> {
 	const tokens = await db
 		.delete(oauthAccessToken)
@@ -38,6 +45,7 @@ export async function cleanupOauthImpl({ db, now, idleClientDays = MCP_IDLE_CLIE
 		.where(
 			and(
 				lt(oauthApplication.createdAt, idleBefore),
+				isNull(oauthApplication.firstApprovedAt),
 				notExists(
 					db
 						.select({ one: sql`1` })

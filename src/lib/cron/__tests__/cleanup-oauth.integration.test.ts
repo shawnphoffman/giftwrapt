@@ -8,18 +8,19 @@ import { cleanupOauthImpl } from '@/lib/cron/cleanup-oauth'
 const DAY = 24 * 60 * 60 * 1000
 
 describe('cleanupOauthImpl', () => {
-	it('drops expired tokens and idle never-used clients, keeps everything else', async () => {
+	it('drops expired tokens and idle never-approved clients, keeps everything else', async () => {
 		await withRollback(async tx => {
 			const now = new Date('2026-09-30T12:00:00Z')
 			const user = await makeUser(tx)
 
-			const mkClient = async (id: string, createdAt: Date) => {
+			const mkClient = async (id: string, createdAt: Date, firstApprovedAt: Date | null = null) => {
 				await tx.insert(oauthApplication).values({
 					id,
 					name: id,
 					clientId: id,
 					redirectUrls: 'http://localhost:9/cb',
 					type: 'public',
+					firstApprovedAt,
 					createdAt,
 					updatedAt: createdAt,
 				})
@@ -27,6 +28,9 @@ describe('cleanupOauthImpl', () => {
 			await mkClient('live-client', new Date(now.getTime() - 60 * DAY))
 			await mkClient('idle-old-client', new Date(now.getTime() - 60 * DAY))
 			await mkClient('idle-new-client', new Date(now.getTime() - 2 * DAY))
+			// Approved once, then disconnected: no token, no consent, but the
+			// client still holds this client_id, so it must survive.
+			await mkClient('approved-old-client', new Date(now.getTime() - 60 * DAY), new Date(now.getTime() - 50 * DAY))
 
 			const mkToken = async (id: string, clientId: string, accessExp: Date, refreshExp: Date | null) => {
 				await tx.insert(oauthAccessToken).values({
@@ -53,8 +57,10 @@ describe('cleanupOauthImpl', () => {
 
 			const tokens = await tx.select({ id: oauthAccessToken.id }).from(oauthAccessToken)
 			expect(tokens.map(t => t.id)).toEqual(['live'])
+			// A consent row alone does not count as approved (it is deleted on
+			// disconnect); only the durable mark and live tokens keep a client.
 			const clients = await tx.select({ id: oauthApplication.id }).from(oauthApplication)
-			expect(clients.map(c => c.id).sort()).toEqual(['idle-new-client', 'live-client'])
+			expect(clients.map(c => c.id).sort()).toEqual(['approved-old-client', 'idle-new-client', 'live-client'])
 			// Consent rows cascade with their client.
 			const consents = await tx.select({ id: oauthConsent.id }).from(oauthConsent)
 			expect(consents).toHaveLength(0)

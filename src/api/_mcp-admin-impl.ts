@@ -4,7 +4,7 @@
 // actor by looking the access token up, so a deleted row is dead on the
 // next request. `dbx` is injectable for the pglite integration harness.
 
-import { and, count, countDistinct, desc, eq, gt, max, sql } from 'drizzle-orm'
+import { and, count, countDistinct, desc, eq, gt, isNull, max, sql } from 'drizzle-orm'
 
 import { db, type SchemaDatabase } from '@/db'
 import { type McpAccessLevel, mcpClientAccess, oauthAccessToken, oauthApplication, oauthConsent, users } from '@/db/schema'
@@ -246,5 +246,12 @@ export async function setMcpClientAccessImpl(
 		.insert(mcpClientAccess)
 		.values({ userId: args.userId, clientId: args.clientId, access: args.access, updatedAt: now })
 		.onConflictDoUpdate({ target: [mcpClientAccess.userId, mcpClientAccess.clientId], set: { access: args.access, updatedAt: now } })
+	// A human approved this client, so its registration is real and the
+	// cleanup cron must keep it even once every token and consent is gone
+	// (clients reuse their client_id for good); see cleanup-oauth.ts.
+	await dbx
+		.update(oauthApplication)
+		.set({ firstApprovedAt: now })
+		.where(and(eq(oauthApplication.clientId, args.clientId), isNull(oauthApplication.firstApprovedAt)))
 	return { ok: true }
 }

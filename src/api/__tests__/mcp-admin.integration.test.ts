@@ -1,5 +1,6 @@
 import { makeUser } from '@test/integration/factories'
 import { withRollback } from '@test/integration/setup'
+import { eq } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -91,6 +92,16 @@ describe('MCP admin and connected-apps impls', () => {
 			// Access level: full until the user says otherwise, per user and client.
 			expect(apps.every(a => a.access === 'write')).toBe(true)
 			expect(await setMcpClientAccessImpl({ userId: alice.id, clientId: 'cid-claude', access: 'read', now }, tx)).toEqual({ ok: true })
+			// The first approval stamps the registration for good; a later
+			// choice does not move it (the cleanup cron keys on it).
+			const approvedAt = async (clientId: string) =>
+				(await tx.select({ at: oauthApplication.firstApprovedAt }).from(oauthApplication).where(eq(oauthApplication.clientId, clientId)))[0]
+					.at
+			expect(await approvedAt('cid-claude')).toEqual(now)
+			expect(await approvedAt('cid-cursor')).toBeNull()
+			await setMcpClientAccessImpl({ userId: alice.id, clientId: 'cid-claude', access: 'write', now: new Date(now.getTime() + DAY) }, tx)
+			expect(await approvedAt('cid-claude')).toEqual(now)
+			await setMcpClientAccessImpl({ userId: alice.id, clientId: 'cid-claude', access: 'read', now }, tx)
 			const afterChoice = await listMyConnectedAppsImpl({ userId: alice.id, now }, tx)
 			expect(afterChoice.find(a => a.clientId === 'cid-claude')!.access).toBe('read')
 			expect(afterChoice.find(a => a.clientId === 'cid-cursor')!.access).toBe('write')
@@ -105,6 +116,8 @@ describe('MCP admin and connected-apps impls', () => {
 			expect((await listMyConnectedAppsImpl({ userId: alice.id, now }, tx)).map(a => a.clientId)).toEqual(['cid-cursor'])
 			const consents = await tx.select({ id: oauthConsent.id }).from(oauthConsent)
 			expect(consents).toHaveLength(0)
+			// Disconnecting keeps the approval mark: the client still holds its client_id.
+			expect(await approvedAt('cid-claude')).toEqual(now)
 			// Disconnecting forgets the access choice, so reconnecting asks again.
 			expect(await tx.select({ clientId: mcpClientAccess.clientId }).from(mcpClientAccess)).toEqual([])
 			expect(await revokeMyConnectedAppImpl({ userId: alice.id, clientId: 'cid-claude' }, tx)).toEqual({ ok: false, reason: 'not-found' })

@@ -78,20 +78,11 @@ function SignIn() {
 		}
 	}, [session, isPending, redirectRaw])
 
-	// When a sign-in happens mid OAuth flow, the `mcp()` plugin's after-hook
-	// replays the pending authorize request inside the sign-in response and
-	// answers with `{ redirect: true, url }` pointing at the consent page.
-	// Follow it directly instead of racing better-auth's client redirect
-	// plugin against `goPostAuth`, which would otherwise strand the flow at `/`.
-	const followHookRedirect = (data: unknown): boolean => {
-		const hook = data as { redirect?: boolean; url?: string } | null
-		if (hook?.redirect === true && typeof hook.url === 'string' && hook.url.length > 0) {
-			window.location.assign(hook.url)
-			return true
-		}
-		return false
-	}
-
+	// Mid OAuth flow the post-auth target is the authorize relay
+	// (`resolvePostAuthRedirect`), which lands on the consent page now that
+	// a session exists. The gateway keeps better-auth's own replay of the
+	// authorize request out of the sign-in response (its 302 would drop
+	// the session cookie); see src/server/mcp/oauth-gateway.ts.
 	const handleSignIn = async (email: string, password: string) => {
 		// Generic error to avoid user enumeration. Better-auth's per-case
 		// messages ("user not found" vs "invalid credentials") leak whether
@@ -99,7 +90,6 @@ function SignIn() {
 		// here; the actual error is in the server logs. See sec-review M5.
 		const { data, error: signInError } = await authClient.signIn.email({ email, password })
 		if (signInError) throw new Error('sign-in failed')
-		if (followHookRedirect(data)) return
 
 		// 2FA hand-off: when the user has TOTP enrolled, better-auth's
 		// twoFactor plugin replaces the post-sign-in session with a
@@ -120,9 +110,8 @@ function SignIn() {
 	}
 
 	const handlePasskeySignIn = async () => {
-		const { data, error: passkeyError } = await authClient.signIn.passkey()
+		const { error: passkeyError } = await authClient.signIn.passkey()
 		if (passkeyError) throw new Error('passkey sign-in failed')
-		if (followHookRedirect(data)) return
 		goPostAuth()
 	}
 

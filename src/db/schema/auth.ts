@@ -196,6 +196,11 @@ export const oauthApplication = pgTable(
 		type: text('type').notNull(),
 		authenticationScheme: text('authentication_scheme'),
 		disabled: boolean('disabled').notNull().default(false),
+		// Core's own column: when a user first approved this client on the
+		// consent screen (set by setMcpClientAccessImpl). Null means no human
+		// ever accepted it, which is what the registration sweep keys on; see
+		// src/lib/cron/cleanup-oauth.ts. Better-auth ignores it.
+		firstApprovedAt: timestamp('first_approved_at'),
 		userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
 		...timestamps,
 	},

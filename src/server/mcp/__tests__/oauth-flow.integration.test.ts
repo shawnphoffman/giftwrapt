@@ -186,6 +186,44 @@ describe('MCP OAuth flow', () => {
 		expect(location.searchParams.get('client_id')).toBe(clientId)
 		expect(location.searchParams.get('redirect_uri')).toBe(REDIRECT_URI)
 		expect(location.searchParams.get('prompt')).toBe('consent')
+		// The plugin's login-prompt cookie never reaches the browser; the
+		// sign-in page carries the query in the URL instead (oauth-relay.ts).
+		expect(res.headers.getSetCookie().some(c => c.startsWith('oidc_login_prompt='))).toBe(false)
+	})
+
+	it('signs the user in normally mid-flow, then the relay lands on consent', async () => {
+		// The plugin's after-hook replays authorize inside whichever response
+		// sets a session cookie while its `oidc_login_prompt` cookie is
+		// present, answering with a 302 that drops the session cookie (see
+		// oauth-gateway.ts). Take a real signed cookie straight from the
+		// plugin and make sure the gateway keeps it from better-auth.
+		const { challenge } = pkce()
+		const direct = await auth.handler(
+			new Request(authorizeUrl({ code_challenge: challenge, code_challenge_method: 'S256', prompt: 'consent' }), { redirect: 'manual' })
+		)
+		const prompt = direct.headers.getSetCookie().find(c => c.startsWith('oidc_login_prompt='))
+		expect(prompt).toBeTruthy()
+
+		const signIn = await handleAuthRequest(
+			new Request(`${BASE}/api/auth/sign-in/email`, {
+				method: 'POST',
+				headers: { 'content-type': 'application/json', origin: BASE, cookie: prompt!.split(';')[0] },
+				body: JSON.stringify({ email: testEmail, password: TEST_PASSWORD }),
+			})
+		)
+		expect(signIn.status).toBe(200)
+		const session = cookieHeaderFrom(signIn)
+		expect(session).toMatch(/session_token=/)
+		expect(session).not.toMatch(/oidc_consent_prompt=/)
+
+		const relay = await handleAuthRequest(
+			new Request(authorizeUrl({ code_challenge: challenge, code_challenge_method: 'S256' }), {
+				headers: { cookie: session },
+				redirect: 'manual',
+			})
+		)
+		expect(relay.status).toBe(302)
+		expect(new URL(relay.headers.get('location')!, BASE).pathname).toBe('/oauth/consent')
 	})
 
 	it('issues tokens with the configured lifetimes after consent', async () => {

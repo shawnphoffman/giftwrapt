@@ -162,6 +162,13 @@
       "when": 1793294566385,
       "tag": "0022_barcode_lookup_history",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1794086517755,
+      "tag": "0023_mcp_client_first_approved",
+      "breakpoints": true
     }
   ]
 }
