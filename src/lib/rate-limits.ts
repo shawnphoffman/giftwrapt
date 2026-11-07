@@ -127,3 +127,15 @@ export const mcpLimiter = createDbRateLimiter({
 	max: 120,
 	windowMs: 60_000,
 })
+
+// Re-created MCP client registrations per signed-in user (see
+// `restoreUnknownClient` in src/server/mcp/oauth-gateway.ts). Each hit
+// writes an `oauth_application` row, and the restore runs before the
+// request reaches better-auth's own limiter, so this is the only cap.
+// DB-backed so it is one budget across instances. A real reconnect needs
+// exactly one.
+export const mcpClientRestoreLimiter = createDbRateLimiter({
+	name: 'mcp-client-restore',
+	max: 5,
+	windowMs: 60_000,
+})

@@ -226,6 +226,50 @@ describe('MCP OAuth flow', () => {
 		expect(new URL(relay.headers.get('location')!, BASE).pathname).toBe('/oauth/consent')
 	})
 
+	it('re-creates a swept registration from a signed-in authorize and completes the flow', async () => {
+		// Clients keep their client_id for good, so a registration the sweep
+		// (or an admin) removed comes back from the authorize request itself
+		// (see restoreUnknownClient in oauth-gateway.ts).
+		await db.delete(oauthApplication).where(eq(oauthApplication.clientId, clientId))
+		const tokens = await obtainTokens()
+		expect(tokens.access_token).toBeTruthy()
+		const row = await db.query.oauthApplication.findFirst({ where: (a, { eq: aeq }) => aeq(a.clientId, clientId) })
+		expect(row).toMatchObject({ name: 'localhost:9', type: 'public', redirectUrls: REDIRECT_URI, disabled: false, firstApprovedAt: null })
+	})
+
+	it('never re-creates a registration for an anonymous or malformed authorize, and leaves a disabled client alone', async () => {
+		const { challenge } = pkce()
+		const params = { code_challenge: challenge, code_challenge_method: 'S256' }
+		await db.delete(oauthApplication).where(eq(oauthApplication.clientId, clientId))
+
+		// No session: the plugin sends the browser to sign-in and nothing is written.
+		const anonymous = await authorize(params, false)
+		expect(new URL(anonymous.headers.get('location')!, BASE).pathname).toBe('/sign-in')
+		expect(await db.query.oauthApplication.findFirst({ where: (a, { eq: aeq }) => aeq(a.clientId, clientId) })).toBeUndefined()
+
+		// Signed in, but a client_id no client would mint: the plugin's own invalid_client answer stands.
+		const malformed = await authorize({ ...params, client_id: 'not a client id' })
+		expect(new URL(malformed.headers.get('location')!, BASE).pathname).toBe('/api/auth/error')
+		expect(await db.query.oauthApplication.findFirst({ where: (a, { eq: aeq }) => aeq(a.clientId, 'not a client id') })).toBeUndefined()
+
+		// A disabled registration is the admin refusing the client; it is not touched.
+		await db.insert(oauthApplication).values({
+			id: `disabled-${clientId}`,
+			name: 'Refused',
+			clientId,
+			clientSecret: '',
+			redirectUrls: REDIRECT_URI,
+			type: 'public',
+			disabled: true,
+		})
+		const refused = await authorize(params)
+		expect(new URL(refused.headers.get('location')!, BASE).searchParams.get('error')).toBe('client_disabled')
+		expect(await db.query.oauthApplication.findFirst({ where: (a, { eq: aeq }) => aeq(a.clientId, clientId) })).toMatchObject({
+			name: 'Refused',
+			disabled: true,
+		})
+	})
+
 	it('issues tokens with the configured lifetimes after consent', async () => {
 		const tokens = await obtainTokens()
 		expect(tokens.token_type.toLowerCase()).toBe('bearer')

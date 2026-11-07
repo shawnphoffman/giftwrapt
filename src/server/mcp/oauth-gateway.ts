@@ -37,19 +37,43 @@
 //    So the gateway never lets the cookie reach the browser and drops one
 //    that arrives anyway, before better-auth sees the request.
 //
+// 5. Reconnecting clients. Registrations used to be swept after 30 idle
+//    days (src/lib/cron/cleanup-oauth.ts), and the clients that held them
+//    (ChatGPT's workspace app, Claude Code) keep their client_id for good
+//    and never register again, so every reconnect died at authorize with
+//    `invalid_client` and a bounce to `/` (2026-11-07). An authorize
+//    request from a signed-in user for a client_id core does not know
+//    re-creates the registration from the request: a public client (PKCE,
+//    which core requires anyway) with that one redirect_uri, named after
+//    the redirect host. That is the trust dynamic registration already
+//    extends to anyone, the consent screen still gates every grant, and
+//    the row is swept again unless someone approves it. Disabling a
+//    client is how an admin refuses one; deleting only removes the row.
+//
 // Covered by src/server/mcp/__tests__/oauth-flow.integration.test.ts and
 // disabled.integration.test.ts.
 
+import { randomUUID } from 'node:crypto'
+
+import { eq } from 'drizzle-orm'
+
 import { db } from '@/db'
+import { oauthApplication } from '@/db/schema'
 import { auth } from '@/lib/auth'
+import { createLogger } from '@/lib/logger'
 import { MCP_DEFAULT_SCOPE } from '@/lib/mcp-config'
+import { mcpClientRestoreLimiter } from '@/lib/rate-limits'
 import { getAppSettings } from '@/lib/settings-loader'
+
+const log = createLogger('mcp:oauth-gateway')
 
 const MCP_AUTH_PREFIX = '/api/auth/mcp/'
 const MCP_AUTHORIZE = '/api/auth/mcp/authorize'
 const MCP_CONSENT = '/api/auth/oauth2/consent'
 const MCP_WELL_KNOWN_PREFIX = '/api/auth/.well-known/'
 const LOGIN_PROMPT_COOKIE = 'oidc_login_prompt'
+/** What the plugin mints and what clients echo back: short and URL-safe. */
+const CLIENT_ID_SHAPE = /^[A-Za-z0-9._~-]{8,128}$/
 
 /** Every better-auth route that exists only because of the `mcp()` plugin. */
 export function isMcpAuthPath(pathname: string): boolean {
@@ -109,6 +133,53 @@ export function withoutLoginPromptSetCookie(response: Response): Response {
 	return new Response(response.body, { status: response.status, statusText: response.statusText, headers })
 }
 
+export type RestoreOutcome = 'restored' | 'known' | 'skipped' | 'rate-limited'
+
+/**
+ * Re-creates the registration for a client_id core no longer knows from
+ * the authorize request itself (point 5 above). Only for a signed-in
+ * user, so an anonymous probe cannot fill the table, and a few per user
+ * per minute. The plugin then finds the client and carries on to consent.
+ */
+export async function restoreUnknownClient(params: URLSearchParams, headers: Headers): Promise<RestoreOutcome> {
+	const clientId = params.get('client_id')
+	const redirectUri = params.get('redirect_uri')
+	if (!clientId || !redirectUri || !CLIENT_ID_SHAPE.test(clientId)) return 'skipped'
+	let host: string
+	try {
+		const parsed = new URL(redirectUri)
+		host = parsed.host || parsed.protocol.replace(/:$/, '')
+	} catch {
+		return 'skipped'
+	}
+	const known = await db.select({ id: oauthApplication.id }).from(oauthApplication).where(eq(oauthApplication.clientId, clientId)).limit(1)
+	if (known.length > 0) return 'known'
+	const session = await auth.api.getSession({ headers })
+	if (!session) return 'skipped'
+	const limit = await mcpClientRestoreLimiter.consume(`user:${session.user.id}`)
+	if (!limit.allowed) return 'rate-limited'
+	const now = new Date()
+	const inserted = await db
+		.insert(oauthApplication)
+		.values({
+			id: randomUUID(),
+			name: host,
+			clientId,
+			clientSecret: '',
+			redirectUrls: redirectUri,
+			type: 'public',
+			authenticationScheme: 'none',
+			disabled: false,
+			createdAt: now,
+			updatedAt: now,
+		})
+		.onConflictDoNothing({ target: oauthApplication.clientId })
+		.returning({ id: oauthApplication.id })
+	if (inserted.length === 0) return 'known'
+	log.warn({ clientId, redirectUri, userId: session.user.id }, 'mcp client registration re-created from authorize')
+	return 'restored'
+}
+
 export async function handleAuthRequest(incoming: Request): Promise<Response> {
 	let request = withoutLoginPromptCookie(incoming)
 	const url = new URL(request.url)
@@ -121,6 +192,7 @@ export async function handleAuthRequest(incoming: Request): Promise<Response> {
 		if (url.pathname === MCP_AUTHORIZE) {
 			url.searchParams.set('prompt', 'consent')
 			url.searchParams.set('scope', grantableScope(url.searchParams.get('scope')))
+			await restoreUnknownClient(url.searchParams, request.headers)
 			request = new Request(url, request)
 		}
 	}
