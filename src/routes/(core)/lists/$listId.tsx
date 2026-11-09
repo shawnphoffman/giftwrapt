@@ -17,6 +17,7 @@ import { ArchiveRevealBadge } from '@/components/lists/archive-reveal-badge'
 import BackToParentList from '@/components/lists/back-to-parent-list'
 import { SAMPLE_ITEMS, SAMPLE_LIST_HEADING } from '@/components/lists/list-detail-sample'
 import { ListOrphanAlert } from '@/components/orphan-claims/list-orphan-alert'
+import { PendingPage } from '@/components/skeletons/pending-page'
 import { TodoList } from '@/components/todos/todo-list'
 import { RouteErrorFallback } from '@/components/utilities/route-error-fallback'
 import { perfTime } from '@/lib/observability/perf'
@@ -82,13 +83,11 @@ export const Route = createFileRoute('/(core)/lists/$listId')({
 
 function ListDetailPending() {
 	return (
-		<div className="wish-page">
-			<div className="flex flex-col flex-1 gap-6">
-				<Skeleton loading label="Loading list">
-					<ListDetailSkeleton />
-				</Skeleton>
-			</div>
-		</div>
+		<PendingPage>
+			<Skeleton loading label="Loading list">
+				<ListDetailSkeleton />
+			</Skeleton>
+		</PendingPage>
 	)
 }
 
@@ -116,10 +115,10 @@ function ListDetailPage() {
 // shape per list, so a repeat visit draws that instead.
 function ListDetailSkeleton() {
 	return (
-		<>
+		<div className="flex flex-col gap-6">
 			<ListHeading list={SAMPLE_LIST_HEADING} />
 			<ItemListView items={SAMPLE_ITEMS} />
-		</>
+		</div>
 	)
 }
 
@@ -159,8 +158,10 @@ function ListDetailBody({ listId }: { listId: number }) {
 
 	const recipientName = recipientNameOf(list)
 
+	// Its own gap-6 column: skullet wraps this body in block-level elements,
+	// so it can't lean on the page column's gap.
 	return (
-		<>
+		<div className="flex flex-col gap-6">
 			<ListHeading list={list} />
 			{list.description && <MarkdownNotes content={list.description} className="text-muted-foreground" />}
 			{list.type !== 'todos' && <ListOrphanAlert listId={list.id} />}
@@ -201,6 +202,6 @@ function ListDetailBody({ listId }: { listId: number }) {
 					</Suspense>
 				</>
 			)}
-		</>
+		</div>
 	)
 }

@@ -294,3 +294,12 @@ code {
 [skullet-ghost] {
 	isolation: isolate;
 }
+
+/* After a route's pending skeleton (PendingPage), the page that replaces it
+   appears at once instead of fading in from blank. Zero duration rather
+   than `animation: none`, so the animation counts as finished and does not
+   replay when the mark is removed. */
+html[data-skip-page-in] .wish-page:not([data-pending-page]) {
+	animation-duration: 0s;
+	animation-delay: 0s;
+}
