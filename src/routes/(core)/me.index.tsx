@@ -1,9 +1,10 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { Baby, ListOrdered, Plus, Search, Sprout } from 'lucide-react'
-import { Suspense, useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
+import { SkeletonSuspense } from 'skullet/react'
 
-import { type ChildListGroup, type DependentListGroup, getMyLists, type MyListRow } from '@/api/lists'
+import { type ChildListGroup, type DependentListGroup, getMyLists, type MyListRow, type MyListsResult } from '@/api/lists'
 import DependentAvatar from '@/components/common/dependent-avatar'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import { PageHeading } from '@/components/common/page-heading'
@@ -21,10 +22,10 @@ import {
 	ListsCardLists,
 	ListsCardTitle,
 } from '@/components/lists/lists-card'
+import { SAMPLE_MY_LISTS } from '@/components/lists/my-lists-sample'
 import { PrimaryListNudge } from '@/components/lists/primary-list-nudge'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
 import { perfTime } from '@/lib/observability/perf'
 import { useMeSSE } from '@/lib/use-me-sse'
 import { pageHead } from '@/routes/-head'
@@ -120,9 +121,9 @@ function MyListsPage() {
 						Mark any list as <strong>primary</strong> from its action menu. Quick-imported gift ideas land there by default.
 					</div>
 					<ListTypeLegend />
-					<Suspense fallback={<MyListsPageBodySkeleton />}>
+					<SkeletonSuspense id="my-lists" label="Loading lists" skeleton={<MyListsPageBodySkeleton />}>
 						<MyListsPageBody />
-					</Suspense>
+					</SkeletonSuspense>
 				</div>
 			</div>
 		</>
@@ -131,12 +132,20 @@ function MyListsPage() {
 
 function MyListsPageBody() {
 	const { data } = useSuspenseQuery(myListsQueryOptions)
+	return <MyListsView data={data} nudge={<PrimaryListNudge />} />
+}
+
+// The page body without its query, so the loading skeleton can render the
+// real sections from sample data.
+function MyListsView({ data, nudge }: { data: MyListsResult; nudge?: ReactNode }) {
 	const editableGiftIdeas = data.editable.filter(l => l.type === 'giftideas')
 	const editableOther = data.editable.filter(l => l.type !== 'giftideas')
 
+	// Its own gap-6 column: skullet wraps this body in block-level elements,
+	// so it can't lean on the page column's gap.
 	return (
-		<>
-			<PrimaryListNudge />
+		<div className="flex flex-col gap-6">
+			{nudge}
 
 			{/* PUBLIC LISTS */}
 			<ListSection
@@ -248,26 +257,13 @@ function MyListsPageBody() {
 					</ListsCardLists>
 				</ListsCard>
 			)}
-		</>
+		</div>
 	)
 }
 
+// Measured by skullet from the real sections rendered with sample data.
 function MyListsPageBodySkeleton() {
-	return (
-		<>
-			{Array.from({ length: 3 }).map((_section, sectionIdx) => (
-				<div key={sectionIdx} className="flex flex-col gap-2">
-					<Skeleton className="h-5 w-48" />
-					<Skeleton className="h-4 w-2/3 max-w-md" />
-					<div className="flex flex-col gap-2 mt-1">
-						{Array.from({ length: 2 }).map((_row, rowIdx) => (
-							<Skeleton key={rowIdx} className="h-12 w-full" />
-						))}
-					</div>
-				</div>
-			))}
-		</>
-	)
+	return <MyListsView data={SAMPLE_MY_LISTS} />
 }
 
 function ListSection({ title, description, lists }: { title: string; description: string; lists: Array<MyListRow> }) {

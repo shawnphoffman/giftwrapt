@@ -1,5 +1,6 @@
 import { useLiveQuery } from '@tanstack/react-db'
 import { Link } from '@tanstack/react-router'
+import { Skeleton } from 'skullet/react'
 
 import { ClientOnly } from '@/components/utilities/client-only'
 import type { BirthMonth } from '@/db/schema/enums'
@@ -8,7 +9,7 @@ import { dependentsWithListsCollection, usersWithListsCollection } from '@/db-co
 import { useSession } from '@/lib/auth-client'
 import { useListsSSE } from '@/lib/use-lists-sse'
 
-import ListsByUserSkeleton from '../skeletons/lists-by-user-skeleton'
+import { SAMPLE_FEED } from './lists-feed-sample'
 import ListsForDependent from './lists-for-dependent'
 import ListsForUser from './lists-for-user'
 
@@ -72,7 +73,7 @@ const sortByBirthDate = (a: BirthdayLike, b: BirthdayLike) => {
 	return aMonth - bMonth
 }
 
-const isDependent = (entry: UserWithLists | DependentWithLists): entry is DependentWithLists => 'guardianIds' in entry
+const isDependent = (entry: FeedEntry): entry is DependentWithLists => 'guardianIds' in entry
 
 function ListsByUserContent() {
 	const { data: session } = useSession()
@@ -93,24 +94,25 @@ function ListsByUserContent() {
 	const dependentsData = Array.from(dependentsResult.data.values()) as Array<DependentWithLists>
 	const isLoading = queryResult.isLoading || dependentsResult.isLoading
 
-	if (isLoading) {
-		return (
-			<div className="space-y-6">
-				{[...Array(3)].map((_, i) => (
-					<ListsByUserSkeleton key={i} />
-				))}
-			</div>
-		)
-	}
-
 	// Interleave users and dependents into one birthday-sorted stream.
 	// Hide entries with no lists from the feed; the page heading surfaces
 	// them via the info-icon popover instead.
-	const sortedEntries: Array<UserWithLists | DependentWithLists> = [...usersData, ...dependentsData]
-		.filter(entry => entry.lists.length > 0)
-		.sort(sortByBirthDate)
+	const sortedEntries: Array<FeedEntry> | null = isLoading
+		? null
+		: [...usersData, ...dependentsData].filter(entry => entry.lists.length > 0).sort(sortByBirthDate)
 
-	if (sortedEntries.length === 0) {
+	return (
+		<Skeleton id="lists-feed" label="Loading lists" data={sortedEntries} sample={SAMPLE_FEED}>
+			{entries => <ListsFeed entries={entries} isAdmin={isAdmin} />}
+		</Skeleton>
+	)
+}
+
+type FeedEntry = UserWithLists | DependentWithLists
+
+// The loaded feed, also rendered from sample data for the loading skeleton.
+function ListsFeed({ entries, isAdmin }: { entries: Array<FeedEntry>; isAdmin: boolean }) {
+	if (entries.length === 0) {
 		return (
 			<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30">
 				No users.
@@ -129,7 +131,7 @@ function ListsByUserContent() {
 
 	return (
 		<div className="gap-2 flex flex-col">
-			{sortedEntries.map(entry =>
+			{entries.map(entry =>
 				isDependent(entry) ? (
 					<ListsForDependent key={`dep-${entry.id}`} dependent={entry} />
 				) : (
@@ -145,7 +147,13 @@ export function ListsByUser() {
 	// useLiveQuery uses useSyncExternalStore which requires getServerSnapshot for SSR
 	// Since this is a client-side live query feature, it should only render on the client
 	return (
-		<ClientOnly>
+		<ClientOnly
+			fallback={
+				<Skeleton loading label="Loading lists">
+					<ListsFeed entries={SAMPLE_FEED} isAdmin={false} />
+				</Skeleton>
+			}
+		>
 			<ListsByUserContent />
 		</ClientOnly>
 	)

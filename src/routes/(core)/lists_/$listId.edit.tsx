@@ -1,12 +1,13 @@
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, Link, notFound, useRouter } from '@tanstack/react-router'
-import { Group as GroupIcon, ListOrdered, Settings2, Shuffle } from 'lucide-react'
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { Group as GroupIcon, ListOrdered, Settings, Settings2, Shuffle } from 'lucide-react'
+import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
+import { Skeleton, SkeletonSuspense } from 'skullet/react'
 import { toast } from 'sonner'
 
 import { createItemGroup, deleteItemGroup, reorderGroupItems } from '@/api/groups'
 import { getAddableEditors, getListEditors } from '@/api/list-editors'
-import { getListForEditing, getListSummaries, type ListForEditing, type ListSummary } from '@/api/lists'
+import { getListForEditing, getListSummaries, type ItemForEditing, type ListForEditing, type ListSummary } from '@/api/lists'
 import DependentAvatar from '@/components/common/dependent-avatar'
 import ListTypeTile from '@/components/common/list-type-tile'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
@@ -16,16 +17,16 @@ import { AddItemSplitButton } from '@/components/items/import/add-item-split-but
 import { InternalListLinksProvider } from '@/components/items/internal-list-links-context'
 import { ItemEditRow } from '@/components/items/item-edit-row'
 import { ItemFormDialog } from '@/components/items/item-form-dialog'
-import { ItemListSkeleton } from '@/components/items/item-list-skeleton'
 import { MoveItemDialog } from '@/components/items/move-item-dialog'
 import { AddBirthdayBanner } from '@/components/lists/add-birthday-banner'
 import { ArchiveManagerBadge } from '@/components/lists/archive-manager-badge'
 import BackToParentList from '@/components/lists/back-to-parent-list'
+import { SAMPLE_ITEMS, SAMPLE_LIST_HEADING } from '@/components/lists/list-detail-sample'
 import { ListSettingsSheet } from '@/components/lists/list-settings-sheet'
+import { PendingPage } from '@/components/skeletons/pending-page'
 import { TodoList } from '@/components/todos/todo-list'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Skeleton } from '@/components/ui/skeleton'
 import type { GroupType } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { buildListEntries } from '@/lib/list-entries'
@@ -72,24 +73,14 @@ export const Route = createFileRoute('/(core)/lists_/$listId/edit')({
 	pendingComponent: ListEditPagePending,
 })
 
+// Shown instead of the app-wide spinner while the loader resolves the list.
 function ListEditPagePending() {
 	return (
-		<div className="wish-page">
-			<div className="flex flex-col flex-1 gap-6">
-				<div className="relative flex items-center gap-3">
-					<Skeleton className="h-7 w-2/3 max-w-sm flex-1" />
-					<Skeleton className="size-8 rounded" />
-					<Skeleton className="size-8 rounded" />
-				</div>
-				<div className="flex flex-col gap-2">
-					<div className="flex items-center justify-end gap-2">
-						<Skeleton className="h-8 w-24" />
-						<Skeleton className="h-8 w-24" />
-					</div>
-					<ItemListSkeleton />
-				</div>
-			</div>
-		</div>
+		<PendingPage>
+			<Skeleton loading label="Loading list">
+				<ListEditSkeleton />
+			</Skeleton>
+		</PendingPage>
 	)
 }
 
@@ -180,27 +171,10 @@ function ListEditPage() {
 	return (
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
-				{/* HEADING */}
-				<div className="flex flex-col gap-1">
-					<BackToParentList from={from} />
-					<div className="flex items-center gap-1 xs:gap-3 min-w-0">
-						{list.subjectDependent ? (
-							<DependentAvatar
-								name={list.subjectDependent.name}
-								image={list.subjectDependent.image}
-								size="large"
-								className="border-2 border-background"
-							/>
-						) : !list.isOwner ? (
-							<UserAvatar
-								name={list.owner.name || list.owner.email}
-								image={list.owner.image}
-								size="large"
-								className="border-2 border-background"
-							/>
-						) : null}
-						<ListTypeTile type={list.type} />
-						<h1 className="truncate flex-1">{list.name}</h1>
+				<EditListHeading
+					list={list}
+					back={<BackToParentList from={from} />}
+					settings={
 						<ListSettingsSheet
 							listId={list.id}
 							name={list.name}
@@ -217,8 +191,8 @@ function ListEditPage() {
 							lastArchivedAt={list.archiveInfo.lastArchivedAt}
 							defaultOpen={initialSettingsOpen}
 						/>
-					</div>
-				</div>
+					}
+				/>
 				{list.description && <MarkdownNotes content={list.description} className="text-muted-foreground" />}
 				{list.isOwner && list.archiveInfo.notApplicableReason === 'owner-no-birthday' && <AddBirthdayBanner />}
 				{list.archiveInfo.notApplicableReason === 'dependent-no-birthday' && list.subjectDependent && (
@@ -232,44 +206,21 @@ function ListEditPage() {
 					<TodoList listId={list.id} canEdit />
 				) : (
 					<div className="flex flex-col gap-2">
-						<div className="flex flex-wrap items-center justify-end gap-2">
-							<ArchiveManagerBadge
-								listId={list.id}
-								archiveInfo={list.archiveInfo}
-								recipientName={list.subjectDependent ? list.subjectDependent.name : list.owner.name || list.owner.email}
-							/>
-							<div className="flex gap-2">
-								{list.isOwner && (
-									<Button size="sm" variant="outline" asChild>
-										<Link to="/lists/$listId/organize" params={{ listId: String(list.id) }}>
-											<Settings2 className="size-4" />
-											<span className="sr-only xs:not-sr-only">Organize</span>
-										</Link>
-									</Button>
-								)}
-								{list.isOwner && (
-									<DropdownMenu>
-										<DropdownMenuTrigger asChild>
-											<Button size="sm" variant="outline">
-												<GroupIcon className="size-4" /> <span className="xs:hidden">Group</span>
-												<span className="hidden xs:inline">New Group</span>
-											</Button>
-										</DropdownMenuTrigger>
-										<DropdownMenuContent align="end">
-											<DropdownMenuItem onClick={() => handleCreateGroup('or')}>
-												<Shuffle className="size-4" /> Pick One
-											</DropdownMenuItem>
-											<DropdownMenuItem onClick={() => handleCreateGroup('order')}>
-												<ListOrdered className="size-4" /> In Order
-											</DropdownMenuItem>
-										</DropdownMenuContent>
-									</DropdownMenu>
-								)}
-								<AddItemSplitButton listId={list.id} onAddItem={() => openAddItemDialog(null)} onAddItemFromPhoto={openAddItemFromPhoto} />
-							</div>
-						</div>
-
-						<Suspense fallback={<ItemListSkeleton />}>
+						<EditListToolbar
+							listId={list.id}
+							isOwner={list.isOwner}
+							leading={
+								<ArchiveManagerBadge
+									listId={list.id}
+									archiveInfo={list.archiveInfo}
+									recipientName={list.subjectDependent ? list.subjectDependent.name : list.owner.name || list.owner.email}
+								/>
+							}
+							onCreateGroup={handleCreateGroup}
+							onAddItem={() => openAddItemDialog(null)}
+							onAddItemFromPhoto={openAddItemFromPhoto}
+						/>
+						<SkeletonSuspense id={`list-edit-items-${list.id}`} label="Loading items" skeleton={<EditItemsSkeleton />}>
 							<EditItemsBody
 								list={list}
 								onMoveItem={onMoveItem}
@@ -277,7 +228,7 @@ function ListEditPage() {
 								onDeleteGroup={handleDeleteGroup}
 								onReorder={handleReorder}
 							/>
-						</Suspense>
+						</SkeletonSuspense>
 					</div>
 				)}
 			</div>
@@ -312,6 +263,124 @@ function ListEditPage() {
 	)
 }
 
+type EditListHeadingProps = {
+	list: Pick<ListForEditing, 'name' | 'type' | 'isOwner' | 'owner' | 'subjectDependent'>
+	back?: ReactNode
+	settings: ReactNode
+}
+
+function EditListHeading({ list, back, settings }: EditListHeadingProps) {
+	return (
+		<div className="flex flex-col gap-1">
+			{back}
+			<div className="flex items-center gap-1 xs:gap-3 min-w-0">
+				{list.subjectDependent ? (
+					<DependentAvatar
+						name={list.subjectDependent.name}
+						image={list.subjectDependent.image}
+						size="large"
+						className="border-2 border-background"
+					/>
+				) : !list.isOwner ? (
+					<UserAvatar
+						name={list.owner.name || list.owner.email}
+						image={list.owner.image}
+						size="large"
+						className="border-2 border-background"
+					/>
+				) : null}
+				<ListTypeTile type={list.type} />
+				<h1 className="truncate flex-1">{list.name}</h1>
+				{settings}
+			</div>
+		</div>
+	)
+}
+
+type EditListToolbarProps = {
+	listId: number
+	isOwner: boolean
+	leading: ReactNode
+	onCreateGroup: (type: GroupType) => void
+	onAddItem: () => void
+	onAddItemFromPhoto: (file: File) => void
+}
+
+function EditListToolbar({ listId, isOwner, leading, onCreateGroup, onAddItem, onAddItemFromPhoto }: EditListToolbarProps) {
+	return (
+		<div className="flex flex-wrap items-center justify-end gap-2">
+			{leading}
+			<div className="flex gap-2">
+				{isOwner && (
+					<Button size="sm" variant="outline" asChild>
+						<Link to="/lists/$listId/organize" params={{ listId: String(listId) }}>
+							<Settings2 className="size-4" />
+							<span className="sr-only xs:not-sr-only">Organize</span>
+						</Link>
+					</Button>
+				)}
+				{isOwner && (
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button size="sm" variant="outline">
+								<GroupIcon className="size-4" /> <span className="xs:hidden">Group</span>
+								<span className="hidden xs:inline">New Group</span>
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							<DropdownMenuItem onClick={() => onCreateGroup('or')}>
+								<Shuffle className="size-4" /> Pick One
+							</DropdownMenuItem>
+							<DropdownMenuItem onClick={() => onCreateGroup('order')}>
+								<ListOrdered className="size-4" /> In Order
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				)}
+				<AddItemSplitButton listId={listId} onAddItem={onAddItem} onAddItemFromPhoto={onAddItemFromPhoto} />
+			</div>
+		</div>
+	)
+}
+
+const noop = () => {}
+const noopAsync = async () => {}
+
+// Measured by skullet from the real heading, toolbar and rows rendered with
+// sample data, as the owner sees them. Used while the loader runs and while
+// the items load, so both waits read as one skeleton.
+function ListEditSkeleton() {
+	return (
+		<div className="flex flex-col gap-6">
+			<EditListHeading
+				list={{ ...SAMPLE_LIST_HEADING, isOwner: true }}
+				settings={
+					<Button variant="outline" size="icon" tabIndex={-1}>
+						<Settings className="size-4" />
+					</Button>
+				}
+			/>
+			<div className="flex flex-col gap-2">
+				<EditListToolbar listId={0} isOwner leading={null} onCreateGroup={noop} onAddItem={noop} onAddItemFromPhoto={noop} />
+				<EditItemsSkeleton />
+			</div>
+		</div>
+	)
+}
+
+function EditItemsSkeleton() {
+	return (
+		<EditItemsView
+			list={{ id: 0, groups: [], isOwner: true }}
+			items={SAMPLE_ITEMS}
+			onMoveItem={undefined}
+			onAddItem={noop}
+			onDeleteGroup={noopAsync}
+			onReorder={noopAsync}
+		/>
+	)
+}
+
 type EditItemsBodyProps = {
 	list: ListForEditing
 	onMoveItem: ((item: Item) => void) | undefined
@@ -320,8 +389,19 @@ type EditItemsBodyProps = {
 	onReorder: (groupId: number, items: Array<Item>, fromIndex: number, direction: -1 | 1) => Promise<void>
 }
 
-function EditItemsBody({ list, onMoveItem, onAddItem, onDeleteGroup, onReorder }: EditItemsBodyProps) {
-	const { data: items } = useSuspenseQuery(listItemsEditQueryOptions(list.id))
+function EditItemsBody(props: EditItemsBodyProps) {
+	const { data: items } = useSuspenseQuery(listItemsEditQueryOptions(props.list.id))
+	return <EditItemsView {...props} items={items} />
+}
+
+type EditItemsViewProps = Omit<EditItemsBodyProps, 'list'> & {
+	list: Pick<ListForEditing, 'id' | 'groups' | 'isOwner'>
+	items: Array<ItemForEditing>
+}
+
+// The items body without its query, so the loading skeleton can render the
+// real rows from sample items (see list-detail-sample.ts).
+function EditItemsView({ list, items, onMoveItem, onAddItem, onDeleteGroup, onReorder }: EditItemsViewProps) {
 	const entries = buildListEntries({ items, groups: list.groups })
 
 	const internalListIds = useMemo(() => {
