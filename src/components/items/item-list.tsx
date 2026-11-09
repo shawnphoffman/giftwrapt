@@ -107,8 +107,18 @@ function sortIsDescending(sort: SortValue): boolean {
 	return sort === 'priority-desc' || sort === 'date-desc'
 }
 
-export default function ItemList({ listId, groups = [], filterBarLeading }: Props) {
+export default function ItemList({ listId, groups, filterBarLeading }: Props) {
 	const { data: items } = useSuspenseQuery(listItemsViewQueryOptions(listId))
+	return <ItemListView items={items} groups={groups} filterBarLeading={filterBarLeading} />
+}
+
+type ViewProps = Omit<Props, 'listId'> & {
+	items: Array<ItemWithGifts>
+}
+
+// The list body without its query, so a loading skeleton can render the
+// real layout from sample items (see list-detail-sample.ts).
+export function ItemListView({ items, groups = [], filterBarLeading }: ViewProps) {
 	const [filter, setFilter] = useState<FilterValue>('all')
 	const [vendorFilter, setVendorFilter] = useState<ReadonlySet<string>>(() => new Set())
 	const [sort, setSort] = useState<SortValue>('priority-desc')

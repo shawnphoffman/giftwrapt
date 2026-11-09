@@ -286,3 +286,11 @@ code {
 		@apply size-22 -left-2 -top-6 opacity-30 absolute -z-10;
 	}
 }
+
+/* Skullet draws skeleton bars in a layer after the invisible content it
+   measured. Rows like the item card use `relative z-10`, which would paint
+   above that layer and hide the bars; isolating the measured content keeps
+   its z-indexes inside it. */
+[skullet-ghost] {
+	isolation: isolate;
+}

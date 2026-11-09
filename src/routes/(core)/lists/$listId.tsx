@@ -1,23 +1,23 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, notFound, redirect } from '@tanstack/react-router'
 import { Suspense } from 'react'
+import { Skeleton, SkeletonSuspense } from 'skullet/react'
 
-import { getListAccess } from '@/api/lists'
+import { getListAccess, type ListHeader } from '@/api/lists'
 import DependentAvatar from '@/components/common/dependent-avatar'
 import ListTypeTile from '@/components/common/list-type-tile'
 import { MarkdownNotes } from '@/components/common/markdown-notes'
 import UserAvatar from '@/components/common/user-avatar'
 import { GiftHelpButton } from '@/components/gift-help/gift-help-dialog'
 import { GiftIdeasOnList } from '@/components/gift-ideas/gift-ideas-section'
-import ItemList from '@/components/items/item-list'
-import { ItemListSkeleton } from '@/components/items/item-list-skeleton'
+import ItemList, { ItemListView } from '@/components/items/item-list'
 import { ListAddonsSection } from '@/components/list-addons/list-addons-section'
 import { ListAddonsSectionSkeleton } from '@/components/list-addons/list-addons-section-skeleton'
 import { ArchiveRevealBadge } from '@/components/lists/archive-reveal-badge'
 import BackToParentList from '@/components/lists/back-to-parent-list'
+import { SAMPLE_ITEMS, SAMPLE_LIST_HEADING } from '@/components/lists/list-detail-sample'
 import { ListOrphanAlert } from '@/components/orphan-claims/list-orphan-alert'
 import { TodoList } from '@/components/todos/todo-list'
-import { Skeleton } from '@/components/ui/skeleton'
 import { RouteErrorFallback } from '@/components/utilities/route-error-fallback'
 import { perfTime } from '@/lib/observability/perf'
 import { listHeaderQueryOptions } from '@/lib/queries/lists' // used by useSuspenseQuery below
@@ -73,8 +73,24 @@ export const Route = createFileRoute('/(core)/lists/$listId')({
 		return { listId: access.listId, listName: access.name }
 	},
 	head: pageHead<{ listName: string }>(d => d?.listName ?? 'List'),
+	// Shown instead of the app-wide spinner while the loader resolves
+	// access, so a slow loader and the header fetch after it read as one
+	// skeleton rather than a spinner followed by a skeleton.
+	pendingComponent: ListDetailPending,
 	component: ListDetailPage,
 })
+
+function ListDetailPending() {
+	return (
+		<div className="wish-page">
+			<div className="flex flex-col flex-1 gap-6">
+				<Skeleton loading label="Loading list">
+					<ListDetailSkeleton />
+				</Skeleton>
+			</div>
+		</div>
+	)
+}
 
 function ListDetailPage() {
 	const { listId } = Route.useLoaderData()
@@ -87,60 +103,65 @@ function ListDetailPage() {
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
 				<BackToParentList from={from} />
-				<Suspense fallback={<ListDetailHeaderSkeleton />}>
+				<SkeletonSuspense id={`list-detail-${listId}`} label="Loading list" skeleton={<ListDetailSkeleton />}>
 					<ListDetailBody listId={listId} />
-				</Suspense>
+				</SkeletonSuspense>
 			</div>
 		</div>
 	)
 }
 
-function ListDetailHeaderSkeleton() {
+// Measured by skullet from the real components rendered with sample data,
+// so the skeleton has the page's own layout. The id remembers the last real
+// shape per list, so a repeat visit draws that instead.
+function ListDetailSkeleton() {
 	return (
 		<>
-			<div className="relative flex items-center gap-3">
-				<div className="flex flex-col gap-0.5 min-w-0 flex-1">
-					<div className="flex items-center min-w-0 gap-2">
-						<Skeleton className="size-8 rounded-full shrink-0" />
-						<Skeleton className="h-7 w-2/3 max-w-sm" />
-					</div>
-				</div>
-				<Skeleton className="size-8 rounded" />
-			</div>
-			<ItemListSkeleton />
+			<ListHeading list={SAMPLE_LIST_HEADING} />
+			<ItemListView items={SAMPLE_ITEMS} />
 		</>
+	)
+}
+
+function recipientNameOf(list: Pick<ListHeader, 'owner' | 'subjectDependent'>): string {
+	return list.subjectDependent ? list.subjectDependent.name : list.owner.name || list.owner.email
+}
+
+function ListHeading({ list }: { list: Pick<ListHeader, 'name' | 'type' | 'owner' | 'subjectDependent'> }) {
+	// For dependent-subject lists the recipient is the dependent (pet,
+	// baby, etc.), not the user who created the list. Swap to the
+	// DependentAvatar (Sprout fallback) when the subject is set.
+	const recipientName = recipientNameOf(list)
+	return (
+		<div className="flex flex-col gap-1">
+			<div className="flex items-center gap-1 xs:gap-3 min-w-0 group/list-title ">
+				<div className="origin-center transition-transform duration-200 ease-out group-hover/list-title:scale-125 group-hover/list-title:-rotate-3">
+					{list.subjectDependent ? (
+						<DependentAvatar
+							name={list.subjectDependent.name}
+							image={list.subjectDependent.image}
+							size="large"
+							className=" border-2 border-background"
+						/>
+					) : (
+						<UserAvatar name={recipientName} image={list.owner.image} size="large" className="border-2 border-background" />
+					)}
+				</div>
+				<ListTypeTile type={list.type} />
+				<h1 className="truncate">{list.name}</h1>
+			</div>
+		</div>
 	)
 }
 
 function ListDetailBody({ listId }: { listId: number }) {
 	const { data: list } = useSuspenseQuery(listHeaderQueryOptions(listId))
 
-	// For dependent-subject lists the recipient is the dependent (pet,
-	// baby, etc.), not the user who created the list. Swap to the
-	// DependentAvatar (Sprout fallback) when the subject is set.
-	const recipientName = list.subjectDependent ? list.subjectDependent.name : list.owner.name || list.owner.email
+	const recipientName = recipientNameOf(list)
 
 	return (
 		<>
-			{/* HEADING */}
-			<div className="flex flex-col gap-1">
-				<div className="flex items-center gap-1 xs:gap-3 min-w-0 group/list-title ">
-					<div className="origin-center transition-transform duration-200 ease-out group-hover/list-title:scale-125 group-hover/list-title:-rotate-3">
-						{list.subjectDependent ? (
-							<DependentAvatar
-								name={list.subjectDependent.name}
-								image={list.subjectDependent.image}
-								size="large"
-								className=" border-2 border-background"
-							/>
-						) : (
-							<UserAvatar name={recipientName} image={list.owner.image} size="large" className="border-2 border-background" />
-						)}
-					</div>
-					<ListTypeTile type={list.type} />
-					<h1 className="truncate">{list.name}</h1>
-				</div>
-			</div>
+			<ListHeading list={list} />
 			{list.description && <MarkdownNotes content={list.description} className="text-muted-foreground" />}
 			{list.type !== 'todos' && <ListOrphanAlert listId={list.id} />}
 			{list.type === 'todos' ? (
@@ -155,7 +176,7 @@ function ListDetailBody({ listId }: { listId: number }) {
 			) : (
 				<>
 					{/* ITEMS */}
-					<Suspense fallback={<ItemListSkeleton />}>
+					<SkeletonSuspense id={`list-items-${list.id}`} label="Loading items" skeleton={<ItemListView items={SAMPLE_ITEMS} />}>
 						<ItemList
 							listId={list.id}
 							groups={list.groups}
@@ -169,7 +190,7 @@ function ListDetailBody({ listId }: { listId: number }) {
 								</>
 							}
 						/>
-					</Suspense>
+					</SkeletonSuspense>
 					{/* GIFT IDEAS: the viewer's ideas for this recipient (renders nothing without any) */}
 					<Suspense fallback={null}>
 						<GiftIdeasOnList listId={list.id} recipientName={recipientName} />

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 
 import { SignOutPageContent } from '@/components/auth/sign-out-page'
 import { signOut } from '@/lib/auth-client'
+import { forgetSkeletonShapes } from '@/lib/skullet'
 import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(auth)/sign-out')({
@@ -33,6 +34,7 @@ function SignOut() {
 			// forces loaders to refetch on the next route.
 			const purgeCaches = async () => {
 				queryClient.clear()
+				forgetSkeletonShapes()
 				await router.invalidate()
 			}
 			try {

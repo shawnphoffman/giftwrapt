@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 
 import { SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar'
 import { authClient, useSession } from '@/lib/auth-client'
+import { forgetSkeletonShapes } from '@/lib/skullet'
 import { cn } from '@/lib/utils'
 
 export default function StopImpersonationLink() {
@@ -26,6 +27,7 @@ export default function StopImpersonationLink() {
 				toast.error(result.error.message || 'Failed to stop impersonation')
 			} else {
 				toast.success('Stopped impersonating')
+				forgetSkeletonShapes()
 				// Reload the page to reflect the new session
 				window.location.href = '/'
 			}

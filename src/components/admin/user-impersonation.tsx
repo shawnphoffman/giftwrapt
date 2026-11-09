@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { User } from '@/db-collections/users'
 import { authClient, useSession } from '@/lib/auth-client'
+import { forgetSkeletonShapes } from '@/lib/skullet'
 
 import UserAvatar from '../common/user-avatar'
 import LoadingSkeleton from '../skeletons/loading-skeleton'
@@ -51,6 +52,7 @@ export function UserImpersonation() {
 				toast.error(result.error.message || 'Failed to impersonate user')
 			} else {
 				toast.success('Impersonation started successfully')
+				forgetSkeletonShapes()
 				// Reload the page to reflect the new session
 				window.location.href = '/'
 			}

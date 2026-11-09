@@ -5,6 +5,7 @@ import { createRootRouteWithContext, HeadContent, Scripts, useRouterState } from
 import { createServerFn } from '@tanstack/react-start'
 import { getCookie, getRequestHeaders } from '@tanstack/react-start/server'
 import { ThemeProvider } from 'next-themes'
+import { SkulletProvider } from 'skullet/react'
 
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
@@ -16,6 +17,7 @@ import { observabilityStatusQueryOptions } from '@/hooks/use-observability-statu
 import { storageStatusQueryOptions } from '@/hooks/use-storage-status'
 import { isEmbeddedUserAgent } from '@/lib/embedded'
 import { captureClientException } from '@/lib/observability/sentry-client'
+import { SKULLET_THEME } from '@/lib/skullet'
 import { readTextSizeCookie, resolveTextSize, TEXT_SIZE_COOKIE, type TextSize, textSizeStyle } from '@/lib/text-size'
 
 import ErrorBoundaryFallback from './-error-boundary'
@@ -96,12 +98,14 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 					<SentryClientInit />
 					<NavPerfTimer />
 					<TooltipProvider>
-						<ErrorBoundary
-							fallback={(error, reset) => <ErrorBoundaryFallback error={error} reset={reset} />}
-							onError={error => captureClientException(error)}
-						>
-							{children}
-						</ErrorBoundary>
+						<SkulletProvider theme={SKULLET_THEME}>
+							<ErrorBoundary
+								fallback={(error, reset) => <ErrorBoundaryFallback error={error} reset={reset} />}
+								onError={error => captureClientException(error)}
+							>
+								{children}
+							</ErrorBoundary>
+						</SkulletProvider>
 					</TooltipProvider>
 					<Scripts />
 					<Toaster />
