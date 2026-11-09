@@ -28,6 +28,18 @@ export default defineNitroPlugin(async () => {
 		return
 	}
 
+	// Vercel functions have no boot healthcheck to fail, and Nitro doesn't
+	// await this plugin before serving. The instance is frozen once the first
+	// response goes out, so the HeadBucket stays in flight and resolves on the
+	// next thaw, often 20+ minutes later. By then its SigV4 signature has
+	// expired, storage answers 403, and the rethrow below crashes the instance
+	// as an unhandled rejection. Skip the probe there; uploads still surface
+	// bad credentials per request.
+	if (process.env.VERCEL) {
+		log.info({ endpoint: env.STORAGE_ENDPOINT, bucket: env.STORAGE_BUCKET }, 'storage.boot.skipped: running on Vercel')
+		return
+	}
+
 	const storage = getStorage()
 	if (!storage) return
 	try {
