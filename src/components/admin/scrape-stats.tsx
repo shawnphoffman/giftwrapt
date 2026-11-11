@@ -312,7 +312,7 @@ function DomainUrlsDialog({ row, onClose }: { row: DomainAggregateRow | null; on
 									onClick={() => copyUrl(url)}
 									className="group flex w-full items-center gap-2 rounded-md border border-transparent px-2 py-1 text-left text-xs hover:border-border hover:bg-muted/50"
 								>
-									<Copy className="size-3 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+									<Copy className="size-3 shrink-0 text-muted-foreground can-hover:opacity-0 transition-opacity group-hover:opacity-100" />
 									<span className="font-mono break-all">{url}</span>
 								</button>
 							</li>

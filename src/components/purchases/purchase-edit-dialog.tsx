@@ -435,7 +435,7 @@ function AttachmentTile({ url, disabled, onRemove }: { url: string; disabled: bo
 				<button
 					type="button"
 					onClick={onRemove}
-					className="absolute top-1 right-1 rounded-full bg-background/90 text-foreground p-0.5 opacity-0 group-hover:opacity-100 focus:opacity-100 transition"
+					className="absolute top-1 right-1 rounded-full bg-background/90 text-foreground p-0.5 can-hover:opacity-0 group-hover:opacity-100 focus:opacity-100 transition"
 					aria-label="Remove attachment"
 				>
 					<X className="size-3.5" />

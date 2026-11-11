@@ -18,6 +18,12 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Devices with a real hover (mouse, trackpad). Use it for anything hidden until
+   hover: `can-hover:opacity-0 group-hover:opacity-100`. A bare `opacity-0` never
+   reveals on a touchscreen, because Tailwind's hover variants only fire under
+   this same media query. See "Hidden-until-hover controls" in docs/architecture.md. */
+@custom-variant can-hover (@media (hover: hover));
+
 body {
 	@apply m-0;
 	font-family: 'Public Sans Variable', sans-serif;

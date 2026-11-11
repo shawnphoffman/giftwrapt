@@ -284,7 +284,7 @@ function CommentRow({
 					</AnimatePresence>
 				</div>
 				{isOwn && !editing && (
-					<div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+					<div className="flex gap-0.5 can-hover:opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity shrink-0">
 						<Button variant="outline" size="icon-xs" onClick={startEditing} aria-label="Edit comment">
 							<Pencil className="size-3" />
 						</Button>

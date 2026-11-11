@@ -142,29 +142,40 @@ export default function AvatarUpload({ image, displayName, onUpload, onRemove, o
 				onCropped={handleCropped}
 			/>
 			<input type="file" className="hidden" ref={fileInputRef} onChange={handleFileChange} accept="image/*" disabled={busy} />
-			<Avatar
-				className="border-foreground group relative flex h-28 w-28 cursor-pointer flex-col items-center justify-center border-2 transition-all"
-				onClick={() => !busy && fileInputRef.current?.click()}
-			>
-				{isUploading ? (
-					<>
-						<div className="absolute z-20 flex h-28 w-28 items-center justify-center">
-							<Loader2 className="size-8 animate-spin" />
-						</div>
-						<AvatarImage src={image ?? undefined} className="opacity-20 grayscale transition-all" />
-					</>
-				) : (
-					<>
-						<div className="absolute z-10 flex h-28 w-28 items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
-							<Upload className="size-14" />
-						</div>
-						<AvatarImage src={image ?? undefined} className="transition-all group-hover:opacity-50 group-hover:grayscale" />
-						<AvatarFallback className="text-5xl font-bold transition-opacity group-hover:opacity-0">
-							{displayName?.charAt(0) ?? '?'}
-						</AvatarFallback>
-					</>
+			<div className="relative">
+				<Avatar
+					className="border-foreground group relative flex h-28 w-28 cursor-pointer flex-col items-center justify-center border-2 transition-all"
+					onClick={() => !busy && fileInputRef.current?.click()}
+				>
+					{isUploading ? (
+						<>
+							<div className="absolute z-20 flex h-28 w-28 items-center justify-center">
+								<Loader2 className="size-8 animate-spin" />
+							</div>
+							<AvatarImage src={image ?? undefined} className="opacity-20 grayscale transition-all" />
+						</>
+					) : (
+						<>
+							<div className="absolute z-10 hidden h-28 w-28 items-center justify-center transition-opacity can-hover:flex can-hover:opacity-0 group-hover:opacity-100">
+								<Upload className="size-14" />
+							</div>
+							<AvatarImage src={image ?? undefined} className="transition-all group-hover:opacity-50 group-hover:grayscale" />
+							<AvatarFallback className="text-5xl font-bold transition-opacity group-hover:opacity-0">
+								{displayName?.charAt(0) ?? '?'}
+							</AvatarFallback>
+						</>
+					)}
+				</Avatar>
+				{/* Touch devices never see the hover overlay above, so they get a fixed badge instead. */}
+				{!isUploading && (
+					<span
+						aria-hidden
+						className="bg-background border-foreground pointer-events-none absolute right-0 bottom-0 flex size-8 items-center justify-center rounded-full border-2 can-hover:hidden"
+					>
+						<Upload className="size-4" />
+					</span>
 				)}
-			</Avatar>
+			</div>
 			{image && (
 				<Button
 					variant="outline"
