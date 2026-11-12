@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.12.1](https://github.com/shawnphoffman/giftwrapt/compare/v1.12.0...v1.12.1) (2026-11-12)
+
+
+### Bug Fixes
+
+* **lists:** draw list page skeletons from the real layout ([4f36c75](https://github.com/shawnphoffman/giftwrapt/commit/4f36c7505621e53015c4e4d4524bbbaed37311da))
+* **lists:** measure edit, home and My Lists skeletons from the real layout ([730df03](https://github.com/shawnphoffman/giftwrapt/commit/730df0366ea6cc8f9f01c602ecae7d51babec890))
+* **lists:** restore list page section spacing ([1d03d5d](https://github.com/shawnphoffman/giftwrapt/commit/1d03d5d657a329c46a912669775129486aaef437))
+* **ui:** show hover-revealed controls on touch devices ([c688a90](https://github.com/shawnphoffman/giftwrapt/commit/c688a902c56fd94b18c86ffbb3309334505f0298))
+
 ## [1.12.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.11.0...v1.12.0) (2026-11-07)
 
 
