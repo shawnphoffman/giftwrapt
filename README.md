@@ -41,7 +41,7 @@ Everything lives at **[giftwrapt.dev](https://giftwrapt.dev)**:
 
 ## Status
 
-GiftWrapt is a personal project that I run for my family. It's stable enough that I trust it with our actual gift coordination, but it's still pre-1.0 and the schema occasionally changes between releases. Pin a specific image tag in production and read the [changelog](./CHANGELOG.md) before upgrading.
+GiftWrapt is a personal project that I run for my family. It's stable, and we trust it with our actual gift coordination. Pin a specific image tag in production and read the [changelog](./CHANGELOG.md) before upgrading.
 
 Releases are cut by [release-please](https://github.com/googleapis/release-please) on every merge to `main`. Container images are published to GitHub Container Registry: `ghcr.io/shawnphoffman/giftwrapt:vX.Y.Z`.
 
