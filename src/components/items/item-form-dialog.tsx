@@ -301,6 +301,9 @@ export function ItemFormDialog(props: Props) {
 		if (update.title !== undefined) form.setFieldValue('title', update.title)
 		if (update.price !== undefined) form.setFieldValue('price', update.price)
 		if (update.notes !== undefined) form.setFieldValue('notes', update.notes)
+		// Size, color, style, and where it is sold, as read from the photo.
+		// Only into an empty notes field: typed notes are never replaced.
+		else if (photoState.suggestedNotes && !values.notes.trim()) form.setFieldValue('notes', photoState.suggestedNotes)
 	}, [photoState, form, stagedPhotoFile])
 
 	// Manage the local preview URL for the staged photo. Created when a

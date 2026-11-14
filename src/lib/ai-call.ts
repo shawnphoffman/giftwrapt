@@ -34,6 +34,7 @@ export const AI_FEATURES = [
 	'scrape-provider',
 	'clean-title',
 	'photo-extract',
+	'barcode-identify',
 	'intelligence',
 	'gift-suggestions',
 	'paste-to-items',

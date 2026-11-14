@@ -11,6 +11,28 @@ const TIMEOUT_MS = 8_000
 interface UpcItemDbOffer {
 	link?: string
 	domain?: string
+	merchant?: string
+}
+
+const MAX_SOLD_AT = 3
+
+// The stores that list the product, most recently updated first as the
+// vendor returns them. Falls back to the offer's domain when it carries
+// no merchant name.
+function pickSoldAt(offers: Array<UpcItemDbOffer> | undefined): Array<string> {
+	const out: Array<string> = []
+	const seen = new Set<string>()
+	for (const offer of offers ?? []) {
+		const name =
+			(typeof offer.merchant === 'string' && offer.merchant.trim()) || (typeof offer.domain === 'string' && offer.domain.trim()) || ''
+		if (!name) continue
+		const key = name.toLowerCase()
+		if (seen.has(key)) continue
+		seen.add(key)
+		out.push(name)
+		if (out.length === MAX_SOLD_AT) break
+	}
+	return out
 }
 
 interface UpcItemDbItem {
@@ -42,6 +64,8 @@ function mapItem(item: UpcItemDbItem): ProviderResult {
 	if (image) out.imageUrl = image
 	const candidateUrl = pickCandidateUrl(item.offers)
 	if (candidateUrl) out.candidateUrl = candidateUrl
+	const soldAt = pickSoldAt(item.offers)
+	if (soldAt.length > 0) out.soldAt = soldAt
 	return out
 }
 

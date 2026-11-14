@@ -1,5 +1,7 @@
 import { index, integer, jsonb, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core'
 
+import type { ProductIdentity } from '@/lib/product-identify'
+
 import { timestamps } from './shared'
 import { users } from './users'
 
@@ -14,13 +16,25 @@ import { users } from './users'
 //
 // Independent from URL scraping: no FK to items / itemScrapes, never
 // surfaces in scrape history. Lifecycle is "fetch on miss; refresh
-// when older than `barcode.cacheTtlHours`."
+// when older than `barcode.cacheTtlHours`." An empty `results` array is
+// a remembered miss, honoured for a shorter time (see `MISS_TTL_HOURS`
+// in src/api/_products-impl.ts).
 
 export interface BarcodeCacheCandidate {
 	title?: string
 	brand?: string
 	imageUrl?: string
 	candidateUrl?: string
+	// Store names the provider lists for the product.
+	soldAt?: Array<string>
+	// The provider's own title, kept when the AI clean-up replaced `title`.
+	rawTitle?: string
+	// Fields the AI clean-up pulled out of the provider's title. Stored so
+	// a cached code is cleaned once. See src/lib/product-identify.ts.
+	identity?: ProductIdentity
+	// Notes lines written from `identity` and `soldAt` when the row is
+	// read. Never stored.
+	suggestedNotes?: string
 }
 
 export const productLookups = pgTable('product_lookups', {

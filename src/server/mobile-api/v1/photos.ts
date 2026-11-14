@@ -34,7 +34,7 @@ const log = createLogger('mobile-api:photos')
 
 const TOO_LARGE_MESSAGE = `The photo is larger than ${env.STORAGE_MAX_UPLOAD_MB} MB.`
 
-type FileResult = { kind: 'ok'; bytes: Buffer } | { kind: 'error'; response: Response }
+type FileResult = { kind: 'ok'; bytes: Buffer; form: FormData } | { kind: 'error'; response: Response }
 
 // Pull the `file` field out of a multipart body. Rejects on the declared
 // Content-Length before buffering when it's clearly over the limit (the
@@ -60,7 +60,15 @@ async function readImageFile(c: Context<MobileAuthContext>): Promise<FileResult>
 	if (file.size > ITEM_IMAGE_MAX_BYTES) {
 		return { kind: 'error', response: jsonError(c, 413, 'too-large', { message: TOO_LARGE_MESSAGE }) }
 	}
-	return { kind: 'ok', bytes: Buffer.from(await file.arrayBuffer()) }
+	return { kind: 'ok', bytes: Buffer.from(await file.arrayBuffer()), form }
+}
+
+// The optional `code` form field: a barcode as 6 to 14 digits.
+function readScannedCode(form: FormData): string | undefined {
+	const raw = form.get('code')
+	if (typeof raw !== 'string') return undefined
+	const code = raw.trim()
+	return /^\d{6,14}$/.test(code) ? code : undefined
 }
 
 function uploadErrorResponse(c: Context<MobileAuthContext>, reason: UploadErrorReason, message: string): Response {
@@ -84,11 +92,17 @@ function uploadErrorResponse(c: Context<MobileAuthContext>, reason: UploadErrorR
 const ItemIdSchema = z.coerce.number().int().positive()
 
 export function registerPhotoRoutes(v1: Hono<MobileAuthContext>): void {
-	// POST /v1/products/by-photo - one vision call that guesses the title,
-	// price, and a description from a product photo. Returns the same
+	// POST /v1/products/by-photo - one vision call that reads a product
+	// photo (usually a hang tag). Returns `result` in the same
 	// `ScrapeResult` shape as `GET /v1/scrape` (with `imageUrls` always
-	// empty) so iOS fills the form the same way. Shares the scrape rate
-	// limit, same as the web route.
+	// empty) so iOS fills the form the same way, plus `identity` (the typed
+	// fields) and `suggestedNotes` (notes lines the server wrote from them;
+	// omitted when there are none). Shares the scrape rate limit, same as
+	// the web route.
+	//
+	// Optional form field `code`: the barcode the client just scanned from
+	// the same item and could not resolve. Digits only; anything else is
+	// ignored.
 	//
 	// Errors: `photo-to-item-disabled` (503, the admin toggle is off or no
 	// AI provider is set up), `ai-budget-exceeded` (503), `timeout` (504),
@@ -107,14 +121,15 @@ export function registerPhotoRoutes(v1: Hono<MobileAuthContext>): void {
 		}
 
 		try {
-			const { result, ms } = await extractFromPhoto({
+			const { result, identity, suggestedNotes, ms } = await extractFromPhoto({
 				bytes: new Uint8Array(file.bytes),
 				mediaType,
 				signal: c.req.raw.signal,
 				userId: c.get('userId'),
 				source: 'mobile',
+				scannedCode: readScannedCode(file.form),
 			})
-			return c.json({ result, ms })
+			return c.json({ result, identity, suggestedNotes: suggestedNotes || undefined, ms })
 		} catch (error) {
 			if (error instanceof AiBudgetExceededError) return jsonError(c, 503, 'ai-budget-exceeded', { message: error.message })
 			if (error instanceof ScrapeProviderError) {

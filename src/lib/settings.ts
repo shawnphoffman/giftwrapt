@@ -566,6 +566,11 @@ export const appSettingsSchema = z.object({
 	// photo. On by default so deployments that already had AI configured
 	// keep the behavior they had before the toggle existed.
 	aiPhotoExtractEnabled: z.boolean(),
+	// Barcode clean-up: after a barcode provider finds a product, one text
+	// call turns its raw title into a clean one and moves size and color
+	// into notes lines. Off by default, like every AI feature added after
+	// the photo flow. See src/lib/product-identify.ts.
+	aiBarcodeIdentifyEnabled: z.boolean(),
 	// Gift suggestions: a gifter asks for ideas for someone whose list they
 	// can see. Off by default; it sends other people's list items to the AI
 	// provider. What exactly is sent is spelled out in src/lib/ai-features.ts.
@@ -710,6 +715,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	aiUsageRetentionDays: 90,
 	aiMonthlyCostCeilingUsd: null,
 	aiPhotoExtractEnabled: true,
+	aiBarcodeIdentifyEnabled: false,
 	aiGiftSuggestionsEnabled: false,
 	giftSuggestionsSearchUrl: null,
 	giftSuggestionRetentionDays: 90,

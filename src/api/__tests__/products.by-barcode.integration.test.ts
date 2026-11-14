@@ -13,10 +13,12 @@ import { withRollback } from '@test/integration/setup'
 import { asc, eq } from 'drizzle-orm'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { lookupProductByBarcodeImpl, runBarcodeProviderProbeImpl } from '@/api/_products-impl'
+import { lookupProductByBarcodeImpl, MISS_TTL_HOURS, runBarcodeProviderProbeImpl } from '@/api/_products-impl'
 import { barcodeLookupHistory, productLookups } from '@/db/schema'
 import type { BarcodeProvider, ProviderResult } from '@/lib/barcode-providers/types'
 import { sweepBarcodeLookupHistory } from '@/lib/barcodes/history'
+import type * as ProductIdentifyModule from '@/lib/product-identify'
+import type { ProductIdentity } from '@/lib/product-identify'
 import { type AppSettings, DEFAULT_APP_SETTINGS } from '@/lib/settings'
 
 const loadConfiguredBarcodeProvider = vi.fn<() => Promise<BarcodeProvider | null>>()
@@ -27,8 +29,21 @@ vi.mock('@/lib/barcode-providers/load-configured', () => ({
 	isKnownBarcodeProviderId: () => true,
 }))
 
+// The model call itself is stubbed; the cleaning and notes-writing halves
+// of the module stay real.
+const identifyProduct = vi.fn<(...args: Array<unknown>) => Promise<ProductIdentity>>()
+const loadIdentifyModel = vi.fn<() => Promise<{ model: never } | null>>()
+
+vi.mock('@/lib/product-identify', async importOriginal => ({
+	...(await importOriginal<typeof ProductIdentifyModule>()),
+	identifyProduct: (...args: Array<unknown>) => identifyProduct(...args),
+	loadIdentifyModel: () => loadIdentifyModel(),
+}))
+
 beforeEach(() => {
 	loadConfiguredBarcodeProvider.mockReset()
+	identifyProduct.mockReset()
+	loadIdentifyModel.mockReset()
 })
 
 function settings(overrides: Partial<AppSettings['barcode']> = {}): AppSettings {
@@ -114,18 +129,98 @@ describe('lookupProductByBarcodeImpl', () => {
 		})
 	})
 
-	it('returns not-found and DOES NOT cache when the provider returns null', async () => {
+	it('remembers a miss so a repeat scan makes no second provider call', async () => {
+		await withRollback(async tx => {
+			const provider = fakeProvider({ results: null })
+			loadConfiguredBarcodeProvider.mockResolvedValue(provider)
+			const first = await lookupProductByBarcodeImpl({ db: tx, rawCode: '0123456789012', settings: settings() })
+			const second = await lookupProductByBarcodeImpl({ db: tx, rawCode: '0123456789012', settings: settings() })
+			for (const result of [first, second]) {
+				expect(result.kind).toBe('error')
+				if (result.kind === 'error') expect(result.reason).toBe('not-found')
+			}
+			expect(provider.lookup).toHaveBeenCalledTimes(1)
+			const rows = await tx.select().from(productLookups)
+			expect(rows).toHaveLength(1)
+			expect(rows[0].results).toEqual([])
+		})
+	})
+
+	it('asks the provider again once a remembered miss is older than its window', async () => {
+		await withRollback(async tx => {
+			const stale = new Date(Date.now() - (MISS_TTL_HOURS + 1) * 60 * 60 * 1000)
+			await tx.insert(productLookups).values({ code: '00123456789012', providerId: 'upcitemdb-trial', results: [], updatedAt: stale })
+			const provider = fakeProvider({ results: [{ title: 'Now Listed' }] })
+			loadConfiguredBarcodeProvider.mockResolvedValue(provider)
+			const result = await lookupProductByBarcodeImpl({ db: tx, rawCode: '0123456789012', settings: settings() })
+			expect(result.kind).toBe('ok')
+			if (result.kind === 'ok') expect(result.source).toBe('provider')
+			expect(provider.lookup).toHaveBeenCalledTimes(1)
+		})
+	})
+
+	it('does not write a miss when caching is off', async () => {
 		await withRollback(async tx => {
 			loadConfiguredBarcodeProvider.mockResolvedValue(fakeProvider({ results: null }))
-			const result = await lookupProductByBarcodeImpl({
-				db: tx,
-				rawCode: '0123456789012',
-				settings: settings(),
-			})
+			await lookupProductByBarcodeImpl({ db: tx, rawCode: '0123456789012', settings: settings({ cacheTtlHours: 0 }) })
+			expect(await tx.select().from(productLookups)).toHaveLength(0)
+		})
+	})
+
+	it('answers not-found for a store-internal code without calling the provider', async () => {
+		await withRollback(async tx => {
+			const provider = fakeProvider({ results: [{ title: 'Should not be reached' }] })
+			loadConfiguredBarcodeProvider.mockResolvedValue(provider)
+			// An American Eagle hang tag: number system 4, in-store use.
+			const result = await lookupProductByBarcodeImpl({ db: tx, rawCode: '0400459324311', settings: settings() })
 			expect(result.kind).toBe('error')
 			if (result.kind === 'error') expect(result.reason).toBe('not-found')
-			const rows = await tx.select().from(productLookups)
-			expect(rows).toHaveLength(0)
+			expect(loadConfiguredBarcodeProvider).not.toHaveBeenCalled()
+			expect(provider.lookup).not.toHaveBeenCalled()
+		})
+	})
+
+	it('rejects the all-zero probe code and keeps it out of the history', async () => {
+		await withRollback(async tx => {
+			const result = await lookupProductByBarcodeImpl({ db: tx, rawCode: '0000000000000', settings: settings() })
+			expect(result.kind).toBe('error')
+			if (result.kind === 'error') expect(result.reason).toBe('invalid-code')
+			expect(loadConfiguredBarcodeProvider).not.toHaveBeenCalled()
+			expect(await tx.select().from(barcodeLookupHistory)).toHaveLength(0)
+		})
+	})
+
+	it("drops a link to the provider's own site, on fresh results and on rows cached before the rule", async () => {
+		await withRollback(async tx => {
+			const redirect = 'https://www.upcitemdb.com/norob/alink/?id=abc&tid=1'
+			loadConfiguredBarcodeProvider.mockResolvedValue(
+				fakeProvider({
+					results: [
+						{ title: 'Pajama Pants', brand: 'Outerstuff', candidateUrl: redirect, soldAt: ["Kohl's"] },
+						{ title: 'Store Page', candidateUrl: 'https://www.kohls.com/product/prd-1.jsp' },
+						{ title: 'Not A Link', candidateUrl: 'javascript:alert(1)' },
+					],
+				})
+			)
+			const fresh = await lookupProductByBarcodeImpl({ db: tx, rawCode: '197092561820', settings: settings() })
+			expect(fresh.kind).toBe('ok')
+			if (fresh.kind === 'ok') {
+				expect(fresh.results[0].candidateUrl).toBeUndefined()
+				expect(fresh.results[0].suggestedNotes).toBe("Brand: Outerstuff\nSold at: Kohl's")
+				expect(fresh.results[1].candidateUrl).toBe('https://www.kohls.com/product/prd-1.jsp')
+				expect(fresh.results[2].candidateUrl).toBeUndefined()
+			}
+
+			// A row written before this rule existed still holds the redirect.
+			await tx
+				.insert(productLookups)
+				.values({ code: '00074101944686', providerId: 'upcitemdb-trial', results: [{ title: 'Instax Film', candidateUrl: redirect }] })
+			const cached = await lookupProductByBarcodeImpl({ db: tx, rawCode: '074101944686', settings: settings() })
+			expect(cached.kind).toBe('ok')
+			if (cached.kind === 'ok') {
+				expect(cached.source).toBe('cache')
+				expect(cached.results[0]).toEqual({ title: 'Instax Film' })
+			}
 		})
 	})
 
@@ -235,6 +330,89 @@ describe('lookupProductByBarcodeImpl', () => {
 	})
 })
 
+describe('AI clean-up of a barcode hit', () => {
+	const RAW_TITLE = "Youth Royal Indianapolis Colts Team-Colored Printed Pajama Pants, Boy's, Size: YTH Medium, Blue"
+	const on = (): AppSettings => ({ ...settings(), aiBarcodeIdentifyEnabled: true })
+
+	it('is off by default: no model call, the provider title is returned', async () => {
+		await withRollback(async tx => {
+			loadConfiguredBarcodeProvider.mockResolvedValue(fakeProvider({ results: [{ title: RAW_TITLE, brand: 'Outerstuff' }] }))
+			const result = await lookupProductByBarcodeImpl({ db: tx, rawCode: '036000291452', settings: settings() })
+			expect(identifyProduct).not.toHaveBeenCalled()
+			expect(loadIdentifyModel).not.toHaveBeenCalled()
+			if (result.kind === 'ok') expect(result.results[0].title).toBe(RAW_TITLE)
+		})
+	})
+
+	it('does nothing when no AI provider is configured', async () => {
+		await withRollback(async tx => {
+			loadIdentifyModel.mockResolvedValue(null)
+			loadConfiguredBarcodeProvider.mockResolvedValue(fakeProvider({ results: [{ title: RAW_TITLE }] }))
+			const result = await lookupProductByBarcodeImpl({ db: tx, rawCode: '036000291469', settings: on() })
+			expect(identifyProduct).not.toHaveBeenCalled()
+			expect(result.kind).toBe('ok')
+			if (result.kind === 'ok') expect(result.results[0]).toEqual({ title: RAW_TITLE })
+		})
+	})
+
+	it('cleans the first candidate once, caches it, and takes stores from the provider only', async () => {
+		await withRollback(async tx => {
+			loadIdentifyModel.mockResolvedValue({ model: {} as never })
+			identifyProduct.mockResolvedValue({
+				title: 'Indianapolis Colts Youth Pajama Pants',
+				brand: 'Outerstuff',
+				size: 'Youth Medium',
+				color: 'Royal Blue',
+				soldAt: ['made-up-store.example'],
+				price: '19.99',
+			})
+			loadConfiguredBarcodeProvider.mockResolvedValue(
+				fakeProvider({ results: [{ title: RAW_TITLE, brand: 'Outerstuff', soldAt: ["Kohl's"] }, { title: 'Second Candidate' }] })
+			)
+
+			const first = await lookupProductByBarcodeImpl({ db: tx, rawCode: '036000291476', settings: on(), aiSource: 'mobile' })
+			expect(first.kind).toBe('ok')
+			if (first.kind !== 'ok') return
+			expect(first.results[0]).toEqual({
+				title: 'Indianapolis Colts Youth Pajama Pants',
+				rawTitle: RAW_TITLE,
+				brand: 'Outerstuff',
+				soldAt: ["Kohl's"],
+				identity: { brand: 'Outerstuff', size: 'Youth Medium', color: 'Royal Blue' },
+				suggestedNotes: "Brand: Outerstuff\nSize: Youth Medium\nColor: Royal Blue\nSold at: Kohl's",
+			})
+			expect(first.results[1]).toEqual({ title: 'Second Candidate' })
+			expect(identifyProduct.mock.calls[0][0]).toMatchObject({ feature: 'barcode-identify', source: 'mobile' })
+			expect(identifyProduct.mock.calls[0][2]).toEqual({
+				candidate: { title: RAW_TITLE, brand: 'Outerstuff' },
+				scannedCode: '00036000291476',
+			})
+
+			const second = await lookupProductByBarcodeImpl({ db: tx, rawCode: '036000291476', settings: on() })
+			expect(second.kind === 'ok' && second.source).toBe('cache')
+			if (second.kind === 'ok') expect(second.results).toEqual(first.results)
+			expect(identifyProduct).toHaveBeenCalledTimes(1)
+
+			// The notes are written on read, never stored.
+			const [row] = await tx.select().from(productLookups).where(eq(productLookups.code, '00036000291476'))
+			expect(row.results[0].suggestedNotes).toBeUndefined()
+		})
+	})
+
+	it('returns and caches the provider result untouched when the model call fails', async () => {
+		await withRollback(async tx => {
+			loadIdentifyModel.mockResolvedValue({ model: {} as never })
+			identifyProduct.mockRejectedValue(new Error('The operation was aborted due to timeout'))
+			loadConfiguredBarcodeProvider.mockResolvedValue(fakeProvider({ results: [{ title: RAW_TITLE }] }))
+			const result = await lookupProductByBarcodeImpl({ db: tx, rawCode: '036000291483', settings: on() })
+			expect(result.kind).toBe('ok')
+			if (result.kind === 'ok') expect(result.results).toEqual([{ title: RAW_TITLE }])
+			const [row] = await tx.select().from(productLookups).where(eq(productLookups.code, '00036000291483'))
+			expect(row.results).toEqual([{ title: RAW_TITLE }])
+		})
+	})
+})
+
 describe('barcode lookup history', () => {
 	it('writes nothing when the feature is off', async () => {
 		await withRollback(async tx => {
@@ -277,8 +455,10 @@ describe('barcode lookup history', () => {
 		await withRollback(async tx => {
 			loadConfiguredBarcodeProvider.mockResolvedValueOnce(fakeProvider({ results: null }))
 			await lookupProductByBarcodeImpl({ db: tx, rawCode: '0123456789012', settings: settings() })
+			// A different code: the first one is now a remembered miss and would
+			// not reach the provider again.
 			loadConfiguredBarcodeProvider.mockResolvedValueOnce(fakeProvider({ throws: new Error('quota exceeded') }))
-			await lookupProductByBarcodeImpl({ db: tx, rawCode: '0123456789012', settings: settings() })
+			await lookupProductByBarcodeImpl({ db: tx, rawCode: '036000291452', settings: settings() })
 
 			const rows = await tx.select().from(barcodeLookupHistory).orderBy(asc(barcodeLookupHistory.id))
 			expect(rows).toHaveLength(2)

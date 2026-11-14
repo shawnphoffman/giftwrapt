@@ -35,7 +35,22 @@
 		"settingKey": "aiPhotoExtractEnabled",
 		"managedAt": null,
 		"sent": [
-			"The uploaded photo"
+			"The uploaded photo",
+			"The barcode number, when the photo follows a scan in the iOS app that found nothing"
+		],
+		"neverSent": [
+			"Anything about your users, their lists, or their gifts"
+		]
+	},
+	{
+		"id": "barcode-identify",
+		"label": "Clean Up Barcode Results",
+		"description": "After a barcode scan finds a product, turns the raw title from the barcode provider into a clean one and moves the size and color into the item notes. Runs once per barcode; the result is cached with the lookup.",
+		"settingKey": "aiBarcodeIdentifyEnabled",
+		"managedAt": "Barcode",
+		"sent": [
+			"The product title and brand the barcode provider returned",
+			"The barcode number"
 		],
 		"neverSent": [
 			"Anything about your users, their lists, or their gifts"

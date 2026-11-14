@@ -51,9 +51,32 @@ describe('upcitemdb-trial provider', () => {
 		const p = createUpcItemDbTrialProvider()
 		const out = await p.lookup('00012993441012', makeSignal())
 		expect(out).toEqual([
-			{ title: 'First', brand: 'Brand A', imageUrl: 'https://x/1.jpg', candidateUrl: 'https://other.com/a' },
-			{ title: 'Second', imageUrl: 'https://x/2.jpg', candidateUrl: 'https://amazon.com/b' },
+			{ title: 'First', brand: 'Brand A', imageUrl: 'https://x/1.jpg', candidateUrl: 'https://other.com/a', soldAt: ['other.com'] },
+			{ title: 'Second', imageUrl: 'https://x/2.jpg', candidateUrl: 'https://amazon.com/b', soldAt: ['amazon.com'] },
 		])
+	})
+
+	it('lists up to three distinct stores, by merchant name when the offer has one', async () => {
+		queue.push({
+			status: 200,
+			body: {
+				items: [
+					{
+						title: 'X',
+						offers: [
+							{ merchant: "Kohl's", domain: 'kohls.com', link: 'https://www.upcitemdb.com/norob/alink/?id=1' },
+							{ merchant: "kohl's", domain: 'kohls.com' },
+							{ domain: 'target.com' },
+							{ merchant: 'Walmart' },
+							{ merchant: 'Fourth Store' },
+						],
+					},
+				],
+			},
+		})
+		const p = createUpcItemDbTrialProvider()
+		const out = await p.lookup('00012993441012', makeSignal())
+		expect(out?.[0].soldAt).toEqual(["Kohl's", 'target.com', 'Walmart'])
 	})
 
 	it('prefers an amazon.com offer link over other domains', async () => {

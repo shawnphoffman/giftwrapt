@@ -40,6 +40,7 @@ export function registerProductRoutes(v1: Hono<MobileAuthContext>): void {
 			settings,
 			signal: c.req.raw.signal,
 			userId: c.get('userId'),
+			aiSource: 'mobile',
 		})
 
 		if (result.kind === 'error') {

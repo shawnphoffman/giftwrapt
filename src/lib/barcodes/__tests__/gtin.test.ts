@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { normalizeGtin } from '../gtin'
+import { isRestrictedCirculationGtin, normalizeGtin } from '../gtin'
 
 describe('normalizeGtin', () => {
 	it('accepts a valid UPC-A and pads to GTIN-14', () => {
@@ -67,5 +67,36 @@ describe('normalizeGtin', () => {
 		expect(normalizeGtin('12345')).toEqual({ ok: false, reason: 'invalid-code' })
 		expect(normalizeGtin('1234567890')).toEqual({ ok: false, reason: 'invalid-code' })
 		expect(normalizeGtin('123456789012345')).toEqual({ ok: false, reason: 'invalid-code' })
+	})
+})
+
+describe('all-zero codes', () => {
+	it('rejects all zeros at every accepted length, though the checksum passes', () => {
+		for (const code of ['00000000', '000000000000', '0000000000000', '00000000000000']) {
+			expect(normalizeGtin(code)).toEqual({ ok: false, reason: 'invalid-code' })
+		}
+	})
+})
+
+describe('isRestrictedCirculationGtin', () => {
+	it('flags in-store and variable-measure prefixes', () => {
+		// American Eagle hang tag: UPC-A number system 4.
+		expect(isRestrictedCirculationGtin('00400459324311')).toBe(true)
+		// UPC-A number system 2 (variable weight).
+		expect(isRestrictedCirculationGtin('00212345678906')).toBe(true)
+		// EAN-13 prefix 200-299.
+		expect(isRestrictedCirculationGtin('02501234567890')).toBe(true)
+	})
+
+	it('leaves registered prefixes alone', () => {
+		expect(isRestrictedCirculationGtin('00012993441012')).toBe(false)
+		expect(isRestrictedCirculationGtin('09781400052929')).toBe(false)
+		expect(isRestrictedCirculationGtin('00197092561820')).toBe(false)
+		// Gap and Athleta tags (prefix 050) are not in the restricted ranges.
+		expect(isRestrictedCirculationGtin('00500096683342')).toBe(false)
+	})
+
+	it('ignores anything that is not fourteen digits', () => {
+		expect(isRestrictedCirculationGtin('0400459324311')).toBe(false)
 	})
 })

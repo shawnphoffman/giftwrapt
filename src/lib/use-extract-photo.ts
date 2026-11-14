@@ -13,6 +13,9 @@ export type ExtractPhotoPhase = 'idle' | 'extracting' | 'done' | 'failed'
 export type ExtractPhotoState = {
 	phase: ExtractPhotoPhase
 	result?: ScrapeResult
+	// Notes lines the server wrote from the photo (size, color, style,
+	// where it is sold). Absent when the photo gave none.
+	suggestedNotes?: string
 	ms?: number
 	error?: string
 	startedAt?: number
@@ -112,12 +115,13 @@ export function useExtractPhoto(): {
 					})
 					return
 				}
-				const body = (await response.json()) as { result: ScrapeResult; ms: number }
+				const body = (await response.json()) as { result: ScrapeResult; suggestedNotes?: string; ms: number }
 				stopTicker()
 				abortRef.current = null
 				setState({
 					phase: 'done',
 					result: body.result,
+					suggestedNotes: body.suggestedNotes,
 					ms: body.ms,
 					elapsedMs: Date.now() - startedAtRef.current,
 				})

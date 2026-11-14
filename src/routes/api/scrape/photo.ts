@@ -75,13 +75,13 @@ export const Route = createFileRoute('/api/scrape/photo')({
 				}
 
 				try {
-					const { result, ms } = await extractFromPhoto({
+					const { result, identity, suggestedNotes, ms } = await extractFromPhoto({
 						bytes,
 						mediaType,
 						signal: request.signal,
 						userId: session.user.id,
 					})
-					return new Response(JSON.stringify({ result, ms }), {
+					return new Response(JSON.stringify({ result, identity, suggestedNotes: suggestedNotes || undefined, ms }), {
 						status: 200,
 						headers: { 'content-type': 'application/json' },
 					})

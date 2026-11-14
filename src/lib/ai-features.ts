@@ -54,7 +54,17 @@ export const AI_FEATURE_REGISTRY: ReadonlyArray<AiFeatureInfo> = [
 		label: 'Photo to Item',
 		description: 'Fills in a new item from a photo the user uploads, on the web or in the iOS app.',
 		settingKey: 'aiPhotoExtractEnabled',
-		sent: ['The uploaded photo'],
+		sent: ['The uploaded photo', 'The barcode number, when the photo follows a scan in the iOS app that found nothing'],
+		neverSent: [NOTHING_ABOUT_PEOPLE],
+	},
+	{
+		id: 'barcode-identify',
+		label: 'Clean Up Barcode Results',
+		description:
+			'After a barcode scan finds a product, turns the raw title from the barcode provider into a clean one and moves the size and color into the item notes. Runs once per barcode; the result is cached with the lookup.',
+		settingKey: 'aiBarcodeIdentifyEnabled',
+		managedAt: { href: '/admin/barcode', label: 'Barcode' },
+		sent: ['The product title and brand the barcode provider returned', 'The barcode number'],
 		neverSent: [NOTHING_ABOUT_PEOPLE],
 	},
 	{

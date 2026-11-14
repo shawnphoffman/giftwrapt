@@ -63,6 +63,10 @@ export function normalizeGtin(input: string): NormalizeGtinResult {
 	if (typeof input !== 'string') return { ok: false, reason: 'invalid-code' }
 	const trimmed = input.trim()
 	if (!isDigits(trimmed)) return { ok: false, reason: 'invalid-code' }
+	// All zeros passes the mod-10 check (the sum is zero) but is not an
+	// assigned code. The iOS capabilities probe sends it and expects
+	// `invalid-code` back.
+	if (/^0+$/.test(trimmed)) return { ok: false, reason: 'invalid-code' }
 
 	let candidate: string
 	switch (trimmed.length) {
@@ -90,4 +94,16 @@ export function normalizeGtin(input: string): NormalizeGtinResult {
 
 	if (!hasValidCheckDigit(candidate)) return { ok: false, reason: 'invalid-code' }
 	return { ok: true, gtin14: candidate }
+}
+
+// GS1 restricted-circulation numbers: prefixes a store or a region
+// assigns for its own use (in-store labels, variable-weight items).
+// They are not registered anywhere, so no product database can resolve
+// them. In GTIN-13 terms the prefixes are 020-029, 040-049, and 200-299
+// (GS1 General Specifications, "GS1 Prefixes"). A GTIN-14 is one
+// packaging-indicator digit followed by those thirteen digits.
+export function isRestrictedCirculationGtin(gtin14: string): boolean {
+	if (gtin14.length !== 14) return false
+	const prefix = gtin14.slice(1, 4)
+	return prefix.startsWith('02') || prefix.startsWith('04') || prefix.startsWith('2')
 }

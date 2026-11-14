@@ -416,6 +416,7 @@ export function registerItemTools(server: McpServer, ctx: ToolContext): void {
 				rawCode: args.code,
 				settings: toolCtx.settings,
 				signal: AbortSignal.timeout(SCRAPE_BUDGET_MS),
+				aiSource: 'mcp',
 			})
 			if (result.kind === 'error') return toolError(result.reason === 'invalid-code' ? 'invalid-barcode' : result.reason)
 			const candidates = result.results.map(c => ({
