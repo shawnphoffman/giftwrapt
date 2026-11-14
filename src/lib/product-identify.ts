@@ -70,12 +70,12 @@ You are given one or more of: a photo (often of a hang tag or box label rather t
 
 Fill in only what the input supports. Leave a field out when unsure. Never invent a value.
 
-- "title": a short name a shopper would recognise. Use the product name when one is printed or given. Put the brand first, then who it is for when stated (Women's, Boys', Youth), then the product name, then the color name when it helps. When no product name is printed, describe the kind of item you can actually see (for example "Jordan Boys' Shorts"), and if you cannot tell what kind of item it is, say only what you know (for example "Nike Kids' Item"). Never make up a product name. Keep style numbers, sizes, prices, and material lists out of the title.
+- "title": a short name a shopper would recognise. Use the product name when one is printed or given. Put the brand first, then who it is for when stated (Women's, Boys', Youth), then the product name, then the color name when it helps. When no product name is printed, describe the kind of item only if the item itself is clearly visible in the photo (for example "Jordan Boys' Shorts"). Do not work out the kind of item from the packaging, the label layout, or the brand: a box label alone does not tell you whether it holds shoes or a ball. If you cannot see what it is, say only what you know (for example "Nike Kids' Item"). Never make up a product name. Keep style numbers, sizes, prices, and material lists out of the title.
 - "brand": the brand, from printed text, a logo, a web address, a legal line, or the product itself. You may name a brand or store you recognise with confidence from a distinctive tag. Otherwise leave it out.
 - "soldAt": up to three store names or web sites where this is sold, only when the input shows them: a store's own name or house brand, a web address printed on the tag, or a store named in a legal line. Leave it empty otherwise.
-- "styleNumber": the style, model, or item number exactly as printed. Not the barcode number.
-- "color": the color name or color code exactly as printed or given.
-- "size": the size exactly as printed or given. When several regions are listed, use the first.
+- "styleNumber": the style, model, or item number exactly as printed, character for character. Not the barcode number. On a tag with no label for it, it is usually the first line of letters and digits printed above or beside the barcode; report that line. If a character is too blurred to read with confidence, leave the field out rather than guess.
+- "color": the color name or color code as printed or given. Write a name in normal capitalization (Varsity Royal, not VARSITY ROYAL); keep a code as printed (SLTE/WHT).
+- "size": the size as printed or given, in normal capitalization (X-Large, not X-LARGE). When the tag lists the size for several regions, use the first and leave out the region label (XS, not US XS).
 - "price": the printed price as a plain number such as 59.95. When several currencies are listed, use the first.
 - "currency": the three-letter code for that price when it is printed or obvious from the symbol.
 
