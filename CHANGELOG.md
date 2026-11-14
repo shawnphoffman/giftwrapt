@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.12.1...v1.13.0) (2026-11-14)
+
+
+### Features
+
+* **scan:** identify scanned items and fill notes with size, color, style and store ([7b61705](https://github.com/shawnphoffman/giftwrapt/commit/7b617053747b1390117dfafe00a936afdc67eecf))
+
 ## [1.12.1](https://github.com/shawnphoffman/giftwrapt/compare/v1.12.0...v1.12.1) (2026-11-12)
 
 
