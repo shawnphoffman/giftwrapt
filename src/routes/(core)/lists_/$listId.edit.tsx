@@ -166,8 +166,6 @@ function ListEditPage() {
 		setAddItemOpen(true)
 	}
 
-	const onMoveItem = list.isOwner ? setMoveItem : undefined
-
 	return (
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
@@ -208,7 +206,6 @@ function ListEditPage() {
 					<div className="flex flex-col gap-2">
 						<EditListToolbar
 							listId={list.id}
-							isOwner={list.isOwner}
 							leading={
 								<ArchiveManagerBadge
 									listId={list.id}
@@ -223,7 +220,7 @@ function ListEditPage() {
 						<SkeletonSuspense id={`list-edit-items-${list.id}`} label="Loading items" skeleton={<EditItemsSkeleton />}>
 							<EditItemsBody
 								list={list}
-								onMoveItem={onMoveItem}
+								onMoveItem={setMoveItem}
 								onAddItem={openAddItemDialog}
 								onDeleteGroup={handleDeleteGroup}
 								onReorder={handleReorder}
@@ -299,44 +296,39 @@ function EditListHeading({ list, back, settings }: EditListHeadingProps) {
 
 type EditListToolbarProps = {
 	listId: number
-	isOwner: boolean
 	leading: ReactNode
 	onCreateGroup: (type: GroupType) => void
 	onAddItem: () => void
 	onAddItemFromPhoto: (file: File) => void
 }
 
-function EditListToolbar({ listId, isOwner, leading, onCreateGroup, onAddItem, onAddItemFromPhoto }: EditListToolbarProps) {
+function EditListToolbar({ listId, leading, onCreateGroup, onAddItem, onAddItemFromPhoto }: EditListToolbarProps) {
 	return (
 		<div className="flex flex-wrap items-center justify-end gap-2">
 			{leading}
 			<div className="flex gap-2">
-				{isOwner && (
-					<Button size="sm" variant="outline" asChild>
-						<Link to="/lists/$listId/organize" params={{ listId: String(listId) }}>
-							<Settings2 className="size-4" />
-							<span className="sr-only xs:not-sr-only">Organize</span>
-						</Link>
-					</Button>
-				)}
-				{isOwner && (
-					<DropdownMenu>
-						<DropdownMenuTrigger asChild>
-							<Button size="sm" variant="outline">
-								<GroupIcon className="size-4" /> <span className="xs:hidden">Group</span>
-								<span className="hidden xs:inline">New Group</span>
-							</Button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent align="end">
-							<DropdownMenuItem onClick={() => onCreateGroup('or')}>
-								<Shuffle className="size-4" /> Pick One
-							</DropdownMenuItem>
-							<DropdownMenuItem onClick={() => onCreateGroup('order')}>
-								<ListOrdered className="size-4" /> In Order
-							</DropdownMenuItem>
-						</DropdownMenuContent>
-					</DropdownMenu>
-				)}
+				<Button size="sm" variant="outline" asChild>
+					<Link to="/lists/$listId/organize" params={{ listId: String(listId) }}>
+						<Settings2 className="size-4" />
+						<span className="sr-only xs:not-sr-only">Organize</span>
+					</Link>
+				</Button>
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button size="sm" variant="outline">
+							<GroupIcon className="size-4" /> <span className="xs:hidden">Group</span>
+							<span className="hidden xs:inline">New Group</span>
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="end">
+						<DropdownMenuItem onClick={() => onCreateGroup('or')}>
+							<Shuffle className="size-4" /> Pick One
+						</DropdownMenuItem>
+						<DropdownMenuItem onClick={() => onCreateGroup('order')}>
+							<ListOrdered className="size-4" /> In Order
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
 				<AddItemSplitButton listId={listId} onAddItem={onAddItem} onAddItemFromPhoto={onAddItemFromPhoto} />
 			</div>
 		</div>
@@ -361,7 +353,7 @@ function ListEditSkeleton() {
 				}
 			/>
 			<div className="flex flex-col gap-2">
-				<EditListToolbar listId={0} isOwner leading={null} onCreateGroup={noop} onAddItem={noop} onAddItemFromPhoto={noop} />
+				<EditListToolbar listId={0} leading={null} onCreateGroup={noop} onAddItem={noop} onAddItemFromPhoto={noop} />
 				<EditItemsSkeleton />
 			</div>
 		</div>
@@ -371,9 +363,9 @@ function ListEditSkeleton() {
 function EditItemsSkeleton() {
 	return (
 		<EditItemsView
-			list={{ id: 0, groups: [], isOwner: true }}
+			list={{ id: 0, groups: [] }}
 			items={SAMPLE_ITEMS}
-			onMoveItem={undefined}
+			onMoveItem={noop}
 			onAddItem={noop}
 			onDeleteGroup={noopAsync}
 			onReorder={noopAsync}
@@ -383,7 +375,7 @@ function EditItemsSkeleton() {
 
 type EditItemsBodyProps = {
 	list: ListForEditing
-	onMoveItem: ((item: Item) => void) | undefined
+	onMoveItem: (item: Item) => void
 	onAddItem: (groupId: number | null) => void
 	onDeleteGroup: (groupId: number) => Promise<void>
 	onReorder: (groupId: number, items: Array<Item>, fromIndex: number, direction: -1 | 1) => Promise<void>
@@ -395,7 +387,7 @@ function EditItemsBody(props: EditItemsBodyProps) {
 }
 
 type EditItemsViewProps = Omit<EditItemsBodyProps, 'list'> & {
-	list: Pick<ListForEditing, 'id' | 'groups' | 'isOwner'>
+	list: Pick<ListForEditing, 'id' | 'groups'>
 	items: Array<ItemForEditing>
 }
 
@@ -455,7 +447,6 @@ function EditItemsView({ list, items, onMoveItem, onAddItem, onDeleteGroup, onRe
 							items={entry.items}
 							groups={list.groups}
 							listId={list.id}
-							isOwner={list.isOwner}
 							onAddItem={onAddItem}
 							onDelete={onDeleteGroup}
 							onMoveItem={onMoveItem}

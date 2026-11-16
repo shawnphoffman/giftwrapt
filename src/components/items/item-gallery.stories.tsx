@@ -1508,7 +1508,6 @@ function GroupList({ scenarios, view }: { scenarios: Array<GroupScenario>; view:
 								items={s.edit}
 								groups={groupsForMenu}
 								listId={1}
-								isOwner
 								onAddItem={() => {}}
 								onDelete={() => {}}
 								onMoveItem={() => {}}

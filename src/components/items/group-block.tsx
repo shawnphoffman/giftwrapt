@@ -26,19 +26,18 @@ type Props = {
 	items: Array<ItemForEditing>
 	groups: Array<GroupSummary>
 	listId: number
-	isOwner: boolean
 	onAddItem: (groupId: number) => void
 	onDelete: (groupId: number) => void
 	onMoveItem?: (item: Item) => void
 	onReorder: (groupId: number, orderedItems: Array<Item>, fromIndex: number, direction: -1 | 1) => void
 }
 
-export function GroupBlock({ group, items, groups, listId, isOwner, onAddItem, onDelete, onMoveItem, onReorder }: Props) {
+export function GroupBlock({ group, items, groups, listId, onAddItem, onDelete, onMoveItem, onReorder }: Props) {
 	const [editOpen, setEditOpen] = useState(false)
 	const [moveOpen, setMoveOpen] = useState(false)
 	// Both group types reorder: "in order" for the claim sequence, "pick one"
 	// so the recipient can put the one they want most on top.
-	const showReorder = isOwner && items.length > 1
+	const showReorder = items.length > 1
 
 	const hasPriorityTab = group.priority !== 'normal'
 
@@ -76,38 +75,34 @@ export function GroupBlock({ group, items, groups, listId, isOwner, onAddItem, o
 						<GroupBadge type={group.type} />
 					</span>
 					<div className="ml-auto" />
-					{isOwner && (
-						<Button
-							variant="outline"
-							size="icon-xs"
-							onClick={() => onAddItem(group.id)}
-							title="Add item to this group"
-							aria-label="Add item to this group"
-						>
-							<Plus />
-						</Button>
-					)}
-					{isOwner && (
-						<DropdownMenu>
-							<DropdownMenuTrigger asChild>
-								<Button variant="outline" size="icon-xs" title="Group actions" aria-label="Group actions">
-									<MoreHorizontal className="size-4" />
-								</Button>
-							</DropdownMenuTrigger>
-							<DropdownMenuContent align="end">
-								<DropdownMenuItem onClick={() => setEditOpen(true)}>
-									<Pencil className="size-4" /> Edit
-								</DropdownMenuItem>
-								<DropdownMenuItem onClick={() => setMoveOpen(true)}>
-									<ArrowRightLeft className="size-4" /> Move to...
-								</DropdownMenuItem>
-								<DropdownMenuSeparator />
-								<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(group.id)}>
-									<Trash2 className="size-4" /> Delete
-								</DropdownMenuItem>
-							</DropdownMenuContent>
-						</DropdownMenu>
-					)}
+					<Button
+						variant="outline"
+						size="icon-xs"
+						onClick={() => onAddItem(group.id)}
+						title="Add item to this group"
+						aria-label="Add item to this group"
+					>
+						<Plus />
+					</Button>
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button variant="outline" size="icon-xs" title="Group actions" aria-label="Group actions">
+								<MoreHorizontal className="size-4" />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end">
+							<DropdownMenuItem onClick={() => setEditOpen(true)}>
+								<Pencil className="size-4" /> Edit
+							</DropdownMenuItem>
+							<DropdownMenuItem onClick={() => setMoveOpen(true)}>
+								<ArrowRightLeft className="size-4" /> Move to...
+							</DropdownMenuItem>
+							<DropdownMenuSeparator />
+							<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(group.id)}>
+								<Trash2 className="size-4" /> Delete
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
 				</div>
 				{items.length === 0 ? (
 					<div className="text-xs text-muted-foreground p-3 m-1 text-center border border-dashed rounded-lg">
@@ -132,10 +127,8 @@ export function GroupBlock({ group, items, groups, listId, isOwner, onAddItem, o
 					</div>
 				)}
 			</div>
-			{isOwner && <GroupEditDialog open={editOpen} onOpenChange={setEditOpen} group={group} listId={listId} />}
-			{isOwner && (
-				<MoveGroupDialog open={moveOpen} onOpenChange={setMoveOpen} group={group} itemCount={items.length} sourceListId={listId} />
-			)}
+			<GroupEditDialog open={editOpen} onOpenChange={setEditOpen} group={group} listId={listId} />
+			<MoveGroupDialog open={moveOpen} onOpenChange={setMoveOpen} group={group} itemCount={items.length} sourceListId={listId} />
 		</div>
 	)
 }

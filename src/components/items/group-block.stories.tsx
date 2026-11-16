@@ -23,7 +23,6 @@ const meta = {
 	args: {
 		groups: [pickOneGroup, orderGroup],
 		listId: 1,
-		isOwner: true,
 		onAddItem: () => {},
 		onDelete: () => {},
 		onMoveItem: () => {},
@@ -98,19 +97,5 @@ export const UnnamedGroup: Story = {
 	},
 	parameters: {
 		docs: { description: { story: 'Group with no explicit name: falls back to just the type badge.' } },
-	},
-}
-
-export const GifterView: Story = {
-	args: {
-		group: pickOneGroup,
-		items: [makeItemForEditing({ groupId: 10, title: 'Option A', price: '50' })],
-		isOwner: false,
-		onMoveItem: undefined,
-	},
-	parameters: {
-		docs: {
-			description: { story: 'Read-only view without owner actions (add, edit, delete, move, reorder).' },
-		},
 	},
 }
