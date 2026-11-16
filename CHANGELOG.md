@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.13.0](https://github.com/shawnphoffman/giftwrapt/compare/v1.12.1...v1.13.0) (2026-11-16)
+
+
+### Features
+
+* **scan:** identify scanned items and fill notes with size, color, style and store ([7b61705](https://github.com/shawnphoffman/giftwrapt/commit/7b617053747b1390117dfafe00a936afdc67eecf))
+
+
+### Bug Fixes
+
+* **groups:** place items when they join a group ([7cda250](https://github.com/shawnphoffman/giftwrapt/commit/7cda2506ab1df8c2b091d7b160194fc13705a9a6))
+* **lists:** give user-level editors a way into the lists they can edit ([ef24fc2](https://github.com/shawnphoffman/giftwrapt/commit/ef24fc256bf036fb2beb71ac7ec821920c098764))
+* **lists:** show editors the same item and group controls as owners ([5420d4a](https://github.com/shawnphoffman/giftwrapt/commit/5420d4af0a09e184fef3fe11849b6ace162476c6))
+* **scan:** let the identify prompt name a partly visible item and keep full style codes ([d5957fe](https://github.com/shawnphoffman/giftwrapt/commit/d5957fee6e17861c876adde90c81778cb2dee900))
+* **scan:** tighten the identify prompt after the first eval on real tag photos ([e17b89a](https://github.com/shawnphoffman/giftwrapt/commit/e17b89ab9d160919e7c2cf71d9a78404e2c48662))
+* **storage:** skip the boot HeadBucket probe on Vercel ([c721646](https://github.com/shawnphoffman/giftwrapt/commit/c72164642cfe5210af199729b9d6821d78127b93))
+
 ## [1.12.1](https://github.com/shawnphoffman/giftwrapt/compare/v1.12.0...v1.12.1) (2026-11-12)
 
 
