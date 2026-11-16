@@ -21,6 +21,7 @@ import {
 	listEditors,
 	lists,
 	todoItems,
+	userRelationships,
 	users,
 } from '@/db/schema'
 import { type BirthMonth, type GroupType, type ListType, listTypeEnumValues, type Priority } from '@/db/schema/enums'
@@ -684,7 +685,7 @@ export async function getMyListsImpl(userId: string, dbx: SchemaDatabase = db): 
 		.groupBy(lists.ownerId)
 		.as('lastGifted')
 
-	const [ownedLists, editableRows, childRows, dependentRows] = await Promise.all([
+	const [ownedLists, listEditorRows, childRows, dependentRows] = await Promise.all([
 		dbx
 			.select({
 				id: lists.id,
@@ -768,6 +769,59 @@ export async function getMyListsImpl(userId: string, dbx: SchemaDatabase = db): 
 	])
 
 	const childIds = childRows.map(c => c.childId)
+
+	// User-level edit grants (`userRelationships.canEdit`) give edit access to
+	// every list of that owner, with no `listEditors` row, so they need their
+	// own lookup or the grantee has no way to find the lists. Only the owner's
+	// public, non-gift-ideas lists are surfaced: canEditList also covers the
+	// private ones, but listing an owner's private and gift-ideas lists to a
+	// blanket editor could show them a list about themselves. Restricted wins,
+	// as in canEditList. Children's and guarded dependents' lists already have
+	// their own sections.
+	const grantedOwnerIds = (
+		await dbx
+			.select({ ownerUserId: userRelationships.ownerUserId })
+			.from(userRelationships)
+			.where(
+				and(eq(userRelationships.viewerUserId, userId), eq(userRelationships.canEdit, true), eq(userRelationships.accessLevel, 'view'))
+			)
+	)
+		.map(r => r.ownerUserId)
+		.filter(id => id !== userId && !childIds.includes(id))
+	const guardedDependentIds = new Set(dependentRows.map(d => d.dependentId))
+	const listEditorListIds = new Set(listEditorRows.map(r => r.id))
+	const grantedRows = grantedOwnerIds.length
+		? (
+				await dbx
+					.select({
+						id: lists.id,
+						name: lists.name,
+						type: lists.type,
+						isActive: lists.isActive,
+						isPrivate: lists.isPrivate,
+						isPrimary: lists.isPrimary,
+						description: lists.description,
+						giftIdeasTargetUserId: lists.giftIdeasTargetUserId,
+						giftIdeasTargetDependentId: lists.giftIdeasTargetDependentId,
+						subjectDependentId: lists.subjectDependentId,
+						subjectDependentName: sql<string | null>`subject_dep.name`,
+						subjectDependentImage: sql<string | null>`subject_dep.image`,
+						ownerName: sql<string | null>`owner.name`,
+						ownerEmail: sql<string>`owner.email`,
+						ownerImage: sql<string | null>`owner.image`,
+						itemCount: count(items.id),
+					})
+					.from(lists)
+					.innerJoin(sql`users as owner`, sql`owner.id = ${lists.ownerId}`)
+					.leftJoin(sql`dependents as subject_dep`, sql`subject_dep.id = ${lists.subjectDependentId}`)
+					.leftJoin(items, and(eq(items.listId, lists.id), visibleItemsWhere('visible')))
+					.where(
+						and(inArray(lists.ownerId, grantedOwnerIds), eq(lists.isActive, true), eq(lists.isPrivate, false), ne(lists.type, 'giftideas'))
+					)
+					.groupBy(lists.id, sql`owner.name`, sql`owner.email`, sql`owner.image`, sql`subject_dep.name`, sql`subject_dep.image`)
+			).filter(r => !listEditorListIds.has(r.id) && !(r.subjectDependentId && guardedDependentIds.has(r.subjectDependentId)))
+		: []
+	const editableRows = [...listEditorRows, ...grantedRows].sort((x, y) => x.name.localeCompare(y.name))
 	const allChildLists = childIds.length
 		? await dbx
 				.select({

@@ -1,6 +1,7 @@
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { createFileRoute, notFound, redirect } from '@tanstack/react-router'
-import { Suspense } from 'react'
+import { createFileRoute, Link, notFound, redirect } from '@tanstack/react-router'
+import { Pencil } from 'lucide-react'
+import { type ReactNode, Suspense } from 'react'
 import { Skeleton, SkeletonSuspense } from 'skullet/react'
 
 import { getListAccess, type ListHeader } from '@/api/lists'
@@ -19,6 +20,7 @@ import { SAMPLE_ITEMS, SAMPLE_LIST_HEADING } from '@/components/lists/list-detai
 import { ListOrphanAlert } from '@/components/orphan-claims/list-orphan-alert'
 import { PendingPage } from '@/components/skeletons/pending-page'
 import { TodoList } from '@/components/todos/todo-list'
+import { Button } from '@/components/ui/button'
 import { RouteErrorFallback } from '@/components/utilities/route-error-fallback'
 import { perfTime } from '@/lib/observability/perf'
 import { listHeaderQueryOptions } from '@/lib/queries/lists' // used by useSuspenseQuery below
@@ -126,7 +128,7 @@ function recipientNameOf(list: Pick<ListHeader, 'owner' | 'subjectDependent'>): 
 	return list.subjectDependent ? list.subjectDependent.name : list.owner.name || list.owner.email
 }
 
-function ListHeading({ list }: { list: Pick<ListHeader, 'name' | 'type' | 'owner' | 'subjectDependent'> }) {
+function ListHeading({ list, edit }: { list: Pick<ListHeader, 'name' | 'type' | 'owner' | 'subjectDependent'>; edit?: ReactNode }) {
 	// For dependent-subject lists the recipient is the dependent (pet,
 	// baby, etc.), not the user who created the list. Swap to the
 	// DependentAvatar (Sprout fallback) when the subject is set.
@@ -147,7 +149,8 @@ function ListHeading({ list }: { list: Pick<ListHeader, 'name' | 'type' | 'owner
 					)}
 				</div>
 				<ListTypeTile type={list.type} />
-				<h1 className="truncate">{list.name}</h1>
+				<h1 className="truncate flex-1">{list.name}</h1>
+				{edit}
 			</div>
 		</div>
 	)
@@ -162,7 +165,21 @@ function ListDetailBody({ listId }: { listId: number }) {
 	// so it can't lean on the page column's gap.
 	return (
 		<div className="flex flex-col gap-6">
-			<ListHeading list={list} />
+			<ListHeading
+				list={list}
+				edit={
+					// Editors, guardians, and the guardian-owner of a dependent's
+					// list land here as gifters; this is their way to the edit view.
+					list.canEdit && (
+						<Button size="sm" variant="outline" asChild>
+							<Link to="/lists/$listId/edit" params={{ listId: String(list.id) }}>
+								<Pencil className="size-4" />
+								<span className="sr-only xs:not-sr-only">Edit</span>
+							</Link>
+						</Button>
+					)
+				}
+			/>
 			{list.description && <MarkdownNotes content={list.description} className="text-muted-foreground" />}
 			{list.type !== 'todos' && <ListOrphanAlert listId={list.id} />}
 			{list.type === 'todos' ? (
