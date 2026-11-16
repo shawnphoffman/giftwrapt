@@ -10,7 +10,7 @@ import { and, eq } from 'drizzle-orm'
 import { z } from 'zod'
 
 import { type SchemaDatabase } from '@/db'
-import { giftedItems, items, lists } from '@/db/schema'
+import { giftedItems, itemGroups, items, lists } from '@/db/schema'
 import { priorityEnumValues, statusEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { httpsUpgradeOrNull } from '@/lib/image-url'
@@ -24,6 +24,8 @@ import { getAppSettings } from '@/lib/settings-loader'
 import { cleanupImageUrls } from '@/lib/storage/cleanup'
 import { mirrorRemoteImageToStorage } from '@/lib/storage/mirror'
 import { getVendorFromUrl } from '@/lib/urls'
+
+import { placeItemsInGroup } from './_groups-impl'
 
 async function maybeMirrorImageForItem(
 	dbx: SchemaDatabase,
@@ -85,6 +87,25 @@ export async function createItemImpl(args: {
 		inheritedRating = await loadCachedScrapeRating(dbx, url, { ttlHours: settings.scrapeCacheTtlHours })
 	}
 
+	// An item created straight into a group joins at the end of it. A group
+	// that isn't on this list is ignored rather than linked across lists.
+	let groupId: number | null = null
+	let groupSortOrder: number | null = null
+	if (data.groupId !== undefined) {
+		const group = await dbx.query.itemGroups.findFirst({
+			where: and(eq(itemGroups.id, data.groupId), eq(itemGroups.listId, data.listId)),
+			columns: { id: true },
+		})
+		if (group) {
+			groupId = group.id
+			groupSortOrder = await placeItemsInGroup(dbx, {
+				groupId: group.id,
+				joiningItemIds: [],
+				joiningPriorities: [data.priority ?? 'normal'],
+			})
+		}
+	}
+
 	const [inserted] = await dbx
 		.insert(items)
 		.values({
@@ -99,7 +120,8 @@ export async function createItemImpl(args: {
 			priority: data.priority ?? 'normal',
 			quantity: data.quantity ?? 1,
 			imageUrl: httpsUpgradeOrNull(data.imageUrl ?? null),
-			groupId: data.groupId ?? null,
+			groupId,
+			groupSortOrder,
 			ratingValue: inheritedRating?.ratingValue ?? null,
 			ratingCount: inheritedRating?.ratingCount ?? null,
 		})

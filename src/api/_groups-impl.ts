@@ -4,9 +4,10 @@
 // bundle. `groups.ts` only references these from inside server-fn
 // handler / inputValidator bodies.
 
-import { and, asc, eq, inArray } from 'drizzle-orm'
+import { and, asc, eq, inArray, notInArray, sql } from 'drizzle-orm'
 import { z } from 'zod'
 
+import type { SchemaDatabase } from '@/db'
 import { db } from '@/db'
 import { giftedItems, itemComments, itemGroups, items, lists } from '@/db/schema'
 import { type GroupType, groupTypeEnumValues, type ListType, type Priority, priorityEnumValues } from '@/db/schema/enums'
@@ -89,14 +90,15 @@ type ListForPerm = { id: number; ownerId: string; subjectDependentId: string | n
 
 async function loadListForEdit(
 	userId: string,
-	listId: number
+	listId: number,
+	dbx: SchemaDatabase = db
 ): Promise<{ ok: true; list: ListForPerm } | { ok: false; reason: 'not-found' | 'not-authorized' }> {
-	const list = await db.query.lists.findFirst({
+	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, listId),
 		columns: { id: true, ownerId: true, subjectDependentId: true, isPrivate: true, isActive: true },
 	})
 	if (!list) return { ok: false, reason: 'not-found' }
-	const edit = await canEditListAsAnyone(userId, list)
+	const edit = await canEditListAsAnyone(userId, list, dbx)
 	if (!edit.ok) return { ok: false, reason: 'not-authorized' }
 	return { ok: true, list }
 }
@@ -107,6 +109,46 @@ function isCrossTypeMoveDestructive(sourceType: ListType, targetType: ListType):
 	if (sourceType === targetType) return false
 	if (SPOILER_PROTECTED_TYPES.has(sourceType) && SPOILER_PROTECTED_TYPES.has(targetType)) return false
 	return true
+}
+
+// Every item joining a group goes through this, so a member always has a
+// `groupSortOrder`. The claim gate, the restricted filter, and gift picks
+// all skip members without one, which left an "in order" group created by
+// hand unenforced until someone used the arrows. Returns the position for
+// the first joining item; the rest follow in the order given.
+//
+// It also gives an untouched group a priority: grouped items take their
+// group's, so items joining an empty group still at the default 'normal'
+// would otherwise drop out of their own priority. The group takes the
+// highest priority among them. A group that has members, or whose priority
+// was changed, keeps what it has.
+//
+// Run it inside the transaction that writes the items. The group row lock
+// is the one the claim gate takes, so a claim never reads a half-placed
+// group.
+export async function placeItemsInGroup(
+	dbx: SchemaDatabase,
+	args: { groupId: number; joiningItemIds: ReadonlyArray<number>; joiningPriorities: ReadonlyArray<Priority> }
+): Promise<number> {
+	await dbx.execute(sql`SELECT id FROM item_groups WHERE id = ${args.groupId} FOR UPDATE`)
+	const group = await dbx.query.itemGroups.findFirst({
+		where: eq(itemGroups.id, args.groupId),
+		columns: { priority: true },
+	})
+	const memberWhere =
+		args.joiningItemIds.length > 0
+			? and(eq(items.groupId, args.groupId), notInArray(items.id, [...args.joiningItemIds]))
+			: eq(items.groupId, args.groupId)
+	const members = await dbx.select({ id: items.id, groupSortOrder: items.groupSortOrder }).from(items).where(memberWhere)
+
+	if (group && members.length === 0 && group.priority === 'normal' && args.joiningPriorities.length > 0) {
+		const highest = args.joiningPriorities.reduce((a, b) => (priorityEnumValues.indexOf(b) > priorityEnumValues.indexOf(a) ? b : a))
+		if (highest !== group.priority) {
+			await dbx.update(itemGroups).set({ priority: highest }).where(eq(itemGroups.id, args.groupId))
+		}
+	}
+
+	return members.reduce((next, m) => Math.max(next, (m.groupSortOrder ?? -1) + 1), 0)
 }
 
 // ===============================
@@ -236,12 +278,13 @@ export async function moveGroupToListImpl(args: { userId: string; input: z.infer
 export async function assignItemsToGroupImpl(args: {
 	userId: string
 	input: z.infer<typeof AssignItemsInputSchema>
+	dbx?: SchemaDatabase
 }): Promise<AssignItemsResult> {
-	const { userId, input: data } = args
+	const { userId, input: data, dbx = db } = args
 
-	const itemRows = await db.query.items.findMany({
+	const itemRows = await dbx.query.items.findMany({
 		where: inArray(items.id, data.itemIds),
-		columns: { id: true, listId: true },
+		columns: { id: true, listId: true, groupId: true, priority: true },
 	})
 	if (itemRows.length !== data.itemIds.length) return { kind: 'error', reason: 'not-found' }
 
@@ -251,18 +294,40 @@ export async function assignItemsToGroupImpl(args: {
 	const listId = itemRows[0].listId
 
 	if (data.groupId !== null) {
-		const group = await db.query.itemGroups.findFirst({
+		const group = await dbx.query.itemGroups.findFirst({
 			where: and(eq(itemGroups.id, data.groupId), eq(itemGroups.listId, listId)),
 			columns: { id: true },
 		})
 		if (!group) return { kind: 'error', reason: 'not-found' }
 	}
 
-	const perm = await loadListForEdit(userId, listId)
+	const perm = await loadListForEdit(userId, listId, dbx)
 	if (!perm.ok) return { kind: 'error', reason: perm.reason }
 
-	const setData = data.groupId === null ? { groupId: null, groupSortOrder: null } : { groupId: data.groupId }
-	await db.update(items).set(setData).where(inArray(items.id, data.itemIds))
+	const groupId = data.groupId
+	if (groupId === null) {
+		await dbx.update(items).set({ groupId: null, groupSortOrder: null }).where(inArray(items.id, data.itemIds))
+	} else {
+		// Items already in the group keep their place; the rest join at the
+		// end, in the order they were sent.
+		const rowById = new Map(itemRows.map(r => [r.id, r]))
+		const joining = [...new Set(data.itemIds)].map(id => rowById.get(id)!).filter(r => r.groupId !== groupId)
+		if (joining.length > 0) {
+			await dbx.transaction(async tx => {
+				const start = await placeItemsInGroup(tx, {
+					groupId,
+					joiningItemIds: joining.map(r => r.id),
+					joiningPriorities: joining.map(r => r.priority),
+				})
+				for (let i = 0; i < joining.length; i++) {
+					await tx
+						.update(items)
+						.set({ groupId, groupSortOrder: start + i })
+						.where(eq(items.id, joining[i].id))
+				}
+			})
+		}
+	}
 
 	notifyListEvent({ kind: 'item', listId, itemId: -1 })
 	return { kind: 'ok' }

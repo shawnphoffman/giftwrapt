@@ -169,6 +169,13 @@
       "when": 1794086517755,
       "tag": "0023_mcp_client_first_approved",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794789562389,
+      "tag": "0024_backfill_group_sort_order",
+      "breakpoints": true
     }
   ]
 }
