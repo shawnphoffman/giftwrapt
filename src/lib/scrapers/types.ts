@@ -109,6 +109,9 @@ export type StructuredResponse = {
 	providerId: string
 	result: ScrapeResult
 	fetchMs: number
+	// Diagnostics stored with the attempt for the admin Scrape History, e.g.
+	// which input the AI scraper read. Never part of the result.
+	meta?: Record<string, unknown>
 }
 
 export type ProviderResponse = RawPage | StructuredResponse
@@ -158,6 +161,26 @@ export type ScrapeContext = {
 	// these, to label its row on the AI usage ledger.
 	userId?: string
 	source?: ScrapeSource
+	// The best HTML an earlier tier already fetched, for a provider that can
+	// read a page the local extractor could not (the AI scraper). Never set
+	// from the same tier: a tier's providers run in parallel.
+	earlierHtml?: EarlierHtml
+	// Which of the stop rule's three signals the running merge still lacked
+	// when this provider's tier started. All three when nothing succeeded
+	// yet. Undefined for parallel racers.
+	missing?: ReadonlyArray<MissingSignal>
+}
+
+// The signals `scrapeQualityThreshold` is built from (see score.ts).
+export type MissingSignal = 'title' | 'price' | 'photo'
+
+export type EarlierHtml = {
+	html: string
+	finalUrl: string
+	status: number
+	// The provider that fetched it, and its tier.
+	providerId: string
+	tier: number
 }
 
 // Where a scrape was started from; a subset of AiCallSource.

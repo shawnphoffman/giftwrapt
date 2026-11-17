@@ -7,13 +7,22 @@ import type { AiEntry } from '@/lib/settings'
 
 import { looksLikeBlocked } from '../bot-detect'
 import { safeFetch } from '../safe-fetch'
-import { coerceScrapeResult, type ProviderResponse, type ScrapeContext, type ScrapeProvider, scrapeResultModelSchema } from '../types'
+import { suppliesMissing } from '../score'
+import {
+	coerceScrapeResult,
+	type MissingSignal,
+	type ProviderResponse,
+	type ScrapeContext,
+	type ScrapeProvider,
+	scrapeResultModelSchema,
+} from '../types'
 import { ScrapeProviderError } from '../types'
 
-// AI extractor provider. Does its own lightweight fetch of the URL
-// (browser UA, single attempt, smaller body cap than fetch-provider to
-// keep token counts reasonable), then asks the configured LLM to extract
-// a ScrapeResult against the zod schema. Returns a StructuredResponse so
+// AI extractor provider. Reads the HTML an earlier tier already fetched
+// (`ctx.earlierHtml`), or with none does its own lightweight fetch of the
+// URL (browser UA, single attempt, smaller body cap than fetch-provider
+// to keep token counts reasonable), then asks the configured LLM to
+// extract a ScrapeResult against the zod schema. Returns a StructuredResponse so
 // the orchestrator skips the local extractor.
 //
 // Each entry in `appSettings.scrapeProviders` of type `'ai'` becomes its
@@ -113,7 +122,14 @@ async function runAiProvider(ctx: ScrapeContext, providerId: string): Promise<Pr
 	}
 
 	const start = Date.now()
-	const html = await fetchHtmlForLlm(ctx)
+	// Read the HTML an earlier tier already fetched when there is some: it
+	// is usually rendered and past the bot wall, and it saves a request that
+	// a plain fetch from this server often loses. Only with none do we fetch.
+	const earlier = ctx.earlierHtml
+	const html = earlier ? earlier.html : await fetchHtmlForLlm(ctx)
+	const input: AiScrapeInput = earlier
+		? { input: 'earlier-html', fromProvider: earlier.providerId, fromTier: earlier.tier }
+		: { input: 'own-fetch' }
 	const sanitized = sanitizeHtmlForLlm(html)
 	const truncated = truncateHtml(sanitized, MAX_HTML_BYTES)
 
@@ -152,13 +168,23 @@ async function runAiProvider(ctx: ScrapeContext, providerId: string): Promise<Pr
 		finalUrl: parsed.object.finalUrl ?? ctx.url,
 	})
 
+	// Judge the HTML by what came out of it, never by its size or shape:
+	// did the result supply what the run was still missing?
+	const missing = ctx.missing ?? ALL_SIGNALS
 	return {
 		kind: 'structured',
 		providerId,
 		result,
 		fetchMs: Date.now() - start,
+		meta: { missing, inputs: [{ ...input, goodEnough: suppliesMissing(result, missing) }] },
 	}
 }
+
+const ALL_SIGNALS: ReadonlyArray<MissingSignal> = ['title', 'price', 'photo']
+
+// Which page content the model read. Stored with the attempt so the admin
+// Scrape History can show it.
+type AiScrapeInput = { input: 'earlier-html'; fromProvider: string; fromTier: number } | { input: 'own-fetch' }
 
 async function fetchHtmlForLlm(ctx: ScrapeContext): Promise<string> {
 	let response: Response

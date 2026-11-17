@@ -11,7 +11,7 @@ vi.mock('@/env', () => ({
 }))
 
 import { orchestrate } from '../orchestrator'
-import type { OrchestratorDeps, ProviderResponse, ScrapeProvider, ScrapeResult, StreamEvent } from '../types'
+import type { OrchestratorDeps, ProviderResponse, ScrapeContext, ScrapeProvider, ScrapeResult, StreamEvent } from '../types'
 import { ScrapeProviderError } from '../types'
 
 // ---------------------------------------------------------------------------
@@ -838,5 +838,165 @@ describe('orchestrate: attribution', () => {
 		}
 		await orchestrate({ url: 'https://example.test/x', userId: 'user-1', source: 'mcp' }, makeDeps({ providers: [p] }))
 		expect(seen).toEqual([{ userId: 'user-1', source: 'mcp' }])
+	})
+})
+
+// ---------------------------------------------------------------------------
+// Earlier HTML and missing signals (plan 35a)
+// ---------------------------------------------------------------------------
+
+describe('orchestrate: what later tiers are told', () => {
+	// A structured provider that records the context it was given.
+	function spyProvider(id: string, tier: number, seen: Array<ScrapeContext>): ScrapeProvider {
+		return {
+			id,
+			kind: 'structured',
+			tier,
+			isAvailable: () => true,
+			fetch: ctx => {
+				seen.push(ctx)
+				return Promise.resolve(structured(id, { title: 'from spy', imageUrls: [] }))
+			},
+		}
+	}
+
+	// Never clears the threshold, so every tier runs.
+	const neverEnough = { scoreFn: () => 1, qualityThreshold: 99 }
+
+	it('offers a later tier the HTML an earlier tier fetched', async () => {
+		const seen: Array<ScrapeContext> = []
+		await orchestrate(
+			{ url: 'https://example.test/p' },
+			makeDeps({
+				...neverEnough,
+				providers: [
+					makeProvider({ id: 'render', tier: 1, produces: htmlResponse('render', '<html>rendered page</html>') }),
+					spyProvider('spy', 3, seen),
+				],
+			})
+		)
+		expect(seen[0].earlierHtml).toMatchObject({ html: '<html>rendered page</html>', providerId: 'render', tier: 1, status: 200 })
+	})
+
+	it('never offers a blocked page or an error status', async () => {
+		const seen: Array<ScrapeContext> = []
+		const errorPage = { ...htmlResponse('err', '<html>server error</html>'), status: 503 } as ProviderResponse
+		await orchestrate(
+			{ url: 'https://example.test/p' },
+			makeDeps({
+				...neverEnough,
+				providers: [
+					makeProvider({
+						id: 'wall',
+						tier: 0,
+						produces: htmlResponse('wall', '<html><title>Just a moment...</title>cf-chl-bypass</html>'),
+					}),
+					makeProvider({ id: 'err', tier: 1, produces: errorPage }),
+					spyProvider('spy', 3, seen),
+				],
+			})
+		)
+		expect(seen[0].earlierHtml).toBeUndefined()
+	})
+
+	it('still offers HTML whose local extraction found no title', async () => {
+		const seen: Array<ScrapeContext> = []
+		await orchestrate(
+			{ url: 'https://example.test/p' },
+			makeDeps({
+				...neverEnough,
+				extractFromRaw: () => ({ imageUrls: [] }),
+				providers: [
+					makeProvider({ id: 'shell', tier: 1, produces: htmlResponse('shell', '<html>app shell</html>') }),
+					spyProvider('spy', 3, seen),
+				],
+			})
+		)
+		expect(seen[0].earlierHtml).toMatchObject({ providerId: 'shell' })
+	})
+
+	it('prefers the higher tier, and within a tier the higher-scoring attempt', async () => {
+		const seen: Array<ScrapeContext> = []
+		await orchestrate(
+			{ url: 'https://example.test/p' },
+			makeDeps({
+				qualityThreshold: 99,
+				// The page that mentions a price scores higher.
+				extractFromRaw: html => ({ title: 'x', price: html.includes('$') ? '5' : undefined, imageUrls: [] }),
+				scoreFn: r => (r.price ? 5 : 2),
+				providers: [
+					makeProvider({ id: 'plain', tier: 0, produces: htmlResponse('plain', '<html>plain, and much longer than the others $</html>') }),
+					makeProvider({ id: 'a', tier: 1, produces: htmlResponse('a', '<html>a</html>') }),
+					makeProvider({ id: 'b', tier: 1, produces: htmlResponse('b', '<html>b $</html>') }),
+					spyProvider('spy', 3, seen),
+				],
+			})
+		)
+		expect(seen[0].earlierHtml).toMatchObject({ providerId: 'b', tier: 1 })
+	})
+
+	it("does not show providers in one tier each other's HTML", async () => {
+		const seen: Array<ScrapeContext> = []
+		await orchestrate(
+			{ url: 'https://example.test/p' },
+			makeDeps({
+				...neverEnough,
+				providers: [
+					makeProvider({ id: 'render', tier: 3, produces: htmlResponse('render', '<html>rendered</html>') }),
+					spyProvider('spy', 3, seen),
+				],
+			})
+		)
+		expect(seen[0].earlierHtml).toBeUndefined()
+	})
+
+	it('tells a tier which signals the running merge still lacks', async () => {
+		const first: Array<ScrapeContext> = []
+		const later: Array<ScrapeContext> = []
+		await orchestrate(
+			{ url: 'https://example.test/p' },
+			makeDeps({
+				...neverEnough,
+				providers: [
+					spyProvider('first', 0, first),
+					makeProvider({
+						id: 'photos',
+						tier: 1,
+						produces: structured('photos', {
+							title: 'Acme Widget Deluxe',
+							imageUrls: ['https://cdn.example.test/products/widget-1200x1200.jpg'],
+						}),
+					}),
+					spyProvider('later', 3, later),
+				],
+			})
+		)
+		// Nothing has succeeded yet: everything is missing.
+		expect(first[0].missing).toEqual(['title', 'price', 'photo'])
+		// A titled result is in the merge; the price is still missing.
+		expect(later[0].missing).toContain('price')
+		expect(later[0].missing).not.toContain('title')
+	})
+
+	it("stores a structured provider's diagnostics with the attempt", async () => {
+		const persisted: Array<{ providerId: string; rawResponse?: unknown }> = []
+		const withMeta: ProviderResponse = {
+			kind: 'structured',
+			providerId: 'ai',
+			result: { title: 'from ai', imageUrls: [] },
+			fetchMs: 1,
+			meta: { missing: ['price'], inputs: [{ input: 'earlier-html', goodEnough: false }] },
+		}
+		await orchestrate(
+			{ url: 'https://example.test/p' },
+			makeDeps({
+				providers: [makeProvider({ id: 'ai', tier: 1, produces: withMeta })],
+				persistAttempt: a => {
+					persisted.push(a)
+					return Promise.resolve()
+				},
+			})
+		)
+		expect(persisted[0].rawResponse).toMatchObject({ title: 'from ai', providerMeta: { inputs: [{ input: 'earlier-html' }] } })
 	})
 })

@@ -1,6 +1,6 @@
 import { looksLikeBlocked } from './bot-detect'
 import { bestImageClass } from './extractor/images'
-import type { ScrapeResult } from './types'
+import type { MissingSignal, ScrapeResult } from './types'
 
 // Score that ends the tier chain: a meaningful title (2), a price (3), and a
 // real product photo (3). Anything short of that keeps going to the next
@@ -115,4 +115,26 @@ function looksLikeErrorTitle(title: string): boolean {
 	const t = title.trim()
 	if (!t) return false
 	return ERROR_TITLE_PATTERNS.some(re => re.test(t))
+}
+
+// The three signals the stop rule is built from: the default
+// `scrapeQualityThreshold` is exactly title + price + real photo.
+const CORE_SIGNALS: ReadonlyArray<MissingSignal> = ['title', 'price', 'photo']
+
+// Which core signals a result lacks. A null result (nothing succeeded
+// yet) lacks all three.
+export function missingSignals(result: ScrapeResult | null, ctx: { html?: string; status?: number } = {}): Array<MissingSignal> {
+	if (!result) return [...CORE_SIGNALS]
+	const have = new Set<string>(scoreBreakdown(result, ctx).parts.map(p => p.signal))
+	return CORE_SIGNALS.filter(s => !have.has(s))
+}
+
+// Whether a result supplies everything the run still lacks. This is how
+// the AI scraper judges the HTML it was given: by what came out of it,
+// never by the HTML's size or shape (plan 35). A result with no
+// meaningful title is never enough, whatever was missing.
+export function suppliesMissing(result: ScrapeResult, missing: ReadonlyArray<MissingSignal>): boolean {
+	const lacks = new Set(missingSignals(result))
+	if (lacks.has('title')) return false
+	return missing.every(s => !lacks.has(s))
 }

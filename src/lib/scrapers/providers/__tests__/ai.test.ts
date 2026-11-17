@@ -35,9 +35,11 @@ let generateObjectImpl: () => Promise<{ object: Record<string, unknown> }> = () 
 		},
 	})
 
+let lastPrompt = ''
+
 vi.mock('ai', () => ({
 	generateObject: (...args: Array<unknown>) => {
-		void args
+		lastPrompt = (args[0] as { prompt?: string }).prompt ?? ''
 		return generateObjectImpl()
 	},
 }))
@@ -154,5 +156,60 @@ describe('aiProvider: fetch', () => {
 		fetchQueue.push({ status: 200, body: '<html><body>ok</body></html>' })
 		generateObjectImpl = () => Promise.reject(new Error('LLM provider returned 5xx'))
 		await expect(makeProvider().fetch(makeCtx('https://target.test/x'))).rejects.toMatchObject({ code: 'invalid_response' })
+	})
+})
+
+describe('aiProvider: earlier HTML and the missing-signals check (plan 35a)', () => {
+	beforeEach(() => {
+		mockAiValid = true
+		lastPrompt = ''
+	})
+
+	const earlierHtml = {
+		html: '<html><body><h1>Rendered Widget</h1><p>$19.99</p></body></html>',
+		finalUrl: 'https://target.test/x',
+		status: 200,
+		providerId: 'browserless:main',
+		tier: 1,
+	}
+
+	it('reads the HTML an earlier tier fetched and makes no request of its own', async () => {
+		// Nothing queued: a fetch would throw.
+		const res = await makeProvider().fetch({ ...makeCtx('https://target.test/x'), earlierHtml })
+		expect(res.kind).toBe('structured')
+		if (res.kind !== 'structured') return
+		expect(lastPrompt).toContain('Rendered Widget')
+		expect(res.meta).toMatchObject({ inputs: [{ input: 'earlier-html', fromProvider: 'browserless:main', fromTier: 1 }] })
+	})
+
+	it('fetches for itself when no earlier tier produced HTML', async () => {
+		fetchQueue.push({ status: 200, body: '<html><body>own page</body></html>' })
+		const res = await makeProvider().fetch(makeCtx('https://target.test/x'))
+		if (res.kind !== 'structured') throw new Error('expected structured')
+		expect(lastPrompt).toContain('own page')
+		expect(res.meta).toMatchObject({ inputs: [{ input: 'own-fetch' }] })
+	})
+
+	it('marks the result good enough only when it supplies what the run is missing', async () => {
+		const run = async (object: Record<string, unknown>, missing: Array<'title' | 'price' | 'photo'>) => {
+			generateObjectImpl = () => Promise.resolve({ object })
+			const res = await makeProvider().fetch({ ...makeCtx('https://target.test/x'), earlierHtml, missing })
+			if (res.kind !== 'structured') throw new Error('expected structured')
+			return (res.meta as { missing: Array<string>; inputs: Array<{ goodEnough: boolean }> }).inputs[0].goodEnough
+		}
+		// The run has a title and a photo already and only needs a price.
+		expect(await run({ title: 'Rendered Widget', price: '19.99', imageUrls: [] }, ['price'])).toBe(true)
+		expect(await run({ title: 'Rendered Widget', imageUrls: [] }, ['price'])).toBe(false)
+		// A price with no title is never enough.
+		expect(await run({ price: '19.99', imageUrls: [] }, ['price'])).toBe(false)
+		// Nothing missing: a titled result is enough.
+		expect(await run({ title: 'Rendered Widget', imageUrls: [] }, [])).toBe(true)
+	})
+
+	it('treats every signal as missing when the orchestrator did not say', async () => {
+		generateObjectImpl = () => Promise.resolve({ object: { title: 'Rendered Widget', price: '19.99', imageUrls: [] } })
+		const res = await makeProvider().fetch({ ...makeCtx('https://target.test/x'), earlierHtml })
+		if (res.kind !== 'structured') throw new Error('expected structured')
+		expect(res.meta).toMatchObject({ missing: ['title', 'price', 'photo'], inputs: [{ goodEnough: false }] })
 	})
 })

@@ -1,10 +1,14 @@
 import { createLogger } from '@/lib/logger'
 
+import { looksLikeBlocked } from './bot-detect'
 import { isDeadLinkRedirect } from './dead-link'
 import { mergeContributions } from './merge'
 import { isSameProduct } from './same-product'
+import { missingSignals } from './score'
 import type {
+	EarlierHtml,
 	MergeContribution,
+	MissingSignal,
 	OrchestrateOptions,
 	OrchestrateResult,
 	OrchestratorDeps,
@@ -28,6 +32,9 @@ const baseLog = createLogger('scrape-orchestrator')
 const DEFAULT_PER_PROVIDER_TIMEOUT_MS = 20_000
 const DEFAULT_OVERALL_TIMEOUT_MS = 45_000
 const DEFAULT_QUALITY_THRESHOLD = 8
+// Cap on the HTML kept for later tiers. The AI scraper trims far below
+// this; the cap only stops one huge page from sitting in memory.
+const MAX_EARLIER_HTML_CHARS = 1_000_000
 
 export async function orchestrate(options: OrchestrateOptions, deps: OrchestratorDeps): Promise<OrchestrateResult> {
 	const log = baseLog.child({ url: options.url, itemId: options.itemId ?? null })
@@ -126,6 +133,40 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 	// the same redirect) and, if nothing else succeeded, ends the run as
 	// `dead-link`.
 	const deadLinkRef = { seen: false }
+	// The best HTML fetched so far, offered to providers in LATER tiers
+	// (the AI scraper reads it instead of fetching again). Highest tier
+	// wins, since later tiers are the rendering ones; within a tier the
+	// higher-scoring attempt, then the longer body.
+	type HtmlCandidate = EarlierHtml & { score: number }
+	const earlierHtmlRef: { current: HtmlCandidate | null } = { current: null }
+	const offerHtml = (candidate: HtmlCandidate): void => {
+		const current = earlierHtmlRef.current
+		const better =
+			current === null ||
+			candidate.tier > current.tier ||
+			(candidate.tier === current.tier &&
+				(candidate.score > current.score || (candidate.score === current.score && candidate.html.length > current.html.length)))
+		if (better) earlierHtmlRef.current = candidate
+	}
+	// What a tier's providers are told about the run so far. Taken once when
+	// the tier starts, so providers in one tier never see each other's HTML.
+	type TierInput = { earlierHtml?: EarlierHtml; missing?: ReadonlyArray<MissingSignal> }
+	const tierInput = (): TierInput => {
+		const winner = winnerRef.current
+		const candidate = earlierHtmlRef.current
+		return {
+			earlierHtml: candidate
+				? {
+						html: candidate.html,
+						finalUrl: candidate.finalUrl,
+						status: candidate.status,
+						providerId: candidate.providerId,
+						tier: candidate.tier,
+					}
+				: undefined,
+			missing: missingSignals(winner?.result ?? null, winner?.scoreContext ?? {}),
+		}
+	}
 
 	// Each provider's success captures both its result and the score
 	// context (so the running merge can re-score with a representative html
@@ -135,7 +176,7 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 		| { ok: true; result: ScrapeResult; score: number; scoreContext: { html?: string; status?: number }; providerId: string }
 		| { ok: false; providerId: string }
 
-	const runProvider = async (provider: ScrapeProvider): Promise<ProviderRunResult> => {
+	const runProvider = async (provider: ScrapeProvider, input: TierInput = {}): Promise<ProviderRunResult> => {
 		emit({ type: 'attempt_started', providerId: provider.id })
 		const start = Date.now()
 		const perCtrl = new AbortController()
@@ -158,6 +199,8 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 			acceptLanguage: options.acceptLanguage,
 			userId: options.userId,
 			source: options.source,
+			earlierHtml: input.earlierHtml,
+			missing: input.missing,
 		}
 
 		try {
@@ -169,6 +212,19 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 			const landedUrl = response.kind === 'html' ? response.finalUrl : result.finalUrl
 			if (isDeadLinkRedirect(options.url, landedUrl)) {
 				throw new ScrapeProviderError('dead_link', `redirected to ${landedUrl}`)
+			}
+			// Keep readable HTML for later tiers, before the minimum-signal
+			// gate: a page the local extractor got nothing from is exactly the
+			// page the AI scraper is for. Blocked and error pages are not kept.
+			if (response.kind === 'html' && response.status < 400 && !looksLikeBlocked(response.html)) {
+				offerHtml({
+					html: response.html.slice(0, MAX_EARLIER_HTML_CHARS),
+					finalUrl: response.finalUrl,
+					status: response.status,
+					providerId: provider.id,
+					tier: provider.tier ?? -1,
+					score,
+				})
 			}
 			// Minimum-signal gate: a "successful" attempt must produce at
 			// least a non-empty title. Without that, downstream UX has
@@ -198,7 +254,9 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 				rawResponse:
 					response.kind === 'html'
 						? { kind: 'html', status: response.status, finalUrl: response.finalUrl, headers: response.headers }
-						: response.result,
+						: response.meta
+							? { ...response.result, providerMeta: response.meta }
+							: response.result,
 				scoreParts,
 			})
 			return { ok: true, result, score, scoreContext, providerId: provider.id }
@@ -308,7 +366,8 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 			emit({ type: 'tier_started', tier, providerIds: tierProviders.map(p => p.id) })
 			reachedTiers.add(tier)
 
-			const settled = await Promise.allSettled(tierProviders.map(runProvider))
+			const input = tierInput()
+			const settled = await Promise.allSettled(tierProviders.map(p => runProvider(p, input)))
 			let tierSucceeded = false
 			for (const s of settled) {
 				if (s.status !== 'fulfilled' || !s.value.ok) continue
