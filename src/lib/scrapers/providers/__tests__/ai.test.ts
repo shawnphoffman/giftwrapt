@@ -263,6 +263,23 @@ describe('aiProvider: web fetch (plan 35b)', () => {
 	const noPage = () =>
 		Promise.resolve({ text: 'I could not fetch that.', totalUsage: {}, steps: [{ content: [{ type: 'text', text: 'sorry' }] }] })
 
+	// What the real API returned for a URL it could not reach (spike, 2026-11-17):
+	// a tool-error part, and a model reply that still says "done".
+	const fetchError = () =>
+		Promise.resolve({
+			text: 'done',
+			totalUsage: {},
+			steps: [
+				{
+					content: [
+						{ type: 'tool-call', toolName: 'web_fetch', input: { url: 'https://shop.test/p/1' } },
+						{ type: 'tool-error', toolName: 'web_fetch', error: { type: 'web_fetch_tool_result_error', errorCode: 'url_not_accessible' } },
+						{ type: 'text', text: 'done' },
+					],
+				},
+			],
+		})
+
 	// Extraction answers in order: the first call reads the HTML, the second the fetched text.
 	const answers = (...objects: Array<Record<string, unknown>>) => {
 		const queue = [...objects]
@@ -359,6 +376,17 @@ describe('aiProvider: web fetch (plan 35b)', () => {
 		expect(meta(res)).toMatchObject({
 			returned: 'earlier-html',
 			inputs: [{ input: 'earlier-html' }, { input: 'web-fetch', failed: 'no_page' }],
+		})
+	})
+
+	it('records the provider error code when its fetch fails, and ignores the model saying "done"', async () => {
+		generateTextImpl = fetchError
+		answers({ title: 'Acme Widget Deluxe', imageUrls: [] })
+		const res = await makeProvider({ webFetch: true }).fetch({ ...makeCtx('https://shop.test/p/1'), earlierHtml, missing: ['price'] })
+		expect(prompts).toHaveLength(1)
+		expect(meta(res)).toMatchObject({
+			returned: 'earlier-html',
+			inputs: [{ input: 'earlier-html' }, { input: 'web-fetch', failed: 'url_not_accessible' }],
 		})
 	})
 

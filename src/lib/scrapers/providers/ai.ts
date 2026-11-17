@@ -182,9 +182,11 @@ async function runAiProvider(ctx: ScrapeContext, providerId: string, entry: AiEn
 	// writes a field, so a failed fetch cannot be papered over from memory.
 	let second: ScrapeResult | null = null
 	try {
-		const text = await webFetchText(call)
-		if (text) second = await extractFromContent(call, text, { forceFinalUrl: true })
-		inputs.push(second ? { input: 'web-fetch', goodEnough: suppliesMissing(second, missing) } : { input: 'web-fetch', failed: 'no_page' })
+		const fetched = await webFetchText(call)
+		if (fetched.text) second = await extractFromContent(call, fetched.text, { forceFinalUrl: true })
+		inputs.push(
+			second ? { input: 'web-fetch', goodEnough: suppliesMissing(second, missing) } : { input: 'web-fetch', failed: fetched.reason }
+		)
 	} catch (err) {
 		ctx.logger.warn({ err: err instanceof Error ? err.message : String(err) }, 'ai web fetch failed')
 		inputs.push({ input: 'web-fetch', failed: err instanceof ScrapeProviderError ? err.code : 'error' })
@@ -252,7 +254,7 @@ const WEB_FETCH_MAX_CONTENT_TOKENS = 10_000
 // text, or null when there is no usable page: no tool result, a result
 // that is not text, an empty body, or a bot wall. The tool is limited to
 // the URL's host and to one use. Only public http(s) URLs are handed over.
-async function webFetchText(call: ExtractCall): Promise<string | null> {
+async function webFetchText(call: ExtractCall): Promise<{ text: string; reason?: undefined } | { text: null; reason: string }> {
 	const { ctx } = call
 	const url = new URL(ctx.url)
 	await assertSafeUrl(url)
@@ -277,13 +279,27 @@ async function webFetchText(call: ExtractCall): Promise<string | null> {
 		}
 	)
 	const text = readFetchedText(toolResults)
-	if (!text || looksLikeBlocked(text)) return null
-	return text
+	// The provider's own code when its fetch failed (e.g.
+	// `url_not_accessible`), for the admin Scrape History.
+	if (!text) return { text: null, reason: readFetchErrorCode(toolResults) ?? 'no_page' }
+	if (looksLikeBlocked(text)) return { text: null, reason: 'bot_block' }
+	return { text }
+}
+
+function readFetchErrorCode(toolResults: ReadonlyArray<AiToolResult>): string | null {
+	for (const r of toolResults) {
+		const code = (r.error as { errorCode?: unknown } | null | undefined)?.errorCode
+		if (typeof code === 'string' && code.length > 0) return code.slice(0, 60)
+	}
+	return null
 }
 
 // The fetched page out of the tool's result. Anything that is not a
-// well-formed text document counts as no page, so the exact shape of a
-// failed fetch does not matter here.
+// well-formed text document counts as no page. Checked against the real
+// API on 2026-11-17: a page arrives as a `tool-result` whose text is the
+// page converted to Markdown-like plain text; a failed fetch arrives as a
+// `tool-error` with no output, while the model still cheerfully replies
+// "done", which is why its reply is never read.
 export function readFetchedText(toolResults: ReadonlyArray<AiToolResult>): string | null {
 	for (const r of toolResults) {
 		const output = r.output as { type?: unknown; content?: { source?: { type?: unknown; data?: unknown } } } | null | undefined

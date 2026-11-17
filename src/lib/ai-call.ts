@@ -213,8 +213,10 @@ export async function aiGenerateText(meta: AiCallMeta, params: BaseParams): Prom
 }
 
 // What a provider-run tool returned, e.g. Anthropic's web fetch. `output`
-// is whatever the provider's tool defines; the caller checks its shape.
-export type AiToolResult = { toolName: string; output: unknown }
+// is whatever the provider's tool defines; the caller checks its shape. A
+// tool that failed has no `output` and carries the provider's `error`
+// instead (Anthropic: `{ type, errorCode }`).
+export type AiToolResult = { toolName: string; output?: unknown; error?: unknown }
 
 // A text call that may use provider-run tools. Same ledger row, budget
 // check and feature label as every other call; usage is the total across
@@ -229,6 +231,7 @@ export async function aiGenerateTextWithTools(
 		for (const step of res.steps) {
 			for (const part of step.content) {
 				if (part.type === 'tool-result') toolResults.push({ toolName: part.toolName, output: part.output })
+				else if (part.type === 'tool-error') toolResults.push({ toolName: part.toolName, error: part.error })
 			}
 		}
 		return { text: res.text, usage: res.totalUsage, toolResults }
