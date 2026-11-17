@@ -6,6 +6,7 @@ import type { Hono } from 'hono'
 
 import { db } from '@/db'
 import { resolveAiConfig } from '@/lib/ai-config'
+import { AI_FEATURE_SLOTS } from '@/lib/ai-slots'
 import { getAppSettings } from '@/lib/settings-loader'
 import { isStorageConfigured } from '@/lib/storage/adapter'
 
@@ -25,7 +26,7 @@ export function registerConfigRoutes(v1: App): void {
 		// Photo to Item needs both the admin toggle and a working AI
 		// provider; report the combined state so iOS doesn't offer a
 		// lookup that will only 503.
-		const photoToItemEnabled = settings.aiPhotoExtractEnabled && (await resolveAiConfig(db)).isValid
+		const photoToItemEnabled = settings.aiPhotoExtractEnabled && (await resolveAiConfig(db, AI_FEATURE_SLOTS['photo-extract'])).isValid
 		return c.json({
 			settings: {
 				appTitle: settings.appTitle,

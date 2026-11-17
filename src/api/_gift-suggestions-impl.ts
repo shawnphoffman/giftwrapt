@@ -29,6 +29,7 @@ import {
 import { AiBudgetExceededError, aiGenerateObject } from '@/lib/ai-call'
 import { createAiModel } from '@/lib/ai-client'
 import { resolveAiConfig } from '@/lib/ai-config'
+import { AI_FEATURE_SLOTS } from '@/lib/ai-slots'
 import { safeFirstName } from '@/lib/first-name'
 import { clearGiftSuggestionFeedback, loadOwnSuggestionFeedback, setGiftSuggestionFeedback } from '@/lib/gift-suggestions/feedback'
 import {
@@ -130,7 +131,7 @@ export async function getGiftSuggestionsImpl(args: {
 	// ideas for a child.
 	if (actor.isChild) return { kind: 'error', reason: 'child-not-allowed' }
 
-	const aiConfig = await resolveAiConfig(db)
+	const aiConfig = await resolveAiConfig(db, AI_FEATURE_SLOTS['gift-suggestions'])
 	if (!aiConfig.isValid) return { kind: 'error', reason: 'not-configured' }
 
 	// The list decides who the recipient is; the context then covers every

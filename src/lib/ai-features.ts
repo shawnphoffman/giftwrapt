@@ -10,6 +10,8 @@
 // Write `sent` and `neverSent` from what the code does, not from intent.
 // If a prompt changes, this changes with it.
 
+import type { AiFeature } from '@/lib/ai-call'
+import { AI_SLOT_LABELS, type AiSlot, slotsForFeature } from '@/lib/ai-slots'
 import type { AppSettings } from '@/lib/settings'
 
 type BooleanSettingKey = { [K in keyof AppSettings]: AppSettings[K] extends boolean ? K : never }[keyof AppSettings]
@@ -27,11 +29,14 @@ export type AiFeatureInfo = {
 	managedAt?: { href: string; label: string }
 	sent: ReadonlyArray<string>
 	neverSent: ReadonlyArray<string>
+	// The model slots the feature runs on (plan 34). Filled in from
+	// src/lib/ai-slots.ts, which is where the mapping is decided.
+	slots: ReadonlyArray<AiSlot>
 }
 
 const NOTHING_ABOUT_PEOPLE = 'Anything about your users, their lists, or their gifts'
 
-export const AI_FEATURE_REGISTRY: ReadonlyArray<AiFeatureInfo> = [
+const REGISTRY_ENTRIES: ReadonlyArray<Omit<AiFeatureInfo, 'slots'>> = [
 	{
 		id: 'scrape-provider',
 		label: 'AI Scraper',
@@ -137,6 +142,11 @@ export const AI_FEATURE_REGISTRY: ReadonlyArray<AiFeatureInfo> = [
 	},
 ]
 
+export const AI_FEATURE_REGISTRY: ReadonlyArray<AiFeatureInfo> = REGISTRY_ENTRIES.map(entry => ({
+	...entry,
+	slots: slotsForFeature(entry.id as AiFeature),
+}))
+
 // Features on the ledger that are not user-facing toggles.
 export const AI_LEDGER_ONLY_FEATURES: Readonly<Partial<Record<string, string>>> = {
 	'admin-test': 'Connection Test',
@@ -182,6 +192,8 @@ export type AiFeatureCatalogEntry = {
 	managedAt: string | null
 	sent: ReadonlyArray<string>
 	neverSent: ReadonlyArray<string>
+	// Labels of the model slots the feature runs on ("Default", "Fast", "Vision").
+	slots: ReadonlyArray<string>
 }
 
 export function buildAiFeaturesCatalog(): Array<AiFeatureCatalogEntry> {
@@ -193,5 +205,6 @@ export function buildAiFeaturesCatalog(): Array<AiFeatureCatalogEntry> {
 		managedAt: f.managedAt?.label ?? null,
 		sent: f.sent,
 		neverSent: f.neverSent,
+		slots: f.slots.map(s => AI_SLOT_LABELS[s]),
 	}))
 }

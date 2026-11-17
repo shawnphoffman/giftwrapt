@@ -23,7 +23,7 @@ import type { z } from 'zod'
 
 import { db as defaultDb, type SchemaDatabase } from '@/db'
 import { aiUsage } from '@/db/schema'
-import { estimateStepCostMicroUsd } from '@/lib/ai-cost'
+import { estimateStepCostMicroUsd, type ModelRates } from '@/lib/ai-cost'
 import { getMonthToDateCostMicroUsd } from '@/lib/ai-usage'
 import { createLogger } from '@/lib/logger'
 import { getAppSettings } from '@/lib/settings-loader'
@@ -142,8 +142,17 @@ async function recordAiUsage(args: {
 		// A nested transaction is a savepoint: if the insert fails inside a
 		// caller's transaction, only the savepoint is rolled back and the
 		// caller's work survives.
-		await dbx.transaction(tx =>
-			tx.insert(aiUsage).values({
+		await dbx.transaction(async tx => {
+			// Admin-entered prices for models the built-in table does not
+			// know. Read in its own savepoint: a failed read costs the row
+			// its custom price, not the row.
+			let rates: ModelRates | undefined
+			try {
+				rates = (await tx.transaction(inner => getAppSettings(inner))).aiModelRates
+			} catch {
+				rates = undefined
+			}
+			await tx.insert(aiUsage).values({
 				feature: args.meta.feature,
 				model: args.model,
 				userId: args.meta.userId ?? null,
@@ -152,16 +161,20 @@ async function recordAiUsage(args: {
 				tokensOut: args.usage.outputTokens,
 				cachedInputTokens: args.usage.cachedInputTokens,
 				estimatedCostMicroUsd: Math.round(
-					estimateStepCostMicroUsd(args.model, {
-						tokensIn: args.usage.inputTokens,
-						tokensOut: args.usage.outputTokens,
-						cachedInputTokens: args.usage.cachedInputTokens,
-					})
+					estimateStepCostMicroUsd(
+						args.model,
+						{
+							tokensIn: args.usage.inputTokens,
+							tokensOut: args.usage.outputTokens,
+							cachedInputTokens: args.usage.cachedInputTokens,
+						},
+						rates
+					)
 				),
 				latencyMs: args.latencyMs,
 				outcome: args.outcome,
 			})
-		)
+		})
 	} catch (err) {
 		log.warn({ err: err instanceof Error ? err.message : String(err), feature: args.meta.feature }, 'ai usage ledger write failed')
 	}

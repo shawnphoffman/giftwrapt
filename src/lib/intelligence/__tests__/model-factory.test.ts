@@ -15,7 +15,8 @@ vi.mock('@/lib/ai-client', () => ({
 }))
 
 import { createAiModel } from '@/lib/ai-client'
-import { resolveAiConfig } from '@/lib/ai-config'
+import { type AiSlotMode, resolveAiConfig } from '@/lib/ai-config'
+import type { AiSlot } from '@/lib/ai-slots'
 
 import { resolveModelFactory } from '../runner'
 
@@ -32,7 +33,15 @@ function aiConfigOk() {
 		model: { source: 'env' as const, value: 'claude-default' },
 		baseUrl: { source: 'missing' as const },
 		maxOutputTokens: { source: 'default' as const, value: 4096 },
+		slot: 'default' as AiSlot,
+		slotMode: 'default' as AiSlotMode,
 	}
+}
+
+// Answers by slot, the way the real resolver does: 'fast' gets the given
+// config, everything else the default one.
+function resolveBySlot(fast: ReturnType<typeof aiConfigOk>) {
+	mockedResolve.mockImplementation((_db, slot) => Promise.resolve(slot === 'fast' ? fast : aiConfigOk()))
 }
 
 describe('resolveModelFactory', () => {
@@ -152,5 +161,69 @@ describe('resolveModelFactory', () => {
 		// Asking again doesn't re-create.
 		factory.modelFor('duplicates')
 		expect(mockedCreate).toHaveBeenCalledTimes(2)
+	})
+
+	describe('with the fast slot filled in', () => {
+		const create = () =>
+			mockedCreate.mockImplementation(args => ({ modelId: args.model, key: args.apiKey }) as unknown as ReturnType<typeof createAiModel>)
+
+		it('sends the mechanical analyzers to a model-only fast slot and leaves the rest on the default', async () => {
+			resolveBySlot({ ...aiConfigOk(), model: { source: 'env', value: 'small-model' }, slot: 'fast', slotMode: 'model' })
+			create()
+
+			const factory = await resolveModelFactory(fakeDb, DEFAULT_APP_SETTINGS)
+			expect(factory.modelNameFor('enrichment')).toBe('small-model')
+			expect(factory.modelNameFor('duplicates')).toBe('small-model')
+			expect(factory.modelNameFor('stale-items')).toBe('small-model')
+			expect(factory.modelNameFor('grouping')).toBe('claude-default')
+			expect(factory.modelNameFor('list-hygiene')).toBe('claude-default')
+		})
+
+		it("builds a fast-slot model on the slot's own provider and key", async () => {
+			resolveBySlot({
+				...aiConfigOk(),
+				providerType: { source: 'env', value: 'anthropic' },
+				apiKey: { source: 'env', value: 'sk-other' },
+				model: { source: 'env', value: 'other-small' },
+				slot: 'fast',
+				slotMode: 'provider',
+			})
+			create()
+
+			const factory = await resolveModelFactory(fakeDb, DEFAULT_APP_SETTINGS)
+			expect(factory.modelFor('duplicates')).toMatchObject({ modelId: 'other-small', key: 'sk-other' })
+			expect(factory.modelFor('grouping')).toMatchObject({ modelId: 'claude-default', key: 'sk-test' })
+		})
+
+		it('keeps both Intelligence overrides ahead of the slot, on the default provider', async () => {
+			resolveBySlot({
+				...aiConfigOk(),
+				apiKey: { source: 'env', value: 'sk-other' },
+				model: { source: 'env', value: 'other-small' },
+				slot: 'fast',
+				slotMode: 'provider',
+			})
+			create()
+
+			const perAnalyzer = await resolveModelFactory(fakeDb, {
+				...DEFAULT_APP_SETTINGS,
+				intelligenceAnalyzerModels: { duplicates: 'claude-picked-by-admin' },
+			})
+			expect(perAnalyzer.modelFor('duplicates')).toMatchObject({ modelId: 'claude-picked-by-admin', key: 'sk-test' })
+			expect(perAnalyzer.modelNameFor('stale-items')).toBe('other-small')
+
+			const wide = await resolveModelFactory(fakeDb, { ...DEFAULT_APP_SETTINGS, intelligenceModelOverride: 'claude-intelligence-wide' })
+			expect(wide.modelFor('enrichment')).toMatchObject({ modelId: 'claude-intelligence-wide', key: 'sk-test' })
+		})
+
+		it('ignores an empty or misconfigured fast slot, so enrichment keeps its cheap default', async () => {
+			for (const slotMode of ['inherited', 'misconfigured'] as const) {
+				resolveBySlot({ ...aiConfigOk(), slot: 'fast', slotMode })
+				create()
+				const factory = await resolveModelFactory(fakeDb, DEFAULT_APP_SETTINGS)
+				expect(factory.modelNameFor('enrichment')).toBe('claude-haiku-4-5')
+				expect(factory.modelNameFor('duplicates')).toBe('claude-default')
+			}
+		})
 	})
 })

@@ -9,6 +9,7 @@ import { db, type SchemaDatabase } from '@/db'
 import { AiBudgetExceededError, aiGenerateObject } from '@/lib/ai-call'
 import { createAiModel } from '@/lib/ai-client'
 import { resolveAiConfig } from '@/lib/ai-config'
+import { AI_FEATURE_SLOTS } from '@/lib/ai-slots'
 import { createLogger } from '@/lib/logger'
 import {
 	buildPasteItemsUserPrompt,
@@ -38,7 +39,7 @@ export async function extractItemsFromTextImpl(args: {
 	const { actor, input, dbx = db } = args
 	const settings = await getAppSettings(dbx)
 	if (!settings.aiPasteToItemsEnabled || !settings.importEnabled) return { kind: 'error', reason: 'feature-disabled' }
-	const aiConfig = await resolveAiConfig(db)
+	const aiConfig = await resolveAiConfig(db, AI_FEATURE_SLOTS['paste-to-items'])
 	if (!aiConfig.isValid) return { kind: 'error', reason: 'not-configured' }
 
 	const model = createAiModel({

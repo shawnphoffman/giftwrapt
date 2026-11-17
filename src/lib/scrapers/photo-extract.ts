@@ -55,7 +55,7 @@ export async function extractFromPhoto({
 	if (!settings.aiPhotoExtractEnabled) {
 		throw new ScrapeProviderError('config_missing', 'Photo to item is turned off on this deployment')
 	}
-	const ai = await loadIdentifyModel(db)
+	const ai = await loadIdentifyModel(db, 'photo-extract')
 	if (!ai) {
 		throw new ScrapeProviderError('config_missing', 'AI provider not configured')
 	}

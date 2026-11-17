@@ -32,6 +32,8 @@ export type ModelPickerProps = {
 	 * type-anything picker behind.
 	 */
 	catalogue?: boolean
+	/** Shown on the trigger while no model is chosen. */
+	placeholder?: string
 }
 
 type Option = ProviderModel & { origin: 'live' | 'fallback' | 'saved' }
@@ -83,6 +85,7 @@ export function ModelPicker({
 	onRefresh,
 	disabled,
 	catalogue = true,
+	placeholder = 'Select a model',
 }: ModelPickerProps) {
 	const [open, setOpen] = useState(false)
 	const [search, setSearch] = useState('')
@@ -124,9 +127,7 @@ export function ModelPicker({
 							disabled={disabled}
 							className="flex-1 justify-between font-normal"
 						>
-							<span className={cn('truncate font-mono text-xs', !value && 'font-sans text-muted-foreground')}>
-								{value || 'Select a model'}
-							</span>
+							<span className={cn('truncate font-mono text-xs', !value && 'font-sans text-muted-foreground')}>{value || placeholder}</span>
 							<ChevronsUpDownIcon className="size-4 shrink-0 opacity-50" />
 						</Button>
 					</PopoverTrigger>

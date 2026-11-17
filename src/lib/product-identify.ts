@@ -24,6 +24,7 @@ import type { Database, SchemaDatabase } from '@/db'
 import { type AiCallMeta, aiGenerateObject } from '@/lib/ai-call'
 import { createAiModel } from '@/lib/ai-client'
 import { resolveAiConfig } from '@/lib/ai-config'
+import { AI_FEATURE_SLOTS } from '@/lib/ai-slots'
 
 // Model-facing schema. Plain optional strings only: some structured-output
 // APIs reject numeric bounds and other constraints (see
@@ -212,9 +213,13 @@ function buildUserText(input: IdentifyInput): string {
 
 export type IdentifyModel = { model: LanguageModel; maxOutputTokens?: number }
 
-// The configured AI model, or null when the deployment has none set up.
-export async function loadIdentifyModel(db: Database | SchemaDatabase): Promise<IdentifyModel | null> {
-	const aiConfig = await resolveAiConfig(db as Database)
+// The AI model for the feature's slot (photos use the vision slot, barcode
+// clean-up the fast one), or null when the deployment has none set up.
+export async function loadIdentifyModel(
+	db: Database | SchemaDatabase,
+	feature: 'photo-extract' | 'barcode-identify'
+): Promise<IdentifyModel | null> {
+	const aiConfig = await resolveAiConfig(db as Database, AI_FEATURE_SLOTS[feature])
 	if (!aiConfig.isValid) return null
 	return {
 		model: createAiModel({

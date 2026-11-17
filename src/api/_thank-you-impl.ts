@@ -12,6 +12,7 @@ import { db, type SchemaDatabase } from '@/db'
 import { AiBudgetExceededError, aiGenerateText } from '@/lib/ai-call'
 import { createAiModel } from '@/lib/ai-client'
 import { resolveAiConfig } from '@/lib/ai-config'
+import { AI_FEATURE_SLOTS } from '@/lib/ai-slots'
 import { safeFirstName } from '@/lib/first-name'
 import { createLogger } from '@/lib/logger'
 import { getAppSettings } from '@/lib/settings-loader'
@@ -44,7 +45,7 @@ export async function draftThankYouImpl(args: {
 	const { actor, input, dbx = db } = args
 	const settings = await getAppSettings(dbx)
 	if (!settings.aiThankYouDraftsEnabled) return { kind: 'error', reason: 'feature-disabled' }
-	const aiConfig = await resolveAiConfig(db)
+	const aiConfig = await resolveAiConfig(db, AI_FEATURE_SLOTS['thank-you-draft'])
 	if (!aiConfig.isValid) return { kind: 'error', reason: 'not-configured' }
 
 	const received = await getReceivedGiftsImpl({ userId: actor.id, dbx })

@@ -11,6 +11,9 @@
 		],
 		"neverSent": [
 			"Anything about your users, their lists, or their gifts"
+		],
+		"slots": [
+			"Fast"
 		]
 	},
 	{
@@ -26,6 +29,9 @@
 		],
 		"neverSent": [
 			"Anything about your users, their lists, or their gifts"
+		],
+		"slots": [
+			"Fast"
 		]
 	},
 	{
@@ -40,6 +46,9 @@
 		],
 		"neverSent": [
 			"Anything about your users, their lists, or their gifts"
+		],
+		"slots": [
+			"Vision"
 		]
 	},
 	{
@@ -54,6 +63,9 @@
 		],
 		"neverSent": [
 			"Anything about your users, their lists, or their gifts"
+		],
+		"slots": [
+			"Fast"
 		]
 	},
 	{
@@ -67,6 +79,9 @@
 		],
 		"neverSent": [
 			"Anything about your users, their lists, or their gifts"
+		],
+		"slots": [
+			"Fast"
 		]
 	},
 	{
@@ -85,6 +100,9 @@
 			"What anything cost, and gift notes",
 			"Gifts that have not been revealed yet",
 			"Last names and email addresses"
+		],
+		"slots": [
+			"Default"
 		]
 	},
 	{
@@ -111,6 +129,9 @@
 			"Items the asking user cannot see, including anything hidden from a restricted viewer",
 			"Other people’s gift ideas, off-list gifts, and comments",
 			"Last names, email addresses, and birth dates"
+		],
+		"slots": [
+			"Default"
 		]
 	},
 	{
@@ -129,6 +150,10 @@
 			"Gift-ideas lists (private notes about other people)",
 			"Items already revealed or deleted",
 			"Profile details: names, email addresses, and birthdays (a name typed into a list name or an item is sent as written)"
+		],
+		"slots": [
+			"Default",
+			"Fast"
 		]
 	}
 ]

@@ -2,6 +2,7 @@ import { db } from '@/db'
 import { aiGenerateObject } from '@/lib/ai-call'
 import { createAiModel } from '@/lib/ai-client'
 import { resolveAiConfig } from '@/lib/ai-config'
+import { AI_FEATURE_SLOTS } from '@/lib/ai-slots'
 import type { AiEntry } from '@/lib/settings'
 
 import { looksLikeBlocked } from '../bot-detect'
@@ -98,7 +99,7 @@ export function createAiProvider(entry: AiEntry): ScrapeProvider {
 		timeoutMs: entry.timeoutMs,
 		isAvailable: async () => {
 			if (!entry.enabled) return false
-			const aiConfig = await resolveAiConfig(db)
+			const aiConfig = await resolveAiConfig(db, AI_FEATURE_SLOTS['scrape-provider'])
 			return aiConfig.isValid
 		},
 		fetch: ctx => runAiProvider(ctx, providerId),
@@ -106,7 +107,7 @@ export function createAiProvider(entry: AiEntry): ScrapeProvider {
 }
 
 async function runAiProvider(ctx: ScrapeContext, providerId: string): Promise<ProviderResponse> {
-	const aiConfig = await resolveAiConfig(db)
+	const aiConfig = await resolveAiConfig(db, AI_FEATURE_SLOTS['scrape-provider'])
 	if (!aiConfig.isValid) {
 		throw new ScrapeProviderError('config_missing', 'AI provider not configured')
 	}

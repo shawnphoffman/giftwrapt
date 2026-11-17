@@ -19,8 +19,9 @@ import {
 } from '@/db/schema'
 import type { AiCallSource } from '@/lib/ai-call'
 import { createAiModel } from '@/lib/ai-client'
-import { resolveAiConfig } from '@/lib/ai-config'
+import { resolveAiConfig, type ResolvedAiConfig } from '@/lib/ai-config'
 import { estimateStepCostMicroUsd } from '@/lib/ai-cost'
+import { slotForAnalyzer } from '@/lib/ai-slots'
 import { createLogger } from '@/lib/logger'
 import { intelligenceRunsCompletedTotal } from '@/lib/observability/metrics'
 import { type AppSettings, DEFAULT_APP_SETTINGS } from '@/lib/settings'
@@ -158,7 +159,7 @@ async function generateForUserInner(db: Database, userId: string, opts: Generate
 					for (const step of enrichment.steps) {
 						totalIn += step.tokensIn ?? 0
 						totalOut += step.tokensOut ?? 0
-						costMicroUsd += estimateStepCostMicroUsd(enrichmentModelName, step)
+						costMicroUsd += estimateStepCostMicroUsd(enrichmentModelName, step, settings.aiModelRates)
 						allSteps.push(stepRow(run.id, 'enrichment', step, enrichmentModelName))
 					}
 				} catch (err) {
@@ -217,7 +218,7 @@ async function generateForUserInner(db: Database, userId: string, opts: Generate
 						for (const step of result.steps) {
 							totalIn += step.tokensIn ?? 0
 							totalOut += step.tokensOut ?? 0
-							costMicroUsd += estimateStepCostMicroUsd(analyzerModelName, step)
+							costMicroUsd += estimateStepCostMicroUsd(analyzerModelName, step, settings.aiModelRates)
 							allSteps.push(stepRow(run.id, analyzer.id, step, analyzerModelName))
 						}
 					} catch (err) {
@@ -289,14 +290,12 @@ async function loadSettings(db: Database): Promise<AppSettings> {
 	}
 }
 
-// Returns per-analyzer model pickers. Resolves the default model name
-// from `intelligenceModelOverride ?? ai.model.value`, then layers
-// `intelligenceAnalyzerModels[analyzerId]` on top when present (the
-// enrichment pre-step resolves under the pseudo-analyzer id
-// 'enrichment', so admins can pin it to a cheaper model the same way).
-// Created `LanguageModel` instances are cached by model name within a
-// single run so two analyzers pointing at the same override don't pay
-// multiple createAiModel calls.
+// Returns per-analyzer model pickers; `specFor` below spells out the
+// precedence (the enrichment pre-step resolves under the pseudo-analyzer
+// id 'enrichment', so admins can pin it to a cheaper model the same way).
+// Created `LanguageModel` instances are cached by provider and model name
+// within a single run so two analyzers pointing at the same model don't
+// pay multiple createAiModel calls.
 //
 // `modelFor` returns null (and `modelNameFor` null) when no AI provider
 // is configured, so analyzers uniformly bail to their heuristic-only
@@ -319,45 +318,61 @@ export async function resolveModelFactory(db: Database, settings: AppSettings): 
 	const ai = await resolveAiConfig(db)
 	if (!ai.isValid) return { modelFor: () => null, modelNameFor: () => null }
 
-	const defaultModelName = settings.intelligenceModelOverride ?? ai.model.value!
+	// The fast slot, when the admin filled it in (plan 34). An empty or
+	// misconfigured slot resolves to the default config and is ignored here
+	// so the enrichment cheap-tier default below still applies.
+	const fastResolved = await resolveAiConfig(db, 'fast')
+	const fast = fastResolved.isValid && (fastResolved.slotMode === 'model' || fastResolved.slotMode === 'provider') ? fastResolved : null
+
+	type Spec = { config: ResolvedAiConfig; name: string }
 	const cache = new Map<string, LanguageModel>()
 
-	function makeFor(name: string): LanguageModel {
-		const cached = cache.get(name)
+	function makeFor(spec: Spec): LanguageModel {
+		// Keyed by provider and name: a slot on its own provider can serve a
+		// model id the default provider also has.
+		const key = `${spec.config.slotMode === 'provider' ? spec.config.slot : 'default'}:${spec.name}`
+		const cached = cache.get(key)
 		if (cached) return cached
 		const built = createAiModel({
-			providerType: ai.providerType.value!,
-			apiKey: ai.apiKey.value!,
-			model: name,
-			baseUrl: ai.baseUrl.value,
+			providerType: spec.config.providerType.value!,
+			apiKey: spec.config.apiKey.value!,
+			model: spec.name,
+			baseUrl: spec.config.baseUrl.value,
 		})
-		cache.set(name, built)
+		cache.set(key, built)
 		return built
 	}
 
-	function nameFor(analyzerId: string): string {
+	// Precedence, highest first: the per-analyzer map, the Intelligence-wide
+	// override, the analyzer's slot, the enrichment cheap-tier default, the
+	// default model. The two overrides are model names only and always run
+	// on the default provider, so what an admin already set keeps its
+	// meaning when a slot is added.
+	function specFor(analyzerId: string): Spec {
 		// `Record<string, string>` lies at the type level: missing keys
 		// return undefined at runtime. Cast so we can branch correctly.
 		const perAnalyzer = (settings.intelligenceAnalyzerModels as Record<string, string | undefined>)[analyzerId]
-		if (perAnalyzer) return perAnalyzer
+		if (perAnalyzer) return { config: ai, name: perAnalyzer }
+		if (settings.intelligenceModelOverride !== null) return { config: ai, name: settings.intelligenceModelOverride }
+		if (fast && slotForAnalyzer(analyzerId) === 'fast') return { config: fast, name: fast.model.value! }
 		// Reasonable-default: enrichment is high-volume, classification-
 		// shaped extraction that doesn't need the flagship model, so when
-		// the admin hasn't expressed ANY model preference for intelligence
-		// (no per-analyzer override, no intelligence-wide override), pick
-		// the provider's cheap tier automatically. Only providers where a
-		// known-good cheap model id is guaranteed to exist are mapped;
-		// openai-compatible endpoints serve arbitrary model lists, so they
-		// stay on the admin's configured model.
-		if (analyzerId === 'enrichment' && settings.intelligenceModelOverride === null) {
+		// the admin hasn't expressed ANY model preference for it (no
+		// override, no fast slot), pick the provider's cheap tier
+		// automatically. Only providers where a known-good cheap model id is
+		// guaranteed to exist are mapped; openai-compatible endpoints serve
+		// arbitrary model lists, so they stay on the admin's configured
+		// model.
+		if (analyzerId === 'enrichment') {
 			const cheap = CHEAP_MODEL_BY_PROVIDER[ai.providerType.value!]
-			if (cheap) return cheap
+			if (cheap) return { config: ai, name: cheap }
 		}
-		return defaultModelName
+		return { config: ai, name: ai.model.value! }
 	}
 
 	return {
-		modelFor: analyzerId => makeFor(nameFor(analyzerId)),
-		modelNameFor: nameFor,
+		modelFor: analyzerId => makeFor(specFor(analyzerId)),
+		modelNameFor: analyzerId => specFor(analyzerId).name,
 	}
 }
 

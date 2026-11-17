@@ -562,6 +562,15 @@ export const appSettingsSchema = z.object({
 	// reaches it, model calls are refused until the next month (the admin
 	// connection test is exempt). Enforced in src/lib/ai-call.ts.
 	aiMonthlyCostCeilingUsd: z.union([z.null(), z.number().min(0).max(100_000)]),
+	// Prices for models the built-in cost table does not know, keyed by the
+	// exact model name: US dollars per million input and output tokens.
+	// Checked before the table in src/lib/ai-cost.ts. Without an entry an
+	// unknown model is costed at the fallback rate, so the estimate and the
+	// monthly ceiling drift for cheap or expensive models.
+	aiModelRates: z.record(
+		z.string().min(1).max(120),
+		z.object({ inPerMTok: z.number().min(0).max(10_000), outPerMTok: z.number().min(0).max(10_000) })
+	),
 	// Photo to item: a vision call that fills in an item from an uploaded
 	// photo. On by default so deployments that already had AI configured
 	// keep the behavior they had before the toggle existed.
@@ -714,6 +723,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	barcodeLookupHistoryRetentionDays: 90,
 	aiUsageRetentionDays: 90,
 	aiMonthlyCostCeilingUsd: null,
+	aiModelRates: {},
 	aiPhotoExtractEnabled: true,
 	aiBarcodeIdentifyEnabled: false,
 	aiGiftSuggestionsEnabled: false,

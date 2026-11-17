@@ -2,6 +2,7 @@ import type { Database } from '@/db'
 import { aiGenerateText } from '@/lib/ai-call'
 import { createAiModel } from '@/lib/ai-client'
 import { resolveAiConfig } from '@/lib/ai-config'
+import { AI_FEATURE_SLOTS } from '@/lib/ai-slots'
 import { getAppSettings } from '@/lib/settings-loader'
 
 import type { ScrapeResult, ScrapeSource } from '../types'
@@ -55,7 +56,7 @@ export async function maybeCleanTitle(db: Database, result: ScrapeResult, option
 		return { skipped: 'toggle_off' }
 	}
 
-	const aiConfig = await resolveAiConfig(db)
+	const aiConfig = await resolveAiConfig(db, AI_FEATURE_SLOTS['clean-title'])
 	if (!aiConfig.isValid) {
 		return { skipped: 'config_invalid' }
 	}

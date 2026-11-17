@@ -4,6 +4,7 @@ import { Fragment, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { updateAppSettings } from '@/api/settings'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -15,6 +16,7 @@ import type { AiConfigResponse } from '@/hooks/use-ai-config'
 import { useAiConfig } from '@/hooks/use-ai-config'
 import { adminAppSettingsQueryKey, notifyAppSettingsChanged, useAdminAppSettings } from '@/hooks/use-app-settings'
 import { AI_FEATURE_REGISTRY, type AiFeatureInfo } from '@/lib/ai-features'
+import { AI_SLOT_LABELS } from '@/lib/ai-slots'
 import { isValidSearchUrlTemplate, SEARCH_QUERY_PLACEHOLDER } from '@/lib/gift-suggestions/search-url'
 import type { AppSettings } from '@/lib/settings'
 
@@ -205,7 +207,8 @@ export function AiFeaturesCardView({
 			<CardHeader>
 				<CardTitle className="text-2xl">AI Features</CardTitle>
 				<CardDescription>
-					Each feature below uses the provider above and can be switched on its own. Open “What is sent” to see exactly what leaves this
+					Each feature below can be switched on its own. The badge says which model it runs on: Default is the provider at the top, Fast and
+					Vision are the optional models above and fall back to Default when empty. Open “What is sent” to see exactly what leaves this
 					deployment for that feature. Nothing runs until a provider is configured.
 				</CardDescription>
 			</CardHeader>
@@ -218,9 +221,16 @@ export function AiFeaturesCardView({
 							<section className="space-y-3">
 								<div className="flex items-start justify-between gap-4">
 									<div className="space-y-0.5">
-										<Label htmlFor={key ?? undefined} className="text-base">
-											{feature.label}
-										</Label>
+										<div className="flex flex-wrap items-center gap-2">
+											<Label htmlFor={key ?? undefined} className="text-base">
+												{feature.label}
+											</Label>
+											{feature.slots.map(slot => (
+												<Badge key={slot} variant="outline" className="font-normal" title={`Runs on the ${AI_SLOT_LABELS[slot]} model`}>
+													{AI_SLOT_LABELS[slot]}
+												</Badge>
+											))}
+										</div>
 										<p className="text-sm text-muted-foreground">
 											{feature.description}
 											{feature.managedAt && (

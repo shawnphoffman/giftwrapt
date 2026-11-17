@@ -157,7 +157,7 @@ async function cleanFirstCandidate(
 	const first = candidates.at(0)
 	if (!settings.aiBarcodeIdentifyEnabled || !first?.title) return
 	try {
-		const ai = await loadIdentifyModel(db)
+		const ai = await loadIdentifyModel(db, 'barcode-identify')
 		if (!ai) return
 		const timeout = AbortSignal.timeout(IDENTIFY_TIMEOUT_MS)
 		const identity = await identifyProduct(

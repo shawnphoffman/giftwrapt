@@ -35,6 +35,18 @@ export const env = createEnv({
 		AI_API_KEY: z.string().min(1).optional(),
 		AI_MODEL: z.string().min(1).optional(),
 		AI_MAX_OUTPUT_TOKENS: z.coerce.number().int().min(1).max(64_000).optional(),
+		// Optional model slots (plan 34). A slot with only a model name runs it
+		// on the provider above; setting a slot's provider type gives it its
+		// own provider, and then its key (and base URL for openai-compatible)
+		// are required and nothing but max output tokens is shared.
+		AI_FAST_PROVIDER_TYPE: z.enum(['openai', 'openai-compatible', 'anthropic']).optional(),
+		AI_FAST_BASE_URL: z.url().optional(),
+		AI_FAST_API_KEY: z.string().min(1).optional(),
+		AI_FAST_MODEL: z.string().min(1).optional(),
+		AI_VISION_PROVIDER_TYPE: z.enum(['openai', 'openai-compatible', 'anthropic']).optional(),
+		AI_VISION_BASE_URL: z.url().optional(),
+		AI_VISION_API_KEY: z.string().min(1).optional(),
+		AI_VISION_MODEL: z.string().min(1).optional(),
 		// Cron job authentication. Optional (cron handlers fail-closed and
 		// return 503 when unset), but if set must be a meaningful secret.
 		// Compared against the `Authorization: Bearer ...` header in
