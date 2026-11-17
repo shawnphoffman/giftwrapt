@@ -1,19 +1,25 @@
+import { anthropic } from '@ai-sdk/anthropic'
+import type { LanguageModel, ToolSet } from 'ai'
+
 import { db } from '@/db'
-import { aiGenerateObject } from '@/lib/ai-call'
+import { aiGenerateObject, aiGenerateTextWithTools, type AiToolResult } from '@/lib/ai-call'
 import { createAiModel } from '@/lib/ai-client'
 import { resolveAiConfig } from '@/lib/ai-config'
 import { AI_FEATURE_SLOTS } from '@/lib/ai-slots'
 import type { AiEntry } from '@/lib/settings'
 
 import { looksLikeBlocked } from '../bot-detect'
-import { safeFetch } from '../safe-fetch'
-import { suppliesMissing } from '../score'
+import { mergeContributions } from '../merge'
+import { assertSafeUrl, safeFetch } from '../safe-fetch'
+import { isSameProduct } from '../same-product'
+import { scoreScrape, suppliesMissing } from '../score'
 import {
 	coerceScrapeResult,
 	type MissingSignal,
 	type ProviderResponse,
 	type ScrapeContext,
 	type ScrapeProvider,
+	type ScrapeResult,
 	scrapeResultModelSchema,
 } from '../types'
 import { ScrapeProviderError } from '../types'
@@ -111,44 +117,113 @@ export function createAiProvider(entry: AiEntry): ScrapeProvider {
 			const aiConfig = await resolveAiConfig(db, AI_FEATURE_SLOTS['scrape-provider'])
 			return aiConfig.isValid
 		},
-		fetch: ctx => runAiProvider(ctx, providerId),
+		fetch: ctx => runAiProvider(ctx, providerId, entry),
 	}
 }
 
-async function runAiProvider(ctx: ScrapeContext, providerId: string): Promise<ProviderResponse> {
+async function runAiProvider(ctx: ScrapeContext, providerId: string, entry: AiEntry): Promise<ProviderResponse> {
 	const aiConfig = await resolveAiConfig(db, AI_FEATURE_SLOTS['scrape-provider'])
 	if (!aiConfig.isValid) {
 		throw new ScrapeProviderError('config_missing', 'AI provider not configured')
 	}
 
 	const start = Date.now()
-	// Read the HTML an earlier tier already fetched when there is some: it
-	// is usually rendered and past the bot wall, and it saves a request that
-	// a plain fetch from this server often loses. Only with none do we fetch.
-	const earlier = ctx.earlierHtml
-	const html = earlier ? earlier.html : await fetchHtmlForLlm(ctx)
-	const input: AiScrapeInput = earlier
-		? { input: 'earlier-html', fromProvider: earlier.providerId, fromTier: earlier.tier }
-		: { input: 'own-fetch' }
-	const sanitized = sanitizeHtmlForLlm(html)
-	const truncated = truncateHtml(sanitized, MAX_HTML_BYTES)
-
 	const model = createAiModel({
 		providerType: aiConfig.providerType.value!,
 		apiKey: aiConfig.apiKey.value!,
 		model: aiConfig.model.value!,
 		baseUrl: aiConfig.baseUrl.value,
 	})
+	const call: ExtractCall = { ctx, model, maxOutputTokens: aiConfig.maxOutputTokens.value }
+	const missing = ctx.missing ?? ALL_SIGNALS
+	// The web fetch tool is Anthropic's; on any other provider the entry's
+	// switch does nothing.
+	const webFetchOn = entry.webFetch === true && aiConfig.providerType.value === 'anthropic'
+	const inputs: Array<Record<string, unknown>> = []
+	const respond = (result: ScrapeResult, returned: string): ProviderResponse => ({
+		kind: 'structured',
+		providerId,
+		result,
+		fetchMs: Date.now() - start,
+		meta: { missing, inputs, returned },
+	})
 
+	// Step 1: the HTML an earlier tier already fetched when there is some
+	// (usually rendered and past the bot wall, and it saves a request a
+	// plain fetch from this server often loses); only with none, our own
+	// fetch.
+	const earlier = ctx.earlierHtml
+	const input: AiScrapeInput = earlier
+		? { input: 'earlier-html', fromProvider: earlier.providerId, fromTier: earlier.tier }
+		: { input: 'own-fetch' }
+	let first: ScrapeResult | null = null
+	let fetchError: ScrapeProviderError | null = null
+	try {
+		const html = earlier ? earlier.html : await fetchHtmlForLlm(ctx)
+		first = await extractFromContent(call, html)
+	} catch (err) {
+		// Only a failed page fetch can be rescued by web fetch. A failed
+		// model call is not a reason to make two more.
+		if (!webFetchOn || !isPageFetchFailure(err)) throw err
+		fetchError = err
+		inputs.push({ ...input, failed: err.code })
+	}
+
+	// Judge the HTML by what came out of it, never by its size or shape:
+	// did the result supply what the run was still missing?
+	if (first) {
+		const goodEnough = suppliesMissing(first, missing)
+		inputs.push({ ...input, goodEnough })
+		if (goodEnough || !webFetchOn) return respond(first, input.input)
+	}
+
+	// Step 2: the provider's servers fetch the exact URL, and the same
+	// extraction runs on the text they got. The model that fetches never
+	// writes a field, so a failed fetch cannot be papered over from memory.
+	let second: ScrapeResult | null = null
+	try {
+		const text = await webFetchText(call)
+		if (text) second = await extractFromContent(call, text, { forceFinalUrl: true })
+		inputs.push(second ? { input: 'web-fetch', goodEnough: suppliesMissing(second, missing) } : { input: 'web-fetch', failed: 'no_page' })
+	} catch (err) {
+		ctx.logger.warn({ err: err instanceof Error ? err.message : String(err) }, 'ai web fetch failed')
+		inputs.push({ input: 'web-fetch', failed: err instanceof ScrapeProviderError ? err.code : 'error' })
+	}
+
+	if (!second) {
+		if (first) return respond(first, input.input)
+		throw fetchError ?? new ScrapeProviderError('bot_block', 'web fetch returned no page')
+	}
+	if (!first) return respond(second, 'web-fetch')
+	return combineResults(first, second, input.input, respond)
+}
+
+const ALL_SIGNALS: ReadonlyArray<MissingSignal> = ['title', 'price', 'photo']
+
+// Which page content the model read. Stored with the attempt so the admin
+// Scrape History can show it.
+type AiScrapeInput = { input: 'earlier-html'; fromProvider: string; fromTier: number } | { input: 'own-fetch' }
+
+type ExtractCall = { ctx: ScrapeContext; model: LanguageModel; maxOutputTokens: number | undefined }
+
+function isPageFetchFailure(err: unknown): err is ScrapeProviderError {
+	return err instanceof ScrapeProviderError && ['bot_block', 'http_4xx', 'http_5xx', 'network_error'].includes(err.code)
+}
+
+// One extraction call over page content (HTML, or the text a web fetch
+// returned). Throws ScrapeProviderError on a failed or timed-out call.
+async function extractFromContent(call: ExtractCall, content: string, opts: { forceFinalUrl?: boolean } = {}): Promise<ScrapeResult> {
+	const { ctx } = call
+	const truncated = truncateHtml(sanitizeHtmlForLlm(content), MAX_HTML_BYTES)
 	let parsed
 	try {
 		parsed = await aiGenerateObject(
 			{ feature: 'scrape-provider', userId: ctx.userId, source: ctx.source },
 			{
-				model,
+				model: call.model,
 				schema: scrapeResultModelSchema,
 				abortSignal: ctx.signal,
-				maxOutputTokens: aiConfig.maxOutputTokens.value,
+				maxOutputTokens: call.maxOutputTokens,
 				system: SYSTEM_PROMPT,
 				prompt: `URL: ${ctx.url}\n\n<USER_CONTENT>\n${truncated}\n</USER_CONTENT>`,
 			}
@@ -162,29 +237,77 @@ async function runAiProvider(ctx: ScrapeContext, providerId: string): Promise<Pr
 
 	// `coerceScrapeResult` enforces the real rating bounds that the
 	// model-facing schema relaxes for Gemini compatibility (see
-	// scrapeResultModelSchema in ../types).
-	const result = coerceScrapeResult({
+	// scrapeResultModelSchema in ../types). After a web fetch the final URL
+	// is always the one that was asked for: the model never supplies it.
+	return coerceScrapeResult({
 		...parsed.object,
-		finalUrl: parsed.object.finalUrl ?? ctx.url,
+		finalUrl: opts.forceFinalUrl ? ctx.url : (parsed.object.finalUrl ?? ctx.url),
 	})
-
-	// Judge the HTML by what came out of it, never by its size or shape:
-	// did the result supply what the run was still missing?
-	const missing = ctx.missing ?? ALL_SIGNALS
-	return {
-		kind: 'structured',
-		providerId,
-		result,
-		fetchMs: Date.now() - start,
-		meta: { missing, inputs: [{ ...input, goodEnough: suppliesMissing(result, missing) }] },
-	}
 }
 
-const ALL_SIGNALS: ReadonlyArray<MissingSignal> = ['title', 'price', 'photo']
+// Roughly today's 32 KB input, in tokens.
+const WEB_FETCH_MAX_CONTENT_TOKENS = 10_000
 
-// Which page content the model read. Stored with the attempt so the admin
-// Scrape History can show it.
-type AiScrapeInput = { input: 'earlier-html'; fromProvider: string; fromTier: number } | { input: 'own-fetch' }
+// Asks Anthropic's servers to fetch the exact URL and returns the page
+// text, or null when there is no usable page: no tool result, a result
+// that is not text, an empty body, or a bot wall. The tool is limited to
+// the URL's host and to one use. Only public http(s) URLs are handed over.
+async function webFetchText(call: ExtractCall): Promise<string | null> {
+	const { ctx } = call
+	const url = new URL(ctx.url)
+	await assertSafeUrl(url)
+	const { toolResults } = await aiGenerateTextWithTools(
+		{ feature: 'scrape-provider', userId: ctx.userId, source: ctx.source },
+		{
+			model: call.model,
+			abortSignal: ctx.signal,
+			maxOutputTokens: 200,
+			prompt: `Fetch this URL with the web fetch tool, then reply with the single word "done": ${ctx.url}`,
+			// The cast is for the types only: the Anthropic provider and `ai`
+			// each resolve their own copy of the tool types, so TypeScript
+			// sees two unrelated `Tool`s. At runtime it is the same object
+			// shape (checked with scripts/core/web-fetch-spike.mts).
+			tools: {
+				web_fetch: anthropic.tools.webFetch_20250910({
+					maxUses: 1,
+					allowedDomains: [url.hostname],
+					maxContentTokens: WEB_FETCH_MAX_CONTENT_TOKENS,
+				}),
+			} as unknown as ToolSet,
+		}
+	)
+	const text = readFetchedText(toolResults)
+	if (!text || looksLikeBlocked(text)) return null
+	return text
+}
+
+// The fetched page out of the tool's result. Anything that is not a
+// well-formed text document counts as no page, so the exact shape of a
+// failed fetch does not matter here.
+export function readFetchedText(toolResults: ReadonlyArray<AiToolResult>): string | null {
+	for (const r of toolResults) {
+		const output = r.output as { type?: unknown; content?: { source?: { type?: unknown; data?: unknown } } } | null | undefined
+		if (output?.type !== 'web_fetch_result') continue
+		const source = output.content?.source
+		if (source?.type === 'text' && typeof source.data === 'string' && source.data.trim().length > 0) return source.data
+	}
+	return null
+}
+
+// Both steps produced a result: return the higher-scoring one, with its
+// gaps filled from the other when they describe the same product.
+function combineResults(
+	first: ScrapeResult,
+	second: ScrapeResult,
+	firstInput: string,
+	respond: (result: ScrapeResult, returned: string) => ProviderResponse
+): ProviderResponse {
+	const a = { result: first, fromProvider: firstInput, score: scoreScrape(first) }
+	const b = { result: second, fromProvider: 'web-fetch', score: scoreScrape(second) }
+	const [base, other] = b.score > a.score ? [b, a] : [a, b]
+	if (!isSameProduct(base.result, other.result).ok) return respond(base.result, base.fromProvider)
+	return respond(mergeContributions([base, other]).result, `${base.fromProvider}+${other.fromProvider}`)
+}
 
 async function fetchHtmlForLlm(ctx: ScrapeContext): Promise<string> {
 	let response: Response

@@ -96,6 +96,11 @@ const customHttpEntrySchema = z.object({
 const aiEntrySchema = z.object({
 	...baseEntryFields,
 	type: z.literal('ai'),
+	// Let Anthropic's servers fetch the page when the HTML the scraper has
+	// does not yield what the run is missing (or there is no HTML). Only
+	// acts when the default AI provider is Anthropic. Off unless set: it
+	// adds model calls, and the provider requests the URL itself.
+	webFetch: z.boolean().optional(),
 })
 
 // Custom Hono facade in front of browserless / flaresolverr / byparr /

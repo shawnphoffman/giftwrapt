@@ -18,7 +18,7 @@
 // it. The check reads a short-lived cached total, so a burst can overshoot
 // by a few calls; it is a guard rail, not a billing control.
 
-import { generateObject, generateText, type LanguageModel, type ModelMessage } from 'ai'
+import { generateObject, generateText, type LanguageModel, type ModelMessage, type ToolSet } from 'ai'
 import type { z } from 'zod'
 
 import { db as defaultDb, type SchemaDatabase } from '@/db'
@@ -210,4 +210,28 @@ export async function aiGenerateObject<TSchema extends z.ZodType>(
 export async function aiGenerateText(meta: AiCallMeta, params: BaseParams): Promise<{ text: string; usage: AiCallUsage }> {
 	const result = await tracked(meta, params.model, () => generateText(params as Parameters<typeof generateText>[0]))
 	return { text: result.text, usage: readUsage(result.usage) }
+}
+
+// What a provider-run tool returned, e.g. Anthropic's web fetch. `output`
+// is whatever the provider's tool defines; the caller checks its shape.
+export type AiToolResult = { toolName: string; output: unknown }
+
+// A text call that may use provider-run tools. Same ledger row, budget
+// check and feature label as every other call; usage is the total across
+// the call's steps, since a tool use adds one.
+export async function aiGenerateTextWithTools(
+	meta: AiCallMeta,
+	params: BaseParams & { tools: ToolSet }
+): Promise<{ text: string; usage: AiCallUsage; toolResults: Array<AiToolResult> }> {
+	const result = await tracked(meta, params.model, async () => {
+		const res = await generateText(params as Parameters<typeof generateText>[0])
+		const toolResults: Array<AiToolResult> = []
+		for (const step of res.steps) {
+			for (const part of step.content) {
+				if (part.type === 'tool-result') toolResults.push({ toolName: part.toolName, output: part.output })
+			}
+		}
+		return { text: res.text, usage: res.totalUsage, toolResults }
+	})
+	return { text: result.text, usage: readUsage(result.usage), toolResults: result.toolResults }
 }

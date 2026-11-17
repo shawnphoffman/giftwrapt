@@ -564,7 +564,7 @@ function EntryFields({
 				<CustomHttpFields draft={draft} setDraft={setDraft as React.Dispatch<React.SetStateAction<CustomHttpEntry>>} disabled={disabled} />
 			)
 		case 'ai':
-			return <AiFields draft={draft} />
+			return <AiFields draft={draft} setDraft={setDraft as React.Dispatch<React.SetStateAction<AiEntry>>} disabled={disabled} />
 		case 'giftwrapt-scraper':
 			return (
 				<GiftWraptScraperFields
@@ -876,13 +876,31 @@ function ScrapflyFields({
 	)
 }
 
-function AiFields({ draft: _draft }: { draft: AiEntry }) {
+function AiFields({
+	draft,
+	setDraft,
+	disabled,
+}: {
+	draft: AiEntry
+	setDraft: React.Dispatch<React.SetStateAction<AiEntry>>
+	disabled: boolean
+}) {
 	return (
-		<p className="text-xs text-muted-foreground">
-			Uses the AI provider configured under <code className="font-mono">/admin/ai-settings</code> (provider type, model, API key). Each
-			scrape makes its own fetch and LLM call, so every scrape costs money. Works best in a higher tier, as a fallback when cheaper
-			providers come up short.
-		</p>
+		<>
+			<p className="text-xs text-muted-foreground">
+				Uses the default AI model configured under <code className="font-mono">/admin/ai</code>. It reads the page an earlier tier already
+				fetched, or fetches it itself when there is none, then makes one model call, so every scrape costs money. Works best in a higher
+				tier, as a fallback when cheaper providers come up short.
+			</p>
+			<SwitchRow
+				id={`ai-webfetch-${draft.id}`}
+				label="Web Fetch"
+				hint="When the page it has does not give what is still missing (or it has no page), the AI provider's own servers fetch the URL and the model reads that. Adds up to two model calls per scrape. Only works when the default AI provider is Anthropic; on any other provider this does nothing."
+				checked={draft.webFetch ?? false}
+				disabled={disabled}
+				onChange={value => setDraft(prev => ({ ...prev, webFetch: value }))}
+			/>
+		</>
 	)
 }
 
@@ -1177,7 +1195,7 @@ function isSameEntry(a: ScrapeProviderEntry, b: ScrapeProviderEntry): boolean {
 				(a.customHeaders ?? '') === (b.customHeaders ?? '')
 			)
 		case 'ai':
-			return b.type === 'ai'
+			return b.type === 'ai' && (a.webFetch ?? false) === (b.webFetch ?? false)
 		case 'giftwrapt-scraper':
 			return b.type === 'giftwrapt-scraper' && a.endpoint === b.endpoint && a.token === b.token
 		case 'scrapfly':

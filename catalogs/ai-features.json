@@ -7,7 +7,8 @@
 		"managedAt": "Scraping",
 		"sent": [
 			"The product page URL being added",
-			"The text and markup of that page, with scripts and styles removed (up to 32 KB)"
+			"The text and markup of that page, with scripts and styles removed (up to 32 KB)",
+			"With Web Fetch turned on for the AI scraper: the AI provider’s own servers request that URL, so the store sees a visit from the provider"
 		],
 		"neverSent": [
 			"Anything about your users, their lists, or their gifts"

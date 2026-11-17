@@ -43,7 +43,11 @@ const REGISTRY_ENTRIES: ReadonlyArray<Omit<AiFeatureInfo, 'slots'>> = [
 		description: 'Reads a product page with the AI model when it is one of the configured scrape providers.',
 		settingKey: null,
 		managedAt: { href: '/admin/scraping', label: 'Scraping' },
-		sent: ['The product page URL being added', 'The text and markup of that page, with scripts and styles removed (up to 32 KB)'],
+		sent: [
+			'The product page URL being added',
+			'The text and markup of that page, with scripts and styles removed (up to 32 KB)',
+			'With Web Fetch turned on for the AI scraper: the AI provider’s own servers request that URL, so the store sees a visit from the provider',
+		],
 		neverSent: [NOTHING_ABOUT_PEOPLE],
 	},
 	{

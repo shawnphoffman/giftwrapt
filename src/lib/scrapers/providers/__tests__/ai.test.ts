@@ -9,12 +9,13 @@ vi.mock('@/env', () => ({
 }))
 
 let mockAiValid = false
+let mockProviderType = 'openai'
 
 vi.mock('@/lib/ai-config', () => ({
 	resolveAiConfig: () =>
 		Promise.resolve({
 			isValid: mockAiValid,
-			providerType: { source: 'env', value: 'openai' },
+			providerType: { source: 'env', value: mockProviderType },
 			baseUrl: { source: 'missing' },
 			apiKey: { source: 'env', value: 'test-key' },
 			model: { source: 'env', value: 'gpt-4o-mini' },
@@ -36,11 +37,20 @@ let generateObjectImpl: () => Promise<{ object: Record<string, unknown> }> = () 
 	})
 
 let lastPrompt = ''
+// Every extraction prompt, in order, and every tool call's arguments.
+let prompts: Array<string> = []
+let toolCalls: Array<{ prompt?: string; tools?: unknown }> = []
+let generateTextImpl: () => Promise<Record<string, unknown>> = () => Promise.reject(new Error('generateText not expected'))
 
 vi.mock('ai', () => ({
 	generateObject: (...args: Array<unknown>) => {
 		lastPrompt = (args[0] as { prompt?: string }).prompt ?? ''
+		prompts.push(lastPrompt)
 		return generateObjectImpl()
+	},
+	generateText: (...args: Array<unknown>) => {
+		toolCalls.push(args[0] as { prompt?: string; tools?: unknown })
+		return generateTextImpl()
 	},
 }))
 
@@ -78,6 +88,10 @@ let fetchQueue: Array<{ status: number; body?: string }> = []
 
 beforeEach(() => {
 	mockAiValid = false
+	mockProviderType = 'openai'
+	prompts = []
+	toolCalls = []
+	generateTextImpl = () => Promise.reject(new Error('generateText not expected'))
 	fetchQueue = []
 	// `safeFetch` resolves the URL's hostname before fetching. The test
 	// URLs don't resolve, so stub the resolver to return a public IP.
@@ -211,5 +225,191 @@ describe('aiProvider: earlier HTML and the missing-signals check (plan 35a)', ()
 		const res = await makeProvider().fetch({ ...makeCtx('https://target.test/x'), earlierHtml })
 		if (res.kind !== 'structured') throw new Error('expected structured')
 		expect(res.meta).toMatchObject({ missing: ['title', 'price', 'photo'], inputs: [{ goodEnough: false }] })
+	})
+})
+
+describe('aiProvider: web fetch (plan 35b)', () => {
+	const WALL = '<html><head><title>Just a moment...</title></head><body></body></html>'
+	const earlierHtml = {
+		html: '<html><body><h1>Acme Widget Deluxe</h1></body></html>',
+		finalUrl: 'https://shop.test/p/1',
+		status: 200,
+		providerId: 'r',
+		tier: 1,
+	}
+
+	// What Anthropic's web fetch tool returns through the SDK for a page.
+	const fetched = (text: string) => () =>
+		Promise.resolve({
+			text: 'done',
+			totalUsage: {},
+			steps: [
+				{
+					content: [
+						{
+							type: 'tool-result',
+							toolName: 'web_fetch',
+							output: {
+								type: 'web_fetch_result',
+								url: 'https://shop.test/p/1',
+								content: { type: 'document', title: null, source: { type: 'text', mediaType: 'text/plain', data: text } },
+								retrievedAt: null,
+							},
+						},
+					],
+				},
+			],
+		})
+	const noPage = () =>
+		Promise.resolve({ text: 'I could not fetch that.', totalUsage: {}, steps: [{ content: [{ type: 'text', text: 'sorry' }] }] })
+
+	// Extraction answers in order: the first call reads the HTML, the second the fetched text.
+	const answers = (...objects: Array<Record<string, unknown>>) => {
+		const queue = [...objects]
+		generateObjectImpl = () => Promise.resolve({ object: queue.shift() ?? {} })
+	}
+
+	const meta = (res: Awaited<ReturnType<ScrapeProvider['fetch']>>) => {
+		if (res.kind !== 'structured') throw new Error('expected structured')
+		return res.meta as { inputs: Array<Record<string, unknown>>; returned: string }
+	}
+
+	beforeEach(() => {
+		mockAiValid = true
+		mockProviderType = 'anthropic'
+	})
+
+	it('with the switch off, a blocked fetch fails as before and no tool call is made', async () => {
+		fetchQueue.push({ status: 200, body: WALL })
+		await expect(makeProvider().fetch(makeCtx('https://shop.test/p/1'))).rejects.toMatchObject({ code: 'bot_block' })
+		expect(toolCalls).toHaveLength(0)
+	})
+
+	it('with the switch off, a result that is not good enough is returned as it is', async () => {
+		answers({ title: 'Acme Widget Deluxe', imageUrls: [] })
+		const res = await makeProvider().fetch({ ...makeCtx('https://shop.test/p/1'), earlierHtml, missing: ['price'] })
+		expect(toolCalls).toHaveLength(0)
+		expect(meta(res).inputs).toEqual([{ input: 'earlier-html', fromProvider: 'r', fromTier: 1, goodEnough: false }])
+	})
+
+	it('fetches through the provider when its own fetch is blocked and there is no earlier HTML', async () => {
+		fetchQueue.push({ status: 200, body: WALL })
+		generateTextImpl = fetched('Acme Widget Deluxe. Price: $19.99. In stock.')
+		answers({ title: 'Acme Widget Deluxe', price: '19.99', imageUrls: [] })
+		const res = await makeProvider({ webFetch: true }).fetch(makeCtx('https://shop.test/p/1'))
+		expect(toolCalls).toHaveLength(1)
+		// Limited to the URL's host and to one use.
+		const tool = JSON.stringify(toolCalls[0].tools)
+		expect(tool).toContain('"allowedDomains":["shop.test"]')
+		expect(tool).toContain('"maxUses":1')
+		// The extraction read the fetched text, not anything the fetching model wrote.
+		expect(prompts).toHaveLength(1)
+		expect(prompts[0]).toContain('Price: $19.99')
+		if (res.kind !== 'structured') throw new Error('expected structured')
+		expect(res.result).toMatchObject({ title: 'Acme Widget Deluxe', price: '19.99' })
+		expect(meta(res)).toMatchObject({
+			returned: 'web-fetch',
+			inputs: [
+				{ input: 'own-fetch', failed: 'bot_block' },
+				{ input: 'web-fetch', goodEnough: false },
+			],
+		})
+	})
+
+	it('makes no second call when the HTML result supplies what the run is missing', async () => {
+		answers({ title: 'Acme Widget Deluxe', price: '19.99', imageUrls: [] })
+		const res = await makeProvider({ webFetch: true }).fetch({ ...makeCtx('https://shop.test/p/1'), earlierHtml, missing: ['price'] })
+		expect(toolCalls).toHaveLength(0)
+		expect(meta(res).returned).toBe('earlier-html')
+	})
+
+	it('fetches once when the HTML result lacks a missing signal, and returns the fields of both', async () => {
+		generateTextImpl = fetched('Acme Widget Deluxe. Price: $19.99.')
+		answers(
+			{ title: 'Acme Widget Deluxe', description: 'A very good widget for people who like widgets.', imageUrls: [] },
+			{ title: 'Acme Widget Deluxe', price: '19.99', imageUrls: [] }
+		)
+		const res = await makeProvider({ webFetch: true }).fetch({ ...makeCtx('https://shop.test/p/1'), earlierHtml, missing: ['price'] })
+		expect(toolCalls).toHaveLength(1)
+		if (res.kind !== 'structured') throw new Error('expected structured')
+		expect(res.result).toMatchObject({
+			title: 'Acme Widget Deluxe',
+			price: '19.99',
+			description: 'A very good widget for people who like widgets.',
+		})
+		expect(meta(res).returned).toBe('web-fetch+earlier-html')
+	})
+
+	it('keeps the two results apart when they describe different products', async () => {
+		generateTextImpl = fetched('Totally Different Gadget Pro. Price: $5.')
+		answers({ title: 'Acme Widget Deluxe', imageUrls: [] }, { title: 'Totally Different Gadget Pro', price: '5', imageUrls: [] })
+		const res = await makeProvider({ webFetch: true }).fetch({ ...makeCtx('https://shop.test/p/1'), earlierHtml, missing: ['price'] })
+		if (res.kind !== 'structured') throw new Error('expected structured')
+		// The higher-scoring result alone: no title from one with a price from the other.
+		expect(res.result.title).toBe('Totally Different Gadget Pro')
+		expect(meta(res).returned).toBe('web-fetch')
+	})
+
+	it('a fetch with no page contributes nothing', async () => {
+		generateTextImpl = noPage
+		answers({ title: 'Acme Widget Deluxe', imageUrls: [] })
+		const res = await makeProvider({ webFetch: true }).fetch({ ...makeCtx('https://shop.test/p/1'), earlierHtml, missing: ['price'] })
+		// One extraction only: nothing was fetched to extract from.
+		expect(prompts).toHaveLength(1)
+		expect(meta(res)).toMatchObject({
+			returned: 'earlier-html',
+			inputs: [{ input: 'earlier-html' }, { input: 'web-fetch', failed: 'no_page' }],
+		})
+	})
+
+	it('a fetch with no page and no HTML result fails with the original error', async () => {
+		fetchQueue.push({ status: 404 })
+		generateTextImpl = noPage
+		await expect(makeProvider({ webFetch: true }).fetch(makeCtx('https://shop.test/p/1'))).rejects.toMatchObject({ code: 'http_4xx' })
+		expect(prompts).toHaveLength(0)
+	})
+
+	it('treats a fetched bot wall as no page', async () => {
+		fetchQueue.push({ status: 200, body: WALL })
+		generateTextImpl = fetched(WALL)
+		await expect(makeProvider({ webFetch: true }).fetch(makeCtx('https://shop.test/p/1'))).rejects.toMatchObject({ code: 'bot_block' })
+		expect(prompts).toHaveLength(0)
+	})
+
+	it('a failed tool call leaves the HTML result standing', async () => {
+		generateTextImpl = () => Promise.reject(new Error('provider down'))
+		answers({ title: 'Acme Widget Deluxe', imageUrls: [] })
+		const res = await makeProvider({ webFetch: true }).fetch({ ...makeCtx('https://shop.test/p/1'), earlierHtml, missing: ['price'] })
+		expect(meta(res)).toMatchObject({
+			returned: 'earlier-html',
+			inputs: [{ input: 'earlier-html' }, { input: 'web-fetch', failed: 'error' }],
+		})
+	})
+
+	it('keeps the requested URL as the final URL after a web fetch', async () => {
+		fetchQueue.push({ status: 200, body: WALL })
+		generateTextImpl = fetched('Acme Widget Deluxe')
+		answers({ title: 'Acme Widget Deluxe', finalUrl: 'https://evil.test/elsewhere', imageUrls: [] })
+		const res = await makeProvider({ webFetch: true }).fetch(makeCtx('https://shop.test/p/1'))
+		if (res.kind !== 'structured') throw new Error('expected structured')
+		expect(res.result.finalUrl).toBe('https://shop.test/p/1')
+	})
+
+	it('never runs on a provider other than Anthropic', async () => {
+		mockProviderType = 'openai'
+		answers({ title: 'Acme Widget Deluxe', imageUrls: [] })
+		await makeProvider({ webFetch: true }).fetch({ ...makeCtx('https://shop.test/p/1'), earlierHtml, missing: ['price'] })
+		expect(toolCalls).toHaveLength(0)
+
+		fetchQueue.push({ status: 200, body: WALL })
+		await expect(makeProvider({ webFetch: true }).fetch(makeCtx('https://shop.test/p/1'))).rejects.toMatchObject({ code: 'bot_block' })
+		expect(toolCalls).toHaveLength(0)
+	})
+
+	it('never hands a private address to the tool', async () => {
+		answers({ title: 'Acme Widget Deluxe', imageUrls: [] })
+		const res = await makeProvider({ webFetch: true }).fetch({ ...makeCtx('http://127.0.0.1/p/1'), earlierHtml, missing: ['price'] })
+		expect(toolCalls).toHaveLength(0)
+		expect(meta(res).returned).toBe('earlier-html')
 	})
 })
