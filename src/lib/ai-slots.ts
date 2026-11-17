@@ -26,7 +26,9 @@ export const AI_SLOT_LABELS: Record<AiSlot, string> = {
 }
 
 export const AI_FEATURE_SLOTS: Record<AiFeature, AiSlot> = {
-	'scrape-provider': 'fast',
+	// Runs only after the cheaper scrape tiers failed, so it sees the hard
+	// pages. A wrong price costs more than the tokens a small model saves.
+	'scrape-provider': 'default',
 	'clean-title': 'fast',
 	'photo-extract': 'vision',
 	// Sends the provider's title, brand and the code. No image.

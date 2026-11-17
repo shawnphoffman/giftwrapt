@@ -147,7 +147,7 @@ describe('AI model slots', () => {
 
 	it('maps each feature to the slot the plan gives it', () => {
 		expect(AI_FEATURE_SLOTS).toEqual({
-			'scrape-provider': 'fast',
+			'scrape-provider': 'default',
 			'clean-title': 'fast',
 			'photo-extract': 'vision',
 			'barcode-identify': 'fast',

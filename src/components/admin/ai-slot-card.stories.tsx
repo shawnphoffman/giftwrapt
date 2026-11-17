@@ -38,7 +38,7 @@ const meta = {
 		slot: 'fast',
 		title: 'Fast Model',
 		description: 'Optional. A smaller, cheaper model for mechanical work that runs often.',
-		features: ['AI Scraper', 'Clean Imported Titles', 'Clean Up Barcode Results', 'Paste Text to Items', 'Suggestions (parts of it)'],
+		features: ['Clean Imported Titles', 'Clean Up Barcode Results', 'Paste Text to Items', 'Suggestions (parts of it)'],
 		config: empty,
 		main,
 		saving: false,
