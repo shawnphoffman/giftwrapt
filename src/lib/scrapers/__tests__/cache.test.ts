@@ -6,7 +6,7 @@ vi.mock('@/env', () => ({
 
 import type { Database } from '@/db'
 
-import { buildResponseJson, loadCachedScrape, persistFinalScrape, persistScrapeAttempt } from '../cache'
+import { buildErrorResponseJson, buildResponseJson, loadCachedScrape, persistFinalScrape, persistScrapeAttempt } from '../cache'
 
 // ---------------------------------------------------------------------------
 // Mock database
@@ -304,6 +304,28 @@ describe('persistScrapeAttempt: insert shape', () => {
 			result: { title: 'Hello', imageUrls: [] },
 		})
 		expect(insertCalls[0].response).toBeNull()
+	})
+})
+
+describe('buildErrorResponseJson', () => {
+	it('is null when a failure has nothing beyond its error code', () => {
+		expect(buildErrorResponseJson(undefined, undefined)).toBeNull()
+	})
+
+	it('keeps the provider message and the upstream detail', () => {
+		expect(buildErrorResponseJson('My scraper 503', 'browser_unavailable: browser connect failed')).toEqual({
+			kind: 'error',
+			message: 'My scraper 503',
+			detail: 'browser_unavailable: browser connect failed',
+		})
+	})
+
+	it('redacts both before they are stored', () => {
+		expect(buildErrorResponseJson('redirected to https://shop.test/p?session=abc123', 'used Bearer abc.def')).toEqual({
+			kind: 'error',
+			message: 'redirected to https://shop.test/p?[query removed]',
+			detail: 'used Bearer [redacted]',
+		})
 	})
 })
 

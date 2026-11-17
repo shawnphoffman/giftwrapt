@@ -3,6 +3,7 @@ import { and, desc, eq, gte, isNotNull, isNull, sql } from 'drizzle-orm'
 import type { Database, SchemaDatabase } from '@/db'
 import { itemScrapes } from '@/db/schema'
 
+import { redactDiagnostic } from './error-detail'
 import { extractFromRaw } from './extractor'
 import { maybeCleanTitle } from './post-passes/clean-title'
 import type { ScoreBreakdown } from './score'
@@ -107,12 +108,16 @@ export async function persistScrapeAttempt(
 		score: number | null
 		ms: number
 		errorCode?: string
+		errorMessage?: string
+		errorDetail?: string
 		result?: ScrapeResult
 		rawResponse?: unknown
 		scoreParts?: ScoreBreakdown['parts']
 	}
 ): Promise<void> {
-	const response = buildResponseJson(record.rawResponse, record.scoreParts)
+	const response = record.ok
+		? buildResponseJson(record.rawResponse, record.scoreParts)
+		: buildErrorResponseJson(record.errorMessage, record.errorDetail)
 	await db.insert(itemScrapes).values({
 		itemId: record.itemId ?? null,
 		userId: record.userId ?? null,
@@ -236,6 +241,17 @@ export function buildDbBackedDeps(db: Database, options: { ttlHours: number; min
 export function buildResponseJson(rawResponse: unknown, scoreParts: ScoreBreakdown['parts'] | undefined): unknown {
 	if (!scoreParts) return rawResponse
 	return { ...(isPlainObject(rawResponse) ? rawResponse : {}), scoreParts }
+}
+
+// What a failed attempt stores in the response jsonb: the provider's own
+// message and, when the upstream service reported one, its error. Both pass
+// through `redactDiagnostic` so no credential or signed URL is ever stored.
+// Returns null when there is nothing to say beyond the error code.
+export function buildErrorResponseJson(errorMessage: string | undefined, errorDetail: string | undefined): unknown {
+	const message = redactDiagnostic(errorMessage)
+	const detail = redactDiagnostic(errorDetail)
+	if (!message && !detail) return null
+	return { kind: 'error', ...(message ? { message } : {}), ...(detail ? { detail } : {}) }
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

@@ -93,6 +93,40 @@ describe('createCustomHttpProvider: html mode', () => {
 		await expect(provider.fetch(makeCtx('https://target.test/x'))).rejects.toMatchObject({ code: 'config_missing' })
 	})
 
+	it('keeps the error the scraper reported as the detail, not the message', async () => {
+		queue.push({
+			status: 503,
+			contentType: 'application/json',
+			body: JSON.stringify({ error: 'browser_unavailable', message: 'browser connect failed: Unexpected server response: 530' }),
+		})
+		const provider = createCustomHttpProvider(sampleEntry)
+		await expect(provider.fetch(makeCtx('https://target.test/x'))).rejects.toMatchObject({
+			code: 'http_5xx',
+			message: 'My Amazon scraper 503',
+			detail: 'browser_unavailable: browser connect failed: Unexpected server response: 530',
+		})
+	})
+
+	it('never keeps a configured header secret the scraper echoes back', async () => {
+		queue.push({
+			status: 401,
+			contentType: 'application/json',
+			body: JSON.stringify({ error: 'unauthorized', message: 'rejected header value super-secret-token' }),
+		})
+		const provider = createCustomHttpProvider({ ...sampleEntry, customHeaders: 'Authorization: Bearer super-secret-token' })
+		const err = await provider.fetch(makeCtx('https://target.test/x')).catch((e: unknown) => e)
+		expect(err).toMatchObject({ code: 'config_missing', message: 'My Amazon scraper auth rejected (401)' })
+		expect((err as { detail?: string }).detail).toBe('unauthorized: rejected header value [redacted]')
+	})
+
+	it('leaves the detail unset when the error body is not JSON', async () => {
+		queue.push({ status: 502, body: '<html>Bad Gateway</html>' })
+		const provider = createCustomHttpProvider(sampleEntry)
+		const err = await provider.fetch(makeCtx('https://target.test/x')).catch((e: unknown) => e)
+		expect(err).toMatchObject({ code: 'http_5xx' })
+		expect((err as { detail?: string }).detail).toBeUndefined()
+	})
+
 	it('throws bot_block on a CF-walled body', async () => {
 		queue.push({ status: 200, body: '<html><body>cf-browser-verification</body></html>' })
 		const provider = createCustomHttpProvider(sampleEntry)

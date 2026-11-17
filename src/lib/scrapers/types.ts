@@ -131,10 +131,15 @@ export type ScrapeErrorCode =
 
 export class ScrapeProviderError extends Error {
 	readonly code: ScrapeErrorCode
-	constructor(code: ScrapeErrorCode, message?: string) {
+	// What the upstream service said went wrong, when it said anything. Kept
+	// apart from `message` because `message` is streamed to whoever started
+	// the scrape, while this is stored for admins only (see error-detail.ts).
+	readonly detail?: string
+	constructor(code: ScrapeErrorCode, message?: string, detail?: string) {
 		super(message ?? code)
 		this.name = 'ScrapeProviderError'
 		this.code = code
+		this.detail = detail
 	}
 }
 
@@ -330,6 +335,8 @@ export type OrchestratorDeps = {
 		ms: number
 		errorCode?: ScrapeErrorCode
 		errorMessage?: string
+		// Admin-only upstream detail; never emitted on the stream.
+		errorDetail?: string
 		result?: ScrapeResult
 		rawResponse?: unknown
 		scoreParts?: ScoreBreakdown['parts']

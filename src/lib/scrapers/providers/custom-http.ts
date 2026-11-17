@@ -22,6 +22,7 @@
 import type { CustomHttpEntry } from '@/lib/settings'
 
 import { looksLikeBlocked } from '../bot-detect'
+import { readUpstreamErrorDetail, secretsFromRequest } from '../error-detail'
 import { parseCustomHeaders } from '../parse-headers'
 import type { ProviderResponse, ScrapeContext, ScrapeProvider, ScrapeResult } from '../types'
 import { scrapeResultSchema } from '../types'
@@ -99,14 +100,17 @@ async function runCustomHttpProvider(ctx: ScrapeContext, entry: CustomHttpEntry,
 		throw new ScrapeProviderError('network_error', err instanceof Error ? err.message : String(err))
 	}
 
-	if (response.status === 401 || response.status === 403) {
-		throw new ScrapeProviderError('config_missing', `${entry.name} auth rejected (${response.status})`)
-	}
-	if (response.status >= 400 && response.status < 500) {
-		throw new ScrapeProviderError('http_4xx', `${entry.name} ${response.status}`)
-	}
-	if (response.status >= 500) {
-		throw new ScrapeProviderError('http_5xx', `${entry.name} ${response.status}`)
+	if (response.status >= 400) {
+		// Keep what the scraper said went wrong (e.g. `browser_unavailable`),
+		// so a bare status code isn't all the admin has to go on.
+		const detail = await readUpstreamErrorDetail(response, secretsFromRequest(headers, endpoint))
+		if (response.status === 401 || response.status === 403) {
+			throw new ScrapeProviderError('config_missing', `${entry.name} auth rejected (${response.status})`, detail)
+		}
+		if (response.status < 500) {
+			throw new ScrapeProviderError('http_4xx', `${entry.name} ${response.status}`, detail)
+		}
+		throw new ScrapeProviderError('http_5xx', `${entry.name} ${response.status}`, detail)
 	}
 
 	if (entry.responseKind === 'json') {

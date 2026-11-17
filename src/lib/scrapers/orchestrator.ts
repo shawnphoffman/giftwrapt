@@ -204,7 +204,7 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 			return { ok: true, result, score, scoreContext, providerId: provider.id }
 		} catch (err) {
 			const ms = Date.now() - start
-			const { code, message } = classifyError(err)
+			const { code, message, detail } = classifyError(err)
 			if (code === 'dead_link') deadLinkRef.seen = true
 			const attempt: ScrapeAttempt = { providerId: provider.id, ok: false, score: null, ms, errorCode: code, errorMessage: message }
 			attempts.push(attempt)
@@ -218,6 +218,7 @@ export async function orchestrate(options: OrchestrateOptions, deps: Orchestrato
 				ms,
 				errorCode: code,
 				errorMessage: message,
+				errorDetail: detail,
 			})
 			return { ok: false, providerId: provider.id }
 		} finally {
@@ -485,9 +486,9 @@ function evaluateResponse(
 	return { result: response.result, score, scoreContext: {} }
 }
 
-function classifyError(err: unknown): { code: ScrapeErrorCode; message?: string } {
+function classifyError(err: unknown): { code: ScrapeErrorCode; message?: string; detail?: string } {
 	if (err instanceof ScrapeProviderError) {
-		return { code: err.code, message: err.message }
+		return { code: err.code, message: err.message, detail: err.detail }
 	}
 	if (err instanceof Error) {
 		// AbortError surfaces as DOMException in newer runtimes; check name.
