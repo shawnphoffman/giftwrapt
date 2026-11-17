@@ -21,9 +21,11 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN pnpm build
 
-# Runtime image: plain node, no pnpm, no node_modules. The Nitro bundle under
-# .output/server is self-contained (only tslib in .output/server/node_modules),
-# and the CLI bundles under .output/scripts are self-contained too.
+# Runtime image: plain node, no pnpm, no installed node_modules. The Nitro
+# bundle under .output/server is self-contained: the few packages that are not
+# bundled (sharp, and Stagehand with its Playwright, see vite.config.ts) are
+# copied into .output/server/node_modules by the build. The CLI bundles under
+# .output/scripts are self-contained too.
 FROM node:22-slim AS runner
 WORKDIR /app
 

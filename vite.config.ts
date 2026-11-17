@@ -1,5 +1,7 @@
 import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { resolve as resolvePath } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 import tailwindcss from '@tailwindcss/vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
@@ -78,6 +80,44 @@ const dbClientAlias = (): Plugin => ({
 	},
 })
 
+// Stagehand (the optional Browserbase scrape provider) and the
+// `playwright-core` it drives are loaded with one dynamic `import()` at
+// runtime, but bundling them cost the server build about 1,000 modules and
+// 1.4 GB of peak memory, which is what got a Vercel build killed
+// (2026-11-17). They are kept out of the bundle (`external` below) and
+// copied into the server output's node_modules instead, the same place
+// Nitro puts `sharp`, so the import still resolves in the Docker image and
+// the Vercel function.
+//
+// Nitro's own `traceDeps` would normally do both halves, but listing
+// Stagehand there fails the build inside Rollup ("Cannot read properties of
+// null (reading 'getVariableForExportName')", nitro 3.0.260415-beta), so
+// this calls the same tracer (nf3) directly.
+const STAGEHAND_EXTERNALS = ['@browserbasehq/stagehand', /^playwright-core(\/|$)/, /^chromium-bidi(\/|$)/]
+
+const traceStagehand = (): Plugin => ({
+	name: 'giftwrapt:trace-stagehand',
+	async writeBundle(outputOptions) {
+		if (!outputOptions.dir) return
+		const require = createRequire(import.meta.url)
+		let entry: string
+		try {
+			entry = require.resolve('@browserbasehq/stagehand')
+		} catch {
+			// It is an optional dependency. Without it the provider reports
+			// that Stagehand is not installed, as it always has.
+			return
+		}
+		// nf3 is Nitro's dependency, not ours, so resolve it from Nitro.
+		const fromNitro = createRequire(require.resolve('nitro/package.json'))
+		const { traceNodeModules } = (await import(pathToFileURL(fromNitro.resolve('nf3')).href)) as {
+			traceNodeModules: (input: Array<string>, opts: Record<string, unknown>) => Promise<unknown>
+		}
+		// No package.json: Nitro already wrote one for what it traced.
+		await traceNodeModules([entry], { outDir: outputOptions.dir, rootDir: __dirname, writePackageJson: false })
+	},
+})
+
 // Bundle-size visualizer. Off by default; flip on with `ANALYZE=1 pnpm build`
 // to emit separate treemap reports per environment. The reports land at
 // `dist/{client,ssr}-stats.html`; diff them across commits to verify that a
@@ -142,7 +182,8 @@ const config = defineConfig({
 				// >= 1.64 does `import("kerberos")` for proxy auth, an optional
 				// native dep we never install; left unresolved it fails the build.
 				rollupConfig: {
-					external: ['kerberos'],
+					external: ['kerberos', ...STAGEHAND_EXTERNALS],
+					plugins: [traceStagehand()],
 				},
 				routeRules: {
 					'/**': { headers: securityHeaders },
