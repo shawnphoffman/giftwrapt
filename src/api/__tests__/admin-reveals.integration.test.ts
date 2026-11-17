@@ -1,5 +1,5 @@
 // Integration coverage for the admin Reveals page: which lists it shows (and
-// the spoiler rule that hides an admin's own lists), and the per-list reveal
+// the spoiler rule that withholds counts on an admin's own lists), and the per-list reveal
 // that ignores the reveal window.
 
 import { makeDependent, makeGiftedItem, makeItem, makeList, makeListAddon, makeUser } from '@test/integration/factories'
@@ -49,6 +49,7 @@ describe('getListsWithHiddenPurchasesImpl', () => {
 				listType: 'christmas',
 				recipientName: 'Madison',
 				recipientKind: 'user',
+				isOwnList: false,
 				hiddenItemCount: 1,
 				hiddenAddonCount: 1,
 				scheduledRevealAt: '2027-01-08T00:00:00.000Z',
@@ -56,7 +57,7 @@ describe('getListsWithHiddenPurchasesImpl', () => {
 		})
 	})
 
-	it("never shows the admin their own list, but does show a dependent's list they own", async () => {
+	it("shows the admin their own list without counts, and a dependent's list they own with them", async () => {
 		await withRollback(async tx => {
 			const admin = await makeUser(tx, { role: 'admin' })
 			const gifter = await makeUser(tx)
@@ -64,6 +65,7 @@ describe('getListsWithHiddenPurchasesImpl', () => {
 			const own = await makeList(tx, { ownerId: admin.id, type: 'christmas' })
 			const ownItem = await makeItem(tx, { listId: own.id })
 			await makeGiftedItem(tx, { itemId: ownItem.id, gifterId: gifter.id })
+			await makeListAddon(tx, { listId: own.id, userId: gifter.id })
 
 			const dep = await makeDependent(tx, { createdByUserId: admin.id, name: 'Fido' })
 			const depList = await makeList(tx, { ownerId: admin.id, subjectDependentId: dep.id, type: 'christmas' })
@@ -71,10 +73,18 @@ describe('getListsWithHiddenPurchasesImpl', () => {
 			await makeGiftedItem(tx, { itemId: depItem.id, gifterId: gifter.id })
 
 			const rows = await getListsWithHiddenPurchasesImpl({ adminId: admin.id, dbx: tx, now: OCT_13 })
-			const ids = rows.map(r => r.listId)
-			expect(ids).not.toContain(own.id)
-			expect(ids).toContain(depList.id)
-			expect(rows.find(r => r.listId === depList.id)).toMatchObject({ recipientName: 'Fido', recipientKind: 'dependent' })
+			expect(rows.find(r => r.listId === own.id)).toMatchObject({ isOwnList: true, hiddenItemCount: 0, hiddenAddonCount: 0 })
+			expect(rows.find(r => r.listId === depList.id)).toMatchObject({
+				recipientName: 'Fido',
+				recipientKind: 'dependent',
+				isOwnList: false,
+				hiddenItemCount: 1,
+			})
+
+			// Another admin sees the same list with its real counts.
+			const other = await makeUser(tx, { role: 'admin' })
+			const otherRows = await getListsWithHiddenPurchasesImpl({ adminId: other.id, dbx: tx, now: OCT_13 })
+			expect(otherRows.find(r => r.listId === own.id)).toMatchObject({ isOwnList: false, hiddenItemCount: 1, hiddenAddonCount: 1 })
 		})
 	})
 })
@@ -109,7 +119,7 @@ describe('revealListAsAdminImpl', () => {
 		})
 	})
 
-	it("refuses the admin's own list, inactive lists, and giftideas lists", async () => {
+	it("reveals the admin's own list, and refuses inactive and giftideas lists", async () => {
 		await withRollback(async tx => {
 			const admin = await makeUser(tx, { role: 'admin' })
 			const gifter = await makeUser(tx)
@@ -122,13 +132,13 @@ describe('revealListAsAdminImpl', () => {
 
 			const reveal = (listId: number) =>
 				revealListAsAdminImpl({ adminId: admin.id, input: { listId, sendEmail: false }, dbx: tx, now: OCT_13 })
-			expect(await reveal(own.id)).toEqual({ kind: 'error', reason: 'own-list' })
 			expect(await reveal(inactive.id)).toEqual({ kind: 'error', reason: 'not-found' })
 			expect(await reveal(ideas.id)).toEqual({ kind: 'error', reason: 'not-applicable' })
 			expect(await reveal(999_999)).toEqual({ kind: 'error', reason: 'not-found' })
 
+			expect(await reveal(own.id)).toEqual({ kind: 'ok', updated: 1, addonsArchived: 0, emailSent: false })
 			const [i] = await tx.select().from(items).where(eq(items.id, ownItem.id))
-			expect(i.isArchived).toBe(false)
+			expect(i.isArchived).toBe(true)
 		})
 	})
 })

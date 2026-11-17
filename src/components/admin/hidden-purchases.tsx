@@ -25,7 +25,6 @@ const hiddenPurchasesQueryKey = ['admin', 'hidden-purchases'] as const
 const REVEAL_ERROR_COPY: Record<string, string> = {
 	'not-found': 'That list no longer exists or is archived.',
 	'not-applicable': "This list type isn't revealed from here.",
-	'own-list': "You can't reveal a list you're the recipient of.",
 }
 
 // Scheduled reveal dates are calendar dates (UTC midnight) unless the list is
@@ -36,6 +35,8 @@ function formatDate(iso: string | null): string {
 }
 
 function hiddenLabel(row: HiddenPurchasesListRow): string {
+	// The server withholds counts for the admin's own list.
+	if (row.isOwnList) return 'Hidden gifts'
 	const parts: Array<string> = []
 	if (row.hiddenItemCount > 0) parts.push(`${row.hiddenItemCount} claimed`)
 	if (row.hiddenAddonCount > 0) parts.push(`${row.hiddenAddonCount} off-list`)
@@ -57,7 +58,9 @@ export default function HiddenPurchases() {
 		onSuccess: async res => {
 			if (res.kind === 'ok') {
 				toast.success('Gifts revealed', {
-					description: `${res.updated} item(s) and ${res.addonsArchived} off-list gift(s) revealed${res.emailSent ? ', email sent' : ''}.`,
+					description: target?.isOwnList
+						? `They're on your Received Gifts page${res.emailSent ? ', email sent' : ''}.`
+						: `${res.updated} item(s) and ${res.addonsArchived} off-list gift(s) revealed${res.emailSent ? ', email sent' : ''}.`,
 				})
 				setTarget(null)
 				await queryClient.invalidateQueries({ queryKey: hiddenPurchasesQueryKey })
@@ -126,9 +129,9 @@ export default function HiddenPurchases() {
 					<AlertDialogHeader>
 						<AlertDialogTitle>Reveal Gifts on {target?.listName}?</AlertDialogTitle>
 						<AlertDialogDescription>
-							Every claimed item and off-list gift still hidden on this list becomes visible to {target?.recipientName} on their Received
-							Gifts page, along with who gave it. Use this for gifts that were already given, such as purchases logged after the fact. This
-							can&apos;t be undone in bulk.
+							Every claimed item and off-list gift still hidden on this list becomes visible to{' '}
+							{target?.isOwnList ? 'you on your' : `${target?.recipientName} on their`} Received Gifts page, along with who gave it. Use
+							this for gifts that were already given, such as purchases logged after the fact. This can&apos;t be undone in bulk.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<div className="flex items-center gap-2">

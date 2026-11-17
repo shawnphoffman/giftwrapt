@@ -5,9 +5,9 @@
 // otherwise wait for the next cycle. See docs/logic.md "Admin per-list
 // reveal".
 //
-// Spoiler rule: an admin never sees hidden-gift counts for a list they are
-// the recipient of, and cannot reveal one. That is a list they own that is
-// not made for a dependent.
+// Spoiler rule: an admin's own list (one they own that is not made for a
+// dependent) shows up so they can reveal it, but its hidden-gift counts never
+// leave the server. The row says only that something is hidden.
 
 import { and, count, countDistinct, eq, inArray, notInArray } from 'drizzle-orm'
 
@@ -33,6 +33,9 @@ export type HiddenPurchasesListRow = {
 	listType: ListType
 	recipientName: string
 	recipientKind: 'user' | 'dependent'
+	// True when the admin is this list's recipient. The two counts are then
+	// always 0 on the wire: the admin learns that gifts are hidden, not how many.
+	isOwnList: boolean
 	hiddenItemCount: number
 	hiddenAddonCount: number
 	// When the list reveals on its own (the edit-view badge's date), or null
@@ -81,10 +84,9 @@ export async function getListsWithHiddenPurchasesImpl(args: {
 		.leftJoin(dependents, eq(dependents.id, lists.subjectDependentId))
 		.where(and(inArray(lists.id, listIds), eq(lists.isActive, true), notInArray(lists.type, EXCLUDED_TYPES)))
 
-	const visible = rows.filter(r => !isAdminsOwnList(adminId, r))
-
 	const result: Array<HiddenPurchasesListRow> = []
-	for (const r of visible) {
+	for (const r of rows) {
+		const isOwnList = isAdminsOwnList(adminId, r)
 		const info = await loadArchiveBannerInfo(r.id, dbx, now)
 		result.push({
 			listId: r.id,
@@ -92,8 +94,9 @@ export async function getListsWithHiddenPurchasesImpl(args: {
 			listType: r.type,
 			recipientName: r.subjectDependentId ? (r.dependentName ?? 'Dependent') : r.ownerName || r.ownerEmail,
 			recipientKind: r.subjectDependentId ? 'dependent' : 'user',
-			hiddenItemCount: itemsByList.get(r.id) ?? 0,
-			hiddenAddonCount: addonsByList.get(r.id) ?? 0,
+			isOwnList,
+			hiddenItemCount: isOwnList ? 0 : (itemsByList.get(r.id) ?? 0),
+			hiddenAddonCount: isOwnList ? 0 : (addonsByList.get(r.id) ?? 0),
 			scheduledRevealAt: info.applies ? info.effectiveArchiveDate : null,
 			lastArchivedAt: info.lastArchivedAt,
 		})
@@ -103,7 +106,7 @@ export async function getListsWithHiddenPurchasesImpl(args: {
 
 export type RevealListAsAdminResult =
 	| { kind: 'ok'; updated: number; addonsArchived: number; emailSent: boolean }
-	| { kind: 'error'; reason: 'not-found' | 'not-applicable' | 'own-list' }
+	| { kind: 'error'; reason: 'not-found' | 'not-applicable' }
 
 export async function revealListAsAdminImpl(args: {
 	adminId: string
@@ -111,7 +114,7 @@ export async function revealListAsAdminImpl(args: {
 	dbx?: SchemaDatabase
 	now?: Date
 }): Promise<RevealListAsAdminResult> {
-	const { adminId, input, dbx = db, now = new Date() } = args
+	const { input, dbx = db, now = new Date() } = args
 
 	const list = await dbx.query.lists.findFirst({
 		where: eq(lists.id, input.listId),
@@ -119,7 +122,6 @@ export async function revealListAsAdminImpl(args: {
 	})
 	if (!list || !list.isActive) return { kind: 'error', reason: 'not-found' }
 	if (EXCLUDED_TYPES.includes(list.type)) return { kind: 'error', reason: 'not-applicable' }
-	if (isAdminsOwnList(adminId, list)) return { kind: 'error', reason: 'own-list' }
 
 	const revealed = await revealListPurchases(dbx, list.id, now)
 	for (const id of revealed.itemIds) {
