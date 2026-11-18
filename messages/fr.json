@@ -1,0 +1,7 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"settings_language_title": "Langue",
+	"settings_language_description": "La langue de l'application et des e-mails qu'elle vous envoie.",
+	"settings_language_automatic": "Suivre mon navigateur",
+	"settings_language_error": "Impossible de changer la langue. Réessayez."
+}

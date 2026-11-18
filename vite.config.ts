@@ -3,6 +3,7 @@ import { createRequire } from 'node:module'
 import { resolve as resolvePath } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
+import { paraglideVitePlugin } from '@inlang/paraglide-js'
 import tailwindcss from '@tailwindcss/vite'
 import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import viteReact from '@vitejs/plugin-react'
@@ -11,6 +12,8 @@ import { visualizer } from 'rollup-plugin-visualizer'
 import type { Plugin, PluginOption } from 'vite'
 import { defineConfig } from 'vite'
 import viteTsConfigPaths from 'vite-tsconfig-paths'
+
+import { paraglideOptions } from './paraglide.config'
 
 const isStorybook = process.env.STORYBOOK === 'true'
 
@@ -159,6 +162,7 @@ const config = defineConfig({
 	}),
 	plugins: [
 		dbClientAlias(),
+		paraglideVitePlugin(paraglideOptions),
 		!isStorybook &&
 			nitro({
 				// Registered explicitly rather than relying on server/plugins/

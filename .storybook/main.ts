@@ -19,8 +19,11 @@ const config: StorybookConfig = {
 	staticDirs: ['../public'],
 	async viteFinal(cfg: ViteUserConfig) {
 		const { default: tailwindcss } = await import('@tailwindcss/vite')
+		const { paraglideVitePlugin } = await import('@inlang/paraglide-js')
+		const { paraglideOptions } = await import('../paraglide.config.ts')
 		cfg.plugins = cfg.plugins || []
 		cfg.plugins.push(tailwindcss())
+		cfg.plugins.push(paraglideVitePlugin(paraglideOptions))
 		cfg.resolve = cfg.resolve || {}
 		cfg.resolve.dedupe = [...(cfg.resolve.dedupe || []), 'react', 'react-dom']
 		cfg.resolve.alias = {

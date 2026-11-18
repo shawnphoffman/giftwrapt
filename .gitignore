@@ -32,3 +32,6 @@ scripts/screenshots/.fixture-ids.json
 CLAUDE.local.md
 CLAUDE.md
 
+
+# Paraglide compile cache
+project.inlang/cache/

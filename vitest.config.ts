@@ -1,9 +1,12 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { paraglideVitePlugin } from '@inlang/paraglide-js'
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin'
 import viteTsConfigPaths from 'vite-tsconfig-paths'
 import { defineConfig } from 'vitest/config'
+
+import { paraglideOptions } from './paraglide.config'
 
 // Unit tests run in node; storybook interaction tests run against the stories
 // in a real browser via playwright. They live in the same config via vitest
@@ -12,6 +15,7 @@ const here = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
 	plugins: [
+		paraglideVitePlugin(paraglideOptions),
 		viteTsConfigPaths({
 			projects: ['./tsconfig.json'],
 		}),
