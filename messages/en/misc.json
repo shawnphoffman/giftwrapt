@@ -1,3 +1,74 @@
 {
-	"$schema": "https://inlang.com/schema/inlang-message-format"
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"recent_comments_intro": "Items with comment activity, ordered by the most recent reply.",
+	"recent_comments_empty": "No recent comments in this timeframe.",
+	"recent_items_intro": "New items added to lists you can see, newest first.",
+	"recent_items_empty": "No recent items in this timeframe.",
+	"recent_view_item_in_list": "View item in list",
+	"recent_comment_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} comment",
+				"countPlural=*": "{count} comments"
+			}
+		}
+	],
+	"recent_earlier_comments": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} earlier comment",
+				"countPlural=*": "{count} earlier comments"
+			}
+		}
+	],
+	"changelog_section_breaking": "Heads up",
+	"changelog_section_features": "New",
+	"changelog_section_performance": "Faster",
+	"changelog_section_fixes": "Fixed",
+	"changelog_version_heading": "v{version}",
+	"changelog_your_version": "Your version",
+	"changelog_maintenance_only": "Behind-the-scenes maintenance.",
+	"changelog_current_version": "You're on version {#version}{version}{/version}.",
+	"changelog_show_older": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Show {count} Older Releases",
+				"countPlural=*": "Show {count} Older Releases"
+			}
+		}
+	],
+	"changelog_entry_area": "{area}:",
+	"changelog_scope_api": "API",
+	"changelog_scope_mobile_api": "Mobile API",
+	"changelog_scope_sse": "Live updates",
+	"changelog_scope_ui": "UI",
+	"changelog_scope_db": "Database",
+	"changelog_scope_ios": "iOS",
+	"shared_copied_toast": "Copied to clipboard",
+	"shared_copy_failed": "Could not copy. Select the text and copy it manually.",
+	"shared_copied": "Copied",
+	"shared_guardian_badge": "Guardian",
+	"shared_storage_disabled_title": "Image uploads are disabled",
+	"shared_storage_disabled_description": "Object storage is not configured on this server, so avatar and item image uploads are unavailable. Existing image URLs (pasted from external sites) still work.",
+	"shared_list_link_tooltip": "Links to another list",
+	"shared_markdown_bold": "Bold",
+	"shared_markdown_italic": "Italic",
+	"shared_markdown_list": "List",
+	"shared_markdown_link": "Link",
+	"shared_markdown_placeholder_bold": "bold",
+	"shared_markdown_placeholder_italic": "italic",
+	"shared_markdown_placeholder_link_text": "text",
+	"shared_birth_day_placeholder": "Select day",
+	"shared_date_range_custom_option": "Custom range…",
+	"shared_date_range_pick_custom": "Pick custom range",
+	"shared_date_range_custom_button": "Custom…",
+	"shared_role_admin": "Admin",
+	"shared_role_user": "User",
+	"shared_role_child": "Child"
 }

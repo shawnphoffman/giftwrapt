@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { itemsKeys } from '@/lib/queries/items'
+import { m } from '@/paraglide/messages.js'
 
 type Props = {
 	open: boolean
@@ -40,7 +41,7 @@ export function MoveGroupDialog({ open, onOpenChange, group, itemCount, sourceLi
 		const targetId = Number(selectedListId)
 		if (!targetId) return
 		if (targetId === sourceListId) {
-			setError('Group is already on that list.')
+			setError(m.items_move_error_group_same_list())
 			return
 		}
 
@@ -50,16 +51,19 @@ export function MoveGroupDialog({ open, onOpenChange, group, itemCount, sourceLi
 			const result = await moveGroupToList({ data: { groupId: group.id, targetListId: targetId, purgeComments } })
 
 			if (result.kind === 'error') {
-				if (result.reason === 'not-authorized') setError("You don't have permission to move to that list.")
-				else if (result.reason === 'same-list') setError('Group is already on that list.')
-				else setError('Group or list not found.')
+				if (result.reason === 'not-authorized') setError(m.items_move_error_not_authorized())
+				else if (result.reason === 'same-list') setError(m.items_move_error_group_same_list())
+				else setError(m.items_move_error_group_not_found())
 				return
 			}
 
-			const label = group.name || 'Group'
-			const parts: Array<string> = [`${label} moved (${result.movedItems} item${result.movedItems === 1 ? '' : 's'})`]
-			if (result.claimsCleared > 0) parts.push('claims cleared')
-			if (result.commentsDeleted > 0) parts.push(`${result.commentsDeleted} comment${result.commentsDeleted === 1 ? '' : 's'} deleted`)
+			const parts: Array<string> = [
+				group.name
+					? m.items_move_group_toast_named({ name: group.name, count: result.movedItems })
+					: m.items_move_group_toast_unnamed({ count: result.movedItems }),
+			]
+			if (result.claimsCleared > 0) parts.push(m.items_move_toast_claims_cleared())
+			if (result.commentsDeleted > 0) parts.push(m.items_move_toast_comments_deleted({ count: result.commentsDeleted }))
 			toast.success(parts.join(' · '))
 
 			onOpenChange(false)
@@ -72,7 +76,7 @@ export function MoveGroupDialog({ open, onOpenChange, group, itemCount, sourceLi
 				queryClient.invalidateQueries({ queryKey: itemsKeys.byList(targetId) }),
 			])
 		} catch (err) {
-			setError(err instanceof Error ? err.message : 'Failed to move group')
+			setError(err instanceof Error ? err.message : m.items_move_error_group_failed())
 		} finally {
 			setSubmitting(false)
 		}
@@ -83,33 +87,30 @@ export function MoveGroupDialog({ open, onOpenChange, group, itemCount, sourceLi
 	const giftIdeasLists = myLists?.giftIdeas.filter(l => l.id !== sourceListId) ?? []
 	const hasOptions = publicLists.length > 0 || privateLists.length > 0 || giftIdeasLists.length > 0
 
-	const groupLabel = group.name || `${group.type === 'or' ? 'Pick one' : 'In order'} group`
+	const groupLabel = group.name || (group.type === 'or' ? m.items_group_unnamed_or() : m.items_group_unnamed_order())
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Move "{groupLabel}"</DialogTitle>
-					<DialogDescription>
-						Choose a list to move this group and its {itemCount} item{itemCount === 1 ? '' : 's'} to. Claims may be cleared if the list
-						types differ.
-					</DialogDescription>
+					<DialogTitle>{m.items_move_group_dialog_title({ name: groupLabel })}</DialogTitle>
+					<DialogDescription>{m.items_move_group_dialog_description({ count: itemCount })}</DialogDescription>
 				</DialogHeader>
 
 				<div className="space-y-4">
 					<div className="grid gap-2">
-						<Label htmlFor="move-group-target">Destination List</Label>
+						<Label htmlFor="move-group-target">{m.items_move_destination_label()}</Label>
 						{!hasOptions ? (
-							<p className="text-sm text-muted-foreground">No other lists available to move to.</p>
+							<p className="text-sm text-muted-foreground">{m.items_move_no_other_lists()}</p>
 						) : (
 							<Select value={selectedListId} onValueChange={setSelectedListId} disabled={submitting}>
 								<SelectTrigger id="move-group-target">
-									<SelectValue placeholder="Select a list" />
+									<SelectValue placeholder={m.items_list_select_placeholder()} />
 								</SelectTrigger>
 								<SelectContent>
 									{publicLists.length > 0 && (
 										<SelectGroup>
-											<SelectLabel>Public</SelectLabel>
+											<SelectLabel>{m.items_list_group_public()}</SelectLabel>
 											{publicLists.map(l => (
 												<SelectItem key={l.id} value={String(l.id)}>
 													{l.name}
@@ -119,7 +120,7 @@ export function MoveGroupDialog({ open, onOpenChange, group, itemCount, sourceLi
 									)}
 									{privateLists.length > 0 && (
 										<SelectGroup>
-											<SelectLabel>Private</SelectLabel>
+											<SelectLabel>{m.items_list_group_private()}</SelectLabel>
 											{privateLists.map(l => (
 												<SelectItem key={l.id} value={String(l.id)}>
 													{l.name}
@@ -129,7 +130,7 @@ export function MoveGroupDialog({ open, onOpenChange, group, itemCount, sourceLi
 									)}
 									{giftIdeasLists.length > 0 && (
 										<SelectGroup>
-											<SelectLabel>Gift Ideas</SelectLabel>
+											<SelectLabel>{m.items_list_group_gift_ideas()}</SelectLabel>
 											{giftIdeasLists.map(l => (
 												<SelectItem key={l.id} value={String(l.id)}>
 													{l.name}
@@ -153,19 +154,16 @@ export function MoveGroupDialog({ open, onOpenChange, group, itemCount, sourceLi
 							/>
 							<div className="grid gap-1">
 								<Label htmlFor="purge-comments-group" className="font-normal">
-									Delete Comments on These Items
+									{m.items_move_group_purge_label()}
 								</Label>
-								<p className="text-xs text-muted-foreground">
-									Recommended. Comments usually belong to the original list's context. Applies to all {itemCount} item
-									{itemCount === 1 ? '' : 's'} in this group.
-								</p>
+								<p className="text-xs text-muted-foreground">{m.items_move_group_purge_hint({ count: itemCount })}</p>
 							</div>
 						</div>
 					)}
 
 					{error && (
 						<Alert variant="destructive">
-							<AlertTitle>Couldn't move group</AlertTitle>
+							<AlertTitle>{m.items_move_group_error_title()}</AlertTitle>
 							<AlertDescription>{error}</AlertDescription>
 						</Alert>
 					)}
@@ -173,10 +171,10 @@ export function MoveGroupDialog({ open, onOpenChange, group, itemCount, sourceLi
 
 				<DialogFooter>
 					<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-						Cancel
+						{m.action_cancel()}
 					</Button>
 					<Button onClick={handleMove} disabled={submitting || !selectedListId}>
-						{submitting ? 'Moving…' : 'Move'}
+						{submitting ? m.items_move_submitting() : m.items_move_submit()}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

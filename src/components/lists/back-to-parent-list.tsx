@@ -4,6 +4,7 @@ import { ChevronLeft, List } from 'lucide-react'
 
 import { getListSummaries } from '@/api/lists'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 type Props = {
 	from: number | undefined
@@ -36,7 +37,7 @@ export default function BackToParentList({ from, className }: Props) {
 			)}
 		>
 			<ChevronLeft className="size-4 shrink-0 transition-transform group-hover:-translate-x-0.5" />
-			<span className="text-emerald-700/80 dark:text-emerald-300/80">Back to</span>
+			<span className="text-emerald-700/80 dark:text-emerald-300/80">{m.lists_back_to_parent()}</span>
 			<List className="size-3.5 shrink-0" />
 			<span className="truncate font-semibold">{summary.name}</span>
 		</Link>

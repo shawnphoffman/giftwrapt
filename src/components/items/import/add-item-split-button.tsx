@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useAppSetting } from '@/hooks/use-app-settings'
 import { useStorageStatus } from '@/hooks/use-storage-status'
+import { m } from '@/paraglide/messages.js'
 
 import { ImportDialogAmazon } from './import-dialog-amazon'
 import { ImportDialogAppleNotes } from './import-dialog-apple-notes'
@@ -58,8 +59,8 @@ export function AddItemSplitButton({ listId, onAddItem, onAddItemFromPhoto, impo
 	if (!importEnabled) {
 		return (
 			<Button size="sm" onClick={onAddItem}>
-				<Plus className="size-4" /> <span className="xs:hidden">Add</span>
-				<span className="hidden xs:inline">Add Item</span>
+				<Plus className="size-4" /> <span className="xs:hidden">{m.action_add()}</span>
+				<span className="hidden xs:inline">{m.items_add_submit()}</span>
 			</Button>
 		)
 	}
@@ -68,34 +69,34 @@ export function AddItemSplitButton({ listId, onAddItem, onAddItemFromPhoto, impo
 		<>
 			<div className="inline-flex items-stretch isolate">
 				<Button size="sm" onClick={onAddItem} className="rounded-r-none border-r-0 focus-visible:z-10">
-					<Plus className="size-4" /> <span className="xs:hidden">Add</span>
-					<span className="hidden xs:inline">Add Item</span>
+					<Plus className="size-4" /> <span className="xs:hidden">{m.action_add()}</span>
+					<span className="hidden xs:inline">{m.items_add_submit()}</span>
 				</Button>
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-						<Button size="icon-sm" aria-label="Import items" className="rounded-l-none focus-visible:z-10">
+						<Button size="icon-sm" aria-label={m.items_import_menu_label()} className="rounded-l-none focus-visible:z-10">
 							<ChevronDown className="size-4" />
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
 						{photoEnabled && (
 							<DropdownMenuItem onClick={() => photoInputRef.current?.click()}>
-								<Camera className="size-4" /> Upload Photo
+								<Camera className="size-4" /> {m.items_import_menu_photo()}
 							</DropdownMenuItem>
 						)}
 						<DropdownMenuItem onClick={() => setOpenSource('urls')}>
-							<Link2 className="size-4" /> Paste URLs
+							<Link2 className="size-4" /> {m.items_import_urls_title()}
 						</DropdownMenuItem>
 						{pasteTextEnabled && (
 							<DropdownMenuItem onClick={() => setOpenSource('text')}>
-								<Sparkles className="size-4" /> Paste Text
+								<Sparkles className="size-4" /> {m.items_import_text_title()}
 							</DropdownMenuItem>
 						)}
 						<DropdownMenuItem onClick={() => setOpenSource('apple-notes')}>
-							<Apple className="size-4" /> Apple Notes
+							<Apple className="size-4" /> {m.items_import_menu_apple_notes()}
 						</DropdownMenuItem>
 						<DropdownMenuItem onClick={() => setOpenSource('amazon')}>
-							<ShoppingBag className="size-4" /> Amazon Wish List
+							<ShoppingBag className="size-4" /> {m.items_import_menu_amazon()}
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>

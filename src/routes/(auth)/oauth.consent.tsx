@@ -71,7 +71,7 @@ function OAuthConsentPage() {
 				const saved = await setMyConnectedAppAccess({ data: { clientId, access } })
 				if (!saved.ok) throw new Error(saved.reason)
 			} catch {
-				setError("Couldn't save your choice. Start again from your AI assistant.")
+				setError(m.auth_consent_save_error())
 				return false
 			}
 		}
@@ -81,7 +81,7 @@ function OAuthConsentPage() {
 		})
 		const redirectURI = (data as { redirectURI?: string } | null)?.redirectURI
 		if (err || !redirectURI) {
-			setError(accept ? "Couldn't complete the connection. Start again from your AI assistant." : "Couldn't record the decision.")
+			setError(accept ? m.auth_consent_accept_error() : m.auth_consent_deny_error())
 			return false
 		}
 		if (!accept) setDecided('declined')

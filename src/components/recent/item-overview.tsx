@@ -13,6 +13,7 @@ import type { ListType, Priority } from '@/db/schema/enums'
 import { formatTimeAgo } from '@/lib/i18n/format'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 export type ItemOverviewProps = {
 	id: number
@@ -129,7 +130,7 @@ export default function ItemOverview(props: ItemOverviewProps) {
 								</Link>
 							</Button>
 						</TooltipTrigger>
-						<TooltipContent side="left">View item in list</TooltipContent>
+						<TooltipContent side="left">{m.recent_view_item_in_list()}</TooltipContent>
 					</Tooltip>
 					{commentCount > 0 && (
 						<Link
@@ -137,7 +138,7 @@ export default function ItemOverview(props: ItemOverviewProps) {
 							params={{ listId: String(listId) }}
 							hash={`item-${id}`}
 							className="flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 tabular-nums cursor-pointer"
-							title={`${commentCount} comment${commentCount !== 1 ? 's' : ''}`}
+							title={m.recent_comment_count({ count: commentCount })}
 						>
 							<MessageSquare className="size-3.5" />
 							{commentCount}

@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import Loading from '@/components/loading'
 import { Button } from '@/components/ui/button'
 import { postToNativeBridge } from '@/lib/embedded'
+import { m } from '@/paraglide/messages.js'
 
 export type EmbeddedReconnectProps = {
 	// Same-origin path the app should land on after it re-runs the handoff.
@@ -27,11 +28,11 @@ export function EmbeddedReconnect({ to }: EmbeddedReconnectProps) {
 		<div className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
 			<Loading className="text-primary" />
 			<div className="space-y-1">
-				<h1 className="text-xl font-semibold">Reconnecting to GiftWrapt</h1>
-				<p className="text-sm text-muted-foreground">Signing you back in from the app.</p>
+				<h1 className="text-xl font-semibold">{m.auth_reconnect_title()}</h1>
+				<p className="text-sm text-muted-foreground">{m.auth_reconnect_description()}</p>
 			</div>
 			<Button type="button" variant="outline" onClick={() => postToNativeBridge({ type: 'reauth', to })}>
-				Try Again
+				{m.action_try_again()}
 			</Button>
 		</div>
 	)

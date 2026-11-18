@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { copyItemToList } from '@/api/items'
 import { getMyLists, type MyListRow } from '@/api/lists'
 import ListTypeIcon from '@/components/common/list-type-icon'
+import { RichMessage } from '@/components/common/rich-message'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -13,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { itemsKeys } from '@/lib/queries/items'
+import { m } from '@/paraglide/messages.js'
 
 type Props = {
 	open: boolean
@@ -74,9 +76,9 @@ export function CopyItemDialog({ open, onOpenChange, itemId, itemTitle }: Props)
 		}
 	}, [open])
 
-	const findListName = (id: number): string => {
+	const findListName = (id: number): string | undefined => {
 		const all: Array<MyListRow> = [...publicLists, ...privateLists, ...giftIdeasLists, ...editableLists, ...children.flatMap(c => c.lists)]
-		return all.find(l => l.id === id)?.name ?? 'list'
+		return all.find(l => l.id === id)?.name
 	}
 
 	const handleCopy = async () => {
@@ -87,16 +89,17 @@ export function CopyItemDialog({ open, onOpenChange, itemId, itemTitle }: Props)
 		try {
 			const result = await copyItemToList({ data: { itemId, targetListId } })
 			if (result.kind === 'error') {
-				if (result.reason === 'not-authorized') setError('You no longer have permission to add items to that list.')
-				else if (result.reason === 'source-not-visible') setError('This list is no longer visible to you.')
-				else setError('Item or list not found.')
+				if (result.reason === 'not-authorized') setError(m.items_copy_error_not_authorized())
+				else if (result.reason === 'source-not-visible') setError(m.items_copy_error_source_not_visible())
+				else setError(m.items_copy_error_not_found())
 				return
 			}
-			toast.success(`Copied to ${findListName(targetListId)}`)
+			const listName = findListName(targetListId)
+			toast.success(listName === undefined ? m.items_copy_toast_fallback() : m.items_copy_toast({ listName }))
 			await queryClient.invalidateQueries({ queryKey: itemsKeys.byList(targetListId) })
 			onOpenChange(false)
 		} catch (err) {
-			setError(err instanceof Error ? err.message : 'Failed to copy item')
+			setError(err instanceof Error ? err.message : m.items_copy_error_failed())
 		} finally {
 			setSaving(false)
 		}
@@ -106,9 +109,12 @@ export function CopyItemDialog({ open, onOpenChange, itemId, itemTitle }: Props)
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Copy to Your List</DialogTitle>
+					<DialogTitle>{m.items_copy_dialog_title()}</DialogTitle>
 					<DialogDescription>
-						Pick a list to copy <span className="font-medium">{itemTitle}</span> into. The original is left untouched.
+						<RichMessage
+							parts={m.items_copy_dialog_description.parts({ itemTitle })}
+							tags={{ title: content => <span className="font-medium">{content}</span> }}
+						/>
 					</DialogDescription>
 				</DialogHeader>
 
@@ -121,15 +127,15 @@ export function CopyItemDialog({ open, onOpenChange, itemId, itemTitle }: Props)
 					className="space-y-4"
 				>
 					<div className="grid gap-2">
-						<Label htmlFor="copy-item-list">List</Label>
+						<Label htmlFor="copy-item-list">{m.items_field_list()}</Label>
 						<Select value={selectedListId} onValueChange={setSelectedListId} disabled={saving}>
 							<SelectTrigger id="copy-item-list" className="w-full">
-								<SelectValue placeholder="Select a list" />
+								<SelectValue placeholder={m.items_list_select_placeholder()} />
 							</SelectTrigger>
 							<SelectContent>
 								{publicLists.length > 0 && (
 									<SelectGroup>
-										<SelectLabel>My Public Lists</SelectLabel>
+										<SelectLabel>{m.items_list_group_my_public()}</SelectLabel>
 										{publicLists.map(l => (
 											<ListSelectItem key={l.id} list={l} />
 										))}
@@ -137,7 +143,7 @@ export function CopyItemDialog({ open, onOpenChange, itemId, itemTitle }: Props)
 								)}
 								{privateLists.length > 0 && (
 									<SelectGroup>
-										<SelectLabel>My Private Lists</SelectLabel>
+										<SelectLabel>{m.items_list_group_my_private()}</SelectLabel>
 										{privateLists.map(l => (
 											<ListSelectItem key={l.id} list={l} />
 										))}
@@ -145,7 +151,7 @@ export function CopyItemDialog({ open, onOpenChange, itemId, itemTitle }: Props)
 								)}
 								{giftIdeasLists.length > 0 && (
 									<SelectGroup>
-										<SelectLabel>Gift Ideas</SelectLabel>
+										<SelectLabel>{m.items_list_group_gift_ideas()}</SelectLabel>
 										{giftIdeasLists.map(l => (
 											<ListSelectItem key={l.id} list={l} />
 										))}
@@ -164,7 +170,7 @@ export function CopyItemDialog({ open, onOpenChange, itemId, itemTitle }: Props)
 								)}
 								{editableLists.length > 0 && (
 									<SelectGroup>
-										<SelectLabel>Lists I Can Edit</SelectLabel>
+										<SelectLabel>{m.items_list_group_editable()}</SelectLabel>
 										{editableLists.map(l => (
 											<ListSelectItem key={l.id} list={l} owner={{ name: l.ownerName, email: l.ownerEmail }} />
 										))}
@@ -176,17 +182,17 @@ export function CopyItemDialog({ open, onOpenChange, itemId, itemTitle }: Props)
 
 					{error && (
 						<Alert variant="destructive">
-							<AlertTitle>Error</AlertTitle>
+							<AlertTitle>{m.items_error_title()}</AlertTitle>
 							<AlertDescription>{error}</AlertDescription>
 						</Alert>
 					)}
 
 					<DialogFooter>
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-							Cancel
+							{m.action_cancel()}
 						</Button>
 						<Button type="submit" disabled={saving || !selectedListId}>
-							{saving ? 'Copying...' : 'Copy'}
+							{saving ? m.items_copy_submitting() : m.action_copy()}
 						</Button>
 					</DialogFooter>
 				</form>

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatTimeframeLabel, TIMEFRAME_PRESETS, type TimeframePreset, timeframePresetLabel, type TimeframeValue } from '@/lib/timeframe'
+import { m } from '@/paraglide/messages.js'
 
 type Props = { value: TimeframeValue; onChange: (next: TimeframeValue) => void }
 
@@ -36,12 +37,12 @@ export function PresetsPlusCustomList({ value, onChange }: Props) {
 						</SelectItem>
 					))}
 					<SelectSeparator />
-					<SelectItem value={CUSTOM_VALUE}>Custom range…</SelectItem>
+					<SelectItem value={CUSTOM_VALUE}>{m.shared_date_range_custom_option()}</SelectItem>
 				</SelectContent>
 			</Select>
 			<Popover open={open} onOpenChange={setOpen}>
 				<PopoverTrigger asChild>
-					<Button variant="outline" size="icon-sm" aria-label="Pick custom range">
+					<Button variant="outline" size="icon-sm" aria-label={m.shared_date_range_pick_custom()}>
 						<CalendarIcon />
 					</Button>
 				</PopoverTrigger>

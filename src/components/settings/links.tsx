@@ -6,6 +6,7 @@ import { Separator } from '@/components/ui/separator'
 import { useAppSetting } from '@/hooks/use-app-settings'
 import { useEmbedded } from '@/hooks/use-embedded'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 function navLinkClass(active: boolean) {
 	return cn(buttonVariants({ variant: 'ghost' }), 'justify-start w-full gap-2', active && 'bg-muted text-foreground hover:bg-muted')
@@ -35,34 +36,34 @@ export default function SettingsLinks() {
 		<>
 			<Link to="/settings" className={navLinkClass(isProfile)}>
 				<NavIcon icon={UserCircle} active={isProfile} />
-				Profile
+				{m.settings_profile_title()}
 			</Link>
 			<Link to="/settings/security" className={navLinkClass(isSecurity)}>
 				<NavIcon icon={ShieldCheck} active={isSecurity} />
-				Security
+				{m.page_security()}
 			</Link>
 			<Link to="/settings/permissions" className={navLinkClass(isPermissions)}>
 				<NavIcon icon={UserCog} active={isPermissions} />
-				Permissions
+				{m.page_permissions()}
 			</Link>
 			<Link to="/settings/dependents" className={navLinkClass(isDependents)}>
 				<NavIcon icon={Sprout} active={isDependents} />
-				Dependents
+				{m.page_dependents()}
 			</Link>
 			<Link to="/settings/appearance" className={navLinkClass(isAppearance)}>
 				<NavIcon icon={ALargeSmall} active={isAppearance} />
-				Appearance
+				{m.page_appearance()}
 			</Link>
 			{mobileAppEnabled && (
 				<Link to="/settings/devices" className={navLinkClass(isDevices)}>
 					<NavIcon icon={Smartphone} active={isDevices} />
-					Devices
+					{m.page_devices()}
 				</Link>
 			)}
 			{mcpEnabled && (
 				<Link to="/settings/connected-apps" className={navLinkClass(isConnectedApps)}>
 					<NavIcon icon={Plug} active={isConnectedApps} />
-					Connected Apps
+					{m.page_connected_apps()}
 				</Link>
 			)}
 			{!embedded && (
@@ -70,7 +71,7 @@ export default function SettingsLinks() {
 					<Separator className="my-1" />
 					<Link to="/sign-out" className={navLinkClass(false)}>
 						<LogOut className="size-4" />
-						Logout
+						{m.settings_nav_logout()}
 					</Link>
 				</>
 			)}

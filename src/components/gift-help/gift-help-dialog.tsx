@@ -28,9 +28,11 @@ import { useSession } from '@/lib/auth-client'
 import { formatRelative } from '@/lib/format-relative'
 import type { PriceBand } from '@/lib/gift-suggestions/prompt'
 import { buildSearchUrl } from '@/lib/gift-suggestions/search-url'
+import { formatList } from '@/lib/i18n/format'
 import { applyListEventLocally } from '@/lib/list-events'
 import { listDetailKeys } from '@/lib/queries/lists'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 // Help for a gifter looking at someone else's list (plan 25). A "Need
 // Ideas?" button in the list's filter row opens a dialog that first asks
@@ -49,22 +51,44 @@ import { cn } from '@/lib/utils'
 // `aiGiftSuggestionsEnabled` flag. With it off nothing renders and the
 // list page looks as it always did.
 
-const PRICE_BAND_LABEL: Record<PriceBand, string | null> = {
-	'under-25': 'Under $25',
-	'25-50': '$25 to $50',
-	'50-100': '$50 to $100',
-	'100-250': '$100 to $250',
-	'over-250': 'Over $250',
-	unknown: null,
+// The words come from the catalog on each call. The amounts are still
+// printed with a hardcoded `$` (money formatting is its own later change).
+function priceBandLabel(band: PriceBand): string | null {
+	switch (band) {
+		case 'under-25':
+			return m.gift_help_price_under({ amount: '$25' })
+		case '25-50':
+			return m.gift_help_price_range({ low: '$25', high: '$50' })
+		case '50-100':
+			return m.gift_help_price_range({ low: '$50', high: '$100' })
+		case '100-250':
+			return m.gift_help_price_range({ low: '$100', high: '$250' })
+		case 'over-250':
+			return m.gift_help_price_over({ amount: '$250' })
+		case 'unknown':
+			return null
+	}
 }
 
-const SUGGESTION_ERRORS: Partial<Record<string, string>> = {
-	'feature-disabled': 'Gift suggestions are turned off.',
-	'not-configured': 'Gift suggestions are not set up on this site yet.',
-	'child-not-allowed': 'Gift suggestions are not available on this account.',
-	'ai-budget-exceeded': 'Gift suggestions are paused for this month.',
-	'rate-limited': 'That is a lot of requests. Try again in a little while.',
-	'ai-failed': 'Could not come up with ideas just now. Try again.',
+// What to say for each reason the server can refuse; anything else gets the
+// general line.
+function suggestionErrorMessage(reason: string): string {
+	switch (reason) {
+		case 'feature-disabled':
+			return m.gift_help_error_feature_disabled()
+		case 'not-configured':
+			return m.gift_help_error_not_configured()
+		case 'child-not-allowed':
+			return m.gift_help_error_child_not_allowed()
+		case 'ai-budget-exceeded':
+			return m.gift_help_error_budget_exceeded()
+		case 'rate-limited':
+			return m.gift_help_error_rate_limited()
+		case 'ai-failed':
+			return m.gift_help_error_ai_failed()
+		default:
+			return m.gift_help_error_generic()
+	}
 }
 
 export function categoryLabel(slug: string): string {
@@ -83,11 +107,11 @@ function parseBudget(draft: string): number | null {
 // placeholder cards and the moving status line make it read as busy rather
 // than stuck. The line advances and then holds on the last step; it does not
 // pretend to know how far along the call is.
-const THINKING_STEPS = [
-	'Reading their list…',
-	'Thinking of ideas…',
-	'Leaving out what is already on their list…',
-	'Writing up what to look for…',
+const THINKING_STEPS: ReadonlyArray<() => string> = [
+	() => m.gift_help_thinking_reading(),
+	() => m.gift_help_thinking_ideas(),
+	() => m.gift_help_thinking_excluding(),
+	() => m.gift_help_thinking_writing(),
 ]
 const THINKING_STEP_MS = 4000
 
@@ -102,7 +126,7 @@ export function ThinkingOfIdeas() {
 			<p className="flex items-center gap-2 text-sm text-muted-foreground">
 				<Sparkles className="size-4 text-fuchsia-500 motion-safe:animate-pulse dark:text-fuchsia-300" aria-hidden />
 				<span key={step} className="motion-safe:animate-in motion-safe:fade-in">
-					{THINKING_STEPS[step]}
+					{THINKING_STEPS[step]()}
 				</span>
 			</p>
 			{[0, 1, 2].map(n => (
@@ -112,7 +136,7 @@ export function ThinkingOfIdeas() {
 					<Skeleton className="h-3 w-4/5" />
 				</div>
 			))}
-			<p className="text-xs text-muted-foreground">This usually takes under a minute.</p>
+			<p className="text-xs text-muted-foreground">{m.gift_help_thinking_duration()}</p>
 		</div>
 	)
 }
@@ -130,7 +154,7 @@ export type SuggestionsState =
 // Placeholder cards while the stored answer loads: quick, so no status line.
 function CheckingForIdeas() {
 	return (
-		<div role="status" aria-label="Loading your last ideas" className="flex flex-col gap-3">
+		<div role="status" aria-label={m.gift_help_checking_aria()} className="flex flex-col gap-3">
 			{[0, 1, 2].map(n => (
 				<div key={n} className="flex flex-col gap-2 rounded-md border px-4 py-3" aria-hidden>
 					<Skeleton className="h-4 w-2/5" />
@@ -146,10 +170,14 @@ function CheckingForIdeas() {
 // budget are the ones the set was made with, which may not match the list
 // the viewer is on now.
 export function storedSetCaption(set: StoredSuggestionSetMeta, now: number = Date.now()): string {
-	const parts = [`Ideas from ${formatRelative(set.createdAt, now)}`]
-	if (set.occasion) parts.push(`for ${set.occasion}`)
-	if (set.budget !== null) parts.push(`up to $${set.budget}`)
-	return `${parts.join(', ')}.`
+	const when = formatRelative(set.createdAt, now)
+	const occasion = set.occasion
+	// Still a hardcoded `$`: money formatting is its own later change.
+	const amount = set.budget !== null ? `$${set.budget}` : null
+	if (occasion && amount !== null) return m.gift_help_stored_caption_occasion_budget({ when, occasion, amount })
+	if (occasion) return m.gift_help_stored_caption_occasion({ when, occasion })
+	if (amount !== null) return m.gift_help_stored_caption_budget({ when, amount })
+	return m.gift_help_stored_caption({ when })
 }
 
 export type GiftHelpDialogViewProps = {
@@ -207,12 +235,17 @@ export function GiftHelpDialogView({
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2 pr-8">
-						<Sparkles className="size-5" /> Gift Ideas for {recipientName}
+						<Sparkles className="size-5" /> {m.gift_help_dialog_title({ name: recipientName })}
 					</DialogTitle>
 					<DialogDescription>
 						{interests.length > 0
-							? `Their list is mostly ${interests.map(i => categoryLabel(i.category)).join(', ')}.`
-							: 'New ideas that are not already on their list.'}
+							? m.gift_help_description_interests({
+									categories: formatList(
+										interests.map(i => categoryLabel(i.category)),
+										'unit'
+									),
+								})
+							: m.gift_help_description_default()}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -225,30 +258,27 @@ export function GiftHelpDialogView({
 						}}
 					>
 						<div className="grid gap-2">
-							<Label htmlFor="gift-help-budget">Budget (Optional)</Label>
+							<Label htmlFor="gift-help-budget">{m.gift_help_budget_label()}</Label>
 							<Input
 								id="gift-help-budget"
 								type="number"
 								inputMode="decimal"
 								min={0}
 								step="1"
-								placeholder="Any amount"
+								placeholder={m.gift_help_budget_placeholder()}
 								value={budget}
 								onChange={e => onBudgetChange(e.target.value)}
 								className="sm:w-48"
 								autoFocus
 							/>
 						</div>
-						<p className="text-xs text-muted-foreground">
-							Ideas come from an AI model. It is shown what is on {recipientName}’s lists and whether each thing is already claimed, never
-							who claimed it.
-						</p>
+						<p className="text-xs text-muted-foreground">{m.gift_help_privacy_note({ name: recipientName })}</p>
 						<DialogFooter>
 							<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-								Cancel
+								{m.action_cancel()}
 							</Button>
 							<Button type="submit">
-								<Sparkles className="size-4" /> Find Ideas
+								<Sparkles className="size-4" /> {m.gift_help_find_button()}
 							</Button>
 						</DialogFooter>
 					</form>
@@ -260,7 +290,7 @@ export function GiftHelpDialogView({
 							{suggestions.phase === 'error' && <p className="text-sm text-destructive">{suggestions.message}</p>}
 							{suggestions.phase === 'done' &&
 								(suggestions.suggestions.length === 0 ? (
-									<p className="text-sm text-muted-foreground">No new ideas this time. Try a different budget.</p>
+									<p className="text-sm text-muted-foreground">{m.gift_help_no_results()}</p>
 								) : (
 									<>
 										{suggestions.set && <p className="text-xs text-muted-foreground">{storedSetCaption(suggestions.set)}</p>}
@@ -268,7 +298,7 @@ export function GiftHelpDialogView({
 											{suggestions.suggestions.map(s => {
 												const saved = savedTitles.has(s.title)
 												const added = addedTitles.has(s.title)
-												const band = PRICE_BAND_LABEL[s.priceBand]
+												const band = priceBandLabel(s.priceBand)
 												const searchUrl = buildSearchUrl(searchUrlTemplate, s.title)
 												const verdict = verdicts.get(s.title)
 												const marking = markingTitle === s.title
@@ -281,10 +311,12 @@ export function GiftHelpDialogView({
 															<span className="min-w-0 truncate line-through">{s.title}</span>
 															<span className="flex shrink-0 items-center justify-between gap-2">
 																<span className="text-xs">
-																	{verdict === 'has-it' ? `${recipientName} already has this` : 'Not for them'}
+																	{verdict === 'has-it'
+																		? m.gift_help_has_it_note({ name: recipientName })
+																		: m.gift_help_not_for_them_note()}
 																</span>
 																<Button type="button" variant="outline" size="sm" disabled={marking} onClick={() => onUnmark(s)}>
-																	Undo
+																	{m.action_undo()}
 																</Button>
 															</span>
 														</li>
@@ -313,7 +345,7 @@ export function GiftHelpDialogView({
 																>
 																	{/* Same icon and color as gift-ideas lists. */}
 																	{saved ? <Check className="size-4 text-teal-500" /> : <Lightbulb className="size-4 text-teal-500" />}
-																	{saved ? 'Saved to Gift Ideas' : 'Save to Gift Ideas'}
+																	{saved ? m.gift_help_saved_button() : m.gift_help_save_button()}
 																</Button>
 																<Button
 																	type="button"
@@ -327,7 +359,7 @@ export function GiftHelpDialogView({
 																	) : (
 																		<PackagePlus className="size-4 text-orange-500" />
 																	)}
-																	{added ? 'Added as Off-List Gift' : 'Add as Off-List Gift'}
+																	{added ? m.gift_help_added_off_list_button() : m.gift_help_add_off_list_button()}
 																</Button>
 															</div>
 															<div className={cn('grid grid-cols-2 gap-2', searchUrl && 'sm:grid-cols-3')}>
@@ -335,7 +367,7 @@ export function GiftHelpDialogView({
 																	<Button asChild variant="outline" className="max-sm:col-span-2">
 																		<a href={searchUrl} target="_blank" rel="noopener noreferrer">
 																			<ExternalLink className="size-4" />
-																			Search
+																			{m.action_search()}
 																		</a>
 																	</Button>
 																)}
@@ -343,23 +375,23 @@ export function GiftHelpDialogView({
 																	type="button"
 																	variant="outline"
 																	disabled={marking}
-																	title={`${recipientName} already has this`}
-																	aria-label={`They Have It: ${s.title}`}
+																	title={m.gift_help_has_it_note({ name: recipientName })}
+																	aria-label={m.gift_help_has_it_aria({ title: s.title })}
 																	onClick={() => onMark(s, 'has-it')}
 																>
 																	<ThumbsUp className="size-4" />
-																	They Have It
+																	{m.gift_help_has_it_button()}
 																</Button>
 																<Button
 																	type="button"
 																	variant="outline"
 																	disabled={marking}
-																	title="Not for them"
-																	aria-label={`Not for Them: ${s.title}`}
+																	title={m.gift_help_not_for_them_note()}
+																	aria-label={m.gift_help_not_for_them_aria({ title: s.title })}
 																	onClick={() => onMark(s, 'not-for-me')}
 																>
 																	<ThumbsDown className="size-4" />
-																	Not for Them
+																	{m.gift_help_not_for_them_button()}
 																</Button>
 															</div>
 														</div>
@@ -367,21 +399,16 @@ export function GiftHelpDialogView({
 												)
 											})}
 										</ul>
-										<p className="text-xs text-muted-foreground">
-											These are ideas to research, not product recommendations: the AI does not know what is in stock or what things cost
-											today. Gift Ideas are private to you. An off-list gift tells other gifters you are giving it; {recipientName} sees it
-											only after the reveal. “They Have It” keeps an idea out of everyone’s future ideas for {recipientName}; a thumbs down
-											only out of yours. {recipientName} never sees either.
-										</p>
+										<p className="text-xs text-muted-foreground">{m.gift_help_footnote({ name: recipientName })}</p>
 									</>
 								))}
 						</div>
 						<DialogFooter>
 							<Button type="button" variant="outline" onClick={onBack} disabled={suggestions.phase === 'checking'}>
-								New Ideas
+								{m.gift_help_new_ideas_button()}
 							</Button>
 							<Button type="button" onClick={() => onOpenChange(false)}>
-								Done
+								{m.action_done()}
 							</Button>
 						</DialogFooter>
 					</>
@@ -479,9 +506,9 @@ export function GiftHelpButton({ listId, recipientName }: { listId: number; reci
 					recipientName: result.recipientName,
 					set: { ...result.set, suggestions: result.suggestions, savedTitles: [], addedTitles: [], feedback: [] },
 				})
-			} else setSuggestions({ phase: 'error', message: SUGGESTION_ERRORS[result.reason] ?? 'Could not get ideas for this list.' })
+			} else setSuggestions({ phase: 'error', message: suggestionErrorMessage(result.reason) })
 		},
-		onError: () => setSuggestions({ phase: 'error', message: 'Could not come up with ideas just now. Try again.' }),
+		onError: () => setSuggestions({ phase: 'error', message: m.gift_help_error_ai_failed() }),
 	})
 
 	const save = useMutation({
@@ -491,15 +518,15 @@ export function GiftHelpButton({ listId, recipientName }: { listId: number; reci
 			saveGiftSuggestion({ data: { listId, title: s.title, notes: [s.details, s.reason].filter(Boolean).join('\n\n') } }),
 		onSuccess: (result, s) => {
 			if (result.kind !== 'ok') {
-				toast.error('Could not save that idea')
+				toast.error(m.gift_help_save_failed())
 				return
 			}
 			setSavedTitles(prev => new Set(prev).add(s.title))
 			markInCache('savedTitles', s.title)
-			toast.success(result.createdList ? `Saved to a new private ideas list for ${recipientName}` : 'Saved to your gift ideas')
+			toast.success(result.createdList ? m.gift_help_saved_new_list({ name: recipientName }) : m.gift_help_saved_toast())
 			queryClient.invalidateQueries({ queryKey: listDetailKeys.giftIdeas(listId) })
 		},
-		onError: () => toast.error('Could not save that idea'),
+		onError: () => toast.error(m.gift_help_save_failed()),
 	})
 
 	// An off-list gift is a gift the viewer is giving, so it goes on this
@@ -511,15 +538,15 @@ export function GiftHelpButton({ listId, recipientName }: { listId: number; reci
 			createListAddon({ data: { listId, description: s.title.slice(0, 500), notes: s.details.slice(0, 2000) } }),
 		onSuccess: (result, s) => {
 			if (result.kind !== 'ok') {
-				toast.error('Could not add that off-list gift')
+				toast.error(m.gift_help_add_off_list_failed())
 				return
 			}
 			setAddedTitles(prev => new Set(prev).add(s.title))
 			markInCache('addedTitles', s.title)
-			toast.success('Off-list gift added')
+			toast.success(m.gift_help_off_list_added())
 			applyListEventLocally({ kind: 'addon', listId, addonId: 0 }, { queryClient, router })
 		},
-		onError: () => toast.error('Could not add that off-list gift'),
+		onError: () => toast.error(m.gift_help_add_off_list_failed()),
 	})
 
 	// A mark is stored by title, so it outlives this set; the card collapses
@@ -530,19 +557,19 @@ export function GiftHelpButton({ listId, recipientName }: { listId: number; reci
 			setGiftSuggestionFeedback({ data: { listId, title: s.title, verdict } }),
 		onSuccess: (result, { s, verdict }) => {
 			if (result.kind !== 'ok') {
-				toast.error('Could not save that')
+				toast.error(m.gift_help_mark_failed())
 				return
 			}
 			setVerdicts(prev => new Map(prev).set(s.title, verdict))
 			patchCachedSet(set => ({ ...set, feedback: [...set.feedback.filter(f => f.title !== s.title), { title: s.title, verdict }] }))
 		},
-		onError: () => toast.error('Could not save that'),
+		onError: () => toast.error(m.gift_help_mark_failed()),
 	})
 	const unmark = useMutation({
 		mutationFn: (s: SuggestedGift) => clearGiftSuggestionFeedback({ data: { listId, title: s.title } }),
 		onSuccess: (result, s) => {
 			if (result.kind !== 'ok') {
-				toast.error('Could not undo that')
+				toast.error(m.gift_help_unmark_failed())
 				return
 			}
 			setVerdicts(prev => {
@@ -552,7 +579,7 @@ export function GiftHelpButton({ listId, recipientName }: { listId: number; reci
 			})
 			patchCachedSet(set => ({ ...set, feedback: set.feedback.filter(f => f.title !== s.title) }))
 		},
-		onError: () => toast.error('Could not undo that'),
+		onError: () => toast.error(m.gift_help_unmark_failed()),
 	})
 
 	// One flag for the whole feature. Off means the list page is unchanged.
@@ -571,7 +598,7 @@ export function GiftHelpButton({ listId, recipientName }: { listId: number; reci
 				className="border-transparent bg-linear-to-r from-amber-500/15 via-pink-500/15 to-fuchsia-500/15 text-fuchsia-700 shadow-none hover:from-amber-500/25 hover:via-pink-500/25 hover:to-fuchsia-500/25 hover:text-fuchsia-700 dark:from-amber-500/20 dark:via-pink-500/20 dark:to-fuchsia-500/20 dark:text-fuchsia-300 dark:hover:text-fuchsia-200"
 				onClick={() => setOpen(true)}
 			>
-				Need Ideas?
+				{m.gift_help_open_button()}
 			</Button>
 			<GiftHelpDialogView
 				open={open}

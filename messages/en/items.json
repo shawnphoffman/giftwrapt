@@ -1,3 +1,639 @@
 {
-	"$schema": "https://inlang.com/schema/inlang-message-format"
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"items_error_title": "Error",
+	"items_saving_dots": "Saving...",
+	"items_unknown_error": "unknown error",
+	"items_image_upload_failed": "Image upload failed: {message}",
+	"items_toast_added": "Item added",
+	"items_error_save_failed": "Failed to save item",
+	"items_error_todo_list": "This is a to-do list, so it doesn't accept gift items. Add a to-do from the list page instead.",
+	"items_error_list_not_found": "List not found.",
+	"items_error_item_not_found": "Item not found.",
+	"items_field_list": "List",
+	"items_list_select_placeholder": "Select a list",
+	"items_list_group_my_public": "My Public Lists",
+	"items_list_group_my_private": "My Private Lists",
+	"items_list_group_gift_ideas": "Gift Ideas",
+	"items_list_group_editable": "Lists I Can Edit",
+	"items_list_group_public": "Public",
+	"items_list_group_private": "Private",
+	"items_list_group_for_dependent": "For {name}",
+	"items_list_group_other": "Other",
+	"items_field_url": "URL",
+	"items_scrape_button": "Import details from URL",
+	"items_scrape_button_busy": "Importing from URL…",
+	"items_field_title": "Title",
+	"items_add_title_placeholder": "Something cool...",
+	"items_field_notes": "Notes",
+	"items_add_notes_placeholder": "Color, size, model...",
+	"items_field_priority": "Priority",
+	"items_field_price_range": "Price Range",
+	"items_field_quantity": "Quantity",
+	"items_image_replace_button": "Replace Image",
+	"items_image_upload_button": "Upload Image",
+	"items_add_dialog_title": "Add an Item",
+	"items_add_dialog_description": "Pick a list and fill in the details. You'll be taken to the list after saving.",
+	"items_add_error_quantity_min": "Quantity must be at least 1",
+	"items_add_error_not_authorized": "No permission to add to that list.",
+	"items_add_submit": "Add Item",
+	"items_image_view_larger": "View larger image of {title}",
+	"items_copy_toast": "Copied to {listName}",
+	"items_copy_toast_fallback": "Copied to list",
+	"items_copy_error_not_authorized": "You no longer have permission to add items to that list.",
+	"items_copy_error_source_not_visible": "This list is no longer visible to you.",
+	"items_copy_error_not_found": "Item or list not found.",
+	"items_copy_error_failed": "Failed to copy item",
+	"items_copy_dialog_title": "Copy to Your List",
+	"items_copy_dialog_description": "Pick a list to copy {#title}{itemTitle}{/title} into. The original is left untouched.",
+	"items_copy_submitting": "Copying...",
+	"items_claim_celebration": "Claimed",
+	"items_image_picker_none_usable": "No usable images found",
+	"items_image_picker_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} candidate image",
+				"countPlural=*": "{count} candidate images"
+			}
+		}
+	],
+	"items_image_picker_label": "Product image",
+	"items_image_picker_no_image": "No image",
+	"items_search_dialog_title": "Search My Items",
+	"items_search_dialog_description": "Search across every item on the lists you own.",
+	"items_search_placeholder": "Search items by name, list, or notes…",
+	"items_search_min_chars": "Type at least {min} characters to search.",
+	"items_search_no_items": "You don't have any items on your own lists yet.",
+	"items_search_no_matches": "No items match your search.",
+	"items_search_move_button": "Move",
+	"items_search_open_button": "Open",
+	"items_search_showing_closest": "Showing the closest {shown} of {total} matches. Keep typing to narrow it down.",
+	"items_lock_order": "Claim the item above this one first to unlock it.",
+	"items_lock_or": "Someone already claimed an item in this pick-one group.",
+	"items_lock_claimed": "Someone has already claimed this item.",
+	"items_badge_unavailable_since": "Marked unavailable on {date}",
+	"items_badge_want_lower": "want {quantity}",
+	"items_badge_wants_lower": "wants {quantity}",
+	"items_badge_want": "Want {quantity}",
+	"items_badge_wants": "Wants {quantity}",
+	"items_badge_unavailable_lower": "unavailable",
+	"items_badge_unavailable": "Unavailable",
+	"items_badge_overclaim_explanation": "Already claimed by others. {overBy} more pledged than the recipient asked for; you can't add to it.",
+	"items_badge_count_claimed_lower": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} claimed",
+				"countPlural=*": "{count} claimed"
+			}
+		}
+	],
+	"items_badge_over_lower": "{count} over",
+	"items_badge_overclaimed_count": "{count} Overclaimed",
+	"items_badge_overclaimed_lower": "overclaimed",
+	"items_badge_split_claimed": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "×{count} Claimed",
+				"countPlural=*": "×{count} Claimed"
+			}
+		}
+	],
+	"items_badge_split_over": "×{count} Over",
+	"items_badge_locked": "Locked",
+	"items_badge_claimed": "Claimed",
+	"items_badge_claimed_lower": "claimed",
+	"items_badge_all_claimed": "All Claimed",
+	"items_badge_all_claimed_lower": "all claimed",
+	"items_badge_left": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} Left",
+				"countPlural=*": "{count} Left"
+			}
+		}
+	],
+	"items_badge_left_lower": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} left",
+				"countPlural=*": "{count} left"
+			}
+		}
+	],
+	"items_comment_toast_added": "Comment added",
+	"items_comment_toast_add_failed": "Failed to add comment",
+	"items_comment_toast_updated": "Comment updated",
+	"items_comment_toast_update_failed": "Failed to update",
+	"items_comment_toast_deleted": "Comment deleted",
+	"items_comment_placeholder": "Write a comment...",
+	"items_comment_input_label": "Write a comment",
+	"items_comment_post_button": "Post",
+	"items_comment_visibility_hint": "Visible to everyone, including the recipient. Type @ to mention someone.",
+	"items_comment_edit_label": "Edit comment",
+	"items_comment_delete_label": "Delete comment",
+	"items_comment_delete_title": "Delete Comment?",
+	"items_comment_delete_description": "This cannot be undone.",
+	"items_comment_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} comment",
+				"countPlural=*": "{count} comments"
+			}
+		}
+	],
+	"items_comment_add_button": "Add comment",
+	"items_mention_list_label": "Mention someone",
+	"items_mention_loading": "Loading people...",
+	"items_filter_all": "All items",
+	"items_filter_unpurchased": "Unpurchased",
+	"items_filter_purchased": "Purchased",
+	"items_sort_priority": "Priority",
+	"items_sort_newest": "Newest",
+	"items_sort_oldest": "Oldest",
+	"items_price_under": "Under {price}",
+	"items_price_over": "Over {price}",
+	"items_price_any_button": "Any price",
+	"items_price_any_option": "Any Price",
+	"items_vendor_no_link": "No link",
+	"items_empty": "No items to display",
+	"items_empty_filtered": "No items match the current filter",
+	"items_filter_menu_label": "Filter",
+	"items_price_menu_label": "Price",
+	"items_price_custom": "Custom",
+	"items_price_min_placeholder": "Min",
+	"items_price_max_placeholder": "Max",
+	"items_sort_by_priority_label": "Sort by Priority",
+	"items_sort_high_to_low": "High to Low",
+	"items_sort_low_to_high": "Low to High",
+	"items_sort_by_date_label": "Sort by Date",
+	"items_sort_newest_first": "Newest First",
+	"items_sort_oldest_first": "Oldest First",
+	"items_vendor_all_button": "All vendors",
+	"items_vendor_all_option": "All Vendors",
+	"items_vendor_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} vendor",
+				"countPlural=*": "{count} vendors"
+			}
+		}
+	],
+	"items_vendor_menu_label": "Vendor",
+	"items_form_error_title_required": "Title is required",
+	"items_form_error_quantity_min": "Must be at least 1",
+	"items_edit_error_not_authorized": "You no longer have permission to edit this item.",
+	"items_edit_toast_updated": "Item updated",
+	"items_form_error_add_not_authorized": "You no longer have permission to add items to this list.",
+	"items_image_toast_uploaded": "Image uploaded",
+	"items_image_remove_failed": "Remove failed: {message}",
+	"items_image_toast_removed": "Image removed",
+	"items_form_edit_title": "Edit Item",
+	"items_form_add_title": "Add Item",
+	"items_form_edit_description": "Update the details for this item.",
+	"items_form_add_description": "Add a new item to your list.",
+	"items_form_url_label": "URL (Optional)",
+	"items_form_title_placeholder": "e.g. AirPods Pro",
+	"items_form_price_label": "Price (Optional)",
+	"items_form_notes_label": "Notes (Optional)",
+	"items_form_notes_placeholder": "Color preferences, size, model, etc.",
+	"items_form_image_label": "Image (Optional)",
+	"items_form_image_placeholder_upload": "https://... or upload below",
+	"items_form_upload_button": "Upload",
+	"items_form_upload_after_create": "You can upload a file after the item is created.",
+	"items_form_error_update_title": "Couldn't update item",
+	"items_form_error_add_title": "Couldn't add item",
+	"items_photo_reading": "Reading photo… {seconds}s",
+	"items_photo_read_in": "Photo read in {seconds}s",
+	"items_photo_read": "Photo read",
+	"items_photo_failed": "Couldn't read photo",
+	"items_photo_filled_hint": "Filled in any empty fields below. Edit anything you want to change.",
+	"items_move_error_group_same_list": "Group is already on that list.",
+	"items_move_error_not_authorized": "You don't have permission to move to that list.",
+	"items_move_error_group_not_found": "Group or list not found.",
+	"items_move_group_toast_named": [
+		{
+			"declarations": ["input count", "input name", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{name} moved ({count} item)",
+				"countPlural=*": "{name} moved ({count} items)"
+			}
+		}
+	],
+	"items_move_group_toast_unnamed": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Group moved ({count} item)",
+				"countPlural=*": "Group moved ({count} items)"
+			}
+		}
+	],
+	"items_move_toast_claims_cleared": "claims cleared",
+	"items_move_toast_comments_deleted": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} comment deleted",
+				"countPlural=*": "{count} comments deleted"
+			}
+		}
+	],
+	"items_move_error_group_failed": "Failed to move group",
+	"items_group_unnamed_or": "Pick one group",
+	"items_group_unnamed_order": "In order group",
+	"items_move_group_dialog_title": "Move \"{name}\"",
+	"items_move_item_dialog_title": "Move \"{title}\"",
+	"items_move_group_dialog_description": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Choose a list to move this group and its {count} item to. Claims may be cleared if the list types differ.",
+				"countPlural=*": "Choose a list to move this group and its {count} items to. Claims may be cleared if the list types differ."
+			}
+		}
+	],
+	"items_move_destination_label": "Destination List",
+	"items_move_no_other_lists": "No other lists available to move to.",
+	"items_move_group_purge_label": "Delete Comments on These Items",
+	"items_move_group_purge_hint": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Recommended. Comments usually belong to the original list's context. Applies to all {count} item in this group.",
+				"countPlural=*": "Recommended. Comments usually belong to the original list's context. Applies to all {count} items in this group."
+			}
+		}
+	],
+	"items_move_group_error_title": "Couldn't move group",
+	"items_move_submitting": "Moving…",
+	"items_move_submit": "Move",
+	"items_move_error_item_same_list": "Item is already on that list.",
+	"items_move_error_item_not_found": "Item or list not found.",
+	"items_move_item_toast_moved": "\"{title}\" moved",
+	"items_move_error_item_failed": "Failed to move item",
+	"items_move_item_dialog_description": "Choose a list to move this item to. Claims may be cleared if the list types differ.",
+	"items_move_item_purge_label": "Delete Comments on This Item",
+	"items_move_purge_hint": "Recommended. Comments usually belong to the original list's context.",
+	"items_move_item_error_title": "Couldn't move item",
+	"items_bulk_move_error_name_required": "New list name is required.",
+	"items_bulk_move_error_gift_ideas": "Gift Ideas lists need a target person. Create it from \"New list\" on My Lists.",
+	"items_bulk_move_error_child_gift_ideas": "Children can't create gift-ideas lists.",
+	"items_bulk_move_error_not_guardian": "You're not a guardian of that dependent.",
+	"items_bulk_move_error_holiday": "Holiday lists need a country and holiday picked from the catalog.",
+	"items_bulk_move_error_type_disabled": "That list type is disabled by the admin.",
+	"items_bulk_move_error_failed_generic": "Could not move items.",
+	"items_bulk_move_toast_moved": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} item moved",
+				"countPlural=*": "{count} items moved"
+			}
+		}
+	],
+	"items_bulk_move_toast_claims_cleared": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} claim cleared",
+				"countPlural=*": "{count} claims cleared"
+			}
+		}
+	],
+	"items_bulk_move_error_failed": "Failed to move items",
+	"items_bulk_move_dialog_title": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Move {count} Item",
+				"countPlural=*": "Move {count} Items"
+			}
+		}
+	],
+	"items_bulk_move_dialog_description": "Choose a destination list. Claims may be cleared if list types differ.",
+	"items_bulk_move_create_new": "Create a new list…",
+	"items_bulk_move_new_name_label": "New List Name",
+	"items_bulk_move_new_name_placeholder": "e.g. Wish List 2027",
+	"items_bulk_move_type_label": "Type",
+	"items_bulk_move_private_label": "Private list",
+	"items_bulk_move_purge_label": "Delete Comments on Moved Items",
+	"items_bulk_move_purge_hint": "Recommended. Comments typically belong to the original list's context.",
+	"items_bulk_move_error_title": "Couldn't move items",
+	"items_bulk_move_submit": "Move {count}",
+	"items_group_add_item_label": "Add item to this group",
+	"items_group_actions_label": "Group actions",
+	"items_action_move_to": "Move to...",
+	"items_group_empty": "Empty group. Use the + button above or the \"Group\" item action to add items here.",
+	"items_group_toast_updated": "Group updated",
+	"items_group_toast_update_failed": "Failed to update group",
+	"items_group_edit_title": "Edit Group",
+	"items_group_name_label": "Name (Optional)",
+	"items_group_name_placeholder": "Unnamed",
+	"items_group_priority_hint": "All items in this group inherit this priority.",
+	"items_group_type_or": "Pick One",
+	"items_group_type_or_help": "The recipient wants one item from this group, not all. Once someone claims an item here, the others are considered fulfilled.",
+	"items_group_type_order": "In Order",
+	"items_group_type_order_help": "Items in this group should be claimed in the order shown, top first. Useful when one item depends on another (e.g. a console before its controllers).",
+	"items_group_connector_or": "OR",
+	"items_date_added_tooltip": "Added {date}",
+	"items_claim_error_quantity_min": "Must be at least 1",
+	"items_claim_error_only_left": "Only {remaining} left to claim",
+	"items_claim_error_notes_too_long": "Too long",
+	"items_claim_error_cost_format": "Must be a number like 12.50",
+	"items_claim_unclaim_error_not_yours": "You can't unclaim someone else's claim.",
+	"items_claim_error_not_found": "This claim no longer exists.",
+	"items_claim_toast_removed": "Claim removed",
+	"items_claim_error_over_claim": "Only {remaining} left. Someone else may have just claimed.",
+	"items_claim_edit_error_not_yours": "You can't edit someone else's claim.",
+	"items_claim_toast_updated": "Claim updated",
+	"items_claim_error_not_visible": "You no longer have access to this list.",
+	"items_claim_error_own_list": "You can't claim from your own list.",
+	"items_claim_error_item_gone": "This item is no longer available.",
+	"items_claim_error_group_claimed_named": "This is part of a \"pick one\" group and \"{title}\" was already claimed.",
+	"items_claim_error_group_claimed": "This is part of a \"pick one\" group that has already been claimed.",
+	"items_claim_error_group_order_named": "Claim \"{title}\" first. This group has a required order.",
+	"items_claim_error_group_order": "This group has a required order. Claim the earlier items first.",
+	"items_claim_error_unavailable": "This item is marked as unavailable and cannot be claimed.",
+	"items_claim_toast_saved": "Claim saved",
+	"items_claim_error_save_failed": "Failed to save claim",
+	"items_claim_dialog_title": "Claim “{title}”",
+	"items_claim_edit_dialog_title": "Edit Your Claim on “{title}”",
+	"items_claim_edit_dialog_description": "Update the quantity, cost, or notes on your claim. The list owner still won’t see any of this.",
+	"items_claim_dialog_description": "Mark this as something you're gifting. The list owner won't see the claim, just other viewers.",
+	"items_claim_cost_label": "Total Cost (Optional)",
+	"items_claim_notes_label": "Notes (Optional)",
+	"items_claim_notes_placeholder": "e.g. already ordered, arriving Friday",
+	"items_claim_edit_error_title": "Couldn't update claim",
+	"items_claim_error_title": "Couldn't save claim",
+	"items_claim_unclaim_button": "Unclaim",
+	"items_claim_button": "Claim",
+	"items_claim_unclaim_confirm_title": "Remove your claim on “{title}”?",
+	"items_claim_unclaim_confirm_description": "Your claim will be deleted and the slot will open back up. You can always claim again later if you change your mind.",
+	"items_claim_unclaim_confirm_button": "Yes, Unclaim",
+	"items_claim_unclaim_busy": "Removing…",
+	"items_claim_edit_button_title": "Edit your claim",
+	"items_claim_edit_button": "Edit Claim",
+	"items_cogifters_toast_updated": "Co-gifters updated",
+	"items_cogifters_error_not_allowed": "You can't add the recipient or your partner as a co-gifter.",
+	"items_cogifters_error_rejected": "Failed to update co-gifters.",
+	"items_cogifters_error_failed": "Failed to update co-gifters",
+	"items_cogifters_label": "Co-gifters (Optional)",
+	"items_cogifters_hint": "Add people who are splitting this gift with you.",
+	"items_cogifters_placeholder": "Add a co-gifter",
+	"items_scrape_failed_title": "Couldn't import. Please fill in the details.",
+	"items_scrape_done_cached": "Imported from cache in {elapsed}",
+	"items_scrape_done": "Imported in {elapsed}",
+	"items_scrape_partial_checking": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Got initial result. Still checking {count} other source for better data…",
+				"countPlural=*": "Got initial result. Still checking {count} other sources for better data…"
+			}
+		}
+	],
+	"items_scrape_partial_finalizing": "Got initial result. Finalizing…",
+	"items_scrape_importing_from": "Importing from {hostname}…",
+	"items_scrape_importing": "Importing…",
+	"items_scrape_cancel_remaining": "Cancel remaining",
+	"items_scrape_tier": "Tier {tier}",
+	"items_scrape_score_title": "Score {score}, {duration}",
+	"items_scrape_status_pending": "pending",
+	"items_scrape_status_in_progress": "in progress",
+	"items_scrape_status_done": "done",
+	"items_scrape_status_failed": "failed",
+	"items_scrape_status_skipped": "skipped",
+	"items_scrape_failure_all_providers": "No scraper could read this URL.",
+	"items_scrape_failure_invalid_url": "That URL is invalid.",
+	"items_scrape_failure_not_authorized": "You are not signed in.",
+	"items_scrape_failure_timeout": "The scrape timed out.",
+	"items_scrape_failure_no_providers": "No scrapers are configured for this deployment.",
+	"items_scrape_failure_dead_link": "This link is no longer valid.",
+	"items_scrape_failure_stream_closed": "The connection closed unexpectedly.",
+	"items_scrape_failure_reason": "Scrape failed ({reason}).",
+	"items_scrape_failure_generic": "Scrape failed.",
+	"items_scrape_elapsed": "Elapsed {elapsed}",
+	"items_scrape_elapsed_of_budget": "Elapsed {elapsed} of {budget} budget",
+	"items_availability_toast_unavailable": "Marked as unavailable",
+	"items_availability_toast_available": "Marked as available",
+	"items_availability_toast_failed": "Failed to update availability",
+	"items_row_saving_label": "Saving",
+	"items_row_actions_label": "Item actions",
+	"items_row_copy_to_list": "Copy to Your List",
+	"items_row_mark_available": "Mark as available",
+	"items_row_mark_unavailable": "Mark as unavailable",
+	"items_group_toast_removed": "Removed from group",
+	"items_group_toast_added": "Added to group",
+	"items_group_toast_created_or": "\"Pick one\" group created",
+	"items_group_toast_created_order": "\"Ordered\" group created",
+	"items_group_toast_create_failed": "Failed to create group",
+	"items_priority_toast_updated": "Priority updated",
+	"items_priority_toast_failed": "Failed to update priority",
+	"items_toast_deleted": "Item deleted",
+	"items_toast_delete_failed": "Failed to delete item",
+	"items_row_group_menu": "Group",
+	"items_row_new_group_or": "New \"Pick One\" Group",
+	"items_row_new_group_order": "New \"In Order\" Group",
+	"items_row_group_numbered_or": "Pick one group #{id}",
+	"items_row_group_numbered_order": "In order group #{id}",
+	"items_row_remove_from_group": "Remove From Group",
+	"items_row_set_priority_label": "Set priority: {priority}",
+	"items_row_admin_id": "item #{id}",
+	"items_row_move_up": "Move up",
+	"items_row_move_down": "Move down",
+	"items_delete_confirm_title": "Delete \"{title}\"?",
+	"items_delete_confirm_description": "This will permanently remove this item and any associated claims or comments.",
+	"items_reorder_error_save": "Could not save order",
+	"items_reorder_instructions": "Drag rows between buckets to change priority. Drag within a bucket to change order. Changes save automatically.",
+	"items_reorder_mode_single": "Single",
+	"items_reorder_mode_multi": "Multi",
+	"items_reorder_selected_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} selected",
+				"countPlural=*": "{count} selected"
+			}
+		}
+	],
+	"items_reorder_drop_here": "Drop rows here",
+	"items_reorder_drag_handle": "Drag to reorder",
+	"items_reorder_rows_selected": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} rows selected",
+				"countPlural=*": "{count} rows selected"
+			}
+		}
+	],
+	"items_reorder_group_or": "Pick one",
+	"items_reorder_group_order": "In order",
+	"items_reorder_no_items": "No items",
+	"items_import_text_error_disabled": "Paste Text is turned off. Ask your admin to turn it on.",
+	"items_import_text_error_not_configured": "Paste Text is not set up on this site yet.",
+	"items_import_text_error_budget": "AI features are paused for this month. Add the items by hand, or paste links with Paste URLs.",
+	"items_import_text_error_ai_failed": "Could not read that text just now. Try again.",
+	"items_import_text_error_rate_limited": "That is a lot of requests. Try again in a minute.",
+	"items_import_text_error_nothing_found": "Could not find anything to add in that text.",
+	"items_import_toast_imported": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Imported {count} item",
+				"countPlural=*": "Imported {count} items"
+			}
+		}
+	],
+	"items_import_error_failed": "Failed to import",
+	"items_import_text_title": "Paste Text",
+	"items_import_text_description": "Paste a list from your notes, a message, or anything else. An AI model picks out the items, and you check them before anything is added. Only the text you paste is sent to it.",
+	"items_import_text_label": "Text",
+	"items_import_text_placeholder": "Things I would love this year:\n- the blue enamel mug, big size\n- wool socks, size M\n...",
+	"items_import_text_chars": "{used} of {max} characters",
+	"items_import_text_chars_too_long": "{used} of {max} characters. Paste a shorter piece.",
+	"items_import_text_reading": "Reading…",
+	"items_import_text_find_button": "Find Items",
+	"items_import_error_not_authorized": "You do not have permission to add to this list.",
+	"items_import_error_todo_list": "Todo lists do not take gift items.",
+	"items_import_error_disabled": "Importing is currently disabled. Ask your admin to turn it on.",
+	"items_import_amazon_error_fetch": "Failed to fetch wishlist",
+	"items_import_amazon_title": "Import From Amazon Wish List",
+	"items_import_amazon_description": "Paste your wish list URL. If Amazon blocks the fetch, we'll ask you to paste the page's HTML instead.",
+	"items_import_amazon_url_label": "Amazon Wish List URL",
+	"items_import_amazon_fetching": "Fetching...",
+	"items_import_amazon_fetch_button": "Fetch Wish List",
+	"items_import_amazon_fallback_title": "Couldn't fetch the page automatically",
+	"items_import_amazon_fallback_description": "Open your wish list in the browser, right-click the page and choose \"View Page Source\", select all, copy, and paste below. (Or open dev tools, copy the body's outerHTML.)",
+	"items_import_amazon_html_label": "Wish List HTML",
+	"items_import_amazon_parse_button": "Parse HTML",
+	"items_import_urls_title": "Paste URLs",
+	"items_import_urls_description": "One URL per line. Titles, prices, and images get filled in by a background scrape after import.",
+	"items_import_urls_label": "URLs",
+	"items_import_urls_detected": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} URL detected.",
+				"countPlural=*": "{count} URLs detected."
+			}
+		}
+	],
+	"items_import_preview_button": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Preview {count} Item",
+				"countPlural=*": "Preview {count} Items"
+			}
+		}
+	],
+	"items_import_menu_label": "Import items",
+	"items_import_menu_photo": "Upload Photo",
+	"items_import_menu_apple_notes": "Apple Notes",
+	"items_import_menu_amazon": "Amazon Wish List",
+	"items_import_preview_empty_title": "Nothing to import",
+	"items_import_preview_empty_description": "Remove rows by clicking the trash icon, or go back to start over.",
+	"items_import_preview_deselect_all": "Deselect all rows",
+	"items_import_preview_select_all": "Select all rows",
+	"items_import_preview_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} item",
+				"countPlural=*": "{count} items"
+			}
+		}
+	],
+	"items_import_preview_remove_selected": "Remove {count}",
+	"items_import_preview_select_row": "Select row {row}",
+	"items_import_preview_title_placeholder_scrape": "(scrape will fill this in)",
+	"items_import_preview_title_placeholder": "Item title",
+	"items_import_preview_title_label": "Title for row {row}",
+	"items_import_preview_no_url": "No URL",
+	"items_import_preview_queued": "queued",
+	"items_import_preview_remove_row": "Remove row {row}",
+	"items_import_preview_summary": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} item will be imported.",
+				"countPlural=*": "{count} items will be imported."
+			}
+		}
+	],
+	"items_import_preview_summary_blank": [
+		{
+			"declarations": ["input count", "input blank", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} item will be imported; {blank} will be filled in by the background scrape.",
+				"countPlural=*": "{count} items will be imported; {blank} will be filled in by the background scrape."
+			}
+		}
+	],
+	"items_import_preview_importing": "Importing...",
+	"items_import_preview_submit": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Import {count} item",
+				"countPlural=*": "Import {count} items"
+			}
+		}
+	],
+	"items_import_apple_title": "Import From Apple Notes",
+	"items_import_apple_description": "Paste a checklist or bulleted list from Apple Notes. Bullet glyphs are stripped automatically; URLs become item links.",
+	"items_import_apple_label": "Paste From Apple Notes",
+	"items_import_apple_placeholder": "• Bluetooth headphones\n• Coffee grinder https://example.com/grinder\n• ...",
+	"items_import_apple_detected": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} item detected.",
+				"countPlural=*": "{count} items detected."
+			}
+		}
+	],
+	"items_import_apple_detected_rich": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} item detected. (rich-text paste detected)",
+				"countPlural=*": "{count} items detected. (rich-text paste detected)"
+			}
+		}
+	]
 }

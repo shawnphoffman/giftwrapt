@@ -65,13 +65,13 @@ function PermissionsPage() {
 			if (!result.success) {
 				toast.error(
 					result.reason === 'guardian-not-allowed'
-						? "You can't change permissions for your guardian. They always have full access to your lists."
-						: 'Some users cannot be set to restricted (partner or guardian relationships are always full view).'
+						? m.settings_permissions_guardian_not_allowed()
+						: m.settings_permissions_restricted_not_allowed()
 				)
 				return
 			}
 
-			toast.success('Permissions updated')
+			toast.success(m.settings_permissions_updated_toast())
 			queryClient.invalidateQueries({ queryKey: ['permissions', 'users'] })
 		} finally {
 			setIsSaving(false)
@@ -83,10 +83,8 @@ function PermissionsPage() {
 	return (
 		<Card className="animate-page-in max-w-2xl">
 			<CardHeader>
-				<CardTitle className="text-2xl">Permissions</CardTitle>
-				<CardDescription>
-					Choose what each person can do with your wish lists. A green dot next to their name means they've shared their lists with you too.
-				</CardDescription>
+				<CardTitle className="text-2xl">{m.page_permissions()}</CardTitle>
+				<CardDescription>{m.settings_permissions_page_description()}</CardDescription>
 			</CardHeader>
 			<CardContent>
 				<PermissionsEditor rows={initialRows} isLoading={isLoading} isSaving={isSaving} onSave={handleSave} showShareIndicator />

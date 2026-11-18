@@ -30,6 +30,7 @@ export function PriceQuantityBadge({ price, quantity, hideQuantity = false, clas
 		>
 			{showPrice && <span className={cn('py-0.5 pl-2 text-foreground', showQty ? 'pr-1' : 'pr-2')}>{displayPrice}</span>}
 			{showPrice && showQty && <span className="w-px bg-border" aria-hidden />}
+			{/* eslint-disable-next-line i18next/no-literal-string -- multiplier sign, not a word */}
 			{showQty && <span className={cn('py-0.5 pr-2 text-foreground', showPrice ? 'pl-1' : 'pl-2')}>x{quantity}</span>}
 		</span>
 	)

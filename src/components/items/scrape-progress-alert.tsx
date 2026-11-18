@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { ProviderProgress, ScrapeUiState } from '@/lib/use-scrape-url'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 type Props = {
 	state: ScrapeUiState
@@ -41,13 +42,13 @@ export function ScrapeProgressAlert({ state, url, onCancel, onRetry, className }
 		return (
 			<Alert variant="destructive" className={cn('text-sm', className)}>
 				<AlertCircle />
-				<AlertTitle>Couldn&apos;t import. Please fill in the details.</AlertTitle>
+				<AlertTitle>{m.items_scrape_failed_title()}</AlertTitle>
 				<AlertDescription>
 					{describeFailure(state)}
 					{onRetry && state.reason !== 'dead-link' && (
 						<div className="mt-2">
 							<Button type="button" size="sm" variant="outline" onClick={onRetry}>
-								Try Again
+								{m.action_try_again()}
 							</Button>
 						</div>
 					)}
@@ -58,7 +59,7 @@ export function ScrapeProgressAlert({ state, url, onCancel, onRetry, className }
 
 	if (state.phase === 'done') {
 		const elapsed = formatDurationMs(state.elapsedMs)
-		const title = state.cached ? `Imported from cache in ${elapsed}` : `Imported in ${elapsed}`
+		const title = state.cached ? m.items_scrape_done_cached({ elapsed }) : m.items_scrape_done({ elapsed })
 		return (
 			<Alert variant="default" className={cn('text-sm', className)}>
 				<CheckCircle2 className="text-emerald-600 dark:text-emerald-500" />
@@ -78,10 +79,12 @@ export function ScrapeProgressAlert({ state, url, onCancel, onRetry, className }
 			<Loader2 className="animate-spin text-muted-foreground" />
 			<AlertTitle>
 				{isPartial && stillRunning > 0
-					? `Got initial result. Still checking ${stillRunning} other source${stillRunning === 1 ? '' : 's'} for better data…`
+					? m.items_scrape_partial_checking({ count: stillRunning })
 					: isPartial
-						? 'Got initial result. Finalizing…'
-						: `Importing${hostname ? ` from ${hostname}` : ''}…`}
+						? m.items_scrape_partial_finalizing()
+						: hostname
+							? m.items_scrape_importing_from({ hostname })
+							: m.items_scrape_importing()}
 			</AlertTitle>
 			<AlertDescription>
 				<ul className="mt-1 space-y-1 text-xs">
@@ -100,7 +103,7 @@ export function ScrapeProgressAlert({ state, url, onCancel, onRetry, className }
 						<>
 							{' · '}
 							<button type="button" onClick={onCancel} className="underline hover:text-foreground">
-								{isPartial ? 'Cancel remaining' : 'Cancel'}
+								{isPartial ? m.items_scrape_cancel_remaining() : m.action_cancel()}
 							</button>
 						</>
 					)}
@@ -119,10 +122,14 @@ function ProviderRow({ progress, label, tier }: { progress: ProviderProgress; la
 		<li className={cn('flex items-center gap-2', muted && 'opacity-60')}>
 			<Icon className={cn('size-3.5 shrink-0', ICON_TONE[progress.status])} />
 			{typeof tier === 'number' && (
-				<Badge variant="outline" className="h-4 gap-1 px-1.5 py-0 text-3xs font-normal text-muted-foreground" title={`Tier ${tier}`}>
+				<Badge
+					variant="outline"
+					className="h-4 gap-1 px-1.5 py-0 text-3xs font-normal text-muted-foreground"
+					title={m.items_scrape_tier({ tier })}
+				>
 					<Layers2 className="size-2.5" aria-hidden="true" />
 					{tier}
-					<span className="sr-only">Tier {tier}</span>
+					<span className="sr-only">{m.items_scrape_tier({ tier })}</span>
 				</Badge>
 			)}
 			<span className={cn('font-mono', muted && 'line-through')}>{label}</span>
@@ -146,7 +153,7 @@ function ScoreTimingPill({ score, ms }: { score: number; ms: number }) {
 	return (
 		<span
 			className="inline-flex h-4 items-stretch overflow-hidden rounded-full border text-3xs font-medium whitespace-nowrap"
-			title={`Score ${score}, ${formatDurationMs(ms)}`}
+			title={m.items_scrape_score_title({ score, duration: formatDurationMs(ms) })}
 		>
 			<span className="inline-flex items-center bg-emerald-100 px-1.5 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
 				{score}
@@ -211,40 +218,49 @@ function SpinnerIcon({ className }: { className?: string }): React.ReactElement 
 function providerDetail(p: ProviderProgress): { badge: string | null; meta: string | null } {
 	switch (p.status) {
 		case 'pending':
-			return { badge: 'pending', meta: null }
+			return { badge: m.items_scrape_status_pending(), meta: null }
 		case 'in_progress':
-			return { badge: 'in progress', meta: null }
+			return { badge: m.items_scrape_status_in_progress(), meta: null }
 		case 'done':
 			// Score + duration render as a separate two-segment pill on the
 			// row, so meta stays empty here.
-			return { badge: 'done', meta: null }
+			return { badge: m.items_scrape_status_done(), meta: null }
 		case 'failed':
 			return {
-				badge: p.errorCode ?? 'failed',
+				badge: p.errorCode ?? m.items_scrape_status_failed(),
 				meta: typeof p.ms === 'number' ? formatDurationMs(p.ms) : null,
 			}
 		case 'skipped':
-			return { badge: 'skipped', meta: null }
+			return { badge: m.items_scrape_status_skipped(), meta: null }
 	}
 }
 
 function describeFailure(state: ScrapeUiState): string {
-	const map: Record<string, string> = {
-		'all-providers-failed': 'No scraper could read this URL.',
-		'invalid-url': 'That URL is invalid.',
-		'not-authorized': 'You are not signed in.',
-		timeout: 'The scrape timed out.',
-		'no-providers-available': 'No scrapers are configured for this deployment.',
-		'dead-link': 'This link is no longer valid.',
-		'stream-closed': 'The connection closed unexpectedly.',
+	if (!state.reason) return m.items_scrape_failure_generic()
+	switch (state.reason) {
+		case 'all-providers-failed':
+			return m.items_scrape_failure_all_providers()
+		case 'invalid-url':
+			return m.items_scrape_failure_invalid_url()
+		case 'not-authorized':
+			return m.items_scrape_failure_not_authorized()
+		case 'timeout':
+			return m.items_scrape_failure_timeout()
+		case 'no-providers-available':
+			return m.items_scrape_failure_no_providers()
+		case 'dead-link':
+			return m.items_scrape_failure_dead_link()
+		case 'stream-closed':
+			return m.items_scrape_failure_stream_closed()
+		default:
+			return m.items_scrape_failure_reason({ reason: state.reason })
 	}
-	return state.reason ? (map[state.reason] ?? `Scrape failed (${state.reason}).`) : 'Scrape failed.'
 }
 
 function formatElapsed(elapsedMs: number, totalTimeoutMs: number | undefined): string {
 	const elapsed = formatDurationMs(elapsedMs)
-	if (!totalTimeoutMs) return `Elapsed ${elapsed}`
-	return `Elapsed ${elapsed} of ${formatDurationMs(totalTimeoutMs)} budget`
+	if (!totalTimeoutMs) return m.items_scrape_elapsed({ elapsed })
+	return m.items_scrape_elapsed_of_budget({ elapsed, budget: formatDurationMs(totalTimeoutMs) })
 }
 
 function formatDurationMs(ms: number): string {

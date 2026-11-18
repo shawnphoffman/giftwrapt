@@ -1,3 +1,271 @@
 {
-	"$schema": "https://inlang.com/schema/inlang-message-format"
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"intelligence_page_tagline": "These personalized recommendations update periodically, so check back regularly.",
+	"intelligence_last_updated": "Last updated {timeAgo}",
+	"intelligence_refresh_available_again": "Available again {time}",
+	"intelligence_refresh_aria": "Refresh suggestions",
+	"intelligence_refresh_button": "Refresh",
+	"intelligence_refresh_button_busy": "Refreshing",
+	"intelligence_run_failed_title": "Last run failed",
+	"intelligence_run_failed_unknown": "Unknown error",
+	"intelligence_generating_title": "Working on fresh recommendations",
+	"intelligence_generating_body": "This usually takes a few seconds. The list below will update when it finishes.",
+	"intelligence_severity_important": "Important",
+	"intelligence_severity_suggest": "Suggested",
+	"intelligence_severity_info": "For your info",
+	"intelligence_severity_important_description": "Worth handling soon. These affect how others see your lists.",
+	"intelligence_severity_suggest_description": "Optional polish. Apply if you agree, dismiss if not.",
+	"intelligence_severity_info_description": "Just a heads-up. No action required.",
+	"intelligence_severity_badge_important": "Important",
+	"intelligence_severity_badge_suggest": "Suggested",
+	"intelligence_severity_badge_info": "FYI",
+	"intelligence_count_active": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} active",
+				"countPlural=*": "{count} active"
+			}
+		}
+	],
+	"intelligence_dependents_title": "For Your Dependents",
+	"intelligence_dependents_description": "Suggestions about lists you manage on someone else's behalf. They behave just like your own.",
+	"intelligence_dismissed_toggle": "Show dismissed",
+	"intelligence_dismissed_when": "Dismissed {timeAgo}",
+	"intelligence_dismissed_recently": "Dismissed recently",
+	"intelligence_dismissed_bring_back": "Bring Back",
+	"intelligence_summary_both": [
+		{
+			"declarations": [
+				"input appliedCount",
+				"input dismissedCount",
+				"local aPlural = appliedCount: plural",
+				"local bPlural = dismissedCount: plural"
+			],
+			"selectors": ["aPlural", "bPlural"],
+			"match": {
+				"aPlural=one, bPlural=one": "{appliedCount} applied · {dismissedCount} dismissed.",
+				"aPlural=one, bPlural=*": "{appliedCount} applied · {dismissedCount} dismissed.",
+				"aPlural=*, bPlural=one": "{appliedCount} applied · {dismissedCount} dismissed.",
+				"aPlural=*, bPlural=*": "{appliedCount} applied · {dismissedCount} dismissed."
+			}
+		}
+	],
+	"intelligence_summary_applied": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} applied ·",
+				"countPlural=*": "{count} applied ·"
+			}
+		}
+	],
+	"intelligence_summary_dismissed": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} dismissed.",
+				"countPlural=*": "{count} dismissed."
+			}
+		}
+	],
+	"intelligence_summary_note": "Dismissed items stay hidden, even when suggestions refresh, until the items they're about change or you bring one back.",
+	"intelligence_progress_reviewed": "{reviewed} of {total} reviewed",
+	"intelligence_progress_left": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} left to act on",
+				"countPlural=*": "{count} left to act on"
+			}
+		}
+	],
+	"intelligence_empty_title": "All caught up",
+	"intelligence_empty_body": "Nothing left to act on. Check back later, or hit Refresh to look again.",
+	"intelligence_empty_batch_both": [
+		{
+			"declarations": [
+				"input appliedCount",
+				"input dismissedCount",
+				"local aPlural = appliedCount: plural",
+				"local bPlural = dismissedCount: plural"
+			],
+			"selectors": ["aPlural", "bPlural"],
+			"match": {
+				"aPlural=one, bPlural=one": "{appliedCount} applied · {dismissedCount} dismissed in this batch.",
+				"aPlural=one, bPlural=*": "{appliedCount} applied · {dismissedCount} dismissed in this batch.",
+				"aPlural=*, bPlural=one": "{appliedCount} applied · {dismissedCount} dismissed in this batch.",
+				"aPlural=*, bPlural=*": "{appliedCount} applied · {dismissedCount} dismissed in this batch."
+			}
+		}
+	],
+	"intelligence_empty_batch_applied": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} applied in this batch.",
+				"countPlural=*": "{count} applied in this batch."
+			}
+		}
+	],
+	"intelligence_empty_batch_dismissed": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} dismissed in this batch.",
+				"countPlural=*": "{count} dismissed in this batch."
+			}
+		}
+	],
+	"intelligence_filter_empty_title": "No suggestions match the current list filter",
+	"intelligence_filter_empty_body": "Try expanding the filter to see suggestions for more lists.",
+	"intelligence_filter_select_all": "Select All",
+	"intelligence_disabled_title": "Suggestions are offline",
+	"intelligence_disabled_feature": "Suggestions are currently disabled. An admin can turn them on from the admin Intelligence page.",
+	"intelligence_disabled_no_provider": "No AI provider is configured. An admin needs to add a provider before suggestions can be generated.",
+	"intelligence_group_setup": "Setup",
+	"intelligence_group_cleanup": "Cleanup",
+	"intelligence_group_organize": "Organize",
+	"intelligence_group_setup_description": "Get the basics in place.",
+	"intelligence_group_cleanup_description": "Items worth a fresh look or removal.",
+	"intelligence_group_organize_description": "Duplicates, groupings, and structure.",
+	"intelligence_group_counts": [
+		{
+			"declarations": ["input activeCount", "input totalCount", "local aPlural = activeCount: plural"],
+			"selectors": ["aPlural"],
+			"match": {
+				"aPlural=one": "{activeCount} active · {totalCount} total",
+				"aPlural=*": "{activeCount} active · {totalCount} total"
+			}
+		}
+	],
+	"intelligence_card_position_title": "Recommendation {index} of {total}",
+	"intelligence_card_status_applied": "Applied",
+	"intelligence_card_status_dismissed": "Dismissed",
+	"intelligence_card_section_recommendation": "Recommendation",
+	"intelligence_card_section_context": "Context",
+	"intelligence_card_section_references": "References",
+	"intelligence_card_section_items": "Items",
+	"intelligence_card_section_actions": "Actions",
+	"intelligence_card_section_picker": "Choose a List",
+	"intelligence_card_applying": "Applying…",
+	"intelligence_card_dismiss_default_description": "Hide this recommendation. We won't show it again unless the underlying items or lists change.",
+	"intelligence_confirm_dismiss_title": "Dismiss this suggestion?",
+	"intelligence_confirm_action_title": "Confirm action",
+	"intelligence_confirm_action_body": "This will resolve the suggestion.",
+	"intelligence_dismiss_button": "Dismiss",
+	"intelligence_item_reference_list": "in {listName}",
+	"intelligence_sub_items_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} item",
+				"countPlural=*": "{count} items"
+			}
+		}
+	],
+	"intelligence_sub_items_show_all": "Show all ({count} more)",
+	"intelligence_bundle_nav_hint": "Open the list to bulk-fix in-place.",
+	"intelligence_bundle_nav_open": "Open List",
+	"intelligence_sub_item_skip_aria": "Skip this item",
+	"intelligence_sub_item_skip": "Skip",
+	"intelligence_picker_empty": "No eligible lists. Create a wishlist first.",
+	"intelligence_picker_placeholder": "Select a list…",
+	"intelligence_picker_preview": "\"{name}\" will be marked as your primary list. You can change this later from the list view.",
+	"intelligence_filter_trigger_aria": "Filter suggestions by list",
+	"intelligence_filter_trigger": "Filter",
+	"intelligence_filter_heading": "Filter by list",
+	"intelligence_filter_global_option": "Global suggestions",
+	"intelligence_filter_section_global": "Global Suggestions",
+	"intelligence_filter_section_user": "Your Lists",
+	"intelligence_filter_section_dependent": "{name}'s lists",
+	"intelligence_edit_not_authorized": "You no longer have permission to edit this item.",
+	"intelligence_edit_item_gone": "That item no longer exists. Refresh suggestions to see the latest.",
+	"intelligence_refresh_failed": "Refresh failed",
+	"intelligence_dismiss_failed": "Dismiss failed",
+	"intelligence_reactivate_failed": "Reactivate failed",
+	"intelligence_skip_failed": "Skip failed",
+	"intelligence_action_failed": "Action failed",
+	"intelligence_apply_error_rec_not_active": "This suggestion is no longer active. Refresh to see the latest.",
+	"intelligence_apply_error_cannot_edit": "You can't edit that list anymore.",
+	"intelligence_apply_error_items_changed": "These items have changed since the suggestion was made. Refresh to see the latest.",
+	"intelligence_apply_error_items_have_claims": "One of these items has a claim now, so we left it alone. Refresh to see the latest.",
+	"intelligence_apply_error_list_not_found": "That list no longer exists.",
+	"intelligence_apply_error_invalid_list_type": "That list type can't be set as primary.",
+	"intelligence_apply_error_not_owner": "You don't own that list.",
+	"intelligence_apply_error_rec_not_found": "Suggestion not found.",
+	"intelligence_apply_error_unknown_apply_kind": "We don't know how to apply that action.",
+	"intelligence_apply_error_list_type_disabled": "That list type isn't enabled on this deployment anymore.",
+	"intelligence_apply_error_todo_list_type_locked": "Todo lists can't be converted to or from another type.",
+	"intelligence_apply_error_invalid_holiday_selection": "That holiday selection is invalid. Refresh to see the latest.",
+	"intelligence_apply_error_not_dependent_guardian": "You're not a guardian of that dependent.",
+	"intelligence_apply_error_child_cannot_create_gift_ideas": "Children can't create gift-ideas lists.",
+	"intelligence_apply_error_no_change": "Nothing to change. The list is already set up that way.",
+	"intelligence_apply_error_merge_cluster_mismatch": "These lists changed since the suggestion was made. Refresh to see the latest.",
+	"intelligence_apply_error_merge_cross_type_destructive": "These lists can't be safely merged anymore. Refresh to see the latest.",
+	"gift_help_price_under": "Under {amount}",
+	"gift_help_price_range": "{low} to {high}",
+	"gift_help_price_over": "Over {amount}",
+	"gift_help_error_feature_disabled": "Gift suggestions are turned off.",
+	"gift_help_error_not_configured": "Gift suggestions are not set up on this site yet.",
+	"gift_help_error_child_not_allowed": "Gift suggestions are not available on this account.",
+	"gift_help_error_budget_exceeded": "Gift suggestions are paused for this month.",
+	"gift_help_error_rate_limited": "That is a lot of requests. Try again in a little while.",
+	"gift_help_error_ai_failed": "Could not come up with ideas just now. Try again.",
+	"gift_help_error_generic": "Could not get ideas for this list.",
+	"gift_help_thinking_reading": "Reading their list…",
+	"gift_help_thinking_ideas": "Thinking of ideas…",
+	"gift_help_thinking_excluding": "Leaving out what is already on their list…",
+	"gift_help_thinking_writing": "Writing up what to look for…",
+	"gift_help_thinking_duration": "This usually takes under a minute.",
+	"gift_help_checking_aria": "Loading your last ideas",
+	"gift_help_stored_caption": "Ideas from {when}.",
+	"gift_help_stored_caption_occasion": "Ideas from {when}, for {occasion}.",
+	"gift_help_stored_caption_budget": "Ideas from {when}, up to {amount}.",
+	"gift_help_stored_caption_occasion_budget": "Ideas from {when}, for {occasion}, up to {amount}.",
+	"gift_help_dialog_title": "Gift Ideas for {name}",
+	"gift_help_description_interests": "Their list is mostly {categories}.",
+	"gift_help_description_default": "New ideas that are not already on their list.",
+	"gift_help_budget_label": "Budget (Optional)",
+	"gift_help_budget_placeholder": "Any amount",
+	"gift_help_privacy_note": "Ideas come from an AI model. It is shown what is on {name}’s lists and whether each thing is already claimed, never who claimed it.",
+	"gift_help_find_button": "Find Ideas",
+	"gift_help_no_results": "No new ideas this time. Try a different budget.",
+	"gift_help_has_it_note": "{name} already has this",
+	"gift_help_not_for_them_note": "Not for them",
+	"gift_help_save_button": "Save to Gift Ideas",
+	"gift_help_saved_button": "Saved to Gift Ideas",
+	"gift_help_add_off_list_button": "Add as Off-List Gift",
+	"gift_help_added_off_list_button": "Added as Off-List Gift",
+	"gift_help_has_it_button": "They Have It",
+	"gift_help_has_it_aria": "They Have It: {title}",
+	"gift_help_not_for_them_button": "Not for Them",
+	"gift_help_not_for_them_aria": "Not for Them: {title}",
+	"gift_help_footnote": "These are ideas to research, not product recommendations: the AI does not know what is in stock or what things cost today. Gift Ideas are private to you. An off-list gift tells other gifters you are giving it; {name} sees it only after the reveal. “They Have It” keeps an idea out of everyone’s future ideas for {name}; a thumbs down only out of yours. {name} never sees either.",
+	"gift_help_new_ideas_button": "New Ideas",
+	"gift_help_open_button": "Need Ideas?",
+	"gift_help_save_failed": "Could not save that idea",
+	"gift_help_saved_new_list": "Saved to a new private ideas list for {name}",
+	"gift_help_saved_toast": "Saved to your gift ideas",
+	"gift_help_add_off_list_failed": "Could not add that off-list gift",
+	"gift_help_off_list_added": "Off-list gift added",
+	"gift_help_mark_failed": "Could not save that",
+	"gift_help_unmark_failed": "Could not undo that",
+	"list_impact_delete_today": "{eventTitle} is today and this is the only list set up to auto-reveal on that day. Deleting means gifts won't auto-reveal.",
+	"list_impact_delete_tomorrow": "{eventTitle} is tomorrow and this is the only list set up to auto-reveal on that day. Deleting means gifts won't auto-reveal.",
+	"list_impact_delete_in_days": "{eventTitle} is in {count} days and this is the only list set up to auto-reveal on that day. Deleting means gifts won't auto-reveal.",
+	"list_impact_archive_today": "{eventTitle} is today and this is the only list set up to auto-reveal on that day. Archiving means gifts won't auto-reveal.",
+	"list_impact_archive_tomorrow": "{eventTitle} is tomorrow and this is the only list set up to auto-reveal on that day. Archiving means gifts won't auto-reveal.",
+	"list_impact_archive_in_days": "{eventTitle} is in {count} days and this is the only list set up to auto-reveal on that day. Archiving means gifts won't auto-reveal.",
+	"list_impact_change_today": "{eventTitle} is today. After this change, no list will auto-reveal on that day.",
+	"list_impact_change_tomorrow": "{eventTitle} is tomorrow. After this change, no list will auto-reveal on that day.",
+	"list_impact_change_in_days": "{eventTitle} is in {count} days. After this change, no list will auto-reveal on that day.",
+	"item_clone_placeholder": "Hello \"/(core)/item/clone\"!"
 }

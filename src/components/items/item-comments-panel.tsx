@@ -30,6 +30,7 @@ import { decodeMentionDraft, encodeMentionDraft, type MentionRef } from '@/lib/c
 import { formatDate, formatTimeAgo } from '@/lib/i18n/format'
 import { cn } from '@/lib/utils'
 import { LIMITS } from '@/lib/validation/limits'
+import { m } from '@/paraglide/messages.js'
 
 import { CommentBody } from './comment-body'
 import { MentionTextarea } from './mention-textarea'
@@ -92,10 +93,10 @@ export default function ItemCommentsPanel({ itemId, onCountChange }: Props) {
 				setNewMentions([])
 				await refetch()
 				queryClient.invalidateQueries({ queryKey: ['recent', 'conversations'] })
-				toast.success('Comment added')
+				toast.success(m.items_comment_toast_added())
 			}
 		} catch {
-			toast.error('Failed to add comment')
+			toast.error(m.items_comment_toast_add_failed())
 		} finally {
 			setSubmitting(false)
 		}
@@ -131,8 +132,8 @@ export default function ItemCommentsPanel({ itemId, onCountChange }: Props) {
 				    the placeholder, so a wrapping one overflows the textarea (and the
 				    card) on narrow screens. The visibility warning lives below. */}
 				<MentionTextarea
-					placeholder="Write a comment..."
-					aria-label="Write a comment"
+					placeholder={m.items_comment_placeholder()}
+					aria-label={m.items_comment_input_label()}
 					aria-describedby={hintId}
 					rows={2}
 					value={newComment}
@@ -152,11 +153,11 @@ export default function ItemCommentsPanel({ itemId, onCountChange }: Props) {
 					className="text-base md:text-sm"
 				/>
 				<Button size="sm" onClick={handleSubmit} disabled={submitting || !newComment.trim()}>
-					{submitting ? '...' : 'Post'}
+					{submitting ? '...' : m.items_comment_post_button()}
 				</Button>
 			</div>
 			<p id={hintId} className="text-xs text-muted-foreground">
-				Visible to everyone, including the recipient. Type @ to mention someone.
+				{m.items_comment_visibility_hint()}
 			</p>
 		</div>
 	)
@@ -196,10 +197,10 @@ function CommentRow({
 			if (result.kind === 'ok') {
 				setEditing(false)
 				onDeleted()
-				toast.success('Comment updated')
+				toast.success(m.items_comment_toast_updated())
 			}
 		} catch {
-			toast.error('Failed to update')
+			toast.error(m.items_comment_toast_update_failed())
 		} finally {
 			setSaving(false)
 		}
@@ -218,7 +219,7 @@ function CommentRow({
 		const result = await deleteItemComment({ data: { commentId: comment.id } })
 		if (result.kind === 'ok') {
 			onDeleted()
-			toast.success('Comment deleted')
+			toast.success(m.items_comment_toast_deleted())
 		}
 		setDeleteOpen(false)
 	}
@@ -245,7 +246,7 @@ function CommentRow({
 								className="flex gap-1 mt-1"
 							>
 								<MentionTextarea
-									aria-label="Edit comment"
+									aria-label={m.items_comment_edit_label()}
 									value={editText}
 									onValueChange={setEditText}
 									mentions={editMentions}
@@ -265,10 +266,10 @@ function CommentRow({
 								/>
 								<div className="flex flex-col gap-1">
 									<Button size="sm" variant="outline" onClick={handleSave} disabled={saving}>
-										Save
+										{m.action_save()}
 									</Button>
 									<Button size="sm" variant="outline" onClick={() => setEditing(false)}>
-										Cancel
+										{m.action_cancel()}
 									</Button>
 								</div>
 							</motion.div>
@@ -288,10 +289,10 @@ function CommentRow({
 				</div>
 				{isOwn && !editing && (
 					<div className="flex gap-0.5 can-hover:opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity shrink-0">
-						<Button variant="outline" size="icon-xs" onClick={startEditing} aria-label="Edit comment">
+						<Button variant="outline" size="icon-xs" onClick={startEditing} aria-label={m.items_comment_edit_label()}>
 							<Pencil className="size-3" />
 						</Button>
-						<Button variant="outline" size="icon-xs" onClick={() => setDeleteOpen(true)} aria-label="Delete comment">
+						<Button variant="outline" size="icon-xs" onClick={() => setDeleteOpen(true)} aria-label={m.items_comment_delete_label()}>
 							<Trash2 className="size-3" />
 						</Button>
 					</div>
@@ -301,13 +302,13 @@ function CommentRow({
 			<AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Delete Comment?</AlertDialogTitle>
-						<AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
+						<AlertDialogTitle>{m.items_comment_delete_title()}</AlertDialogTitle>
+						<AlertDialogDescription>{m.items_comment_delete_description()}</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogCancel>{m.action_cancel()}</AlertDialogCancel>
 						<AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-							Delete
+							{m.action_delete()}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

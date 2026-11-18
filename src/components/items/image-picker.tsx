@@ -3,6 +3,7 @@ import * as React from 'react'
 
 import { httpsUpgrade } from '@/lib/image-url'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 type Props = {
 	images: ReadonlyArray<string>
@@ -57,12 +58,12 @@ export function ImagePicker({ images, value, onChange, className, disabled }: Pr
 	if (images.length === 0) return null
 
 	const noneSelected = !value
-	const label = visible.length === 0 ? 'No usable images found' : `${visible.length} candidate ${visible.length === 1 ? 'image' : 'images'}`
+	const label = visible.length === 0 ? m.items_image_picker_none_usable() : m.items_image_picker_count({ count: visible.length })
 
 	return (
 		<div className={cn('space-y-1', className)}>
 			<div className="text-xs text-muted-foreground">{label}</div>
-			<div role="radiogroup" aria-label="Product image" className="flex flex-wrap gap-2">
+			<div role="radiogroup" aria-label={m.items_image_picker_label()} className="flex flex-wrap gap-2">
 				<NoneThumb selected={noneSelected} disabled={disabled === true} onSelect={() => onChange('')} />
 				{visible.map(url => (
 					<ImageThumb
@@ -85,8 +86,8 @@ function NoneThumb({ selected, disabled, onSelect }: { selected: boolean; disabl
 			type="button"
 			role="radio"
 			aria-checked={selected}
-			aria-label="No image"
-			title="No image"
+			aria-label={m.items_image_picker_no_image()}
+			title={m.items_image_picker_no_image()}
 			disabled={disabled}
 			onClick={onSelect}
 			className={cn(

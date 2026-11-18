@@ -3,6 +3,8 @@
 // issue links, internal scopes like storybook); this strips that noise and
 // keeps only what a user of the app would care about.
 
+import { m } from '@/paraglide/messages.js'
+
 export type ChangelogSectionKind = 'breaking' | 'features' | 'performance' | 'fixes'
 
 export interface ChangelogEntry {
@@ -35,13 +37,27 @@ const SECTION_ORDER: Array<ChangelogSectionKind> = ['breaking', 'features', 'per
 // Scopes that only matter to people working on the codebase.
 const INTERNAL_SCOPES = new Set(['storybook', 'screenshots', 'seed', 'deps', 'ci', 'test', 'tests', 'dev', 'lint', 'tooling', 'release'])
 
-const SCOPE_LABELS: Record<string, string> = {
-	api: 'API',
-	'mobile-api': 'Mobile API',
-	sse: 'Live updates',
-	ui: 'UI',
-	db: 'Database',
-	ios: 'iOS',
+// Scopes with a name of their own. A function, not a table, so the name is
+// read in the current language on each call. That also means the result of
+// `parseChangelog` is in the language it was called in: parse per language,
+// never once at module load.
+function scopeLabel(key: string): string | null {
+	switch (key) {
+		case 'api':
+			return m.changelog_scope_api()
+		case 'mobile-api':
+			return m.changelog_scope_mobile_api()
+		case 'sse':
+			return m.changelog_scope_sse()
+		case 'ui':
+			return m.changelog_scope_ui()
+		case 'db':
+			return m.changelog_scope_db()
+		case 'ios':
+			return m.changelog_scope_ios()
+		default:
+			return null
+	}
 }
 
 const RELEASE_HEADING = /^## \[?(\d+\.\d+\.\d+)\]?(?:\([^)]*\))?(?:\s+\((\d{4}-\d{2}-\d{2})\))?/
@@ -57,7 +73,8 @@ const INLINE_LINK = /\[([^\]]+)\]\(https?:[^)]*\)/g
 
 export function humanizeScope(scope: string): string {
 	const key = scope.trim().toLowerCase()
-	if (SCOPE_LABELS[key]) return SCOPE_LABELS[key]
+	const label = scopeLabel(key)
+	if (label) return label
 	const words = key.replace(/[-_]+/g, ' ')
 	return words.charAt(0).toUpperCase() + words.slice(1)
 }

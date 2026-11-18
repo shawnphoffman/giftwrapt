@@ -35,6 +35,7 @@ import { Card } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { httpsUpgrade } from '@/lib/image-url'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 import type {
 	ActionIntent,
@@ -107,17 +108,32 @@ type Props = {
 // 200 items doesn't render as a 200-row card by default.
 const SUB_ITEM_RENDER_CAP = 25
 
-const ANALYZER_LABEL: Record<AnalyzerId, string> = {
-	'primary-list': 'Setup',
-	'list-hygiene': 'Setup',
-	'relation-labels': 'Setup',
-	'stale-items': 'Cleanup',
-	duplicates: 'Organize',
-	grouping: 'Organize',
-	'missing-price': 'Cleanup',
-	'missing-image': 'Cleanup',
-	'stale-scrape': 'Cleanup',
-	'clothing-prefs': 'Cleanup',
+// Which category each analyzer's recs are labelled with. Codes only; the
+// words come from `categoryLabel` at render.
+type RecCategory = 'setup' | 'cleanup' | 'organize'
+
+const ANALYZER_CATEGORY: Record<AnalyzerId, RecCategory> = {
+	'primary-list': 'setup',
+	'list-hygiene': 'setup',
+	'relation-labels': 'setup',
+	'stale-items': 'cleanup',
+	duplicates: 'organize',
+	grouping: 'organize',
+	'missing-price': 'cleanup',
+	'missing-image': 'cleanup',
+	'stale-scrape': 'cleanup',
+	'clothing-prefs': 'cleanup',
+}
+
+function categoryLabel(category: RecCategory): string {
+	switch (category) {
+		case 'setup':
+			return m.intelligence_group_setup()
+		case 'cleanup':
+			return m.intelligence_group_cleanup()
+		case 'organize':
+			return m.intelligence_group_organize()
+	}
 }
 
 // Per-rec category resolver. Most recs are categorized purely by
@@ -127,8 +143,8 @@ const ANALYZER_LABEL: Record<AnalyzerId, string> = {
 // belongs under Organize, not Cleanup. Keep this in sync with
 // groupKeyForAnalyzer in recommendation-group.tsx.
 function categoryLabelFor(rec: Pick<Recommendation, 'analyzerId' | 'kind'>): string {
-	if (rec.kind === 'group-suggestion') return 'Organize'
-	return ANALYZER_LABEL[rec.analyzerId]
+	if (rec.kind === 'group-suggestion') return categoryLabel('organize')
+	return categoryLabel(ANALYZER_CATEGORY[rec.analyzerId])
 }
 
 type SeverityVariant = 'outline' | 'secondary' | 'destructive' | 'amber'
@@ -138,7 +154,8 @@ const SEVERITY_META: Record<
 	{
 		icon: React.ComponentType<{ className?: string }>
 		iconClass: string
-		label: string
+		// A function so the badge is worded at render, not at module load.
+		label: () => string
 		bar: string
 		badgeVariant: SeverityVariant
 		badgeClass?: string
@@ -147,14 +164,14 @@ const SEVERITY_META: Record<
 	info: {
 		icon: Info,
 		iconClass: 'text-muted-foreground',
-		label: 'FYI',
+		label: () => m.intelligence_severity_badge_info(),
 		bar: 'bg-muted-foreground/40',
 		badgeVariant: 'outline',
 	},
 	suggest: {
 		icon: Lightbulb,
 		iconClass: 'text-amber-600 dark:text-amber-400',
-		label: 'Suggested',
+		label: () => m.intelligence_severity_badge_suggest(),
 		bar: 'bg-amber-500',
 		badgeVariant: 'amber',
 		badgeClass: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/30 border-transparent',
@@ -162,13 +179,11 @@ const SEVERITY_META: Record<
 	important: {
 		icon: AlertTriangle,
 		iconClass: 'text-destructive',
-		label: 'Important',
+		label: () => m.intelligence_severity_badge_important(),
 		bar: 'bg-destructive',
 		badgeVariant: 'destructive',
 	},
 }
-
-const DEFAULT_DISMISS_DESCRIPTION = "Hide this recommendation. We won't show it again unless the underlying items or lists change."
 
 // ─── Section headers ────────────────────────────────────────────────────────
 //
@@ -280,7 +295,7 @@ export function RecommendationCard({
 	const applied = rec.status === 'applied'
 	const inactive = dismissed || applied
 	const isPicker = rec.interaction?.kind === 'list-picker'
-	const dismissDescription = rec.dismissDescription ?? DEFAULT_DISMISS_DESCRIPTION
+	const dismissDescription = rec.dismissDescription ?? m.intelligence_card_dismiss_default_description()
 
 	// Bundled-rec mode: when subItems is set, drop the rec-level Actions
 	// list in favor of per-sub-row Edit + Skip rows. The dismissed-set
@@ -332,7 +347,7 @@ export function RecommendationCard({
 					className={cn('uppercase text-3xs tracking-wide', sev.badgeClass)}
 				>
 					<SevIcon className="size-3" />
-					{sev.label}
+					{sev.label()}
 				</Badge>
 				<span data-intelligence="card-group-label" className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
 					{categoryLabelFor(rec)}
@@ -342,7 +357,7 @@ export function RecommendationCard({
 						data-intelligence="card-position-badge"
 						variant="outline"
 						className="ml-auto tabular-nums font-mono text-3xs gap-0.5 bg-background/50"
-						title={`Recommendation ${position.index} of ${position.total}`}
+						title={m.intelligence_card_position_title({ index: position.index, total: position.total })}
 					>
 						<span className="font-bold">{position.index}</span>
 						<span className="text-muted-foreground/70">/</span>
@@ -351,12 +366,12 @@ export function RecommendationCard({
 				)}
 				{applied && (
 					<Badge data-intelligence="card-status-badge" variant="secondary" className={cn(position ? '' : 'ml-auto')}>
-						<Check className="size-3" /> Applied
+						<Check className="size-3" /> {m.intelligence_card_status_applied()}
 					</Badge>
 				)}
 				{dismissed && (
 					<Badge data-intelligence="card-status-badge" variant="outline" className={cn(position ? '' : 'ml-auto')}>
-						Dismissed
+						{m.intelligence_card_status_dismissed()}
 					</Badge>
 				)}
 			</div>
@@ -372,7 +387,7 @@ export function RecommendationCard({
 				</h3>
 
 				<section data-intelligence="recommendation-section" className="rounded-md border border-border bg-card/40 overflow-hidden">
-					<SectionHeader tone="ai" label="Recommendation" dataAttr="recommendation-heading" />
+					<SectionHeader tone="ai" label={m.intelligence_card_section_recommendation()} dataAttr="recommendation-heading" />
 					<div data-intelligence="recommendation-body" className="px-4 py-3">
 						<p data-intelligence="card-body-text" className="text-sm leading-relaxed">
 							{rec.body}
@@ -431,7 +446,7 @@ export function RecommendationCard({
 					aria-live="polite"
 				>
 					<Loader2 className="size-4 animate-spin text-muted-foreground" />
-					<span className="text-xs font-medium text-muted-foreground">Applying…</span>
+					<span className="text-xs font-medium text-muted-foreground">{m.intelligence_card_applying()}</span>
 				</div>
 			)}
 		</Card>
@@ -458,11 +473,11 @@ function RecommendationConfirmDialog({
 	// explicit dismiss in the route handler, so the dialog mirrors that.
 	const isDismissLike = pending?.kind === 'dismiss' || action?.intent === 'noop'
 	const isDestructive = action?.intent === 'destructive'
-	const title = isDismissLike ? 'Dismiss this suggestion?' : (action?.label ?? 'Confirm action')
+	const title = isDismissLike ? m.intelligence_confirm_dismiss_title() : (action?.label ?? m.intelligence_confirm_action_title())
 	const body = isDismissLike
 		? (action?.confirmCopy ?? action?.description ?? dismissDescription)
-		: (action?.confirmCopy ?? action?.description ?? 'This will resolve the suggestion.')
-	const confirmLabel = isDismissLike ? 'Dismiss' : (action?.label ?? 'Confirm')
+		: (action?.confirmCopy ?? action?.description ?? m.intelligence_confirm_action_body())
+	const confirmLabel = isDismissLike ? m.intelligence_dismiss_button() : (action?.label ?? m.action_confirm())
 	const confirmClass = isDestructive
 		? buttonVariants({ variant: 'destructive' })
 		: cn(
@@ -490,7 +505,7 @@ function RecommendationConfirmDialog({
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<AlertDialogFooter>
-					<AlertDialogCancel data-intelligence="confirm-cancel">Cancel</AlertDialogCancel>
+					<AlertDialogCancel data-intelligence="confirm-cancel">{m.action_cancel()}</AlertDialogCancel>
 					<AlertDialogAction data-intelligence="confirm-confirm" className={confirmClass} onClick={onConfirm}>
 						{confirmLabel}
 					</AlertDialogAction>
@@ -509,7 +524,7 @@ function AffectedPanel({ affected, relatedItems }: { affected: AffectedSummary; 
 		<section data-intelligence="affected-panel" className="rounded-md border border-border bg-card/40 overflow-hidden">
 			<SectionHeader
 				tone="info"
-				label="Context"
+				label={m.intelligence_card_section_context()}
 				dataAttr="affected-heading"
 				rightSlot={
 					<span data-intelligence="affected-count" className="text-2xs tabular-nums text-sky-700/80 dark:text-sky-300/80">
@@ -529,7 +544,7 @@ function AffectedPanel({ affected, relatedItems }: { affected: AffectedSummary; 
 			</div>
 			{hasReferences && (
 				<div data-intelligence="affected-references" className="border-t border-border/40">
-					<SectionHeader tone="refs" label="References" dataAttr="affected-references-heading" />
+					<SectionHeader tone="refs" label={m.intelligence_card_section_references()} dataAttr="affected-references-heading" />
 					<div data-intelligence="affected-references-body" className="px-3 py-2 flex flex-wrap gap-1.5">
 						{lists.map(list => (
 							<ListReferenceLink key={`list-${list.id}`} list={list} />
@@ -587,7 +602,7 @@ function ItemReferenceLink({ item }: { item: ItemRef }) {
 		>
 			<ItemAvatar item={item} />
 			<span className="font-medium truncate max-w-[16rem]">{item.title}</span>
-			<span className="text-muted-foreground">in {item.listName}</span>
+			<span className="text-muted-foreground">{m.intelligence_item_reference_list({ listName: item.listName })}</span>
 			<ExternalLink className="size-3 text-muted-foreground/70 group-hover/ref:text-foreground" />
 		</a>
 	)
@@ -627,11 +642,11 @@ function SubItemsSection({
 		<section data-intelligence="sub-items-section" className="rounded-md border border-border bg-card/40 overflow-hidden">
 			<SectionHeader
 				tone="items"
-				label="Items"
+				label={m.intelligence_card_section_items()}
 				dataAttr="sub-items-heading"
 				rightSlot={
 					<span data-intelligence="sub-items-count" className="text-2xs tabular-nums text-teal-700/80 dark:text-teal-300/80">
-						{subItems.length} {subItems.length === 1 ? 'item' : 'items'}
+						{m.intelligence_sub_items_count({ count: subItems.length })}
 					</span>
 				}
 			/>
@@ -653,7 +668,7 @@ function SubItemsSection({
 							className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground"
 						>
 							<ChevronDown className="size-3.5" />
-							Show all ({hiddenCount} more)
+							{m.intelligence_sub_items_show_all({ count: hiddenCount })}
 						</button>
 					</li>
 				)}
@@ -662,8 +677,8 @@ function SubItemsSection({
 						data-intelligence="sub-items-bundle-nav"
 						className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:gap-4 bg-muted/20"
 					>
-						<p className="flex-1 text-sm leading-snug text-muted-foreground">Open the list to bulk-fix in-place.</p>
-						<LinkButton label="Open List" href={`/lists/${bundleNav.listId}`} intent="do" />
+						<p className="flex-1 text-sm leading-snug text-muted-foreground">{m.intelligence_bundle_nav_hint()}</p>
+						<LinkButton label={m.intelligence_bundle_nav_open()} href={`/lists/${bundleNav.listId}`} intent="do" />
 					</li>
 				)}
 				<DismissRow description={dismissDescription} onClick={onDismiss} />
@@ -701,7 +716,7 @@ function SubItemRow({ sub, onSkip, onEdit }: { sub: RecSubItem; onSkip: () => vo
 						className={DO_BTN_CLASSES}
 					>
 						<ExternalLink className="size-3.5" />
-						Edit
+						{m.action_edit()}
 					</Button>
 				) : (
 					<Button asChild size="sm" className={DO_BTN_CLASSES}>
@@ -714,13 +729,19 @@ function SubItemRow({ sub, onSkip, onEdit }: { sub: RecSubItem; onSkip: () => vo
 							rel="noopener"
 						>
 							<ExternalLink className="size-3.5" />
-							Edit
+							{m.action_edit()}
 						</a>
 					</Button>
 				)}
-				<Button data-intelligence="sub-item-skip" size="sm" variant="outline" onClick={onSkip} aria-label="Skip this item">
+				<Button
+					data-intelligence="sub-item-skip"
+					size="sm"
+					variant="outline"
+					onClick={onSkip}
+					aria-label={m.intelligence_sub_item_skip_aria()}
+				>
 					<X className="size-3.5" />
-					<span className="sr-only sm:not-sr-only">Skip</span>
+					<span className="sr-only sm:not-sr-only">{m.intelligence_sub_item_skip()}</span>
 				</Button>
 			</div>
 		</li>
@@ -751,7 +772,7 @@ function ActionsSection({
 }) {
 	return (
 		<section data-intelligence="actions-section" className="rounded-md border border-border bg-card/40 overflow-hidden">
-			<SectionHeader tone="actions" label="Actions" dataAttr="actions-heading" />
+			<SectionHeader tone="actions" label={m.intelligence_card_section_actions()} dataAttr="actions-heading" />
 			<ul data-intelligence="actions-list" className="divide-y divide-border/60">
 				{actions.map((action, i) => (
 					<ActionRow key={i} action={action} onClick={() => onAction(action)} />
@@ -912,7 +933,7 @@ function DismissRow({ description, onClick }: { description: string; onClick: ()
 				onClick={onClick}
 			>
 				<X className="size-3.5" />
-				Dismiss
+				{m.intelligence_dismiss_button()}
 			</Button>
 		</li>
 	)
@@ -935,7 +956,7 @@ function ListPickerInteraction({
 				data-intelligence="list-picker-empty"
 				className="rounded-md border border-border bg-card/40 px-3 py-2.5 text-sm text-muted-foreground"
 			>
-				No eligible lists. Create a wishlist first.
+				{m.intelligence_picker_empty()}
 			</div>
 		)
 	}
@@ -944,12 +965,12 @@ function ListPickerInteraction({
 
 	return (
 		<section data-intelligence="list-picker" className="rounded-md border border-border bg-card/40 overflow-hidden">
-			<SectionHeader tone="picker" label="Choose a List" dataAttr="list-picker-heading" />
+			<SectionHeader tone="picker" label={m.intelligence_card_section_picker()} dataAttr="list-picker-heading" />
 			<div data-intelligence="list-picker-body" className="px-3 py-3 flex flex-col gap-2">
 				<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
 					<Select value={listId} onValueChange={setListId}>
 						<SelectTrigger size="sm" data-intelligence="list-picker-trigger" className="w-full sm:w-[18rem]">
-							<SelectValue placeholder="Select a list…" />
+							<SelectValue placeholder={m.intelligence_picker_placeholder()} />
 						</SelectTrigger>
 						<SelectContent>
 							{eligibleLists.map(list => (
@@ -975,7 +996,7 @@ function ListPickerInteraction({
 				</div>
 				{selected && (
 					<p data-intelligence="list-picker-preview" className="text-xs text-muted-foreground">
-						"{selected.name}" will be marked as your primary list. You can change this later from the list view.
+						{m.intelligence_picker_preview({ name: selected.name })}
 					</p>
 				)}
 			</div>

@@ -57,40 +57,37 @@ function DevicesPage() {
 	const revokeMutation = useMutation({
 		mutationFn: (keyId: string) => revokeMyApiKey({ data: { keyId } }),
 		onSuccess: () => {
-			toast.success('Device key revoked')
+			toast.success(m.settings_devices_revoked_toast())
 			queryClient.invalidateQueries({ queryKey: myApiKeysQueryKey })
 		},
 		onError: err => {
-			toast.error(err instanceof Error ? err.message : 'Failed to revoke key')
+			toast.error(err instanceof Error ? err.message : m.settings_devices_revoke_failed())
 		},
 		onSettled: () => setRevokeTarget(null),
 	})
 
 	const handleCreated = (result: { key: string; summary: MobileApiKeySummary }) => {
 		setCreateOpen(false)
-		setMintedKey({ key: result.key, name: result.summary.name ?? 'New device' })
+		setMintedKey({ key: result.key, name: result.summary.name ?? m.settings_devices_new_device_name() })
 		queryClient.invalidateQueries({ queryKey: myApiKeysQueryKey })
 	}
 
 	return (
 		<Card className="animate-page-in max-w-2xl">
 			<CardHeader>
-				<CardTitle className="text-2xl">Devices</CardTitle>
-				<CardDescription>
-					Create an API key for each device that uses the mobile app. Each device gets its own key, so you can revoke a lost phone without
-					signing out everywhere else.
-				</CardDescription>
+				<CardTitle className="text-2xl">{m.page_devices()}</CardTitle>
+				<CardDescription>{m.settings_devices_page_description()}</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-6">
 				<div className="flex justify-end">
-					<Button onClick={() => setCreateOpen(true)}>Create New Device Key</Button>
+					<Button onClick={() => setCreateOpen(true)}>{m.settings_devices_create_button()}</Button>
 				</div>
 
 				{isLoading ? (
 					<LoadingSkeleton />
 				) : !keys || keys.length === 0 ? (
 					<div className="rounded-lg border border-dashed bg-muted/20 p-8 text-center text-sm text-muted-foreground">
-						No device keys yet. Create one to pair a phone or tablet.
+						{m.settings_devices_empty()}
 					</div>
 				) : (
 					<ul className="space-y-2">
@@ -108,21 +105,22 @@ function DevicesPage() {
 			<AlertDialog open={revokeTarget !== null} onOpenChange={open => !open && setRevokeTarget(null)}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Revoke This Device Key?</AlertDialogTitle>
+						<AlertDialogTitle>{m.settings_devices_revoke_confirm_title()}</AlertDialogTitle>
 						<AlertDialogDescription>
-							{revokeTarget?.name ?? 'This device'} will be signed out of the mobile app immediately and will need a new key to sign back
-							in.
+							{revokeTarget?.name != null
+								? m.settings_devices_revoke_confirm_description({ name: revokeTarget.name })
+								: m.settings_devices_revoke_confirm_description_unnamed()}
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel disabled={revokeMutation.isPending}>Cancel</AlertDialogCancel>
+						<AlertDialogCancel disabled={revokeMutation.isPending}>{m.action_cancel()}</AlertDialogCancel>
 						<AlertDialogAction
 							disabled={revokeMutation.isPending}
 							onClick={() => {
 								if (revokeTarget) revokeMutation.mutate(revokeTarget.id)
 							}}
 						>
-							{revokeMutation.isPending ? 'Revoking...' : 'Revoke'}
+							{revokeMutation.isPending ? m.settings_devices_revoking() : m.settings_devices_revoke_button()}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
@@ -141,7 +139,7 @@ function DeviceRow({ keyRow, onRevoke }: { keyRow: MobileApiKeySummary; onRevoke
 			</div>
 			<div className="min-w-0 flex-1">
 				<div className="flex items-center gap-2">
-					<span className="font-medium truncate">{keyRow.name ?? 'Unnamed device'}</span>
+					<span className="font-medium truncate">{keyRow.name ?? m.settings_devices_unnamed()}</span>
 					{keyRow.start && (
 						<code className="hidden sm:inline-block rounded bg-muted px-1.5 py-0.5 text-2xs font-mono text-muted-foreground">
 							{keyRow.start}…
@@ -149,15 +147,19 @@ function DeviceRow({ keyRow, onRevoke }: { keyRow: MobileApiKeySummary; onRevoke
 					)}
 				</div>
 				<div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
-					<span>Added {created}</span>
-					{lastUsed ? <span>Last used {lastUsed}</span> : <span className="italic">Never used</span>}
+					<span>{m.settings_devices_added({ time: created })}</span>
+					{lastUsed ? (
+						<span>{m.settings_devices_last_used({ time: lastUsed })}</span>
+					) : (
+						<span className="italic">{m.settings_devices_never_used()}</span>
+					)}
 				</div>
 			</div>
 			<Button
 				variant="outline"
 				size="sm"
 				onClick={onRevoke}
-				aria-label="Revoke device key"
+				aria-label={m.settings_devices_revoke_label()}
 				className="text-muted-foreground hover:text-destructive"
 			>
 				<Trash2 className="size-4" />
@@ -184,7 +186,7 @@ function CreateKeyDialog({
 			onCreated(result)
 		},
 		onError: err => {
-			toast.error(err instanceof Error ? err.message : 'Failed to create device key')
+			toast.error(err instanceof Error ? err.message : m.settings_devices_create_failed())
 		},
 	})
 
@@ -201,8 +203,8 @@ function CreateKeyDialog({
 		>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Create Device Key</DialogTitle>
-					<DialogDescription>Give the device a name you'll recognize, like "My iPhone" or "Living room iPad".</DialogDescription>
+					<DialogTitle>{m.settings_devices_create_dialog_title()}</DialogTitle>
+					<DialogDescription>{m.settings_devices_create_dialog_description()}</DialogDescription>
 				</DialogHeader>
 				<form
 					onSubmit={e => {
@@ -212,22 +214,22 @@ function CreateKeyDialog({
 					className="space-y-4"
 				>
 					<div className="space-y-2">
-						<Label htmlFor="deviceName">Device Name</Label>
+						<Label htmlFor="deviceName">{m.settings_devices_name_label()}</Label>
 						<Input
 							id="deviceName"
 							value={name}
 							onChange={e => setName(e.target.value)}
 							maxLength={LIMITS.SHORT_NAME}
 							autoFocus
-							placeholder="My iPhone"
+							placeholder={m.settings_devices_name_placeholder()}
 						/>
 					</div>
 					<DialogFooter>
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={mutation.isPending}>
-							Cancel
+							{m.action_cancel()}
 						</Button>
 						<Button type="submit" disabled={!canSubmit}>
-							{mutation.isPending ? 'Creating...' : 'Create Key'}
+							{mutation.isPending ? m.settings_devices_creating() : m.settings_devices_create_submit()}
 						</Button>
 					</DialogFooter>
 				</form>
@@ -253,9 +255,9 @@ function MintedKeyDialog({
 			await navigator.clipboard.writeText(mintedKey.key)
 			setCopied(true)
 			setTimeout(() => setCopied(false), 2000)
-			toast.success('Copied to clipboard')
+			toast.success(m.settings_devices_copied_toast())
 		} catch {
-			toast.error('Could not copy. Select the key and copy it manually.')
+			toast.error(m.settings_devices_copy_failed())
 		}
 	}
 
@@ -271,11 +273,11 @@ function MintedKeyDialog({
 		>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Key for {mintedKey?.name}</DialogTitle>
-					<DialogDescription>Copy this key and paste it into the mobile app now. You won't be able to see it again.</DialogDescription>
+					<DialogTitle>{m.settings_devices_minted_title({ name: mintedKey?.name ?? '' })}</DialogTitle>
+					<DialogDescription>{m.settings_devices_minted_description()}</DialogDescription>
 				</DialogHeader>
 				<div className="space-y-2">
-					<Label htmlFor="mintedKey">API Key</Label>
+					<Label htmlFor="mintedKey">{m.settings_devices_api_key_label()}</Label>
 					<div className="flex items-stretch gap-2">
 						<Input
 							id="mintedKey"
@@ -284,16 +286,14 @@ function MintedKeyDialog({
 							className="font-mono text-xs"
 							onFocus={e => e.currentTarget.select()}
 						/>
-						<Button type="button" variant="outline" onClick={handleCopy} aria-label="Copy key">
+						<Button type="button" variant="outline" onClick={handleCopy} aria-label={m.settings_devices_copy_label()}>
 							{copied ? <Check className="size-4" /> : <Copy className="size-4" />}
 						</Button>
 					</div>
-					<p className="text-xs text-muted-foreground">
-						Treat this like a password. If it leaks, revoke it from this page and create a new one.
-					</p>
+					<p className="text-xs text-muted-foreground">{m.settings_devices_minted_warning()}</p>
 				</div>
 				<DialogFooter>
-					<Button onClick={onClose}>Done</Button>
+					<Button onClick={onClose}>{m.action_done()}</Button>
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>

@@ -22,6 +22,7 @@ import { priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { MOBILE_DIALOG_QUERY, useKeyboardInset } from '@/hooks/use-keyboard-inset'
 import { useStorageStatus } from '@/hooks/use-storage-status'
+import { formatNumber } from '@/lib/i18n/format'
 import { priorityLabel } from '@/lib/i18n/labels'
 import { useUpdateItem } from '@/lib/mutations/update-item'
 import { itemsKeys } from '@/lib/queries/items'
@@ -31,6 +32,7 @@ import { normalizeHttpUrl } from '@/lib/urls'
 import { useExtractPhoto } from '@/lib/use-extract-photo'
 import { useScrapeUrl } from '@/lib/use-scrape-url'
 import { LIMITS } from '@/lib/validation/limits'
+import { m } from '@/paraglide/messages.js'
 
 import { ImagePicker } from './image-picker'
 import { ScrapeProgressAlert } from './scrape-progress-alert'
@@ -61,15 +63,25 @@ type EditProps = BaseProps & {
 
 type Props = CreateProps | EditProps
 
-const schema = z.object({
-	title: z.string().min(1, 'Title is required').max(LIMITS.ITEM_TITLE),
-	url: z.string().max(LIMITS.URL).optional(),
-	price: z.string().max(LIMITS.PRICE).optional(),
-	notes: z.string().max(LIMITS.LONG_TEXT).optional(),
-	priority: z.enum(priorityEnumValues),
-	quantity: z.coerce.number().int().positive('Must be at least 1').max(999),
-	imageUrl: z.string().max(LIMITS.URL).optional(),
-})
+// Built on each submit, not at module load, so its messages are in the
+// language the page is rendering in.
+function makeSchema() {
+	return z.object({
+		title: z.string().min(1, m.items_form_error_title_required()).max(LIMITS.ITEM_TITLE),
+		url: z.string().max(LIMITS.URL).optional(),
+		price: z.string().max(LIMITS.PRICE).optional(),
+		notes: z.string().max(LIMITS.LONG_TEXT).optional(),
+		priority: z.enum(priorityEnumValues),
+		quantity: z.coerce.number().int().positive(m.items_form_error_quantity_min()).max(999),
+		imageUrl: z.string().max(LIMITS.URL).optional(),
+	})
+}
+
+// Shows the expected shape of a link; not translated.
+const URL_PLACEHOLDER = 'https://...'
+
+// Seconds with one decimal, as in "Photo read in 1.2s".
+const ONE_DECIMAL: Intl.NumberFormatOptions = { minimumFractionDigits: 1, maximumFractionDigits: 1 }
 
 export function ItemFormDialog(props: Props) {
 	const { open, onOpenChange } = props
@@ -143,7 +155,7 @@ export function ItemFormDialog(props: Props) {
 			imageUrl: isEdit ? (props.item.imageUrl ?? '') : '',
 		},
 		onSubmit: async ({ value }) => {
-			const parsed = schema.safeParse(value)
+			const parsed = makeSchema().safeParse(value)
 			if (!parsed.success) {
 				setError(parsed.error.issues.map(e => e.message).join(', '))
 				return
@@ -176,13 +188,13 @@ export function ItemFormDialog(props: Props) {
 						imageUrl: trimmedImageUrl,
 					})
 					if (result.kind === 'error') {
-						toast.error(result.reason === 'not-authorized' ? 'You no longer have permission to edit this item.' : 'Item not found.')
+						toast.error(result.reason === 'not-authorized' ? m.items_edit_error_not_authorized() : m.items_error_item_not_found())
 						return
 					}
-					toast.success('Item updated')
+					toast.success(m.items_edit_toast_updated())
 					props.onSaved?.()
 				} catch (err) {
-					toast.error(err instanceof Error ? err.message : 'Failed to save item')
+					toast.error(err instanceof Error ? err.message : m.items_error_save_failed())
 				}
 				return
 			}
@@ -206,11 +218,11 @@ export function ItemFormDialog(props: Props) {
 
 				if (result.kind === 'error') {
 					if (result.reason === 'not-authorized') {
-						setError('You no longer have permission to add items to this list.')
+						setError(m.items_form_error_add_not_authorized())
 					} else if (result.reason === 'todo-list-rejects-items') {
-						setError("This is a to-do list, so it doesn't accept gift items. Add a to-do from the list page instead.")
+						setError(m.items_error_todo_list())
 					} else {
-						setError('List not found.')
+						setError(m.items_error_list_not_found())
 					}
 					return
 				}
@@ -226,21 +238,21 @@ export function ItemFormDialog(props: Props) {
 						formData.append('itemId', String(result.item.id))
 						const uploadResult = await uploadItemImage({ data: formData })
 						if (uploadResult.kind === 'error') {
-							toast.error(`Image upload failed: ${uploadResult.message}`)
+							toast.error(m.items_image_upload_failed({ message: uploadResult.message }))
 						}
 					} catch (uploadErr) {
-						const msg = uploadErr instanceof Error ? uploadErr.message : 'unknown error'
-						toast.error(`Image upload failed: ${msg}`)
+						const msg = uploadErr instanceof Error ? uploadErr.message : m.items_unknown_error()
+						toast.error(m.items_image_upload_failed({ message: msg }))
 					}
 				}
 
-				toast.success('Item added')
+				toast.success(m.items_toast_added())
 				onOpenChange(false)
 				form.reset()
 				queryClient.invalidateQueries({ queryKey: ['recent', 'items'] })
 				await queryClient.invalidateQueries({ queryKey: itemsKeys.byList(props.listId) })
 			} catch (err) {
-				setError(err instanceof Error ? err.message : 'Failed to save item')
+				setError(err instanceof Error ? err.message : m.items_error_save_failed())
 			} finally {
 				setSubmitting(false)
 			}
@@ -415,8 +427,8 @@ export function ItemFormDialog(props: Props) {
 				}}
 			>
 				<DialogHeader className="shrink-0 pr-10">
-					<DialogTitle>{isEdit ? 'Edit Item' : 'Add Item'}</DialogTitle>
-					<DialogDescription>{isEdit ? 'Update the details for this item.' : 'Add a new item to your list.'}</DialogDescription>
+					<DialogTitle>{isEdit ? m.items_form_edit_title() : m.items_form_add_title()}</DialogTitle>
+					<DialogDescription>{isEdit ? m.items_form_edit_description() : m.items_form_add_description()}</DialogDescription>
 				</DialogHeader>
 
 				<form
@@ -454,12 +466,12 @@ export function ItemFormDialog(props: Props) {
 								const urlScrapable = isHttpUrl(field.state.value) && !isSublistUrl(field.state.value)
 								return (
 									<div className="grid gap-2">
-										<Label htmlFor={field.name}>URL (Optional)</Label>
+										<Label htmlFor={field.name}>{m.items_form_url_label()}</Label>
 										<InputGroup>
 											<InputGroupInput
 												id={field.name}
 												type="url"
-												placeholder="https://..."
+												placeholder={URL_PLACEHOLDER}
 												value={field.state.value}
 												onChange={e => field.handleChange(e.target.value)}
 												onBlur={() => {
@@ -474,8 +486,8 @@ export function ItemFormDialog(props: Props) {
 												<InputGroupButton
 													type="button"
 													size="icon-xs"
-													aria-label={scrapeInFlight ? 'Importing from URL…' : 'Import details from URL'}
-													title={scrapeInFlight ? 'Importing from URL…' : 'Import details from URL'}
+													aria-label={scrapeInFlight ? m.items_scrape_button_busy() : m.items_scrape_button()}
+													title={scrapeInFlight ? m.items_scrape_button_busy() : m.items_scrape_button()}
 													disabled={!urlScrapable || scrapeInFlight || submitting}
 													onClick={() => triggerManualScrape(field.state.value)}
 												>
@@ -498,11 +510,11 @@ export function ItemFormDialog(props: Props) {
 						<form.Field name="title">
 							{field => (
 								<div className="grid gap-2">
-									<Label htmlFor={field.name}>Title</Label>
+									<Label htmlFor={field.name}>{m.items_field_title()}</Label>
 									<Input
 										id={field.name}
 										name="item-title"
-										placeholder="e.g. AirPods Pro"
+										placeholder={m.items_form_title_placeholder()}
 										value={field.state.value}
 										onChange={e => field.handleChange(e.target.value)}
 										onBlur={field.handleBlur}
@@ -526,7 +538,7 @@ export function ItemFormDialog(props: Props) {
 							<form.Field name="price">
 								{field => (
 									<div className="grid gap-2">
-										<Label htmlFor={field.name}>Price (Optional)</Label>
+										<Label htmlFor={field.name}>{m.items_form_price_label()}</Label>
 										<Input
 											id={field.name}
 											placeholder="29.99"
@@ -544,7 +556,7 @@ export function ItemFormDialog(props: Props) {
 							<form.Field name="quantity">
 								{field => (
 									<div className="grid gap-2">
-										<Label htmlFor={field.name}>Quantity</Label>
+										<Label htmlFor={field.name}>{m.items_field_quantity()}</Label>
 										<Input
 											id={field.name}
 											type="number"
@@ -563,7 +575,7 @@ export function ItemFormDialog(props: Props) {
 						<form.Field name="priority">
 							{field => (
 								<div className="@container/priority grid gap-2">
-									<Label id={`${field.name}-label`}>Priority</Label>
+									<Label id={`${field.name}-label`}>{m.items_field_priority()}</Label>
 									{/* One row of four, or two by two once the field is too narrow for "Normal" (a phone with the text size turned up). */}
 									<ToggleGroup
 										type="single"
@@ -595,10 +607,10 @@ export function ItemFormDialog(props: Props) {
 						<form.Field name="notes">
 							{field => (
 								<div className="grid gap-2">
-									<Label htmlFor={field.name}>Notes (Optional)</Label>
+									<Label htmlFor={field.name}>{m.items_form_notes_label()}</Label>
 									<MarkdownTextarea
 										id={field.name}
-										placeholder="Color preferences, size, model, etc."
+										placeholder={m.items_form_notes_placeholder()}
 										rows={3}
 										value={field.state.value}
 										onChange={v => field.handleChange(v)}
@@ -625,18 +637,20 @@ export function ItemFormDialog(props: Props) {
 										// on edge). Server still re-processes via Sharp.
 										const upload = await resizeImageForUpload(file)
 										const formData = new FormData()
+										// eslint-disable-next-line i18next/no-literal-string -- form field name
 										formData.append('file', upload)
+										// eslint-disable-next-line i18next/no-literal-string -- form field name
 										formData.append('itemId', String(props.item.id))
 										const result = await uploadItemImage({ data: formData })
 										if (result.kind === 'error') {
-											toast.error(`Image upload failed: ${result.message}`)
+											toast.error(m.items_image_upload_failed({ message: result.message }))
 											return
 										}
 										field.handleChange(result.value.url)
-										toast.success('Image uploaded')
+										toast.success(m.items_image_toast_uploaded())
 									} catch (err) {
-										const msg = err instanceof Error ? err.message : 'unknown error'
-										toast.error(`Image upload failed: ${msg}`)
+										const msg = err instanceof Error ? err.message : m.items_unknown_error()
+										toast.error(m.items_image_upload_failed({ message: msg }))
 									} finally {
 										setUploadingImage(false)
 									}
@@ -649,16 +663,16 @@ export function ItemFormDialog(props: Props) {
 									}
 									const result = await removeItemImage({ data: { itemId: props.item.id } })
 									if (result.kind === 'error') {
-										toast.error(`Remove failed: ${result.message}`)
+										toast.error(m.items_image_remove_failed({ message: result.message }))
 										return
 									}
 									field.handleChange('')
-									toast.success('Image removed')
+									toast.success(m.items_image_toast_removed())
 								}
 
 								return (
 									<div className="grid gap-2">
-										<Label htmlFor={field.name}>Image (Optional)</Label>
+										<Label htmlFor={field.name}>{m.items_form_image_label()}</Label>
 										{/* Preview current image if any */}
 										{currentUrl && (
 											<div className="flex items-center gap-3">
@@ -672,7 +686,7 @@ export function ItemFormDialog(props: Props) {
 													className="gap-1.5"
 												>
 													<Trash2 className="size-3" />
-													Remove
+													{m.action_remove()}
 												</Button>
 											</div>
 										)}
@@ -685,7 +699,7 @@ export function ItemFormDialog(props: Props) {
 										<div className="flex gap-2">
 											<Input
 												id={field.name}
-												placeholder={showUploadButton ? 'https://... or upload below' : 'https://...'}
+												placeholder={showUploadButton ? m.items_form_image_placeholder_upload() : URL_PLACEHOLDER}
 												value={field.state.value}
 												onChange={e => field.handleChange(e.target.value)}
 												onBlur={field.handleBlur}
@@ -703,14 +717,12 @@ export function ItemFormDialog(props: Props) {
 														className="shrink-0 gap-1.5"
 													>
 														{uploadingImage ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
-														Upload
+														{m.items_form_upload_button()}
 													</Button>
 												</>
 											)}
 										</div>
-										{!isEdit && storageConfigured && (
-											<p className="text-muted-foreground text-xs">You can upload a file after the item is created.</p>
-										)}
+										{!isEdit && storageConfigured && <p className="text-muted-foreground text-xs">{m.items_form_upload_after_create()}</p>}
 									</div>
 								)
 							}}
@@ -718,17 +730,17 @@ export function ItemFormDialog(props: Props) {
 
 						{error && (
 							<Alert variant="destructive">
-								<AlertTitle>{isEdit ? "Couldn't update item" : "Couldn't add item"}</AlertTitle>
+								<AlertTitle>{isEdit ? m.items_form_error_update_title() : m.items_form_error_add_title()}</AlertTitle>
 								<AlertDescription>{error}</AlertDescription>
 							</Alert>
 						)}
 					</div>
 					<DialogFooter className="shrink-0">
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-							Cancel
+							{m.action_cancel()}
 						</Button>
 						<Button type="submit" disabled={submitting}>
-							{submitting ? 'Saving…' : isEdit ? 'Save' : 'Add Item'}
+							{submitting ? m.state_saving() : isEdit ? m.action_save() : m.items_add_submit()}
 						</Button>
 					</DialogFooter>
 				</form>
@@ -759,9 +771,9 @@ function PhotoExtractStatus({ file, previewUrl, phase, error, ms, elapsedMs, onC
 			{isDone && <Camera className="text-emerald-600 dark:text-emerald-500" />}
 			{isFailed && <AlertCircle />}
 			<AlertTitle>
-				{isExtracting && `Reading photo… ${(elapsedMs / 1000).toFixed(1)}s`}
-				{isDone && (ms !== undefined ? `Photo read in ${(ms / 1000).toFixed(1)}s` : 'Photo read')}
-				{isFailed && "Couldn't read photo"}
+				{isExtracting && m.items_photo_reading({ seconds: formatNumber(elapsedMs / 1000, ONE_DECIMAL) })}
+				{isDone && (ms !== undefined ? m.items_photo_read_in({ seconds: formatNumber(ms / 1000, ONE_DECIMAL) }) : m.items_photo_read())}
+				{isFailed && m.items_photo_failed()}
 			</AlertTitle>
 			<AlertDescription>
 				<div className="flex items-center gap-3">
@@ -770,18 +782,16 @@ function PhotoExtractStatus({ file, previewUrl, phase, error, ms, elapsedMs, onC
 					<div className="ml-auto flex gap-2">
 						{isFailed && (
 							<Button type="button" size="sm" variant="outline" onClick={onRetry}>
-								Try Again
+								{m.action_try_again()}
 							</Button>
 						)}
 						<Button type="button" size="sm" variant="outline" onClick={onClear} className="gap-1.5">
-							<Trash2 className="size-4" /> Remove
+							<Trash2 className="size-4" /> {m.action_remove()}
 						</Button>
 					</div>
 				</div>
 				{isFailed && error && <p className="mt-2 text-xs">{error}</p>}
-				{isDone && (
-					<p className="mt-2 text-xs text-muted-foreground">Filled in any empty fields below. Edit anything you want to change.</p>
-				)}
+				{isDone && <p className="mt-2 text-xs text-muted-foreground">{m.items_photo_filled_hint()}</p>}
 			</AlertDescription>
 		</Alert>
 	)

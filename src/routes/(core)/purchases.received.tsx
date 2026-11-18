@@ -17,13 +17,23 @@ export const Route = createFileRoute('/(core)/purchases/received')({
 	component: ReceivedPage,
 })
 
-const DRAFT_ERRORS: Partial<Record<string, string>> = {
-	'feature-disabled': 'Thank-you drafts are turned off.',
-	'not-configured': 'Thank-you drafts are not set up on this site yet.',
-	'not-found': 'Those gifts are no longer on your Received page. Refresh and try again.',
-	'ai-budget-exceeded': 'AI features are paused for this month.',
-	'rate-limited': 'That is a lot of drafts. Try again in a little while.',
-	'ai-failed': 'Could not write a draft just now. Try again.',
+// A function, not a table: a table would be built once, when the module
+// loads, before any request has a language.
+function draftErrorMessage(reason?: string): string {
+	switch (reason) {
+		case 'feature-disabled':
+			return m.received_thank_you_error_disabled()
+		case 'not-configured':
+			return m.received_thank_you_error_not_configured()
+		case 'not-found':
+			return m.received_thank_you_error_not_found()
+		case 'ai-budget-exceeded':
+			return m.received_thank_you_error_budget()
+		case 'rate-limited':
+			return m.received_thank_you_error_rate_limited()
+		default:
+			return m.received_thank_you_error_failed()
+	}
 }
 
 // One note covers at most this many gifts; a giver with more gets a note
@@ -49,9 +59,9 @@ function ReceivedPage() {
 				},
 			})
 			if (result.kind === 'ok') setState({ phase: 'ready', note: result.note })
-			else setState({ phase: 'error', message: DRAFT_ERRORS[result.reason] ?? 'Could not write a draft just now. Try again.' })
+			else setState({ phase: 'error', message: draftErrorMessage(result.reason) })
 		} catch {
-			setState({ phase: 'error', message: 'Could not write a draft just now. Try again.' })
+			setState({ phase: 'error', message: draftErrorMessage() })
 		}
 	}
 

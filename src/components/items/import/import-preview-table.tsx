@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
+import { m } from '@/paraglide/messages.js'
 
 type Props = {
 	drafts: ReadonlyArray<ItemDraft>
@@ -18,7 +19,6 @@ type Props = {
 	onSelectedChange: (next: Set<number>) => void
 	emptyTitle?: string
 	emptyDescription?: string
-	importLabel?: string
 }
 
 /**
@@ -39,9 +39,8 @@ export function ImportPreviewTable({
 	submitting,
 	selected,
 	onSelectedChange,
-	emptyTitle = 'Nothing to import',
-	emptyDescription = 'Remove rows by clicking the trash icon, or go back to start over.',
-	importLabel = 'Import',
+	emptyTitle = m.items_import_preview_empty_title(),
+	emptyDescription = m.items_import_preview_empty_description(),
 }: Props) {
 	const allSelected = drafts.length > 0 && selected.size === drafts.length
 
@@ -95,7 +94,7 @@ export function ImportPreviewTable({
 				<div className="text-muted-foreground text-sm font-medium">{emptyTitle}</div>
 				<div className="text-muted-foreground text-xs">{emptyDescription}</div>
 				<Button type="button" variant="outline" size="sm" onClick={onCancel}>
-					Back
+					{m.action_back()}
 				</Button>
 			</div>
 		)
@@ -105,15 +104,17 @@ export function ImportPreviewTable({
 		<div className="flex min-w-0 flex-col gap-3">
 			<div className="flex items-center justify-between gap-3 text-xs">
 				<label className="flex items-center gap-2">
-					<Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label={allSelected ? 'Deselect all rows' : 'Select all rows'} />
-					<span className="text-muted-foreground">
-						{drafts.length} item{drafts.length === 1 ? '' : 's'}
-					</span>
+					<Checkbox
+						checked={allSelected}
+						onCheckedChange={toggleAll}
+						aria-label={allSelected ? m.items_import_preview_deselect_all() : m.items_import_preview_select_all()}
+					/>
+					<span className="text-muted-foreground">{m.items_import_preview_count({ count: drafts.length })}</span>
 				</label>
 				<div className="flex items-center gap-2">
 					{selectedCount > 0 && (
 						<Button type="button" variant="outline" size="xs" onClick={removeSelected} disabled={submitting}>
-							<Trash2 className="size-3" /> Remove {selectedCount}
+							<Trash2 className="size-3" /> {m.items_import_preview_remove_selected({ count: selectedCount })}
 						</Button>
 					)}
 				</div>
@@ -125,7 +126,11 @@ export function ImportPreviewTable({
 					const hasUrl = !!draft.url && draft.url.trim().length > 0
 					return (
 						<li key={index} className="flex min-w-0 items-center gap-3 p-2">
-							<Checkbox checked={selected.has(index)} onCheckedChange={() => toggleOne(index)} aria-label={`Select row ${index + 1}`} />
+							<Checkbox
+								checked={selected.has(index)}
+								onCheckedChange={() => toggleOne(index)}
+								aria-label={m.items_import_preview_select_row({ row: index + 1 })}
+							/>
 							<div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded border bg-muted">
 								{draft.imageUrl ? (
 									<RemoteImage src={draft.imageUrl} alt="" className="size-full object-cover" />
@@ -137,9 +142,9 @@ export function ImportPreviewTable({
 								<Input
 									value={draft.title ?? ''}
 									onChange={e => updateDraft(index, { title: e.target.value })}
-									placeholder={hasUrl ? '(scrape will fill this in)' : 'Item title'}
+									placeholder={hasUrl ? m.items_import_preview_title_placeholder_scrape() : m.items_import_preview_title_placeholder()}
 									disabled={submitting}
-									aria-label={`Title for row ${index + 1}`}
+									aria-label={m.items_import_preview_title_label({ row: index + 1 })}
 								/>
 								<div className="flex items-center gap-2 text-xs text-muted-foreground">
 									{hasUrl ? (
@@ -147,11 +152,11 @@ export function ImportPreviewTable({
 											{draft.url}
 										</span>
 									) : (
-										<span className="italic">No URL</span>
+										<span className="italic">{m.items_import_preview_no_url()}</span>
 									)}
 									{titleBlank && hasUrl && (
 										<Badge variant="secondary" className="gap-1 text-[0.65rem] py-0 px-1.5">
-											<Sparkles className="size-3" /> queued
+											<Sparkles className="size-3" /> {m.items_import_preview_queued()}
 										</Badge>
 									)}
 								</div>
@@ -162,7 +167,7 @@ export function ImportPreviewTable({
 								size="icon-sm"
 								onClick={() => removeAt(index)}
 								disabled={submitting}
-								aria-label={`Remove row ${index + 1}`}
+								aria-label={m.items_import_preview_remove_row({ row: index + 1 })}
 							>
 								<Trash2 className="size-4" />
 							</Button>
@@ -173,15 +178,16 @@ export function ImportPreviewTable({
 
 			<div className="flex items-center justify-between gap-3">
 				<div className="text-xs text-muted-foreground">
-					{drafts.length} item{drafts.length === 1 ? '' : 's'} will be imported
-					{blankTitleCount > 0 ? `; ${blankTitleCount} will be filled in by the background scrape` : ''}.
+					{blankTitleCount > 0
+						? m.items_import_preview_summary_blank({ count: drafts.length, blank: blankTitleCount })
+						: m.items_import_preview_summary({ count: drafts.length })}
 				</div>
 				<div className="flex items-center gap-2">
 					<Button type="button" variant="outline" onClick={onCancel} disabled={submitting}>
-						Cancel
+						{m.action_cancel()}
 					</Button>
 					<Button type="button" onClick={onSubmit} disabled={submitting || drafts.length === 0}>
-						{submitting ? 'Importing...' : `${importLabel} ${drafts.length} item${drafts.length === 1 ? '' : 's'}`}
+						{submitting ? m.items_import_preview_importing() : m.items_import_preview_submit({ count: drafts.length })}
 					</Button>
 				</div>
 			</div>

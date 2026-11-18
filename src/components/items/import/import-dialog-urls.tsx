@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { parseUrls } from '@/lib/import/parsers/urls'
 import { itemsKeys } from '@/lib/queries/items'
+import { m } from '@/paraglide/messages.js'
 
 import { ImportPreviewTable } from './import-preview-table'
 
@@ -21,6 +22,9 @@ type Props = {
 }
 
 type Step = 'input' | 'preview'
+
+// Shows the expected shape of what to paste; not translated.
+const URLS_PLACEHOLDER = 'https://www.example.com/product-1\nhttps://shop.example.com/another\n...'
 
 /**
  * Two-step paste-URLs import dialog. The user pastes one URL per line,
@@ -69,11 +73,11 @@ export function ImportDialogUrls({ listId, open, onOpenChange }: Props) {
 				setError(reasonToMessage(result.reason))
 				return
 			}
-			toast.success(`Imported ${result.items.length} item${result.items.length === 1 ? '' : 's'}`)
+			toast.success(m.items_import_toast_imported({ count: result.items.length }))
 			await queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })
 			onOpenChange(false)
 		} catch (err) {
-			setError(err instanceof Error ? err.message : 'Failed to import')
+			setError(err instanceof Error ? err.message : m.items_import_error_failed())
 		} finally {
 			setSubmitting(false)
 		}
@@ -84,41 +88,37 @@ export function ImportDialogUrls({ listId, open, onOpenChange }: Props) {
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						<Link2 className="size-5" /> Paste URLs
+						<Link2 className="size-5" /> {m.items_import_urls_title()}
 					</DialogTitle>
-					<DialogDescription>
-						One URL per line. Titles, prices, and images get filled in by a background scrape after import.
-					</DialogDescription>
+					<DialogDescription>{m.items_import_urls_description()}</DialogDescription>
 				</DialogHeader>
 
 				{step === 'input' ? (
 					<div className="flex flex-col gap-3">
 						<div className="grid gap-2">
-							<Label htmlFor="import-urls-textarea">URLs</Label>
+							<Label htmlFor="import-urls-textarea">{m.items_import_urls_label()}</Label>
 							<Textarea
 								id="import-urls-textarea"
 								rows={10}
 								value={textValue}
 								onChange={e => setTextValue(e.target.value)}
-								placeholder={'https://www.example.com/product-1\nhttps://shop.example.com/another\n...'}
+								placeholder={URLS_PLACEHOLDER}
 								autoFocus
 							/>
-							<div className="text-xs text-muted-foreground">
-								{previewCount} URL{previewCount === 1 ? '' : 's'} detected.
-							</div>
+							<div className="text-xs text-muted-foreground">{m.items_import_urls_detected({ count: previewCount })}</div>
 						</div>
 						{error && (
 							<Alert variant="destructive">
-								<AlertTitle>Error</AlertTitle>
+								<AlertTitle>{m.items_error_title()}</AlertTitle>
 								<AlertDescription>{error}</AlertDescription>
 							</Alert>
 						)}
 						<DialogFooter>
 							<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-								Cancel
+								{m.action_cancel()}
 							</Button>
 							<Button type="button" onClick={goToPreview} disabled={previewCount === 0}>
-								Preview {previewCount} Item{previewCount === 1 ? '' : 's'}
+								{m.items_import_preview_button({ count: previewCount })}
 							</Button>
 						</DialogFooter>
 					</div>
@@ -126,7 +126,7 @@ export function ImportDialogUrls({ listId, open, onOpenChange }: Props) {
 					<div className="flex flex-col gap-3">
 						{error && (
 							<Alert variant="destructive">
-								<AlertTitle>Error</AlertTitle>
+								<AlertTitle>{m.items_error_title()}</AlertTitle>
 								<AlertDescription>{error}</AlertDescription>
 							</Alert>
 						)}
@@ -138,7 +138,6 @@ export function ImportDialogUrls({ listId, open, onOpenChange }: Props) {
 							submitting={submitting}
 							onSubmit={submit}
 							onCancel={() => setStep('input')}
-							importLabel="Import"
 						/>
 					</div>
 				)}
@@ -148,8 +147,8 @@ export function ImportDialogUrls({ listId, open, onOpenChange }: Props) {
 }
 
 function reasonToMessage(reason: 'list-not-found' | 'not-authorized' | 'feature-disabled' | 'todo-list-rejects-items'): string {
-	if (reason === 'list-not-found') return 'List not found.'
-	if (reason === 'not-authorized') return 'You do not have permission to add to this list.'
-	if (reason === 'todo-list-rejects-items') return 'Todo lists do not take gift items.'
-	return 'Importing is currently disabled. Ask your admin to turn it on.'
+	if (reason === 'list-not-found') return m.items_error_list_not_found()
+	if (reason === 'not-authorized') return m.items_import_error_not_authorized()
+	if (reason === 'todo-list-rejects-items') return m.items_import_error_todo_list()
+	return m.items_import_error_disabled()
 }

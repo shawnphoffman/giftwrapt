@@ -26,11 +26,16 @@ type Story = StoryObj<typeof meta>
 // image story, under full-suite load) or pass without testing anything (every
 // "no <script>/<iframe>" check), so each play waits for the real render.
 async function waitForRenderer(canvasElement: HTMLElement) {
-	await waitFor(() => {
-		const root = canvasElement.querySelector('.prose')
-		expect(root).not.toBeNull()
-		expect(root!.querySelector(':scope > .whitespace-pre-wrap')).toBeNull()
-	})
+	// The default 1s is too short when the whole suite is running: the chunk
+	// can take longer than that to arrive.
+	await waitFor(
+		() => {
+			const root = canvasElement.querySelector('.prose')
+			expect(root).not.toBeNull()
+			expect(root!.querySelector(':scope > .whitespace-pre-wrap')).toBeNull()
+		},
+		{ timeout: 10_000 }
+	)
 }
 
 export const PlainText: Story = {

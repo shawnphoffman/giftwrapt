@@ -6,14 +6,16 @@ import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { useTextSize } from '@/hooks/use-text-size'
 import { applyTextSize, DEFAULT_TEXT_SIZE, TEXT_SIZE_STEPS, type TextSize, textSizeName } from '@/lib/text-size'
+import { m } from '@/paraglide/messages.js'
 
 // A made-up wish list item for the preview. Rendered inert, so its Claim and
-// menu buttons look real but do nothing.
-const SAMPLE_ITEM: ItemWithGifts = {
+// menu buttons look real but do nothing. A function, not a constant: its text
+// has to be in the language of the page that is rendering.
+const sampleItem = (): ItemWithGifts => ({
 	id: -1,
 	listId: -1,
 	groupId: null,
-	title: 'Wireless headphones',
+	title: m.settings_text_size_sample_title(),
 	status: 'incomplete',
 	availability: 'available',
 	availabilityChangedAt: null,
@@ -23,7 +25,7 @@ const SAMPLE_ITEM: ItemWithGifts = {
 	imageUrl: null,
 	price: '129.00',
 	currency: 'USD',
-	notes: 'Over-ear, in black or navy. Noise cancelling would be great.',
+	notes: m.settings_text_size_sample_notes(),
 	ratingValue: null,
 	ratingCount: null,
 	priority: 'high',
@@ -38,7 +40,7 @@ const SAMPLE_ITEM: ItemWithGifts = {
 	modifiedAt: null,
 	gifts: [],
 	commentCount: 0,
-}
+})
 
 /**
  * The text size slider (plan 30c). Moving it resizes the whole app at once
@@ -61,9 +63,9 @@ export function TextSizeSettings() {
 			<section className="space-y-3">
 				<div>
 					<h2 id="text-size-label" className="text-lg font-semibold">
-						Text Size
+						{m.settings_text_size_title()}
 					</h2>
-					<p className="text-sm text-muted-foreground">Makes text and controls larger or smaller on this device only.</p>
+					<p className="text-sm text-muted-foreground">{m.settings_text_size_description()}</p>
 				</div>
 				<div className="flex items-center gap-3">
 					<span aria-hidden className="text-sm font-semibold">
@@ -89,16 +91,16 @@ export function TextSizeSettings() {
 					</p>
 					{size !== DEFAULT_TEXT_SIZE && (
 						<Button variant="outline" size="sm" onClick={() => choose(DEFAULT_TEXT_SIZE)}>
-							Reset to Default
+							{m.settings_text_size_reset()}
 						</Button>
 					)}
 				</div>
 			</section>
 
 			<section className="space-y-3">
-				<h3 className="text-base font-semibold">Preview</h3>
+				<h3 className="text-base font-semibold">{m.settings_text_size_preview()}</h3>
 				<div inert aria-hidden>
-					<ItemRow item={SAMPLE_ITEM} />
+					<ItemRow item={sampleItem()} />
 				</div>
 			</section>
 		</div>

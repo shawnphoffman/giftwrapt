@@ -17,6 +17,7 @@ import { useToggleItemAvailability } from '@/lib/mutations/toggle-item-availabil
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
 import { parseInternalListLink } from '@/lib/urls'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 import { ClaimAction } from './claim-action'
 import { type ClaimEntry, ClaimUsers } from './claim-users'
@@ -63,7 +64,7 @@ function ItemRowImpl({ item, lockReason, grouped = false, giftIdea }: Props) {
 	const isSaving =
 		useIsMutating({
 			mutationKey: ['updateItem'],
-			predicate: m => (m.state.variables as { itemId?: number } | undefined)?.itemId === item.id,
+			predicate: mutation => (mutation.state.variables as { itemId?: number } | undefined)?.itemId === item.id,
 		}) > 0
 
 	const remaining = computeRemainingClaimableQuantity(
@@ -84,9 +85,9 @@ function ItemRowImpl({ item, lockReason, grouped = false, giftIdea }: Props) {
 		const next = isUnavailable ? 'available' : 'unavailable'
 		const result = await toggleAvailability.mutateAsync({ listId: item.listId, itemId: item.id, availability: next })
 		if (result.kind === 'ok') {
-			toast.success(next === 'unavailable' ? 'Marked as unavailable' : 'Marked as available')
+			toast.success(next === 'unavailable' ? m.items_availability_toast_unavailable() : m.items_availability_toast_available())
 		} else {
-			toast.error('Failed to update availability')
+			toast.error(m.items_availability_toast_failed())
 		}
 	}
 
@@ -181,27 +182,27 @@ function ItemRowImpl({ item, lockReason, grouped = false, giftIdea }: Props) {
 					<UrlBadge url={linkUrl} />
 				)}
 				<span className="flex-1" />
-				{isSaving && <Loader2 className="size-3.5 shrink-0 text-muted-foreground animate-spin" aria-label="Saving" />}
+				{isSaving && <Loader2 className="size-3.5 shrink-0 text-muted-foreground animate-spin" aria-label={m.items_row_saving_label()} />}
 				{currentUserId && !pointsToInternalList && !giftIdea && (
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
-							<Button variant="outline" size="icon-xs" className="shrink-0" aria-label="Item actions">
+							<Button variant="outline" size="icon-xs" className="shrink-0" aria-label={m.items_row_actions_label()}>
 								<MoreHorizontal className="size-5" />
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
 							<DropdownMenuItem onClick={() => setCopyOpen(true)}>
-								<Copy className="size-4" /> Copy to Your List
+								<Copy className="size-4" /> {m.items_row_copy_to_list()}
 							</DropdownMenuItem>
 							{canToggleAvailability && (
 								<DropdownMenuItem onClick={handleToggleAvailability} disabled={toggleAvailability.isPending}>
 									{isUnavailable ? (
 										<>
-											<PackageCheck className="size-4" /> Mark as available
+											<PackageCheck className="size-4" /> {m.items_row_mark_available()}
 										</>
 									) : (
 										<>
-											<PackageX className="size-4" /> Mark as unavailable
+											<PackageX className="size-4" /> {m.items_row_mark_unavailable()}
 										</>
 									)}
 								</DropdownMenuItem>
@@ -225,7 +226,7 @@ function ItemRowImpl({ item, lockReason, grouped = false, giftIdea }: Props) {
 									{giftIdea ? (
 										<Button size="xs" variant="outline" className="text-sm" onClick={giftIdea.onClaim}>
 											<Gift className="size-3.5 transition-colors group-hover/button:text-green-500" />
-											Claim
+											{m.items_claim_button()}
 										</Button>
 									) : (
 										<ClaimAction

@@ -4,6 +4,7 @@ import * as React from 'react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 type Props = Omit<React.ComponentProps<typeof Textarea>, 'onChange' | 'value'> & {
 	value: string
@@ -75,7 +76,7 @@ export function MarkdownTextarea({ value, onChange, className, toolbarClassName,
 			newStart = start + action.prefix.length
 			newEnd = end + (prefixed.length - body.length)
 		} else {
-			const text = selected || 'text'
+			const text = selected || m.shared_markdown_placeholder_link_text()
 			const insert = `[${text}](https://)`
 			newValue = value.slice(0, start) + insert + value.slice(end)
 			newStart = start + insert.length - 1
@@ -100,21 +101,25 @@ export function MarkdownTextarea({ value, onChange, className, toolbarClassName,
 				)}
 			>
 				<ToolbarButton
-					label="Bold"
-					onClick={() => applyAction({ kind: 'wrap', before: '**', after: '**', placeholder: 'bold' })}
+					label={m.shared_markdown_bold()}
+					onClick={() => applyAction({ kind: 'wrap', before: '**', after: '**', placeholder: m.shared_markdown_placeholder_bold() })}
 					icon={<Bold className="size-3.5" />}
 				/>
 				<ToolbarButton
-					label="Italic"
-					onClick={() => applyAction({ kind: 'wrap', before: '_', after: '_', placeholder: 'italic' })}
+					label={m.shared_markdown_italic()}
+					onClick={() => applyAction({ kind: 'wrap', before: '_', after: '_', placeholder: m.shared_markdown_placeholder_italic() })}
 					icon={<Italic className="size-3.5" />}
 				/>
 				<ToolbarButton
-					label="List"
+					label={m.shared_markdown_list()}
 					onClick={() => applyAction({ kind: 'linePrefix', prefix: '- ' })}
 					icon={<List className="size-3.5" />}
 				/>
-				<ToolbarButton label="Link" onClick={() => applyAction({ kind: 'link' })} icon={<LinkIcon className="size-3.5" />} />
+				<ToolbarButton
+					label={m.shared_markdown_link()}
+					onClick={() => applyAction({ kind: 'link' })}
+					icon={<LinkIcon className="size-3.5" />}
+				/>
 			</div>
 			<Textarea
 				{...rest}

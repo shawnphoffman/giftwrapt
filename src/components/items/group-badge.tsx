@@ -3,26 +3,27 @@ import { CircleDot, ListOrdered } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { TapTooltip, TapTooltipContent, TapTooltipTrigger } from '@/components/ui/tooltip'
 import type { GroupType } from '@/db/schema/enums'
+import { m } from '@/paraglide/messages.js'
 
 type Props = {
 	type: GroupType
 	className?: string
 }
 
-const GROUP_COPY: Record<GroupType, { label: string; help: string }> = {
-	or: {
-		label: 'Pick One',
-		help: 'The recipient wants one item from this group, not all. Once someone claims an item here, the others are considered fulfilled.',
-	},
-	order: {
-		label: 'In Order',
-		help: 'Items in this group should be claimed in the order shown, top first. Useful when one item depends on another (e.g. a console before its controllers).',
-	},
+// A function, not a table: a table would be built once at module load, in
+// whatever language was current then.
+function groupCopy(type: GroupType): { label: string; help: string } {
+	switch (type) {
+		case 'or':
+			return { label: m.items_group_type_or(), help: m.items_group_type_or_help() }
+		case 'order':
+			return { label: m.items_group_type_order(), help: m.items_group_type_order_help() }
+	}
 }
 
 export function GroupBadge({ type, className }: Props) {
 	const Icon = type === 'or' ? CircleDot : ListOrdered
-	const { label, help } = GROUP_COPY[type]
+	const { label, help } = groupCopy(type)
 
 	return (
 		<TapTooltip>

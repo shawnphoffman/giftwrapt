@@ -27,12 +27,13 @@ import { listHeaderQueryOptions } from '@/lib/queries/lists' // used by useSuspe
 import { useListAutoRefresh } from '@/lib/use-list-auto-refresh'
 import { useListSSE } from '@/lib/use-list-sse'
 import { useScrollToHash } from '@/lib/use-scroll-to-hash'
+import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
 type ListSearch = { from?: number; edit?: number }
 
 export const Route = createFileRoute('/(core)/lists/$listId')({
-	errorComponent: ({ error, reset }) => <RouteErrorFallback error={error} reset={reset} title="This list couldn't load" />,
+	errorComponent: ({ error, reset }) => <RouteErrorFallback error={error} reset={reset} title={m.lists_detail_load_error()} />,
 	validateSearch: (search: Record<string, unknown>): ListSearch => {
 		const out: ListSearch = {}
 		const fromRaw = search.from
@@ -75,7 +76,7 @@ export const Route = createFileRoute('/(core)/lists/$listId')({
 
 		return { listId: access.listId, listName: access.name }
 	},
-	head: pageHead<{ listName: string }>(d => d?.listName ?? 'List'),
+	head: pageHead<{ listName: string }>(d => d?.listName ?? m.lists_detail_page_title_fallback()),
 	// Shown instead of the app-wide spinner while the loader resolves
 	// access, so a slow loader and the header fetch after it read as one
 	// skeleton rather than a spinner followed by a skeleton.
@@ -86,7 +87,7 @@ export const Route = createFileRoute('/(core)/lists/$listId')({
 function ListDetailPending() {
 	return (
 		<PendingPage>
-			<Skeleton loading label="Loading list">
+			<Skeleton loading label={m.lists_detail_loading()}>
 				<ListDetailSkeleton />
 			</Skeleton>
 		</PendingPage>
@@ -104,7 +105,7 @@ function ListDetailPage() {
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
 				<BackToParentList from={from} />
-				<SkeletonSuspense id={`list-detail-${listId}`} label="Loading list" skeleton={<ListDetailSkeleton />}>
+				<SkeletonSuspense id={`list-detail-${listId}`} label={m.lists_detail_loading()} skeleton={<ListDetailSkeleton />}>
 					<ListDetailBody listId={listId} />
 				</SkeletonSuspense>
 			</div>
@@ -174,7 +175,7 @@ function ListDetailBody({ listId }: { listId: number }) {
 						<Button size="sm" variant="outline" asChild>
 							<Link to="/lists/$listId/edit" params={{ listId: String(list.id) }}>
 								<Pencil className="size-4" />
-								<span className="sr-only xs:not-sr-only">Edit</span>
+								<span className="sr-only xs:not-sr-only">{m.action_edit()}</span>
 							</Link>
 						</Button>
 					)
@@ -194,7 +195,7 @@ function ListDetailBody({ listId }: { listId: number }) {
 			) : (
 				<>
 					{/* ITEMS */}
-					<SkeletonSuspense id={`list-items-${list.id}`} label="Loading items" skeleton={<ItemListView items={SAMPLE_ITEMS} />}>
+					<SkeletonSuspense id={`list-items-${list.id}`} label={m.lists_items_loading()} skeleton={<ItemListView items={SAMPLE_ITEMS} />}>
 						<ItemList
 							listId={list.id}
 							groups={list.groups}

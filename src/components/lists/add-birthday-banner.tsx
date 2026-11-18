@@ -2,6 +2,7 @@ import { Link } from '@tanstack/react-router'
 import { Cake } from 'lucide-react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { m } from '@/paraglide/messages.js'
 
 // Shown on the edit view of a birthday or wishlist list whose recipient has
 // no birthday: the owner (their profile has none) or the dependent the list
@@ -9,19 +10,19 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 // reveal (and its email) never happens. Driven by
 // `archiveInfo.notApplicableReason`.
 export function AddBirthdayBanner({ dependentName = null }: { dependentName?: string | null }) {
-	const who = dependentName ? `${dependentName}'s` : 'your'
 	return (
 		<Alert>
 			<Cake />
-			<AlertTitle>Add {who} birthday to reveal gifts automatically</AlertTitle>
+			<AlertTitle>
+				{dependentName ? m.lists_birthday_banner_title_dependent({ name: dependentName }) : m.lists_birthday_banner_title_own()}
+			</AlertTitle>
 			<AlertDescription>
 				<p>
-					Claimed gifts on this list are revealed shortly after {who} birthday.{' '}
-					{dependentName ? `${dependentName} has no birthday set yet` : 'Your profile has no birthday yet'}, so they will stay hidden.{' '}
+					{dependentName ? m.lists_birthday_banner_body_dependent({ name: dependentName }) : m.lists_birthday_banner_body_own()}{' '}
 					{dependentName ? (
-						<Link to="/settings/dependents">Add {dependentName}&apos;s birthday</Link>
+						<Link to="/settings/dependents">{m.lists_birthday_banner_link_dependent({ name: dependentName })}</Link>
 					) : (
-						<Link to="/settings">Add your birthday</Link>
+						<Link to="/settings">{m.lists_birthday_banner_link_own()}</Link>
 					)}
 				</p>
 			</AlertDescription>

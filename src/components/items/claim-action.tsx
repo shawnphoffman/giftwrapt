@@ -3,6 +3,7 @@ import { useState } from 'react'
 
 import type { GiftOnItem } from '@/api/lists'
 import { Button } from '@/components/ui/button'
+import { m } from '@/paraglide/messages.js'
 
 import { ClaimCelebration } from './claim-celebration'
 import { ClaimGiftDialog } from './claim-gift-dialog'
@@ -75,9 +76,15 @@ export function ClaimAction({
 				{celebrating ? (
 					<ClaimCelebration onComplete={() => setCelebrating(false)} />
 				) : (
-					<Button size="xs" variant="outline" className="text-sm text-foreground" onClick={() => setEditOpen(true)} title="Edit your claim">
+					<Button
+						size="xs"
+						variant="outline"
+						className="text-sm text-foreground"
+						onClick={() => setEditOpen(true)}
+						title={m.items_claim_edit_button_title()}
+					>
 						<Pencil className="size-3.5" />
-						Edit Claim
+						{m.items_claim_edit_button()}
 					</Button>
 				)}
 				{editOpen && (
@@ -107,7 +114,7 @@ export function ClaimAction({
 		<>
 			<Button size="xs" variant="outline" className="text-sm" onClick={() => setCreateOpen(true)}>
 				<Gift className="size-3.5 transition-colors group-hover/button:text-green-500" />
-				Claim
+				{m.items_claim_button()}
 			</Button>
 			<ClaimGiftDialog
 				open={createOpen}

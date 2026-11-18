@@ -9,6 +9,12 @@ import { Input } from '@/components/ui/input'
 import { InputOTP, InputOTPGroup, InputOTPSeparator, InputOTPSlot } from '@/components/ui/input-otp'
 import { Label } from '@/components/ui/label'
 import logo from '@/images/logo.webp'
+import { m } from '@/paraglide/messages.js'
+
+// The product name is never translated.
+const PRODUCT_NAME = 'GiftWrapt'
+// The shape of a backup code, not text.
+const BACKUP_CODE_PLACEHOLDER = 'xxxxx-xxxxx'
 
 const TOTP_LENGTH = 6
 // The code always fits inside the card. In one row it needs 20rem (six 3rem
@@ -19,7 +25,6 @@ const OTP_CONTAINER =
 	'justify-center my-6 @max-[17rem]/card:mx-auto @max-[17rem]/card:grid @max-[17rem]/card:w-fit @max-[17rem]/card:grid-cols-3 @max-[17rem]/card:gap-2 @max-[17rem]/card:[&_[data-slot=input-otp-group]]:contents @max-[17rem]/card:[&_[data-slot=input-otp-separator]]:hidden'
 const OTP_SLOT =
 	'size-12 text-lg @max-[20rem]/card:size-10 @max-[20rem]/card:text-base @max-[17rem]/card:rounded-md @max-[17rem]/card:border'
-const GENERIC_ERROR = "That code didn't work. Try again."
 
 export type TwoFactorMode = 'totp' | 'backup'
 
@@ -64,7 +69,7 @@ export function TwoFactorChallengePageContent({
 				await onSubmitBackupCode(value.trim())
 			}
 		} catch {
-			setError(GENERIC_ERROR)
+			setError(m.auth_2fa_error())
 		} finally {
 			setSubmitting(false)
 		}
@@ -93,16 +98,12 @@ export function TwoFactorChallengePageContent({
 			<div className="absolute inset-0 -z-10 overflow-hidden">
 				<GradientBackground />
 			</div>
-			<Image src={logo} alt="GiftWrapt" width={160} height={160} className="w-24 sm:w-40" />
+			<Image src={logo} alt={PRODUCT_NAME} width={160} height={160} className="w-24 sm:w-40" />
 
 			<div className="@container/card w-full max-w-md space-y-4 rounded-lg border bg-background/80 p-6 shadow-lg backdrop-blur">
 				<div className="text-center">
-					<h1 className="text-3xl font-bold @max-[12.5rem]/card:text-2xl @max-[10.5rem]/card:text-xl">Two-Factor Authentication</h1>
-					<p className="mt-2 text-muted-foreground">
-						{mode === 'totp'
-							? 'Enter the 6-digit code from your authenticator app to finish signing in.'
-							: 'Enter one of the backup codes you saved when you set up 2FA.'}
-					</p>
+					<h1 className="text-3xl font-bold @max-[12.5rem]/card:text-2xl @max-[10.5rem]/card:text-xl">{m.auth_2fa_title()}</h1>
+					<p className="mt-2 text-muted-foreground">{mode === 'totp' ? m.auth_2fa_totp_subtitle() : m.auth_2fa_backup_subtitle()}</p>
 				</div>
 
 				<form onSubmit={handleSubmit} className="space-y-3">
@@ -138,7 +139,7 @@ export function TwoFactorChallengePageContent({
 						</InputOTP>
 					) : (
 						<div className="space-y-2">
-							<Label htmlFor="2fa-code">Backup Code</Label>
+							<Label htmlFor="2fa-code">{m.auth_2fa_backup_label()}</Label>
 							<Input
 								id="2fa-code"
 								value={code}
@@ -150,7 +151,7 @@ export function TwoFactorChallengePageContent({
 								spellCheck={false}
 								inputMode="text"
 								autoComplete="one-time-code"
-								placeholder="xxxxx-xxxxx"
+								placeholder={BACKUP_CODE_PLACEHOLDER}
 								required
 								disabled={showLoading}
 								autoFocus
@@ -163,13 +164,13 @@ export function TwoFactorChallengePageContent({
 						<div className="flex items-center gap-2">
 							<Checkbox id="trust-device" checked={trustDevice} onCheckedChange={v => setTrustDevice(v === true)} disabled={showLoading} />
 							<Label htmlFor="trust-device" className="font-normal text-sm">
-								Trust This Device for 60 Days
+								{m.auth_2fa_trust_device()}
 							</Label>
 						</div>
 					)}
 
 					<Button type="submit" className="w-full" disabled={showLoading || code.length === 0}>
-						{showLoading ? 'Verifying…' : 'Verify'}
+						{showLoading ? m.auth_2fa_verifying() : m.auth_2fa_verify()}
 					</Button>
 
 					<div className="flex items-center justify-between pt-1 text-xs">
@@ -179,7 +180,7 @@ export function TwoFactorChallengePageContent({
 								onClick={() => switchMode('backup')}
 								className="text-muted-foreground hover:text-foreground underline underline-offset-4"
 							>
-								Use a backup code instead
+								{m.auth_2fa_use_backup()}
 							</button>
 						) : (
 							<button
@@ -187,11 +188,11 @@ export function TwoFactorChallengePageContent({
 								onClick={() => switchMode('totp')}
 								className="text-muted-foreground hover:text-foreground underline underline-offset-4"
 							>
-								Use authenticator code
+								{m.auth_2fa_use_totp()}
 							</button>
 						)}
 						<a href={signInHref} className="text-muted-foreground hover:text-foreground underline underline-offset-4">
-							Cancel sign-in
+							{m.auth_2fa_cancel()}
 						</a>
 					</div>
 				</form>

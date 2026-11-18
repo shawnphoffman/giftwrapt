@@ -32,6 +32,7 @@ import { useAppSetting } from '@/hooks/use-app-settings'
 import { useSession } from '@/lib/auth-client'
 import { monthName } from '@/lib/i18n/labels'
 import { LIMITS } from '@/lib/validation/limits'
+import { m } from '@/paraglide/messages.js'
 
 import UserAvatar from '../common/user-avatar'
 import { Field, FieldDescription, FieldError, FieldLabel } from '../ui/field'
@@ -183,7 +184,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 			})
 
 			setSuccess(true)
-			toast.success('Profile updated successfully')
+			toast.success(m.settings_profile_updated_toast())
 			// Refetch session to update user data across all components using useSession
 			await refetchSession()
 			// Invalidate potential partners in case partner relationships changed
@@ -218,7 +219,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 			// Clear success message after 5 seconds
 			setTimeout(() => setSuccess(false), 5000)
 		} catch (err) {
-			const errorMessage = err instanceof Error ? err.message : 'Failed to update profile'
+			const errorMessage = err instanceof Error ? err.message : m.settings_profile_update_failed()
 			setError(errorMessage)
 			toast.error(errorMessage)
 		} finally {
@@ -247,18 +248,28 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 				},
 			})
 
-			const parts: Array<string> = []
-			if (result.added > 0)
-				parts.push(`Added ${editorChangePrompt.nextPartnerLabel ?? 'partner'} to ${result.added} ${result.added === 1 ? 'list' : 'lists'}`)
-			if (result.removed > 0)
-				parts.push(
-					`Removed ${editorChangePrompt.prevPartnerLabel ?? 'former partner'} from ${result.removed} ${result.removed === 1 ? 'list' : 'lists'}`
-				)
-			if (parts.length > 0) toast.success(parts.join('; '))
+			const { nextPartnerLabel, prevPartnerLabel } = editorChangePrompt
+			const addedText =
+				result.added > 0
+					? nextPartnerLabel != null
+						? m.settings_profile_editors_added({ name: nextPartnerLabel, count: result.added })
+						: m.settings_profile_editors_added_unnamed({ count: result.added })
+					: null
+			const removedText =
+				result.removed > 0
+					? prevPartnerLabel != null
+						? m.settings_profile_editors_removed({ name: prevPartnerLabel, count: result.removed })
+						: m.settings_profile_editors_removed_unnamed({ count: result.removed })
+					: null
+			const summary =
+				addedText && removedText
+					? m.settings_profile_editors_added_and_removed({ added: addedText, removed: removedText })
+					: (addedText ?? removedText)
+			if (summary) toast.success(summary)
 			await queryClient.invalidateQueries({ queryKey: ['my-lists'] })
 			setEditorChangePrompt(null)
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Failed to update list editors')
+			toast.error(err instanceof Error ? err.message : m.settings_profile_editors_update_failed())
 		} finally {
 			setApplyingEditorChanges(false)
 		}
@@ -279,11 +290,11 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 			<form.Field name="name">
 				{field => (
 					<Field className="gap-1">
-						<FieldLabel htmlFor={field.name}>Name</FieldLabel>
+						<FieldLabel htmlFor={field.name}>{m.settings_profile_name_label()}</FieldLabel>
 						<Input
 							id={field.name}
 							type="text"
-							placeholder="Ezekiel"
+							placeholder={m.settings_profile_name_placeholder()}
 							value={field.state.value}
 							onChange={e => field.handleChange(e.target.value)}
 							onBlur={field.handleBlur}
@@ -301,7 +312,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 				<form.Field name="birthMonth">
 					{field => (
 						<Field className="gap-1">
-							<FieldLabel htmlFor={field.name}>Birth Month</FieldLabel>
+							<FieldLabel htmlFor={field.name}>{m.settings_profile_birth_month_label()}</FieldLabel>
 							<Select
 								onValueChange={value => {
 									field.handleChange(value === '' ? undefined : (value as (typeof birthMonthEnumValues)[number]))
@@ -310,7 +321,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 								disabled={isLoading}
 							>
 								<SelectTrigger id={field.name} className="w-full">
-									<SelectValue placeholder="Select month" />
+									<SelectValue placeholder={m.settings_profile_birth_month_placeholder()} />
 								</SelectTrigger>
 								<SelectContent>
 									{birthMonthEnumValues.map(month => (
@@ -330,7 +341,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 				<form.Field name="birthDay">
 					{field => (
 						<Field className="gap-1">
-							<FieldLabel htmlFor={field.name}>Birth Day</FieldLabel>
+							<FieldLabel htmlFor={field.name}>{m.settings_profile_birth_day_label()}</FieldLabel>
 							<form.Subscribe selector={state => state.values.birthMonth}>
 								{month => (
 									<BirthDaySelect
@@ -354,8 +365,8 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 				{field => (
 					<Field className="gap-1">
 						<FieldLabel htmlFor={field.name} className="flex items-center gap-1.5">
-							Birth Year
-							<InputTooltip>Optional. Used only to tailor recommendations and your experience. Never displayed publicly.</InputTooltip>
+							{m.settings_profile_birth_year_label()}
+							<InputTooltip>{m.settings_profile_birth_year_tooltip()}</InputTooltip>
 						</FieldLabel>
 						<Select
 							value={field.state.value ? String(field.state.value) : ''}
@@ -363,7 +374,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 							disabled={isLoading}
 						>
 							<SelectTrigger id={field.name} className="w-full @md/subpage:w-40">
-								<SelectValue placeholder="Select year" />
+								<SelectValue placeholder={m.settings_profile_birth_year_placeholder()} />
 							</SelectTrigger>
 							<SelectContent>
 								{birthYearOptions().map(year => (
@@ -384,10 +395,8 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 				<form.Field name="partnerId">
 					{field => (
 						<Field className="gap-1">
-							<FieldLabel htmlFor={field.name}>Partner</FieldLabel>
-							<FieldDescription className="text-xs leading-tight">
-								When a partner is selected, gifts are typically shown as given by both of you.
-							</FieldDescription>
+							<FieldLabel htmlFor={field.name}>{m.settings_profile_partner_label()}</FieldLabel>
+							<FieldDescription className="text-xs leading-tight">{m.settings_profile_partner_description()}</FieldDescription>
 							<Select
 								onValueChange={value => {
 									field.handleChange(value === '__none__' ? undefined : value)
@@ -396,10 +405,10 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 								disabled={isLoading || isLoadingPartners}
 							>
 								<SelectTrigger id={field.name} className="w-full">
-									<SelectValue placeholder="Select partner (optional)" />
+									<SelectValue placeholder={m.settings_profile_partner_placeholder()} />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="__none__">None</SelectItem>
+									<SelectItem value="__none__">{m.state_none()}</SelectItem>
 									{potentialPartners.map(partnerUser => {
 										const alreadyPartnered = !!partnerUser.partnerId && partnerUser.partnerId !== currentUserId
 										return (
@@ -407,8 +416,12 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 												<span className="flex items-center gap-2">
 													<UserAvatar name={partnerUser.name || partnerUser.email} image={partnerUser.image} size="small" />
 													{partnerUser.name || partnerUser.email}
-													{partnerUser.role === 'admin' && <span className="text-xs text-muted-foreground">(Admin)</span>}
-													{alreadyPartnered && <span className="text-xs text-muted-foreground">(already partnered)</span>}
+													{partnerUser.role === 'admin' && (
+														<span className="text-xs text-muted-foreground">{m.settings_profile_partner_admin_tag()}</span>
+													)}
+													{alreadyPartnered && (
+														<span className="text-xs text-muted-foreground">{m.settings_profile_partner_taken_tag()}</span>
+													)}
 												</span>
 											</SelectItem>
 										)
@@ -430,8 +443,8 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 							{field => (
 								<Field className="gap-1">
 									<FieldLabel htmlFor={field.name} className="flex items-center gap-1.5">
-										Anniversary
-										<InputTooltip>Optional. Shared with your partner so it appears on both your profiles.</InputTooltip>
+										{m.settings_profile_anniversary_label()}
+										<InputTooltip>{m.settings_profile_anniversary_tooltip()}</InputTooltip>
 									</FieldLabel>
 									{/*
 									 * Native `<input type="date">` fights controlled-value
@@ -465,18 +478,18 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 
 			{error && (
 				<Alert variant="destructive">
-					<AlertTitle>Error</AlertTitle>
+					<AlertTitle>{m.settings_alert_error_title()}</AlertTitle>
 					<AlertDescription>{error}</AlertDescription>
 				</Alert>
 			)}
 			{success && (
 				<Alert variant="default">
-					<AlertTitle>Success</AlertTitle>
-					<AlertDescription>Profile updated successfully!</AlertDescription>
+					<AlertTitle>{m.settings_alert_success_title()}</AlertTitle>
+					<AlertDescription>{m.settings_profile_updated_alert()}</AlertDescription>
 				</Alert>
 			)}
 			<Button type="submit" disabled={isLoading}>
-				{isLoading ? 'Saving...' : 'Save'}
+				{isLoading ? m.settings_profile_saving() : m.action_save()}
 			</Button>
 
 			<AlertDialog
@@ -487,15 +500,17 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>{pendingPartnerChange?.partnerId ? 'Change Partner?' : 'Remove Partner?'}</AlertDialogTitle>
+						<AlertDialogTitle>
+							{pendingPartnerChange?.partnerId ? m.settings_profile_partner_change_title() : m.settings_profile_partner_remove_title()}
+						</AlertDialogTitle>
 						<AlertDialogDescription>
 							{currentPartnerName
-								? `You are currently partnered with ${currentPartnerName}. Saving will unlink them and stop showing gifts as given by both of you.`
-								: 'Saving will unlink your current partner and stop showing gifts as given by both of you.'}
+								? m.settings_profile_partner_confirm_named({ name: currentPartnerName })
+								: m.settings_profile_partner_confirm_unnamed()}
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogCancel>{m.action_cancel()}</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={async () => {
 								const pending = pendingPartnerChange
@@ -503,7 +518,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 								if (pending) await onSubmit(pending)
 							}}
 						>
-							{pendingPartnerChange?.partnerId ? 'Change Partner' : 'Remove Partner'}
+							{pendingPartnerChange?.partnerId ? m.settings_profile_partner_change_button() : m.settings_profile_partner_remove_button()}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
@@ -517,14 +532,18 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 			>
 				<DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-lg">
 					<DialogHeader>
-						<DialogTitle>Update List Editors?</DialogTitle>
-						<DialogDescription>Your partner change affects who has editor access on some of your lists.</DialogDescription>
+						<DialogTitle>{m.settings_profile_editors_dialog_title()}</DialogTitle>
+						<DialogDescription>{m.settings_profile_editors_dialog_description()}</DialogDescription>
 					</DialogHeader>
 					{editorChangePrompt && (
 						<div className="space-y-5">
 							{editorChangePrompt.toAdd.length > 0 && (
 								<section className="space-y-2">
-									<h3 className="text-sm font-medium">Add {editorChangePrompt.nextPartnerLabel ?? 'Partner'} as an Editor On:</h3>
+									<h3 className="text-sm font-medium">
+										{editorChangePrompt.nextPartnerLabel != null
+											? m.settings_profile_editors_add_heading({ name: editorChangePrompt.nextPartnerLabel })
+											: m.settings_profile_editors_add_heading_unnamed()}
+									</h3>
 									<ul className="space-y-1.5">
 										{editorChangePrompt.toAdd.map(list => {
 											const id = `add-${list.id}`
@@ -553,7 +572,9 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 							{editorChangePrompt.toRemove.length > 0 && (
 								<section className="space-y-2">
 									<h3 className="text-sm font-medium">
-										Remove {editorChangePrompt.prevPartnerLabel ?? 'Former Partner'} as an Editor From:
+										{editorChangePrompt.prevPartnerLabel != null
+											? m.settings_profile_editors_remove_heading({ name: editorChangePrompt.prevPartnerLabel })
+											: m.settings_profile_editors_remove_heading_unnamed()}
 									</h3>
 									<ul className="space-y-1.5">
 										{editorChangePrompt.toRemove.map(list => {
@@ -584,10 +605,10 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 					)}
 					<DialogFooter>
 						<Button type="button" variant="outline" onClick={() => setEditorChangePrompt(null)} disabled={applyingEditorChanges}>
-							Skip
+							{m.settings_profile_editors_skip()}
 						</Button>
 						<Button type="button" onClick={applyEditorChanges} disabled={applyingEditorChanges}>
-							{applyingEditorChanges ? 'Updating…' : 'Apply Changes'}
+							{applyingEditorChanges ? m.settings_profile_editors_applying() : m.settings_profile_editors_apply()}
 						</Button>
 					</DialogFooter>
 				</DialogContent>

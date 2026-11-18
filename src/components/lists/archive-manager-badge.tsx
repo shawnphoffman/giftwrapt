@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 
 import { cancelArchiveDefer, forceArchiveList, setArchiveDefer } from '@/api/archive-defer'
+import { RichMessage } from '@/components/common/rich-message'
 import { badgeVariants } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DatePicker } from '@/components/ui/date-picker'
@@ -13,6 +14,7 @@ import type { ArchiveBannerInfo } from '@/lib/archive-schedule-loader'
 import { formatDate } from '@/lib/i18n/format'
 import { itemsKeys } from '@/lib/queries/items'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 // Event and default reveal dates are calendar dates sent as UTC midnight of
 // the date, so they format in UTC; a defer is a real instant and formats in
@@ -29,18 +31,32 @@ function formatShort(iso: string, calendar: boolean): string {
 // reveal date, matching the custom picker's `T23:59:59` local deadline.
 function endOfDayAfter(iso: string, calendar: boolean, days: number): Date {
 	const d = new Date(iso)
-	const [y, m, day] = calendar ? [d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()] : [d.getFullYear(), d.getMonth(), d.getDate()]
-	return new Date(y, m, day + days, 23, 59, 59)
+	const [y, month, day] = calendar ? [d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()] : [d.getFullYear(), d.getMonth(), d.getDate()]
+	return new Date(y, month, day + days, 23, 59, 59)
 }
 
-const DEFER_ERROR_COPY: Record<string, string> = {
-	'not-found': 'List not found.',
-	'not-authorized': "You don't have permission to do that.",
-	'not-applicable': "This list doesn't auto-archive.",
-	'too-early': 'You can only do this once the event has passed.',
-	'must-be-later': 'Pick a date later than the current reveal date.',
-	'exceeds-max': 'That date is beyond the maximum extension allowed.',
-	deferred: 'Cancel the current extension before revealing.',
+// Reason code from the archive-defer server fns to the text shown in the
+// toast. A function, not a table: a table would be worded once, when the
+// module loads, before any request has a language.
+function deferErrorMessage(reason: string): string | undefined {
+	switch (reason) {
+		case 'not-found':
+			return m.lists_reveal_error_not_found()
+		case 'not-authorized':
+			return m.lists_reveal_error_not_authorized()
+		case 'not-applicable':
+			return m.lists_reveal_error_not_applicable()
+		case 'too-early':
+			return m.lists_reveal_error_too_early()
+		case 'must-be-later':
+			return m.lists_reveal_error_must_be_later()
+		case 'exceeds-max':
+			return m.lists_reveal_error_exceeds_max()
+		case 'deferred':
+			return m.lists_reveal_error_deferred()
+		default:
+			return undefined
+	}
 }
 
 type Mode = 'menu' | 'confirmForce' | 'extend'
@@ -87,12 +103,14 @@ export function ArchiveManagerBadge({
 		try {
 			const res = await forceArchiveList({ data: { listId } })
 			if (res.kind === 'ok') {
-				toast.success('Gifts revealed', { description: `${res.updated} item(s) and ${res.addonsArchived} add-on(s) revealed.` })
+				toast.success(m.lists_reveal_forced_toast(), {
+					description: m.lists_reveal_forced_toast_description({ items: res.updated, addons: res.addonsArchived }),
+				})
 				setOpen(false)
 				reset()
 				await refresh()
 			} else {
-				toast.error(DEFER_ERROR_COPY[res.reason] ?? 'Could not reveal gifts.')
+				toast.error(deferErrorMessage(res.reason) ?? m.lists_reveal_force_failed())
 			}
 		} finally {
 			setBusy(false)
@@ -104,12 +122,14 @@ export function ArchiveManagerBadge({
 		try {
 			const res = await setArchiveDefer({ data: { listId, deferUntil: target } })
 			if (res.kind === 'ok') {
-				toast.success('Reveal extended', { description: `Now reveals on ${formatLong(res.deferUntil, false)}.` })
+				toast.success(m.lists_reveal_extended_toast(), {
+					description: m.lists_reveal_extended_toast_description({ date: formatLong(res.deferUntil, false) }),
+				})
 				setOpen(false)
 				reset()
 				await refresh()
 			} else {
-				toast.error(DEFER_ERROR_COPY[res.reason] ?? 'Could not extend the reveal.')
+				toast.error(deferErrorMessage(res.reason) ?? m.lists_reveal_extend_failed())
 			}
 		} finally {
 			setBusy(false)
@@ -121,12 +141,12 @@ export function ArchiveManagerBadge({
 		try {
 			const res = await cancelArchiveDefer({ data: { listId } })
 			if (res.kind === 'ok') {
-				toast.success('Extension cancelled')
+				toast.success(m.lists_reveal_extension_cancelled())
 				setOpen(false)
 				reset()
 				await refresh()
 			} else {
-				toast.error(DEFER_ERROR_COPY[res.reason] ?? 'Could not cancel the extension.')
+				toast.error(deferErrorMessage(res.reason) ?? m.lists_reveal_cancel_failed())
 			}
 		} finally {
 			setBusy(false)
@@ -134,9 +154,9 @@ export function ArchiveManagerBadge({
 	}
 
 	const presets = [
-		{ label: '+1 Week', days: 7 },
-		{ label: '+2 Weeks', days: 14 },
-		{ label: '+1 Month', days: 30 },
+		{ label: m.lists_reveal_preset_week(), days: 7 },
+		{ label: m.lists_reveal_preset_two_weeks(), days: 14 },
+		{ label: m.lists_reveal_preset_month(), days: 30 },
 	]
 
 	return (
@@ -149,21 +169,24 @@ export function ArchiveManagerBadge({
 		>
 			<DialogTrigger
 				className={cn(badgeVariants({ variant: 'secondary' }), 'h-7 shrink-0 cursor-pointer hover:bg-secondary/80')}
-				title={`Gifts reveal on ${longDate}${extended ? ' (extended)' : ''}`}
-				aria-label={`Gifts reveal on ${longDate}. Tap to manage.`}
+				title={extended ? m.lists_reveal_badge_title_extended({ date: longDate }) : m.lists_reveal_badge_title({ date: longDate })}
+				aria-label={m.lists_reveal_manage_badge_label({ date: longDate })}
 			>
-				<span>
-					Revealing: {shortDate}
-					{extended ? ' (extended)' : ''}
-				</span>
+				<span>{extended ? m.lists_reveal_badge_text_extended({ date: shortDate }) : m.lists_reveal_badge_text({ date: shortDate })}</span>
 			</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle className="pr-10">
-						Gifts Reveal on {longDate}
-						{extended && <span className="text-muted-foreground text-sm font-normal"> (extended)</span>}
+						{extended ? (
+							<RichMessage
+								parts={m.lists_reveal_dialog_title_extended.parts({ date: longDate })}
+								tags={{ note: children => <span className="text-muted-foreground text-sm font-normal">{children}</span> }}
+							/>
+						) : (
+							m.lists_reveal_dialog_title({ date: longDate })
+						)}
 					</DialogTitle>
-					<DialogDescription>Claimed gifts stay hidden from {recipientName} until then, then reveal automatically.</DialogDescription>
+					<DialogDescription>{m.lists_reveal_manage_description({ recipientName })}</DialogDescription>
 				</DialogHeader>
 
 				{mode === 'menu' && (
@@ -171,36 +194,36 @@ export function ArchiveManagerBadge({
 						<div className="flex flex-col gap-1 text-sm text-muted-foreground">
 							{archiveInfo.eventHasPassed ? (
 								<p>
-									<strong className="text-foreground">Reveal now</strong> releases everything immediately.{' '}
-									<strong className="text-foreground">Extend</strong> pushes the reveal later, handy when the event is close to another
-									occasion.
+									<RichMessage
+										parts={m.lists_reveal_menu_help_passed.parts()}
+										tags={{ strong: children => <strong className="text-foreground">{children}</strong> }}
+									/>
 								</p>
 							) : (
 								<p>
-									{eventDate ? `After ${formatLong(eventDate, true)}` : 'Once the event has passed'}, you can reveal early or push the
-									reveal later.
+									{eventDate
+										? m.lists_reveal_menu_help_after_date({ date: formatLong(eventDate, true) })
+										: m.lists_reveal_menu_help_after_event()}
 								</p>
 							)}
-							{extended && (
-								<p>This extension blocks &ldquo;Reveal now&rdquo; on purpose. Cancel the extension first if you want to reveal early.</p>
-							)}
+							{extended && <p>{m.lists_reveal_menu_extension_blocks()}</p>}
 						</div>
 						<div className="flex flex-wrap gap-2">
 							{archiveInfo.inForceWindow && (
 								<Button type="button" size="sm" onClick={() => setMode('confirmForce')}>
 									<Send className="size-4" />
-									Reveal Now
+									{m.lists_reveal_now_button()}
 								</Button>
 							)}
 							{archiveInfo.eventHasPassed && (
 								<Button type="button" size="sm" variant="outline" onClick={() => setMode('extend')}>
 									<Clock className="size-4" />
-									{extended ? 'Extend Further' : 'Extend Reveal'}
+									{extended ? m.lists_reveal_extend_further_button() : m.lists_reveal_extend_button()}
 								</Button>
 							)}
 							{extended && (
 								<Button type="button" size="sm" variant="ghost" disabled={busy} onClick={handleCancel}>
-									Cancel Extension
+									{m.lists_reveal_cancel_extension_button()}
 								</Button>
 							)}
 						</div>
@@ -209,16 +232,13 @@ export function ArchiveManagerBadge({
 
 				{mode === 'confirmForce' && (
 					<div className="flex flex-col gap-3">
-						<p className="text-sm text-muted-foreground">
-							This reveals every claimed item and gifter-volunteered add-on to {recipientName} on their Received Gifts page, and sends the
-							reveal email if enabled. Only do this once the gifts have been received. This can&apos;t be undone in bulk.
-						</p>
+						<p className="text-sm text-muted-foreground">{m.lists_reveal_force_confirm_body({ recipientName })}</p>
 						<div className="flex justify-end gap-2">
 							<Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => setMode('menu')}>
-								Back
+								{m.action_back()}
 							</Button>
 							<Button type="button" size="sm" disabled={busy} onClick={handleForce}>
-								{busy ? 'Revealing…' : 'Confirm Reveal'}
+								{busy ? m.lists_reveal_force_busy() : m.lists_reveal_force_confirm_button()}
 							</Button>
 						</div>
 					</div>
@@ -226,14 +246,11 @@ export function ArchiveManagerBadge({
 
 				{mode === 'extend' && (
 					<div className="flex flex-col gap-4">
-						<p className="text-sm text-muted-foreground">
-							Delay when claimed gifts become visible to {recipientName}. This is useful when the event is close to another occasion (for
-							example, a graduation just before a birthday). Currently reveals on {longDate}.
-						</p>
+						<p className="text-sm text-muted-foreground">{m.lists_reveal_extend_body({ recipientName, date: longDate })}</p>
 						<div className="flex flex-wrap gap-2">
 							{presets.map(p => (
 								<Button
-									key={p.label}
+									key={p.days}
 									type="button"
 									variant="outline"
 									size="sm"
@@ -245,12 +262,12 @@ export function ArchiveManagerBadge({
 							))}
 						</div>
 						<div className="flex flex-col gap-2">
-							<span className="text-sm text-muted-foreground">Or pick a date:</span>
-							<DatePicker value={customDate} onChange={setCustomDate} placeholder="YYYY-MM-DD" />
+							<span className="text-sm text-muted-foreground">{m.lists_reveal_extend_pick_date()}</span>
+							<DatePicker value={customDate} onChange={setCustomDate} placeholder={m.lists_reveal_extend_date_placeholder()} />
 						</div>
 						<div className="flex justify-end gap-2">
 							<Button type="button" size="sm" variant="ghost" disabled={busy} onClick={() => setMode('menu')}>
-								Back
+								{m.action_back()}
 							</Button>
 							<Button
 								type="button"
@@ -258,7 +275,7 @@ export function ArchiveManagerBadge({
 								disabled={busy || !customDate}
 								onClick={() => customDate && applyDefer(new Date(`${customDate}T23:59:59`))}
 							>
-								Extend to Date
+								{m.lists_reveal_extend_to_date_button()}
 							</Button>
 						</div>
 					</div>

@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { type ListType, listTypeEnumValues } from '@/db/schema/enums'
 import { listTypeLabel } from '@/lib/i18n/labels'
 import { itemsKeys } from '@/lib/queries/items'
+import { m } from '@/paraglide/messages.js'
 
 type Props = {
 	open: boolean
@@ -62,12 +63,12 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 			let targetId: number
 			if (creatingNew) {
 				if (!newListName.trim()) {
-					setError('New list name is required.')
+					setError(m.items_bulk_move_error_name_required())
 					setSubmitting(false)
 					return
 				}
 				if (isGiftIdeas) {
-					setError('Gift Ideas lists need a target person. Create it from "New list" on My Lists.')
+					setError(m.items_bulk_move_error_gift_ideas())
 					setSubmitting(false)
 					return
 				}
@@ -80,10 +81,10 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 				})
 				if (created.kind === 'error') {
 					const message: Record<typeof created.reason, string> = {
-						'child-cannot-create-gift-ideas': "Children can't create gift-ideas lists.",
-						'not-dependent-guardian': "You're not a guardian of that dependent.",
-						'invalid-holiday-selection': 'Holiday lists need a country and holiday picked from the catalog.',
-						'list-type-disabled': 'That list type is disabled by the admin.',
+						'child-cannot-create-gift-ideas': m.items_bulk_move_error_child_gift_ideas(),
+						'not-dependent-guardian': m.items_bulk_move_error_not_guardian(),
+						'invalid-holiday-selection': m.items_bulk_move_error_holiday(),
+						'list-type-disabled': m.items_bulk_move_error_type_disabled(),
 					}
 					setError(message[created.reason])
 					return
@@ -103,13 +104,13 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 				data: { itemIds, targetListId: targetId, purgeComments },
 			})
 			if (result.kind === 'error') {
-				setError(result.reason === 'not-authorized' ? "You don't have permission to move to that list." : 'Could not move items.')
+				setError(result.reason === 'not-authorized' ? m.items_move_error_not_authorized() : m.items_bulk_move_error_failed_generic())
 				return
 			}
 
-			const msgs = [`${result.moved} item${result.moved === 1 ? '' : 's'} moved`]
-			if (result.claimsCleared > 0) msgs.push(`${result.claimsCleared} claim${result.claimsCleared === 1 ? '' : 's'} cleared`)
-			if (result.commentsDeleted > 0) msgs.push(`${result.commentsDeleted} comment${result.commentsDeleted === 1 ? '' : 's'} deleted`)
+			const msgs: Array<string> = [m.items_bulk_move_toast_moved({ count: result.moved })]
+			if (result.claimsCleared > 0) msgs.push(m.items_bulk_move_toast_claims_cleared({ count: result.claimsCleared }))
+			if (result.commentsDeleted > 0) msgs.push(m.items_move_toast_comments_deleted({ count: result.commentsDeleted }))
 			toast.success(msgs.join(' · '))
 
 			onOpenChange(false)
@@ -120,7 +121,7 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 				qc.invalidateQueries({ queryKey: itemsKeys.byList(targetId) }),
 			])
 		} catch (err) {
-			setError(err instanceof Error ? err.message : 'Failed to move items')
+			setError(err instanceof Error ? err.message : m.items_bulk_move_error_failed())
 		} finally {
 			setSubmitting(false)
 		}
@@ -130,23 +131,21 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>
-						Move {itemIds.length} Item{itemIds.length === 1 ? '' : 's'}
-					</DialogTitle>
-					<DialogDescription>Choose a destination list. Claims may be cleared if list types differ.</DialogDescription>
+					<DialogTitle>{m.items_bulk_move_dialog_title({ count: itemIds.length })}</DialogTitle>
+					<DialogDescription>{m.items_bulk_move_dialog_description()}</DialogDescription>
 				</DialogHeader>
 
 				<div className="space-y-4">
 					<div className="grid gap-2">
-						<Label htmlFor="bulk-move-target">Destination List</Label>
+						<Label htmlFor="bulk-move-target">{m.items_move_destination_label()}</Label>
 						<Select value={selectedListId} onValueChange={setSelectedListId} disabled={submitting}>
 							<SelectTrigger id="bulk-move-target">
-								<SelectValue placeholder="Select a list" />
+								<SelectValue placeholder={m.items_list_select_placeholder()} />
 							</SelectTrigger>
 							<SelectContent>
 								{publicLists.length > 0 && (
 									<SelectGroup>
-										<SelectLabel>Public</SelectLabel>
+										<SelectLabel>{m.items_list_group_public()}</SelectLabel>
 										{publicLists.map(l => (
 											<SelectItem key={l.id} value={String(l.id)}>
 												{l.name}
@@ -156,7 +155,7 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 								)}
 								{privateLists.length > 0 && (
 									<SelectGroup>
-										<SelectLabel>Private</SelectLabel>
+										<SelectLabel>{m.items_list_group_private()}</SelectLabel>
 										{privateLists.map(l => (
 											<SelectItem key={l.id} value={String(l.id)}>
 												{l.name}
@@ -166,7 +165,7 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 								)}
 								{giftIdeasLists.length > 0 && (
 									<SelectGroup>
-										<SelectLabel>Gift Ideas</SelectLabel>
+										<SelectLabel>{m.items_list_group_gift_ideas()}</SelectLabel>
 										{giftIdeasLists.map(l => (
 											<SelectItem key={l.id} value={String(l.id)}>
 												{l.name}
@@ -176,7 +175,7 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 								)}
 								{dependentGroups.map(d => (
 									<SelectGroup key={d.dependentId}>
-										<SelectLabel>For {d.dependentName}</SelectLabel>
+										<SelectLabel>{m.items_list_group_for_dependent({ name: d.dependentName })}</SelectLabel>
 										{d.lists.map(l => (
 											<SelectItem key={l.id} value={String(l.id)}>
 												{l.name}
@@ -185,9 +184,9 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 									</SelectGroup>
 								))}
 								<SelectGroup>
-									<SelectLabel>Other</SelectLabel>
+									<SelectLabel>{m.items_list_group_other()}</SelectLabel>
 									<SelectItem value={NEW_LIST_VALUE}>
-										<Plus className="size-4" /> Create a new list…
+										<Plus className="size-4" /> {m.items_bulk_move_create_new()}
 									</SelectItem>
 								</SelectGroup>
 							</SelectContent>
@@ -197,18 +196,18 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 					{creatingNew && (
 						<div className="grid gap-3 p-3 border rounded-md bg-muted/30">
 							<div className="grid gap-2">
-								<Label htmlFor="new-list-name">New List Name</Label>
+								<Label htmlFor="new-list-name">{m.items_bulk_move_new_name_label()}</Label>
 								<Input
 									id="new-list-name"
 									value={newListName}
 									onChange={e => setNewListName(e.target.value)}
-									placeholder="e.g. Wish List 2027"
+									placeholder={m.items_bulk_move_new_name_placeholder()}
 									disabled={submitting}
 									autoFocus
 								/>
 							</div>
 							<div className="grid gap-2">
-								<Label htmlFor="new-list-type">Type</Label>
+								<Label htmlFor="new-list-type">{m.items_bulk_move_type_label()}</Label>
 								<Select value={newListType} onValueChange={v => setNewListType(v as ListType)} disabled={submitting}>
 									<SelectTrigger id="new-list-type">
 										<SelectValue />
@@ -226,7 +225,7 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 							</div>
 							<label className="flex items-center gap-2 text-sm">
 								<Checkbox checked={newListPrivate} onCheckedChange={v => setNewListPrivate(v === true)} disabled={submitting} />
-								Private list
+								{m.items_bulk_move_private_label()}
 							</label>
 						</div>
 					)}
@@ -241,15 +240,15 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 						/>
 						<div className="grid gap-1">
 							<Label htmlFor="purge-comments" className="font-normal">
-								Delete Comments on Moved Items
+								{m.items_bulk_move_purge_label()}
 							</Label>
-							<p className="text-xs text-muted-foreground">Recommended. Comments typically belong to the original list's context.</p>
+							<p className="text-xs text-muted-foreground">{m.items_bulk_move_purge_hint()}</p>
 						</div>
 					</div>
 
 					{error && (
 						<Alert variant="destructive">
-							<AlertTitle>Couldn't move items</AlertTitle>
+							<AlertTitle>{m.items_bulk_move_error_title()}</AlertTitle>
 							<AlertDescription>{error}</AlertDescription>
 						</Alert>
 					)}
@@ -257,10 +256,10 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 
 				<DialogFooter>
 					<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-						Cancel
+						{m.action_cancel()}
 					</Button>
 					<Button onClick={handleMove} disabled={submitting || (!selectedListId && !creatingNew) || (creatingNew && !newListName.trim())}>
-						{submitting ? 'Moving…' : `Move ${itemIds.length}`}
+						{submitting ? m.items_move_submitting() : m.items_bulk_move_submit({ count: itemIds.length })}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

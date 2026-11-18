@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { ImageFallbackTile, useImageFallback } from '@/components/common/remote-image'
 import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 type Props = {
 	src: string
@@ -38,7 +39,7 @@ export function ItemImage({ src, alt, className, thumbClassName, fallbackClassNa
 					'group relative shrink-0 overflow-hidden rounded-md ring-1 ring-inset ring-border bg-muted/40 transition hover:ring-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring cursor-zoom-in',
 					className
 				)}
-				aria-label={`View larger image of ${alt}`}
+				aria-label={m.items_image_view_larger({ title: alt })}
 			>
 				{/*
 				 * Do NOT add `w-fit` (width: fit-content) here. Safari resolves
@@ -67,11 +68,11 @@ export function ItemImage({ src, alt, className, thumbClassName, fallbackClassNa
 					<DialogTitle className="sr-only">{alt}</DialogTitle>
 					<img src={image.src} alt={alt} className="w-full h-auto max-h-[80vh] object-contain rounded-md" />
 					<DialogClose
-						aria-label="Close"
+						aria-label={m.action_close()}
 						className="absolute top-3 right-3 inline-flex size-8 items-center justify-center rounded-full bg-black/50 text-white shadow-sm ring-1 ring-white/20 backdrop-blur-sm outline-none transition hover:bg-black/70 focus-visible:ring-2 focus-visible:ring-white"
 					>
 						<XIcon className="size-4" />
-						<span className="sr-only">Close</span>
+						<span className="sr-only">{m.action_close()}</span>
 					</DialogClose>
 				</DialogContent>
 			</Dialog>

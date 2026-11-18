@@ -8,6 +8,7 @@ import { type ChildListGroup, type DependentListGroup, getMyLists, type MyListRo
 import DependentAvatar from '@/components/common/dependent-avatar'
 import ListTypeIcon from '@/components/common/list-type-icon'
 import { PageHeading } from '@/components/common/page-heading'
+import { RichMessage } from '@/components/common/rich-message'
 import UserAvatar from '@/components/common/user-avatar'
 import { AddItemDialog } from '@/components/items/add-item-dialog'
 import { ItemSearchDialog } from '@/components/items/item-search-dialog'
@@ -108,21 +109,21 @@ function MyListsPage() {
 			<div className="wish-page">
 				<div className="flex flex-col flex-1 gap-6">
 					{/* HEADING - renders synchronously so the route swap is instant. */}
-					<PageHeading title="My Lists" icon={ListOrdered} color="red">
+					<PageHeading title={m.page_my_lists()} icon={ListOrdered} color="red">
 						<div className="flex flex-row flex-wrap justify-end gap-1 items-center shrink-0">
 							<Button size="sm" variant="outline" onClick={() => setSearchOpen(true)}>
-								<Search className="size-4" /> Search Items
+								<Search className="size-4" /> {m.lists_my_search_items()}
 							</Button>
 							<Button size="sm" onClick={() => setCreateOpen(true)}>
-								<Plus className="size-4" /> New List
+								<Plus className="size-4" /> {m.lists_my_new_list()}
 							</Button>
 						</div>
 					</PageHeading>
 					<div className="text-sm text-muted-foreground">
-						Mark any list as <strong>primary</strong> from its action menu. Quick-imported gift ideas land there by default.
+						<RichMessage parts={m.lists_my_primary_hint.parts()} tags={{ strong: children => <strong>{children}</strong> }} />
 					</div>
 					<ListTypeLegend />
-					<SkeletonSuspense id="my-lists" label="Loading lists" skeleton={<MyListsPageBodySkeleton />}>
+					<SkeletonSuspense id="my-lists" label={m.lists_loading_label()} skeleton={<MyListsPageBodySkeleton />}>
 						<MyListsPageBody />
 					</SkeletonSuspense>
 				</div>
@@ -149,30 +150,22 @@ function MyListsView({ data, nudge }: { data: MyListsResult; nudge?: ReactNode }
 			{nudge}
 
 			{/* PUBLIC LISTS */}
-			<ListSection
-				title="My Public Lists"
-				description="These are the lists that everybody can see and use for gift-giving."
-				lists={data.public}
-			/>
+			<ListSection title={m.lists_my_public_title()} description={m.lists_my_public_description()} lists={data.public} />
 
 			{/* PRIVATE LISTS */}
-			<ListSection
-				title="My Private Lists"
-				description="Nobody else can see these lists unless you explicitly make them an editor. Nice for personal shopping lists."
-				lists={data.private}
-			/>
+			<ListSection title={m.lists_my_private_title()} description={m.lists_my_private_description()} lists={data.private} />
 
 			{/* GIFT IDEAS LISTS */}
 			<ListsCard>
 				<ListsCardHeader className="flex-col items-start gap-1">
-					<ListsCardTitle>Gift Ideas for Others</ListsCardTitle>
-					<ListsCardDescription className="italic">
-						Idea lists for other people. Helpful for adding things throughout the year that you think someone might like.
-					</ListsCardDescription>
+					<ListsCardTitle>{m.lists_my_gift_ideas_title()}</ListsCardTitle>
+					<ListsCardDescription className="italic">{m.lists_my_gift_ideas_description()}</ListsCardDescription>
 				</ListsCardHeader>
 				<ListsCardLists>
 					{data.giftIdeas.length === 0 && editableGiftIdeas.length === 0 ? (
-						<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30 italic">No lists yet.</div>
+						<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30 italic">
+							{m.lists_my_empty()}
+						</div>
 					) : (
 						<>
 							{data.giftIdeas.map(list => (
@@ -201,11 +194,9 @@ function MyListsView({ data, nudge }: { data: MyListsResult; nudge?: ReactNode }
 					<ListsCardHeader className="flex-col items-start gap-1">
 						<ListsCardTitle className="flex items-center gap-2">
 							<Baby className="size-5 inline" />
-							Children's Lists
+							{m.lists_my_children_title()}
 						</ListsCardTitle>
-						<ListsCardDescription className="italic">
-							Lists belonging to your child accounts. You have full edit access as their guardian.
-						</ListsCardDescription>
+						<ListsCardDescription className="italic">{m.lists_my_children_description()}</ListsCardDescription>
 					</ListsCardHeader>
 					<ListsCardLists className="gap-3">
 						{data.children.map(child => (
@@ -221,11 +212,9 @@ function MyListsView({ data, nudge }: { data: MyListsResult; nudge?: ReactNode }
 					<ListsCardHeader className="flex-col items-start gap-1">
 						<ListsCardTitle className="flex items-center gap-2">
 							<Sprout className="size-5 inline" />
-							Dependents' Lists
+							{m.lists_my_dependents_title()}
 						</ListsCardTitle>
-						<ListsCardDescription className="italic">
-							Lists for pets, babies, or anyone else you receive gifts on behalf of.
-						</ListsCardDescription>
+						<ListsCardDescription className="italic">{m.lists_my_dependents_description()}</ListsCardDescription>
 					</ListsCardHeader>
 					<ListsCardLists className="gap-3">
 						{data.dependents.map(dep => (
@@ -239,8 +228,8 @@ function MyListsView({ data, nudge }: { data: MyListsResult; nudge?: ReactNode }
 			{editableOther.length > 0 && (
 				<ListsCard>
 					<ListsCardHeader className="flex-col items-start gap-1">
-						<ListsCardTitle>Lists I Can Edit</ListsCardTitle>
-						<ListsCardDescription className="italic">Lists that others created and added you as an editor.</ListsCardDescription>
+						<ListsCardTitle>{m.lists_my_editable_title()}</ListsCardTitle>
+						<ListsCardDescription className="italic">{m.lists_my_editable_description()}</ListsCardDescription>
 					</ListsCardHeader>
 					<ListsCardLists>
 						{editableOther.map(list => (
@@ -276,7 +265,9 @@ function ListSection({ title, description, lists }: { title: string; description
 			</ListsCardHeader>
 			<ListsCardLists>
 				{lists.length === 0 ? (
-					<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30 italic">No lists yet.</div>
+					<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30 italic">
+						{m.lists_my_empty()}
+					</div>
 				) : (
 					lists.map(list => <ListRow key={list.id} role="recipient" list={list} />)
 				)}
@@ -295,7 +286,9 @@ function ChildListSection({ child }: { child: ChildListGroup }) {
 			</ListsCardHeader>
 			<ListsCardLists>
 				{child.lists.length === 0 ? (
-					<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30 italic">No lists yet.</div>
+					<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30 italic">
+						{m.lists_my_empty()}
+					</div>
 				) : (
 					child.lists.map(list => (
 						<ListsCardList key={list.id} asChild className="text-base">
@@ -323,7 +316,9 @@ function DependentListSection({ dependent }: { dependent: DependentListGroup }) 
 			</ListsCardHeader>
 			<ListsCardLists>
 				{dependent.lists.length === 0 ? (
-					<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30 italic">No lists yet.</div>
+					<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30 italic">
+						{m.lists_my_empty()}
+					</div>
 				) : (
 					dependent.lists.map(list => (
 						<ListsCardList key={list.id} asChild className="text-base">

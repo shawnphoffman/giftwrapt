@@ -10,6 +10,7 @@ import { CircleHelp } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { TapTooltip, TapTooltipContent, TapTooltipTrigger } from '@/components/ui/tooltip'
 import type { ListChangeImpactWarning } from '@/lib/list-change-impact'
+import { m } from '@/paraglide/messages.js'
 
 type Props = {
 	warnings: ReadonlyArray<ListChangeImpactWarning>
@@ -21,18 +22,15 @@ export function ListChangeImpactWarnings({ warnings }: Props) {
 	return (
 		<Alert>
 			<AlertTitle className="flex items-center gap-1.5">
-				<span>Heads up</span>
+				<span>{m.lists_change_impact_title()}</span>
 				<TapTooltip>
 					<TapTooltipTrigger asChild>
-						<button type="button" aria-label="What does this warning mean?" className="text-muted-foreground hover:text-foreground">
+						<button type="button" aria-label={m.lists_change_impact_help_label()} className="text-muted-foreground hover:text-foreground">
 							<CircleHelp className="size-3.5" />
 						</button>
 					</TapTooltipTrigger>
 					<TapTooltipContent>
-						<p className="max-w-xs text-xs">
-							This won&apos;t stop you from saving. It just lets you know what auto-archive will (and won&apos;t) do once your changes are
-							saved.
-						</p>
+						<p className="max-w-xs text-xs">{m.lists_change_impact_help_text()}</p>
 					</TapTooltipContent>
 				</TapTooltip>
 			</AlertTitle>
@@ -42,7 +40,7 @@ export function ListChangeImpactWarnings({ warnings }: Props) {
 						<li key={`${w.kind}-${i}`}>{w.text}</li>
 					))}
 				</ul>
-				<p className="text-muted-foreground mt-2 text-xs">These are just notices. You can still save.</p>
+				<p className="text-muted-foreground mt-2 text-xs">{m.lists_change_impact_footer()}</p>
 			</AlertDescription>
 		</Alert>
 	)

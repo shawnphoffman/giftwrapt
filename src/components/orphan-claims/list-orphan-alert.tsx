@@ -12,6 +12,7 @@ import { acknowledgeOrphanedClaim, getOrphanedClaimsForList, type OrphanedClaimR
 import { RemoteImage } from '@/components/common/remote-image'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { m } from '@/paraglide/messages.js'
 
 const orphanQueryKey = (listId: number) => ['orphan-claims', 'list', listId] as const
 
@@ -30,16 +31,16 @@ export function ListOrphanAlert({ listId }: { listId: number }) {
 		onSettled: () => setPendingId(null),
 		onSuccess: result => {
 			if (result.kind === 'error') {
-				toast.error('Could not acknowledge', { description: result.reason })
+				toast.error(m.lists_orphan_ack_failed(), { description: result.reason })
 				return
 			}
-			toast.success(result.itemDeleted ? 'Item cleared from your view.' : 'Acknowledged.')
+			toast.success(result.itemDeleted ? m.lists_orphan_ack_cleared() : m.lists_orphan_acknowledged())
 			queryClient.invalidateQueries({ queryKey: orphanQueryKey(listId) })
 			queryClient.invalidateQueries({ queryKey: ['orphan-claims', 'summary'] })
 			queryClient.invalidateQueries({ queryKey: ['items', listId] })
 			queryClient.invalidateQueries({ queryKey: ['purchases'] })
 		},
-		onError: () => toast.error('Something went wrong. Try again.'),
+		onError: () => toast.error(m.lists_orphan_ack_error()),
 	})
 
 	if (!data || data.length === 0) return null
@@ -47,12 +48,9 @@ export function ListOrphanAlert({ listId }: { listId: number }) {
 	return (
 		<Alert variant="destructive" className="border-destructive/40">
 			<PackageX />
-			<AlertTitle>The recipient removed an item you claimed</AlertTitle>
+			<AlertTitle>{m.lists_orphan_alert_title()}</AlertTitle>
 			<AlertDescription>
-				<p>
-					The item below was already in your purchases. The recipient was never told you claimed it, so they don&apos;t know that you may
-					have already bought it. You may want to return it, hold onto it, or give it anyway. Acknowledge to clear it from your view.
-				</p>
+				<p>{m.lists_orphan_alert_body()}</p>
 				<div className="flex flex-col gap-2">
 					{data.map(row => (
 						<OrphanRow
@@ -86,16 +84,16 @@ function OrphanRow({ row, pending, onAck }: { row: OrphanedClaimRow; pending: bo
 							target="_blank"
 							rel="noopener noreferrer"
 							className="text-muted-foreground hover:text-foreground shrink-0"
-							aria-label="Open original product link"
+							aria-label={m.lists_orphan_open_link_label()}
 						>
 							<ExternalLink className="size-3.5" />
 						</a>
 					)}
 				</div>
 				<div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-					{row.quantity > 1 && <span className="tabular-nums">Qty {row.quantity}</span>}
+					{row.quantity > 1 && <span className="tabular-nums">{m.lists_orphan_quantity({ quantity: row.quantity })}</span>}
 					{cost && <span className="tabular-nums">{cost}</span>}
-					{row.isPartnerPurchase && <span className="italic">Claimed by your partner</span>}
+					{row.isPartnerPurchase && <span className="italic">{m.lists_orphan_partner_claim()}</span>}
 				</div>
 			</div>
 			<Button
@@ -104,10 +102,10 @@ function OrphanRow({ row, pending, onAck }: { row: OrphanedClaimRow; pending: bo
 				className="shrink-0"
 				onClick={onAck}
 				disabled={pending}
-				aria-label={`Acknowledge removal of ${row.itemTitle}`}
+				aria-label={m.lists_orphan_ack_label({ itemTitle: row.itemTitle })}
 			>
 				{pending ? <Loader2 className="size-3.5 animate-spin" /> : null}
-				Acknowledge
+				{m.lists_orphan_ack_button()}
 			</Button>
 		</div>
 	)

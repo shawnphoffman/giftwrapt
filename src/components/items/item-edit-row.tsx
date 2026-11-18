@@ -61,6 +61,7 @@ import { useUpdateItem } from '@/lib/mutations/update-item'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
 import { parseInternalListLink } from '@/lib/urls'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 import { DateAdded } from './date-added'
 import { useInternalListLinks } from './internal-list-links-context'
@@ -134,8 +135,8 @@ export const ItemEditRow = memo(function ItemEditRow({
 	const isSaving =
 		useIsMutating({
 			mutationKey: ['updateItem'],
-			predicate: m => {
-				const vars = m.state.variables as { itemId?: number; itemIds?: ReadonlyArray<number> } | undefined
+			predicate: mutation => {
+				const vars = mutation.state.variables as { itemId?: number; itemIds?: ReadonlyArray<number> } | undefined
 				if (vars?.itemId === item.id) return true
 				if (vars?.itemIds?.includes(item.id)) return true
 				return false
@@ -152,18 +153,18 @@ export const ItemEditRow = memo(function ItemEditRow({
 	const handleAssignGroup = async (groupId: number | null) => {
 		const result = await assignGroup.mutateAsync({ listId: item.listId, itemIds: [item.id], groupId })
 		if (result.kind === 'ok') {
-			toast.success(groupId === null ? 'Removed from group' : 'Added to group')
+			toast.success(groupId === null ? m.items_group_toast_removed() : m.items_group_toast_added())
 		} else {
-			toast.error('Failed to update group')
+			toast.error(m.items_group_toast_update_failed())
 		}
 	}
 
 	const handleCreateGroupWithItem = async (type: GroupType) => {
 		const result = await createGroupAndAssign.mutateAsync({ listId: item.listId, itemIds: [item.id], type })
 		if (result.kind === 'ok') {
-			toast.success(`${type === 'or' ? '"Pick one"' : '"Ordered"'} group created`)
+			toast.success(type === 'or' ? m.items_group_toast_created_or() : m.items_group_toast_created_order())
 		} else {
-			toast.error('Failed to create group')
+			toast.error(m.items_group_toast_create_failed())
 		}
 	}
 
@@ -171,9 +172,9 @@ export const ItemEditRow = memo(function ItemEditRow({
 		if (priority === item.priority) return
 		const result = await updateItem.mutateAsync({ listId: item.listId, itemId: item.id, priority })
 		if (result.kind === 'ok') {
-			toast.success('Priority updated')
+			toast.success(m.items_priority_toast_updated())
 		} else {
-			toast.error('Failed to update priority')
+			toast.error(m.items_priority_toast_failed())
 		}
 	}
 
@@ -182,9 +183,9 @@ export const ItemEditRow = memo(function ItemEditRow({
 		const next = isUnavailable ? 'available' : 'unavailable'
 		const result = await toggleAvailability.mutateAsync({ listId: item.listId, itemId: item.id, availability: next })
 		if (result.kind === 'ok') {
-			toast.success(next === 'unavailable' ? 'Marked as unavailable' : 'Marked as available')
+			toast.success(next === 'unavailable' ? m.items_availability_toast_unavailable() : m.items_availability_toast_available())
 		} else {
-			toast.error('Failed to update availability')
+			toast.error(m.items_availability_toast_failed())
 		}
 	}
 
@@ -192,9 +193,9 @@ export const ItemEditRow = memo(function ItemEditRow({
 		setDeleteDialogOpen(false)
 		const result = await deleteOne.mutateAsync({ listId: item.listId, itemId: item.id })
 		if (result.kind === 'ok') {
-			toast.success('Item deleted')
+			toast.success(m.items_toast_deleted())
 		} else {
-			toast.error('Failed to delete item')
+			toast.error(m.items_toast_delete_failed())
 		}
 	}
 
@@ -216,7 +217,7 @@ export const ItemEditRow = memo(function ItemEditRow({
 					<UrlBadge url={item.url} />
 				)}
 				<span className="flex-1" />
-				{isSaving && <Loader2 className="size-3.5 shrink-0 text-muted-foreground animate-spin" aria-label="Saving" />}
+				{isSaving && <Loader2 className="size-3.5 shrink-0 text-muted-foreground animate-spin" aria-label={m.items_row_saving_label()} />}
 				{isUnavailable && (
 					<QuantityRemainingBadge
 						variant="inline-pill"
@@ -229,34 +230,36 @@ export const ItemEditRow = memo(function ItemEditRow({
 				)}
 				<DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
 					<DropdownMenuTrigger asChild>
-						<Button variant="outline" size="icon-xs" className="shrink-0" aria-label="Item actions">
+						<Button variant="outline" size="icon-xs" className="shrink-0" aria-label={m.items_row_actions_label()}>
 							<MoreHorizontal className="size-5" />
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
 						<DropdownMenuItem onClick={() => setEditOpen(true)}>
-							<Pencil className="size-4" /> Edit
+							<Pencil className="size-4" /> {m.action_edit()}
 						</DropdownMenuItem>
 						{onMoveClick && (
 							<DropdownMenuItem onClick={() => onMoveClick(item)}>
-								<ArrowRightLeft className="size-4" /> Move to...
+								<ArrowRightLeft className="size-4" /> {m.items_action_move_to()}
 							</DropdownMenuItem>
 						)}
 						<DropdownMenuSub>
 							<DropdownMenuSubTrigger>
-								<Group className="size-4" /> Group
+								<Group className="size-4" /> {m.items_row_group_menu()}
 							</DropdownMenuSubTrigger>
 							<DropdownMenuSubContent>
 								<DropdownMenuItem onClick={() => handleCreateGroupWithItem('or')}>
-									<Shuffle className="size-4" /> New "Pick One" Group
+									<Shuffle className="size-4" /> {m.items_row_new_group_or()}
 								</DropdownMenuItem>
 								<DropdownMenuItem onClick={() => handleCreateGroupWithItem('order')}>
-									<ListOrdered className="size-4" /> New "In Order" Group
+									<ListOrdered className="size-4" /> {m.items_row_new_group_order()}
 								</DropdownMenuItem>
 								{otherGroups.length > 0 && <DropdownMenuSeparator />}
 								{otherGroups.map(g => {
 									const GroupTypeIcon = g.type === 'or' ? Shuffle : ListOrdered
-									const label = g.name || `${g.type === 'or' ? 'Pick one' : 'In order'} group #${g.id}`
+									const label =
+										g.name ||
+										(g.type === 'or' ? m.items_row_group_numbered_or({ id: g.id }) : m.items_row_group_numbered_order({ id: g.id }))
 									return (
 										<DropdownMenuItem key={g.id} onClick={() => handleAssignGroup(g.id)}>
 											<GroupTypeIcon className="size-4" /> {label}
@@ -266,7 +269,7 @@ export const ItemEditRow = memo(function ItemEditRow({
 								{hasCurrentGroup && <DropdownMenuSeparator />}
 								{hasCurrentGroup && (
 									<DropdownMenuItem onClick={() => handleAssignGroup(null)}>
-										<Ungroup className="size-4" /> Remove From Group
+										<Ungroup className="size-4" /> {m.items_row_remove_from_group()}
 									</DropdownMenuItem>
 								)}
 							</DropdownMenuSubContent>
@@ -274,11 +277,11 @@ export const ItemEditRow = memo(function ItemEditRow({
 						<DropdownMenuItem onClick={handleToggleAvailability} disabled={toggleAvailability.isPending}>
 							{isUnavailable ? (
 								<>
-									<PackageCheck className="size-4" /> Mark as available
+									<PackageCheck className="size-4" /> {m.items_row_mark_available()}
 								</>
 							) : (
 								<>
-									<PackageX className="size-4" /> Mark as unavailable
+									<PackageX className="size-4" /> {m.items_row_mark_unavailable()}
 								</>
 							)}
 						</DropdownMenuItem>
@@ -298,7 +301,7 @@ export const ItemEditRow = memo(function ItemEditRow({
 													void handleSetPriority(option.value)
 												}}
 												title={priorityLabel(option.value)}
-												aria-label={`Set priority: ${priorityLabel(option.value)}`}
+												aria-label={m.items_row_set_priority_label({ priority: priorityLabel(option.value) })}
 												aria-pressed={selected}
 												className={cn(
 													'flex size-7 items-center justify-center rounded-sm transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-hidden',
@@ -316,12 +319,14 @@ export const ItemEditRow = memo(function ItemEditRow({
 						)}
 						<DropdownMenuSeparator />
 						<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteDialogOpen(true)}>
-							<Trash2 className="size-4" /> Delete
+							<Trash2 className="size-4" /> {m.action_delete()}
 						</DropdownMenuItem>
 						{isAdmin && (
 							<>
 								<DropdownMenuSeparator />
-								<DropdownMenuLabel className="text-muted-foreground font-mono text-xs">item #{item.id}</DropdownMenuLabel>
+								<DropdownMenuLabel className="text-muted-foreground font-mono text-xs">
+									{m.items_row_admin_id({ id: item.id })}
+								</DropdownMenuLabel>
 							</>
 						)}
 					</DropdownMenuContent>
@@ -343,8 +348,8 @@ export const ItemEditRow = memo(function ItemEditRow({
 								className="rounded-b-none"
 								onClick={onMoveUp}
 								disabled={!onMoveUp}
-								title="Move up"
-								aria-label="Move up"
+								title={m.items_row_move_up()}
+								aria-label={m.items_row_move_up()}
 							>
 								<ArrowUp className="size-4" />
 							</Button>
@@ -354,8 +359,8 @@ export const ItemEditRow = memo(function ItemEditRow({
 								className="-mt-px rounded-t-none"
 								onClick={onMoveDown}
 								disabled={!onMoveDown}
-								title="Move down"
-								aria-label="Move down"
+								title={m.items_row_move_down()}
+								aria-label={m.items_row_move_down()}
 							>
 								<ArrowDown className="size-4" />
 							</Button>
@@ -417,13 +422,13 @@ export const ItemEditRow = memo(function ItemEditRow({
 			<AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Delete "{item.title}"?</AlertDialogTitle>
-						<AlertDialogDescription>This will permanently remove this item and any associated claims or comments.</AlertDialogDescription>
+						<AlertDialogTitle>{m.items_delete_confirm_title({ title: item.title })}</AlertDialogTitle>
+						<AlertDialogDescription>{m.items_delete_confirm_description()}</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogCancel>{m.action_cancel()}</AlertDialogCancel>
 						<AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-							Delete
+							{m.action_delete()}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

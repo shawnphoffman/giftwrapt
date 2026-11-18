@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatDate } from '@/lib/i18n/format'
 import { type GifterUnitGroup, groupByGifterUnit, type ReceivedRow } from '@/lib/received-grouping'
 import { matchesTimeframe, type TimeframeValue } from '@/lib/timeframe'
+import { m } from '@/paraglide/messages.js'
 
 type Props = {
 	data: ReceivedGiftsResult
@@ -83,16 +84,13 @@ export function ReceivedPageContent({ data, onDraftThankYou }: Props) {
 	return (
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
-				<PageHeading title="Received" icon={PackageOpen} color="cyan" />
+				<PageHeading title={m.page_received()} icon={PackageOpen} color="cyan" />
 
-				<p className="text-sm text-muted-foreground">
-					Gifts that have been archived on your lists. Once archived, you can see who gifted each item. Partnered gifters appear together as
-					a single household.
-				</p>
+				<p className="text-sm text-muted-foreground">{m.received_intro()}</p>
 
 				{totalReceived === 0 ? (
 					<div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg bg-accent/30">
-						No received gifts yet. Items will appear here after they are archived.
+						{m.received_empty()}
 					</div>
 				) : (
 					<>
@@ -101,13 +99,13 @@ export function ReceivedPageContent({ data, onDraftThankYou }: Props) {
 							<div className="flex items-center gap-2 flex-wrap">
 								{hasDependents && (
 									<>
-										<span className="text-sm text-muted-foreground">Recipient:</span>
+										<span className="text-sm text-muted-foreground">{m.received_recipient_label()}</span>
 										<Select value={recipientKey} onValueChange={setRecipientKey}>
 											<SelectTrigger className="w-45">
 												<SelectValue />
 											</SelectTrigger>
 											<SelectContent>
-												{hasSelf && <SelectItem value={SELF_RECIPIENT_KEY}>You</SelectItem>}
+												{hasSelf && <SelectItem value={SELF_RECIPIENT_KEY}>{m.received_recipient_you()}</SelectItem>}
 												{dependentTabs.map(d => (
 													<SelectItem key={d.id} value={d.id}>
 														{d.name}
@@ -123,11 +121,11 @@ export function ReceivedPageContent({ data, onDraftThankYou }: Props) {
 								<Button variant="outline" size="sm" onClick={toggleAll}>
 									{allOpen ? (
 										<>
-											<ChevronsDownUp className="size-4" /> Collapse all
+											<ChevronsDownUp className="size-4" /> {m.purchases_collapse_all()}
 										</>
 									) : (
 										<>
-											<ChevronsUpDown className="size-4" /> Expand all
+											<ChevronsUpDown className="size-4" /> {m.purchases_expand_all()}
 										</>
 									)}
 								</Button>
@@ -136,7 +134,7 @@ export function ReceivedPageContent({ data, onDraftThankYou }: Props) {
 
 						{filtered.length === 0 ? (
 							<div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg bg-accent/30">
-								No gifts received in this timeframe.
+								{m.received_empty_timeframe()}
 							</div>
 						) : (
 							<>
@@ -145,10 +143,10 @@ export function ReceivedPageContent({ data, onDraftThankYou }: Props) {
 									<Table>
 										<TableHeader className="bg-muted">
 											<TableRow>
-												<TableHead className="pl-3">Gifter</TableHead>
-												<TableHead className="text-right">Gifts</TableHead>
-												<TableHead className="text-right">Off-List</TableHead>
-												<TableHead className="text-right">Total</TableHead>
+												<TableHead className="pl-3">{m.received_column_gifter()}</TableHead>
+												<TableHead className="text-right">{m.received_label_gifts()}</TableHead>
+												<TableHead className="text-right">{m.received_label_off_list()}</TableHead>
+												<TableHead className="text-right">{m.received_label_total()}</TableHead>
 												<TableHead className="w-8 pr-3"></TableHead>
 											</TableRow>
 										</TableHeader>
@@ -163,9 +161,7 @@ export function ReceivedPageContent({ data, onDraftThankYou }: Props) {
 																	<UnitAvatars members={g.members} />
 																	<div className="flex flex-col min-w-0">
 																		<span className="font-medium truncate">{g.label}</span>
-																		<span className="text-xs text-muted-foreground">
-																			{g.totalCount} {g.totalCount === 1 ? 'gift' : 'gifts'}
-																		</span>
+																		<span className="text-xs text-muted-foreground">{m.received_gift_count({ count: g.totalCount })}</span>
 																	</div>
 																</div>
 															</TableCell>
@@ -203,7 +199,7 @@ export function ReceivedPageContent({ data, onDraftThankYou }: Props) {
 																						tabIndex={isOpen ? 0 : -1}
 																						onClick={() => onDraftThankYou(g)}
 																					>
-																						<PenLine className="size-4" /> Draft a Thank-You
+																						<PenLine className="size-4" /> {m.received_draft_thank_you_button()}
 																					</Button>
 																				</div>
 																			)}
@@ -224,19 +220,19 @@ export function ReceivedPageContent({ data, onDraftThankYou }: Props) {
 								{/* METRICS */}
 								<div className="grid grid-cols-3 gap-4">
 									<MetricCard
-										label="Total"
+										label={m.received_label_total()}
 										value={metrics.totalItems}
 										icon={<PackageOpen className="size-6" />}
 										gradient="bg-gradient-to-br from-cyan-400/40 via-sky-400/30 to-blue-500/40"
 									/>
 									<MetricCard
-										label="Gifts"
+										label={m.received_label_gifts()}
 										value={metrics.totalGifts}
 										icon={<Gift className="size-6" />}
 										gradient="bg-gradient-to-br from-pink-400/40 via-rose-400/30 to-orange-400/40"
 									/>
 									<MetricCard
-										label="Off-List"
+										label={m.received_label_off_list()}
 										value={metrics.totalAddons}
 										icon={<PackagePlus className="size-6" />}
 										gradient="bg-gradient-to-br from-violet-400/40 via-purple-400/30 to-fuchsia-500/40"
@@ -269,7 +265,7 @@ function ReceivedDetailRow({ row }: { row: ReceivedRow }) {
 							target="_blank"
 							rel="noopener noreferrer"
 							className="text-muted-foreground hover:text-foreground shrink-0"
-							aria-label="Open original product link"
+							aria-label={m.received_open_product_link()}
 						>
 							<ExternalLink className="size-3.5" />
 						</a>
@@ -279,12 +275,12 @@ function ReceivedDetailRow({ row }: { row: ReceivedRow }) {
 			</div>
 			{row.type === 'item' && row.quantity > 1 && (
 				<Badge variant="secondary" className="text-xs tabular-nums shrink-0">
-					x{row.quantity}
+					{m.purchases_quantity_badge({ quantity: row.quantity })}
 				</Badge>
 			)}
 			{row.type === 'addon' && (
 				<Badge variant="secondary" className="text-xs shrink-0">
-					Off-list
+					{m.received_off_list_badge()}
 				</Badge>
 			)}
 			<Badge variant="outline" className="text-xs tabular-nums shrink-0">
@@ -297,8 +293,8 @@ function ReceivedDetailRow({ row }: { row: ReceivedRow }) {
 function UnitAvatars({ members }: { members: GifterUnit['members'] }) {
 	if (members.length === 0) return null
 	if (members.length === 1) {
-		const m = members[0]
-		return <UserAvatar name={m.name} image={m.image} size="medium" />
+		const member = members[0]
+		return <UserAvatar name={member.name} image={member.image} size="medium" />
 	}
 	// Pair: render two stacked avatars (similar to the partner-purchase
 	// affordance on the purchases page).

@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { parseAmazonWishlist } from '@/lib/import/parsers/amazon-wishlist'
 import { itemsKeys } from '@/lib/queries/items'
+import { m } from '@/paraglide/messages.js'
 
 import { ImportPreviewTable } from './import-preview-table'
 
@@ -22,6 +23,10 @@ type Props = {
 }
 
 type Step = 'url' | 'fallback' | 'preview'
+
+// These show the expected shape of what to paste; not translated.
+const URL_PLACEHOLDER = 'https://www.amazon.com/hz/wishlist/ls/...'
+const HTML_PLACEHOLDER = '<!doctype html>...'
 
 /**
  * Three-step Amazon wish-list import. The user pastes a wishlist URL;
@@ -75,7 +80,7 @@ export function ImportDialogAmazon({ listId, open, onOpenChange }: Props) {
 				setStep('fallback')
 			}
 		} catch (err) {
-			setError(err instanceof Error ? err.message : 'Failed to fetch wishlist')
+			setError(err instanceof Error ? err.message : m.items_import_amazon_error_fetch())
 		} finally {
 			setFetching(false)
 		}
@@ -98,11 +103,11 @@ export function ImportDialogAmazon({ listId, open, onOpenChange }: Props) {
 				setError(reasonToMessage(result.reason))
 				return
 			}
-			toast.success(`Imported ${result.items.length} item${result.items.length === 1 ? '' : 's'}`)
+			toast.success(m.items_import_toast_imported({ count: result.items.length }))
 			await queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })
 			onOpenChange(false)
 		} catch (err) {
-			setError(err instanceof Error ? err.message : 'Failed to import')
+			setError(err instanceof Error ? err.message : m.items_import_error_failed())
 		} finally {
 			setSubmitting(false)
 		}
@@ -113,40 +118,38 @@ export function ImportDialogAmazon({ listId, open, onOpenChange }: Props) {
 			<DialogContent className="sm:max-w-3xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						<ShoppingBag className="size-5" /> Import From Amazon Wish List
+						<ShoppingBag className="size-5" /> {m.items_import_amazon_title()}
 					</DialogTitle>
-					<DialogDescription>
-						Paste your wish list URL. If Amazon blocks the fetch, we'll ask you to paste the page's HTML instead.
-					</DialogDescription>
+					<DialogDescription>{m.items_import_amazon_description()}</DialogDescription>
 				</DialogHeader>
 
 				{step === 'url' && (
 					<div className="flex flex-col gap-3">
 						<div className="grid gap-2">
-							<Label htmlFor="import-amazon-url">Amazon Wish List URL</Label>
+							<Label htmlFor="import-amazon-url">{m.items_import_amazon_url_label()}</Label>
 							<Input
 								id="import-amazon-url"
 								type="url"
 								value={url}
 								onChange={e => setUrl(e.target.value)}
-								placeholder="https://www.amazon.com/hz/wishlist/ls/..."
+								placeholder={URL_PLACEHOLDER}
 								disabled={fetching}
 								autoFocus
 							/>
 						</div>
 						{error && (
 							<Alert variant="destructive">
-								<AlertTitle>Error</AlertTitle>
+								<AlertTitle>{m.items_error_title()}</AlertTitle>
 								<AlertDescription>{error}</AlertDescription>
 							</Alert>
 						)}
 						<DialogFooter>
 							<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={fetching}>
-								Cancel
+								{m.action_cancel()}
 							</Button>
 							<Button type="button" onClick={fetchAndParse} disabled={fetching || url.trim().length === 0}>
 								{fetching ? <Loader2 className="size-4 animate-spin" /> : null}
-								{fetching ? 'Fetching...' : 'Fetch Wish List'}
+								{fetching ? m.items_import_amazon_fetching() : m.items_import_amazon_fetch_button()}
 							</Button>
 						</DialogFooter>
 					</div>
@@ -155,35 +158,32 @@ export function ImportDialogAmazon({ listId, open, onOpenChange }: Props) {
 				{step === 'fallback' && (
 					<div className="flex flex-col gap-3">
 						<Alert>
-							<AlertTitle>Couldn't fetch the page automatically</AlertTitle>
-							<AlertDescription>
-								Open your wish list in the browser, right-click the page and choose "View Page Source", select all, copy, and paste below.
-								(Or open dev tools, copy the body's outerHTML.)
-							</AlertDescription>
+							<AlertTitle>{m.items_import_amazon_fallback_title()}</AlertTitle>
+							<AlertDescription>{m.items_import_amazon_fallback_description()}</AlertDescription>
 						</Alert>
 						<div className="grid gap-2">
-							<Label htmlFor="import-amazon-html">Wish List HTML</Label>
+							<Label htmlFor="import-amazon-html">{m.items_import_amazon_html_label()}</Label>
 							<Textarea
 								id="import-amazon-html"
 								rows={8}
 								value={pastedHtml}
 								onChange={e => setPastedHtml(e.target.value)}
-								placeholder="<!doctype html>..."
+								placeholder={HTML_PLACEHOLDER}
 								autoFocus
 							/>
 						</div>
 						{error && (
 							<Alert variant="destructive">
-								<AlertTitle>Error</AlertTitle>
+								<AlertTitle>{m.items_error_title()}</AlertTitle>
 								<AlertDescription>{error}</AlertDescription>
 							</Alert>
 						)}
 						<DialogFooter>
 							<Button type="button" variant="outline" onClick={() => setStep('url')}>
-								Back
+								{m.action_back()}
 							</Button>
 							<Button type="button" onClick={parsePastedHtml} disabled={pastedHtml.trim().length === 0}>
-								Parse HTML
+								{m.items_import_amazon_parse_button()}
 							</Button>
 						</DialogFooter>
 					</div>
@@ -193,7 +193,7 @@ export function ImportDialogAmazon({ listId, open, onOpenChange }: Props) {
 					<div className="flex min-w-0 flex-col gap-3">
 						{error && (
 							<Alert variant="destructive">
-								<AlertTitle>Error</AlertTitle>
+								<AlertTitle>{m.items_error_title()}</AlertTitle>
 								<AlertDescription>{error}</AlertDescription>
 							</Alert>
 						)}
@@ -205,7 +205,6 @@ export function ImportDialogAmazon({ listId, open, onOpenChange }: Props) {
 							submitting={submitting}
 							onSubmit={submit}
 							onCancel={() => setStep('url')}
-							importLabel="Import"
 						/>
 					</div>
 				)}
@@ -215,8 +214,8 @@ export function ImportDialogAmazon({ listId, open, onOpenChange }: Props) {
 }
 
 function reasonToMessage(reason: 'list-not-found' | 'not-authorized' | 'feature-disabled' | 'todo-list-rejects-items'): string {
-	if (reason === 'list-not-found') return 'List not found.'
-	if (reason === 'not-authorized') return 'You do not have permission to add to this list.'
-	if (reason === 'todo-list-rejects-items') return 'Todo lists do not take gift items.'
-	return 'Importing is currently disabled. Ask your admin to turn it on.'
+	if (reason === 'list-not-found') return m.items_error_list_not_found()
+	if (reason === 'not-authorized') return m.items_import_error_not_authorized()
+	if (reason === 'todo-list-rejects-items') return m.items_import_error_todo_list()
+	return m.items_import_error_disabled()
 }

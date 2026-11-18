@@ -35,6 +35,7 @@ import { parseInternalListLink } from '@/lib/urls'
 import { useListAutoRefresh } from '@/lib/use-list-auto-refresh'
 import { useListSSE } from '@/lib/use-list-sse'
 import { useScrollToHash } from '@/lib/use-scroll-to-hash'
+import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
 type EditSearch = { from?: number; settings?: boolean; edit?: number }
@@ -68,7 +69,7 @@ export const Route = createFileRoute('/(core)/lists_/$listId/edit')({
 
 		return { list: listResult.list, editors, addableUsers }
 	},
-	head: pageHead<{ list: { name: string } }>(d => d?.list.name ?? 'Edit List'),
+	head: pageHead<{ list: { name: string } }>(d => d?.list.name ?? m.lists_edit_page_title_fallback()),
 	component: ListEditPage,
 	pendingComponent: ListEditPagePending,
 })
@@ -77,7 +78,7 @@ export const Route = createFileRoute('/(core)/lists_/$listId/edit')({
 function ListEditPagePending() {
 	return (
 		<PendingPage>
-			<Skeleton loading label="Loading list">
+			<Skeleton loading label={m.lists_detail_loading()}>
 				<ListEditSkeleton />
 			</Skeleton>
 		</PendingPage>
@@ -126,18 +127,18 @@ function ListEditPage() {
 	const handleCreateGroup = async (type: GroupType) => {
 		const result = await createItemGroup({ data: { listId: list.id, type } })
 		if (result.kind === 'ok') {
-			toast.success(`${type === 'or' ? '"Pick one"' : '"Ordered"'} group created`)
+			toast.success(type === 'or' ? m.lists_edit_group_created_or() : m.lists_edit_group_created_order())
 			await refreshAfterGroupChange()
 			scrollToGroup(result.group.id)
 		} else {
-			toast.error('Failed to create group')
+			toast.error(m.lists_edit_group_create_failed())
 		}
 	}
 
 	const handleDeleteGroup = async (groupId: number) => {
 		const result = await deleteItemGroup({ data: { groupId } })
 		if (result.kind === 'ok') {
-			toast.success('Group removed (items kept)')
+			toast.success(m.lists_edit_group_removed())
 			await refreshAfterGroupChange()
 		}
 	}
@@ -151,7 +152,7 @@ function ListEditPage() {
 		if (result.kind === 'ok') {
 			await refreshAfterGroupChange()
 		} else {
-			toast.error('Failed to reorder')
+			toast.error(m.lists_edit_reorder_failed())
 		}
 	}
 
@@ -217,7 +218,7 @@ function ListEditPage() {
 							onAddItem={() => openAddItemDialog(null)}
 							onAddItemFromPhoto={openAddItemFromPhoto}
 						/>
-						<SkeletonSuspense id={`list-edit-items-${list.id}`} label="Loading items" skeleton={<EditItemsSkeleton />}>
+						<SkeletonSuspense id={`list-edit-items-${list.id}`} label={m.lists_items_loading()} skeleton={<EditItemsSkeleton />}>
 							<EditItemsBody
 								list={list}
 								onMoveItem={setMoveItem}
@@ -310,22 +311,22 @@ function EditListToolbar({ listId, leading, onCreateGroup, onAddItem, onAddItemF
 				<Button size="sm" variant="outline" asChild>
 					<Link to="/lists/$listId/organize" params={{ listId: String(listId) }}>
 						<Settings2 className="size-4" />
-						<span className="sr-only xs:not-sr-only">Organize</span>
+						<span className="sr-only xs:not-sr-only">{m.lists_edit_organize()}</span>
 					</Link>
 				</Button>
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
 						<Button size="sm" variant="outline">
-							<GroupIcon className="size-4" /> <span className="xs:hidden">Group</span>
-							<span className="hidden xs:inline">New Group</span>
+							<GroupIcon className="size-4" /> <span className="xs:hidden">{m.lists_edit_group_short()}</span>
+							<span className="hidden xs:inline">{m.lists_edit_new_group()}</span>
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
 						<DropdownMenuItem onClick={() => onCreateGroup('or')}>
-							<Shuffle className="size-4" /> Pick One
+							<Shuffle className="size-4" /> {m.lists_edit_group_pick_one()}
 						</DropdownMenuItem>
 						<DropdownMenuItem onClick={() => onCreateGroup('order')}>
-							<ListOrdered className="size-4" /> In Order
+							<ListOrdered className="size-4" /> {m.lists_edit_group_in_order()}
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
@@ -423,7 +424,7 @@ function EditItemsView({ list, items, onMoveItem, onAddItem, onDeleteGroup, onRe
 	if (items.length === 0 && list.groups.length === 0) {
 		return (
 			<div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg bg-accent/30">
-				No items yet. Click "Add item" to get started.
+				{m.lists_edit_empty()}
 			</div>
 		)
 	}

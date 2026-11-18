@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 import type { ListRef } from './__fixtures__/types'
 
@@ -88,11 +89,11 @@ export function ListFilterPopover({ sections, selected, onChange, iconOnly = fal
 					data-filter-active={!allChecked ? 'true' : 'false'}
 					size={iconOnly ? 'icon-sm' : 'sm'}
 					variant="outline"
-					aria-label={iconOnly ? 'Filter suggestions by list' : undefined}
+					aria-label={iconOnly ? m.intelligence_filter_trigger_aria() : undefined}
 					className="relative"
 				>
 					<Filter className="size-4" />
-					{!iconOnly && <span>Filter</span>}
+					{!iconOnly && <span>{m.intelligence_filter_trigger()}</span>}
 					{muted > 0 && (
 						<Badge
 							data-intelligence="list-filter-count"
@@ -109,7 +110,7 @@ export function ListFilterPopover({ sections, selected, onChange, iconOnly = fal
 			</PopoverTrigger>
 			<PopoverContent data-intelligence="list-filter-popover" className="w-80 p-0" align="end">
 				<div className="flex items-center justify-between gap-2 border-b border-border/60 px-3 py-2">
-					<span className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">Filter by list</span>
+					<span className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">{m.intelligence_filter_heading()}</span>
 					<div className="flex items-center gap-1">
 						<button
 							type="button"
@@ -118,7 +119,7 @@ export function ListFilterPopover({ sections, selected, onChange, iconOnly = fal
 							disabled={allChecked}
 							className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none"
 						>
-							Select All
+							{m.intelligence_filter_select_all()}
 						</button>
 						<span className="text-xs text-muted-foreground/40">·</span>
 						<button
@@ -128,7 +129,7 @@ export function ListFilterPopover({ sections, selected, onChange, iconOnly = fal
 							disabled={allUnchecked}
 							className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:pointer-events-none"
 						>
-							Clear
+							{m.action_clear()}
 						</button>
 					</div>
 				</div>
@@ -155,7 +156,7 @@ export function ListFilterPopover({ sections, selected, onChange, iconOnly = fal
 										{!isGlobal && opt.listRef && (
 											<ListTypeIcon type={opt.listRef.type} className="size-3.5 shrink-0 text-muted-foreground" />
 										)}
-										<span className="truncate">{isGlobal ? 'Global suggestions' : (opt.listRef?.name ?? opt.listId)}</span>
+										<span className="truncate">{isGlobal ? m.intelligence_filter_global_option() : (opt.listRef?.name ?? opt.listId)}</span>
 									</label>
 								)
 							})}
@@ -198,7 +199,7 @@ export function buildFilterSections(
 	if (anyGlobal) {
 		sections.push({
 			key: 'global',
-			label: 'Global Suggestions',
+			label: m.intelligence_filter_section_global(),
 			options: [{ listId: GLOBAL_FILTER_ID, listRef: null }],
 		})
 	}
@@ -222,7 +223,7 @@ export function buildFilterSections(
 	if (userLists.size > 0) {
 		sections.push({
 			key: 'user',
-			label: 'Your Lists',
+			label: m.intelligence_filter_section_user(),
 			options: [...userLists.values()].sort((a, b) => a.name.localeCompare(b.name)).map(listRef => ({ listId: listRef.id, listRef })),
 		})
 	}
@@ -237,7 +238,7 @@ export function buildFilterSections(
 		if (lists.size === 0) continue
 		sections.push({
 			key: `dependent:${group.dependent.id}`,
-			label: `${group.dependent.name}'s lists`,
+			label: m.intelligence_filter_section_dependent({ name: group.dependent.name }),
 			dependent: group.dependent,
 			options: [...lists.values()].sort((a, b) => a.name.localeCompare(b.name)).map(listRef => ({ listId: listRef.id, listRef })),
 		})

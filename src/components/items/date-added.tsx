@@ -3,6 +3,7 @@ import { isThisYear } from 'date-fns'
 import { TapTooltip, TapTooltipContent, TapTooltipTrigger } from '@/components/ui/tooltip'
 import { formatDate } from '@/lib/i18n/format'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 type Props = {
 	createdAt: Date | string | null | undefined
@@ -27,7 +28,7 @@ export function DateAdded({ createdAt, className }: Props) {
 					{short}
 				</span>
 			</TapTooltipTrigger>
-			<TapTooltipContent>Added {full}</TapTooltipContent>
+			<TapTooltipContent>{m.items_date_added_tooltip({ date: full })}</TapTooltipContent>
 		</TapTooltip>
 	)
 }

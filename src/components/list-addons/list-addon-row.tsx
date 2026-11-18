@@ -28,6 +28,7 @@ import { TapTooltip, TapTooltipContent, TapTooltipTrigger } from '@/components/u
 import { useSession } from '@/lib/auth-client'
 import { formatDate } from '@/lib/i18n/format'
 import { applyListEventLocally } from '@/lib/list-events'
+import { m } from '@/paraglide/messages.js'
 
 import { ListAddonDialog } from './list-addon-dialog'
 
@@ -48,6 +49,7 @@ export function ListAddonRow({ addon, listId }: Props) {
 	const [deleting, setDeleting] = useState(false)
 
 	const name = addon.user.name || addon.user.email
+	const addedOn = formatDate(addon.createdAt, { month: 'short', day: 'numeric', year: 'numeric' })
 
 	async function handleDelete() {
 		setDeleting(true)
@@ -56,21 +58,21 @@ export function ListAddonRow({ addon, listId }: Props) {
 			if (result.kind === 'error') {
 				switch (result.reason) {
 					case 'not-yours':
-						toast.error("You can't delete someone else's addon.")
+						toast.error(m.lists_addon_error_not_yours_delete())
 						break
 					case 'not-found':
-						toast.error('This addon no longer exists.')
+						toast.error(m.lists_addon_error_gone())
 						break
 				}
 				return
 			}
-			toast.success('Off-list gift removed')
+			toast.success(m.lists_addon_removed())
 			setDeleteDialogOpen(false)
 			// Refresh the actor's own surfaces immediately (gifter list view reads
 			// addons via React Query; SSE doesn't reach it on Vercel).
 			applyListEventLocally({ kind: 'addon', listId, addonId: addon.id }, { queryClient, router })
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Failed to delete')
+			toast.error(err instanceof Error ? err.message : m.lists_addon_delete_failed())
 		} finally {
 			setDeleting(false)
 		}
@@ -87,18 +89,18 @@ export function ListAddonRow({ addon, listId }: Props) {
 					{isMine && (
 						<DropdownMenu>
 							<DropdownMenuTrigger asChild>
-								<Button variant="outline" size="icon-xs" className="shrink-0" aria-label="Off-list gift actions">
+								<Button variant="outline" size="icon-xs" className="shrink-0" aria-label={m.lists_addon_actions_label()}>
 									<MoreHorizontal className="size-5" />
 								</Button>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end">
 								<DropdownMenuItem onClick={() => setEditDialogOpen(true)}>
 									<Pencil className="size-4" />
-									Edit
+									{m.action_edit()}
 								</DropdownMenuItem>
 								<DropdownMenuItem variant="destructive" onClick={() => setDeleteDialogOpen(true)}>
 									<Trash2 className="size-4" />
-									Delete
+									{m.action_delete()}
 								</DropdownMenuItem>
 							</DropdownMenuContent>
 						</DropdownMenu>
@@ -124,10 +126,10 @@ export function ListAddonRow({ addon, listId }: Props) {
 							</span>
 						</TapTooltipTrigger>
 						<TapTooltipContent>
-							Added by {isMine ? 'you' : name} on {formatDate(addon.createdAt, { month: 'short', day: 'numeric', year: 'numeric' })}
+							{isMine ? m.lists_addon_added_by_you({ date: addedOn }) : m.lists_addon_added_by({ name, date: addedOn })}
 						</TapTooltipContent>
 					</TapTooltip>
-					<span>{isMine ? 'You' : name}</span>
+					<span>{isMine ? m.lists_addon_author_you() : name}</span>
 					<span className="flex-1" />
 					<div className="flex items-center gap-1">
 						<DateAdded createdAt={addon.createdAt} />
@@ -143,13 +145,13 @@ export function ListAddonRow({ addon, listId }: Props) {
 			<AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Delete This Off-List Gift?</AlertDialogTitle>
-						<AlertDialogDescription>This will permanently remove the entry.</AlertDialogDescription>
+						<AlertDialogTitle>{m.lists_addon_delete_confirm_title()}</AlertDialogTitle>
+						<AlertDialogDescription>{m.lists_addon_delete_confirm_description()}</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+						<AlertDialogCancel disabled={deleting}>{m.action_cancel()}</AlertDialogCancel>
 						<AlertDialogAction onClick={handleDelete} disabled={deleting}>
-							{deleting ? 'Deleting…' : 'Yes, Delete'}
+							{deleting ? m.lists_addon_delete_busy() : m.lists_addon_delete_confirm_button()}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

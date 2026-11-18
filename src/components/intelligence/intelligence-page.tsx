@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatDate, formatTimeAgo } from '@/lib/i18n/format'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 import type { IntelligencePageState, Recommendation, RecommendationAction, RecommendationSeverity, RecSubItem } from './__fixtures__/types'
 import { buildFilterSections, isRecVisible, ListFilterPopover, type ListFilterSection } from './list-filter-popover'
@@ -52,12 +53,31 @@ type Props = {
 }
 
 const SEVERITY_RANK: Record<RecommendationSeverity, number> = { important: 0, suggest: 1, info: 2 }
-const SEVERITY_LABEL: Record<RecommendationSeverity, string> = { important: 'Important', suggest: 'Suggested', info: 'For your info' }
-const SEVERITY_DESCRIPTION: Record<RecommendationSeverity, string> = {
-	important: 'Worth handling soon. These affect how others see your lists.',
-	suggest: 'Optional polish. Apply if you agree, dismiss if not.',
-	info: 'Just a heads-up. No action required.',
+
+// Functions, not tables: a table is worded once when the module loads, in
+// whatever language was current then.
+function severityLabel(severity: RecommendationSeverity): string {
+	switch (severity) {
+		case 'important':
+			return m.intelligence_severity_important()
+		case 'suggest':
+			return m.intelligence_severity_suggest()
+		case 'info':
+			return m.intelligence_severity_info()
+	}
 }
+
+function severityDescription(severity: RecommendationSeverity): string {
+	switch (severity) {
+		case 'important':
+			return m.intelligence_severity_important_description()
+		case 'suggest':
+			return m.intelligence_severity_suggest_description()
+		case 'info':
+			return m.intelligence_severity_info_description()
+	}
+}
+
 const SEVERITY_ORDER: Array<RecommendationSeverity> = ['important', 'suggest', 'info']
 
 // Reconcile the user's current filter selection with a new option set
@@ -234,7 +254,7 @@ function IntelligencePageLoaded({
 			{errorMessage && (
 				<Alert data-intelligence="page-error-alert" variant="destructive" className="mb-4">
 					<AlertTriangle className="size-4" />
-					<AlertTitle>Last run failed</AlertTitle>
+					<AlertTitle>{m.intelligence_run_failed_title()}</AlertTitle>
 					<AlertDescription>{errorMessage}</AlertDescription>
 				</Alert>
 			)}
@@ -242,8 +262,8 @@ function IntelligencePageLoaded({
 			{generating && (
 				<Alert data-intelligence="page-generating-alert" className="mb-4">
 					<Loader2 className="size-4 animate-spin" />
-					<AlertTitle>Working on fresh recommendations</AlertTitle>
-					<AlertDescription>This usually takes a few seconds. The list below will update when it finishes.</AlertDescription>
+					<AlertTitle>{m.intelligence_generating_title()}</AlertTitle>
+					<AlertDescription>{m.intelligence_generating_body()}</AlertDescription>
 				</Alert>
 			)}
 
@@ -262,10 +282,10 @@ function IntelligencePageLoaded({
 							<section key={severity} data-intelligence="page-group" data-group-severity={severity} className="flex flex-col gap-3">
 								<header data-intelligence="page-group-header" className="flex items-baseline justify-between gap-3">
 									<div className="flex items-baseline gap-2">
-										<h2 className="text-base font-semibold">{SEVERITY_LABEL[severity]}</h2>
-										<span className="text-xs text-muted-foreground">{recs.length} active</span>
+										<h2 className="text-base font-semibold">{severityLabel(severity)}</h2>
+										<span className="text-xs text-muted-foreground">{m.intelligence_count_active({ count: recs.length })}</span>
 									</div>
-									<p className="text-xs text-muted-foreground hidden sm:block">{SEVERITY_DESCRIPTION[severity]}</p>
+									<p className="text-xs text-muted-foreground hidden sm:block">{severityDescription(severity)}</p>
 								</header>
 								<div data-intelligence="page-group-cards" className="flex flex-col gap-3">
 									{recs.map(rec => (
@@ -306,9 +326,14 @@ function IntelligencePageLoaded({
 
 			{(dismissed.length > 0 || applied.length > 0) && (
 				<div data-intelligence="page-summary" className="mt-6 text-xs text-muted-foreground">
-					{applied.length > 0 && <span>{applied.length} applied · </span>}
-					{dismissed.length > 0 && <span>{dismissed.length} dismissed. </span>}
-					Dismissed items stay hidden, even when suggestions refresh, until the items they&apos;re about change or you bring one back.
+					{applied.length > 0 && dismissed.length > 0 ? (
+						<span>{m.intelligence_summary_both({ appliedCount: applied.length, dismissedCount: dismissed.length })} </span>
+					) : applied.length > 0 ? (
+						<span>{m.intelligence_summary_applied({ count: applied.length })} </span>
+					) : (
+						<span>{m.intelligence_summary_dismissed({ count: dismissed.length })} </span>
+					)}
+					{m.intelligence_summary_note()}
 				</div>
 			)}
 		</div>
@@ -342,10 +367,8 @@ function DependentSections({
 	return (
 		<section data-intelligence="page-dependents" className="mt-10 flex flex-col gap-6">
 			<header data-intelligence="page-dependents-header" className="flex flex-col gap-1">
-				<h2 className="text-base font-semibold">For Your Dependents</h2>
-				<p className="text-xs text-muted-foreground">
-					Suggestions about lists you manage on someone else&apos;s behalf. They behave just like your own.
-				</p>
+				<h2 className="text-base font-semibold">{m.intelligence_dependents_title()}</h2>
+				<p className="text-xs text-muted-foreground">{m.intelligence_dependents_description()}</p>
 			</header>
 			{activeGroups.map(group => (
 				<section
@@ -357,7 +380,7 @@ function DependentSections({
 					<header data-intelligence="page-dependent-header" className="flex items-center gap-2">
 						<DependentAvatar name={group.dependent.name} image={group.dependent.image} size="small" />
 						<span className="text-sm font-medium">{group.dependent.name}</span>
-						<span className="text-xs text-muted-foreground">{group.recs.length} active</span>
+						<span className="text-xs text-muted-foreground">{m.intelligence_count_active({ count: group.recs.length })}</span>
 					</header>
 					<div data-intelligence="page-dependent-cards" className="flex flex-col gap-3">
 						{group.recs.map((rec, idx) => (
@@ -403,7 +426,7 @@ function DismissedDisclosure({
 				aria-expanded={open}
 			>
 				{open ? <ChevronDown className="size-4 text-muted-foreground" /> : <ChevronRight className="size-4 text-muted-foreground" />}
-				Show dismissed
+				{m.intelligence_dismissed_toggle()}
 				<span className="text-xs text-muted-foreground tabular-nums">({dismissed.length})</span>
 			</button>
 			{open && (
@@ -425,7 +448,9 @@ function DismissedRow({ rec, onReactivate }: { rec: Recommendation; onReactivate
 					{rec.title}
 				</p>
 				<p data-intelligence="dismissed-meta" className="text-xs text-muted-foreground">
-					Dismissed {rec.dismissedAt ? formatTimeAgo(rec.dismissedAt) : 'recently'}
+					{rec.dismissedAt
+						? m.intelligence_dismissed_when({ timeAgo: formatTimeAgo(rec.dismissedAt) })
+						: m.intelligence_dismissed_recently()}
 				</p>
 			</div>
 			<Button
@@ -437,7 +462,7 @@ function DismissedRow({ rec, onReactivate }: { rec: Recommendation; onReactivate
 				disabled={!onReactivate}
 			>
 				<RotateCcw className="size-3.5" />
-				Bring Back
+				{m.intelligence_dismissed_bring_back()}
 			</Button>
 		</li>
 	)
@@ -480,19 +505,23 @@ function Header({
 				>
 					<Sparkles className="size-7 shrink-0 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.4)]" />
 				</span>
-				Suggestions
+				{m.page_suggestions()}
 			</h1>
 			<p data-intelligence="page-tagline" className="text-sm text-muted-foreground">
-				These personalized recommendations update periodically, so check back regularly.
+				{m.intelligence_page_tagline()}
 			</p>
 			{(lastRunAt || showRefresh) && (
 				<div data-intelligence="page-meta-row" className="flex items-center justify-between gap-3 flex-wrap">
-					<div className="text-xs text-muted-foreground">{lastRunAt ? <>Last updated {formatTimeAgo(lastRunAt)}</> : null}</div>
+					<div className="text-xs text-muted-foreground">
+						{lastRunAt ? m.intelligence_last_updated({ timeAgo: formatTimeAgo(lastRunAt) }) : null}
+					</div>
 					{showRefresh && (
 						<div data-intelligence="page-refresh-block" className="flex items-center gap-2">
 							{cooldownActive && nextEligibleRefreshAt && (
 								<span data-intelligence="page-cooldown-note" className="hidden sm:inline text-2xs text-muted-foreground whitespace-nowrap">
-									Available again {formatDate(nextEligibleRefreshAt, { hour: 'numeric', minute: '2-digit' })}
+									{m.intelligence_refresh_available_again({
+										time: formatDate(nextEligibleRefreshAt, { hour: 'numeric', minute: '2-digit' }),
+									})}
 								</span>
 							)}
 							{filterSections && selectedListIds && onSelectedListIdsChange && (
@@ -513,10 +542,12 @@ function Header({
 								variant="outline"
 								disabled={disabled}
 								onClick={onRefresh}
-								aria-label="Refresh suggestions"
+								aria-label={m.intelligence_refresh_aria()}
 							>
 								<RefreshCw className={cn('size-4', generating && 'animate-spin')} />
-								<span className="hidden sm:inline">{generating ? 'Refreshing' : 'Refresh'}</span>
+								<span className="hidden sm:inline">
+									{generating ? m.intelligence_refresh_button_busy() : m.intelligence_refresh_button()}
+								</span>
 							</Button>
 						</div>
 					)}
@@ -531,10 +562,8 @@ function ProgressBar({ total, reviewed, active }: { total: number; reviewed: num
 	return (
 		<div data-intelligence="page-progress" className="mb-6 flex flex-col gap-1.5">
 			<div data-intelligence="page-progress-meta" className="flex items-baseline justify-between text-xs">
-				<span className="font-medium">
-					{reviewed} of {total} reviewed
-				</span>
-				<span className="text-muted-foreground">{active} left to act on</span>
+				<span className="font-medium">{m.intelligence_progress_reviewed({ reviewed, total })}</span>
+				<span className="text-muted-foreground">{m.intelligence_progress_left({ count: active })}</span>
 			</div>
 			<div data-intelligence="page-progress-track" className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
 				<div
@@ -554,13 +583,15 @@ function EmptyState({ dismissedCount, appliedCount }: { dismissedCount: number; 
 				<div className="flex size-12 items-center justify-center rounded-full bg-emerald-500/10 ring-1 ring-emerald-500/20">
 					<CheckCheck className="size-6 text-emerald-600" />
 				</div>
-				<h2 className="text-lg font-semibold">All caught up</h2>
-				<p className="text-sm text-muted-foreground">Nothing left to act on. Check back later, or hit Refresh to look again.</p>
+				<h2 className="text-lg font-semibold">{m.intelligence_empty_title()}</h2>
+				<p className="text-sm text-muted-foreground">{m.intelligence_empty_body()}</p>
 				{(dismissedCount > 0 || appliedCount > 0) && (
 					<p className="text-xs text-muted-foreground">
-						{appliedCount > 0 && `${appliedCount} applied`}
-						{appliedCount > 0 && dismissedCount > 0 && ' · '}
-						{dismissedCount > 0 && `${dismissedCount} dismissed`} in this batch.
+						{appliedCount > 0 && dismissedCount > 0
+							? m.intelligence_empty_batch_both({ appliedCount, dismissedCount })
+							: appliedCount > 0
+								? m.intelligence_empty_batch_applied({ count: appliedCount })
+								: m.intelligence_empty_batch_dismissed({ count: dismissedCount })}
 					</p>
 				)}
 			</CardContent>
@@ -575,10 +606,10 @@ function FilterEmptyState({ onSelectAll }: { onSelectAll: () => void }) {
 				<div className="flex size-12 items-center justify-center rounded-full bg-muted ring-1 ring-border">
 					<CheckCheck className="size-6 text-muted-foreground" />
 				</div>
-				<h2 className="text-lg font-semibold">No suggestions match the current list filter</h2>
-				<p className="text-sm text-muted-foreground">Try expanding the filter to see suggestions for more lists.</p>
+				<h2 className="text-lg font-semibold">{m.intelligence_filter_empty_title()}</h2>
+				<p className="text-sm text-muted-foreground">{m.intelligence_filter_empty_body()}</p>
 				<Button data-intelligence="page-filter-empty-select-all" size="sm" variant="outline" onClick={onSelectAll}>
-					Select All
+					{m.intelligence_filter_select_all()}
 				</Button>
 			</CardContent>
 		</Card>
@@ -586,17 +617,14 @@ function FilterEmptyState({ onSelectAll }: { onSelectAll: () => void }) {
 }
 
 function DisabledState({ reason }: { reason: 'feature-disabled' | 'no-provider' }) {
-	const message =
-		reason === 'feature-disabled'
-			? 'Suggestions are currently disabled. An admin can turn them on from the admin Intelligence page.'
-			: 'No AI provider is configured. An admin needs to add a provider before suggestions can be generated.'
+	const message = reason === 'feature-disabled' ? m.intelligence_disabled_feature() : m.intelligence_disabled_no_provider()
 	return (
 		<Card data-intelligence="page-disabled-state" data-disabled-reason={reason}>
 			<CardContent className="p-8 flex flex-col items-center justify-center text-center gap-3">
 				<div className="flex size-12 items-center justify-center rounded-full bg-muted ring-1 ring-border">
 					<Sparkles className="size-6 text-muted-foreground" />
 				</div>
-				<h2 className="text-lg font-semibold">Suggestions are offline</h2>
+				<h2 className="text-lg font-semibold">{m.intelligence_disabled_title()}</h2>
 				<p className="text-sm text-muted-foreground">{message}</p>
 			</CardContent>
 		</Card>

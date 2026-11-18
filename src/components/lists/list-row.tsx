@@ -36,6 +36,7 @@ import { TapTooltip, TapTooltipContent, TapTooltipTrigger, TooltipProvider } fro
 import type { UserWithLists } from '@/db-collections/lists'
 import { useSession } from '@/lib/auth-client'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 type GifterList = UserWithLists['lists'][number]
 
@@ -67,7 +68,7 @@ function SharedWithAvatars({ editors }: { editors: Array<EditorInfo> }) {
 					</div>
 				</TapTooltipTrigger>
 				<TapTooltipContent className="flex flex-col gap-1.5">
-					<div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Shared with</div>
+					<div className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">{m.lists_row_shared_with()}</div>
 					{editors.map(editor => (
 						<div key={editor.email} className="flex items-center gap-2 justify-items-start w-full">
 							<UserAvatar name={editor.name || editor.email} image={editor.image} size="small" />
@@ -157,7 +158,7 @@ function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: Ro
 	const handleArchive = async () => {
 		const result = await updateList({ data: { listId: list.id, isActive: false } })
 		if (result.kind === 'ok') {
-			toast.success(`"${list.name}" archived`)
+			toast.success(m.lists_archived_toast({ listName: list.name }))
 			await refreshLists()
 		}
 	}
@@ -165,7 +166,7 @@ function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: Ro
 	const handleRestore = async () => {
 		const result = await updateList({ data: { listId: list.id, isActive: true } })
 		if (result.kind === 'ok') {
-			toast.success(`"${list.name}" restored`)
+			toast.success(m.lists_restored_toast({ listName: list.name }))
 			await refreshLists()
 		}
 	}
@@ -174,9 +175,9 @@ function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: Ro
 		const result = await deleteList({ data: { listId: list.id } })
 		if (result.kind === 'ok') {
 			if (result.action === 'archived') {
-				toast.info(`"${list.name}" was archived instead of deleted because it has claimed items.`)
+				toast.info(m.lists_delete_archived_instead({ listName: list.name }))
 			} else {
-				toast.success(`"${list.name}" deleted`)
+				toast.success(m.lists_deleted({ listName: list.name }))
 			}
 			await refreshLists()
 		}
@@ -186,7 +187,7 @@ function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: Ro
 	const handleTogglePrimary = async () => {
 		const result = await setPrimaryList({ data: { listId: list.id, isPrimary: !list.isPrimary } })
 		if (result.kind === 'ok') {
-			toast.success(list.isPrimary ? 'Primary list unset' : `"${list.name}" set as primary`)
+			toast.success(list.isPrimary ? m.lists_primary_unset_toast() : m.lists_primary_set_toast({ listName: list.name }))
 			await refreshLists()
 		}
 	}
@@ -236,7 +237,7 @@ function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: Ro
 										<>
 											<UserAvatar name={showOwner.name || showOwner.email} image={showOwner.image} size="small" />
 											<span className="font-medium">{showOwner.name || showOwner.email}</span>
-											<Crown className="size-3 text-yellow-500 fill-yellow-500" aria-label="Owner" />
+											<Crown className="size-3 text-yellow-500 fill-yellow-500" aria-label={m.lists_row_owner_label()} />
 										</>
 									)}
 								</div>
@@ -255,43 +256,43 @@ function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: Ro
 				{!list.isActive && (
 					<Badge variant="outline" className="gap-1 shrink-0 text-xs text-muted-foreground">
 						<Archive className="size-3" />
-						Archived
+						{m.lists_row_archived_badge()}
 					</Badge>
 				)}
 				{list.isPrivate && (
 					<TooltipProvider delayDuration={150}>
 						<TapTooltip>
 							<TapTooltipTrigger asChild>
-								<span className="inline-flex shrink-0 text-muted-foreground" aria-label="Private list">
+								<span className="inline-flex shrink-0 text-muted-foreground" aria-label={m.lists_row_private_label()}>
 									<Lock className="size-3.5" />
 								</span>
 							</TapTooltipTrigger>
-							<TapTooltipContent>Private list</TapTooltipContent>
+							<TapTooltipContent>{m.lists_row_private_label()}</TapTooltipContent>
 						</TapTooltip>
 					</TooltipProvider>
 				)}
 				<CountBadge count={list.itemCount} />
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
-						<Button variant="outline" size="icon-xs" className="shrink-0" aria-label="List actions">
+						<Button variant="outline" size="icon-xs" className="shrink-0" aria-label={m.lists_row_actions_label()}>
 							<MoreHorizontal className="size-4" />
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
 						<DropdownMenuItem asChild>
 							<Link to="/lists/$listId/edit" params={{ listId: String(list.id) }} search={{ settings: true }}>
-								<Pencil className="size-4" /> Edit
+								<Pencil className="size-4" /> {m.action_edit()}
 							</Link>
 						</DropdownMenuItem>
 						{list.type !== 'giftideas' && (
 							<DropdownMenuItem onClick={handleTogglePrimary}>
 								{list.isPrimary ? (
 									<>
-										<StarOff className="size-4" /> Unset primary
+										<StarOff className="size-4" /> {m.lists_row_unset_primary()}
 									</>
 								) : (
 									<>
-										<Star className="size-4" /> Set as Primary
+										<Star className="size-4" /> {m.lists_row_set_primary()}
 									</>
 								)}
 							</DropdownMenuItem>
@@ -299,20 +300,22 @@ function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: Ro
 						<DropdownMenuSeparator />
 						{list.isActive ? (
 							<DropdownMenuItem onClick={handleArchive}>
-								<Archive className="size-4" /> Archive
+								<Archive className="size-4" /> {m.lists_row_archive()}
 							</DropdownMenuItem>
 						) : (
 							<DropdownMenuItem onClick={handleRestore}>
-								<ArchiveRestore className="size-4" /> Restore
+								<ArchiveRestore className="size-4" /> {m.lists_row_restore()}
 							</DropdownMenuItem>
 						)}
 						<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteDialogOpen(true)}>
-							<Trash2 className="size-4" /> Delete
+							<Trash2 className="size-4" /> {m.action_delete()}
 						</DropdownMenuItem>
 						{isAdmin && (
 							<>
 								<DropdownMenuSeparator />
-								<DropdownMenuLabel className="text-muted-foreground font-mono text-xs">list #{list.id}</DropdownMenuLabel>
+								<DropdownMenuLabel className="text-muted-foreground font-mono text-xs">
+									{m.lists_row_admin_id({ id: list.id })}
+								</DropdownMenuLabel>
 							</>
 						)}
 					</DropdownMenuContent>
@@ -322,16 +325,13 @@ function RecipientRow({ list, showOwner }: { list: MyListRowType; showOwner?: Ro
 			<AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Delete "{list.name}"?</AlertDialogTitle>
-						<AlertDialogDescription>
-							This will permanently remove the list and all its items. If there are claimed items, the list will be archived instead.
-							Consider archiving if you might want to restore it later.
-						</AlertDialogDescription>
+						<AlertDialogTitle>{m.lists_delete_confirm_title({ listName: list.name })}</AlertDialogTitle>
+						<AlertDialogDescription>{m.lists_delete_confirm_description()}</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogCancel>{m.action_cancel()}</AlertDialogCancel>
 						<AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-							Delete
+							{m.action_delete()}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

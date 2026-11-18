@@ -5,12 +5,32 @@ import prettierConfig from 'eslint-config-prettier'
 import simpleImportSort from 'eslint-plugin-simple-import-sort'
 import i18next from 'eslint-plugin-i18next'
 
-// Directories whose user-visible strings are fully in the message catalog.
-const I18N_EXTRACTED = [
-	'src/components/sidebar/**/*.tsx',
-	'src/components/utilities/**/*.tsx',
-	'src/routes/-*.tsx',
-	'src/routes/(core)/route.tsx',
+// Localization (plan 36): where hardcoded user-visible text is a lint error.
+// Everything under components and routes, minus what has not been extracted
+// yet. Remove a line from I18N_PENDING when that area is done.
+const I18N_EXTRACTED = ['src/components/**/*.tsx', 'src/routes/**/*.tsx']
+const I18N_PENDING = [
+	// Admin screens (plan 36m).
+	'src/components/admin/**',
+	'src/components/intelligence/admin-intelligence-*.tsx',
+	'src/components/intelligence/run-*.tsx',
+	'src/components/intelligence/intelligence-charts.tsx',
+	'src/components/temp/**',
+	'src/routes/(core)/admin/**',
+	'src/routes/(core)/admin_/**',
+	'src/routes/(core)/temp/**',
+]
+// Never user-facing: the design-system reference pages, API routes, tests,
+// stories, and a developer demo of toast styles.
+const I18N_NOT_UI = [
+	'src/components/theme/**',
+	'src/routes/api/**',
+	'**/*.stories.tsx',
+	'**/_stories/**',
+	'**/*.test.{ts,tsx}',
+	'**/__tests__/**',
+	'**/__fixtures__/**',
+	'src/components/utilities/sonner-types.tsx',
 ]
 
 export default [
@@ -56,15 +76,13 @@ export default [
 		},
 	},
 	{
-		// Localization (plan 36). User-visible text comes from the message
-		// catalog (`m.some_key()` from `@/paraglide/messages.js`), never from
-		// a string in the component. A directory joins this list once its
-		// strings have been extracted, so new hardcoded text fails lint there.
-		// Covers JSX text and the attributes people read or hear; toasts and
-		// other strings passed to functions are not checked, so review those.
+		// User-visible text comes from the message catalog (`m.some_key()`
+		// from `@/paraglide/messages.js`), never from a string in the
+		// component; see messages/README.md. Covers JSX text and the
+		// attributes people read or hear. Toasts and other strings passed to
+		// functions are not checked, so review those by hand.
 		files: I18N_EXTRACTED,
-		// sonner-types.tsx is a developer demo of toast styles, not app UI.
-		ignores: ['**/*.stories.tsx', '**/*.test.{ts,tsx}', '**/__tests__/**', 'src/components/utilities/sonner-types.tsx'],
+		ignores: [...I18N_PENDING, ...I18N_NOT_UI],
 		plugins: { i18next },
 		rules: {
 			'i18next/no-literal-string': [

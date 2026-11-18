@@ -2,6 +2,7 @@ import { motion, useReducedMotion } from 'motion/react'
 import { useEffect } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { m } from '@/paraglide/messages.js'
 
 type Props = {
 	/**
@@ -41,7 +42,7 @@ export function ClaimCelebration({ onComplete }: Props) {
 						<CheckPath />
 					</motion.span>
 				</span>
-				Claimed
+				{m.items_claim_celebration()}
 			</Button>
 			{!reduced && (
 				<motion.span

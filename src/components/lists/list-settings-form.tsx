@@ -34,19 +34,23 @@ import { listTypeLabel } from '@/lib/i18n/labels'
 import { evaluateListChangeImpact } from '@/lib/list-change-impact'
 import { itemsKeys } from '@/lib/queries/items'
 import { LIMITS } from '@/lib/validation/limits'
+import { m } from '@/paraglide/messages.js'
 
 const IS_DEV = import.meta.env.DEV
 
-const schema = z.object({
-	name: z.string().min(1, 'Name is required').max(LIMITS.LIST_NAME),
-	type: z.enum(listTypeEnumValues),
-	isPrivate: z.boolean(),
-	description: z.string().max(LIMITS.MEDIUM_TEXT).optional(),
-	giftIdeasTargetUserId: z.string().optional(),
-	subjectDependentId: z.string().optional(),
-	customHolidayId: z.string().optional(),
-	addPartnerAsEditor: z.boolean(),
-})
+// Built per submit, not when the module loads, so the message is worded in
+// the language of the page showing it.
+const buildSchema = () =>
+	z.object({
+		name: z.string().min(1, m.lists_form_name_required()).max(LIMITS.LIST_NAME),
+		type: z.enum(listTypeEnumValues),
+		isPrivate: z.boolean(),
+		description: z.string().max(LIMITS.MEDIUM_TEXT).optional(),
+		giftIdeasTargetUserId: z.string().optional(),
+		subjectDependentId: z.string().optional(),
+		customHolidayId: z.string().optional(),
+		addPartnerAsEditor: z.boolean(),
+	})
 
 function formatHolidayDate(d: Date): string {
 	return formatDate(d, { month: 'short', day: 'numeric', year: 'numeric' })
@@ -152,7 +156,7 @@ export function ListSettingsForm({
 		: { warnings: [] }
 
 	const partner = partnerId ? users?.find(u => u.id === partnerId) : undefined
-	const partnerLabel = partner ? partner.name || partner.email : 'your partner'
+	const partnerName = partner ? partner.name || partner.email : null
 
 	const [archivePurchasesOpen, setArchivePurchasesOpen] = useState(false)
 	const [deleteListOpen, setDeleteListOpen] = useState(false)
@@ -160,15 +164,15 @@ export function ListSettingsForm({
 	const handleDeleteList = async () => {
 		const result = await deleteList({ data: { listId } })
 		if (result.kind === 'error') {
-			toast.error(result.reason === 'not-owner' ? "You don't have permission to delete this list." : 'List not found.')
+			toast.error(result.reason === 'not-owner' ? m.lists_settings_delete_not_owner() : m.lists_settings_error_not_found())
 			return
 		}
 		await queryClient.invalidateQueries({ queryKey: ['my-lists'] })
 		if (result.action === 'archived') {
-			toast.info(`"${name}" was archived instead of deleted because it has claimed items.`)
+			toast.info(m.lists_delete_archived_instead({ listName: name }))
 			await router.invalidate()
 		} else {
-			toast.success(`"${name}" deleted`)
+			toast.success(m.lists_deleted({ listName: name }))
 			await navigate({ to: '/me' })
 		}
 	}
@@ -176,17 +180,20 @@ export function ListSettingsForm({
 	const handleArchivePurchases = async () => {
 		const result = await archiveListPurchases({ data: { listId } })
 		if (result.kind === 'error') {
-			toast.error("You don't have permission to archive purchases on this list.")
+			toast.error(m.lists_archive_purchases_not_allowed())
 			return
 		}
 		const total = result.updated + result.addonsArchived
 		if (total === 0) {
-			toast.info('No claimed items to archive.')
+			toast.info(m.lists_archive_purchases_none())
 		} else {
-			const parts: Array<string> = []
-			if (result.updated > 0) parts.push(`${result.updated} claimed ${result.updated === 1 ? 'item' : 'items'}`)
-			if (result.addonsArchived > 0) parts.push(`${result.addonsArchived} add-${result.addonsArchived === 1 ? 'on' : 'ons'}`)
-			toast.success(`Archived ${parts.join(' and ')}.`)
+			if (result.updated > 0 && result.addonsArchived > 0) {
+				toast.success(m.lists_archive_purchases_done_both({ itemCount: result.updated, addonCount: result.addonsArchived }))
+			} else if (result.updated > 0) {
+				toast.success(m.lists_archive_purchases_done_items({ count: result.updated }))
+			} else {
+				toast.success(m.lists_archive_purchases_done_addons({ count: result.addonsArchived }))
+			}
 		}
 		await Promise.all([queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) }), router.invalidate()])
 	}
@@ -203,7 +210,7 @@ export function ListSettingsForm({
 			addPartnerAsEditor: true,
 		},
 		onSubmit: async ({ value }) => {
-			const parsed = schema.safeParse(value)
+			const parsed = buildSchema().safeParse(value)
 			if (!parsed.success) {
 				setError(parsed.error.issues.map(e => e.message).join(', '))
 				return
@@ -232,26 +239,28 @@ export function ListSettingsForm({
 				})
 
 				if (result.kind === 'error') {
-					if (result.reason === 'not-authorized') setError("You don't have permission to change this list's settings.")
-					else if (result.reason === 'child-cannot-create-gift-ideas') setError("Children can't switch a list to gift-ideas.")
-					else if (result.reason === 'not-dependent-guardian') setError("You're not a guardian of that dependent.")
-					else if (result.reason === 'invalid-holiday-selection') setError('Pick a country and holiday for this list.')
-					else setError('List not found.')
+					if (result.reason === 'not-authorized') setError(m.lists_settings_error_not_authorized())
+					else if (result.reason === 'child-cannot-create-gift-ideas') setError(m.lists_settings_error_child_gift_ideas())
+					else if (result.reason === 'not-dependent-guardian') setError(m.lists_form_error_not_guardian())
+					else if (result.reason === 'invalid-holiday-selection') setError(m.lists_settings_error_holiday())
+					else setError(m.lists_settings_error_not_found())
 					return
 				}
 
 				if (shouldAddPartner && partnerId) {
 					const editorResult = await addListEditor({ data: { listId, userId: partnerId } })
 					if (editorResult.kind === 'error') {
-						toast.warning(`Settings saved, but couldn't add ${partnerLabel} as an editor.`)
+						toast.warning(
+							partnerName ? m.lists_settings_partner_failed_named({ name: partnerName }) : m.lists_settings_partner_failed_generic()
+						)
 					}
 				}
 
-				toast.success('List settings saved')
+				toast.success(m.lists_settings_saved())
 				await queryClient.invalidateQueries({ queryKey: ['my-lists'] })
 				await router.invalidate()
 			} catch (err) {
-				setError(err instanceof Error ? err.message : 'Failed to save settings')
+				setError(err instanceof Error ? err.message : m.lists_settings_save_failed())
 			} finally {
 				setSubmitting(false)
 			}
@@ -270,7 +279,7 @@ export function ListSettingsForm({
 			<form.Field name="name">
 				{field => (
 					<div className="grid gap-2">
-						<Label htmlFor={field.name}>Name</Label>
+						<Label htmlFor={field.name}>{m.lists_form_name_label()}</Label>
 						<Input
 							id={field.name}
 							name="list-name"
@@ -289,7 +298,7 @@ export function ListSettingsForm({
 			<form.Field name="type">
 				{field => (
 					<div className="grid gap-2">
-						<Label htmlFor={field.name}>Type</Label>
+						<Label htmlFor={field.name}>{m.lists_form_type_label()}</Label>
 						<Select
 							value={field.state.value}
 							onValueChange={v => {
@@ -326,20 +335,20 @@ export function ListSettingsForm({
 						const recipientId = field.state.value
 						const recipientIsEditor = !!recipientId && editorUserIds.includes(recipientId)
 						const recipient = recipientIsEditor ? users?.find(u => u.id === recipientId) : undefined
-						const recipientLabel = recipient ? recipient.name || recipient.email : 'this person'
+						const recipientName = recipient ? recipient.name || recipient.email : null
 						return (
 							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Gift Ideas For (Optional)</Label>
+								<Label htmlFor={field.name}>{m.lists_form_gift_ideas_for_label()}</Label>
 								<Select
 									value={field.state.value || NO_RECIPIENT}
 									onValueChange={v => field.handleChange(v === NO_RECIPIENT ? '' : v)}
 									disabled={submitting}
 								>
 									<SelectTrigger id={field.name}>
-										<SelectValue placeholder="Select a person" />
+										<SelectValue placeholder={m.lists_form_person_placeholder()} />
 									</SelectTrigger>
 									<SelectContent>
-										<SelectItem value={NO_RECIPIENT}>No recipient</SelectItem>
+										<SelectItem value={NO_RECIPIENT}>{m.lists_settings_no_recipient()}</SelectItem>
 										{users?.map(u => (
 											<SelectItem key={u.id} value={u.id}>
 												<UserAvatar name={u.name || u.email} image={u.image} size="small" />
@@ -350,10 +359,11 @@ export function ListSettingsForm({
 								</Select>
 								{recipientIsEditor && (
 									<Alert variant="warning">
-										<AlertTitle>Recipient is also an editor</AlertTitle>
+										<AlertTitle>{m.lists_settings_recipient_editor_title()}</AlertTitle>
 										<AlertDescription>
-											{recipientLabel} is listed as an editor and will be able to see this list. Remove them as an editor to keep gift ideas
-											a surprise.
+											{recipientName
+												? m.lists_settings_recipient_editor_body_named({ name: recipientName })
+												: m.lists_settings_recipient_editor_body_generic()}
 										</AlertDescription>
 									</Alert>
 								)}
@@ -367,13 +377,13 @@ export function ListSettingsForm({
 				<form.Field name="subjectDependentId">
 					{field => (
 						<div className="grid gap-2">
-							<Label htmlFor={field.name}>List Is For (Optional)</Label>
+							<Label htmlFor={field.name}>{m.lists_form_subject_label()}</Label>
 							<Select value={field.state.value || 'me'} onValueChange={v => field.handleChange(v === 'me' ? '' : v)} disabled={submitting}>
 								<SelectTrigger id={field.name}>
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="me">Me</SelectItem>
+									<SelectItem value="me">{m.lists_form_subject_me()}</SelectItem>
 									{activeDependents.map(d => (
 										<SelectItem key={d.id} value={d.id}>
 											<DependentAvatar name={d.name} image={d.image} size="small" />
@@ -392,7 +402,7 @@ export function ListSettingsForm({
 					<form.Field name="customHolidayId">
 						{field => (
 							<>
-								<Label htmlFor={field.name}>Holiday</Label>
+								<Label htmlFor={field.name}>{m.lists_form_holiday_label()}</Label>
 								<Select
 									value={field.state.value}
 									onValueChange={v => {
@@ -402,13 +412,14 @@ export function ListSettingsForm({
 									disabled={submitting}
 								>
 									<SelectTrigger id={field.name}>
-										<SelectValue placeholder="Select a holiday" />
+										<SelectValue placeholder={m.lists_form_holiday_placeholder()} />
 									</SelectTrigger>
 									<SelectContent>
 										{(customHolidays ?? []).map(h => (
 											<SelectItem key={h.id} value={h.id}>
-												{h.title}
-												{h.nextOccurrenceIso ? ` (${formatHolidayDate(new Date(h.nextOccurrenceIso))})` : ''}
+												{h.nextOccurrenceIso
+													? m.lists_form_holiday_option_dated({ title: h.title, date: formatHolidayDate(new Date(h.nextOccurrenceIso)) })
+													: h.title}
 											</SelectItem>
 										))}
 									</SelectContent>
@@ -429,7 +440,7 @@ export function ListSettingsForm({
 							disabled={submitting || isGiftIdeas}
 						/>
 						<Label htmlFor={field.name} className="font-normal">
-							Private List {isGiftIdeas && '(Always Private for Gift Ideas)'}
+							{isGiftIdeas ? m.lists_form_private_label_gift_ideas() : m.lists_form_private_label()}
 						</Label>
 					</div>
 				)}
@@ -453,11 +464,9 @@ export function ListSettingsForm({
 									/>
 									<div className="grid gap-1">
 										<Label htmlFor={field.name} className="font-normal">
-											Add {partnerLabel} as an Editor
+											{partnerName ? m.lists_form_add_partner_label_named({ name: partnerName }) : m.lists_form_add_partner_label_generic()}
 										</Label>
-										<p className="text-muted-foreground text-xs">
-											You're making this list public. Add your partner so they can manage items too. You can always change this later.
-										</p>
+										<p className="text-muted-foreground text-xs">{m.lists_settings_add_partner_help()}</p>
 									</div>
 								</div>
 							)}
@@ -469,7 +478,7 @@ export function ListSettingsForm({
 			<form.Field name="description">
 				{field => (
 					<div className="grid gap-2">
-						<Label htmlFor={field.name}>Description (Optional)</Label>
+						<Label htmlFor={field.name}>{m.lists_form_description_label()}</Label>
 						<MarkdownTextarea
 							id={field.name}
 							rows={2}
@@ -484,7 +493,7 @@ export function ListSettingsForm({
 
 			{error && (
 				<Alert variant="destructive">
-					<AlertTitle>Error</AlertTitle>
+					<AlertTitle>{m.lists_settings_error_title()}</AlertTitle>
 					<AlertDescription>{error}</AlertDescription>
 				</Alert>
 			)}
@@ -492,18 +501,15 @@ export function ListSettingsForm({
 			<ListChangeImpactWarnings warnings={changeImpact.warnings} />
 
 			<Button type="submit" disabled={submitting}>
-				{submitting ? 'Saving…' : 'Save Settings'}
+				{submitting ? m.state_saving() : m.lists_settings_submit()}
 			</Button>
 
 			{isOwner && (
 				<>
 					<Separator />
 					<div className="grid gap-2">
-						<Label>Delete List</Label>
-						<p className="text-muted-foreground text-xs">
-							Permanently remove this list and all its items. If there are claimed items, the list will be archived instead so purchase
-							history is preserved.
-						</p>
+						<Label>{m.lists_settings_delete_heading()}</Label>
+						<p className="text-muted-foreground text-xs">{m.lists_settings_delete_help()}</p>
 						<Button
 							type="button"
 							variant="outline"
@@ -511,21 +517,16 @@ export function ListSettingsForm({
 							className="w-fit text-destructive hover:text-destructive"
 						>
 							<Trash2 className="size-4" />
-							Delete List
+							{m.lists_settings_delete_button()}
 						</Button>
 					</div>
 					<ConfirmDialog
 						open={deleteListOpen}
 						onOpenChange={setDeleteListOpen}
-						title={`Delete "${name}"?`}
-						description={
-							<>
-								This will permanently remove the list and all its items. If there are claimed items, the list will be archived instead.
-								Consider archiving if you might want to restore it later.
-							</>
-						}
-						confirmLabel="Delete"
-						confirmBusyLabel="Deleting…"
+						title={m.lists_delete_confirm_title({ listName: name })}
+						description={m.lists_delete_confirm_description()}
+						confirmLabel={m.action_delete()}
+						confirmBusyLabel={m.lists_settings_delete_busy()}
 						destructive
 						onConfirm={handleDeleteList}
 					/>
@@ -536,11 +537,13 @@ export function ListSettingsForm({
 				<>
 					<Separator />
 					<div className="grid gap-1">
-						<Label>Last Archived</Label>
+						<Label>{m.lists_settings_last_archived_label()}</Label>
 						<p className="text-muted-foreground text-xs">
 							{lastArchivedAt
-								? `Claimed gifts on this list were last revealed on ${formatDate(lastArchivedAt, { month: 'long', day: 'numeric', year: 'numeric' })}.`
-								: 'Claimed gifts on this list have never been revealed yet.'}
+								? m.lists_settings_last_revealed_on({
+										date: formatDate(lastArchivedAt, { month: 'long', day: 'numeric', year: 'numeric' }),
+									})
+								: m.lists_settings_never_revealed()}
 						</p>
 					</div>
 				</>
@@ -550,31 +553,27 @@ export function ListSettingsForm({
 				<>
 					<Separator />
 					<div className="grid gap-2">
-						<Label>Archive Claimed Items</Label>
-						<p className="text-muted-foreground text-xs">
-							Mark every claimed item and gifter-volunteered add-on on this list as archived. Archived purchases reveal who claimed them on
-							your Received Gifts page, so only do this once you've received the gifts.
-						</p>
+						<Label>{m.lists_settings_archive_heading()}</Label>
+						<p className="text-muted-foreground text-xs">{m.lists_settings_archive_help()}</p>
 						<Button type="button" variant="outline" onClick={() => setArchivePurchasesOpen(true)} className="w-fit">
 							<Archive className="size-4" />
-							Archive All Purchases
+							{m.lists_settings_archive_button()}
 						</Button>
 					</div>
 					<ConfirmDialog
 						open={archivePurchasesOpen}
 						onOpenChange={setArchivePurchasesOpen}
-						title="Archive all purchases on this list?"
+						title={m.lists_settings_archive_confirm_title()}
 						description={
 							<>
-								This will archive every claimed item and every gifter-volunteered add-on on this list. Archived purchases move out of the
-								active list and the people who claimed them will be revealed to you on your Received Gifts page.
+								{m.lists_settings_archive_confirm_body()}
 								<br />
 								<br />
-								Only do this once you've received the gifts. This can't be undone in bulk.
+								{m.lists_settings_archive_confirm_warning()}
 							</>
 						}
-						confirmLabel="Archive Purchases"
-						confirmBusyLabel="Archiving…"
+						confirmLabel={m.lists_settings_archive_confirm_label()}
+						confirmBusyLabel={m.lists_settings_archive_busy()}
 						destructive
 						onConfirm={handleArchivePurchases}
 					/>

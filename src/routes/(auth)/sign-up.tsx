@@ -15,6 +15,9 @@ import { authClient } from '@/lib/auth-client'
 import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
+// The product name is never translated.
+const PRODUCT_NAME = 'GiftWrapt'
+
 export const Route = createFileRoute('/(auth)/sign-up')({
 	head: pageHead(() => m.page_create_account()),
 	component: SignUp,
@@ -62,13 +65,13 @@ function SignUp() {
 				},
 				onError: ctx => {
 					setIsLoading(false)
-					setError(ctx.error.message || 'Failed to sign up')
+					setError(ctx.error.message || m.auth_sign_up_failed())
 				},
 			}
 		)
 
 		if (signUpError) {
-			setError(signUpError.message || 'Failed to sign up')
+			setError(signUpError.message || m.auth_sign_up_failed())
 			setIsLoading(false)
 		}
 	}
@@ -78,23 +81,23 @@ function SignUp() {
 			<div className="absolute inset-0 -z-10 overflow-hidden">
 				<GradientBackground />
 			</div>
-			<Image src={logo} alt="GiftWrapt" width={160} height={160} className="w-24 sm:w-40" />
+			<Image src={logo} alt={PRODUCT_NAME} width={160} height={160} className="w-24 sm:w-40" />
 
 			<div className="w-full max-w-md space-y-4 rounded-lg border bg-background/80 p-6 shadow-lg backdrop-blur">
 				<div className="text-center">
-					<h1 className="text-3xl font-bold">Create an Account</h1>
-					<p className="mt-2 text-muted-foreground">Enter your information to get started</p>
+					<h1 className="text-3xl font-bold">{m.auth_sign_up_title()}</h1>
+					<p className="mt-2 text-muted-foreground">{m.auth_sign_up_subtitle()}</p>
 				</div>
 
 				<form onSubmit={handleSubmit} className="space-y-2">
 					{error && <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">{error}</div>}
 
 					<div className="space-y-2">
-						<Label htmlFor="name">Name</Label>
+						<Label htmlFor="name">{m.auth_name_label()}</Label>
 						<Input
 							id="name"
 							type="text"
-							placeholder="John Doe"
+							placeholder={m.auth_name_placeholder()}
 							value={name}
 							onChange={e => setName(e.target.value)}
 							required
@@ -104,14 +107,14 @@ function SignUp() {
 					</div>
 
 					<div className="space-y-2">
-						<Label htmlFor="email">Email</Label>
+						<Label htmlFor="email">{m.auth_email_label()}</Label>
 						<Input
 							id="email"
 							type="text"
 							inputMode="email"
 							autoCapitalize="none"
 							spellCheck={false}
-							placeholder="you@example.com"
+							placeholder={m.auth_email_placeholder()}
 							value={email}
 							onChange={e => setEmail(e.target.value)}
 							required
@@ -121,7 +124,7 @@ function SignUp() {
 					</div>
 
 					<div className="space-y-2">
-						<Label htmlFor="password">Password</Label>
+						<Label htmlFor="password">{m.auth_password_label()}</Label>
 						<PasswordInput
 							id="password"
 							placeholder="••••••••"
@@ -132,18 +135,18 @@ function SignUp() {
 							disabled={isLoading}
 							autoComplete="new-password"
 						/>
-						<p className="text-xs text-muted-foreground">Must be at least 8 characters</p>
+						<p className="text-xs text-muted-foreground">{m.auth_sign_up_password_hint()}</p>
 					</div>
 
 					<Button type="submit" className="w-full" disabled={isLoading}>
-						{isLoading ? 'Creating Account...' : 'Sign Up'}
+						{isLoading ? m.auth_sign_up_submitting() : m.auth_sign_up_submit()}
 					</Button>
 				</form>
 
 				<div className="text-center text-sm">
-					<span className="text-muted-foreground">Already have an account? </span>
+					<span className="text-muted-foreground">{m.auth_sign_up_have_account()} </span>
 					<button type="button" onClick={() => navigate({ to: '/sign-in' as any })} className="text-primary hover:underline font-medium">
-						Sign in
+						{m.auth_sign_up_sign_in_link()}
 					</button>
 				</div>
 			</div>

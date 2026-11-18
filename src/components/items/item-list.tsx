@@ -20,6 +20,7 @@ import { buildListEntries, compareWithinPriority, type ListEntry } from '@/lib/l
 import { listItemsViewQueryOptions } from '@/lib/queries/items'
 import { getVendorFromUrl, isKnownVendor, parseInternalListLink, vendorIdToName } from '@/lib/urls'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 import { GroupViewBlock } from './group-view-block'
 import { InternalListLinksProvider } from './internal-list-links-context'
@@ -43,27 +44,48 @@ type PricePresetId = 'all' | 'under-25' | '25-50' | '50-100' | '100-250' | 'over
 // a leading underscore - safe sentinel.
 const NO_LINK_VENDOR_ID = '__no_link__'
 
-const filterLabels: Record<FilterValue, string> = {
-	all: 'All items',
-	unpurchased: 'Unpurchased',
-	purchased: 'Purchased',
+// Labels are functions, not tables: a table would be built once at module
+// load, in whatever language was current then.
+function filterLabel(filter: FilterValue): string {
+	switch (filter) {
+		case 'all':
+			return m.items_filter_all()
+		case 'unpurchased':
+			return m.items_filter_unpurchased()
+		case 'purchased':
+			return m.items_filter_purchased()
+	}
 }
 
-const sortLabels: Record<SortValue, string> = {
-	'priority-desc': 'Priority',
-	'priority-asc': 'Priority',
-	'date-desc': 'Newest',
-	'date-asc': 'Oldest',
+function sortLabel(sort: SortValue): string {
+	switch (sort) {
+		case 'priority-desc':
+		case 'priority-asc':
+			return m.items_sort_priority()
+		case 'date-desc':
+			return m.items_sort_newest()
+		case 'date-asc':
+			return m.items_sort_oldest()
+	}
 }
 
-const pricePresets: ReadonlyArray<{ id: Exclude<PricePresetId, 'custom' | 'all'>; label: string; min: number | null; max: number | null }> =
-	[
-		{ id: 'under-25', label: 'Under $25', min: null, max: 25 },
-		{ id: '25-50', label: '$25 – $50', min: 25, max: 50 },
-		{ id: '50-100', label: '$50 – $100', min: 50, max: 100 },
-		{ id: '100-250', label: '$100 – $250', min: 100, max: 250 },
-		{ id: 'over-250', label: 'Over $250', min: 250, max: null },
-	]
+const pricePresets: ReadonlyArray<{ id: Exclude<PricePresetId, 'custom' | 'all'>; min: number | null; max: number | null }> = [
+	{ id: 'under-25', min: null, max: 25 },
+	{ id: '25-50', min: 25, max: 50 },
+	{ id: '50-100', min: 50, max: 100 },
+	{ id: '100-250', min: 100, max: 250 },
+	{ id: 'over-250', min: 250, max: null },
+]
+
+// The label of a price range, for the presets and a custom range alike. The
+// amounts keep their hardcoded "$" (price formatting is a later slice); only
+// the words around them come from the catalog.
+function priceRangeLabel(min: number | null, max: number | null): string {
+	if (min !== null && max !== null) return `$${min} – $${max}`
+	if (min !== null) return m.items_price_over({ price: `$${min}` })
+	if (max !== null) return m.items_price_under({ price: `$${max}` })
+	return m.items_price_any_button()
+}
 
 function parsePrice(raw: string | null): number | null {
 	if (!raw) return null
@@ -172,7 +194,7 @@ export function ItemListView({ items, groups = [], filterBarLeading }: ViewProps
 		const opts: Array<VendorOption> = []
 		for (const [id, count] of counts) {
 			if (id === NO_LINK_VENDOR_ID) {
-				opts.push({ id, name: 'No link', count, isKnown: false })
+				opts.push({ id, name: m.items_vendor_no_link(), count, isKnown: false })
 			} else {
 				opts.push({ id, name: vendorIdToName(id), count, isKnown: isKnownVendor(id) })
 			}
@@ -218,7 +240,7 @@ export function ItemListView({ items, groups = [], filterBarLeading }: ViewProps
 	}, [filteredItems, groups, sort])
 
 	if (items.length === 0) {
-		return <EmptyMessage message="No items to display" className="xs:ml-6" />
+		return <EmptyMessage message={m.items_empty()} className="xs:ml-6" />
 	}
 
 	const toggleVendor = (id: string) => {
@@ -230,18 +252,8 @@ export function ItemListView({ items, groups = [], filterBarLeading }: ViewProps
 		})
 	}
 
-	let priceLabel: string
-	if (pricePreset === 'all' || !activePriceRange) {
-		priceLabel = 'Any price'
-	} else if (pricePreset === 'custom') {
-		const { min, max } = activePriceRange
-		if (min !== null && max !== null) priceLabel = `$${min} – $${max}`
-		else if (min !== null) priceLabel = `Over $${min}`
-		else if (max !== null) priceLabel = `Under $${max}`
-		else priceLabel = 'Any price'
-	} else {
-		priceLabel = pricePresets.find(p => p.id === pricePreset)?.label ?? 'Any price'
-	}
+	const priceLabel =
+		pricePreset === 'all' || !activePriceRange ? m.items_price_any_button() : priceRangeLabel(activePriceRange.min, activePriceRange.max)
 
 	const SortDirectionIcon = sortIsDescending(sort) ? ArrowDown : ArrowUp
 
@@ -259,15 +271,16 @@ export function ItemListView({ items, groups = [], filterBarLeading }: ViewProps
 						<DropdownMenuTrigger asChild>
 							<Button variant="outline" size="xs" className={cn('text-muted-foreground', filter !== 'all' && 'text-foreground')}>
 								<Filter className="size-3.5" />
-								{filterLabels[filter]}
+								{filterLabel(filter)}
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
-							<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Filter</DropdownMenuLabel>
+							<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">{m.items_filter_menu_label()}</DropdownMenuLabel>
+							{/* eslint-disable-next-line i18next/no-literal-string -- filter values, labels come from messages */}
 							{(['all', 'unpurchased', 'purchased'] as const).map(v => (
 								<DropdownMenuItem key={v} onClick={() => setFilter(v)}>
 									<Check className={cn('size-4', filter !== v && 'opacity-0')} />
-									{filterLabels[v]}
+									{filterLabel(v)}
 								</DropdownMenuItem>
 							))}
 						</DropdownMenuContent>
@@ -290,22 +303,22 @@ export function ItemListView({ items, groups = [], filterBarLeading }: ViewProps
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
-							<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Price</DropdownMenuLabel>
+							<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">{m.items_price_menu_label()}</DropdownMenuLabel>
 							<DropdownMenuItem onClick={() => setPricePreset('all')}>
 								<Check className={cn('size-4', pricePreset !== 'all' && 'opacity-0')} />
-								Any Price
+								{m.items_price_any_option()}
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
 							{pricePresets.map(p => (
 								<DropdownMenuItem key={p.id} onClick={() => setPricePreset(p.id)}>
 									<Check className={cn('size-4', pricePreset !== p.id && 'opacity-0')} />
-									{p.label}
+									{priceRangeLabel(p.min, p.max)}
 								</DropdownMenuItem>
 							))}
 							<DropdownMenuSeparator />
 							<DropdownMenuItem onClick={() => setPricePreset('custom')} onSelect={e => e.preventDefault()}>
 								<Check className={cn('size-4', pricePreset !== 'custom' && 'opacity-0')} />
-								Custom
+								{m.items_price_custom()}
 							</DropdownMenuItem>
 							{pricePreset === 'custom' && (
 								<div
@@ -317,7 +330,7 @@ export function ItemListView({ items, groups = [], filterBarLeading }: ViewProps
 										type="number"
 										inputMode="decimal"
 										min={0}
-										placeholder="Min"
+										placeholder={m.items_price_min_placeholder()}
 										value={customMin}
 										onChange={e => setCustomMin(e.target.value)}
 										className="h-7 w-20 text-xs"
@@ -327,7 +340,7 @@ export function ItemListView({ items, groups = [], filterBarLeading }: ViewProps
 										type="number"
 										inputMode="decimal"
 										min={0}
-										placeholder="Max"
+										placeholder={m.items_price_max_placeholder()}
 										value={customMax}
 										onChange={e => setCustomMax(e.target.value)}
 										className="h-7 w-20 text-xs"
@@ -341,36 +354,38 @@ export function ItemListView({ items, groups = [], filterBarLeading }: ViewProps
 						<DropdownMenuTrigger asChild>
 							<Button variant="outline" size="xs" className="text-muted-foreground">
 								<ArrowUpDown className="size-3.5" />
-								{sortLabels[sort]}
+								{sortLabel(sort)}
 								<SortDirectionIcon className="size-3" />
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
-							<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Sort by Priority</DropdownMenuLabel>
+							<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+								{m.items_sort_by_priority_label()}
+							</DropdownMenuLabel>
 							<DropdownMenuItem onClick={() => setSort('priority-desc')}>
 								<Check className={cn('size-4', sort !== 'priority-desc' && 'opacity-0')} />
-								High to Low
+								{m.items_sort_high_to_low()}
 							</DropdownMenuItem>
 							<DropdownMenuItem onClick={() => setSort('priority-asc')}>
 								<Check className={cn('size-4', sort !== 'priority-asc' && 'opacity-0')} />
-								Low to High
+								{m.items_sort_low_to_high()}
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
-							<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Sort by Date</DropdownMenuLabel>
+							<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">{m.items_sort_by_date_label()}</DropdownMenuLabel>
 							<DropdownMenuItem onClick={() => setSort('date-desc')}>
 								<Check className={cn('size-4', sort !== 'date-desc' && 'opacity-0')} />
-								Newest First
+								{m.items_sort_newest_first()}
 							</DropdownMenuItem>
 							<DropdownMenuItem onClick={() => setSort('date-asc')}>
 								<Check className={cn('size-4', sort !== 'date-asc' && 'opacity-0')} />
-								Oldest First
+								{m.items_sort_oldest_first()}
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
 				</div>
 
 				{entries.length === 0 ? (
-					<EmptyMessage message="No items match the current filter" className="xs:ml-6" />
+					<EmptyMessage message={m.items_empty_filtered()} className="xs:ml-6" />
 				) : (
 					<div className="flex flex-col gap-2">
 						{entries.map(entry =>

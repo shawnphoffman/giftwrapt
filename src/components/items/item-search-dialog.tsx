@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Skeleton } from '@/components/ui/skeleton'
 import { MIN_ITEM_SEARCH_QUERY_LENGTH } from '@/lib/item-search'
 import { useDebouncedValue } from '@/lib/use-debounced-value'
+import { m } from '@/paraglide/messages.js'
 
 // Prefix key: `MoveItemDialog` invalidates on this, which covers every
 // per-query entry below it.
@@ -79,8 +80,8 @@ export function ItemSearchDialog({ open, onOpenChange }: Props) {
 			<Dialog open={open} onOpenChange={handleOpenChange}>
 				<DialogContent className="gap-4 p-0 sm:max-w-2xl" showCloseButton={false}>
 					<DialogHeader className="px-6 pt-6">
-						<DialogTitle>Search My Items</DialogTitle>
-						<DialogDescription>Search across every item on the lists you own.</DialogDescription>
+						<DialogTitle>{m.items_search_dialog_title()}</DialogTitle>
+						<DialogDescription>{m.items_search_dialog_description()}</DialogDescription>
 					</DialogHeader>
 
 					<Command
@@ -90,12 +91,12 @@ export function ItemSearchDialog({ open, onOpenChange }: Props) {
 						shouldFilter={false}
 						className="rounded-none border-t bg-transparent"
 					>
-						<CommandInput placeholder="Search items by name, list, or notes…" value={query} onValueChange={setQuery} autoFocus />
+						<CommandInput placeholder={m.items_search_placeholder()} value={query} onValueChange={setQuery} autoFocus />
 						<CommandList className="max-h-[min(60svh,32rem)]">
 							{!hasQuery ? (
 								<div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground">
 									<Search className="size-6 opacity-60" />
-									<p>Type at least {MIN_ITEM_SEARCH_QUERY_LENGTH} characters to search.</p>
+									<p>{m.items_search_min_chars({ min: MIN_ITEM_SEARCH_QUERY_LENGTH })}</p>
 								</div>
 							) : isPending || !result ? (
 								<div className="space-y-2 p-3">
@@ -112,12 +113,12 @@ export function ItemSearchDialog({ open, onOpenChange }: Props) {
 							) : !result.hasAnyItems ? (
 								<div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground">
 									<PackageSearch className="size-6 opacity-60" />
-									<p>You don't have any items on your own lists yet.</p>
+									<p>{m.items_search_no_items()}</p>
 								</div>
 							) : rows.length === 0 ? (
 								<div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground">
 									<PackageSearch className="size-6 opacity-60" />
-									<p>No items match your search.</p>
+									<p>{m.items_search_no_matches()}</p>
 								</div>
 							) : (
 								<>
@@ -164,7 +165,7 @@ export function ItemSearchDialog({ open, onOpenChange }: Props) {
 															startMove(row)
 														}}
 													>
-														Move
+														{m.items_search_move_button()}
 													</Button>
 													<Button
 														type="button"
@@ -175,7 +176,7 @@ export function ItemSearchDialog({ open, onOpenChange }: Props) {
 															openList(row.listId)
 														}}
 													>
-														Open <ArrowRight className="size-3.5" />
+														{m.items_search_open_button()} <ArrowRight className="size-3.5" />
 													</Button>
 												</div>
 											</CommandItem>
@@ -183,7 +184,7 @@ export function ItemSearchDialog({ open, onOpenChange }: Props) {
 									</div>
 									{result.totalMatches > rows.length && (
 										<p className="px-3 pb-3 text-center text-xs text-muted-foreground">
-											Showing the closest {rows.length} of {result.totalMatches} matches. Keep typing to narrow it down.
+											{m.items_search_showing_closest({ shown: rows.length, total: result.totalMatches })}
 										</p>
 									)}
 								</>

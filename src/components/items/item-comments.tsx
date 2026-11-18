@@ -3,6 +3,7 @@ import { useReducedMotion } from 'motion/react'
 import { lazy, Suspense, useLayoutEffect, useRef, useState } from 'react'
 
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 const ItemCommentsPanel = lazy(() => import('./item-comments-panel'))
 
@@ -70,7 +71,7 @@ export function ItemComments({ itemId, commentCount = 0, trailing }: Props) {
 					)}
 				>
 					<MessageSquare className="size-3.5" />
-					{displayCount > 0 ? `${displayCount} comment${displayCount !== 1 ? 's' : ''}` : 'Add comment'}
+					{displayCount > 0 ? m.items_comment_count({ count: displayCount }) : m.items_comment_add_button()}
 				</button>
 				{trailing && <div className="@md:ml-auto self-end min-w-0 max-w-full">{trailing}</div>}
 			</div>

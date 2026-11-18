@@ -24,14 +24,14 @@ function SecurityPage() {
 	return (
 		<Card className="animate-page-in max-w-2xl">
 			<CardHeader>
-				<CardTitle className="text-2xl">Security</CardTitle>
-				<CardDescription>Change your password and security settings.</CardDescription>
+				<CardTitle className="text-2xl">{m.page_security()}</CardTitle>
+				<CardDescription>{m.settings_security_description()}</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-6">
 				<section className="space-y-3">
 					<div>
-						<h2 className="text-lg font-semibold">Password</h2>
-						<p className="text-sm text-muted-foreground">Change the password you use to sign in.</p>
+						<h2 className="text-lg font-semibold">{m.settings_password_title()}</h2>
+						<p className="text-sm text-muted-foreground">{m.settings_password_description()}</p>
 					</div>
 					<PasswordForm />
 				</section>
@@ -47,10 +47,8 @@ function SecurityPage() {
 						<Separator />
 						<section className="space-y-3">
 							<div>
-								<h2 className="text-lg font-semibold">Passkeys</h2>
-								<p className="text-sm text-muted-foreground">
-									Add Touch ID, Face ID, or hardware security keys as a faster way to sign in. Each device gets its own passkey.
-								</p>
+								<h2 className="text-lg font-semibold">{m.settings_passkeys_title()}</h2>
+								<p className="text-sm text-muted-foreground">{m.settings_passkeys_description()}</p>
 							</div>
 							<PasskeysSection />
 						</section>

@@ -10,6 +10,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { m } from '@/paraglide/messages.js'
 
 type ConfirmDialogProps = {
 	open: boolean
@@ -29,9 +30,9 @@ export function ConfirmDialog({
 	onOpenChange,
 	title,
 	description,
-	confirmLabel = 'Confirm',
+	confirmLabel = m.action_confirm(),
 	confirmBusyLabel,
-	cancelLabel = 'Cancel',
+	cancelLabel = m.action_cancel(),
 	destructive = false,
 	onConfirm,
 }: ConfirmDialogProps) {

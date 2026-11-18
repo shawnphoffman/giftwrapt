@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Slider } from '@/components/ui/slider'
+import { m } from '@/paraglide/messages.js'
 
 // Client-side circular crop dialog. Shown after the user picks an image
 // but before it's sent to the server. The picked image is rendered into
@@ -215,8 +216,8 @@ export function AvatarCropperDialog({ open, onOpenChange, imageSrc, fileName, on
 		>
 			<DialogContent className="max-w-md">
 				<DialogHeader>
-					<DialogTitle>Crop Avatar</DialogTitle>
-					<DialogDescription>Drag to position, scroll or use the slider to zoom. The circle previews the final shape.</DialogDescription>
+					<DialogTitle>{m.settings_avatar_crop_title()}</DialogTitle>
+					<DialogDescription>{m.settings_avatar_crop_description()}</DialogDescription>
 				</DialogHeader>
 
 				<div className="flex flex-col items-center gap-4">
@@ -256,7 +257,7 @@ export function AvatarCropperDialog({ open, onOpenChange, imageSrc, fileName, on
 
 						{loadError && (
 							<div className="absolute inset-0 flex items-center justify-center p-4 text-center text-sm text-muted-foreground">
-								Couldn’t preview this image. Try a JPEG or PNG.
+								{m.settings_avatar_crop_load_error()}
 							</div>
 						)}
 
@@ -270,7 +271,7 @@ export function AvatarCropperDialog({ open, onOpenChange, imageSrc, fileName, on
 					<div className="flex w-full max-w-80 items-center gap-3">
 						<button
 							type="button"
-							aria-label="Zoom out"
+							aria-label={m.settings_avatar_crop_zoom_out()}
 							className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 shrink-0"
 							onClick={() => zoomAroundCenter(scale - (maxScale - minScale) / 20)}
 							disabled={!naturalSize || scale <= minScale + 1e-6}
@@ -284,11 +285,11 @@ export function AvatarCropperDialog({ open, onOpenChange, imageSrc, fileName, on
 							value={[scale]}
 							onValueChange={onSliderChange}
 							disabled={!naturalSize}
-							aria-label="Zoom"
+							aria-label={m.settings_avatar_crop_zoom()}
 						/>
 						<button
 							type="button"
-							aria-label="Zoom in"
+							aria-label={m.settings_avatar_crop_zoom_in()}
 							className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50 shrink-0"
 							onClick={() => zoomAroundCenter(scale + (maxScale - minScale) / 20)}
 							disabled={!naturalSize || scale >= maxScale - 1e-6}
@@ -301,15 +302,15 @@ export function AvatarCropperDialog({ open, onOpenChange, imageSrc, fileName, on
 				<DialogFooter className="sm:justify-between">
 					<Button type="button" variant="ghost" size="sm" onClick={handleReset} disabled={!naturalSize || saving} className="gap-1.5">
 						<RotateCcw className="size-3.5" />
-						Reset
+						{m.settings_avatar_crop_reset()}
 					</Button>
 					<div className="flex gap-2 sm:justify-end">
 						<Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={saving}>
-							Cancel
+							{m.action_cancel()}
 						</Button>
 						<Button type="button" size="sm" onClick={handleSave} disabled={!naturalSize || saving || loadError} className="gap-1.5">
 							{saving && <Loader2 className="size-3.5 animate-spin" />}
-							{saving ? 'Saving…' : 'Save'}
+							{saving ? m.state_saving() : m.action_save()}
 						</Button>
 					</div>
 				</DialogFooter>

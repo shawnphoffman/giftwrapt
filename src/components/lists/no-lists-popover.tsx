@@ -10,6 +10,7 @@ import { ClientOnly } from '@/components/utilities/client-only'
 import type { BirthMonth } from '@/db/schema/enums'
 import type { DependentWithLists, UserWithLists } from '@/db-collections/lists'
 import { dependentsWithListsCollection, usersWithListsCollection } from '@/db-collections/lists'
+import { m } from '@/paraglide/messages.js'
 
 type EmptyEntry = {
 	kind: 'user' | 'dependent'
@@ -64,14 +65,14 @@ function NoListsPopoverContent() {
 					variant="outline"
 					size="icon-sm"
 					className="text-muted-foreground hover:text-foreground"
-					aria-label={`${empty.length} ${empty.length === 1 ? 'person has' : 'people have'} no lists`}
+					aria-label={m.lists_no_lists_popover_label({ count: empty.length })}
 				>
 					<Info className="size-4" />
 				</Button>
 			</PopoverTrigger>
 			<PopoverContent align="start" className="w-72">
 				<PopoverHeader>
-					<PopoverTitle>No lists yet</PopoverTitle>
+					<PopoverTitle>{m.lists_no_lists_popover_title()}</PopoverTitle>
 				</PopoverHeader>
 				<ul className="flex flex-col gap-2">
 					{empty.map(entry => (

@@ -8,6 +8,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PasswordInput } from '@/components/ui/password-input'
 import logo from '@/images/logo.webp'
+import { m } from '@/paraglide/messages.js'
+
+// The product name is never translated.
+const PRODUCT_NAME = 'GiftWrapt'
 
 export type SignInPageContentProps = {
 	onSubmit: (email: string, password: string) => Promise<void>
@@ -26,13 +30,12 @@ export type SignInPageContentProps = {
 }
 
 // "Sign in with X" as "Use X", for the narrow card (a phone with the text size
-// turned up). A label that does not follow the pattern is kept as is.
+// turned up). The label is text an admin typed, so the pattern is matched in
+// English; a label that does not follow it is kept as is.
 function shortSignInLabel(label: string): string {
 	const match = /^Sign in with (.+)$/i.exec(label)
-	return match ? `Use ${match[1]}` : label
+	return match ? m.auth_sign_in_use_provider({ provider: match[1] }) : label
 }
-
-const GENERIC_SIGN_IN_ERROR = 'Invalid email or password.'
 
 export function SignInPageContent({
 	onSubmit,
@@ -59,7 +62,9 @@ export function SignInPageContent({
 		try {
 			await onSubmit(email, password)
 		} catch {
-			setError(GENERIC_SIGN_IN_ERROR)
+			// One message for every failure, so the page never reveals whether
+			// an account exists.
+			setError(m.auth_sign_in_error())
 		} finally {
 			setIsLoading(false)
 		}
@@ -72,7 +77,7 @@ export function SignInPageContent({
 		try {
 			await onSignInWithPasskey()
 		} catch {
-			setError("Couldn't sign in with that passkey. Try again or use your password.")
+			setError(m.auth_sign_in_passkey_error())
 		} finally {
 			setPasskeyLoading(false)
 		}
@@ -85,7 +90,7 @@ export function SignInPageContent({
 		try {
 			await onSignInWithOidc()
 		} catch {
-			setError("Couldn't reach the OpenID provider. Try again or use your password.")
+			setError(m.auth_sign_in_oidc_error())
 		} finally {
 			setOidcLoading(false)
 		}
@@ -96,26 +101,26 @@ export function SignInPageContent({
 			<div className="absolute inset-0 -z-10 overflow-hidden">
 				<GradientBackground />
 			</div>
-			<Image src={logo} alt="GiftWrapt" width={160} height={160} className="w-24 sm:w-40" />
+			<Image src={logo} alt={PRODUCT_NAME} width={160} height={160} className="w-24 sm:w-40" />
 
 			<div className="@container/card w-full max-w-md space-y-4 rounded-lg border bg-background/80 p-6 shadow-lg backdrop-blur">
 				<div className="text-center">
-					<h1 className="text-3xl font-bold">Sign In</h1>
-					<p className="mt-2 text-muted-foreground">Enter your credentials to access your account</p>
+					<h1 className="text-3xl font-bold">{m.page_sign_in()}</h1>
+					<p className="mt-2 text-muted-foreground">{m.auth_sign_in_subtitle()}</p>
 				</div>
 
 				<form onSubmit={handleSubmit} className="space-y-2">
 					{error && <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">{error}</div>}
 
 					<div className="space-y-2">
-						<Label htmlFor="email">Email</Label>
+						<Label htmlFor="email">{m.auth_email_label()}</Label>
 						<Input
 							id="email"
 							type="text"
 							inputMode="email"
 							autoCapitalize="none"
 							spellCheck={false}
-							placeholder="you@example.com"
+							placeholder={m.auth_email_placeholder()}
 							value={email}
 							onChange={e => setEmail(e.target.value)}
 							required
@@ -126,10 +131,10 @@ export function SignInPageContent({
 
 					<div className="space-y-2">
 						<div className="flex items-baseline justify-between gap-2">
-							<Label htmlFor="password">Password</Label>
+							<Label htmlFor="password">{m.auth_password_label()}</Label>
 							{forgotPasswordHref && (
 								<a href={forgotPasswordHref} className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-4">
-									<SignInLabel long="Forgot password?" short="Forgot?" />
+									<SignInLabel long={m.auth_sign_in_forgot_link()} short={m.auth_sign_in_forgot_link_short()} />
 								</a>
 							)}
 						</div>
@@ -145,30 +150,34 @@ export function SignInPageContent({
 					</div>
 
 					<Button type="submit" className="w-full" disabled={showLoading}>
-						{showLoading && !passkeyLoading ? 'Signing In...' : 'Sign In'}
+						{showLoading && !passkeyLoading ? m.auth_sign_in_submitting() : m.auth_sign_in_button()}
 					</Button>
 
 					{(onSignInWithPasskey || onSignInWithOidc) && (
 						<div className="flex items-center gap-2 pt-2 text-xs text-muted-foreground">
 							<div className="h-px flex-1 bg-border" />
-							<span>or</span>
+							<span>{m.auth_sign_in_or()}</span>
 							<div className="h-px flex-1 bg-border" />
 						</div>
 					)}
 					{onSignInWithPasskey && (
 						<Button type="button" variant="outline" className="w-full" disabled={showLoading} onClick={handlePasskey}>
 							<KeyRound className="size-4" />
-							{passkeyLoading ? 'Authenticating…' : <SignInLabel long="Sign in with a passkey" short="Use a passkey" />}
+							{passkeyLoading ? (
+								m.auth_passkey_authenticating()
+							) : (
+								<SignInLabel long={m.auth_sign_in_passkey_button()} short={m.auth_sign_in_passkey_button_short()} />
+							)}
 						</Button>
 					)}
 					{onSignInWithOidc && (
 						<Button type="button" variant="outline" className="w-full" disabled={showLoading} onClick={handleOidc}>
 							{oidcLoading ? (
-								'Redirecting…'
+								m.auth_sign_in_redirecting()
 							) : (
 								<SignInLabel
-									long={oidcButtonText ?? 'Sign in with OpenID'}
-									short={shortSignInLabel(oidcButtonText ?? 'Sign in with OpenID')}
+									long={oidcButtonText ?? m.auth_sign_in_oidc_button()}
+									short={oidcButtonText != null ? shortSignInLabel(oidcButtonText) : m.auth_sign_in_oidc_button_short()}
 								/>
 							)}
 						</Button>

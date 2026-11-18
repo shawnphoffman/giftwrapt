@@ -14,6 +14,7 @@ import {
 import type { Item } from '@/db/schema/items'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 import { GroupBadge } from './group-badge'
 import { GroupConnector } from './group-connector'
@@ -79,35 +80,33 @@ export function GroupBlock({ group, items, groups, listId, onAddItem, onDelete, 
 						variant="outline"
 						size="icon-xs"
 						onClick={() => onAddItem(group.id)}
-						title="Add item to this group"
-						aria-label="Add item to this group"
+						title={m.items_group_add_item_label()}
+						aria-label={m.items_group_add_item_label()}
 					>
 						<Plus />
 					</Button>
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
-							<Button variant="outline" size="icon-xs" title="Group actions" aria-label="Group actions">
+							<Button variant="outline" size="icon-xs" title={m.items_group_actions_label()} aria-label={m.items_group_actions_label()}>
 								<MoreHorizontal className="size-4" />
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end">
 							<DropdownMenuItem onClick={() => setEditOpen(true)}>
-								<Pencil className="size-4" /> Edit
+								<Pencil className="size-4" /> {m.action_edit()}
 							</DropdownMenuItem>
 							<DropdownMenuItem onClick={() => setMoveOpen(true)}>
-								<ArrowRightLeft className="size-4" /> Move to...
+								<ArrowRightLeft className="size-4" /> {m.items_action_move_to()}
 							</DropdownMenuItem>
 							<DropdownMenuSeparator />
 							<DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => onDelete(group.id)}>
-								<Trash2 className="size-4" /> Delete
+								<Trash2 className="size-4" /> {m.action_delete()}
 							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
 				</div>
 				{items.length === 0 ? (
-					<div className="text-xs text-muted-foreground p-3 m-1 text-center border border-dashed rounded-lg">
-						Empty group. Use the + button above or the "Group" item action to add items here.
-					</div>
+					<div className="text-xs text-muted-foreground p-3 m-1 text-center border border-dashed rounded-lg">{m.items_group_empty()}</div>
 				) : (
 					<div className="overflow-hidden">
 						{items.map((item, index) => (

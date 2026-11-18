@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { m } from '@/paraglide/messages.js'
 
 const todosQueryKey = (listId: number) => ['todos', listId] as const
 
@@ -36,12 +37,12 @@ function useTodos(listId: number) {
 export function TodoList({ listId, canEdit }: { listId: number; canEdit: boolean }) {
 	const { data: todos, isLoading } = useTodos(listId)
 
-	if (isLoading) return <div className="text-sm text-muted-foreground">Loading...</div>
+	if (isLoading) return <div className="text-sm text-muted-foreground">{m.lists_todos_loading()}</div>
 	if (!todos || todos.length === 0) {
 		return (
 			<div className="flex flex-col gap-3">
 				{canEdit && <AddTodoDialog listId={listId} />}
-				<p className="text-sm text-muted-foreground">No todos yet.</p>
+				<p className="text-sm text-muted-foreground">{m.lists_todos_empty()}</p>
 			</div>
 		)
 	}
@@ -71,7 +72,7 @@ function TodoRowItem({ todo, listId, canEdit }: { todo: TodoRow; listId: number;
 			return result.todo
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: todosQueryKey(listId) }),
-		onError: err => toast.error(err instanceof Error ? err.message : 'Failed to update todo'),
+		onError: err => toast.error(err instanceof Error ? err.message : m.lists_todos_toggle_failed()),
 	})
 
 	const remove = useMutation({
@@ -80,7 +81,7 @@ function TodoRowItem({ todo, listId, canEdit }: { todo: TodoRow; listId: number;
 			if (result.kind === 'error') throw new Error(result.reason)
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: todosQueryKey(listId) }),
-		onError: err => toast.error(err instanceof Error ? err.message : 'Failed to delete todo'),
+		onError: err => toast.error(err instanceof Error ? err.message : m.lists_todos_delete_failed()),
 	})
 
 	return (
@@ -90,16 +91,18 @@ function TodoRowItem({ todo, listId, canEdit }: { todo: TodoRow; listId: number;
 				onClick={() => toggle.mutate()}
 				disabled={toggle.isPending}
 				className={`mt-0.5 size-5 shrink-0 rounded border-2 ${done ? 'border-primary bg-primary' : 'border-muted-foreground/30 bg-transparent'}`}
-				aria-label={done ? 'Mark not done' : 'Mark done'}
+				aria-label={done ? m.lists_todos_mark_not_done() : m.lists_todos_mark_done()}
 			/>
 			<div className="flex-1 min-w-0">
 				<p className={`font-medium ${done ? 'line-through text-muted-foreground' : ''}`}>{todo.title}</p>
 				{todo.notes && <MarkdownNotes content={todo.notes} className="text-sm text-muted-foreground" />}
-				{done && todo.claimedByName && <p className="text-xs text-muted-foreground">Done by {todo.claimedByName}</p>}
+				{done && todo.claimedByName && (
+					<p className="text-xs text-muted-foreground">{m.lists_todos_done_by({ name: todo.claimedByName })}</p>
+				)}
 			</div>
 			{canEdit && (
 				<>
-					<Button variant="outline" size="icon-xs" onClick={() => setEditOpen(true)} aria-label="Edit todo">
+					<Button variant="outline" size="icon-xs" onClick={() => setEditOpen(true)} aria-label={m.lists_todos_edit_label()}>
 						<Pencil />
 					</Button>
 					<Button
@@ -107,7 +110,7 @@ function TodoRowItem({ todo, listId, canEdit }: { todo: TodoRow; listId: number;
 						size="icon-xs"
 						onClick={() => setConfirmDeleteOpen(true)}
 						disabled={remove.isPending}
-						aria-label="Delete todo"
+						aria-label={m.lists_todos_delete_label()}
 					>
 						<Trash2 />
 					</Button>
@@ -115,10 +118,10 @@ function TodoRowItem({ todo, listId, canEdit }: { todo: TodoRow; listId: number;
 					<ConfirmDialog
 						open={confirmDeleteOpen}
 						onOpenChange={setConfirmDeleteOpen}
-						title="Delete this todo?"
-						description={`"${todo.title}" will be permanently removed. This can't be undone.`}
-						confirmLabel="Delete"
-						confirmBusyLabel="Deleting…"
+						title={m.lists_todos_delete_confirm_title()}
+						description={m.lists_todos_delete_confirm_description({ title: todo.title })}
+						confirmLabel={m.action_delete()}
+						confirmBusyLabel={m.lists_todos_delete_busy()}
 						destructive
 						onConfirm={() => remove.mutateAsync()}
 					/>
@@ -133,8 +136,8 @@ function AddTodoDialog({ listId }: { listId: number }) {
 	return (
 		<>
 			<Button variant="default" size="sm" className="self-end" onClick={() => setOpen(true)}>
-				<Plus className="size-4" /> <span className="xs:hidden">Add</span>
-				<span className="hidden xs:inline">Add ToDo</span>
+				<Plus className="size-4" /> <span className="xs:hidden">{m.action_add()}</span>
+				<span className="hidden xs:inline">{m.lists_todos_add_button()}</span>
 			</Button>
 			<TodoFormDialog mode="create" listId={listId} open={open} onOpenChange={setOpen} />
 		</>
@@ -171,7 +174,8 @@ function TodoFormDialog({ mode, listId, todo, open, onOpenChange }: TodoFormDial
 			onOpenChange(false)
 			qc.invalidateQueries({ queryKey: todosQueryKey(listId) })
 		},
-		onError: err => toast.error(err instanceof Error ? err.message : `Failed to ${mode === 'create' ? 'create' : 'update'} todo`),
+		onError: err =>
+			toast.error(err instanceof Error ? err.message : mode === 'create' ? m.lists_todos_create_failed() : m.lists_todos_update_failed()),
 	})
 
 	useEffect(() => {
@@ -189,25 +193,25 @@ function TodoFormDialog({ mode, listId, todo, open, onOpenChange }: TodoFormDial
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>{isCreate ? 'Add ToDo' : 'Edit ToDo'}</DialogTitle>
-					<DialogDescription>Markdown rendered in notes. URLs go in notes.</DialogDescription>
+					<DialogTitle>{isCreate ? m.lists_todos_dialog_title_add() : m.lists_todos_dialog_title_edit()}</DialogTitle>
+					<DialogDescription>{m.lists_todos_dialog_description()}</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-3">
 					<div className="flex flex-col gap-1.5">
-						<Label htmlFor={titleId}>Title</Label>
+						<Label htmlFor={titleId}>{m.lists_todos_title_label()}</Label>
 						<Input id={titleId} value={title} onChange={e => setTitle(e.target.value)} maxLength={500} autoFocus />
 					</div>
 					<div className="flex flex-col gap-1.5">
-						<Label htmlFor={notesId}>Notes</Label>
+						<Label htmlFor={notesId}>{m.lists_todos_notes_label()}</Label>
 						<MarkdownTextarea id={notesId} value={notes} onChange={setNotes} maxLength={10000} rows={4} />
 					</div>
 				</div>
 				<DialogFooter>
 					<Button variant="outline" onClick={() => onOpenChange(false)}>
-						Cancel
+						{m.action_cancel()}
 					</Button>
 					<Button onClick={() => save.mutate()} disabled={!title.trim() || save.isPending}>
-						{save.isPending ? (isCreate ? 'Adding...' : 'Saving...') : isCreate ? 'Add' : 'Save'}
+						{save.isPending ? (isCreate ? m.lists_todos_adding() : m.lists_todos_saving()) : isCreate ? m.action_add() : m.action_save()}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

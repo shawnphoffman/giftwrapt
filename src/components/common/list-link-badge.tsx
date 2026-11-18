@@ -3,6 +3,7 @@ import { List } from 'lucide-react'
 
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 type Props = {
 	listId: number
@@ -34,7 +35,7 @@ export default function ListLinkBadge({ listId, name, from, className }: Props) 
 						<span className="truncate">{name}</span>
 					</Link>
 				</TooltipTrigger>
-				<TooltipContent>Links to another list</TooltipContent>
+				<TooltipContent>{m.shared_list_link_tooltip()}</TooltipContent>
 			</Tooltip>
 		</TooltipProvider>
 	)

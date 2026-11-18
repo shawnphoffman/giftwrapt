@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { parseTotalCost } from '@/lib/contributions'
+import { m } from '@/paraglide/messages.js'
 
 type Props = {
 	open: boolean
@@ -60,20 +61,20 @@ export function ContributionSplitDialog({ open, onOpenChange, giftId, itemTitle 
 		try {
 			const result = await setContributionSplit({ data: { giftId, coGifters } })
 			if (result.kind === 'ok') {
-				toast.success('Split updated')
+				toast.success(m.purchases_split_saved())
 				refresh()
 				onOpenChange(false)
 				return
 			}
 			setError(
 				result.reason === 'exceeds-total'
-					? "The co-gifters' shares add up to more than the total."
+					? m.purchases_split_error_exceeds_total()
 					: result.reason === 'no-cost'
-						? 'Add a total cost to this gift before splitting it.'
-						: "You can't edit this split."
+						? m.purchases_split_error_no_cost()
+						: m.purchases_split_error_not_allowed()
 			)
 		} catch {
-			setError('Failed to update the split.')
+			setError(m.purchases_split_save_failed())
 		} finally {
 			setSaving(false)
 		}
@@ -88,10 +89,8 @@ export function ContributionSplitDialog({ open, onOpenChange, giftId, itemTitle 
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle className="text-base line-clamp-2 leading-snug">Split “{itemTitle}”</DialogTitle>
-					<DialogDescription>
-						Set what each co-gifter put in. Your share is whatever&rsquo;s left. Only you and your partner see this.
-					</DialogDescription>
+					<DialogTitle className="text-base line-clamp-2 leading-snug">{m.purchases_split_title({ itemTitle })}</DialogTitle>
+					<DialogDescription>{m.purchases_split_description()}</DialogDescription>
 				</DialogHeader>
 
 				<div className="space-y-3">
@@ -113,16 +112,14 @@ export function ContributionSplitDialog({ open, onOpenChange, giftId, itemTitle 
 					))}
 
 					<div className="flex items-center justify-between border-t pt-3 text-sm">
-						<span className="font-medium">Your share</span>
+						<span className="font-medium">{m.purchases_split_your_share()}</span>
 						<span className={`tabular-nums font-semibold ${overAllocated ? 'text-destructive' : ''}`}>
 							{residual != null ? `$${residual.toFixed(2)}` : '-'}
 						</span>
 					</div>
 					{overAllocated && (
 						<Alert variant="destructive">
-							<AlertDescription>
-								The co-gifters&rsquo; shares exceed the total. Lower them so your share isn&rsquo;t negative.
-							</AlertDescription>
+							<AlertDescription>{m.purchases_split_over_allocated()}</AlertDescription>
 						</Alert>
 					)}
 					{error && (
@@ -134,14 +131,14 @@ export function ContributionSplitDialog({ open, onOpenChange, giftId, itemTitle 
 
 				<DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-between">
 					<Button type="button" variant="outline" onClick={() => save([])} disabled={saving}>
-						Reset to Even
+						{m.purchases_split_reset()}
 					</Button>
 					<div className="flex gap-2 sm:justify-end">
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-							Cancel
+							{m.action_cancel()}
 						</Button>
 						<Button type="button" onClick={onSave} disabled={saving || overAllocated || anyInvalid}>
-							{saving ? 'Saving…' : 'Save'}
+							{saving ? m.state_saving() : m.action_save()}
 						</Button>
 					</div>
 				</DialogFooter>

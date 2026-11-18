@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { m } from '@/paraglide/messages.js'
 
 export type ThankYouDraftState = { phase: 'loading' } | { phase: 'ready'; note: string } | { phase: 'error'; message: string }
 
@@ -26,7 +27,11 @@ type Props = {
 }
 
 export function thankYouSubjects(giverLabel: string, giftCount: number): Array<string> {
-	return ['Thank You!', `Thank you, ${giverLabel}!`, giftCount === 1 ? 'Thank you for the gift' : 'Thank you for the gifts']
+	return [
+		m.received_thank_you_subject_short(),
+		m.received_thank_you_subject_named({ giverLabel }),
+		m.received_thank_you_subject_gifts({ count: giftCount }),
+	]
 }
 
 // Built by hand rather than with URLSearchParams, which encodes spaces as "+"
@@ -51,15 +56,12 @@ export function ThankYouDraftDialog({ open, onOpenChange, giverLabel, giverEmail
 				<DialogHeader>
 					<DialogTitle className="flex items-start gap-2 pr-8">
 						<PenLine className="mt-2 size-5 shrink-0" />
-						<span className="text-balance">Thank-You Note for {giverLabel}</span>
+						<span className="text-balance">{m.received_thank_you_title({ giverLabel })}</span>
 					</DialogTitle>
-					<DialogDescription>
-						A draft to get you started. Edit it so it sounds like you, then copy it into a card or open it in your email app. Nothing is
-						sent from here.
-					</DialogDescription>
+					<DialogDescription>{m.received_thank_you_description()}</DialogDescription>
 				</DialogHeader>
 
-				{state.phase === 'loading' && <p className="py-6 text-center text-sm text-muted-foreground">Writing a draft…</p>}
+				{state.phase === 'loading' && <p className="py-6 text-center text-sm text-muted-foreground">{m.received_thank_you_loading()}</p>}
 
 				{state.phase === 'error' && (
 					<Alert variant="destructive">
@@ -70,11 +72,11 @@ export function ThankYouDraftDialog({ open, onOpenChange, giverLabel, giverEmail
 				{state.phase === 'ready' && (
 					<div className="grid gap-4">
 						<div className="grid gap-2">
-							<Label htmlFor="thank-you-note">Note</Label>
+							<Label htmlFor="thank-you-note">{m.received_thank_you_note_label()}</Label>
 							<Textarea id="thank-you-note" rows={8} value={state.note} onChange={e => onNoteChange(e.target.value)} />
 						</div>
 						<div className="grid gap-2">
-							<Label htmlFor="thank-you-subject">Email Subject</Label>
+							<Label htmlFor="thank-you-subject">{m.received_thank_you_subject_label()}</Label>
 							<Select value={subject} onValueChange={setSubject}>
 								<SelectTrigger id="thank-you-subject" className="w-full">
 									<SelectValue />
@@ -93,13 +95,13 @@ export function ThankYouDraftDialog({ open, onOpenChange, giverLabel, giverEmail
 
 				<DialogFooter>
 					<Button type="button" variant="outline" onClick={onRetry} disabled={state.phase === 'loading'}>
-						<RotateCw className="size-4" /> {state.phase === 'error' ? 'Try Again' : 'New Draft'}
+						<RotateCw className="size-4" /> {state.phase === 'error' ? m.action_try_again() : m.received_thank_you_new_draft()}
 					</Button>
-					{state.phase === 'ready' && <CopyButton value={state.note} label="Copy Note" size="default" />}
+					{state.phase === 'ready' && <CopyButton value={state.note} label={m.received_thank_you_copy_note()} size="default" />}
 					{state.phase === 'ready' && (
 						<Button asChild>
 							<a href={thankYouMailto(giverEmails, subject, state.note)}>
-								<Mail className="size-4" /> Draft Email
+								<Mail className="size-4" /> {m.received_thank_you_draft_email()}
 							</a>
 						</Button>
 					)}

@@ -2,12 +2,14 @@ import { useLiveQuery } from '@tanstack/react-db'
 import { Link } from '@tanstack/react-router'
 import { Skeleton } from 'skullet/react'
 
+import { RichMessage } from '@/components/common/rich-message'
 import { ClientOnly } from '@/components/utilities/client-only'
 import type { BirthMonth } from '@/db/schema/enums'
 import type { DependentWithLists, UserWithLists } from '@/db-collections/lists'
 import { dependentsWithListsCollection, usersWithListsCollection } from '@/db-collections/lists'
 import { useSession } from '@/lib/auth-client'
 import { useListsSSE } from '@/lib/use-lists-sse'
+import { m } from '@/paraglide/messages.js'
 
 import { SAMPLE_FEED } from './lists-feed-sample'
 import ListsForDependent from './lists-for-dependent'
@@ -102,7 +104,7 @@ function ListsByUserContent() {
 		: [...usersData, ...dependentsData].filter(entry => entry.lists.length > 0).sort(sortByBirthDate)
 
 	return (
-		<Skeleton id="lists-feed" label="Loading lists" data={sortedEntries} sample={SAMPLE_FEED}>
+		<Skeleton id="lists-feed" label={m.lists_loading_label()} data={sortedEntries} sample={SAMPLE_FEED}>
 			{entries => <ListsFeed entries={entries} isAdmin={isAdmin} />}
 		</Skeleton>
 	)
@@ -115,16 +117,20 @@ function ListsFeed({ entries, isAdmin }: { entries: Array<FeedEntry>; isAdmin: b
 	if (entries.length === 0) {
 		return (
 			<div className="text-sm text-muted-foreground py-3 px-3 border border-dashed rounded-lg bg-accent/30">
-				No users.
 				{isAdmin ? (
-					<>
-						{' '}
-						<Link to="/admin/users" className="underline">
-							Invite users
-						</Link>
-						.
-					</>
-				) : null}
+					<RichMessage
+						parts={m.lists_feed_empty_admin.parts()}
+						tags={{
+							link: children => (
+								<Link to="/admin/users" className="underline">
+									{children}
+								</Link>
+							),
+						}}
+					/>
+				) : (
+					m.lists_feed_empty()
+				)}
 			</div>
 		)
 	}
@@ -149,7 +155,7 @@ export function ListsByUser() {
 	return (
 		<ClientOnly
 			fallback={
-				<Skeleton loading label="Loading lists">
+				<Skeleton loading label={m.lists_loading_label()}>
 					<ListsFeed entries={SAMPLE_FEED} isAdmin={false} />
 				</Skeleton>
 			}

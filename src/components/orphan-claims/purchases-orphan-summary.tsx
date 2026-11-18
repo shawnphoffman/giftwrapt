@@ -10,6 +10,7 @@ import { PackageX } from 'lucide-react'
 import { getOrphanedClaimsSummary } from '@/api/orphan-claims'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { m } from '@/paraglide/messages.js'
 
 export function PurchasesOrphanSummary() {
 	const { data } = useQuery({
@@ -23,11 +24,9 @@ export function PurchasesOrphanSummary() {
 	return (
 		<Alert variant="destructive" className="border-destructive/40">
 			<PackageX />
-			<AlertTitle>You have unresolved removed claims</AlertTitle>
+			<AlertTitle>{m.lists_orphan_summary_title()}</AlertTitle>
 			<AlertDescription>
-				<p>
-					The recipient removed an item you (or your partner) had already claimed. Open the list to acknowledge and clear it from your view.
-				</p>
+				<p>{m.lists_orphan_summary_body()}</p>
 				<div className="flex flex-col gap-2">
 					{data.map(row => (
 						<div
@@ -37,13 +36,14 @@ export function PurchasesOrphanSummary() {
 							<div className="flex flex-col min-w-0">
 								<span className="text-sm font-medium text-foreground truncate">{row.listName}</span>
 								<span className="text-xs text-muted-foreground truncate">
-									{row.count} {row.count === 1 ? 'item' : 'items'} for {row.recipientName}
-									{!row.listIsActive && ' (list archived)'}
+									{row.listIsActive
+										? m.lists_orphan_summary_row({ count: row.count, recipientName: row.recipientName })
+										: m.lists_orphan_summary_row_archived({ count: row.count, recipientName: row.recipientName })}
 								</span>
 							</div>
 							<Button asChild size="sm" variant="outline" className="shrink-0">
 								<Link to="/lists/$listId" params={{ listId: String(row.listId) }}>
-									Open List
+									{m.lists_orphan_summary_open()}
 								</Link>
 							</Button>
 						</div>

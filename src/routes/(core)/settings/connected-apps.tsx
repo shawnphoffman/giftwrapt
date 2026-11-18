@@ -35,11 +35,8 @@ function ConnectedAppsPage() {
 	return (
 		<Card className="animate-page-in max-w-2xl">
 			<CardHeader>
-				<CardTitle className="text-2xl">Connected Apps</CardTitle>
-				<CardDescription>
-					AI assistants you have connected to your account. Each one acts as you, with the access you have. You can make one read-only or
-					disconnect it here at any time.
-				</CardDescription>
+				<CardTitle className="text-2xl">{m.page_connected_apps()}</CardTitle>
+				<CardDescription>{m.settings_apps_page_description()}</CardDescription>
 			</CardHeader>
 			<CardContent>
 				<ClientOnly>
@@ -58,8 +55,8 @@ function Panel() {
 
 	const disconnect = useMutation({
 		mutationFn: (app: ConnectedAppRow) => revokeMyConnectedApp({ data: { clientId: app.clientId } }),
-		onSuccess: () => toast.success('Assistant disconnected'),
-		onError: err => toast.error(err instanceof Error ? err.message : 'Could not disconnect'),
+		onSuccess: () => toast.success(m.settings_apps_disconnected_toast()),
+		onError: err => toast.error(err instanceof Error ? err.message : m.settings_apps_disconnect_failed()),
 		onSettled: () => {
 			setTarget(null)
 			queryClient.invalidateQueries({ queryKey: appsKey })
@@ -69,8 +66,9 @@ function Panel() {
 	const changeAccess = useMutation({
 		mutationFn: (vars: { app: ConnectedAppRow; access: ConnectedAppRow['access'] }) =>
 			setMyConnectedAppAccess({ data: { clientId: vars.app.clientId, access: vars.access } }),
-		onSuccess: (_result, vars) => toast.success(vars.access === 'read' ? 'Assistant is now read-only' : 'Assistant can now make changes'),
-		onError: err => toast.error(err instanceof Error ? err.message : 'Could not change access'),
+		onSuccess: (_result, vars) =>
+			toast.success(vars.access === 'read' ? m.settings_apps_access_read_toast() : m.settings_apps_access_write_toast()),
+		onError: err => toast.error(err instanceof Error ? err.message : m.settings_apps_access_failed()),
 		onSettled: () => queryClient.invalidateQueries({ queryKey: appsKey }),
 	})
 
@@ -90,10 +88,14 @@ function Panel() {
 			<ConfirmDialog
 				open={target !== null}
 				onOpenChange={open => !open && setTarget(null)}
-				title="Disconnect this assistant?"
-				description={`${target?.clientName || 'The assistant'} will be signed out of your account immediately. You can connect it again later.`}
-				confirmLabel="Disconnect"
-				confirmBusyLabel="Disconnecting..."
+				title={m.settings_apps_disconnect_confirm_title()}
+				description={
+					target?.clientName
+						? m.settings_apps_disconnect_confirm_description({ name: target.clientName })
+						: m.settings_apps_disconnect_confirm_description_unnamed()
+				}
+				confirmLabel={m.settings_apps_disconnect_button()}
+				confirmBusyLabel={m.settings_apps_disconnecting()}
 				destructive
 				onConfirm={async () => {
 					if (target) await disconnect.mutateAsync(target)

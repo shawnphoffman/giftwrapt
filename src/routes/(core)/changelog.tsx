@@ -2,7 +2,9 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { ChangelogPageContent } from '@/components/changelog/changelog-page'
 import { BUILD_INFO } from '@/lib/build-info'
-import { parseChangelog } from '@/lib/changelog'
+import { type ChangelogRelease, parseChangelog } from '@/lib/changelog'
+import { currentLocale } from '@/lib/i18n/format'
+import type { Locale } from '@/lib/i18n/locales'
 import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
@@ -10,7 +12,18 @@ import changelogMarkdown from '../../../CHANGELOG.md?raw'
 
 // Inlined at build time, so the page always matches the deployed version and
 // needs no filesystem access at runtime (the Docker image ships only .output).
-const releases = parseChangelog(changelogMarkdown)
+// Parsed once per language, on first render in that language: the parser
+// names each entry's area ("Mobile API"), and those names are translated.
+const releasesByLocale = new Map<Locale, Array<ChangelogRelease>>()
+
+function releasesFor(locale: Locale): Array<ChangelogRelease> {
+	let releases = releasesByLocale.get(locale)
+	if (!releases) {
+		releases = parseChangelog(changelogMarkdown)
+		releasesByLocale.set(locale, releases)
+	}
+	return releases
+}
 
 export const Route = createFileRoute('/(core)/changelog')({
 	head: pageHead(() => m.page_whats_new()),
@@ -18,5 +31,5 @@ export const Route = createFileRoute('/(core)/changelog')({
 })
 
 function ChangelogRoute() {
-	return <ChangelogPageContent releases={releases} currentVersion={BUILD_INFO.version} />
+	return <ChangelogPageContent releases={releasesFor(currentLocale())} currentVersion={BUILD_INFO.version} />
 }

@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { getTotpQrSvg } from '@/api/totp-qr'
 import { type EnrollmentPayload, TwoFactorPanelContent, type TwoFactorStatus } from '@/components/settings/two-factor-panel'
 import { authClient, useSession } from '@/lib/auth-client'
+import { m } from '@/paraglide/messages.js'
 
 // Wrapper around TwoFactorPanelContent that drives the calls to
 // better-auth's plugin endpoints. Splitting the form/state from the
@@ -19,13 +20,13 @@ export default function TwoFactorSection() {
 	const initial: TwoFactorStatus = session?.user.twoFactorEnabled ? 'enabled' : 'disabled'
 	const effective: TwoFactorStatus = status ?? initial
 
-	const guard = async (action: string, fn: () => Promise<void>) => {
+	const guard = async (fallback: () => string, fn: () => Promise<void>) => {
 		setError(null)
 		setBusy(true)
 		try {
 			await fn()
 		} catch (err) {
-			setError(err instanceof Error ? err.message : `Couldn't ${action}.`)
+			setError(err instanceof Error ? err.message : fallback())
 			throw err
 		} finally {
 			setBusy(false)
@@ -33,38 +34,44 @@ export default function TwoFactorSection() {
 	}
 
 	const handleStartEnrollment = (password: string) =>
-		guard('enable two-factor auth', async () => {
-			const { data, error: enableError } = await authClient.twoFactor.enable({ password })
-			if (enableError) throw new Error(enableError.message ?? 'Wrong password.')
-			// Render the panel immediately with the secret/codes; fetch the
-			// server-rendered QR SVG asynchronously and patch it in when
-			// it arrives. See `src/api/totp-qr.ts` for the why
-			// (CSP `'unsafe-eval'` removal).
-			setEnrollment({ totpURI: data.totpURI, backupCodes: data.backupCodes, qrSvg: null })
-			setStatus('enrolling')
-			void getTotpQrSvg({ data: { totpURI: data.totpURI } })
-				.then(({ svg }) => {
-					setEnrollment(prev => (prev && prev.totpURI === data.totpURI ? { ...prev, qrSvg: svg } : prev))
-				})
-				.catch(err => {
-					setError(err instanceof Error ? err.message : "Couldn't render the QR code.")
-				})
-		})
+		guard(
+			() => m.settings_2fa_enable_error(),
+			async () => {
+				const { data, error: enableError } = await authClient.twoFactor.enable({ password })
+				if (enableError) throw new Error(enableError.message ?? m.settings_2fa_wrong_password())
+				// Render the panel immediately with the secret/codes; fetch the
+				// server-rendered QR SVG asynchronously and patch it in when
+				// it arrives. See `src/api/totp-qr.ts` for the why
+				// (CSP `'unsafe-eval'` removal).
+				setEnrollment({ totpURI: data.totpURI, backupCodes: data.backupCodes, qrSvg: null })
+				setStatus('enrolling')
+				void getTotpQrSvg({ data: { totpURI: data.totpURI } })
+					.then(({ svg }) => {
+						setEnrollment(prev => (prev && prev.totpURI === data.totpURI ? { ...prev, qrSvg: svg } : prev))
+					})
+					.catch(err => {
+						setError(err instanceof Error ? err.message : m.settings_2fa_qr_error())
+					})
+			}
+		)
 
 	const handleVerifyEnrollment = (code: string) =>
-		guard('verify the code', async () => {
-			const { error: verifyError } = await authClient.twoFactor.verifyTotp({ code })
-			if (verifyError) throw new Error("Code didn't match. Check your authenticator and try again.")
-			toast.success('Two-factor auth enabled')
-			// Surface backup codes once verification succeeds: they
-			// were issued at enable() time, but we hold them off-screen
-			// until the user actually completes the verify step so a
-			// half-finished enrollment doesn't leave codes orphaned.
-			setPendingBackupCodes(enrollment?.backupCodes ?? null)
-			setEnrollment(null)
-			setStatus('enabled')
-			await refetch()
-		})
+		guard(
+			() => m.settings_2fa_verify_error(),
+			async () => {
+				const { error: verifyError } = await authClient.twoFactor.verifyTotp({ code })
+				if (verifyError) throw new Error(m.settings_2fa_code_mismatch())
+				toast.success(m.settings_2fa_enabled_toast())
+				// Surface backup codes once verification succeeds: they
+				// were issued at enable() time, but we hold them off-screen
+				// until the user actually completes the verify step so a
+				// half-finished enrollment doesn't leave codes orphaned.
+				setPendingBackupCodes(enrollment?.backupCodes ?? null)
+				setEnrollment(null)
+				setStatus('enabled')
+				await refetch()
+			}
+		)
 
 	const handleCancelEnrollment = () => {
 		setEnrollment(null)
@@ -72,23 +79,29 @@ export default function TwoFactorSection() {
 	}
 
 	const handleDisable = (password: string) =>
-		guard('disable two-factor auth', async () => {
-			const { error: disableError } = await authClient.twoFactor.disable({ password })
-			if (disableError) throw new Error(disableError.message ?? 'Wrong password.')
-			toast.success('Two-factor auth disabled')
-			setStatus('disabled')
-			setEnrollment(null)
-			setPendingBackupCodes(null)
-			await refetch()
-		})
+		guard(
+			() => m.settings_2fa_disable_error(),
+			async () => {
+				const { error: disableError } = await authClient.twoFactor.disable({ password })
+				if (disableError) throw new Error(disableError.message ?? m.settings_2fa_wrong_password())
+				toast.success(m.settings_2fa_disabled_toast())
+				setStatus('disabled')
+				setEnrollment(null)
+				setPendingBackupCodes(null)
+				await refetch()
+			}
+		)
 
 	const handleRegenerate = (password: string) =>
-		guard('regenerate backup codes', async () => {
-			const { data, error: regenError } = await authClient.twoFactor.generateBackupCodes({ password })
-			if (regenError) throw new Error(regenError.message ?? 'Wrong password.')
-			setPendingBackupCodes(data.backupCodes)
-			toast.success('New backup codes ready')
-		})
+		guard(
+			() => m.settings_2fa_regenerate_error(),
+			async () => {
+				const { data, error: regenError } = await authClient.twoFactor.generateBackupCodes({ password })
+				if (regenError) throw new Error(regenError.message ?? m.settings_2fa_wrong_password())
+				setPendingBackupCodes(data.backupCodes)
+				toast.success(m.settings_2fa_backup_codes_ready_toast())
+			}
+		)
 
 	return (
 		<TwoFactorPanelContent

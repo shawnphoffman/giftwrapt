@@ -15,8 +15,8 @@ function AppearancePage() {
 	return (
 		<Card className="animate-page-in max-w-2xl">
 			<CardHeader>
-				<CardTitle className="text-2xl">Appearance</CardTitle>
-				<CardDescription>How the app looks on this device.</CardDescription>
+				<CardTitle className="text-2xl">{m.page_appearance()}</CardTitle>
+				<CardDescription>{m.settings_appearance_description()}</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-8">
 				<TextSizeSettings />

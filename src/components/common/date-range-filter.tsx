@@ -13,6 +13,7 @@ import {
 	timeframePresetShortLabel,
 	type TimeframeValue,
 } from '@/lib/timeframe'
+import { m } from '@/paraglide/messages.js'
 
 type Props = { value: TimeframeValue; onChange: (next: TimeframeValue) => void }
 
@@ -41,7 +42,7 @@ export function DateRangeFilter({ value, onChange }: Props) {
 				<PopoverTrigger asChild>
 					<Button variant={value.kind === 'custom' ? 'secondary' : 'outline'} size="sm">
 						<CalendarIcon className="size-4" />
-						{value.kind === 'custom' ? formatTimeframeLabel(value) : 'Custom…'}
+						{value.kind === 'custom' ? formatTimeframeLabel(value) : m.shared_date_range_custom_button()}
 					</Button>
 				</PopoverTrigger>
 				<PopoverContent className="w-auto p-0" align="end">

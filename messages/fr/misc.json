@@ -1,3 +1,74 @@
 {
-	"$schema": "https://inlang.com/schema/inlang-message-format"
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"recent_comments_intro": "Les articles ayant reçu des commentaires, classés par réponse la plus récente.",
+	"recent_comments_empty": "Aucun commentaire récent sur cette période.",
+	"recent_items_intro": "Les nouveaux articles ajoutés aux listes que vous pouvez voir, du plus récent au plus ancien.",
+	"recent_items_empty": "Aucun article récent sur cette période.",
+	"recent_view_item_in_list": "Voir l’article dans la liste",
+	"recent_comment_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} commentaire",
+				"countPlural=*": "{count} commentaires"
+			}
+		}
+	],
+	"recent_earlier_comments": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} commentaire précédent",
+				"countPlural=*": "{count} commentaires précédents"
+			}
+		}
+	],
+	"changelog_section_breaking": "À noter",
+	"changelog_section_features": "Nouveau",
+	"changelog_section_performance": "Plus rapide",
+	"changelog_section_fixes": "Corrigé",
+	"changelog_version_heading": "v{version}",
+	"changelog_your_version": "Votre version",
+	"changelog_maintenance_only": "Maintenance en coulisses.",
+	"changelog_current_version": "Vous utilisez la version {#version}{version}{/version}.",
+	"changelog_show_older": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Afficher {count} version antérieure",
+				"countPlural=*": "Afficher {count} versions antérieures"
+			}
+		}
+	],
+	"changelog_entry_area": "{area} :",
+	"changelog_scope_api": "API",
+	"changelog_scope_mobile_api": "API mobile",
+	"changelog_scope_sse": "Mises à jour en direct",
+	"changelog_scope_ui": "Interface",
+	"changelog_scope_db": "Base de données",
+	"changelog_scope_ios": "iOS",
+	"shared_copied_toast": "Copié dans le presse-papiers",
+	"shared_copy_failed": "Copie impossible. Sélectionnez le texte et copiez-le manuellement.",
+	"shared_copied": "Copié",
+	"shared_guardian_badge": "Tuteur",
+	"shared_storage_disabled_title": "L’envoi d’images est désactivé",
+	"shared_storage_disabled_description": "Le stockage d’objets n’est pas configuré sur ce serveur, l’envoi d’avatars et d’images d’articles est donc indisponible. Les URL d’images existantes (collées depuis des sites externes) fonctionnent toujours.",
+	"shared_list_link_tooltip": "Renvoie vers une autre liste",
+	"shared_markdown_bold": "Gras",
+	"shared_markdown_italic": "Italique",
+	"shared_markdown_list": "Liste",
+	"shared_markdown_link": "Lien",
+	"shared_markdown_placeholder_bold": "gras",
+	"shared_markdown_placeholder_italic": "italique",
+	"shared_markdown_placeholder_link_text": "texte",
+	"shared_birth_day_placeholder": "Sélectionnez un jour",
+	"shared_date_range_custom_option": "Période personnalisée…",
+	"shared_date_range_pick_custom": "Choisir une période personnalisée",
+	"shared_date_range_custom_button": "Personnalisée…",
+	"shared_role_admin": "Admin",
+	"shared_role_user": "Utilisateur",
+	"shared_role_child": "Enfant"
 }

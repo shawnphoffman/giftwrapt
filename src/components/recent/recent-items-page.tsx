@@ -5,6 +5,7 @@ import { DateRangeFilter } from '@/components/common/date-range-filter'
 import { PageHeading } from '@/components/common/page-heading'
 import ItemOverview from '@/components/recent/item-overview'
 import type { TimeframeValue } from '@/lib/timeframe'
+import { m } from '@/paraglide/messages.js'
 
 type Props = {
 	items: Array<RecentItemRow>
@@ -16,9 +17,9 @@ export function RecentItemsPageContent({ items, timeframe, onTimeframeChange }: 
 	return (
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
-				<PageHeading title="Recent Items" icon={Inbox} color="purple" />
+				<PageHeading title={m.page_recent_items()} icon={Inbox} color="purple" />
 
-				<p className="text-sm text-muted-foreground">New items added to lists you can see, newest first.</p>
+				<p className="text-sm text-muted-foreground">{m.recent_items_intro()}</p>
 
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<DateRangeFilter value={timeframe} onChange={onTimeframeChange} />
@@ -26,7 +27,7 @@ export function RecentItemsPageContent({ items, timeframe, onTimeframeChange }: 
 
 				{items.length === 0 ? (
 					<div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg bg-accent/30">
-						No recent items in this timeframe.
+						{m.recent_items_empty()}
 					</div>
 				) : (
 					<div className="flex flex-col gap-2 xs:pl-6">

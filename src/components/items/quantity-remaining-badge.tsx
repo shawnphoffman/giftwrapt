@@ -5,6 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { TapTooltip, TapTooltipContent, TapTooltipTrigger } from '@/components/ui/tooltip'
 import { formatDate } from '@/lib/i18n/format'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 const AVAILABILITY_DATE_FORMAT: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' }
 
@@ -100,18 +101,16 @@ export function QuantityRemainingBadge({
 	const isLocked = lockedByOthers || isGroupLocked
 	const isOverClaimed = claimedCount !== undefined && claimedCount > quantity
 
-	const lockExplanation = isGroupLocked
-		? lockReason === 'order'
-			? 'Claim the item above this one first to unlock it.'
-			: 'Someone already claimed an item in this pick-one group.'
-		: 'Someone has already claimed this item.'
+	const lockExplanation = isGroupLocked ? (lockReason === 'order' ? m.items_lock_order() : m.items_lock_or()) : m.items_lock_claimed()
 
 	// Unavailable trumps every other state. The recipient marked the item
 	// unavailable, so claim status / over-claim / group locks are moot. Each
 	// variant follows its native shape but in a red treatment, with a tooltip
 	// showing the unavailable date when provided.
 	if (unavailable) {
-		const tooltip = unavailableChangedAt ? `Marked unavailable on ${formatDate(unavailableChangedAt, AVAILABILITY_DATE_FORMAT)}` : null
+		const tooltip = unavailableChangedAt
+			? m.items_badge_unavailable_since({ date: formatDate(unavailableChangedAt, AVAILABILITY_DATE_FORMAT) })
+			: null
 
 		let pill: ReactNode
 		if (variant === 'inline') {
@@ -119,13 +118,11 @@ export function QuantityRemainingBadge({
 				<span className={cn('inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap text-muted-foreground', className)}>
 					{quantity > 1 && (
 						<>
-							<span>
-								{firstPerson ? 'want' : 'wants'} {quantity}
-							</span>
+							<span>{firstPerson ? m.items_badge_want_lower({ quantity }) : m.items_badge_wants_lower({ quantity })}</span>
 							<span aria-hidden>·</span>
 						</>
 					)}
-					<span className="text-red-800 dark:text-red-400">unavailable</span>
+					<span className="text-red-800 dark:text-red-400">{m.items_badge_unavailable_lower()}</span>
 				</span>
 			)
 		} else if (variant === 'inline-pill') {
@@ -140,14 +137,14 @@ export function QuantityRemainingBadge({
 					{quantity > 1 && (
 						<>
 							<span className="text-muted-foreground">
-								{firstPerson ? 'Want' : 'Wants'} {quantity}
+								{firstPerson ? m.items_badge_want({ quantity }) : m.items_badge_wants({ quantity })}
 							</span>
 							<span aria-hidden className="text-muted-foreground">
 								·
 							</span>
 						</>
 					)}
-					<span>Unavailable</span>
+					<span>{m.items_badge_unavailable()}</span>
 				</span>
 			)
 		} else if (variant === 'dots') {
@@ -160,7 +157,7 @@ export function QuantityRemainingBadge({
 					)}
 				>
 					{quantity > 1 && <span className="text-muted-foreground">×{quantity}</span>}
-					<span>Unavailable</span>
+					<span>{m.items_badge_unavailable()}</span>
 				</span>
 			)
 		} else {
@@ -179,7 +176,7 @@ export function QuantityRemainingBadge({
 							<span className="w-px bg-red-500/40" aria-hidden />
 						</>
 					)}
-					<span className={cn('py-0.5 pr-2', quantity > 1 ? 'pl-1' : 'pl-2')}>Unavailable</span>
+					<span className={cn('py-0.5 pr-2', quantity > 1 ? 'pl-1' : 'pl-2')}>{m.items_badge_unavailable()}</span>
 				</span>
 			)
 		}
@@ -205,7 +202,7 @@ export function QuantityRemainingBadge({
 	if (isOverClaimed) {
 		const overBy = claimedCount - quantity
 		const showLock = !youClaimed
-		const explanation = `Already claimed by others. ${overBy} more pledged than the recipient asked for; you can't add to it.`
+		const explanation = m.items_badge_overclaim_explanation({ overBy })
 
 		if (variant === 'inline') {
 			// Plain-text 3-way: dot separators between segments, no pill chrome.
@@ -214,13 +211,11 @@ export function QuantityRemainingBadge({
 			const pill = (
 				<span className={cn('inline-flex items-center gap-1 text-xs font-medium whitespace-nowrap text-muted-foreground', className)}>
 					{showLock && <Lock className="size-3" aria-hidden />}
-					<span>
-						{firstPerson ? 'want' : 'wants'} {quantity}
-					</span>
+					<span>{firstPerson ? m.items_badge_want_lower({ quantity }) : m.items_badge_wants_lower({ quantity })}</span>
 					<span aria-hidden>·</span>
-					<span>{claimedCount} claimed</span>
+					<span>{m.items_badge_count_claimed_lower({ count: claimedCount })}</span>
 					<span aria-hidden>·</span>
-					<span className="text-yellow-800 dark:text-yellow-400">{overBy} over</span>
+					<span className="text-yellow-800 dark:text-yellow-400">{m.items_badge_over_lower({ count: overBy })}</span>
 				</span>
 			)
 			return wrapWithLockPopover(pill, showLock ? explanation : null)
@@ -238,11 +233,9 @@ export function QuantityRemainingBadge({
 					)}
 				>
 					{showLock && <Lock className="size-3" aria-hidden />}
-					<span>
-						{firstPerson ? 'Want' : 'Wants'} {quantity}
-					</span>
+					<span>{firstPerson ? m.items_badge_want({ quantity }) : m.items_badge_wants({ quantity })}</span>
 					<span aria-hidden>·</span>
-					<span className="text-yellow-800 dark:text-yellow-400">{overBy} Overclaimed</span>
+					<span className="text-yellow-800 dark:text-yellow-400">{m.items_badge_overclaimed_count({ count: overBy })}</span>
 				</span>
 			)
 			return wrapWithLockPopover(pill, showLock ? explanation : null)
@@ -266,6 +259,7 @@ export function QuantityRemainingBadge({
 					<span className={cn('inline-flex items-center', claimedCount > 6 ? 'gap-0.5' : 'gap-0.75')} aria-hidden>
 						{Array.from({ length: claimedCount }).map((_, i) => {
 							const isOver = i >= quantity
+							// eslint-disable-next-line i18next/no-literal-string -- class names
 							const tone = isOver ? 'bg-yellow-500 dark:bg-yellow-400' : 'bg-muted-foreground/50'
 							if (claimedCount > 6) {
 								return <span key={i} className={cn('h-1.5 w-0.75 rounded-full', tone)} />
@@ -273,7 +267,7 @@ export function QuantityRemainingBadge({
 							return <span key={i} className={cn('size-1.5 rounded-full', tone)} />
 						})}
 					</span>
-					<span className="text-yellow-800 dark:text-yellow-400">overclaimed</span>
+					<span className="text-yellow-800 dark:text-yellow-400">{m.items_badge_overclaimed_lower()}</span>
 				</span>
 			)
 			return wrapWithLockPopover(pill, showLock ? explanation : null)
@@ -292,9 +286,9 @@ export function QuantityRemainingBadge({
 					{showLock && <Lock className="size-3" aria-hidden />}×{quantity}
 				</span>
 				<span className="w-px bg-yellow-500/40" aria-hidden />
-				<span className="py-0.5 px-1">×{claimedCount} Claimed</span>
+				<span className="py-0.5 px-1">{m.items_badge_split_claimed({ count: claimedCount })}</span>
 				<span className="w-px bg-yellow-500/40" aria-hidden />
-				<span className="py-0.5 pl-1 pr-2">×{overBy} Over</span>
+				<span className="py-0.5 pl-1 pr-2">{m.items_badge_split_over({ count: overBy })}</span>
 			</span>
 		)
 		return wrapWithLockPopover(splitPill, showLock ? explanation : null)
@@ -308,7 +302,7 @@ export function QuantityRemainingBadge({
 		const successTone = youClaimed
 		const isInline = variant === 'inline'
 		const isPill = variant === 'inline-pill' || variant === 'dots' || variant === 'split'
-		const label = isGroupLocked ? 'Locked' : 'Claimed'
+		const label = isGroupLocked ? m.items_badge_locked() : m.items_badge_claimed()
 		const pill = (
 			<span
 				className={cn(
@@ -349,7 +343,7 @@ export function QuantityRemainingBadge({
 				)}
 			>
 				<Lock className="size-3" aria-hidden />
-				Locked
+				{m.items_badge_locked()}
 			</span>
 		)
 		return wrapWithLockPopover(pill, lockExplanation)
@@ -357,8 +351,20 @@ export function QuantityRemainingBadge({
 
 	if (variant === 'inline' || variant === 'inline-pill') {
 		const isPill = variant === 'inline-pill'
-		const wantsLabel = isPill ? (firstPerson ? 'Want' : 'Wants') : firstPerson ? 'want' : 'wants'
-		const claimedLabel = isPill ? (fullyClaimed ? 'All Claimed' : `${remaining} Left`) : fullyClaimed ? 'all claimed' : `${remaining} left`
+		const wantsLabel = isPill
+			? firstPerson
+				? m.items_badge_want({ quantity })
+				: m.items_badge_wants({ quantity })
+			: firstPerson
+				? m.items_badge_want_lower({ quantity })
+				: m.items_badge_wants_lower({ quantity })
+		const claimedLabel = isPill
+			? fullyClaimed
+				? m.items_badge_all_claimed()
+				: m.items_badge_left({ count: remaining })
+			: fullyClaimed
+				? m.items_badge_all_claimed_lower()
+				: m.items_badge_left_lower({ count: remaining })
 		const pill = (
 			<span
 				className={cn(
@@ -370,9 +376,7 @@ export function QuantityRemainingBadge({
 				)}
 			>
 				{lockedByOthers && <Lock className="size-3" aria-hidden />}
-				<span className={cn(success ? undefined : fullyClaimed ? undefined : 'text-foreground')}>
-					{wantsLabel} {quantity}
-				</span>
+				<span className={cn(success ? undefined : fullyClaimed ? undefined : 'text-foreground')}>{wantsLabel}</span>
 				{hasClaims && (
 					<>
 						<span aria-hidden>·</span>
@@ -401,6 +405,7 @@ export function QuantityRemainingBadge({
 				<span className={cn('inline-flex items-center', quantity > 6 ? 'gap-0.5' : 'gap-0.75')} aria-hidden>
 					{Array.from({ length: quantity }).map((_, i) => {
 						const filled = i < claimed
+						/* eslint-disable i18next/no-literal-string -- class names */
 						const base = success
 							? filled
 								? 'bg-emerald-500 dark:bg-emerald-400'
@@ -410,6 +415,7 @@ export function QuantityRemainingBadge({
 								: filled
 									? 'bg-muted-foreground/50'
 									: 'bg-orange-500 dark:bg-orange-400'
+						/* eslint-enable i18next/no-literal-string */
 						if (quantity > 6) {
 							// Compact mode: each pip is a half-width capsule (~half a circle)
 							// so long quantities still fit inside the badge.
@@ -418,7 +424,7 @@ export function QuantityRemainingBadge({
 						return <span key={i} className={cn('size-1.5 rounded-full', base)} />
 					})}
 				</span>
-				{hasClaims && <span>{fullyClaimed ? 'claimed' : `${remaining} left`}</span>}
+				{hasClaims && <span>{fullyClaimed ? m.items_badge_claimed_lower() : m.items_badge_left_lower({ count: remaining })}</span>}
 			</span>
 		)
 		return wrapWithLockPopover(pill, lockedByOthers ? lockExplanation : null)
@@ -447,7 +453,7 @@ export function QuantityRemainingBadge({
 				<>
 					<span className={cn('w-px', success ? 'bg-emerald-500/30' : 'bg-border')} aria-hidden />
 					<span className={cn('py-0.5 pl-1 pr-2', !success && !fullyClaimed && 'text-orange-800 dark:text-orange-400 bg-orange-500/10')}>
-						{fullyClaimed ? 'All Claimed' : `${remaining} Left`}
+						{fullyClaimed ? m.items_badge_all_claimed() : m.items_badge_left({ count: remaining })}
 					</span>
 				</>
 			)}

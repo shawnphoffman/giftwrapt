@@ -1,3 +1,141 @@
 {
-	"$schema": "https://inlang.com/schema/inlang-message-format"
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"purchases_intro": "All of your purchases and addons over time. If you have a partner, their purchases appear here too (excluding gifts for you). Edit any row to record pricing and notes, which stay private to you.",
+	"purchases_collapse_all": "Collapse all",
+	"purchases_expand_all": "Expand all",
+	"purchases_empty_timeframe": "No purchases in this timeframe.",
+	"purchases_column_person": "Person",
+	"purchases_label_gifts": "Gifts",
+	"purchases_label_addons": "Addons",
+	"purchases_label_total": "Total",
+	"purchases_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} purchase",
+				"countPlural=*": "{count} purchases"
+			}
+		}
+	],
+	"purchases_metrics_totals": "Totals",
+	"purchases_metrics_averages": "Averages",
+	"purchases_metrics_highlights": "Highlights",
+	"purchases_metric_total_spend": "Total Spend",
+	"purchases_metric_total_items": "Total Items",
+	"purchases_metric_per_item": "Per Item",
+	"purchases_metric_per_item_excl_zero": "Per Item (Excl. {amount})",
+	"purchases_metric_items_per_person": "Items/Person",
+	"purchases_metric_items_per_person_excl_zero": "Items/Person (Excl. {amount})",
+	"purchases_metric_recipients": "Recipients",
+	"purchases_metric_max_recipient": "Max Recipient",
+	"purchases_metric_max_single_item": "Max Single Item",
+	"purchases_metric_min_recipient": "Min Recipient",
+	"purchases_chart_by_recipient_title": "Spend by Recipient",
+	"purchases_chart_by_recipient_description": "Per recipient, stacked by gift vs. addon.",
+	"purchases_chart_over_time_title": "Spend Over Time",
+	"purchases_chart_over_time_description": "Per month, stacked by gift vs. addon.",
+	"purchases_chart_no_data": "No data.",
+	"purchases_co_gifter_badge": "Co-gifter",
+	"purchases_co_gifter_tooltip": "Your even share of this co-gifted purchase.",
+	"purchases_claimed_by_partner": "Claimed by your partner ({name})",
+	"purchases_quantity_badge": "x{quantity}",
+	"purchases_addon_badge": "Addon",
+	"purchases_edit_split_label": "Edit the split",
+	"purchases_edit_details_label": "Edit purchase details",
+	"purchases_attachment_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} attachment",
+				"countPlural=*": "{count} attachments"
+			}
+		}
+	],
+	"purchases_attachment_receipt_alt": "receipt",
+	"purchases_edit_cost_invalid": "Must be a number like 12.50",
+	"purchases_edit_too_long": "Too long",
+	"purchases_edit_error_claim_not_yours": "You can't edit someone else's claim.",
+	"purchases_edit_error_claim_gone": "This claim no longer exists.",
+	"purchases_edit_error_over_claim": "Quantity exceeds what is available.",
+	"purchases_edit_error_addon_not_yours": "You can't edit someone else's gift.",
+	"purchases_edit_error_addon_gone": "This gift no longer exists.",
+	"purchases_edit_saved": "Purchase updated",
+	"purchases_edit_save_failed": "Failed to save",
+	"purchases_edit_attachments_max": "Max {max} attachments per purchase",
+	"purchases_edit_title": "Edit Purchase Details",
+	"purchases_edit_description": "Update the cost, tracking, and notes for this purchase.",
+	"purchases_edit_cost_label": "Total Cost",
+	"purchases_edit_tracking_label": "Tracking Number",
+	"purchases_edit_tracking_placeholder": "UPS / USPS / FedEx / DHL",
+	"purchases_edit_tracking_looks_like": "Looks like",
+	"purchases_edit_notes_label": "Notes",
+	"purchases_edit_notes_placeholder": "Add any notes about this purchase...",
+	"purchases_edit_error_title": "Couldn't update",
+	"purchases_edit_attachments_label": "Attachments",
+	"purchases_edit_attachments_help": "Keep receipts, gift receipts, or order confirmations handy for returns and reimbursements. Accepts images (JPG, PNG, HEIC, WebP) and PDFs.",
+	"purchases_edit_attachments_max_reached": "Max Reached",
+	"purchases_edit_attachments_add": "Add Attachment",
+	"purchases_edit_uploads_disabled": "Uploads are disabled on this server.",
+	"purchases_edit_attachment_alt": "attachment",
+	"purchases_edit_attachment_remove": "Remove attachment",
+	"purchases_split_saved": "Split updated",
+	"purchases_split_error_exceeds_total": "The co-gifters' shares add up to more than the total.",
+	"purchases_split_error_no_cost": "Add a total cost to this gift before splitting it.",
+	"purchases_split_error_not_allowed": "You can't edit this split.",
+	"purchases_split_save_failed": "Failed to update the split.",
+	"purchases_split_title": "Split “{itemTitle}”",
+	"purchases_split_description": "Set what each co-gifter put in. Your share is whatever’s left. Only you and your partner see this.",
+	"purchases_split_your_share": "Your share",
+	"purchases_split_over_allocated": "The co-gifters’ shares exceed the total. Lower them so your share isn’t negative.",
+	"purchases_split_reset": "Reset to Even",
+	"received_intro": "Gifts that have been archived on your lists. Once archived, you can see who gifted each item. Partnered gifters appear together as a single household.",
+	"received_empty": "No received gifts yet. Items will appear here after they are archived.",
+	"received_recipient_label": "Recipient:",
+	"received_recipient_you": "You",
+	"received_empty_timeframe": "No gifts received in this timeframe.",
+	"received_column_gifter": "Gifter",
+	"received_label_gifts": "Gifts",
+	"received_label_off_list": "Off-List",
+	"received_label_total": "Total",
+	"received_gift_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} gift",
+				"countPlural=*": "{count} gifts"
+			}
+		}
+	],
+	"received_draft_thank_you_button": "Draft a Thank-You",
+	"received_open_product_link": "Open original product link",
+	"received_off_list_badge": "Off-list",
+	"received_thank_you_subject_short": "Thank You!",
+	"received_thank_you_subject_named": "Thank you, {giverLabel}!",
+	"received_thank_you_subject_gifts": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Thank you for the gift",
+				"countPlural=*": "Thank you for the gifts"
+			}
+		}
+	],
+	"received_thank_you_title": "Thank-You Note for {giverLabel}",
+	"received_thank_you_description": "A draft to get you started. Edit it so it sounds like you, then copy it into a card or open it in your email app. Nothing is sent from here.",
+	"received_thank_you_loading": "Writing a draft…",
+	"received_thank_you_note_label": "Note",
+	"received_thank_you_subject_label": "Email Subject",
+	"received_thank_you_new_draft": "New Draft",
+	"received_thank_you_copy_note": "Copy Note",
+	"received_thank_you_draft_email": "Draft Email",
+	"received_thank_you_error_disabled": "Thank-you drafts are turned off.",
+	"received_thank_you_error_not_configured": "Thank-you drafts are not set up on this site yet.",
+	"received_thank_you_error_not_found": "Those gifts are no longer on your Received page. Refresh and try again.",
+	"received_thank_you_error_budget": "AI features are paused for this month.",
+	"received_thank_you_error_rate_limited": "That is a lot of drafts. Try again in a little while.",
+	"received_thank_you_error_failed": "Could not write a draft just now. Try again."
 }

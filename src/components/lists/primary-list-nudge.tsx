@@ -2,8 +2,10 @@ import { useQuery } from '@tanstack/react-query'
 import { MoreHorizontal, Star } from 'lucide-react'
 
 import { getMyLists } from '@/api/lists'
+import { RichMessage } from '@/components/common/rich-message'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { ClientOnly } from '@/components/utilities/client-only'
+import { m } from '@/paraglide/messages.js'
 
 function PrimaryListNudgeContent() {
 	const { data: myLists } = useQuery({
@@ -20,11 +22,16 @@ function PrimaryListNudgeContent() {
 	return (
 		<Alert variant="warning">
 			<Star className="size-4 fill-current" />
-			<AlertTitle>Pick a primary list</AlertTitle>
+			<AlertTitle>{m.lists_primary_nudge_title()}</AlertTitle>
 			<AlertDescription>
-				You don't have a primary list set. Open the{' '}
-				<MoreHorizontal className="inline size-3.5 align-text-bottom" aria-label="actions menu" /> menu on one of your lists and choose "Set
-				as primary" so others know which list to shop from first.
+				<RichMessage
+					parts={m.lists_primary_nudge_body.parts()}
+					tags={{
+						icon: () => (
+							<MoreHorizontal className="inline size-3.5 align-text-bottom" aria-label={m.lists_primary_nudge_menu_icon_label()} />
+						),
+					}}
+				/>
 			</AlertDescription>
 		</Alert>
 	)

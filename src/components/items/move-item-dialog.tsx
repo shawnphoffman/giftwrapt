@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { Item } from '@/db/schema/items'
 import { itemsKeys } from '@/lib/queries/items'
+import { m } from '@/paraglide/messages.js'
 
 type Props = {
 	open: boolean
@@ -43,7 +44,7 @@ export function MoveItemDialog({ open, onOpenChange, item, onMoved }: Props) {
 		const targetId = Number(selectedListId)
 		if (!targetId) return
 		if (targetId === item.listId) {
-			setError('Item is already on that list.')
+			setError(m.items_move_error_item_same_list())
 			return
 		}
 
@@ -53,13 +54,13 @@ export function MoveItemDialog({ open, onOpenChange, item, onMoved }: Props) {
 			const result = await moveItemsToList({ data: { itemIds: [item.id], targetListId: targetId, purgeComments } })
 
 			if (result.kind === 'error') {
-				setError(result.reason === 'not-authorized' ? "You don't have permission to move to that list." : 'Item or list not found.')
+				setError(result.reason === 'not-authorized' ? m.items_move_error_not_authorized() : m.items_move_error_item_not_found())
 				return
 			}
 
-			const parts: Array<string> = [`"${item.title}" moved`]
-			if (result.claimsCleared > 0) parts.push('claims cleared')
-			if (result.commentsDeleted > 0) parts.push(`${result.commentsDeleted} comment${result.commentsDeleted === 1 ? '' : 's'} deleted`)
+			const parts: Array<string> = [m.items_move_item_toast_moved({ title: item.title })]
+			if (result.claimsCleared > 0) parts.push(m.items_move_toast_claims_cleared())
+			if (result.commentsDeleted > 0) parts.push(m.items_move_toast_comments_deleted({ count: result.commentsDeleted }))
 			toast.success(parts.join(' · '))
 
 			onOpenChange(false)
@@ -70,7 +71,7 @@ export function MoveItemDialog({ open, onOpenChange, item, onMoved }: Props) {
 			])
 			onMoved?.()
 		} catch (err) {
-			setError(err instanceof Error ? err.message : 'Failed to move item')
+			setError(err instanceof Error ? err.message : m.items_move_error_item_failed())
 		} finally {
 			setSubmitting(false)
 		}
@@ -89,24 +90,24 @@ export function MoveItemDialog({ open, onOpenChange, item, onMoved }: Props) {
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Move "{item.title}"</DialogTitle>
-					<DialogDescription>Choose a list to move this item to. Claims may be cleared if the list types differ.</DialogDescription>
+					<DialogTitle>{m.items_move_item_dialog_title({ title: item.title })}</DialogTitle>
+					<DialogDescription>{m.items_move_item_dialog_description()}</DialogDescription>
 				</DialogHeader>
 
 				<div className="space-y-4">
 					<div className="grid gap-2">
-						<Label htmlFor="move-target">Destination List</Label>
+						<Label htmlFor="move-target">{m.items_move_destination_label()}</Label>
 						{!hasOptions ? (
-							<p className="text-sm text-muted-foreground">No other lists available to move to.</p>
+							<p className="text-sm text-muted-foreground">{m.items_move_no_other_lists()}</p>
 						) : (
 							<Select value={selectedListId} onValueChange={setSelectedListId} disabled={submitting}>
 								<SelectTrigger id="move-target">
-									<SelectValue placeholder="Select a list" />
+									<SelectValue placeholder={m.items_list_select_placeholder()} />
 								</SelectTrigger>
 								<SelectContent>
 									{publicLists.length > 0 && (
 										<SelectGroup>
-											<SelectLabel>Public</SelectLabel>
+											<SelectLabel>{m.items_list_group_public()}</SelectLabel>
 											{publicLists.map(l => (
 												<SelectItem key={l.id} value={String(l.id)}>
 													{l.name}
@@ -116,7 +117,7 @@ export function MoveItemDialog({ open, onOpenChange, item, onMoved }: Props) {
 									)}
 									{privateLists.length > 0 && (
 										<SelectGroup>
-											<SelectLabel>Private</SelectLabel>
+											<SelectLabel>{m.items_list_group_private()}</SelectLabel>
 											{privateLists.map(l => (
 												<SelectItem key={l.id} value={String(l.id)}>
 													{l.name}
@@ -126,7 +127,7 @@ export function MoveItemDialog({ open, onOpenChange, item, onMoved }: Props) {
 									)}
 									{giftIdeasLists.length > 0 && (
 										<SelectGroup>
-											<SelectLabel>Gift Ideas</SelectLabel>
+											<SelectLabel>{m.items_list_group_gift_ideas()}</SelectLabel>
 											{giftIdeasLists.map(l => (
 												<SelectItem key={l.id} value={String(l.id)}>
 													{l.name}
@@ -136,7 +137,7 @@ export function MoveItemDialog({ open, onOpenChange, item, onMoved }: Props) {
 									)}
 									{dependentGroups.map(d => (
 										<SelectGroup key={d.dependentId}>
-											<SelectLabel>For {d.dependentName}</SelectLabel>
+											<SelectLabel>{m.items_list_group_for_dependent({ name: d.dependentName })}</SelectLabel>
 											{d.lists.map(l => (
 												<SelectItem key={l.id} value={String(l.id)}>
 													{l.name}
@@ -159,15 +160,15 @@ export function MoveItemDialog({ open, onOpenChange, item, onMoved }: Props) {
 						/>
 						<div className="grid gap-1">
 							<Label htmlFor="purge-comments-single" className="font-normal">
-								Delete Comments on This Item
+								{m.items_move_item_purge_label()}
 							</Label>
-							<p className="text-xs text-muted-foreground">Recommended. Comments usually belong to the original list's context.</p>
+							<p className="text-xs text-muted-foreground">{m.items_move_purge_hint()}</p>
 						</div>
 					</div>
 
 					{error && (
 						<Alert variant="destructive">
-							<AlertTitle>Couldn't move item</AlertTitle>
+							<AlertTitle>{m.items_move_item_error_title()}</AlertTitle>
 							<AlertDescription>{error}</AlertDescription>
 						</Alert>
 					)}
@@ -175,10 +176,10 @@ export function MoveItemDialog({ open, onOpenChange, item, onMoved }: Props) {
 
 				<DialogFooter>
 					<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-						Cancel
+						{m.action_cancel()}
 					</Button>
 					<Button onClick={handleMove} disabled={submitting || !selectedListId}>
-						{submitting ? 'Moving…' : 'Move'}
+						{submitting ? m.items_move_submitting() : m.items_move_submit()}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

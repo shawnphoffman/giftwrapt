@@ -1,4 +1,5 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { m } from '@/paraglide/messages.js'
 
 const DAYS_IN_MONTH: Record<string, number> = {
 	january: 31,
@@ -35,7 +36,7 @@ export function BirthDaySelect({ id, month, value, onValueChange, disabled, clas
 			disabled={disabled}
 		>
 			<SelectTrigger id={id} className={className ?? 'w-full'}>
-				<SelectValue placeholder="Select day" />
+				<SelectValue placeholder={m.shared_birth_day_placeholder()} />
 			</SelectTrigger>
 			<SelectContent>
 				{days.map(day => (

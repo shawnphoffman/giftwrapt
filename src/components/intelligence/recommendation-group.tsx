@@ -1,6 +1,7 @@
 import { Brush, ListChecks, Settings2 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 import type { RecGroupKey, Recommendation, RecommendationAction } from './__fixtures__/types'
 import { RecommendationCard } from './recommendation-card'
@@ -12,10 +13,19 @@ type Props = {
 	onDismiss?: (rec: Recommendation) => void
 }
 
-const GROUP_META: Record<RecGroupKey, { label: string; description: string; icon: React.ComponentType<{ className?: string }> }> = {
-	setup: { label: 'Setup', description: 'Get the basics in place.', icon: Settings2 },
-	cleanup: { label: 'Cleanup', description: 'Items worth a fresh look or removal.', icon: Brush },
-	organize: { label: 'Organize', description: 'Duplicates, groupings, and structure.', icon: ListChecks },
+// Label and description are functions so they are worded at render, in the
+// language of the page, not once when this module loads.
+const GROUP_META: Record<
+	RecGroupKey,
+	{ label: () => string; description: () => string; icon: React.ComponentType<{ className?: string }> }
+> = {
+	setup: { label: () => m.intelligence_group_setup(), description: () => m.intelligence_group_setup_description(), icon: Settings2 },
+	cleanup: { label: () => m.intelligence_group_cleanup(), description: () => m.intelligence_group_cleanup_description(), icon: Brush },
+	organize: {
+		label: () => m.intelligence_group_organize(),
+		description: () => m.intelligence_group_organize_description(),
+		icon: ListChecks,
+	},
 }
 
 export function groupKeyForAnalyzer(analyzerId: Recommendation['analyzerId']): RecGroupKey {
@@ -54,12 +64,10 @@ export function RecommendationGroup({ groupKey, recs, onAction, onDismiss }: Pro
 				</div>
 				<div className="flex flex-col flex-1">
 					<div className="flex items-baseline gap-2">
-						<h2 className="text-base font-semibold">{meta.label}</h2>
-						<span className="text-xs text-muted-foreground">
-							{activeCount} active · {recs.length} total
-						</span>
+						<h2 className="text-base font-semibold">{meta.label()}</h2>
+						<span className="text-xs text-muted-foreground">{m.intelligence_group_counts({ activeCount, totalCount: recs.length })}</span>
 					</div>
-					<p className="text-xs text-muted-foreground">{meta.description}</p>
+					<p className="text-xs text-muted-foreground">{meta.description()}</p>
 				</div>
 			</header>
 			<div data-intelligence="rec-group-cards" className="flex flex-col gap-2.5">

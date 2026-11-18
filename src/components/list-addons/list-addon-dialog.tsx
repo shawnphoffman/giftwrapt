@@ -25,6 +25,7 @@ import { applyScrapePrefill } from '@/lib/scrapers/apply-prefill'
 import { normalizeHttpUrl } from '@/lib/urls'
 import { useScrapeUrl } from '@/lib/use-scrape-url'
 import { LIMITS } from '@/lib/validation/limits'
+import { m } from '@/paraglide/messages.js'
 
 export type ListAddonInitialValues = Partial<{
 	description: string
@@ -56,19 +57,22 @@ type EditProps = BaseProps & { mode: 'edit'; addon: AddonOnList; initialValues?:
 
 type Props = CreateProps | EditProps
 
-const schema = z.object({
-	url: z.string().max(LIMITS.URL).optional(),
-	description: z.string().min(1, 'Description is required').max(LIMITS.SHORT_TEXT, 'Too long'),
-	notes: z.string().max(LIMITS.MEDIUM_TEXT, 'Too long').optional(),
-	totalCost: z
-		.string()
-		.trim()
-		.optional()
-		.refine(v => !v || /^\d+(\.\d{1,2})?$/.test(v), {
-			message: 'Must be a number like 12.50',
-		}),
-	imageUrl: z.string().max(LIMITS.URL).optional(),
-})
+// Built per submit, not when the module loads, so the messages are worded in
+// the language of the page showing them.
+const buildSchema = () =>
+	z.object({
+		url: z.string().max(LIMITS.URL).optional(),
+		description: z.string().min(1, m.lists_addon_description_required()).max(LIMITS.SHORT_TEXT, m.lists_addon_too_long()),
+		notes: z.string().max(LIMITS.MEDIUM_TEXT, m.lists_addon_too_long()).optional(),
+		totalCost: z
+			.string()
+			.trim()
+			.optional()
+			.refine(v => !v || /^\d+(\.\d{1,2})?$/.test(v), {
+				message: m.lists_addon_cost_invalid(),
+			}),
+		imageUrl: z.string().max(LIMITS.URL).optional(),
+	})
 
 function getErrorMessage(errors: Array<unknown>): string {
 	return errors
@@ -118,7 +122,7 @@ export function ListAddonDialog(props: Props) {
 			imageUrl: initial.imageUrl ?? '',
 		},
 		onSubmit: async ({ value }) => {
-			const parsed = schema.safeParse(value)
+			const parsed = buildSchema().safeParse(value)
 			if (!parsed.success) {
 				setError(parsed.error.issues.map(e => e.message).join(', '))
 				return
@@ -147,16 +151,16 @@ export function ListAddonDialog(props: Props) {
 					if (result.kind === 'error') {
 						switch (result.reason) {
 							case 'not-yours':
-								setError("You can't edit someone else's addon.")
+								setError(m.lists_addon_error_not_yours_edit())
 								break
 							case 'not-found':
-								setError('This addon no longer exists.')
+								setError(m.lists_addon_error_gone())
 								break
 						}
 						return
 					}
 
-					toast.success('Off-list gift updated')
+					toast.success(m.lists_addon_updated())
 				} else {
 					const data = {
 						listId,
@@ -175,27 +179,27 @@ export function ListAddonDialog(props: Props) {
 							case 'idea-not-found':
 							case 'idea-already-used':
 								// Someone else got to it first. Close and refresh so it drops out.
-								toast.error('This idea was already used.')
+								toast.error(m.lists_addon_idea_used())
 								applyListEventLocally({ kind: 'addon', listId, addonId: 0 }, { queryClient, router })
 								onOpenChange(false)
 								break
 							case 'not-allowed':
-								setError('You can no longer edit that gift-ideas list.')
+								setError(m.lists_addon_error_ideas_not_allowed())
 								break
 							case 'not-visible':
-								setError('You no longer have access to this list.')
+								setError(m.lists_addon_error_not_visible())
 								break
 							case 'cannot-add-to-own-list':
-								setError("You can't add off-list gifts to your own list.")
+								setError(m.lists_addon_error_own_list())
 								break
 							case 'list-not-found':
-								setError('This list no longer exists.')
+								setError(m.lists_addon_error_list_gone())
 								break
 						}
 						return
 					}
 
-					toast.success(fromIdea ? 'Idea claimed' : 'Off-list gift added')
+					toast.success(fromIdea ? m.lists_addon_idea_claimed() : m.lists_addon_added())
 				}
 
 				// Refresh the actor's own surfaces immediately. The gifter list view
@@ -206,7 +210,7 @@ export function ListAddonDialog(props: Props) {
 				onOpenChange(false)
 				form.reset()
 			} catch (err) {
-				setError(err instanceof Error ? err.message : 'Failed to save')
+				setError(err instanceof Error ? err.message : m.lists_addon_save_failed())
 			} finally {
 				setSubmitting(false)
 			}
@@ -295,13 +299,15 @@ export function ListAddonDialog(props: Props) {
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-h-[85vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>{isEdit ? 'Edit Off-List Gift' : fromIdea ? 'Claim Idea' : 'Add Off-List Gift'}</DialogTitle>
+					<DialogTitle>
+						{isEdit ? m.lists_addon_dialog_title_edit() : fromIdea ? m.lists_addon_dialog_title_claim() : m.lists_addon_dialog_title_add()}
+					</DialogTitle>
 					<DialogDescription>
 						{isEdit
-							? 'Update the details of your off-list gift. The list owner won’t see this.'
+							? m.lists_addon_dialog_description_edit()
 							: fromIdea
-								? "Claiming adds this to Off-List Gifts on this list so other gifters know you've got it, and removes it from your ideas. The list owner won't see it."
-								: "Record something you're gifting that isn't on the list. The list owner won't see this, just other viewers."}
+								? m.lists_addon_dialog_description_claim()
+								: m.lists_addon_dialog_description_add()}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -318,12 +324,12 @@ export function ListAddonDialog(props: Props) {
 							const urlScrapable = normalizeHttpUrl(field.state.value) !== null
 							return (
 								<div className="grid gap-2">
-									<Label htmlFor={field.name}>URL (Optional)</Label>
+									<Label htmlFor={field.name}>{m.lists_addon_url_label()}</Label>
 									<InputGroup>
 										<InputGroupInput
 											id={field.name}
 											type="url"
-											placeholder="https://..."
+											placeholder={m.lists_addon_url_placeholder()}
 											value={field.state.value}
 											onChange={e => field.handleChange(e.target.value)}
 											onBlur={() => {
@@ -337,8 +343,8 @@ export function ListAddonDialog(props: Props) {
 											<InputGroupButton
 												type="button"
 												size="icon-xs"
-												aria-label={scrapeInFlight ? 'Importing from URL…' : 'Import details from URL'}
-												title={scrapeInFlight ? 'Importing from URL…' : 'Import details from URL'}
+												aria-label={scrapeInFlight ? m.lists_addon_import_busy() : m.lists_addon_import_label()}
+												title={scrapeInFlight ? m.lists_addon_import_busy() : m.lists_addon_import_label()}
 												disabled={!urlScrapable || scrapeInFlight || submitting}
 												onClick={() => triggerManualScrape(field.state.value)}
 											>
@@ -361,11 +367,11 @@ export function ListAddonDialog(props: Props) {
 					<form.Field name="description">
 						{field => (
 							<div className="grid gap-2">
-								<Label htmlFor={field.name}>What Is It?</Label>
+								<Label htmlFor={field.name}>{m.lists_addon_what_label()}</Label>
 								<Input
 									id={field.name}
 									type="text"
-									placeholder='e.g. "Matching scarf from Nordstrom"'
+									placeholder={m.lists_addon_what_placeholder()}
 									value={field.state.value}
 									onChange={e => field.handleChange(e.target.value)}
 									onBlur={field.handleBlur}
@@ -382,7 +388,7 @@ export function ListAddonDialog(props: Props) {
 					<form.Field name="totalCost">
 						{field => (
 							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Total Cost (Optional)</Label>
+								<Label htmlFor={field.name}>{m.lists_addon_cost_label()}</Label>
 								<div className="relative">
 									<DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
 									<Input
@@ -409,10 +415,10 @@ export function ListAddonDialog(props: Props) {
 					<form.Field name="notes">
 						{field => (
 							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Notes (Optional)</Label>
+								<Label htmlFor={field.name}>{m.lists_addon_notes_label()}</Label>
 								<MarkdownTextarea
 									id={field.name}
-									placeholder="e.g. already ordered, arrives Friday"
+									placeholder={m.lists_addon_notes_placeholder()}
 									rows={3}
 									value={field.state.value}
 									onChange={v => field.handleChange(v)}
@@ -432,7 +438,7 @@ export function ListAddonDialog(props: Props) {
 							const currentUrl = field.state.value.trim() || null
 							return (
 								<div className="grid gap-2">
-									<Label htmlFor={field.name}>Image (Optional)</Label>
+									<Label htmlFor={field.name}>{m.lists_addon_image_label()}</Label>
 									{currentUrl && (
 										<div className="flex items-center gap-3">
 											<RemoteImage src={currentUrl} alt="" className="size-16 rounded border object-cover" />
@@ -445,7 +451,7 @@ export function ListAddonDialog(props: Props) {
 												className="gap-1.5"
 											>
 												<Trash2 className="size-3" />
-												Remove
+												{m.action_remove()}
 											</Button>
 										</div>
 									)}
@@ -457,7 +463,7 @@ export function ListAddonDialog(props: Props) {
 									/>
 									<Input
 										id={field.name}
-										placeholder="https://..."
+										placeholder={m.lists_addon_url_placeholder()}
 										value={field.state.value}
 										onChange={e => field.handleChange(e.target.value)}
 										onBlur={field.handleBlur}
@@ -471,17 +477,17 @@ export function ListAddonDialog(props: Props) {
 
 					{error && (
 						<Alert variant="destructive">
-							<AlertTitle>{isEdit ? "Couldn't update" : "Couldn't save"}</AlertTitle>
+							<AlertTitle>{isEdit ? m.lists_addon_error_title_update() : m.lists_addon_error_title_save()}</AlertTitle>
 							<AlertDescription>{error}</AlertDescription>
 						</Alert>
 					)}
 
 					<DialogFooter>
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-							Cancel
+							{m.action_cancel()}
 						</Button>
 						<Button type="submit" disabled={submitting}>
-							{submitting ? 'Saving…' : isEdit ? 'Save' : fromIdea ? 'Claim' : 'Add'}
+							{submitting ? m.state_saving() : isEdit ? m.action_save() : fromIdea ? m.lists_addon_claim_button() : m.action_add()}
 						</Button>
 					</DialogFooter>
 				</form>

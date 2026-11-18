@@ -15,6 +15,7 @@ import { type Priority, priorityEnumValues } from '@/db/schema/enums'
 import { priorityLabel } from '@/lib/i18n/labels'
 import { itemsKeys } from '@/lib/queries/items'
 import { LIMITS } from '@/lib/validation/limits'
+import { m } from '@/paraglide/messages.js'
 
 type Props = {
 	open: boolean
@@ -49,14 +50,14 @@ export function GroupEditDialog({ open, onOpenChange, group, listId }: Props) {
 				},
 			})
 			if (result.kind === 'ok') {
-				toast.success('Group updated')
+				toast.success(m.items_group_toast_updated())
 				onOpenChange(false)
 				// Group rename touches the group (route loader). Group priority
 				// also flips items' effective sort order, so the items query
 				// must refetch too.
 				await Promise.all([router.invalidate(), queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })])
 			} else {
-				toast.error('Failed to update group')
+				toast.error(m.items_group_toast_update_failed())
 			}
 		} finally {
 			setSaving(false)
@@ -67,17 +68,17 @@ export function GroupEditDialog({ open, onOpenChange, group, listId }: Props) {
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
-					<DialogTitle>Edit Group</DialogTitle>
+					<DialogTitle>{m.items_group_edit_title()}</DialogTitle>
 				</DialogHeader>
 				<div className="grid gap-3">
 					<div className="grid gap-1.5">
-						<Label htmlFor={`group-name-${group.id}`}>Name (Optional)</Label>
+						<Label htmlFor={`group-name-${group.id}`}>{m.items_group_name_label()}</Label>
 						<Input
 							id={`group-name-${group.id}`}
 							name="group-name"
 							value={name}
 							onChange={e => setName(e.target.value)}
-							placeholder="Unnamed"
+							placeholder={m.items_group_name_placeholder()}
 							autoComplete="off"
 							data-1p-ignore
 							data-lpignore="true"
@@ -86,7 +87,7 @@ export function GroupEditDialog({ open, onOpenChange, group, listId }: Props) {
 						/>
 					</div>
 					<div className="grid gap-1.5">
-						<Label htmlFor={`group-priority-${group.id}`}>Priority</Label>
+						<Label htmlFor={`group-priority-${group.id}`}>{m.items_field_priority()}</Label>
 						<Select value={priority} onValueChange={v => setPriority(v as Priority)} disabled={saving}>
 							<SelectTrigger id={`group-priority-${group.id}`} className="w-full">
 								<SelectValue />
@@ -104,15 +105,15 @@ export function GroupEditDialog({ open, onOpenChange, group, listId }: Props) {
 								))}
 							</SelectContent>
 						</Select>
-						<p className="text-xs text-muted-foreground">All items in this group inherit this priority.</p>
+						<p className="text-xs text-muted-foreground">{m.items_group_priority_hint()}</p>
 					</div>
 				</div>
 				<DialogFooter>
 					<Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-						Cancel
+						{m.action_cancel()}
 					</Button>
 					<Button onClick={handleSave} disabled={saving}>
-						{saving ? 'Saving…' : 'Save'}
+						{saving ? m.state_saving() : m.action_save()}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

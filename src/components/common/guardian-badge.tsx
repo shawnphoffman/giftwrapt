@@ -1,3 +1,5 @@
+import { m } from '@/paraglide/messages.js'
+
 import { Badge } from '../ui/badge'
 
 export default function GuardianBadge() {
@@ -6,7 +8,7 @@ export default function GuardianBadge() {
 			variant="outline"
 			className="px-1 rounded leading-none bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-900/30 dark:text-violet-300 dark:border-violet-800"
 		>
-			Guardian
+			{m.shared_guardian_badge()}
 		</Badge>
 	)
 }

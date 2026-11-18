@@ -32,18 +32,15 @@ function DependentsSettingsPage() {
 			<CardHeader>
 				<CardTitle className="text-2xl flex items-center gap-2">
 					<Sprout className="size-5 text-emerald-600" />
-					Dependents
+					{m.page_dependents()}
 				</CardTitle>
-				<CardDescription>
-					People you receive gifts on behalf of (a pet, baby, or anyone managed by you). Ask an admin to add a new dependent or change
-					guardians.
-				</CardDescription>
+				<CardDescription>{m.settings_dependents_page_description()}</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-3">
 				{isLoading ? (
 					<LoadingSkeleton />
 				) : !data || data.dependents.length === 0 ? (
-					<div className="text-sm text-muted-foreground py-6 text-center">You aren't a guardian of any dependents yet.</div>
+					<div className="text-sm text-muted-foreground py-6 text-center">{m.settings_dependents_empty()}</div>
 				) : (
 					data.dependents.map(d => {
 						const birthLabel = d.birthMonth ? formatMonthDay(d.birthMonth, d.birthDay, d.birthYear) : null
@@ -52,7 +49,9 @@ function DependentsSettingsPage() {
 								<DependentAvatar name={d.name} image={d.image} size="medium" />
 								<div className="flex-1 min-w-0">
 									<div className="font-medium truncate">{d.name}</div>
-									{birthLabel && <div className="text-xs text-muted-foreground">Birthday: {birthLabel}</div>}
+									{birthLabel && (
+										<div className="text-xs text-muted-foreground">{m.settings_dependents_birthday({ date: birthLabel })}</div>
+									)}
 								</div>
 							</div>
 						)

@@ -3,6 +3,7 @@ import { toast } from 'sonner'
 
 import { PasskeysPanelContent, type PasskeySummary } from '@/components/settings/passkeys-panel'
 import { authClient } from '@/lib/auth-client'
+import { m } from '@/paraglide/messages.js'
 
 // Quick check for browser WebAuthn support. We bail out of the panel
 // entirely if it's not present so users don't get confused by failing
@@ -37,14 +38,14 @@ export default function PasskeysSection() {
 		setRegistering(true)
 		try {
 			const { error: addError } = await authClient.passkey.addPasskey({ name })
-			if (addError) throw new Error(addError.message ?? 'Registration failed.')
-			toast.success(`Passkey "${name}" added`)
+			if (addError) throw new Error(addError.message ?? m.settings_passkeys_register_failed())
+			toast.success(m.settings_passkeys_added({ name }))
 			await list.refetch()
 		} catch (err) {
 			// User-cancel / WebAuthn-NotAllowedError surfaces here; a
 			// generic copy is fine since the browser already showed its
 			// own dialog.
-			setError(err instanceof Error ? err.message : "Couldn't register that passkey.")
+			setError(err instanceof Error ? err.message : m.settings_passkeys_register_error())
 		} finally {
 			setRegistering(false)
 		}
@@ -56,11 +57,11 @@ export default function PasskeysSection() {
 		try {
 			// `passkey.updatePasskey` is mapped from /passkey/update-passkey.
 			const { error: updateError } = await authClient.passkey.updatePasskey({ id, name })
-			if (updateError) throw new Error(updateError.message ?? 'Rename failed.')
-			toast.success('Passkey renamed')
+			if (updateError) throw new Error(updateError.message ?? m.settings_passkeys_rename_failed())
+			toast.success(m.settings_passkeys_renamed())
 			await list.refetch()
 		} catch (err) {
-			setError(err instanceof Error ? err.message : "Couldn't rename that passkey.")
+			setError(err instanceof Error ? err.message : m.settings_passkeys_rename_error())
 		} finally {
 			setBusyId(null)
 		}
@@ -71,11 +72,11 @@ export default function PasskeysSection() {
 		setBusyId(id)
 		try {
 			const { error: deleteError } = await authClient.passkey.deletePasskey({ id })
-			if (deleteError) throw new Error(deleteError.message ?? 'Delete failed.')
-			toast.success('Passkey removed')
+			if (deleteError) throw new Error(deleteError.message ?? m.settings_passkeys_delete_failed())
+			toast.success(m.settings_passkeys_removed())
 			await list.refetch()
 		} catch (err) {
-			setError(err instanceof Error ? err.message : "Couldn't remove that passkey.")
+			setError(err instanceof Error ? err.message : m.settings_passkeys_remove_error())
 		} finally {
 			setBusyId(null)
 		}

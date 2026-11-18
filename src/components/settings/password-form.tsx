@@ -8,24 +8,29 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { LIMITS } from '@/lib/validation/limits'
+import { m } from '@/paraglide/messages.js'
 
 import { PasswordInput } from '../ui/password-input'
 
-const PasswordSchema = z
-	.object({
-		currentPassword: z.string().min(1, 'Current password is required').max(LIMITS.PASSWORD),
-		newPassword: z
-			.string()
-			.min(8, 'Password must be at least 8 characters')
-			.max(LIMITS.PASSWORD, `Password must be ${LIMITS.PASSWORD} characters or fewer`),
-		confirmPassword: z.string().min(1, 'Please confirm your password').max(LIMITS.PASSWORD),
-	})
-	.refine(data => data.newPassword === data.confirmPassword, {
-		message: "Passwords don't match",
-		path: ['confirmPassword'],
-	})
+// Built on each call, not once at module level: the messages have to be in
+// the language of the page that is rendering.
+function passwordSchema() {
+	return z
+		.object({
+			currentPassword: z.string().min(1, m.settings_password_current_required()).max(LIMITS.PASSWORD),
+			newPassword: z
+				.string()
+				.min(8, m.settings_password_too_short())
+				.max(LIMITS.PASSWORD, m.settings_password_too_long({ max: LIMITS.PASSWORD })),
+			confirmPassword: z.string().min(1, m.settings_password_confirm_required()).max(LIMITS.PASSWORD),
+		})
+		.refine(data => data.newPassword === data.confirmPassword, {
+			message: m.settings_password_mismatch(),
+			path: ['confirmPassword'],
+		})
+}
 
-type PasswordFormValues = z.infer<typeof PasswordSchema>
+type PasswordFormValues = z.infer<ReturnType<typeof passwordSchema>>
 
 // Helper to extract error messages from TanStack Form errors (which can be objects or strings)
 function getErrorMessage(errors: Array<unknown>): string {
@@ -51,7 +56,7 @@ export default function PasswordForm() {
 		},
 		onSubmit: async ({ value }) => {
 			// Validate with Zod before submitting
-			const result = PasswordSchema.safeParse(value)
+			const result = passwordSchema().safeParse(value)
 			if (!result.success) {
 				setError(result.error.issues.map((e: { message: string }) => e.message).join(', '))
 				return
@@ -74,12 +79,12 @@ export default function PasswordForm() {
 			})
 
 			setSuccess(true)
-			toast.success('Password updated successfully')
+			toast.success(m.settings_password_updated_toast())
 			form.reset()
 			// Clear success message after 5 seconds
 			setTimeout(() => setSuccess(false), 5000)
 		} catch (err) {
-			const errorMessage = err instanceof Error ? err.message : 'Failed to update password'
+			const errorMessage = err instanceof Error ? err.message : m.settings_password_update_failed()
 			setError(errorMessage)
 			toast.error(errorMessage)
 		} finally {
@@ -100,7 +105,7 @@ export default function PasswordForm() {
 			<form.Field name="currentPassword">
 				{field => (
 					<div className="grid gap-2">
-						<Label htmlFor={field.name}>Current Password</Label>
+						<Label htmlFor={field.name}>{m.settings_password_current_label()}</Label>
 						<PasswordInput
 							id={field.name}
 							placeholder="••••••••"
@@ -121,7 +126,7 @@ export default function PasswordForm() {
 			<form.Field name="newPassword">
 				{field => (
 					<div className="grid gap-2">
-						<Label htmlFor={field.name}>New Password</Label>
+						<Label htmlFor={field.name}>{m.settings_password_new_label()}</Label>
 						<PasswordInput
 							id={field.name}
 							placeholder="••••••••"
@@ -142,7 +147,7 @@ export default function PasswordForm() {
 			<form.Field name="confirmPassword">
 				{field => (
 					<div className="grid gap-2">
-						<Label htmlFor={field.name}>Confirm New Password</Label>
+						<Label htmlFor={field.name}>{m.settings_password_confirm_label()}</Label>
 						<PasswordInput
 							id={field.name}
 							placeholder="••••••••"
@@ -162,18 +167,18 @@ export default function PasswordForm() {
 
 			{error && (
 				<Alert variant="destructive">
-					<AlertTitle>Error</AlertTitle>
+					<AlertTitle>{m.settings_alert_error_title()}</AlertTitle>
 					<AlertDescription>{error}</AlertDescription>
 				</Alert>
 			)}
 			{success && (
 				<Alert variant="default">
-					<AlertTitle>Success</AlertTitle>
-					<AlertDescription>Password updated successfully!</AlertDescription>
+					<AlertTitle>{m.settings_alert_success_title()}</AlertTitle>
+					<AlertDescription>{m.settings_password_updated_alert()}</AlertDescription>
 				</Alert>
 			)}
 			<Button type="submit" disabled={isLoading}>
-				{isLoading ? 'Updating...' : 'Update'}
+				{isLoading ? m.settings_password_updating() : m.action_update()}
 			</Button>
 		</form>
 	)

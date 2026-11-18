@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { formatNumber } from '@/lib/i18n/format'
 import { MAX_PASTE_CHARS } from '@/lib/paste-items/prompt'
 import { itemsKeys } from '@/lib/queries/items'
+import { m } from '@/paraglide/messages.js'
 
 import { ImportPreviewTable } from './import-preview-table'
 
@@ -25,12 +26,21 @@ type Step = 'input' | 'preview'
 
 type ExtractError = Extract<ExtractItemsFromTextResult, { kind: 'error' }>['reason']
 
-const EXTRACT_ERRORS: Record<ExtractError, string> = {
-	'feature-disabled': 'Paste Text is turned off. Ask your admin to turn it on.',
-	'not-configured': 'Paste Text is not set up on this site yet.',
-	'ai-budget-exceeded': 'AI features are paused for this month. Add the items by hand, or paste links with Paste URLs.',
-	'ai-failed': 'Could not read that text just now. Try again.',
-	'rate-limited': 'That is a lot of requests. Try again in a minute.',
+// A function, not a table: a table would be built once at module load, in
+// whatever language was current then.
+function extractErrorMessage(reason: ExtractError): string {
+	switch (reason) {
+		case 'feature-disabled':
+			return m.items_import_text_error_disabled()
+		case 'not-configured':
+			return m.items_import_text_error_not_configured()
+		case 'ai-budget-exceeded':
+			return m.items_import_text_error_budget()
+		case 'ai-failed':
+			return m.items_import_text_error_ai_failed()
+		case 'rate-limited':
+			return m.items_import_text_error_rate_limited()
+	}
 }
 
 /**
@@ -71,18 +81,18 @@ export function ImportDialogText({ listId, open, onOpenChange }: Props) {
 		try {
 			const result = await extractItemsFromText({ data: { text: trimmed } })
 			if (result.kind === 'error') {
-				setError(EXTRACT_ERRORS[result.reason])
+				setError(extractErrorMessage(result.reason))
 				return
 			}
 			if (result.items.length === 0) {
-				setError('Could not find anything to add in that text.')
+				setError(m.items_import_text_error_nothing_found())
 				return
 			}
 			setDrafts(result.items)
 			setSelected(new Set())
 			setStep('preview')
 		} catch {
-			setError('Could not read that text just now. Try again.')
+			setError(m.items_import_text_error_ai_failed())
 		} finally {
 			setReading(false)
 		}
@@ -98,11 +108,11 @@ export function ImportDialogText({ listId, open, onOpenChange }: Props) {
 				setError(reasonToMessage(result.reason))
 				return
 			}
-			toast.success(`Imported ${result.items.length} item${result.items.length === 1 ? '' : 's'}`)
+			toast.success(m.items_import_toast_imported({ count: result.items.length }))
 			await queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })
 			onOpenChange(false)
 		} catch (err) {
-			setError(err instanceof Error ? err.message : 'Failed to import')
+			setError(err instanceof Error ? err.message : m.items_import_error_failed())
 		} finally {
 			setSubmitting(false)
 		}
@@ -113,44 +123,42 @@ export function ImportDialogText({ listId, open, onOpenChange }: Props) {
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						<Sparkles className="size-5" /> Paste Text
+						<Sparkles className="size-5" /> {m.items_import_text_title()}
 					</DialogTitle>
-					<DialogDescription>
-						Paste a list from your notes, a message, or anything else. An AI model picks out the items, and you check them before anything
-						is added. Only the text you paste is sent to it.
-					</DialogDescription>
+					<DialogDescription>{m.items_import_text_description()}</DialogDescription>
 				</DialogHeader>
 
 				{step === 'input' ? (
 					<div className="flex flex-col gap-3">
 						<div className="grid gap-2">
-							<Label htmlFor="import-text-textarea">Text</Label>
+							<Label htmlFor="import-text-textarea">{m.items_import_text_label()}</Label>
 							<Textarea
 								id="import-text-textarea"
 								rows={10}
 								value={textValue}
 								onChange={e => setTextValue(e.target.value)}
-								placeholder={'Things I would love this year:\n- the blue enamel mug, big size\n- wool socks, size M\n...'}
+								placeholder={m.items_import_text_placeholder()}
 								disabled={reading}
 								autoFocus
 							/>
 							<div className={tooLong ? 'text-xs text-destructive' : 'text-xs text-muted-foreground'}>
-								{formatNumber(trimmed.length)} of {formatNumber(MAX_PASTE_CHARS)} characters
-								{tooLong ? '. Paste a shorter piece.' : ''}
+								{tooLong
+									? m.items_import_text_chars_too_long({ used: formatNumber(trimmed.length), max: formatNumber(MAX_PASTE_CHARS) })
+									: m.items_import_text_chars({ used: formatNumber(trimmed.length), max: formatNumber(MAX_PASTE_CHARS) })}
 							</div>
 						</div>
 						{error && (
 							<Alert variant="destructive">
-								<AlertTitle>Error</AlertTitle>
+								<AlertTitle>{m.items_error_title()}</AlertTitle>
 								<AlertDescription>{error}</AlertDescription>
 							</Alert>
 						)}
 						<DialogFooter>
 							<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-								Cancel
+								{m.action_cancel()}
 							</Button>
 							<Button type="button" onClick={read} disabled={trimmed.length === 0 || tooLong || reading}>
-								{reading ? 'Reading…' : 'Find Items'}
+								{reading ? m.items_import_text_reading() : m.items_import_text_find_button()}
 							</Button>
 						</DialogFooter>
 					</div>
@@ -158,7 +166,7 @@ export function ImportDialogText({ listId, open, onOpenChange }: Props) {
 					<div className="flex flex-col gap-3">
 						{error && (
 							<Alert variant="destructive">
-								<AlertTitle>Error</AlertTitle>
+								<AlertTitle>{m.items_error_title()}</AlertTitle>
 								<AlertDescription>{error}</AlertDescription>
 							</Alert>
 						)}
@@ -170,7 +178,6 @@ export function ImportDialogText({ listId, open, onOpenChange }: Props) {
 							submitting={submitting}
 							onSubmit={submit}
 							onCancel={() => setStep('input')}
-							importLabel="Import"
 						/>
 					</div>
 				)}
@@ -180,8 +187,8 @@ export function ImportDialogText({ listId, open, onOpenChange }: Props) {
 }
 
 function reasonToMessage(reason: 'list-not-found' | 'not-authorized' | 'feature-disabled' | 'todo-list-rejects-items'): string {
-	if (reason === 'list-not-found') return 'List not found.'
-	if (reason === 'not-authorized') return 'You do not have permission to add to this list.'
-	if (reason === 'todo-list-rejects-items') return 'Todo lists do not take gift items.'
-	return 'Importing is currently disabled. Ask your admin to turn it on.'
+	if (reason === 'list-not-found') return m.items_error_list_not_found()
+	if (reason === 'not-authorized') return m.items_import_error_not_authorized()
+	if (reason === 'todo-list-rejects-items') return m.items_import_error_todo_list()
+	return m.items_import_error_disabled()
 }

@@ -15,6 +15,7 @@ import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { Textarea } from '@/components/ui/textarea'
 import { findActiveMentionQuery, type MentionRef, sanitizeMentionName } from '@/lib/comment-mentions'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 export type MentionCandidate = {
 	id: string
@@ -101,7 +102,7 @@ export function MentionTextarea({
 		// An `@` that starts an already-picked mention isn't a new query;
 		// without this the list reopens right after a pick (the caret sits
 		// after `@Name `) and when editing a comment that has mentions.
-		if (next && mentions.some(m => next!.query === m.name || next!.query.startsWith(`${m.name} `))) next = null
+		if (next && mentions.some(mention => next!.query === mention.name || next!.query.startsWith(`${mention.name} `))) next = null
 		if (active?.start !== next?.start || active?.query !== next?.query) {
 			setActive(next)
 			setHighlight(0)
@@ -117,7 +118,7 @@ export function MentionTextarea({
 		const inserted = `@${name} `
 		const next = value.slice(0, active.start) + inserted + value.slice(caret)
 		onValueChange(next)
-		if (!mentions.some(m => m.userId === c.id)) onMentionsChange([...mentions, { userId: c.id, name }])
+		if (!mentions.some(mention => mention.userId === c.id)) onMentionsChange([...mentions, { userId: c.id, name }])
 		setActive(null)
 		pendingCaret.current = { value: next, pos: active.start + inserted.length }
 	}
@@ -180,9 +181,9 @@ export function MentionTextarea({
 				onOpenAutoFocus={e => e.preventDefault()}
 				onCloseAutoFocus={e => e.preventDefault()}
 			>
-				<div id={listId} role="listbox" aria-label="Mention someone">
+				<div id={listId} role="listbox" aria-label={m.items_mention_list_label()}>
 					{candidates === undefined ? (
-						<div className="px-2 py-1.5 text-xs text-muted-foreground">Loading people...</div>
+						<div className="px-2 py-1.5 text-xs text-muted-foreground">{m.items_mention_loading()}</div>
 					) : (
 						matches.map((c, i) => (
 							<div

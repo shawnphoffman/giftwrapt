@@ -12,6 +12,7 @@ import { ListAddonDialog, type ListAddonInitialValues } from '@/components/list-
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { listGiftIdeasQueryOptions } from '@/lib/queries/lists'
 import { LIMITS } from '@/lib/validation/limits'
+import { m } from '@/paraglide/messages.js'
 
 // Gift ideas for this list's recipient, from gift-ideas lists the viewer owns
 // or edits (plan 18b). Claiming an idea copies it into an off-list gift on
@@ -40,20 +41,19 @@ function GiftIdeasSection({ listId, recipientName, sources }: SectionProps) {
 	return (
 		<div className="flex flex-col gap-3">
 			<div className="flex items-center gap-1.5">
-				<h2 className="text-lg font-semibold">Gift Ideas</h2>
+				<h2 className="text-lg font-semibold">{m.lists_gift_ideas_heading()}</h2>
 				<Popover>
 					<PopoverTrigger asChild>
 						<button
 							type="button"
-							aria-label="About gift ideas"
+							aria-label={m.lists_gift_ideas_about_label()}
 							className="inline-flex items-center justify-center text-muted-foreground hover:text-foreground rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 						>
 							<CircleHelp className="size-4" />
 						</button>
 					</PopoverTrigger>
 					<PopoverContent side="top" align="start" className="max-w-xs text-xs leading-relaxed">
-						Ideas from your gift-ideas lists for {recipientName}. Only you and the other editors of those lists can see them, and{' '}
-						{recipientName} never can. Claiming an idea adds it to Off-List Gifts on this list and removes it from your ideas.
+						{m.lists_gift_ideas_about_text({ recipientName })}
 					</PopoverContent>
 				</Popover>
 			</div>
@@ -96,7 +96,7 @@ function GiftIdeasSourceGroup({ source, onClaim }: { source: GiftIdeasSource; on
 					<span className="flex items-center gap-1 shrink-0">
 						<span aria-hidden>·</span>
 						<UserAvatar name={ownerName} image={source.owner.image} size="small" className="size-4" />
-						<span className="hidden xs:inline">{ownerName}'s list</span>
+						<span className="hidden xs:inline">{m.lists_gift_ideas_owner_list({ name: ownerName })}</span>
 					</span>
 				)}
 			</div>

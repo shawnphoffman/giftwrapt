@@ -25,6 +25,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { GradientBackground } from '@/components/ui/gradient-background'
 import { authClient } from '@/lib/auth-client'
+import { m } from '@/paraglide/messages.js'
 
 type Search = { token?: string }
 
@@ -56,7 +57,7 @@ function MobilePasskeyPage() {
 			// this page out of history.
 			window.location.replace(finishUrl)
 		} catch {
-			setError("Couldn't sign in with that passkey. Try again or close the sheet to use your password.")
+			setError(m.auth_mobile_passkey_error())
 		} finally {
 			setIsLoading(false)
 		}
@@ -69,8 +70,8 @@ function MobilePasskeyPage() {
 					<GradientBackground />
 				</div>
 				<div className="bg-background/80 w-full max-w-md space-y-3 rounded-xl p-6 text-center shadow-md backdrop-blur">
-					<h1 className="text-lg font-semibold">Sign-In Link Expired</h1>
-					<p className="text-muted-foreground text-sm">Reopen the GiftWrapt iOS app and tap the passkey button again.</p>
+					<h1 className="text-lg font-semibold">{m.auth_mobile_passkey_expired_title()}</h1>
+					<p className="text-muted-foreground text-sm">{m.auth_mobile_passkey_expired_body()}</p>
 				</div>
 			</div>
 		)
@@ -83,11 +84,11 @@ function MobilePasskeyPage() {
 			</div>
 			<div className="bg-background/80 w-full max-w-md space-y-4 rounded-xl p-6 shadow-md backdrop-blur">
 				<div className="space-y-1">
-					<h1 className="text-lg font-semibold">Sign In With a Passkey</h1>
-					<p className="text-muted-foreground text-sm">Confirm with Face ID or Touch ID to finish signing in.</p>
+					<h1 className="text-lg font-semibold">{m.auth_mobile_passkey_title()}</h1>
+					<p className="text-muted-foreground text-sm">{m.auth_mobile_passkey_body()}</p>
 				</div>
 				<Button type="button" className="w-full" disabled={isLoading} onClick={handlePasskey}>
-					{isLoading ? 'Authenticating…' : 'Use a Passkey'}
+					{isLoading ? m.auth_passkey_authenticating() : m.auth_mobile_passkey_button()}
 				</Button>
 				{error && <p className="text-sm text-red-500">{error}</p>}
 			</div>

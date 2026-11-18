@@ -6,6 +6,7 @@ import { RelationLabelsSection } from '@/components/settings/relation-labels-sec
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAppSettings } from '@/hooks/use-app-settings'
 import { useSession } from '@/lib/auth-client'
+import { m } from '@/paraglide/messages.js'
 
 export const Route = createFileRoute('/(core)/settings/')({
 	component: SettingsPage,
@@ -23,8 +24,8 @@ function SettingsPage() {
 		<div className="animate-page-in grid gap-6">
 			<Card className="max-w-2xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Profile</CardTitle>
-					<CardDescription>Update your profile information.</CardDescription>
+					<CardTitle className="text-2xl">{m.settings_profile_title()}</CardTitle>
+					<CardDescription>{m.settings_profile_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<div className="flex flex-col items-center w-full gap-4 @md/subpage:flex-row @md/subpage:items-start">
@@ -44,8 +45,8 @@ function SettingsPage() {
 			{(appSettings?.enableMothersDayReminders || appSettings?.enableFathersDayReminders) && (
 				<Card className="max-w-2xl">
 					<CardHeader>
-						<CardTitle className="text-2xl">Relationships</CardTitle>
-						<CardDescription>Tag the people you shop for on Mother's Day and Father's Day.</CardDescription>
+						<CardTitle className="text-2xl">{m.settings_relations_title()}</CardTitle>
+						<CardDescription>{m.settings_relations_description()}</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<RelationLabelsSection

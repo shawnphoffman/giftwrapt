@@ -19,6 +19,7 @@
 // "Other subject list" excludes the list being edited itself.
 
 import type { ListType } from '@/db/schema/enums'
+import { m } from '@/paraglide/messages.js'
 
 // Import from the pure types file (NOT `./intelligence/upcoming-events`)
 // so this module stays client-safe — pulling from the server-only file
@@ -59,10 +60,30 @@ export type ListChangeImpactOutput = {
 	warnings: Array<ListChangeImpactWarning>
 }
 
-function formatDaysUntil(daysUntil: number): string {
-	if (daysUntil <= 0) return 'today'
-	if (daysUntil === 1) return 'tomorrow'
-	return `in ${daysUntil} days`
+// The warning sentences, worded on each call in the language of whoever is
+// asking. One whole message per kind and per "today / tomorrow / in N days",
+// so a translation never has to fit a fragment into an English sentence.
+// Deleting and archiving differ only in the last sentence; a type change and
+// a holiday change read the same.
+type WarningWording = 'delete' | 'archive' | 'change'
+
+function warningText(wording: WarningWording, event: InWindowEvent): string {
+	const eventTitle = event.eventTitle
+	const count = event.daysUntil
+	switch (wording) {
+		case 'delete':
+			if (count <= 0) return m.list_impact_delete_today({ eventTitle })
+			if (count === 1) return m.list_impact_delete_tomorrow({ eventTitle })
+			return m.list_impact_delete_in_days({ eventTitle, count })
+		case 'archive':
+			if (count <= 0) return m.list_impact_archive_today({ eventTitle })
+			if (count === 1) return m.list_impact_archive_tomorrow({ eventTitle })
+			return m.list_impact_archive_in_days({ eventTitle, count })
+		case 'change':
+			if (count <= 0) return m.list_impact_change_today({ eventTitle })
+			if (count === 1) return m.list_impact_change_tomorrow({ eventTitle })
+			return m.list_impact_change_in_days({ eventTitle, count })
+	}
 }
 
 // True when, after the proposed change is applied, the edited list
@@ -112,12 +133,12 @@ export function evaluateListChangeImpact(input: ListChangeImpactInput): ListChan
 		if (isBeingDeleted) {
 			warnings.push({
 				kind: 'delete',
-				text: `${event.eventTitle} is ${formatDaysUntil(event.daysUntil)} and this is the only list set up to auto-reveal on that day. Deleting means gifts won't auto-reveal.`,
+				text: warningText('delete', event),
 			})
 		} else if (isBeingArchived) {
 			warnings.push({
 				kind: 'archive',
-				text: `${event.eventTitle} is ${formatDaysUntil(event.daysUntil)} and this is the only list set up to auto-reveal on that day. Archiving means gifts won't auto-reveal.`,
+				text: warningText('archive', event),
 			})
 		} else if (
 			event.kind === 'custom-holiday' &&
@@ -127,12 +148,12 @@ export function evaluateListChangeImpact(input: ListChangeImpactInput): ListChan
 		) {
 			warnings.push({
 				kind: 'customHolidayId-away',
-				text: `${event.eventTitle} is ${formatDaysUntil(event.daysUntil)}. After this change, no list will auto-reveal on that day.`,
+				text: warningText('change', event),
 			})
 		} else {
 			warnings.push({
 				kind: 'type-away',
-				text: `${event.eventTitle} is ${formatDaysUntil(event.daysUntil)}. After this change, no list will auto-reveal on that day.`,
+				text: warningText('change', event),
 			})
 		}
 	}

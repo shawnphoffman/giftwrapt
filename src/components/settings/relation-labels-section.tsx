@@ -28,19 +28,22 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { RelationLabel } from '@/db/schema/enums'
+import { m } from '@/paraglide/messages.js'
 
-type Bucket = { label: RelationLabel; title: string; addCta: string }
+// Functions, not strings: the table is built at module level, before any
+// request has a language.
+type Bucket = { label: RelationLabel; title: () => string; addCta: () => string }
 
 const BUCKETS: ReadonlyArray<Bucket> = [
 	{
 		label: 'mother',
-		title: 'Mothers',
-		addCta: 'Add',
+		title: () => m.settings_relations_mothers(),
+		addCta: () => m.action_add(),
 	},
 	{
 		label: 'father',
-		title: 'Fathers',
-		addCta: 'Add',
+		title: () => m.settings_relations_fathers(),
+		addCta: () => m.action_add(),
 	},
 ]
 
@@ -125,7 +128,7 @@ export function RelationLabelsSection({
 	const removeMutation = useMutation({
 		mutationFn: (id: number) => ops.remove(id),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: ops.listKey }),
-		onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Failed to remove'),
+		onError: (err: unknown) => toast.error(err instanceof Error ? err.message : m.settings_relations_remove_failed()),
 	})
 
 	const visibleBuckets = BUCKETS.filter(b => (b.label === 'mother' ? showMothers : showFathers))
@@ -175,21 +178,21 @@ function RelationBucket({ bucket, rows, people, dependents, ops, onRemove }: Rel
 		onSuccess: result => {
 			const r = result as { kind: 'ok' | 'error'; reason?: string }
 			if (r.kind === 'error') {
-				const message: Record<string, string> = {
-					'invalid-target': 'Pick someone before saving.',
-					'self-target': "You can't add yourself.",
-					duplicate: 'They’re already in this list.',
-					'target-not-found': "Couldn't find that person.",
-					'not-dependent-guardian': 'You’re not a guardian of that dependent.',
+				const message: Record<string, (() => string) | undefined> = {
+					'invalid-target': () => m.settings_relations_error_invalid_target(),
+					'self-target': () => m.settings_relations_error_self_target(),
+					duplicate: () => m.settings_relations_error_duplicate(),
+					'target-not-found': () => m.settings_relations_error_target_not_found(),
+					'not-dependent-guardian': () => m.settings_relations_error_not_guardian(),
 				}
-				toast.error(message[r.reason ?? ''] ?? 'Failed to add')
+				toast.error(message[r.reason ?? '']?.() ?? m.settings_relations_add_failed())
 				return
 			}
 			setAdding(false)
 			setPickerValue('')
 			queryClient.invalidateQueries({ queryKey: ops.listKey })
 		},
-		onError: (err: unknown) => toast.error(err instanceof Error ? err.message : 'Failed to add'),
+		onError: (err: unknown) => toast.error(err instanceof Error ? err.message : m.settings_relations_add_failed()),
 	})
 
 	const userOptions = people.filter(u => !claimedIds.has(`user:${u.id}`))
@@ -198,11 +201,11 @@ function RelationBucket({ bucket, rows, people, dependents, ops, onRemove }: Rel
 	return (
 		<div className="grid gap-2">
 			<div className="flex items-center justify-between  h-6">
-				<Label>{bucket.title}</Label>
+				<Label>{bucket.title()}</Label>
 				{!adding && (
 					<Button type="button" variant="outline" size="xs" onClick={() => setAdding(true)}>
 						<Plus className="size-4" />
-						{bucket.addCta}
+						{bucket.addCta()}
 					</Button>
 				)}
 			</div>
@@ -222,7 +225,7 @@ function RelationBucket({ bucket, rows, people, dependents, ops, onRemove }: Rel
 									<span className="flex-1 truncate text-sm">{r.target.name}</span>
 								</>
 							)}
-							<Button type="button" variant="outline" size="icon" aria-label="Remove" onClick={() => onRemove(r.id)}>
+							<Button type="button" variant="outline" size="icon" aria-label={m.action_remove()} onClick={() => onRemove(r.id)}>
 								<Trash2 className="size-4" />
 							</Button>
 						</li>
@@ -234,11 +237,11 @@ function RelationBucket({ bucket, rows, people, dependents, ops, onRemove }: Rel
 				<div className="flex items-center gap-2">
 					<Select value={pickerValue} onValueChange={setPickerValue} disabled={addMutation.isPending}>
 						<SelectTrigger className="flex-1">
-							<SelectValue placeholder="Select a person" />
+							<SelectValue placeholder={m.settings_relations_select_placeholder()} />
 						</SelectTrigger>
 						<SelectContent>
 							{userOptions.length === 0 && depOptions.length === 0 && (
-								<div className="text-muted-foreground p-2 text-xs">Nobody available to add.</div>
+								<div className="text-muted-foreground p-2 text-xs">{m.settings_relations_none_available()}</div>
 							)}
 							{userOptions.map(u => (
 								<SelectItem key={`u:${u.id}`} value={`u:${u.id}`}>
@@ -255,7 +258,7 @@ function RelationBucket({ bucket, rows, people, dependents, ops, onRemove }: Rel
 						</SelectContent>
 					</Select>
 					<Button type="button" size="sm" onClick={() => addMutation.mutate(pickerValue)} disabled={!pickerValue || addMutation.isPending}>
-						Save
+						{m.action_save()}
 					</Button>
 					<Button
 						type="button"
@@ -266,7 +269,7 @@ function RelationBucket({ bucket, rows, people, dependents, ops, onRemove }: Rel
 							setPickerValue('')
 						}}
 					>
-						Cancel
+						{m.action_cancel()}
 					</Button>
 				</div>
 			)}

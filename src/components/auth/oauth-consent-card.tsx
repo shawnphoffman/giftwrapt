@@ -1,11 +1,13 @@
 import { Bot, ShieldCheck } from 'lucide-react'
 import { useState } from 'react'
 
+import { RichMessage } from '@/components/common/rich-message'
 import Loading from '@/components/loading'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { m } from '@/paraglide/messages.js'
 
 export type OAuthConsentState =
 	// Waiting on the client lookup.
@@ -39,23 +41,21 @@ export type OAuthConsentCardProps = {
 /** What the user lets the assistant do. Matches `McpAccessLevel`. */
 export type ConsentAccess = 'read' | 'write'
 
-const ACCESS_POINTS: Record<ConsentAccess, Array<string>> = {
-	write: [
-		'See and edit your lists and items',
-		'See lists shared with you and claim gifts on them',
-		'Act as you, with exactly the access you have, but never as an admin',
-	],
-	read: [
-		'See your lists and items, but not change them',
-		'See lists shared with you, including what is already claimed, but not claim anything',
-		'See what you see, and nothing an admin sees',
-	],
+// Functions, not tables: the text has to be in the language of the page that
+// is rendering, which a module-level constant cannot know.
+function accessPoints(access: ConsentAccess): Array<string> {
+	if (access === 'write') {
+		return [m.auth_consent_write_point_edit(), m.auth_consent_write_point_shared(), m.auth_consent_write_point_identity()]
+	}
+	return [m.auth_consent_read_point_view(), m.auth_consent_read_point_shared(), m.auth_consent_read_point_identity()]
 }
 
-const ACCESS_CHOICES: Array<{ value: ConsentAccess; label: string; hint: string }> = [
-	{ value: 'write', label: 'Read and Make Changes', hint: 'It can add items, claim gifts, and edit lists when you ask.' },
-	{ value: 'read', label: 'Read Only', hint: 'It can answer questions but cannot change anything.' },
-]
+function accessChoices(): Array<{ value: ConsentAccess; label: string; hint: string }> {
+	return [
+		{ value: 'write', label: m.auth_consent_choice_write_label(), hint: m.auth_consent_choice_write_hint() },
+		{ value: 'read', label: m.auth_consent_choice_read_label(), hint: m.auth_consent_choice_read_hint() },
+	]
+}
 
 /**
  * The OAuth consent screen shown when an AI client (Claude, Cursor,
@@ -72,7 +72,7 @@ export function OAuthConsentCard({
 }: OAuthConsentCardProps) {
 	const [submitting, setSubmitting] = useState<'accept' | 'deny' | null>(null)
 	const [access, setAccess] = useState<ConsentAccess>('write')
-	const name = clientName?.trim() || 'An AI assistant'
+	const name = clientName?.trim() || null
 
 	const decide = async (accept: boolean) => {
 		if (!onDecision) return
@@ -98,7 +98,10 @@ export function OAuthConsentCard({
 					<CardTitle className="text-2xl">{title(state, name)}</CardTitle>
 					{state === 'ready' && accountEmail ? (
 						<CardDescription>
-							Connecting to <span className="font-medium text-foreground">{accountEmail}</span>
+							<RichMessage
+								parts={m.auth_consent_connecting_to.parts({ email: accountEmail })}
+								tags={{ strong: children => <span className="font-medium text-foreground">{children}</span> }}
+							/>
 						</CardDescription>
 					) : null}
 				</CardHeader>
@@ -114,10 +117,10 @@ export function OAuthConsentCard({
 								value={access}
 								onValueChange={value => setAccess(value as ConsentAccess)}
 								disabled={submitting !== null}
-								aria-label="What this assistant may do"
+								aria-label={m.auth_consent_access_label()}
 								className="gap-2"
 							>
-								{ACCESS_CHOICES.map(choice => (
+								{accessChoices().map(choice => (
 									<Label
 										key={choice.value}
 										htmlFor={`consent-access-${choice.value}`}
@@ -131,48 +134,39 @@ export function OAuthConsentCard({
 									</Label>
 								))}
 							</RadioGroup>
-							<p className="text-sm text-muted-foreground">If you allow this, {name} will be able to:</p>
+							<p className="text-sm text-muted-foreground">
+								{name ? m.auth_consent_points_intro({ name }) : m.auth_consent_points_intro_unnamed()}
+							</p>
 							<ul className="space-y-2 text-sm">
-								{ACCESS_POINTS[access].map(point => (
+								{accessPoints(access).map(point => (
 									<li key={point} className="flex gap-2">
 										<ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
 										<span>{point}</span>
 									</li>
 								))}
 							</ul>
-							<p className="text-xs text-muted-foreground">
-								You will be asked again the next time this assistant reconnects. You can change this choice or disconnect it at any time
-								from Settings → Connected Apps.
-							</p>
+							<p className="text-xs text-muted-foreground">{m.auth_consent_footnote()}</p>
 						</>
 					) : null}
-					{state === 'disabled' ? (
-						<p className="text-sm text-muted-foreground">
-							Connecting AI assistants is turned off on this GiftWrapt deployment. Ask an admin to enable the MCP server.
-						</p>
-					) : null}
-					{state === 'expired' ? (
-						<p className="text-sm text-muted-foreground">
-							This request has expired or was already used. Go back to your AI assistant and start the connection again.
-						</p>
-					) : null}
-					{state === 'declined' ? <p className="text-sm text-muted-foreground">No access was granted. You can close this window.</p> : null}
+					{state === 'disabled' ? <p className="text-sm text-muted-foreground">{m.auth_consent_disabled_body()}</p> : null}
+					{state === 'expired' ? <p className="text-sm text-muted-foreground">{m.auth_consent_expired_body()}</p> : null}
+					{state === 'declined' ? <p className="text-sm text-muted-foreground">{m.auth_consent_declined_body()}</p> : null}
 					{error ? <p className="text-sm text-destructive">{error}</p> : null}
 				</CardContent>
 				{state === 'ready' ? (
 					<CardFooter className="flex gap-2">
 						<Button variant="outline" className="flex-1" disabled={submitting !== null} onClick={() => decide(false)}>
-							{submitting === 'deny' ? 'Denying...' : 'Deny'}
+							{submitting === 'deny' ? m.auth_consent_denying() : m.auth_consent_deny()}
 						</Button>
 						<Button className="flex-1" disabled={submitting !== null} onClick={() => decide(true)}>
-							{submitting === 'accept' ? 'Allowing...' : 'Allow'}
+							{submitting === 'accept' ? m.auth_consent_allowing() : m.auth_consent_allow()}
 						</Button>
 					</CardFooter>
 				) : null}
 				{state === 'expired' || state === 'disabled' ? (
 					<CardFooter>
 						<Button asChild variant="outline" className="w-full">
-							<a href={signInHref}>Back to GiftWrapt</a>
+							<a href={signInHref}>{m.auth_consent_back()}</a>
 						</Button>
 					</CardFooter>
 				) : null}
@@ -181,17 +175,17 @@ export function OAuthConsentCard({
 	)
 }
 
-function title(state: OAuthConsentState, name: string): string {
+function title(state: OAuthConsentState, name: string | null): string {
 	switch (state) {
 		case 'loading':
-			return 'Checking Request'
+			return m.auth_consent_title_loading()
 		case 'ready':
-			return `Allow ${name} to Access Your Account?`
+			return name ? m.auth_consent_title_ready({ name }) : m.auth_consent_title_ready_unnamed()
 		case 'disabled':
-			return 'MCP Server Is Off'
+			return m.auth_consent_title_disabled()
 		case 'expired':
-			return 'Request Expired'
+			return m.auth_consent_title_expired()
 		case 'declined':
-			return 'Access Denied'
+			return m.auth_consent_title_declined()
 	}
 }

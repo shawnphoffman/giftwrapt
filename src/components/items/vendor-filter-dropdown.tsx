@@ -11,6 +11,7 @@ import {
 	DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 export type VendorOption = {
 	id: string
@@ -48,13 +49,13 @@ export function VendorFilterDropdown({ options, selected, onToggle, onClear }: P
 
 		let resolved: string
 		if (selected.size === 0) {
-			resolved = 'All vendors'
+			resolved = m.items_vendor_all_button()
 		} else if (selected.size === 1) {
 			const [only] = selected
 			const hit = options.find(o => o.id === only)
-			resolved = hit?.name ?? 'All vendors'
+			resolved = hit?.name ?? m.items_vendor_all_button()
 		} else {
-			resolved = `${selected.size} vendors`
+			resolved = m.items_vendor_count({ count: selected.size })
 		}
 
 		return { knownOptions: known, unknownOptions: unknown, totalCount: total, label: resolved }
@@ -69,10 +70,10 @@ export function VendorFilterDropdown({ options, selected, onToggle, onClear }: P
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end">
-				<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">Vendor</DropdownMenuLabel>
+				<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">{m.items_vendor_menu_label()}</DropdownMenuLabel>
 				<DropdownMenuItem onClick={onClear} onSelect={e => e.preventDefault()}>
 					<Check className={cn('size-4', selected.size > 0 && 'opacity-0')} />
-					All Vendors
+					{m.items_vendor_all_option()}
 					<CountBadge count={totalCount} />
 				</DropdownMenuItem>
 				{knownOptions.length > 0 && <DropdownMenuSeparator />}

@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import type { ArchiveBannerInfo } from '@/lib/archive-schedule-loader'
 import { formatDate } from '@/lib/i18n/format'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 // Event and default reveal dates are calendar dates sent as UTC midnight of
 // the date, so they format in UTC; a defer is a real instant and formats in
@@ -32,25 +33,20 @@ export function ArchiveRevealBadge({ archiveInfo, recipientName }: { archiveInfo
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger
 				className={cn(badgeVariants({ variant: 'secondary' }), 'h-7 shrink-0 cursor-pointer hover:bg-secondary/80')}
-				title={`Gifts reveal on ${longDate}`}
-				aria-label={`Gifts reveal on ${longDate}. Tap for details.`}
+				title={m.lists_reveal_badge_title({ date: longDate })}
+				aria-label={m.lists_reveal_details_badge_label({ date: longDate })}
 			>
-				<span>Revealing: {shortDate}</span>
+				<span>{m.lists_reveal_badge_text({ date: shortDate })}</span>
 			</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle className="pr-10">Gifts Reveal on {longDate}</DialogTitle>
-					<DialogDescription>How claim visibility works on this list.</DialogDescription>
+					<DialogTitle className="pr-10">{m.lists_reveal_dialog_title({ date: longDate })}</DialogTitle>
+					<DialogDescription>{m.lists_reveal_details_description()}</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-3 text-sm text-muted-foreground">
-					<p>
-						Anything you claim here stays hidden from {recipientName} until {longDate}, so the surprise holds. After that, your gift is
-						revealed on their Received Gifts page.
-					</p>
-					<p>Gifts on this list reveal automatically a set number of days after the event date.</p>
-					{extended && (
-						<p>The reveal on this list has been intentionally delayed by someone who manages it, so it&apos;s later than usual.</p>
-					)}
+					<p>{m.lists_reveal_details_hidden_until({ recipientName, date: longDate })}</p>
+					<p>{m.lists_reveal_details_automatic()}</p>
+					{extended && <p>{m.lists_reveal_details_delayed()}</p>}
 				</div>
 			</DialogContent>
 		</Dialog>

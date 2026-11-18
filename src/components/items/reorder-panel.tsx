@@ -33,6 +33,7 @@ import { priorityLabel } from '@/lib/i18n/labels'
 import { priorityRingClass } from '@/lib/priority-classes'
 import { itemsKeys } from '@/lib/queries/items'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 type Props = {
 	listId: number
@@ -58,11 +59,11 @@ export function ReorderPanel({ listId, items, groups }: Props) {
 	const queryClient = useQueryClient()
 
 	const entries = useMemo<Map<EntryId, Entry>>(() => {
-		const m = new Map<EntryId, Entry>()
+		const map = new Map<EntryId, Entry>()
 		for (const item of items) {
 			if (item.isArchived || item.groupId !== null) continue
 			const id = itemKey(item.id)
-			m.set(id, { kind: 'item', id, itemId: item.id, item })
+			map.set(id, { kind: 'item', id, itemId: item.id, item })
 		}
 		const childrenByGroup = new Map<number, Array<Item>>()
 		for (const item of items) {
@@ -80,9 +81,9 @@ export function ReorderPanel({ listId, items, groups }: Props) {
 		}
 		for (const g of groups) {
 			const id = groupKey(g.id)
-			m.set(id, { kind: 'group', id, groupId: g.id, group: g, children: childrenByGroup.get(g.id) ?? [] })
+			map.set(id, { kind: 'group', id, groupId: g.id, group: g, children: childrenByGroup.get(g.id) ?? [] })
 		}
-		return m
+		return map
 	}, [items, groups])
 
 	const initialBuckets = useMemo<Bucket>(() => {
@@ -284,7 +285,7 @@ export function ReorderPanel({ listId, items, groups }: Props) {
 			// come from the route loader.
 			await Promise.all([router.invalidate(), queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })])
 		} else {
-			toast.error('Could not save order')
+			toast.error(m.items_reorder_error_save())
 		}
 	}
 
@@ -295,19 +296,21 @@ export function ReorderPanel({ listId, items, groups }: Props) {
 		<div className="flex flex-col gap-3">
 			<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
 				<p className="text-sm text-muted-foreground">
-					Drag rows between buckets to change priority. Drag within a bucket to change order. Changes save automatically.
-					{saving && <span className="ml-2 opacity-70">Saving…</span>}
+					{m.items_reorder_instructions()}
+					{saving && <span className="ml-2 opacity-70">{m.state_saving()}</span>}
 				</p>
 				<div className="flex items-center gap-2 sm:shrink-0">
 					<SegmentedToggle<'single' | 'multi'>
 						value={multiSelect ? 'multi' : 'single'}
 						onValueChange={v => handleToggleMultiSelect(v === 'multi')}
 						options={[
-							{ value: 'single', label: 'Single' },
-							{ value: 'multi', label: 'Multi' },
+							{ value: 'single', label: m.items_reorder_mode_single() },
+							{ value: 'multi', label: m.items_reorder_mode_multi() },
 						]}
 					/>
-					{multiSelect && selectedIds.size > 0 && <span className="text-xs text-muted-foreground">{selectedIds.size} selected</span>}
+					{multiSelect && selectedIds.size > 0 && (
+						<span className="text-xs text-muted-foreground">{m.items_reorder_selected_count({ count: selectedIds.size })}</span>
+					)}
 				</div>
 			</div>
 			<DndContext
@@ -394,7 +397,7 @@ function BucketRow({
 			<SortableContext items={ids} strategy={verticalListSortingStrategy}>
 				<div className="flex flex-col py-1 px-1 min-h-12 gap-1">
 					{ids.length === 0 ? (
-						<div className="text-xs text-muted-foreground text-center py-3">Drop rows here</div>
+						<div className="text-xs text-muted-foreground text-center py-3">{m.items_reorder_drop_here()}</div>
 					) : (
 						ids.map(id => {
 							const entry = entries.get(id)
@@ -453,7 +456,7 @@ function DragHandle({ dragHandleProps }: { dragHandleProps?: DragHandleProps }) 
 	return (
 		<button
 			type="button"
-			aria-label="Drag to reorder"
+			aria-label={m.items_reorder_drag_handle()}
 			{...(dragHandleProps ?? {})}
 			className="p-2 -m-1 shrink-0 text-muted-foreground cursor-grab active:cursor-grabbing touch-none"
 		>
@@ -466,7 +469,7 @@ function MultiDragCard({ count }: { count: number }) {
 	return (
 		<div className="flex items-center gap-2 px-3 py-2.5 bg-card shadow-lg rounded border ring-2 ring-primary/60 select-none">
 			<Layers className="size-4 text-primary shrink-0" />
-			<span className="text-sm font-medium">{count} rows selected</span>
+			<span className="text-sm font-medium">{m.items_reorder_rows_selected({ count })}</span>
 		</div>
 	)
 }
@@ -507,7 +510,7 @@ function EntryRow({
 					<DragHandle dragHandleProps={dragHandleProps} />
 					<Icon className="size-4 text-muted-foreground shrink-0" />
 					<span className="text-sm font-medium leading-tight truncate flex-1">
-						{group.name ?? (group.type === 'or' ? 'Pick one' : 'In order')}
+						{group.name ?? (group.type === 'or' ? m.items_reorder_group_or() : m.items_reorder_group_order())}
 					</span>
 					{isSelected && <Check className="size-4 text-primary shrink-0" />}
 				</div>
@@ -517,7 +520,7 @@ function EntryRow({
 							<span aria-hidden="true" className="select-none">
 								•
 							</span>
-							<span>No items</span>
+							<span>{m.items_reorder_no_items()}</span>
 						</li>
 					) : (
 						children.map(c => (

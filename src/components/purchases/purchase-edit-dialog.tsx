@@ -18,6 +18,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useStorageStatus } from '@/hooks/use-storage-status'
 import { detectCarrier } from '@/lib/tracking/carriers'
 import { LIMITS } from '@/lib/validation/limits'
+import { m } from '@/paraglide/messages.js'
 
 export type EditablePurchase =
 	| {
@@ -44,17 +45,21 @@ type Props = {
 	purchase: EditablePurchase | null
 }
 
-const schema = z.object({
-	totalCost: z
-		.string()
-		.trim()
-		.optional()
-		.refine(v => !v || /^\d+(\.\d{1,2})?$/.test(v), {
-			message: 'Must be a number like 12.50',
-		}),
-	notes: z.string().max(LIMITS.MEDIUM_TEXT, 'Too long').optional(),
-	trackingNumber: z.string().max(LIMITS.TRACKING_NUMBER, 'Too long').optional(),
-})
+// Built on each submit, not once at module load: the messages are read in the
+// language of whoever is submitting.
+function purchaseSchema() {
+	return z.object({
+		totalCost: z
+			.string()
+			.trim()
+			.optional()
+			.refine(v => !v || /^\d+(\.\d{1,2})?$/.test(v), {
+				message: m.purchases_edit_cost_invalid(),
+			}),
+		notes: z.string().max(LIMITS.MEDIUM_TEXT, m.purchases_edit_too_long()).optional(),
+		trackingNumber: z.string().max(LIMITS.TRACKING_NUMBER, m.purchases_edit_too_long()).optional(),
+	})
+}
 
 function getErrorMessage(errors: Array<unknown>): string {
 	return errors
@@ -99,7 +104,7 @@ function PurchaseEditForm({ purchase, onOpenChange }: { purchase: EditablePurcha
 			trackingNumber: purchase.trackingNumber ?? '',
 		},
 		onSubmit: async ({ value }) => {
-			const parsed = schema.safeParse(value)
+			const parsed = purchaseSchema().safeParse(value)
 			if (!parsed.success) {
 				setError(parsed.error.issues.map(e => e.message).join(', '))
 				return
@@ -127,13 +132,13 @@ function PurchaseEditForm({ purchase, onOpenChange }: { purchase: EditablePurcha
 					if (result.kind === 'error') {
 						switch (result.reason) {
 							case 'not-yours':
-								setError("You can't edit someone else's claim.")
+								setError(m.purchases_edit_error_claim_not_yours())
 								break
 							case 'not-found':
-								setError('This claim no longer exists.')
+								setError(m.purchases_edit_error_claim_gone())
 								break
 							case 'over-claim':
-								setError('Quantity exceeds what is available.')
+								setError(m.purchases_edit_error_over_claim())
 								break
 						}
 						return
@@ -151,21 +156,21 @@ function PurchaseEditForm({ purchase, onOpenChange }: { purchase: EditablePurcha
 					if (result.kind === 'error') {
 						switch (result.reason) {
 							case 'not-yours':
-								setError("You can't edit someone else's gift.")
+								setError(m.purchases_edit_error_addon_not_yours())
 								break
 							case 'not-found':
-								setError('This gift no longer exists.')
+								setError(m.purchases_edit_error_addon_gone())
 								break
 						}
 						return
 					}
 				}
 
-				toast.success('Purchase updated')
+				toast.success(m.purchases_edit_saved())
 				onOpenChange(false)
 				await router.invalidate()
 			} catch (err) {
-				setError(err instanceof Error ? err.message : 'Failed to save')
+				setError(err instanceof Error ? err.message : m.purchases_edit_save_failed())
 			} finally {
 				setSubmitting(false)
 			}
@@ -178,7 +183,7 @@ function PurchaseEditForm({ purchase, onOpenChange }: { purchase: EditablePurcha
 		try {
 			for (const file of Array.from(files)) {
 				if (attachments.length >= LIMITS.PURCHASE_ATTACHMENTS_MAX) {
-					toast.error(`Max ${LIMITS.PURCHASE_ATTACHMENTS_MAX} attachments per purchase`)
+					toast.error(m.purchases_edit_attachments_max({ max: LIMITS.PURCHASE_ATTACHMENTS_MAX }))
 					break
 				}
 				const fd = new FormData()
@@ -219,8 +224,8 @@ function PurchaseEditForm({ purchase, onOpenChange }: { purchase: EditablePurcha
 	return (
 		<>
 			<DialogHeader>
-				<DialogTitle>Edit Purchase Details</DialogTitle>
-				<DialogDescription>Update the cost, tracking, and notes for this purchase.</DialogDescription>
+				<DialogTitle>{m.purchases_edit_title()}</DialogTitle>
+				<DialogDescription>{m.purchases_edit_description()}</DialogDescription>
 			</DialogHeader>
 
 			<form
@@ -234,7 +239,7 @@ function PurchaseEditForm({ purchase, onOpenChange }: { purchase: EditablePurcha
 				<form.Field name="totalCost">
 					{field => (
 						<div className="grid gap-2">
-							<Label htmlFor={field.name}>Total Cost</Label>
+							<Label htmlFor={field.name}>{m.purchases_edit_cost_label()}</Label>
 							<div className="relative">
 								<span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">$</span>
 								<Input
@@ -262,13 +267,13 @@ function PurchaseEditForm({ purchase, onOpenChange }: { purchase: EditablePurcha
 						const match = detectCarrier(field.state.value)
 						return (
 							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Tracking Number</Label>
+								<Label htmlFor={field.name}>{m.purchases_edit_tracking_label()}</Label>
 								<div className="relative">
 									<Truck className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground size-4 pointer-events-none" />
 									<Input
 										id={field.name}
 										type="text"
-										placeholder="UPS / USPS / FedEx / DHL"
+										placeholder={m.purchases_edit_tracking_placeholder()}
 										className="pl-9"
 										value={field.state.value}
 										onChange={e => field.handleChange(e.target.value)}
@@ -279,7 +284,7 @@ function PurchaseEditForm({ purchase, onOpenChange }: { purchase: EditablePurcha
 								</div>
 								{match.carrierName && (
 									<div className="text-xs text-muted-foreground">
-										Looks like <Badge variant="secondary">{match.carrierName}</Badge>
+										{m.purchases_edit_tracking_looks_like()} <Badge variant="secondary">{match.carrierName}</Badge>
 									</div>
 								)}
 								{field.state.meta.isTouched && field.state.meta.errors.length > 0 && (
@@ -293,10 +298,10 @@ function PurchaseEditForm({ purchase, onOpenChange }: { purchase: EditablePurcha
 				<form.Field name="notes">
 					{field => (
 						<div className="grid gap-2">
-							<Label htmlFor={field.name}>Notes</Label>
+							<Label htmlFor={field.name}>{m.purchases_edit_notes_label()}</Label>
 							<Textarea
 								id={field.name}
-								placeholder="Add any notes about this purchase..."
+								placeholder={m.purchases_edit_notes_placeholder()}
 								rows={3}
 								value={field.state.value}
 								onChange={e => field.handleChange(e.target.value)}
@@ -324,17 +329,17 @@ function PurchaseEditForm({ purchase, onOpenChange }: { purchase: EditablePurcha
 
 				{error && (
 					<Alert variant="destructive">
-						<AlertTitle>Couldn't update</AlertTitle>
+						<AlertTitle>{m.purchases_edit_error_title()}</AlertTitle>
 						<AlertDescription>{error}</AlertDescription>
 					</Alert>
 				)}
 
 				<DialogFooter>
 					<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-						Cancel
+						{m.action_cancel()}
 					</Button>
 					<Button type="submit" disabled={submitting}>
-						{submitting ? 'Saving…' : 'Save'}
+						{submitting ? m.state_saving() : m.action_save()}
 					</Button>
 				</DialogFooter>
 			</form>
@@ -367,15 +372,12 @@ function AttachmentsSection({
 	return (
 		<div className="grid gap-2">
 			<div className="flex items-center justify-between">
-				<Label>Attachments</Label>
+				<Label>{m.purchases_edit_attachments_label()}</Label>
 				<span className="text-xs text-muted-foreground">
 					{attachments.length}/{LIMITS.PURCHASE_ATTACHMENTS_MAX}
 				</span>
 			</div>
-			<p className="text-xs text-muted-foreground">
-				Keep receipts, gift receipts, or order confirmations handy for returns and reimbursements. Accepts images (JPG, PNG, HEIC, WebP) and
-				PDFs.
-			</p>
+			<p className="text-xs text-muted-foreground">{m.purchases_edit_attachments_help()}</p>
 			{attachments.length > 0 && (
 				<div className="grid grid-cols-3 gap-2">
 					{attachments.map(url => (
@@ -402,11 +404,11 @@ function AttachmentsSection({
 						disabled={disabled || busy || atCap}
 					>
 						{busy ? <Loader2 className="size-4 animate-spin" /> : null}
-						{atCap ? 'Max Reached' : 'Add Attachment'}
+						{atCap ? m.purchases_edit_attachments_max_reached() : m.purchases_edit_attachments_add()}
 					</Button>
 				</>
 			) : (
-				<p className="text-xs text-muted-foreground italic">Uploads are disabled on this server.</p>
+				<p className="text-xs text-muted-foreground italic">{m.purchases_edit_uploads_disabled()}</p>
 			)}
 		</div>
 	)
@@ -428,7 +430,7 @@ function AttachmentTile({ url, disabled, onRemove }: { url: string; disabled: bo
 				</a>
 			) : (
 				<a href={url} target="_blank" rel="noopener noreferrer" className="block size-full">
-					<img src={url} alt="attachment" className="size-full object-cover" />
+					<img src={url} alt={m.purchases_edit_attachment_alt()} className="size-full object-cover" />
 				</a>
 			)}
 			{!disabled && (
@@ -436,7 +438,7 @@ function AttachmentTile({ url, disabled, onRemove }: { url: string; disabled: bo
 					type="button"
 					onClick={onRemove}
 					className="absolute top-1 right-1 rounded-full bg-background/90 text-foreground p-0.5 can-hover:opacity-0 group-hover:opacity-100 focus:opacity-100 transition"
-					aria-label="Remove attachment"
+					aria-label={m.purchases_edit_attachment_remove()}
 				>
 					<X className="size-3.5" />
 				</button>

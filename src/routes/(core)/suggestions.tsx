@@ -64,30 +64,26 @@ function IntelligenceRoute() {
 	// changed).
 	useEffect(() => {
 		if (!editingError) return
-		toast.error(
-			editingError === 'not-authorized'
-				? 'You no longer have permission to edit this item.'
-				: 'That item no longer exists. Refresh suggestions to see the latest.'
-		)
+		toast.error(editingError === 'not-authorized' ? m.intelligence_edit_not_authorized() : m.intelligence_edit_item_gone())
 		setEditing(null)
 	}, [editingError])
 
 	const refreshMutation = useMutation({
 		mutationFn: () => refreshMyRecommendations({ data: undefined } as Parameters<typeof refreshMyRecommendations>[0]),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: intelligenceQueryOptions.queryKey }),
-		onError: e => toast.error(e instanceof Error ? e.message : 'Refresh failed'),
+		onError: e => toast.error(e instanceof Error ? e.message : m.intelligence_refresh_failed()),
 	})
 
 	const dismissMutation = useMutation({
 		mutationFn: (id: string) => dismissRecommendation({ data: { id } }),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: intelligenceQueryOptions.queryKey }),
-		onError: e => toast.error(e instanceof Error ? e.message : 'Dismiss failed'),
+		onError: e => toast.error(e instanceof Error ? e.message : m.intelligence_dismiss_failed()),
 	})
 
 	const reactivateMutation = useMutation({
 		mutationFn: (id: string) => reactivateRecommendation({ data: { id } }),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: intelligenceQueryOptions.queryKey }),
-		onError: e => toast.error(e instanceof Error ? e.message : 'Reactivate failed'),
+		onError: e => toast.error(e instanceof Error ? e.message : m.intelligence_reactivate_failed()),
 	})
 
 	const dismissSubItemMutation = useMutation({
@@ -104,7 +100,7 @@ function IntelligenceRoute() {
 			}
 			queryClient.invalidateQueries({ queryKey: intelligenceQueryOptions.queryKey })
 		},
-		onError: e => toast.error(e instanceof Error ? e.message : 'Skip failed'),
+		onError: e => toast.error(e instanceof Error ? e.message : m.intelligence_skip_failed()),
 	})
 
 	const applyServerMutation = useMutation({
@@ -114,7 +110,7 @@ function IntelligenceRoute() {
 			queryClient.invalidateQueries({ queryKey: intelligenceQueryOptions.queryKey })
 			if (!result.ok) toast.error(applyErrorMessage(result.reason))
 		},
-		onError: e => toast.error(e instanceof Error ? e.message : 'Action failed'),
+		onError: e => toast.error(e instanceof Error ? e.message : m.intelligence_action_failed()),
 	})
 
 	const state: IntelligencePageState = useMemo(() => buildState(data, refreshMutation.isPending), [data, refreshMutation.isPending])
@@ -215,39 +211,39 @@ function lastVisibleSubItemWillVanish(rec: IntelligenceRecRow, dismissingSubItem
 function applyErrorMessage(reason: Exclude<ApplyRecommendationResult, { ok: true }>['reason']): string {
 	switch (reason) {
 		case 'rec-not-active':
-			return 'This suggestion is no longer active. Refresh to see the latest.'
+			return m.intelligence_apply_error_rec_not_active()
 		case 'cannot-edit':
-			return "You can't edit that list anymore."
+			return m.intelligence_apply_error_cannot_edit()
 		case 'items-changed':
-			return 'These items have changed since the suggestion was made. Refresh to see the latest.'
+			return m.intelligence_apply_error_items_changed()
 		case 'items-have-claims':
-			return 'One of these items has a claim now, so we left it alone. Refresh to see the latest.'
+			return m.intelligence_apply_error_items_have_claims()
 		case 'list-not-found':
-			return 'That list no longer exists.'
+			return m.intelligence_apply_error_list_not_found()
 		case 'invalid-list-type':
-			return "That list type can't be set as primary."
+			return m.intelligence_apply_error_invalid_list_type()
 		case 'not-owner':
-			return "You don't own that list."
+			return m.intelligence_apply_error_not_owner()
 		case 'rec-not-found':
-			return 'Suggestion not found.'
+			return m.intelligence_apply_error_rec_not_found()
 		case 'unknown-apply-kind':
-			return "We don't know how to apply that action."
+			return m.intelligence_apply_error_unknown_apply_kind()
 		case 'list-type-disabled':
-			return "That list type isn't enabled on this deployment anymore."
+			return m.intelligence_apply_error_list_type_disabled()
 		case 'todo-list-type-locked':
-			return "Todo lists can't be converted to or from another type."
+			return m.intelligence_apply_error_todo_list_type_locked()
 		case 'invalid-holiday-selection':
-			return 'That holiday selection is invalid. Refresh to see the latest.'
+			return m.intelligence_apply_error_invalid_holiday_selection()
 		case 'not-dependent-guardian':
-			return "You're not a guardian of that dependent."
+			return m.intelligence_apply_error_not_dependent_guardian()
 		case 'child-cannot-create-gift-ideas':
-			return "Children can't create gift-ideas lists."
+			return m.intelligence_apply_error_child_cannot_create_gift_ideas()
 		case 'no-change':
-			return 'Nothing to change. The list is already set up that way.'
+			return m.intelligence_apply_error_no_change()
 		case 'merge-cluster-mismatch':
-			return 'These lists changed since the suggestion was made. Refresh to see the latest.'
+			return m.intelligence_apply_error_merge_cluster_mismatch()
 		case 'merge-cross-type-destructive':
-			return "These lists can't be safely merged anymore. Refresh to see the latest."
+			return m.intelligence_apply_error_merge_cross_type_destructive()
 	}
 }
 
@@ -309,6 +305,7 @@ function buildState(data: IntelligencePagePayload, generating: boolean): Intelli
 	}
 
 	if (generating) return { kind: 'generating', data: baseData }
-	if (data.lastRun?.status === 'error') return { kind: 'error', data: baseData, message: data.lastRun.error ?? 'Unknown error' }
+	if (data.lastRun?.status === 'error')
+		return { kind: 'error', data: baseData, message: data.lastRun.error ?? m.intelligence_run_failed_unknown() }
 	return { kind: 'loaded', data: baseData }
 }

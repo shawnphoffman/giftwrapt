@@ -41,13 +41,13 @@ function SignOut() {
 			try {
 				await Promise.race([
 					signOut(),
-					new Promise((_, reject) => setTimeout(() => reject(new Error('sign-out timed out')), SIGN_OUT_TIMEOUT_MS)),
+					new Promise((_, reject) => setTimeout(() => reject(new Error(m.auth_sign_out_timed_out())), SIGN_OUT_TIMEOUT_MS)),
 				])
 				await purgeCaches()
 				navigate({ to: '/sign-in' })
 			} catch (err) {
 				await purgeCaches()
-				setError(err instanceof Error ? err.message : 'Failed to sign out')
+				setError(err instanceof Error ? err.message : m.auth_sign_out_failed())
 				setTimeout(() => {
 					navigate({ to: '/sign-in' })
 				}, 2000)

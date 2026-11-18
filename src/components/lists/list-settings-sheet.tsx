@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import type { ListType } from '@/db/schema/enums'
+import { m } from '@/paraglide/messages.js'
 
 type Props = {
 	listId: number
@@ -50,14 +51,14 @@ export function ListSettingsSheet({
 	return (
 		<Sheet open={open} onOpenChange={setOpen}>
 			<SheetTrigger asChild>
-				<Button variant="outline" size="icon" title="List settings" aria-label="List settings">
+				<Button variant="outline" size="icon" title={m.lists_settings_button_label()} aria-label={m.lists_settings_button_label()}>
 					<Settings className="size-4" />
 				</Button>
 			</SheetTrigger>
 			<SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
 				<SheetHeader>
-					<SheetTitle>List Settings</SheetTitle>
-					<SheetDescription>Manage this list's details and editors.</SheetDescription>
+					<SheetTitle>{m.lists_settings_sheet_title()}</SheetTitle>
+					<SheetDescription>{m.lists_settings_sheet_description()}</SheetDescription>
 				</SheetHeader>
 				<div className="flex flex-col gap-6 px-4 pb-6">
 					<ListSettingsForm

@@ -19,7 +19,7 @@ export default function ListsPage() {
 				<PageHeading
 					title={
 						<span className="flex items-center gap-1 justify-between w-full">
-							Wish Lists
+							{m.lists_all_heading()}
 							<NoListsPopover />
 						</span>
 					}

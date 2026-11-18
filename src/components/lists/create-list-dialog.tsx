@@ -28,6 +28,7 @@ import { useSession } from '@/lib/auth-client'
 import { formatDate } from '@/lib/i18n/format'
 import { listTypeLabel } from '@/lib/i18n/labels'
 import { LIMITS } from '@/lib/validation/limits'
+import { m } from '@/paraglide/messages.js'
 
 type Props = {
 	open: boolean
@@ -36,17 +37,20 @@ type Props = {
 
 const IS_DEV = import.meta.env.DEV
 
-const schema = z.object({
-	name: z.string().min(1, 'Name is required').max(LIMITS.LIST_NAME),
-	type: z.enum(listTypeEnumValues),
-	isPrivate: z.boolean(),
-	description: z.string().max(LIMITS.MEDIUM_TEXT).optional(),
-	giftIdeasTargetUserId: z.string().optional(),
-	giftIdeasTargetDependentId: z.string().optional(),
-	subjectDependentId: z.string().optional(),
-	customHolidayId: z.string().optional(),
-	addPartnerAsEditor: z.boolean(),
-})
+// Built per submit, not when the module loads, so the message is worded in
+// the language of the page showing it.
+const buildSchema = () =>
+	z.object({
+		name: z.string().min(1, m.lists_form_name_required()).max(LIMITS.LIST_NAME),
+		type: z.enum(listTypeEnumValues),
+		isPrivate: z.boolean(),
+		description: z.string().max(LIMITS.MEDIUM_TEXT).optional(),
+		giftIdeasTargetUserId: z.string().optional(),
+		giftIdeasTargetDependentId: z.string().optional(),
+		subjectDependentId: z.string().optional(),
+		customHolidayId: z.string().optional(),
+		addPartnerAsEditor: z.boolean(),
+	})
 
 function formatHolidayDate(d: Date): string {
 	return formatDate(d, { month: 'short', day: 'numeric', year: 'numeric' })
@@ -86,7 +90,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 	})
 
 	const partner = partnerId ? users?.find(u => u.id === partnerId) : undefined
-	const partnerLabel = partner ? partner.name || partner.email : 'your partner'
+	const partnerName = partner ? partner.name || partner.email : null
 
 	const noHolidaysConfigured = customHolidays !== undefined && customHolidays.length === 0
 	const availableTypes = (isChild ? listTypeEnumValues.filter(t => t !== 'giftideas') : listTypeEnumValues)
@@ -106,7 +110,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 			addPartnerAsEditor: true,
 		},
 		onSubmit: async ({ value }) => {
-			const parsed = schema.safeParse(value)
+			const parsed = buildSchema().safeParse(value)
 			if (!parsed.success) {
 				setError(parsed.error.issues.map(e => e.message).join(', '))
 				return
@@ -143,10 +147,10 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 
 				if (result.kind === 'error') {
 					const message: Record<typeof result.reason, string> = {
-						'child-cannot-create-gift-ideas': "Children can't create gift-ideas lists.",
-						'not-dependent-guardian': "You're not a guardian of that dependent.",
-						'invalid-holiday-selection': 'Please pick a holiday for this list.',
-						'list-type-disabled': 'That list type is disabled by the admin.',
+						'child-cannot-create-gift-ideas': m.lists_create_error_child_gift_ideas(),
+						'not-dependent-guardian': m.lists_form_error_not_guardian(),
+						'invalid-holiday-selection': m.lists_create_error_holiday(),
+						'list-type-disabled': m.lists_create_error_type_disabled(),
 					}
 					setError(message[result.reason])
 					return
@@ -155,11 +159,13 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 				if (shouldAddPartner && partnerId) {
 					const editorResult = await addListEditor({ data: { listId: result.list.id, userId: partnerId } })
 					if (editorResult.kind === 'error') {
-						toast.warning(`List created, but couldn't add ${partnerLabel} as an editor.`)
+						toast.warning(
+							partnerName ? m.lists_create_partner_failed_named({ name: partnerName }) : m.lists_create_partner_failed_generic()
+						)
 					}
 				}
 
-				toast.success(`List "${result.list.name}" created`)
+				toast.success(m.lists_created_toast({ listName: result.list.name }))
 				onOpenChange(false)
 				form.reset()
 				await queryClient.invalidateQueries({ queryKey: ['my-lists'] })
@@ -169,7 +175,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 					params: { listId: String(result.list.id) },
 				})
 			} catch (err) {
-				setError(err instanceof Error ? err.message : 'Failed to create list')
+				setError(err instanceof Error ? err.message : m.lists_create_failed())
 			} finally {
 				setSubmitting(false)
 			}
@@ -187,9 +193,9 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 						<span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-yellow-500 dark:bg-yellow-600 ring-1 ring-yellow-400/40 dark:ring-yellow-600/40 shadow-sm">
 							<ListPlus className="size-5.25 shrink-0 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.4)]" />
 						</span>
-						Create a List
+						{m.lists_create_dialog_title()}
 					</DialogTitle>
-					<DialogDescription>Choose a name and type for your list. You can change these later.</DialogDescription>
+					<DialogDescription>{m.lists_create_dialog_description()}</DialogDescription>
 				</DialogHeader>
 
 				<form
@@ -203,11 +209,11 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 					<form.Field name="name">
 						{field => (
 							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Name</Label>
+								<Label htmlFor={field.name}>{m.lists_form_name_label()}</Label>
 								<Input
 									id={field.name}
 									name="list-name"
-									placeholder="e.g. Christmas 2026"
+									placeholder={m.lists_create_name_placeholder()}
 									value={field.state.value}
 									onChange={e => field.handleChange(e.target.value)}
 									onBlur={field.handleBlur}
@@ -231,7 +237,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 						<form.Field name="type">
 							{field => (
 								<div className="grid gap-2">
-									<Label htmlFor={field.name}>Type</Label>
+									<Label htmlFor={field.name}>{m.lists_form_type_label()}</Label>
 									<Select
 										value={field.state.value}
 										onValueChange={v => {
@@ -267,7 +273,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 							<form.Field name="subjectDependentId">
 								{field => (
 									<div className="grid gap-2">
-										<Label htmlFor={field.name}>List Is For (Optional)</Label>
+										<Label htmlFor={field.name}>{m.lists_form_subject_label()}</Label>
 										<Select
 											value={field.state.value || 'me'}
 											onValueChange={v => field.handleChange(v === 'me' ? '' : v)}
@@ -277,7 +283,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 												<SelectValue />
 											</SelectTrigger>
 											<SelectContent>
-												<SelectItem value="me">Me</SelectItem>
+												<SelectItem value="me">{m.lists_form_subject_me()}</SelectItem>
 												{(myDependents?.dependents ?? [])
 													.filter(d => !d.isArchived)
 													.map(d => (
@@ -299,16 +305,20 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 							<form.Field name="customHolidayId">
 								{field => (
 									<>
-										<Label htmlFor={field.name}>Holiday</Label>
+										<Label htmlFor={field.name}>{m.lists_form_holiday_label()}</Label>
 										<Select value={field.state.value} onValueChange={v => field.handleChange(v)} disabled={submitting}>
 											<SelectTrigger id={field.name} className="w-full">
-												<SelectValue placeholder="Select a holiday" />
+												<SelectValue placeholder={m.lists_form_holiday_placeholder()} />
 											</SelectTrigger>
 											<SelectContent>
 												{(customHolidays ?? []).map(h => (
 													<SelectItem key={h.id} value={h.id}>
-														{h.title}
-														{h.nextOccurrenceIso ? ` (${formatHolidayDate(new Date(h.nextOccurrenceIso))})` : ''}
+														{h.nextOccurrenceIso
+															? m.lists_form_holiday_option_dated({
+																	title: h.title,
+																	date: formatHolidayDate(new Date(h.nextOccurrenceIso)),
+																})
+															: h.title}
 													</SelectItem>
 												))}
 											</SelectContent>
@@ -321,7 +331,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 
 					{isGiftIdeas && (
 						<div className="grid gap-2">
-							<Label>Gift Ideas For (Optional)</Label>
+							<Label>{m.lists_form_gift_ideas_for_label()}</Label>
 							<form.Field name="giftIdeasTargetUserId">
 								{userField => (
 									<form.Field name="giftIdeasTargetDependentId">
@@ -353,7 +363,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 													disabled={submitting}
 												>
 													<SelectTrigger>
-														<SelectValue placeholder="Select a person" />
+														<SelectValue placeholder={m.lists_form_person_placeholder()} />
 													</SelectTrigger>
 													<SelectContent>
 														{users?.map(u => (
@@ -384,7 +394,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 						{field => (
 							<div className="flex items-center justify-between gap-3">
 								<Label htmlFor={field.name} className="font-normal">
-									Private List {isGiftIdeas && '(Always Private for Gift Ideas)'}
+									{isGiftIdeas ? m.lists_form_private_label_gift_ideas() : m.lists_form_private_label()}
 								</Label>
 								<Switch
 									id={field.name}
@@ -413,11 +423,11 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 											/>
 											<div className="grid gap-1">
 												<Label htmlFor={field.name} className="font-normal">
-													Add {partnerLabel} as an Editor
+													{partnerName
+														? m.lists_form_add_partner_label_named({ name: partnerName })
+														: m.lists_form_add_partner_label_generic()}
 												</Label>
-												<p className="text-muted-foreground text-xs">
-													They'll be able to manage items on this list. You can change this anytime in list settings.
-												</p>
+												<p className="text-muted-foreground text-xs">{m.lists_create_add_partner_help()}</p>
 											</div>
 										</div>
 									)}
@@ -429,10 +439,10 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 					<form.Field name="description">
 						{field => (
 							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Description (Optional)</Label>
+								<Label htmlFor={field.name}>{m.lists_form_description_label()}</Label>
 								<MarkdownTextarea
 									id={field.name}
-									placeholder="A short description of this list"
+									placeholder={m.lists_create_description_placeholder()}
 									rows={2}
 									value={field.state.value}
 									onChange={v => field.handleChange(v)}
@@ -446,17 +456,17 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 
 					{error && (
 						<Alert variant="destructive">
-							<AlertTitle>Couldn't create list</AlertTitle>
+							<AlertTitle>{m.lists_create_error_title()}</AlertTitle>
 							<AlertDescription>{error}</AlertDescription>
 						</Alert>
 					)}
 
 					<DialogFooter>
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-							Cancel
+							{m.action_cancel()}
 						</Button>
 						<Button type="submit" disabled={submitting}>
-							{submitting ? 'Creating…' : 'Create List'}
+							{submitting ? m.lists_create_busy() : m.lists_create_submit()}
 						</Button>
 					</DialogFooter>
 				</form>

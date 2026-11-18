@@ -12,6 +12,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { TapTooltip, TapTooltipContent, TapTooltipTrigger } from '@/components/ui/tooltip'
 import type { AccessLevel } from '@/db/schema/enums'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 // Visible tier on the row's toggle: the four states the UI exposes. Maps onto
 // (accessLevel, canEdit) pairs server-side.
@@ -124,7 +125,7 @@ export function PermissionsEditor({
 			await onSave(rows)
 			setDirty(false)
 		} catch (err) {
-			const errorMessage = err instanceof Error ? err.message : 'Failed to update permissions'
+			const errorMessage = err instanceof Error ? err.message : m.settings_permissions_update_failed()
 			toast.error(errorMessage)
 		}
 	}
@@ -136,16 +137,16 @@ export function PermissionsEditor({
 	}
 
 	if (!hasRows) {
-		return <div className="text-sm text-muted-foreground">{emptyLabel ?? 'No other users found'}</div>
+		return <div className="text-sm text-muted-foreground">{emptyLabel ?? m.settings_permissions_empty()}</div>
 	}
 
 	const table = (
 		<div className="rounded-lg border overflow-x-auto">
 			<div className="grid min-w-max grid-cols-[auto_auto] divide-y">
 				<div className="contents text-xs font-medium uppercase tracking-wide text-muted-foreground bg-muted/30">
-					<span className="px-4 py-2 bg-muted/30 flex items-center">Person</span>
+					<span className="px-4 py-2 bg-muted/30 flex items-center">{m.settings_permissions_column_person()}</span>
 					<span className="px-4 py-2 bg-muted/30 flex items-center gap-1.5">
-						Access
+						{m.settings_permissions_column_access()}
 						<AccessHelp />
 					</span>
 				</div>
@@ -165,42 +166,38 @@ export function PermissionsEditor({
 									if (value) handleAccessChange(row.id, value as AccessTier)
 								}}
 								disabled={isSaving || row.isGuardian || (lockedUserIds?.has(row.id) ?? false)}
-								title={
-									row.isGuardian || lockedUserIds?.has(row.id)
-										? 'Guardians always have full access. Remove them as a guardian to change this.'
-										: undefined
-								}
+								title={row.isGuardian || lockedUserIds?.has(row.id) ? m.settings_permissions_guardian_locked() : undefined}
 							>
 								<ToggleGroupItem
 									value="none"
-									aria-label="No access"
+									aria-label={m.settings_permissions_tier_none_label()}
 									className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
 								>
-									None
+									{m.settings_permissions_tier_none()}
 								</ToggleGroupItem>
 								<ToggleGroupItem
 									value="restricted"
-									aria-label="Restricted access"
+									aria-label={m.settings_permissions_tier_restricted_label()}
 									disabled={row.cannotBeRestricted}
-									title={row.cannotBeRestricted ? 'Partners and guardians cannot be set to restricted' : undefined}
+									title={row.cannotBeRestricted ? m.settings_permissions_cannot_restrict() : undefined}
 									className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
 								>
-									Restrict
+									{m.settings_permissions_tier_restrict()}
 								</ToggleGroupItem>
 								<ToggleGroupItem
 									value="view"
-									aria-label="View access"
+									aria-label={m.settings_permissions_tier_view_label()}
 									className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
 								>
-									View
+									{m.settings_permissions_tier_view()}
 								</ToggleGroupItem>
 								{!hideEditTier && (
 									<ToggleGroupItem
 										value="edit"
-										aria-label="Edit access"
+										aria-label={m.settings_permissions_tier_edit_label()}
 										className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
 									>
-										Edit
+										{m.settings_permissions_tier_edit()}
 									</ToggleGroupItem>
 								)}
 							</ToggleGroup>
@@ -226,7 +223,7 @@ export function PermissionsEditor({
 			<div className="flex items-center justify-between gap-4">
 				{showShareIndicator ? <Legend /> : <span />}
 				<Button type="submit" disabled={isSaving || !dirty}>
-					{isSaving ? 'Saving...' : 'Save Permissions'}
+					{isSaving ? m.settings_permissions_saving() : m.settings_permissions_save()}
 				</Button>
 			</div>
 		</form>
@@ -238,10 +235,10 @@ function ShareIndicator({ sharedWithMe }: { sharedWithMe: AccessTier }) {
 	// should not be able to tell whether someone has restricted them.
 	const label =
 		sharedWithMe === 'edit'
-			? "They've given you edit access to their lists"
+			? m.settings_permissions_shared_edit()
 			: sharedWithMe === 'none'
-				? "They haven't shared their lists with you"
-				: 'They share their lists with you'
+				? m.settings_permissions_shared_none()
+				: m.settings_permissions_shared_view()
 	return (
 		<TapTooltip>
 			<TapTooltipTrigger asChild>
@@ -266,7 +263,7 @@ function AccessHelp() {
 			<PopoverTrigger asChild>
 				<button
 					type="button"
-					aria-label="What do these access levels mean?"
+					aria-label={m.settings_permissions_help_label()}
 					className="inline-flex items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 				>
 					<HelpCircle className="size-4" />
@@ -275,22 +272,20 @@ function AccessHelp() {
 			<PopoverContent className="w-72 text-sm normal-case font-normal tracking-normal">
 				<div className="space-y-3">
 					<div>
-						<div className="font-semibold text-foreground">None</div>
-						<p className="text-muted-foreground">They can't see your lists or any items on them.</p>
+						<div className="font-semibold text-foreground">{m.settings_permissions_tier_none()}</div>
+						<p className="text-muted-foreground">{m.settings_permissions_help_none()}</p>
 					</div>
 					<div>
-						<div className="font-semibold text-foreground">Restricted</div>
-						<p className="text-muted-foreground">
-							They can view your lists and claim gifts for you, but they cannot see things that other people have purchased.
-						</p>
+						<div className="font-semibold text-foreground">{m.settings_permissions_tier_restricted()}</div>
+						<p className="text-muted-foreground">{m.settings_permissions_help_restricted()}</p>
 					</div>
 					<div>
-						<div className="font-semibold text-foreground">View</div>
-						<p className="text-muted-foreground">They can see your public lists and the items on them, and claim items as gifts.</p>
+						<div className="font-semibold text-foreground">{m.settings_permissions_tier_view()}</div>
+						<p className="text-muted-foreground">{m.settings_permissions_help_view()}</p>
 					</div>
 					<div>
-						<div className="font-semibold text-foreground">Edit</div>
-						<p className="text-muted-foreground">Everything View allows, plus they can create and edit lists and items on your behalf.</p>
+						<div className="font-semibold text-foreground">{m.settings_permissions_tier_edit()}</div>
+						<p className="text-muted-foreground">{m.settings_permissions_help_edit()}</p>
 					</div>
 				</div>
 			</PopoverContent>
@@ -303,15 +298,15 @@ function Legend() {
 		<div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
 			<div className="flex items-center gap-1.5">
 				<span className="inline-block size-3 rounded-full border border-muted-foreground/40" />
-				They haven't shared
+				{m.settings_permissions_legend_none()}
 			</div>
 			<div className="flex items-center gap-1.5">
 				<span className="inline-block size-3 rounded-full bg-primary" />
-				They share with you
+				{m.settings_permissions_legend_view()}
 			</div>
 			<div className="flex items-center gap-1.5">
 				<span className="inline-block size-3 rounded-full animate-edit-pulse" />
-				They let you edit
+				{m.settings_permissions_legend_edit()}
 			</div>
 		</div>
 	)

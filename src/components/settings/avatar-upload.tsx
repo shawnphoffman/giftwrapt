@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { useStorageStatus } from '@/hooks/use-storage-status'
 import { useSession } from '@/lib/auth-client'
 import type { UploadResult } from '@/lib/storage/errors'
+import { m } from '@/paraglide/messages.js'
 
 // Avatar upload + remove. Clicking the avatar opens the file picker; a
 // subtle Remove button below shows up when there's an image to remove.
@@ -59,7 +60,7 @@ export default function AvatarUpload({ image, displayName, onUpload, onRemove, o
 		e.target.value = ''
 		if (!file) return
 		if (!file.type.startsWith('image/')) {
-			toast.error('Please choose an image file')
+			toast.error(m.settings_avatar_not_an_image())
 			return
 		}
 		const url = URL.createObjectURL(file)
@@ -80,10 +81,10 @@ export default function AvatarUpload({ image, displayName, onUpload, onRemove, o
 		try {
 			const result = await uploadFile(file)
 			if (result.kind === 'error') {
-				toast.error(`Avatar upload failed: ${result.message}`)
+				toast.error(m.settings_avatar_upload_failed({ reason: result.message }))
 				return
 			}
-			toast.success('Avatar updated')
+			toast.success(m.settings_avatar_updated())
 			if (isCustomHandler) {
 				await onSuccess?.(result.value.url)
 			} else {
@@ -91,8 +92,9 @@ export default function AvatarUpload({ image, displayName, onUpload, onRemove, o
 			}
 			setCropperOpen(false)
 		} catch (error) {
-			const msg = error instanceof Error ? error.message : 'unknown error'
-			toast.error(`Avatar upload failed: ${msg}`)
+			toast.error(
+				error instanceof Error ? m.settings_avatar_upload_failed({ reason: error.message }) : m.settings_avatar_upload_failed_unknown()
+			)
 		} finally {
 			setIsUploading(false)
 		}
@@ -104,18 +106,19 @@ export default function AvatarUpload({ image, displayName, onUpload, onRemove, o
 		try {
 			const result = await (onRemove ? onRemove() : removeAvatar())
 			if (result.kind === 'error') {
-				toast.error(`Remove failed: ${result.message}`)
+				toast.error(m.settings_avatar_remove_failed({ reason: result.message }))
 				return
 			}
-			toast.success('Avatar removed')
+			toast.success(m.settings_avatar_removed())
 			if (isCustomHandler) {
 				await onSuccess?.(null)
 			} else {
 				await refetchSession()
 			}
 		} catch (error) {
-			const msg = error instanceof Error ? error.message : 'unknown error'
-			toast.error(`Remove failed: ${msg}`)
+			toast.error(
+				error instanceof Error ? m.settings_avatar_remove_failed({ reason: error.message }) : m.settings_avatar_remove_failed_unknown()
+			)
 		} finally {
 			setIsRemoving(false)
 		}
@@ -185,7 +188,7 @@ export default function AvatarUpload({ image, displayName, onUpload, onRemove, o
 					className="text-muted-foreground hover:text-destructive gap-1.5"
 				>
 					{isRemoving ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
-					Remove
+					{m.action_remove()}
 				</Button>
 			)}
 		</div>

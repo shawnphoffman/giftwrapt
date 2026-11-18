@@ -6,6 +6,10 @@ import { GradientBackground } from '@/components/ui/gradient-background'
 import { Label } from '@/components/ui/label'
 import { PasswordInput } from '@/components/ui/password-input'
 import logo from '@/images/logo.webp'
+import { m } from '@/paraglide/messages.js'
+
+// The product name is never translated.
+const PRODUCT_NAME = 'GiftWrapt'
 
 export type ResetPasswordPageContentProps = {
 	onSubmit: (newPassword: string) => Promise<void>
@@ -17,7 +21,6 @@ export type ResetPasswordPageContentProps = {
 }
 
 const MIN_PASSWORD_LENGTH = 8
-const GENERIC_SUBMIT_ERROR = "We couldn't reset your password. The link may have expired. Request a new one and try again."
 
 export function ResetPasswordPageContent({
 	onSubmit,
@@ -39,11 +42,11 @@ export function ResetPasswordPageContent({
 		e.preventDefault()
 		if (!tokenPresent) return
 		if (password.length < MIN_PASSWORD_LENGTH) {
-			setError(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`)
+			setError(m.auth_reset_password_too_short({ min: MIN_PASSWORD_LENGTH }))
 			return
 		}
 		if (password !== confirm) {
-			setError("Passwords don't match.")
+			setError(m.auth_reset_password_mismatch())
 			return
 		}
 		setIsLoading(true)
@@ -52,7 +55,7 @@ export function ResetPasswordPageContent({
 			await onSubmit(password)
 			setSubmitted(true)
 		} catch {
-			setError(GENERIC_SUBMIT_ERROR)
+			setError(m.auth_reset_error())
 		} finally {
 			setIsLoading(false)
 		}
@@ -63,32 +66,30 @@ export function ResetPasswordPageContent({
 			<div className="absolute inset-0 -z-10 overflow-hidden">
 				<GradientBackground />
 			</div>
-			<Image src={logo} alt="GiftWrapt" width={160} height={160} className="w-24 sm:w-40" />
+			<Image src={logo} alt={PRODUCT_NAME} width={160} height={160} className="w-24 sm:w-40" />
 
 			<div className="w-full max-w-md space-y-4 rounded-lg border bg-background/80 p-6 shadow-lg backdrop-blur">
 				<div className="text-center">
-					<h1 className="text-3xl font-bold">Set a New Password</h1>
-					<p className="mt-2 text-muted-foreground">
-						{submitted ? 'Your password has been updated. You can sign in with it now.' : 'Choose a new password for your account.'}
-					</p>
+					<h1 className="text-3xl font-bold">{m.auth_reset_title()}</h1>
+					<p className="mt-2 text-muted-foreground">{submitted ? m.auth_reset_done_subtitle() : m.auth_reset_subtitle()}</p>
 				</div>
 
 				{!tokenPresent && (
 					<div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
-						This reset link is missing its token. Request a new one from the sign-in page.
+						{m.auth_reset_missing_token()}
 					</div>
 				)}
 
 				{submitted ? (
 					<Button asChild className="w-full">
-						<a href={signInHref}>Continue to Sign In</a>
+						<a href={signInHref}>{m.auth_reset_continue_link()}</a>
 					</Button>
 				) : (
 					<form onSubmit={handleSubmit} className="space-y-2">
 						{error && <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">{error}</div>}
 
 						<div className="space-y-2">
-							<Label htmlFor="new-password">New Password</Label>
+							<Label htmlFor="new-password">{m.auth_reset_new_password_label()}</Label>
 							<PasswordInput
 								id="new-password"
 								placeholder="••••••••"
@@ -102,7 +103,7 @@ export function ResetPasswordPageContent({
 						</div>
 
 						<div className="space-y-2">
-							<Label htmlFor="confirm-password">Confirm New Password</Label>
+							<Label htmlFor="confirm-password">{m.auth_reset_confirm_password_label()}</Label>
 							<PasswordInput
 								id="confirm-password"
 								placeholder="••••••••"
@@ -116,7 +117,7 @@ export function ResetPasswordPageContent({
 						</div>
 
 						<Button type="submit" className="w-full" disabled={showLoading || !tokenPresent}>
-							{showLoading ? 'Saving…' : 'Set New Password'}
+							{showLoading ? m.state_saving() : m.auth_reset_submit()}
 						</Button>
 					</form>
 				)}

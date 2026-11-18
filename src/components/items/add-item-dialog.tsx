@@ -27,6 +27,7 @@ import { applyScrapePrefill } from '@/lib/scrapers/apply-prefill'
 import { resizeImageForUpload } from '@/lib/storage/client-resize'
 import { normalizeHttpUrl } from '@/lib/urls'
 import { useScrapeUrl } from '@/lib/use-scrape-url'
+import { m } from '@/paraglide/messages.js'
 
 import { ImagePicker } from './image-picker'
 import { ScrapeProgressAlert } from './scrape-progress-alert'
@@ -38,6 +39,9 @@ type Props = {
 }
 
 type ListOption = Pick<MyListRow, 'id' | 'name' | 'type' | 'isPrivate' | 'isPrimary'>
+
+// Shows the expected shape of a link; not translated.
+const URL_PLACEHOLDER = 'https://...'
 
 function ListSelectItem({ list, owner }: { list: ListOption; owner?: { name: string | null; email: string } }) {
 	return (
@@ -248,7 +252,7 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 
 		const qty = Number(quantity)
 		if (!Number.isFinite(qty) || qty < 1) {
-			setError('Quantity must be at least 1')
+			setError(m.items_add_error_quantity_min())
 			return
 		}
 
@@ -270,11 +274,11 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 
 			if (result.kind === 'error') {
 				if (result.reason === 'not-authorized') {
-					setError('No permission to add to that list.')
+					setError(m.items_add_error_not_authorized())
 				} else if (result.reason === 'todo-list-rejects-items') {
-					setError("This is a to-do list, so it doesn't accept gift items. Add a to-do from the list page instead.")
+					setError(m.items_error_todo_list())
 				} else {
-					setError('List not found.')
+					setError(m.items_error_list_not_found())
 				}
 				return
 			}
@@ -291,21 +295,21 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 					formData.append('itemId', String(result.item.id))
 					const uploadResult = await uploadItemImage({ data: formData })
 					if (uploadResult.kind === 'error') {
-						toast.error(`Image upload failed: ${uploadResult.message}`)
+						toast.error(m.items_image_upload_failed({ message: uploadResult.message }))
 					}
 				} catch (uploadErr) {
-					const msg = uploadErr instanceof Error ? uploadErr.message : 'unknown error'
-					toast.error(`Image upload failed: ${msg}`)
+					const msg = uploadErr instanceof Error ? uploadErr.message : m.items_unknown_error()
+					toast.error(m.items_image_upload_failed({ message: msg }))
 				}
 			}
 
-			toast.success('Item added')
+			toast.success(m.items_toast_added())
 			onOpenChange(false)
 			queryClient.invalidateQueries({ queryKey: ['recent', 'items'] })
 			await queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })
 			router.navigate({ to: '/lists/$listId/edit', params: { listId: selectedListId } })
 		} catch (err) {
-			setError(err instanceof Error ? err.message : 'Failed to save item')
+			setError(err instanceof Error ? err.message : m.items_error_save_failed())
 		} finally {
 			setSaving(false)
 		}
@@ -332,9 +336,9 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 						<span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-blue-500 dark:bg-blue-600 ring-1 ring-blue-400/40 dark:ring-blue-600/40 shadow-sm">
 							<SquarePlus className="size-5.25 shrink-0 text-white drop-shadow-[0_0_4px_rgba(255,255,255,0.4)]" />
 						</span>
-						Add an Item
+						{m.items_add_dialog_title()}
 					</DialogTitle>
-					<DialogDescription>Pick a list and fill in the details. You'll be taken to the list after saving.</DialogDescription>
+					<DialogDescription>{m.items_add_dialog_description()}</DialogDescription>
 				</DialogHeader>
 
 				<form
@@ -346,15 +350,15 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 					className="space-y-4"
 				>
 					<div className="grid gap-2">
-						<Label htmlFor="add-item-list">List</Label>
+						<Label htmlFor="add-item-list">{m.items_field_list()}</Label>
 						<Select value={selectedListId} onValueChange={setSelectedListId} disabled={formLocked}>
 							<SelectTrigger id="add-item-list" className="w-full">
-								<SelectValue placeholder="Select a list" />
+								<SelectValue placeholder={m.items_list_select_placeholder()} />
 							</SelectTrigger>
 							<SelectContent>
 								{publicLists.length > 0 && (
 									<SelectGroup>
-										<SelectLabel>My Public Lists</SelectLabel>
+										<SelectLabel>{m.items_list_group_my_public()}</SelectLabel>
 										{publicLists.map(l => (
 											<ListSelectItem key={l.id} list={l} />
 										))}
@@ -362,7 +366,7 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 								)}
 								{privateLists.length > 0 && (
 									<SelectGroup>
-										<SelectLabel>My Private Lists</SelectLabel>
+										<SelectLabel>{m.items_list_group_my_private()}</SelectLabel>
 										{privateLists.map(l => (
 											<ListSelectItem key={l.id} list={l} />
 										))}
@@ -370,7 +374,7 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 								)}
 								{giftIdeasLists.length > 0 && (
 									<SelectGroup>
-										<SelectLabel>Gift Ideas</SelectLabel>
+										<SelectLabel>{m.items_list_group_gift_ideas()}</SelectLabel>
 										{giftIdeasLists.map(l => (
 											<ListSelectItem key={l.id} list={l} />
 										))}
@@ -389,7 +393,7 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 								)}
 								{editableLists.length > 0 && (
 									<SelectGroup>
-										<SelectLabel>Lists I Can Edit</SelectLabel>
+										<SelectLabel>{m.items_list_group_editable()}</SelectLabel>
 										{editableLists.map(l => (
 											<ListSelectItem key={l.id} list={l} owner={{ name: l.ownerName, email: l.ownerEmail }} />
 										))}
@@ -400,7 +404,7 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 					</div>
 
 					<div className="grid gap-2">
-						<Label htmlFor="add-item-url">URL</Label>
+						<Label htmlFor="add-item-url">{m.items_field_url()}</Label>
 						<InputGroup>
 							<InputGroupInput
 								id="add-item-url"
@@ -408,7 +412,7 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 								value={url}
 								onChange={e => setUrl(e.target.value)}
 								onBlur={handleUrlBlur}
-								placeholder="https://..."
+								placeholder={URL_PLACEHOLDER}
 								disabled={saving}
 								autoFocus
 							/>
@@ -416,8 +420,8 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 								<InputGroupButton
 									type="button"
 									size="icon-xs"
-									aria-label={scrapeInFlight ? 'Importing from URL…' : 'Import details from URL'}
-									title={scrapeInFlight ? 'Importing from URL…' : 'Import details from URL'}
+									aria-label={scrapeInFlight ? m.items_scrape_button_busy() : m.items_scrape_button()}
+									title={scrapeInFlight ? m.items_scrape_button_busy() : m.items_scrape_button()}
 									disabled={!urlScrapable || scrapeInFlight || saving}
 									onClick={handleScrapeButton}
 								>
@@ -440,31 +444,31 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 
 					<div className="grid gap-2">
 						<Label htmlFor="add-item-title">
-							Title <span className="text-destructive">*</span>
+							{m.items_field_title()} <span className="text-destructive">*</span>
 						</Label>
 						<Input
 							id="add-item-title"
 							value={title}
 							onChange={e => setTitle(e.target.value)}
-							placeholder="Something cool..."
+							placeholder={m.items_add_title_placeholder()}
 							disabled={formLocked}
 						/>
 					</div>
 
 					<div className="grid gap-2">
-						<Label htmlFor="add-item-notes">Notes</Label>
+						<Label htmlFor="add-item-notes">{m.items_field_notes()}</Label>
 						<MarkdownTextarea
 							id="add-item-notes"
 							value={notes}
 							onChange={v => setNotes(v)}
 							rows={2}
-							placeholder="Color, size, model..."
+							placeholder={m.items_add_notes_placeholder()}
 							disabled={formLocked}
 						/>
 					</div>
 
 					<div className="@container/priority grid gap-2">
-						<Label id="add-item-priority-label">Priority</Label>
+						<Label id="add-item-priority-label">{m.items_field_priority()}</Label>
 						{/* One row of four, or two by two once the field is too narrow for "Normal" (a phone with the text size turned up). */}
 						<ToggleGroup
 							type="single"
@@ -493,18 +497,19 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 
 					<div className="grid gap-4 sm:grid-cols-2">
 						<div className="grid gap-2">
-							<Label htmlFor="add-item-price">Price Range</Label>
+							<Label htmlFor="add-item-price">{m.items_field_price_range()}</Label>
 							<Input
 								id="add-item-price"
 								value={price}
 								onChange={e => setPrice(e.target.value)}
+								// eslint-disable-next-line i18next/no-literal-string -- price placeholder, localized with prices
 								placeholder="$ 0.00"
 								inputMode="decimal"
 								disabled={formLocked}
 							/>
 						</div>
 						<div className="grid gap-2">
-							<Label htmlFor="add-item-quantity">Quantity</Label>
+							<Label htmlFor="add-item-quantity">{m.items_field_quantity()}</Label>
 							<Input
 								id="add-item-quantity"
 								type="number"
@@ -529,7 +534,7 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 								className="gap-1.5"
 							>
 								<Upload className="size-4" />
-								{stagedFile ? 'Replace Image' : 'Upload Image'}
+								{stagedFile ? m.items_image_replace_button() : m.items_image_upload_button()}
 							</Button>
 							{stagedFile && (
 								<>
@@ -537,7 +542,7 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 									<span className="truncate text-xs text-muted-foreground">{stagedFile.name}</span>
 									<Button type="button" variant="outline" size="sm" onClick={clearStagedFile} disabled={formLocked} className="gap-1.5">
 										<Trash2 className="size-4" />
-										Remove
+										{m.action_remove()}
 									</Button>
 								</>
 							)}
@@ -546,17 +551,17 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 
 					{error && (
 						<Alert variant="destructive">
-							<AlertTitle>Error</AlertTitle>
+							<AlertTitle>{m.items_error_title()}</AlertTitle>
 							<AlertDescription>{error}</AlertDescription>
 						</Alert>
 					)}
 
 					<DialogFooter>
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-							Cancel
+							{m.action_cancel()}
 						</Button>
 						<Button type="submit" disabled={formLocked || !title.trim() || !selectedListId}>
-							{saving ? 'Saving...' : 'Add Item'}
+							{saving ? m.items_saving_dots() : m.items_add_submit()}
 						</Button>
 					</DialogFooter>
 				</form>

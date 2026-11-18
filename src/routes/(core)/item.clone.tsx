@@ -9,5 +9,5 @@ export const Route = createFileRoute('/(core)/item/clone')({
 })
 
 function RouteComponent() {
-	return <div>Hello "/(core)/item/clone"!</div>
+	return <div>{m.item_clone_placeholder()}</div>
 }

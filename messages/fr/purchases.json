@@ -1,3 +1,141 @@
 {
-	"$schema": "https://inlang.com/schema/inlang-message-format"
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"purchases_intro": "Tous vos achats et cadeaux hors liste au fil du temps. Si vous avez un partenaire, ses achats apparaissent aussi ici (à l’exception des cadeaux qui vous sont destinés). Modifiez une ligne pour y noter le prix et des notes, que vous seul pouvez voir.",
+	"purchases_collapse_all": "Tout réduire",
+	"purchases_expand_all": "Tout développer",
+	"purchases_empty_timeframe": "Aucun achat sur cette période.",
+	"purchases_column_person": "Personne",
+	"purchases_label_gifts": "Cadeaux",
+	"purchases_label_addons": "Hors liste",
+	"purchases_label_total": "Total",
+	"purchases_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} achat",
+				"countPlural=*": "{count} achats"
+			}
+		}
+	],
+	"purchases_metrics_totals": "Totaux",
+	"purchases_metrics_averages": "Moyennes",
+	"purchases_metrics_highlights": "Points forts",
+	"purchases_metric_total_spend": "Dépenses totales",
+	"purchases_metric_total_items": "Total des articles",
+	"purchases_metric_per_item": "Par article",
+	"purchases_metric_per_item_excl_zero": "Par article (hors {amount})",
+	"purchases_metric_items_per_person": "Articles/personne",
+	"purchases_metric_items_per_person_excl_zero": "Articles/personne (hors {amount})",
+	"purchases_metric_recipients": "Destinataires",
+	"purchases_metric_max_recipient": "Destinataire max.",
+	"purchases_metric_max_single_item": "Article le plus cher",
+	"purchases_metric_min_recipient": "Destinataire min.",
+	"purchases_chart_by_recipient_title": "Dépenses par destinataire",
+	"purchases_chart_by_recipient_description": "Par destinataire, réparties entre cadeaux et hors liste.",
+	"purchases_chart_over_time_title": "Dépenses au fil du temps",
+	"purchases_chart_over_time_description": "Par mois, réparties entre cadeaux et hors liste.",
+	"purchases_chart_no_data": "Aucune donnée.",
+	"purchases_co_gifter_badge": "Co-donateur",
+	"purchases_co_gifter_tooltip": "Votre part, à parts égales, de cet achat offert à plusieurs.",
+	"purchases_claimed_by_partner": "Réservé par votre partenaire ({name})",
+	"purchases_quantity_badge": "x{quantity}",
+	"purchases_addon_badge": "Hors liste",
+	"purchases_edit_split_label": "Modifier la répartition",
+	"purchases_edit_details_label": "Modifier les détails de l’achat",
+	"purchases_attachment_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} pièce jointe",
+				"countPlural=*": "{count} pièces jointes"
+			}
+		}
+	],
+	"purchases_attachment_receipt_alt": "reçu",
+	"purchases_edit_cost_invalid": "Doit être un nombre, par exemple 12.50",
+	"purchases_edit_too_long": "Trop long",
+	"purchases_edit_error_claim_not_yours": "Vous ne pouvez pas modifier la réservation de quelqu’un d’autre.",
+	"purchases_edit_error_claim_gone": "Cette réservation n’existe plus.",
+	"purchases_edit_error_over_claim": "La quantité dépasse ce qui est disponible.",
+	"purchases_edit_error_addon_not_yours": "Vous ne pouvez pas modifier le cadeau de quelqu’un d’autre.",
+	"purchases_edit_error_addon_gone": "Ce cadeau n’existe plus.",
+	"purchases_edit_saved": "Achat mis à jour",
+	"purchases_edit_save_failed": "Échec de l’enregistrement",
+	"purchases_edit_attachments_max": "{max} pièces jointes maximum par achat",
+	"purchases_edit_title": "Modifier les détails de l’achat",
+	"purchases_edit_description": "Mettez à jour le coût, le suivi et les notes de cet achat.",
+	"purchases_edit_cost_label": "Coût total",
+	"purchases_edit_tracking_label": "Numéro de suivi",
+	"purchases_edit_tracking_placeholder": "UPS / USPS / FedEx / DHL",
+	"purchases_edit_tracking_looks_like": "On dirait",
+	"purchases_edit_notes_label": "Notes",
+	"purchases_edit_notes_placeholder": "Ajoutez des notes sur cet achat...",
+	"purchases_edit_error_title": "Mise à jour impossible",
+	"purchases_edit_attachments_label": "Pièces jointes",
+	"purchases_edit_attachments_help": "Gardez sous la main les reçus, tickets cadeaux ou confirmations de commande pour les retours et les remboursements. Formats acceptés : images (JPG, PNG, HEIC, WebP) et PDF.",
+	"purchases_edit_attachments_max_reached": "Maximum atteint",
+	"purchases_edit_attachments_add": "Ajouter une pièce jointe",
+	"purchases_edit_uploads_disabled": "L’envoi de fichiers est désactivé sur ce serveur.",
+	"purchases_edit_attachment_alt": "pièce jointe",
+	"purchases_edit_attachment_remove": "Supprimer la pièce jointe",
+	"purchases_split_saved": "Répartition mise à jour",
+	"purchases_split_error_exceeds_total": "Les parts des co-donateurs dépassent le total.",
+	"purchases_split_error_no_cost": "Ajoutez un coût total à ce cadeau avant de le répartir.",
+	"purchases_split_error_not_allowed": "Vous ne pouvez pas modifier cette répartition.",
+	"purchases_split_save_failed": "Échec de la mise à jour de la répartition.",
+	"purchases_split_title": "Répartir « {itemTitle} »",
+	"purchases_split_description": "Indiquez ce que chaque co-donateur a versé. Votre part correspond au reste. Seuls vous et votre partenaire voyez ces montants.",
+	"purchases_split_your_share": "Votre part",
+	"purchases_split_over_allocated": "Les parts des co-donateurs dépassent le total. Réduisez-les pour que votre part ne soit pas négative.",
+	"purchases_split_reset": "Revenir à parts égales",
+	"received_intro": "Les cadeaux qui ont été archivés sur vos listes. Une fois un article archivé, vous pouvez voir qui vous l’a offert. Les donateurs en couple apparaissent ensemble, comme un seul foyer.",
+	"received_empty": "Aucun cadeau reçu pour le moment. Les articles apparaîtront ici une fois archivés.",
+	"received_recipient_label": "Destinataire :",
+	"received_recipient_you": "Vous",
+	"received_empty_timeframe": "Aucun cadeau reçu sur cette période.",
+	"received_column_gifter": "Donateur",
+	"received_label_gifts": "Cadeaux",
+	"received_label_off_list": "Hors liste",
+	"received_label_total": "Total",
+	"received_gift_count": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} cadeau",
+				"countPlural=*": "{count} cadeaux"
+			}
+		}
+	],
+	"received_draft_thank_you_button": "Rédiger un remerciement",
+	"received_open_product_link": "Ouvrir le lien d’origine du produit",
+	"received_off_list_badge": "Hors liste",
+	"received_thank_you_subject_short": "Merci !",
+	"received_thank_you_subject_named": "Merci, {giverLabel} !",
+	"received_thank_you_subject_gifts": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "Merci pour le cadeau",
+				"countPlural=*": "Merci pour les cadeaux"
+			}
+		}
+	],
+	"received_thank_you_title": "Mot de remerciement pour {giverLabel}",
+	"received_thank_you_description": "Un brouillon pour vous lancer. Modifiez-le pour qu’il vous ressemble, puis copiez-le dans une carte ou ouvrez-le dans votre application de messagerie. Rien n’est envoyé depuis cette page.",
+	"received_thank_you_loading": "Rédaction d’un brouillon…",
+	"received_thank_you_note_label": "Mot",
+	"received_thank_you_subject_label": "Objet de l’e-mail",
+	"received_thank_you_new_draft": "Nouveau brouillon",
+	"received_thank_you_copy_note": "Copier le mot",
+	"received_thank_you_draft_email": "Préparer un e-mail",
+	"received_thank_you_error_disabled": "Les brouillons de remerciement sont désactivés.",
+	"received_thank_you_error_not_configured": "Les brouillons de remerciement ne sont pas encore configurés sur ce site.",
+	"received_thank_you_error_not_found": "Ces cadeaux ne figurent plus sur votre page Reçus. Actualisez la page et réessayez.",
+	"received_thank_you_error_budget": "Les fonctionnalités d’IA sont suspendues pour ce mois-ci.",
+	"received_thank_you_error_rate_limited": "Cela fait beaucoup de brouillons. Réessayez dans un petit moment.",
+	"received_thank_you_error_failed": "Impossible de rédiger un brouillon pour le moment. Réessayez."
 }

@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { parseAppleNotes } from '@/lib/import/parsers/apple-notes'
 import { itemsKeys } from '@/lib/queries/items'
+import { m } from '@/paraglide/messages.js'
 
 import { ImportPreviewTable } from './import-preview-table'
 
@@ -89,11 +90,11 @@ export function ImportDialogAppleNotes({ listId, open, onOpenChange }: Props) {
 				setError(reasonToMessage(result.reason))
 				return
 			}
-			toast.success(`Imported ${result.items.length} item${result.items.length === 1 ? '' : 's'}`)
+			toast.success(m.items_import_toast_imported({ count: result.items.length }))
 			await queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })
 			onOpenChange(false)
 		} catch (err) {
-			setError(err instanceof Error ? err.message : 'Failed to import')
+			setError(err instanceof Error ? err.message : m.items_import_error_failed())
 		} finally {
 			setSubmitting(false)
 		}
@@ -104,17 +105,15 @@ export function ImportDialogAppleNotes({ listId, open, onOpenChange }: Props) {
 			<DialogContent className="sm:max-w-2xl">
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-2">
-						<Apple className="size-5" /> Import From Apple Notes
+						<Apple className="size-5" /> {m.items_import_apple_title()}
 					</DialogTitle>
-					<DialogDescription>
-						Paste a checklist or bulleted list from Apple Notes. Bullet glyphs are stripped automatically; URLs become item links.
-					</DialogDescription>
+					<DialogDescription>{m.items_import_apple_description()}</DialogDescription>
 				</DialogHeader>
 
 				{step === 'input' ? (
 					<div className="flex flex-col gap-3">
 						<div className="grid gap-2">
-							<Label htmlFor="import-apple-textarea">Paste From Apple Notes</Label>
+							<Label htmlFor="import-apple-textarea">{m.items_import_apple_label()}</Label>
 							<Textarea
 								ref={textareaRef}
 								id="import-apple-textarea"
@@ -127,26 +126,27 @@ export function ImportDialogAppleNotes({ listId, open, onOpenChange }: Props) {
 									if (htmlValue !== null) setHtmlValue(null)
 								}}
 								onPaste={handlePaste}
-								placeholder={'• Bluetooth headphones\n• Coffee grinder https://example.com/grinder\n• ...'}
+								placeholder={m.items_import_apple_placeholder()}
 								autoFocus
 							/>
 							<div className="text-xs text-muted-foreground">
-								{previewCount} item{previewCount === 1 ? '' : 's'} detected.
-								{htmlValue ? ' (rich-text paste detected)' : ''}
+								{htmlValue
+									? m.items_import_apple_detected_rich({ count: previewCount })
+									: m.items_import_apple_detected({ count: previewCount })}
 							</div>
 						</div>
 						{error && (
 							<Alert variant="destructive">
-								<AlertTitle>Error</AlertTitle>
+								<AlertTitle>{m.items_error_title()}</AlertTitle>
 								<AlertDescription>{error}</AlertDescription>
 							</Alert>
 						)}
 						<DialogFooter>
 							<Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-								Cancel
+								{m.action_cancel()}
 							</Button>
 							<Button type="button" onClick={goToPreview} disabled={previewCount === 0}>
-								Preview {previewCount} Item{previewCount === 1 ? '' : 's'}
+								{m.items_import_preview_button({ count: previewCount })}
 							</Button>
 						</DialogFooter>
 					</div>
@@ -154,7 +154,7 @@ export function ImportDialogAppleNotes({ listId, open, onOpenChange }: Props) {
 					<div className="flex flex-col gap-3">
 						{error && (
 							<Alert variant="destructive">
-								<AlertTitle>Error</AlertTitle>
+								<AlertTitle>{m.items_error_title()}</AlertTitle>
 								<AlertDescription>{error}</AlertDescription>
 							</Alert>
 						)}
@@ -166,7 +166,6 @@ export function ImportDialogAppleNotes({ listId, open, onOpenChange }: Props) {
 							submitting={submitting}
 							onSubmit={submit}
 							onCancel={() => setStep('input')}
-							importLabel="Import"
 						/>
 					</div>
 				)}
@@ -176,8 +175,8 @@ export function ImportDialogAppleNotes({ listId, open, onOpenChange }: Props) {
 }
 
 function reasonToMessage(reason: 'list-not-found' | 'not-authorized' | 'feature-disabled' | 'todo-list-rejects-items'): string {
-	if (reason === 'list-not-found') return 'List not found.'
-	if (reason === 'not-authorized') return 'You do not have permission to add to this list.'
-	if (reason === 'todo-list-rejects-items') return 'Todo lists do not take gift items.'
-	return 'Importing is currently disabled. Ask your admin to turn it on.'
+	if (reason === 'list-not-found') return m.items_error_list_not_found()
+	if (reason === 'not-authorized') return m.items_import_error_not_authorized()
+	if (reason === 'todo-list-rejects-items') return m.items_import_error_todo_list()
+	return m.items_import_error_disabled()
 }

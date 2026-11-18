@@ -2,6 +2,7 @@ import UserAvatar from '@/components/common/user-avatar'
 import { ListRow } from '@/components/lists/list-row'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { UserWithLists } from '@/db-collections/lists'
+import { m } from '@/paraglide/messages.js'
 
 import BirthdayBadge from '../common/birthday-badge'
 
@@ -19,7 +20,9 @@ export default function ListsForUser({ user }: { user: UserWithLists }) {
 			</CardHeader>
 			<CardContent className="px-4">
 				{user.lists.length === 0 ? (
-					<div className="text-sm text-muted-foreground bg-background/25 border border-dashed rounded px-2 py-1 italic">No lists</div>
+					<div className="text-sm text-muted-foreground bg-background/25 border border-dashed rounded px-2 py-1 italic">
+						{m.lists_person_no_lists()}
+					</div>
 				) : (
 					<div className="flex flex-col gap-0 xs:divide-y-0">
 						{user.lists.map(list => (

@@ -2,6 +2,7 @@ import { AlertTriangle } from 'lucide-react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useStorageStatus } from '@/hooks/use-storage-status'
+import { m } from '@/paraglide/messages.js'
 
 // Shown on the admin page when the server is missing any of the five required
 // STORAGE_* env vars. Image uploads are gracefully disabled in that mode
@@ -14,11 +15,8 @@ export function StorageDisabledBanner() {
 	return (
 		<Alert variant="destructive" className="max-w-xl">
 			<AlertTriangle />
-			<AlertTitle>Image uploads are disabled</AlertTitle>
-			<AlertDescription>
-				Object storage is not configured on this server, so avatar and item image uploads are unavailable. Existing image URLs (pasted from
-				external sites) still work.
-			</AlertDescription>
+			<AlertTitle>{m.shared_storage_disabled_title()}</AlertTitle>
+			<AlertDescription>{m.shared_storage_disabled_description()}</AlertDescription>
 		</Alert>
 	)
 }

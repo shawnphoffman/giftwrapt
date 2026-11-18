@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { applyListEventLocally } from '@/lib/list-events'
 import { LIMITS } from '@/lib/validation/limits'
+import { m } from '@/paraglide/messages.js'
 
 import { QuantityRemainingBadge } from './quantity-remaining-badge'
 
@@ -68,14 +69,18 @@ function getErrorMessage(errors: Array<unknown>): string {
 // (which enforces the invariant under a row lock).
 function buildSchema(remaining: number) {
 	return z.object({
-		quantity: z.coerce.number().int().positive('Must be at least 1').max(remaining, `Only ${remaining} left to claim`),
-		notes: z.string().max(LIMITS.MEDIUM_TEXT, 'Too long').optional(),
+		quantity: z.coerce
+			.number()
+			.int()
+			.positive(m.items_claim_error_quantity_min())
+			.max(remaining, m.items_claim_error_only_left({ remaining })),
+		notes: z.string().max(LIMITS.MEDIUM_TEXT, m.items_claim_error_notes_too_long()).optional(),
 		totalCost: z
 			.string()
 			.trim()
 			.optional()
 			.refine(v => !v || /^\d+(\.\d{1,2})?$/.test(v), {
-				message: 'Must be a number like 12.50',
+				message: m.items_claim_error_cost_format(),
 			}),
 	})
 }
@@ -117,15 +122,15 @@ export function ClaimGiftDialog(props: Props) {
 		if (result.kind === 'error') {
 			switch (result.reason) {
 				case 'not-yours':
-					toast.error("You can't unclaim someone else's claim.")
+					toast.error(m.items_claim_unclaim_error_not_yours())
 					break
 				case 'not-found':
-					toast.error('This claim no longer exists.')
+					toast.error(m.items_claim_error_not_found())
 					break
 			}
 			throw new Error(result.reason)
 		}
-		toast.success('Claim removed')
+		toast.success(m.items_claim_toast_removed())
 		// Refresh the claimant's own surfaces immediately. SSE only reaches
 		// observers sharing the server process (not Vercel), so the actor's
 		// view must invalidate locally - otherwise it's stale until reload.
@@ -175,19 +180,19 @@ export function ClaimGiftDialog(props: Props) {
 					if (result.kind === 'error') {
 						switch (result.reason) {
 							case 'over-claim':
-								setError(`Only ${result.remaining} left. Someone else may have just claimed.`)
+								setError(m.items_claim_error_over_claim({ remaining: result.remaining }))
 								break
 							case 'not-yours':
-								setError("You can't edit someone else's claim.")
+								setError(m.items_claim_edit_error_not_yours())
 								break
 							case 'not-found':
-								setError('This claim no longer exists.')
+								setError(m.items_claim_error_not_found())
 								break
 						}
 						return
 					}
 
-					toast.success('Claim updated')
+					toast.success(m.items_claim_toast_updated())
 				} else {
 					const result = await claimItemGift({
 						data: {
@@ -204,39 +209,39 @@ export function ClaimGiftDialog(props: Props) {
 						// rather than the stale one we rendered the dialog with.
 						switch (result.reason) {
 							case 'over-claim':
-								setError(`Only ${result.remaining} left. Someone else may have just claimed.`)
+								setError(m.items_claim_error_over_claim({ remaining: result.remaining }))
 								break
 							case 'not-visible':
-								setError('You no longer have access to this list.')
+								setError(m.items_claim_error_not_visible())
 								break
 							case 'cannot-claim-own-list':
-								setError("You can't claim from your own list.")
+								setError(m.items_claim_error_own_list())
 								break
 							case 'item-not-found':
-								setError('This item is no longer available.')
+								setError(m.items_claim_error_item_gone())
 								break
 							case 'group-already-claimed':
 								setError(
 									result.blockingItemTitle
-										? `This is part of a "pick one" group and "${result.blockingItemTitle}" was already claimed.`
-										: 'This is part of a "pick one" group that has already been claimed.'
+										? m.items_claim_error_group_claimed_named({ title: result.blockingItemTitle })
+										: m.items_claim_error_group_claimed()
 								)
 								break
 							case 'group-out-of-order':
 								setError(
 									result.blockingItemTitle
-										? `Claim "${result.blockingItemTitle}" first. This group has a required order.`
-										: 'This group has a required order. Claim the earlier items first.'
+										? m.items_claim_error_group_order_named({ title: result.blockingItemTitle })
+										: m.items_claim_error_group_order()
 								)
 								break
 							case 'unavailable':
-								setError('This item is marked as unavailable and cannot be claimed.')
+								setError(m.items_claim_error_unavailable())
 								break
 						}
 						return
 					}
 
-					toast.success('Claim saved')
+					toast.success(m.items_claim_toast_saved())
 					props.onClaimed?.()
 				}
 
@@ -245,7 +250,7 @@ export function ClaimGiftDialog(props: Props) {
 				onOpenChange(false)
 				form.reset()
 			} catch (err) {
-				setError(err instanceof Error ? err.message : 'Failed to save claim')
+				setError(err instanceof Error ? err.message : m.items_claim_error_save_failed())
 			} finally {
 				setSubmitting(false)
 			}
@@ -259,13 +264,9 @@ export function ClaimGiftDialog(props: Props) {
 					<div className="flex items-start gap-3">
 						<div className="flex-1 min-w-0 flex flex-col gap-2">
 							<DialogTitle className="text-base line-clamp-3 leading-snug">
-								{isEdit ? 'Edit Your Claim on' : 'Claim'} “{itemTitle}”
+								{isEdit ? m.items_claim_edit_dialog_title({ title: itemTitle }) : m.items_claim_dialog_title({ title: itemTitle })}
 							</DialogTitle>
-							<DialogDescription>
-								{isEdit
-									? 'Update the quantity, cost, or notes on your claim. The list owner still won\u2019t see any of this.'
-									: "Mark this as something you're gifting. The list owner won't see the claim, just other viewers."}
-							</DialogDescription>
+							<DialogDescription>{isEdit ? m.items_claim_edit_dialog_description() : m.items_claim_dialog_description()}</DialogDescription>
 						</div>
 						{itemImageUrl && (
 							<RemoteImage
@@ -296,7 +297,7 @@ export function ClaimGiftDialog(props: Props) {
 								<div className="grid gap-2">
 									<div className="flex items-center gap-3">
 										<Label htmlFor={field.name} className="shrink-0">
-											Quantity
+											{m.items_field_quantity()}
 										</Label>
 										<Input
 											id={field.name}
@@ -329,7 +330,7 @@ export function ClaimGiftDialog(props: Props) {
 					<form.Field name="totalCost">
 						{field => (
 							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Total Cost (Optional)</Label>
+								<Label htmlFor={field.name}>{m.items_claim_cost_label()}</Label>
 								<div className="relative">
 									<DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
 									<Input
@@ -356,10 +357,10 @@ export function ClaimGiftDialog(props: Props) {
 					<form.Field name="notes">
 						{field => (
 							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Notes (Optional)</Label>
+								<Label htmlFor={field.name}>{m.items_claim_notes_label()}</Label>
 								<Textarea
 									id={field.name}
-									placeholder="e.g. already ordered, arriving Friday"
+									placeholder={m.items_claim_notes_placeholder()}
 									rows={3}
 									value={field.state.value}
 									onChange={e => field.handleChange(e.target.value)}
@@ -391,7 +392,7 @@ export function ClaimGiftDialog(props: Props) {
 
 					{error && (
 						<Alert variant="destructive">
-							<AlertTitle>{isEdit ? "Couldn't update claim" : "Couldn't save claim"}</AlertTitle>
+							<AlertTitle>{isEdit ? m.items_claim_edit_error_title() : m.items_claim_error_title()}</AlertTitle>
 							<AlertDescription>{error}</AlertDescription>
 						</Alert>
 					)}
@@ -399,14 +400,14 @@ export function ClaimGiftDialog(props: Props) {
 					<DialogFooter>
 						{isEdit && (
 							<Button type="button" variant="destructive" onClick={() => setUnclaimConfirmOpen(true)} disabled={submitting}>
-								Unclaim
+								{m.items_claim_unclaim_button()}
 							</Button>
 						)}
 						<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>
-							Cancel
+							{m.action_cancel()}
 						</Button>
 						<Button type="submit" disabled={submitting || effectiveMax === 0}>
-							{submitting ? 'Saving…' : isEdit ? 'Save' : 'Claim'}
+							{submitting ? m.state_saving() : isEdit ? m.action_save() : m.items_claim_button()}
 						</Button>
 					</DialogFooter>
 				</form>
@@ -416,10 +417,10 @@ export function ClaimGiftDialog(props: Props) {
 				<ConfirmDialog
 					open={unclaimConfirmOpen}
 					onOpenChange={setUnclaimConfirmOpen}
-					title={<>Remove your claim on “{itemTitle}”?</>}
-					description="Your claim will be deleted and the slot will open back up. You can always claim again later if you change your mind."
-					confirmLabel="Yes, Unclaim"
-					confirmBusyLabel="Removing…"
+					title={m.items_claim_unclaim_confirm_title({ title: itemTitle })}
+					description={m.items_claim_unclaim_confirm_description()}
+					confirmLabel={m.items_claim_unclaim_confirm_button()}
+					confirmBusyLabel={m.items_claim_unclaim_busy()}
 					destructive
 					onConfirm={handleUnclaim}
 				/>
@@ -469,16 +470,14 @@ function CoGiftersSection({ giftId, coGifterIds, setCoGifterIds, allUsers, savin
 		try {
 			const result = await updateCoGifters({ data: { giftId, additionalGifterIds: ids } })
 			if (result.kind === 'ok') {
-				toast.success('Co-gifters updated')
+				toast.success(m.items_cogifters_toast_updated())
 				onSaved()
 				return true
 			}
-			toast.error(
-				result.reason === 'not-allowed' ? "You can't add the recipient or your partner as a co-gifter." : 'Failed to update co-gifters.'
-			)
+			toast.error(result.reason === 'not-allowed' ? m.items_cogifters_error_not_allowed() : m.items_cogifters_error_rejected())
 			return false
 		} catch {
-			toast.error('Failed to update co-gifters')
+			toast.error(m.items_cogifters_error_failed())
 			return false
 		} finally {
 			setSaving(false)
@@ -488,9 +487,9 @@ function CoGiftersSection({ giftId, coGifterIds, setCoGifterIds, allUsers, savin
 	return (
 		<div className="grid gap-2 border-t pt-4">
 			<Label className="flex items-center gap-1.5">
-				<UserPlus className="size-4" /> Co-gifters (Optional)
+				<UserPlus className="size-4" /> {m.items_cogifters_label()}
 			</Label>
-			<p className="text-xs text-muted-foreground">Add people who are splitting this gift with you.</p>
+			<p className="text-xs text-muted-foreground">{m.items_cogifters_hint()}</p>
 
 			{coGifterUsers.length > 0 && (
 				<div className="flex flex-wrap gap-1.5">
@@ -509,7 +508,7 @@ function CoGiftersSection({ giftId, coGifterIds, setCoGifterIds, allUsers, savin
 				<div className="flex gap-2">
 					<Select value={selectedUser} onValueChange={setSelectedUser} disabled={saving}>
 						<SelectTrigger className="flex-1">
-							<SelectValue placeholder="Add a co-gifter" />
+							<SelectValue placeholder={m.items_cogifters_placeholder()} />
 						</SelectTrigger>
 						<SelectContent>
 							{availableUsers.map(u => (
@@ -520,7 +519,7 @@ function CoGiftersSection({ giftId, coGifterIds, setCoGifterIds, allUsers, savin
 						</SelectContent>
 					</Select>
 					<Button type="button" size="sm" variant="outline" onClick={handleAdd} disabled={saving || !selectedUser}>
-						Add
+						{m.action_add()}
 					</Button>
 				</div>
 			)}

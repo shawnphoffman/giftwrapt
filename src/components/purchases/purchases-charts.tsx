@@ -8,11 +8,16 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 
 import { CardContent } from '@/components/ui/card'
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { m } from '@/paraglide/messages.js'
 
-const chartConfig = {
-	gifts: { label: 'Gifts', color: 'var(--color-cyan-700)' },
-	addons: { label: 'Addons', color: 'var(--color-violet-700)' },
-} satisfies ChartConfig
+// A function, not a table: the series labels are text, read in the language
+// the chart renders in.
+function spendChartConfig() {
+	return {
+		gifts: { label: m.purchases_label_gifts(), color: 'var(--color-cyan-700)' },
+		addons: { label: m.purchases_label_addons(), color: 'var(--color-violet-700)' },
+	} satisfies ChartConfig
+}
 
 type RecipientPoint = { name: string; gifts: number; addons: number }
 type MonthPoint = { month: string; gifts: number; addons: number }
@@ -76,7 +81,7 @@ export function SpendByRecipientChart({ data }: { data: Array<RecipientPoint> })
 	return (
 		<CardContent>
 			{data.length > 0 ? (
-				<ChartContainer config={chartConfig} className="aspect-auto w-full" style={{ height }}>
+				<ChartContainer config={spendChartConfig()} className="aspect-auto w-full" style={{ height }}>
 					<BarChart accessibilityLayer layout="vertical" data={data} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
 						<defs>
 							<linearGradient id="fillGiftsH" x1="0" y1="0" x2="1" y2="0">
@@ -105,7 +110,7 @@ export function SpendByRecipientChart({ data }: { data: Array<RecipientPoint> })
 					</BarChart>
 				</ChartContainer>
 			) : (
-				<div className="text-sm text-muted-foreground py-6 text-center">No data.</div>
+				<div className="text-sm text-muted-foreground py-6 text-center">{m.purchases_chart_no_data()}</div>
 			)}
 		</CardContent>
 	)
@@ -115,7 +120,7 @@ export function SpendOverTimeChart({ data }: { data: Array<MonthPoint> }) {
 	return (
 		<CardContent>
 			{data.length > 0 ? (
-				<ChartContainer config={chartConfig} className="aspect-auto h-60 w-full">
+				<ChartContainer config={spendChartConfig()} className="aspect-auto h-60 w-full">
 					<BarChart accessibilityLayer data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
 						<SpendGradients />
 						<CartesianGrid vertical={false} />
@@ -127,7 +132,7 @@ export function SpendOverTimeChart({ data }: { data: Array<MonthPoint> }) {
 					</BarChart>
 				</ChartContainer>
 			) : (
-				<div className="text-sm text-muted-foreground py-6 text-center">No data.</div>
+				<div className="text-sm text-muted-foreground py-6 text-center">{m.purchases_chart_no_data()}</div>
 			)}
 		</CardContent>
 	)

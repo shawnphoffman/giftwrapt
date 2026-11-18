@@ -38,16 +38,17 @@ import { detectCarrier } from '@/lib/tracking/carriers'
 // summarised, so paying that cost up front for every /purchases visit
 // (especially for empty / first-time users) is wasteful. Pull the chart
 // island in lazily so the page paints first, then hydrates the charts.
-const SpendByRecipientChart = lazy(() => import('./purchases-charts').then(m => ({ default: m.SpendByRecipientChart })))
-const SpendOverTimeChart = lazy(() => import('./purchases-charts').then(m => ({ default: m.SpendOverTimeChart })))
+const SpendByRecipientChart = lazy(() => import('./purchases-charts').then(mod => ({ default: mod.SpendByRecipientChart })))
+const SpendOverTimeChart = lazy(() => import('./purchases-charts').then(mod => ({ default: mod.SpendOverTimeChart })))
 const ChartCardFallback = () => (
 	<CardContent>
 		<Skeleton className="h-60 w-full" />
 	</CardContent>
 )
-import { formatDate } from '@/lib/i18n/format'
+import { formatDate, formatNumber } from '@/lib/i18n/format'
 import { groupByPerson, type PersonGroup } from '@/lib/purchases-grouping'
 import { matchesTimeframe, type TimeframeValue } from '@/lib/timeframe'
+import { m } from '@/paraglide/messages.js'
 
 import { Separator } from '../ui/separator'
 
@@ -89,6 +90,13 @@ type Props = {
 function fmt(n: number): string {
 	return n.toFixed(2)
 }
+
+// The "$0" inside the "Excl. $0" metric labels. Money formatting is still
+// hardcoded (see `fmt`); this moves with it.
+const ZERO_AMOUNT = '$0'
+
+// An average count, one decimal: "2.5".
+const ONE_DECIMAL = { minimumFractionDigits: 1, maximumFractionDigits: 1, useGrouping: false } as const
 
 type MonthBucket = { month: string; gifts: number; addons: number }
 
@@ -173,7 +181,7 @@ export function PurchasesPageContent({ items, partner }: Props) {
 		const itemsWithCost = filtered.filter(i => (i.cost ?? 0) > 0)
 		const perItem = totalItems > 0 ? totalSpend / totalItems : 0
 		const perItemExclZero = itemsWithCost.length > 0 ? itemsWithCost.reduce((s, i) => s + (i.cost ?? 0), 0) / itemsWithCost.length : 0
-		const maxSpend = itemsWithCost.reduce((m, i) => Math.max(m, i.cost ?? 0), 0)
+		const maxSpend = itemsWithCost.reduce((max, i) => Math.max(max, i.cost ?? 0), 0)
 
 		const totalPeople = groups.length
 		const peopleWithSpend = groups.filter(g => g.totalSpent > 0).length
@@ -218,12 +226,9 @@ export function PurchasesPageContent({ items, partner }: Props) {
 	return (
 		<div className="wish-page">
 			<div className="flex flex-col flex-1 gap-6">
-				<PageHeading title="Purchases" icon={Receipt} color="pink" />
+				<PageHeading title={m.page_purchases()} icon={Receipt} color="pink" />
 
-				<p className="text-sm text-muted-foreground">
-					All of your purchases and addons over time. If you have a partner, their purchases appear here too (excluding gifts for you). Edit
-					any row to record pricing and notes, which stay private to you.
-				</p>
+				<p className="text-sm text-muted-foreground">{m.purchases_intro()}</p>
 
 				<PurchasesOrphanSummary />
 
@@ -234,11 +239,11 @@ export function PurchasesPageContent({ items, partner }: Props) {
 						<Button variant="outline" size="sm" onClick={toggleAll}>
 							{allOpen ? (
 								<>
-									<ChevronsDownUp className="size-4" /> Collapse all
+									<ChevronsDownUp className="size-4" /> {m.purchases_collapse_all()}
 								</>
 							) : (
 								<>
-									<ChevronsUpDown className="size-4" /> Expand all
+									<ChevronsUpDown className="size-4" /> {m.purchases_expand_all()}
 								</>
 							)}
 						</Button>
@@ -247,7 +252,7 @@ export function PurchasesPageContent({ items, partner }: Props) {
 
 				{filtered.length === 0 ? (
 					<div className="text-sm text-muted-foreground py-6 text-center border border-dashed rounded-lg bg-accent/30">
-						No purchases in this timeframe.
+						{m.purchases_empty_timeframe()}
 					</div>
 				) : (
 					<>
@@ -256,10 +261,10 @@ export function PurchasesPageContent({ items, partner }: Props) {
 							<Table>
 								<TableHeader className="bg-muted">
 									<TableRow>
-										<TableHead className="pl-3">Person</TableHead>
-										<TableHead className="text-right">Gifts</TableHead>
-										<TableHead className="text-right">Addons</TableHead>
-										<TableHead className="text-right">Total</TableHead>
+										<TableHead className="pl-3">{m.purchases_column_person()}</TableHead>
+										<TableHead className="text-right">{m.purchases_label_gifts()}</TableHead>
+										<TableHead className="text-right">{m.purchases_label_addons()}</TableHead>
+										<TableHead className="text-right">{m.purchases_label_total()}</TableHead>
 										<TableHead className="w-8 pr-3"></TableHead>
 									</TableRow>
 								</TableHeader>
@@ -277,9 +282,7 @@ export function PurchasesPageContent({ items, partner }: Props) {
 																<div className="flex items-center gap-2 min-w-0">
 																	<span className="font-medium truncate">{g.name}</span>
 																</div>
-																<span className="text-xs text-muted-foreground">
-																	{purchaseCount} {purchaseCount === 1 ? 'purchase' : 'purchases'}
-																</span>
+																<span className="text-xs text-muted-foreground">{m.purchases_count({ count: purchaseCount })}</span>
 															</div>
 														</div>
 													</TableCell>
@@ -319,7 +322,7 @@ export function PurchasesPageContent({ items, partner }: Props) {
 								</TableBody>
 								<TableFooter className="bg-muted">
 									<TableRow>
-										<TableCell className="pl-3 font-semibold">Total</TableCell>
+										<TableCell className="pl-3 font-semibold">{m.purchases_label_total()}</TableCell>
 										<TableCell className="text-right">
 											<MoneyChip amount={metrics.giftsTotalSpend} variant="gifts" />
 										</TableCell>
@@ -340,33 +343,54 @@ export function PurchasesPageContent({ items, partner }: Props) {
 						{/* METRICS + CHART (below the list) */}
 						<div className="flex flex-col gap-4 **:data-[slot=card]:bg-linear-to-t **:data-[slot=card]:from-accent/50 **:data-[slot=card]:to-card dark:**:data-[slot=card]:bg-card">
 							<div className="grid grid-cols-1 @md/page:grid-cols-2 @4xl/page:grid-cols-3 gap-4">
-								<MetricsGroup title="Totals" cols={3}>
-									<Metric label="Total Spend" value={<MoneyChip amount={metrics.totalSpend} variant="total" />} />
-									<Metric label="Gifts" value={<MoneyChip amount={metrics.giftsTotalSpend} variant="gifts" />} />
-									<Metric label="Addons" value={<MoneyChip amount={metrics.addonsTotalSpend} variant="addons" />} />
-									<Metric label="Total Items" value={<span className="text-base font-semibold tabular-nums">{metrics.totalItems}</span>} />
-									<Metric label="Gifts" value={<span className="text-base font-semibold tabular-nums">{metrics.totalGifts}</span>} />
-									<Metric label="Addons" value={<span className="text-base font-semibold tabular-nums">{metrics.totalAddons}</span>} />
-								</MetricsGroup>
-
-								<MetricsGroup title="Averages">
-									<Metric label="Per Item" value={<MoneyChip amount={metrics.perItem} variant="total" />} />
-									<Metric label="Per Item (Excl. $0)" value={<MoneyChip amount={metrics.perItemExclZero} variant="total" />} />
+								<MetricsGroup title={m.purchases_metrics_totals()} cols={3}>
+									<Metric label={m.purchases_metric_total_spend()} value={<MoneyChip amount={metrics.totalSpend} variant="total" />} />
+									<Metric label={m.purchases_label_gifts()} value={<MoneyChip amount={metrics.giftsTotalSpend} variant="gifts" />} />
+									<Metric label={m.purchases_label_addons()} value={<MoneyChip amount={metrics.addonsTotalSpend} variant="addons" />} />
 									<Metric
-										label="Items/Person"
-										value={<span className="text-base font-semibold tabular-nums">{metrics.itemsPerPerson.toFixed(1)}</span>}
+										label={m.purchases_metric_total_items()}
+										value={<span className="text-base font-semibold tabular-nums">{metrics.totalItems}</span>}
 									/>
 									<Metric
-										label="Items/Person (Excl. $0)"
-										value={<span className="text-base font-semibold tabular-nums">{metrics.itemsPerPersonExclZero.toFixed(1)}</span>}
+										label={m.purchases_label_gifts()}
+										value={<span className="text-base font-semibold tabular-nums">{metrics.totalGifts}</span>}
+									/>
+									<Metric
+										label={m.purchases_label_addons()}
+										value={<span className="text-base font-semibold tabular-nums">{metrics.totalAddons}</span>}
 									/>
 								</MetricsGroup>
 
-								<MetricsGroup title="Highlights" className="@md/page:col-span-2 @4xl/page:col-span-1">
-									<Metric label="Recipients" value={<span className="text-base font-semibold tabular-nums">{metrics.totalPeople}</span>} />
-									<Metric label="Max Recipient" value={<PersonCell group={metrics.topGroup} />} />
-									<Metric label="Max Single Item" value={<MoneyChip amount={metrics.maxSpend} variant="total" />} />
-									<Metric label="Min Recipient" value={<PersonCell group={metrics.bottomGroup} />} />
+								<MetricsGroup title={m.purchases_metrics_averages()}>
+									<Metric label={m.purchases_metric_per_item()} value={<MoneyChip amount={metrics.perItem} variant="total" />} />
+									<Metric
+										label={m.purchases_metric_per_item_excl_zero({ amount: ZERO_AMOUNT })}
+										value={<MoneyChip amount={metrics.perItemExclZero} variant="total" />}
+									/>
+									<Metric
+										label={m.purchases_metric_items_per_person()}
+										value={
+											<span className="text-base font-semibold tabular-nums">{formatNumber(metrics.itemsPerPerson, ONE_DECIMAL)}</span>
+										}
+									/>
+									<Metric
+										label={m.purchases_metric_items_per_person_excl_zero({ amount: ZERO_AMOUNT })}
+										value={
+											<span className="text-base font-semibold tabular-nums">
+												{formatNumber(metrics.itemsPerPersonExclZero, ONE_DECIMAL)}
+											</span>
+										}
+									/>
+								</MetricsGroup>
+
+								<MetricsGroup title={m.purchases_metrics_highlights()} className="@md/page:col-span-2 @4xl/page:col-span-1">
+									<Metric
+										label={m.purchases_metric_recipients()}
+										value={<span className="text-base font-semibold tabular-nums">{metrics.totalPeople}</span>}
+									/>
+									<Metric label={m.purchases_metric_max_recipient()} value={<PersonCell group={metrics.topGroup} />} />
+									<Metric label={m.purchases_metric_max_single_item()} value={<MoneyChip amount={metrics.maxSpend} variant="total" />} />
+									<Metric label={m.purchases_metric_min_recipient()} value={<PersonCell group={metrics.bottomGroup} />} />
 								</MetricsGroup>
 							</div>
 
@@ -374,9 +398,9 @@ export function PurchasesPageContent({ items, partner }: Props) {
 								<Card size="sm" className="min-w-0">
 									<CardHeader>
 										<CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-											Spend by Recipient
+											{m.purchases_chart_by_recipient_title()}
 										</CardTitle>
-										<CardDescription>Per recipient, stacked by gift vs. addon.</CardDescription>
+										<CardDescription>{m.purchases_chart_by_recipient_description()}</CardDescription>
 									</CardHeader>
 									<Suspense fallback={<ChartCardFallback />}>
 										<SpendByRecipientChart data={recipientChartData} />
@@ -385,8 +409,10 @@ export function PurchasesPageContent({ items, partner }: Props) {
 
 								<Card size="sm" className="min-w-0">
 									<CardHeader>
-										<CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Spend Over Time</CardTitle>
-										<CardDescription>Per month, stacked by gift vs. addon.</CardDescription>
+										<CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+											{m.purchases_chart_over_time_title()}
+										</CardTitle>
+										<CardDescription>{m.purchases_chart_over_time_description()}</CardDescription>
 									</CardHeader>
 									<Suspense fallback={<ChartCardFallback />}>
 										<SpendOverTimeChart data={monthly} />
@@ -448,10 +474,10 @@ function PurchaseDetailRow({
 						<TapTooltip>
 							<TapTooltipTrigger asChild>
 								<Badge variant="secondary" className="text-xs shrink-0 gap-1">
-									<Users className="size-3" /> Co-gifter
+									<Users className="size-3" /> {m.purchases_co_gifter_badge()}
 								</Badge>
 							</TapTooltipTrigger>
-							<TapTooltipContent>Your even share of this co-gifted purchase.</TapTooltipContent>
+							<TapTooltipContent>{m.purchases_co_gifter_tooltip()}</TapTooltipContent>
 						</TapTooltip>
 					)}
 				</div>
@@ -482,7 +508,7 @@ function PurchaseDetailRow({
 									<UserAvatar name={partner.name} image={partner.image} size="small" />
 								</span>
 							</TapTooltipTrigger>
-							<TapTooltipContent>Claimed by your partner ({partner.name})</TapTooltipContent>
+							<TapTooltipContent>{m.purchases_claimed_by_partner({ name: partner.name })}</TapTooltipContent>
 						</TapTooltip>
 					)}
 					<div className="text-xs text-muted-foreground truncate">{item.listName}</div>
@@ -491,12 +517,12 @@ function PurchaseDetailRow({
 			{attachments.length > 0 && <AttachmentBadge urls={attachments} />}
 			{item.type === 'claim' && item.quantity > 1 && (
 				<Badge variant="secondary" className="text-xs tabular-nums shrink-0">
-					x{item.quantity}
+					{m.purchases_quantity_badge({ quantity: item.quantity })}
 				</Badge>
 			)}
 			{item.type === 'addon' && (
 				<Badge variant="secondary" className="text-xs shrink-0">
-					Addon
+					{m.purchases_addon_badge()}
 				</Badge>
 			)}
 			{item.cost != null && item.cost > 0 && (
@@ -516,7 +542,7 @@ function PurchaseDetailRow({
 						e.stopPropagation()
 						setSplitOpen(true)
 					}}
-					aria-label="Edit the split"
+					aria-label={m.purchases_edit_split_label()}
 				>
 					<DollarSign className="size-4" />
 				</Button>
@@ -530,7 +556,7 @@ function PurchaseDetailRow({
 						e.stopPropagation()
 						onEdit()
 					}}
-					aria-label="Edit purchase details"
+					aria-label={m.purchases_edit_details_label()}
 				>
 					<Pencil className="size-4" />
 				</Button>
@@ -557,9 +583,13 @@ function AttachmentBadge({ urls }: { urls: Array<string> }) {
 					rel="noopener noreferrer"
 					className="shrink-0 size-7 rounded border bg-muted flex items-center justify-center overflow-hidden text-muted-foreground hover:text-foreground"
 					onClick={e => e.stopPropagation()}
-					aria-label={`${urls.length} attachment${urls.length === 1 ? '' : 's'}`}
+					aria-label={m.purchases_attachment_count({ count: urls.length })}
 				>
-					{isPdf ? <FileText className="size-4" /> : <img src={first} alt="receipt" className="size-full object-cover" />}
+					{isPdf ? (
+						<FileText className="size-4" />
+					) : (
+						<img src={first} alt={m.purchases_attachment_receipt_alt()} className="size-full object-cover" />
+					)}
 					{extra > 0 && (
 						<span className="absolute -mt-5 -mr-5 ml-3 bg-foreground text-background text-3xs rounded-full px-1 leading-tight pointer-events-none">
 							+{extra}
@@ -569,7 +599,7 @@ function AttachmentBadge({ urls }: { urls: Array<string> }) {
 			</TooltipTrigger>
 			<TooltipContent>
 				<Paperclip className="size-3 inline-block mr-1" />
-				{urls.length} attachment{urls.length === 1 ? '' : 's'}
+				{m.purchases_attachment_count({ count: urls.length })}
 			</TooltipContent>
 		</Tooltip>
 	)

@@ -1,6 +1,7 @@
 import { Eye, EyeOff } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
+import { RichMessage } from '@/components/common/rich-message'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import {
 	AlertDialog,
@@ -17,6 +18,7 @@ import { Label } from '@/components/ui/label'
 import { PasswordInput } from '@/components/ui/password-input'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 // User-facing state for the 2FA section. Drives the panel's UI:
 //
@@ -69,12 +71,12 @@ export function TwoFactorPanelContent(props: TwoFactorPanelContentProps) {
 
 			{error && (
 				<Alert variant="destructive">
-					<AlertTitle>Couldn't Update 2FA</AlertTitle>
+					<AlertTitle>{m.settings_2fa_error_title()}</AlertTitle>
 					<AlertDescription>{error}</AlertDescription>
 				</Alert>
 			)}
 
-			{busy && <p className="text-xs text-muted-foreground">Working…</p>}
+			{busy && <p className="text-xs text-muted-foreground">{m.settings_2fa_working()}</p>}
 		</div>
 	)
 }
@@ -83,14 +85,14 @@ function TwoFactorHeader({ status, onStartEnrollment, onDisable, busy }: TwoFact
 	const [enableDialogOpen, setEnableDialogOpen] = useState(false)
 	const [disableDialogOpen, setDisableDialogOpen] = useState(false)
 	const checked = status === 'enabled' || status === 'enrolling'
-	const ariaLabel = checked ? 'Disable two-factor authentication' : 'Enable two-factor authentication'
+	const ariaLabel = checked ? m.settings_2fa_switch_disable_label() : m.settings_2fa_switch_enable_label()
 
 	return (
 		<>
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
-					<h2 className="text-lg font-semibold">Two-Factor Authentication</h2>
-					<p className="text-sm text-muted-foreground">Use an authenticator app to require a one-time code on every sign-in.</p>
+					<h2 className="text-lg font-semibold">{m.settings_2fa_title()}</h2>
+					<p className="text-sm text-muted-foreground">{m.settings_2fa_description()}</p>
 				</div>
 				<Switch
 					checked={checked}
@@ -106,19 +108,19 @@ function TwoFactorHeader({ status, onStartEnrollment, onDisable, busy }: TwoFact
 			<PasswordPromptDialog
 				open={enableDialogOpen}
 				onOpenChange={setEnableDialogOpen}
-				title="Enable two-factor auth"
-				description="Enter your current password to begin enrollment."
-				confirmLabel="Continue"
-				confirmBusyLabel="Generating…"
+				title={m.settings_2fa_enable_dialog_title()}
+				description={m.settings_2fa_enable_dialog_description()}
+				confirmLabel={m.action_continue()}
+				confirmBusyLabel={m.settings_2fa_generating()}
 				onConfirm={onStartEnrollment}
 			/>
 			<PasswordPromptDialog
 				open={disableDialogOpen}
 				onOpenChange={setDisableDialogOpen}
-				title="Turn off two-factor auth"
-				description="Removes the TOTP requirement and clears all backup codes. Your account will fall back to password-only sign-in."
-				confirmLabel="Disable"
-				confirmBusyLabel="Disabling…"
+				title={m.settings_2fa_disable_dialog_title()}
+				description={m.settings_2fa_disable_dialog_description()}
+				confirmLabel={m.settings_2fa_disable_button()}
+				confirmBusyLabel={m.settings_2fa_disabling()}
 				destructive
 				onConfirm={onDisable}
 			/>
@@ -153,47 +155,45 @@ function EnrollingView({
 	return (
 		<div className="space-y-3">
 			<Alert>
-				<AlertTitle>Step 1: Scan With Your Authenticator App</AlertTitle>
-				<AlertDescription>
-					Open your authenticator and add a new account by scanning the QR code below. If you can't scan, enter the secret manually.
-				</AlertDescription>
+				<AlertTitle>{m.settings_2fa_step1_title()}</AlertTitle>
+				<AlertDescription>{m.settings_2fa_step1_description()}</AlertDescription>
 			</Alert>
 
 			<div className="flex flex-col gap-3 rounded-md border p-3 sm:flex-row sm:items-start">
 				<div className="flex size-60 shrink-0 items-center justify-center rounded bg-white">
 					{qrDataUrl ? (
-						<img src={qrDataUrl} alt="TOTP QR code" className="size-60" />
+						<img src={qrDataUrl} alt={m.settings_2fa_qr_alt()} className="size-60" />
 					) : (
-						<span className="text-xs text-muted-foreground">Generating QR…</span>
+						<span className="text-xs text-muted-foreground">{m.settings_2fa_qr_generating()}</span>
 					)}
 				</div>
 				<div className="flex-1 space-y-2 text-sm">
 					<div>
-						<Label className="text-xs">Manual Secret</Label>
+						<Label className="text-xs">{m.settings_2fa_manual_secret_label()}</Label>
 						<div className="mt-1 flex items-center gap-2">
 							<code className={cn('flex-1 rounded bg-muted px-2 py-1 font-mono text-xs break-all', !secretShown && 'blur-sm select-none')}>
-								{manualSecret ?? 'unavailable'}
+								{manualSecret ?? m.settings_2fa_manual_secret_unavailable()}
 							</code>
 							<Button
 								type="button"
 								size="icon-sm"
 								variant="outline"
 								onClick={() => setSecretShown(s => !s)}
-								title={secretShown ? 'Hide secret' : 'Show secret'}
+								title={secretShown ? m.settings_2fa_hide_secret() : m.settings_2fa_show_secret()}
 							>
 								{secretShown ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
 							</Button>
 						</div>
 					</div>
 					<p className="text-xs text-muted-foreground">
-						Account labeled <strong>GiftWrapt</strong>. The code rotates every 30 seconds.
+						<RichMessage parts={m.settings_2fa_account_hint.parts()} tags={{ strong: children => <strong>{children}</strong> }} />
 					</p>
 				</div>
 			</div>
 
 			<form onSubmit={handle} className="space-y-2">
 				<div className="grid gap-2">
-					<Label htmlFor="verify-totp-code">Step 2: Enter the 6-Digit Code</Label>
+					<Label htmlFor="verify-totp-code">{m.settings_2fa_step2_label()}</Label>
 					<Input
 						id="verify-totp-code"
 						value={code}
@@ -209,10 +209,10 @@ function EnrollingView({
 				</div>
 				<div className="flex gap-2">
 					<Button type="submit" disabled={submitting || busy || code.length !== TOTP_CODE_LENGTH}>
-						{submitting ? 'Verifying…' : 'Verify and Turn On'}
+						{submitting ? m.settings_2fa_verifying() : m.settings_2fa_verify_button()}
 					</Button>
 					<Button type="button" variant="outline" onClick={onCancelEnrollment} disabled={submitting || busy}>
-						Cancel
+						{m.action_cancel()}
 					</Button>
 				</div>
 			</form>
@@ -238,18 +238,18 @@ function EnabledExtras({ onRegenerateBackupCodes, busy }: TwoFactorPanelContentP
 	return (
 		<div className="space-y-4">
 			<Alert>
-				<AlertTitle>Two-Factor Authentication Is On</AlertTitle>
-				<AlertDescription>You'll be asked for a code from your authenticator app every time you sign in.</AlertDescription>
+				<AlertTitle>{m.settings_2fa_on_title()}</AlertTitle>
+				<AlertDescription>{m.settings_2fa_on_description()}</AlertDescription>
 			</Alert>
 
 			<form onSubmit={handleRegen} className="space-y-2 rounded-md border p-3">
 				<div className="space-y-1">
-					<p className="text-sm font-medium">Regenerate Backup Codes</p>
-					<p className="text-xs text-muted-foreground">Invalidates any existing codes. Stash the new ones somewhere safe.</p>
+					<p className="text-sm font-medium">{m.settings_2fa_regenerate_title()}</p>
+					<p className="text-xs text-muted-foreground">{m.settings_2fa_regenerate_description()}</p>
 				</div>
 				<div className="flex flex-col gap-2 sm:flex-row sm:items-end">
 					<div className="grid gap-2 flex-1">
-						<Label htmlFor="regen-2fa-password">Current Password</Label>
+						<Label htmlFor="regen-2fa-password">{m.settings_password_current_label()}</Label>
 						<PasswordInput
 							id="regen-2fa-password"
 							value={regenPassword}
@@ -260,7 +260,7 @@ function EnabledExtras({ onRegenerateBackupCodes, busy }: TwoFactorPanelContentP
 						/>
 					</div>
 					<Button type="submit" variant="outline" disabled={regenerating || busy || !regenPassword}>
-						{regenerating ? 'Generating…' : 'Regenerate Codes'}
+						{regenerating ? m.settings_2fa_generating() : m.settings_2fa_regenerate_button()}
 					</Button>
 				</div>
 			</form>
@@ -311,7 +311,7 @@ function PasswordPromptDialog({
 			await onConfirm(password)
 			onOpenChange(false)
 		} catch (err) {
-			setLocalError(err instanceof Error ? err.message : 'Something went wrong.')
+			setLocalError(err instanceof Error ? err.message : m.settings_2fa_prompt_error())
 		} finally {
 			setSubmitting(false)
 		}
@@ -326,7 +326,7 @@ function PasswordPromptDialog({
 						<AlertDialogDescription>{description}</AlertDialogDescription>
 					</AlertDialogHeader>
 					<div className="grid gap-2">
-						<Label htmlFor="two-factor-prompt-password">Current Password</Label>
+						<Label htmlFor="two-factor-prompt-password">{m.settings_password_current_label()}</Label>
 						<PasswordInput
 							id="two-factor-prompt-password"
 							value={password}
@@ -344,10 +344,10 @@ function PasswordPromptDialog({
 					)}
 					<AlertDialogFooter>
 						<AlertDialogCancel disabled={submitting} type="button">
-							Cancel
+							{m.action_cancel()}
 						</AlertDialogCancel>
 						<Button type="submit" disabled={submitting || !password} variant={destructive ? 'destructive' : 'default'}>
-							{submitting ? (confirmBusyLabel ?? 'Working…') : confirmLabel}
+							{submitting ? (confirmBusyLabel ?? m.settings_2fa_working()) : confirmLabel}
 						</Button>
 					</AlertDialogFooter>
 				</form>
@@ -359,9 +359,9 @@ function PasswordPromptDialog({
 function BackupCodesPanel({ codes, onDismiss }: { codes: Array<string>; onDismiss?: () => void }) {
 	return (
 		<Alert>
-			<AlertTitle>Save Your Backup Codes</AlertTitle>
+			<AlertTitle>{m.settings_2fa_backup_title()}</AlertTitle>
 			<AlertDescription>
-				<p className="mb-2 text-xs">Each code is single-use. Use them if you lose access to your authenticator app.</p>
+				<p className="mb-2 text-xs">{m.settings_2fa_backup_description()}</p>
 				<ul className="grid grid-cols-2 gap-1 font-mono text-xs sm:grid-cols-3">
 					{codes.map(code => (
 						<li key={code} className="rounded bg-muted px-2 py-1">
@@ -371,7 +371,7 @@ function BackupCodesPanel({ codes, onDismiss }: { codes: Array<string>; onDismis
 				</ul>
 				{onDismiss && (
 					<Button type="button" variant="outline" size="xs" className="mt-2" onClick={onDismiss}>
-						I've Saved Them
+						{m.settings_2fa_backup_dismiss()}
 					</Button>
 				)}
 			</AlertDescription>

@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { formatDate as formatLocaleDate } from '@/lib/i18n/format'
+import { m } from '@/paraglide/messages.js'
 
 // A row as surfaced from `authClient.useListPasskeys()`. We narrow to
 // just the fields the UI uses so the panel doesn't depend on the full
@@ -63,10 +64,8 @@ export function PasskeysPanelContent({
 	if (!supported) {
 		return (
 			<Alert>
-				<AlertTitle>Passkeys Aren't Supported Here</AlertTitle>
-				<AlertDescription>
-					This browser doesn't expose the WebAuthn API. Try a recent version of Safari, Chrome, Firefox, or Edge.
-				</AlertDescription>
+				<AlertTitle>{m.settings_passkeys_unsupported_title()}</AlertTitle>
+				<AlertDescription>{m.settings_passkeys_unsupported_description()}</AlertDescription>
 			</Alert>
 		)
 	}
@@ -75,34 +74,32 @@ export function PasskeysPanelContent({
 		<div className="space-y-4">
 			<form onSubmit={handleRegister} className="flex flex-col gap-2 sm:flex-row sm:items-end rounded-md border p-3">
 				<div className="flex-1 grid gap-1">
-					<Label htmlFor="new-passkey-name">Add a Passkey</Label>
+					<Label htmlFor="new-passkey-name">{m.settings_passkeys_add_label()}</Label>
 					<Input
 						id="new-passkey-name"
 						value={newName}
 						onChange={e => setNewName(e.target.value)}
-						placeholder="e.g. iPhone, YubiKey, Mac Touch ID"
+						placeholder={m.settings_passkeys_name_placeholder()}
 						maxLength={80}
 						disabled={registering}
 					/>
 				</div>
 				<Button type="submit" disabled={registering || !newName.trim()}>
 					<KeyRound className="size-4" />
-					{registering ? 'Registering…' : 'Register'}
+					{registering ? m.settings_passkeys_registering() : m.settings_passkeys_register_button()}
 				</Button>
 			</form>
 
 			{error && (
 				<Alert variant="destructive">
-					<AlertTitle>Couldn't Update Passkeys</AlertTitle>
+					<AlertTitle>{m.settings_passkeys_error_title()}</AlertTitle>
 					<AlertDescription>{error}</AlertDescription>
 				</Alert>
 			)}
 
-			{loading && <p className="text-xs text-muted-foreground">Loading passkeys…</p>}
+			{loading && <p className="text-xs text-muted-foreground">{m.settings_passkeys_loading()}</p>}
 
-			{!loading && passkeys && passkeys.length === 0 && (
-				<p className="text-sm text-muted-foreground">No passkeys yet. Add one above to skip the password on this device.</p>
-			)}
+			{!loading && passkeys && passkeys.length === 0 && <p className="text-sm text-muted-foreground">{m.settings_passkeys_empty()}</p>}
 
 			{passkeys && passkeys.length > 0 && (
 				<ul className="divide-y rounded-md border">
@@ -152,7 +149,7 @@ function PasskeyRow({
 					<form onSubmit={submitRename} className="flex gap-1">
 						<Input value={draft} onChange={e => setDraft(e.target.value)} disabled={busy} maxLength={80} autoFocus />
 						<Button type="submit" size="sm" disabled={busy || !draft.trim()}>
-							Save
+							{m.action_save()}
 						</Button>
 						<Button
 							type="button"
@@ -164,30 +161,32 @@ function PasskeyRow({
 							}}
 							disabled={busy}
 						>
-							Cancel
+							{m.action_cancel()}
 						</Button>
 					</form>
 				) : (
 					<>
 						<p className="text-sm font-medium truncate flex items-center gap-1.5">
 							<ShieldCheck className="size-3.5 text-green-600 dark:text-green-500" />
-							{passkey.name?.trim() || 'Unnamed passkey'}
+							{passkey.name?.trim() || m.settings_passkeys_unnamed()}
 						</p>
 						<p className="text-xs text-muted-foreground">
-							{describeDevice(passkey.deviceType)}
-							{passkey.createdAt && (
-								<>
-									{' · added '}
-									{formatDate(passkey.createdAt)}
-								</>
-							)}
+							{passkey.createdAt
+								? m.settings_passkeys_device_added({ device: describeDevice(passkey.deviceType), date: formatDate(passkey.createdAt) })
+								: describeDevice(passkey.deviceType)}
 						</p>
 					</>
 				)}
 			</div>
 			{!editing && (
 				<div className="flex gap-0.5">
-					<Button variant="outline" size="icon-sm" onClick={() => setEditing(true)} disabled={busy} aria-label="Rename passkey">
+					<Button
+						variant="outline"
+						size="icon-sm"
+						onClick={() => setEditing(true)}
+						disabled={busy}
+						aria-label={m.settings_passkeys_rename_label()}
+					>
 						<Pencil className="size-4" />
 					</Button>
 					<Button
@@ -195,7 +194,7 @@ function PasskeyRow({
 						size="icon-sm"
 						onClick={() => setConfirmOpen(true)}
 						disabled={busy}
-						aria-label="Remove passkey"
+						aria-label={m.settings_passkeys_remove_label()}
 						className="text-destructive hover:text-destructive"
 					>
 						<Trash2 className="size-4" />
@@ -206,13 +205,11 @@ function PasskeyRow({
 			<AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Remove This Passkey?</AlertDialogTitle>
-						<AlertDialogDescription>
-							The device that registered this passkey won't be able to sign in with it anymore. You can always add a new one later.
-						</AlertDialogDescription>
+						<AlertDialogTitle>{m.settings_passkeys_remove_confirm_title()}</AlertDialogTitle>
+						<AlertDialogDescription>{m.settings_passkeys_remove_confirm_description()}</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+						<AlertDialogCancel disabled={busy}>{m.action_cancel()}</AlertDialogCancel>
 						<AlertDialogAction
 							variant="destructive"
 							disabled={busy}
@@ -222,7 +219,7 @@ function PasskeyRow({
 								setConfirmOpen(false)
 							}}
 						>
-							Remove
+							{m.action_remove()}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
@@ -234,9 +231,9 @@ function PasskeyRow({
 // Map better-auth's WebAuthn deviceType ('singleDevice' /
 // 'multiDevice') into something a human can read.
 export function describeDevice(deviceType: string | null | undefined): string {
-	if (deviceType === 'multiDevice') return 'Synced passkey'
-	if (deviceType === 'singleDevice') return 'Device-bound passkey'
-	return 'Passkey'
+	if (deviceType === 'multiDevice') return m.settings_passkeys_device_synced()
+	if (deviceType === 'singleDevice') return m.settings_passkeys_device_bound()
+	return m.settings_passkeys_device_generic()
 }
 
 export function formatDate(value: Date | string): string {
