@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { ListTypes } from '@/db/schema/enums'
+import { listTypeLabel } from '@/lib/i18n/labels'
 
 const hiddenPurchasesQueryKey = ['admin', 'hidden-purchases'] as const
 
@@ -94,7 +94,7 @@ export default function HiddenPurchases() {
 							<TableCell>
 								<div className="flex flex-col">
 									<span>{row.listName}</span>
-									<span className="text-xs text-muted-foreground">{ListTypes[row.listType]}</span>
+									<span className="text-xs text-muted-foreground">{listTypeLabel(row.listType)}</span>
 								</div>
 							</TableCell>
 							<TableCell>{hiddenLabel(row)}</TableCell>

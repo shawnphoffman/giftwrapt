@@ -8,27 +8,12 @@ import UserAvatar from '@/components/common/user-avatar'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TapTooltip, TapTooltipContent, TapTooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
-import type { BirthMonth } from '@/db/schema/enums'
+import { formatMonthDay } from '@/lib/i18n/labels'
 
 import { EditDependentDialog } from './edit-dependent-dialog'
 
 type AdminDependent = DependentSummary & {
 	guardians: Array<{ id: string; name: string | null; email: string; image: string | null }>
-}
-
-const monthLabels: Record<BirthMonth, string> = {
-	january: 'January',
-	february: 'February',
-	march: 'March',
-	april: 'April',
-	may: 'May',
-	june: 'June',
-	july: 'July',
-	august: 'August',
-	september: 'September',
-	october: 'October',
-	november: 'November',
-	december: 'December',
 }
 
 function Tip({ label, children }: { label: string; children: React.ReactNode }) {
@@ -83,7 +68,7 @@ export function AdminDependentsList() {
 
 function DependentRow({ dependent }: { dependent: AdminDependent }) {
 	const [open, setOpen] = useState(false)
-	const monthName = dependent.birthMonth ? `${monthLabels[dependent.birthMonth]} ${dependent.birthDay ?? ''}`.trim() : null
+	const monthName = dependent.birthMonth ? formatMonthDay(dependent.birthMonth, dependent.birthDay) : null
 
 	return (
 		<>

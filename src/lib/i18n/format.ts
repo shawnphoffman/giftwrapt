@@ -39,6 +39,7 @@ export function dateFnsLocale(locale: Locale = currentLocale()): DateFnsLocale {
 const dateFormatters = new Map<string, Intl.DateTimeFormat>()
 const numberFormatters = new Map<string, Intl.NumberFormat>()
 const relativeFormatters = new Map<string, Intl.RelativeTimeFormat>()
+const listFormatters = new Map<string, Intl.ListFormat>()
 
 function cached<T>(cache: Map<string, T>, key: string, make: () => T): T {
 	let formatter = cache.get(key)
@@ -82,4 +83,15 @@ export function formatTimeAgo(value: DateInput, locale: Locale = currentLocale()
 	const date = value instanceof Date ? value : new Date(value)
 	if (Number.isNaN(date.getTime())) return ''
 	return formatDistanceToNow(date, { addSuffix: true, locale: DATE_FNS_LOCALE[locale] })
+}
+
+// "A, B, and C" / "A, B et C": a list inside a sentence. For people's names
+// in gift attribution use `formatGifterNames`, which has its own style.
+export function formatList(
+	items: ReadonlyArray<string>,
+	type: Intl.ListFormatType = 'conjunction',
+	locale: Locale = currentLocale()
+): string {
+	const tag = INTL_TAG[locale]
+	return cached(listFormatters, `${tag}|${type}`, () => new Intl.ListFormat(tag, { style: 'long', type })).format(items)
 }

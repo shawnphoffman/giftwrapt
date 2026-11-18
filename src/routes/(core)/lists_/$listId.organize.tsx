@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { type Priority, priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
+import { priorityLabel } from '@/lib/i18n/labels'
 import { buildListEntries } from '@/lib/list-entries'
 import { useAssignItemsToGroup } from '@/lib/mutations/assign-items-to-group'
 import { useDeleteGroups } from '@/lib/mutations/delete-groups'
@@ -48,13 +49,6 @@ import { cn } from '@/lib/utils'
 import { pageHead } from '@/routes/-head'
 
 type TabMode = 'bulk' | 'reorder'
-
-const PRIORITY_LABEL: Record<Priority, string> = {
-	'very-high': 'Very high',
-	high: 'High',
-	normal: 'Normal',
-	low: 'Low',
-}
 
 export const Route = createFileRoute('/(core)/lists_/$listId/organize')({
 	loader: async ({ params, context }) => {
@@ -256,7 +250,7 @@ function BulkActionsTab({ list, items }: { list: ListForEditing; items: Array<It
 			}
 		}
 		setBusy(false)
-		toast.success(`Priority set to ${PRIORITY_LABEL[priority]} on ${updated} row${updated === 1 ? '' : 's'}`)
+		toast.success(`Priority set to ${priorityLabel(priority)} on ${updated} row${updated === 1 ? '' : 's'}`)
 	}
 
 	const runAssignGroup = async (groupId: number | null) => {
@@ -341,7 +335,7 @@ function BulkActionsTab({ list, items }: { list: ListForEditing; items: Array<It
 							{[...priorityEnumValues].reverse().map(p => (
 								<DropdownMenuItem key={p} onClick={() => runPriority(p)}>
 									<PriorityIcon priority={p} className="size-4" />
-									{PRIORITY_LABEL[p]}
+									{priorityLabel(p)}
 								</DropdownMenuItem>
 							))}
 						</DropdownMenuContent>

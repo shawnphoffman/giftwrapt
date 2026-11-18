@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { type Priority, priorityEnumValues } from '@/db/schema/enums'
 import { useStorageStatus } from '@/hooks/use-storage-status'
+import { priorityLabel } from '@/lib/i18n/labels'
 import { itemsKeys } from '@/lib/queries/items'
 import { applyScrapePrefill } from '@/lib/scrapers/apply-prefill'
 import { resizeImageForUpload } from '@/lib/storage/client-resize'
@@ -34,13 +35,6 @@ type Props = {
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	initialUrl?: string
-}
-
-const PriorityLabels: Record<Priority, string> = {
-	low: 'Low',
-	normal: 'Normal',
-	high: 'High',
-	'very-high': 'Very High',
 }
 
 type ListOption = Pick<MyListRow, 'id' | 'name' | 'type' | 'isPrivate' | 'isPrimary'>
@@ -487,11 +481,11 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 								<ToggleGroupItem
 									key={p}
 									value={p}
-									aria-label={PriorityLabels[p]}
+									aria-label={priorityLabel(p)}
 									className="min-w-0 px-1.5 @max-[12.5rem]/priority:rounded-md! @max-[12.5rem]/priority:border! data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
 								>
 									{p !== 'normal' && <PriorityIcon priority={p} />}
-									<span className={p === 'normal' ? undefined : 'hidden sm:inline'}>{PriorityLabels[p]}</span>
+									<span className={p === 'normal' ? undefined : 'hidden sm:inline'}>{priorityLabel(p)}</span>
 								</ToggleGroupItem>
 							))}
 						</ToggleGroup>

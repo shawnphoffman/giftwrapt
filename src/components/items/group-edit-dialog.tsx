@@ -12,15 +12,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { type Priority, priorityEnumValues } from '@/db/schema/enums'
+import { priorityLabel } from '@/lib/i18n/labels'
 import { itemsKeys } from '@/lib/queries/items'
 import { LIMITS } from '@/lib/validation/limits'
-
-const PriorityLabels: Record<Priority, string> = {
-	low: 'Low',
-	normal: 'Normal',
-	high: 'High',
-	'very-high': 'Very High',
-}
 
 type Props = {
 	open: boolean
@@ -104,7 +98,7 @@ export function GroupEditDialog({ open, onOpenChange, group, listId }: Props) {
 											<span className="inline-flex size-3.5 items-center justify-center">
 												<PriorityIcon priority={p} className="size-3.5" />
 											</span>
-											{PriorityLabels[p]}
+											{priorityLabel(p)}
 										</span>
 									</SelectItem>
 								))}

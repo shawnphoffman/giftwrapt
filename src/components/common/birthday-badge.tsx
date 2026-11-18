@@ -1,5 +1,7 @@
 import { Badge } from '@/components/ui/badge'
 import type { BirthMonth } from '@/db/schema/enums'
+import { formatMonthDay } from '@/lib/i18n/labels'
+import { m } from '@/paraglide/messages.js'
 
 type BirthdayBadgeProps = {
 	birthMonth?: BirthMonth | null
@@ -9,7 +11,7 @@ type BirthdayBadgeProps = {
 // Format birthday as "Month Day"
 const birthday = (month: BirthMonth | null, day?: number | null) => {
 	if (!month || !day) return null
-	return `${month.charAt(0).toUpperCase() + month.slice(1)} ${day}`
+	return formatMonthDay(month, day)
 }
 
 const daysUntilBirthday = (month: BirthMonth | null, day: number | null) => {
@@ -65,8 +67,6 @@ export default function BirthdayBadge({ birthMonth, birthDay }: BirthdayBadgePro
 		return null
 	}
 
-	const plural = new Intl.PluralRules().select(countdown)
-
 	// Inside a person card header (@container/person) the two badges stack instead
 	// of running past the edge once the header is narrow, which happens on phones
 	// with the text size turned up. They never wrap.
@@ -75,7 +75,7 @@ export default function BirthdayBadge({ birthMonth, birthDay }: BirthdayBadgePro
 			<Badge variant="outline">{birthdayText}</Badge>
 			{countdown < 31 && (
 				<Badge variant="destructive" className="whitespace-nowrap">
-					{countdown} {plural === 'one' ? 'day' : 'days'}
+					{m.count_days({ count: countdown })}
 				</Badge>
 			)}
 		</div>

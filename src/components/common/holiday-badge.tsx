@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge'
 import { formatCalendarDate } from '@/lib/i18n/format'
+import { m } from '@/paraglide/messages.js'
 
 type HolidayBadgeProps = {
 	// ISO 8601 (UTC start-of-day) date string from the server. Null
@@ -33,7 +34,7 @@ export default function HolidayBadge({ date }: HolidayBadgeProps) {
 	if (days === 0) {
 		return (
 			<Badge variant="destructive" className="whitespace-nowrap">
-				Today
+				{m.day_today()}
 			</Badge>
 		)
 	}
@@ -41,13 +42,12 @@ export default function HolidayBadge({ date }: HolidayBadgeProps) {
 	if (days === 1) {
 		return (
 			<Badge variant="destructive" className="whitespace-nowrap">
-				Tomorrow
+				{m.day_tomorrow()}
 			</Badge>
 		)
 	}
 
-	const plural = new Intl.PluralRules().select(days)
-	const text = `${days} ${plural === 'one' ? 'day' : 'days'}`
+	const text = m.count_days({ count: days })
 	return (
 		<Badge variant={days < 31 ? 'destructive' : 'outline'} className="whitespace-nowrap">
 			{text}

@@ -2,6 +2,7 @@ import { Body, Container, Head, Heading, Html, Img, Link, Section, Tailwind, Tex
 
 import type { ReminderPickGroup } from '@/lib/cron/reminder-picks'
 
+import { formatList } from '../lib/i18n/format'
 import { ReminderPicks } from './reminder-picks'
 
 const baseUrl = process.env.BETTER_AUTH_URL || 'http://localhost:3002'
@@ -46,13 +47,6 @@ export default function ParentsDayReminderEmail({
 			</Tailwind>
 		</Html>
 	)
-}
-
-function formatList(names: ReadonlyArray<string>): string {
-	if (names.length === 0) return ''
-	if (names.length === 1) return names[0]
-	if (names.length === 2) return `${names[0]} and ${names[1]}`
-	return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}`
 }
 
 ParentsDayReminderEmail.PreviewProps = {

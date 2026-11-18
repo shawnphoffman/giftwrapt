@@ -6,6 +6,8 @@
 // and the shell applies it as an inline style on <html>, so the first paint is
 // already at the chosen size, with or without JavaScript.
 
+import { m } from '@/paraglide/messages.js'
+
 /** The cookie holding the step's percentage, e.g. `112.5`. */
 export const TEXT_SIZE_COOKIE = 'gw-text-size'
 
@@ -20,12 +22,19 @@ export type TextSize = (typeof TEXT_SIZE_STEPS)[number]
 export const DEFAULT_TEXT_SIZE: TextSize = 100
 
 /** What the slider shows under itself for each step. */
-export const TEXT_SIZE_NAMES: Record<TextSize, string> = {
-	90: 'Smaller',
-	95: 'Small',
-	100: 'Default',
-	112.5: 'Large',
-	125: 'Larger',
+export function textSizeName(size: TextSize): string {
+	switch (size) {
+		case 90:
+			return m.text_size_smaller()
+		case 95:
+			return m.text_size_small()
+		case 100:
+			return m.text_size_default()
+		case 112.5:
+			return m.text_size_large()
+		case 125:
+			return m.text_size_larger()
+	}
 }
 
 /** A cookie value to a step. Anything that is not exactly a step reads as 100. */

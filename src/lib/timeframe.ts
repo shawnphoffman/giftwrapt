@@ -1,18 +1,45 @@
 import { endOfDay, startOfDay } from 'date-fns'
 
 import { formatDate } from '@/lib/i18n/format'
+import { m } from '@/paraglide/messages.js'
 
 export type TimeframePreset = '30d' | '60d' | '6m' | '12m' | 'all'
 
 export type TimeframeValue = { kind: 'preset'; preset: TimeframePreset } | { kind: 'custom'; from: Date; to: Date }
 
-export const TIMEFRAME_PRESETS: ReadonlyArray<{ value: TimeframePreset; label: string }> = [
-	{ value: '30d', label: 'Last 30 days' },
-	{ value: '60d', label: 'Last 60 days' },
-	{ value: '6m', label: 'Last 6 months' },
-	{ value: '12m', label: 'Last 12 months' },
-	{ value: 'all', label: 'All time' },
-] as const
+export const TIMEFRAME_PRESETS: ReadonlyArray<TimeframePreset> = ['30d', '60d', '6m', '12m', 'all']
+
+// "Last 30 days".
+export function timeframePresetLabel(preset: TimeframePreset): string {
+	switch (preset) {
+		case '30d':
+			return m.timeframe_30d()
+		case '60d':
+			return m.timeframe_60d()
+		case '6m':
+			return m.timeframe_6m()
+		case '12m':
+			return m.timeframe_12m()
+		case 'all':
+			return m.timeframe_all()
+	}
+}
+
+// The compact form for a segmented control: "30d", "6m".
+export function timeframePresetShortLabel(preset: TimeframePreset): string {
+	switch (preset) {
+		case '30d':
+			return m.timeframe_short_30d()
+		case '60d':
+			return m.timeframe_short_60d()
+		case '6m':
+			return m.timeframe_short_6m()
+		case '12m':
+			return m.timeframe_short_12m()
+		case 'all':
+			return m.timeframe_all()
+	}
+}
 
 export function presetCutoff(preset: TimeframePreset): Date | null {
 	if (preset === 'all') return null
@@ -50,8 +77,7 @@ export function matchesTimeframe(date: Date | string, value: TimeframeValue): bo
 
 export function formatTimeframeLabel(value: TimeframeValue): string {
 	if (value.kind === 'preset') {
-		const found = TIMEFRAME_PRESETS.find(p => p.value === value.preset)
-		return found ? found.label : 'All time'
+		return timeframePresetLabel(value.preset)
 	}
 	const sameYear = value.from.getFullYear() === value.to.getFullYear()
 	const sameDay = startOfDay(value.from).getTime() === startOfDay(value.to).getTime()

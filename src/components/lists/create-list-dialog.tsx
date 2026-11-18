@@ -23,9 +23,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { listTypeEnumValues, ListTypes } from '@/db/schema/enums'
+import { listTypeEnumValues } from '@/db/schema/enums'
 import { useSession } from '@/lib/auth-client'
 import { formatDate } from '@/lib/i18n/format'
+import { listTypeLabel } from '@/lib/i18n/labels'
 import { LIMITS } from '@/lib/validation/limits'
 
 type Props = {
@@ -253,7 +254,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 											{availableTypes.map(t => (
 												<SelectItem key={t} value={t}>
 													<ListTypeIcon type={t} className="size-4" />
-													{ListTypes[t]}
+													{listTypeLabel(t)}
 												</SelectItem>
 											))}
 										</SelectContent>

@@ -13,7 +13,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { type ListType, listTypeEnumValues, ListTypes } from '@/db/schema/enums'
+import { type ListType, listTypeEnumValues } from '@/db/schema/enums'
+import { listTypeLabel } from '@/lib/i18n/labels'
 import { itemsKeys } from '@/lib/queries/items'
 
 type Props = {
@@ -217,7 +218,7 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 											.filter(t => t !== 'giftideas' && t !== 'test')
 											.map(t => (
 												<SelectItem key={t} value={t}>
-													{ListTypes[t]}
+													{listTypeLabel(t)}
 												</SelectItem>
 											))}
 									</SelectContent>

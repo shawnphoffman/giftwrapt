@@ -50,20 +50,21 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAppSetting } from '@/hooks/use-app-settings'
 import { SUPPORTED_COUNTRIES } from '@/lib/holidays-countries'
+import { monthName } from '@/lib/i18n/labels'
 
-const MONTHS: ReadonlyArray<{ value: string; label: string; days: number }> = [
-	{ value: '1', label: 'January', days: 31 },
-	{ value: '2', label: 'February', days: 29 },
-	{ value: '3', label: 'March', days: 31 },
-	{ value: '4', label: 'April', days: 30 },
-	{ value: '5', label: 'May', days: 31 },
-	{ value: '6', label: 'June', days: 30 },
-	{ value: '7', label: 'July', days: 31 },
-	{ value: '8', label: 'August', days: 31 },
-	{ value: '9', label: 'September', days: 30 },
-	{ value: '10', label: 'October', days: 31 },
-	{ value: '11', label: 'November', days: 30 },
-	{ value: '12', label: 'December', days: 31 },
+const MONTHS: ReadonlyArray<{ value: string; days: number }> = [
+	{ value: '1', days: 31 },
+	{ value: '2', days: 29 },
+	{ value: '3', days: 31 },
+	{ value: '4', days: 30 },
+	{ value: '5', days: 31 },
+	{ value: '6', days: 30 },
+	{ value: '7', days: 31 },
+	{ value: '8', days: 31 },
+	{ value: '9', days: 30 },
+	{ value: '10', days: 31 },
+	{ value: '11', days: 30 },
+	{ value: '12', days: 31 },
 ]
 
 const customHolidaysQueryKey = ['admin-custom-holidays'] as const
@@ -555,7 +556,7 @@ function AddCustomDialog() {
 								<SelectContent>
 									{MONTHS.map(m => (
 										<SelectItem key={m.value} value={m.value}>
-											{m.label}
+											{monthName(Number(m.value))}
 										</SelectItem>
 									))}
 								</SelectContent>

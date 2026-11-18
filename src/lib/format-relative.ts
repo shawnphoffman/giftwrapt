@@ -2,6 +2,7 @@
 // tables. Client-safe (Intl only). Worded in the current locale.
 
 import { relativeTimeFormat } from '@/lib/i18n/format'
+import { m } from '@/paraglide/messages.js'
 
 const RELATIVE_UNITS: Array<{ unit: Intl.RelativeTimeFormatUnit; ms: number }> = [
 	{ unit: 'year', ms: 365 * 24 * 60 * 60 * 1000 },
@@ -13,15 +14,15 @@ const RELATIVE_UNITS: Array<{ unit: Intl.RelativeTimeFormatUnit; ms: number }> =
 ]
 
 export function formatRelative(iso: string | null | undefined, now: number = Date.now()): string {
-	if (!iso) return 'never'
+	if (!iso) return m.relative_never()
 	const d = new Date(iso)
-	if (Number.isNaN(d.getTime())) return 'unknown'
+	if (Number.isNaN(d.getTime())) return m.relative_unknown()
 	const diffMs = d.getTime() - now
 	const abs = Math.abs(diffMs)
-	if (abs < 60 * 1000) return 'just now'
+	if (abs < 60 * 1000) return m.relative_just_now()
 	const rtf = relativeTimeFormat()
 	for (const { unit, ms } of RELATIVE_UNITS) {
 		if (abs >= ms) return rtf.format(Math.round(diffMs / ms), unit)
 	}
-	return 'just now'
+	return m.relative_just_now()
 }

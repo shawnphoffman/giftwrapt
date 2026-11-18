@@ -5,7 +5,7 @@ import { RangeCalendarPopover } from '@/components/common/range-calendar-popover
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { formatTimeframeLabel, TIMEFRAME_PRESETS, type TimeframePreset, type TimeframeValue } from '@/lib/timeframe'
+import { formatTimeframeLabel, TIMEFRAME_PRESETS, type TimeframePreset, timeframePresetLabel, type TimeframeValue } from '@/lib/timeframe'
 
 type Props = { value: TimeframeValue; onChange: (next: TimeframeValue) => void }
 
@@ -30,9 +30,9 @@ export function PresetsPlusCustomList({ value, onChange }: Props) {
 					<SelectValue>{formatTimeframeLabel(value)}</SelectValue>
 				</SelectTrigger>
 				<SelectContent>
-					{TIMEFRAME_PRESETS.map(opt => (
-						<SelectItem key={opt.value} value={opt.value}>
-							{opt.label}
+					{TIMEFRAME_PRESETS.map(preset => (
+						<SelectItem key={preset} value={preset}>
+							{timeframePresetLabel(preset)}
 						</SelectItem>
 					))}
 					<SelectSeparator />

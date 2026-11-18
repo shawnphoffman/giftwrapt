@@ -5,7 +5,7 @@ import ItemRow from '@/components/items/item-row'
 import { Button } from '@/components/ui/button'
 import { Slider } from '@/components/ui/slider'
 import { useTextSize } from '@/hooks/use-text-size'
-import { applyTextSize, DEFAULT_TEXT_SIZE, TEXT_SIZE_NAMES, TEXT_SIZE_STEPS, type TextSize } from '@/lib/text-size'
+import { applyTextSize, DEFAULT_TEXT_SIZE, TEXT_SIZE_STEPS, type TextSize, textSizeName } from '@/lib/text-size'
 
 // A made-up wish list item for the preview. Rendered inert, so its Claim and
 // menu buttons look real but do nothing.
@@ -77,7 +77,7 @@ export function TextSizeSettings() {
 						value={[index]}
 						onValueChange={([i]) => choose(TEXT_SIZE_STEPS[i])}
 						aria-labelledby="text-size-label"
-						thumbProps={{ 'aria-labelledby': 'text-size-label', 'aria-valuetext': TEXT_SIZE_NAMES[size] }}
+						thumbProps={{ 'aria-labelledby': 'text-size-label', 'aria-valuetext': textSizeName(size) }}
 					/>
 					<span aria-hidden className="text-2xl font-semibold">
 						A
@@ -85,7 +85,7 @@ export function TextSizeSettings() {
 				</div>
 				<div className="flex min-h-8 items-center justify-between gap-3">
 					<p className="text-sm font-medium" aria-live="polite">
-						{TEXT_SIZE_NAMES[size]}
+						{textSizeName(size)}
 					</p>
 					{size !== DEFAULT_TEXT_SIZE && (
 						<Button variant="outline" size="sm" onClick={() => choose(DEFAULT_TEXT_SIZE)}>

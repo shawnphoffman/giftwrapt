@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { type BirthMonth, birthMonthEnumValues } from '@/db/schema/enums'
 import { useCurrentYear } from '@/hooks/use-current-year'
+import { monthName } from '@/lib/i18n/labels'
 
 import { BirthDaySelect } from '../common/birth-day-select'
 
@@ -21,21 +22,6 @@ type AdminUser = {
 	email: string
 	image: string | null
 	role: string
-}
-
-const monthLabels: Record<BirthMonth, string> = {
-	january: 'January',
-	february: 'February',
-	march: 'March',
-	april: 'April',
-	may: 'May',
-	june: 'June',
-	july: 'July',
-	august: 'August',
-	september: 'September',
-	october: 'October',
-	november: 'November',
-	december: 'December',
 }
 
 export function CreateDependentForm({ onCreated }: { onCreated?: () => void }) {
@@ -116,7 +102,7 @@ export function CreateDependentForm({ onCreated }: { onCreated?: () => void }) {
 						<SelectContent>
 							{birthMonthEnumValues.map(m => (
 								<SelectItem key={m} value={m}>
-									{monthLabels[m]}
+									{monthName(m)}
 								</SelectItem>
 							))}
 						</SelectContent>

@@ -8,28 +8,13 @@ import { getMyDependents } from '@/api/dependents'
 import DependentAvatar from '@/components/common/dependent-avatar'
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import type { BirthMonth } from '@/db/schema/enums'
+import { formatMonthDay } from '@/lib/i18n/labels'
 import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/settings/dependents')({
 	head: pageHead('Dependents'),
 	component: DependentsSettingsPage,
 })
-
-const monthLabels: Record<BirthMonth, string> = {
-	january: 'January',
-	february: 'February',
-	march: 'March',
-	april: 'April',
-	may: 'May',
-	june: 'June',
-	july: 'July',
-	august: 'August',
-	september: 'September',
-	october: 'October',
-	november: 'November',
-	december: 'December',
-}
 
 // Read-only view of the dependents the current user is a guardian of.
 // CRUD lives in the admin surface (/admin/dependents); ask an admin to
@@ -60,9 +45,7 @@ function DependentsSettingsPage() {
 					<div className="text-sm text-muted-foreground py-6 text-center">You aren't a guardian of any dependents yet.</div>
 				) : (
 					data.dependents.map(d => {
-						const birthLabel = d.birthMonth
-							? `${monthLabels[d.birthMonth]}${d.birthDay ? ` ${d.birthDay}` : ''}${d.birthYear ? `, ${d.birthYear}` : ''}`
-							: null
+						const birthLabel = d.birthMonth ? formatMonthDay(d.birthMonth, d.birthDay, d.birthYear) : null
 						return (
 							<div key={d.id} className="flex items-center gap-3 rounded-md border p-3">
 								<DependentAvatar name={d.name} image={d.image} size="medium" />

@@ -22,6 +22,7 @@ import { priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { MOBILE_DIALOG_QUERY, useKeyboardInset } from '@/hooks/use-keyboard-inset'
 import { useStorageStatus } from '@/hooks/use-storage-status'
+import { priorityLabel } from '@/lib/i18n/labels'
 import { useUpdateItem } from '@/lib/mutations/update-item'
 import { itemsKeys } from '@/lib/queries/items'
 import { applyScrapePrefill } from '@/lib/scrapers/apply-prefill'
@@ -59,13 +60,6 @@ type EditProps = BaseProps & {
 }
 
 type Props = CreateProps | EditProps
-
-const PriorityLabels: Record<string, string> = {
-	low: 'Low',
-	normal: 'Normal',
-	high: 'High',
-	'very-high': 'Very High',
-}
 
 const schema = z.object({
 	title: z.string().min(1, 'Title is required').max(LIMITS.ITEM_TITLE),
@@ -586,11 +580,11 @@ export function ItemFormDialog(props: Props) {
 											<ToggleGroupItem
 												key={p}
 												value={p}
-												aria-label={PriorityLabels[p] ?? p}
+												aria-label={priorityLabel(p)}
 												className="min-w-0 px-1.5 @max-[12.5rem]/priority:rounded-md! @max-[12.5rem]/priority:border! data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
 											>
 												{p !== 'normal' && <PriorityIcon priority={p} />}
-												<span className={p === 'normal' ? undefined : 'hidden sm:inline'}>{PriorityLabels[p] ?? p}</span>
+												<span className={p === 'normal' ? undefined : 'hidden sm:inline'}>{priorityLabel(p)}</span>
 											</ToggleGroupItem>
 										))}
 									</ToggleGroup>

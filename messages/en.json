@@ -3,5 +3,47 @@
 	"settings_language_title": "Language",
 	"settings_language_description": "The language of the app and of the emails it sends you.",
 	"settings_language_automatic": "Match My Browser",
-	"settings_language_error": "Couldn't change the language. Try again."
+	"settings_language_error": "Couldn't change the language. Try again.",
+	"priority_very_high": "Very High",
+	"priority_high": "High",
+	"priority_normal": "Normal",
+	"priority_low": "Low",
+	"list_type_wishlist": "Wish List",
+	"list_type_christmas": "Christmas",
+	"list_type_birthday": "Birthday",
+	"list_type_giftideas": "Gift Ideas",
+	"list_type_holiday": "Holiday",
+	"list_type_todos": "ToDo",
+	"list_type_test": "Test",
+	"list_two": "{first} & {second}",
+	"list_last": "{start} & {last}",
+	"relative_never": "never",
+	"relative_unknown": "unknown",
+	"relative_just_now": "just now",
+	"timeframe_30d": "Last 30 days",
+	"timeframe_60d": "Last 60 days",
+	"timeframe_6m": "Last 6 months",
+	"timeframe_12m": "Last 12 months",
+	"timeframe_all": "All time",
+	"timeframe_short_30d": "30d",
+	"timeframe_short_60d": "60d",
+	"timeframe_short_6m": "6m",
+	"timeframe_short_12m": "12m",
+	"text_size_smaller": "Smaller",
+	"text_size_small": "Small",
+	"text_size_default": "Default",
+	"text_size_large": "Large",
+	"text_size_larger": "Larger",
+	"day_today": "Today",
+	"day_tomorrow": "Tomorrow",
+	"count_days": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} day",
+				"countPlural=*": "{count} days"
+			}
+		}
+	]
 }

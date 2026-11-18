@@ -5,7 +5,14 @@ import { RangeCalendarPopover } from '@/components/common/range-calendar-popover
 import { SegmentedToggle } from '@/components/common/segmented-toggle'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { formatTimeframeLabel, TIMEFRAME_PRESETS, type TimeframePreset, type TimeframeValue } from '@/lib/timeframe'
+import {
+	formatTimeframeLabel,
+	TIMEFRAME_PRESETS,
+	type TimeframePreset,
+	timeframePresetLabel,
+	timeframePresetShortLabel,
+	type TimeframeValue,
+} from '@/lib/timeframe'
 
 type Props = { value: TimeframeValue; onChange: (next: TimeframeValue) => void }
 
@@ -15,10 +22,10 @@ export function DateRangeFilter({ value, onChange }: Props) {
 
 	const presetOptions = useMemo(
 		() =>
-			TIMEFRAME_PRESETS.map(opt => ({
-				value: opt.value,
-				label: opt.label.replace('Last ', '').replace(' days', 'd').replace(' months', 'm'),
-				ariaLabel: opt.label,
+			TIMEFRAME_PRESETS.map(preset => ({
+				value: preset,
+				label: timeframePresetShortLabel(preset),
+				ariaLabel: timeframePresetLabel(preset),
 			})),
 		[]
 	)

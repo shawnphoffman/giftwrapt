@@ -27,9 +27,10 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import type { ListType } from '@/db/schema/enums'
-import { listTypeEnumValues, ListTypes } from '@/db/schema/enums'
+import { listTypeEnumValues } from '@/db/schema/enums'
 import { useSession } from '@/lib/auth-client'
 import { formatDate } from '@/lib/i18n/format'
+import { listTypeLabel } from '@/lib/i18n/labels'
 import { evaluateListChangeImpact } from '@/lib/list-change-impact'
 import { itemsKeys } from '@/lib/queries/items'
 import { LIMITS } from '@/lib/validation/limits'
@@ -310,7 +311,7 @@ export function ListSettingsForm({
 									.map(t => (
 										<SelectItem key={t} value={t}>
 											<ListTypeIcon type={t} className="size-4" />
-											{ListTypes[t]}
+											{listTypeLabel(t)}
 										</SelectItem>
 									))}
 							</SelectContent>

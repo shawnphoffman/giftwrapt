@@ -23,6 +23,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { type BirthMonth, birthMonthEnumValues } from '@/db/schema/enums'
 import { useCurrentYear } from '@/hooks/use-current-year'
+import { monthName } from '@/lib/i18n/labels'
 
 import { BirthDaySelect } from '../common/birth-day-select'
 import DependentAvatar from '../common/dependent-avatar'
@@ -37,21 +38,6 @@ type AdminUser = {
 
 type AdminDependent = DependentSummary & {
 	guardians: Array<{ id: string; name: string | null; email: string; image: string | null }>
-}
-
-const monthLabels: Record<BirthMonth, string> = {
-	january: 'January',
-	february: 'February',
-	march: 'March',
-	april: 'April',
-	may: 'May',
-	june: 'June',
-	july: 'July',
-	august: 'August',
-	september: 'September',
-	october: 'October',
-	november: 'November',
-	december: 'December',
 }
 
 export function EditDependentDialog({
@@ -199,7 +185,7 @@ export function EditDependentDialog({
 								<SelectContent>
 									{birthMonthEnumValues.map(m => (
 										<SelectItem key={m} value={m}>
-											{monthLabels[m]}
+											{monthName(m)}
 										</SelectItem>
 									))}
 								</SelectContent>

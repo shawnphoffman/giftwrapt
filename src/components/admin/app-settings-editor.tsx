@@ -9,12 +9,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { ListTypes } from '@/db/schema'
+import { listTypeEnumValues } from '@/db/schema/enums'
 import { adminAppSettingsQueryKey, notifyAppSettingsChanged, useAdminAppSettings } from '@/hooks/use-app-settings'
 import { useIsEmailConfigured } from '@/hooks/use-is-email-configured'
 import { useObservabilityStatus } from '@/hooks/use-observability-status'
 import { useStorageStatus } from '@/hooks/use-storage-status'
 import { SUPPORTED_COUNTRIES } from '@/lib/holidays-countries'
+import { listTypeLabel } from '@/lib/i18n/labels'
 import { localeDisplayName, READY_LOCALES } from '@/lib/i18n/locales'
 import type { AppSettings } from '@/lib/settings'
 
@@ -99,7 +100,7 @@ export function CoreSettingsSection() {
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
-						{(Object.entries(ListTypes) as Array<[keyof typeof ListTypes, string]>).map(([type, label]) => {
+						{listTypeEnumValues.map(type => {
 							if (type === 'christmas' && !settings.enableChristmasLists) return null
 							if (type === 'birthday' && !settings.enableBirthdayLists) return null
 							if (type === 'holiday' && !settings.enableGenericHolidayLists) return null
@@ -107,7 +108,7 @@ export function CoreSettingsSection() {
 							if (type === 'test' && !IS_DEV) return null
 							return (
 								<SelectItem key={type} value={type}>
-									{label}
+									{listTypeLabel(type)}
 								</SelectItem>
 							)
 						})}

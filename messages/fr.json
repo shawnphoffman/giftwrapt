@@ -3,5 +3,47 @@
 	"settings_language_title": "Langue",
 	"settings_language_description": "La langue de l'application et des e-mails qu'elle vous envoie.",
 	"settings_language_automatic": "Suivre mon navigateur",
-	"settings_language_error": "Impossible de changer la langue. Réessayez."
+	"settings_language_error": "Impossible de changer la langue. Réessayez.",
+	"priority_very_high": "Très élevée",
+	"priority_high": "Élevée",
+	"priority_normal": "Normale",
+	"priority_low": "Faible",
+	"list_type_wishlist": "Liste de souhaits",
+	"list_type_christmas": "Noël",
+	"list_type_birthday": "Anniversaire",
+	"list_type_giftideas": "Idées cadeaux",
+	"list_type_holiday": "Fête",
+	"list_type_todos": "Tâches",
+	"list_type_test": "Test",
+	"list_two": "{first} et {second}",
+	"list_last": "{start} et {last}",
+	"relative_never": "jamais",
+	"relative_unknown": "inconnu",
+	"relative_just_now": "à l'instant",
+	"timeframe_30d": "30 derniers jours",
+	"timeframe_60d": "60 derniers jours",
+	"timeframe_6m": "6 derniers mois",
+	"timeframe_12m": "12 derniers mois",
+	"timeframe_all": "Depuis toujours",
+	"timeframe_short_30d": "30 j",
+	"timeframe_short_60d": "60 j",
+	"timeframe_short_6m": "6 mois",
+	"timeframe_short_12m": "12 mois",
+	"text_size_smaller": "Très petite",
+	"text_size_small": "Petite",
+	"text_size_default": "Par défaut",
+	"text_size_large": "Grande",
+	"text_size_larger": "Très grande",
+	"day_today": "Aujourd'hui",
+	"day_tomorrow": "Demain",
+	"count_days": [
+		{
+			"declarations": ["input count", "local countPlural = count: plural"],
+			"selectors": ["countPlural"],
+			"match": {
+				"countPlural=one": "{count} jour",
+				"countPlural=*": "{count} jours"
+			}
+		}
+	]
 }

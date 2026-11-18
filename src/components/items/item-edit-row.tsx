@@ -52,6 +52,7 @@ import {
 import type { GroupType, Priority } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { useSession } from '@/lib/auth-client'
+import { priorityLabel } from '@/lib/i18n/labels'
 import { useAssignItemsToGroup } from '@/lib/mutations/assign-items-to-group'
 import { useCreateGroupAndAssignItems } from '@/lib/mutations/create-group-and-assign'
 import { useDeleteItem } from '@/lib/mutations/delete-item'
@@ -72,11 +73,11 @@ import { QuantityRemainingBadge } from './quantity-remaining-badge'
 // Highest-to-lowest so the inline row reads left-to-right like the priority
 // scale. Icons/colors mirror PriorityIcon; 'normal' has no PriorityIcon glyph,
 // so it gets a neutral dash to stay visible in the icon picker.
-const PRIORITY_OPTIONS: ReadonlyArray<{ value: Priority; label: string; icon: typeof Zap; colorClass: string }> = [
-	{ value: 'very-high', label: 'Very High', icon: Zap, colorClass: 'text-yellow-500' },
-	{ value: 'high', label: 'High', icon: ArrowBigUp, colorClass: 'text-orange-500' },
-	{ value: 'normal', label: 'Normal', icon: Minus, colorClass: 'text-muted-foreground' },
-	{ value: 'low', label: 'Low', icon: ArrowBigDown, colorClass: 'text-blue-500' },
+const PRIORITY_OPTIONS: ReadonlyArray<{ value: Priority; icon: typeof Zap; colorClass: string }> = [
+	{ value: 'very-high', icon: Zap, colorClass: 'text-yellow-500' },
+	{ value: 'high', icon: ArrowBigUp, colorClass: 'text-orange-500' },
+	{ value: 'normal', icon: Minus, colorClass: 'text-muted-foreground' },
+	{ value: 'low', icon: ArrowBigDown, colorClass: 'text-blue-500' },
 ]
 
 type Props = {
@@ -296,8 +297,8 @@ export const ItemEditRow = memo(function ItemEditRow({
 													setMenuOpen(false)
 													void handleSetPriority(option.value)
 												}}
-												title={option.label}
-												aria-label={`Set priority: ${option.label}`}
+												title={priorityLabel(option.value)}
+												aria-label={`Set priority: ${priorityLabel(option.value)}`}
 												aria-pressed={selected}
 												className={cn(
 													'flex size-7 items-center justify-center rounded-sm transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-hidden',

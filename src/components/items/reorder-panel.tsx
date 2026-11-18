@@ -29,6 +29,7 @@ import { RemoteImage } from '@/components/common/remote-image'
 import { SegmentedToggle } from '@/components/common/segmented-toggle'
 import type { Priority } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
+import { priorityLabel } from '@/lib/i18n/labels'
 import { priorityRingClass } from '@/lib/priority-classes'
 import { itemsKeys } from '@/lib/queries/items'
 import { cn } from '@/lib/utils'
@@ -48,12 +49,6 @@ type Entry =
 type Bucket = Record<Priority, Array<EntryId>>
 
 const PRIORITY_ORDER: Array<Priority> = ['very-high', 'high', 'normal', 'low']
-const PRIORITY_LABEL: Record<Priority, string> = {
-	'very-high': 'Very high',
-	high: 'High',
-	normal: 'Normal',
-	low: 'Low',
-}
 
 const itemKey = (id: number) => `item-${id}`
 const groupKey = (id: number) => `group-${id}`
@@ -394,7 +389,7 @@ function BucketRow({
 		>
 			<div className="flex items-center gap-2 px-3 py-1.5 border-b bg-accent">
 				<PriorityIcon priority={priority} className="size-4 shrink-0" />
-				<span className="text-sm font-medium flex-1">{PRIORITY_LABEL[priority]}</span>
+				<span className="text-sm font-medium flex-1">{priorityLabel(priority)}</span>
 			</div>
 			<SortableContext items={ids} strategy={verticalListSortingStrategy}>
 				<div className="flex flex-col py-1 px-1 min-h-12 gap-1">

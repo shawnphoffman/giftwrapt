@@ -30,6 +30,7 @@ import { birthMonthEnumValues } from '@/db/schema/enums'
 import { UserSchema } from '@/db/schema/users'
 import { useAppSetting } from '@/hooks/use-app-settings'
 import { useSession } from '@/lib/auth-client'
+import { monthName } from '@/lib/i18n/labels'
 import { LIMITS } from '@/lib/validation/limits'
 
 import UserAvatar from '../common/user-avatar'
@@ -314,7 +315,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 								<SelectContent>
 									{birthMonthEnumValues.map(month => (
 										<SelectItem key={month} value={month}>
-											{month.charAt(0).toUpperCase() + month.slice(1)}
+											{monthName(month)}
 										</SelectItem>
 									))}
 								</SelectContent>
