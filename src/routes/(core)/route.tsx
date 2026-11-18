@@ -211,17 +211,26 @@ function AuthenticatedRoutes() {
 				</SidebarFooter>
 			</Sidebar>
 			<SidebarInset>
-				{/* <header className="sticky top-0 z-10 flex items-center justify-between h-12 gap-2 shrink-0 w-full"> */}
-				{/* The safe-area-inset-top padding below only adds height in iOS PWA
-				    standalone mode where `apple-mobile-web-app-status-bar-style:
-				    black-translucent` lets content render under the status bar;
-				    in regular Safari/desktop the inset is 0 so this is a no-op.
+				{/* Sticky so the sidebar toggle stays reachable on a scrolled page:
+				    below the `md` breakpoint (phones, an iPad mini PWA, the iOS web
+				    tab) it is the only way to open the navigation. The bar itself is
+				    transparent and ignores taps; only the toggle and breadcrumb
+				    pills (which carry their own background) take them, so content
+				    scrolling underneath stays clickable. z-30 keeps it above page
+				    content that sets its own z-index (the organize rows and toolbar).
+
+				    The safe-area-inset-top padding only adds height in iOS PWA
+				    standalone mode, where `apple-mobile-web-app-status-bar-style:
+				    black-translucent` lets content render under the status bar; in
+				    regular Safari/desktop the inset is 0 so it is a no-op. The
+				    `before` strip paints that inset with the page background so
+				    scrolled content never shows through behind the clock.
 				    NOTE: keep this comment free of any literal `pt-env(...)`
 				    pseudo-class string — Tailwind's content scanner extracts class
 				    names from comments too, and an ellipsis inside the bracket
 				    generates an invalid CSS rule that LightningCSS warns on. */}
-				<header className=" top-0 z-10 flex items-center justify-between h-12 gap-2 shrink-0 w-full pt-[env(safe-area-inset-top)] box-content">
-					<div className="flex items-center gap-2 w-fit rounded-lg px-4">
+				<header className="pointer-events-none sticky top-0 z-30 flex items-center justify-between h-12 gap-2 shrink-0 w-full pt-[env(safe-area-inset-top)] box-content before:absolute before:inset-x-0 before:top-0 before:h-[env(safe-area-inset-top)] before:bg-background">
+					<div className="pointer-events-auto flex items-center gap-2 w-fit rounded-lg px-4">
 						<SidebarTrigger className=" -ml-1 [&_svg]:size-6! bg-background/75" />
 						<div className="bg-background/75 rounded-lg px-2">
 							<NavBreadcrumbs />
