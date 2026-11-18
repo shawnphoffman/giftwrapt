@@ -24,6 +24,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { formatRelative } from '@/lib/format-relative'
 import { LIMITS } from '@/lib/validation/limits'
 import { pageHead } from '@/routes/-head'
 
@@ -296,26 +297,4 @@ function MintedKeyDialog({
 			</DialogContent>
 		</Dialog>
 	)
-}
-
-const RELATIVE_UNITS: Array<{ unit: Intl.RelativeTimeFormatUnit; ms: number }> = [
-	{ unit: 'year', ms: 365 * 24 * 60 * 60 * 1000 },
-	{ unit: 'month', ms: 30 * 24 * 60 * 60 * 1000 },
-	{ unit: 'week', ms: 7 * 24 * 60 * 60 * 1000 },
-	{ unit: 'day', ms: 24 * 60 * 60 * 1000 },
-	{ unit: 'hour', ms: 60 * 60 * 1000 },
-	{ unit: 'minute', ms: 60 * 1000 },
-]
-
-function formatRelative(iso: string): string {
-	const d = new Date(iso)
-	if (Number.isNaN(d.getTime())) return 'unknown'
-	const diffMs = d.getTime() - Date.now()
-	const abs = Math.abs(diffMs)
-	if (abs < 60 * 1000) return 'just now'
-	const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
-	for (const { unit, ms } of RELATIVE_UNITS) {
-		if (abs >= ms) return rtf.format(Math.round(diffMs / ms), unit)
-	}
-	return 'just now'
 }

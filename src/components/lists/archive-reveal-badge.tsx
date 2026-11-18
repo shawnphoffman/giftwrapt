@@ -3,22 +3,18 @@ import { useState } from 'react'
 import { badgeVariants } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import type { ArchiveBannerInfo } from '@/lib/archive-schedule-loader'
+import { formatDate } from '@/lib/i18n/format'
 import { cn } from '@/lib/utils'
 
 // Event and default reveal dates are calendar dates sent as UTC midnight of
 // the date, so they format in UTC; a defer is a real instant and formats in
 // the viewer's zone.
 function formatLong(iso: string, calendar: boolean): string {
-	return new Date(iso).toLocaleDateString('en-US', {
-		month: 'long',
-		day: 'numeric',
-		year: 'numeric',
-		timeZone: calendar ? 'UTC' : undefined,
-	})
+	return formatDate(iso, { month: 'long', day: 'numeric', year: 'numeric', timeZone: calendar ? 'UTC' : undefined })
 }
 
 function formatShort(iso: string, calendar: boolean): string {
-	return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: calendar ? 'UTC' : undefined })
+	return formatDate(iso, { month: 'short', day: 'numeric', timeZone: calendar ? 'UTC' : undefined })
 }
 
 // Gifting-view badge: a compact, tappable chip that sits inline with the list

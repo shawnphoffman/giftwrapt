@@ -1,4 +1,3 @@
-import { format, formatDistanceToNow } from 'date-fns'
 import { AlertTriangle, CheckCheck, ChevronDown, ChevronRight, Loader2, RefreshCw, RotateCcw, Sparkles } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
@@ -6,6 +5,7 @@ import DependentAvatar from '@/components/common/dependent-avatar'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { formatDate, formatTimeAgo } from '@/lib/i18n/format'
 import { cn } from '@/lib/utils'
 
 import type { IntelligencePageState, Recommendation, RecommendationAction, RecommendationSeverity, RecSubItem } from './__fixtures__/types'
@@ -425,7 +425,7 @@ function DismissedRow({ rec, onReactivate }: { rec: Recommendation; onReactivate
 					{rec.title}
 				</p>
 				<p data-intelligence="dismissed-meta" className="text-xs text-muted-foreground">
-					Dismissed {rec.dismissedAt ? formatDistanceToNow(rec.dismissedAt, { addSuffix: true }) : 'recently'}
+					Dismissed {rec.dismissedAt ? formatTimeAgo(rec.dismissedAt) : 'recently'}
 				</p>
 			</div>
 			<Button
@@ -487,14 +487,12 @@ function Header({
 			</p>
 			{(lastRunAt || showRefresh) && (
 				<div data-intelligence="page-meta-row" className="flex items-center justify-between gap-3 flex-wrap">
-					<div className="text-xs text-muted-foreground">
-						{lastRunAt ? <>Last updated {formatDistanceToNow(lastRunAt, { addSuffix: true })}</> : null}
-					</div>
+					<div className="text-xs text-muted-foreground">{lastRunAt ? <>Last updated {formatTimeAgo(lastRunAt)}</> : null}</div>
 					{showRefresh && (
 						<div data-intelligence="page-refresh-block" className="flex items-center gap-2">
 							{cooldownActive && nextEligibleRefreshAt && (
 								<span data-intelligence="page-cooldown-note" className="hidden sm:inline text-2xs text-muted-foreground whitespace-nowrap">
-									Available again {format(nextEligibleRefreshAt, 'p')}
+									Available again {formatDate(nextEligibleRefreshAt, { hour: 'numeric', minute: '2-digit' })}
 								</span>
 							)}
 							{filterSections && selectedListIds && onSelectedListIdsChange && (

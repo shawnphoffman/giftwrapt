@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import { formatNumber } from '@/lib/i18n/format'
 
 type Props = {
 	value: string
@@ -20,7 +21,7 @@ export function CharacterCounter({ value, max, className }: Props) {
 				className
 			)}
 		>
-			{len.toLocaleString()} / {max.toLocaleString()}
+			{formatNumber(len)} / {formatNumber(max)}
 		</span>
 	)
 }

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { TapTooltip, TapTooltipContent, TapTooltipTrigger } from '@/components/ui/tooltip'
+import { formatDate } from '@/lib/i18n/format'
 import { cn } from '@/lib/utils'
 
 const AVAILABILITY_DATE_FORMAT: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' }
@@ -110,9 +111,7 @@ export function QuantityRemainingBadge({
 	// variant follows its native shape but in a red treatment, with a tooltip
 	// showing the unavailable date when provided.
 	if (unavailable) {
-		const tooltip = unavailableChangedAt
-			? `Marked unavailable on ${new Date(unavailableChangedAt).toLocaleDateString('en-US', AVAILABILITY_DATE_FORMAT)}`
-			: null
+		const tooltip = unavailableChangedAt ? `Marked unavailable on ${formatDate(unavailableChangedAt, AVAILABILITY_DATE_FORMAT)}` : null
 
 		let pill: ReactNode
 		if (variant === 'inline') {

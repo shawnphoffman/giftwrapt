@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { formatNumber } from '@/lib/i18n/format'
 import { MAX_PASTE_CHARS } from '@/lib/paste-items/prompt'
 import { itemsKeys } from '@/lib/queries/items'
 
@@ -134,7 +135,7 @@ export function ImportDialogText({ listId, open, onOpenChange }: Props) {
 								autoFocus
 							/>
 							<div className={tooLong ? 'text-xs text-destructive' : 'text-xs text-muted-foreground'}>
-								{trimmed.length.toLocaleString()} of {MAX_PASTE_CHARS.toLocaleString()} characters
+								{formatNumber(trimmed.length)} of {formatNumber(MAX_PASTE_CHARS)} characters
 								{tooLong ? '. Paste a shorter piece.' : ''}
 							</div>
 						</div>

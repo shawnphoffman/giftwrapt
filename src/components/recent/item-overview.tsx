@@ -1,5 +1,4 @@
 import { Link } from '@tanstack/react-router'
-import { formatDistanceToNow } from 'date-fns'
 import { ArrowRight, MessageSquare } from 'lucide-react'
 
 import DependentAvatar from '@/components/common/dependent-avatar'
@@ -11,6 +10,7 @@ import UserAvatar from '@/components/common/user-avatar'
 import { Button } from '@/components/ui/button'
 import { TapTooltip, TapTooltipContent, TapTooltipTrigger, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { ListType, Priority } from '@/db/schema/enums'
+import { formatTimeAgo } from '@/lib/i18n/format'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
 import { cn } from '@/lib/utils'
 
@@ -56,7 +56,7 @@ export default function ItemOverview(props: ItemOverviewProps) {
 
 	const isDependentSubject = !!subjectDependentName
 	const ownerName = subjectDependentName ?? listOwnerName ?? listOwnerEmail
-	const when = formatDistanceToNow(new Date(createdAt), { addSuffix: true })
+	const when = formatTimeAgo(createdAt)
 	const hasPriorityTab = priority !== 'normal'
 
 	return (

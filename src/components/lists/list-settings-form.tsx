@@ -29,6 +29,7 @@ import { Separator } from '@/components/ui/separator'
 import type { ListType } from '@/db/schema/enums'
 import { listTypeEnumValues, ListTypes } from '@/db/schema/enums'
 import { useSession } from '@/lib/auth-client'
+import { formatDate } from '@/lib/i18n/format'
 import { evaluateListChangeImpact } from '@/lib/list-change-impact'
 import { itemsKeys } from '@/lib/queries/items'
 import { LIMITS } from '@/lib/validation/limits'
@@ -47,7 +48,7 @@ const schema = z.object({
 })
 
 function formatHolidayDate(d: Date): string {
-	return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+	return formatDate(d, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 const NO_RECIPIENT = '__none__'
@@ -537,7 +538,7 @@ export function ListSettingsForm({
 						<Label>Last Archived</Label>
 						<p className="text-muted-foreground text-xs">
 							{lastArchivedAt
-								? `Claimed gifts on this list were last revealed on ${new Date(lastArchivedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}.`
+								? `Claimed gifts on this list were last revealed on ${formatDate(lastArchivedAt, { month: 'long', day: 'numeric', year: 'numeric' })}.`
 								: 'Claimed gifts on this list have never been revealed yet.'}
 						</p>
 					</div>

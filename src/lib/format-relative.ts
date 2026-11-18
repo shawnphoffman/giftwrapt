@@ -1,5 +1,7 @@
 // "3 days ago" / "in 2 hours" formatting for timestamps in lists and
-// tables. Client-safe (Intl only).
+// tables. Client-safe (Intl only). Worded in the current locale.
+
+import { relativeTimeFormat } from '@/lib/i18n/format'
 
 const RELATIVE_UNITS: Array<{ unit: Intl.RelativeTimeFormatUnit; ms: number }> = [
 	{ unit: 'year', ms: 365 * 24 * 60 * 60 * 1000 },
@@ -17,7 +19,7 @@ export function formatRelative(iso: string | null | undefined, now: number = Dat
 	const diffMs = d.getTime() - now
 	const abs = Math.abs(diffMs)
 	if (abs < 60 * 1000) return 'just now'
-	const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
+	const rtf = relativeTimeFormat()
 	for (const { unit, ms } of RELATIVE_UNITS) {
 		if (abs >= ms) return rtf.format(Math.round(diffMs / ms), unit)
 	}

@@ -1,6 +1,7 @@
-import { format, isThisYear } from 'date-fns'
+import { isThisYear } from 'date-fns'
 
 import { TapTooltip, TapTooltipContent, TapTooltipTrigger } from '@/components/ui/tooltip'
+import { formatDate } from '@/lib/i18n/format'
 import { cn } from '@/lib/utils'
 
 type Props = {
@@ -12,8 +13,8 @@ export function DateAdded({ createdAt, className }: Props) {
 	if (!createdAt) return null
 	const date = createdAt instanceof Date ? createdAt : new Date(createdAt)
 	if (Number.isNaN(date.getTime())) return null
-	const short = isThisYear(date) ? format(date, 'MMM d') : format(date, 'MMM d, yyyy')
-	const full = format(date, 'MMM d, yyyy')
+	const full = formatDate(date, { month: 'short', day: 'numeric', year: 'numeric' })
+	const short = isThisYear(date) ? formatDate(date, { month: 'short', day: 'numeric' }) : full
 	return (
 		<TapTooltip>
 			<TapTooltipTrigger asChild>

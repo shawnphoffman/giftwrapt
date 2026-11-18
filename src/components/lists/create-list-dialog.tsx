@@ -25,6 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { listTypeEnumValues, ListTypes } from '@/db/schema/enums'
 import { useSession } from '@/lib/auth-client'
+import { formatDate } from '@/lib/i18n/format'
 import { LIMITS } from '@/lib/validation/limits'
 
 type Props = {
@@ -47,7 +48,7 @@ const schema = z.object({
 })
 
 function formatHolidayDate(d: Date): string {
-	return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+	return formatDate(d, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 export function CreateListDialog({ open, onOpenChange }: Props) {

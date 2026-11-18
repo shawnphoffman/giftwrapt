@@ -1,4 +1,6 @@
-import { endOfDay, format, startOfDay } from 'date-fns'
+import { endOfDay, startOfDay } from 'date-fns'
+
+import { formatDate } from '@/lib/i18n/format'
 
 export type TimeframePreset = '30d' | '60d' | '6m' | '12m' | 'all'
 
@@ -53,9 +55,10 @@ export function formatTimeframeLabel(value: TimeframeValue): string {
 	}
 	const sameYear = value.from.getFullYear() === value.to.getFullYear()
 	const sameDay = startOfDay(value.from).getTime() === startOfDay(value.to).getTime()
-	if (sameDay) return format(value.from, 'MMM d, yyyy')
-	if (sameYear) return `${format(value.from, 'MMM d')} – ${format(value.to, 'MMM d, yyyy')}`
-	return `${format(value.from, 'MMM d, yyyy')} – ${format(value.to, 'MMM d, yyyy')}`
+	const withYear = { month: 'short', day: 'numeric', year: 'numeric' } as const
+	if (sameDay) return formatDate(value.from, withYear)
+	if (sameYear) return `${formatDate(value.from, { month: 'short', day: 'numeric' })} – ${formatDate(value.to, withYear)}`
+	return `${formatDate(value.from, withYear)} – ${formatDate(value.to, withYear)}`
 }
 
 export const PRESET_DEFAULT: TimeframeValue = { kind: 'preset', preset: '6m' }

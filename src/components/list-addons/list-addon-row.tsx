@@ -1,6 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from '@tanstack/react-router'
-import { format } from 'date-fns'
 import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
@@ -27,6 +26,7 @@ import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { TapTooltip, TapTooltipContent, TapTooltipTrigger } from '@/components/ui/tooltip'
 import { useSession } from '@/lib/auth-client'
+import { formatDate } from '@/lib/i18n/format'
 import { applyListEventLocally } from '@/lib/list-events'
 
 import { ListAddonDialog } from './list-addon-dialog'
@@ -124,7 +124,7 @@ export function ListAddonRow({ addon, listId }: Props) {
 							</span>
 						</TapTooltipTrigger>
 						<TapTooltipContent>
-							Added by {isMine ? 'you' : name} on {format(addon.createdAt, 'MMM d, yyyy')}
+							Added by {isMine ? 'you' : name} on {formatDate(addon.createdAt, { month: 'short', day: 'numeric', year: 'numeric' })}
 						</TapTooltipContent>
 					</TapTooltip>
 					<span>{isMine ? 'You' : name}</span>

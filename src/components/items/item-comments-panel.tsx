@@ -1,5 +1,4 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { formatDistanceToNow } from 'date-fns'
 import { Pencil, Trash2 } from 'lucide-react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { type KeyboardEvent, useEffect, useId, useState } from 'react'
@@ -28,11 +27,15 @@ import {
 import { Button } from '@/components/ui/button'
 import { useSession } from '@/lib/auth-client'
 import { decodeMentionDraft, encodeMentionDraft, type MentionRef } from '@/lib/comment-mentions'
+import { formatDate, formatTimeAgo } from '@/lib/i18n/format'
 import { cn } from '@/lib/utils'
 import { LIMITS } from '@/lib/validation/limits'
 
 import { CommentBody } from './comment-body'
 import { MentionTextarea } from './mention-textarea'
+
+// The exact time of a comment, shown on hover.
+const FULL_TIMESTAMP = { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit' } as const
 
 type Props = {
 	itemId: number
@@ -227,8 +230,8 @@ function CommentRow({
 				<div className="flex-1 min-w-0">
 					<div className="flex items-baseline gap-1.5">
 						<span className="font-medium text-xs">{name}</span>
-						<span className="text-xs text-muted-foreground" title={new Date(comment.createdAt).toLocaleString()}>
-							{formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+						<span className="text-xs text-muted-foreground" title={formatDate(comment.createdAt, FULL_TIMESTAMP)}>
+							{formatTimeAgo(comment.createdAt)}
 						</span>
 					</div>
 					<AnimatePresence mode="wait" initial={false}>

@@ -4,6 +4,7 @@ import { DayPicker } from 'react-day-picker'
 
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { dateFnsLocale } from '@/lib/i18n/format'
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>
 
@@ -11,6 +12,7 @@ function Calendar({ className, classNames, showOutsideDays = true, captionLayout
 	const isDropdown = captionLayout === 'dropdown' || captionLayout === 'dropdown-months' || captionLayout === 'dropdown-years'
 	return (
 		<DayPicker
+			locale={dateFnsLocale()}
 			data-slot="calendar"
 			showOutsideDays={showOutsideDays}
 			captionLayout={captionLayout}

@@ -1,4 +1,4 @@
-import { format, startOfMonth } from 'date-fns'
+import { startOfMonth } from 'date-fns'
 import {
 	ChevronDown,
 	ChevronsDownUp,
@@ -45,10 +45,14 @@ const ChartCardFallback = () => (
 		<Skeleton className="h-60 w-full" />
 	</CardContent>
 )
+import { formatDate } from '@/lib/i18n/format'
 import { groupByPerson, type PersonGroup } from '@/lib/purchases-grouping'
 import { matchesTimeframe, type TimeframeValue } from '@/lib/timeframe'
 
 import { Separator } from '../ui/separator'
+
+// Chart axis label for a month: "Nov 26".
+const MONTH_LABEL = { month: 'short', year: '2-digit' } as const
 
 function toEditable(item: SummaryItem): EditablePurchase | null {
 	// Co-gifter claims aren't editable until we have UI for per-gifter spend.
@@ -100,7 +104,7 @@ function buildMonthlyBuckets(items: Array<SummaryItem>): Array<MonthBucket> {
 		if (d.getTime() > maxTime) maxTime = d.getTime()
 		let bucket = map.get(key)
 		if (!bucket) {
-			bucket = { month: format(d, 'MMM yy'), gifts: 0, addons: 0 }
+			bucket = { month: formatDate(d, MONTH_LABEL), gifts: 0, addons: 0 }
 			map.set(key, bucket)
 		}
 		const cost = item.cost ?? 0
@@ -113,7 +117,7 @@ function buildMonthlyBuckets(items: Array<SummaryItem>): Array<MonthBucket> {
 	const end = new Date(maxTime)
 	while (cursor.getTime() <= end.getTime()) {
 		const key = cursor.toISOString()
-		result.push(map.get(key) ?? { month: format(cursor, 'MMM yy'), gifts: 0, addons: 0 })
+		result.push(map.get(key) ?? { month: formatDate(cursor, MONTH_LABEL), gifts: 0, addons: 0 })
 		cursor.setMonth(cursor.getMonth() + 1)
 	}
 	return result
@@ -501,7 +505,7 @@ function PurchaseDetailRow({
 				</Badge>
 			)}
 			<Badge variant="outline" className="text-xs tabular-nums shrink-0">
-				{format(new Date(item.createdAt), 'MMM d')}
+				{formatDate(item.createdAt, { month: 'short', day: 'numeric' })}
 			</Badge>
 			{canSplit && (
 				<Button

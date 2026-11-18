@@ -5,6 +5,7 @@ import { PageHeading } from '@/components/common/page-heading'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import type { ChangelogRelease, ChangelogSectionKind } from '@/lib/changelog'
+import { formatCalendarDate } from '@/lib/i18n/format'
 import { cn } from '@/lib/utils'
 
 const INITIAL_RELEASES = 5
@@ -23,7 +24,7 @@ type Props = {
 
 function formatReleaseDate(iso: string): string {
 	// Release dates are calendar days; format in UTC so they never shift a day.
-	return new Date(`${iso}T00:00:00Z`).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })
+	return formatCalendarDate(`${iso}T00:00:00Z`, { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 // Entries are plain text with the occasional `code` span.

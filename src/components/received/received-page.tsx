@@ -1,4 +1,3 @@
-import { format } from 'date-fns'
 import { ChevronDown, ChevronsDownUp, ChevronsUpDown, ExternalLink, Gift, PackageOpen, PackagePlus, PenLine } from 'lucide-react'
 import { Fragment, useMemo, useState } from 'react'
 
@@ -13,6 +12,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { formatDate } from '@/lib/i18n/format'
 import { type GifterUnitGroup, groupByGifterUnit, type ReceivedRow } from '@/lib/received-grouping'
 import { matchesTimeframe, type TimeframeValue } from '@/lib/timeframe'
 
@@ -288,7 +288,7 @@ function ReceivedDetailRow({ row }: { row: ReceivedRow }) {
 				</Badge>
 			)}
 			<Badge variant="outline" className="text-xs tabular-nums shrink-0">
-				{format(new Date(row.createdAt), 'MMM d')}
+				{formatDate(row.createdAt, { month: 'short', day: 'numeric' })}
 			</Badge>
 		</div>
 	)

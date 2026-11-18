@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { formatDate as formatLocaleDate } from '@/lib/i18n/format'
 
 // A row as surfaced from `authClient.useListPasskeys()`. We narrow to
 // just the fields the UI uses so the panel doesn't depend on the full
@@ -241,5 +242,5 @@ export function describeDevice(deviceType: string | null | undefined): string {
 export function formatDate(value: Date | string): string {
 	const d = typeof value === 'string' ? new Date(value) : value
 	if (Number.isNaN(d.getTime())) return ''
-	return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+	return formatLocaleDate(d, { month: 'short', day: 'numeric', year: 'numeric' })
 }

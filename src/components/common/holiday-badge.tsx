@@ -1,4 +1,5 @@
 import { Badge } from '@/components/ui/badge'
+import { formatCalendarDate } from '@/lib/i18n/format'
 
 type HolidayBadgeProps = {
 	// ISO 8601 (UTC start-of-day) date string from the server. Null
@@ -13,14 +14,6 @@ function daysFromTodayUtc(target: Date, now: Date): number {
 	return Math.round((targetDay - today) / (1000 * 60 * 60 * 24))
 }
 
-const shortDateFormatter = (sameYear: boolean) =>
-	new Intl.DateTimeFormat(undefined, {
-		month: 'short',
-		day: 'numeric',
-		year: sameYear ? undefined : 'numeric',
-		timeZone: 'UTC',
-	})
-
 export default function HolidayBadge({ date }: HolidayBadgeProps) {
 	if (!date) return null
 	const target = new Date(date)
@@ -32,7 +25,7 @@ export default function HolidayBadge({ date }: HolidayBadgeProps) {
 		const sameYear = target.getUTCFullYear() === now.getUTCFullYear()
 		return (
 			<Badge variant="outline" className="text-muted-foreground whitespace-nowrap">
-				{shortDateFormatter(sameYear).format(target)}
+				{formatCalendarDate(target, { month: 'short', day: 'numeric', year: sameYear ? undefined : 'numeric' })}
 			</Badge>
 		)
 	}

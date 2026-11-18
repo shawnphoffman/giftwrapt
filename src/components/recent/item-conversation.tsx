@@ -1,5 +1,4 @@
 import { Link } from '@tanstack/react-router'
-import { formatDistanceToNow } from 'date-fns'
 import { ArrowRight, MessageSquare } from 'lucide-react'
 
 import DependentAvatar from '@/components/common/dependent-avatar'
@@ -12,6 +11,7 @@ import { CommentBody } from '@/components/items/comment-body'
 import { Button } from '@/components/ui/button'
 import { TapTooltip, TapTooltipContent, TapTooltipTrigger, Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import type { ListType, Priority } from '@/db/schema/enums'
+import { formatTimeAgo } from '@/lib/i18n/format'
 import { priorityRingClass, priorityTabBgClass } from '@/lib/priority-classes'
 import { cn } from '@/lib/utils'
 
@@ -70,7 +70,7 @@ export default function ItemConversation(props: ItemConversationProps) {
 
 	const isDependentSubject = !!subjectDependentName
 	const ownerName = subjectDependentName ?? listOwnerName ?? listOwnerEmail
-	const when = formatDistanceToNow(new Date(createdAt), { addSuffix: true })
+	const when = formatTimeAgo(createdAt)
 	const hasPriorityTab = priority !== 'normal'
 	const hiddenComments = Math.max(0, commentCount - comments.length)
 
@@ -186,9 +186,7 @@ export default function ItemConversation(props: ItemConversationProps) {
 										<div className="flex-1 min-w-0 flex flex-col gap-1">
 											<div className="flex items-center gap-2 min-w-0">
 												<span className="text-sm font-medium truncate">{commenterName}</span>
-												<span className="text-xs text-muted-foreground shrink-0">
-													{formatDistanceToNow(new Date(c.createdAt), { addSuffix: true })}
-												</span>
+												<span className="text-xs text-muted-foreground shrink-0">{formatTimeAgo(c.createdAt)}</span>
 											</div>
 											<div className="text-sm text-foreground/85 whitespace-pre-wrap line-clamp-3">
 												<CommentBody text={c.comment} />
