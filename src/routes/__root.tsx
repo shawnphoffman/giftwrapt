@@ -19,6 +19,7 @@ import { isEmbeddedUserAgent } from '@/lib/embedded'
 import { captureClientException } from '@/lib/observability/sentry-client'
 import { SKULLET_THEME } from '@/lib/skullet'
 import { readTextSizeCookie, resolveTextSize, TEXT_SIZE_COOKIE, type TextSize, textSizeStyle } from '@/lib/text-size'
+import { getLocale } from '@/paraglide/runtime.js'
 
 import ErrorBoundaryFallback from './-error-boundary'
 import Head from './-head'
@@ -89,7 +90,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 		select: st => (st.matches.find(m => m.routeId === '__root__')?.loaderData as { textSize?: TextSize } | undefined)?.textSize,
 	})
 	return (
-		<html lang="en" className="dark" style={textSize ? textSizeStyle(textSize) : undefined} suppressHydrationWarning>
+		<html lang={getLocale()} className="dark" style={textSize ? textSizeStyle(textSize) : undefined} suppressHydrationWarning>
 			<head>
 				<HeadContent />
 			</head>

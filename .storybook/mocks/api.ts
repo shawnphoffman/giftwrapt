@@ -146,6 +146,7 @@ export function __setStorybookGiftIdeasRecipients(recipients: Array<StorybookGif
 export const getGiftIdeasRecipients = (): Promise<Array<StorybookGiftIdeasRecipient>> => Promise.resolve(storybookGiftIdeasRecipients)
 export const updateUserProfile = ok
 export const updateUserPassword = ok
+export const updateUserLocale = (): Promise<{ kind: 'ok'; locale: string | null }> => Promise.resolve({ kind: 'ok', locale: null })
 
 // @/api/lists
 export const getListForViewing = () => Promise.resolve({ kind: 'ok' as const, list: null })

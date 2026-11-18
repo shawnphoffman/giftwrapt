@@ -191,6 +191,7 @@ export async function restoreBackupTablesImpl(args: {
 							image: row.image,
 							partnerId: null,
 							partnerAnniversary: row.partnerAnniversary ?? null,
+							locale: row.locale ?? null,
 							emailVerified: row.emailVerified,
 							createdAt: row.createdAt,
 							updatedAt: row.updatedAt,

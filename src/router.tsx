@@ -9,11 +9,15 @@ import Loading from './components/loading'
 import { RouteErrorFallback } from './components/utilities/route-error-fallback'
 import * as TanstackQuery from './integrations/tanstack-query/root-provider'
 import { setupChunkReloadHandler } from './lib/chunk-reload'
+import { installClientLocaleStrategy } from './lib/i18n/client'
 import NotFound from './routes/-not-found'
 import { routeTree } from './routeTree.gen'
 
 export const getRouter = () => {
 	setupChunkReloadHandler()
+	// Before anything renders: message functions ask the strategy for the
+	// locale on first use.
+	installClientLocaleStrategy()
 
 	const rqContext = TanstackQuery.getContext()
 

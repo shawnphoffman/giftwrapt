@@ -41,6 +41,7 @@ const userRowSchema = z.object({
 	image: z.string().nullable(),
 	partnerId: z.string().nullable(),
 	partnerAnniversary: z.string().nullable().optional(),
+	locale: z.string().nullable().optional(),
 	// `twoFactorEnabled` is deliberately NOT backed up. The TOTP secret
 	// lives in the better-auth `twoFactor` table, which (like sessions,
 	// accounts, and passkeys) is never exported. Restoring the flag

@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 
+import { LanguageSettings } from '@/components/settings/language-settings'
 import { TextSizeSettings } from '@/components/settings/text-size-settings'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { pageHead } from '@/routes/-head'
@@ -16,8 +17,9 @@ function AppearancePage() {
 				<CardTitle className="text-2xl">Appearance</CardTitle>
 				<CardDescription>How the app looks on this device.</CardDescription>
 			</CardHeader>
-			<CardContent>
+			<CardContent className="space-y-8">
 				<TextSizeSettings />
+				<LanguageSettings />
 			</CardContent>
 		</Card>
 	)

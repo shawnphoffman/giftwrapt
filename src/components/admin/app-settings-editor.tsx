@@ -15,6 +15,7 @@ import { useIsEmailConfigured } from '@/hooks/use-is-email-configured'
 import { useObservabilityStatus } from '@/hooks/use-observability-status'
 import { useStorageStatus } from '@/hooks/use-storage-status'
 import { SUPPORTED_COUNTRIES } from '@/lib/holidays-countries'
+import { localeDisplayName, READY_LOCALES } from '@/lib/i18n/locales'
 import type { AppSettings } from '@/lib/settings'
 
 const IS_DEV = import.meta.env.DEV
@@ -126,6 +127,32 @@ export function CoreSettingsSection() {
 				</div>
 				<TimeZonePicker id="timeZone" value={settings.timeZone} onChange={value => handleSettingChange('timeZone', value)} />
 			</div>
+
+			{/* Shown once more than one language is offered (plan 36b). */}
+			{READY_LOCALES.length > 1 && (
+				<div className="flex items-center justify-between gap-4">
+					<div className="space-y-0.5">
+						<Label htmlFor="defaultLocale" className="text-base">
+							Default Language
+						</Label>
+						<p className="text-sm text-muted-foreground">
+							Used for people who have not chosen a language and whose browser asks for none of the ones offered, and for emails to them.
+						</p>
+					</div>
+					<Select value={settings.defaultLocale} onValueChange={value => handleSettingChange('defaultLocale', value)}>
+						<SelectTrigger id="defaultLocale" className="w-35">
+							<SelectValue />
+						</SelectTrigger>
+						<SelectContent>
+							{READY_LOCALES.map(locale => (
+								<SelectItem key={locale} value={locale} lang={locale}>
+									{localeDisplayName(locale)}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
+			)}
 
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">

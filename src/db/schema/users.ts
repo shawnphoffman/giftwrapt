@@ -38,6 +38,12 @@ export const users = pgTable(
 		// TOTP enrollment. Read by the sign-in flow to know whether to
 		// route to the 2FA challenge after a successful password.
 		twoFactorEnabled: boolean('two_factor_enabled').default(false).notNull(),
+		// The language the user chose (a locale code such as 'en' or 'fr'), or
+		// null to follow the browser and the deployment default. Stored on the
+		// account, unlike text size, because emails are written in it. Web
+		// requests read the `gw-locale` cookie, which is set from this at
+		// sign-in and whenever it changes. See src/lib/i18n/locales.ts.
+		locale: text('locale'),
 		...timestamps,
 		// TO_REVIEW
 		emailVerified: boolean('email_verified').default(false).notNull(),

@@ -24,6 +24,7 @@ import {
 import { env } from '@/env'
 import { MOBILE_WEB_HANDOFF_PATH, mobileWebHandoff } from '@/lib/auth-plugins/mobile-web-handoff'
 import { fanOutToGuardians } from '@/lib/guardian-emails'
+import { isReadyLocale, LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE } from '@/lib/i18n/locales'
 import { createLogger } from '@/lib/logger'
 import {
 	MCP_ACCESS_TOKEN_TTL_SECONDS,
@@ -262,6 +263,23 @@ const options = {
 				throw new APIError('FORBIDDEN', { message: 'Sign-ups are closed on this server.' })
 			}
 		}),
+		// Any endpoint that just created a session (password, passkey, OIDC,
+		// the two-factor challenge, the iOS handoff) also copies the account's
+		// language into the `gw-locale` cookie, so a new device renders in it
+		// from the next request on. An account with no choice leaves the
+		// cookie alone.
+		// eslint-disable-next-line @typescript-eslint/require-await -- createAuthMiddleware takes an async handler
+		after: createAuthMiddleware(async ctx => {
+			const locale = (ctx.context.newSession?.user as { locale?: string | null } | undefined)?.locale
+			if (!isReadyLocale(locale)) return
+			ctx.setCookie(LOCALE_COOKIE, locale, {
+				path: '/',
+				maxAge: LOCALE_COOKIE_MAX_AGE,
+				sameSite: 'lax',
+				secure: authOrigin.startsWith('https://') && !env.INSECURE_COOKIES,
+				httpOnly: false,
+			})
+		}),
 	},
 	// First-admin bootstrap: if no admin exists yet, the next signup becomes one.
 	// Covers the fresh-deploy case (empty DB) and also the recovery case where
@@ -423,6 +441,13 @@ const options = {
 				required: false,
 				input: false,
 			},
+			// Server-owned: written by updateUserLocale, which validates it
+			// against the offered locales and keeps the cookie in step.
+			locale: {
+				type: 'string',
+				required: false,
+				input: false,
+			},
 		},
 	},
 	session: {
@@ -497,6 +522,13 @@ export const auth = betterAuth({
 				input: false,
 			},
 			partnerAnniversary: {
+				type: 'string',
+				required: false,
+				input: false,
+			},
+			// Server-owned: written by updateUserLocale, which validates it
+			// against the offered locales and keeps the cookie in step.
+			locale: {
 				type: 'string',
 				required: false,
 				input: false,

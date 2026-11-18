@@ -15,6 +15,7 @@ import { appSettings } from '@/db/schema'
 import type { ListType } from '@/db/schema/enums'
 import { DEFAULT_TIME_ZONE, isValidTimeZone } from '@/lib/calendar-day'
 import { isValidSearchUrlTemplate } from '@/lib/gift-suggestions/search-url'
+import { DEFAULT_LOCALE, isReadyLocale } from '@/lib/i18n/locales'
 
 // 1) Shape of settings used across the app.
 // Defaults live in DEFAULT_APP_SETTINGS below, NOT on the schema fields:
@@ -352,6 +353,10 @@ export const appSettingsSchema = z.object({
 	// archive-schedule banner. Crons fire at fixed UTC times, so pick a
 	// schedule that lands after local midnight. See `lib/calendar-day.ts`.
 	timeZone: z.string().refine(isValidTimeZone, 'Unknown time zone'),
+	// The language a request renders in when the user has not chosen one and
+	// their browser asks for nothing we offer, and the language of emails to
+	// users with no choice stored. A locale code; see `lib/i18n/locales.ts`.
+	defaultLocale: z.string().refine(isReadyLocale, 'Unknown language'),
 	// When true, item save (create/update) will fetch any non-storage
 	// imageUrl, run it through the image pipeline, and persist the
 	// resulting storage URL instead of the original. Best-effort: a
@@ -661,6 +666,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	enableAnniversaryReminderEmails: false,
 	relationshipRemindersCountry: 'US',
 	timeZone: DEFAULT_TIME_ZONE,
+	defaultLocale: DEFAULT_LOCALE,
 	mirrorExternalImagesOnSave: false,
 	enableMobileApp: false,
 	enableMcp: false,

@@ -168,6 +168,7 @@ async function seedEveryColumn(tx: SchemaDatabase) {
 			image: 'https://cdn.test/owner.png',
 			partnerId: 'bk_partner',
 			partnerAnniversary: '2015-06-20',
+			locale: 'en',
 			twoFactorEnabled: true,
 			emailVerified: true,
 			...stamps,

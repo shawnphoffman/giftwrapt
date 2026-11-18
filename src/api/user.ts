@@ -1,12 +1,15 @@
 import { createServerFn } from '@tanstack/react-start'
-import { getRequestHeaders } from '@tanstack/react-start/server'
+import { deleteCookie, getRequestHeaders, setCookie } from '@tanstack/react-start/server'
 import { and, asc, eq, ne, notInArray } from 'drizzle-orm'
 import { z } from 'zod'
 
+import { updateUserLocaleImpl } from '@/api/_user-locale-impl'
 import { db } from '@/db'
 import type { BirthMonth } from '@/db/schema'
 import { userRelationships, users } from '@/db/schema'
+import { env } from '@/env'
 import { auth } from '@/lib/auth'
+import { LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE } from '@/lib/i18n/locales'
 import { createLogger, loggingMiddleware } from '@/lib/logger'
 import { applyPartnerAndAnniversary } from '@/lib/partner-update'
 import { LIMITS } from '@/lib/validation/limits'
@@ -209,4 +212,27 @@ export const updateUserPassword = createServerFn({
 		passwordLog.info({ userId, revokedKeys: revoked.revoked }, 'password change: revoked mobile apiKeys')
 
 		return { success: true }
+	})
+
+// Saves the signed-in user's language, or clears it (null) to follow the
+// browser and the deployment default again. Also updates the `gw-locale`
+// cookie the server reads on every request, so the caller only has to reload
+// the page to see the new language.
+export const updateUserLocale = createServerFn({
+	method: 'POST',
+})
+	.middleware([authMiddleware, loggingMiddleware])
+	.inputValidator((data: { locale: string | null }) => z.object({ locale: z.string().max(35).nullable() }).parse(data))
+	.handler(async ({ context, data }) => {
+		const result = await updateUserLocaleImpl({ userId: context.session.user.id, locale: data.locale, dbx: db })
+		if (result.kind === 'error') return result
+		if (result.locale) {
+			// Same rule as the auth cookies: Secure whenever the deployment is
+			// served over HTTPS.
+			const secure = (env.BETTER_AUTH_URL ?? '').startsWith('https://') && !env.INSECURE_COOKIES
+			setCookie(LOCALE_COOKIE, result.locale, { path: '/', maxAge: LOCALE_COOKIE_MAX_AGE, sameSite: 'lax', secure, httpOnly: false })
+		} else {
+			deleteCookie(LOCALE_COOKIE, { path: '/' })
+		}
+		return result
 	})
