@@ -4,6 +4,7 @@ import { Component } from 'react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { m } from '@/paraglide/messages.js'
 
 interface ErrorBoundaryProps {
 	children: ReactNode
@@ -50,11 +51,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 				<div className="flex flex-col items-center justify-center min-h-100 p-4">
 					<Alert variant="destructive" className="max-w-md">
 						<AlertTriangle className="h-4 w-4" />
-						<AlertTitle>Something went wrong</AlertTitle>
-						<AlertDescription className="mt-2">{this.state.error.message || 'An unexpected error occurred'}</AlertDescription>
+						<AlertTitle>{m.error_something_went_wrong()}</AlertTitle>
+						<AlertDescription className="mt-2">{this.state.error.message || m.error_unexpected()}</AlertDescription>
 						<div className="mt-4">
 							<Button onClick={this.reset} variant="outline" size="sm">
-								Try Again
+								{m.action_try_again()}
 							</Button>
 						</div>
 					</Alert>

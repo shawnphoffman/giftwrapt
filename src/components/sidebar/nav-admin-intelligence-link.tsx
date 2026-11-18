@@ -2,6 +2,7 @@ import { WandSparkles } from 'lucide-react'
 
 import { useAppSetting } from '@/hooks/use-app-settings'
 import { useSession } from '@/lib/auth-client'
+import { m } from '@/paraglide/messages.js'
 
 import { NavItem } from './nav-section'
 
@@ -14,7 +15,7 @@ export default function AdminIntelligenceNavLink() {
 	}
 
 	const item: NavItem = {
-		name: 'Intelligence',
+		name: () => m.nav_intelligence(),
 		url: '/admin/intelligence',
 		icon: WandSparkles,
 		hoverColor:

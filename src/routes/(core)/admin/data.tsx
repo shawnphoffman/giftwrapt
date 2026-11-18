@@ -5,10 +5,11 @@ import ImportData from '@/components/admin/import-data'
 import PurgeData from '@/components/admin/purge-data'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ClientOnly } from '@/components/utilities/client-only'
+import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/admin/data')({
-	head: pageHead('Data'),
+	head: pageHead(() => m.page_data()),
 	component: AdminDataPage,
 })
 

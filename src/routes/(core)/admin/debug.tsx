@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAdminAppSettings } from '@/hooks/use-app-settings'
 import { useSession } from '@/lib/auth-client'
 import { BUILD_INFO } from '@/lib/build-info'
+import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/admin/debug')({
-	head: pageHead('Debug'),
+	head: pageHead(() => m.page_debug()),
 	component: AdminDebugPage,
 })
 

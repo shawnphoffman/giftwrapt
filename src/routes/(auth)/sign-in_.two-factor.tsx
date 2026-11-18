@@ -6,12 +6,13 @@ import { TwoFactorChallengePageContent, type TwoFactorMode } from '@/components/
 import { useEmbedded } from '@/hooks/use-embedded'
 import { authClient } from '@/lib/auth-client'
 import { safeRedirect } from '@/lib/safe-redirect'
+import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
 type Search = { redirect?: string }
 
 export const Route = createFileRoute('/(auth)/sign-in_/two-factor')({
-	head: pageHead('Two-Factor Code'),
+	head: pageHead(() => m.page_two_factor_code()),
 	validateSearch: (search: Record<string, unknown>): Search => {
 		return typeof search.redirect === 'string' ? { redirect: search.redirect } : {}
 	},

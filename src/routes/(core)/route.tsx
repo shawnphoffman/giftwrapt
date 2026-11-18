@@ -36,6 +36,7 @@ import { postToNativeBridge } from '@/lib/embedded'
 import { useVersionCheck } from '@/lib/use-version-check'
 import { cn } from '@/lib/utils'
 import { authMiddleware } from '@/middleware/auth'
+import { m } from '@/paraglide/messages.js'
 
 const checkSession = createServerFn({ method: 'GET' }).handler(async () => {
 	const session = await auth.api.getSession({ headers: getRequestHeaders() })
@@ -69,7 +70,7 @@ export const Route = createFileRoute('/(core)')({
 	},
 })
 const suggestionsNav: NavItem = {
-	name: 'Suggestions',
+	name: () => m.nav_suggestions(),
 	url: '/suggestions',
 	icon: Sparkles,
 	hoverColor: 'group-hover/link:text-fuchsia-500 group-data-[status=active]/link:text-fuchsia-500 animate-throb',
@@ -79,14 +80,14 @@ const suggestionsNav: NavItem = {
 
 const mainBase: Array<NavItem> = [
 	{
-		name: 'All Lists',
+		name: () => m.nav_all_lists(),
 		url: '/',
 		icon: ListChecks,
 		hoverColor: 'group-hover/link:text-green-500 group-data-[status=active]/link:text-green-500',
 		activeMatch: p => p.startsWith('/lists/') && !p.endsWith('/edit') && !p.endsWith('/bulk') && !p.endsWith('/organize'),
 	},
 	{
-		name: 'My Lists',
+		name: () => m.nav_my_lists(),
 		url: '/me',
 		icon: ListOrdered,
 		hoverColor: 'group-hover/link:text-red-500 group-data-[status=active]/link:text-red-500',
@@ -96,7 +97,7 @@ const mainBase: Array<NavItem> = [
 
 const purchases: Array<NavItem> = [
 	{
-		name: 'Purchases',
+		name: () => m.nav_purchases(),
 		url: '/purchases',
 		hoverColor: 'group-hover/link:text-pink-500 group-data-[status=active]/link:text-pink-500',
 		icon: Receipt,
@@ -105,7 +106,7 @@ const purchases: Array<NavItem> = [
 		},
 	},
 	{
-		name: 'Received',
+		name: () => m.nav_received(),
 		url: '/purchases/received',
 		hoverColor: 'group-hover/link:text-cyan-500 group-data-[status=active]/link:text-cyan-500',
 		icon: PackageOpen,
@@ -113,7 +114,7 @@ const purchases: Array<NavItem> = [
 ]
 
 const addItemAction: NavItem = {
-	name: 'Add Item',
+	name: () => m.nav_add_item(),
 	url: '/me#add-item',
 	mask: '/me',
 	icon: SquarePlus,
@@ -136,7 +137,7 @@ const addItemActionEmbedded: NavItem = {
 const actions: Array<NavItem> = [
 	addItemAction,
 	{
-		name: 'Create List',
+		name: () => m.nav_create_list(),
 		url: '/me#new',
 		mask: '/me',
 		icon: ListPlus,
@@ -149,13 +150,13 @@ const actions: Array<NavItem> = [
 
 const feeds: Array<NavItem> = [
 	{
-		name: 'Items',
+		name: () => m.nav_recent_items(),
 		url: '/recent/items',
 		icon: Inbox,
 		hoverColor: 'group-hover/link:text-purple-500 group-data-[status=active]/link:text-purple-500',
 	},
 	{
-		name: 'Comments',
+		name: () => m.nav_recent_comments(),
 		url: '/recent/comments',
 		icon: MessagesSquare,
 		hoverColor: 'group-hover/link:text-teal-500 group-data-[status=active]/link:text-teal-500',
@@ -198,10 +199,10 @@ function AuthenticatedRoutes() {
 					</SidebarMenu>
 				</SidebarHeader>
 				<SidebarContent>
-					<NavSection title="Lists" items={main} />
-					<NavSection title="Actions" items={actionItems} />
-					<NavSection title="Purchases" items={purchases} />
-					<NavSection title="Recent" items={feeds} />
+					<NavSection title={m.nav_section_lists()} items={main} />
+					<NavSection title={m.nav_section_actions()} items={actionItems} />
+					<NavSection title={m.nav_section_purchases()} items={purchases} />
+					<NavSection title={m.nav_section_recent()} items={feeds} />
 					<NavBottom />
 				</SidebarContent>
 				<SidebarFooter>

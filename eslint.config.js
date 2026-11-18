@@ -3,6 +3,15 @@ import storybook from 'eslint-plugin-storybook'
 import { tanstackConfig } from '@tanstack/eslint-config'
 import prettierConfig from 'eslint-config-prettier'
 import simpleImportSort from 'eslint-plugin-simple-import-sort'
+import i18next from 'eslint-plugin-i18next'
+
+// Directories whose user-visible strings are fully in the message catalog.
+const I18N_EXTRACTED = [
+	'src/components/sidebar/**/*.tsx',
+	'src/components/utilities/**/*.tsx',
+	'src/routes/-*.tsx',
+	'src/routes/(core)/route.tsx',
+]
 
 export default [
 	...tanstackConfig,
@@ -44,6 +53,29 @@ export default [
 			'import/newline-after-import': 'off',
 			'import/no-duplicates': 'off',
 			'import/consistent-type-specifier-style': 'off',
+		},
+	},
+	{
+		// Localization (plan 36). User-visible text comes from the message
+		// catalog (`m.some_key()` from `@/paraglide/messages.js`), never from
+		// a string in the component. A directory joins this list once its
+		// strings have been extracted, so new hardcoded text fails lint there.
+		// Covers JSX text and the attributes people read or hear; toasts and
+		// other strings passed to functions are not checked, so review those.
+		files: I18N_EXTRACTED,
+		// sonner-types.tsx is a developer demo of toast styles, not app UI.
+		ignores: ['**/*.stories.tsx', '**/*.test.{ts,tsx}', '**/__tests__/**', 'src/components/utilities/sonner-types.tsx'],
+		plugins: { i18next },
+		rules: {
+			'i18next/no-literal-string': [
+				'error',
+				{
+					mode: 'jsx-only',
+					'jsx-attributes': {
+						include: ['title', 'placeholder', 'aria-label', 'aria-description', 'alt', 'label', 'description', 'tooltip'],
+					},
+				},
+			],
 		},
 	},
 	{

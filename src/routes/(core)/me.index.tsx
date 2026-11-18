@@ -28,6 +28,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { perfTime } from '@/lib/observability/perf'
 import { useMeSSE } from '@/lib/use-me-sse'
+import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
 const myListsQueryOptions = {
@@ -49,7 +50,7 @@ const isHttpUrlString = (raw: unknown): raw is string => {
 }
 
 export const Route = createFileRoute('/(core)/me/')({
-	head: pageHead('My Lists'),
+	head: pageHead(() => m.page_my_lists()),
 	validateSearch: (search: Record<string, unknown>): MeSearch => {
 		return isHttpUrlString(search.url) ? { url: search.url } : {}
 	},

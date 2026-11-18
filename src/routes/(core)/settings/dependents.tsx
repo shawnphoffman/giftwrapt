@@ -9,10 +9,11 @@ import DependentAvatar from '@/components/common/dependent-avatar'
 import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatMonthDay } from '@/lib/i18n/labels'
+import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/settings/dependents')({
-	head: pageHead('Dependents'),
+	head: pageHead(() => m.page_dependents()),
 	component: DependentsSettingsPage,
 })
 

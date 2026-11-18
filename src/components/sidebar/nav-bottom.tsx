@@ -1,6 +1,7 @@
 import { Settings } from 'lucide-react'
 
 import { SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuItem } from '@/components/ui/sidebar'
+import { m } from '@/paraglide/messages.js'
 
 import { ThemeSwitcher } from '../ui/theme-switcher'
 import AdminIntelligenceNavLink from './nav-admin-intelligence-link'
@@ -26,7 +27,7 @@ export default function NavBottom() {
 					<div className="flex flex-row gap-2 w-full justify-between group-data-[collapsible=icon]:flex-col">
 						<NavItem
 							item={{
-								name: 'Settings',
+								name: () => m.nav_settings(),
 								url: '/settings',
 								icon: Settings,
 								hoverColor: 'group-hover/link:text-lime-500 group-data-[status=active]/link:text-lime-500',

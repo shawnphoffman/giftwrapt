@@ -8,10 +8,11 @@ import { ThankYouDraftDialog, type ThankYouDraftState } from '@/components/recei
 import { useAppSetting } from '@/hooks/use-app-settings'
 import type { GifterUnitGroup } from '@/lib/received-grouping'
 import { usePurchasesReceivedSSE } from '@/lib/use-purchases-received-sse'
+import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/purchases/received')({
-	head: pageHead('Received'),
+	head: pageHead(() => m.page_received()),
 	loader: () => getReceivedGifts(),
 	component: ReceivedPage,
 })
@@ -72,7 +73,7 @@ function ReceivedPage() {
 					open
 					onOpenChange={open => !open && setTarget(null)}
 					giverLabel={target.label}
-					giverEmails={target.members.flatMap(m => data.gifterEmails[m.id] ?? [])}
+					giverEmails={target.members.flatMap(member => data.gifterEmails[member.id] ?? [])}
 					giftCount={Math.min(target.rows.length, MAX_GIFTS_PER_NOTE)}
 					state={state}
 					onNoteChange={note => setState({ phase: 'ready', note })}

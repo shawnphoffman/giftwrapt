@@ -1,6 +1,7 @@
 import { Lock } from 'lucide-react'
 
 import { useSession } from '@/lib/auth-client'
+import { m } from '@/paraglide/messages.js'
 
 import { NavItem } from './nav-section'
 
@@ -11,7 +12,7 @@ export default function AdminNavLink() {
 	}
 
 	const item: NavItem = {
-		name: 'Admin',
+		name: () => m.nav_admin(),
 		url: '/admin',
 		icon: Lock,
 		hoverColor: 'group-hover/link:text-red-400 group-data-[status=active]/link:animate-pulse',

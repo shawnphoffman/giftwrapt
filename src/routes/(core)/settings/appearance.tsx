@@ -3,10 +3,11 @@ import { createFileRoute } from '@tanstack/react-router'
 import { LanguageSettings } from '@/components/settings/language-settings'
 import { TextSizeSettings } from '@/components/settings/text-size-settings'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/settings/appearance')({
-	head: pageHead('Appearance'),
+	head: pageHead(() => m.page_appearance()),
 	component: AppearancePage,
 })
 

@@ -17,7 +17,9 @@ type Props = {
 }
 
 export type NavItem = {
-	name: string
+	// A function, not a string: nav tables are built at module level, before
+	// any request has a language.
+	name: () => string
 	url: string
 	icon?: React.ElementType
 	hoverColor?: string
@@ -43,18 +45,19 @@ export const NavItem = ({ item, className }: { item: NavItem; className?: string
 		},
 	})
 	return (
-		<SidebarMenuItem key={item.name} className="w-full">
-			<SidebarMenuButton asChild tooltip={item.name} className={cn(className, 'text-base font-medium')}>
+		<SidebarMenuItem key={item.url} className="w-full">
+			<SidebarMenuButton asChild tooltip={item.name()} className={cn(className, 'text-base font-medium')}>
 				<Link
 					to={item.url}
 					className="group/link"
 					mask={item.mask ? { to: item.mask } : undefined}
 					activeOptions={item.activeOptions ? item.activeOptions : undefined}
 					onClick={item.onClick}
+					// eslint-disable-next-line i18next/no-literal-string -- attribute values, not text
 					{...(forceActive && { 'data-status': 'active', 'aria-current': 'page' })}
 				>
 					{Icon && <Icon className={cn(item.hoverColor, 'transition-colors duration-50 ease-linear')} />}
-					<span>{item.name}</span>
+					<span>{item.name()}</span>
 				</Link>
 			</SidebarMenuButton>
 		</SidebarMenuItem>
@@ -70,7 +73,7 @@ export default function NavSection({ title, items, className }: Props) {
 			<SidebarGroupContent>
 				<SidebarMenu>
 					{items.map(item => (
-						<NavItem key={item.name} item={item} className={item.className} />
+						<NavItem key={item.url} item={item} className={item.className} />
 					))}
 				</SidebarMenu>
 			</SidebarGroupContent>

@@ -6,6 +6,7 @@ import { SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar'
 import { authClient, useSession } from '@/lib/auth-client'
 import { forgetSkeletonShapes } from '@/lib/skullet'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 export default function StopImpersonationLink() {
 	const { data: session } = useSession()
@@ -24,15 +25,15 @@ export default function StopImpersonationLink() {
 			const result = await authClient.admin.stopImpersonating()
 
 			if (result.error) {
-				toast.error(result.error.message || 'Failed to stop impersonation')
+				toast.error(result.error.message || m.impersonation_stop_failed())
 			} else {
-				toast.success('Stopped impersonating')
+				toast.success(m.impersonation_stopped())
 				forgetSkeletonShapes()
 				// Reload the page to reflect the new session
 				window.location.href = '/'
 			}
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : 'Failed to stop impersonation')
+			toast.error(error instanceof Error ? error.message : m.impersonation_stop_failed())
 		} finally {
 			setIsStopping(false)
 		}
@@ -46,7 +47,7 @@ export default function StopImpersonationLink() {
 				className={cn('text-base font-medium bg-destructive hover:bg-destructive/75 text-destructive-foreground')}
 			>
 				<HatGlasses />
-				<span>{isStopping ? 'Stopping...' : 'Stop Impersonating'}</span>
+				<span>{isStopping ? m.impersonation_stopping() : m.impersonation_stop()}</span>
 			</SidebarMenuButton>
 		</SidebarMenuItem>
 	)

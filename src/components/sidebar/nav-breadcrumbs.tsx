@@ -3,6 +3,7 @@
 import { Link, useLocation, useRouterState } from '@tanstack/react-router'
 
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator } from '@/components/ui/breadcrumb'
+import { m } from '@/paraglide/messages.js'
 
 export default function NavBreadcrumbs() {
 	const location = useLocation()
@@ -20,8 +21,8 @@ export default function NavBreadcrumbs() {
 	const editedListName = useRouterState({
 		select: s => {
 			if (!isBeyondEditing) return null
-			for (const m of s.matches) {
-				const data = m.loaderData as { list?: { name?: string } } | undefined
+			for (const match of s.matches) {
+				const data = match.loaderData as { list?: { name?: string } } | undefined
 				if (data?.list?.name) return data.list.name
 			}
 			return null
@@ -29,18 +30,18 @@ export default function NavBreadcrumbs() {
 	})
 
 	const parentCrumb = isAdminIntelligenceSubpage
-		? { href: '/admin/intelligence', label: 'Back to Intelligence' }
+		? { href: '/admin/intelligence', label: m.nav_back_to_intelligence() }
 		: isDeepAdmin
-			? { href: '/admin', label: 'Back to Admin' }
+			? { href: '/admin', label: m.nav_back_to_admin() }
 			: isEditingList
 				? {
 						href: '/me',
-						label: 'My Lists',
+						label: m.nav_my_lists(),
 					}
 				: isViewingList
 					? {
 							href: '/',
-							label: 'All Lists',
+							label: m.nav_all_lists(),
 						}
 					: null
 
@@ -60,7 +61,7 @@ export default function NavBreadcrumbs() {
 						<BreadcrumbSeparator />
 						<BreadcrumbItem>
 							<BreadcrumbLink asChild>
-								<Link to="/admin/users">Users</Link>
+								<Link to="/admin/users">{m.page_users()}</Link>
 							</BreadcrumbLink>
 						</BreadcrumbItem>
 					</>
@@ -70,7 +71,7 @@ export default function NavBreadcrumbs() {
 						<BreadcrumbSeparator />
 						<BreadcrumbItem>
 							<BreadcrumbLink asChild>
-								<Link to={editHref}>{editedListName ?? 'Current List'}</Link>
+								<Link to={editHref}>{editedListName ?? m.nav_current_list()}</Link>
 							</BreadcrumbLink>
 						</BreadcrumbItem>
 					</>

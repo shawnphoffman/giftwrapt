@@ -3,6 +3,7 @@ import { Slot } from 'radix-ui'
 import * as React from 'react'
 
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 function Breadcrumb({ className, ...props }: React.ComponentProps<'nav'>) {
 	return <nav aria-label="breadcrumb" data-slot="breadcrumb" className={cn(className)} {...props} />
@@ -65,7 +66,7 @@ function BreadcrumbEllipsis({ className, ...props }: React.ComponentProps<'span'
 			{...props}
 		>
 			<MoreHorizontalIcon />
-			<span className="sr-only">More</span>
+			<span className="sr-only">{m.action_more()}</span>
 		</span>
 	)
 }

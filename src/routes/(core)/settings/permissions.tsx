@@ -8,10 +8,11 @@ import { toast } from 'sonner'
 import { getOwnersWithRelationshipsForMe, getUsersWithRelationships, upsertUserRelationships } from '@/api/permissions'
 import { fromTier, type PermissionRow, PermissionsEditor, toTier } from '@/components/settings/permissions-editor'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/settings/permissions')({
-	head: pageHead('Permissions'),
+	head: pageHead(() => m.page_permissions()),
 	component: PermissionsPage,
 })
 

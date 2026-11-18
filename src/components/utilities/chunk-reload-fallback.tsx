@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import Loading from '@/components/loading'
 import { attemptChunkReload, isChunkLoadError } from '@/lib/chunk-reload'
+import { m } from '@/paraglide/messages.js'
 
 /**
  * Drives stale-chunk recovery from inside an error boundary's fallback.
@@ -37,7 +38,7 @@ export function ChunkReloadFallback({ className }: { className?: string }) {
 	return (
 		<div className={className ?? 'flex flex-col items-center justify-center min-h-screen gap-4 p-4'}>
 			<Loading />
-			<p className="text-sm text-muted-foreground">Loading the latest version…</p>
+			<p className="text-sm text-muted-foreground">{m.shell_loading_latest_version()}</p>
 		</div>
 	)
 }

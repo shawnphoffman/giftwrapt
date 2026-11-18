@@ -1,9 +1,5 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"settings_language_title": "Language",
-	"settings_language_description": "The language of the app and of the emails it sends you.",
-	"settings_language_automatic": "Match My Browser",
-	"settings_language_error": "Couldn't change the language. Try again.",
 	"priority_very_high": "Very High",
 	"priority_high": "High",
 	"priority_normal": "Normal",
@@ -45,5 +41,13 @@
 				"countPlural=*": "{count} days"
 			}
 		}
-	]
+	],
+	"action_try_again": "Try Again",
+	"action_go_home": "Go Home",
+	"action_close": "Close",
+	"action_more": "More",
+	"action_hide_password": "Hide password",
+	"action_show_password": "Show password",
+	"error_something_went_wrong": "Something went wrong",
+	"error_unexpected": "An unexpected error occurred"
 }

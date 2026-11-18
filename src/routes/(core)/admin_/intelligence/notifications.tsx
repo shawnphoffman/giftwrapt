@@ -3,10 +3,11 @@ import { createFileRoute } from '@tanstack/react-router'
 import { ProviderMissingBanner } from '@/components/intelligence/admin-intelligence-page'
 import { IntelligenceFeatureDisabledBanner, IntelligenceNotificationsCard } from '@/components/intelligence/admin-intelligence-sections'
 import { adminIntelligenceQueryOptions, isProviderMissing, useAdminIntelligence } from '@/components/intelligence/use-admin-intelligence'
+import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/admin_/intelligence/notifications')({
-	head: pageHead('Intelligence Notifications'),
+	head: pageHead(() => m.page_intelligence_notifications()),
 	loader: ({ context }) => context.queryClient.ensureQueryData(adminIntelligenceQueryOptions),
 	component: IntelligenceNotificationsRoute,
 })

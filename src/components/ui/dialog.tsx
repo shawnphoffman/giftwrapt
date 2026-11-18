@@ -6,6 +6,7 @@ import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 function Dialog({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
 	return <DialogPrimitive.Root data-slot="dialog" {...props} />
@@ -60,7 +61,7 @@ function DialogContent({
 					<DialogPrimitive.Close data-slot="dialog-close" asChild>
 						<Button variant="outline" className="absolute top-4 right-4" size="icon-sm">
 							<XIcon />
-							<span className="sr-only">Close</span>
+							<span className="sr-only">{m.action_close()}</span>
 						</Button>
 					</DialogPrimitive.Close>
 				)}
@@ -86,7 +87,7 @@ function DialogFooter({
 			{children}
 			{showCloseButton && (
 				<DialogPrimitive.Close asChild>
-					<Button variant="outline">Close</Button>
+					<Button variant="outline">{m.action_close()}</Button>
 				</DialogPrimitive.Close>
 			)}
 		</div>

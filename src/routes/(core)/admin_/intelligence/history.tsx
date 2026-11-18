@@ -8,10 +8,11 @@ import { IntelligenceFeatureDisabledBanner } from '@/components/intelligence/adm
 import { RunDebugPanel } from '@/components/intelligence/run-debug-panel'
 import { adminIntelligenceQueryOptions, isProviderMissing, useAdminIntelligence } from '@/components/intelligence/use-admin-intelligence'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/admin_/intelligence/history')({
-	head: pageHead('Intelligence History'),
+	head: pageHead(() => m.page_intelligence_history()),
 	loader: ({ context }) => context.queryClient.ensureQueryData(adminIntelligenceQueryOptions),
 	component: IntelligenceHistoryRoute,
 })

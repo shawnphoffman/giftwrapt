@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { ChunkReloadFallback, useChunkReloadRecovery } from '@/components/utilities/chunk-reload-fallback'
 import { isEmbeddedClient, postToNativeBridge } from '@/lib/embedded'
 import { formatErrorForUser } from '@/lib/format-error'
+import { m } from '@/paraglide/messages.js'
 
 interface RouteErrorFallbackProps {
 	error: unknown
@@ -33,6 +34,7 @@ export function RouteErrorFallback({ error, reset, title, className }: RouteErro
 				<p className="text-sm text-muted-foreground">{formatted.body}</p>
 				{process.env.NODE_ENV === 'development' && error instanceof Error && error.stack ? (
 					<details className="text-left text-xs text-muted-foreground/70">
+						{/* eslint-disable-next-line i18next/no-literal-string -- only rendered in development */}
 						<summary className="cursor-pointer">Stack (dev only)</summary>
 						<pre className="overflow-auto whitespace-pre-wrap break-all">{error.stack}</pre>
 					</details>
@@ -40,12 +42,12 @@ export function RouteErrorFallback({ error, reset, title, className }: RouteErro
 				<div className="flex gap-2 justify-center">
 					{reset ? (
 						<Button onClick={reset} size="sm">
-							Try Again
+							{m.action_try_again()}
 						</Button>
 					) : null}
 					<Button asChild variant="outline" size="sm">
 						<Link to="/" onClick={reset}>
-							Go home
+							{m.action_go_home()}
 						</Link>
 					</Button>
 				</div>

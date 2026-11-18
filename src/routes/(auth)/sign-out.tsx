@@ -5,10 +5,11 @@ import { useEffect, useState } from 'react'
 import { SignOutPageContent } from '@/components/auth/sign-out-page'
 import { signOut } from '@/lib/auth-client'
 import { forgetSkeletonShapes } from '@/lib/skullet'
+import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(auth)/sign-out')({
-	head: pageHead('Sign Out'),
+	head: pageHead(() => m.page_sign_out()),
 	component: SignOut,
 })
 

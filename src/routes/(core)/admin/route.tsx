@@ -4,10 +4,11 @@ import { Lock } from 'lucide-react'
 import AdminLinks from '@/components/admin/links'
 import { PageHeading } from '@/components/common/page-heading'
 import { adminAuthMiddleware } from '@/middleware/auth'
+import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/admin')({
-	head: pageHead('Admin'),
+	head: pageHead(() => m.page_admin()),
 	component: AdminRoutes,
 	server: {
 		middleware: [adminAuthMiddleware],

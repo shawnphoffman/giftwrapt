@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button'
 import { ChunkReloadFallback, useChunkReloadRecovery } from '@/components/utilities/chunk-reload-fallback'
 import { useReportToNativeBridge } from '@/components/utilities/route-error-fallback'
 import { formatErrorForUser } from '@/lib/format-error'
+import { m } from '@/paraglide/messages.js'
 
 interface ErrorBoundaryFallbackProps {
 	error: Error
@@ -22,7 +23,7 @@ export default function ErrorBoundaryFallback({ error, reset }: ErrorBoundaryFal
 				<p className="text-muted-foreground">{formatted.body}</p>
 				<div className="flex gap-2 justify-center">
 					<Button type="button" onClick={reset}>
-						Try Again
+						{m.action_try_again()}
 					</Button>
 					<Button
 						type="button"
@@ -31,7 +32,7 @@ export default function ErrorBoundaryFallback({ error, reset }: ErrorBoundaryFal
 							window.location.href = '/'
 						}}
 					>
-						Go Home
+						{m.action_go_home()}
 					</Button>
 				</div>
 			</div>

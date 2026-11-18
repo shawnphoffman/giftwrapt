@@ -10,10 +10,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ClientOnly } from '@/components/utilities/client-only'
+import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/admin/scraping')({
-	head: pageHead('Scraping'),
+	head: pageHead(() => m.page_scraping()),
 	component: AdminScrapingPage,
 })
 

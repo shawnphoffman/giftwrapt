@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 
 import { Button } from './button'
 import { Input } from './input'
+import { m } from '@/paraglide/messages.js'
 
 const PasswordInput = ({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) => {
 	const [showPassword, setShowPassword] = React.useState(false)
@@ -27,7 +28,7 @@ const PasswordInput = ({ className, ...props }: React.InputHTMLAttributes<HTMLIn
 				onClick={handleTogglePasswordVisibility}
 			>
 				{showPassword ? <EyeOff className="size-4 text-muted-foreground" /> : <Eye className="size-4 text-muted-foreground" />}
-				<span className="sr-only">{showPassword ? 'Hide password' : 'Show password'}</span>
+				<span className="sr-only">{showPassword ? m.action_hide_password() : m.action_show_password()}</span>
 			</Button>
 		</div>
 	)

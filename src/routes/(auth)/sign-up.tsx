@@ -12,10 +12,11 @@ import { PasswordInput } from '@/components/ui/password-input'
 import { useEmbedded } from '@/hooks/use-embedded'
 import logo from '@/images/logo.webp'
 import { authClient } from '@/lib/auth-client'
+import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(auth)/sign-up')({
-	head: pageHead('Create Account'),
+	head: pageHead(() => m.page_create_account()),
 	component: SignUp,
 	beforeLoad: async () => {
 		const { open } = await fetchSignUpOpen()

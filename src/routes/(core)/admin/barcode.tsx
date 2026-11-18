@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { ClientOnly } from '@/components/utilities/client-only'
+import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
 // Gated by `appSettings.enableMobileApp` — the iOS app is the only
@@ -19,7 +20,7 @@ import { pageHead } from '@/routes/-head'
 // `src/components/admin/links.tsx` reads the same flag; this redirect
 // is the defense-in-depth backstop for direct-URL access.
 export const Route = createFileRoute('/(core)/admin/barcode')({
-	head: pageHead('Barcode Lookup'),
+	head: pageHead(() => m.page_barcode_lookup()),
 	beforeLoad: async () => {
 		const settings = await fetchAppSettings()
 		if (!settings.enableMobileApp) {

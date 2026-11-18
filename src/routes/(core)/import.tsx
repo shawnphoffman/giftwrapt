@@ -1,5 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 
+import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
 type ImportSearch = { url?: string }
@@ -15,7 +16,7 @@ const isHttpUrlString = (raw: unknown): raw is string => {
 }
 
 export const Route = createFileRoute('/(core)/import')({
-	head: pageHead('Import'),
+	head: pageHead(() => m.page_import()),
 	validateSearch: (search: Record<string, unknown>): ImportSearch => {
 		return isHttpUrlString(search.url) ? { url: search.url } : {}
 	},

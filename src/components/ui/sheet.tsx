@@ -4,6 +4,7 @@ import * as React from 'react'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 function Sheet({ ...props }: React.ComponentProps<typeof SheetPrimitive.Root>) {
 	return <SheetPrimitive.Root data-slot="sheet" {...props} />
@@ -61,7 +62,7 @@ function SheetContent({
 					<SheetPrimitive.Close data-slot="sheet-close" asChild>
 						<Button variant="outline" className="absolute top-4 right-4" size="icon-sm">
 							<XIcon />
-							<span className="sr-only">Close</span>
+							<span className="sr-only">{m.action_close()}</span>
 						</Button>
 					</SheetPrimitive.Close>
 				)}

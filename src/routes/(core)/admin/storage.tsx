@@ -6,10 +6,11 @@ import { StorageDisabledBanner } from '@/components/common/storage-disabled-bann
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ClientOnly } from '@/components/utilities/client-only'
 import { useStorageStatus } from '@/hooks/use-storage-status'
+import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/admin/storage')({
-	head: pageHead('Storage'),
+	head: pageHead(() => m.page_storage()),
 	component: AdminStoragePage,
 })
 

@@ -1,9 +1,5 @@
 {
 	"$schema": "https://inlang.com/schema/inlang-message-format",
-	"settings_language_title": "Langue",
-	"settings_language_description": "La langue de l'application et des e-mails qu'elle vous envoie.",
-	"settings_language_automatic": "Suivre mon navigateur",
-	"settings_language_error": "Impossible de changer la langue. Réessayez.",
 	"priority_very_high": "Très élevée",
 	"priority_high": "Élevée",
 	"priority_normal": "Normale",
@@ -45,5 +41,13 @@
 				"countPlural=*": "{count} jours"
 			}
 		}
-	]
+	],
+	"action_try_again": "Réessayer",
+	"action_go_home": "Retour à l’accueil",
+	"action_close": "Fermer",
+	"action_more": "Plus",
+	"action_hide_password": "Masquer le mot de passe",
+	"action_show_password": "Afficher le mot de passe",
+	"error_something_went_wrong": "Une erreur s’est produite",
+	"error_unexpected": "Une erreur inattendue s’est produite"
 }

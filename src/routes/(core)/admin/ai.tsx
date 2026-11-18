@@ -5,10 +5,11 @@ import { AiSettingsEditor } from '@/components/admin/ai-settings-editor'
 import { AiSlotCards } from '@/components/admin/ai-slot-cards'
 import { AiUsageCard } from '@/components/admin/ai-usage-card'
 import { ClientOnly } from '@/components/utilities/client-only'
+import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
 export const Route = createFileRoute('/(core)/admin/ai')({
-	head: pageHead('AI'),
+	head: pageHead(() => m.page_ai()),
 	component: AdminAiPage,
 })
 

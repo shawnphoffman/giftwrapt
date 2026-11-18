@@ -2,13 +2,16 @@ import { Link, useLocation } from '@tanstack/react-router'
 import { PackageOpen } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { m } from '@/paraglide/messages.js'
 
-const QUIPS = [
-	"This gift isn't on any list.",
-	'Looks like someone unwrapped this URL early.',
-	'We searched every list. This page was on none of them.',
-	"That link's been re-gifted one too many times.",
-	'Empty box. Nothing inside but a 404 and a little tissue paper.',
+// Functions, not strings: the array is built at module level, before any
+// request has a language.
+const QUIPS: ReadonlyArray<() => string> = [
+	() => m.not_found_quip_1(),
+	() => m.not_found_quip_2(),
+	() => m.not_found_quip_3(),
+	() => m.not_found_quip_4(),
+	() => m.not_found_quip_5(),
 ]
 
 // The quip is picked from the address, not at random: a random pick differs
@@ -17,7 +20,7 @@ const QUIPS = [
 function quipFor(pathname: string): string {
 	let hash = 0
 	for (let i = 0; i < pathname.length; i++) hash = (hash * 31 + pathname.charCodeAt(i)) >>> 0
-	return QUIPS[hash % QUIPS.length]
+	return QUIPS[hash % QUIPS.length]()
 }
 
 export default function NotFound() {
@@ -31,15 +34,15 @@ export default function NotFound() {
 					<span className="text-6xl font-extrabold tracking-tight text-destructive select-none">404</span>
 				</div>
 				<div className="space-y-2">
-					<h1 className="text-2xl font-bold">Not on the List</h1>
+					<h1 className="text-2xl font-bold">{m.not_found_title()}</h1>
 					<p className="text-muted-foreground">{quip}</p>
 				</div>
 				<div className="flex gap-2 justify-center">
 					<Button asChild>
-						<Link to="/">Take me home</Link>
+						<Link to="/">{m.not_found_home()}</Link>
 					</Button>
 					<Button asChild variant="outline">
-						<Link to="/me">My lists</Link>
+						<Link to="/me">{m.nav_my_lists()}</Link>
 					</Button>
 				</div>
 			</div>
