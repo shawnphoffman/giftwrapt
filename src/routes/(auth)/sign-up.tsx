@@ -12,6 +12,7 @@ import { PasswordInput } from '@/components/ui/password-input'
 import { useEmbedded } from '@/hooks/use-embedded'
 import logo from '@/images/logo.webp'
 import { authClient } from '@/lib/auth-client'
+import { authErrorText } from '@/lib/i18n/errors'
 import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
@@ -65,13 +66,13 @@ function SignUp() {
 				},
 				onError: ctx => {
 					setIsLoading(false)
-					setError(ctx.error.message || m.auth_sign_up_failed())
+					setError(authErrorText(ctx.error, m.auth_sign_up_failed()))
 				},
 			}
 		)
 
 		if (signUpError) {
-			setError(signUpError.message || m.auth_sign_up_failed())
+			setError(authErrorText(signUpError, m.auth_sign_up_failed()))
 			setIsLoading(false)
 		}
 	}

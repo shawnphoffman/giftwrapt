@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 
 import { SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar'
 import { authClient, useSession } from '@/lib/auth-client'
+import { authErrorText, errorText } from '@/lib/i18n/errors'
 import { forgetSkeletonShapes } from '@/lib/skullet'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
@@ -25,7 +26,7 @@ export default function StopImpersonationLink() {
 			const result = await authClient.admin.stopImpersonating()
 
 			if (result.error) {
-				toast.error(result.error.message || m.impersonation_stop_failed())
+				toast.error(authErrorText(result.error, m.impersonation_stop_failed()))
 			} else {
 				toast.success(m.impersonation_stopped())
 				forgetSkeletonShapes()
@@ -33,7 +34,7 @@ export default function StopImpersonationLink() {
 				window.location.href = '/'
 			}
 		} catch (error) {
-			toast.error(error instanceof Error ? error.message : m.impersonation_stop_failed())
+			toast.error(errorText(error, m.impersonation_stop_failed()))
 		} finally {
 			setIsStopping(false)
 		}

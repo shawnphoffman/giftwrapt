@@ -300,5 +300,11 @@
 	"settings_password_title": "Mot de passe",
 	"settings_password_description": "Modifiez le mot de passe que vous utilisez pour vous connecter.",
 	"settings_passkeys_title": "Clés d'accès",
-	"settings_passkeys_description": "Ajoutez Touch ID, Face ID ou des clés de sécurité matérielles pour vous connecter plus vite. Chaque appareil a sa propre clé d'accès."
+	"settings_passkeys_description": "Ajoutez Touch ID, Face ID ou des clés de sécurité matérielles pour vous connecter plus vite. Chaque appareil a sa propre clé d'accès.",
+	"settings_profile_name_required": "Le nom est obligatoire",
+	"settings_profile_name_too_long": "Le nom ne doit pas dépasser {max} caractères",
+	"settings_profile_birth_day_invalid": "Le jour de naissance doit être compris entre 1 et 31",
+	"settings_profile_birth_year_invalid": "L’année de naissance doit être comprise entre 1900 et l’année en cours",
+	"settings_profile_anniversary_invalid": "La date d’anniversaire de couple doit être valide",
+	"settings_profile_child_partner": "Les comptes enfant ne peuvent pas avoir de partenaire."
 }

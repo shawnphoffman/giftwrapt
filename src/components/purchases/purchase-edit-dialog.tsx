@@ -16,6 +16,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useStorageStatus } from '@/hooks/use-storage-status'
+import { errorText } from '@/lib/i18n/errors'
+import { zodIssuesText, zodParams } from '@/lib/i18n/zod'
 import { detectCarrier } from '@/lib/tracking/carriers'
 import { LIMITS } from '@/lib/validation/limits'
 import { m } from '@/paraglide/messages.js'
@@ -104,9 +106,9 @@ function PurchaseEditForm({ purchase, onOpenChange }: { purchase: EditablePurcha
 			trackingNumber: purchase.trackingNumber ?? '',
 		},
 		onSubmit: async ({ value }) => {
-			const parsed = purchaseSchema().safeParse(value)
+			const parsed = purchaseSchema().safeParse(value, zodParams())
 			if (!parsed.success) {
-				setError(parsed.error.issues.map(e => e.message).join(', '))
+				setError(zodIssuesText(parsed.error))
 				return
 			}
 
@@ -170,7 +172,7 @@ function PurchaseEditForm({ purchase, onOpenChange }: { purchase: EditablePurcha
 				onOpenChange(false)
 				await router.invalidate()
 			} catch (err) {
-				setError(err instanceof Error ? err.message : m.purchases_edit_save_failed())
+				setError(errorText(err, m.purchases_edit_save_failed()))
 			} finally {
 				setSubmitting(false)
 			}

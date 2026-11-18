@@ -30,7 +30,9 @@ import { birthMonthEnumValues } from '@/db/schema/enums'
 import { UserSchema } from '@/db/schema/users'
 import { useAppSetting } from '@/hooks/use-app-settings'
 import { useSession } from '@/lib/auth-client'
+import { errorText, UserFacingError } from '@/lib/i18n/errors'
 import { monthName } from '@/lib/i18n/labels'
+import { zodParams } from '@/lib/i18n/zod'
 import { LIMITS } from '@/lib/validation/limits'
 import { m } from '@/paraglide/messages.js'
 
@@ -38,6 +40,24 @@ import UserAvatar from '../common/user-avatar'
 import { Field, FieldDescription, FieldError, FieldLabel } from '../ui/field'
 
 type UpdateProfileFormValues = z.infer<typeof UserSchema>
+
+// UserSchema is shared with the server and keeps plain English messages for
+// API consumers. What the form shows comes from the catalog, chosen by which
+// field failed.
+function profileIssueText(issue: z.core.$ZodIssue): string {
+	switch (issue.path[0]) {
+		case 'name':
+			return issue.code === 'too_big' ? m.settings_profile_name_too_long({ max: LIMITS.SHORT_NAME }) : m.settings_profile_name_required()
+		case 'birthDay':
+			return m.settings_profile_birth_day_invalid()
+		case 'birthYear':
+			return m.settings_profile_birth_year_invalid()
+		case 'partnerAnniversary':
+			return m.settings_profile_anniversary_invalid()
+		default:
+			return issue.message
+	}
+}
 
 // Birth-year picker spans 120 years back, newest first so the typical user
 // scrolls a short distance instead of paging through 1900s.
@@ -124,9 +144,9 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 				birthYear: true,
 				partnerId: true,
 				partnerAnniversary: true,
-			}).safeParse(value)
+			}).safeParse(value, zodParams())
 			if (!result.success) {
-				setError(result.error.issues.map((e: { message: string }) => e.message).join(', '))
+				setError([...new Set(result.error.issues.map(profileIssueText))].join(', '))
 				return
 			}
 			const parsed = result.data as UpdateProfileFormValues
@@ -179,9 +199,10 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 			if (data.birthYear !== undefined) {
 				updateData.birthYear = data.birthYear
 			}
-			await updateUserProfile({
+			const updated = await updateUserProfile({
 				data: updateData,
 			})
+			if (!updated.success) throw new UserFacingError(m.settings_profile_child_partner())
 
 			setSuccess(true)
 			toast.success(m.settings_profile_updated_toast())
@@ -219,7 +240,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 			// Clear success message after 5 seconds
 			setTimeout(() => setSuccess(false), 5000)
 		} catch (err) {
-			const errorMessage = err instanceof Error ? err.message : m.settings_profile_update_failed()
+			const errorMessage = errorText(err, m.settings_profile_update_failed())
 			setError(errorMessage)
 			toast.error(errorMessage)
 		} finally {
@@ -269,7 +290,7 @@ export default function ProfileForm({ name, birthMonth, birthDay, birthYear, par
 			await queryClient.invalidateQueries({ queryKey: ['my-lists'] })
 			setEditorChangePrompt(null)
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : m.settings_profile_editors_update_failed())
+			toast.error(errorText(err, m.settings_profile_editors_update_failed()))
 		} finally {
 			setApplyingEditorChanges(false)
 		}

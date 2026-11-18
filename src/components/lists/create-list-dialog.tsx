@@ -25,8 +25,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { listTypeEnumValues } from '@/db/schema/enums'
 import { useSession } from '@/lib/auth-client'
+import { errorText } from '@/lib/i18n/errors'
 import { formatDate } from '@/lib/i18n/format'
 import { listTypeLabel } from '@/lib/i18n/labels'
+import { zodIssuesText, zodParams } from '@/lib/i18n/zod'
 import { LIMITS } from '@/lib/validation/limits'
 import { m } from '@/paraglide/messages.js'
 
@@ -110,9 +112,9 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 			addPartnerAsEditor: true,
 		},
 		onSubmit: async ({ value }) => {
-			const parsed = buildSchema().safeParse(value)
+			const parsed = buildSchema().safeParse(value, zodParams())
 			if (!parsed.success) {
-				setError(parsed.error.issues.map(e => e.message).join(', '))
+				setError(zodIssuesText(parsed.error))
 				return
 			}
 
@@ -175,7 +177,7 @@ export function CreateListDialog({ open, onOpenChange }: Props) {
 					params: { listId: String(result.list.id) },
 				})
 			} catch (err) {
-				setError(err instanceof Error ? err.message : m.lists_create_failed())
+				setError(errorText(err, m.lists_create_failed()))
 			} finally {
 				setSubmitting(false)
 			}

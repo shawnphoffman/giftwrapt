@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { errorText } from '@/lib/i18n/errors'
 import { m } from '@/paraglide/messages.js'
 
 type Props = {
@@ -57,7 +58,7 @@ export function ListEditorsSection({ listId, editors, addableUsers }: Props) {
 			setSelectedUserId('')
 			await router.invalidate()
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : m.lists_editors_add_failed())
+			toast.error(errorText(err, m.lists_editors_add_failed()))
 		} finally {
 			setSubmitting(false)
 		}
@@ -76,7 +77,7 @@ export function ListEditorsSection({ listId, editors, addableUsers }: Props) {
 			setRemoveTarget(null)
 			await router.invalidate()
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : m.lists_editors_remove_failed())
+			toast.error(errorText(err, m.lists_editors_remove_failed()))
 		} finally {
 			setRemoving(false)
 		}

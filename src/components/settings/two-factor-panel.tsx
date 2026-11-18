@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { PasswordInput } from '@/components/ui/password-input'
 import { Switch } from '@/components/ui/switch'
+import { errorText } from '@/lib/i18n/errors'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
@@ -311,7 +312,7 @@ function PasswordPromptDialog({
 			await onConfirm(password)
 			onOpenChange(false)
 		} catch (err) {
-			setLocalError(err instanceof Error ? err.message : m.settings_2fa_prompt_error())
+			setLocalError(errorText(err, m.settings_2fa_prompt_error()))
 		} finally {
 			setSubmitting(false)
 		}

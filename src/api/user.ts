@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { deleteCookie, getRequestHeaders, setCookie } from '@tanstack/react-start/server'
+import { APIError } from 'better-auth/api'
 import { and, asc, eq, ne, notInArray } from 'drizzle-orm'
 import { z } from 'zod'
 
@@ -11,7 +12,7 @@ import { env } from '@/env'
 import { auth } from '@/lib/auth'
 import { LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE } from '@/lib/i18n/locales'
 import { createLogger, loggingMiddleware } from '@/lib/logger'
-import { applyPartnerAndAnniversary } from '@/lib/partner-update'
+import { applyPartnerAndAnniversary, ChildPartnerError } from '@/lib/partner-update'
 import { LIMITS } from '@/lib/validation/limits'
 import { authMiddleware } from '@/middleware/auth'
 import { revokeAllDevicesImpl } from '@/server/mobile-api/devices'
@@ -141,16 +142,25 @@ export const updateUserProfile = createServerFn({
 		// centrally in `applyPartnerAndAnniversary`, which throws
 		// `ChildPartnerError`; it surfaces to the profile form as a toast.
 
-		const result = await db.transaction(async tx => {
-			const { selfUpdates } = await applyPartnerAndAnniversary(tx, {
-				userId,
-				currentPartnerId,
-				newPartnerId,
-				newAnniversary,
+		// A thrown error reaches the browser as its English message and nothing
+		// else, so the one refusal a person can act on comes back as a reason
+		// the form can put into words.
+		let result
+		try {
+			result = await db.transaction(async tx => {
+				const { selfUpdates } = await applyPartnerAndAnniversary(tx, {
+					userId,
+					currentPartnerId,
+					newPartnerId,
+					newAnniversary,
+				})
+				Object.assign(updateData, selfUpdates)
+				return await tx.update(users).set(updateData).where(eq(users.id, userId))
 			})
-			Object.assign(updateData, selfUpdates)
-			return await tx.update(users).set(updateData).where(eq(users.id, userId))
-		})
+		} catch (err) {
+			if (err instanceof ChildPartnerError) return { success: false as const, reason: 'child-partner' as const }
+			throw err
+		}
 
 		if (result.rowCount === 0) {
 			throw new Error('Failed to update user')
@@ -169,7 +179,7 @@ export const updateUserProfile = createServerFn({
 			headers: getRequestHeaders(),
 		})
 
-		return { success: true, rowsUpdated: result.rowCount }
+		return { success: true as const, rowsUpdated: result.rowCount }
 	})
 
 export { updateProfileInputSchema as UpdateProfileInputSchema }
@@ -197,21 +207,30 @@ export const updateUserPassword = createServerFn({
 	.middleware([authMiddleware, loggingMiddleware])
 	.inputValidator((data: z.infer<typeof updatePasswordInputSchema>) => updatePasswordInputSchema.parse(data))
 	.handler(async ({ context, data }) => {
-		// Better Auth's changePassword throws on failure
-		await auth.api.changePassword({
-			body: {
-				currentPassword: data.currentPassword,
-				newPassword: data.newPassword,
-				revokeOtherSessions: true,
-			},
-			headers: getRequestHeaders(),
-		})
+		// Better Auth's changePassword throws on failure. A wrong current
+		// password comes back as a reason so the form can say so in the reader's
+		// language; anything else is unexpected and still throws.
+		try {
+			await auth.api.changePassword({
+				body: {
+					currentPassword: data.currentPassword,
+					newPassword: data.newPassword,
+					revokeOtherSessions: true,
+				},
+				headers: getRequestHeaders(),
+			})
+		} catch (err) {
+			if (err instanceof APIError && err.body?.code === 'INVALID_PASSWORD') {
+				return { success: false as const, reason: 'invalid-password' as const }
+			}
+			throw err
+		}
 
 		const userId = context.session.user.id
 		const revoked = await revokeAllDevicesImpl(userId)
 		passwordLog.info({ userId, revokedKeys: revoked.revoked }, 'password change: revoked mobile apiKeys')
 
-		return { success: true }
+		return { success: true as const }
 	})
 
 // Saves the signed-in user's language, or clears it (null) to follow the

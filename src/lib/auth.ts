@@ -260,7 +260,7 @@ const options = {
 		before: createAuthMiddleware(async ctx => {
 			if (ctx.path !== '/sign-up/email' || !ctx.request) return
 			if (!(await isSignUpOpen())) {
-				throw new APIError('FORBIDDEN', { message: 'Sign-ups are closed on this server.' })
+				throw new APIError('FORBIDDEN', { message: 'Sign-ups are closed on this server.', code: 'SIGNUPS_CLOSED' })
 			}
 		}),
 		// Any endpoint that just created a session (password, passkey, OIDC,

@@ -19,16 +19,34 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { errorText, UserFacingError } from '@/lib/i18n/errors'
 import { m } from '@/paraglide/messages.js'
 
 const todosQueryKey = (listId: number) => ['todos', listId] as const
+
+type TodoErrorReason = 'list-not-found' | 'not-a-todo-list' | 'not-authorized' | 'not-found' | 'already-claimed-by-other'
+
+function todoErrorText(reason: TodoErrorReason): string {
+	switch (reason) {
+		case 'list-not-found':
+			return m.lists_todos_error_list_not_found()
+		case 'not-a-todo-list':
+			return m.lists_todos_error_not_a_todo_list()
+		case 'not-authorized':
+			return m.lists_todos_error_not_authorized()
+		case 'not-found':
+			return m.lists_todos_error_not_found()
+		case 'already-claimed-by-other':
+			return m.lists_todos_error_already_done()
+	}
+}
 
 function useTodos(listId: number) {
 	return useQuery({
 		queryKey: todosQueryKey(listId),
 		queryFn: async () => {
 			const result = await listTodos({ data: { listId } })
-			if (result.kind === 'error') throw new Error(result.reason)
+			if (result.kind === 'error') throw new UserFacingError(todoErrorText(result.reason))
 			return result.todos
 		},
 	})
@@ -68,20 +86,20 @@ function TodoRowItem({ todo, listId, canEdit }: { todo: TodoRow; listId: number;
 	const toggle = useMutation({
 		mutationFn: async () => {
 			const result = await toggleTodoClaim({ data: { todoId: todo.id } })
-			if (result.kind === 'error') throw new Error(result.reason)
+			if (result.kind === 'error') throw new UserFacingError(todoErrorText(result.reason))
 			return result.todo
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: todosQueryKey(listId) }),
-		onError: err => toast.error(err instanceof Error ? err.message : m.lists_todos_toggle_failed()),
+		onError: err => toast.error(errorText(err, m.lists_todos_toggle_failed())),
 	})
 
 	const remove = useMutation({
 		mutationFn: async () => {
 			const result = await deleteTodo({ data: { todoId: todo.id } })
-			if (result.kind === 'error') throw new Error(result.reason)
+			if (result.kind === 'error') throw new UserFacingError(todoErrorText(result.reason))
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: todosQueryKey(listId) }),
-		onError: err => toast.error(err instanceof Error ? err.message : m.lists_todos_delete_failed()),
+		onError: err => toast.error(errorText(err, m.lists_todos_delete_failed())),
 	})
 
 	return (
@@ -161,21 +179,20 @@ function TodoFormDialog({ mode, listId, todo, open, onOpenChange }: TodoFormDial
 				const result = await createTodo({
 					data: { listId, title: trimmedTitle, notes: trimmedNotes || undefined },
 				})
-				if (result.kind === 'error') throw new Error(result.reason)
+				if (result.kind === 'error') throw new UserFacingError(todoErrorText(result.reason))
 				return result.todo
 			}
 			const result = await updateTodo({
 				data: { todoId: todo.id, title: trimmedTitle, notes: trimmedNotes ? trimmedNotes : null },
 			})
-			if (result.kind === 'error') throw new Error(result.reason)
+			if (result.kind === 'error') throw new UserFacingError(todoErrorText(result.reason))
 			return result.todo
 		},
 		onSuccess: () => {
 			onOpenChange(false)
 			qc.invalidateQueries({ queryKey: todosQueryKey(listId) })
 		},
-		onError: err =>
-			toast.error(err instanceof Error ? err.message : mode === 'create' ? m.lists_todos_create_failed() : m.lists_todos_update_failed()),
+		onError: err => toast.error(errorText(err, mode === 'create' ? m.lists_todos_create_failed() : m.lists_todos_update_failed())),
 	})
 
 	useEffect(() => {

@@ -7,6 +7,8 @@ import { updateUserPassword } from '@/api/user'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { errorText, UserFacingError } from '@/lib/i18n/errors'
+import { zodIssuesText, zodParams } from '@/lib/i18n/zod'
 import { LIMITS } from '@/lib/validation/limits'
 import { m } from '@/paraglide/messages.js'
 
@@ -56,9 +58,9 @@ export default function PasswordForm() {
 		},
 		onSubmit: async ({ value }) => {
 			// Validate with Zod before submitting
-			const result = passwordSchema().safeParse(value)
+			const result = passwordSchema().safeParse(value, zodParams())
 			if (!result.success) {
-				setError(result.error.issues.map((e: { message: string }) => e.message).join(', '))
+				setError(zodIssuesText(result.error))
 				return
 			}
 			await onSubmit(value as PasswordFormValues)
@@ -71,12 +73,13 @@ export default function PasswordForm() {
 		setSuccess(false)
 
 		try {
-			await updateUserPassword({
+			const result = await updateUserPassword({
 				data: {
 					currentPassword: data.currentPassword,
 					newPassword: data.newPassword,
 				},
 			})
+			if (!result.success) throw new UserFacingError(m.auth_error_invalid_password())
 
 			setSuccess(true)
 			toast.success(m.settings_password_updated_toast())
@@ -84,7 +87,7 @@ export default function PasswordForm() {
 			// Clear success message after 5 seconds
 			setTimeout(() => setSuccess(false), 5000)
 		} catch (err) {
-			const errorMessage = err instanceof Error ? err.message : m.settings_password_update_failed()
+			const errorMessage = errorText(err, m.settings_password_update_failed())
 			setError(errorMessage)
 			toast.error(errorMessage)
 		} finally {

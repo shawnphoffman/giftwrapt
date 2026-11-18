@@ -19,6 +19,7 @@ import { getItemForEdit } from '@/api/items'
 import type { IntelligencePageState, Recommendation } from '@/components/intelligence/__fixtures__/types'
 import { type DependentRecGroup, IntelligencePageContent } from '@/components/intelligence/intelligence-page'
 import { ItemFormDialog } from '@/components/items/item-form-dialog'
+import { errorText } from '@/lib/i18n/errors'
 import { coerceLegacyAction } from '@/lib/intelligence/coerce-legacy-action'
 import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
@@ -71,19 +72,19 @@ function IntelligenceRoute() {
 	const refreshMutation = useMutation({
 		mutationFn: () => refreshMyRecommendations({ data: undefined } as Parameters<typeof refreshMyRecommendations>[0]),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: intelligenceQueryOptions.queryKey }),
-		onError: e => toast.error(e instanceof Error ? e.message : m.intelligence_refresh_failed()),
+		onError: e => toast.error(errorText(e, m.intelligence_refresh_failed())),
 	})
 
 	const dismissMutation = useMutation({
 		mutationFn: (id: string) => dismissRecommendation({ data: { id } }),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: intelligenceQueryOptions.queryKey }),
-		onError: e => toast.error(e instanceof Error ? e.message : m.intelligence_dismiss_failed()),
+		onError: e => toast.error(errorText(e, m.intelligence_dismiss_failed())),
 	})
 
 	const reactivateMutation = useMutation({
 		mutationFn: (id: string) => reactivateRecommendation({ data: { id } }),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: intelligenceQueryOptions.queryKey }),
-		onError: e => toast.error(e instanceof Error ? e.message : m.intelligence_reactivate_failed()),
+		onError: e => toast.error(errorText(e, m.intelligence_reactivate_failed())),
 	})
 
 	const dismissSubItemMutation = useMutation({
@@ -100,7 +101,7 @@ function IntelligenceRoute() {
 			}
 			queryClient.invalidateQueries({ queryKey: intelligenceQueryOptions.queryKey })
 		},
-		onError: e => toast.error(e instanceof Error ? e.message : m.intelligence_skip_failed()),
+		onError: e => toast.error(errorText(e, m.intelligence_skip_failed())),
 	})
 
 	const applyServerMutation = useMutation({
@@ -110,7 +111,7 @@ function IntelligenceRoute() {
 			queryClient.invalidateQueries({ queryKey: intelligenceQueryOptions.queryKey })
 			if (!result.ok) toast.error(applyErrorMessage(result.reason))
 		},
-		onError: e => toast.error(e instanceof Error ? e.message : m.intelligence_action_failed()),
+		onError: e => toast.error(errorText(e, m.intelligence_action_failed())),
 	})
 
 	const state: IntelligencePageState = useMemo(() => buildState(data, refreshMutation.isPending), [data, refreshMutation.isPending])

@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { type ListType, listTypeEnumValues } from '@/db/schema/enums'
+import { errorText } from '@/lib/i18n/errors'
 import { listTypeLabel } from '@/lib/i18n/labels'
 import { itemsKeys } from '@/lib/queries/items'
 import { m } from '@/paraglide/messages.js'
@@ -121,7 +122,7 @@ export function BulkMoveItemsDialog({ open, onOpenChange, itemIds, sourceListId,
 				qc.invalidateQueries({ queryKey: itemsKeys.byList(targetId) }),
 			])
 		} catch (err) {
-			setError(err instanceof Error ? err.message : m.items_bulk_move_error_failed())
+			setError(errorText(err, m.items_bulk_move_error_failed()))
 		} finally {
 			setSubmitting(false)
 		}

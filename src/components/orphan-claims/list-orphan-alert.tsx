@@ -16,6 +16,17 @@ import { m } from '@/paraglide/messages.js'
 
 const orphanQueryKey = (listId: number) => ['orphan-claims', 'list', listId] as const
 
+function orphanAckErrorText(reason: 'not-found' | 'not-yours' | 'not-pending-deletion'): string {
+	switch (reason) {
+		case 'not-found':
+			return m.lists_orphan_ack_error_not_found()
+		case 'not-yours':
+			return m.lists_orphan_ack_error_not_yours()
+		case 'not-pending-deletion':
+			return m.lists_orphan_ack_error_not_pending()
+	}
+}
+
 export function ListOrphanAlert({ listId }: { listId: number }) {
 	const queryClient = useQueryClient()
 	const { data } = useQuery({
@@ -31,7 +42,7 @@ export function ListOrphanAlert({ listId }: { listId: number }) {
 		onSettled: () => setPendingId(null),
 		onSuccess: result => {
 			if (result.kind === 'error') {
-				toast.error(m.lists_orphan_ack_failed(), { description: result.reason })
+				toast.error(m.lists_orphan_ack_failed(), { description: orphanAckErrorText(result.reason) })
 				return
 			}
 			toast.success(result.itemDeleted ? m.lists_orphan_ack_cleared() : m.lists_orphan_acknowledged())

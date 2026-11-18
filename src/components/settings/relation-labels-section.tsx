@@ -28,6 +28,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { RelationLabel } from '@/db/schema/enums'
+import { errorText } from '@/lib/i18n/errors'
 import { m } from '@/paraglide/messages.js'
 
 // Functions, not strings: the table is built at module level, before any
@@ -128,7 +129,7 @@ export function RelationLabelsSection({
 	const removeMutation = useMutation({
 		mutationFn: (id: number) => ops.remove(id),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: ops.listKey }),
-		onError: (err: unknown) => toast.error(err instanceof Error ? err.message : m.settings_relations_remove_failed()),
+		onError: (err: unknown) => toast.error(errorText(err, m.settings_relations_remove_failed())),
 	})
 
 	const visibleBuckets = BUCKETS.filter(b => (b.label === 'mother' ? showMothers : showFathers))
@@ -192,7 +193,7 @@ function RelationBucket({ bucket, rows, people, dependents, ops, onRemove }: Rel
 			setPickerValue('')
 			queryClient.invalidateQueries({ queryKey: ops.listKey })
 		},
-		onError: (err: unknown) => toast.error(err instanceof Error ? err.message : m.settings_relations_add_failed()),
+		onError: (err: unknown) => toast.error(errorText(err, m.settings_relations_add_failed())),
 	})
 
 	const userOptions = people.filter(u => !claimedIds.has(`user:${u.id}`))

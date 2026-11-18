@@ -1,3 +1,5 @@
+import { m } from '@/paraglide/messages.js'
+
 export interface FormattedError {
 	title: string
 	body: string
@@ -23,31 +25,27 @@ function tryParseJson(value: string): unknown {
 
 function statusToCopy(status: number): FormattedError {
 	if (status === 401) {
-		return { title: 'You need to sign in', body: 'Your session may have expired. Sign in again to continue.', status }
+		return { title: m.error_http_401_title(), body: m.error_http_401_body(), status }
 	}
 	if (status === 403) {
-		return { title: "You don't have access", body: "You don't have permission to view this.", status }
+		return { title: m.error_http_403_title(), body: m.error_http_403_body(), status }
 	}
 	if (status === 404) {
-		return { title: 'Not found', body: "We couldn't find what you were looking for.", status }
+		return { title: m.error_http_404_title(), body: m.error_http_404_body(), status }
 	}
 	if (status === 408 || status === 504) {
-		return { title: 'Request timed out', body: 'The server took too long to respond. Try again in a moment.', status }
+		return { title: m.error_http_timeout_title(), body: m.error_http_timeout_body(), status }
 	}
 	if (status === 429) {
-		return { title: 'Too many requests', body: 'Slow down for a moment and try again.', status }
+		return { title: m.error_http_429_title(), body: m.error_http_429_body(), status }
 	}
 	if (status >= 500) {
-		return {
-			title: 'Something went wrong on our end',
-			body: 'We hit an unexpected error and logged it. Try again in a moment.',
-			status,
-		}
+		return { title: m.error_http_5xx_title(), body: m.error_http_5xx_body(), status }
 	}
 	if (status >= 400) {
-		return { title: "That didn't work", body: 'The request was rejected. Try again or refresh the page.', status }
+		return { title: m.error_http_4xx_title(), body: m.error_http_4xx_body(), status }
 	}
-	return { title: 'Something went wrong', body: 'An unexpected error occurred.', status }
+	return { title: m.error_something_went_wrong(), body: m.error_unexpected_sentence(), status }
 }
 
 function extractHttpShape(error: unknown): HttpErrorShape | null {
@@ -77,7 +75,7 @@ function extractHttpShape(error: unknown): HttpErrorShape | null {
 
 export function formatErrorForUser(error: unknown): FormattedError {
 	if (error == null) {
-		return { title: 'Something went wrong', body: 'An unexpected error occurred.' }
+		return { title: m.error_something_went_wrong(), body: m.error_unexpected_sentence() }
 	}
 
 	const http = extractHttpShape(error)
@@ -93,14 +91,14 @@ export function formatErrorForUser(error: unknown): FormattedError {
 	if (error instanceof Error) {
 		const msg = error.message.trim()
 		if (!msg || msg === 'HTTPError') {
-			return { title: 'Something went wrong', body: 'An unexpected error occurred. Try again in a moment.' }
+			return { title: m.error_something_went_wrong(), body: m.error_unexpected_retry() }
 		}
-		return { title: 'Something went wrong', body: msg }
+		return { title: m.error_something_went_wrong(), body: msg }
 	}
 
 	if (typeof error === 'string' && error.trim()) {
-		return { title: 'Something went wrong', body: error }
+		return { title: m.error_something_went_wrong(), body: error }
 	}
 
-	return { title: 'Something went wrong', body: 'An unexpected error occurred.' }
+	return { title: m.error_something_went_wrong(), body: m.error_unexpected_sentence() }
 }

@@ -501,5 +501,13 @@
 	],
 	"lists_organize_delete_description": "Les lignes sélectionnées, ainsi que les réservations et commentaires associés, seront définitivement supprimés.",
 	"lists_organize_delete_description_with_groups": "Les lignes sélectionnées, ainsi que les réservations et commentaires associés, seront définitivement supprimés. Les articles des groupes supprimés le seront également.",
-	"lists_organize_archived_badge": "Archivé"
+	"lists_organize_archived_badge": "Archivé",
+	"lists_todos_error_list_not_found": "Cette liste n’existe plus.",
+	"lists_todos_error_not_a_todo_list": "Cette liste n’est pas une liste de tâches.",
+	"lists_todos_error_not_authorized": "Vous n’avez pas l’autorisation de modifier cette liste.",
+	"lists_todos_error_not_found": "Cette tâche n’existe plus.",
+	"lists_todos_error_already_done": "Quelqu’un d’autre a déjà marqué cette tâche comme terminée.",
+	"lists_orphan_ack_error_not_found": "Cette réservation n’existe plus.",
+	"lists_orphan_ack_error_not_yours": "Cette réservation ne vous appartient pas.",
+	"lists_orphan_ack_error_not_pending": "Cet article n’est plus en cours de suppression."
 }

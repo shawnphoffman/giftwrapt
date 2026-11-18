@@ -25,6 +25,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { formatRelative } from '@/lib/format-relative'
+import { errorText } from '@/lib/i18n/errors'
 import { LIMITS } from '@/lib/validation/limits'
 import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
@@ -61,7 +62,7 @@ function DevicesPage() {
 			queryClient.invalidateQueries({ queryKey: myApiKeysQueryKey })
 		},
 		onError: err => {
-			toast.error(err instanceof Error ? err.message : m.settings_devices_revoke_failed())
+			toast.error(errorText(err, m.settings_devices_revoke_failed()))
 		},
 		onSettled: () => setRevokeTarget(null),
 	})
@@ -186,7 +187,7 @@ function CreateKeyDialog({
 			onCreated(result)
 		},
 		onError: err => {
-			toast.error(err instanceof Error ? err.message : m.settings_devices_create_failed())
+			toast.error(errorText(err, m.settings_devices_create_failed()))
 		},
 	})
 

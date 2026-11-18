@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { Item } from '@/db/schema/items'
+import { errorText } from '@/lib/i18n/errors'
 import { itemsKeys } from '@/lib/queries/items'
 import { m } from '@/paraglide/messages.js'
 
@@ -71,7 +72,7 @@ export function MoveItemDialog({ open, onOpenChange, item, onMoved }: Props) {
 			])
 			onMoved?.()
 		} catch (err) {
-			setError(err instanceof Error ? err.message : m.items_move_error_item_failed())
+			setError(errorText(err, m.items_move_error_item_failed()))
 		} finally {
 			setSubmitting(false)
 		}

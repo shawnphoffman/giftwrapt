@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { useStorageStatus } from '@/hooks/use-storage-status'
 import { useSession } from '@/lib/auth-client'
+import { errorText } from '@/lib/i18n/errors'
 import type { UploadResult } from '@/lib/storage/errors'
 import { m } from '@/paraglide/messages.js'
 
@@ -92,9 +93,7 @@ export default function AvatarUpload({ image, displayName, onUpload, onRemove, o
 			}
 			setCropperOpen(false)
 		} catch (error) {
-			toast.error(
-				error instanceof Error ? m.settings_avatar_upload_failed({ reason: error.message }) : m.settings_avatar_upload_failed_unknown()
-			)
+			toast.error(errorText(error, m.settings_avatar_upload_failed_unknown()))
 		} finally {
 			setIsUploading(false)
 		}
@@ -116,9 +115,7 @@ export default function AvatarUpload({ image, displayName, onUpload, onRemove, o
 				await refetchSession()
 			}
 		} catch (error) {
-			toast.error(
-				error instanceof Error ? m.settings_avatar_remove_failed({ reason: error.message }) : m.settings_avatar_remove_failed_unknown()
-			)
+			toast.error(errorText(error, m.settings_avatar_remove_failed_unknown()))
 		} finally {
 			setIsRemoving(false)
 		}

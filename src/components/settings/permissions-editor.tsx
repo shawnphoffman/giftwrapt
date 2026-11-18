@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { TapTooltip, TapTooltipContent, TapTooltipTrigger } from '@/components/ui/tooltip'
 import type { AccessLevel } from '@/db/schema/enums'
+import { errorText } from '@/lib/i18n/errors'
 import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
@@ -125,7 +126,7 @@ export function PermissionsEditor({
 			await onSave(rows)
 			setDirty(false)
 		} catch (err) {
-			const errorMessage = err instanceof Error ? err.message : m.settings_permissions_update_failed()
+			const errorMessage = errorText(err, m.settings_permissions_update_failed())
 			toast.error(errorMessage)
 		}
 	}

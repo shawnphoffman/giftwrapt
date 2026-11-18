@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { errorText } from '@/lib/i18n/errors'
 import { itemsKeys } from '@/lib/queries/items'
 import { m } from '@/paraglide/messages.js'
 
@@ -76,7 +77,7 @@ export function MoveGroupDialog({ open, onOpenChange, group, itemCount, sourceLi
 				queryClient.invalidateQueries({ queryKey: itemsKeys.byList(targetId) }),
 			])
 		} catch (err) {
-			setError(err instanceof Error ? err.message : m.items_move_error_group_failed())
+			setError(errorText(err, m.items_move_error_group_failed()))
 		} finally {
 			setSubmitting(false)
 		}

@@ -12,6 +12,7 @@ import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ClientOnly } from '@/components/utilities/client-only'
 import { useAppSetting } from '@/hooks/use-app-settings'
+import { errorText } from '@/lib/i18n/errors'
 import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
 
@@ -56,7 +57,7 @@ function Panel() {
 	const disconnect = useMutation({
 		mutationFn: (app: ConnectedAppRow) => revokeMyConnectedApp({ data: { clientId: app.clientId } }),
 		onSuccess: () => toast.success(m.settings_apps_disconnected_toast()),
-		onError: err => toast.error(err instanceof Error ? err.message : m.settings_apps_disconnect_failed()),
+		onError: err => toast.error(errorText(err, m.settings_apps_disconnect_failed())),
 		onSettled: () => {
 			setTarget(null)
 			queryClient.invalidateQueries({ queryKey: appsKey })
@@ -68,7 +69,7 @@ function Panel() {
 			setMyConnectedAppAccess({ data: { clientId: vars.app.clientId, access: vars.access } }),
 		onSuccess: (_result, vars) =>
 			toast.success(vars.access === 'read' ? m.settings_apps_access_read_toast() : m.settings_apps_access_write_toast()),
-		onError: err => toast.error(err instanceof Error ? err.message : m.settings_apps_access_failed()),
+		onError: err => toast.error(errorText(err, m.settings_apps_access_failed())),
 		onSettled: () => queryClient.invalidateQueries({ queryKey: appsKey }),
 	})
 

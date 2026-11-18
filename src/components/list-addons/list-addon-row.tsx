@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { TapTooltip, TapTooltipContent, TapTooltipTrigger } from '@/components/ui/tooltip'
 import { useSession } from '@/lib/auth-client'
+import { errorText } from '@/lib/i18n/errors'
 import { formatDate } from '@/lib/i18n/format'
 import { applyListEventLocally } from '@/lib/list-events'
 import { m } from '@/paraglide/messages.js'
@@ -72,7 +73,7 @@ export function ListAddonRow({ addon, listId }: Props) {
 			// addons via React Query; SSE doesn't reach it on Vercel).
 			applyListEventLocally({ kind: 'addon', listId, addonId: addon.id }, { queryClient, router })
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : m.lists_addon_delete_failed())
+			toast.error(errorText(err, m.lists_addon_delete_failed()))
 		} finally {
 			setDeleting(false)
 		}

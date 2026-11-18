@@ -20,6 +20,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group'
 import { Label } from '@/components/ui/label'
+import { errorText } from '@/lib/i18n/errors'
+import { zodIssuesText, zodParams } from '@/lib/i18n/zod'
 import { applyListEventLocally } from '@/lib/list-events'
 import { applyScrapePrefill } from '@/lib/scrapers/apply-prefill'
 import { normalizeHttpUrl } from '@/lib/urls'
@@ -122,9 +124,9 @@ export function ListAddonDialog(props: Props) {
 			imageUrl: initial.imageUrl ?? '',
 		},
 		onSubmit: async ({ value }) => {
-			const parsed = buildSchema().safeParse(value)
+			const parsed = buildSchema().safeParse(value, zodParams())
 			if (!parsed.success) {
-				setError(parsed.error.issues.map(e => e.message).join(', '))
+				setError(zodIssuesText(parsed.error))
 				return
 			}
 
@@ -210,7 +212,7 @@ export function ListAddonDialog(props: Props) {
 				onOpenChange(false)
 				form.reset()
 			} catch (err) {
-				setError(err instanceof Error ? err.message : m.lists_addon_save_failed())
+				setError(errorText(err, m.lists_addon_save_failed()))
 			} finally {
 				setSubmitting(false)
 			}

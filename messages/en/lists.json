@@ -501,5 +501,13 @@
 	],
 	"lists_organize_delete_description": "This permanently removes the selected rows and any associated claims or comments.",
 	"lists_organize_delete_description_with_groups": "This permanently removes the selected rows and any associated claims or comments. Items inside deleted groups are also removed.",
-	"lists_organize_archived_badge": "Archived"
+	"lists_organize_archived_badge": "Archived",
+	"lists_todos_error_list_not_found": "This list no longer exists.",
+	"lists_todos_error_not_a_todo_list": "This isn't a to-do list.",
+	"lists_todos_error_not_authorized": "You don't have permission to change this list.",
+	"lists_todos_error_not_found": "This to-do no longer exists.",
+	"lists_todos_error_already_done": "Someone else already marked this one done.",
+	"lists_orphan_ack_error_not_found": "This claim no longer exists.",
+	"lists_orphan_ack_error_not_yours": "This claim isn't yours to acknowledge.",
+	"lists_orphan_ack_error_not_pending": "This item is no longer being removed."
 }

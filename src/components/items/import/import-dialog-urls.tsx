@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { errorText } from '@/lib/i18n/errors'
 import { parseUrls } from '@/lib/import/parsers/urls'
 import { itemsKeys } from '@/lib/queries/items'
 import { m } from '@/paraglide/messages.js'
@@ -77,7 +78,7 @@ export function ImportDialogUrls({ listId, open, onOpenChange }: Props) {
 			await queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })
 			onOpenChange(false)
 		} catch (err) {
-			setError(err instanceof Error ? err.message : m.items_import_error_failed())
+			setError(errorText(err, m.items_import_error_failed()))
 		} finally {
 			setSubmitting(false)
 		}

@@ -22,8 +22,10 @@ import { priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { MOBILE_DIALOG_QUERY, useKeyboardInset } from '@/hooks/use-keyboard-inset'
 import { useStorageStatus } from '@/hooks/use-storage-status'
+import { errorText } from '@/lib/i18n/errors'
 import { formatNumber } from '@/lib/i18n/format'
 import { priorityLabel } from '@/lib/i18n/labels'
+import { zodIssuesText, zodParams } from '@/lib/i18n/zod'
 import { useUpdateItem } from '@/lib/mutations/update-item'
 import { itemsKeys } from '@/lib/queries/items'
 import { applyScrapePrefill } from '@/lib/scrapers/apply-prefill'
@@ -155,9 +157,9 @@ export function ItemFormDialog(props: Props) {
 			imageUrl: isEdit ? (props.item.imageUrl ?? '') : '',
 		},
 		onSubmit: async ({ value }) => {
-			const parsed = makeSchema().safeParse(value)
+			const parsed = makeSchema().safeParse(value, zodParams())
 			if (!parsed.success) {
-				setError(parsed.error.issues.map(e => e.message).join(', '))
+				setError(zodIssuesText(parsed.error))
 				return
 			}
 
@@ -194,7 +196,7 @@ export function ItemFormDialog(props: Props) {
 					toast.success(m.items_edit_toast_updated())
 					props.onSaved?.()
 				} catch (err) {
-					toast.error(err instanceof Error ? err.message : m.items_error_save_failed())
+					toast.error(errorText(err, m.items_error_save_failed()))
 				}
 				return
 			}
@@ -241,7 +243,7 @@ export function ItemFormDialog(props: Props) {
 							toast.error(m.items_image_upload_failed({ message: uploadResult.message }))
 						}
 					} catch (uploadErr) {
-						const msg = uploadErr instanceof Error ? uploadErr.message : m.items_unknown_error()
+						const msg = errorText(uploadErr, m.items_unknown_error())
 						toast.error(m.items_image_upload_failed({ message: msg }))
 					}
 				}
@@ -252,7 +254,7 @@ export function ItemFormDialog(props: Props) {
 				queryClient.invalidateQueries({ queryKey: ['recent', 'items'] })
 				await queryClient.invalidateQueries({ queryKey: itemsKeys.byList(props.listId) })
 			} catch (err) {
-				setError(err instanceof Error ? err.message : m.items_error_save_failed())
+				setError(errorText(err, m.items_error_save_failed()))
 			} finally {
 				setSubmitting(false)
 			}
@@ -649,7 +651,7 @@ export function ItemFormDialog(props: Props) {
 										field.handleChange(result.value.url)
 										toast.success(m.items_image_toast_uploaded())
 									} catch (err) {
-										const msg = err instanceof Error ? err.message : m.items_unknown_error()
+										const msg = errorText(err, m.items_unknown_error())
 										toast.error(m.items_image_upload_failed({ message: msg }))
 									} finally {
 										setUploadingImage(false)

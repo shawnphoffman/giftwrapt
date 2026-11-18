@@ -29,8 +29,10 @@ import { Separator } from '@/components/ui/separator'
 import type { ListType } from '@/db/schema/enums'
 import { listTypeEnumValues } from '@/db/schema/enums'
 import { useSession } from '@/lib/auth-client'
+import { errorText } from '@/lib/i18n/errors'
 import { formatDate } from '@/lib/i18n/format'
 import { listTypeLabel } from '@/lib/i18n/labels'
+import { zodIssuesText, zodParams } from '@/lib/i18n/zod'
 import { evaluateListChangeImpact } from '@/lib/list-change-impact'
 import { itemsKeys } from '@/lib/queries/items'
 import { LIMITS } from '@/lib/validation/limits'
@@ -210,9 +212,9 @@ export function ListSettingsForm({
 			addPartnerAsEditor: true,
 		},
 		onSubmit: async ({ value }) => {
-			const parsed = buildSchema().safeParse(value)
+			const parsed = buildSchema().safeParse(value, zodParams())
 			if (!parsed.success) {
-				setError(parsed.error.issues.map(e => e.message).join(', '))
+				setError(zodIssuesText(parsed.error))
 				return
 			}
 
@@ -260,7 +262,7 @@ export function ListSettingsForm({
 				await queryClient.invalidateQueries({ queryKey: ['my-lists'] })
 				await router.invalidate()
 			} catch (err) {
-				setError(err instanceof Error ? err.message : m.lists_settings_save_failed())
+				setError(errorText(err, m.lists_settings_save_failed()))
 			} finally {
 				setSubmitting(false)
 			}

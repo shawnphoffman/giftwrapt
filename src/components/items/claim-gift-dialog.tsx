@@ -18,6 +18,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { errorText } from '@/lib/i18n/errors'
+import { zodIssuesText, zodParams } from '@/lib/i18n/zod'
 import { applyListEventLocally } from '@/lib/list-events'
 import { LIMITS } from '@/lib/validation/limits'
 import { m } from '@/paraglide/messages.js'
@@ -154,9 +156,9 @@ export function ClaimGiftDialog(props: Props) {
 			totalCost: isEdit ? (props.gift.totalCost ?? '') : '',
 		},
 		onSubmit: async ({ value }) => {
-			const parsed = schema.safeParse(value)
+			const parsed = schema.safeParse(value, zodParams())
 			if (!parsed.success) {
-				setError(parsed.error.issues.map(e => e.message).join(', '))
+				setError(zodIssuesText(parsed.error))
 				return
 			}
 
@@ -250,7 +252,7 @@ export function ClaimGiftDialog(props: Props) {
 				onOpenChange(false)
 				form.reset()
 			} catch (err) {
-				setError(err instanceof Error ? err.message : m.items_claim_error_save_failed())
+				setError(errorText(err, m.items_claim_error_save_failed()))
 			} finally {
 				setSubmitting(false)
 			}

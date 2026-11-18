@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { errorText } from '@/lib/i18n/errors'
 import { parseAppleNotes } from '@/lib/import/parsers/apple-notes'
 import { itemsKeys } from '@/lib/queries/items'
 import { m } from '@/paraglide/messages.js'
@@ -94,7 +95,7 @@ export function ImportDialogAppleNotes({ listId, open, onOpenChange }: Props) {
 			await queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })
 			onOpenChange(false)
 		} catch (err) {
-			setError(err instanceof Error ? err.message : m.items_import_error_failed())
+			setError(errorText(err, m.items_import_error_failed()))
 		} finally {
 			setSubmitting(false)
 		}

@@ -300,5 +300,11 @@
 	"settings_password_title": "Password",
 	"settings_password_description": "Change the password you use to sign in.",
 	"settings_passkeys_title": "Passkeys",
-	"settings_passkeys_description": "Add Touch ID, Face ID, or hardware security keys as a faster way to sign in. Each device gets its own passkey."
+	"settings_passkeys_description": "Add Touch ID, Face ID, or hardware security keys as a faster way to sign in. Each device gets its own passkey.",
+	"settings_profile_name_required": "Name is required",
+	"settings_profile_name_too_long": "Name must be {max} characters or fewer",
+	"settings_profile_birth_day_invalid": "Birth day must be between 1 and 31",
+	"settings_profile_birth_year_invalid": "Birth year must be between 1900 and the current year",
+	"settings_profile_anniversary_invalid": "Anniversary must be a valid date",
+	"settings_profile_child_partner": "Child accounts cannot have a partner."
 }

@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { errorText } from '@/lib/i18n/errors'
 import { parseAmazonWishlist } from '@/lib/import/parsers/amazon-wishlist'
 import { itemsKeys } from '@/lib/queries/items'
 import { m } from '@/paraglide/messages.js'
@@ -80,7 +81,7 @@ export function ImportDialogAmazon({ listId, open, onOpenChange }: Props) {
 				setStep('fallback')
 			}
 		} catch (err) {
-			setError(err instanceof Error ? err.message : m.items_import_amazon_error_fetch())
+			setError(errorText(err, m.items_import_amazon_error_fetch()))
 		} finally {
 			setFetching(false)
 		}
@@ -107,7 +108,7 @@ export function ImportDialogAmazon({ listId, open, onOpenChange }: Props) {
 			await queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })
 			onOpenChange(false)
 		} catch (err) {
-			setError(err instanceof Error ? err.message : m.items_import_error_failed())
+			setError(errorText(err, m.items_import_error_failed()))
 		} finally {
 			setSubmitting(false)
 		}

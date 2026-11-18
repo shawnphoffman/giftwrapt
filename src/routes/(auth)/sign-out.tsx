@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 
 import { SignOutPageContent } from '@/components/auth/sign-out-page'
 import { signOut } from '@/lib/auth-client'
+import { errorText, UserFacingError } from '@/lib/i18n/errors'
 import { forgetSkeletonShapes } from '@/lib/skullet'
 import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
@@ -41,13 +42,13 @@ function SignOut() {
 			try {
 				await Promise.race([
 					signOut(),
-					new Promise((_, reject) => setTimeout(() => reject(new Error(m.auth_sign_out_timed_out())), SIGN_OUT_TIMEOUT_MS)),
+					new Promise((_, reject) => setTimeout(() => reject(new UserFacingError(m.auth_sign_out_timed_out())), SIGN_OUT_TIMEOUT_MS)),
 				])
 				await purgeCaches()
 				navigate({ to: '/sign-in' })
 			} catch (err) {
 				await purgeCaches()
-				setError(err instanceof Error ? err.message : m.auth_sign_out_failed())
+				setError(errorText(err, m.auth_sign_out_failed()))
 				setTimeout(() => {
 					navigate({ to: '/sign-in' })
 				}, 2000)

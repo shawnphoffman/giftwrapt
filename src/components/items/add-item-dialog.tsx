@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { type Priority, priorityEnumValues } from '@/db/schema/enums'
 import { useStorageStatus } from '@/hooks/use-storage-status'
+import { errorText } from '@/lib/i18n/errors'
 import { priorityLabel } from '@/lib/i18n/labels'
 import { itemsKeys } from '@/lib/queries/items'
 import { applyScrapePrefill } from '@/lib/scrapers/apply-prefill'
@@ -298,7 +299,7 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 						toast.error(m.items_image_upload_failed({ message: uploadResult.message }))
 					}
 				} catch (uploadErr) {
-					const msg = uploadErr instanceof Error ? uploadErr.message : m.items_unknown_error()
+					const msg = errorText(uploadErr, m.items_unknown_error())
 					toast.error(m.items_image_upload_failed({ message: msg }))
 				}
 			}
@@ -309,7 +310,7 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 			await queryClient.invalidateQueries({ queryKey: itemsKeys.byList(listId) })
 			router.navigate({ to: '/lists/$listId/edit', params: { listId: selectedListId } })
 		} catch (err) {
-			setError(err instanceof Error ? err.message : m.items_error_save_failed())
+			setError(errorText(err, m.items_error_save_failed()))
 		} finally {
 			setSaving(false)
 		}

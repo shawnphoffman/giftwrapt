@@ -4,6 +4,7 @@ import { Component } from 'react'
 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { errorText } from '@/lib/i18n/errors'
 import { m } from '@/paraglide/messages.js'
 
 interface ErrorBoundaryProps {
@@ -52,7 +53,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 					<Alert variant="destructive" className="max-w-md">
 						<AlertTriangle className="h-4 w-4" />
 						<AlertTitle>{m.error_something_went_wrong()}</AlertTitle>
-						<AlertDescription className="mt-2">{this.state.error.message || m.error_unexpected()}</AlertDescription>
+						<AlertDescription className="mt-2">{errorText(this.state.error, m.error_unexpected())}</AlertDescription>
 						<div className="mt-4">
 							<Button onClick={this.reset} variant="outline" size="sm">
 								{m.action_try_again()}
