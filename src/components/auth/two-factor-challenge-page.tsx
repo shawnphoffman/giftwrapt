@@ -49,15 +49,19 @@ export function TwoFactorChallengePageContent({
 
 	const showLoading = submitting || forceLoading
 
-	const submit = async () => {
+	// Takes the value to send instead of reading `code` from state: the
+	// auto-submit below runs in the same tick as `setCode`, when the state
+	// still holds the previous value (five digits while typing, or nothing
+	// after a paste or a password-manager fill).
+	const submit = async (value: string) => {
 		if (showLoading) return
 		setError(null)
 		setSubmitting(true)
 		try {
 			if (mode === 'totp') {
-				await onSubmitTotp(code, trustDevice)
+				await onSubmitTotp(value, trustDevice)
 			} else {
-				await onSubmitBackupCode(code)
+				await onSubmitBackupCode(value.trim())
 			}
 		} catch {
 			setError(GENERIC_ERROR)
@@ -68,13 +72,13 @@ export function TwoFactorChallengePageContent({
 
 	const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault()
-		await submit()
+		await submit(code)
 	}
 
 	const handleTotpChange = (next: string) => {
 		setCode(next)
 		if (next.length === TOTP_LENGTH) {
-			void submit()
+			void submit(next)
 		}
 	}
 
@@ -138,10 +142,15 @@ export function TwoFactorChallengePageContent({
 							<Input
 								id="2fa-code"
 								value={code}
-								onChange={e => setCode(e.target.value.toUpperCase().slice(0, 64))}
+								// Backup codes are case-sensitive (mixed-case letters and
+								// digits), so the value is kept exactly as entered.
+								onChange={e => setCode(e.target.value.slice(0, 64))}
+								autoCapitalize="none"
+								autoCorrect="off"
+								spellCheck={false}
 								inputMode="text"
 								autoComplete="one-time-code"
-								placeholder="XXXX-XXXX"
+								placeholder="xxxxx-xxxxx"
 								required
 								disabled={showLoading}
 								autoFocus
