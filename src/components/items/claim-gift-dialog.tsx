@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { errorText } from '@/lib/i18n/errors'
+import { normalizeAmountInput } from '@/lib/i18n/format'
 import { zodIssuesText, zodParams } from '@/lib/i18n/zod'
 import { applyListEventLocally } from '@/lib/list-events'
 import { LIMITS } from '@/lib/validation/limits'
@@ -81,6 +82,7 @@ function buildSchema(remaining: number) {
 			.string()
 			.trim()
 			.optional()
+			.transform(v => (v ? normalizeAmountInput(v) : v))
 			.refine(v => !v || /^\d+(\.\d{1,2})?$/.test(v), {
 				message: m.items_claim_error_cost_format(),
 			}),

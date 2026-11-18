@@ -10,7 +10,9 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useMoney } from '@/hooks/use-money'
 import { parseTotalCost } from '@/lib/contributions'
+import { normalizeAmountInput } from '@/lib/i18n/format'
 import { m } from '@/paraglide/messages.js'
 
 type Props = {
@@ -27,6 +29,7 @@ const VALID_AMOUNT = /^\d+(\.\d{1,2})?$/
 // construction - the only failure is over-allocating past the total. Reset to
 // even clears the custom split.
 export function ContributionSplitDialog({ open, onOpenChange, giftId, itemTitle }: Props) {
+	const money = useMoney()
 	const router = useRouter()
 	const queryClient = useQueryClient()
 	const [amounts, setAmounts] = useState<Record<string, string>>({})
@@ -45,10 +48,10 @@ export function ContributionSplitDialog({ open, onOpenChange, giftId, itemTitle 
 	}, [split])
 
 	const total = parseTotalCost(split?.totalCost ?? null)
-	const sumCo = Object.values(amounts).reduce((s, v) => s + (parseTotalCost(v) ?? 0), 0)
+	const sumCo = Object.values(amounts).reduce((s, v) => s + (parseTotalCost(normalizeAmountInput(v)) ?? 0), 0)
 	const residual = total != null ? Math.round((total - sumCo) * 100) / 100 : null
 	const overAllocated = residual != null && residual < -0.001
-	const anyInvalid = Object.values(amounts).some(v => v.trim() !== '' && !VALID_AMOUNT.test(v.trim()))
+	const anyInvalid = Object.values(amounts).some(v => v.trim() !== '' && !VALID_AMOUNT.test(normalizeAmountInput(v)))
 
 	const refresh = () => {
 		router.invalidate()
@@ -82,7 +85,7 @@ export function ContributionSplitDialog({ open, onOpenChange, giftId, itemTitle 
 
 	const onSave = () => {
 		if (!split) return
-		save(split.coGifters.map(c => ({ userId: c.id, amount: (amounts[c.id] ?? '').trim() || '0' })))
+		save(split.coGifters.map(c => ({ userId: c.id, amount: normalizeAmountInput(amounts[c.id] ?? '') || '0' })))
 	}
 
 	return (
@@ -114,7 +117,7 @@ export function ContributionSplitDialog({ open, onOpenChange, giftId, itemTitle 
 					<div className="flex items-center justify-between border-t pt-3 text-sm">
 						<span className="font-medium">{m.purchases_split_your_share()}</span>
 						<span className={`tabular-nums font-semibold ${overAllocated ? 'text-destructive' : ''}`}>
-							{residual != null ? `$${residual.toFixed(2)}` : '-'}
+							{residual != null ? money.amount(residual) : '-'}
 						</span>
 					</div>
 					{overAllocated && (

@@ -377,7 +377,7 @@ export const ItemEditRow = memo(function ItemEditRow({
 					<div className="flex items-center gap-2">
 						<div className={cn('flex items-center gap-2', dimmed && 'opacity-60')}>
 							<DateAdded createdAt={item.createdAt} />
-							{item.price && <PriceQuantityBadge price={item.price} quantity={1} hideQuantity />}
+							{item.price && <PriceQuantityBadge price={item.price} currency={item.currency} quantity={1} hideQuantity />}
 						</div>
 						{item.quantity > 1 && (
 							<QuantityRemainingBadge variant="inline-pill" quantity={item.quantity} remaining={item.quantity} firstPerson />

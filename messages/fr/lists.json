@@ -230,7 +230,7 @@
 	"lists_legend_todos_on_delete": "Les éléments sont supprimés immédiatement. Rien n’est caché à personne : il n’y a donc aucune alerte de donateur à nettoyer.",
 	"lists_addon_description_required": "La description est obligatoire",
 	"lists_addon_too_long": "Trop long",
-	"lists_addon_cost_invalid": "Doit être un nombre, par exemple 12.50",
+	"lists_addon_cost_invalid": "Doit être un nombre, par exemple 12,50",
 	"lists_addon_error_not_yours_edit": "Vous ne pouvez pas modifier le cadeau hors liste de quelqu’un d’autre.",
 	"lists_addon_error_not_yours_delete": "Vous ne pouvez pas supprimer le cadeau hors liste de quelqu’un d’autre.",
 	"lists_addon_error_gone": "Ce cadeau hors liste n’existe plus.",

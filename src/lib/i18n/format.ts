@@ -2,6 +2,7 @@ import type { Locale as DateFnsLocale } from 'date-fns'
 import { formatDistanceToNow } from 'date-fns'
 import { enUS, fr } from 'date-fns/locale'
 
+import { currencyCode, DEFAULT_CURRENCY } from '@/lib/i18n/currency'
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/lib/i18n/locales'
 import { getLocale } from '@/paraglide/runtime.js'
 
@@ -94,4 +95,84 @@ export function formatList(
 ): string {
 	const tag = INTL_TAG[locale]
 	return cached(listFormatters, `${tag}|${type}`, () => new Intl.ListFormat(tag, { style: 'long', type })).format(items)
+}
+
+// ---------------------------------------------------------------------------
+// Money (plan 36f)
+// ---------------------------------------------------------------------------
+
+type CurrencyOptions = {
+	// Drop the decimals from a round amount: "$25" rather than "$25.00". For
+	// price bands, axis ticks and prices typed without cents.
+	wholeWhenRound?: boolean
+}
+
+// "$12.50", "12,50 €". The symbol and where it sits follow the locale, the
+// currency is whatever the amount is in. An unknown code falls back to the
+// number with the code after it rather than throwing.
+export function formatCurrency(
+	amount: number,
+	currency: string | null | undefined = DEFAULT_CURRENCY,
+	options: CurrencyOptions = {},
+	locale: Locale = currentLocale()
+): string {
+	const whole = options.wholeWhenRound === true && Number.isInteger(amount)
+	const digits = whole ? { minimumFractionDigits: 0, maximumFractionDigits: 0 } : {}
+	const code = currencyCode(currency)
+	if (code) {
+		try {
+			return formatNumber(amount, { style: 'currency', currency: code, ...digits }, locale)
+		} catch {
+			// Three letters that are not a currency Intl knows: fall through.
+		}
+	}
+	const plain = formatNumber(amount, whole ? digits : { minimumFractionDigits: 2, maximumFractionDigits: 2 }, locale)
+	const label = currency?.trim()
+	return label ? `${plain} ${label}` : plain
+}
+
+// The symbol shown beside an amount field: "$", "€". Falls back to the code.
+export function currencySymbol(currency: string | null | undefined = DEFAULT_CURRENCY, locale: Locale = currentLocale()): string {
+	const code = currencyCode(currency)
+	if (!code) return currency?.trim() ?? ''
+	try {
+		const tag = INTL_TAG[locale]
+		const formatter = cached(
+			numberFormatters,
+			`${tag}|symbol|${code}`,
+			() => new Intl.NumberFormat(tag, { style: 'currency', currency: code })
+		)
+		return formatter.formatToParts(0).find(part => part.type === 'currency')?.value ?? code
+	} catch {
+		return code
+	}
+}
+
+// The number in a typed amount: "12.50" and "12,50" are both 12.5. Null for
+// anything that is not a plain amount ("12 each", "45-60", "1,200").
+export function parseAmount(raw: string | null | undefined): number | null {
+	const text = raw?.trim() ?? ''
+	if (!/^\d+(?:\.\d+|,\d{1,2})?$/.test(text)) return null
+	return Number(text.replace(',', '.'))
+}
+
+// What a typed amount is stored as: a comma decimal becomes a point, so
+// "12,50" is saved as "12.50". Anything else comes back trimmed and unchanged.
+export function normalizeAmountInput(raw: string): string {
+	const text = raw.trim()
+	return /^\d+,\d{1,2}$/.test(text) ? text.replace(',', '.') : text
+}
+
+// An item's price for display. Prices are free text: a plain amount is shown
+// as money in the item's currency (or `fallbackCurrency` when it has none),
+// anything else ("12 each", "$45-60") is shown as typed.
+export function formatItemPrice(
+	price: string,
+	currency: string | null | undefined,
+	fallbackCurrency: string = DEFAULT_CURRENCY,
+	locale: Locale = currentLocale()
+): string {
+	const amount = parseAmount(price)
+	if (amount === null) return price.trim()
+	return formatCurrency(amount, currencyCode(currency) ?? fallbackCurrency, { wholeWhenRound: true }, locale)
 }

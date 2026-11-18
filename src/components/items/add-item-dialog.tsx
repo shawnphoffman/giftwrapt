@@ -20,6 +20,7 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { type Priority, priorityEnumValues } from '@/db/schema/enums'
+import { useMoney } from '@/hooks/use-money'
 import { useStorageStatus } from '@/hooks/use-storage-status'
 import { errorText } from '@/lib/i18n/errors'
 import { priorityLabel } from '@/lib/i18n/labels'
@@ -61,6 +62,7 @@ function ListSelectItem({ list, owner }: { list: ListOption; owner?: { name: str
 }
 
 export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
+	const money = useMoney()
 	const router = useRouter()
 	const queryClient = useQueryClient()
 	const [url, setUrl] = useState('')
@@ -503,8 +505,7 @@ export function AddItemDialog({ open, onOpenChange, initialUrl }: Props) {
 								id="add-item-price"
 								value={price}
 								onChange={e => setPrice(e.target.value)}
-								// eslint-disable-next-line i18next/no-literal-string -- price placeholder, localized with prices
-								placeholder="$ 0.00"
+								placeholder={money.amount(0)}
 								inputMode="decimal"
 								disabled={formLocked}
 							/>

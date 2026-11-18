@@ -33,6 +33,8 @@ vi.mock('@/api/items', () => ({ createItem: vi.fn() }))
 vi.mock('@/api/lists', () => ({ getMyLists: vi.fn() }))
 vi.mock('@/api/uploads', () => ({ uploadItemImage: vi.fn() }))
 vi.mock('@/hooks/use-storage-status', () => ({ useStorageStatus: () => ({ configured: false }) }))
+// The price placeholder is money in the deployment's currency; the real hook reads app settings from the server.
+vi.mock('@/hooks/use-app-settings', () => ({ useAppSetting: () => 'USD' }))
 vi.mock('@/lib/storage/client-resize', () => ({ resizeImageForUpload: vi.fn() }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 vi.mock('../image-picker', () => ({ ImagePicker: () => null }))

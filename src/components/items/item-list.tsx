@@ -16,6 +16,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import type { Priority } from '@/db/schema/enums'
+import { useMoney } from '@/hooks/use-money'
+import { parseAmount } from '@/lib/i18n/format'
 import { buildListEntries, compareWithinPriority, type ListEntry } from '@/lib/list-entries'
 import { listItemsViewQueryOptions } from '@/lib/queries/items'
 import { getVendorFromUrl, isKnownVendor, parseInternalListLink, vendorIdToName } from '@/lib/urls'
@@ -77,18 +79,20 @@ const pricePresets: ReadonlyArray<{ id: Exclude<PricePresetId, 'custom' | 'all'>
 	{ id: 'over-250', min: 250, max: null },
 ]
 
-// The label of a price range, for the presets and a custom range alike. The
-// amounts keep their hardcoded "$" (price formatting is a later slice); only
-// the words around them come from the catalog.
-function priceRangeLabel(min: number | null, max: number | null): string {
-	if (min !== null && max !== null) return `$${min} – $${max}`
-	if (min !== null) return m.items_price_over({ price: `$${min}` })
-	if (max !== null) return m.items_price_under({ price: `$${max}` })
+// The label of a price range, for the presets and a custom range alike.
+// `price` formats a bound as money in the deployment's currency.
+function priceRangeLabel(min: number | null, max: number | null, price: (value: number) => string): string {
+	if (min !== null && max !== null) return m.items_price_between({ low: price(min), high: price(max) })
+	if (min !== null) return m.items_price_over({ price: price(min) })
+	if (max !== null) return m.items_price_under({ price: price(max) })
 	return m.items_price_any_button()
 }
 
 function parsePrice(raw: string | null): number | null {
 	if (!raw) return null
+	// A plain amount first, so "12,50" is 12.5 and not 1250.
+	const plain = parseAmount(raw)
+	if (plain !== null) return plain
 	const cleaned = raw.replace(/[^0-9.]/g, '')
 	if (!cleaned) return null
 	const n = Number.parseFloat(cleaned)
@@ -141,6 +145,7 @@ type ViewProps = Omit<Props, 'listId'> & {
 // The list body without its query, so a loading skeleton can render the
 // real layout from sample items (see list-detail-sample.ts).
 export function ItemListView({ items, groups = [], filterBarLeading }: ViewProps) {
+	const money = useMoney()
 	const [filter, setFilter] = useState<FilterValue>('all')
 	const [vendorFilter, setVendorFilter] = useState<ReadonlySet<string>>(() => new Set())
 	const [sort, setSort] = useState<SortValue>('priority-desc')
@@ -253,7 +258,9 @@ export function ItemListView({ items, groups = [], filterBarLeading }: ViewProps
 	}
 
 	const priceLabel =
-		pricePreset === 'all' || !activePriceRange ? m.items_price_any_button() : priceRangeLabel(activePriceRange.min, activePriceRange.max)
+		pricePreset === 'all' || !activePriceRange
+			? m.items_price_any_button()
+			: priceRangeLabel(activePriceRange.min, activePriceRange.max, money.roundAmount)
 
 	const SortDirectionIcon = sortIsDescending(sort) ? ArrowDown : ArrowUp
 
@@ -312,7 +319,7 @@ export function ItemListView({ items, groups = [], filterBarLeading }: ViewProps
 							{pricePresets.map(p => (
 								<DropdownMenuItem key={p.id} onClick={() => setPricePreset(p.id)}>
 									<Check className={cn('size-4', pricePreset !== p.id && 'opacity-0')} />
-									{priceRangeLabel(p.min, p.max)}
+									{priceRangeLabel(p.min, p.max, money.roundAmount)}
 								</DropdownMenuItem>
 							))}
 							<DropdownMenuSeparator />

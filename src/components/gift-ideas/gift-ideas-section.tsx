@@ -10,6 +10,7 @@ import UserAvatar from '@/components/common/user-avatar'
 import ItemRow from '@/components/items/item-row'
 import { ListAddonDialog, type ListAddonInitialValues } from '@/components/list-addons/list-addon-dialog'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { parseAmount } from '@/lib/i18n/format'
 import { listGiftIdeasQueryOptions } from '@/lib/queries/lists'
 import { LIMITS } from '@/lib/validation/limits'
 import { m } from '@/paraglide/messages.js'
@@ -113,7 +114,7 @@ function GiftIdeasSourceGroup({ source, onClaim }: { source: GiftIdeasSource; on
 // so only a clean amount carries into Total cost; notes are trimmed to the
 // addon limit (the dialog shows exactly what will be saved).
 function ideaToAddonValues(item: ItemWithGifts): ListAddonInitialValues {
-	const amount = item.price ? Number.parseFloat(item.price.replace(/[^0-9.]/g, '')) : Number.NaN
+	const amount = item.price ? (parseAmount(item.price) ?? Number.parseFloat(item.price.replace(/[^0-9.]/g, ''))) : Number.NaN
 	return {
 		description: item.title.slice(0, LIMITS.SHORT_TEXT),
 		notes: (item.notes ?? '').slice(0, LIMITS.MEDIUM_TEXT),

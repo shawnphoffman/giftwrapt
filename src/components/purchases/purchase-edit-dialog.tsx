@@ -15,8 +15,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { useMoney } from '@/hooks/use-money'
 import { useStorageStatus } from '@/hooks/use-storage-status'
 import { errorText } from '@/lib/i18n/errors'
+import { normalizeAmountInput } from '@/lib/i18n/format'
 import { zodIssuesText, zodParams } from '@/lib/i18n/zod'
 import { detectCarrier } from '@/lib/tracking/carriers'
 import { LIMITS } from '@/lib/validation/limits'
@@ -55,6 +57,7 @@ function purchaseSchema() {
 			.string()
 			.trim()
 			.optional()
+			.transform(v => (v ? normalizeAmountInput(v) : v))
 			.refine(v => !v || /^\d+(\.\d{1,2})?$/.test(v), {
 				message: m.purchases_edit_cost_invalid(),
 			}),
@@ -88,6 +91,7 @@ function purchaseFormKey(p: EditablePurchase): string {
 }
 
 function PurchaseEditForm({ purchase, onOpenChange }: { purchase: EditablePurchase; onOpenChange: (open: boolean) => void }) {
+	const money = useMoney()
 	const router = useRouter()
 	const [submitting, setSubmitting] = useState(false)
 	const [error, setError] = useState<string | null>(null)
@@ -243,7 +247,9 @@ function PurchaseEditForm({ purchase, onOpenChange }: { purchase: EditablePurcha
 						<div className="grid gap-2">
 							<Label htmlFor={field.name}>{m.purchases_edit_cost_label()}</Label>
 							<div className="relative">
-								<span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">$</span>
+								<span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">
+									{money.symbol}
+								</span>
 								<Input
 									id={field.name}
 									type="text"

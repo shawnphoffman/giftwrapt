@@ -360,7 +360,7 @@
 	"items_claim_error_quantity_min": "Doit être au moins 1",
 	"items_claim_error_only_left": "Il n'en reste que {remaining} à réserver",
 	"items_claim_error_notes_too_long": "Trop long",
-	"items_claim_error_cost_format": "Doit être un nombre, par exemple 12.50",
+	"items_claim_error_cost_format": "Doit être un nombre, par exemple 12,50",
 	"items_claim_unclaim_error_not_yours": "Vous ne pouvez pas annuler la réservation de quelqu'un d'autre.",
 	"items_claim_error_not_found": "Cette réservation n'existe plus.",
 	"items_claim_toast_removed": "Réservation annulée",
@@ -635,5 +635,6 @@
 				"countPlural=*": "{count} articles détectés. (collage en texte enrichi détecté)"
 			}
 		}
-	]
+	],
+	"items_price_between": "{low} – {high}"
 }

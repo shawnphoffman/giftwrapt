@@ -24,11 +24,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAppSetting } from '@/hooks/use-app-settings'
+import { useMoney } from '@/hooks/use-money'
 import { useSession } from '@/lib/auth-client'
 import { formatRelative } from '@/lib/format-relative'
 import type { PriceBand } from '@/lib/gift-suggestions/prompt'
 import { buildSearchUrl } from '@/lib/gift-suggestions/search-url'
-import { formatList } from '@/lib/i18n/format'
+import { formatCurrency, formatList } from '@/lib/i18n/format'
 import { applyListEventLocally } from '@/lib/list-events'
 import { listDetailKeys } from '@/lib/queries/lists'
 import { cn } from '@/lib/utils'
@@ -51,20 +52,20 @@ import { m } from '@/paraglide/messages.js'
 // `aiGiftSuggestionsEnabled` flag. With it off nothing renders and the
 // list page looks as it always did.
 
-// The words come from the catalog on each call. The amounts are still
-// printed with a hardcoded `$` (money formatting is its own later change).
-function priceBandLabel(band: PriceBand): string | null {
+// The words come from the catalog on each call; `price` formats a bound as
+// money in the deployment's currency.
+function priceBandLabel(band: PriceBand, price: (value: number) => string): string | null {
 	switch (band) {
 		case 'under-25':
-			return m.gift_help_price_under({ amount: '$25' })
+			return m.gift_help_price_under({ amount: price(25) })
 		case '25-50':
-			return m.gift_help_price_range({ low: '$25', high: '$50' })
+			return m.gift_help_price_range({ low: price(25), high: price(50) })
 		case '50-100':
-			return m.gift_help_price_range({ low: '$50', high: '$100' })
+			return m.gift_help_price_range({ low: price(50), high: price(100) })
 		case '100-250':
-			return m.gift_help_price_range({ low: '$100', high: '$250' })
+			return m.gift_help_price_range({ low: price(100), high: price(250) })
 		case 'over-250':
-			return m.gift_help_price_over({ amount: '$250' })
+			return m.gift_help_price_over({ amount: price(250) })
 		case 'unknown':
 			return null
 	}
@@ -169,11 +170,14 @@ function CheckingForIdeas() {
 // "Ideas from 3 days ago, for Christmas, up to $50." The occasion and
 // budget are the ones the set was made with, which may not match the list
 // the viewer is on now.
-export function storedSetCaption(set: StoredSuggestionSetMeta, now: number = Date.now()): string {
+export function storedSetCaption(
+	set: StoredSuggestionSetMeta,
+	now: number = Date.now(),
+	price: (value: number) => string = value => formatCurrency(value, undefined, { wholeWhenRound: true })
+): string {
 	const when = formatRelative(set.createdAt, now)
 	const occasion = set.occasion
-	// Still a hardcoded `$`: money formatting is its own later change.
-	const amount = set.budget !== null ? `$${set.budget}` : null
+	const amount = set.budget !== null ? price(set.budget) : null
 	if (occasion && amount !== null) return m.gift_help_stored_caption_occasion_budget({ when, occasion, amount })
 	if (occasion) return m.gift_help_stored_caption_occasion({ when, occasion })
 	if (amount !== null) return m.gift_help_stored_caption_budget({ when, amount })
@@ -230,6 +234,7 @@ export function GiftHelpDialogView({
 	onUnmark,
 	searchUrlTemplate,
 }: GiftHelpDialogViewProps) {
+	const money = useMoney()
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-2xl">
@@ -293,12 +298,14 @@ export function GiftHelpDialogView({
 									<p className="text-sm text-muted-foreground">{m.gift_help_no_results()}</p>
 								) : (
 									<>
-										{suggestions.set && <p className="text-xs text-muted-foreground">{storedSetCaption(suggestions.set)}</p>}
+										{suggestions.set && (
+											<p className="text-xs text-muted-foreground">{storedSetCaption(suggestions.set, undefined, money.roundAmount)}</p>
+										)}
 										<ul className="flex flex-col gap-3">
 											{suggestions.suggestions.map(s => {
 												const saved = savedTitles.has(s.title)
 												const added = addedTitles.has(s.title)
-												const band = priceBandLabel(s.priceBand)
+												const band = priceBandLabel(s.priceBand, money.roundAmount)
 												const searchUrl = buildSearchUrl(searchUrlTemplate, s.title)
 												const verdict = verdicts.get(s.title)
 												const marking = markingTitle === s.title

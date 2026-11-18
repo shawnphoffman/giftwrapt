@@ -8,6 +8,7 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 
 import { CardContent } from '@/components/ui/card'
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { useMoney } from '@/hooks/use-money'
 import { m } from '@/paraglide/messages.js'
 
 // A function, not a table: the series labels are text, read in the language
@@ -77,6 +78,7 @@ function RecipientNameTick({ x, y, fill, payload }: { x?: number; y?: number; fi
 }
 
 export function SpendByRecipientChart({ data }: { data: Array<RecipientPoint> }) {
+	const money = useMoney()
 	const height = Math.max(MIN_CHART_HEIGHT, data.length * ROW_HEIGHT + 32)
 	return (
 		<CardContent>
@@ -94,7 +96,7 @@ export function SpendByRecipientChart({ data }: { data: Array<RecipientPoint> })
 							</linearGradient>
 						</defs>
 						<CartesianGrid horizontal={false} />
-						<XAxis type="number" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={v => `$${v}`} />
+						<XAxis type="number" tickLine={false} axisLine={false} tickMargin={8} tickFormatter={v => money.roundAmount(Number(v))} />
 						<YAxis
 							type="category"
 							dataKey="name"
@@ -104,7 +106,7 @@ export function SpendByRecipientChart({ data }: { data: Array<RecipientPoint> })
 							interval={0}
 							tick={<RecipientNameTick />}
 						/>
-						<ChartTooltip content={<ChartTooltipContent indicator="dot" valueFormatter={v => `$${Number(v).toFixed(2)}`} />} />
+						<ChartTooltip content={<ChartTooltipContent indicator="dot" valueFormatter={v => money.amount(Number(v))} />} />
 						<Bar dataKey="gifts" stackId="a" fill="url(#fillGiftsH)" isAnimationActive={false} radius={[0, 0, 0, 0]} />
 						<Bar dataKey="addons" stackId="a" fill="url(#fillAddonsH)" isAnimationActive={false} radius={[0, 4, 4, 0]} />
 					</BarChart>
@@ -117,6 +119,7 @@ export function SpendByRecipientChart({ data }: { data: Array<RecipientPoint> })
 }
 
 export function SpendOverTimeChart({ data }: { data: Array<MonthPoint> }) {
+	const money = useMoney()
 	return (
 		<CardContent>
 			{data.length > 0 ? (
@@ -125,8 +128,8 @@ export function SpendOverTimeChart({ data }: { data: Array<MonthPoint> }) {
 						<SpendGradients />
 						<CartesianGrid vertical={false} />
 						<XAxis dataKey="month" tickLine={false} axisLine={false} tickMargin={8} />
-						<YAxis tickLine={false} axisLine={false} tickMargin={8} width="auto" tickFormatter={v => `$${v}`} />
-						<ChartTooltip content={<ChartTooltipContent indicator="dot" valueFormatter={v => `$${Number(v).toFixed(2)}`} />} />
+						<YAxis tickLine={false} axisLine={false} tickMargin={8} width="auto" tickFormatter={v => money.roundAmount(Number(v))} />
+						<ChartTooltip content={<ChartTooltipContent indicator="dot" valueFormatter={v => money.amount(Number(v))} />} />
 						<Bar dataKey="gifts" stackId="a" fill="url(#fillGifts)" isAnimationActive={false} radius={[0, 0, 0, 0]} />
 						<Bar dataKey="addons" stackId="a" fill="url(#fillAddons)" isAnimationActive={false} radius={[4, 4, 0, 0]} />
 					</BarChart>

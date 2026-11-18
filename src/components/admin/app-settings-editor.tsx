@@ -15,6 +15,8 @@ import { useIsEmailConfigured } from '@/hooks/use-is-email-configured'
 import { useObservabilityStatus } from '@/hooks/use-observability-status'
 import { useStorageStatus } from '@/hooks/use-storage-status'
 import { SUPPORTED_COUNTRIES } from '@/lib/holidays-countries'
+import { COMMON_CURRENCIES } from '@/lib/i18n/currency'
+import { currencySymbol } from '@/lib/i18n/format'
 import { listTypeLabel } from '@/lib/i18n/labels'
 import { localeDisplayName, READY_LOCALES } from '@/lib/i18n/locales'
 import type { AppSettings } from '@/lib/settings'
@@ -74,6 +76,13 @@ function LoadingOrEmpty({ isLoading, settings }: { isLoading: boolean; settings:
 	if (isLoading) return <div className="text-sm text-muted-foreground">Loading settings...</div>
 	if (!settings) return <div className="text-sm text-muted-foreground">No settings found</div>
 	return null
+}
+
+// The short list, plus the current value when it was set to something else
+// (any ISO 4217 code is valid; see `lib/i18n/currency.ts`).
+function currencyChoices(current: string): Array<string> {
+	const common: ReadonlyArray<string> = COMMON_CURRENCIES
+	return common.includes(current) ? [...common] : [current, ...common]
 }
 
 export function CoreSettingsSection() {
@@ -154,6 +163,30 @@ export function CoreSettingsSection() {
 					</Select>
 				</div>
 			)}
+
+			<div className="flex items-center justify-between gap-4">
+				<div className="space-y-0.5">
+					<Label htmlFor="defaultCurrency" className="text-base">
+						Default Currency
+					</Label>
+					<p className="text-sm text-muted-foreground">
+						Used for purchase totals and for item prices that were saved without a currency. Changing it relabels those amounts; it does not
+						convert them.
+					</p>
+				</div>
+				<Select value={settings.defaultCurrency} onValueChange={value => handleSettingChange('defaultCurrency', value)}>
+					<SelectTrigger id="defaultCurrency" className="w-35">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						{currencyChoices(settings.defaultCurrency).map(code => (
+							<SelectItem key={code} value={code}>
+								{code} ({currencySymbol(code)})
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
+			</div>
 
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">

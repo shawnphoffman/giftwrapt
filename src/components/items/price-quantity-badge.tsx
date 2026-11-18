@@ -1,7 +1,10 @@
+import { useMoney } from '@/hooks/use-money'
 import { cn } from '@/lib/utils'
 
 type Props = {
 	price?: string | null
+	/** The currency stored with the price, if any. A plain amount with none uses the deployment's. */
+	currency?: string | null
 	quantity: number
 	/**
 	 * When true, suppress the quantity half even for qty > 1. Used by
@@ -12,14 +15,14 @@ type Props = {
 	className?: string
 }
 
-export function PriceQuantityBadge({ price, quantity, hideQuantity = false, className }: Props) {
+export function PriceQuantityBadge({ price, currency, quantity, hideQuantity = false, className }: Props) {
+	const money = useMoney()
 	const showPrice = !!price
 	const showQty = !hideQuantity && quantity > 1
 	if (!showPrice && !showQty) return null
 
-	const trimmed = price?.trim() ?? ''
-	const isNumeric = /^\d+(\.\d+)?$/.test(trimmed)
-	const displayPrice = isNumeric ? `$${trimmed}` : trimmed
+	// Free text: a plain amount is shown as money, anything else as typed.
+	const displayPrice = price ? money.itemPrice(price, currency) : ''
 
 	return (
 		<span

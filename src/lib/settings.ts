@@ -15,6 +15,7 @@ import { appSettings } from '@/db/schema'
 import type { ListType } from '@/db/schema/enums'
 import { DEFAULT_TIME_ZONE, isValidTimeZone } from '@/lib/calendar-day'
 import { isValidSearchUrlTemplate } from '@/lib/gift-suggestions/search-url'
+import { DEFAULT_CURRENCY } from '@/lib/i18n/currency'
 import { DEFAULT_LOCALE, isReadyLocale } from '@/lib/i18n/locales'
 
 // 1) Shape of settings used across the app.
@@ -357,6 +358,10 @@ export const appSettingsSchema = z.object({
 	// their browser asks for nothing we offer, and the language of emails to
 	// users with no choice stored. A locale code; see `lib/i18n/locales.ts`.
 	defaultLocale: z.string().refine(isReadyLocale, 'Unknown language'),
+	// The currency an amount is shown in when nothing says which it is in: an
+	// item with no stored currency, and every purchase total (those carry no
+	// currency of their own). A three-letter ISO 4217 code.
+	defaultCurrency: z.string().regex(/^[A-Z]{3}$/, 'Use a three-letter currency code, like USD or EUR.'),
 	// When true, item save (create/update) will fetch any non-storage
 	// imageUrl, run it through the image pipeline, and persist the
 	// resulting storage URL instead of the original. Best-effort: a
@@ -667,6 +672,7 @@ export const DEFAULT_APP_SETTINGS: z.infer<typeof appSettingsSchema> = {
 	relationshipRemindersCountry: 'US',
 	timeZone: DEFAULT_TIME_ZONE,
 	defaultLocale: DEFAULT_LOCALE,
+	defaultCurrency: DEFAULT_CURRENCY,
 	mirrorExternalImagesOnSave: false,
 	enableMobileApp: false,
 	enableMcp: false,

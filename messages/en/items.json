@@ -635,5 +635,6 @@
 				"countPlural=*": "{count} items detected. (rich-text paste detected)"
 			}
 		}
-	]
+	],
+	"items_price_between": "{low} – {high}"
 }

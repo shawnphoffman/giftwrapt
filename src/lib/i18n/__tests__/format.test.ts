@@ -1,13 +1,18 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+	currencySymbol,
 	currentLocale,
 	dateFnsLocale,
 	formatCalendarDate,
+	formatCurrency,
 	formatDate,
+	formatItemPrice,
 	formatNumber,
 	formatTimeAgo,
 	intlTag,
+	normalizeAmountInput,
+	parseAmount,
 	relativeTimeFormat,
 } from '@/lib/i18n/format'
 
@@ -77,5 +82,73 @@ describe('relative time', () => {
 		expect(formatTimeAgo(threeHoursAgo)).toBe('about 3 hours ago')
 		expect(formatTimeAgo(threeHoursAgo, 'fr')).toBe('il y a environ 3 heures')
 		expect(formatTimeAgo('not a date')).toBe('')
+	})
+})
+
+describe('formatCurrency', () => {
+	it('puts the symbol where each language expects it', () => {
+		expect(formatCurrency(12.5, 'EUR', {}, 'en')).toBe('€12.50')
+		expect(formatCurrency(12.5, 'EUR', {}, 'fr').replace(/\s/g, ' ')).toBe('12,50 €')
+		expect(formatCurrency(12.5, 'USD', {}, 'en')).toBe('$12.50')
+	})
+
+	it('drops the cents from a round amount only when asked', () => {
+		expect(formatCurrency(25, 'USD', {}, 'en')).toBe('$25.00')
+		expect(formatCurrency(25, 'USD', { wholeWhenRound: true }, 'en')).toBe('$25')
+		expect(formatCurrency(25.5, 'USD', { wholeWhenRound: true }, 'en')).toBe('$25.50')
+	})
+
+	it('accepts a lower-case code and survives an unknown one', () => {
+		expect(formatCurrency(3, 'eur', {}, 'en')).toBe('€3.00')
+		expect(formatCurrency(3, 'credits', {}, 'en')).toBe('3.00 credits')
+		expect(formatCurrency(3, null, {}, 'en')).toBe('3.00')
+	})
+})
+
+describe('parseAmount and normalizeAmountInput', () => {
+	it('reads a point or a comma as the decimal mark', () => {
+		expect(parseAmount('12.50')).toBe(12.5)
+		expect(parseAmount('12,50')).toBe(12.5)
+		expect(parseAmount(' 28 ')).toBe(28)
+	})
+
+	it('does not guess at anything else', () => {
+		expect(parseAmount('12 each')).toBeNull()
+		expect(parseAmount('$45-60')).toBeNull()
+		expect(parseAmount('1,200')).toBeNull()
+		expect(parseAmount('')).toBeNull()
+		expect(parseAmount(null)).toBeNull()
+	})
+
+	it('stores a comma decimal with a point and leaves the rest alone', () => {
+		expect(normalizeAmountInput('12,5')).toBe('12.5')
+		expect(normalizeAmountInput(' 12.50 ')).toBe('12.50')
+		expect(normalizeAmountInput('1,200')).toBe('1,200')
+		expect(normalizeAmountInput('abc')).toBe('abc')
+	})
+})
+
+describe('formatItemPrice', () => {
+	it('shows a plain amount as money in the stored currency', () => {
+		expect(formatItemPrice('12.5', 'EUR', 'USD', 'en')).toBe('€12.50')
+		expect(formatItemPrice('12,5', 'EUR', 'USD', 'fr').replace(/\s/g, ' ')).toBe('12,50 €')
+	})
+
+	it('falls back to the given currency when none is stored', () => {
+		expect(formatItemPrice('28', null, 'USD', 'en')).toBe('$28')
+		expect(formatItemPrice('28', '', 'CAD', 'en')).toBe('CA$28')
+	})
+
+	it('leaves free text exactly as typed', () => {
+		expect(formatItemPrice('12 each', 'EUR', 'USD', 'fr')).toBe('12 each')
+		expect(formatItemPrice(' $45-60 ', null, 'USD', 'en')).toBe('$45-60')
+	})
+})
+
+describe('currencySymbol', () => {
+	it('gives the symbol for a field adornment', () => {
+		expect(currencySymbol('USD', 'en')).toBe('$')
+		expect(currencySymbol('EUR', 'fr')).toBe('€')
+		expect(currencySymbol('nope!', 'en')).toBe('nope!')
 	})
 })

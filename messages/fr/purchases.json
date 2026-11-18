@@ -54,7 +54,7 @@
 		}
 	],
 	"purchases_attachment_receipt_alt": "reçu",
-	"purchases_edit_cost_invalid": "Doit être un nombre, par exemple 12.50",
+	"purchases_edit_cost_invalid": "Doit être un nombre, par exemple 12,50",
 	"purchases_edit_too_long": "Trop long",
 	"purchases_edit_error_claim_not_yours": "Vous ne pouvez pas modifier la réservation de quelqu’un d’autre.",
 	"purchases_edit_error_claim_gone": "Cette réservation n’existe plus.",

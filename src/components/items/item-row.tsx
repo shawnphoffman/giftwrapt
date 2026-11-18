@@ -135,7 +135,7 @@ function ItemRowImpl({ item, lockReason, grouped = false, giftIdea }: Props) {
 	const dimmedBadges: Array<ReactNode> = []
 	dimmedBadges.push(<DateAdded key="date" createdAt={item.createdAt} />)
 	if (item.price) {
-		dimmedBadges.push(<PriceQuantityBadge key="price" price={item.price} quantity={1} hideQuantity />)
+		dimmedBadges.push(<PriceQuantityBadge key="price" price={item.price} currency={item.currency} quantity={1} hideQuantity />)
 	}
 	// The badges never wrap. When they outgrow the row (a phone with the text size
 	// turned up) the strip scrolls sideways, anchored to its end so the claim

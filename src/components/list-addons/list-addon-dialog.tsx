@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input'
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from '@/components/ui/input-group'
 import { Label } from '@/components/ui/label'
 import { errorText } from '@/lib/i18n/errors'
+import { normalizeAmountInput } from '@/lib/i18n/format'
 import { zodIssuesText, zodParams } from '@/lib/i18n/zod'
 import { applyListEventLocally } from '@/lib/list-events'
 import { applyScrapePrefill } from '@/lib/scrapers/apply-prefill'
@@ -70,6 +71,7 @@ const buildSchema = () =>
 			.string()
 			.trim()
 			.optional()
+			.transform(v => (v ? normalizeAmountInput(v) : v))
 			.refine(v => !v || /^\d+(\.\d{1,2})?$/.test(v), {
 				message: m.lists_addon_cost_invalid(),
 			}),

@@ -12,6 +12,7 @@ import { acknowledgeOrphanedClaim, getOrphanedClaimsForList, type OrphanedClaimR
 import { RemoteImage } from '@/components/common/remote-image'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { useMoney } from '@/hooks/use-money'
 import { m } from '@/paraglide/messages.js'
 
 const orphanQueryKey = (listId: number) => ['orphan-claims', 'list', listId] as const
@@ -78,7 +79,8 @@ export function ListOrphanAlert({ listId }: { listId: number }) {
 }
 
 function OrphanRow({ row, pending, onAck }: { row: OrphanedClaimRow; pending: boolean; onAck: () => void }) {
-	const cost = row.totalCost ? `$${row.totalCost}` : null
+	const money = useMoney()
+	const cost = row.totalCost ? money.itemPrice(row.totalCost) : null
 	return (
 		<div className="flex flex-row items-center gap-3 rounded-md border border-destructive/30 bg-background/60 p-3">
 			{row.itemImageUrl ? (

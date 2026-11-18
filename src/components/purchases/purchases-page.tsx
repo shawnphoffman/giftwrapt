@@ -45,6 +45,7 @@ const ChartCardFallback = () => (
 		<Skeleton className="h-60 w-full" />
 	</CardContent>
 )
+import { useMoney } from '@/hooks/use-money'
 import { formatDate, formatNumber } from '@/lib/i18n/format'
 import { groupByPerson, type PersonGroup } from '@/lib/purchases-grouping'
 import { matchesTimeframe, type TimeframeValue } from '@/lib/timeframe'
@@ -87,14 +88,6 @@ type Props = {
 	partner: { name: string; image: string | null } | null
 }
 
-function fmt(n: number): string {
-	return n.toFixed(2)
-}
-
-// The "$0" inside the "Excl. $0" metric labels. Money formatting is still
-// hardcoded (see `fmt`); this moves with it.
-const ZERO_AMOUNT = '$0'
-
 // An average count, one decimal: "2.5".
 const ONE_DECIMAL = { minimumFractionDigits: 1, maximumFractionDigits: 1, useGrouping: false } as const
 
@@ -132,6 +125,7 @@ function buildMonthlyBuckets(items: Array<SummaryItem>): Array<MonthBucket> {
 }
 
 export function PurchasesPageContent({ items, partner }: Props) {
+	const money = useMoney()
 	const [timeframe, setTimeframe] = useState<TimeframeValue>({ kind: 'preset', preset: '6m' })
 	const [openKeys, setOpenKeys] = useState<Set<string>>(new Set())
 	const [editing, setEditing] = useState<EditablePurchase | null>(null)
@@ -364,7 +358,7 @@ export function PurchasesPageContent({ items, partner }: Props) {
 								<MetricsGroup title={m.purchases_metrics_averages()}>
 									<Metric label={m.purchases_metric_per_item()} value={<MoneyChip amount={metrics.perItem} variant="total" />} />
 									<Metric
-										label={m.purchases_metric_per_item_excl_zero({ amount: ZERO_AMOUNT })}
+										label={m.purchases_metric_per_item_excl_zero({ amount: money.roundAmount(0) })}
 										value={<MoneyChip amount={metrics.perItemExclZero} variant="total" />}
 									/>
 									<Metric
@@ -374,7 +368,7 @@ export function PurchasesPageContent({ items, partner }: Props) {
 										}
 									/>
 									<Metric
-										label={m.purchases_metric_items_per_person_excl_zero({ amount: ZERO_AMOUNT })}
+										label={m.purchases_metric_items_per_person_excl_zero({ amount: money.roundAmount(0) })}
 										value={
 											<span className="text-base font-semibold tabular-nums">
 												{formatNumber(metrics.itemsPerPersonExclZero, ONE_DECIMAL)}
@@ -438,6 +432,7 @@ function PurchaseDetailRow({
 	partner: { name: string; image: string | null } | null
 	onEdit: () => void
 }) {
+	const money = useMoney()
 	const hasNotes = !!item.notes
 	const editable = (item.isOwn || item.isPartnerPurchase) && !item.isCoGifter
 	const showPartner = item.isPartnerPurchase && partner !== null
@@ -527,7 +522,7 @@ function PurchaseDetailRow({
 			)}
 			{item.cost != null && item.cost > 0 && (
 				<Badge variant="outline" className="text-xs tabular-nums shrink-0">
-					${fmt(item.cost)}
+					{money.amount(item.cost)}
 				</Badge>
 			)}
 			<Badge variant="outline" className="text-xs tabular-nums shrink-0">
@@ -662,6 +657,7 @@ function Metric({ label, value, tooltip }: { label: string; value: React.ReactNo
 }
 
 function MoneyChip({ amount, variant }: { amount: number; variant: 'total' | 'gifts' | 'addons' | 'muted' }) {
+	const money = useMoney()
 	const zero = amount === 0
 	const classes = zero
 		? 'bg-muted text-muted-foreground'
@@ -674,7 +670,7 @@ function MoneyChip({ amount, variant }: { amount: number; variant: 'total' | 'gi
 					: 'bg-muted text-foreground'
 	return (
 		<span className={`inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-medium tabular-nums ${classes}`}>
-			${fmt(amount)}
+			{money.amount(amount)}
 		</span>
 	)
 }
