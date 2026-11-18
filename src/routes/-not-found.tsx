@@ -1,4 +1,4 @@
-import { Link } from '@tanstack/react-router'
+import { Link, useLocation } from '@tanstack/react-router'
 import { PackageOpen } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -11,8 +11,17 @@ const QUIPS = [
 	'Empty box. Nothing inside but a 404 and a little tissue paper.',
 ]
 
+// The quip is picked from the address, not at random: a random pick differs
+// between the server render and the browser, which React reports as a
+// hydration error on every 404.
+function quipFor(pathname: string): string {
+	let hash = 0
+	for (let i = 0; i < pathname.length; i++) hash = (hash * 31 + pathname.charCodeAt(i)) >>> 0
+	return QUIPS[hash % QUIPS.length]
+}
+
 export default function NotFound() {
-	const quip = QUIPS[Math.floor(Math.random() * QUIPS.length)]
+	const quip = quipFor(useLocation().pathname)
 
 	return (
 		<div className="flex flex-1 flex-col items-center justify-center self-stretch min-h-[60vh] p-4">
