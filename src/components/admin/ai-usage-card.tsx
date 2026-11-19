@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 
 import { fetchAiUsageAsAdmin } from '@/api/admin-ai'
 import { updateAppSettings } from '@/api/settings'
+import { RichMessage } from '@/components/common/rich-message'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -14,57 +15,58 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { adminAppSettingsQueryKey, notifyAppSettingsChanged, useAdminAppSettings } from '@/hooks/use-app-settings'
 import { aiFeatureLabel, aiSourceLabel } from '@/lib/ai-features'
 import type { AiUsageSummary } from '@/lib/ai-usage'
+import { formatCurrency, formatDate, formatNumber } from '@/lib/i18n/format'
 import type { AppSettings } from '@/lib/settings'
+import { m } from '@/paraglide/messages.js'
 
 const aiUsageQueryKey = ['adminAiUsage'] as const
 
-const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
-const usdSmall = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 4, maximumFractionDigits: 4 })
-const count = new Intl.NumberFormat('en-US')
+// AI spend is tracked in US dollars whatever the viewer's locale.
+const USD_SMALL = { style: 'currency', currency: 'USD', minimumFractionDigits: 4, maximumFractionDigits: 4 } as const
 
 // Cents for real amounts; four places below a cent so a handful of cheap
 // calls does not read as $0.00.
 function formatCost(microUsd: number): string {
 	const dollars = microUsd / 1_000_000
-	return dollars > 0 && dollars < 0.01 ? usdSmall.format(dollars) : usd.format(dollars)
+	return dollars > 0 && dollars < 0.01 ? formatNumber(dollars, USD_SMALL) : formatCurrency(dollars, 'USD')
 }
 
 export function AiUsageTable({ summary }: { summary: AiUsageSummary }) {
 	if (summary.features.length === 0) {
-		return <p className="text-sm text-muted-foreground">No AI calls in the last {summary.days} days.</p>
+		return <p className="text-sm text-muted-foreground">{m.admin_ai_usage_empty({ days: summary.days })}</p>
 	}
 	return (
 		<div className="overflow-x-auto">
 			<Table>
 				<TableHeader>
 					<TableRow>
-						<TableHead>Feature</TableHead>
-						<TableHead className="text-right">Calls</TableHead>
-						<TableHead className="text-right">Errors</TableHead>
-						<TableHead className="text-right">Tokens In</TableHead>
-						<TableHead className="text-right">Tokens Out</TableHead>
-						<TableHead className="text-right">Est. Cost</TableHead>
+						<TableHead>{m.admin_ai_usage_col_feature()}</TableHead>
+						<TableHead className="text-right">{m.admin_ai_usage_col_calls()}</TableHead>
+						<TableHead className="text-right">{m.admin_ai_usage_col_errors()}</TableHead>
+						<TableHead className="text-right">{m.admin_ai_usage_col_tokens_in()}</TableHead>
+						<TableHead className="text-right">{m.admin_ai_usage_col_tokens_out()}</TableHead>
+						<TableHead className="text-right">{m.admin_ai_usage_col_cost()}</TableHead>
 					</TableRow>
 				</TableHeader>
 				<TableBody>
 					{summary.features.map(f => (
 						<TableRow key={f.feature}>
 							<TableCell>{aiFeatureLabel(f.feature)}</TableCell>
-							<TableCell className="text-right tabular-nums">{count.format(f.calls)}</TableCell>
-							<TableCell className="text-right tabular-nums">{count.format(f.errors)}</TableCell>
-							<TableCell className="text-right tabular-nums">{count.format(f.tokensIn)}</TableCell>
-							<TableCell className="text-right tabular-nums">{count.format(f.tokensOut)}</TableCell>
+							<TableCell className="text-right tabular-nums">{formatNumber(f.calls)}</TableCell>
+							<TableCell className="text-right tabular-nums">{formatNumber(f.errors)}</TableCell>
+							<TableCell className="text-right tabular-nums">{formatNumber(f.tokensIn)}</TableCell>
+							<TableCell className="text-right tabular-nums">{formatNumber(f.tokensOut)}</TableCell>
 							<TableCell className="text-right tabular-nums">{formatCost(f.estimatedCostMicroUsd)}</TableCell>
 						</TableRow>
 					))}
 				</TableBody>
 				<TableFooter>
 					<TableRow>
-						<TableCell>Total</TableCell>
-						<TableCell className="text-right tabular-nums">{count.format(summary.total.calls)}</TableCell>
-						<TableCell className="text-right tabular-nums">{count.format(summary.total.errors)}</TableCell>
-						<TableCell className="text-right tabular-nums">{count.format(summary.total.tokensIn)}</TableCell>
-						<TableCell className="text-right tabular-nums">{count.format(summary.total.tokensOut)}</TableCell>
+						<TableCell>{m.admin_ai_usage_total()}</TableCell>
+						<TableCell className="text-right tabular-nums">{formatNumber(summary.total.calls)}</TableCell>
+						<TableCell className="text-right tabular-nums">{formatNumber(summary.total.errors)}</TableCell>
+						<TableCell className="text-right tabular-nums">{formatNumber(summary.total.tokensIn)}</TableCell>
+						<TableCell className="text-right tabular-nums">{formatNumber(summary.total.tokensOut)}</TableCell>
 						<TableCell className="text-right tabular-nums">{formatCost(summary.total.estimatedCostMicroUsd)}</TableCell>
 					</TableRow>
 				</TableFooter>
@@ -73,7 +75,7 @@ export function AiUsageTable({ summary }: { summary: AiUsageSummary }) {
 	)
 }
 
-const when = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+const WHEN_FORMAT = { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' } as const
 
 // Where calls came from, and the latest calls with who they were for.
 export function AiUsageDetails({ summary }: { summary: AiUsageSummary }) {
@@ -82,7 +84,7 @@ export function AiUsageDetails({ summary }: { summary: AiUsageSummary }) {
 		<Collapsible>
 			<CollapsibleTrigger className="group flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:underline">
 				<ChevronRight className="size-4 transition-transform group-data-[state=open]:rotate-90" aria-hidden />
-				Where calls came from, and recent calls
+				{m.admin_ai_usage_details_toggle()}
 			</CollapsibleTrigger>
 			<CollapsibleContent>
 				<div className="mt-3 flex flex-col gap-4">
@@ -90,16 +92,16 @@ export function AiUsageDetails({ summary }: { summary: AiUsageSummary }) {
 						<Table>
 							<TableHeader>
 								<TableRow>
-									<TableHead>Started From</TableHead>
-									<TableHead className="text-right">Calls</TableHead>
-									<TableHead className="text-right">Est. Cost</TableHead>
+									<TableHead>{m.admin_ai_usage_col_source()}</TableHead>
+									<TableHead className="text-right">{m.admin_ai_usage_col_calls()}</TableHead>
+									<TableHead className="text-right">{m.admin_ai_usage_col_cost()}</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>
 								{summary.sources.map(s => (
 									<TableRow key={s.source ?? 'unknown'}>
 										<TableCell>{aiSourceLabel(s.source)}</TableCell>
-										<TableCell className="text-right tabular-nums">{count.format(s.calls)}</TableCell>
+										<TableCell className="text-right tabular-nums">{formatNumber(s.calls)}</TableCell>
 										<TableCell className="text-right tabular-nums">{formatCost(s.estimatedCostMicroUsd)}</TableCell>
 									</TableRow>
 								))}
@@ -110,23 +112,29 @@ export function AiUsageDetails({ summary }: { summary: AiUsageSummary }) {
 						<Table>
 							<TableHeader>
 								<TableRow>
-									<TableHead>When</TableHead>
-									<TableHead>Feature</TableHead>
-									<TableHead>Started From</TableHead>
-									<TableHead>For</TableHead>
-									<TableHead className="text-right">Est. Cost</TableHead>
+									<TableHead>{m.admin_ai_usage_col_when()}</TableHead>
+									<TableHead>{m.admin_ai_usage_col_feature()}</TableHead>
+									<TableHead>{m.admin_ai_usage_col_source()}</TableHead>
+									<TableHead>{m.admin_ai_usage_col_for()}</TableHead>
+									<TableHead className="text-right">{m.admin_ai_usage_col_cost()}</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>
 								{summary.recent.map(r => (
 									<TableRow key={r.id}>
-										<TableCell className="whitespace-nowrap">{when.format(new Date(r.createdAt))}</TableCell>
+										<TableCell className="whitespace-nowrap">{formatDate(r.createdAt, WHEN_FORMAT)}</TableCell>
 										<TableCell>
-											{aiFeatureLabel(r.feature)}
-											{r.outcome === 'error' && <span className="text-destructive"> (failed)</span>}
+											{r.outcome === 'error' ? (
+												<RichMessage
+													parts={m.admin_ai_usage_recent_failed.parts({ feature: aiFeatureLabel(r.feature) })}
+													tags={{ mark: c => <span className="text-destructive">{c}</span> }}
+												/>
+											) : (
+												aiFeatureLabel(r.feature)
+											)}
 										</TableCell>
 										<TableCell>{aiSourceLabel(r.source)}</TableCell>
-										<TableCell>{r.userName ?? 'No user'}</TableCell>
+										<TableCell>{r.userName ?? m.admin_ai_usage_no_user()}</TableCell>
 										<TableCell className="text-right tabular-nums">{formatCost(r.estimatedCostMicroUsd)}</TableCell>
 									</TableRow>
 								))}
@@ -167,9 +175,9 @@ export function AiUsageCard() {
 				old ? { ...old, aiMonthlyCostCeilingUsd: data.aiMonthlyCostCeilingUsd } : old
 			)
 			notifyAppSettingsChanged(queryClient)
-			toast.success('Setting updated')
+			toast.success(m.admin_ai_setting_updated())
 		},
-		onError: err => toast.error(err instanceof Error ? err.message : 'Failed to update setting'),
+		onError: err => toast.error(err instanceof Error ? err.message : m.admin_ai_setting_update_failed()),
 	})
 
 	const parsed = parseCeiling(draft)
@@ -179,15 +187,12 @@ export function AiUsageCard() {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle className="text-2xl">AI Usage</CardTitle>
-				<CardDescription>
-					Every AI call this deployment made in the last 30 days, by feature. Costs are estimates from token counts, not a bill from your
-					provider.
-				</CardDescription>
+				<CardTitle className="text-2xl">{m.admin_ai_usage_title()}</CardTitle>
+				<CardDescription>{m.admin_ai_usage_description()}</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-6">
 				{isLoading || !summary ? (
-					<p className="text-sm text-muted-foreground">Loading…</p>
+					<p className="text-sm text-muted-foreground">{m.state_loading()}</p>
 				) : (
 					<>
 						<AiUsageTable summary={summary} />
@@ -198,11 +203,12 @@ export function AiUsageCard() {
 				<div className="flex flex-col gap-2">
 					<div className="space-y-0.5">
 						<Label htmlFor="aiMonthlyCostCeilingUsd" className="text-base">
-							Monthly Ceiling (USD)
+							{m.admin_ai_usage_ceiling_label()}
 						</Label>
 						<p className="text-sm text-muted-foreground">
-							When this month’s estimated spend reaches the ceiling, AI features stop until next month. Leave empty for no ceiling.
-							{summary && <> This month so far: {formatCost(summary.monthToDateCostMicroUsd)}.</>}
+							{summary
+								? m.admin_ai_usage_ceiling_hint_spend({ cost: formatCost(summary.monthToDateCostMicroUsd) })
+								: m.admin_ai_usage_ceiling_hint()}
 						</p>
 					</div>
 					<div className="flex items-center gap-2">
@@ -213,21 +219,17 @@ export function AiUsageCard() {
 							min={0}
 							step="0.01"
 							value={draft}
-							placeholder="No ceiling"
+							placeholder={m.admin_ai_usage_ceiling_placeholder()}
 							disabled={mutation.isPending}
 							onChange={e => setDraft(e.target.value)}
 							className="w-40"
 						/>
 						<Button type="button" disabled={!dirty || mutation.isPending} onClick={() => parsed.ok && mutation.mutate(parsed.value)}>
-							{mutation.isPending ? 'Saving…' : 'Save'}
+							{mutation.isPending ? m.state_saving() : m.action_save()}
 						</Button>
 					</div>
-					{!parsed.ok && <p className="text-xs text-destructive">Enter an amount between 0 and 100000, or leave it empty.</p>}
-					{overCeiling && (
-						<p className="text-sm text-destructive">
-							The ceiling has been reached. AI features are paused until next month or until you raise it.
-						</p>
-					)}
+					{!parsed.ok && <p className="text-xs text-destructive">{m.admin_ai_usage_ceiling_invalid()}</p>}
+					{overCeiling && <p className="text-sm text-destructive">{m.admin_ai_usage_ceiling_reached()}</p>}
 				</div>
 			</CardContent>
 		</Card>

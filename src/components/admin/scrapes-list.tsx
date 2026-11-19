@@ -3,12 +3,15 @@ import { CheckCircle2, ExternalLink, Eye, XCircle } from 'lucide-react'
 import { useState } from 'react'
 
 import { getScrapeDetailAsAdmin, listScrapesAsAdmin, type ScrapeListRow, type ScrapeResponseJson } from '@/api/admin-scrapes'
+import { RichMessage } from '@/components/common/rich-message'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useAdminAppSettings } from '@/hooks/use-app-settings'
+import { formatDate, formatNumber } from '@/lib/i18n/format'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 import { buildScraperLookups } from './scrape-stats'
 
@@ -38,11 +41,11 @@ export function ScrapesList() {
 	const { labelFor: labelForScraperId } = buildScraperLookups(settingsQuery.data?.scrapeProviders ?? [])
 
 	if (scrapesQuery.isLoading) {
-		return <div className="text-sm text-muted-foreground">Loading scrapes…</div>
+		return <div className="text-sm text-muted-foreground">{m.admin_scraping_history_loading()}</div>
 	}
 	const rows = scrapesQuery.data ?? []
 	if (rows.length === 0) {
-		return <div className="text-sm text-muted-foreground italic">No scrape attempts recorded yet.</div>
+		return <div className="text-sm text-muted-foreground italic">{m.admin_scraping_history_empty()}</div>
 	}
 
 	return (
@@ -52,14 +55,14 @@ export function ScrapesList() {
 					<TableHeader>
 						<TableRow>
 							<TableHead className={STICKY_INSPECT_HEAD}>
-								<span className="sr-only">Inspect</span>
+								<span className="sr-only">{m.admin_scraping_history_inspect()}</span>
 							</TableHead>
-							<TableHead className="whitespace-nowrap">When</TableHead>
-							<TableHead>URL</TableHead>
-							<TableHead>Provider</TableHead>
-							<TableHead className="whitespace-nowrap">Outcome</TableHead>
-							<TableHead>Item</TableHead>
-							<TableHead>By</TableHead>
+							<TableHead className="whitespace-nowrap">{m.admin_scraping_field_when()}</TableHead>
+							<TableHead>{m.admin_scraping_field_url()}</TableHead>
+							<TableHead>{m.admin_scraping_field_provider()}</TableHead>
+							<TableHead className="whitespace-nowrap">{m.admin_scraping_field_outcome()}</TableHead>
+							<TableHead>{m.admin_scraping_field_item()}</TableHead>
+							<TableHead>{m.admin_scraping_history_col_by()}</TableHead>
 						</TableRow>
 					</TableHeader>
 					<TableBody>
@@ -79,19 +82,25 @@ function ScrapeRow({ row, labelFor, onInspect }: { row: ScrapeListRow; labelFor:
 	const outcome = row.ok ? (
 		<span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-500">
 			<CheckCircle2 className="size-3.5" />
-			<span>{typeof row.score === 'number' ? `score ${row.score}` : 'ok'}</span>
+			<span>{typeof row.score === 'number' ? m.admin_scraping_score({ score: row.score }) : m.admin_scraping_outcome_ok()}</span>
 		</span>
 	) : (
 		<span className="inline-flex items-center gap-1.5 text-destructive">
 			<XCircle className="size-3.5" />
-			<span>{row.errorCode ?? 'failed'}</span>
+			<span>{row.errorCode ?? m.admin_scraping_outcome_failed()}</span>
 		</span>
 	)
 
 	return (
 		<TableRow className="group/row">
 			<TableCell className={STICKY_INSPECT_CELL}>
-				<Button type="button" variant="outline" size="icon" onClick={onInspect} aria-label={`Inspect scrape #${row.id}`}>
+				<Button
+					type="button"
+					variant="outline"
+					size="icon"
+					onClick={onInspect}
+					aria-label={m.admin_scraping_history_inspect_row({ id: `#${row.id}` })}
+				>
 					<Eye className="size-4" />
 				</Button>
 			</TableCell>
@@ -117,8 +126,8 @@ function ScrapeRow({ row, labelFor, onInspect }: { row: ScrapeListRow; labelFor:
 			</TableCell>
 			<TableCell className="font-mono text-xs">
 				{row.isFinal && (
-					<Badge variant="outline" className="mr-1.5 text-3xs font-sans" title="The run's final merged result">
-						Result
+					<Badge variant="outline" className="mr-1.5 text-3xs font-sans" title={m.admin_scraping_history_final_title()}>
+						{m.admin_scraping_history_final_badge()}
 					</Badge>
 				)}
 				{providerLabel}
@@ -137,7 +146,7 @@ function ScrapeRow({ row, labelFor, onInspect }: { row: ScrapeListRow; labelFor:
 					</div>
 				) : (
 					<Badge variant="outline" className="text-3xs">
-						standalone
+						{m.admin_scraping_standalone()}
 					</Badge>
 				)}
 			</TableCell>
@@ -148,7 +157,7 @@ function ScrapeRow({ row, labelFor, onInspect }: { row: ScrapeListRow; labelFor:
 						{row.userEmail && <span className="text-muted-foreground truncate">{row.userEmail}</span>}
 					</div>
 				) : (
-					<span className="text-muted-foreground italic">unknown</span>
+					<span className="text-muted-foreground italic">{m.admin_scraping_unknown()}</span>
 				)}
 			</TableCell>
 		</TableRow>
@@ -179,18 +188,27 @@ function ScrapeDetailDialog({
 		<Dialog open={open} onOpenChange={next => !next && onClose()}>
 			<DialogContent className="sm:max-w-[95vw] max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>Scrape Attempt {openId !== null && <span className="font-mono text-base">#{openId}</span>}</DialogTitle>
-					<DialogDescription>The saved record from the item_scrapes table. Use it to debug provider responses.</DialogDescription>
+					<DialogTitle>
+						{openId !== null ? (
+							<RichMessage
+								parts={m.admin_scraping_detail_title_id.parts({ id: `#${openId}` })}
+								tags={{ mono: c => <span className="font-mono text-base">{c}</span> }}
+							/>
+						) : (
+							m.admin_scraping_detail_title()
+						)}
+					</DialogTitle>
+					<DialogDescription>{m.admin_scraping_detail_description()}</DialogDescription>
 				</DialogHeader>
 
-				{detailQuery.isLoading && <div className="text-sm text-muted-foreground">Loading…</div>}
-				{detailQuery.data?.kind === 'error' && <div className="text-sm text-destructive">Scrape not found.</div>}
+				{detailQuery.isLoading && <div className="text-sm text-muted-foreground">{m.state_loading()}</div>}
+				{detailQuery.data?.kind === 'error' && <div className="text-sm text-destructive">{m.admin_scraping_detail_not_found()}</div>}
 
 				{detail && (
 					<div className="space-y-4 text-sm">
 						<DetailGrid>
-							<DetailField label="When">{formatDateTime(detail.createdAt)}</DetailField>
-							<DetailField label="URL">
+							<DetailField label={m.admin_scraping_field_when()}>{formatDateTime(detail.createdAt)}</DetailField>
+							<DetailField label={m.admin_scraping_field_url()}>
 								<a
 									href={detail.url}
 									target="_blank"
@@ -200,42 +218,46 @@ function ScrapeDetailDialog({
 									{detail.url}
 								</a>
 							</DetailField>
-							<DetailField label="Provider">
+							<DetailField label={m.admin_scraping_field_provider()}>
 								<span className="font-mono text-xs">{providerLabel}</span>
 								{providerLabel !== detail.scraperId && (
 									<span className="ml-2 text-muted-foreground text-xs font-mono">({detail.scraperId})</span>
 								)}
 							</DetailField>
-							<DetailField label="Outcome">
+							<DetailField label={m.admin_scraping_field_outcome()}>
 								<span className={cn('font-mono text-xs', detail.ok ? 'text-emerald-600 dark:text-emerald-500' : 'text-destructive')}>
-									{detail.ok ? 'ok' : (detail.errorCode ?? 'failed')}
+									{detail.ok ? m.admin_scraping_outcome_ok() : (detail.errorCode ?? m.admin_scraping_outcome_failed())}
 								</span>
-								{typeof detail.score === 'number' && <span className="ml-2 text-xs text-muted-foreground">score {detail.score}</span>}
+								{typeof detail.score === 'number' && (
+									<span className="ml-2 text-xs text-muted-foreground">{m.admin_scraping_score({ score: detail.score })}</span>
+								)}
 								{typeof detail.ms === 'number' && <span className="ml-2 text-xs text-muted-foreground">{formatDurationMs(detail.ms)}</span>}
 							</DetailField>
 							{scoreParts && (
-								<DetailField label="Score">
+								<DetailField label={m.admin_scraping_field_score()}>
 									<ScoreBreakdownLine parts={scoreParts} total={detail.score} />
 								</DetailField>
 							)}
-							<DetailField label="Triggered By">
+							<DetailField label={m.admin_scraping_field_triggered_by()}>
 								{detail.userName || detail.userEmail ? (
 									<>
 										{detail.userName ?? ''}
 										{detail.userEmail && <span className="ml-2 text-xs text-muted-foreground">{detail.userEmail}</span>}
 									</>
 								) : (
-									<span className="text-muted-foreground italic">unknown</span>
+									<span className="text-muted-foreground italic">{m.admin_scraping_unknown()}</span>
 								)}
 							</DetailField>
-							<DetailField label="Item">
+							<DetailField label={m.admin_scraping_field_item()}>
 								{detail.itemId && detail.itemTitle ? (
 									<>
-										#{detail.itemId} - {detail.itemTitle}
-										{detail.listName && <span className="ml-2 text-xs text-muted-foreground">in {detail.listName}</span>}
+										{`#${detail.itemId} - ${detail.itemTitle}`}
+										{detail.listName && (
+											<span className="ml-2 text-xs text-muted-foreground">{m.admin_scraping_in_list({ listName: detail.listName })}</span>
+										)}
 									</>
 								) : (
-									<span className="text-muted-foreground italic">standalone (no item attached)</span>
+									<span className="text-muted-foreground italic">{m.admin_scraping_detail_standalone()}</span>
 								)}
 							</DetailField>
 						</DetailGrid>
@@ -246,21 +268,21 @@ function ScrapeDetailDialog({
 							detail.price ||
 							(detail.imageUrls && detail.imageUrls.length > 0)) && (
 							<div className="rounded-md border p-3 space-y-1.5">
-								<h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Extracted Columns</h4>
+								<h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{m.admin_scraping_detail_extracted()}</h4>
 								<DetailGrid>
-									{detail.title && <DetailField label="Title">{detail.title}</DetailField>}
+									{detail.title && <DetailField label={m.admin_scraping_field_title()}>{detail.title}</DetailField>}
 									{detail.cleanTitle && detail.cleanTitle !== detail.title && (
-										<DetailField label="Cleaned Title">{detail.cleanTitle}</DetailField>
+										<DetailField label={m.admin_scraping_field_clean_title()}>{detail.cleanTitle}</DetailField>
 									)}
 									{detail.price && (
-										<DetailField label="Price">
+										<DetailField label={m.admin_scraping_field_price()}>
 											{detail.price}
 											{detail.currency && <span className="ml-1 text-muted-foreground">{detail.currency}</span>}
 										</DetailField>
 									)}
-									{detail.description && <DetailField label="Description">{detail.description}</DetailField>}
+									{detail.description && <DetailField label={m.admin_scraping_field_description()}>{detail.description}</DetailField>}
 									{detail.imageUrls && detail.imageUrls.length > 0 && (
-										<DetailField label={`Images (${detail.imageUrls.length})`}>
+										<DetailField label={m.admin_scraping_field_images({ count: detail.imageUrls.length })}>
 											<ul className="list-disc list-inside text-xs font-mono space-y-0.5">
 												{detail.imageUrls.map(url => (
 													<li key={url} className="break-all">
@@ -275,10 +297,10 @@ function ScrapeDetailDialog({
 						)}
 
 						<div className="space-y-1.5">
-							<h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Raw Response</h4>
+							<h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{m.admin_scraping_detail_raw()}</h4>
 							<pre className="text-xs bg-muted/50 rounded-md p-2 overflow-x-auto font-mono leading-snug max-h-[40vh] overflow-y-auto">
 								{detail.response === null ? (
-									<span className="text-muted-foreground italic">(none stored)</span>
+									<span className="text-muted-foreground italic">{m.admin_scraping_detail_raw_none()}</span>
 								) : (
 									JSON.stringify(detail.response, null, 2)
 								)}
@@ -295,14 +317,25 @@ function ScrapeDetailDialog({
 // jsonb (`scoreParts`). Rows persisted before it existed have none, and the
 // drawer just omits the line. Labels mirror SCORE_POINTS in
 // src/lib/scrapers/score.ts (not imported: that module is server-side).
-const SCORE_SIGNAL_LABELS: Record<string, string> = {
-	title: 'title',
-	price: 'price',
-	photo: 'product photo',
-	shareCard: 'share card only',
-	description: 'description',
-	botWall: 'bot wall',
-	errorTitle: 'error-page title',
+function scoreSignalLabel(signal: string): string {
+	switch (signal) {
+		case 'title':
+			return m.admin_scraping_signal_title()
+		case 'price':
+			return m.admin_scraping_signal_price()
+		case 'photo':
+			return m.admin_scraping_signal_photo()
+		case 'shareCard':
+			return m.admin_scraping_signal_share_card()
+		case 'description':
+			return m.admin_scraping_signal_description()
+		case 'botWall':
+			return m.admin_scraping_signal_bot_wall()
+		case 'errorTitle':
+			return m.admin_scraping_signal_error_title()
+		default:
+			return signal
+	}
 }
 
 type ScorePart = { signal: string; points: number }
@@ -321,13 +354,14 @@ function readScoreParts(response: ScrapeResponseJson | null): Array<ScorePart> |
 }
 
 function ScoreBreakdownLine({ parts, total }: { parts: Array<ScorePart>; total: number | null }) {
-	if (parts.length === 0) return <span className="text-xs text-muted-foreground">no signals ({total ?? 0})</span>
+	if (parts.length === 0)
+		return <span className="text-xs text-muted-foreground">{m.admin_scraping_score_no_signals({ total: total ?? 0 })}</span>
 	return (
 		<span className="text-xs font-mono">
 			{parts.map((p, i) => (
 				<span key={p.signal} className={cn(p.points < 0 && 'text-destructive')}>
 					{i > 0 && <span className="text-muted-foreground"> · </span>}
-					{SCORE_SIGNAL_LABELS[p.signal] ?? p.signal} {p.points > 0 ? `+${p.points}` : p.points}
+					{scoreSignalLabel(p.signal)} {p.points > 0 ? `+${p.points}` : p.points}
 				</span>
 			))}
 			{typeof total === 'number' && <span className="text-muted-foreground"> = {total}</span>}
@@ -364,7 +398,7 @@ function shortenUrl(raw: string): string {
 
 export function formatDateTime(d: Date): string {
 	const date = typeof d === 'string' ? new Date(d) : d
-	return date.toLocaleString(undefined, {
+	return formatDate(date, {
 		year: 'numeric',
 		month: 'short',
 		day: '2-digit',
@@ -380,10 +414,10 @@ export function formatDateTime(d: Date): string {
 export function formatWhen(d: Date): string {
 	const date = typeof d === 'string' ? new Date(d) : d
 	const ageSec = (Date.now() - date.getTime()) / 1000
-	if (ageSec < 60) return `${Math.max(1, Math.floor(ageSec))}s ago`
-	if (ageSec < 60 * 60) return `${Math.floor(ageSec / 60)}m ago`
-	if (ageSec < 60 * 60 * 24) return `${Math.floor(ageSec / 3600)}h ago`
-	return date.toLocaleString(undefined, {
+	if (ageSec < 60) return m.admin_scraping_ago_seconds({ count: Math.max(1, Math.floor(ageSec)) })
+	if (ageSec < 60 * 60) return m.admin_scraping_ago_minutes({ count: Math.floor(ageSec / 60) })
+	if (ageSec < 60 * 60 * 24) return m.admin_scraping_ago_hours({ count: Math.floor(ageSec / 3600) })
+	return formatDate(date, {
 		month: 'short',
 		day: 'numeric',
 		hour: 'numeric',
@@ -394,6 +428,6 @@ export function formatWhen(d: Date): string {
 export function formatDurationMs(ms: number): string {
 	if (ms < 1000) return `${ms}ms`
 	const s = ms / 1000
-	if (s < 10) return `${s.toFixed(1)}s`
+	if (s < 10) return `${formatNumber(s, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}s`
 	return `${Math.round(s)}s`
 }

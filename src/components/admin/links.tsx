@@ -5,6 +5,7 @@ import { buttonVariants } from '@/components/ui/button'
 import { useAppSetting } from '@/hooks/use-app-settings'
 import { useStorageStatus } from '@/hooks/use-storage-status'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 function navLinkClass(active: boolean) {
 	return cn(buttonVariants({ variant: 'ghost' }), 'justify-start w-full', active && 'bg-muted text-foreground hover:bg-muted')
@@ -25,61 +26,61 @@ export default function AdminLinks() {
 		<>
 			<Link to="/admin" className={navLinkClass(pathname === '/admin')}>
 				<Lock />
-				General
+				{m.admin_nav_general()}
 			</Link>
 			<Link to="/admin/email" className={navLinkClass(pathname === '/admin/email')}>
 				<Mail />
-				Email
+				{m.admin_nav_email()}
 			</Link>
 			<Link to="/admin/auth" className={navLinkClass(pathname === '/admin/auth')}>
 				<ShieldCheck />
-				Auth
+				{m.admin_nav_auth()}
 			</Link>
 			<Link to="/admin/users" className={navLinkClass(pathname === '/admin/users' || pathname.startsWith('/admin/user/'))}>
 				<Users />
-				Users
+				{m.admin_nav_users()}
 			</Link>
 			{storageConfigured && (
 				<Link to="/admin/storage" className={navLinkClass(pathname === '/admin/storage')}>
 					<HardDrive />
-					Storage
+					{m.admin_nav_storage()}
 				</Link>
 			)}
 			<Link to="/admin/scraping" className={navLinkClass(pathname === '/admin/scraping')}>
 				<Globe />
-				Scraping
+				{m.admin_nav_scraping()}
 			</Link>
 			<Link to="/admin/ai" className={navLinkClass(pathname === '/admin/ai')}>
 				<Sparkles />
-				AI
+				{m.admin_nav_ai()}
 			</Link>
 			<Link to="/admin/data" className={navLinkClass(pathname === '/admin/data')}>
 				<Database />
-				Import / Export
+				{m.admin_nav_data()}
 			</Link>
 			<Link to="/admin/reveals" className={navLinkClass(pathname === '/admin/reveals')}>
 				<Eye />
-				Reveals
+				{m.admin_nav_reveals()}
 			</Link>
 			<Link to="/admin/scheduling" className={navLinkClass(pathname === '/admin/scheduling')}>
 				<CalendarClock />
-				Scheduling
+				{m.admin_nav_scheduling()}
 			</Link>
 			{mobileAppEnabled && (
 				<Link to="/admin/barcode" className={navLinkClass(pathname === '/admin/barcode')}>
 					<Barcode />
-					Barcode
+					{m.admin_nav_barcode()}
 				</Link>
 			)}
 			{mcpEnabled && (
 				<Link to="/admin/mcp" className={navLinkClass(pathname === '/admin/mcp')}>
 					<Plug />
-					MCP
+					{m.admin_nav_mcp()}
 				</Link>
 			)}
 			<Link to="/admin/debug" className={navLinkClass(pathname === '/admin/debug')}>
 				<Bug />
-				Debug
+				{m.admin_nav_debug()}
 			</Link>
 		</>
 	)

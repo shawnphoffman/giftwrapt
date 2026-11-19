@@ -2,87 +2,85 @@ import { Body, Container, Head, Heading, Hr, Html, Section, Tailwind, Text } fro
 
 import type { OperatorDigestData } from '@/lib/intelligence/operator-digest'
 
+import { formatCalendarDate, formatCurrency, formatNumber } from '../lib/i18n/format'
+import type { Locale } from '../lib/i18n/locales'
+import { m } from '../paraglide/messages.js'
+import { previewLocale } from './preview-locale'
+
 interface IntelligenceOperatorDigestEmailProps {
 	data: OperatorDigestData
+	locale?: Locale
 	appTitle?: string
 }
 
-function fmtDate(iso: string): string {
-	return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
-}
-
-function fmtUsd(n: number): string {
-	return `$${n.toFixed(2)}`
-}
-
-function statusLabel(data: OperatorDigestData): string {
-	if (data.runs.error > 0) return `${data.runs.error} error${data.runs.error === 1 ? '' : 's'} need attention`
-	if (data.runs.total === 0) return 'no runs this period'
-	return 'all clear'
+function statusLabel(data: OperatorDigestData, locale: Locale): string {
+	const o = { locale }
+	if (data.runs.error > 0) return m.admin_digest_status_errors({ count: data.runs.error }, o)
+	if (data.runs.total === 0) return m.admin_digest_status_quiet({}, o)
+	return m.admin_digest_status_ok({}, o)
 }
 
 const cell = 'text-[13px] text-black leading-[20px] m-0'
 const muted = 'text-[12px] text-[#666] leading-[18px] m-0'
 const sectionTitle = 'text-[15px] font-bold text-black m-0 mb-[6px]'
 
-export default function IntelligenceOperatorDigestEmail({ data, appTitle = 'GiftWrapt' }: IntelligenceOperatorDigestEmailProps) {
-	const period = `${fmtDate(data.windowStart)} – ${fmtDate(data.windowEnd)}`
+export default function IntelligenceOperatorDigestEmail({
+	data,
+	locale = 'en',
+	appTitle = 'GiftWrapt',
+}: IntelligenceOperatorDigestEmailProps) {
+	const o = { locale }
+	const fmtDate = (iso: string) => formatCalendarDate(iso, { month: 'short', day: 'numeric' }, locale)
+	const fmtCount = (n: number) => formatNumber(n, {}, locale)
+	const start = fmtDate(data.windowStart)
+	const end = fmtDate(data.windowEnd)
+	const status = statusLabel(data, locale)
+	const runCounts = { total: data.runs.total, success: data.runs.success, errors: data.runs.error, skipped: data.runs.skipped }
+	const skips = data.skipReasons.map(s => `${s.reason} (${s.count})`).join(', ')
+	const bySeverity = data.activeBySeverity.map(s => `${s.severity} (${s.count})`).join(', ')
+	const byAnalyzer = data.activeByAnalyzer.map(a => `${a.analyzerId} (${a.count})`).join(', ')
+	const duration = Math.round(data.avgDurationMs)
+	const tokensIn = fmtCount(data.tokensIn)
+	const tokensOut = fmtCount(data.tokensOut)
+	const cost = formatCurrency(data.estimatedCostUsd, 'USD', {}, locale)
 	return (
-		<Html>
+		<Html lang={locale}>
 			<Head />
 			<Tailwind>
 				<Body className="px-2 mx-auto my-auto font-sans bg-[#f4f4f5]">
 					<Container className="mx-auto my-[40px] max-w-[560px] rounded border bg-white border-[#eaeaea] border-solid p-[24px]">
-						<Heading className="m-0 text-[20px] font-bold text-black">{appTitle} Intelligence digest</Heading>
-						<Text className={muted}>
-							{period} · {statusLabel(data)}
-						</Text>
+						<Heading className="m-0 text-[20px] font-bold text-black">{m.admin_digest_heading({ appTitle }, o)}</Heading>
+						<Text className={muted}>{m.admin_digest_header_line({ start, end, status }, o)}</Text>
 
 						<Hr className="my-[16px] border-[#eaeaea]" />
 
 						{/* System health (window delta) */}
 						<Section className="mb-[16px]">
-							<Text className={sectionTitle}>System health (this period)</Text>
-							<Text className={cell}>
-								{data.runs.total} run{data.runs.total === 1 ? '' : 's'} · {data.runs.success} ok · {data.runs.error} error ·{' '}
-								{data.runs.skipped} skipped
-							</Text>
-							{data.skipReasons.length > 0 && (
-								<Text className={muted}>Skips: {data.skipReasons.map(s => `${s.reason} (${s.count})`).join(', ')}</Text>
-							)}
-							<Text className={muted}>
-								Avg duration {Math.round(data.avgDurationMs)}ms · {data.tokensIn.toLocaleString()} in / {data.tokensOut.toLocaleString()}{' '}
-								out tokens · {fmtUsd(data.estimatedCostUsd)}
-							</Text>
+							<Text className={sectionTitle}>{m.admin_digest_health_title({}, o)}</Text>
+							<Text className={cell}>{m.admin_digest_health_runs(runCounts, o)}</Text>
+							{data.skipReasons.length > 0 && <Text className={muted}>{m.admin_digest_skips({ list: skips }, o)}</Text>}
+							<Text className={muted}>{m.admin_digest_health_usage({ duration, tokensIn, tokensOut, cost }, o)}</Text>
 						</Section>
 
 						{/* Coverage (window delta) */}
 						<Section className="mb-[16px]">
-							<Text className={sectionTitle}>Coverage (this period)</Text>
-							<Text className={cell}>
-								{data.usersProcessed} user{data.usersProcessed === 1 ? '' : 's'} had a run.
-							</Text>
+							<Text className={sectionTitle}>{m.admin_digest_coverage_title({}, o)}</Text>
+							<Text className={cell}>{m.admin_digest_coverage_users({ count: data.usersProcessed }, o)}</Text>
 						</Section>
 
 						{/* Output volume (snapshot) */}
 						<Section className="mb-[16px]">
-							<Text className={sectionTitle}>Outstanding recommendations (current)</Text>
-							<Text className={cell}>
-								{data.activeRecsTotal} active recommendation{data.activeRecsTotal === 1 ? '' : 's'} right now.
-							</Text>
-							{data.activeBySeverity.length > 0 && (
-								<Text className={muted}>By severity: {data.activeBySeverity.map(s => `${s.severity} (${s.count})`).join(', ')}</Text>
-							)}
-							{data.activeByAnalyzer.length > 0 && (
-								<Text className={muted}>By analyzer: {data.activeByAnalyzer.map(a => `${a.analyzerId} (${a.count})`).join(', ')}</Text>
-							)}
+							<Text className={sectionTitle}>{m.admin_digest_outstanding_title({}, o)}</Text>
+							<Text className={cell}>{m.admin_digest_outstanding_count({ count: data.activeRecsTotal }, o)}</Text>
+							{data.activeBySeverity.length > 0 && <Text className={muted}>{m.admin_digest_by_severity({ list: bySeverity }, o)}</Text>}
+							{data.activeByAnalyzer.length > 0 && <Text className={muted}>{m.admin_digest_by_analyzer({ list: byAnalyzer }, o)}</Text>}
 						</Section>
 
 						{/* Engagement */}
 						<Section className="mb-[16px]">
-							<Text className={sectionTitle}>Engagement</Text>
+							<Text className={sectionTitle}>{m.admin_digest_engagement_title({}, o)}</Text>
 							<Text className={cell}>
-								{data.dismissedInWindow} dismissed this period · {data.appliedTotal} applied (total, current)
+								{m.admin_digest_engagement_line({ dismissed: data.dismissedInWindow, applied: data.appliedTotal }, o)}
 							</Text>
 						</Section>
 
@@ -90,21 +88,20 @@ export default function IntelligenceOperatorDigestEmail({ data, appTitle = 'Gift
 						{data.flaggedUsers.length > 0 && (
 							<Section>
 								<Hr className="my-[16px] border-[#eaeaea]" />
-								<Text className={sectionTitle}>Needs attention</Text>
-								{data.flaggedUsers.map(u => (
-									<Text key={u.userId} className={cell}>
-										{u.name ? `${u.name} · ` : ''}
-										{u.email}: {u.errors} error{u.errors === 1 ? '' : 's'}, {u.skips} skip{u.skips === 1 ? '' : 's'}
-									</Text>
-								))}
+								<Text className={sectionTitle}>{m.admin_digest_attention_title({}, o)}</Text>
+								{data.flaggedUsers.map(u => {
+									const who = u.name ? `${u.name} · ${u.email}` : u.email
+									return (
+										<Text key={u.userId} className={cell}>
+											{m.admin_digest_attention_user({ who, errors: u.errors, skips: u.skips }, o)}
+										</Text>
+									)
+								})}
 							</Section>
 						)}
 
 						<Hr className="my-[16px] border-[#eaeaea]" />
-						<Text className={muted}>
-							Health, coverage, cost, and dismissals cover this period. Outstanding recommendations and applied totals are as of right now.
-							This email goes to the site's admins. You can change it under Admin → Intelligence → Notifications.
-						</Text>
+						<Text className={muted}>{m.admin_digest_footer({}, o)}</Text>
 					</Container>
 				</Body>
 			</Tailwind>
@@ -113,6 +110,7 @@ export default function IntelligenceOperatorDigestEmail({ data, appTitle = 'Gift
 }
 
 IntelligenceOperatorDigestEmail.PreviewProps = {
+	locale: previewLocale,
 	appTitle: 'GiftWrapt',
 	data: {
 		windowStart: '2026-06-16T00:00:00.000Z',

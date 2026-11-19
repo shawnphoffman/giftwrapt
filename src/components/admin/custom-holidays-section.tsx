@@ -29,6 +29,7 @@ import {
 	updateCustomHolidayAsAdmin,
 } from '@/api/custom-holidays'
 import DependentAvatar from '@/components/common/dependent-avatar'
+import { RichMessage } from '@/components/common/rich-message'
 import UserAvatar from '@/components/common/user-avatar'
 import {
 	AlertDialog,
@@ -50,7 +51,9 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAppSetting } from '@/hooks/use-app-settings'
 import { SUPPORTED_COUNTRIES } from '@/lib/holidays-countries'
+import { formatDate } from '@/lib/i18n/format'
 import { monthName } from '@/lib/i18n/labels'
+import { m } from '@/paraglide/messages.js'
 
 const MONTHS: ReadonlyArray<{ value: string; days: number }> = [
 	{ value: '1', days: 31 },
@@ -70,13 +73,9 @@ const MONTHS: ReadonlyArray<{ value: string; days: number }> = [
 const customHolidaysQueryKey = ['admin-custom-holidays'] as const
 const recipientCandidatesQueryKey = ['admin-custom-holidays-recipients'] as const
 
-function formatNextOccurrence(iso: string | null): string {
-	if (!iso) return 'No upcoming date'
-	try {
-		return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-	} catch {
-		return iso
-	}
+function nextOccurrenceText(iso: string | null): string {
+	if (!iso) return m.admin_settings_holidays_next_none()
+	return m.admin_settings_holidays_next_date({ date: formatDate(iso, { month: 'short', day: 'numeric', year: 'numeric' }) })
 }
 
 // Wire-format encoding for the recipient picker: 'none' (broadcast),
@@ -84,9 +83,6 @@ function formatNextOccurrence(iso: string | null): string {
 // picker pattern so we get one consistent Select shape for "pick a
 // user or a dependent".
 type RecipientValue = 'none' | `u:${string}` | `d:${string}`
-
-const RECIPIENT_HELP_TEXT =
-	"Leave as Everyone for shared holidays like Easter. Pick a person for a one-off like a graduation. Only people who can see that person's lists will see it."
 
 function recipientValueToInput(
 	value: RecipientValue
@@ -120,18 +116,18 @@ function RecipientPicker({
 	return (
 		<Select value={value} onValueChange={v => onChange(v as RecipientValue)} disabled={disabled}>
 			<SelectTrigger id={id} className="w-full flex-1">
-				<SelectValue placeholder="Everyone" />
+				<SelectValue placeholder={m.admin_settings_holidays_recipient_everyone()} />
 			</SelectTrigger>
 			<SelectContent>
 				<SelectItem value="none">
 					<span className="flex size-6 items-center justify-center rounded-full bg-muted-foreground">
 						<Users className="size-3.5 text-background" />
 					</span>
-					<span className="truncate">Everyone</span>
+					<span className="truncate">{m.admin_settings_holidays_recipient_everyone()}</span>
 				</SelectItem>
 				{users.length > 0 && (
 					<>
-						<div className="px-2 pt-2 text-xs font-medium text-muted-foreground">Users</div>
+						<div className="px-2 pt-2 text-xs font-medium text-muted-foreground">{m.admin_settings_holidays_recipient_users()}</div>
 						{users.map(u => (
 							<SelectItem key={`u:${u.id}`} value={`u:${u.id}`}>
 								<UserAvatar name={u.name} image={u.image} size="small" />
@@ -142,7 +138,7 @@ function RecipientPicker({
 				)}
 				{dependents.length > 0 && (
 					<>
-						<div className="px-2 pt-2 text-xs font-medium text-muted-foreground">Dependents</div>
+						<div className="px-2 pt-2 text-xs font-medium text-muted-foreground">{m.admin_settings_holidays_recipient_dependents()}</div>
 						{dependents.map(d => (
 							<SelectItem key={`d:${d.id}`} value={`d:${d.id}`}>
 								<DependentAvatar name={d.name} image={d.image} size="small" />
@@ -161,7 +157,7 @@ function RecipientChip({ row }: { row: AdminCustomHoliday }) {
 		return (
 			<span className="inline-flex items-center gap-1">
 				<UserAvatar name={row.recipientUserName} image={null} size="small" />
-				<span>for {row.recipientUserName}</span>
+				<span>{m.admin_settings_holidays_recipient_for({ name: row.recipientUserName })}</span>
 			</span>
 		)
 	}
@@ -169,11 +165,11 @@ function RecipientChip({ row }: { row: AdminCustomHoliday }) {
 		return (
 			<span className="inline-flex items-center gap-1">
 				<DependentAvatar name={row.recipientDependentName} image={null} size="small" />
-				<span>for {row.recipientDependentName}</span>
+				<span>{m.admin_settings_holidays_recipient_for({ name: row.recipientDependentName })}</span>
 			</span>
 		)
 	}
-	return <span className="text-muted-foreground">Everyone</span>
+	return <span className="text-muted-foreground">{m.admin_settings_holidays_recipient_everyone()}</span>
 }
 
 export function CustomHolidaysSection() {
@@ -193,8 +189,10 @@ export function CustomHolidaysSection() {
 	if (!enabled) {
 		return (
 			<div className="text-sm text-muted-foreground">
-				Holiday lists are disabled for this deployment. Turn on <span className="font-medium">Enable Holiday Lists</span> above to manage
-				custom holidays.
+				<RichMessage
+					parts={m.admin_settings_holidays_disabled.parts()}
+					tags={{ strong: children => <span className="font-medium">{children}</span> }}
+				/>
 			</div>
 		)
 	}
@@ -209,9 +207,9 @@ export function CustomHolidaysSection() {
 			</div>
 
 			{query.isLoading ? (
-				<div className="text-sm text-muted-foreground">Loading...</div>
+				<div className="text-sm text-muted-foreground">{m.admin_settings_holidays_loading()}</div>
 			) : rows.length === 0 ? (
-				<div className="text-sm text-muted-foreground">No custom holidays yet. Add one so users can create holiday lists.</div>
+				<div className="text-sm text-muted-foreground">{m.admin_settings_holidays_empty()}</div>
 			) : (
 				<ul className="flex flex-col gap-2">
 					{rows.map(row => (
@@ -244,7 +242,7 @@ function CustomHolidayRow({ row }: { row: AdminCustomHoliday }) {
 			if (result.kind === 'error') throw new Error(result.reason)
 		},
 		onSuccess: () => qc.invalidateQueries({ queryKey: customHolidaysQueryKey }),
-		onError: err => toast.error(err instanceof Error ? err.message : 'Failed to update holiday'),
+		onError: err => toast.error(err instanceof Error ? err.message : m.admin_settings_holidays_update_failed()),
 	})
 
 	const updateRecipient = useMutation({
@@ -256,7 +254,7 @@ function CustomHolidayRow({ row }: { row: AdminCustomHoliday }) {
 			qc.invalidateQueries({ queryKey: customHolidaysQueryKey })
 			setEditingRecipient(false)
 		},
-		onError: err => toast.error(err instanceof Error ? err.message : 'Failed to update recipient'),
+		onError: err => toast.error(err instanceof Error ? err.message : m.admin_settings_holidays_recipient_update_failed()),
 	})
 
 	const remove = useMutation({
@@ -268,15 +266,18 @@ function CustomHolidayRow({ row }: { row: AdminCustomHoliday }) {
 		onSuccess: result => {
 			qc.invalidateQueries({ queryKey: customHolidaysQueryKey })
 			if (result.convertedListCount > 0) {
-				toast.success(`Deleted. Converted ${result.convertedListCount} list(s) to the default type.`)
+				toast.success(m.admin_settings_holidays_deleted_converted({ count: result.convertedListCount }))
 			} else {
-				toast.success('Deleted.')
+				toast.success(m.admin_settings_holidays_deleted())
 			}
 		},
-		onError: err => toast.error(err instanceof Error ? err.message : 'Failed to delete holiday'),
+		onError: err => toast.error(err instanceof Error ? err.message : m.admin_settings_holidays_delete_failed()),
 	})
 
-	const sourceLabel = row.source === 'catalog' ? `Catalog (${row.catalogCountry})` : 'Custom'
+	const sourceLabel =
+		row.source === 'catalog'
+			? m.admin_settings_holidays_source_catalog({ country: row.catalogCountry ?? '' })
+			: m.admin_settings_holidays_source_custom()
 
 	return (
 		<li className="flex flex-wrap items-center gap-2 rounded border border-border bg-card p-3">
@@ -297,7 +298,7 @@ function CustomHolidayRow({ row }: { row: AdminCustomHoliday }) {
 					>
 						<Input value={title} onChange={e => setTitle(e.target.value)} autoFocus className="h-8" />
 						<Button type="submit" size="sm" disabled={updateTitle.isPending}>
-							Save
+							{m.action_save()}
 						</Button>
 						<Button
 							type="button"
@@ -308,7 +309,7 @@ function CustomHolidayRow({ row }: { row: AdminCustomHoliday }) {
 								setEditing(false)
 							}}
 						>
-							Cancel
+							{m.action_cancel()}
 						</Button>
 					</form>
 				) : (
@@ -324,8 +325,13 @@ function CustomHolidayRow({ row }: { row: AdminCustomHoliday }) {
 					</button>
 				)}
 				<div className="text-xs text-muted-foreground">
-					{sourceLabel} · Next: {formatNextOccurrence(row.nextOccurrenceIso)}
-					{row.usageCount > 0 && ` · Used by ${row.usageCount} list${row.usageCount === 1 ? '' : 's'}`}
+					{[
+						sourceLabel,
+						nextOccurrenceText(row.nextOccurrenceIso),
+						row.usageCount > 0 ? m.admin_settings_holidays_used_by({ count: row.usageCount }) : null,
+					]
+						.filter(part => part !== null)
+						.join(' · ')}
 				</div>
 				<div className="mt-1 flex items-center gap-2 text-xs">
 					{editingRecipient ? (
@@ -343,7 +349,7 @@ function CustomHolidayRow({ row }: { row: AdminCustomHoliday }) {
 								onClick={() => setEditingRecipient(false)}
 								disabled={updateRecipient.isPending}
 							>
-								Cancel
+								{m.action_cancel()}
 							</Button>
 						</>
 					) : (
@@ -355,22 +361,22 @@ function CustomHolidayRow({ row }: { row: AdminCustomHoliday }) {
 			</div>
 			<AlertDialog>
 				<AlertDialogTrigger asChild>
-					<Button variant="outline" size="xs" aria-label="Delete">
+					<Button variant="outline" size="xs" aria-label={m.action_delete()}>
 						<Trash2 className="size-4" />
 					</Button>
 				</AlertDialogTrigger>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Delete "{row.title}"?</AlertDialogTitle>
+						<AlertDialogTitle>{m.admin_settings_holidays_delete_title({ title: row.title })}</AlertDialogTitle>
 						<AlertDialogDescription>
 							{row.usageCount > 0
-								? `${row.usageCount} list${row.usageCount === 1 ? '' : 's'} reference${row.usageCount === 1 ? 's' : ''} this holiday. They will be converted to the default list type. Claims will be preserved.`
-								: 'No lists reference this holiday. Safe to delete.'}
+								? m.admin_settings_holidays_delete_referenced({ count: row.usageCount })
+								: m.admin_settings_holidays_delete_unreferenced()}
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
-						<AlertDialogAction onClick={() => remove.mutate()}>Delete</AlertDialogAction>
+						<AlertDialogCancel>{m.action_cancel()}</AlertDialogCancel>
+						<AlertDialogAction onClick={() => remove.mutate()}>{m.action_delete()}</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
@@ -413,7 +419,7 @@ function AddFromCatalogDialog() {
 			qc.invalidateQueries({ queryKey: customHolidaysQueryKey })
 			qc.invalidateQueries({ queryKey: ['admin-custom-holidays-catalog-candidates'] })
 		},
-		onError: err => toast.error(err instanceof Error ? err.message : 'Failed to add holiday'),
+		onError: err => toast.error(err instanceof Error ? err.message : m.admin_settings_holidays_add_failed()),
 	})
 
 	const candidates = [...(candidatesQuery.data ?? [])].sort(compareCandidates)
@@ -428,16 +434,16 @@ function AddFromCatalogDialog() {
 		>
 			<DialogTrigger asChild>
 				<Button variant="outline" size="sm">
-					<Plus className="size-4 mr-1" /> From Catalog
+					<Plus className="size-4 mr-1" /> {m.admin_settings_holidays_add_catalog_button()}
 				</Button>
 			</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Add Holiday From Catalog</DialogTitle>
-					<DialogDescription>Curated gift-giving holidays for the supported countries.</DialogDescription>
+					<DialogTitle>{m.admin_settings_holidays_catalog_dialog_title()}</DialogTitle>
+					<DialogDescription>{m.admin_settings_holidays_catalog_dialog_description()}</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-1.5">
-					<Label htmlFor="catalog-recipient">Recipient</Label>
+					<Label htmlFor="catalog-recipient">{m.admin_settings_holidays_recipient_label()}</Label>
 					<RecipientPicker
 						id="catalog-recipient"
 						value={recipient}
@@ -445,13 +451,13 @@ function AddFromCatalogDialog() {
 						candidates={recipientCandidatesQuery.data ?? []}
 						disabled={add.isPending}
 					/>
-					<p className="text-xs text-muted-foreground">{RECIPIENT_HELP_TEXT}</p>
+					<p className="text-xs text-muted-foreground">{m.admin_settings_holidays_recipient_help()}</p>
 				</div>
 				<div className="flex flex-col gap-3">
 					{candidatesQuery.isLoading ? (
-						<p className="text-sm text-muted-foreground">Loading...</p>
+						<p className="text-sm text-muted-foreground">{m.admin_settings_holidays_loading()}</p>
 					) : candidates.length === 0 ? (
-						<p className="text-sm text-muted-foreground">No more gift-giving holidays available.</p>
+						<p className="text-sm text-muted-foreground">{m.admin_settings_holidays_catalog_empty()}</p>
 					) : (
 						<ul className="flex flex-col gap-1 max-h-96 overflow-auto">
 							{candidates.map(c => (
@@ -463,7 +469,7 @@ function AddFromCatalogDialog() {
 										<span className="truncate">{c.name}</span>
 									</span>
 									<Button size="sm" onClick={() => add.mutate({ country: c.country, key: c.key })} disabled={add.isPending}>
-										Add
+										{m.action_add()}
 									</Button>
 								</li>
 							))}
@@ -472,7 +478,7 @@ function AddFromCatalogDialog() {
 				</div>
 				<DialogFooter>
 					<Button variant="outline" onClick={() => setOpen(false)}>
-						Close
+						{m.action_close()}
 					</Button>
 				</DialogFooter>
 			</DialogContent>
@@ -491,7 +497,7 @@ function AddCustomDialog() {
 	const [recipient, setRecipient] = useState<RecipientValue>('none')
 	const recipientCandidatesQuery = useRecipientCandidates(open)
 
-	const selectedMonth = MONTHS.find(m => m.value === month)
+	const selectedMonth = MONTHS.find(entry => entry.value === month)
 	const dayOptions = selectedMonth ? Array.from({ length: selectedMonth.days }, (_, i) => String(i + 1)) : []
 
 	const add = useMutation({
@@ -518,7 +524,7 @@ function AddCustomDialog() {
 			setOpen(false)
 			qc.invalidateQueries({ queryKey: customHolidaysQueryKey })
 		},
-		onError: err => toast.error(err instanceof Error ? err.message : 'Failed to add holiday'),
+		onError: err => toast.error(err instanceof Error ? err.message : m.admin_settings_holidays_add_failed()),
 	})
 
 	const canSubmit = title.trim().length > 0 && month !== '' && day !== '' && (annual || Number.isFinite(Number(year)))
@@ -527,22 +533,22 @@ function AddCustomDialog() {
 		<Dialog open={open} onOpenChange={setOpen}>
 			<DialogTrigger asChild>
 				<Button variant="outline" size="sm">
-					<Plus className="size-4 mr-1" /> Custom
+					<Plus className="size-4 mr-1" /> {m.admin_settings_holidays_add_custom_button()}
 				</Button>
 			</DialogTrigger>
 			<DialogContent>
 				<DialogHeader>
-					<DialogTitle>Add Custom Holiday</DialogTitle>
-					<DialogDescription>Define a holiday with a fixed date. Annual recurrence is the default.</DialogDescription>
+					<DialogTitle>{m.admin_settings_holidays_custom_dialog_title()}</DialogTitle>
+					<DialogDescription>{m.admin_settings_holidays_custom_dialog_description()}</DialogDescription>
 				</DialogHeader>
 				<div className="flex flex-col gap-3">
 					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="custom-title">Title</Label>
+						<Label htmlFor="custom-title">{m.admin_settings_holidays_custom_title_label()}</Label>
 						<Input id="custom-title" value={title} onChange={e => setTitle(e.target.value)} maxLength={120} autoFocus />
 					</div>
 					<div className="flex gap-2">
 						<div className="flex flex-col gap-1.5 flex-1">
-							<Label htmlFor="custom-month">Month</Label>
+							<Label htmlFor="custom-month">{m.admin_settings_holidays_custom_month_label()}</Label>
 							<Select
 								value={month}
 								onValueChange={value => {
@@ -551,22 +557,28 @@ function AddCustomDialog() {
 								}}
 							>
 								<SelectTrigger id="custom-month">
-									<SelectValue placeholder="Select month" />
+									<SelectValue placeholder={m.admin_settings_holidays_custom_month_placeholder()} />
 								</SelectTrigger>
 								<SelectContent>
-									{MONTHS.map(m => (
-										<SelectItem key={m.value} value={m.value}>
-											{monthName(Number(m.value))}
+									{MONTHS.map(entry => (
+										<SelectItem key={entry.value} value={entry.value}>
+											{monthName(Number(entry.value))}
 										</SelectItem>
 									))}
 								</SelectContent>
 							</Select>
 						</div>
 						<div className="flex flex-col gap-1.5 flex-1">
-							<Label htmlFor="custom-day">Day</Label>
+							<Label htmlFor="custom-day">{m.admin_settings_holidays_custom_day_label()}</Label>
 							<Select value={day} onValueChange={setDay} disabled={!selectedMonth}>
 								<SelectTrigger id="custom-day">
-									<SelectValue placeholder={selectedMonth ? 'Select day' : 'Pick a month first'} />
+									<SelectValue
+										placeholder={
+											selectedMonth
+												? m.admin_settings_holidays_custom_day_placeholder()
+												: m.admin_settings_holidays_custom_day_placeholder_no_month()
+										}
+									/>
 								</SelectTrigger>
 								<SelectContent>
 									{dayOptions.map(d => (
@@ -580,16 +592,16 @@ function AddCustomDialog() {
 					</div>
 					<label className="flex items-center gap-2 cursor-pointer">
 						<Checkbox checked={annual} onCheckedChange={c => setAnnual(c === true)} />
-						<span className="text-sm">Repeats annually</span>
+						<span className="text-sm">{m.admin_settings_holidays_custom_repeats_label()}</span>
 					</label>
 					{!annual && (
 						<div className="flex flex-col gap-1.5">
-							<Label htmlFor="custom-year">Year</Label>
+							<Label htmlFor="custom-year">{m.admin_settings_holidays_custom_year_label()}</Label>
 							<Input id="custom-year" type="number" min={1900} max={3000} value={year} onChange={e => setYear(e.target.value)} />
 						</div>
 					)}
 					<div className="flex flex-col gap-1.5">
-						<Label htmlFor="custom-recipient">Recipient</Label>
+						<Label htmlFor="custom-recipient">{m.admin_settings_holidays_recipient_label()}</Label>
 						<RecipientPicker
 							id="custom-recipient"
 							value={recipient}
@@ -597,15 +609,15 @@ function AddCustomDialog() {
 							candidates={recipientCandidatesQuery.data ?? []}
 							disabled={add.isPending}
 						/>
-						<p className="text-xs text-muted-foreground">{RECIPIENT_HELP_TEXT}</p>
+						<p className="text-xs text-muted-foreground">{m.admin_settings_holidays_recipient_help()}</p>
 					</div>
 				</div>
 				<DialogFooter>
 					<Button variant="outline" onClick={() => setOpen(false)}>
-						Cancel
+						{m.action_cancel()}
 					</Button>
 					<Button onClick={() => add.mutate()} disabled={!canSubmit || add.isPending}>
-						Add
+						{m.action_add()}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

@@ -12,13 +12,14 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { type EmailConfigResponse, useEmailConfig, useEmailConfigMutation } from '@/hooks/use-email-config'
 import { LIMITS } from '@/lib/validation/limits'
+import { m } from '@/paraglide/messages.js'
 
 export function EmailSettingsEditor() {
 	const { data, isLoading } = useEmailConfig()
 	const mutation = useEmailConfigMutation()
 
 	if (isLoading || !data) {
-		return <div className="text-sm text-muted-foreground">Loading email settings…</div>
+		return <div className="text-sm text-muted-foreground">{m.admin_settings_email_loading()}</div>
 	}
 
 	const save = async (patch: Parameters<typeof mutation.mutateAsync>[0]) => {
@@ -27,7 +28,7 @@ export function EmailSettingsEditor() {
 			toast.error(res.error)
 			throw new Error(res.error)
 		}
-		toast.success('Email settings updated')
+		toast.success(m.admin_settings_email_updated())
 	}
 
 	const apiKeyResolved = data.apiKey.source !== 'missing'
@@ -66,11 +67,12 @@ function ApiKeySection({ config, onSave, onClear, saving }: ApiKeySectionProps) 
 		<section className="flex flex-col gap-2">
 			<SecretField
 				id="resendApiKey"
-				label="Resend API Key"
-				description="Used to send all transactional email. Starts with re_ on the Resend dashboard."
+				label={m.admin_settings_email_api_key_label()}
+				description={m.admin_settings_email_api_key_description()}
 				source={config.apiKey.source}
 				preview={config.apiKey.preview}
 				envLocked={config.envLocked.apiKey}
+				// eslint-disable-next-line i18next/no-literal-string -- key format sample
 				placeholder="re_…"
 				saving={saving}
 				onSave={onSave}
@@ -103,14 +105,14 @@ function TestKeyButton({ state, hasResolvedKey }: TestKeyButtonProps) {
 			const res = await testResendApiKeyAsAdmin({ data: body } as Parameters<typeof testResendApiKeyAsAdmin>[0])
 			if (res.ok) {
 				setResult({ ok: true })
-				toast.success('Resend API key is valid')
+				toast.success(m.admin_settings_email_api_key_valid())
 			} else {
 				setResult({ ok: false })
 				toast.error(res.error)
 			}
 		} catch (err) {
 			setResult({ ok: false })
-			toast.error(err instanceof Error ? err.message : 'Test failed')
+			toast.error(err instanceof Error ? err.message : m.admin_settings_email_api_key_test_failed())
 		} finally {
 			setTesting(false)
 			setTimeout(() => setResult(undefined), 3000)
@@ -120,7 +122,7 @@ function TestKeyButton({ state, hasResolvedKey }: TestKeyButtonProps) {
 	return (
 		<Button type="button" variant="outline" className="gap-2" onClick={handleClick} disabled={!canTest || testing}>
 			{Icon}
-			{testing ? 'Testing…' : 'Test'}
+			{testing ? m.admin_settings_email_api_key_testing() : m.admin_settings_email_api_key_test_button()}
 		</Button>
 	)
 }
@@ -135,15 +137,16 @@ function AddressesSection({ config, onSave, saving }: AddressesSectionProps) {
 	return (
 		<section className="flex flex-col gap-6">
 			<div className="space-y-0.5">
-				<h3 className="text-lg font-medium">From Address &amp; BCC</h3>
-				<p className="text-sm text-muted-foreground">Controls the visible sender and optional BCC recipient on every email.</p>
+				<h3 className="text-lg font-medium">{m.admin_settings_email_addresses_title()}</h3>
+				<p className="text-sm text-muted-foreground">{m.admin_settings_email_addresses_description()}</p>
 			</div>
 
 			<StringFieldRow
 				id="resendFromEmail"
-				label="From Email"
-				description="The address emails are sent from. Must be on a verified Resend domain."
+				label={m.admin_settings_email_from_email_label()}
+				description={m.admin_settings_email_from_email_description()}
 				type="email"
+				// eslint-disable-next-line i18next/no-literal-string -- sample address
 				placeholder="notifications@yourdomain.com"
 				maxLength={LIMITS.EMAIL}
 				field={config.fromEmail}
@@ -155,9 +158,10 @@ function AddressesSection({ config, onSave, saving }: AddressesSectionProps) {
 
 			<StringFieldRow
 				id="resendFromName"
-				label="From Name"
-				description="Optional display name shown before the address."
+				label={m.admin_settings_email_from_name_label()}
+				description={m.admin_settings_email_from_name_description()}
 				type="text"
+				// eslint-disable-next-line i18next/no-literal-string -- product name
 				placeholder="GiftWrapt"
 				maxLength={LIMITS.SHORT_NAME}
 				showCounter
@@ -170,9 +174,10 @@ function AddressesSection({ config, onSave, saving }: AddressesSectionProps) {
 
 			<StringFieldRow
 				id="resendBccAddress"
-				label="BCC Address"
-				description="Optional. Every outgoing email is blind-copied here. Useful for archiving or test inboxes."
+				label={m.admin_settings_email_bcc_label()}
+				description={m.admin_settings_email_bcc_description()}
 				type="email"
+				// eslint-disable-next-line i18next/no-literal-string -- sample address
 				placeholder="archive@yourdomain.com"
 				maxLength={LIMITS.EMAIL}
 				field={config.bccAddress}
@@ -220,7 +225,7 @@ function StringFieldRow({
 		setDraft(field.value ?? '')
 	}, [field.value])
 
-	const envHint = envLocked ? 'Set by environment variable. Unset the env var to edit here.' : null
+	const envHint = envLocked ? m.admin_settings_env_locked_hint() : null
 	const dirty = draft !== (field.value ?? '')
 
 	const handleCommit = async () => {
@@ -251,7 +256,7 @@ function StringFieldRow({
 					{showCounter && <CharacterCounter value={draft} max={maxLength} />}
 					{!envLocked && field.source === 'db' && !dirty && (
 						<Button type="button" variant="outline" size="sm" onClick={() => onClear()} disabled={saving}>
-							Clear
+							{m.action_clear()}
 						</Button>
 					)}
 				</div>
@@ -278,10 +283,8 @@ function SendTestSection({ defaultRecipient }: { defaultRecipient: string }) {
 	return (
 		<section className="flex flex-col gap-6">
 			<div className="space-y-0.5">
-				<h3 className="text-lg font-medium">Send a Test Email</h3>
-				<p className="text-sm text-muted-foreground">
-					Pre-filled with the BCC address (or the From address if no BCC is set). Edit the recipient to send to any address.
-				</p>
+				<h3 className="text-lg font-medium">{m.admin_settings_email_test_title()}</h3>
+				<p className="text-sm text-muted-foreground">{m.admin_settings_email_test_description()}</p>
 			</div>
 			<SendTestEmailButton defaultRecipient={defaultRecipient} />
 		</section>

@@ -22,6 +22,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { m } from '@/paraglide/messages.js'
 
 const QUERY_KEY = ['admin', 'oidc-client'] as const
 
@@ -92,7 +93,7 @@ export function OidcClientEditor() {
 			return result
 		},
 		onSuccess: () => {
-			toast.success('OIDC settings saved. Restart the server to apply.')
+			toast.success(m.admin_settings_oidc_saved())
 			void queryClient.invalidateQueries({ queryKey: QUERY_KEY })
 			setDirty(false)
 		},
@@ -102,7 +103,7 @@ export function OidcClientEditor() {
 	})
 
 	if (isLoading || !form) {
-		return <p className="text-sm text-muted-foreground">Loading…</p>
+		return <p className="text-sm text-muted-foreground">{m.state_loading()}</p>
 	}
 
 	const set = <TKey extends keyof FormState>(key: TKey, value: FormState[TKey]) => {
@@ -117,23 +118,18 @@ export function OidcClientEditor() {
 				<div className="space-y-1">
 					<Label htmlFor="oidc-enabled" className="text-base flex items-center gap-2">
 						{form.enabled ? <ShieldCheck className="size-4 text-green-600" /> : <ShieldAlert className="size-4 text-muted-foreground" />}
-						OpenID Connect Authentication
+						{m.admin_settings_oidc_enabled_label()}{' '}
 					</Label>
-					<p className="text-sm text-muted-foreground">
-						Let users sign in with an external OIDC identity provider (Authentik, Authelia, Pocket ID, Keycloak, Google, etc).
-					</p>
+					<p className="text-sm text-muted-foreground">{m.admin_settings_oidc_enabled_description()}</p>
 				</div>
 			</div>
 
 			<div className={form.enabled ? '' : 'opacity-50 pointer-events-none'}>
 				<div className="space-y-4">
-					<Field
-						id="oidc-issuer"
-						label="Issuer URL"
-						hint="The base URL for discovery. The app loads /.well-known/openid-configuration from here."
-					>
+					<Field id="oidc-issuer" label={m.admin_settings_oidc_issuer_label()} hint={m.admin_settings_oidc_issuer_hint()}>
 						<Input
 							id="oidc-issuer"
+							// eslint-disable-next-line i18next/no-literal-string -- sample URL
 							placeholder="https://auth.example.com"
 							value={form.issuerUrl}
 							onChange={e => set('issuerUrl', e.target.value)}
@@ -141,66 +137,61 @@ export function OidcClientEditor() {
 					</Field>
 
 					<details className="rounded border border-border/60 px-3 py-2">
-						<summary className="cursor-pointer text-sm font-medium">Override discovery (optional)</summary>
+						<summary className="cursor-pointer text-sm font-medium">{m.admin_settings_oidc_override_summary()}</summary>
 						<div className="mt-3 space-y-3">
-							<Field id="oidc-authorize" label="Authorize URL">
+							<Field id="oidc-authorize" label={m.admin_settings_oidc_authorize_label()}>
 								<Input id="oidc-authorize" value={form.authorizationUrl} onChange={e => set('authorizationUrl', e.target.value)} />
 							</Field>
-							<Field id="oidc-token" label="Token URL">
+							<Field id="oidc-token" label={m.admin_settings_oidc_token_label()}>
 								<Input id="oidc-token" value={form.tokenUrl} onChange={e => set('tokenUrl', e.target.value)} />
 							</Field>
-							<Field id="oidc-userinfo" label="Userinfo URL">
+							<Field id="oidc-userinfo" label={m.admin_settings_oidc_userinfo_label()}>
 								<Input id="oidc-userinfo" value={form.userinfoUrl} onChange={e => set('userinfoUrl', e.target.value)} />
 							</Field>
-							<Field id="oidc-jwks" label="JWKS URL">
+							<Field id="oidc-jwks" label={m.admin_settings_oidc_jwks_label()}>
 								<Input id="oidc-jwks" value={form.jwksUrl} onChange={e => set('jwksUrl', e.target.value)} />
 							</Field>
-							<Field
-								id="oidc-logout"
-								label="Logout URL"
-								hint="Optional. When someone logs out here, they're also signed out of the identity provider."
-							>
+							<Field id="oidc-logout" label={m.admin_settings_oidc_logout_label()} hint={m.admin_settings_oidc_logout_hint()}>
 								<Input id="oidc-logout" value={form.logoutUrl} onChange={e => set('logoutUrl', e.target.value)} />
 							</Field>
 						</div>
 					</details>
 
-					<Field id="oidc-client-id" label="Client ID">
+					<Field id="oidc-client-id" label={m.admin_settings_oidc_client_id_label()}>
 						<Input id="oidc-client-id" value={form.clientId} onChange={e => set('clientId', e.target.value)} />
 					</Field>
 
 					<Field
 						id="oidc-client-secret"
-						label="Client Secret"
+						label={m.admin_settings_oidc_client_secret_label()}
 						hint={
-							form.hasClientSecret
-								? 'A secret is stored. Type a new value to replace it, or leave it empty to keep the current one.'
-								: 'Type the client secret your IdP issued for this app.'
+							form.hasClientSecret ? m.admin_settings_oidc_client_secret_hint_stored() : m.admin_settings_oidc_client_secret_hint_missing()
 						}
 					>
 						<Input
 							id="oidc-client-secret"
 							type="password"
-							placeholder={form.hasClientSecret ? '•••• stored' : ''}
+							placeholder={form.hasClientSecret ? m.admin_settings_oidc_client_secret_placeholder_stored() : ''}
 							value={form.clientSecretInput}
 							onChange={e => set('clientSecretInput', e.target.value)}
 							autoComplete="off"
 						/>
 					</Field>
 
-					<Field id="oidc-scopes" label="Scopes" hint='Space-separated. Leave empty to use the default ("openid email profile").'>
+					<Field id="oidc-scopes" label={m.admin_settings_oidc_scopes_label()} hint={m.admin_settings_oidc_scopes_hint()}>
 						<Input
 							id="oidc-scopes"
+							// eslint-disable-next-line i18next/no-literal-string -- OIDC scope names
 							placeholder="openid email profile"
 							value={form.scopesText}
 							onChange={e => set('scopesText', e.target.value)}
 						/>
 					</Field>
 
-					<Field id="oidc-button-text" label="Button Text" hint='Falls back to "Sign in with OpenID" when blank.'>
+					<Field id="oidc-button-text" label={m.admin_settings_oidc_button_text_label()} hint={m.admin_settings_oidc_button_text_hint()}>
 						<Input
 							id="oidc-button-text"
-							placeholder="Sign in with OpenID"
+							placeholder={m.admin_settings_oidc_button_text_placeholder()}
 							value={form.buttonText}
 							onChange={e => set('buttonText', e.target.value)}
 						/>
@@ -220,11 +211,9 @@ export function OidcClientEditor() {
 						/>
 						<div className="space-y-0.5">
 							<Label htmlFor="oidc-link-by-email" className="text-base">
-								Link Existing Accounts by Email
+								{m.admin_settings_oidc_link_by_email_label()}
 							</Label>
-							<p className="text-sm text-muted-foreground">
-								When a returning user&apos;s IdP-provided email matches a local account, link the two instead of creating a duplicate.
-							</p>
+							<p className="text-sm text-muted-foreground">{m.admin_settings_oidc_link_by_email_description()}</p>
 						</div>
 					</div>
 
@@ -237,9 +226,9 @@ export function OidcClientEditor() {
 						/>
 						<div className="space-y-0.5">
 							<Label htmlFor="oidc-auto-register" className="text-base">
-								Auto Register New Accounts
+								{m.admin_settings_oidc_auto_register_label()}
 							</Label>
-							<p className="text-sm text-muted-foreground">Create a new local account for any unknown email returned by the IdP.</p>
+							<p className="text-sm text-muted-foreground">{m.admin_settings_oidc_auto_register_description()}</p>
 						</div>
 					</div>
 				</div>
@@ -247,8 +236,8 @@ export function OidcClientEditor() {
 
 			{dirty && (
 				<Alert variant="warning">
-					<AlertTitle>Restart Required</AlertTitle>
-					<AlertDescription>OIDC providers are loaded on boot. Save and restart the server to apply changes.</AlertDescription>
+					<AlertTitle>{m.admin_settings_oidc_restart_title()}</AlertTitle>
+					<AlertDescription>{m.admin_settings_oidc_restart_description()}</AlertDescription>
 				</Alert>
 			)}
 
@@ -263,10 +252,10 @@ export function OidcClientEditor() {
 						}
 					}}
 				>
-					Reset
+					{m.admin_settings_reset_button()}
 				</Button>
 				<Button disabled={!dirty || update.isPending} onClick={() => update.mutate(form)}>
-					{update.isPending ? 'Saving…' : 'Save'}
+					{update.isPending ? m.state_saving() : m.action_save()}
 				</Button>
 			</div>
 		</div>

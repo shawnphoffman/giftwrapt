@@ -41,7 +41,7 @@ function IntelligenceHistoryRoute() {
 			: runDetailQuery.error
 				? {
 						kind: 'error' as const,
-						message: runDetailQuery.error instanceof Error ? runDetailQuery.error.message : 'Unknown error',
+						message: runDetailQuery.error instanceof Error ? runDetailQuery.error.message : m.admin_intel_debug_unknown_error(),
 					}
 				: runDetailQuery.data
 					? {
@@ -80,7 +80,7 @@ function IntelligenceHistoryRoute() {
 					className="w-full sm:max-w-2xl data-[side=right]:sm:max-w-2xl flex flex-col gap-0 p-0"
 				>
 					<SheetHeader className="border-b border-border">
-						<SheetTitle>Run Debug</SheetTitle>
+						<SheetTitle>{m.admin_intel_debug_sheet_title()}</SheetTitle>
 						<SheetDescription className="font-mono text-2xs truncate">{openRunId ?? ''}</SheetDescription>
 					</SheetHeader>
 					<RunDebugPanel state={debugState} />

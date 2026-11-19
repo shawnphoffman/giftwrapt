@@ -1,7 +1,9 @@
 import { Triangle } from 'lucide-react'
 
+import { RichMessage } from '@/components/common/rich-message'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { BUILD_INFO } from '@/lib/build-info'
+import { m } from '@/paraglide/messages.js'
 
 // Renders only on Vercel deployments. Vercel cron schedules are static
 // in `vercel.json` (read at deploy time), so the admin can't edit them
@@ -15,13 +17,9 @@ export function CronDeploymentBanner() {
 	return (
 		<Alert>
 			<Triangle className="size-4" />
-			<AlertTitle>Schedules Are Managed in vercel.json</AlertTitle>
+			<AlertTitle>{m.admin_settings_cron_vercel_banner_title()}</AlertTitle>
 			<AlertDescription>
-				This deployment is on Vercel, where cron schedules are read from <code>vercel.json</code> at deploy time and cannot be edited from
-				the dashboard. To change a schedule, update the file and redeploy. The Hobby plan only supports daily schedules, while Pro allows
-				any cron expression. Job settings like concurrency, users per run, and retention periods on the General, AI, and Scraping pages
-				still apply and can be changed at any time. The "Run now" button below always works and is the easiest way to check that each route
-				is healthy.
+				<RichMessage parts={m.admin_settings_cron_vercel_banner_body.parts()} tags={{ code: children => <code>{children}</code> }} />
 			</AlertDescription>
 		</Alert>
 	)

@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { fetchAppSettings } from '@/api/settings'
 import { BarcodeLookupsList } from '@/components/admin/barcode-lookups-list'
 import { BarcodeSettingsEditor } from '@/components/admin/barcode-settings-editor'
+import { RichMessage } from '@/components/common/rich-message'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -37,10 +38,9 @@ function AdminBarcodePage() {
 		<>
 			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Barcode Lookup</CardTitle>
+					<CardTitle className="text-2xl">{m.admin_nav_barcode_title()}</CardTitle>
 					<CardDescription>
-						Choose the providers behind <code>POST /api/mobile/v1/products/by-barcode</code>. The iOS app uses the result to prefill its
-						add-item sheet. The endpoint never creates items itself.
+						<RichMessage parts={m.admin_nav_barcode_description.parts()} tags={{ code: c => <code>{c}</code> }} />
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -51,26 +51,21 @@ function AdminBarcodePage() {
 			</Card>
 			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Lookup History</CardTitle>
-					<CardDescription>
-						Recent barcode lookups from the iOS app (newest first, capped at 200), including cache hits, misses, and provider errors.
-						Inspect any row to see the candidates the provider returned and who scanned it. Lookups are kept for 90 days by default.
-					</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_nav_barcode_history_title()}</CardTitle>
+					<CardDescription>{m.admin_nav_barcode_history_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<Button type="button" variant="outline" onClick={() => setLookupsOpen(true)}>
 						<ScanBarcode />
-						View Recent Lookups
+						{m.admin_nav_barcode_view_recent()}
 					</Button>
 				</CardContent>
 			</Card>
 			<Dialog open={lookupsOpen} onOpenChange={setLookupsOpen}>
 				<DialogContent className="sm:max-w-[95vw] max-h-[90vh] overflow-y-auto">
 					<DialogHeader>
-						<DialogTitle>Recent Lookups</DialogTitle>
-						<DialogDescription>
-							Recent barcode lookups (newest first, capped at 200). Click the inspect icon on any row to see the candidates and raw results.
-						</DialogDescription>
+						<DialogTitle>{m.admin_nav_barcode_dialog_title()}</DialogTitle>
+						<DialogDescription>{m.admin_nav_barcode_dialog_description()}</DialogDescription>
 					</DialogHeader>
 					<ClientOnly>
 						<BarcodeLookupsList />

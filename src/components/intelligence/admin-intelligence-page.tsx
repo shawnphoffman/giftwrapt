@@ -1,4 +1,4 @@
-import { format, formatDistanceToNow } from 'date-fns'
+import { format } from 'date-fns'
 import {
 	AlertTriangle,
 	ArrowUpRight,
@@ -34,7 +34,9 @@ import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Switch } from '@/components/ui/switch'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { dateFnsLocale, formatCurrency, formatNumber, formatTimeAgo } from '@/lib/i18n/format'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 const AI_SETTINGS_HREF = '/admin/ai'
 
@@ -45,8 +47,8 @@ import type { AdminIntelligenceData, AdminRunRow, AnalyzerId } from './__fixture
 // recharts is ~350 KB. The two chart cards only render when the page
 // has actual rec-run telemetry; load the chart island lazily so the
 // rest of the admin intelligence shell paints first.
-const RunsActivityChart = lazy(() => import('./intelligence-charts').then(m => ({ default: m.RunsActivityChart })))
-const TokenUsageChart = lazy(() => import('./intelligence-charts').then(m => ({ default: m.TokenUsageChart })))
+const RunsActivityChart = lazy(() => import('./intelligence-charts').then(mod => ({ default: mod.RunsActivityChart })))
+const TokenUsageChart = lazy(() => import('./intelligence-charts').then(mod => ({ default: mod.TokenUsageChart })))
 const ChartCardFallback = ({ title }: { title: string }) => (
 	<Card>
 		<CardHeader>
@@ -106,7 +108,7 @@ export function AdminIntelligencePageContent({
 
 	const providerSummary =
 		data.health.provider.source === 'none'
-			? 'No provider configured'
+			? m.admin_intel_provider_none()
 			: `${data.health.provider.provider ?? '?'} / ${data.health.provider.model ?? '?'} (${data.health.provider.source})`
 
 	const providerMissing = data.health.provider.source === 'none'
@@ -132,8 +134,8 @@ export function AdminIntelligencePageContent({
 						<Sparkles className="size-5 shrink-0 text-amber-100 drop-shadow-[0_0_4px_rgba(255,255,255,0.6)]" />
 					</div>
 					<div>
-						<h1 className="text-2xl font-semibold tracking-tight">Intelligence</h1>
-						<p className="text-sm text-muted-foreground">Configure analyzers, debug runs, and inspect costs.</p>
+						<h1 className="text-2xl font-semibold tracking-tight">{m.page_intelligence()}</h1>
+						<p className="text-sm text-muted-foreground">{m.admin_intel_page_subtitle()}</p>
 					</div>
 				</div>
 			</header>
@@ -142,14 +144,12 @@ export function AdminIntelligencePageContent({
 
 			{!enabled && (
 				<Alert data-intelligence="admin-intelligence-disabled-banner">
-					<AlertTitle>Intelligence is disabled</AlertTitle>
+					<AlertTitle>{m.admin_intel_disabled_title()}</AlertTitle>
 					<AlertDescription className="flex flex-col gap-2">
-						<span>
-							All recommendation generation is paused. Users can&apos;t see the Intelligence page, and manual refreshes are blocked.
-						</span>
+						<span>{m.admin_intel_disabled_body()}</span>
 						<Button asChild variant="outline" size="xs" className="self-start">
 							<a href="/admin/ai">
-								Enable on AI Settings
+								{m.admin_intel_disabled_link()}
 								<ArrowUpRight className="size-3.5" />
 							</a>
 						</Button>
@@ -176,10 +176,7 @@ export function AdminIntelligencePageContent({
 
 			{enabled && providerMissing && (
 				<Card data-intelligence="admin-blocked-by-provider" data-card-variant="state">
-					<CardContent className="p-6 text-center text-sm text-muted-foreground">
-						Settings, analyzers, and run history are hidden until an AI provider is configured. Once a provider is set up, this page will
-						populate.
-					</CardContent>
+					<CardContent className="p-6 text-center text-sm text-muted-foreground">{m.admin_intel_blocked_by_provider()}</CardContent>
 				</Card>
 			)}
 		</div>
@@ -190,15 +187,12 @@ export function ProviderMissingBanner() {
 	return (
 		<Alert data-intelligence="admin-no-provider-banner" variant="destructive">
 			<AlertTriangle className="size-4" />
-			<AlertTitle>No AI provider configured</AlertTitle>
+			<AlertTitle>{m.admin_intel_no_provider_title()}</AlertTitle>
 			<AlertDescription className="flex flex-col gap-2">
-				<span>
-					Intelligence needs an AI provider before it can generate recommendations. Configure one (Anthropic, OpenAI, or a custom
-					OpenAI-compatible endpoint) on the AI settings page.
-				</span>
+				<span>{m.admin_intel_no_provider_body()}</span>
 				<Button asChild variant="destructive" size="xs" className="self-start">
 					<a data-intelligence="admin-no-provider-link" href={AI_SETTINGS_HREF}>
-						Open AI Settings
+						{m.admin_intel_no_provider_link()}
 						<ArrowUpRight className="size-3.5" />
 					</a>
 				</Button>
@@ -239,10 +233,12 @@ function AnalyzerBadge({ tone, children }: { tone: 'kind-heuristic' | 'kind-ai' 
 function AnalyzerBadgeList({ kind, triggers, status }: { kind: AnalyzerKind; triggers: Array<AnalyzerTrigger>; status?: AnalyzerStatus }) {
 	return (
 		<>
-			<AnalyzerBadge tone={kind === 'ai' ? 'kind-ai' : 'kind-heuristic'}>{kind === 'ai' ? 'AI' : 'Heuristic'}</AnalyzerBadge>
-			{triggers.includes('cron') && <AnalyzerBadge tone="trigger">Cron</AnalyzerBadge>}
-			{triggers.includes('manual') && <AnalyzerBadge tone="trigger">Manual</AnalyzerBadge>}
-			{status === 'coming-soon' && <AnalyzerBadge tone="status">Coming Soon</AnalyzerBadge>}
+			<AnalyzerBadge tone={kind === 'ai' ? 'kind-ai' : 'kind-heuristic'}>
+				{kind === 'ai' ? m.admin_intel_badge_ai() : m.admin_intel_badge_heuristic()}
+			</AnalyzerBadge>
+			{triggers.includes('cron') && <AnalyzerBadge tone="trigger">{m.admin_intel_badge_cron()}</AnalyzerBadge>}
+			{triggers.includes('manual') && <AnalyzerBadge tone="trigger">{m.admin_intel_badge_manual()}</AnalyzerBadge>}
+			{status === 'coming-soon' && <AnalyzerBadge tone="status">{m.admin_intel_badge_coming_soon()}</AnalyzerBadge>}
 		</>
 	)
 }
@@ -268,7 +264,7 @@ export function AnalyzerBadges({
 							size="icon-xs"
 							variant="outline"
 							className="text-muted-foreground hover:text-foreground"
-							aria-label="Show analyzer details"
+							aria-label={m.admin_intel_analyzer_details_label()}
 						>
 							<Info className="size-4" />
 						</Button>
@@ -310,19 +306,17 @@ export function ActionsCard({
 	return (
 		<Card data-intelligence="admin-actions-card">
 			<CardHeader>
-				<CardTitle className="text-2xl">Actions</CardTitle>
-				<CardDescription>
-					Start a manual run for any user. The last run time and active recommendation count help you spot who&apos;s overdue.
-				</CardDescription>
+				<CardTitle className="text-2xl">{m.admin_intel_actions_title()}</CardTitle>
+				<CardDescription>{m.admin_intel_actions_description()}</CardDescription>
 			</CardHeader>
 			<CardContent>
 				<Table data-intelligence="admin-actions-user-table">
 					<TableHeader>
 						<TableRow>
-							<TableHead>User</TableHead>
-							<TableHead className="hidden md:table-cell">Last Run</TableHead>
-							<TableHead className="text-right">Recs (Active / Dismissed / Applied)</TableHead>
-							<TableHead className="text-right">Run</TableHead>
+							<TableHead>{m.admin_intel_col_user()}</TableHead>
+							<TableHead className="hidden md:table-cell">{m.admin_intel_col_last_run()}</TableHead>
+							<TableHead className="text-right">{m.admin_intel_col_recs()}</TableHead>
+							<TableHead className="text-right">{m.admin_intel_col_run()}</TableHead>
 						</TableRow>
 					</TableHeader>
 					<TableBody>
@@ -375,12 +369,12 @@ function UserActionRow({
 							{row.name ?? row.email}
 							{row.isMe && (
 								<Badge variant="secondary" className="text-3xs">
-									you
+									{m.word_you()}
 								</Badge>
 							)}
 							{row.role !== 'user' && (
 								<Badge variant="outline" className="text-3xs">
-									{row.role}
+									{roleLabel(row.role)}
 								</Badge>
 							)}
 						</span>
@@ -406,27 +400,33 @@ function UserActionRow({
 					disabled={pending || !onRunForUser}
 				>
 					{pending ? <Loader2 className="size-4 animate-spin" /> : <PlayCircle className="size-4" />}
-					{pending ? 'Running' : 'Run'}
+					{pending ? m.admin_intel_running_button() : m.admin_intel_run_button()}
 				</Button>
 			</TableCell>
 		</TableRow>
 	)
 }
 
+const RUN_FILTERS = ['all', 'success', 'skipped', 'error'] as const
+
+function fullDateTime(date: Date): string {
+	return format(date, 'PPpp', { locale: dateFnsLocale() })
+}
+
 function LastRunCell({ row }: { row: AdminUserRunSummaryRow }) {
 	if (!row.lastRunAt) {
-		return <span className="text-xs text-muted-foreground italic">never run</span>
+		return <span className="text-xs text-muted-foreground italic">{m.admin_intel_never_run()}</span>
 	}
 	const variant: 'destructive' | 'secondary' | 'outline' = row.lastRunStatus === 'error' ? 'destructive' : 'secondary'
 	return (
 		<div className="flex flex-col gap-0.5">
-			<span className="text-xs text-muted-foreground" title={format(row.lastRunAt, 'PPpp')}>
-				{formatDistanceToNow(row.lastRunAt, { addSuffix: true })}
+			<span className="text-xs text-muted-foreground" title={fullDateTime(row.lastRunAt)}>
+				{formatTimeAgo(row.lastRunAt)}
 			</span>
 			<span className="flex items-center gap-1.5">
 				{row.lastRunStatus && (
 					<Badge variant={variant} className="text-3xs">
-						{row.lastRunStatus}
+						{runStatusLabel(row.lastRunStatus)}
 					</Badge>
 				)}
 				{row.lastRunSkipReason && <span className="text-3xs text-muted-foreground font-mono">{row.lastRunSkipReason}</span>}
@@ -441,38 +441,41 @@ export function HealthGrid({ data, providerSummary }: { data: AdminIntelligenceD
 		<section data-intelligence="admin-health-grid" className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-3">
 			<MetricCard
 				icon={Sparkles}
-				label="Active Recs"
+				label={m.admin_intel_metric_active_recs()}
 				value={health.totalActiveRecs.toString()}
-				sub={`across ${health.analyzers.length} analyzers`}
+				sub={m.admin_intel_metric_active_recs_sub({ count: health.analyzers.length })}
 				gradient="from-fuchsia-400/40 via-pink-400/30 to-rose-500/40"
 			/>
 			<MetricCard
 				icon={PlayCircle}
-				label="Runs (24h)"
-				value={`${health.last24h.success} ok`}
-				sub={`${sumBucket(health.last24h.skipped)} skipped · ${health.last24h.error} error`}
+				label={m.admin_intel_metric_runs_24h()}
+				value={m.admin_intel_metric_runs_value({ count: health.last24h.success })}
+				sub={m.admin_intel_metric_runs_sub({ skipped: sumBucket(health.last24h.skipped), errors: health.last24h.error })}
 				gradient="from-emerald-400/40 via-teal-400/30 to-cyan-500/40"
 			/>
 			<MetricCard
 				icon={Hash}
-				label="Tokens / Day"
-				value={`${formatNumber(health.dailyTokensIn + health.dailyTokensOut)}`}
-				sub={`${formatNumber(health.dailyTokensIn)} in · ${formatNumber(health.dailyTokensOut)} out`}
+				label={m.admin_intel_metric_tokens_day()}
+				value={compactNumber(health.dailyTokensIn + health.dailyTokensOut)}
+				sub={m.admin_intel_metric_tokens_sub({
+					tokensIn: compactNumber(health.dailyTokensIn),
+					tokensOut: compactNumber(health.dailyTokensOut),
+				})}
 				gradient="from-amber-400/40 via-orange-400/30 to-pink-500/40"
 			/>
 			<MetricCard
 				icon={Cpu}
-				label="Cost / Day"
-				value={`~$${health.dailyEstimatedCostUsd.toFixed(2)}`}
+				label={m.admin_intel_metric_cost_day()}
+				value={`~${formatCurrency(health.dailyEstimatedCostUsd, 'USD')}`}
 				sub={providerSummary}
 				gradient="from-violet-400/40 via-purple-400/30 to-fuchsia-500/40"
 			/>
 
 			<div className="lg:col-span-2 xl:col-span-4 grid grid-cols-1 xl:grid-cols-2 gap-3">
-				<Suspense fallback={<ChartCardFallback title="Runs (14 days)" />}>
+				<Suspense fallback={<ChartCardFallback title={m.admin_intel_chart_runs_loading_title()} />}>
 					<RunsActivityChart data={data.dailySeries} />
 				</Suspense>
-				<Suspense fallback={<ChartCardFallback title="Tokens & cost (14 days)" />}>
+				<Suspense fallback={<ChartCardFallback title={m.admin_intel_chart_tokens_loading_title()} />}>
 					<TokenUsageChart data={data.dailySeries} />
 				</Suspense>
 			</div>
@@ -480,8 +483,8 @@ export function HealthGrid({ data, providerSummary }: { data: AdminIntelligenceD
 			<div className="lg:col-span-2 xl:col-span-4">
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-2xl">Analyzers</CardTitle>
-						<CardDescription>Average duration · tokens · active recommendations</CardDescription>
+						<CardTitle className="text-2xl">{m.admin_intel_analyzers_title()}</CardTitle>
+						<CardDescription>{m.admin_intel_analyzers_card_description()}</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-4 gap-3">
@@ -489,12 +492,18 @@ export function HealthGrid({ data, providerSummary }: { data: AdminIntelligenceD
 								<div key={a.id} className="rounded-lg border border-border bg-muted/20 px-3 py-2">
 									<div className="flex items-center justify-between">
 										<span className="text-sm font-medium">{a.label}</span>
-										<Badge variant={a.enabled ? 'secondary' : 'outline'}>{a.enabled ? 'on' : 'off'}</Badge>
+										<Badge variant={a.enabled ? 'secondary' : 'outline'}>
+											{a.enabled ? m.admin_intel_state_on() : m.admin_intel_state_off()}
+										</Badge>
 									</div>
 									<div className="mt-1 text-xs text-muted-foreground">
-										{a.avgDurationMs}ms · {formatNumber(a.avgTokensIn)} in / {formatNumber(a.avgTokensOut)} out
+										{m.admin_intel_analyzer_stats({
+											duration: a.avgDurationMs,
+											tokensIn: compactNumber(a.avgTokensIn),
+											tokensOut: compactNumber(a.avgTokensOut),
+										})}
 									</div>
-									<div className="text-xs">{a.activeRecs} active recommendations</div>
+									<div className="text-xs">{m.admin_intel_analyzer_active_recs({ count: a.activeRecs })}</div>
 								</div>
 							))}
 						</div>
@@ -505,15 +514,19 @@ export function HealthGrid({ data, providerSummary }: { data: AdminIntelligenceD
 			<div className="lg:col-span-2 xl:col-span-4">
 				<Card>
 					<CardHeader>
-						<CardTitle className="text-2xl">Queue</CardTitle>
+						<CardTitle className="text-2xl">{m.admin_intel_queue_title()}</CardTitle>
 						<CardDescription>
-							7d: {health.last7d.success} ok · {sumBucket(health.last7d.skipped)} skipped · {health.last7d.error} err
+							{m.admin_intel_queue_summary({
+								success: health.last7d.success,
+								skipped: sumBucket(health.last7d.skipped),
+								errors: health.last7d.error,
+							})}
 						</CardDescription>
 					</CardHeader>
 					<CardContent>
 						<div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-							<QueueStat icon={TimerReset} label="Overdue" value={health.queue.overdue} />
-							<QueueStat icon={Lock} label="Lock Held" value={health.queue.lockHeld} />
+							<QueueStat icon={TimerReset} label={m.admin_intel_queue_overdue()} value={health.queue.overdue} />
+							<QueueStat icon={Lock} label={m.admin_intel_queue_lock_held()} value={health.queue.lockHeld} />
 						</div>
 					</CardContent>
 				</Card>
@@ -526,7 +539,7 @@ function QueueStat({ icon: Icon, label, value }: { icon: React.ComponentType<{ c
 	return (
 		<div className="flex items-center gap-2">
 			<Icon className="size-4 text-muted-foreground" />
-			<span className="text-muted-foreground">{label}:</span>
+			<span className="text-muted-foreground">{label}</span>
 			<span className="font-semibold">{value}</span>
 		</div>
 	)
@@ -570,81 +583,82 @@ export type AnalyzerStatus = 'coming-soon'
 
 export const ANALYZER_META: Record<
 	AnalyzerId,
-	{ label: string; description: string; example: string; kind: AnalyzerKind; triggers: Array<AnalyzerTrigger>; status?: AnalyzerStatus }
+	{
+		label: () => string
+		description: () => string
+		example: () => string
+		kind: AnalyzerKind
+		triggers: Array<AnalyzerTrigger>
+		status?: AnalyzerStatus
+	}
 > = {
 	'primary-list': {
-		label: 'Primary List',
-		description: 'Suggests setting a primary list when the user has multiple active lists but none are marked primary.',
-		example:
-			'You have 3 active wishlists but none are marked primary. Set one so people who want to shop for you know where to look first.',
+		label: () => m.admin_intel_analyzer_primary_list_label(),
+		description: () => m.admin_intel_analyzer_primary_list_description(),
+		example: () => m.admin_intel_analyzer_primary_list_example(),
 		kind: 'heuristic',
 		triggers: ['cron', 'manual'],
 	},
 	'list-hygiene': {
-		label: 'List Hygiene',
-		description:
-			"Suggests list changes ahead of upcoming birthdays, Christmas, and custom holidays, such as converting a list, making it public, creating one, or setting a primary list, depending on the user's current lists.",
-		example:
-			'Your birthday is in 14 days and your only public list is a Christmas list. Convert it to a birthday list and rename it so gifts auto-reveal on the right day.',
+		label: () => m.admin_intel_analyzer_list_hygiene_label(),
+		description: () => m.admin_intel_analyzer_list_hygiene_description(),
+		example: () => m.admin_intel_analyzer_list_hygiene_example(),
 		kind: 'heuristic',
 		triggers: ['cron', 'manual'],
 	},
 	'relation-labels': {
-		label: 'Relation Labels',
-		description: "Reminds users to tag their mother or father when Mother's Day or Father's Day is coming up.",
-		example: "Mother's Day is in 7 days. Tag a parent so the system can remind you and shape your gift-tracking.",
+		label: () => m.admin_intel_analyzer_relation_labels_label(),
+		description: () => m.admin_intel_analyzer_relation_labels_description(),
+		example: () => m.admin_intel_analyzer_relation_labels_example(),
 		kind: 'heuristic',
 		triggers: ['cron', 'manual'],
 	},
 	'stale-items': {
-		label: 'Stale Items',
-		description: 'Reviews items not edited in 6+ months and asks the model to flag any worth cleaning up.',
-		example:
-			'"Wireless headphones (model XYZ)" hasn\'t been touched in 11 months and the linked product is discontinued. Consider archiving or replacing it.',
+		label: () => m.admin_intel_analyzer_stale_items_label(),
+		description: () => m.admin_intel_analyzer_stale_items_description(),
+		example: () => m.admin_intel_analyzer_stale_items_example(),
 		kind: 'ai',
 		triggers: ['cron', 'manual'],
 	},
 	duplicates: {
-		label: 'Duplicates',
-		description: 'Finds items with similar titles across different lists and asks the model to confirm true duplicates.',
-		example:
-			'"Stanley tumbler 30oz" appears on both your Birthday list and your Wishlist. Looks like the same item, so keep one and remove the other.',
+		label: () => m.admin_intel_analyzer_duplicates_label(),
+		description: () => m.admin_intel_analyzer_duplicates_description(),
+		example: () => m.admin_intel_analyzer_duplicates_example(),
 		kind: 'ai',
 		triggers: ['cron', 'manual'],
 	},
 	grouping: {
-		label: 'Grouping',
-		description:
-			'Suggests "pick one" or "in order" groups for ungrouped items that look like alternates of the same need or a prerequisite sequence.',
-		example: 'These three coffee grinders look like alternates of the same need. Group as "pick one" so gifters know to only buy one.',
+		label: () => m.admin_intel_analyzer_grouping_label(),
+		description: () => m.admin_intel_analyzer_grouping_description(),
+		example: () => m.admin_intel_analyzer_grouping_example(),
 		kind: 'ai',
 		triggers: ['cron', 'manual'],
 	},
 	'missing-price': {
-		label: 'Missing Prices',
-		description: 'Surfaces items that have a URL but no price recorded so the user can fill one in.',
-		example: '"Stanley tumbler 30oz" has a link but no price set. Adding one helps gifters budget.',
+		label: () => m.admin_intel_analyzer_missing_price_label(),
+		description: () => m.admin_intel_analyzer_missing_price_description(),
+		example: () => m.admin_intel_analyzer_missing_price_example(),
 		kind: 'heuristic',
 		triggers: ['cron', 'manual'],
 	},
 	'missing-image': {
-		label: 'Unselected Images',
-		description: 'Surfaces items where the scraper found candidate images but none have been picked yet.',
-		example: 'The scraper found 4 candidate images for "Levis 511" but no image is set on the item. Pick one.',
+		label: () => m.admin_intel_analyzer_missing_image_label(),
+		description: () => m.admin_intel_analyzer_missing_image_description(),
+		example: () => m.admin_intel_analyzer_missing_image_example(),
 		kind: 'heuristic',
 		triggers: ['cron', 'manual'],
 	},
 	'stale-scrape': {
-		label: 'Stale or Unscraped URLs',
-		description: "Surfaces items whose linked product hasn't been re-scraped in months (or was never scraped).",
-		example: 'The link on "Wireless headphones" was last scraped 9 months ago. Refresh to catch price/availability changes.',
+		label: () => m.admin_intel_analyzer_stale_scrape_label(),
+		description: () => m.admin_intel_analyzer_stale_scrape_description(),
+		example: () => m.admin_intel_analyzer_stale_scrape_example(),
 		kind: 'heuristic',
 		triggers: ['cron', 'manual'],
 	},
 	'clothing-prefs': {
-		label: 'Clothing Size & Color',
-		description: 'Asks the model to flag clothing items missing a size or color and suggest common options.',
-		example: '"Levis 511 jeans" has no size noted. Common adult sizes are 30x32, 32x32, and 34x32. Add yours.',
+		label: () => m.admin_intel_analyzer_clothing_prefs_label(),
+		description: () => m.admin_intel_analyzer_clothing_prefs_description(),
+		example: () => m.admin_intel_analyzer_clothing_prefs_example(),
 		kind: 'ai',
 		triggers: ['cron', 'manual'],
 	},
@@ -662,31 +676,28 @@ export function SettingsPanel({
 	return (
 		<Card data-intelligence="admin-settings">
 			<CardHeader>
-				<CardTitle className="text-2xl">Settings</CardTitle>
-				<CardDescription>All settings are global. Per-user overrides aren&apos;t supported yet.</CardDescription>
+				<CardTitle className="text-2xl">{m.admin_intel_settings_title()}</CardTitle>
+				<CardDescription>{m.admin_intel_settings_description()}</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-3 pb-4">
 				<SettingsSection
 					id="schedule"
 					icon={CalendarClock}
-					title="Schedule & Triggers"
-					summary={`Cron every ${s.refreshIntervalDays}d · manual cooldown ${s.manualRefreshCooldownMinutes}m`}
+					title={m.admin_intel_schedule_title()}
+					summary={m.admin_intel_schedule_summary({ days: s.refreshIntervalDays, minutes: s.manualRefreshCooldownMinutes })}
 					defaultOpen
 				>
-					<p className="text-xs text-muted-foreground">
-						Recommendations are regenerated for each user on a schedule, and whenever someone clicks &quot;Run for me now&quot;. The
-						schedule runs at most once per refresh interval for each user, and manual runs wait out the cooldown so they don&apos;t pile up.
-					</p>
+					<p className="text-xs text-muted-foreground">{m.admin_intel_schedule_help()}</p>
 					<div className="grid grid-cols-1 xl:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
-							label="Cron Refresh Interval (Days)"
-							hint="How often the cron will regenerate recommendations for each user."
+							label={m.admin_intel_refresh_interval_label()}
+							hint={m.admin_intel_refresh_interval_hint()}
 							value={s.refreshIntervalDays}
 							onChange={v => patch({ refreshIntervalDays: v })}
 						/>
 						<NumberRow
-							label="Manual Refresh Cooldown (Min)"
-							hint="Minimum gap between manual runs for the same user."
+							label={m.admin_intel_cooldown_label_short()}
+							hint={m.admin_intel_cooldown_hint()}
 							value={s.manualRefreshCooldownMinutes}
 							onChange={v => patch({ manualRefreshCooldownMinutes: v })}
 						/>
@@ -696,14 +707,14 @@ export function SettingsPanel({
 				<SettingsSection
 					id="analyzers"
 					icon={Sparkles}
-					title="Analyzers"
-					summary={`${ANALYZER_ORDER.filter(id => s.perAnalyzerEnabled[id]).length} of ${ANALYZER_ORDER.length} enabled`}
+					title={m.admin_intel_analyzers_title()}
+					summary={m.admin_intel_analyzers_summary({
+						enabled: ANALYZER_ORDER.filter(id => s.perAnalyzerEnabled[id]).length,
+						total: ANALYZER_ORDER.length,
+					})}
 					defaultOpen
 				>
-					<p className="text-xs text-muted-foreground">
-						For each user, the analyzers run one after another, and an error in one doesn&apos;t stop the rest. Partial failures show up in
-						each run&apos;s status in the table below.
-					</p>
+					<p className="text-xs text-muted-foreground">{m.admin_intel_analyzers_help()}</p>
 					<div className="flex flex-col gap-2">
 						{ANALYZER_ORDER.map(id => {
 							const meta = ANALYZER_META[id]
@@ -718,10 +729,10 @@ export function SettingsPanel({
 								>
 									<div className="flex flex-col gap-1 min-w-0">
 										<div className="flex items-center gap-2 flex-wrap">
-											<span className="text-sm font-medium">{meta.label}</span>
+											<span className="text-sm font-medium">{meta.label()}</span>
 											<AnalyzerBadges kind={meta.kind} triggers={meta.triggers} status={meta.status} />
 										</div>
-										<p className="text-xs text-muted-foreground">{meta.description}</p>
+										<p className="text-xs text-muted-foreground">{meta.description()}</p>
 									</div>
 									<Switch
 										data-intelligence="admin-analyzer-toggle"
@@ -738,15 +749,12 @@ export function SettingsPanel({
 				<SettingsSection
 					id="audience"
 					icon={UsersIcon}
-					title="Audience"
-					summary={`${audienceCount} eligible user${audienceCount === 1 ? '' : 's'}`}
+					title={m.admin_intel_audience_title()}
+					summary={m.admin_intel_audience_summary({ count: audienceCount })}
 				>
-					<p className="text-xs text-muted-foreground">
-						The cron currently processes every user who isn&apos;t banned. You can&apos;t yet turn it on for only some users, so to limit
-						the rollout, disable individual analyzers above or turn the whole feature off.
-					</p>
+					<p className="text-xs text-muted-foreground">{m.admin_intel_audience_help()}</p>
 					<div className="rounded-md border border-border bg-muted/10 px-3 py-2 text-xs">
-						<div className="text-muted-foreground">Eligible users</div>
+						<div className="text-muted-foreground">{m.admin_intel_audience_eligible()}</div>
 						<div className="text-base font-semibold tabular-nums">{audienceCount}</div>
 					</div>
 				</SettingsSection>
@@ -754,44 +762,42 @@ export function SettingsPanel({
 				<SettingsSection
 					id="inputs"
 					icon={Beaker}
-					title="Inputs & dry run"
-					summary={s.dryRun ? `cap ${s.candidateCap} · dry run on` : `cap ${s.candidateCap} · persisting`}
+					title={m.admin_intel_inputs_title_short()}
+					summary={
+						s.dryRun
+							? m.admin_intel_inputs_summary_dry({ cap: s.candidateCap })
+							: m.admin_intel_inputs_summary_persist({ cap: s.candidateCap })
+					}
 				>
-					<p className="text-xs text-muted-foreground">
-						The candidate cap limits how many items each analyzer sends to the model. A smaller cap makes runs cheaper and faster, but some
-						recommendations may be missed. Dry run still calls the model and records each step, but doesn&apos;t save any recommendations.
-					</p>
+					<p className="text-xs text-muted-foreground">{m.admin_intel_inputs_help()}</p>
 					<div className="grid grid-cols-1 xl:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
-							label="Candidate Cap per Analyzer"
-							hint="The most items (or item pairs) sent to the model in a single run."
+							label={m.admin_intel_candidate_cap_label()}
+							hint={m.admin_intel_candidate_cap_hint()}
 							value={s.candidateCap}
 							onChange={v => patch({ candidateCap: v })}
 						/>
-						<ToggleRow label="Dry Run (Don't Persist Recommendations)" checked={s.dryRun} onChange={v => patch({ dryRun: v })} />
+						<ToggleRow label={m.admin_intel_dry_run_label_long()} checked={s.dryRun} onChange={v => patch({ dryRun: v })} />
 					</div>
 				</SettingsSection>
 
 				<SettingsSection
 					id="cron-workers"
 					icon={Cpu}
-					title="Cron workers"
-					summary={`${s.concurrency}× concurrency · ${s.usersPerInvocation} users / invocation`}
+					title={m.admin_intel_workers_title_short()}
+					summary={m.admin_intel_workers_summary({ concurrency: s.concurrency, users: s.usersPerInvocation })}
 				>
-					<p className="text-xs text-muted-foreground">
-						Advanced. These control how many users each cron run processes, and how many it handles at once. Only raise them if your AI
-						provider&apos;s quota can handle it. Rate-limit errors show up as step errors on individual runs.
-					</p>
+					<p className="text-xs text-muted-foreground">{m.admin_intel_workers_help()}</p>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
-							label="Cron Concurrency"
-							hint="Number of users processed in parallel inside one invocation."
+							label={m.admin_intel_concurrency_label()}
+							hint={m.admin_intel_concurrency_hint()}
 							value={s.concurrency}
 							onChange={v => patch({ concurrency: v })}
 						/>
 						<NumberRow
-							label="Users per Cron Invocation"
-							hint="The most users a single cron run will process before it stops."
+							label={m.admin_intel_users_per_invocation_label()}
+							hint={m.admin_intel_users_per_invocation_hint()}
 							value={s.usersPerInvocation}
 							onChange={v => patch({ usersPerInvocation: v })}
 						/>
@@ -801,43 +807,49 @@ export function SettingsPanel({
 				<SettingsSection
 					id="retention"
 					icon={Database}
-					title="Retention"
-					summary={`recommendations ${s.staleRecRetentionDays}d · run steps ${s.runStepsRetentionDays}d`}
+					title={m.admin_intel_retention_title()}
+					summary={m.admin_intel_retention_summary({ recDays: s.staleRecRetentionDays, stepDays: s.runStepsRetentionDays })}
 				>
-					<p className="text-xs text-muted-foreground">
-						Dismissed and applied recommendations, and the debug records for each run, are deleted once they&apos;re older than these
-						limits.
-					</p>
+					<p className="text-xs text-muted-foreground">{m.admin_intel_retention_help()}</p>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
 						<NumberRow
-							label="Stale Recommendation Retention (Days)"
-							hint="Dismissed and applied recommendations older than this are deleted."
+							label={m.admin_intel_stale_rec_retention_label()}
+							hint={m.admin_intel_stale_rec_retention_hint()}
 							value={s.staleRecRetentionDays}
 							onChange={v => patch({ staleRecRetentionDays: v })}
 						/>
 						<NumberRow
-							label="Run-Step Retention (Days)"
-							hint="Debug records for each run step (prompt, response, and parsed output) older than this are deleted."
+							label={m.admin_intel_run_step_retention_label()}
+							hint={m.admin_intel_run_step_retention_hint()}
 							value={s.runStepsRetentionDays}
 							onChange={v => patch({ runStepsRetentionDays: v })}
 						/>
 					</div>
 				</SettingsSection>
 
-				<SettingsSection id="notifications" icon={Mail} title="Notifications" summary={s.email.enabled ? 'email on' : 'email off'}>
+				<SettingsSection
+					id="notifications"
+					icon={Mail}
+					title={m.admin_intel_notifications_title()}
+					summary={s.email.enabled ? m.admin_intel_notifications_summary_on() : m.admin_intel_notifications_summary_off()}
+				>
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
-						<ToggleRow label="Email Enabled" checked={s.email.enabled} onChange={v => patch({ email: { ...s.email, enabled: v } })} />
 						<ToggleRow
-							label="Weekly Digest"
+							label={m.admin_intel_email_enabled_label()}
+							checked={s.email.enabled}
+							onChange={v => patch({ email: { ...s.email, enabled: v } })}
+						/>
+						<ToggleRow
+							label={m.admin_intel_weekly_digest_label()}
 							checked={s.email.weeklyDigestEnabled}
 							onChange={v => patch({ email: { ...s.email, weeklyDigestEnabled: v } })}
 						/>
 						<div className="md:col-span-2">
-							<Label className="text-xs text-muted-foreground">Recipient Override</Label>
+							<Label className="text-xs text-muted-foreground">{m.admin_intel_recipient_override_label()}</Label>
 							<TextInputOnBlur
 								className="mt-1"
 								type="email"
-								placeholder="Leave blank to send to all admins"
+								placeholder={m.admin_intel_recipient_override_placeholder()}
 								value={s.email.testRecipient ?? ''}
 								onCommit={v => patch({ email: { ...s.email, testRecipient: v || null } })}
 							/>
@@ -1028,11 +1040,11 @@ export function RunsTable({
 		<Card data-intelligence="admin-runs">
 			<CardHeader className="flex flex-row items-start justify-between gap-3 flex-wrap">
 				<div className="space-y-1.5">
-					<CardTitle className="text-2xl">Recent Runs</CardTitle>
-					<CardDescription>Most recent recommendation runs across every user. Click a row to inspect run details.</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_intel_runs_title()}</CardTitle>
+					<CardDescription>{m.admin_intel_runs_description()}</CardDescription>
 				</div>
 				<div data-intelligence="admin-runs-filter" className="flex items-center gap-1.5">
-					{(['all', 'success', 'skipped', 'error'] as const).map(f => (
+					{RUN_FILTERS.map(f => (
 						<Button
 							key={f}
 							data-intelligence="admin-runs-filter-button"
@@ -1042,7 +1054,7 @@ export function RunsTable({
 							className="uppercase"
 							onClick={() => setFilter(f)}
 						>
-							{f}
+							{runFilterLabel(f)}
 						</Button>
 					))}
 				</div>
@@ -1050,21 +1062,21 @@ export function RunsTable({
 			<CardContent>
 				{runs.length === 0 ? (
 					<p data-intelligence="admin-runs-empty" className="text-sm text-muted-foreground py-2">
-						No runs match this filter.
+						{m.admin_intel_runs_empty()}
 					</p>
 				) : (
 					<div className="rounded-lg border overflow-x-auto">
 						<Table data-intelligence="admin-runs-table">
 							<TableHeader>
 								<TableRow>
-									<TableHead>User</TableHead>
-									<TableHead>Trigger</TableHead>
-									<TableHead>Status</TableHead>
-									<TableHead>Started</TableHead>
-									<TableHead>Duration</TableHead>
-									<TableHead>Recommendations</TableHead>
-									<TableHead>Tokens (Out / In)</TableHead>
-									<TableHead className="text-right">Actions</TableHead>
+									<TableHead>{m.admin_intel_col_user()}</TableHead>
+									<TableHead>{m.admin_intel_col_trigger()}</TableHead>
+									<TableHead>{m.admin_intel_col_status()}</TableHead>
+									<TableHead>{m.admin_intel_col_started()}</TableHead>
+									<TableHead>{m.admin_intel_col_duration()}</TableHead>
+									<TableHead>{m.admin_intel_col_recommendations()}</TableHead>
+									<TableHead>{m.admin_intel_col_tokens()}</TableHead>
+									<TableHead className="text-right">{m.admin_intel_col_actions()}</TableHead>
 								</TableRow>
 							</TableHeader>
 							<TableBody>
@@ -1075,7 +1087,7 @@ export function RunsTable({
 										data-run-id={run.id}
 										className="cursor-pointer hover:bg-muted/50 group"
 										onClick={() => onOpenRun?.(run.id)}
-										title="Click to inspect run details"
+										title={m.admin_intel_runs_row_title()}
 									>
 										<TableCell className="font-medium">
 											<span className="inline-flex items-center gap-1.5">
@@ -1084,7 +1096,7 @@ export function RunsTable({
 											</span>
 										</TableCell>
 										<TableCell>
-											<Badge variant="outline">{run.trigger}</Badge>
+											<Badge variant="outline">{runTriggerLabel(run.trigger)}</Badge>
 										</TableCell>
 										<TableCell>
 											<div className="flex flex-col items-start gap-0.5">
@@ -1092,42 +1104,44 @@ export function RunsTable({
 												<StepBreakdown counts={run.stepCounts} />
 											</div>
 										</TableCell>
-										<TableCell className="text-muted-foreground text-xs">
-											{formatDistanceToNow(run.startedAt, { addSuffix: true })}
-										</TableCell>
+										<TableCell className="text-muted-foreground text-xs">{formatTimeAgo(run.startedAt)}</TableCell>
 										<TableCell className="tabular-nums text-xs">{run.durationMs ? formatDuration(run.durationMs) : '-'}</TableCell>
 										<TableCell className="text-xs">{summarizeRecCounts(run)}</TableCell>
 										<TableCell className="text-xs tabular-nums">
-											{run.tokensIn ? `${formatNumber(run.tokensOut ?? 0)} / ${formatNumber(run.tokensIn)}` : '-'}
+											{run.tokensIn ? `${compactNumber(run.tokensOut ?? 0)} / ${compactNumber(run.tokensIn)}` : '-'}
 										</TableCell>
 										<TableCell className="text-right">
 											<div onClick={e => e.stopPropagation()} className="flex justify-end">
 												<div className="hidden lg:flex gap-1.5">
 													<Button size="xs" variant="outline" onClick={() => onOpenRun?.(run.id)}>
-														Inspect
+														{m.admin_intel_action_inspect()}
 													</Button>
 													<Button size="xs" variant="outline" onClick={() => onRunForUser?.(run.userId)}>
-														Re-run
+														{m.admin_intel_action_rerun()}
 													</Button>
 													<Button size="xs" variant="outline" onClick={() => onInvalidateHash?.(run.userId)}>
-														Invalidate
+														{m.admin_intel_action_invalidate()}
 													</Button>
 													<Button size="xs" variant="outline" onClick={() => onPurgeRecs?.(run.userId)}>
-														Purge
+														{m.admin_intel_action_purge()}
 													</Button>
 												</div>
 												<div className="lg:hidden">
 													<DropdownMenu>
 														<DropdownMenuTrigger asChild>
-															<Button size="icon-xs" variant="outline" aria-label="Run actions">
+															<Button size="icon-xs" variant="outline" aria-label={m.admin_intel_run_actions_label()}>
 																<MoreHorizontal className="size-4" />
 															</Button>
 														</DropdownMenuTrigger>
 														<DropdownMenuContent align="end">
-															<DropdownMenuItem onSelect={() => onOpenRun?.(run.id)}>Inspect</DropdownMenuItem>
-															<DropdownMenuItem onSelect={() => onRunForUser?.(run.userId)}>Re-run</DropdownMenuItem>
-															<DropdownMenuItem onSelect={() => onInvalidateHash?.(run.userId)}>Invalidate</DropdownMenuItem>
-															<DropdownMenuItem onSelect={() => onPurgeRecs?.(run.userId)}>Purge</DropdownMenuItem>
+															<DropdownMenuItem onSelect={() => onOpenRun?.(run.id)}>{m.admin_intel_action_inspect()}</DropdownMenuItem>
+															<DropdownMenuItem onSelect={() => onRunForUser?.(run.userId)}>
+																{m.admin_intel_action_rerun()}
+															</DropdownMenuItem>
+															<DropdownMenuItem onSelect={() => onInvalidateHash?.(run.userId)}>
+																{m.admin_intel_action_invalidate()}
+															</DropdownMenuItem>
+															<DropdownMenuItem onSelect={() => onPurgeRecs?.(run.userId)}>{m.admin_intel_action_purge()}</DropdownMenuItem>
 														</DropdownMenuContent>
 													</DropdownMenu>
 												</div>
@@ -1151,14 +1165,14 @@ function StepBreakdown({ counts }: { counts?: AdminRunRow['stepCounts'] }) {
 	if (!counts) return null
 	const total = counts.ok + counts.error + counts.noop
 	if (total === 0) return null
-	const segments: Array<{ label: string; n: number; tone: 'ok' | 'err' | 'noop' }> = []
-	if (counts.ok > 0) segments.push({ label: 'ok', n: counts.ok, tone: 'ok' })
-	if (counts.error > 0) segments.push({ label: 'err', n: counts.error, tone: 'err' })
-	if (counts.noop > 0) segments.push({ label: 'noop', n: counts.noop, tone: 'noop' })
+	const segments: Array<{ text: string; tone: 'ok' | 'err' | 'noop' }> = []
+	if (counts.ok > 0) segments.push({ text: m.admin_intel_step_ok({ count: counts.ok }), tone: 'ok' })
+	if (counts.error > 0) segments.push({ text: m.admin_intel_step_err({ count: counts.error }), tone: 'err' })
+	if (counts.noop > 0) segments.push({ text: m.admin_intel_step_noop({ count: counts.noop }), tone: 'noop' })
 	return (
 		<div data-intelligence="admin-runs-step-breakdown" className="flex items-center gap-1 text-3xs tabular-nums">
 			{segments.map((s, i) => (
-				<span key={s.label} className="inline-flex items-center gap-1">
+				<span key={s.tone} className="inline-flex items-center gap-1">
 					<span
 						className={cn(
 							s.tone === 'ok' && 'text-emerald-600 dark:text-emerald-400',
@@ -1166,7 +1180,7 @@ function StepBreakdown({ counts }: { counts?: AdminRunRow['stepCounts'] }) {
 							s.tone === 'noop' && 'text-muted-foreground'
 						)}
 					>
-						{s.n} {s.label}
+						{s.text}
 					</span>
 					{i < segments.length - 1 && <span className="text-muted-foreground">·</span>}
 				</span>
@@ -1180,18 +1194,18 @@ function StatusBadge({ run }: { run: AdminRunRow }) {
 	if (run.status === 'error')
 		return (
 			<span className="inline-flex items-center gap-1.5">
-				<Badge variant="destructive">error</Badge>
+				<Badge variant="destructive">{m.admin_intel_status_error()}</Badge>
 				{run.error && <span className="text-xs text-destructive truncate max-w-xs">{run.error}</span>}
 			</span>
 		)
 	if (run.status === 'skipped')
 		return (
 			<span className="inline-flex items-center gap-1.5">
-				<Badge variant="outline">skipped</Badge>
+				<Badge variant="outline">{m.admin_intel_status_skipped()}</Badge>
 				{run.skipReason && <span className="text-xs text-muted-foreground">{run.skipReason}</span>}
 			</span>
 		)
-	return <Badge>running</Badge>
+	return <Badge>{m.admin_intel_status_running()}</Badge>
 }
 
 function summarizeRecCounts(run: AdminRunRow): string {
@@ -1204,9 +1218,45 @@ function sumBucket(o: Record<string, number>): number {
 	return Object.values(o).reduce((s, n) => s + n, 0)
 }
 
-function formatNumber(n: number): string {
-	if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
-	return n.toString()
+// "1.2k" for a thousand and up, the plain number below that. The decimal
+// mark follows the page's language; the "k" stays.
+function compactNumber(n: number): string {
+	if (n >= 1000) return `${formatNumber(n / 1000, { minimumFractionDigits: 1, maximumFractionDigits: 1, useGrouping: false })}k`
+	return formatNumber(n, { useGrouping: false, maximumFractionDigits: 20 })
+}
+
+export function runStatusLabel(status: 'running' | 'success' | 'error' | 'skipped'): string {
+	switch (status) {
+		case 'running':
+			return m.admin_intel_status_running()
+		case 'success':
+			return m.admin_intel_status_success()
+		case 'error':
+			return m.admin_intel_status_error()
+		case 'skipped':
+			return m.admin_intel_status_skipped()
+	}
+}
+
+export function runTriggerLabel(trigger: 'cron' | 'manual'): string {
+	return trigger === 'cron' ? m.admin_intel_trigger_cron() : m.admin_intel_trigger_manual()
+}
+
+function runFilterLabel(filter: 'all' | 'success' | 'skipped' | 'error'): string {
+	switch (filter) {
+		case 'all':
+			return m.admin_intel_filter_all()
+		case 'success':
+			return m.admin_intel_filter_success()
+		case 'skipped':
+			return m.admin_intel_filter_skipped()
+		case 'error':
+			return m.admin_intel_filter_error()
+	}
+}
+
+function roleLabel(role: 'admin' | 'child'): string {
+	return role === 'admin' ? m.admin_intel_role_admin() : m.admin_intel_role_child()
 }
 
 function formatDuration(ms: number): string {
@@ -1216,9 +1266,9 @@ function formatDuration(ms: number): string {
 		return s < 10 ? `${s.toFixed(1)}s` : `${Math.floor(s)}s`
 	}
 	const totalSec = Math.floor(ms / 1000)
-	const m = Math.floor(totalSec / 60)
+	const min = Math.floor(totalSec / 60)
 	const s = totalSec % 60
-	return s === 0 ? `${m}m` : `${m}m ${s}s`
+	return s === 0 ? `${min}m` : `${min}m ${s}s`
 }
 
 // ─── Charts moved to ./intelligence-charts.tsx so the recharts runtime

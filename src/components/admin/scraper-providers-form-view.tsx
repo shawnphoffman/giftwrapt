@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronRight, Plus, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
+import { RichMessage } from '@/components/common/rich-message'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CharacterCounter } from '@/components/ui/character-counter'
@@ -35,6 +36,7 @@ import type {
 	ScrapflyEntry,
 } from '@/lib/settings'
 import { LIMITS } from '@/lib/validation/limits'
+import { m } from '@/paraglide/messages.js'
 
 import type { ProviderHealth } from './provider-health'
 import { ProviderHealthBadge } from './provider-health-badge'
@@ -89,37 +91,37 @@ export function ScraperTimingFormView({ settings, disabled, onChange }: ScraperP
 		<div className="@container/scraper-form space-y-6">
 			<NumberRow
 				id="scrapeProviderTimeoutMs"
-				label="Per-Provider Timeout"
+				label={m.admin_scraping_timing_provider_timeout_label()}
 				suffix="s"
 				multiplier={1000}
-				hint="How long a single provider gets to respond before the scraper gives up on it and tries the next one."
+				hint={m.admin_scraping_timing_provider_timeout_hint()}
 				value={settings.scrapeProviderTimeoutMs}
 				disabled={inputDisabled}
 				onCommit={value => onChange('scrapeProviderTimeoutMs', value)}
 			/>
 			<NumberRow
 				id="scrapeOverallTimeoutMs"
-				label="Overall Scrape Budget"
+				label={m.admin_scraping_timing_overall_label()}
 				suffix="s"
 				multiplier={1000}
-				hint="The longest a single scrape can take, including providers running in parallel. Anything still running at that point is cancelled."
+				hint={m.admin_scraping_timing_overall_hint()}
 				value={settings.scrapeOverallTimeoutMs}
 				disabled={inputDisabled}
 				onCommit={value => onChange('scrapeOverallTimeoutMs', value)}
 			/>
 			<NumberRow
 				id="scrapeQualityThreshold"
-				label="Quality Threshold"
-				hint="Once a result reaches this score, no more providers are tried. Title is worth 2, price 3, a real product photo 3 (a share card 1), and a description 1. The default of 8 keeps going until a result has a title, price, and photo. A lower value accepts results sooner and spends less on paid providers."
+				label={m.admin_scraping_timing_quality_label()}
+				hint={m.admin_scraping_timing_quality_hint()}
 				value={settings.scrapeQualityThreshold}
 				disabled={inputDisabled}
 				onCommit={value => onChange('scrapeQualityThreshold', value)}
 			/>
 			<NumberRow
 				id="scrapeCacheTtlHours"
-				label="Cache TTL"
-				suffix="hours"
-				hint="How long a successful scrape is reused for the same URL. Set to 0 to turn off caching."
+				label={m.admin_scraping_timing_cache_label()}
+				suffix={m.admin_scraping_unit_hours()}
+				hint={m.admin_scraping_timing_cache_hint()}
 				value={settings.scrapeCacheTtlHours}
 				disabled={inputDisabled}
 				min={0}
@@ -164,44 +166,61 @@ const IS_DEV = import.meta.env.DEV
 
 const MAX_ENTRIES = 16
 
-const TYPE_LABELS: Record<ScrapeProviderType, string> = {
-	browserless: 'Browserless',
-	flaresolverr: 'Flaresolverr',
-	'browserbase-fetch': 'Browserbase (Fetch)',
-	'browserbase-stagehand': 'Browserbase (Stagehand)',
-	'custom-http': 'Custom HTTP',
-	ai: 'AI extraction',
-	'giftwrapt-scraper': 'GiftWrapt Scraper',
-	scrapfly: 'ScrapFly',
+// Product names stay as they are; the two generic kinds come from the catalog.
+function typeLabel(type: ScrapeProviderType): string {
+	switch (type) {
+		case 'browserless':
+			return 'Browserless'
+		case 'flaresolverr':
+			return 'Flaresolverr'
+		case 'browserbase-fetch':
+			return 'Browserbase (Fetch)'
+		case 'browserbase-stagehand':
+			return 'Browserbase (Stagehand)'
+		case 'custom-http':
+			return m.admin_scraping_type_custom_http()
+		case 'ai':
+			return m.admin_scraping_type_ai()
+		case 'giftwrapt-scraper':
+			return 'GiftWrapt Scraper'
+		case 'scrapfly':
+			return 'ScrapFly'
+	}
 }
 
 type AddOption = { type: ScrapeProviderType; label: string; hint: string }
 
-const ADD_OPTION_GROUPS: Array<{ label: string; options: Array<AddOption> }> = [
-	{
-		label: 'Self-Hosted',
-		options: [
-			{ type: 'browserless', label: 'Browserless', hint: 'JS-rendering container' },
-			{ type: 'flaresolverr', label: 'Flaresolverr', hint: 'Cloudflare bypass' },
-			{ type: 'giftwrapt-scraper', label: 'GiftWrapt Scraper', hint: 'Self-hosted scraping toolchain' },
-		],
-	},
-	{
-		label: 'Hosted',
-		options: [
-			{ type: 'browserbase-fetch', label: 'Browserbase (Fetch API)', hint: 'Rendered HTML, no LLM' },
-			{ type: 'browserbase-stagehand', label: 'Browserbase (Stagehand)', hint: 'Structured extraction with LLM' },
-			{ type: 'scrapfly', label: 'ScrapFly', hint: 'Scraping API with anti-bot bypass' },
-		],
-	},
-	{
-		label: 'Other',
-		options: [
-			{ type: 'custom-http', label: 'Custom HTTP', hint: 'Bring your own scraper service' },
-			{ type: 'ai', label: 'AI Extraction', hint: 'LLM extracts from any HTML; uses /admin/ai-settings creds' },
-		],
-	},
-]
+// Built on each render so the text follows the current language.
+function addOptionGroups(): Array<{ id: string; label: string; options: Array<AddOption> }> {
+	return [
+		{
+			id: 'self-hosted',
+			label: m.admin_scraping_add_group_self_hosted(),
+			options: [
+				{ type: 'browserless', label: 'Browserless', hint: m.admin_scraping_add_hint_browserless() },
+				{ type: 'flaresolverr', label: 'Flaresolverr', hint: m.admin_scraping_add_hint_flaresolverr() },
+				{ type: 'giftwrapt-scraper', label: 'GiftWrapt Scraper', hint: m.admin_scraping_add_hint_giftwrapt() },
+			],
+		},
+		{
+			id: 'hosted',
+			label: m.admin_scraping_add_group_hosted(),
+			options: [
+				{ type: 'browserbase-fetch', label: 'Browserbase (Fetch API)', hint: m.admin_scraping_add_hint_browserbase_fetch() },
+				{ type: 'browserbase-stagehand', label: 'Browserbase (Stagehand)', hint: m.admin_scraping_add_hint_browserbase_stagehand() },
+				{ type: 'scrapfly', label: 'ScrapFly', hint: m.admin_scraping_add_hint_scrapfly() },
+			],
+		},
+		{
+			id: 'other',
+			label: m.admin_scraping_add_group_other(),
+			options: [
+				{ type: 'custom-http', label: m.admin_scraping_type_custom_http(), hint: m.admin_scraping_add_hint_custom_http() },
+				{ type: 'ai', label: m.admin_scraping_add_ai_label(), hint: m.admin_scraping_add_hint_ai() },
+			],
+		},
+	]
+}
 
 function ScrapeProvidersSection({
 	entries,
@@ -237,10 +256,7 @@ function ScrapeProvidersSection({
 		<div className="space-y-4">
 			<div className="flex flex-col gap-3 @md/scraper-form:flex-row @md/scraper-form:items-end @md/scraper-form:justify-between @md/scraper-form:gap-4">
 				<div className="space-y-0.5">
-					<p className="text-sm text-muted-foreground">
-						Each entry only runs when it&apos;s configured and enabled. Tier 1 entries run in parallel. Tier 2 only runs if tier 1&apos;s
-						combined result falls below the quality threshold, and so on. Pick a tier to move an entry between tiers.
-					</p>
+					<p className="text-sm text-muted-foreground">{m.admin_scraping_providers_intro()}</p>
 				</div>
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>
@@ -252,13 +268,13 @@ function ScrapeProvidersSection({
 							className="gap-1.5 self-start @md/scraper-form:self-auto"
 						>
 							<Plus className="size-3.5" />
-							Add Scraper
+							{m.admin_scraping_providers_add()}
 							<ChevronDown className="size-3.5" />
 						</Button>
 					</DropdownMenuTrigger>
 					<DropdownMenuContent align="end">
-						{ADD_OPTION_GROUPS.map((group, groupIndex) => (
-							<DropdownMenuGroup key={group.label}>
+						{addOptionGroups().map((group, groupIndex) => (
+							<DropdownMenuGroup key={group.id}>
 								{groupIndex > 0 && <DropdownMenuSeparator />}
 								<DropdownMenuLabel className="text-xs text-muted-foreground">{group.label}</DropdownMenuLabel>
 								{group.options.map(opt => (
@@ -276,7 +292,7 @@ function ScrapeProvidersSection({
 			</div>
 
 			{sortedEntries.length === 0 ? (
-				<p className="text-sm text-muted-foreground italic">No scrapers configured. Click &quot;Add scraper&quot; to set one up.</p>
+				<p className="text-sm text-muted-foreground italic">{m.admin_scraping_providers_empty()}</p>
 			) : (
 				<div className="space-y-3">
 					{sortedEntries.map((entry, index) => {
@@ -306,7 +322,7 @@ function TierDivider({ tier }: { tier: number }) {
 		<div className="flex items-center gap-2 my-4">
 			<div className="h-px bg-border flex-1" />
 			<Badge variant="outline" className="text-xs">
-				Tier {tier}
+				{m.admin_scraping_tier({ tier })}
 			</Badge>
 			<div className="h-px bg-border flex-1" />
 		</div>
@@ -348,7 +364,7 @@ function makeDefaultEntry(type: ScrapeProviderType, index: number): ScrapeProvid
 			return {
 				type,
 				id,
-				name: `Custom HTTP ${ordinal}`,
+				name: m.admin_scraping_default_name_custom_http({ ordinal }),
 				enabled: false,
 				tier: 1,
 				endpoint: '',
@@ -356,7 +372,7 @@ function makeDefaultEntry(type: ScrapeProviderType, index: number): ScrapeProvid
 				customHeaders: undefined,
 			}
 		case 'ai':
-			return { type, id, name: `AI extraction ${ordinal}`, enabled: false, tier: 3 }
+			return { type, id, name: m.admin_scraping_default_name_ai({ ordinal }), enabled: false, tier: 3 }
 		case 'giftwrapt-scraper':
 			return { type, id, name: `GiftWrapt Scraper ${ordinal}`, enabled: false, tier: 1, endpoint: '', token: '' }
 		case 'scrapfly':
@@ -405,20 +421,22 @@ function EntryCard({
 		onSave({ ...draft, name: trimmedName } as ScrapeProviderEntry)
 	}
 
-	const displayName = draft.name.trim() || TYPE_LABELS[entry.type]
+	const displayName = draft.name.trim() || typeLabel(entry.type)
 	const expanded = open || dirty
 
 	return (
 		<Collapsible open={expanded} onOpenChange={setOpen} className="overflow-hidden rounded-md border bg-muted/40 shadow-sm">
 			<div className={`flex items-center gap-2 p-3 ${expanded ? 'bg-muted border-b' : ''}`}>
 				<Badge variant="outline" className="font-mono text-xs shrink-0">
-					{TYPE_LABELS[entry.type]}
+					{typeLabel(entry.type)}
 				</Badge>
 				<CollapsibleTrigger asChild>
 					<button
 						type="button"
 						className="flex flex-1 items-center gap-2 min-w-0 text-left rounded-sm hover:bg-muted/40 -mx-1 px-1 py-1"
-						aria-label={open || dirty ? `Collapse ${displayName}` : `Expand ${displayName}`}
+						aria-label={
+							open || dirty ? m.admin_scraping_entry_collapse({ name: displayName }) : m.admin_scraping_entry_expand({ name: displayName })
+						}
 					>
 						{open || dirty ? (
 							<ChevronDown className="size-4 shrink-0 text-muted-foreground" />
@@ -429,16 +447,29 @@ function EntryCard({
 					</button>
 				</CollapsibleTrigger>
 				{health && (
-					<ProviderHealthBadge health={health} windowLabel="in the last 30 days" labelClassName="hidden @md/scraper-form:inline" />
+					<ProviderHealthBadge
+						health={health}
+						windowLabel={m.admin_scraping_window_phrase_30d()}
+						labelClassName="hidden @md/scraper-form:inline"
+					/>
 				)}
 				<Switch
 					id={`scraper-enabled-${entry.id}`}
 					checked={draft.enabled}
 					disabled={disabled}
 					onCheckedChange={(checked: boolean) => setDraft(prev => ({ ...prev, enabled: checked }))}
-					aria-label={draft.enabled ? `Disable ${displayName}` : `Enable ${displayName}`}
+					aria-label={
+						draft.enabled ? m.admin_scraping_entry_disable({ name: displayName }) : m.admin_scraping_entry_enable({ name: displayName })
+					}
 				/>
-				<Button type="button" variant="outline" size="icon-sm" disabled={disabled} onClick={onRemove} aria-label={`Remove ${displayName}`}>
+				<Button
+					type="button"
+					variant="outline"
+					size="icon-sm"
+					disabled={disabled}
+					onClick={onRemove}
+					aria-label={m.admin_scraping_entry_remove({ name: displayName })}
+				>
 					<Trash2 className="size-4 text-muted-foreground" />
 				</Button>
 			</div>
@@ -447,24 +478,24 @@ function EntryCard({
 				<div className="space-y-1.5 pt-3">
 					<div className="flex items-baseline justify-between gap-2">
 						<Label htmlFor={`scraper-name-${entry.id}`} className="text-base">
-							Name
+							{m.admin_scraping_entry_name_label()}
 						</Label>
 						<CharacterCounter value={draft.name} max={LIMITS.SHORT_NAME} />
 					</div>
 					<Input
 						id={`scraper-name-${entry.id}`}
-						placeholder={TYPE_LABELS[entry.type]}
+						placeholder={typeLabel(entry.type)}
 						value={draft.name}
 						disabled={disabled}
 						maxLength={LIMITS.SHORT_NAME}
 						onChange={e => setDraft(prev => ({ ...prev, name: e.target.value }))}
 					/>
-					<p className="text-xs text-muted-foreground">Shown as the header for this entry. Keep it short.</p>
+					<p className="text-xs text-muted-foreground">{m.admin_scraping_entry_name_hint()}</p>
 				</div>
 
 				<div className="space-y-1.5">
 					<Label id={`scraper-tier-label-${entry.id}`} className="text-base">
-						Tier
+						{m.admin_scraping_tier_label()}
 					</Label>
 					<ToggleGroup
 						type="single"
@@ -481,7 +512,7 @@ function EntryCard({
 							<ToggleGroupItem
 								key={n}
 								value={String(n)}
-								aria-label={`Tier ${n}`}
+								aria-label={m.admin_scraping_tier({ tier: n })}
 								className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary data-[state=on]:hover:text-primary-foreground"
 							>
 								{n}
@@ -489,8 +520,9 @@ function EntryCard({
 						))}
 					</ToggleGroup>
 					<p className="text-xs text-muted-foreground">
-						Lower tiers run first. Tier {draft.tier + 1 <= 5 ? draft.tier + 1 : draft.tier} only fires if tier {draft.tier}
-						{draft.tier === 5 ? '' : "'s merged result"} falls below the quality threshold.
+						{draft.tier === 5
+							? m.admin_scraping_entry_tier_hint_last({ tier: draft.tier })
+							: m.admin_scraping_entry_tier_hint({ next: draft.tier + 1, tier: draft.tier })}
 					</p>
 				</div>
 
@@ -499,12 +531,12 @@ function EntryCard({
 				<EntryFields draft={draft} setDraft={setDraft} disabled={disabled} />
 
 				<div className="flex items-center justify-end gap-2 pt-3 border-t -mx-4 px-4">
-					{dirty && <span className="mr-auto text-xs text-muted-foreground italic">Unsaved changes</span>}
+					{dirty && <span className="mr-auto text-xs text-muted-foreground italic">{m.admin_scraping_entry_unsaved()}</span>}
 					<Button type="button" variant="outline" size="sm" disabled={disabled || !dirty} onClick={reset}>
-						Reset
+						{m.admin_scraping_entry_reset()}
 					</Button>
 					<Button type="button" size="sm" disabled={disabled || !dirty} onClick={save}>
-						Save
+						{m.action_save()}
 					</Button>
 				</div>
 			</CollapsibleContent>
@@ -591,11 +623,12 @@ function BrowserlessFields({
 		<>
 			<div className="space-y-1">
 				<Label htmlFor={`browserless-url-${draft.id}`} className="text-base">
-					Browserless URL
+					{m.admin_scraping_browserless_url_label()}
 				</Label>
 				<Input
 					id={`browserless-url-${draft.id}`}
 					type="url"
+					// eslint-disable-next-line i18next/no-literal-string -- example URL
 					placeholder="https://browserless.local"
 					value={draft.url}
 					disabled={disabled}
@@ -605,11 +638,11 @@ function BrowserlessFields({
 			</div>
 			<SecretInput
 				id={`browserless-token-${draft.id}`}
-				label="Token (Optional)"
+				label={m.admin_scraping_token_optional_label()}
 				value={draft.token ?? ''}
 				disabled={disabled}
 				onChange={value => setDraft(prev => ({ ...prev, token: value || undefined }))}
-				hint="Sent as x-browser-token header and ?token query param. Encrypted at rest."
+				hint={m.admin_scraping_browserless_token_hint()}
 			/>
 		</>
 	)
@@ -627,20 +660,19 @@ function FlaresolverrFields({
 	return (
 		<div className="space-y-1">
 			<Label htmlFor={`flaresolverr-url-${draft.id}`} className="text-base">
-				Flaresolverr URL
+				{m.admin_scraping_flaresolverr_url_label()}
 			</Label>
 			<Input
 				id={`flaresolverr-url-${draft.id}`}
 				type="url"
+				// eslint-disable-next-line i18next/no-literal-string -- example URL
 				placeholder="https://flaresolverr.local"
 				value={draft.url}
 				disabled={disabled}
 				maxLength={LIMITS.URL}
 				onChange={e => setDraft(prev => ({ ...prev, url: e.target.value }))}
 			/>
-			<p className="text-xs text-muted-foreground mt-1">
-				Use this only for sites behind a Cloudflare wall. For everything else, the built-in fetcher or Browserless is faster and cheaper.
-			</p>
+			<p className="text-xs text-muted-foreground mt-1">{m.admin_scraping_flaresolverr_hint()}</p>
 		</div>
 	)
 }
@@ -658,42 +690,42 @@ function BrowserbaseFetchFields({
 		<>
 			<SecretInput
 				id={`bb-fetch-key-${draft.id}`}
-				label="API Key"
+				label={m.admin_scraping_api_key_label()}
 				value={draft.apiKey}
 				disabled={disabled}
 				onChange={value => setDraft(prev => ({ ...prev, apiKey: value }))}
 				hint={
-					<>
-						Browserbase API key from{' '}
-						<a href="https://www.browserbase.com/settings" target="_blank" rel="noreferrer noopener" className="underline">
-							browserbase.com/settings
-						</a>
-						. Encrypted at rest.
-					</>
+					<RichMessage
+						parts={m.admin_scraping_browserbase_fetch_key_hint.parts()}
+						tags={{
+							link: c => (
+								<a href="https://www.browserbase.com/settings" target="_blank" rel="noreferrer noopener" className="underline">
+									{c}
+								</a>
+							),
+						}}
+					/>
 				}
 			/>
 			<div className="flex flex-col gap-3 @md/scraper-form:flex-row @md/scraper-form:gap-6">
 				<SwitchRow
 					id={`bb-fetch-proxies-${draft.id}`}
-					label="Use Proxies"
-					hint="Routes the fetch through Browserbase's residential proxy network."
+					label={m.admin_scraping_browserbase_proxies_label()}
+					hint={m.admin_scraping_browserbase_proxies_hint()}
 					checked={draft.proxies}
 					disabled={disabled}
 					onChange={value => setDraft(prev => ({ ...prev, proxies: value }))}
 				/>
 				<SwitchRow
 					id={`bb-fetch-redirects-${draft.id}`}
-					label="Allow Redirects"
-					hint="Follow 3xx responses to the final URL before returning the body."
+					label={m.admin_scraping_browserbase_redirects_label()}
+					hint={m.admin_scraping_browserbase_redirects_hint()}
 					checked={draft.allowRedirects}
 					disabled={disabled}
 					onChange={value => setDraft(prev => ({ ...prev, allowRedirects: value }))}
 				/>
 			</div>
-			<p className="text-xs text-muted-foreground">
-				Uses Browserbase&apos;s Fetch API for fast rendered HTML. Best for mostly static pages that benefit from running JavaScript but
-				don&apos;t need an LLM to extract the details.
-			</p>
+			<p className="text-xs text-muted-foreground">{m.admin_scraping_browserbase_fetch_note()}</p>
 		</>
 	)
 }
@@ -711,18 +743,19 @@ function BrowserbaseStagehandFields({
 		<>
 			<SecretInput
 				id={`bb-stage-key-${draft.id}`}
-				label="API Key"
+				label={m.admin_scraping_api_key_label()}
 				value={draft.apiKey}
 				disabled={disabled}
 				onChange={value => setDraft(prev => ({ ...prev, apiKey: value }))}
-				hint="Browserbase API key. Encrypted at rest."
+				hint={m.admin_scraping_stagehand_key_hint()}
 			/>
 			<div className="space-y-1">
 				<Label htmlFor={`bb-stage-project-${draft.id}`} className="text-base">
-					Project ID
+					{m.admin_scraping_stagehand_project_label()}
 				</Label>
 				<Input
 					id={`bb-stage-project-${draft.id}`}
+					// eslint-disable-next-line i18next/no-literal-string -- id format sample
 					placeholder="bb_proj_..."
 					value={draft.projectId}
 					disabled={disabled}
@@ -732,45 +765,37 @@ function BrowserbaseStagehandFields({
 			</div>
 			<div className="space-y-1">
 				<Label htmlFor={`bb-stage-model-${draft.id}`} className="text-base">
-					Model Name (Optional)
+					{m.admin_scraping_stagehand_model_label()}
 				</Label>
 				<Input
 					id={`bb-stage-model-${draft.id}`}
-					placeholder="Inherits from /admin/ai-settings"
+					placeholder={m.admin_scraping_stagehand_model_placeholder()}
 					value={draft.modelName ?? ''}
 					disabled={disabled}
 					maxLength={LIMITS.SHORT_NAME}
 					onChange={e => setDraft(prev => ({ ...prev, modelName: e.target.value || undefined }))}
 				/>
-				<p className="text-xs text-muted-foreground mt-1">
-					Override the LLM model used by Stagehand&apos;s extract(). Leave blank to use the app&apos;s AI settings (provider, model, and
-					key).
-				</p>
+				<p className="text-xs text-muted-foreground mt-1">{m.admin_scraping_stagehand_model_hint()}</p>
 			</div>
 			<div className="space-y-1">
 				<div className="flex items-baseline justify-between gap-2">
 					<Label htmlFor={`bb-stage-instr-${draft.id}`} className="text-base">
-						Extraction Instruction (Optional)
+						{m.admin_scraping_stagehand_instruction_label()}
 					</Label>
 					<CharacterCounter value={draft.instruction ?? ''} max={LIMITS.MEDIUM_TEXT} />
 				</div>
 				<Textarea
 					id={`bb-stage-instr-${draft.id}`}
 					rows={3}
-					placeholder="Extract the product title, current price, currency, main image URLs, and the site's display name."
+					placeholder={m.admin_scraping_stagehand_instruction_placeholder()}
 					value={draft.instruction ?? ''}
 					disabled={disabled}
 					maxLength={LIMITS.MEDIUM_TEXT}
 					onChange={e => setDraft(prev => ({ ...prev, instruction: e.target.value || undefined }))}
 				/>
-				<p className="text-xs text-muted-foreground mt-1">
-					Optional instructions for the extractor, in plain language. Leave blank to use the default product-page instructions.
-				</p>
+				<p className="text-xs text-muted-foreground mt-1">{m.admin_scraping_stagehand_instruction_hint()}</p>
 			</div>
-			<p className="text-xs text-muted-foreground">
-				Drives a real Browserbase session and uses Stagehand&apos;s extract() to produce a structured ScrapeResult. It&apos;s slower, each
-				run is billed as an LLM call, and it runs in parallel with the rest of the chain.
-			</p>
+			<p className="text-xs text-muted-foreground">{m.admin_scraping_stagehand_note()}</p>
 		</>
 	)
 }
@@ -788,11 +813,12 @@ function GiftWraptScraperFields({
 		<>
 			<div className="space-y-1">
 				<Label htmlFor={`wls-endpoint-${draft.id}`} className="text-base">
-					Endpoint
+					{m.admin_scraping_endpoint_label()}
 				</Label>
 				<Input
 					id={`wls-endpoint-${draft.id}`}
 					type="url"
+					// eslint-disable-next-line i18next/no-literal-string -- example URL
 					placeholder="http://scraper:8080"
 					value={draft.endpoint}
 					disabled={disabled}
@@ -801,26 +827,34 @@ function GiftWraptScraperFields({
 				/>
 				{IS_DEV ? (
 					<p className="text-xs text-muted-foreground mt-1">
-						Base URL of your deployed{' '}
-						<a href="https://github.com/shawnphoffman/giftwrapt-scraper" target="_blank" rel="noreferrer noopener" className="underline">
-							giftwrapt-scraper
-						</a>{' '}
-						service.
+						<RichMessage
+							parts={m.admin_scraping_giftwrapt_endpoint_hint_link.parts()}
+							tags={{
+								link: c => (
+									<a
+										href="https://github.com/shawnphoffman/giftwrapt-scraper"
+										target="_blank"
+										rel="noreferrer noopener"
+										className="underline"
+									>
+										{c}
+									</a>
+								),
+							}}
+						/>
 					</p>
 				) : (
-					<p className="text-xs text-muted-foreground mt-1">Base URL of your deployed giftwrapt-scraper service.</p>
+					<p className="text-xs text-muted-foreground mt-1">{m.admin_scraping_giftwrapt_endpoint_hint()}</p>
 				)}
 			</div>
 			<SecretInput
 				id={`wls-token-${draft.id}`}
-				label="Token"
+				label={m.admin_scraping_token_label()}
 				value={draft.token}
 				disabled={disabled}
 				onChange={value => setDraft(prev => ({ ...prev, token: value }))}
 				hint={
-					<>
-						Sent as <code className="font-mono">X-Browser-Token</code> on every request. Encrypted at rest.
-					</>
+					<RichMessage parts={m.admin_scraping_giftwrapt_token_hint.parts()} tags={{ code: c => <code className="font-mono">{c}</code> }} />
 				}
 			/>
 		</>
@@ -840,33 +874,36 @@ function ScrapflyFields({
 		<>
 			<SecretInput
 				id={`scrapfly-key-${draft.id}`}
-				label="API Key"
+				label={m.admin_scraping_api_key_label()}
 				value={draft.apiKey}
 				disabled={disabled}
 				onChange={value => setDraft(prev => ({ ...prev, apiKey: value }))}
 				hint={
-					<>
-						ScrapFly API key from{' '}
-						<a href="https://scrapfly.io/dashboard" target="_blank" rel="noreferrer noopener" className="underline">
-							scrapfly.io/dashboard
-						</a>
-						. Encrypted at rest.
-					</>
+					<RichMessage
+						parts={m.admin_scraping_scrapfly_key_hint.parts()}
+						tags={{
+							link: c => (
+								<a href="https://scrapfly.io/dashboard" target="_blank" rel="noreferrer noopener" className="underline">
+									{c}
+								</a>
+							),
+						}}
+					/>
 				}
 			/>
 			<div className="flex flex-col gap-3">
 				<SwitchRow
 					id={`scrapfly-asp-${draft.id}`}
-					label="Anti-Scraping Protection"
-					hint="Sends asp=true. Gets through most bot protection, but costs more credits per call."
+					label={m.admin_scraping_scrapfly_asp_label()}
+					hint={m.admin_scraping_scrapfly_asp_hint()}
 					checked={draft.asp}
 					disabled={disabled}
 					onChange={value => setDraft(prev => ({ ...prev, asp: value }))}
 				/>
 				<SwitchRow
 					id={`scrapfly-renderjs-${draft.id}`}
-					label="Render JavaScript"
-					hint="Sends render_js=true to render the page in a headless browser. Slower, and uses significantly more credits per call."
+					label={m.admin_scraping_scrapfly_render_js_label()}
+					hint={m.admin_scraping_scrapfly_render_js_hint()}
 					checked={draft.renderJs}
 					disabled={disabled}
 					onChange={value => setDraft(prev => ({ ...prev, renderJs: value }))}
@@ -888,14 +925,12 @@ function AiFields({
 	return (
 		<>
 			<p className="text-xs text-muted-foreground">
-				Uses the default AI model configured under <code className="font-mono">/admin/ai</code>. It reads the page an earlier tier already
-				fetched, or fetches it itself when there is none, then makes one model call, so every scrape costs money. Works best in a higher
-				tier, as a fallback when cheaper providers come up short.
+				<RichMessage parts={m.admin_scraping_ai_note.parts()} tags={{ code: c => <code className="font-mono">{c}</code> }} />
 			</p>
 			<SwitchRow
 				id={`ai-webfetch-${draft.id}`}
-				label="Web Fetch"
-				hint="When the page it has does not give what is still missing (or it has no page), the AI provider's own servers fetch the URL and the model reads that. Adds up to two model calls per scrape. Only works when the default AI provider is Anthropic; on any other provider this does nothing."
+				label={m.admin_scraping_ai_web_fetch_label()}
+				hint={m.admin_scraping_ai_web_fetch_hint()}
 				checked={draft.webFetch ?? false}
 				disabled={disabled}
 				onChange={value => setDraft(prev => ({ ...prev, webFetch: value }))}
@@ -917,11 +952,12 @@ function CustomHttpFields({
 		<>
 			<div className="space-y-1">
 				<Label htmlFor={`custom-endpoint-${draft.id}`} className="text-base">
-					Endpoint
+					{m.admin_scraping_endpoint_label()}
 				</Label>
 				<Input
 					id={`custom-endpoint-${draft.id}`}
 					type="url"
+					// eslint-disable-next-line i18next/no-literal-string -- example URL
 					placeholder="https://my-scraper.local/scrape"
 					value={draft.endpoint}
 					disabled={disabled}
@@ -931,7 +967,7 @@ function CustomHttpFields({
 			</div>
 			<div className="space-y-1">
 				<Label htmlFor={`custom-kind-${draft.id}`} className="text-base">
-					Response Kind
+					{m.admin_scraping_custom_kind_label()}
 				</Label>
 				<Select
 					value={draft.responseKind}
@@ -942,8 +978,8 @@ function CustomHttpFields({
 						<SelectValue />
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value="html">HTML (extract locally)</SelectItem>
-						<SelectItem value="json">JSON (ScrapeResult shape)</SelectItem>
+						<SelectItem value="html">{m.admin_scraping_custom_kind_html()}</SelectItem>
+						<SelectItem value="json">{m.admin_scraping_custom_kind_json()}</SelectItem>
 					</SelectContent>
 				</Select>
 				<ResponseKindHelp kind={draft.responseKind} />
@@ -951,17 +987,20 @@ function CustomHttpFields({
 			<div className="space-y-1">
 				<div className="flex items-baseline justify-between gap-2">
 					<Label htmlFor={`custom-headers-${draft.id}`} className="text-base">
-						Custom HTTP Headers
+						{m.admin_scraping_custom_headers_label()}
 					</Label>
 					<CharacterCounter value={draft.customHeaders ?? ''} max={LIMITS.HEADERS_JSON} />
 				</div>
 				<p className="text-xs text-muted-foreground">
-					Sent on every request to this scraper. One <code className="font-mono">Header-Name: value</code> per line. Blank lines and{' '}
-					<code className="font-mono">#</code>-prefixed comments are ignored. Encrypted at rest, since headers often carry bearer tokens.
+					<RichMessage
+						parts={m.admin_scraping_custom_headers_hint.parts({ example: 'Header-Name: value', hash: '#' })}
+						tags={{ code: c => <code className="font-mono">{c}</code> }}
+					/>
 				</p>
 				<Textarea
 					id={`custom-headers-${draft.id}`}
 					rows={5}
+					// eslint-disable-next-line i18next/no-literal-string -- sample headers
 					placeholder={'X-Scrape-Token: abc123\nAuthorization: Bearer xyz'}
 					value={draft.customHeaders ?? ''}
 					disabled={disabled}
@@ -1046,8 +1085,7 @@ function ResponseKindHelp({ kind }: { kind: 'html' | 'json' }) {
 	if (kind === 'html') {
 		return (
 			<p className="text-xs text-muted-foreground mt-1">
-				Return the raw HTML body of the page (a <code className="font-mono">text/html</code> response). The scraper runs the same OpenGraph,
-				JSON-LD, and microdata extraction it uses for the built-in fetcher.
+				<RichMessage parts={m.admin_scraping_custom_kind_html_help.parts()} tags={{ code: c => <code className="font-mono">{c}</code> }} />
 			</p>
 		)
 	}
@@ -1058,16 +1096,17 @@ function ResponseKindHelp({ kind }: { kind: 'html' | 'json' }) {
 	return (
 		<div className="space-y-1 mt-1">
 			<p className="text-xs text-muted-foreground">
-				Return JSON with the <code className="font-mono">ScrapeResult</code> shape. Unknown fields are ignored, and missing fields are
-				treated as &quot;not provided.&quot; Every field is optional. A response with at least <code className="font-mono">title</code> or{' '}
-				<code className="font-mono">imageUrls[0]</code> usually scores well enough to win.
+				<RichMessage
+					parts={m.admin_scraping_custom_kind_json_help.parts({ imageField: 'imageUrls[0]' })}
+					tags={{ code: c => <code className="font-mono">{c}</code> }}
+				/>
 			</p>
 			<details className="group rounded-md border bg-muted/30">
 				<summary className="cursor-pointer select-none list-none px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5">
 					<span aria-hidden="true" className="inline-block transition-transform group-open:rotate-90">
 						▶
 					</span>
-					Expected JSON response shape
+					{m.admin_scraping_custom_json_shape_summary()}
 				</summary>
 				<pre className="text-xs bg-muted/50 rounded-b-md p-2 overflow-x-auto font-mono leading-snug border-t">
 					{`{
@@ -1129,7 +1168,7 @@ function TimeoutOverrideRow({
 	return (
 		<div className="space-y-1.5">
 			<Label htmlFor={id} className="text-base">
-				Timeout Override (Optional)
+				{m.admin_scraping_timeout_override_label()}
 			</Label>
 			<div className="relative w-full sm:max-w-xs">
 				<Input
@@ -1140,7 +1179,7 @@ function TimeoutOverrideRow({
 					max={TIMEOUT_OVERRIDE_MAX_MS / 1000}
 					step="any"
 					value={text}
-					placeholder="Inherit global timeout"
+					placeholder={m.admin_scraping_timeout_override_placeholder()}
 					disabled={disabled}
 					className="pr-10"
 					onChange={e => setText(e.target.value)}
@@ -1152,12 +1191,10 @@ function TimeoutOverrideRow({
 						}
 					}}
 				/>
+				{/* eslint-disable-next-line i18next/no-literal-string -- unit symbol for seconds */}
 				<span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground">s</span>
 			</div>
-			<p className="text-xs text-muted-foreground">
-				Leave blank to use the global per-provider timeout above. Set a longer value for slow scrapers (Stagehand, AI) without raising the
-				timeout for every other provider.
-			</p>
+			<p className="text-xs text-muted-foreground">{m.admin_scraping_timeout_override_hint()}</p>
 		</div>
 	)
 }

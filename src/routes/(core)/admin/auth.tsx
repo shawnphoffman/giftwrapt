@@ -19,7 +19,7 @@ function AdminAuthPage() {
 		<>
 			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Auth</CardTitle>
+					<CardTitle className="text-2xl">{m.admin_nav_auth_title()}</CardTitle>
 				</CardHeader>
 				<CardContent className="space-y-6">
 					<ClientOnly>
@@ -33,11 +33,8 @@ function AdminAuthPage() {
 			</Card>
 			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">OIDC Sign-In</CardTitle>
-					<CardDescription>
-						Let users sign in with an external OpenID Connect provider. Each deployment supports one provider, and changes take effect after
-						a server restart. Signing in from the iOS app also needs at least one mobile redirect URI above.
-					</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_nav_auth_oidc_title()}</CardTitle>
+					<CardDescription>{m.admin_nav_auth_oidc_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<ClientOnly>

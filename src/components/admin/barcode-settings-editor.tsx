@@ -18,6 +18,7 @@ import { toast } from 'sonner'
 
 import { runBarcodeProbeAsAdmin } from '@/api/admin-barcode'
 import { updateAppSettings } from '@/api/settings'
+import { RichMessage } from '@/components/common/rich-message'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -25,15 +26,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch'
 import { adminAppSettingsQueryKey, notifyAppSettingsChanged, useAdminAppSettings } from '@/hooks/use-app-settings'
 import type { AppSettings, BarcodeSettings } from '@/lib/settings'
+import { m } from '@/paraglide/messages.js'
 
-const BARCODE_PROVIDERS: Array<{ id: BarcodeSettings['providerId']; label: string }> = [
-	{ id: 'upcitemdb-trial', label: 'UPCitemdb (Trial, Free)' },
-	{ id: 'go-upc', label: 'Go-UPC (Paid)' },
+const BARCODE_PROVIDERS: Array<{ id: BarcodeSettings['providerId']; label: () => string }> = [
+	{ id: 'upcitemdb-trial', label: () => m.admin_settings_barcode_provider_upcitemdb_trial_free() },
+	{ id: 'go-upc', label: () => m.admin_settings_barcode_provider_go_upc_paid() },
 ]
 
-const TESTER_PROVIDERS: Array<{ id: 'upcitemdb-trial' | 'go-upc'; label: string }> = [
-	{ id: 'upcitemdb-trial', label: 'UPCitemdb (Trial)' },
-	{ id: 'go-upc', label: 'Go-UPC' },
+const TESTER_PROVIDERS: Array<{ id: 'upcitemdb-trial' | 'go-upc'; label: () => string }> = [
+	{ id: 'upcitemdb-trial', label: () => m.admin_settings_barcode_provider_upcitemdb_trial() },
+	// Brand name, the same in every language.
+	{ id: 'go-upc', label: () => 'Go-UPC' },
 ]
 
 function useBarcodeSettingsMutation() {
@@ -51,12 +54,12 @@ function useBarcodeSettingsMutation() {
 		},
 		onError: (err, _next, ctx) => {
 			if (ctx?.previous) queryClient.setQueryData(adminAppSettingsQueryKey, ctx.previous)
-			toast.error(err instanceof Error ? err.message : 'Failed to update barcode settings')
+			toast.error(err instanceof Error ? err.message : m.admin_settings_barcode_update_failed())
 		},
 		onSuccess: data => {
 			queryClient.setQueryData<AppSettings>(adminAppSettingsQueryKey, old => (old ? { ...old, barcode: data.barcode } : old))
 			notifyAppSettingsChanged(queryClient)
-			toast.success('Barcode settings updated')
+			toast.success(m.admin_settings_barcode_updated())
 		},
 	})
 }
@@ -65,8 +68,8 @@ export function BarcodeSettingsEditor() {
 	const { data: settings, isLoading } = useAdminAppSettings()
 	const mutation = useBarcodeSettingsMutation()
 
-	if (isLoading) return <div className="text-sm text-muted-foreground">Loading…</div>
-	if (!settings) return <div className="text-sm text-muted-foreground">No settings found</div>
+	if (isLoading) return <div className="text-sm text-muted-foreground">{m.state_loading()}</div>
+	if (!settings) return <div className="text-sm text-muted-foreground">{m.admin_settings_app_empty()}</div>
 
 	const cfg = settings.barcode
 
@@ -112,10 +115,13 @@ function BarcodeSettingsForm({ cfg, onChange, saving }: FormProps) {
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="barcodeEnabled" className="text-base">
-						Enable Barcode Lookup
+						{m.admin_settings_barcode_enabled_label()}
 					</Label>
 					<p className="text-sm text-muted-foreground">
-						When off, <code>POST /api/mobile/v1/products/by-barcode</code> returns 503 and the iOS app treats the feature as unavailable.
+						<RichMessage
+							parts={m.admin_settings_barcode_enabled_description.parts()}
+							tags={{ code: children => <code>{children}</code> }}
+						/>
 					</p>
 				</div>
 				<Switch id="barcodeEnabled" checked={cfg.enabled} onCheckedChange={value => onChange({ enabled: value })} disabled={saving} />
@@ -124,9 +130,9 @@ function BarcodeSettingsForm({ cfg, onChange, saving }: FormProps) {
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="barcodeProvider" className="text-base">
-						Primary Provider
+						{m.admin_settings_barcode_provider_label()}
 					</Label>
-					<p className="text-sm text-muted-foreground">Which provider fires first on a cache miss.</p>
+					<p className="text-sm text-muted-foreground">{m.admin_settings_barcode_provider_description()}</p>
 				</div>
 				<Select
 					value={cfg.providerId}
@@ -139,7 +145,7 @@ function BarcodeSettingsForm({ cfg, onChange, saving }: FormProps) {
 					<SelectContent>
 						{BARCODE_PROVIDERS.map(p => (
 							<SelectItem key={p.id} value={p.id}>
-								{p.label}
+								{p.label()}
 							</SelectItem>
 						))}
 					</SelectContent>
@@ -149,17 +155,17 @@ function BarcodeSettingsForm({ cfg, onChange, saving }: FormProps) {
 			{cfg.providerId === 'go-upc' && (
 				<div className="space-y-2 rounded-md border border-border p-4">
 					<Label htmlFor="goUpcKey" className="text-base">
-						Go-UPC API Key
+						{m.admin_settings_barcode_go_upc_key_label()}
 					</Label>
-					<p className="text-sm text-muted-foreground">Bearer token sent on every Go-UPC request. Stored encrypted at rest.</p>
+					<p className="text-sm text-muted-foreground">{m.admin_settings_barcode_go_upc_key_description()}</p>
 					{!editingKey && hasKey && (
 						<div className="flex items-center gap-2">
 							<Input value="••••••••••••" readOnly className="font-mono" />
 							<Button type="button" variant="outline" onClick={() => setEditingKey(true)} disabled={saving}>
-								Change
+								{m.admin_settings_barcode_go_upc_key_change_button()}
 							</Button>
 							<Button type="button" variant="outline" onClick={clearKey} disabled={saving}>
-								Clear
+								{m.action_clear()}
 							</Button>
 						</div>
 					)}
@@ -169,33 +175,32 @@ function BarcodeSettingsForm({ cfg, onChange, saving }: FormProps) {
 								id="goUpcKey"
 								type="password"
 								autoComplete="off"
+								// eslint-disable-next-line i18next/no-literal-string -- key format sample
 								placeholder="goupc_…"
 								value={keyDraft}
 								onChange={e => setKeyDraft(e.target.value)}
 								className="font-mono"
 							/>
 							<Button type="button" onClick={saveKey} disabled={saving || keyDraft.trim().length === 0}>
-								Save Key
+								{m.admin_settings_barcode_go_upc_key_save_button()}
 							</Button>
 							{hasKey && (
 								<Button type="button" variant="ghost" onClick={() => setEditingKey(false)} disabled={saving}>
-									Cancel
+									{m.action_cancel()}
 								</Button>
 							)}
 						</div>
 					)}
-					{!hasKey && <p className="text-sm text-amber-500">No key set. Lookups will return 503 until you add one.</p>}
+					{!hasKey && <p className="text-sm text-amber-500">{m.admin_settings_barcode_go_upc_key_missing()}</p>}
 				</div>
 			)}
 
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="barcodeCacheTtl" className="text-base">
-						Cache TTL (Hours)
+						{m.admin_settings_barcode_cache_ttl_label()}
 					</Label>
-					<p className="text-sm text-muted-foreground">
-						Cached results older than this are refreshed on the next lookup. Set to 0 to turn off caching.
-					</p>
+					<p className="text-sm text-muted-foreground">{m.admin_settings_barcode_cache_ttl_description()}</p>
 				</div>
 				<Input
 					id="barcodeCacheTtl"
@@ -231,7 +236,7 @@ function BarcodeTester() {
 			const result = await runBarcodeProbeAsAdmin({ data: { providerId, code: trimmed } } as Parameters<typeof runBarcodeProbeAsAdmin>[0])
 			setOutcome(result)
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Probe failed')
+			toast.error(err instanceof Error ? err.message : m.admin_settings_barcode_probe_failed())
 		} finally {
 			setRunning(false)
 		}
@@ -241,12 +246,9 @@ function BarcodeTester() {
 		<div className="space-y-4 rounded-md border border-border p-4">
 			<div className="flex items-center gap-2">
 				<ScanBarcode className="size-5" />
-				<h3 className="text-base font-medium">Provider Tester</h3>
+				<h3 className="text-base font-medium">{m.admin_settings_barcode_tester_title()}</h3>
 			</div>
-			<p className="text-sm text-muted-foreground">
-				Run a single provider against a barcode. This skips the cache and the fallback providers, so you can check each provider's setup on
-				its own.
-			</p>
+			<p className="text-sm text-muted-foreground">{m.admin_settings_barcode_tester_description()}</p>
 			<div className="grid gap-3 sm:grid-cols-[12.5rem_1fr_auto]">
 				<Select value={providerId} onValueChange={v => setProviderId(v as typeof providerId)} disabled={running}>
 					<SelectTrigger>
@@ -255,13 +257,13 @@ function BarcodeTester() {
 					<SelectContent>
 						{TESTER_PROVIDERS.map(p => (
 							<SelectItem key={p.id} value={p.id}>
-								{p.label}
+								{p.label()}
 							</SelectItem>
 						))}
 					</SelectContent>
 				</Select>
 				<Input
-					placeholder="Barcode (UPC-A, EAN-13, ITF-14, etc.)"
+					placeholder={m.admin_settings_barcode_tester_code_placeholder()}
 					value={code}
 					onChange={e => setCode(e.target.value)}
 					onKeyDown={e => {
@@ -270,7 +272,7 @@ function BarcodeTester() {
 					disabled={running}
 				/>
 				<Button type="button" onClick={() => void onRun()} disabled={running || code.trim().length === 0}>
-					Test
+					{m.admin_settings_barcode_tester_run_button()}
 				</Button>
 			</div>
 			<ProbeOutcomeDisplay outcome={outcome} />
@@ -286,7 +288,7 @@ function ProbeOutcomeDisplay({ outcome }: { outcome: ProbeOutcome | null }) {
 			<div className="flex items-start gap-2 text-sm text-destructive">
 				<XIcon className="mt-0.5 size-4" />
 				<div>
-					<div className="font-medium">Error: {outcome.reason}</div>
+					<div className="font-medium">{m.admin_settings_barcode_probe_error({ reason: outcome.reason })}</div>
 				</div>
 			</div>
 		)
@@ -298,7 +300,7 @@ function ProbeOutcomeDisplay({ outcome }: { outcome: ProbeOutcome | null }) {
 				<XIcon className="mt-0.5 size-4" />
 				<div>
 					<div className="font-medium">
-						Provider unavailable ({outcome.providerId}): {outcome.reason}
+						{m.admin_settings_barcode_probe_unavailable({ providerId: outcome.providerId, reason: outcome.reason })}
 					</div>
 					{outcome.message && <div className="text-muted-foreground">{outcome.message}</div>}
 				</div>
@@ -311,8 +313,8 @@ function ProbeOutcomeDisplay({ outcome }: { outcome: ProbeOutcome | null }) {
 			<div className="flex items-start gap-2 text-sm">
 				<XIcon className="mt-0.5 size-4" />
 				<div>
-					<div className="font-medium">No results for {outcome.gtin14}</div>
-					<div className="text-muted-foreground">{outcome.providerId} reported a clean miss.</div>
+					<div className="font-medium">{m.admin_settings_barcode_probe_miss_title({ gtin14: outcome.gtin14 })}</div>
+					<div className="text-muted-foreground">{m.admin_settings_barcode_probe_miss_detail({ providerId: outcome.providerId })}</div>
 				</div>
 			</div>
 		)
@@ -325,9 +327,9 @@ function ProbeOutcomeDisplay({ outcome }: { outcome: ProbeOutcome | null }) {
 				<CheckIcon className="mt-0.5 size-4" />
 				<div>
 					<div className="font-medium">
-						{outcome.results.length} result{outcome.results.length === 1 ? '' : 's'} from {outcome.providerId}
+						{m.admin_settings_barcode_probe_ok_title({ count: outcome.results.length, providerId: outcome.providerId })}
 					</div>
-					<div className="text-muted-foreground">Normalized GTIN-14: {outcome.gtin14}</div>
+					<div className="text-muted-foreground">{m.admin_settings_barcode_probe_ok_gtin({ gtin14: outcome.gtin14 })}</div>
 				</div>
 			</div>
 			<ul className="space-y-3">

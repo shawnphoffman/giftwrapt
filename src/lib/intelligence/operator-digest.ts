@@ -28,8 +28,11 @@ import { and, count, eq, gte, inArray, lt, sql, sum } from 'drizzle-orm'
 
 import { db, type SchemaDatabase } from '@/db'
 import { appSettings, recommendationRuns, recommendations, users } from '@/db/schema'
+import { DEFAULT_LOCALE, type Locale } from '@/lib/i18n/locales'
+import { recipientLocale } from '@/lib/i18n/recipient-locale'
 import { isEmailConfigured, sendOperatorDigestEmail } from '@/lib/resend'
 import type { AppSettings } from '@/lib/settings'
+import { m } from '@/paraglide/messages.js'
 
 // Internal idempotency flag (not in the typed settings schema). Holds the
 // ISO timestamp of the most recent successful operator-digest send.
@@ -188,17 +191,31 @@ export async function buildOperatorDigest(window: { start: Date; end: Date }, db
 	}
 }
 
-// One-line human status used in the subject + a header line.
-export function operatorDigestStatus(data: OperatorDigestData): { tone: 'error' | 'quiet' | 'ok'; label: string } {
+// One-line human status used in a header line. The digest has no request
+// to take a language from, so the caller names the locale.
+export function operatorDigestStatus(
+	data: OperatorDigestData,
+	locale: Locale = DEFAULT_LOCALE
+): { tone: 'error' | 'quiet' | 'ok'; label: string } {
 	if (data.runs.error > 0) {
-		return { tone: 'error', label: `${data.runs.error} error${data.runs.error === 1 ? '' : 's'} need attention` }
+		return { tone: 'error', label: m.admin_digest_status_errors({ count: data.runs.error }, { locale }) }
 	}
-	if (data.runs.total === 0) return { tone: 'quiet', label: 'no runs this period' }
-	return { tone: 'ok', label: 'all clear' }
+	if (data.runs.total === 0) return { tone: 'quiet', label: m.admin_digest_status_quiet({}, { locale }) }
+	return { tone: 'ok', label: m.admin_digest_status_ok({}, { locale }) }
 }
 
-export function operatorDigestSubject(data: OperatorDigestData): string {
-	return `Intelligence digest: ${operatorDigestStatus(data).label}`
+// The subject is a whole sentence per status, so a translation is free to
+// order it differently.
+export function operatorDigestSubject(data: OperatorDigestData, locale: Locale = DEFAULT_LOCALE): string {
+	if (data.runs.error > 0) return m.admin_digest_subject_errors({ count: data.runs.error }, { locale })
+	if (data.runs.total === 0) return m.admin_digest_subject_quiet({}, { locale })
+	return m.admin_digest_subject_ok({}, { locale })
+}
+
+// The digest goes to every admin in one language: the deployment default.
+// (Per-admin language would need each recipient's `users.locale`.)
+export function operatorDigestLocale(settings: Pick<AppSettings, 'defaultLocale'>): Locale {
+	return recipientLocale(null, settings.defaultLocale)
 }
 
 // Compute the window for a scheduled send: since the last successful send,
@@ -248,7 +265,7 @@ export async function maybeSendOperatorDigest(
 	if (recipients.length === 0) return { sent: false, reason: 'no-recipients' }
 
 	const data = await buildOperatorDigest(digestWindow(lastSentAt, intervalDays, now), dbx)
-	await sendOperatorDigestEmail(recipients, data, operatorDigestSubject(data))
+	await sendOperatorDigestEmail(recipients, data, operatorDigestSubject(data, operatorDigestLocale(settings)))
 	await writeLastSentAt(dbx, now)
 	return { sent: true, recipients: recipients.length }
 }
@@ -280,6 +297,6 @@ export async function sendOperatorDigestNow(
 	const recipients = await resolveDigestRecipients(settings, dbx)
 	if (recipients.length === 0) throw new Error('No recipients: there are no admin users and no recipient override is set.')
 	const data = await buildOperatorDigest(digestWindow(null, settings.intelligenceRefreshIntervalDays, now), dbx)
-	await sendOperatorDigestEmail(recipients, data, operatorDigestSubject(data))
+	await sendOperatorDigestEmail(recipients, data, operatorDigestSubject(data, operatorDigestLocale(settings)))
 	return recipients
 }

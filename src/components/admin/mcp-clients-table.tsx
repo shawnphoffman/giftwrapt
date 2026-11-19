@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatRelative } from '@/lib/format-relative'
+import { m } from '@/paraglide/messages.js'
 
 export type McpClientsTableProps = {
 	clients: Array<OauthClientRow>
@@ -22,17 +23,17 @@ export type McpClientsTableProps = {
  */
 export function McpClientsTable({ clients, onToggleDisabled, onDelete, busyClientId = null }: McpClientsTableProps) {
 	if (clients.length === 0) {
-		return <EmptyMessage message="No AI clients have registered yet. They appear here the first time someone connects one." />
+		return <EmptyMessage message={m.admin_settings_mcp_clients_empty()} />
 	}
 	return (
 		<Table>
 			<TableHeader>
 				<TableRow>
-					<TableHead>Client</TableHead>
-					<TableHead className="text-right">Users</TableHead>
-					<TableHead className="text-right">Grants</TableHead>
-					<TableHead>Last Used</TableHead>
-					<TableHead>Registered</TableHead>
+					<TableHead>{m.admin_settings_mcp_client_column()}</TableHead>
+					<TableHead className="text-right">{m.admin_settings_mcp_clients_users_column()}</TableHead>
+					<TableHead className="text-right">{m.admin_settings_mcp_clients_grants_column()}</TableHead>
+					<TableHead>{m.admin_settings_mcp_last_used_column()}</TableHead>
+					<TableHead>{m.admin_settings_mcp_clients_registered_column()}</TableHead>
 					<TableHead className="w-0" />
 				</TableRow>
 			</TableHeader>
@@ -43,8 +44,8 @@ export function McpClientsTable({ clients, onToggleDisabled, onDelete, busyClien
 						<TableRow key={client.id} className={client.disabled ? 'opacity-60' : undefined}>
 							<TableCell>
 								<div className="flex items-center gap-2">
-									<span className="font-medium">{client.name || 'Unnamed client'}</span>
-									{client.disabled ? <Badge variant="secondary">Disabled</Badge> : null}
+									<span className="font-medium">{client.name || m.admin_settings_mcp_unnamed_client()}</span>
+									{client.disabled ? <Badge variant="secondary">{m.admin_settings_mcp_clients_disabled_badge()}</Badge> : null}
 								</div>
 								<code className="font-mono text-2xs text-muted-foreground">{client.clientId.slice(0, 12)}…</code>
 							</TableCell>
@@ -59,7 +60,9 @@ export function McpClientsTable({ clients, onToggleDisabled, onDelete, busyClien
 										size="sm"
 										disabled={busy}
 										onClick={() => onToggleDisabled(client)}
-										aria-label={client.disabled ? 'Enable client' : 'Disable client'}
+										aria-label={
+											client.disabled ? m.admin_settings_mcp_clients_enable_label() : m.admin_settings_mcp_clients_disable_label()
+										}
 									>
 										{client.disabled ? <CheckCircle2 className="size-4" /> : <Ban className="size-4" />}
 									</Button>
@@ -68,7 +71,7 @@ export function McpClientsTable({ clients, onToggleDisabled, onDelete, busyClien
 										size="sm"
 										disabled={busy}
 										onClick={() => onDelete(client)}
-										aria-label="Delete client"
+										aria-label={m.admin_settings_mcp_clients_delete_label()}
 										className="text-muted-foreground hover:text-destructive"
 									>
 										<Trash2 className="size-4" />

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { adminAppSettingsQueryKey, notifyAppSettingsChanged, useAdminAppSettings } from '@/hooks/use-app-settings'
 import type { AppSettings } from '@/lib/settings'
+import { m } from '@/paraglide/messages.js'
 
 // Minimal admin form for the bulk-import + scrape-queue settings. Lives
 // next to the existing scraping admin page; deliberately spartan because
@@ -41,7 +42,7 @@ function useImportSettingsMutation() {
 		},
 		onError: (err, _changes, ctx) => {
 			if (ctx?.previous) queryClient.setQueryData(adminAppSettingsQueryKey, ctx.previous)
-			toast.error(err instanceof Error ? err.message : 'Failed to update setting')
+			toast.error(err instanceof Error ? err.message : m.admin_settings_update_failed())
 		},
 		onSuccess: (data, _vars, ctx) => {
 			queryClient.setQueryData<AppSettings>(adminAppSettingsQueryKey, old => {
@@ -53,7 +54,7 @@ function useImportSettingsMutation() {
 				return next
 			})
 			notifyAppSettingsChanged(queryClient)
-			toast.success('Setting updated')
+			toast.success(m.admin_settings_updated())
 		},
 	})
 }
@@ -63,10 +64,10 @@ export function ImportSettingsForm() {
 	const mutation = useImportSettingsMutation()
 
 	if (isLoading) {
-		return <div className="text-sm text-muted-foreground">Loading import settings...</div>
+		return <div className="text-sm text-muted-foreground">{m.admin_settings_import_loading()}</div>
 	}
 	if (!settings) {
-		return <div className="text-sm text-muted-foreground">No settings found.</div>
+		return <div className="text-sm text-muted-foreground">{m.admin_settings_import_empty()}</div>
 	}
 
 	const change = <TKey extends EditableKey>(key: TKey, value: AppSettings[TKey]) =>
@@ -78,12 +79,9 @@ export function ImportSettingsForm() {
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="importEnabled" className="text-base">
-						Enable Bulk Import
+						{m.admin_settings_import_enabled_label()}
 					</Label>
-					<p className="text-sm text-muted-foreground">
-						Turns bulk import on the list edit page on or off. While it's off, bulk import requests are rejected and the scrape queue job
-						exits without picking up any work.
-					</p>
+					<p className="text-sm text-muted-foreground">{m.admin_settings_import_enabled_description()}</p>
 				</div>
 				<Switch
 					id="importEnabled"
@@ -95,8 +93,8 @@ export function ImportSettingsForm() {
 
 			<NumberField
 				id="scrapeQueueUsersPerInvocation"
-				label="Users per Cron Invocation"
-				hint="How many different users one run of the scrape queue job handles before leaving the rest for the next run."
+				label={m.admin_settings_import_users_per_run_label()}
+				hint={m.admin_settings_import_users_per_run_hint()}
 				value={settings.scrapeQueueUsersPerInvocation}
 				min={1}
 				max={500}
@@ -105,8 +103,8 @@ export function ImportSettingsForm() {
 			/>
 			<NumberField
 				id="scrapeQueueConcurrency"
-				label="Per-User Concurrency"
-				hint="The most jobs that run at once for a single user in one run. This is also how many jobs are picked up for each user per run."
+				label={m.admin_settings_import_concurrency_label()}
+				hint={m.admin_settings_import_concurrency_hint()}
 				value={settings.scrapeQueueConcurrency}
 				min={1}
 				max={20}
@@ -115,8 +113,8 @@ export function ImportSettingsForm() {
 			/>
 			<NumberField
 				id="scrapeQueueMaxAttempts"
-				label="Max Attempts per Job"
-				hint="How many times a job is tried before it's marked as failed. Failed jobs are kept so you can look into them."
+				label={m.admin_settings_import_max_attempts_label()}
+				hint={m.admin_settings_import_max_attempts_hint()}
 				value={settings.scrapeQueueMaxAttempts}
 				min={1}
 				max={10}

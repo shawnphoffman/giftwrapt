@@ -6,6 +6,7 @@ import { getScrapeStatsAsAdmin } from '@/api/admin-scrapes'
 import { updateAppSettings } from '@/api/settings'
 import { adminAppSettingsQueryKey, notifyAppSettingsChanged, useAdminAppSettings } from '@/hooks/use-app-settings'
 import type { AppSettings } from '@/lib/settings'
+import { m } from '@/paraglide/messages.js'
 
 import { buildProviderHealth } from './provider-health'
 import {
@@ -35,7 +36,7 @@ function useScraperProvidersMutation() {
 		},
 		onError: (err, _changes, ctx) => {
 			if (ctx?.previous) queryClient.setQueryData(adminAppSettingsQueryKey, ctx.previous)
-			toast.error(err instanceof Error ? err.message : 'Failed to update setting')
+			toast.error(err instanceof Error ? err.message : m.admin_scraping_setting_update_failed())
 		},
 		onSuccess: (data, _vars, ctx) => {
 			queryClient.setQueryData<AppSettings>(adminAppSettingsQueryKey, old => {
@@ -47,7 +48,7 @@ function useScraperProvidersMutation() {
 				return next
 			})
 			notifyAppSettingsChanged(queryClient)
-			toast.success('Setting updated')
+			toast.success(m.admin_scraping_setting_updated())
 		},
 	})
 }
@@ -57,10 +58,10 @@ export function ScraperProvidersForm() {
 	const mutation = useScraperProvidersMutation()
 
 	if (isLoading) {
-		return <div className="text-sm text-muted-foreground">Loading scraping settings…</div>
+		return <div className="text-sm text-muted-foreground">{m.admin_scraping_settings_loading()}</div>
 	}
 	if (!settings) {
-		return <div className="text-sm text-muted-foreground">No settings found.</div>
+		return <div className="text-sm text-muted-foreground">{m.admin_scraping_settings_missing()}</div>
 	}
 
 	return (
@@ -79,10 +80,10 @@ export function ScraperTimingForm() {
 	const mutation = useScraperProvidersMutation()
 
 	if (isLoading) {
-		return <div className="text-sm text-muted-foreground">Loading scraping settings…</div>
+		return <div className="text-sm text-muted-foreground">{m.admin_scraping_settings_loading()}</div>
 	}
 	if (!settings) {
-		return <div className="text-sm text-muted-foreground">No settings found.</div>
+		return <div className="text-sm text-muted-foreground">{m.admin_scraping_settings_missing()}</div>
 	}
 
 	return (
@@ -110,10 +111,10 @@ export function ScrapeProvidersList() {
 	)
 
 	if (isLoading) {
-		return <div className="text-sm text-muted-foreground">Loading scrapers…</div>
+		return <div className="text-sm text-muted-foreground">{m.admin_scraping_providers_loading()}</div>
 	}
 	if (!settings) {
-		return <div className="text-sm text-muted-foreground">No settings found.</div>
+		return <div className="text-sm text-muted-foreground">{m.admin_scraping_settings_missing()}</div>
 	}
 
 	return (

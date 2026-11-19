@@ -1,9 +1,14 @@
-import { format, formatDistanceToNow } from 'date-fns'
+import { format } from 'date-fns'
 import { AlertTriangle, Loader2 } from 'lucide-react'
 
+import { RichMessage } from '@/components/common/rich-message'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import { dateFnsLocale, formatNumber, formatTimeAgo } from '@/lib/i18n/format'
+import { m } from '@/paraglide/messages.js'
+
+import { runStatusLabel, runTriggerLabel } from './admin-intelligence-page'
 
 export type RunDebugStep = {
 	id: number
@@ -64,7 +69,7 @@ export function RunDebugPanel({ state }: Props) {
 	if (state.kind === 'loading') {
 		return (
 			<div data-intelligence="admin-run-debug-loading" className="flex items-center gap-2 p-6 text-sm text-muted-foreground">
-				<Loader2 className="size-4 animate-spin" /> Loading run details…
+				<Loader2 className="size-4 animate-spin" /> {m.admin_intel_debug_loading()}
 			</div>
 		)
 	}
@@ -73,7 +78,7 @@ export function RunDebugPanel({ state }: Props) {
 			<div data-intelligence="admin-run-debug-error" className="flex items-start gap-2 p-6 text-sm text-destructive">
 				<AlertTriangle className="size-4 mt-0.5" />
 				<div>
-					<div className="font-medium">Failed to load run</div>
+					<div className="font-medium">{m.admin_intel_debug_load_failed()}</div>
 					<div className="text-xs text-muted-foreground">{state.message}</div>
 				</div>
 			</div>
@@ -82,33 +87,45 @@ export function RunDebugPanel({ state }: Props) {
 
 	const { run, steps, recs } = state.data
 	const startedAt = toDate(run.startedAt)
+	const startedAtFull = format(startedAt, 'PPpp', { locale: dateFnsLocale() })
 
 	return (
 		<div data-intelligence="admin-run-debug" className="flex flex-col gap-4 p-4 overflow-y-auto">
 			<section className="flex flex-col gap-1.5">
 				<div className="flex items-center gap-2 flex-wrap">
 					<StatusBadge status={run.status} />
-					<Badge variant="outline">{run.trigger}</Badge>
+					<Badge variant="outline">{runTriggerLabel(run.trigger)}</Badge>
 					<span className="text-xs text-muted-foreground">{run.userName}</span>
 				</div>
 				<div className="text-xs text-muted-foreground">
-					{format(startedAt, 'PPpp')} · {formatDistanceToNow(startedAt, { addSuffix: true })}
+					{startedAtFull} · {formatTimeAgo(startedAt)}
 					{run.durationMs != null && ` · ${run.durationMs}ms`}
 				</div>
 				<div className="grid grid-cols-3 gap-2 mt-2">
-					<MiniStat label="Tokens In" value={run.tokensIn.toString()} />
-					<MiniStat label="Tokens Out" value={run.tokensOut.toString()} />
-					<MiniStat label="Est. Cost" value={`$${run.estimatedCostUsd.toFixed(4)}`} />
+					<MiniStat label={m.admin_intel_debug_tokens_in()} value={formatNumber(run.tokensIn, { useGrouping: false })} />
+					<MiniStat label={m.admin_intel_debug_tokens_out()} value={formatNumber(run.tokensOut, { useGrouping: false })} />
+					<MiniStat
+						label={m.admin_intel_debug_est_cost()}
+						value={formatNumber(run.estimatedCostUsd, {
+							style: 'currency',
+							currency: 'USD',
+							minimumFractionDigits: 4,
+							maximumFractionDigits: 4,
+						})}
+					/>
 				</div>
 				{run.skipReason && (
 					<div className="text-xs text-muted-foreground mt-1">
-						Skip reason: <span className="font-mono">{run.skipReason}</span>
+						<RichMessage
+							parts={m.admin_intel_debug_skip_reason.parts({ reason: run.skipReason })}
+							tags={{ code: c => <span className="font-mono">{c}</span> }}
+						/>
 					</div>
 				)}
 				{run.error && <div className="text-xs text-destructive font-mono mt-1 whitespace-pre-wrap">{run.error}</div>}
 				{run.inputHash && (
 					<div className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
-						<span>Input hash:</span>
+						<span>{m.admin_intel_debug_input_hash()}</span>
 						<span className="font-mono" title={run.inputHash}>
 							{run.inputHash.slice(0, 12)}…
 						</span>
@@ -121,13 +138,13 @@ export function RunDebugPanel({ state }: Props) {
 			<section className="flex flex-col gap-2">
 				<div className="flex items-baseline justify-between gap-2 flex-wrap">
 					<h3 className="text-sm font-semibold">
-						Analyzer Steps <span className="text-muted-foreground font-normal">({steps.length})</span>
+						{m.admin_intel_debug_steps_heading()} <span className="text-muted-foreground font-normal">({steps.length})</span>
 					</h3>
 					<StepBreakdownInline steps={steps} />
 				</div>
 				{steps.length === 0 ? (
 					<p data-intelligence="admin-run-debug-no-steps" className="text-xs text-muted-foreground">
-						No steps recorded for this run. The run may have been skipped before any analyzer executed (see skip reason above).
+						{m.admin_intel_debug_no_steps()}
 					</p>
 				) : (
 					<div className="flex flex-col gap-2">
@@ -142,12 +159,11 @@ export function RunDebugPanel({ state }: Props) {
 
 			<section className="flex flex-col gap-2">
 				<h3 className="text-sm font-semibold">
-					Resulting Recommendations <span className="text-muted-foreground font-normal">({recs.length})</span>
+					{m.admin_intel_debug_recs_heading()} <span className="text-muted-foreground font-normal">({recs.length})</span>
 				</h3>
 				{recs.length === 0 ? (
 					<p data-intelligence="admin-run-debug-no-recs" className="text-xs text-muted-foreground">
-						No recommendations were persisted for this run. Check the steps above to see what each analyzer returned. Analyzers can run
-						successfully and still produce no recommendations (for example, when nothing is stale and there are no duplicates).
+						{m.admin_intel_debug_no_recs()}
 					</p>
 				) : (
 					<div className="flex flex-col gap-2">
@@ -170,25 +186,26 @@ function StepCard({ step }: { step: RunDebugStep }) {
 				<CardTitle className="flex items-center justify-between gap-2">
 					<span className="flex items-center gap-2">
 						{step.analyzerLabel}
-						{step.error ? <Badge variant="destructive">error</Badge> : <Badge variant="secondary">ok</Badge>}
+						{step.error ? (
+							<Badge variant="destructive">{m.admin_intel_status_error()}</Badge>
+						) : (
+							<Badge variant="secondary">{m.admin_intel_step_badge_ok()}</Badge>
+						)}
 					</span>
 					<span className="text-2xs font-normal text-muted-foreground tabular-nums">
-						{step.latencyMs}ms
-						{(step.tokensIn > 0 || step.tokensOut > 0) && ` · ${step.tokensIn} in / ${step.tokensOut} out`}
+						{`${step.latencyMs}ms`}
+						{(step.tokensIn > 0 || step.tokensOut > 0) &&
+							` · ${m.admin_intel_tokens_in_out({ tokensIn: step.tokensIn, tokensOut: step.tokensOut })}`}
 					</span>
 				</CardTitle>
 			</CardHeader>
 			{(hasBody || isHeuristic) && (
 				<CardContent className="flex flex-col gap-2">
 					{step.error && <div className="text-xs text-destructive font-mono whitespace-pre-wrap">{step.error}</div>}
-					{isHeuristic && (
-						<div className="text-2xs text-muted-foreground italic">
-							Heuristic-only step, no model call. Latency above is the analyzer&apos;s own logic.
-						</div>
-					)}
-					{step.prompt && <DebugBlock label="Prompt" body={step.prompt} />}
-					{step.responseRaw && <DebugBlock label="Raw Response" body={step.responseRaw} />}
-					{step.parsedJson && <DebugBlock label="Parsed" body={prettyJson(step.parsedJson)} />}
+					{isHeuristic && <div className="text-2xs text-muted-foreground italic">{m.admin_intel_debug_heuristic_note()}</div>}
+					{step.prompt && <DebugBlock label={m.admin_intel_debug_block_prompt()} body={step.prompt} />}
+					{step.responseRaw && <DebugBlock label={m.admin_intel_debug_block_raw_response()} body={step.responseRaw} />}
+					{step.parsedJson && <DebugBlock label={m.admin_intel_debug_block_parsed()} body={prettyJson(step.parsedJson)} />}
 				</CardContent>
 			)}
 		</Card>
@@ -215,8 +232,8 @@ function RecCard({ rec }: { rec: RunDebugRec }) {
 			</CardHeader>
 			<CardContent className="flex flex-col gap-1.5">
 				<div className="text-xs text-muted-foreground whitespace-pre-wrap">{rec.body}</div>
-				{rec.payloadJson && <DebugBlock label="Payload" body={prettyJson(rec.payloadJson)} />}
-				<div className="text-3xs text-muted-foreground font-mono">fp: {rec.fingerprint}</div>
+				{rec.payloadJson && <DebugBlock label={m.admin_intel_debug_block_payload()} body={prettyJson(rec.payloadJson)} />}
+				<div className="text-3xs text-muted-foreground font-mono">{`fp: ${rec.fingerprint}`}</div>
 			</CardContent>
 		</Card>
 	)
@@ -241,28 +258,29 @@ function MiniStat({ label, value }: { label: string; value: string }) {
 }
 
 function StatusBadge({ status }: { status: RunDebugRun['status'] }) {
-	if (status === 'success') return <Badge variant="secondary">success</Badge>
-	if (status === 'error') return <Badge variant="destructive">error</Badge>
-	if (status === 'skipped') return <Badge variant="outline">skipped</Badge>
-	return <Badge>running</Badge>
+	const label = runStatusLabel(status)
+	if (status === 'success') return <Badge variant="secondary">{label}</Badge>
+	if (status === 'error') return <Badge variant="destructive">{label}</Badge>
+	if (status === 'skipped') return <Badge variant="outline">{label}</Badge>
+	return <Badge>{label}</Badge>
 }
 
 function RecStatusBadge({ status }: { status: RunDebugRec['status'] }) {
 	if (status === 'active')
 		return (
 			<Badge variant="secondary" className="text-3xs">
-				active
+				{m.admin_intel_debug_rec_status_active()}
 			</Badge>
 		)
 	if (status === 'dismissed')
 		return (
 			<Badge variant="outline" className="text-3xs">
-				dismissed
+				{m.admin_intel_debug_rec_status_dismissed()}
 			</Badge>
 		)
 	return (
 		<Badge variant="outline" className="text-3xs">
-			applied
+			{m.admin_intel_debug_rec_status_applied()}
 		</Badge>
 	)
 }
@@ -271,9 +289,20 @@ function RecSeverityBadge({ severity }: { severity: RunDebugRec['severity'] }) {
 	const variant = severity === 'important' ? 'destructive' : 'outline'
 	return (
 		<Badge variant={variant} className="text-3xs">
-			{severity}
+			{severityLabel(severity)}
 		</Badge>
 	)
+}
+
+function severityLabel(severity: RunDebugRec['severity']): string {
+	switch (severity) {
+		case 'info':
+			return m.admin_intel_debug_severity_info()
+		case 'suggest':
+			return m.admin_intel_debug_severity_suggest()
+		case 'important':
+			return m.admin_intel_debug_severity_important()
+	}
 }
 
 function StepBreakdownInline({ steps }: { steps: Array<RunDebugStep> }) {
@@ -288,9 +317,9 @@ function StepBreakdownInline({ steps }: { steps: Array<RunDebugStep> }) {
 	if (ok + err + noop === 0) return null
 	return (
 		<div className="flex items-center gap-2 text-2xs tabular-nums">
-			{ok > 0 && <span className="text-emerald-600 dark:text-emerald-400">{ok} ok</span>}
-			{err > 0 && <span className="text-destructive">{err} err</span>}
-			{noop > 0 && <span className="text-muted-foreground">{noop} noop</span>}
+			{ok > 0 && <span className="text-emerald-600 dark:text-emerald-400">{m.admin_intel_step_ok({ count: ok })}</span>}
+			{err > 0 && <span className="text-destructive">{m.admin_intel_step_err({ count: err })}</span>}
+			{noop > 0 && <span className="text-muted-foreground">{m.admin_intel_step_noop({ count: noop })}</span>}
 		</div>
 	)
 }

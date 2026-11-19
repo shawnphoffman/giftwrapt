@@ -1,9 +1,11 @@
 import { CheckCircle2, CircleDashed, XCircle } from 'lucide-react'
 
 import { CopyButton } from '@/components/common/copy-button'
+import { RichMessage } from '@/components/common/rich-message'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { buildClaudeConnectLink, buildMcpConnectInfo, buildMcpSnippets } from '@/lib/mcp-connect'
+import { m } from '@/paraglide/messages.js'
 
 export type DiscoveryStatus = 'checking' | 'ok' | 'unreachable'
 
@@ -35,43 +37,44 @@ export function McpConnectCard({
 	return (
 		<Card className="animate-page-in max-w-2xl">
 			<CardHeader>
-				<CardTitle className="text-2xl">Connect an AI Assistant</CardTitle>
+				<CardTitle className="text-2xl">{m.admin_settings_mcp_connect_title()}</CardTitle>
 				<CardDescription>
-					Users add this deployment to Claude, Cursor, ChatGPT, or any MCP client by pasting the server URL. The client registers itself,
-					the user signs in and approves it, and the assistant acts as that user.{' '}
-					<a href={docsHref} className="underline underline-offset-2" target="_blank" rel="noreferrer">
-						Read the guide
-					</a>
-					.
+					<RichMessage
+						parts={m.admin_settings_mcp_connect_description.parts()}
+						tags={{
+							link: children => (
+								<a href={docsHref} className="underline underline-offset-2" target="_blank" rel="noreferrer">
+									{children}
+								</a>
+							),
+						}}
+					/>
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-6">
 				<div className="space-y-2">
-					<div className="text-sm font-medium">Server URL</div>
+					<div className="text-sm font-medium">{m.admin_settings_mcp_connect_server_url_label()}</div>
 					<div className="flex items-center gap-2">
 						<code className="flex-1 truncate rounded bg-muted px-3 py-2 font-mono text-sm">{info.endpointUrl}</code>
-						<CopyButton value={info.endpointUrl} label="Copy server URL" />
+						<CopyButton value={info.endpointUrl} label={m.admin_settings_mcp_connect_copy_server_url()} />
 					</div>
 				</div>
 
 				<div className="space-y-2">
-					<div className="text-sm font-medium">Add to Claude</div>
-					<p className="text-xs text-muted-foreground">
-						Opens Claude with this deployment's name and server URL filled in. Users get the same button under Settings, Connected Apps;
-						copy the link to send it to someone.
-					</p>
+					<div className="text-sm font-medium">{m.admin_settings_mcp_connect_add_to_claude()}</div>
+					<p className="text-xs text-muted-foreground">{m.admin_settings_mcp_connect_add_to_claude_description()}</p>
 					<div className="flex items-center gap-2">
 						<Button asChild>
 							<a href={claudeLink} target="_blank" rel="noreferrer">
-								Add to Claude
+								{m.admin_settings_mcp_connect_add_to_claude()}
 							</a>
 						</Button>
-						<CopyButton value={claudeLink} label="Copy Add to Claude link" />
+						<CopyButton value={claudeLink} label={m.admin_settings_mcp_connect_copy_claude_link()} />
 					</div>
 				</div>
 
 				<div className="space-y-2">
-					<div className="text-sm font-medium">Discovery</div>
+					<div className="text-sm font-medium">{m.admin_settings_mcp_connect_discovery_title()}</div>
 					<ul className="space-y-1">
 						{info.discovery.map(d => (
 							<li key={d.url} className="flex items-center gap-2 text-sm">
@@ -81,14 +84,11 @@ export function McpConnectCard({
 							</li>
 						))}
 					</ul>
-					<p className="text-xs text-muted-foreground">
-						Both documents must be reachable at the origin for clients to find the sign-in endpoints. They go dark when the MCP server is
-						turned off.
-					</p>
+					<p className="text-xs text-muted-foreground">{m.admin_settings_mcp_connect_discovery_description()}</p>
 				</div>
 
 				<div className="space-y-4">
-					<div className="text-sm font-medium">Client Setup</div>
+					<div className="text-sm font-medium">{m.admin_settings_mcp_connect_client_setup_title()}</div>
 					{snippets.map(s => (
 						<div key={s.id} className="space-y-1.5">
 							<div className="flex items-start justify-between gap-2">
@@ -96,7 +96,7 @@ export function McpConnectCard({
 									<div className="text-sm font-medium">{s.title}</div>
 									<p className="text-xs text-muted-foreground">{s.description}</p>
 								</div>
-								<CopyButton value={s.code} label={`Copy ${s.title} snippet`} />
+								<CopyButton value={s.code} label={m.admin_settings_mcp_connect_copy_snippet({ title: s.title })} />
 							</div>
 							<pre className="overflow-x-auto rounded bg-muted px-3 py-2 font-mono text-xs whitespace-pre">{s.code}</pre>
 						</div>
@@ -108,7 +108,9 @@ export function McpConnectCard({
 }
 
 function StatusIcon({ status }: { status: DiscoveryStatus | undefined }) {
-	if (status === 'ok') return <CheckCircle2 className="size-4 shrink-0 text-green-600" aria-label="Reachable" />
-	if (status === 'unreachable') return <XCircle className="size-4 shrink-0 text-destructive" aria-label="Unreachable" />
-	return <CircleDashed className="size-4 shrink-0 text-muted-foreground" aria-label="Checking" />
+	if (status === 'ok')
+		return <CheckCircle2 className="size-4 shrink-0 text-green-600" aria-label={m.admin_settings_mcp_connect_status_reachable()} />
+	if (status === 'unreachable')
+		return <XCircle className="size-4 shrink-0 text-destructive" aria-label={m.admin_settings_mcp_connect_status_unreachable()} />
+	return <CircleDashed className="size-4 shrink-0 text-muted-foreground" aria-label={m.admin_settings_mcp_connect_status_checking()} />
 }

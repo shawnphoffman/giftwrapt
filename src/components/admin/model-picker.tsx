@@ -1,11 +1,13 @@
 import { CheckIcon, ChevronsUpDownIcon, PlusIcon, RefreshCwIcon } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
+import { RichMessage } from '@/components/common/rich-message'
 import { Button } from '@/components/ui/button'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import type { ProviderModel } from '@/lib/ai-types'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 export type ModelPickerStatus =
 	| { kind: 'idle' } // no API key yet, nothing to list
@@ -50,10 +52,10 @@ export function mergeModelOptions(args: {
 	const seen = new Set<string>()
 	const out: Array<Option> = []
 
-	for (const m of args.models) {
-		if (seen.has(m.id)) continue
-		seen.add(m.id)
-		out.push({ ...m, origin: 'live' })
+	for (const model of args.models) {
+		if (seen.has(model.id)) continue
+		seen.add(model.id)
+		out.push({ ...model, origin: 'live' })
 	}
 	for (const id of args.fallbackModels) {
 		if (seen.has(id)) continue
@@ -68,10 +70,10 @@ export function mergeModelOptions(args: {
 
 function relativeTime(ts: number): string {
 	const secs = Math.max(0, Math.round((Date.now() - ts) / 1000))
-	if (secs < 60) return 'just now'
+	if (secs < 60) return m.relative_just_now()
 	const mins = Math.round(secs / 60)
-	if (mins < 60) return `${mins}m ago`
-	return `${Math.round(mins / 60)}h ago`
+	if (mins < 60) return m.admin_ai_model_picker_minutes_ago({ count: mins })
+	return m.admin_ai_model_picker_hours_ago({ count: Math.round(mins / 60) })
 }
 
 export function ModelPicker({
@@ -85,7 +87,7 @@ export function ModelPicker({
 	onRefresh,
 	disabled,
 	catalogue = true,
-	placeholder = 'Select a model',
+	placeholder = m.admin_ai_model_picker_placeholder(),
 }: ModelPickerProps) {
 	const [open, setOpen] = useState(false)
 	const [search, setSearch] = useState('')
@@ -133,22 +135,31 @@ export function ModelPicker({
 					</PopoverTrigger>
 					<PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
 						<Command shouldFilter>
-							<CommandInput placeholder="Search or type a model id…" value={search} onValueChange={setSearch} />
+							<CommandInput placeholder={m.admin_ai_model_picker_search()} value={search} onValueChange={setSearch} />
 							<CommandList>
-								{!canUseTyped && <CommandEmpty>No models match.</CommandEmpty>}
+								{!canUseTyped && <CommandEmpty>{m.admin_ai_model_picker_no_match()}</CommandEmpty>}
 								{canUseTyped && (
 									<CommandGroup forceMount>
 										<CommandItem forceMount value={trimmed} onSelect={() => select(trimmed)} className="gap-2">
 											<PlusIcon className="size-4 shrink-0" />
 											<span>
-												Use <span className="font-mono text-xs">{trimmed}</span>
+												<RichMessage
+													parts={m.admin_ai_model_picker_use_typed.parts({ model: trimmed })}
+													tags={{ mono: c => <span className="font-mono text-xs">{c}</span> }}
+												/>
 											</span>
 										</CommandItem>
 									</CommandGroup>
 								)}
-								{live.length > 0 && <CommandGroup heading={`Available from ${providerName}`}>{live.map(renderItem)}</CommandGroup>}
+								{live.length > 0 && (
+									<CommandGroup heading={m.admin_ai_model_picker_group_live({ provider: providerName })}>
+										{live.map(renderItem)}
+									</CommandGroup>
+								)}
 								{rest.length > 0 && (
-									<CommandGroup heading={live.length > 0 ? 'Other' : 'Known models'}>{rest.map(renderItem)}</CommandGroup>
+									<CommandGroup heading={live.length > 0 ? m.admin_ai_model_picker_group_other() : m.admin_ai_model_picker_group_known()}>
+										{rest.map(renderItem)}
+									</CommandGroup>
 								)}
 							</CommandList>
 						</Command>
@@ -161,8 +172,8 @@ export function ModelPicker({
 						size="icon"
 						onClick={onRefresh}
 						disabled={disabled || status.kind === 'loading'}
-						aria-label={`Refresh model list from ${providerName}`}
-						title={`Refresh model list from ${providerName}`}
+						aria-label={m.admin_ai_model_picker_refresh({ provider: providerName })}
+						title={m.admin_ai_model_picker_refresh({ provider: providerName })}
 					>
 						<RefreshCwIcon className={cn('size-4', status.kind === 'loading' && 'animate-spin')} />
 					</Button>
@@ -186,20 +197,21 @@ function ModelPickerStatusLine({
 }) {
 	switch (status.kind) {
 		case 'idle':
-			return <p className="text-xs text-muted-foreground">Add an API key and refresh to list the models {providerName} currently offers.</p>
+			return <p className="text-xs text-muted-foreground">{m.admin_ai_model_picker_status_idle({ provider: providerName })}</p>
 		case 'loading':
-			return <p className="text-xs text-muted-foreground">Loading models from {providerName}…</p>
+			return <p className="text-xs text-muted-foreground">{m.admin_ai_model_picker_status_loading({ provider: providerName })}</p>
 		case 'live':
 			return (
 				<p className="text-xs text-muted-foreground">
-					{status.count} models from {providerName} · updated {relativeTime(status.fetchedAt)}
+					{m.admin_ai_model_picker_status_live({ count: status.count, provider: providerName, when: relativeTime(status.fetchedAt) })}
 				</p>
 			)
 		case 'error':
 			return (
 				<p className="text-xs text-muted-foreground">
-					Couldn&apos;t list models from {providerName} ({status.error}).
-					{hasFallback ? ' Showing known models.' : ' Type a model id to use it anyway.'}
+					{hasFallback
+						? m.admin_ai_model_picker_status_error_fallback({ provider: providerName, error: status.error })
+						: m.admin_ai_model_picker_status_error_typed({ provider: providerName, error: status.error })}
 				</p>
 			)
 	}

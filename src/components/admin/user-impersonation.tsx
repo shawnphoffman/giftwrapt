@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import type { User } from '@/db-collections/users'
 import { authClient, useSession } from '@/lib/auth-client'
+import { authErrorText, errorText } from '@/lib/i18n/errors'
 import { forgetSkeletonShapes } from '@/lib/skullet'
+import { m } from '@/paraglide/messages.js'
 
 import UserAvatar from '../common/user-avatar'
 import LoadingSkeleton from '../skeletons/loading-skeleton'
@@ -38,7 +40,7 @@ export function UserImpersonation() {
 
 	const handleImpersonate = async () => {
 		if (!selectedUserId) {
-			toast.error('Please select a user to impersonate')
+			toast.error(m.admin_users_impersonate_select_required())
 			return
 		}
 
@@ -49,15 +51,15 @@ export function UserImpersonation() {
 			})
 
 			if (result.error) {
-				toast.error(result.error.message || 'Failed to impersonate user')
+				toast.error(authErrorText(result.error, m.admin_users_impersonate_failed()))
 			} else {
-				toast.success('Impersonation started successfully')
+				toast.success(m.admin_users_impersonate_started())
 				forgetSkeletonShapes()
 				// Reload the page to reflect the new session
 				window.location.href = '/'
 			}
 		} catch (err) {
-			toast.error(err instanceof Error ? error?.message : 'Failed to impersonate user')
+			toast.error(errorText(err, m.admin_users_impersonate_failed()))
 		} finally {
 			setIsImpersonating(false)
 		}
@@ -68,18 +70,22 @@ export function UserImpersonation() {
 	}
 
 	if (error) {
-		return <div className="text-sm text-destructive">Error loading users: {error instanceof Error ? error.message : 'Unknown error'}</div>
+		return (
+			<div className="text-sm text-destructive">
+				{m.admin_users_list_load_error({ error: error instanceof Error ? error.message : m.admin_users_unknown_error() })}
+			</div>
+		)
 	}
 
 	if (users.length === 0) {
-		return <div className="text-sm text-muted-foreground">No users found</div>
+		return <div className="text-sm text-muted-foreground">{m.admin_users_list_empty()}</div>
 	}
 
 	return (
 		<div className="flex flex-col @sm/admin-content:flex-row gap-3 mx-auto">
 			<Select value={selectedUserId} onValueChange={setSelectedUserId}>
 				<SelectTrigger className="w-full">
-					<SelectValue placeholder="Select a user" />
+					<SelectValue placeholder={m.admin_users_impersonate_placeholder()} />
 				</SelectTrigger>
 				<SelectContent>
 					{users.map(user => (
@@ -91,7 +97,7 @@ export function UserImpersonation() {
 				</SelectContent>
 			</Select>
 			<Button onClick={handleImpersonate} disabled={!selectedUserId || isImpersonating} variant="default" className="">
-				{isImpersonating ? 'Impersonating...' : 'Impersonate User'}
+				{isImpersonating ? m.admin_users_impersonate_busy() : m.admin_users_impersonate_submit()}
 			</Button>
 		</div>
 	)

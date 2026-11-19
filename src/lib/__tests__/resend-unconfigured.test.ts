@@ -1,4 +1,9 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+// Loaded up front, with the file's other imports. The catalog is thousands
+// of small modules; importing it for the first time inside a test or a hook
+// is slow enough under full-suite load to hit their timeouts.
+import '@/paraglide/messages.js'
+
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 // Simulate a server boot with email env vars fully unset. This is the
 // scenario that previously crashed the Resend SDK at module-load time.
@@ -24,20 +29,6 @@ vi.mock('@/db', () => {
 	}
 	return { db: emptyQuery }
 })
-
-// `vi.resetModules()` runs before each test, so every case below pays a
-// full cold import of `@/lib/resend` (React Email templates, the message
-// catalog, pino, the crypto helper). That is comfortably under the default 5s timeout on an
-// idle machine but not when the unit and storybook projects saturate the
-// CPU, which made this file the flakiest in the suite. The timeout is per
-// test and only consumed on a hang, so a generous suite-wide value costs
-// nothing on the happy path.
-// The message catalog is well over a thousand small modules. The first
-// import of it in a run is slow while every other test file is starting up
-// too, so pay for it in a hook with room to spare instead of inside a test.
-beforeAll(async () => {
-	await import('@/paraglide/messages.js')
-}, 300_000)
 
 describe('resend module with email fully unconfigured', { timeout: 60_000 }, () => {
 	beforeEach(() => {

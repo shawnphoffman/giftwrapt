@@ -18,7 +18,7 @@ function UserDetailsPage() {
 	return (
 		<Card className="animate-page-in max-w-xl">
 			<CardHeader>
-				<CardTitle className="text-2xl">Edit User</CardTitle>
+				<CardTitle className="text-2xl">{m.admin_users_page_edit_title()}</CardTitle>
 			</CardHeader>
 			<CardContent>
 				<Suspense fallback={<LoadingSkeleton />}>

@@ -22,13 +22,13 @@ function AdminDebugPage() {
 			{/*  */}
 			<Card className="animate-page-in">
 				<CardHeader>
-					<CardTitle className="text-2xl">Build Info</CardTitle>
+					<CardTitle className="text-2xl">{m.admin_nav_debug_build_title()}</CardTitle>
 				</CardHeader>
 				<CardContent className="divide-y">
 					{Object.entries({
 						version: BUILD_INFO.version,
-						commit: BUILD_INFO.commitShort || '(unknown)',
-						buildTime: BUILD_INFO.buildTime || '(unknown)',
+						commit: BUILD_INFO.commitShort || m.admin_nav_debug_unknown(),
+						buildTime: BUILD_INFO.buildTime || m.admin_nav_debug_unknown(),
 					}).map(([key, value]) => (
 						<div key={key} className="flex flex-col w-full not-first:pt-1 not-last:pb-1 overflow-hidden">
 							<span className="font-mono text-xs font-bold text-gray-500">{key}</span>
@@ -41,7 +41,7 @@ function AdminDebugPage() {
 			{BUILD_INFO.vercel && (
 				<Card className="animate-page-in">
 					<CardHeader>
-						<CardTitle className="text-2xl">Vercel Deployment</CardTitle>
+						<CardTitle className="text-2xl">{m.admin_nav_debug_vercel_title()}</CardTitle>
 					</CardHeader>
 					<CardContent className="divide-y">
 						{Object.entries(BUILD_INFO.vercel)
@@ -58,7 +58,7 @@ function AdminDebugPage() {
 			{/*  */}
 			<Card className="animate-page-in">
 				<CardHeader>
-					<CardTitle className="text-2xl">App Settings</CardTitle>
+					<CardTitle className="text-2xl">{m.admin_nav_debug_settings_title()}</CardTitle>
 				</CardHeader>
 				<CardContent className="divide-y">
 					{isLoadingSettings ? (
@@ -84,7 +84,7 @@ function AdminDebugPage() {
 			{/*  */}
 			<Card className="animate-page-in">
 				<CardHeader>
-					<CardTitle className="text-2xl">Environment Variables</CardTitle>
+					<CardTitle className="text-2xl">{m.admin_nav_debug_env_title()}</CardTitle>
 				</CardHeader>
 				<CardContent className="divide-y">
 					<ClientOnly>
@@ -102,7 +102,7 @@ function AdminDebugPage() {
 			{/*  */}
 			<Card className="animate-page-in">
 				<CardHeader>
-					<CardTitle className="text-2xl">Current Session</CardTitle>
+					<CardTitle className="text-2xl">{m.admin_nav_debug_session_title()}</CardTitle>
 				</CardHeader>
 				<CardContent className="divide-y overflow-scroll text-xs w-full">
 					<ClientOnly>

@@ -1,10 +1,11 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { updateAppSettings } from '@/api/settings'
 import { SendSentryTestErrorButton } from '@/components/admin/send-sentry-test-error'
 import { TimeZonePicker } from '@/components/admin/time-zone-picker'
+import { RichMessage } from '@/components/common/rich-message'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -20,8 +21,16 @@ import { currencySymbol } from '@/lib/i18n/format'
 import { listTypeLabel } from '@/lib/i18n/labels'
 import { localeDisplayName, READY_LOCALES } from '@/lib/i18n/locales'
 import type { AppSettings } from '@/lib/settings'
+import { m } from '@/paraglide/messages.js'
 
 const IS_DEV = import.meta.env.DEV
+
+const codeTag = (children: ReactNode) => <code>{children}</code>
+const observabilityDocsLink = (children: ReactNode) => (
+	<a href="https://giftwrapt.dev/configuration/observability/" className="underline" target="_blank" rel="noreferrer">
+		{children}
+	</a>
+)
 
 function useSettingsMutation() {
 	const queryClient = useQueryClient()
@@ -44,7 +53,7 @@ function useSettingsMutation() {
 			if (context?.previousSettings) {
 				queryClient.setQueryData(adminAppSettingsQueryKey, context.previousSettings)
 			}
-			const message = error instanceof Error ? error.message : 'Failed to update setting'
+			const message = error instanceof Error ? error.message : m.admin_settings_update_failed()
 			toast.error(message)
 		},
 		onSuccess: (data, _variables, context) => {
@@ -56,7 +65,7 @@ function useSettingsMutation() {
 				return updated
 			})
 			notifyAppSettingsChanged(queryClient)
-			toast.success('Setting updated')
+			toast.success(m.admin_settings_updated())
 		},
 	})
 }
@@ -73,8 +82,8 @@ function useSettingsEditor() {
 }
 
 function LoadingOrEmpty({ isLoading, settings }: { isLoading: boolean; settings: AppSettings | undefined }) {
-	if (isLoading) return <div className="text-sm text-muted-foreground">Loading settings...</div>
-	if (!settings) return <div className="text-sm text-muted-foreground">No settings found</div>
+	if (isLoading) return <div className="text-sm text-muted-foreground">{m.admin_settings_app_loading()}</div>
+	if (!settings) return <div className="text-sm text-muted-foreground">{m.admin_settings_app_empty()}</div>
 	return null
 }
 
@@ -97,9 +106,9 @@ export function CoreSettingsSection() {
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="defaultListType" className="text-base">
-						Default List Type
+						{m.admin_settings_app_default_list_type_label()}
 					</Label>
-					<p className="text-sm text-muted-foreground">The default type when creating new lists</p>
+					<p className="text-sm text-muted-foreground">{m.admin_settings_app_default_list_type_description()}</p>
 				</div>
 				<Select
 					value={settings.defaultListType}
@@ -128,12 +137,9 @@ export function CoreSettingsSection() {
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="timeZone" className="text-base">
-						Time Zone
+						{m.admin_settings_app_time_zone_label()}
 					</Label>
-					<p className="text-sm text-muted-foreground">
-						Sets when each day starts for birthdays, holidays, reminders, and auto-archive. Schedule the daily jobs to run after midnight in
-						this time zone.
-					</p>
+					<p className="text-sm text-muted-foreground">{m.admin_settings_app_time_zone_description()}</p>
 				</div>
 				<TimeZonePicker id="timeZone" value={settings.timeZone} onChange={value => handleSettingChange('timeZone', value)} />
 			</div>
@@ -143,11 +149,9 @@ export function CoreSettingsSection() {
 				<div className="flex items-center justify-between gap-4">
 					<div className="space-y-0.5">
 						<Label htmlFor="defaultLocale" className="text-base">
-							Default Language
+							{m.admin_settings_app_default_locale_label()}
 						</Label>
-						<p className="text-sm text-muted-foreground">
-							Used for people who have not chosen a language and whose browser asks for none of the ones offered, and for emails to them.
-						</p>
+						<p className="text-sm text-muted-foreground">{m.admin_settings_app_default_locale_description()}</p>
 					</div>
 					<Select value={settings.defaultLocale} onValueChange={value => handleSettingChange('defaultLocale', value)}>
 						<SelectTrigger id="defaultLocale" className="w-35">
@@ -167,12 +171,9 @@ export function CoreSettingsSection() {
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="defaultCurrency" className="text-base">
-						Default Currency
+						{m.admin_settings_app_default_currency_label()}
 					</Label>
-					<p className="text-sm text-muted-foreground">
-						Used for purchase totals and for item prices that were saved without a currency. Changing it relabels those amounts; it does not
-						convert them.
-					</p>
+					<p className="text-sm text-muted-foreground">{m.admin_settings_app_default_currency_description()}</p>
 				</div>
 				<Select value={settings.defaultCurrency} onValueChange={value => handleSettingChange('defaultCurrency', value)}>
 					<SelectTrigger id="defaultCurrency" className="w-35">
@@ -191,11 +192,9 @@ export function CoreSettingsSection() {
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="enableMobileApp" className="text-base">
-						Enable API & API Keys
+						{m.admin_settings_app_mobile_app_label()}
 					</Label>
-					<p className="text-sm text-muted-foreground">
-						Let users issue per-device API keys from their settings. Powers the iOS companion app.
-					</p>
+					<p className="text-sm text-muted-foreground">{m.admin_settings_app_mobile_app_description()}</p>
 				</div>
 				<Switch
 					id="enableMobileApp"
@@ -207,12 +206,9 @@ export function CoreSettingsSection() {
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="enableMcp" className="text-base">
-						Enable MCP Server
+						{m.admin_settings_app_mcp_label()}
 					</Label>
-					<p className="text-sm text-muted-foreground">
-						Let users connect AI assistants (Claude, Cursor, ChatGPT) to their account through OAuth. Turns on the MCP endpoint, the consent
-						page, Admin → MCP, and Settings → Connected Apps. Turning it off disconnects every assistant immediately.
-					</p>
+					<p className="text-sm text-muted-foreground">{m.admin_settings_app_mcp_description()}</p>
 				</div>
 				<Switch id="enableMcp" checked={settings.enableMcp} onCheckedChange={checked => handleSettingChange('enableMcp', checked)} />
 			</div>
@@ -231,9 +227,9 @@ export function ChristmasSettingsSection() {
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="enableChristmasLists" className="text-base">
-						Enable Christmas Lists
+						{m.admin_settings_app_christmas_lists_label()}
 					</Label>
-					<p className="text-sm text-muted-foreground">Allow users to create Christmas-themed lists</p>
+					<p className="text-sm text-muted-foreground">{m.admin_settings_app_christmas_lists_description()}</p>
 				</div>
 				<Switch
 					id="enableChristmasLists"
@@ -245,8 +241,8 @@ export function ChristmasSettingsSection() {
 			<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableChristmasLists ? '' : 'opacity-50'}`}>
 				<DaysSetting
 					id="archiveDaysAfterChristmas"
-					label="Archive After Christmas"
-					description="Days after Dec 25 to automatically archive claimed items on Christmas lists"
+					label={m.admin_settings_app_christmas_archive_label()}
+					description={m.admin_settings_app_christmas_archive_description()}
 					value={settings.archiveDaysAfterChristmas}
 					disabled={!settings.enableChristmasLists}
 					onCommit={value => handleSettingChange('archiveDaysAfterChristmas', value)}
@@ -257,9 +253,9 @@ export function ChristmasSettingsSection() {
 				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableChristmasLists ? '' : 'opacity-50'}`}>
 					<div className="space-y-0.5">
 						<Label htmlFor="enableChristmasEmails" className="text-base">
-							Enable Christmas Emails
+							{m.admin_settings_app_christmas_emails_label()}
 						</Label>
-						<p className="text-sm text-muted-foreground">Email owners who gave them what when Christmas gifts are revealed</p>
+						<p className="text-sm text-muted-foreground">{m.admin_settings_app_christmas_emails_description()}</p>
 					</div>
 					<Switch
 						id="enableChristmasEmails"
@@ -274,9 +270,9 @@ export function ChristmasSettingsSection() {
 				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableChristmasLists ? '' : 'opacity-50'}`}>
 					<div className="space-y-0.5">
 						<Label htmlFor="enableChristmasReminderEmails" className="text-base">
-							Send Pre-Christmas Reminder Emails
+							{m.admin_settings_app_christmas_reminder_emails_label()}
 						</Label>
-						<p className="text-sm text-muted-foreground">Email every user N days before Christmas so they can spruce up their list</p>
+						<p className="text-sm text-muted-foreground">{m.admin_settings_app_christmas_reminder_emails_description()}</p>
 					</div>
 					<Switch
 						id="enableChristmasReminderEmails"
@@ -293,8 +289,8 @@ export function ChristmasSettingsSection() {
 				>
 					<DaysSetting
 						id="christmasReminderLeadDays"
-						label="Christmas Reminder Lead Time"
-						description="Days before Dec 25 to send the pre-Christmas reminder email"
+						label={m.admin_settings_app_christmas_reminder_lead_label()}
+						description={m.admin_settings_app_christmas_reminder_lead_description()}
 						value={settings.christmasReminderLeadDays}
 						disabled={!settings.enableChristmasReminderEmails || !settings.enableChristmasLists}
 						onCommit={value => handleSettingChange('christmasReminderLeadDays', value)}
@@ -316,12 +312,9 @@ export function GenericHolidaySettingsSection() {
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="enableGenericHolidayLists" className="text-base">
-						Enable Holiday Lists
+						{m.admin_settings_app_holiday_lists_label()}
 					</Label>
-					<p className="text-sm text-muted-foreground">
-						Allow users to create lists for occasions like Easter, Mother's Day, Halloween, Diwali, etc. Christmas remains a separate list
-						type above.
-					</p>
+					<p className="text-sm text-muted-foreground">{m.admin_settings_app_holiday_lists_description()}</p>
 				</div>
 				<Switch
 					id="enableGenericHolidayLists"
@@ -333,8 +326,8 @@ export function GenericHolidaySettingsSection() {
 			<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableGenericHolidayLists ? '' : 'opacity-50'}`}>
 				<DaysSetting
 					id="archiveDaysAfterHoliday"
-					label="Archive After Holiday"
-					description="How many days after a holiday ends to automatically archive claimed items on holiday lists. For multi-day holidays, this counts from the last day."
+					label={m.admin_settings_app_holiday_archive_label()}
+					description={m.admin_settings_app_holiday_archive_description()}
 					value={settings.archiveDaysAfterHoliday}
 					disabled={!settings.enableGenericHolidayLists}
 					onCommit={value => handleSettingChange('archiveDaysAfterHoliday', value)}
@@ -344,8 +337,8 @@ export function GenericHolidaySettingsSection() {
 			<div className="flex items-center justify-between gap-4">
 				<DaysSetting
 					id="maxArchiveDeferDays"
-					label="Max Archive Extension"
-					description="How many days past a list's event date an editor, guardian, or partner can push back the automatic archive and reveal. This also limits the dates offered in the extension picker."
+					label={m.admin_settings_app_max_archive_defer_label()}
+					description={m.admin_settings_app_max_archive_defer_description()}
 					value={settings.maxArchiveDeferDays}
 					onCommit={value => handleSettingChange('maxArchiveDeferDays', value)}
 				/>
@@ -355,9 +348,9 @@ export function GenericHolidaySettingsSection() {
 				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableGenericHolidayLists ? '' : 'opacity-50'}`}>
 					<div className="space-y-0.5">
 						<Label htmlFor="enableGenericHolidayEmails" className="text-base">
-							Enable Holiday Emails
+							{m.admin_settings_app_holiday_emails_label()}
 						</Label>
-						<p className="text-sm text-muted-foreground">Email owners who gave them what when gifts on a holiday list are revealed</p>
+						<p className="text-sm text-muted-foreground">{m.admin_settings_app_holiday_emails_description()}</p>
 					</div>
 					<Switch
 						id="enableGenericHolidayEmails"
@@ -372,9 +365,9 @@ export function GenericHolidaySettingsSection() {
 				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableGenericHolidayLists ? '' : 'opacity-50'}`}>
 					<div className="space-y-0.5">
 						<Label htmlFor="enableHolidayReminderEmails" className="text-base">
-							Send Pre-Holiday Reminder Emails
+							{m.admin_settings_app_holiday_reminder_emails_label()}
 						</Label>
-						<p className="text-sm text-muted-foreground">Email every user N days before each custom holiday so they can make a list</p>
+						<p className="text-sm text-muted-foreground">{m.admin_settings_app_holiday_reminder_emails_description()}</p>
 					</div>
 					<Switch
 						id="enableHolidayReminderEmails"
@@ -391,8 +384,8 @@ export function GenericHolidaySettingsSection() {
 				>
 					<DaysSetting
 						id="holidayReminderLeadDays"
-						label="Holiday Reminder Lead Time"
-						description="Days before a holiday to broadcast the pre-holiday reminder"
+						label={m.admin_settings_app_holiday_reminder_lead_label()}
+						description={m.admin_settings_app_holiday_reminder_lead_description()}
 						value={settings.holidayReminderLeadDays}
 						disabled={!settings.enableHolidayReminderEmails || !settings.enableGenericHolidayLists}
 						onCommit={value => handleSettingChange('holidayReminderLeadDays', value)}
@@ -414,9 +407,9 @@ export function BirthdaySettingsSection() {
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="enableBirthdayLists" className="text-base">
-						Enable Birthday Lists
+						{m.admin_settings_app_birthday_lists_label()}
 					</Label>
-					<p className="text-sm text-muted-foreground">Allow users to create birthday lists</p>
+					<p className="text-sm text-muted-foreground">{m.admin_settings_app_birthday_lists_description()}</p>
 				</div>
 				<Switch
 					id="enableBirthdayLists"
@@ -428,8 +421,8 @@ export function BirthdaySettingsSection() {
 			<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableBirthdayLists ? '' : 'opacity-50'}`}>
 				<DaysSetting
 					id="archiveDaysAfterBirthday"
-					label="Archive After Birthday"
-					description="Days after a birthday to reveal claimed gifts on birthday lists and wishlists, and send the gift summary email"
+					label={m.admin_settings_app_birthday_archive_label()}
+					description={m.admin_settings_app_birthday_archive_description()}
 					value={settings.archiveDaysAfterBirthday}
 					disabled={!settings.enableBirthdayLists}
 					onCommit={value => handleSettingChange('archiveDaysAfterBirthday', value)}
@@ -440,11 +433,9 @@ export function BirthdaySettingsSection() {
 				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableBirthdayLists ? '' : 'opacity-50'}`}>
 					<div className="space-y-0.5">
 						<Label htmlFor="enableBirthdayEmails" className="text-base">
-							Enable Birthday Emails
+							{m.admin_settings_app_birthday_emails_label()}
 						</Label>
-						<p className="text-sm text-muted-foreground">
-							Send day-of birthday greetings, and email who gave what when birthday gifts are revealed
-						</p>
+						<p className="text-sm text-muted-foreground">{m.admin_settings_app_birthday_emails_description()}</p>
 					</div>
 					<Switch
 						id="enableBirthdayEmails"
@@ -459,9 +450,9 @@ export function BirthdaySettingsSection() {
 				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableBirthdayLists ? '' : 'opacity-50'}`}>
 					<div className="space-y-0.5">
 						<Label htmlFor="enableBirthdayReminderEmails" className="text-base">
-							Send Pre-Birthday Reminder Emails
+							{m.admin_settings_app_birthday_reminder_emails_label()}
 						</Label>
-						<p className="text-sm text-muted-foreground">Email each user N days before their birthday so they can spruce up their list</p>
+						<p className="text-sm text-muted-foreground">{m.admin_settings_app_birthday_reminder_emails_description()}</p>
 					</div>
 					<Switch
 						id="enableBirthdayReminderEmails"
@@ -478,8 +469,8 @@ export function BirthdaySettingsSection() {
 				>
 					<DaysSetting
 						id="birthdayReminderLeadDays"
-						label="Birthday Reminder Lead Time"
-						description="Days before a birthday to send the pre-birthday reminder email"
+						label={m.admin_settings_app_birthday_reminder_lead_label()}
+						description={m.admin_settings_app_birthday_reminder_lead_description()}
 						value={settings.birthdayReminderLeadDays}
 						disabled={!settings.enableBirthdayReminderEmails || !settings.enableBirthdayLists}
 						onCommit={value => handleSettingChange('birthdayReminderLeadDays', value)}
@@ -499,6 +490,8 @@ type ReminderFamilyArgs = {
 	emailKey: keyof AppSettings
 	title: string
 	description: string
+	leadDescription: string
+	emailLabel: string
 }
 
 function ReminderFamilyBlock({
@@ -510,6 +503,8 @@ function ReminderFamilyBlock({
 	emailKey,
 	title,
 	description,
+	leadDescription,
+	emailLabel,
 }: ReminderFamilyArgs) {
 	const masterOn = settings[masterKey] as boolean
 	const emailOn = settings[emailKey] as boolean
@@ -532,8 +527,8 @@ function ReminderFamilyBlock({
 			<div className={`flex items-center justify-between gap-4 pl-6 ${masterOn ? '' : 'opacity-50'}`}>
 				<DaysSetting
 					id={leadDaysKey as string}
-					label="Reminder Lead Time"
-					description={`Days before ${title} to send the reminder`}
+					label={m.admin_settings_app_reminder_lead_label()}
+					description={leadDescription}
 					value={leadDays}
 					disabled={!masterOn}
 					onCommit={value => handleSettingChange(leadDaysKey, value as AppSettings[typeof leadDaysKey])}
@@ -543,9 +538,9 @@ function ReminderFamilyBlock({
 				<div className={`flex items-center justify-between gap-4 pl-6 ${masterOn ? '' : 'opacity-50'}`}>
 					<div className="space-y-0.5">
 						<Label htmlFor={emailKey as string} className="text-base">
-							Send {title} Reminder Emails
+							{emailLabel}
 						</Label>
-						<p className="text-sm text-muted-foreground">Email the reminder on the day set by the lead time</p>
+						<p className="text-sm text-muted-foreground">{m.admin_settings_app_reminder_emails_description()}</p>
 					</div>
 					<Switch
 						id={emailKey as string}
@@ -570,11 +565,9 @@ export function ParentalRelationsSettingsSection() {
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="relationshipRemindersCountry" className="text-base">
-						Country for Mother's / Father's Day
+						{m.admin_settings_app_reminders_country_label()}
 					</Label>
-					<p className="text-sm text-muted-foreground">
-						Used to work out the dates for Mother's Day, Father's Day, and Valentine's Day, which vary by country. Defaults to US.
-					</p>
+					<p className="text-sm text-muted-foreground">{m.admin_settings_app_reminders_country_description()}</p>
 				</div>
 				<Select
 					value={settings.relationshipRemindersCountry}
@@ -607,8 +600,10 @@ export function ParentalRelationsSettingsSection() {
 				masterKey="enableMothersDayReminders"
 				leadDaysKey="mothersDayReminderLeadDays"
 				emailKey="enableMothersDayReminderEmails"
-				title="Mother's Day"
-				description="Reminders, plus the option to mark people you shop for as a mother"
+				title={m.admin_settings_app_mothers_day_title()}
+				description={m.admin_settings_app_mothers_day_description()}
+				leadDescription={m.admin_settings_app_mothers_day_lead_description()}
+				emailLabel={m.admin_settings_app_mothers_day_emails_label()}
 			/>
 			<ReminderFamilyBlock
 				settings={settings}
@@ -617,8 +612,10 @@ export function ParentalRelationsSettingsSection() {
 				masterKey="enableFathersDayReminders"
 				leadDaysKey="fathersDayReminderLeadDays"
 				emailKey="enableFathersDayReminderEmails"
-				title="Father's Day"
-				description="Reminders, plus the option to mark people you shop for as a father"
+				title={m.admin_settings_app_fathers_day_title()}
+				description={m.admin_settings_app_fathers_day_description()}
+				leadDescription={m.admin_settings_app_fathers_day_lead_description()}
+				emailLabel={m.admin_settings_app_fathers_day_emails_label()}
 			/>
 			<ReminderFamilyBlock
 				settings={settings}
@@ -627,8 +624,10 @@ export function ParentalRelationsSettingsSection() {
 				masterKey="enableValentinesDayReminders"
 				leadDaysKey="valentinesDayReminderLeadDays"
 				emailKey="enableValentinesDayReminderEmails"
-				title="Valentine's Day"
-				description="Reminders for users with a partner, sent before Valentine's Day in the country above"
+				title={m.admin_settings_app_valentines_day_title()}
+				description={m.admin_settings_app_valentines_day_description()}
+				leadDescription={m.admin_settings_app_valentines_day_lead_description()}
+				emailLabel={m.admin_settings_app_valentines_day_emails_label()}
 			/>
 			<ReminderFamilyBlock
 				settings={settings}
@@ -637,18 +636,17 @@ export function ParentalRelationsSettingsSection() {
 				masterKey="enableAnniversaryReminders"
 				leadDaysKey="anniversaryReminderLeadDays"
 				emailKey="enableAnniversaryReminderEmails"
-				title="Partner Anniversary"
-				description="Reminders, plus the anniversary date field on profiles. Both partners get the email. Turning this off hides the field."
+				title={m.admin_settings_app_anniversary_title()}
+				description={m.admin_settings_app_anniversary_description()}
+				leadDescription={m.admin_settings_app_anniversary_lead_description()}
+				emailLabel={m.admin_settings_app_anniversary_emails_label()}
 			/>
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="enableReminderPicks" className="text-base">
-						Include Gift Picks
+						{m.admin_settings_app_reminder_picks_label()}
 					</Label>
-					<p className="text-sm text-muted-foreground">
-						Add up to three things still open on the person’s lists to each reminder above. Picked by priority, with no AI. Only the person
-						the reminder is addressed to sees them.
-					</p>
+					<p className="text-sm text-muted-foreground">{m.admin_settings_app_reminder_picks_description()}</p>
 				</div>
 				<Switch
 					id="enableReminderPicks"
@@ -670,9 +668,9 @@ export function TodoSettingsSection() {
 		<div className="flex items-center justify-between gap-4">
 			<div className="space-y-0.5">
 				<Label htmlFor="enableTodoLists" className="text-base">
-					Enable Todo Lists
+					{m.admin_settings_app_todo_lists_label()}
 				</Label>
-				<p className="text-sm text-muted-foreground">Allow users to create todo lists</p>
+				<p className="text-sm text-muted-foreground">{m.admin_settings_app_todo_lists_description()}</p>
 			</div>
 			<Switch
 				id="enableTodoLists"
@@ -694,9 +692,9 @@ export function CommentsSettingsSection() {
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="enableComments" className="text-base">
-						Enable Comments
+						{m.admin_settings_app_comments_label()}
 					</Label>
-					<p className="text-sm text-muted-foreground">Allow users to post comments on items</p>
+					<p className="text-sm text-muted-foreground">{m.admin_settings_app_comments_description()}</p>
 				</div>
 				<Switch
 					id="enableComments"
@@ -709,9 +707,9 @@ export function CommentsSettingsSection() {
 				<div className={`flex items-center justify-between gap-4 pl-6 ${settings.enableComments ? '' : 'opacity-50'}`}>
 					<div className="space-y-0.5">
 						<Label htmlFor="enableCommentEmails" className="text-base">
-							Enable Comment Emails
+							{m.admin_settings_app_comment_emails_label()}
 						</Label>
-						<p className="text-sm text-muted-foreground">Email the list owner when someone comments on one of their items</p>
+						<p className="text-sm text-muted-foreground">{m.admin_settings_app_comment_emails_description()}</p>
 					</div>
 					<Switch
 						id="enableCommentEmails"
@@ -735,12 +733,9 @@ export function AuthSettingsSection() {
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="enableSignUps" className="text-base">
-						Allow Sign-Ups
+						{m.admin_settings_app_sign_ups_label()}
 					</Label>
-					<p className="text-sm text-muted-foreground">
-						Let anyone who can reach this site create an account. Turn this off to add people yourself from Admin → Users. OIDC has its own
-						auto-register setting.
-					</p>
+					<p className="text-sm text-muted-foreground">{m.admin_settings_app_sign_ups_description()}</p>
 				</div>
 				<Switch
 					id="enableSignUps"
@@ -752,12 +747,9 @@ export function AuthSettingsSection() {
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="enablePasskeys" className="text-base">
-						Enable Passkeys
+						{m.admin_settings_app_passkeys_label()}
 					</Label>
-					<p className="text-sm text-muted-foreground">
-						Let signed-in users register WebAuthn passkeys (Touch ID, Face ID, hardware keys) and use them to sign in. Your site must be
-						served over HTTPS.
-					</p>
+					<p className="text-sm text-muted-foreground">{m.admin_settings_app_passkeys_description()}</p>
 				</div>
 				<Switch
 					id="enablePasskeys"
@@ -786,19 +778,14 @@ export function ObservabilitySettingsSection() {
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="enableSentry" className="text-base">
-						Enable Sentry Error Reporting
+						{m.admin_settings_app_sentry_label()}
 					</Label>
 					<p className="text-sm text-muted-foreground">
-						Send unhandled errors to a Sentry-compatible service you choose (sentry.io, GlitchTip, or any compatible host), set with{' '}
-						<code>SENTRY_DSN</code>. Errors only go to that service. See the{' '}
-						<a href="https://giftwrapt.dev/configuration/observability/" className="underline" target="_blank" rel="noreferrer">
-							Observability docs
-						</a>{' '}
-						for what gets sent.
+						<RichMessage parts={m.admin_settings_app_sentry_description.parts()} tags={{ code: codeTag, link: observabilityDocsLink }} />
 					</p>
 					{sentryEnvMissing && (
 						<p className="text-sm text-amber-500">
-							Set <code>SENTRY_DSN</code> in your deployment's environment to turn this on.
+							<RichMessage parts={m.admin_settings_app_sentry_env_missing.parts()} tags={{ code: codeTag }} />
 						</p>
 					)}
 					{canSendSentryTest && (
@@ -818,20 +805,14 @@ export function ObservabilitySettingsSection() {
 			<div className="flex items-center justify-between gap-4">
 				<div className="space-y-0.5">
 					<Label htmlFor="enableMetrics" className="text-base">
-						Enable Prometheus Metrics Endpoint
+						{m.admin_settings_app_metrics_label()}
 					</Label>
 					<p className="text-sm text-muted-foreground">
-						Serve Prometheus metrics at <code>/api/metrics</code>, protected by the bearer token in <code>METRICS_TOKEN</code>. While this
-						is off, the endpoint returns 404 so it doesn't reveal that it exists. See the{' '}
-						<a href="https://giftwrapt.dev/configuration/observability/" className="underline" target="_blank" rel="noreferrer">
-							Observability docs
-						</a>{' '}
-						for the list of metrics and an example scrape config.
+						<RichMessage parts={m.admin_settings_app_metrics_description.parts()} tags={{ code: codeTag, link: observabilityDocsLink }} />
 					</p>
 					{metricsEnvMissing && (
 						<p className="text-sm text-amber-500">
-							Set <code>METRICS_TOKEN</code> in your deployment's environment to turn this on. You can generate a token with{' '}
-							<code>openssl rand -hex 32</code>.
+							<RichMessage parts={m.admin_settings_app_metrics_env_missing.parts()} tags={{ code: codeTag }} />
 						</p>
 					)}
 				</div>
@@ -856,12 +837,9 @@ export function StorageMirrorSection() {
 		<div className={`flex items-center justify-between gap-4 ${storageConfigured ? '' : 'opacity-50'}`}>
 			<div className="space-y-0.5">
 				<Label htmlFor="mirrorExternalImagesOnSave" className="text-base">
-					Mirror External Images to Storage on Save
+					{m.admin_settings_app_mirror_images_label()}
 				</Label>
-				<p className="text-sm text-muted-foreground">
-					When an item is saved, download any external image and copy it into your storage bucket. If the download fails, the item keeps the
-					original URL. Requires storage to be configured. Existing items aren't updated.
-				</p>
+				<p className="text-sm text-muted-foreground">{m.admin_settings_app_mirror_images_description()}</p>
 			</div>
 			<Switch
 				id="mirrorExternalImagesOnSave"
@@ -908,9 +886,9 @@ function AppTitleField({ currentValue, onSave }: AppTitleFieldProps) {
 		<div className="flex items-center justify-between gap-4">
 			<div className="space-y-0.5">
 				<Label htmlFor="appTitle" className="text-base">
-					App Title
+					{m.admin_settings_app_title_label()}
 				</Label>
-				<p className="text-sm text-muted-foreground">Shown in the browser tab, sidebar, and PWA install prompts</p>
+				<p className="text-sm text-muted-foreground">{m.admin_settings_app_title_description()}</p>
 			</div>
 			<Input
 				id="appTitle"
@@ -972,7 +950,7 @@ function DaysSetting({ id, label, description, value, disabled, onCommit }: Days
 					}}
 					className="w-20 text-right"
 				/>
-				<span className="text-sm text-muted-foreground">days</span>
+				<span className="text-sm text-muted-foreground">{m.admin_settings_app_days_unit()}</span>
 			</div>
 		</>
 	)

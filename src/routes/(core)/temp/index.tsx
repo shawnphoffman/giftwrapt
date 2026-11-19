@@ -9,7 +9,9 @@ import { Slider } from '@/components/ui/slider'
 import { ClientOnly } from '@/components/utilities/client-only'
 import type { UpcomingHolidayRow } from '@/db-collections/upcoming-holidays'
 import { upcomingHolidaysCollection } from '@/db-collections/upcoming-holidays'
+import { formatCalendarDate } from '@/lib/i18n/format'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 // `/temp` lands on the Holidays widget surface. The Birthdays surface
 // lives at `/temp/birthdays`. Splitting them keeps the two debug feeds
@@ -20,29 +22,27 @@ export const Route = createFileRoute('/(core)/temp/')({
 
 const DEFAULT_HOLIDAY_HORIZON = 90
 
-const monthShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 function formatOccurrence(iso: string): string {
 	// Holiday rows carry UTC-anchored dates (the server emits start-of-
-	// UTC-day timestamps); read with UTC getters so the label doesn't
-	// shift in negative-offset zones.
-	const d = new Date(iso)
-	return `${monthShort[d.getUTCMonth()]} ${d.getUTCDate()}`
+	// UTC-day timestamps); format in UTC so the label doesn't shift in
+	// negative-offset zones.
+	return formatCalendarDate(iso, { month: 'short', day: 'numeric' })
 }
 
 function sourceLabel(source: UpcomingHolidayRow['source']): string {
 	switch (source) {
 		case 'custom':
-			return 'Admin'
+			return m.admin_temp_source_admin()
 		case 'christmas':
-			return 'Christmas'
+			return m.admin_temp_source_christmas()
 		case 'mothers-day':
-			return "Mother's Day"
+			return m.admin_temp_source_mothers_day()
 		case 'fathers-day':
-			return "Father's Day"
+			return m.admin_temp_source_fathers_day()
 		case 'valentines':
-			return "Valentine's"
+			return m.admin_temp_source_valentines()
 		case 'anniversary':
-			return 'Anniversary'
+			return m.admin_temp_source_anniversary()
 	}
 }
 
@@ -66,18 +66,13 @@ function HolidaysWidgetPageInner() {
 		<>
 			<Card className="animate-page-in">
 				<CardHeader>
-					<CardTitle className="text-2xl">iOS Upcoming Holidays Widget</CardTitle>
-					<CardDescription>
-						Per-user feed of the next closest holidays for the signed-in user. Sources: admin-curated Custom Holidays, the hard-coded
-						gift-giving holidays (Christmas always, Valentine's when partnered, Mother's / Father's Day when the user has a matching
-						relation label), and the user's anniversary when partnered with an anniversary date set. The iOS widget renders the closest 3
-						within the configured horizon.
-					</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_temp_holidays_title()}</CardTitle>
+					<CardDescription>{m.admin_temp_holidays_description()}</CardDescription>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-6">
 					<HorizonControl
-						label="Horizon (Days)"
-						help="Hide holidays further out than this. The iOS widget config exposes the same horizon as a 30 / 60 / 90 / 180 / 365 picker."
+						label={m.admin_temp_horizon_label()}
+						help={m.admin_temp_holidays_horizon_help()}
 						value={horizon}
 						min={7}
 						max={365}
@@ -89,21 +84,18 @@ function HolidaysWidgetPageInner() {
 
 			<Card className="animate-page-in">
 				<CardHeader>
-					<CardTitle className="text-2xl">Underlying Data</CardTitle>
-					<CardDescription>
-						Every row the server would return for the signed-in user (capped at 50 by the debug query). Rows outside the {horizon}
-						-day preview horizon are still shown so you can see why.
-					</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_temp_data_title()}</CardTitle>
+					<CardDescription>{m.admin_temp_holidays_data_description({ horizon })}</CardDescription>
 				</CardHeader>
 				<CardContent className="overflow-x-auto">
 					<table className="w-full text-sm">
 						<thead>
 							<tr className="text-left text-muted-foreground border-b">
-								<th className="py-2 pr-4 font-medium">Holiday</th>
-								<th className="py-2 pr-4 font-medium">Source</th>
-								<th className="py-2 pr-4 font-medium">Date</th>
-								<th className="py-2 pr-4 font-medium">Days until</th>
-								<th className="py-2 pr-4 font-medium">In preview</th>
+								<th className="py-2 pr-4 font-medium">{m.admin_temp_col_holiday()}</th>
+								<th className="py-2 pr-4 font-medium">{m.admin_temp_col_source()}</th>
+								<th className="py-2 pr-4 font-medium">{m.admin_temp_col_date()}</th>
+								<th className="py-2 pr-4 font-medium">{m.admin_temp_col_days_until()}</th>
+								<th className="py-2 pr-4 font-medium">{m.admin_temp_col_in_preview()}</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -115,17 +107,20 @@ function HolidaysWidgetPageInner() {
 										<td className="py-2 pr-4 font-mono text-xs">{sourceLabel(row.source)}</td>
 										<td className="py-2 pr-4 font-mono text-xs">{formatOccurrence(row.occurrenceStart)}</td>
 										<td className="py-2 pr-4 font-mono text-xs">{row.daysUntil}</td>
-										<td className="py-2 pr-4">{inWidget ? <Badge>visible</Badge> : <Badge variant="secondary">hidden</Badge>}</td>
+										<td className="py-2 pr-4">
+											{inWidget ? (
+												<Badge>{m.admin_temp_badge_visible()}</Badge>
+											) : (
+												<Badge variant="secondary">{m.admin_temp_badge_hidden()}</Badge>
+											)}
+										</td>
 									</tr>
 								)
 							})}
 						</tbody>
 					</table>
 					{holidayRowsAll.length === 0 && !holidaysLoading && (
-						<p className="mt-3 text-xs text-muted-foreground">
-							No holidays surfaced for this user. Add some in the Custom Holidays admin section, tag a parent in the Relationships settings,
-							or partner up to unlock Valentine's and the anniversary row.
-						</p>
+						<p className="mt-3 text-xs text-muted-foreground">{m.admin_temp_holidays_empty()}</p>
 					)}
 				</CardContent>
 			</Card>
@@ -176,9 +171,11 @@ function HolidayWidgetFrame({
 			<div className={frameClass}>
 				<div className="flex items-center gap-2 mb-3">
 					<Gift className="size-4 text-rose-500" />
-					<span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Upcoming Holidays</span>
+					<span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+						{m.admin_temp_holidays_widget_heading()}
+					</span>
 				</div>
-				<p className="text-sm text-muted-foreground">Loading...</p>
+				<p className="text-sm text-muted-foreground">{m.admin_temp_loading()}</p>
 			</div>
 		)
 	}
@@ -187,9 +184,11 @@ function HolidayWidgetFrame({
 			<div className={frameClass}>
 				<div className="flex items-center gap-2 mb-3">
 					<Gift className="size-4 text-rose-500" />
-					<span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Upcoming Holidays</span>
+					<span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+						{m.admin_temp_holidays_widget_heading()}
+					</span>
 				</div>
-				<p className="text-sm text-muted-foreground">No holidays in the next {horizonDays} days.</p>
+				<p className="text-sm text-muted-foreground">{m.admin_temp_holidays_none({ count: horizonDays })}</p>
 			</div>
 		)
 	}
@@ -197,7 +196,9 @@ function HolidayWidgetFrame({
 		<div className={frameClass}>
 			<div className="flex items-center gap-2 mb-3">
 				<Gift className="size-4 text-rose-500" />
-				<span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Upcoming Holidays</span>
+				<span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+					{m.admin_temp_holidays_widget_heading()}
+				</span>
 			</div>
 			<ul className="flex flex-col gap-2.5">
 				{rows.map(row => (
@@ -219,7 +220,7 @@ function HolidayWidgetFrame({
 										: 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
 							)}
 						>
-							{row.daysUntil === 0 ? 'today' : `${row.daysUntil}d`}
+							{row.daysUntil === 0 ? m.admin_temp_today() : m.admin_temp_days_short({ count: row.daysUntil })}
 						</span>
 					</li>
 				))}

@@ -4,6 +4,9 @@ import { toast } from 'sonner'
 
 import { exportAppDataAsAdmin } from '@/api/backup'
 import { Button } from '@/components/ui/button'
+import { errorText } from '@/lib/i18n/errors'
+import { formatNumber } from '@/lib/i18n/format'
+import { m } from '@/paraglide/messages.js'
 
 export default function ExportData() {
 	const [downloading, setDownloading] = useState(false)
@@ -26,10 +29,9 @@ export default function ExportData() {
 			URL.revokeObjectURL(url)
 
 			const totalRows = Object.values(backup.tables).reduce((sum, rows) => sum + rows.length, 0)
-			toast.success(`Backup downloaded (${totalRows.toLocaleString()} rows)`)
+			toast.success(m.admin_data_export_done({ total: formatNumber(totalRows) }))
 		} catch (err) {
-			const message = err instanceof Error ? err.message : 'Failed to export backup'
-			toast.error(message)
+			toast.error(errorText(err, m.admin_data_export_failed()))
 		} finally {
 			setDownloading(false)
 		}
@@ -38,7 +40,7 @@ export default function ExportData() {
 	return (
 		<Button onClick={handleDownload} disabled={downloading} variant="outline" className="gap-2">
 			<Download />
-			{downloading ? 'Preparing...' : 'Download Backup'}
+			{downloading ? m.admin_data_export_busy() : m.admin_data_export_button()}
 		</Button>
 	)
 }

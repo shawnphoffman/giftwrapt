@@ -14,6 +14,7 @@ import { CustomHolidaysSection } from '@/components/admin/custom-holidays-sectio
 import { StorageDisabledBanner } from '@/components/common/storage-disabled-banner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ClientOnly } from '@/components/utilities/client-only'
+import { m } from '@/paraglide/messages.js'
 
 export const Route = createFileRoute('/(core)/admin/')({
 	component: AdminPage,
@@ -25,8 +26,8 @@ function AdminPage() {
 			<StorageDisabledBanner />
 			<Card className="animate-page-in max-w-xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">App Settings</CardTitle>
-					<CardDescription>Configure global application settings.</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_nav_general_settings_title()}</CardTitle>
+					<CardDescription>{m.admin_nav_general_settings_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<ClientOnly>
@@ -36,8 +37,8 @@ function AdminPage() {
 			</Card>
 			<Card className="animate-page-in max-w-xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Comments</CardTitle>
-					<CardDescription>Item comments and the related email notifications.</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_nav_general_comments_title()}</CardTitle>
+					<CardDescription>{m.admin_nav_general_comments_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<ClientOnly>
@@ -47,8 +48,8 @@ function AdminPage() {
 			</Card>
 			<Card className="animate-page-in max-w-xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Birthday Lists</CardTitle>
-					<CardDescription>Birthday lists, automatic archiving after a birthday, and birthday emails.</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_nav_general_birthday_title()}</CardTitle>
+					<CardDescription>{m.admin_nav_general_birthday_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<ClientOnly>
@@ -58,8 +59,8 @@ function AdminPage() {
 			</Card>
 			<Card className="animate-page-in max-w-xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Christmas Lists</CardTitle>
-					<CardDescription>Christmas-themed lists, automatic post-holiday archiving, and seasonal emails.</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_nav_general_christmas_title()}</CardTitle>
+					<CardDescription>{m.admin_nav_general_christmas_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<ClientOnly>
@@ -69,11 +70,8 @@ function AdminPage() {
 			</Card>
 			<Card className="animate-page-in max-w-xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Holiday Lists</CardTitle>
-					<CardDescription>
-						Generic holiday lists (Easter, Mother's Day, Halloween, and more), with auto-archiving after each holiday and an optional email
-						summary.
-					</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_nav_general_holiday_title()}</CardTitle>
+					<CardDescription>{m.admin_nav_general_holiday_description()}</CardDescription>
 				</CardHeader>
 				<CardContent className="space-y-6">
 					<ClientOnly>
@@ -81,11 +79,8 @@ function AdminPage() {
 					</ClientOnly>
 					<div className="space-y-3 border-t border-border pt-6">
 						<div className="space-y-0.5">
-							<h3 className="text-base font-medium">Available Holidays</h3>
-							<p className="text-sm text-muted-foreground">
-								The holidays users can pick from when creating a holiday list. Add one from the built-in gift-giving catalog or create your
-								own. Deleting a holiday that's in use switches its lists to the default list type and keeps their claims.
-							</p>
+							<h3 className="text-base font-medium">{m.admin_nav_general_holidays_available_title()}</h3>
+							<p className="text-sm text-muted-foreground">{m.admin_nav_general_holidays_available_description()}</p>
 						</div>
 						<ClientOnly>
 							<CustomHolidaysSection />
@@ -95,11 +90,8 @@ function AdminPage() {
 			</Card>
 			<Card className="animate-page-in max-w-xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Relationship Reminders</CardTitle>
-					<CardDescription>
-						Reminders for Mother's Day, Father's Day, Valentine's Day, and partner anniversaries. Each one has its own on/off switch, lead
-						time, and email setting. Turning one off also hides its related profile field (parent labels or anniversary date).
-					</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_nav_general_reminders_title()}</CardTitle>
+					<CardDescription>{m.admin_nav_general_reminders_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<ClientOnly>
@@ -109,8 +101,8 @@ function AdminPage() {
 			</Card>
 			<Card className="animate-page-in max-w-xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Todo Lists</CardTitle>
-					<CardDescription>Allow users to create todo lists.</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_nav_general_todo_title()}</CardTitle>
+					<CardDescription>{m.admin_nav_general_todo_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<ClientOnly>
@@ -120,11 +112,8 @@ function AdminPage() {
 			</Card>
 			<Card className="animate-page-in max-w-xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Observability</CardTitle>
-					<CardDescription>
-						Optional error reporting and metrics, off by default. Each one needs its environment variable (DSN or token) set and its toggle
-						turned on. Data only goes to the backends you configure.
-					</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_nav_general_observability_title()}</CardTitle>
+					<CardDescription>{m.admin_nav_general_observability_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<ClientOnly>

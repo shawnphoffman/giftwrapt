@@ -42,8 +42,8 @@ function AdminUsersPage() {
 		<>
 			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Impersonation</CardTitle>
-					<CardDescription>Impersonate a user to see the app as they do.</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_users_page_impersonation_title()}</CardTitle>
+					<CardDescription>{m.admin_users_page_impersonation_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<Suspense fallback={<LoadingSkeleton />}>
@@ -57,12 +57,12 @@ function AdminUsersPage() {
 			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
 					<div className="flex items-center justify-between gap-4">
-						<CardTitle className="text-2xl">Users</CardTitle>
+						<CardTitle className="text-2xl">{m.admin_users_page_users_title()}</CardTitle>
 						<Button onClick={() => setAddUserOpen(true)} size="sm">
-							<Plus className="size-4" /> Add User
+							<Plus className="size-4" /> {m.admin_users_page_add_user()}
 						</Button>
 					</div>
-					<CardDescription>Manage users and their permissions.</CardDescription>
+					<CardDescription>{m.admin_users_page_users_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<Suspense fallback={<LoadingSkeleton />}>
@@ -74,16 +74,13 @@ function AdminUsersPage() {
 			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
 					<div className="flex items-center justify-between gap-4">
-						<CardTitle className="text-2xl">Dependents</CardTitle>
+						<CardTitle className="text-2xl">{m.admin_users_page_dependents_title()}</CardTitle>
 						<Button onClick={() => setAddDependentOpen(true)} size="sm">
 							<Plus className="size-4" />
-							Add
+							{m.action_add()}
 						</Button>
 					</div>
-					<CardDescription>
-						Non-user gift recipients (pets, babies, anyone managed by another user). Click a row to edit. Their guardians manage the lists
-						themselves.
-					</CardDescription>
+					<CardDescription>{m.admin_users_page_dependents_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<Suspense fallback={<LoadingSkeleton />}>
@@ -94,11 +91,8 @@ function AdminUsersPage() {
 
 			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Permissions Matrix</CardTitle>
-					<CardDescription>
-						Who can view or edit whose lists. Each row shows what that person can do with the lists of the person in each column. Dependents
-						only appear as columns, since they're always recipients and never viewers.
-					</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_perms_matrix_title()}</CardTitle>
+					<CardDescription>{m.admin_perms_matrix_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<Suspense fallback={<LoadingSkeleton />}>
@@ -112,7 +106,7 @@ function AdminUsersPage() {
 			<Dialog open={addUserOpen} onOpenChange={setAddUserOpen}>
 				<DialogContent className="max-w-xl">
 					<DialogHeader>
-						<DialogTitle>Add User</DialogTitle>
+						<DialogTitle>{m.admin_users_page_add_user()}</DialogTitle>
 					</DialogHeader>
 					<ClientOnly>
 						<CreateUserForm onCreated={() => setAddUserOpen(false)} />
@@ -123,7 +117,7 @@ function AdminUsersPage() {
 			<Dialog open={editUserId !== null} onOpenChange={open => !open && closeEditUser()}>
 				<DialogContent className="max-w-xl md:max-w-6xl overflow-x-hidden">
 					<DialogHeader>
-						<DialogTitle>Edit User</DialogTitle>
+						<DialogTitle>{m.admin_users_page_edit_title()}</DialogTitle>
 					</DialogHeader>
 					<Suspense fallback={<LoadingSkeleton />}>
 						<ClientOnly>{editUserId && <EditUserForm userId={editUserId} onSuccess={closeEditUser} />}</ClientOnly>
@@ -134,10 +128,8 @@ function AdminUsersPage() {
 			<Dialog open={addDependentOpen} onOpenChange={setAddDependentOpen}>
 				<DialogContent className="max-w-xl">
 					<DialogHeader>
-						<DialogTitle>Add Dependent</DialogTitle>
-						<DialogDescription>
-							Pick at least one guardian. Guardians see the dependent on /me and /received, and can pick them when creating a list.
-						</DialogDescription>
+						<DialogTitle>{m.admin_users_page_add_dependent_title()}</DialogTitle>
+						<DialogDescription>{m.admin_users_page_add_dependent_description()}</DialogDescription>
 					</DialogHeader>
 					<ClientOnly>
 						<CreateDependentForm onCreated={() => setAddDependentOpen(false)} />

@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 
 import { sendSentryTestErrorAsAdmin } from '@/api/admin'
 import { Button } from '@/components/ui/button'
+import { m } from '@/paraglide/messages.js'
 
 // The server fn always fails; that failure is the test. By the time the
 // rejection reaches the browser the server has already flushed the event.
@@ -15,7 +16,7 @@ export function SendSentryTestErrorButton() {
 		try {
 			await sendSentryTestErrorAsAdmin()
 		} catch {
-			toast.success('Test error sent. It should show up in Sentry as SentryTestError within a minute.')
+			toast.success(m.admin_settings_sentry_test_sent())
 		} finally {
 			setSending(false)
 		}
@@ -24,7 +25,7 @@ export function SendSentryTestErrorButton() {
 	return (
 		<Button onClick={handleClick} variant="outline" size="sm" className="gap-2" disabled={sending}>
 			<Bug />
-			{sending ? 'Sending...' : 'Send Test Error'}
+			{sending ? m.admin_settings_sentry_test_sending() : m.admin_settings_sentry_test_send_button()}
 		</Button>
 	)
 }

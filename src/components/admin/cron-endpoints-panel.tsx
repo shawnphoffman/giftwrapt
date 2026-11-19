@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CronExpressionParser } from 'cron-parser'
-import { formatDistanceToNow } from 'date-fns'
 import { AlertTriangle, CheckCircle2, Clock, Loader2, Play } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -9,7 +8,9 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TapTooltip, TapTooltipContent, TapTooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 import type { CronEndpoint } from '@/lib/cron/registry'
+import { formatDate, formatTimeAgo } from '@/lib/i18n/format'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 function nextFireFromSchedule(schedule: string): Date | null {
 	try {
@@ -21,10 +22,19 @@ function nextFireFromSchedule(schedule: string): Date | null {
 	}
 }
 
+const FULL_DATE_TIME: Intl.DateTimeFormatOptions = {
+	year: 'numeric',
+	month: 'numeric',
+	day: 'numeric',
+	hour: 'numeric',
+	minute: '2-digit',
+	second: '2-digit',
+}
+
 function relativeOrDash(d: Date | string | null) {
 	if (!d) return '—'
 	const date = typeof d === 'string' ? new Date(d) : d
-	return formatDistanceToNow(date, { addSuffix: true })
+	return formatTimeAgo(date)
 }
 
 function RunNowButton({ endpoint, label }: { endpoint: CronEndpoint; label: string }) {
@@ -35,26 +45,32 @@ function RunNowButton({ endpoint, label }: { endpoint: CronEndpoint; label: stri
 			if (result.ok) {
 				const summary = result.result as Record<string, unknown>
 				if ('skipped' in summary) {
-					toast.info(`${label}: skipped (${String(summary.skipped)})`)
+					toast.info(m.admin_settings_cron_endpoints_run_skipped({ label, reason: String(summary.skipped) }))
 				} else {
-					toast.success(`${label} completed`)
+					toast.success(m.admin_settings_cron_endpoints_run_completed({ label }))
 				}
 			} else if (result.reason === 'already-running') {
-				toast.warning(`${label} is already running`)
+				toast.warning(m.admin_settings_cron_endpoints_run_already_running({ label }))
 			} else {
-				toast.error(`${label} failed: ${result.error}`)
+				toast.error(m.admin_settings_cron_endpoints_run_failed({ label, error: result.error }))
 			}
 			qc.invalidateQueries({ queryKey: ['admin', 'cron'] })
 		},
 		onError: err => {
-			toast.error(`${label} failed: ${err instanceof Error ? err.message : String(err)}`)
+			toast.error(m.admin_settings_cron_endpoints_run_failed({ label, error: err instanceof Error ? err.message : String(err) }))
 		},
 	})
 
 	return (
-		<Button size="xs" variant="outline" disabled={mutation.isPending} onClick={() => mutation.mutate()} aria-label={`Run ${label} now`}>
+		<Button
+			size="xs"
+			variant="outline"
+			disabled={mutation.isPending}
+			onClick={() => mutation.mutate()}
+			aria-label={m.admin_settings_cron_endpoints_run_label({ label })}
+		>
 			{mutation.isPending ? <Loader2 className="size-3 animate-spin" /> : <Play className="size-3" />}
-			Run Now
+			{m.admin_settings_cron_endpoints_run_button()}{' '}
 		</Button>
 	)
 }
@@ -82,13 +98,13 @@ export function CronEndpointsPanel() {
 				<table className="w-full text-sm">
 					<thead className="border-b text-left text-xs uppercase text-muted-foreground">
 						<tr>
-							<th className="py-2 pr-3 font-medium whitespace-nowrap">Endpoint</th>
-							<th className="py-2 pr-3 font-medium whitespace-nowrap">Schedule</th>
-							<th className="py-2 pr-3 font-medium whitespace-nowrap">Last run</th>
-							<th className="py-2 pr-3 font-medium whitespace-nowrap">Last success</th>
-							<th className="py-2 pr-3 font-medium whitespace-nowrap">Next fire</th>
-							<th className="py-2 pr-3 font-medium text-right whitespace-nowrap">24h</th>
-							<th className="py-2 pr-3 font-medium text-right whitespace-nowrap">Actions</th>
+							<th className="py-2 pr-3 font-medium whitespace-nowrap">{m.admin_settings_cron_endpoints_endpoint_column()}</th>
+							<th className="py-2 pr-3 font-medium whitespace-nowrap">{m.admin_settings_cron_endpoints_schedule_column()}</th>
+							<th className="py-2 pr-3 font-medium whitespace-nowrap">{m.admin_settings_cron_endpoints_last_run_column()}</th>
+							<th className="py-2 pr-3 font-medium whitespace-nowrap">{m.admin_settings_cron_endpoints_last_success_column()}</th>
+							<th className="py-2 pr-3 font-medium whitespace-nowrap">{m.admin_settings_cron_endpoints_next_fire_column()}</th>
+							<th className="py-2 pr-3 font-medium text-right whitespace-nowrap">{m.admin_settings_cron_endpoints_last_24h_column()}</th>
+							<th className="py-2 pr-3 font-medium text-right whitespace-nowrap">{m.admin_settings_cron_endpoints_actions_column()}</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -110,17 +126,19 @@ export function CronEndpointsPanel() {
 									<td className="py-3 pr-3">
 										<div className="flex flex-col">
 											<code className="text-xs text-nowrap">{entry.schedule}</code>
-											<span className="text-xs text-muted-foreground">{entry.cadence}, UTC</span>
+											<span className="text-xs text-muted-foreground">
+												{m.admin_settings_cron_endpoints_cadence_utc({ cadence: entry.cadence })}
+											</span>
 										</div>
 									</td>
 									<td className="py-3 pr-3 text-xs">
 										{entry.lastRunAt ? (
 											<TapTooltip>
 												<TapTooltipTrigger className="text-left">{relativeOrDash(entry.lastRunAt)}</TapTooltipTrigger>
-												<TapTooltipContent>{new Date(entry.lastRunAt).toLocaleString()}</TapTooltipContent>
+												<TapTooltipContent>{formatDate(entry.lastRunAt, FULL_DATE_TIME)}</TapTooltipContent>
 											</TapTooltip>
 										) : (
-											<span className="text-muted-foreground">never</span>
+											<span className="text-muted-foreground">{m.relative_never()}</span>
 										)}
 									</td>
 									<td className="py-3 pr-3 text-xs">
@@ -130,11 +148,11 @@ export function CronEndpointsPanel() {
 													{stale ? <AlertTriangle className="size-3" /> : <CheckCircle2 className="size-3 text-emerald-500" />}
 													<TapTooltip>
 														<TapTooltipTrigger className="text-left">{relativeOrDash(entry.lastSuccessAt)}</TapTooltipTrigger>
-														<TapTooltipContent>{new Date(entry.lastSuccessAt).toLocaleString()}</TapTooltipContent>
+														<TapTooltipContent>{formatDate(entry.lastSuccessAt, FULL_DATE_TIME)}</TapTooltipContent>
 													</TapTooltip>
 												</>
 											) : (
-												<span className="text-muted-foreground">never</span>
+												<span className="text-muted-foreground">{m.relative_never()}</span>
 											)}
 										</div>
 									</td>
@@ -144,7 +162,7 @@ export function CronEndpointsPanel() {
 												<Clock className="size-3 text-muted-foreground" />
 												<TapTooltip>
 													<TapTooltipTrigger className="text-left text-nowrap">{relativeOrDash(next)}</TapTooltipTrigger>
-													<TapTooltipContent>{next.toLocaleString()}</TapTooltipContent>
+													<TapTooltipContent>{formatDate(next, FULL_DATE_TIME)}</TapTooltipContent>
 												</TapTooltip>
 											</div>
 										) : (
@@ -155,8 +173,8 @@ export function CronEndpointsPanel() {
 										<div className="flex items-center justify-end gap-2">
 											<span className="text-muted-foreground">{entry.runsLast24h}</span>
 											{errs > 0 && (
-												<span className="text-red-500 font-medium" title="errors in last 24h">
-													{errs} err
+												<span className="text-red-500 font-medium" title={m.admin_settings_cron_endpoints_errors_title()}>
+													{m.admin_settings_cron_endpoints_errors_count({ count: errs })}{' '}
 												</span>
 											)}
 										</div>
@@ -183,8 +201,8 @@ function parseInterval(schedule: string, cadence: string): number {
 		const b = it.next().toDate().getTime()
 		return Math.max(60_000, b - a)
 	} catch {
-		const m = cadence.match(/(\d+)\s*minute/i)
-		if (m) return Number(m[1]) * 60_000
+		const minutes = cadence.match(/(\d+)\s*minute/i)
+		if (minutes) return Number(minutes[1]) * 60_000
 		if (/hourly/i.test(cadence)) return 60 * 60_000
 		return 24 * 60 * 60_000
 	}

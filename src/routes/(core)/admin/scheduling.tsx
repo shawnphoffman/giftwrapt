@@ -4,6 +4,7 @@ import { CronDeploymentBanner } from '@/components/admin/cron-deployment-banner'
 import { CronEndpointsPanel } from '@/components/admin/cron-endpoints-panel'
 import { CronRunsTable } from '@/components/admin/cron-runs-table'
 import { CronTimeZoneBanner } from '@/components/admin/cron-time-zone-banner'
+import { RichMessage } from '@/components/common/rich-message'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
@@ -22,10 +23,12 @@ function AdminSchedulingPage() {
 			</ClientOnly>
 			<Card className="animate-page-in">
 				<CardHeader>
-					<CardTitle className="text-2xl">Cron Endpoints</CardTitle>
+					<CardTitle className="text-2xl">{m.admin_nav_scheduling_endpoints_title()}</CardTitle>
 					<CardDescription>
-						Each row is a registered <code>/api/cron/*</code> route. <em>Last success</em> goes amber when the gap exceeds three intervals,
-						which usually means the scheduler has stopped firing.
+						<RichMessage
+							parts={m.admin_nav_scheduling_endpoints_description.parts()}
+							tags={{ code: c => <code>{c}</code>, em: c => <em>{c}</em> }}
+						/>
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -37,11 +40,8 @@ function AdminSchedulingPage() {
 
 			<Card className="animate-page-in">
 				<CardHeader>
-					<CardTitle className="text-2xl">Run History</CardTitle>
-					<CardDescription>
-						Every run is logged here. History is kept for the retention period you set (90 days by default) and cleaned up daily by the
-						verification-cleanup job.
-					</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_nav_scheduling_history_title()}</CardTitle>
+					<CardDescription>{m.admin_nav_scheduling_history_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<ClientOnly>

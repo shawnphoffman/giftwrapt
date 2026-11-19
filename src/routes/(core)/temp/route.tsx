@@ -4,6 +4,7 @@ import { FlaskConical } from 'lucide-react'
 import { PageHeading } from '@/components/common/page-heading'
 import TempLinks from '@/components/temp/links'
 import { adminAuthMiddleware } from '@/middleware/auth'
+import { m } from '@/paraglide/messages.js'
 
 export const Route = createFileRoute('/(core)/temp')({
 	component: TempRoutes,
@@ -17,7 +18,7 @@ function TempRoutes() {
 		<div className="wish-page max-w-7xl min-w-fit">
 			<div className="flex flex-col flex-1 gap-6">
 				{/* HEADING */}
-				<PageHeading title="Temp" icon={FlaskConical} color="amber" titleClassName="text-amber-500" />
+				<PageHeading title={m.admin_temp_title()} icon={FlaskConical} color="amber" titleClassName="text-amber-500" />
 				{/* CONTENT */}
 				<div className="mx-auto grid w-full max-w-8xl items-start gap-6 md:grid-cols-[11.25rem_1fr] lg:grid-cols-[10.3125rem_1fr]">
 					<nav className="grid gap-1">

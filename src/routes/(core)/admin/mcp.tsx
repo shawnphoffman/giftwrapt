@@ -20,6 +20,7 @@ import LoadingSkeleton from '@/components/skeletons/loading-skeleton'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ClientOnly } from '@/components/utilities/client-only'
 import { useAppSetting } from '@/hooks/use-app-settings'
+import { errorText } from '@/lib/i18n/errors'
 import { buildMcpConnectInfo } from '@/lib/mcp-connect'
 import { m } from '@/paraglide/messages.js'
 import { pageHead } from '@/routes/-head'
@@ -49,11 +50,8 @@ function AdminMcpPage() {
 			</ClientOnly>
 			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Clients</CardTitle>
-					<CardDescription>
-						Apps that registered themselves to connect. Disable one to revoke its access and block new sign-ins; delete it to also forget
-						every consent. Real clients simply register again next time.
-					</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_nav_mcp_clients_title()}</CardTitle>
+					<CardDescription>{m.admin_nav_mcp_clients_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<ClientOnly>
@@ -63,10 +61,8 @@ function AdminMcpPage() {
 			</Card>
 			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Active Connections</CardTitle>
-					<CardDescription>
-						Every user-to-client connection that can still sign in. Revoking one signs that assistant out for that user.
-					</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_nav_mcp_connections_title()}</CardTitle>
+					<CardDescription>{m.admin_nav_mcp_connections_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<ClientOnly>
@@ -120,8 +116,8 @@ function ClientsSection() {
 		mutationFn: (client: OauthClientRow) =>
 			setOauthClientDisabledAsAdmin({ data: { clientId: client.clientId, disabled: !client.disabled } }),
 		onMutate: client => setBusy(client.clientId),
-		onSuccess: (_result, client) => toast.success(client.disabled ? 'Client enabled' : 'Client disabled and its connections revoked'),
-		onError: err => toast.error(err instanceof Error ? err.message : 'Could not update client'),
+		onSuccess: (_result, client) => toast.success(client.disabled ? m.admin_nav_mcp_client_enabled() : m.admin_nav_mcp_client_disabled()),
+		onError: err => toast.error(errorText(err, m.admin_nav_mcp_client_update_failed())),
 		onSettled: () => {
 			setBusy(null)
 			invalidate()
@@ -130,8 +126,8 @@ function ClientsSection() {
 
 	const remove = useMutation({
 		mutationFn: (client: OauthClientRow) => deleteOauthClientAsAdmin({ data: { clientId: client.clientId } }),
-		onSuccess: () => toast.success('Client deleted'),
-		onError: err => toast.error(err instanceof Error ? err.message : 'Could not delete client'),
+		onSuccess: () => toast.success(m.admin_nav_mcp_client_deleted()),
+		onError: err => toast.error(errorText(err, m.admin_nav_mcp_client_delete_failed())),
 		onSettled: () => {
 			setDeleteTarget(null)
 			invalidate()
@@ -145,10 +141,10 @@ function ClientsSection() {
 			<ConfirmDialog
 				open={deleteTarget !== null}
 				onOpenChange={open => !open && setDeleteTarget(null)}
-				title="Delete this client?"
-				description={`${deleteTarget?.name || 'This client'} will lose every connection and consent. Users who still use it will be asked to connect again.`}
-				confirmLabel="Delete"
-				confirmBusyLabel="Deleting..."
+				title={m.admin_nav_mcp_delete_title()}
+				description={deleteTarget?.name ? m.admin_nav_mcp_delete_body_named({ name: deleteTarget.name }) : m.admin_nav_mcp_delete_body()}
+				confirmLabel={m.action_delete()}
+				confirmBusyLabel={m.admin_nav_mcp_deleting()}
 				destructive
 				onConfirm={async () => {
 					if (deleteTarget) await remove.mutateAsync(deleteTarget)
@@ -156,6 +152,16 @@ function ClientsSection() {
 			/>
 		</>
 	)
+}
+
+// Who gets signed out of whose account, with a stand-in for whichever name is missing.
+function revokeBody(clientName: string | null | undefined, userName: string | null | undefined): string {
+	const client = clientName || null
+	const user = userName ?? null
+	if (client !== null && user !== null) return m.admin_nav_mcp_revoke_body_client_user({ client, user })
+	if (client !== null) return m.admin_nav_mcp_revoke_body_client({ client })
+	if (user !== null) return m.admin_nav_mcp_revoke_body_user({ user })
+	return m.admin_nav_mcp_revoke_body()
 }
 
 function GrantsSection() {
@@ -169,8 +175,8 @@ function GrantsSection() {
 
 	const revoke = useMutation({
 		mutationFn: (grant: OauthGrantRow) => revokeOauthGrantAsAdmin({ data: { tokenId: grant.id } }),
-		onSuccess: () => toast.success('Connection revoked'),
-		onError: err => toast.error(err instanceof Error ? err.message : 'Could not revoke connection'),
+		onSuccess: () => toast.success(m.admin_nav_mcp_revoked()),
+		onError: err => toast.error(errorText(err, m.admin_nav_mcp_revoke_failed())),
 		onSettled: () => {
 			setRevokeTarget(null)
 			queryClient.invalidateQueries({ queryKey: grantsKey })
@@ -189,10 +195,10 @@ function GrantsSection() {
 			<ConfirmDialog
 				open={revokeTarget !== null}
 				onOpenChange={open => !open && setRevokeTarget(null)}
-				title="Revoke this connection?"
-				description={`${revokeTarget?.clientName || 'The assistant'} will be signed out of ${revokeTarget?.userName ?? 'this user'}'s account immediately.`}
-				confirmLabel="Revoke"
-				confirmBusyLabel="Revoking..."
+				title={m.admin_nav_mcp_revoke_title()}
+				description={revokeBody(revokeTarget?.clientName, revokeTarget?.userName)}
+				confirmLabel={m.admin_nav_mcp_revoke()}
+				confirmBusyLabel={m.admin_nav_mcp_revoking()}
 				destructive
 				onConfirm={async () => {
 					if (revokeTarget) await revoke.mutateAsync(revokeTarget)

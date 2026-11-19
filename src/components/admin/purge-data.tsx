@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 
 import { purgeAllListsAsAdmin } from '@/api/admin'
+import { RichMessage } from '@/components/common/rich-message'
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -16,6 +17,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { errorText } from '@/lib/i18n/errors'
+import { m } from '@/paraglide/messages.js'
 
 const CONFIRM_PHRASE = 'purge everything'
 
@@ -28,12 +31,11 @@ export default function PurgeData() {
 		setPurging(true)
 		try {
 			const result = await purgeAllListsAsAdmin()
-			toast.success(`Purged ${result.listsDeleted} lists, ${result.itemsDeleted} items, ${result.claimsDeleted} claims`)
+			toast.success(m.admin_data_purge_done({ lists: result.listsDeleted, items: result.itemsDeleted, claims: result.claimsDeleted }))
 			setOpen(false)
 			setConfirmText('')
 		} catch (err) {
-			const message = err instanceof Error ? err.message : 'Failed to purge data'
-			toast.error(message)
+			toast.error(errorText(err, m.admin_data_purge_failed()))
 		} finally {
 			setPurging(false)
 		}
@@ -43,7 +45,7 @@ export default function PurgeData() {
 		<>
 			<Button onClick={() => setOpen(true)} variant="destructive" className="gap-2">
 				<Trash2 />
-				Purge Everything
+				{m.admin_data_purge_button()}
 			</Button>
 
 			<AlertDialog
@@ -55,15 +57,15 @@ export default function PurgeData() {
 			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Purge All List Data?</AlertDialogTitle>
-						<AlertDialogDescription>
-							This permanently deletes every list, item, claim, comment, addon, and editor record across all users. User accounts,
-							guardianships, and partner links are kept. Item images are also removed from storage where possible. This can't be undone.
-						</AlertDialogDescription>
+						<AlertDialogTitle>{m.admin_data_purge_confirm_title()}</AlertDialogTitle>
+						<AlertDialogDescription>{m.admin_data_purge_confirm_body()}</AlertDialogDescription>
 					</AlertDialogHeader>
 					<div className="space-y-2">
 						<Label htmlFor="purge-confirm">
-							Type <span className="font-mono font-semibold">{CONFIRM_PHRASE}</span> to Confirm
+							<RichMessage
+								parts={m.admin_data_confirm_phrase_label.parts({ phrase: CONFIRM_PHRASE })}
+								tags={{ phrase: c => <span className="font-mono font-semibold">{c}</span> }}
+							/>
 						</Label>
 						<Input
 							id="purge-confirm"
@@ -74,13 +76,13 @@ export default function PurgeData() {
 						/>
 					</div>
 					<AlertDialogFooter>
-						<AlertDialogCancel disabled={purging}>Cancel</AlertDialogCancel>
+						<AlertDialogCancel disabled={purging}>{m.action_cancel()}</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={handlePurge}
 							disabled={purging || confirmText !== CONFIRM_PHRASE}
 							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
 						>
-							{purging ? 'Purging...' : 'Purge'}
+							{purging ? m.admin_data_purge_busy() : m.admin_data_purge_confirm()}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

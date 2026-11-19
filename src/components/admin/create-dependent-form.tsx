@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { type BirthMonth, birthMonthEnumValues } from '@/db/schema/enums'
 import { useCurrentYear } from '@/hooks/use-current-year'
 import { monthName } from '@/lib/i18n/labels'
+import { m } from '@/paraglide/messages.js'
 
 import { BirthDaySelect } from '../common/birth-day-select'
 
@@ -54,10 +55,10 @@ export function CreateDependentForm({ onCreated }: { onCreated?: () => void }) {
 			}),
 		onSuccess: result => {
 			if (result.kind === 'error') {
-				toast.error(`Couldn't add: ${result.reason}`)
+				toast.error(m.admin_users_dependent_add_error({ reason: result.reason }))
 				return
 			}
-			toast.success(`${result.dependent.name} added`)
+			toast.success(m.admin_users_dependent_added_toast({ name: result.dependent.name }))
 			setName('')
 			setBirthMonth('')
 			setBirthDay(undefined)
@@ -70,7 +71,7 @@ export function CreateDependentForm({ onCreated }: { onCreated?: () => void }) {
 			queryClient.invalidateQueries({ queryKey: ['permissions-matrix'] })
 			onCreated?.()
 		},
-		onError: () => toast.error("Couldn't add dependent"),
+		onError: () => toast.error(m.admin_users_dependent_add_failed()),
 	})
 
 	const canSubmit = name.trim().length > 0 && selectedGuardianIds.length > 0 && !mutation.isPending
@@ -88,39 +89,45 @@ export function CreateDependentForm({ onCreated }: { onCreated?: () => void }) {
 			className="space-y-4"
 		>
 			<div className="grid gap-2">
-				<Label htmlFor="dep-name">Name</Label>
-				<Input id="dep-name" value={name} onChange={e => setName(e.target.value)} placeholder="Mochi" maxLength={60} />
+				<Label htmlFor="dep-name">{m.admin_users_dependent_name_label()}</Label>
+				<Input
+					id="dep-name"
+					value={name}
+					onChange={e => setName(e.target.value)}
+					placeholder={m.admin_users_dependent_name_placeholder()}
+					maxLength={60}
+				/>
 			</div>
 
 			<div className="grid grid-cols-3 gap-2">
 				<div className="space-y-1">
-					<Label htmlFor="dep-month">Birth Month</Label>
+					<Label htmlFor="dep-month">{m.admin_users_dependent_birth_month_label()}</Label>
 					<Select value={birthMonth} onValueChange={v => setBirthMonth(v as BirthMonth)}>
 						<SelectTrigger id="dep-month">
-							<SelectValue placeholder="(none)" />
+							<SelectValue placeholder={m.admin_users_dependent_birth_month_placeholder()} />
 						</SelectTrigger>
 						<SelectContent>
-							{birthMonthEnumValues.map(m => (
-								<SelectItem key={m} value={m}>
-									{monthName(m)}
+							{birthMonthEnumValues.map(month => (
+								<SelectItem key={month} value={month}>
+									{monthName(month)}
 								</SelectItem>
 							))}
 						</SelectContent>
 					</Select>
 				</div>
 				<div className="space-y-1">
-					<Label htmlFor="dep-day">Day</Label>
+					<Label htmlFor="dep-day">{m.admin_users_dependent_birth_day_label()}</Label>
 					<BirthDaySelect id="dep-day" month={birthMonth || undefined} value={birthDay} onValueChange={setBirthDay} />
 				</div>
 				<div className="space-y-1">
-					<Label htmlFor="dep-year">Year</Label>
+					<Label htmlFor="dep-year">{m.admin_users_dependent_birth_year_label()}</Label>
 					<Input id="dep-year" type="number" value={birthYear} onChange={e => setBirthYear(e.target.value)} min={1900} max={currentYear} />
 				</div>
 			</div>
 
 			<div className="space-y-2">
-				<Label>Guardians (Required)</Label>
-				<div className="text-xs text-muted-foreground -mt-1">Users who manage this dependent.</div>
+				<Label>{m.admin_users_dependent_guardians_required_label()}</Label>
+				<div className="text-xs text-muted-foreground -mt-1">{m.admin_users_dependent_guardians_hint()}</div>
 				<div className="flex flex-wrap gap-2">
 					{selectedGuardians.map(g => (
 						<button
@@ -142,7 +149,9 @@ export function CreateDependentForm({ onCreated }: { onCreated?: () => void }) {
 							}}
 						>
 							<SelectTrigger className="w-44 text-xs">
-								<SelectValue placeholder={selectedGuardians.length ? 'Add another...' : 'Pick a guardian'} />
+								<SelectValue
+									placeholder={selectedGuardians.length ? m.admin_users_dependent_add_another() : m.admin_users_dependent_pick_guardian()}
+								/>
 							</SelectTrigger>
 							<SelectContent>
 								{remainingGuardians.map(u => (
@@ -158,7 +167,7 @@ export function CreateDependentForm({ onCreated }: { onCreated?: () => void }) {
 			</div>
 
 			<Button type="submit" disabled={!canSubmit}>
-				<Plus className="size-4" /> {mutation.isPending ? 'Adding...' : 'Add Dependent'}
+				<Plus className="size-4" /> {mutation.isPending ? m.admin_users_dependent_adding() : m.admin_users_dependent_add_submit()}
 			</Button>
 		</form>
 	)

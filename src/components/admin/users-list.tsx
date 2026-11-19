@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TapTooltip, TapTooltipContent, TapTooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
 import type { User } from '@/db-collections/users'
+import { formatMonthDay } from '@/lib/i18n/labels'
+import { m } from '@/paraglide/messages.js'
 
 import GuardianBadge from '../common/guardian-badge'
 import UserTypeBadge from '../common/user-type-badge'
@@ -43,11 +45,15 @@ export function AdminUsersList() {
 	}
 
 	if (error) {
-		return <div className="text-sm text-destructive">Error loading users: {error instanceof Error ? error.message : 'Unknown error'}</div>
+		return (
+			<div className="text-sm text-destructive">
+				{m.admin_users_list_load_error({ error: error instanceof Error ? error.message : m.admin_users_unknown_error() })}
+			</div>
+		)
 	}
 
 	if (users.length === 0) {
-		return <div className="text-sm text-muted-foreground">No users found</div>
+		return <div className="text-sm text-muted-foreground">{m.admin_users_list_empty()}</div>
 	}
 
 	return (
@@ -83,7 +89,7 @@ function IdentityCell({ user }: { user: User }) {
 			<UserAvatar name={user.name || user.email} image={user.image} />
 			<div className="flex-1 min-w-0">
 				<div className="flex items-center gap-2">
-					<span className="font-medium text-sm truncate">{user.name || 'No name'}</span>
+					<span className="font-medium text-sm truncate">{user.name || m.admin_users_no_name()}</span>
 				</div>
 				<div className="text-xs text-muted-foreground truncate">{user.email}</div>
 			</div>
@@ -95,16 +101,15 @@ function BirthdayCell({ user }: { user: User }) {
 	if (!user.birthMonth || !user.birthDay) {
 		return <div className="hidden @xl/admin-content:block" />
 	}
-	const monthName = user.birthMonth.charAt(0).toUpperCase() + user.birthMonth.slice(1)
-	const dateLabel = `${monthName} ${user.birthDay}`
-	const fullLabel = user.birthYear ? `${dateLabel}, ${user.birthYear}` : dateLabel
+	const dateLabel = formatMonthDay(user.birthMonth, user.birthDay)
+	const fullLabel = formatMonthDay(user.birthMonth, user.birthDay, user.birthYear)
 	return (
 		<div className="hidden @xl/admin-content:flex items-center justify-start gap-1 min-w-0">
-			<Tip label={`Birthday: ${fullLabel}`}>
+			<Tip label={m.admin_users_birthday_tip({ date: fullLabel })}>
 				<Badge variant="outline">{dateLabel}</Badge>
 			</Tip>
 			{user.birthYear && (
-				<Tip label={`Born ${user.birthYear}`}>
+				<Tip label={m.admin_users_born_tip({ year: user.birthYear })}>
 					<Badge variant="outline" className="hidden @3xl/admin-content:inline-flex">
 						{user.birthYear}
 					</Badge>
@@ -125,7 +130,7 @@ function RelationshipCell({ user }: { user: User }) {
 		const partnerLabel = user.partner!.name || user.partner!.email
 		return (
 			<div className="hidden @md/admin-content:flex items-center px-3">
-				<Tip label={`Partner: ${partnerLabel}`}>
+				<Tip label={m.admin_users_partner_tip({ name: partnerLabel })}>
 					<span className="relative inline-flex">
 						<UserAvatar name={partnerLabel} image={user.partner!.image} className="ring-1 ring-border" />
 						<Heart className="absolute -bottom-0.5 -right-0.5 size-4 fill-pink-500 text-white dark:text-background stroke-[2.5] drop-shadow-sm" />
@@ -140,7 +145,7 @@ function RelationshipCell({ user }: { user: User }) {
 				const label = g.name || g.email
 				const isTopmost = i === guardians.length - 1
 				return (
-					<Tip key={g.id} label={`Guardian: ${label}`}>
+					<Tip key={g.id} label={m.admin_users_guardian_tip({ name: label })}>
 						<span className="relative inline-flex">
 							<UserAvatar name={label} image={g.image} size="small" className="ring-1 ring-border" />
 							{isTopmost && (
@@ -158,15 +163,15 @@ function BadgesCell({ user }: { user: User }) {
 	return (
 		<div className="flex flex-col items-start gap-1.5 text-xs text-muted-foreground capitalize justify-start flex-wrap">
 			{user.banned && (
-				<Tip label="This user is banned and cannot sign in">
+				<Tip label={m.admin_users_banned_tip()}>
 					<span className="inline-flex items-center gap-1 rounded bg-destructive/10 px-1.5 py-0.5 text-3xs font-medium text-destructive uppercase tracking-wide">
 						<Ban className="size-3" />
-						Banned
+						{m.admin_users_list_banned()}
 					</span>
 				</Tip>
 			)}
 			{user.twoFactorEnabled && (
-				<Tip label="Two-factor auth enabled">
+				<Tip label={m.admin_users_two_factor_tip()}>
 					<span className="inline-flex items-center text-emerald-600 dark:text-emerald-500">
 						<KeyRound className="size-3.5" />
 					</span>
@@ -178,7 +183,7 @@ function BadgesCell({ user }: { user: User }) {
 				</span>
 			</Tip>
 			{user.isGuardian && (
-				<Tip label="Guardian: can manage one or more child accounts">
+				<Tip label={m.admin_users_guardian_badge_tip()}>
 					<span className="inline-flex">
 						<GuardianBadge />
 					</span>
@@ -192,13 +197,13 @@ function EmailVerifiedCell({ user }: { user: User }) {
 	return (
 		<div className="hidden @3xl/admin-content:flex items-center justify-end">
 			{user.emailVerified ? (
-				<Tip label="Email verified">
+				<Tip label={m.admin_users_email_verified_tip()}>
 					<span className="inline-flex items-center text-emerald-600 dark:text-emerald-500">
 						<MailCheck className="size-4" />
 					</span>
 				</Tip>
 			) : (
-				<Tip label="Email not verified">
+				<Tip label={m.admin_users_email_unverified_tip()}>
 					<span className="inline-flex items-center text-amber-600 dark:text-amber-500">
 						<MailWarning className="size-4" />
 					</span>
@@ -220,11 +225,11 @@ function Tip({ label, children }: { label: string; children: React.ReactNode }) 
 function roleTooltip(role: string): string {
 	switch (role) {
 		case 'admin':
-			return 'Admin: full access to /admin and every user account'
+			return m.admin_users_role_tip_admin()
 		case 'child':
-			return "Child: managed by a guardian and can't create gift-ideas lists"
+			return m.admin_users_role_tip_child()
 		case 'user':
-			return 'Standard user'
+			return m.admin_users_role_tip_user()
 		default:
 			return role.charAt(0).toUpperCase() + role.slice(1)
 	}

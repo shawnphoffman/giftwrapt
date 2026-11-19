@@ -6,6 +6,7 @@ import { ImportSettingsForm } from '@/components/admin/import-settings-form'
 import { ScrapeStats } from '@/components/admin/scrape-stats'
 import { ScrapeProvidersList, ScraperTimingForm } from '@/components/admin/scraper-providers-form'
 import { ScrapesList } from '@/components/admin/scrapes-list'
+import { RichMessage } from '@/components/common/rich-message'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -25,9 +26,9 @@ function AdminScrapingPage() {
 		<>
 			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Scraper Settings</CardTitle>
+					<CardTitle className="text-2xl">{m.admin_nav_scraping_settings_title()}</CardTitle>
 					<CardDescription>
-						Time limits for every scrape, and how long results stay cached by URL. AI-specific settings are under <em>AI</em>.
+						<RichMessage parts={m.admin_nav_scraping_settings_description.parts()} tags={{ em: c => <em>{c}</em> }} />
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -38,11 +39,8 @@ function AdminScrapingPage() {
 			</Card>
 			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Bulk Import & Scrape Queue</CardTitle>
-					<CardDescription>
-						Settings for bulk import on the list edit page. The scrape queue is a background cron job that fills in details from each item's
-						URL after the items are created.
-					</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_nav_scraping_bulk_title()}</CardTitle>
+					<CardDescription>{m.admin_nav_scraping_bulk_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<ClientOnly>
@@ -52,10 +50,8 @@ function AdminScrapingPage() {
 			</Card>
 			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Scrapers</CardTitle>
-					<CardDescription>
-						Set up the providers used to import items from URLs. The built-in fetch provider is always on. Configure any others below.
-					</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_nav_scraping_providers_title()}</CardTitle>
+					<CardDescription>{m.admin_nav_scraping_providers_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<ClientOnly>
@@ -65,11 +61,8 @@ function AdminScrapingPage() {
 			</Card>
 			<Card className="animate-page-in">
 				<CardHeader>
-					<CardTitle className="text-2xl">Scrape Health</CardTitle>
-					<CardDescription>
-						Success rates for each provider, plus the domains and error codes that fail most often in the selected time range. Successes are
-						counted on the server. Failures are loaded individually (up to 5,000) so they can be grouped by domain from their actual URLs.
-					</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_nav_scraping_health_title()}</CardTitle>
+					<CardDescription>{m.admin_nav_scraping_health_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<ClientOnly>
@@ -79,27 +72,21 @@ function AdminScrapingPage() {
 			</Card>
 			<Card className="animate-page-in max-w-2xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Scrape History</CardTitle>
-					<CardDescription>
-						Recent scrape attempts (newest first, capped at 200). Inspect any row to see the full response data, the per-column extracted
-						fields, and which user triggered the scrape.
-					</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_nav_scraping_history_title()}</CardTitle>
+					<CardDescription>{m.admin_nav_scraping_history_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<Button type="button" variant="outline" onClick={() => setScrapesOpen(true)}>
 						<ScanSearch />
-						View Recent Scrapes
+						{m.admin_nav_scraping_view_recent()}
 					</Button>
 				</CardContent>
 			</Card>
 			<Dialog open={scrapesOpen} onOpenChange={setScrapesOpen}>
 				<DialogContent className="sm:max-w-[95vw] max-h-[90vh] overflow-y-auto">
 					<DialogHeader>
-						<DialogTitle>Recent Scrapes</DialogTitle>
-						<DialogDescription>
-							Recent scrape attempts (newest first, capped at 200). Click the inspect icon on any row to see the full response data, the
-							per-column extracted fields, and which user triggered the scrape.
-						</DialogDescription>
+						<DialogTitle>{m.admin_nav_scraping_dialog_title()}</DialogTitle>
+						<DialogDescription>{m.admin_nav_scraping_dialog_description()}</DialogDescription>
 					</DialogHeader>
 					<ClientOnly>
 						<ScrapesList />

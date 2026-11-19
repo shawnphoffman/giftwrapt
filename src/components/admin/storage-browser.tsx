@@ -12,8 +12,22 @@ import {
 } from '@/api/admin-storage'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import { Button } from '@/components/ui/button'
+import { m } from '@/paraglide/messages.js'
 
 import { type StorageBrowserFilter, StorageFilterPills, StorageSummaryBar, StorageTable } from './storage-browser-view'
+
+function deleteConfirmTitle(kind: StorageObjectRow['kind']): string {
+	switch (kind) {
+		case 'avatar':
+			return m.admin_storage_delete_confirm_title_avatar()
+		case 'item':
+			return m.admin_storage_delete_confirm_title_item()
+		case 'purchase':
+			return m.admin_storage_delete_confirm_title_purchase()
+		case 'unknown':
+			return m.admin_storage_delete_confirm_title_unknown()
+	}
+}
 
 // /admin/storage page body. Wires the pure view pieces in
 // storage-browser-view.tsx to server fns: paginated list, summary stats,
@@ -79,12 +93,12 @@ export function StorageBrowser() {
 		dryRun.mutate(undefined, {
 			onSuccess: data => {
 				if (data.kind === 'error' && data.reason === 'walk-truncated') {
-					toast.error('Bucket is too large to bulk-delete from the UI. Run a one-shot script instead.')
+					toast.error(m.admin_storage_bulk_too_large())
 					return
 				}
 				setBulkDialogOpen(true)
 			},
-			onError: () => toast.error('Failed to count orphans'),
+			onError: () => toast.error(m.admin_storage_count_failed()),
 		})
 	}
 
@@ -101,14 +115,14 @@ export function StorageBrowser() {
 
 			<StorageFilterPills active={filter} onChange={changeFilter} />
 
-			{listQuery.isLoading && <div className="text-sm text-muted-foreground">Loading objects…</div>}
-			{listQuery.data?.kind === 'error' && <div className="text-sm text-destructive">Storage is not configured on this server.</div>}
+			{listQuery.isLoading && <div className="text-sm text-muted-foreground">{m.admin_storage_loading()}</div>}
+			{listQuery.data?.kind === 'error' && <div className="text-sm text-destructive">{m.admin_storage_not_configured_server()}</div>}
 
 			{listQuery.data?.kind === 'ok' && <StorageTable rows={visibleRows} onDelete={setRowToDelete} />}
 
 			<div className="flex items-center gap-2">
 				<Button type="button" variant="outline" size="sm" disabled={cursorStack.length <= 1} onClick={goPrev}>
-					Previous
+					{m.admin_storage_page_previous()}
 				</Button>
 				<Button
 					type="button"
@@ -117,31 +131,29 @@ export function StorageBrowser() {
 					disabled={listQuery.data?.kind !== 'ok' || !listQuery.data.nextCursor}
 					onClick={goNext}
 				>
-					Next
+					{m.admin_storage_page_next()}
 				</Button>
-				<span className="text-xs text-muted-foreground">Page {cursorStack.length}</span>
+				<span className="text-xs text-muted-foreground">{m.admin_storage_page({ page: cursorStack.length })}</span>
 			</div>
 
 			<ConfirmDialog
 				open={bulkDialogOpen}
 				onOpenChange={setBulkDialogOpen}
 				destructive
-				title="Delete All Orphans?"
-				description={
-					dryRunCount === null
-						? 'Loading…'
-						: `This will permanently delete ${dryRunCount} object${dryRunCount === 1 ? '' : 's'} from the bucket. This cannot be undone.`
-				}
-				confirmLabel="Delete Orphans"
-				confirmBusyLabel="Deleting…"
+				title={m.admin_storage_bulk_title()}
+				description={dryRunCount === null ? m.state_loading() : m.admin_storage_bulk_description({ count: dryRunCount })}
+				confirmLabel={m.admin_storage_bulk_confirm()}
+				confirmBusyLabel={m.admin_storage_deleting()}
 				onConfirm={async () => {
 					const result = await deleteOrphansAsAdmin({ data: {} })
 					if (result.kind === 'error') {
-						toast.error('Storage is not configured.')
+						toast.error(m.admin_storage_not_configured())
 						throw new Error('not-configured')
 					}
 					toast.success(
-						`Deleted ${result.deleted} orphan${result.deleted === 1 ? '' : 's'}${result.failed ? ` (${result.failed} failed)` : ''}`
+						result.failed
+							? m.admin_storage_bulk_done_failed({ count: result.deleted, failed: result.failed })
+							: m.admin_storage_bulk_done({ count: result.deleted })
 					)
 					await invalidate()
 				}}
@@ -153,35 +165,33 @@ export function StorageBrowser() {
 					if (!open) setRowToDelete(null)
 				}}
 				destructive
-				title={rowToDelete ? `Delete ${rowToDelete.kind} object?` : ''}
+				title={rowToDelete ? deleteConfirmTitle(rowToDelete.kind) : ''}
 				description={
 					rowToDelete && (
 						<>
 							<span className="font-mono text-xs break-all">{rowToDelete.key}</span>
 							<br />
 							<br />
-							{rowToDelete.status === 'attached'
-								? 'This object is still referenced by a database row. Deleting will leave that row pointing at a broken URL.'
-								: 'This object is not referenced by any database row.'}
+							{rowToDelete.status === 'attached' ? m.admin_storage_delete_confirm_attached() : m.admin_storage_delete_confirm_orphan()}
 						</>
 					)
 				}
-				confirmLabel="Delete"
-				confirmBusyLabel="Deleting…"
+				confirmLabel={m.action_delete()}
+				confirmBusyLabel={m.admin_storage_deleting()}
 				onConfirm={async () => {
 					if (!rowToDelete) return
 					const result = await deleteStorageObjectAsAdmin({ data: { key: rowToDelete.key } })
 					if (result.kind === 'error') {
 						const msg =
 							result.reason === 'in-use'
-								? 'Object is still referenced by a row.'
+								? m.admin_storage_delete_in_use()
 								: result.reason === 'not-found'
-									? 'Object no longer exists.'
-									: 'Storage is not configured.'
+									? m.admin_storage_delete_not_found()
+									: m.admin_storage_not_configured()
 						toast.error(msg)
 						throw new Error(result.reason)
 					}
-					toast.success('Object deleted')
+					toast.success(m.admin_storage_deleted())
 					setRowToDelete(null)
 					await invalidate()
 				}}

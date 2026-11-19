@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { m } from '@/paraglide/messages.js'
 
 import {
 	DetailField,
@@ -29,7 +30,7 @@ const PROVIDER_LABELS: Record<string, string> = {
 }
 
 function providerLabel(id: string | null): string {
-	if (!id) return 'none'
+	if (!id) return m.admin_settings_barcode_lookups_provider_none()
 	return PROVIDER_LABELS[id] ?? id
 }
 
@@ -38,11 +39,11 @@ export function BarcodeLookupsList() {
 	const [open, setOpen] = useState<BarcodeLookupListRow | null>(null)
 
 	if (lookupsQuery.isLoading) {
-		return <div className="text-sm text-muted-foreground">Loading lookups…</div>
+		return <div className="text-sm text-muted-foreground">{m.admin_settings_barcode_lookups_loading()}</div>
 	}
 	const rows = lookupsQuery.data ?? []
 	if (rows.length === 0) {
-		return <div className="text-sm text-muted-foreground italic">No barcode lookups recorded yet.</div>
+		return <div className="text-sm text-muted-foreground italic">{m.admin_settings_barcode_lookups_empty()}</div>
 	}
 
 	return (
@@ -52,14 +53,14 @@ export function BarcodeLookupsList() {
 					<TableHeader>
 						<TableRow>
 							<TableHead className={STICKY_INSPECT_HEAD}>
-								<span className="sr-only">Inspect</span>
+								<span className="sr-only">{m.admin_settings_barcode_lookups_inspect_column()}</span>
 							</TableHead>
-							<TableHead className="whitespace-nowrap">When</TableHead>
-							<TableHead>Code</TableHead>
-							<TableHead>Provider</TableHead>
-							<TableHead className="whitespace-nowrap">Outcome</TableHead>
-							<TableHead>Product</TableHead>
-							<TableHead>By</TableHead>
+							<TableHead className="whitespace-nowrap">{m.admin_settings_barcode_lookups_when_column()}</TableHead>
+							<TableHead>{m.admin_settings_barcode_lookups_code_column()}</TableHead>
+							<TableHead>{m.admin_settings_barcode_lookups_provider_column()}</TableHead>
+							<TableHead className="whitespace-nowrap">{m.admin_settings_barcode_lookups_outcome_column()}</TableHead>
+							<TableHead>{m.admin_settings_barcode_lookups_product_column()}</TableHead>
+							<TableHead>{m.admin_settings_barcode_lookups_by_column()}</TableHead>
 						</TableRow>
 					</TableHeader>
 					<TableBody>
@@ -80,9 +81,7 @@ function Outcome({ row }: { row: BarcodeLookupListRow }) {
 		return (
 			<span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-500">
 				<CheckCircle2 className="size-3.5" />
-				<span>
-					{count} {count === 1 ? 'result' : 'results'}
-				</span>
+				<span>{m.admin_settings_barcode_lookups_result_count({ count })}</span>
 			</span>
 		)
 	}
@@ -90,7 +89,7 @@ function Outcome({ row }: { row: BarcodeLookupListRow }) {
 		return (
 			<span className="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-500">
 				<SearchX className="size-3.5" />
-				<span>not found</span>
+				<span>{m.admin_settings_barcode_lookups_not_found()}</span>
 			</span>
 		)
 	}
@@ -109,7 +108,13 @@ function LookupRow({ row, onInspect }: { row: BarcodeLookupListRow; onInspect: (
 	return (
 		<TableRow className="group/row">
 			<TableCell className={STICKY_INSPECT_CELL}>
-				<Button type="button" variant="outline" size="icon" onClick={onInspect} aria-label={`Inspect lookup #${row.id}`}>
+				<Button
+					type="button"
+					variant="outline"
+					size="icon"
+					onClick={onInspect}
+					aria-label={m.admin_settings_barcode_lookups_inspect_label({ id: row.id })}
+				>
 					<Eye className="size-4" />
 				</Button>
 			</TableCell>
@@ -119,8 +124,8 @@ function LookupRow({ row, onInspect }: { row: BarcodeLookupListRow; onInspect: (
 			<TableCell className="font-mono text-xs whitespace-nowrap">{row.rawCode}</TableCell>
 			<TableCell className="font-mono text-xs whitespace-nowrap">
 				{row.source === 'cache' && (
-					<Badge variant="outline" className="mr-1.5 text-3xs font-sans" title="Served from the lookup cache">
-						Cache
+					<Badge variant="outline" className="mr-1.5 text-3xs font-sans" title={m.admin_settings_barcode_lookups_cache_title()}>
+						{m.admin_settings_barcode_lookups_cache_badge()}
 					</Badge>
 				)}
 				{providerLabel(row.providerId)}
@@ -139,12 +144,12 @@ function LookupRow({ row, onInspect }: { row: BarcodeLookupListRow; onInspect: (
 							<span className="text-muted-foreground truncate">
 								{first.brand}
 								{first.brand && extra > 0 && ' · '}
-								{extra > 0 && `+${extra} more`}
+								{extra > 0 && m.admin_settings_barcode_lookups_more({ count: extra })}
 							</span>
 						)}
 					</div>
 				) : (
-					<span className="text-muted-foreground italic">none</span>
+					<span className="text-muted-foreground italic">{m.admin_settings_barcode_lookups_product_none()}</span>
 				)}
 			</TableCell>
 			<TableCell className="text-xs">
@@ -154,7 +159,7 @@ function LookupRow({ row, onInspect }: { row: BarcodeLookupListRow; onInspect: (
 						{row.userEmail && <span className="text-muted-foreground truncate">{row.userEmail}</span>}
 					</div>
 				) : (
-					<span className="text-muted-foreground italic">unknown</span>
+					<span className="text-muted-foreground italic">{m.admin_settings_barcode_lookups_user_unknown()}</span>
 				)}
 			</TableCell>
 		</TableRow>
@@ -166,50 +171,57 @@ function LookupDetailDialog({ row, onClose }: { row: BarcodeLookupListRow | null
 		<Dialog open={row !== null} onOpenChange={next => !next && onClose()}>
 			<DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle>Barcode Lookup {row && <span className="font-mono text-base">#{row.id}</span>}</DialogTitle>
-					<DialogDescription>The saved record from the barcode_lookup_history table.</DialogDescription>
+					<DialogTitle>
+						{m.admin_settings_barcode_lookups_detail_title()} {row && <span className="font-mono text-base">#{row.id}</span>}
+					</DialogTitle>
+					<DialogDescription>{m.admin_settings_barcode_lookups_detail_description()}</DialogDescription>
 				</DialogHeader>
 
 				{row && (
 					<div className="space-y-4 text-sm">
 						<DetailGrid>
-							<DetailField label="When">{formatDateTime(row.createdAt)}</DetailField>
-							<DetailField label="Code">
+							<DetailField label={m.admin_settings_barcode_lookups_when_column()}>{formatDateTime(row.createdAt)}</DetailField>
+							<DetailField label={m.admin_settings_barcode_lookups_code_column()}>
 								<span className="font-mono text-xs">{row.rawCode}</span>
 								{row.gtin14 && row.gtin14 !== row.rawCode && (
+									// eslint-disable-next-line i18next/no-literal-string -- identifier name next to its value
 									<span className="ml-2 text-xs text-muted-foreground font-mono">GTIN-14 {row.gtin14}</span>
 								)}
 							</DetailField>
-							<DetailField label="Provider">
+							<DetailField label={m.admin_settings_barcode_lookups_provider_column()}>
 								<span className="font-mono text-xs">{providerLabel(row.providerId)}</span>
-								{row.source === 'cache' && <span className="ml-2 text-xs text-muted-foreground">from cache</span>}
+								{row.source === 'cache' && (
+									<span className="ml-2 text-xs text-muted-foreground">{m.admin_settings_barcode_lookups_from_cache()}</span>
+								)}
 							</DetailField>
-							<DetailField label="Outcome">
+							<DetailField label={m.admin_settings_barcode_lookups_outcome_column()}>
 								<span className="text-xs">
 									<Outcome row={row} />
 								</span>
 								{typeof row.ms === 'number' && <span className="ml-2 text-xs text-muted-foreground">{formatDurationMs(row.ms)}</span>}
 							</DetailField>
 							{row.errorMessage && (
-								<DetailField label="Error">
+								<DetailField label={m.admin_settings_barcode_lookups_error_label()}>
 									<span className="font-mono text-xs text-destructive">{row.errorMessage}</span>
 								</DetailField>
 							)}
-							<DetailField label="Scanned By">
+							<DetailField label={m.admin_settings_barcode_lookups_scanned_by_label()}>
 								{row.userName || row.userEmail ? (
 									<>
 										{row.userName ?? ''}
 										{row.userEmail && <span className="ml-2 text-xs text-muted-foreground">{row.userEmail}</span>}
 									</>
 								) : (
-									<span className="text-muted-foreground italic">unknown</span>
+									<span className="text-muted-foreground italic">{m.admin_settings_barcode_lookups_user_unknown()}</span>
 								)}
 							</DetailField>
 						</DetailGrid>
 
 						{row.results && row.results.length > 0 && (
 							<div className="rounded-md border p-3 space-y-2">
-								<h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Candidates ({row.results.length})</h4>
+								<h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+									{m.admin_settings_barcode_lookups_candidates_title({ count: row.results.length })}
+								</h4>
 								<ul className="space-y-2">
 									{row.results.map((c, i) => (
 										<li key={i} className="flex items-start gap-3">
@@ -225,7 +237,9 @@ function LookupDetailDialog({ row, onClose }: { row: BarcodeLookupListRow | null
 												<div className="size-12 shrink-0 rounded border bg-muted" />
 											)}
 											<div className="min-w-0 flex-1">
-												<div className="wrap-break-word">{c.title ?? <span className="text-muted-foreground italic">no title</span>}</div>
+												<div className="wrap-break-word">
+													{c.title ?? <span className="text-muted-foreground italic">{m.admin_settings_barcode_lookups_no_title()}</span>}
+												</div>
 												{c.brand && <div className="text-xs text-muted-foreground">{c.brand}</div>}
 												{c.candidateUrl && (
 													<a
@@ -246,10 +260,12 @@ function LookupDetailDialog({ row, onClose }: { row: BarcodeLookupListRow | null
 						)}
 
 						<div className="space-y-1.5">
-							<h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Raw Results</h4>
+							<h4 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+								{m.admin_settings_barcode_lookups_raw_title()}
+							</h4>
 							<pre className="text-xs bg-muted/50 rounded-md p-2 overflow-x-auto font-mono leading-snug max-h-[40vh] overflow-y-auto">
 								{row.results === null ? (
-									<span className="text-muted-foreground italic">(none stored)</span>
+									<span className="text-muted-foreground italic">{m.admin_settings_barcode_lookups_raw_none()}</span>
 								) : (
 									JSON.stringify(row.results, null, 2)
 								)}

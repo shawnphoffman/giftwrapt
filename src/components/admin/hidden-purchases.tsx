@@ -18,29 +18,40 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { errorText } from '@/lib/i18n/errors'
+import { formatCalendarDate } from '@/lib/i18n/format'
 import { listTypeLabel } from '@/lib/i18n/labels'
+import { m } from '@/paraglide/messages.js'
 
 const hiddenPurchasesQueryKey = ['admin', 'hidden-purchases'] as const
 
-const REVEAL_ERROR_COPY: Record<string, string> = {
-	'not-found': 'That list no longer exists or is archived.',
-	'not-applicable': "This list type isn't revealed from here.",
+function revealErrorText(reason: string): string {
+	switch (reason) {
+		case 'not-found':
+			return m.admin_data_reveal_error_not_found()
+		case 'not-applicable':
+			return m.admin_data_reveal_error_not_applicable()
+		default:
+			return m.admin_data_reveal_failed()
+	}
 }
 
 // Scheduled reveal dates are calendar dates (UTC midnight) unless the list is
 // extended; either way the date is what matters here, so format in UTC.
 function formatDate(iso: string | null): string {
 	if (!iso) return '-'
-	return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+	return formatCalendarDate(iso, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 function hiddenLabel(row: HiddenPurchasesListRow): string {
 	// The server withholds counts for the admin's own list.
-	if (row.isOwnList) return 'Hidden gifts'
-	const parts: Array<string> = []
-	if (row.hiddenItemCount > 0) parts.push(`${row.hiddenItemCount} claimed`)
-	if (row.hiddenAddonCount > 0) parts.push(`${row.hiddenAddonCount} off-list`)
-	return parts.join(', ')
+	if (row.isOwnList) return m.admin_data_reveal_hidden_own()
+	if (row.hiddenItemCount > 0 && row.hiddenAddonCount > 0) {
+		return m.admin_data_reveal_hidden_both({ items: row.hiddenItemCount, addons: row.hiddenAddonCount })
+	}
+	if (row.hiddenItemCount > 0) return m.admin_data_reveal_hidden_claimed({ count: row.hiddenItemCount })
+	if (row.hiddenAddonCount > 0) return m.admin_data_reveal_hidden_off_list({ count: row.hiddenAddonCount })
+	return ''
 }
 
 export default function HiddenPurchases() {
@@ -57,33 +68,38 @@ export default function HiddenPurchases() {
 		mutationFn: (row: HiddenPurchasesListRow) => revealListAsAdmin({ data: { listId: row.listId, sendEmail } }),
 		onSuccess: async res => {
 			if (res.kind === 'ok') {
-				toast.success('Gifts revealed', {
+				const counts = { items: res.updated, addons: res.addonsArchived }
+				toast.success(m.admin_data_reveal_done_title(), {
 					description: target?.isOwnList
-						? `They're on your Received Gifts page${res.emailSent ? ', email sent' : ''}.`
-						: `${res.updated} item(s) and ${res.addonsArchived} off-list gift(s) revealed${res.emailSent ? ', email sent' : ''}.`,
+						? res.emailSent
+							? m.admin_data_reveal_done_own_email()
+							: m.admin_data_reveal_done_own()
+						: res.emailSent
+							? m.admin_data_reveal_done_other_email(counts)
+							: m.admin_data_reveal_done_other(counts),
 				})
 				setTarget(null)
 				await queryClient.invalidateQueries({ queryKey: hiddenPurchasesQueryKey })
 			} else {
-				toast.error(REVEAL_ERROR_COPY[res.reason] ?? 'Could not reveal gifts.')
+				toast.error(revealErrorText(res.reason))
 			}
 		},
-		onError: err => toast.error(err instanceof Error ? err.message : 'Could not reveal gifts.'),
+		onError: err => toast.error(errorText(err, m.admin_data_reveal_failed())),
 	})
 
-	if (isLoading || !rows) return <p className="text-sm text-muted-foreground">Loading…</p>
-	if (rows.length === 0) return <p className="text-sm text-muted-foreground">No lists have hidden gifts right now.</p>
+	if (isLoading || !rows) return <p className="text-sm text-muted-foreground">{m.state_loading()}</p>
+	if (rows.length === 0) return <p className="text-sm text-muted-foreground">{m.admin_data_reveal_empty()}</p>
 
 	return (
 		<>
 			<Table>
 				<TableHeader>
 					<TableRow>
-						<TableHead>Recipient</TableHead>
-						<TableHead>List</TableHead>
-						<TableHead>Hidden</TableHead>
-						<TableHead>Reveals</TableHead>
-						<TableHead>Last Revealed</TableHead>
+						<TableHead>{m.admin_data_reveal_col_recipient()}</TableHead>
+						<TableHead>{m.admin_data_reveal_col_list()}</TableHead>
+						<TableHead>{m.admin_data_reveal_col_hidden()}</TableHead>
+						<TableHead>{m.admin_data_reveal_col_reveals()}</TableHead>
+						<TableHead>{m.admin_data_reveal_col_last_revealed()}</TableHead>
 						<TableHead />
 					</TableRow>
 				</TableHeader>
@@ -98,7 +114,7 @@ export default function HiddenPurchases() {
 								</div>
 							</TableCell>
 							<TableCell>{hiddenLabel(row)}</TableCell>
-							<TableCell>{row.scheduledRevealAt ? formatDate(row.scheduledRevealAt) : 'Never (manual)'}</TableCell>
+							<TableCell>{row.scheduledRevealAt ? formatDate(row.scheduledRevealAt) : m.admin_data_reveal_never_manual()}</TableCell>
 							<TableCell>{formatDate(row.lastArchivedAt)}</TableCell>
 							<TableCell className="text-right">
 								<Button
@@ -111,7 +127,7 @@ export default function HiddenPurchases() {
 									}}
 								>
 									<Send className="size-4" />
-									Reveal Now
+									{m.admin_data_reveal_now_button()}
 								</Button>
 							</TableCell>
 						</TableRow>
@@ -127,19 +143,19 @@ export default function HiddenPurchases() {
 			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Reveal Gifts on {target?.listName}?</AlertDialogTitle>
+						<AlertDialogTitle>{m.admin_data_reveal_confirm_title({ listName: target?.listName ?? '' })}</AlertDialogTitle>
 						<AlertDialogDescription>
-							Every claimed item and off-list gift still hidden on this list becomes visible to{' '}
-							{target?.isOwnList ? 'you on your' : `${target?.recipientName} on their`} Received Gifts page, along with who gave it. Use
-							this for gifts that were already given, such as purchases logged after the fact. This can&apos;t be undone in bulk.
+							{target?.isOwnList
+								? m.admin_data_reveal_confirm_body_own()
+								: m.admin_data_reveal_confirm_body_other({ recipientName: target?.recipientName ?? '' })}
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<div className="flex items-center gap-2">
 						<Checkbox id="reveal-send-email" checked={sendEmail} onCheckedChange={v => setSendEmail(v === true)} />
-						<Label htmlFor="reveal-send-email">Send the Reveal Email (If That Occasion&apos;s Emails Are On)</Label>
+						<Label htmlFor="reveal-send-email">{m.admin_data_reveal_send_email_label()}</Label>
 					</div>
 					<AlertDialogFooter>
-						<AlertDialogCancel disabled={mutation.isPending}>Cancel</AlertDialogCancel>
+						<AlertDialogCancel disabled={mutation.isPending}>{m.action_cancel()}</AlertDialogCancel>
 						<AlertDialogAction
 							disabled={mutation.isPending}
 							onClick={e => {
@@ -147,7 +163,7 @@ export default function HiddenPurchases() {
 								if (target) mutation.mutate(target)
 							}}
 						>
-							{mutation.isPending ? 'Revealing…' : 'Reveal'}
+							{mutation.isPending ? m.admin_data_reveal_busy() : m.admin_data_reveal_confirm()}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>

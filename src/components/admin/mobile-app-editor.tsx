@@ -10,9 +10,11 @@ import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { fetchMobileAppConfigAsAdmin, type MobileAppConfigResponse, updateMobileAppConfigAsAdmin } from '@/api/admin-mobile-app'
+import { RichMessage } from '@/components/common/rich-message'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { m } from '@/paraglide/messages.js'
 
 const QUERY_KEY = ['admin', 'mobile-app'] as const
 
@@ -57,7 +59,7 @@ export function MobileAppEditor() {
 			return result
 		},
 		onSuccess: () => {
-			toast.success('Mobile app settings saved.')
+			toast.success(m.admin_settings_mobile_saved())
 			void queryClient.invalidateQueries({ queryKey: QUERY_KEY })
 			setDirty(false)
 		},
@@ -67,7 +69,7 @@ export function MobileAppEditor() {
 	})
 
 	if (isLoading || !form) {
-		return <p className="text-sm text-muted-foreground">Loading…</p>
+		return <p className="text-sm text-muted-foreground">{m.state_loading()}</p>
 	}
 
 	const set = <TKey extends keyof FormState>(key: TKey, value: FormState[TKey]) => {
@@ -79,19 +81,21 @@ export function MobileAppEditor() {
 		<div className="space-y-6">
 			<div className="space-y-1.5">
 				<Label htmlFor="mobile-redirect-uris" className="text-base">
-					Allowed Redirect URIs
+					{m.admin_settings_mobile_redirect_uris_label()}
 				</Label>
 				<Textarea
 					id="mobile-redirect-uris"
+					// eslint-disable-next-line i18next/no-literal-string -- URL scheme
 					placeholder="wishlists://oauth"
 					value={form.redirectUrisText}
 					onChange={e => set('redirectUrisText', e.target.value)}
 					rows={3}
 				/>
 				<p className="text-xs text-muted-foreground">
-					One URI per line. Passkey and OIDC sign-in from the iOS app both need this. Leave it empty to turn both off on mobile. The iOS app
-					uses <code className="font-mono">wishlists://oauth</code> by default. Only remove this entry if you&apos;re running a forked build
-					with a different URL scheme.
+					<RichMessage
+						parts={m.admin_settings_mobile_redirect_uris_description.parts()}
+						tags={{ code: children => <code className="font-mono">{children}</code> }}
+					/>
 				</p>
 			</div>
 
@@ -106,10 +110,10 @@ export function MobileAppEditor() {
 						}
 					}}
 				>
-					Reset
+					{m.admin_settings_reset_button()}
 				</Button>
 				<Button disabled={!dirty || update.isPending} onClick={() => update.mutate(form)}>
-					{update.isPending ? 'Saving…' : 'Save'}
+					{update.isPending ? m.state_saving() : m.action_save()}
 				</Button>
 			</div>
 		</div>

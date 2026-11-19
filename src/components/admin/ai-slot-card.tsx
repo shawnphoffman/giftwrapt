@@ -2,6 +2,7 @@ import { CheckIcon, Sparkles, XIcon } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
 import type { AiConfigResponse, AiSlotResponse, TestAiConnectionResult, UpdateAiSlotInput } from '@/api/admin-ai'
+import { RichMessage } from '@/components/common/rich-message'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,6 +16,7 @@ import { CUSTOM_PROVIDER_ID, findProviderMatch, PROVIDERS } from '@/lib/ai-provi
 import type { AiExtraSlot } from '@/lib/ai-slots'
 import type { ProviderModel, ProviderType } from '@/lib/ai-types'
 import { LIMITS } from '@/lib/validation/limits'
+import { m } from '@/paraglide/messages.js'
 
 import { ModelPicker, type ModelPickerStatus } from './model-picker'
 
@@ -75,13 +77,13 @@ function initialProviderId(config: AiSlotResponse, main: AiConfigResponse): stri
 function modeBadge(config: AiSlotResponse): { label: string; variant: 'secondary' | 'outline' | 'destructive' } {
 	switch (config.mode) {
 		case 'model':
-			return { label: 'Own Model', variant: 'secondary' }
+			return { label: m.admin_ai_slot_badge_own_model(), variant: 'secondary' }
 		case 'provider':
-			return { label: 'Own Provider', variant: 'secondary' }
+			return { label: m.admin_ai_slot_badge_own_provider(), variant: 'secondary' }
 		case 'misconfigured':
-			return { label: 'Incomplete', variant: 'destructive' }
+			return { label: m.admin_ai_slot_badge_incomplete(), variant: 'destructive' }
 		default:
-			return { label: 'Same as Default', variant: 'outline' }
+			return { label: m.admin_ai_slot_badge_default(), variant: 'outline' }
 	}
 }
 
@@ -130,8 +132,9 @@ export function AiSlotCard({
 	const showsBaseUrl = slotProviderType === 'openai-compatible'
 
 	const mainProvider = findProviderMatch(main.providerType.value, main.baseUrl.value)
-	const mainProviderName = mainProvider?.name ?? 'the default provider'
-	const providerName = ownProvider ? (isCustom ? 'this endpoint' : (provider?.name ?? 'this endpoint')) : mainProviderName
+	const mainProviderName = mainProvider?.name ?? m.admin_ai_provider_name_default()
+	const endpointName = m.admin_ai_provider_name_endpoint()
+	const providerName = ownProvider ? (isCustom ? endpointName : (provider?.name ?? endpointName)) : mainProviderName
 	const fallbackModels = useMemo<ReadonlyArray<string>>(
 		() => (ownProvider ? (provider?.models ?? []) : (mainProvider?.models ?? [])),
 		[ownProvider, provider, mainProvider]
@@ -167,11 +170,11 @@ export function AiSlotCard({
 	const complete = ownProvider ? trimmedModel.length > 0 && apiKeyAvailable && (!showsBaseUrl || slotBaseUrl.length > 0) : true
 	const missing = ownProvider
 		? !trimmedModel
-			? 'Pick a model for this provider.'
+			? m.admin_ai_slot_missing_model()
 			: !apiKeyAvailable
-				? 'Enter the API key for this provider.'
+				? m.admin_ai_slot_missing_key()
 				: showsBaseUrl && !slotBaseUrl
-					? 'Enter the base URL.'
+					? m.admin_ai_slot_missing_base_url()
 					: null
 		: null
 
@@ -217,27 +220,21 @@ export function AiSlotCard({
 					<CardTitle className="text-2xl">{title}</CardTitle>
 					<Badge variant={badge.variant}>{badge.label}</Badge>
 				</div>
-				<CardDescription>
-					{description} Used by: {features.join(', ')}.
-				</CardDescription>
+				<CardDescription>{m.admin_ai_slot_used_by({ description, features: features.join(', ') })}</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-6">
-				{config.mode === 'misconfigured' && (
-					<p className="text-sm text-destructive">
-						This slot names a provider but is missing its key, model or base URL, so these features are running on the default model.
-					</p>
-				)}
+				{config.mode === 'misconfigured' && <p className="text-sm text-destructive">{m.admin_ai_slot_misconfigured()}</p>}
 
 				{/* Own provider switch */}
 				<div className="flex items-start justify-between gap-4">
 					<div className="space-y-0.5">
 						<Label htmlFor={`${slot}-own-provider`} className="text-base">
-							Use a Different Provider
+							{m.admin_ai_slot_own_provider_label()}
 						</Label>
-						<p className="text-sm text-muted-foreground">
-							Off, this slot runs on {mainProviderName} with the key above. On, it gets its own provider and key.
-						</p>
-						{modeLocked && <p className="text-xs text-muted-foreground">Set by {prefix}_PROVIDER_TYPE. Unset to change here.</p>}
+						<p className="text-sm text-muted-foreground">{m.admin_ai_slot_own_provider_hint({ provider: mainProviderName })}</p>
+						{modeLocked && (
+							<p className="text-xs text-muted-foreground">{m.admin_ai_env_set_by_change({ envVar: `${prefix}_PROVIDER_TYPE` })}</p>
+						)}
 					</div>
 					<Switch
 						id={`${slot}-own-provider`}
@@ -251,7 +248,7 @@ export function AiSlotCard({
 					<>
 						<div className="flex flex-col gap-2">
 							<Label htmlFor={`${slot}-provider`} className="text-base">
-								Provider
+								{m.admin_ai_provider_label()}
 							</Label>
 							<Select value={providerId} onValueChange={handleProviderChange} disabled={saving || locks.providerType || locks.baseUrl}>
 								<SelectTrigger id={`${slot}-provider`} className="w-full">
@@ -263,22 +260,25 @@ export function AiSlotCard({
 											{p.name}
 										</SelectItem>
 									))}
-									<SelectItem value={CUSTOM_PROVIDER_ID}>Custom…</SelectItem>
+									<SelectItem value={CUSTOM_PROVIDER_ID}>{m.admin_ai_provider_custom()}</SelectItem>
 								</SelectContent>
 							</Select>
 							{!isCustom && provider?.baseUrl && <p className="text-xs text-muted-foreground font-mono break-all">{provider.baseUrl}</p>}
-							{locks.baseUrl && <p className="text-xs text-muted-foreground">Set by {prefix}_BASE_URL. Unset to edit here.</p>}
+							{locks.baseUrl && (
+								<p className="text-xs text-muted-foreground">{m.admin_ai_env_set_by_edit({ envVar: `${prefix}_BASE_URL` })}</p>
+							)}
 						</div>
 
 						{showsBaseUrl && isCustom && (
 							<div className="flex flex-col gap-2">
 								<Label htmlFor={`${slot}-base-url`} className="text-base">
-									Base URL
+									{m.admin_ai_base_url_label()}
 								</Label>
 								<Input
 									id={`${slot}-base-url`}
 									type="url"
 									value={customBaseUrl}
+									// eslint-disable-next-line i18next/no-literal-string -- example URL
 									placeholder="https://example.com/v1"
 									disabled={saving || locks.baseUrl}
 									maxLength={LIMITS.URL}
@@ -290,20 +290,20 @@ export function AiSlotCard({
 						<div className="flex flex-col gap-2">
 							<div className="space-y-0.5">
 								<Label htmlFor={`${slot}-api-key`} className="text-base">
-									API Key
+									{m.admin_ai_api_key_label()}
 								</Label>
-								<p className="text-sm text-muted-foreground">The key for this provider. Encrypted at rest. The key above is not used.</p>
+								<p className="text-sm text-muted-foreground">{m.admin_ai_slot_api_key_hint()}</p>
 							</div>
 							{locks.apiKey ? (
 								<>
 									<Input id={`${slot}-api-key`} value={config.apiKey.preview ?? ''} disabled readOnly className="font-mono" />
-									<p className="text-xs text-muted-foreground">Set by {prefix}_API_KEY. Unset to edit here.</p>
+									<p className="text-xs text-muted-foreground">{m.admin_ai_env_set_by_edit({ envVar: `${prefix}_API_KEY` })}</p>
 								</>
 							) : showKeyDisplay ? (
 								<div className="flex items-center gap-2">
 									<Input id={`${slot}-api-key`} value={config.apiKey.preview ?? ''} disabled readOnly className="font-mono" />
 									<Button type="button" variant="outline" disabled={saving} onClick={() => setApiKeyMode('edit')}>
-										Replace
+										{m.admin_ai_api_key_replace()}
 									</Button>
 								</div>
 							) : (
@@ -313,6 +313,7 @@ export function AiSlotCard({
 										type="password"
 										autoComplete="off"
 										value={apiKeyDraft}
+										// eslint-disable-next-line i18next/no-literal-string -- key format sample
 										placeholder="sk-…"
 										disabled={saving}
 										maxLength={LIMITS.SECRET}
@@ -328,7 +329,7 @@ export function AiSlotCard({
 												setApiKeyMode('display')
 											}}
 										>
-											Cancel
+											{m.action_cancel()}
 										</Button>
 									)}
 								</div>
@@ -341,12 +342,12 @@ export function AiSlotCard({
 				<div className="flex flex-col gap-2">
 					<div className="space-y-0.5">
 						<Label htmlFor={`${slot}-model`} className="text-base">
-							Model
+							{m.admin_ai_model_label()}
 						</Label>
 						<p className="text-sm text-muted-foreground">
 							{ownProvider
-								? `A model ${providerName} offers.`
-								: `A model ${mainProviderName} offers. Leave it empty to use the default model.`}
+								? m.admin_ai_slot_model_hint_own({ provider: providerName })
+								: m.admin_ai_slot_model_hint_default({ provider: mainProviderName })}
 						</p>
 					</div>
 					<div className="flex items-start gap-2">
@@ -365,16 +366,22 @@ export function AiSlotCard({
 								}
 								catalogue={!(ownProvider && isCustom)}
 								disabled={saving || locks.model}
-								placeholder={ownProvider ? 'Select a model' : defaultModel ? `Same as default (${defaultModel})` : 'Same as default'}
+								placeholder={
+									ownProvider
+										? m.admin_ai_model_picker_placeholder()
+										: defaultModel
+											? m.admin_ai_slot_model_placeholder_default_named({ model: defaultModel })
+											: m.admin_ai_slot_model_placeholder_default()
+								}
 							/>
 						</div>
 						{!ownProvider && model && !locks.model && (
 							<Button type="button" variant="outline" disabled={saving} onClick={() => setModel('')}>
-								Use Default
+								{m.admin_ai_slot_use_default()}
 							</Button>
 						)}
 					</div>
-					{locks.model && <p className="text-xs text-muted-foreground">Set by {prefix}_MODEL. Unset to edit here.</p>}
+					{locks.model && <p className="text-xs text-muted-foreground">{m.admin_ai_env_set_by_edit({ envVar: `${prefix}_MODEL` })}</p>}
 				</div>
 
 				{rate && trimmedModel && (!rate.isKnown(trimmedModel) || rate.valueFor(trimmedModel)) && (
@@ -408,19 +415,17 @@ export function AiSlotCard({
 					<div className="ml-auto flex items-center gap-2">
 						{hasSavedValue && (
 							<Button type="button" variant="outline" disabled={saving} onClick={() => onSave({ slot, model: null, provider: null })}>
-								Clear
+								{m.action_clear()}
 							</Button>
 						)}
 						<Button type="button" disabled={!dirty || !complete || saving} onClick={handleSave}>
-							{saving ? 'Saving…' : 'Save'}
+							{saving ? m.state_saving() : m.action_save()}
 						</Button>
 					</div>
 				</div>
 				{dirty && missing && <p className="text-xs text-destructive">{missing}</p>}
 				{anyLocked && !modeLocked && (
-					<p className="text-xs text-muted-foreground">
-						Some fields are set by {prefix}_* environment variables and can&apos;t be edited here.
-					</p>
+					<p className="text-xs text-muted-foreground">{m.admin_ai_slot_env_locked({ pattern: `${prefix}_*` })}</p>
 				)}
 			</CardContent>
 		</Card>
@@ -437,7 +442,7 @@ function SlotTestButton({ slot, disabled, run }: { slot: AiExtraSlot; disabled: 
 		try {
 			setResult(await run())
 		} catch (err) {
-			setResult({ ok: false, error: err instanceof Error ? err.message : 'Test failed' })
+			setResult({ ok: false, error: err instanceof Error ? err.message : m.admin_ai_test_failed() })
 		} finally {
 			setTesting(false)
 		}
@@ -449,9 +454,9 @@ function SlotTestButton({ slot, disabled, run }: { slot: AiExtraSlot; disabled: 
 		<div className="flex min-w-0 flex-wrap items-center gap-2">
 			<Button type="button" variant="outline" className="gap-2" disabled={disabled || testing} onClick={handleClick}>
 				{Icon}
-				{testing ? 'Testing…' : slot === 'vision' ? 'Test with an Image' : 'Test'}
+				{testing ? m.admin_ai_test_testing() : slot === 'vision' ? m.admin_ai_slot_test_image() : m.admin_ai_slot_test()}
 			</Button>
-			{result?.ok === true && <span className="text-sm text-muted-foreground">OK ({result.latencyMs} ms)</span>}
+			{result?.ok === true && <span className="text-sm text-muted-foreground">{m.admin_ai_test_ok({ latency: result.latencyMs })}</span>}
 			{result?.ok === false && <span className="text-sm text-destructive break-words">{result.error}</span>}
 		</div>
 	)
@@ -495,16 +500,15 @@ function ModelRateFields({
 	return (
 		<div className="flex flex-col gap-2">
 			<div className="space-y-0.5">
-				<p className="text-base font-medium">Price</p>
+				<p className="text-base font-medium">{m.admin_ai_rate_title()}</p>
 				<p className="text-sm text-muted-foreground">
-					Optional. <span className="font-mono text-xs">{model}</span> isn&apos;t in the built-in price list, so usage estimates and the
-					monthly ceiling assume $3 in and $15 out per 1M tokens unless you enter its price.
+					<RichMessage parts={m.admin_ai_rate_hint.parts({ model })} tags={{ mono: c => <span className="font-mono text-xs">{c}</span> }} />
 				</p>
 			</div>
 			<div className="flex flex-wrap items-end gap-2">
 				<div className="flex flex-col gap-1">
 					<Label htmlFor={`${slot}-rate-in`} className="text-xs text-muted-foreground">
-						Input $ per 1M tokens
+						{m.admin_ai_rate_input_label()}
 					</Label>
 					<Input
 						id={`${slot}-rate-in`}
@@ -518,7 +522,7 @@ function ModelRateFields({
 				</div>
 				<div className="flex flex-col gap-1">
 					<Label htmlFor={`${slot}-rate-out`} className="text-xs text-muted-foreground">
-						Output $ per 1M tokens
+						{m.admin_ai_rate_output_label()}
 					</Label>
 					<Input
 						id={`${slot}-rate-out`}
@@ -536,10 +540,10 @@ function ModelRateFields({
 					disabled={!dirty || !valid || pending}
 					onClick={() => onSave(empty ? null : { inPerMTok: inParsed!, outPerMTok: outParsed! })}
 				>
-					Save Price
+					{m.admin_ai_rate_save()}
 				</Button>
 			</div>
-			{!valid && <p className="text-xs text-destructive">Enter both prices as numbers, or leave both empty.</p>}
+			{!valid && <p className="text-xs text-destructive">{m.admin_ai_rate_invalid()}</p>}
 		</div>
 	)
 }

@@ -15,11 +15,8 @@ function AdminEmailPage() {
 	return (
 		<Card className="animate-page-in max-w-xl">
 			<CardHeader>
-				<CardTitle className="text-2xl">Email</CardTitle>
-				<CardDescription>
-					Configure the Resend integration used for all transactional email. Values provided via environment variables take precedence and
-					cannot be edited here.
-				</CardDescription>
+				<CardTitle className="text-2xl">{m.admin_nav_email_title()}</CardTitle>
+				<CardDescription>{m.admin_nav_email_description()}</CardDescription>
 			</CardHeader>
 			<CardContent>
 				<ClientOnly>

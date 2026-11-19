@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatRelative } from '@/lib/format-relative'
+import { m } from '@/paraglide/messages.js'
 
 export type McpGrantsTableProps = {
 	grants: Array<OauthGrantRow>
@@ -30,7 +31,7 @@ export function McpGrantsTable({ grants, onRevoke, busyGrantId = null }: McpGran
 	}, [grants, filter])
 
 	if (grants.length === 0) {
-		return <EmptyMessage message="No active connections. Grants appear here once a user approves an AI client." />
+		return <EmptyMessage message={m.admin_settings_mcp_grants_empty()} />
 	}
 
 	return (
@@ -38,20 +39,20 @@ export function McpGrantsTable({ grants, onRevoke, busyGrantId = null }: McpGran
 			<Input
 				value={filter}
 				onChange={e => setFilter(e.target.value)}
-				placeholder="Filter by user name or email"
-				aria-label="Filter grants by user"
+				placeholder={m.admin_settings_mcp_grants_filter_placeholder()}
+				aria-label={m.admin_settings_mcp_grants_filter_label()}
 			/>
 			{filtered.length === 0 ? (
-				<EmptyMessage message="No connections match that filter." />
+				<EmptyMessage message={m.admin_settings_mcp_grants_no_match()} />
 			) : (
 				<Table>
 					<TableHeader>
 						<TableRow>
-							<TableHead>User</TableHead>
-							<TableHead>Client</TableHead>
-							<TableHead>Access</TableHead>
-							<TableHead>Last Used</TableHead>
-							<TableHead>Expires</TableHead>
+							<TableHead>{m.admin_settings_mcp_grants_user_column()}</TableHead>
+							<TableHead>{m.admin_settings_mcp_client_column()}</TableHead>
+							<TableHead>{m.admin_settings_mcp_grants_access_column()}</TableHead>
+							<TableHead>{m.admin_settings_mcp_last_used_column()}</TableHead>
+							<TableHead>{m.admin_settings_mcp_grants_expires_column()}</TableHead>
 							<TableHead className="w-0" />
 						</TableRow>
 					</TableHeader>
@@ -62,11 +63,13 @@ export function McpGrantsTable({ grants, onRevoke, busyGrantId = null }: McpGran
 							return (
 								<TableRow key={grant.id}>
 									<TableCell>
-										<div className="font-medium">{grant.userName ?? 'Unknown user'}</div>
+										<div className="font-medium">{grant.userName ?? m.admin_settings_mcp_grants_unknown_user()}</div>
 										<div className="text-xs text-muted-foreground">{grant.userEmail ?? grant.userId ?? ''}</div>
 									</TableCell>
-									<TableCell>{grant.clientName || 'Unnamed client'}</TableCell>
-									<TableCell className="text-muted-foreground">{grant.access === 'read' ? 'Read only' : 'Full'}</TableCell>
+									<TableCell>{grant.clientName || m.admin_settings_mcp_unnamed_client()}</TableCell>
+									<TableCell className="text-muted-foreground">
+										{grant.access === 'read' ? m.admin_settings_mcp_grants_access_read() : m.admin_settings_mcp_grants_access_full()}
+									</TableCell>
 									<TableCell className="text-muted-foreground">{formatRelative(grant.lastUsedAt)}</TableCell>
 									<TableCell className={soon ? 'text-amber-600' : 'text-muted-foreground'}>
 										{formatRelative(grant.refreshTokenExpiresAt)}
@@ -78,7 +81,7 @@ export function McpGrantsTable({ grants, onRevoke, busyGrantId = null }: McpGran
 												size="sm"
 												disabled={busyGrantId === grant.id}
 												onClick={() => onRevoke(grant)}
-												aria-label="Revoke connection"
+												aria-label={m.admin_settings_mcp_grants_revoke_label()}
 												className="text-muted-foreground hover:text-destructive"
 											>
 												<Trash2 className="size-4" />

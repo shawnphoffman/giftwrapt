@@ -7,17 +7,18 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'rec
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { type ChartConfig, ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
+import { formatCurrency, formatDate, formatNumber } from '@/lib/i18n/format'
+import { m } from '@/paraglide/messages.js'
 
 import type { DailySeriesPoint } from './__fixtures__/types'
 
-function formatNumber(n: number): string {
-	if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
-	return n.toString()
+function compactNumber(n: number): string {
+	if (n >= 1000) return `${formatNumber(n / 1000, { minimumFractionDigits: 1, maximumFractionDigits: 1, useGrouping: false })}k`
+	return formatNumber(n, { useGrouping: false, maximumFractionDigits: 20 })
 }
 
 function shortDate(iso: string): string {
-	const d = new Date(iso)
-	return `${d.getMonth() + 1}/${d.getDate()}`
+	return formatDate(iso, { month: 'numeric', day: 'numeric' })
 }
 
 function LegendDot({ color, label }: { color: string; label: string }) {
@@ -35,22 +36,23 @@ const RUNS_COLORS = {
 	error: 'var(--color-rose-500)',
 }
 
-const runsChartConfig: ChartConfig = {
-	runsSuccess: { label: 'Success', color: RUNS_COLORS.success },
-	runsSkipped: { label: 'Skipped', color: RUNS_COLORS.skipped },
-	runsError: { label: 'Error', color: RUNS_COLORS.error },
-}
+// Built on each render so the series names follow the page's language.
+const runsChartConfig = (): ChartConfig => ({
+	runsSuccess: { label: m.admin_intel_chart_series_success(), color: RUNS_COLORS.success },
+	runsSkipped: { label: m.admin_intel_chart_series_skipped(), color: RUNS_COLORS.skipped },
+	runsError: { label: m.admin_intel_chart_series_error(), color: RUNS_COLORS.error },
+})
 
 export function RunsActivityChart({ data }: { data: Array<DailySeriesPoint> }) {
 	const total = data.reduce((s, d) => s + d.runsSuccess + d.runsSkipped + d.runsError, 0)
 	return (
 		<Card data-intelligence="admin-chart-runs">
 			<CardHeader>
-				<CardTitle className="text-2xl">Runs (14 Days)</CardTitle>
-				<CardDescription className="tabular-nums">{total} total</CardDescription>
+				<CardTitle className="text-2xl">{m.admin_intel_chart_runs_title()}</CardTitle>
+				<CardDescription className="tabular-nums">{m.admin_intel_chart_runs_total({ count: total })}</CardDescription>
 			</CardHeader>
 			<CardContent>
-				<ChartContainer config={runsChartConfig} className="aspect-auto h-44 w-full">
+				<ChartContainer config={runsChartConfig()} className="aspect-auto h-44 w-full">
 					<BarChart accessibilityLayer data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
 						<defs>
 							<linearGradient id="fillRunsSuccess" x1="0" y1="0" x2="0" y2="1">
@@ -76,9 +78,9 @@ export function RunsActivityChart({ data }: { data: Array<DailySeriesPoint> }) {
 					</BarChart>
 				</ChartContainer>
 				<div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-2xs text-muted-foreground">
-					<LegendDot color={RUNS_COLORS.success} label="Success" />
-					<LegendDot color={RUNS_COLORS.skipped} label="Skipped" />
-					<LegendDot color={RUNS_COLORS.error} label="Error" />
+					<LegendDot color={RUNS_COLORS.success} label={m.admin_intel_chart_series_success()} />
+					<LegendDot color={RUNS_COLORS.skipped} label={m.admin_intel_chart_series_skipped()} />
+					<LegendDot color={RUNS_COLORS.error} label={m.admin_intel_chart_series_error()} />
 				</div>
 			</CardContent>
 		</Card>
@@ -90,21 +92,23 @@ const TOKENS_COLORS = {
 	out: 'var(--color-amber-500)',
 }
 
-const tokensChartConfig: ChartConfig = {
-	tokensIn: { label: 'In', color: TOKENS_COLORS.in },
-	tokensOut: { label: 'Out', color: TOKENS_COLORS.out },
-}
+const tokensChartConfig = (): ChartConfig => ({
+	tokensIn: { label: m.admin_intel_chart_series_in(), color: TOKENS_COLORS.in },
+	tokensOut: { label: m.admin_intel_chart_series_out(), color: TOKENS_COLORS.out },
+})
 
 export function TokenUsageChart({ data }: { data: Array<DailySeriesPoint> }) {
 	const totalCost = data.reduce((s, d) => s + d.costUsd, 0)
 	return (
 		<Card data-intelligence="admin-chart-tokens">
 			<CardHeader>
-				<CardTitle className="text-2xl">Tokens &amp; Cost (14 Days)</CardTitle>
-				<CardDescription className="tabular-nums">${totalCost.toFixed(2)} total</CardDescription>
+				<CardTitle className="text-2xl">{m.admin_intel_chart_tokens_title()}</CardTitle>
+				<CardDescription className="tabular-nums">
+					{m.admin_intel_chart_cost_total({ cost: formatCurrency(totalCost, 'USD') })}
+				</CardDescription>
 			</CardHeader>
 			<CardContent>
-				<ChartContainer config={tokensChartConfig} className="aspect-auto h-44 w-full">
+				<ChartContainer config={tokensChartConfig()} className="aspect-auto h-44 w-full">
 					<AreaChart accessibilityLayer data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
 						<defs>
 							<linearGradient id="fillIn" x1="0" y1="0" x2="0" y2="1">
@@ -118,15 +122,15 @@ export function TokenUsageChart({ data }: { data: Array<DailySeriesPoint> }) {
 						</defs>
 						<CartesianGrid vertical={false} strokeDasharray="3 3" />
 						<XAxis dataKey="date" tickLine={false} axisLine={false} tickFormatter={shortDate} fontSize={10} />
-						<YAxis tickLine={false} axisLine={false} fontSize={10} width={36} tickFormatter={n => formatNumber(n as number)} />
+						<YAxis tickLine={false} axisLine={false} fontSize={10} width={36} tickFormatter={n => compactNumber(n as number)} />
 						<ChartTooltip content={<ChartTooltipContent />} />
 						<Area type="monotone" dataKey="tokensIn" stackId="t" stroke="var(--color-tokensIn)" fill="url(#fillIn)" strokeWidth={2} />
 						<Area type="monotone" dataKey="tokensOut" stackId="t" stroke="var(--color-tokensOut)" fill="url(#fillOut)" strokeWidth={2} />
 					</AreaChart>
 				</ChartContainer>
 				<div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-2xs text-muted-foreground">
-					<LegendDot color={TOKENS_COLORS.in} label="Input" />
-					<LegendDot color={TOKENS_COLORS.out} label="Output" />
+					<LegendDot color={TOKENS_COLORS.in} label={m.admin_intel_chart_legend_input()} />
+					<LegendDot color={TOKENS_COLORS.out} label={m.admin_intel_chart_legend_output()} />
 				</div>
 			</CardContent>
 		</Card>

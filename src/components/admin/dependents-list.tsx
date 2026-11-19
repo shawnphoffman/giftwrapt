@@ -8,7 +8,8 @@ import UserAvatar from '@/components/common/user-avatar'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TapTooltip, TapTooltipContent, TapTooltipTrigger, TooltipProvider } from '@/components/ui/tooltip'
-import { formatMonthDay } from '@/lib/i18n/labels'
+import { formatMonthDay, monthName } from '@/lib/i18n/labels'
+import { m } from '@/paraglide/messages.js'
 
 import { EditDependentDialog } from './edit-dependent-dialog'
 
@@ -52,7 +53,7 @@ export function AdminDependentsList() {
 	}
 
 	if (!dependentsQuery.data || dependentsQuery.data.dependents.length === 0) {
-		return <div className="text-sm text-muted-foreground">No dependents yet.</div>
+		return <div className="text-sm text-muted-foreground">{m.admin_users_dependents_empty()}</div>
 	}
 
 	return (
@@ -68,7 +69,16 @@ export function AdminDependentsList() {
 
 function DependentRow({ dependent }: { dependent: AdminDependent }) {
 	const [open, setOpen] = useState(false)
-	const monthName = dependent.birthMonth ? formatMonthDay(dependent.birthMonth, dependent.birthDay) : null
+	const birthdayLabel = dependent.birthMonth ? formatMonthDay(dependent.birthMonth, dependent.birthDay) : null
+	// With a day the date reads as one ("January 9, 2020"); a month alone keeps
+	// the year after a comma, as this row always showed it.
+	const birthdayFull = !dependent.birthMonth
+		? null
+		: !dependent.birthYear
+			? birthdayLabel
+			: dependent.birthDay
+				? formatMonthDay(dependent.birthMonth, dependent.birthDay, dependent.birthYear)
+				: m.admin_users_month_year({ month: monthName(dependent.birthMonth), year: dependent.birthYear })
 
 	return (
 		<>
@@ -83,29 +93,35 @@ function DependentRow({ dependent }: { dependent: AdminDependent }) {
 					<div className="flex-1 min-w-0">
 						<div className="flex items-center gap-2">
 							<span className="font-medium text-sm truncate">{dependent.name}</span>
-							{dependent.isArchived && <span className="text-3xs uppercase tracking-wide text-muted-foreground italic">archived</span>}
+							{dependent.isArchived && (
+								<span className="text-3xs uppercase tracking-wide text-muted-foreground italic">
+									{m.admin_users_dependent_archived_tag()}
+								</span>
+							)}
 						</div>
-						<div className="text-xs text-muted-foreground">Dependent</div>
+						<div className="text-xs text-muted-foreground">{m.admin_users_dependent_kind()}</div>
 					</div>
 				</div>
 
 				{/* Birthday */}
 				<div className="hidden @xl/admin-content:flex items-center justify-start gap-1 min-w-0">
-					{monthName && (
-						<Tip label={`Birthday: ${monthName}${dependent.birthYear ? `, ${dependent.birthYear}` : ''}`}>
-							<Badge variant="outline">{monthName}</Badge>
+					{birthdayLabel && (
+						<Tip label={m.admin_users_birthday_tip({ date: birthdayFull ?? birthdayLabel })}>
+							<Badge variant="outline">{birthdayLabel}</Badge>
 						</Tip>
 					)}
 				</div>
 
 				{/* Guardians */}
 				<div className="hidden @sm/admin-content:flex items-center px-3 -space-x-2">
-					{dependent.guardians.length === 0 && <span className="text-xs italic text-destructive">No guardians</span>}
+					{dependent.guardians.length === 0 && (
+						<span className="text-xs italic text-destructive">{m.admin_users_dependent_no_guardians()}</span>
+					)}
 					{dependent.guardians.map((g, i) => {
 						const label = g.name || g.email
 						const isTopmost = i === dependent.guardians.length - 1
 						return (
-							<Tip key={g.id} label={`Guardian: ${label}`}>
+							<Tip key={g.id} label={m.admin_users_guardian_tip({ name: label })}>
 								<span className="relative inline-flex">
 									<UserAvatar name={label} image={g.image} size="small" className="ring-1 ring-border" />
 									{isTopmost && (

@@ -18,8 +18,8 @@ function AdminDataPage() {
 		<>
 			<Card className="animate-page-in max-w-xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Export Backup</CardTitle>
-					<CardDescription>Download a JSON snapshot of all app data.</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_data_page_export_title()}</CardTitle>
+					<CardDescription>{m.admin_data_page_export_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<ClientOnly>
@@ -29,8 +29,8 @@ function AdminDataPage() {
 			</Card>
 			<Card className="animate-page-in max-w-xl">
 				<CardHeader>
-					<CardTitle className="text-2xl">Import Backup</CardTitle>
-					<CardDescription>Restore app data from a previously exported JSON snapshot.</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_data_page_import_title()}</CardTitle>
+					<CardDescription>{m.admin_data_page_import_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<ClientOnly>
@@ -40,11 +40,8 @@ function AdminDataPage() {
 			</Card>
 			<Card className="animate-page-in max-w-xl border-destructive/40">
 				<CardHeader>
-					<CardTitle className="text-2xl">Purge All Data</CardTitle>
-					<CardDescription>
-						Permanently delete every list, item, claim, comment, addon, and editor record. Users, guardianships, and partner links are kept.
-						This can't be undone.
-					</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_data_page_purge_title()}</CardTitle>
+					<CardDescription>{m.admin_data_page_purge_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<ClientOnly>

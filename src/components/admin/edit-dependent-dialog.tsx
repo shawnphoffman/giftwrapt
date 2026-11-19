@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { type BirthMonth, birthMonthEnumValues } from '@/db/schema/enums'
 import { useCurrentYear } from '@/hooks/use-current-year'
 import { monthName } from '@/lib/i18n/labels'
+import { m } from '@/paraglide/messages.js'
 
 import { BirthDaySelect } from '../common/birth-day-select'
 import DependentAvatar from '../common/dependent-avatar'
@@ -98,42 +99,46 @@ export function EditDependentDialog({
 				},
 			}),
 		onSuccess: r => {
-			if (r.kind === 'error') return toast.error(`Couldn't update: ${r.reason}`)
-			toast.success('Updated')
+			if (r.kind === 'error') return toast.error(m.admin_users_dependent_update_error({ reason: r.reason }))
+			toast.success(m.admin_users_dependent_updated_toast())
 			invalidate()
 			onOpenChange(false)
 		},
-		onError: () => toast.error("Couldn't update"),
+		onError: () => toast.error(m.admin_users_dependent_update_failed()),
 	})
 
 	const deleteMutation = useMutation({
 		mutationFn: () => deleteDependent({ data: { id: dependent.id } }),
 		onSuccess: r => {
-			if (r.kind === 'error') return toast.error(`Couldn't delete: ${r.reason}`)
-			toast.success(r.action === 'archived' ? `${dependent.name} archived (had gift history)` : `${dependent.name} deleted`)
+			if (r.kind === 'error') return toast.error(m.admin_users_dependent_delete_error({ reason: r.reason }))
+			toast.success(
+				r.action === 'archived'
+					? m.admin_users_dependent_archived_toast({ name: dependent.name })
+					: m.admin_users_dependent_deleted_toast({ name: dependent.name })
+			)
 			invalidate()
 			setConfirmDeleteOpen(false)
 			onOpenChange(false)
 		},
-		onError: () => toast.error("Couldn't delete"),
+		onError: () => toast.error(m.admin_users_dependent_delete_failed()),
 	})
 
 	const addGuardianMutation = useMutation({
 		mutationFn: (userId: string) => addDependentGuardian({ data: { dependentId: dependent.id, userId } }),
 		onSuccess: r => {
-			if (r.kind === 'error') return toast.error(`Couldn't add guardian: ${r.reason}`)
+			if (r.kind === 'error') return toast.error(m.admin_users_dependent_add_guardian_error({ reason: r.reason }))
 			invalidate()
 		},
-		onError: () => toast.error("Couldn't add guardian"),
+		onError: () => toast.error(m.admin_users_dependent_add_guardian_failed()),
 	})
 
 	const removeGuardianMutation = useMutation({
 		mutationFn: (userId: string) => removeDependentGuardian({ data: { dependentId: dependent.id, userId } }),
 		onSuccess: r => {
-			if (r.kind === 'error') return toast.error(`Couldn't remove guardian: ${r.reason}`)
+			if (r.kind === 'error') return toast.error(m.admin_users_dependent_remove_guardian_error({ reason: r.reason }))
 			invalidate()
 		},
-		onError: () => toast.error("Couldn't remove guardian"),
+		onError: () => toast.error(m.admin_users_dependent_remove_guardian_failed()),
 	})
 
 	const guardianIdSet = new Set(dependent.guardianIds)
@@ -151,8 +156,12 @@ export function EditDependentDialog({
 				<DialogHeader>
 					<DialogTitle className="flex items-center gap-3">
 						<DependentAvatar name={dependent.name} image={dependent.image} size="medium" />
-						<span>Edit {dependent.name}</span>
-						{dependent.isArchived && <span className="text-3xs uppercase tracking-wide text-muted-foreground italic">archived</span>}
+						<span>{m.admin_users_dependent_edit_title({ name: dependent.name })}</span>
+						{dependent.isArchived && (
+							<span className="text-3xs uppercase tracking-wide text-muted-foreground italic">
+								{m.admin_users_dependent_archived_tag()}
+							</span>
+						)}
 					</DialogTitle>
 				</DialogHeader>
 
@@ -165,7 +174,7 @@ export function EditDependentDialog({
 					className="space-y-4"
 				>
 					<div className="grid gap-2">
-						<Label htmlFor="edit-dep-name">Name</Label>
+						<Label htmlFor="edit-dep-name">{m.admin_users_dependent_name_label()}</Label>
 						<Input
 							id="edit-dep-name"
 							value={name}
@@ -177,22 +186,22 @@ export function EditDependentDialog({
 
 					<div className="grid grid-cols-3 gap-2">
 						<div className="space-y-1">
-							<Label htmlFor="edit-dep-month">Birth Month</Label>
+							<Label htmlFor="edit-dep-month">{m.admin_users_dependent_birth_month_label()}</Label>
 							<Select value={birthMonth} onValueChange={v => setBirthMonth(v as BirthMonth)} disabled={saveMutation.isPending}>
 								<SelectTrigger id="edit-dep-month">
-									<SelectValue placeholder="(none)" />
+									<SelectValue placeholder={m.admin_users_dependent_birth_month_placeholder()} />
 								</SelectTrigger>
 								<SelectContent>
-									{birthMonthEnumValues.map(m => (
-										<SelectItem key={m} value={m}>
-											{monthName(m)}
+									{birthMonthEnumValues.map(month => (
+										<SelectItem key={month} value={month}>
+											{monthName(month)}
 										</SelectItem>
 									))}
 								</SelectContent>
 							</Select>
 						</div>
 						<div className="space-y-1">
-							<Label htmlFor="edit-dep-day">Day</Label>
+							<Label htmlFor="edit-dep-day">{m.admin_users_dependent_birth_day_label()}</Label>
 							<BirthDaySelect
 								id="edit-dep-day"
 								month={birthMonth || undefined}
@@ -202,7 +211,7 @@ export function EditDependentDialog({
 							/>
 						</div>
 						<div className="space-y-1">
-							<Label htmlFor="edit-dep-year">Year</Label>
+							<Label htmlFor="edit-dep-year">{m.admin_users_dependent_birth_year_label()}</Label>
 							<Input
 								id="edit-dep-year"
 								type="number"
@@ -216,9 +225,11 @@ export function EditDependentDialog({
 					</div>
 
 					<div className="space-y-2">
-						<Label>Guardians</Label>
+						<Label>{m.admin_users_dependent_guardians_label()}</Label>
 						<div className="flex flex-wrap items-center gap-2">
-							{dependent.guardians.length === 0 && <span className="text-xs italic text-destructive">No guardians (unmanageable!)</span>}
+							{dependent.guardians.length === 0 && (
+								<span className="text-xs italic text-destructive">{m.admin_users_dependent_no_guardians_warning()}</span>
+							)}
 							{dependent.guardians.map((g, i) => {
 								const label = g.name || g.email
 								const isTopmost = i === dependent.guardians.length - 1
@@ -228,14 +239,14 @@ export function EditDependentDialog({
 										type="button"
 										onClick={() => {
 											if (dependent.guardians.length <= 1) {
-												toast.error("Can't remove the last guardian.")
+												toast.error(m.admin_users_dependent_last_guardian_error())
 												return
 											}
 											setPendingGuardianRemoval(g.id)
 										}}
 										disabled={removeGuardianMutation.isPending}
 										className="inline-flex items-center gap-2 rounded-full border bg-muted/50 pl-1 pr-2 py-1 text-xs hover:bg-muted disabled:opacity-50"
-										aria-label={`Remove guardian ${label}`}
+										aria-label={m.admin_users_dependent_remove_guardian_aria({ name: label })}
 									>
 										<span className="relative inline-flex">
 											<UserAvatar name={label} image={g.image} size="small" />
@@ -256,7 +267,7 @@ export function EditDependentDialog({
 									}}
 								>
 									<SelectTrigger size="sm" className="w-44 text-xs">
-										<SelectValue placeholder="Add guardian..." />
+										<SelectValue placeholder={m.admin_users_dependent_add_guardian_placeholder()} />
 									</SelectTrigger>
 									<SelectContent>
 										{remainingGuardians.map(u => (
@@ -279,14 +290,14 @@ export function EditDependentDialog({
 							onClick={() => setConfirmDeleteOpen(true)}
 							disabled={saveMutation.isPending || deleteMutation.isPending}
 						>
-							<Trash2 className="size-4" /> Delete
+							<Trash2 className="size-4" /> {m.action_delete()}
 						</Button>
 						<div className="flex items-center gap-2">
 							<Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={saveMutation.isPending}>
-								Cancel
+								{m.action_cancel()}
 							</Button>
 							<Button type="submit" disabled={saveMutation.isPending || !dirty || !name.trim()}>
-								{saveMutation.isPending ? 'Saving...' : 'Save'}
+								{saveMutation.isPending ? m.admin_users_dependent_saving() : m.action_save()}
 							</Button>
 						</div>
 					</DialogFooter>
@@ -295,14 +306,11 @@ export function EditDependentDialog({
 				<AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
 					<AlertDialogContent>
 						<AlertDialogHeader>
-							<AlertDialogTitle>Delete {dependent.name}?</AlertDialogTitle>
-							<AlertDialogDescription>
-								Lists for {dependent.name} that already have received gifts will be archived (kept for history); everything else is removed
-								permanently.
-							</AlertDialogDescription>
+							<AlertDialogTitle>{m.admin_users_dependent_delete_title({ name: dependent.name })}</AlertDialogTitle>
+							<AlertDialogDescription>{m.admin_users_dependent_delete_body({ name: dependent.name })}</AlertDialogDescription>
 						</AlertDialogHeader>
 						<AlertDialogFooter>
-							<AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
+							<AlertDialogCancel disabled={deleteMutation.isPending}>{m.action_cancel()}</AlertDialogCancel>
 							<AlertDialogAction
 								variant="destructive"
 								disabled={deleteMutation.isPending}
@@ -311,7 +319,7 @@ export function EditDependentDialog({
 									await deleteMutation.mutateAsync()
 								}}
 							>
-								Delete
+								{m.action_delete()}
 							</AlertDialogAction>
 						</AlertDialogFooter>
 					</AlertDialogContent>
@@ -320,16 +328,19 @@ export function EditDependentDialog({
 				<AlertDialog open={pendingGuardianRemoval !== null} onOpenChange={next => !next && setPendingGuardianRemoval(null)}>
 					<AlertDialogContent>
 						<AlertDialogHeader>
-							<AlertDialogTitle>Remove Guardian?</AlertDialogTitle>
+							<AlertDialogTitle>{m.admin_users_dependent_remove_guardian_title()}</AlertDialogTitle>
 							<AlertDialogDescription>
 								{(() => {
 									const g = dependent.guardians.find(x => x.id === pendingGuardianRemoval)
-									return `${g?.name || g?.email || 'This user'} will no longer manage ${dependent.name} and will lose edit access on their lists.`
+									const guardian = g?.name || g?.email
+									return guardian
+										? m.admin_users_dependent_remove_guardian_body({ guardian, name: dependent.name })
+										: m.admin_users_dependent_remove_guardian_body_generic({ name: dependent.name })
 								})()}
 							</AlertDialogDescription>
 						</AlertDialogHeader>
 						<AlertDialogFooter>
-							<AlertDialogCancel disabled={removeGuardianMutation.isPending}>Cancel</AlertDialogCancel>
+							<AlertDialogCancel disabled={removeGuardianMutation.isPending}>{m.action_cancel()}</AlertDialogCancel>
 							<AlertDialogAction
 								variant="destructive"
 								disabled={removeGuardianMutation.isPending}
@@ -341,7 +352,7 @@ export function EditDependentDialog({
 									setPendingGuardianRemoval(null)
 								}}
 							>
-								Remove
+								{m.action_remove()}
 							</AlertDialogAction>
 						</AlertDialogFooter>
 					</AlertDialogContent>

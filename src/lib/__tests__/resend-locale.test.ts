@@ -1,4 +1,9 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+// Loaded up front, with the file's other imports. The catalog is thousands
+// of small modules; importing it for the first time inside a test or a hook
+// is slow enough under full-suite load to hit their timeouts.
+import '@/paraglide/messages.js'
+
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type * as Locales from '@/lib/i18n/locales'
 
@@ -40,13 +45,6 @@ vi.mock('resend', () => ({
 		emails: { send: sendMock },
 	})),
 }))
-
-// See resend-test-email.test.ts: the first import of the message catalog is
-// slow while the rest of the suite starts up.
-beforeAll(async () => {
-	await import('@/paraglide/messages.js')
-	await import('@/lib/resend')
-}, 300_000)
 
 const lastSend = () => sendMock.mock.calls[sendMock.mock.calls.length - 1][0] as { subject: string; react: { props: { locale: string } } }
 

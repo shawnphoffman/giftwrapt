@@ -6,6 +6,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { DEFAULT_TIME_ZONE } from '@/lib/calendar-day'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 // Every IANA zone the runtime knows, with UTC first. `supportedValuesOf`
 // omits UTC on some engines, and the saved value is appended if the
@@ -45,17 +46,17 @@ export function TimeZonePicker({ id, value, onChange }: { id?: string; value: st
 			</PopoverTrigger>
 			<PopoverContent className="w-70 p-0" align="end">
 				<Command>
-					<CommandInput placeholder="Search time zones…" />
+					<CommandInput placeholder={m.admin_settings_tz_picker_search_placeholder()} />
 					<CommandList>
-						<CommandEmpty>No time zones match.</CommandEmpty>
+						<CommandEmpty>{m.admin_settings_tz_picker_empty()}</CommandEmpty>
 						{suggested && suggested !== value && (
-							<CommandGroup heading="This Browser">
+							<CommandGroup heading={m.admin_settings_tz_picker_browser_heading()}>
 								<CommandItem value={`browser ${suggested}`} onSelect={() => select(suggested)}>
 									{suggested}
 								</CommandItem>
 							</CommandGroup>
 						)}
-						<CommandGroup heading="All Time Zones">
+						<CommandGroup heading={m.admin_settings_tz_picker_all_heading()}>
 							{options.map(zone => (
 								<CommandItem key={zone} value={zone} onSelect={() => select(zone)} className="gap-2">
 									<CheckIcon className={cn('size-4 shrink-0', zone === value ? 'opacity-100' : 'opacity-0')} />

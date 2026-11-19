@@ -15,12 +15,8 @@ function AdminRevealsPage() {
 	return (
 		<Card className="animate-page-in">
 			<CardHeader>
-				<CardTitle className="text-2xl">Hidden Gifts</CardTitle>
-				<CardDescription>
-					Lists with claimed or off-list gifts their recipient can&apos;t see yet. They reveal on their own on the date shown. Reveal one
-					early when the gifts were already given, for example purchases logged after that occasion&apos;s reveal. Your own lists show
-					without a count.
-				</CardDescription>
+				<CardTitle className="text-2xl">{m.admin_data_reveals_title()}</CardTitle>
+				<CardDescription>{m.admin_data_reveals_description()}</CardDescription>
 			</CardHeader>
 			<CardContent>
 				<ClientOnly>

@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
 import { importAppDataAsAdmin } from '@/api/backup'
+import { RichMessage } from '@/components/common/rich-message'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,6 +12,9 @@ import { Label } from '@/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import type { BackupFile, BackupFileTables } from '@/lib/backup/schema'
 import { BackupFileSchema, WIPE_CONFIRM_PHRASE } from '@/lib/backup/schema'
+import { errorText } from '@/lib/i18n/errors'
+import { formatDate, formatNumber } from '@/lib/i18n/format'
+import { m } from '@/paraglide/messages.js'
 
 type Mode = 'merge' | 'wipe'
 
@@ -68,12 +72,13 @@ export default function ImportData() {
 			if (!result.success) {
 				const firstIssue = result.error.issues[0]
 				const path = firstIssue.path.join('.')
-				setParseError(`Invalid backup file: ${firstIssue.message} (at ${path})`)
+				setParseError(m.admin_data_import_invalid_file({ issue: firstIssue.message, path }))
 				return
 			}
 			setParsed(result.data)
 		} catch (err) {
-			setParseError(err instanceof Error ? err.message : 'Failed to read backup file')
+			// A JSON syntax error is worth showing as it is: it says where the file is broken.
+			setParseError(err instanceof Error ? err.message : m.admin_data_import_read_failed())
 		}
 	}, [])
 
@@ -92,10 +97,10 @@ export default function ImportData() {
 			})
 			if (result.kind === 'ok') {
 				const total = Object.values(result.counts).reduce((sum, n) => sum + n, 0)
-				toast.success(`Imported ${total.toLocaleString()} rows`, {
+				toast.success(m.admin_data_import_done({ total: formatNumber(total) }), {
 					description: [
 						TABLE_ORDER.map(name => `${name}: ${result.counts[name]}`).join(' · '),
-						result.snapshotKey ? `Pre-wipe snapshot: ${result.snapshotKey}` : null,
+						result.snapshotKey ? m.admin_data_import_snapshot({ key: result.snapshotKey }) : null,
 					]
 						.filter(Boolean)
 						.join('\n'),
@@ -110,7 +115,7 @@ export default function ImportData() {
 				toast.error(humanErrorReason(result.reason), { description: result.details })
 			}
 		} catch (err) {
-			toast.error(err instanceof Error ? err.message : 'Import failed')
+			toast.error(errorText(err, m.admin_data_import_failed()))
 		} finally {
 			setSubmitting(false)
 		}
@@ -122,14 +127,14 @@ export default function ImportData() {
 				<input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={handleFileChange} />
 				<Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={submitting} className="gap-2">
 					<Upload />
-					{fileName ? 'Choose a Different File' : 'Choose Backup File'}
+					{fileName ? m.admin_data_import_choose_different() : m.admin_data_import_choose()}
 				</Button>
 				{fileName && <span className="ml-3 text-sm text-muted-foreground">{fileName}</span>}
 			</div>
 
 			{parseError && (
 				<Alert variant="destructive">
-					<AlertTitle>Invalid Backup File</AlertTitle>
+					<AlertTitle>{m.admin_data_import_invalid_title()}</AlertTitle>
 					<AlertDescription>{parseError}</AlertDescription>
 				</Alert>
 			)}
@@ -138,38 +143,33 @@ export default function ImportData() {
 				<>
 					<div className="rounded-md border">
 						<div className="border-b bg-muted/50 px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-							Preview · exported {formatExportedAt(parsed.exportedAt)}
+							{m.admin_data_import_preview({ date: formatExportedAt(parsed.exportedAt) })}
 						</div>
 						<ul className="grid grid-cols-2 gap-x-4 gap-y-1 p-3 text-sm sm:grid-cols-3">
 							{counts.map(({ name, count }) => (
 								<li key={name} className="flex justify-between">
 									<span>{name}</span>
-									<span className="tabular-nums text-muted-foreground">{count.toLocaleString()}</span>
+									<span className="tabular-nums text-muted-foreground">{formatNumber(count)}</span>
 								</li>
 							))}
 						</ul>
 					</div>
 
 					<div className="space-y-2">
-						<Label>Mode</Label>
+						<Label>{m.admin_data_import_mode_label()}</Label>
 						<RadioGroup value={mode} onValueChange={v => setMode(v as Mode)} className="grid gap-2">
 							<label className="flex items-start gap-3 rounded-md border p-3 cursor-pointer hover:bg-muted/40">
 								<RadioGroupItem value="merge" id="mode-merge" className="mt-0.5" />
 								<div className="space-y-0.5">
-									<div className="text-sm font-medium">Merge by ID</div>
-									<div className="text-xs text-muted-foreground">
-										Insert each row from the backup, or update it if a row with the same primary key already exists. Nothing is deleted.
-									</div>
+									<div className="text-sm font-medium">{m.admin_data_import_mode_merge()}</div>
+									<div className="text-xs text-muted-foreground">{m.admin_data_import_mode_merge_description()}</div>
 								</div>
 							</label>
 							<label className="flex items-start gap-3 rounded-md border p-3 cursor-pointer hover:bg-muted/40">
 								<RadioGroupItem value="wipe" id="mode-wipe" className="mt-0.5" />
 								<div className="space-y-0.5">
-									<div className="text-sm font-medium">Wipe and Restore</div>
-									<div className="text-xs text-muted-foreground">
-										Delete all existing app data (including every user and all sessions), then insert rows from the backup. You'll be signed
-										out and will need to sign in again.
-									</div>
+									<div className="text-sm font-medium">{m.admin_data_import_mode_wipe()}</div>
+									<div className="text-xs text-muted-foreground">{m.admin_data_import_mode_wipe_description()}</div>
 								</div>
 							</label>
 						</RadioGroup>
@@ -178,7 +178,10 @@ export default function ImportData() {
 					{mode === 'wipe' && (
 						<div className="space-y-2">
 							<Label htmlFor="wipe-confirm">
-								Type <span className="font-mono font-semibold">{WIPE_CONFIRM_PHRASE}</span> to Confirm
+								<RichMessage
+									parts={m.admin_data_confirm_phrase_label.parts({ phrase: WIPE_CONFIRM_PHRASE })}
+									tags={{ phrase: c => <span className="font-mono font-semibold">{c}</span> }}
+								/>
 							</Label>
 							<Input
 								id="wipe-confirm"
@@ -191,7 +194,11 @@ export default function ImportData() {
 					)}
 
 					<Button type="button" onClick={handleSubmit} disabled={!canSubmit} variant={mode === 'wipe' ? 'destructive' : 'default'}>
-						{submitting ? 'Importing...' : mode === 'wipe' ? 'Wipe and Restore' : 'Merge Import'}
+						{submitting
+							? m.admin_data_import_busy()
+							: mode === 'wipe'
+								? m.admin_data_import_submit_wipe()
+								: m.admin_data_import_submit_merge()}
 					</Button>
 				</>
 			)}
@@ -202,17 +209,17 @@ export default function ImportData() {
 function humanErrorReason(reason: string): string {
 	switch (reason) {
 		case 'current-admin-missing':
-			return 'Your account is not in the backup'
+			return m.admin_data_import_error_admin_missing()
 		case 'wipe-confirm-required':
-			return 'Wipe refused: confirmation phrase missing'
+			return m.admin_data_import_error_confirm_missing()
 		case 'snapshot-required':
-			return 'Wipe refused: pre-wipe snapshot could not be written'
+			return m.admin_data_import_error_snapshot_required()
 		case 'snapshot-failed':
-			return 'Wipe refused: pre-wipe snapshot failed'
+			return m.admin_data_import_error_snapshot_failed()
 		case 'import-failed':
-			return 'Import failed'
+			return m.admin_data_import_failed()
 		default:
-			return 'Import failed'
+			return m.admin_data_import_failed()
 	}
 }
 
@@ -220,7 +227,7 @@ function formatExportedAt(iso: string): string {
 	try {
 		const d = new Date(iso)
 		if (isNaN(d.getTime())) return iso
-		return d.toLocaleString()
+		return formatDate(d, { year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit' })
 	} catch {
 		return iso
 	}

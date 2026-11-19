@@ -3,6 +3,7 @@ import { Cake, Gift } from 'lucide-react'
 
 import { buttonVariants } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 function navLinkClass(active: boolean) {
 	return cn(buttonVariants({ variant: 'ghost' }), 'justify-start w-full', active && 'bg-muted text-foreground hover:bg-muted')
@@ -15,11 +16,11 @@ export default function TempLinks() {
 		<>
 			<Link to="/temp" className={navLinkClass(pathname === '/temp' || pathname === '/temp/')}>
 				<Gift />
-				Holidays
+				{m.admin_temp_nav_holidays()}
 			</Link>
 			<Link to="/temp/birthdays" className={navLinkClass(pathname === '/temp/birthdays')}>
 				<Cake />
-				Birthdays
+				{m.admin_temp_nav_birthdays()}
 			</Link>
 		</>
 	)

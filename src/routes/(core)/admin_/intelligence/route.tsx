@@ -18,13 +18,13 @@ export const Route = createFileRoute('/(core)/admin_/intelligence')({
 	},
 })
 
-const TABS: Array<{ to: string; label: string; icon: React.ElementType; exact?: boolean }> = [
-	{ to: '/admin/intelligence', label: 'Stats', icon: BarChart3, exact: true },
-	{ to: '/admin/intelligence/settings', label: 'Settings', icon: SettingsIcon },
-	{ to: '/admin/intelligence/analyzers', label: 'Analyzers', icon: Sparkles },
-	{ to: '/admin/intelligence/scheduling', label: 'Scheduling', icon: CalendarClock },
-	{ to: '/admin/intelligence/notifications', label: 'Notifications', icon: Mail },
-	{ to: '/admin/intelligence/history', label: 'History', icon: History },
+const TABS: Array<{ to: string; label: () => string; icon: React.ElementType; exact?: boolean }> = [
+	{ to: '/admin/intelligence', label: () => m.admin_intel_tab_stats(), icon: BarChart3, exact: true },
+	{ to: '/admin/intelligence/settings', label: () => m.admin_intel_tab_settings(), icon: SettingsIcon },
+	{ to: '/admin/intelligence/analyzers', label: () => m.admin_intel_tab_analyzers(), icon: Sparkles },
+	{ to: '/admin/intelligence/scheduling', label: () => m.admin_intel_tab_scheduling(), icon: CalendarClock },
+	{ to: '/admin/intelligence/notifications', label: () => m.admin_intel_tab_notifications(), icon: Mail },
+	{ to: '/admin/intelligence/history', label: () => m.admin_intel_tab_history(), icon: History },
 ]
 
 function AdminIntelligenceLayout() {
@@ -33,7 +33,7 @@ function AdminIntelligenceLayout() {
 		<div className="wish-page max-w-7xl">
 			<div className="@container/section flex flex-col flex-1 gap-6">
 				<PageHeading
-					title="Intelligence"
+					title={m.page_intelligence()}
 					icon={WandSparkles}
 					iconBgClassName="bg-gradient-to-br from-amber-500 via-pink-500 to-fuchsia-600 dark:from-amber-700 dark:via-pink-700 dark:to-fuchsia-800"
 					iconRingClassName="ring-1 ring-fuchsia-400/40 dark:ring-fuchsia-600/40"
@@ -55,7 +55,7 @@ function AdminIntelligenceLayout() {
 									)}
 								>
 									<Icon className={cn('size-4', active && 'text-fuchsia-500')} />
-									{t.label}
+									{t.label()}
 								</Link>
 							)
 						})}

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { FieldSource } from '@/lib/email-config'
 import { LIMITS } from '@/lib/validation/limits'
+import { m } from '@/paraglide/messages.js'
 
 export type SecretFieldState = {
 	mode: 'display' | 'edit'
@@ -45,7 +46,7 @@ export function SecretField({
 	const [mode, setMode] = useState<'display' | 'edit'>(source === 'missing' ? 'edit' : 'display')
 	const [draft, setDraft] = useState('')
 
-	const envHint = envLocked ? 'Set by environment variable. Unset the env var to edit here.' : null
+	const envHint = envLocked ? m.admin_settings_env_locked_hint() : null
 
 	const handleSave = async () => {
 		if (!draft) return
@@ -87,11 +88,11 @@ export function SecretField({
 				<div className="flex items-center gap-2">
 					<Input id={id} value={preview ?? ''} disabled readOnly className="font-mono" />
 					<Button type="button" variant="outline" onClick={handleReplace} disabled={saving}>
-						Replace
+						{m.admin_settings_secret_replace_button()}
 					</Button>
 					{onClear && (
 						<Button type="button" variant="outline" onClick={() => onClear()} disabled={saving}>
-							Clear
+							{m.action_clear()}
 						</Button>
 					)}
 					{trailingSlot?.(state)}
@@ -109,11 +110,11 @@ export function SecretField({
 						disabled={saving}
 					/>
 					<Button type="button" onClick={handleSave} disabled={saving || !draft}>
-						{saving ? 'Saving…' : 'Save'}
+						{saving ? m.state_saving() : m.action_save()}
 					</Button>
 					{source !== 'missing' && (
 						<Button type="button" variant="outline" onClick={handleCancel} disabled={saving}>
-							Cancel
+							{m.action_cancel()}
 						</Button>
 					)}
 					{trailingSlot?.(state)}

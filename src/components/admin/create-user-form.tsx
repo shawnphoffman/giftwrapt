@@ -4,9 +4,11 @@ import { useState } from 'react'
 import type { z } from 'zod'
 
 import { createGuardianships, getUsersAsAdmin, updateUserPartner, upsertViewerRelationshipsAsAdmin } from '@/api/admin'
-import { RoleLegend } from '@/components/admin/role-legend'
+import { adminUserIssueText } from '@/components/admin/edit-user-form'
+import { roleLabel, RoleLegend } from '@/components/admin/role-legend'
 import { BirthDaySelect } from '@/components/common/birth-day-select'
 import InputTooltip from '@/components/common/input-tooltip'
+import { RichMessage } from '@/components/common/rich-message'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
@@ -17,7 +19,10 @@ import { UserSchema } from '@/db/schema/users'
 import type { User } from '@/db-collections/users'
 import { useCurrentYear } from '@/hooks/use-current-year'
 import { authClient } from '@/lib/auth-client'
+import { authErrorText, errorText } from '@/lib/i18n/errors'
+import { monthName } from '@/lib/i18n/labels'
 import { LIMITS } from '@/lib/validation/limits'
+import { m } from '@/paraglide/messages.js'
 
 import UserAvatar from '../common/user-avatar'
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
@@ -66,7 +71,7 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 			// raw value (with defaultAccess intact) into onSubmit.
 			const result = UserSchema.safeParse(value)
 			if (!result.success) {
-				setError(result.error.issues.map((e: { message: string }) => e.message).join(', '))
+				setError(result.error.issues.map(adminUserIssueText).join(', '))
 				return
 			}
 			await onSubmit(value as CreateUserFormValues)
@@ -112,7 +117,7 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 			})
 
 			if (result.error) {
-				setError(result.error.message || 'Failed to create user')
+				setError(authErrorText(result.error, m.admin_users_create_failed()))
 			} else {
 				const userId = result.data.user.id
 
@@ -127,7 +132,7 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 						} as Parameters<typeof createGuardianships>[0])
 					} catch (guardianError) {
 						console.error('Failed to create guardianships:', guardianError)
-						setError('User created but failed to assign guardians. Please update manually.')
+						setError(m.admin_users_create_guardians_failed())
 						setIsLoading(false)
 						return
 					}
@@ -144,7 +149,7 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 						} as Parameters<typeof updateUserPartner>[0])
 					} catch (partnerError) {
 						console.error('Failed to update partner record:', partnerError)
-						setError('User created but failed to update partner record. Please update manually.')
+						setError(m.admin_users_create_partner_failed())
 						setIsLoading(false)
 						return
 					}
@@ -175,13 +180,13 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 								},
 							})
 							if (!accessResult.success) {
-								setError('User created but failed to apply default list access. Please set it manually in the edit dialog.')
+								setError(m.admin_users_create_access_failed())
 								setIsLoading(false)
 								return
 							}
 						} catch (accessError) {
 							console.error('Failed to apply default access:', accessError)
-							setError('User created but failed to apply default list access. Please set it manually in the edit dialog.')
+							setError(m.admin_users_create_access_failed())
 							setIsLoading(false)
 							return
 						}
@@ -197,7 +202,7 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 				onCreated?.()
 			}
 		} catch (err) {
-			setError(err instanceof Error ? err.message : 'Failed to create user')
+			setError(errorText(err, m.admin_users_create_failed()))
 		} finally {
 			setIsLoading(false)
 		}
@@ -215,11 +220,11 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 			<form.Field name="email">
 				{field => (
 					<div className="grid gap-2">
-						<Label htmlFor={field.name}>Email</Label>
+						<Label htmlFor={field.name}>{m.admin_users_form_email_label()}</Label>
 						<Input
 							id={field.name}
 							type="email"
-							placeholder="user@example.com"
+							placeholder={m.admin_users_form_email_placeholder()}
 							value={field.state.value}
 							onChange={e => field.handleChange(e.target.value)}
 							onBlur={field.handleBlur}
@@ -236,11 +241,11 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 			<form.Field name="name">
 				{field => (
 					<div className="grid gap-2">
-						<Label htmlFor={field.name}>Name</Label>
+						<Label htmlFor={field.name}>{m.admin_users_form_name_label()}</Label>
 						<Input
 							id={field.name}
 							type="text"
-							placeholder="John Doe"
+							placeholder={m.admin_users_form_name_placeholder()}
 							value={field.state.value}
 							onChange={e => field.handleChange(e.target.value)}
 							onBlur={field.handleBlur}
@@ -258,7 +263,7 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 				<form.Field name="birthMonth">
 					{field => (
 						<div className="grid gap-2 w-full">
-							<Label htmlFor={field.name}>Birth Month</Label>
+							<Label htmlFor={field.name}>{m.admin_users_form_birth_month_label()}</Label>
 							<Select
 								onValueChange={value => {
 									field.handleChange(value === '' ? undefined : (value as (typeof birthMonthEnumValues)[number]))
@@ -267,12 +272,12 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 								disabled={isLoading}
 							>
 								<SelectTrigger id={field.name} className="w-full">
-									<SelectValue placeholder="Select month" />
+									<SelectValue placeholder={m.admin_users_form_birth_month_placeholder()} />
 								</SelectTrigger>
 								<SelectContent>
 									{birthMonthEnumValues.map(month => (
 										<SelectItem key={month} value={month}>
-											{month.charAt(0).toUpperCase() + month.slice(1)}
+											{monthName(month)}
 										</SelectItem>
 									))}
 								</SelectContent>
@@ -287,7 +292,7 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 				<form.Field name="birthDay">
 					{field => (
 						<div className="grid gap-2 w-full">
-							<Label htmlFor={field.name}>Birth Day</Label>
+							<Label htmlFor={field.name}>{m.admin_users_form_birth_day_label()}</Label>
 							<form.Subscribe selector={state => state.values.birthMonth}>
 								{month => (
 									<BirthDaySelect
@@ -310,10 +315,8 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 					{field => (
 						<div className="grid gap-2 w-full">
 							<Label htmlFor={field.name} className="flex items-center gap-1.5">
-								Birth Year
-								<InputTooltip>
-									Optional. Used only to tailor recommendations and the user's experience. Never displayed publicly.
-								</InputTooltip>
+								{m.admin_users_form_birth_year_label()}
+								<InputTooltip>{m.admin_users_form_birth_year_help()}</InputTooltip>
 							</Label>
 							<Input
 								id={field.name}
@@ -321,7 +324,7 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 								inputMode="numeric"
 								min={1900}
 								max={currentYear}
-								placeholder="YYYY"
+								placeholder={m.admin_users_form_birth_year_placeholder()}
 								value={field.state.value ?? ''}
 								onChange={e => {
 									const raw = e.target.value
@@ -346,19 +349,19 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 			<form.Field name="role">
 				{field => (
 					<div className="grid gap-2 w-full">
-						<Label htmlFor={field.name}>Role</Label>
+						<Label htmlFor={field.name}>{m.admin_users_form_role_label()}</Label>
 						<Select
 							onValueChange={value => field.handleChange(value as (typeof roleEnumValues)[number])}
 							value={field.state.value}
 							disabled={isLoading}
 						>
 							<SelectTrigger id={field.name} className="w-full">
-								<SelectValue placeholder="Select role" />
+								<SelectValue placeholder={m.admin_users_form_role_placeholder()} />
 							</SelectTrigger>
 							<SelectContent>
 								{roleEnumValues.map(role => (
 									<SelectItem key={role} value={role}>
-										{role.charAt(0).toUpperCase() + role.slice(1)}
+										{roleLabel(role)}
 									</SelectItem>
 								))}
 							</SelectContent>
@@ -378,16 +381,14 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 							{field => (
 								<div className="grid gap-2">
 									<Label>
-										Guardians
-										<InputTooltip>
-											Guardians are responsible for a child user. They can edit the child user's lists as well as impersonate them.
-										</InputTooltip>
+										{m.admin_users_form_guardians_label()}
+										<InputTooltip>{m.admin_users_form_guardians_help()}</InputTooltip>
 									</Label>
 									<div className="border rounded-md p-4 max-h-60 overflow-y-auto space-y-2">
 										{isLoadingUsers ? (
-											<div className="text-sm text-muted-foreground">Loading users...</div>
+											<div className="text-sm text-muted-foreground">{m.admin_users_form_loading_users()}</div>
 										) : guardianOptions.length === 0 ? (
-											<div className="text-sm text-muted-foreground">No users available</div>
+											<div className="text-sm text-muted-foreground">{m.admin_users_form_no_users()}</div>
 										) : (
 											guardianOptions.map(guardianUser => {
 												const currentValue = field.state.value
@@ -409,7 +410,9 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 														<Label htmlFor={`guardian-${guardianUser.id}`} className="font-normal cursor-pointer">
 															<UserAvatar name={guardianUser.name || guardianUser.email} image={guardianUser.image} size="small" />
 															{guardianUser.name || guardianUser.email}
-															{guardianUser.role === 'admin' && <span className="text-xs text-muted-foreground"> (Admin)</span>}
+															{guardianUser.role === 'admin' && (
+																<span className="text-xs text-muted-foreground"> {m.admin_users_admin_tag()}</span>
+															)}
 														</Label>
 													</div>
 												)
@@ -432,7 +435,7 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 						<form.Field name="partnerId">
 							{field => (
 								<div className="grid gap-2">
-									<Label htmlFor={field.name}>Partner</Label>
+									<Label htmlFor={field.name}>{m.admin_users_form_partner_label()}</Label>
 									<Select
 										onValueChange={value => {
 											field.handleChange(value === '__none__' ? undefined : value)
@@ -441,16 +444,17 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 										disabled={isLoading}
 									>
 										<SelectTrigger id={field.name} className="w-full">
-											<SelectValue placeholder="Select partner (optional)" />
+											<SelectValue placeholder={m.admin_users_form_partner_placeholder()} />
 										</SelectTrigger>
 										<SelectContent>
-											<SelectItem value="__none__">None</SelectItem>
+											<SelectItem value="__none__">{m.admin_users_form_partner_none()}</SelectItem>
 											{partnerOptions.map(partnerUser => (
 												<SelectItem key={partnerUser.id} value={partnerUser.id}>
 													<UserAvatar name={partnerUser.name || partnerUser.email} image={partnerUser.image} size="small" />
 													<span className="truncate">
-														{partnerUser.name || partnerUser.email}
-														{partnerUser.role === 'admin' && ' (Admin)'}
+														{partnerUser.role === 'admin'
+															? m.admin_users_name_with_admin({ name: partnerUser.name || partnerUser.email })
+															: partnerUser.name || partnerUser.email}
 													</span>
 												</SelectItem>
 											))}
@@ -470,22 +474,19 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 				{field => (
 					<div className="grid gap-2">
 						<Label htmlFor={field.name} className="flex items-center gap-1.5">
-							Default Access to Other Users' Lists
+							{m.admin_users_create_access_label()}
 							<InputTooltip>
-								Sets what this new user can see of everyone else's lists. <strong>View</strong> is the default (they can see others' public
-								lists). <strong>Restricted</strong> lets them view and claim but hides others' purchases. <strong>None</strong> hides
-								everyone else's lists entirely. Partners and guardians always keep full view. You can fine-tune this per person later from
-								the edit dialog.
+								<RichMessage parts={m.admin_users_create_access_help.parts()} tags={{ strong: c => <strong>{c}</strong> }} />
 							</InputTooltip>
 						</Label>
 						<Select onValueChange={value => field.handleChange(value as DefaultAccess)} value={field.state.value} disabled={isLoading}>
 							<SelectTrigger id={field.name} className="w-full">
-								<SelectValue placeholder="Select default access" />
+								<SelectValue placeholder={m.admin_users_create_access_placeholder()} />
 							</SelectTrigger>
 							<SelectContent>
-								<SelectItem value="view">View (default)</SelectItem>
-								<SelectItem value="restricted">Restricted</SelectItem>
-								<SelectItem value="none">None</SelectItem>
+								<SelectItem value="view">{m.admin_users_create_access_view()}</SelectItem>
+								<SelectItem value="restricted">{m.admin_users_create_access_restricted()}</SelectItem>
+								<SelectItem value="none">{m.admin_users_create_access_none()}</SelectItem>
 							</SelectContent>
 						</Select>
 					</div>
@@ -494,19 +495,19 @@ export function CreateUserForm({ onCreated }: { onCreated?: () => void } = { onC
 
 			{error && (
 				<Alert variant="destructive">
-					<AlertTitle>Error</AlertTitle>
+					<AlertTitle>{m.admin_users_form_error_title()}</AlertTitle>
 					<AlertDescription>{error}</AlertDescription>
 				</Alert>
 			)}
 			{success && (
 				<Alert variant="default">
-					<AlertTitle>Success</AlertTitle>
-					<AlertDescription>User created successfully!</AlertDescription>
+					<AlertTitle>{m.admin_users_create_success_title()}</AlertTitle>
+					<AlertDescription>{m.admin_users_create_success_body()}</AlertDescription>
 				</Alert>
 			)}
 
 			<Button type="submit" disabled={isLoading} className="w-full" variant="default">
-				{isLoading ? 'Creating User...' : 'Create User'}
+				{isLoading ? m.admin_users_create_submitting() : m.admin_users_create_submit()}
 			</Button>
 		</form>
 	)

@@ -20,10 +20,11 @@ import {
 	upsertViewerRelationshipsAsAdmin,
 } from '@/api/admin'
 import { removeAvatarAsAdmin, uploadAvatarAsAdmin } from '@/api/uploads'
-import { RoleLegend } from '@/components/admin/role-legend'
+import { roleLabel, RoleLegend } from '@/components/admin/role-legend'
 import { BirthDaySelect } from '@/components/common/birth-day-select'
 import { ConfirmDialog } from '@/components/common/confirm-dialog'
 import InputTooltip from '@/components/common/input-tooltip'
+import { RichMessage } from '@/components/common/rich-message'
 import UserAvatar from '@/components/common/user-avatar'
 import AvatarUpload from '@/components/settings/avatar-upload'
 import { fromTier, type PermissionRow, PermissionsEditor, toTier } from '@/components/settings/permissions-editor'
@@ -41,7 +42,10 @@ import type { User } from '@/db-collections/users'
 import { useCurrentYear } from '@/hooks/use-current-year'
 import { useStorageStatus } from '@/hooks/use-storage-status'
 import { useSession } from '@/lib/auth-client'
+import { errorText } from '@/lib/i18n/errors'
+import { monthName } from '@/lib/i18n/labels'
 import { LIMITS } from '@/lib/validation/limits'
+import { m } from '@/paraglide/messages.js'
 
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert'
 
@@ -56,6 +60,27 @@ function getErrorMessage(errors: Array<unknown>): string {
 			return String(err)
 		})
 		.join(', ')
+}
+
+// UserSchema is shared with the server and keeps plain English messages for
+// API consumers. What the form shows comes from the catalog, chosen by which
+// field failed.
+export function adminUserIssueText(issue: z.core.$ZodIssue): string {
+	const outOfRange = issue.code === 'too_small' || issue.code === 'too_big'
+	switch (issue.path[0]) {
+		case 'email':
+			return issue.code === 'too_big' ? m.admin_users_form_email_too_long({ max: LIMITS.EMAIL }) : m.admin_users_form_email_invalid()
+		case 'name':
+			return issue.code === 'too_big' ? m.admin_users_form_name_too_long({ max: LIMITS.SHORT_NAME }) : m.admin_users_form_name_required()
+		case 'birthDay':
+			return outOfRange ? m.admin_users_form_birth_day_range() : m.admin_users_form_birth_day_whole()
+		case 'birthYear':
+			return outOfRange ? m.admin_users_form_birth_year_range() : m.admin_users_form_birth_year_whole()
+		case 'partnerAnniversary':
+			return m.admin_users_form_anniversary_invalid()
+		default:
+			return issue.message
+	}
 }
 
 const userDetailsQueryOptions = (userId: string) => ({
@@ -121,17 +146,19 @@ export function EditUserForm({ userId, onSuccess }: { userId: string; onSuccess?
 	const partnerOptions = allUsers.filter(u => u.role !== 'child' && u.id !== userId)
 
 	if (isLoadingUser) {
-		return <div className="text-sm text-muted-foreground">Loading user...</div>
+		return <div className="text-sm text-muted-foreground">{m.admin_users_loading_user()}</div>
 	}
 
 	if (userError) {
 		return (
-			<div className="text-sm text-destructive">Error loading user: {userError instanceof Error ? userError.message : 'Unknown error'}</div>
+			<div className="text-sm text-destructive">
+				{m.admin_users_load_user_error({ error: userError instanceof Error ? userError.message : m.admin_users_unknown_error() })}
+			</div>
 		)
 	}
 
 	if (!user) {
-		return <div className="text-sm text-muted-foreground">User not found</div>
+		return <div className="text-sm text-muted-foreground">{m.admin_users_not_found()}</div>
 	}
 
 	return (
@@ -256,7 +283,7 @@ function EditUserFormInner({
 			// Validate with Zod before submitting
 			const result = UserSchema.safeParse(value)
 			if (!result.success) {
-				setError(result.error.issues.map((e: { message: string }) => e.message).join(', '))
+				setError(result.error.issues.map(adminUserIssueText).join(', '))
 				return
 			}
 			await onSubmit(value as EditUserFormValues)
@@ -316,7 +343,7 @@ function EditUserFormInner({
 					} as Parameters<typeof updateGuardianships>[0])
 				} catch (guardianError) {
 					console.error('Failed to update guardianships:', guardianError)
-					setError('User updated but failed to update guardianships. Please update manually.')
+					setError(m.admin_users_form_guardianships_failed())
 					setIsLoading(false)
 					return
 				}
@@ -341,8 +368,8 @@ function EditUserFormInner({
 					if (!result.success) {
 						setError(
 							result.reason === 'guardian-not-allowed'
-								? "A guardian always has full access to their child's lists, so it can't be changed here."
-								: 'Some users cannot be set to restricted (partner or guardian relationships are always full view).'
+								? m.admin_users_form_perms_guardian_not_allowed()
+								: m.admin_users_form_perms_restricted_not_allowed()
 						)
 						setIsLoading(false)
 						return
@@ -350,7 +377,7 @@ function EditUserFormInner({
 					queryClient.invalidateQueries({ queryKey: ['admin', 'permissions', userId] })
 				} catch (permError) {
 					console.error('Failed to update permissions:', permError)
-					setError('User updated but failed to update permissions. Please try again.')
+					setError(m.admin_users_form_perms_failed())
 					setIsLoading(false)
 					return
 				}
@@ -375,8 +402,8 @@ function EditUserFormInner({
 					if (!result.success) {
 						setError(
 							result.reason === 'guardian-not-allowed'
-								? "This user's guardian always has full access, so it can't be changed here."
-								: 'Some lists cannot be set to restricted (partner or guardian relationships are always full view).'
+								? m.admin_users_form_viewer_guardian_not_allowed()
+								: m.admin_users_form_viewer_restricted_not_allowed()
 						)
 						setIsLoading(false)
 						return
@@ -384,20 +411,20 @@ function EditUserFormInner({
 					queryClient.invalidateQueries({ queryKey: ['admin', 'viewer-permissions', userId] })
 				} catch (permError) {
 					console.error('Failed to update viewer permissions:', permError)
-					setError('User updated but failed to update list-access permissions. Please try again.')
+					setError(m.admin_users_form_viewer_failed())
 					setIsLoading(false)
 					return
 				}
 			}
 
-			toast.success(`${data.name || data.email} updated`)
+			toast.success(m.admin_users_form_updated_toast({ name: data.name || data.email }))
 			// Invalidate queries to refresh data
 			queryClient.invalidateQueries({ queryKey: ['admin', 'user', userId] })
 			queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
 			queryClient.invalidateQueries({ queryKey: ['admin', 'guardianships', userId] })
 			onSuccess?.()
 		} catch (err) {
-			setError(err instanceof Error ? err.message : 'Failed to update user')
+			setError(errorText(err, m.admin_users_form_update_failed()))
 		} finally {
 			setIsLoading(false)
 		}
@@ -439,15 +466,19 @@ function EditUserFormInner({
 								<p className="text-lg font-medium truncate">{displayName}</p>
 								<p className="text-sm text-muted-foreground truncate">{user.email}</p>
 								<div className="mt-1.5 flex items-center gap-2 flex-wrap">
-									<span className="inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium capitalize">{role}</span>
+									<span className="inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium capitalize">
+										{roleLabel(role)}
+									</span>
 									{user.banned && (
 										<span className="inline-flex items-center rounded-md border border-destructive/30 bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
-											Banned
+											{m.admin_users_banned_badge()}
 										</span>
 									)}
 								</div>
 							</div>
-							{!storageConfigured && <span className="hidden sm:inline text-xs text-muted-foreground shrink-0">Paste image URL below</span>}
+							{!storageConfigured && (
+								<span className="hidden sm:inline text-xs text-muted-foreground shrink-0">{m.admin_users_form_paste_image_hint()}</span>
+							)}
 						</div>
 					)
 				}}
@@ -455,16 +486,16 @@ function EditUserFormInner({
 			<div className="grid @3xl:grid-cols-2 gap-6">
 				<div className="space-y-6 min-w-0">
 					<section className="@container rounded-lg border bg-card p-5 space-y-4">
-						<h3 className="font-medium text-lg">Profile</h3>
+						<h3 className="font-medium text-lg">{m.admin_users_form_profile_title()}</h3>
 
 						<form.Field name="email">
 							{field => (
 								<div className="grid gap-2">
-									<Label htmlFor={field.name}>Email</Label>
+									<Label htmlFor={field.name}>{m.admin_users_form_email_label()}</Label>
 									<Input
 										id={field.name}
 										type="email"
-										placeholder="user@example.com"
+										placeholder={m.admin_users_form_email_placeholder()}
 										value={field.state.value}
 										onChange={e => field.handleChange(e.target.value)}
 										onBlur={field.handleBlur}
@@ -481,11 +512,11 @@ function EditUserFormInner({
 						<form.Field name="name">
 							{field => (
 								<div className="grid gap-2">
-									<Label htmlFor={field.name}>Name</Label>
+									<Label htmlFor={field.name}>{m.admin_users_form_name_label()}</Label>
 									<Input
 										id={field.name}
 										type="text"
-										placeholder="John Doe"
+										placeholder={m.admin_users_form_name_placeholder()}
 										value={field.state.value}
 										onChange={e => field.handleChange(e.target.value)}
 										onBlur={field.handleBlur}
@@ -502,10 +533,11 @@ function EditUserFormInner({
 						<form.Field name="image">
 							{field => (
 								<div className="grid gap-2">
-									<Label htmlFor={field.name}>Image URL</Label>
+									<Label htmlFor={field.name}>{m.admin_users_form_image_label()}</Label>
 									<Input
 										id={field.name}
 										type="text"
+										// eslint-disable-next-line i18next/no-literal-string -- example URL
 										placeholder="https://example.com/avatar.jpg"
 										value={field.state.value ?? ''}
 										onChange={e => {
@@ -528,7 +560,7 @@ function EditUserFormInner({
 							<form.Field name="birthMonth">
 								{field => (
 									<div className="grid gap-2 w-full">
-										<Label htmlFor={field.name}>Birth Month</Label>
+										<Label htmlFor={field.name}>{m.admin_users_form_birth_month_label()}</Label>
 										<Select
 											onValueChange={value => {
 												field.handleChange(value === '' ? undefined : (value as (typeof birthMonthEnumValues)[number]))
@@ -537,12 +569,12 @@ function EditUserFormInner({
 											disabled={isLoading}
 										>
 											<SelectTrigger id={field.name} className="w-full">
-												<SelectValue placeholder="Select month" />
+												<SelectValue placeholder={m.admin_users_form_birth_month_placeholder()} />
 											</SelectTrigger>
 											<SelectContent>
 												{birthMonthEnumValues.map(month => (
 													<SelectItem key={month} value={month}>
-														{month.charAt(0).toUpperCase() + month.slice(1)}
+														{monthName(month)}
 													</SelectItem>
 												))}
 											</SelectContent>
@@ -557,7 +589,7 @@ function EditUserFormInner({
 							<form.Field name="birthDay">
 								{field => (
 									<div className="grid gap-2 w-full">
-										<Label htmlFor={field.name}>Birth Day</Label>
+										<Label htmlFor={field.name}>{m.admin_users_form_birth_day_label()}</Label>
 										<form.Subscribe selector={state => state.values.birthMonth}>
 											{month => (
 												<BirthDaySelect
@@ -581,10 +613,8 @@ function EditUserFormInner({
 							{field => (
 								<div className="grid gap-2 max-w-[12rem]">
 									<Label htmlFor={field.name} className="flex items-center gap-1.5">
-										Birth Year
-										<InputTooltip>
-											Optional. Used only to tailor recommendations and the user's experience. Never displayed publicly.
-										</InputTooltip>
+										{m.admin_users_form_birth_year_label()}
+										<InputTooltip>{m.admin_users_form_birth_year_help()}</InputTooltip>
 									</Label>
 									<Input
 										id={field.name}
@@ -592,7 +622,7 @@ function EditUserFormInner({
 										inputMode="numeric"
 										min={1900}
 										max={currentYear}
-										placeholder="YYYY"
+										placeholder={m.admin_users_form_birth_year_placeholder()}
 										value={field.state.value ?? ''}
 										onChange={e => {
 											const raw = e.target.value
@@ -618,19 +648,19 @@ function EditUserFormInner({
 						<form.Field name="role">
 							{field => (
 								<div className="grid gap-2 w-full">
-									<Label htmlFor={field.name}>Role</Label>
+									<Label htmlFor={field.name}>{m.admin_users_form_role_label()}</Label>
 									<Select
 										onValueChange={value => field.handleChange(value as (typeof roleEnumValues)[number])}
 										value={field.state.value}
 										disabled={isLoading}
 									>
 										<SelectTrigger id={field.name} className="w-full">
-											<SelectValue placeholder="Select role" />
+											<SelectValue placeholder={m.admin_users_form_role_placeholder()} />
 										</SelectTrigger>
 										<SelectContent>
 											{roleEnumValues.map(role => (
 												<SelectItem key={role} value={role}>
-													{role.charAt(0).toUpperCase() + role.slice(1)}
+													{roleLabel(role)}
 												</SelectItem>
 											))}
 										</SelectContent>
@@ -650,16 +680,14 @@ function EditUserFormInner({
 										{field => (
 											<div className="grid gap-2">
 												<Label>
-													Guardians
-													<InputTooltip>
-														Guardians are responsible for a child user. They can edit the child user's lists as well as impersonate them.
-													</InputTooltip>
+													{m.admin_users_form_guardians_label()}
+													<InputTooltip>{m.admin_users_form_guardians_help()}</InputTooltip>
 												</Label>
 												<div className="border rounded-md p-4 max-h-60 overflow-y-auto space-y-2">
 													{isLoadingUsers || isLoadingGuardianships ? (
-														<div className="text-sm text-muted-foreground">Loading users...</div>
+														<div className="text-sm text-muted-foreground">{m.admin_users_form_loading_users()}</div>
 													) : guardianOptions.length === 0 ? (
-														<div className="text-sm text-muted-foreground">No users available</div>
+														<div className="text-sm text-muted-foreground">{m.admin_users_form_no_users()}</div>
 													) : (
 														guardianOptions.map(guardianUser => {
 															const currentValue = field.state.value
@@ -681,7 +709,9 @@ function EditUserFormInner({
 																	<Label htmlFor={`guardian-${guardianUser.id}`} className="font-normal cursor-pointer">
 																		<UserAvatar name={guardianUser.name || guardianUser.email} image={guardianUser.image} size="small" />
 																		{guardianUser.name || guardianUser.email}
-																		{guardianUser.role === 'admin' && <span className="text-xs text-muted-foreground"> (Admin)</span>}
+																		{guardianUser.role === 'admin' && (
+																			<span className="text-xs text-muted-foreground"> {m.admin_users_admin_tag()}</span>
+																		)}
 																	</Label>
 																</div>
 															)
@@ -705,7 +735,7 @@ function EditUserFormInner({
 										<form.Field name="partnerId">
 											{field => (
 												<div className="grid gap-2">
-													<Label htmlFor={field.name}>Partner</Label>
+													<Label htmlFor={field.name}>{m.admin_users_form_partner_label()}</Label>
 													<Select
 														onValueChange={value => {
 															field.handleChange(value === '__none__' ? undefined : value)
@@ -714,16 +744,17 @@ function EditUserFormInner({
 														disabled={isLoading}
 													>
 														<SelectTrigger id={field.name} className="w-full">
-															<SelectValue placeholder="Select partner (optional)" />
+															<SelectValue placeholder={m.admin_users_form_partner_placeholder()} />
 														</SelectTrigger>
 														<SelectContent>
-															<SelectItem value="__none__">None</SelectItem>
+															<SelectItem value="__none__">{m.admin_users_form_partner_none()}</SelectItem>
 															{partnerOptions.map(partnerUser => (
 																<SelectItem key={partnerUser.id} value={partnerUser.id}>
 																	<UserAvatar name={partnerUser.name || partnerUser.email} image={partnerUser.image} size="small" />
 																	<span className="truncate">
-																		{partnerUser.name || partnerUser.email}
-																		{partnerUser.role === 'admin' && ' (Admin)'}
+																		{partnerUser.role === 'admin'
+																			? m.admin_users_name_with_admin({ name: partnerUser.name || partnerUser.email })
+																			: partnerUser.name || partnerUser.email}
 																	</span>
 																</SelectItem>
 															))}
@@ -743,8 +774,8 @@ function EditUserFormInner({
 														{field => (
 															<div className="grid gap-2">
 																<Label htmlFor={field.name} className="flex items-center gap-1.5">
-																	Partner Anniversary
-																	<InputTooltip>Optional. Saved to both partners so the date shows on either profile.</InputTooltip>
+																	{m.admin_users_form_anniversary_label()}
+																	<InputTooltip>{m.admin_users_form_anniversary_help()}</InputTooltip>
 																</Label>
 																<DatePicker
 																	id={field.name}
@@ -772,14 +803,12 @@ function EditUserFormInner({
 					{!isSelf && (
 						<section className="rounded-lg border bg-card p-5 space-y-3">
 							<div>
-								<h3 className="font-medium text-lg">Actions</h3>
-								<p className="text-xs text-muted-foreground mt-1">
-									Actions on the account itself. These take effect right away, separately from saving the form.
-								</p>
+								<h3 className="font-medium text-lg">{m.admin_users_actions_title()}</h3>
+								<p className="text-xs text-muted-foreground mt-1">{m.admin_users_actions_description()}</p>
 							</div>
 							<div className="grid gap-2">
 								<Button type="button" variant="outline" onClick={() => setResetEmailDialogOpen(true)} disabled={isLoading}>
-									Send Password Reset Email
+									{m.admin_users_actions_send_reset()}
 								</Button>
 								<Button
 									type="button"
@@ -791,10 +820,10 @@ function EditUserFormInner({
 									}}
 									disabled={isLoading}
 								>
-									Update Password
+									{m.admin_users_actions_update_password()}
 								</Button>
 								<Button type="button" variant="outline" onClick={() => setBanDialogOpen(true)} disabled={isLoading}>
-									{user.banned ? 'Enable User Login' : 'Disable User Login'}
+									{user.banned ? m.admin_users_actions_enable_login() : m.admin_users_actions_disable_login()}
 								</Button>
 							</div>
 						</section>
@@ -804,18 +833,20 @@ function EditUserFormInner({
 				<div className="space-y-6 min-w-0">
 					<section className="rounded-lg border bg-card p-5 space-y-3">
 						<div>
-							<h3 className="font-medium text-lg">Relationships</h3>
-							<p className="text-xs text-muted-foreground mt-1">People this user shops for on Mother’s Day and Father’s Day.</p>
+							<h3 className="font-medium text-lg">{m.admin_users_relationships_title()}</h3>
+							<p className="text-xs text-muted-foreground mt-1">{m.admin_users_relationships_description()}</p>
 						</div>
 						<RelationLabelsSection ops={adminOpsFor(userId)} hideDependents />
 					</section>
 
 					<section className="rounded-lg border bg-card p-5 space-y-3">
 						<div>
-							<h3 className="font-medium text-lg">Permissions</h3>
+							<h3 className="font-medium text-lg">{m.admin_users_permissions_title()}</h3>
 							<p className="text-xs text-muted-foreground mt-1">
-								What each person can do with <strong>{user.name || user.email}</strong>'s wish lists. Partners and guardians always have
-								full view.
+								<RichMessage
+									parts={m.admin_users_permissions_description.parts({ name: user.name || user.email })}
+									tags={{ strong: c => <strong>{c}</strong> }}
+								/>
 							</p>
 						</div>
 						<form.Subscribe selector={state => state.values.guardianIds}>
@@ -835,10 +866,12 @@ function EditUserFormInner({
 
 					<section className="rounded-lg border bg-card p-5 space-y-3">
 						<div>
-							<h3 className="font-medium text-lg">List Access</h3>
+							<h3 className="font-medium text-lg">{m.admin_users_list_access_title()}</h3>
 							<p className="text-xs text-muted-foreground mt-1">
-								What <strong>{user.name || user.email}</strong> can see of other people's wish lists. Partners and guardians always have
-								full view.
+								<RichMessage
+									parts={m.admin_users_list_access_description.parts({ name: user.name || user.email })}
+									tags={{ strong: c => <strong>{c}</strong> }}
+								/>
 							</p>
 						</div>
 						<form.Subscribe selector={state => state.values.guardianIds}>
@@ -861,54 +894,48 @@ function EditUserFormInner({
 
 			{error && (
 				<Alert variant="destructive">
-					<AlertTitle>Error</AlertTitle>
+					<AlertTitle>{m.admin_users_form_error_title()}</AlertTitle>
 					<AlertDescription>{error}</AlertDescription>
 				</Alert>
 			)}
 
 			<Button type="submit" disabled={isLoading} className="w-full" variant="default">
-				{isLoading ? 'Updating User...' : 'Update User'}
+				{isLoading ? m.admin_users_form_submitting() : m.admin_users_form_submit()}
 			</Button>
 
 			{!isSelf && (
 				<div className="border-t pt-4 space-y-2">
 					<div>
-						<h3 className="text-2xl font-medium text-destructive">Danger Zone</h3>
-						<p className="text-xs text-muted-foreground mt-2">
-							Permanently delete this user. Their lists, items, claims, comments, and partner/guardian links will all be removed.
-						</p>
+						<h3 className="text-2xl font-medium text-destructive">{m.admin_users_danger_title()}</h3>
+						<p className="text-xs text-muted-foreground mt-2">{m.admin_users_danger_description()}</p>
 					</div>
 					<Button type="button" variant="destructive" className="w-full" onClick={() => setDeleteDialogOpen(true)} disabled={isLoading}>
-						Delete User
+						{m.admin_users_delete_button()}
 					</Button>
 					<ConfirmDialog
 						open={deleteDialogOpen}
 						onOpenChange={setDeleteDialogOpen}
 						destructive
-						title={`Delete ${user.name || user.email}?`}
+						title={m.admin_users_delete_title({ name: user.name || user.email })}
 						description={
 							<>
-								This permanently deletes the account, all lists they own and every item, claim, and comment on those lists, all gift claims
-								they made on other users' lists, all guardianship and partner links, and their stored avatar.
+								{m.admin_users_delete_body()}
 								<br />
 								<br />
-								<strong>This cannot be undone.</strong>
+								<strong>{m.admin_users_delete_irreversible()}</strong>
 							</>
 						}
-						confirmLabel="Delete User"
-						confirmBusyLabel="Deleting..."
+						confirmLabel={m.admin_users_delete_button()}
+						confirmBusyLabel={m.admin_users_delete_busy()}
 						onConfirm={async () => {
 							const result = await deleteUserAsAdmin({ data: { userId } })
 							if (result.kind === 'error') {
-								const message =
-									result.reason === 'self-delete'
-										? "You can't delete your own account from here."
-										: 'User not found. They may have already been deleted.'
+								const message = result.reason === 'self-delete' ? m.admin_users_delete_self_error() : m.admin_users_delete_not_found()
 								toast.error(message)
 								setError(message)
 								throw new Error(message)
 							}
-							toast.success(`${user.name || user.email} deleted`)
+							toast.success(m.admin_users_deleted_toast({ name: user.name || user.email }))
 							// Navigate first so the edit form unmounts before we touch its
 							// queries; otherwise removeQueries triggers a refetch on the
 							// still-mounted observer and the deleted-user lookup returns
@@ -927,27 +954,25 @@ function EditUserFormInner({
 					<ConfirmDialog
 						open={resetEmailDialogOpen}
 						onOpenChange={setResetEmailDialogOpen}
-						title={`Send password reset email to ${user.name || user.email}?`}
+						title={m.admin_users_reset_title({ name: user.name || user.email })}
 						description={
-							<>
-								We'll email <strong>{user.email}</strong> a link to reset their password. The link expires after a short time. They stay
-								signed in on existing sessions until they finish the reset, which then signs those sessions out automatically.
-							</>
+							<RichMessage parts={m.admin_users_reset_body.parts({ email: user.email })} tags={{ strong: c => <strong>{c}</strong> }} />
 						}
-						confirmLabel="Send Email"
-						confirmBusyLabel="Sending..."
+						confirmLabel={m.admin_users_reset_confirm()}
+						confirmBusyLabel={m.admin_users_reset_busy()}
 						onConfirm={async () => {
 							const result = await sendPasswordResetEmailAsAdmin({ data: { userId } })
 							if (result.kind === 'error') {
-								const message = result.message ?? 'Failed to send reset email.'
+								// The server's own message is an English log line; the screen says what failed.
+								const message = m.admin_users_reset_failed()
 								toast.error(message)
 								throw new Error(message)
 							}
 							if (result.kind === 'skipped') {
-								toast.warning("Email isn't set up on this deployment, so no message was sent.")
+								toast.warning(m.admin_users_reset_skipped())
 								return
 							}
-							toast.success(`Password reset email sent to ${user.email}`)
+							toast.success(m.admin_users_reset_sent_toast({ email: user.email }))
 						}}
 					/>
 
@@ -955,31 +980,25 @@ function EditUserFormInner({
 						open={banDialogOpen}
 						onOpenChange={setBanDialogOpen}
 						destructive={!user.banned}
-						title={user.banned ? `Re-enable login for ${user.name || user.email}?` : `Disable login for ${user.name || user.email}?`}
-						description={
-							user.banned ? (
-								<>This user will be able to sign in again immediately.</>
-							) : (
-								<>
-									This blocks new sign-ins and revokes all active web and mobile sessions. The account itself stays intact and can be
-									re-enabled later.
-								</>
-							)
+						title={
+							user.banned
+								? m.admin_users_ban_enable_title({ name: user.name || user.email })
+								: m.admin_users_ban_disable_title({ name: user.name || user.email })
 						}
-						confirmLabel={user.banned ? 'Enable login' : 'Disable login'}
-						confirmBusyLabel={user.banned ? 'Enabling...' : 'Disabling...'}
+						description={user.banned ? m.admin_users_ban_enable_body() : m.admin_users_ban_disable_body()}
+						confirmLabel={user.banned ? m.admin_users_ban_enable_confirm() : m.admin_users_ban_disable_confirm()}
+						confirmBusyLabel={user.banned ? m.admin_users_ban_enable_busy() : m.admin_users_ban_disable_busy()}
 						onConfirm={async () => {
 							const result = await setUserBannedAsAdmin({ data: { userId, banned: !user.banned } })
 							if (result.kind === 'error') {
-								const message =
-									result.reason === 'self-target'
-										? "You can't change your own login state from here."
-										: (result.message ?? 'Failed to update login state.')
+								const message = result.reason === 'self-target' ? m.admin_users_ban_self_error() : m.admin_users_ban_failed()
 								toast.error(message)
 								throw new Error(message)
 							}
 							toast.success(
-								user.banned ? `${user.name || user.email} can sign in again` : `${user.name || user.email} can no longer sign in`
+								user.banned
+									? m.admin_users_ban_enabled_toast({ name: user.name || user.email })
+									: m.admin_users_ban_disabled_toast({ name: user.name || user.email })
 							)
 							await queryClient.invalidateQueries({ queryKey: ['admin', 'user', userId] })
 							await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
@@ -994,17 +1013,15 @@ function EditUserFormInner({
 					>
 						<DialogContent className="max-w-md">
 							<DialogHeader>
-								<DialogTitle>Update Password for {user.name || user.email}</DialogTitle>
-								<DialogDescription>
-									Sets a new password directly and revokes all active sessions. The user will need to sign in again with the new password.
-								</DialogDescription>
+								<DialogTitle>{m.admin_users_password_title({ name: user.name || user.email })}</DialogTitle>
+								<DialogDescription>{m.admin_users_password_description()}</DialogDescription>
 							</DialogHeader>
 							<form
 								onSubmit={async e => {
 									e.preventDefault()
 									e.stopPropagation()
 									if (newPassword.length < 8) {
-										setSetPasswordError('Password must be at least 8 characters.')
+										setSetPasswordError(m.admin_users_password_too_short())
 										return
 									}
 									setSetPasswordError(null)
@@ -1013,13 +1030,11 @@ function EditUserFormInner({
 										const result = await setUserPasswordAsAdmin({ data: { userId, newPassword } })
 										if (result.kind === 'error') {
 											const message =
-												result.reason === 'self-target'
-													? "You can't change your own password from here."
-													: (result.message ?? 'Failed to update password.')
+												result.reason === 'self-target' ? m.admin_users_password_self_error() : m.admin_users_password_failed()
 											setSetPasswordError(message)
 											return
 										}
-										toast.success(`Password updated for ${user.name || user.email}`)
+										toast.success(m.admin_users_password_updated_toast({ name: user.name || user.email }))
 										setSetPasswordDialogOpen(false)
 										setNewPassword('')
 									} finally {
@@ -1029,7 +1044,7 @@ function EditUserFormInner({
 								className="grid gap-3"
 							>
 								<div className="grid gap-2">
-									<Label htmlFor="admin-set-password">New Password</Label>
+									<Label htmlFor="admin-set-password">{m.admin_users_password_new_label()}</Label>
 									<Input
 										id="admin-set-password"
 										type="password"
@@ -1040,15 +1055,15 @@ function EditUserFormInner({
 										disabled={setPasswordBusy}
 										autoFocus
 									/>
-									<p className="text-xs text-muted-foreground">At least 8 characters.</p>
+									<p className="text-xs text-muted-foreground">{m.admin_users_password_hint()}</p>
 									{setPasswordError && <p className="text-destructive text-sm">{setPasswordError}</p>}
 								</div>
 								<DialogFooter>
 									<Button type="button" variant="outline" onClick={() => setSetPasswordDialogOpen(false)} disabled={setPasswordBusy}>
-										Cancel
+										{m.action_cancel()}
 									</Button>
 									<Button type="submit" disabled={setPasswordBusy || newPassword.length < 8}>
-										{setPasswordBusy ? 'Updating...' : 'Update Password'}
+										{setPasswordBusy ? m.admin_users_password_busy() : m.admin_users_actions_update_password()}
 									</Button>
 								</DialogFooter>
 							</form>

@@ -1,12 +1,14 @@
-import { formatDistanceToNow } from 'date-fns'
 import { ArrowLeft, ArrowRight, MinusCircle, PlusCircle } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import { formatNumber, formatTimeAgo } from '@/lib/i18n/format'
+import { m } from '@/paraglide/messages.js'
 
 import type { RunDetailData, RunDetailDiffEntry } from './__fixtures__/types'
+import { runStatusLabel, runTriggerLabel } from './admin-intelligence-page'
 import { RecommendationCard } from './recommendation-card'
 
 type Props = {
@@ -23,38 +25,50 @@ export function RunDetailContent({ data, onBack, onRerunDryRun, onRerunPersist }
 			<header className="flex items-center justify-between gap-4">
 				<div className="flex items-center gap-3">
 					<Button size="sm" variant="outline" onClick={onBack}>
-						<ArrowLeft className="size-4" /> Back
+						<ArrowLeft className="size-4" /> {m.action_back()}
 					</Button>
 					<div>
-						<h1 className="text-xl font-semibold tracking-tight">Run {run.id}</h1>
+						<h1 className="text-xl font-semibold tracking-tight">{m.admin_intel_detail_title({ id: run.id })}</h1>
 						<p className="text-xs text-muted-foreground">
-							{run.userName} · {run.trigger} · {formatDistanceToNow(run.startedAt, { addSuffix: true })}
+							{run.userName} · {runTriggerLabel(run.trigger)} · {formatTimeAgo(run.startedAt)}
 							{run.durationMs && ` · ${run.durationMs}ms`}
 						</p>
 					</div>
 				</div>
 				<div className="flex gap-2">
 					<Button size="sm" variant="outline" onClick={onRerunDryRun}>
-						Re-run (Dry)
+						{m.admin_intel_detail_rerun_dry()}
 					</Button>
 					<Button size="sm" onClick={onRerunPersist}>
-						Re-run
+						{m.admin_intel_action_rerun()}
 					</Button>
 				</div>
 			</header>
 
 			<section className="grid grid-cols-1 md:grid-cols-3 gap-3">
 				<Stat
-					label="Status"
-					value={run.status}
+					label={m.admin_intel_col_status()}
+					value={runStatusLabel(run.status)}
 					variant={run.status === 'error' ? 'destructive' : run.status === 'success' ? 'secondary' : 'outline'}
 				/>
-				<Stat label="Tokens (In / Out)" value={`${run.tokensIn ?? 0} / ${run.tokensOut ?? 0}`} />
-				<Stat label="Est. Cost" value={run.estimatedCostUsd ? `$${run.estimatedCostUsd.toFixed(4)}` : '-'} />
+				<Stat label={m.admin_intel_detail_stat_tokens()} value={`${run.tokensIn ?? 0} / ${run.tokensOut ?? 0}`} />
+				<Stat
+					label={m.admin_intel_debug_est_cost()}
+					value={
+						run.estimatedCostUsd
+							? formatNumber(run.estimatedCostUsd, {
+									style: 'currency',
+									currency: 'USD',
+									minimumFractionDigits: 4,
+									maximumFractionDigits: 4,
+								})
+							: '-'
+					}
+				/>
 			</section>
 
 			<section className="flex flex-col gap-3">
-				<h2 className="text-base font-semibold">Inputs Sent to Each Analyzer</h2>
+				<h2 className="text-base font-semibold">{m.admin_intel_detail_inputs_heading()}</h2>
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 					{data.candidateInputs.map(input => (
 						<Card key={input.analyzerId}>
@@ -62,11 +76,11 @@ export function RunDetailContent({ data, onBack, onRerunDryRun, onRerunPersist }
 								<div className="flex items-center justify-between mb-2">
 									<span className="text-sm font-medium">{input.analyzerLabel}</span>
 									<span className="text-xs text-muted-foreground">
-										{input.items.length} items · {input.lists.length} lists
+										{m.admin_intel_detail_input_counts({ items: input.items.length, lists: input.lists.length })}
 									</span>
 								</div>
 								{input.items.length === 0 && input.lists.length === 0 && (
-									<div className="text-xs text-muted-foreground italic">Heuristic only. No candidates were sent to the model.</div>
+									<div className="text-xs text-muted-foreground italic">{m.admin_intel_detail_heuristic_only()}</div>
 								)}
 								{input.items.length > 0 && (
 									<ul className="text-xs flex flex-col gap-0.5">
@@ -75,7 +89,9 @@ export function RunDetailContent({ data, onBack, onRerunDryRun, onRerunPersist }
 												<span className="text-muted-foreground">·</span> {it.title}
 											</li>
 										))}
-										{input.items.length > 6 && <li className="text-muted-foreground italic">+ {input.items.length - 6} more…</li>}
+										{input.items.length > 6 && (
+											<li className="text-muted-foreground italic">{m.admin_intel_detail_more_items({ count: input.items.length - 6 })}</li>
+										)}
 									</ul>
 								)}
 								{input.lists.length > 0 && (
@@ -94,7 +110,7 @@ export function RunDetailContent({ data, onBack, onRerunDryRun, onRerunPersist }
 			</section>
 
 			<section className="flex flex-col gap-3">
-				<h2 className="text-base font-semibold">Per-Analyzer Steps</h2>
+				<h2 className="text-base font-semibold">{m.admin_intel_detail_steps_heading()}</h2>
 				<div className="flex flex-col gap-3">
 					{data.steps.map(step => (
 						<Card key={step.analyzerId}>
@@ -102,23 +118,29 @@ export function RunDetailContent({ data, onBack, onRerunDryRun, onRerunPersist }
 								<div className="flex items-center justify-between">
 									<div className="flex items-center gap-2">
 										<span className="text-sm font-semibold">{step.analyzerLabel}</span>
-										{step.error ? <Badge variant="destructive">error</Badge> : <Badge variant="secondary">ok</Badge>}
+										{step.error ? (
+											<Badge variant="destructive">{m.admin_intel_status_error()}</Badge>
+										) : (
+											<Badge variant="secondary">{m.admin_intel_step_badge_ok()}</Badge>
+										)}
 									</div>
 									<div className="text-xs text-muted-foreground tabular-nums">
-										{step.latencyMs}ms
-										{step.tokensIn !== undefined && step.tokensIn > 0 && ` · ${step.tokensIn} in / ${step.tokensOut ?? 0} out`}
+										{`${step.latencyMs}ms`}
+										{step.tokensIn !== undefined &&
+											step.tokensIn > 0 &&
+											` · ${m.admin_intel_tokens_in_out({ tokensIn: step.tokensIn, tokensOut: step.tokensOut ?? 0 })}`}
 									</div>
 								</div>
 								{step.error && <div className="text-xs text-destructive">{step.error}</div>}
 								{step.prompt && (
 									<details className="text-xs">
-										<summary className="cursor-pointer text-muted-foreground">Prompt</summary>
+										<summary className="cursor-pointer text-muted-foreground">{m.admin_intel_debug_block_prompt()}</summary>
 										<pre className="mt-2 max-h-64 overflow-auto rounded bg-muted/40 p-3 text-2xs whitespace-pre-wrap">{step.prompt}</pre>
 									</details>
 								)}
 								{step.responseRaw && (
 									<details className="text-xs">
-										<summary className="cursor-pointer text-muted-foreground">Raw response</summary>
+										<summary className="cursor-pointer text-muted-foreground">{m.admin_intel_detail_raw_response()}</summary>
 										<pre className="mt-2 max-h-64 overflow-auto rounded bg-muted/40 p-3 text-2xs whitespace-pre-wrap">
 											{step.responseRaw}
 										</pre>
@@ -126,7 +148,7 @@ export function RunDetailContent({ data, onBack, onRerunDryRun, onRerunPersist }
 								)}
 								{step.parsed != null && (
 									<details className="text-xs">
-										<summary className="cursor-pointer text-muted-foreground">Parsed</summary>
+										<summary className="cursor-pointer text-muted-foreground">{m.admin_intel_debug_block_parsed()}</summary>
 										<pre className="mt-2 max-h-64 overflow-auto rounded bg-muted/40 p-3 text-2xs whitespace-pre-wrap">
 											{JSON.stringify(step.parsed, null, 2)}
 										</pre>
@@ -139,7 +161,7 @@ export function RunDetailContent({ data, onBack, onRerunDryRun, onRerunPersist }
 			</section>
 
 			<section className="flex flex-col gap-3">
-				<h2 className="text-base font-semibold">Resulting Recommendations</h2>
+				<h2 className="text-base font-semibold">{m.admin_intel_debug_recs_heading()}</h2>
 				<div className="flex flex-col gap-2.5">
 					{data.resultingRecs.map(rec => (
 						<RecommendationCard key={rec.id} rec={rec} />
@@ -150,7 +172,7 @@ export function RunDetailContent({ data, onBack, onRerunDryRun, onRerunPersist }
 			<Separator />
 
 			<section className="flex flex-col gap-3">
-				<h2 className="text-base font-semibold">Diff vs Prior Batch</h2>
+				<h2 className="text-base font-semibold">{m.admin_intel_detail_diff_heading()}</h2>
 				<Card>
 					<CardContent className="p-3">
 						<ul className="flex flex-col gap-1.5">
@@ -170,7 +192,7 @@ function DiffRow({ entry }: { entry: RunDetailDiffEntry }) {
 		return (
 			<li className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
 				<PlusCircle className="size-4" />
-				<span className="font-medium">added</span>
+				<span className="font-medium">{m.admin_intel_detail_diff_added()}</span>
 				<span className="truncate">{entry.title}</span>
 			</li>
 		)
@@ -178,14 +200,14 @@ function DiffRow({ entry }: { entry: RunDetailDiffEntry }) {
 		return (
 			<li className="flex items-center gap-2 text-sm text-muted-foreground">
 				<MinusCircle className="size-4" />
-				<span className="font-medium">removed</span>
+				<span className="font-medium">{m.admin_intel_detail_diff_removed()}</span>
 				<span className="truncate line-through">{entry.title}</span>
 			</li>
 		)
 	return (
 		<li className="flex items-center gap-2 text-sm text-muted-foreground">
 			<ArrowRight className="size-4" />
-			<span className="font-medium">unchanged</span>
+			<span className="font-medium">{m.admin_intel_detail_diff_unchanged()}</span>
 			<span className="truncate">{entry.title}</span>
 		</li>
 	)

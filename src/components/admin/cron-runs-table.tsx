@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { type ColumnDef, flexRender, getCoreRowModel, type PaginationState, useReactTable } from '@tanstack/react-table'
-import { format, formatDistanceToNow } from 'date-fns'
+import { format } from 'date-fns'
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { useMemo, useState } from 'react'
 
@@ -14,8 +14,23 @@ import { TapTooltip, TapTooltipContent, TapTooltipTrigger, TooltipProvider } fro
 import type { CronRun } from '@/db/schema'
 import { cronRunStatusEnumValues } from '@/db/schema'
 import { CRON_ENDPOINTS, getCronEntry } from '@/lib/cron/registry'
+import { dateFnsLocale, formatDate, formatTimeAgo } from '@/lib/i18n/format'
+import { m } from '@/paraglide/messages.js'
 
 const STATUS_OPTIONS = ['all', ...cronRunStatusEnumValues] as const
+
+function cronStatusLabel(status: CronRun['status']): string {
+	switch (status) {
+		case 'running':
+			return m.admin_settings_cron_status_running()
+		case 'success':
+			return m.admin_settings_cron_status_success()
+		case 'error':
+			return m.admin_settings_cron_status_error()
+		case 'skipped':
+			return m.admin_settings_cron_status_skipped()
+	}
+}
 
 function StatusBadge({ status }: { status: CronRun['status'] }) {
 	const variant = {
@@ -26,7 +41,7 @@ function StatusBadge({ status }: { status: CronRun['status'] }) {
 	}[status]
 	return (
 		<Badge variant="outline" className={variant}>
-			{status}
+			{cronStatusLabel(status)}
 		</Badge>
 	)
 }
@@ -40,19 +55,29 @@ function formatDuration(ms: number | null): string {
 
 function SummaryCell({ run }: { run: CronRun }) {
 	if (run.status === 'error') {
-		return <span className="text-xs text-red-500 font-mono break-all line-clamp-2">{run.error ?? '(no error message)'}</span>
+		return (
+			<span className="text-xs text-red-500 font-mono break-all line-clamp-2">
+				{run.error ?? m.admin_settings_cron_runs_no_error_message()}
+			</span>
+		)
 	}
 	if (run.status === 'skipped') {
-		return <span className="text-xs text-amber-600 dark:text-amber-400">skipped: {run.skipReason ?? 'unknown'}</span>
+		return (
+			<span className="text-xs text-amber-600 dark:text-amber-400">
+				{run.skipReason
+					? m.admin_settings_cron_runs_skipped_reason({ reason: run.skipReason })
+					: m.admin_settings_cron_runs_skipped_unknown()}
+			</span>
+		)
 	}
 	if (run.status === 'running') {
-		return <span className="text-xs text-muted-foreground">running…</span>
+		return <span className="text-xs text-muted-foreground">{m.admin_settings_cron_runs_running()}</span>
 	}
 	if (!run.summary || typeof run.summary !== 'object') return <span className="text-xs text-muted-foreground">—</span>
 	const entries = Object.entries(run.summary as Record<string, unknown>).filter(
 		([k, v]) => k !== 'ok' && k !== 'date' && k !== 'durationMs' && v != null && v !== ''
 	)
-	if (entries.length === 0) return <span className="text-xs text-muted-foreground">ok</span>
+	if (entries.length === 0) return <span className="text-xs text-muted-foreground">{m.admin_settings_cron_runs_ok()}</span>
 	return (
 		<TooltipProvider>
 			<TapTooltip>
@@ -90,7 +115,7 @@ export function CronRunsTable() {
 		() => [
 			{
 				accessorKey: 'startedAt',
-				header: 'Started',
+				header: () => m.admin_settings_cron_runs_started_column(),
 				cell: ({ row }) => {
 					const d = new Date(row.original.startedAt)
 					return (
@@ -98,11 +123,21 @@ export function CronRunsTable() {
 							<TapTooltip>
 								<TapTooltipTrigger className="text-left">
 									<div className="flex flex-col">
-										<span className="text-xs font-medium">{formatDistanceToNow(d, { addSuffix: true })}</span>
-										<span className="text-xs text-muted-foreground">{format(d, 'MMM d HH:mm:ss')}</span>
+										<span className="text-xs font-medium">{formatTimeAgo(d)}</span>
+										{/* eslint-disable-next-line i18next/no-literal-string -- date-fns pattern */}
+										<span className="text-xs text-muted-foreground">{format(d, 'MMM d HH:mm:ss', { locale: dateFnsLocale() })}</span>
 									</div>
 								</TapTooltipTrigger>
-								<TapTooltipContent>{d.toLocaleString()}</TapTooltipContent>
+								<TapTooltipContent>
+									{formatDate(d, {
+										year: 'numeric',
+										month: 'numeric',
+										day: 'numeric',
+										hour: 'numeric',
+										minute: '2-digit',
+										second: '2-digit',
+									})}
+								</TapTooltipContent>
 							</TapTooltip>
 						</TooltipProvider>
 					)
@@ -110,7 +145,7 @@ export function CronRunsTable() {
 			},
 			{
 				accessorKey: 'endpoint',
-				header: 'Endpoint',
+				header: () => m.admin_settings_cron_runs_endpoint_column(),
 				cell: ({ row }) => {
 					const entry = getCronEntry(row.original.endpoint)
 					return (
@@ -123,17 +158,17 @@ export function CronRunsTable() {
 			},
 			{
 				accessorKey: 'status',
-				header: 'Status',
+				header: () => m.admin_settings_cron_runs_status_column(),
 				cell: ({ row }) => <StatusBadge status={row.original.status} />,
 			},
 			{
 				accessorKey: 'durationMs',
-				header: 'Duration',
+				header: () => m.admin_settings_cron_runs_duration_column(),
 				cell: ({ row }) => <span className="text-xs font-mono">{formatDuration(row.original.durationMs)}</span>,
 			},
 			{
 				id: 'summary',
-				header: 'Result',
+				header: () => m.admin_settings_cron_runs_result_column(),
 				cell: ({ row }) => <SummaryCell run={row.original} />,
 			},
 		],
@@ -165,10 +200,10 @@ export function CronRunsTable() {
 					}}
 				>
 					<SelectTrigger className="w-65">
-						<SelectValue placeholder="Endpoint" />
+						<SelectValue placeholder={m.admin_settings_cron_runs_endpoint_column()} />
 					</SelectTrigger>
 					<SelectContent>
-						<SelectItem value="all">All endpoints</SelectItem>
+						<SelectItem value="all">{m.admin_settings_cron_runs_all_endpoints()}</SelectItem>
 						{CRON_ENDPOINTS.map(path => (
 							<SelectItem key={path} value={path}>
 								{getCronEntry(path)?.label ?? path}
@@ -184,12 +219,12 @@ export function CronRunsTable() {
 					}}
 				>
 					<SelectTrigger className="w-40">
-						<SelectValue placeholder="Status" />
+						<SelectValue placeholder={m.admin_settings_cron_runs_status_column()} />
 					</SelectTrigger>
 					<SelectContent>
 						{STATUS_OPTIONS.map(s => (
 							<SelectItem key={s} value={s}>
-								{s === 'all' ? 'All statuses' : s}
+								{s === 'all' ? m.admin_settings_cron_runs_all_statuses() : cronStatusLabel(s)}
 							</SelectItem>
 						))}
 					</SelectContent>
@@ -201,12 +236,14 @@ export function CronRunsTable() {
 					<SelectContent>
 						{[25, 50, 100, 200].map(s => (
 							<SelectItem key={s} value={String(s)}>
-								{s} / page
+								{m.admin_settings_cron_runs_page_size({ count: s })}
 							</SelectItem>
 						))}
 					</SelectContent>
 				</Select>
-				<div className="ml-auto text-xs text-muted-foreground">{isFetching ? 'updating…' : `${pageStart}–${pageEnd} of ${total}`}</div>
+				<div className="ml-auto text-xs text-muted-foreground">
+					{isFetching ? m.admin_settings_cron_runs_updating() : m.admin_settings_cron_runs_range({ start: pageStart, end: pageEnd, total })}
+				</div>
 			</div>
 
 			<div className="rounded-md border">
@@ -234,7 +271,7 @@ export function CronRunsTable() {
 						) : table.getRowModel().rows.length === 0 ? (
 							<TableRow>
 								<TableCell colSpan={columns.length} className="text-center text-sm text-muted-foreground py-8">
-									No cron runs match the current filters.
+									{m.admin_settings_cron_runs_empty()}
 								</TableCell>
 							</TableRow>
 						) : (
@@ -260,7 +297,7 @@ export function CronRunsTable() {
 					<ChevronLeft className="size-4" />
 				</Button>
 				<span className="text-xs tabular-nums">
-					Page {pagination.pageIndex + 1} of {Math.max(1, table.getPageCount())}
+					{m.admin_settings_cron_runs_page_of({ page: pagination.pageIndex + 1, total: Math.max(1, table.getPageCount()) })}
 				</span>
 				<Button variant="outline" size="icon" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
 					<ChevronRight className="size-4" />

@@ -3,11 +3,14 @@ import { FileText, Lock, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 
 import type { StorageObjectRow, StorageSummary } from '@/api/admin-storage'
+import { RichMessage } from '@/components/common/rich-message'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { formatDate, formatNumber } from '@/lib/i18n/format'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 // Pure presentational pieces of /admin/storage. No data fetching, no
 // dialogs - everything is prop-driven so Storybook fixtures can exercise
@@ -15,6 +18,10 @@ import { cn } from '@/lib/utils'
 // QueryClient cache.
 
 export type StorageBrowserFilter = 'all' | 'avatars' | 'items' | 'purchases' | 'orphans'
+
+// Stand-ins for a value that is still loading or does not exist.
+const PENDING = '…'
+const NONE = '–'
 
 export function StorageSummaryBar({
 	summary,
@@ -32,17 +39,17 @@ export function StorageSummaryBar({
 			<div className="flex flex-wrap items-end justify-between gap-3">
 				<dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
 					<div className="space-y-1">
-						<dt className="text-xs uppercase tracking-wide text-muted-foreground">Objects</dt>
-						<dd className="font-mono tabular-nums">{loading ? '…' : (summary?.totalCount.toLocaleString() ?? '–')}</dd>
+						<dt className="text-xs uppercase tracking-wide text-muted-foreground">{m.admin_storage_summary_objects()}</dt>
+						<dd className="font-mono tabular-nums">{loading ? PENDING : summary ? formatNumber(summary.totalCount) : NONE}</dd>
 					</div>
 					<div className="space-y-1">
-						<dt className="text-xs uppercase tracking-wide text-muted-foreground">Size</dt>
-						<dd className="font-mono tabular-nums">{loading ? '…' : summary ? formatBytes(summary.totalBytes) : '–'}</dd>
+						<dt className="text-xs uppercase tracking-wide text-muted-foreground">{m.admin_storage_size()}</dt>
+						<dd className="font-mono tabular-nums">{loading ? PENDING : summary ? formatBytes(summary.totalBytes) : NONE}</dd>
 					</div>
 					<div className="space-y-1">
-						<dt className="text-xs uppercase tracking-wide text-muted-foreground">Orphans</dt>
+						<dt className="text-xs uppercase tracking-wide text-muted-foreground">{m.admin_storage_summary_orphans()}</dt>
 						<dd className="font-mono tabular-nums">
-							{loading ? '…' : summary ? `${summary.orphanCount.toLocaleString()} (${formatBytes(summary.orphanBytes)})` : '–'}
+							{loading ? PENDING : summary ? `${formatNumber(summary.orphanCount)} (${formatBytes(summary.orphanBytes)})` : NONE}
 						</dd>
 					</div>
 				</dl>
@@ -54,13 +61,12 @@ export function StorageSummaryBar({
 					disabled={deleteOrphansDisabled || !summary || summary.orphanCount === 0 || summary.truncated}
 				>
 					<Trash2 className="size-3.5" />
-					Delete All Orphans
+					{m.admin_storage_delete_orphans()}
 				</Button>
 			</div>
 			{summary?.truncated && (
 				<p className="text-xs text-amber-600 dark:text-amber-400">
-					The bucket scan stopped at the {summary.totalCount.toLocaleString()}-object limit, so the counts above don't include everything.
-					Bulk delete is turned off while the scan is incomplete.
+					{m.admin_storage_truncated({ count: formatNumber(summary.totalCount) })}
 				</p>
 			)}
 		</div>
@@ -69,11 +75,11 @@ export function StorageSummaryBar({
 
 export function StorageFilterPills({ active, onChange }: { active: StorageBrowserFilter; onChange: (next: StorageBrowserFilter) => void }) {
 	const filters: Array<{ value: StorageBrowserFilter; label: string }> = [
-		{ value: 'all', label: 'All' },
-		{ value: 'avatars', label: 'Avatars' },
-		{ value: 'items', label: 'Items' },
-		{ value: 'purchases', label: 'Purchases' },
-		{ value: 'orphans', label: 'Orphans' },
+		{ value: 'all', label: m.admin_storage_filter_all() },
+		{ value: 'avatars', label: m.admin_storage_filter_avatars() },
+		{ value: 'items', label: m.admin_storage_filter_items() },
+		{ value: 'purchases', label: m.admin_storage_filter_purchases() },
+		{ value: 'orphans', label: m.admin_storage_filter_orphans() },
 	]
 	return (
 		<div className="flex flex-wrap items-center gap-2">
@@ -97,7 +103,7 @@ export function StorageTable({ rows, onDelete }: { rows: Array<StorageObjectRow>
 	const [previewRow, setPreviewRow] = useState<StorageObjectRow | null>(null)
 
 	if (rows.length === 0) {
-		return <div className="text-sm text-muted-foreground italic">No objects to show.</div>
+		return <div className="text-sm text-muted-foreground italic">{m.admin_storage_empty()}</div>
 	}
 	return (
 		<>
@@ -105,14 +111,14 @@ export function StorageTable({ rows, onDelete }: { rows: Array<StorageObjectRow>
 				<Table>
 					<TableHeader>
 						<TableRow>
-							<TableHead className="w-17">Preview</TableHead>
-							<TableHead>Kind</TableHead>
-							<TableHead>Connected</TableHead>
-							<TableHead>Owner</TableHead>
-							<TableHead className="whitespace-nowrap">Uploaded</TableHead>
-							<TableHead className="whitespace-nowrap text-right">Size</TableHead>
+							<TableHead className="w-17">{m.admin_storage_col_preview()}</TableHead>
+							<TableHead>{m.admin_storage_col_kind()}</TableHead>
+							<TableHead>{m.admin_storage_col_connected()}</TableHead>
+							<TableHead>{m.admin_storage_col_owner()}</TableHead>
+							<TableHead className="whitespace-nowrap">{m.admin_storage_col_uploaded()}</TableHead>
+							<TableHead className="whitespace-nowrap text-right">{m.admin_storage_size()}</TableHead>
 							<TableHead className="w-15 text-right">
-								<span className="sr-only">Actions</span>
+								<span className="sr-only">{m.admin_storage_col_actions()}</span>
 							</TableHead>
 						</TableRow>
 					</TableHeader>
@@ -151,8 +157,8 @@ function StorageTableRow({
 				{row.url === null ? (
 					<div
 						className="flex size-12 items-center justify-center rounded border bg-muted text-muted-foreground"
-						title={`${row.key} (private receipt, not viewable by admins)`}
-						aria-label="Private receipt"
+						title={m.admin_storage_private_receipt_title({ key: row.key })}
+						aria-label={m.admin_storage_private_receipt()}
 					>
 						<Lock className="size-5" />
 					</div>
@@ -180,7 +186,7 @@ function StorageTableRow({
 			<TableCell>
 				<div className="flex flex-col gap-1">
 					<Badge variant={row.kind === 'unknown' ? 'secondary' : 'outline'} className="capitalize">
-						{row.kind}
+						{storageKindLabel(row.kind)}
 					</Badge>
 					<StatusBadge status={row.status} />
 				</div>
@@ -191,11 +197,11 @@ function StorageTableRow({
 			<TableCell className="text-xs">
 				{row.owner ? (
 					<div className="flex flex-col">
-						<span className="truncate">{row.owner.name ?? '(no name)'}</span>
+						<span className="truncate">{row.owner.name ?? m.admin_storage_owner_no_name()}</span>
 						<span className="truncate text-muted-foreground">{row.owner.email}</span>
 					</div>
 				) : (
-					<span className="italic text-muted-foreground">unknown</span>
+					<span className="italic text-muted-foreground">{m.admin_storage_owner_unknown()}</span>
 				)}
 			</TableCell>
 			<TableCell className="whitespace-nowrap text-xs text-muted-foreground tabular-nums" title={formatDateTime(row.lastModified)}>
@@ -207,8 +213,8 @@ function StorageTableRow({
 					type="button"
 					variant="outline"
 					size="icon"
-					aria-label={`Delete ${row.key}`}
-					title={row.status === 'attached' ? 'Cannot delete: still attached to a row' : 'Delete object'}
+					aria-label={m.admin_storage_delete_row({ key: row.key })}
+					title={row.status === 'attached' ? m.admin_storage_delete_blocked_title() : m.admin_storage_delete_title()}
 					onClick={() => onDelete?.(row)}
 				>
 					<Trash2 className={cn('size-4', row.status === 'orphan' && 'text-destructive')} />
@@ -219,14 +225,14 @@ function StorageTableRow({
 }
 
 function StatusBadge({ status }: { status: StorageObjectRow['status'] }) {
-	if (status === 'attached') return <Badge variant="outline">attached</Badge>
-	if (status === 'orphan') return <Badge variant="destructive">orphan</Badge>
-	return <Badge variant="secondary">unknown</Badge>
+	if (status === 'attached') return <Badge variant="outline">{m.admin_storage_status_attached()}</Badge>
+	if (status === 'orphan') return <Badge variant="destructive">{m.admin_storage_status_orphan()}</Badge>
+	return <Badge variant="secondary">{m.admin_storage_status_unknown()}</Badge>
 }
 
 function ConnectedCell({ row }: { row: StorageObjectRow }) {
 	if (!row.target) {
-		return <span className="italic text-muted-foreground">–</span>
+		return <span className="italic text-muted-foreground">{NONE}</span>
 	}
 	if (row.target.kind === 'user') {
 		return (
@@ -243,7 +249,10 @@ function ConnectedCell({ row }: { row: StorageObjectRow }) {
 		if (row.target.deleted) {
 			return (
 				<span className="italic text-muted-foreground">
-					{row.target.label} <span className="not-italic text-destructive">(deleted)</span>
+					<RichMessage
+						parts={m.admin_storage_target_deleted.parts({ label: row.target.label })}
+						tags={{ mark: c => <span className="not-italic text-destructive">{c}</span> }}
+					/>
 				</span>
 			)
 		}
@@ -251,20 +260,25 @@ function ConnectedCell({ row }: { row: StorageObjectRow }) {
 			<div className="flex flex-col">
 				<div className="flex items-center gap-1.5">
 					<Badge variant="outline" className="text-3xs uppercase tracking-wide">
-						{row.target.purchaseKind}
+						{row.target.purchaseKind === 'claim' ? m.admin_storage_purchase_kind_claim() : m.admin_storage_purchase_kind_addon()}
 					</Badge>
 					<span className="truncate" title={row.target.label}>
 						{row.target.label}
 					</span>
 				</div>
-				{row.target.gifterName && <span className="truncate text-muted-foreground">by {row.target.gifterName}</span>}
+				{row.target.gifterName && (
+					<span className="truncate text-muted-foreground">{m.admin_storage_by_gifter({ name: row.target.gifterName })}</span>
+				)}
 			</div>
 		)
 	}
 	if (row.target.deleted) {
 		return (
 			<span className="italic text-muted-foreground">
-				{row.target.label} <span className="not-italic text-destructive">(deleted)</span>
+				<RichMessage
+					parts={m.admin_storage_target_deleted.parts({ label: row.target.label })}
+					tags={{ mark: c => <span className="not-italic text-destructive">{c}</span> }}
+				/>
 			</span>
 		)
 	}
@@ -273,23 +287,44 @@ function ConnectedCell({ row }: { row: StorageObjectRow }) {
 			<span className="truncate" title={row.target.label}>
 				{row.target.label}
 			</span>
-			{row.target.listName && <span className="truncate text-muted-foreground">in {row.target.listName}</span>}
+			{row.target.listName && (
+				<span className="truncate text-muted-foreground">{m.admin_storage_in_list({ listName: row.target.listName })}</span>
+			)}
 		</div>
 	)
 }
 
+// What kind of object a row is, as shown in its badge and in the delete
+// confirmation.
+function storageKindLabel(kind: StorageObjectRow['kind']): string {
+	switch (kind) {
+		case 'avatar':
+			return m.admin_storage_kind_avatar()
+		case 'item':
+			return m.admin_storage_kind_item()
+		case 'purchase':
+			return m.admin_storage_kind_purchase()
+		case 'unknown':
+			return m.admin_storage_kind_unknown()
+	}
+}
+
 export function formatBytes(bytes: number): string {
-	if (bytes === 0) return '0 B'
+	if (bytes === 0) return m.admin_storage_bytes_b({ value: formatNumber(0) })
 	const k = 1024
-	const sizes = ['B', 'KB', 'MB', 'GB']
-	const i = Math.min(sizes.length - 1, Math.floor(Math.log(bytes) / Math.log(k)))
-	const value = bytes / Math.pow(k, i)
-	return `${value < 10 && i > 0 ? value.toFixed(1) : Math.round(value)} ${sizes[i]}`
+	const units = [m.admin_storage_bytes_b, m.admin_storage_bytes_kb, m.admin_storage_bytes_mb, m.admin_storage_bytes_gb]
+	const i = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(k)))
+	const amount = bytes / Math.pow(k, i)
+	const value =
+		amount < 10 && i > 0
+			? formatNumber(amount, { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+			: formatNumber(Math.round(amount), { useGrouping: false })
+	return units[i]({ value })
 }
 
 export function formatDateTime(d: Date): string {
 	const date = typeof d === 'string' ? new Date(d) : d
-	return date.toLocaleString(undefined, {
+	return formatDate(date, {
 		year: 'numeric',
 		month: 'short',
 		day: '2-digit',
@@ -302,10 +337,10 @@ export function formatDateTime(d: Date): string {
 export function formatWhen(d: Date): string {
 	const date = typeof d === 'string' ? new Date(d) : d
 	const ageSec = (Date.now() - date.getTime()) / 1000
-	if (ageSec < 60) return `${Math.max(1, Math.floor(ageSec))}s ago`
-	if (ageSec < 60 * 60) return `${Math.floor(ageSec / 60)}m ago`
-	if (ageSec < 60 * 60 * 24) return `${Math.floor(ageSec / 3600)}h ago`
-	return date.toLocaleString(undefined, {
+	if (ageSec < 60) return m.admin_storage_ago_seconds({ count: Math.max(1, Math.floor(ageSec)) })
+	if (ageSec < 60 * 60) return m.admin_storage_ago_minutes({ count: Math.floor(ageSec / 60) })
+	if (ageSec < 60 * 60 * 24) return m.admin_storage_ago_hours({ count: Math.floor(ageSec / 3600) })
+	return formatDate(date, {
 		month: 'short',
 		day: 'numeric',
 		hour: 'numeric',

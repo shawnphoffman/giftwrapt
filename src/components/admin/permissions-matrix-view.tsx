@@ -14,6 +14,7 @@ import {
 	type PermissionsMatrixData,
 } from '@/lib/permissions-matrix'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 type HeaderUser = { id: string; name: string | null; email: string; image: string | null }
 
@@ -21,39 +22,43 @@ function CellTooltip({ cell, viewerName, ownerName }: { cell: Cell; viewerName: 
 	const lines: Array<string> = []
 	switch (cell.kind) {
 		case 'self':
-			lines.push(`${ownerName} owns these lists.`)
+			lines.push(m.admin_perms_tip_self({ ownerName }))
 			break
 		case 'guardian':
-			lines.push(`${viewerName} is a guardian of ${ownerName}.`)
-			lines.push(`Can view and edit all of ${ownerName}'s lists.`)
+			lines.push(m.admin_perms_tip_guardian({ viewerName, ownerName }))
+			lines.push(m.admin_perms_tip_guardian_access({ ownerName }))
 			break
 		case 'editor':
-			lines.push(`${viewerName} can edit ${ownerName}'s lists.`)
+			lines.push(m.admin_perms_tip_editor({ viewerName, ownerName }))
 			if (cell.editorListCount > 0) {
-				lines.push(`User-level grant (+${cell.editorListCount} list-level grant${cell.editorListCount === 1 ? '' : 's'}).`)
+				lines.push(m.admin_perms_tip_editor_grant_with_lists({ count: cell.editorListCount }))
 			} else {
-				lines.push(`User-level grant.`)
+				lines.push(m.admin_perms_tip_editor_grant())
 			}
 			break
 		case 'denied':
-			lines.push(`${ownerName} has explicitly denied ${viewerName} from viewing their lists.`)
+			lines.push(m.admin_perms_tip_denied({ ownerName, viewerName }))
 			break
 		case 'restricted':
-			lines.push(`${ownerName} has restricted ${viewerName} to visible items only, with no addons and no edits.`)
+			lines.push(m.admin_perms_tip_restricted({ ownerName, viewerName }))
 			if (cell.editorListCount > 0) {
-				lines.push(`(${cell.editorListCount} stale list-level edit grant${cell.editorListCount === 1 ? '' : 's'} ignored.)`)
+				lines.push(m.admin_perms_tip_restricted_stale({ count: cell.editorListCount }))
 			}
 			break
 		case 'view':
-			lines.push(`${viewerName} can view ${ownerName}'s public, active lists (default).`)
+			lines.push(m.admin_perms_tip_view({ viewerName, ownerName }))
 			if (cell.editorListCount > 0) {
-				lines.push(`+${cell.editorListCount} list-level edit grant${cell.editorListCount === 1 ? '' : 's'}.`)
+				lines.push(m.admin_perms_tip_view_list_grants({ count: cell.editorListCount }))
 			}
 			break
 	}
-	if (cell.isPartner) lines.push(`Partners.`)
+	if (cell.isPartner) lines.push(m.admin_perms_tip_partners())
 	for (const label of cell.parentLabels) {
-		lines.push(`${viewerName} considers ${ownerName} their ${label}.`)
+		lines.push(
+			label === 'mother'
+				? m.admin_perms_tip_considers_mother({ viewerName, ownerName })
+				: m.admin_perms_tip_considers_father({ viewerName, ownerName })
+		)
 	}
 	return (
 		<div className="space-y-0.5">
@@ -65,16 +70,14 @@ function CellTooltip({ cell, viewerName, ownerName }: { cell: Cell; viewerName: 
 }
 
 function parentLabelAria(labels: Array<RelationLabel>): string {
-	// Capitalized for the ARIA label even though the enum is lowercase.
-	const formatted = labels.map(l => l.charAt(0).toUpperCase() + l.slice(1))
-	if (formatted.length === 1) return `${formatted[0]} relation`
-	return `${formatted.join(' + ')} relation`
+	const formatted = labels.map(l => (l === 'mother' ? m.admin_perms_label_mother() : m.admin_perms_label_father()))
+	return m.admin_perms_relation_aria({ labels: formatted.join(' + ') })
 }
 
 function CellGlyph({ cell }: { cell: Cell }) {
 	switch (cell.kind) {
 		case 'self':
-			return <span className="text-3xs font-semibold text-muted-foreground">self</span>
+			return <span className="text-3xs font-semibold text-muted-foreground">{m.admin_perms_glyph_self()}</span>
 		case 'guardian':
 			return <Shield className="size-4" />
 		case 'editor':
@@ -121,7 +124,7 @@ function HeaderUserCell({ user, axis }: { user: HeaderUser; axis: 'col' | 'row' 
 		<div className="flex items-center gap-2 pr-3 pl-2 py-1.5 min-w-28 sm:min-w-44">
 			<UserAvatar name={display} image={user.image} size="small" />
 			<div className="flex flex-col min-w-0">
-				<span className="text-xs font-medium truncate">{user.name || 'No name'}</span>
+				<span className="text-xs font-medium truncate">{user.name || m.admin_users_no_name()}</span>
 				<span className="hidden sm:block text-3xs text-muted-foreground truncate">{user.email}</span>
 			</div>
 		</div>
@@ -145,7 +148,7 @@ export function PermissionsMatrixView({ data }: { data: PermissionsMatrixData })
 	const dependents = data.dependents ?? []
 
 	if (users.length === 0) {
-		return <div className="text-sm text-muted-foreground">No users found.</div>
+		return <div className="text-sm text-muted-foreground">{m.admin_perms_empty()}</div>
 	}
 
 	return (
@@ -157,8 +160,8 @@ export function PermissionsMatrixView({ data }: { data: PermissionsMatrixData })
 							<tr>
 								<th className="sticky left-0 top-0 z-30 bg-card border-b border-r p-2 text-left">
 									<div className="flex flex-col text-3xs leading-tight text-muted-foreground">
-										<span className="font-semibold">List owner →</span>
-										<span className="font-semibold">Viewer ↓</span>
+										<span className="font-semibold">{m.admin_perms_axis_owner()}</span>
+										<span className="font-semibold">{m.admin_perms_axis_viewer()}</span>
 									</div>
 								</th>
 								{users.map(owner => (
@@ -263,15 +266,15 @@ export function PermissionsMatrixView({ data }: { data: PermissionsMatrixData })
 
 function Legend() {
 	const userLevelGrants: Array<{ kind: CellKind; label: string; hint: string }> = [
-		{ kind: 'guardian', label: 'Guardian', hint: 'Full view and edit access to a child user' },
-		{ kind: 'editor', label: 'Editor', hint: 'User-level edit grant' },
-		{ kind: 'view', label: 'View', hint: 'Default: public, active lists' },
-		{ kind: 'restricted', label: 'Restricted', hint: 'Can claim, but only sees unclaimed items and no addons' },
-		{ kind: 'denied', label: 'Denied', hint: 'Owner has blocked this viewer' },
+		{ kind: 'guardian', label: m.admin_perms_legend_guardian(), hint: m.admin_perms_legend_guardian_hint() },
+		{ kind: 'editor', label: m.admin_perms_legend_editor(), hint: m.admin_perms_legend_editor_hint() },
+		{ kind: 'view', label: m.admin_perms_legend_view(), hint: m.admin_perms_legend_view_hint() },
+		{ kind: 'restricted', label: m.admin_perms_legend_restricted(), hint: m.admin_perms_legend_restricted_hint() },
+		{ kind: 'denied', label: m.admin_perms_legend_denied(), hint: m.admin_perms_legend_denied_hint() },
 	]
 	return (
 		<div className="space-y-3 text-xs text-muted-foreground">
-			<LegendSection title="User-level grants">
+			<LegendSection title={m.admin_perms_legend_user_grants_title()}>
 				{userLevelGrants.map(it => (
 					<LegendItem key={it.kind} label={it.label} hint={it.hint}>
 						<div className={cn('flex items-center justify-center size-6 rounded-sm', cellClasses(it.kind))}>
@@ -280,18 +283,20 @@ function Legend() {
 					</LegendItem>
 				))}
 			</LegendSection>
-			<LegendSection title="Other">
-				<LegendItem label="Partner" hint="Bidirectional partner link">
+			<LegendSection title={m.admin_perms_legend_other_title()}>
+				<LegendItem label={m.admin_perms_legend_partner()} hint={m.admin_perms_legend_partner_hint()}>
 					<div className="relative size-6 rounded-sm bg-muted">
 						<Heart className="absolute top-0.5 right-0.5 size-2.5 fill-pink-500 text-pink-500" />
 					</div>
 				</LegendItem>
-				<LegendItem label="Mother / Father" hint="Per-direction relation label">
+				<LegendItem label={m.admin_perms_legend_parents()} hint={m.admin_perms_legend_parents_hint()}>
 					<div className="relative size-6 rounded-sm bg-muted">
 						<Home className="absolute bottom-0.5 left-0.5 size-2.5 text-violet-500" />
 					</div>
 				</LegendItem>
-				<LegendItem label="+N" hint="List-level edit grants">
+				{/* eslint-disable-next-line i18next/no-literal-string -- symbolic count marker */}
+				<LegendItem label="+N" hint={m.admin_perms_legend_list_grants_hint()}>
+					{/* eslint-disable-next-line i18next/no-literal-string -- symbolic count marker */}
 					<div className="flex items-center justify-center size-6 rounded-sm bg-sky-500/15 text-sky-700 dark:text-sky-400 text-4xs font-semibold">
 						+N
 					</div>

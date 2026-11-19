@@ -17,8 +17,10 @@ import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { useAdminAppSettings } from '@/hooks/use-app-settings'
+import { formatNumber } from '@/lib/i18n/format'
 import type { ScrapeProviderEntry } from '@/lib/settings'
 import { cn } from '@/lib/utils'
+import { m } from '@/paraglide/messages.js'
 
 import { buildProviderHealth, type ProviderHealth } from './provider-health'
 import { ProviderHealthBadge } from './provider-health-badge'
@@ -28,18 +30,29 @@ import { ProviderHealthBadge } from './provider-health-badge'
 // errorCode rollups are computed in TS from a capped failure feed so we get
 // real URL parsing instead of regex-in-SQL approximations.
 
-const WINDOW_OPTIONS = [
-	{ value: '24', label: '24h' },
-	{ value: '168', label: '7d' },
-	{ value: '720', label: '30d' },
-] as const
+// Built on each render so the labels follow the current language.
+function windowOptions() {
+	return [
+		{ value: '24', label: m.admin_scraping_window_24h() },
+		{ value: '168', label: m.admin_scraping_window_7d() },
+		{ value: '720', label: m.admin_scraping_window_30d() },
+	]
+}
 
 // Completes "0 of 48 attempts succeeded ..." in the health badge tooltip.
-const WINDOW_PHRASES: Record<ScrapeWindowHours, string> = {
-	24: 'in the last 24 hours',
-	168: 'in the last 7 days',
-	720: 'in the last 30 days',
+function windowPhrase(hours: ScrapeWindowHours): string {
+	switch (hours) {
+		case 24:
+			return m.admin_scraping_window_phrase_24h()
+		case 168:
+			return m.admin_scraping_window_phrase_7d()
+		case 720:
+			return m.admin_scraping_window_phrase_30d()
+	}
 }
+
+// Placeholder for a value that does not exist.
+const DASH = '—'
 
 const TOP_N = 15
 const URL_SAMPLES_PER_DOMAIN = 50
@@ -107,7 +120,7 @@ export function ScrapeStatsView({ windowHours, onWindowChange, isLoading, stats,
 	)
 	const aggregates = useMemo(() => computeFailureAggregates(currentFailures), [currentFailures])
 	const health = useMemo(() => buildProviderHealth(currentProviders, currentFailures), [currentProviders, currentFailures])
-	const windowLabel = WINDOW_PHRASES[windowHours]
+	const windowLabel = windowPhrase(windowHours)
 
 	return (
 		<div className="space-y-4">
@@ -115,29 +128,35 @@ export function ScrapeStatsView({ windowHours, onWindowChange, isLoading, stats,
 				<SegmentedToggle<string>
 					value={String(windowHours)}
 					onValueChange={v => onWindowChange(asWindowHours(v))}
-					options={WINDOW_OPTIONS}
+					options={windowOptions()}
 				/>
 				{stats && (
 					<div className="text-xs text-muted-foreground tabular-nums">
-						{currentTotals.total.toLocaleString()} attempts · {currentTotals.fail.toLocaleString()} failed
+						{m.admin_scraping_stats_summary({ attempts: formatNumber(currentTotals.total), failed: formatNumber(currentTotals.fail) })}
 						{currentTotals.total > 0 && (
-							<span className="ml-1">({((currentTotals.fail / currentTotals.total) * 100).toFixed(1)}% fail rate)</span>
+							<span className="ml-1">
+								{m.admin_scraping_stats_fail_rate({
+									rate: formatNumber(currentTotals.fail / currentTotals.total, {
+										style: 'percent',
+										minimumFractionDigits: 1,
+										maximumFractionDigits: 1,
+									}),
+								})}
+							</span>
 						)}
 						{stats.failuresTruncated && (
 							<span className="ml-2 inline-flex items-center gap-1 text-amber-600">
 								<AlertTriangle className="size-3" />
-								failure feed truncated at {stats.failures.length.toLocaleString()}
+								{m.admin_scraping_stats_truncated({ count: formatNumber(stats.failures.length) })}
 							</span>
 						)}
 					</div>
 				)}
 			</div>
 
-			{isLoading && <div className="text-sm text-muted-foreground">Loading stats…</div>}
+			{isLoading && <div className="text-sm text-muted-foreground">{m.admin_scraping_stats_loading()}</div>}
 
-			{stats && currentTotals.total === 0 && (
-				<div className="text-sm text-muted-foreground italic">No scrape attempts from your current providers in this time range.</div>
-			)}
+			{stats && currentTotals.total === 0 && <div className="text-sm text-muted-foreground italic">{m.admin_scraping_stats_empty()}</div>}
 
 			{stats && currentTotals.total > 0 && (
 				<>
@@ -178,18 +197,18 @@ function ProviderTable({
 				<Table>
 					<TableHeader className="bg-muted/50">
 						<TableRow>
-							<TableHead>Tier</TableHead>
-							<TableHead>Provider</TableHead>
-							<TableHead className="text-right">Total</TableHead>
-							<TableHead className="text-right">Failed</TableHead>
-							<TableHead className="text-right">Fail Rate</TableHead>
-							<TableHead className="text-right">Avg ms</TableHead>
-							<TableHead className="text-right">p95 ms</TableHead>
+							<TableHead>{m.admin_scraping_tier_label()}</TableHead>
+							<TableHead>{m.admin_scraping_field_provider()}</TableHead>
+							<TableHead className="text-right">{m.admin_scraping_stats_col_total()}</TableHead>
+							<TableHead className="text-right">{m.admin_scraping_stats_col_failed()}</TableHead>
+							<TableHead className="text-right">{m.admin_scraping_stats_col_fail_rate()}</TableHead>
+							<TableHead className="text-right">{m.admin_scraping_stats_col_avg_ms()}</TableHead>
+							<TableHead className="text-right">{m.admin_scraping_stats_col_p95_ms()}</TableHead>
 						</TableRow>
 					</TableHeader>
 					<TableBody>
 						{sorted.map(r => {
-							const failRate = r.total === 0 ? 0 : (r.failCount / r.total) * 100
+							const failRate = r.total === 0 ? 0 : r.failCount / r.total
 							const tier = tierFor(r.scraperId)
 							return (
 								<TableRow key={r.scraperId}>
@@ -200,14 +219,16 @@ function ProviderTable({
 											{health.get(r.scraperId) && <ProviderHealthBadge health={health.get(r.scraperId)!} windowLabel={windowLabel} />}
 										</span>
 									</TableCell>
-									<TableCell className="text-right tabular-nums">{r.total.toLocaleString()}</TableCell>
-									<TableCell className="text-right tabular-nums">{r.failCount.toLocaleString()}</TableCell>
-									<TableCell className={cn('text-right tabular-nums', failRateClass(failRate))}>{failRate.toFixed(1)}%</TableCell>
-									<TableCell className="text-right tabular-nums text-muted-foreground">
-										{r.avgMs == null ? '—' : formatMs(r.avgMs)}
+									<TableCell className="text-right tabular-nums">{formatNumber(r.total)}</TableCell>
+									<TableCell className="text-right tabular-nums">{formatNumber(r.failCount)}</TableCell>
+									<TableCell className={cn('text-right tabular-nums', failRateClass(failRate * 100))}>
+										{formatNumber(failRate, { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 })}
 									</TableCell>
 									<TableCell className="text-right tabular-nums text-muted-foreground">
-										{r.p95Ms == null ? '—' : formatMs(r.p95Ms)}
+										{r.avgMs == null ? DASH : formatMs(r.avgMs)}
+									</TableCell>
+									<TableCell className="text-right tabular-nums text-muted-foreground">
+										{r.p95Ms == null ? DASH : formatMs(r.p95Ms)}
 									</TableCell>
 								</TableRow>
 							)
@@ -231,17 +252,17 @@ function DomainTable({ rows, totalFailures }: { rows: Array<DomainAggregateRow>;
 	const [openDomain, setOpenDomain] = useState<DomainAggregateRow | null>(null)
 	return (
 		<section className="space-y-1.5">
-			<SectionHeading>Top failing domains</SectionHeading>
+			<SectionHeading>{m.admin_scraping_stats_domains_heading()}</SectionHeading>
 			{rows.length === 0 ? (
-				<div className="text-sm text-muted-foreground italic">No failures in this window.</div>
+				<div className="text-sm text-muted-foreground italic">{m.admin_scraping_stats_no_failures()}</div>
 			) : (
 				<div className="overflow-x-auto rounded-md border">
 					<Table>
 						<TableHeader className="bg-muted/50">
 							<TableRow>
-								<TableHead>Domain</TableHead>
-								<TableHead className="text-right">Failures</TableHead>
-								<TableHead>Top Error</TableHead>
+								<TableHead>{m.admin_scraping_stats_col_domain()}</TableHead>
+								<TableHead className="text-right">{m.admin_scraping_stats_col_failures()}</TableHead>
+								<TableHead>{m.admin_scraping_stats_col_top_error()}</TableHead>
 								<TableHead className="w-8" />
 							</TableRow>
 						</TableHeader>
@@ -250,9 +271,9 @@ function DomainTable({ rows, totalFailures }: { rows: Array<DomainAggregateRow>;
 								<TableRow key={r.domain}>
 									<TableCell className="font-mono text-xs">{r.domain}</TableCell>
 									<TableCell className="text-right tabular-nums">
-										{r.count.toLocaleString()}
+										{formatNumber(r.count)}
 										{totalFailures > 0 && (
-											<span className="ml-1 text-xs text-muted-foreground">({((r.count / totalFailures) * 100).toFixed(0)}%)</span>
+											<span className="ml-1 text-xs text-muted-foreground">{`(${formatNumber(r.count / totalFailures, { style: 'percent', maximumFractionDigits: 0 })})`}</span>
 										)}
 									</TableCell>
 									<TableCell className="text-xs">
@@ -261,10 +282,10 @@ function DomainTable({ rows, totalFailures }: { rows: Array<DomainAggregateRow>;
 												<Badge variant="outline" className="font-mono">
 													{r.topErrorCode}
 												</Badge>
-												<span className="ml-1 text-muted-foreground tabular-nums">×{r.topErrorCount}</span>
+												<span className="ml-1 text-muted-foreground tabular-nums">{`×${r.topErrorCount}`}</span>
 											</>
 										) : (
-											<span className="text-muted-foreground italic">unknown</span>
+											<span className="text-muted-foreground italic">{m.admin_scraping_unknown()}</span>
 										)}
 									</TableCell>
 									<TableCell className="text-right">
@@ -272,7 +293,7 @@ function DomainTable({ rows, totalFailures }: { rows: Array<DomainAggregateRow>;
 											type="button"
 											variant="ghost"
 											size="icon-xs"
-											aria-label={`Show example failing URLs for ${r.domain}`}
+											aria-label={m.admin_scraping_stats_show_urls({ domain: r.domain })}
 											onClick={() => setOpenDomain(r)}
 										>
 											<ListOrdered className="size-4" />
@@ -297,9 +318,12 @@ function DomainUrlsDialog({ row, onClose }: { row: DomainAggregateRow | null; on
 					<DialogTitle className="font-mono text-base">{row?.domain ?? ''}</DialogTitle>
 					<DialogDescription>
 						{row
-							? `${row.urls.length.toLocaleString()} unique URL${row.urls.length === 1 ? '' : 's'} from ${row.count.toLocaleString()} failure${
-									row.count === 1 ? '' : 's'
-								} in this window. Click a URL to copy.`
+							? m.admin_scraping_stats_domain_urls({
+									urlCount: row.urls.length,
+									failureCount: row.count,
+									urls: formatNumber(row.urls.length),
+									failures: formatNumber(row.count),
+								})
 							: ''}
 					</DialogDescription>
 				</DialogHeader>
@@ -319,7 +343,7 @@ function DomainUrlsDialog({ row, onClose }: { row: DomainAggregateRow | null; on
 						))}
 					</ul>
 				) : (
-					<div className="text-sm text-muted-foreground italic">No URL examples recorded.</div>
+					<div className="text-sm text-muted-foreground italic">{m.admin_scraping_stats_no_urls()}</div>
 				)}
 			</DialogContent>
 		</Dialog>
@@ -329,23 +353,23 @@ function DomainUrlsDialog({ row, onClose }: { row: DomainAggregateRow | null; on
 function copyUrl(url: string) {
 	void navigator.clipboard
 		.writeText(url)
-		.then(() => toast.success('URL copied'))
-		.catch(() => toast.error('Copy failed'))
+		.then(() => toast.success(m.admin_scraping_stats_url_copied()))
+		.catch(() => toast.error(m.admin_scraping_stats_copy_failed()))
 }
 
 function ErrorCodeTable({ rows, totalFailures }: { rows: Array<{ code: string; count: number }>; totalFailures: number }) {
 	return (
 		<section className="space-y-1.5">
-			<SectionHeading>Top error codes</SectionHeading>
+			<SectionHeading>{m.admin_scraping_stats_codes_heading()}</SectionHeading>
 			{rows.length === 0 ? (
-				<div className="text-sm text-muted-foreground italic">No failures in this window.</div>
+				<div className="text-sm text-muted-foreground italic">{m.admin_scraping_stats_no_failures()}</div>
 			) : (
 				<div className="overflow-x-auto rounded-md border">
 					<Table>
 						<TableHeader className="bg-muted/50">
 							<TableRow>
-								<TableHead>Code</TableHead>
-								<TableHead className="text-right">Count</TableHead>
+								<TableHead>{m.admin_scraping_stats_col_code()}</TableHead>
+								<TableHead className="text-right">{m.admin_scraping_stats_col_count()}</TableHead>
 							</TableRow>
 						</TableHeader>
 						<TableBody>
@@ -353,9 +377,9 @@ function ErrorCodeTable({ rows, totalFailures }: { rows: Array<{ code: string; c
 								<TableRow key={r.code}>
 									<TableCell className="font-mono text-xs">{r.code}</TableCell>
 									<TableCell className="text-right tabular-nums">
-										{r.count.toLocaleString()}
+										{formatNumber(r.count)}
 										{totalFailures > 0 && (
-											<span className="ml-1 text-xs text-muted-foreground">({((r.count / totalFailures) * 100).toFixed(0)}%)</span>
+											<span className="ml-1 text-xs text-muted-foreground">{`(${formatNumber(r.count / totalFailures, { style: 'percent', maximumFractionDigits: 0 })})`}</span>
 										)}
 									</TableCell>
 								</TableRow>
@@ -380,12 +404,12 @@ function failRateClass(rate: number): string {
 
 function formatMs(ms: number): string {
 	if (ms < 1000) return `${Math.round(ms)}`
-	return `${(ms / 1000).toFixed(1)}s`
+	return `${formatNumber(ms / 1000, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}s`
 }
 
 function formatTier(tier: number | null): string {
-	if (tier === null) return '—'
-	if (tier === 0) return '0 (built-in)'
+	if (tier === null) return DASH
+	if (tier === 0) return m.admin_scraping_stats_tier_builtin()
 	return String(tier)
 }
 
@@ -406,12 +430,12 @@ export function buildScraperLookups(scrapeProviders: ReadonlyArray<ScrapeProvide
 
 	// Admin-assigned name per provider id; the always-on fetch provider is
 	// "Built-in". Ids no longer configured fall back to the raw id.
-	const nameFor = (id: string): string => (id === FETCH_PROVIDER_ID ? 'Built-in' : (namesById.get(id) ?? id))
+	const nameFor = (id: string): string => (id === FETCH_PROVIDER_ID ? m.admin_scraping_builtin() : (namesById.get(id) ?? id))
 
 	const labelFor = (rawId: string): string => {
 		if (rawId.startsWith('merged:')) {
 			const ids = rawId.slice('merged:'.length).split(',').filter(Boolean)
-			return `${ids.map(nameFor).join(' + ')} (merged)`
+			return m.admin_scraping_merged({ names: ids.map(nameFor).join(' + ') })
 		}
 		return nameFor(rawId)
 	}

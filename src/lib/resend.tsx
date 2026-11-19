@@ -515,7 +515,10 @@ export const sendOperatorDigestEmail = async (recipients: Array<string>, data: O
 		return null
 	}
 	if (recipients.length === 0) return null
-	const { appTitle } = await getAppSettings(db)
+	const { appTitle, defaultLocale } = await getAppSettings(db)
+	// One digest for every admin, so it is in the deployment's language, the
+	// same one the caller wrote the subject in.
+	const locale = recipientLocale(null, defaultLocale)
 	emailLog.info({ kind: 'intelligence-operator-digest', recipientCount: recipients.length }, 'sending email')
 	const { default: IntelligenceOperatorDigestEmail } = await import('@/emails/intelligence-operator-digest')
 	const results: Array<SendResult> = []
@@ -524,7 +527,7 @@ export const sendOperatorDigestEmail = async (recipients: Array<string>, data: O
 			from: getFromEmail(cfg),
 			to,
 			subject,
-			react: <IntelligenceOperatorDigestEmail data={data} appTitle={appTitle} />,
+			react: <IntelligenceOperatorDigestEmail data={data} appTitle={appTitle} locale={locale} />,
 		})
 		logSendResult('intelligence-operator-digest', to, res as SendResult)
 		results.push(res as SendResult)
@@ -538,21 +541,21 @@ export const sendOperatorDigestEmail = async (recipients: Array<string>, data: O
 }
 
 export const TEST_EMAIL_KINDS = [
-	{ value: 'test', label: 'Generic Test Email' },
-	{ value: 'new-comment', label: 'New Comment Notification' },
-	{ value: 'birthday', label: 'Happy Birthday' },
-	{ value: 'post-birthday', label: 'Gift Reveal Summary (Birthday)' },
-	{ value: 'pre-birthday-reminder', label: 'Pre-birthday Reminder' },
-	{ value: 'pre-christmas-reminder', label: 'Pre-Christmas Reminder' },
-	{ value: 'pre-custom-holiday-reminder', label: 'Pre-custom-holiday Reminder' },
-	{ value: 'parental-relations-reminder', label: "Mother's/Father's Day Reminder" },
-	{ value: 'valentines-day-reminder', label: "Valentine's Day Reminder" },
-	{ value: 'partner-anniversary-reminder', label: 'Partner Anniversary Reminder' },
-	{ value: 'orphan-claim', label: 'Orphan Claim Alert' },
-	{ value: 'orphan-claim-cleanup-reminder', label: 'Orphan Claim Cleanup Reminder' },
-	{ value: 'post-holiday', label: 'Gift Reveal Summary (Holiday)' },
-	{ value: 'password-reset', label: 'Password Reset' },
-	{ value: 'intelligence-operator-digest', label: 'Intelligence Operator Digest' },
+	{ value: 'test' },
+	{ value: 'new-comment' },
+	{ value: 'birthday' },
+	{ value: 'post-birthday' },
+	{ value: 'pre-birthday-reminder' },
+	{ value: 'pre-christmas-reminder' },
+	{ value: 'pre-custom-holiday-reminder' },
+	{ value: 'parental-relations-reminder' },
+	{ value: 'valentines-day-reminder' },
+	{ value: 'partner-anniversary-reminder' },
+	{ value: 'orphan-claim' },
+	{ value: 'orphan-claim-cleanup-reminder' },
+	{ value: 'post-holiday' },
+	{ value: 'password-reset' },
+	{ value: 'intelligence-operator-digest' },
 ] as const
 
 export type TestEmailKind = (typeof TEST_EMAIL_KINDS)[number]['value']
@@ -749,7 +752,10 @@ const buildTestEmailPayload = async (
 			const settings = await getAppSettings(db)
 			const now = new Date()
 			const data = await buildOperatorDigest(digestWindow(null, settings.intelligenceRefreshIntervalDays, now))
-			return { subject: operatorDigestSubject(data), react: <IntelligenceOperatorDigestEmail data={data} appTitle={appTitle} /> }
+			return {
+				subject: operatorDigestSubject(data, locale),
+				react: <IntelligenceOperatorDigestEmail data={data} appTitle={appTitle} locale={locale} />,
+			}
 		}
 	}
 }

@@ -14,15 +14,18 @@ import { useAiModels } from '@/hooks/use-ai-models'
 import { CUSTOM_PROVIDER_ID, findProviderMatch, type Provider, PROVIDERS } from '@/lib/ai-provider-catalog'
 import { DEFAULT_MAX_OUTPUT_TOKENS, type ProviderType } from '@/lib/ai-types'
 import { LIMITS } from '@/lib/validation/limits'
+import { m } from '@/paraglide/messages.js'
 
 import { ModelPicker, type ModelPickerStatus } from './model-picker'
+
+const BASE_URL_EXAMPLE = 'http://localhost:11434/v1'
 
 export function AiSettingsEditor() {
 	const { data, isLoading } = useAiConfig()
 	const mutation = useAiConfigMutation()
 
 	if (isLoading || !data) {
-		return <div className="text-sm text-muted-foreground">Loading AI settings…</div>
+		return <div className="text-sm text-muted-foreground">{m.admin_ai_settings_loading()}</div>
 	}
 
 	return <Form config={data} saving={mutation.isPending} mutate={mutation.mutateAsync} />
@@ -101,7 +104,7 @@ function Form({ config, saving, mutate }: FormProps) {
 	})
 
 	const liveModels = modelsResult?.ok ? modelsResult.models : []
-	const providerName = isCustomProvider ? 'this endpoint' : (provider?.name ?? 'this endpoint')
+	const providerName = isCustomProvider ? m.admin_ai_provider_name_endpoint() : (provider?.name ?? m.admin_ai_provider_name_endpoint())
 	const modelsStatus: ModelPickerStatus = modelsLoading
 		? { kind: 'loading' }
 		: modelsResult?.ok
@@ -165,7 +168,7 @@ function Form({ config, saving, mutate }: FormProps) {
 			toast.error(res.error)
 			return
 		}
-		toast.success('AI settings updated')
+		toast.success(m.admin_ai_settings_updated())
 	}
 
 	const handleClearAll = async () => {
@@ -189,7 +192,7 @@ function Form({ config, saving, mutate }: FormProps) {
 			toast.error(res.error)
 			return
 		}
-		toast.success('AI settings cleared')
+		toast.success(m.admin_ai_settings_cleared())
 	}
 
 	const handleApiKeyReplace = () => {
@@ -213,22 +216,17 @@ function Form({ config, saving, mutate }: FormProps) {
 		<div className="flex flex-col gap-6">
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-2xl">AI</CardTitle>
-					<CardDescription>
-						Set up the AI provider used to clean up scraped results and to generate Intelligence recommendations. Any OpenAI-compatible
-						endpoint works. Values set through environment variables take priority and can't be edited here.
-					</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_ai_settings_title()}</CardTitle>
+					<CardDescription>{m.admin_ai_settings_description()}</CardDescription>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-6">
 					{/* Provider */}
 					<div className="flex flex-col gap-2">
 						<div className="space-y-0.5">
 							<Label htmlFor="aiProvider" className="text-base">
-								Provider
+								{m.admin_ai_provider_label()}
 							</Label>
-							<p className="text-sm text-muted-foreground">
-								Pick OpenAI, Anthropic, a known OpenAI-compatible provider, or Custom to point at any other endpoint.
-							</p>
+							<p className="text-sm text-muted-foreground">{m.admin_ai_settings_provider_hint()}</p>
 						</div>
 						<Select value={providerId} onValueChange={handleProviderChange} disabled={providerTypeLocked || baseUrlLocked || saving}>
 							<SelectTrigger id="aiProvider" className="w-full">
@@ -240,12 +238,14 @@ function Form({ config, saving, mutate }: FormProps) {
 										{p.name}
 									</SelectItem>
 								))}
-								<SelectItem value={CUSTOM_PROVIDER_ID}>Custom…</SelectItem>
+								<SelectItem value={CUSTOM_PROVIDER_ID}>{m.admin_ai_provider_custom()}</SelectItem>
 							</SelectContent>
 						</Select>
 						{!isCustomProvider && provider?.baseUrl && <p className="text-xs text-muted-foreground font-mono">{provider.baseUrl}</p>}
-						{providerTypeLocked && <p className="text-xs text-muted-foreground">Set by AI_PROVIDER_TYPE. Unset to edit here.</p>}
-						{baseUrlLocked && <p className="text-xs text-muted-foreground">Set by AI_BASE_URL. Unset to edit here.</p>}
+						{providerTypeLocked && (
+							<p className="text-xs text-muted-foreground">{m.admin_ai_env_set_by_edit({ envVar: 'AI_PROVIDER_TYPE' })}</p>
+						)}
+						{baseUrlLocked && <p className="text-xs text-muted-foreground">{m.admin_ai_env_set_by_edit({ envVar: 'AI_BASE_URL' })}</p>}
 					</div>
 
 					{/* Custom base URL (only when provider type is openai-compatible AND custom) */}
@@ -253,16 +253,15 @@ function Form({ config, saving, mutate }: FormProps) {
 						<div className="flex flex-col gap-2">
 							<div className="space-y-0.5">
 								<Label htmlFor="aiBaseUrl" className="text-base">
-									Base URL
+									{m.admin_ai_base_url_label()}
 								</Label>
-								<p className="text-sm text-muted-foreground">
-									The chat-completions API root, without a trailing slash. Example: http://localhost:11434/v1
-								</p>
+								<p className="text-sm text-muted-foreground">{m.admin_ai_settings_base_url_hint({ example: BASE_URL_EXAMPLE })}</p>
 							</div>
 							<Input
 								id="aiBaseUrl"
 								type="url"
 								value={customBaseUrl}
+								// eslint-disable-next-line i18next/no-literal-string -- example URL
 								placeholder="https://example.com/v1"
 								disabled={baseUrlLocked || saving}
 								maxLength={LIMITS.URL}
@@ -275,20 +274,20 @@ function Form({ config, saving, mutate }: FormProps) {
 					<div className="flex flex-col gap-2">
 						<div className="space-y-0.5">
 							<Label htmlFor="aiApiKey" className="text-base">
-								API Key
+								{m.admin_ai_api_key_label()}
 							</Label>
-							<p className="text-sm text-muted-foreground">Bearer token sent to the provider. Encrypted at rest.</p>
+							<p className="text-sm text-muted-foreground">{m.admin_ai_settings_api_key_hint()}</p>
 						</div>
 						{apiKeyLocked ? (
 							<>
 								<Input id="aiApiKey" value={config.apiKey.preview ?? ''} disabled readOnly className="font-mono" />
-								<p className="text-xs text-muted-foreground">Set by AI_API_KEY. Unset to edit here.</p>
+								<p className="text-xs text-muted-foreground">{m.admin_ai_env_set_by_edit({ envVar: 'AI_API_KEY' })}</p>
 							</>
 						) : apiKeyMode === 'display' && config.apiKey.source === 'db' ? (
 							<div className="flex items-center gap-2">
 								<Input id="aiApiKey" value={config.apiKey.preview ?? ''} disabled readOnly className="font-mono" />
 								<Button type="button" variant="outline" onClick={handleApiKeyReplace} disabled={saving}>
-									Replace
+									{m.admin_ai_api_key_replace()}
 								</Button>
 							</div>
 						) : (
@@ -298,6 +297,7 @@ function Form({ config, saving, mutate }: FormProps) {
 									type="password"
 									autoComplete="off"
 									value={apiKeyDraft}
+									// eslint-disable-next-line i18next/no-literal-string -- key format sample
 									placeholder="sk-…"
 									disabled={saving}
 									maxLength={LIMITS.SECRET}
@@ -305,7 +305,7 @@ function Form({ config, saving, mutate }: FormProps) {
 								/>
 								{config.apiKey.source !== 'missing' && (
 									<Button type="button" variant="outline" onClick={handleApiKeyCancel} disabled={saving}>
-										Cancel
+										{m.action_cancel()}
 									</Button>
 								)}
 							</div>
@@ -316,11 +316,9 @@ function Form({ config, saving, mutate }: FormProps) {
 					<div className="flex flex-col gap-2">
 						<div className="space-y-0.5">
 							<Label htmlFor="aiModel" className="text-base">
-								Model
+								{m.admin_ai_model_label()}
 							</Label>
-							<p className="text-sm text-muted-foreground">
-								Pick a model this provider currently offers, or type any identifier it accepts.
-							</p>
+							<p className="text-sm text-muted-foreground">{m.admin_ai_settings_model_hint()}</p>
 						</div>
 						<ModelPicker
 							// Remounting on a provider switch closes the popover and clears
@@ -337,7 +335,7 @@ function Form({ config, saving, mutate }: FormProps) {
 							catalogue={!isCustomProvider}
 							disabled={modelLocked || saving}
 						/>
-						{modelLocked && <p className="text-xs text-muted-foreground">Set by AI_MODEL. Unset to edit here.</p>}
+						{modelLocked && <p className="text-xs text-muted-foreground">{m.admin_ai_env_set_by_edit({ envVar: 'AI_MODEL' })}</p>}
 					</div>
 
 					<Separator />
@@ -356,22 +354,17 @@ function Form({ config, saving, mutate }: FormProps) {
 
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-2xl">AI Provider Settings</CardTitle>
-					<CardDescription>
-						Settings that apply to every AI feature. Provider-specific options will show up here as they're added.
-					</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_ai_settings_shared_title()}</CardTitle>
+					<CardDescription>{m.admin_ai_settings_shared_description()}</CardDescription>
 				</CardHeader>
 				<CardContent className="flex flex-col gap-6">
 					{/* Max output tokens */}
 					<div className="flex flex-col gap-2">
 						<div className="space-y-0.5">
 							<Label htmlFor="aiMaxOutputTokens" className="text-base">
-								Max Output Tokens
+								{m.admin_ai_settings_max_tokens_label()}
 							</Label>
-							<p className="text-sm text-muted-foreground">
-								Caps the response length for connection tests, scraping, title clean-up, and photo to item. Reasoning models need at least a
-								few hundred. Suggestions are bounded by batch size instead, because a cut-off response there is unusable.
-							</p>
+							<p className="text-sm text-muted-foreground">{m.admin_ai_settings_max_tokens_hint()}</p>
 						</div>
 						<Input
 							id="aiMaxOutputTokens"
@@ -386,9 +379,11 @@ function Form({ config, saving, mutate }: FormProps) {
 							className="w-40"
 						/>
 						{!maxTokensValid && maxTokensDraft.length > 0 && (
-							<p className="text-xs text-destructive">Enter a whole number between 1 and 64000.</p>
+							<p className="text-xs text-destructive">{m.admin_ai_settings_max_tokens_invalid()}</p>
 						)}
-						{maxTokensLocked && <p className="text-xs text-muted-foreground">Set by AI_MAX_OUTPUT_TOKENS. Unset to edit here.</p>}
+						{maxTokensLocked && (
+							<p className="text-xs text-muted-foreground">{m.admin_ai_env_set_by_edit({ envVar: 'AI_MAX_OUTPUT_TOKENS' })}</p>
+						)}
 					</div>
 				</CardContent>
 			</Card>
@@ -396,11 +391,11 @@ function Form({ config, saving, mutate }: FormProps) {
 			{/* Save button row covers both Provider and Provider settings cards */}
 			<div className="flex items-center gap-2 justify-end">
 				<Button type="button" onClick={handleSave} disabled={!dirty || saving}>
-					{saving ? 'Saving…' : 'Save'}
+					{saving ? m.state_saving() : m.action_save()}
 				</Button>
 				{hasAnyDbValue && (
 					<Button type="button" variant="outline" onClick={handleClearAll} disabled={saving}>
-						Clear All
+						{m.admin_ai_settings_clear_all()}
 					</Button>
 				)}
 			</div>
@@ -448,10 +443,10 @@ function TestConnectionSection({
 			if (draftMaxOutputTokens !== undefined) body.maxOutputTokens = draftMaxOutputTokens
 			const res = await testAiConnectionAsAdmin({ data: body } as Parameters<typeof testAiConnectionAsAdmin>[0])
 			setResult(res)
-			if (res.ok) toast.success(`Connection OK (${res.latencyMs} ms)`)
+			if (res.ok) toast.success(m.admin_ai_test_connection_ok({ latency: res.latencyMs }))
 			else toast.error(res.error)
 		} catch (err) {
-			const msg = err instanceof Error ? err.message : 'Test failed'
+			const msg = err instanceof Error ? err.message : m.admin_ai_test_failed()
 			setResult({ ok: false, error: msg })
 			toast.error(msg)
 		} finally {
@@ -464,18 +459,15 @@ function TestConnectionSection({
 	return (
 		<section className="flex flex-col gap-3">
 			<div className="space-y-0.5">
-				<h3 className="text-lg font-medium">Test Connection</h3>
-				<p className="text-sm text-muted-foreground">
-					Sends a small chat request through the Vercel AI SDK to verify the provider, API key, and model in one round-trip.
-					{dirty ? ' Uses the values currently in the form (including unsaved drafts).' : ''}
-				</p>
+				<h3 className="text-lg font-medium">{m.admin_ai_test_connection()}</h3>
+				<p className="text-sm text-muted-foreground">{dirty ? m.admin_ai_test_description_dirty() : m.admin_ai_test_description()}</p>
 			</div>
 			<div className="flex items-center gap-2">
 				<Button type="button" variant="outline" className="gap-2" onClick={handleClick} disabled={!canTest || testing}>
 					{Icon}
-					{testing ? 'Testing…' : 'Test Connection'}
+					{testing ? m.admin_ai_test_testing() : m.admin_ai_test_connection()}
 				</Button>
-				{result?.ok === true && <span className="text-sm text-muted-foreground">OK ({result.latencyMs} ms)</span>}
+				{result?.ok === true && <span className="text-sm text-muted-foreground">{m.admin_ai_test_ok({ latency: result.latencyMs })}</span>}
 				{result?.ok === false && <span className="text-sm text-destructive">{result.error}</span>}
 			</div>
 		</section>

@@ -6,20 +6,10 @@ import simpleImportSort from 'eslint-plugin-simple-import-sort'
 import i18next from 'eslint-plugin-i18next'
 
 // Localization (plan 36): where hardcoded user-visible text is a lint error.
-// Everything under components and routes, minus what has not been extracted
-// yet. Remove a line from I18N_PENDING when that area is done.
+// Everything under components and routes. An area that has not been
+// extracted yet would be listed in I18N_PENDING; none is.
 const I18N_EXTRACTED = ['src/components/**/*.tsx', 'src/routes/**/*.tsx']
-const I18N_PENDING = [
-	// Admin screens (plan 36m).
-	'src/components/admin/**',
-	'src/components/intelligence/admin-intelligence-*.tsx',
-	'src/components/intelligence/run-*.tsx',
-	'src/components/intelligence/intelligence-charts.tsx',
-	'src/components/temp/**',
-	'src/routes/(core)/admin/**',
-	'src/routes/(core)/admin_/**',
-	'src/routes/(core)/temp/**',
-]
+const I18N_PENDING = []
 // Never user-facing: the design-system reference pages, API routes, tests,
 // stories, and a developer demo of toast styles.
 const I18N_NOT_UI = [

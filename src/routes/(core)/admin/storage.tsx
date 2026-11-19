@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 
 import { StorageMirrorSection } from '@/components/admin/app-settings-editor'
 import { StorageBrowser } from '@/components/admin/storage-browser'
+import { RichMessage } from '@/components/common/rich-message'
 import { StorageDisabledBanner } from '@/components/common/storage-disabled-banner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ClientOnly } from '@/components/utilities/client-only'
@@ -21,7 +22,7 @@ function AdminStoragePage() {
 		return (
 			<Card className="animate-page-in">
 				<CardHeader>
-					<CardTitle className="text-2xl">Storage</CardTitle>
+					<CardTitle className="text-2xl">{m.admin_nav_storage_title()}</CardTitle>
 				</CardHeader>
 				<CardContent>
 					<StorageDisabledBanner />
@@ -34,8 +35,8 @@ function AdminStoragePage() {
 		<>
 			<Card className="animate-page-in">
 				<CardHeader>
-					<CardTitle className="text-2xl">Storage Settings</CardTitle>
-					<CardDescription>Behavior that runs whenever items are saved with external image URLs.</CardDescription>
+					<CardTitle className="text-2xl">{m.admin_nav_storage_settings_title()}</CardTitle>
+					<CardDescription>{m.admin_nav_storage_settings_description()}</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<ClientOnly>
@@ -45,11 +46,9 @@ function AdminStoragePage() {
 			</Card>
 			<Card className="animate-page-in">
 				<CardHeader>
-					<CardTitle className="text-2xl">Storage Browser</CardTitle>
+					<CardTitle className="text-2xl">{m.admin_nav_storage_browser_title()}</CardTitle>
 					<CardDescription>
-						Every object in the configured bucket. Rows are classified as <strong>attached</strong> when a user or item still references
-						them, or <strong>orphan</strong> when nothing in the database points at the key. Bulk-delete orphans or remove a single object
-						below.
+						<RichMessage parts={m.admin_nav_storage_browser_description.parts()} tags={{ strong: c => <strong>{c}</strong> }} />
 					</CardDescription>
 				</CardHeader>
 				<CardContent>

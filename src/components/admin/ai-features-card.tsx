@@ -4,6 +4,7 @@ import { Fragment, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 import { updateAppSettings } from '@/api/settings'
+import { RichMessage } from '@/components/common/rich-message'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,6 +20,7 @@ import { AI_FEATURE_REGISTRY, type AiFeatureInfo } from '@/lib/ai-features'
 import { AI_SLOT_LABELS } from '@/lib/ai-slots'
 import { isValidSearchUrlTemplate, SEARCH_QUERY_PLACEHOLDER } from '@/lib/gift-suggestions/search-url'
 import type { AppSettings } from '@/lib/settings'
+import { m } from '@/paraglide/messages.js'
 
 function isAiAvailable(aiConfig: AiConfigResponse | undefined): boolean {
 	return aiConfig?.isValid === true
@@ -40,7 +42,7 @@ function useFeatureToggleMutation() {
 		},
 		onError: (err, _changes, ctx) => {
 			if (ctx?.previous) queryClient.setQueryData(adminAppSettingsQueryKey, ctx.previous)
-			toast.error(err instanceof Error ? err.message : 'Failed to update setting')
+			toast.error(err instanceof Error ? err.message : m.admin_ai_setting_update_failed())
 		},
 		onSuccess: (data, _vars, ctx) => {
 			queryClient.setQueryData<AppSettings>(adminAppSettingsQueryKey, old => {
@@ -52,7 +54,7 @@ function useFeatureToggleMutation() {
 				return next
 			})
 			notifyAppSettingsChanged(queryClient)
-			toast.success('Setting updated')
+			toast.success(m.admin_ai_setting_updated())
 		},
 	})
 }
@@ -64,12 +66,12 @@ function AiDataDisclosure({ feature }: { feature: AiFeatureInfo }) {
 		<Collapsible>
 			<CollapsibleTrigger className="group flex items-center gap-1 text-sm text-muted-foreground underline-offset-4 hover:underline">
 				<ChevronRight className="size-4 transition-transform group-data-[state=open]:rotate-90" aria-hidden />
-				What is sent to the AI provider
+				{m.admin_ai_features_disclosure_toggle()}
 			</CollapsibleTrigger>
 			<CollapsibleContent>
 				<div className="mt-2 space-y-3 rounded-md border p-3 text-sm">
 					<div className="space-y-1">
-						<p className="font-medium">Sent</p>
+						<p className="font-medium">{m.admin_ai_features_sent()}</p>
 						<ul className="list-disc space-y-1 pl-4 text-muted-foreground">
 							{feature.sent.map(line => (
 								<li key={line}>{line}</li>
@@ -77,7 +79,7 @@ function AiDataDisclosure({ feature }: { feature: AiFeatureInfo }) {
 						</ul>
 					</div>
 					<div className="space-y-1">
-						<p className="font-medium">Never Sent</p>
+						<p className="font-medium">{m.admin_ai_features_never_sent()}</p>
 						<ul className="list-disc space-y-1 pl-4 text-muted-foreground">
 							{feature.neverSent.map(line => (
 								<li key={line}>{line}</li>
@@ -113,11 +115,8 @@ export function GiftSuggestionsSearchUrlField({ value, pending, onSave }: Search
 	return (
 		<div className="flex flex-col gap-2">
 			<div className="space-y-0.5">
-				<Label htmlFor="giftSuggestionsSearchUrl">Search Link (Optional)</Label>
-				<p className="text-sm text-muted-foreground">
-					Adds a Search link to each idea. Enter any search or store URL with {SEARCH_QUERY_PLACEHOLDER} where the idea’s title should go.
-					Leave empty for no link.
-				</p>
+				<Label htmlFor="giftSuggestionsSearchUrl">{m.admin_ai_features_search_label()}</Label>
+				<p className="text-sm text-muted-foreground">{m.admin_ai_features_search_hint({ placeholder: SEARCH_QUERY_PLACEHOLDER })}</p>
 			</div>
 			<div className="flex items-center gap-2">
 				<Input
@@ -132,11 +131,11 @@ export function GiftSuggestionsSearchUrlField({ value, pending, onSave }: Search
 					aria-invalid={!valid}
 				/>
 				<Button type="button" disabled={!dirty || !valid || pending} onClick={() => onSave(next)}>
-					Save
+					{m.action_save()}
 				</Button>
 			</div>
 			{!valid && (
-				<p className="text-xs text-destructive">Enter an http(s) URL that contains {SEARCH_QUERY_PLACEHOLDER}, or leave it empty.</p>
+				<p className="text-xs text-destructive">{m.admin_ai_features_search_invalid({ placeholder: SEARCH_QUERY_PLACEHOLDER })}</p>
 			)}
 		</div>
 	)
@@ -151,9 +150,9 @@ export function AiFeaturesCard() {
 		return (
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-2xl">AI Features</CardTitle>
+					<CardTitle className="text-2xl">{m.admin_ai_features_title()}</CardTitle>
 				</CardHeader>
-				<CardContent className="text-sm text-muted-foreground">Loading…</CardContent>
+				<CardContent className="text-sm text-muted-foreground">{m.state_loading()}</CardContent>
 			</Card>
 		)
 	}
@@ -161,9 +160,9 @@ export function AiFeaturesCard() {
 		return (
 			<Card>
 				<CardHeader>
-					<CardTitle className="text-2xl">AI Features</CardTitle>
+					<CardTitle className="text-2xl">{m.admin_ai_features_title()}</CardTitle>
 				</CardHeader>
-				<CardContent className="text-sm text-muted-foreground">No settings found.</CardContent>
+				<CardContent className="text-sm text-muted-foreground">{m.admin_ai_features_no_settings()}</CardContent>
 			</Card>
 		)
 	}
@@ -205,12 +204,8 @@ export function AiFeaturesCardView({
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle className="text-2xl">AI Features</CardTitle>
-				<CardDescription>
-					Each feature below can be switched on its own. The badge says which model it runs on: Default is the provider at the top, Fast and
-					Vision are the optional models above and fall back to Default when empty. Open “What is sent” to see exactly what leaves this
-					deployment for that feature. Nothing runs until a provider is configured.
-				</CardDescription>
+				<CardTitle className="text-2xl">{m.admin_ai_features_title()}</CardTitle>
+				<CardDescription>{m.admin_ai_features_description()}</CardDescription>
 			</CardHeader>
 			<CardContent className="flex flex-col gap-6">
 				{AI_FEATURE_REGISTRY.map((feature, index) => {
@@ -226,7 +221,12 @@ export function AiFeaturesCardView({
 												{feature.label}
 											</Label>
 											{feature.slots.map(slot => (
-												<Badge key={slot} variant="outline" className="font-normal" title={`Runs on the ${AI_SLOT_LABELS[slot]} model`}>
+												<Badge
+													key={slot}
+													variant="outline"
+													className="font-normal"
+													title={m.admin_ai_features_slot_title({ slot: AI_SLOT_LABELS[slot] })}
+												>
 													{AI_SLOT_LABELS[slot]}
 												</Badge>
 											))}
@@ -236,11 +236,20 @@ export function AiFeaturesCardView({
 											{feature.managedAt && (
 												<>
 													{' '}
-													{key ? 'More options under' : 'Turned on and off under'}{' '}
-													<a className="underline" href={feature.managedAt.href}>
-														{feature.managedAt.label}
-													</a>
-													.
+													<RichMessage
+														parts={
+															key
+																? m.admin_ai_features_more_options.parts({ label: feature.managedAt.label })
+																: m.admin_ai_features_toggled_under.parts({ label: feature.managedAt.label })
+														}
+														tags={{
+															link: c => (
+																<a className="underline" href={feature.managedAt?.href}>
+																	{c}
+																</a>
+															),
+														}}
+													/>
 												</>
 											)}
 										</p>
@@ -261,7 +270,7 @@ export function AiFeaturesCardView({
 					)
 				})}
 
-				{!aiAvailable && <p className="text-sm text-muted-foreground">Configure an AI provider above to enable these features.</p>}
+				{!aiAvailable && <p className="text-sm text-muted-foreground">{m.admin_ai_features_unavailable()}</p>}
 			</CardContent>
 		</Card>
 	)
