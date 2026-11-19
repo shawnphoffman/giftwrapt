@@ -17,7 +17,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useMoney } from '@/hooks/use-money'
 import { useStorageStatus } from '@/hooks/use-storage-status'
-import { errorText } from '@/lib/i18n/errors'
+import { errorText, uploadErrorText } from '@/lib/i18n/errors'
 import { normalizeAmountInput } from '@/lib/i18n/format'
 import { zodIssuesText, zodParams } from '@/lib/i18n/zod'
 import { detectCarrier } from '@/lib/tracking/carriers'
@@ -198,7 +198,7 @@ function PurchaseEditForm({ purchase, onOpenChange }: { purchase: EditablePurcha
 				fd.append('purchaseId', String(purchaseId))
 				const result = await uploadPurchaseAttachment({ data: fd })
 				if (result.kind === 'error') {
-					toast.error(result.message)
+					toast.error(uploadErrorText(result.reason))
 					break
 				}
 				setAttachments(prev => [...prev, result.value.url])
@@ -219,7 +219,7 @@ function PurchaseEditForm({ purchase, onOpenChange }: { purchase: EditablePurcha
 		})
 		if (result.kind === 'error') {
 			setAttachments(prev)
-			toast.error(result.message)
+			toast.error(uploadErrorText(result.reason))
 			return
 		}
 		await router.invalidate()

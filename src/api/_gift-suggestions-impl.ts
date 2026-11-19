@@ -46,6 +46,8 @@ import {
 	type StoredSuggestionSetMeta,
 	type SuggestionRecipient,
 } from '@/lib/gift-suggestions/sets'
+import { outputLanguageInstruction } from '@/lib/i18n/ai-language'
+import { currentLocale } from '@/lib/i18n/format'
 import { createLogger } from '@/lib/logger'
 import { getAppSettings } from '@/lib/settings-loader'
 
@@ -208,7 +210,8 @@ export async function getGiftSuggestionsImpl(args: {
 				model,
 				schema: giftSuggestionsResponseSchema,
 				system: GIFT_SUGGESTIONS_SYSTEM,
-				prompt: userPrompt,
+				// Ideas are written in the language the person is using.
+				prompt: userPrompt + outputLanguageInstruction(currentLocale()),
 				maxOutputTokens: aiConfig.maxOutputTokens.value,
 			}
 		)

@@ -65,7 +65,7 @@ function copyFor(
 	}
 	const occasion =
 		only.family === 'christmas'
-			? m.emails_reveal_occasion_christmas({}, o)
+			? m.holiday_christmas({}, o)
 			: only.occasion === 'holiday'
 				? m.emails_reveal_occasion_holiday({}, o)
 				: only.occasion

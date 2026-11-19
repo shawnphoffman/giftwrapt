@@ -7,7 +7,6 @@
 	"intelligence_refresh_button": "Actualiser",
 	"intelligence_refresh_button_busy": "Actualisation",
 	"intelligence_run_failed_title": "La dernière analyse a échoué",
-	"intelligence_run_failed_unknown": "Erreur inconnue",
 	"intelligence_generating_title": "Préparation de nouvelles recommandations",
 	"intelligence_generating_body": "Cela prend généralement quelques secondes. La liste ci-dessous se mettra à jour une fois l'opération terminée.",
 	"intelligence_severity_important": "Important",
@@ -267,5 +266,6 @@
 	"list_impact_change_today": "{eventTitle} est aujourd'hui. Après cette modification, aucune liste ne sera révélée automatiquement ce jour-là.",
 	"list_impact_change_tomorrow": "{eventTitle} est demain. Après cette modification, aucune liste ne sera révélée automatiquement ce jour-là.",
 	"list_impact_change_in_days": "{eventTitle} est dans {count} jours. Après cette modification, aucune liste ne sera révélée automatiquement ce jour-là.",
-	"item_clone_placeholder": "Bonjour \"/(core)/item/clone\" !"
+	"item_clone_placeholder": "Bonjour \"/(core)/item/clone\" !",
+	"intelligence_run_failed": "La dernière analyse n’a pas abouti. Réessayez plus tard."
 }

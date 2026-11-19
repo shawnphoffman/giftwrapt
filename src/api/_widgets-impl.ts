@@ -71,6 +71,7 @@ import { customHolidayNextOccurrence, startOfUtcDay } from '@/lib/custom-holiday
 import { fathersDaySlug, mothersDaySlug, nextOccurrence, valentinesSlug } from '@/lib/holidays'
 import { canViewerSeeCustomHolidayRecipient } from '@/lib/permissions'
 import { getAppSettings } from '@/lib/settings-loader'
+import { m } from '@/paraglide/messages.js'
 
 // =====================================================================
 // Public types
@@ -139,11 +140,11 @@ export function resolveViewerDayMs(today: string | undefined, now: Date, fallbac
 	if (!today) return fallback
 	const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(today)
 	if (!match) return fallback
-	const [y, m, d] = [Number(match[1]), Number(match[2]), Number(match[3])]
-	const ms = Date.UTC(y, m - 1, d)
+	const [y, month, d] = [Number(match[1]), Number(match[2]), Number(match[3])]
+	const ms = Date.UTC(y, month - 1, d)
 	const parsed = new Date(ms)
 	// Rejects roll-overs like 2026-02-30.
-	if (parsed.getUTCFullYear() !== y || parsed.getUTCMonth() !== m - 1 || parsed.getUTCDate() !== d) return fallback
+	if (parsed.getUTCFullYear() !== y || parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== d) return fallback
 	if (Math.abs(ms - utcDayMs(now)) > DAY_MS) return fallback
 	return ms
 }
@@ -233,7 +234,7 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 		candidates.push({
 			id: 'christmas',
 			source: 'christmas',
-			title: 'Christmas',
+			title: m.holiday_christmas(),
 			occurrence: nextAnnualDate(12, 25, viewerDay),
 			priority: 1,
 		})
@@ -244,7 +245,7 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 		candidates.push({
 			id: 'valentines',
 			source: 'valentines',
-			title: "Valentine's Day",
+			title: m.holiday_valentines_day(),
 			occurrence: valentines,
 			priority: 1,
 		})
@@ -256,7 +257,7 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 			candidates.push({
 				id: `mothers-day:${country}`,
 				source: 'mothers-day',
-				title: "Mother's Day",
+				title: m.holiday_mothers_day(),
 				occurrence: mothersDay,
 				priority: 1,
 			})
@@ -269,7 +270,7 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 			candidates.push({
 				id: `fathers-day:${country}`,
 				source: 'fathers-day',
-				title: "Father's Day",
+				title: m.holiday_fathers_day(),
 				occurrence: fathersDay,
 				priority: 1,
 			})
@@ -290,7 +291,7 @@ export async function getUpcomingHolidaysImpl(args: GetUpcomingHolidaysArgs): Pr
 			candidates.push({
 				id: `anniversary:${userId}`,
 				source: 'anniversary',
-				title: 'Anniversary',
+				title: m.holiday_anniversary(),
 				occurrence: nextAnnualDate(mm, dd, viewerDay),
 				priority: 1,
 			})

@@ -306,7 +306,6 @@ function buildState(data: IntelligencePagePayload, generating: boolean): Intelli
 	}
 
 	if (generating) return { kind: 'generating', data: baseData }
-	if (data.lastRun?.status === 'error')
-		return { kind: 'error', data: baseData, message: data.lastRun.error ?? m.intelligence_run_failed_unknown() }
+	if (data.lastRun?.status === 'error') return { kind: 'error', data: baseData, message: m.intelligence_run_failed() }
 	return { kind: 'loaded', data: baseData }
 }

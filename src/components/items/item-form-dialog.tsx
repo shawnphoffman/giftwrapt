@@ -22,7 +22,7 @@ import { priorityEnumValues } from '@/db/schema/enums'
 import type { Item } from '@/db/schema/items'
 import { MOBILE_DIALOG_QUERY, useKeyboardInset } from '@/hooks/use-keyboard-inset'
 import { useStorageStatus } from '@/hooks/use-storage-status'
-import { errorText } from '@/lib/i18n/errors'
+import { errorText, uploadErrorText } from '@/lib/i18n/errors'
 import { formatNumber } from '@/lib/i18n/format'
 import { priorityLabel } from '@/lib/i18n/labels'
 import { zodIssuesText, zodParams } from '@/lib/i18n/zod'
@@ -645,7 +645,7 @@ export function ItemFormDialog(props: Props) {
 										formData.append('itemId', String(props.item.id))
 										const result = await uploadItemImage({ data: formData })
 										if (result.kind === 'error') {
-											toast.error(m.items_image_upload_failed({ message: result.message }))
+											toast.error(m.items_image_upload_failed({ message: uploadErrorText(result.reason) }))
 											return
 										}
 										field.handleChange(result.value.url)
@@ -665,7 +665,7 @@ export function ItemFormDialog(props: Props) {
 									}
 									const result = await removeItemImage({ data: { itemId: props.item.id } })
 									if (result.kind === 'error') {
-										toast.error(m.items_image_remove_failed({ message: result.message }))
+										toast.error(m.items_image_remove_failed({ message: uploadErrorText(result.reason) }))
 										return
 									}
 									field.handleChange('')

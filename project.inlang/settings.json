@@ -14,7 +14,8 @@
 			"./messages/{locale}/purchases.json",
 			"./messages/{locale}/intelligence.json",
 			"./messages/{locale}/misc.json",
-			"./messages/{locale}/emails.json"
+			"./messages/{locale}/emails.json",
+			"./messages/{locale}/server.json"
 		]
 	}
 }

@@ -6,7 +6,9 @@
 // `mobile-api.smoke.integration.test.ts`.
 
 import { Hono } from 'hono'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
+
+import { overwriteGetLocale } from '@/paraglide/runtime.js'
 
 import { buildError, jsonError } from '../envelope'
 
@@ -58,5 +60,30 @@ describe('jsonError', () => {
 		const body = (await res.json()) as { error: { code: string; message: string; data?: { retryAfterSeconds: number } } }
 		expect(body.error.code).toBe('rate-limited')
 		expect(body.error.data?.retryAfterSeconds).toBe(1)
+	})
+})
+
+describe('buildError in the request language', () => {
+	// The server entry resolves the request's language from Accept-Language
+	// and message functions read it; stand in for that here.
+	afterEach(() => {
+		overwriteGetLocale(() => 'en')
+	})
+
+	it('writes the fallback message in French for a French request and leaves the code alone', () => {
+		overwriteGetLocale(() => 'fr')
+		const env = buildError('list-not-found')
+		expect(env.error.code).toBe('list-not-found')
+		expect(env.error.message).toBe('Liste introuvable.')
+	})
+
+	it('has French for an unknown code too', () => {
+		overwriteGetLocale(() => 'fr')
+		expect(buildError('made-up').error.message).toBe('La requête a échoué.')
+	})
+
+	it('keeps a message the caller wrote', () => {
+		overwriteGetLocale(() => 'fr')
+		expect(buildError('invalid-input', { message: 'x' }).error.message).toBe('x')
 	})
 })

@@ -36,6 +36,7 @@ import { createLogger } from '@/lib/logger'
 import { mobileSignInLimiter } from '@/lib/rate-limits'
 import { getAppSettings } from '@/lib/settings-loader'
 import { LIMITS } from '@/lib/validation/limits'
+import { m } from '@/paraglide/messages.js'
 
 import type { MobileAuthContext } from '../auth'
 import { consumePending, createPending, peekPending, rotatePending } from '../auth-pending'
@@ -305,7 +306,7 @@ async function beginBrowserFlow(c: Context<MobileAuthContext>, flow: Flow): Prom
 	const allowed = await configuredMobileRedirectUris()
 	if (!allowed.includes(redirectUri)) {
 		return jsonError(c, 400, 'redirect-not-allowed', {
-			message: 'redirectUri must match one of the admin-configured mobile redirect URIs.',
+			message: m.api_error_redirect_uri_mismatch(),
 		})
 	}
 

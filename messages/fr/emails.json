@@ -12,8 +12,6 @@
 			}
 		}
 	],
-	"emails_holiday_mothers_day": "Fête des Mères",
-	"emails_holiday_fathers_day": "Fête des Pères",
 	"emails_picks_heading": "Encore disponible sur la liste de {personName}",
 	"emails_birthday_subject": "🎉 Joyeux anniversaire, {name} !",
 	"emails_birthday_subject_anon": "🎉 Joyeux anniversaire !",
@@ -143,7 +141,6 @@
 	"emails_reveal_intro_occasion_self": "Nous espérons que la fête a été belle. Voici qui vous a offert quoi.",
 	"emails_reveal_subject_occasion_dependent": "{occasion} : retour sur les cadeaux de {name}",
 	"emails_reveal_intro_occasion_dependent": "Nous espérons que la fête a été belle pour {name}. Voici qui lui a offert quoi.",
-	"emails_reveal_occasion_christmas": "Noël",
 	"emails_reveal_occasion_holiday": "Fête",
 	"emails_test_subject": "E-mail de test",
 	"emails_test_hello": "Bonjour {#strong}Utilisateur de test{/strong} !",

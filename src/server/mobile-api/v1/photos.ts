@@ -25,6 +25,7 @@ import { ScrapeProviderError } from '@/lib/scrapers/types'
 import { isStorageConfigured } from '@/lib/storage/adapter'
 import { UploadError, type UploadErrorReason } from '@/lib/storage/errors'
 import { assertImageBytes } from '@/lib/storage/image-pipeline'
+import { m } from '@/paraglide/messages.js'
 
 import type { MobileAuthContext } from '../auth'
 import { jsonError } from '../envelope'
@@ -32,7 +33,8 @@ import { rateLimit } from '../middleware'
 
 const log = createLogger('mobile-api:photos')
 
-const TOO_LARGE_MESSAGE = `The photo is larger than ${env.STORAGE_MAX_UPLOAD_MB} MB.`
+// A function: the text depends on the request's language.
+const tooLargeMessage = () => m.api_error_too_large_mb({ mb: env.STORAGE_MAX_UPLOAD_MB })
 
 type FileResult = { kind: 'ok'; bytes: Buffer; form: FormData } | { kind: 'error'; response: Response }
 
@@ -42,23 +44,23 @@ type FileResult = { kind: 'ok'; bytes: Buffer; form: FormData } | { kind: 'error
 async function readImageFile(c: Context<MobileAuthContext>): Promise<FileResult> {
 	const declared = Number(c.req.header('content-length') ?? '')
 	if (Number.isFinite(declared) && declared > ITEM_IMAGE_MAX_BYTES + 64 * 1024) {
-		return { kind: 'error', response: jsonError(c, 413, 'too-large', { message: TOO_LARGE_MESSAGE }) }
+		return { kind: 'error', response: jsonError(c, 413, 'too-large', { message: tooLargeMessage() }) }
 	}
 	let form: FormData
 	try {
 		form = await c.req.formData()
 	} catch {
-		return { kind: 'error', response: jsonError(c, 400, 'invalid-input', { message: 'Expected multipart/form-data.' }) }
+		return { kind: 'error', response: jsonError(c, 400, 'invalid-input', { message: m.api_error_expected_multipart() }) }
 	}
 	const file = form.get('file')
 	if (!(file instanceof File)) {
-		return { kind: 'error', response: jsonError(c, 400, 'invalid-input', { message: 'Missing "file" field.' }) }
+		return { kind: 'error', response: jsonError(c, 400, 'invalid-input', { message: m.api_error_missing_file() }) }
 	}
 	if (file.size === 0) {
-		return { kind: 'error', response: jsonError(c, 400, 'invalid-image', { message: 'The photo is empty.' }) }
+		return { kind: 'error', response: jsonError(c, 400, 'invalid-image', { message: m.api_error_empty_photo() }) }
 	}
 	if (file.size > ITEM_IMAGE_MAX_BYTES) {
-		return { kind: 'error', response: jsonError(c, 413, 'too-large', { message: TOO_LARGE_MESSAGE }) }
+		return { kind: 'error', response: jsonError(c, 413, 'too-large', { message: tooLargeMessage() }) }
 	}
 	return { kind: 'ok', bytes: Buffer.from(await file.arrayBuffer()), form }
 }
@@ -74,7 +76,7 @@ function readScannedCode(form: FormData): string | undefined {
 function uploadErrorResponse(c: Context<MobileAuthContext>, reason: UploadErrorReason, message: string): Response {
 	switch (reason) {
 		case 'too-large':
-			return jsonError(c, 413, 'too-large', { message: TOO_LARGE_MESSAGE })
+			return jsonError(c, 413, 'too-large', { message: tooLargeMessage() })
 		case 'bad-mime':
 			return jsonError(c, 400, 'invalid-image')
 		case 'not-found':
@@ -131,7 +133,7 @@ export function registerPhotoRoutes(v1: Hono<MobileAuthContext>): void {
 			})
 			return c.json({ result, identity, suggestedNotes: suggestedNotes || undefined, ms })
 		} catch (error) {
-			if (error instanceof AiBudgetExceededError) return jsonError(c, 503, 'ai-budget-exceeded', { message: error.message })
+			if (error instanceof AiBudgetExceededError) return jsonError(c, 503, 'ai-budget-exceeded')
 			if (error instanceof ScrapeProviderError) {
 				if (error.code === 'config_missing') return jsonError(c, 503, 'photo-to-item-disabled')
 				if (error.code === 'timeout') return jsonError(c, 504, 'timeout')

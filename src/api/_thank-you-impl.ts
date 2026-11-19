@@ -14,6 +14,8 @@ import { createAiModel } from '@/lib/ai-client'
 import { resolveAiConfig } from '@/lib/ai-config'
 import { AI_FEATURE_SLOTS } from '@/lib/ai-slots'
 import { safeFirstName } from '@/lib/first-name'
+import { outputLanguageInstruction } from '@/lib/i18n/ai-language'
+import { currentLocale } from '@/lib/i18n/format'
 import { createLogger } from '@/lib/logger'
 import { getAppSettings } from '@/lib/settings-loader'
 import { buildThankYouUserPrompt, cleanNote, MAX_THANK_YOU_GIFTS, THANK_YOU_SYSTEM } from '@/lib/thank-you/prompt'
@@ -85,7 +87,13 @@ export async function draftThankYouImpl(args: {
 	try {
 		const result = await aiGenerateText(
 			{ feature: 'thank-you-draft', userId: actor.id, source: 'web', db: dbx },
-			{ model, system: THANK_YOU_SYSTEM, prompt: userPrompt, maxOutputTokens: aiConfig.maxOutputTokens.value }
+			{
+				model,
+				system: THANK_YOU_SYSTEM,
+				// The note is written in the language the person is using.
+				prompt: userPrompt + outputLanguageInstruction(currentLocale()),
+				maxOutputTokens: aiConfig.maxOutputTokens.value,
+			}
 		)
 		const note = cleanNote(result.text)
 		if (!note) return { kind: 'error', reason: 'ai-failed' }

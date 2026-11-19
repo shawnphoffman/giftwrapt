@@ -196,8 +196,8 @@ export const sendParentsDayReminderEmail = async (
 		locale === 'en'
 			? args.holidayName
 			: args.relation === 'mother'
-				? m.emails_holiday_mothers_day({}, { locale })
-				: m.emails_holiday_fathers_day({}, { locale })
+				? m.holiday_mothers_day({}, { locale })
+				: m.holiday_fathers_day({}, { locale })
 	emailLog.info(
 		{ kind: 'parental-relations-reminder', recipient, holidayName: args.holidayName, count: args.people.length },
 		'sending email'
@@ -639,7 +639,7 @@ const buildTestEmailPayload = async (
 		}
 		case 'parental-relations-reminder': {
 			const { default: ParentsDayReminderEmail } = await import('@/emails/parents-day-reminder-email')
-			const holidayName = m.emails_holiday_mothers_day({}, o)
+			const holidayName = m.holiday_mothers_day({}, o)
 			return {
 				subject: m.emails_countdown({ holidayName, leadDays: 7 }, o),
 				react: (
@@ -706,11 +706,11 @@ const buildTestEmailPayload = async (
 		case 'post-holiday': {
 			const { default: RevealSummaryEmail } = await import('@/emails/reveal-summary-email')
 			return {
-				subject: m.emails_reveal_subject_occasion_self({ occasion: m.emails_holiday_mothers_day({}, o) }, o),
+				subject: m.emails_reveal_subject_occasion_self({ occasion: m.holiday_mothers_day({}, o) }, o),
 				react: (
 					<RevealSummaryEmail
 						locale={locale}
-						intro={m.emails_reveal_intro_occasion_self({ occasion: m.emails_holiday_mothers_day({}, o) }, o)}
+						intro={m.emails_reveal_intro_occasion_self({ occasion: m.holiday_mothers_day({}, o) }, o)}
 						sections={[
 							{
 								listName: "Mother's Day Wishes",

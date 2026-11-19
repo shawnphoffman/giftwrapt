@@ -12,8 +12,6 @@
 			}
 		}
 	],
-	"emails_holiday_mothers_day": "Mother's Day",
-	"emails_holiday_fathers_day": "Father's Day",
 	"emails_picks_heading": "Still open on {personName}’s list",
 	"emails_birthday_subject": "🎉 Happy Birthday, {name}!",
 	"emails_birthday_subject_anon": "🎉 Happy Birthday, there!",
@@ -143,7 +141,6 @@
 	"emails_reveal_intro_occasion_self": "We hope your {occasion} was wonderful. Here's who gave you what.",
 	"emails_reveal_subject_occasion_dependent": "A look back at {name}'s {occasion} gifts",
 	"emails_reveal_intro_occasion_dependent": "We hope {name}'s {occasion} was wonderful. Here's who gave {name} what.",
-	"emails_reveal_occasion_christmas": "Christmas",
 	"emails_reveal_occasion_holiday": "holiday",
 	"emails_test_subject": "Test Email",
 	"emails_test_hello": "Hello {#strong}Test User{/strong}!",

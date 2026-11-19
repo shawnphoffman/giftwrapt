@@ -83,3 +83,24 @@ export function errorText(err: unknown, fallback: string): string {
 	if (err instanceof TypeError && /fetch|network|load failed/i.test(err.message)) return m.error_network()
 	return fallback
 }
+
+// Why an upload was refused. The server's own message for it is a log line
+// in English, so the screen shows this instead.
+type UploadRefusal = 'too-large' | 'bad-mime' | 'pipeline-failed' | 'upstream' | 'not-authorized' | 'not-found'
+
+export function uploadErrorText(reason: UploadRefusal): string {
+	switch (reason) {
+		case 'too-large':
+			return m.upload_error_too_large()
+		case 'bad-mime':
+			return m.upload_error_bad_mime()
+		case 'pipeline-failed':
+			return m.upload_error_pipeline_failed()
+		case 'upstream':
+			return m.upload_error_upstream()
+		case 'not-authorized':
+			return m.upload_error_not_authorized()
+		case 'not-found':
+			return m.upload_error_not_found()
+	}
+}

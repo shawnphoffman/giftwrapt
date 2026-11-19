@@ -4,12 +4,15 @@
 // Wire shape (locked in):
 //   { error: { code: string, message: string, data?: object } }
 //
-// iOS keys off `code`. `message` is fallback display copy. `data`
+// iOS keys off `code`. `message` is fallback display copy, in the request's
+// language. `data`
 // carries structured details (e.g. `{remaining: 2}` for over-claim,
 // `{blockingItemTitle: "..."}` for group conflicts).
 
 import type { Context } from 'hono'
 import type { ContentfulStatusCode } from 'hono/utils/http-status'
+
+import { m } from '@/paraglide/messages.js'
 
 export interface MobileError {
 	code: string
@@ -21,46 +24,50 @@ export interface MobileErrorEnvelope {
 	error: MobileError
 }
 
-const DEFAULT_MESSAGES: Partial<Record<string, string>> = {
-	unauthorized: 'Authentication required.',
-	'not-found': 'Not found.',
-	'not-yours': 'You don’t own this resource.',
-	'not-authorized': 'You don’t have permission to do that.',
-	'not-visible': 'Not found.',
-	'is-owner': 'You can’t do that on your own list.',
-	'invalid-input': 'The submitted data is invalid.',
-	'invalid-id': 'The submitted id is invalid.',
-	'invalid-json': 'The request body must be valid JSON.',
-	'invalid-url': 'The url is invalid.',
-	'missing-url': 'A url is required.',
-	'rate-limited': 'Too many requests. Try again shortly.',
-	'mobile-app-disabled': 'Mobile API is disabled by the administrator.',
-	'barcode-disabled': 'Barcode lookup is disabled on this server.',
-	'invalid-barcode': 'That barcode is not a valid GTIN.',
-	'provider-unavailable': 'The barcode provider is unavailable.',
-	'sign-in-failed': 'Email or password is incorrect.',
-	'invalid-challenge': 'Sign-in challenge expired or already used. Please start over.',
-	'invalid-code': 'That code is incorrect or expired.',
-	'oidc-not-configured': 'OIDC sign-in is not configured on this server.',
-	'redirect-not-allowed': 'That mobile redirect URI is not allowed.',
-	'list-not-found': 'List not found.',
-	'not-owner': 'Only the owner can do that.',
-	'child-cannot-create-gift-ideas': 'Children can’t create gift-ideas lists.',
-	'invalid-type': 'Invalid list type.',
+// Fallback display copy per code, written in the request's language: the
+// server entry resolves it from `Accept-Language` (which iOS sends from the
+// device's languages) and message functions read it from there. Functions,
+// not strings, so nothing is rendered at module load.
+const DEFAULT_MESSAGES: Partial<Record<string, () => string>> = {
+	unauthorized: () => m.api_error_unauthorized(),
+	'not-found': () => m.api_error_not_found(),
+	'not-yours': () => m.api_error_not_yours(),
+	'not-authorized': () => m.api_error_not_authorized(),
+	'not-visible': () => m.api_error_not_found(),
+	'is-owner': () => m.api_error_is_owner(),
+	'invalid-input': () => m.api_error_invalid_input(),
+	'invalid-id': () => m.api_error_invalid_id(),
+	'invalid-json': () => m.api_error_invalid_json(),
+	'invalid-url': () => m.api_error_invalid_url(),
+	'missing-url': () => m.api_error_missing_url(),
+	'rate-limited': () => m.api_error_rate_limited(),
+	'mobile-app-disabled': () => m.api_error_mobile_app_disabled(),
+	'barcode-disabled': () => m.api_error_barcode_disabled(),
+	'invalid-barcode': () => m.api_error_invalid_barcode(),
+	'provider-unavailable': () => m.api_error_provider_unavailable(),
+	'sign-in-failed': () => m.api_error_sign_in_failed(),
+	'invalid-challenge': () => m.api_error_invalid_challenge(),
+	'invalid-code': () => m.api_error_invalid_code(),
+	'oidc-not-configured': () => m.api_error_oidc_not_configured(),
+	'redirect-not-allowed': () => m.api_error_redirect_not_allowed(),
+	'list-not-found': () => m.api_error_list_not_found(),
+	'not-owner': () => m.api_error_not_owner(),
+	'child-cannot-create-gift-ideas': () => m.api_error_child_cannot_create_gift_ideas(),
+	'invalid-type': () => m.api_error_invalid_type(),
 	// Scrape failures (`GET /v1/scrape`, 502 with `data.attempts`).
-	'dead-link': 'This link is no longer valid.',
-	'all-providers-failed': 'The page could not be read.',
-	timeout: 'Reading the page took too long.',
-	'no-providers-available': 'No scraper is configured on this server.',
+	'dead-link': () => m.api_error_dead_link(),
+	'all-providers-failed': () => m.api_error_all_providers_failed(),
+	timeout: () => m.api_error_timeout(),
+	'no-providers-available': () => m.api_error_no_providers_available(),
 	// Photo routes (`POST /v1/products/by-photo`, `POST /v1/items/:itemId/image`).
-	'invalid-image': 'That file is not a supported image.',
-	'too-large': 'The photo is too large.',
-	'photo-to-item-disabled': 'Photo to Item is turned off on this server.',
-	'ai-budget-exceeded': 'The AI budget for this month has been reached.',
-	'extract-failed': 'The photo could not be read.',
-	'uploads-disabled': 'Photo uploads are not configured on this server.',
-	'storage-failed': 'The photo could not be stored.',
-	'internal-error': 'Something went wrong.',
+	'invalid-image': () => m.api_error_invalid_image(),
+	'too-large': () => m.api_error_too_large(),
+	'photo-to-item-disabled': () => m.api_error_photo_to_item_disabled(),
+	'ai-budget-exceeded': () => m.api_error_ai_budget_exceeded(),
+	'extract-failed': () => m.api_error_extract_failed(),
+	'uploads-disabled': () => m.api_error_uploads_disabled(),
+	'storage-failed': () => m.api_error_storage_failed(),
+	'internal-error': () => m.api_error_internal_error(),
 }
 
 /** Build a `MobileErrorEnvelope` for the given code. */
@@ -68,7 +75,7 @@ export function buildError(code: string, opts?: { message?: string; data?: Recor
 	return {
 		error: {
 			code,
-			message: opts?.message ?? DEFAULT_MESSAGES[code] ?? 'Request failed.',
+			message: opts?.message ?? DEFAULT_MESSAGES[code]?.() ?? m.api_error_request_failed(),
 			...(opts?.data ? { data: opts.data } : {}),
 		},
 	}
