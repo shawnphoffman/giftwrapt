@@ -5,16 +5,12 @@ import '@/paraglide/messages.js'
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type * as Locales from '@/lib/i18n/locales'
+import { setOfferedLocalesForTesting } from '@/lib/i18n/locales'
 
 // The send functions write each email in its recipient's language (plan
-// 36g). French has a catalog but is only offered on builds that opt in, and
-// that list is fixed when the module is transformed, so offer every locale
-// here by hand.
-vi.mock('@/lib/i18n/locales', async importOriginal => {
-	const real = await importOriginal<typeof Locales>()
-	return { ...real, matchLocale: (tag: string | null | undefined) => real.matchLocale(tag, real.LOCALES) }
-})
+// 36g). A deployment only offers the languages its operator lists, so list
+// both here.
+setOfferedLocalesForTesting(['en', 'fr'])
 
 vi.setConfig({ testTimeout: 60_000 })
 

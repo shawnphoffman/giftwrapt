@@ -1,22 +1,28 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import {
 	DEFAULT_LOCALE,
+	fallbackLocale,
 	isLocale,
+	isOfferedLocale,
 	type Locale,
 	localeDisplayName,
 	LOCALES,
 	matchLocale,
 	negotiateLocale,
+	offeredLocales,
+	parseLocaleList,
 	readLocaleCookie,
-	READY_LOCALES,
 	resolveLocale,
 	serializeLocaleCookie,
+	setOfferedLocalesForTesting,
+	unknownLocaleCodes,
 } from '@/lib/i18n/locales'
 import { baseLocale, locales } from '@/paraglide/runtime.js'
 
-// The rules are tested with both compiled locales offered. Only English is
-// offered in the app until the French translation ships (plan 36i).
+// The rules are tested with both compiled locales offered. A deployment
+// offers only what its operator lists in APP_LOCALES; with nothing set, as
+// here, that is English.
 const BOTH: ReadonlyArray<Locale> = ['en', 'fr']
 
 describe('locale helpers', () => {
@@ -33,8 +39,8 @@ describe('locale helpers', () => {
 		expect(DEFAULT_LOCALE).toBe('en')
 	})
 
-	it('offers only finished locales, so an unfinished one is never resolved', () => {
-		expect(READY_LOCALES).toEqual(['en'])
+	it('offers English only when the operator lists nothing', () => {
+		expect(offeredLocales()).toEqual(['en'])
 		expect(matchLocale('fr-FR')).toBeNull()
 		expect(resolveLocale({ cookie: 'fr', acceptLanguage: 'fr', defaultLocale: 'fr' })).toBe('en')
 	})
@@ -106,5 +112,34 @@ describe('resolveLocale', () => {
 		expect(resolveLocale({ cookie: 'fr', acceptLanguage: 'en-US', embedded: true }, BOTH)).toBe('en')
 		expect(resolveLocale({ cookie: 'fr', acceptLanguage: 'de', embedded: true }, BOTH)).toBe('fr')
 		expect(resolveLocale({ acceptLanguage: 'de', defaultLocale: 'fr', embedded: true }, BOTH)).toBe('fr')
+	})
+})
+
+describe('the languages a deployment offers (APP_LOCALES)', () => {
+	afterEach(() => setOfferedLocalesForTesting())
+
+	it('reads a list, keeping order and dropping what it cannot use', () => {
+		expect(parseLocaleList('fr')).toEqual(['fr'])
+		expect(parseLocaleList(' FR , en ,fr,xx')).toEqual(['fr', 'en'])
+		expect(parseLocaleList('')).toEqual(['en'])
+		expect(parseLocaleList(undefined)).toEqual(['en'])
+		expect(parseLocaleList('xx,yy')).toEqual(['en'])
+		expect(unknownLocaleCodes('fr, xx ,EN,')).toEqual(['xx'])
+	})
+
+	it('French only: everything resolves to French, whatever was stored or asked for', () => {
+		setOfferedLocalesForTesting(['fr'])
+		expect(fallbackLocale()).toBe('fr')
+		expect(isOfferedLocale('en')).toBe(false)
+		expect(resolveLocale({ cookie: 'en', acceptLanguage: 'en-US', defaultLocale: 'en' })).toBe('fr')
+		expect(resolveLocale({})).toBe('fr')
+	})
+
+	it('several: the first listed is the default until an admin picks another', () => {
+		setOfferedLocalesForTesting(['fr', 'en'])
+		expect(resolveLocale({ acceptLanguage: 'de', defaultLocale: '' })).toBe('fr')
+		expect(resolveLocale({ acceptLanguage: 'de', defaultLocale: 'en' })).toBe('en')
+		expect(resolveLocale({ acceptLanguage: 'en-GB', defaultLocale: '' })).toBe('en')
+		expect(resolveLocale({ cookie: 'en', acceptLanguage: 'fr', defaultLocale: '' })).toBe('en')
 	})
 })

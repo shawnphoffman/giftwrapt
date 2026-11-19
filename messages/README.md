@@ -83,9 +83,9 @@ messages: make them functions, or store `() => m.key()` and call it when renderi
 
 ## French
 
-French is written with "vous". An unfinished language is compiled in but not offered to
-users; see `READY_LOCALES` in `src/lib/i18n/locales.ts`. To review it on a preview build, set
-`VITE_PREVIEW_LOCALES=fr`.
+French is written with "vous". Every language with a catalog is compiled in, but a deployment
+only offers the ones its operator lists in `APP_LOCALES` (for example `en,fr`); unset means
+English only. See `offeredLocales` in `src/lib/i18n/locales.ts`.
 
 ## Lint
 

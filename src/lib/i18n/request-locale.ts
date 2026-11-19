@@ -1,9 +1,25 @@
 import { db } from '@/db'
 import { isEmbeddedUserAgent } from '@/lib/embedded'
-import { DEFAULT_LOCALE, type Locale, matchLocale, readLocaleCookie, resolveLocale } from '@/lib/i18n/locales'
+import {
+	fallbackLocale,
+	type Locale,
+	LOCALES_ENV,
+	matchLocale,
+	readLocaleCookie,
+	resolveLocale,
+	unknownLocaleCodes,
+} from '@/lib/i18n/locales'
+import { createLogger } from '@/lib/logger'
 import { getAppSettings } from '@/lib/settings-loader'
 
 // Server only: resolves the locale of an incoming request (plan 36b).
+
+// Say so once if the operator listed a language there is no catalog for; it
+// is ignored rather than failing the boot.
+const unknownCodes = unknownLocaleCodes(process.env[LOCALES_ENV])
+if (unknownCodes.length > 0) {
+	createLogger('i18n').warn({ unknown: unknownCodes, variable: LOCALES_ENV }, 'unknown language codes ignored')
+}
 
 // The deployment default is read on every request, so it is cached briefly
 // per server instance. An admin's change shows up within a minute.
@@ -12,14 +28,14 @@ let cachedDefault: { value: Locale; at: number } | null = null
 
 export async function getDefaultLocale(now = Date.now()): Promise<Locale> {
 	if (cachedDefault && now - cachedDefault.at < DEFAULT_LOCALE_TTL_MS) return cachedDefault.value
-	let value: Locale = DEFAULT_LOCALE
+	let value: Locale = fallbackLocale()
 	try {
 		const settings = await getAppSettings(db)
-		value = matchLocale(settings.defaultLocale) ?? DEFAULT_LOCALE
+		value = matchLocale(settings.defaultLocale) ?? fallbackLocale()
 	} catch {
 		// A database hiccup must not take the request down over a language
 		// preference; fall back to the base locale and try again next time.
-		return DEFAULT_LOCALE
+		return fallbackLocale()
 	}
 	cachedDefault = { value, at: now }
 	return value

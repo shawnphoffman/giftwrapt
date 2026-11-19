@@ -1,3 +1,8 @@
+// MarkdownNotes loads its renderer lazily. Importing it here puts the chunk
+// in the module cache while the file is collected, so the first story does
+// not spend its 15 seconds waiting for it when the whole suite is running.
+import './markdown-renderer'
+
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { expect, waitFor, within } from 'storybook/test'
 

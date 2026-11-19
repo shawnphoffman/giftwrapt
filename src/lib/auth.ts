@@ -24,7 +24,7 @@ import {
 import { env } from '@/env'
 import { MOBILE_WEB_HANDOFF_PATH, mobileWebHandoff } from '@/lib/auth-plugins/mobile-web-handoff'
 import { fanOutToGuardians } from '@/lib/guardian-emails'
-import { isReadyLocale, LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE } from '@/lib/i18n/locales'
+import { isOfferedLocale, LOCALE_COOKIE, LOCALE_COOKIE_MAX_AGE } from '@/lib/i18n/locales'
 import { createLogger } from '@/lib/logger'
 import {
 	MCP_ACCESS_TOKEN_TTL_SECONDS,
@@ -273,7 +273,7 @@ const options = {
 		// eslint-disable-next-line @typescript-eslint/require-await -- createAuthMiddleware takes an async handler
 		after: createAuthMiddleware(async ctx => {
 			const locale = (ctx.context.newSession?.user as { locale?: string | null } | undefined)?.locale
-			if (!isReadyLocale(locale)) return
+			if (!isOfferedLocale(locale)) return
 			ctx.setCookie(LOCALE_COOKIE, locale, {
 				path: '/',
 				maxAge: LOCALE_COOKIE_MAX_AGE,

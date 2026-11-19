@@ -68,6 +68,12 @@ export const env = createEnv({
 		BROWSERLESS_URL: z.url().optional(),
 		FLARESOLVERR_URL: z.url().optional(),
 		BROWSER_TOKEN: z.string().min(1).optional(),
+		// Languages this deployment offers: a comma-separated list such as `fr`
+		// or `en,fr`, default first. Unset means English only. Declared here so
+		// it is documented with the rest; it is read in `lib/i18n/locales.ts`
+		// straight from the environment, because that module also runs in the
+		// browser.
+		APP_LOCALES: z.string().optional(),
 		// Logging. LOG_LEVEL can be changed at runtime (e.g. in docker-compose)
 		// without a rebuild. LOG_PRETTY forces human-readable output even in
 		// prod; otherwise it defaults to NODE_ENV !== 'production'.

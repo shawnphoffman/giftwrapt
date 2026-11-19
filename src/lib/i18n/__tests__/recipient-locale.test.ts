@@ -1,8 +1,11 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
+import { setOfferedLocalesForTesting } from '../locales'
 import { recipientLocale } from '../recipient-locale'
 
 describe('recipientLocale', () => {
+	afterEach(() => setOfferedLocalesForTesting())
+
 	it("uses the person's own choice when it is offered", () => {
 		expect(recipientLocale('en', 'fr')).toBe('en')
 	})
@@ -13,9 +16,15 @@ describe('recipientLocale', () => {
 		expect(recipientLocale('xx', 'yy')).toBe('en')
 	})
 
-	it('does not write in a language that is not offered yet', () => {
-		// French has a catalog but is not offered until its translation is
-		// finished (or a preview build opts in).
+	it('does not write in a language the deployment does not offer', () => {
+		// French has a catalog, but nothing lists it in APP_LOCALES here.
 		expect(recipientLocale('fr', 'fr')).toBe('en')
+	})
+
+	it('follows the deployment once it offers French', () => {
+		setOfferedLocalesForTesting(['fr', 'en'])
+		expect(recipientLocale('en', '')).toBe('en')
+		expect(recipientLocale(null, '')).toBe('fr')
+		expect(recipientLocale(null, 'en')).toBe('en')
 	})
 })

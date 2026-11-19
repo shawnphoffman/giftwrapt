@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 
 import type { SchemaDatabase } from '@/db'
 import { users } from '@/db/schema'
-import { isReadyLocale, type Locale } from '@/lib/i18n/locales'
+import { isOfferedLocale, type Locale } from '@/lib/i18n/locales'
 
 export type UpdateUserLocaleResult = { kind: 'ok'; locale: Locale | null } | { kind: 'error'; reason: 'unknown-locale' }
 
@@ -15,7 +15,7 @@ export async function updateUserLocaleImpl(args: {
 	dbx: SchemaDatabase
 }): Promise<UpdateUserLocaleResult> {
 	const { userId, locale, dbx } = args
-	if (locale !== null && !isReadyLocale(locale)) return { kind: 'error', reason: 'unknown-locale' }
+	if (locale !== null && !isOfferedLocale(locale)) return { kind: 'error', reason: 'unknown-locale' }
 	await dbx.update(users).set({ locale }).where(eq(users.id, userId))
 	return { kind: 'ok', locale }
 }

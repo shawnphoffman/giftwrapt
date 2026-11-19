@@ -3,7 +3,7 @@ import { useState } from 'react'
 
 import { updateUserLocale } from '@/api/user'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { type Locale, localeDisplayName, matchLocale, readLocaleCookie, READY_LOCALES } from '@/lib/i18n/locales'
+import { type Locale, localeDisplayName, matchLocale, offeredLocales, readLocaleCookie } from '@/lib/i18n/locales'
 import { m } from '@/paraglide/messages.js'
 
 // What the picker holds: a locale, or 'auto' for "follow my browser".
@@ -63,7 +63,7 @@ export function LanguageSettings() {
 	const [busy, setBusy] = useState(false)
 	const [error, setError] = useState<string | null>(null)
 
-	if (READY_LOCALES.length < 2) return null
+	if (offeredLocales().length < 2) return null
 
 	const stored = hydrated ? (matchLocale(readLocaleCookie(document.cookie)) ?? AUTO) : null
 
@@ -83,6 +83,6 @@ export function LanguageSettings() {
 	}
 
 	return (
-		<LanguageSettingsContent locales={READY_LOCALES} value={stored} onChange={choice => void choose(choice)} busy={busy} error={error} />
+		<LanguageSettingsContent locales={offeredLocales()} value={stored} onChange={choice => void choose(choice)} busy={busy} error={error} />
 	)
 }

@@ -19,7 +19,7 @@ import { SUPPORTED_COUNTRIES } from '@/lib/holidays-countries'
 import { COMMON_CURRENCIES } from '@/lib/i18n/currency'
 import { currencySymbol } from '@/lib/i18n/format'
 import { listTypeLabel } from '@/lib/i18n/labels'
-import { localeDisplayName, READY_LOCALES } from '@/lib/i18n/locales'
+import { fallbackLocale, localeDisplayName, matchLocale, offeredLocales } from '@/lib/i18n/locales'
 import type { AppSettings } from '@/lib/settings'
 import { m } from '@/paraglide/messages.js'
 
@@ -144,8 +144,9 @@ export function CoreSettingsSection() {
 				<TimeZonePicker id="timeZone" value={settings.timeZone} onChange={value => handleSettingChange('timeZone', value)} />
 			</div>
 
-			{/* Shown once more than one language is offered (plan 36b). */}
-			{READY_LOCALES.length > 1 && (
+			{/* Only when the deployment offers more than one language (APP_LOCALES).
+			    Until an admin picks, the default is the first one listed. */}
+			{offeredLocales().length > 1 && (
 				<div className="flex items-center justify-between gap-4">
 					<div className="space-y-0.5">
 						<Label htmlFor="defaultLocale" className="text-base">
@@ -153,12 +154,15 @@ export function CoreSettingsSection() {
 						</Label>
 						<p className="text-sm text-muted-foreground">{m.admin_settings_app_default_locale_description()}</p>
 					</div>
-					<Select value={settings.defaultLocale} onValueChange={value => handleSettingChange('defaultLocale', value)}>
+					<Select
+						value={matchLocale(settings.defaultLocale) ?? fallbackLocale()}
+						onValueChange={value => handleSettingChange('defaultLocale', value)}
+					>
 						<SelectTrigger id="defaultLocale" className="w-35">
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
-							{READY_LOCALES.map(locale => (
+							{offeredLocales().map(locale => (
 								<SelectItem key={locale} value={locale} lang={locale}>
 									{localeDisplayName(locale)}
 								</SelectItem>

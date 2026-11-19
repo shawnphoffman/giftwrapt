@@ -29,6 +29,7 @@
 		"test:pg": "vitest run --project pg",
 		"test:all": "vitest run",
 		"i18n:compile": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --strategy custom-gw baseLocale",
+		"i18n:check": "tsx scripts/check-translations.ts",
 		"lint": "eslint",
 		"format": "prettier",
 		"check": "prettier --config prettier.config.js --write . && eslint --fix",

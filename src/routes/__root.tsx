@@ -16,6 +16,7 @@ import { appSettingsQueryOptions } from '@/hooks/use-app-settings'
 import { observabilityStatusQueryOptions } from '@/hooks/use-observability-status'
 import { storageStatusQueryOptions } from '@/hooks/use-storage-status'
 import { isEmbeddedUserAgent } from '@/lib/embedded'
+import { LOCALES_ATTRIBUTE, offeredLocales } from '@/lib/i18n/locales'
 import { captureClientException } from '@/lib/observability/sentry-client'
 import { SKULLET_THEME } from '@/lib/skullet'
 import { readTextSizeCookie, resolveTextSize, TEXT_SIZE_COOKIE, type TextSize, textSizeStyle } from '@/lib/text-size'
@@ -90,7 +91,13 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 		select: st => (st.matches.find(m => m.routeId === '__root__')?.loaderData as { textSize?: TextSize } | undefined)?.textSize,
 	})
 	return (
-		<html lang={getLocale()} className="dark" style={textSize ? textSizeStyle(textSize) : undefined} suppressHydrationWarning>
+		<html
+			lang={getLocale()}
+			{...{ [LOCALES_ATTRIBUTE]: offeredLocales().join(',') }}
+			className="dark"
+			style={textSize ? textSizeStyle(textSize) : undefined}
+			suppressHydrationWarning
+		>
 			<head>
 				<HeadContent />
 			</head>
