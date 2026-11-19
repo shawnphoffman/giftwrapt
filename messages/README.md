@@ -26,6 +26,9 @@ key in an `en` file must exist in the same `fr` file. Areas are listed in
 | `shell`                                                           | Page titles (`page_*`), sidebar and breadcrumbs (`nav_*`), error and not-found pages                          |
 | `settings`, `auth`, `items`, `lists`, `purchases`, `intelligence` | That area's screens                                                                                           |
 | `misc`                                                            | Anything that fits none of the above                                                                          |
+| `emails`                                                          | Email subjects and bodies. Rendered with an explicit locale, see `src/emails`                                 |
+| `server`                                                          | Text the server sends to other clients: mobile API errors, built-in holiday names, upload refusals            |
+| `admin-settings`, `admin-ai`, `admin-users`, `admin-intelligence` | The administrator's screens                                                                                   |
 
 All files share one namespace, so a key must be unique across them.
 
@@ -86,6 +89,14 @@ messages: make them functions, or store `() => m.key()` and call it when renderi
 French is written with "vous". Every language with a catalog is compiled in, but a deployment
 only offers the ones its operator lists in `APP_LOCALES` (for example `en,fr`); unset means
 English only. See `offeredLocales` in `src/lib/i18n/locales.ts`.
+
+## Changing a message
+
+A change that adds or edits an English message updates every other language in the same
+commit. Write the translation following [TRANSLATION.md](../TRANSLATION.md) (voice, glossary,
+typography), then run `pnpm i18n:check`: it fails on a missing key, a placeholder the English
+does not have, a plural without a catch-all, and typography mistakes, and CI runs it too.
+A deleted message is deleted from every language.
 
 ## Lint
 

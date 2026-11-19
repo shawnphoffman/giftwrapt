@@ -45,6 +45,11 @@ jobs:
       - name: Check schema source matches committed migrations
         run: pnpm db:check-drift
 
+      # Every translated catalog must match the English one: same keys, same
+      # placeholders, a catch-all in every plural, the typography rules.
+      - name: Check translations
+        run: pnpm i18n:check
+
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
 

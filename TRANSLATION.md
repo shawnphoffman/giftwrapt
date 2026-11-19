@@ -65,51 +65,67 @@ A message often contains someone's name, and the app does not know their gender.
 Use these every time. If a term is missing, look at how the same English word was translated
 elsewhere in `messages/fr` before choosing a new one, then add it here.
 
-| English                     | French                               | Notes                                                         |
-| --------------------------- | ------------------------------------ | ------------------------------------------------------------- |
-| item                        | article                              | An entry on a list. Not "objet", not "élément".               |
-| list                        | liste                                |                                                               |
-| wishlist                    | liste de souhaits                    |                                                               |
-| gift                        | cadeau                               |                                                               |
-| gift ideas (list type)      | idées cadeaux                        | Private notes about what to give someone.                     |
-| to claim / claimed          | réserver / réservé                   | Saying "I will give this". Never "réclamer" or "revendiquer". |
-| claim (noun)                | réservation                          |                                                               |
-| gifter                      | donateur, or "la personne qui offre" | "vos proches" when it means the people shopping for you.      |
-| co-gifter                   | co-donateur                          | Someone giving the same gift together with you.               |
-| gift credit                 | crédit du cadeau                     | Who is shown as having given a gift.                          |
-| recipient                   | destinataire                         | The person a list or gift is for.                             |
-| reveal / revealed           | révélation / révélé                  | The moment a recipient learns who gave what.                  |
-| off-list gift               | cadeau hors liste                    | A gift that was not an item on the list.                      |
-| primary list                | liste principale                     |                                                               |
-| archive / archived          | archiver / archivé                   |                                                               |
-| purchase                    | achat                                |                                                               |
-| received gifts              | cadeaux reçus                        |                                                               |
-| partner                     | partenaire                           | The person an account is paired with. Not "conjoint".         |
-| dependent                   | personne à charge                    | Someone (a child, a pet) whose lists a guardian manages.      |
-| guardian                    | tuteur                               | The account that manages a dependent or a child account.      |
-| child account               | compte enfant                        |                                                               |
-| suggestions                 | suggestions                          | The app's recommendations about your lists.                   |
-| to dismiss                  | ignorer                              |                                                               |
-| to skip                     | passer                               |                                                               |
-| settings                    | paramètres                           | Not "réglages".                                               |
-| sign in / sign out          | se connecter / se déconnecter        | Noun: "connexion".                                            |
-| sign up                     | créer un compte                      |                                                               |
-| password                    | mot de passe                         |                                                               |
-| passkey                     | clé d'accès                          |                                                               |
-| two-factor authentication   | authentification à deux facteurs     |                                                               |
-| email                       | e-mail                               |                                                               |
-| to upload                   | importer                             | A file or photo going from the device to the app.             |
-| link                        | lien                                 |                                                               |
-| priority                    | priorité                             |                                                               |
-| notes                       | notes                                |                                                               |
-| price                       | prix                                 |                                                               |
-| birthday                    | anniversaire                         | A couple's "anniversary" is "anniversaire de couple".         |
-| Christmas                   | Noël                                 | No article: "pour Noël".                                      |
-| Mother's Day / Father's Day | fête des Mères / fête des Pères      |                                                               |
-| Valentine's Day             | Saint-Valentin                       | With the article in a sentence: "la Saint-Valentin".          |
-| admin                       | administrateur                       | The role. The screen area is "Administration".                |
-| scraper / scraping (admin)  | extracteur / extraction              | Reading a product page from its link.                         |
-| token (AI usage)            | token                                | "jeton" only for an access or API token.                      |
+| English                           | French                                           | Notes                                                                            |
+| --------------------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------- |
+| item                              | article                                          | An entry on a list. Not "objet", not "élément", not "produit".                   |
+| list                              | liste                                            |                                                                                  |
+| wishlist                          | liste de souhaits                                |                                                                                  |
+| gift                              | cadeau                                           |                                                                                  |
+| gift ideas (list type)            | idées cadeaux                                    | Private notes about what to give someone.                                        |
+| to claim / claimed                | réserver / réservé                               | Saying "I will give this". Never "réclamer" or "revendiquer".                    |
+| claim (noun)                      | réservation                                      |                                                                                  |
+| gifter                            | donateur, or "la personne qui offre"             | "vos proches" when it means the people shopping for you.                         |
+| co-gifter                         | co-donateur                                      | Someone giving the same gift together with you.                                  |
+| gift credit                       | crédit du cadeau                                 | Who is shown as having given a gift.                                             |
+| recipient                         | destinataire                                     | The person a list or gift is for.                                                |
+| reveal / revealed                 | révélation / révélé                              | The moment a recipient learns who gave what.                                     |
+| off-list gift                     | cadeau hors liste                                | A gift that was not an item on the list.                                         |
+| primary list                      | liste principale                                 |                                                                                  |
+| archive / archived                | archiver / archivé                               |                                                                                  |
+| purchase                          | achat                                            |                                                                                  |
+| received gifts                    | cadeaux reçus                                    |                                                                                  |
+| partner                           | partenaire                                       | The person an account is paired with. Not "conjoint".                            |
+| dependent                         | personne à charge                                | Someone (a child, a pet) whose lists a guardian manages.                         |
+| guardian                          | tuteur                                           | The account that manages a dependent or a child account.                         |
+| child account                     | compte enfant                                    |                                                                                  |
+| suggestions                       | suggestions                                      | The app's recommendations about your lists.                                      |
+| to dismiss                        | ignorer                                          |                                                                                  |
+| to skip (a step, a suggestion)    | passer                                           |                                                                                  |
+| skipped (status of a job or run)  | ignoré                                           | "omis" on the admin suggestions screens, where "ignoré" already means dismissed. |
+| to acknowledge (an alert)         | prendre acte                                     |                                                                                  |
+| editor (of a list)                | éditeur                                          | Next to a name, write "fait partie des éditeurs" so nothing agrees with it.      |
+| pick-one group / in-order group   | groupe « un au choix » / groupe « dans l'ordre » |                                                                                  |
+| to extend the reveal              | reporter la révélation                           | Not "prolonger".                                                                 |
+| to-do / to-do list                | tâche / liste de tâches                          |                                                                                  |
+| holiday                           | fête                                             | "fête personnalisée" for one an admin created.                                   |
+| digest (email)                    | récapitulatif                                    |                                                                                  |
+| run (of a job)                    | exécution                                        | "analyse" on the suggestions screens people see.                                 |
+| provider                          | fournisseur                                      |                                                                                  |
+| endpoint                          | point d'accès                                    |                                                                                  |
+| deployment / instance             | déploiement                                      |                                                                                  |
+| backup code                       | code de secours                                  |                                                                                  |
+| attachment / receipt              | pièce jointe / reçu                              |                                                                                  |
+| to impersonate                    | prendre l'identité                               | Noun: "prise d'identité".                                                        |
+| orphaned / attached (stored file) | orphelin / rattaché                              |                                                                                  |
+| settings                          | paramètres                                       | Not "réglages".                                                                  |
+| sign in / sign out                | se connecter / se déconnecter                    | Noun: "connexion".                                                               |
+| sign up                           | créer un compte                                  |                                                                                  |
+| password                          | mot de passe                                     |                                                                                  |
+| passkey                           | clé d'accès                                      |                                                                                  |
+| two-factor authentication         | authentification à deux facteurs                 |                                                                                  |
+| email                             | e-mail                                           |                                                                                  |
+| to upload                         | importer                                         | A file or photo going from the device to the app.                                |
+| link, URL (what a person pastes)  | lien                                             | "URL" only on admin screens.                                                     |
+| priority                          | priorité                                         |                                                                                  |
+| notes                             | notes                                            |                                                                                  |
+| price                             | prix                                             |                                                                                  |
+| birthday                          | anniversaire                                     | A couple's "anniversary" is "anniversaire de couple".                            |
+| Christmas                         | Noël                                             | No article: "pour Noël".                                                         |
+| Mother's Day / Father's Day       | fête des Mères / fête des Pères                  |                                                                                  |
+| Valentine's Day                   | Saint-Valentin                                   | With the article in a sentence: "la Saint-Valentin".                             |
+| admin                             | administrateur                                   | The role. The screen area is "Administration".                                   |
+| scraper / scraping (admin)        | extracteur / extraction                          | Reading a product page from its link.                                            |
+| token (AI usage)                  | token                                            | "jeton" only for an access or API token.                                         |
 
 ## Do not translate
 
