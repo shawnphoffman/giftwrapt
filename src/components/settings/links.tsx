@@ -9,7 +9,13 @@ import { cn } from '@/lib/utils'
 import { m } from '@/paraglide/messages.js'
 
 function navLinkClass(active: boolean) {
-	return cn(buttonVariants({ variant: 'ghost' }), 'justify-start w-full gap-2', active && 'bg-muted text-foreground hover:bg-muted')
+	// A label longer than the column wraps onto a second line, tight to the
+	// first, instead of spilling over the page beside it (French labels do).
+	return cn(
+		buttonVariants({ variant: 'ghost' }),
+		'justify-start w-full gap-2 h-auto min-h-9 py-1.5 text-left leading-tight whitespace-normal',
+		active && 'bg-muted text-foreground hover:bg-muted'
+	)
 }
 
 function NavIcon({ icon: Icon, active }: { icon: LucideIcon; active: boolean }) {

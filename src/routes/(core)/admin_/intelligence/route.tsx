@@ -50,7 +50,7 @@ function AdminIntelligenceLayout() {
 									to={t.to}
 									className={cn(
 										buttonVariants({ variant: 'ghost' }),
-										'justify-start w-full gap-2',
+										'justify-start w-full gap-2 h-auto min-h-9 py-1.5 text-left leading-tight whitespace-normal',
 										active && 'bg-muted text-foreground hover:bg-muted'
 									)}
 								>
